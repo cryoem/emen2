@@ -1,2 +1,1 @@
 Move parameter changing comment addition to database record commit. This avoids problems with multiple modifications per checkout and initial record addition problems.
-fix pcunlink, delete using key rather than index
