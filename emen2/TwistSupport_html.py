@@ -295,9 +295,10 @@ def html_newrecord(path,args,ctxid,host):
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
 		parm=db.getparamdefs(rec)
 		
+#		print "Record(  ",rec,"  )"
 		bld=[("","rectype","hidden")]
 		for p in rec.keys():
-			if p in ("owner","creator","creationdate","comments") or parm[p].vartype in ("child","link") : continue
+			if p in ("owner","creator","creationdate","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
 			try: bld.append((parm[p].desc_short,p,"text"))
 			except: bld.append((p,p,"text"))
 

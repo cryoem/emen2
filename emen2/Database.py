@@ -236,7 +236,7 @@ class BTree:
 		try:
 			
 			c=loads(self.pcdb.get(tag))
-			print c
+#			print c
 			if paramname :
 				c=filter(lambda x:x[1]==paramname,c)
 				return [x[0] for x in c]
@@ -714,7 +714,9 @@ class Record:
 	def __str__(self):
 		"A string representation of the record"
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
-		for i,j in self.__params.items():
+#		for i,j in self.__params.items():
+#			ret.append("%12s:  %s\n"%(str(i),str(j)))
+		for i,j in self.items():
 			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		return "".join(ret)
 		
