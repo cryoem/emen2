@@ -127,7 +127,11 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_putrecord(self,record,ctxid):
 		"""Puts a modified record back into the database"""
-		db.putrecord(record,ctxid)
+		try:
+			r=db.putrecord(recid,record,ctxid)
+		except: return -1
+			
+		return r
 		
 	def xmlrpc_addfieldtype(self,fieldtype,ctxid):
 		"""Puts a new FieldType in the database. User must have permission to add records."""
@@ -157,7 +161,6 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getrecordtypenames(self):
 		"""The names of all recordtypes are globally available to prevent duplication"""
 		return db.getrecordtypenames()
-	
 	def xmlrpc_getvartypenames(self):
 		"""The names of all variable types, ie - int,float, etc."""
 		return db.getvartypenames()
@@ -165,4 +168,3 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getpropertynames(self):
 		"""The names of all valid properties: temperature, pressure, etc."""
 		return db.getpropertynames()
-	

@@ -965,8 +965,8 @@ class Database:
 		return ret
 	
 	def getrecordtypenames(self):
-		"""This will retrieve a list of all existing FieldType names, even
-		those the user cannot access the contents of"""
+		"""This will retrieve a list of all existing RecordType names, 
+		even those the user cannot access the contents of"""
 		return self.recordtypes.keys()
 		
 	def reindex(self,key,oldval,newval,recid):
