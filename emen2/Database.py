@@ -132,99 +132,95 @@ class BTree:
 		that empty strings and None cannot be used as tags"""
 		if not self.relate : raise Exception,"relate option required in BTree"
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
-		parenttag=str(parenttag)
-		childtag=str(childtag)
+				
+		if not self.has_key(childtag) : raise KeyError,"Cannot link nonexistent key '%s'"%childtag
+		if not self.has_key(parenttag) : raise KeyError,"Cannot link nonexistent key '%s'"%parenttag
 		
 		try:
-			o=loads(self.pcdb.get(parenttag))
+			o=loads(self.pcdb.get(dumps(parenttag)))
 		except:
 			o=[]
       	
 		if not (childtag,paramname) in o:
 			o.append((childtag,paramname))
-			self.pcdb.put(parenttag,dumps(o))
+			self.pcdb.put(dumps(parenttag),dumps(o))
 			
 	                
 			try:
-				o=loads(self.cpdb.get(childtag))
+				o=loads(self.cpdb.get(dumps(childtag)))
 			except:
 				o=[]
 			
 			o.append(parenttag)
-			self.cpdb.put(childtag,dumps(o))
+			self.cpdb.put(dumps(childtag),dumps(o))
 #	        print self.children(parenttag)
 		
 	def pcunlink(self,parenttag,childtag,paramname=""):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
 		if not self.relate : raise Exception,"relate option required"
-		parenttag=str(parenttag)
-		childtag=str(childtag)
 		
 		try:
-			o=loads(self.pcdb.get(parenttag))
+			o=loads(self.pcdb.get(dumps(parenttag)))
 		except:
 			return
 			
 		if not (childtag,paramname) in o: return
 		
 		o.remove((childtag,paramname))
-		self.pcdb.put(parenttag,dumps(o))
+		self.pcdb.put(dumps(parenttag),dumps(o))
 		
-		o=loads(self.cpdb.get(childtag))
+		o=loads(self.cpdb.get(dumps(childtag)))
 		o.remove(parenttag)
-		self.cpdb.put(childtag,dumps(o))	
+		self.cpdb.put(dumps(childtag),dumps(o))	
 		
 	def link(self,tag1,tag2):
 		"""Establishes a lateral relationship (cousins) between two tags"""
 		if not self.relate : raise Exception,"relate option required"
-		tag1=str(tag1)
-		tag2=str(tag2)
+		
+		if not self.has_key(tag1) : raise KeyError,"Cannot link nonexistent key '%s'"%tag1
+		if not self.has_key(tag2) : raise KeyError,"Cannot link nonexistent key '%s'"%tag2
 		
 		try:
-			o=loads(self.reldb.get(tag1))
+			o=loads(self.reldb.get(dumps(tag1)))
 		except:
 			o=[]
 			
 		if not tag2 in o:
 			o.append(tag2)
-			self.reldb.put(tag1,dumps(o))
+			self.reldb.put(dumps(tag1),dumps(o))
 	
 			try:
-				o=loads(self.reldb.get(tag2))
+				o=loads(self.reldb.get(dumps(tag2)))
 			except:
 				o=[]
 			
 			o.append(tag1)
-			self.reldb.put(tag2,dumps(o))	
+			self.reldb.put(dumps(tag2),dumps(o))	
 		
 			
 	def unlink(self,tag1,tag2):
 		"""Removes a lateral relationship (cousins) between two tags"""
 		if not self.relate : raise Exception,"relate option required"
-		tag1=str(tag1)
-		tag2=str(tag2)
 		
 		try:
-			o=loads(self.rekdb.get(tag1))
+			o=loads(self.rekdb.get(dumps(tag1)))
 		except:
 			return
 			
 		if not tag2 in o: return
+		o.remove(tag2)
+		self.reldb.put(dumps(tag1),dumps(o))
 		
-		del o[tag2]
-		self.reldb.put(tag1,dumps(o))
-		
-		o=loads(self.reldb.get(tag2))
-		del o[tag1]
-		self.cpdb.put(tag2,dumps(o))	
+		o=loads(self.reldb.get(dumps(tag2)))
+		o.remove(tag1)
+		self.cpdb.put(dumps(tag2),dumps(o))	
 	
 	def parents(self,tag):
 		"""Returns a list of the tag's parents"""
 		if not self.relate : raise Exception,"relate option required"
-		tag=str(tag)
 		
 		try:
-			return loads(self.cpdb.get(tag))
+			return loads(self.cpdb.get(dumps(tag)))
 		except:
 			return []
 		
@@ -233,11 +229,11 @@ class BTree:
 		"""Returns a list of the tag's children. If paramname is
 		omitted, all named and unnamed children will be returned"""
 		if not self.relate : raise Exception,"relate option required"
-		tag=str(tag)
+#		tag=str(tag)
 		
 		try:
 			
-			c=loads(self.pcdb.get(tag))
+			c=loads(self.pcdb.get(dumps(tag)))
 #			print c
 			if paramname :
 				c=filter(lambda x:x[1]==paramname,c)
@@ -249,10 +245,10 @@ class BTree:
 	def cousins(self,tag):
 		"""Returns a list of tags related to the given tag"""
 		if not self.relate : raise Exception,"relate option required"
-		tag=str(tag)
+#		tag=str(tag)
 		
 		try:
-			return loads(self.reldb.get(tag))
+			return loads(self.reldb.get(dumps(tag)))
 		except:
 			return []
 
