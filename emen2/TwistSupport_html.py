@@ -48,9 +48,10 @@ class DBResource(Resource):
 		method=request.postpath[0]
 		host=request.getClientIP()
 		
-		return callbacks[method](request.postpath,request.args,ctxid,host)
+		return eval("html_"+method)(request.postpath,request.args,ctxid,host)
+#		return callbacks[method](request.postpath,request.args,ctxid,host)
 								
-		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
+#		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
 
 
 def html_header(name):
@@ -135,11 +136,21 @@ def html_newfieldtype(path,args,ctxid,host):
 			ret.append("Error adding Parameter '%s' : <i>%s</i><br><br>"%(str(args["name"]),e))	# Failed for some reason, fall through so the user can update the form
 		else :
 			# FieldType added sucessfully
-			ret+=["<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.",html_footer()]
+			ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.',html_footer()]
 			return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
-	
+	else:
+		ret.append("""<br><table><form action="/db/newfieldtype">
+			<tr><td>Name:</td><td><input type="text" name="name" /></td></tr>
+			<tr><td>Variable Type:</td><td><input type="" value="vartype"></td></tr>
+			<tr><td>Short Description:</td><td><input type="" value="desc_short"></td></tr>
+			<tr><td>Long Description:</td><td><input type="" value="desc_long"></td></tr>
+			<tr><td>Physical Property:</td><td><input type="" value="property"></td></tr>
+			<tr><td>Default Units:</td><td><input type="" value="defaultunits"></td></tr>
+			<tr><td><input type="submit" value="submit"></td></tr>
+			</form></body></html>"""
+		return "".join(ret)
 	
 def html_recordtypes(path,args,ctxid,host):
 	global db
@@ -213,7 +224,3 @@ def html_user(path,args,ctxid,host):
 	item.groups,item.disabled,item.privacy))
 	
 	return "".join(ret)
-
-# We use a dictionary for callbacks rather than a series of if's
-callbacks={'fieldtypes':html_fieldtypes,"fieldtype":html_fieldtype,"recordtypes":html_recordtypes,
-"recordtype":html_recordtype,"record":html_record,"users":html_users,"user":html_user}
