@@ -1,5 +1,7 @@
 from twisted.web.resource import Resource
 from emen2 import Database 
+from twisted.web import xmlrpc
+import os
 
 # we open the database as part of the module initialization
 db=Database.Database("/home/stevel/emen2test")
@@ -14,6 +16,7 @@ def loginpage(redir):
 
 
 class DBResource(Resource):
+	"""This resource serves HTML requests. Look in TwistServer for the actual server code."""
 	isLeaf = True
 	def getChild(self,name,request):
 		return self
@@ -46,6 +49,7 @@ class DBResource(Resource):
 		return callbacks[method](request.postpath,request.args,ctxid,host)
 								
 		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
+
 
 def html_header(name):
 	"""Common header block, includes <body>"""
@@ -139,7 +143,7 @@ def html_recordtype(path,args,ctxid,host):
 def html_record(path,args,ctxid,host):
 	global db
 	
-	item=db.getrecord(int(args["name"][0]))
+	item=db.getrecord(int(args["name"][0]),ctxid)
 
 	ret=[html_header("EMEN2 Record"),"<h2>Recor: <i>%d</i></h2><br>fields:<br>"%int(item.recid)]
 	
@@ -186,7 +190,30 @@ def html_user(path,args,ctxid,host):
 	
 	return "".join(ret)
 
-		
 # We use a dictionary for callbacks rather than a series of if's
 callbacks={'fieldtypes':html_fieldtypes,"fieldtype":html_fieldtype,"recordtypes":html_recordtypes,
 "recordtype":html_recordtype,"record":html_record,"users":html_users,"user":html_user}
+
+class DBXMLRPCResource(xmlrpc.XMLRPC):
+	"""This resource serves XMLRPC requests. Look in TwistServer for the actual server code."""
+	def xmlrpc_ping(self):
+		return "pong"
+
+	def xmlrpc_login(self,userid,password):
+		"""login method, should probably be called with https, TODO: note no support for host validation yet
+		This returns a ctxid to the caller. The ctxid must be used in subsequent requests"""
+		try:
+			return str(db.login(str(userid),str(password),None))
+		except:
+			return 0,"Login Failed"	
+		
+	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
+		try:
+			r=db.getrecord(recid,ctxid,dbid)
+		except Exception,x:
+			return 0,x
+		
+		return r.items()
+	
+	def xmlrpc_getuser(self,username,ctxid):
+		r=db.getuser(username,ctxid,None)

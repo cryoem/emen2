@@ -4,5 +4,6 @@ from emen2 import TwistSupport
 
 root = static.File("/home/stevel/pro/emen2/tweb")
 root.putChild("db",TwistSupport.DBResource())
+root.putChild("xmlrpc",TwistSupport.DBXMLRPCResource())
 reactor.listenTCP(8080, server.Site(root))
 reactor.run()
