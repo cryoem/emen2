@@ -5,6 +5,7 @@ from twisted.web.resource import Resource
 from emen2 import TwistSupport 
 import os
 import traceback
+import re
 
 # we open the database as part of the module initialization
 db=TwistSupport.db
@@ -93,7 +94,7 @@ def html_dicttable(dict,proto):
 	ret=["<table>"]
 	
 	for k,v in dict.items():
-		ret.append("<tr><td><a href=%s/%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,k,v))
+		ret.append("<tr><td><a href=%s%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,k,v))
 		
 	ret.append("</table><br>")
 
@@ -182,9 +183,17 @@ def html_recorddef(path,args,ctxid,host):
 	ret=[html_header("EMEN2 RecordDef Description"),"<h2>RecordDef: <i>%s</i></h2><br>"%item.name,
 	"<a href=/db/newrecord?rdef=%s>Add a New Record</a><br>fields:<br>"%item.name]
 	
-	print "xxx",item.fields
 	ret.append(html_dicttable(item.fields,"/db/paramdef?name="))
-	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
+#	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
+	
+	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
+	rp1=r'<i>\3=None</i>'
+	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
+	rp2=r'<i>\3=\4</i>'
+
+	ret.append("<br><b>Experimental Protocol:</b><br>%s<br><br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
+	for i in item.views.keys():
+		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
@@ -197,8 +206,11 @@ def html_newrecorddef(path,args,ctxid,host):
 			rd=DB.RecordDef()
 			rd.name=args["name"][0]
 			rd.mainview=args["mainview"][0]
+			rd.views["oneline"]=args["oneline"][0]
+			rd.views["summary"]=args["summary"][0]
 			if args.has_key("private") : rd.private=1
 			else: rd.private=0
+			rd.update()
 			db.addrecorddef(rd,ctxid,host)
 		except Exception,e:
 			traceback.print_exc()
@@ -212,7 +224,8 @@ def html_newrecorddef(path,args,ctxid,host):
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
 		return "".join(ret)+html_form(action="/db/newrecorddef",items=(("Name:","name","text"),
-		("Experiment Description","mainview","textarea",(60,10)),("Private Access","private","checkbox")),args=args)+"</body></html>"
+		("Experiment Description","mainview","textarea",(80,16)),("Summary View","summary","textarea",(80,8)),
+		("One Line View","oneline","textarea",(80,4)),("Private Access","private","checkbox")),args=args)+"</body></html>"
 	
 	
 def html_record(path,args,ctxid,host):
@@ -279,13 +292,13 @@ def html_user(path,args,ctxid,host):
 	if args.has_key("username") :
 		for k in args.keys(): args[k]=args[k][0]
 		item=db.getuser(args["username"],ctxid,host)
-		item.__dict__.update(keys)
-		item.groups=[int(i) for i in keys["groups"].split(',')]
+		item.__dict__.update(args)
+		item.groups=[int(i) for i in args["groups"].split(',')]
 		db.putuser(item,ctxid,host)
-		ret.append("<br>Update successful!<br>")
+		ret.append("<br><b>Update successful!</b><br><br>")
 	else :item=db.getuser(args["uid"][0],ctxid,host)
 	
-
+	item.groups=str(item.groups)[1:-1]
 	return "".join(ret)+html_form(action="/db/user",items=(("Username","username","text",14),
 		("First Name","name1","text",16),("Middle Name","name2","text",6),("Family Name","name3","text",20),("Privacy","privacy","checkbox"),
 		("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea",(40,3)),

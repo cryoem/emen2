@@ -24,6 +24,7 @@ from sets import *
 import os
 import md5
 import time
+import re
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
 
@@ -33,7 +34,7 @@ class SecurityError(Exception):
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
-def parseparmvalues(self,text):
+def parseparmvalues(text):
 	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
 	containing the passed values"""
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
@@ -41,12 +42,12 @@ def parseparmvalues(self,text):
 	ret={}
 	
 	for t in srch:
-		if (t[0].lower!="emen:parm" or t[1].lower!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=t[3]
 
 	return ret
 
-def parseparmdef(self,text):
+def parseparmdef(text):
 	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
 	containing the tags as keys and default values (which may be None)"""
 	
@@ -55,14 +56,14 @@ def parseparmdef(self,text):
 	ret={}
 
 	for t in srch:
-		if (t[0].lower!="emen:parm" or t[1].lower!="name" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=None
 	
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 
 	for t in srch:
-		if (t[0].lower!="emen:parm" or t[1].lower!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=t[3]
 	
 	return ret	
@@ -439,7 +440,7 @@ class RecordDef:
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields={"comments":[]}	# A dictionary keyed by the names of all fields used in any of the views
+		self.fields={"comments":None}	# A dictionary keyed by the names of all fields used in any of the views
 									# values are the default value for the field.
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
@@ -462,7 +463,15 @@ class RecordDef:
 		for k,v in self.fields.items():
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
-		
+	
+	def findfields(self):
+		"""This will update the list of fields by parsing the views"""
+		d=parseparmdef(self.mainview)
+		for i in self.views.values():
+			d.update(parseparmdef(i))
+		self.fields=d
+		self.fields["comments"]=None
+			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Users are never deleted, only disabled, for historical logging purposes"""
@@ -1016,7 +1025,7 @@ class Database:
 		except:
 			raise KeyError,"Putuser may only be used to update existing users"
 		
-		if ctx.user!=ouser.user and not(-1 in ctx.groups) :
+		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
 			raise SecurityError,"Only administrators and the actual user may update a user record"
 		
 		if not (-1 in ctx.groups) : user.groups=ouser.groups
@@ -1205,11 +1214,27 @@ class Database:
 		if (recdef.owner==None) : recdef.owner=ctx.user
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		recdef.update()
 		
 		# this actually stores in the database
 		self.recorddefs[recdef.name]=recdef
 		
+	def putrecorddef(self,recdef,ctxid,host=None):
+		"""This modifies an existing RecordDef. Note that certain fields, including the
+		Main view cannot be modified by anyone."""
+		ctx=self.__getcontext(ctxid,host)
+		rd=self.recorddefs[recdef.name]
+
+		if (not -1 in ctx.groups) and (ctx.user!=rd.owner) : 
+			raise SecurityError,"Only the owner or administrator can modify RecordDefs"
+
+		recdef.creator=rd.creator
+		recdef.creationtime=rd.creationtime
+		recdef.mainview=rd.mainview
+		recdef.update()
 		
+		self.recorddefs[recdef.name]=recdef
+				
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
