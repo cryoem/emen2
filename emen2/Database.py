@@ -88,8 +88,7 @@ class BTree:
 		return self[key]
 
 	def update(self,dict):
-		for i in dict.items():
-			self[i[0]]=i[1]
+		for i,j in dict.items(): self[i]=j
 
 class FieldBTree:
 	"""This is a specialized version of the BTree class. This version uses type-specific 
@@ -451,19 +450,29 @@ class Record:
 			ret[t[2].strip()]=t[3]
 									
 	def update(self,dict):
-		
+		"""due to the processing required, it's best just to implement this as
+		a sequence of calls to the existing setitem method"""
+		for i,j in dict.items(): self[i]=j
 	
 	def keys(self):
-		return self.fields.keys()+["owner","creator","creationdate","permissions"]
-	
+		"""All retrievable keys for this record"""
+		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		return tuple(self.fields.keys())+("owner","creator","creationdate","permissions")
+		
+	def items(self):
+		"""Key/value pairs"""
+		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		ret=self.fields.items()
+		ret+=[(i,self[i]) for i in ("owner","creator","creationdate","permissions")]
+
 	def has_key(self,key):
-		if key in self.keys() : return True
+		if key in self.keys() or key in ("owner","creator","creationdate","permissions"): return True
 		return False
 
 	def commit(self):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary"""	
-	
+		self.__context.db.putRecord(self,self.__context.ctxid)
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -578,6 +587,9 @@ class Database:
 				raise Exception,"Bad address match, login sessions cannot be shared"
 			
 			return ctx			
+		
+		def putRecord(self,record,ctxid):
+			"""The record has everything we need to commit the data"""
 			
 		def getRecord(self,ctxid,recid,dbid=0) :
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
