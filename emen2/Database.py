@@ -103,12 +103,15 @@ class BTree:
 		if relate :
 			self.relate=1
 		
+			# Parent keyed list of children
 			self.pcdb=db.DB(dbenv)
 			self.pcdb.open(file+".pc",name,db.DB_BTREE,db.DB_CREATE)
 			
+			# Child keyed list of parents
 			self.cpdb=db.DB(dbenv)
 			self.cpdb.open(file+".cp",name,db.DB_BTREE,db.DB_CREATE)
 			
+			# lateral links between records (nondirectional), 'getcousins'
 			self.reldb=db.DB(dbenv)
 			self.reldb.open(file+".rel",name,db.DB_BTREE,db.DB_CREATE)
 		else : self.relate=0
@@ -524,7 +527,8 @@ class RecordDef:
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
-Users are never deleted, only disabled, for historical logging purposes"""
+Users are never deleted, only disabled, for historical logging purposes. -1 group is for database
+administrators. -2 group is read-only administrator."""
 	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
@@ -1012,6 +1016,21 @@ class Database:
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
+	def getindexbyuser(self,username,ctxid,host=None):
+		"""This will use the user keyed record read-access index to return
+		a list of records the user can access"""
+		u,g=self.checkcontext(ctxid,host)
+		if (u!=username and (not -1 in g) and (not -2 in g)) :
+			raise SecurityError,"Not authorized to get record access for %s"%username 
+		return self.__secrindex[username]
+	
+	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
+		"""Uses the recdefname keyed index to return all
+		records belonging to a particular RecordDef. Currently this
+		is unsecured, but actual records cannot be retrieved, so it
+		shouldn't pose a security threat."""
+		return self.__recorddefindex[recdefname]
+		
 	def getchildren(self,key,keytype="record",paramname=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
