@@ -141,17 +141,26 @@ def html_newfieldtype(path,args,ctxid,host):
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		ret.append("""<br><table><form action="/db/newfieldtype">
-			<tr><td>Name:</td><td><input type="text" name="name" /></td></tr>
-			<tr><td>Variable Type:</td><td><input type="" value="vartype"></td></tr>
-			<tr><td>Short Description:</td><td><input type="" value="desc_short"></td></tr>
-			<tr><td>Long Description:</td><td><input type="" value="desc_long"></td></tr>
-			<tr><td>Physical Property:</td><td><input type="" value="property"></td></tr>
-			<tr><td>Default Units:</td><td><input type="" value="defaultunits"></td></tr>
-			<tr><td><input type="submit" value="submit"></td></tr>
-			</form></body></html>"""
-		return "".join(ret)
-	
+		return ret+html_form(action="/db/newfieldtype",items=(("Name:","name","text"),
+		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
+		("Short Description","desc_short","text"),("Long Description","desc_long","textarea"),
+		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+"</body></html>"
+		
+
+def html_form(action="",items=(),args={}):
+	ret=['<table><form action="%s">'%action]
+	for i in items:
+		if i[2]=="select" :
+			ret.append('<tr><td>%s:</td><td><select name="%s">'%(i[0],i[1]))
+			for j in i[3]:
+				if j==args.get(i[1],"") : ret.append('<option selected>%s</option>'%j)
+				else : ret.append('<option>%s</option>'%j)
+			ret.append('</select></td></tr>\n')
+		else:
+			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
+
+	ret.append('</form></table>\n')
+			
 def html_recordtypes(path,args,ctxid,host):
 	global db
 	
