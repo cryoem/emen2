@@ -20,6 +20,8 @@ LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "
 class SecurityError(Exception):
 	"Exception for a security violation"
 
+class FieldError(Exception):
+	"Exception for problems with Field definitions"
 
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
@@ -223,21 +225,24 @@ class FieldType:
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
 	Database object.""" 
-	def __init__(self):
-		self.name=None				# This is the name used in XML files to refer to this field, lower case
-		self.vartype=None			# Variable data type. List of valid types in the module global 'vartypes'
-		self.desc_short=None		# This is a very short description for use in forms
-		self.desc_long=None			# A complete description of the meaning of this variable
-		self.property=None			# Physical property represented by this field, List in 'properties'
-		self.defaultunits=None		# Default units (optional)
-#		self.needsupdate=0			# flag indicating a field that has an incomplete definition
-	
+	def __init__(self,creator,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
+		self.name=name					# This is the name used in XML files to refer to this field, lower case
+		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
+		self.desc_short=desc_short		# This is a very short description for use in forms
+		self.desc_long=desc_long		# A complete description of the meaning of this variable
+		self.property=property			# Physical property represented by this field, List in 'properties'
+		self.defaultunits=defaultunits	# Default units (optional)
+		self.creator=creator			# original creator of the record
+		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+										# creation date
+
+			
 class RecordType:
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
 	def __init__(self):
-		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
+		self.name=None				# the name of the current RecordType, somewhat redundant, since also stored as key for index in Database
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
@@ -247,12 +252,12 @@ class RecordType:
 									# is NOT REQUIRED to have a valid Record 
 
 class User:
-	"""This defines a database user"""
+	"""This defines a database user, note that group 0 membership is required to add new records"""
 	def __init__(self):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
-ofil									# magic groups are -1 = administrator, -2 = read-only administrator
+									# magic groups are 0 = add new records, -1 = administrator, -2 = read-only administrator
 		self.name=None				# tuple first, last, middle
 		self.email=None				# email address
 		self.altemail=None			# alternate email
@@ -260,8 +265,6 @@ ofil									# magic groups are -1 = administrator, -2 = read-only administrator
 		self.fax=None				#
 		self.cellphone=None			#
 			
-
-									
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
@@ -312,9 +315,9 @@ class Record:
 		"""Record must be created with a context. This should only be done directly
 		by a Database object, to insure security and protocols are handled correctly"""
 		self.recid=None				# 32 bit integer recordid (within the current database)
-		self.rectype=""				# string of the RecordType represented by this Record
-		self.fields={comments:[]}				# a Dictionary containing field names associated with their data
-		self.ofields={}				# when a field value is changed, the original value is stored here
+		self.rectype=""				# name of the RecordType represented by this Record
+		self.__fields={comments:[]}	# a Dictionary containing field names associated with their data
+		self.__ofields={}				# when a field value is changed, the original value is stored here
 		self.__owner=0				# The owner of this record
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
@@ -371,12 +374,12 @@ class Record:
 						
 			# test for general write permission in this context
 			if (ctx.user in p3 or u1&p3) : self.__ptest[2]=1
-
+		return self.__ptest
 	
 	def __str__(self):
 		"A string representation of the record"
 		ret=["%d (%s)\n"%(self.recid,self.rectype)]
-		for i,j in self.fields.items:
+		for i,j in self.__fields.items:
 			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		return ret.join()
 		
@@ -391,7 +394,7 @@ class Record:
 		if key=="creator" : return self.__creator
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
-		if self.fields.has_key(key) : return self.fields[key]
+		if self.__fields.has_key(key) : return self.__fields[key]
 		return None
 	
 	def __setitem__(self,key,value):
@@ -405,7 +408,7 @@ class Record:
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
-				self.fields["comments"].append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
+				self.__fields["comments"].append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
 				
 				# now update the values of any embedded fields
 				for i,j in dict.items():
@@ -428,15 +431,15 @@ class Record:
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %d"%self.recid
-			if key in self.fields :
-				self.fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
+			if key in self.__fields :
+				self.__fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
 			"""This insures that copies of original values are made when appropriate
 			security should be handled by the parent method"""
-			if key in self.fields and not key in self.ofields : self.ofields[key]=self.fields[key]
-			self.fields[key]=value
+			if key in self.__fields and not key in self.__ofields : self.__ofields[key]=self.__fields[key]
+			self.__fields[key]=value
 									
 
 	def parsestring(self,text):
@@ -457,12 +460,12 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.fields.keys())+("owner","creator","creationdate","permissions")
+		return tuple(self.__fields.keys())+("owner","creator","creationdate","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		ret=self.fields.items()
+		ret=self.__fields.items()
 		ret+=[(i,self[i]) for i in ("owner","creator","creationdate","permissions")]
 
 	def has_key(self,key):
@@ -471,7 +474,7 @@ class Record:
 
 	def commit(self):
 		"""This will commit any changes back to permanent storage in the database, until
-		this is called, all changes are temporary"""	
+		this is called, all changes are temporary"""
 		self.__context.db.putRecord(self,self.__context.ctxid)
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
@@ -496,20 +499,30 @@ class Database:
 			self.dbenv.set_data_dir(path)
 			self.dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
 			
-			# security related items
+			if not os.access(path+"/security",F_OK) : os.mkdirs(path+"/security")
+			if not os.access(path+"/index",F_OK) : os.mkdir(path+"/index")
+			
+			# Users
 			self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
 			self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
-			self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
 			
 			# Defined FieldTypes
-			self.fieldtype=BTree("fieldtypes",path+"/fieldtypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
+			self.fieldtypes=BTree("FieldTypes",path+"/FieldTypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
 
 			# Defined RecordTypes
-			self.recordtype=BTree("recordtypes",path+"/recordtypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
+			self.recordtypes=BTree("RecordTypes",path+"/RecordTypes.bdb",dbenv=self.dbenv)					# RecordType objects indexed by name
 						
 			# The actual database
 			self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
-			self.recordtypes=FieldBTree("recordtypeindex",path+"/recordtypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
+			try:
+				max=self.records[0]
+			except:
+				self.records[0]=0
+				self.LOG(3,"New database created")
+			
+			# Indices
+			self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
+			self.recordtypeindex=FieldBTree("RecordTypeindex",path+"/RecordTypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
 			self.fieldindex={}				# dictionary of FieldBTrees, 1 per FieldType, not opened until needed
 
 			# The mirror database for storing offsite records
@@ -587,9 +600,105 @@ class Database:
 				raise Exception,"Bad address match, login sessions cannot be shared"
 			
 			return ctx			
-		
+
+		def reindex(self,key,oldval,newval,recid)
+			"""This function reindexes a single key/value pair
+			This includes creating any missing indices if necessary"""
+
+			if (oldval==newval) : return
+			try:
+				ind=self.fieldindex[key]		# Try to get the index for this key
+			except:
+				# index not open yet, open/create it
+				try:
+					f=self.FieldType[key]		# Look up the definition of this field
+				except:
+					# Undefined field, we can't create it, since we don't know the type
+					raise FieldError,"No such field %s defined"%key
+				tp=valid_vartypes[f.vartype][0]
+				if not tp : return			# if this is None, then this is an 'unindexable' field
+				
+				# create/open index
+				self.fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.dbenv)
+				ind=self.fieldindex[key]
+			
+			# remove the old ref and add the new one
+			if oldval!=None : ind.removeref(oldval,recid)
+			if newval!=None : ind.addref(newval,recid)
+
+		def reindexsec(self,oldlist,newlist,recid):
+			"""This updates the security (read-only) index
+			takes two lists of userid/groups (may be None)"""
+			o=Set(oldlist)
+			n=Set(newlist)
+			
+			uo=o-n	# unique elements in the 'old' list
+			un=n-o	# unique elements in the 'new' list
+
+			# anying in both old and new should be ok,
+			# So, we remove the index entries for all of the elements in 'old', but not 'new'
+			for i in uo:
+				self.secrindex.removeref(i,recid)
+
+			# then we add the index entries for all of the elements in 'new', but not 'old'
+			for i in un:
+				self.secrindex.addred(i,recid)
+													
 		def putRecord(self,record,ctxid):
-			"""The record has everything we need to commit the data"""
+			"""The record has everything we need to commit the data. However, to 
+			update the indices, we need the original record as well. This also provides
+			an opportunity for double-checking security vs. the original"""
+			ctx=__getcontext(ctxid)
+
+			try:
+				orig=self.records[record.recid]		# get the unmodified record
+			except:
+				# Record must not exist, lets create it
+				#p=record.setContext(ctx)
+				user=self.users[ctx.user]
+				if (not 0 in user.groups) and (not -1 in user.groups) : raise SecurityError,"No permission to create records"
+				
+				# index fields
+				for k,v in record.items():
+					self.reindex(k,None,v,record.recid)
+				
+				self.reindexsec(None,record["security"],record.recid)		# index security
+				self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
+				return
+					
+			p=orig.setContext(ctx)				# security check on the original record
+			
+			# Ok, to efficiently update the indices, we need to figure out what changed
+			fields=Set(orig.keys()).union_update(record.keys())		# list of all fields (old and new)
+			changedfields=[]
+			for f in fields:
+				try:
+					if (orig[f]!=record[f]) : changedfields.append(f)
+				except:
+					changedfields.append(f)
+			
+			
+				
+				
+
+		def newRecord(self,rectype,init):
+			"""This will create an empty record and initialize it for a given RecordType (which must
+			already exist)."""
+			ret=Record()
+			try:
+				t=self.RecordType[rectype]			# try to get the RecordType entry
+			except:
+				raise Exception,"No such RecordType (%s)"%rectype	
+			ret.rectype=rectype						# if we found it, go ahead and set up
+			
+			ret.recid=self.records[0]+1				# Get a new record-id
+			self.records[0]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+			
+			if init:
+				for i in t.fields():
+					ret[i]=None							# dummy entries for each field
+			
+			return ret
 			
 		def getRecord(self,ctxid,recid,dbid=0) :
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -599,14 +708,18 @@ class Database:
 			
 			if (dbid!=0) : raise Exception,"External database support not yet available"
 			
+			# if a single id was requested, return it
+			# setContext is required to make the record valid, and returns a binary security tuple
 			if (isinstance(recid,int)):
 				rec=self.records[recid]
-				if ctx.user in rec.permissions[0] : return rec
+				p=rec.setContext(ctx)
+				if p[0] : return rec
 				raise Exception,"No permission to access record"
 			elif (isinstance(recid,list)):
 				rec=map(lambda x:self.records[x],recid)
 				for r in rec:
-					if not (ctx.user in r.permissions[0]) : raise Exception,"No permission to access one or more records"	
+					p=rec.setContext(ctx)
+					if not p[0] : raise Exception,"No permission to access one or more records"	
 				return rec
 			else : raise KeyError,"Invalid Key"
 			
@@ -622,14 +735,15 @@ class Database:
 					rec=self.records[recid]
 				except: 
 					return None
-				if ctx.user in rec.permissions[0] : return rec
+				p=rec.setContext(ctx)
+				if p[0] : return rec
 				return None
 			elif (isinstance(recid,list)):
 				try:
 					rec=map(lambda x:self.records[x],recid)
 				except: 
 					return None
-				rec=filter(lambda x:ctx.user in x.permissions[0],rec)
+				rec=filter(lambda x:x.setContext(ctx)[0],rec)
 				return rec
 			else : return None
 			
