@@ -312,7 +312,7 @@ def html_newrecord(path,args,ctxid,host):
 	del args["rdef2"]
 	rec.update(args)
 	rid=db.putrecord(rec,ctxid,host)
-	ret.append('Record add sucessful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a></body></html')
+	ret.append('Record add successful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a></body></html'%rid)
 	
 	return ''.join(ret)
 	

@@ -613,8 +613,11 @@ class Record:
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		del odict['__context']
-		del odict['__ptest']
+		try: del odict['__context__']
+		except: pass
+		try: del odict['_Record__ptest']
+		except: pass
+		
 		return odict
 	
 	def __setstate__(self,dict):
@@ -847,6 +850,15 @@ class Database:
 		u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		u.name=('Database','','Administrator')
 		self.users["root"]=u
+		
+		# This sets up a few standard ParamDefs common to all records
+		if not self.paramdefs.has_key("owner"):
+			pd=ParamDef("owner","string","Record Owner","This is the user-id of the 'owner' of the record")
+			self.paramdefs["owner"]=pd
+			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
+			self.paramdefs["creator"]=pd
+			pd=ParamDef("creationdate","datetime","Creation timestamp","The date/time the record was originally created")
+			self.paramdefs["creationdate"]=pd
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -1328,7 +1340,7 @@ class Database:
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
 
-		if (key=="comments") : return		# comments are not currently indexed 
+		if (key=="comments" or key=="permissions") : return		# comments & permissions are not currently indexed 
 		if (oldval==newval) : return		# no change, no indexing required
 		
 		try:
@@ -1393,6 +1405,8 @@ class Database:
 			
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
+
+			record.setContext(ctx)
 			
 			# index fields
 			for k,v in record.items():
@@ -1401,6 +1415,7 @@ class Database:
 			self.reindexsec(None,record["security"],record.recid)		# index security
 			self.recorddefindex.addref(record.rectype,record.recid)	# index recorddef
 			
+			print record.__dict__
 			self.records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
 				
