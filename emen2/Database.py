@@ -1060,51 +1060,58 @@ class Database:
 	
 	def getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
-		keytype is 'record', 'recorddef', or 'paramdef'"""
+		keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
+		on the parent object or an empty set will be returned. For recursive lookups
+		the tree will appropriately pruned during recursion."""
 		
 		if (recurse<0): return Set()
-		if keytype=="record" : trg=self.__records
-		elif keytype=="recorddef" : trg=self.__recorddefs
+		if keytype=="record" : 
+			trg=self.__records
+			try: a=self.getrecord(key,ctxid)
+			except: return Set()
+		elif keytype=="recorddef" : 
+			trg=self.__recorddefs
+			try: a=self.getrecorddef(key,ctxid)
+			except: return Set()
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
-		
+
 		ret=trg.children(key,paramname)
+#		print ret
 		
-		if (keytype=="record") :
-			secure=Set(self.getindexbyuser(None,ctxid,host))
-			print len(secure)
-			if recurse==0 : return Set(ret)&secure
-		else:
-			if recurse==0 : return Set(ret)
+		if recurse==0 : return Set(ret)
 		
 		r2=[]
 		for i in ret:
 			r2+=self.getchildren(i[0],keytype,paramname,recurse-1,ctxid,host)
-		if (keytype=="record"): return Set(ret+r2)&secure
+		
 		return Set(ret+r2)
 		
 	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
-		keytype is 'record', 'recorddef', or 'paramdef'"""
+		keytype is 'record', 'recorddef', or 'paramdef'. User must have
+		read permission on the keyed record to get a list of parents
+		or an empty set will be returned."""
 		
 		if (recurse<0): return Set()
-		if keytype=="record" : trg=self.__records
-		elif keytype=="recorddef" : trg=self.__recorddefs
+		if keytype=="record" : 
+			trg=self.__records
+			try: a=self.getrecord(key,ctxid)
+			except: return Set()
+		elif keytype=="recorddef" : 
+			trg=self.__recorddefs
+			try: a=self.getrecorddef(key,ctxid)
+			except: return Set()
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 		
-		ret=trg.parent(key,paramname)
+		ret=trg.parents(key,paramname)
 		
-		if (keytype=="record") :
-			secure=Set(self.getindexbyuser(None,ctxid,host))
-			if recurse==0 : return Set(ret)&secure
-		else:
-			if recurse==0 : return Set(ret)
+		if recurse==0 : return Set(ret)
 		
 		r2=[]
 		for i in ret:
 			r2+=self.getparents(i[0],keytype,paramname,recurse-1,ctxid,host)
-		if (keytype=="record"): return Set(ret+r2)&secure
 		return Set(ret+r2)
 
 	def getcousins(self,key,keytype="record",ctxid=None,host=None):
@@ -1123,8 +1130,9 @@ class Database:
 		have write permission on at least one of the two."""
 		
 		if keytype=="record" : 
-			a=self.__records[pkey]
-			b=self.__records[ckey]
+			a=self.getrecord(pkey,ctxid)
+			b=self.getrecord(ckey,ctxid)
+			print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
 			return self.__records.pclink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
@@ -1136,8 +1144,8 @@ class Database:
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
 		if keytype=="record" : 
-			a=self.__records[pkey]
-			b=self.__records[ckey]
+			a=self.getrecord(pkey,ctxid)
+			b=self.getrecord(ckey,ctxid)
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
 			return self.__records.pcunlink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,paramname)
@@ -1151,8 +1159,8 @@ class Database:
 		for both records."""
 		
 		if keytype=="record" : 
-			a=self.__records[pkey]
-			b=self.__records[ckey]
+			a=self.getrecord(key1,ctxid)
+			b=self.getrecord(key2,ctxid)
 			return self.__records.link(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2)
 		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2)
@@ -1163,8 +1171,8 @@ class Database:
 		"""Remove a 'cousin' relationship between two keys."""
 		
 		if keytype=="record" : 
-			a=self.__records[pkey]
-			b=self.__records[ckey]
+			a=self.getrecord(key1,ctxid)
+			b=self.getrecord(key2,ctxid)
 			return self.__records.unlink(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2)
 		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2)
