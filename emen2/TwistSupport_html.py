@@ -99,6 +99,7 @@ def html_home():
 	<li><a href="/db/users">List of Users</a></li>
 	</ul><br><br><ul>
 	<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
+	<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
 	<li><a href="/db/newuser">Add New User</a></li>
 	</ul>"""]
 	
@@ -151,7 +152,7 @@ def html_newparamdef(path,args,ctxid,host):
 	else:
 		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
 		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
-		("Short Description","desc_short","text"),("Long Description","desc_long","textarea"),
+		("Short Description","desc_short","text"),("Long Description","desc_long","textarea",(60,3)),
 		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+"</body></html>"
 		
 
@@ -177,6 +178,30 @@ def html_recorddef(path,args,ctxid,host):
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
+
+def html_newrecorddef(path,args,ctxid,host):
+	global db
+	ret=[html_header("EMEN2 Add Record Definition"),"<h1>Add Record Definition</h1><br>"]
+	if args.has_key("name") :
+		try: 
+			rd=DB.RecordDef()
+			rd.name=args["name"][0]
+			rd.mainview=args["mainview"][0]
+			rd.private=args["private"][0]
+			db.addrecorddef(rd,ctxid,host)
+		except Exception,e:
+			ret.append("Error adding RecordDef '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
+			return "".join(ret)
+			
+		# ParamDef added sucessfully
+		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		return "".join(ret)
+
+	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
+	else:
+		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
+		("Experiment Description","mainview","textarea",(60,10)),("Private Access","private","checkbox")),args=args)+"</body></html>"
+	
 	
 def html_record(path,args,ctxid,host):
 	global db
@@ -237,6 +262,9 @@ def html_form(action="",items=(),args={}):
 				if j==args.get(i[1],"") : ret.append('<option selected>%s</option>'%j)
 				else : ret.append('<option>%s</option>'%j)
 			ret.append('</select></td></tr>\n')
+		elif i[2]=="textarea" :
+			if len(i)<4 or len(i[3])<2 : i[3]=(40,10)
+			ret.append('<tr><td>%s</td><td><textarea name="%s" cols="%d" rows="%d">%s</textarea></td></tr>\n'%(i[0],i[1],i[3][0],i[3][1],args.get(i[1],'')))
 		else:
 			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
 

@@ -14,7 +14,7 @@
 
 Note that the database does have a security model, but it cannot be rigorously enforced at the python level.
 That is, a programmer using this library will not be able to accidentally violate the security model, but
-with sufficient intent and knowledge it is possible. To use the module securely it must be encapsulated
+with sufficient intent and knowledge it is possible. To use this module securely it must be encapsulated
 by another layer, say an xmlrpc server...
 """
 
@@ -33,17 +33,40 @@ class SecurityError(Exception):
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
-def parsefieldstring(self,text):
-	"""This will exctract XML 'field' tags from a block of text"""
-	# This nasty regex will extract <aaa bbb=ccc>ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-	srch=re.findall("<([^> ]*) ([^=]*)=([^>]*)>([^<]*)</([^>]*)>" ,text)
+def parseparmvalues(self,text):
+	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
+	containing the passed values"""
+	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
+	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 	ret={}
-	if not srch : return ret
+	
 	for t in srch:
-		if (t[0].lower!="field" or t[1].lower!="name" or t[4]!="field" or " " in t[2].strip()) :continue
-		ret[t[2].strip()]=t[3]
-								
+		if (t[0].lower!="emen:parm" or t[1].lower!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		ret[t[2].strip().lower()]=t[3]
 
+	return ret
+
+def parseparmdef(self,text):
+	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
+	containing the tags as keys and default values (which may be None)"""
+	
+	# This nasty regex will extract <aaa bbb="ccc" /> blocks as [(aaa,bbb,ccc),...]
+	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" */>' ,text)
+	ret={}
+
+	for t in srch:
+		if (t[0].lower!="emen:parm" or t[1].lower!="name" or " " in t[2].strip()) :continue
+		ret[t[2].strip().lower()]=None
+	
+	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
+	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+
+	for t in srch:
+		if (t[0].lower!="emen:parm" or t[1].lower!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		ret[t[2].strip().lower()]=t[3]
+	
+	return ret	
+		
 def format_string_obj(dict,keylist):
 	"""prints a formatted version of an object's dictionary"""
 	r=["{"]
@@ -60,10 +83,11 @@ def format_string_obj(dict,keylist):
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
-	def __init__(self,name,file=None,dbenv=None,nelem=0):
+	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
-		specified"""
+		specified. If relate is true, then parent/child and cousin relationships
+		between records are also supported."""
 		global globalenv
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
@@ -72,6 +96,19 @@ class BTree:
 #		if nelem : self.bdb.set_h_nelem(nelem)					# guess how many elements in a hash
 		self.bdb.open(file,name,db.DB_BTREE,db.DB_CREATE)
 #		self.bdb.open(file,name,db.DB_HASH,db.DB_CREATE)
+
+		if relate :
+			self.relate=1
+		
+			self.pcdb=db.DB(dbenv)
+			self.pcdb.open(file+".pc",name,db.DB_BTREE,db.DB_CREATE)
+			
+			self.cpdb=db.DB(dbenv)
+			self.cpdb.open(file+".cp",name,db.DB_BTREE,db.DB_CREATE)
+			
+			self.reldb=db.DB(dbenv)
+			self.reldb.open(file+".rel",name,db.DB_BTREE,db.DB_CREATE)
+		else : self.relate=0
 
 	def rmvlist(self,key,item):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
@@ -84,6 +121,124 @@ class BTree:
 		if (self.has_key(key)):
 			self[key]=(self[key]+[item])
 		else: self[key]=[item]
+
+	def pclink(self,parenttag,childtag):
+		"""This establishes a parent-child relationship between two tags"""
+		if not self.relate : raise Exception,"relate option required"
+		parenttag=str(parenttag)
+		childtag=str(childtag)
+		
+		try:
+			o=loads(self.pcdb.get(parenttag))
+		except:
+			o=[]
+			
+		if not childtag in o:
+			o.append(childtag)
+			self.pcdb.put(parenttag,dumps(o))
+	
+			try:
+				o=loads(self.cpdb.get(childtag))
+			except:
+				o=[]
+			
+			o.append(parenttag)
+			self.cpdb.put(childtag,dumps(o))
+	
+	def pcunlink(self,parenttag,childtag):
+		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
+		if not self.relate : raise Exception,"relate option required"
+		parenttag=str(parenttag)
+		childtag=str(childtag)
+		
+		try:
+			o=loads(self.pcdb.get(parenttag))
+		except:
+			return
+			
+		if not childtag in o: return
+		
+		del o[childtag]
+		self.pcdb.put(parenttag,dumps(o))
+		
+		o=loads(self.cpdb.get(childtag))
+		del o[parenttag]
+		self.cpdb.put(childtag,dumps(o))	
+		
+	def link(self,tag1,tag2):
+		"""Establishes a lateral relationship (cousins) between two tags"""
+		if not self.relate : raise Exception,"relate option required"
+		tag1=str(tag1)
+		tag2=str(tag2)
+		
+		try:
+			o=loads(self.reldb.get(tag1))
+		except:
+			o=[]
+			
+		if not tag2 in o:
+			o.append(tag2)
+			self.reldb.put(tag1,dumps(o))
+	
+			try:
+				o=loads(self.reldb.get(tag2))
+			except:
+				o=[]
+			
+			o.append(tag1)
+			self.reldb.put(tag2,dumps(o))	
+		
+			
+	def unlink(self,tag1,tag2):
+		"""Removes a lateral relationship (cousins) between two tags"""
+		if not self.relate : raise Exception,"relate option required"
+		tag1=str(tag1)
+		tag2=str(tag2)
+		
+		try:
+			o=loads(self.rekdb.get(tag1))
+		except:
+			return
+			
+		if not tag2 in o: return
+		
+		del o[tag2]
+		self.reldb.put(tag1,dumps(o))
+		
+		o=loads(self.reldb.get(tag2))
+		del o[tag1]
+		self.cpdb.put(tag2,dumps(o))	
+	
+	def parents(self,tag):
+		"""Returns a list of the tag's parents"""
+		if not self.relate : raise Exception,"relate option required"
+		tag=str(tag)
+		
+		try:
+			return loads(self.cpdb.get(tag))
+		except:
+			return []
+		
+		
+	def children(self,tag):
+		"""Returns a list of the tag's children"""
+		if not self.relate : raise Exception,"relate option required"
+		tag=str(tag)
+		
+		try:
+			return loads(self.pcdb.get(tag))
+		except:
+			return []
+	
+	def cousins(self,tag):
+		"""Returns a list of tags related to the given tag"""
+		if not self.relate : raise Exception,"relate option required"
+		tag=str(tag)
+		
+		try:
+			return loads(self.reldb.get(tag))
+		except:
+			return []
 
 	def __del__(self):
 		self.close()
@@ -512,7 +667,7 @@ class Record:
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
-				dict=parsefieldstring(value)	# find any embedded fields
+				dict=parseparmvalues(value)	# find any embedded fields
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
@@ -617,15 +772,15 @@ class Database:
 		self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
 	
 		# Defined ParamDefs
-		self.paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.dbenv)						# ParamDef objects indexed by name
+		self.paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.dbenv,relate=1)						# ParamDef objects indexed by name
 
 		# Defined RecordDefs
-		self.recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.dbenv)					# RecordDef objects indexed by name
+		self.recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.dbenv,relate=1)					# RecordDef objects indexed by name
 					
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
 		# and database information is stored with key=0
-		self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
+		self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv,relate=1)						# The actual database, containing id referenced Records
 		try:
 			max=self.records[-1]
 		except:
@@ -743,6 +898,71 @@ class Database:
 
 	def checkcontext(self,ctxid,host):
 		a=self.__getcontext(ctxid,host)
+	
+	def getchildren(self,key,keytype="record"):
+		"""This will get the keys of the children of the referenced object
+		keytype is 'record', 'recorddef', or 'paramdef'"""
+		if keytype=="record" : return self.records.children(key)
+		if keytype=="recorddef" : return self.recorddefs.children(key)
+		if keytype=="paramdef" : return self.paramdefs.children(key)
+		
+		raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+	
+	def getparents(self,key,keytype="record"):
+		"""This will get the keys of the parents of the referenced object
+		keytype is 'record', 'recorddef', or 'paramdef'"""
+		
+		if keytype=="record" : return self.records.parents(key)
+		if keytype=="recorddef" : return self.recorddefs.parents(key)
+		if keytype=="paramdef" : return self.paramdefs.parents(key)
+		
+		raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+
+	def getcousins(self,key,keytype="record"):
+		"""This will get the keys of the cousins of the referenced object
+		keytype is 'record', 'recorddef', or 'paramdef'"""
+		
+		if keytype=="record" : return self.records.cousins(key)
+		if keytype=="recorddef" : return self.recorddefs.cousins(key)
+		if keytype=="paramdef" : return self.paramdefs.cousins(key)
+		
+		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
+
+	def pclink(self,pkey,ckey,keytype="record"):
+		"""Establish a parent-child relationship between two keys"""
+		
+		if keytype=="record" : return self.records.pclink(pkey,ckey)
+		if keytype=="recorddef" : return self.recorddefs.pclink(pkey,ckey)
+		if keytype=="paramdef" : return self.paramdefs.pclink(pkey,ckey)
+		
+		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+	
+	def pcunlink(self,pkey,ckey,keytype="record"):
+		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
+		
+		if keytype=="record" : return self.records.pcunlink(pkey,ckey)
+		if keytype=="recorddef" : return self.recorddefs.pcunlink(pkey,ckey)
+		if keytype=="paramdef" : return self.paramdefs.pcunlink(pkey,ckey)
+		
+		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+	
+	def link(self,key1,key2,keytype="record"):
+		"""Establish a 'cousin' relationship between two keys."""
+		
+		if keytype=="record" : return self.records.link(key1,key2)
+		if keytype=="recorddef" : return self.recorddefs.link(key1,key2)
+		if keytype=="paramdef" : return self.paramdefs.link(key1,key2)
+		
+		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+	
+	def unlink(self,key1,key2,keytype="record"):
+		"""Remove a 'cousin' relationship between two keys."""
+		
+		if keytype=="record" : return self.records.unlink(key1,key2)
+		if keytype=="recorddef" : return self.recorddefs.unlink(key1,key2)
+		if keytype=="paramdef" : return self.paramdefs.unlink(key1,key2)
+		
+		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 		
 	def disableuser(self,username,ctxid,host=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
@@ -930,7 +1150,7 @@ class Database:
 		"""Returns a list of all ParamDef names"""
 		return self.paramdefs.keys()
 		
-	def addrecorddef(self,rectype,ctxid,host=None):
+	def addrecorddef(self,recdef,ctxid,host=None):
 		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
 		if not isinstance(rectype,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)

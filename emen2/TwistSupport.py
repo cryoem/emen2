@@ -162,6 +162,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getrecorddefnames(self):
 		"""The names of all recorddefs are globally available to prevent duplication"""
 		return db.getrecorddefnames()
+	
 	def xmlrpc_getvartypenames(self):
 		"""The names of all variable types, ie - int,float, etc."""
 		return db.getvartypenames()
@@ -169,3 +170,24 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getpropertynames(self):
 		"""The names of all valid properties: temperature, pressure, etc."""
 		return db.getpropertynames()
+
+	def xmlrpc_getchildren(self,key,keytype="record"):
+		return db.getchildren(key,keytype)
+	
+	def xmlrpc_getparents(self,key,keytype="record"):
+		return db.getparents(key,keytype)
+	
+	def xmlrpc_getcousins(self,key,keytype="record"):
+		return db.getcousins(key,keytype)
+		
+	def xmlrpc_pclink(self,pkey,ckey,keytype="record"):
+		return db.pclink(pkey,ckey,keytype)
+		
+	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record"):
+		return db.pcunlink(pkey,ckey,keytype)
+		
+	def xmlrpc_link(self,key1,key2,keytype="record"):
+		return db.link(key1,key2,keytype)
+		
+	def xmlrpc_unlink(self,key1,key2,keytype="record"):
+		return db.unlink(key1,key2,keytype)
