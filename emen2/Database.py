@@ -12,9 +12,14 @@ by another layer, say an xmlrpc server...
 
 from bsddb3 import db
 from cPickle import dumps,loads
+from sets import *
 import md5
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
+
+class SecurityError(Exception):
+	"Exception for a security violation"
+
 
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
@@ -248,7 +253,7 @@ class User:
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
-									# magic groups are -1 = administrator, -2 = read-only administrator
+ofil									# magic groups are -1 = administrator, -2 = read-only administrator
 		self.name=None				# tuple first, last, middle
 		self.email=None				# email address
 		self.altemail=None			# alternate email
@@ -274,13 +279,16 @@ class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordType, however, note that it is not required to have a value for
 	every field described in the RecordType, though this will usually be the case.
+	
+	To modify the fields in a record use the normal obj[key]= or update() approaches. 
+	Changes are not stored in the database until commit() is called. To examine fields, 
+	use obj[key]. There are a few special keys, handled differently:
+	owner,creator,creationtime,permissions,comments
 
 	Record instances must ONLY be created by the Database class through retrieval or
 	creation operations. self.context will store information about security and
 	storage for the record.
 	
-	fields are accessed/modified as if this were a dictionary, ie rec["temperature"]=23.5
-		
 	Mechanisms for changing existing fields are a bit complicated. In a sense, as in a 
 	physical lab notebook, an original value can never be changed, only superceded. 
 	All records have a 'magic' field called 'comments', which is an extensible array
@@ -311,27 +319,73 @@ class Record:
 		self.__owner=0				# The owner of this record
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
-		self.__permissions=[(),(),()]
+		self.__permissions=((),(),())
 									# permissions for read access, comment write access, and full write access
-		self.__context=None			# Record objects are only 
+									# each element is a tuple of user names or group id's, if a -3 is present
+									# this denotes access by any logged in user, if a -4 is present this
+									# denotes anonymous record access
+		self.__context=None			# Validated access context
+		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
+									# correspond to, read,comment,write and owner permissions
 	
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		del odict['__context']
+		del odict['__ptest']
+		return odict
+	
+	def __setstate__(self,dict):
+		"""restore unpickled values to defaults after unpickling"""
+		self.__dict__.update(dict)	
+		self.__context=None
+		self.__ptest=[0,0,0,0]
+
 	def setContext(self,ctx):
-		"""This method may ONLY be used by the Database class. Constructing your
+		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work"""
 		self.__context__=ctx
 		if self.__creator==0 :
+			self.__owner=ctx.user
 			self.__creator=ctx.user
 			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			self.__permissions=((),(),(ctx.user))
+		
+		# test for owner access in this context
+		if (-1 in ctx.groups or ctx.user==self.owner) : self._ptest=[1,1,1,1]	
+		else:
+			# we use the sets module to do intersections in group membership
+			# note that an empty Set tests false, so u1&p1 will be false if
+			# there is no intersection between the 2 sets
+			p1=Set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2])
+			p2=Set(self.__permissions[1]+self.__permissions[2])
+			p3=Set(self.__permissions[2])
+			u1=Set(ctx.groups+(-4))				# all users are permitted group -4 access
+			
+			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
+			
+			# test for read permission in this context
+			if (-2 in u1 or ctx.user in p1 or u1&p1) : self.__ptest[0]=1
+	
+			# test for comment write permission in this context
+			if (ctx.user in p2 or u1&p2): self.__ptest[1]=1
 						
+			# test for general write permission in this context
+			if (ctx.user in p3 or u1&p3) : self.__ptest[2]=1
+
+	
 	def __str__(self):
+		"A string representation of the record"
 		ret=["%d (%s)\n"%(self.recid,self.rectype)]
-		for i in fields
+		for i,j in self.fields.items:
+			ret.append("%12s:  %s\n"%(str(i),str(j)))
+		return ret.join()
 		
 	def __getitem__(self,key):
 		"""Behavior is to return None for undefined fields, None is also
 		the default value for existant, but undefined fields, which will be
 		treated identically"""
-		if not (self.__context.user in self.__permissions[0]+self.__permissions[1]+self.__permissions[2]) : raise Exception,"No Permission"
+		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid
 				
 		key=key.lower()
 		if key=="owner" : return self.__owner
@@ -342,26 +396,60 @@ class Record:
 		return None
 	
 	def __setitem__(self,key,value):
+		"""This and 'update' are the primary mechanisms for modifying the fields in a record
+		Changes are not written to the database until the commit() method is called!"""
+		# comments may include embedded field values if the user has full write access
+		key=key.strip()
 		if (key=="comments") :
-			if self.__context.user in self.__permissions[1]+self.__permissions[2]:
-				dict=self.parsestring(value)
-				self.fields["comments"].append(value)
+			if self.__ptest[1]:
+				dict=self.parsestring(value)	# find any embedded fields
+				if len(dict)>0 and not self.__ptest[2] : 
+					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
+				
+				self.fields["comments"].append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
+				
+				# now update the values of any embedded fields
+				for i,j in dict.items():
+					self.__realsetitem(i,j)
 			else :
-				raise Exception,"No Permission"
-		if (key=="owner") :
-			if -1 in __context.groups or __context.user==self.__owner:
-				self.__owner=value
-		if (key=="creator" or key=="creationtime") :
-			raise Exception,"Creation info cannot be modified"
-		if (key=="permissions") :
-		if (self.fields.has_key(key) and self.fields[key]!=None) :
-			self.fields["comments"].append("Field changed <...")
-			
+				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
+		elif (key=="owner") :
+			if self.__ptest[3]: self.__owner=value
+			else : raise SecurityError,"Only the administrator or the record owner can change the owner"
+		elif (key=="creator" or key=="creationtime") :
+			# nobody is allowed to do this
+			raise SecurityError,"Creation fields cannot be modified"
+		elif (key=="permissions") :
+			if self.__ptest[2]:
+				try:
+					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]))
+				except:
+					raise TypeError,"Permissions must be a 3-tuple of tuples"
+			else: 
+				raise SecurityError,"Write permission required to modify security %d"%self.recid
+		else :
+			if not self.__ptest[2] : raise SecurityError,"No write permission for record %d"%self.recid
+			if key in self.fields :
+				self.fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
+			__realsetitem(key,value)
+	
+	def __realsetitem(self,key,value):
+			"""This insures that copies of original values are made when appropriate
+			security should be handled by the parent method"""
+			if key in self.fields and not key in self.ofields : self.ofields[key]=self.fields[key]
 			self.fields[key]=value
+									
 
-		self.fields[key]=value		# if we got here, there was no previously assigned value for this field	
-									# and it wasn't a special value
-
+	def parsestring(self,text):
+		"""This will exctract XML 'value' tags from a block of text"""
+		# This nasty regex will extract <aaa bbb=ccc>ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
+		srch=re.findall("<([^> ]*) ([^=]*)=([^>]*)>([^<]*)</([^>]*)>" ,text)
+		ret={}
+		if not srch : return ret
+		for t in srch:
+			if (t[0].lower!="field" or t[1].lower!="name" or t[4]!="field" or " " in t[2].strip()) :continue
+			ret[t[2].strip()]=t[3]
+									
 	def update(self,dict):
 		
 	
@@ -371,7 +459,10 @@ class Record:
 	def has_key(self,key):
 		if key in self.keys() : return True
 		return False
-	
+
+	def commit(self):
+		"""This will commit any changes back to permanent storage in the database, until
+		this is called, all changes are temporary"""	
 	
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
@@ -441,7 +532,7 @@ class Database:
 			
 			# anonymous user
 			if (username=="anonymous" or username=="") :
-				ctx=Context(self,"",[],host,maxidle)
+				ctx=Context(self,None,(),host,maxidle)
 			
 			# check password, hashed with md5 encryption
 			else :
