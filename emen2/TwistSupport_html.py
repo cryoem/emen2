@@ -215,6 +215,28 @@ def html_record(path,args,ctxid,host):
 	
 	return "".join(ret)
 
+def html_newrecord(path,args,ctxid,host):
+	global db
+	ret=[html_header("EMEN2 Add Record Definition"),"<h1>Add Record Definition</h1><br>"]
+	if args.has_key("name") :
+		try: 
+			rd=DB.RecordDef()
+			rd.name=args["name"][0]
+			rd.mainview=args["mainview"][0]
+			rd.private=args["private"][0]
+			db.addrecorddef(rd,ctxid,host)
+		except Exception,e:
+			ret.append("Error adding RecordDef '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
+			return "".join(ret)
+			
+		# ParamDef added sucessfully
+		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		return "".join(ret)
+
+	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
+	else:
+		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
+		("Experiment Description","mainview","textarea",(60,10)),("Private Access","private","checkbox")),args=args)+"</body></html>"
 	
 def html_users(path,args,ctxid,host):
 	global db
