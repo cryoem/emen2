@@ -1,6 +1,18 @@
 import Database
 import time
+import os
 
+def doplot(data):
+	out=file("outfile","w")
+	for i in data: out.write("%f\t%f\n"%(i[0],i[1]))
+	out.close()
+	os.system("xmgrace outfile")
+
+def dumpfile(data,fsp):
+	out=file(fsp,"w")
+	for i in data: out.write("%f\t%f\n"%(i[0],i[1]))
+	out.close()
+	
 def recordcountbytype(db,ctxid):
 	"""Prints a list of the number of records defined for
 	every existing RecordDef"""
@@ -32,8 +44,10 @@ def histogrambymonth(db,reclist,ctxid):
 	
 	for i in reclist:
 		r=db.getrecord(i,ctxid)
-		d=r["eventdate"]
-		t=(int(d[:4])-2000)*12+int(d[5:7])
+		try:
+			d=r["eventdate"]
+			t=(int(d[:4])-2000)*12+int(d[5:7])
+		except: continue
 		try: hist[t]=hist[t]+1
 		except: hist[t]=1
 	
@@ -74,4 +88,20 @@ def histogrambyvalue(db,reclist,param,binsize,ctxid):
 	r=hist.items()
 	r.sort()
 	return r
+	
+def splitbystring(db,reclist,param,ctxid):
+	"""This will generate a dictionary of lists of recids
+	split using the value of the provided parameter name
+	for all records in the provided list.
+	Time is in months which may contain varying numbers of days"""
+	hist={}
+	
+	for i in reclist:
+		r=db.getrecord(i,ctxid)
+		try: u=r[param]
+		except: pass
+		try: hist[u].append(i)
+		except: hist[u]=[i]
+	
+	return hist
 	

@@ -82,9 +82,23 @@ def html_htable(itmlist,cols,proto):
 	"""Produce a table of values in 'cols' columns"""
 	ret=['<table border="1">']
 	
-	for i in range(len(itmlist)):
+	for i,j in enumerate(itmlist):
 		if (i%cols==0): ret.append("<tr>")
-		ret.append("<td><a href=%s%s>%s</a></td>"%(proto,itmlist[i],itmlist[i]))
+		ret.append("<td><a href=%s%s>%s</a></td>"%(proto,j,j))
+		if (i%cols==cols-1) : ret.append("</tr>\n")
+	
+	if (len(itmlist)%cols!=0) : ret.append("</tr></table>\n")
+	else : ret.append("</table><br>")
+
+	return "".join(ret)
+
+def html_htable2(itmlist,cols,proto):
+	"""Produce a table of values and counts in 'cols' columns"""
+	ret=['<table border="1">']
+	
+	for i,j in enumerate(itmlist):
+		if (i%cols==0): ret.append("<tr>")
+		ret.append("<td><a href=%s%s>%s (%d)</a></td>"%(proto,j[0],j[0],j[1]))
 		if (i%cols==cols-1) : ret.append("</tr>\n")
 	
 	if (len(itmlist)%cols!=0) : ret.append("</tr></table>\n")
@@ -105,7 +119,8 @@ def html_dicttable(dict,proto):
 		
 def html_home():
 	ret=[html_header("EMEN2 Home Page"),"""<h2>EMEN2 Demo Page</h2><br><br>Available tasks:<br><ul>
-	<li><a href="/db/records">List of all Experiments (Records)</a></li>
+	<li><a href="/db/record?name=1">Browse Records</a></li>
+	<li><a href="/db/records">List of all Records</a></li>
 	<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
 	<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
 	<li><a href="/db/users">List of Users</a></li>
@@ -188,8 +203,10 @@ def html_recorddefs(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getrecorddefnames()
+	for i in range(len(ftn)):
+		ftn[i]=(ftn[i],len(db.getindexbyrecorddef(ftn[i],ctxid)))
 	ret=[html_header("EMEN2 RecordDefs"),"<h2>Registered RecordDefs</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/recorddef?name="))
+	ret.append(html_htable2(ftn,3,"/db/recorddef?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)
@@ -228,6 +245,11 @@ def html_recorddef(path,args,ctxid,host):
 		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
 	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(
 	item.name,item.name))
+	ret.append('<br>Records (250 max shown):<br>')
+	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
+	itm.sort()
+	if (len(itm)>250) : itm=itm[:249]
+	ret.append(html_htable(itm,6,"/db/record?name="))
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
@@ -280,9 +302,30 @@ def html_record(path,args,ctxid,host):
 	
 	item=db.getrecord(int(args["name"][0]),ctxid)
 
-	ret=[html_header("EMEN2 Record"),"<h2>Record: <i>%d</i></h2><br>params:<br>"%int(item.recid)]
+	ret=[html_header("EMEN2 Record"),"<h2>Record: <i>%d  (%s)</i></h2><br>params:<br>"%(int(item.recid),item["recdef"])]
 	
 	ret.append(html_dicttable(item,"/db/paramdef?name="))
+	ret.append("<br>Parents:<br>")
+	ret.append(html_htable(db.getparents(int(args["name"][0])),6,"/db/record?name="))
+	ret.append("<br>Children:<br>")
+	
+	# c is a list of this record's children
+	c=[i[0] for i in db.getchildren(int(args["name"][0]))]
+	
+	# split up the record ids recordtype
+	cat={}
+	for i in c:
+		r=db.getrecord(i,ctxid)
+		try: a=(i,r.inputdate)
+		except: a=(i,"Unknown")
+		try: cat[r.rectype].append(a)
+		except: cat[r.rectype]=[a]
+		
+	# generate a 1-line link for each record sorted by recorddef
+	for i,j in cat.items():
+		for k in j:
+			ret.append('<a href=/db/record?name=%s>%s %s</a><br>'%(k[0],i,k[1]))
+	
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)

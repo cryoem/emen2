@@ -742,6 +742,7 @@ class Record:
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid
 				
 		key=key.lower()
+		if key=="rectype" : return self.rectype
 		if key=="owner" : return self.__owner
 		if key=="creator" : return self.__creator
 		if key=="creationtime" : return self.__creationtime
@@ -813,14 +814,14 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.__params.keys())+("comments","owner","creator","creationdate","permissions")
+		return tuple(self.__params.keys())+("rectype","comments","owner","creator","creationdate","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret=self.__params.items()
 		try:
-			ret+=[(i,self[i]) for i in ("comments","owner","creator","creationdate","permissions")]
+			ret+=[(i,self[i]) for i in ("rectype","comments","owner","creator","creationdate","permissions")]
 		except:
 			pass
 		return ret
@@ -831,14 +832,14 @@ class Record:
 		ret={}
 		ret.update(self.__params)
 		try:
-			for i in ("comments","owner","creator","creationdate","permissions"): ret[i]=self[i]
+			for i in ("rectype","comments","owner","creator","creationdate","permissions"): ret[i]=self[i]
 		except:
 			pass
 		return ret
 		
 	
 	def has_key(self,key):
-		if key in self.keys() or key in ("comments","owner","creator","creationdate","permissions"): return True
+		if key in self.keys() or key in ("rectype","comments","owner","creator","creationdate","permissions"): return True
 		return False
 
 	def commit(self,host=None):
@@ -855,7 +856,7 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-	def __init__(self,path=".",cachesize=256000000,logfile="db.log"):
+	def __init__(self,path=".",cachesize=64000000,logfile="db.log"):
 		self.path=path
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()

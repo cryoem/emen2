@@ -16,14 +16,39 @@ print "Ping: ",t1-t0, (t1-t0)/10000, 10000/(t1-t0)
 
 t0=time.time()
 for i in range(1000):
-#	rn=int(random()*250000)
 	rn=[int(random()*250000) for i in range(10)]
 	try: a=s.getrecords(rn,q,0)
 	except: pass
-#	print len(str(a))
 t1=time.time()
 
-print "10/query:", t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+print "10/query rnd:", t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+
+t0=time.time()
+for i in range(10000):
+	rn=i
+	try: a=s.getrecord(rn,q,0)
+	except: pass
+t1=time.time()
+
+print "1/query: ",t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+
+t0=time.time()
+for i in range(1000):
+	rn=range(i*10,i*10+10)
+	try: a=s.getrecords(rn,q,0)
+	except: pass
+t1=time.time()
+
+print "10/query seq:", t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+
+t0=time.time()
+for i in range(100):
+	rn=range(i*100,i*100+100)
+	try: a=s.getrecords(rn,q,0)
+	except: pass
+t1=time.time()
+
+print "100/query seq:", t1-t0, (t1-t0)/10000, 10000/(t1-t0)
 
 t0=time.time()
 for i in range(10000):
