@@ -1028,25 +1028,25 @@ class Database:
 		if username==None : username=u
 		if (u!=username and (not -1 in g) and (not -2 in g)) :
 			raise SecurityError,"Not authorized to get record access for %s"%username 
-		return self.__secrindex[username]
+		return Set(self.__secrindex[username])
 	
 	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
 		"""Uses the recdefname keyed index to return all
 		records belonging to a particular RecordDef. Currently this
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
-		return self.__recorddefindex[recdefname]
+		return Set(self.__recorddefindex[recdefname])
 
 	def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
-		"""For numerical parameters, this will locate all records
+		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
-		valrange may be a single number or a (min,max) tuple."""
+		valrange may be a single number or a (min,max) tuple/list."""
 		ind=self.__getparamindex(paramname,create=0)
 		try: 
-			v=float(valrange)
-			ret=Set(ind[v])
+			v=tuple(valrange)
+			ret=Set(ind.values(v[0],v[1]))
 		except:
-			ret=Set(ind.values(float(valrange[0]),float(valrange[1])))
+			ret=Set(ind[valrange])
 		
 		u,g=self.checkcontext(ctxid,host)
 		if (-1 in g) or (-2 in g) : return ret
@@ -1070,15 +1070,15 @@ class Database:
 		r2=[]
 		for i in ret:
 			r2+=self.getchildren(i[0],keytype,paramname,recurse-1)
-		return ret+r2
+		return Set(ret+r2)
 	
 	def getparents(self,key,keytype="record"):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return self.__records.parents(key)
-		if keytype=="recorddef" : return self.__recorddefs.parents(key)
-		if keytype=="paramdef" : return self.__paramdefs.parents(key)
+		if keytype=="record" : return Set(self.__records.parents(key))
+		if keytype=="recorddef" : return Set(self.__recorddefs.parents(key))
+		if keytype=="paramdef" : return Set(self.__paramdefs.parents(key))
 		
 		raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -1086,9 +1086,9 @@ class Database:
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return self.__records.cousins(key)
-		if keytype=="recorddef" : return self.__recorddefs.cousins(key)
-		if keytype=="paramdef" : return self.__paramdefs.cousins(key)
+		if keytype=="record" : return Set(self.__records.cousins(key))
+		if keytype=="recorddef" : return Set(self.__recorddefs.cousins(key))
+		if keytype=="paramdef" : return Set(self.__paramdefs.cousins(key))
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
