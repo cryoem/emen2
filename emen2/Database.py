@@ -1053,16 +1053,24 @@ class Database:
 		
 		secure=Set(self.getindexbyuser(None,ctxid,host))		# all records the user can access
 		
-		return list(ret & secure)		# intersection of the two search results
+		return ret & secure		# intersection of the two search results
 	
-	def getchildren(self,key,keytype="record",paramname=None):
+	def getchildren(self,key,keytype="record",paramname=None,recurse=0):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
-		if keytype=="record" : return self.__records.children(key,paramname)
-		if keytype=="recorddef" : return self.__recorddefs.children(key,paramname)
-		if keytype=="paramdef" : return self.__paramdefs.children(key,paramname)
 		
-		raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+		if (recurse<0): return []
+		if keytype=="record" : trg=self.__records
+		elif keytype=="recorddef" : trg=self.__records
+		elif keytype=="paramdef" : trg=self.__paramdefs
+		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+		
+		ret=trg.children(key,paramname)
+		if recurse==0 : return ret
+		r2=[]
+		for i in ret:
+			r2+=self.getchildren(i[0],keytype,paramname,recurse-1)
+		return ret+r2
 	
 	def getparents(self,key,keytype="record"):
 		"""This will get the keys of the parents of the referenced object
@@ -1461,7 +1469,7 @@ class Database:
 		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
 		return self.__recorddefs.keys()
-	
+		
 	def __getparamindex(self,paramname,create=1):
 		"""Internal function to open the parameter indices at need.
 		Later this may implement some sort of caching mechanism.
