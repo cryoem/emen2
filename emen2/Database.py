@@ -466,7 +466,7 @@ class RecordDef:
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Users are never deleted, only disabled, for historical logging purposes"""
-	def __init__(self):
+	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
@@ -491,6 +491,15 @@ Users are never deleted, only disabled, for historical logging purposes"""
 		self.phone=None				# non-validated string
 		self.fax=None				#
 		self.cellphone=None			#
+		if (dict):
+			self.__dict__.update(dict)
+			if (dict.has_key("private")) : self.private=1
+			else : self.private=0
+			if (dict.has_key("name1")) :
+				del self.__dict__["name1"]
+				del self.__dict__["name2"]
+				del self.__dict__["name3"]
+				self.name=(dict["name1"],dict["name2"],dict["name3"])
 			
 	def __str__(self):
 		return format_string_obj(self.__dict__,["username","groups","name","email","phone","fax","cellphone","webpage","",
@@ -995,6 +1004,29 @@ class Database:
 		self.users[username]=self.newuserqueue[username]
 		self.newuserqueue[username]=None
 	
+	def getuserqueue(self,ctxid,host=None):
+		"""Returns a list of names of unapproved users"""
+		return self.newuserqueue.keys()
+
+	def putuser(self,user,ctxid,host=None):
+		ctx=self.__getcontext(ctxid,host)
+
+		try:
+			ouser=self.users[user.username]
+		except:
+			raise KeyError,"Putuser may only be used to update existing users"
+		
+		if ctx.user!=ouser.user and not(-1 in ctx.groups) :
+			raise SecurityError,"Only administrators and the actual user may update a user record"
+		
+		if not (-1 in ctx.groups) : user.groups=ouser.groups
+		
+		if len(user.password)!=32 :
+			s=md5.new(user.password)
+			user.password=s.hexdigest()
+		
+		self.users[user.username]=user
+		
 	def adduser(self,user):
 		"""adds a new user record. However, note that this only adds the record to the
 		new user queue, which must be processed by an administrator before the record
@@ -1019,7 +1051,19 @@ class Database:
 		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		self.newuserqueue[user.username]=user
 		
+	def getqueueduser(self,username,ctxid,host=None):
+		"""retrieves a user's information. Information may be limited to name and id if the user
+		requested privacy. Administrators will get the full record"""
 		
+		ret=self.newuserqueueu[username]
+		
+		ctx=self.__getcontext(ctxid,host)
+		
+		# The user him/herself or administrator can get all info
+		if (-1 in ctx.groups) or (-2 in ctx.groups): return ret
+		
+		raise SecurityError,"Only administrators can access pending users"
+				
 	def getuser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
@@ -1032,7 +1076,7 @@ class Database:
 		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
 		
 		# if the user has requested privacy, we return only basic info
-		if (user.privacy==1 and ctx.user==None) or user.privacy>=2 :
+		if (ret.privacy==1 and ctx.user==None) or ret.privacy>=2 :
 			ret2=User()
 			ret2.username=ret.username
 			ret2.privacy=ret.privacy

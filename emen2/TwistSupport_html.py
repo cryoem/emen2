@@ -13,7 +13,7 @@ DB=TwistSupport.DB
 def loginpage(redir):
 	"""Why is this a function ?  Just because. Returns a simple login page."""
 	return """%s<h3>Please Login:<br>
-<form action="/db/login"><input type=hidden name=fw value=%s>
+<form action="/db/login" method="POST"><input type=hidden name=fw value=%s>
 <br>Username: <input type=text name=username>
 <br>Password: <input type=password name=pw>
 <br><input type=submit value=submit></form></body></html>"""%(html_header("EMEN2 Login"),redir)
@@ -24,6 +24,9 @@ class DBResource(Resource):
 	isLeaf = True
 	def getChild(self,name,request):
 		return self
+	def render_POST(self,request):
+		return self.render_GET(request)
+		
 	def render_GET(self,request):
 		session=request.getSession()			# sets a cookie to use as a session id
 		
@@ -40,6 +43,9 @@ class DBResource(Resource):
 				<meta http-equiv="REFRESH" content="2; URL=%s"><title>HTML REDIRECT</title></head>
 				<body><h3>Login Successful</h3></body></html>"""%request.received_headers["referer"]
 
+		if (request.postpath[0]=="newuser"):
+			return html_newuser(request.postpath,request.args,None,request.getClientIP())
+				
 		# A valid session will have a valid ctxid set
 		try:
 			ctxid=session.ctxid
@@ -99,9 +105,10 @@ def html_home():
 	<li><a href="/db/recorddefs">List of Defined Records (Experiments)</a></li>
 	<li><a href="/db/users">List of Users</a></li>
 	</ul><br><br><ul>
+	<li><a href="/db/newuser">Add New User</a></li>
+	<li><a href="/db/newuserqueue">Approve New Users</a></li>
 	<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
 	<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
-	<li><a href="/db/newuser">Add New User</a></li>
 	</ul>"""]
 	
 	return "".join(ret)
@@ -248,7 +255,17 @@ def html_users(path,args,ctxid,host):
 	
 	ftn=db.getusernames(ctxid,host)
 	ret=[html_header("EMEN2 Users"),"<h2>Users</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/user?name="))
+	ret.append(html_htable(ftn,3,"/db/user?uid="))
+
+	ret.append(html_footer())
+	return "".join(ret)
+
+def html_newuserqueue(path,args,ctxid,host):
+	global db
+	
+	ftn=db.getuserqueue(ctxid,host)
+	ret=[html_header("EMEN2 User Queue"),"<h2>New Users Waiting Approval</h2><br>%d defined:"%len(ftn)]
+	ret.append(html_htable(ftn,3,"/db/approveuser?username="))
 
 	ret.append(html_footer())
 	return "".join(ret)
@@ -256,29 +273,56 @@ def html_users(path,args,ctxid,host):
 def html_user(path,args,ctxid,host):
 	global db
 	
-	item=db.getuser(args["name"][0],ctxid,host)
+	if not args.has_key("uid") : args["uid"]=args["username"]
+	ret=[html_header("EMEN2 User"),"<h2>User: <i>%s</i></h2><br>"%args["uid"][0]]
 	
-	ret=[html_header("EMEN2 User"),"<h2>User: <i>%s</i></h2><br>"%item.username]
+	if args.has_key("username") :
+		for k in args.keys(): args[k]=args[k][0]
+		item=db.getuser(args["username"],ctxid,host)
+		item.__dict__.update(keys)
+		item.groups=[int(i) for i in keys["groups"].split(',')]
+		db.putuser(item,ctxid,host)
+		ret.append("<br>Update successful!<br>")
+	else :item=db.getuser(args["uid"][0],ctxid,host)
 	
-	ret.append("""<table><tr><td>Username</td><td>%s</td></tr>
-	<tr><td>Name</td><td>%s</td></tr>
-	<tr><td>Institution</td><td>%s</td></tr>
-	<tr><td>Department</td><td>%s</td></tr>
-	<tr><td>Address</td><td><pre>%s\n%s, %s  %s  %s</pre></td></tr>
-	<tr><td>Webpage</td><td>%s</td></tr>
-	<tr><td>Email</td><td>%s</td></tr>
-	<tr><td>Phone</td><td>%s</td></tr>
-	<tr><td>Fax</td><td>%s</td></tr>
-	<tr><td>Cell Phone</td><td>%s</td></tr>
-	<tr><td>Groups</td><td>%s</td></tr>
-	<tr><td>Disabled</td><td>%d</td></tr>
-	<tr><td>Privacy</td><td>%d</td></tr></table></body>"""%
-	(item.username," ".join(item.name),item.institution,item.department,
-	item.address,item.city,item.state,item.zipcode,item.country,
-	item.webpage,item.email,item.phone,item.fax,item.cellphone,
-	item.groups,item.disabled,item.privacy))
+
+	return "".join(ret)+html_form(action="/db/user",items=(("Username","username","text",14),
+		("First Name","name1","text",16),("Middle Name","name2","text",6),("Family Name","name3","text",20),("Privacy","privacy","checkbox"),
+		("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea",(40,3)),
+		("City","city","text",30),("State","state","text",3),("Zip Code","zipcode","text",10),("Country","country","text",30),
+		("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16),
+		("Groups","groups","text",40)),args=item.__dict__)+"</BODY></HTML>"
 	
 	return "".join(ret)
+
+def html_approveuser(path,args,ctxid,host):
+	db.approveuser(args["username"][0],ctxid,host)
+	return html_newuserqueue(path,args,ctxid,host)
+	
+def html_newuser(path,args,ctxid,host):
+	global db
+	ret=[html_header("EMEN2 New User Form"),"<h1>New User Application</h1><br>"]
+	if args.has_key("username") :
+		try: 
+			for k in args.keys(): args[k]=args[k][0]
+			rd=DB.User(args)
+			db.adduser(rd)
+		except Exception,e:
+			traceback.print_exc()
+			ret.append("Error adding User '%s' : <i>%s</i><br><br>"%(str(args["username"]),e))	# Failed for some reason, fall through so the user can update the form
+			return "".join(ret)
+			
+		# User added sucessfully
+		ret+=['<br><br>New User <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["username"]),html_footer()]
+		return "".join(ret)
+
+	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
+	else:
+		return "".join(ret)+html_form(action="/db/newuser",items=(("Username","username","text",14),("Password","password","password",14),
+			("First Name","name1","text",16),("Middle Name","name2","text",6),("Family Name","name3","text",20),("Privacy","privacy","checkbox"),
+			("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea",(40,3)),
+			("City","city","text",30),("State","state","text",3),("Zip Code","zipcode","text",10),("Country","country","text",30),
+			("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16)),args=args)+"</BODY></HTML>"
 
 def html_form(action="",items=(),args={}):
 	ret=['<table><form action="%s">'%action]
@@ -290,8 +334,11 @@ def html_form(action="",items=(),args={}):
 				else : ret.append('<option>%s</option>'%j)
 			ret.append('</select></td></tr>\n')
 		elif i[2]=="textarea" :
-			if len(i)<4 or len(i[3])<2 : i[3]=(40,10)
+			if len(i)<4 : i=i+(40,10)
 			ret.append('<tr><td>%s</td><td><textarea name="%s" cols="%d" rows="%d">%s</textarea></td></tr>\n'%(i[0],i[1],i[3][0],i[3][1],args.get(i[1],'')))
+		elif i[2]=="text" :
+			if (len(i)<4) : i=i+(20,)
+			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" size="%d" /></td></tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],'""')),int(i[3])))
 		else:
 			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
 
