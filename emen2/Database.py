@@ -735,6 +735,10 @@ class Record:
 			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		return "".join(ret)
 		
+	def writable(self):
+		"""Returns whether this record can be written using the given context"""
+		return self.__ptest[2]
+		
 	def __getitem__(self,key):
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
@@ -1043,11 +1047,9 @@ class Database:
 		with the specified paramdef in the specified range.
 		valrange may be a single number or a (min,max) tuple/list."""
 		ind=self.__getparamindex(paramname,create=0)
-		try: 
-			v=tuple(valrange)
-			ret=Set(ind.values(v[0],v[1]))
-		except:
-			ret=Set(ind[valrange])
+		
+		if isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
+		else: ret=Set(ind[valrange])
 		
 		u,g=self.checkcontext(ctxid,host)
 		if (-1 in g) or (-2 in g) : return ret
@@ -1056,34 +1058,56 @@ class Database:
 		
 		return ret & secure		# intersection of the two search results
 	
-	def getchildren(self,key,keytype="record",paramname=None,recurse=0):
+	def getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if (recurse<0): return []
+		if (recurse<0): return Set()
 		if keytype=="record" : trg=self.__records
-		elif keytype=="recorddef" : trg=self.__records
+		elif keytype=="recorddef" : trg=self.__recorddefs
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 		
 		ret=trg.children(key,paramname)
-		if recurse==0 : return ret
+		
+		if (keytype=="record") :
+			secure=Set(self.getindexbyuser(None,ctxid,host))
+			print len(secure)
+			if recurse==0 : return Set(ret)&secure
+		else:
+			if recurse==0 : return Set(ret)
+		
 		r2=[]
 		for i in ret:
-			r2+=self.getchildren(i[0],keytype,paramname,recurse-1)
+			r2+=self.getchildren(i[0],keytype,paramname,recurse-1,ctxid,host)
+		if (keytype=="record"): return Set(ret+r2)&secure
 		return Set(ret+r2)
-	
-	def getparents(self,key,keytype="record"):
+		
+	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return Set(self.__records.parents(key))
-		if keytype=="recorddef" : return Set(self.__recorddefs.parents(key))
-		if keytype=="paramdef" : return Set(self.__paramdefs.parents(key))
+		if (recurse<0): return Set()
+		if keytype=="record" : trg=self.__records
+		elif keytype=="recorddef" : trg=self.__recorddefs
+		elif keytype=="paramdef" : trg=self.__paramdefs
+		else: raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 		
-		raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+		ret=trg.parent(key,paramname)
+		
+		if (keytype=="record") :
+			secure=Set(self.getindexbyuser(None,ctxid,host))
+			if recurse==0 : return Set(ret)&secure
+		else:
+			if recurse==0 : return Set(ret)
+		
+		r2=[]
+		for i in ret:
+			r2+=self.getparents(i[0],keytype,paramname,recurse-1,ctxid,host)
+		if (keytype=="record"): return Set(ret+r2)&secure
+		return Set(ret+r2)
 
-	def getcousins(self,key,keytype="record"):
+	def getcousins(self,key,keytype="record",ctxid=None,host=None):
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
@@ -1093,38 +1117,55 @@ class Database:
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
-	def pclink(self,pkey,ckey,keytype="record",paramname=""):
-		"""Establish a parent-child relationship between two keys"""
+	def pclink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
+		"""Establish a parent-child relationship between two keys.
+		A context is required for record links, and the user must
+		have write permission on at least one of the two."""
 		
-		print "pclink '%s' '%s'"%(str(pkey),str(ckey))
-		if keytype=="record" : return self.__records.pclink(pkey,ckey,paramname)
+		if keytype=="record" : 
+			a=self.__records[pkey]
+			b=self.__records[ckey]
+			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
+			return self.__records.pclink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
 		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def pcunlink(self,pkey,ckey,keytype="record",paramname=""):
+	def pcunlink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
-		if keytype=="record" : return self.__records.pcunlink(pkey,ckey,paramname)
+		if keytype=="record" : 
+			a=self.__records[pkey]
+			b=self.__records[ckey]
+			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
+			return self.__records.pcunlink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,paramname)
 		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def link(self,key1,key2,keytype="record"):
-		"""Establish a 'cousin' relationship between two keys."""
+	def link(self,key1,key2,keytype="record",ctxid=None,host=None):
+		"""Establish a 'cousin' relationship between two keys. For Records
+		the context is required and the user must have read permission
+		for both records."""
 		
-		if keytype=="record" : return self.__records.link(key1,key2)
+		if keytype=="record" : 
+			a=self.__records[pkey]
+			b=self.__records[ckey]
+			return self.__records.link(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2)
 		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def unlink(self,key1,key2,keytype="record"):
+	def unlink(self,key1,key2,keytype="record",ctxid=None,host=None):
 		"""Remove a 'cousin' relationship between two keys."""
 		
-		if keytype=="record" : return self.__records.unlink(key1,key2)
+		if keytype=="record" : 
+			a=self.__records[pkey]
+			b=self.__records[ckey]
+			return self.__records.unlink(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2)
 		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2)
 		
@@ -1484,7 +1525,7 @@ class Database:
 				f=self.__paramdefs[paramname]		# Look up the definition of this field
 			except:
 				# Undefined field, we can't create it, since we don't know the type
-				raise FieldError,"No such field %s defined"%key
+				raise FieldError,"No such field %s defined"%paramname
 			
 			tp=valid_vartypes[f.vartype][0]
 			if not tp : return KeyError,"%s cannot be indexed"%paramname	# if this is None, then this is an 'unindexable' field
