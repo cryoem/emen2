@@ -459,6 +459,7 @@ class Record:
 		# comments may include embedded field values if the user has full write access
 		key=key.strip()
 		if (key=="comments") :
+			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
 				dict=parsefieldstring(value)	# find any embedded fields
 				if len(dict)>0 and not self.__ptest[2] : 
@@ -472,20 +473,25 @@ class Record:
 			else :
 				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
 		elif (key=="owner") :
+			if self.__owner==value: return
 			if self.__ptest[3]: self.__owner=value
 			else : raise SecurityError,"Only the administrator or the record owner can change the owner"
 		elif (key=="creator" or key=="creationtime") :
 			# nobody is allowed to do this
+			if self.__creator==value or self.__creationtime==value: return 
 			raise SecurityError,"Creation fields cannot be modified"
 		elif (key=="permissions") :
+			if self.__permissions==value: return
 			if self.__ptest[2]:
 				try:
 					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]))
+					self.__permissions=value
 				except:
 					raise TypeError,"Permissions must be a 3-tuple of tuples"
 			else: 
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
+			if self.__fields[key]==value : return
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %d"%self.recid
 			if key in self.__fields  and self.__fields[key]!=None:
 				self.__fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
@@ -770,7 +776,7 @@ class Database:
 		"""This will return an (ordered) list of workflow objects for the given context (user).
 		it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 		
 		try:

@@ -1,6 +1,7 @@
 from twisted.web.resource import Resource
 from emen2 import Database 
 from twisted.web import xmlrpc
+import xmlrpclib
 import os
 
 # we open the database as part of the module initialization
@@ -195,10 +196,34 @@ callbacks={'fieldtypes':html_fieldtypes,"fieldtype":html_fieldtype,"recordtypes"
 "recordtype":html_recordtype,"record":html_record,"users":html_users,"user":html_user}
 
 class DBXMLRPCResource(xmlrpc.XMLRPC):
-	"""This resource serves XMLRPC requests. Look in TwistServer for the actual server code."""
+	"""replaces the default version that doesn't allow None"""
+	def _cbRender(self, result, request):
+		if isinstance(result, xmlrpc.Handler):
+			result = result.result
+		if not isinstance(result, xmlrpc.Fault):
+			result = (result,)
+		try:
+			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=1)
+		except:
+			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
+			s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
+		request.setHeader("content-length", str(len(s)))
+		request.write(s)
+		request.finish()
+
+	
 	def xmlrpc_ping(self):
 		return "pong"
 
+	def xmlrpc_test(self):
+		a=Database.WorkFlow()
+		b=Database.WorkFlow()
+		c=(a,b)
+		d=[dict(x.__dict__) for x in c]
+		
+		return {"a":None,"b":None}
+
+		
 	def xmlrpc_login(self,userid,password):
 		"""login method, should probably be called with https, TODO: note no support for host validation yet
 		This returns a ctxid to the caller. The ctxid must be used in subsequent requests"""
@@ -206,14 +231,48 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			return str(db.login(str(userid),str(password),None))
 		except:
 			return 0,"Login Failed"	
+
+	def xmlrpc_getproto(self,classtype):
+		"""This will generate a 'dummy' record to fill in for a particular classtype.
+		classtype may be: user,fieldtype,recordtype,workflow or the name of a valid recordtype"""
+					
+	def xmlrpc_getuser(self,username,ctxid):
+		"""Return a User record"""
+		return db.getuser(username,ctxid,None).__dict__
 		
+	def xmlrpc_getusernames(self,ctxid):
+		"""Return a list of all usernames in the database"""
+		return db.getusernames(ctxid)
+
+	def xmlrpc_disableuser(self,username,ctxid,host=None):
+	def xmlrpc_approveuser(self,username,ctxid,host=None):
+	def xmlrpc_adduser(self,user):
+
+				
+	def xmlrpc_getworkflow(self,ctxid):
+		"""This returns a list of workflow objects (dictionaries) for the given user
+		based on the current context"""
+		return db.getworkflow(ctxid)
+
+	def xmlrpc_addworkflow(self,work,ctxid,host=None):
+	def xmlrpc_setworkflow(self,wflist,ctxid,host=None):
+
+				
 	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
+		"""Retrieve a record from the database"""
 		try:
 			r=db.getrecord(recid,ctxid,dbid)
 		except Exception,x:
 			return 0,x
 		
 		return r.items()
+	def xmlrpc_putrecord(self,record,ctxid,host=None):
 	
-	def xmlrpc_getuser(self,username,ctxid):
-		r=db.getuser(username,ctxid,None)
+	def xmlrpc_addfieldtype(self,fieldtype,ctxid,host=None):
+	def xmlrpc_getfieldtype(self,fieldtypename):
+	def xmlrpc_getfieldtypenames(self):
+	
+	def xmlrpc_addrecordtype(self,rectype,ctxid,host=None):
+	def xmlrpc_getrecordtype(self,rectypename,ctxid,host=None,recid=None):
+	def xmlrpc_getrecordtypenames(self):
+	
