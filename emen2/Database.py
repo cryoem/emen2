@@ -2,6 +2,10 @@
 # Database.py  Steve Ludtke  05/21/2004
 ##############
 
+### TODO
+# Database id's not supported yet
+
+
 """This module encapsulates an electronic notebook/oodb
 
 Note that the database does have a security model, but it cannot be rigorously enforced at the python level.
@@ -239,7 +243,7 @@ class FieldType:
 	conceptual relationships. The relationships are handled externally by the
 	Database object. Fields may only be modified by the administrator once
 	created, and then, they should only be modified for clarification""" 
-	def __init__(self,creator,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
+	def __init__(self,creator=None,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
 		self.name=name					# This is the name used in XML files to refer to this field, lower case
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
 		self.desc_short=desc_short		# This is a very short description for use in forms
@@ -261,7 +265,7 @@ class RecordType:
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields={}				# A dictionary keyed by the names of all fields used in any of the views
+		self.fields={comments:[]}				# A dictionary keyed by the names of all fields used in any of the views
 									# values are the default value for the field.
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
@@ -321,15 +325,18 @@ class WorkFlow:
 	aren't implemented using the Record class. 
 	Implementation of workflow behavior is largely up to the
 	external application. This simply acts as a repository for tasks"""
-	def __init__(self):
-		self.wftype=None			# a short string defining the task to complete. Applications
-									# should select strings that are likely to be unique for
-									# their own tasks
-		self.desc=None				# A 1-line description of the task to complete
-		self.longdesc=None			# an optional longer description of the task
-		self.appdata=None			# application specific data used to implement the actual activity
-		self.wfid=None				# unique workflow id number assigned by the database
-		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+	def __init__(self,with=None):
+		if isinstance(with,dict) :
+			self.__dict__.update(with)
+		else:
+			self.wftype=None			# a short string defining the task to complete. Applications
+										# should select strings that are likely to be unique for
+										# their own tasks
+			self.desc=None				# A 1-line description of the task to complete
+			self.longdesc=None			# an optional longer description of the task
+			self.appdata=None			# application specific data used to implement the actual activity
+			self.wfid=None				# unique workflow id number assigned by the database
+			self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 			
 class Record:
@@ -694,12 +701,16 @@ class Database:
 		a complete historical record is maintained. Only an administrator can do this."""
 		ctx=__getcontext(ctxid,host)
 		if not -1 in ctx.groups :
-			raise SecurityError,"Only administrators can approve new users"
+			raise SecurityError,"Only administrators can disable users"
 
+		if username==ctx.user : raise SecurityError,"Even administrators cannot disable themselves"
+			
 		user=self.users[username]
 		user.disabled=1
+		self.users[username]=user
 		self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
-        
+
+		        
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
 		ctx=__getcontext(ctxid,host)
@@ -931,15 +942,29 @@ class Database:
 	def putrecord(self,record,ctxid,host=None):
 		"""The record has everything we need to commit the data. However, to 
 		update the indices, we need the original record as well. This also provides
-		an opportunity for double-checking security vs. the original"""
+		an opportunity for double-checking security vs. the original. If the 
+		record is new, recid should be set to None. recid is returned upon success"""
 		ctx=__getcontext(ctxid,host)
-
+		
+		if isinstance(record,dict) :
+			r=record
+			if r["recid"]==None or r["recid"]<0 :
+				record=Record()
+				record.update(r)
+			else :
+				
+				
+		if (record.recid<0) : record.recid=None
+		
 		try:
 			orig=self.records[record.recid]		# get the unmodified record
 		except:
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
 
+			record.recid=self.records[-1]+1				# Get a new record-id
+			self.records[-1]=record.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+			
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
 			
@@ -951,7 +976,7 @@ class Database:
 			self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
 			
 			self.records[record.recid]=record		# This actually stores the record in the database
-			return
+			return record.recid
 				
 		p=orig.setContext(ctx)				# security check on the original record
 		
@@ -981,7 +1006,8 @@ class Database:
 			self.reindex(f,oldval,newval,record.recid)
 
 		self.records[record.recid]=record		# This actually stores the record in the database
-			
+		return record.recid
+		
 	def newrecord(self,rectype,ctxid,host=None,init=0):
 		"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
 		already exist)."""
@@ -991,11 +1017,9 @@ class Database:
 		# RecordType is private and the context doesn't permit access
 		t=self.getrecordtype(rectype,ctxid,host)	
 
+		ret.recid=None
 		ret.rectype=rectype						# if we found it, go ahead and set up
-		
-		ret.recid=self.records[-1]+1				# Get a new record-id
-		self.records[-1]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
-		
+				
 		if init:
 			for k,v in t.fields.items():
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy

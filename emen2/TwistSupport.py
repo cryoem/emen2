@@ -232,10 +232,26 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		except:
 			return 0,"Login Failed"	
 
-	def xmlrpc_getproto(self,classtype):
+	def xmlrpc_getproto(self,classtype,ctxid):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,fieldtype,recordtype,workflow or the name of a valid recordtype"""
-					
+		if   (classtype.lower()=="user") :
+			r=Database.User()
+			return r.__dict__
+		elif (classtype.lower()=="fieldtype") :
+			r=Database.FieldType()
+			return r.__dict__
+		elif (classtype.lower()=="recordtype") :
+			r=Database.RecordType()
+			return r.__dict__
+		elif (classtype.lower()="workflow") :
+			r=Database.Workflow()
+			return r.__dict__
+		else :
+			r=Database.newrecord(classtype,ctxid,init=1)
+			return r.items()
+		
+		
 	def xmlrpc_getuser(self,username,ctxid):
 		"""Return a User record"""
 		return db.getuser(username,ctxid,None).__dict__
@@ -244,19 +260,39 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Return a list of all usernames in the database"""
 		return db.getusernames(ctxid)
 
-	def xmlrpc_disableuser(self,username,ctxid,host=None):
-	def xmlrpc_approveuser(self,username,ctxid,host=None):
+	def xmlrpc_disableuser(self,username,ctxid):
+		"""This will disable a user's account"""
+		db.disableuser(username,ctxid)
+	
+	def xmlrpc_approveuser(self,username,ctxid):
+		db.approveuser(username,ctxid)
+	
 	def xmlrpc_adduser(self,user):
-
+		"""adds a user to the new user queue. Users must be approved by an
+		administrator before they have access. 'user' is a dictionary
+		representing a User object"""
+		usero=Database.User()
+		usero.__dict__.update(user)
+		db.adduser(self,usero)
 				
 	def xmlrpc_getworkflow(self,ctxid):
 		"""This returns a list of workflow objects (dictionaries) for the given user
 		based on the current context"""
-		return db.getworkflow(ctxid)
-
-	def xmlrpc_addworkflow(self,work,ctxid,host=None):
-	def xmlrpc_setworkflow(self,wflist,ctxid,host=None):
-
+		r=db.getworkflow(ctxid)
+		r=[x.__dict__ for x in r]
+		return r
+		
+	def xmlrpc_setworkflow(self,wflist,ctxid):
+		"""This will set the user's entire workflow list. This should rarely be used."""
+		w=[Database.WorkFlow(with=i) for i in wflist]
+		db.setworkflow(w,ctxid)
+		
+	def xmlrpc_addworkflow(self,work,ctxid):
+		"""Adds a Workflow object to the user's workflow"""
+		worko=Database.WorkFlow()
+		worko.__dict__.update(work)
+		db.addworkflow(worko,ctxid)
+	
 				
 	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
 		"""Retrieve a record from the database"""
@@ -266,11 +302,23 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			return 0,x
 		
 		return r.items()
-	def xmlrpc_putrecord(self,record,ctxid,host=None):
 	
-	def xmlrpc_addfieldtype(self,fieldtype,ctxid,host=None):
+	def xmlrpc_putrecord(self,record,ctxid):
+		"""Puts a modified record back into the database"""
+		
+		
+	def xmlrpc_addfieldtype(self,fieldtype,ctxid):
+		"""Puts a new FieldType in the database. User must have permission to add records."""
+		r=Database.FieldType()
+		r.__dict__.update(fieldtype)
+		db.addfieldtype(r,ctxid)
+		
 	def xmlrpc_getfieldtype(self,fieldtypename):
+		"""Anyone may retrieve any fieldtype"""
+		
+	
 	def xmlrpc_getfieldtypenames(self):
+	
 	
 	def xmlrpc_addrecordtype(self,rectype,ctxid,host=None):
 	def xmlrpc_getrecordtype(self,rectypename,ctxid,host=None,recid=None):
