@@ -13,6 +13,7 @@ by another layer, say an xmlrpc server...
 from bsddb3 import db
 from cPickle import dumps,loads
 from sets import *
+import os
 import md5
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
@@ -274,17 +275,20 @@ class RecordType:
 		
 									
 class User:
-	"""This defines a database user, note that group 0 membership is required to add new records"""
+	"""This defines a database user, note that group 0 membership is required to add new records.
+Users are never deleted, only disabled, for historical logging purposes"""
 	def __init__(self):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
 									# magic groups are 0 = add new records, -1 = administrator, -2 = read-only administrator
+
+        self.disabled=0             # if this is set, the user will be unable to login
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
 		
-		self.name=None				# tuple first, middle, last
+		self.name=(None,None,None)  # tuple first, middle, last
 		self.institution=None
 		self.department=None
 		self.address=None			# May be a multi-line string
@@ -511,423 +515,448 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-		def __init__(self,path=".",cachesize=256000000,logfile="db.log"):
-			self.path=path
-			self.logfile=path+"/"+logfile
-		
-			self.LOG(4,"Database initialization started")
-				
-			self.__contexts={}			# dictionary of current db contexts, may need to put this on disk for mulithreaded server ?
-						
-			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
-			self.dbenv=db.DBEnv()
-			self.dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
-			self.dbenv.set_data_dir(path)
-			self.dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
+	def __init__(self,path=".",cachesize=256000000,logfile="db.log"):
+		self.path=path
+		self.logfile=path+"/"+logfile
+	
+		self.LOG(4,"Database initialization started")
 			
-			if not os.access(path+"/security",F_OK) : os.mkdirs(path+"/security")
-			if not os.access(path+"/index",F_OK) : os.mkdir(path+"/index")
-			
-			# Users
-			self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
-			self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
-		
-			# Defined FieldTypes
-			self.fieldtypes=BTree("FieldTypes",path+"/FieldTypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
-
-			# Defined RecordTypes
-			self.recordtypes=BTree("RecordTypes",path+"/RecordTypes.bdb",dbenv=self.dbenv)					# RecordType objects indexed by name
-						
-			# The actual database, keyed by recid, a positive integer unique in this DB instance
-			# 2 special keys exist, the record counter is stored with key -1
-			# and database information is stored with key=0
-			self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
-			try:
-				max=self.records[-1]
-			except:
-				self.records[-1]=0
-				self.LOG(3,"New database created")
-			
-			# Indices
-			self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
-			self.recordtypeindex=FieldBTree("RecordTypeindex",path+"/RecordTypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
-			self.fieldindex={}				# dictionary of FieldBTrees, 1 per FieldType, not opened until needed
-
-			# The mirror database for storing offsite records
-			self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
-
-			# Workflow database, user indexed list of tuples of things to do
-			# TODO:  Clarify this a bit
-			self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
-						
-			self.LOG(4,"Database initialized")
-
-		def LOG(self,level,message):
-			"""level is an integer describing the seriousness of the error:
-			0 - security, security-related messages
-			1 - critical, likely to cause a crash
-			2 - serious, user will experience problem
-			3 - minor, likely to cause minor annoyances
-			4 - info, informational only
-			5 - verbose, verbose logging """
-			global LOGSTRINGS
-			if (level<0 or level>5) : level=0
-			try:
-				o=file(self.logfile,"a")
-				o.write("%s: (%s)  %s\n"%(time.ctime(),LOGSTRINGS[level],message))
-				o.close()
-			except:
-				print("Critical error!!! Cannot write log message\n")
-
-		def login(self,username="anonymous",password="",host=None,maxidle=1800):
-			"""Logs a given user in to the database and returns a ctxid, which can then be used for
-			subsequent access"""
-			ctx=None
-			
-			# anonymous user
-			if (username=="anonymous" or username=="") :
-				ctx=Context(self,None,(),host,maxidle)
-			
-			# check password, hashed with md5 encryption
-			else :
-				s=md5.new(password)
-				user=self.users[username]
-				if (s.hexdigest()==user.password) : ctx=Context(self,username,user.groups,host,maxidle)
-				else:
-					self.LOG(0,"Invalid password: %s (%s)"%(username,host))
-					raise ValueError,"Invalid Password"
-			
-			# This shouldn't happen
-			if ctx==None :
-				self.LOG(1,"System ERROR, login(): %s (%s)"%(username,host))
-				raise Exception,"System ERROR, login()"
-			
-			# we use md5 to make a key for the context as well
-			s=md5.new(username+str(host)+str(time.time()))
-			ctx.ctxid=s.hexdigest()
-			self.__contexts[s.hexdigest()]=ctx
-			
-			return s.hexdigest()
-
-		def cleanupcontexts(self):
-			"""This should be run periodically to clean up sessions that have been idle too long"""
-			self.lastctxclean=time.time()
-			for k in __contexts.items():
-				if k[1].time+k[1].maxidle<time.time() : del __contexts[k[0]]
-			
-		def __getcontext(self,key,host):
-			"""Takes a key and returns a context (for internal use only)
-			Note that both key and host must match."""
-			if (time.time()>self.lastctxclean+30):
-				self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
-			
-			try:
-				ctx=__contexts(key)
-			except:
-				self.LOG(4,"Session expired")
-				raise KeyError,"Session expired"
-				
-			if host!=ctx.host :
-				self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
-				raise Exception,"Bad address match, login sessions cannot be shared"
-			
-			return ctx			
-
-		def approveuser(self,username,ctxid,host=None):
-			"""Only an administrator can do this, and the user must be in the queue for approval"""
-			ctx=__getcontext(ctxid,host)
-			if not -1 in ctx.groups :
-				raise SecurityError,"Only administrators can approve new users"
-			
-			if not username in self.newuserqueue :
-				raise KeyError,"User %s is not pending approval"%username
-				
-			if username in self.users :
-				self.newuserqueue[username]=None
-				raise KeyError,"User %s already exists, deleted pending record"%username
-
-			self.users[username]=self.newuserqueue[username]
-			self.newuserqueue[username]=None
-		
-		def adduser(self,user):
-			"""adds a new user record. However, note that this only adds the record to the
-			new user queue, which must be processed by an administrator before the record
-			becomes active. This system prevents problems with securely assigning passwords
-			and errors with data entry. Anyone can create one of these"""
-			if user.username==None or len(user.username<3) : 
-				raise KeyError,"Attempt to add user with invalid name"
-			
-			if user.username in self.users :
-				raise KeyError,"User with username %s already exists"%user.username
-			
-			if user.username in self.newuserqueue :
-				raise KeyError,"User with username %s already pending approval"%user.username
-			
-			user.creationtime=
-			self.newuserqueue[user.username]=user
-			
-			
-		def getuser(self,username,ctxid,host=None):
-			"""retrieves a user's information. Information may be limited to name and id if the user
-			requested privacy. Administrators will get the full record"""
-			
-			ret=self.users[username]
-			
-			ctx=__getcontext(ctxid,host)
-			
-			# The user him/herself or administrator can get all info
-			if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
-			
-			# if the user has requested privacy, we return only basic info
-			if (user.privacy==1 and ctx.user==None) or user.privacy>=2 :
-				ret2=User()
-				ret2.username=ret.username
-				ret2.privacy=ret.privacy
-				ret2.name=ret.name
-				return ret2
-
-			ret.password=None		# the hashed password has limited access
-			
-			# Anonymous users cannot use this to extract email addresses
-			if ctx.user==None : 
-				ret.groups=None
-				ret.email=None
-				ret.altemail=None
-			
-			return ret
-			
-		def getusernames(self,username,ctxid,host=None):
-			"""Not clear if this warrants a security risk, but anyone can get a list of usernames
-			 This is needed for inter-database communications"""
-			return self.users.keys()
-			
-		def addfieldtype(self,fieldtype,ctxid,host=None):
-			"""adds a new FieldType object, group 0 permission is required"""
-			if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
-			ctx=__getcontext(ctxid,host)
-			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new fieldtypes (need record creation permission)"
-			if self.fieldtypes.has_key(fieldtype.name) : raise KeyError,"fieldtype %s already exists"%fieldtype.name
-			
-			# force these values
-			fieldtype.creator=ctx.user
-			fieldtype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-			
-			# this actually stores in the database
-			self.fieldtypes[fieldtype.name]=fieldtype
-			
-			
-		def getfieldtype(self,fieldtypename):
-			"""gets an existing FieldType object, anyone can get any field definition"""
-			return self.fieldtypes[fieldtypename]
-			
-		def getfieldtypenames(self):
-			"""Returns a list of all FieldType names"""
-			return self.fieldtypes.keys()
-			
-		def addrecordtype(self,rectype,ctxid,host=None):
-			"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
-			if not isinstance(rectype,RecordType) : raise TypeError,"addRecordType requires a RecordType object"
-			ctx=__getcontext(ctxid,host)
-			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordTypes"
-			if self.recordtypes.has_key(rectype.name) : raise KeyError,"RecordType %s already exists"%rectype.name
-			
-			# force these values
-			if (rectype.owner==None) : rectype.owner=ctx.user
-			rectype.creator=ctx.user
-			rectype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-			
-			# this actually stores in the database
-			self.recordtypes[rectype.name]=rectype
-			
-			
-		def getrecordtype(self,rectypename,ctxid,host=None,recid=None):
-			"""Retrieves a RecordType object. This will fail if the RecordType is
-			private, unless the user is an owner or iti in the context of a recid the
-			user has permission to access"""
-			ctx=__getcontext(ctxid,host)
-			if not self.recordtypes.has_key(rectypename) : raise KeyError,"No such RecordType %s"%rectypename
-			
-			ret=self.recordtypes[rectypename]	# get the record
-			
-			# if the RecordType isn't private or if the owner is asking, just return it now
-			if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
-
-			# ok, now we need to do a little more work. 
-			if recid==None: raise SecurityError,"User doesn't have permission to access private RecordType '%s'"%rectypename
-			
-			rec=self.getrecord(recid)		# try to get the record, may raise an exception we pass through
-
-			if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordType %s"%(recid,rectypename)
-
-			# success, the user has permission
-			return ret
-		
-		def getrecordtypenames(self):
-			"""This will retrieve a list of all existing FieldType names, even
-			those the user cannot access the contents of"""
-			
-		def reindex(self,key,oldval,newval,recid)
-			"""This function reindexes a single key/value pair
-			This includes creating any missing indices if necessary"""
-
-			if (oldval==newval) : return
-			try:
-				ind=self.fieldindex[key]		# Try to get the index for this key
-			except:
-				# index not open yet, open/create it
-				try:
-					f=self.FieldType[key]		# Look up the definition of this field
-				except:
-					# Undefined field, we can't create it, since we don't know the type
-					raise FieldError,"No such field %s defined"%key
-				tp=valid_vartypes[f.vartype][0]
-				if not tp : return			# if this is None, then this is an 'unindexable' field
-				
-				# create/open index
-				self.fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.dbenv)
-				ind=self.fieldindex[key]
-			
-			# remove the old ref and add the new one
-			if oldval!=None : ind.removeref(oldval,recid)
-			if newval!=None : ind.addref(newval,recid)
-
-		def reindexsec(self,oldlist,newlist,recid):
-			"""This updates the security (read-only) index
-			takes two lists of userid/groups (may be None)"""
-			o=Set(oldlist)
-			n=Set(newlist)
-			
-			uo=o-n	# unique elements in the 'old' list
-			un=n-o	# unique elements in the 'new' list
-
-			# anying in both old and new should be ok,
-			# So, we remove the index entries for all of the elements in 'old', but not 'new'
-			for i in uo:
-				self.secrindex.removeref(i,recid)
-
-			# then we add the index entries for all of the elements in 'new', but not 'old'
-			for i in un:
-				self.secrindex.addred(i,recid)
-													
-		def putrecord(self,record,ctxid,host=None):
-			"""The record has everything we need to commit the data. However, to 
-			update the indices, we need the original record as well. This also provides
-			an opportunity for double-checking security vs. the original"""
-			ctx=__getcontext(ctxid,host)
-
-			try:
-				orig=self.records[record.recid]		# get the unmodified record
-			except:
-				# Record must not exist, lets create it
-				#p=record.setContext(ctx)
-
-				# Group -1 is administrator, group 0 membership is global permission to create new records
-				if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
-				
-				# index fields
-				for k,v in record.items():
-					self.reindex(k,None,v,record.recid)
-				
-				self.reindexsec(None,record["security"],record.recid)		# index security
-				self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
-				
-				self.records[record.recid]=record		# This actually stores the record in the database
-				return
+		self.__contexts={}			# dictionary of current db contexts, may need to put this on disk for mulithreaded server ?
 					
-			p=orig.setContext(ctx)				# security check on the original record
-			
-			# Ok, to efficiently update the indices, we need to figure out what changed
-			fields=Set(orig.keys()).union_update(record.keys())		# list of all fields (old and new)
-			changedfields=[]
-			for f in fields:
-				try:
-					if (orig[f]!=record[f]) : changedfields.append(f)
-				except:
-					changedfields.append(f)
-			
-			# make sure the user has permission to modify the record
-			if not p[2] :
-				if not p[1] : raise SecurityError,"No permission to modify record %d"%record.recid
-				if len(changedfields>1) or changedfields[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
-			
-			# Now update the indices
-			for f in changedfields:
-				# reindex will accept None as oldval or newval
-				try:    oldval=orig[f]
-				except: oldval=None
-				
-				try:    newval=record[f]
-				except: newval=None
+		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
+		if not os.access(path+"/home",os.F_OK) : os.makedirs(path+"/home")
+		self.dbenv=db.DBEnv()
+		self.dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
+		self.dbenv.set_data_dir(path)
+		self.dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
+		
+		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
+		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
+		
+		# Users
+		self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
+		self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
+	
+		# Defined FieldTypes
+		self.fieldtypes=BTree("FieldTypes",path+"/FieldTypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
 
-				self.reindex(f,oldval,newval,record.recid)
+		# Defined RecordTypes
+		self.recordtypes=BTree("RecordTypes",path+"/RecordTypes.bdb",dbenv=self.dbenv)					# RecordType objects indexed by name
+					
+		# The actual database, keyed by recid, a positive integer unique in this DB instance
+		# 2 special keys exist, the record counter is stored with key -1
+		# and database information is stored with key=0
+		self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
+		try:
+			max=self.records[-1]
+		except:
+			self.records[-1]=0
+			self.LOG(3,"New database created")
+		
+		# Indices
+		self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
+		self.recordtypeindex=FieldBTree("RecordTypeindex",path+"/RecordTypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
+		self.fieldindex={}				# dictionary of FieldBTrees, 1 per FieldType, not opened until needed
 
+		# The mirror database for storing offsite records
+		self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
+
+		# Workflow database, user indexed list of tuples of things to do
+		# TODO:  Clarify this a bit
+		self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
+					
+		self.LOG(4,"Database initialized")
+
+        # Create an initial administrative user for the database
+        self.LOG(0,"Warning, root user recreated")
+        u=User()
+        u.username="root"
+        p=md5.new("foobar")
+        u.password=p.hexdigest()
+        u.groups=[-1]
+        u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+        u.name=('Database','','Administrator')
+        self.users["root"]=u
+       
+       def LOG(self,level,message):
+		"""level is an integer describing the seriousness of the error:
+		0 - security, security-related messages
+		1 - critical, likely to cause a crash
+		2 - serious, user will experience problem
+		3 - minor, likely to cause minor annoyances
+		4 - info, informational only
+		5 - verbose, verbose logging """
+		global LOGSTRINGS
+		if (level<0 or level>5) : level=0
+		try:
+			o=file(self.logfile,"a")
+			o.write("%s: (%s)  %s\n"%(time.ctime(),LOGSTRINGS[level],message))
+			o.close()
+		except:
+			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
+
+	def login(self,username="anonymous",password="",host=None,maxidle=1800):
+		"""Logs a given user in to the database and returns a ctxid, which can then be used for
+		subsequent access"""
+		ctx=None
+		
+		# anonymous user
+		if (username=="anonymous" or username=="") :
+			ctx=Context(self,None,(),host,maxidle)
+		
+		# check password, hashed with md5 encryption
+		else :
+			s=md5.new(password)
+			user=self.users[username]
+            if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
+			if (s.hexdigest()==user.password) : ctx=Context(self,username,user.groups,host,maxidle)
+			else:
+				self.LOG(0,"Invalid password: %s (%s)"%(username,host))
+				raise ValueError,"Invalid Password"
+		
+		# This shouldn't happen
+		if ctx==None :
+			self.LOG(1,"System ERROR, login(): %s (%s)"%(username,host))
+			raise Exception,"System ERROR, login()"
+		
+		# we use md5 to make a key for the context as well
+		s=md5.new(username+str(host)+str(time.time()))
+		ctx.ctxid=s.hexdigest()
+		self.__contexts[s.hexdigest()]=ctx
+		
+		return s.hexdigest()
+
+	def cleanupcontexts(self):
+		"""This should be run periodically to clean up sessions that have been idle too long"""
+		self.lastctxclean=time.time()
+		for k in __contexts.items():
+			if k[1].time+k[1].maxidle<time.time() : del __contexts[k[0]]
+		
+	def __getcontext(self,key,host):
+		"""Takes a key and returns a context (for internal use only)
+		Note that both key and host must match."""
+		if (time.time()>self.lastctxclean+30):
+			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
+		
+		try:
+			ctx=__contexts(key)
+		except:
+			self.LOG(4,"Session expired")
+			raise KeyError,"Session expired"
+			
+		if host!=ctx.host :
+			self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
+			raise Exception,"Bad address match, login sessions cannot be shared"
+		
+		return ctx			
+
+    def disableuser(self,username,ctxid,host=None):
+        """This will disable a user so they cannot login. Note that users are NEVER deleted, so
+        a complete historical record is maintained. Only an administrator can do this."""
+		ctx=__getcontext(ctxid,host)
+		if not -1 in ctx.groups :
+			raise SecurityError,"Only administrators can approve new users"
+
+        user=self.users[username]
+        user.disabled=1
+        self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
+        
+	def approveuser(self,username,ctxid,host=None):
+		"""Only an administrator can do this, and the user must be in the queue for approval"""
+		ctx=__getcontext(ctxid,host)
+		if not -1 in ctx.groups :
+			raise SecurityError,"Only administrators can approve new users"
+		
+		if not username in self.newuserqueue :
+			raise KeyError,"User %s is not pending approval"%username
+			
+		if username in self.users :
+			self.newuserqueue[username]=None
+			raise KeyError,"User %s already exists, deleted pending record"%username
+
+		self.users[username]=self.newuserqueue[username]
+		self.newuserqueue[username]=None
+	
+	def adduser(self,user):
+		"""adds a new user record. However, note that this only adds the record to the
+		new user queue, which must be processed by an administrator before the record
+		becomes active. This system prevents problems with securely assigning passwords
+		and errors with data entry. Anyone can create one of these"""
+		if user.username==None or len(user.username<3) : 
+			raise KeyError,"Attempt to add user with invalid name"
+		
+		if user.username in self.users :
+			raise KeyError,"User with username %s already exists"%user.username
+		
+		if user.username in self.newuserqueue :
+			raise KeyError,"User with username %s already pending approval"%user.username
+		
+		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		self.newuserqueue[user.username]=user
+		
+		
+	def getuser(self,username,ctxid,host=None):
+		"""retrieves a user's information. Information may be limited to name and id if the user
+		requested privacy. Administrators will get the full record"""
+		
+		ret=self.users[username]
+		
+		ctx=__getcontext(ctxid,host)
+		
+		# The user him/herself or administrator can get all info
+		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
+		
+		# if the user has requested privacy, we return only basic info
+		if (user.privacy==1 and ctx.user==None) or user.privacy>=2 :
+			ret2=User()
+			ret2.username=ret.username
+			ret2.privacy=ret.privacy
+			ret2.name=ret.name
+			return ret2
+
+		ret.password=None		# the hashed password has limited access
+		
+		# Anonymous users cannot use this to extract email addresses
+		if ctx.user==None : 
+			ret.groups=None
+			ret.email=None
+			ret.altemail=None
+		
+		return ret
+		
+	def getusernames(self,username,ctxid,host=None):
+		"""Not clear if this warrants a security risk, but anyone can get a list of usernames
+			This is needed for inter-database communications"""
+		return self.users.keys()
+		
+	def addfieldtype(self,fieldtype,ctxid,host=None):
+		"""adds a new FieldType object, group 0 permission is required"""
+		if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
+		ctx=__getcontext(ctxid,host)
+		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new fieldtypes (need record creation permission)"
+		if self.fieldtypes.has_key(fieldtype.name) : raise KeyError,"fieldtype %s already exists"%fieldtype.name
+		
+		# force these values
+		fieldtype.creator=ctx.user
+		fieldtype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		
+		# this actually stores in the database
+		self.fieldtypes[fieldtype.name]=fieldtype
+		
+		
+	def getfieldtype(self,fieldtypename):
+		"""gets an existing FieldType object, anyone can get any field definition"""
+		return self.fieldtypes[fieldtypename]
+		
+	def getfieldtypenames(self):
+		"""Returns a list of all FieldType names"""
+		return self.fieldtypes.keys()
+		
+	def addrecordtype(self,rectype,ctxid,host=None):
+		"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
+		if not isinstance(rectype,RecordType) : raise TypeError,"addRecordType requires a RecordType object"
+		ctx=__getcontext(ctxid,host)
+		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordTypes"
+		if self.recordtypes.has_key(rectype.name) : raise KeyError,"RecordType %s already exists"%rectype.name
+		
+		# force these values
+		if (rectype.owner==None) : rectype.owner=ctx.user
+		rectype.creator=ctx.user
+		rectype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		
+		# this actually stores in the database
+		self.recordtypes[rectype.name]=rectype
+		
+		
+	def getrecordtype(self,rectypename,ctxid,host=None,recid=None):
+		"""Retrieves a RecordType object. This will fail if the RecordType is
+		private, unless the user is an owner or iti in the context of a recid the
+		user has permission to access"""
+		ctx=__getcontext(ctxid,host)
+		if not self.recordtypes.has_key(rectypename) : raise KeyError,"No such RecordType %s"%rectypename
+		
+		ret=self.recordtypes[rectypename]	# get the record
+		
+		# if the RecordType isn't private or if the owner is asking, just return it now
+		if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
+
+		# ok, now we need to do a little more work. 
+		if recid==None: raise SecurityError,"User doesn't have permission to access private RecordType '%s'"%rectypename
+		
+		rec=self.getrecord(recid)		# try to get the record, may (and should sometimes) raise an exception
+
+		if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordType %s"%(recid,rectypename)
+
+		# success, the user has permission
+		return ret
+	
+	def getrecordtypenames(self):
+		"""This will retrieve a list of all existing FieldType names, even
+		those the user cannot access the contents of"""
+		return self.recordtypes.keys()
+		
+	def reindex(self,key,oldval,newval,recid):
+		"""This function reindexes a single key/value pair
+		This includes creating any missing indices if necessary"""
+
+		if (oldval==newval) : return
+		try:
+			ind=self.fieldindex[key]		# Try to get the index for this key
+		except:
+			# index not open yet, open/create it
+			try:
+				f=self.FieldType[key]		# Look up the definition of this field
+			except:
+				# Undefined field, we can't create it, since we don't know the type
+				raise FieldError,"No such field %s defined"%key
+			tp=valid_vartypes[f.vartype][0]
+			if not tp : return			# if this is None, then this is an 'unindexable' field
+			
+			# create/open index
+			self.fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.dbenv)
+			ind=self.fieldindex[key]
+		
+		# remove the old ref and add the new one
+		if oldval!=None : ind.removeref(oldval,recid)
+		if newval!=None : ind.addref(newval,recid)
+
+	def reindexsec(self,oldlist,newlist,recid):
+		"""This updates the security (read-only) index
+		takes two lists of userid/groups (may be None)"""
+		o=Set(oldlist)
+		n=Set(newlist)
+		
+		uo=o-n	# unique elements in the 'old' list
+		un=n-o	# unique elements in the 'new' list
+
+		# anying in both old and new should be ok,
+		# So, we remove the index entries for all of the elements in 'old', but not 'new'
+		for i in uo:
+			self.secrindex.removeref(i,recid)
+
+		# then we add the index entries for all of the elements in 'new', but not 'old'
+		for i in un:
+			self.secrindex.addred(i,recid)
+												
+	def putrecord(self,record,ctxid,host=None):
+		"""The record has everything we need to commit the data. However, to 
+		update the indices, we need the original record as well. This also provides
+		an opportunity for double-checking security vs. the original"""
+		ctx=__getcontext(ctxid,host)
+
+		try:
+			orig=self.records[record.recid]		# get the unmodified record
+		except:
+			# Record must not exist, lets create it
+			#p=record.setContext(ctx)
+
+			# Group -1 is administrator, group 0 membership is global permission to create new records
+			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
+			
+			# index fields
+			for k,v in record.items():
+				self.reindex(k,None,v,record.recid)
+			
+			self.reindexsec(None,record["security"],record.recid)		# index security
+			self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
+			
 			self.records[record.recid]=record		# This actually stores the record in the database
+			return
 				
-		def newrecord(self,rectype,ctxid,host=None,init=0):
-			"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
-			already exist)."""
-			ret=Record()
+		p=orig.setContext(ctx)				# security check on the original record
+		
+		# Ok, to efficiently update the indices, we need to figure out what changed
+		fields=Set(orig.keys()).union_update(record.keys())		# list of all fields (old and new)
+		changedfields=[]
+		for f in fields:
+			try:
+				if (orig[f]!=record[f]) : changedfields.append(f)
+			except:
+				changedfields.append(f)
+		
+		# make sure the user has permission to modify the record
+		if not p[2] :
+			if not p[1] : raise SecurityError,"No permission to modify record %d"%record.recid
+			if len(changedfields>1) or changedfields[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
+		
+		# Now update the indices
+		for f in changedfields:
+			# reindex will accept None as oldval or newval
+			try:    oldval=orig[f]
+			except: oldval=None
 			
-			# try to get the RecordType entry, this still may fail even if it exists, if the
-			# RecordType is private and the context doesn't permit access
-			t=self.getrecordtype(rectype,ctxid,host)	
+			try:    newval=record[f]
+			except: newval=None
 
-			ret.rectype=rectype						# if we found it, go ahead and set up
+			self.reindex(f,oldval,newval,record.recid)
+
+		self.records[record.recid]=record		# This actually stores the record in the database
 			
-			ret.recid=self.records[-1]+1				# Get a new record-id
-			self.records[-1]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
-			
-			if init:
-				for i in t.fields():
-					ret[i]=None							# dummy entries for each field
-			
-			return ret
-			
-		def getrecord(self,recid,ctxid,dbid=0,host=None) :
-			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
-			if dbid is 0, the current database is used. host must match the host of the
-			context"""
-			
-			ctx=__getcontext(ctxid,host)
-			
-			if (dbid!=0) : raise Exception,"External database support not yet available"
-			
-			# if a single id was requested, return it
-			# setContext is required to make the record valid, and returns a binary security tuple
-			if (isinstance(recid,int)):
+	def newrecord(self,rectype,ctxid,host=None,init=0):
+		"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
+		already exist)."""
+		ret=Record()
+		
+		# try to get the RecordType entry, this still may fail even if it exists, if the
+		# RecordType is private and the context doesn't permit access
+		t=self.getrecordtype(rectype,ctxid,host)	
+
+		ret.rectype=rectype						# if we found it, go ahead and set up
+		
+		ret.recid=self.records[-1]+1				# Get a new record-id
+		self.records[-1]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+		
+		if init:
+			for i in t.fields():
+				ret[i]=None							# dummy entries for each field
+		
+		return ret
+		
+	def getrecord(self,recid,ctxid,dbid=0,host=None) :
+		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
+		if dbid is 0, the current database is used. host must match the host of the
+		context"""
+		
+		ctx=__getcontext(ctxid,host)
+		
+		if (dbid!=0) : raise Exception,"External database support not yet available"
+		
+		# if a single id was requested, return it
+		# setContext is required to make the record valid, and returns a binary security tuple
+		if (isinstance(recid,int)):
+			rec=self.records[recid]
+			p=rec.setContext(ctx)
+			if p[0] : return rec
+			raise Exception,"No permission to access record"
+		elif (isinstance(recid,list)):
+			rec=map(lambda x:self.records[x],recid)
+			for r in rec:
+				p=rec.setContext(ctx)
+				if not p[0] : raise Exception,"No permission to access one or more records"	
+			return rec
+		else : raise KeyError,"Invalid Key"
+		
+	def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
+		"""Same as getRecord, but failure will produce None or a filtered list"""
+		
+		ctx=__getcontext(ctxid,host)
+		
+		if (dbid!=0) : return None
+		
+		if (isinstance(recid,int)):
+			try:
 				rec=self.records[recid]
-				p=rec.setContext(ctx)
-				if p[0] : return rec
-				raise Exception,"No permission to access record"
-			elif (isinstance(recid,list)):
-				rec=map(lambda x:self.records[x],recid)
-				for r in rec:
-					p=rec.setContext(ctx)
-					if not p[0] : raise Exception,"No permission to access one or more records"	
-				return rec
-			else : raise KeyError,"Invalid Key"
-			
-		def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
-			"""Same as getRecord, but failure will produce None or a filtered list"""
-			
-			ctx=__getcontext(ctxid,host)
-			
-			if (dbid!=0) : return None
-			
-			if (isinstance(recid,int)):
-				try:
-					rec=self.records[recid]
-				except: 
-					return None
-				p=rec.setContext(ctx)
-				if p[0] : return rec
+			except: 
 				return None
-			elif (isinstance(recid,list)):
-				try:
-					rec=map(lambda x:self.records[x],recid)
-				except: 
-					return None
-				rec=filter(lambda x:x.setContext(ctx)[0],rec)
-				return rec
-			else : return None
+			p=rec.setContext(ctx)
+			if p[0] : return rec
+			return None
+		elif (isinstance(recid,list)):
+			try:
+				rec=map(lambda x:self.records[x],recid)
+			except: 
+				return None
+			rec=filter(lambda x:x.setContext(ctx)[0],rec)
+			return rec
+		else : return None
 			
