@@ -53,15 +53,15 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 
 	def xmlrpc_getproto(self,classtype,ctxid):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
-		classtype may be: user,fieldtype,recordtype,workflow or the name of a valid recordtype"""
+		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
 		if   (classtype.lower()=="user") :
 			r=Database.User()
 			return r.__dict__
-		elif (classtype.lower()=="fieldtype") :
-			r=Database.FieldType()
+		elif (classtype.lower()=="paramdef") :
+			r=Database.ParamDef()
 			return r.__dict__
-		elif (classtype.lower()=="recordtype") :
-			r=Database.RecordType()
+		elif (classtype.lower()=="recorddef") :
+			r=Database.RecordDef()
 			return r.__dict__
 		elif (classtype.lower()=="workflow") :
 			r=Database.Workflow()
@@ -134,34 +134,34 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			
 		return r
 		
-	def xmlrpc_addfieldtype(self,fieldtype,ctxid):
-		"""Puts a new FieldType in the database. User must have permission to add records."""
-		r=Database.FieldType()
-		r.__dict__.update(fieldtype)
-		db.addfieldtype(r,ctxid)
+	def xmlrpc_addparamdef(self,paramdef,ctxid):
+		"""Puts a new ParamDef in the database. User must have permission to add records."""
+		r=Database.ParamDef()
+		r.__dict__.update(paramdef)
+		db.addparamdef(r,ctxid)
 		
-	def xmlrpc_getfieldtype(self,fieldtypename):
-		"""Anyone may retrieve any fieldtype"""
-		return db.getfieldtype(fieldtypename).__dict__
+	def xmlrpc_getparamdef(self,paramdefname):
+		"""Anyone may retrieve any paramdef"""
+		return db.getparamdef(paramdefname).__dict__
 	
-	def xmlrpc_getfieldtypenames(self):
-		"""List of all fieldtype names"""
-		return db.getfieldtypenames()
+	def xmlrpc_getparamdefnames(self):
+		"""List of all paramdef names"""
+		return db.getparamdefnames()
 	
-	def xmlrpc_addrecordtype(self,rectype,ctxid):
-		"""New recordtypes may be added by users with record creation permission"""
-		r=Database.RecordType(rectype)
-		db.addrecordtype(r,ctxid)
+	def xmlrpc_addrecorddef(self,rectype,ctxid):
+		"""New recorddefs may be added by users with record creation permission"""
+		r=Database.RecordDef(rectype)
+		db.addrecorddef(r,ctxid)
 			
-	def xmlrpc_getrecordtype(self,rectypename,ctxid,recid=None):
-		"""Most RecordTypes are generally accessible. Some may be declared private in
+	def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
+		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
-		return db.getrecordtype(recname,ctxid,recid=recid).__dict__
+		return db.getrecorddef(recname,ctxid,recid=recid).__dict__
 			
-	def xmlrpc_getrecordtypenames(self):
-		"""The names of all recordtypes are globally available to prevent duplication"""
-		return db.getrecordtypenames()
+	def xmlrpc_getrecorddefnames(self):
+		"""The names of all recorddefs are globally available to prevent duplication"""
+		return db.getrecorddefnames()
 	def xmlrpc_getvartypenames(self):
 		"""The names of all variable types, ie - int,float, etc."""
 		return db.getvartypenames()

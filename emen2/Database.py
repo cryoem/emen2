@@ -254,7 +254,7 @@ valid_properties = ["count","length","area","volume","mass","temperature","pH","
 	"transmittance","absorbance","relative_humidity","velocity","momentum","force","energy","angular_momentum"]
 
 				
-class FieldType:
+class ParamDef:
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
@@ -270,17 +270,17 @@ class FieldType:
 		self.creator=None				# original creator of the record
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
-		self.creationdb=None		# dbid where fieldtype originated
+		self.creationdb=None		# dbid where paramdef originated
 
 	def __str__(self):
 		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 			
-class RecordType:
+class RecordDef:
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
 	def __init__(self,dict=None):
-		self.name=None				# the name of the current RecordType, somewhat redundant, since also stored as key for index in Database
+		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
@@ -289,12 +289,12 @@ class RecordType:
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record 
-		self.private=0				# if this is 1, this RecordType may only be retrieved by its owner (which may be a group)
+		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
 		self.owner=None				# The owner of this record
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
-		self.creationdb=None		# dbid where recordtype originated
+		self.creationdb=None		# dbid where recorddef originated
 		if (dict) : self.__dict__.update(dict)
 		
 	def __str__(self):
@@ -302,7 +302,7 @@ class RecordType:
 			self.name,self.mainview,self.views,self.stringfields(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
 
 	def stringfields(self):
-		"""returns the fields for this recordtype as an indented printable string"""
+		"""returns the fields for this recorddef as an indented printable string"""
 		r=["{"]
 		for k,v in self.fields.items():
 			r.append("\n\t%s: %s"%(k,str(v)))
@@ -380,8 +380,8 @@ class WorkFlow:
 			
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
-	of a particular RecordType, however, note that it is not required to have a value for
-	every field described in the RecordType, though this will usually be the case.
+	of a particular RecordDef, however, note that it is not required to have a value for
+	every field described in the RecordDef, though this will usually be the case.
 	
 	To modify the fields in a record use the normal obj[key]= or update() approaches. 
 	Changes are not stored in the database until commit() is called. To examine fields, 
@@ -422,7 +422,7 @@ class Record:
 			return
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
-		self.rectype=""				# name of the RecordType represented by this Record
+		self.rectype=""				# name of the RecordDef represented by this Record
 		self.__fields={comments:[]}	# a Dictionary containing field names associated with their data
 		self.__ofields={}			# when a field value is changed, the original value is stored here
 		self.__owner=None			# The owner of this record, may be a username or a group id
@@ -616,11 +616,11 @@ class Database:
 		self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
 		self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
 	
-		# Defined FieldTypes
-		self.fieldtypes=BTree("FieldTypes",path+"/FieldTypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
+		# Defined ParamDefs
+		self.paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.dbenv)						# ParamDef objects indexed by name
 
-		# Defined RecordTypes
-		self.recordtypes=BTree("RecordTypes",path+"/RecordTypes.bdb",dbenv=self.dbenv)					# RecordType objects indexed by name
+		# Defined RecordDefs
+		self.recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.dbenv)					# RecordDef objects indexed by name
 					
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
@@ -634,8 +634,8 @@ class Database:
 		
 		# Indices
 		self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
-		self.recordtypeindex=FieldBTree("RecordTypeindex",path+"/RecordTypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
-		self.fieldindex={}				# dictionary of FieldBTrees, 1 per FieldType, not opened until needed
+		self.recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordDef
+		self.fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 
 		# The mirror database for storing offsite records
 		self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
@@ -907,35 +907,35 @@ class Database:
 		fixed list"""
 		return valid_properties
 		
-	def addfieldtype(self,fieldtype,ctxid,host=None):
-		"""adds a new FieldType object, group 0 permission is required"""
-		if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
+	def addparamdef(self,paramdef,ctxid,host=None):
+		"""adds a new ParamDef object, group 0 permission is required"""
+		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
 		ctx=self.__getcontext(ctxid,host)
-		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new fieldtypes (need record creation permission)"
-		if self.fieldtypes.has_key(fieldtype.name) : raise KeyError,"fieldtype %s already exists"%fieldtype.name
+		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
+		if self.paramdefs.has_key(paramdef.name) : raise KeyError,"paramdef %s already exists"%paramdef.name
 		
 		# force these values
-		fieldtype.creator=ctx.user
-		fieldtype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		paramdef.creator=ctx.user
+		paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		self.fieldtypes[fieldtype.name]=fieldtype
+		self.paramdefs[paramdef.name]=paramdef
 		
 		
-	def getfieldtype(self,fieldtypename):
-		"""gets an existing FieldType object, anyone can get any field definition"""
-		return self.fieldtypes[fieldtypename]
+	def getparamdef(self,paramdefname):
+		"""gets an existing ParamDef object, anyone can get any field definition"""
+		return self.paramdefs[paramdefname]
 		
-	def getfieldtypenames(self):
-		"""Returns a list of all FieldType names"""
-		return self.fieldtypes.keys()
+	def getparamdefnames(self):
+		"""Returns a list of all ParamDef names"""
+		return self.paramdefs.keys()
 		
-	def addrecordtype(self,rectype,ctxid,host=None):
-		"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
-		if not isinstance(rectype,RecordType) : raise TypeError,"addRecordType requires a RecordType object"
+	def addrecorddef(self,rectype,ctxid,host=None):
+		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
+		if not isinstance(rectype,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)
-		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordTypes"
-		if self.recordtypes.has_key(rectype.name) : raise KeyError,"RecordType %s already exists"%rectype.name
+		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordDefs"
+		if self.recorddefs.has_key(rectype.name) : raise KeyError,"RecordDef %s already exists"%rectype.name
 		
 		# force these values
 		if (rectype.owner==None) : rectype.owner=ctx.user
@@ -943,35 +943,35 @@ class Database:
 		rectype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		self.recordtypes[rectype.name]=rectype
+		self.recorddefs[rectype.name]=rectype
 		
 		
-	def getrecordtype(self,rectypename,ctxid,host=None,recid=None):
-		"""Retrieves a RecordType object. This will fail if the RecordType is
+	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
+		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
 		ctx=self.__getcontext(ctxid,host)
-		if not self.recordtypes.has_key(rectypename) : raise KeyError,"No such RecordType %s"%rectypename
+		if not self.recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
 		
-		ret=self.recordtypes[rectypename]	# get the record
+		ret=self.recorddefs[rectypename]	# get the record
 		
-		# if the RecordType isn't private or if the owner is asking, just return it now
+		# if the RecordDef isn't private or if the owner is asking, just return it now
 		if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
 
 		# ok, now we need to do a little more work. 
-		if recid==None: raise SecurityError,"User doesn't have permission to access private RecordType '%s'"%rectypename
+		if recid==None: raise SecurityError,"User doesn't have permission to access private RecordDef '%s'"%rectypename
 		
 		rec=self.getrecord(recid)		# try to get the record, may (and should sometimes) raise an exception
 
-		if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordType %s"%(recid,rectypename)
+		if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordDef %s"%(recid,rectypename)
 
 		# success, the user has permission
 		return ret
 	
-	def getrecordtypenames(self):
-		"""This will retrieve a list of all existing RecordType names, 
+	def getrecorddefnames(self):
+		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
-		return self.recordtypes.keys()
+		return self.recorddefs.keys()
 		
 	def reindex(self,key,oldval,newval,recid):
 		"""This function reindexes a single key/value pair
@@ -983,7 +983,7 @@ class Database:
 		except:
 			# index not open yet, open/create it
 			try:
-				f=self.FieldType[key]		# Look up the definition of this field
+				f=self.ParamDef[key]		# Look up the definition of this field
 			except:
 				# Undefined field, we can't create it, since we don't know the type
 				raise FieldError,"No such field %s defined"%key
@@ -1046,7 +1046,7 @@ class Database:
 				self.reindex(k,None,v,record.recid)
 			
 			self.reindexsec(None,record["security"],record.recid)		# index security
-			self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
+			self.recorddefindex.addref(record.rectype,record.recid)	# index recorddef
 			
 			self.records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
@@ -1082,13 +1082,13 @@ class Database:
 		return record.recid
 		
 	def newrecord(self,rectype,ctxid,host=None,init=0):
-		"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
+		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
 		ret=Record()
 		
-		# try to get the RecordType entry, this still may fail even if it exists, if the
-		# RecordType is private and the context doesn't permit access
-		t=self.getrecordtype(rectype,ctxid,host)	
+		# try to get the RecordDef entry, this still may fail even if it exists, if the
+		# RecordDef is private and the context doesn't permit access
+		t=self.getrecorddef(rectype,ctxid,host)	
 
 		ret.recid=None
 		ret.rectype=rectype						# if we found it, go ahead and set up

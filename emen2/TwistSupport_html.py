@@ -94,29 +94,32 @@ def html_dicttable(dict,proto):
 		
 def html_home():
 	ret=[html_header("EMEN2 Home Page"),"""<h2>EMEN2 Demo Page</h2><br><br>Available tasks:<br><ul>
-	<li><a href="/db/fieldtypes">List of Field Types</a></li>
-	<li><a href="/db/recordtypes">List of Record Types</a></li>
+	<li><a href="/db/paramdefs">List of Defined Experimental Parameters</a></li>
+	<li><a href="/db/recorddefs">List of Defined Records (Experiments)</a></li>
 	<li><a href="/db/users">List of Users</a></li>
+	</ul><br><br><ul>
+	<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
+	<li><a href="/db/newuser">Add New User</a></li>
 	</ul>"""]
 	
 	return "".join(ret)
 
-def html_fieldtypes(path,args,ctxid,host):
+def html_paramdefs(path,args,ctxid,host):
 	global db
 	
-	ftn=db.getfieldtypenames()
-	ret=[html_header("EMEN2 FieldTypes"),"<h2>Registered FieldTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/fieldtype?name="))
+	ftn=db.getparamdefnames()
+	ret=[html_header("EMEN2 ParamDefs"),"<h2>Registered ParamDefs</h2><br>%d defined:"%len(ftn)]
+	ret.append(html_htable(ftn,3,"/db/paramdef?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)	
 
-def html_fieldtype(path,args,ctxid,host):
+def html_paramdef(path,args,ctxid,host):
 	global db
 	
-	item=db.getfieldtype(args["name"][0])
+	item=db.getparamdef(args["name"][0])
 	
-	ret=[html_header("EMEN2 FieldType Description"),"<h2>FieldType: <i>%s</i></h2><br>"%item.name]
+	ret=[html_header("EMEN2 ParamDef Description"),"<h2>ParamDef: <i>%s</i></h2><br>"%item.name]
 	
 	ret.append("""<table><tr><td>Name</td><td>%s</td></tr>
 	<tr><td>Variable Type</td><td>%s</td></tr>
@@ -129,47 +132,47 @@ def html_fieldtype(path,args,ctxid,host):
 	
 	return "".join(ret)
 
-def html_newfieldtype(path,args,ctxid,host):
-	"""Add new FieldType form. Also does the actual FieldType insertion"""	
+def html_newparamdef(path,args,ctxid,host):
+	"""Add new ParamDef form. Also does the actual ParamDef insertion"""	
 	ret=[html_header("EMEN2 Add Experimental Parameter"),"<h1>Add Experimental Parameter</h1><br>"]
 	if args.has_key("name") :
 		try: 
-			ft=DB.FieldType(name=args["name"][0],vartype=args["vartype"][0],desc_short=args["desc_short"][0],desc_long=args["desc_long"][0],property=args["property"][0],defaultunits=args["defaultunits"][0])
-			db.addfieldtype(ft,ctxid,host)
+			ft=DB.ParamDef(name=args["name"][0],vartype=args["vartype"][0],desc_short=args["desc_short"][0],desc_long=args["desc_long"][0],property=args["property"][0],defaultunits=args["defaultunits"][0])
+			db.addparamdef(ft,ctxid,host)
 		except Exception,e:
 			ret.append("Error adding Parameter '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
 			return "".join(ret)
 			
-		# FieldType added sucessfully
+		# ParamDef added sucessfully
 		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
 		return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		return "".join(ret)+html_form(action="/db/newfieldtype",items=(("Name:","name","text"),
+		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
 		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
 		("Short Description","desc_short","text"),("Long Description","desc_long","textarea"),
 		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+"</body></html>"
 		
 
-def html_recordtypes(path,args,ctxid,host):
+def html_recorddefs(path,args,ctxid,host):
 	global db
 	
-	ftn=db.getrecordtypenames()
-	ret=[html_header("EMEN2 RecordTypes"),"<h2>Registered RecordTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/recordtype?name="))
+	ftn=db.getrecorddefnames()
+	ret=[html_header("EMEN2 RecordDefs"),"<h2>Registered RecordDefs</h2><br>%d defined:"%len(ftn)]
+	ret.append(html_htable(ftn,3,"/db/recorddef?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)
 
-def html_recordtype(path,args,ctxid,host):
+def html_recorddef(path,args,ctxid,host):
 	global db
 	
-	item=db.getrecordtype(args["name"][0])
+	item=db.getrecorddef(args["name"][0])
 	
-	ret=[html_header("EMEN2 RecordType Description"),"<h2>RecordType: <i>%s</i></h2><br>fields:<br>"%item.name]
+	ret=[html_header("EMEN2 RecordDef Description"),"<h2>RecordDef: <i>%s</i></h2><br>fields:<br>"%item.name]
 	
-	ret.append(html_dicttable(item.fields,"/db/fieldtype?name="))
+	ret.append(html_dicttable(item.fields,"/db/paramdef?name="))
 	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 	ret.append("""</body></html>""")
 	
@@ -182,7 +185,7 @@ def html_record(path,args,ctxid,host):
 
 	ret=[html_header("EMEN2 Record"),"<h2>Record: <i>%d</i></h2><br>fields:<br>"%int(item.recid)]
 	
-	ret.append(html_dicttable(item.items(),"/db/fieldtype?name="))
+	ret.append(html_dicttable(item.items(),"/db/paramdef?name="))
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
