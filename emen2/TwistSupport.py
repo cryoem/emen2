@@ -27,10 +27,11 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		if not isinstance(result, xmlrpc.Fault):
 			result = (result,)
 		try:
-			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=1)
+			s = xmlrpclib.dumps(result, methodresponse=1)
 		except:
 			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
-			s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
+			s = xmlrpclib.dumps(f, methodresponse=1)
+#			s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
