@@ -1042,13 +1042,25 @@ class Database:
 		shouldn't pose a security threat."""
 		return Set(self.__recorddefindex[recdefname])
 
+	def getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
+		"""For numerical & simple string parameters, this will locate all 
+		parameter values in the specified range.
+		valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
+		ind=self.__getparamindex(paramname,create=0)
+		
+		if valrange==None : return ind.keys()
+		elif isinstance(valrange,tuple) or isinstance(valrange,list) : return ind.keys(valrange[0],valrange[1])
+		elif ind.has_key(valrange): return valrange
+		return None
+		
 	def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
-		valrange may be a single number or a (min,max) tuple/list."""
+		valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
 		ind=self.__getparamindex(paramname,create=0)
 		
-		if isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
+		if valrange==None : ret=Set(ind.values())
+		elif isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
 		else: ret=Set(ind[valrange])
 		
 		u,g=self.checkcontext(ctxid,host)
