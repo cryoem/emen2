@@ -82,7 +82,12 @@ def format_string_obj(dict,keylist):
 				r.append("\n%s: None"%k)
 	r.append(" }\n")
 	return "".join(r)
-						
+
+def timetosec(timestr):
+	"""takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
+	returns the standard time in seconds since the beginning of time"""
+	return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
+	
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""

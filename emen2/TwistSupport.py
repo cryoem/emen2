@@ -127,6 +127,17 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Delete a single workflow entry"""
 		db.delworkflowitem(wfid,ctxid)
 		
+	def xmlrpc_getrecords(self,recids,ctxid,dbid=None):
+		"""Retrieve records from the database as a list of dictionaries"""
+		ret=[]
+		try:
+			for recid in recids:
+				ret.append(db.getrecord(recid,ctxid,dbid).items())
+		except Exception,x:
+			return 0,x
+		
+		return ret
+	
 	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
