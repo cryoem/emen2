@@ -1568,7 +1568,7 @@ class Database:
 		
 		return ret
 	
-	def reindex(self,key,oldval,newval,recid):
+	def __reindex(self,key,oldval,newval,recid):
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
 
@@ -1585,7 +1585,7 @@ class Database:
 		if newval!=None : ind.addref(newval,recid)
 		#print ind.items()
 
-	def reindexsec(self,oldlist,newlist,recid):
+	def __reindexsec(self,oldlist,newlist,recid):
 		"""This updates the security (read-only) index
 		takes two lists of userid/groups (may be None)"""
 		o=Set(oldlist)
@@ -1647,9 +1647,9 @@ class Database:
 			# index params
 			for k,v in record.items():
 			    if k != 'recid':
-				self.reindex(k,None,v,record.recid)
+				self.__reindex(k,None,v,record.recid)
 			
-			self.reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
+			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			
 			#print "putrec->\n",record.__dict__
@@ -1704,7 +1704,7 @@ class Database:
 			try:    newval=record[f]
 			except: newval=None
 
-			self.reindex(f,oldval,newval,record.recid)
+			self.__reindex(f,oldval,newval,record.recid)
 			
 			if (f!="comments") :
 				orig["comments"]='LOG: <emen:param name="%s">%s</emen:param> old value=%s'%(f,newval,oldval)
@@ -1712,7 +1712,7 @@ class Database:
 			orig[f]=record[f]
 			
 				
-		self.reindexsec(reduce(operator.concat,orig["permissions"]),
+		self.__reindexsec(reduce(operator.concat,orig["permissions"]),
 			reduce(operator.concat,record["permissions"]),record.recid)		# index security
 		self.__records[record.recid]=orig			# This actually stores the record in the database
 		return record.recid
@@ -1789,5 +1789,27 @@ class Database:
 			recl=filter(lambda x:x.setContext(ctx)[0],recl)
 			return rec
 		else : return None
+	
+	def secrecordadduser(self,usertuple,recid,ctxid,host=None,recurse=0):
+		"""This adds permissions to a record. usertuple is a 3-tuple containing users
+		to have read, comment and write permission. Each value in the tuple is either
+		a string (username) or a tuple/list of usernames. If recurse>0, the
+		operation will be performed recursively on the specified record's children
+		to a limited recursion depth. Note that this ADDS permissions to existing
+		permissions on the record. If addition of a lesser permission than the
+		existing permission is requested, no change will be made. ie - giving a
+		user read access to a record they already have write access to will
+		have no effect."""
+		pass
+	
+	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
+		"""This removes permissions from a record. users is a username or tuple/list of
+		of usernames to have no access to the record at all (will not affect group 
+		or owner access). If recurse>0, the operation will be performed recursively 
+		on the specified record's children to a limited recursion depth. Note that 
+		this REMOVES all access permissions for the specified users on the specified
+		record."""
+		pass
+	
 	
 	
