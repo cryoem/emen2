@@ -215,7 +215,7 @@ def html_recorddef(path,args,ctxid,host):
 			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(c,c))
 
 	ret.append("<br><br>Parameters:<br>")
-	ret.append(html_dicttable(item.fields,"/db/paramdef?name="))
+	ret.append(html_dicttable(item.params,"/db/paramdef?name="))
 #	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 	
 	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
@@ -280,9 +280,9 @@ def html_record(path,args,ctxid,host):
 	
 	item=db.getrecord(int(args["name"][0]),ctxid)
 
-	ret=[html_header("EMEN2 Record"),"<h2>Record: <i>%d</i></h2><br>fields:<br>"%int(item.recid)]
+	ret=[html_header("EMEN2 Record"),"<h2>Record: <i>%d</i></h2><br>params:<br>"%int(item.recid)]
 	
-	ret.append(html_dicttable(item.items(),"/db/paramdef?name="))
+	ret.append(html_dicttable(item,"/db/paramdef?name="))
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
@@ -297,7 +297,7 @@ def html_newrecord(path,args,ctxid,host):
 		
 		bld=[("","rectype","hidden")]
 		for p in rec.keys():
-			if p in ("owner","creator","creationdate","comments"): continue
+			if p in ("owner","creator","creationdate","comments") or parm[p].vartype in ("child","link") : continue
 			try: bld.append((parm[p].desc_short,p,"text"))
 			except: bld.append((p,p,"text"))
 

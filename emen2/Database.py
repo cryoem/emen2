@@ -22,7 +22,7 @@ from bsddb3 import db
 from cPickle import dumps,loads
 from sets import *
 import os
-import md5
+import sha
 import time
 import re
 import operator
@@ -124,8 +124,10 @@ class BTree:
 			self[key]=(self[key]+[item])
 		else: self[key]=[item]
 
-	def pclink(self,parenttag,childtag):
-		"""This establishes a parent-child relationship between two tags"""
+	def pclink(self,parenttag,childtag,paramname=""):
+		"""This establishes a parent-child relationship between two tags.
+		The relationship may also be named. That is the parent may
+		get a list of children only with a specific paramname."""
 		if not self.relate : raise Exception,"relate option required"
 		parenttag=str(parenttag)
 		childtag=str(childtag)
@@ -135,8 +137,8 @@ class BTree:
 		except:
 			o=[]
 			
-		if not childtag in o:
-			o.append(childtag)
+		if not (childtag,paramname) in o:
+			o.append((childtag,paramname))
 			self.pcdb.put(parenttag,dumps(o))
 	
 			try:
@@ -147,7 +149,7 @@ class BTree:
 			o.append(parenttag)
 			self.cpdb.put(childtag,dumps(o))
 	
-	def pcunlink(self,parenttag,childtag):
+	def pcunlink(self,parenttag,childtag,paramname=""):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
 		if not self.relate : raise Exception,"relate option required"
 		parenttag=str(parenttag)
@@ -158,7 +160,7 @@ class BTree:
 		except:
 			return
 			
-		if not childtag in o: return
+		if not (childtag,paramname) in o: return
 		
 		del o[childtag]
 		self.pcdb.put(parenttag,dumps(o))
@@ -222,13 +224,18 @@ class BTree:
 			return []
 		
 		
-	def children(self,tag):
-		"""Returns a list of the tag's children"""
+	def children(self,tag,paramname=None):
+		"""Returns a list of the tag's children. If paramname is
+		omitted, all named and unnamed children will be returned"""
 		if not self.relate : raise Exception,"relate option required"
 		tag=str(tag)
 		
 		try:
-			return loads(self.pcdb.get(tag))
+			c=loads(self.pcdb.get(tag))
+			if paramname :
+				c=filter(lambda x:x[1]==paramname,c)
+				return [x[0] for x in c]
+			else: return c
 		except:
 			return []
 	
@@ -388,7 +395,8 @@ valid_vartypes={
 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
 	"float":("f",lambda x:float(x)),		# double precision
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-	"string":("s",lambda x:str(x)),			# string from an enumerated list
+	"choice":("s",lambda x:str(x))			# string from a fixed enumerated list
+	"string":("s",lambda x:str(x)),			# string from an extensible enumerated list
 	"text":(None,lambda x:str(x)),			# freeform text, not indexed yet
 	"time":("s",lambda x:str(x)),			# HH:MM:SS
 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
@@ -399,31 +407,54 @@ valid_vartypes={
 	"url":(None,lambda x:str(x)),			# link to a generic url
 	"hdf":(None,lambda x:str(x)),			# url points to an HDF file
 	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
-	"binary":lambda x:str(x),				# url points to an arbitrary binary
-	"child":lambda y:map(lambda x:int(x),y),	# link to dbid/recid of a child record
-	"link":lambda y:map(lambda x:int(x),y)		# lateral link to related record dbid/recid
+	"binary":(None,lambda x:str(x)),				# url points to an arbitrary binary
+	"child":(None,lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
+	"link":(None,lambda y:map(lambda x:int(x),y))		# lateral link to related record dbid/recid
 }
 
 # Valid physical property names
-# this really ought to have a list of valid units for each property, and perhaps a conversion
-# function of some sort
-valid_properties = ["count","length","area","volume","mass","temperature","pH","voltage","current","resistance","inductance",
-	"transmittance","absorbance","relative_humidity","velocity","momentum","force","energy","angular_momentum"]
+# The first item in the value tuple is ostensibly a default, but this
+# will generally be provided by the ParamDef. It may be that
+# synonyms should be combined in a better way
+valid_properties = { 
+"count":(None,{}),
+"unitless":(None,{}),
+"length",("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
+	"millimeter":0.001,"micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
+	"A":1.0e-10}),
+"area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
+"volume",("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3}),
+"mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"dalton":1.6605387e-24}),
+"temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
+	"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
+"pH":("pH",{"pH":1.0}),
+"voltage":("volt",{"V":1.0,"volt":1.0,"kv":1000.0,"kilovolt":1000.0,"mv":.001,"millivolt":.001}),
+"current":("amp",{"A":1.0,"amp":1.0,"ampere":1.0}),
+"resistance":("ohm",{"ohm":1.0}),
+"inductance":("henry",{"H":1.0,"henry":1.0}),
+"transmittance":("%T",{"%T":1.0}),
+"relative_humidity",("%RH",{"%RH":1.0}),
+"velocity",("m/s",{"m/s":1.0}),
+"momentum",("kg m/s",{"kg m/s":1.0}),
+"force",("N",{"N":1.0,"newton":1.0}),
+"energy",("J",{"J":1.0,"joule":1.0}),
+"angle",("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi})
+}
 
-				
 class ParamDef:
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
 	Database object. Fields may only be modified by the administrator once
 	created, and then, they should only be modified for clarification""" 
-	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
+	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
 		self.name=name					# This is the name used in XML files to refer to this field, lower case
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
 		self.desc_short=desc_short		# This is a very short description for use in forms
 		self.desc_long=desc_long		# A complete description of the meaning of this variable
 		self.property=property			# Physical property represented by this field, List in 'properties'
 		self.defaultunits=defaultunits	# Default units (optional)
+		self.choices=choices			# choices for choice and string vartypes, a tuple
 		self.creator=None				# original creator of the record
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
@@ -438,12 +469,12 @@ class RecordDef:
 	contained by the Record"""
 	def __init__(self,dict=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.mainview=None			# an XML string defining the experiment with embedded fields
+		self.mainview=None			# an XML string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields={}				# A dictionary keyed by the names of all fields used in any of the views
+		self.params={}				# A dictionary keyed by the names of all params used in any of the views
 									# values are the default value for the field.
-									# this represents all fields that must be defined to have a complete
+									# this represents all params that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record 
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
@@ -455,22 +486,22 @@ class RecordDef:
 		if (dict) : self.__dict__.update(dict)
 		
 	def __str__(self):
-		return "{ name: %s\nmainview:\n%s\nviews: %s\nfields: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-			self.name,self.mainview,self.views,self.stringfields(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
 
-	def stringfields(self):
-		"""returns the fields for this recorddef as an indented printable string"""
+	def stringparams(self):
+		"""returns the params for this recorddef as an indented printable string"""
 		r=["{"]
-		for k,v in self.fields.items():
+		for k,v in self.params.items():
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
 	
 	def findparams(self):
-		"""This will update the list of fields by parsing the views"""
+		"""This will update the list of params by parsing the views"""
 		d=parseparmdef(self.mainview)
 		for i in self.views.values():
 			d.update(parseparmdef(i))
-		self.fields=d
+		self.params=d
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
@@ -556,8 +587,8 @@ class Record:
 	of a particular RecordDef, however, note that it is not required to have a value for
 	every field described in the RecordDef, though this will usually be the case.
 	
-	To modify the fields in a record use the normal obj[key]= or update() approaches. 
-	Changes are not stored in the database until commit() is called. To examine fields, 
+	To modify the params in a record use the normal obj[key]= or update() approaches. 
+	Changes are not stored in the database until commit() is called. To examine params, 
 	use obj[key]. There are a few special keys, handled differently:
 	owner,creator,creationtime,permissions,comments
 
@@ -565,7 +596,7 @@ class Record:
 	creation operations. self.context will store information about security and
 	storage for the record.
 	
-	Mechanisms for changing existing fields are a bit complicated. In a sense, as in a 
+	Mechanisms for changing existing params are a bit complicated. In a sense, as in a 
 	physical lab notebook, an original value can never be changed, only superceded. 
 	All records have a 'magic' field called 'comments', which is an extensible array
 	of text blocks with immutable entries. 'comments' entries can contain new field
@@ -581,7 +612,7 @@ class Record:
 	such changes should be infrequent.
 	
 	Naturally, as with anything in Python, anyone with code-level access to the database
-	can override this behavior by changing 'fields' directly rather than using
+	can override this behavior by changing 'params' directly rather than using
 	the supplied access methods. There may be appropriate uses for this when constructing
 	a new Record before committing changes back to the database.
 	"""
@@ -596,9 +627,9 @@ class Record:
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordDef represented by this Record
-		self.__fields={}			# a Dictionary containing field names associated with their data
+		self.__params={}			# a Dictionary containing field names associated with their data
 		self.__comments=[]			# a List of comments records
-		self.__ofields={}			# when a field value is changed, the original value is stored here
+		self.__oparams={}			# when a field value is changed, the original value is stored here
 		self.__owner=None			# The owner of this record, may be a username or a group id
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
@@ -663,13 +694,13 @@ class Record:
 	def __str__(self):
 		"A string representation of the record"
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
-		for i,j in self.__fields.items():
+		for i,j in self.__params.items():
 			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		return "".join(ret)
 		
 	def __getitem__(self,key):
-		"""Behavior is to return None for undefined fields, None is also
-		the default value for existant, but undefined fields, which will be
+		"""Behavior is to return None for undefined params, None is also
+		the default value for existant, but undefined params, which will be
 		treated identically"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid
 				
@@ -679,24 +710,24 @@ class Record:
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
 		if key=="comments" : return self.__comments
-		if self.__fields.has_key(key) : return self.__fields[key]
+		if self.__params.has_key(key) : return self.__params[key]
 		return None
 	
 	def __setitem__(self,key,value):
-		"""This and 'update' are the primary mechanisms for modifying the fields in a record
+		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
 		key=key.strip()
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
-				dict=parseparmvalues(value)	# find any embedded fields
+				dict=parseparmvalues(value)	# find any embedded params
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
 				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
 				
-				# now update the values of any embedded fields
+				# now update the values of any embedded params
 				for i,j in dict.items():
 					self.__realsetitem(i,j)
 			else :
@@ -711,7 +742,7 @@ class Record:
 		elif (key=="creator" or key=="creationtime") :
 			# nobody is allowed to do this
 			if self.__creator==value or self.__creationtime==value: return 
-			raise SecurityError,"Creation fields cannot be modified"
+			raise SecurityError,"Creation params cannot be modified"
 		elif (key=="permissions") :
 			if self.__permissions==value: return
 			if self.__ptest[2]:
@@ -724,17 +755,17 @@ class Record:
 			else: 
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
-			if self.__fields.has_key(key) and self.__fields[key]==value : return
+			if self.__params.has_key(key) and self.__params[key]==value : return
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
-			if key in self.__fields  and self.__fields[key]!=None:
+			if key in self.__params  and self.__params[key]!=None:
 				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			self.__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
 			"""This insures that copies of original values are made when appropriate
 			security should be handled by the parent method"""
-			if key in self.__fields and self.__fields[key]!=None and not key in self.__ofields : self.__ofields[key]=self.__fields[key]
-			self.__fields[key]=value
+			if key in self.__params and self.__params[key]!=None and not key in self.__oparams : self.__oparams[key]=self.__params[key]
+			self.__params[key]=value
 									
 
 	def update(self,dict):
@@ -745,12 +776,12 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.__fields.keys())+("comments","owner","creator","creationdate","permissions")
+		return tuple(self.__params.keys())+("comments","owner","creator","creationdate","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		ret=self.__fields.items()
+		ret=self.__params.items()
 		try:
 			ret+=[(i,self[i]) for i in ("comments","owner","creator","creationdate","permissions")]
 		except:
@@ -761,7 +792,7 @@ class Record:
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret={}
-		ret.update(self.__fields)
+		ret.update(self.__params)
 		try:
 			for i in ("comments","owner","creator","creationdate","permissions"): ret[i]=self[i]
 		except:
@@ -849,7 +880,7 @@ class Database:
 		self.LOG(0,"Warning, root user recreated")
 		u=User()
 		u.username="root"
-		p=md5.new("foobar")
+		p=sha.new("foobar")
 		u.password=p.hexdigest()
 		u.groups=[-1]
 		u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -896,9 +927,9 @@ class Database:
 		if (username=="anonymous" or username=="") :
 			ctx=Context(None,self,None,(),host,maxidle)
 		
-		# check password, hashed with md5 encryption
+		# check password, hashed with sha-1 encryption
 		else :
-			s=md5.new(password)
+			s=sha.new(password)
 			user=self.users[username]
 			if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
 			if (s.hexdigest()==user.password) : ctx=Context(None,self,username,user.groups,host,maxidle)
@@ -911,8 +942,8 @@ class Database:
 			self.LOG(1,"System ERROR, login(): %s (%s)"%(username,host))
 			raise Exception,"System ERROR, login()"
 		
-		# we use md5 to make a key for the context as well
-		s=md5.new(username+str(host)+str(time.time()))
+		# we use sha to make a key for the context as well
+		s=sha.new(username+str(host)+str(time.time()))
 		ctx.ctxid=s.hexdigest()
 		self.__contexts[ctx.ctxid]=ctx
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
@@ -951,12 +982,12 @@ class Database:
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
-	def getchildren(self,key,keytype="record"):
+	def getchildren(self,key,keytype="record",paramname=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
-		if keytype=="record" : return self.records.children(key)
-		if keytype=="recorddef" : return self.recorddefs.children(key)
-		if keytype=="paramdef" : return self.paramdefs.children(key)
+		if keytype=="record" : return self.records.children(key,paramname)
+		if keytype=="recorddef" : return self.recorddefs.children(key,paramname)
+		if keytype=="paramdef" : return self.paramdefs.children(key,paramname)
 		
 		raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 	
@@ -980,22 +1011,22 @@ class Database:
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
-	def pclink(self,pkey,ckey,keytype="record"):
+	def pclink(self,pkey,ckey,keytype="record",paramname=""):
 		"""Establish a parent-child relationship between two keys"""
 		
 		print "pclink '%s' '%s'"%(pkey,ckey)
-		if keytype=="record" : return self.records.pclink(pkey,ckey)
-		if keytype=="recorddef" : return self.recorddefs.pclink(pkey,ckey)
-		if keytype=="paramdef" : return self.paramdefs.pclink(pkey,ckey)
+		if keytype=="record" : return self.records.pclink(pkey,ckey,paramname)
+		if keytype=="recorddef" : return self.recorddefs.pclink(pkey,ckey,paramname)
+		if keytype=="paramdef" : return self.paramdefs.pclink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def pcunlink(self,pkey,ckey,keytype="record"):
+	def pcunlink(self,pkey,ckey,keytype="record",paramname=""):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
-		if keytype=="record" : return self.records.pcunlink(pkey,ckey)
-		if keytype=="recorddef" : return self.recorddefs.pcunlink(pkey,ckey)
-		if keytype=="paramdef" : return self.paramdefs.pcunlink(pkey,ckey)
+		if keytype=="record" : return self.records.pcunlink(pkey,ckey,paramname)
+		if keytype=="recorddef" : return self.recorddefs.pcunlink(pkey,ckey,paramname)
+		if keytype=="paramdef" : return self.paramdefs.pcunlink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
@@ -1074,7 +1105,7 @@ class Database:
 		ctx=self.__getcontext(ctxid,host)
 		user=self.users[username]
 		
-		s=md5.new(oldpassword)
+		s=sha.new(oldpassword)
 		if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
 			time.sleep(2)
 			raise SecurityError,"Original password incorrect"
@@ -1082,7 +1113,7 @@ class Database:
 		# we disallow bad passwords here, right now we just make sure that it 
 		# is at least 6 characters long
 		if (len(newpassword)<6) : raise SecurityError,"Passwords must be at least 6 characters long" 
-		t=md5.new(newpassword)
+		t=sha.new(newpassword)
 		user.password=t.hexdigest()
 		
 		self.users[user.username]=user
@@ -1104,11 +1135,11 @@ class Database:
 		if len(user.password)<5 :
 			raise SecurityError,"Passwords must be at least 5 characters long"
 		
-		if len(user.password)!=32 :
+		if len(user.password)!=40 :
 			# we disallow bad passwords here, right now we just make sure that it 
 			# is at least 6 characters long
 			if len(user.password)<6 : raise SecurityError,"Passwords must be at least 6 characters long"
-			s=md5.new(user.password)
+			s=sha.new(user.password)
 			user.password=s.hexdigest()
 
 		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -1232,10 +1263,15 @@ class Database:
 	def getpropertynames(self):
 		"""This returns a list of all valid property types in the database. This is currently a
 		fixed list"""
-		return valid_properties
-		
-	def addparamdef(self,paramdef,ctxid,host=None):
-		"""adds a new ParamDef object, group 0 permission is required"""
+		return valid_properties.keys()
+	
+	def getpropertyunits(self,propname):
+		"""Returns a list of known units for a particular property"""
+		return valid_properties[propname][1].keys()
+			
+	def addparamdef(self,paramdef,ctxid,host=None,parent=None):
+		"""adds a new ParamDef object, group 0 permission is required
+		a p->c relationship will be added if parent is specified"""
 		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
@@ -1247,7 +1283,16 @@ class Database:
 		
 		# this actually stores in the database
 		self.paramdefs[paramdef.name]=paramdef
+		if (parent): pclink(parent,paramdef.name,"paramdef")
+	
+	def addparamchoice(self,paramdefname,choice):
+		"""This will add a new choice to records of vartype=string. This is
+		the only modification permitted to a ParamDef record after creation"""
+		d=self.paramdefs[paramdefname]
+		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
 		
+		d.choices=d.choices+(choice,)
+		self.paramdefs[paramdefname]=d
 		
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
@@ -1282,7 +1327,7 @@ class Database:
 
 		return ret
 		
-	def addrecorddef(self,recdef,ctxid,host=None):
+	def addrecorddef(self,recdef,ctxid,host=None,parent=None):
 		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
 		if not isinstance(recdef,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)
@@ -1297,9 +1342,10 @@ class Database:
 		
 		# this actually stores in the database
 		self.recorddefs[recdef.name]=recdef
-		
+		if (parent): pclink(parent,recdef.name,"recorddef")
+
 	def putrecorddef(self,recdef,ctxid,host=None):
-		"""This modifies an existing RecordDef. Note that certain fields, including the
+		"""This modifies an existing RecordDef. Note that certain params, including the
 		Main view cannot be modified by anyone."""
 		ctx=self.__getcontext(ctxid,host)
 		rd=self.recorddefs[recdef.name]
@@ -1414,7 +1460,7 @@ class Database:
 
 			record.setContext(ctx)
 			
-			# index fields
+			# index params
 			for k,v in record.items():
 				self.reindex(k,None,v,record.recid)
 			
@@ -1428,21 +1474,21 @@ class Database:
 		p=orig.setContext(ctx)				# security check on the original record
 		
 		# Ok, to efficiently update the indices, we need to figure out what changed
-		fields=Set(orig.keys()).union_update(record.keys())		# list of all fields (old and new)
-		changedfields=[]
-		for f in fields:
+		params=Set(orig.keys()).union_update(record.keys())		# list of all params (old and new)
+		changedparams=[]
+		for f in params:
 			try:
-				if (orig[f]!=record[f]) : changedfields.append(f)
+				if (orig[f]!=record[f]) : changedparams.append(f)
 			except:
-				changedfields.append(f)
+				changedparams.append(f)
 		
 		# make sure the user has permission to modify the record
 		if not p[2] :
 			if not p[1] : raise SecurityError,"No permission to modify record %d"%record.recid
-			if len(changedfields>1) or changedfields[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
+			if len(changedparams>1) or changedparams[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
 		
 		# Now update the indices
-		for f in changedfields:
+		for f in changedparams:
 			# reindex will accept None as oldval or newval
 			try:    oldval=orig[f]
 			except: oldval=None
@@ -1472,7 +1518,7 @@ class Database:
 		ret.rectype=rectype						# if we found it, go ahead and set up
 				
 		if init:
-			for k,v in t.fields.items():
+			for k,v in t.params.items():
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
 

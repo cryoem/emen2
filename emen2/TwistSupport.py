@@ -59,7 +59,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_checkcontext(self,ctxid):
 		"""This routine will verify that a context id is valid, and return the
 		authorized username for a context as well as a list of authorized groups"""
-			
+		return db.checkcontext(ctxid)
 		
 	def xmlrpc_disableuser(self,username,ctxid):
 		"""This will disable a user's account"""
@@ -162,12 +162,16 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		else :
 			r=Database.newrecord(classtype,ctxid,init=1)
 			return r.items()
-		
-	def xmlrpc_addparamdef(self,paramdef,ctxid):
+	
+	def xmlrpc_addparamchoice(self,paramdefname,choice):
+		"""This will add a choice to ParamDefs of vartype 'string'"""
+		db.addparamchoice(paramdefname,choice)
+			
+	def xmlrpc_addparamdef(self,paramdef,ctxid,parent=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 		r=Database.ParamDef()
 		r.__dict__.update(paramdef)
-		db.addparamdef(r,ctxid)
+		db.addparamdef(r,ctxid,parent)
 		
 	def xmlrpc_getparamdef(self,paramdefname):
 		"""Anyone may retrieve any paramdef"""
@@ -175,15 +179,14 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_getparamdefs(self,recs):
 		"""Return a dictionary of Paramdef objects. recs
-		may be a record, a list of records, or a list of strings (parameter names)"""
-		if isinstance(recs,dict): recs=(recs,)
+		may be a record id, or a list of record ids"""
+		if isinstance(recs,str): recs=(recs,)
 		
-		if isinstance(recs[0],str): return db.getparamdefs(recs)
-		
-		# ok, since we don't really have Record instances, but just
-		# dictionaries, we'll make a list of unique parameters to pass in
+		# ok, since we don't have Record instances, but just
+		# ids, we'll make a list of unique parameters to pass in
 		l=Set()
-		for i in recs:
+		for n in recs:
+			i=db.getrecord(n)
 			l.union_update(i.keys())
 			
 		return db.getparamdefs(list(l))
@@ -192,10 +195,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""List of all paramdef names"""
 		return db.getparamdefnames()
 	
-	def xmlrpc_addrecorddef(self,rectype,ctxid):
+	def xmlrpc_addrecorddef(self,rectype,ctxid,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=Database.RecordDef(rectype)
-		db.addrecorddef(r,ctxid)
+		db.addrecorddef(r,ctxid,parent)
 			
 	def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
@@ -215,6 +218,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""The names of all valid properties: temperature, pressure, etc."""
 		return db.getpropertynames()
 
+	def xmlrpc_getpropertyunits(self,propname):
+		"""This returns a list of known units for a given physical property"""
+		return db.getpropertyunits(propname)
+		
 	def xmlrpc_getchildren(self,key,keytype="record"):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
