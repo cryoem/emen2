@@ -257,7 +257,8 @@ class User:
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
-	def __init__(self,db=None,user=None,groups=None,host=None,maxidle=1800):
+	def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=1800):
+		self.ctxid=ctxid			# unique context id
 		self.db=db					# Points to Database object for this context
 		self.user=user				# validated username
 		self.groups=groups			# groups for this user
@@ -296,7 +297,7 @@ class Record:
 	the supplied access methods. There may be appropriate uses for this when constructing
 	a new Record before committing changes back to the database.
 	"""
-	def __init__(self,context):
+	def __init__(self):
 		"""Record must be created with a context. This should only be done directly
 		by a Database object, to insure security and protocols are handled correctly"""
 		self.recid=None				# 32 bit integer recordid (within the current database)
@@ -308,7 +309,12 @@ class Record:
 		self.__creationdate=None	# creation date
 		self.__permissions=			# permissions for read access, comment write access, and full write access
 		self.__context=None			# Record objects are only 
-				
+	
+	def setContext(self,ctx):
+		"""This method may ONLY be used by the Database class. Constructing your
+		own context will not work"""
+		self.__context__=ctx
+						
 	def __str__(self):
 		ret=["%d (%s)\n"%(self.recid,self.rectype)]
 		for i in fields
@@ -338,7 +344,9 @@ class Record:
 
 		self.fields[key]=value		# if we got here, there was no previously assigned value for this field	
 									# and it wasn't a special value
-	
+
+	def update(self,dict):
+#keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
 	"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
 	dbid - Database id, a unique identifier for this database server
@@ -470,7 +478,7 @@ class Database:
 				return rec
 			else : raise KeyError,"Invalid Key"
 			
-		def getRecordQuiet(self,ctxid,recid,dbid=0) :
+		def getRecordSafe(self,ctxid,recid,dbid=0) :
 			"""Same as getRecord, but failure will produce None or a filtered list"""
 			
 			ctx=__getcontext(ctxid)
