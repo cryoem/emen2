@@ -26,6 +26,7 @@ import sha
 import time
 import re
 import operator
+from math import *
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
 
@@ -395,7 +396,7 @@ valid_vartypes={
 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
 	"float":("f",lambda x:float(x)),		# double precision
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-	"choice":("s",lambda x:str(x))			# string from a fixed enumerated list
+	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list
 	"string":("s",lambda x:str(x)),			# string from an extensible enumerated list
 	"text":(None,lambda x:str(x)),			# freeform text, not indexed yet
 	"time":("s",lambda x:str(x)),			# HH:MM:SS
@@ -419,11 +420,11 @@ valid_vartypes={
 valid_properties = { 
 "count":(None,{}),
 "unitless":(None,{}),
-"length",("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
+"length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
 	"millimeter":0.001,"micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
 	"A":1.0e-10}),
 "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
-"volume",("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3}),
+"volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3}),
 "mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"dalton":1.6605387e-24}),
 "temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
 	"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
@@ -433,12 +434,12 @@ valid_properties = {
 "resistance":("ohm",{"ohm":1.0}),
 "inductance":("henry",{"H":1.0,"henry":1.0}),
 "transmittance":("%T",{"%T":1.0}),
-"relative_humidity",("%RH",{"%RH":1.0}),
-"velocity",("m/s",{"m/s":1.0}),
-"momentum",("kg m/s",{"kg m/s":1.0}),
-"force",("N",{"N":1.0,"newton":1.0}),
-"energy",("J",{"J":1.0,"joule":1.0}),
-"angle",("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi})
+"relative_humidity":("%RH",{"%RH":1.0}),
+"velocity":("m/s",{"m/s":1.0}),
+"momentum":("kg m/s",{"kg m/s":1.0}),
+"force":("N",{"N":1.0,"newton":1.0}),
+"energy":("J",{"J":1.0,"joule":1.0}),
+"angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi})
 }
 
 class ParamDef:
@@ -1084,13 +1085,13 @@ class Database:
 		return self.__newuserqueue.keys()
 
 	def putuser(self,user,ctxid,host=None):
-		ctx=self.__getcontext(ctxid,host)
 
 		try:
 			ouser=self.__users[user.username]
 		except:
 			raise KeyError,"Putuser may only be used to update existing users"
 		
+		ctx=self.__getcontext(ctxid,host)
 		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
 			raise SecurityError,"Only administrators and the actual user may update a user record"
 		
@@ -1364,13 +1365,15 @@ class Database:
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
-		ctx=self.__getcontext(ctxid,host)
 		if not self.__recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
 		
 		ret=self.__recorddefs[rectypename]	# get the record
 		
+		if not ret.private : return ret
+		
 		# if the RecordDef isn't private or if the owner is asking, just return it now
-		if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
+		ctx=self.__getcontext(ctxid,host)
+		if (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
 
 		# ok, now we need to do a little more work. 
 		if recid==None: raise SecurityError,"User doesn't have permission to access private RecordDef '%s'"%rectypename

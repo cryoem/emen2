@@ -386,7 +386,7 @@ def html_chpasswd(path,args,ctxid,host):
 		("Old Password","oldpassword","password",16),("Password","password","password",16),
 		("Confirm Password","password2","password",16))
 	else :
-		itm=(("Username","username","hidden"),
+		itm=(("Username","username","hidden"),("","oldpassword","hidden"),
 		("Password","password","password",16),
 		("Confirm Password","password2","password",16))
 	
