@@ -6,6 +6,12 @@
 
 """
 
+from bsddb3 import db
+from cPickle import dumps,loads
+import md5
+
+LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
+
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
@@ -172,27 +178,29 @@ class FieldBTree:
 	def update(self,dict):
 		self.bdb.index_update(dict)
 
-# vartypes is a dictionary of valid data types and a validation/normalization
+# vartypes is a dictionary of valid data type names keying a tuple
+# with an indexing type and a validation/normalization
 # function for each. Currently the validation functions are fairly stupid.
+# some types aren't currently indexed, but should be eventually
 valid_vartypes={
-	"int":lambda x:int(x),
-	"longint":lambda x:int(x),
-	"float":lambda x:float(x),
-	"longfloat":lambda x:float(x),
-	"string":lambda x:str(x),
-	"text":lambda x:str(x),
-	"time":lambda x:str(x),
-	"date":lambda x:str(x),
-	"datetime":lambda x:str(x),
-	"intlist":lambda y:map(lambda x:int(x),y),
-	"floatlist":lambda y:map(lambda x:float(x),y),
-	"stringlist":lambda y:map(lambda x:str(x),y),
-	"url":lambda x:str(x),
-	"hdf":lambda x:str(x),
-	"image":lambda x:str(x),
-	"binary":lambda x:str(x),
-	"child":lambda y:map(lambda x:int(x),y),
-	"link":lambda y:map(lambda x:int(x),y)
+	"int":("d",lambda x:int(x)),			# 32-bit integer
+	"longint":("d",lambda x:int(x)),		# not indexed properly this way
+	"float":("f",lambda x:float(x)),		# double precision
+	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
+	"string":("s",lambda x:str(x)),			# string from an enumerated list
+	"text":(None,lambda x:str(x)),			# freeform text, not indexed yet
+	"time":("s",lambda x:str(x)),			# HH:MM:SS
+	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
+	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
+	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
+	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
+	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
+	"url":(None,lambda x:str(x)),			# link to a generic url
+	"hdf":(None,lambda x:str(x)),			# url points to an HDF file
+	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
+	"binary":lambda x:str(x),				# url points to an arbitrary binary
+	"child":lambda y:map(lambda x:int(x),y),	# link to dbid/recid of a child record
+	"link":lambda y:map(lambda x:int(x),y)		# lateral link to related record dbid/recid
 }
 
 # Valid physical property names
@@ -214,7 +222,7 @@ class FieldType:
 		self.desc_long=None			# A complete description of the meaning of this variable
 		self.property=None			# Physical property represented by this field, List in 'properties'
 		self.defaultunits=None		# Default units (optional)
-		
+#		self.needsupdate=0			# flag indicating a field that has an incomplete definition
 	
 class RecordType:
 	"""This class defines a prototype for Database Records. Each Record is a member of
@@ -234,7 +242,7 @@ class User:
 	"""This defines a database user"""
 	def __init__(self):
 		self.username=None			# username for logging in, First character must be a letter.
-		self.password=None			# hashed password (need to think this through)
+		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
 									# magic groups are -1 = administrator, -2 = read-only administrator
 		self.name=None				# tuple first, last, middle
@@ -246,12 +254,16 @@ class User:
 			
 
 									
-class dbContext:
-	"""This class """
-	def __init__(self):
-		self.db=None				# Points to Database object for this context
-		self.user=None				# validated username
-		self.groups=None			# groups for this user
+class Context:
+	"""Defines a database context (like a session). After a user is authenticated
+	a Context is created, and used for subsequent access."""
+	def __init__(self,db=None,user=None,groups=None,host=None,maxidle=1800):
+		self.db=db					# Points to Database object for this context
+		self.user=user				# validated username
+		self.groups=groups			# groups for this user
+		self.host=host				# ip of validated host for this context
+		self.time=time.time()		# last access time for this context
+		self.maxidle=maxidle
 		
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
@@ -294,7 +306,7 @@ class Record:
 		self.__owner=0				# The owner of this record
 		self.__creator=0			# original creator of the record
 		self.__creationdate=None	# creation date
-		self.__permissions=			# permissions for read access, comment write access
+		self.__permissions=			# permissions for read access, comment write access, and full write access
 		self.__context=None			# Record objects are only 
 				
 	def __str__(self):
@@ -328,10 +340,20 @@ class Record:
 									# and it wasn't a special value
 	
 class Database:
-	"""This class represents the database as a whole. Records can be accessed"""
-		def __init__(self,path=".",cachesize=256000000):
+	"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
+	dbid - Database id, a unique identifier for this database server
+	recid - Record id, a unique (32 bit int) identifier for a particular record
+	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
+	
+	TODO : Probably should make more of the member variables private for slightly better security"""
+		def __init__(self,path=".",cachesize=256000000,logfile="db.log"):
 			self.path=path
-			
+			self.logfile=path+"/"+logfile
+		
+			self.LOG(4,"Database initialization started")
+				
+			self.__contexts={}			# dictionary of current db contexts, may need to put this on disk for mulithreaded server ?
+						
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			self.dbenv=db.DBEnv()
 			self.dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
@@ -353,5 +375,121 @@ class Database:
 			self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
 			self.recordtypes=FieldBTree("recordtypeindex",path+"/recordtypeindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordType
 			self.fieldindex={}				# dictionary of FieldBTrees, 1 per FieldType, not opened until needed
-	
 
+			# The mirror database for storing offsite records
+			self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
+			
+			self.LOG(4,"Database initialized")
+					
+		def LOG(self,level,message):
+			"""level is an integer describing the seriousness of the error:
+			0 - security, security-related messages
+			1 - critical, likely to cause a crash
+			2 - serious, user will experience problem
+			3 - minor, likely to cause minor annoyances
+			4 - info, informational only
+			5 - verbose, verbose logging """
+			global LOGSTRINGS
+			if (level<0 or level>5) : level=0
+			try:
+				o=file(self.logfile,"a")
+				o.write("%s: (%s)  %s\n"%(time.ctime(),LOGSTRINGS[level],message))
+				o.close()
+			except:
+				print("Critical error!!! Cannot write log message\n")
+										
+		def login(self,username="anonymous",password="",host=None,maxidle=1800):
+			"""Logs a given user in to the database and returns a ctxid, which can then be used for
+			subsequent access"""
+			ctx=None
+			
+			# anonymous user
+			if (username=="anonymous" or username=="") :
+				ctx=Context(self,"",[],host,maxidle)
+			
+			# check password, hashed with md5 encryption
+			else :
+				s=md5.new(password)
+				user=self.users[username]
+				if (s.hexdigest()==user.password) : ctx=Context(self,username,user.groups,host,maxidle)
+				else:
+					self.LOG(0,"Invalid password: %s (%s)"%(username,host))
+					raise ValueError,"Invalid Password"
+			
+			# This shouldn't happen
+			if ctx==None :
+				self.LOG(1,"System ERROR, login(): %s (%s)"%(username,host))
+				raise Exception,"System ERROR, login()"
+			
+			# we use md5 to make a key for the context as well
+			s=md5.new(username+str(host)+str(time.time()))
+			self.__contexts[s.hexdigest()]=ctx
+			
+			return s.hexdigest()
+
+		def cleanupcontexts(self):
+			"""This should be run periodically to clean up sessions that have been idle too long"""
+			self.lastctxclean=time.time()
+			for k in __contexts.items():
+				if k[1].time+k[1].maxidle<time.time() : del __contexts[k[0]]
+			
+		def __getcontext(self,key,host):
+			"""Takes a key and returns a context (for internal use only)
+			Note that both key and host must match."""
+			if (time.time()>self.lastctxclean+30):
+				self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
+			
+			try:
+				ctx=__contexts(key)
+			except:
+				self.LOG(4,"Session expired")
+				raise KeyError,"Session expired"
+				
+			if host!=ctx.host :
+				self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
+				raise Exception,"Bad address match, login sessions cannot be shared"
+			
+			return ctx			
+			
+		def getRecord(self,ctxid,recid,dbid=0) :
+			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
+			if dbid is 0, the current database is used."""
+			
+			ctx=__getcontext(ctxid)
+			
+			if (dbid!=0) : raise Exception,"External database support not yet available"
+			
+			if (isinstance(recid,int)):
+				rec=self.records[recid]
+				if ctx.user in rec.permissions[0] : return rec
+				raise Exception,"No permission to access record"
+			elif (isinstance(recid,list)):
+				rec=map(lambda x:self.records[x],recid)
+				for r in rec:
+					if not (ctx.user in r.permissions[0]) : raise Exception,"No permission to access one or more records"	
+				return rec
+			else : raise KeyError,"Invalid Key"
+			
+		def getRecordQuiet(self,ctxid,recid,dbid=0) :
+			"""Same as getRecord, but failure will produce None or a filtered list"""
+			
+			ctx=__getcontext(ctxid)
+			
+			if (dbid!=0) : return None
+			
+			if (isinstance(recid,int)):
+				try:
+					rec=self.records[recid]
+				except: 
+					return None
+				if ctx.user in rec.permissions[0] : return rec
+				return None
+			elif (isinstance(recid,list)):
+				try:
+					rec=map(lambda x:self.records[x],recid)
+				except: 
+					return None
+				rec=filter(lambda x:ctx.user in x.permissions[0],rec)
+				return rec
+			else : return None
+			
