@@ -40,6 +40,19 @@ def parsefieldstring(self,text):
 		ret[t[2].strip()]=t[3]
 								
 
+def format_string_obj(dict,keylist):
+	"""prints a formatted version of an object's dictionary"""
+	r=["{"]
+	for k in keylist:
+		if (k==None or len(k)==0) : r.append("\n")
+		else:
+			try:
+				r.append("\n%s: %s"%(k,str(dict[k])))
+			except:
+				r.append("\n%s: None"%k)
+	r.append(" }\n")
+	return "".join(r)
+						
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
@@ -89,7 +102,7 @@ class BTree:
 		self.bdb.delete(dumps(key))
 
 	def __contains__(self,key):
-		return self.bdb.has_key(key)
+		return self.bdb.has_key(dumps(key))
 
 	def keys(self):
 		return map(lambda x:loads(x),self.bdb.keys())
@@ -243,24 +256,26 @@ class FieldType:
 	conceptual relationships. The relationships are handled externally by the
 	Database object. Fields may only be modified by the administrator once
 	created, and then, they should only be modified for clarification""" 
-	def __init__(self,creator=None,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
+	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
 		self.name=name					# This is the name used in XML files to refer to this field, lower case
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
 		self.desc_short=desc_short		# This is a very short description for use in forms
 		self.desc_long=desc_long		# A complete description of the meaning of this variable
 		self.property=property			# Physical property represented by this field, List in 'properties'
 		self.defaultunits=defaultunits	# Default units (optional)
-		self.creator=creator			# original creator of the record
+		self.creator=None				# original creator of the record
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
 		self.creationdb=None		# dbid where fieldtype originated
 
+	def __str__(self):
+		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 			
 class RecordType:
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
-	def __init__(self):
+	def __init__(self,dict=None):
 		self.name=None				# the name of the current RecordType, somewhat redundant, since also stored as key for index in Database
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
@@ -276,8 +291,19 @@ class RecordType:
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
 		self.creationdb=None		# dbid where recordtype originated
+		if (dict) : self.__dict__.update(dict)
 		
-									
+	def __str__(self):
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nfields: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.stringfields(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
+
+	def stringfields(self):
+		"""returns the fields for this recordtype as an indented printable string"""
+		r=["{"]
+		for k,v in self.fields.items():
+			r.append("\n\t%s: %s"%(k,str(v)))
+		return "".join(r)+" }\n"
+		
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Users are never deleted, only disabled, for historical logging purposes"""
@@ -307,6 +333,10 @@ Users are never deleted, only disabled, for historical logging purposes"""
 		self.fax=None				#
 		self.cellphone=None			#
 			
+	def __str__(self):
+		return format_string_obj(self.__dict__,["username","groups","name","email","phone","fax","cellphone","webpage","",
+			"institution","department","address","city","state","zipcode","country","","disabled","privacy","creator","creationtime"])
+
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
@@ -318,6 +348,9 @@ class Context:
 		self.host=host				# ip of validated host for this context
 		self.time=time.time()		# last access time for this context
 		self.maxidle=maxidle
+	
+	def __str__(self):
+		return format_string_obj(self.__dict__,["ctxid","user","groups","time","maxidle"])
 		
 class WorkFlow:
 	"""Defines a workflow object, ie - a task that the user must complete at
@@ -338,6 +371,8 @@ class WorkFlow:
 			self.wfid=None				# unique workflow id number assigned by the database
 			self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
+	def __str__(self):
+		return str(__dict__)
 			
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
@@ -369,13 +404,18 @@ class Record:
 	such changes should be infrequent.
 	
 	Naturally, as with anything in Python, anyone with code-level access to the database
-	can easily override this behavior by changing 'fields' directly rather than using
+	can override this behavior by changing 'fields' directly rather than using
 	the supplied access methods. There may be appropriate uses for this when constructing
 	a new Record before committing changes back to the database.
 	"""
-	def __init__(self):
-		"""Record must be created with a context. This should only be done directly
-		by a Database object, to insure security and protocols are handled correctly"""
+	def __init__(self,dict=None,ctxid=None):
+		"""Normally the record is created with no parameters, then setContext is called by the
+		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
+		may be done at initiailization time."""
+		if (dict!=None and ctxid!=None):
+			self.__dict__.update(dict)
+			self.setContext(ctxid)
+			return
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordType represented by this Record
@@ -392,7 +432,7 @@ class Record:
 		self.__context=None			# Validated access context
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
 									# correspond to, read,comment,write and owner permissions
-	
+										
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
@@ -554,12 +594,12 @@ class Database:
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
 	
-		self.LOG(4,"Database initialization started")
 			
 		self.__contexts={}			# dictionary of current db contexts, may need to put this on disk for mulithreaded server ?
 					
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(path+"/home",os.F_OK) : os.makedirs(path+"/home")
+		self.LOG(4,"Database initialization started")
 		self.dbenv=db.DBEnv()
 		self.dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
 		self.dbenv.set_data_dir(path)
@@ -635,6 +675,10 @@ class Database:
 		except:
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
+	def __str__(self):
+		"""try to print something useful"""
+		return "Database ( %s )"%format_string_obj(self.__dict__,["path","logfile","lastctxclean"])
+
 	def login(self,username="anonymous",password="",host=None,maxidle=1800):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access"""
@@ -699,7 +743,7 @@ class Database:
 	def disableuser(self,username,ctxid,host=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this."""
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if not -1 in ctx.groups :
 			raise SecurityError,"Only administrators can disable users"
 
@@ -713,7 +757,7 @@ class Database:
 		        
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if not -1 in ctx.groups :
 			raise SecurityError,"Only administrators can approve new users"
 		
@@ -732,7 +776,7 @@ class Database:
 		new user queue, which must be processed by an administrator before the record
 		becomes active. This system prevents problems with securely assigning passwords
 		and errors with data entry. Anyone can create one of these"""
-		if user.username==None or len(user.username<3) : 
+		if user.username==None or len(user.username)<3 : 
 			raise KeyError,"Attempt to add user with invalid name"
 		
 		if user.username in self.users :
@@ -740,6 +784,9 @@ class Database:
 		
 		if user.username in self.newuserqueue :
 			raise KeyError,"User with username %s already pending approval"%user.username
+		
+		if len(user.password)<5 :
+			raise SecurityError,"Passwords must be at least 5 characters long"
 		
 		if len(user.password)!=32 :
 			s=md5.new(user.password)
@@ -795,10 +842,10 @@ class Database:
 		except:
 			return []
 
-	def addworkflow(self,work,ctxid,host=None) :
+	def addworkflowitem(self,work,ctxid,host=None) :
 		"""This appends a new workflow object to the user's list. wfid will be assigned by this function"""
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 
 		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
@@ -810,13 +857,29 @@ class Database:
 			wf=self.workflow[ctx.user]
 			wf.append(work)
 			self.workflow[ctx.user]=wf
-
+	
+	def delworkflowitem(self,wfid,ctxid,host=None) :
+		"""This will remove a single workflow object"""
+		
+		ctx=self.__getcontext(ctxid,host)
+		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
+		
+		wf=self.workflow[ctx.user]
+		for i,w in enumerate(wf):
+			if w.wfid==wfid :
+				del wf[i]
+				break
+		else: raise KeyError,"Unknown workflow id"
+		
+		self.workflow[ctx.user]=wf
+		
+		
 	def setworkflow(self,wflist,ctxid,host=None) :
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 		the external application should NEVER modify the wfid of the individual WorkFlow records.
 		Any wfid's that are None will be assigned new values in this call."""
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 		
 		if wflist==None : wflist=[]
@@ -829,11 +892,21 @@ class Database:
 				self.workflow[-1]=w.wfid+1
 		
 		self.workflow[ctx.user]=wflist
-				
+	
+	def getvartypenames(self):
+		"""This returns a list of all valid variable types in the database. This is currently a
+		fixed list"""
+		return valid_vartypes.keys()
+
+	def getpropertynames(self):
+		"""This returns a list of all valid property types in the database. This is currently a
+		fixed list"""
+		return valid_properties
+		
 	def addfieldtype(self,fieldtype,ctxid,host=None):
 		"""adds a new FieldType object, group 0 permission is required"""
 		if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new fieldtypes (need record creation permission)"
 		if self.fieldtypes.has_key(fieldtype.name) : raise KeyError,"fieldtype %s already exists"%fieldtype.name
 		
@@ -856,7 +929,7 @@ class Database:
 	def addrecordtype(self,rectype,ctxid,host=None):
 		"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
 		if not isinstance(rectype,RecordType) : raise TypeError,"addRecordType requires a RecordType object"
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordTypes"
 		if self.recordtypes.has_key(rectype.name) : raise KeyError,"RecordType %s already exists"%rectype.name
 		
@@ -871,9 +944,9 @@ class Database:
 		
 	def getrecordtype(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordType object. This will fail if the RecordType is
-		private, unless the user is an owner or iti in the context of a recid the
+		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if not self.recordtypes.has_key(rectypename) : raise KeyError,"No such RecordType %s"%rectypename
 		
 		ret=self.recordtypes[rectypename]	# get the record
@@ -944,15 +1017,11 @@ class Database:
 		update the indices, we need the original record as well. This also provides
 		an opportunity for double-checking security vs. the original. If the 
 		record is new, recid should be set to None. recid is returned upon success"""
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		
 		if isinstance(record,dict) :
 			r=record
-			if r["recid"]==None or r["recid"]<0 :
-				record=Record()
-				record.update(r)
-			else :
-				
+			record=Record(r,ctxid)
 				
 		if (record.recid<0) : record.recid=None
 		
@@ -1031,7 +1100,7 @@ class Database:
 		if dbid is 0, the current database is used. host must match the host of the
 		context"""
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		
 		if (dbid!=0) : raise Exception,"External database support not yet available"
 		
@@ -1053,7 +1122,7 @@ class Database:
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
 		"""Same as getRecord, but failure will produce None or a filtered list"""
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		
 		if (dbid!=0) : return None
 		

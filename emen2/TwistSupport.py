@@ -1,3 +1,9 @@
+# TwistSupport.py  Steven Ludtke  06/2004
+# This module provides the resources needed for HTTP and XMLRPC servers using Twist
+# Note that the login methods return a ctxid (context id). This id is required
+# by most of the other database calls for determining permissions. Context ids
+# have a limited lifespan
+
 from twisted.web.resource import Resource
 from emen2 import Database 
 from twisted.web import xmlrpc
@@ -6,194 +12,6 @@ import os
 
 # we open the database as part of the module initialization
 db=Database.Database("/home/stevel/emen2test")
-
-def loginpage(redir):
-	"""Why is this a function ?  Just because. Returns a simple login page."""
-	return """%s<h3>Please Login:<br>
-<form action="/db/login"><input type=hidden name=fw value=%s>
-<br>Username: <input type=text name=username>
-<br>Password: <input type=password name=pw>
-<br><input type=submit value=submit></form></body></html>"""%(html_header("EMEN2 Login"),redir)
-
-
-class DBResource(Resource):
-	"""This resource serves HTML requests. Look in TwistServer for the actual server code."""
-	isLeaf = True
-	def getChild(self,name,request):
-		return self
-	def render_GET(self,request):
-		session=request.getSession()			# sets a cookie to use as a session id
-		
-#		return "request was '%s' %s"%(str(request.__dict__),request.getClientIP())
-		global db,callbacks
-
-		if (len(request.postpath)==0 or request.postpath[0]=="index.html") : return html_home()
-				
-		# This is the one request that doesn't require an existing session, since it sets up the session
-		if (request.postpath[0]=='login'):
-			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
-		
-		# A valid session will have a valid ctxid set
-		try:
-			ctxid=session.ctxid
-		except:
-			return loginpage(request.uri)
-		
-		db.checkcontext(ctxid,request.getClientIP())
-
-		# Ok, if we got here, we can actually start talking to the database
-		
-		method=request.postpath[0]
-		host=request.getClientIP()
-		
-		return callbacks[method](request.postpath,request.args,ctxid,host)
-								
-		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
-
-
-def html_header(name):
-	"""Common header block, includes <body>"""
-	return """<html><head><title>%s</title></head><body>"""
-
-def html_htable(itmlist,cols,proto):
-	"""Produce a table of values in 'cols' columns"""
-	ret=["<table>"]
-	
-	for i in range(len(itmlist)):
-		if (i%cols==0): ret.append("<tr>")
-		ret.append("<td><a href=%s%s>%s</a></td>"%(proto,itmlist[i],itmlist[i]))
-		if (i%cols==cols-1) : ret.append("</tr>\n")
-	
-	if (len(itmlist)%cols!=0) : ret.append("</tr></table>/n")
-	else : ret.append("</table><br>")
-
-	return "".join(ret)
-
-def html_dicttable(dict,proto):
-	"""Produce a table of values in 'cols' columns"""
-	ret=["<table>"]
-	
-	for k,v in dict:
-		ret.append("<tr><td><a href=%s/%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,k,v))
-		
-	ret.append("</table><br>")
-
-	return "".join(ret)
-		
-def html_home():
-	ret=[html_header("EMEN2 Home Page"),"""<h2>EMEN2 Demo Page</h2><br><br>Available tasks:<br><ul>
-	<li><a href="/db/fieldtypes">List of Field Types</a></li>
-	<li><a href="/db/recordtypes">List of Record Types</a></li>
-	<li><a href="/db/users">List of Users</a></li>
-	</ul>"""]
-	
-	return "".join(ret)
-
-def html_fieldtypes(path,args,ctxid,host):
-	global db
-	
-	ftn=db.getfieldtypenames()
-	ret=[html_header("EMEN2 FieldTypes"),"<h2>Registered FieldTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/fieldtype?name="))
-
-	ret.append("</body></html>")
-	return "".join(ret)	
-
-def html_fieldtype(path,args,ctxid,host):
-	global db
-	
-	item=db.getfieldtype(args["name"][0])
-	
-	ret=[html_header("EMEN2 FieldType Description"),"<h2>FieldType: <i>%s</i></h2><br>"%item.name]
-	
-	ret.append("""<table><tr><td>Name</td><td>%s</td></tr>
-	<tr><td>Variable Type</td><td>%s</td></tr>
-	<tr><td>Short Description</td><td>%s</td></tr>
-	<tr><td>Long Description</td><td>%s</td></tr>
-	<tr><td>Property</td><td>%s</td></tr>
-	<tr><td>Default Units</td><td>%s</td></tr>
-	<tr><td>Creator</td><td>%s (%s)</td></table></body></html>"""%(item.name,item.vartype,item.desc_short,
-	item.desc_long,item.property,item.defaultunits,item.creator,item.creationtime))
-	
-	return "".join(ret)
-
-def html_recordtypes(path,args,ctxid,host):
-	global db
-	
-	ftn=db.getrecordtypenames()
-	ret=[html_header("EMEN2 RecordTypes"),"<h2>Registered RecordTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/recordtype?name="))
-
-	ret.append("</body></html>")
-	return "".join(ret)
-
-def html_recordtype(path,args,ctxid,host):
-	global db
-	
-	item=db.getrecordtype(args["name"][0])
-	
-	ret=[html_header("EMEN2 RecordType Description"),"<h2>RecordType: <i>%s</i></h2><br>fields:<br>"%item.name]
-	
-	ret.append(html_dicttable(item.fields,"/db/fieldtype?name="))
-	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
-	ret.append("""</body></html>""")
-	
-	return "".join(ret)
-	
-def html_record(path,args,ctxid,host):
-	global db
-	
-	item=db.getrecord(int(args["name"][0]),ctxid)
-
-	ret=[html_header("EMEN2 Record"),"<h2>Recor: <i>%d</i></h2><br>fields:<br>"%int(item.recid)]
-	
-	ret.append(html_dicttable(item.items(),"/db/fieldtype?name="))
-	ret.append("""</body></html>""")
-	
-	return "".join(ret)
-
-	
-def html_users(path,args,ctxid,host):
-	global db
-	
-	ftn=db.getusernames(ctxid,host)
-	ret=[html_header("EMEN2 Users"),"<h2>Users</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/user?name="))
-
-	ret.append("</body></html>")
-	return "".join(ret)
-
-def html_user(path,args,ctxid,host):
-	global db
-	
-	item=db.getuser(args["name"][0],ctxid,host)
-	
-	ret=[html_header("EMEN2 User"),"<h2>User: <i>%s</i></h2><br>"%item.username]
-	
-	ret.append("""<table><tr><td>Username</td><td>%s</td></tr>
-	<tr><td>Name</td><td>%s</td></tr>
-	<tr><td>Institution</td><td>%s</td></tr>
-	<tr><td>Department</td><td>%s</td></tr>
-	<tr><td>Address</td><td><pre>%s\n%s, %s  %s  %s</pre></td></tr>
-	<tr><td>Webpage</td><td>%s</td></tr>
-	<tr><td>Email</td><td>%s</td></tr>
-	<tr><td>Phone</td><td>%s</td></tr>
-	<tr><td>Fax</td><td>%s</td></tr>
-	<tr><td>Cell Phone</td><td>%s</td></tr>
-	<tr><td>Groups</td><td>%s</td></tr>
-	<tr><td>Disabled</td><td>%d</td></tr>
-	<tr><td>Privacy</td><td>%d</td></tr></table></body>"""%
-	(item.username," ".join(item.name),item.institution,item.department,
-	item.address,item.city,item.state,item.zipcode,item.country,
-	item.webpage,item.email,item.phone,item.fax,item.cellphone,
-	item.groups,item.disabled,item.privacy))
-	
-	return "".join(ret)
-
-# We use a dictionary for callbacks rather than a series of if's
-callbacks={'fieldtypes':html_fieldtypes,"fieldtype":html_fieldtype,"recordtypes":html_recordtypes,
-"recordtype":html_recordtype,"record":html_record,"users":html_users,"user":html_user}
 
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
@@ -244,7 +62,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		elif (classtype.lower()=="recordtype") :
 			r=Database.RecordType()
 			return r.__dict__
-		elif (classtype.lower()="workflow") :
+		elif (classtype.lower()=="workflow") :
 			r=Database.Workflow()
 			return r.__dict__
 		else :
@@ -265,6 +83,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		db.disableuser(username,ctxid)
 	
 	def xmlrpc_approveuser(self,username,ctxid):
+		"""Database administrators use this to approve users in the new user queue"""
 		db.approveuser(username,ctxid)
 	
 	def xmlrpc_adduser(self,user):
@@ -287,15 +106,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		w=[Database.WorkFlow(with=i) for i in wflist]
 		db.setworkflow(w,ctxid)
 		
-	def xmlrpc_addworkflow(self,work,ctxid):
+	def xmlrpc_addworkflowitem(self,work,ctxid):
 		"""Adds a Workflow object to the user's workflow"""
 		worko=Database.WorkFlow()
 		worko.__dict__.update(work)
-		db.addworkflow(worko,ctxid)
+		db.addworkflowitem(worko,ctxid)
 	
-				
+	def xmlrpc_delworkflowitem(self,wfid,ctxid):
+		"""Delete a single workflow entry"""
+		db.delworkflowitem(wfid,ctxid)
+		
 	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
-		"""Retrieve a record from the database"""
+		"""Retrieve a record from the database as a dictionary"""
 		try:
 			r=db.getrecord(recid,ctxid,dbid)
 		except Exception,x:
@@ -305,7 +127,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_putrecord(self,record,ctxid):
 		"""Puts a modified record back into the database"""
-		
+		db.putrecord(record,ctxid)
 		
 	def xmlrpc_addfieldtype(self,fieldtype,ctxid):
 		"""Puts a new FieldType in the database. User must have permission to add records."""
@@ -315,12 +137,32 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_getfieldtype(self,fieldtypename):
 		"""Anyone may retrieve any fieldtype"""
-		
+		return db.getfieldtype(fieldtypename).__dict__
 	
 	def xmlrpc_getfieldtypenames(self):
+		"""List of all fieldtype names"""
+		return db.getfieldtypenames()
 	
-	
-	def xmlrpc_addrecordtype(self,rectype,ctxid,host=None):
-	def xmlrpc_getrecordtype(self,rectypename,ctxid,host=None,recid=None):
+	def xmlrpc_addrecordtype(self,rectype,ctxid):
+		"""New recordtypes may be added by users with record creation permission"""
+		r=Database.RecordType(rectype)
+		db.addrecordtype(r,ctxid)
+			
+	def xmlrpc_getrecordtype(self,rectypename,ctxid,recid=None):
+		"""Most RecordTypes are generally accessible. Some may be declared private in
+		which case they may only be accessed by the user or by someone with permission
+		to access a record of that type"""
+		return db.getrecordtype(recname,ctxid,recid=recid).__dict__
+			
 	def xmlrpc_getrecordtypenames(self):
+		"""The names of all recordtypes are globally available to prevent duplication"""
+		return db.getrecordtypenames()
+	
+	def xmlrpc_getvartypenames(self):
+		"""The names of all variable types, ie - int,float, etc."""
+		return db.getvartypenames()
+	
+	def xmlrpc_getpropertynames(self):
+		"""The names of all valid properties: temperature, pressure, etc."""
+		return db.getpropertynames()
 	
