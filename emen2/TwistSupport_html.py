@@ -7,6 +7,7 @@ import os
 
 # we open the database as part of the module initialization
 db=TwistSupport.db
+DB=TwistSupport.DB
 
 def loginpage(redir):
 	"""Why is this a function ?  Just because. Returns a simple login page."""
@@ -28,13 +29,16 @@ class DBResource(Resource):
 #		return "request was '%s' %s"%(str(request.__dict__),request.getClientIP())
 		global db,callbacks
 
-		if (len(request.postpath)==0 or request.postpath[0]=="index.html") : return html_home()
+		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return html_home()
 				
 		# This is the one request that doesn't require an existing session, since it sets up the session
 		if (request.postpath[0]=='login'):
 			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
-		
+#			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
+			return """<html> <head> <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+				<meta http-equiv="REFRESH" content="3; URL=%s"><title>HTML REDIRECT</title></head>
+				<body><h3>Login Successful</h3></body></html>"""%request.received_headers["referer"]
+
 		# A valid session will have a valid ctxid set
 		try:
 			ctxid=session.ctxid
@@ -130,37 +134,24 @@ def html_newfieldtype(path,args,ctxid,host):
 	ret=[html_header("EMEN2 Add Experimental Parameter"),"<h1>Add Experimental Parameter</h1><br>"]
 	if args.has_key("name") :
 		try: 
-			ft=db.FieldType(name=args["name"],vartype=args["vartype"],desc_short=args["desc_short"],desc_long=args["desc_long"],property=args["property"],defaultunits=args["defaultunits"])
+			ft=DB.FieldType(name=args["name"][0],vartype=args["vartype"][0],desc_short=args["desc_short"][0],desc_long=args["desc_long"][0],property=args["property"][0],defaultunits=args["defaultunits"][0])
 			db.addfieldtype(ft,ctxid,host)
 		except Exception,e:
-			ret.append("Error adding Parameter '%s' : <i>%s</i><br><br>"%(str(args["name"]),e))	# Failed for some reason, fall through so the user can update the form
-		else :
-			# FieldType added sucessfully
-			ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.',html_footer()]
+			ret.append("Error adding Parameter '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
 			return "".join(ret)
+			
+		# FieldType added sucessfully
+		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		return ret+html_form(action="/db/newfieldtype",items=(("Name:","name","text"),
+		return "".join(ret)+html_form(action="/db/newfieldtype",items=(("Name:","name","text"),
 		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
 		("Short Description","desc_short","text"),("Long Description","desc_long","textarea"),
 		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+"</body></html>"
 		
 
-def html_form(action="",items=(),args={}):
-	ret=['<table><form action="%s">'%action]
-	for i in items:
-		if i[2]=="select" :
-			ret.append('<tr><td>%s:</td><td><select name="%s">'%(i[0],i[1]))
-			for j in i[3]:
-				if j==args.get(i[1],"") : ret.append('<option selected>%s</option>'%j)
-				else : ret.append('<option>%s</option>'%j)
-			ret.append('</select></td></tr>\n')
-		else:
-			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
-
-	ret.append('</form></table>\n')
-			
 def html_recordtypes(path,args,ctxid,host):
 	global db
 	
@@ -231,5 +222,21 @@ def html_user(path,args,ctxid,host):
 	item.address,item.city,item.state,item.zipcode,item.country,
 	item.webpage,item.email,item.phone,item.fax,item.cellphone,
 	item.groups,item.disabled,item.privacy))
+	
+	return "".join(ret)
+
+def html_form(action="",items=(),args={}):
+	ret=['<table><form action="%s">'%action]
+	for i in items:
+		if i[2]=="select" :
+			ret.append('<tr><td>%s:</td><td><select name="%s">'%(i[0],i[1]))
+			for j in i[3]:
+				if j==args.get(i[1],"") : ret.append('<option selected>%s</option>'%j)
+				else : ret.append('<option>%s</option>'%j)
+			ret.append('</select></td></tr>\n')
+		else:
+			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
+
+	ret.append('<tr><td></td><td><input type=submit /></td></tr></form></table>\n')
 	
 	return "".join(ret)

@@ -2,7 +2,11 @@
 # Database.py  Steve Ludtke  05/21/2004
 ##############
 
-### TODO
+# TODO:
+# read-only security index
+# search interface
+# XMLRPC interface
+# XML parsing
 # Database id's not supported yet
 
 

@@ -12,6 +12,7 @@ import os
 
 # we open the database as part of the module initialization
 db=Database.Database("/home/stevel/emen2test")
+DB=Database 
 
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
