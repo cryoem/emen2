@@ -22,18 +22,21 @@ class DBResource(Resource):
 		
 #		return "request was '%s' %s"%(str(request.__dict__),request.getClientIP())
 		global db,callbacks
-		
+
+		if (len(request.postpath)==0 or request.postpath[0]=="index.html") : return html_home()
+				
 		# This is the one request that doesn't require an existing session, since it sets up the session
 		if (request.postpath[0]=='login'):
 			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-			return "Login Successful %s"%str(request.__dict__)
+			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
 		
 		# A valid session will have a valid ctxid set
 		try:
 			ctxid=session.ctxid
-			db.checkcontext(ctxid,request.getClientIP())
 		except:
 			return loginpage(request.uri)
+		
+		db.checkcontext(ctxid,request.getClientIP())
 
 		# Ok, if we got here, we can actually start talking to the database
 		
@@ -62,12 +65,21 @@ def html_htable(itmlist,cols,proto):
 
 	return "".join(ret)
 		
+def html_home():
+	ret=[html_header("EMEN2 Home Page"),"""<h2>EMEN2 Demo Page</h2><br><br>Available tasks:<br><ul>
+	<li><a href="/db/fieldtypes">List of Field Types</a></li>
+	<li><a href="/db/recordtypes">List of Record Types</a></li>
+	<li><a href="/db/users">List of Users</a></li>
+	</ul>"""]
+	
+	return "".join(ret)
+
 def html_fieldtypes(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getfieldtypenames()
 	ret=[html_header("EMEN2 FieldTypes"),"<h2>Registered FieldTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/fieldtype?name=")
+	ret.append(html_htable(ftn,3,"/db/fieldtype?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)	
@@ -95,21 +107,23 @@ def html_recordtypes(path,args,ctxid,host):
 	
 	ftn=db.getrecordtypenames()
 	ret=[html_header("EMEN2 RecordTypes"),"<h2>Registered RecordTypes</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/recordtype?name=")
+	ret.append(html_htable(ftn,3,"/db/recordtype?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)
 
 def html_recordtype(path,args,ctxid,host):
-
+	pass
+	
 def html_record(path,args,ctxid,host):
+	pass
 
 def html_users(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getusernames(ctxid,host)
 	ret=[html_header("EMEN2 Users"),"<h2>Users</h2><br>%d defined:"%len(ftn)]
-	ret.append(html_htable(ftn,3,"/db/user?name=")
+	ret.append(html_htable(ftn,3,"/db/user?name="))
 
 	ret.append("</body></html>")
 	return "".join(ret)

@@ -534,6 +534,7 @@ class Database:
 	def __init__(self,path=".",cachesize=256000000,logfile="db.log"):
 		self.path=path
 		self.logfile=path+"/"+logfile
+		self.lastctxclean=time.time()
 	
 		self.LOG(4,"Database initialization started")
 			
@@ -623,14 +624,14 @@ class Database:
 		
 		# anonymous user
 		if (username=="anonymous" or username=="") :
-			ctx=Context(self,None,(),host,maxidle)
+			ctx=Context(None,self,None,(),host,maxidle)
 		
 		# check password, hashed with md5 encryption
 		else :
 			s=md5.new(password)
 			user=self.users[username]
 			if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
-			if (s.hexdigest()==user.password) : ctx=Context(self,username,user.groups,host,maxidle)
+			if (s.hexdigest()==user.password) : ctx=Context(None,self,username,user.groups,host,maxidle)
 			else:
 				self.LOG(0,"Invalid password: %s (%s)"%(username,host))
 				raise ValueError,"Invalid Password"
@@ -643,15 +644,18 @@ class Database:
 		# we use md5 to make a key for the context as well
 		s=md5.new(username+str(host)+str(time.time()))
 		ctx.ctxid=s.hexdigest()
-		self.__contexts[s.hexdigest()]=ctx
+		self.__contexts[ctx.ctxid]=ctx
+		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
-		return s.hexdigest()
+		return ctx.ctxid
 
 	def cleanupcontexts(self):
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
-		for k in __contexts.items():
-			if k[1].time+k[1].maxidle<time.time() : del __contexts[k[0]]
+		for k in self.__contexts.items():
+			if k[1].time+k[1].maxidle<time.time() : 
+				self.LOG(4,"Expire context (%s) %d"%(k[1].ctxid,time.time()-k[1].time))
+				del __contexts[k[0]]
 		
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
@@ -660,7 +664,7 @@ class Database:
 			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 		
 		try:
-			ctx=__contexts(key)
+			ctx=self.__contexts[key]
 		except:
 			self.LOG(4,"Session expired")
 			raise KeyError,"Session expired"
