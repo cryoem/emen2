@@ -785,8 +785,8 @@ class Record:
 		else :
 			if self.__params.has_key(key) and self.__params[key]==value : return
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
-			if key in self.__params  and self.__params[key]!=None:
-				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
+#			if key in self.__params  and self.__params[key]!=None:
+#				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			self.__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
@@ -835,8 +835,8 @@ class Record:
 	def commit(self,host=None):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
-		putRecord will fail"""
-		self.__context.db.putRecord(self,self.__context.ctxid,host)
+		putrecord will fail"""
+		self.__context.db.putrecord(self,self.__context.ctxid,host)
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -1535,7 +1535,10 @@ class Database:
 			except: newval=None
 
 			self.reindex(f,oldval,newval,record.recid)
-
+			
+			if (f!="comments") :
+				record["comments"]='<emen:param name="%s">%s</emen:param> old value=%s'%(f,newval,oldval)
+				
 		self.reindexsec(reduce(operator.concat,orig["permissions"]),
 			reduce(operator.concat,record["permissions"]),record.recid)		# index security
 		self.__records[record.recid]=record		# This actually stores the record in the database
