@@ -15,6 +15,7 @@ from cPickle import dumps,loads
 from sets import *
 import os
 import md5
+import time
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
 
@@ -283,7 +284,7 @@ Users are never deleted, only disabled, for historical logging purposes"""
 		self.groups=[]				# user group membership
 									# magic groups are 0 = add new records, -1 = administrator, -2 = read-only administrator
 
-        self.disabled=0             # if this is set, the user will be unable to login
+		self.disabled=0             # if this is set, the user will be unable to login
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
@@ -296,7 +297,7 @@ Users are never deleted, only disabled, for historical logging purposes"""
 		self.state=None
 		self.zipcode=None
 		self.country=None
-		self.webpage				# URL
+		self.webpage=None			# URL
 		self.email=None				# email address
 		self.altemail=None			# alternate email
 		self.phone=None				# non-validated string
@@ -315,6 +316,23 @@ class Context:
 		self.time=time.time()		# last access time for this context
 		self.maxidle=maxidle
 		
+class WorkFlow:
+	"""Defines a workflow object, ie - a task that the user must complete at
+	some point in time. These are intended to be transitory objects, so they
+	aren't implemented using the Record class. 
+	Implementation of workflow behavior is largely up to the
+	external application. This simply acts as a repository for tasks"""
+	def __init__(self):
+		self.wftype=None			# a short string defining the task to complete. Applications
+									# should select strings that are likely to be unique for
+									# their own tasks
+		self.desc=None				# A 1-line description of the task to complete
+		self.longdesc=None			# an optional longer description of the task
+		self.appdata=None			# application specific data used to implement the actual activity
+		self.wfid=None				# unique workflow id number assigned by the database
+		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		
+			
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordType, however, note that it is not required to have a value for
@@ -470,14 +488,14 @@ class Record:
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %d"%self.recid
-			if key in self.__fields :
+			if key in self.__fields  and self.__fields[key]!=None:
 				self.__fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
 			"""This insures that copies of original values are made when appropriate
 			security should be handled by the parent method"""
-			if key in self.__fields and not key in self.__ofields : self.__ofields[key]=self.__fields[key]
+			if key in self.__fields and self.__fields[key]!=None and not key in self.__ofields : self.__ofields[key]=self.__fields[key]
 			self.__fields[key]=value
 									
 
@@ -561,24 +579,29 @@ class Database:
 		# The mirror database for storing offsite records
 		self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
 
-		# Workflow database, user indexed list of tuples of things to do
-		# TODO:  Clarify this a bit
+		# Workflow database, user indexed btree of lists of things to do
+		# again, key -1 is used to store the wfid counter
 		self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
+		try:
+			max=self.workflow[-1]
+		except:
+			self.workflow[-1]=1
+			self.LOG(3,"New workflow database created")
 					
 		self.LOG(4,"Database initialized")
 
-        # Create an initial administrative user for the database
-        self.LOG(0,"Warning, root user recreated")
-        u=User()
-        u.username="root"
-        p=md5.new("foobar")
-        u.password=p.hexdigest()
-        u.groups=[-1]
-        u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-        u.name=('Database','','Administrator')
-        self.users["root"]=u
-       
-       def LOG(self,level,message):
+		# Create an initial administrative user for the database
+		self.LOG(0,"Warning, root user recreated")
+		u=User()
+		u.username="root"
+		p=md5.new("foobar")
+		u.password=p.hexdigest()
+		u.groups=[-1]
+		u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		u.name=('Database','','Administrator')
+		self.users["root"]=u
+	
+	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
 		0 - security, security-related messages
 		1 - critical, likely to cause a crash
@@ -590,7 +613,7 @@ class Database:
 		if (level<0 or level>5) : level=0
 		try:
 			o=file(self.logfile,"a")
-			o.write("%s: (%s)  %s\n"%(time.ctime(),LOGSTRINGS[level],message))
+			o.write("%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message))
 			o.close()
 		except:
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
@@ -608,7 +631,7 @@ class Database:
 		else :
 			s=md5.new(password)
 			user=self.users[username]
-            if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
+			if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
 			if (s.hexdigest()==user.password) : ctx=Context(self,username,user.groups,host,maxidle)
 			else:
 				self.LOG(0,"Invalid password: %s (%s)"%(username,host))
@@ -650,16 +673,16 @@ class Database:
 		
 		return ctx			
 
-    def disableuser(self,username,ctxid,host=None):
-        """This will disable a user so they cannot login. Note that users are NEVER deleted, so
-        a complete historical record is maintained. Only an administrator can do this."""
+	def disableuser(self,username,ctxid,host=None):
+		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
+		a complete historical record is maintained. Only an administrator can do this."""
 		ctx=__getcontext(ctxid,host)
 		if not -1 in ctx.groups :
 			raise SecurityError,"Only administrators can approve new users"
 
-        user=self.users[username]
-        user.disabled=1
-        self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
+		user=self.users[username]
+		user.disabled=1
+		self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
         
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
@@ -691,6 +714,10 @@ class Database:
 		if user.username in self.newuserqueue :
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
+		if len(user.password)!=32 :
+			s=md5.new(user.password)
+			user.password=s.hexdigest()
+
 		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		self.newuserqueue[user.username]=user
 		
@@ -724,11 +751,58 @@ class Database:
 		
 		return ret
 		
-	def getusernames(self,username,ctxid,host=None):
+	def getusernames(self,ctxid,host=None):
 		"""Not clear if this warrants a security risk, but anyone can get a list of usernames
 			This is needed for inter-database communications"""
 		return self.users.keys()
+
+	def getworkflow(self,ctxid,host=None):
+		"""This will return an (ordered) list of workflow objects for the given context (user).
+		it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 		
+		ctx=__getcontext(ctxid,host)
+		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
+		
+		try:
+			return self.workflow[ctx.user]
+		except:
+			return []
+
+	def addworkflow(self,work,ctxid,host=None) :
+		"""This appends a new workflow object to the user's list. wfid will be assigned by this function"""
+		
+		ctx=__getcontext(ctxid,host)
+		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
+
+		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
+		
+		work.wfid=self.workflow[-1]
+		self.workflow[-1]=work.wfid+1
+		
+		if self.workflow.has_key(ctx.user) :
+			wf=self.workflow[ctx.user]
+			wf.append(work)
+			self.workflow[ctx.user]=wf
+
+	def setworkflow(self,wflist,ctxid,host=None) :
+		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
+		the external application should NEVER modify the wfid of the individual WorkFlow records.
+		Any wfid's that are None will be assigned new values in this call."""
+		
+		ctx=__getcontext(ctxid,host)
+		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
+		
+		if wflist==None : wflist=[]
+		wflist=list(wflist)				# this will (properly) raise an exception if wflist cannot be converted to a list
+		
+		for w in wflist:
+			if not isinstance(w,WorkFlow): raise TypeError,"Only WorkFlow objects may be in the user's workflow"
+			if w.wfid==None: 
+				w.wfid=self.workflow[-1]
+				self.workflow[-1]=w.wfid+1
+		
+		self.workflow[ctx.user]=wflist
+				
 	def addfieldtype(self,fieldtype,ctxid,host=None):
 		"""adds a new FieldType object, group 0 permission is required"""
 		if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
@@ -959,4 +1033,5 @@ class Database:
 			rec=filter(lambda x:x.setContext(ctx)[0],rec)
 			return rec
 		else : return None
-			
+	
+	
