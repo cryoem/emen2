@@ -414,7 +414,7 @@ valid_vartypes={
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
 	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list
 	"string":("s",lambda x:str(x)),			# string from an extensible enumerated list
-	"text":(None,lambda x:str(x)),			# freeform text, not indexed yet
+	"text":("s",lambda x:str(x)),			# freeform text, not indexed yet
 	"time":("s",lambda x:str(x)),			# HH:MM:SS
 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
@@ -781,10 +781,18 @@ class Record:
 			if self.__owner==value: return
 			if self.__ptest[3]: self.__owner=value
 			else : raise SecurityError,"Only the administrator or the record owner can change the owner"
+
 		elif (key=="creator" or key=="creationtime") :
 			# nobody is allowed to do this
-			if self.__creator==value or self.__creationtime==value: return 
-			raise SecurityError,"Creation params cannot be modified"
+			if self.__creator==value or self.__creationtime==value: return
+			if self.__ptest[3]:
+			     if key=="creator":
+				 self.__creator = value
+			     else:
+				   self.__creationtime = value
+			else:
+			     raise SecurityError,"Creation params cannot be modified"
+	
 		elif (key=="permissions") :
 			if self.__permissions==value: return
 			if self.__ptest[2]:
@@ -818,14 +826,14 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.__params.keys())+("rectype","comments","owner","creator","creationdate","permissions")
+		return tuple(self.__params.keys())+("rectype","comments","owner","creator","creationtime","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret=self.__params.items()
 		try:
-			ret+=[(i,self[i]) for i in ("rectype","comments","owner","creator","creationdate","permissions")]
+			ret+=[(i,self[i]) for i in ("rectype","comments","owner","creator","creationtime","permissions")]
 		except:
 			pass
 		return ret
@@ -836,14 +844,14 @@ class Record:
 		ret={}
 		ret.update(self.__params)
 		try:
-			for i in ("rectype","comments","owner","creator","creationdate","permissions"): ret[i]=self[i]
+			for i in ("rectype","comments","owner","creator","creationtime","permissions"): ret[i]=self[i]
 		except:
 			pass
 		return ret
 		
 	
 	def has_key(self,key):
-		if key in self.keys() or key in ("rectype","comments","owner","creator","creationdate","permissions"): return True
+		if key in self.keys() or key in ("rectype","comments","owner","creator","creationtime","permissions"): return True
 		return False
 
 	def commit(self,host=None):
@@ -937,8 +945,8 @@ class Database:
 			self.__paramdefs["owner"]=pd
 			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
 			self.__paramdefs["creator"]=pd
-			pd=ParamDef("creationdate","datetime","Creation timestamp","The date/time the record was originally created")
-			self.__paramdefs["creationdate"]=pd
+			pd=ParamDef("creationtime","datetime","Creation timestamp","The date/time the record was originally created")
+			self.__paramdefs["creationtime"]=pd
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -1099,7 +1107,7 @@ class Database:
 		
 		return Set(ret+r2)
 		
-	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None, paramname=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
 		read permission on the keyed record to get a list of parents
@@ -1117,7 +1125,7 @@ class Database:
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 		
-		ret=trg.parents(key,paramname)
+		ret=trg.parents(key)
 		
 		if recurse==0 : return Set(ret)
 		
@@ -1144,7 +1152,7 @@ class Database:
 		if keytype=="record" : 
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
-			print a.writable(),b.writable()
+			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
 			return self.__records.pclink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
@@ -1458,13 +1466,13 @@ class Database:
 		
 		if isinstance(recs[0],str) :
 			for p in recs:
-				if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
+				if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
 				try: ret[p]=self.__paramdefs[p]
 				except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 		else:	
 			for r in recs:
 				for p in r.keys():
-					if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
+					if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
 					try: ret[p]=self.__paramdefs[p]
 					except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 
@@ -1548,7 +1556,9 @@ class Database:
 				raise FieldError,"No such field %s defined"%paramname
 			
 			tp=valid_vartypes[f.vartype][0]
-			if not tp : return KeyError,"%s cannot be indexed"%paramname	# if this is None, then this is an 'unindexable' field
+			if not tp :
+				ret = None
+				return ret
 			
 			if not create and not os.access("%s/index/%s.bdb"%(self.path,paramname),os.F_OK): raise KeyError,"No index for %s"%paramname
 			
@@ -1566,6 +1576,9 @@ class Database:
 		if (oldval==newval) : return		# no change, no indexing required
 		
 		ind=self.__getparamindex(key)
+		if ind == None:
+			print 'ind is none'
+			return
 		
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
