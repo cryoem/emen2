@@ -283,13 +283,14 @@ def html_newrecord(path,args,ctxid,host):
 	
 	if args.has_key("rdef") :
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
-		parm=db.getparmdefs(rec)
+		parm=db.getparamdefs(rec)
 		
 		bld=[]
 		for p in rec.keys():
-			bld.append((parm[p].desc_short,p,"text"))
-		
-		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=rec.items()))
+			try: bld.append((parm[p].desc_short,p,"text"))
+			except: bld.append(("Unknown (%s)"%p,p,"text"))
+			
+		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=rec.items_dict()))
 		ret.append("</body></html")
 		return "".join(ret)
 
@@ -331,6 +332,9 @@ def html_user(path,args,ctxid,host):
 	else :item=db.getuser(args["uid"][0],ctxid,host)
 	
 	item.groups=str(item.groups)[1:-1]
+	item.name1=item.name[0]
+	item.name2=item.name[1]
+	item.name3=item.name[2]
 	
 	u=db.checkcontext(ctxid,host)
 	if u[0]==item.username or -1 in u[1]: pwc='<br><a href="/db/chpasswd?username=%s">Change Password</a></BODY></HTML>'%args["uid"][0]

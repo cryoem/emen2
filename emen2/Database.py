@@ -634,7 +634,7 @@ class Record:
 			self.__permissions=((),(),(ctx.user))
 		
 		# test for owner access in this context
-		if (-1 in ctx.groups or ctx.user==self.owner or self.owner in ctx.groups) : self._ptest=[1,1,1,1]	
+		if (-1 in ctx.groups or ctx.user==self.__owner or self.__owner in ctx.groups) : self.__ptest=[1,1,1,1]
 		else:
 			# we use the sets module to do intersections in group membership
 			# note that an empty Set tests false, so u1&p1 will be false if
@@ -715,11 +715,11 @@ class Record:
 			else: 
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
-			if self.__fields[key]==value : return
-			if not self.__ptest[2] : raise SecurityError,"No write permission for record %d"%self.recid
+			if self.__fields.has_key(key) and self.__fields[key]==value : return
+			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
 			if key in self.__fields  and self.__fields[key]!=None:
 				self.__fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
-			__realsetitem(key,value)
+			self.__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
 			"""This insures that copies of original values are made when appropriate
@@ -747,7 +747,18 @@ class Record:
 		except:
 			pass
 		return ret
-			
+	
+	def items_dict(self):
+		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
+		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		ret={}.update(self.__fields)
+		try:
+			for i in ("owner","creator","creationdate","permissions"): ret[i]=self[i]
+		except:
+			pass
+		return ret
+		
+	
 	def has_key(self,key):
 		if key in self.keys() or key in ("owner","creator","creationdate","permissions"): return True
 		return False
@@ -849,6 +860,7 @@ class Database:
 			o=file(self.logfile,"a")
 			o.write("%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message))
 			o.close()
+			print "%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
 		except:
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
@@ -1239,14 +1251,16 @@ class Database:
 		
 		if isinstance(recs[0],str) :
 			for p in recs:
-				if ret.has_key(p) : continue
-				ret[p]=self.paramdefs[p]
+				if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
+				try: ret[p]=self.paramdefs[p]
+				except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 		else:	
 			for r in recs:
 				for p in r.keys():
-					if ret.has_key(p) : continue
-					ret[p]=self.paramdefs[p]
-		
+					if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
+					try: ret[p]=self.paramdefs[p]
+					except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
+
 		return ret
 		
 	def addrecorddef(self,recdef,ctxid,host=None):
@@ -1419,7 +1433,9 @@ class Database:
 	def newrecord(self,rectype,ctxid,host=None,init=0):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
+		ctx=self.__getcontext(ctxid,host)
 		ret=Record()
+		ret.setContext(ctx)
 		
 		# try to get the RecordDef entry, this still may fail even if it exists, if the
 		# RecordDef is private and the context doesn't permit access
