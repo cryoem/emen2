@@ -1025,6 +1025,7 @@ class Database:
 		"""This will use the user keyed record read-access index to return
 		a list of records the user can access"""
 		u,g=self.checkcontext(ctxid,host)
+		if username==None : username=u
 		if (u!=username and (not -1 in g) and (not -2 in g)) :
 			raise SecurityError,"Not authorized to get record access for %s"%username 
 		return self.__secrindex[username]
@@ -1035,7 +1036,25 @@ class Database:
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
 		return self.__recorddefindex[recdefname]
+
+	def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
+		"""For numerical parameters, this will locate all records
+		with the specified paramdef in the specified range.
+		valrange may be a single number or a (min,max) tuple."""
+		ind=self.__getparamindex(paramname,create=0)
+		try: 
+			v=float(valrange)
+			ret=Set(ind[v])
+		except:
+			ret=Set(ind.values(float(valrange[0]),float(valrange[1])))
 		
+		u,g=self.checkcontext(ctxid,host)
+		if (-1 in g) or (-2 in g) : return ret
+		
+		secure=Set(self.getindexbyuser(None,ctxid,host))		# all records the user can access
+		
+		return list(ret & secure)		# intersection of the two search results
+	
 	def getchildren(self,key,keytype="record",paramname=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
@@ -1442,7 +1461,33 @@ class Database:
 		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
 		return self.__recorddefs.keys()
+	
+	def __getparamindex(self,paramname,create=1):
+		"""Internal function to open the parameter indices at need.
+		Later this may implement some sort of caching mechanism.
+		If create is not set and index doesn't exist, raises
+		KeyError."""
+		try:
+			ret=self.__fieldindex[paramname]		# Try to get the index for this key
+		except:
+			# index not open yet, open/create it
+			try:
+				f=self.__paramdefs[paramname]		# Look up the definition of this field
+			except:
+				# Undefined field, we can't create it, since we don't know the type
+				raise FieldError,"No such field %s defined"%key
+			
+			tp=valid_vartypes[f.vartype][0]
+			if not tp : return KeyError,"%s cannot be indexed"%paramname	# if this is None, then this is an 'unindexable' field
+			
+			if not create and not os.access("%s/index/%s.bdb"%(self.path,paramname),os.F_OK): raise KeyError,"No index for %s"%paramname
+			
+			# create/open index
+			self.__fieldindex[paramname]=FieldBTree(paramname,"%s/index/%s.bdb"%(self.path,paramname),tp,self.__dbenv)
+			ret=self.__fieldindex[paramname]
 		
+		return ret
+	
 	def reindex(self,key,oldval,newval,recid):
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
@@ -1450,23 +1495,7 @@ class Database:
 		if (key=="comments" or key=="permissions") : return		# comments & permissions are not currently indexed 
 		if (oldval==newval) : return		# no change, no indexing required
 		
-		try:
-			ind=self.__fieldindex[key]		# Try to get the index for this key
-		except:
-			# index not open yet, open/create it
-			try:
-				f=self.__paramdefs[key]		# Look up the definition of this field
-			except:
-				# Undefined field, we can't create it, since we don't know the type
-				raise FieldError,"No such field %s defined"%key
-			#print f
-			tp=valid_vartypes[f.vartype][0]
-			#print key, tp
-			if not tp : return			# if this is None, then this is an 'unindexable' field
-			
-			# create/open index
-			self.__fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.__dbenv)
-			ind=self.__fieldindex[key]
+		ind=self.__getparamindex(key)
 		
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)

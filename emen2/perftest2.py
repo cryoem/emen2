@@ -11,4 +11,22 @@ for i in range(10000):
 	except: pass
 t1=time.time()
 
-print t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+print "10000 random reads from 250000", t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+
+t0=time.time()
+for i in range(10000):
+	rn=int(random()*10000)
+	try: a=db.getrecord(rn,q)
+	except: pass
+t1=time.time()
+
+print "10000 random reads from 10000",t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+
+t0=time.time()
+for i in range(10000):
+	rn=i+10000
+	try: a=db.getrecord(rn,q)
+	except: pass
+t1=time.time()
+
+print "10000 sequential reads from 10000",t1-t0, (t1-t0)/10000, 10000/(t1-t0)

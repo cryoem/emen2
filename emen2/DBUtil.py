@@ -8,14 +8,13 @@ def recordcountbytype(db,ctxid):
 	for rdn in names:
 		print rdn,": ",len(db.getindexbyrecorddef(rdn,ctxid))
 
-def histogramrecdefbydate(db,recdefname,bintime,ctxid):
+def histogrambydate(db,reclist,bintime,ctxid):
 	"""This will produce a histogram of the times all records
-	of  the given RecordDef were added to the database.
+	in the passed list of ids were added to the database.
 	bintime is in seconds. 3600 for hours, 86400 for days"""
-	rec=db.getindexbyrecorddef(recdefname,ctxid)
 	hist={}
 	
-	for i in rec:
+	for i in reclist:
 		r=db.getrecord(i,ctxid)
 		t=int((Database.timetosec(r["eventdate"])-time.time())/bintime)
 		try: hist[t]=hist[t]+1
@@ -25,14 +24,13 @@ def histogramrecdefbydate(db,recdefname,bintime,ctxid):
 	r.sort()
 	return r
 	
-def histogramrecdefbymonth(db,recdefname,ctxid):
+def histogrambymonth(db,reclist,ctxid):
 	"""This will produce a histogram of the times all records
-	of the given RecordDef were added to the database.
+	in the passed list of ids were added to the database.
 	Time is in months which may contain varying numbers of days"""
-	rec=db.getindexbyrecorddef(recdefname,ctxid)
 	hist={}
 	
-	for i in rec:
+	for i in reclist:
 		r=db.getrecord(i,ctxid)
 		d=r["eventdate"]
 		t=(int(d[:4])-2000)*12+int(d[5:7])
@@ -43,16 +41,33 @@ def histogramrecdefbymonth(db,recdefname,ctxid):
 	r.sort()
 	return r
 	
-def histogramrecdefbyuser(db,recdefname,ctxid):
-	"""This will produce a histogram of the times all records
-	of the given RecordDef were added to the database.
+def histogrambystring(db,reclist,param,ctxid):
+	"""This will produce a histogram of the provided parameter name
+	for all records in the provided list.
 	Time is in months which may contain varying numbers of days"""
-	rec=db.getindexbyrecorddef(recdefname,ctxid)
 	hist={}
 	
-	for i in rec:
+	for i in reclist:
 		r=db.getrecord(i,ctxid)
-		u=r["inputuser"]
+		try: u=r[param]
+		except: pass
+		try: hist[u]=hist[u]+1
+		except: hist[u]=1
+	
+	r=hist.items()
+	r.sort()
+	return r
+	
+def histogrambyvalue(db,reclist,param,binsize,ctxid):
+	"""This will produce a histogram of the provided parameter name
+	for all records in the provided list using the supplied bin size.
+	Time is in months which may contain varying numbers of days"""
+	hist={}
+	
+	for i in reclist:
+		r=db.getrecord(i,ctxid)
+		try: u=int(r[param]/binsize)
+		except: pass
 		try: hist[u]=hist[u]+1
 		except: hist[u]=1
 	
