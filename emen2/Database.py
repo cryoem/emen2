@@ -42,7 +42,7 @@ def parseparmvalues(text):
 	ret={}
 	
 	for t in srch:
-		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or t[4]!="emen:param" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=t[3]
 
 	return ret
@@ -56,14 +56,14 @@ def parseparmdef(text):
 	ret={}
 
 	for t in srch:
-		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=None
 	
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 
 	for t in srch:
-		if (t[0].lower()!="emen:parm" or t[1].lower()!="name" or t[4]!="emen:parm" or " " in t[2].strip()) :continue
+		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or t[4]!="emen:param" or " " in t[2].strip()) :continue
 		ret[t[2].strip().lower()]=t[3]
 	
 	return ret	
@@ -464,7 +464,7 @@ class RecordDef:
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
 	
-	def findfields(self):
+	def findparams(self):
 		"""This will update the list of fields by parsing the views"""
 		d=parseparmdef(self.mainview)
 		for i in self.views.values():
@@ -596,7 +596,7 @@ class Record:
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordDef represented by this Record
-		self.__fields={comments:[]}	# a Dictionary containing field names associated with their data
+		self.__fields={'comments':[]}	# a Dictionary containing field names associated with their data
 		self.__ofields={}			# when a field value is changed, the original value is stored here
 		self.__owner=None			# The owner of this record, may be a username or a group id
 		self.__creator=0			# original creator of the record
@@ -915,7 +915,10 @@ class Database:
 		return ctx			
 
 	def checkcontext(self,ctxid,host):
+		"""This allows a client to test the validity of a context, and
+		get basic information on the authorized user and his/her permissions"""
 		a=self.__getcontext(ctxid,host)
+		return(a.user,a.groups)
 	
 	def getchildren(self,key,keytype="record"):
 		"""This will get the keys of the children of the referenced object
@@ -949,6 +952,7 @@ class Database:
 	def pclink(self,pkey,ckey,keytype="record"):
 		"""Establish a parent-child relationship between two keys"""
 		
+		print "pclink '%s' '%s'"%(pkey,ckey)
 		if keytype=="record" : return self.records.pclink(pkey,ckey)
 		if keytype=="recorddef" : return self.recorddefs.pclink(pkey,ckey)
 		if keytype=="paramdef" : return self.paramdefs.pclink(pkey,ckey)
@@ -1030,12 +1034,28 @@ class Database:
 		
 		if not (-1 in ctx.groups) : user.groups=ouser.groups
 		
-		if len(user.password)!=32 :
-			s=md5.new(user.password)
-			user.password=s.hexdigest()
+		if user.password!=ouser.password:
+			raise SecurityError,"Passwords may not be changed with this method"
 		
 		self.users[user.username]=user
+	
+	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
+		ctx=self.__getcontext(ctxid,host)
+		user=self.users[username]
 		
+		s=md5.new(oldpassword)
+		if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
+			time.sleep(2)
+			raise SecurityError,"Original password incorrect"
+		
+		# we disallow bad passwords here, right now we just make sure that it 
+		# is at least 6 characters long
+		if (len(newpassword)<6) : raise SecurityError,"Passwords must be at least 6 characters long" 
+		t=md5.new(newpassword)
+		user.password=t.hexdigest()
+		
+		self.users[user.username]=user
+	
 	def adduser(self,user):
 		"""adds a new user record. However, note that this only adds the record to the
 		new user queue, which must be processed by an administrator before the record
@@ -1054,6 +1074,9 @@ class Database:
 			raise SecurityError,"Passwords must be at least 5 characters long"
 		
 		if len(user.password)!=32 :
+			# we disallow bad passwords here, right now we just make sure that it 
+			# is at least 6 characters long
+			if len(user.password)<6 : raise SecurityError,"Passwords must be at least 6 characters long"
 			s=md5.new(user.password)
 			user.password=s.hexdigest()
 
@@ -1202,6 +1225,29 @@ class Database:
 	def getparamdefnames(self):
 		"""Returns a list of all ParamDef names"""
 		return self.paramdefs.keys()
+	
+	def getparamdefs(self,recs):
+		"""Returns a list of ParamDef records.
+		recs may be a single record, a list of records, or a list
+		of paramdef names. This routine will 
+		retrieve the parameter definitions for all parameters with
+		defined values in recs. The results are returned as a dictionary.
+		It is much more efficient to use this on a list of records than to
+		call it individually for each of a set of records."""
+		ret={}
+		if isinstance(recs,Record) : recs=(recs,)
+		
+		if isinstance(recs[0],str) :
+			for p in recs:
+				if ret.has_key(p) : continue
+				ret[p]=self.paramdefs[p]
+		else:	
+			for r in recs:
+				for p in r.keys():
+					if ret.has_key(p) : continue
+					ret[p]=self.paramdefs[p]
+		
+		return ret
 		
 	def addrecorddef(self,recdef,ctxid,host=None):
 		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
@@ -1214,7 +1260,7 @@ class Database:
 		if (recdef.owner==None) : recdef.owner=ctx.user
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-		recdef.update()
+		recdef.findparams()
 		
 		# this actually stores in the database
 		self.recorddefs[recdef.name]=recdef
@@ -1369,7 +1415,7 @@ class Database:
 
 		self.records[record.recid]=record		# This actually stores the record in the database
 		return record.recid
-		
+	
 	def newrecord(self,rectype,ctxid,host=None,init=0):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
@@ -1385,7 +1431,6 @@ class Database:
 		if init:
 			for k,v in t.fields.items():
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
-		
 		return ret
 		
 	def getrecord(self,recid,ctxid,dbid=0,host=None) :
@@ -1402,14 +1447,14 @@ class Database:
 		if (isinstance(recid,int)):
 			rec=self.records[recid]
 			p=rec.setContext(ctx)
-			if p[0] : return rec
-			raise Exception,"No permission to access record"
+			if not p[0] : raise Exception,"No permission to access record"
+			return rec
 		elif (isinstance(recid,list)):
-			rec=map(lambda x:self.records[x],recid)
-			for r in rec:
+			recl=map(lambda x:self.records[x],recid)
+			for rec in recl:
 				p=rec.setContext(ctx)
 				if not p[0] : raise Exception,"No permission to access one or more records"	
-			return rec
+			return recl
 		else : raise KeyError,"Invalid Key"
 		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
@@ -1425,14 +1470,14 @@ class Database:
 			except: 
 				return None
 			p=rec.setContext(ctx)
-			if p[0] : return rec
-			return None
+			if not p[0] : return None
+			return rec
 		elif (isinstance(recid,list)):
 			try:
-				rec=map(lambda x:self.records[x],recid)
+				recl=map(lambda x:self.records[x],recid)
 			except: 
 				return None
-			rec=filter(lambda x:x.setContext(ctx)[0],rec)
+			recl=filter(lambda x:x.setContext(ctx)[0],recl)
 			return rec
 		else : return None
 	
