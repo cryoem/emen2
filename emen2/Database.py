@@ -700,6 +700,9 @@ class Record:
 					self.__realsetitem(i,j)
 			else :
 				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
+		elif (key=="rectype") :
+			if self.__ptest[3]: self.rectype=value
+			else: raise SecurityError,"Insufficient permission to change the record type"
 		elif (key=="owner") :
 			if self.__owner==value: return
 			if self.__ptest[3]: self.__owner=value
@@ -711,6 +714,7 @@ class Record:
 		elif (key=="permissions") :
 			if self.__permissions==value: return
 			if self.__ptest[2]:
+				if isinstance(value,str) : value=eval(value)
 				try:
 					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]))
 					self.__permissions=value
@@ -1412,10 +1416,10 @@ class Database:
 			for k,v in record.items():
 				self.reindex(k,None,v,record.recid)
 			
-			self.reindexsec(None,record["security"],record.recid)		# index security
-			self.recorddefindex.addref(record.rectype,record.recid)	# index recorddef
+			self.reindexsec(None,record["permissions"],record.recid)		# index security
+			self.recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			
-			print record.__dict__
+#			print "putrec->\n",record.__dict__
 			self.records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
 				

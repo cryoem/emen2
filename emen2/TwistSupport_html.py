@@ -71,7 +71,7 @@ class DBResource(Resource):
 
 def html_header(name):
 	"""Common header block, includes <body>"""
-	return """<html><head><title>%s</title></head><body>"""
+	return """<html><head><title>%s</title></head><body>"""%name
 
 def html_footer():
 	"""Common header block, includes <body>"""
@@ -295,24 +295,25 @@ def html_newrecord(path,args,ctxid,host):
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
 		parm=db.getparamdefs(rec)
 		
-		bld=[("rd","rdef2","hidden")]
+		bld=[("","rectype","hidden")]
 		for p in rec.keys():
 			if p in ("owner","creator","creationdate","comments"): continue
 			try: bld.append((parm[p].desc_short,p,"text"))
 			except: bld.append((p,p,"text"))
 
 		d=rec.items_dict()
-		d["rdef2"]=args["rdef"][0]
+		d["rectype"]=args["rdef"][0]
 		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d))
 		ret.append("</body></html")
 		return "".join(ret)
 
 	argmap(args)
-	rec=db.newrecord(args["rdef2"],ctxid,host,init=0)
-	del args["rdef2"]
+	rec=db.newrecord(args["rectype"],ctxid,host,init=0)
+#	del args["rdef2"]
 	rec.update(args)
+
 	rid=db.putrecord(rec,ctxid,host)
-	ret.append('Record add successful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a></body></html'%rid)
+	ret.append('Record add successful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a></body></html>'%rid)
 	
 	return ''.join(ret)
 	
