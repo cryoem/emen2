@@ -137,11 +137,12 @@ class BTree:
 			o=loads(self.pcdb.get(parenttag))
 		except:
 			o=[]
-			
+      	
 		if not (childtag,paramname) in o:
 			o.append((childtag,paramname))
 			self.pcdb.put(parenttag,dumps(o))
-	
+			
+	                
 			try:
 				o=loads(self.cpdb.get(childtag))
 			except:
@@ -149,7 +150,8 @@ class BTree:
 			
 			o.append(parenttag)
 			self.cpdb.put(childtag,dumps(o))
-	
+	        print self.children(parenttag)
+		
 	def pcunlink(self,parenttag,childtag,paramname=""):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
 		if not self.relate : raise Exception,"relate option required"
@@ -232,7 +234,9 @@ class BTree:
 		tag=str(tag)
 		
 		try:
+			
 			c=loads(self.pcdb.get(tag))
+			print c
 			if paramname :
 				c=filter(lambda x:x[1]==paramname,c)
 				return [x[0] for x in c]
@@ -303,6 +307,12 @@ class FieldBTree:
 	"""
 	def __init__(self,name,file=None,keytype="s",dbenv=None,nelem=0):
 		global globalenv
+		"""
+		globalenv=db.DBEnv()
+		globalenv.set_cachesize(0,256000000,4)		# gbytes, bytes, ncache (splits into groups)
+		globalenv.set_data_dir(".")
+		globalenv.open("./data/home" ,db.DB_CREATE+db.DB_INIT_MPOOL)
+		"""
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -410,7 +420,9 @@ valid_vartypes={
 	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
 	"binary":(None,lambda x:str(x)),				# url points to an arbitrary binary
 	"child":(None,lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
-	"link":(None,lambda y:map(lambda x:int(x),y))		# lateral link to related record dbid/recid
+	"link":(None,lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
+	"boolean":("d",lambda x:int(x)),
+	"dict":(None, lambda x:x)
 }
 
 # Valid physical property names
@@ -421,7 +433,7 @@ valid_properties = {
 "count":(None,{}),
 "unitless":(None,{}),
 "length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
-	"millimeter":0.001,"micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
+	"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
 	"A":1.0e-10}),
 "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
 "volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3}),
@@ -635,22 +647,25 @@ class Record:
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
 		self.__permissions=((),(),())
-									# permissions for read access, comment write access, and full write access
-									# each element is a tuple of user names or group id's, if a -3 is present
-									# this denotes access by any logged in user, if a -4 is present this
-									# denotes anonymous record access
+		"""
+		permissions for read access, comment write access, and full write access
+	        each element is a tuple of user names or group id's,
+		if a -3 is present, this denotes access by any logged in user,
+		if a -4 is present this denotes anonymous record access
+		"""
 		self.__context=None			# Validated access context
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
-									# correspond to, read,comment,write and owner permissions
+		# correspond to, read,comment,write and owner permissions, return from setContext
 										
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		try: del odict['__context__']
+		try: del odict['_Record__context']
 		except: pass
 		try: del odict['_Record__ptest']
 		except: pass
-		
+
+		print odict
 		return odict
 	
 	def __setstate__(self,dict):
@@ -661,9 +676,13 @@ class Record:
 
 	def setContext(self,ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
-		own context will not work"""
-		self.__context__=ctx
-		if self.__creator==0 :
+		own context will not work
+		to see if a ctx(a user context) has the permission to access/write to this record
+		"""
+		#self.__context__=ctx
+		self.__context = ctx
+		
+		if self.__creator==0:
 			self.__owner=ctx.user
 			self.__creator=ctx.user
 			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -834,6 +853,8 @@ class Database:
 		self.__dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
 		self.__dbenv.set_data_dir(path)
 		self.__dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
+		global globalenv
+		globalenv = self.__dbenv
 		
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
@@ -1406,7 +1427,9 @@ class Database:
 			except:
 				# Undefined field, we can't create it, since we don't know the type
 				raise FieldError,"No such field %s defined"%key
+			#print f
 			tp=valid_vartypes[f.vartype][0]
+			#print key, tp
 			if not tp : return			# if this is None, then this is an 'unindexable' field
 			
 			# create/open index
@@ -1416,6 +1439,7 @@ class Database:
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
 		if newval!=None : ind.addref(newval,recid)
+		#print ind.items()
 
 	def reindexsec(self,oldlist,newlist,recid):
 		"""This updates the security (read-only) index
@@ -1465,20 +1489,23 @@ class Database:
 			
 			# index params
 			for k,v in record.items():
+			    if k != 'recid':
 				self.reindex(k,None,v,record.recid)
 			
 			self.reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			
-#			print "putrec->\n",record.__dict__
+			#print "putrec->\n",record.__dict__
 			self.__records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
 				
 		p=orig.setContext(ctx)				# security check on the original record
 		
 		# Ok, to efficiently update the indices, we need to figure out what changed
-		params=Set(orig.keys()).union_update(record.keys())		# list of all params (old and new)
+		params=Set(orig.keys()).union(record.keys())
+		#params=Set(orig.keys()).union_update(record.keys())		# list of all params (old and new)
 		changedparams=[]
+		
 		for f in params:
 			try:
 				if (orig[f]!=record[f]) : changedparams.append(f)
