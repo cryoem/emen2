@@ -527,7 +527,11 @@ class Database:
 
 			# The mirror database for storing offsite records
 			self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
-			
+
+			# Workflow database, user indexed list of tuples of things to do
+			# TODO:  Clarify this a bit
+			self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
+						
 			self.LOG(4,"Database initialized")
 					
 		def LOG(self,level,message):
@@ -677,12 +681,23 @@ class Database:
 				except:
 					changedfields.append(f)
 			
+			if not p[2] :
+				if not p[1] : raise SecurityError,"No permission to modify record %d"%record.recid
+				if len(changedfields>1) or changedfields[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
 			
+			# Now update the indices
+			for f in changedfields:
+				# reindex will accept None as oldval or newval
+				try:    oldval=orig[f]
+				except: oldval=None
 				
-				
+				try:    newval=record[f]
+				except: newval=None
+
+				self.reindex(f,oldval,newval,record.recid)
 
 		def newRecord(self,rectype,init):
-			"""This will create an empty record and initialize it for a given RecordType (which must
+			"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
 			already exist)."""
 			ret=Record()
 			try:
