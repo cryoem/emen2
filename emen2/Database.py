@@ -829,49 +829,49 @@ class Database:
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(path+"/home",os.F_OK) : os.makedirs(path+"/home")
 		self.LOG(4,"Database initialization started")
-		self.dbenv=db.DBEnv()
-		self.dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
-		self.dbenv.set_data_dir(path)
-		self.dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
+		self.__dbenv=db.DBEnv()
+		self.__dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
+		self.__dbenv.set_data_dir(path)
+		self.__dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
 		
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
 		
 		# Users
-		self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
-		self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
+		self.__users=BTree("users",path+"/security/users.bdb",dbenv=self.__dbenv)						# active database users
+		self.__newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.__dbenv)			# new users pending approval
 	
 		# Defined ParamDefs
-		self.paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.dbenv,relate=1)						# ParamDef objects indexed by name
+		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
 
 		# Defined RecordDefs
-		self.recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.dbenv,relate=1)					# RecordDef objects indexed by name
+		self.__recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.__dbenv,relate=1)					# RecordDef objects indexed by name
 					
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
 		# and database information is stored with key=0
-		self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv,relate=1)						# The actual database, containing id referenced Records
+		self.__records=BTree("database",path+"/database.bdb",dbenv=self.__dbenv,relate=1)						# The actual database, containing id referenced Records
 		try:
-			maxr=self.records[-1]
+			maxr=self.__records[-1]
 		except:
-			self.records[-1]=0
+			self.__records[-1]=0
 			self.LOG(3,"New database created")
 			
 		# Indices
-		self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
-		self.recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordDef
-		self.fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
+		self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)	# index of records each user can read
+		self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
+		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 
 		# The mirror database for storing offsite records
-		self.mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)
+		self.__mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.__dbenv)
 
 		# Workflow database, user indexed btree of lists of things to do
 		# again, key -1 is used to store the wfid counter
-		self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
+		self.__workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.__dbenv)
 		try:
-			max=self.workflow[-1]
+			max=self.__workflow[-1]
 		except:
-			self.workflow[-1]=1
+			self.__workflow[-1]=1
 			self.LOG(3,"New workflow database created")
 					
 		self.LOG(4,"Database initialized")
@@ -885,16 +885,16 @@ class Database:
 		u.groups=[-1]
 		u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		u.name=('Database','','Administrator')
-		self.users["root"]=u
+		self.__users["root"]=u
 		
 		# This sets up a few standard ParamDefs common to all records
-		if not self.paramdefs.has_key("owner"):
+		if not self.__paramdefs.has_key("owner"):
 			pd=ParamDef("owner","string","Record Owner","This is the user-id of the 'owner' of the record")
-			self.paramdefs["owner"]=pd
+			self.__paramdefs["owner"]=pd
 			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
-			self.paramdefs["creator"]=pd
+			self.__paramdefs["creator"]=pd
 			pd=ParamDef("creationdate","datetime","Creation timestamp","The date/time the record was originally created")
-			self.paramdefs["creationdate"]=pd
+			self.__paramdefs["creationdate"]=pd
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -930,7 +930,7 @@ class Database:
 		# check password, hashed with sha-1 encryption
 		else :
 			s=sha.new(password)
-			user=self.users[username]
+			user=self.__users[username]
 			if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
 			if (s.hexdigest()==user.password) : ctx=Context(None,self,username,user.groups,host,maxidle)
 			else:
@@ -985,9 +985,9 @@ class Database:
 	def getchildren(self,key,keytype="record",paramname=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
-		if keytype=="record" : return self.records.children(key,paramname)
-		if keytype=="recorddef" : return self.recorddefs.children(key,paramname)
-		if keytype=="paramdef" : return self.paramdefs.children(key,paramname)
+		if keytype=="record" : return self.__records.children(key,paramname)
+		if keytype=="recorddef" : return self.__recorddefs.children(key,paramname)
+		if keytype=="paramdef" : return self.__paramdefs.children(key,paramname)
 		
 		raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 	
@@ -995,9 +995,9 @@ class Database:
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return self.records.parents(key)
-		if keytype=="recorddef" : return self.recorddefs.parents(key)
-		if keytype=="paramdef" : return self.paramdefs.parents(key)
+		if keytype=="record" : return self.__records.parents(key)
+		if keytype=="recorddef" : return self.__recorddefs.parents(key)
+		if keytype=="paramdef" : return self.__paramdefs.parents(key)
 		
 		raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -1005,9 +1005,9 @@ class Database:
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return self.records.cousins(key)
-		if keytype=="recorddef" : return self.recorddefs.cousins(key)
-		if keytype=="paramdef" : return self.paramdefs.cousins(key)
+		if keytype=="record" : return self.__records.cousins(key)
+		if keytype=="recorddef" : return self.__recorddefs.cousins(key)
+		if keytype=="paramdef" : return self.__paramdefs.cousins(key)
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -1015,36 +1015,36 @@ class Database:
 		"""Establish a parent-child relationship between two keys"""
 		
 		print "pclink '%s' '%s'"%(pkey,ckey)
-		if keytype=="record" : return self.records.pclink(pkey,ckey,paramname)
-		if keytype=="recorddef" : return self.recorddefs.pclink(pkey,ckey,paramname)
-		if keytype=="paramdef" : return self.paramdefs.pclink(pkey,ckey,paramname)
+		if keytype=="record" : return self.__records.pclink(pkey,ckey,paramname)
+		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
+		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
 	def pcunlink(self,pkey,ckey,keytype="record",paramname=""):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
-		if keytype=="record" : return self.records.pcunlink(pkey,ckey,paramname)
-		if keytype=="recorddef" : return self.recorddefs.pcunlink(pkey,ckey,paramname)
-		if keytype=="paramdef" : return self.paramdefs.pcunlink(pkey,ckey,paramname)
+		if keytype=="record" : return self.__records.pcunlink(pkey,ckey,paramname)
+		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,paramname)
+		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey,paramname)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
 	def link(self,key1,key2,keytype="record"):
 		"""Establish a 'cousin' relationship between two keys."""
 		
-		if keytype=="record" : return self.records.link(key1,key2)
-		if keytype=="recorddef" : return self.recorddefs.link(key1,key2)
-		if keytype=="paramdef" : return self.paramdefs.link(key1,key2)
+		if keytype=="record" : return self.__records.link(key1,key2)
+		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2)
+		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
 	def unlink(self,key1,key2,keytype="record"):
 		"""Remove a 'cousin' relationship between two keys."""
 		
-		if keytype=="record" : return self.records.unlink(key1,key2)
-		if keytype=="recorddef" : return self.recorddefs.unlink(key1,key2)
-		if keytype=="paramdef" : return self.paramdefs.unlink(key1,key2)
+		if keytype=="record" : return self.__records.unlink(key1,key2)
+		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2)
+		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 		
@@ -1057,9 +1057,9 @@ class Database:
 
 		if username==ctx.user : raise SecurityError,"Even administrators cannot disable themselves"
 			
-		user=self.users[username]
+		user=self.__users[username]
 		user.disabled=1
-		self.users[username]=user
+		self.__users[username]=user
 		self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
 
 		        
@@ -1069,25 +1069,25 @@ class Database:
 		if not -1 in ctx.groups :
 			raise SecurityError,"Only administrators can approve new users"
 		
-		if not username in self.newuserqueue :
+		if not username in self.__newuserqueue :
 			raise KeyError,"User %s is not pending approval"%username
 			
-		if username in self.users :
-			self.newuserqueue[username]=None
+		if username in self.__users :
+			self.__newuserqueue[username]=None
 			raise KeyError,"User %s already exists, deleted pending record"%username
 
-		self.users[username]=self.newuserqueue[username]
-		self.newuserqueue[username]=None
+		self.__users[username]=self.__newuserqueue[username]
+		self.__newuserqueue[username]=None
 	
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
-		return self.newuserqueue.keys()
+		return self.__newuserqueue.keys()
 
 	def putuser(self,user,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
 
 		try:
-			ouser=self.users[user.username]
+			ouser=self.__users[user.username]
 		except:
 			raise KeyError,"Putuser may only be used to update existing users"
 		
@@ -1099,11 +1099,11 @@ class Database:
 		if user.password!=ouser.password:
 			raise SecurityError,"Passwords may not be changed with this method"
 		
-		self.users[user.username]=user
+		self.__users[user.username]=user
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
-		user=self.users[username]
+		user=self.__users[username]
 		
 		s=sha.new(oldpassword)
 		if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
@@ -1116,7 +1116,7 @@ class Database:
 		t=sha.new(newpassword)
 		user.password=t.hexdigest()
 		
-		self.users[user.username]=user
+		self.__users[user.username]=user
 	
 	def adduser(self,user):
 		"""adds a new user record. However, note that this only adds the record to the
@@ -1126,10 +1126,10 @@ class Database:
 		if user.username==None or len(user.username)<3 : 
 			raise KeyError,"Attempt to add user with invalid name"
 		
-		if user.username in self.users :
+		if user.username in self.__users :
 			raise KeyError,"User with username %s already exists"%user.username
 		
-		if user.username in self.newuserqueue :
+		if user.username in self.__newuserqueue :
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
 		if len(user.password)<5 :
@@ -1143,13 +1143,13 @@ class Database:
 			user.password=s.hexdigest()
 
 		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-		self.newuserqueue[user.username]=user
+		self.__newuserqueue[user.username]=user
 		
 	def getqueueduser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
-		ret=self.newuserqueueu[username]
+		ret=self.__newuserqueueu[username]
 		
 		ctx=self.__getcontext(ctxid,host)
 		
@@ -1162,7 +1162,7 @@ class Database:
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
-		ret=self.users[username]
+		ret=self.__users[username]
 		
 		ctx=self.__getcontext(ctxid,host)
 		
@@ -1190,7 +1190,7 @@ class Database:
 	def getusernames(self,ctxid,host=None):
 		"""Not clear if this is a security risk, but anyone can get a list of usernames
 			This is likely needed for inter-database communications"""
-		return self.users.keys()
+		return self.__users.keys()
 
 	def getworkflow(self,ctxid,host=None):
 		"""This will return an (ordered) list of workflow objects for the given context (user).
@@ -1200,7 +1200,7 @@ class Database:
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 		
 		try:
-			return self.workflow[ctx.user]
+			return self.__workflow[ctx.user]
 		except:
 			return []
 
@@ -1212,13 +1212,13 @@ class Database:
 
 		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
 		
-		work.wfid=self.workflow[-1]
-		self.workflow[-1]=work.wfid+1
+		work.wfid=self.__workflow[-1]
+		self.__workflow[-1]=work.wfid+1
 		
-		if self.workflow.has_key(ctx.user) :
-			wf=self.workflow[ctx.user]
+		if self.__workflow.has_key(ctx.user) :
+			wf=self.__workflow[ctx.user]
 			wf.append(work)
-			self.workflow[ctx.user]=wf
+			self.__workflow[ctx.user]=wf
 	
 	def delworkflowitem(self,wfid,ctxid,host=None) :
 		"""This will remove a single workflow object"""
@@ -1226,14 +1226,14 @@ class Database:
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 		
-		wf=self.workflow[ctx.user]
+		wf=self.__workflow[ctx.user]
 		for i,w in enumerate(wf):
 			if w.wfid==wfid :
 				del wf[i]
 				break
 		else: raise KeyError,"Unknown workflow id"
 		
-		self.workflow[ctx.user]=wf
+		self.__workflow[ctx.user]=wf
 		
 		
 	def setworkflow(self,wflist,ctxid,host=None) :
@@ -1250,10 +1250,10 @@ class Database:
 		for w in wflist:
 			if not isinstance(w,WorkFlow): raise TypeError,"Only WorkFlow objects may be in the user's workflow"
 			if w.wfid==None: 
-				w.wfid=self.workflow[-1]
-				self.workflow[-1]=w.wfid+1
+				w.wfid=self.__workflow[-1]
+				self.__workflow[-1]=w.wfid+1
 		
-		self.workflow[ctx.user]=wflist
+		self.__workflow[ctx.user]=wflist
 	
 	def getvartypenames(self):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -1275,32 +1275,32 @@ class Database:
 		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
-		if self.paramdefs.has_key(paramdef.name) : raise KeyError,"paramdef %s already exists"%paramdef.name
+		if self.__paramdefs.has_key(paramdef.name) : raise KeyError,"paramdef %s already exists"%paramdef.name
 		
 		# force these values
 		paramdef.creator=ctx.user
 		paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		self.paramdefs[paramdef.name]=paramdef
+		self.__paramdefs[paramdef.name]=paramdef
 		if (parent): pclink(parent,paramdef.name,"paramdef")
 	
 	def addparamchoice(self,paramdefname,choice):
 		"""This will add a new choice to records of vartype=string. This is
 		the only modification permitted to a ParamDef record after creation"""
-		d=self.paramdefs[paramdefname]
+		d=self.__paramdefs[paramdefname]
 		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
 		
 		d.choices=d.choices+(choice,)
-		self.paramdefs[paramdefname]=d
+		self.__paramdefs[paramdefname]=d
 		
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
-		return self.paramdefs[paramdefname]
+		return self.__paramdefs[paramdefname]
 		
 	def getparamdefnames(self):
 		"""Returns a list of all ParamDef names"""
-		return self.paramdefs.keys()
+		return self.__paramdefs.keys()
 	
 	def getparamdefs(self,recs):
 		"""Returns a list of ParamDef records.
@@ -1316,13 +1316,13 @@ class Database:
 		if isinstance(recs[0],str) :
 			for p in recs:
 				if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
-				try: ret[p]=self.paramdefs[p]
+				try: ret[p]=self.__paramdefs[p]
 				except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 		else:	
 			for r in recs:
 				for p in r.keys():
 					if ret.has_key(p) or p in ("comments","creationdate","permissions","creator","owner") : continue
-					try: ret[p]=self.paramdefs[p]
+					try: ret[p]=self.__paramdefs[p]
 					except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 
 		return ret
@@ -1332,7 +1332,7 @@ class Database:
 		if not isinstance(recdef,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordDefs"
-		if self.recorddefs.has_key(recdef.name) : raise KeyError,"RecordDef %s already exists"%recdef.name
+		if self.__recorddefs.has_key(recdef.name) : raise KeyError,"RecordDef %s already exists"%recdef.name
 		
 		# force these values
 		if (recdef.owner==None) : recdef.owner=ctx.user
@@ -1341,14 +1341,14 @@ class Database:
 		recdef.findparams()
 		
 		# this actually stores in the database
-		self.recorddefs[recdef.name]=recdef
+		self.__recorddefs[recdef.name]=recdef
 		if (parent): pclink(parent,recdef.name,"recorddef")
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. Note that certain params, including the
 		Main view cannot be modified by anyone."""
 		ctx=self.__getcontext(ctxid,host)
-		rd=self.recorddefs[recdef.name]
+		rd=self.__recorddefs[recdef.name]
 
 		if (not -1 in ctx.groups) and (ctx.user!=rd.owner) : 
 			raise SecurityError,"Only the owner or administrator can modify RecordDefs"
@@ -1358,16 +1358,16 @@ class Database:
 		recdef.mainview=rd.mainview
 		recdef.update()
 		
-		self.recorddefs[recdef.name]=recdef
+		self.__recorddefs[recdef.name]=recdef
 				
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
 		ctx=self.__getcontext(ctxid,host)
-		if not self.recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
+		if not self.__recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
 		
-		ret=self.recorddefs[rectypename]	# get the record
+		ret=self.__recorddefs[rectypename]	# get the record
 		
 		# if the RecordDef isn't private or if the owner is asking, just return it now
 		if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
@@ -1385,7 +1385,7 @@ class Database:
 	def getrecorddefnames(self):
 		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
-		return self.recorddefs.keys()
+		return self.__recorddefs.keys()
 		
 	def reindex(self,key,oldval,newval,recid):
 		"""This function reindexes a single key/value pair
@@ -1395,11 +1395,11 @@ class Database:
 		if (oldval==newval) : return		# no change, no indexing required
 		
 		try:
-			ind=self.fieldindex[key]		# Try to get the index for this key
+			ind=self.__fieldindex[key]		# Try to get the index for this key
 		except:
 			# index not open yet, open/create it
 			try:
-				f=self.paramdefs[key]		# Look up the definition of this field
+				f=self.__paramdefs[key]		# Look up the definition of this field
 			except:
 				# Undefined field, we can't create it, since we don't know the type
 				raise FieldError,"No such field %s defined"%key
@@ -1407,8 +1407,8 @@ class Database:
 			if not tp : return			# if this is None, then this is an 'unindexable' field
 			
 			# create/open index
-			self.fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.dbenv)
-			ind=self.fieldindex[key]
+			self.__fieldindex[key]=FieldBTree(key,"%s/index/%s.bdb"%(self.path,key),tp,self.__dbenv)
+			ind=self.__fieldindex[key]
 		
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
@@ -1427,11 +1427,11 @@ class Database:
 		# anything in both old and new should be ok,
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
-			self.secrindex.removeref(i,recid)
+			self.__secrindex.removeref(i,recid)
 		print "now un"
 		# then we add the index entries for all of the elements in 'new', but not 'old'
 		for i in un:
-			self.secrindex.addref(i,recid)
+			self.__secrindex.addref(i,recid)
 
 	def putrecord(self,record,ctxid,host=None):
 		"""The record has everything we need to commit the data. However, to 
@@ -1447,13 +1447,13 @@ class Database:
 		if (record.recid<0) : record.recid=None
 		
 		try:
-			orig=self.records[record.recid]		# get the unmodified record
+			orig=self.__records[record.recid]		# get the unmodified record
 		except:
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
 
-			record.recid=self.records[-1]+1				# Get a new record-id
-			self.records[-1]=record.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+			record.recid=self.__records[-1]+1				# Get a new record-id
+			self.__records[-1]=record.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
 			
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
@@ -1465,10 +1465,10 @@ class Database:
 				self.reindex(k,None,v,record.recid)
 			
 			self.reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
-			self.recorddefindex.addref(record.rectype,record.recid)			# index recorddef
+			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			
 #			print "putrec->\n",record.__dict__
-			self.records[record.recid]=record		# This actually stores the record in the database
+			self.__records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
 				
 		p=orig.setContext(ctx)				# security check on the original record
@@ -1500,7 +1500,7 @@ class Database:
 
 		self.reindexsec(reduce(operator.concat,orig["permissions"]),
 			reduce(operator.concat,record["permissions"]),record.recid)		# index security
-		self.records[record.recid]=record		# This actually stores the record in the database
+		self.__records[record.recid]=record		# This actually stores the record in the database
 		return record.recid
 	
 	def newrecord(self,rectype,ctxid,host=None,init=0):
@@ -1526,7 +1526,7 @@ class Database:
 		"""This will return the ids of all records the user has permission to access""" 
 		ctx=self.__getcontext(ctxid,host)
 		
-		return self.secrindex[ctx.user]
+		return self.__secrindex[ctx.user]
 		
 	def getrecord(self,recid,ctxid,dbid=0,host=None) :
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -1540,12 +1540,12 @@ class Database:
 		# if a single id was requested, return it
 		# setContext is required to make the record valid, and returns a binary security tuple
 		if (isinstance(recid,int)):
-			rec=self.records[recid]
+			rec=self.__records[recid]
 			p=rec.setContext(ctx)
 			if not p[0] : raise Exception,"No permission to access record"
 			return rec
 		elif (isinstance(recid,list)):
-			recl=map(lambda x:self.records[x],recid)
+			recl=map(lambda x:self.__records[x],recid)
 			for rec in recl:
 				p=rec.setContext(ctx)
 				if not p[0] : raise Exception,"No permission to access one or more records"	
@@ -1561,7 +1561,7 @@ class Database:
 		
 		if (isinstance(recid,int)):
 			try:
-				rec=self.records[recid]
+				rec=self.__records[recid]
 			except: 
 				return None
 			p=rec.setContext(ctx)
@@ -1569,7 +1569,7 @@ class Database:
 			return rec
 		elif (isinstance(recid,list)):
 			try:
-				recl=map(lambda x:self.records[x],recid)
+				recl=map(lambda x:self.__records[x],recid)
 			except: 
 				return None
 			recl=filter(lambda x:x.setContext(ctx)[0],recl)
