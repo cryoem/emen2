@@ -235,7 +235,8 @@ class FieldType:
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
-	Database object.""" 
+	Database object. Fields may only be modified by the administrator once
+	created, and then, they should only be modified for clarification""" 
 	def __init__(self,creator,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None):
 		self.name=name					# This is the name used in XML files to refer to this field, lower case
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
@@ -246,6 +247,9 @@ class FieldType:
 		self.creator=creator			# original creator of the record
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
+		self.creator=0				# original creator of the record
+		self.creationtime=None		# creation date
+		self.creationdb=None		# dbid where fieldtype originated
 
 			
 class RecordType:
@@ -266,6 +270,7 @@ class RecordType:
 		self.owner=None				# The owner of this record
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
+		self.creationdb=None		# dbid where recordtype originated
 		
 									
 class User:
@@ -275,7 +280,19 @@ class User:
 		self.password=None			# sha hashed password
 		self.groups=[]				# user group membership
 									# magic groups are 0 = add new records, -1 = administrator, -2 = read-only administrator
-		self.name=None				# tuple first, last, middle
+		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
+		self.creator=0				# administrator who approved record
+		self.creationtime=None		# creation date
+		
+		self.name=None				# tuple first, middle, last
+		self.institution=None
+		self.department=None
+		self.address=None			# May be a multi-line string
+		self.city=None
+		self.state=None
+		self.zipcode=None
+		self.country=None
+		self.webpage				# URL
 		self.email=None				# email address
 		self.altemail=None			# alternate email
 		self.phone=None				# non-validated string
@@ -332,6 +349,7 @@ class Record:
 		"""Record must be created with a context. This should only be done directly
 		by a Database object, to insure security and protocols are handled correctly"""
 		self.recid=None				# 32 bit integer recordid (within the current database)
+		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordType represented by this Record
 		self.__fields={comments:[]}	# a Dictionary containing field names associated with their data
 		self.__ofields={}			# when a field value is changed, the original value is stored here
@@ -513,19 +531,21 @@ class Database:
 			# Users
 			self.users=BTree("users",path+"/security/users.bdb",dbenv=self.dbenv)						# active database users
 			self.newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.dbenv)			# new users pending approval
-			
+		
 			# Defined FieldTypes
 			self.fieldtypes=BTree("FieldTypes",path+"/FieldTypes.bdb",dbenv=self.dbenv)						# FieldType objects indexed by name
 
 			# Defined RecordTypes
 			self.recordtypes=BTree("RecordTypes",path+"/RecordTypes.bdb",dbenv=self.dbenv)					# RecordType objects indexed by name
 						
-			# The actual database
+			# The actual database, keyed by recid, a positive integer unique in this DB instance
+			# 2 special keys exist, the record counter is stored with key -1
+			# and database information is stored with key=0
 			self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv)						# The actual database, containing id referenced Records
 			try:
-				max=self.records[0]
+				max=self.records[-1]
 			except:
-				self.records[0]=0
+				self.records[-1]=0
 				self.LOG(3,"New database created")
 			
 			# Indices
@@ -613,11 +633,96 @@ class Database:
 			
 			return ctx			
 
-		def addfieldtype(self,fieldtype):
-			"""adds a new FieldType object"""
+		def approveuser(self,username,ctxid,host=None):
+			"""Only an administrator can do this, and the user must be in the queue for approval"""
+			ctx=__getcontext(ctxid,host)
+			if not -1 in ctx.groups :
+				raise SecurityError,"Only administrators can approve new users"
+			
+			if not username in self.newuserqueue :
+				raise KeyError,"User %s is not pending approval"%username
+				
+			if username in self.users :
+				self.newuserqueue[username]=None
+				raise KeyError,"User %s already exists, deleted pending record"%username
+
+			self.users[username]=self.newuserqueue[username]
+			self.newuserqueue[username]=None
 		
+		def adduser(self,user):
+			"""adds a new user record. However, note that this only adds the record to the
+			new user queue, which must be processed by an administrator before the record
+			becomes active. This system prevents problems with securely assigning passwords
+			and errors with data entry. Anyone can create one of these"""
+			if user.username==None or len(user.username<3) : 
+				raise KeyError,"Attempt to add user with invalid name"
+			
+			if user.username in self.users :
+				raise KeyError,"User with username %s already exists"%user.username
+			
+			if user.username in self.newuserqueue :
+				raise KeyError,"User with username %s already pending approval"%user.username
+			
+			user.creationtime=
+			self.newuserqueue[user.username]=user
+			
+			
+		def getuser(self,username,ctxid,host=None):
+			"""retrieves a user's information. Information may be limited to name and id if the user
+			requested privacy. Administrators will get the full record"""
+			
+			ret=self.users[username]
+			
+			ctx=__getcontext(ctxid,host)
+			
+			# The user him/herself or administrator can get all info
+			if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
+			
+			# if the user has requested privacy, we return only basic info
+			if (user.privacy==1 and ctx.user==None) or user.privacy>=2 :
+				ret2=User()
+				ret2.username=ret.username
+				ret2.privacy=ret.privacy
+				ret2.name=ret.name
+				return ret2
+
+			ret.password=None		# the hashed password has limited access
+			
+			# Anonymous users cannot use this to extract email addresses
+			if ctx.user==None : 
+				ret.groups=None
+				ret.email=None
+				ret.altemail=None
+			
+			return ret
+			
+		def getusernames(self,username,ctxid,host=None):
+			"""Not clear if this warrants a security risk, but anyone can get a list of usernames
+			 This is needed for inter-database communications"""
+			return self.users.keys()
+			
+		def addfieldtype(self,fieldtype,ctxid,host=None):
+			"""adds a new FieldType object, group 0 permission is required"""
+			if not isinstance(fieldtype,FieldType) : raise TypeError,"addfieldtype requires a FieldType object"
+			ctx=__getcontext(ctxid,host)
+			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new fieldtypes (need record creation permission)"
+			if self.fieldtypes.has_key(fieldtype.name) : raise KeyError,"fieldtype %s already exists"%fieldtype.name
+			
+			# force these values
+			fieldtype.creator=ctx.user
+			fieldtype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			
+			# this actually stores in the database
+			self.fieldtypes[fieldtype.name]=fieldtype
+			
+			
 		def getfieldtype(self,fieldtypename):
-			"""gets an existing FieldType object"""
+			"""gets an existing FieldType object, anyone can get any field definition"""
+			return self.fieldtypes[fieldtypename]
+			
+		def getfieldtypenames(self):
+			"""Returns a list of all FieldType names"""
+			return self.fieldtypes.keys()
 			
 		def addrecordtype(self,rectype,ctxid,host=None):
 			"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
@@ -656,7 +761,11 @@ class Database:
 
 			# success, the user has permission
 			return ret
-						
+		
+		def getrecordtypenames(self):
+			"""This will retrieve a list of all existing FieldType names, even
+			those the user cannot access the contents of"""
+			
 		def reindex(self,key,oldval,newval,recid)
 			"""This function reindexes a single key/value pair
 			This includes creating any missing indices if necessary"""
@@ -765,8 +874,8 @@ class Database:
 
 			ret.rectype=rectype						# if we found it, go ahead and set up
 			
-			ret.recid=self.records[0]+1				# Get a new record-id
-			self.records[0]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+			ret.recid=self.records[-1]+1				# Get a new record-id
+			self.records[-1]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
 			
 			if init:
 				for i in t.fields():
