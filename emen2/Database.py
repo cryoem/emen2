@@ -23,6 +23,17 @@ class SecurityError(Exception):
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
+def parsefieldstring(self,text):
+	"""This will exctract XML 'field' tags from a block of text"""
+	# This nasty regex will extract <aaa bbb=ccc>ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
+	srch=re.findall("<([^> ]*) ([^=]*)=([^>]*)>([^<]*)</([^>]*)>" ,text)
+	ret={}
+	if not srch : return ret
+	for t in srch:
+		if (t[0].lower!="field" or t[1].lower!="name" or t[4]!="field" or " " in t[2].strip()) :continue
+		ret[t[2].strip()]=t[3]
+								
+
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
@@ -250,7 +261,13 @@ class RecordType:
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record 
-
+		self.private=0				# if this is 1, this RecordType may only be retrieved by its owner (which may be a group)
+									# or by someone with read access to a record of this type
+		self.owner=None				# The owner of this record
+		self.creator=0				# original creator of the record
+		self.creationtime=None		# creation date
+		
+									
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records"""
 	def __init__(self):
@@ -317,8 +334,8 @@ class Record:
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.rectype=""				# name of the RecordType represented by this Record
 		self.__fields={comments:[]}	# a Dictionary containing field names associated with their data
-		self.__ofields={}				# when a field value is changed, the original value is stored here
-		self.__owner=0				# The owner of this record
+		self.__ofields={}			# when a field value is changed, the original value is stored here
+		self.__owner=None			# The owner of this record, may be a username or a group id
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
 		self.__permissions=((),(),())
@@ -354,7 +371,7 @@ class Record:
 			self.__permissions=((),(),(ctx.user))
 		
 		# test for owner access in this context
-		if (-1 in ctx.groups or ctx.user==self.owner) : self._ptest=[1,1,1,1]	
+		if (-1 in ctx.groups or ctx.user==self.owner or self.owner in ctx.groups) : self._ptest=[1,1,1,1]	
 		else:
 			# we use the sets module to do intersections in group membership
 			# note that an empty Set tests false, so u1&p1 will be false if
@@ -404,7 +421,7 @@ class Record:
 		key=key.strip()
 		if (key=="comments") :
 			if self.__ptest[1]:
-				dict=self.parsestring(value)	# find any embedded fields
+				dict=parsefieldstring(value)	# find any embedded fields
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
@@ -442,16 +459,6 @@ class Record:
 			self.__fields[key]=value
 									
 
-	def parsestring(self,text):
-		"""This will exctract XML 'value' tags from a block of text"""
-		# This nasty regex will extract <aaa bbb=ccc>ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-		srch=re.findall("<([^> ]*) ([^=]*)=([^>]*)>([^<]*)</([^>]*)>" ,text)
-		ret={}
-		if not srch : return ret
-		for t in srch:
-			if (t[0].lower!="field" or t[1].lower!="name" or t[4]!="field" or " " in t[2].strip()) :continue
-			ret[t[2].strip()]=t[3]
-									
 	def update(self,dict):
 		"""due to the processing required, it's best just to implement this as
 		a sequence of calls to the existing setitem method"""
@@ -472,10 +479,11 @@ class Record:
 		if key in self.keys() or key in ("owner","creator","creationdate","permissions"): return True
 		return False
 
-	def commit(self):
+	def commit(self,host=None):
 		"""This will commit any changes back to permanent storage in the database, until
-		this is called, all changes are temporary"""
-		self.__context.db.putRecord(self,self.__context.ctxid)
+		this is called, all changes are temporary. host must match the context host or the
+		putRecord will fail"""
+		self.__context.db.putRecord(self,self.__context.ctxid,host)
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -533,7 +541,7 @@ class Database:
 			self.workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.dbenv)
 						
 			self.LOG(4,"Database initialized")
-					
+
 		def LOG(self,level,message):
 			"""level is an integer describing the seriousness of the error:
 			0 - security, security-related messages
@@ -550,7 +558,7 @@ class Database:
 				o.close()
 			except:
 				print("Critical error!!! Cannot write log message\n")
-										
+
 		def login(self,username="anonymous",password="",host=None,maxidle=1800):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
 			subsequent access"""
@@ -605,6 +613,50 @@ class Database:
 			
 			return ctx			
 
+		def addfieldtype(self,fieldtype):
+			"""adds a new FieldType object"""
+		
+		def getfieldtype(self,fieldtypename):
+			"""gets an existing FieldType object"""
+			
+		def addrecordtype(self,rectype,ctxid,host=None):
+			"""adds a new RecordType object. The user must be an administrator or a member of group 0"""
+			if not isinstance(rectype,RecordType) : raise TypeError,"addRecordType requires a RecordType object"
+			ctx=__getcontext(ctxid,host)
+			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordTypes"
+			if self.recordtypes.has_key(rectype.name) : raise KeyError,"RecordType %s already exists"%rectype.name
+			
+			# force these values
+			if (rectype.owner==None) : rectype.owner=ctx.user
+			rectype.creator=ctx.user
+			rectype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			
+			# this actually stores in the database
+			self.recordtypes[rectype.name]=rectype
+			
+			
+		def getrecordtype(self,rectypename,ctxid,host=None,recid=None):
+			"""Retrieves a RecordType object. This will fail if the RecordType is
+			private, unless the user is an owner or iti in the context of a recid the
+			user has permission to access"""
+			ctx=__getcontext(ctxid,host)
+			if not self.recordtypes.has_key(rectypename) : raise KeyError,"No such RecordType %s"%rectypename
+			
+			ret=self.recordtypes[rectypename]	# get the record
+			
+			# if the RecordType isn't private or if the owner is asking, just return it now
+			if not ret.private or (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
+
+			# ok, now we need to do a little more work. 
+			if recid==None: raise SecurityError,"User doesn't have permission to access private RecordType '%s'"%rectypename
+			
+			rec=self.getrecord(recid)		# try to get the record, may raise an exception we pass through
+
+			if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordType %s"%(recid,rectypename)
+
+			# success, the user has permission
+			return ret
+						
 		def reindex(self,key,oldval,newval,recid)
 			"""This function reindexes a single key/value pair
 			This includes creating any missing indices if necessary"""
@@ -648,19 +700,20 @@ class Database:
 			for i in un:
 				self.secrindex.addred(i,recid)
 													
-		def putRecord(self,record,ctxid):
+		def putrecord(self,record,ctxid,host=None):
 			"""The record has everything we need to commit the data. However, to 
 			update the indices, we need the original record as well. This also provides
 			an opportunity for double-checking security vs. the original"""
-			ctx=__getcontext(ctxid)
+			ctx=__getcontext(ctxid,host)
 
 			try:
 				orig=self.records[record.recid]		# get the unmodified record
 			except:
 				# Record must not exist, lets create it
 				#p=record.setContext(ctx)
-				user=self.users[ctx.user]
-				if (not 0 in user.groups) and (not -1 in user.groups) : raise SecurityError,"No permission to create records"
+
+				# Group -1 is administrator, group 0 membership is global permission to create new records
+				if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
 				
 				# index fields
 				for k,v in record.items():
@@ -668,6 +721,8 @@ class Database:
 				
 				self.reindexsec(None,record["security"],record.recid)		# index security
 				self.recordtypeindex.addref(record.rectype,record.recid)	# index recordtype
+				
+				self.records[record.recid]=record		# This actually stores the record in the database
 				return
 					
 			p=orig.setContext(ctx)				# security check on the original record
@@ -681,6 +736,7 @@ class Database:
 				except:
 					changedfields.append(f)
 			
+			# make sure the user has permission to modify the record
 			if not p[2] :
 				if not p[1] : raise SecurityError,"No permission to modify record %d"%record.recid
 				if len(changedfields>1) or changedfields[0]!="comments" : raise SecurityError,"Insufficient permission to change field values on record %d"%record.recid
@@ -696,14 +752,17 @@ class Database:
 
 				self.reindex(f,oldval,newval,record.recid)
 
-		def newRecord(self,rectype,init):
+			self.records[record.recid]=record		# This actually stores the record in the database
+				
+		def newrecord(self,rectype,ctxid,host=None,init=0):
 			"""This will create an empty record and (optionally) initialize it for a given RecordType (which must
 			already exist)."""
 			ret=Record()
-			try:
-				t=self.RecordType[rectype]			# try to get the RecordType entry
-			except:
-				raise Exception,"No such RecordType (%s)"%rectype	
+			
+			# try to get the RecordType entry, this still may fail even if it exists, if the
+			# RecordType is private and the context doesn't permit access
+			t=self.getrecordtype(rectype,ctxid,host)	
+
 			ret.rectype=rectype						# if we found it, go ahead and set up
 			
 			ret.recid=self.records[0]+1				# Get a new record-id
@@ -715,11 +774,12 @@ class Database:
 			
 			return ret
 			
-		def getRecord(self,ctxid,recid,dbid=0) :
+		def getrecord(self,recid,ctxid,dbid=0,host=None) :
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
-			if dbid is 0, the current database is used."""
+			if dbid is 0, the current database is used. host must match the host of the
+			context"""
 			
-			ctx=__getcontext(ctxid)
+			ctx=__getcontext(ctxid,host)
 			
 			if (dbid!=0) : raise Exception,"External database support not yet available"
 			
@@ -738,10 +798,10 @@ class Database:
 				return rec
 			else : raise KeyError,"Invalid Key"
 			
-		def getRecordSafe(self,ctxid,recid,dbid=0) :
+		def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
 			"""Same as getRecord, but failure will produce None or a filtered list"""
 			
-			ctx=__getcontext(ctxid)
+			ctx=__getcontext(ctxid,host)
 			
 			if (dbid!=0) : return None
 			
