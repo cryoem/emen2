@@ -60,8 +60,19 @@ def html_htable(itmlist,cols,proto):
 		ret.append("<td><a href=%s%s>%s</a></td>"%(proto,itmlist[i],itmlist[i]))
 		if (i%cols==cols-1) : ret.append("</tr>\n")
 	
-	if (itmlist%cols!=0) : ret.append("</tr></table>/n")
-	else : ret.append("</table>/n")
+	if (len(itmlist)%cols!=0) : ret.append("</tr></table>/n")
+	else : ret.append("</table><br>")
+
+	return "".join(ret)
+
+def html_dicttable(dict,proto):
+	"""Produce a table of values in 'cols' columns"""
+	ret=["<table>"]
+	
+	for k,v in dict:
+		ret.append("<tr><td><a href=%s/%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,k,v))
+		
+	ret.append("</table><br>")
 
 	return "".join(ret)
 		
@@ -113,11 +124,31 @@ def html_recordtypes(path,args,ctxid,host):
 	return "".join(ret)
 
 def html_recordtype(path,args,ctxid,host):
-	pass
+	global db
+	
+	item=db.getrecordtype(args["name"][0])
+	
+	ret=[html_header("EMEN2 RecordType Description"),"<h2>RecordType: <i>%s</i></h2><br>fields:<br>"%item.name]
+	
+	ret.append(html_dicttable(item.fields,"/db/fieldtype?name="))
+	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
+	ret.append("""</body></html>""")
+	
+	return "".join(ret)
 	
 def html_record(path,args,ctxid,host):
-	pass
+	global db
+	
+	item=db.getrecord(int(args["name"][0]))
 
+	ret=[html_header("EMEN2 Record"),"<h2>Recor: <i>%d</i></h2><br>fields:<br>"%int(item.recid)]
+	
+	ret.append(html_dicttable(item.items(),"/db/fieldtype?name="))
+	ret.append("""</body></html>""")
+	
+	return "".join(ret)
+
+	
 def html_users(path,args,ctxid,host):
 	global db
 	

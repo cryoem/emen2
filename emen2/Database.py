@@ -261,7 +261,8 @@ class RecordType:
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields=[]				# A list containing the names of all fields used in any of the views
+		self.fields={}				# A dictionary keyed by the names of all fields used in any of the views
+									# values are the default value for the field.
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record 
@@ -511,8 +512,12 @@ class Record:
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret=self.__fields.items()
-		ret+=[(i,self[i]) for i in ("owner","creator","creationdate","permissions")]
-
+		try:
+			ret+=[(i,self[i]) for i in ("owner","creator","creationdate","permissions")]
+		except:
+			pass
+		return ret
+			
 	def has_key(self,key):
 		if key in self.keys() or key in ("owner","creator","creationdate","permissions"): return True
 		return False
@@ -655,7 +660,7 @@ class Database:
 		for k in self.__contexts.items():
 			if k[1].time+k[1].maxidle<time.time() : 
 				self.LOG(4,"Expire context (%s) %d"%(k[1].ctxid,time.time()-k[1].time))
-				del __contexts[k[0]]
+				del self.__contexts[k[0]]
 		
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
@@ -733,7 +738,7 @@ class Database:
 		
 		ret=self.users[username]
 		
-		ctx=__getcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		
 		# The user him/herself or administrator can get all info
 		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
@@ -986,8 +991,8 @@ class Database:
 		self.records[-1]=ret.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
 		
 		if init:
-			for i in t.fields():
-				ret[i]=None							# dummy entries for each field
+			for k,v in t.fields.items():
+				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 		
 		return ret
 		
