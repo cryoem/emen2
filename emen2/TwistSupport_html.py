@@ -355,6 +355,6 @@ def html_form(action="",items=(),args={}):
 		else:
 			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
 
-	ret.append('<tr><td></td><td><input type=submit /></td></tr></form></table>\n')
+	ret.append('<tr><td></td><td><input type="submit" value="Submit" /></td></tr></form></table>\n')
 	
 	return "".join(ret)
