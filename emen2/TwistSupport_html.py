@@ -150,13 +150,13 @@ def html_paramdef(path,args,ctxid,host):
 	
 	ret=[html_header("EMEN2 ParamDef Description"),"<h2>Experimental Parameter (ParamDef): <i>%s</i></h2><br>"%item.name]
 	
-	parents=db.getparents(item.name,keytype="paramdef")
+	parents=db.getparents(item.name,keytype="paramdef",ctxid=ctxid)
 	if len(parents)>0 :
 		ret.append("<br>Parents: ")
 		for p in parents:
 			ret.append('<a href="/db/paramdef?name=%s">%s</a> '%(p,p))
 	
-	children=db.getchildren(item.name,keytype="paramdef")
+	children=db.getchildren(item.name,keytype="paramdef",ctxid=ctxid)
 	if len(children)>0 :
 		ret.append("<br>Children: ")
 		for c in children:
@@ -219,13 +219,13 @@ def html_recorddef(path,args,ctxid,host):
 	ret=[html_header("EMEN2 RecordDef Description"),"<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name,
 	]
 	
-	parents=db.getparents(item.name,keytype="recorddef")
+	parents=db.getparents(item.name,keytype="recorddef",ctxid=ctxid)
 	if len(parents)>0 :
 		ret.append("<br>Parents: ")
 		for p in parents:
 			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(p,p))
 	
-	children=db.getchildren(item.name,keytype="recorddef")
+	children=db.getchildren(item.name,keytype="recorddef",ctxid=ctxid)
 	if len(children)>0 :
 		ret.append("<br>Children: ")
 		for c in Children:
@@ -306,11 +306,11 @@ def html_record(path,args,ctxid,host):
 	
 	ret.append(html_dicttable(item,"/db/paramdef?name="))
 	ret.append("<br>Parents:<br>")
-	ret.append(html_htable(db.getparents(int(args["name"][0])),6,"/db/record?name="))
+	ret.append(html_htable(db.getparents(int(args["name"][0]),ctxid=ctxid),6,"/db/record?name="))
 	ret.append("<br>Children:<br>")
 	
 	# c is a list of this record's children
-	c=[i[0] for i in db.getchildren(int(args["name"][0]))]
+	c=[i[0] for i in db.getchildren(int(args["name"][0]),ctxid=ctxid)]
 	
 	# split up the record ids recordtype
 	cat={}
