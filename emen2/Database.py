@@ -440,7 +440,7 @@ class RecordDef:
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields={"comments":None}	# A dictionary keyed by the names of all fields used in any of the views
+		self.fields={}				# A dictionary keyed by the names of all fields used in any of the views
 									# values are the default value for the field.
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
@@ -470,7 +470,6 @@ class RecordDef:
 		for i in self.views.values():
 			d.update(parseparmdef(i))
 		self.fields=d
-		self.fields["comments"]=None
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
@@ -596,7 +595,8 @@ class Record:
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordDef represented by this Record
-		self.__fields={'comments':[]}	# a Dictionary containing field names associated with their data
+		self.__fields={}			# a Dictionary containing field names associated with their data
+		self.__comments=[]			# a List of comments records
 		self.__ofields={}			# when a field value is changed, the original value is stored here
 		self.__owner=None			# The owner of this record, may be a username or a group id
 		self.__creator=0			# original creator of the record
@@ -631,7 +631,7 @@ class Record:
 			self.__owner=ctx.user
 			self.__creator=ctx.user
 			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-			self.__permissions=((),(),(ctx.user))
+			self.__permissions=((),(),(ctx.user,))
 		
 		# test for owner access in this context
 		if (-1 in ctx.groups or ctx.user==self.__owner or self.__owner in ctx.groups) : self.__ptest=[1,1,1,1]
@@ -658,10 +658,10 @@ class Record:
 	
 	def __str__(self):
 		"A string representation of the record"
-		ret=["%d (%s)\n"%(self.recid,self.rectype)]
-		for i,j in self.__fields.items:
+		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
+		for i,j in self.__fields.items():
 			ret.append("%12s:  %s\n"%(str(i),str(j)))
-		return ret.join()
+		return "".join(ret)
 		
 	def __getitem__(self,key):
 		"""Behavior is to return None for undefined fields, None is also
@@ -674,6 +674,7 @@ class Record:
 		if key=="creator" : return self.__creator
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
+		if key=="comments" : return self.__comments
 		if self.__fields.has_key(key) : return self.__fields[key]
 		return None
 	
@@ -689,7 +690,7 @@ class Record:
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
-				self.__fields["comments"].append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
+				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
 				
 				# now update the values of any embedded fields
 				for i,j in dict.items():
@@ -718,7 +719,7 @@ class Record:
 			if self.__fields.has_key(key) and self.__fields[key]==value : return
 			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
 			if key in self.__fields  and self.__fields[key]!=None:
-				self.__fields.comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
+				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			self.__realsetitem(key,value)
 	
 	def __realsetitem(self,key,value):
@@ -736,14 +737,14 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.__fields.keys())+("owner","creator","creationdate","permissions")
+		return tuple(self.__fields.keys())+("comments","owner","creator","creationdate","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret=self.__fields.items()
 		try:
-			ret+=[(i,self[i]) for i in ("owner","creator","creationdate","permissions")]
+			ret+=[(i,self[i]) for i in ("comments","owner","creator","creationdate","permissions")]
 		except:
 			pass
 		return ret
@@ -751,16 +752,17 @@ class Record:
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		ret={}.update(self.__fields)
+		ret={}
+		ret.update(self.__fields)
 		try:
-			for i in ("owner","creator","creationdate","permissions"): ret[i]=self[i]
+			for i in ("comments","owner","creator","creationdate","permissions"): ret[i]=self[i]
 		except:
 			pass
 		return ret
 		
 	
 	def has_key(self,key):
-		if key in self.keys() or key in ("owner","creator","creationdate","permissions"): return True
+		if key in self.keys() or key in ("comments","owner","creator","creationdate","permissions"): return True
 		return False
 
 	def commit(self,host=None):
@@ -811,18 +813,18 @@ class Database:
 		# and database information is stored with key=0
 		self.records=BTree("database",path+"/database.bdb",dbenv=self.dbenv,relate=1)						# The actual database, containing id referenced Records
 		try:
-			max=self.records[-1]
+			maxr=self.records[-1]
 		except:
 			self.records[-1]=0
 			self.LOG(3,"New database created")
-		
+			
 		# Indices
 		self.secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.dbenv)	# index of records each user can read
 		self.recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.dbenv)		# index of records belonging to each RecordDef
 		self.fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 
 		# The mirror database for storing offsite records
-		self.records=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)			# The actual database, containing (dbid,recid) referenced Records
+		self.mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.dbenv)
 
 		# Workflow database, user indexed btree of lists of things to do
 		# again, key -1 is used to store the wfid counter
@@ -1326,13 +1328,15 @@ class Database:
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
 
-		if (oldval==newval) : return
+		if (key=="comments") : return		# comments are not currently indexed 
+		if (oldval==newval) : return		# no change, no indexing required
+		
 		try:
 			ind=self.fieldindex[key]		# Try to get the index for this key
 		except:
 			# index not open yet, open/create it
 			try:
-				f=self.ParamDef[key]		# Look up the definition of this field
+				f=self.paramdefs[key]		# Look up the definition of this field
 			except:
 				# Undefined field, we can't create it, since we don't know the type
 				raise FieldError,"No such field %s defined"%key
@@ -1356,7 +1360,7 @@ class Database:
 		uo=o-n	# unique elements in the 'old' list
 		un=n-o	# unique elements in the 'new' list
 
-		# anying in both old and new should be ok,
+		# anything in both old and new should be ok,
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
 			self.secrindex.removeref(i,recid)
@@ -1439,7 +1443,7 @@ class Database:
 		
 		# try to get the RecordDef entry, this still may fail even if it exists, if the
 		# RecordDef is private and the context doesn't permit access
-		t=self.getrecorddef(rectype,ctxid,host)	
+		t=self.getrecorddef(rectype,ctxid,host)
 
 		ret.recid=None
 		ret.rectype=rectype						# if we found it, go ahead and set up
@@ -1448,6 +1452,12 @@ class Database:
 			for k,v in t.fields.items():
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
+
+	def getrecordnames(self,ctxid,dbid=0,host=None) :
+		"""This will return the ids of all records the user has permission to access""" 
+		ctx=self.__getcontext(ctxid,host)
+		
+		return self.secrindex[ctx.user]
 		
 	def getrecord(self,recid,ctxid,dbid=0,host=None) :
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.

@@ -105,8 +105,9 @@ def html_dicttable(dict,proto):
 		
 def html_home():
 	ret=[html_header("EMEN2 Home Page"),"""<h2>EMEN2 Demo Page</h2><br><br>Available tasks:<br><ul>
-	<li><a href="/db/paramdefs">List of Defined Experimental Parameters</a></li>
-	<li><a href="/db/recorddefs">List of Defined Records (Experiments)</a></li>
+	<li><a href="/db/records">List of all Experiments (Records)</a></li>
+	<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
+	<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
 	<li><a href="/db/users">List of Users</a></li>
 	</ul><br><br><ul>
 	<li><a href="/db/newuser">Add New User</a></li>
@@ -264,7 +265,16 @@ def html_newrecorddef(path,args,ctxid,host):
 		("Experiment Description","mainview","textarea",(80,16)),("Summary View","summary","textarea",(80,8)),
 		("One Line View","oneline","textarea",(80,4)),("Private Access","private","checkbox")),args=args)+"</body></html>"
 	
+def html_records(path,args,ctxid,host):
 	
+	ftn=db.getrecordnames(ctxid,host=host)
+	ret=[html_header("EMEN2 Records"),"<h2>All accessible records</h2>"]
+	ret.append(html_htable(ftn,3,"/db/record?name="))
+
+	ret.append("</body></html>")
+	return "".join(ret)
+
+		
 def html_record(path,args,ctxid,host):
 	global db
 	
@@ -285,16 +295,26 @@ def html_newrecord(path,args,ctxid,host):
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
 		parm=db.getparamdefs(rec)
 		
-		bld=[]
+		bld=[("rd","rdef2","hidden")]
 		for p in rec.keys():
+			if p in ("owner","creator","creationdate","comments"): continue
 			try: bld.append((parm[p].desc_short,p,"text"))
-			except: bld.append(("Unknown (%s)"%p,p,"text"))
-			
-		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=rec.items_dict()))
+			except: bld.append((p,p,"text"))
+
+		d=rec.items_dict()
+		d["rdef2"]=args["rdef"][0]
+		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d))
 		ret.append("</body></html")
 		return "".join(ret)
 
-	return "ok"
+	argmap(args)
+	rec=db.newrecord(args["rdef2"],ctxid,host,init=0)
+	del args["rdef2"]
+	rec.update(args)
+	rid=db.putrecord(rec,ctxid,host)
+	ret.append('Record add sucessful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a></body></html')
+	
+	return ''.join(ret)
 	
 def html_users(path,args,ctxid,host):
 	global db
