@@ -152,7 +152,7 @@ class BTree:
 			
 			o.append(parenttag)
 			self.cpdb.put(childtag,dumps(o))
-	        print self.children(parenttag)
+#	        print self.children(parenttag)
 		
 	def pcunlink(self,parenttag,childtag,paramname=""):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
@@ -432,14 +432,14 @@ valid_vartypes={
 # will generally be provided by the ParamDef. It may be that
 # synonyms should be combined in a better way
 valid_properties = { 
-"count":(None,{}),
-"unitless":(None,{}),
+"count":(None,{"k":1000, "K":1000, "pixels":1}),
+"unitless":(None,{"n/a": None}),
 "length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
 	"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
 	"A":1.0e-10}),
 "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
-"volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3}),
-"mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"dalton":1.6605387e-24}),
+"volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3, "ul":1.0e-9, "uL":1.0e-9}),
+"mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "dalton":1.6605387e-24}),
 "temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
 	"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
 "pH":("pH",{"pH":1.0}),
@@ -453,8 +453,16 @@ valid_properties = {
 "momentum":("kg m/s",{"kg m/s":1.0}),
 "force":("N",{"N":1.0,"newton":1.0}),
 "energy":("J",{"J":1.0,"joule":1.0}),
-"angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi})
+"angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi, "mrad":0.18/pi}),
+"concentration":("mg/ml", {"mg/ml":1.0, "p/ml":1.0, "pfu":1.0}),
+"resolution":('A/pix', {'A/pix':1.0}),
+"bfactor":('A^2', {"A^2":1.0, "A2":1.0}),
+"dose":('e/A2/sec', {'e/A2/sec':1.0}),
+"currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
+"filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
+"percentage":('%', {'%':1.0})
 }
+
 
 class ParamDef:
 	"""This class defines an individual data Field that may be stored in a Record.
@@ -667,7 +675,7 @@ class Record:
 		try: del odict['_Record__ptest']
 		except: pass
 
-		print odict
+#		print odict
 		return odict
 	
 	def __setstate__(self,dict):
