@@ -4,6 +4,10 @@
 
 """This module encapsulates an electronic notebook/oodb
 
+Note that the database does have a security model, but it cannot be rigorously enforced at the python level.
+That is, a programmer using this library will not be able to accidentally violate the security model, but
+with sufficient intent and knowledge it is possible. To use the module securely it must be encapsulated
+by another layer, say an xmlrpc server...
 """
 
 from bsddb3 import db
@@ -306,36 +310,49 @@ class Record:
 		self.ofields={}				# when a field value is changed, the original value is stored here
 		self.__owner=0				# The owner of this record
 		self.__creator=0			# original creator of the record
-		self.__creationdate=None	# creation date
-		self.__permissions=			# permissions for read access, comment write access, and full write access
+		self.__creationtime=None	# creation date
+		self.__permissions=[(),(),()]
+									# permissions for read access, comment write access, and full write access
 		self.__context=None			# Record objects are only 
 	
 	def setContext(self,ctx):
 		"""This method may ONLY be used by the Database class. Constructing your
 		own context will not work"""
 		self.__context__=ctx
+		if self.__creator==0 :
+			self.__creator=ctx.user
+			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 						
 	def __str__(self):
 		ret=["%d (%s)\n"%(self.recid,self.rectype)]
 		for i in fields
-	
+		
 	def __getitem__(self,key):
 		"""Behavior is to return None for undefined fields, None is also
 		the default value for existant, but undefined fields, which will be
 		treated identically"""
+		if not (self.__context.user in self.__permissions[0]+self.__permissions[1]+self.__permissions[2]) : raise Exception,"No Permission"
+				
 		key=key.lower()
 		if key=="owner" : return self.__owner
 		if key=="creator" : return self.__creator
-		if key=="creationdate" : return self.__creationdate
+		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
 		if self.fields.has_key(key) : return self.fields[key]
 		return None
 	
 	def __setitem__(self,key,value):
 		if (key=="comments") :
+			if self.__context.user in self.__permissions[1]+self.__permissions[2]:
+				dict=self.parsestring(value)
+				self.fields["comments"].append(value)
+			else :
+				raise Exception,"No Permission"
 		if (key=="owner") :
-		if (key=="creator") :
-		if (key=="creationdate") :
+			if -1 in __context.groups or __context.user==self.__owner:
+				self.__owner=value
+		if (key=="creator" or key=="creationtime") :
+			raise Exception,"Creation info cannot be modified"
 		if (key=="permissions") :
 		if (self.fields.has_key(key) and self.fields[key]!=None) :
 			self.fields["comments"].append("Field changed <...")
@@ -346,6 +363,17 @@ class Record:
 									# and it wasn't a special value
 
 	def update(self,dict):
+		
+	
+	def keys(self):
+		return self.fields.keys()+["owner","creator","creationdate","permissions"]
+	
+	def has_key(self,key):
+		if key in self.keys() : return True
+		return False
+	
+	
+	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
 	"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
@@ -431,6 +459,7 @@ class Database:
 			
 			# we use md5 to make a key for the context as well
 			s=md5.new(username+str(host)+str(time.time()))
+			ctx.ctxid=s.hexdigest()
 			self.__contexts[s.hexdigest()]=ctx
 			
 			return s.hexdigest()
