@@ -249,8 +249,6 @@ class FieldType:
 		self.creator=creator			# original creator of the record
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
-		self.creator=0				# original creator of the record
-		self.creationtime=None		# creation date
 		self.creationdb=None		# dbid where fieldtype originated
 
 			
@@ -673,6 +671,9 @@ class Database:
 		
 		return ctx			
 
+	def checkcontext(self,ctxid,host):
+		a=self.__getcontext(ctxid,host)
+		
 	def disableuser(self,username,ctxid,host=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this."""
@@ -752,8 +753,8 @@ class Database:
 		return ret
 		
 	def getusernames(self,ctxid,host=None):
-		"""Not clear if this warrants a security risk, but anyone can get a list of usernames
-			This is needed for inter-database communications"""
+		"""Not clear if this is a security risk, but anyone can get a list of usernames
+			This is likely needed for inter-database communications"""
 		return self.users.keys()
 
 	def getworkflow(self,ctxid,host=None):
