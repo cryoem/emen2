@@ -1635,6 +1635,10 @@ class Database:
 
 			record.setContext(ctx)
 			
+			x=record["permissions"]
+			if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) :
+				raise ValueError,"permissions MUST be a 3-tuple of tuples"
+			
 			# Make sure all parameters are defined before we start updating the indicies
 			ptest=Set(record.keys())-Set(self.getparamdefnames())
 			ptest.discard("creator")
@@ -1661,6 +1665,10 @@ class Database:
 		# If we got here, we are updating an existing record
 		######
 		p=orig.setContext(ctx)				# security check on the original record
+		
+		x=record["permissions"]
+		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) :
+			raise ValueError,"permissions MUST be a 3-tuple of tuples"
 		
 		# We begin by comparing old and new records and figuring out exactly what changed
 		params=Set(orig.keys())
@@ -1800,8 +1808,45 @@ class Database:
 		permissions on the record. If addition of a lesser permission than the
 		existing permission is requested, no change will be made. ie - giving a
 		user read access to a record they already have write access to will
-		have no effect."""
-		pass
+		have no effect. Any children the user doesn't have permission to
+		update will be silently ignored."""
+		
+		if not isinstance(usertuple,tuple) or not isinstance(usertuple[0],tuple) or not isinstance(usertuple[1],tuple) or not isinstance(usertuple[2],tuple) :
+			raise ValueError,"permissions MUST be a 3-tuple of tuples (which may be empty)"
+
+		# get a list of records we need to update
+		if recurse>0 :
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt.add(ctxid)
+		else : trgt=Set([ctxid])
+		
+		# update each record as necessary
+		for i in trgt:
+			try:
+				rec=self.getrecord(i,ctxid,host)			# get the record to modify
+			except: continue
+			
+			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
+			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
+			newv=[Set(v) for v in usertuple]				# similar list of sets for the new users to add
+			
+			# if the user already has more permission than we are trying
+			# to assign, we don't do anything
+			newv[0]-=cur[1]
+			newv[0]-=cur[2]
+			newv[1]-=cur[2]
+			
+			# update the permissions for each group
+			cur[0]|=newv[0]
+			cur[1]|=newv[1]
+			cur[2]|=newv[2]
+			
+			l2=[len(v) for v in cur]
+				
+			# update if necessary
+			if l!=l2 :
+				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]))
+				rec.commit()
 	
 	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
 		"""This removes permissions from a record. users is a username or tuple/list of
@@ -1810,7 +1855,33 @@ class Database:
 		on the specified record's children to a limited recursion depth. Note that 
 		this REMOVES all access permissions for the specified users on the specified
 		record."""
-		pass
-	
-	
-	
+
+		users=Set(users)
+		
+		# get a list of records we need to update
+		if recurse>0 :
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt.add(ctxid)
+		else : trgt=Set([ctxid])
+		
+		# update each record as necessary
+		for i in trgt:
+			try:
+				rec=self.getrecord(i,ctxid,host)			# get the record to modify
+			except: continue
+			
+			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
+			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
+			
+			# if the user already has more permission than we are trying
+			# to assign, we don't do anything
+			cur[0]-=users
+			cur[1]-=users
+			cur[2]-=users
+						
+			l2=[len(v) for v in cur]
+				
+			# update if necessary
+			if l!=l2 :
+				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]))
+				rec.commit()
