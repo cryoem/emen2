@@ -25,6 +25,7 @@ import os
 import md5
 import time
 import re
+import operator
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
 
@@ -1375,16 +1376,17 @@ class Database:
 		
 		uo=o-n	# unique elements in the 'old' list
 		un=n-o	# unique elements in the 'new' list
+		print o,n,uo,un
 
 		# anything in both old and new should be ok,
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
 			self.secrindex.removeref(i,recid)
-
+		print "now un"
 		# then we add the index entries for all of the elements in 'new', but not 'old'
 		for i in un:
-			self.secrindex.addred(i,recid)
-												
+			self.secrindex.addref(i,recid)
+
 	def putrecord(self,record,ctxid,host=None):
 		"""The record has everything we need to commit the data. However, to 
 		update the indices, we need the original record as well. This also provides
@@ -1416,7 +1418,7 @@ class Database:
 			for k,v in record.items():
 				self.reindex(k,None,v,record.recid)
 			
-			self.reindexsec(None,record["permissions"],record.recid)		# index security
+			self.reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			
 #			print "putrec->\n",record.__dict__
@@ -1450,6 +1452,8 @@ class Database:
 
 			self.reindex(f,oldval,newval,record.recid)
 
+		self.reindexsec(reduce(operator.concat,orig["permissions"]),
+			reduce(operator.concat,record["permissions"]),record.recid)		# index security
 		self.records[record.recid]=record		# This actually stores the record in the database
 		return record.recid
 	
