@@ -128,8 +128,10 @@ class BTree:
 	def pclink(self,parenttag,childtag,paramname=""):
 		"""This establishes a parent-child relationship between two tags.
 		The relationship may also be named. That is the parent may
-		get a list of children only with a specific paramname."""
-		if not self.relate : raise Exception,"relate option required"
+		get a list of children only with a specific paramname. Note
+		that empty strings and None cannot be used as tags"""
+		if not self.relate : raise Exception,"relate option required in BTree"
+		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 		parenttag=str(parenttag)
 		childtag=str(childtag)
 		
@@ -165,11 +167,11 @@ class BTree:
 			
 		if not (childtag,paramname) in o: return
 		
-		del o[childtag]
+		o.remove((childtag,paramname))
 		self.pcdb.put(parenttag,dumps(o))
 		
 		o=loads(self.cpdb.get(childtag))
-		del o[parenttag]
+		o.remove(parenttag)
 		self.cpdb.put(childtag,dumps(o))	
 		
 	def link(self,tag1,tag2):
@@ -1038,7 +1040,7 @@ class Database:
 	def pclink(self,pkey,ckey,keytype="record",paramname=""):
 		"""Establish a parent-child relationship between two keys"""
 		
-		print "pclink '%s' '%s'"%(pkey,ckey)
+		print "pclink '%s' '%s'"%(str(pkey),str(ckey))
 		if keytype=="record" : return self.__records.pclink(pkey,ckey,paramname)
 		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
 		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,paramname)
@@ -1451,13 +1453,13 @@ class Database:
 		
 		uo=o-n	# unique elements in the 'old' list
 		un=n-o	# unique elements in the 'new' list
-		print o,n,uo,un
+#		print o,n,uo,un
 
 		# anything in both old and new should be ok,
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
 			self.__secrindex.removeref(i,recid)
-		print "now un"
+#		print "now un"
 		# then we add the index entries for all of the elements in 'new', but not 'old'
 		for i in un:
 			self.__secrindex.addref(i,recid)
