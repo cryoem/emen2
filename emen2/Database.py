@@ -439,7 +439,7 @@ class RecordDef:
 		self.mainview=None			# an XML string defining the experiment with embedded fields
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.fields={comments:[]}				# A dictionary keyed by the names of all fields used in any of the views
+		self.fields={"comments":[]}	# A dictionary keyed by the names of all fields used in any of the views
 									# values are the default value for the field.
 									# this represents all fields that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
@@ -890,7 +890,7 @@ class Database:
 			self.LOG(4,"Session expired")
 			raise KeyError,"Session expired"
 			
-		if host!=ctx.host :
+		if host and host!=ctx.host :
 			self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
 			raise Exception,"Bad address match, login sessions cannot be shared"
 		
@@ -1152,18 +1152,18 @@ class Database:
 		
 	def addrecorddef(self,recdef,ctxid,host=None):
 		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
-		if not isinstance(rectype,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
+		if not isinstance(recdef,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordDefs"
-		if self.recorddefs.has_key(rectype.name) : raise KeyError,"RecordDef %s already exists"%rectype.name
+		if self.recorddefs.has_key(recdef.name) : raise KeyError,"RecordDef %s already exists"%recdef.name
 		
 		# force these values
-		if (rectype.owner==None) : rectype.owner=ctx.user
-		rectype.creator=ctx.user
-		rectype.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		if (recdef.owner==None) : recdef.owner=ctx.user
+		recdef.creator=ctx.user
+		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		self.recorddefs[rectype.name]=rectype
+		self.recorddefs[recdef.name]=recdef
 		
 		
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):

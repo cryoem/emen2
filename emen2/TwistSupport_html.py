@@ -4,6 +4,7 @@
 from twisted.web.resource import Resource
 from emen2 import TwistSupport 
 import os
+import traceback
 
 # we open the database as part of the module initialization
 db=TwistSupport.db
@@ -36,7 +37,7 @@ class DBResource(Resource):
 			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
 #			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
 			return """<html> <head> <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-				<meta http-equiv="REFRESH" content="3; URL=%s"><title>HTML REDIRECT</title></head>
+				<meta http-equiv="REFRESH" content="2; URL=%s"><title>HTML REDIRECT</title></head>
 				<body><h3>Login Successful</h3></body></html>"""%request.received_headers["referer"]
 
 		# A valid session will have a valid ctxid set
@@ -85,7 +86,7 @@ def html_dicttable(dict,proto):
 	"""Produce a table of values in 'cols' columns"""
 	ret=["<table>"]
 	
-	for k,v in dict:
+	for k,v in dict.items():
 		ret.append("<tr><td><a href=%s/%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,k,v))
 		
 	ret.append("</table><br>")
@@ -169,10 +170,12 @@ def html_recorddefs(path,args,ctxid,host):
 def html_recorddef(path,args,ctxid,host):
 	global db
 	
-	item=db.getrecorddef(args["name"][0])
+	item=db.getrecorddef(args["name"][0],ctxid)
 	
-	ret=[html_header("EMEN2 RecordDef Description"),"<h2>RecordDef: <i>%s</i></h2><br>fields:<br>"%item.name]
+	ret=[html_header("EMEN2 RecordDef Description"),"<h2>RecordDef: <i>%s</i></h2><br>"%item.name,
+	"<a href=/db/newrecord?rdef=%s>Add a New Record</a><br>fields:<br>"%item.name]
 	
+	print "xxx",item.fields
 	ret.append(html_dicttable(item.fields,"/db/paramdef?name="))
 	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 	ret.append("""</body></html>""")
@@ -187,9 +190,11 @@ def html_newrecorddef(path,args,ctxid,host):
 			rd=DB.RecordDef()
 			rd.name=args["name"][0]
 			rd.mainview=args["mainview"][0]
-			rd.private=args["private"][0]
+			if args.has_key("private") : rd.private=1
+			else: rd.private=0
 			db.addrecorddef(rd,ctxid,host)
 		except Exception,e:
+			traceback.print_exc()
 			ret.append("Error adding RecordDef '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
 			return "".join(ret)
 			
@@ -199,7 +204,7 @@ def html_newrecorddef(path,args,ctxid,host):
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
+		return "".join(ret)+html_form(action="/db/newrecorddef",items=(("Name:","name","text"),
 		("Experiment Description","mainview","textarea",(60,10)),("Private Access","private","checkbox")),args=args)+"</body></html>"
 	
 	
@@ -217,7 +222,7 @@ def html_record(path,args,ctxid,host):
 
 def html_newrecord(path,args,ctxid,host):
 	global db
-	ret=[html_header("EMEN2 Add Record Definition"),"<h1>Add Record Definition</h1><br>"]
+	ret=[html_header("EMEN2 Add Record"),"<h1>Add Record</h1><br>"]
 	if args.has_key("name") :
 		try: 
 			rd=DB.RecordDef()
