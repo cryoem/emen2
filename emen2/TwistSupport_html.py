@@ -129,7 +129,19 @@ def html_paramdef(path,args,ctxid,host):
 	
 	item=db.getparamdef(args["name"][0])
 	
-	ret=[html_header("EMEN2 ParamDef Description"),"<h2>ParamDef: <i>%s</i></h2><br>"%item.name]
+	ret=[html_header("EMEN2 ParamDef Description"),"<h2>Experimental Parameter (ParamDef): <i>%s</i></h2><br>"%item.name]
+	
+	parents=db.getparents(item.name,keytype="paramdef")
+	if len(parents)>0 :
+		ret.append("<br>Parents: ")
+		for p in parents:
+			ret.append('<a href="/db/paramdef?name=%s">%s</a> '%(p,p))
+	
+	children=db.getchildren(item.name,keytype="paramdef")
+	if len(children)>0 :
+		ret.append("<br>Children: ")
+		for c in Children:
+			ret.append('<a href="/db/paramdef?name=%s">%s</a> '%(c,c))
 	
 	ret.append("""<table><tr><td>Name</td><td>%s</td></tr>
 	<tr><td>Variable Type</td><td>%s</td></tr>
@@ -137,8 +149,8 @@ def html_paramdef(path,args,ctxid,host):
 	<tr><td>Long Description</td><td>%s</td></tr>
 	<tr><td>Property</td><td>%s</td></tr>
 	<tr><td>Default Units</td><td>%s</td></tr>
-	<tr><td>Creator</td><td>%s (%s)</td></table></body></html>"""%(item.name,item.vartype,item.desc_short,
-	item.desc_long,item.property,item.defaultunits,item.creator,item.creationtime))
+	<tr><td>Creator</td><td>%s (%s)</td></table><br><br><a href="/db/newparamdef?parent=%s>Add a new child parameter</a></body></html>"""%(
+	item.name,item.vartype,item.desc_short,item.desc_long,item.property,item.defaultunits,item.creator,item.creationtime,item.name))
 	
 	return "".join(ret)
 
@@ -152,6 +164,9 @@ def html_newparamdef(path,args,ctxid,host):
 		except Exception,e:
 			ret.append("Error adding Parameter '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
 			return "".join(ret)
+		
+		if args.has_key("parent") :
+			db.pclink(args["parent"][0],args["name"][0],"paramdef")
 			
 		# ParamDef added sucessfully
 		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
@@ -159,7 +174,7 @@ def html_newparamdef(path,args,ctxid,host):
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		return "".join(ret)+html_form(action="/db/newparamdef",items=(("Name:","name","text"),
+		return "".join(ret)+html_form(action="/db/newparamdef",items=(("","parent","hidden"),("Name:","name","text"),
 		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
 		("Short Description","desc_short","text"),("Long Description","desc_long","textarea",(60,3)),
 		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+"</body></html>"
@@ -180,9 +195,22 @@ def html_recorddef(path,args,ctxid,host):
 	
 	item=db.getrecorddef(args["name"][0],ctxid)
 	
-	ret=[html_header("EMEN2 RecordDef Description"),"<h2>RecordDef: <i>%s</i></h2><br>"%item.name,
-	"<a href=/db/newrecord?rdef=%s>Add a New Record</a><br>fields:<br>"%item.name]
+	ret=[html_header("EMEN2 RecordDef Description"),"<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name,
+	]
 	
+	parents=db.getparents(item.name,keytype="recorddef")
+	if len(parents)>0 :
+		ret.append("<br>Parents: ")
+		for p in parents:
+			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(p,p))
+	
+	children=db.getchildren(item.name,keytype="recorddef")
+	if len(children)>0 :
+		ret.append("<br>Children: ")
+		for c in Children:
+			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(c,c))
+
+	ret.append("<br><br>Parameters:<br>")
 	ret.append(html_dicttable(item.fields,"/db/paramdef?name="))
 #	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 	
@@ -194,6 +222,8 @@ def html_recorddef(path,args,ctxid,host):
 	ret.append("<br><b>Experimental Protocol:</b><br>%s<br><br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
 	for i in item.views.keys():
 		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(
+	item.name,item.name))
 	ret.append("""</body></html>""")
 	
 	return "".join(ret)
@@ -217,13 +247,16 @@ def html_newrecorddef(path,args,ctxid,host):
 			ret.append("Error adding RecordDef '%s' : <i>%s</i><br><br>"%(str(args["name"][0]),e))	# Failed for some reason, fall through so the user can update the form
 			return "".join(ret)
 			
-		# ParamDef added sucessfully
-		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		if args.has_key("parent") :
+			db.pclink(args["parent"][0],args["name"][0],"recorddef")
+		
+		# RecordDef added sucessfully
+		ret+=['<br><br>New Protocol <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
 		return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
-		return "".join(ret)+html_form(action="/db/newrecorddef",items=(("Name:","name","text"),
+		return "".join(ret)+html_form(action="/db/newrecorddef",items=(("","parent","hidden"),("Name:","name","text"),
 		("Experiment Description","mainview","textarea",(80,16)),("Summary View","summary","textarea",(80,8)),
 		("One Line View","oneline","textarea",(80,4)),("Private Access","private","checkbox")),args=args)+"</body></html>"
 	
@@ -352,6 +385,8 @@ def html_form(action="",items=(),args={}):
 		elif i[2]=="text" :
 			if (len(i)<4) : i=i+(20,)
 			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" size="%d" /></td></tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],'""')),int(i[3])))
+		elif i[2]=="hidden" :
+			ret.append('<input type="hidden" name="%s" value="%s" /></td></tr>\n'%(i[1],str(args.get(i[1],'""'))))
 		else:
 			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],'""')))
 
