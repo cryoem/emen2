@@ -1547,6 +1547,7 @@ class Database:
 		KeyError."""
 		try:
 			ret=self.__fieldindex[paramname]		# Try to get the index for this key
+			print "index open %s"%paramname
 		except:
 			# index not open yet, open/create it
 			try:
