@@ -874,8 +874,7 @@ class Database:
 		self.lastctxclean=time.time()
 	
 			
-		self.__contexts={}			# dictionary of current db contexts, may need to put this on disk for mulithreaded server ?
-					
+		
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(path+"/home",os.F_OK) : os.makedirs(path+"/home")
 		self.LOG(4,"Database initialization started")
@@ -892,6 +891,8 @@ class Database:
 		# Users
 		self.__users=BTree("users",path+"/security/users.bdb",dbenv=self.__dbenv)						# active database users
 		self.__newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.__dbenv)			# new users pending approval
+		self.__contexts_p=BTree("contexts",path+"/security/contexts.bdb",dbenv=self.__dbenv)			# multisession persistent contexts
+		self.__contexts={}			# local cache dictionary of valid contexts
 	
 		# Defined ParamDefs
 		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
@@ -997,7 +998,10 @@ class Database:
 		# we use sha to make a key for the context as well
 		s=sha.new(username+str(host)+str(time.time()))
 		ctx.ctxid=s.hexdigest()
-		self.__contexts[ctx.ctxid]=ctx
+		self.__contexts[ctx.ctxid]=ctx		# local context cache
+		ctx.db=None
+		self.__contexts_p[ctx.ctxid]=ctx	# persistent context database
+		ctx.db=self
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
 		return ctx.ctxid
@@ -1005,11 +1009,14 @@ class Database:
 	def cleanupcontexts(self):
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
-		for k in self.__contexts.items():
+		for k in self.__contexts_p.items():
 			if k[1].time+k[1].maxidle<time.time() : 
 				self.LOG(4,"Expire context (%s) %d"%(k[1].ctxid,time.time()-k[1].time))
-				del self.__contexts[k[0]]
-		
+				try: del self.__contexts[k[0]]
+				except: pass
+				try: del self.__contexts_p[k[0]]
+				except: pass
+
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
 		Note that both key and host must match."""
@@ -1019,8 +1026,13 @@ class Database:
 		try:
 			ctx=self.__contexts[key]
 		except:
-			self.LOG(4,"Session expired")
-			raise KeyError,"Session expired"
+			try:
+				ctx=self.__contexts_p[key]
+				ctx.db=self
+				self.__contexts[key]=ctx	# cache result from database
+			except:
+				self.LOG(4,"Session expired")
+				raise KeyError,"Session expired"
 			
 		if host and host!=ctx.host :
 			self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
