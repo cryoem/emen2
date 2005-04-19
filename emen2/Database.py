@@ -671,7 +671,7 @@ class Record:
 		self.__context=None			# Validated access context
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
-										
+
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
@@ -1559,7 +1559,6 @@ class Database:
 		KeyError."""
 		try:
 			ret=self.__fieldindex[paramname]		# Try to get the index for this key
-			print "index open %s"%paramname
 		except:
 			# index not open yet, open/create it
 			try:
