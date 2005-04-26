@@ -1614,6 +1614,8 @@ class Database:
 		where the values are text strings designed to be searched
 		by 'word' """
 
+		unindexed_words=["in","of","for","this","the","at","to","from","at","for","and","it","or"]		# need to expand this
+		
 		ind=self.__getparamindex(key)
 		if ind == None:
 			print 'No parameter index for ',key
@@ -1622,11 +1624,15 @@ class Database:
 		# remove the old ref and add the new one
 		if oldval!=None:
 			for s in oldval.split():
-				ind.removeref(s,recid)
+				t=s.lower()
+				if len(s)<2 or t in unindexed_words: pass
+				ind.removeref(t,recid)
 	
 		if newval!=None:
 			for s in newval.split():
-				ind.addref(s,recid)
+				t=s.lower()
+				if len(s)<2 or t in unindexed_words: pass
+				ind.addref(t,recid)
 		
 		#print ind.items()
 
