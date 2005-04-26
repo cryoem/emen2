@@ -1587,6 +1587,18 @@ class Database:
 		if (key=="comments" or key=="permissions") : return		# comments & permissions are not currently indexed 
 		if (oldval==newval) : return		# no change, no indexing required
 		
+		# Painful, but if this is a 'text' field, we index the words not the value
+		# ie - full text indexing
+		if isinstance(oldval,str) or isinstance(newval,str) :
+			try:
+				f=self.__paramdefs[key]		# Look up the definition of this field
+			except:
+				raise FieldError,"No such field %s defined"%key
+			if f.vartype=="text" :
+				self.__reindextext(key,oldval,newval,recid)
+				return
+		
+		# whew, not full text, get the index for this key
 		ind=self.__getparamindex(key)
 		if ind == None:
 			print 'ind is none'
@@ -1595,6 +1607,27 @@ class Database:
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
 		if newval!=None : ind.addref(newval,recid)
+		#print ind.items()
+
+	def __reindextext(self,key,oldval,newval,recid):
+		"""This function reindexes a single key/value pair
+		where the values are text strings designed to be searched
+		by 'word' """
+
+		ind=self.__getparamindex(key)
+		if ind == None:
+			print 'No parameter index for ',key
+			return
+		
+		# remove the old ref and add the new one
+		if oldval!=None:
+			for s in oldval.split():
+				ind.removeref(s,recid)
+	
+		if newval!=None:
+			for s in newval.split():
+				ind.addref(s,recid)
+		
 		#print ind.items()
 
 	def __reindexsec(self,oldlist,newlist,recid):
@@ -1662,8 +1695,8 @@ class Database:
 			
 			# index params
 			for k,v in record.items():
-			    if k != 'recid':
-				self.__reindex(k,None,v,record.recid)
+				if k != 'recid':
+					self.__reindex(k,None,v,record.recid)
 			
 			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
