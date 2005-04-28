@@ -7,7 +7,7 @@
 from os import popen2
 from cPickle import load,dump
 
-class DBProxy():
+class DBProxy:
 	"""This class provides an interface to an EMEN2 database through a
 DBIsolator process for security. Its interface is virtually identical
 to the public Database interface, though it returns dictionaries and
@@ -17,6 +17,14 @@ lists rather than objects"""
 	
 	def __del__(self):
 		dump("EXIT",self.iso[0])
+		self.iso[0].flush()
+		self.iso=0
 	
-	def 
+	def __getattr__(self,name) :
+		return lambda *x: self(name,*x)
 		
+	def __call__(self,*args) :
+		dump(args,self.iso[0])
+		self.iso[0].flush()
+		return load(self.iso[1])
+
