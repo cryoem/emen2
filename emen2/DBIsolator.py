@@ -210,7 +210,7 @@ class dbisolator:
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
-		return db.getrecorddef(recname,ctxid,recid=recid).__dict__
+		return db.getrecorddef(rectypename,ctxid,recid=recid).__dict__
 			
 	def meth_getrecorddefnames(self):
 		"""The names of all recorddefs are globally available to prevent duplication"""
