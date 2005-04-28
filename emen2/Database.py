@@ -868,10 +868,15 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-	def __init__(self,path=".",cachesize=64000000,logfile="db.log"):
+	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0):
+		"""path - The path to the database files, this is the root of a tree of directories for the database
+cachesize - default is 64M, in bytes
+logfile - defualt "db.log"
+importmode - DANGEROUS, makes certain changes to allow bulk data import from EMAN1 databases"""
 		self.path=path
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
+		self.__importmode=importmode
 	
 			
 		
@@ -1691,9 +1696,10 @@ class Database:
 			
 			# Make sure all parameters are defined before we start updating the indicies
 			ptest=Set(record.keys())-Set(self.getparamdefnames())
-			ptest.discard("creator")
+			if (not self.__importmode) : 
+				ptest.discard("creator")
+				ptest.discard("creationtime")
 			ptest.discard("permissions")
-			ptest.discard("creationtime")
 			ptest.discard("rectype")
 			if len(ptest)>0 :
 				self.__records[-1]=record.recid-1				# Update the recid counter, TODO: do the update more safely/exclusive access
