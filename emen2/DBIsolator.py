@@ -21,8 +21,10 @@ def main():
 	
 	# open the database
 	DB=Database
-	try: dbpath=os.getenv("EMEN2DB")
-	except: dbpath="/home/stevel/emen2test"
+	if len(sys.argv)>1 : dbpath=sys.argv[1]
+	else :
+		try: dbpath=os.getenv("EMEN2DB")
+		except: dbpath="/home/stevel/emen2test"
 	if dbpath==None : dbpath="/home/stevel/emen2test"
 	db=DB.Database(dbpath)
 
@@ -38,7 +40,7 @@ def main():
 		cPickle.dump(ret,out)
 		out.flush()
 		
-	db.close()
+	db=None
 
 class dbisolator:	
 	def meth_login(self,userid,password):
