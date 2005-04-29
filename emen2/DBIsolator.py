@@ -24,8 +24,8 @@ def main():
 	if len(sys.argv)>1 : dbpath=sys.argv[1]
 	else :
 		try: dbpath=os.getenv("EMEN2DB")
-		except: dbpath="/home/stevel/emen2test"
-	if dbpath==None : dbpath="/home/stevel/emen2test"
+		except: dbpath="/home/emen2/db"
+	if dbpath==None : dbpath="/home/emen2/db"
 	db=DB.Database(dbpath)
 
 	# here is the main loop, respond to requests indefinitely
@@ -33,10 +33,10 @@ def main():
 		request=cPickle.load(sys.stdin)
 		if request=="EXIT": break
 		
-		try:
-			ret=dbisolator.__dict__["meth_"+request[0]](*request)
-		except Exception,msg:
-			ret=(0,msg)
+#		try:
+		ret=dbisolator.__dict__["meth_"+request[0]](*request)
+#		except Exception,msg:
+#			ret=(0,msg)
 		cPickle.dump(ret,out)
 		out.flush()
 		
@@ -122,25 +122,34 @@ class dbisolator:
 		"""Delete a single workflow entry"""
 		db.delworkflowitem(wfid,ctxid)
 		
-	def meth_getrecords(self,recids,ctxid,dbid=None):
+	def meth_getrecords(self,recids,ctxid,dbid=0):
 		"""Retrieve records from the database as a list of dictionaries"""
 		ret=[]
 		try:
 			for recid in recids:
-				ret.append(db.getrecord(recid,ctxid,dbid).items())
+				ret.append(db.getrecord(recid,ctxid,dbid).items_dict())
 		except Exception,x:
 			return 0,x
 		
 		return ret
 	
-	def meth_getrecord(self,recid,ctxid,dbid=None):
+	def meth_getrecord(self,recid,ctxid,dbid=0):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
 			r=db.getrecord(recid,ctxid,dbid)
 		except Exception,x:
 			return 0,x
 		
-		return r.items()
+		return r.items_dict()
+	
+	def meth_getrecordnames(self,ctxid,dbid=0):
+		"""Retrieve a record from the database as a dictionary"""
+		try:
+			r=db.getrecordnames(ctxid,dbid)
+		except Exception,x:
+			return 0,x
+		
+		return r
 	
 	def meth_putrecord(self,record,ctxid):
 		"""Puts a modified record back into the database"""
@@ -228,15 +237,15 @@ class dbisolator:
 		"""This returns a list of known units for a given physical property"""
 		return db.getpropertyunits(propname)
 		
-	def meth_getchildren(self,key,keytype="record"):
+	def meth_getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=0):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		return db.getchildren(key,keytype)
+		return db.getchildren(key,keytype,paramname,recurse,ctxid,host)
 	
-	def meth_getparents(self,key,keytype="record"):
+	def meth_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=0):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		return db.getparents(key,keytype)
+		return db.getparents(key,keytype,recurse,ctxid,host)
 	
 	def meth_getcousins(self,key,keytype="record"):
 		"""Gets the cousins (related records with no defined parent/child relationship

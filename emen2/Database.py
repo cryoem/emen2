@@ -1124,7 +1124,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		
 		return Set(ret+r2)
 		
-	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None, paramname=None):
+	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
 		read permission on the keyed record to get a list of parents
@@ -1148,7 +1148,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getparents(i[0],keytype,paramname,recurse-1,ctxid,host)
+			r2+=self.getparents(i[0],keytype,recurse-1,ctxid,host)
 		return Set(ret+r2)
 
 	def getcousins(self,key,keytype="record",ctxid=None,host=None):
