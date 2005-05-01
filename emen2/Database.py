@@ -916,8 +916,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			self.LOG(3,"New database created")
 			
 		# Indices
-		self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)	# index of records each user can read
+		self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
 		self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
+		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 
 		# The mirror database for storing offsite records
@@ -1712,6 +1713,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			
 			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
+			self.__timeindex[record.recid]=record["creationtime"] 
+			record["modifytime"]=record["creationtime"]
 			
 			#print "putrec->\n",record.__dict__
 			self.__records[record.recid]=record		# This actually stores the record in the database
@@ -1727,6 +1730,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			raise ValueError,"permissions MUST be a 3-tuple of tuples"
 		
 		# We begin by comparing old and new records and figuring out exactly what changed
+		modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
+		if (not self.__importmode) : record["modifytime"]=modifytime
 		params=Set(orig.keys())
 		params.union_update(record.keys())
 		params.discard("creator")
@@ -1771,7 +1776,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 
 			self.__reindex(f,oldval,newval,record.recid)
 			
-			if (f!="comments") :
+			if (f!="comments" and f!="modifytime") :
 				orig["comments"]='LOG: <emen:param name="%s">%s</emen:param> old value=%s'%(f,newval,oldval)
 			
 			orig[f]=record[f]
@@ -1779,6 +1784,10 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 				
 		self.__reindexsec(reduce(operator.concat,orig["permissions"]),
 			reduce(operator.concat,record["permissions"]),record.recid)		# index security
+		
+		# Updates last time changed index
+		if (not self.__importmode) : self.__timeindex[record.recid]=modifytime 
+				
 		self.__records[record.recid]=orig			# This actually stores the record in the database
 		return record.recid
 		
@@ -1806,7 +1815,21 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		ctx=self.__getcontext(ctxid,host)
 		
 		return self.__secrindex[ctx.user]
+	
+	def getrecordschangetime(self,recids,ctxid,host=None):
+		"""Returns a list of times for a list of recids. Times represent the last modification 
+		of the specified records"""
+
+		secure=Set(self.getindexbyuser(None,ctxid,host))
+		rid=Set(recids)
+		rid-=secure
+		if len(rid)>0 : raise Exception,"Cannot access records %s"%str(rid)
 		
+		try: ret=[self.__timeindex[i] for i in recids]
+		except: raise Exception,"unindexed time on one or more recids"
+		
+		return ret 
+			
 	def getrecord(self,recid,ctxid,dbid=0,host=None) :
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
