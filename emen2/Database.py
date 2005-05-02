@@ -675,9 +675,11 @@ class Record:
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
+		if not odict.has_key("localcpy") :
+			try: del odict['_Record__ptest']
+			except: pass
+		
 		try: del odict['_Record__context']
-		except: pass
-		try: del odict['_Record__ptest']
 		except: pass
 
 #		print odict
@@ -685,9 +687,14 @@ class Record:
 	
 	def __setstate__(self,dict):
 		"""restore unpickled values to defaults after unpickling"""
-		self.__dict__.update(dict)	
+		if dict.has_key("localcpy") :
+			del dict["localcpy"]
+			self.__dict__.update(dict)	
+		else:
+			self.__dict__.update(dict)	
+			self.__ptest=[0,0,0,0]
+		
 		self.__context=None
-		self.__ptest=[0,0,0,0]
 
 	def setContext(self,ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
@@ -1052,6 +1059,11 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
+	def query(self,query):
+		"""This performs a general database query."""
+		
+		return Set([])
+		
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
 		a list of records the user can access"""
