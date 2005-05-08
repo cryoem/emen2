@@ -1059,10 +1059,117 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
-	def query(self,query):
-		"""This performs a general database query."""
+	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","><",">","<",">=","<=","==","!=",","]
+	querycommands=["find","plot","histogram","timeline"]
+	
+	def query(self,query,ctxid,host=None) :
+		"""This performs a general database query.
+@ - protocol name
+$ - parameter name
+% - username
+parentheses not supported yet"""
+		query2=self.querypreprocess(query,ctxid,host)
 		
-		return Set([])
+		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
+		
+		command=[i for i in querycommands if (i in query2)]
+		if len(command)==0 : command="find"
+		elif len(command)==1 : command=command[0]
+		else : return (-2,"Too many commands in query",command)
+		
+		byrecdef=Set()
+		for i in query2:
+			if i[0]=="@" : byrecdef|=getindexbyrecorddef(i[1:],ctxid)
+
+		byparamval=Set()
+		n=0
+		while (n<len(query2)):
+			i=query2[n]
+			if i[0]=="$" :
+				range=[None,None]
+				op=query2[n+1]
+				if op==">" or op==">=" : range[0]=query2[n+2]	# indexing mechanism doesn't support both > and >=
+				if op=="<" or op=="<=" : range[1]=query2[n+2]	# so we treat them the same for now
+				if op=="==" : range=[query[n+2],query[n+2]]
+			
+		if command=="find" :
+			pass
+		elif command=="plot" :
+			pass
+		elif command=="histogram" :
+			pass
+		elif command=="timeline" :
+			pass
+
+	def querypreproces(self,query,ctxid,host=None):
+		"""This performs preprocessing on a database query string
+@ - protocol name
+$ - parameter name
+% - username
+parentheses not supported yet. Upon failure returns a tuple:
+(code, message, bad element)"""
+		
+		replacetable={
+		"less":"<","before":"<","lower":"<","under":"<","older":"<","shorter":"<",
+		"greater":">","after":">","more":">","over":">","newer":">","taller":">",
+		"between":"><","&":"and","|":"or",
+		"locate":"find",
+		"than":""}
+		
+		
+		# parses the strings into discrete units to process (words and operators)
+		elements=[i for i in re.split("\s|(<=|>=|!-|==|<|>|=|,)",query) if i!=None]
+
+		# Now we clean up the list of terms and check for errors
+		for n,e in enumerate(elements):
+			# replace descriptive words with standard symbols
+			if replacetable.has_key(e) : 
+				elements[n]=replacetable[e]
+				e=replacetable[e]
+				
+			# if it's a keyword, we don't need to do anything else to it
+			if e in keywords : continue
+			
+			# this checks to see if the element is simply a number, in which case we need to keep it!
+			try: elements[n]=int(e)
+			except: pass
+			else: continue
+			
+			try: elements[n]=float(e)
+			except: pass
+			else: continue
+			
+			if e[0]=="@" :
+				a=self.findrecorddefname(e[1:])
+				if a==None : return (-1,"Invalid protocol",e)
+				elements[n]="@"+a
+				continue
+			elif e[0]=="$" :
+				a=self.findparamdefname(e[1:])
+				if a==None : return (-1,"Invalid parameter",e)
+				elements[n]="$"+a
+				continue
+			elif e[0]=="%" :
+				a=self.findusername(e[1:])
+				if a==None : return (-1,"Username does not exist",e)
+				if isinstance(a,str) :
+					elements[n]="%"+a
+					continue
+				if len(a)>0 : return (-1,"Ambiguous username",e,a)
+			else:
+				a=self.findrecorddefname(e)
+				if a!=None : 
+					elements[n]="@"+a
+					continue
+				a=self.findparamdefname(e)
+				if a!=None : 
+					elements[n]="$"+a
+					continue
+				
+				# Ok, if we don't recognize the word, we just ignore it
+				# if it's in a critical spot we can raise an error later
+		
+		return elements
 		
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
@@ -1343,9 +1450,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
-		ret=self.__users[username]
-		
 		ctx=self.__getcontext(ctxid,host)
+		
+		ret=self.__users[username]
 		
 		# The user him/herself or administrator can get all info
 		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
@@ -1373,6 +1480,29 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			This is likely needed for inter-database communications"""
 		return self.__users.keys()
 
+	def findusername(self,name,ctxid,host=None):
+		"""This will look for a username matching the provided name in a loose way"""
+		if self.__users.has_key(name) : return name
+		
+		possible=filter(lambda x: name in x,__users.keys())
+		if len(possible)==1 : return possible[0]
+		if len(possible)>1 : return possible
+		
+		possible=[]
+		for i in self.getusernames(ctxid,host):
+			try: u=self.getuser(name,ctxid,host)
+			except: continue
+			
+			for j in u.__dict__:
+				if isinstance(j,str) and name in j :
+					possible.append(i)
+					break
+
+		if len(possible)==1 : return possible[0]
+		if len(possible)>1 : return possible
+					
+		return None
+	
 	def getworkflow(self,ctxid,host=None):
 		"""This will return an (ordered) list of workflow objects for the given context (user).
 		it is an exceptionally bad idea to change a WorkFlow object's wfid."""
@@ -1445,7 +1575,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		"""This returns a list of all valid property types in the database. This is currently a
 		fixed list"""
 		return valid_properties.keys()
-	
+			
 	def getpropertyunits(self,propname):
 		"""Returns a list of known units for a particular property"""
 		return valid_properties[propname][1].keys()
@@ -1482,6 +1612,16 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 	def getparamdefnames(self):
 		"""Returns a list of all ParamDef names"""
 		return self.__paramdefs.keys()
+	
+	def findparamdefname(self,name) :
+		"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
+or None if no match is found."""
+		if self.__paramdefs.has_key(name) : return name
+		if name[-1]=="s" :
+			if self.__paramdefs.has_key(name[:-1]) : return name[:-1]
+			if name[-2]=="e" and self.__paramdefs.has_key(name[:-2]): return name[:-2]
+		if name[-3:]=="ing" and self.__paramdefs.has_key(name[:-3]): return name[:-3]
+		return None
 	
 	def getparamdefs(self,recs):
 		"""Returns a list of ParamDef records.
@@ -1569,6 +1709,16 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
 		return self.__recorddefs.keys()
+
+	def findrecorddefname(self,name) :
+		"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef, 
+or None if no match is found."""
+		if self.__recorddefs.has_key(name) : return name
+		if name[-1]=="s" :
+			if self.__recorddefs.has_key(name[:-1]) : return name[:-1]
+			if name[-2]=="e" and self.__recorddefs.has_key(name[:-2]): return name[:-2]
+		if name[-3:]=="ing" and self.__recorddefs.has_key(name[:-3]): return name[:-3]
+		return None
 		
 	def __getparamindex(self,paramname,create=1):
 		"""Internal function to open the parameter indices at need.

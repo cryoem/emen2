@@ -26,9 +26,10 @@ def histogrambydate(db,reclist,bintime,ctxid):
 	bintime is in seconds. 3600 for hours, 86400 for days"""
 	hist={}
 	
-	for i in reclist:
-		r=db.getrecord(i,ctxid)
-		t=int((Database.timetosec(r["eventdate"])-time.time())/bintime)
+	curtime=time.time()
+	times=db.getrecordschangetime(reclist,ctxid)
+	for i in times:
+		t=int((Database.timetosec(i)-curtime)/bintime)
 		try: hist[t]=hist[t]+1
 		except: hist[t]=1
 	
@@ -42,11 +43,15 @@ def histogrambymonth(db,reclist,ctxid):
 	Time is in months which may contain varying numbers of days"""
 	hist={}
 	
-	for i in reclist:
-		r=db.getrecord(i,ctxid)
+	times=db.getrecordschangetime(reclist,ctxid)
+	
+	curtime=time.localtime()
+	year=curtime[0]
+	month=curtime[1]
+	
+	for d in times:
 		try:
-			d=r["eventdate"]
-			t=(int(d[:4])-2000)*12+int(d[5:7])
+			t=(int(d[:4])-year)*12+int(d[5:7])-month
 		except: continue
 		try: hist[t]=hist[t]+1
 		except: hist[t]=1
