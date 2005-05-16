@@ -1900,6 +1900,7 @@ or None if no match is found."""
 		params.union_update(record.keys())
 		params.discard("creator")
 		params.discard("creationtime")
+		params.discard("modifytime")
 		params.discard("rectype")
 		changedparams=[]
 		
