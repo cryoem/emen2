@@ -1088,9 +1088,11 @@ parentheses not supported yet"""
 			if i[0]=="$" :
 				range=[None,None]
 				op=query2[n+1]
-				if op==">" or op==">=" : range[0]=query2[n+2]	# indexing mechanism doesn't support both > and >=
-				if op=="<" or op=="<=" : range[1]=query2[n+2]	# so we treat them the same for now
+				if op==">=" : range[0]=query2[n+2]	# indexing mechanism doesn't support both > and >=
+				if op=="<=" : range[1]=query2[n+2]	# so we treat them the same for now
 				if op=="==" : range=[query[n+2],query[n+2]]
+				if op==">" :
+					pass
 			
 		if command=="find" :
 			pass
