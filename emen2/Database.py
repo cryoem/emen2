@@ -976,7 +976,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			o=file(self.logfile,"a")
 			o.write("%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message))
 			o.close()
-			print "%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
+			if level<4 : print "%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
 		except:
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
@@ -1023,6 +1023,12 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
 		for k in self.__contexts_p.items():
+			# use the cached time if available
+			try :
+				c=self.__contexts[k[0]]
+				k[1].time=c.time
+			except: pass
+			
 			if k[1].time+k[1].maxidle<time.time() : 
 				self.LOG(4,"Expire context (%s) %d"%(k[1].ctxid,time.time()-k[1].time))
 				try: del self.__contexts[k[0]]
@@ -1051,6 +1057,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
 			raise Exception,"Bad address match, login sessions cannot be shared"
 		
+		ctx.time=time.time()
+		
+		
 		return ctx			
 
 	def checkcontext(self,ctxid,host):
@@ -1072,38 +1081,129 @@ parentheses not supported yet"""
 		
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
 		
-		command=[i for i in querycommands if (i in query2)]
+		command=[i for i in Database.querycommands if (i in query2)]
 		if len(command)==0 : command="find"
 		elif len(command)==1 : command=command[0]
 		else : return (-2,"Too many commands in query",command)
 		
+		print query2
 		byrecdef=Set()
 		for i in query2:
-			if i[0]=="@" : byrecdef|=getindexbyrecorddef(i[1:],ctxid)
+			if isinstance(i,str) and i[0]=="@" : byrecdef|=getindexbyrecorddef(i[1:],ctxid)
 
 		byparamval=Set()
+		groupby=None
 		n=0
 		while (n<len(query2)):
 			i=query2[n]
-			if i[0]=="$" :
+			if i=="plot" :
+				if not query2[n+2] in (",","vs","vs.") : raise Exception, "plot Y vs x"
+				comops=(query2[n+1],query2[n+3])
+				n+=4
+				continue
+			elif i=="group" :
+				if query2[n+1]=="by" :
+					groupby=query2[n+2]
+					n+=3
+					continue
+				groupby=query2[n+1]
+			elif i[0]=="@" or i in ("find","timeline") :
+				n+=1
+				continue
+			elif i[0]=="%" :
+				if len(byparamval)>0 : byparamval&=getindexbyuser(i[1:],ctxid,host)
+				else: byparamval=getindexbyuser(i[1:],ctxid,host)
+			elif i[0]=="$" :
 				range=[None,None]
 				op=query2[n+1]
-				if op==">=" : range[0]=query2[n+2]	# indexing mechanism doesn't support both > and >=
-				if op=="<=" : range[1]=query2[n+2]	# so we treat them the same for now
-				if op=="==" : range=[query[n+2],query[n+2]]
-				if op==">" :
-					pass
-			
+				if op==">" or op==">=" : 
+					range[0]=query2[n+2]	# indexing mechanism doesn't support > or < yet
+					n+=2
+				elif op=="<" or op=="<=" : 
+					range[1]=query2[n+2]	# so we treat them the same for now
+					n+=2
+				elif op=="==" : 
+					range=[query2[n+2],None]
+					n+=2
+				elif op=="><" : 
+					if not query2[n+3] in (",","and") : raise Exception, "between X and Y (%s)"%query2[n+3]
+					range=[query2[n+2],query2[n+4]]
+					n+=4
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],range,ctxid,host)
+				else: byparamval=self.getindexbyvalue(i[1:],range,ctxid,host)
+			elif i[0]=="and" : pass
+			else : raise Exception, "Unknown word '%s'"%i
+			n+=1
+		
+		if len(byrecdef)==0: byrecdef=byparamval
+		elif len(byparamval)!=0: byrecdef&=byparamval 
+		
+		# Complicated block of code to handle 'groupby' queries
+		# this splits the Set of located records (byrecdef) into
+		# a dictionary keyed by whatever the 'groupby' request wants
+		# For splits based on a parameter ($something), it will recurse
+		# into the parent records up to two levels to try to find the
+		# referenced parameter
+		if groupby:
+			dct={}
+			if groupby[0]=='$':
+				for i in byrecdef:
+					r=self.getrecord(i,ctxid)
+					if r.has_key(groupby[1:]) :
+						try: dct[r[groupby[1:]]].append(i)
+						except: dct[r[groupby[1:]]]=[i]
+					else :
+						p=self.getparents(i,'record',2,ctxid)
+						for j in p:
+							r=self.getrecord(j,ctxid)
+							if r.has_key(groupby[1:]) :
+								try: dct[r[groupby[1:]]].append(i)
+								except: dct[r[groupby[1:]]]=[i]
+			elif groupby in ("class","protocol","recorddef") :
+				for i in byrecdef:
+					r=self.getrecord(i,ctxid)
+					try: dct[r.rectype].append(i)
+					except: dct[r.rectype]=[i]
+			ret=dct
+		else: ret=byrecdef
+		
 		if command=="find" :
-			pass
+			return ret
 		elif command=="plot" :
-			pass
+			# This deals with 'plot' requests, which are currently 2D scatter plots
+			# It will return a sorted list of (x,y) pairs, or if a groupby request,
+			# a dictionary of such lists. Note that currently output is also
+			# written to plot*txt text files
+			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+				for j in ret.keys():
+					ret2=[]
+					for i in ret[j]:
+						r=self.getrecord(i,ctxid)
+						ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+					ret2.sort()
+					ret[j]=ret2
+					out=file("plot.%s.txt"%j,"w")
+					for i in ret2:
+						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+					out.close()
+				return ret
+			else:							# no 'groupby', just a single query
+				ret2=[]
+				for i in byrecdef:
+					r=self.getrecord(i,ctxid)
+					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+				ret2.sort()
+				out=file("plot.txt","w")
+				for i in ret2:
+					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+				out.close()
+				return ret
 		elif command=="histogram" :
 			pass
 		elif command=="timeline" :
 			pass
 
-	def querypreproces(self,query,ctxid,host=None):
+	def querypreprocess(self,query,ctxid,host=None):
 		"""This performs preprocessing on a database query string
 @ - protocol name
 $ - parameter name
@@ -1115,13 +1215,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"less":"<","before":"<","lower":"<","under":"<","older":"<","shorter":"<",
 		"greater":">","after":">","more":">","over":">","newer":">","taller":">",
 		"between":"><","&":"and","|":"or",
-		"locate":"find",
-		"than":""}
+		"locate":"find","split":"group",
+		"than":None,"is":None,"where":None}
 		
 		
 		# parses the strings into discrete units to process (words and operators)
-		elements=[i for i in re.split("\s|(<=|>=|!-|==|<|>|=|,)",query) if i!=None]
-
+		elements=[i for i in re.split("\s|(<=|>=|!-|==|<|>|=|,)",query) if i!=None and len(i)>0]
+		
 		# Now we clean up the list of terms and check for errors
 		for n,e in enumerate(elements):
 			# replace descriptive words with standard symbols
@@ -1129,8 +1229,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				elements[n]=replacetable[e]
 				e=replacetable[e]
 				
+			if e==None or len(e)==0 : continue
+			
 			# if it's a keyword, we don't need to do anything else to it
-			if e in keywords : continue
+			if e in Database.querykeywords : continue
 			
 			# this checks to see if the element is simply a number, in which case we need to keep it!
 			try: elements[n]=int(e)
@@ -1171,7 +1273,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# Ok, if we don't recognize the word, we just ignore it
 				# if it's in a critical spot we can raise an error later
 		
-		return elements
+		return [i for i in elements if i!=None]
 		
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
@@ -1270,7 +1372,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getparents(i[0],keytype,recurse-1,ctxid,host)
+			r2+=self.getparents(i,keytype,recurse-1,ctxid,host)
 		return Set(ret+r2)
 
 	def getcousins(self,key,keytype="record",ctxid=None,host=None):
