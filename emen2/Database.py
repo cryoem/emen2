@@ -301,6 +301,14 @@ class BTree:
 	def update(self,dict):
 		for i,j in dict.items(): self[i]=j
 
+	def create_sequence(self):
+	        dbseq = self.bdb.sequence_create()
+	        dbseq.init_value()
+		dbseq.set_range(0, 100000000)
+		dbseq.set_cachesize(1)
+		dbseq.open(None, 'sequence', 0|db.DB_CREATE|db.DB_THREAD)
+		return dbseq
+		
 class FieldBTree:
 	"""This is a specialized version of the BTree class. This version uses type-specific 
 	keys, and supports efficient key range extraction. The referenced data is a python list
@@ -896,7 +904,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		self.__dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
 		global globalenv
 		globalenv = self.__dbenv
-		
+
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
 		
@@ -927,6 +935,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 		self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
 		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
+		#db sequence
+		self.__dbseq = self.__records.create_sequence()
+
 
 		# The mirror database for storing offsite records
 		self.__mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.__dbenv)
@@ -1949,8 +1960,9 @@ or None if no match is found."""
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
 
-			record.recid=self.__records[-1]+1				# Get a new record-id
-			self.__records[-1]=record.recid				# Update the recid counter, TODO: do the update more safely/exclusive access
+			#record.recid=self.__records[-1]+1
+			record.recid = self.__dbseq.get()                                # Get a new record-id
+			self.__records[-1]=record.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
 			
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
