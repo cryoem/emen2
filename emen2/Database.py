@@ -37,39 +37,19 @@ class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
 def parseparmvalues(text):
-	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
-	containing the passed values"""
+	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+#	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+	srch=re.findall('\$([^\$= ]*)(?:(?:=)([^ ]*))?',text)
 	ret={}
 	
 	for t in srch:
-		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or t[4]!="emen:param" or " " in t[2].strip()) :continue
-		ret[t[2].strip().lower()]=t[3]
-
+		if len(t[0])>0 : 
+			if len(t[1])==0 : ret[t[0]]=None
+			else: ret[t[0]]=t[1]
+		
 	return ret
 
-def parseparmdef(text):
-	"""This will exctract XML 'emen_parm' tags from a block of text and return a dictionary
-	containing the tags as keys and default values (which may be None)"""
-	
-	# This nasty regex will extract <aaa bbb="ccc" /> blocks as [(aaa,bbb,ccc),...]
-	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" */>' ,text)
-	ret={}
-
-	for t in srch:
-		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or " " in t[2].strip()) :continue
-		ret[t[2].strip().lower()]=None
-	
-	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-
-	for t in srch:
-		if (t[0].lower()!="emen:param" or t[1].lower()!="name" or t[4]!="emen:param" or " " in t[2].strip()) :continue
-		ret[t[2].strip().lower()]=t[3]
-	
-	return ret	
-		
 def format_string_obj(dict,keylist):
 	"""prints a formatted version of an object's dictionary"""
 	r=["{"]
@@ -533,9 +513,9 @@ class RecordDef:
 	
 	def findparams(self):
 		"""This will update the list of params by parsing the views"""
-		d=parseparmdef(self.mainview)
+		d=parseparmvalues(self.mainview)
 		for i in self.views.values():
-			d.update(parseparmdef(i))
+			d.update(parseparmvalues(i))
 		self.params=d
 			
 class User:
