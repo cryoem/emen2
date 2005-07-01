@@ -40,7 +40,7 @@ def parseparmvalues(text):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$([^\$= ]*)(?:(?:=)([^ ]*))?',text)
+	srch=re.findall('\$([^\$<>= ]*)(?:(?:=)([^ <>]*))?',text)
 	ret={}
 	
 	for t in srch:
