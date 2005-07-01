@@ -40,13 +40,14 @@ def parseparmvalues(text):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$([^\$<>= ]*)(?:(?:=)([^ <>]*))?',text)
+	srch=re.findall('\$([^\$<>= ]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret={}
 	
 	for t in srch:
 		if len(t[0])>0 : 
-			if len(t[1])==0 : ret[t[0]]=None
-			else: ret[t[0]]=t[1]
+			if len(t[1])==0 and len(t[2])==0 : ret[t[0]]=None
+			elif len(t[1])==0 : ret[t[0]]=t[2]
+			else : ret[t[0]]=t[1]
 		
 	return ret
 
@@ -1122,7 +1123,7 @@ parentheses not supported yet"""
 					n+=4
 				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],range,ctxid,host)
 				else: byparamval=self.getindexbyvalue(i[1:],range,ctxid,host)
-			elif i[0]=="and" : pass
+			elif i=="and" : pass
 			else : raise Exception, "Unknown word '%s'"%i
 			n+=1
 		
