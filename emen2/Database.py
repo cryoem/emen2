@@ -1963,9 +1963,11 @@ or None if no match is found."""
 			ptest.discard("permissions")
 			ptest.discard("rectype")
 			if len(ptest)>0 :
-				self.__records[-1]=record.recid-1				# Update the recid counter, TODO: do the update more safely/exclusive access
+				self.__records[-1]=record.recid-1
+				print "One or more parameters undefined (%s)"%ptest
+				# Update the recid counter, TODO: do the update more safely/exclusive access
 				raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
-			
+			    
 			# index params
 			for k,v in record.items():
 				if k != 'recid':
