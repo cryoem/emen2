@@ -36,16 +36,17 @@ class SecurityError(Exception):
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
-def parseparmvalues(text):
+def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$([^\$<>= ]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([^\$\d\s<>=]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret={}
 	
 	for t in srch:
 		if len(t[0])>0 : 
-			if len(t[1])==0 and len(t[2])==0 : ret[t[0]]=None
+			if len(t[1])==0 and len(t[2])==0 : 
+				if noempty==0 : ret[t[0]]=None
 			elif len(t[1])==0 : ret[t[0]]=t[2]
 			else : ret[t[0]]=t[1]
 		
@@ -759,7 +760,7 @@ class Record:
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
-				dict=parseparmvalues(value)	# find any embedded params
+				dict=parseparmvalues(value,noempty=1)	# find any embedded params
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
