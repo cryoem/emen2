@@ -489,6 +489,7 @@ class RecordDef:
 		self.mainview=None			# an XML string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
+		self.childviews={}
 		self.params={}				# A dictionary keyed by the names of all params used in any of the views
 									# values are the default value for the field.
 									# this represents all params that must be defined to have a complete
@@ -503,8 +504,8 @@ class RecordDef:
 		if (dict) : self.__dict__.update(dict)
 		
 	def __str__(self):
-		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-			self.name,self.mainview,self.views,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nchildviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.childviews,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
 
 	def stringparams(self):
 		"""returns the params for this recorddef as an indented printable string"""
@@ -846,7 +847,8 @@ class Record:
 			pass
 		return ret
 		
-	
+
+		
 	def has_key(self,key):
 		if key in self.keys() or key in ("rectype","comments","owner","creator","creationtime","permissions"): return True
 		return False
