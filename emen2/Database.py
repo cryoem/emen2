@@ -1979,7 +1979,12 @@ or None if no match is found."""
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			self.__timeindex[record.recid]=record["creationtime"] 
 			record["modifytime"]=record["creationtime"]
-			
+			if (not self.__importmode) : 
+				record["modifyuser"]=ctx.user
+			else :
+				record["modifyuser"]=ptest("creator")
+				
+							
 			#print "putrec->\n",record.__dict__
 			self.__records[record.recid]=record		# This actually stores the record in the database
 			return record.recid
@@ -2042,7 +2047,7 @@ or None if no match is found."""
 			self.__reindex(f,oldval,newval,record.recid)
 			
 			if (f!="comments" and f!="modifytime") :
-				orig["comments"]='LOG: <emen:param name="%s">%s</emen:param> old value=%s'%(f,newval,oldval)
+				orig["comments"]='LOG: $$%s="%s" old value="%s"'%(f,newval,oldval)
 			
 			orig[f]=record[f]
 			
@@ -2051,7 +2056,10 @@ or None if no match is found."""
 			reduce(operator.concat,record["permissions"]),record.recid)		# index security
 		
 		# Updates last time changed index
-		if (not self.__importmode) : self.__timeindex[record.recid]=modifytime 
+		if (not self.__importmode) : 
+			orig["modifytime"]=modifytime
+			orig["modifyuser"]=ctx.user
+			self.__timeindex[record.recid]=modifytime 
 				
 		self.__records[record.recid]=orig			# This actually stores the record in the database
 		return record.recid
