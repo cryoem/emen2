@@ -1984,7 +1984,8 @@ or None if no match is found."""
 			if (not self.__importmode) : 
 				record["modifyuser"]=ctx.user
 			else :
-				record["modifyuser"]=ptest("creator")
+				#record["modifyuser"]=ptest("creator")
+				pass
 				
 							
 			#print "putrec->\n",record.__dict__
