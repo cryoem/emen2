@@ -49,8 +49,8 @@ class dbisolator:
 	def meth_checkcontext(self,ctxid,host):
 		return db.checkcontext(self,ctxid,host)
 	
-	def meth_query(self,query):
-		return db.query(query)
+	def meth_query(self,query, ctxid):
+		return db.query(query, ctxid)
 	
 	def meth_getindexbyuser(self,username,ctxid,host=None):
 		return db.getindexbyuser(self,username,ctxid,host)
