@@ -490,7 +490,6 @@ class RecordDef:
 		self.mainview=None			# an XML string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
-		self.childviews={}
 		self.params={}				# A dictionary keyed by the names of all params used in any of the views
 									# values are the default value for the field.
 									# this represents all params that must be defined to have a complete
@@ -505,8 +504,8 @@ class RecordDef:
 		if (dict) : self.__dict__.update(dict)
 		
 	def __str__(self):
-		return "{ name: %s\nmainview:\n%s\nviews: %s\nchildviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-			self.name,self.mainview,self.views,self.childviews,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
 
 	def stringparams(self):
 		"""returns the params for this recorddef as an indented printable string"""
@@ -2241,8 +2240,14 @@ or None if no match is found."""
 				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]))
 				rec.commit()
 
+	###########
+	# The following routines for xmlizing aspects of the database are very simple, 
+	# and also quite verbose. That is a lot of this could
+	# be done with a function for, say, xmlizing a dictionary. However, this explicit approach
+	# should be significantly faster, a key point if dumping an entire database
+	###########
 				
-	def getparamdefXML(self,names=None):
+	def getparamdefxml(self,names=None):
 		"""Returns XML describing all, or a subset of the existing paramdefs"""
 		
 		ret=[]
@@ -2252,33 +2257,34 @@ or None if no match is found."""
 		for i in names:
 			pd=self.getparamdef(i)
 			# This should probably be modified to make sure all included strings are XML-safe
-			ret.append('<paramdef name="%s">\n    <vartype value="%s"/>\n    <desc_short value="%s"/>\n    <desc_long value="%s"/>\n'%(pd.name,pd.vartype,escape(pd.desc_short),escape(pd.desc_long)))
-			ret.append('    <property value="%s"/>\n    <defaultunits value="%s"/>\n    <creator value="%s"/>\n    <creationtime value="%s"/>\n    <creationdb value="%s"/>\n'%(pd.property,escape(pd.defaultunits),pd.creator,pd.creationtime,pd.creationdb))
+			ret.append('<paramdef name="%s">\n  <vartype value="%s"/>\n  <desc_short value="%s"/>\n  <desc_long value="%s"/>\n'%(pd.name,pd.vartype,escape(pd.desc_short),escape(pd.desc_long)))
+			ret.append('  <property value="%s"/>\n  <defaultunits value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(pd.property,escape(pd.defaultunits),pd.creator,pd.creationtime,pd.creationdb))
 			if len(pd.choices)>0 :
-				ret.append('    <choices>\n')
+				ret.append('  <choices>\n')
 				for j in pd.choices:
-					ret.append('    <choice>%s</choice>\n'%escape(j))
-				ret.append('    </choices>\n')
+					ret.append('  <choice>%s</choice>\n'%escape(j))
+				ret.append('  </choices>\n')
 			
 			ch=self.getchildren(i,keytype="paramdef")
 			if len(ch)>0 :
-				ret.append('    <children>\n')
+				ret.append('  <children>\n')
 				for j in ch:
-					ret.append('        <link name="%s"/>\n'%j)
-				ret.append('    </children>\n')
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </children>\n')
 				
 			csn=self.getcousins(i,keytype="paramdef")
 			if len(ch)>0 :
-				ret.append('    <cousins>\n')
+				ret.append('  <cousins>\n')
 				for j in csn:
-					ret.append('        <link name="%s"/>\n'%j)
-				ret.append('    </cousins>\n')
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </cousins>\n')
 			ret.append('</paramdef>')
 			
 		return "".join(ret)
 
-	def getrecorddefXML(self,ctxid,host=None,names=None):
+	def getrecorddefxml(self,ctxid,host=None,names=None):
 		"""Returns XML describing all, or a subset of existing recorddefs"""
+		qc={'"':'&quot'}
 		ret=[]
 		if names==None : names=self.getrecorddefnames()
 
@@ -2286,8 +2292,82 @@ or None if no match is found."""
 			try: rd=self.getrecorddef(i,ctxid,host)
 			except: continue
 
-			ret.append('<recorddef name="%s">\n    <private value="%d"/>\n    <owner value="%s"/>\n    <creator value="%s"/>\n    <creationtime value="%s"/>\n    <creationdb value="%s"/>\n'%(i,rd.private,rd.owner,rd.creator,rd.creationtime,rd.creationdb))
-			ret.append('<mainview>%s</mainview>'%escape(rd.mainview,{'"':'&quot;'}))
-						
+			ret.append('<recorddef name="%s">\n  <private value="%d"/>\n  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(i,rd.private,rd.owner,rd.creator,rd.creationtime,rd.creationdb))
+			ret.append('  <mainview>%s</mainview>\n'%escape(rd.mainview,qc))
+			
+			if len(rd.params) :
+				ret.append('  <params>\n')
+				for k,v in rd.params.items():
+					if v==None : ret.append('    <param name="%s"/>\n'%k)
+					else: ret.append('    <param name="%s" default="%s"/>\n'%(k,v))
+				ret.append('  </params>\n')
+				
+			if len(rd.views)>0 :
+				ret.append('  <views>\n')
+				for k,v in rd.views.items():
+					ret.append('    <view name="%s">%s</view>\n'%(k,escape(v,qc)))
+				ret.append('  </views>\n')
+				
+			ch=self.getchildren(i,keytype="recorddef")
+			if len(ch)>0 :
+				ret.append('  <children>\n')
+				for j in ch:
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </children>\n')
+				
+			csn=self.getcousins(i,keytype="recorddef")
+			if len(ch)>0 :
+				ret.append('  <cousins>\n')
+				for j in csn:
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </cousins>\n')
+			
+			ret.append('</recorddef>\n')
+			
+		return "".join(ret)
+
+	def getuserxml(self,ctxid,host=None,names=None):
+		"""Returns XML describing all, or a subset of existing users"""
+		qc={'"':'&quot'}
+		ret=[]
+		if names==None : names=self.getusernames(ctxid,host)
+		
+		for i in names:
+			try: u=self.getuser(i,ctxid,host)
+			except: continue
+			ret.append('<user name="%s">\n'%i)
+			ret.append('  <password value="%s"/>\n  <disabled value="%d"/>\n  <privacy value="%d"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(u.password,u.disabled,u.privacy,u.creator,u.creationtime))
+			ret.append('  <firstname value="%s"/>\n  <midname value="%s"/>\n  <lastname value="%s"/>\n  <institution value="%s"/>\n'%(escape(u.name[0]),escape(u.name[1]),escape(u.name[2]),escape(u.institution)))
+			ret.append('  <department value="%s"/>\n  <address>%s</address>\n  <city value="%s"/>\n  <state value="%s"/>\n  <zipcode value="%s"/>\n'%(escape(u.department),escape(u.address),escape(u.city),u.state,u.zipcode))
+			ret.append('  <country value="%s"/>\n  <webpage value="%s"/>\n  <email value="%s"/>\n  <altemail value="%s"/>\n'%(u.country,escape(u.webpage),escape(u.email),escape(u.altemail)))
+			ret.append('  <phone value="%s"/>\n  <fax value="%s"/>\n  <cellphone value="%s"/>\n'%(escape(u.phone),escape(u.fax),escape(u.cellphone)))
+			if len(u.groups)>0:
+				ret.append('  <groups>\n')
+				for j in u.groups:
+					ret.append('    <group value="%s"/>\n'%j)
+				ret.append('  </groups>\n')
+			ret.append('/user\n')
+
+		return "".join(ret)
+
+	def getworkflowxml(self,ctxid,host=None,wfid=None):
+		"""Returns XML describing all, or a subset of workflows"""
+		print "WARNING getworkflowxml unimplemented"
+		return ""
+	
+	def getrecordxml(self,ctxid,host=None,recids=None):
+		"""Returns XML describing all, or a subset of records"""
+		qc={'"':'&quot'}
+		ret=[]
+		if recids==None : recids=self.getrecordnames(ctxid,host=host)
+
+		for i in recids:
+			try: rec=self.getrecord(i,ctxid,host=host)
+			except: continue
+			
+			ret.append('<record name="%s" class="%s">\n'%(i,rec.rectype))
+			ret.append('  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(rec.owner,rec.creator,rec.creationtime))
+		
+	
 	def getasxml(self,body):
 		return '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generated by EMEN2 -->\n<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">\n%s\n</xs:schema>'%body
