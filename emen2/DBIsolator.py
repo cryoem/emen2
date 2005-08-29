@@ -33,7 +33,7 @@ def main():
 		request=cPickle.load(sys.stdin)
 		if request=="EXIT": break
 		
-		try:
+ 		try:
 			ret=dbisolator.__dict__["meth_"+request[0]](*request)
 		except Exception,msg:
 			ret=(0,request,msg)
@@ -49,8 +49,9 @@ class dbisolator:
 	def meth_checkcontext(self,ctxid,host):
 		return db.checkcontext(self,ctxid,host)
 	
-	def meth_query(self,query, ctxid):
-		return db.query(query, ctxid)
+	def meth_query(self, query, ctxid, host=None):
+		
+       		return db.query(query, ctxid, host)
 	
 	def meth_getindexbyuser(self,username,ctxid,host=None):
 		return db.getindexbyuser(self,username,ctxid,host)
