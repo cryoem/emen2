@@ -2436,7 +2436,8 @@ or None if no match is found."""
 		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
 		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
 		if records==None: records=Set(range(1,self.__records[-1]+1))
-
+		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
+		
 		out=open(self.path+"/backup.pkl","w")
 		for i in users: dump(self.__users[i],out)
 		
@@ -2482,7 +2483,7 @@ or None if no match is found."""
 		dump("rdcousins",out)
 		dump(ch,out)
 
-		print "Backing up %d records"%self.__records[-1]
+		print "Backing up %d/%d records"%(len(records),self.__records[-1])
 		for i in records:
 			dump(self.__records[i],out)
 
