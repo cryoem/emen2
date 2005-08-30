@@ -19,7 +19,7 @@ by another layer, say an xmlrpc server...
 """
 
 from bsddb3 import db
-from cPickle import dumps,loads
+from cPickle import dumps,loads,dump,load
 from sets import *
 import os
 import sha
@@ -30,6 +30,11 @@ from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
+
+def escape2(s):
+	qc={'"':'&quot'}
+	if not isinstance(s,str) : return "None"
+	return escape(s,qc)
 
 class SecurityError(Exception):
 	"Exception for a security violation"
@@ -737,6 +742,11 @@ class Record:
 		"""Returns whether this record can be written using the given context"""
 		return self.__ptest[2]
 		
+	def getparamkeys(self):
+		"Returns parameter keys without special values like owner, creator, etc."
+		return self.__params.keys()
+
+	
 	def __getitem__(self,key):
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
@@ -2246,7 +2256,7 @@ or None if no match is found."""
 	# be done with a function for, say, xmlizing a dictionary. However, this explicit approach
 	# should be significantly faster, a key point if dumping an entire database
 	###########
-				
+		
 	def getparamdefxml(self,names=None):
 		"""Returns XML describing all, or a subset of the existing paramdefs"""
 		
@@ -2257,34 +2267,34 @@ or None if no match is found."""
 		for i in names:
 			pd=self.getparamdef(i)
 			# This should probably be modified to make sure all included strings are XML-safe
-			ret.append('<paramdef name="%s">\n  <vartype value="%s"/>\n  <desc_short value="%s"/>\n  <desc_long value="%s"/>\n'%(pd.name,pd.vartype,escape(pd.desc_short),escape(pd.desc_long)))
-			ret.append('  <property value="%s"/>\n  <defaultunits value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(pd.property,escape(pd.defaultunits),pd.creator,pd.creationtime,pd.creationdb))
-			if len(pd.choices)>0 :
+			ret.append('<paramdef name="%s">\n  <vartype value="%s"/>\n  <desc_short value="%s"/>\n  <desc_long value="%s"/>\n'%(pd.name,pd.vartype,escape2(pd.desc_short),escape2(pd.desc_long)))
+			ret.append('  <property value="%s"/>\n  <defaultunits value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(pd.property,escape2(pd.defaultunits),pd.creator,pd.creationtime,pd.creationdb))
+			
+			if pd.choices and len(pd.choices)>0 :
 				ret.append('  <choices>\n')
 				for j in pd.choices:
-					ret.append('  <choice>%s</choice>\n'%escape(j))
+					ret.append('  <choice>%s</choice>\n'%escape2(j))
 				ret.append('  </choices>\n')
 			
 			ch=self.getchildren(i,keytype="paramdef")
-			if len(ch)>0 :
+			if ch and len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
 					ret.append('    <link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
 			csn=self.getcousins(i,keytype="paramdef")
-			if len(ch)>0 :
+			if csn and len(csn)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
 					ret.append('    <link name="%s"/>\n'%j)
 				ret.append('  </cousins>\n')
-			ret.append('</paramdef>')
+			ret.append('</paramdef>\n')
 			
 		return "".join(ret)
 
 	def getrecorddefxml(self,ctxid,host=None,names=None):
 		"""Returns XML describing all, or a subset of existing recorddefs"""
-		qc={'"':'&quot'}
 		ret=[]
 		if names==None : names=self.getrecorddefnames()
 
@@ -2293,19 +2303,19 @@ or None if no match is found."""
 			except: continue
 
 			ret.append('<recorddef name="%s">\n  <private value="%d"/>\n  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(i,rd.private,rd.owner,rd.creator,rd.creationtime,rd.creationdb))
-			ret.append('  <mainview>%s</mainview>\n'%escape(rd.mainview,qc))
+			ret.append('  <mainview>%s</mainview>\n'%escape2(rd.mainview))
 			
-			if len(rd.params) :
+			if rd.params and len(rd.params)>0 :
 				ret.append('  <params>\n')
 				for k,v in rd.params.items():
 					if v==None : ret.append('    <param name="%s"/>\n'%k)
 					else: ret.append('    <param name="%s" default="%s"/>\n'%(k,v))
 				ret.append('  </params>\n')
 				
-			if len(rd.views)>0 :
+			if rd.views and len(rd.views)>0 :
 				ret.append('  <views>\n')
 				for k,v in rd.views.items():
-					ret.append('    <view name="%s">%s</view>\n'%(k,escape(v,qc)))
+					ret.append('    <view name="%s">%s</view>\n'%(k,escape2(v)))
 				ret.append('  </views>\n')
 				
 			ch=self.getchildren(i,keytype="recorddef")
@@ -2337,10 +2347,10 @@ or None if no match is found."""
 			except: continue
 			ret.append('<user name="%s">\n'%i)
 			ret.append('  <password value="%s"/>\n  <disabled value="%d"/>\n  <privacy value="%d"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(u.password,u.disabled,u.privacy,u.creator,u.creationtime))
-			ret.append('  <firstname value="%s"/>\n  <midname value="%s"/>\n  <lastname value="%s"/>\n  <institution value="%s"/>\n'%(escape(u.name[0]),escape(u.name[1]),escape(u.name[2]),escape(u.institution)))
-			ret.append('  <department value="%s"/>\n  <address>%s</address>\n  <city value="%s"/>\n  <state value="%s"/>\n  <zipcode value="%s"/>\n'%(escape(u.department),escape(u.address),escape(u.city),u.state,u.zipcode))
-			ret.append('  <country value="%s"/>\n  <webpage value="%s"/>\n  <email value="%s"/>\n  <altemail value="%s"/>\n'%(u.country,escape(u.webpage),escape(u.email),escape(u.altemail)))
-			ret.append('  <phone value="%s"/>\n  <fax value="%s"/>\n  <cellphone value="%s"/>\n'%(escape(u.phone),escape(u.fax),escape(u.cellphone)))
+			ret.append('  <firstname value="%s"/>\n  <midname value="%s"/>\n  <lastname value="%s"/>\n  <institution value="%s"/>\n'%(escape2(u.name[0]),escape2(u.name[1]),escape2(u.name[2]),escape2(u.institution)))
+			ret.append('  <department value="%s"/>\n  <address>%s</address>\n  <city value="%s"/>\n  <state value="%s"/>\n  <zipcode value="%s"/>\n'%(escape2(u.department),escape2(u.address),escape2(u.city),u.state,u.zipcode))
+			ret.append('  <country value="%s"/>\n  <webpage value="%s"/>\n  <email value="%s"/>\n  <altemail value="%s"/>\n'%(u.country,escape2(u.webpage),escape2(u.email),escape2(u.altemail)))
+			ret.append('  <phone value="%s"/>\n  <fax value="%s"/>\n  <cellphone value="%s"/>\n'%(escape2(u.phone),escape2(u.fax),escape2(u.cellphone)))
 			if len(u.groups)>0:
 				ret.append('  <groups>\n')
 				for j in u.groups:
@@ -2365,9 +2375,135 @@ or None if no match is found."""
 			try: rec=self.getrecord(i,ctxid,host=host)
 			except: continue
 			
-			ret.append('<record name="%s" class="%s">\n'%(i,rec.rectype))
-			ret.append('  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(rec.owner,rec.creator,rec.creationtime))
-		
-	
+			ret.append('<record name="%s" dbid="%s" rectype="%s">\n'%(i,str(rec.dbid),rec.rectype))
+			ret.append('  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(rec["owner"],rec["creator"],rec["creationtime"]))
+			
+			ret.append('  <permissions value="read">\n')
+			for j in rec["permissions"][0]:
+				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
+				else : ret.append('    <user value="%s"/>\n'%str(j))
+			ret.append('  </permissions>\n')
+			
+			ret.append('  <permissions value="comment">\n')
+			for j in rec["permissions"][1]:
+				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
+				else : ret.append('    <user value="%s"/>\n'%str(j))
+			ret.append('  </permissions>\n')
+			
+			ret.append('  <permissions value="write">\n')
+			for j in rec["permissions"][2]:
+				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
+				else : ret.append('    <user value="%s"/>\n'%str(j))
+			ret.append('  </permissions>\n')
+			
+			pk=rec.getparamkeys()
+			for j in pk:
+				ret.append('  <param name="%s" value="%s"/>\n'%(j,str(rec[j])))
+
+			for j in rec["comments"]:
+				ret.append('  <comment user="%s" date="%s">%s</comment>\n'%(j[0],j[1],escape2(j[2])))
+			
+			ch=self.getchildren(i,keytype="record")
+			if len(ch)>0 :
+				ret.append('  <children>\n')
+				for j in ch:
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </children>\n')
+				
+			csn=self.getcousins(i,keytype="record")
+			if len(csn)>0 :
+				ret.append('  <cousins>\n')
+				for j in csn:
+					ret.append('    <link name="%s"/>\n'%j)
+				ret.append('  </cousins>\n')
+				
+			ret.append('</record>')
+			
+		return "".join(ret)
+			
 	def getasxml(self,body):
 		return '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generated by EMEN2 -->\n<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">\n%s\n</xs:schema>'%body
+
+		
+	def backup(self,ctxid,host=None,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None) :
+		"""This will make a backup of all, or the selected, records, etc into a set of files
+		in the local filesystem"""
+		
+		user,groups=self.checkcontext(ctxid,host)
+		if user!="root" : raise SecurityError,"Only root may backup the database"
+		
+		if users==None: users=self.__users.keys()
+		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
+		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
+		if records==None: records=Set(range(1,self.__records[-1]+1))
+
+		out=open(self.path+"/backup.pkl","w")
+		for i in users: dump(self.__users[i],out)
+		
+		for i in paramdefs: dump(self.__paramdefs[i],out)
+		ch=[]
+		for i in paramdefs:
+			c=self.__paramdefs.children(i,None)
+			c=Set([i[0] for i in c])
+			c&=paramdefs
+			c=tuple(c)
+			ch+=((i,c))
+		dump("pdchildren",out)
+		dump(ch,out)
+		
+		for i in paramdefs: dump(self.__paramdefs[i],out)
+		ch=[]
+		for i in paramdefs:
+			c=Set(self.__paramdefs.cousins(i))
+			c&=paramdefs
+			c=tuple(c)
+			ch+=((i,c))
+		dump("pdcousins",out)
+		dump(ch,out)
+				
+		for i in recorddefs: dump(self.__recorddefs[i],out)
+		ch=[]
+		for i in recorddefs:
+			c=self.__recorddefs.children(i,None)
+			c=Set([i[0] for i in c])
+			c&=recorddefs
+			c=tuple(c)
+			ch+=((i,c))
+		dump("rdchildren",out)
+		dump(ch,out)
+		
+		for i in recorddefs: dump(self.__recorddefs[i],out)
+		ch=[]
+		for i in recorddefs:
+			c=Set(self.__recorddefs.cousins(i))
+			c&=recorddefs
+			c=tuple(c)
+			ch+=((i,c))
+		dump("rdcousins",out)
+		dump(ch,out)
+
+		print "Backing up %d records"%self.__records[-1]
+		for i in records:
+			dump(self.__records[i],out)
+
+		ch=[]
+		for i in records:
+			c=Set(self.__records.children(i,None))
+			c=tuple(c)
+			ch+=((i,c))
+		dump("recchildren",out)
+		dump(ch,out)
+		
+		for i in records: dump(self.__records[i],out)
+		ch=[]
+		for i in records:
+			c=Set(self.__records.cousins(i))
+			c&=records
+			c=tuple(c)
+			ch+=((i,c))
+		dump("reccousins",out)
+		dump(ch,out)
+		
+
+		
+		
