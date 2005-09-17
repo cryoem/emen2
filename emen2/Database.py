@@ -2491,7 +2491,7 @@ or None if no match is found."""
 
 		ch=[]
 		for i in records:
-			c=Set(self.__records.children(i,None))
+			c=[x for x in self.__records.children(i,None) if x[0] in records]
 			c=tuple(c)
 			ch+=((i,c),)
 		dump("recchildren",out)
@@ -2582,7 +2582,10 @@ or None if no match is found."""
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for p,cl in rr:
 						for c in cl:
-							self.__recorddefs.pclink(recmap[p],recmap[c])
+							try:
+								if isinstance(c,tuple) : self.__recorddefs.pclink(recmap[p],recmap[c[0]],c[1])
+								else : self.__recorddefs.pclink(recmap[p],recmap[c])
+							except: print p," x ",c,"     ",recmap[p],recmap[c[0]]
 				elif r=="reccousins" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for a,bl in rr:
