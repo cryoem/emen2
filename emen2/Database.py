@@ -2582,10 +2582,9 @@ or None if no match is found."""
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for p,cl in rr:
 						for c in cl:
-							try:
-								if isinstance(c,tuple) : self.__recorddefs.pclink(recmap[p],recmap[c[0]],c[1])
-								else : self.__recorddefs.pclink(recmap[p],recmap[c])
-							except: print p," x ",c,"     ",recmap[p],recmap[c[0]]
+#							print recmap[p],recmap[c[0]],c[1]
+							if isinstance(c,tuple) : self.__records.pclink(recmap[p],recmap[c[0]],c[1])
+							else : self.__records.pclink(recmap[p],recmap[c])
 				elif r=="reccousins" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for a,bl in rr:
