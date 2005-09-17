@@ -2448,7 +2448,7 @@ or None if no match is found."""
 			c=Set([i[0] for i in c])
 			c&=paramdefs
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("pdchildren",out)
 		dump(ch,out)
 		
@@ -2458,7 +2458,7 @@ or None if no match is found."""
 			c=Set(self.__paramdefs.cousins(i))
 			c&=paramdefs
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("pdcousins",out)
 		dump(ch,out)
 				
@@ -2469,7 +2469,7 @@ or None if no match is found."""
 			c=Set([i[0] for i in c])
 			c&=recorddefs
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("rdchildren",out)
 		dump(ch,out)
 		
@@ -2479,7 +2479,7 @@ or None if no match is found."""
 			c=Set(self.__recorddefs.cousins(i))
 			c&=recorddefs
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("rdcousins",out)
 		dump(ch,out)
 
@@ -2491,7 +2491,7 @@ or None if no match is found."""
 		for i in records:
 			c=Set(self.__records.children(i,None))
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("recchildren",out)
 		dump(ch,out)
 		
@@ -2501,10 +2501,90 @@ or None if no match is found."""
 			c=Set(self.__records.cousins(i))
 			c&=records
 			c=tuple(c)
-			ch+=((i,c))
+			ch+=((i,c),)
 		dump("reccousins",out)
 		dump(ch,out)
-		
 
+
+	def restore(self,ctxid,host=None) :
+		"""This will restore the database from a backup file. It is nondestructive, in that new items are
+		added to the existing database. Naming conflicts will be reported, and the new version
+		will take precedence, except for Records, which are always appended to the end of the database
+		regardless of their original id numbers. If maintaining record id numbers is important, then a full
+		backup of the database must be performed, and the restore must be performed on an empty database."""
 		
+		user,groups=self.checkcontext(ctxid,host)
+		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
+		fin=open(self.path+"/backup.pkl","r")
+		recmap={}
+		
+		while (1):
+			try:
+				r=load(fin)
+			except:
+				break
+			
+			# insert User
+			if isinstance(r,User) :
+				if self.__users.has_key(r.username) :
+					print "Duplicate user ",r.username
+					self.__users[r.username]=r
+				else :
+					self.__users[r.username]=r
+			# insert paramdef
+			elif isinstance(r,ParamDef) :
+				if self.__paramdefs.has_key(r.name):
+					print "Duplicate paramdef ",r.name
+					self.__paramdefs[r.name]=r
+				else :
+					self.__paramdefs[r.name]=r
+			# insert recorddef
+			elif isinstance(r,RecordDef) :
+				if self.__recorddefs.has_key(r.name):
+					print "Duplicate recorddef ",r.name
+					self.__recorddefs[r.name]=r
+				else :
+					self.__recorddefs[r.name]=r
+			# insert and renumber record
+			elif isinstance(r,Record) :
+				oldid=r.recid
+				r.recid = self.__dbseq.get()                                # Get a new record-id
+				self.__records[-1]=r.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
+				recmap[oldid]=r.recid
+				self.__records[r.recid]=r
+				
+				
+			elif isinstance(r,str) :
+				if r=="pdchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for p,cl in rr:
+						for c in cl:
+							self.__paramdefs.pclink(p,c)
+				elif r=="pdcousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for a,bl in rr:
+						for b in bl:
+							self.__paramdefs.link(a,b)
+				elif r=="rdchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for p,cl in rr:
+						for c in cl:
+							self.__recorddefs.pclink(p,c)
+				elif r=="rdcousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for a,bl in rr:
+						for b in bl:
+							self.__recorddefs.link(a,b)
+				elif r=="recchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for p,cl in rr:
+						for c in cl:
+							self.__recorddefs.pclink(recmap[p],recmap[c])
+				elif r=="reccousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					for a,bl in rr:
+						for b in bl:
+							self.__records.link(recmap[a],recmap[b])
+				else : print "Unknown category ",r
+								
