@@ -1083,18 +1083,20 @@ $ - parameter name
 % - username
 parentheses not supported yet"""
 		query2=self.querypreprocess(query,ctxid,host)
-		
+		#print query2
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
 		
 		command=[i for i in Database.querycommands if (i in query2)]
+		#print 'command', command
 		if len(command)==0 : command="find"
 		elif len(command)==1 : command=command[0]
 		else : return (-2,"Too many commands in query",command)
 		
-		print query2
 		byrecdef=Set()
 		for i in query2:
-			if isinstance(i,str) and i[0]=="@" : byrecdef|=getindexbyrecorddef(i[1:],ctxid)
+			print i
+			if isinstance(i,str) and i[0]=="@" :
+				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
 
 		byparamval=Set()
 		groupby=None
