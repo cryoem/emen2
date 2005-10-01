@@ -1697,11 +1697,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
-		if self.__paramdefs.has_key(paramdef.name) : raise KeyError,"paramdef %s already exists"%paramdef.name
-		
-		# force these values
-		paramdef.creator=ctx.user
-		paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		if self.__paramdefs.has_key(paramdef.name) : 
+			# Root is permitted to force changes in parameters, though are supposed to be static
+			# This permits correcting typos, etc., but should not be used routinely
+			if ctx.user!="root" : raise KeyError,"paramdef %s already exists"%paramdef.name
+		else :
+			# force these values
+			paramdef.creator=ctx.user
+			paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
 		self.__paramdefs[paramdef.name]=paramdef
@@ -1724,7 +1727,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""Returns a list of all ParamDef names"""
 		return self.__paramdefs.keys()
 	
-		
 	def findparamdefname(self,name) :
 		"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
