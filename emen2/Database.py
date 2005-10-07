@@ -964,14 +964,18 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			self.__paramdefs["owner"]=pd
 			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
 			self.__paramdefs["creator"]=pd
+			pd=ParamDef("modifyuser","string","User who last changed the record","The user-id that last changed the record")
+			self.__paramdefs["modifyuser"]=pd
 			pd=ParamDef("creationtime","datetime","Creation timestamp","The date/time the record was originally created")
 			self.__paramdefs["creationtime"]=pd
+			pd=ParamDef("modifytime","datetime","Modification timestamp","The date/time the record was last modified")
+			self.__paramdefs["modifytime"]=pd
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
 		0 - security, security-related messages
 		1 - critical, likely to cause a crash
-		2 - serious, user will experience problem
+		2 - serious, user will experience problemis none
 		3 - minor, likely to cause minor annoyances
 		4 - info, informational only
 		5 - verbose, verbose logging """
@@ -2526,6 +2530,7 @@ or None if no match is found."""
 		backup of the database must be performed, and the restore must be performed on an empty database."""
 		
 		user,groups=self.checkcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
 		fin=open(self.path+"/backup.pkl","r")
@@ -2565,7 +2570,17 @@ or None if no match is found."""
 				self.__records[-1]=r.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
 				recmap[oldid]=r.recid
 				self.__records[r.recid]=r
+				r.setContext(ctx)
+								
+				# Index record
+				for k,v in r.items():
+					if k != 'recid':
+						self.__reindex(k,None,v,r.recid)
 				
+				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid)		# index security
+				self.__recorddefindex.addref(r.rectype,r.recid)			# index recorddef
+				self.__timeindex[r.recid]=r["creationtime"] 
+
 				
 			elif isinstance(r,str) :
 				if r=="pdchildren" :
