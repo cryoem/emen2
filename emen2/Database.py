@@ -1087,14 +1087,13 @@ parentheses not supported yet"""
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
 		
 		command=[i for i in Database.querycommands if (i in query2)]
-		#print 'command', command
+		
 		if len(command)==0 : command="find"
 		elif len(command)==1 : command=command[0]
 		else : return (-2,"Too many commands in query",command)
 		
 		byrecdef=Set()
 		for i in query2:
-			print i
 			if isinstance(i,str) and i[0]=="@" :
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
 
@@ -1190,21 +1189,30 @@ parentheses not supported yet"""
 					ret2.sort()
 					ret[j]=ret2
 					out=file("plot.%s.txt"%j,"w")
+					
 					for i in ret2:
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
-				return ret
-			else:							# no 'groupby', just a single query
+				#return ret
+				return {'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+			else:
+				# no 'groupby', just a single query
 				ret2=[]
 				for i in byrecdef:
 					r=self.getrecord(i,ctxid)
 					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
 				ret2.sort()
-				out=file("plot.txt","w")
+				if os.environ.has_key('EMEN2DIR'):
+					theDir = os.environ['EMEN2DIR']
+				else:
+					theDir = "/home/emen2"
+				out=file(os.path.join(theDir, "plot.txt"),"w")
 				for i in ret2:
 					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 				out.close()
-				return ret
+				#return ret
+				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+			
 		elif command=="histogram" :
 			pass
 		elif command=="timeline" :
