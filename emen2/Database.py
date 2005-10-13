@@ -22,6 +22,7 @@ from bsddb3 import db
 from cPickle import dumps,loads,dump,load
 from sets import *
 import os
+import sys
 import sha
 import time
 import re
@@ -136,12 +137,11 @@ class BTree:
 			o=loads(self.pcdb.get(dumps(parenttag)))
 		except:
 			o=[]
-      	
+
 		if not (childtag,paramname) in o:
 			o.append((childtag,paramname))
 			self.pcdb.put(dumps(parenttag),dumps(o))
 			
-	                
 			try:
 				o=loads(self.cpdb.get(dumps(childtag)))
 			except:
@@ -1863,6 +1863,7 @@ or None if no match is found."""
 			
 			tp=valid_vartypes[f.vartype][0]
 			if not tp :
+#				print "unindexable vartype ",f.vartype
 				ret = None
 				return ret
 			
@@ -1895,7 +1896,6 @@ or None if no match is found."""
 		# whew, not full text, get the index for this key
 		ind=self.__getparamindex(key)
 		if ind == None:
-			print 'ind is none'
 			return
 		
 		# remove the old ref and add the new one
@@ -2535,6 +2535,9 @@ or None if no match is found."""
 		
 		fin=open(self.path+"/backup.pkl","r")
 		recmap={}
+		nrec=0
+		t0=time.time()
+		tmpindex={}
 		
 		while (1):
 			try:
@@ -2565,21 +2568,33 @@ or None if no match is found."""
 					self.__recorddefs[r.name]=r
 			# insert and renumber record
 			elif isinstance(r,Record) :
+				nrec+=1
+				if nrec%1000==0 :
+					print " %8d records  (%f/sec)\r"%(nrec,nrec/(time.time()-t0))
+					sys.stdout.flush()
 				oldid=r.recid
 				r.recid = self.__dbseq.get()                                # Get a new record-id
 				self.__records[-1]=r.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
 				recmap[oldid]=r.recid
 				self.__records[r.recid]=r
 				r.setContext(ctx)
-								
-				# Index record
-				for k,v in r.items():
-					if k != 'recid':
-						self.__reindex(k,None,v,r.recid)
 				
-				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid)		# index security
-				self.__recorddefindex.addref(r.rectype,r.recid)			# index recorddef
-				self.__timeindex[r.recid]=r["creationtime"] 
+				# work in progress. Faster indexing on restore.
+				for k,v in r.items():
+					if isinstance(v,str) and len(v)>25 : continue
+					if k!='recid' : 
+						try: tmpindex[k][v].append(r.recid)
+						except: 
+							try: tmpindex[k]={v:[r.recid]}
+							except: pass
+				# Index record
+#				for k,v in r.items():
+#					if k != 'recid':
+#						self.__reindex(k,None,v,r.recid)
+				
+#				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid)		# index security
+#				self.__recorddefindex.addref(r.rectype,r.recid)			# index recorddef
+#				self.__timeindex[r.recid]=r["creationtime"]
 
 				
 			elif isinstance(r,str) :
