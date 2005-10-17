@@ -1229,9 +1229,9 @@ parentheses grouping not supported yet"""
 				
 				# We make sure that any record containing either parameter is included
 				# in the results by default
-				if len(byparamval)>0 : byparamval&=getindexbyvalue(comops[0],None,ctxid,host)
-				else: byparamval=getindexbyvalue(comops[0],None,ctxid,host)
-				byparamval&=getindexbyvalue(comops[1],None,ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
+				else: byparamval=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
+				byparamval&=self.getindexbyvalue(comops[1][1:],None,ctxid,host)
 				continue
 			elif i=="histogram" :
 				if not query2[n+1][0]=="$" : raise Exception, "histogram <parametername>"
@@ -1239,8 +1239,8 @@ parentheses grouping not supported yet"""
 				n+=2
 				
 				# We make sure that any record containing the parameter is included
-				if len(byparamval)>0 : byparamval&=getindexbyvalue(comops[0],None,ctxid,host)
-				else: byparamval=getindexbyvalue(comops[0],None,ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0],None,ctxid,host)
+				else: byparamval=self.getindexbyvalue(comops[0],None,ctxid,host)
 				continue
 			elif i=="group" :
 				if query2[n+1]=="by" :
@@ -1252,8 +1252,8 @@ parentheses grouping not supported yet"""
 				n+=1
 				continue
 			elif i[0]=="%" :
-				if len(byparamval)>0 : byparamval&=getindexbyuser(i[1:],ctxid,host)
-				else: byparamval=getindexbyuser(i[1:],ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyuser(i[1:],ctxid,host)
+				else: byparamval=self.getindexbyuser(i[1:],ctxid,host)
 			elif i[0]=="$" :
 				range=[None,None]
 				op=query2[n+1]
@@ -1323,11 +1323,11 @@ parentheses grouping not supported yet"""
 						ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
 					ret2.sort()
 					ret[j]=ret2
-					out=file("plot.%s.txt"%j,"w")
+#					out=file("plot.%s.txt"%j,"w")
 					
-					for i in ret2:
-						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-					out.close()
+#					for i in ret2:
+#						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+#					out.close()
 				#return ret
 				return {'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
 			else:
@@ -1337,14 +1337,14 @@ parentheses grouping not supported yet"""
 					r=self.getrecord(i,ctxid)
 					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
 				ret2.sort()
-				if os.environ.has_key('EMEN2DIR'):
-					theDir = os.environ['EMEN2DIR']
-				else:
-					theDir = "/home/emen2"
-				out=file(os.path.join(theDir, "plot.txt"),"w")
-				for i in ret2:
-					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-				out.close()
+#				if os.environ.has_key('EMEN2DIR'):
+#					theDir = os.environ['EMEN2DIR']
+#				else:
+#					theDir = "/home/emen2"
+#				out=file(os.path.join(theDir, "plot.txt"),"w")
+#				for i in ret2:
+#					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+#				out.close()
 				#return ret
 				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
 			
