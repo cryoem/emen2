@@ -1315,21 +1315,33 @@ parentheses grouping not supported yet"""
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
-			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+			
+			if os.environ.has_key('EMEN2DIR'):
+				theDir = os.environ['EMEN2DIR']
+			else:
+				theDir = "/home/emen2"
+			if isinstance(ret,dict) :
+				xyDataDict = {}
+				# this means we had a 'groupby' request	
+			        allX = []
+				allY = []
 				for j in ret.keys():
 					ret2=[]
 					for i in ret[j]:
 						r=self.getrecord(i,ctxid)
 						ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+						allX.append(r[comops[1][1:]])
+						allY.append(r[comops[0][1:]])
 					ret2.sort()
-					ret[j]=ret2
-#					out=file("plot.%s.txt"%j,"w")
-					
-#					for i in ret2:
-#						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-#					out.close()
-				#return ret
-				return {'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+					xyDataDict[j]=ret2
+					"""
+					out=file(os.path.join(theDir, "plot."+str(j) +".txt"),"w")
+					for i in ret2:
+						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+					out.close()
+					"""
+				return {'reclist': ret, 'data': xyDataDict, 'minmax': (min(allX), min(allY), max(allX), max(allY)), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+	
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
@@ -1337,10 +1349,6 @@ parentheses grouping not supported yet"""
 					r=self.getrecord(i,ctxid)
 					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
 				ret2.sort()
-#				if os.environ.has_key('EMEN2DIR'):
-#					theDir = os.environ['EMEN2DIR']
-#				else:
-#					theDir = "/home/emen2"
 #				out=file(os.path.join(theDir, "plot.txt"),"w")
 #				for i in ret2:
 #					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
