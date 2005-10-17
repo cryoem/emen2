@@ -340,6 +340,11 @@ class FieldBTree:
 		key=self.typekey(key)
 		self.bdb.index_append(key,item)
 
+	def addrefs(self,key,items):
+		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
+		key=self.typekey(key)
+		self.bdb.index_extend(key,list(items))
+	
 	def __del__(self):
 		self.close()
 
@@ -398,6 +403,107 @@ class FieldBTree:
 
 	def update(self,dict):
 		self.bdb.index_update(dict)
+
+class MemBTree:
+	"""This class has the same interface as the FieldBTree object above, but is a simple
+	python dictionary in ram. This is used for speed in preindexing when importing
+	large numbers of records."""
+	def __init__(self,name,file=None,keytype="s",dbenv=None,nelem=0):
+		"""In this sepcialized ram version, name, file dbenv and nelem are stored but ignored during use"""
+		self.bdb={}
+		self.keytype=keytype
+		self.bdbname=name
+		self.bdbfile=file
+		self.bdbenv=dbenv
+		self.bdbnelem=nelem
+
+	def typekey(self,key) :
+		if key==None : return None
+		if self.keytype=="f" : return float(key)
+		if self.keytype=="d" : return int(key)
+		return str(key)
+			
+	def removeref(self,key,item):
+		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
+		key=self.typekey(key)
+		try: self.bdb[key].remove(item)
+		except: pass
+		
+	def addref(self,key,item):
+		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
+		key=self.typekey(key)
+		try: self.bdb[key].append(item)
+		except: self.bdb[key]=[item]
+
+	def close(self):
+		self.bdb=None
+
+	def __len__(self):
+		return len(self.bdb)
+
+	def __setitem__(self,key,val):
+		key=self.typekey(key)
+		if (val==None) :
+			self.__delitem__(key)
+		else : self.bdb[key]=[val]
+
+	def __getitem__(self,key):
+		key=self.typekey(key)
+		return self.bdb[key]
+
+	def __delitem__(self,key):
+		key=self.typekey(key)
+		del self.bdb[key]
+
+	def __contains__(self,key):
+		key=self.typekey(key)
+		return self.bdb.has_key(key)
+
+	def keys(self,mink=None,maxk=None):
+		"""Returns a list of valid keys, mink and maxk allow specification of
+		minimum and maximum key values to retrieve"""
+		mink=self.typekey(mink)
+		maxk=self.typekey(maxk)
+		if mink and maxk : k=[i for i in self.bdb.keys() if i>=mink and i<=maxk]
+		elif mink : k=[i for i in self.bdb.keys() if i>=mink]
+		elif maxk : k=[i for i in self.bdb.keys() if i<=maxk]
+		else: k=self.bdb.keys()
+		
+		return k
+
+	def values(self,mink=None,maxk=None):
+		"""Returns a single list containing the concatenation of the lists of,
+		all of the individual keys in the mink to maxk range"""
+		v=[]
+		k=self.keys(mink,maxk)
+		for i in k: 
+			try: v.extend(self.bdb[i])
+			except: pass
+		return v
+
+	def items(self,mink=None,maxk=None):
+		mink=self.typekey(mink)
+		maxk=self.typekey(maxk)
+		if mink and maxk : k=[i for i in self.bdb.items() if i[0]>=mink and i[0]<=maxk]
+		elif mink : k=[i for i in self.bdb.items() if i[0]>=mink]
+		elif maxk : k=[i for i in self.bdb.items() if i[0]<=maxk]
+		else: k=self.bdb.items()
+		
+		return k
+
+	def has_key(self,key):
+		key=self.typekey(key)
+		return self.bdb.has_key(key)
+
+	def get(self,key):
+		key=self.typekey(key)
+		return self[key]
+
+	def update(self,dict):
+		for i in dict.items():
+			try: k,v=(self.typekey(i[0]),list(i[1]))
+			except: continue
+			self[k]=v
 
 # vartypes is a dictionary of valid data type names keying a tuple
 # with an indexing type and a validation/normalization
@@ -881,7 +987,7 @@ class Database:
 		"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
 logfile - defualt "db.log"
-importmode - DANGEROUS, makes certain changes to allow bulk data import from EMAN1 databases"""
+importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode."""
 		self.path=path
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
@@ -925,8 +1031,12 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 			self.LOG(3,"New database created")
 			
 		# Indices
-		self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
-		self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
+		if self.__importmode :
+			self.__secrindex=MemBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
+			self.__recorddefindex=MemBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
+		else:
+			self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
+			self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
 		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 		#db sequence
@@ -991,7 +1101,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 
 	def __str__(self):
 		"""try to print something useful"""
-		return "Database ( %s )"%format_string_obj(self.__dict__,["path","logfile","lastctxclean"])
+		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
 
 	def login(self,username="anonymous",password="",host=None,maxidle=1800):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
@@ -1085,31 +1195,52 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import from EMA
 @ - protocol name
 $ - parameter name
 % - username
-parentheses not supported yet"""
+parentheses grouping not supported yet"""
 		query2=self.querypreprocess(query,ctxid,host)
 		#print query2
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
 		
+		# Make sure there is only one command in the query
 		command=[i for i in Database.querycommands if (i in query2)]
 		
 		if len(command)==0 : command="find"
 		elif len(command)==1 : command=command[0]
 		else : return (-2,"Too many commands in query",command)
 		
+		# start by querying for specified record type
+		# each record can only have one type, so intersection combined with
+		# multiple record types would always yield nothing, so we assume
+		# the intent is union, not intersection
 		byrecdef=Set()
 		for i in query2:
 			if isinstance(i,str) and i[0]=="@" :
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
 
+		# We go through the query word by word and perform each operation
 		byparamval=Set()
 		groupby=None
 		n=0
 		while (n<len(query2)):
 			i=query2[n]
 			if i=="plot" :
-				if not query2[n+2] in (",","vs","vs.") : raise Exception, "plot Y vs x"
+				if not query2[n+2] in (",","vs","vs.") : raise Exception, "plot <y param> vs <x param>"
 				comops=(query2[n+1],query2[n+3])
 				n+=4
+				
+				# We make sure that any record containing either parameter is included
+				# in the results by default
+				if len(byparamval)>0 : byparamval&=getindexbyvalue(comops[0],None,ctxid,host)
+				else: byparamval=getindexbyvalue(comops[0],None,ctxid,host)
+				byparamval&=getindexbyvalue(comops[1],None,ctxid,host)
+				continue
+			elif i=="histogram" :
+				if not query2[n+1][0]=="$" : raise Exception, "histogram <parametername>"
+				comops=(query2[n+1],)
+				n+=2
+				
+				# We make sure that any record containing the parameter is included
+				if len(byparamval)>0 : byparamval&=getindexbyvalue(comops[0],None,ctxid,host)
+				else: byparamval=getindexbyvalue(comops[0],None,ctxid,host)
 				continue
 			elif i=="group" :
 				if query2[n+1]=="by" :
@@ -1218,22 +1349,62 @@ parentheses not supported yet"""
 				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
 			
 		elif command=="histogram" :
-			pass
+			# This deals with 'histogram' requests
+			# It will return a sorted list of (x,y) pairs, or if a groupby request,
+			# a dictionary of such lists. Note that currently output is also
+			# written to plot*txt text files
+			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+				for j in ret.keys():
+					ret2=[]
+					for i in ret[j]:
+						r=self.getrecord(i,ctxid)
+						ret2.append(r[comops[0][1:]])
+					ret2.sort()
+					ret[j]=ret2
+					out=file("plot.%s.txt"%j,"w")
+					
+					for i in ret2:
+						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+					out.close()
+				#return ret
+				return {'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+			else:
+				# no 'groupby', just a single query
+				ret2=[]
+				for i in byrecdef:
+					r=self.getrecord(i,ctxid)
+					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+				ret2.sort()
+				if os.environ.has_key('EMEN2DIR'):
+					theDir = os.environ['EMEN2DIR']
+				else:
+					theDir = "/home/emen2"
+				out=file(os.path.join(theDir, "plot.txt"),"w")
+				for i in ret2:
+					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
+				out.close()
+				#return ret
+				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
 		elif command=="timeline" :
 			pass
 
 	def querypreprocess(self,query,ctxid,host=None):
-		"""This performs preprocessing on a database query string
+		"""This performs preprocessing on a database query string.
+preprocessing involves remapping synonymous keywords/symbols and
+identification of parameter and recorddef names, it is normally
+called by query()
+
 @ - protocol name
 $ - parameter name
 % - username
 parentheses not supported yet. Upon failure returns a tuple:
 (code, message, bad element)"""
 		
+		# Words get replaced with their normalized equivalents
 		replacetable={
 		"less":"<","before":"<","lower":"<","under":"<","older":"<","shorter":"<",
 		"greater":">","after":">","more":">","over":">","newer":">","taller":">",
-		"between":"><","&":"and","|":"or",
+		"between":"><","&":"and","|":"or","$$":"$",
 		"locate":"find","split":"group",
 		"than":None,"is":None,"where":None}
 		
@@ -1846,6 +2017,33 @@ or None if no match is found."""
 		if name[-3:]=="ing" and self.__recorddefs.has_key(name[:-3]): return name[:-3]
 		return None
 		
+	def __commitindices(self):
+		"""This is used in 'importmode' after many records have been imported using
+		memory indices to dump the indices to the persistent files"""
+		
+		if not self.__importmode:
+			print "commitindices may only be used in importmode"
+			sys.exit(1)
+		
+		for k,v in self.__fieldindex.items():
+			print "commit index %s (%d)"%(k,len(v))
+			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
+			for k2,v2 in v.items():
+				i.addrefs(k2,v2)
+			
+		print "commit security"
+		si=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
+		for k,v in self.__secrindex:
+			si.addrefs(k,v)
+		
+		print "commit recorddefs"
+		rdi=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)
+		for k,v in self.__recorddefindex:
+			rdi.addrefs(k,v)
+		
+		print "Index merge complete. Exiting"
+		sys.exit(0)
+		
 	def __getparamindex(self,paramname,create=1):
 		"""Internal function to open the parameter indices at need.
 		Later this may implement some sort of caching mechanism.
@@ -1870,7 +2068,10 @@ or None if no match is found."""
 			if not create and not os.access("%s/index/%s.bdb"%(self.path,paramname),os.F_OK): raise KeyError,"No index for %s"%paramname
 			
 			# create/open index
-			self.__fieldindex[paramname]=FieldBTree(paramname,"%s/index/%s.bdb"%(self.path,paramname),tp,self.__dbenv)
+			if self.__importmode:
+				self.__fieldindex[paramname]=MemBTree(paramname,"%s/index/%s.bdb"%(self.path,paramname),tp,self.__dbenv)
+			else:
+				self.__fieldindex[paramname]=FieldBTree(paramname,"%s/index/%s.bdb"%(self.path,paramname),tp,self.__dbenv)
 			ret=self.__fieldindex[paramname]
 		
 		return ret
@@ -2529,6 +2730,8 @@ or None if no match is found."""
 		regardless of their original id numbers. If maintaining record id numbers is important, then a full
 		backup of the database must be performed, and the restore must be performed on an empty database."""
 		
+		if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+		
 		user,groups=self.checkcontext(ctxid,host)
 		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
@@ -2580,21 +2783,14 @@ or None if no match is found."""
 				r.setContext(ctx)
 				
 				# work in progress. Faster indexing on restore.
-				for k,v in r.items():
-					if isinstance(v,str) and len(v)>25 : continue
-					if k!='recid' : 
-						try: tmpindex[k][v].append(r.recid)
-						except: 
-							try: tmpindex[k]={v:[r.recid]}
-							except: pass
 				# Index record
-#				for k,v in r.items():
-#					if k != 'recid':
-#						self.__reindex(k,None,v,r.recid)
+				for k,v in r.items():
+					if k != 'recid':
+						self.__reindex(k,None,v,r.recid)
 				
-#				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid)		# index security
-#				self.__recorddefindex.addref(r.rectype,r.recid)			# index recorddef
-#				self.__timeindex[r.recid]=r["creationtime"]
+				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid)		# index security
+				self.__recorddefindex.addref(r.rectype,r.recid)			# index recorddef
+				self.__timeindex[r.recid]=r["creationtime"]
 
 				
 			elif isinstance(r,str) :
@@ -2632,3 +2828,67 @@ or None if no match is found."""
 							self.__records.link(recmap[a],recmap[b])
 				else : print "Unknown category ",r
 								
+		if self.__importmode :
+			self.__commitindices()
+			
+	def restoretest(self,ctxid,host=None) :
+		"""This method will check a database backup and produce some statistics without modifying the current database."""
+		
+		if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+		
+		user,groups=self.checkcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
+		if user!="root" : raise SecurityError,"Only root may restore the database"
+		
+		fin=open(self.path+"/backup.pkl","r")
+		recmap={}
+		nrec=0
+		t0=time.time()
+		tmpindex={}
+		
+		nu,npd,nrd,nr,np=0,0,0,0,0
+		
+		while (1):
+			try:
+				r=load(fin)
+			except:
+				break
+			
+			# insert User
+			if isinstance(r,User) :
+				nu+=1
+
+			# insert paramdef
+			elif isinstance(r,ParamDef) :
+				npd+=1
+			
+			# insert recorddef
+			elif isinstance(r,RecordDef) :
+				nrd+=1
+				
+			# insert and renumber record
+			elif isinstance(r,Record) :
+				nr+=1
+				
+			elif isinstance(r,str) :
+				if r=="pdchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				elif r=="pdcousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				elif r=="rdchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				elif r=="rdcousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				elif r=="recchildren" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				elif r=="reccousins" :
+					rr=load(fin)			# read the dictionary of ParamDef PC links
+					np+=len(rr)
+				else : print "Unknown category ",r
+								
+		print "Users=",nu,"  ParamDef=",npd,"  RecDef=",nrd,"  Records=",nr,"  Links=",np
