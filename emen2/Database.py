@@ -2040,13 +2040,13 @@ or None if no match is found."""
 				i.addrefs(k2,v2)
 			
 		print "commit security"
-		si=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
-		for k,v in self.__secrindex:
+		si=FieldBTree("secrindex",self.path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
+		for k,v in self.__secrindex.items():
 			si.addrefs(k,v)
 		
 		print "commit recorddefs"
-		rdi=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)
-		for k,v in self.__recorddefindex:
+		rdi=FieldBTree("RecordDefindex",self.path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)
+		for k,v in self.__recorddefindex.items():
 			rdi.addrefs(k,v)
 		
 		print "Index merge complete. Exiting"
@@ -2720,7 +2720,6 @@ or None if no match is found."""
 		dump("recchildren",out)
 		dump(ch,out)
 		
-		for i in records: dump(self.__records[i],out)
 		ch=[]
 		for i in records:
 			c=Set(self.__records.cousins(i))
