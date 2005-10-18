@@ -1307,7 +1307,10 @@ parentheses grouping not supported yet"""
 					except: dct[r.rectype]=[i]
 			ret=dct
 		else: ret=byrecdef
-		
+		if os.environ.has_key('EMEN2DIR'):
+			theDir = os.environ['EMEN2DIR']
+		else:
+			theDir = "/home/emen2"		
 		if command=="find" :
 			return ret
 		elif command=="plot" :
@@ -1315,11 +1318,6 @@ parentheses grouping not supported yet"""
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
-			
-			if os.environ.has_key('EMEN2DIR'):
-				theDir = os.environ['EMEN2DIR']
-			else:
-				theDir = "/home/emen2"
 			if isinstance(ret,dict) :
 				xyDataDict = {}
 				# this means we had a 'groupby' request	
@@ -1329,7 +1327,7 @@ parentheses grouping not supported yet"""
 					ret2=[]
 					for i in ret[j]:
 						r=self.getrecord(i,ctxid)
-						ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+						ret2.append((r[comops[1][1:]],r[comops[0][1:]], i))
 						allX.append(r[comops[1][1:]])
 						allY.append(r[comops[0][1:]])
 					ret2.sort()
@@ -1340,21 +1338,21 @@ parentheses grouping not supported yet"""
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
 					"""
-				return {'reclist': ret, 'data': xyDataDict, 'minmax': (min(allX), min(allY), max(allX), max(allY)), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+				return {'type': 'plot', 'data': xyDataDict, 'minmax': (min(allX), min(allY), max(allX), max(allY)), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
 	
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
 				for i in byrecdef:
 					r=self.getrecord(i,ctxid)
-					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+					ret2.append((r[comops[1][1:]],r[comops[0][1:]], i))
 				ret2.sort()
 #				out=file(os.path.join(theDir, "plot.txt"),"w")
 #				for i in ret2:
 #					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 #				out.close()
 				#return ret
-				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+				return {'type': 'plot', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
 			
 		elif command=="histogram" :
 			# This deals with 'histogram' requests
@@ -1362,6 +1360,7 @@ parentheses grouping not supported yet"""
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
 			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+				xyDataDict = {}
 				for j in ret.keys():
 					ret2=[]
 					for i in ret[j]:
@@ -1369,13 +1368,14 @@ parentheses grouping not supported yet"""
 						ret2.append(r[comops[0][1:]])
 					ret2.sort()
 					ret[j]=ret2
-					out=file("plot.%s.txt"%j,"w")
+					xyDataDict[j] = ret2
+					out=file(os.path.join(theDir, "plot."+str(j) +".txt"),"w")
 					
 					for i in ret2:
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
 				#return ret
-				return {'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+				return {'type': 'histogram', 'data': xyDataDict, 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
@@ -1383,16 +1383,14 @@ parentheses grouping not supported yet"""
 					r=self.getrecord(i,ctxid)
 					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
 				ret2.sort()
-				if os.environ.has_key('EMEN2DIR'):
-					theDir = os.environ['EMEN2DIR']
-				else:
-					theDir = "/home/emen2"
+
 				out=file(os.path.join(theDir, "plot.txt"),"w")
 				for i in ret2:
 					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 				out.close()
 				#return ret
-				return {'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+				return {'type': 'histogram', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+			
 		elif command=="timeline" :
 			pass
 
@@ -2024,6 +2022,9 @@ or None if no match is found."""
 			if name[-2]=="e" and self.__recorddefs.has_key(name[:-2]): return name[:-2]
 		if name[-3:]=="ing" and self.__recorddefs.has_key(name[:-3]): return name[:-3]
 		return None
+	
+	def commitindices(self):
+		self.__commitindices()
 		
 	def __commitindices(self):
 		"""This is used in 'importmode' after many records have been imported using
