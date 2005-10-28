@@ -2325,6 +2325,7 @@ or None if no match is found."""
 		"""This will return the ids of all records the user has permission to access""" 
 		ctx=self.__getcontext(ctxid,host)
 		
+		if ctx.user=="root" : return range(self.__records[-1]+1)
 		return self.__secrindex[ctx.user]
 	
 	def getrecordschangetime(self,recids,ctxid,host=None):
