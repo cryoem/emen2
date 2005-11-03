@@ -2035,6 +2035,8 @@ or None if no match is found."""
 			sys.exit(1)
 		
 		for k,v in self.__fieldindex.items():
+			if k == 'parent':
+			      continue
 			print "commit index %s (%d)"%(k,len(v))
 			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
 			for k2,v2 in v.items():
