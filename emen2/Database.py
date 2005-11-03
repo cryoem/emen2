@@ -1729,8 +1729,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if len(user.password)<6 : raise SecurityError,"Passwords must be at least 6 characters long"
 			s=sha.new(user.password)
 			user.password=s.hexdigest()
-
-		user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		if not self.__importmode:
+			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		self.__newuserqueue[user.username]=user
 		
 	def getqueueduser(self,username,ctxid,host=None):
