@@ -821,7 +821,7 @@ class Record:
 			p1=Set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2])
 			p2=Set(self.__permissions[1]+self.__permissions[2])
 			p3=Set(self.__permissions[2])
-			u1=Set(ctx.groups+(-4))				# all users are permitted group -4 access
+			u1=Set(ctx.groups+[-4])				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -1711,12 +1711,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 		new user queue, which must be processed by an administrator before the record
 		becomes active. This system prevents problems with securely assigning passwords
 		and errors with data entry. Anyone can create one of these"""
-		if user.username==None or len(user.username)<3 : 
-			raise KeyError,"Attempt to add user with invalid name"
+		if user.username==None or len(user.username)<3 :
+		        if self.__importmode:
+				pass
+			else:
+				raise KeyError,"Attempt to add user with invalid name"
 		
 		if user.username in self.__users :
-			raise KeyError,"User with username %s already exists"%user.username
-		
+		        if not self.__importmode:
+				raise KeyError,"User with username %s already exists"%user.username
+			else:
+				pass
 		if user.username in self.__newuserqueue :
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
