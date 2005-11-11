@@ -27,6 +27,7 @@ import sha
 import time
 import re
 import operator
+import traceback
 from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
 
@@ -753,6 +754,8 @@ class Record:
 		if (dict!=None and ctxid!=None):
 			self.__dict__.update(dict)
 			self.setContext(ctxid)
+			try : self.rectype=self.rectype.lower()
+			except: pass
 			return
 		self.recid=None				# 32 bit integer recordid (within the current database)
 		self.dbid=None				# dbid where this record resides (any other dbs have clones)
@@ -789,6 +792,14 @@ class Record:
 	
 	def __setstate__(self,dict):
 		"""restore unpickled values to defaults after unpickling"""
+		try:
+			p=dict["_Record__params"]
+			dict["_Record__params"]={}
+			for i,j in p.items(): dict["_Record__params"][i.lower()]=j
+		except:
+			traceback.print_exc(file=sys.stdout)
+		dict["rectype"]=dict["rectype"].lower()
+		
 		if dict.has_key("localcpy") :
 			del dict["localcpy"]
 			self.__dict__.update(dict)	
@@ -873,7 +884,7 @@ class Record:
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
-		key=key.strip()
+		key=key.strip().lower()
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
@@ -889,7 +900,7 @@ class Record:
 			else :
 				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
 		elif (key=="rectype") :
-			if self.__ptest[3]: self.rectype=value
+			if self.__ptest[3]: self.rectype=value.lower()
 			else: raise SecurityError,"Insufficient permission to change the record type"
 		elif (key=="owner") :
 			if self.__owner==value: return
@@ -1142,6 +1153,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
 		for k in self.__contexts_p.items():
+			if not isinstance(k[0],str) : del(db._Database__contexts_p[k[0]])
+			
 			# use the cached time if available
 			try :
 				c=self.__contexts[k[0]]
@@ -1223,7 +1236,7 @@ parentheses grouping not supported yet"""
 		while (n<len(query2)):
 			i=query2[n]
 			if i=="plot" :
-				if not query2[n+2] in (",","vs","vs.") : raise Exception, "plot <y param> vs <x param>"
+				if not query2[n+2] in (",","vs","vs.") : return (-1,"plot <y param> vs <x param>","")
 				comops=(query2[n+1],query2[n+3])
 				n+=4
 				
@@ -1234,13 +1247,13 @@ parentheses grouping not supported yet"""
 				byparamval&=self.getindexbyvalue(comops[1][1:],None,ctxid,host)
 				continue
 			elif i=="histogram" :
-				if not query2[n+1][0]=="$" : raise Exception, "histogram <parametername>"
+				if not query2[n+1][0]=="$" : return (-1,"histogram <parametername>","")
 				comops=(query2[n+1],)
 				n+=2
 				
 				# We make sure that any record containing the parameter is included
-				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0],None,ctxid,host)
-				else: byparamval=self.getindexbyvalue(comops[0],None,ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
+				else: byparamval=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
 				continue
 			elif i=="group" :
 				if query2[n+1]=="by" :
@@ -1273,7 +1286,7 @@ parentheses grouping not supported yet"""
 				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],range,ctxid,host)
 				else: byparamval=self.getindexbyvalue(i[1:],range,ctxid,host)
 			elif i=="and" : pass
-			else : raise Exception, "Unknown word '%s'"%i
+			else : return (-1,"Unknown word",i)
 			n+=1
 		
 		if len(byrecdef)==0: byrecdef=byparamval
@@ -1360,6 +1373,7 @@ parentheses grouping not supported yet"""
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
 			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+				return (-1,"Grouping not supported in histograms yet","")
 				xyDataDict = {}
 				for j in ret.keys():
 					ret2=[]
@@ -1379,17 +1393,36 @@ parentheses grouping not supported yet"""
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
+				tmp=[]
 				for i in byrecdef:
 					r=self.getrecord(i,ctxid)
-					ret2.append((r[comops[1][1:]],r[comops[0][1:]]))
+					tmp.append((r[comops[0][1:]],i))
+				tmp.sort()
+#				try:
+				if 1:
+					# This will succeed if the index parameter is a number
+					m0,m1=float(tmp[0][0]),float(tmp[-1][0])
+					n=min(len(tmp)/10,50)
+					step=(m1-m0)/(n-1)
+					ret2=[0]*n
+					for i in tmp:
+						ret2[int(floor((i[0]-m0)/step))]+=1
+					
+					ret2=[(i[0]*step+m0,i[1]) for i in enumerate(ret2)]
+					print "A ",ret2
+				"""except:
+					if isinstance(tmp[0][0],str) :
+						# a string field
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0]]+=1
+							except: tmp2[i[0]]=1
+						
+						ret2=tmp2.items()
+						print "B ",ret2
+"""
 				ret2.sort()
-
-				out=file(os.path.join(theDir, "plot.txt"),"w")
-				for i in ret2:
-					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-				out.close()
-				#return ret
-				return {'type': 'histogram', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts"}
 			
 		elif command=="timeline" :
 			pass
@@ -1416,7 +1449,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		# parses the strings into discrete units to process (words and operators)
-		elements=[i for i in re.split("\s|(<=|>=|!-|==|<|>|=|,)",query) if i!=None and len(i)>0]
+		elements=[i for i in re.split("\s|(<=|>=|><|!-|==|<|>|=|,)",query) if i!=None and len(i)>0]
 		
 		# Now we clean up the list of terms and check for errors
 		for n,e in enumerate(elements):
@@ -1450,7 +1483,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				elements[n]="$"+a
 				continue
 			elif e[0]=="%" :
-				a=self.findusername(e[1:])
+				a=self.findusername(e[1:],ctxid)
 				if a==None : return (-1,"Username does not exist",e)
 				if isinstance(a,str) :
 					elements[n]="%"+a
@@ -1485,7 +1518,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		records belonging to a particular RecordDef. Currently this
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
-		return Set(self.__recorddefindex[recdefname])
+		return Set(self.__recorddefindex[recdefname.lower()])
 
 	def getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
 		"""For numerical & simple string parameters, this will locate all 
@@ -1789,7 +1822,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""This will look for a username matching the provided name in a loose way"""
 		if self.__users.has_key(name) : return name
 		
-		possible=filter(lambda x: name in x,__users.keys())
+		possible=filter(lambda x: name in x,self.__users.keys())
 		if len(possible)==1 : return possible[0]
 		if len(possible)>1 : return possible
 		
@@ -1891,6 +1924,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
+		paramdef.name=paramdef.name.lower()
 		if self.__paramdefs.has_key(paramdef.name) : 
 			# Root is permitted to force changes in parameters, though are supposed to be static
 			# This permits correcting typos, etc., but should not be used routinely
@@ -1915,7 +1949,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
-		return self.__paramdefs[paramdefname]
+		return self.__paramdefs[paramdefname.lower()]
 		
 	def getparamdefnames(self):
 		"""Returns a list of all ParamDef names"""
@@ -1924,6 +1958,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def findparamdefname(self,name) :
 		"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
+		name=name.lower()
 		if self.__paramdefs.has_key(name) : return name
 		if name[-1]=="s" :
 			if self.__paramdefs.has_key(name[:-1]) : return name[:-1]
@@ -1965,6 +2000,7 @@ or None if no match is found."""
 		
 		# force these values
 		if (recdef.owner==None) : recdef.owner=ctx.user
+		recdef.name=recdef.name.lower()
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		recdef.findparams()
@@ -1993,6 +2029,8 @@ or None if no match is found."""
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
+		
+		rectypename=rectypename.lower()
 		if not self.__recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
 		
 		ret=self.__recorddefs[rectypename]	# get the record
@@ -2773,6 +2811,7 @@ or None if no match is found."""
 					self.__users[r.username]=r
 			# insert paramdef
 			elif isinstance(r,ParamDef) :
+				r.name=r.name.lower()
 				if self.__paramdefs.has_key(r.name):
 					print "Duplicate paramdef ",r.name
 					self.__paramdefs[r.name]=r
@@ -2780,6 +2819,7 @@ or None if no match is found."""
 					self.__paramdefs[r.name]=r
 			# insert recorddef
 			elif isinstance(r,RecordDef) :
+				r.name=r.name.lower()
 				if self.__recorddefs.has_key(r.name):
 					print "Duplicate recorddef ",r.name
 					self.__recorddefs[r.name]=r
