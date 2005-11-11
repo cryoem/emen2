@@ -77,7 +77,13 @@ def timetosec(timestr):
 	"""takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
 	returns the standard time in seconds since the beginning of time"""
 	return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
-	
+
+def setdigits(x,n):
+	"""This will take x and round it up, to contain the nearest value with
+the specified number of significant digits. ie 5722,2 -> 5800"""
+	scl=10**(floor(log10(x))-n+1)
+	return scl*ceil(x/scl)
+
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
@@ -1398,19 +1404,25 @@ parentheses grouping not supported yet"""
 					r=self.getrecord(i,ctxid)
 					tmp.append((r[comops[0][1:]],i))
 				tmp.sort()
-#				try:
-				if 1:
+				try:
 					# This will succeed if the index parameter is a number
 					m0,m1=float(tmp[0][0]),float(tmp[-1][0])
 					n=min(len(tmp)/10,50)
-					step=(m1-m0)/(n-1)
+					step=setdigits((m1-m0)/(n-1),2)		# round the step to 2 digits
+					m0=step*(floor(m0/step)-.5)				# round the min val to match step size
+					n=int(ceil((m1-m0)/step))
+#					if m0+step*n<=m1 : n+=1
+					digits=max(0,1-floor(log10(step)))
+					fmt="%%1.%df"%digits
+
+					print m0,m1,step
+					
 					ret2=[0]*n
 					for i in tmp:
 						ret2[int(floor((i[0]-m0)/step))]+=1
 					
-					ret2=[(i[0]*step+m0,i[1]) for i in enumerate(ret2)]
-					print "A ",ret2
-				"""except:
+					ret2=[(fmt%((i[0]+0.5)*step+m0),i[1]) for i in enumerate(ret2)]
+				except:
 					if isinstance(tmp[0][0],str) :
 						# a string field
 						tmp2={}
@@ -1420,7 +1432,7 @@ parentheses grouping not supported yet"""
 						
 						ret2=tmp2.items()
 						print "B ",ret2
-"""
+
 				ret2.sort()
 				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts"}
 			
