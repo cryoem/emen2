@@ -1159,7 +1159,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
 		for k in self.__contexts_p.items():
-			if not isinstance(k[0],str) : del(db._Database__contexts_p[k[0]])
+			if not isinstance(k[0],str) : 
+				self.LOG(0,"Inverted context detected")
+				del(self._Database__contexts_p[k[0]])
 			
 			# use the cached time if available
 			try :
@@ -1400,12 +1402,18 @@ parentheses grouping not supported yet"""
 				# no 'groupby', just a single query
 				ret2=[]
 				tmp=[]
-				for i in byrecdef:
-					r=self.getrecord(i,ctxid)
-					tmp.append((r[comops[0][1:]],i))
-				tmp.sort()
-				try:
-					# This will succeed if the index parameter is a number
+				pd=self.getparamdef(comops[0][1:])
+				
+				
+				if (pd.vartype in ("int","longint","float","longfloat")) :
+					# get all of the values for the histogrammed field
+					# and associated numbers
+					for i in byrecdef:
+						r=self.getrecord(i,ctxid)
+						tmp.append((r[comops[0][1:]],i))
+					tmp.sort()
+					
+					# Find limits and make a decent range for the histogram
 					m0,m1=float(tmp[0][0]),float(tmp[-1][0])
 					n=min(len(tmp)/10,50)
 					step=setdigits((m1-m0)/(n-1),2)		# round the step to 2 digits
@@ -1422,17 +1430,35 @@ parentheses grouping not supported yet"""
 						ret2[int(floor((i[0]-m0)/step))]+=1
 					
 					ret2=[(fmt%((i[0]+0.5)*step+m0),i[1]) for i in enumerate(ret2)]
-				except:
-					if isinstance(tmp[0][0],str) :
-						# a string field
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0]]+=1
-							except: tmp2[i[0]]=1
-						
-						ret2=tmp2.items()
-						print "B ",ret2
-
+				elif (pd.vartype in ("date","datetime")) :
+					# a string field
+					tmp2={}
+					for i in tmp:
+						try: tmp2[i[0]]+=1
+						except: tmp2[i[0]]=1
+					
+					ret2=tmp2.items()
+					print "B ",ret2
+				elif (pd.vartype in ("choice","string")):
+					# get all of the values for the histogrammed field
+					# and associated record ids. Note that for string/choice
+					# this may be a list of values rather than a single value
+					for i in byrecdef:
+						r=self.getrecord(i,ctxid)
+						v=r[comops[0][1:]]
+						if isinstance(v,str) : tmp.append((v,i))
+						else:
+							for j in v: tmp.append((j,i))
+					tmp.sort()
+					
+					# a string field
+					tmp2={}
+					for i in tmp:
+						try: tmp2[i[0]]+=1
+						except: tmp2[i[0]]=1
+					
+					ret2=tmp2.items()
+					
 				ret2.sort()
 				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts"}
 			
