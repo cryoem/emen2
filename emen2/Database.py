@@ -1160,8 +1160,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		self.lastctxclean=time.time()
 		for k in self.__contexts_p.items():
 			if not isinstance(k[0],str) : 
-				self.LOG(0,"Inverted context detected")
-				del(self._Database__contexts_p[k[0]])
+#				self.LOG(0,"Inverted context detected")
+				pass
+#				del(self._Database__contexts_p[k[0]])
 			
 			# use the cached time if available
 			try :
@@ -1438,7 +1439,6 @@ parentheses grouping not supported yet"""
 						except: tmp2[i[0]]=1
 					
 					ret2=tmp2.items()
-					print "B ",ret2
 				elif (pd.vartype in ("choice","string")):
 					# get all of the values for the histogrammed field
 					# and associated record ids. Note that for string/choice
