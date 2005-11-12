@@ -31,7 +31,7 @@ import traceback
 from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
 
-LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","DEBUG   "]
+LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
 
 def escape2(s):
 	qc={'"':'&quot'}
@@ -712,9 +712,10 @@ class WorkFlow:
 		if isinstance(with,dict) :
 			self.__dict__.update(with)
 		else:
-			self.wftype=None			# a short string defining the task to complete. Applications
-										# should select strings that are likely to be unique for
-										# their own tasks
+			self.wftype=None
+			# a short string defining the task to complete. Applications
+			# should select strings that are likely to be unique for
+			# their own tasks
 			self.desc=None				# A 1-line description of the task to complete
 			self.longdesc=None			# an optional longer description of the task
 			self.appdata=None			# application specific data used to implement the actual activity
@@ -1120,6 +1121,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			o.close()
 			if level<4 : print "%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
 		except:
+			traceback.print_exc(file=sys.stdout)
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
 	def __str__(self):
@@ -1189,7 +1191,6 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		if (time.time()>self.lastctxclean+30):
 			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 		
-		LOG(6,"Get context %s"%key)
 		try:
 			ctx=self.__contexts[key]
 		except:
@@ -1302,7 +1303,10 @@ parentheses grouping not supported yet"""
 				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],range,ctxid,host)
 				else: byparamval=self.getindexbyvalue(i[1:],range,ctxid,host)
 			elif i=="and" : pass
-			else : return (-1,"Unknown word",i)
+			
+			else :
+				return (-1,"Unknown word",i)
+
 			n+=1
 		
 		if len(byrecdef)==0: byrecdef=byparamval
@@ -1350,15 +1354,16 @@ parentheses grouping not supported yet"""
 			if isinstance(ret,dict) :
 				xyDataDict = {}
 				# this means we had a 'groupby' request	
-			        allX = []
-				allY = []
+				x0,x1,y0,y1=1e38,-1e38,1e38,-1e38
 				for j in ret.keys():
 					ret2=[]
 					for i in ret[j]:
 						r=self.getrecord(i,ctxid)
 						ret2.append((r[comops[1][1:]],r[comops[0][1:]], i))
-						allX.append(r[comops[1][1:]])
-						allY.append(r[comops[0][1:]])
+						x0=min(x0,r[comops[1][1:]])
+						y0=min(y0,r[comops[0][1:]])
+						x1=max(x1,r[comops[1][1:]])
+						y1=max(y1,r[comops[0][1:]])
 					ret2.sort()
 					xyDataDict[j]=ret2
 					"""
@@ -1367,7 +1372,7 @@ parentheses grouping not supported yet"""
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
 					"""
-				return {'type': 'plot', 'data': xyDataDict, 'minmax': (min(allX), min(allY), max(allX), max(allY)), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+				return {'type': 'plot', 'data': xyDataDict, 'minmax': (x0,y0,x1,y1), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
 	
 			else:
 				# no 'groupby', just a single query
@@ -2785,7 +2790,7 @@ or None if no match is found."""
 		if users==None: users=self.__users.keys()
 		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
 		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
-		if records==None: records=Set(range(1,self.__records[-1]+1))
+		if records==None: records=Set(range(0,self.__records[-1]+1))
 		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
 		
 		out=open(self.path+"/backup.pkl","w")
@@ -3002,6 +3007,8 @@ or None if no match is found."""
 				
 			# insert and renumber record
 			elif isinstance(r,Record) :
+				r.setContext(ctx)
+				if (nr<20) : print r["identifier"]
 				nr+=1
 				
 			elif isinstance(r,str) :
