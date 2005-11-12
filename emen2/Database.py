@@ -78,6 +78,11 @@ def timetosec(timestr):
 	returns the standard time in seconds since the beginning of time"""
 	return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
 
+def timetostruc(timestr):
+	"""takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
+	returns the standard time in seconds since the beginning of time"""
+	return time.strptime(timestr,"%Y/%m/%d %H:%M:%S")
+
 def setdigits(x,n):
 	"""This will take x and round it up, to contain the nearest value with
 the specified number of significant digits. ie 5722,2 -> 5800"""
@@ -1381,6 +1386,8 @@ parentheses grouping not supported yet"""
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
+			if len(byrecdef)==0 : return (-1,"no records found","")
+			
 			if isinstance(ret,dict) :		# this means we had a 'groupby' request
 				return (-1,"Grouping not supported in histograms yet","")
 				xyDataDict = {}
@@ -1423,8 +1430,6 @@ parentheses grouping not supported yet"""
 #					if m0+step*n<=m1 : n+=1
 					digits=max(0,1-floor(log10(step)))
 					fmt="%%1.%df"%digits
-
-					print m0,m1,step
 					
 					ret2=[0]*n
 					for i in tmp:
@@ -1432,11 +1437,44 @@ parentheses grouping not supported yet"""
 					
 					ret2=[(fmt%((i[0]+0.5)*step+m0),i[1]) for i in enumerate(ret2)]
 				elif (pd.vartype in ("date","datetime")) :
-					# a string field
-					tmp2={}
-					for i in tmp:
-						try: tmp2[i[0]]+=1
-						except: tmp2[i[0]]=1
+					# get all of the values for the histogrammed field
+					# and associated numbers
+					for i in byrecdef:
+						r=self.getrecord(i,ctxid)
+						tmp.append((r[comops[0][1:]],timetosec(r[comops[0][1:]]),i))
+					tmp.sort()
+					
+					totaltime=tmp[-1][1]-tmp[0][1]		# total time span in seconds
+					t0=tmp[0][1]
+					t1=tmp[-1][1]
+					
+					if totaltime<72*3600:	# by hour, less than 3 days
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:13]]+=1
+							except: tmp2[i[0][:13]]=1
+					elif totaltime<31*24*3600:	# by day, less than ~1 month
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:10]]+=1
+							except: tmp2[i[0][:10]]=1
+					elif totaltime<52*7*24*3600: # by week, less than ~1 year
+						tmp2={}
+						for i in tmp:
+							a=timetostruc(i[0])
+							ts="%04d-%02d"%(a[0],1+int(floor(a[7]/7)))
+							try: tmp2[ts]+=1
+							except: tmp2[ts]=1
+					elif totaltime<4*365*24*3600: # by month, less than ~4 years
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:7]]+=1
+							except: tmp2[i[0][:7]]=1
+					else :	# by year
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:4]]+=1
+							except: tmp2[i[0][:4]]=1
 					
 					ret2=tmp2.items()
 				elif (pd.vartype in ("choice","string")):
