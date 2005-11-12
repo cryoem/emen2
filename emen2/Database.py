@@ -1110,9 +1110,10 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		2 - serious, user will experience problemis none
 		3 - minor, likely to cause minor annoyances
 		4 - info, informational only
-		5 - verbose, verbose logging """
+		5 - verbose, verbose logging 
+		6 - debug only"""
 		global LOGSTRINGS
-		if (level<0 or level>5) : level=0
+		if (level<0 or level>6) : level=0
 		try:
 			o=file(self.logfile,"a")
 			o.write("%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message))
@@ -1165,7 +1166,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		self.lastctxclean=time.time()
 		for k in self.__contexts_p.items():
 			if not isinstance(k[0],str) : 
-#				self.LOG(0,"Inverted context detected")
+				self.LOG(6,"Inverted context detected "+str(k[0].ctxid))
 				pass
 #				del(self._Database__contexts_p[k[0]])
 			
@@ -1188,6 +1189,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		if (time.time()>self.lastctxclean+30):
 			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 		
+		LOG(6,"Get context %s"%key)
 		try:
 			ctx=self.__contexts[key]
 		except:
@@ -1196,7 +1198,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 				ctx.db=self
 				self.__contexts[key]=ctx	# cache result from database
 			except:
-				self.LOG(4,"Session expired")
+				self.LOG(4,"Session expired %s"%key)
 				raise KeyError,"Session expired"
 			
 		if host and host!=ctx.host :
