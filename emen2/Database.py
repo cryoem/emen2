@@ -1188,8 +1188,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
 		Note that both key and host must match."""
-		if (time.time()>self.lastctxclean+30):
-			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
+#		if (time.time()>self.lastctxclean+30):
+#			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 		
 		try:
 			ctx=self.__contexts[key]
