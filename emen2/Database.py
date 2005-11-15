@@ -1243,7 +1243,7 @@ parentheses grouping not supported yet"""
 		# the intent is union, not intersection
 		byrecdef=Set()
 		for i in query2:
-			if isinstance(i,str) and i[0]=="@" :
+			if isinstance(i,str) and i[0]=="@":
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
 
 		# We go through the query word by word and perform each operation
@@ -1278,6 +1278,8 @@ parentheses grouping not supported yet"""
 					n+=3
 					continue
 				groupby=query2[n+1]
+				n+=2
+				continue
 			elif i[0]=="@" or i in ("find","timeline") :
 				n+=1
 				continue
@@ -1316,8 +1318,9 @@ parentheses grouping not supported yet"""
 		# this splits the Set of located records (byrecdef) into
 		# a dictionary keyed by whatever the 'groupby' request wants
 		# For splits based on a parameter ($something), it will recurse
-		# into the parent records up to two levels to try to find the
-		# referenced parameter
+		# into the parent records up to 3 levels to try to find the
+		# referenced parameter. If a protocol name is supplied, it will
+		# look for a parent record of that class.
 		if groupby:
 			dct={}
 			if groupby[0]=='$':
@@ -1327,12 +1330,24 @@ parentheses grouping not supported yet"""
 						try: dct[r[groupby[1:]]].append(i)
 						except: dct[r[groupby[1:]]]=[i]
 					else :
-						p=self.getparents(i,'record',2,ctxid)
+						p=self.getparents(i,'record',3,ctxid)
 						for j in p:
 							r=self.getrecord(j,ctxid)
 							if r.has_key(groupby[1:]) :
 								try: dct[r[groupby[1:]]].append(i)
 								except: dct[r[groupby[1:]]]=[i]
+			elif groupby[0]=="@":
+				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid)
+				print len(byrecdef)
+				for i in byrecdef:
+					p=self.getparents(i,'record',10,ctxid)
+					p&=alloftype
+					if len(p)==1:
+						p=p.pop()
+						try: dct[p].append(i)
+						except: dct[p]=[i]
+						print p
+					else: print p,alloftype,self.getparents(i,'record',10,ctxid)
 			elif groupby in ("class","protocol","recorddef") :
 				for i in byrecdef:
 					r=self.getrecord(i,ctxid)
