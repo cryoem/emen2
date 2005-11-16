@@ -1242,8 +1242,8 @@ parentheses grouping not supported yet"""
 		# multiple record types would always yield nothing, so we assume
 		# the intent is union, not intersection
 		byrecdef=Set()
-		for i in query2:
-			if isinstance(i,str) and i[0]=="@":
+		for n,i in enumerate(query2):
+			if isinstance(i,str) and i[0]=="@" and (query[n-1] not in ("by","group")):
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
 
 		# We go through the query word by word and perform each operation
