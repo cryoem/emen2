@@ -1258,10 +1258,13 @@ parentheses grouping not supported yet"""
 				n+=4
 				
 				# We make sure that any record containing either parameter is included
-				# in the results by default
-				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
-				else: byparamval=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
-				byparamval&=self.getindexbyvalue(comops[1][1:],None,ctxid,host)
+				# in the results by default, and cache the values for later use in plotting
+				ibvx=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
+				ibvy=self.getindexdictbyvalue(comops[1][1:],None,ctxid,host)
+				
+				if len(byparamval)>0 : byparamval.intersection_update(ibvx.keys())
+				else: byparamval=Set(ibvx.keys())
+				byparamval.intersection_update(ibvy.keys())
 				continue
 			elif i=="histogram" :
 				if not query2[n+1][0]=="$" : return (-1,"histogram <parametername>","")
@@ -1324,18 +1327,17 @@ parentheses grouping not supported yet"""
 		if groupby:
 			dct={}
 			if groupby[0]=='$':
+				gbi=self.getindexdictbyvalue(groupby[1:],None,ctxid,None)
 				for i in byrecdef:
-					r=self.getrecord(i,ctxid)
-					if r.has_key(groupby[1:]) :
-						try: dct[r[groupby[1:]]].append(i)
-						except: dct[r[groupby[1:]]]=[i]
+					if gbi.has_key(i) :
+						try: dct[gbi[i]].append(i)
+						except: dct[gbi[i]]=[i]
 					else :
 						p=self.getparents(i,'record',3,ctxid)
 						for j in p:
-							r=self.getrecord(j,ctxid)
-							if r.has_key(groupby[1:]) :
-								try: dct[r[groupby[1:]]].append(i)
-								except: dct[r[groupby[1:]]]=[i]
+							if gbi.has_key(j) :
+								try: dct[gbi[j]].append(i)
+								except: dct[gbi[j]]=[i]
 			elif groupby[0]=="@":
 				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid)
 				print len(byrecdef)
@@ -1373,12 +1375,11 @@ parentheses grouping not supported yet"""
 				for j in ret.keys():
 					ret2=[]
 					for i in ret[j]:
-						r=self.getrecord(i,ctxid)
-						ret2.append((r[comops[1][1:]],r[comops[0][1:]], i))
-						x0=min(x0,r[comops[1][1:]])
-						y0=min(y0,r[comops[0][1:]])
-						x1=max(x1,r[comops[1][1:]])
-						y1=max(y1,r[comops[0][1:]])
+						ret2.append((ibvx[i],ibvy[i], i))
+						x0=min(x0,ibvx[i])
+						y0=min(y0,ibvy[i])
+						x1=max(x1,ibvx[i])
+						y1=max(y1,ibvy[i])
 					ret2.sort()
 					xyDataDict[j]=ret2
 					"""
@@ -1393,8 +1394,7 @@ parentheses grouping not supported yet"""
 				# no 'groupby', just a single query
 				ret2=[]
 				for i in byrecdef:
-					r=self.getrecord(i,ctxid)
-					ret2.append((r[comops[1][1:]],r[comops[0][1:]], i))
+					ret2.append((ibvx[i],ibvy[i], i))
 				ret2.sort()
 #				out=file(os.path.join(theDir, "plot.txt"),"w")
 #				for i in ret2:
@@ -1643,6 +1643,40 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (-1 in g) or (-2 in g) : return ret
 		
 		secure=Set(self.getindexbyuser(None,ctxid,host))		# all records the user can access
+		
+		return ret & secure		# intersection of the two search results
+	
+	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
+		"""For numerical & simple string parameters, this will locate all records
+		with the specified paramdef in the specified range.
+		valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
+		This method returns a dictionary of all matching recid/value pairs
+		if subset is provided, will only return values for specified recids"""
+		ind=self.__getparamindex(paramname,create=0)
+		
+		if valrange==None : r=dict(ind.items())
+		elif isinstance(valrange,tuple) or isinstance(valrange,list) : r=dict(ind.items(valrange[0],valrange[1]))
+		else: r={valrange:ind[valrange]}
+		
+		# This takes the returned dictionary of value/list of recids
+		# and makes a dictionary of recid/value pairs
+		ret={}
+		if subset:
+			for i,j in r.items():
+				for k in j: 
+					if k in subset: ret[k]=i
+		else:
+			for i,j in r.items():
+				for k in j: ret[k]=i
+		
+		u,g=self.checkcontext(ctxid,host)
+		if (-1 in g) or (-2 in g) : return ret
+		
+		secure=self.getindexbyuser(None,ctxid,host)		# all records the user can access
+		
+		# remove any recids the user cannot access
+		for i in ret.keys():
+			if i not in secure : del ret[i]
 		
 		return ret & secure		# intersection of the two search results
 	
