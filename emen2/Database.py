@@ -83,6 +83,20 @@ def timetostruc(timestr):
 	returns the standard time in seconds since the beginning of time"""
 	return time.strptime(timestr,"%Y/%m/%d %H:%M:%S")
 
+WEEKREF=(0,31,59,90,120,151,181,212,243,273,304,334)
+WEEKREFL=(0,31,60,91,121,152,182,213,244,274,305,335)
+def timetoweekstr(timestr):
+	"""Converts a standard time string to yyyy-ww"""
+	y=int(timestr[:4])
+	m=int(timestr[5:7])
+	d=int(timestr[8:10])
+	if y%4==0 :
+		d+=WEEKREFL[m-1]
+	else:
+		d+=WEEKREF[m-1]
+	
+	return "%s-%02d"%(timestr[:4],int(floor(d/7))+1)
+
 def setdigits(x,n):
 	"""This will take x and round it up, to contain the nearest value with
 the specified number of significant digits. ie 5722,2 -> 5800"""
@@ -1217,7 +1231,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
-	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","><",">","<",">=","<=","==","!=",","]
+	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","==","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
 	def query(self,query,ctxid,host=None) :
@@ -1226,6 +1240,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 $ - parameter name
 % - username
 parentheses grouping not supported yet"""
+		tm0=time.time()
 		query2=self.querypreprocess(query,ctxid,host)
 		#print query2
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
@@ -1272,8 +1287,9 @@ parentheses grouping not supported yet"""
 				n+=2
 				
 				# We make sure that any record containing the parameter is included
-				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
-				else: byparamval=self.getindexbyvalue(comops[0][1:],None,ctxid,host)
+				ibvh=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
+				if len(byparamval)>0 : byparamval.intersection_update(ibvh.keys())
+				else: byparamval=Set(ibvh.keys())
 				continue
 			elif i=="group" :
 				if query2[n+1]=="by" :
@@ -1281,6 +1297,24 @@ parentheses grouping not supported yet"""
 					n+=3
 					continue
 				groupby=query2[n+1]
+				n+=2
+				continue
+			elif i=="child" :
+				# note getchildren returns names associated with each recid, which we need to strip off
+				chl=self.getchildren(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				chl=Set([i[0] for i in chl])
+				if len(byparamval)>0 : byparamval&=chl
+				else: byparamval=chl
+				n+=2
+				continue
+			elif i=="parent" :
+				if len(byparamval)>0 : byparamval&=self.getparents(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				else: byparamval=self.getparents(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				n+=2
+				continue
+			elif i=="cousin" :
+				if len(byparamval)>0 : byparamval&=self.getcousins(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				else: byparamval=self.getcousins(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
 				n+=2
 				continue
 			elif i[0]=="@" or i in ("find","timeline") :
@@ -1388,7 +1422,7 @@ parentheses grouping not supported yet"""
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
 					"""
-				return {'type': 'plot', 'data': xyDataDict, 'minmax': (x0,y0,x1,y1), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+				return {'type': 'plot', 'data': xyDataDict, 'minmax': (x0,y0,x1,y1), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby, 'querytime':time()-tm0}
 	
 			else:
 				# no 'groupby', just a single query
@@ -1401,7 +1435,7 @@ parentheses grouping not supported yet"""
 #					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 #				out.close()
 				#return ret
-				return {'type': 'plot', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:]}
+				return {'type': 'plot', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:], 'querytime':time.time()-tm0}
 			
 		elif command=="histogram" :
 			# This deals with 'histogram' requests
@@ -1427,7 +1461,7 @@ parentheses grouping not supported yet"""
 						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
 					out.close()
 				#return ret
-				return {'type': 'histogram', 'data': xyDataDict, 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby}
+				return {'type': 'histogram', 'data': xyDataDict, 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby, 'querytime':time.time()-tm0}
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
@@ -1438,9 +1472,7 @@ parentheses grouping not supported yet"""
 				if (pd.vartype in ("int","longint","float","longfloat")) :
 					# get all of the values for the histogrammed field
 					# and associated numbers
-					for i in byrecdef:
-						r=self.getrecord(i,ctxid)
-						tmp.append((r[comops[0][1:]],i))
+					for i in byrecdef: tmp.append((ibvh[i],i))
 					tmp.sort()
 					
 					# Find limits and make a decent range for the histogram
@@ -1448,7 +1480,7 @@ parentheses grouping not supported yet"""
 					n=min(len(tmp)/10,50)
 					step=setdigits((m1-m0)/(n-1),2)		# round the step to 2 digits
 					m0=step*(floor(m0/step)-.5)				# round the min val to match step size
-					n=int(ceil((m1-m0)/step))
+					n=int(ceil((m1-m0)/step))+1
 #					if m0+step*n<=m1 : n+=1
 					digits=max(0,1-floor(log10(step)))
 					fmt="%%1.%df"%digits
@@ -1461,14 +1493,13 @@ parentheses grouping not supported yet"""
 				elif (pd.vartype in ("date","datetime")) :
 					# get all of the values for the histogrammed field
 					# and associated numbers
-					for i in byrecdef:
-						r=self.getrecord(i,ctxid)
-						tmp.append((r[comops[0][1:]],timetosec(r[comops[0][1:]]),i))
+					for i in byrecdef: tmp.append((ibvh[i],i))
 					tmp.sort()
 					
-					totaltime=tmp[-1][1]-tmp[0][1]		# total time span in seconds
-					t0=tmp[0][1]
-					t1=tmp[-1][1]
+					# Work out x-axis values. This is complicated for dates
+					t0=timetosec(tmp[0][0])
+					t1=timetosec(tmp[-1][0])
+					totaltime=t1-t0		# total time span in seconds
 					
 					if totaltime<72*3600:	# by hour, less than 3 days
 						tmp2={}
@@ -1483,11 +1514,10 @@ parentheses grouping not supported yet"""
 					elif totaltime<52*7*24*3600: # by week, less than ~1 year
 						tmp2={}
 						for i in tmp:
-							a=timetostruc(i[0])
-							ts="%04d-%02d"%(a[0],1+int(floor(a[7]/7)))
+							ts=timetoweekstr(i[0])
 							try: tmp2[ts]+=1
 							except: tmp2[ts]=1
-					elif totaltime<4*365*24*3600: # by month, less than ~4 years
+					elif totaltime<5*365*24*3600: # by month, less than ~5 years
 						tmp2={}
 						for i in tmp:
 							try: tmp2[i[0][:7]]+=1
@@ -1503,9 +1533,8 @@ parentheses grouping not supported yet"""
 					# get all of the values for the histogrammed field
 					# and associated record ids. Note that for string/choice
 					# this may be a list of values rather than a single value
-					for i in byrecdef:
-						r=self.getrecord(i,ctxid)
-						v=r[comops[0][1:]]
+					for i in byrecdef: 
+						v=ibvh[i]
 						if isinstance(v,str) : tmp.append((v,i))
 						else:
 							for j in v: tmp.append((j,i))
@@ -1520,7 +1549,7 @@ parentheses grouping not supported yet"""
 					ret2=tmp2.items()
 					
 				ret2.sort()
-				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts"}
+				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts", 'querytime':time.time()-tm0}
 			
 		elif command=="timeline" :
 			pass
@@ -1542,8 +1571,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"less":"<","before":"<","lower":"<","under":"<","older":"<","shorter":"<",
 		"greater":">","after":">","more":">","over":">","newer":">","taller":">",
 		"between":"><","&":"and","|":"or","$$":"$",
-		"locate":"find","split":"group",
-		"than":None,"is":None,"where":None}
+		"locate":"find","split":"group","children":"child","parents":"parent","cousins":"cousin",
+		"than":None,"is":None,"where":None,"of":None}
 		
 		
 		# parses the strings into discrete units to process (words and operators)
