@@ -1324,23 +1324,23 @@ parentheses grouping not supported yet"""
 				if len(byparamval)>0 : byparamval&=self.getindexbyuser(i[1:],ctxid,host)
 				else: byparamval=self.getindexbyuser(i[1:],ctxid,host)
 			elif i[0]=="$" :
-				range=[None,None]
+				vrange=[None,None]
 				op=query2[n+1]
 				if op==">" or op==">=" : 
-					range[0]=query2[n+2]	# indexing mechanism doesn't support > or < yet
+					vrange[0]=query2[n+2]	# indexing mechanism doesn't support > or < yet
 					n+=2
 				elif op=="<" or op=="<=" : 
-					range[1]=query2[n+2]	# so we treat them the same for now
+					vrange[1]=query2[n+2]	# so we treat them the same for now
 					n+=2
 				elif op=="==" : 
-					range=[query2[n+2],None]
+					vrange=[query2[n+2],None]
 					n+=2
 				elif op=="><" : 
 					if not query2[n+3] in (",","and") : raise Exception, "between X and Y (%s)"%query2[n+3]
-					range=[query2[n+2],query2[n+4]]
+					vrange=[query2[n+2],query2[n+4]]
 					n+=4
-				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],range,ctxid,host)
-				else: byparamval=self.getindexbyvalue(i[1:],range,ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],vrange,ctxid,host)
+				else: byparamval=self.getindexbyvalue(i[1:],vrange,ctxid,host)
 			elif i=="and" : pass
 			
 			else :
@@ -1445,23 +1445,102 @@ parentheses grouping not supported yet"""
 			if len(byrecdef)==0 : return (-1,"no records found","")
 			
 			if isinstance(ret,dict) :		# this means we had a 'groupby' request
-				return (-1,"Grouping not supported in histograms yet","")
-				xyDataDict = {}
-				for j in ret.keys():
-					ret2=[]
-					for i in ret[j]:
-						r=self.getrecord(i,ctxid)
-						ret2.append(r[comops[0][1:]])
-					ret2.sort()
-					ret[j]=ret2
-					xyDataDict[j] = ret2
-					out=file(os.path.join(theDir, "plot."+str(j) +".txt"),"w")
+				ret2={}
+				tmp=[]
+				pd=self.getparamdef(comops[0][1:])
+				
+				
+				if (pd.vartype in ("int","longint","float","longfloat")) :
+					# get all of the values for the histogrammed field
+					# and associated numbers, (value, record #, split key)
+					for k,j in ret.items(): 
+						for i in j: tmp.append((ibvh[i],i,k))
+					tmp.sort()
 					
-					for i in ret2:
-						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-					out.close()
-				#return ret
-				return {'type': 'histogram', 'data': xyDataDict, 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby, 'querytime':time.time()-tm0}
+					# Find limits and make a decent range for the histogram
+					m0,m1=float(tmp[0][0]),float(tmp[-1][0])
+					n=min(len(tmp)/10,50)
+					step=setdigits((m1-m0)/(n-1),2)		# round the step to 2 digits
+					m0=step*(floor(m0/step)-.5)				# round the min val to match step size
+					n=int(ceil((m1-m0)/step))+1
+#					if m0+step*n<=m1 : n+=1
+					digits=max(0,1-floor(log10(step)))
+					fmt="%%1.%df"%digits
+					
+					# now we build the actual histogram. Result is ret2 = { 'keys':keylist,'x':xvalues,1:first hist,2:2nd hist,... }
+					ret2={}
+					ret2['keys']=[]
+					for i in tmp:
+						if not i[2] in ret2['keys']: 
+							ret2['keys'].append(i[2])
+							kn=ret2['keys'].index(i[2])
+							ret2[kn]=[0]*n
+						ret2[kn][int(floor((i[0]-m0)/step))]+=1
+					
+					# These are the x values
+					ret2['x']=[fmt%((m0+step*(i+0.5))) for i in range(n)]
+				elif (pd.vartype in ("date","datetime")) :
+					# get all of the values for the histogrammed field
+					# and associated numbers
+					for i in byrecdef: tmp.append((ibvh[i],i))
+					tmp.sort()
+					
+					# Work out x-axis values. This is complicated for dates
+					t0=timetosec(tmp[0][0])
+					t1=timetosec(tmp[-1][0])
+					totaltime=t1-t0		# total time span in seconds
+					
+					if totaltime<72*3600:	# by hour, less than 3 days
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:13]]+=1
+							except: tmp2[i[0][:13]]=1
+					elif totaltime<31*24*3600:	# by day, less than ~1 month
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:10]]+=1
+							except: tmp2[i[0][:10]]=1
+					elif totaltime<52*7*24*3600: # by week, less than ~1 year
+						tmp2={}
+						for i in tmp:
+							ts=timetoweekstr(i[0])
+							try: tmp2[ts]+=1
+							except: tmp2[ts]=1
+					elif totaltime<5*365*24*3600: # by month, less than ~5 years
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:7]]+=1
+							except: tmp2[i[0][:7]]=1
+					else :	# by year
+						tmp2={}
+						for i in tmp:
+							try: tmp2[i[0][:4]]+=1
+							except: tmp2[i[0][:4]]=1
+					
+					ret2=tmp2.items()
+				elif (pd.vartype in ("choice","string")):
+					# get all of the values for the histogrammed field
+					# and associated record ids. Note that for string/choice
+					# this may be a list of values rather than a single value
+					for i in byrecdef: 
+						v=ibvh[i]
+						if isinstance(v,str) : tmp.append((v,i))
+						else:
+							for j in v: tmp.append((j,i))
+					tmp.sort()
+					
+					# a string field
+					tmp2={}
+					for i in tmp:
+						try: tmp2[i[0]]+=1
+						except: tmp2[i[0]]=1
+					
+					ret2=tmp2.items()
+					
+#				ret2.sort()
+				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts", 'querytime':time.time()-tm0}
+
+			
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
