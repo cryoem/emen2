@@ -1234,7 +1234,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","==","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
-	def query(self,query,ctxid,host=None) :
+	def query(self,query,ctxid,host=None,retindex=False) :
 		"""This performs a general database query.
 @ - protocol name
 $ - parameter name
@@ -1391,59 +1391,73 @@ parentheses grouping not supported yet"""
 					except: dct[r.rectype]=[i]
 			ret=dct
 		else: ret=byrecdef
+		
+		
 		if os.environ.has_key('EMEN2DIR'):
 			theDir = os.environ['EMEN2DIR']
 		else:
 			theDir = "/home/emen2"		
+		
 		if command=="find" :
-			return ret
+			# Simple find request, no further processing required
+			return { 'type':'find', 'querytime':time()-tm0, 'data':ret }
 		elif command=="plot" :
 			# This deals with 'plot' requests, which are currently 2D scatter plots
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
 			# a dictionary of such lists. Note that currently output is also
 			# written to plot*txt text files
 			if isinstance(ret,dict) :
-				xyDataDict = {}
+				multi = {}
 				# this means we had a 'groupby' request	
 				x0,x1,y0,y1=1e38,-1e38,1e38,-1e38
 				for j in ret.keys():
-					ret2=[]
+					ret2x=[]
+					ret2y=[]
+					ret2i=[]
 					for i in ret[j]:
-						ret2.append((ibvx[i],ibvy[i], i))
+						ret2x.append(ibvx[i])
+						ret2y.append(ibvy[i])
+						ret2i.append(i)
 						x0=min(x0,ibvx[i])
 						y0=min(y0,ibvy[i])
 						x1=max(x1,ibvx[i])
 						y1=max(y1,ibvy[i])
-					ret2.sort()
-					xyDataDict[j]=ret2
-					"""
-					out=file(os.path.join(theDir, "plot."+str(j) +".txt"),"w")
-					for i in ret2:
-						if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-					out.close()
-					"""
-				return {'type': 'plot', 'data': xyDataDict, 'minmax': (x0,y0,x1,y1), 'x': comops[1][1:], 'y': comops[0][1:], 'groupby': groupby, 'querytime':time()-tm0}
+					
+					if retindex:
+						multi[j]={ 'x':ret2x,'y':ret2y,'i':ret2i }
+					else:
+						multi[j]={ 'x':ret2x,'y':ret2y }
+				return {'type': 'multiplot', 'data': multi, 'xrange': (x0,x1), 'yrange': (y0,y1), 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'groupby': groupby, 'querytime':time.time()-tm0, 'query':query2}
 	
 			else:
 				# no 'groupby', just a single query
-				ret2=[]
+				x0,x1,y0,y1=1e38,-1e38,1e38,-1e38
+				ret2x=[]
+				ret2y=[]
+				ret2i=[]
 				for i in byrecdef:
-					ret2.append((ibvx[i],ibvy[i], i))
-				ret2.sort()
-#				out=file(os.path.join(theDir, "plot.txt"),"w")
-#				for i in ret2:
-#					if i[0] and i[1] : out.write("%s\t%s\n"%(str(i[0]),str(i[1])))
-#				out.close()
-				#return ret
-				return {'type': 'plot', 'data': ret2, 'x': comops[1][1:], 'y': comops[0][1:], 'querytime':time.time()-tm0}
-			
+					ret2x.append(ibvx[i])
+					ret2y.append(ibvy[i])
+					ret2i.append(i)
+					x0=min(x0,ibvx[i])
+					y0=min(y0,ibvy[i])
+					x1=max(x1,ibvx[i])
+					y1=max(y1,ibvy[i])
+
+				if retindex :
+					return {'type': 'plot', 'data': {'x':ret2x,'y':ret2y,'i':ret2i}, 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'xrange': (x0,x1), 'yrange': (y0,y1), 'querytime':time.time()-tm0,'query':query2}
+				else:
+					return {'type': 'plot', 'data': {'x':ret2x,'y':ret2y}, 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'xrange': (x0,x1), 'yrange': (y0,y1), 'querytime':time.time()-tm0,'query':query2}
 		elif command=="histogram" :
 			# This deals with 'histogram' requests
 			# This is much more complicated than the plot query, since a wide variety
 			# of datatypes must be handled sensibly
 			if len(byrecdef)==0 : return (-1,"no records found","")
 			
-			if isinstance(ret,dict) :		# this means we had a 'groupby' request
+			if not isinstance(ret,dict) :		# we make non groupby requests look like a groupby with one null category
+				ret={"":ret}
+				
+			if 1:
 				ret2={}
 				tmp=[]
 				pd=self.getparamdef(comops[0][1:])
@@ -1558,111 +1572,32 @@ parentheses grouping not supported yet"""
 					# get all of the values for the histogrammed field
 					# and associated record ids. Note that for string/choice
 					# this may be a list of values rather than a single value
-					for i in byrecdef: 
-						v=ibvh[i]
-						if isinstance(v,str) : tmp.append((v,i))
-						else:
-							for j in v: tmp.append((j,i))
-					tmp.sort()
+					gkeys=Set()		# group key list
+					vkeys=Set()		# item key list
+					for k,j in ret.items(): 
+						gkeys.add(k)
+						for i in j: 
+							v=ibvh[i]
+							vkeys.add(v)
+							if isinstance(v,str) : tmp.append((v,i,k))
+							else:
+								for l in v: tmp.append((l,i,k))
 					
+					gkeys=list(gkeys)
+					gkeys.sort()
+					vkeys=list(vkeys)
+					vkeys.sort()
+
 					# a string field
-					tmp2={}
+					tmp2=[[0]*len(vkeys) for i in range(len(gkeys))]
 					for i in tmp:
-						try: tmp2[i[0]]+=1
-						except: tmp2[i[0]]=1
+						tmp2[gkeys.index(i[2])][vkeys.index(i[0])]+=1
 					
-					ret2=tmp2.items()
+					ret2={ 'keys':gkeys,'x':vkeys}
+					for i,j in enumerate(tmp2): ret2[i]=tmp2[i]
 					
 #				ret2.sort()
-				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts", 'querytime':time.time()-tm0}
-			else:
-				# no 'groupby', just a single query
-				ret2=[]
-				tmp=[]
-				pd=self.getparamdef(comops[0][1:])
-				
-				
-				if (pd.vartype in ("int","longint","float","longfloat")) :
-					# get all of the values for the histogrammed field
-					# and associated numbers
-					for i in byrecdef: tmp.append((ibvh[i],i))
-					tmp.sort()
-					
-					# Find limits and make a decent range for the histogram
-					m0,m1=float(tmp[0][0]),float(tmp[-1][0])
-					n=min(len(tmp)/10,50)
-					step=setdigits((m1-m0)/(n-1),2)		# round the step to 2 digits
-					m0=step*(floor(m0/step)-.5)				# round the min val to match step size
-					n=int(ceil((m1-m0)/step))+1
-#					if m0+step*n<=m1 : n+=1
-					digits=max(0,1-floor(log10(step)))
-					fmt="%%1.%df"%digits
-					
-					ret2=[0]*n
-					for i in tmp:
-						ret2[int(floor((i[0]-m0)/step))]+=1
-					
-					ret2=[(fmt%((i[0]+0.5)*step+m0),i[1]) for i in enumerate(ret2)]
-				elif (pd.vartype in ("date","datetime")) :
-					# get all of the values for the histogrammed field
-					# and associated numbers
-					for i in byrecdef: tmp.append((ibvh[i],i))
-					tmp.sort()
-					
-					# Work out x-axis values. This is complicated for dates
-					t0=timetosec(tmp[0][0])
-					t1=timetosec(tmp[-1][0])
-					totaltime=t1-t0		# total time span in seconds
-					
-					if totaltime<72*3600:	# by hour, less than 3 days
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:13]]+=1
-							except: tmp2[i[0][:13]]=1
-					elif totaltime<31*24*3600:	# by day, less than ~1 month
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:10]]+=1
-							except: tmp2[i[0][:10]]=1
-					elif totaltime<52*7*24*3600: # by week, less than ~1 year
-						tmp2={}
-						for i in tmp:
-							ts=timetoweekstr(i[0])
-							try: tmp2[ts]+=1
-							except: tmp2[ts]=1
-					elif totaltime<5*365*24*3600: # by month, less than ~5 years
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:7]]+=1
-							except: tmp2[i[0][:7]]=1
-					else :	# by year
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:4]]+=1
-							except: tmp2[i[0][:4]]=1
-					
-					ret2=tmp2.items()
-				elif (pd.vartype in ("choice","string")):
-					# get all of the values for the histogrammed field
-					# and associated record ids. Note that for string/choice
-					# this may be a list of values rather than a single value
-					for i in byrecdef: 
-						v=ibvh[i]
-						if isinstance(v,str) : tmp.append((v,i))
-						else:
-							for j in v: tmp.append((j,i))
-					tmp.sort()
-					
-					# a string field
-					tmp2={}
-					for i in tmp:
-						try: tmp2[i[0]]+=1
-						except: tmp2[i[0]]=1
-					
-					ret2=tmp2.items()
-					
-				ret2.sort()
-				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts", 'querytime':time.time()-tm0}
+				return {'type': 'histogram', 'data': ret2, 'xlabel': comops[0][1:], 'ylabel': "Counts", 'querytime':time.time()-tm0,'query':query2}
 			
 		elif command=="timeline" :
 			pass
