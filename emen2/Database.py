@@ -1400,7 +1400,7 @@ parentheses grouping not supported yet"""
 		
 		if command=="find" :
 			# Simple find request, no further processing required
-			return { 'type':'find', 'querytime':time()-tm0, 'data':ret }
+			return { 'type':'find', 'querytime':time.time()-tm0, 'data':tuple(ret) }
 		elif command=="plot" :
 			# This deals with 'plot' requests, which are currently 2D scatter plots
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
