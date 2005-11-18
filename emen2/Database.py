@@ -1439,16 +1439,14 @@ parentheses grouping not supported yet"""
 			
 		elif command=="histogram" :
 			# This deals with 'histogram' requests
-			# It will return a sorted list of (x,y) pairs, or if a groupby request,
-			# a dictionary of such lists. Note that currently output is also
-			# written to plot*txt text files
+			# This is much more complicated than the plot query, since a wide variety
+			# of datatypes must be handled sensibly
 			if len(byrecdef)==0 : return (-1,"no records found","")
 			
 			if isinstance(ret,dict) :		# this means we had a 'groupby' request
 				ret2={}
 				tmp=[]
 				pd=self.getparamdef(comops[0][1:])
-				
 				
 				if (pd.vartype in ("int","longint","float","longfloat")) :
 					# get all of the values for the histogrammed field
@@ -1482,7 +1480,9 @@ parentheses grouping not supported yet"""
 				elif (pd.vartype in ("date","datetime")) :
 					# get all of the values for the histogrammed field
 					# and associated numbers
-					for i in byrecdef: tmp.append((ibvh[i],i))
+					# This could be rewritten MUCH more concisely
+					for k,j in ret.items(): 
+						for i in j: tmp.append((ibvh[i],i,k))
 					tmp.sort()
 					
 					# Work out x-axis values. This is complicated for dates
@@ -1490,34 +1490,70 @@ parentheses grouping not supported yet"""
 					t1=timetosec(tmp[-1][0])
 					totaltime=t1-t0		# total time span in seconds
 					
-					if totaltime<72*3600:	# by hour, less than 3 days
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:13]]+=1
-							except: tmp2[i[0][:13]]=1
-					elif totaltime<31*24*3600:	# by day, less than ~1 month
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:10]]+=1
-							except: tmp2[i[0][:10]]=1
-					elif totaltime<52*7*24*3600: # by week, less than ~1 year
-						tmp2={}
-						for i in tmp:
-							ts=timetoweekstr(i[0])
-							try: tmp2[ts]+=1
-							except: tmp2[ts]=1
-					elif totaltime<5*365*24*3600: # by month, less than ~5 years
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:7]]+=1
-							except: tmp2[i[0][:7]]=1
-					else :	# by year
-						tmp2={}
-						for i in tmp:
-							try: tmp2[i[0][:4]]+=1
-							except: tmp2[i[0][:4]]=1
+					# now we build the actual histogram. Result is ret2 = { 'keys':keylist,'x':xvalues,1:first hist,2:2nd hist,... }
+					ret2={}
+					ret2['keys']=[]
+					ret2['x']=[]
 					
-					ret2=tmp2.items()
+					if totaltime<72*3600:	# by hour, less than 3 days
+						for i in range(t0,t1+3599,3600):
+							t=localtime(i)
+							ret2['x'].append("%4d/%2d/%2d %2d"%(t[0],t[1],t[2],t[3]))
+						n=len(ret2['x'])
+						for i in tmp:
+							if not i[2] in ret2['keys']: 
+								ret2['keys'].append(i[2])
+								kn=ret2['keys'].index(i[2])
+								ret2[kn]=[0]*n
+							ret2[kn][ret2['x'].index(i[0][:13])]+=1
+						
+					elif totaltime<31*24*3600:	# by day, less than ~1 month
+						for i in range(t0,t1+3600*24-1,3600*24):
+							t=localtime(i)
+							ret2['x'].append("%4d/%2d/%2d"%(t[0],t[1],t[2]))
+						n=len(ret2['x'])
+						for i in tmp:
+							if not i[2] in ret2['keys']: 
+								ret2['keys'].append(i[2])
+								kn=ret2['keys'].index(i[2])
+								ret2[kn]=[0]*n
+							ret2[kn][ret2['x'].index(i[0][:10])]+=1
+						
+					elif totaltime<52*7*24*3600: # by week, less than ~1 year
+						for i in range(t0,t1+3600*24-1,3600*24*7):
+							t=localtime(i)
+							ret2['x'].append(timetoweekstr("%4d/%2d/%2d"%(t[0],t[1],t[2])))
+						n=len(ret2['x'])
+						for i in tmp:
+							if not i[2] in ret2['keys']: 
+								ret2['keys'].append(i[2])
+								kn=ret2['keys'].index(i[2])
+								ret2[kn]=[0]*n
+							ret2[kn][ret2['x'].index(timetoweekstr(i[0]))]+=1
+						
+					elif totaltime<5*365*24*3600: # by month, less than ~5 years
+						m0=int(tmp[0][0][:4])*12 +int(tmp[0][0][5:7])-1
+						m1=int(tmp[-1][0][:4])*12+int(tmp[-1][0][5:7])-1
+						for i in range(m0,m1+1):
+							ret2['x'].append("%4d/%2d"%(i/12,(i%12)+1))
+						n=len(ret2['x'])
+						for i in tmp:
+							if not i[2] in ret2['keys']: 
+								ret2['keys'].append(i[2])
+								kn=ret2['keys'].index(i[2])
+								ret2[kn]=[0]*n
+							ret2[kn][ret2['x'].index(i[0][:7])]+=1
+					else :	# by year
+						for i in range(int(tmp[0][0][:4]),int(tmp[-1][0][:4])+1):
+							ret2['x'].append("%4d"%i)
+						n=len(ret2['x'])
+						for i in tmp:
+							if not i[2] in ret2['keys']: 
+								ret2['keys'].append(i[2])
+								kn=ret2['keys'].index(i[2])
+								ret2[kn]=[0]*n
+							ret2[kn][ret2['x'].index(i[0][:4])]+=1
+					
 				elif (pd.vartype in ("choice","string")):
 					# get all of the values for the histogrammed field
 					# and associated record ids. Note that for string/choice
@@ -1539,8 +1575,6 @@ parentheses grouping not supported yet"""
 					
 #				ret2.sort()
 				return {'type': 'histogram', 'data': ret2, 'x': comops[0][1:], 'y': "Counts", 'querytime':time.time()-tm0}
-
-			
 			else:
 				# no 'groupby', just a single query
 				ret2=[]
