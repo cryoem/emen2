@@ -1274,8 +1274,8 @@ parentheses grouping not supported yet"""
 				
 				# We make sure that any record containing either parameter is included
 				# in the results by default, and cache the values for later use in plotting
-				ibvx=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
-				ibvy=self.getindexdictbyvalue(comops[1][1:],None,ctxid,host)
+				ibvx=self.getindexdictbyvalue(comops[1][1:],None,ctxid,host)
+				ibvy=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
 				
 				if len(byparamval)>0 : byparamval.intersection_update(ibvx.keys())
 				else: byparamval=Set(ibvx.keys())
