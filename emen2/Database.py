@@ -1500,8 +1500,8 @@ parentheses grouping not supported yet"""
 					tmp.sort()
 					
 					# Work out x-axis values. This is complicated for dates
-					t0=timetosec(tmp[0][0])
-					t1=timetosec(tmp[-1][0])
+					t0=int(timetosec(tmp[0][0]))
+					t1=int(timetosec(tmp[-1][0]))
 					totaltime=t1-t0		# total time span in seconds
 					
 					# now we build the actual histogram. Result is ret2 = { 'keys':keylist,'x':xvalues,1:first hist,2:2nd hist,... }
@@ -1511,55 +1511,59 @@ parentheses grouping not supported yet"""
 					
 					if totaltime<72*3600:	# by hour, less than 3 days
 						for i in range(t0,t1+3599,3600):
-							t=localtime(i)
-							ret2['x'].append("%4d/%2d/%2d %2d"%(t[0],t[1],t[2],t[3]))
+							t=time.localtime(i)
+							ret2['x'].append("%04d/%02d/%02d %02d"%(t[0],t[1],t[2],t[3]))
 						n=len(ret2['x'])
 						for i in tmp:
 							if not i[2] in ret2['keys']: 
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
-							ret2[kn][ret2['x'].index(i[0][:13])]+=1
+							try: ret2[kn][ret2['x'].index(i[0][:13])]+=1
+							except: print "Index error on ",i[0]
 						
 					elif totaltime<31*24*3600:	# by day, less than ~1 month
 						for i in range(t0,t1+3600*24-1,3600*24):
-							t=localtime(i)
-							ret2['x'].append("%4d/%2d/%2d"%(t[0],t[1],t[2]))
+							t=time.localtime(i)
+							ret2['x'].append("%04d/%02d/%02d"%(t[0],t[1],t[2]))
 						n=len(ret2['x'])
 						for i in tmp:
 							if not i[2] in ret2['keys']: 
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
-							ret2[kn][ret2['x'].index(i[0][:10])]+=1
+							try: ret2[kn][ret2['x'].index(i[0][:10])]+=1
+							except: print "Index error on ",i[0]
 						
 					elif totaltime<52*7*24*3600: # by week, less than ~1 year
-						for i in range(t0,t1+3600*24-1,3600*24*7):
-							t=localtime(i)
-							ret2['x'].append(timetoweekstr("%4d/%2d/%2d"%(t[0],t[1],t[2])))
+						for i in range(int(t0),int(t1)+3600*24*7-1,3600*24*7):
+							t=time.localtime(i)
+							ret2['x'].append(timetoweekstr("%04d/%02d/%02d"%(t[0],t[1],t[2])))
 						n=len(ret2['x'])
 						for i in tmp:
 							if not i[2] in ret2['keys']: 
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
-							ret2[kn][ret2['x'].index(timetoweekstr(i[0]))]+=1
-						
+							try: ret2[kn][ret2['x'].index(timetoweekstr(i[0]))]+=1
+							except: print "Index error on ",i[0]
+							
 					elif totaltime<5*365*24*3600: # by month, less than ~5 years
 						m0=int(tmp[0][0][:4])*12 +int(tmp[0][0][5:7])-1
 						m1=int(tmp[-1][0][:4])*12+int(tmp[-1][0][5:7])-1
 						for i in range(m0,m1+1):
-							ret2['x'].append("%4d/%2d"%(i/12,(i%12)+1))
+							ret2['x'].append("%04d/%02d"%(i/12,(i%12)+1))
 						n=len(ret2['x'])
 						for i in tmp:
 							if not i[2] in ret2['keys']: 
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
-							ret2[kn][ret2['x'].index(i[0][:7])]+=1
+							try: ret2[kn][ret2['x'].index(i[0][:7])]+=1
+							except: print "Index error on ",i[0]
 					else :	# by year
 						for i in range(int(tmp[0][0][:4]),int(tmp[-1][0][:4])+1):
-							ret2['x'].append("%4d"%i)
+							ret2['x'].append("%04d"%i)
 						n=len(ret2['x'])
 						for i in tmp:
 							if not i[2] in ret2['keys']: 
