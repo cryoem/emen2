@@ -50,7 +50,6 @@ class dbisolator:
 		return db.checkcontext(self,ctxid,host)
 	
 	def meth_query(self, query, ctxid, host=None, retindex=False):
-		
        		return db.query(query, ctxid, host, retindex)
 	
 	def meth_getindexbyuser(self,username,ctxid,host=None):
@@ -115,9 +114,16 @@ class dbisolator:
 	
 	def meth_getworkflow(self,ctxid,host=None):
 		return db.getworkflow(ctxid,host)
-		
+
+	def meth_newworkflow(self, with):
+		theobj = db.newworkflow(with)
+		return theobj
+	
+	def meth_getworkflowitem(self,wfid,ctxid,host=None):
+		return db.getworkflowitem(wfid, ctxid, host)
+	
 	def meth_addworkflowitem(self,work,ctxid,host=None) :
-		db.addworkflowitem(work,ctxid,host)
+		return db.addworkflowitem(work,ctxid,host)
 		
 	def meth_delworkflowitem(self,wfid,ctxid,host=None) :
 		db.delworkflowitem(wfid,ctxid,host)
