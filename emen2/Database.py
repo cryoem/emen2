@@ -737,7 +737,7 @@ class WorkFlow:
 			self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 	def __str__(self):
-		return str(__dict__)
+		return str(self.__dict__)
 			
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
@@ -1202,8 +1202,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
 		Note that both key and host must match."""
-#		if (time.time()>self.lastctxclean+30):
-#			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
+		if (time.time()>self.lastctxclean+30):
+			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 		
 		try:
 			ctx=self.__contexts[key]
@@ -2066,6 +2066,20 @@ parentheses not supported yet. Upon failure returns a tuple:
 		except:
 			return []
 
+	def getworkflowitem(self,wfid,ctxid,host=None):
+		ret = None
+		wflist = self.getworkflow(ctxid)
+		if len(wflist) == 0:
+		     return None
+	        else:
+		     for thewf in wflist:
+			     if thewf.wfid == wfid:
+				     ret = thewf
+		return ret
+		
+	def newworkflow(self, with) :
+		return WorkFlow(with)
+		
 	def addworkflowitem(self,work,ctxid,host=None) :
 		"""This appends a new workflow object to the user's list. wfid will be assigned by this function"""
 		
@@ -2076,11 +2090,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		work.wfid=self.__workflow[-1]
 		self.__workflow[-1]=work.wfid+1
+
 		
+	
 		if self.__workflow.has_key(ctx.user) :
-			wf=self.__workflow[ctx.user]
-			wf.append(work)
-			self.__workflow[ctx.user]=wf
+		        wf=self.__workflow[ctx.user]
+	        else:
+			wf = []
+			
+		wf.append(work)
+		self.__workflow[ctx.user]=wf
+		return work.wfid
 	
 	def delworkflowitem(self,wfid,ctxid,host=None) :
 		"""This will remove a single workflow object"""
