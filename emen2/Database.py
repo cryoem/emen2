@@ -1487,6 +1487,7 @@ parentheses grouping not supported yet"""
 							ret2['keys'].append(i[2])
 							kn=ret2['keys'].index(i[2])
 							ret2[kn]=[0]*n
+						else: kn=ret2['keys'].index(i[2])
 						ret2[kn][int(floor((i[0]-m0)/step))]+=1
 					
 					# These are the x values
@@ -1519,6 +1520,7 @@ parentheses grouping not supported yet"""
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
+							else: kn=ret2['keys'].index(i[2])
 							try: ret2[kn][ret2['x'].index(i[0][:13])]+=1
 							except: print "Index error on ",i[0]
 						
@@ -1532,6 +1534,7 @@ parentheses grouping not supported yet"""
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
+							else: kn=ret2['keys'].index(i[2])
 							try: ret2[kn][ret2['x'].index(i[0][:10])]+=1
 							except: print "Index error on ",i[0]
 						
@@ -1545,10 +1548,11 @@ parentheses grouping not supported yet"""
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
+							else: kn=ret2['keys'].index(i[2])
 							try: ret2[kn][ret2['x'].index(timetoweekstr(i[0]))]+=1
 							except: print "Index error on ",i[0]
 							
-					elif totaltime<5*365*24*3600: # by month, less than ~5 years
+					elif totaltime<4*365*24*3600: # by month, less than ~4 years
 						m0=int(tmp[0][0][:4])*12 +int(tmp[0][0][5:7])-1
 						m1=int(tmp[-1][0][:4])*12+int(tmp[-1][0][5:7])-1
 						for i in range(m0,m1+1):
@@ -1559,6 +1563,7 @@ parentheses grouping not supported yet"""
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
+							else: kn=ret2['keys'].index(i[2])
 							try: ret2[kn][ret2['x'].index(i[0][:7])]+=1
 							except: print "Index error on ",i[0]
 					else :	# by year
@@ -1570,6 +1575,7 @@ parentheses grouping not supported yet"""
 								ret2['keys'].append(i[2])
 								kn=ret2['keys'].index(i[2])
 								ret2[kn]=[0]*n
+							else: kn=ret2['keys'].index(i[2])
 							ret2[kn][ret2['x'].index(i[0][:4])]+=1
 					
 				elif (pd.vartype in ("choice","string")):
@@ -1770,8 +1776,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
-			try: a=self.getrecord(key,ctxid)
-			except: return Set()
+			print "tgr ",key
+			if not self.trygetrecord(key,ctxid,host) : return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
@@ -1789,7 +1795,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			r2+=self.getchildren(i[0],keytype,paramname,recurse-1,ctxid,host)
 		
 		return Set(ret+r2)
-		
+
 	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
@@ -2604,7 +2610,9 @@ or None if no match is found."""
 		ctx=self.__getcontext(ctxid,host)
 		
 		if ctx.user=="root" : return range(self.__records[-1]+1)
-		return self.__secrindex[ctx.user]
+		ret=Set(self.__secrindex[ctx.user])
+		for i in ctx.groups: ret|=Set(self.__secrindex[i])
+		return ret
 	
 	def getrecordschangetime(self,recids,ctxid,host=None):
 		"""Returns a list of times for a list of recids. Times represent the last modification 
@@ -2620,6 +2628,14 @@ or None if no match is found."""
 		
 		return ret 
 			
+ 	def trygetrecord(self,recid,ctxid,dbid,host=None):
+		"""Checks to see if a record could be retrieved without actually retrieving it. Much faster."""
+		ctx=self.__getcontext(ctxid,host)
+		if recid in self.__secrindex[ctx.user] : return 1
+		for i in ctx.groups: 
+			if recid in self.__secrindex[i] : return 1
+		return 0
+	
 	def getrecord(self,recid,ctxid,dbid=0,host=None) :
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
