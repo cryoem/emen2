@@ -361,6 +361,11 @@ class FieldBTree:
 		key=self.typekey(key)
 		self.bdb.index_remove(key,item)
 		
+	def testref(self,key,item):
+		"""Tests for the presence if item in key'ed index """
+		key=self.typekey(key)
+		self.bdb.index_test(key,item)
+	
 	def addref(self,key,item):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		key=self.typekey(key)
@@ -1367,7 +1372,7 @@ parentheses grouping not supported yet"""
 						try: dct[gbi[i]].append(i)
 						except: dct[gbi[i]]=[i]
 					else :
-						p=self.getparents(i,'record',3,ctxid)
+						p=self.__getparentssafe(i,'record',3,ctxid)
 						for j in p:
 							if gbi.has_key(j) :
 								try: dct[gbi[j]].append(i)
@@ -1376,7 +1381,7 @@ parentheses grouping not supported yet"""
 				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid)
 				print len(byrecdef)
 				for i in byrecdef:
-					p=self.getparents(i,'record',10,ctxid)
+					p=self.__getparentssafe(i,'record',10,ctxid)
 					p&=alloftype
 					if len(p)==1:
 						p=p.pop()
@@ -1805,8 +1810,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
-			try: a=self.getrecord(key,ctxid)
-			except: return Set()
+			if not self.trygetrecord(key,ctxid,host) : return Set()
+#			try: a=self.getrecord(key,ctxid)
+#			except: return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
@@ -1827,12 +1833,35 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
-		if keytype=="record" : return Set(self.__records.cousins(key))
+		if keytype=="record" : 
+			if not self.trygetrecord(key,ctxid,host) : return Set()
+			return Set(self.__records.cousins(key))
 		if keytype=="recorddef" : return Set(self.__recorddefs.cousins(key))
 		if keytype=="paramdef" : return Set(self.__paramdefs.cousins(key))
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
+	def __getparentssafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+		"""Version of getparents with no security checks"""
+		
+		if (recurse<0): return Set()
+		if keytype=="record" : 
+			trg=self.__records
+		elif keytype=="recorddef" : 
+			trg=self.__recorddefs
+		elif keytype=="paramdef" : 
+			trg=self.__paramdefs
+		else: raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+		
+		ret=trg.parents(key)
+		
+		if recurse==0 : return Set(ret)
+		
+		r2=[]
+		for i in ret:
+			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host)
+		return Set(ret+r2)
+		
 	def pclink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must
@@ -2628,15 +2657,19 @@ or None if no match is found."""
 		
 		return ret 
 			
- 	def trygetrecord(self,recid,ctxid,dbid,host=None):
-		"""Checks to see if a record could be retrieved without actually retrieving it. Much faster."""
+ 	def trygetrecord(self,recid,ctxid,host=None,dbid=0):
+		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
-		if recid in self.__secrindex[ctx.user] : return 1
+		if ctx.user=="root": return 1
+		if self.__secrindex.testref(ctx.user,recid) : return 1
 		for i in ctx.groups: 
-			if recid in self.__secrindex[i] : return 1
+			try:
+				if recid in self.__secrindex[i] : return 1
+			except: 
+				continue
 		return 0
 	
-	def getrecord(self,recid,ctxid,dbid=0,host=None) :
+	def getrecord(self,recid,ctxid,host=None,dbid=0) :
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
 		context"""
