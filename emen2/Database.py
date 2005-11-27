@@ -1372,23 +1372,20 @@ parentheses grouping not supported yet"""
 						try: dct[gbi[i]].append(i)
 						except: dct[gbi[i]]=[i]
 					else :
-						p=self.__getparentssafe(i,'record',3,ctxid)
+						p=self.__getparentssafe(i,'record',4,ctxid)
 						for j in p:
 							if gbi.has_key(j) :
 								try: dct[gbi[j]].append(i)
 								except: dct[gbi[j]]=[i]
 			elif groupby[0]=="@":
 				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid)
-				print len(byrecdef)
 				for i in byrecdef:
 					p=self.__getparentssafe(i,'record',10,ctxid)
 					p&=alloftype
-					if len(p)==1:
-						p=p.pop()
-						try: dct[p].append(i)
-						except: dct[p]=[i]
-						print p
-					else: print p,alloftype,self.getparents(i,'record',10,ctxid)
+					for j in p:
+						try: dct[j].append(i)
+						except: dct[j]=[i]
+#					else: print p,alloftype,self.getparents(i,'record',10,ctxid)
 			elif groupby in ("class","protocol","recorddef") :
 				for i in byrecdef:
 					r=self.getrecord(i,ctxid)
