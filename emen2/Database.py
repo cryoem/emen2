@@ -1778,7 +1778,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
-			print "tgr ",key
 			if not self.trygetrecord(key,ctxid,host) : return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
