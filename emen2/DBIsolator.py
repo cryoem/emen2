@@ -64,7 +64,7 @@ class dbisolator:
 	def meth_getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 		return db.getindexbyvalue(paramname,valrange,ctxid,host)
 	
-	def meth_getchildren(self,key,ctxid=None,keytype="record",paramname=None,recurse=0,host=None):
+	def meth_getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		return db.getchildren(key,keytype,paramname,recurse,ctxid,host)
 		
 	def meth_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
@@ -179,8 +179,8 @@ class dbisolator:
 	def meth_getrecordschangetime(self,recids,ctxid,host=None):
 		return db.getrecordschangetime(recids,ctxid,host)
 	
-	def meth_getrecord(self,recid,ctxid,dbid=0,host=None) :
-		rec=db.getrecord(recid,ctxid,dbid,host)
+	def meth_getrecord(self,recid,ctxid,host=None,dbid=0) :
+		rec=db.getrecord(recid,ctxid,host,dbid)
 		rec.localcpy=1
 		return rec
 		
