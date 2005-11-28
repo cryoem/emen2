@@ -2003,12 +2003,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
 		if len(user.password)<5 :
-			raise SecurityError,"Passwords must be at least 5 characters long"
-		
+			if not self.__importmode:
+			    raise SecurityError,"Passwords must be at least 5 characters long"
+		        else:
+			    pass
 		if len(user.password)!=40 :
 			# we disallow bad passwords here, right now we just make sure that it 
 			# is at least 6 characters long
-			if len(user.password)<6 : raise SecurityError,"Passwords must be at least 6 characters long"
+			if len(user.password)<6 :
+			   if not self.__importmode:	
+				raise SecurityError,"Passwords must be at least 6 characters long"
+			   else:
+				pass
 			s=sha.new(user.password)
 			user.password=s.hexdigest()
 		if not self.__importmode:
