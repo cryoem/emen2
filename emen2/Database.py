@@ -1326,11 +1326,7 @@ parentheses grouping not supported yet"""
 				else: byparamval=self.getcousins(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
 				n+=2
 				continue
-			elif i[0]=="@" or i in ("find","timeline") :
-				n+=1
-				continue
-			elif i[0]=='!' :
-				excludelist.append(i[1:])
+			elif i[0]=="@" or "!" or i in ("find","timeline") :
 				n+=1
 				continue
 			elif i[0]=="%" :
