@@ -1241,6 +1241,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	
 	def query(self,query,ctxid,host=None,retindex=False) :
 		"""This performs a general database query.
+! - exclude protocol name
 @ - protocol name
 $ - parameter name
 % - username
@@ -1262,9 +1263,12 @@ parentheses grouping not supported yet"""
 		# multiple record types would always yield nothing, so we assume
 		# the intent is union, not intersection
 		byrecdef=Set()
+		excludeset=Set()
 		for n,i in enumerate(query2):
 			if isinstance(i,str) and i[0]=="@" and (query[n-1] not in ("by","group")):
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
+			if isinstance(i,str) and i[0]=="!":
+				excludeset|=self.getindexbyrecorddef(i[1:],ctxid)
 
 		# We go through the query word by word and perform each operation
 		byparamval=Set()
@@ -1325,6 +1329,10 @@ parentheses grouping not supported yet"""
 			elif i[0]=="@" or i in ("find","timeline") :
 				n+=1
 				continue
+			elif i[0]=='!' :
+				excludelist.append(i[1:])
+				n+=1
+				continue
 			elif i[0]=="%" :
 				if len(byparamval)>0 : byparamval&=self.getindexbyuser(i[1:],ctxid,host)
 				else: byparamval=self.getindexbyuser(i[1:],ctxid,host)
@@ -1355,6 +1363,9 @@ parentheses grouping not supported yet"""
 		
 		if len(byrecdef)==0: byrecdef=byparamval
 		elif len(byparamval)!=0: byrecdef&=byparamval 
+		
+		if len(excludeset)>0 : byrecdef-=excludeset
+			
 		
 		# Complicated block of code to handle 'groupby' queries
 		# this splits the Set of located records (byrecdef) into
@@ -1387,10 +1398,14 @@ parentheses grouping not supported yet"""
 						except: dct[j]=[i]
 #					else: print p,alloftype,self.getparents(i,'record',10,ctxid)
 			elif groupby in ("class","protocol","recorddef") :
-				for i in byrecdef:
-					r=self.getrecord(i,ctxid)
-					try: dct[r.rectype].append(i)
-					except: dct[r.rectype]=[i]
+#				for i in byrecdef:
+#					r=self.getrecord(i,ctxid)
+#					try: dct[r.rectype].append(i)
+#					except: dct[r.rectype]=[i]
+				for i in self.getrecorddefnames():
+					s=self.getindexbyrecorddef(i,ctxid,host)
+					ss=s&byrecdef
+					if len(ss)>0 : dct[i]=tuple(ss)
 			ret=dct
 		else: ret=byrecdef
 		
@@ -1620,6 +1635,7 @@ preprocessing involves remapping synonymous keywords/symbols and
 identification of parameter and recorddef names, it is normally
 called by query()
 
+! - exclude protocol
 @ - protocol name
 $ - parameter name
 % - username
@@ -1663,6 +1679,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 				a=self.findrecorddefname(e[1:])
 				if a==None : return (-1,"Invalid protocol",e)
 				elements[n]="@"+a
+				continue
+			if e[0]=='!':
+				a=self.findrecorddefname(e[1:])
+				if a==None : return (-1,"Invalid protocol",e)
+				elements[n]="!"+a
 				continue
 			elif e[0]=="$" :
 				a=self.findparamdefname(e[1:])
