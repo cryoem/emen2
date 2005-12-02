@@ -743,7 +743,12 @@ class WorkFlow:
 		
 	def __str__(self):
 		return str(self.__dict__)
-			
+	
+	def items_dict(self):		
+		ret={}
+		ret = self.__dict__
+		return ret
+					
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
@@ -2128,7 +2133,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	        else:
 		     for thewf in wflist:
 			     if thewf.wfid == wfid:
-				     ret = thewf
+				     ret = thewf.items_dict()
 		return ret
 		
 	def newworkflow(self, with) :
