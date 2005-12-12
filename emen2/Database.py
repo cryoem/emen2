@@ -1418,7 +1418,10 @@ parentheses grouping not supported yet"""
 		
 		if command=="find" :
 			# Simple find request, no further processing required
-			return { 'type':'find', 'querytime':time.time()-tm0, 'data':tuple(ret) }
+			if isinstance(ret, dict):
+				return { 'type':'find', 'querytime':time.time()-tm0, 'data':ret}
+			else:
+				return { 'type':'find', 'querytime':time.time()-tm0, 'data':tuple(ret) }
 		elif command=="plot" :
 			# This deals with 'plot' requests, which are currently 2D scatter plots
 			# It will return a sorted list of (x,y) pairs, or if a groupby request,
@@ -1772,6 +1775,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# This takes the returned dictionary of value/list of recids
 		# and makes a dictionary of recid/value pairs
 		ret={}
+		all = {}
+		for i,j in r.items():
+		      for k in j: all[k]=i
+		if subset:
+			for theID in subset:
+			    try:
+				ret[theID] = all[theID]
+			    except:
+				    pass
+		else:
+			ret = all
+		"""
 		if subset:
 			for i,j in r.items():
 				for k in j: 
@@ -1779,7 +1794,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		else:
 			for i,j in r.items():
 				for k in j: ret[k]=i
-		
+		"""
 		u,g=self.checkcontext(ctxid,host)
 		if (-1 in g) or (-2 in g) : return ret
 		
