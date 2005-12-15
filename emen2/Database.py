@@ -364,7 +364,7 @@ class FieldBTree:
 	def testref(self,key,item):
 		"""Tests for the presence if item in key'ed index """
 		key=self.typekey(key)
-		self.bdb.index_test(key,item)
+		return self.bdb.index_test(key,item)
 	
 	def addref(self,key,item):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
@@ -2700,10 +2700,11 @@ or None if no match is found."""
 		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user=="root": return 1
-		if self.__secrindex.testref(ctx.user,recid) : return 1
+		if self.__secrindex.testref(-3,recid) : return 1		# global read access
+		if self.__secrindex.testref(ctx.user,recid) : return 1	# user access
 		for i in ctx.groups: 
 			try:
-				if recid in self.__secrindex[i] : return 1
+				if self.__secrindex.testref(i,recid) : return 1
 			except: 
 				continue
 		return 0
