@@ -1804,7 +1804,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		for i in ret.keys():
 			if i not in secure : del ret[i]
 		
-		return ret & secure		# intersection of the two search results
+		#return ret & secure		# intersection of the two search results
+		return ret
 	
 	def getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
