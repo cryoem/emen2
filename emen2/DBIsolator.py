@@ -64,6 +64,9 @@ class dbisolator:
 	def meth_getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 		return db.getindexbyvalue(paramname,valrange,ctxid,host)
 	
+	def meth_getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
+		return db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset)
+	
 	def meth_getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		return db.getchildren(key,keytype,paramname,recurse,ctxid,host)
 		
