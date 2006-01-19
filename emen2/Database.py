@@ -706,6 +706,11 @@ administrators. -2 group is read-only administrator."""
 		return format_string_obj(self.__dict__,["username","groups","name","email","phone","fax","cellphone","webpage","",
 			"institution","department","address","city","state","zipcode","country","","disabled","privacy","creator","creationtime"])
 
+	def items_dict(self):		
+		ret={}
+		ret = self.__dict__
+		return ret	
+
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
@@ -966,8 +971,11 @@ class Record:
 			else: 
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
+			
 			if self.__params.has_key(key) and self.__params[key]==value : return
-			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
+			#if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
+			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.__ptest)
+			
 #			if key in self.__params  and self.__params[key]!=None:
 #				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
 			self.__realsetitem(key,value)
@@ -1214,7 +1222,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		Note that both key and host must match."""
 		if (time.time()>self.lastctxclean+30):
 			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
-		
+			pass
 		try:
 			ctx=self.__contexts[key]
 		except:
@@ -1801,11 +1809,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 		secure=self.getindexbyuser(None,ctxid,host)		# all records the user can access
 		
 		# remove any recids the user cannot access
+		
 		for i in ret.keys():
 			if i not in secure : del ret[i]
-		
-		#return ret & secure		# intersection of the two search results
 		return ret
+		#return ret & secure		# intersection of the two search results
+		"""
+		secureRet = {}
+		for i in ret.keys():
+			if i in secure : secureRet[i] = ret[i]
+	
+		return secureRet
+	        """
 	
 	def getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
@@ -2217,6 +2232,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		fixed list"""
 		return valid_vartypes.keys()
 
+	def getvartype(self, thekey):
+		"""This returns a list of all valid variable types in the database. This is currently a
+		fixed list"""
+		return valid_vartypes[thekey][1]
+
 	def getpropertynames(self):
 		"""This returns a list of all valid property types in the database. This is currently a
 		fixed list"""
@@ -2530,6 +2550,7 @@ or None if no match is found."""
 		######
 		try:
 			orig=self.__records[record.recid]		# get the unmodified record
+		
 		except:
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
@@ -2537,7 +2558,7 @@ or None if no match is found."""
 			#record.recid=self.__records[-1]+1
 			record.recid = self.__dbseq.get()                                # Get a new record-id
 			self.__records[-1]=record.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
-			
+		
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
 

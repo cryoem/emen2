@@ -77,7 +77,7 @@ class dbisolator:
 		return db.getcousins(key,keytype,ctxid,host)
 	
 	def meth_pclink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
-		db.pclink(pkey,ckey,keytype,paramname,ctxid,host)
+		return db.pclink(pkey,ckey,keytype,paramname,ctxid,host)
 	
 	def meth_pcunlink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
 		db.pcunlink(pkey,ckey,keytype,paramname,ctxid,host)
@@ -136,7 +136,10 @@ class dbisolator:
 		
 	def meth_getvartypenames(self):
 		return db.getvartypenames()
-		
+	
+	def meth_getvartype(self, thekey, thevalue):
+		return db.getvartype(thekey)(thevalue)
+	
 	def meth_getpropertynames(self):
 		return db.getpropertynames()
 		
@@ -171,7 +174,7 @@ class dbisolator:
 		return db.getrecorddefnames()
 	
 	def meth_putrecord(self,record,ctxid,host=None):
-		db.putrecord(record,ctxid,host)
+		return db.putrecord(record,ctxid,host)
 	
 	def meth_newrecord(self,rectype,ctxid,host=None,init=0):
 		return db.newrecord(rectype,ctxid,host,init)
