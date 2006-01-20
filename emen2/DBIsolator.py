@@ -177,7 +177,9 @@ class dbisolator:
 		return db.putrecord(record,ctxid,host)
 	
 	def meth_newrecord(self,rectype,ctxid,host=None,init=0):
-		return db.newrecord(rectype,ctxid,host,init)
+		rec=db.newrecord(rectype,ctxid,host,init)
+		rec.localcpy=1
+		return rec
 	
 	def meth_getrecordnames(self,ctxid,dbid=0,host=None) :
 		return db.getrecordnames(ctxid,dbid,host)
