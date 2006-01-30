@@ -597,7 +597,8 @@ valid_properties = {
 "dose":('e/A2/sec', {'e/A2/sec':1.0}),
 "currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
 "filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
-"percentage":('%', {'%':1.0})
+"percentage":('%', {'%':1.0}),
+"currency":("dollars",{"dollars":1.0})
 }
 
 
@@ -629,7 +630,7 @@ class RecordDef:
 	contained by the Record"""
 	def __init__(self,dict=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.mainview=None			# an XML string defining the experiment with embedded params
+		self.mainview=None			# a string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
 		self.views={}				# Dictionary of additional (named) views for the record
 		self.params={}				# A dictionary keyed by the names of all params used in any of the views
@@ -1135,6 +1136,10 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			self.__paramdefs["creationtime"]=pd
 			pd=ParamDef("modifytime","datetime","Modification timestamp","The date/time the record was last modified")
 			self.__paramdefs["modifytime"]=pd
+			pd=ParamDef("comments","text","Record comments","Record comments")
+			self.__paramdefs["comments"]=pd
+			pd=ParamDef("rectype","text","Record type","Record type (RecordDef)")
+			self.__paramdefs["rectype"]=pd
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
