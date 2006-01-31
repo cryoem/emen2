@@ -98,13 +98,17 @@ class dbisolator:
 		return db.getuserqueue(ctxid,host)
 		
 	def meth_putuser(self,user,ctxid,host=None):
-		db.putuser(user,ctxid,host)
+		return db.putuser(user,ctxid,host)
 	
 	def meth_setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		db.setpassword(username,oldpassword,newpassword,ctxid,host)
+
+	def meth_adduserdict(self,userdict):
+		theuser = Database.User(userdict)
+		return db.adduser(theuser)
 		
 	def meth_adduser(self,user):
-		db.adduser(user)
+		return db.adduser(user)
 
 	def meth_getqueueduser(self,username,ctxid,host=None):
 		return db.getqueueduser(username,ctxid,host)
