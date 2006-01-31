@@ -2083,7 +2083,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
-		ret=self.__newuserqueueu[username]
+		ret=self.__newuserqueue[username]
 		
 		ctx=self.__getcontext(ctxid,host)
 		
