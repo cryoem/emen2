@@ -657,12 +657,21 @@ class RecordDef:
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
 	
-	def findparams(self):
+	def findparams_old(self):
 		"""This will update the list of params by parsing the views"""
 		d=parseparmvalues(self.mainview)
 		for i in self.views.values():
 			d.update(parseparmvalues(i))
 		self.params=d
+
+	def findparams(self):
+	        d=parseparmvalues(self.mainview)
+		for i in self.views.values():
+		    thedict = parseparmvalues(i)
+		    for thekey in thedict.keys():
+		        if thekey not in d.keys():
+				d[thekey] = thedict[thekey]
+		self.params = d
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
