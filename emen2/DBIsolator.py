@@ -80,19 +80,20 @@ class dbisolator:
 		return db.pclink(pkey,ckey,keytype,paramname,ctxid,host)
 	
 	def meth_pcunlink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
-		db.pcunlink(pkey,ckey,keytype,paramname,ctxid,host)
+		return db.pcunlink(pkey,ckey,keytype,paramname,ctxid,host)
 	
 	def meth_link(self,key1,key2,keytype="record",ctxid=None,host=None):
-		db.link(key1,key2,keytype,ctxid,host)
+		return db.link(key1,key2,keytype,ctxid,host)
 		
 	def meth_unlink(self,key1,key2,keytype="record",ctxid=None,host=None):
-		db.unlink(key1,key2,keytype,ctxid,host)
+		return db.unlink(key1,key2,keytype,ctxid,host)
 	
 	def meth_disableuser(self,username,ctxid,host=None):
-		db.disableuser(username,ctxid,host)
+		return db.disableuser(username,ctxid,host)
 		
 	def meth_approveuser(self,username,ctxid,host=None):
-		db.approveuser(username,ctxid,host)
+		return db.approveuser(username,ctxid,host)
+		
 	
 	def meth_getuserqueue(self,ctxid,host=None):
 		return db.getuserqueue(ctxid,host)
@@ -100,13 +101,19 @@ class dbisolator:
 	def meth_putuser(self,user,ctxid,host=None):
 		return db.putuser(user,ctxid,host)
 	
+	def meth_putuserdict(self,userdict, ctxid, host=None):
+		theuser = Database.User(userdict)
+		return db.putuser(theuser, ctxid, host)
+		
+	
 	def meth_setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
-		db.setpassword(username,oldpassword,newpassword,ctxid,host)
+		return db.setpassword(username,oldpassword,newpassword,ctxid,host)
 
 	def meth_adduserdict(self,userdict):
 		theuser = Database.User(userdict)
-		return db.adduser(theuser)
-		
+		db.adduser(theuser)
+		return theuser
+	
 	def meth_adduser(self,user):
 		return db.adduser(user)
 
@@ -133,10 +140,10 @@ class dbisolator:
 		return db.addworkflowitem(work,ctxid,host)
 		
 	def meth_delworkflowitem(self,wfid,ctxid,host=None) :
-		db.delworkflowitem(wfid,ctxid,host)
+		return db.delworkflowitem(wfid,ctxid,host)
 	
 	def meth_setworkflow(self,wflist,ctxid,host=None) :
-		db.setworkflow(wflist,ctxid,host)
+		return db.setworkflow(wflist,ctxid,host)
 		
 	def meth_getvartypenames(self):
 		return db.getvartypenames()
@@ -151,10 +158,10 @@ class dbisolator:
 		return getpropertyunits(propname)
 		
 	def meth_addparamdef(self,paramdef,ctxid,host=None,parent=None):
-		db.addparamdef(paramdef,ctxid,host,parent)
+		return db.addparamdef(paramdef,ctxid,host,parent)
 		
 	def meth_addparamchoice(self,paramdefname,choice):
-		db.addparamchoice(paramdefname,choice)
+		return db.addparamchoice(paramdefname,choice)
 	
 	def meth_getparamdef(self,paramdefname):
 		return db.getparamdef(paramdefname)
@@ -166,7 +173,7 @@ class dbisolator:
 		return db.getparamdefs(recs)
 	
 	def meth_addrecorddef(self,recdef,ctxid,host=None,parent=None):
-		db.addrecorddef(recdef,ctxid,host,parent)
+		return db.addrecorddef(recdef,ctxid,host,parent)
 	
 	def meth_putrecorddef(self,recdef,ctxid,host=None):
 		db.putrecorddef(recdef,ctxid,host)
