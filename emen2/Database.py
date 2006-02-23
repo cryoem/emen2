@@ -719,7 +719,8 @@ administrators. -2 group is read-only administrator."""
 	def items_dict(self):		
 		ret={}
 		ret = self.__dict__
-		return ret	
+		return ret
+	
 
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
@@ -2032,6 +2033,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise SecurityError,"Passwords may not be changed with this method"
 		
 		self.__users[user.username]=user
+		return user
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
@@ -2086,6 +2088,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			user.password=s.hexdigest()
 		if not self.__importmode:
 			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		        user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
 		self.__newuserqueue[user.username]=user
 		
 	def getqueueduser(self,username,ctxid,host=None):
