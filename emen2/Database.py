@@ -110,7 +110,7 @@ class BTree:
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
 		specified. If relate is true, then parent/child and cousin relationships
-		between records are also supported."""
+		between records are also supported. """
 		global globalenv
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
@@ -318,10 +318,184 @@ class BTree:
 	def create_sequence(self):
 	        dbseq = self.bdb.sequence_create()
 	        dbseq.init_value()
-		dbseq.set_range(0, 100000000)
+		dbseq.set_range(0, 2000000000)
 		dbseq.set_cachesize(1)
 		dbseq.open(None, 'sequence', 0|db.DB_CREATE|db.DB_THREAD)
 		return dbseq
+		
+class IntBTree:
+	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
+	key are integers and data may be an arbitrary pickleable type"""
+	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
+		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
+		name is required, and will also be used as a filename if none is
+		specified. This class is identical to 'BTree', but keys may only be integers.
+		This permits a substantial improvement in performance in certain cases.
+		If relate is true, then parent/child and cousin relationships
+		between records are also supported. """
+		global globalenv
+		if (not dbenv) : dbenv=globalenv
+		self.bdb=db.DB(dbenv)
+		if file==None : file=name+".bdb"
+#		print "Open: ",file
+#		if nelem : self.bdb.set_h_nelem(nelem)					# guess how many elements in a hash
+		self.bdb.open(file,name,db.DB_BTREE,db.DB_CREATE)
+#		self.bdb.open(file,name,db.DB_HASH,db.DB_CREATE)
+
+		if relate :
+			self.relate=1
+		
+			# Parent keyed list of children
+			self.pcdb=db.DB(dbenv)
+			self.pcdb.index_open(file+".pc","d",name,db.DB_BTREE,db.DB_CREATE)
+			
+			# Child keyed list of parents
+			self.cpdb=db.DB(dbenv)
+			self.cpdb.index_open(file+".cp","d",name,db.DB_BTREE,db.DB_CREATE)
+			
+			# lateral links between records (nondirectional), 'getcousins'
+			self.reldb=db.DB(dbenv)
+			self.reldb.index_open(file+".rel","d",name,db.DB_BTREE,db.DB_CREATE)
+		else : self.relate=0
+
+	def rmvlist(self,key,item):
+		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
+		key=int(key)
+		a=self[key]
+		a.remove(item)
+		self[key]=a
+
+	def addvlist(self,key,item):
+		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
+		key=int(key)
+		if (self.has_key(key)):
+			self[key]=(self[key]+[item])
+		else: self[key]=[item]
+
+	def pclink(self,parenttag,childtag):
+		"""This establishes a parent-child relationship between two tags.
+		Note that empty strings and None cannot be used as tags"""
+		if not self.relate : raise Exception,"relate option required in BTree"
+		if parenttag==None or childtag==None : return
+		parenttag=int(parenttag)
+		childtag=int(childtag)
+		
+		if not self.has_key(childtag) : raise KeyError,"Cannot link nonexistent key '%d'"%childtag
+		if not self.has_key(parenttag) : raise KeyError,"Cannot link nonexistent key '%d'"%parenttag
+		
+		self.pcdb.index_append(parenttag,childtag)
+		self.cpdb.index_append(childtag,parenttag)
+		
+	def pcunlink(self,parenttag,childtag):
+		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
+		if not self.relate : raise Exception,"relate option required"
+		parenttag=int(parenttag)
+		childtag=int(childtag)
+		
+		self.pcdb.index_remove(parenttag,childtag)
+		self.cpdb.index_remove(childtag,parenttag)
+		
+	def link(self,tag1,tag2):
+		"""Establishes a lateral relationship (cousins) between two tags"""
+		if not self.relate : raise Exception,"relate option required"
+		tag1=int(tag1)
+		tag2=int(tag2)
+		
+		if not self.has_key(tag1) : raise KeyError,"Cannot link nonexistent key '%s'"%tag1
+		if not self.has_key(tag2) : raise KeyError,"Cannot link nonexistent key '%s'"%tag2
+		
+		self.reldb.index_append(tag1,tag2)
+		self.reldb.index_append(tag2,tag1)
+		
+	def unlink(self,tag1,tag2):
+		"""Removes a lateral relationship (cousins) between two tags"""
+		if not self.relate : raise Exception,"relate option required"
+		tag1=int(tag1)
+		tag2=int(tag2)
+		
+		self.reldb.index_remove(tag1,tag2)
+		self.reldb.index_remove(tag2,tag1)
+			
+	def parents(self,tag):
+		"""Returns a list of the tag's parents"""
+		if not self.relate : raise Exception,"relate option required"
+		
+		ret=self.cpdb.index_get(int(tag))
+		if ret==None: return []
+		return ret
+		
+		
+	def children(self,tag):
+		"""Returns a list of the tag's children."""
+		if not self.relate : raise Exception,"relate option required"
+		
+		ret=self.pcdb.index_get(int(tag))
+		if ret==None: return []
+		return ret
+	
+	def cousins(self,tag):
+		"""Returns a list of tags related to the given tag"""
+		if not self.relate : raise Exception,"relate option required"
+		
+		ret=self.reldb.index_get(int(tag))
+		if ret==None: return []
+		return ret
+
+	def __del__(self):
+		self.close()
+
+	def close(self):
+		self.bdb.close()
+
+	def __len__(self):
+		return len(self.bdb)
+
+	def __setitem__(self,key,val):
+		key=int(key)
+		if (val==None) :
+			self.__delitem__(key)
+		else : self.bdb.put(dumps(key),dumps(val))
+
+	def __getitem__(self,key):
+		key=int(key)
+		return loads(self.bdb.get(dumps(key)))
+
+	def __delitem__(self,key):
+		key=int(key)
+		self.bdb.delete(dumps(key))
+
+	def __contains__(self,key):
+		key=int(key)
+		return self.bdb.has_key(dumps(key))
+
+	def keys(self):
+		return map(lambda x:loads(x),self.bdb.keys())
+
+	def values(self):
+		return map(lambda x:loads(x),self.bdb.values())
+
+	def items(self):
+		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items())
+
+	def has_key(self,key):
+		key=int(key)
+		return self.bdb.has_key(dumps(key))
+
+	def get(self,key):
+		key=int(key)
+		return self[key]
+
+	def update(self,dict):
+		for i,j in dict.items(): self[int(i)]=j
+
+	def create_sequence(self):
+	        dbseq = self.bdb.sequence_create()
+	        dbseq.init_value()
+		dbseq.set_range(0, 2000000000)
+		dbseq.set_cachesize(1)
+		dbseq.open(None, 'sequence', 0|db.DB_CREATE|db.DB_THREAD)
+		return dbseq
+
 		
 class FieldBTree:
 	"""This is a specialized version of the BTree class. This version uses type-specific 
@@ -545,9 +719,9 @@ valid_vartypes={
 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
 	"float":("f",lambda x:float(x)),		# double precision
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list
-	"string":("s",lambda x:str(x)),			# string from an extensible enumerated list
-	"text":("s",lambda x:str(x)),			# freeform text, not indexed yet
+	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
+	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
+	"text":("s",lambda x:str(x)),			# freeform text, fulltext (word) indexing
 	"time":("s",lambda x:str(x)),			# HH:MM:SS
 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
@@ -558,8 +732,8 @@ valid_vartypes={
 	"hdf":(None,lambda x:str(x)),			# url points to an HDF file
 	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
 	"binary":(None,lambda x:str(x)),				# url points to an arbitrary binary
-	"child":(None,lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
-	"link":(None,lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
+	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
+	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",lambda x:int(x)),
 	"dict":(None, lambda x:x)
 }
@@ -1089,7 +1263,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
 		# and database information is stored with key=0
-		self.__records=BTree("database",path+"/database.bdb",dbenv=self.__dbenv,relate=1)						# The actual database, containing id referenced Records
+		self.__records=IntBTree("database",path+"/database.bdb",dbenv=self.__dbenv,relate=1)						# The actual database, containing id referenced Records
 		try:
 			maxr=self.__records[-1]
 		except:
@@ -1337,9 +1511,8 @@ parentheses grouping not supported yet"""
 				n+=2
 				continue
 			elif i=="child" :
-				# note getchildren returns names associated with each recid, which we need to strip off
 				chl=self.getchildren(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
-				chl=Set([i[0] for i in chl])
+#				chl=Set([i[0] for i in chl])  # children no longer suppport names 
 				if len(byparamval)>0 : byparamval&=chl
 				else: byparamval=chl
 				n+=2
@@ -1854,7 +2027,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
-		ret=trg.children(key,paramname)
+		ret=trg.children(key)
 #		print ret
 		
 		if recurse==0 : return Set(ret)
@@ -1926,7 +2099,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host)
 		return Set(ret+r2)
 		
-	def pclink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
+	def pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
@@ -1936,22 +2109,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 			b=self.getrecord(ckey,ctxid)
 			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
-			return self.__records.pclink(pkey,ckey,paramname)
-		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,paramname)
-		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,paramname)
+			return self.__records.pclink(pkey,ckey)
+		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey)
+		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def pcunlink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
+	def pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
 		if keytype=="record" : 
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
-			return self.__records.pcunlink(pkey,ckey,paramname)
-		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,paramname)
-		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey,paramname)
+			return self.__records.pcunlink(pkey,ckey)
+		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey)
+		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
@@ -2447,7 +2620,7 @@ or None if no match is found."""
 		"""Internal function to open the parameter indices at need.
 		Later this may implement some sort of caching mechanism.
 		If create is not set and index doesn't exist, raises
-		KeyError."""
+		KeyError. Returns "link" or "child" for this type of indexing"""
 		try:
 			ret=self.__fieldindex[paramname]		# Try to get the index for this key
 		except:
@@ -2463,6 +2636,7 @@ or None if no match is found."""
 #				print "unindexable vartype ",f.vartype
 				ret = None
 				return ret
+			if len(tp)>1 : return tp
 			
 			if not create and not os.access("%s/index/%s.bdb"%(self.path,paramname),os.F_OK): raise KeyError,"No index for %s"%paramname
 			
@@ -2496,6 +2670,16 @@ or None if no match is found."""
 		# whew, not full text, get the index for this key
 		ind=self.__getparamindex(key)
 		if ind == None:
+			return
+		
+		if ind=="child" :
+			self.__records.pcunlink(recid,oldval)
+			self.__records.pclink(recid,newval)
+			return
+		
+		if ind=="link" :
+			self.__records.unlink(recid,oldval)
+			self.__records.link(recid,newval)
 			return
 		
 		# remove the old ref and add the new one
@@ -2814,8 +2998,8 @@ or None if no match is found."""
 		# get a list of records we need to update
 		if recurse>0 :
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
-			trgt.add(ctxid)
-		else : trgt=Set([ctxid])
+			trgt.add(recid)
+		else : trgt=Set([recid])
 		
 		# update each record as necessary
 		for i in trgt:
@@ -2858,8 +3042,8 @@ or None if no match is found."""
 		# get a list of records we need to update
 		if recurse>0 :
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
-			trgt.add(ctxid)
-		else : trgt=Set([ctxid])
+			trgt.add(recid)
+		else : trgt=Set([recid])
 		
 		# update each record as necessary
 		for i in trgt:
@@ -3077,8 +3261,8 @@ or None if no match is found."""
 		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
-			c=self.__paramdefs.children(i,None)
-			c=Set([i[0] for i in c])
+			c=Set(self.__paramdefs.children(i))
+#			c=Set([i[0] for i in c])
 			c&=paramdefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -3098,8 +3282,8 @@ or None if no match is found."""
 		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
-			c=self.__recorddefs.children(i,None)
-			c=Set([i[0] for i in c])
+			c=Set(self.__recorddefs.children(i))
+#			c=Set([i[0] for i in c])
 			c&=recorddefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -3122,7 +3306,7 @@ or None if no match is found."""
 
 		ch=[]
 		for i in records:
-			c=[x for x in self.__records.children(i,None) if x[0] in records]
+			c=[x for x in self.__records.children(i) if x in records]
 			c=tuple(c)
 			ch+=((i,c),)
 		dump("recchildren",out)
@@ -3236,7 +3420,7 @@ or None if no match is found."""
 					for p,cl in rr:
 						for c in cl:
 #							print recmap[p],recmap[c[0]],c[1]
-							if isinstance(c,tuple) : self.__records.pclink(recmap[p],recmap[c[0]],c[1])
+							if isinstance(c,tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 							else : self.__records.pclink(recmap[p],recmap[c])
 				elif r=="reccousins" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
