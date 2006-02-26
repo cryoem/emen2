@@ -1450,9 +1450,8 @@ $ - parameter name
 parentheses grouping not supported yet"""
 		tm0=time.time()
 		query2=self.querypreprocess(query,ctxid,host)
-		#print query2
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
-		print query2
+#		print query2
 		
 		# Make sure there is only one command in the query
 		command=[i for i in Database.querycommands if (i in query2)]
