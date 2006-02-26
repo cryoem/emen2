@@ -528,7 +528,7 @@ class FieldBTree:
 		if key==None : return None
 		if self.keytype=="f" : return float(key)
 		if self.keytype=="d" : return int(key)
-		return str(key)
+		return str(key).lower()
 			
 	def removeref(self,key,item):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
@@ -1438,7 +1438,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
 	
-	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","==","!=",","]
+	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
 	def query(self,query,ctxid,host=None,retindex=False) :
@@ -1452,6 +1452,7 @@ parentheses grouping not supported yet"""
 		query2=self.querypreprocess(query,ctxid,host)
 		#print query2
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
+		print query2
 		
 		# Make sure there is only one command in the query
 		command=[i for i in Database.querycommands if (i in query2)]
@@ -1542,8 +1543,8 @@ parentheses grouping not supported yet"""
 				elif op=="<" or op=="<=" : 
 					vrange[1]=query2[n+2]	# so we treat them the same for now
 					n+=2
-				elif op=="==" : 
-					vrange=[query2[n+2],None]
+				elif op=="=" : 
+					vrange=query2[n+2]
 					n+=2
 				elif op=="><" : 
 					if not query2[n+3] in (",","and") : raise Exception, "between X and Y (%s)"%query2[n+3]
@@ -1846,13 +1847,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 		replacetable={
 		"less":"<","before":"<","lower":"<","under":"<","older":"<","shorter":"<",
 		"greater":">","after":">","more":">","over":">","newer":">","taller":">",
-		"between":"><","&":"and","|":"or","$$":"$",
+		"between":"><","&":"and","|":"or","$$":"$","==":"=","equal":"=","equals":"=",
 		"locate":"find","split":"group","children":"child","parents":"parent","cousins":"cousin",
 		"than":None,"is":None,"where":None,"of":None}
 		
 		
 		# parses the strings into discrete units to process (words and operators)
-		elements=[i for i in re.split("\s|(<=|>=|><|!-|==|<|>|=|,)",query) if i!=None and len(i)>0]
+		elements=[i for i in re.split("\s|(<=|>=|><|!-|<|>|==|=|,)",query) if i!=None and len(i)>0]
 		
 		# Now we clean up the list of terms and check for errors
 		for n,e in enumerate(elements):
