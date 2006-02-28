@@ -1329,7 +1329,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		"""level is an integer describing the seriousness of the error:
 		0 - security, security-related messages
 		1 - critical, likely to cause a crash
-		2 - serious, user will experience problemis none
+		2 - serious, user will experience problems
 		3 - minor, likely to cause minor annoyances
 		4 - info, informational only
 		5 - verbose, verbose logging 
@@ -1912,6 +1912,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return [i for i in elements if i!=None]
 		
+	def getindexbycontext(self,ctxid,host=None):
+		"""This will use a context to return
+		a list of records the user can access"""
+		u,g=self.checkcontext(ctxid,host)
+		
+		ret=Set(self.__secrindex[u])
+		for i in g: ret|=Set(self.__secrindex[i])
+		return ret
+	
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
 		a list of records the user can access"""
@@ -1952,7 +1961,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		u,g=self.checkcontext(ctxid,host)
 		if (-1 in g) or (-2 in g) : return ret
 		
-		secure=Set(self.getindexbyuser(None,ctxid,host))		# all records the user can access
+		secure=Set(self.getindexbycontext(ctxid,host))		# all records the user can access
 		
 		return ret & secure		# intersection of the two search results
 	
@@ -1994,7 +2003,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		u,g=self.checkcontext(ctxid,host)
 		if (-1 in g) or (-2 in g) : return ret
 		
-		secure=self.getindexbyuser(None,ctxid,host)		# all records the user can access
+		secure=self.getindexbycontext(ctxid,host)		# all records the user can access
 		
 		# remove any recids the user cannot access
 		
@@ -2010,7 +2019,28 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return secureRet
 	        """
 	
-	def getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
+	def groupbyrecorddef(self,all,ctxid=None,host=None):
+		"""This will take a set/list of record ids and return a dictionary of ids keyed
+		by their recorddef"""
+		all=Set(all)
+		all&=self.getindexbycontext(ctxid,host)
+		ret={}
+		while len(all)>0:
+			rid=all.pop()							# get a random record id
+			try: r=self.getrecord(rid,ctxid,host)	# get the record
+			except:
+				LOG(3,"Could not group by on record %d"%rid)
+				continue						# if we can't, just skip it, pop already removed it
+			ind=self.getindexbyrecorddef(r.rectype,ctxid,host)		# get the set of all records with this recorddef
+			ret[r.rectype]=all&ind					# intersect our list with this recdef
+			all-=ret[r.rectype]						# remove the results from our list since we have now classified them
+			ret[r.rectype].add(rid)					# add back the initial record to the set
+			
+		return ret
+
+		
+	
+	def getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
 		on the parent object or an empty set will be returned. For recursive lookups
@@ -2034,7 +2064,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getchildren(i[0],keytype,paramname,recurse-1,ctxid,host)
+			r2+=self.getchildren(i[0],keytype,recurse-1,ctxid,host)
 		
 		return Set(ret+r2)
 
@@ -2672,15 +2702,32 @@ or None if no match is found."""
 		if ind == None:
 			return
 		
-		if ind=="child" :
-			self.__records.pcunlink(recid,oldval)
-			self.__records.pclink(recid,newval)
-			return
 		
-		if ind=="link" :
-			self.__records.unlink(recid,oldval)
-			self.__records.link(recid,newval)
-			return
+		if ind=="child" or ind=="link" :
+			# make oldval and newval into Sets
+			try: oldval=Set((int(oldval),))
+			except: 
+				if oldval==None : oldval=Set()
+				else: oldval=Set(oldval)
+			try: newval=Set((int(newval),))
+			except: 
+				if newval==None : newval=Set()
+				else : newval=Set(newval)
+				
+			i=oldval&newval		# intersection
+			oldval-=i
+			newval-=i
+			# now we know that oldval and newval are unique
+			
+			if ind=="child" :
+				for i in oldval: self.__records.pcunlink(recid,i)
+				for i in newval: self.__records.pclink(recid,i)
+				return
+			
+			if ind=="link" :
+				for i in oldval: self.__records.unlink(recid,i)
+				for i in newval: self.__records.link(recid,i)
+				return
 		
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
@@ -2909,7 +2956,7 @@ or None if no match is found."""
 		"""Returns a list of times for a list of recids. Times represent the last modification 
 		of the specified records"""
 
-		secure=Set(self.getindexbyuser(None,ctxid,host))
+		secure=Set(self.getindexbycontext(ctxid,host))
 		rid=Set(recids)
 		rid-=secure
 		if len(rid)>0 : raise Exception,"Cannot access records %s"%str(rid)
