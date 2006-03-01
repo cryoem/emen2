@@ -2699,9 +2699,9 @@ or None if no match is found."""
 		
 		# whew, not full text, get the index for this key
 		ind=self.__getparamindex(key)
+		print ind 
 		if ind == None:
 			return
-		
 		
 		if ind=="child" or ind=="link" :
 			# make oldval and newval into Sets
@@ -2718,17 +2718,18 @@ or None if no match is found."""
 			oldval-=i
 			newval-=i
 			# now we know that oldval and newval are unique
-			
-			if ind=="child" :
+			if (not self.__importmode) : 
+			   if ind=="child" :
 				for i in oldval: self.__records.pcunlink(recid,i)
 				for i in newval: self.__records.pclink(recid,i)
 				return
 			
-			if ind=="link" :
+			   if ind=="link" :
 				for i in oldval: self.__records.unlink(recid,i)
 				for i in newval: self.__records.link(recid,i)
 				return
-		
+			else:
+				return
 		# remove the old ref and add the new one
 		if oldval!=None : ind.removeref(oldval,recid)
 		if newval!=None : ind.addref(newval,recid)
