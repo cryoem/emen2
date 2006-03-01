@@ -5,7 +5,7 @@
 # direct interface with the database code. This program is run
 # as a separate process and pipes data back and forth vi stdio
 
-import Database
+from emen2 import Database
 import os
 import sys
 import cPickle
@@ -67,8 +67,8 @@ class dbisolator:
 	def meth_getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
 		return db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset)
 	
-	def meth_getchildren(self,key,keytype="record",paramname=None,recurse=0,ctxid=None,host=None):
-		return db.getchildren(key,keytype,paramname,recurse,ctxid,host)
+	def meth_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+		return db.getchildren(key,keytype,recurse,ctxid,host)
 		
 	def meth_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		return db.getparents(key,keytype,recurse,ctxid,host)
