@@ -1605,13 +1605,7 @@ parentheses grouping not supported yet"""
 					if len(ss)>0 : dct[i]=tuple(ss)
 			ret=dct
 		else: ret=byrecdef
-		
-		
-		if os.environ.has_key('EMEN2DIR'):
-			theDir = os.environ['EMEN2DIR']
-		else:
-			theDir = "/home/emen2"		
-		
+
 		if command=="find" :
 			# Simple find request, no further processing required
 			if isinstance(ret, dict):
