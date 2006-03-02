@@ -6,6 +6,7 @@
 # as a separate process and pipes data back and forth vi stdio
 
 from emen2 import Database
+from emen2config import *
 import os
 import sys
 import cPickle
@@ -22,10 +23,10 @@ def main():
 	# open the database
 	DB=Database
 	if len(sys.argv)>1 : dbpath=sys.argv[1]
-	else :
+	else : 
 		try: dbpath=os.getenv("EMEN2DB")
-		except: dbpath="/home/emen2/db"
-	if dbpath==None : dbpath="/home/emen2/db"
+		except: dbpath=EMEN2DBPATH
+	if dbpath==None : dbpath=EMEN2DBPATH
 	db=DB.Database(dbpath)
 
 	# here is the main loop, respond to requests indefinitely
