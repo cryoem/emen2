@@ -2064,7 +2064,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getchildren(i[0],keytype,recurse-1,ctxid,host)
+			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host)
 		
 		return Set(ret+r2)
 
