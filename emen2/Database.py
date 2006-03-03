@@ -772,7 +772,8 @@ valid_properties = {
 "currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
 "filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
 "percentage":('%', {'%':1.0}),
-"currency":("dollars",{"dollars":1.0})
+"currency":("dollars",{"dollars":1.0}),
+"pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4})
 }
 
 
