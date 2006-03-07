@@ -2824,7 +2824,15 @@ or None if no match is found."""
 				print "One or more parameters undefined (%s)"%ptest
 				# Update the recid counter, TODO: do the update more safely/exclusive access
 				raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
-			    
+			
+			record["modifytime"]=record["creationtime"]
+			if (not self.__importmode) : 
+				record["modifyuser"]=ctx.user
+			else :
+				#record["modifyuser"]=ptest("creator")
+				pass			
+			self.__records[record.recid]=record		# This actually stores the record in the database
+			
 			# index params
 			for k,v in record.items():
 				if k != 'recid':
@@ -2833,16 +2841,9 @@ or None if no match is found."""
 			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid)			# index recorddef
 			self.__timeindex[record.recid]=record["creationtime"] 
-			record["modifytime"]=record["creationtime"]
-			if (not self.__importmode) : 
-				record["modifyuser"]=ctx.user
-			else :
-				#record["modifyuser"]=ptest("creator")
-				pass
-				
-							
+									
 			#print "putrec->\n",record.__dict__
-			self.__records[record.recid]=record		# This actually stores the record in the database
+			
 			return record.recid
 		
 		######
