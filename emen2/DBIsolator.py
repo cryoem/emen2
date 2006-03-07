@@ -80,11 +80,11 @@ class dbisolator:
 	def meth_getcousins(self,key,keytype="record",ctxid=None,host=None):
 		return db.getcousins(key,keytype,ctxid,host)
 	
-	def meth_pclink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
-		return db.pclink(pkey,ckey,keytype,paramname,ctxid,host)
-	
-	def meth_pcunlink(self,pkey,ckey,keytype="record",paramname="",ctxid=None,host=None):
-		return db.pcunlink(pkey,ckey,keytype,paramname,ctxid,host)
+	def meth_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+		return db.pclink(pkey,ckey,keytype,ctxid,host)
+
+	def meth_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+		return db.pcunlink(pkey,ckey,keytype,ctxid,host)
 	
 	def meth_link(self,key1,key2,keytype="record",ctxid=None,host=None):
 		return db.link(key1,key2,keytype,ctxid,host)
