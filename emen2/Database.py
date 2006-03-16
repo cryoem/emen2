@@ -60,6 +60,25 @@ def parseparmvalues(text,noempty=0):
 		
 	return ret
 
+def parseparmtuples(text,noempty=0):
+	"""This will extract parameter names $param or $param=value """
+	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
+#	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+	srch=re.findall('\$\$([^\$\d\s<>=]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	ret=[]
+	keys = []
+	for t in srch:
+	    if t[0] not in keys:
+		if len(t[0])>0 : 
+			if len(t[1])==0 and len(t[2])==0 : 
+				if noempty==0 :
+					ret.append((t[0],None))
+			elif len(t[1])==0 :
+				ret.append((t[0], t[2]))
+			else : ret.append((t[0], t[1]))
+		keys.append(t[0])
+	return ret
+
 def format_string_obj(dict,keylist):
 	"""prints a formatted version of an object's dictionary"""
 	r=["{"]
@@ -812,7 +831,8 @@ class RecordDef:
 									# values are the default value for the field.
 									# this represents all params that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
-									# is NOT REQUIRED to have a valid Record 
+									# is NOT REQUIRED to have a valid Record
+	        self.paramsT = []
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
 		self.owner=None				# The owner of this record
@@ -841,12 +861,19 @@ class RecordDef:
 
 	def findparams(self):
 	        d=parseparmvalues(self.mainview)
+		t=parseparmtuples(self.mainview)
 		for i in self.views.values():
 		    thedict = parseparmvalues(i)
+		    thetuple = parseparmtuples(i)
 		    for thekey in thedict.keys():
 		        if thekey not in d.keys():
 				d[thekey] = thedict[thekey]
+
+		    for theone in thetuple:
+		        if theone[0] not in d.keys():
+			     t.append(theone)
 		self.params = d
+		self.paramsT = t
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
