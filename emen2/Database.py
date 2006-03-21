@@ -48,11 +48,11 @@ def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret={}
 	
 	for t in srch:
-		if len(t[0])>0 : 
+		if len(t[0])>0 :
 			if len(t[1])==0 and len(t[2])==0 : 
 				if noempty==0 : ret[t[0]]=None
 			elif len(t[1])==0 : ret[t[0]]=t[2]
@@ -64,7 +64,7 @@ def parseparmtuples(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret=[]
 	keys = []
 	for t in srch:
@@ -83,7 +83,7 @@ def parseparmkeys(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	keys=[]
 	for t in srch:
 	    if t[0] not in keys:
