@@ -945,7 +945,42 @@ administrators. -2 group is read-only administrator."""
 		ret = self.__dict__
 		return ret
 	
+	def __getitem__(self,key):
+		#if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid	
+		key=key.lower()
+		if self.has_key(key) : return self.key
+		return None
+	
+	def __setitem__(self,key,value):
+		"""This and 'update' are the primary mechanisms for modifying the params in a user record
+		Changes are not written to the database until the commit() method is called!"""
+		# comments may include embedded field values if the user has full write access
+		key=key.strip().lower()
+		if (key == "comments"): pass
+		elif (key=="rectype") :
+			if self.__ptest[3]: self.rectype=value.lower()
+			else: raise SecurityError,"Insufficient permission to change the record type"
 
+		elif (key=="username", "creator" or key=="creationtime") :
+			#nobody should change them
+			return
+		elif (key in ["password", "disabled"]):
+		        #you not supposed to change the password and disabled in here
+			return 
+		elif (key == "groups"): self.groups = int(value)
+		elif (key == "privacy"):
+			if int(value) in [0, 1, 2]:
+				self.privacy = int(value)
+		elif (key in ["name","email","phone","fax","cellphone","webpage","institution","department","address","city","state","zipcode","country"]):
+			pass
+
+		
+	def __realsetitem(self,key,value):
+			"""This insures that copies of original values are made when appropriate
+			security should be handled by the parent method"""
+			if key in self.__params and self.__params[key]!=None and not key in self.__oparams : self.__oparams[key]=self.__params[key]
+			self.__params[key]=value
+							
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
@@ -2275,12 +2310,53 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise SecurityError,"Only administrators and the actual user may update a user record"
 		
 		if not (-1 in ctx.groups) : user.groups=ouser.groups
-		
+
 		if user.password!=ouser.password:
 			raise SecurityError,"Passwords may not be changed with this method"
 		
 		self.__users[user.username]=user
 		return user
+
+	
+	def putuserdict(self,username,userdict,ctxid,host=None):
+		#use to only update user information listed in allowKeys
+		denyKeys = ["username","password","creator","creationtime"]
+		allowKeys = ["firstname","lastname", "midname","email","phone","fax","cellphone","webpage","institution","department","address","city","state","zipcode","country","groups","privacy", "disabled"]
+		try:
+			ouser=self.__users[username]
+		except:
+			raise KeyError,"Putuser may only be used to update existing users"
+		
+		ctx=self.__getcontext(ctxid,host)
+		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
+			raise SecurityError,"Only administrators and the actual user may update a user record"
+
+		for thekey in denyKeys:
+			if userdict.has_key(thekey):
+			     del userdict[thekey]
+			     
+		userdict['name'] = []
+		for thekey in ['firstname', 'midname', 'lastname']:
+		    if userdict.has_key(thekey):
+			  userdict['name'].append(userdict[thekey])
+		    else:
+		          userdict['name'].append("")
+		    
+		if not (-1 in ctx.groups) :
+			userdict['groups']=ouser.groups
+			if userdict.has_key('disabled'):
+		             del userdict['disabled']
+
+		else:
+			if isinstance(userdict['groups'], list):
+				thegroups = [int(i) for i in userdict['groups']]
+			else:
+				thegroups = [int(userdict['groups'])]
+			userdict['groups'] = thegroups
+				
+		ouser.__dict__.update(userdict)
+		self.__users[username]=ouser
+		return userdict
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
@@ -2298,6 +2374,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		user.password=t.hexdigest()
 		
 		self.__users[user.username]=user
+		return 1
 	
 	def adduser(self,user):
 		"""adds a new user record. However, note that this only adds the record to the
