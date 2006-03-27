@@ -105,11 +105,9 @@ class dbisolator:
 	def meth_putuser(self,user,ctxid,host=None):
 		return db.putuser(user,ctxid,host)
 	
-	def meth_putuserdict(self,userdict, ctxid, host=None):
-		theuser = Database.User(userdict)
-		return db.putuser(theuser, ctxid, host)
-		
-	
+	def meth_putuserdict(self,username,userdict,ctxid,host=None):
+		return db.putuserdict(username, userdict, ctxid, host)
+			
 	def meth_setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		return db.setpassword(username,oldpassword,newpassword,ctxid,host)
 
