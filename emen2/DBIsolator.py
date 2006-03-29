@@ -46,7 +46,14 @@ def main():
 class dbisolator:	
 	def meth_login(self,username="anonymous",password="",host=None,maxidle=1800):
 		return db.login(username,password,None)
+	def meth_isManager(self, ctxid, host=None):
+	        return db.isManager(ctxid, host)
+	def meth_isMe(self, ctxid, host=None):
+	        return db.isMe(ctxid, host)
 	
+	def meth_loginuser(self, ctxid, host=None):
+		return db.loginuser(ctxid, host)
+
 	def meth_checkcontext(self,ctxid,host):
 		return db.checkcontext(self,ctxid,host)
 	
