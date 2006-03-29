@@ -1517,6 +1517,15 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		
 		return ctx			
 
+
+	def isManager(self,ctxid,host=None):
+		"""This modifies an existing RecordDef. Note that certain params, including the
+		Main view cannot be modified by anyone."""
+		ctx=self.__getcontext(ctxid,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups): return 1
+		else: return 0
+
+		
 	def checkcontext(self,ctxid,host):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
@@ -2297,6 +2306,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
 		return self.__newuserqueue.keys()
+
+	def loginuser(self, ctxid, host=None):
+	      ctx=self.__getcontext(ctxid,host)
+	      return ctx.user
+      
+	def isMe (self, ctxid, username, host=None):
+	        ctx=self.__getcontext(ctxid,host)
+	        if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
+		else: return 0
 
 	def putuser(self,user,ctxid,host=None):
 
