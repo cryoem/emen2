@@ -2838,7 +2838,7 @@ or None if no match is found."""
 		
 		# whew, not full text, get the index for this key
 		ind=self.__getparamindex(key)
-		print ind 
+#		print ind 
 		if ind == None:
 			return
 		
@@ -3185,7 +3185,7 @@ or None if no match is found."""
 
 		# get a list of records we need to update
 		if recurse>0 :
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse)
 			trgt.add(recid)
 		else : trgt=Set([recid])
 		
@@ -3229,7 +3229,7 @@ or None if no match is found."""
 		
 		# get a list of records we need to update
 		if recurse>0 :
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse)
 			trgt.add(recid)
 		else : trgt=Set([recid])
 		
