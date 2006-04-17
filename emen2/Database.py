@@ -30,6 +30,7 @@ import operator
 import traceback
 from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
+from emen2.emen2config import *
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
 
@@ -1343,7 +1344,20 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		self.__newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.__dbenv)			# new users pending approval
 		self.__contexts_p=BTree("contexts",path+"/security/contexts.bdb",dbenv=self.__dbenv)			# multisession persistent contexts
 		self.__contexts={}			# local cache dictionary of valid contexts
-	
+		
+		# Create an initial administrative user for the database
+		if (not self.__users.has_key("root")):
+			self.LOG(0,"Warning, root user recreated")
+			u=User()
+			u.username="root"
+			p=sha.new(ROOTPW)
+			u.password=p.hexdigest()
+			u.groups=[-1]
+			u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			u.name=('Database','','Administrator')
+			self.__users["root"]=u
+
+		
 		# Defined ParamDefs
 		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
 
@@ -1386,18 +1400,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			self.LOG(3,"New workflow database created")
 					
 		self.LOG(4,"Database initialized")
-
-		# Create an initial administrative user for the database
-		self.LOG(0,"Warning, root user recreated")
-		u=User()
-		u.username="root"
-		p=sha.new("foobar")
-		u.password=p.hexdigest()
-		u.groups=[-1]
-		u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-		u.name=('Database','','Administrator')
-		self.__users["root"]=u
-		
+	
 		# This sets up a few standard ParamDefs common to all records
 		if not self.__paramdefs.has_key("owner"):
 			pd=ParamDef("owner","string","Record Owner","This is the user-id of the 'owner' of the record")
