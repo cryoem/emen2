@@ -566,6 +566,12 @@ class FieldBTree:
 		key=self.typekey(key)
 		self.bdb.index_remove(key,item)
 		
+	def removerefs(self,key,items):
+		"""The keyed value must be a list of objects. list of 'items' will be removed from this list"""
+		key=self.typekey(key)
+		self.bdb.index_removelist(key,items)
+
+		
 	def testref(self,key,item):
 		"""Tests for the presence if item in key'ed index """
 		key=self.typekey(key)
@@ -1032,7 +1038,7 @@ class Record:
 	To modify the params in a record use the normal obj[key]= or update() approaches. 
 	Changes are not stored in the database until commit() is called. To examine params, 
 	use obj[key]. There are a few special keys, handled differently:
-	owner,creator,creationtime,permissions,comments
+	creator,creationtime,permissions,comments
 
 	Record instances must ONLY be created by the Database class through retrieval or
 	creation operations. self.context will store information about security and
@@ -1074,15 +1080,15 @@ class Record:
 		self.__params={}			# a Dictionary containing field names associated with their data
 		self.__comments=[]			# a List of comments records
 		self.__oparams={}			# when a field value is changed, the original value is stored here
-		self.__owner=None			# The owner of this record, may be a username or a group id
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
-		self.__permissions=((),(),())
+		self.__permissions=((),(),(),())
 		"""
-		permissions for read access, comment write access, and full write access
+		permissions for read access, comment write access, full write access,
+            and administrative access.
 	        each element is a tuple of user names or group id's,
-		if a -3 is present, this denotes access by any logged in user,
-		if a -4 is present this denotes anonymous record access
+		Group -3 includes any logged in user,
+		Group -4 includes any user (anonymous)
 		"""
 		self.__context=None			# Validated access context
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
@@ -1129,20 +1135,20 @@ class Record:
 		self.__context = ctx
 		
 		if self.__creator==0:
-			self.__owner=ctx.user
 			self.__creator=ctx.user
 			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-			self.__permissions=((),(),(ctx.user,))
+			self.__permissions=((),(),(),(ctx.user,))
 		
 		# test for owner access in this context
-		if (-1 in ctx.groups or ctx.user==self.__owner or self.__owner in ctx.groups) : self.__ptest=[1,1,1,1]
+		if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
 		else:
 			# we use the sets module to do intersections in group membership
 			# note that an empty Set tests false, so u1&p1 will be false if
 			# there is no intersection between the 2 sets
-			p1=Set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2])
-			p2=Set(self.__permissions[1]+self.__permissions[2])
-			p3=Set(self.__permissions[2])
+			p1=Set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p3=Set(self.__permissions[2]+self.__permissions[3])
+			p4=Set(self.__permissions[3])
 			u1=Set(ctx.groups+[-4])				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
@@ -1155,6 +1161,10 @@ class Record:
 						
 			# test for general write permission in this context
 			if (ctx.user in p3 or u1&p3) : self.__ptest[2]=1
+			
+			# test for administrative permission in this context
+			if (ctx.user in p4 or u1&p4) : self.__ptest[3]=1
+		
 		return self.__ptest
 	
 	def __str__(self):
@@ -1183,7 +1193,6 @@ class Record:
 				
 		key=key.lower()
 		if key=="rectype" : return self.rectype
-		if key=="owner" : return self.__owner
 		if key=="creator" : return self.__creator
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
@@ -1213,10 +1222,6 @@ class Record:
 		elif (key=="rectype") :
 			if self.__ptest[3]: self.rectype=value.lower()
 			else: raise SecurityError,"Insufficient permission to change the record type"
-		elif (key=="owner") :
-			if self.__owner==value: return
-			if self.__ptest[3]: self.__owner=value
-			else : raise SecurityError,"Only the administrator or the record owner can change the owner"
 
 		elif (key=="creator" or key=="creationtime") :
 			# nobody is allowed to do this
@@ -1231,13 +1236,13 @@ class Record:
 	
 		elif (key=="permissions") :
 			if self.__permissions==value: return
-			if self.__ptest[2]:
+			if self.__ptest[3]:
 				if isinstance(value,str) : value=eval(value)
 				try:
-					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]))
+					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]),tuple(value[3]))
 					self.__permissions=value
 				except:
-					raise TypeError,"Permissions must be a 3-tuple of tuples"
+					raise TypeError,"Permissions must be a 4-tuple of tuples"
 			else: 
 				raise SecurityError,"Write permission required to modify security %d"%self.recid
 		else :
@@ -1265,14 +1270,14 @@ class Record:
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
-		return tuple(self.__params.keys())+("rectype","comments","owner","creator","creationtime","permissions")
+		return tuple(self.__params.keys())+("rectype","comments","creator","creationtime","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
 		ret=self.__params.items()
 		try:
-			ret+=[(i,self[i]) for i in ("rectype","comments","owner","creator","creationtime","permissions")]
+			ret+=[(i,self[i]) for i in ("rectype","comments","creator","creationtime","permissions")]
 		except:
 			pass
 		return ret
@@ -1283,7 +1288,7 @@ class Record:
 		ret={}
 		ret.update(self.__params)
 		try:
-			for i in ("rectype","comments","owner","creator","creationtime","permissions"): ret[i]=self[i]
+			for i in ("rectype","comments","creator","creationtime","permissions"): ret[i]=self[i]
 		except:
 			pass
 		return ret
@@ -1291,7 +1296,7 @@ class Record:
 
 		
 	def has_key(self,key):
-		if key in self.keys() or key in ("rectype","comments","owner","creator","creationtime","permissions"): return True
+		if key in self.keys() or key in ("rectype","comments","creator","creationtime","permissions"): return True
 		return False
 
 	def commit(self,host=None):
@@ -2914,6 +2919,7 @@ or None if no match is found."""
 		# anything in both old and new should be ok,
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
+#			print i," ",len(self.__secrindex[i]),self.__secrindex.testref(i,recid)
 			self.__secrindex.removeref(i,recid)
 #		print "now un"
 		# then we add the index entries for all of the elements in 'new', but not 'old'
@@ -2953,8 +2959,8 @@ or None if no match is found."""
 			record.setContext(ctx)
 			
 			x=record["permissions"]
-			if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) :
-				raise ValueError,"permissions MUST be a 3-tuple of tuples"
+			if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
+				raise ValueError,"permissions MUST be a 4-tuple of tuples"
 			
 			# Make sure all parameters are defined before we start updating the indicies
 			ptest=Set(record.keys())-Set(self.getparamdefnames())
@@ -2996,8 +3002,8 @@ or None if no match is found."""
 		p=orig.setContext(ctx)				# security check on the original record
 		
 		x=record["permissions"]
-		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) :
-			raise ValueError,"permissions MUST be a 3-tuple of tuples"
+		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
+			raise ValueError,"permissions MUST be a 4-tuple of tuples"
 		
 		# We begin by comparing old and new records and figuring out exactly what changed
 		modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -3024,7 +3030,6 @@ or None if no match is found."""
 		# make sure the user has permission to modify the record
 #		if "creator" in changedparams or "creationtime" in changedparams: raise SecurityError,"Creation parameters cannot be modified (%d)"%record.recid		
 		if not p[3] :
-			if "owner" in changedparams : raise SecurityError,"Only the owner/administrator can change record ownership (%d)"%record.recid
 			if not p[2] :
 				if len(changedparams>1) or changedparams[0]!="comments" : 
 					raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
@@ -3169,8 +3174,8 @@ or None if no match is found."""
 		else : return None
 	
 	def secrecordadduser(self,usertuple,recid,ctxid,host=None,recurse=0):
-		"""This adds permissions to a record. usertuple is a 3-tuple containing users
-		to have read, comment and write permission. Each value in the tuple is either
+		"""This adds permissions to a record. usertuple is a 4-tuple containing users
+		to have read, comment, write and administrativepermission. Each value in the tuple is either
 		a string (username) or a tuple/list of usernames. If recurse>0, the
 		operation will be performed recursively on the specified record's children
 		to a limited recursion depth. Note that this ADDS permissions to existing
@@ -3180,14 +3185,20 @@ or None if no match is found."""
 		have no effect. Any children the user doesn't have permission to
 		update will be silently ignored."""
 		
-		if not isinstance(usertuple,tuple) or not isinstance(usertuple[0],tuple) or not isinstance(usertuple[1],tuple) or not isinstance(usertuple[2],tuple) :
-			raise ValueError,"permissions MUST be a 3-tuple of tuples (which may be empty)"
+		if not isinstance(usertuple,tuple) or not isinstance(usertuple[0],tuple) or not isinstance(usertuple[1],tuple) or not isinstance(usertuple[2],tuple) or not isinstance(usertuple[3],tuple):
+			raise ValueError,"permissions MUST be a 4-tuple of tuples (which may be empty)"
 
 		# get a list of records we need to update
 		if recurse>0 :
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse)
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
-		else : trgt=Set([recid])
+		else : trgt=Set((recid,))
+		
+		ctx=self.__getcontext(ctxid,host)
+		
+		# this will be a dictionary keyed by user of all records the user has
+		# just gained access to. Used for fast index updating
+		secrupd={}
 		
 		# update each record as necessary
 		for i in trgt:
@@ -3195,32 +3206,62 @@ or None if no match is found."""
 				rec=self.getrecord(i,ctxid,host)			# get the record to modify
 			except: continue
 			
+			if ctx.user not in rec["permissions"][3] : continue		# if the user does not have administrative permission on the record
+																# then we just skip this record and leave the permissions alone
+																# TODO: probably we should also check for groups in [3]
+			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
 			newv=[Set(v) for v in usertuple]				# similar list of sets for the new users to add
-			
-			# if the user already has more permission than we are trying
-			# to assign, we don't do anything
-			newv[0]-=cur[1]
-			newv[0]-=cur[2]
-			newv[1]-=cur[2]
 			
 			# update the permissions for each group
 			cur[0]|=newv[0]
 			cur[1]|=newv[1]
 			cur[2]|=newv[2]
+			cur[3]|=newv[3]
+			
+			# if the user already has more permission than we are trying
+			# to assign, we don't do anything. This also cleans things up
+			# so a user cannot have more than one security level
+			cur[0]-=cur[1]
+			cur[0]-=cur[2]
+			cur[0]-=cur[3]
+			cur[1]-=cur[2]
+			cur[1]-=cur[3]
+			cur[2]-=cur[3]
 			
 			l2=[len(v) for v in cur]
-				
+			
 			# update if necessary
 			if l!=l2 :
-				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]))
-				rec.commit()
+				old=rec["permissions"]
+				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]),tuple(cur[3]))
+
+# SHOULD do it this way, but too slow
+#				rec.commit()
+				
+				# commit is slow because of the extensive checks for changes
+				# in this case we know only the security changed. We also don't
+				# update the modification time. In fact, we build up a list of changes
+				# then do it all at once.
+#				self.__reindexsec(reduce(operator.concat,old),
+#					reduce(operator.concat,rec["permissions"]),rec.recid)
+				
+				stu=(cur[0]|cur[1]|cur[2]|cur[3])-Set(old[0]+old[1]+old[2]+old[3])
+				for i in stu:
+					try: secrupd[i].append(rec.recid)
+					except: secrupd[i]=[rec.recid]
+				
+				# put the updated record back
+				self.__records[rec.recid]=rec
+		
+		for i in secrupd.keys() :
+			self.__secrindex.addrefs(i,secrupd[i])
 	
 	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
 		"""This removes permissions from a record. users is a username or tuple/list of
 		of usernames to have no access to the record at all (will not affect group 
-		or owner access). If recurse>0, the operation will be performed recursively 
+		access). If recurse>0, the operation will be performed recursively 
 		on the specified record's children to a limited recursion depth. Note that 
 		this REMOVES all access permissions for the specified users on the specified
 		record."""
@@ -3229,9 +3270,16 @@ or None if no match is found."""
 		
 		# get a list of records we need to update
 		if recurse>0 :
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse)
+			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
 		else : trgt=Set([recid])
+		
+		ctx=self.__getcontext(ctxid,host)
+		users.discard(ctx.user)				# user cannot remove his own permissions
+		
+		# this will be a dictionary keyed by user of all records the user has
+		# just gained access to. Used for fast index updating
+		secrupd={}
 		
 		# update each record as necessary
 		for i in trgt:
@@ -3239,21 +3287,47 @@ or None if no match is found."""
 				rec=self.getrecord(i,ctxid,host)			# get the record to modify
 			except: continue
 			
+			if ctx.user not in rec["permissions"][3] : continue		# if the user does not have administrative permission on the record
+																# then we just skip this record and leave the permissions alone
+																# TODO: probably we should also check for groups in [3]
+			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
 			
-			# if the user already has more permission than we are trying
-			# to assign, we don't do anything
 			cur[0]-=users
 			cur[1]-=users
 			cur[2]-=users
+			cur[3]-=users
 						
 			l2=[len(v) for v in cur]
 				
 			# update if necessary
 			if l!=l2 :
-				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]))
-				rec.commit()
+				old=rec["permissions"]
+				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]),tuple(cur[3]))
+
+# SHOULD do it this way, but too slow
+#				rec.commit()
+				
+				# commit is slow because of the extensive checks for changes
+				# in this case we know only the security changed. We also don't
+				# update the modification time
+#				print reduce(operator.concat,old)
+#				print reduce(operator.concat,rec["permissions"])
+#				self.__reindexsec(reduce(operator.concat,old),
+#					reduce(operator.concat,rec["permissions"]),rec.recid)
+				
+				stu=Set(old[0]+old[1]+old[2]+old[3])-users
+				for i in stu:
+					try: secrupd[i].append(rec.recid)
+					except: secrupd[i]=[rec.recid]
+				
+				
+				# put the updated record back
+				self.__records[rec.recid]=rec
+		
+		for i in secrupd.keys() :
+			self.__secrindex.removerefs(i,secrupd[i])
 
 	###########
 	# The following routines for xmlizing aspects of the database are very simple, 
@@ -3381,7 +3455,7 @@ or None if no match is found."""
 			except: continue
 			
 			ret.append('<record name="%s" dbid="%s" rectype="%s">\n'%(i,str(rec.dbid),rec.rectype))
-			ret.append('  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(rec["owner"],rec["creator"],rec["creationtime"]))
+			ret.append('  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(rec["creator"],rec["creationtime"]))
 			
 			ret.append('  <permissions value="read">\n')
 			for j in rec["permissions"][0]:
@@ -3523,7 +3597,12 @@ or None if no match is found."""
 		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
-		fin=open(self.path+"/backup.pkl","r")
+		try:
+			fin=open(self.path+"/backup.pkl","r")
+		except:
+			try: fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
+			except: raise IOError,"backup.pkl not present"
+
 		recmap={}
 		nrec=0
 		t0=time.time()
@@ -3560,6 +3639,16 @@ or None if no match is found."""
 					self.__recorddefs[r.name]=r
 			# insert and renumber record
 			elif isinstance(r,Record) :
+				# This is necessary only to import legacy database backups from before 04/16/2006
+				try:
+					o=r._Record__owner
+					a=r._Record__permissions
+					r._Record__permissions=(a[0],a[1],a[2],(o,))
+					del r._Record__owner
+				except:
+					pass
+				
+				# renumbering
 				nrec+=1
 				if nrec%1000==0 :
 					print " %8d records  (%f/sec)\r"%(nrec,nrec/(time.time()-t0))
@@ -3618,6 +3707,7 @@ or None if no match is found."""
 				else : print "Unknown category ",r
 								
 		if self.__importmode :
+			print "Record import complete, preparing to dump indices to disk. This may take some time."
 			self.__commitindices()
 			
 	def restoretest(self,ctxid,host=None) :
@@ -3629,7 +3719,12 @@ or None if no match is found."""
 		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
-		fin=open(self.path+"/backup.pkl","r")
+		try:
+			fin=open(self.path+"/backup.pkl","r")
+		except:
+			try: fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
+			except: raise IOError,"backup.pkl not present"
+		
 		recmap={}
 		nrec=0
 		t0=time.time()
@@ -3658,6 +3753,13 @@ or None if no match is found."""
 			# insert and renumber record
 			elif isinstance(r,Record) :
 				r.setContext(ctx)
+				try:
+					o=r._Record__owner
+					a=r._Record__permissions
+					r._Record__permissions=(a[0],a[1],a[2],(o,))
+					del r._Record__owner
+				except:
+					pass
 				if (nr<20) : print r["identifier"]
 				nr+=1
 				
