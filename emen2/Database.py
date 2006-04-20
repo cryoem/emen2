@@ -2631,7 +2631,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# this actually stores in the database
 		self.__paramdefs[paramdef.name]=paramdef
-		if (parent): pclink(parent,paramdef.name,"paramdef")
+		if (parent): self.pclink(parent,paramdef.name,"paramdef")
 	
 	def addparamchoice(self,paramdefname,choice):
 		"""This will add a new choice to records of vartype=string. This is
@@ -2702,7 +2702,7 @@ or None if no match is found."""
 		
 		# this actually stores in the database
 		self.__recorddefs[recdef.name]=recdef
-		if (parent): pclink(parent,recdef.name,"recorddef")
+		if (parent): self.pclink(parent,recdef.name,"recorddef")
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. Note that certain params, including the
