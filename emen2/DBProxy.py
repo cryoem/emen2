@@ -7,6 +7,7 @@
 from os import popen2
 from cPickle import load,dump
 from emen2.emen2config import *
+import Database
 
 #dbpath="/".join(__file__.split("/")[:-1])
 dbpath=EMEN2ROOT
@@ -19,7 +20,7 @@ to the public Database interface, though it returns dictionaries and
 lists rather than objects"""
 	def __init__(self,path=EMEN2DBPATH):
 		global dbpath
-		self.iso=popen2("%s/DBIsolator.py %s"%(dbpath,path))	# returns a write,read file tuple
+		self.iso=popen2("%s/DBIsolator.py %s 2>/tmp/dbug.txt"%(dbpath,path))	# returns a write,read file tuple
 	
 	def __del__(self):
 		dump("EXIT",self.iso[0])
@@ -30,6 +31,8 @@ lists rather than objects"""
 		return lambda *x: self(name,*x)
 		
 	def __call__(self,*args) :
+		for i in args:
+			if isinstance(i,Database.Record) : i.localcpy=1
 		dump(args,self.iso[0])
 		self.iso[0].flush()
 		return load(self.iso[1])

@@ -1121,6 +1121,7 @@ class Record:
 		if dict.has_key("localcpy") :
 			del dict["localcpy"]
 			self.__dict__.update(dict)	
+			self.__ptest=[1,1,1,1]
 		else:
 			self.__dict__.update(dict)	
 			self.__ptest=[0,0,0,0]
@@ -1304,7 +1305,7 @@ class Record:
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		self.__context.db.putrecord(self,self.__context.ctxid,host)
+		return self.__context.db.putrecord(self,self.__context.ctxid,host)
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -1433,7 +1434,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			o=file(self.logfile,"a")
 			o.write("%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message))
 			o.close()
-			if level<4 : print "%s: (%s)  %s\n"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
+			if level<4 : print "%s: (%s)  %s"%(time.strftime("%Y/%m/%d %H:%M:%S"),LOGSTRINGS[level],message)
 		except:
 			traceback.print_exc(file=sys.stdout)
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
@@ -1534,7 +1535,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		else: return 0
 
 		
-	def checkcontext(self,ctxid,host):
+	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
 		a=self.__getcontext(ctxid,host)
@@ -3003,6 +3004,7 @@ or None if no match is found."""
 		# If we got here, we are updating an existing record
 		######
 		p=orig.setContext(ctx)				# security check on the original record
+		record.setContext(ctx)				# security double-check on the record to be processed. This is required for DBProxy use.
 		
 		x=record["permissions"]
 		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
@@ -3028,7 +3030,7 @@ or None if no match is found."""
 		# If nothing changed, we just return
 		if len(changedparams)==0 : 
 			self.LOG(5,"update %d with no changes"%record.recid)
-			return
+			return "No changes made"
 		
 		# make sure the user has permission to modify the record
 #		if "creator" in changedparams or "creationtime" in changedparams: raise SecurityError,"Creation parameters cannot be modified (%d)"%record.recid		

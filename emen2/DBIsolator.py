@@ -3,10 +3,10 @@
 #
 # This program is used to isolate a server (like Apache) from
 # direct interface with the database code. This program is run
-# as a separate process and pipes data back and forth vi stdio
+# as a separate process and pipes data back and forth via stdio
 
 from emen2 import Database
-from emen2config import *
+from emen2.emen2config import *
 import os
 import sys
 import cPickle
@@ -34,10 +34,11 @@ def main():
 		request=cPickle.load(sys.stdin)
 		if request=="EXIT": break
 		
- 		try:
-			ret=dbisolator.__dict__["meth_"+request[0]](*request)
-		except Exception,msg:
-			ret=(0,request,msg)
+		sys.stderr.write(str(request)+"\n")	# logging for debugging
+# 		try:
+		ret=dbisolator.__dict__["meth_"+request[0]](*request)
+#		except Exception,msg:
+#			ret=(0,request,msg)
 		cPickle.dump(ret,out)
 		out.flush()
 		
@@ -54,8 +55,8 @@ class dbisolator:
 	def meth_loginuser(self, ctxid, host=None):
 		return db.loginuser(ctxid, host)
 
-	def meth_checkcontext(self,ctxid,host):
-		return db.checkcontext(self,ctxid,host)
+	def meth_checkcontext(self,ctxid,host=None):
+		return db.checkcontext(ctxid,host)
 	
 	def meth_query(self, query, ctxid, host=None, retindex=False):
        		return db.query(query, ctxid, host, retindex)
@@ -194,6 +195,7 @@ class dbisolator:
 		return db.getrecorddefnames()
 	
 	def meth_putrecord(self,record,ctxid,host=None):
+#		db.LOG(2,str(record.__dict__))
 		return db.putrecord(record,ctxid,host)
 	
 	def meth_newrecord(self,rectype,ctxid,host=None,init=0):
