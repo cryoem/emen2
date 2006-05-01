@@ -35,10 +35,10 @@ def main():
 		if request=="EXIT": break
 		
 		sys.stderr.write(str(request)+"\n")	# logging for debugging
-# 		try:
-		ret=dbisolator.__dict__["meth_"+request[0]](*request)
-#		except Exception,msg:
-#			ret=(0,request,msg)
+		try:
+			ret=dbisolator.__dict__["meth_"+request[0]](*request)
+		except Exception,msg:
+			ret=(0,request,msg)
 		cPickle.dump(ret,out)
 		out.flush()
 		

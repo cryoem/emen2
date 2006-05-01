@@ -1443,7 +1443,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
 
-	def login(self,username="anonymous",password="",host=None,maxidle=1800):
+	def login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access"""
 		ctx=None
