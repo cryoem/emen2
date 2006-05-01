@@ -1315,7 +1315,7 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0):
+	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0,rootpw=None):
 		"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
 logfile - defualt "db.log"
@@ -1351,7 +1351,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			self.LOG(0,"Warning, root user recreated")
 			u=User()
 			u.username="root"
-			p=sha.new(ROOTPW)
+			if rootpw : p=sha.new(rootpw)
+			else: p=sha.new(ROOTPW)
 			u.password=p.hexdigest()
 			u.groups=[-1]
 			u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")

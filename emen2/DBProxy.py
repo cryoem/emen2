@@ -21,6 +21,7 @@ lists rather than objects"""
 	def __init__(self,path=EMEN2DBPATH):
 		global dbpath
 		self.iso=popen2("%s/DBIsolator.py %s 2>/tmp/dbug.txt"%(dbpath,path))	# returns a write,read file tuple
+#		self.iso=popen2("%s/DBIsolator.py %s 2>/dev/null"%(dbpath,path))	# returns a write,read file tuple
 	
 	def __del__(self):
 		dump("EXIT",self.iso[0])
