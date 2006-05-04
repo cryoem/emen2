@@ -50,47 +50,17 @@ def parseparmvalues(text,noempty=0):
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	ret={}
+	ret=[[],{}]
 	
 	for t in srch:
 		if len(t[0])>0 :
+			ret[0].append(t[0])
 			if len(t[1])==0 and len(t[2])==0 : 
-				if noempty==0 : ret[t[0]]=None
-			elif len(t[1])==0 : ret[t[0]]=t[2]
-			else : ret[t[0]]=t[1]
-		
-	return ret
+				if noempty==0 : ret[1][t[0]]=None
+			elif len(t[1])==0 : ret[1][t[0]]=t[2]
+			else : ret[1][t[0]]=t[1]
 
-def parseparmtuples(text,noempty=0):
-	"""This will extract parameter names $param or $param=value """
-	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-#	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	ret=[]
-	keys = []
-	for t in srch:
-	    if t[0] not in keys:
-		if len(t[0])>0 : 
-			if len(t[1])==0 and len(t[2])==0 : 
-				if noempty==0 :
-					ret.append((t[0],None))
-			elif len(t[1])==0 :
-				ret.append((t[0], t[2]))
-			else : ret.append((t[0], t[1]))
-		keys.append(t[0])
 	return ret
-
-def parseparmkeys(text,noempty=0):
-	"""This will extract parameter names $param or $param=value """
-	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-#	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	keys=[]
-	for t in srch:
-	    if t[0] not in keys:
-		if len(t[0])>0 : 
-		     keys.append(t[0])
-	return keys
 
 def format_string_obj(dict,keylist):
 	"""prints a formatted version of an object's dictionary"""
@@ -851,8 +821,7 @@ class RecordDef:
 									# this represents all params that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record
-	        self.paramsT = []
-		self.paramsK = []
+		self.paramsK = []			# ordered keys from params()
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
 		self.owner=None				# The owner of this record
@@ -872,37 +841,17 @@ class RecordDef:
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
 	
-	def findparams_old(self):
-		"""This will update the list of params by parsing the views"""
-		d=parseparmvalues(self.mainview)
-		for i in self.views.values():
-			d.update(parseparmvalues(i))
-		self.params=d
-
 	def findparams(self):
-	        d=parseparmvalues(self.mainview)
-		t=parseparmtuples(self.mainview)
-		k=parseparmkeys(self.mainview)
+		"""This will update the list of params by parsing the views"""
+		t,d=parseparmvalues(self.mainview)
 		for i in self.views.values():
-			
-		    thedict = parseparmvalues(i)
-		    thetuple = parseparmtuples(i)
-		    thekeys = parseparmkeys(i)
-		    
-		    for thekey in thedict.keys():
-		        if thekey not in d.keys():
-				d[thekey] = thedict[thekey]
+			t2,d2=parseparmvalues(i)
+			for j in t2:
+				if not d.has_key(j): t.append(j)
+			d.update(d2)
 
-		    for theone in thetuple:
-		        if theone[0] not in d.keys():
-			     t.append(theone)
-			     
-		    for theone in thekeys:
-		        if theone not in k:
-			    k.append(theone)
-		self.params = d
-		self.paramsT = t
-		self.paramsK = k
+		self.params=d
+		self.paramsK=tuple(t)
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
