@@ -740,6 +740,7 @@ valid_vartypes={
 	"hdf":(None,lambda x:str(x)),			# url points to an HDF file
 	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
 	"binary":(None,lambda x:str(x)),				# url points to an arbitrary binary
+	"binaryimage":(None,lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display
 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",lambda x:int(x)),
@@ -962,6 +963,7 @@ class WorkFlow:
 		if isinstance(with,dict) :
 			self.__dict__.update(with)
 		else:
+			self.wfid=None				# unique workflow id number assigned by the database
 			self.wftype=None
 			# a short string defining the task to complete. Applications
 			# should select strings that are likely to be unique for
@@ -969,7 +971,6 @@ class WorkFlow:
 			self.desc=None				# A 1-line description of the task to complete
 			self.longdesc=None			# an optional longer description of the task
 			self.appdata=None			# application specific data used to implement the actual activity
-			self.wfid=None				# unique workflow id number assigned by the database
 			self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 	def __str__(self):
@@ -1159,7 +1160,7 @@ class Record:
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
-				dict=parseparmvalues(value,noempty=1)	# find any embedded params
+				dict=parseparmvalues(value,noempty=1)[1]	# find any embedded params
 				if len(dict)>0 and not self.__ptest[2] : 
 					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
 				
@@ -1308,6 +1309,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			u.name=('Database','','Administrator')
 			self.__users["root"]=u
 
+		# Binary data names indexed by date
+		self.__bdocounter=BTree("BinNames",path+"/BinNames.bdb",dbenv=self.__dbenv,relate=0)
 		
 		# Defined ParamDefs
 		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
@@ -1476,21 +1479,83 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		
 		return ctx			
 
-
-	def isManager(self,ctxid,host=None):
-		"""This modifies an existing RecordDef. Note that certain params, including the
-		Main view cannot be modified by anyone."""
-		ctx=self.__getcontext(ctxid,host)
-		if (-1 in ctx.groups) or (-2 in ctx.groups): return 1
-		else: return 0
-
-		
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
 		a=self.__getcontext(ctxid,host)
 		return(a.user,a.groups)
+
+	def isManager(self,ctxid,host=None):
+		"""Checks if the user has global read access."""
+		ctx=self.__getcontext(ctxid,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups): return 1
+		else: return 0
+
+	def newbinary(self,date,name,ctxid,host=None):
+		"""Get a storage path for a new binary object. Returns a tuple
+		with the identifier for later retrieval and the absolute path"""
+		year=int(date[:4])
+		mon=int(date[5:7])
+		day=int(date[8:10])
+
+		# figure out where this file goes in the filesystem
+		key="%04d%02d%02d"%(year,mon,day)
+		for i in BINARYPATH:
+			if key>=i[0] and key<i[1] :
+				# actual storage path
+				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
+				break
+			else:
+				raise KeyError,"No storage specified for date %s"%key
+
+		# try to make sure the directory exists
+		try: os.makedirs(path)
+		except: pass
+
+		# Now we need a filespec within the directory
+		# dictionary keyed by date, 1 directory per day
+
+		# if exists, increase counter
+		try:
+			itm=self.__bdocounter[key]
+			newid=max(itm.keys())+1
+			itm[newid]=name
+			self.__bdocounter[key]=itm
+		# otherwise make a new dict
+		except:
+			itm={0:name}
+			self.__bdocounter[key]=itm
+			newid=0
+		
+		if os.access(path+"/%05X"%newid,os.F_OK) : LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
+		
+		return (key+"%05X"%newid,path+"/%05X"%newid)
 	
+	def getbinary(self,ident,ctxid,host=None):
+		"""Get a storage path for an existing binary object. Returns the
+		object name and the absolute path"""
+		year=int(ident[:4])
+		mon =int(ident[4:6])
+		day =int(ident[6:8])
+		bid =int(ident[8:],16)
+
+		key="%04d%02d%02d"%(year,mon,day)
+		for i in BINARYPATH:
+			if key>=i[0] and key<i[1] :
+				# actual storage path
+				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
+				break
+			else:
+				raise KeyError,"No storage specified for date %s"%key
+
+		try:
+			name=self.__bdocounter[key][bid]
+		except:
+			raise KeyError,"Unknown identifier %s"%ident
+		
+		return (name,path+"/%05X"%bid)
+
+		
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
@@ -2656,8 +2721,10 @@ or None if no match is found."""
 		if (parent): self.pclink(parent,recdef.name,"recorddef")
 
 	def putrecorddef(self,recdef,ctxid,host=None):
-		"""This modifies an existing RecordDef. Note that certain params, including the
-		Main view cannot be modified by anyone."""
+		"""This modifies an existing RecordDef. Defined fields should
+		never be changed once used, since this will change the meaning of
+		data already in the database, but sometimes changes of appearance
+		are necessary, so this method is available."""
 		ctx=self.__getcontext(ctxid,host)
 		rd=self.__recorddefs[recdef.name]
 
@@ -2667,7 +2734,7 @@ or None if no match is found."""
 		recdef.creator=rd.creator
 		recdef.creationtime=rd.creationtime
 		recdef.mainview=rd.mainview
-		recdef.update()
+		recdef.findparams()
 		
 		self.__recorddefs[recdef.name]=recdef
 				
@@ -3459,7 +3526,7 @@ or None if no match is found."""
 		return '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generated by EMEN2 -->\n<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">\n%s\n</xs:schema>'%body
 
 		
-	def backup(self,ctxid,host=None,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None) :
+	def backup(self,ctxid,host=None,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None) :
 		"""This will make a backup of all, or the selected, records, etc into a set of files
 		in the local filesystem"""
 		
@@ -3470,11 +3537,26 @@ or None if no match is found."""
 		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
 		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
 		if records==None: records=Set(range(0,self.__records[-1]+1))
+		if workflows==None: workflows=Set(self.__workflow.keys())
+		if bdos==None: bdos=Set(self.__bdocounter.keys())
 		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
 		
 		out=open(self.path+"/backup.pkl","w")
+		
+		# dump users
 		for i in users: dump(self.__users[i],out)
 		
+		# dump workflow
+		for i in workflows: dump(self.__workflow[i],out)
+		
+		# dump binary data objects
+		dump("bdos",out)
+		bd={}
+		for i in bdos: bd[i]= self.__bdocounter[i]
+		dump(bd,out)
+		bd=None
+		
+		# dump paramdefs and tree
 		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
@@ -3486,7 +3568,6 @@ or None if no match is found."""
 		dump("pdchildren",out)
 		dump(ch,out)
 		
-		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
 			c=Set(self.__paramdefs.cousins(i))
@@ -3496,6 +3577,7 @@ or None if no match is found."""
 		dump("pdcousins",out)
 		dump(ch,out)
 				
+		# dump recorddefs and tree
 		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
@@ -3507,7 +3589,6 @@ or None if no match is found."""
 		dump("rdchildren",out)
 		dump(ch,out)
 		
-		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
 			c=Set(self.__recorddefs.cousins(i))
@@ -3517,6 +3598,7 @@ or None if no match is found."""
 		dump("rdcousins",out)
 		dump(ch,out)
 
+		# dump actual database records
 		print "Backing up %d/%d records"%(len(records),self.__records[-1])
 		for i in records:
 			dump(self.__records[i],out)
@@ -3576,6 +3658,9 @@ or None if no match is found."""
 					self.__users[r.username]=r
 				else :
 					self.__users[r.username]=r
+			# insert Workflow
+			elif isinstance(r,WorkFlow) :
+				self.__workflow[r.wfid]=r
 			# insert paramdef
 			elif isinstance(r,ParamDef) :
 				r.name=r.name.lower()
@@ -3627,7 +3712,11 @@ or None if no match is found."""
 
 				
 			elif isinstance(r,str) :
-				if r=="pdchildren" :
+				if r=="bdos" :
+					rr=load(fin)			# read the dictionary of bdos
+					for i,d in rr.items():
+						self.__bdocounter[i]=d
+				elif r=="pdchildren" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for p,cl in rr:
 						for c in cl:
