@@ -5,6 +5,6 @@ import os
 
 DB=Database
 db=DB.Database(EMEN2DBPATH,importmode=1)
-ctx=db.login("root","foobar")
+ctx=db.login("root",ROOTPW)
 print db.checkcontext(ctx,None)
 

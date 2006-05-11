@@ -1494,6 +1494,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	def newbinary(self,date,name,ctxid,host=None):
 		"""Get a storage path for a new binary object. Returns a tuple
 		with the identifier for later retrieval and the absolute path"""
+		
+		if name==None : raise ValueError,"BDO name may not be 'None'"
+		
 		year=int(date[:4])
 		mon=int(date[5:7])
 		day=int(date[8:10])
@@ -1554,7 +1557,6 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			raise KeyError,"Unknown identifier %s"%ident
 		
 		return (name,path+"/%05X"%bid)
-
 		
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
