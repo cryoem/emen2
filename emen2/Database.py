@@ -1101,7 +1101,7 @@ class Record:
 			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 			p3=Set(self.__permissions[2]+self.__permissions[3])
 			p4=Set(self.__permissions[3])
-			u1=Set(ctx.groups+[-4])				# all users are permitted group -4 access
+			u1=Set(ctx.groups+(-4,))				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -1141,7 +1141,7 @@ class Record:
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
 		treated identically"""
-		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid
+		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
 				
 		key=key.lower()
 		if key=="rectype" : return self.rectype
@@ -1221,12 +1221,12 @@ class Record:
 	
 	def keys(self):
 		"""All retrievable keys for this record"""
-		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		return tuple(self.__params.keys())+("rectype","comments","creator","creationtime","permissions")
 		
 	def items(self):
 		"""Key/value pairs"""
-		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret=self.__params.items()
 		try:
 			ret+=[(i,self[i]) for i in ("rectype","comments","creator","creationtime","permissions")]
@@ -1236,7 +1236,7 @@ class Record:
 	
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
-		if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid		
+		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret={}
 		ret.update(self.__params)
 		try:
@@ -1558,6 +1558,13 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		
 		return (name,path+"/%05X"%bid)
 		
+	def checkcontext(self,ctxid,host=None):
+		"""This allows a client to test the validity of a context, and
+		get basic information on the authorized user and his/her permissions"""
+		a=self.__getcontext(ctxid,host)
+		if a.user==None: return(-4,-4)
+		return(a.user,a.groups)
+	
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
@@ -2556,7 +2563,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return WorkFlow(with)
 		
 	def addworkflowitem(self,work,ctxid,host=None) :
-		"""This appends a new workflow object to the user's list. wfid will be assigned by this function"""
+		"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 		
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
@@ -3163,13 +3170,13 @@ or None if no match is found."""
 		if (isinstance(recid,int)):
 			rec=self.__records[recid]
 			p=rec.setContext(ctx)
-			if not p[0] : raise Exception,"No permission to access record"
+			if not p[0] : raise Exception,"Permission Denied"
 			return rec
 		elif (isinstance(recid,list)):
 			recl=map(lambda x:self.__records[x],recid)
 			for rec in recl:
 				p=rec.setContext(ctx)
-				if not p[0] : raise Exception,"No permission to access one or more records"	
+				if not p[0] : raise Exception,"Permission denied on one or more records"	
 			return recl
 		else : raise KeyError,"Invalid Key"
 		
