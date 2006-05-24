@@ -10,6 +10,7 @@ from twisted.web import xmlrpc
 import xmlrpclib
 import os
 from sets import Set
+from emen2.emen2config import *
 
 # we open the database as part of the module initialization
 db=None
@@ -17,11 +18,13 @@ DB=Database
 
 def startup(path):
 	global db
-	db=Database.Database(path)
+	db=Database.Database(EMEN2DBPATH)
 	
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
 	def _cbRender(self, result, request):
+		#hari:
+		#allow_none = True
 		if isinstance(result, xmlrpc.Handler):
 			result = result.result
 		if not isinstance(result, xmlrpc.Fault):
@@ -31,7 +34,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		except:
 			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
 			s = xmlrpclib.dumps(f, methodresponse=1)
-#			s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
+			
+		#	s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
@@ -240,18 +244,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		return db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
+		return tuple(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
 	
 
 	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		return db.getparents(key,keytype,recurse=0,ctxid=None,host=None)
+		return tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
 	
 	def xmlrpc_getcousins(self,key,keytype="record",ctxid=None,host=None):
 		"""Gets the cousins (related records with no defined parent/child relationship
 		 of a record with the given key, keytype may be 'record', 'recorddef' or 'paramdef' """
-		return db.getcousins(key,keytype,ctxid=None,host=None)
+		return tuple(db.getcousins(key,keytype,ctxid=None,host=None))
 		
 	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Produce a parent <-> child link between two records"""
@@ -283,25 +287,25 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_query(self,query,ctxid,host=None,retindex=False) :
 		"""full database query"""
-		return db.query(query,ctxid,host,retindex)
+		return tuple(db.query(query,ctxid,host,retindex))
 	
 	def xmlrpc_getindexbycontext(self,ctxid,host=None):
-		return db.getindexbycontext(ctxid,host)
+		return tuple(db.getindexbycontext(ctxid,host))
 		
 	def xmlrpc_getindexbyuser(self,username,ctxid,host=None):
-		return db.getindexbyuser(username,ctxid,host)
+		return tuple(db.getindexbyuser(username,ctxid,host))
 	
 	def xmlrpc_getindexbyrecorddef(self,recdefname,ctxid,host=None):
-		return db.getindexbyrecorddef(recdefname,ctxid,host)
+		return tuple(db.getindexbyrecorddef(recdefname,ctxid,host))
 	
 	def xmlrpc_getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
-		return db.getindexkeys(paramname,valrange,ctxid,host)
+		return tuple(db.getindexkeys(paramname,valrange,ctxid,host))
 	
 	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid,host=None):
-		return db.getindexbyvalue(paramname,valrange,ctxid,host)
+		return tuple(db.getindexbyvalue(paramname,valrange,ctxid,host))
 	
 	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
-		return db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset)
+		return tuple(db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset))
 	
 	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None):
 		return db.groupbyrecorddef(all,ctxid,host)
