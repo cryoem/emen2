@@ -2340,6 +2340,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""Returns a list of names of unapproved users"""
 		return self.__newuserqueue.keys()
 
+	def rejectuser(self,username,ctxid,host=None):
+		"""Remove a user from the pending new user queue - only an administrator can do thisl"""
+		ctx=self.__getcontext(ctxid,host)
+		if not -1 in ctx.groups :
+			raise SecurityError,"Only administrators can approve new users"
+		
+		if not username in self.__newuserqueue :
+			raise KeyError,"User %s is not pending approval"%username
+
+		self.__newuserqueue[username]=None
+
 	def loginuser(self, ctxid, host=None):
 	      ctx=self.__getcontext(ctxid,host)
 	      return ctx.user
@@ -2742,7 +2753,7 @@ or None if no match is found."""
 
 		recdef.creator=rd.creator
 		recdef.creationtime=rd.creationtime
-		recdef.mainview=rd.mainview
+		recdef.mainview=rd.mainview	#temp. change to allow mainview changes
 		recdef.findparams()
 		
 		self.__recorddefs[recdef.name]=recdef

@@ -22,6 +22,8 @@ lists rather than objects"""
 		global dbpath
 		self.iso=popen2("%s/DBIsolator.py %s 2>/tmp/dbug.txt"%(dbpath,path))	# returns a write,read file tuple
 #		self.iso=popen2("%s/DBIsolator.py %s 2>/dev/null"%(dbpath,path))	# returns a write,read file tuple
+#		self.log2=file("/tmp/dbug2.txt","a")
+#		self.log2.write("---------------\n")
 	
 	def __del__(self):
 		dump("EXIT",self.iso[0])
@@ -34,7 +36,10 @@ lists rather than objects"""
 	def __call__(self,*args) :
 		for i in args:
 			if isinstance(i,Database.Record) : i.localcpy=1
+#		self.log2.write("-> %s"%str(args))
 		dump(args,self.iso[0])
 		self.iso[0].flush()
-		return load(self.iso[1])
+		ret=load(self.iso[1])
+#		self.log2.write("<- %s"%str(ret))
+		return ret
 
