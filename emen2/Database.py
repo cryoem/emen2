@@ -3258,6 +3258,8 @@ or None if no match is found."""
 		else : trgt=Set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
+		if ctx.user=="root" or -1 in ctx.groups : isroot=1
+		else: isroot=0
 		
 		# this will be a dictionary keyed by user of all records the user has
 		# just gained access to. Used for fast index updating
@@ -3269,9 +3271,10 @@ or None if no match is found."""
 				rec=self.getrecord(i,ctxid,host)			# get the record to modify
 			except: continue
 			
-			if ctx.user not in rec["permissions"][3] : continue		# if the user does not have administrative permission on the record
-																# then we just skip this record and leave the permissions alone
-																# TODO: probably we should also check for groups in [3]
+			# if the context does not have administrative permission on the record
+			# then we just skip this record and leave the permissions alone
+			# TODO: probably we should also check for groups in [3]
+			if not isroot and ctx.user not in rec["permissions"][3] : continue		
 			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
@@ -3339,6 +3342,8 @@ or None if no match is found."""
 		
 		ctx=self.__getcontext(ctxid,host)
 		users.discard(ctx.user)				# user cannot remove his own permissions
+		if ctx.user=="root" or -1 in ctx.groups : isroot=1
+		else: isroot=0
 		
 		# this will be a dictionary keyed by user of all records the user has
 		# just gained access to. Used for fast index updating
@@ -3350,9 +3355,10 @@ or None if no match is found."""
 				rec=self.getrecord(i,ctxid,host)			# get the record to modify
 			except: continue
 			
-			if ctx.user not in rec["permissions"][3] : continue		# if the user does not have administrative permission on the record
-																# then we just skip this record and leave the permissions alone
-																# TODO: probably we should also check for groups in [3]
+			# if the user does not have administrative permission on the record
+			# then we just skip this record and leave the permissions alone
+			# TODO: probably we should also check for groups in [3]			
+			if not isroot and ctx.user not in rec["permissions"][3] : continue		
 			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
