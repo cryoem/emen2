@@ -857,7 +857,8 @@ class RecordDef:
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Users are never deleted, only disabled, for historical logging purposes. -1 group is for database
-administrators. -2 group is read-only administrator."""
+administrators. -2 group is read-only administrator.
+	Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime,name(first,middle,last),institution,department,address,city,state,zipcode,country,webpage,email,altemail,phone,fax,cellphone"""
 	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
@@ -909,8 +910,8 @@ administrators. -2 group is read-only administrator."""
 		return None
 	
 	def __setitem__(self,key,value):
-		"""This and 'update' are the primary mechanisms for modifying the params in a user record
-		Changes are not written to the database until the commit() method is called!"""
+		"""Changes the values of an item. The password cannot be changed directly,
+		but must be modified through the Database instance."""
 		# comments may include embedded field values if the user has full write access
 		key=key.strip().lower()
 		if (key == "comments"): pass
@@ -1101,7 +1102,7 @@ class Record:
 			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 			p3=Set(self.__permissions[2]+self.__permissions[3])
 			p4=Set(self.__permissions[3])
-			u1=Set(ctx.groups+(-4,))				# all users are permitted group -4 access
+			u1=Set(ctx.groups+[-4,])				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -3238,8 +3239,17 @@ or None if no match is found."""
 		have no effect. Any children the user doesn't have permission to
 		update will be silently ignored."""
 		
-		if not isinstance(usertuple,tuple) or not isinstance(usertuple[0],tuple) or not isinstance(usertuple[1],tuple) or not isinstance(usertuple[2],tuple) or not isinstance(usertuple[3],tuple):
-			raise ValueError,"permissions MUST be a 4-tuple of tuples (which may be empty)"
+		if not isinstance(usertuple,tuple) and not isinstance(usertuple,list) :
+			raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints" 
+		usertuple=list(usertuple)[:4]
+		for i in range(4):
+			if not isinstance(usertuple[i],tuple):
+				if usertuple[i]==None : usertuple[i]=tuple()
+				elif isinstance(usertuple[i],str) : usertuple[i]=(usertuple[i],)
+				elif isinstance(usertuple[i],int) : usertuple[i]=(usertuple[i],)
+				else:
+					try: usertuple[i]=tuple(usertuple[i])
+					except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
 
 		# get a list of records we need to update
 		if recurse>0 :
