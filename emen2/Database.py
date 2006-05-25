@@ -1490,9 +1490,18 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		ctx=self.__getcontext(ctxid,host)
 		if (-1 in ctx.groups) or (-2 in ctx.groups): return 1
 		else: return 0
+	def getbinarynames(self):
+		"""Returns a list of tuples which can produce all binary object
+		keys in the database. Each 2-tuple has the date key and the nubmer
+		of objects under that key. A somewhat slow operation"""
+		ret=self.__bdocounter.keys()
+		ret=[(i,len(self.__bdocounter[i])) for i in ret]
 
-	def newbinary(self,date,name,ctxid,host=None):
-		"""Get a storage path for a new binary object. Returns a tuple
+		return ret
+
+	def newbinary(self,date,name,recid,ctxid,host=None):
+		"""Get a storage path for a new binary object. Must have a
+		recordid that references this binary, used for permissions. Returns a tuple
 		with the identifier for later retrieval and the absolute path"""
 		
 		if name==None : raise ValueError,"BDO name may not be 'None'"
@@ -1522,15 +1531,15 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		try:
 			itm=self.__bdocounter[key]
 			newid=max(itm.keys())+1
-			itm[newid]=name
+			itm[newid]=(name,recid)
 			self.__bdocounter[key]=itm
 		# otherwise make a new dict
 		except:
-			itm={0:name}
+			itm={0:(name,recid)}
 			self.__bdocounter[key]=itm
 			newid=0
 		
-		if os.access(path+"/%05X"%newid,os.F_OK) : LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
+		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
 		
 		return (key+"%05X"%newid,path+"/%05X"%newid)
 	
@@ -1552,11 +1561,13 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 				raise KeyError,"No storage specified for date %s"%key
 
 		try:
-			name=self.__bdocounter[key][bid]
+			name,recid=self.__bdocounter[key][bid]
 		except:
 			raise KeyError,"Unknown identifier %s"%ident
-		
-		return (name,path+"/%05X"%bid)
+
+		if trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid)
+
+		raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
 		
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
