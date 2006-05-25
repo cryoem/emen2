@@ -11,6 +11,7 @@ ctx=db.login("root",ROOTPW)
 
 # list of tuples describing all binary object keys
 bin=db.getbinarynames()
+print len(bin)
 
 for i in bin:
 	for j in range(i[1]):
@@ -22,7 +23,9 @@ for i in bin:
 			continue
 		
 		# see if we need to generate the tile file
-		if os.access(path+".tile",os.F_OK) : continue
+		if os.access(path+".tile",os.F_OK) : 
+			print path
+			continue
 
 		print "New tile file: %s.tile"%path
 		f=None

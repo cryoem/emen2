@@ -1565,7 +1565,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		except:
 			raise KeyError,"Unknown identifier %s"%ident
 
-		if trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid)
+		if self.trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid)
 
 		raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
 		

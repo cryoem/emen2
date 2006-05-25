@@ -15,7 +15,7 @@ project="Project_372"	# synaptotagmin
 # we keep track of objects that have already been copied,
 # so we don't duplicate a LOT of network traffic
 try:
-	f=FILE("pathmap.pkl","r")
+	f=file("pathmap.pkl","r")
 	pathmap=pickle.load(f)
 	f.close()
 except:
@@ -61,14 +61,18 @@ for i in good:
 	if pathmap.has_key(oldpath):
 		ident=pathmap[oldpath]
 		try:
-			name,newpath=db.getbinary(ident)
+			name,newpath=db.getbinary(ident,ctx)
 			print "Existing entry: ",name,ident
 			rec["path"]="bdo:"+ident
 			rec.commit()
 		except:
 			print "Existing pathmap with no BDO: ",ident,oldpath
+			ident,newpath=db.newbinary(rec["eventdate"],rec["identifier"],i,ctx)
+			name,newpath=db.getbinary(ident,ctx)
+			rec["path"]="bdo:"+ident
+			rec.commit()
 	else:
-		ident,newpath=db.newbinary(rec["eventdate"],rec["identifier"],ctx)
+		ident,newpath=db.newbinary(rec["eventdate"],rec["identifier"],i,ctx)
 		pathmap[oldpath]=ident
 		print "New entry: ",ident
 		print "cp %s %s"%(oldpath,newpath)
@@ -79,7 +83,7 @@ for i in good:
 		# see if we need to generate the tile file
 		if os.access(newpath+".tile",os.F_OK) : continue
 
-		f=None
+"""		f=None
 		if oldpath[-7:]==".dm3.gz" :
 			f="/tmp/file.dm3"
 			os.system("gzip -d <%s >/tmp/file.dm3"%oldpath)
@@ -93,7 +97,7 @@ for i in good:
 			f="/tmp/file.mrc"
 			os.system("cp %s /tmp/file.mrc"%oldpath)
 
-		if (f) : os.system("e2tilefile.py %s --build=%s"%(newpath+".tile",f)
+		if (f) : os.system("e2tilefile.py %s --build=%s"%(newpath+".tile",f)"""
 
 # dump all current results
 binmap={}
