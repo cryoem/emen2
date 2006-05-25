@@ -20,5 +20,5 @@ root.putChild("db",TwistSupport_html.DBResource())
 root.putChild("RPC2",TwistSupport.DBXMLRPCResource())
 
 # You can set the port to listen on...
-reactor.listenTCP(8080, server.Site(root))
+reactor.listenTCP(EMEN2PORT, server.Site(root))
 reactor.run()

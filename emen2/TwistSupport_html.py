@@ -5,6 +5,7 @@ from twisted.web.resource import Resource
 from emen2 import TwistSupport 
 import os
 import traceback
+import pickle
 import re
 
 # we open the database as part of the module initialization
@@ -132,6 +133,33 @@ def html_home():
 	</ul>"""]
 	
 	return "".join(ret)
+
+def html_tileimage(path,args,ctxid,host):
+	global db
+
+	name,fpath=db.getbinary(path[1],ctxid,host)
+	fpath=fpath+".tile"
+	
+
+	try: ret=get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
+	except: return "Invalid tile"
+	return ret
+
+def get_tile(tilefile,level,x,y):
+	"""get_tile(tilefile,level,x,y)
+	retrieve a tile from the file"""
+
+	tf=file(tilefile,"r")
+
+	td=pickle.load(tf)
+	try: a=td[(level,x,y)]
+	except: raise KeyError,"Invalid Tile"
+	tf.seek(a[0],1)
+	ret=tf.read(a[1]) 
+	tf.close()
+
+	return ret
+
 
 def html_paramdefs(path,args,ctxid,host):
 	global db
