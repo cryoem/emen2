@@ -49,7 +49,8 @@ def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+#	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([a-zA-Z0-9_]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret=[[],{}]
 	
 	for t in srch:
@@ -2747,6 +2748,10 @@ or None if no match is found."""
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		recdef.findparams()
+
+		pdn=self.getparamdefnames()
+		for i in recdef.params:
+			if i not in pdn: raise KeyError,"No such parameter %s"%i
 		
 		# this actually stores in the database
 		self.__recorddefs[recdef.name]=recdef
@@ -2767,6 +2772,10 @@ or None if no match is found."""
 		recdef.creationtime=rd.creationtime
 		recdef.mainview=rd.mainview	#temp. change to allow mainview changes
 		recdef.findparams()
+
+		pdn=self.getparamdefnames()
+		for i in recdef.params:
+			if i not in pdn: raise KeyError,"No such parameter %s"%i
 		
 		self.__recorddefs[recdef.name]=recdef
 				
@@ -3005,6 +3014,10 @@ or None if no match is found."""
 			#record.recid=self.__records[-1]+1
 			record.recid = self.__dbseq.get()                                # Get a new record-id
 			self.__records[-1]=record.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
+
+			df=file("/tmp/dbbug3","a")
+			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
+			df.close()
 		
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
@@ -3332,7 +3345,8 @@ or None if no match is found."""
 		this REMOVES all access permissions for the specified users on the specified
 		record."""
 
-		users=Set(users)
+		if isinstance(users,str) : users=Set([users])
+		else : users=Set(users)
 		
 		# get a list of records we need to update
 		if recurse>0 :
@@ -3344,7 +3358,7 @@ or None if no match is found."""
 		users.discard(ctx.user)				# user cannot remove his own permissions
 		if ctx.user=="root" or -1 in ctx.groups : isroot=1
 		else: isroot=0
-		
+
 		# this will be a dictionary keyed by user of all records the user has
 		# just gained access to. Used for fast index updating
 		secrupd={}
@@ -3358,7 +3372,7 @@ or None if no match is found."""
 			# if the user does not have administrative permission on the record
 			# then we just skip this record and leave the permissions alone
 			# TODO: probably we should also check for groups in [3]			
-			if not isroot and ctx.user not in rec["permissions"][3] : continue		
+			if (not isroot) and (ctx.user not in rec["permissions"][3]) : continue		
 			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
@@ -3386,8 +3400,7 @@ or None if no match is found."""
 #				self.__reindexsec(reduce(operator.concat,old),
 #					reduce(operator.concat,rec["permissions"]),rec.recid)
 				
-				stu=Set(old[0]+old[1]+old[2]+old[3])-users
-				for i in stu:
+				for i in users:
 					try: secrupd[i].append(rec.recid)
 					except: secrupd[i]=[rec.recid]
 				
