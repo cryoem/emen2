@@ -64,7 +64,12 @@ class DBResource(Resource):
 		method=request.postpath[0]
 		host=request.getClientIP()
 		
-		return eval("html_"+method)(request.postpath,request.args,ctxid,host)
+		ret=eval("html_"+method)(request.postpath,request.args,ctxid,host)
+		
+		# JPEG Magic Number
+		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
+		return ret
+#		return str(request.__dict__)
 #		return callbacks[method](request.postpath,request.args,ctxid,host)
 								
 #		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
@@ -140,7 +145,129 @@ def html_tileimage(path,args,ctxid,host):
 	name,fpath=db.getbinary(path[1],ctxid,host)
 	fpath=fpath+".tile"
 	
-
+	if not args.has_key("x") :
+		lvl=int(args["level"][0])
+		dims=get_tile_dim(fpath)
+		dimsx=[i[0] for i in dims]
+		dimsy=[i[1] for i in dims]
+		
+		ret="""<HTML><HEAD><TITLE>IMAGE</TITLE><style type="text/css">
+		#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
+		#innerdiv { position:relative; left: 0px; right: 0px; }</style>
+		</style>
+		<script type="text/javascript">
+		var isdown=false;
+		var nx=%s
+		var ny=%s
+		var level=nx.length-1
+		
+		function init() {
+			setsize(nx[level]*256,ny[level]*256);
+			var outdiv=document.getElementById("outerdiv");
+			outdiv.onmousedown = mdown;
+			outdiv.onmousemove = mmove;
+			outdiv.onmouseup = mup;
+			outdiv.ondragstart = function() { return false; }
+			recalc();
+		}
+		
+		function tofloat(s) {
+			if (s=="") return 0.0;
+			return parseFloat(s.substring(0,s.length-2));
+		}
+		
+		function zoom(lvl) {
+			if (lvl==level || lvl<0 || lvl>=nx.length) return;
+			indiv=document.getElementById("innerdiv");
+			x=tofloat(indiv.style.left);
+			y=tofloat(indiv.style.top);
+			
+			outdiv=document.getElementById("outerdiv");
+			cx=outdiv.clientWidth/2.0;
+			cy=outdiv.clientHeight/2.0;
+			
+			setsize(nx[lvl]*256,ny[lvl]*256);
+			
+			scl=Math.pow(2.0,level-lvl)
+			indiv.style.left=cx-((cx-x)*scl);
+			indiv.style.top=cy-((cy-y)*scl);
+			
+			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
+			level=lvl
+			recalc();
+		}
+		
+		function zoomout() {
+			zoom(level+1);
+		}
+		
+		function zoomin() {
+			zoom(level-1);
+		}
+		
+		function mdown(event) {
+			if (!event) event=window.event;		// for IE
+			indiv=document.getElementById("innerdiv");
+			isdown=true;
+			y0=tofloat(indiv.style.top);
+			x0=tofloat(indiv.style.left);
+			mx0=event.clientX;
+			my0=event.clientY;
+			return false;
+		}
+		
+		function mmove(event) {
+			if (!isdown) return;
+			if (!event) event=window.event;		// for IE
+			indiv=document.getElementById("innerdiv");
+			indiv.style.left=x0+event.clientX-mx0;
+			indiv.style.top=y0+event.clientY-my0;
+			recalc();
+		}
+		
+		function mup(event) {
+			if (!event) event=window.event;		// for IE
+			isdown=false;
+			recalc();
+		}
+		
+		function recalc() {
+			indiv=document.getElementById("innerdiv");
+			x=-Math.ceil(tofloat(indiv.style.left)/256);
+			y=-Math.ceil(tofloat(indiv.style.top)/256);
+			outdiv=document.getElementById("outerdiv");
+			dx=outdiv.clientWidth/256+1;
+			dy=outdiv.clientHeight/256+1;
+			for (i=x; i<x+dx; i++) {
+				for (j=y; j<y+dy; j++) {
+					if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
+					nm="im"+i+"."+j
+					var im=document.getElementById(nm);
+					if (!im) {
+						im=document.createElement("img");
+						im.src="/db/tileimage/%s?level="+level+"&x="+i+"&y="+j;
+						im.style.position="absolute";
+						im.style.left=i*256+"px";
+						im.style.top=j*256+"px";
+						im.setAttribute("id",nm);
+						indiv.appendChild(im);
+					}
+				}
+			}
+		}
+		
+		function setsize(w,h) {
+			var indiv=document.getElementById("innerdiv");
+			indiv.style.height=h;
+			indiv.style.width=w;
+		}
+		</script></HEAD><BODY onload=init()>
+		<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br></BODY></HTML>"""%(str(dimsx),str(dimsy),path[1])
+		
+		
+		return ret
+		
 	try: ret=get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
 	except: return "Invalid tile"
 	return ret
@@ -160,6 +287,23 @@ def get_tile(tilefile,level,x,y):
 
 	return ret
 
+def get_tile_dim(tilefile):
+	"""This will determine the number of tiles available in
+	x and y at each level and return a list of (nx,ny) tuples"""
+
+	tf=file(tilefile,"r")
+	td=pickle.load(tf)
+	tf.close()
+
+	ret=[]
+	for l in range(10):	
+		x,y=-1,-1
+		for i in td:
+			if i[0]==l: x,y=max(x,i[1]),max(y,i[2])
+		if x==-1 and y==-1: break
+		ret.append((x+1,y+1))
+	
+	return ret
 
 def html_paramdefs(path,args,ctxid,host):
 	global db
