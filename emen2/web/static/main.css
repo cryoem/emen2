@@ -1,0 +1,327 @@
+h1 {
+}
+
+h2 {
+	width:700px;
+	border-bottom:dashed 1px;
+}
+
+h3 {
+}
+
+p {
+}
+
+table {
+	margin:25px;
+	width:600px;
+}
+
+th {
+	text-align:left;
+	font-weight: normal;
+	padding:4px;
+	border-bottom:solid 1px;
+	border-right:dashed 1px;
+}
+
+td {
+	padding:4px;
+	vertical-align:top;	
+}
+
+td.shaded {
+	background:#F0F2FF
+}
+
+.pitemname {
+	width:250px;
+}
+
+.ptree {
+/*	width:50px; */
+	padding-left:5px;
+	padding-right:5px;
+	vertical-align:middle;
+
+}
+
+.ptree:hover {
+	background:#F0F2FF;
+}
+
+.ptreeempty {
+	padding:0px;
+	vertical-align:middle;
+}
+
+div#doc{
+	min-height: 500px;
+	margin-top: 2px;
+	margin-left: 20px;
+	margin-right: 10px;
+	margin-bottom: 10px;
+	}
+
+
+div.menu ul {
+
+    }
+
+div.menu li {
+      margin: 5;
+      padding: 10;
+      font-size: 12pt;
+    }
+div.menu table {
+      margin: 0;
+      padding: 0;
+	width: 100%;
+     list-style-type: none;
+    }
+div.menu tr {
+      margin: 0;
+      padding: 0;
+	width: 100%;
+     list-style-type: none;
+    }
+div.menu td {
+      /*margin: 1;
+      padding: 0;*/
+      float: left;
+      width: 18%;
+      margin-right: 0em;
+      background: #FFFFFF none;
+      text-align: center;
+    }
+
+
+body {
+	font-family:sanserif;
+	margin:0px;
+	padding:0px;
+}
+
+div#content { 
+	margin-top:80px;
+	margin-left:20px;
+	margin-bottom:80px;
+	text-align:left;
+	line-height:125%;
+	clear:both;
+}
+
+div#title {
+	font-size:25px;
+	color:#3B3981;
+	background:#F0F2FF;
+	border-bottom:solid 1px #C0C0F0;
+}
+
+div#nav {
+	background:#D7DCFF;
+	border-bottom:solid 1px #C0C0F0;
+	clear:both;
+}
+
+div#heirarchy {
+	width:600px;
+	padding:5px;
+	border-bottom:dashed 1px;
+}
+
+div#leftnav {
+	clear:both;
+#	width:170px;
+}
+
+div#bottom {
+	font-size:10px;
+	padding:10px;
+	margin-top:10px;
+	background:#D7DCFF;
+}
+
+img#toplogo {
+	vertical-align:middle;
+	margin-left:30px;
+}
+
+img#bottomlogo {
+	margin-left:20px;
+	float:left
+}
+
+a {
+	text-decoration:none
+}
+
+table {
+	width:0px;
+	border:0px;
+	padding:0px;
+	spacing:0px;
+}
+
+/* DROP DOWN MENU CSS */
+
+div.nav ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+
+div.nav li {
+	float: left;
+	position: relative;
+	width: 175px;
+	text-align: center;
+	cursor: default;
+	background-color: white;
+	line-height:30px;
+	border-right:solid #C0C0F0 1px;
+	border-bottom:solid #C0C0F0 1px;
+	
+}
+
+div.nav li:hover {
+	background:#F0F2FF;
+	
+}
+
+div.nav li#first {
+}
+
+div.nav li#last {
+}
+
+div.nav li ul {
+	display: none;
+	position: absolute;
+	top: 100%;
+	left: 0;
+
+	background: white;
+	border:solid #C0C0F0 1px;
+}
+
+div.nav li li {
+	display: block;
+	float: none;
+	background-color: transparent;
+	border: 0;
+}
+
+div.nav li:hover ul, li.over ul {
+	display: block;
+}
+
+
+/* FORM STUFF */
+
+.form-help {
+  font-size: 10pt;
+  color: #333333;
+}
+
+.std-text {
+  font-family: arial, Verdana, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #333333;
+}
+
+.tab-small {
+  font-family: arial, Verdana, Helvetica, sans-serif; 
+  font-size: 8pt; 
+  color: #333333;
+}
+
+.location-bar {
+  background-color: #efefef;
+  border: none;
+}
+
+.list-header {
+  background-color: #c0c0c0;
+  border: none;
+}
+
+.list-item {
+  font-family: arial, Verdana, Helvetica, sans-serif; 
+  font-size: 10pt; 
+}
+
+.list-nav {
+  font-family: arial, Verdana, Helvetica, sans-serif; 
+  font-size: 10pt; 
+  font-weight: bold;
+}
+
+.row-normal {
+  background-color: #ffffff;
+  border: none;
+
+}
+
+.row-hilite {
+  background-color: #efefef;
+  border: none;
+}
+
+.section-bar {
+  background-color: #c0c0c0;
+  border: none;
+}
+
+.system-msg {
+  font-family:arial,  Verdana, Helvetica, sans-serif; 
+  font-size: 10pt; 
+  background-color: #ffffff;
+  border:  1px solid #000000;
+  margin-bottom: 6px;
+  margin-top: 6px;
+  padding: 4px;
+  width: 100%;
+  color: #660033;
+}
+
+.form-title {
+  font-family:arial, Verdana, Helvetica, sans-serif; 
+  font-weight: bold;
+  font-size: 12pt; 
+  color: #333333;
+}
+
+.form-label {
+  font-family: arial, Verdana, Helvetica, sans-serif; 
+  font-weight: bold;
+  font-size: 10pt; 
+  color: #333333;
+}
+
+.form-optional {
+  font-family:arial, Verdana, Helvetica, sans-serif; 
+  font-weight: bold;
+  font-style: italic;
+  font-size: 10pt; 
+  color: #333333;
+}
+
+.form-element {
+  font-family: arial,Verdana, Helvetica, Sans-serif;
+  font-size: 10pt;
+  color: #000000;
+}
+
+.form-text {
+  font-family: arial, Verdana, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #333333;
+}
+
+.form-mono {
+  font-family: monospace;
+  font-size: 12px;
+  text-decoration: none;
+}
