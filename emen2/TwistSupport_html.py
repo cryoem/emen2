@@ -123,7 +123,7 @@ def parent_tree(recordid,ctxid=None):
 
 
 
-	ret = ["<table cellpadding=0 cellspacing=0>"]
+	ret = ["<table class=\"navtree\" cellpadding=0 cellspacing=0>"]
 	
 	ret.append("<!-- %s -->"%m)
 
@@ -374,8 +374,8 @@ def render_parentschildren(recordid, render, viewonly=None, groupby="rectype", s
 			if viewonly and viewonly != i:
 				pass
 			else:
-				ret.append("\n<h3>%s</h3>\n"%i)
-				ret.append("<table cellspacing=0 cellpadding=0>\n")
+				ret.append("\n<h4>%s</h4>\n"%i)
+				ret.append("<table class=\"groupview\" cellspacing=0 cellpadding=0>\n")
 								
 				tableheader = parse_view(id,record_dicts[str(groups[i][0])],header=1,ctxid=ctxid)
 				ret.append(" ".join(tableheader))
@@ -528,17 +528,28 @@ def html_htable2(itmlist,cols,proto):
 
 	return "".join(ret)
 
-def html_dicttable(dict,proto):
+def html_dicttable(dict,proto,missing=0):
 	"""Produce a table of values in 'cols' columns"""
-	ret=["<!-- dicttable --><table cellspacing=0 cellpadding=0>"]
+	ret=["<table class=\"dicttable\" cellspacing=0 cellpadding=0>"]
 
-
+	skipped = 0
 	for k,v in dict.items():
 		item=db.getparamdef(str(k))
 #		ret.append("<!-- %s -->"%item)
-		ret.append("<tr><td class=\"pitemname\"><a href=%s%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,item.desc_short,v))
+		if missing and v == "":
+			skipped = 1
+		else:
+			ret.append("<tr><td class=\"pitemname\"><a href=%s%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,item.desc_short,v))
 		
 	ret.append("</table><br>")
+
+	if skipped:
+		ret.append("<div class=\"emptyfields\">Emtpy fields: ")
+		for k,v in dict.items():
+			item=db.getparamdef(str(k))
+			if v == "":
+				ret.append("<a href=%s%s>%s</a>, \n"%(proto,k,item.desc_short))
+		ret.append("</div>")
 
 	return "".join(ret)
 		
@@ -913,9 +924,9 @@ def html_record(path,args,ctxid,host):
 	
 	ret.append(parent_tree(int(args["name"][0]),ctxid=ctxid))
 	
-	ret.append("<h2>Record: <i>%d  (%s)</i></h2><br>params:<br>"%(int(item.recid),item["recdef"]))
+	ret.append("<h2>Record: <i>%d (%s)</i></h2>"%(int(item.recid),item["rectype"]))
 	
-	ret.append(html_dicttable(item,"/db/paramdef?name="))
+	ret.append(html_dicttable(item,"/db/paramdef?name=",missing=1))
 
 	ret.append("<h2>Parents:</h2>")
 	ret.append(render_parentschildren(int(args["name"][0]),"parents",ctxid=ctxid))
