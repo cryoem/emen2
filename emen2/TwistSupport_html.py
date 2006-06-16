@@ -63,7 +63,13 @@ class DBResource(Resource):
 		method=request.postpath[0]
 		host=request.getClientIP()
 		
-		return eval("html_"+method)(request.postpath,request.args,ctxid,host)
+		ret=eval("html_"+method)(request.postpath,request.args,ctxid,host)
+		
+		# JPEG Magic Number
+		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
+		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+		return ret
+#		return str(request.__dict__)
 #		return callbacks[method](request.postpath,request.args,ctxid,host)
 
 #		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
@@ -579,10 +585,11 @@ def html_tileimage(path,args,ctxid,host):
 	fpath=fpath+".tile"
 	
 	if not args.has_key("x") :
-		lvl=int(args["level"][0])
 		dims=get_tile_dim(fpath)
 		dimsx=[i[0] for i in dims]
 		dimsy=[i[1] for i in dims]
+		if not args.has_key("level") : lvl=len(dims)
+		else: lvl=int(args["level"][0])
 		
 		ret="""<HTML><HEAD><TITLE>IMAGE</TITLE><style type="text/css">
 		#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
