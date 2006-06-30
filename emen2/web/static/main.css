@@ -153,7 +153,8 @@ img#bottomlogo {
 
 
 
-
+#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
+#innerdiv { position:relative; left: 0px; right: 0px; }
 
 /* 
 =============================================================

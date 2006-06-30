@@ -3,6 +3,7 @@
 
 from twisted.web.resource import Resource
 from emen2 import TwistSupport 
+from twebutil import *
 import os
 import traceback
 import re
@@ -10,18 +11,6 @@ import re
 # we open the database as part of the module initialization
 db=None
 DB=TwistSupport.DB
-
-def loginpage(redir):
-	"""Why is this a function ?  Just because. Returns a simple login page."""
-	return """%s<h3>Please Login:<br>
-<form action="/db/login" method="POST"><input type=hidden name=fw value=%s>
-<br>Username: <input type=text name=username>
-<br>Password: <input type=password name=pw>
-<br><input type=submit value=submit></form>%s"""%(html_header("EMEN2 Login"),redir,html_footer())
-
-def argmap(dict):
-	for i in dict: dict[i]=dict[i][0]
-
 
 class DBResource(Resource):
 	"""This resource serves HTML requests. Look in TwistServer for the actual server code."""
@@ -76,6 +65,13 @@ class DBResource(Resource):
 
 
 
+###################################################	
+## SUPPORT FUNCTIONS ##############################
+###################################################
+
+def argmap(dict):
+	for i in dict: dict[i]=dict[i][0]
+		
 def parent_tree(recordid,ctxid=None):
 	"""Get the parent tree of a record. Returns table."""
 	# 158 - 366
@@ -87,7 +83,7 @@ def parent_tree(recordid,ctxid=None):
 		list = []
 		if m[y][x]:
 			queryresult = db.getparents(m[y][x],ctxid=ctxid)
-			print "Parents for %s: %s"%(m[y][x],queryresult)
+#			print "Parents for %s: %s"%(m[y][x],queryresult)
 
 			for i in queryresult:
 				list.append(i)
@@ -113,9 +109,9 @@ def parent_tree(recordid,ctxid=None):
 		except IndexError:
 			keepgoing = 0
 
-		print m
+#		print m
 		
-	# fix stupid bug -- pad rows before reversing -- FIX: find longer one	
+	# silly but needed -- pad rows to equal length before reversing 
 	for i in range(0,len(m)):
 		if len(m[0]) > len(m[i]):
 			for j in range(len(m[i]),len(m[0])):
@@ -123,35 +119,41 @@ def parent_tree(recordid,ctxid=None):
 		elif len(m[i]) > len(m[0]):
 			for j in range(len(m[0]),len(m[i])):
 				m[0].append("")
-	# requires two passes
+	# requires two passes; reverse now
 	for i in range(0,len(m)):			
 		m[i].reverse()
 
 
 
-	ret = ["<table class=\"navtree\" cellpadding=0 cellspacing=0>"]
-	
-	ret.append("<!-- %s -->"%m)
+	ret = ["\n\n<div class=\"navtree\">\n\n<table cellpadding=\"0\" cellspacing=\"0\" class=\"navtable\">\n"]
 
 	for posy in range(0,len(m)):
-		ret.append("<tr>\n")
+		ret.append("\t<tr>\n")
 		for posx in range(0,len(m[posy])):
 			if m[posy][posx] != "":
 				record = db.getrecord(m[posy][posx], ctxid)
 				record_dict = record.items_dict()
 
 				pclass="ptree"
-				ret.append("\t<td class=%s>"%pclass)
+	
+				# Attempt to get title of record; else use record type
+				try:
+					text = record_dict['title']
+				except:
+					text = "(%s)"%record_dict['rectype']
+	
+				ret.append("\t\t<td class=\"%s\">"%pclass)
 
 				
 				if os.path.exists("tweb/images/icons/%s.gif"%record_dict['rectype']):
-					ret.append("<img src=/images/icons/%s.gif>"%record_dict['rectype'])
+					ret.append("<img src=\"/images/icons/%s.gif\" alt=\"\"/>"%record_dict['rectype'])
 				
-				ret.append("<a href=/db/record?name=%s>%s</a></td>\n"%(m[posy][posx],record_dict['rectype']))
+				ret.append("<a href=\"/db/record?name=%s\">%s</a></td>\n"%(m[posy][posx],text))
 
 				ok = ["","","","",""]
 				img = ""
 
+				# See which neighbors exist
 				# below
 				try:
 					ok[0] = m[posy+1][posx]
@@ -178,6 +180,7 @@ def parent_tree(recordid,ctxid=None):
 				except:
 					pass
 
+				# Case switch to determine icon based on neighbors
 				if ok[0] and not ok[2]:
 					img = "branch_next"
 				if ok[4] and not ok[1] and not img:
@@ -187,29 +190,20 @@ def parent_tree(recordid,ctxid=None):
 				if not img:
 					img = "blank"
 
-				ret.append("\t   <td class=\"ptreeempty\"><img src=\"/images/%s.png\"></td>\n"%img)
+				ret.append("\t\t<td class=\"ptreeempty\"><img src=\"/images/%s.png\" alt=\"\"/></td>\n"%img)
 
 			else:
-				ret.append("\t<td></td>\t<td></td>\n")
+				ret.append("\t\t<td></td>\n\t\t<td></td>\n")
 
-		ret.append("<tr>\n")
-	ret.append("</table>")
+		ret.append("\t</tr>\n")
+	ret.append("</table>\n\n</div>")
 
 	return " ".join(ret)
 
 
-def render_special_view(recordid,record_dict,out):
-	type = record_dict['rectype']
 
-	format = ""
 
-	if type == "project":
-#		print out
-		format = "(Special View) Project: <a href=\"/db/record?name=%s\">%s</a> %s   --   PI: %s <br>"%(recordid,recordid,out[0],out[1])
-
-	return format
-
-def parse_view(recordid, record_dict, group=1, header=0, modulo=0, maxtextlength=500, ctxid=None):
+def parse_view(recordid, record_dict, group=1, header=0, modulo=0, ctxid=None):
 	"""Get view, parse it, return constructed view"""
 
 	recorddef=db.getrecorddef(record_dict['rectype'],ctxid)
@@ -242,8 +236,6 @@ def parse_view(recordid, record_dict, group=1, header=0, modulo=0, maxtextlength
 	for i in preparse:
 		if i[0] != "":
 			preparse2.append(i)
-
-
 	preparse = preparse2
 
 	#
@@ -251,7 +243,6 @@ def parse_view(recordid, record_dict, group=1, header=0, modulo=0, maxtextlength
 	#
 	out = []
 	vartypes = []
-	varnames = []
 	vardescs = []
 	for i in preparse:
 		if i[0].count("$") == 2:
@@ -260,24 +251,19 @@ def parse_view(recordid, record_dict, group=1, header=0, modulo=0, maxtextlength
 				text = record_dict[j.lower()]
 				item = db.getparamdef(j.lower())
 				vt = item.vartype
-				vn = item.name
 				vd = item.desc_short
 			except:
 				text = ''
 				vt = ''
-				vn = ''
 				vd = ''
 			out.append(str(text))
 			vartypes.append(vt)
-			varnames.append(vn)
 			vardescs.append(vd)
-
 		elif i == "":
 			pass
 		else:
 			out.append(str(i[0]))
 			vartypes.append('')
-			varnames.append('')
 			vardescs.append('')
 
 	ret = []
@@ -285,94 +271,89 @@ def parse_view(recordid, record_dict, group=1, header=0, modulo=0, maxtextlength
 	# View parsing
 	#
 	if viewtype == "onelineview":
+		onelineview = render_onelineview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=ctxid)
+		ret.append(" ".join(onelineview))
 
-		if group:
-			ret.append("<tr><a href=/db/record?name=%s>%s</a> -- \n"%(recordid,recordid))
-		else: 
-			ret.append("<tr><a href=/db/record?name=%s>%s</a> -- %s -- \n"%(recordid,recordid,record_dict['rectype']))
 
-		ret.append(" ".join(out))
-		ret.append("</tr>")
-
-	elif viewtype == "tabularview":
-
-		if header:
-			print "Header: %s"%record_dict['rectype']
-			ret.append("<tr>")
-			for i in range(0,len(out)):
-				if vartypes[i] != "text":
-					if vartypes[i] != "":
-						ret.append("<th>%s</th>\n"%vardescs[i])
-					else:
-						ret.append("<th>(%s)</th>\n"%preparse[i][0].replace("$$",""))
-			ret.append("</tr>\n")
-
-		else:
-			skipped = []
-			ret.append("<tr>")
-
-			if modulo % 2:
-				tdclass = ""
-			else:
-				tdclass = "shaded"
-
-			for i in range(0,len(out)):
-				if vartypes[i] == "text":
-					skipped.append(i)
-				else:
-					ret.append("<td class=\"%s\"><!-- %s --><a href=/db/record?name=%s>%s</a></td>\n"%(tdclass,preparse[i][0].replace("$$",""),recordid,out[i]))
-
-			for i in skipped:
-				string = out[i]
-				if len(string) >= maxtextlength:
-					string = string[0:maxtextlength] + " <a href=/db/record?name=%s>(view more)</a>..."%recordid
-				ret.append("</tr><tr><td class=\"%s\"></td><td class=\"%s\" colspan=%s>%s</td>\n"%(tdclass,tdclass,len(out)-1,string))
-
-			ret.append("</tr>\n")
-
+	if viewtype == "tabularview":
+		tabularview = render_tabularview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=ctxid)
+		ret.append(" ".join(tabularview))
 
 	return ret
 
+
+
+def render_onelineview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=None):
+	ret = []
+	ret.append("\t\t<td><a href=\"/db/record?name=%s\">%s</a> -- %s -- \n"%(recordid,recordid,record_dict['rectype']))
+	ret.append(" ".join(out))
+	ret.append("</td>")
+	return ret
+
+def render_tabularview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=None):
+	maxtextlength=500
+	ret = []
+	if header:
+		ret.append("\t<tr>\n")
+		for i in range(0,len(out)):
+			if vartypes[i] != "text":
+				if vartypes[i] != "":
+					ret.append("\t\t<th>%s</th>\n"%vardescs[i])
+				else:
+					ret.append("\t\t<th>(%s)</th>\n"%preparse[i][0].replace("$$",""))
+		ret.append("\t</tr>\n")
+
+	# tdclass is for shaded/non-shaded row
+	# tdclass2 is for first-item on row
+	else:
+		skipped = []
+		ret.append("\t<tr>\n")
+
+		if modulo % 2:
+			tdclass = ""
+		else:
+			tdclass = "shaded"
+
+		tdclass2 = "firstitem"
+		for i in range(0,len(out)):
+			if vartypes[i] == "text":
+				skipped.append(i)
+			else:
+				ret.append("\t\t<td class=\"%s %s\"><!-- %s --><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass2,preparse[i][0].replace("$$",""),recordid,out[i]))
+				tdclass2 = ""
+
+		tdclass2 = "firstitem"
+		for i in skipped:
+			string = out[i]
+			if len(string) >= maxtextlength:
+				string = string[0:maxtextlength] + " <a href=\"/db/record?name=%s\">(view more)</a>..."%recordid
+			ret.append("\t</tr>\n\t<tr>\n\t\t<td class=\"%s %s\"></td><td class=\"%s\" colspan=\"%s\"><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass2,tdclass,len(out)-1,recordid,string))
+			tdclass2 = ""
+
+		ret.append("\t</tr>\n")
+
+	return ret
+	
+
+def childrenbytype(recordid,ctxid=None):
+	queryresult = db.getchildren(recordid,ctxid=ctxid)
+	record_dicts = get_recorddicts(queryresult,ctxid=ctxid)
+	groups = group_by_key(record_dicts,'rectype',ctxid=ctxid)
+	ret = []
+	for i in groups.keys():
+		ret.append("\t<li class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></li>\n"%(i,i,i,len(groups[i])))
+	return " ".join(ret)
+
 def render_parentschildren(recordid, render, viewonly=None, groupby="rectype", sortgroup=None, ctxid=None):
+	"""Draw headers and tables for parents/children of a record"""
 	if render == "parents":
 		queryresult = db.getparents(recordid,ctxid=ctxid)
 	elif render == "children":
 		queryresult = db.getchildren(recordid,ctxid=ctxid)
-	else:
-		# fix: throw an exception
-		print "Render types: parents, children"	
-		return
 
 	ret = []
-	record_dicts = {}
-	groups = {}
-
-	for id in queryresult:
-
-		record = db.getrecord(id, ctxid)
-		record_dicts[str(id)] = record.items_dict() 
-		recorddef=db.getrecorddef(record_dicts[str(id)]['rectype'],ctxid=ctxid)
-
-		groupby="rectype"
-
-		if groupby:
-			key = str(record_dicts[str(id)][groupby])
-
-			try:
-				groups[key]
-			except KeyError:
-				groups[key] = []		
-
-			groups[str(record_dicts[str(id)][groupby])].append(id)
-
-			#print "Groups: " + str(groups)
-
-		# by default, no sorting
-		# sortgroup is a dictionary with group: [parameter, sortby]
-		# will sort each group 
-		# will need switch for int/float/date/etc.
-		if sortgroup:
-			pass
+	record_dicts = get_recorddicts(queryresult,ctxid=ctxid)
+	groups = group_by_key(record_dicts,'rectype',ctxid=ctxid)
 
 	if groupby:
 		for i in groups.keys():
@@ -380,19 +361,8 @@ def render_parentschildren(recordid, render, viewonly=None, groupby="rectype", s
 			if viewonly and viewonly != i:
 				pass
 			else:
-				ret.append("\n<h4>%s</h4>\n"%i)
-				ret.append("<table class=\"groupview\" cellspacing=0 cellpadding=0>\n")
-								
-				tableheader = parse_view(id,record_dicts[str(groups[i][0])],header=1,ctxid=ctxid)
-				ret.append(" ".join(tableheader))
-				
-				modulo=0
-				for id in groups[i]:
-					parse = parse_view(id,record_dicts[str(id)],modulo=modulo,ctxid=ctxid)
-					modulo=modulo+1
-					ret.append(" ".join(parse))
-
-				ret.append("</table>")
+				table = render_grouptable(groups[i],record_dicts,ctxid=ctxid)
+				ret.append(" ".join(table))
 
 	else:
 		for id in queryresult:
@@ -402,38 +372,138 @@ def render_parentschildren(recordid, render, viewonly=None, groupby="rectype", s
 	return " ".join(ret)
 
 
+def get_recorddicts(queryresult,ctxid=None):
+	"""Take a query result, turn it into record_dicts"""
+	record_dicts = {}
+	for id in queryresult:
+		record = db.getrecord(id, ctxid)
+		record_dicts[str(id)] = record.items_dict()
+	return record_dicts
+
+
+
+def group_by_key(record_dicts,groupby,ctxid=None):
+	"""Group record_dicts by key"""
+	groups = {}
+	for id in record_dicts.keys():
+		key = str(record_dicts[str(id)][groupby])
+
+		try:
+			groups[key]
+		except KeyError:
+			groups[key] = []		
+
+		groups[str(record_dicts[str(id)][groupby])].append(id)
+	return groups		
+
+
+# Include recordids in definition because record_dicts may contain extra definitions..
+def render_grouptable(recordids,record_dicts,ctxid=None):
+	"""Make a table for items with a common view definition"""
+	ret = []
+	ret.append("\n\n<div class=\"switchpage\" id=\"page_%s\">"%record_dicts[str(recordids[0])]['rectype'])
+	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
+					
+	tableheader = parse_view(recordids[0],record_dicts[str(recordids[0])],header=1,ctxid=ctxid)
+	ret.append(" ".join(tableheader))
+	
+	modulo=0
+	for id in recordids:
+		parse = parse_view(id,record_dicts[str(id)],modulo=modulo,ctxid=ctxid)
+		modulo=modulo+1
+		ret.append(" ".join(parse))
+
+	ret.append("</table>\n</div>\n\n")
+	return ret
+	
+	
+	
+def get_tile(tilefile,level,x,y):
+	"""get_tile(tilefile,level,x,y)
+	retrieve a tile from the file"""
+
+	tf=file(tilefile,"r")
+
+	td=pickle.load(tf)
+	try: a=td[(level,x,y)]
+	except: raise KeyError,"Invalid Tile"
+	tf.seek(a[0],1)
+	ret=tf.read(a[1]) 
+	tf.close()
+
+	return ret
+
+def get_tile_dim(tilefile):
+	"""This will determine the number of tiles available in
+	x and y at each level and return a list of (nx,ny) tuples"""
+
+	tf=file(tilefile,"r")
+	td=pickle.load(tf)
+	tf.close()
+
+	ret=[]
+	for l in range(10):	
+		x,y=-1,-1
+		for i in td:
+			if i[0]==l: x,y=max(x,i[1]),max(y,i[2])
+		if x==-1 and y==-1: break
+		ret.append((x+1,y+1))
+
+	return ret
+	
+	
+	
+def singleheader(title):
+	ret = """
+	
+	<div class="navtree">
+
+	<table cellpadding="0" cellspacing="0" class="navtable">
+	</table>
+
+	</div>
+	
+	<div class="switchcontainer">
+
+	 <ul class="table">
+	 	<li class="switchbutton" id="button_mainview"><a href="">%s</a></li>
+	</ul>
+	</div>"""%title
+	return ret
+	
+###################################################	
+## HTML FUNCTIONS #################################
+###################################################
+
+def loginpage(redir):
+	"""Why is this a function ?  Just because. Returns a simple login page."""
+	ret = []
+	ret.append(html_header("EMEN2 Login"))
+	ret.append(singleheader("EMEN2 Login"))
+	page = """
+<div class="switchpage" id="page_mainview">
+	<h3>Please Login:</h3>
+		<form action="/db/login" method="POST">
+			<input type="hidden" name="fw" value="%s" />
+			<span class="inputlabel">Username:</span> 
+			<span class="inputfield"><input type="text" name="username" /></span><br />
+			<span class="inputlabel">Password:</span>
+			<span class="inputfield"><input type="password" name="pw" /></span><br />
+			<span class="inputcommit"><input type="submit" value="submit" /></span>
+		</form>
+</div>
+"""%(redir)
+
+	ret.append(page)
+	ret.append(html_footer())
+
+	return " ".join(ret)
+
+
 def html_header(name):
 	"""Common header block, includes <body>"""
-	return """
-	<html>
-	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 
-	  <link rel=StyleSheet href="/main.css" type="text/css">
-	
-	<head>
-	<title>
-	%s
-	</title>
-	</head>
-
-	<body bgcolor="#FFFFFF">
-
-	<div id="title">
-		<img id="toplogo" src="/images/logo_trans.png"> National Center for Macromolecular Imaging
-	</div>
-	
-	<div class="nav" id="nav">
-
-	<ul id="nav">	
-		<li id="first"><div><a href="/db/record?name=0">Browse Database</a></div></li>
-		<li><div><a href="/db/queryform">Query Database</a></div></li>
-		<li><div><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></div></li>
-		<li><div><a href="/db/paramdefs">Parameters</a></div></li>
-		<li><div><a href="/db/recorddefs">Protocols</a></div></li>
-	</ul>
-
-	</div>
-	
+	debug = """
 	<div class="nav" id="leftnav">
 	<ul id="nav">
 		<li id="first"><div><a href="">Query Children</a></div>
@@ -465,9 +535,49 @@ def html_header(name):
 			</ul>
 		</li>
 	</ul>
-	</div>
+	</div>"""
+
+
+	return """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
 	
-	<div id="content">
+<html>
+
+<head>
+
+<title>
+%s
+</title>
+
+<link rel="StyleSheet" href="/main.css" type="text/css" />
+
+<script type="text/javascript" src="/niftycube.js"></script>
+<script type="text/javascript" src="/switch.js"></script>
+<script type="text/javascript" src="/tile.js"></script>
+
+
+</head>
+
+<body onload="init()">
+
+<div id="title">
+	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+</div>
+
+<div class="nav_buttons">
+
+<ul class="nav_table">	
+	<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
+	<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
+	<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
+	<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
+	<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
+</ul>
+
+</div>
+
+<div id="content">
 	"""%name
 
 def html_navbar():
@@ -476,67 +586,61 @@ def html_navbar():
 	"""
 
 def html_footer():
-	"""Common header block, includes <body>"""
+	"""Common header block, includes </body>"""
 	return """
-	
-	</div>
-	
-	<div id="bottom">
 
-	<img id="bottomlogo" src="/images/logo_alt_sm.gif">	
+</div>
 
-	<!-- -->
+<div id="bottom">
 
-	Loggged in as: <br>
+<img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	
 
-		       <SCRIPT LANGUAGE="JavaScript">
-		       mydate = new Date()
-		       document.writeln(mydate.toLocalString())
-		       document.writeln(document.cookie)
-		       </SCRIPT>
+<!-- -->
 
-	Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br>
-	Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br>
-	Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br><br>
+Loggged in as: <br />
 
-	</div>
+Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
+Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
+Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
 
-	</body>
-	</html>
+</div>
+
+</body>
+</html>
 	"""
 
 
 def html_htable(itmlist,cols,proto):
 	"""Produce a table of values in 'cols' columns"""
-	ret=['<table>']
+	ret=['\n\n<table>']
 	
 	for i,j in enumerate(itmlist):
-		if (i%cols==0): ret.append("<tr>")
-		ret.append("<td><a href=%s%s>%s</a></td>"%(proto,j,j))
+		if (i%cols==0): ret.append("\t<tr>")
+		ret.append("\t\t<td><a href=\"%s%s\">%s</a></td>"%(proto,j,j))
 		if (i%cols==cols-1) : ret.append("</tr>\n")
 	
-	if (len(itmlist)%cols!=0) : ret.append("</tr></table>\n")
-	else : ret.append("</table><br>")
+	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
+	else : ret.append("</table>")
 
 	return "".join(ret)
 
 def html_htable2(itmlist,cols,proto):
 	"""Produce a table of values and counts in 'cols' columns"""
-	ret=['<table>']
+	ret=['\n\n<table>']
 	
 	for i,j in enumerate(itmlist):
-		if (i%cols==0): ret.append("<tr>")
-		ret.append("<td><a href=%s%s>%s (%d)</a></td>"%(proto,j[0],j[0],j[1]))
-		if (i%cols==cols-1) : ret.append("</tr>\n")
+		if (i%cols==0): ret.append("\t<tr>")
+		ret.append("\t\t<td><a href=\"%s%s\">%s (%d)</a></td>"%(proto,j[0],j[0],j[1]))
+		if (i%cols==cols-1) : ret.append("\t</tr>\n")
 	
-	if (len(itmlist)%cols!=0) : ret.append("</tr></table>\n")
+	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
 	else : ret.append("</table><br>")
 
 	return "".join(ret)
 
 def html_dicttable(dict,proto,missing=0):
 	"""Produce a table of values in 'cols' columns"""
-	ret=["<table class=\"dicttable\" cellspacing=0 cellpadding=0>"]
+	ret=["\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n"]
 
 	skipped = 0
 	for k,v in dict.items():
@@ -545,35 +649,54 @@ def html_dicttable(dict,proto,missing=0):
 		if missing and v == "":
 			skipped = 1
 		else:
-			ret.append("<tr><td class=\"pitemname\"><a href=%s%s>%s</a></td><td>%s</td></tr>\n"%(proto,k,item.desc_short,v))
+			ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
 		
-	ret.append("</table><br>")
+	ret.append("</table>")
 
 	if skipped:
-		ret.append("<div class=\"emptyfields\">Emtpy fields: ")
+		ret.append("\n\n<div class=\"emptyfields\">Emtpy fields: ")
 		for k,v in dict.items():
 			item=db.getparamdef(str(k))
 			if v == "":
-				ret.append("<a href=%s%s>%s</a>, \n"%(proto,k,item.desc_short))
-		ret.append("</div>")
+				ret.append("<a href=\"%s%s\">%s</a>, \n"%(proto,k,item.desc_short))
+		ret.append("\n</div>")
 
+	return "".join(ret)
+	
+def html_debug(path,args,ctxid,host):
+	ret=[]
+	ret.append("%s<br>\n%s<br>\n%s<br>%s<br>\n"%(path,args,ctxid,host))
 	return "".join(ret)
 		
 def html_home():
 	ret=[html_header("EMEN2 Home Page")]
-	ret.append("""<h2>EMEN2 Demo Page!!!</h2><br><br>Available tasks:<br><ul>
-	<li><a href="/db/record?name=0">Browse Records</a></li>
-	<li><a href="/db/queryform">Query Database</a></li>
-	<li><a href="/db/records">List of all Records</a></li>
-	<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
-	<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
-	<li><a href="/db/users">List of Users</a></li>
-	</ul><br><br><ul>
-	<li><a href="/db/newuser">Add New User</a></li>
-	<li><a href="/db/newuserqueue">Approve New Users</a></li>
-	<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
-	<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
+	
+	ret.append(singleheader("Home"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("""<h2>EMEN2 Demo Page!!!</h2>
+	Available tasks:<br />
+	<ul>
+		<li><a href="/db/record?name=0">Browse Records</a></li>
+		<li><a href="/db/queryform">Query Database</a></li>
+		<li><a href="/db/records">List of all Records</a></li>
+		<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
+		<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
+		<li><a href="/db/users">List of Users</a></li>
+	</ul>
+	
+	<br /><br />
+	
+	<ul>
+		<li><a href="/db/newuser">Add New User</a></li>
+		<li><a href="/db/newuserqueue">Approve New Users</a></li>
+		<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
+		<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
 	</ul>""")
+	
+	
+	ret.append("</div>")
+	
 	ret.append(html_footer())
 	
 	return "".join(ret)
@@ -591,120 +714,15 @@ def html_tileimage(path,args,ctxid,host):
 		if not args.has_key("level") : lvl=len(dims)
 		else: lvl=int(args["level"][0])
 		
-		ret="""<HTML><HEAD><TITLE>IMAGE</TITLE><style type="text/css">
-		#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
-		#innerdiv { position:relative; left: 0px; right: 0px; }</style>
-		</style>
-		<script type="text/javascript">
-		var isdown=false;
-		var nx=%s
-		var ny=%s
-		var level=nx.length-1
+		ret=[]
+		ret.append(html_header("EMAN2 View Image"))
+		ret.append(singleheader("View Image"))
+		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
-		function init() {
-			setsize(nx[level]*256,ny[level]*256);
-			var outdiv=document.getElementById("outerdiv");
-			outdiv.onmousedown = mdown;
-			outdiv.onmousemove = mmove;
-			outdiv.onmouseup = mup;
-			outdiv.ondragstart = function() { return false; }
-			recalc();
-		}
+		ret.append("""<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>"""%(str(dimsx),str(dimsy),path[1]))
 		
-		function tofloat(s) {
-			if (s=="") return 0.0;
-			return parseFloat(s.substring(0,s.length-2));
-		}
-		
-		function zoom(lvl) {
-			if (lvl==level || lvl<0 || lvl>=nx.length) return;
-			indiv=document.getElementById("innerdiv");
-			x=tofloat(indiv.style.left);
-			y=tofloat(indiv.style.top);
-			
-			outdiv=document.getElementById("outerdiv");
-			cx=outdiv.clientWidth/2.0;
-			cy=outdiv.clientHeight/2.0;
-			
-			setsize(nx[lvl]*256,ny[lvl]*256);
-			
-			scl=Math.pow(2.0,level-lvl)
-			indiv.style.left=cx-((cx-x)*scl);
-			indiv.style.top=cy-((cy-y)*scl);
-			
-			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
-			level=lvl
-			recalc();
-		}
-		
-		function zoomout() {
-			zoom(level+1);
-		}
-		
-		function zoomin() {
-			zoom(level-1);
-		}
-		
-		function mdown(event) {
-			if (!event) event=window.event;		// for IE
-			indiv=document.getElementById("innerdiv");
-			isdown=true;
-			y0=tofloat(indiv.style.top);
-			x0=tofloat(indiv.style.left);
-			mx0=event.clientX;
-			my0=event.clientY;
-			return false;
-		}
-		
-		function mmove(event) {
-			if (!isdown) return;
-			if (!event) event=window.event;		// for IE
-			indiv=document.getElementById("innerdiv");
-			indiv.style.left=x0+event.clientX-mx0;
-			indiv.style.top=y0+event.clientY-my0;
-			recalc();
-		}
-		
-		function mup(event) {
-			if (!event) event=window.event;		// for IE
-			isdown=false;
-			recalc();
-		}
-		
-		function recalc() {
-			indiv=document.getElementById("innerdiv");
-			x=-Math.ceil(tofloat(indiv.style.left)/256);
-			y=-Math.ceil(tofloat(indiv.style.top)/256);
-			outdiv=document.getElementById("outerdiv");
-			dx=outdiv.clientWidth/256+1;
-			dy=outdiv.clientHeight/256+1;
-			for (i=x; i<x+dx; i++) {
-				for (j=y; j<y+dy; j++) {
-					if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
-					nm="im"+i+"."+j
-					var im=document.getElementById(nm);
-					if (!im) {
-						im=document.createElement("img");
-						im.src="/db/tileimage/%s?level="+level+"&x="+i+"&y="+j;
-						im.style.position="absolute";
-						im.style.left=i*256+"px";
-						im.style.top=j*256+"px";
-						im.setAttribute("id",nm);
-						indiv.appendChild(im);
-					}
-				}
-			}
-		}
-		
-		function setsize(w,h) {
-			var indiv=document.getElementById("innerdiv");
-			indiv.style.height=h;
-			indiv.style.width=w;
-		}
-		</script></HEAD><BODY onload=init()>
-		<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
-		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br></BODY></HTML>"""%(str(dimsx),str(dimsy),path[1])
-		
+		ret.append("</div>")
 		
 		return ret
 		
@@ -712,45 +730,22 @@ def html_tileimage(path,args,ctxid,host):
 	except: return "Invalid tile"
 	return ret
 
-def get_tile(tilefile,level,x,y):
-	"""get_tile(tilefile,level,x,y)
-	retrieve a tile from the file"""
-
-	tf=file(tilefile,"r")
-
-	td=pickle.load(tf)
-	try: a=td[(level,x,y)]
-	except: raise KeyError,"Invalid Tile"
-	tf.seek(a[0],1)
-	ret=tf.read(a[1]) 
-	tf.close()
-
-	return ret
-
-def get_tile_dim(tilefile):
-	"""This will determine the number of tiles available in
-	x and y at each level and return a list of (nx,ny) tuples"""
-
-	tf=file(tilefile,"r")
-	td=pickle.load(tf)
-	tf.close()
-
-	ret=[]
-	for l in range(10):	
-		x,y=-1,-1
-		for i in td:
-			if i[0]==l: x,y=max(x,i[1]),max(y,i[2])
-		if x==-1 and y==-1: break
-		ret.append((x+1,y+1))
-	
-	return ret
 
 def html_paramdefs(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getparamdefnames()
-	ret=[html_header("EMEN2 ParamDefs"),"<h2>Registered ParamDefs</h2><br>%d defined:"%len(ftn)]
+	
+	ret=[html_header("EMEN2 ParamDefs")]
+		
+	ret.append(singleheader("Parameter Definitions"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Registered Parameters</h2><br />%d defined:"%len(ftn))	
+	
 	ret.append(html_htable(ftn,3,"/db/paramdef?name="))
+
+	ret.append("</div>")
 
 	ret.append(html_footer())
 	return "".join(ret)	
@@ -760,28 +755,35 @@ def html_paramdef(path,args,ctxid,host):
 	
 	item=db.getparamdef(args["name"][0])
 	
-	ret=[html_header("EMEN2 ParamDef Description"),"<h2>Experimental Parameter (ParamDef): <i>%s</i></h2><br>"%item.name]
+	ret=[html_header("EMEN2 ParamDef Description")]
+	
+	ret.append(singleheader("Parameter Definition"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Experimental Parameter (ParamDef): <i>%s</i></h2>"%item.name)
 	
 	parents=db.getparents(item.name,keytype="paramdef",ctxid=ctxid)
 	if len(parents)>0 :
 		ret.append("<h2>Parents:</h2> ")
 		for p in parents:
-			ret.append('<a href="/db/paramdef?name=%s">%s</a> '%(p,p))
+			ret.append("<a href=\"/db/paramdef?name=%s\">%s</a> "%(p,p))
 	
 	children=db.getchildren(item.name,keytype="paramdef",ctxid=ctxid)
 	if len(children)>0 :
 		ret.append("<h2>Children:</h2>")
 		for c in children:
-			ret.append('<a href="/db/paramdef?name=%s">%s</a> '%(c,c))
+			ret.append("<a href=\"/db/paramdef?name=%s\">%s</a> "%(c,c))
 	
-	ret.append("""<table><tr><td>Name</td><td>%s</td></tr>
+	ret.append("""\n\n<table><tr><td>Name</td><td>%s</td></tr>
 	<tr><td>Variable Type</td><td>%s</td></tr>
 	<tr><td>Short Description</td><td>%s</td></tr>
 	<tr><td>Long Description</td><td>%s</td></tr>
 	<tr><td>Property</td><td>%s</td></tr>
 	<tr><td>Default Units</td><td>%s</td></tr>
-	<tr><td>Creator</td><td>%s (%s)</td></table><br><br><a href="/db/newparamdef?parent=%s">Add a new child parameter</a>"""%(
+	<tr><td>Creator</td><td>%s (%s)</td></table><a href="/db/newparamdef?parent=%s">Add a new child parameter</a>"""%(
 	item.name,item.vartype,item.desc_short,item.desc_long,item.property,item.defaultunits,item.creator,item.creationtime,item.name))
+	
+	ret.append("</div>")
 	
 	ret.append(html_footer())
 	
@@ -789,7 +791,15 @@ def html_paramdef(path,args,ctxid,host):
 
 def html_newparamdef(path,args,ctxid,host):
 	"""Add new ParamDef form. Also does the actual ParamDef insertion"""	
-	ret=[html_header("EMEN2 Add Experimental Parameter"),"<h1>Add Experimental Parameter</h1><br>"]
+
+	ret=[html_header("EMEN2 Add Experimental Parameter")]
+	
+	ret.append(singleheader("Add Parameter"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h1>Add Experimental Parameter</h1><br>")
+
+
 	if args.has_key("name") :
 		try: 
 			ft=DB.ParamDef(name=args["name"][0],vartype=args["vartype"][0],desc_short=args["desc_short"][0],desc_long=args["desc_long"][0],property=args["property"][0],defaultunits=args["defaultunits"][0])
@@ -802,16 +812,24 @@ def html_newparamdef(path,args,ctxid,host):
 			db.pclink(args["parent"][0],args["name"][0],"paramdef")
 			
 		# ParamDef added sucessfully
-		ret+=['<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		ret.append('<br><br>New Parameter <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]))
+		ret.append("</div>")
+		ret.append(html_footer())
 		return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
 		argmap(args)
-		return "".join(ret)+html_form(method="GET",action="/db/newparamdef",items=(("","parent","hidden"),("Name:","name","text"),
+		
+		ret.append(html_form(method="GET",action="/db/newparamdef",items=(("","parent","hidden"),("Name:","name","text"),
 		("Variable Type","vartype","select",("int","float","string","text","url","image","binary","datetime","link","child")),
-		("Short Description","desc_short","text"),("Long Description","desc_long","textarea",(60,3)),
-		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args)+html_footer()
+		("Short Description","desc_short","text"),("Long Description","desc_long","textarea","",(60,3)),
+		("Physical Property","property","select",DB.valid_properties),("Default Units","defaultunits","text")),args=args))
+
+		ret.append("</div>")
+		ret.append(html_footer())
+
+		return "".join(ret)
 
 def html_recorddefs(path,args,ctxid,host):
 	global db
@@ -819,8 +837,16 @@ def html_recorddefs(path,args,ctxid,host):
 	ftn=db.getrecorddefnames()
 	for i in range(len(ftn)):
 		ftn[i]=(ftn[i],len(db.getindexbyrecorddef(ftn[i],ctxid)))
-	ret=[html_header("EMEN2 RecordDefs"),"<h2>Registered RecordDefs</h2><br>%d defined:"%len(ftn)]
+		
+	ret=[html_header("EMEN2 Record Definitions")]
+	
+	ret.append(singleheader("Record Definitions"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Registered Record Definition</h2><br>%d defined:"%len(ftn))
 	ret.append(html_htable2(ftn,3,"/db/recorddef?name="))
+
+	ret.append("</div>")
 
 	ret.append(html_footer())
 	return "".join(ret)
@@ -830,8 +856,12 @@ def html_recorddef(path,args,ctxid,host):
 	
 	item=db.getrecorddef(args["name"][0],ctxid)
 	
-	ret=[html_header("EMEN2 RecordDef Description"),"<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name,
-	]
+	ret=[html_header("EMEN2 Protocol Description")]
+	
+	ret.append(singleheader("Protocol Definition"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name)
 	
 	parents=db.getparents(item.name,keytype="recorddef",ctxid=ctxid)
 	if len(parents)>0 :
@@ -864,13 +894,21 @@ def html_recorddef(path,args,ctxid,host):
 	itm.sort()
 	if (len(itm)>250) : itm=itm[:249]
 	ret.append(html_htable(itm,6,"/db/record?name="))
+	
+	ret.append("</div>")
+	
 	ret.append(html_footer())
 	
 	return "".join(ret)
 
 def html_newrecorddef(path,args,ctxid,host):
 	global db
-	ret=[html_header("EMEN2 Add Record Definition"),"<h1>Add Record Definition</h1><br>"]
+	ret=[html_header("EMEN2 Add Protocol Definition")]
+	
+	ret.append(singleheader("New Protocol Definition"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Add Protocol Definition</h2><br>")
 	if args.has_key("name") :
 		try: 
 			rd=DB.RecordDef()
@@ -891,22 +929,35 @@ def html_newrecorddef(path,args,ctxid,host):
 			db.pclink(args["parent"][0],args["name"][0],"recorddef")
 		
 		# RecordDef added sucessfully
-		ret+=['<br><br>New Protocol <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["name"][0]),html_footer()]
+		ret+=['<br /><br />New Protocol <i>%s</i> added.<br /><br />Press <a href="/db">here</a> for main menu.'%str(args["name"][0])]
+		ret.append("</div>")
+		ret.append(html_footer())
 		return "".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
 		argmap(args)
-		return "".join(ret)+html_form(method="GET",action="/db/newrecorddef",items=(("","parent","hidden"),("Name:","name","text"),
-		("Experiment Description","mainview","textarea",(80,16)),("Summary View","summary","textarea",(80,8)),
-		("One Line View","oneline","textarea",(80,4)),("Private Access","private","checkbox")),args=args)+html_footer()
+		ret.append(html_form(method="GET",action="/db/newrecorddef",items=(("","parent","hidden"),("Name:","name","text"),
+		("Experiment Description","mainview","textarea","",(80,16)),("Summary View","summary","textarea","",(80,8)),
+		("One Line View","oneline","textarea","",(80,4)),("Private Access","private","checkbox")),args=args))
+		ret.append("</div>")
+		ret.append(html_footer())
+	
+		return "".join(ret)
+	
 	
 def html_records(path,args,ctxid,host):
 	
 	ftn=db.getrecordnames(ctxid,host=host)
-	ret=[html_header("EMEN2 Records"),"<h2>All accessible records</h2>"]
+	ret=[html_header("EMEN2 Records")]
+	
+	ret.append(singleheader("All Records"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>All accessible records</h2>")
 	ret.append(html_htable(ftn,3,"/db/record?name="))
 
+	ret.append("</div>")
 	ret.append(html_footer())
 	return "".join(ret)
 
@@ -914,8 +965,13 @@ def html_records(path,args,ctxid,host):
 def html_queryform(path,args,ctxid,host):
 	ret=[html_header("EMEN2 DB Query")]
 	
-	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find 0")))  )
+	ret.append(singleheader("Database Query"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
+	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find 0",(80,8))))  )
+
+	ret.append("</div>")
+
 	ret.append(html_footer())
 
 	return "".join(ret)
@@ -931,14 +987,16 @@ def html_record(path,args,ctxid,host):
 	
 	ret.append(parent_tree(int(args["name"][0]),ctxid=ctxid))
 	
-	ret.append("<h2>Record: <i>%d (%s)</i></h2>"%(int(item.recid),item["rectype"]))
-	
+	ret.append("\n\n<div class=\"switchcontainer\">\n")
+	ret.append("<ul class=\"table\">\n")
+	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Record %d (%s)</a></li>\n"%(int(item.recid),item["rectype"]))
+	ret.append(childrenbytype(int(args["name"][0]),ctxid=ctxid))
+	ret.append("\n</ul>\n</div>")
+
+	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
 	ret.append(html_dicttable(item,"/db/paramdef?name=",missing=1))
+	ret.append("\n</div>\n\n")
 
-	ret.append("<h2>Parents:</h2>")
-	ret.append(render_parentschildren(int(args["name"][0]),"parents",ctxid=ctxid))
-
-	ret.append("<h2>Children:</h2>")
 	ret.append(render_parentschildren(int(args["name"][0]),"children",ctxid=ctxid))
 
 	ret.append(html_footer())
@@ -947,7 +1005,12 @@ def html_record(path,args,ctxid,host):
 
 def html_newrecord(path,args,ctxid,host):
 	global db
-	ret=[html_header("EMEN2 Add Record"),"<h1>Add Record</h1><br>"]
+	ret=[html_header("EMEN2 Add Record")]
+	
+	ret.append(singleheader("Add Record"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h1>Add Record</h1><br>")
 	
 	if args.has_key("rdef") :
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
@@ -963,7 +1026,9 @@ def html_newrecord(path,args,ctxid,host):
 		d=rec.items_dict()
 		d["rectype"]=args["rdef"][0]
 		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d))
-		ret.append("</body></html")
+		ret.append("</div>")
+		ret.append(html_footer())
+#		ret.append("</body></html")
 		return "".join(ret)
 
 	argmap(args)
@@ -972,19 +1037,26 @@ def html_newrecord(path,args,ctxid,host):
 	rec.update(args)
 
 	rid=db.putrecord(rec,ctxid,host)
-	ret.append('Record add successful.<br>New id=%d<br><br><a href="/db/index.html">Return to main menu</a>'%rid)
+	ret.append('Record add successful.<br />New id=%d<br><br><a href="/db/index.html">Return to main menu</a>'%rid)
 	
+	ret.append("</div>")
 	ret.append(html_footer())
-	
+		
 	return ''.join(ret)
 	
 def html_users(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getusernames(ctxid,host)
-	ret=[html_header("EMEN2 Users"),"<h2>Users</h2><br>%d defined:"%len(ftn)]
+	ret=[html_header("EMEN2 Users")]
+
+	ret.append(singleheader("Users"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+
+	ret.append("<h2>Users</h2><br />%d defined:"%len(ftn))
 	ret.append(html_htable(ftn,3,"/db/user?uid="))
 
+	ret.append("</div>")
 	ret.append(html_footer())
 	return "".join(ret)
 
@@ -992,8 +1064,15 @@ def html_newuserqueue(path,args,ctxid,host):
 	global db
 	
 	ftn=db.getuserqueue(ctxid,host)
-	ret=[html_header("EMEN2 User Queue"),"<h2>New Users Waiting Approval</h2><br>%d defined:"%len(ftn)]
+	ret=[html_header("EMEN2 User Queue")]
+	
+	ret.append(singleheader("New User Queue"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>New Users Waiting Approval</h2><br>%d defined:"%len(ftn))
 	ret.append(html_htable(ftn,3,"/db/approveuser?username="))
+
+	ret.append("</div>")
 
 	ret.append(html_footer())
 	return "".join(ret)
@@ -1002,7 +1081,12 @@ def html_user(path,args,ctxid,host):
 	global db
 	
 	if not args.has_key("uid") : args["uid"]=args["username"]
-	ret=[html_header("EMEN2 User"),"<h2>User: <i>%s</i></h2><br>"%args["uid"][0]]
+	ret=[html_header("EMEN2 User")]
+	
+	ret.append(singleheader("User"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>User: <i>%s</i></h2><br>"%args["uid"][0])
 	
 	if args.has_key("username") :
 		for k in args.keys(): args[k]=args[k][0]
@@ -1019,24 +1103,30 @@ def html_user(path,args,ctxid,host):
 	item.name3=item.name[2]
 	
 	u=db.checkcontext(ctxid,host)
-	if u[0]==item.username or -1 in u[1]: pwc='<br><a href="/db/chpasswd?username=%s">Change Password</a>'%args["uid"][0]+html_footer()
-	else: pwc=html_footer()
+	if u[0]==item.username or -1 in u[1]: pwc='<br><a href="/db/chpasswd?username=%s">Change Password</a>'%args["uid"][0]+"</div>"+html_footer()
+	else: pwc="</div>"+html_footer()
 	
 	return "".join(ret)+html_form(method="GET",action="/db/user",items=(("Username","username","text",14),
 		("First Name","name1","text",16),("Middle Name","name2","text",6),("Family Name","name3","text",20),("Privacy","privacy","checkbox"),
-		("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea",(40,3)),
+		("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea","",(40,3)),
 		("City","city","text",30),("State","state","text",3),("Zip Code","zipcode","text",10),("Country","country","text",30),
 		("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16),
 		("Groups","groups","text",40)),args=item.__dict__)+pwc
 
 def html_chpasswd(path,args,ctxid,host):
 	argmap(args)
-	ret=[html_header("EMEN2 Change Password"),"<h2>User: <i>%s</i></h2><br>"%args["username"]]
+	ret=[html_header("EMEN2 Change Password")]
+	
+	ret.append(singleheader("Change Password"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>User: <i>%s</i></h2><br>"%args["username"])
 	
 	if args.has_key("password") :
 		if args["password"]!=args["password2"] : raise SecurityError,"Passwords do not match"
 		db.setpassword(args["username"],args["oldpassword"],args["password"],ctxid,host)
 		ret.append('<br><b>Password Changed</b><br><br><a href="/db/index.html">Return Home</a>')
+		ret.append("</div>")
 		ret.append(html_footer())
 		return "".join(ret)
 
@@ -1052,7 +1142,7 @@ def html_chpasswd(path,args,ctxid,host):
 		("Password","password","password",16),
 		("Confirm Password","password2","password",16))
 	
-	return "".join(ret)+html_form(action="/db/chpasswd",items=itm,args=args)+html_footer()
+	return "".join(ret)+html_form(action="/db/chpasswd",items=itm,args=args)+"</div>"+html_footer()
 	
 def html_approveuser(path,args,ctxid,host):
 	db.approveuser(args["username"][0],ctxid,host)
@@ -1060,7 +1150,12 @@ def html_approveuser(path,args,ctxid,host):
 	
 def html_newuser(path,args,ctxid,host):
 	global db
-	ret=[html_header("EMEN2 New User Form"),"<h1>New User Application</h1><br>"]
+	ret=[html_header("EMEN2 New User Form")]
+	
+	ret.append(singleheader("New User"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h1>New User Application</h1><br>")
 	if args.has_key("username") :
 		try: 
 			for k in args.keys(): args[k]=args[k][0]
@@ -1069,44 +1164,45 @@ def html_newuser(path,args,ctxid,host):
 		except Exception,e:
 			traceback.print_exc()
 			ret.append("Error adding User '%s' : <i>%s</i><br><br>"%(str(args["username"]),e))	# Failed for some reason, fall through so the user can update the form
-			return "".join(ret)
+			ret.append("</div>")
+			return " ".join(ret)
 			
 		# User added sucessfully
-		ret+=['<br><br>New User <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["username"]),html_footer()]
-		return "".join(ret)
+		ret+=['<br><br>New User <i>%s</i> added.<br><br>Press <a href="index.html">here</a> for main menu.'%str(args["username"]),"</div>"+html_footer()]
+		return " ".join(ret)
 
 	# Ok, if we got here, either we need to display a blank form, or a filled in form with an error
 	else:
 		argmap(args)
 		return "".join(ret)+html_form(action="/db/newuser",items=(("Username","username","text",14),("Password","password","password",14),
 			("First Name","name1","text",16),("Middle Name","name2","text",6),("Family Name","name3","text",20),("Privacy","privacy","checkbox"),
-			("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea",(40,3)),
+			("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea","",(40,3)),
 			("City","city","text",30),("State","state","text",3),("Zip Code","zipcode","text",10),("Country","country","text",30),
 			("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16)),args=args)+html_footer()
 
 def html_form(action="",items=(),args={},method="POST"):
-	ret=['<table><form action="%s" method=%s>'%(action,method)]
+	ret=['\n\n<table><form action="%s" method=%s>'%(action,method)]
 	for i in items:
 		if i[2]=="select" :
-			ret.append('<tr><td>%s:</td><td><select name="%s">'%(i[0],i[1]))
+			ret.append('\t<tr>\n\t\t<td>%s:</td>\n\t\t<td><select name="%s">'%(i[0],i[1]))
 			for j in i[3]:
 				if j==args.get(i[1],[""])[0] : ret.append('<option selected>%s</option>'%j)
 				else : ret.append('<option>%s</option>'%j)
-			ret.append('</select></td></tr>\n')
+			ret.append('</select></td>\n\t</tr>\n')
 		elif i[2]=="textarea" :
 			if len(i)<5 : i=i+(40,10)
-			ret.append('<tr><td>%s</td><td><textarea name="%s" cols="%d" rows="%d">%s</textarea></td></tr>\n'%(i[0],i[1],i[4],i[5],i[3]))
+			ret.append('\t<tr>\n\t\t<td>%s</td>\n\t\t<td><textarea name="%s" cols="%d" rows="%d">%s</textarea></td>\n\t</tr>\n'%(i[0],i[1],i[4][0],i[4][1],i[3]))
 		elif i[2]=="password" :
 			if (len(i)<4) : i=i+(20,)
-			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" size="%d" /></td></tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],"")),int(i[3])))
+			ret.append('\t<tr>\n\t\t<td>%s</td>\n\t\t<td><input type="%s" name="%s" value="%s" size="%d" /></td>\n\t</tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],"")),int(i[3])))
 		elif i[2]=="text" :
 			if (len(i)<4) : i=i+(20,)
-			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" size="%d" /></td></tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],"")),int(i[3])))
+			ret.append('\t<tr>\n\t\t<td>%s</td><td><input type="%s" name="%s" value="%s" size="%d" /></td>\n\t</tr>\n'%(i[0],i[2],i[1],str(args.get(i[1],"")),int(i[3])))
 		elif i[2]=="hidden" :
-			ret.append('<input type="hidden" name="%s" value="%s" /></td></tr>\n'%(i[1],str(args.get(i[1],""))))
+			ret.append('<input type="hidden" name="%s" value="%s" /></td>\n\t</tr>\n'%(i[1],str(args.get(i[1],""))))
 		else:
-			ret.append('<tr><td>%s</td><td><input type="%s" name="%s" value="%s" /></td></tr>\n'%(i[0],i[2],i[1],args.get(i[1],"")))
+			ret.append('\t<tr>\n\t\t<td>%s</td><td><input type="%s" name="%s" value="%s" /></td>\n\t</tr>\n'%(i[0],i[2],i[1],args.get(i[1],"")))
 
-	ret.append('<tr><td></td><td><input type="submit" value="Submit" /></td></tr></form></table>\n')
+	ret.append('\t<tr>\n\t\t<td></td>\n\t\t<td><input type="submit" value="Submit" /></td>\n\t</tr>\n</form>\n</table>\n')
 	
 	return "".join(ret)
