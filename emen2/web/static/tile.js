@@ -1,6 +1,6 @@
 var isdown=false;
-var nx=%s
-var ny=%s
+var nx=0
+var ny=0
 var level=nx.length-1
 
 function tileinit() {

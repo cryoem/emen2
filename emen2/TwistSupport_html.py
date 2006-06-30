@@ -715,14 +715,170 @@ def html_tileimage(path,args,ctxid,host):
 		else: lvl=int(args["level"][0])
 		
 		ret=[]
-		ret.append(html_header("EMAN2 View Image"))
+		
+		
+		# Brutally awkward temp quick fix because javascript vars are set by python
+		ret.append("""
+		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
+
+		<html>
+
+		<head>
+
+		<title>
+		EMEN2 View Image
+		</title>
+
+		<link rel="StyleSheet" href="/main.css" type="text/css" />
+
+		<script type="text/javascript" src="/niftycube.js"></script>
+		<script type="text/javascript" src="/switch.js"></script>
+
+		<script type="text/javascript">
+		var isdown=false;
+		var nx=%s
+		var ny=%s
+		var level=nx.length-1
+
+		function tileinit() {
+			setsize(nx[level]*256,ny[level]*256);
+			var outdiv=document.getElementById("outerdiv");
+			outdiv.onmousedown = mdown;
+			outdiv.onmousemove = mmove;
+			outdiv.onmouseup = mup;
+			outdiv.ondragstart = function() { return false; }
+			recalc();
+		}
+
+		function tofloat(s) {
+			if (s=="") return 0.0;
+			return parseFloat(s.substring(0,s.length-2));
+		}
+
+		function zoom(lvl) {
+			if (lvl==level || lvl<0 || lvl>=nx.length) return;
+			indiv=document.getElementById("innerdiv");
+			x=tofloat(indiv.style.left);
+			y=tofloat(indiv.style.top);
+
+			outdiv=document.getElementById("outerdiv");
+			cx=outdiv.clientWidth/2.0;
+			cy=outdiv.clientHeight/2.0;
+
+			setsize(nx[lvl]*256,ny[lvl]*256);
+
+			scl=Math.pow(2.0,level-lvl)
+			indiv.style.left=cx-((cx-x)*scl);
+			indiv.style.top=cy-((cy-y)*scl);
+
+			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
+			level=lvl
+			recalc();
+		}
+
+		function zoomout() {
+			zoom(level+1);
+		}
+
+		function zoomin() {
+			zoom(level-1);
+		}
+
+		function mdown(event) {
+			if (!event) event=window.event;		// for IE
+			indiv=document.getElementById("innerdiv");
+			isdown=true;
+			y0=tofloat(indiv.style.top);
+			x0=tofloat(indiv.style.left);
+			mx0=event.clientX;
+			my0=event.clientY;
+			return false;
+		}
+
+		function mmove(event) {
+			if (!isdown) return;
+			if (!event) event=window.event;		// for IE
+			indiv=document.getElementById("innerdiv");
+			indiv.style.left=x0+event.clientX-mx0;
+			indiv.style.top=y0+event.clientY-my0;
+			recalc();
+		}
+
+		function mup(event) {
+			if (!event) event=window.event;		// for IE
+			isdown=false;
+			recalc();
+		}
+
+		function recalc() {
+			indiv=document.getElementById("innerdiv");
+			x=-Math.ceil(tofloat(indiv.style.left)/256);
+			y=-Math.ceil(tofloat(indiv.style.top)/256);
+			outdiv=document.getElementById("outerdiv");
+			dx=outdiv.clientWidth/256+1;
+			dy=outdiv.clientHeight/256+1;
+			for (i=x; i<x+dx; i++) {
+				for (j=y; j<y+dy; j++) {
+					if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
+					nm="im"+i+"."+j
+					var im=document.getElementById(nm);
+					if (!im) {
+						im=document.createElement("img");
+						im.src="/db/tileimage/%s?level="+level+"&x="+i+"&y="+j;
+						im.style.position="absolute";
+						im.style.left=i*256+"px";
+						im.style.top=j*256+"px";
+						im.setAttribute("id",nm);
+						indiv.appendChild(im);
+					}
+				}
+			}
+		}
+
+		function setsize(w,h) {
+			var indiv=document.getElementById("innerdiv");
+			indiv.style.height=h;
+			indiv.style.width=w;
+		}
+		</script>
+
+
+
+		</head>
+
+		<body onload="init();tileinit()">
+
+		<div id="title">
+			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+		</div>
+
+		<div class="nav_buttons">
+
+		<ul class="nav_table">	
+			<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
+			<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
+			<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
+			<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
+			<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
+		</ul>
+
+		</div>
+
+		<div id="content">
+		"""%(str(dimsx),str(dimsy),path[1]))
+				
+				
+		# End brutally awkward temp fix		
+				
 		ret.append(singleheader("View Image"))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
 		ret.append("""<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
-		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>"""%(str(dimsx),str(dimsy),path[1]))
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>""")
 		
 		ret.append("</div>")
+		ret.append(html_footer())
 		
 		return ret
 		
