@@ -870,21 +870,7 @@ administrators. -2 group is read-only administrator.
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
-		
-		self.name=(None,None,None)  # tuple first, middle, last
-		self.institution=None
-		self.department=None
-		self.address=None			# May be a multi-line string
-		self.city=None
-		self.state=None
-		self.zipcode=None
-		self.country=None
-		self.webpage=None			# URL
-		self.email=None				# email address
-		self.altemail=None			# alternate email
-		self.phone=None				# non-validated string
-		self.fax=None				#
-		self.cellphone=None			#
+		self.record=None		# link to the user record with personal information
 		if (dict):
 			self.__dict__.update(dict)
 			if (dict.has_key("private")) : self.private=1
