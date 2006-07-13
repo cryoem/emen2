@@ -910,7 +910,7 @@ def html_tileimage(path,args,ctxid,host):
 		ret.append("</body></html>")
 #		ret.append(html_footer())
 		
-		return ret
+		return " ".join(ret)
 		
 	try: ret=get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
 	except: return "Invalid tile"
