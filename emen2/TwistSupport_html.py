@@ -425,6 +425,8 @@ def get_tile(tilefile,level,x,y):
 	"""get_tile(tilefile,level,x,y)
 	retrieve a tile from the file"""
 
+	print "get_tile: %s %s %s %s"%(tilefile,level,x,y)
+
 	tf=file(tilefile,"r")
 
 	td=pickle.load(tf)
@@ -779,7 +781,7 @@ def html_tileimage(path,args,ctxid,host):
 		
 		ret=[]
 		
-		# Brutally awkward temp quick fix because javascript vars are set by python
+		# awkward temp quick fix because javascript vars are set by python
 		ret.append("""
 		
 		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
@@ -955,7 +957,7 @@ def html_tileimage(path,args,ctxid,host):
 		""")
 		
 		ret.append("</div>")
-		ret.append("</body></html>")
+
 		ret.append(html_footer())
 		
 		return " ".join(ret)
