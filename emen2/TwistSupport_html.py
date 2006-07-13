@@ -766,8 +766,8 @@ def html_home():
 def html_tileimage(path,args,ctxid,host):
 	global db
 
-	name,fpath=db.getbinary(path[1],ctxid,host)
-	fpath=fpath+".tile"
+#	name,fpath=db.getbinary(path[1],ctxid,host)
+	fpath="/raid1/emen2data/2002/05/30/00001"
 	
 	if not args.has_key("x") :
 		dims=get_tile_dim(fpath)
