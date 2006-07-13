@@ -912,14 +912,14 @@ def html_tileimage(path,args,ctxid,host):
 		"""%(str(dimsx),str(dimsy),""))
 				
 				
-		# End brutally awkward temp fix		
+		# End awkward temp fix		
 				
 #		ret.append(singleheader("View Image"))
 #		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
 		ret.append("""
 				
-		<div id="outerdiv" style="height:512;width:512;">
+		<div id="outerdiv">
 			<div id="innerdiv">LOADING</div>
 		</div>
 		
