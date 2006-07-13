@@ -919,7 +919,7 @@ def html_tileimage(path,args,ctxid,host):
 		
 		ret.append("""
 				
-		<div id="outerdiv">
+		<div id="outerdiv" style="overflow:hidden;width:512px;height:512px">
 			<div id="innerdiv">LOADING</div>
 		</div>
 		
