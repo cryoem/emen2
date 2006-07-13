@@ -924,7 +924,7 @@ def html_tileimage(path,args,ctxid,host):
 		</div>
 		
 		<br><br>
-		<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+		<br><br><br><br><br><br><br><br><br><br><br><br>
 		Testing: <br><br>
 		
 		<div id="dbug"></div>
