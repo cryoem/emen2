@@ -802,7 +802,8 @@ def html_tileimage(path,args,ctxid,host):
 		var level=nx.length-1
 
 		function tileinit() {
-			setsize(nx[level]*256,ny[level]*256);
+//			setsize(nx[level]*256,ny[level]*256);
+			setsize(512,512);
 			var outdiv=document.getElementById("outerdiv");
 			outdiv.onmousedown = mdown;
 			outdiv.onmousemove = mmove;
@@ -826,7 +827,8 @@ def html_tileimage(path,args,ctxid,host):
 			cx=outdiv.clientWidth/2.0;
 			cy=outdiv.clientHeight/2.0;
 
-			setsize(nx[lvl]*256,ny[lvl]*256);
+//			setsize(nx[lvl]*256,ny[lvl]*256);
+			setsize(512,512);
 
 			scl=Math.pow(2.0,level-lvl)
 			indiv.style.left=cx-((cx-x)*scl);
