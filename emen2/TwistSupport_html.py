@@ -795,8 +795,10 @@ def html_tileimage(path,args,ctxid,host):
 		EMEN2 View Image
 		</title>
 
+		<!--
 		<link rel="StyleSheet" href="/main.css" type="text/css" />
-
+		-->
+		
 		<script type="text/javascript" src="/niftycube.js"></script>
 		<script type="text/javascript" src="/switch.js"></script>
 		
@@ -914,6 +916,8 @@ def html_tileimage(path,args,ctxid,host):
 
 		<body onload="javascript:init();tileinit()">
 		
+		<!--
+		
 		<div id="title">
 			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
 		</div>
@@ -932,14 +936,15 @@ def html_tileimage(path,args,ctxid,host):
 
 		<div id="content">
 		
+		-->
 
 		"""%(str(dimsx),str(dimsy),"/raid1/emen2data/2005/01/28/00013.tile"))
 				
 				
 		# End brutally awkward temp fix		
 				
-		ret.append(singleheader("View Image"))
-		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+#		ret.append(singleheader("View Image"))
+#		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
 		ret.append("""
 
@@ -958,7 +963,8 @@ def html_tileimage(path,args,ctxid,host):
 		
 		ret.append("</div>")
 
-		ret.append(html_footer())
+#		ret.append(html_footer())
+		ret.append("</body></html>")
 		
 		return " ".join(ret)
 		
