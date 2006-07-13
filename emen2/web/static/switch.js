@@ -18,6 +18,19 @@ function getElementByClass(classname) {
 	return elements;
 }
 
+function toggle(id) {
+	state = document.getElementById(id).style.display
+	if (state == "") {
+		document.getElementById(id).style.display = 'none';
+	}
+	if (document.getElementById(id).style.display != 'none') {
+		document.getElementById(id).style.display = 'none';
+	}
+	else {
+		document.getElementById(id).style.display = 'block';
+	}
+}
+
 function switchid(id) {
 	var page = "page_" + id;
 	var button = "button_" + id;
@@ -37,16 +50,37 @@ function hideallids() {
 	for (var i=0;i<ids.length;i++) {
 		document.getElementById(ids[i]).style.display = 'none';
 	}		  
+	for (var i=0;i<headers.length;i++) {
+		document.getElementById(headers[i]).style.display = 'none';
+	}
 	for (var i=0;i<buttons.length;i++) {
 		document.getElementById(buttons[i]).className = 'switchbuttoninactive';		
 	}		  
 }
 
-function init() {
+function showallids() {
+	hideallids();
+	for (var i=0;i<ids.length;i++) {
+		if (ids[i] != "page_mainview") {
+			document.getElementById(ids[i]).style.display = 'block';
+		}
+	}
+	for (var i=0;i<headers.length;i++) {
+		document.getElementById(headers[i]).style.display = 'block';
+	}
+	switch_button("button_allview")
+//	alert("ok!")
+}
+
+
+function init() {	
 	ids = getElementByClass("switchpage");
 	buttons = getElementByClass("switchbutton");
+	headers = getElementByClass("switchheader");
 
 	hideallids();
+	
+//	document.getElementById("standardtable").style.display = 'block';
 	
 	switchid("mainview");
 	
@@ -55,6 +89,6 @@ function init() {
 	Nifty("#nav_first","4px transparent left");
 	Nifty("#nav_last","4px transparent right");
 	
-	tileinit();
+//	tileinit();
 	
 }

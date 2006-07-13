@@ -33,13 +33,14 @@ div#bottom {
 }
 
 div.emptyfields {
+	display:none;
 	margin-left:20px;
 	width:600px;
 }
 
 div.switchpage {
 	display:none;
-	min-height:400px;
+	min-height:300px; 
 	padding:20px;
 	clear:both;
 	background:#FFFFFF;
@@ -65,6 +66,35 @@ div.nav_buttons {
 div.switchcontainer {
 	clear:both;
 }
+
+.standardtable {
+	border:solid 1px;
+	display:block;
+}
+
+div.standardfields {
+	float:right;
+	margin-bottom:10px;
+	max-width:400px;
+	font-size:10pt;
+}
+
+td.standardtable_shaded {
+	background:#F0F2FF;
+}
+
+.standardtable_rightborder {
+	border-right:1px;
+}
+
+
+#comments_history {
+	display:none;
+}
+#comments_permissions {
+	display:none;
+}
+
 
 
 /* 
@@ -111,6 +141,7 @@ td.shaded {
 }
 
 td.pitemname {
+	vertical-align:top;
 	width:250px;
 }
 
@@ -221,6 +252,13 @@ DROP DOWN MENU CSS
 .switchbuttonactive {
 	color:black;
 	background-color:#FFFFFF;
+	margin-left:5px;
+	margin-right:5px;
+}
+
+li.switchshort {
+	margin-left:0px;
+	margin-right:0px;
 }
 
 .switchbuttonactive a {
@@ -232,6 +270,8 @@ DROP DOWN MENU CSS
 
 .switchbuttoninactive {
 	background: #E7F1F8;
+	margin-left:5px;
+	margin-right:5px;
 }
 
 
@@ -247,8 +287,6 @@ div.switchcontainer li {
 	position: relative;
 	padding:4px;
 	cursor: default;	
-	margin-left:6px;
-	margin-right:6px;
 }
 
 div.nav_buttons ul {
