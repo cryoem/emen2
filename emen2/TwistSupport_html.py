@@ -795,13 +795,6 @@ def html_tileimage(path,args,ctxid,host):
 		EMEN2 View Image
 		</title>
 
-		<!--
-		<link rel="StyleSheet" href="/main.css" type="text/css" />
-		-->
-		
-		<script type="text/javascript" src="/niftycube.js"></script>
-		<script type="text/javascript" src="/switch.js"></script>
-		
 		<script type="text/javascript">
 		var isdown=false;
 		var nx=%s
@@ -914,29 +907,9 @@ def html_tileimage(path,args,ctxid,host):
 
 		</head>
 
-		<body onload="javascript:init();tileinit()">
+		<body onload="javascript:tileinit()">
 		
-		<!--
-		
-		<div id="title">
-			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
-		</div>
 
-		<div class="nav_buttons">
-
-		<ul class="nav_table">	
-			<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
-			<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
-			<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
-			<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
-			<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
-		</ul>
-
-		</div>
-
-		<div id="content">
-		
-		-->
 
 		"""%(str(dimsx),str(dimsy),"/raid1/emen2data/2005/01/28/00013.tile"))
 				
@@ -963,7 +936,6 @@ def html_tileimage(path,args,ctxid,host):
 		
 		ret.append("</div>")
 
-#		ret.append(html_footer())
 		ret.append("</body></html>")
 		
 		return " ".join(ret)
