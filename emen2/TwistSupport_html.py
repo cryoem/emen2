@@ -903,8 +903,6 @@ def html_tileimage(path,args,ctxid,host):
 		}
 		</script>
 
-
-
 		</head>
 
 		<body onload="javascript:tileinit()">
@@ -920,21 +918,20 @@ def html_tileimage(path,args,ctxid,host):
 #		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
 		ret.append("""
-
-		Testing: <br><br>
-		
+				
 		<div id="outerdiv">
 			<div id="innerdiv">LOADING</div>
 		</div>
 		
 		<br><br>
 		
+		Testing: <br><br>
+		
 		<div id="dbug"></div>
 		
 		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
 		""")
 		
-		ret.append("</div>")
 
 		ret.append("</body></html>")
 		
