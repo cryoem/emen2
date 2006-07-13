@@ -716,9 +716,12 @@ def html_record_dicttable(dict,proto,missing=0):
 	if skipped:
 		ret.append("\n\n<div class=\"emptyfields\">Emtpy fields: ")
 		for k,v in dict.items():
-			item=db.getparamdef(str(k))
-			if v == "":
-				ret.append("<a href=\"%s%s\">%s</a>, \n"%(proto,k,item.desc_short))
+			try:
+				item=db.getparamdef(str(k))
+				if v == "":
+					ret.append("<a href=\"%s%s\">%s</a>, \n"%(proto,k,item.desc_short))
+			except:
+				pass
 		ret.append("\n</div>")
 
 	return "".join(ret)
