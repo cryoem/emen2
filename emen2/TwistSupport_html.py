@@ -335,21 +335,22 @@ def render_tabularview(recordid,record_dict,vartypes,vardescs,preparse,out,heade
 	return ret
 	
 
-def childrenbytype(recordid,ctxid=None):
-	queryresult = db.getchildren(recordid,ctxid=ctxid)
+def render_groupedhead(queryresult,ctxid=None):
+#	queryresult = db.getchildren(recordid,ctxid=ctxid)
 	record_dicts = get_recorddicts(queryresult,ctxid=ctxid)
 	groups = group_by_key(record_dicts,'rectype',ctxid=ctxid)
 	ret = []
 	for i in groups.keys():
 		ret.append("\t<li class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></li>\n"%(i,i,i,len(groups[i])))
 	return " ".join(ret)
+	
 
-def render_parentschildren(recordid, render, viewonly=None, groupby="rectype", sortgroup=None, ctxid=None):
+def render_groupedlist(queryresult, viewonly=None, groupby="rectype", sortgroup=None, ctxid=None):
 	"""Draw headers and tables for parents/children of a record"""
-	if render == "parents":
-		queryresult = db.getparents(recordid,ctxid=ctxid)
-	elif render == "children":
-		queryresult = db.getchildren(recordid,ctxid=ctxid)
+#	if render == "parents":
+#		queryresult = db.getparents(recordid,ctxid=ctxid)
+#	elif render == "children":
+#		queryresult = db.getchildren(recordid,ctxid=ctxid)
 
 	ret = []
 	record_dicts = get_recorddicts(queryresult,ctxid=ctxid)
@@ -402,6 +403,7 @@ def render_grouptable(recordids,record_dicts,ctxid=None):
 	"""Make a table for items with a common view definition"""
 	ret = []
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_%s\">"%record_dicts[str(recordids[0])]['rectype'])
+	ret.append("\t<h1 class=\"switchheader\" id=\"header_%s\">%s</h1>\n"%(record_dicts[str(recordids[0])]['rectype'],record_dicts[str(recordids[0])]['rectype']))
 	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
 					
 	tableheader = parse_view(recordids[0],record_dicts[str(recordids[0])],header=1,ctxid=ctxid)
@@ -500,10 +502,10 @@ def loginpage(redir):
 	return " ".join(ret)
 
 
-def html_header(name):
+def html_header(name,init=None):
 	"""Common header block, includes <body>"""
 
-	debug = """
+	extra = """
 	<div class="nav" id="leftnav">
 	<ul id="nav">
 		<li id="first"><div><a href="">Query Children</a></div>
@@ -536,9 +538,10 @@ def html_header(name):
 		</li>
 	</ul>
 	</div>"""
-
-
-	return """
+	
+	ret = []
+	
+	ret.append("""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
 	
@@ -559,7 +562,12 @@ def html_header(name):
 
 </head>
 
-<body onload="init()">
+<body onLoad="javascript:init();"""%name)
+
+	if init:
+		ret.append(str(init))
+		
+	ret.append("""">
 
 <div id="title">
 	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
@@ -578,7 +586,9 @@ def html_header(name):
 </div>
 
 <div id="content">
-	"""%name
+	""")
+	
+	return " ".join(ret)
 
 def html_navbar():
 	"""Top navigation bar"""
@@ -638,21 +648,65 @@ def html_htable2(itmlist,cols,proto):
 
 	return "".join(ret)
 
-def html_dicttable(dict,proto,missing=0):
-	"""Produce a table of values in 'cols' columns"""
-	ret=["\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n"]
-
+def html_dicttable(dict,proto):
+	ret = []
+	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
 	for k,v in dict.items():
 		item=db.getparamdef(str(k))
-#		ret.append("<!-- %s -->"%item)
+		ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
+	ret.append("</table>")
+	
+	return " ".join(ret)
+	
+def html_record_dicttable(dict,proto,missing=0):
+	"""Produce a table of values in 'cols' columns"""
+
+	ret = []
+	special = ["rectype","comments","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text"]
+	
+	# Standard fields for all records
+	ret.append("\n\n<div class=\"standardfields\">\n")
+	ret.append("<a href=\"javascript:toggle('standardtable')\">&raquo;</a><br />")
+
+	ret.append("<table class=\"standardtable\" id=\"standardtable\" cellspacing=\"0\" cellpadding=\"5\">")
+
+	ret.append("<tr><td class=\"standardtable_shaded\" id=\"standardtable_rightborder\">Created: %s (%s)</td></tr>"%(dict["creationtime"],dict["creator"]))
+
+	ret.append("<tr><td class=\"standardtable_shaded\">Modified: %s (%s)</td></tr>"%(dict["modifytime"],dict["modifyuser"]))
+
+	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">%s</span></td></tr>"%dict["comments_text"])
+
+	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
+	comments = dict["comments"]
+	for i in comments: 
+		ret.append("%s<br />"%str(i))
+	ret.append("</span></td></tr>")
+
+	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_permissions')\">+ Permissions:</a><br /><span id=\"comments_permissions\">")
+	perm_labels = ["read","write","full","admin"]
+	count = 0
+	for i in dict["permissions"]:
+		ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i)))	
+		count = count+1
+	ret.append("</span></td></tr>")
+	ret.append("</table>")
+
+	ret.append("</div>")
+
+	# Fields for a particular record type
+	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
+	skipped = 0
+	for k,v in dict.items():
+		item=db.getparamdef(str(k))
 		if missing and v == "":
 			skipped = 1
-		else:
+		elif not special.count(k):
 			ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
 		
 	ret.append("</table>")
 
+	# Unused record type fields
 	if skipped:
 		ret.append("\n\n<div class=\"emptyfields\">Emtpy fields: ")
 		for k,v in dict.items():
@@ -663,10 +717,9 @@ def html_dicttable(dict,proto,missing=0):
 
 	return "".join(ret)
 	
-def html_debug(path,args,ctxid,host):
-	ret=[]
-	ret.append("%s<br>\n%s<br>\n%s<br>%s<br>\n"%(path,args,ctxid,host))
-	return "".join(ret)
+
+	
+
 		
 def html_home():
 	ret=[html_header("EMEN2 Home Page")]
@@ -1122,9 +1175,10 @@ def html_queryform(path,args,ctxid,host):
 	ret=[html_header("EMEN2 DB Query")]
 	
 	ret.append(singleheader("Database Query"))
+
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find 0",(80,8))))  )
+	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find child of 71",(80,8))))  )
 
 	ret.append("</div>")
 
@@ -1133,11 +1187,56 @@ def html_queryform(path,args,ctxid,host):
 	return "".join(ret)
 		
 
+def html_query(path,args,ctxid,host):
+	global db
+
+	result = db.query(str(args["query"][0]),ctxid)
+	
+	with = {'wftype':'query','desc':str(args["query"][0]),'longdesc':str(args["query"][0]),'appdata':result['data']}
+	newwf = db.newworkflow(with)
+	wfid = db.addworkflowitem(newwf,ctxid)
+
+	ret = []
+
+	ret.append(html_header("EMEN2 Record",init="showallids();"))
+	
+	ret.append("""<div class="navtree">
+	<table cellpadding="0" cellspacing="0" class="navtable">
+	</table>
+	</div>""")
+	
+	
+	ret.append("\n\n<div class=\"switchcontainer\">\n")
+	ret.append("<ul class=\"table\">\n")
+	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></li>\n")
+	ret.append("\t<li>&raquo;</li>\n")
+	ret.append("\t<li class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></li>\n")
+	ret.append("\t<li>&raquo;</li>\n")
+
+
+	ret.append(render_groupedhead(result['data'],ctxid=ctxid))
+	ret.append("\n</ul>\n</div>")
+	
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea",str(args["query"][0]),(80,8))))  )
+
+	ret.append("</div>")
+	
+	ret.append(render_groupedlist(result['data'],ctxid=ctxid))
+
+#	ret.append("<script type=\"text/javascript\">showallids();</script>")
+
+
+	ret.append(html_footer())
+
+	return " ".join(ret)
 
 def html_record(path,args,ctxid,host):
 	global db
 	
 	item=db.getrecord(int(args["name"][0]),ctxid)
+	queryresult = db.getchildren(int(args["name"][0]),ctxid=ctxid)
 
 	ret=[html_header("EMEN2 Record")]
 	
@@ -1146,14 +1245,20 @@ def html_record(path,args,ctxid,host):
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
 	ret.append("<ul class=\"table\">\n")
 	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Record %d (%s)</a></li>\n"%(int(item.recid),item["rectype"]))
-	ret.append(childrenbytype(int(args["name"][0]),ctxid=ctxid))
+	
+	if queryresult:
+		ret.append("\t<li class=\"switchshort\">&raquo;</li>")
+		ret.append("\t<li class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Children</a></li>\n")
+		ret.append("\t<li class=\"switchshort\">&raquo;</li>\n")
+		ret.append(render_groupedhead(queryresult,ctxid=ctxid))
+
 	ret.append("\n</ul>\n</div>")
 
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
-	ret.append(html_dicttable(item,"/db/paramdef?name=",missing=1))
+	ret.append(html_record_dicttable(item,"/db/paramdef?name=",missing=1))
 	ret.append("\n</div>\n\n")
 
-	ret.append(render_parentschildren(int(args["name"][0]),"children",ctxid=ctxid))
+	ret.append(render_groupedlist(queryresult,ctxid=ctxid))
 
 	ret.append(html_footer())
 	
