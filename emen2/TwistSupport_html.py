@@ -686,9 +686,12 @@ def html_record_dicttable(dict,proto,missing=0):
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_permissions')\">+ Permissions:</a><br /><span id=\"comments_permissions\">")
 	perm_labels = ["read","write","full","admin"]
 	count = 0
-	for i in dict["permissions"]:
-		ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i)))	
-		count = count+1
+	try:
+		for i in dict["permissions"]:
+			ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i)))	
+			count = count+1
+	except:
+		pass
 	ret.append("</span></td></tr>")
 	ret.append("</table>")
 
