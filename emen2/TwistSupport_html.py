@@ -779,25 +779,8 @@ def html_tileimage(path,args,ctxid,host):
 		
 		ret=[]
 		
-		
 		# Brutally awkward temp quick fix because javascript vars are set by python
 		ret.append("""
-		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-		    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
-
-		<html>
-
-		<head>
-
-		<title>
-		EMEN2 View Image
-		</title>
-
-		<link rel="StyleSheet" href="/main.css" type="text/css" />
-
-		<script type="text/javascript" src="/niftycube.js"></script>
-		<script type="text/javascript" src="/switch.js"></script>
-
 		<script type="text/javascript">
 		var isdown=false;
 		var nx=%s
@@ -910,25 +893,8 @@ def html_tileimage(path,args,ctxid,host):
 
 		</head>
 
-		<body onload="init();tileinit()">
+		<body onload="tileinit()">
 
-		<div id="title">
-			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
-		</div>
-
-		<div class="nav_buttons">
-
-		<ul class="nav_table">	
-			<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
-			<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
-			<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
-			<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
-			<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
-		</ul>
-
-		</div>
-
-		<div id="content">
 		"""%(str(dimsx),str(dimsy),path[1]))
 				
 				
@@ -941,7 +907,8 @@ def html_tileimage(path,args,ctxid,host):
 		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>""")
 		
 		ret.append("</div>")
-		ret.append(html_footer())
+		ret.append("</body></html>")
+#		ret.append(html_footer())
 		
 		return ret
 		
