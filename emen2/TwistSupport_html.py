@@ -895,7 +895,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		<body onload="tileinit()">
 
-		"""%(str(dimsx),str(dimsy),path[1]))
+		"""%(str(dimsx),str(dimsy),"/raid1/emen2data/2005/01/28/00013.tile"))
 				
 				
 		# End brutally awkward temp fix		
