@@ -3,6 +3,7 @@
 
 from twisted.web.resource import Resource
 from emen2 import TwistSupport 
+import pickle
 #from twebutil import *
 import os
 import traceback
