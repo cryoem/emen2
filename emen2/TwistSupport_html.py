@@ -698,7 +698,10 @@ def html_record_dicttable(dict,proto,missing=0):
 	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
 	for k,v in dict.items():
-		item=db.getparamdef(str(k))
+		try: item=db.getparamdef(str(k))
+		except: continue
+#		ret.append("<!-- %s -->"%item)
+#		item=db.getparamdef(str(k))
 		if missing and v == "":
 			skipped = 1
 		elif not special.count(k):
