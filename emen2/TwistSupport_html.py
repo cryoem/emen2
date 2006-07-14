@@ -908,7 +908,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		</head>
 
-		<body onLoad="javascript:init();tileinit();">
+		<body onLoad="javascript:tileinit();">
 
 		<div id="title">
 			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
