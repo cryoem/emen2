@@ -782,8 +782,6 @@ def html_tileimage(path,args,ctxid,host):
 		ret=[]
 		
 		ret.append("""
-		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-		    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
 
 		<html>
 
@@ -930,7 +928,7 @@ def html_tileimage(path,args,ctxid,host):
 
 
 		ret.append(singleheader("Parameter Definitions"))
-#		ret.append("<div>")
+		ret.append("<div>")
 
 		ret.append("""
 		<div id="outerdiv">
@@ -943,7 +941,7 @@ def html_tileimage(path,args,ctxid,host):
 		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
 		""")
 
-#		ret.append("</div>")
+		ret.append("</div>")
 
 		ret.append(html_footer())
 		return " ".join(ret)
