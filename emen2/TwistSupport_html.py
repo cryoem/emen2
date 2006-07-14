@@ -930,7 +930,7 @@ def html_tileimage(path,args,ctxid,host):
 
 
 		ret.append(singleheader("Parameter Definitions"))
-		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+#		ret.append("<div>")
 
 		ret.append("""
 		<div id="outerdiv">
@@ -943,7 +943,7 @@ def html_tileimage(path,args,ctxid,host):
 		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
 		""")
 
-		ret.append("</div>")
+#		ret.append("</div>")
 
 		ret.append(html_footer())
 		return " ".join(ret)
