@@ -926,7 +926,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		</div>
 
-		<div id="content">"""%(str(dimsx),str(dimsy),path[1])
+		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
 
 
 		ret.append(singleheader("Parameter Definitions"))
