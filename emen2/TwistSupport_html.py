@@ -666,7 +666,7 @@ def html_record_dicttable(dict,proto,missing=0):
 	"""Produce a table of values in 'cols' columns"""
 
 	ret = []
-	special = ["rectype","comments","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text"]
+	special = ["rectype","comments","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","file_image_binary"]
 	
 	# Standard fields for all records
 	ret.append("\n\n<div class=\"standardfields\">\n")
@@ -697,6 +697,10 @@ def html_record_dicttable(dict,proto,missing=0):
 		pass
 	ret.append("</span></td></tr>")
 	ret.append("</table>")
+
+	bdo = dict["file_image_binary"]
+	if bdo:
+		ret.append("<a href=\"/db/tileimage/%s\">View Binary Data</a>"%bdo[4:])
 
 	ret.append("</div>")
 
