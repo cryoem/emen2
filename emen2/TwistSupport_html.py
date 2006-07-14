@@ -700,7 +700,8 @@ def html_record_dicttable(dict,proto,missing=0):
 
 	bdo = dict["file_image_binary"]
 	if bdo:
-		ret.append("<a href=\"/db/tileimage/%s\">View Binary Data</a>"%bdo[4:])
+		if bdo[0:3] == "bdo:":
+			ret.append("<div class=\"viewbinary\"><a href=\"/db/tileimage/%s\">View Binary Data</a></div>"%bdo[4:])
 
 	ret.append("</div>")
 
