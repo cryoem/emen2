@@ -906,7 +906,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		</head>
 
-		<body onLoad="javascript:tileinit();">
+		<body onLoad="javascript:init();tileinit();">
 
 		<div id="title">
 			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
@@ -928,7 +928,7 @@ def html_tileimage(path,args,ctxid,host):
 
 
 		ret.append(singleheader("Parameter Definitions"))
-		ret.append("<div>")
+		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
 		ret.append("""
 		<div id="outerdiv">
