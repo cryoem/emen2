@@ -769,8 +769,8 @@ def html_home():
 def html_tileimage(path,args,ctxid,host):
 	global db
 
-#	name,fpath=db.getbinary(path[1],ctxid,host)
-	fpath="/raid1/emen2data/2005/01/28/00013.tile"
+	name,fpath=db.getbinary(path[1],ctxid,host)
+	fpath=fpath+".tile"
 	
 	if not args.has_key("x") :
 		dims=get_tile_dim(fpath)
@@ -779,29 +779,17 @@ def html_tileimage(path,args,ctxid,host):
 		if not args.has_key("level") : lvl=len(dims)
 		else: lvl=int(args["level"][0])
 		
-		ret=[]
-		
-		# awkward temp quick fix because javascript vars are set by python
-		ret.append("""
-		
-		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-		    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
-
-		<html>
-
-		<head>
-
-		<title>
-		EMEN2 View Image
-		</title>
-
+		ret="""<HTML><HEAD><TITLE>IMAGE</TITLE><style type="text/css">
+		#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
+		#innerdiv { position:relative; left: 0px; right: 0px; }</style>
+		</style>
 		<script type="text/javascript">
 		var isdown=false;
 		var nx=%s
 		var ny=%s
 		var level=nx.length-1
-
-		function tileinit() {
+		
+		function init() {
 			setsize(nx[level]*256,ny[level]*256);
 			var outdiv=document.getElementById("outerdiv");
 			outdiv.onmousedown = mdown;
@@ -810,41 +798,41 @@ def html_tileimage(path,args,ctxid,host):
 			outdiv.ondragstart = function() { return false; }
 			recalc();
 		}
-
+		
 		function tofloat(s) {
 			if (s=="") return 0.0;
 			return parseFloat(s.substring(0,s.length-2));
 		}
-
+		
 		function zoom(lvl) {
 			if (lvl==level || lvl<0 || lvl>=nx.length) return;
 			indiv=document.getElementById("innerdiv");
 			x=tofloat(indiv.style.left);
 			y=tofloat(indiv.style.top);
-
+			
 			outdiv=document.getElementById("outerdiv");
 			cx=outdiv.clientWidth/2.0;
 			cy=outdiv.clientHeight/2.0;
-
+			
 			setsize(nx[lvl]*256,ny[lvl]*256);
-
+			
 			scl=Math.pow(2.0,level-lvl)
 			indiv.style.left=cx-((cx-x)*scl);
 			indiv.style.top=cy-((cy-y)*scl);
-
+			
 			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
 			level=lvl
 			recalc();
 		}
-
+		
 		function zoomout() {
 			zoom(level+1);
 		}
-
+		
 		function zoomin() {
 			zoom(level-1);
 		}
-
+		
 		function mdown(event) {
 			if (!event) event=window.event;		// for IE
 			indiv=document.getElementById("innerdiv");
@@ -855,7 +843,7 @@ def html_tileimage(path,args,ctxid,host):
 			my0=event.clientY;
 			return false;
 		}
-
+		
 		function mmove(event) {
 			if (!isdown) return;
 			if (!event) event=window.event;		// for IE
@@ -864,13 +852,13 @@ def html_tileimage(path,args,ctxid,host):
 			indiv.style.top=y0+event.clientY-my0;
 			recalc();
 		}
-
+		
 		function mup(event) {
 			if (!event) event=window.event;		// for IE
 			isdown=false;
 			recalc();
 		}
-
+		
 		function recalc() {
 			indiv=document.getElementById("innerdiv");
 			x=-Math.ceil(tofloat(indiv.style.left)/256);
@@ -895,52 +883,22 @@ def html_tileimage(path,args,ctxid,host):
 				}
 			}
 		}
-
+		
 		function setsize(w,h) {
 			var indiv=document.getElementById("innerdiv");
 			indiv.style.height=h;
 			indiv.style.width=w;
 		}
-		</script>
-
-		</head>
-
-		<body onload="javascript:tileinit()">
+		</script></HEAD><BODY onload=init()>
+		<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br></BODY></HTML>"""%(str(dimsx),str(dimsy),path[1])
 		
-
-
-		"""%(str(dimsx),str(dimsy),""))
-				
-				
-		# End awkward temp fix		
-				
-#		ret.append(singleheader("View Image"))
-#		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
-		ret.append("""
-				
-		<div id="outerdiv" style="overflow:hidden;width:512px;height:512px">
-			<div id="innerdiv">LOADING</div>
-		</div>
-		
-		<br><br>
-		<br><br><br><br><br><br><br><br><br><br><br><br>
-		Testing: <br><br>
-		
-		<div id="dbug"></div>
-		
-		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
-		""")
-		
-
-		ret.append("</body></html>")
-		
-		return " ".join(ret)
+		return ret
 		
 	try: ret=get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
 	except: return "Invalid tile"
 	return ret
-
 
 def html_getbinarynames(path,args,ctxid,host):
 	global gb
