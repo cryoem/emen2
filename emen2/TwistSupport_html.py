@@ -779,17 +779,32 @@ def html_tileimage(path,args,ctxid,host):
 		if not args.has_key("level") : lvl=len(dims)
 		else: lvl=int(args["level"][0])
 		
-		ret="""<HTML><HEAD><TITLE>IMAGE</TITLE><style type="text/css">
-		#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
-		#innerdiv { position:relative; left: 0px; right: 0px; }</style>
-		</style>
+		ret=[]
+		
+		ret.append("""
+		<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
+
+		<html>
+
+		<head>
+
+		<title>
+		Image Browser
+		</title>
+
+		<link rel="StyleSheet" href="/main.css" type="text/css" />
+
+		<script type="text/javascript" src="/niftycube.js"></script>
+		<script type="text/javascript" src="/switch.js"></script>
+
 		<script type="text/javascript">
 		var isdown=false;
 		var nx=%s
 		var ny=%s
 		var level=nx.length-1
-		
-		function init() {
+
+		function tileinit() {
 			setsize(nx[level]*256,ny[level]*256);
 			var outdiv=document.getElementById("outerdiv");
 			outdiv.onmousedown = mdown;
@@ -798,41 +813,41 @@ def html_tileimage(path,args,ctxid,host):
 			outdiv.ondragstart = function() { return false; }
 			recalc();
 		}
-		
+
 		function tofloat(s) {
 			if (s=="") return 0.0;
 			return parseFloat(s.substring(0,s.length-2));
 		}
-		
+
 		function zoom(lvl) {
 			if (lvl==level || lvl<0 || lvl>=nx.length) return;
 			indiv=document.getElementById("innerdiv");
 			x=tofloat(indiv.style.left);
 			y=tofloat(indiv.style.top);
-			
+
 			outdiv=document.getElementById("outerdiv");
 			cx=outdiv.clientWidth/2.0;
 			cy=outdiv.clientHeight/2.0;
-			
+
 			setsize(nx[lvl]*256,ny[lvl]*256);
-			
+
 			scl=Math.pow(2.0,level-lvl)
 			indiv.style.left=cx-((cx-x)*scl);
 			indiv.style.top=cy-((cy-y)*scl);
-			
+
 			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
 			level=lvl
 			recalc();
 		}
-		
+
 		function zoomout() {
 			zoom(level+1);
 		}
-		
+
 		function zoomin() {
 			zoom(level-1);
 		}
-		
+
 		function mdown(event) {
 			if (!event) event=window.event;		// for IE
 			indiv=document.getElementById("innerdiv");
@@ -843,7 +858,7 @@ def html_tileimage(path,args,ctxid,host):
 			my0=event.clientY;
 			return false;
 		}
-		
+
 		function mmove(event) {
 			if (!isdown) return;
 			if (!event) event=window.event;		// for IE
@@ -852,13 +867,13 @@ def html_tileimage(path,args,ctxid,host):
 			indiv.style.top=y0+event.clientY-my0;
 			recalc();
 		}
-		
+
 		function mup(event) {
 			if (!event) event=window.event;		// for IE
 			isdown=false;
 			recalc();
 		}
-		
+
 		function recalc() {
 			indiv=document.getElementById("innerdiv");
 			x=-Math.ceil(tofloat(indiv.style.left)/256);
@@ -883,18 +898,55 @@ def html_tileimage(path,args,ctxid,host):
 				}
 			}
 		}
-		
+
 		function setsize(w,h) {
 			var indiv=document.getElementById("innerdiv");
 			indiv.style.height=h;
 			indiv.style.width=w;
 		}
-		</script></HEAD><BODY onload=init()>
-		<div id="outerdiv"><div id="innerdiv">LOADING</div></div><br><br><div id="dbug"></div>
-		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br></BODY></HTML>"""%(str(dimsx),str(dimsy),path[1])
-		
-		
-		return ret
+		</script>
+
+		</head>
+
+		<body onLoad="javascript:init();tileinit();">
+
+		<div id="title">
+			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+		</div>
+
+		<div class="nav_buttons">
+
+		<ul class="nav_table">	
+			<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
+			<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
+			<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
+			<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
+			<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
+		</ul>
+
+		</div>
+
+		<div id="content">"""%(str(dimsx),str(dimsy),path[1])
+
+
+		ret.append(singleheader("Parameter Definitions"))
+		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+
+		ret.append("""
+		<div id="outerdiv">
+			<div id="innerdiv">LOADING</div>
+		</div>
+
+		<br><br><div id="dbug"></div>
+
+
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
+		""")
+
+		ret.append("</div>")
+
+		ret.append(html_footer())
+		return " ".join(ret)
 		
 	try: ret=get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
 	except: return "Invalid tile"
