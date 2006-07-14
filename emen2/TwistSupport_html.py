@@ -942,6 +942,25 @@ def html_tileimage(path,args,ctxid,host):
 	return ret
 
 
+def html_getbinarynames(path,args,ctxid,host):
+	global gb
+	
+	ret = []
+	ret.append(html_header("Binary Ids"))
+	ret.append(singleheader("Binary Ids"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	ret.append("<h2>Binary Identifiers</h2>")
+
+	for i in db.getbinarynames():
+		for j in range(0,i[1]):
+			r = db.getbinary(str(i[0])+"%05X"%j,ctxid)
+			ret.append("%s <br />"%str(r))
+
+	ret.append("</div>")
+
+	ret.append(html_footer())
+	return " ".join(ret)
+
 def html_paramdefs(path,args,ctxid,host):
 	global db
 	
