@@ -963,7 +963,7 @@ def html_getbinarynames(path,args,ctxid,host):
 		for j in range(0,i[1]):
 			k = str(i[0])+"%05X"%j
 			r = db.getbinary(k,ctxid)
-			ret.append("%s : %s</a>"%(k,k,str(r)))
+			ret.append("%s : %s "%(k,str(r)))
 			if os.path.exists("%s.tile"%r[1]):
 				ret.append("<a href=\"/db/tileimage/%s\">View in browser</a>"%k)
 			ret.append("<br />")
