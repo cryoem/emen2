@@ -788,7 +788,7 @@ def html_tileimage(path,args,ctxid,host):
 		<head>
 
 		<title>
-		Image Browser
+		Tile Viewer
 		</title>
 
 		<link rel="StyleSheet" href="/main.css" type="text/css" />
@@ -927,7 +927,7 @@ def html_tileimage(path,args,ctxid,host):
 		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
 
 
-		ret.append(singleheader("Parameter Definitions"))
+		ret.append(singleheader("Tile Viewer"))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
 		ret.append("""
@@ -962,7 +962,7 @@ def html_getbinarynames(path,args,ctxid,host):
 	for i in db.getbinarynames():
 		for j in range(0,i[1]):
 			r = db.getbinary(str(i[0])+"%05X"%j,ctxid)
-			ret.append("%s <br />"%str(r))
+			ret.append("%s : %s <br />"%(i[0],str(r)))
 
 	ret.append("</div>")
 
