@@ -961,8 +961,9 @@ def html_getbinarynames(path,args,ctxid,host):
 
 	for i in db.getbinarynames():
 		for j in range(0,i[1]):
-			r = db.getbinary(str(i[0])+"%05X"%j,ctxid)
-			ret.append("%s : %s <br />"%(i[0],str(r)))
+			k = str(i[0])+"%05X"%j
+			r = db.getbinary(k,ctxid)
+			ret.append("%s : <a href=\"/db/tilebrowser/%s\">%s</a> <br />"%(k,k,str(r)))
 
 	ret.append("</div>")
 
