@@ -41,6 +41,7 @@ div.emptyfields {
 div.switchpage {
 	display:none;
 	min-height:300px; 
+	margin-bottom:20px;
 	padding:20px;
 	clear:both;
 	background:#FFFFFF;
@@ -100,6 +101,16 @@ td.standardtable_shaded {
 	padding:4px;
 }
 
+.table_arrows {
+	vertical-align: bottom;
+	font-size:30px;
+	float:right;
+}
+
+.table_span {
+	font-size:16px;
+	cursor: pointer;
+}
 
 /* 
 =============================================================
@@ -115,6 +126,8 @@ table.navtable {
 }
 
 table.groupview {
+	width:100%;
+	clear:both;
 }
 
 table.dicttable {
@@ -125,6 +138,7 @@ th {
 	text-align:left;
 	vertical-align:top;
 	border-bottom:solid 1px;
+	border-top:solid 1px;
 	border-right:dashed 1px;
 	padding-right:2px;
 	padding-left:2px;
@@ -203,11 +217,18 @@ a {
 }
 
 h1 {
-	width:600px;
 	line-height:135%;
 	border-bottom:solid 1px;
 	margin:0px;
 	padding:0px;
+}
+
+h1.switchheader {
+	font-size:30px;
+	line-height:100%;
+	border-bottom:0px;
+	vertical-align:top;
+	float:left;
 }
 
 h2 {
