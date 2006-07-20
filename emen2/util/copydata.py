@@ -9,8 +9,10 @@ DB=Database
 db=DB.Database(EMEN2DBPATH)
 ctx=db.login("root",ROOTPW)
 
-project="Project_372"	# synaptotagmin
+#project="Project_372"	# synaptotagmin
+#project="Project_234"	# Ryr
 #project="Project_42"	# GroEL
+project=119738		# GroEL
 
 # we keep track of objects that have already been copied,
 # so we don't duplicate a LOT of network traffic
@@ -33,51 +35,62 @@ except:
 	pass
 
 # We are only copying over data from the GroEL project right now
-parent=db.query("find identifier="+project,ctx)["data"][0]
+#parent=db.query("find identifier="+project,ctx)["data"][0]
+parent=project
 
 # We're only looking for 'extfile' records with ccd or scan parents
-extf=db.getindexbyrecorddef("extfile",ctx)
 proj=db.getchildren(parent,ctxid=ctx,recurse=5)
-
 scnccd=db.getindexbyrecorddef("scan",ctx)|db.getindexbyrecorddef("ccd",ctx)
 
-poss=extf&proj
-good=Set()
-for i in poss:
-	a=db.getparents(i,ctxid=ctx)
-	for j in a:
-		if j in scnccd: good.add(i)
+good=scnccd&proj
 
 print len(good)," binaries in ",project
+log=file("oldlog.txt","a")
 
 for i in good:
 	print "Record ",i
 	rec=db.getrecord(i,ctx)
-	oldpath=rec["path"]
-	if oldpath[:4]=="bdo:" : continue
+	oldpath=rec["file_image_binary"]
+	log.write("%d\t%s\n"%(i,oldpath))
+	log.flush()
+	try:
+		if oldpath[:4]=="bdo:" : continue
+	except: continue
 	if oldpath==None :
 		print "No path"
 		continue
-	if pathmap.has_key(oldpath):
-		ident=pathmap[oldpath]
+	if not os.access(oldpath[6:],os.F_OK) :
+		for s in ["/raid","/rfile_image_binaryaid2","/raid3","/raid4","/raid5"]:
+			if os.access(s+"/zopedata/"+oldpath[5:],os.F_OK) :
+				oldpath="file:/"+s+"/zopedata"+oldpath[5:]
+				break
+		else:
+			print "cannot find ",oldpath
+			continue
+	if pathmap.has_key(oldpath[6:]):
+		ident=pathmap[oldpath[6:]]
 		try:
 			name,newpath=db.getbinary(ident,ctx)
 			print "Existing entry: ",name,ident
-			rec["path"]="bdo:"+ident
+			rec["file_image_binary"]="bdo:"+ident
 			rec.commit()
 		except:
 			print "Existing pathmap with no BDO: ",ident,oldpath
-			ident,newpath=db.newbinary(rec["eventdate"],rec["identifier"],i,ctx)
+			ident,newpath=db.newbinary(rec["date_occurred"],rec["identifier"],i,ctx)
 			name,newpath=db.getbinary(ident,ctx)
-			rec["path"]="bdo:"+ident
+			rec["file_image_binary"]="bdo:"+ident
 			rec.commit()
 	else:
-		ident,newpath=db.newbinary(rec["eventdate"],rec["identifier"],i,ctx)
-		pathmap[oldpath]=ident
+		try:
+			ident,newpath=db.newbinary(rec["date_occurred"],oldpath.split('/')[-1],i,ctx)
+		except: 
+			print "error copying %s"%oldpath
+			continue
+		pathmap[oldpath[6:]]=ident
 		print "New entry: ",ident
-		print "cp %s %s"%(oldpath,newpath)
-		os.system("cp %s %s"%(oldpath,newpath))
-		rec["path"]="bdo:"+ident
+		print "cp %s %s"%(oldpath[6:],newpath)
+		os.system("cp %s %s"%(oldpath[6:],newpath))
+		rec["file_image_binary"]="bdo:"+ident
 		rec.commit()
 
 		# see if we need to generate the tile file

@@ -2737,7 +2737,9 @@ or None if no match is found."""
 
 		pdn=self.getparamdefnames()
 		for i in recdef.params:
-			if i not in pdn: raise KeyError,"No such parameter %s"%i
+			if i not in pdn:
+				print pdn
+				raise KeyError,"No such parameter %s"%i
 		
 		# this actually stores in the database
 		self.__recorddefs[recdef.name]=recdef
