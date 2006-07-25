@@ -34,8 +34,8 @@
 					document.getElementById(zone).innerHTML  = http_request.responseText;
 //	                alert(http_request.responseText);
 	            } else {
-					window.location.reload()
-//	                alert('There was a problem with the request.');
+//					window.location.reload()
+	                alert('There was a problem with the request.');
 	            }
 	        }
 

@@ -62,7 +62,7 @@ function showallids() {
 	hideallids();
 	for (var i=0;i<ids.length;i++) {
 		if (ids[i] != "page_mainview") {
-			document.getElementById(ids[i]).style.display = 'block';
+			document.getElementById(ids[i]).style.display = 'block';			
 		}
 	}
 	for (var i=0;i<headers.length;i++) {
@@ -77,17 +77,29 @@ function init() {
 	ids = getElementByClass("switchpage");
 	buttons = getElementByClass("switchbutton");
 	headers = getElementByClass("switchheader");
+	
+//	alert(buttons);
+	
 
 	hideallids();
 	
 //	document.getElementById("standardtable").style.display = 'block';
 	
 	switchid("mainview");
+
+//	RUZEE.Borders.add({
+//		'#nav_first': { borderType:'simple', cornerRadius:8, edges:'ltb' },
+//		'#nav_last': { borderType:'simple', cornerRadius:8, edges:'rtb' },
+//		'ul.table li': { borderType:'simple', cornerRadius:8, edges:'lrt' },
+//		'div.navtree': { borderType:'simple', cornerRadius:8 }
+//	});
 	
-	Nifty("ul.table li","4px transparent top");
-	Nifty("div.navtree","4px transparent");
-	Nifty("#nav_first","4px transparent left");
-	Nifty("#nav_last","4px transparent right");
+//	RUZEE.Borders.render();
+  	
+//	Nifty("ul.table li","4px transparent top");
+//	Nifty("div.navtree","4px transparent");
+//	Nifty("#nav_first","4px transparent left");
+//	Nifty("#nav_last","4px transparent right");
 	
 //	tileinit();
 	

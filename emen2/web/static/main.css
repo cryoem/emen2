@@ -33,7 +33,7 @@ div#bottom {
 }
 
 div.emptyfields {
-	display:none;
+/*	display:none; */
 	margin-left:20px;
 	width:600px;
 }
@@ -64,9 +64,7 @@ div.nav_buttons {
 	clear:both;
 }
 
-div.switchcontainer {
-	clear:both;
-}
+
 
 .standardtable {
 	border:solid 1px;
@@ -117,10 +115,6 @@ td.standardtable_shaded {
 TABLE STUFF 
 =============================================================
 */
-
-
-table {
-}
 
 table.navtable {
 }
@@ -180,10 +174,6 @@ td.ptreeempty {
 
 
 
-
-
-
-
 /*
 =============================================================
 IMAGES
@@ -199,8 +189,6 @@ img#bottomlogo {
 	margin-left:20px;
 	float:left
 }
-
-
 
 #outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
@@ -267,194 +255,46 @@ DROP DOWN MENU CSS
 =============================================================
 */
 
-#button_mainview {
-/*	font-size:24px; */
-	margin-left:20px;
-/*	border-right:double 4px; 
-	border-bottom:doule 4px #FFFFFF; */
+
+
+.switchcontainer {
+	clear:both;
+}
+
+.switchbutton {
+	float:left;
 }
 
 .switchbuttonactive {
-	color:black;
-	background-color:#FFFFFF;
-	margin-left:5px;
+	float:left;
+	margin-top:10px;
+	padding:10px;
+	padding-top:10px;
+	background:red;
 	margin-right:5px;
-}
-
-li.switchshort {
-	margin-left:0px;
-	margin-right:0px;
-}
-
-.switchbuttonactive a {
-	color:black;
-}
-.switchbuttoninactive a{
-	color:#666;
+	margin-left:10px;
 }
 
 .switchbuttoninactive {
-	background: #E7F1F8;
-	margin-left:5px;
+	float:left;
+	margin-top:10px;
+	padding:10px;
+	background:red;
 	margin-right:5px;
+	margin-left:10px;
 }
 
-
-
-div.switchcontainer ul {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-}
-
-div.switchcontainer li {
+.switchshort {
 	float:left;
-	position: relative;
-	padding:4px;
-	cursor: default;	
+	margin-top:10px;
+	padding:10px;
+	margin-right:5px;
+	margin-left:10px;
 }
 
-div.nav_buttons ul {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-}
-
-div.nav_buttons li {
-	float:left;
-	position: relative;
-	padding:6px;
-	cursor: default;
-	border-right: solid 4px #F0F2FF;
-}
-
-#nav_first {
-	border-left:none;
-}
-
-#nav_last {
-	border-right:none;
-}
-
-.nav_buttons li:hover {
-	background:#F0F2FF;
-}
-
-.nav_tableli {
-	background:white;
-}
-
-
-/* 
-=============================================================
-FORM STUFF
-=============================================================
-
-
-.form-help {
-	font-size: 10pt;
-	color: #333333;
-}
-
-.std-text {
-	font-family: arial, Verdana, Helvetica, sans-serif;
-	font-size: 10pt;
-	color: #333333;
-}
-
-.tab-small {
-	font-family: arial, Verdana, Helvetica, sans-serif; 
-	font-size: 8pt; 
-	color: #333333;
-}
-
-.location-bar {
-	background-color: #efefef;
-	border: none;
-}
-
-.list-header {
-	background-color: #c0c0c0;
-	border: none;
-}
-
-.list-item {
-	font-family: arial, Verdana, Helvetica, sans-serif; 
-	font-size: 10pt; 
-}
-
-.list-nav {
-	font-family: arial, Verdana, Helvetica, sans-serif; 
-	font-size: 10pt; 
-	font-weight: bold;
-}
-
-.row-normal {
-	background-color: #ffffff;
-	border: none;
+#button_mainview {
+	margin-top:0px;
+	padding-top:20px;
 
 }
 
-.row-hilite {
-	background-color: #efefef;
-	border: none;
-}
-
-.section-bar {
-	background-color: #c0c0c0;
-	border: none;
-}
-
-.system-msg {
-	font-family:arial,	Verdana, Helvetica, sans-serif; 
-	font-size: 10pt; 
-	background-color: #ffffff;
-	border:	 1px solid #000000;
-	margin-bottom: 6px;
-	margin-top: 6px;
-	padding: 4px;
-	width: 100%;
-	color: #660033;
-}
-
-.form-title {
-	font-family:arial, Verdana, Helvetica, sans-serif; 
-	font-weight: bold;
-	font-size: 12pt; 
-	color: #333333;
-}
-
-.form-label {
-	font-family: arial, Verdana, Helvetica, sans-serif; 
-	font-weight: bold;
-	font-size: 10pt; 
-	color: #333333;
-}
-
-.form-optional {
-	font-family:arial, Verdana, Helvetica, sans-serif; 
-	font-weight: bold;
-	font-style: italic;
-	font-size: 10pt; 
-	color: #333333;
-}
-
-.form-element {
-	font-family: arial,Verdana, Helvetica, Sans-serif;
-	font-size: 10pt;
-	color: #000000;
-}
-
-.form-text {
-	font-family: arial, Verdana, Helvetica, sans-serif;
-	font-size: 10pt;
-	color: #333333;
-}
-
-.form-mono {
-	font-family: monospace;
-	font-size: 12px;
-	text-decoration: none;
-}
-
-*/

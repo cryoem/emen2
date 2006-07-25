@@ -3,6 +3,7 @@
 
 from twisted.web.resource import Resource
 from emen2 import TwistSupport 
+from sets import Set
 import pickle
 #from twebutil import *
 import os
@@ -87,9 +88,12 @@ def invert(d):
 			nd[v] = [k]
 	return nd
 
-def sortlistbyparamname(paramname,subset,ctxid):
+def sortlistbyparamname(paramname,subset,reverse,ctxid):
 	global db
 	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
+
+#	print "\n q: %s \n"%q
+#	print len(subset)
 
 	nq = invert(q)
 
@@ -100,10 +104,18 @@ def sortlistbyparamname(paramname,subset,ctxid):
 
 	for i in l:
 		j = nq[i]
-#		print "key:%s"%i
-		j.sort()
+		j.sort()	
+			
 		for k in j:
 			sortedlist.append(k)
+
+	for c in (Set(subset) - Set(sortedlist)):
+		sortedlist.append(c)
+
+	if reverse:
+		sortedlist.reverse()
+
+#	print "sortedlist: %s"%sortedlist
 
 	return sortedlist
 
@@ -365,6 +377,16 @@ def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
 				string = record_dict[out[i]]
 			except:
 				string = "(%s)"%out[i]
+				
+			if vartypes[i] == "float" and vardescs[i]:
+				if string == 0:
+					string = "0"
+				else:
+					try:
+						string = "%0.2f"%string
+					except TypeError:
+						string = "%s"%string
+				
 			ret.append("\t\t<td class=\"%s %s\"><!--  --><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass2,id,string))
 			tdclass2 = ""
 
@@ -391,7 +413,7 @@ def render_groupedhead(groupl,ctxid=None):
 
 	ret = []
 	for i in groupl.keys():
-		ret.append("\t<li class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></li>\n"%(i,i,i,len(groupl[i])))
+		ret.append("\t<div class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
 	return " ".join(ret)
 	
 
@@ -421,8 +443,12 @@ def render_groupedlist(path, args, ctxid, host, viewonly=None, sortgroup=None):
 def html_render_grouptable(path,args,ctxid,host,groupname=None):
 	"""Make a div page with table for items with a common view definition"""
 
-	groupname = str(args["groupname"][0])
+	perpage = 100
+	direct = 0
+	recordids = []
+	ret = []
 
+	groupname = str(args["groupname"][0])
 
 	if args.has_key("pos"):
 		pos = int(args["pos"][0])
@@ -431,31 +457,27 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 		pos = int(args["pos_%s"%groupname][0])
 	else:
 		pos = 0
-	
-	
-	perpage = 100
-	direct = 0
+		
+#	if not args.has_key("reverse_%s"%groupname):
+#		reverse = bool(0)
+#		args["reverse_%s"%groupname] = [str(reverse)]
+#	else:
+#		reverse = not bool(args["reverse_%s"%groupname][0])
+#		args["reverse_%s"%groupname] = [str(reverse)]
 
-
-	
-	
-	
-	
-	recordids = []
 	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
-#	wfdict = wf.items_dict()
 	recordids = wf["appdata"][groupname]
 
 	if args.has_key("sort_%s"%groupname):
 		sortby = args["sort_%s"%groupname][0]
-		recordids = sortlistbyparamname(sortby,recordids,ctxid)
+		reverse = int(args["reverse_%s"%groupname][0])
+		recordids = sortlistbyparamname(sortby,recordids,reverse,ctxid)
+		reverse = int(not reverse)
+	else:
+		reverse = "0"
 
-	
-	ret = []
-
-	
 	ret.append("<div id=\"zone_%s\">"%groupname)
-	
+
 	
 	# Navigation arrows
 	if perpage:
@@ -477,10 +499,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 		baseurlstr = "".join(baseurl)
 		
 		nav.append("<div class=\"table_arrows\">")
-		if (ipos - perpage) < 0:
-			pass
-#			ret.append("&laquo;")
-		else:
+		if (ipos - perpage) >= 0:
 			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&laquo;</span>"""%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
 
 		end = pos+perpage
@@ -489,37 +508,38 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 			end = count
 		nav.append("""<span class="table_span"> (%s-%s of %s) </span>"""%(pos,end,count))
 
-		if (ipos + perpage) >= len(recordids):
-			pass
-#			ret.append("&raquo;<br />")
-		else:
+		if (ipos + perpage) <= len(recordids):
 			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&raquo;</span>"""%(baseurlstr,key,ipos + perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
 
 		nav.append("</div>")
 	
 	ret.append(" ".join(nav))
 	
+	# end nav arrows
+	
 	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
-
 
 	out,vartypes,vardescs = parse_view_group(groupname,ctxid=ctxid)
 	
-#	tabularheader = render_tabularviewheader(groupname,out,vartypes,vardescs,ctxid=ctxid)
-
+	
 	ret.append("\t<tr>\n")
 	for i in range(0,len(out)):
 		if vartypes[i] != "text":
-			
-			baseurl=[path[0],"?"]
-			baseurl.append("name=%s"%args["name"][0])
-			baseurl.append("&viewinit=%s"%groupname)
+
+			baseurl=["/db/render_grouptable","?"]							
+			baseurl.append("&groupname=%s"%groupname)
+			baseurl.append("&pos_%s=0"%groupname)
+			baseurl.append("&wfid=%s"%args["wfid"][0])
 			baseurl.append("&%s=%s"%("sort_%s"%groupname,out[i]))
+			baseurl.append("&%s=%s"%("reverse_%s"%groupname,reverse))
 			baseurlstr = "".join(baseurl)
 
+			r = "javascript:makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')"%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname)
+
 			if vartypes[i] != "":				
-				ret.append("\t\t<th><a href=\"%s\">%s</a></th>\n"%(baseurlstr,vardescs[i]))
+				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vardescs[i]))
 			else:
-				ret.append("\t\t<th><a href=\"%s\">(%s)</a></th>\n"%(baseurlstr,out[i]))
+				ret.append("\t\t<th><a href=\"%s\">(%s)</a></th>\n"%(r,out[i]))
 
 	ret.append("\t</tr>\n")
 	
@@ -552,7 +572,7 @@ def get_tile(tilefile,level,x,y):
 	"""get_tile(tilefile,level,x,y)
 	retrieve a tile from the file"""
 
-	print "get_tile: %s %s %s %s"%(tilefile,level,x,y)
+#	print "get_tile: %s %s %s %s"%(tilefile,level,x,y)
 
 	tf=file(tilefile,"r")
 
@@ -597,9 +617,8 @@ def singleheader(title):
 	
 	<div class="switchcontainer">
 
-	 <ul class="table">
-	 	<li class="switchbutton" id="button_mainview"><a href="">%s</a></li>
-	</ul>
+	 	<div class="switchbutton" id="button_mainview"><a href="">%s</a></div>
+
 	</div>"""%title
 	return ret
 	
@@ -685,7 +704,8 @@ def html_header(name,init=None):
 
 <link rel="StyleSheet" href="/main.css" type="text/css" />
 
-<script type="text/javascript" src="/niftycube.js"></script>
+
+<script type="text/JavaScript" src="/rounded_corners_lite.inc.js"></script>
 <script type="text/javascript" src="/switch.js"></script>
 <script type="text/javascript" src="/ajax.js"></script>
 <script type="text/javascript" src="/tile.js"></script>
@@ -708,9 +728,9 @@ def html_header(name,init=None):
 
 <ul class="nav_table">	
 	<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
-	<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
-	<li class="nav_tableli"><a href="/db/workflow">My Workflow</a></li>
-	<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
+	<li class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></li>
+	<li class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></li>
+	<li class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></li>
 	<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
 </ul>
 
@@ -982,9 +1002,10 @@ def html_tileimage(path,args,ctxid,host):
 		</title>
 
 		<link rel="StyleSheet" href="/main.css" type="text/css" />
-
-		<script type="text/javascript" src="/niftycube.js"></script>
+		
+		<script type="text/JavaScript" src="/rounded_corners_lite.inc.js"></script>
 		<script type="text/javascript" src="/switch.js"></script>
+		<script type="text/javascript" src="/ajax.js"></script>
 
 		<script type="text/javascript">
 		var isdown=false;
@@ -1434,12 +1455,11 @@ def html_debug(path,args,ctxid,host):
 	
 	
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("<ul class=\"table\">\n")
-	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Main View</a></li>\n")
-	ret.append("\t<li>&raquo;</li>\n")
-	ret.append("\t<li class=\"switchbutton\" id=\"button_scan\"><a href=\"javascript:switchid('scan')\">Scan</a></li>\n")
-	ret.append("\t<li>&raquo;</li>\n")
-	ret.append("\n</ul>\n</div>")
+	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Main View</a></div>\n")
+	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+	ret.append("\t<div class=\"switchbutton\" id=\"button_scan\"><a href=\"javascript:switchid('scan')\">Scan</a></div>\n")
+	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+	ret.append("\n</div>")
 
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
@@ -1581,19 +1601,14 @@ def html_query(path,args,ctxid,host):
 	
 	
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("<ul class=\"table\">\n")
-	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></li>\n")
-	ret.append("\t<li>&raquo;</li>\n")
-	ret.append("\t<li class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></li>\n")
-	ret.append("\t<li>&raquo;</li>\n")
-
+	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></div>\n")
+	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+	ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
+	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 
 	ret.append(render_groupedhead(groupl,ctxid=ctxid))
 
-
-		
-
-	ret.append("\n</ul>\n</div>")
+	ret.append("\n</div>")
 	
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
@@ -1651,19 +1666,18 @@ def html_record(path,args,ctxid,host):
 	ret.append(parent_tree(name,ctxid=ctxid))
 	
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("<ul class=\"table\">\n")
-	ret.append("\t<li class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Record %d (%s)</a></li>\n"%(int(item.recid),item["rectype"]))
+	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Record %d (%s)</a></div>\n"%(int(item.recid),item["rectype"]))
 	
 	if queryresult:
-		ret.append("\t<li class=\"switchshort\">&raquo;</li>")
-		ret.append("\t<li class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Children</a></li>\n")
-		ret.append("\t<li class=\"switchshort\">&raquo;</li>\n")
+		ret.append("\t<div class=\"switchshort\">&raquo;</div>")
+		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Children</a></div>\n")
+		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 
 #		print "\ngroups:%s\ngroupl:%s\n\n"%(groups,groupl)
 
 		ret.append(render_groupedhead(groups,ctxid=ctxid))
 
-	ret.append("\n</ul>\n</div>")
+	ret.append("\n\n</div>")
 
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
 	ret.append(html_record_dicttable(item,"/db/paramdef?name=",missing=1))
