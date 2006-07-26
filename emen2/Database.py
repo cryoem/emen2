@@ -737,11 +737,11 @@ valid_vartypes={
 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
 	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
-	"url":(None,lambda x:str(x)),			# link to a generic url
-	"hdf":(None,lambda x:str(x)),			# url points to an HDF file
-	"image":(None,lambda x:str(x)),			# url points to a browser-compatible image
-	"binary":(None,lambda x:str(x)),				# url points to an arbitrary binary
-	"binaryimage":(None,lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display
+	"url":("s",lambda x:str(x)),			# link to a generic url
+	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
+	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
+	"binary":("s",lambda x:str(x)),				# url points to an arbitrary binary
+	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display
 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",lambda x:int(x)),
