@@ -34,6 +34,9 @@ div#bottom {
 
 div.emptyfields {
 /*	display:none; */
+	margin-top:20px;
+	font-size:12px;
+	color:gray;
 	margin-left:20px;
 	width:600px;
 }
@@ -53,6 +56,10 @@ div.singlepage {
 	background:#FFFFFF;
 }
 
+
+
+
+/* Nav Tree */
 div.navtree {
 	margin:10px;
 	float:left;
@@ -65,7 +72,7 @@ div.nav_buttons {
 }
 
 
-
+/* Sidebar */
 .standardtable {
 	border:solid 1px;
 	display:block;
@@ -99,6 +106,8 @@ td.standardtable_shaded {
 	padding:4px;
 }
 
+
+/* Arrows */
 .table_arrows {
 	vertical-align: bottom;
 	font-size:30px;
@@ -183,11 +192,13 @@ IMAGES
 img#toplogo {
 	vertical-align:middle;
 	margin-left:30px;
+	border:0px;
 }
 
 img#bottomlogo {
 	margin-left:20px;
 	float:left
+	border:0px;
 }
 
 #outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
@@ -256,6 +267,24 @@ DROP DOWN MENU CSS
 */
 
 
+/* Top bar */
+.nav_table {
+	margin-left:20px;
+	clear:both;
+}
+
+.nav_tableli {
+	background:white;
+	padding:6px;
+	border-right:solid 3px #E7F1F8;
+	float:left;
+}
+
+#nav_last {
+	border-right:none;
+}
+
+/* Switch page */
 
 .switchcontainer {
 	clear:both;
@@ -267,34 +296,66 @@ DROP DOWN MENU CSS
 
 .switchbuttonactive {
 	float:left;
+
 	margin-top:10px;
-	padding:10px;
-	padding-top:10px;
-	background:red;
 	margin-right:5px;
-	margin-left:10px;
+	margin-left:5px;
+	
+	padding:6px;
+
+	background:white;
 }
 
 .switchbuttoninactive {
 	float:left;
+
 	margin-top:10px;
-	padding:10px;
-	background:red;
 	margin-right:5px;
-	margin-left:10px;
+	margin-left:5px;
+	
+	padding:6px;
+	
+	color:#666;
+	background:#E7F1F8;
 }
 
 .switchshort {
 	float:left;
+
 	margin-top:10px;
-	padding:10px;
-	margin-right:5px;
-	margin-left:10px;
+	margin-right:0px;
+	margin-left:0px;
+	
+	padding:6px;
 }
 
 #button_mainview {
+	margin-left:20px;
 	margin-top:0px;
-	padding-top:20px;
-
+	padding-top:16px;
+	padding-left:16px;
+	padding-right:16px;
+	font-weight:bold;
 }
 
+.switchbuttonactive a {
+	color:black;
+}
+.switchbuttoninactive a{
+	color:#666;
+}
+
+/* ******* tooltips ************ */
+
+.xstooltip 
+{
+    visibility: hidden; 
+    position: absolute; 
+    top: 0;  
+    left: 0; 
+    z-index: 2;
+
+	background:#E7F1F8;
+/*	border:solid 2px; */
+	padding:10px;
+}

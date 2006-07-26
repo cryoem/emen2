@@ -10,6 +10,18 @@ import os
 import traceback
 import re
 
+import time
+import random
+
+try:
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab, font_manager
+	from matplotlib.ticker import FormatStrFormatter
+	from matplotlib import colors
+except:
+	print "No matplotlib, plotting will fail"
+
 # we open the database as part of the module initialization
 db=None
 DB=TwistSupport.DB
@@ -34,9 +46,9 @@ class DBResource(Resource):
 		if (request.postpath[0]=='login'):
 			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
 #			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
-			return """<html> <head> <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 				<meta http-equiv="REFRESH" content="2; URL=%s"><title>HTML REDIRECT</title></head>
-				<body><h3>Login Successful</h3></body></html>"""%request.received_headers["referer"]
+				<body><h3>Login Successful</h3>"""%request.received_headers["referer"]
 
 		if (request.postpath[0]=="newuser"):
 			return html_newuser(request.postpath,request.args,None,request.getClientIP())
@@ -187,7 +199,7 @@ def parent_tree(recordid,ctxid=None):
 	
 				# Attempt to get title of record; else use record type
 				try:
-					text = record_dict['title']
+					text = record_dict['recname']
 				except:
 					text = "(%s)"%record_dict['rectype']
 	
@@ -376,7 +388,8 @@ def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
 			try:
 				string = record_dict[out[i]]
 			except:
-				string = "(%s)"%out[i]
+#				string = "(%s)"%out[i]
+				string = ""
 				
 			if vartypes[i] == "float" and vardescs[i]:
 				if string == 0:
@@ -396,7 +409,8 @@ def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
 		try:
 			string = record_dict[out[i]]
 		except:
-			string = "(%s)"%out[i]
+#			string = "(%s)"%out[i]
+			string = ""
 			
 		if len(string) >= maxtextlength:
 			string = string[0:maxtextlength] + " <a href=\"/db/record?name=%s\">(view more)</a>..."%id
@@ -634,14 +648,16 @@ def loginpage(redir):
 	page = """
 <div class="switchpage" id="page_mainview">
 	<h3>Please Login:</h3>
+	<div id="zone_login">
 		<form action="/db/login" method="POST">
-			<input type="hidden" name="fw" value="%s" />
+			<input type="hidden" name="fw" value="%s"; />
 			<span class="inputlabel">Username:</span> 
 			<span class="inputfield"><input type="text" name="username" /></span><br />
 			<span class="inputlabel">Password:</span>
 			<span class="inputfield"><input type="password" name="pw" /></span><br />
 			<span class="inputcommit"><input type="submit" value="submit" /></span>
 		</form>
+	</div>
 </div>
 """%(redir)
 
@@ -653,40 +669,6 @@ def loginpage(redir):
 
 def html_header(name,init=None):
 	"""Common header block, includes <body>"""
-
-	extra = """
-	<div class="nav" id="leftnav">
-	<ul id="nav">
-		<li id="first"><div><a href="">Query Children</a></div>
-			<ul>
-			<li><a href="">Recent query 1..</a></li>
-			<li><a href="">Recent query 2..</a></li>
-			<li><a href="">Recent query 3..</a></li>
-			</ul>
-		</li>
-		<li><div><a href="">Add Child</a></div>
-			<ul>
-			<li><a href="">Child type 1</a></li>
-			<li><a href="">Child type 2</a></li>
-			<li><a href="">Child type 3</a></li>
-			</ul>
-		</li>
-		<li><div><a href="">Parent View</a></div>
-			<ul>
-			<li><a href="">View 1</a></li>
-			<li><a href="">View 2</a></li>
-			<li><a href="">View 3</a></li>
-			</ul>
-		</li>
-		<li><div><a href="">Child View</a></div>
-			<ul>
-			<li><a href="">View 1</a></li>
-			<li><a href="">View 2</a></li>
-			<li><a href="">View 3</a></li>
-			</ul>
-		</li>
-	</ul>
-	</div>"""
 	
 	ret = []
 	
@@ -705,7 +687,7 @@ def html_header(name,init=None):
 <link rel="StyleSheet" href="/main.css" type="text/css" />
 
 
-<script type="text/JavaScript" src="/rounded_corners_lite.inc.js"></script>
+<script type="text/JavaScript" src="/niftycube.js"></script>
 <script type="text/javascript" src="/switch.js"></script>
 <script type="text/javascript" src="/ajax.js"></script>
 <script type="text/javascript" src="/tile.js"></script>
@@ -721,20 +703,20 @@ def html_header(name,init=None):
 	ret.append("""">
 
 <div id="title">
+	<a href="/db/">
 	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+	</a>
 </div>
 
-<div class="nav_buttons">
 
-<ul class="nav_table">	
-	<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
-	<li class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></li>
-	<li class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></li>
-	<li class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></li>
-	<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
-</ul>
-
+<div class="nav_table">	
+	<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
+	<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
+	<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
+	<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
+	<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
 </div>
+
 
 <div id="content">
 	""")
@@ -869,7 +851,8 @@ def html_record_dicttable(dict,proto,missing=0):
 	"""Produce a table of values in 'cols' columns"""
 
 	ret = []
-	special = ["rectype","comments","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","file_image_binary"]
+	# fixme: removed comments_text
+	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments","file_image_binary"]
 	
 	# Standard fields for all records
 	ret.append("\n\n<div class=\"standardfields\">\n")
@@ -881,7 +864,7 @@ def html_record_dicttable(dict,proto,missing=0):
 
 	ret.append("<tr><td class=\"standardtable_shaded\">Modified: %s (%s)</td></tr>"%(dict["modifytime"],dict["modifyuser"]))
 
-	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">%s</span></td></tr>"%dict["comments_text"])
+#	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">%s</span></td></tr>"%dict["comments_text"])
 
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
 	comments = dict["comments"]
@@ -918,10 +901,18 @@ def html_record_dicttable(dict,proto,missing=0):
 		except: continue
 #		ret.append("<!-- %s -->"%item)
 #		item=db.getparamdef(str(k))
+
+		ret.append("""\n\n
+		<div id="tooltip_%s" class="xstooltip">
+		Variable type: %s<br />Description: %s<br />Property: %s
+		</div>\n\n"""%(item.name,item.vartype,item.desc_short,item.property))
+
+		js = """onmouseover="xstooltip_show('tooltip_%s', 'td_%s', 10, 25);" onmouseout="xstooltip_hide('tooltip_%s');" """%(item.name,item.name,item.name)
+
 		if missing and v == "":
 			skipped = 1
 		elif not special.count(k):
-			ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
+			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(item.name,js,proto,k,item.desc_short,v))
 		
 	ret.append("</table>")
 
@@ -1003,7 +994,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		<link rel="StyleSheet" href="/main.css" type="text/css" />
 		
-		<script type="text/JavaScript" src="/rounded_corners_lite.inc.js"></script>
+		<script type="text/JavaScript" src="/niftycube.js"></script>
 		<script type="text/javascript" src="/switch.js"></script>
 		<script type="text/javascript" src="/ajax.js"></script>
 
@@ -1123,17 +1114,15 @@ def html_tileimage(path,args,ctxid,host):
 			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
 		</div>
 
-		<div class="nav_buttons">
 
-		<ul class="nav_table">	
-			<li class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></li>
-			<li class="nav_tableli"><a href="/db/queryform">Query Database</a></li>
-			<li class="nav_tableli"><a href="/emen2/logic/workflow.py/getWorkflow">My Workflow</a></li>
-			<li class="nav_tableli"><a href="/db/paramdefs">Parameters</a></li>
-			<li class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></li>
-		</ul>
-
+		<div class="nav_table">	
+			<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
+			<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
+			<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
+			<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
+			<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
 		</div>
+
 
 		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
 
@@ -1562,6 +1551,8 @@ def html_ajaxdebug(path,args,ctxid,host):
 def html_query(path,args,ctxid,host):
 	global db
 	
+	query = str(args["query"][0])
+	
 	if args.has_key("wfid"):
 		wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
 #		wfdict = wf.items_dict()
@@ -1569,14 +1560,23 @@ def html_query(path,args,ctxid,host):
 		
 	else:
 		print "performing query... %s"%str(args["query"][0])
-		result = db.query(str(args["query"][0]),ctxid)['data']
+		raw = db.query(str(args["query"][0]),ctxid)
+		result = raw['data']
 		resultcount = len(result)
 		groups = db.groupbyrecorddef(result,ctxid)
 		groupl = groupsettolist(groups)
+
+		if query.find("plot") != -1 or query.find("histogram") != -1:
+#			print raw
+			plotfile = render_plot(query,raw)
+			isplot = True
+		else:
+			plotfile = ""
+			isplot = False
 	
 		clearworkflowcache(ctxid)
 	
-		with = {'wftype':'querycache','desc':str(args["query"][0]),'longdesc':str(args["query"][0]),'resultcount':resultcount,'appdata':groupl}
+		with = {'wftype':'querycache','desc':str(args["query"][0]),'longdesc':str(args["query"][0]),'resultcount':resultcount,'appdata':groupl,'plotfile':plotfile}
 		newwf = db.newworkflow(with)
 		wfid = db.addworkflowitem(newwf,ctxid)
 		
@@ -1584,10 +1584,14 @@ def html_query(path,args,ctxid,host):
 		
 		args["wfid"]= [str(wfid)]
 
+
 	ret = []
 
 	if args.has_key("viewinit"):
 		init="switchid('%s');"%str(args["viewinit"][0])
+		ret=[html_header("EMEN2 Query Results",init=init)]
+	elif isplot:
+		init="switchid('allview');"
 		ret=[html_header("EMEN2 Query Results",init=init)]
 	else:
 		ret.append(html_header("EMEN2 Query Results",init="showallids();"))
@@ -1603,10 +1607,20 @@ def html_query(path,args,ctxid,host):
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
 	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></div>\n")
 	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
-	ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
-	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 
-	ret.append(render_groupedhead(groupl,ctxid=ctxid))
+
+	if isplot:
+		
+		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:switchid('allview')\">Graph</a></div>\n")
+		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+		ret.append("\t<div class=\"switchbutton\" id=\"button_rawresult\"><a href=\"javascript:switchid('rawresult');\">Raw Result</a></div>\n")
+
+	else:
+		
+		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
+		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+		
+		ret.append(render_groupedhead(groupl,ctxid=ctxid))
 
 	ret.append("\n</div>")
 	
@@ -1618,10 +1632,20 @@ def html_query(path,args,ctxid,host):
 	
 	args["wfid"] = [str(wfid)]
 
-	for i in groupl.keys():
-		args["groupname"] = [str(i)]
-		args["wfid"] = [str(wfid)]
-		ret.append(encapsulate_render_grouptable(path,args,ctxid,host))
+	if plotfile:
+		ret.append("<div class=\"switchpage\" id=\"page_allview\">")
+		ret.append("<img src=\"%s\" />"%plotfile)
+		ret.append("</div>")
+
+		ret.append("<div class=\"switchpage\" id=\"page_rawresult\">")
+		ret.append("%s"%raw)
+		ret.append("</div>")
+		
+	else:
+		for i in groupl.keys():
+			args["groupname"] = [str(i)]
+			args["wfid"] = [str(wfid)]
+			ret.append(encapsulate_render_grouptable(path,args,ctxid,host))
 
 #	ret.append(render_groupedlist(path,args,ctxid,host,groupl=groupl))
 
@@ -1666,7 +1690,7 @@ def html_record(path,args,ctxid,host):
 	ret.append(parent_tree(name,ctxid=ctxid))
 	
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Record %d (%s)</a></div>\n"%(int(item.recid),item["rectype"]))
+	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">%s (%s)</a></div>\n"%(item["recname"],item["rectype"]))
 	
 	if queryresult:
 		ret.append("\t<div class=\"switchshort\">&raquo;</div>")
@@ -1705,7 +1729,7 @@ def html_newrecord(path,args,ctxid,host):
 #		print "Record(  ",rec,"  )"
 		bld=[("","rectype","hidden")]
 		for p in rec.keys():
-			if p in ("owner","creator","creationdate","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
+			if p in ("owner","creator","creationtime","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
 			try: bld.append((parm[p].desc_short,p,"text"))
 			except: bld.append((p,p,"text"))
 
@@ -1892,3 +1916,189 @@ def html_form(action="",items=(),args={},method="POST"):
 	ret.append('\t<tr>\n\t\t<td></td>\n\t\t<td><input type="submit" value="Submit" /></td>\n\t</tr>\n</form>\n</table>\n')
 	
 	return "".join(ret)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################
+### PLOT: From Haili's Cheetah interface
+############################################
+
+def render_plot(thequery,L,clickable=0, groupby=0):
+	data = L['data']
+	allx = []
+	ally = []
+	dataRid = []
+	myloc = 1
+	if groupby == 0:
+	        allx = data['x']
+
+	        pylab.hold(False)
+	        if len(allx) == 0:
+	            page = "<h2>No Result Found! Please change your query and try again</h2>"
+	            return page
+
+	        if thequery.find('histogram') >= 0:
+	            ally = data[0]
+	            #ax = pylab.subplot(111)                   
+	            strX = 1
+
+	            N = len(allx)
+	            ind = range(N)
+	            width = 1
+	            sc = pylab.bar(ind, ally, width)
+	            thefigure = sc[0].get_figure()
+	            theaxes = thefigure.get_axes()
+	            theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))                    
+	            pylab.xticks(ind, allx, rotation=45, fontsize=8)
+	            #pylab.xlim(-width, len(ind))
+	            if clickable == 1:
+	                dataRid = ind
+	        else:
+	            ally = data['y']
+	            if clickable == 1:
+	                   dataRid = data['i']
+	            else:
+	                dataRid = []
+	            sc = pylab.scatter(allx, ally)
+	else:
+	    dotcolor = ['b', 'g', 'r', 'c', 'm', 'y','w', 'k', 'c']
+	    allcolor=['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080', 'w', 'k', 0.3, 0.6, 0.9]
+
+	    #allcolor = colors.getColors()
+	    allshape= ['o', 's', '^', '>', 'v', '<', 'd', 'p', 'h', '8']
+	    pylab.hold(False)  
+
+
+	    if data == [] or len(data) == 0:
+	                page = "<h2>No Result Found! Please change your query and try again</h2>"
+	                return page
+	    i = 0
+	    labels = []
+	    thekeys = []
+
+	    if thequery.find('histogram') >= 0:
+	               k = 0
+	               allx = data['x']
+	               ind = range(len(allx))
+	               width = 1
+	               #ax = pylab.subplot(111)                   
+
+	               #yoff = pylab.arange([0.0] * len(allx))
+	               yoff = []
+	               for theone in allx:
+	                   yoff.append(0.0)
+	               allsc = []
+	               ykeys = []
+	               for thekey in data.keys():
+	                   if type(thekey) == type(1):
+	                       ykeys.append(thekey)
+	               ykeys.sort()
+	               pylab.hold(False) 
+	               for thekey in ykeys: 
+	                  if type(thekey) == type(1):
+	                       myY = data[thekey]
+	                       sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)])
+	                       thefigure = sc[0].get_figure()
+	                       theaxes = thefigure.get_axes()
+	                       theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))
+	                       i = 0
+	                       tmp = []
+	                       for theY in myY:
+	                           tmp.append(yoff[i])
+	                           yoff[i] += theY
+	                           i += 1
+	                       ally.append(tmp)
+	                       k += 1
+	                       if k>0:
+	                               pylab.hold(True)
+	                       allsc.append(sc[0])
+	               pylab.hold(False) 
+	               ally.append(yoff)
+	               newkeys = []
+	               for thekey in data['keys']:
+	                   newkeys.append(str(thekey))
+	               pylab.legend(allsc, newkeys, loc=2, shadow=0, prop=font_manager.FontProperties(size='small', weight=500), handletextsep=0.005, axespad=0.01, pad=0.01, labelsep=0.001, handlelen=0.02)
+	               #newind = range(len(allx)+1)
+	               pylab.xticks(ind, allx, rotation=45, fontsize=8)
+	               pylab.xlim(-width, len(ind)+1)
+
+	    else:
+	        pylab.hold(False)
+	        for thekey in data:
+	            if i>0:
+	                 pylab.hold(True) 
+	            datax = data[thekey]['x']
+	            datay = data[thekey]['y']
+	            allx.extend(datax)
+	            ally.extend(datay)
+	            if clickable == 1:
+	                dataRid.extend(data[thekey]['i'])
+	            label = str(dotcolor[i%8]) + '--' + allshape[i/8]
+	            lines = pylab.plot([datax[0]], [datay[0]], label, markersize=5)
+	            sc = pylab.scatter(datax, datay, c=dotcolor[i%len(dotcolor)], marker=allshape[i/8], s=20)
+
+	            labels.append(lines)
+	            thekeys.append(str(thekey))
+
+	            i += 1
+	        pylab.hold(False) 
+	        try:
+	            pylab.legend(labels, thekeys, numpoints=2, shadow=0, prop=font_manager.FontProperties(size='small'), handletextsep=0.01, axespad=0.005, pad=0.005, labelsep=0.001, handlelen=0.01)
+	        except:
+	            pass
+
+	pylab.xlabel(L['xlabel'])
+	pylab.ylabel(L['ylabel'])
+	t = str(time.time())
+	rand = str(random.randint(0,100000))
+	tempfile = "/graph/t" + t + ".r" + rand + ".png"
+	pylab.savefig("tweb" + tempfile)                
+	wspace = hspace = 0.8
+
+	if clickable == 1:
+	    if thequery.find('histogram') >= 0:
+	          trans = sc[0].get_transform()
+	          if groupby == 0:
+	              xlist = range(len(allx)+1)
+	              ylist = ally
+	              ylist.append(0)
+	              xcoords, ycoords = trans.seq_x_y(xlist, ylist)
+	          else:
+	              xlist = range(len(allx))
+	              ycoords = []
+	              for i in range(len(ally)):
+	                  xs, ys = trans.seq_x_y(xlist, ally[i])
+	                  ycoords.append(ys)
+	              xcoords, tmp = trans.seq_x_y(range(len(allx)+1), range(len(allx)+1))                      
+	          fig = sc[0].get_figure()
+	    else:
+	          trans = sc.get_transform()
+	          xcoords, ycoords = trans.seq_x_y(allx, ally)
+	          fig = sc.get_figure()
+	    dpi = fig.get_dpi()
+	    img_height = fig.get_figheight() * dpi
+	    img_width = fig.get_figwidth() * dpi
+	    if thequery.find('histogram') >= 0:
+	        if groupby == 0:
+	              page = p.plot_view_bar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
+	        else:
+	              dataRid = ind
+	              page = p.plot_view_multibar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
+
+	return tempfile
+		
+	
