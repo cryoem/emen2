@@ -7,6 +7,22 @@ Redraws button borders (aesthetics) and changes visible page
 var ids=new Array()
 var buttons=new Array()
 
+function getStyle( element, cssRule )
+{
+  if( document.defaultView && document.defaultView.getComputedStyle )
+  {
+    var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue( 
+      cssRule.replace( /[A-Z]/g, function( match, char ) 
+      { 
+        return "-" + char.toLowerCase(); 
+      } ) 
+    );
+  }
+  else if ( element.currentStyle ) var value = element.currentStyle[ cssRule ];
+  else                             var value = false;
+  return value;
+}
+
 function getElementByClass(classname) {
 	var inc=0
 	var elements=new Array()
@@ -19,11 +35,12 @@ function getElementByClass(classname) {
 }
 
 function toggle(id) {
-	state = document.getElementById(id).style.display
-	if (state == "") {
-		document.getElementById(id).style.display = 'none';
-	}
-	if (document.getElementById(id).style.display != 'none') {
+	state = getStyle(document.getElementById(id),"display");
+//	alert(id + " " + state)
+//	if (state == "") {
+//		document.getElementById(id).style.display = 'none';
+//	}
+	if (state != 'none') {
 		document.getElementById(id).style.display = 'none';
 	}
 	else {
@@ -82,19 +99,8 @@ function init() {
 	
 
 	hideallids();
-	
-//	document.getElementById("standardtable").style.display = 'block';
-	
+		
 	switchid("mainview");
-
-//	RUZEE.Borders.add({
-//		'#nav_first': { borderType:'simple', cornerRadius:8, edges:'ltb' },
-//		'#nav_last': { borderType:'simple', cornerRadius:8, edges:'rtb' },
-//		'ul.table li': { borderType:'simple', cornerRadius:8, edges:'lrt' },
-//		'div.navtree': { borderType:'simple', cornerRadius:8 }
-//	});
-	
-//	RUZEE.Borders.render();
   	
 	Nifty("div.switchbutton","4px transparent top");
 	Nifty("div.switchbuttonactive","4px transparent top");
@@ -104,77 +110,20 @@ function init() {
 	Nifty("#nav_first","4px transparent left");
 	Nifty("#nav_last","4px transparent right");
 
-	Nifty("div.xstooltip","4px transparent");
+	Nifty("div.tooltip","4px transparent");
 	
 //	tileinit();
 	
 }
 
-
-
 // tooltip stuff
 
-function xstooltip_findPosX(obj) 
+function tooltip_show(tooltipId)
 {
-  var curleft = 0;
-  if (obj.offsetParent) 
-  {
-    while (obj.offsetParent) 
-        {
-            curleft += obj.offsetLeft
-            obj = obj.offsetParent;
-        }
-    }
-    else if (obj.x)
-        curleft += obj.x;
-    return curleft;
+	document.getElementById(tooltipId).style.display = 'block';
 }
 
-function xstooltip_findPosY(obj) 
+function tooltip_hide(tooltipId)
 {
-    var curtop = 0;
-    if (obj.offsetParent) 
-    {
-        while (obj.offsetParent) 
-        {
-            curtop += obj.offsetTop
-            obj = obj.offsetParent;
-        }
-    }
-    else if (obj.y)
-        curtop += obj.y;
-    return curtop;
-}
-
-function xstooltip_show(tooltipId, parentId, posX, posY)
-{
-    it = document.getElementById(tooltipId);
-    
-    if ((it.style.top == '' || it.style.top == 0) 
-        && (it.style.left == '' || it.style.left == 0))
-    {
-        // need to fixate default size (MSIE problem)
-        it.style.width = it.offsetWidth + 'px';
-        it.style.height = it.offsetHeight + 'px';
-        
-        img = document.getElementById(parentId); 
-    
-        // if tooltip is too wide, shift left to be within parent 
-        if (posX + it.offsetWidth > img.offsetWidth) posX = img.offsetWidth - it.offsetWidth;
-        if (posX < 0 ) posX = 0; 
-        
-        x = xstooltip_findPosX(img) + posX;
-        y = xstooltip_findPosY(img) + posY;
-        
-        it.style.top = y + 'px';
-        it.style.left = x + 'px';
-    }
-    
-    it.style.visibility = 'visible'; 
-}
-
-function xstooltip_hide(id)
-{
-    it = document.getElementById(id); 
-    it.style.visibility = 'hidden'; 
+	document.getElementById(tooltipId).style.display = 'none';
 }

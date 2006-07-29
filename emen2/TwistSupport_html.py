@@ -847,7 +847,7 @@ def html_dicttable(dict,proto):
 	
 	return " ".join(ret)
 	
-def html_record_dicttable(dict,proto,missing=0):
+def html_record_dicttable(dict,proto,viewdef,missing=0):
 	"""Produce a table of values in 'cols' columns"""
 
 	ret = []
@@ -882,6 +882,13 @@ def html_record_dicttable(dict,proto,missing=0):
 	except:
 		pass
 	ret.append("</span></td></tr>")
+
+	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('dicttable');toggle('recordview')\">+ Toggle parameters</a></td></tr>")
+
+	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Append comment</a></td></tr>")
+	
+	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Add child</a></td></tr>")
+
 	ret.append("</table>")
 
 	bdo = dict["file_image_binary"]
@@ -891,11 +898,7 @@ def html_record_dicttable(dict,proto,missing=0):
 		else:
 			ret.append("<div class=\"viewbinary\"><a href=\"\">Download Binary Data</a></div>")
 
-	ret.append("</div>")
 
-	# Fields for a particular record type
-	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
-	skipped = 0
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
 		except: continue
@@ -903,11 +906,57 @@ def html_record_dicttable(dict,proto,missing=0):
 #		item=db.getparamdef(str(k))
 
 		ret.append("""\n\n
-		<div id="tooltip_%s" class="xstooltip">
-		Variable type: %s<br />Description: %s<br />Property: %s
-		</div>\n\n"""%(item.name,item.vartype,item.desc_short,item.property))
+		<div id="tooltip_%s" class="tooltip">
+		Parameter Name: %s<br />Variable type: %s<br />Description: %s<br />Property: %s
+		</div>\n\n"""%(item.name,item.name,item.vartype,item.desc_short,item.property))
 
-		js = """onmouseover="xstooltip_show('tooltip_%s', 'td_%s', 10, 25);" onmouseout="xstooltip_hide('tooltip_%s');" """%(item.name,item.name,item.name)
+	ret.append("</div>")
+
+
+
+
+
+	# MAINVIEW
+#	groupname = "group"
+
+	
+	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
+
+	p = re.compile(re1)
+
+	regexresult = p.findall(viewdef)
+
+	for i in regexresult:
+		try:
+			value = dict[i[1]]
+		except:
+			value = i[2]
+
+		if not value:
+			value = ""
+
+		popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(i[1],i[1])
+
+		repl = re.sub("\$","\$",i[0])
+#		print "%s : %s"%(repl,value)
+		viewdef = re.sub(repl + r"\b","<span %s>%s</span>"%(popup,value),viewdef)
+
+	ret.append("\n\n<div id=\"recordview\">%s</div>"%viewdef)
+
+
+
+
+
+	# Fields for a particular record type
+	ret.append("\n<div class=\"dicttable\" id=\"dicttable\">")
+
+	ret.append("\n\n<table cellspacing=\"0\" cellpadding=\"0\">\n")
+	skipped = 0
+	for k,v in dict.items():
+		try: item=db.getparamdef(str(k))
+		except: continue
+
+		js = """onmouseover="tooltip_show('tooltip_%s');" onmouseout="tooltip_hide('tooltip_%s');" """%(item.name,item.name)
 
 		if missing and v == "":
 			skipped = 1
@@ -927,6 +976,8 @@ def html_record_dicttable(dict,proto,missing=0):
 			except:
 				pass
 		ret.append("\n</div>")
+
+	ret.append("\n</div>\n")
 
 	return "".join(ret)
 	
@@ -1663,6 +1714,18 @@ def html_record(path,args,ctxid,host):
 		
 	item=db.getrecord(name,ctxid)
 	queryresult = db.getchildren(name,ctxid=ctxid)
+
+	
+	if args.has_key("viewtype"):
+		viewtype = args["viewtype"]
+	else:
+		viewtype = "defaultview"
+	
+	try:	
+		viewdef=db.getrecorddef(item["rectype"],ctxid).views[viewtype]
+	except:
+		viewdef=db.getrecorddef(item["rectype"],ctxid).views["onelineview"]
+
 	
 #	result = db.query(str(args["query"][0]),ctxid)['data']
 	resultcount = len(queryresult)
@@ -1704,7 +1767,7 @@ def html_record(path,args,ctxid,host):
 	ret.append("\n\n</div>")
 
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
-	ret.append(html_record_dicttable(item,"/db/paramdef?name=",missing=1))
+	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1))
 	ret.append("\n</div>\n\n")
 
 	ret.append(render_groupedlist(path,args,ctxid,host))

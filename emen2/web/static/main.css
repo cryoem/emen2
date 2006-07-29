@@ -81,7 +81,7 @@ div.nav_buttons {
 div.standardfields {
 	float:right;
 	margin-bottom:10px;
-	max-width:400px;
+	max-width:300px;
 	font-size:10pt;
 }
 
@@ -104,6 +104,18 @@ td.standardtable_shaded {
 .viewbinary {
 	font-size:14pt;
 	padding:4px;
+}
+
+
+/* ******* tooltips ************ */
+
+.tooltip 
+{
+	margin:10px;
+	max-width:200px;
+	display:none;
+	background:#E7F1F8;
+	padding:10px;
 }
 
 
@@ -133,7 +145,8 @@ table.groupview {
 	clear:both;
 }
 
-table.dicttable {
+.dicttable {
+	display:none;
 }
 
 th {
@@ -197,7 +210,7 @@ img#toplogo {
 
 img#bottomlogo {
 	margin-left:20px;
-	float:left
+	float:left;
 	border:0px;
 }
 
@@ -345,17 +358,3 @@ DROP DOWN MENU CSS
 	color:#666;
 }
 
-/* ******* tooltips ************ */
-
-.xstooltip 
-{
-    visibility: hidden; 
-    position: absolute; 
-    top: 0;  
-    left: 0; 
-    z-index: 2;
-
-	background:#E7F1F8;
-/*	border:solid 2px; */
-	padding:10px;
-}
