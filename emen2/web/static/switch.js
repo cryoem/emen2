@@ -86,18 +86,32 @@ function showallids() {
 		document.getElementById(headers[i]).style.display = 'block';
 	}
 	switch_button("button_allview")
-//	alert("ok!")
 }
 
+function hideclass(class) {
+	list = getElementByClass(class);
+	for (var i=0;i<list.length;i++) {
+		document.getElementById(list[i]).style.display = 'none';			
+	}
+}
+function showclass(class) {
+	list = getElementByClass(class);
+	for (var i=0;i<list.length;i++) {
+		document.getElementById(list[i]).style.display = 'block';			
+	}
+}
+function qshow(id) {
+	document.getElementById(id).style.display = 'block';			
+}
+function qhide(id) {
+	document.getElementById(id).style.display = 'none';			
+}
 
 function init() {	
 	ids = getElementByClass("switchpage");
 	buttons = getElementByClass("switchbutton");
 	headers = getElementByClass("switchheader");
-//	tooltips = getElementByClass("xstooltip");
-//	alert(buttons);
 	
-
 	hideallids();
 		
 	switchid("mainview");
@@ -120,10 +134,12 @@ function init() {
 
 function tooltip_show(tooltipId)
 {
+	hideclass('tooltip')
 	document.getElementById(tooltipId).style.display = 'block';
 }
 
 function tooltip_hide(tooltipId)
 {
-	document.getElementById(tooltipId).style.display = 'none';
+	self.setTimeout('qhide(\'' + tooltipId + '\')', 2000)
+//	document.getElementById(tooltipId).style.display = 'none';
 }

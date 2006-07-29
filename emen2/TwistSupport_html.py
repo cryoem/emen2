@@ -883,7 +883,18 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		pass
 	ret.append("</span></td></tr>")
 
-	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('dicttable');toggle('recordview')\">+ Toggle parameters</a></td></tr>")
+#	ret.append("<tr><td colspan=\"2\"></td></tr>")
+
+	ret.append("<tr><td colspan=\"2\">+ Views: ")
+	ret.append("<a href=\"javascript:hideclass('recordview');qshow('dicttable');\">params</a> ")
+
+	k = viewdef.keys()
+	k.reverse()
+	for i in k:
+		j = re.sub("view","",i)
+		ret.append("<a href=\"javascript:qhide('dicttable');hideclass('recordview');qshow('recordview_%s');\">%s</a> "%(i,j))
+	ret.append("</td></tr>")
+
 
 	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Append comment</a></td></tr>")
 	
@@ -898,13 +909,9 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		else:
 			ret.append("<div class=\"viewbinary\"><a href=\"\">Download Binary Data</a></div>")
 
-
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
 		except: continue
-#		ret.append("<!-- %s -->"%item)
-#		item=db.getparamdef(str(k))
-
 		ret.append("""\n\n
 		<div id="tooltip_%s" class="tooltip">
 		Parameter Name: %s<br />Variable type: %s<br />Description: %s<br />Property: %s
@@ -913,35 +920,35 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 	ret.append("</div>")
 
 
-
-
-
-	# MAINVIEW
-#	groupname = "group"
-
-	
+# VIEWS	
 	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
-
 	p = re.compile(re1)
 
-	regexresult = p.findall(viewdef)
+#	viewdef["mainview"]
 
-	for i in regexresult:
-		try:
-			value = dict[i[1]]
-		except:
-			value = i[2]
+	for viewtype in viewdef.keys():
+		q = viewdef[viewtype]
+		regexresult = p.findall(q)
 
-		if not value:
-			value = ""
+		for i in regexresult:
+			try:
+				value = dict[i[1]]
+			except:
+				value = i[2]
+			if not value:
+				value = ""
 
-		popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(i[1],i[1])
+			popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(i[1],i[1])
 
-		repl = re.sub("\$","\$",i[0])
-#		print "%s : %s"%(repl,value)
-		viewdef = re.sub(repl + r"\b","<span %s>%s</span>"%(popup,value),viewdef)
+			repl = re.sub("\$","\$",i[0])
+			q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
 
-	ret.append("\n\n<div id=\"recordview\">%s</div>"%viewdef)
+		if viewtype != "defaultview":
+			hidden = "style=\"display:none\""
+		else:
+			hidden = ""
+			
+		ret.append("\n\n<div class=\"recordview\" %s id=\"recordview_%s\">%s</div>"%(hidden,viewtype,q))
 
 
 
@@ -1716,15 +1723,31 @@ def html_record(path,args,ctxid,host):
 	queryresult = db.getchildren(name,ctxid=ctxid)
 
 	
-	if args.has_key("viewtype"):
-		viewtype = args["viewtype"]
-	else:
-		viewtype = "defaultview"
+#	if args.has_key("viewtype"):
+#		viewtype = args["viewtype"]
+#	else:
+#		viewtype = "defaultview"
 	
-	try:	
-		viewdef=db.getrecorddef(item["rectype"],ctxid).views[viewtype]
+#	try:	
+	view=db.getrecorddef(item["rectype"],ctxid)
+	viewdef = view.views
+	
+	if not viewdef.has_key("defaultview"):
+		viewdef["defaultview"] = view.mainview
+	else:
+		viewdef["protocol"] = view.mainview
+
+# Let's remove onelineview, tabularview
+	try:
+		del viewdef["tabularview"]
 	except:
-		viewdef=db.getrecorddef(item["rectype"],ctxid).views["onelineview"]
+		pass
+	try:
+		del viewdef["onelineview"]
+	except:
+		pass
+#	except:
+#		viewdef=db.getrecorddef(item["rectype"],ctxid).views["onelineview"]
 
 	
 #	result = db.query(str(args["query"][0]),ctxid)['data']

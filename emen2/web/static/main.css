@@ -118,6 +118,11 @@ td.standardtable_shaded {
 	padding:10px;
 }
 
+.viewparam {
+	padding-bottom:1px;
+	border-bottom:dashed 1px;
+}
+
 
 /* Arrows */
 .table_arrows {
