@@ -919,18 +919,28 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 	ret.append("</div>")
 
-
 # VIEWS	
 	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
+	re2 = "(\$\#(\w*))[\s<]?"
 	p = re.compile(re1)
+	p2 = re.compile(re2)
+
 
 #	viewdef["mainview"]
 
 	for viewtype in viewdef.keys():
 		q = viewdef[viewtype]
-		regexresult = p.findall(q)
-
-		for i in regexresult:
+		regexresultvalues = p.findall(q)
+		regexresultnames = p2.findall(q)
+		
+		for i in regexresultnames:
+			try: item=db.getparamdef(str(k))
+			except: continue
+			
+			q = re.sub(i[0],item.desc_short,q)
+				
+				
+		for i in regexresultvalues:
 			try:
 				value = dict[i[1]]
 			except:
@@ -942,6 +952,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 			repl = re.sub("\$","\$",i[0])
 			q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
+
 
 		if viewtype != "defaultview":
 			hidden = "style=\"display:none\""
