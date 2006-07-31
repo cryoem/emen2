@@ -925,7 +925,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 	p = re.compile(re1)
 	p2 = re.compile(re2)
 
-	print re2
+#	print re2
 
 #	viewdef["mainview"]
 
@@ -933,12 +933,16 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		q = viewdef[viewtype]
 		regexresultvalues = p.findall(q)
 		regexresultnames = p2.findall(q)
-		
+
+		#print "rrn: %s"%regexresultnames
+		#print "rrv: %s"%regexresultvalues
+
 		for i in regexresultnames:
-			try: item=db.getparamdef(str(k))
+			try: item=db.getparamdef(str(i[1]))
 			except: continue
-			print "n: " + i[0]
-			q = re.sub(i[0],item.desc_short,q)
+			#print "n: " + i[0]
+			#print "item.desc_short for %s: %s \n\n%s\n\n"%(i[1],item.desc_short,q)
+			q = re.sub(re.sub("\$","\$",i[0]),item.desc_short,q)
 				
 				
 		for i in regexresultvalues:
