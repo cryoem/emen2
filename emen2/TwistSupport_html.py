@@ -921,10 +921,11 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 # VIEWS	
 	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
-	re2 = "(\$\#(\w*))[\s<]?"
+	re2 = "(\$\#(\w*))\s"
 	p = re.compile(re1)
 	p2 = re.compile(re2)
 
+	print re2
 
 #	viewdef["mainview"]
 
@@ -936,11 +937,13 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		for i in regexresultnames:
 			try: item=db.getparamdef(str(k))
 			except: continue
-			
+			print "n: " + i[0]
 			q = re.sub(i[0],item.desc_short,q)
 				
 				
 		for i in regexresultvalues:
+			print "v: %s"%i[0]
+			
 			try:
 				value = dict[i[1]]
 			except:
