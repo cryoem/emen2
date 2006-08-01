@@ -1,4 +1,4 @@
-# TwistSupport_html.py  Steven Ludtke  06/2004
+# TwistSupport_html.py	Steven Ludtke  06/2004
 # This module provides the resources needed for a HTML server using Twisted
 
 from twisted.web.resource import Resource
@@ -79,7 +79,7 @@ class DBResource(Resource):
 
 
 
-###################################################	
+################################################### 
 ## SUPPORT FUNCTIONS ##############################
 ###################################################
 
@@ -291,7 +291,7 @@ def parse_view_group(groupname, ctxid=None):
 			parse_split[i+1] = ""
 
 		preparse.append(isplit)
-	#	print "i: %s     v: %s"%(i,isplit)
+	#	print "i: %s	 v: %s"%(i,isplit)
 
 	# remove this sometime
 	preparse2 = []
@@ -608,7 +608,7 @@ def get_tile_dim(tilefile):
 	tf.close()
 
 	ret=[]
-	for l in range(10):	
+	for l in range(10): 
 		x,y=-1,-1
 		for i in td:
 			if i[0]==l: x,y=max(x,i[1]),max(y,i[2])
@@ -631,17 +631,17 @@ def singleheader(title):
 	
 	<div class="switchcontainer">
 
-	 	<div class="switchbutton" id="button_mainview"><a href="">%s</a></div>
+		<div class="switchbutton" id="button_mainview"><a href="">%s</a></div>
 
 	</div>"""%title
 	return ret
 	
-###################################################	
+################################################### 
 ## HTML FUNCTIONS #################################
 ###################################################
 
 def loginpage(redir):
-	"""Why is this a function ?  Just because. Returns a simple login page."""
+	"""Why is this a function ?	 Just because. Returns a simple login page."""
 	ret = []
 	ret.append(html_header("EMEN2 Login"))
 	ret.append(singleheader("EMEN2 Login"))
@@ -674,7 +674,7 @@ def html_header(name,init=None):
 	
 	ret.append("""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
 	
 <html>
 
@@ -709,7 +709,7 @@ def html_header(name,init=None):
 </div>
 
 
-<div class="nav_table">	
+<div class="nav_table"> 
 	<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
 	<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
 	<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
@@ -798,7 +798,7 @@ def html_stub(path,args,ctxid,host):
 	ret.append(singleheader("Page"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
-	ret.append("<h2>Page Title</h2><br />")	
+	ret.append("<h2>Page Title</h2><br />") 
 
 	# stuff goes here
 
@@ -877,7 +877,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 	count = 0
 	try:
 		for i in dict["permissions"]:
-			ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i)))	
+			ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i))) 
 			count = count+1
 	except:
 		pass
@@ -919,7 +919,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 	ret.append("</div>")
 
-# VIEWS	
+# VIEWS 
 	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
 	re2 = "(\$\#(\w*))\s"
 	p = re.compile(re1)
@@ -1191,7 +1191,7 @@ def html_tileimage(path,args,ctxid,host):
 		</div>
 
 
-		<div class="nav_table">	
+		<div class="nav_table"> 
 			<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
 			<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
 			<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
@@ -1266,7 +1266,7 @@ def html_paramdefs(path,args,ctxid,host):
 	ret.append("</div>")
 
 	ret.append(html_footer())
-	return "".join(ret)	
+	return "".join(ret) 
 
 def html_paramdef(path,args,ctxid,host):
 	global db
@@ -1487,7 +1487,7 @@ def html_queryform(path,args,ctxid,host):
 
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find child of 71",(80,8))))  )
+	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find child of 71",(80,8))))	)
 
 	ret.append("</div>")
 
@@ -1530,7 +1530,7 @@ def html_debug(path,args,ctxid,host):
 
 
 
-	ret.append("<h2>Page Title</h2><br />")	
+	ret.append("<h2>Page Title</h2><br />") 
 
 	# stuff goes here
 
@@ -1656,7 +1656,7 @@ def html_query(path,args,ctxid,host):
 		newwf = db.newworkflow(with)
 		wfid = db.addworkflowitem(newwf,ctxid)
 		
-#		print "wfid: %s   wfid as list: %s\n"%(wfid,list(str(wfid)))
+#		print "wfid: %s	  wfid as list: %s\n"%(wfid,list(str(wfid)))
 		
 		args["wfid"]= [str(wfid)]
 
@@ -1702,7 +1702,7 @@ def html_query(path,args,ctxid,host):
 	
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append(  html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea",str(args["query"][0]),(80,8))))  )
+	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea",str(args["query"][0]),(80,8))))  )
 
 	ret.append("</div>")
 	
@@ -1830,7 +1830,7 @@ def html_newrecord(path,args,ctxid,host):
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
 		parm=db.getparamdefs(rec)
 		
-#		print "Record(  ",rec,"  )"
+#		print "Record(	",rec,"	 )"
 		bld=[("","rectype","hidden")]
 		for p in rec.keys():
 			if p in ("owner","creator","creationtime","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
@@ -2047,161 +2047,177 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 	ally = []
 	dataRid = []
 	myloc = 1
+	figsize=(10,8)
+	
+	if thequery.find("group"):
+		groupby = 1
+	
 	if groupby == 0:
-	        allx = data['x']
+			allx = data['x']
 
-	        pylab.hold(False)
-	        if len(allx) == 0:
-	            page = "<h2>No Result Found! Please change your query and try again</h2>"
-	            return page
+			pylab.hold(False)
+			if len(allx) == 0:
+				page = "<h2>No Result Found! Please change your query and try again</h2>"
+				return page
 
-	        if thequery.find('histogram') >= 0:
-	            ally = data[0]
-	            #ax = pylab.subplot(111)                   
-	            strX = 1
+			if thequery.find('histogram') >= 0:
+				ally = data[0]
+				#ax = pylab.subplot(111)				   
+				strX = 1
 
-	            N = len(allx)
-	            ind = range(N)
-	            width = 1
-	            sc = pylab.bar(ind, ally, width)
-	            thefigure = sc[0].get_figure()
-	            theaxes = thefigure.get_axes()
-	            theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))                    
-	            pylab.xticks(ind, allx, rotation=45, fontsize=8)
-	            #pylab.xlim(-width, len(ind))
-	            if clickable == 1:
-	                dataRid = ind
-	        else:
-	            ally = data['y']
-	            if clickable == 1:
-	                   dataRid = data['i']
-	            else:
-	                dataRid = []
-	            sc = pylab.scatter(allx, ally)
+				N = len(allx)
+				ind = range(N)
+				width = 1
+				sc = pylab.bar(ind, ally, width)
+				thefigure = sc[0].get_figure()
+#				thefigure.set_figsize_inches((6,4))
+#				fig = sc.get_figure()
+				thefigure.set_figsize_inches(figsize)				
+				theaxes = thefigure.get_axes()
+				theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))					  
+				pylab.xticks(ind, allx, rotation=45, fontsize=8)
+				#pylab.xlim(-width, len(ind))
+				if clickable == 1:
+					dataRid = ind
+			else:
+				ally = data['y']
+				if clickable == 1:
+					   dataRid = data['i']
+				else:
+					dataRid = []
+				sc = pylab.scatter(allx, ally)
 	else:
-	    dotcolor = ['b', 'g', 'r', 'c', 'm', 'y','w', 'k', 'c']
-	    allcolor=['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080', 'w', 'k', 0.3, 0.6, 0.9]
+		dotcolor = ['b', 'g', 'r', 'c', 'm', 'y','w', 'k', 'c']
+		allcolor=['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080', 'w', 'k', 0.3, 0.6, 0.9]
 
-	    #allcolor = colors.getColors()
-	    allshape= ['o', 's', '^', '>', 'v', '<', 'd', 'p', 'h', '8']
-	    pylab.hold(False)  
+		#allcolor = colors.getColors()
+		allshape= ['o', 's', '^', '>', 'v', '<', 'd', 'p', 'h', '8']
+		pylab.hold(False)  
 
 
-	    if data == [] or len(data) == 0:
-	                page = "<h2>No Result Found! Please change your query and try again</h2>"
-	                return page
-	    i = 0
-	    labels = []
-	    thekeys = []
+		if data == [] or len(data) == 0:
+					page = "<h2>No Result Found! Please change your query and try again</h2>"
+					return page
+		i = 0
+		labels = []
+		thekeys = []
 
-	    if thequery.find('histogram') >= 0:
-	               k = 0
-	               allx = data['x']
-	               ind = range(len(allx))
-	               width = 1
-	               #ax = pylab.subplot(111)                   
+		if thequery.find('histogram') >= 0:
+				   k = 0
+				   allx = data['x']
+				   ind = range(len(allx))
+				   width = 1
+				   #ax = pylab.subplot(111)					  
 
-	               #yoff = pylab.arange([0.0] * len(allx))
-	               yoff = []
-	               for theone in allx:
-	                   yoff.append(0.0)
-	               allsc = []
-	               ykeys = []
-	               for thekey in data.keys():
-	                   if type(thekey) == type(1):
-	                       ykeys.append(thekey)
-	               ykeys.sort()
-	               pylab.hold(False) 
-	               for thekey in ykeys: 
-	                  if type(thekey) == type(1):
-	                       myY = data[thekey]
-	                       sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)])
-	                       thefigure = sc[0].get_figure()
-	                       theaxes = thefigure.get_axes()
-	                       theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))
-	                       i = 0
-	                       tmp = []
-	                       for theY in myY:
-	                           tmp.append(yoff[i])
-	                           yoff[i] += theY
-	                           i += 1
-	                       ally.append(tmp)
-	                       k += 1
-	                       if k>0:
-	                               pylab.hold(True)
-	                       allsc.append(sc[0])
-	               pylab.hold(False) 
-	               ally.append(yoff)
-	               newkeys = []
-	               for thekey in data['keys']:
-	                   newkeys.append(str(thekey))
-	               pylab.legend(allsc, newkeys, loc=2, shadow=0, prop=font_manager.FontProperties(size='small', weight=500), handletextsep=0.005, axespad=0.01, pad=0.01, labelsep=0.001, handlelen=0.02)
-	               #newind = range(len(allx)+1)
-	               pylab.xticks(ind, allx, rotation=45, fontsize=8)
-	               pylab.xlim(-width, len(ind)+1)
+				   #yoff = pylab.arange([0.0] * len(allx))
+				   yoff = []
+				   for theone in allx:
+					   yoff.append(0.0)
+				   allsc = []
+				   ykeys = []
+				   for thekey in data.keys():
+					   if type(thekey) == type(1):
+						   ykeys.append(thekey)
+				   ykeys.sort()
+				   pylab.hold(False) 
+				   for thekey in ykeys: 
+					  if type(thekey) == type(1):
+						   myY = data[thekey]
+						   sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)])
+						   thefigure = sc[0].get_figure()
+						   theaxes = thefigure.get_axes()
+						   theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))
+						   i = 0
+						   tmp = []
+						   for theY in myY:
+							   tmp.append(yoff[i])
+							   yoff[i] += theY
+							   i += 1
+						   ally.append(tmp)
+						   k += 1
+						   if k>0:
+								   pylab.hold(True)
+						   allsc.append(sc[0])
+				   pylab.hold(False) 
+				   ally.append(yoff)
+				   newkeys = []
+				   for thekey in data['keys']:
+					   newkeys.append(str(thekey))
+				   pylab.legend(allsc, newkeys, loc=2, shadow=0, prop=font_manager.FontProperties(size='small', weight=500), handletextsep=0.005, axespad=0.01, pad=0.01, labelsep=0.001, handlelen=0.02)
+				   #newind = range(len(allx)+1)
+				   pylab.xticks(ind, allx, rotation=45, fontsize=8)
+				   pylab.xlim(-width, len(ind)+1)
 
-	    else:
-	        pylab.hold(False)
-	        for thekey in data:
-	            if i>0:
-	                 pylab.hold(True) 
-	            datax = data[thekey]['x']
-	            datay = data[thekey]['y']
-	            allx.extend(datax)
-	            ally.extend(datay)
-	            if clickable == 1:
-	                dataRid.extend(data[thekey]['i'])
-	            label = str(dotcolor[i%8]) + '--' + allshape[i/8]
-	            lines = pylab.plot([datax[0]], [datay[0]], label, markersize=5)
-	            sc = pylab.scatter(datax, datay, c=dotcolor[i%len(dotcolor)], marker=allshape[i/8], s=20)
+		else:
+			pylab.hold(False)
+			for thekey in data:
+				if i>0:
+					 pylab.hold(True) 
+				datax = data[thekey]['x']
+				datay = data[thekey]['y']
+				allx.extend(datax)
+				ally.extend(datay)
+				if clickable == 1:
+					dataRid.extend(data[thekey]['i'])
+				label = str(dotcolor[i%8]) + '--' + allshape[i/8]
+				lines = pylab.plot([datax[0]], [datay[0]], label, markersize=5)
+				sc = pylab.scatter(datax, datay, c=dotcolor[i%len(dotcolor)], marker=allshape[i/8], s=20)
 
-	            labels.append(lines)
-	            thekeys.append(str(thekey))
+				fig = sc.get_figure()
+				fig.set_figsize_inches(figsize)
+				
+				labels.append(lines)
+				thekeys.append(str(thekey))
 
-	            i += 1
-	        pylab.hold(False) 
-	        try:
-	            pylab.legend(labels, thekeys, numpoints=2, shadow=0, prop=font_manager.FontProperties(size='small'), handletextsep=0.01, axespad=0.005, pad=0.005, labelsep=0.001, handlelen=0.01)
-	        except:
-	            pass
+				i += 1
+			pylab.hold(False) 
+			try:
+				pylab.legend(labels, thekeys, numpoints=2, shadow=0, prop=font_manager.FontProperties(size='small'), handletextsep=0.01, axespad=0.005, pad=0.005, labelsep=0.001, handlelen=0.01)
+			except:
+				pass
 
 	pylab.xlabel(L['xlabel'])
 	pylab.ylabel(L['ylabel'])
+
 	t = str(time.time())
 	rand = str(random.randint(0,100000))
 	tempfile = "/graph/t" + t + ".r" + rand + ".png"
-	pylab.savefig("tweb" + tempfile)                
+
+	
+	pylab.savefig("tweb" + tempfile)				
 	wspace = hspace = 0.8
 
 	if clickable == 1:
-	    if thequery.find('histogram') >= 0:
-	          trans = sc[0].get_transform()
-	          if groupby == 0:
-	              xlist = range(len(allx)+1)
-	              ylist = ally
-	              ylist.append(0)
-	              xcoords, ycoords = trans.seq_x_y(xlist, ylist)
-	          else:
-	              xlist = range(len(allx))
-	              ycoords = []
-	              for i in range(len(ally)):
-	                  xs, ys = trans.seq_x_y(xlist, ally[i])
-	                  ycoords.append(ys)
-	              xcoords, tmp = trans.seq_x_y(range(len(allx)+1), range(len(allx)+1))                      
-	          fig = sc[0].get_figure()
-	    else:
-	          trans = sc.get_transform()
-	          xcoords, ycoords = trans.seq_x_y(allx, ally)
-	          fig = sc.get_figure()
-	    dpi = fig.get_dpi()
-	    img_height = fig.get_figheight() * dpi
-	    img_width = fig.get_figwidth() * dpi
-	    if thequery.find('histogram') >= 0:
-	        if groupby == 0:
-	              page = p.plot_view_bar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
-	        else:
-	              dataRid = ind
-	              page = p.plot_view_multibar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
+		if thequery.find('histogram') >= 0:
+			  trans = sc[0].get_transform()
+			  if groupby == 0:
+				  xlist = range(len(allx)+1)
+				  ylist = ally
+				  ylist.append(0)
+				  xcoords, ycoords = trans.seq_x_y(xlist, ylist)
+			  else:
+				  xlist = range(len(allx))
+				  ycoords = []
+				  for i in range(len(ally)):
+					xs, ys = trans.seq_x_y(xlist, ally[i])
+					ycoords.append(ys)
+				  xcoords, tmp = trans.seq_x_y(range(len(allx)+1), range(len(allx)+1))						
+			  fig = sc[0].get_figure()
+		else:
+			  trans = sc.get_transform()
+			  xcoords, ycoords = trans.seq_x_y(allx, ally)
+			  fig = sc.get_figure()
+			
+		dpi = fig.get_dpi() 
+		img_height = fig.get_figheight() * dpi
+		img_width = fig.get_figwidth() * dpi
+		if thequery.find('histogram') >= 0:
+			if groupby == 0:
+				  pass
+#				  page = p.plot_view_bar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
+			else:
+				  dataRid = ind
+#				  page = p.plot_view_multibar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
 
 	return tempfile
 		
