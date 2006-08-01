@@ -1850,9 +1850,22 @@ def html_newrecord(path,args,ctxid,host):
 		if args.has_key("parent"):
 #			print "adding parent key.. %s"%args["parent"][0]
 			d["parent"]=args["parent"][0]
-			
+#
+
+# FIXME: temp hack
+		d2 = {}
+		for i in d.keys():
+			if type(d[i]) == str:
+				try: d2[i] = d[i].split()[0]
+				except: d2[i] = None
+			else:
+				d2[i] = d[i]
+
 		print "submitting with args: %s"%d
-		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d))
+		print "shortened args: %s"%d2
+		print "items: %s"%bld
+		print "host: %s"%host
+		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d2))
 		ret.append("</div>")
 		ret.append(html_footer())
 #		ret.append("</body></html")
