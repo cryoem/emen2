@@ -850,9 +850,11 @@ def html_dicttable(dict,proto):
 def html_record_dicttable(dict,proto,viewdef,missing=0):
 	"""Produce a table of values in 'cols' columns"""
 
+#	print "dict: %s \n %s"%(dict.recid,dict)
+
 	ret = []
 	# fixme: removed comments_text
-	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments","file_image_binary"]
+	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","comments","file_image_binary"]
 	
 	# Standard fields for all records
 	ret.append("\n\n<div class=\"standardfields\">\n")
@@ -864,7 +866,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 	ret.append("<tr><td class=\"standardtable_shaded\">Modified: %s (%s)</td></tr>"%(dict["modifytime"],dict["modifyuser"]))
 
-#	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">%s</span></td></tr>"%dict["comments_text"])
+	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments: %s</span></td></tr>"%dict["comments_text"])
 
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
 	comments = dict["comments"]
@@ -898,7 +900,13 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 
 	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Append comment</a></td></tr>")
 	
-	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Add child</a></td></tr>")
+	ret.append("<tr><td colspan=\"2\"><a href=\"\"><a href=\"javascript:toggle('addchild')\">+ Add child</a>")
+	ret.append("<span style=\"display:none\" id=\"addchild\"><ul>")
+	ftn=db.getrecorddefnames()
+	for i in ftn:
+		ret.append("<li><a href=\"/db/newrecord?rdef=%s&parent=%s\">%s</a></li>"%(i,dict.recid,i))
+		
+	ret.append("</span></td></tr>")
 
 	ret.append("</table>")
 
@@ -1831,7 +1839,7 @@ def html_newrecord(path,args,ctxid,host):
 		parm=db.getparamdefs(rec)
 		
 #		print "Record(	",rec,"	 )"
-		bld=[("","rectype","hidden")]
+		bld=[("","rectype","hidden"),("","parent","hidden")]
 		for p in rec.keys():
 			if p in ("owner","creator","creationtime","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
 			try: bld.append((parm[p].desc_short,p,"text"))
@@ -1839,11 +1847,22 @@ def html_newrecord(path,args,ctxid,host):
 
 		d=rec.items_dict()
 		d["rectype"]=args["rdef"][0]
+		if args.has_key("parent"):
+#			print "adding parent key.. %s"%args["parent"][0]
+			d["parent"]=args["parent"][0]
+			
+		print "submitting with args: %s"%d
 		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d))
 		ret.append("</div>")
 		ret.append(html_footer())
 #		ret.append("</body></html")
 		return "".join(ret)
+
+	print "new record args: %s"%args
+
+	if args.has_key("parent"):
+		parent = int(args["parent"][0])
+		del args["parent"]
 
 	argmap(args)
 	rec=db.newrecord(args["rectype"],ctxid,host,init=0)
@@ -1851,7 +1870,12 @@ def html_newrecord(path,args,ctxid,host):
 	rec.update(args)
 
 	rid=db.putrecord(rec,ctxid,host)
-	ret.append('Record add successful.<br />New id=%d<br><br><a href="/db/index.html">Return to main menu</a>'%rid)
+
+
+	if parent :
+		db.pclink(parent,rid,"record",ctxid)
+
+	ret.append('Record add successful.<br />New id: <a href="/db/record?name=%d">%d</a><br><br><a href="/db/index.html">Return to main menu</a>'%(rid,rid))
 	
 	ret.append("</div>")
 	ret.append(html_footer())
