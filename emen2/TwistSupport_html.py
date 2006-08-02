@@ -954,7 +954,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 				
 				
 		for i in regexresultvalues:
-			print "v: %s"%i[0]
+#			print "v: %s"%i[0]
 			
 			try:
 				value = dict[i[1]]
@@ -969,10 +969,10 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 			q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
 
 
-		if viewtype != "defaultview":
-			hidden = "style=\"display:none\""
-		else:
-			hidden = ""
+#		if viewtype != "defaultview":
+		hidden = "style=\"display:none\""
+#		else:
+#			hidden = ""
 			
 		ret.append("\n\n<div class=\"recordview\" %s id=\"recordview_%s\">%s</div>"%(hidden,viewtype,q))
 
@@ -1758,10 +1758,10 @@ def html_record(path,args,ctxid,host):
 	view=db.getrecorddef(item["rectype"],ctxid)
 	viewdef = view.views
 	
-	if not viewdef.has_key("defaultview"):
-		viewdef["defaultview"] = view.mainview
-	else:
-		viewdef["protocol"] = view.mainview
+#	if not viewdef.has_key("defaultview"):
+#		viewdef["defaultview"] = view.mainview
+#	else:
+	viewdef["protocol"] = view.mainview
 
 # Let's remove onelineview, tabularview
 	try:
@@ -1861,14 +1861,13 @@ def html_newrecord(path,args,ctxid,host):
 			else:
 				d2[i] = d[i]
 
-		print "submitting with args: %s"%d
-		print "shortened args: %s"%d2
-		print "items: %s"%bld
-		print "host: %s"%host
+#		print "submitting with args: %s"%d
+#		print "shortened args: %s"%d2
+#		print "items: %s"%bld
+#		print "host: %s"%host
 		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d2))
 		ret.append("</div>")
 		ret.append(html_footer())
-#		ret.append("</body></html")
 		return "".join(ret)
 
 	print "new record args: %s"%args
