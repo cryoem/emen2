@@ -529,8 +529,12 @@ class FieldBTree:
 
 	def typekey(self,key) :
 		if key==None : return None
-		if self.keytype=="f" : return float(key)
-		if self.keytype=="d" : return int(key)
+		if self.keytype=="f" :
+			try: return float(key)
+			except: return float()
+		if self.keytype=="d" :
+			try: return int(key)
+			except: return int()
 		return str(key).lower()
 			
 	def removeref(self,key,item):
