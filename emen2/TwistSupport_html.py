@@ -2085,8 +2085,10 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 	myloc = 1
 	figsize=(6,4)
 	
-	if thequery.find("group"):
+	if thequery.find("group by") >= 0:
 		groupby = 1
+	else:
+		groupby = 0
 	
 	if groupby == 0:
 			allx = data['x']
@@ -2189,8 +2191,12 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 			for thekey in data.keys():
 				if i>0:
 					 pylab.hold(True) 
-				datax = data['x']
-				datay = data['y']
+				if groupby == 1:
+					datax = data[thekey]['x']
+					datay = data[thekey]['y']
+				else:
+					datax = data['x']
+					datay = data['y']
 				allx.extend(datax)
 				ally.extend(datay)
 				if clickable == 1:
