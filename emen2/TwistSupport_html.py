@@ -915,7 +915,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		if bdo[0:3] == "bdo":
 			ret.append("<div class=\"viewbinary\"><a href=\"/db/tileimage/%s\">View Binary Data</a></div>"%bdo[4:])
 		else:
-			ret.append("<div class=\"viewbinary\"><a href=\"\">Download Binary Data</a></div>")
+			ret.append("<div class=\"viewbinary\"><a href=\"%s\">Download Binary Data</a></div>"%bdo)
 
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
@@ -1870,7 +1870,7 @@ def html_newrecord(path,args,ctxid,host):
 		ret.append(html_footer())
 		return "".join(ret)
 
-	print "new record args: %s"%args
+#	print "new record args: %s"%args
 
 	if args.has_key("parent"):
 		parent = int(args["parent"][0])
@@ -2186,11 +2186,11 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 
 		else:
 			pylab.hold(False)
-			for thekey in data:
+			for thekey in data.keys():
 				if i>0:
 					 pylab.hold(True) 
-				datax = data[thekey]['x']
-				datay = data[thekey]['y']
+				datax = data['x']
+				datay = data['y']
 				allx.extend(datax)
 				ally.extend(datay)
 				if clickable == 1:
