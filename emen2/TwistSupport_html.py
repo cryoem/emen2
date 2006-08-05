@@ -1222,8 +1222,8 @@ def html_tileimage(path,args,ctxid,host):
 		<br><br><div id="dbug"></div>
 
 
-		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><br>
-		""")
+		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><a href=%s?level=-1&x=0&y=0><button>pspec</button></a><a href=%s?level=-2&x=0&y=0><button>plot</button></a><br>
+		"""%(path[1],path[1]))
 
 		ret.append("</div>")
 
@@ -1495,7 +1495,7 @@ def html_queryform(path,args,ctxid,host):
 
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","find child of 71",(80,8))))	)
+	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","",(80,8))))	)
 
 	ret.append("</div>")
 
@@ -2106,7 +2106,7 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 				N = len(allx)
 				ind = range(N)
 				width = 1
-				sc = pylab.bar(ind, ally, width)
+				sc = pylab.bar(ind, ally, width,yerr=None,xerr=None)
 				thefigure = sc[0].get_figure()
 #				thefigure.set_figsize_inches((6,4))
 #				fig = sc.get_figure()
@@ -2161,7 +2161,7 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 				   for thekey in ykeys: 
 					  if type(thekey) == type(1):
 						   myY = data[thekey]
-						   sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)])
+						   sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)],yerr=None,xerr=None)
 						   thefigure = sc[0].get_figure()
 						   theaxes = thefigure.get_axes()
 						   theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))

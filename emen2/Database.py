@@ -636,9 +636,14 @@ class MemBTree:
 		self.bdbnelem=nelem
 
 	def typekey(self,key) :
-		if key==None : return None
-		if self.keytype=="f" : return float(key)
-		if self.keytype=="d" : return int(key)
+		if key==None or key=="None" : return None
+		if self.keytype=="f" : 
+			try: return float(key)
+			except: 
+				print "Invalid float(%s)"%key
+				return(0.0)
+		if self.keytype=="d" : 
+			return int(key)
 		return str(key)
 			
 	def removeref(self,key,item):
@@ -1055,7 +1060,8 @@ class Record:
 		try:
 			p=dict["_Record__params"]
 			dict["_Record__params"]={}
-			for i,j in p.items(): dict["_Record__params"][i.lower()]=j
+			for i,j in p.items(): 
+				if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
 		except:
 			traceback.print_exc(file=sys.stdout)
 		dict["rectype"]=dict["rectype"].lower()
@@ -1148,6 +1154,7 @@ class Record:
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
+		if value==None or value=="none" : print "rec %d, key=%s set to None"%(self.recid,self.key)
 		key=key.strip().lower()
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
@@ -2153,7 +2160,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			rid=all.pop()							# get a random record id
 			try: r=self.getrecord(rid,ctxid,host)	# get the record
 			except:
-				LOG(3,"Could not group by on record %d"%rid)
+				db.LOG(3,"Could not group by on record %d"%rid)
 				continue						# if we can't, just skip it, pop already removed it
 			ind=self.getindexbyrecorddef(r.rectype,ctxid,host)		# get the set of all records with this recorddef
 			ret[r.rectype]=all&ind					# intersect our list with this recdef
