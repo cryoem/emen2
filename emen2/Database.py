@@ -1395,7 +1395,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
 
-	def login(self,username="anonymous",password="",host=None,maxidle=14400):
+	def login(self,username="anonymous",password="",host=None,maxidle=144000):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access"""
 		ctx=None
@@ -2204,7 +2204,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
 		read permission on the keyed record to get a list of parents
 		or an empty set will be returned."""
-		
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
@@ -2750,6 +2749,7 @@ or None if no match is found."""
 		for i in recdef.params:
 			if i not in pdn:
 				print pdn
+				print "No such parameter %s" %i
 				raise KeyError,"No such parameter %s"%i
 		
 		# this actually stores in the database
