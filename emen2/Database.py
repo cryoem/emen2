@@ -159,9 +159,12 @@ class BTree:
 		if not self.relate : raise Exception,"relate option required in BTree"
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 				
-		if not self.has_key(childtag) : raise KeyError,"Cannot link nonexistent key '%s'"%childtag
-		if not self.has_key(parenttag) : raise KeyError,"Cannot link nonexistent key '%s'"%parenttag
-		
+		if not self.has_key(childtag) : 
+			raise KeyError,"Cannot link nonexistent key '%s'"%childtag
+			print "Cannot link nonexistent key '%s'"%childtag
+		if not self.has_key(parenttag) : 
+			raise KeyError,"Cannot link nonexistent key '%s'"%parenttag
+			print "Cannot link nonexistent key '%s'"%parenttag
 		try:
 			o=loads(self.pcdb.get(dumps(parenttag)))
 		except:
