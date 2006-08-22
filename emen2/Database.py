@@ -386,8 +386,12 @@ class IntBTree:
 		parenttag=int(parenttag)
 		childtag=int(childtag)
 		
-		if not self.has_key(childtag) : raise KeyError,"Cannot link nonexistent key '%d'"%childtag
-		if not self.has_key(parenttag) : raise KeyError,"Cannot link nonexistent key '%d'"%parenttag
+		if not self.has_key(childtag) : 
+			raise KeyError,"Cannot link nonexistent key '%d'"%childtag
+			print "Cannot link nonexistent key '%d'"%childtag
+		if not self.has_key(parenttag) : 
+			raise KeyError,"Cannot link nonexistent key '%d'"%parenttag
+			print "Cannot link nonexistent key '%d'"%parenttag
 		
 		self.pcdb.index_append(parenttag,childtag)
 		self.cpdb.index_append(childtag,parenttag)
