@@ -79,12 +79,14 @@ def format_string_obj(dict,keylist):
 def timetosec(timestr):
 	"""takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
 	returns the standard time in seconds since the beginning of time"""
-	return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
+	try: return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
+	except: return time.mktime(time.strptime(timestr,"%Y/%m/%d"))
 
 def timetostruc(timestr):
 	"""takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
 	returns the standard time in seconds since the beginning of time"""
-	return time.strptime(timestr,"%Y/%m/%d %H:%M:%S")
+	try: return time.strptime(timestr,"%Y/%m/%d %H:%M:%S")
+	except: return time.strptime(timestr,"%Y/%m/%d")
 
 WEEKREF=(0,31,59,90,120,151,181,212,243,273,304,334)
 WEEKREFL=(0,31,60,91,121,152,182,213,244,274,305,335)
@@ -3021,9 +3023,9 @@ or None if no match is found."""
 			record.recid = self.__dbseq.get()                                # Get a new record-id
 			self.__records[-1]=record.recid			# Update the recid counter, TODO: do the update more safely/exclusive access
 
-			df=file("/tmp/dbbug3","a")
-			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
-			df.close()
+#			df=file("/tmp/dbbug3","a")
+#			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
+#			df.close()
 		
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
