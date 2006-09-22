@@ -1667,7 +1667,6 @@ def html_debug(path,args,ctxid,host):
 #	</div>
 #	"""%html_rendergrouptable(path,ajaxargs,ctxid,host))
 
->>>>>>> 1.87
 	ret.append("</div>")
 	ret.append(html_footer())
 
