@@ -87,6 +87,7 @@ def argmap(dict):
 	for i in dict: dict[i]=dict[i][0]
 		
 		
+
 		
 def invert(d):
 	nd = {}
@@ -100,41 +101,31 @@ def invert(d):
 			nd[v] = [k]
 	return nd
 
+
+
+
 def sortlistbyparamname(paramname,subset,reverse,ctxid):
 	global db
 	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
-
-#	print "\n q: %s \n"%q
-#	print len(subset)
-
 	nq = invert(q)
-
 	l = nq.keys()
 	l.sort()
-
 	sortedlist = []
-
 	for i in l:
 		j = nq[i]
 		j.sort()	
-			
 		for k in j:
 			sortedlist.append(k)
-
 	for c in (Set(subset) - Set(sortedlist)):
 		sortedlist.append(c)
-
 	if reverse:
 		sortedlist.reverse()
-
-#	print "sortedlist: %s"%sortedlist
-
 	return sortedlist
 
 
 		
 def parent_tree(recordid,ctxid=None):
-	"""Get the parent tree of a record. Returns table."""
+	"""Get the parent tree of a record. Returns table. Includes html"""
 	# 158 - 366
 	m = [[int(recordid)]]
 
@@ -183,8 +174,6 @@ def parent_tree(recordid,ctxid=None):
 	# requires two passes; reverse now
 	for i in range(0,len(m)):			
 		m[i].reverse()
-
-
 
 	ret = ["\n\n<div class=\"navtree\">\n\n<table cellpadding=\"0\" cellspacing=\"0\" class=\"navtable\">\n"]
 
@@ -263,7 +252,7 @@ def parent_tree(recordid,ctxid=None):
 
 
 
-
+### FIX: replace with something nice
 def parse_view_group(groupname, ctxid=None):
 	"""Get view, parse it, return constructed view"""
 	
@@ -333,18 +322,7 @@ def parse_view_group(groupname, ctxid=None):
 			vardescs.append('')
 
 	return out,vartypes,vardescs
-	#
-	# View parsing
-	#
-	#if viewtype == "onelineview":
-	#	onelineview = render_onelineview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=ctxid)
-	#	ret.append(" ".join(onelineview))
 
-
-	#if viewtype == "tabularview":	
-
-
-	return ret
 
 
 
@@ -356,18 +334,12 @@ def render_onelineview(recordid,record_dict,vartypes,vardescs,preparse,out,heade
 	return ret
 
 
-#def render_tabularviewheader(groupname,out,vartypes,vardescs,ctxid=None):
 
-
-	# tdclass is for shaded/non-shaded row
-	# tdclass2 is for first-item on row
-#	else:
 
 def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
+	"""Render one line of a table"""
 	maxtextlength=500
 	ret = []
-
-#	print "render_tabularview: \nout:%s\nvartypes:%s\nvardescs:%s\n\n"%(out,vartypes,vardescs)
 
 	record=db.getrecord(id,ctxid)
 	record_dict = record.items_dict()
@@ -421,23 +393,23 @@ def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
 	ret.append("\t</tr>\n")
 
 	return ret
+
+
 	
 
 def render_groupedhead(groupl,ctxid=None):
-
+	"""Render tab switching buttons"""
 	ret = []
 	for i in groupl.keys():
 		ret.append("\t<div class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
 	return " ".join(ret)
 	
+	
 
 def render_groupedlist(path, args, ctxid, host, viewonly=None, sortgroup=None):
 	"""Draw tables for parents/children of a record"""
-
 	ret = []
-
 	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
-
 	groupl = wf['appdata']
 
 	for i in groupl.keys():
@@ -453,135 +425,6 @@ def render_groupedlist(path, args, ctxid, host, viewonly=None, sortgroup=None):
 	return " ".join(ret)
 
 
-# Include recordids in definition because record_dicts may contain extra definitions..
-def html_render_grouptable(path,args,ctxid,host,groupname=None):
-	"""Make a div page with table for items with a common view definition"""
-
-	perpage = 100
-	direct = 0
-	recordids = []
-	ret = []
-
-	groupname = str(args["groupname"][0])
-
-	if args.has_key("pos"):
-		pos = int(args["pos"][0])
-		perpage = int(args["perpage"][0])
-	elif args.has_key("pos_%s"%groupname):
-		pos = int(args["pos_%s"%groupname][0])
-	else:
-		pos = 0
-		
-#	if not args.has_key("reverse_%s"%groupname):
-#		reverse = bool(0)
-#		args["reverse_%s"%groupname] = [str(reverse)]
-#	else:
-#		reverse = not bool(args["reverse_%s"%groupname][0])
-#		args["reverse_%s"%groupname] = [str(reverse)]
-
-	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
-	recordids = wf["appdata"][groupname]
-
-	if args.has_key("sort_%s"%groupname):
-		sortby = args["sort_%s"%groupname][0]
-		reverse = int(args["reverse_%s"%groupname][0])
-		recordids = sortlistbyparamname(sortby,recordids,reverse,ctxid)
-		reverse = int(not reverse)
-	else:
-		reverse = "0"
-
-	ret.append("<div id=\"zone_%s\">"%groupname)
-
-	
-	# Navigation arrows
-	if perpage:
-		
-		nav = []
-		key = "pos_%s"%groupname
-
-		baseurl=["/db/render_grouptable","?"]
-		if args.has_key(key):
-			ipos = int(args[key][0])
-		else:
-			ipos = 0
-
-		pos = ipos
-
-		for j in args.keys():
-			if j != key and j != "viewinit":
-				baseurl.append("&%s=%s"%(j,args[j][0]))
-		baseurlstr = "".join(baseurl)
-		
-		nav.append("<div class=\"table_arrows\">")
-		if (ipos - perpage) >= 0:
-			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&laquo;</span>"""%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
-
-		end = pos+perpage
-		count = len(recordids)
-		if end > count:
-			end = count
-		nav.append("""<span class="table_span"> (%s-%s of %s) </span>"""%(pos,end,count))
-
-		if (ipos + perpage) <= len(recordids):
-			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&raquo;</span>"""%(baseurlstr,key,ipos + perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
-
-		nav.append("</div>")
-	
-	ret.append(" ".join(nav))
-	
-	# end nav arrows
-	
-	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
-
-	out,vartypes,vardescs = parse_view_group(groupname,ctxid=ctxid)
-	
-	
-	ret.append("\t<tr>\n")
-	for i in range(0,len(out)):
-		if vartypes[i] != "text":
-
-			baseurl=["/db/render_grouptable","?"]							
-			baseurl.append("&groupname=%s"%groupname)
-			baseurl.append("&pos_%s=0"%groupname)
-			baseurl.append("&wfid=%s"%args["wfid"][0])
-			baseurl.append("&%s=%s"%("sort_%s"%groupname,out[i]))
-			baseurl.append("&%s=%s"%("reverse_%s"%groupname,reverse))
-			baseurlstr = "".join(baseurl)
-
-			r = "javascript:makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')"%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname)
-
-			if vartypes[i] != "":				
-				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vardescs[i]))
-			else:
-				ret.append("\t\t<th><a href=\"%s\">(%s)</a></th>\n"%(r,out[i]))
-
-	ret.append("\t</tr>\n")
-	
-	modulo=0
-	
-	if not perpage:
-		perpage = len(recordids)
-	
-	for id in recordids[pos:pos+perpage]:
-		tabularview = render_tabularview(id,out,vartypes,vardescs,modulo=modulo,ctxid=ctxid)
-		ret.append(" ".join(tabularview))
-		modulo=modulo+1
-
-	ret.append("</table>\n")
-	
-#	ret.append(" ".join(nav))
-	
-	ret.append("</div>\n\n")
-
-	ret.append("</div>")
-	
-#	if direct:
-#		return ret
-#	else:
-	return " ".join(ret)
-	
-	
-	
 def get_tile(tilefile,level,x,y):
 	"""get_tile(tilefile,level,x,y)
 	retrieve a tile from the file"""
@@ -598,6 +441,9 @@ def get_tile(tilefile,level,x,y):
 	tf.close()
 
 	return ret
+
+
+
 
 def get_tile_dim(tilefile):
 	"""This will determine the number of tiles available in
@@ -616,30 +462,227 @@ def get_tile_dim(tilefile):
 		ret.append((x+1,y+1))
 
 	return ret
-	
-	
-	
-def singleheader(title):
-	ret = """
-	
-	<div class="navtree">
 
+
+
+def singleheader(title):
+	"""For pages without option tabs, make the single tab"""
+	ret = """
+	<div class="navtree">
 	<table cellpadding="0" cellspacing="0" class="navtable">
 	</table>
-
 	</div>
-	
 	<div class="switchcontainer">
-
 		<div class="switchbutton" id="button_mainview"><a href="">%s</a></div>
-
 	</div>"""%title
 	return ret
+
+
+
 	
+def html_htable(itmlist,cols,proto):
+	"""Produce a table of values in 'cols' columns"""
+	ret=['\n\n<table>']
+
+	for i,j in enumerate(itmlist):
+		if (i%cols==0): ret.append("\t<tr>")
+		ret.append("\t\t<td><a href=\"%s%s\">%s</a></td>"%(proto,j,j))
+		if (i%cols==cols-1) : ret.append("</tr>\n")
+
+	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
+	else : ret.append("</table>")
+
+	return "".join(ret)
+
+
+
+def html_htable2(itmlist,cols,proto):
+	"""Produce a table of values and counts in 'cols' columns"""
+	ret=['\n\n<table>']
+
+	for i,j in enumerate(itmlist):
+		if (i%cols==0): ret.append("\t<tr>")
+		ret.append("\t\t<td><a href=\"%s%s\">%s (%d)</a></td>"%(proto,j[0],j[0],j[1]))
+		if (i%cols==cols-1) : ret.append("\t</tr>\n")
+
+	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
+	else : ret.append("</table><br>")
+
+	return "".join(ret)
+
+
+
+def html_dicttable(dict,proto):
+	ret = []
+	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
+	skipped = 0
+	for k,v in dict.items():
+		item=db.getparamdef(str(k))
+		ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
+	ret.append("</table>")
+
+	return " ".join(ret)	
+
+
+
+
+def groupsettolist(groups):
+	groupl = {}
+	for i in groups.keys():
+		glist = list(groups[i])
+		groupl[i] = glist
+	return groupl		
+
+
+
+
+
+def clearworkflowcache(ctxid):
+	global db 
+
+	wflist = db.getworkflow(ctxid)
+	for wf in wflist:
+		wfdict = wf.items_dict()
+		if wfdict["wftype"] == "recordcache" or wfdict["wftype"] == "querycache":
+			db.delworkflowitem(wf.wfid,ctxid)
+
+
+
+def encapsulate_render_grouptable(path,args,ctxid,host):
+	ret = []
+
+	if args.has_key("groupname"):
+		groupname = args["groupname"][0]
+
+	ret.append("\n\n<div class=\"switchpage\" id=\"page_%s\">"%groupname)
+	ret.append("\t<h1 class=\"switchheader\" id=\"header_%s\">%s</h1>\n"%(groupname,groupname))
+
+	r = html_render_grouptable(path,args,ctxid,host)
+	ret.append("".join(r))
+
+	ret.append("</div>")
+	return " ".join(ret)
+
+
+
+
 ################################################### 
-## HTML FUNCTIONS #################################
+## TEMPALTE FUNCTIONS #############################
 ###################################################
 
+def html_header(name,init=None):
+	"""Common header block, includes <body>"""
+
+	ret = []
+
+	ret.append("""
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
+
+<html>
+
+<head>
+
+<title>
+%s
+</title>
+
+<link rel="StyleSheet" href="/main.css" type="text/css" />
+
+
+<script type="text/JavaScript" src="/niftycube.js"></script>
+<script type="text/javascript" src="/switch.js"></script>
+<script type="text/javascript" src="/ajax.js"></script>
+<script type="text/javascript" src="/tile.js"></script>
+
+
+</head>
+
+<body onLoad="javascript:init();"""%name)
+
+	if init:
+		ret.append(str(init))
+
+	ret.append("""">
+
+<div id="title">
+	<a href="/db/">
+	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+	</a>
+</div>
+
+
+<div class="nav_table"> 
+	<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
+	<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
+	<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
+	<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
+	<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
+</div>
+
+
+<div id="content">
+	""")
+
+	return " ".join(ret)
+
+
+def html_footer():
+	"""Common header block, includes </body>"""
+	return """
+
+</div>
+
+<div id="bottom">
+
+<img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	
+
+<!-- -->
+
+Loggged in as: <br />
+
+Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
+Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
+Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
+
+</div>
+
+</body>
+</html>
+	"""
+
+
+def html_navbar():
+	"""Top navigation bar"""
+	return """
+	"""
+
+def html_stub(path,args,ctxid,host):
+	"""Example"""
+	global db
+
+	ret=[html_header("EMEN2")]
+
+	ret.append(singleheader("Page"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+
+	ret.append("<h2>Page Title</h2><br />") 
+
+	# stuff goes here
+
+	ret.append("</div>")
+
+	ret.append(html_footer())
+	return "".join(ret)
+	
+
+	
+################################################### 
+## PAGE FUNCTIONS #################################
+###################################################
+
+
+# ok
 def loginpage(redir):
 	"""Why is this a function ?	 Just because. Returns a simple login page."""
 	ret = []
@@ -667,93 +710,44 @@ def loginpage(redir):
 	return " ".join(ret)
 
 
-def html_header(name,init=None):
-	"""Common header block, includes <body>"""
-	
-	ret = []
-	
-	ret.append("""
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
-	
-<html>
 
-<head>
+# ok
+def html_home():
+	ret=[html_header("EMEN2 Home Page")]
 
-<title>
-%s
-</title>
+	ret.append(singleheader("Home"))
+	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
-<link rel="StyleSheet" href="/main.css" type="text/css" />
+	ret.append("""<h2>EMEN2 Demo Page!!!</h2>
+	Available tasks:<br />
+	<ul>
+		<li><a href="/db/record?name=0">Browse Records</a></li>
+		<li><a href="/db/queryform">Query Database</a></li>
+		<li><a href="/db/records">List of all Records</a></li>
+		<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
+		<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
+		<li><a href="/db/users">List of Users</a></li>
+	</ul>
 
+	<br /><br />
 
-<script type="text/JavaScript" src="/niftycube.js"></script>
-<script type="text/javascript" src="/switch.js"></script>
-<script type="text/javascript" src="/ajax.js"></script>
-<script type="text/javascript" src="/tile.js"></script>
-
-
-</head>
-
-<body onLoad="javascript:init();"""%name)
-
-	if init:
-		ret.append(str(init))
-		
-	ret.append("""">
-
-<div id="title">
-	<a href="/db/">
-	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
-	</a>
-</div>
+	<ul>
+		<li><a href="/db/newuser">Add New User</a></li>
+		<li><a href="/db/newuserqueue">Approve New Users</a></li>
+		<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
+		<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
+	</ul>""")
 
 
-<div class="nav_table"> 
-	<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
-	<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
-	<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
-	<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
-	<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
-</div>
+	ret.append("</div>")
 
+	ret.append(html_footer())
 
-<div id="content">
-	""")
-	
-	return " ".join(ret)
-
-def html_navbar():
-	"""Top navigation bar"""
-	return """
-	"""
-
-def html_footer():
-	"""Common header block, includes </body>"""
-	return """
-
-</div>
-
-<div id="bottom">
-
-<img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	
-
-<!-- -->
-
-Loggged in as: <br />
-
-Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
-Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
-Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
-
-</div>
-
-</body>
-</html>
-	"""
+	return "".join(ret)
 
 
 
+# ok
 def html_workflow(path,args,ctxid,host):
 	global db
 
@@ -776,11 +770,7 @@ def html_workflow(path,args,ctxid,host):
 		ret.append("<a href=\"javascript:toggle('workflowdict_%s');\">+ contents:</a><br /><div id=\"workflowdict_%s\" style=\"display:none\">"%(wfdict["wfid"],wfdict["wfid"]))
 		ret.append(str(i.items_dict()))
 		ret.append("</div><br />")
-			
-#	for i in all:
-#		ret.append("<br />%s<br />"%i)
-	
-	# stuff goes here
+		
 
 	ret.append("</div>")
 
@@ -788,92 +778,157 @@ def html_workflow(path,args,ctxid,host):
 	return "".join(ret)
 
 
-def html_stub(path,args,ctxid,host):
-	global db
 
-	ftn=db.getparamdefnames()
+# ajax goodness
+def html_render_grouptable(path,args,ctxid,host,groupname=None):
+	"""Make a div page with table for items with a common view definition"""
 
-	ret=[html_header("EMEN2")]
-
-	ret.append(singleheader("Page"))
-	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
-
-	ret.append("<h2>Page Title</h2><br />") 
-
-	# stuff goes here
-
-	ret.append("</div>")
-
-	ret.append(html_footer())
-	return "".join(ret)
-
-
-def html_htable(itmlist,cols,proto):
-	"""Produce a table of values in 'cols' columns"""
-	ret=['\n\n<table>']
-	
-	for i,j in enumerate(itmlist):
-		if (i%cols==0): ret.append("\t<tr>")
-		ret.append("\t\t<td><a href=\"%s%s\">%s</a></td>"%(proto,j,j))
-		if (i%cols==cols-1) : ret.append("</tr>\n")
-	
-	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
-	else : ret.append("</table>")
-
-	return "".join(ret)
-
-def html_htable2(itmlist,cols,proto):
-	"""Produce a table of values and counts in 'cols' columns"""
-	ret=['\n\n<table>']
-	
-	for i,j in enumerate(itmlist):
-		if (i%cols==0): ret.append("\t<tr>")
-		ret.append("\t\t<td><a href=\"%s%s\">%s (%d)</a></td>"%(proto,j[0],j[0],j[1]))
-		if (i%cols==cols-1) : ret.append("\t</tr>\n")
-	
-	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
-	else : ret.append("</table><br>")
-
-	return "".join(ret)
-
-def html_dicttable(dict,proto):
+	perpage = 100
+	direct = 0
+	recordids = []
 	ret = []
-	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
-	skipped = 0
-	for k,v in dict.items():
-		item=db.getparamdef(str(k))
-		ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
-	ret.append("</table>")
-	
+
+	groupname = str(args["groupname"][0])
+
+	if args.has_key("pos"):
+		pos = int(args["pos"][0])
+		perpage = int(args["perpage"][0])
+	elif args.has_key("pos_%s"%groupname):
+		pos = int(args["pos_%s"%groupname][0])
+	else:
+		pos = 0
+
+
+	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
+	recordids = wf["appdata"][groupname]
+
+	if args.has_key("sort_%s"%groupname):
+		sortby = args["sort_%s"%groupname][0]
+		reverse = int(args["reverse_%s"%groupname][0])
+		recordids = sortlistbyparamname(sortby,recordids,reverse,ctxid)
+		reverse = int(not reverse)
+	else:
+		reverse = "0"
+
+	ret.append("<div id=\"zone_%s\">"%groupname)
+
+
+	# Navigation arrows
+	if perpage:
+
+		nav = []
+		key = "pos_%s"%groupname
+
+		baseurl=["/db/render_grouptable","?"]
+		if args.has_key(key):
+			ipos = int(args[key][0])
+		else:
+			ipos = 0
+
+		pos = ipos
+
+		for j in args.keys():
+			if j != key and j != "viewinit":
+				baseurl.append("&%s=%s"%(j,args[j][0]))
+		baseurlstr = "".join(baseurl)
+
+		nav.append("<div class=\"table_arrows\">")
+		if (ipos - perpage) >= 0:
+			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&laquo;</span>"""%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
+
+		end = pos+perpage
+		count = len(recordids)
+		if end > count:
+			end = count
+		nav.append("""<span class="table_span"> (%s-%s of %s) </span>"""%(pos,end,count))
+
+		if (ipos + perpage) <= len(recordids):
+			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&raquo;</span>"""%(baseurlstr,key,ipos + perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
+
+		nav.append("</div>")
+
+	ret.append(" ".join(nav))
+
+	# end nav arrows
+
+	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
+
+	# fixme: this needs to be replaced
+	out,vartypes,vardescs = parse_view_group(groupname,ctxid=ctxid)
+
+
+	ret.append("\t<tr>\n")
+	for i in range(0,len(out)):
+		if vartypes[i] != "text":
+
+			baseurl=["/db/render_grouptable","?"]							
+			baseurl.append("&groupname=%s"%groupname)
+			baseurl.append("&pos_%s=0"%groupname)
+			baseurl.append("&wfid=%s"%args["wfid"][0])
+			baseurl.append("&%s=%s"%("sort_%s"%groupname,out[i]))
+			baseurl.append("&%s=%s"%("reverse_%s"%groupname,reverse))
+			baseurlstr = "".join(baseurl)
+
+			r = "javascript:makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')"%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname)
+
+			if vartypes[i] != "":				
+				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vardescs[i]))
+			else:
+				ret.append("\t\t<th><a href=\"%s\">(%s)</a></th>\n"%(r,out[i]))
+
+	ret.append("\t</tr>\n")
+
+	modulo=0
+
+	if not perpage:
+		perpage = len(recordids)
+
+	for id in recordids[pos:pos+perpage]:
+		tabularview = render_tabularview(id,out,vartypes,vardescs,modulo=modulo,ctxid=ctxid)
+		ret.append(" ".join(tabularview))
+		modulo=modulo+1
+
+	ret.append("</table>\n")
+	ret.append("</div>\n\n")
+	ret.append("</div>")
+
 	return " ".join(ret)
-	
-def html_record_dicttable(dict,proto,viewdef,missing=0):
-	"""Produce a table of values in 'cols' columns"""
 
-#	print "dict: %s \n %s"%(dict.recid,dict)
+	
+
+# ok	
+def html_record_dicttable(dict,proto,viewdef,missing=0):
+	"""Main record function: sidebar, views, etc"""
 
 	ret = []
-	# fixme: removed comments_text
+	
+	# special fields to remove from record: held in sidebar
 	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","comments","file_image_binary"]
 	
+	# start SIDEBAR
 	# Standard fields for all records
 	ret.append("\n\n<div class=\"standardfields\">\n")
 	ret.append("<a href=\"javascript:toggle('standardtable')\">&raquo;</a><br />")
 
 	ret.append("<table class=\"standardtable\" id=\"standardtable\" cellspacing=\"0\" cellpadding=\"5\">")
 
+	# Creation time
 	ret.append("<tr><td class=\"standardtable_shaded\" id=\"standardtable_rightborder\">Created: %s (%s)</td></tr>"%(dict["creationtime"],dict["creator"]))
 
+	# Modified time
 	ret.append("<tr><td class=\"standardtable_shaded\">Modified: %s (%s)</td></tr>"%(dict["modifytime"],dict["modifyuser"]))
 
+	# Any comments attached to file
 	if dict["comments_text"]: ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments: %s</span></td></tr>"%dict["comments_text"])
 
+	# Comment history
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
 	comments = dict["comments"]
 	for i in comments: 
 		ret.append("%s<br />"%str(i))
 	ret.append("</span></td></tr>")
 
+	# Permissions
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_permissions')\">+ Permissions:</a><br /><span id=\"comments_permissions\">")
 	perm_labels = ["read","write","full","admin"]
 	count = 0
@@ -885,8 +940,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		pass
 	ret.append("</span></td></tr>")
 
-#	ret.append("<tr><td colspan=\"2\"></td></tr>")
-
+	# Views
 	ret.append("<tr><td colspan=\"2\">+ Views: ")
 	ret.append("<a href=\"javascript:hideclass('recordview');qshow('dicttable');\">params</a> ")
 
@@ -897,9 +951,11 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		ret.append("<a href=\"javascript:qhide('dicttable');hideclass('recordview');qshow('recordview_%s');\">%s</a> "%(i,j))
 	ret.append("</td></tr>")
 
-
+	# Attach comment
 	ret.append("<tr><td colspan=\"2\"><a href=\"\">+ Append comment</a></td></tr>")
 	
+	
+	# Add child record
 	ret.append("<tr><td colspan=\"2\"><a href=\"\"><a href=\"javascript:toggle('addchild')\">+ Add child</a>")
 	ret.append("<span style=\"display:none\" id=\"addchild\"><ul>")
 	ftn=db.getrecorddefnames()
@@ -907,16 +963,18 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		ret.append("<li><a href=\"/db/newrecord?rdef=%s&parent=%s\">%s</a></li>"%(i,dict.recid,i))
 		
 	ret.append("</span></td></tr>")
-
 	ret.append("</table>")
 
+	# If there is a data file, show it
 	bdo = dict["file_image_binary"]
 	if bdo:
+		# If it's a tile, link to viewer, else just download it
 		if bdo[0:3] == "bdo":
 			ret.append("<div class=\"viewbinary\"><a href=\"/db/tileimage/%s\">View Binary Data</a></div>"%bdo[4:])
 		else:
 			ret.append("<div class=\"viewbinary\"><a href=\"%s\">Download Binary Data</a></div>"%bdo)
 
+	# Draw tooltips (inside sidebar area: hidden)
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
 		except: continue
@@ -926,25 +984,29 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		</div>\n\n"""%(item.name,item.name,item.vartype,item.desc_short,item.property))
 
 	ret.append("</div>")
+	# End sidebar	
+	
 
-# VIEWS 
+	# VIEWS: new parser
+	# re1 grabs all vars and their default values
+	# re2 grabs placeholders for data type names
+	# re3 grabs macros
 	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
 	re2 = "(\$\#(\w*))\s"
+	re3 = "(\$\#(\w*)(?:\((.*)\))?)[\s<]?"
 	p = re.compile(re1)
 	p2 = re.compile(re2)
+	p3 = re.compile(re3)
 
-#	print re2
-
-#	viewdef["mainview"]
 
 	for viewtype in viewdef.keys():
+		# run view parser
 		q = viewdef[viewtype]
 		regexresultvalues = p.findall(q)
 		regexresultnames = p2.findall(q)
+		regexresultmacros = p3.findall(q)
 
-		#print "rrn: %s"%regexresultnames
-		#print "rrv: %s"%regexresultvalues
-
+		# put in data type names
 		for i in regexresultnames:
 			try: item=db.getparamdef(str(i[1]))
 			except: continue
@@ -953,50 +1015,76 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 			q = re.sub(re.sub("\$","\$",i[0]),item.desc_short,q)
 				
 				
+		# MACROS
+		for i in regexresultmacros:
+			value = ""			
+			# MACRO DEFINITIONS
+			if i[1] == "childcount":
+				queryresult = db.getchildren(dict.recid,ctxid=ctxid)
+				groups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+				value = len(groups[str(i[2])])
+
+			elif i[1] == "parentrecname":
+				queryresult = db.getparents(dict.recid,ctxid=ctxid)
+				groups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+				for j in groups[str(i[2])]:
+					recorddef = db.getrecord(j,ctxid=ctxid)
+					value = recorddef.items_dict()["recname"]
+				
+			repl = re.sub("\$","\$",i[0])
+			repl2 = re.sub("\@","\@",repl)
+			repl3 = re.sub("\(","\(",repl2)
+			repl4 = re.sub("\)","\)",repl3)
+			print repl4
+			q = re.sub(repl4,value,q)
+		
+		
+		# now put in all variables and their values, or default value		
 		for i in regexresultvalues:
-#			print "v: %s"%i[0]
-			
 			try:
 				value = dict[i[1]]
 			except:
-				value = i[2]
+				# let's give default values a grey color
+				value = "<span style=\"color:grey\">%s</span>"%i[2]
 			if not value:
+				# if no default value or specified value, give up
 				value = ""
 
 			popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(i[1],i[1])
 
+			# include popup
 			repl = re.sub("\$","\$",i[0])
 			q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
 
+		# now put the rendered view into the document
+		ret.append("\n\n<div class=\"recordview\" style=\"display:none\" id=\"recordview_%s\">%s</div>"%(viewtype,q))
 
-#		if viewtype != "defaultview":
-		hidden = "style=\"display:none\""
-#		else:
-#			hidden = ""
-			
-		ret.append("\n\n<div class=\"recordview\" %s id=\"recordview_%s\">%s</div>"%(hidden,viewtype,q))
-
-
-
-
-
-	# Fields for a particular record type
+	
+	# End of defined views.
+	
+	
+	# Automatically generated parameter view is called "dicttable"
 	ret.append("\n<div class=\"dicttable\" id=\"dicttable\">")
 
 	ret.append("\n\n<table cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
+	
+	# for each key value pair in the record dict
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
 		except: continue
 
 		js = """onmouseover="tooltip_show('tooltip_%s');" onmouseout="tooltip_hide('tooltip_%s');" """%(item.name,item.name)
 
+		# missing is a passed variable: if field is empty, move it to the bottom box with other emtpy vars
 		if missing and v == "":
 			skipped = 1
+		# if it's not empty and not held in the sidebar, make a table entry
 		elif not special.count(k):
 			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(item.name,js,proto,k,item.desc_short,v))
 		
 	ret.append("</table>")
+	# end of the dict table
 
 	# Unused record type fields
 	if skipped:
@@ -1011,45 +1099,12 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 		ret.append("\n</div>")
 
 	ret.append("\n</div>\n")
+	# end of the parameter view
 
 	return "".join(ret)
-	
 
-	
 
-		
-def html_home():
-	ret=[html_header("EMEN2 Home Page")]
-	
-	ret.append(singleheader("Home"))
-	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
-	
-	ret.append("""<h2>EMEN2 Demo Page!!!</h2>
-	Available tasks:<br />
-	<ul>
-		<li><a href="/db/record?name=0">Browse Records</a></li>
-		<li><a href="/db/queryform">Query Database</a></li>
-		<li><a href="/db/records">List of all Records</a></li>
-		<li><a href="/db/paramdefs">List of Defined Experimental Parameters (ParamDef)</a></li>
-		<li><a href="/db/recorddefs">List of Defined Experimental Protocols (RecordDef)</a></li>
-		<li><a href="/db/users">List of Users</a></li>
-	</ul>
-	
-	<br /><br />
-	
-	<ul>
-		<li><a href="/db/newuser">Add New User</a></li>
-		<li><a href="/db/newuserqueue">Approve New Users</a></li>
-		<li><a href="/db/newparamdef">Define New Experimental Parameter</a></li>
-		<li><a href="/db/newrecorddef">Describe new Experimental Protocol</a></li>
-	</ul>""")
-	
-	
-	ret.append("</div>")
-	
-	ret.append(html_footer())
-	
-	return "".join(ret)
+
 
 def html_tileimage(path,args,ctxid,host):
 	global db
@@ -1234,6 +1289,10 @@ def html_tileimage(path,args,ctxid,host):
 	except: return "Invalid tile"
 	return ret
 
+
+
+
+# a debugging fxn
 def html_getbinarynames(path,args,ctxid,host):
 	global gb
 	
@@ -1257,6 +1316,9 @@ def html_getbinarynames(path,args,ctxid,host):
 	ret.append(html_footer())
 	return " ".join(ret)
 
+
+
+
 def html_paramdefs(path,args,ctxid,host):
 	global db
 	
@@ -1275,6 +1337,10 @@ def html_paramdefs(path,args,ctxid,host):
 
 	ret.append(html_footer())
 	return "".join(ret) 
+
+
+
+
 
 def html_paramdef(path,args,ctxid,host):
 	global db
@@ -1314,6 +1380,10 @@ def html_paramdef(path,args,ctxid,host):
 	ret.append(html_footer())
 	
 	return "".join(ret)
+
+
+
+
 
 def html_newparamdef(path,args,ctxid,host):
 	"""Add new ParamDef form. Also does the actual ParamDef insertion"""	
@@ -1357,6 +1427,10 @@ def html_newparamdef(path,args,ctxid,host):
 
 		return "".join(ret)
 
+
+
+
+
 def html_recorddefs(path,args,ctxid,host):
 	global db
 	
@@ -1376,6 +1450,10 @@ def html_recorddefs(path,args,ctxid,host):
 
 	ret.append(html_footer())
 	return "".join(ret)
+
+
+
+
 
 def html_recorddef(path,args,ctxid,host):
 	global db
@@ -1405,6 +1483,7 @@ def html_recorddef(path,args,ctxid,host):
 	ret.append(html_dicttable(item.params,"/db/paramdef?name="))
 #	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 	
+
 	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
 	rp1=r'<i>\3=None</i>'
 	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
@@ -1426,6 +1505,10 @@ def html_recorddef(path,args,ctxid,host):
 	ret.append(html_footer())
 	
 	return "".join(ret)
+
+
+
+
 
 def html_newrecorddef(path,args,ctxid,host):
 	global db
@@ -1471,9 +1554,10 @@ def html_newrecorddef(path,args,ctxid,host):
 	
 		return "".join(ret)
 	
-	
+
+
+
 def html_records(path,args,ctxid,host):
-	
 	ftn=db.getrecordnames(ctxid,host=host)
 	ret=[html_header("EMEN2 Records")]
 	
@@ -1488,12 +1572,14 @@ def html_records(path,args,ctxid,host):
 	return "".join(ret)
 
 
+
+
+
 def html_queryform(path,args,ctxid,host):
 	ret=[html_header("EMEN2 DB Query")]
-	
 	ret.append(singleheader("Database Query"))
-
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+
 	
 	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","",(80,8))))	)
 
@@ -1581,55 +1667,15 @@ def html_debug(path,args,ctxid,host):
 #	</div>
 #	"""%html_rendergrouptable(path,ajaxargs,ctxid,host))
 
+>>>>>>> 1.87
 	ret.append("</div>")
-
 	ret.append(html_footer())
 
 	return "".join(ret)
 
-def clearworkflowcache(ctxid):
-	global db 
-	
-	wflist = db.getworkflow(ctxid)
-	for wf in wflist:
-		wfdict = wf.items_dict()
-		if wfdict["wftype"] == "recordcache" or wfdict["wftype"] == "querycache":
-			db.delworkflowitem(wf.wfid,ctxid)
-
-def encapsulate_render_grouptable(path,args,ctxid,host):
-	ret = []
-	
-	if args.has_key("groupname"):
-		groupname = args["groupname"][0]
-	
-	
-	ret.append("\n\n<div class=\"switchpage\" id=\"page_%s\">"%groupname)
-	ret.append("\t<h1 class=\"switchheader\" id=\"header_%s\">%s</h1>\n"%(groupname,groupname))
-	
-	
-	
-	r = html_render_grouptable(path,args,ctxid,host)
-	ret.append("".join(r))
-	
-	ret.append("</div>")
-	return " ".join(ret)
 
 
-def html_ajaxdebug(path,args,ctxid,host):
-	ret = []
-	
-	prev = str(int(args["true"][0]) - 1)	
-	next = str(int(args["true"][0]) + 1)
-	
-	zone = str(args["zone"][0])
-	
-	ret.append("""<span style="cursor: pointer; text-decoration: underline" onclick="makeRequest('/db/ajaxdebug?true=%s&false=0&zone=%s','%s')">Prev is %s</span> --- """%(prev,zone,zone,prev))
-	
-	ret.append("""<span style="cursor: pointer; text-decoration: underline" onclick="makeRequest('/db/ajaxdebug?true=%s&false=0&zone=%s','%s')">Next is %s</span>"""%(next,zone,zone,next))
-	
-	ret.append(str(args))
-	
-	return " ".join(ret)
+
 	
 
 def html_query(path,args,ctxid,host):
@@ -1694,17 +1740,14 @@ def html_query(path,args,ctxid,host):
 
 
 	if isplot:
-		
 		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:switchid('allview')\">Graph</a></div>\n")
 		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 		ret.append("\t<div class=\"switchbutton\" id=\"button_rawresult\"><a href=\"javascript:switchid('rawresult');\">Raw Result</a></div>\n")
-
 	else:
-		
 		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
 		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
-		
 		ret.append(render_groupedhead(groupl,ctxid=ctxid))
+
 
 	ret.append("\n</div>")
 	
@@ -1731,14 +1774,13 @@ def html_query(path,args,ctxid,host):
 			args["wfid"] = [str(wfid)]
 			ret.append(encapsulate_render_grouptable(path,args,ctxid,host))
 
-#	ret.append(render_groupedlist(path,args,ctxid,host,groupl=groupl))
-
-#	ret.append("<script type=\"text/javascript\">showallids();</script>")
-
-
 	ret.append(html_footer())
 
 	return " ".join(ret)
+
+
+
+
 
 def html_record(path,args,ctxid,host):
 	global db
@@ -1746,15 +1788,7 @@ def html_record(path,args,ctxid,host):
 	name = int(args["name"][0])
 		
 	item=db.getrecord(name,ctxid)
-	queryresult = db.getchildren(name,ctxid=ctxid)
 
-	
-#	if args.has_key("viewtype"):
-#		viewtype = args["viewtype"]
-#	else:
-#		viewtype = "defaultview"
-	
-#	try:	
 	view=db.getrecorddef(item["rectype"],ctxid)
 	viewdef = view.views
 	
@@ -1772,58 +1806,61 @@ def html_record(path,args,ctxid,host):
 		del viewdef["onelineview"]
 	except:
 		pass
-#	except:
-#		viewdef=db.getrecorddef(item["rectype"],ctxid).views["onelineview"]
 
-	
-#	result = db.query(str(args["query"][0]),ctxid)['data']
+	# get the kids, and group them
+	queryresult = db.getchildren(name,ctxid=ctxid)
 	resultcount = len(queryresult)
 	groups = db.groupbyrecorddef(queryresult,ctxid)
 	groupl = groupsettolist(groups)
 
+	# fix this with a better mechanism. clear the workflow to keep things moving fast.
 	clearworkflowcache(ctxid)
 
+	# store the result count and grouped list in a workflow item
 	with = {'wftype':'recordcache','desc':"record cache",'longdesc':"record cache",'resultcount':resultcount,'appdata':groupl}
 	newwf = db.newworkflow(with)
 	wfid = db.addworkflowitem(newwf,ctxid)
 	
 	args["wfid"] = [str(wfid)]
 	
-		
-#	groups = db.groupbyrecorddef(queryresult,ctxid)
-#	groupl = groupsettolist(groups)
 
+	# is there a view type in the args?
 	if args.has_key("viewinit"):
 		init="switchid('%s')"%str(args["viewinit"][0])
 		ret=[html_header("EMEN2 Record",init=init)]
 	else:
 		ret=[html_header("EMEN2 Record")]
 	
+	# parents tree
 	ret.append(parent_tree(name,ctxid=ctxid))
 	
+	# switching buttons
 	ret.append("\n\n<div class=\"switchcontainer\">\n")
 	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">%s (%s)</a></div>\n"%(item["recname"],item["rectype"]))
-	
 	if queryresult:
 		ret.append("\t<div class=\"switchshort\">&raquo;</div>")
 		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Children</a></div>\n")
 		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
-
-#		print "\ngroups:%s\ngroupl:%s\n\n"%(groups,groupl)
-
+		# one for each group of children...
 		ret.append(render_groupedhead(groups,ctxid=ctxid))
-
 	ret.append("\n\n</div>")
 
+	# render the 'record page': sidebar, views
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
 	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1))
 	ret.append("\n</div>\n\n")
 
+	# render all the children grouped together
 	ret.append(render_groupedlist(path,args,ctxid,host))
+
 
 	ret.append(html_footer())
 	
 	return " ".join(ret)
+
+
+
+
 
 def html_newrecord(path,args,ctxid,host):
 	global db
@@ -1894,6 +1931,10 @@ def html_newrecord(path,args,ctxid,host):
 		
 	return ''.join(ret)
 	
+	
+	
+	
+	
 def html_users(path,args,ctxid,host):
 	global db
 	
@@ -1909,6 +1950,10 @@ def html_users(path,args,ctxid,host):
 	ret.append("</div>")
 	ret.append(html_footer())
 	return "".join(ret)
+
+
+
+
 
 def html_newuserqueue(path,args,ctxid,host):
 	global db
@@ -1926,6 +1971,10 @@ def html_newuserqueue(path,args,ctxid,host):
 
 	ret.append(html_footer())
 	return "".join(ret)
+
+
+
+
 
 def html_user(path,args,ctxid,host):
 	global db
@@ -1963,6 +2012,10 @@ def html_user(path,args,ctxid,host):
 		("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16),
 		("Groups","groups","text",40)),args=item.__dict__)+pwc
 
+
+
+
+
 def html_chpasswd(path,args,ctxid,host):
 	argmap(args)
 	ret=[html_header("EMEN2 Change Password")]
@@ -1993,10 +2046,17 @@ def html_chpasswd(path,args,ctxid,host):
 		("Confirm Password","password2","password",16))
 	
 	return "".join(ret)+html_form(action="/db/chpasswd",items=itm,args=args)+"</div>"+html_footer()
+
+
+
+
 	
 def html_approveuser(path,args,ctxid,host):
 	db.approveuser(args["username"][0],ctxid,host)
 	return html_newuserqueue(path,args,ctxid,host)
+
+
+
 	
 def html_newuser(path,args,ctxid,host):
 	global db
@@ -2029,6 +2089,10 @@ def html_newuser(path,args,ctxid,host):
 			("Institution","institution","text",30),("Department","department","text",30),("Address","address","textarea","",(40,3)),
 			("City","city","text",30),("State","state","text",3),("Zip Code","zipcode","text",10),("Country","country","text",30),
 			("Home Page","webpage","text",40),("email","email","text",40),("Phone #","phone","text",16),("Fax #","fax","text",16)),args=args)+html_footer()
+
+
+
+
 
 def html_form(action="",items=(),args={},method="POST"):
 	ret=['\n\n<table><form action="%s" method=%s>'%(action,method)]
@@ -2106,7 +2170,9 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 				N = len(allx)
 				ind = range(N)
 				width = 1
+
 				sc = pylab.bar(ind, ally, width,yerr=None,xerr=None)
+
 				thefigure = sc[0].get_figure()
 #				thefigure.set_figsize_inches((6,4))
 #				fig = sc.get_figure()
@@ -2154,12 +2220,12 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 				   allsc = []
 				   ykeys = []
 				   for thekey in data.keys():
-					   if type(thekey) == type(1):
+					   if type(thekey) == int:
 						   ykeys.append(thekey)
 				   ykeys.sort()
 				   pylab.hold(False) 
 				   for thekey in ykeys: 
-					  if type(thekey) == type(1):
+					  if type(thekey) == int:
 						   myY = data[thekey]
 						   sc = pylab.bar(ind, myY, width, bottom=yoff, color=allcolor[k%len(allcolor)],yerr=None,xerr=None)
 						   thefigure = sc[0].get_figure()
