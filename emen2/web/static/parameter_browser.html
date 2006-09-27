@@ -1,0 +1,542 @@
+<html>
+<head>
+
+<style type="text/css">
+<!--
+A { text-decoration:none; color:blue; }
+.focus_element {font-size:130%;}
+
+-->
+</style>
+
+<script language="JavaScript" type="text/javascript">
+
+var first = 'root';
+var url = "http://localhost:8080/RPC2"; 
+var ctxid = 0;
+var xmlhttp1 = false;
+var xmlhttp2 = false;
+var xmlhttp3 = false;
+var xmlhttp4 = false;
+var xmlhttp5 = false;
+var xmlhttp6 = false;
+var xmlhttp7 = false;
+
+if(window.XMLHttpRequest) {         // (Netscape, Mozilla, Safari)... opera?
+try {
+		xmlhttp1 = new XMLHttpRequest();
+		xmlhttp2 = new XMLHttpRequest();
+		xmlhttp3 = new XMLHttpRequest();
+		xmlhttp4 = new XMLHttpRequest();
+		xmlhttp5 = new XMLHttpRequest();
+		xmlhttp6 = new XMLHttpRequest();
+		xmlhttp7 = new XMLHttpRequest();
+
+} catch(e) {
+		xmlhttp1 = false;
+		xmlhttp2 = false;
+		xmlhttp3 = false;
+		xmlhttp4 = false;
+		xmlhttp5 = false;
+		xmlhttp6 = false;
+		xmlhttp7 = false;
+}
+
+} else if(window.ActiveXObject) {   // (Microsoft)
+try {
+	xmlhttp1 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp2 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp3 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp4 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp5 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp6 = new ActiveXObject("Msxml2.XMLHTTP");
+	xmlhttp7 = new ActiveXObject("Msxml2.XMLHTTP");
+	
+} catch(e) {
+	try {
+		xmlhttp1 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp2 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp3 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp4 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp5 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp6 = new ActiveXObject("Microsoft.XMLHTTP");
+		xmlhttp7 = new ActiveXObject("Microsoft.XMLHTTP");
+
+	} catch(e) {
+		xmlhttp1 = false;
+		xmlhttp2 = false;
+		xmlhttp3 = false;
+		xmlhttp4 = false;
+		xmlhttp5 = false;
+		xmlhttp6 = false;
+		xmlhttp7 = false;
+	}
+	}
+}
+
+
+function login() //no need for this
+{	
+	xmlhttp6.onreadystatechange = function() 
+	{ 
+		if (xmlhttp6.readyState==4) {
+			if (xmlhttp6.status==200) {
+				var x = xmlhttp6.responseXML;
+				//alert (xmlhttp6.responseText);
+				var x1 = x.getElementsByTagName('string');
+				//alert (xmlhttp6.responseText);
+				ctxid = x1[0].firstChild.nodeValue;
+				//alert ('ctxid is ' + ctxid);
+				//return ctxid;
+			}
+		
+		else
+			{
+				alert("Problem retrieving data:" + xmlhttp6.statusText);
+				alert("xmlhttp6.status is  " + xmlhttp6.status);
+			}
+	}
+	}
+	xmlhttp6.open("POST",url,true);
+	// need to hide this or do something...
+	var request = "<methodCall> <methodName>login</methodName> <params> <param><value><string>username</string></value></param> <param><value><string>password</string></value></param> </params></methodCall>";
+	xmlhttp6.send(request);
+}
+
+function get_ctxid_from_cookie(cookieName) //
+{
+	//alert('document.cookie' + document.cookie);
+	var labelLen = cookieName.length;
+	var cookieData = document.cookie;
+	var cLen = cookieData.length;
+	alert ('cLen = length of document.cookie = ' + cLen);
+	var i = 0;
+	var cEnd;
+	while (i < cLen) {
+		var j = i + labelLen;
+		if (cookieData.substring(i,j) == cookieName) {
+			cEnd = cookieData.indexOf (";" , j);
+			if (cEnd == -1) {
+				cEnd = cookieData.length;
+			}
+			
+			return unescape(cookieData.substring(j+1,cEnd));
+			}
+		i++;
+	}
+	return "";
+}
+ 
+function display(param)
+{
+	var aa = document.getElementById("focus");
+	aa.innerHTML = "<br> <br>" + param;
+	display_parents(param);
+	display_children(param);
+	display_siblings(param);
+	display_cousins(param);
+	display_definition(param);
+}
+
+
+function makelinks(params)
+//takes an array of parameter names and makes a list of links out of it
+{       
+	var newstring = '<br>';
+	for(var i = 0; i < params.length; i++) 
+	{
+	 newstring = newstring + '<a onClick="display('  + "'" + params[i]+ "'" + ')">'  + params[i] + "</a>" + "<br>";
+	}
+	return newstring;
+}
+
+
+function state_change_parents()
+{	
+b = document.getElementById("parents");
+b.innerHTML = "<br><br>" + "Loading...";
+c = document.getElementById("siblings");
+c.innerHTML = "<br><br>" + "Loading...";
+
+	if (xmlhttp1.readyState==4)
+  		{
+  		if (xmlhttp1.status==200)
+  			{	
+				var array1 = new Array();
+				var x1 = xmlhttp1.responseXML;
+				var x = x1.getElementsByTagName('string');
+				if (x.length ==0) {b.innerHTML = '<br><br> -'; return} 
+				
+				// this and other for loops gets every other element because xmlrpc is returning pairs like (value, '') with the second element of the pair being an empty string 
+				for(var i = 0; i < x.length; i= i + 2) {
+        				var e = x[i];
+					var param = e.firstChild.nodeValue;
+					array1.push(param);
+				}  
+				b.innerHTML = makelinks(array1);
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp1.statusText);
+				alert("xmlhttp1.status is  " + xmlhttp1.status);
+  			}
+					
+  		}
+}
+
+
+function state_change_children()
+{	
+b = document.getElementById("children");
+b.innerHTML = "<br><br>Loading...";
+	
+	if (xmlhttp2.readyState==4)
+  		{
+  		if (xmlhttp2.status==200)
+  			{	
+				var array2 = new Array();
+				var x1 = xmlhttp2.responseXML;
+				//alert ('children : ' + xmlhttp2.responseText);
+				var x = x1.getElementsByTagName('string');
+				if (x.length ==0) {b.innerHTML = '<br><br> -'; return;}
+				for(var ii = 0; ii < x.length; ii= ii + 2) {
+        				var e = x[ii];
+					var param = e.firstChild.nodeValue;
+					array2.push(param);
+					//alert(param);
+					//alert(e);
+					b.innerHTML = makelinks(array2);
+				}				
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp2.statusText);
+				alert("xmlhttp2.status is  " + xmlhttp2.status)
+  			}
+					
+  		}
+}
+
+function state_change_definition()
+{	
+b = document.getElementById("definition");
+b.innerHTML = "<br><br> Loading...";	
+
+	if (xmlhttp3.readyState==4)
+  		{
+  		if (xmlhttp3.status==200)
+  			{	
+				x = xmlhttp3.responseXML;
+				//alert(xmlhttp3.responseText);
+				//var def = x.getElementsByTagName('string')
+				//var def2 = def.firstChild.nextSibling.nodeValue; 				
+				b.innerHTML = "<br><br>" + xmlhttp3.responseText;
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp3.statusText);
+				alert("xmlhttp3.status is  " + xmlhttp3.status)
+  			}
+					
+  		}
+}
+
+function state_change_siblings()
+{	
+b = document.getElementById("siblings");
+b.innerHTML = "<br> <br>" + "Loading...";
+
+	if (xmlhttp4.readyState==4)
+  		{
+  		if (xmlhttp4.status==200)
+  			{	
+				var array2 = new Array();
+				var x1 = xmlhttp4.responseXML;
+				var x = x1.getElementsByTagName('string');
+				if (x.length ==0) {b.innerHTML = '<br><br> -'; return;}
+				for(var i = 0; i < x.length; i= i + 2) {
+        				var e = x[i];
+					var param = e.firstChild.nodeValue;
+					array2.push(param);
+					b.innerHTML = makelinks(array2);
+				}
+				
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp4.statusText);
+				alert("xmlhttp4.status is  " + xmlhttp4.status)
+  			}
+					
+  		}
+}
+
+function state_change_cousins()
+{	
+b = document.getElementById("cousins");
+b.innerHTML = "Loading...";
+
+	if (xmlhttp5.readyState==4)
+  		{
+  		if (xmlhttp5.status==200)
+  			{	
+				var array1 = new Array();
+				var x1 = xmlhttp5.responseXML;
+				//alert (xmlhttp5.responseText);
+				var x = x1.getElementsByTagName('string');
+				if (x.length == 0) {b.innerHTML = '<br><br> -';}
+				for(var i = 0; i < x.length; i= i + 2) {
+        				var e = x[i];
+					var param = e.firstChild.nodeValue;
+					array1.push(param);
+				}  
+				b.innerHTML = makelinks(array1);
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp5.statusText);
+				alert("xmlhttp5.status is  " + xmlhttp5.status)
+  			}
+					
+  		}
+}
+
+function display_parents(param)
+{
+	//var url = "http://localhost:8080/RPC2"; 
+	xmlhttp1.onreadystatechange=state_change_parents;
+	xmlhttp1.open("POST",url,true);
+	var request = '<methodCall><methodName>getparents</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>paramdef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';
+	//var request = '<methodCall><methodName>getparents</methodName><params><param><value>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param></params></methodCall>';
+	xmlhttp1.send(request);
+}
+
+function display_children(param)
+{
+	//var url = "http://localhost:8080/RPC2"; 
+	xmlhttp2.onreadystatechange=state_change_children;
+	xmlhttp2.open("POST",url,true);
+	//var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
+	var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';
+	xmlhttp2.send(request);
+}
+
+function display_definition(param)
+{
+	//var url = "http://localhost:8080/RPC2"; 
+	
+	xmlhttp3.onreadystatechange=function()
+	{
+		b = document.getElementById("definition");
+		b.innerHTML = "<br><br> Loading...";	
+		if (xmlhttp3.readyState==4)
+  		{
+  			if (xmlhttp3.status==200)
+  			{	
+				x = xmlhttp3.responseXML;
+				//alert(xmlhttp3.responseText);
+				//var def = x.getElementsByTagName('string')
+				//var def2 = def.firstChild.nextSibling.nodeValue; 				
+				b.innerHTML = "<br><br>" + xmlhttp3.responseText;
+			}
+  		else
+  			{
+				alert("Problem retrieving data:" + xmlhttp3.statusText);
+				alert("xmlhttp3.status is  " + xmlhttp3.status)
+  			}
+					
+  		}
+	}
+	
+	xmlhttp3.open("POST",url,true);
+	xmlhttp3.setRequestHeader("Content-Type", "text/html");
+	var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
+	xmlhttp3.send(request);
+}
+
+function display_siblings(param)
+{	
+	//var url = "http://localhost:8080/RPC2"; 
+	xmlhttp4.onreadystatechange=state_change_siblings;
+	xmlhttp4.open("POST",url,true);
+	//var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
+	var request = '<methodCall><methodName>getchildrenofparents</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
+	xmlhttp4.send(request);
+}
+
+function display_cousins(param)
+{
+	//var url = "http://localhost:8080/RPC2"; 
+	xmlhttp5.open("POST",url,true);
+	//xmlhttp5.setRequestHeader("Content-Type", "text/xml");
+	xmlhttp5.onreadystatechange=state_change_cousins;
+	var request = '<methodCall><methodName>getcousins</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
+	//xmlhttp5.setRequestHeader("Content-Length", request.length);
+	xmlhttp5.send(request);
+}
+
+
+
+
+</script>
+</head>
+
+<body>
+<noscript><h1>This page requires JavaScript. Please enable JavaScript in your browser and reload this page.</h1></noscript>
+
+<table border="1"; overflow:auto;>
+<h4 align="left";>   </h4> <br>
+<tr>
+	<th height="5" colspan="80"> Parents </th>
+	<th height="5" colspan="80"; class = "focus_element"> Parameter </th>
+	<th height="5" colspan="80"> Children </th>
+</tr>
+<tr>
+	<td id="col1" height="5" colspan="80" > <div style="height: 300px; overflow: auto"; align="center"; id="parents"> </div></td>
+	<td id="col2" height="5" colspan="80" > <div style="height: 300px; overflow: auto"; align="center"; id="focus"; class="focus_element";>   root </div> </td>
+	<td id="col3" height="5" colspan="80" > <div style="height: 300px; overflow: auto"; align="center"; id="children"> </div></td>
+	
+	
+</tr>
+</table>
+
+<br>
+
+<table border="1"; overflow:auto;>
+
+<tr>
+	<th height="5" colspan="80"> Cousins </th>
+	<th height="5" colspan="80"> Siblings </th>
+	<th height="5" colspan="80"> Definition </th> 
+<tr>
+	<td id="col4" height="5" colspan="80" > <div style="height: 300px; overflow: auto"; align="center"; id="cousins"> </div></td>
+	<td id="col5" height="5" colspan="80"  > <div style="height: 300px;  overflow: auto"; align="center"; id="siblings"> 
+		</div> </td>
+	<td id="col6" height="5" colspan="80" > <div style="height: 300px; overflow:auto"; align="center"; id="definition"> </div></td>
+	
+	
+</tr>
+</table>
+<br>
+<div id="add_parameter" style="position:relative;visibility:hidden; width: 400px; border-width:thick thick thick thick; border-color:blue; border-style:solid;">
+<form name="full_form" method="POST" 
+  action="javascript:make_param()">
+<table>
+<tr><td>Name:</td><td><input type="text"; id = "name_of_new_parameter"></td><tr>
+<tr><td>Parent:</td><td><input type="text"; id="parent_of_new_parameter"></td></tr>
+<tr><td>Choices:</td><td><input type="text"; id = "choices_of_new_parameter"></td></tr>
+<tr><td>Default units:</td><td><input type="text"; id = "default_units_of_new_parameter"></td></tr>
+<tr><td>Vartype:</td><td><input type="text"; id = "vartype_of_new_parameter"></td></tr>
+<tr><td>Property:</td><td><input type="text"; id = "property_of_new_parameter"></td></tr>
+<tr><td>Short description:</td><td><input type="text"; id = "short_description_of_new_parameter"></td></tr>
+<tr><td>Long description:</td><td><input type="text"; id = "long_description_of_new_parameter"></td></tr>
+
+</table>
+<input type="submit">
+</form>
+</div>
+<br>
+
+<form>
+<input type="button" value="Add new parameter"; onclick = "changeObjectVisibility('add_parameter','visible')"/>
+</form>
+
+<script>
+
+function make_param() { 
+
+var name = document.getElementById('name_of_new_parameter').value;
+var parent = document.getElementById('parent_of_new_parameter').value;
+var choices = document.getElementById('choices_of_new_parameter').value;
+var defaultunits = document.getElementById('default_units_of_new_parameter').value;
+var vartype = document.getElementById('vartype_of_new_parameter').value;
+var property = document.getElementById('property_of_new_parameter').value;
+var desc_short = document.getElementById('short_description_of_new_parameter').value;
+var desc_long = document.getElementById('long_description_of_new_parameter').value;
+
+var xmlhttp = new XMLHttpRequest();  //add for other browsers; make a function that returns these objects
+xmlhttp.onreadystatechange = function() 
+	{		
+		if (xmlhttp.readyState==4)
+  		{
+  			if (xmlhttp.status==200)
+  			{	
+				alert("Parameter added successfully");
+			}
+  			else
+  			{
+				alert("Problem retrieving data:" + xmlhttp3.statusText);
+				alert("xmlhttp3.status is  " + xmlhttp3.status)
+  			}
+					
+  		}
+	}
+xmlhttp.open("POST",url,true);
+// need to hide this or do something...
+var request = "<methodCall> <methodName>addparamdef2</methodName> <params> <param> <value> <string>" + name + "</string> </value> </param> <param> <value> <string>" + ctxid + "</string></value></param><param> <value> <string>" + parent + "</string> </value> </param><param> <value> <string>" + vartype + "</string> </value> </param><param> <value> <string>" + desc_short + "</string> </value> </param><param> <value> <string>" + desc_long + "</string> </value> </param><param> <value> <string>" + property + "</string> </value> </param><param> <value> <string>" + defaultunits + "</string> </value> </param><param> <value> <string>" + choices + "</string> </value> </param></params></methodCall>";
+
+//alert(request);
+xmlhttp.send(request);
+}
+
+
+
+
+
+function changeObjectVisibility(objectId, newVisibility) {
+    // first get a reference to the cross-browser style object 
+    // and make sure the object exists
+    var styleObject = getStyleObject(objectId);
+    if(styleObject) {
+	styleObject.visibility = newVisibility;
+	return true;
+    } else {
+	// we couldn't find the object, so we can't change its visibility
+	return false;
+    }
+}
+
+function toggle(obj) {
+	var el = document.getElementById(obj);
+	if ( el.style.display != 'none' ) {
+		el.style.display = 'none';
+	}
+	else {
+		el.style.display = '';
+	}
+}
+
+function getStyleObject(objectId) {
+  // checkW3C DOM, then MSIE 4, then NN 4.
+  //
+  if(document.getElementById && document.getElementById(objectId)) {
+	return document.getElementById(objectId).style;
+   }
+   else if (document.all && document.all(objectId)) {  
+	return document.all(objectId).style;
+   } 
+   else if (document.layers && document.layers[objectId]) { 
+	return document.layers[objectId];
+   } else {
+	return false;
+   }
+}
+
+</script>
+
+
+<script >
+
+
+//login();
+//ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
+ctxid = get_ctxid_from_cookie('trac_session')
+var first = 'root';
+display(first);
+
+
+</script>
+
+
+</body>
+</html> 
