@@ -82,12 +82,8 @@ function login() //no need for this
 		if (xmlhttp6.readyState==4) {
 			if (xmlhttp6.status==200) {
 				var x = xmlhttp6.responseXML;
-				//alert (xmlhttp6.responseText);
 				var x1 = x.getElementsByTagName('string');
-				//alert (xmlhttp6.responseText);
 				ctxid = x1[0].firstChild.nodeValue;
-				//alert ('ctxid is ' + ctxid);
-				//return ctxid;
 			}
 		
 		else
@@ -98,18 +94,16 @@ function login() //no need for this
 	}
 	}
 	xmlhttp6.open("POST",url,true);
-	// need to hide this or do something...
 	var request = "<methodCall> <methodName>login</methodName> <params> <param><value><string>username</string></value></param> <param><value><string>password</string></value></param> </params></methodCall>";
 	xmlhttp6.send(request);
 }
 
-function get_ctxid_from_cookie(cookieName) //
+function get_ctxid_from_cookie(cookieName) 
 {
-	//alert('document.cookie' + document.cookie);
 	var labelLen = cookieName.length;
 	var cookieData = document.cookie;
 	var cLen = cookieData.length;
-	alert ('cLen = length of document.cookie = ' + cLen);
+	//alert ('cLen = length of document.cookie = ' + cLen);
 	var i = 0;
 	var cEnd;
 	while (i < cLen) {
@@ -196,15 +190,12 @@ b.innerHTML = "<br><br>Loading...";
   			{	
 				var array2 = new Array();
 				var x1 = xmlhttp2.responseXML;
-				//alert ('children : ' + xmlhttp2.responseText);
 				var x = x1.getElementsByTagName('string');
 				if (x.length ==0) {b.innerHTML = '<br><br> -'; return;}
 				for(var ii = 0; ii < x.length; ii= ii + 2) {
         				var e = x[ii];
 					var param = e.firstChild.nodeValue;
 					array2.push(param);
-					//alert(param);
-					//alert(e);
 					b.innerHTML = makelinks(array2);
 				}				
 			}
@@ -227,9 +218,6 @@ b.innerHTML = "<br><br> Loading...";
   		if (xmlhttp3.status==200)
   			{	
 				x = xmlhttp3.responseXML;
-				//alert(xmlhttp3.responseText);
-				//var def = x.getElementsByTagName('string')
-				//var def2 = def.firstChild.nextSibling.nodeValue; 				
 				b.innerHTML = "<br><br>" + xmlhttp3.responseText;
 			}
   		else
@@ -282,7 +270,6 @@ b.innerHTML = "Loading...";
   			{	
 				var array1 = new Array();
 				var x1 = xmlhttp5.responseXML;
-				//alert (xmlhttp5.responseText);
 				var x = x1.getElementsByTagName('string');
 				if (x.length == 0) {b.innerHTML = '<br><br> -';}
 				for(var i = 0; i < x.length; i= i + 2) {
@@ -307,24 +294,19 @@ function display_parents(param)
 	xmlhttp1.onreadystatechange=state_change_parents;
 	xmlhttp1.open("POST",url,true);
 	var request = '<methodCall><methodName>getparents</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>paramdef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';
-	//var request = '<methodCall><methodName>getparents</methodName><params><param><value>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param></params></methodCall>';
 	xmlhttp1.send(request);
 }
 
 function display_children(param)
 {
-	//var url = "http://localhost:8080/RPC2"; 
 	xmlhttp2.onreadystatechange=state_change_children;
 	xmlhttp2.open("POST",url,true);
-	//var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
 	var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';
 	xmlhttp2.send(request);
 }
 
 function display_definition(param)
 {
-	//var url = "http://localhost:8080/RPC2"; 
-	
 	xmlhttp3.onreadystatechange=function()
 	{
 		b = document.getElementById("definition");
@@ -334,9 +316,6 @@ function display_definition(param)
   			if (xmlhttp3.status==200)
   			{	
 				x = xmlhttp3.responseXML;
-				//alert(xmlhttp3.responseText);
-				//var def = x.getElementsByTagName('string')
-				//var def2 = def.firstChild.nextSibling.nodeValue; 				
 				b.innerHTML = "<br><br>" + xmlhttp3.responseText;
 			}
   		else
@@ -356,22 +335,17 @@ function display_definition(param)
 
 function display_siblings(param)
 {	
-	//var url = "http://localhost:8080/RPC2"; 
 	xmlhttp4.onreadystatechange=state_change_siblings;
 	xmlhttp4.open("POST",url,true);
-	//var request = '<methodCall><methodName>getchildren</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
 	var request = '<methodCall><methodName>getchildrenofparents</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
 	xmlhttp4.send(request);
 }
 
 function display_cousins(param)
 {
-	//var url = "http://localhost:8080/RPC2"; 
 	xmlhttp5.open("POST",url,true);
-	//xmlhttp5.setRequestHeader("Content-Type", "text/xml");
 	xmlhttp5.onreadystatechange=state_change_cousins;
 	var request = '<methodCall><methodName>getcousins</methodName><params><param><value><string>' + param + '</string></value> </param><param><value><string>paramdef</string> </value> </param> </params></methodCall>';
-	//xmlhttp5.setRequestHeader("Content-Length", request.length);
 	xmlhttp5.send(request);
 }
 
@@ -472,10 +446,8 @@ xmlhttp.onreadystatechange = function()
   		}
 	}
 xmlhttp.open("POST",url,true);
-// need to hide this or do something...
 var request = "<methodCall> <methodName>addparamdef2</methodName> <params> <param> <value> <string>" + name + "</string> </value> </param> <param> <value> <string>" + ctxid + "</string></value></param><param> <value> <string>" + parent + "</string> </value> </param><param> <value> <string>" + vartype + "</string> </value> </param><param> <value> <string>" + desc_short + "</string> </value> </param><param> <value> <string>" + desc_long + "</string> </value> </param><param> <value> <string>" + property + "</string> </value> </param><param> <value> <string>" + defaultunits + "</string> </value> </param><param> <value> <string>" + choices + "</string> </value> </param></params></methodCall>";
 
-//alert(request);
 xmlhttp.send(request);
 }
 
@@ -529,8 +501,8 @@ function getStyleObject(objectId) {
 
 
 //login();
-//ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
-ctxid = get_ctxid_from_cookie('trac_session')
+ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
+//ctxid = get_ctxid_from_cookie('trac_session')
 var first = 'root';
 display(first);
 
