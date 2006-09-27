@@ -3628,7 +3628,7 @@ or None if no match is found."""
 		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
-			c=Set(self.__paramdefs.children(i))
+			c=Set([i[0] for i in self.__paramdefs.children(i)])
 #			c=Set([i[0] for i in c])
 			c&=paramdefs
 			c=tuple(c)
@@ -3649,7 +3649,7 @@ or None if no match is found."""
 		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
-			c=Set(self.__recorddefs.children(i))
+			c=Set([i[0] for i in self.__recorddefs.children(i)])
 #			c=Set([i[0] for i in c])
 			c&=recorddefs
 			c=tuple(c)
