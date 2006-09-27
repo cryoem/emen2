@@ -83,6 +83,36 @@ class DBResource(Resource):
 ## SUPPORT FUNCTIONS ##############################
 ###################################################
 
+
+# just to keep it in one place
+def regexparser():
+	re1 = "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))[\s<]?|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))[\s<]?|(?P<name>((\$\#(?P<name1>\w*))\s?))"
+	return re1
+
+def macro_processor(macro,macroparameters,recordid,ctxid=None):
+	global db
+	
+	if macro == "childcount":
+		queryresult = db.getchildren(int(recordid),ctxid=ctxid)
+		mgroups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+		try:
+			value = len(mgroups[macroparameters])
+		except:
+			value = ""
+	elif macro == "parentrecname":
+		queryresult = db.getparents(recordid,ctxid=ctxid)
+		mgroups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+		for j in mgroups[macroparameters]:
+			recorddef = db.getrecord(j,ctxid=ctxid)
+			try:
+				value = recorddef.items_dict()["recname"]
+			except:
+				value = ""
+				
+	return value
+
+
+
 def argmap(dict):
 	for i in dict: dict[i]=dict[i][0]
 		
@@ -103,7 +133,7 @@ def invert(d):
 
 
 
-
+	
 def sortlistbyparamname(paramname,subset,reverse,ctxid):
 	global db
 	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
@@ -251,148 +281,10 @@ def parent_tree(recordid,ctxid=None):
 	return " ".join(ret)
 
 
+def html_render_grouptable_table(path,args,reverse,groupname,recordids,ctxid=None):
+	global db
 
-### FIX: replace with something nice
-def parse_view_group(groupname, ctxid=None):
-	"""Get view, parse it, return constructed view"""
-	
-	viewtype = "tabularview"
-	viewdef=db.getrecorddef(groupname,ctxid).views[viewtype]
-
-	viewtype = "tabularview"
-
-	preparse = []
-
-	#
-	# Pre-parsing
-	#
-	parse_split = viewdef.split(' ')
-	for i in range(0,len(parse_split)):
-		isplit = parse_split[i].split('=')
-
-		try:
-			count = isplit[1].count('"')
-		except IndexError:
-			count = 0
-		if count:
-			tmp = isplit[1] + " " + parse_split[i+1]
-			isplit[1] = tmp
-			parse_split[i+1] = ""
-
-		preparse.append(isplit)
-	#	print "i: %s	 v: %s"%(i,isplit)
-
-	# remove this sometime
-	preparse2 = []
-	for i in preparse:
-		if i[0] != "":
-			preparse2.append(i)
-	preparse = preparse2
-	
-#	print "Preparse.. %s"%preparse
-
-	#
-	# Main parsing
-	#
-	out = []
-	vartypes = []
-	vardescs = []
-	for i in preparse:
-		if i[0].count("$") == 2:
-			# j is the parameter name
-			j = i[0].replace("$$","")
-			try: 
-				#text = record_dict[j.lower()]
-				# hit the database to get the type and description of the parameter j
-				item = db.getparamdef(j.lower())
-				vt = item.vartype
-				vd = item.desc_short
-			except:
-				text = ''
-				vt = ''
-				vd = ''
-			out.append(j)
-			vartypes.append(vt)
-			vardescs.append(vd)
-		elif i == "":
-			pass
-		else:
-			out.append(str(i[0]))
-			vartypes.append('')
-			vardescs.append('')
-
-	return out,vartypes,vardescs
-
-
-
-
-def render_onelineview(recordid,record_dict,vartypes,vardescs,preparse,out,header,modulo,ctxid=None):
-	ret = []
-	ret.append("\t\t<td><a href=\"/db/record?name=%s\">%s</a> -- %s -- \n"%(recordid,recordid,record_dict['rectype']))
-	ret.append(" ".join(out))
-	ret.append("</td>")
-	return ret
-
-
-
-
-def render_tabularview(id,out,vartypes,vardescs,modulo=0,ctxid=None):
-	"""Render one line of a table"""
-	maxtextlength=500
-	ret = []
-
-	record=db.getrecord(id,ctxid)
-	record_dict = record.items_dict()
-
-	skipped = []
-	ret.append("\t<tr>\n")
-
-	if modulo % 2:
-		tdclass = ""
-	else:
-		tdclass = "shaded"
-
-	tdclass2 = "firstitem"
-	for i in range(0,len(out)):
-		if vartypes[i] == "text":
-			skipped.append(i)
-		else:
-			try:
-				string = record_dict[out[i]]
-			except:
-#				string = "(%s)"%out[i]
-				string = ""
-				
-			if vartypes[i] == "float" and vardescs[i]:
-				if string == 0:
-					string = "0"
-				else:
-					try:
-						string = "%0.2f"%string
-					except TypeError:
-						string = "%s"%string
-				
-			ret.append("\t\t<td class=\"%s %s\"><!--  --><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass2,id,string))
-			tdclass2 = ""
-
-	tdclass2 = "firstitem"
-	for i in skipped:
-
-		try:
-			string = record_dict[out[i]]
-		except:
-#			string = "(%s)"%out[i]
-			string = ""
-			
-		if len(string) >= maxtextlength:
-			string = string[0:maxtextlength] + " <a href=\"/db/record?name=%s\">(view more)</a>..."%id
-
-		ret.append("\t</tr>\n\t<tr>\n\t\t<td class=\"%s %s\"></td><td class=\"%s\" colspan=\"%s\"><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass2,tdclass,len(out)-1,id,string))
-		tdclass2 = ""
-
-	ret.append("\t</tr>\n")
-
-	return ret
+	return " ".join(ret)
 
 
 	
@@ -800,6 +692,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 
 
 	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
+#	print wf
 	recordids = wf["appdata"][groupname]
 
 	if args.has_key("sort_%s"%groupname):
@@ -834,7 +727,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 
 		nav.append("<div class=\"table_arrows\">")
 		if (ipos - perpage) >= 0:
-			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&laquo;</span>"""%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
+			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s','%s')">&laquo;</span>"""%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,"zone_%s"%groupname))
 
 		end = pos+perpage
 		count = len(recordids)
@@ -843,61 +736,132 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 		nav.append("""<span class="table_span"> (%s-%s of %s) </span>"""%(pos,end,count))
 
 		if (ipos + perpage) <= len(recordids):
-			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')">&raquo;</span>"""%(baseurlstr,key,ipos + perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname))
+			nav.append("""<span class="table_span" onclick="makeRequest('%s&%s=%s&zone=%s','%s')">&raquo;</span>"""%(baseurlstr,key,ipos + perpage,"zone_%s"%groupname,"zone_%s"%groupname))
 
 		nav.append("</div>")
 
 	ret.append(" ".join(nav))
 
-	# end nav arrows
 
-	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\">\n")
+	# Now let's draw a table.
+	
+	# regex to parse view definition
+	re1 = regexparser()
+#	re1 = "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?)[\s<]?)|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?)[\s<]?)|(?P<name>((\$\#(?P<name1>\w*))\s?))"
+	p = re.compile(re1)
+	
+	viewtype = "tabularview"
+	# cut off for long text fields
+	maxtextlength=500
+	
+	vt = {}
+	vd = {}
+	firstrow = []
+	secondrows = []
+#	ret = []
 
-	# fixme: this needs to be replaced
-	out,vartypes,vardescs = parse_view_group(groupname,ctxid=ctxid)
+	# get view def
+	viewdef=db.getrecorddef(groupname,ctxid).views[viewtype]
 
-
+	ret.append("\n\n<table class=\"groupview\" cellspacing=\"0\" cellpadding=\"0\" >\n")
 	ret.append("\t<tr>\n")
-	for i in range(0,len(out)):
-		if vartypes[i] != "text":
 
-			baseurl=["/db/render_grouptable","?"]							
-			baseurl.append("&groupname=%s"%groupname)
-			baseurl.append("&pos_%s=0"%groupname)
-			baseurl.append("&wfid=%s"%args["wfid"][0])
-			baseurl.append("&%s=%s"%("sort_%s"%groupname,out[i]))
-			baseurl.append("&%s=%s"%("reverse_%s"%groupname,reverse))
-			baseurlstr = "".join(baseurl)
-
-			r = "javascript:makeRequest('%s&%s=%s&zone=%s&viewinit=%s','%s')"%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,groupname,"zone_%s"%groupname)
-
-			if vartypes[i] != "":				
-				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vardescs[i]))
+	# look at all the fields, get their data types, make table header
+	iterator = p.finditer(viewdef)
+	for match in iterator:
+		if match.group("var1"): 
+			item = db.getparamdef(match.group("var1"))
+			vt[match.group("var1")] = item.vartype
+			vd[match.group("var1")] = item.desc_short
+			if item.vartype == "text":
+				secondrows.append(["var",match.group("var1"),match.group("var2")])
 			else:
-				ret.append("\t\t<th><a href=\"%s\">(%s)</a></th>\n"%(r,out[i]))
+
+				# url
+				baseurl=["/db/render_grouptable","?"]							
+				baseurl.append("&groupname=%s"%groupname)
+				baseurl.append("&pos_%s=0"%groupname)
+				baseurl.append("&wfid=%s"%args["wfid"][0])
+				baseurl.append("&%s=%s"%("sort_%s"%groupname,match.group("var1")))
+				baseurl.append("&%s=%s"%("reverse_%s"%groupname,reverse))
+				baseurlstr = "".join(baseurl)
+				r = "javascript:makeRequest('%s&%s=%s&zone=%s','%s')"%(baseurlstr,key,ipos - perpage,"zone_%s"%groupname,"zone_%s"%groupname)
+
+				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vd[match.group("var1")]))
+
+				firstrow.append(["var",match.group("var1"),match.group("var2")])
+		if match.group("macro1"): 
+			firstrow.append(["macro",match.group("macro1"),match.group("macro2")])
+			# macros don't have a sorting method yet
+			ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">m: %s</span></th>\n"%("",match.group("macro1")))
+		if match.group("name1"):
+			pass
+			#  I don't think tabularviews will use $#name	
+			#firstrow.append(["name",match.group("name1"),None])
 
 	ret.append("\t</tr>\n")
 
-	modulo=0
-
-	if not perpage:
-		perpage = len(recordids)
-
+	# for alternating colors
+	modulo = 0
+	# for each record, draw the rows
 	for id in recordids[pos:pos+perpage]:
-		tabularview = render_tabularview(id,out,vartypes,vardescs,modulo=modulo,ctxid=ctxid)
-		ret.append(" ".join(tabularview))
-		modulo=modulo+1
+		ret.append("\t<tr>\n")
 
-	ret.append("</table>\n")
+		modulo = modulo + 1
+		if modulo % 2:
+			tdclass = ""
+		else:
+			tdclass = "shaded"
+
+		# get the record and restart the iterator
+		record=db.getrecord(id,ctxid)
+		record_dict = record.items_dict()
+		iterator = p.finditer(viewdef)
+
+		for i in firstrow:
+			if i[0] == "var":
+				# put in the value, or say "i tried, no answer"
+				try:
+					ret.append("\t\t<td class=\"%s\"><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,id,record_dict[i[1]]))
+				except:
+					ret.append("\t\t<td class=\"%s\"><a href=\"/db/record?name=%s\">(%s)</a></td>\n"%(tdclass,id,i[1]))
+
+			# macro processing
+			if i[0] == "macro":
+				value = macro_processor(i[1],i[2],id,ctxid=ctxid)
+				ret.append("\t\t<td class=\"%s\"><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,id,value))
+
+		# text fields
+		for i in secondrows:
+			if i[0] == "var":
+				try:
+					string = record_dict[i[1]]
+				except:
+					string = ""
+					
+				if len(string) >= maxtextlength:
+					string = string[0:maxtextlength] + " <a href=\"/db/record?name=%s\">(view more)</a>..."%id
+
+				ret.append("\t</tr>\n\t<tr>\n\t\t<td class=\"%s\"></td><td class=\"%s\" colspan=\"%s\"><a href=\"/db/record?name=%s\">%s</a></td>\n"%(tdclass,tdclass,len(firstrow)-1,id,string))
+
+		ret.append("\t</tr>\n")
+	ret.append("</table>")
+	# close the table
+	
 	ret.append("</div>\n\n")
 	ret.append("</div>")
+	# close the pages
 
 	return " ".join(ret)
+
+
 
 	
 
 # ok	
-def html_record_dicttable(dict,proto,viewdef,missing=0):
+def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
+	global db
+	
 	"""Main record function: sidebar, views, etc"""
 
 	ret = []
@@ -991,77 +955,52 @@ def html_record_dicttable(dict,proto,viewdef,missing=0):
 	# re1 grabs all vars and their default values
 	# re2 grabs placeholders for data type names
 	# re3 grabs macros
-	re1 = "(\$\$(\w*)(?:=\"(.*)\")?)[\s<]?"
-	re2 = "(\$\#(\w*))\s"
-	re3 = "(\$\#(\w*)(?:\((.*)\))?)[\s<]?"
+#	re1 = "(\$\$(\w*)(?:=\"([\w\s]+)\")?)[\s<]?"
+#	re2 = "(\$\#(\w*))\s?"
+#	re3 = "(\$\@(\w*)(?:\((\w*)\))?)[\s<]?"
+#	p = re.compile(re1)
+#	p2 = re.compile(re2)
+#	p3 = re.compile(re3)
+
+	re1 = regexparser()
 	p = re.compile(re1)
-	p2 = re.compile(re2)
-	p3 = re.compile(re3)
 
 
 	for viewtype in viewdef.keys():
 		# run view parser
 		q = viewdef[viewtype]
-		regexresultvalues = p.findall(q)
-		regexresultnames = p2.findall(q)
-		regexresultmacros = p3.findall(q)
-
-		# put in data type names
-		for i in regexresultnames:
-			try: item=db.getparamdef(str(i[1]))
-			except: continue
-			#print "n: " + i[0]
-			#print "item.desc_short for %s: %s \n\n%s\n\n"%(i[1],item.desc_short,q)
-			q = re.sub(re.sub("\$","\$",i[0]),item.desc_short,q)
-				
-				
-		# MACROS
-		for i in regexresultmacros:
-			value = ""			
-			# MACRO DEFINITIONS
-			if i[1] == "childcount":
-				queryresult = db.getchildren(dict.recid,ctxid=ctxid)
-				groups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
-				value = len(groups[str(i[2])])
-
-			elif i[1] == "parentrecname":
-				queryresult = db.getparents(dict.recid,ctxid=ctxid)
-				groups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
-				for j in groups[str(i[2])]:
-					recorddef = db.getrecord(j,ctxid=ctxid)
-					value = recorddef.items_dict()["recname"]
-				
-			repl = re.sub("\$","\$",i[0])
-			repl2 = re.sub("\@","\@",repl)
-			repl3 = re.sub("\(","\(",repl2)
-			repl4 = re.sub("\)","\)",repl3)
-			print repl4
-			q = re.sub(repl4,value,q)
+		iterator = p.finditer(q)
 		
-		
-		# now put in all variables and their values, or default value		
-		for i in regexresultvalues:
-			try:
-				value = dict[i[1]]
-			except:
-				# let's give default values a grey color
-				value = "<span style=\"color:grey\">%s</span>"%i[2]
-			if not value:
-				# if no default value or specified value, give up
-				value = ""
+		for match in iterator:
+			if match.group("name1"):
+				try: item=db.getparamdef(match.group("name1"))
+				except: continue
+				q = re.sub(re.sub("\$","\$",match.group("name")),item.desc_short,q)
 
-			popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(i[1],i[1])
+			elif match.group("var1"):
+				try: value = dict[match.group("var1")]
+				except:	value = "<span style=\"color:grey\">%s</span>"%match.group("var2")
+				# include popup
+				print "%s: %s"%(match.group("var1"),value)
+				popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(match.group("var1"),match.group("var1"))
+				repl = re.sub("\$","\$",match.group("var"))
+				print "repl: %s"%repl
+				q = re.sub(repl,"<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
+#				q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
 
-			# include popup
-			repl = re.sub("\$","\$",i[0])
-			q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
+			elif match.group("macro1"):
+				value = macro_processor(match.group("macro1"),match.group("macro2"),dict.recid,ctxid=ctxid)
+				repl = re.sub("\$","\$",match.group("macro"))
+				repl2 = re.sub("\@","\@",repl)
+				repl3 = re.sub("\(","\(",repl2)
+				repl4 = re.sub("\)","\)",repl3)
+				q = re.sub(repl4,str(value),q)
+
 
 		# now put the rendered view into the document
 		ret.append("\n\n<div class=\"recordview\" style=\"display:none\" id=\"recordview_%s\">%s</div>"%(viewtype,q))
-
-	
+		
 	# End of defined views.
-	
 	
 	# Automatically generated parameter view is called "dicttable"
 	ret.append("\n<div class=\"dicttable\" id=\"dicttable\">")
@@ -1702,8 +1641,9 @@ def html_query(path,args,ctxid,host):
 		else:
 			plotfile = ""
 			isplot = False
-	
-		clearworkflowcache(ctxid)
+
+#		clear work flow cache	
+#		clearworkflowcache(ctxid)
 	
 		with = {'wftype':'querycache','desc':str(args["query"][0]),'longdesc':str(args["query"][0]),'resultcount':resultcount,'appdata':groupl,'plotfile':plotfile}
 		newwf = db.newworkflow(with)
@@ -1813,7 +1753,8 @@ def html_record(path,args,ctxid,host):
 	groupl = groupsettolist(groups)
 
 	# fix this with a better mechanism. clear the workflow to keep things moving fast.
-	clearworkflowcache(ctxid)
+	# clear work flow cache
+#	clearworkflowcache(ctxid)
 
 	# store the result count and grouped list in a workflow item
 	with = {'wftype':'recordcache','desc':"record cache",'longdesc':"record cache",'resultcount':resultcount,'appdata':groupl}
@@ -1846,7 +1787,7 @@ def html_record(path,args,ctxid,host):
 
 	# render the 'record page': sidebar, views
 	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
-	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1))
+	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1,ctxid=ctxid))
 	ret.append("\n</div>\n\n")
 
 	# render all the children grouped together
