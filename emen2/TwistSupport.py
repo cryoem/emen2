@@ -189,11 +189,33 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		r=Database.ParamDef()
 		r.__dict__.update(paramdef)
 		db.addparamdef(r,ctxid,host,parent)
+	
+	def xmlrpc_addparamdef2(self, name, ctxid, parent=None, vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
+		"""Puts a new ParamDef in the database. User must have permission to add records."""
+		a = Database.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
+		print ctxid 
+		#db.addparamdef(a,ctxid,host,parent)
+		db.addparamdef(a,ctxid,parent=parent)	
 		
 	def xmlrpc_getparamdef(self,paramdefname,host=None):
 		"""Anyone may retrieve any paramdef"""
-		return db.getparamdef(paramdefname).__dict__
-	
+		return tuple(db.getparamdef(paramdefname).__dict__)
+		
+	def xmlrpc_getparamdef2(self,paramdefname,host=None):
+		"""Anyone may retrieve any paramdef"""
+		"""Maybe will change it so that it just returns the tuples and lets javascript do the rest, the current way seemed easier at the time (needed a new function because getparamdef wasn't working with the javascript)"""		
+		b = ()
+		a = db.getparamdef(paramdefname).__dict__ 
+		for x in a:
+			t = x
+			t += '                    ='
+			c= str(a[x]) 
+			b+=(t,c, ";  ")
+		#print b
+		return b
+		
+	""" 'get' functions are made into tuples because that's the expected format for xml-rpc"""
+		
 	def xmlrpc_getparamdefs(self,recs,host=None):
 		"""Return a dictionary of Paramdef objects. recs
 		may be a record id, or a list of record ids"""
@@ -210,9 +232,14 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_getparamdefnames(self,host=None):
 		"""List of all paramdef names"""
-		return db.getparamdefnames()
+		return tuple(db.getparamdefnames())
 	
 	def xmlrpc_addrecorddef(self,recdef,ctxid,host=None,parent=None):
+		"""New recorddefs may be added by users with record creation permission"""
+		r=Database.RecordDef(rectype)
+		db.addrecorddef(r,ctxid,parent)
+		
+	def xmlrpc_addrecorddef2(self,name,ctxid,mainview=None, views=None, params=None, host=None,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=Database.RecordDef(rectype)
 		db.addrecorddef(r,ctxid,parent)
@@ -222,7 +249,22 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
-		return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__
+		return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ 
+		
+        def xmlrpc_getrecorddef2(self,rectypename,ctxid,host=None,recid=None):
+		"""Most RecordDefs are generally accessible. Some may be declared private in
+		which case they may only be accessed by the user or by someone with permission
+		to access a record of that type"""
+		#return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ no such name as recname defined, typo..?
+		b = ()
+		a = db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__ 
+		for x in a:
+			t = x
+			t += '='
+			c= str(a[x]) 
+			b+=(t,c, ";")
+		#print b
+		return b
 			
 	def xmlrpc_getrecorddefnames(self,host=None):
 		"""The names of all recorddefs are globally available to prevent duplication"""
@@ -250,7 +292,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
+		#print tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
 		return tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		
+	
+	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+		"""Gets the children of all the parents of a record with the given key, keytype may be 
+		'record', 'recorddef' or 'paramdef' """
+		a =  tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		b = ()
+		for i in a: b = b + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))	
+		return b
+		
 	
 	def xmlrpc_getcousins(self,key,keytype="record",ctxid=None,host=None):
 		"""Gets the cousins (related records with no defined parent/child relationship
