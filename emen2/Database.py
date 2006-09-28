@@ -3786,9 +3786,12 @@ or None if no match is found."""
 						self.__bdocounter[i]=d
 				elif r=="pdchildren" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
-					for p,cl in rr:
-						for c in cl:
-							self.__paramdefs.pclink(p,c)
+					print rr
+#					for p,cl in rr:
+#						print p,cl
+#						for c in cl:
+#							self.__paramdefs.pclink(p,c)
+					sys.exit(1)
 				elif r=="pdcousins" :
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for a,bl in rr:
