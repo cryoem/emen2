@@ -790,6 +790,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 				ret.append("\t\t<th><span class=\"table_span\" onclick=\"%s\">%s</span></th>\n"%(r,vd[match.group("var1")]))
 
 				firstrow.append(["var",match.group("var1"),match.group("var2")])
+				print "Added to frontrow: %s"%match.group("var")
 		if match.group("macro1"): 
 			firstrow.append(["macro",match.group("macro1"),match.group("macro2")])
 			# macros don't have a sorting method yet
