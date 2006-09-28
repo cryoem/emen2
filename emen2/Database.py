@@ -153,7 +153,7 @@ class BTree:
 			self[key]=(self[key]+[item])
 		else: self[key]=[item]
 
-	def pclink(self,parenttag,childtag,paramname=""):
+	def pclink(self,parenttag,childtag):
 		"""This establishes a parent-child relationship between two tags.
 		The relationship may also be named. That is the parent may
 		get a list of children only with a specific paramname. Note
@@ -172,8 +172,8 @@ class BTree:
 		except:
 			o=[]
 
-		if not (childtag,paramname) in o:
-			o.append((childtag,paramname))
+		if not childtag in o:
+			o.append(childtag)
 			self.pcdb.put(dumps(parenttag),dumps(o))
 			
 			try:
@@ -3360,7 +3360,7 @@ or None if no match is found."""
 		if recurse>0 :
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
-		else : trgt=Set([recid])
+		else : trgt=Set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
 		users.discard(ctx.user)				# user cannot remove his own permissions
@@ -3628,7 +3628,7 @@ or None if no match is found."""
 		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
-			c=Set([i[0] for i in self.__paramdefs.children(i)])
+			c=Set(self.__paramdefs.children(i))
 #			c=Set([i[0] for i in c])
 			c&=paramdefs
 			c=tuple(c)
@@ -3649,7 +3649,7 @@ or None if no match is found."""
 		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
-			c=Set([i[0] for i in self.__recorddefs.children(i)])
+			c=Set(self.__recorddefs.children(i))
 #			c=Set([i[0] for i in c])
 			c&=recorddefs
 			c=tuple(c)
