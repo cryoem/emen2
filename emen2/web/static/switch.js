@@ -113,19 +113,9 @@ function init() {
 	headers = getElementByClass("switchheader");
 	
 	hideallids();
-		
+//	showallids();	
 	switchid("mainview");
-  	
-	Nifty("div.switchbutton","4px transparent top");
-	Nifty("div.switchbuttonactive","4px transparent top");
-	Nifty("div.switchbuttoninactive","4px transparent top");
-
-	Nifty("div.navtree","4px transparent");
-	Nifty("#nav_first","4px transparent left");
-	Nifty("#nav_last","4px transparent right");
-
-	Nifty("div.tooltip","4px transparent");
-	
+  		
 //	tileinit();
 	
 }
@@ -140,6 +130,6 @@ function tooltip_show(tooltipId)
 
 function tooltip_hide(tooltipId)
 {
-	self.setTimeout('qhide(\'' + tooltipId + '\')', 2000)
+	self.setTimeout('qhide(\'' + tooltipId + '\')', 5000)
 //	document.getElementById(tooltipId).style.display = 'none';
 }

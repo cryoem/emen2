@@ -206,12 +206,15 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Maybe will change it so that it just returns the tuples and lets javascript do the rest, the current way seemed easier at the time (needed a new function because getparamdef wasn't working with the javascript)"""		
 		b = ()
 		a = db.getparamdef(paramdefname).__dict__ 
-		for x in a:
-			t = x
-			t += '                    ='
-			c= str(a[x]) 
-			b+=(t,c, ";  ")
-		#print b
+		for i in a:
+			if not b:
+				b = ((i,a[i]),)
+#				print b
+			else:
+				if a[i] == None: a[i] = ""
+				b = b + ((i,a[i]),)
+#				print b
+		print b
 		return b
 		
 	""" 'get' functions are made into tuples because that's the expected format for xml-rpc"""
@@ -251,7 +254,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		to access a record of that type"""
 		return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ 
 		
-        def xmlrpc_getrecorddef2(self,rectypename,ctxid,host=None,recid=None):
+	def xmlrpc_getrecorddef2(self,rectypename,ctxid,host=None,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
@@ -286,6 +289,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
+		print key
+		print keytype
+		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
 		return tuple(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
 	
 
@@ -301,7 +307,14 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		'record', 'recorddef' or 'paramdef' """
 		a =  tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
 		b = ()
-		for i in a: b = b + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))	
+#		b = (('root', 'area', 'angle', 'address'), ('root2', 'area2', 'angle2', 'address2'))
+# fixme please
+		for i in a:
+			if not b: 
+				b	= ((i,) + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None)),)
+			else:
+				b = (b , ((i,) + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))))
+		print b
 		return b
 		
 	

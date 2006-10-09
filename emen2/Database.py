@@ -2169,7 +2169,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			rid=all.pop()							# get a random record id
 			try: r=self.getrecord(rid,ctxid,host)	# get the record
 			except:
-				db.LOG(3,"Could not group by on record %d"%rid)
+#				db.LOG(3,"Could not group by on record %d"%rid)
 				continue						# if we can't, just skip it, pop already removed it
 			ind=self.getindexbyrecorddef(r.rectype,ctxid,host)		# get the set of all records with this recorddef
 			ret[r.rectype]=all&ind					# intersect our list with this recdef
