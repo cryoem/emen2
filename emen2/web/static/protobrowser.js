@@ -1,4 +1,4 @@
-var url = "http://localhost:8080/RPC2"; 
+var url = "http://ncmidb2.bcm.tmc.edu/RPC2"; 
 currentparam = "117";
 target = "";
 

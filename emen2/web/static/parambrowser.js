@@ -1,4 +1,4 @@
-var url = "http://localhost:8080/RPC2"; 
+var url = "/RPC2"; 
 currentparam = "root";
 target = "";
 

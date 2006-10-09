@@ -294,6 +294,11 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
 		return tuple(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
 	
+	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None):
+		"""Unlike getchildren, this works only for 'records'. Returns a count of children
+		of the specified record classified by recorddef as a dictionary. The special "all"
+		key contains the sum of all different recorddefs"""
+		return db.countchildren(key,recurse=0,ctxid=None,host=None)
 
 	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the parents of a record with the given key, keytype may be 

@@ -2178,7 +2178,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 		return ret
 
-		
+	def countchildren(self,key,recurse=0,ctxid=None,host=None):
+		"""Unlike getchildren, this works only for 'records'. Returns a count of children
+		of the specified record classified by recorddef as a dictionary. The special "all"
+		key contains the sum of all different recorddefs"""
+		c=self.getchildren(key,"record",recurse,ctxid,host)
+		r=self.groupbyrecorddef(c,ctxid,host)
+		for k in r.keys(): r[k]=len(r[k])
+		r["all"]=len(c)
+		return r
 	
 	def getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
@@ -3141,7 +3149,14 @@ or None if no match is found."""
 			orig["modifytime"]=modifytime
 			orig["modifyuser"]=ctx.user
 			self.__timeindex[record.recid]=modifytime 
-				
+		
+		# any new comments are appended to the 'orig' record
+		# attempts to modify the comment list bypassing the security
+		# in the record class will result in a bunch of new comments
+		# being added to the record.
+		for i in record["comments"]:
+			if not i in orig["comments"]: orig["comments"]=i[2]
+		
 		self.__records[record.recid]=orig			# This actually stores the record in the database
 		return record.recid
 		
