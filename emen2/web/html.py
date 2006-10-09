@@ -525,7 +525,7 @@ def html_tileimage(path,args,ctxid,host):
 	fpath=fpath+".tile"
 	
 	if not args.has_key("x") :
-		dims=get_tile_dim(fpath)
+		dims=supp.get_tile_dim(fpath)
 		dimsx=[i[0] for i in dims]
 		dimsy=[i[1] for i in dims]
 		if not args.has_key("level") : lvl=len(dims)
