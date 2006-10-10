@@ -706,7 +706,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
 
-		ret.append(tmpl.singleheader("Tile Viewer"))
+		ret.append(tmpl.singleheader("Tile Viewer",short=1))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
 		ret.append("""
@@ -722,7 +722,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		ret.append("</div>")
 
-		ret.append(tmpl.html_footer(),short=1)
+		ret.append(tmpl.html_footer(short=1))
 		return " ".join(ret)
 		
 	try: ret=supp.get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
