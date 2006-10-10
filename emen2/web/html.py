@@ -506,7 +506,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 			skipped = 1
 		# if it's not empty and not held in the sidebar, make a table entry
 		elif not special.count(k[0]):
-			recomments = pcomments.sub("<br />",dict[k[0]])
+			recomments = pcomments.sub("<br />",str(dict[k[0]]))
 			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td %s><span class=\"viewparam\">%s</span></td>\n\t</tr>\n"%(k[0],js,proto,k[0],k[1],js,recomments))
 		
 	ret.append("</table>")
