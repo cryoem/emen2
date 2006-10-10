@@ -37,6 +37,8 @@ div#content {
 	clear:both;
 }
 
+
+
 div#title {
 	font-size:25px;
 	color:black;
@@ -466,7 +468,7 @@ DROP DOWN MENU CSS
 
 /* "clearfix" */
 
-#parambrowser:after, #protobrowser:after {
+#parambrowser:after, #protobrowser:after, #pagecontainer:after {
     content: "."; 
     display: block; 
     height: 0; 
