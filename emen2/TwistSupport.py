@@ -293,7 +293,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #		print key
 #		print keytype
 #		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
-		return tuple(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
+		children = list(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
+		children.sort()
+		return tuple(children)
 	
 	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None):
 		"""Unlike getchildren, this works only for 'records'. Returns a count of children
