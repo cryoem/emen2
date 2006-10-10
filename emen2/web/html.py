@@ -531,9 +531,9 @@ def html_tileimage(path,args,ctxid,host):
 		if not args.has_key("level") : lvl=len(dims)
 		else: lvl=int(args["level"][0])
 		
-		ret=[tmpl.html_header("Append Comment: %s"%args["name"][0],init="tileinit(%s,%s,%s)"%(str(dimsx),str(dimsy),path[1])),short=1)]
+		ret=[tmpl.html_header("Micrograph Viewer",init="tileinit(%s,%s,%s)"%(str(dimsx),str(dimsy),path[1]),short=1)]
 
-		ret.append(tmpl.singleheader("Append Comment",short=1))
+		ret.append(tmpl.singleheader("Micrograph Viewer",short=1))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 		
 		

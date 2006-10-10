@@ -1,13 +1,13 @@
 var isdown=false;
-var nx;
-var ny;
-var tileid;
+var nx=0;
+var ny=0;
+var tileid = "";
 var level=nx.length-1
 
 function tileinit(nxinit,nyinit,tileidinit) {
 	nx = nxinit;
 	ny = nyinit;
-	tileid = tileidinit
+	tileid = tileidinit;
 	setsize(nx[level]*256,ny[level]*256);
 	var outdiv=document.getElementById("outerdiv");
 	outdiv.onmousedown = mdown;
@@ -15,6 +15,7 @@ function tileinit(nxinit,nyinit,tileidinit) {
 	outdiv.onmouseup = mup;
 	outdiv.ondragstart = function() { return false; }
 	recalc();
+	alert(nxinit,nyinit,tileidinit);
 }
 
 function tofloat(s) {
