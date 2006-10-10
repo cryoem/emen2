@@ -17,7 +17,7 @@ function tileinit(nxinit,nyinit,tileidinit) {
 	outdiv.onmouseup = mup;
 	outdiv.ondragstart = function() { return false; }
 	recalc();
-//	alert(nx + " : " + ny + " : " + tileid);
+
 }
 
 function tofloat(s) {

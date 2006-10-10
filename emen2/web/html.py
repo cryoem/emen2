@@ -703,22 +703,8 @@ def html_tileimage(path,args,ctxid,host):
 
 		<body onLoad="javascript:init();tileinit();">
 
-		<div id="title">
-			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
-		</div>
-
-
-		<div class="nav_table"> 
-			<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
-			<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
-			<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
-			<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
-			<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
-		</div>
-
 
 		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
-
 
 		ret.append(tmpl.singleheader("Tile Viewer"))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
@@ -736,7 +722,7 @@ def html_tileimage(path,args,ctxid,host):
 
 		ret.append("</div>")
 
-		ret.append(tmpl.html_footer())
+		ret.append(tmpl.html_footer(short=1))
 		return " ".join(ret)
 		
 	try: ret=supp.get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
