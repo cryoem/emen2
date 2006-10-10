@@ -462,9 +462,9 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 				q = re.sub(re.sub("\$","\$",match.group("name")),item.desc_short,q)
 
 			elif match.group("var1"):
-				try: value = dict[match.group("var1")]
-				except:	value = "<span style=\"color:grey\">%s</span>"%match.group("var2")
-				value = pcomments.sub("<br />",value)
+				try: value1 = dict[match.group("var1")]
+				except:	value1 = "<span style=\"color:grey\">%s</span>"%match.group("var2")
+				value = pcomments.sub("<br />",value1)
 				# include popup
 #				print "%s: %s"%(match.group("var1"),value)
 				popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(match.group("var1"),match.group("var1"))
