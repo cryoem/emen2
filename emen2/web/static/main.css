@@ -247,8 +247,6 @@ img#bottomlogo {
 	border:0px;
 }
 
-#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
-#innerdiv { position:relative; left: 0px; right: 0px; }
 
 /* 
 =============================================================
@@ -501,3 +499,8 @@ DROP DOWN MENU CSS
 	width:300px;
 	padding:5px;
 }
+
+
+/* tile browser */
+#outerdiv { height: 512; width:512; border: 1px solid black; position:relative; overflow:hidden; }
+#innerdiv { position:relative; left: 0px; right: 0px; }
