@@ -1,13 +1,15 @@
 var isdown=false;
 var nx=0;
 var ny=0;
-var tileid;
-var level=nx.length-1
+var tileid = "";
+var level=0;
 
 function tileinit(nxinit,nyinit,tileidinit) {
 	nx = nxinit;
 	ny = nyinit;
 	tileid = tileidinit;
+	level = nx.length-1;
+//	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
 	setsize(nx[level]*256,ny[level]*256);
 	var outdiv=document.getElementById("outerdiv");
 	outdiv.onmousedown = mdown;
@@ -15,6 +17,7 @@ function tileinit(nxinit,nyinit,tileidinit) {
 	outdiv.onmouseup = mup;
 	outdiv.ondragstart = function() { return false; }
 	recalc();
+//	alert(nx + " : " + ny + " : " + tileid);
 }
 
 function tofloat(s) {
@@ -81,6 +84,7 @@ function recalc() {
 	indiv=document.getElementById("innerdiv");
 	x=-Math.ceil(tofloat(indiv.style.left)/256);
 	y=-Math.ceil(tofloat(indiv.style.top)/256);
+	//alert("Recalc: x: " + x + " y: " + y);
 	outdiv=document.getElementById("outerdiv");
 	dx=outdiv.clientWidth/256+1;
 	dy=outdiv.clientHeight/256+1;
@@ -103,6 +107,7 @@ function recalc() {
 }
 
 function setsize(w,h) {
+	//alert("Setting size: " + w + " " + h);
 	var indiv=document.getElementById("innerdiv");
 	indiv.style.height=h;
 	indiv.style.width=w;
