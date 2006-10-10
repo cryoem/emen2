@@ -330,6 +330,10 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	
 	"""Main record function: sidebar, views, etc"""
 
+	# we'll need this a few times
+	recommentsregex = "\n"
+	pcomments = re.compile(recommentsregex)
+
 	ret = []
 	
 	# special fields to remove from record: held in sidebar
@@ -356,8 +360,6 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 
 	# Any comments attached to file
 	if dict["comments_text"]: 
-		recommentsregex = "\n"
-		pcomments = re.compile(recommentsregex)
 		recomments = pcomments.sub("<br />",dict["comments_text"])
 		ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments:<br />%s</span></td></tr>"%recomments)
 
@@ -445,9 +447,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	re1 = supp.regexparser()
 	p = re.compile(re1)
 
-	recommentsregex = "\n"
-	pcomments = re.compile(recommentsregex)
-#	recomments = pcomments.sub("<br />",dict["comments_text"])
+
 
 
 	for viewtype in viewdef.keys():
@@ -464,7 +464,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 			elif match.group("var1"):
 				try: value1 = dict[match.group("var1")]
 				except:	value1 = "<span style=\"color:grey\">%s</span>"%match.group("var2")
-				if value:
+				if value1:
 					value = pcomments.sub("<br />",value1)
 				# include popup
 #				print "%s: %s"%(match.group("var1"),value)
@@ -506,7 +506,8 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 			skipped = 1
 		# if it's not empty and not held in the sidebar, make a table entry
 		elif not special.count(k[0]):
-			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td %s><span class=\"viewparam\">%s</span></td>\n\t</tr>\n"%(k[0],js,proto,k[0],k[1],js,dict[k[0]]))
+			recomments = pcomments.sub("<br />",dict[k[0]])
+			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td %s><span class=\"viewparam\">%s</span></td>\n\t</tr>\n"%(k[0],js,proto,k[0],k[1],js,recomments))
 		
 	ret.append("</table>")
 	# end of the dict table
