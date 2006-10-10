@@ -1,9 +1,13 @@
 var isdown=false;
-var nx=0
-var ny=0
+var nx;
+var ny;
+var tileid;
 var level=nx.length-1
 
-function tileinit() {
+function tileinit(nxinit,nyinit,tileidinit) {
+	nx = nxinit;
+	ny = nyinit;
+	tileid = tileidinit
 	setsize(nx[level]*256,ny[level]*256);
 	var outdiv=document.getElementById("outerdiv");
 	outdiv.onmousedown = mdown;
@@ -23,17 +27,17 @@ function zoom(lvl) {
 	indiv=document.getElementById("innerdiv");
 	x=tofloat(indiv.style.left);
 	y=tofloat(indiv.style.top);
-	
+
 	outdiv=document.getElementById("outerdiv");
 	cx=outdiv.clientWidth/2.0;
 	cy=outdiv.clientHeight/2.0;
-	
+
 	setsize(nx[lvl]*256,ny[lvl]*256);
-	
+
 	scl=Math.pow(2.0,level-lvl)
 	indiv.style.left=cx-((cx-x)*scl);
 	indiv.style.top=cy-((cy-y)*scl);
-	
+
 	for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
 	level=lvl
 	recalc();
@@ -87,7 +91,7 @@ function recalc() {
 			var im=document.getElementById(nm);
 			if (!im) {
 				im=document.createElement("img");
-				im.src="/db/tileimage/%s?level="+level+"&x="+i+"&y="+j;
+				im.src="/db/tileimage/" + tileid + "?level=" + level + "&x=" + i + "&y=" + j;
 				im.style.position="absolute";
 				im.style.left=i*256+"px";
 				im.style.top=j*256+"px";

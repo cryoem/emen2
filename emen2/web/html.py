@@ -407,7 +407,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	if bdo:
 		# If it's a tile, link to viewer, else just download it
 		if bdo[0:3] == "bdo":
-			ret.append("<div class=\"viewbinary\"><a href=\"/db/tileimage/%s\">View Binary Data</a></div>"%bdo[4:])
+			ret.append("<div class=\"viewbinary\"><a href=\"\" onclick=\"javascript:window.open('/db/tileimage/%s','tilebrowser','status=0,location=0,toolbar=0,width=550,height=650');return false\">View Binary Data</a></div>"%bdo[4:])
 		else:
 			ret.append("<div class=\"viewbinary\"><a href=\"%s\">Download Binary Data</a></div>"%bdo)
 
@@ -531,154 +531,13 @@ def html_tileimage(path,args,ctxid,host):
 		if not args.has_key("level") : lvl=len(dims)
 		else: lvl=int(args["level"][0])
 		
-		ret=[]
-		
-		ret.append("""
+		ret=[tmpl.html_header("Append Comment: %s"%args["name"][0],init="tileinit(%s,%s,%s)"%(str(dimsx),str(dimsy),path[1])),short=1)]
 
-		<html>
-
-		<head>
-
-		<title>
-		Tile Viewer
-		</title>
-
-		<link rel="StyleSheet" href="/main.css" type="text/css" />
-		
-		<script type="text/javascript" src="/switch.js"></script>
-		<script type="text/javascript" src="/ajax.js"></script>
-
-		<script type="text/javascript">
-		var isdown=false;
-		var nx=%s
-		var ny=%s
-		var level=nx.length-1
-
-		function tileinit() {
-			setsize(nx[level]*256,ny[level]*256);
-			var outdiv=document.getElementById("outerdiv");
-			outdiv.onmousedown = mdown;
-			outdiv.onmousemove = mmove;
-			outdiv.onmouseup = mup;
-			outdiv.ondragstart = function() { return false; }
-			recalc();
-		}
-
-		function tofloat(s) {
-			if (s=="") return 0.0;
-			return parseFloat(s.substring(0,s.length-2));
-		}
-
-		function zoom(lvl) {
-			if (lvl==level || lvl<0 || lvl>=nx.length) return;
-			indiv=document.getElementById("innerdiv");
-			x=tofloat(indiv.style.left);
-			y=tofloat(indiv.style.top);
-
-			outdiv=document.getElementById("outerdiv");
-			cx=outdiv.clientWidth/2.0;
-			cy=outdiv.clientHeight/2.0;
-
-			setsize(nx[lvl]*256,ny[lvl]*256);
-
-			scl=Math.pow(2.0,level-lvl)
-			indiv.style.left=cx-((cx-x)*scl);
-			indiv.style.top=cy-((cy-y)*scl);
-
-			for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
-			level=lvl
-			recalc();
-		}
-
-		function zoomout() {
-			zoom(level+1);
-		}
-
-		function zoomin() {
-			zoom(level-1);
-		}
-
-		function mdown(event) {
-			if (!event) event=window.event;		// for IE
-			indiv=document.getElementById("innerdiv");
-			isdown=true;
-			y0=tofloat(indiv.style.top);
-			x0=tofloat(indiv.style.left);
-			mx0=event.clientX;
-			my0=event.clientY;
-			return false;
-		}
-
-		function mmove(event) {
-			if (!isdown) return;
-			if (!event) event=window.event;		// for IE
-			indiv=document.getElementById("innerdiv");
-			indiv.style.left=x0+event.clientX-mx0;
-			indiv.style.top=y0+event.clientY-my0;
-			recalc();
-		}
-
-		function mup(event) {
-			if (!event) event=window.event;		// for IE
-			isdown=false;
-			recalc();
-		}
-
-		function recalc() {
-			indiv=document.getElementById("innerdiv");
-			x=-Math.ceil(tofloat(indiv.style.left)/256);
-			y=-Math.ceil(tofloat(indiv.style.top)/256);
-			outdiv=document.getElementById("outerdiv");
-			dx=outdiv.clientWidth/256+1;
-			dy=outdiv.clientHeight/256+1;
-			for (i=x; i<x+dx; i++) {
-				for (j=y; j<y+dy; j++) {
-					if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
-					nm="im"+i+"."+j
-					var im=document.getElementById(nm);
-					if (!im) {
-						im=document.createElement("img");
-						im.src="/db/tileimage/%s?level="+level+"&x="+i+"&y="+j;
-						im.style.position="absolute";
-						im.style.left=i*256+"px";
-						im.style.top=j*256+"px";
-						im.setAttribute("id",nm);
-						indiv.appendChild(im);
-					}
-				}
-			}
-		}
-
-		function setsize(w,h) {
-			var indiv=document.getElementById("innerdiv");
-			indiv.style.height=h;
-			indiv.style.width=w;
-		}
-		</script>
-
-		</head>
-
-		<body onLoad="javascript:init();tileinit();">
-
-		<div id="title">
-			<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
-		</div>
-
-
-		<div class="nav_table"> 
-			<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
-			<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
-			<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
-			<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
-			<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
-		</div>
-
-
-		<div id="content">"""%(str(dimsx),str(dimsy),path[1]))
-
-
-		ret.append(tmpl.singleheader("Tile Viewer"))
+		ret.append(tmpl.singleheader("Append Comment",short=1))
 		ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+		
+		
+
 
 		ret.append("""
 		<div id="outerdiv">
@@ -690,11 +549,12 @@ def html_tileimage(path,args,ctxid,host):
 
 		<button onclick=zoomout()>Zoom -</button><button onclick=zoomin()>Zoom +</button><a href=%s?level=-1&x=0&y=0><button>pspec</button></a><a href=%s?level=-2&x=0&y=0><button>plot</button></a><br>
 		"""%(path[1],path[1]))
+		
+		
+		ret.append("</div><div style=\"clear:both\"></div>")
+		ret.append(tmpl.html_footer(short=1))
+		return "".join(ret)		
 
-		ret.append("</div>")
-
-		ret.append(tmpl.html_footer())
-		return " ".join(ret)
 		
 	try: ret=supp.get_tile(fpath,int(args["level"][0]),int(args["x"][0]),int(args["y"][0]))
 	except: return "Invalid tile"
