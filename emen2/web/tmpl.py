@@ -57,12 +57,12 @@ def html_header(name,init=None,short=0):
 </div>
 
 
-<div class="nav_table"> 
-	<div class="nav_tableli" id="nav_first"><a href="/db/record?name=0">Browse Database</a></div>
-	<div class="nav_tableli" id="nav_middle1"><a href="/db/queryform">Query Database</a></div>
-	<div class="nav_tableli" id="nav_middle2"><a href="/db/workflow">My Workflow</a></div>
-	<div class="nav_tableli" id="nav_middle3"><a href="/db/paramdefs">Parameters</a></div>
-	<div class="nav_tableli" id="nav_last"><a href="/db/recorddefs">Protocols</a></div>
+<div id="nav_table"> 
+	<div class="nav_tableli"><a href="/db/record?name=0">Browse Database</a></div>
+	<div class="nav_tableli"><a href="/db/queryform">Query Database</a></div>
+	<div class="nav_tableli"><a href="/db/workflow">My Workflow</a></div>
+	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
+	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
 		""")
 		
@@ -159,6 +159,7 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		form.append('<div class="l">Edit</div>')
 
 	return("""	
+	<div id="browserid">Parameter Browser</div>
 	<div id="parambrowser" %s>
 		<div class="floatleft" id="left">
 			<div id="getchildrenofparents"></div>
@@ -176,6 +177,73 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		</div>
 	</div>
 	"""%(hiddenhtml," ".join(form),addchildhtml))	
+
+
+
+
+
+
+
+
+def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidden=None):
+	form = []
+	addchildhtml = ""
+	hiddenhtml = ""
+	if hidden:
+		hiddenhtml = "style=\"display:none\""
+	if all:
+		select,viewfull,addchild,edit = 1,1,1,1
+	if select:
+		form.append('<div class="l" onclick="selecttarget()">Select</div>')
+	if viewfull:
+		form.append('<div class="l"><a id="viewfull" href="">View Full</a></div>')
+	if addchild:
+		form.append('<div class="l"><a href="javascript:toggle(\'addchild\')">Add Child</a></div>')
+
+		addchildhtml = """
+		<form name="full_form" method="POST" action="javascript:make_proto()">
+		<table>
+		<tr><td>Name:</td><td><input type="text"; id = "name"></td><tr>
+		<tr><td>Exp. Desc.:</td><td><input type="text"; id="mainview"></td></tr>
+		<tr><td>Summary:</td><td><input type="text"; id = "summary"></td></tr>
+		<tr><td>One line view:</td><td><input type="text"; id = "oneline"></td></tr>
+		<tr><td>Private:</td><td><input type="checkbox"; id = "private"></td></tr>
+		</table>
+		<input type="submit">
+		</form>"""
+		
+	if edit:
+		form.append('<div class="l">Edit</div>')
+
+	return("""	
+	<div id="browserid">RecordDef Browser</div>
+	<div id="protobrowser" %s>
+		<div class="floatleft" id="left">
+			<div id="getchildrenofparents"></div>
+		</div>
+
+		<div class="floatleft" id="center">
+			<div id="focus"></div>
+			<div id="getrecorddef2"></div>
+			<div id="parambuttons">%s<div id="addchild">%s</div></div>
+		</div>
+		
+		<div class="floatleft" id="right">
+			<div id="getchildren"></div>
+			<div id="getcousins"></div>
+		</div>
+	</div>
+	"""%(hiddenhtml," ".join(form),addchildhtml))	
+
+
+
+
+
+
+
+
+
+
 
 def html_stub(path,args,ctxid,host):
 	"""Example"""

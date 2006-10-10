@@ -3,7 +3,8 @@ currentparam = "root";
 target = "";
 
 function selecttarget() {
-	write = document.getElementById("form_comment");
+//	alert(target);
+	write = document.getElementById(target);
 	write.value = write.value + " $$" + currentparam + "=";
 //	alert("writing " + currentparam + " to " + target);
 }
@@ -34,18 +35,30 @@ function parambrowserinit(init,inittarget) {
 	param = init || "root";
 	target = inittarget || "";
 	ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
-//	toggle("parambrowser");
-	display(param);
+	display(param,"paramdef");
 }
  
-function display(param)
-{
-	currentparam = param;
-	var commands=new Array("getchildrenofparents","getchildren","getparamdef2", "getcousins")
-	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param); }
+function protobrowserinit(init,inittarget) {
+	param = init || "folder";
+	target = inittarget || "";
+	ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
+	display(param,"recorddef");
 }
 
-function dbxmlrpcrequest(command,param) {
+function display(param,type)
+{
+	currentparam = param;
+	if (type == "paramdef") {
+		var commands=new Array("getchildrenofparents","getchildren","getparamdef2", "getcousins")
+	} 
+	if (type == "recorddef") { 
+		var commands=new Array("getchildrenofparents","getchildren", "getrecorddef2", "getcousins")
+	}
+	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param,type); }
+}
+
+
+function dbxmlrpcrequest(command,param,type) {
     var http_request = false;
     if (window.XMLHttpRequest) { // Mozilla, Safari, ...
         http_request = new XMLHttpRequest();
@@ -62,17 +75,17 @@ function dbxmlrpcrequest(command,param) {
         alert('Giving up :( Cannot create an XMLHTTP instance');
         return false;
     }
-		http_request.onreadystatechange=function() { statechange(http_request,command,param); };
+		http_request.onreadystatechange=function() { statechange(http_request,command,param,type); };
 		http_request.open("POST",url,true);
 		if (command == "getparamdef2") {
 			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
 		} else {
-			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>paramdef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';	
+			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';	
 		}
 		http_request.send(request);
 }
 
-function statechange(http_request,command,param) {
+function statechange(http_request,command,param,type) {
 
     if (http_request.readyState == 4) {
         if (http_request.status == 200) {
@@ -82,7 +95,7 @@ function statechange(http_request,command,param) {
 						c = document.getElementById("focus");
 						c.innerHTML = param;
 						d = document.getElementById("viewfull");
-						d.setAttribute("href","/db/paramdef?name=" + param);
+						d.setAttribute("href","/db/" + type + "?name=" + param);
 						
 						if (command == "getchildrenofparents") {
 							var array = new Array();
@@ -98,9 +111,9 @@ function statechange(http_request,command,param) {
 							}
 							string = "";
 							for(i in array) {
-							string = string + '<div class="parent"><a onClick="display(\'' + i + '\')">' + i + '</a></div><div class="parents">';
+							string = string + '<div class="parent"><a onClick="display(\'' + i + '\',\'' + type + '\')">' + i + '</a></div><div class="parents">';
 								for(z in array[i]) {
-									string = string + '<span class="child"><a onClick="display(\'' + array[i][z] + '\')">' + array[i][z] + '</a></span> ';
+									string = string + '<span class="child"><a onClick="display(\'' + array[i][z] + '\',\'' + type + '\')">' + array[i][z] + '</a></span> ';
 								}
 							string = string + "</div>";
 							}
@@ -117,7 +130,7 @@ function statechange(http_request,command,param) {
 							for(var ii = 0; ii < x.length; ii= ii + 1) {
         				var e = x[ii];
 								var param = e.firstChild.nodeValue;
-								string = string + '<span class="child"><a onClick="display(\'' + param + '\')">' + param + '</a></span> ';
+								string = string + '<span class="child"><a onClick="display(\'' + param + '\',\'' + type + '\')">' + param + '</a></span> ';
 							}
 							string = string + "</div>";
 							b.innerHTML = string;				
@@ -135,6 +148,13 @@ function statechange(http_request,command,param) {
 							b.innerHTML = string;
 						}
 
+
+					if (command == "getrecorddef2") {
+//						regex = new RegExp(">;<","g");
+//						responsetext = responsetext.replace(regex,"><br /><br /><");
+//						b.innerHTML = responsetext;
+							b.innerHTML = "Parser under construction...";
+					}
 
 
         } else {

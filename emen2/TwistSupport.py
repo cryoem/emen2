@@ -193,7 +193,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_addparamdef2(self, name, ctxid, parent=None, vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 		a = Database.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
-		print ctxid 
+		#print ctxid 
 		#db.addparamdef(a,ctxid,host,parent)
 		db.addparamdef(a,ctxid,parent=parent)	
 		
@@ -214,7 +214,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 				if a[i] == None: a[i] = ""
 				b = b + ((i,a[i]),)
 #				print b
-		print b
+#		print b
 		return b
 		
 	""" 'get' functions are made into tuples because that's the expected format for xml-rpc"""
@@ -259,14 +259,15 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
 		#return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ no such name as recname defined, typo..?
+		print "getting recorddef: %s"%rectypename
 		b = ()
-		a = db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__ 
+		a = db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__ 	
 		for x in a:
 			t = x
 			t += '='
 			c= str(a[x]) 
 			b+=(t,c, ";")
-		#print b
+#		print "got recorddef: %s"%b
 		return b
 			
 	def xmlrpc_getrecorddefnames(self,host=None):
@@ -289,9 +290,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		print key
-		print keytype
-		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
+#		print key
+#		print keytype
+#		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
 		return tuple(db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
 	
 	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None):
@@ -310,16 +311,16 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of all the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		a =  tuple(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		a = list(db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		a.sort()
 		b = ()
-#		b = (('root', 'area', 'angle', 'address'), ('root2', 'area2', 'angle2', 'address2'))
-# fixme please
 		for i in a:
-			if not b: 
-				b	= ((i,) + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None)),)
+			children = list(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))
+			children.sort()
+			if not b:
+				b = (   (i,)   +   tuple( children ) , )
 			else:
-				b = (b , ((i,) + tuple(db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))))
-		print b
+				b = ( b ,  ((i,)  +  tuple( children ) ) )
 		return b
 		
 	

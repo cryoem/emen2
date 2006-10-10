@@ -1,5 +1,5 @@
-var url = "http://ncmidb2.bcm.tmc.edu/RPC2"; 
-currentparam = "117";
+var url = "/RPC2"; 
+currentparam = "folder";
 target = "";
 
 function selecttarget() {
@@ -41,7 +41,7 @@ function protobrowserinit(init,inittarget) {
 function display(param)
 {
 	currentparam = param;
-	var commands=new Array("getchildrenofparents","getchildren", "getcousins")
+	var commands=new Array("getchildrenofparents","getchildren", "getcousins", "getrecorddef2")
 	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param); }
 }
 
@@ -64,11 +64,11 @@ function dbxmlrpcrequest(command,param) {
     }
 		http_request.onreadystatechange=function() { statechange(http_request,command,param); };
 		http_request.open("POST",url,true);
-		if (command == "getparamdef2") {
-			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
-		} else {
+//		if (command == "getrecorddef2") {
+//			var request = '<methodCall><methodName>' + command + '</methodName><params><param><value><string>' + param + //'</string></value></param></params></methodCall>';
+//		} else {
 			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>recorddef</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';	
-		}
+//		}
 		http_request.send(request);
 }
 
@@ -128,15 +128,21 @@ function statechange(http_request,command,param) {
 						}
 										
 
-						if (command == "getparamdef2") {
-							var parents = response.getElementsByTagName('array');
-							string = ""
-							for(var j = 1; j < parents.length; j=j+1) {
-								z = parents[j].getElementsByTagName('string')
-								try { v = z[1].firstChild.nodeValue } catch(e) {v = ""}
-								string = string + z[0].firstChild.nodeValue + ": "  + v + "<br />";
-							}
-							b.innerHTML = string;
+						if (command == "getrecorddef2") {
+							
+							regex = new RegExp(">;<","g");
+							responsetext = responsetext.replace(regex,"><br /><br /><");
+							
+							b = document.getElementById("getrecorddef2");
+							b.innerHTML = responsetext;
+//							var parents = response.getElementsByTagName('array');						
+//							string = ""
+//							for(var j = 1; j < parents.length; j=j+1) {
+//								z = parents[j].getElementsByTagName('string')
+//								try { v = z[1].firstChild.nodeValue } catch(e) {v = ""}
+//								string = string + z[0].firstChild.nodeValue + ": "  + v + "<br />";
+//							}
+//							b.innerHTML = string;
 						}
 
 

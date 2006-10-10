@@ -27,7 +27,7 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 	ally = []
 	dataRid = []
 	myloc = 1
-	figsize=(6,4)
+	figsize=(10,6)
 	
 	if thequery.find("group by") >= 0:
 		groupby = 1

@@ -109,7 +109,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 	else:
 		pos = 0
 
-	timing.start()
+#	timing.start()
 
 
 	wf = db.getworkflowitem(int(args["wfid"][0]),ctxid)
@@ -138,8 +138,8 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 
 
 
-	timing.finish()
-	print "microseconds getting workflow: %s"%timing.micro()
+#	timing.finish()
+#	print "microseconds getting workflow: %s"%timing.micro()
 
 	ret.append("<div id=\"zone_%s\">"%groupname)
 
@@ -187,7 +187,7 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 	# Now let's draw a table.
 
 	
-	timing.start()
+#	timing.start()
 	
 	# regex to parse view definition
 	re1 = supp.regexparser()
@@ -246,8 +246,8 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 
 	ret.append("\t</tr>\n")
 
-	timing.finish()
-	print "parsed view in %s us"%timing.micro()
+#	timing.finish()
+#	print "parsed view in %s us"%timing.micro()
 
 #	print "Table rows..."
 
@@ -271,11 +271,11 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 		record=db.getrecord(id,ctxid)
 		record_dict = record.items_dict()
 
-		timing.finish()
-		print "microseconds getting record %s: %s"%(id,timing.micro())
+#		timing.finish()
+#		print "microseconds getting record %s: %s"%(id,timing.micro())
 
 
-		timing.start()
+#		timing.start()
 
 #		print "Ok, now parsing."
 		for i in firstrow:
@@ -309,13 +309,13 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 		ret.append("\t</tr>\n")
 
 		timing.finish()
-#		print "microseconds parsing record %s: %s"%(id,timing.micro())
+		print "microseconds parsing record %s: %s"%(id,timing.micro())
 
 	ret.append("</table>")
 	# close the table
 	
 	ret.append("</div>\n\n")
-	ret.append("</div>")
+#	ret.append("</div>")
 	# close the pages
 
 	return " ".join(ret)
@@ -389,7 +389,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 
 	# Attach comment
 	js = "javascript:window.open('/db/addcommentform?name=%s','Add comment','width=1024,height=750,location=no,status=no,menubar=no,resizable=yes,scrollbars=yes')"%dict.recid
-	ret.append("<tr><td colspan=\"2\" onclick=\"%s\">+ Append comment</td></tr>"%js)
+	ret.append("<tr><td colspan=\"2\"><span onclick=\"%s\">+ Append comment</span></td></tr>"%js)
 	
 	
 	# Add child record
@@ -412,9 +412,12 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 			ret.append("<div class=\"viewbinary\"><a href=\"%s\">Download Binary Data</a></div>"%bdo)
 
 	# Draw tooltips (inside sidebar area: hidden)
+	# make item name dictionary to reuse later
+	itemdescshort = {}
 	for k,v in dict.items():
 		try: item=db.getparamdef(str(k))
 		except: continue
+		itemdescshort[item.name] = item.desc_short
 		ret.append("""\n\n
 		<div id="tooltip_%s" class="tooltip">
 		Parameter Name: %s<br />Variable type: %s<br />Description: %s<br />Property: %s
@@ -481,19 +484,19 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	ret.append("\n\n<table cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
 	
-	# for each key value pair in the record dict
-	for k,v in dict.items():
-		try: item=db.getparamdef(str(k))
-		except: continue
+	# for each key value pair in the record dict; sort first
+	items = itemdescshort.items()
+	items.sort(lambda x,y: cmp(x[1],y[1]))
+	for k in items:
 
-		js = """onmouseover="tooltip_show('tooltip_%s');" onmouseout="tooltip_hide('tooltip_%s');" """%(item.name,item.name)
+		js = """onmouseover="tooltip_show('tooltip_%s');" onmouseout="tooltip_hide('tooltip_%s');" """%(k[0], k[0])
 
 		# missing is a passed variable: if field is empty, move it to the bottom box with other emtpy vars
-		if missing and v == "":
+		if missing and dict[k[0]] == "":
 			skipped = 1
 		# if it's not empty and not held in the sidebar, make a table entry
-		elif not special.count(k):
-			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td %s>%s</td>\n\t</tr>\n"%(item.name,js,proto,k,item.desc_short,js,v))
+		elif not special.count(k[0]):
+			ret.append("\t<tr>\n\t\t<td class=\"pitemname\" id=\"td_%s\" %s><a href=\"%s%s\">%s</a></td>\n\t\t<td %s><span class=\"viewparam\">%s</span></td>\n\t</tr>\n"%(k[0],js,proto,k[0],k[1],js,dict[k[0]]))
 		
 	ret.append("</table>")
 	# end of the dict table
@@ -501,13 +504,9 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	# Unused record type fields
 	if skipped:
 		ret.append("\n\n<div class=\"emptyfields\">Emtpy fields: ")
-		for k,v in dict.items():
-			try:
-				item=db.getparamdef(str(k))
-				if v == "":
-					ret.append("<a href=\"%s%s\">%s</a>, \n"%(proto,k,item.desc_short))
-			except:
-				pass
+		for k in dict.items():
+			if dict[k[0]] == "":
+				ret.append("<a href=\"%s%s\">%s</a>, \n"%(proto,k,itemdescshort[k[0]]))
 		ret.append("\n</div>")
 
 	ret.append("\n</div>\n")
@@ -771,7 +770,7 @@ def html_paramdefs(path,args,ctxid,host):
 	
 	ret.append("<h2>Parameter Browser</h2><br />")
 	
-	ret.append(tmpl.parambrowser(all=1))
+	ret.append(tmpl.parambrowser(viewfull=1,edit=1,addchild=1))
 	
 #	ret.append("</div>")
 #	ret.append("<div class=\"switchpage\" id=\"page_params\">")
@@ -798,7 +797,7 @@ def html_paramdef(path,args,ctxid,host):
 	ret.append(tmpl.singleheader("Parameter Definition"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append(tmpl.parambrowser(all=1))
+	ret.append(tmpl.parambrowser(viewfull=1,edit=1,addchild=1))
 	
 #	ret.append("<div style=\"clear:both\"><h2>Experimental Parameter (ParamDef): <i>%s</i></h2>"%item.name)
 	
@@ -891,10 +890,15 @@ def html_recorddefs(path,args,ctxid,host):
 	for i in range(len(ftn)):
 		ftn[i]=(ftn[i],len(db.getindexbyrecorddef(ftn[i],ctxid)))
 		
-	ret=[tmpl.html_header("EMEN2 Record Definitions")]
-	
+	init="protobrowserinit()"
+	ret=[tmpl.html_header("EMEN2 RecordDefs",init=init)]
+		
 	ret.append(tmpl.singleheader("Record Definitions"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	
+	ret.append("<h2>Record Definition Browser</h2><br />")
+	
+	ret.append(tmpl.protobrowser(viewfull=1,edit=1,addchild=1))
 	
 	ret.append("<h2>Registered Record Definition</h2><br>%d defined:"%len(ftn))
 	ret.append(supp.html_htable2(ftn,3,"/db/recorddef?name="))
@@ -911,14 +915,18 @@ def html_recorddefs(path,args,ctxid,host):
 def html_recorddef(path,args,ctxid,host):
 	global db
 	
+	
 	item=db.getrecorddef(args["name"][0],ctxid)
 	
-	ret=[tmpl.html_header("EMEN2 Protocol Description")]
+	ret=[tmpl.html_header("EMEN2 RecordDef Description",init="protobrowserinit('%s')"%item.name)]
 	
-	ret.append(tmpl.singleheader("Protocol Definition"))
+	ret.append(tmpl.singleheader("RecordDef Definition"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append("<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name)
+	ret.append(tmpl.protobrowser(viewfull=1,edit=1,addchild=1))
+		
+#	ret.append("<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name)
+#	ret.append("<div style=\"clear:both\">")
 	
 	parents=db.getparents(item.name,keytype="recorddef",ctxid=ctxid)
 	if len(parents)>0 :
@@ -932,10 +940,9 @@ def html_recorddef(path,args,ctxid,host):
 		for c in children:
 			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(c,c))
 
-	ret.append("<br><br>Parameters:<br>")
+	ret.append("<h2>Parameters:</h2>")
 	ret.append(supp.html_dicttable(item.params,"/db/paramdef?name="))
 #	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
-	
 
 	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
 	rp1=r'<i>\3=None</i>'
@@ -1029,11 +1036,10 @@ def html_records(path,args,ctxid,host):
 
 
 def html_queryform(path,args,ctxid,host):
-	ret=[tmpl.html_header("EMEN2 DB Query",init="parambrowserinit()")]
+	ret=[tmpl.html_header("EMEN2 DB Query",init="parambrowserinit('root','form_query')")]
 	ret.append(tmpl.singleheader("Database Query"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 
-	
 	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea","",(80,8))))	)
 
 	ret.append(tmpl.parambrowser(select=1,viewfull=1,hidden=0))
@@ -1537,35 +1543,36 @@ def html_approveuser(path,args,ctxid,host):
 	return html_newuserqueue(path,args,ctxid,host)
 
 def html_addcommentform(path,args,ctxid,host):
-	ret=[tmpl.html_header("Append Comment: %s"%args["name"][0],init="parambrowserinit('root','form_comments')",short=1)]
+	ret=[tmpl.html_header("Append Comment: %s"%args["name"][0],init="parambrowserinit('root','form_comment')",short=1)]
 	
-	ret.append(tmpl.singleheader("Append Comment",short=1))
+	ret.append(tmpl.singleheader("Append Comment: %s"%args["name"][0],short=1))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+
+	if args.has_key("added"):
+		ret.append("<div class=\"alertsuccess\">Added comment</div>")
 
 
 	ret.append("""
-	
-	<a href="/" target="_parent">test</a><br />
-	
+		
 	<form action="/db/addcomment" target="_parent" method="GET">
 	
 	<input type="hidden" name="parent" value="" />
 	
-<input type="hidden" name="name" value="118" />
+<input type="hidden" name="name" value="%s" />
 		Comment: <br />
 		<textarea name="comment" cols="80" rows="8" id="form_comment"></textarea> <br />
 		<input type="submit" value="Submit" />
 </form>
 	
 	
-	""")
+	"""%args["name"][0])
 
 #	ret.append(html_form(method="GET",action="/db/addcomment",items=(("","parent","hidden"),("","name","hidden"),("Comment:","comment","textarea","",(80,8))),args={"name":args["name"][0]})	)
 
 	r = db.getrecord(int(args["name"][0]),ctxid=ctxid)
 	ret.append("<div class=\"parent\">Update Existing Value</div><div class=\"parents\">")
 	for i in r.items_dict().keys():
-		ret.append("<span class=\"child\" onclick=\"display('%s')\">%s</span> "%(i,i))
+		ret.append("<span class=\"child\" onclick=\"display('%s','paramdef')\">%s</span> "%(i,i))
 	ret.append("</div>")
 
 	ret.append(tmpl.parambrowser(all=1))
@@ -1575,12 +1582,14 @@ def html_addcommentform(path,args,ctxid,host):
 	ret.append(tmpl.html_footer(short=1))
 	return "".join(ret)		
 
+
 def html_addcomment(path,args,ctxid,host):
 	r = db.getrecord(int(args["name"][0]),ctxid=ctxid)
 	r["comments"] = args["comment"][0]
 	r.commit()
 	print "Committed comment to record %s: %s"%(args["name"][0],args["comment"][0])
-	return html_reloadparent(path,args,ctxid,host)
+	args["added"] = ["1"]
+	return html_addcommentform(path,args,ctxid,host)
 
 	
 def html_newuser(path,args,ctxid,host):

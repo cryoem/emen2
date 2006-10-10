@@ -11,6 +11,7 @@ import tmpl
 #import supp
 import plot
 import pickle
+import timing
 
 # just to keep it in one place
 def regexparser():
@@ -22,11 +23,13 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 	
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),ctxid=ctxid)
-		mgroups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+		mgroups1 = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+#		mgroups = db.countchildren(int(recordid),ctxid=ctxid)
 		try:
 			value = len(mgroups[macroparameters])
+#			value = mgroups[macroparameters]
 		except:
-			value = ""
+			return ""
 	elif macro == "parentrecname":
 		queryresult = db.getparents(recordid,ctxid=ctxid)
 		mgroups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
@@ -35,7 +38,8 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 			try:
 				value = recorddef.items_dict()["recname"]
 			except:
-				value = ""
+				return ""
+				
 				
 	return value
 
