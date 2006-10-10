@@ -359,7 +359,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 		recommentsregex = "\n"
 		pcomments = re.compile(recommentsregex)
 		recomments = pcomments.sub("<br />",dict["comments_text"])
-		ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments: %s</span></td></tr>"%recomments)
+		ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments:<br />%s</span></td></tr>"%recomments)
 
 	# Comment history
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
