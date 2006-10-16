@@ -550,3 +550,14 @@ DROP DOWN MENU CSS
 	background:white;
 	border:solid 4px #FF8135;
 }
+
+/* *************************
+     protocol view styles
+ ************************** */
+
+.leftcolumn {
+	float:left;
+}
+.rightcolumn {
+	float:right;
+}
