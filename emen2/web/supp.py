@@ -23,10 +23,11 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 	
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),ctxid=ctxid)
-		mgroups1 = db.groupbyrecorddef(queryresult,ctxid=ctxid)
+#		mgroups1 = db.groupbyrecorddef(queryresult,ctxid=ctxid)
 #		mgroups = db.countchildren(int(recordid),ctxid=ctxid)
 		try:
-			value = len(mgroups[macroparameters])
+			value = len(queryresult)
+#			value = len(mgroups[macroparameters])
 #			value = mgroups[macroparameters]
 		except:
 			return ""
@@ -90,7 +91,32 @@ def sortlistbyparamname(paramname,subset,reverse,ctxid):
 #	print sortedlist
 	return sortedlist
 
+def permissions(dict,edit=0):
+	ret = []
+	perm_labels = ["read","write","full","admin"]
+	count = 0
+	
+	try:
+		for i in dict["permissions"]:
 
+			a = ""
+			for j in i:
+				if edit:
+					a = a + "<a href=\"/db/user?uid=%s\">%s</a> [<a href=\"/db/modpermdo?recordid=%s&action=remove&type=%s&user=%s\">x</a>], "%(j,j,dict.recid,count,j)
+				else:
+					a = a + "<a href=\"/db/user?uid=%s\">%s</a>, "%j
+			
+			if edit:
+				add = "[<a href=\"/db/modperm\">add</a>]"
+			else:
+				add = ""
+			ret.append("<span class=\"sidebar_smallheader\">%s %s:</span><br /> %s<br />"%(str(perm_labels[count]),add,a)) 
+
+			count = count+1
+	except:
+		pass
+	
+	return " ".join(ret)
 		
 def parent_tree(recordid,ctxid=None):
 	"""Get the parent tree of a record. Returns table. Includes html"""

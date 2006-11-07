@@ -321,8 +321,27 @@ def html_render_grouptable(path,args,ctxid,host,groupname=None):
 	return " ".join(ret)
 
 
-
+def html_modpermdo(path,args,ctxid,host):
+	#recordid,action,type,user,ctxid=None):
+	global db
 	
+	rec = db.getrecord(int(args["recordid"][0]),ctxid=ctxid)
+	p = rec["permissions"]
+	pl = list(p)
+	t = int(args["type"][0])
+	l = list(p[t])
+	
+	if args["action"][0] == "add":
+		l.append(args["user"][0])
+	if args["action"][0] == "remove":
+		l.remove(args["user"][0])
+	
+	pl[t] = tuple(l)
+	
+	rec["permissions"] = tuple(pl)
+	rec.commit()
+	
+	return supp.permissions(rec.items_dict(),edit=1)
 
 # ok	
 def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
@@ -364,22 +383,19 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 		ret.append("<tr><td colspan=\"2\"><span id=\"comments_main\">Comments:<br />%s</span></td></tr>"%recomments)
 
 	# Comment history
-	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><span id=\"comments_history\">")
+	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_history')\">+ History:</a><br /><div id=\"comments_history\">")
 	comments = dict["comments"]
+#	p = re.compile("LOG")
 	for i in comments: 
-		ret.append("%s<br />"%str(i))
-	ret.append("</span></td></tr>")
+		ret.append("<span class=\"sidebar_smallheader\"><a href=\"/db/user?uid=%s\">%s</a>@%s:</span><br />%s<br />"%(i[0],i[0],i[1],i[2]))
+
+	ret.append("</div></td></tr>")
 
 	# Permissions
 	ret.append("<tr><td colspan=\"2\"><a href=\"javascript:toggle('comments_permissions')\">+ Permissions:</a><br /><span id=\"comments_permissions\">")
-	perm_labels = ["read","write","full","admin"]
-	count = 0
-	try:
-		for i in dict["permissions"]:
-			ret.append("%s: %s<br />"%(str(perm_labels[count]),str(i))) 
-			count = count+1
-	except:
-		pass
+
+	ret.append(supp.permissions(dict,edit=1))
+
 	ret.append("</span></td></tr>")
 
 	# Views
@@ -921,7 +937,30 @@ def html_recorddefs(path,args,ctxid,host):
 
 
 
+def html_recorddefsimple(path,args,ctxid,host):
 
+	item=db.getrecorddef(args["name"][0],ctxid)
+
+	ret = []
+	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
+	rp1=r'<i>\3=None</i>'
+	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
+	rp2=r'<i>\3=\4</i>'
+
+	ret.append("<b>Experimental Protocol:</b><div class=\"afterdiv\">%s <br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
+	for i in item.views.keys():
+		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+	ret.append("</div>")
+
+#	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(item.name,item.name))
+	ret.append('<br />Records (100 max shown):<br>')
+	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
+	itm.sort()
+	if (len(itm)>100) : itm=itm[:99]
+	ret.append(supp.html_htable(itm,10,"/db/record?name="))
+	ret.append("</div>")
+	return " ".join(ret)
+	
 
 def html_recorddef(path,args,ctxid,host):
 	global db
@@ -939,37 +978,37 @@ def html_recorddef(path,args,ctxid,host):
 #	ret.append("<h2>Experimental Protocol (RecordDef): <i>%s</i></h2><br>"%item.name)
 #	ret.append("<div style=\"clear:both\">")
 	
-	parents=db.getparents(item.name,keytype="recorddef",ctxid=ctxid)
-	if len(parents)>0 :
-		ret.append("<h2>Parents:</h2>")
-		for p in parents:
-			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(p,p))
+#	parents=db.getparents(item.name,keytype="recorddef",ctxid=ctxid)
+#	if len(parents)>0 :
+#		ret.append("<h2>Parents:</h2>")
+#		for p in parents:
+#			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(p,p))
 	
-	children=db.getchildren(item.name,keytype="recorddef",ctxid=ctxid)
-	if len(children)>0 :
-		ret.append("<h2>Children:</h2> ")
-		for c in children:
-			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(c,c))
+#	children=db.getchildren(item.name,keytype="recorddef",ctxid=ctxid)
+#	if len(children)>0 :
+#		ret.append("<h2>Children:</h2> ")
+#		for c in children:
+#			ret.append('<a href="/db/recorddef?name=%s">%s</a> '%(c,c))
 
-	ret.append("<h2>Parameters:</h2>")
-	ret.append(supp.html_dicttable(item.params,"/db/paramdef?name="))
+#	ret.append("<h2>Parameters:</h2>")
+#	ret.append(supp.html_dicttable(item.params,"/db/paramdef?name="))
 #	ret.append("<br>Default View:<br><form><textarea rows=10 cols=60>%s</textarea></form>"%item.mainview)
 
-	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
-	rp1=r'<i>\3=None</i>'
-	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
-	rp2=r'<i>\3=\4</i>'
+#	re1= '<([^> ]*) ([^=]*)="([^"]*)" */>'
+#	rp1=r'<i>\3=None</i>'
+#	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
+#	rp2=r'<i>\3=\4</i>'
 
-	ret.append("<br><b>Experimental Protocol:</b><br>%s<br><br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
-	for i in item.views.keys():
-		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
-	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(
-	item.name,item.name))
-	ret.append('<br>Records (250 max shown):<br>')
-	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
-	itm.sort()
-	if (len(itm)>250) : itm=itm[:249]
-	ret.append(supp.html_htable(itm,6,"/db/record?name="))
+#	ret.append("<br><b>Experimental Protocol:</b><br>%s<br><br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
+#	for i in item.views.keys():
+#		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+#	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(
+#	item.name,item.name))
+#	ret.append('<br>Records (250 max shown):<br>')
+#	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
+#	itm.sort()
+#	if (len(itm)>250) : itm=itm[:249]
+#	ret.append(supp.html_htable(itm,6,"/db/record?name="))
 	
 	ret.append("</div>")
 	

@@ -57,6 +57,27 @@ function display(param,type)
 	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param,type); }
 }
 
+function dbgetrequest(url,command, param) {
+    var http_request = false;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+    if (!http_request) {
+        alert('Giving up :( Cannot create an XMLHTTP instance');
+        return false;
+    }
+		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
+		http_request.open("GET",url,true);	
+		http_request.send(null);
+}
 
 function dbxmlrpcrequest(command,param,type) {
     var http_request = false;
@@ -150,10 +171,38 @@ function statechange(http_request,command,param,type) {
 
 
 					if (command == "getrecorddef2") {
-//						regex = new RegExp(">;<","g");
-//						responsetext = responsetext.replace(regex,"><br /><br /><");
-//						b.innerHTML = responsetext;
-							b.innerHTML = "Parser under construction...";
+						string = ""
+//					alert(responsetext)
+//					b.innerHTML = responsetext;
+						var parents = response.getElementsByTagName('string');
+						for (var j = 0; j < parents.length; j = j+1) {
+							val = parents[j].firstChild.nodeValue
+							if (val == "creator=") {
+								string = string + "Creator: " + parents[j+1].firstChild.nodeValue + "<br />";
+							}
+							if (val == "creationtime=") {
+								string = string + "Created: " + parents[j+1].firstChild.nodeValue + "<br />";
+							}
+							if (val == "owner=") {
+								string = string + "Owner: " + parents[j+1].firstChild.nodeValue  + "<br />";
+							}
+							if (val == "private=") {
+								string = string + "Private: " + parents[j+1].firstChild.nodeValue  + "<br />";
+							}
+							
+							
+							
+							
+							
+							
+							
+						}
+						b.innerHTML = string;
+
+						dbgetrequest("/db/recorddefsimple?name=" + param, "recorddefsimple", param)
+					}
+					if (command == "recorddefsimple") {
+						b.innerHTML = responsetext;
 					}
 
 

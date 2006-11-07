@@ -232,7 +232,13 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<div id="getchildren"></div>
 			<div id="getcousins"></div>
 		</div>
+		
+		<div id="recorddefsimple">lol!</div>
+
+		
 	</div>
+	
+
 	"""%(hiddenhtml," ".join(form),addchildhtml))	
 
 

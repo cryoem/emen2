@@ -1,4 +1,6 @@
-
+.clear {
+	clear:both;
+}
 
 /* 
 =============================================================
@@ -125,9 +127,16 @@ td.standardtable_shaded {
 
 #comments_history {
 	display:none;
+	padding:10px;
 }
 #comments_permissions {
 	display:none;
+	padding:10px;
+}
+
+.sidebar_smallheader {
+	border-bottom:solid 1px;
+	font-size:10pt;
 }
 
 .viewbinary {
@@ -468,7 +477,11 @@ DROP DOWN MENU CSS
 
 /* "clearfix" */
 
-#parambrowser:after, #protobrowser:after, #pagecontainer:after {
+.afterdiv {
+	clear:both;
+}
+
+#parambrowser:after, #protobrowser:after, #pagecontainer:after, #recorddefsimple:after, .afterdiv:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -527,6 +540,14 @@ DROP DOWN MENU CSS
 	padding:5px;
 	padding-bottom:10px;
 }
+
+
+#recorddefsimple {
+	padding:20px;
+	clear:both;
+	background:white;
+}
+
 #center {
 }
 
