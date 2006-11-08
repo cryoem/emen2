@@ -108,11 +108,11 @@ def singleheader(title,short=0):
 
 	ret.append("""
 	</div>
-	<div class="switchcontainer">
-		<div class="switchbutton" id="button_mainview"><a href="">%s</a></div>
+	<div class="floatcontainer">
+		<div class="button_main" id="button_main_mainview"><a href="">%s</a></div>
 	</div>
 	
-	<div id="pagecontainer">
+	<div class=\"pagecontainer\" id="pagecontainer_main">
 	
 	"""%title)
 	
@@ -233,7 +233,7 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<div id="getcousins"></div>
 		</div>
 		
-		<div id="recorddefsimple">lol!</div>
+		<div id="recorddefsimple"></div>
 
 		
 	</div>

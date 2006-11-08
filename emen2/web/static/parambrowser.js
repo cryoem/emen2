@@ -172,8 +172,6 @@ function statechange(http_request,command,param,type) {
 
 					if (command == "getrecorddef2") {
 						string = ""
-//					alert(responsetext)
-//					b.innerHTML = responsetext;
 						var parents = response.getElementsByTagName('string');
 						for (var j = 0; j < parents.length; j = j+1) {
 							val = parents[j].firstChild.nodeValue
@@ -189,20 +187,14 @@ function statechange(http_request,command,param,type) {
 							if (val == "private=") {
 								string = string + "Private: " + parents[j+1].firstChild.nodeValue  + "<br />";
 							}
-							
-							
-							
-							
-							
-							
-							
 						}
 						b.innerHTML = string;
-
 						dbgetrequest("/db/recorddefsimple?name=" + param, "recorddefsimple", param)
 					}
+					
 					if (command == "recorddefsimple") {
 						b.innerHTML = responsetext;
+						switchin("param","defaultview");
 					}
 
 

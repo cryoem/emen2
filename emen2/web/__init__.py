@@ -89,7 +89,7 @@ def loginpage(redir):
 	ret.append(tmpl.html_header("EMEN2 Login"))
 	ret.append(tmpl.singleheader("EMEN2 Login"))
 	page = """
-<div class="switchpage" id="page_mainview">
+<div class="page_main" id="page_main_mainview">
 	<h3>Please Login:</h3>
 	<div id="zone_login">
 		<form action="/db/login" method="POST">

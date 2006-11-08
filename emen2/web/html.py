@@ -400,13 +400,13 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 
 	# Views
 	ret.append("<tr><td colspan=\"2\">+ Views: ")
-	ret.append("<a href=\"javascript:hideclass('recordview');qshow('dicttable');\">params</a> ")
+	ret.append("<a href=\"javascript:hideclass('page_recordview');qshow('page_recordview_dicttable');\">params</a> ")
 
 	k = viewdef.keys()
 	k.reverse()
 	for i in k:
 		j = re.sub("view","",i)
-		ret.append("<a href=\"javascript:qhide('dicttable');hideclass('recordview');qshow('recordview_%s');\">%s</a> "%(i,j))
+		ret.append("<a href=\"javascript:hideclass('page_recordview');qshow('page_recordview_%s');\">%s</a> "%(i,j))
 	ret.append("</td></tr>")
 
 	# Attach comment
@@ -500,12 +500,12 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 
 
 		# now put the rendered view into the document
-		ret.append("\n\n<div class=\"recordview\" style=\"display:none\" id=\"recordview_%s\">%s</div>"%(viewtype,q))
+		ret.append("\n\n<div class=\"page_recordview\" style=\"display:none\" id=\"page_recordview_%s\">%s</div>"%(viewtype,q))
 		
 	# End of defined views.
 	
 	# Automatically generated parameter view is called "dicttable"
-	ret.append("\n<div class=\"dicttable\" id=\"dicttable\">")
+	ret.append("\n<div class=\"page_recordview\" id=\"page_recordview_dicttable\">")
 
 	ret.append("\n\n<table cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
@@ -923,7 +923,7 @@ def html_recorddefs(path,args,ctxid,host):
 	ret.append(tmpl.singleheader("Record Definitions"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append("<h2>Record Definition Browser</h2><br />")
+#	ret.append("<h2>Record Definition Browser</h2><br />")
 	
 	ret.append(tmpl.protobrowser(viewfull=1,edit=1,addchild=1))
 	
@@ -947,18 +947,25 @@ def html_recorddefsimple(path,args,ctxid,host):
 	re2= '<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>'
 	rp2=r'<i>\3=\4</i>'
 
-	ret.append("<b>Experimental Protocol:</b><div class=\"afterdiv\">%s <br>"%re.sub(re2,rp2,re.sub(re1,rp1,item.mainview)))
-	for i in item.views.keys():
-		ret.append("<b>%s</b>:<br>%s<br><br>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+
+	ret.append("<div>")
+	
+	ret.append("<div class=\"floatcontainer\">")
+	for i in item.views:
+		ret.append("<div class=\"button_param\" id=\"button_param_%s\"><a href=\"javascript:switchin('param','%s')\">%s</a></div>"%(i,i,i))
+	ret.append("<div class=\"button_param\" id=\"button_param_records\"><a href=\"javascript:switchin('param','records')\">records</a></div>")
 	ret.append("</div>")
 
-#	ret.append('<br><br><a href="/db/newrecord?rdef=%s">Add a New Record</a><br><a href="/db/newrecorddef?parent=%s">Add a New Child Protocol</a><br>'%(item.name,item.name))
-	ret.append('<br />Records (100 max shown):<br>')
+	for i in item.views:
+		ret.append("<div class=\"page_param\" id=\"page_param_%s\">%s</div>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+
+	ret.append("<div class=\"page_param\" id=\"page_param_records\">")
 	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
 	itm.sort()
 	if (len(itm)>100) : itm=itm[:99]
 	ret.append(supp.html_htable(itm,10,"/db/record?name="))
 	ret.append("</div>")
+
 	return " ".join(ret)
 	
 
@@ -1262,7 +1269,7 @@ def html_query(path,args,ctxid,host):
 
 	ret.append("\n</div>")
 	
-	ret.append("<div id=\"pagecontainer\">")
+	ret.append("<div class=\"pagecontainer\" id=\"pagecontainer_main\">")
 	
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
@@ -1361,7 +1368,7 @@ def html_record(path,args,ctxid,host):
 
 	# is there a view type in the args?
 	if args.has_key("viewinit"):
-		init="switchid('%s')"%str(args["viewinit"][0])
+		init="switchid('main','%s')"%str(args["viewinit"][0])
 		ret=[tmpl.html_header("EMEN2 Record",init=init)]
 	else:
 		ret=[tmpl.html_header("EMEN2 Record")]
@@ -1370,21 +1377,23 @@ def html_record(path,args,ctxid,host):
 	ret.append(supp.parent_tree(name,ctxid=ctxid))
 	
 	# switching buttons
-	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">%s <!-- %s --></a></div>\n"%(item["recname"],item["rectype"]))
+	ret.append("\n\n<div class=\"floatcontainer\" id=\"button_main_container\">\n")
+	ret.append("\t<div class=\"button_main\" id=\"button_main_mainview\"><a href=\"javascript:switchin('main','mainview');\">%s <!-- %s --></a></div>\n"%(item["recname"],item["rectype"]))
 	if queryresult:
-		ret.append("\t<div class=\"switchshort\">&raquo;</div>")
-		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Children</a></div>\n")
-		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+		ret.append("\t<div class=\"button_main button_main_short\">&raquo;</div>")
+		ret.append("\t<div class=\"button_main\" id=\"button_main_allview\"><a href=\"javascript:switchbutton('main','allview');showclassexcept('page_main','page_main_mainview')\">All Children</a></div>\n")
+		ret.append("\t<div class=\"button_main button_main_short\">&raquo;</div>\n")
 		# one for each group of children...
 		ret.append(supp.render_groupedhead(groups,ctxid=ctxid))
 	ret.append("\n\n</div>")
 
-	ret.append("<div id=\"pagecontainer\">")
+	ret.append("<div class=\"pagecontainer\" id=\"pagecontainer_main\">")
 
 	# render the 'record page': sidebar, views
-	ret.append("\n\n<div class=\"switchpage\" id=\"page_mainview\">")
+	ret.append("\n\n<div class=\"page_main\" id=\"page_main_mainview\">")
+
 	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1,ctxid=ctxid))
+
 	ret.append("\n</div>\n\n")
 
 	# render all the children grouped together

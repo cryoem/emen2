@@ -1,11 +1,4 @@
-/*
-Ian Rees 2006.06.07
-Assumes each notebook tab has a button with id "button_view" and a page with "page_view"
-Redraws button borders (aesthetics) and changes visible page
-*/
-
-var ids=new Array()
-var buttons=new Array()
+var classcache = new Array();
 
 function getStyle( element, cssRule )
 {
@@ -36,10 +29,6 @@ function getElementByClass(classname) {
 
 function toggle(id) {
 	state = getStyle(document.getElementById(id),"display");
-//	alert(id + " " + state)
-//	if (state == "") {
-//		document.getElementById(id).style.display = 'none';
-//	}
 	if (state != 'none') {
 		document.getElementById(id).style.display = 'none';
 	}
@@ -48,84 +37,103 @@ function toggle(id) {
 	}
 }
 
-function switchid(id) {
-	var page = "page_" + id;
-	var button = "button_" + id;
-	hideallids();
-	switch_page(page);
-	switch_button(button);
-}
-
-function switch_page(id) {	
-	document.getElementById(id).style.display = 'block';
-}
-function switch_button(id) {	
-	document.getElementById(id).className = 'switchbuttonactive';
-}
-
-function hideallids() {
-	for (var i=0;i<ids.length;i++) {
-		document.getElementById(ids[i]).style.display = 'none';
-	}		  
-	for (var i=0;i<headers.length;i++) {
-		document.getElementById(headers[i]).style.display = 'none';
-	}
-	for (var i=0;i<buttons.length;i++) {
-		document.getElementById(buttons[i]).className = 'switchbuttoninactive';		
-	}		  
-}
-
-function showallids() {
-	hideallids();
-	for (var i=0;i<ids.length;i++) {
-		if (ids[i] != "page_mainview") {
-			document.getElementById(ids[i]).style.display = 'block';			
+function switchbutton(type,id) {
+	list = classcache["button_" + type];
+	for (var i=0;i<list.length;i++) {
+		if (list[i] != "button_" + type + "_" + id) {
+			try {
+				document.getElementById(list[i]).className = "button_" + type;
+			} catch(error) {}
+		}
+		else {
+			document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active";
 		}
 	}
-	for (var i=0;i<headers.length;i++) {
-		document.getElementById(headers[i]).style.display = 'block';
-	}
-	switch_button("button_allview")
+}
+
+function switchin(type, id) {	
+	hideclass("page_" + type);
+	switchbutton(type,id);
+	try {
+		document.getElementById("page_" + type + "_" + id).style.display = 'block';
+	} catch (error) { }
 }
 
 function hideclass(class) {
-	list = getElementByClass(class);
+	list = classcache[class];
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = 'none';			
 	}
 }
+
 function showclass(class) {
-	list = getElementByClass(class);
+	list = classcache[class];
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = 'block';			
 	}
 }
+
+function showclassexcept(class,except) {
+	hideclass(class)
+	list = getElementByClass(class);
+	for (var i=0;i<list.length;i++) {
+		if (list[i] != except) {
+			document.getElementById(list[i]).style.display = 'block';			
+		}
+	}
+}
+	
+
 function qshow(id) {
-	document.getElementById(id).style.display = 'block';			
+	try {
+		document.getElementById(id).style.display = 'block';			
+	} catch(error) {}
 }
 function qhide(id) {
-	document.getElementById(id).style.display = 'none';			
+	try {
+		document.getElementById(id).style.display = 'none';			
+	} catch(error) {}
 }
 
-function init() {	
-	ids = getElementByClass("switchpage");
-	buttons = getElementByClass("switchbutton");
-	headers = getElementByClass("switchheader");
+function init() {
 	
-	hideallids();
-//	showallids();	
-	switchid("mainview");
-  		
-//	tileinit();
+	classcache["button_main"] = getElementByClass("button_main");
+	classcache["page_main"] = getElementByClass("page_main");
 	
+	classcache["tooltip"] = getElementByClass("tooltip");			
+	
+	classcache["button_param"] = new Array("button_param_tabularview","button_param_onelineview","button_param_defaultview","button_param_records")
+	classcache["page_param"] = new Array("page_param_tabularview","page_param_onelineview","page_param_defaultview","page_param_records")
+			
+	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")		
+			
+				
+	try {
+		switchin("main","mainview");
+	} catch(error) {}
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 // tooltip stuff
 
 function tooltip_show(tooltipId)
 {
 	hideclass('tooltip')
+	try {
 	document.getElementById(tooltipId).style.display = 'block';
+	} catch(error) {}
 }
 
 function tooltip_hide(tooltipId)

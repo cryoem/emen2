@@ -251,7 +251,7 @@ def render_groupedhead(groupl,ctxid=None):
 	"""Render tab switching buttons"""
 	ret = []
 	for i in groupl.keys():
-		ret.append("\t<div class=\"switchbutton\" id=\"button_%s\"><a href=\"javascript:switchid('%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
+		ret.append("\t<div class=\"button_main\" id=\"button_main_%s\"><a href=\"javascript:switchin('main','%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
 	return " ".join(ret)
 	
 	
@@ -281,8 +281,8 @@ def encapsulate_render_grouptable(path,args,ctxid,host):
 	if args.has_key("groupname"):
 		groupname = args["groupname"][0]
 
-	ret.append("\n\n<div class=\"switchpage\" id=\"page_%s\">"%groupname)
-	ret.append("\t<h1 class=\"switchheader\" id=\"header_%s\">%s</h1>\n"%(groupname,groupname))
+	ret.append("\n\n<div class=\"page_main\" id=\"page_main_%s\">"%groupname)
+	ret.append("\t<h1>%s</h1>\n"%(groupname))
 
 	r = html.html_render_grouptable(path,args,ctxid,host)
 	ret.append("".join(r))

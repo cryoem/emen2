@@ -7,17 +7,7 @@
 BLOCK ELEMENTS
 =============================================================
 */
-/*
-//	Nifty("div.switchbutton","4px transparent top");
-//	Nifty("div.switchbuttonactive","4px transparent top");
-//	Nifty("div.switchbuttoninactive","4px transparent top");
 
-//	Nifty("div.navtree","4px transparent");
-//	Nifty("#nav_first","4px transparent left");
-//	Nifty("#nav_last","4px transparent right");
-
-//	Nifty("div.tooltip","4px transparent");
-*/
 body {
 	font-family: arial, Verdana, Helvetica, sans-serif;
 /*	font-family:sanserif; */
@@ -33,13 +23,29 @@ div#content {
 	clear:both;
 }
 
-#pagecontainer {
+#pagecontainer_main {
 	min-height: 500px; 
+	padding:20px;
 	background:white;
 	clear:both;
 }
 
+.floatcontainer {
+	clear:both;
+}
 
+.page_main {
+	display:none;
+}
+
+.page_param {
+	display:none;
+	background:white;
+	padding:20px;
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-bottomleft:8px;
+	-moz-border-radius-bottomright:8px;
+}
 
 div#title {
 	font-size:25px;
@@ -62,14 +68,6 @@ div.emptyfields {
 	width:600px;
 }
 
-div.switchpage {
-	display:none;
-/*	min-height:300px; */
-	padding:20px;
-	padding-bottom:20px;
-	clear:both;
-	background:#FFFFFF;
-}
 div.singlepage {
 	padding:20px;
 	clear:both;
@@ -354,71 +352,32 @@ DROP DOWN MENU CSS
 }
 /* Switch page */
 
-.switchcontainer {
-	clear:both;
-}
 
-.switchbutton {
-	-moz-border-radius-topleft:8px;
+
+.button_main {
 	-moz-border-radius-topright:8px;
-	float:left;
-}
-
-.switchbuttonactive {
 	-moz-border-radius-topleft:8px;
-	-moz-border-radius-topright:8px;
-	
 	float:left;
-
-	margin-top:10px;
-	margin-right:5px;
-	margin-left:5px;
-	
-	padding:6px;
-
+	padding:10px;
+	margin-top:5px;
+	margin-left:10px;
+	background:#E7F1F8;
+}
+.button_main_short {
+	margin-left:0px;
+	margin-right:0px;
+	background:none;
+}
+.button_main_active {
 	background:white;
 }
 
-.switchbuttoninactive {
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-topright:8px;
-	
-	float:left;
-
-	margin-top:10px;
-	margin-right:5px;
-	margin-left:5px;
-	
-	padding:6px;
-	
-	color:#666;
-	background:#E7F1F8;
-}
-
-.switchshort {
-	float:left;
-
-	margin-top:10px;
-	margin-right:0px;
-	margin-left:0px;
-	
-	padding:6px;
-}
-
-#button_mainview {
-	margin-left:20px;
+.floatcontainer > div.button_main:first-child {
 	margin-top:0px;
-	padding-top:16px;
-	padding-left:16px;
-	padding-right:16px;
-	font-weight:bold;
-}
-
-.switchbuttonactive a {
-	color:black;
-}
-.switchbuttoninactive a{
-	color:#666;
+	padding-left:15px;
+	padding-right:15px;
+	padding-top:15px;
+	margin-left:20px;
 }
 
 /**************************************
@@ -475,13 +434,33 @@ DROP DOWN MENU CSS
 	display:block;
 }
 
+
+
+.button_param {
+	padding:10px;
+	margin-right:10px;
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-topleft:8px;
+	float:left;
+	background:#BBD9EE;
+}
+.button_param_active {
+	background:white;
+}
+
+
+
+
+
+
+
 /* "clearfix" */
 
 .afterdiv {
 	clear:both;
 }
 
-#parambrowser:after, #protobrowser:after, #pagecontainer:after, #recorddefsimple:after, .afterdiv:after {
+#parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -543,9 +522,7 @@ DROP DOWN MENU CSS
 
 
 #recorddefsimple {
-	padding:20px;
 	clear:both;
-	background:white;
 }
 
 #center {
