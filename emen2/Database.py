@@ -1525,8 +1525,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 				# actual storage path
 				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
 				break
-			else:
-				raise KeyError,"No storage specified for date %s"%key
+		else:
+			raise KeyError,"No storage specified for date %s"%key
 
 		# try to make sure the directory exists
 		try: os.makedirs(path)
@@ -1565,8 +1565,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 				# actual storage path
 				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
 				break
-			else:
-				raise KeyError,"No storage specified for date %s"%key
+		else:
+			raise KeyError,"No storage specified for date %s"%key
 
 		try:
 			name,recid=self.__bdocounter[key][bid]
