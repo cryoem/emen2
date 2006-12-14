@@ -39,31 +39,42 @@ class DBResource(Resource):
 		return self.render_GET(request)
 		
 	def render_GET(self,request):
-		session=request.getSession()			# sets a cookie to use as a session id
-		
-#		return "request was '%s' %s"%(str(request.__dict__),request.getClientIP())
 		global db,callbacks
+
+		session=request.getSession()			# sets a cookie to use as a session id
+		print "Get: %s"%request.uri
+
+		try:
+			ctxid = session.ctxid
+		except:
+			try:			
+				session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
+			
+				ctxidcookiename = 'TWISTED_SESSION_ctxid'
+				request.addCookie(ctxidcookiename, session.ctxid, path='/')
+			
+				print "Got ctxid: %s"%session.ctxid
+				return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+						<meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest
+			except ValueError, TypeError:
+				print "Authentication Error"
+				print "...original request: %s"%session.originalrequest
+				return html_login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
+			except:
+				print "Need to login"
+				session.originalrequest = request.uri
+				print "...requesting: %s"%request.uri
+				return html_login(request.uri,None,None,None,redir=request.uri,failed=0)
 
 		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return html_home()
 				
 		# This is the one request that doesn't require an existing session, since it sets up the session
-		if (request.postpath[0]=='login'):
-			session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-#			return "Login Successful %s (%s)"%(str(request.__dict__),session.ctxid)
-			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-				<meta http-equiv="REFRESH" content="2; URL=%s"><title>HTML REDIRECT</title></head>
-				<body><h3>Login Successful</h3>"""%request.received_headers["referer"]
-
 		if (request.postpath[0]=="newuser"):
 			return html_newuser(request.postpath,request.args,None,request.getClientIP())
-				
-		# A valid session will have a valid ctxid set
-		try:
-			ctxid=session.ctxid
-		except:
-			return loginpage(request.uri)
-		
+					
+#		print session.uid
 		db.checkcontext(ctxid,request.getClientIP())
+#		print "Checked context with ctxid: %s"%ctxid
 
 		# Ok, if we got here, we can actually start talking to the database
 		
@@ -82,14 +93,18 @@ class DBResource(Resource):
 #		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
 
 
-def loginpage(redir):
+def html_login(path,args,ctxid,host,redir=None,failed=0):
 	"""Why is this a function ?	 Just because. Returns a simple login page."""
 	ret = []
 #	print "Loginpage dir: %s"%dir()
 	ret.append(tmpl.html_header("EMEN2 Login"))
 	ret.append(tmpl.singleheader("EMEN2 Login"))
+	failedmsg = ""
+	if failed:
+		failedmsg = "<p style=\"color:red\">Authorization failed. Please try again.</p>"
 	page = """
 <div class="page_main" id="page_main_mainview">
+	%s
 	<h3>Please Login:</h3>
 	<div id="zone_login">
 		<form action="/db/login" method="POST">
@@ -102,7 +117,9 @@ def loginpage(redir):
 		</form>
 	</div>
 </div>
-"""%(redir)
+"""%(failedmsg,redir)
+
+	print "Login redir is %s"%redir
 
 	ret.append(page)
 	ret.append(tmpl.html_footer())

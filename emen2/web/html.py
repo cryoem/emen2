@@ -950,14 +950,22 @@ def html_recorddefsimple(path,args,ctxid,host):
 
 	ret.append("<div>")
 	
+	views = item.views
+
+	try:
+		views["mainview"] = item.mainview
+	except:
+		pass
+	
 	ret.append("<div class=\"floatcontainer\">")
-	for i in item.views:
+	for i in views:
 		ret.append("<div class=\"button_param\" id=\"button_param_%s\"><a href=\"javascript:switchin('param','%s')\">%s</a></div>"%(i,i,i))
+
 	ret.append("<div class=\"button_param\" id=\"button_param_records\"><a href=\"javascript:switchin('param','records')\">records</a></div>")
 	ret.append("</div>")
 
-	for i in item.views:
-		ret.append("<div class=\"page_param\" id=\"page_param_%s\">%s</div>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,item.views[i]))))
+	for i in views:
+		ret.append("<div class=\"page_param\" id=\"page_param_%s\">%s</div>"%(i,re.sub(re2,rp2,re.sub(re1,rp1,views[i]))))
 
 	ret.append("<div class=\"page_param\" id=\"page_param_records\">")
 	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
@@ -1423,7 +1431,9 @@ def html_newrecord(path,args,ctxid,host):
 		
 #		print "Record(	",rec,"	 )"
 		bld=[("","rectype","hidden"),("","parent","hidden")]
+		print rec.keys()
 		for p in rec.keys():
+			print p
 			if p in ("owner","creator","creationtime","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
 			try: bld.append((parm[p].desc_short,p,"text"))
 			except: bld.append((p,p,"text"))
@@ -1520,7 +1530,9 @@ def html_newuserqueue(path,args,ctxid,host):
 
 
 
-
+def html_checkcontext(path,args,ctxid,host):
+	global db
+	return ctxid
 
 def html_user(path,args,ctxid,host):
 	global db

@@ -46,7 +46,7 @@ function switchbutton(type,id) {
 			} catch(error) {}
 		}
 		else {
-			document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active";
+			try {document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active";} catch(error) {}
 		}
 	}
 }
@@ -62,7 +62,7 @@ function switchin(type, id) {
 function hideclass(class) {
 	list = classcache[class];
 	for (var i=0;i<list.length;i++) {
-		document.getElementById(list[i]).style.display = 'none';			
+		try {document.getElementById(list[i]).style.display = 'none';} catch(error) {}
 	}
 }
 
@@ -102,8 +102,8 @@ function init() {
 	
 	classcache["tooltip"] = getElementByClass("tooltip");			
 	
-	classcache["button_param"] = new Array("button_param_tabularview","button_param_onelineview","button_param_defaultview","button_param_records")
-	classcache["page_param"] = new Array("page_param_tabularview","page_param_onelineview","page_param_defaultview","page_param_records")
+	classcache["button_param"] = new Array("button_param_mainview","button_param_tabularview","button_param_onelineview","button_param_defaultview","button_param_records")
+	classcache["page_param"] = new Array("page_param_mainview","page_param_tabularview","page_param_onelineview","page_param_defaultview","page_param_records")
 			
 	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")		
 			

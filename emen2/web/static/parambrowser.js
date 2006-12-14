@@ -1,6 +1,7 @@
 var url = "/RPC2"; 
 currentparam = "root";
 target = "";
+ctxid = "";
 
 function selecttarget() {
 //	alert(target);
@@ -9,8 +10,9 @@ function selecttarget() {
 //	alert("writing " + currentparam + " to " + target);
 }
 
-function get_ctxid_from_cookie(cookieName) 
+function ctxid_init_start(cookieName) 
 {
+	var sessiondid;
 	var labelLen = cookieName.length;
 	var cookieData = document.cookie;
 	var cLen = cookieData.length;
@@ -24,24 +26,24 @@ function get_ctxid_from_cookie(cookieName)
 			if (cEnd == -1) {
 				cEnd = cookieData.length;
 			}
-			return unescape(cookieData.substring(j+1,cEnd));
+				ctxid = unescape(cookieData.substring(j+1,cEnd));
+				alert(ctxid);
 			}
 		i++;
 	}
-	return "";
 }
 
 function parambrowserinit(init,inittarget) {
 	param = init || "root";
 	target = inittarget || "";
-	ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
+	ctxid = ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"paramdef");
 }
  
 function protobrowserinit(init,inittarget) {
 	param = init || "folder";
 	target = inittarget || "";
-	ctxid = get_ctxid_from_cookie('TWISTED_SESSION')
+	ctxid = ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"recorddef");
 }
 
@@ -58,6 +60,7 @@ function display(param,type)
 }
 
 function dbgetrequest(url,command, param) {
+	//standard
     var http_request = false;
     if (window.XMLHttpRequest) { // Mozilla, Safari, ...
         http_request = new XMLHttpRequest();
@@ -74,12 +77,15 @@ function dbgetrequest(url,command, param) {
         alert('Giving up :( Cannot create an XMLHTTP instance');
         return false;
     }
+		//end
+		
 		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
 		http_request.open("GET",url,true);	
 		http_request.send(null);
 }
 
 function dbxmlrpcrequest(command,param,type) {
+	//standard
     var http_request = false;
     if (window.XMLHttpRequest) { // Mozilla, Safari, ...
         http_request = new XMLHttpRequest();
@@ -96,12 +102,14 @@ function dbxmlrpcrequest(command,param,type) {
         alert('Giving up :( Cannot create an XMLHTTP instance');
         return false;
     }
+		//end
+		
 		http_request.onreadystatechange=function() { statechange(http_request,command,param,type); };
 		http_request.open("POST",url,true);
 		if (command == "getparamdef2") {
 			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
 		} else {
-			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>ctxid=' + ctxid + '</string></value> </param></params></methodCall>';	
+			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
 		}
 		http_request.send(request);
 }
@@ -116,7 +124,7 @@ function statechange(http_request,command,param,type) {
 						c = document.getElementById("focus");
 						c.innerHTML = param;
 						d = document.getElementById("viewfull");
-						d.setAttribute("href","/db/" + type + "?name=" + param);
+						if (type != "None") {d.setAttribute("href","/db/" + type + "?name=" + param);}
 						
 						if (command == "getchildrenofparents") {
 							var array = new Array();
@@ -131,7 +139,13 @@ function statechange(http_request,command,param,type) {
 								array[parentname] = itemsarray;
 							}
 							string = "";
+							string_parentfield = "";
+
+							parentfield = document.getElementById("parent_of_new_parameter")
+
+														
 							for(i in array) {
+							string_parentfield = string_parentfield + " " + i
 							string = string + '<div class="parent"><a onClick="display(\'' + i + '\',\'' + type + '\')">' + i + '</a></div><div class="parents">';
 								for(z in array[i]) {
 									string = string + '<span class="child"><a onClick="display(\'' + array[i][z] + '\',\'' + type + '\')">' + array[i][z] + '</a></span> ';
@@ -139,6 +153,7 @@ function statechange(http_request,command,param,type) {
 							string = string + "</div>";
 							}
 							b.innerHTML = string;	
+							parentfield.value = string_parentfield;
 						}
 
 						if (command == "getchildren" || command == "getcousins") {
@@ -164,7 +179,7 @@ function statechange(http_request,command,param,type) {
 							for(var j = 1; j < parents.length; j=j+1) {
 								z = parents[j].getElementsByTagName('string')
 								try { v = z[1].firstChild.nodeValue } catch(e) {v = ""}
-								string = string + z[0].firstChild.nodeValue + ": "  + v + "<br />";
+								try { string = string + z[0].firstChild.nodeValue + ": "  + v + "<br />"; } catch(e) {string = ""}
 							}
 							b.innerHTML = string;
 						}
@@ -194,7 +209,7 @@ function statechange(http_request,command,param,type) {
 					
 					if (command == "recorddefsimple") {
 						b.innerHTML = responsetext;
-						switchin("param","defaultview");
+						try {switchin("param","mainview");} catch(error) {}
 					}
 
 

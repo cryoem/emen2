@@ -1163,8 +1163,16 @@ class Record:
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
-	#	if value==None or value=="none" : print "rec %d, key=%s set to None"%(self.recid,self.key)
-		key=key.strip().lower()
+
+		try:
+			if value==None or value=="none" : 
+				print "rec %d, key=%s set to None"%(self.recid,self.key)
+			else:
+				key=key.strip().lower()
+		except:
+			key=""
+
+
 		if (key=="comments") :
 			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:

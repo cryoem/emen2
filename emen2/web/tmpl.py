@@ -144,13 +144,69 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		<form name="full_form" method="POST" action="javascript:make_param()">
 		<table>
 		<tr><td>Name:</td><td><input type="text"; id = "name_of_new_parameter"></td><tr>
-		<tr><td>Parent:</td><td><input type="text"; id="parent_of_new_parameter"></td></tr>
+		<tr><td>Parents:</td><td><input type="text"; id="parent_of_new_parameter"></td></tr>
+		<tr><td colspan="2">Short description:</td></tr><tr><td colspan="2"><input type="text"; id = "short_description_of_new_parameter"></td></tr>
+		<tr><td colspan="2">Long description:</td></tr><tr><td colspan="2"><textarea rows="5" cols="30" id = "long_description_of_new_parameter"></textarea></td></tr>
+		
+		<tr><td colspan="2">Default units:</td></tr><tr><td colspan="2"><select id = "default_units_of_new_parameter">	
+			<option value="%">Percent (%)</option>
+			<option value="%RH">Relative Humidity (%RH)</option>
+			<option value="A">Anstroms (A)</option>
+			<option value="A/pix">Anstroms/Pixel (A/pix)</option>
+			<option value="A^2">Anstroms Squared (A^2)</option>
+			<option value="C">Degrees Celsius (C)</option>
+			<option value="K">Degrees Kelvin (K)</option>
+			<option value="KDa">Kilodaltons (KDa)</option>
+			<option value="None">None</option>
+			<option value="Pi">Radians (Pi)</option>
+			<option value="Amp/cm2">Amperes per cm^2 (Amp/cm2)</option>
+			<option value="V">Volts (V)</option>
+			<option value="cm">Centimeters (cm)</option>
+			<option value="degree">Degrees (degree)</option>
+			<option value="e/A2/sec">e/A2/sec</option>
+			<option value="kv">Kilovolts (kv)</option>
+			<option value="mg/ml">mg/ml concentration (mg/ml)</option>
+			<option value="min">Minutes (min)</option>
+			<option value="mm">Millimeters (mm)</option>
+			<option value="mrad">Milliradians (mrad)</option>
+			<option value="ms">Milliseconds (ms)</option>
+			<option value="n/a">N/A</option>
+			<option value="nm">Nanometers (nm)</option>
+			<option value="p/ml">? (p/ml)</option>
+			<option value="pixels">Pixels</option>
+			<option value="s">Seconds (s)</option>
+			<option value="ul">Microliters (ul)</option>
+			<option value="um">Micrometers (um)</option>
+			<option value="unitless">Unitless</option>
+		</select></td></tr>
+
+		<tr><td>Vartype:</td><td><select id = "vartype_of_new_parameter">
+			<option value="string">String</option>
+			<option value="int">Integer</option>
+			<option value="float">Floating point</option>
+			<option value="list">List</option>
+			<option value="list">Link</option>		
+			<option value="boolean">Boolean</option>
+			<option value="choice">Choice</option>						
+		</select></td></tr>
+		
+		<tr><td>Property:</td><td><select id = "property_of_new_parameter">
+			<option value="count">Count</option>
+			<option value="length">Length</option>
+			<option value="angle">Angle</option>
+			<option value="bfactor">B-factor</option>
+			<option value="area">Area</option>
+			<option value="concentration">Concentration</option>
+			<option value="mass">Mass</option>
+			<option value="time">Time</option>
+			<option value="volume">Volume</option>
+			<option value="density">Density</option>
+			<option value="None">None</option>
+		</select></td></tr>
+
 		<tr><td>Choices:</td><td><input type="text"; id = "choices_of_new_parameter"></td></tr>
-		<tr><td>Default units:</td><td><input type="text"; id = "default_units_of_new_parameter"></td></tr>
-		<tr><td>Vartype:</td><td><input type="text"; id = "vartype_of_new_parameter"></td></tr>
-		<tr><td>Property:</td><td><input type="text"; id = "property_of_new_parameter"></td></tr>
-		<tr><td>Short description:</td><td><input type="text"; id = "short_description_of_new_parameter"></td></tr>
-		<tr><td>Long description:</td><td><input type="text"; id = "long_description_of_new_parameter"></td></tr>
+
+
 		</table>
 		<input type="submit">
 		</form>"""

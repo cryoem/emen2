@@ -22,7 +22,8 @@ def startup(path):
 	
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
-	def _cbRender(self, result, request):
+	def _cbRender(self, result, request, ctxid=None):
+#		print "cbRender ctxid: %s"%ctxid
 		#hari:
 		#allow_none = True
 		if isinstance(result, xmlrpc.Handler):
@@ -39,7 +40,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
-
+		
+		
 	
 	def xmlrpc_ping(self):
 		return "pong"
@@ -51,7 +53,6 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		d=[dict(x.__dict__) for x in c]
 		
 		return {"a":None,"b":None}
-
 		
 	def xmlrpc_login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""login method, should probably be called with https, TODO: note no support for host validation yet
@@ -62,30 +63,32 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		except:
 			return 0,"Login Failed"	
 
-	def xmlrpc_checkcontext(self,ctxid,host=None):
+	def xmlrpc_checkcontext(self,ctxid=None,host=None):
 		"""This routine will verify that a context id is valid, and return the
 		authorized username for a context as well as a list of authorized groups"""
+#		print ctxid
+#		print db.checkcontext(ctxid,host)
 		return db.checkcontext(ctxid,host)
 		
-	def xmlrpc_disableuser(self,username,ctxid,host=None):
+	def xmlrpc_disableuser(self,username,ctxid=None,host=None):
 		"""This will disable a user's account"""
 		db.disableuser(username,ctxid,host)
 	
-	def xmlrpc_approveuser(self,username,ctxid,host=None):
+	def xmlrpc_approveuser(self,username,ctxid=None,host=None):
 		"""Database administrators use this to approve users in the new user queue"""
 		db.approveuser(username,ctxid,host)
 	
-	def xmlrpc_getuserqueue(self,ctxid,host=None):
+	def xmlrpc_getuserqueue(self,ctxid=None,host=None):
 		"""Returns a list of users awaiting approval"""
 		return db.getuserqueue(ctxid,host)
 
-	def xmlrpc_putuser(self,user,ctxid,host=None):
+	def xmlrpc_putuser(self,user,ctxid=None,host=None):
 		"""Commit a modified User record into the database, passwords
 		cannot be changed with this method, and only the user and root
 		can make this change."""
 		db.putuser(user,ctxid,host)
 
-	def xmlrpc_setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
+	def xmlrpc_setpassword(self,username,oldpassword,newpassword,ctxid=None,host=None):
 		"""This will modify a User's password. Only the user or a root
 		user may do this. oldpassword is required for the user, but not
 		for root users"""
@@ -99,41 +102,41 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		usero.__dict__.update(user)
 		db.adduser(self,usero)
 
-	def xmlrpc_getuser(self,username,ctxid,host=None):
+	def xmlrpc_getuser(self,username,ctxid=None,host=None):
 		"""Return a User record"""
 		return db.getuser(username,ctxid,host).__dict__
 		
-	def xmlrpc_getqueueduser(self,username,ctxid,host=None):
+	def xmlrpc_getqueueduser(self,username,ctxid=None,host=None):
 		"""Return a User record """
 		return db.getuser(username,ctxid,host).__dict__
 		
-	def xmlrpc_getusernames(self,ctxid,host=None):
+	def xmlrpc_getusernames(self,ctxid=None,host=None):
 		"""Return a list of all usernames in the database"""
 		return db.getusernames(ctxid,host)
 
-	def xmlrpc_getworkflow(self,ctxid,host=None):
+	def xmlrpc_getworkflow(self,ctxid=None,host=None):
 		"""This returns a list of workflow objects (dictionaries) for the given user
 		based on the current context"""
 		r=db.getworkflow(ctxid,host)
 		r=[x.__dict__ for x in r]
 		return r
 		
-	def xmlrpc_setworkflow(self,wflist,ctxid,host=None) :
+	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None) :
 		"""This will set the user's entire workflow list. This should rarely be used."""
 		w=[Database.WorkFlow(with=i) for i in wflist]
 		db.setworkflow(w,ctxid,host)
 		
-	def xmlrpc_addworkflowitem(self,work,ctxid,host=None) :
+	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None) :
 		"""Adds a Workflow object to the user's workflow"""
 		worko=Database.WorkFlow()
 		worko.__dict__.update(work)
 		db.addworkflowitem(worko,ctxid,host)
 	
-	def xmlrpc_delworkflowitem(self,wfid,ctxid,host=None) :
+	def xmlrpc_delworkflowitem(self,wfid,ctxid=None,host=None) :
 		"""Delete a single workflow entry"""
 		db.delworkflowitem(wfid,ctxid,host)
 		
-	def xmlrpc_getrecords(self,recids,ctxid,host=None,dbid=None):
+	def xmlrpc_getrecords(self,recids,ctxid=None,host=None,dbid=None):
 		"""Retrieve records from the database as a list of dictionaries"""
 		ret=[]
 		try:
@@ -144,7 +147,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		return ret
 	
-	def xmlrpc_getrecord(self,recid,ctxid,dbid=None):
+	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
 			r=db.getrecord(recid,ctxid,dbid)
@@ -153,7 +156,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		return r.items()
 	
-	def xmlrpc_putrecord(self,record,ctxid,host=None):
+	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
 		try:
 			r=db.putrecord(recid,record,ctxid,host)
@@ -161,7 +164,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			
 		return r
 		
-	def xmlrpc_getproto(self,classtype,ctxid,host=None):
+	def xmlrpc_getproto(self,classtype,ctxid=None,host=None):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
 		if   (classtype.lower()=="user") :
@@ -184,18 +187,21 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""This will add a choice to ParamDefs of vartype 'string'"""
 		db.addparamchoice(paramdefname,choice)
 			
-	def xmlrpc_addparamdef(self,paramdef,ctxid,host=None,parent=None):
+	def xmlrpc_addparamdef(self,paramdef,ctxid=None,host=None,parent=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 		r=Database.ParamDef()
 		r.__dict__.update(paramdef)
 		db.addparamdef(r,ctxid,host,parent)
 	
-	def xmlrpc_addparamdef2(self, name, ctxid, parent=None, vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
+	def xmlrpc_addparamdef2(self, name, ctxid=None, parent=None, vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
+
+		print locals()
 		a = Database.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
 		#print ctxid 
 		#db.addparamdef(a,ctxid,host,parent)
-		db.addparamdef(a,ctxid,parent=parent)	
+		print "addparamdef2 ctxid: %s"%ctxid
+		db.addparamdef(a,ctxid=ctxid,parent=parent)	
 		
 	def xmlrpc_getparamdef(self,paramdefname,host=None):
 		"""Anyone may retrieve any paramdef"""
@@ -237,30 +243,31 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""List of all paramdef names"""
 		return tuple(db.getparamdefnames())
 	
-	def xmlrpc_addrecorddef(self,recdef,ctxid,host=None,parent=None):
+	def xmlrpc_addrecorddef(self,recdef,ctxid=None,host=None,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=Database.RecordDef(rectype)
 		db.addrecorddef(r,ctxid,parent)
 		
-	def xmlrpc_addrecorddef2(self,name,ctxid,mainview=None, views=None, params=None, host=None,parent=None):
+	def xmlrpc_addrecorddef2(self,name,ctxid=None,mainview=None, views=None, params=None, host=None,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=Database.RecordDef(rectype)
 		db.addrecorddef(r,ctxid,parent)
 			
 #	def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
-	def xmlrpc_getrecorddef(self,rectypename,ctxid,host=None,recid=None):
+	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,host=None,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
 		return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ 
 		
-	def xmlrpc_getrecorddef2(self,rectypename,ctxid,host=None,recid=None):
+	def xmlrpc_getrecorddef2(self,rectypename,ctxid=None,host=None,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
 		#return db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ no such name as recname defined, typo..?
 		print "getting recorddef: %s"%rectypename
 		b = ()
+		print "getrecorddef2 ctxid: %s"%host
 		a = db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__ 	
 		for x in a:
 			t = x
@@ -290,6 +297,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
+
+
 #		print key
 #		print keytype
 #		print db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
@@ -347,59 +356,59 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Remove a 'cousin' relationship."""
 		return db.unlink(key1,key2,keytype,ctxid=None,host=None)
 	
-	def xmlrpc_isManager(self,ctxid,host=None):
+	def xmlrpc_isManager(self,ctxid=None,host=None):
 		"""Returns true if context has manager permissions"""
 		return db.isManager(ctxid,host)
 	
-	def xmlrpc_newbinary(self,date,name,ctxid,host=None):
+	def xmlrpc_newbinary(self,date,name,ctxid=None,host=None):
 		"""make a new binary identifier"""
 		return db.newbinary(date,name,ctxid,host)
 	
-	def xmlrpc_getbinary(self,ident,ctxid,host=None):
+	def xmlrpc_getbinary(self,ident,ctxid=None,host=None):
 		"""look up an existing binary identifier"""
 		return db.getbinary(ident,ctxid,host)
 	
-	def xmlrpc_query(self,query,ctxid,host=None,retindex=False) :
+	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False) :
 		"""full database query"""
 		return tuple(db.query(query,ctxid,host,retindex))
 	
-	def xmlrpc_getindexbycontext(self,ctxid,host=None):
+	def xmlrpc_getindexbycontext(self,ctxid=None,host=None):
 		return tuple(db.getindexbycontext(ctxid,host))
 		
-	def xmlrpc_getindexbyuser(self,username,ctxid,host=None):
+	def xmlrpc_getindexbyuser(self,username,ctxid=None,host=None):
 		return tuple(db.getindexbyuser(username,ctxid,host))
 	
-	def xmlrpc_getindexbyrecorddef(self,recdefname,ctxid,host=None):
+	def xmlrpc_getindexbyrecorddef(self,recdefname,ctxid=None,host=None):
 		return tuple(db.getindexbyrecorddef(recdefname,ctxid,host))
 	
 	def xmlrpc_getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
 		return tuple(db.getindexkeys(paramname,valrange,ctxid,host))
 	
-	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid,host=None):
+	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid=None,host=None):
 		return tuple(db.getindexbyvalue(paramname,valrange,ctxid,host))
 	
-	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
+	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid=None,host=None,subset=None):
 		return tuple(db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset))
 	
 	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None):
 		return db.groupbyrecorddef(all,ctxid,host)
 	
-	def xmlrpc_getworkflowitem(self,wfid,ctxid,host=None):
+	def xmlrpc_getworkflowitem(self,wfid,ctxid=None,host=None):
 		return db.getworkflowitem(wfid,ctxid,host)
 	
-	def xmlrpc_putrecorddef(self,recdef,ctxid,host=None):
+	def xmlrpc_putrecorddef(self,recdef,ctxid=None,host=None):
 		return db.putrecorddef(recdef,ctxid,host)
 
 	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None) :
 		return db.getrecordnames(ctxid,dbid,host)
 	
-	def xmlrpc_getrecordschangetime(self,recids,ctxid,host=None):
+	def xmlrpc_getrecordschangetime(self,recids,ctxid=None,host=None):
 		return db.getrecordschangetime(recids,ctxid,host)
 	
-	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid,host=None,recurse=0):
+	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid=None,host=None,recurse=0):
 		return db.secrecordadduser(usertuple,recid,ctxid,host,recurse)
 	
-	def xmlrpc_secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
+	def xmlrpc_secrecorddeluser(self,users,recid,ctxid=None,host=None,recurse=0):
 		return db.secrecorddeluser(users,recid,ctxid,host,recurse)
 	
 
