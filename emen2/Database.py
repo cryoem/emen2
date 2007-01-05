@@ -1166,7 +1166,7 @@ class Record:
 
 		try:
 			if value==None or value=="none" : 
-				print "rec %d, key=%s set to None"%(self.recid,self.key)
+				print "rec %s, key=%s set to None"%(self.recid,key)
 			else:
 				key=key.strip().lower()
 		except:
