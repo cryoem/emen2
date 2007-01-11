@@ -266,7 +266,7 @@ class BTree:
 			c=loads(self.pcdb.get(dumps(tag)))
 #			print c
 			if paramname :
-				c=filter(lambda x:x[1]==paramname,c)
+			c=filter(lambda x:x[1]==paramname,c)
 				return [x[0] for x in c]
 			else: return c
 		except:
@@ -1305,11 +1305,15 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
-		
+		self.__btreelist = []
+
 		# Users
 		self.__users=BTree("users",path+"/security/users.bdb",dbenv=self.__dbenv)						# active database users
+		self.__btreelist.append(self.__users)
 		self.__newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.__dbenv)			# new users pending approval
+		self.__btreelist.append(self.__newuserqueue)
 		self.__contexts_p=BTree("contexts",path+"/security/contexts.bdb",dbenv=self.__dbenv)			# multisession persistent contexts
+		self.__btreelist.append(self.__contexts_p)
 		self.__contexts={}			# local cache dictionary of valid contexts
 		
 		# Create an initial administrative user for the database
@@ -1327,17 +1331,20 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 
 		# Binary data names indexed by date
 		self.__bdocounter=BTree("BinNames",path+"/BinNames.bdb",dbenv=self.__dbenv,relate=0)
+		self.__btreelist.append(self.__bdocounter)
 		
 		# Defined ParamDefs
 		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
+		self.__btreelist.append(self.__paramdefs)
 
 		# Defined RecordDefs
 		self.__recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.__dbenv,relate=1)					# RecordDef objects indexed by name
-					
+		self.__btreelist.append(self.__recorddefs)
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
 		# and database information is stored with key=0
 		self.__records=IntBTree("database",path+"/database.bdb",dbenv=self.__dbenv,relate=1)						# The actual database, containing id referenced Records
+		self.__btreelist.append(self.__records)
 		try:
 			maxr=self.__records[-1]
 		except:
@@ -1351,7 +1358,9 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		else:
 			self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
 			self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
+		self.__btreelist.extend([self.__secrindex, self.__recorddefindex])
 		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
+		self.__btreelist.append(self.__timeindex)
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 		#db sequence
 		self.__dbseq = self.__records.create_sequence()
@@ -1359,10 +1368,12 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 
 		# The mirror database for storing offsite records
 		self.__mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.__dbenv)
+		self.__btreelist.append(self.__mirrorrecords)
 
 		# Workflow database, user indexed btree of lists of things to do
 		# again, key -1 is used to store the wfid counter
 		self.__workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.__dbenv)
+		self.__btreelist.append(self.__workflow)
 		try:
 			max=self.__workflow[-1]
 		except:
@@ -3921,3 +3932,11 @@ or None if no match is found."""
 				else : print "Unknown category ",r
 								
 		print "Users=",nu,"  ParamDef=",npd,"  RecDef=",nrd,"  Records=",nr,"  Links=",np
+
+	def __del__(self): self.close
+
+	def close(self):
+		self.__btreelist.extend(self.__fieldindex.values())
+		for bt in self.__btreelist:
+			bt.close()
+
