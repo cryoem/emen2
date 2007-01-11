@@ -266,7 +266,7 @@ class BTree:
 			c=loads(self.pcdb.get(dumps(tag)))
 #			print c
 			if paramname :
-			c=filter(lambda x:x[1]==paramname,c)
+				c=filter(lambda x:x[1]==paramname,c)
 				return [x[0] for x in c]
 			else: return c
 		except:
