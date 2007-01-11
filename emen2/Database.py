@@ -3941,5 +3941,4 @@ or None if no match is found."""
 		print self.__btreelist
 		for bt in self.__btreelist:
 			print '--', bt ; sys.stdout.flush()
-			try: bt.close()
-			except AttributeError: pass
+			bt.close()
