@@ -3940,6 +3940,6 @@ or None if no match is found."""
 		self.__btreelist.extend(self.__fieldindex.values())
 		print self.__btreelist
 		for bt in self.__btreelist:
-			print '--', bt
+			print '--', bt ; sys.stdout.flush()
 			try: bt.close()
 			except AttributeError: pass
