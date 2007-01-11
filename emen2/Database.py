@@ -3936,7 +3936,9 @@ or None if no match is found."""
 	def __del__(self): self.close
 
 	def close(self):
+		print self.__btreelist
 		self.__btreelist.extend(self.__fieldindex.values())
+		print self.__btreelist
 		for bt in self.__btreelist:
-			bt.close()
-
+			try: bt.close()
+			except: (AttributeError, NameError): pass
