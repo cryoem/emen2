@@ -3941,4 +3941,4 @@ or None if no match is found."""
 		print self.__btreelist
 		for bt in self.__btreelist:
 			try: bt.close()
-			except: (AttributeError, NameError): pass
+			except (AttributeError, NameError): pass
