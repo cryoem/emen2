@@ -3940,5 +3940,6 @@ or None if no match is found."""
 		self.__btreelist.extend(self.__fieldindex.values())
 		print self.__btreelist
 		for bt in self.__btreelist:
+			print '--', bt
 			try: bt.close()
-			except (AttributeError, NameError): pass
+			except AttributeError: pass
