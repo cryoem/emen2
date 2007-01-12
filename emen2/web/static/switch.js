@@ -104,6 +104,10 @@ function init() {
 	
 	classcache["button_param"] = new Array("button_param_mainview","button_param_tabularview","button_param_onelineview","button_param_defaultview","button_param_records")
 	classcache["page_param"] = new Array("page_param_mainview","page_param_tabularview","page_param_onelineview","page_param_defaultview","page_param_records")
+
+	classcache["button_addrecord"] = new Array("button_addrecord_paramvalue","button_addrecord_inplace")
+	classcache["page_addrecord"] = new Array("page_addrecord_paramvalue","page_addrecord_inplace")
+	
 			
 	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")		
 			

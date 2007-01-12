@@ -487,7 +487,10 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 				popup = "onmouseover=\"tooltip_show('tooltip_%s');\" onmouseout=\"tooltip_hide('tooltip_%s');\""%(match.group("var1"),match.group("var1"))
 				repl = re.sub("\$","\$",match.group("var"))
 #				print "repl: %s"%repl
-				q = re.sub(repl,"<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
+				try:
+					q = re.sub(repl,"<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
+				except:
+					pass
 #				q = re.sub(repl + r"\b","<span class=\"viewparam\" %s>%s</span>"%(popup,value),q)
 
 			elif match.group("macro1"):
@@ -795,7 +798,7 @@ def html_paramdefs(path,args,ctxid,host):
 	ret.append(tmpl.singleheader("Parameter Definitions"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append("<h2>Parameter Browser</h2><br />")
+#	ret.append("<h2>Parameter Browser</h2><br />")
 	
 	ret.append(tmpl.parambrowser(viewfull=1,edit=1,addchild=1))
 	
@@ -970,8 +973,9 @@ def html_recorddefsimple(path,args,ctxid,host):
 	ret.append("<div class=\"page_param\" id=\"page_param_records\">")
 	itm=list(db.getindexbyrecorddef(args["name"][0],ctxid))
 	itm.sort()
-	if (len(itm)>100) : itm=itm[:99]
+	if (len(itm)>100) : itm=itm[:49]
 	ret.append(supp.html_htable(itm,10,"/db/record?name="))
+	ret.append('<br /><a href="/db/query?parent=&query=find+%s">More...</a>'%args["name"][0])
 	ret.append("</div>")
 
 	return " ".join(ret)
@@ -1244,42 +1248,68 @@ def html_query(path,args,ctxid,host):
 	ret = []
 
 	if args.has_key("viewinit"):
-		init="switchid('%s');"%str(args["viewinit"][0])
+		init="switchin('main','%s');"%str(args["viewinit"][0])
 		ret=[tmpl.html_header("EMEN2 Query Results",init=init)]
 	elif isplot:
-		init="switchid('allview');"
+		init="switchin('main','allview');"
 		ret=[tmpl.html_header("EMEN2 Query Results",init=init)]
 	else:
-		ret.append(tmpl.html_header("EMEN2 Query Results",init="showallids();"))
+		ret.append(tmpl.html_header("EMEN2 Query Results",init="switchin('main','allview');showclassexcept('page_main','page_main_mainview')"))
 	
 	
 	# stuff usually specified by singleheader
-	ret.append("""<div class="navtree">
+
+
+
+	ret.append("""
+	<div class="navtreeouter">	
+	<div class="navtree">
 	<table cellpadding="0" cellspacing="0" class="navtable">
-	</table>
+	</table></div>
 	</div>""")
-	
-	
-	ret.append("\n\n<div class=\"switchcontainer\">\n")
-	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></div>\n")
-	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 
-
+	ret.append("""
+	<div id="button_main_container">
+	<div class="floatcontainer">
+		<div class="button_main" id="button_main_mainview"><a href="javascript:switchin('main','mainview')">Edit Query</a></div>
+	""")
+	
 	if isplot:
-		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:switchid('allview')\">Graph</a></div>\n")
-		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
-		ret.append("\t<div class=\"switchbutton\" id=\"button_rawresult\"><a href=\"javascript:switchid('rawresult');\">Raw Result</a></div>\n")
+		ret.append("""
+		<div class="button_main" id="button_main_allview"><a href="javascript:switchin('main','allview')">Graph</a></div>
+		<div class="button_main" id="button_main_rawresult"><a href="javascript:switchin('main','rawresult')">Raw Results</a></div>
+		""")
 	else:
-		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
-		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+		ret.append("""
+		<div class="button_main" id="button_main_allview"><a href="javascript:switchin('main','allview');showclassexcept('page_main','page_main_mainview')">All Results</a></div>
+		""")
 		ret.append(supp.render_groupedhead(groupl,ctxid=ctxid))
 
+	ret.append("""
+	</div>
+	</div>
+	
+	<div class=\"pagecontainer\" id="pagecontainer_main">""")
+	
+	
+#	ret.append("\n\n<div class=\"switchcontainer\">\n")
+#	ret.append("\t<div class=\"switchbutton\" id=\"button_mainview\"><a href=\"javascript:switchid('mainview');\">Edit Query</a></div>\n")
+#	ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
 
-	ret.append("\n</div>")
+#	if isplot:
+#		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:switchid('allview')\">Graph</a></div>\n")
+#		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+#		ret.append("\t<div class=\"switchbutton\" id=\"button_rawresult\"><a href=\"javascript:switchid('rawresult');\">Raw Result</a></div>\n")
+#	else:
+#		ret.append("\t<div class=\"switchbutton\" id=\"button_allview\"><a href=\"javascript:showallids()\">All Results</a></div>\n")
+#		ret.append("\t<div class=\"switchshort\">&raquo;</div>\n")
+
+
+#	ret.append("\n</div>")
 	
-	ret.append("<div class=\"pagecontainer\" id=\"pagecontainer_main\">")
+#	ret.append("<div class=\"pagecontainer\" id=\"pagecontainer_main\">")
 	
-	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
+	ret.append("<div class=\"page_main\" id=\"page_main_mainview\">")
 	
 	ret.append(	 html_form(method="GET",action="/db/query",items=(("","parent","hidden"),("Query:","query","textarea",str(args["query"][0]),(80,8))))  )
 
@@ -1288,11 +1318,11 @@ def html_query(path,args,ctxid,host):
 	args["wfid"] = [str(wfid)]
 
 	if plotfile:
-		ret.append("<div class=\"switchpage\" id=\"page_allview\">")
+		ret.append("<div class=\"page_main\" id=\"page_main_allview\">")
 		ret.append("<img src=\"%s\" />"%plotfile)
 		ret.append("</div>")
 
-		ret.append("<div class=\"switchpage\" id=\"page_rawresult\">")
+		ret.append("<div class=\"page_main\" id=\"page_main_rawresult\">")
 		ret.append("%s"%raw)
 		ret.append("</div>")
 		
@@ -1418,52 +1448,72 @@ def html_record(path,args,ctxid,host):
 
 def html_newrecord(path,args,ctxid,host):
 	global db
-	ret=[tmpl.html_header("EMEN2 Add Record")]
+	ret=[tmpl.html_header("EMEN2 Add Record",init="switchin('addrecord','paramvalue');")]
 	
 	ret.append(tmpl.singleheader("Add Record"))
 	ret.append("<div class=\"switchpage\" id=\"page_mainview\">")
 	
-	ret.append("<h1>Add Record</h1><br>")
+#	ret.append("<h1>Add Record</h1><br>")
 	
 	if args.has_key("rdef") :
 		rec=db.newrecord(args["rdef"][0],ctxid,host,init=1)
 		parm=db.getparamdefs(rec)
-		
-#		print "Record(	",rec,"	 )"
-		bld=[("","rectype","hidden"),("","parent","hidden")]
-		print rec.keys()
-		for p in rec.keys():
-			print p
-			if p in ("owner","creator","creationtime","comments") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
-			try: bld.append((parm[p].desc_short,p,"text"))
-			except: bld.append((p,p,"text"))
+
+
+		bld=[]
+		bld.append({'form':'hidden','name':'rectype','default':args["rdef"][0]})
+		bld.append({'form':'hidden','name':'parent','default':args["parent"][0]})
+
+		for p,v in rec.items():
+			if p in ("owner","creator","creationtime","comments","rectype","permissions") or (p!="permissions" and parm[p].vartype in ("child","link")) : continue
+			if rec[p] == None: rec[p] = ""
+			
+			try: 
+				bld.append({'form':'text','name':p,'default':rec[p],'desc':parm[p].desc_short})
+			except: 
+				bld.append({'form':'text','name':p,'default':rec[p],'desc':"hmm.. %s"%p})
 
 		d=rec.items_dict()
 		d["rectype"]=args["rdef"][0]
 		if args.has_key("parent"):
-#			print "adding parent key.. %s"%args["parent"][0]
+			print "adding parent key.. %s"%args["parent"][0]
 			d["parent"]=args["parent"][0]
-#
 
-# FIXME: temp hack
-		d2 = {}
-		for i in d.keys():
-			if type(d[i]) == str:
-				try: d2[i] = d[i].split()[0]
-				except: d2[i] = None
-			else:
-				d2[i] = d[i]
 
-#		print "submitting with args: %s"%d
-#		print "shortened args: %s"%d2
-#		print "items: %s"%bld
-#		print "host: %s"%host
-		ret.append(html_form(method="POST",action="/db/newrecord",items=bld,args=d2))
+		ret.append('<div id="addrecordheader">Add Record: %s (<a href="javascript:toggle(\'changeaddrecord\');">change</a>)'%args["rdef"][0])
+		ret.append('<div id="changeaddrecord" style="display:none;background:white;clear:both;width:300px;"><ul>')
+
+		ftn=db.getrecorddefnames()
+		for i in ftn:
+			ret.append("<li><a href=\"/db/newrecord?rdef=%s&parent=%s\">%s</a></li>"%(i,args["parent"][0],i))
+
+		ret.append("</ul></div></div>")
+
+		ret.append('<div id="protobrowser">')
+
+		ret.append("<div class=\"floatcontainer\">")
+		ret.append("<div class=\"button_addrecord\" id=\"button_addrecord_paramvalue\"><a href=\"javascript:switchin('addrecord','paramvalue')\">Param and Value</a></div>")
+		ret.append("<div class=\"button_addrecord\" id=\"button_addrecord_inplace\"><a href=\"javascript:switchin('addrecord','inplace')\">In-place Editing</a></div>")
 		ret.append("</div>")
+
+		# parameter/value type
+		ret.append("<div class=\"page_param\" id=\"page_addrecord_paramvalue\">")
+		ret.append(html_form_new(method="POST",action="/db/newrecord",items=bld))
+		ret.append("</div>")
+		
+		# inplace editing
+		ret.append("<div class=\"page_param\" id=\"page_addrecord_inplace\">")
+		ret.append("In-place editing of mainview....")
+		ret.append("</div>")
+
+
+		ret.append("</div></div>")
 		ret.append(tmpl.html_footer())
 		return "".join(ret)
 
 #	print "new record args: %s"%args
+	print "Adding new record..."
+	print args
 
 	if args.has_key("parent"):
 		parent = int(args["parent"][0])
@@ -1471,22 +1521,16 @@ def html_newrecord(path,args,ctxid,host):
 
 	supp.argmap(args)
 	rec=db.newrecord(args["rectype"],ctxid,host,init=0)
-#	del args["rdef2"]
 	rec.update(args)
 
+	print "Adding record to db..."
 	rid=db.putrecord(rec,ctxid,host)
+	print "... Successful: id is %s"%rid
 
-
-	if parent :
+	if parent != None:
 		db.pclink(parent,rid,"record",ctxid)
 
-	ret.append('Record add successful.<br />New id: <a href="/db/record?name=%d">%d</a><br><br><a href="/db/index.html">Return to main menu</a>'%(rid,rid))
-	
-	ret.append("</div>")
-	ret.append(tmpl.html_footer())
-		
-	return ''.join(ret)
-	
+	return(html_record("/db/browse?name=%s"%rid,{"name":[rid]},ctxid,host))
 	
 	
 	
@@ -1729,10 +1773,37 @@ def html_form(action="",items=(),args={},method="POST"):
 	return "".join(ret)
 
 
+def html_form_new(action="",items=(),method="POST"):
+	ret = []
+	
+	for i in items:
+		if not i.has_key("cols"): i["cols"] = 20
+		if not i.has_key("rows"): i["rows"] = 5
+		if not i.has_key("default"): i["default"] = ""
 
+		if i["form"] == "select":
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><select name="%s">'%(i["desc"],i["name"]))
+			defaultchoice = ""
+			if i["default"]: ret.append('<option selected>%s</option>'%default)
+			for j in i["choices"]:
+				if j != i["default"]:
+					ret.append('<option>%s</option>'%j)
+			ret.append('</select></div>')
+				
+		elif i["form"] == "textarea":
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><textarea name="%s" cols="%d" rows="%d" id="form_%s">%s</textarea /> </div>'%(i["desc"],i["name"],i["cols"],i["rows"],i["name"],i["default"]))
+		elif i["form"] == "password":
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="password" name="%s" value="%s" size="%s" /></div>'%(i["desc"],i["name"],i["default"],i["cols"]))
+		elif i["form"] == "text":
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="text" name="%s" value="%s" size="%s" id="form_%s" /></div>'%(i["desc"],i["name"],i["default"],i["cols"],i["name"]))
+		elif i["form"] == "hidden":
+			ret.append('<input type="hidden" name="%s" value="%s" />'%(i["name"],i["default"]))
+		else:
+			ret.append('<div class="formcol1">Unknown field type: %s</div>'%i)
 
-
-
+	return '<div class="formdiv"><form action="%s" method=%s>%s<div class="formcol1"></div><div class="formcol2"><input type="submit" value="Submit" /></div></form></div>'%(action,method," ".join(ret))
+	
+	
 def html_reloadparent(path,args,ctxid,host):
 	return("""
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">

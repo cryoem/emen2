@@ -50,6 +50,8 @@ def html_header(name,init=None,short=0):
 	if not short:
 		ret.append("""
 
+<div id="container">
+
 <div id="title">
 	<a href="/db/">
 	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
@@ -76,7 +78,7 @@ def html_header(name,init=None,short=0):
 def html_footer(short=0):
 	"""Common header block, includes </body>"""
 	ret = []
-	ret.append("</div></div>")
+	ret.append("</div>")
 	
 	if not short:
 		ret.append("""
@@ -92,9 +94,9 @@ Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6
 Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
 Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
 
-</div>
+</div></div>
 		""")
-	ret.append("</body></html>")
+	ret.append("</div></body></html>")
 	return " ".join(ret)
 	
 def singleheader(title,short=0):
@@ -102,14 +104,17 @@ def singleheader(title,short=0):
 	ret = []
 	if not short:
 		ret.append("""
+	<div class="navtreeouter">	
 	<div class="navtree">
 	<table cellpadding="0" cellspacing="0" class="navtable">
-	</table>""")
+	</table></div>
+	</div>""")
 
 	ret.append("""
-	</div>
+	<div id="button_main_container">
 	<div class="floatcontainer">
 		<div class="button_main" id="button_main_mainview"><a href="">%s</a></div>
+	</div>
 	</div>
 	
 	<div class=\"pagecontainer\" id="pagecontainer_main">
@@ -149,6 +154,7 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		<tr><td colspan="2">Long description:</td></tr><tr><td colspan="2"><textarea rows="5" cols="30" id = "long_description_of_new_parameter"></textarea></td></tr>
 		
 		<tr><td colspan="2">Default units:</td></tr><tr><td colspan="2"><select id = "default_units_of_new_parameter">	
+			<option value="None">None</option>
 			<option value="%">Percent (%)</option>
 			<option value="%RH">Relative Humidity (%RH)</option>
 			<option value="A">Anstroms (A)</option>
@@ -157,7 +163,6 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="C">Degrees Celsius (C)</option>
 			<option value="K">Degrees Kelvin (K)</option>
 			<option value="KDa">Kilodaltons (KDa)</option>
-			<option value="None">None</option>
 			<option value="Pi">Radians (Pi)</option>
 			<option value="Amp/cm2">Amperes per cm^2 (Amp/cm2)</option>
 			<option value="V">Volts (V)</option>
@@ -170,7 +175,6 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="mm">Millimeters (mm)</option>
 			<option value="mrad">Milliradians (mrad)</option>
 			<option value="ms">Milliseconds (ms)</option>
-			<option value="n/a">N/A</option>
 			<option value="nm">Nanometers (nm)</option>
 			<option value="p/ml">? (p/ml)</option>
 			<option value="pixels">Pixels</option>
@@ -184,13 +188,18 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="string">String</option>
 			<option value="int">Integer</option>
 			<option value="float">Floating point</option>
-			<option value="list">List</option>
-			<option value="list">Link</option>		
+			<option value="stringlist">String List</option>
+			<option value="intlist">Integer List</option>	
 			<option value="boolean">Boolean</option>
-			<option value="choice">Choice</option>						
+			<option value="datetime">Date</option>
+			<option value="text">Text</option>
+			<option value="link">Link</option>		
+			<option value="choice">Choice</option>
+			<option value="binary">Binary</option>
 		</select></td></tr>
 		
 		<tr><td>Property:</td><td><select id = "property_of_new_parameter">
+			<option value="None">None</option>
 			<option value="count">Count</option>
 			<option value="length">Length</option>
 			<option value="angle">Angle</option>
@@ -201,7 +210,6 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="time">Time</option>
 			<option value="volume">Volume</option>
 			<option value="density">Density</option>
-			<option value="None">None</option>
 		</select></td></tr>
 
 		<tr><td>Choices:</td><td><input type="text"; id = "choices_of_new_parameter"></td></tr>
@@ -211,8 +219,8 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		<input type="submit">
 		</form>"""
 		
-	if edit:
-		form.append('<div class="l">Edit</div>')
+#	if edit:
+#		form.append('<div class="l">Edit</div>')
 
 	return("""	
 	<div id="browserid">Parameter Browser</div>
@@ -268,11 +276,11 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		<input type="submit">
 		</form>"""
 		
-	if edit:
-		form.append('<div class="l">Edit</div>')
+#	if edit:
+#		form.append('<div class="l">Edit</div>')
 
 	return("""	
-	<div id="browserid">RecordDef Browser</div>
+	<div id="browserid">Record Definition Browser</div>
 	<div id="protobrowser" %s>
 		<div class="floatleft" id="left">
 			<div id="getchildrenofparents"></div>

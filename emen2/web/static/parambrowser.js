@@ -27,7 +27,7 @@ function ctxid_init_start(cookieName)
 				cEnd = cookieData.length;
 			}
 				ctxid = unescape(cookieData.substring(j+1,cEnd));
-				alert(ctxid);
+//				alert("Setting ctxid:" + ctxid);
 			}
 		i++;
 	}
@@ -36,14 +36,14 @@ function ctxid_init_start(cookieName)
 function parambrowserinit(init,inittarget) {
 	param = init || "root";
 	target = inittarget || "";
-	ctxid = ctxid_init_start('TWISTED_SESSION_ctxid')
+	ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"paramdef");
 }
  
 function protobrowserinit(init,inittarget) {
 	param = init || "folder";
 	target = inittarget || "";
-	ctxid = ctxid_init_start('TWISTED_SESSION_ctxid')
+	ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"recorddef");
 }
 
@@ -109,6 +109,7 @@ function dbxmlrpcrequest(command,param,type) {
 		if (command == "getparamdef2") {
 			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
 		} else {
+//			alert("req: " + command + " .. ctxid: " + ctxid);
 			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
 		}
 		http_request.send(request);
@@ -145,7 +146,8 @@ function statechange(http_request,command,param,type) {
 
 														
 							for(i in array) {
-							string_parentfield = string_parentfield + " " + i
+//							string_parentfield = i + " " + string_parentfield
+							string_parentfield = i
 							string = string + '<div class="parent"><a onClick="display(\'' + i + '\',\'' + type + '\')">' + i + '</a></div><div class="parents">';
 								for(z in array[i]) {
 									string = string + '<span class="child"><a onClick="display(\'' + array[i][z] + '\',\'' + type + '\')">' + array[i][z] + '</a></span> ';

@@ -169,7 +169,7 @@ def parent_tree(recordid,ctxid=None):
 	for i in range(0,len(m)):			
 		m[i].reverse()
 
-	ret = ["\n\n<div class=\"navtree\">\n\n<table cellpadding=\"0\" cellspacing=\"0\" class=\"navtable\">\n"]
+	ret = ["\n\n<div class=\"navtreeouter\"><div class=\"navtree\">\n\n<table cellpadding=\"0\" cellspacing=\"0\" class=\"navtable\">\n"]
 
 	for posy in range(0,len(m)):
 		ret.append("\t<tr>\n")
@@ -240,7 +240,7 @@ def parent_tree(recordid,ctxid=None):
 				ret.append("\t\t<td></td>\n\t\t<td></td>\n")
 
 		ret.append("\t</tr>\n")
-	ret.append("</table>\n\n</div>")
+	ret.append("</table>\n\n</div></div>")
 
 	return " ".join(ret)
 
