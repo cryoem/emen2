@@ -1365,6 +1365,8 @@ def html_record(path,args,ctxid,host):
 	name = int(args["name"][0])
 
 #	print "html_record dir: %s"%dir()
+	
+	print "start"
 		
 	item=db.getrecord(name,ctxid)
 
@@ -1387,6 +1389,9 @@ def html_record(path,args,ctxid,host):
 		pass
 
 	# get the kids, and group them
+
+	print "getting kids"
+
 	queryresult = db.getchildren(name,ctxid=ctxid)
 	resultcount = len(queryresult)
 	groups = db.groupbyrecorddef(queryresult,ctxid)
