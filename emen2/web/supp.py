@@ -2,16 +2,33 @@
 ## SUPPORT FUNCTIONS ##############################
 ###################################################
 
+print "...loading %s"%__name__
+
+
 from sets import Set
 import re
 import os
-from emen2.TwistSupport_db import db
+from emen2.ts import db
 import html
 import tmpl
 #import supp
-import plot
+#import plot
 import pickle
 import timing
+
+
+
+
+def groupsettolist(groups):
+	groupl = {}
+	for i in groups.keys():
+		glist = list(groups[i])
+		groupl[i] = glist
+	return groupl		
+
+
+	
+
 
 # just to keep it in one place
 def regexparser():
@@ -69,7 +86,7 @@ def invert(d):
 	
 def sortlistbyparamname(paramname,subset,reverse,ctxid):
 	global db
-	print "Sorting..."
+#	print "Sorting..."
 #	print subset
 
 	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
@@ -87,7 +104,7 @@ def sortlistbyparamname(paramname,subset,reverse,ctxid):
 	if reverse:
 		sortedlist.reverse()
 
-	print "Done sorting.."
+#	print "Done sorting.."
 #	print sortedlist
 	return sortedlist
 
@@ -284,7 +301,7 @@ def encapsulate_render_grouptable(path,args,ctxid,host):
 	ret.append("\n\n<div class=\"page_main\" id=\"page_main_%s\">"%groupname)
 	ret.append("\t<h1>%s</h1>\n"%(groupname))
 
-	r = html.html_render_grouptable(path,args,ctxid,host)
+	r = html.render_grouptable(path,args,ctxid,host)
 	ret.append("".join(r))
 
 	ret.append("</div>")
@@ -338,7 +355,7 @@ def get_tile_dim(tilefile):
 
 
 	
-def html_htable(itmlist,cols,proto):
+def htable(itmlist,cols,proto):
 	"""Produce a table of values in 'cols' columns"""
 	ret=['\n\n<table>']
 
@@ -354,7 +371,7 @@ def html_htable(itmlist,cols,proto):
 
 
 
-def html_htable2(itmlist,cols,proto):
+def htable2(itmlist,cols,proto):
 	"""Produce a table of values and counts in 'cols' columns"""
 	ret=['\n\n<table>']
 
@@ -370,7 +387,7 @@ def html_htable2(itmlist,cols,proto):
 
 
 
-def html_dicttable(dict,proto):
+def dicttable(dict,proto):
 	ret = []
 	ret.append("\n\n<table class=\"dicttable\" cellspacing=\"0\" cellpadding=\"0\">\n")
 	skipped = 0
@@ -380,17 +397,6 @@ def html_dicttable(dict,proto):
 	ret.append("</table>")
 
 	return " ".join(ret)	
-
-
-
-
-def groupsettolist(groups):
-	groupl = {}
-	for i in groups.keys():
-		glist = list(groups[i])
-		groupl[i] = glist
-	return groupl		
-
 
 
 

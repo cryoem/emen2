@@ -2,24 +2,27 @@
 ### PLOT: From Haili's Cheetah interface
 ############################################
 
-from sets import Set
-import time
-import random
-from emen2.TwistSupport_db import db, DB
-import html
-import tmpl
-import supp
+print "...loading %s"%__name__
+
+
+#from sets import Set
+#import time
+#import random
+#from emen2.ts import db, DB
+#import html
+#import tmpl
+#import supp
 #import plot
 
 
-try:
-	import matplotlib
-	matplotlib.use('Agg')
-	from matplotlib import pylab, font_manager
-	from matplotlib.ticker import FormatStrFormatter
-	from matplotlib import colors
-except:
-	print "No matplotlib, plotting will fail"
+#try:
+#	import matplotlib
+#	matplotlib.use('Agg')
+#	from matplotlib import pylab, font_manager
+#	from matplotlib.ticker import FormatStrFormatter
+#	from matplotlib import colors
+#except:
+#	print "No matplotlib, plotting will fail"
 
 def render_plot(thequery,L,clickable=0, groupby=0):
 	data = L['data']

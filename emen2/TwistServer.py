@@ -1,25 +1,28 @@
 #!/bin/env python
 # This is the main server program for EMEN2
-# TwistSupport contains the actual XMLRPC methods
-# TwistSupport_html contains the HTML methods
+# ts contains the actual XMLRPC methods
+# ts_html contains the HTML methods
 
 from twisted.internet import reactor
 from twisted.web import static, server
-from emen2 import TwistSupport
-from emen2 import TwistSupport_db
+from emen2 import ts
+from emen2 import xmlrpc
+
+#from emen2 import ts_db
 from emen2.emen2config import *
 
 # Change this to a directory for the actual database files
-TwistSupport.startup(EMEN2DBPATH)
-TwistSupport_db.db=TwistSupport.db
+ts.startup(EMEN2DBPATH)
+#ts_db.db=ts.db
 
-from emen2 import TwistSupport_html
+#from emen2 import web
+import emen2.TwistSupport_html.dbresource
 
 # Change this to point to static HTML content
 root = static.File(EMEN2ROOT+"/tweb")
 
-root.putChild("db",TwistSupport_html.DBResource())
-root.putChild("RPC2",TwistSupport.DBXMLRPCResource())
+root.putChild("db",emen2.TwistSupport_html.dbresource.DBResource())
+root.putChild("RPC2",xmlrpc.DBXMLRPCResource())
 
 # You can set the port to listen on...
 reactor.listenTCP(EMEN2PORT, server.Site(root))
