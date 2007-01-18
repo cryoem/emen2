@@ -31,6 +31,19 @@ import traceback
 from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2.emen2config import *
+import atexit
+
+def DB_cleanup() :
+	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
+	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
+	necessary at the next restart"""
+	print "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
+	for i in BTree.alltrees: i.close()
+	for i in IntBTree.alltrees: i.close()
+	for i in FieldBTree.alltrees: i.close()
+
+
+atexit.register(DB_cleanup)
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
 
@@ -111,12 +124,16 @@ the specified number of significant digits. ie 5722,2 -> 5800"""
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
+	
+	alltrees=[]
 	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
 		specified. If relate is true, then parent/child and cousin relationships
 		between records are also supported. """
 		global globalenv
+		BTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
+		self.txn=None	# current transaction used for all database operations
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -141,6 +158,29 @@ class BTree:
 			self.reldb.open(file+".rel",name,db.DB_BTREE,db.DB_CREATE)
 		else : self.relate=0
 
+	def __del__(self):
+		self.close()
+
+	def close(self):
+		BTree.alltrees.remove(self)
+		try:
+			self.pcdb.close()
+			self.cpdb.close()
+			self.reldb.close()
+		except: pass
+		self.bdb.close()
+
+	def set_txn(self,txn):
+		"""sets the current transaction. Note that other python threads will not be able to use this
+		BTree until it is 'released' by setting the txn back to None"""
+		if txn=None: 
+			self.txn=None
+			return
+		if self.txn : LOG(2,"Transaction deadlock %s"%str(self))
+		while self.txn :
+			time.sleep(.1)
+		self.txn=txn
+
 	def rmvlist(self,key,item):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
 		a=self[key]
@@ -153,11 +193,12 @@ class BTree:
 			self[key]=(self[key]+[item])
 		else: self[key]=[item]
 
-	def pclink(self,parenttag,childtag):
+	def pclink(self,parenttag,childtag,txn=None):
 		"""This establishes a parent-child relationship between two tags.
 		The relationship may also be named. That is the parent may
 		get a list of children only with a specific paramname. Note
 		that empty strings and None cannot be used as tags"""
+		if not txn : txn=self.txn
 		if not self.relate : raise Exception,"relate option required in BTree"
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 				
@@ -168,89 +209,93 @@ class BTree:
 			raise KeyError,"Cannot link nonexistent key '%s'"%parenttag
 			print "Cannot link nonexistent key '%s'"%parenttag
 		try:
-			o=loads(self.pcdb.get(dumps(parenttag)))
+			o=loads(self.pcdb.get(dumps(parenttag),txn=self.txn))
 		except:
 			o=[]
 
 		if not childtag in o:
 			o.append(childtag)
-			self.pcdb.put(dumps(parenttag),dumps(o))
+			self.pcdb.put(dumps(parenttag),dumps(o),txn=txn)
 			
 			try:
-				o=loads(self.cpdb.get(dumps(childtag)))
+				o=loads(self.cpdb.get(dumps(childtag),txn=self.txn))
 			except:
 				o=[]
 			
 			o.append(parenttag)
-			self.cpdb.put(dumps(childtag),dumps(o))
+			self.cpdb.put(dumps(childtag),dumps(o),txn=txn)
 #	        print self.children(parenttag)
 		
-	def pcunlink(self,parenttag,childtag,paramname=""):
+	def pcunlink(self,parenttag,childtag,paramname="",txn=None):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
+		if not txn : txn=self.txn
 		if not self.relate : raise Exception,"relate option required"
 		
 		try:
-			o=loads(self.pcdb.get(dumps(parenttag)))
+			o=loads(self.pcdb.get(dumps(parenttag),txn=self.txn))
 		except:
 			return
 			
 		if not (childtag,paramname) in o: return
 		
 		o.remove((childtag,paramname))
-		self.pcdb.put(dumps(parenttag),dumps(o))
+		self.pcdb.put(dumps(parenttag),dumps(o),txn=self.txn)
 		
-		o=loads(self.cpdb.get(dumps(childtag)))
+		o=loads(self.cpdb.get(dumps(childtag),txn=self.txn))
 		o.remove(parenttag)
-		self.cpdb.put(dumps(childtag),dumps(o))	
+		self.cpdb.put(dumps(childtag),dumps(o),txn=self.txn)
 		
-	def link(self,tag1,tag2):
+	def link(self,tag1,tag2,txn=None):
 		"""Establishes a lateral relationship (cousins) between two tags"""
+		if not txn : txn=self.txn
 		if not self.relate : raise Exception,"relate option required"
 		
 		if not self.has_key(tag1) : raise KeyError,"Cannot link nonexistent key '%s'"%tag1
 		if not self.has_key(tag2) : raise KeyError,"Cannot link nonexistent key '%s'"%tag2
 		
 		try:
-			o=loads(self.reldb.get(dumps(tag1)))
+			o=loads(self.reldb.get(dumps(tag1),txn=self.txn))
 		except:
 			o=[]
 			
 		if not tag2 in o:
 			o.append(tag2)
-			self.reldb.put(dumps(tag1),dumps(o))
+			self.reldb.put(dumps(tag1),dumps(o),txn=self.txn)
 	
 			try:
-				o=loads(self.reldb.get(dumps(tag2)))
+				o=loads(self.reldb.get(dumps(tag2),txn=self.txn))
 			except:
 				o=[]
 			
 			o.append(tag1)
-			self.reldb.put(dumps(tag2),dumps(o))	
+			self.reldb.put(dumps(tag2),dumps(o),txn=self.txn)
 		
 			
-	def unlink(self,tag1,tag2):
+	def unlink(self,tag1,tag2,txn=None):
 		"""Removes a lateral relationship (cousins) between two tags"""
+		if not txn : txn=self.txn
+
 		if not self.relate : raise Exception,"relate option required"
 		
 		try:
-			o=loads(self.rekdb.get(dumps(tag1)))
+			o=loads(self.rekdb.get(dumps(tag1),txn=self.txn))
 		except:
 			return
 			
 		if not tag2 in o: return
 		o.remove(tag2)
-		self.reldb.put(dumps(tag1),dumps(o))
+		self.reldb.put(dumps(tag1),dumps(o),txn=self.txn)
 		
-		o=loads(self.reldb.get(dumps(tag2)))
+		o=loads(self.reldb.get(dumps(tag2),txn=self.txn))
 		o.remove(tag1)
-		self.cpdb.put(dumps(tag2),dumps(o))	
+		self.cpdb.put(dumps(tag2),dumps(o),txn=self.txn)
 	
 	def parents(self,tag):
 		"""Returns a list of the tag's parents"""
 		if not self.relate : raise Exception,"relate option required"
 		
 		try:
-			return loads(self.cpdb.get(dumps(tag)))
+			return loads(self.cpdb.get(dumps(tag),txn=self.txn))
 		except:
 			return []
 		
@@ -263,7 +308,7 @@ class BTree:
 		
 		try:
 			
-			c=loads(self.pcdb.get(dumps(tag)))
+			c=loads(self.pcdb.get(dumps(tag),txn=self.txn))
 #			print c
 			if paramname :
 				c=filter(lambda x:x[1]==paramname,c)
@@ -278,15 +323,9 @@ class BTree:
 #		tag=str(tag)
 		
 		try:
-			return loads(self.reldb.get(dumps(tag)))
+			return loads(self.reldb.get(dumps(tag),txn=self.txn))
 		except:
 			return []
-
-	def __del__(self):
-		self.close()
-
-	def close(self):
-		self.bdb.close()
 
 	def __len__(self):
 		return len(self.bdb)
@@ -294,31 +333,37 @@ class BTree:
 	def __setitem__(self,key,val):
 		if (val==None) :
 			self.__delitem__(key)
-		else : self.bdb.put(dumps(key),dumps(val))
+		else : self.bdb.put(dumps(key),dumps(val),txn=self.txn)
 
 	def __getitem__(self,key):
-		return loads(self.bdb.get(dumps(key)))
+		return loads(self.bdb.get(dumps(key),txn=self.txn))
 
 	def __delitem__(self,key):
-		self.bdb.delete(dumps(key))
+		self.bdb.delete(dumps(key),txn=self.txn)
 
 	def __contains__(self,key):
-		return self.bdb.has_key(dumps(key))
+		return self.bdb.has_key(dumps(key),txn=self.txn)
 
 	def keys(self):
-		return map(lambda x:loads(x),self.bdb.keys())
+		return map(lambda x:loads(x),self.bdb.keys(txn=self.txn))
 
 	def values(self):
-		return map(lambda x:loads(x),self.bdb.values())
+		return map(lambda x:loads(x),self.bdb.values(txn=self.txn))
 
 	def items(self):
-		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items())
+		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items(txn=self.txn))
 
 	def has_key(self,key):
-		return self.bdb.has_key(dumps(key))
+		return self.bdb.has_key(dumps(key),txn=self.txn)
 
-	def get(self,key):
-		return self[key]
+	def get(self,key,txn=None):
+		return loads(self.bdb.get(dumps(key),txn=txn))
+	
+	def set(self,key,val,txn=None):
+		"Alternative to x[key]=val with transaction set"
+		if (val==None) :
+			self.bdb.delete(dumps(key),txn=txn)
+		else : self.bdb.put(dumps(key),dumps(val),txn=txn)
 
 	def update(self,dict):
 		for i,j in dict.items(): self[i]=j
@@ -334,6 +379,7 @@ class BTree:
 class IntBTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	key are integers and data may be an arbitrary pickleable type"""
+	alltrees=[]
 	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
@@ -342,6 +388,7 @@ class IntBTree:
 		If relate is true, then parent/child and cousin relationships
 		between records are also supported. """
 		global globalenv
+		IntBTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -349,6 +396,7 @@ class IntBTree:
 #		if nelem : self.bdb.set_h_nelem(nelem)					# guess how many elements in a hash
 		self.bdb.open(file,name,db.DB_BTREE,db.DB_CREATE)
 #		self.bdb.open(file,name,db.DB_HASH,db.DB_CREATE)
+		self.txn=None	# current transaction used for all database operations
 
 		if relate :
 			self.relate=1
@@ -365,6 +413,29 @@ class IntBTree:
 			self.reldb=db.DB(dbenv)
 			self.reldb.index_open(file+".rel","d",name,db.DB_BTREE,db.DB_CREATE)
 		else : self.relate=0
+
+	def __del__(self):
+		self.close()
+
+	def close(self):
+		IntBTree.alltrees.remove(self)
+		try:
+			self.pcdb.close()
+			self.cpdb.close()
+			self.reldb.close()
+		except: pass
+		self.bdb.close()
+	
+	def set_txn(self,txn):
+		"""sets the current transaction. Note that other python threads will not be able to use this
+		BTree until it is 'released' by setting the txn back to None"""
+		if txn=None: 
+			self.txn=None
+			return
+		if self.txn : LOG(2,"Transaction deadlock %s"%str(self))
+		while self.txn :
+			time.sleep(.1)
+		self.txn=txn
 
 	def rmvlist(self,key,item):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
@@ -395,8 +466,8 @@ class IntBTree:
 			raise KeyError,"Cannot link nonexistent key '%d'"%parenttag
 			print "Cannot link nonexistent key '%d'"%parenttag
 		
-		self.pcdb.index_append(parenttag,childtag)
-		self.cpdb.index_append(childtag,parenttag)
+		self.pcdb.index_append(parenttag,childtag,txn=self.txn)
+		self.cpdb.index_append(childtag,parenttag,txn=self.txn)
 		
 	def pcunlink(self,parenttag,childtag):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
@@ -404,8 +475,8 @@ class IntBTree:
 		parenttag=int(parenttag)
 		childtag=int(childtag)
 		
-		self.pcdb.index_remove(parenttag,childtag)
-		self.cpdb.index_remove(childtag,parenttag)
+		self.pcdb.index_remove(parenttag,childtag,txn=self.txn)
+		self.cpdb.index_remove(childtag,parenttag,txn=self.txn)
 		
 	def link(self,tag1,tag2):
 		"""Establishes a lateral relationship (cousins) between two tags"""
@@ -416,8 +487,8 @@ class IntBTree:
 		if not self.has_key(tag1) : raise KeyError,"Cannot link nonexistent key '%s'"%tag1
 		if not self.has_key(tag2) : raise KeyError,"Cannot link nonexistent key '%s'"%tag2
 		
-		self.reldb.index_append(tag1,tag2)
-		self.reldb.index_append(tag2,tag1)
+		self.reldb.index_append(tag1,tag2,txn=self.txn)
+		self.reldb.index_append(tag2,tag1,txn=self.txn)
 		
 	def unlink(self,tag1,tag2):
 		"""Removes a lateral relationship (cousins) between two tags"""
@@ -425,14 +496,14 @@ class IntBTree:
 		tag1=int(tag1)
 		tag2=int(tag2)
 		
-		self.reldb.index_remove(tag1,tag2)
-		self.reldb.index_remove(tag2,tag1)
+		self.reldb.index_remove(tag1,tag2,txn=self.txn)
+		self.reldb.index_remove(tag2,tag1,txn=self.txn)
 			
 	def parents(self,tag):
 		"""Returns a list of the tag's parents"""
 		if not self.relate : raise Exception,"relate option required"
 		
-		ret=self.cpdb.index_get(int(tag))
+		ret=self.cpdb.index_get(int(tag),txn=self.txn)
 		if ret==None: return []
 		return ret
 		
@@ -441,7 +512,7 @@ class IntBTree:
 		"""Returns a list of the tag's children."""
 		if not self.relate : raise Exception,"relate option required"
 		
-		ret=self.pcdb.index_get(int(tag))
+		ret=self.pcdb.index_get(int(tag),txn=self.txn)
 		if ret==None: return []
 		return ret
 	
@@ -449,15 +520,10 @@ class IntBTree:
 		"""Returns a list of tags related to the given tag"""
 		if not self.relate : raise Exception,"relate option required"
 		
-		ret=self.reldb.index_get(int(tag))
+		ret=self.reldb.index_get(int(tag),txn=self.txn)
 		if ret==None: return []
 		return ret
 
-	def __del__(self):
-		self.close()
-
-	def close(self):
-		self.bdb.close()
 
 	def __len__(self):
 		return len(self.bdb)
@@ -465,47 +531,56 @@ class IntBTree:
 	def __setitem__(self,key,val):
 		key=int(key)
 		if (val==None) :
-			self.__delitem__(key)
-		else : self.bdb.put(dumps(key),dumps(val))
+			self.__delitem__(key,txn=self.txn)
+		else : self.bdb.put(dumps(key),dumps(val),txn=self.txn)
 
 	def __getitem__(self,key):
 		key=int(key)
-		return loads(self.bdb.get(dumps(key)))
+		return loads(self.bdb.get(dumps(key),txn=self.txn))
 
 	def __delitem__(self,key):
 		key=int(key)
-		self.bdb.delete(dumps(key))
+		self.bdb.delete(dumps(key),txn=self.txn)
 
 	def __contains__(self,key):
 		key=int(key)
-		return self.bdb.has_key(dumps(key))
+		return self.bdb.has_key(dumps(key),txn=self.txn)
 
 	def keys(self):
-		return map(lambda x:loads(x),self.bdb.keys())
+		return map(lambda x:loads(x),self.bdb.keys(txn=self.txn))
 
 	def values(self):
-		return map(lambda x:loads(x),self.bdb.values())
+		return map(lambda x:loads(x),self.bdb.values(txn=self.txn))
 
 	def items(self):
-		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items())
+		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items(txn=self.txn))
 
 	def has_key(self,key):
 		key=int(key)
-		return self.bdb.has_key(dumps(key))
+		return self.bdb.has_key(dumps(key),txn=self.txn)
 
-	def get(self,key):
+	def get(self,key,txn=None):
+		if not txn : txn=self.txn
 		key=int(key)
-		return self[key]
+		return loads(self.bdb.get(dumps(key),txn=txn))
+	
+	def set(self,key,val,txn=None):
+		"Alternative to x[key]=val with transaction set"
+		if not txn : txn=self.txn
+		key=int(key)
+		if (val==None) :
+			self.bdb.delete(dumps(key),txn=txn)
+		else : self.bdb.put(dumps(key),dumps(val),txn=txn)
 
 	def update(self,dict):
 		for i,j in dict.items(): self[int(i)]=j
 
 	def create_sequence(self):
-	        dbseq = self.bdb.sequence_create()
-	        dbseq.init_value()
-		dbseq.set_range(0, 2000000000)
+		dbseq = db.DBSequence(self.bdb)
+		dbseq.init_value(0)
+		dbseq.set_range((0, 2000000000))		# technically 64 bit integers are allowed, but we'll stick with 32 bits for now
 		dbseq.set_cachesize(1)
-		dbseq.open(None, 'sequence', 0|db.DB_CREATE|db.DB_THREAD)
+		dbseq.open(key='sequence', flags=db.DB_CREATE|db.DB_THREAD)
 		return dbseq
 
 		
@@ -519,6 +594,7 @@ class FieldBTree:
 	"f" - float keys (64 bit)
 	"s" - string keys
 	"""
+	alltrees=[]
 	def __init__(self,name,file=None,keytype="s",dbenv=None,nelem=0):
 		global globalenv
 		"""
@@ -527,6 +603,7 @@ class FieldBTree:
 		globalenv.set_data_dir(".")
 		globalenv.open("./data/home" ,db.DB_CREATE+db.DB_INIT_MPOOL)
 		"""
+		FieldBTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -535,7 +612,26 @@ class FieldBTree:
 		self.bdb.index_open(file,keytype,name,db.DB_BTREE,db.DB_CREATE)
 		self.keytype=keytype
 #		self.bdb.open(file,name,db.DB_HASH,db.DB_CREATE)
+		self.txn=None	# current transaction used for all database operations
 
+	def __del__(self):
+		self.close()
+
+	def close(self):
+		FieldBTree.alltrees.remove(self)
+		self.bdb.close()
+
+	def set_txn(self,txn):
+		"""sets the current transaction. Note that other python threads will not be able to use this
+		BTree until it is 'released' by setting the txn back to None"""
+		if txn=None: 
+			self.txn=None
+			return
+		if self.txn : LOG(2,"Transaction deadlock %s"%str(self))
+		while self.txn :
+			time.sleep(.1)
+		self.txn=txn
+	
 	def typekey(self,key) :
 		if key==None : return None
 		if self.keytype=="f" :
@@ -546,39 +642,39 @@ class FieldBTree:
 			except: return int()
 		return str(key).lower()
 			
-	def removeref(self,key,item):
+	def removeref(self,key,item,txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		self.bdb.index_remove(key,item)
+		self.bdb.index_remove(key,item,txn=self.txn)
 		
-	def removerefs(self,key,items):
+	def removerefs(self,key,items,txn=None):
 		"""The keyed value must be a list of objects. list of 'items' will be removed from this list"""
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		self.bdb.index_removelist(key,items)
+		self.bdb.index_removelist(key,items,txn=self.txn)
 
 		
-	def testref(self,key,item):
+	def testref(self,key,item,txn):
 		"""Tests for the presence if item in key'ed index """
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		return self.bdb.index_test(key,item)
+		return self.bdb.index_test(key,item,txn=self.txn)
 	
-	def addref(self,key,item):
+	def addref(self,key,item,txn):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		self.bdb.index_append(key,item)
+		self.bdb.index_append(key,item,txn=self.txn)
 
-	def addrefs(self,key,items):
+	def addrefs(self,key,items,txn):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		self.bdb.index_extend(key,list(items))
+		self.bdb.index_extend(key,list(items),txn=self.txn)
 	
-	def __del__(self):
-		self.close()
-
-	def close(self):
-		self.bdb.close()
-
 	def __len__(self):
+		"Number of elements in the database. Warning, this isn't transaction protected..."
 		return len(self.bdb)
 #		if (self.len<0) : self.keyinit()
 #		return self.len
@@ -587,49 +683,60 @@ class FieldBTree:
 		key=self.typekey(key)
 		if (val==None) :
 			self.__delitem__(key)
-		else : self.bdb.index_put(key,val)
+		else : self.bdb.index_put(key,val,txn=self.txn)
 
 	def __getitem__(self,key):
 		key=self.typekey(key)
-		return self.bdb.index_get(key)
+		return self.bdb.index_get(key,txn=self.txn)
 
 	def __delitem__(self,key):
 		key=self.typekey(key)
-		self.bdb.delete(key)
+		self.bdb.delete(key,txn=self.txn)
 
 	def __contains__(self,key):
 		key=self.typekey(key)
-		return self.bdb.index_has_key(key)
+		return self.bdb.index_has_key(key,txn=self.txn)
 
-	def keys(self,mink=None,maxk=None):
+	def keys(self,mink=None,maxk=None,txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
 		minimum and maximum key values to retrieve"""
+		if not txn : txn=self.txn
 		mink=self.typekey(mink)
 		maxk=self.typekey(maxk)
-		return self.bdb.index_keys(mink,maxk)
+		return self.bdb.index_keys(mink,maxk,txn=self.txn)
 
-	def values(self,mink=None,maxk=None):
+	def values(self,mink=None,maxk=None,txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
 		all of the individual keys in the mink to maxk range"""
+		if not txn : txn=self.txn
 		mink=self.typekey(mink)
 		maxk=self.typekey(maxk)
-		return self.bdb.index_values(mink,maxk)
+		return self.bdb.index_values(mink,maxk,txn=self.txn)
 
-	def items(self,mink=None,maxk=None):
+	def items(self,mink=None,maxk=None,txn=None):
+		if not txn : txn=self.txn
 		mink=self.typekey(mink)
 		maxk=self.typekey(maxk)
-		return self.bdb.index_items(mink,maxk)
+		return self.bdb.index_items(mink,maxk,txn=self.txn)
 
-	def has_key(self,key):
+	def has_key(self,key,txn=None):
+		if not txn : txn=self.txn
 		key=self.typekey(key)
-		return self.bdb.index_has_key(key)
-
-	def get(self,key):
+		return self.bdb.index_has_key(key,txn=self.txn)
+	
+	def get(self,key,txn=None):
 		key=self.typekey(key)
-		return self[key]
+		return self.bdb.index_get(key,txn=txn)
+	
+	def set(self,key,val,txn=None):
+		"Alternative to x[key]=val with transaction set"
+		key=self.typekey(key)
+		if (val==None) :
+			self.bdb.delete(key,txn=txn)
+		else : self.bdb.index_put(key,val,txn=txn)
 
 	def update(self,dict):
-		self.bdb.index_update(dict)
+		self.bdb.index_update(dict,txn=self.txn)
 
 class MemBTree:
 	"""This class has the same interface as the FieldBTree object above, but is a simple
@@ -644,6 +751,9 @@ class MemBTree:
 		self.bdbenv=dbenv
 		self.bdbnelem=nelem
 
+	def set_txn(self,txn):
+		return
+
 	def typekey(self,key) :
 		if key==None or key=="None" : return None
 		if self.keytype=="f" : 
@@ -655,13 +765,13 @@ class MemBTree:
 			return int(key)
 		return str(key)
 			
-	def removeref(self,key,item):
+	def removeref(self,key,item,txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
 		key=self.typekey(key)
 		try: self.bdb[key].remove(item)
 		except: pass
 		
-	def addref(self,key,item):
+	def addref(self,key,item,txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		key=self.typekey(key)
 		try: self.bdb[key].append(item)
@@ -691,7 +801,7 @@ class MemBTree:
 		key=self.typekey(key)
 		return self.bdb.has_key(key)
 
-	def keys(self,mink=None,maxk=None):
+	def keys(self,mink=None,maxk=None,txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
 		minimum and maximum key values to retrieve"""
 		mink=self.typekey(mink)
@@ -703,7 +813,7 @@ class MemBTree:
 		
 		return k
 
-	def values(self,mink=None,maxk=None):
+	def values(self,mink=None,maxk=None,txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
 		all of the individual keys in the mink to maxk range"""
 		v=[]
@@ -713,7 +823,7 @@ class MemBTree:
 			except: pass
 		return v
 
-	def items(self,mink=None,maxk=None):
+	def items(self,mink=None,maxk=None,txn=None):
 		mink=self.typekey(mink)
 		maxk=self.typekey(maxk)
 		if mink and maxk : k=[i for i in self.bdb.items() if i[0]>=mink and i[0]<=maxk]
@@ -723,11 +833,15 @@ class MemBTree:
 		
 		return k
 
-	def has_key(self,key):
+	def has_key(self,key,txn=None):
 		key=self.typekey(key)
 		return self.bdb.has_key(key)
 
-	def get(self,key):
+	def get(self,key,txn=None):
+		key=self.typekey(key)
+		return self[key]
+
+	def set(self,key,val,txn=None):
 		key=self.typekey(key)
 		return self[key]
 
@@ -1281,17 +1395,19 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0,rootpw=None):
+	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0,rootpw=None,recover=0):
 		"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
 logfile - defualt "db.log"
-importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode."""
+importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
+recover - Only one thread should call this. Will run recovery on the environment before opening."""
 		self.path=path
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
 		self.__importmode=importmode
 	
-			
+		xtraflags=0
+		if recover: xtraflags=db.DB_RECOVER
 		
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(path+"/home",os.F_OK) : os.makedirs(path+"/home")
@@ -1299,21 +1415,23 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		self.__dbenv=db.DBEnv()
 		self.__dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
 		self.__dbenv.set_data_dir(path)
-		self.__dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL)
+		if self.__dbenv.failchk(flags=0) :
+			self.LOG(1,"Database recovery required")
+			sys.exit(1)
+			
+		self.__dbenv.open(path+"/home",db.DB_CREATE+db.DB_INIT_MPOOL+db.DB_INIT_LOCK+db.DB_INIT_LOG+db.DB_INIT_TXN+xtraflags)
 		global globalenv
 		globalenv = self.__dbenv
 
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")
-		self.__btreelist = []
+
+		txn=self.__dbenv.txn_begin()
 
 		# Users
 		self.__users=BTree("users",path+"/security/users.bdb",dbenv=self.__dbenv)						# active database users
-		self.__btreelist.append(self.__users)
 		self.__newuserqueue=BTree("newusers",path+"/security/newusers.bdb",dbenv=self.__dbenv)			# new users pending approval
-		self.__btreelist.append(self.__newuserqueue)
 		self.__contexts_p=BTree("contexts",path+"/security/contexts.bdb",dbenv=self.__dbenv)			# multisession persistent contexts
-		self.__btreelist.append(self.__contexts_p)
 		self.__contexts={}			# local cache dictionary of valid contexts
 		
 		# Create an initial administrative user for the database
@@ -1327,28 +1445,24 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			u.groups=[-1]
 			u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 			u.name=('Database','','Administrator')
-			self.__users["root"]=u
+			self.__users.set("root",u,txn)
 
 		# Binary data names indexed by date
 		self.__bdocounter=BTree("BinNames",path+"/BinNames.bdb",dbenv=self.__dbenv,relate=0)
-		self.__btreelist.append(self.__bdocounter)
 		
 		# Defined ParamDefs
 		self.__paramdefs=BTree("ParamDefs",path+"/ParamDefs.bdb",dbenv=self.__dbenv,relate=1)						# ParamDef objects indexed by name
-		self.__btreelist.append(self.__paramdefs)
 
 		# Defined RecordDefs
 		self.__recorddefs=BTree("RecordDefs",path+"/RecordDefs.bdb",dbenv=self.__dbenv,relate=1)					# RecordDef objects indexed by name
-		self.__btreelist.append(self.__recorddefs)
 		# The actual database, keyed by recid, a positive integer unique in this DB instance
 		# 2 special keys exist, the record counter is stored with key -1
 		# and database information is stored with key=0
 		self.__records=IntBTree("database",path+"/database.bdb",dbenv=self.__dbenv,relate=1)						# The actual database, containing id referenced Records
-		self.__btreelist.append(self.__records)
 		try:
-			maxr=self.__records[-1]
+			maxr=self.__records.get(-1,txn)
 		except:
-			self.__records[-1]=0
+			self.__records.set(-1,0,txn)
 			self.LOG(3,"New database created")
 			
 		# Indices
@@ -1358,9 +1472,7 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		else:
 			self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
 			self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
-		self.__btreelist.extend([self.__secrindex, self.__recorddefindex])
 		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
-		self.__btreelist.append(self.__timeindex)
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 		#db sequence
 		self.__dbseq = self.__records.create_sequence()
@@ -1368,22 +1480,20 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 
 		# The mirror database for storing offsite records
 		self.__mirrorrecords=BTree("mirrordatabase",path+"/mirrordatabase.bdb",dbenv=self.__dbenv)
-		self.__btreelist.append(self.__mirrorrecords)
 
 		# Workflow database, user indexed btree of lists of things to do
 		# again, key -1 is used to store the wfid counter
 		self.__workflow=BTree("workflow",path+"/workflow.bdb",dbenv=self.__dbenv)
-		self.__btreelist.append(self.__workflow)
 		try:
 			max=self.__workflow[-1]
 		except:
 			self.__workflow[-1]=1
 			self.LOG(3,"New workflow database created")
 					
-		self.LOG(4,"Database initialized")
 	
 		# This sets up a few standard ParamDefs common to all records
 		if not self.__paramdefs.has_key("owner"):
+			self.__paramdefs.set_txn(txn)
 			pd=ParamDef("owner","string","Record Owner","This is the user-id of the 'owner' of the record")
 			self.__paramdefs["owner"]=pd
 			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
@@ -1398,6 +1508,11 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 			self.__paramdefs["comments"]=pd
 			pd=ParamDef("rectype","text","Record type","Record type (RecordDef)")
 			self.__paramdefs["rectype"]=pd
+			self.__paramdefs.set_txn(None)
+	
+		self.txn.commit()
+		self.LOG(4,"Database initialized")
+
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -1452,8 +1567,10 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		ctx.ctxid=s.hexdigest()
 		self.__contexts[ctx.ctxid]=ctx		# local context cache
 		ctx.db=None
-		self.__contexts_p[ctx.ctxid]=ctx	# persistent context database
+		txn=self.__dbenv.txn_begin()
+		self.__contexts_p.set(ctx.ctxid,ctx,txn)	# persistent context database
 		ctx.db=self
+		txn.commit()
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
 		return ctx.ctxid
@@ -1461,6 +1578,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 	def cleanupcontexts(self):
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
+		txn=self.__dbenv.txn_begin()			
+		self.__contexts.set_txn(txn)
 		for k in self.__contexts_p.items():
 			if not isinstance(k[0],str) : 
 				self.LOG(6,"Inverted context detected "+str(k[0].ctxid))
@@ -1479,6 +1598,8 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 				except: pass
 				try: del self.__contexts_p[k[0]]
 				except: pass
+		self.__contexts.set_txn(None)
+		txn.commit()
 
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
@@ -1554,17 +1675,19 @@ importmode - DANGEROUS, makes certain changes to allow bulk data import. Should 
 		# Now we need a filespec within the directory
 		# dictionary keyed by date, 1 directory per day
 
+		txn=self.__dbenv.txn_begin()
 		# if exists, increase counter
 		try:
-			itm=self.__bdocounter[key]
+			itm=self.__bdocounter.get(key,txn)
 			newid=max(itm.keys())+1
 			itm[newid]=(name,recid)
-			self.__bdocounter[key]=itm
+			self.__bdocounter.set(key,itm,txn)
 		# otherwise make a new dict
 		except:
 			itm={0:(name,recid)}
-			self.__bdocounter[key]=itm
+			self.__bdocounter.set(key,itm,txn)
 			newid=0
+		txn.commit()
 		
 		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
 		
@@ -2295,58 +2418,58 @@ parentheses not supported yet. Upon failure returns a tuple:
 			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host)
 		return Set(ret+r2)
 		
-	def pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+	def pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None,txn=None):
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid)
-			b=self.getrecord(ckey,ctxid)
+			a=self.getrecord(pkey,ctxid,txn=txn)
+			b=self.getrecord(ckey,ctxid,txn=txn)
 			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
-			return self.__records.pclink(pkey,ckey)
-		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey)
-		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey)
+			return self.__records.pclink(pkey,ckey,txn=txn)
+		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,txn=txn)
+		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,txn=txn)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+	def pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None,txn=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid)
-			b=self.getrecord(ckey,ctxid)
+			a=self.getrecord(pkey,ctxid,txn)
+			b=self.getrecord(ckey,ctxid,txn)
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
-			return self.__records.pcunlink(pkey,ckey)
-		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey)
-		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey)
+			return self.__records.pcunlink(pkey,ckey,txn)
+		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,txn)
+		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey,txn)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def link(self,key1,key2,keytype="record",ctxid=None,host=None):
+	def link(self,key1,key2,keytype="record",ctxid=None,host=None,txn=None):
 		"""Establish a 'cousin' relationship between two keys. For Records
 		the context is required and the user must have read permission
 		for both records."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(key1,ctxid)
-			b=self.getrecord(key2,ctxid)
+			a=self.getrecord(key1,ctxid,txn)
+			b=self.getrecord(key2,ctxid,txn)
 			return self.__records.link(key1,key2)
-		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2)
-		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2)
+		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2,txn)
+		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2,txn)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 	
-	def unlink(self,key1,key2,keytype="record",ctxid=None,host=None):
+	def unlink(self,key1,key2,keytype="record",ctxid=None,host=None,txn=None):
 		"""Remove a 'cousin' relationship between two keys."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(key1,ctxid)
-			b=self.getrecord(key2,ctxid)
+			a=self.getrecord(key1,ctxid,txn)
+			b=self.getrecord(key2,ctxid,txn)
 			return self.__records.unlink(key1,key2)
-		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2)
-		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2)
+		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2,txn)
+		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2,txn)
 		
 		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 		
@@ -2378,9 +2501,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 			self.__newuserqueue[username]=None
 			raise KeyError,"User %s already exists, deleted pending record"%username
 
-		self.__users[username]=self.__newuserqueue[username]
-		self.__newuserqueue[username]=None
-	
+		txn=self.__dbenv.txn_begin()
+		self.__users.set(username,self.__newuserqueue[username],txn)
+		self.__newuserqueue.set(username,None,txn)
+		txn.commit()
+		
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
 		return self.__newuserqueue.keys()
@@ -2421,7 +2546,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if user.password!=ouser.password:
 			raise SecurityError,"Passwords may not be changed with this method"
 		
-		self.__users[user.username]=user
+		txn=self.__dbenv.txn_begin()
+		self.__users.set(user.username,user,txn)
+		txn.commit()
 		return user
 
 	
@@ -2462,7 +2589,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 			userdict['groups'] = thegroups
 				
 		ouser.__dict__.update(userdict)
-		self.__users[username]=ouser
+		txn=self.__dbenv.txn_begin()
+		self.__users.set(username,ouser,txn)
+		txn.commit()
 		return userdict
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
@@ -2480,7 +2609,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		t=sha.new(newpassword)
 		user.password=t.hexdigest()
 		
-		self.__users[user.username]=user
+		txn=self.__dbenv.txn_begin()
+		self.__users.set(user.username,user,txn)
+		txn.commit()
 		return 1
 	
 	def adduser(self,user):
@@ -2520,7 +2651,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if not self.__importmode:
 			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		        user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
-		self.__newuserqueue[user.username]=user
+		
+		txn=self.__dbenv.txn_begin()
+		self.__newuserqueue.set(user.username,user,txn)
+		txn.commit()
 		
 	def getqueueduser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
@@ -2626,11 +2760,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
 		
+		txn=self.__dbenv.txn_begin()
+		self.__workflow.set_txn(txn)
 		work.wfid=self.__workflow[-1]
 		self.__workflow[-1]=work.wfid+1
 
-		
-	
 		if self.__workflow.has_key(ctx.user) :
 		        wf=self.__workflow[ctx.user]
 	        else:
@@ -2638,6 +2772,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 		wf.append(work)
 		self.__workflow[ctx.user]=wf
+		self.__workflow.set_txn(None)
+		txn.commit()
 		return work.wfid
 	
 	def delworkflowitem(self,wfid,ctxid,host=None) :
@@ -2653,8 +2789,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				break
 		else: raise KeyError,"Unknown workflow id"
 		
-		self.__workflow[ctx.user]=wf
-		
+		txn=self.__dbenv.txn_begin()
+		self.__workflow.set(ctx.user,wf,txn)
+		txn.commit()
 		
 	def setworkflow(self,wflist,ctxid,host=None) :
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
@@ -2667,13 +2804,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if wflist==None : wflist=[]
 		wflist=list(wflist)				# this will (properly) raise an exception if wflist cannot be converted to a list
 		
+		txn=self.__dbenv.txn_begin()
 		for w in wflist:
-			if not isinstance(w,WorkFlow): raise TypeError,"Only WorkFlow objects may be in the user's workflow"
+			if not isinstance(w,WorkFlow): 
+				txn.abort()
+				raise TypeError,"Only WorkFlow objects may be in the user's workflow"
 			if w.wfid==None: 
 				w.wfid=self.__workflow[-1]
-				self.__workflow[-1]=w.wfid+1
+				self.__workflow.set(-1,w.wfid+1,txn)
 		
-		self.__workflow[ctx.user]=wflist
+		self.__workflow.set(ctx.user,wflist,txn)
+		txn.commit()
 	
 	def getvartypenames(self):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -2711,9 +2852,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 			paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		self.__paramdefs[paramdef.name]=paramdef
-		if (parent): self.pclink(parent,paramdef.name,"paramdef")
-	
+		txn=self.__dbenv.txn_begin()
+		self.__paramdefs.set(paramdef.name,paramdef,txn)
+		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
+		txn.commit()
+		
 	def addparamchoice(self,paramdefname,choice):
 		"""This will add a new choice to records of vartype=string. This is
 		the only modification permitted to a ParamDef record after creation"""
@@ -2721,7 +2864,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
 		
 		d.choices=d.choices+(choice,)
-		self.__paramdefs[paramdefname]=d
+		txn=self.__dbenv.txn_begin()
+		self.__paramdefs.set(paramdefname,d,txn)
+		txn.commit()
 		
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
@@ -2789,8 +2934,10 @@ or None if no match is found."""
 				raise KeyError,"No such parameter %s"%i
 		
 		# this actually stores in the database
-		self.__recorddefs[recdef.name]=recdef
-		if (parent): self.pclink(parent,recdef.name,"recorddef")
+		txn=self.__dbenv.txn_begin()
+		self.__recorddefs.set(recdef.name,recdef,txn)
+		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
+		txn.commit()
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. Defined fields should
@@ -2812,8 +2959,10 @@ or None if no match is found."""
 		for i in recdef.params:
 			if i not in pdn: raise KeyError,"No such parameter %s"%i
 		
-		self.__recorddefs[recdef.name]=recdef
-				
+		txn=self.__dbenv.txn_begin()
+		self.__recorddefs.set(recdef.name,recdef,txn)
+		txn.commit()
+		
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
@@ -2871,18 +3020,30 @@ or None if no match is found."""
 			      continue
 			print "commit index %s (%d)"%(k,len(v))
 			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
+			txn=self.__dbenv.txn_begin()
+			i.set_txn(txn)
 			for k2,v2 in v.items():
 				i.addrefs(k2,v2)
+			i.set_txn(None)
+			txn.commit()
 			
 		print "commit security"
 		si=FieldBTree("secrindex",self.path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
+		txn=self.__dbenv.txn_begin()
+		si.set_txn(txn)
 		for k,v in self.__secrindex.items():
 			si.addrefs(k,v)
+		si.set_txn(None)
+		txn.commit()
 		
 		print "commit recorddefs"
 		rdi=FieldBTree("RecordDefindex",self.path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)
+		txn=self.__dbenv.txn_begin()
+		rdi.set_txn(txn)
 		for k,v in self.__recorddefindex.items():
 			rdi.addrefs(k,v)
+		rdi.set_txn(None)
+		txn.commit()
 		
 		print "Index merge complete. Exiting"
 		sys.exit(0)
@@ -2920,7 +3081,7 @@ or None if no match is found."""
 		
 		return ret
 	
-	def __reindex(self,key,oldval,newval,recid):
+	def __reindex(self,key,oldval,newval,recid,txn=None):
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
 
@@ -2961,22 +3122,22 @@ or None if no match is found."""
 			# now we know that oldval and newval are unique
 			if (not self.__importmode) : 
 			   if ind=="child" :
-				for i in oldval: self.__records.pcunlink(recid,i)
-				for i in newval: self.__records.pclink(recid,i)
+				for i in oldval: self.__records.pcunlink(recid,i,txn=txn)
+				for i in newval: self.__records.pclink(recid,i,txn=txn)
 				return
 			
 			   if ind=="link" :
-				for i in oldval: self.__records.unlink(recid,i)
-				for i in newval: self.__records.link(recid,i)
+				for i in oldval: self.__records.unlink(recid,i,txn=txn)
+				for i in newval: self.__records.link(recid,i,txn=txn)
 				return
 			else:
 				return
 		# remove the old ref and add the new one
-		if oldval!=None : ind.removeref(oldval,recid)
-		if newval!=None : ind.addref(newval,recid)
+		if oldval!=None : ind.removeref(oldval,recid,txn=txn)
+		if newval!=None : ind.addref(newval,recid,txn=txn)
 		#print ind.items()
 
-	def __reindextext(self,key,oldval,newval,recid):
+	def __reindextext(self,key,oldval,newval,recid,txn=None):
 		"""This function reindexes a single key/value pair
 		where the values are text strings designed to be searched
 		by 'word' """
@@ -2993,17 +3154,17 @@ or None if no match is found."""
 			for s in oldval.split():
 				t=s.lower()
 				if len(s)<2 or t in unindexed_words: pass
-				ind.removeref(t,recid)
+				ind.removeref(t,recid,txn=txn)
 	
 		if newval!=None:
 			for s in newval.split():
 				t=s.lower()
 				if len(s)<2 or t in unindexed_words: pass
-				ind.addref(t,recid)
+				ind.addref(t,recid,txn=txn)
 		
 		#print ind.items()
 
-	def __reindexsec(self,oldlist,newlist,recid):
+	def __reindexsec(self,oldlist,newlist,recid,txn=txn):
 		"""This updates the security (read-only) index
 		takes two lists of userid/groups (may be None)"""
 		o=Set(oldlist)
@@ -3017,11 +3178,11 @@ or None if no match is found."""
 		# So, we remove the index entries for all of the elements in 'old', but not 'new'
 		for i in uo:
 #			print i," ",len(self.__secrindex[i]),self.__secrindex.testref(i,recid)
-			self.__secrindex.removeref(i,recid)
+			self.__secrindex.removeref(i,recid,txn=txn)
 #		print "now un"
 		# then we add the index entries for all of the elements in 'new', but not 'old'
 		for i in un:
-			self.__secrindex.addref(i,recid)
+			self.__secrindex.addref(i,recid,txn=txn)
 
 	def putrecord(self,record,ctxid,host=None):
 		"""The record has everything we need to commit the data. However, to 
@@ -3933,10 +4094,11 @@ or None if no match is found."""
 								
 		print "Users=",nu,"  ParamDef=",npd,"  RecDef=",nrd,"  Records=",nr,"  Links=",np
 
-	def __del__(self): self.close
+	def __del__(self): 
+		self.close()
 
 	def close(self):
-		print self.__btreelist
+#		print self.__btreelist
 		self.__btreelist.extend(self.__fieldindex.values())
 		print self.__btreelist
 		for bt in self.__btreelist:
