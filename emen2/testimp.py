@@ -6,5 +6,6 @@ import os
 DB=Database
 db=DB.Database(EMEN2DBPATH,importmode=1)
 ctx=db.login("root",ROOTPW)
+db.restore(ctx)
 print db.checkcontext(ctx,None)
 
