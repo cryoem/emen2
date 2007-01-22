@@ -33,6 +33,18 @@ from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2.emen2config import *
 import atexit
 
+# These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
+dbopenflags=db.DB_CREATE
+envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG
+usetxn=False
+
+# These are for transactional database work
+#dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
+#envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_INIT_TXN
+#usetxn=True
+
+LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
+
 def DB_cleanup() :
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
@@ -42,10 +54,17 @@ def DB_cleanup() :
 	for i in IntBTree.alltrees: i.close()
 	for i in FieldBTree.alltrees: i.close()
 
-
+# This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
 
-LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
+def DB_syncall() :
+	"""This 'syncs' all open databases"""
+#	print "sync %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
+	t=time.time()
+	for i in BTree.alltrees: i.sync()
+	for i in IntBTree.alltrees: i.sync()
+	for i in FieldBTree.alltrees: i.sync()
+#	print "%f sec to sync"%(time.time()-t)
 
 def escape2(s):
 	qc={'"':'&quot'}
@@ -121,8 +140,6 @@ the specified number of significant digits. ie 5722,2 -> 5800"""
 	scl=10**(floor(log10(x))-n+1)
 	return scl*ceil(x/scl)
 
-# These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
-dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
 
 class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
@@ -175,7 +192,15 @@ class BTree:
 		except: pass
 		self.bdb.close()
 		self.bdb=None
-
+	
+	def sync(self):
+		try:
+			self.bdb.sync()
+			self.pcdb.sync()
+			self.cpdb.sync()
+			self.reldb.sync()
+		except: pass
+		
 	def set_txn(self,txn):
 		"""sets the current transaction. Note that other python threads will not be able to use this
 		BTree until it is 'released' by setting the txn back to None"""
@@ -436,6 +461,14 @@ class IntBTree:
 		self.bdb.close()
 		self.bdb=None
 	
+	def sync(self):
+		try:
+			self.bdb.sync()
+			self.pcdb.sync()
+			self.cpdb.sync()
+			self.reldb.sync()
+		except: pass
+		
 	def set_txn(self,txn):
 		"""sets the current transaction. Note that other python threads will not be able to use this
 		BTree until it is 'released' by setting the txn back to None"""
@@ -479,6 +512,7 @@ class IntBTree:
 		
 		self.pcdb.index_append(parenttag,childtag,txn=txn)
 		self.cpdb.index_append(childtag,parenttag,txn=txn)
+
 		
 	def pcunlink(self,parenttag,childtag,txn=None):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
@@ -639,6 +673,11 @@ class FieldBTree:
 		self.bdb.close()
 		self.bdb=None
 
+	def sync(self):
+		try:
+			self.bdb.sync()
+		except: pass
+		
 	def set_txn(self,txn):
 		"""sets the current transaction. Note that other python threads will not be able to use this
 		BTree until it is 'released' by setting the txn back to None"""
@@ -1419,6 +1458,11 @@ cachesize - default is 64M, in bytes
 logfile - defualt "db.log"
 importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
 recover - Only one thread should call this. Will run recovery on the environment before opening."""
+		global envopenflags,usetxn
+		
+		if usetxn: self.newtxn=self.newtxn1
+		else : self.newtxn=self.newtxn2
+
 		self.path=path
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
@@ -1438,7 +1482,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			#self.LOG(1,"Database recovery required")
 			#sys.exit(1)
 			
-		self.__dbenv.open(path+"/home",db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_INIT_TXN|xtraflags)
+		self.__dbenv.open(path+"/home",envopenflags|xtraflags)
 		global globalenv
 		globalenv = self.__dbenv
 
@@ -1451,7 +1495,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__contexts_p=BTree("contexts",path+"/security/contexts.bdb",dbenv=self.__dbenv)			# multisession persistent contexts
 		self.__contexts={}			# local cache dictionary of valid contexts
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		
 		# Create an initial administrative user for the database
 		if (not self.__users.has_key("root")):
@@ -1531,9 +1575,16 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__paramdefs["rectype"]=pd
 			self.__paramdefs.set_txn(None)
 	
-		txn.commit()
+		if txn : txn.commit()
+		else : DB_syncall()
 		self.LOG(4,"Database initialized")
 
+	# one of these 2 methods is mapped to self.newtxn()
+	def newtxn1(self):
+		return self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+	
+	def newtxn2(self):
+		return None
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -1588,10 +1639,11 @@ recover - Only one thread should call this. Will run recovery on the environment
 		ctx.ctxid=s.hexdigest()
 		self.__contexts[ctx.ctxid]=ctx		# local context cache
 		ctx.db=None
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__contexts_p.set(ctx.ctxid,ctx,txn)	# persistent context database
 		ctx.db=self
-		txn.commit()
+		if txn : txn.commit()
+		else : DB_syncall()
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
 		return ctx.ctxid
@@ -1599,7 +1651,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 	def cleanupcontexts(self):
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)			
+		txn=self.newtxn()
 		self.__contexts.set_txn(txn)
 		for k in self.__contexts_p.items():
 			if not isinstance(k[0],str) : 
@@ -1620,7 +1672,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				try: del self.__contexts_p[k[0]]
 				except: pass
 		self.__contexts.set_txn(None)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
@@ -1696,7 +1749,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		# Now we need a filespec within the directory
 		# dictionary keyed by date, 1 directory per day
 
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		if self.dotxn : txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		else: txn=None
 		# if exists, increase counter
 		try:
 			itm=self.__bdocounter.get(key,txn)
@@ -1708,8 +1762,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 			itm={0:(name,recid)}
 			self.__bdocounter.set(key,itm,txn)
 			newid=0
-		txn.commit()
-		
+		if txn: txn.commit()
+		else : DB_syncall()
+
 		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
 		
 		return (key+"%05X"%newid,path+"/%05X"%newid)
@@ -2522,11 +2577,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 			self.__newuserqueue[username]=None
 			raise KeyError,"User %s already exists, deleted pending record"%username
 
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__users.set(username,self.__newuserqueue[username],txn)
 		self.__newuserqueue.set(username,None,txn)
-		txn.commit()
-		
+		if txn: txn.commit()
+		else : DB_syncall()
+
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
 		return self.__newuserqueue.keys()
@@ -2567,9 +2623,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if user.password!=ouser.password:
 			raise SecurityError,"Passwords may not be changed with this method"
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__users.set(user.username,user,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		return user
 
 	
@@ -2610,9 +2667,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 			userdict['groups'] = thegroups
 				
 		ouser.__dict__.update(userdict)
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__users.set(username,ouser,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		return userdict
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
@@ -2630,9 +2688,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		t=sha.new(newpassword)
 		user.password=t.hexdigest()
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__users.set(user.username,user,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		return 1
 	
 	def adduser(self,user):
@@ -2673,9 +2732,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		        user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__newuserqueue.set(user.username,user,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		
 	def getqueueduser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
@@ -2781,7 +2841,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__workflow.set_txn(txn)
 		work.wfid=self.__workflow[-1]
 		self.__workflow[-1]=work.wfid+1
@@ -2794,7 +2854,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		wf.append(work)
 		self.__workflow[ctx.user]=wf
 		self.__workflow.set_txn(None)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		return work.wfid
 	
 	def delworkflowitem(self,wfid,ctxid,host=None) :
@@ -2810,9 +2871,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				break
 		else: raise KeyError,"Unknown workflow id"
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__workflow.set(ctx.user,wf,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		
 	def setworkflow(self,wflist,ctxid,host=None) :
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
@@ -2825,7 +2887,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if wflist==None : wflist=[]
 		wflist=list(wflist)				# this will (properly) raise an exception if wflist cannot be converted to a list
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		for w in wflist:
 			if not isinstance(w,WorkFlow): 
 				txn.abort()
@@ -2835,7 +2897,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				self.__workflow.set(-1,w.wfid+1,txn)
 		
 		self.__workflow.set(ctx.user,wflist,txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 	
 	def getvartypenames(self):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -2873,10 +2936,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 			paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		# this actually stores in the database
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__paramdefs.set(paramdef.name,paramdef,txn)
 		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 		
 	def addparamchoice(self,paramdefname,choice):
 		"""This will add a new choice to records of vartype=string. This is
@@ -2885,10 +2949,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
 		
 		d.choices=d.choices+(choice,)
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__paramdefs.set(paramdefname,d,txn)
-		txn.commit()
-		
+		if txn: txn.commit()
+		else : DB_syncall()
+
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
 		return self.__paramdefs[paramdefname.lower()]
@@ -2955,10 +3020,11 @@ or None if no match is found."""
 				raise KeyError,"No such parameter %s"%i
 		
 		# this actually stores in the database
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
 		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. Defined fields should
@@ -2980,10 +3046,11 @@ or None if no match is found."""
 		for i in recdef.params:
 			if i not in pdn: raise KeyError,"No such parameter %s"%i
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
-		txn.commit()
-		
+		if txn: txn.commit()
+		else : DB_syncall()
+
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
@@ -3041,34 +3108,38 @@ or None if no match is found."""
 			      continue
 			print "commit index %s (%d)"%(k,len(v))
 			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
-			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+			txn=self.newtxn()
 			i.set_txn(txn)
 			for k2,v2 in v.items():
 				i.addrefs(k2,v2)
 			i.set_txn(None)
-			txn.commit()
-			
+			if txn: txn.commit()
+
 		print "commit security"
 		si=FieldBTree("secrindex",self.path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		si.set_txn(txn)
 		for k,v in self.__secrindex.items():
 			si.addrefs(k,v)
 		si.set_txn(None)
-		txn.commit()
+		if txn: txn.commit()
 		
 		print "commit recorddefs"
 		rdi=FieldBTree("RecordDefindex",self.path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		rdi.set_txn(txn)
 		for k,v in self.__recorddefindex.items():
 			rdi.addrefs(k,v)
 		rdi.set_txn(None)
-		txn.commit()
-		
-		self.LOG(4, "Index merge complete. Checkpointing")
-		txn=self.__dbenv.txn_checkpoint()
-		self.LOG(4,"Checkpointing complete")
+		if txn: 
+			txn.commit()
+			self.LOG(4, "Index merge complete. Checkpointing")
+			self.__dbenv.txn_checkpoint()
+			self.LOG(4,"Checkpointing complete")
+		else:
+			print "Index merge complete Syncing"
+			DB_syncall()
+
 		sys.exit(0)
 		
 	def __getparamindex(self,paramname,create=1):
@@ -3230,7 +3301,8 @@ or None if no match is found."""
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
 
-			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+#			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)+1
 			self.__records.set(-1,record.recid,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
 #			record.recid = self.__dbseq.get()                                # Get a new record-id
@@ -3280,7 +3352,9 @@ or None if no match is found."""
 			self.__timeindex.set(record.recid,record["creationtime"],txn)
 									
 			#print "putrec->\n",record.__dict__
-			txn.commit()
+			if txn: txn.commit()
+			else : DB_syncall()
+			
 			return record.recid
 		
 		######
@@ -3329,7 +3403,7 @@ or None if no match is found."""
 		if len(ptest)>0 :
 			raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		# Now update the indices
 		for f in changedparams:
 			# reindex will accept None as oldval or newval
@@ -3364,7 +3438,9 @@ or None if no match is found."""
 			if not i in orig["comments"]: orig["comments"]=i[2]
 		
 		self.__records.set(record.recid,orig,txn)			# This actually stores the record in the database
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
+
 		return record.recid
 		
 	def newrecord(self,rectype,ctxid,host=None,init=0):
@@ -3509,7 +3585,7 @@ or None if no match is found."""
 		# just gained access to. Used for fast index updating
 		secrupd={}
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		# update each record as necessary
 		for i in trgt:
 			try:
@@ -3568,7 +3644,8 @@ or None if no match is found."""
 		
 		for i in secrupd.keys() :
 			self.__secrindex.addrefs(i,secrupd[i],txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 	
 	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
 		"""This removes permissions from a record. users is a username or tuple/list of
@@ -3596,7 +3673,7 @@ or None if no match is found."""
 		# just gained access to. Used for fast index updating
 		secrupd={}
 		
-		txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		txn=self.newtxn()
 		# update each record as necessary
 		for i in trgt:
 			try:
@@ -3644,7 +3721,8 @@ or None if no match is found."""
 		
 		for i in secrupd.keys() :
 			self.__secrindex.removerefs(i,secrupd[i],txn)
-		txn.commit()
+		if txn: txn.commit()
+		else : DB_syncall()
 
 	###########
 	# The following routines for xmlizing aspects of the database are very simple, 
@@ -3954,8 +4032,16 @@ or None if no match is found."""
 				#if txn : txn.commit()
 				#txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 			nel+=1
-			if txn : txn.commit()
-			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+			if txn: txn.commit()
+			else : 
+				if nel%500==0 : 
+#					print "SYNC:",self.__dbenv.lock_stat()["nlocks"]," ... ",
+					DB_syncall()
+#					print self.__dbenv.lock_stat()["nlocks"]
+#					time.sleep(10.0)
+#					print self.__dbenv.lock_stat()["nlocks"]
+
+			txn=self.newtxn()
 			
 			# insert User
 			if isinstance(r,User) :
@@ -4058,6 +4144,7 @@ or None if no match is found."""
 				else : print "Unknown category ",r
 		
 		if txn: txn.commit()
+		else : DB_syncall()
 		self.LOG(4,"Import Complete, checkpointing")
 		self.__dbenv=txn_checkpoint()
 		if self.__importmode :
