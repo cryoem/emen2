@@ -1652,7 +1652,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		"""This should be run periodically to clean up sessions that have been idle too long"""
 		self.lastctxclean=time.time()
 		txn=self.newtxn()
-		self.__contexts.set_txn(txn)
+		self.__contexts_p.set_txn(txn)
 		for k in self.__contexts_p.items():
 			if not isinstance(k[0],str) : 
 				self.LOG(6,"Inverted context detected "+str(k[0].ctxid))
