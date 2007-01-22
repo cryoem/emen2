@@ -1671,7 +1671,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				except: pass
 				try: del self.__contexts_p[k[0]]
 				except: pass
-		self.__contexts.set_txn(None)
+		self.__contexts_p.set_txn(None)
 		if txn: txn.commit()
 		else : DB_syncall()
 
