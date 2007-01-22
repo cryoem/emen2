@@ -376,13 +376,13 @@ class BTree:
 		return self.bdb.has_key(dumps(key),txn=self.txn)
 
 	def keys(self):
-		return map(lambda x:loads(x),self.bdb.keys(txn=self.txn))
+		return map(lambda x:loads(x),self.bdb.keys())
 
 	def values(self):
-		return map(lambda x:loads(x),self.bdb.values(txn=self.txn))
+		return map(lambda x:loads(x),self.bdb.values())
 
 	def items(self):
-		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items(txn=self.txn))
+		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items())
 
 	def has_key(self,key,txn=None):
 		if not txn : txn=self.txn
@@ -595,13 +595,13 @@ class IntBTree:
 		return self.bdb.has_key(dumps(key),txn=self.txn)
 
 	def keys(self):
-		return map(lambda x:loads(x),self.bdb.keys(txn=self.txn))
+		return map(lambda x:loads(x),self.bdb.keys())
 
 	def values(self):
-		return map(lambda x:loads(x),self.bdb.values(txn=self.txn))
+		return map(lambda x:loads(x),self.bdb.values())
 
 	def items(self):
-		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items(txn=self.txn))
+		return map(lambda x:(loads(x[0]),loads(x[1])),self.bdb.items())
 
 	def has_key(self,key,txn=None):
 		if not txn : txn=self.txn

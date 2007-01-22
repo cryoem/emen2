@@ -1392,7 +1392,7 @@ def html_record(path,args,ctxid,host):
 
 	print "getting kids"
 
-	queryresult = db.getchildren(name,ctxid=ctxid)
+	queryresult = db.getchildren(name,keytype="record",ctxid=ctxid)
 	resultcount = len(queryresult)
 	groups = db.groupbyrecorddef(queryresult,ctxid)
 	groupl = groupsettolist(groups)
@@ -1400,6 +1400,8 @@ def html_record(path,args,ctxid,host):
 	# fix this with a better mechanism. clear the workflow to keep things moving fast.
 	# clear work flow cache
 #	clearworkflowcache(ctxid)
+
+	print "workflow stuff"
 
 	# store the result count and grouped list in a workflow item
 	with = {'wftype':'recordcache','desc':"record cache",'longdesc':"record cache",'resultcount':resultcount,'appdata':groupl}
@@ -1416,6 +1418,8 @@ def html_record(path,args,ctxid,host):
 	else:
 		ret=[tmpl.html_header("EMEN2 Record")]
 	
+	print "parent tree.."
+
 	# parents tree
 	ret.append(supp.parent_tree(name,ctxid=ctxid))
 	
@@ -1432,8 +1436,11 @@ def html_record(path,args,ctxid,host):
 
 	ret.append("<div class=\"pagecontainer\" id=\"pagecontainer_main\">")
 
+
 	# render the 'record page': sidebar, views
 	ret.append("\n\n<div class=\"page_main\" id=\"page_main_mainview\">")
+
+	print "table"
 
 	ret.append(html_record_dicttable(item,"/db/paramdef?name=",viewdef,missing=1,ctxid=ctxid))
 
@@ -1442,6 +1449,8 @@ def html_record(path,args,ctxid,host):
 	# render all the children grouped together
 	ret.append(supp.render_groupedlist(path,args,ctxid,host))
 
+
+	print "footer"
 
 	ret.append(tmpl.html_footer())
 	

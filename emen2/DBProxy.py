@@ -20,7 +20,7 @@ to the public Database interface, though it returns dictionaries and
 lists rather than objects"""
 	def __init__(self,path=EMEN2DBPATH):
 		global dbpath
-		self.iso=popen2("%s/DBIsolator.py %s 2>/tmp/dbug.txt"%(dbpath,path))	# returns a write,read file tuple
+		self.iso=popen2('su emen2 -c "%s/DBIsolator.py %s" 2>/tmp/dbug.txt'%(dbpath,path))	# returns a write,read file tuple
 #		self.iso=popen2("%s/DBIsolator.py %s 2>/dev/null"%(dbpath,path))	# returns a write,read file tuple
 #		self.log2=file("/tmp/dbug2.txt","a")
 #		self.log2.write("---------------\n")
