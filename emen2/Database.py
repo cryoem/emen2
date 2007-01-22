@@ -712,19 +712,19 @@ class FieldBTree:
 		self.bdb.index_removelist(key,items,txn=self.txn)
 
 		
-	def testref(self,key,item,txn):
+	def testref(self,key,item,txn=None):
 		"""Tests for the presence if item in key'ed index """
 		if not txn : txn=self.txn
 		key=self.typekey(key)
 		return self.bdb.index_test(key,item,txn=self.txn)
 	
-	def addref(self,key,item,txn):
+	def addref(self,key,item,txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		if not txn : txn=self.txn
 		key=self.typekey(key)
 		self.bdb.index_append(key,item,txn=self.txn)
 
-	def addrefs(self,key,items,txn):
+	def addrefs(self,key,items,txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
 		if not txn : txn=self.txn
 		key=self.typekey(key)
@@ -2500,8 +2500,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		have write permission on at least one of the two."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid,txn=txn)
-			b=self.getrecord(ckey,ctxid,txn=txn)
+			a=self.getrecord(pkey,ctxid)
+			b=self.getrecord(ckey,ctxid)
 			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
 			return self.__records.pclink(pkey,ckey,txn=txn)
@@ -2514,8 +2514,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid,txn)
-			b=self.getrecord(ckey,ctxid,txn)
+			a=self.getrecord(pkey,ctxid)
+			b=self.getrecord(ckey,ctxid)
 			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
 			return self.__records.pcunlink(pkey,ckey,txn)
 		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,txn)
@@ -2529,8 +2529,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		for both records."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(key1,ctxid,txn)
-			b=self.getrecord(key2,ctxid,txn)
+			a=self.getrecord(key1,ctxid)
+			b=self.getrecord(key2,ctxid)
 			return self.__records.link(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2,txn)
 		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2,txn)
@@ -2541,8 +2541,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""Remove a 'cousin' relationship between two keys."""
 		
 		if keytype=="record" : 
-			a=self.getrecord(key1,ctxid,txn)
-			b=self.getrecord(key2,ctxid,txn)
+			a=self.getrecord(key1,ctxid)
+			b=self.getrecord(key2,ctxid)
 			return self.__records.unlink(key1,key2)
 		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2,txn)
 		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2,txn)
@@ -4143,10 +4143,11 @@ or None if no match is found."""
 							self.__records.link(recmap[a],recmap[b],txn)
 				else : print "Unknown category ",r
 		
-		if txn: txn.commit()
+		if txn: 
+			txn.commit()
+			self.LOG(4,"Import Complete, checkpointing")
+			self.__dbenv.txn_checkpoint()
 		else : DB_syncall()
-		self.LOG(4,"Import Complete, checkpointing")
-		self.__dbenv=txn_checkpoint()
 		if self.__importmode :
 			self.LOG(4,"Checkpointing complete, dumping indices")
 			self.__commitindices()
