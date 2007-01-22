@@ -3347,7 +3347,7 @@ or None if no match is found."""
 				if k != 'recid':
 					self.__reindex(k,None,v,record.recid,txn)
 			
-			self.__reindexsec(None,reduce(operator.concat,record["permissions"],txn),record.recid)		# index security
+			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid, txn=txn)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid,txn)			# index recorddef
 			self.__timeindex.set(record.recid,record["creationtime"],txn)
 									
