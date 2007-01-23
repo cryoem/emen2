@@ -54,11 +54,11 @@ def DB_cleanup() :
 	for i in BTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
-	print '\n', len(IntBTree.alltrees), IntBTrees'
+	print '\n', len(IntBTree.alltrees), 'IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
-	print '\n', len(FieldBTree.alltrees), FieldBTrees'
+	print '\n', len(FieldBTree.alltrees), 'FieldBTrees'
 	for i in FieldBTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
