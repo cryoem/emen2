@@ -50,15 +50,15 @@ def DB_cleanup() :
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
 	print "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
-	print 'BTrees'
+	print len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
-	print 'IntBTrees'
+	print '\n', len(IntBTree.alltrees), IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
-	print 'FieldBTrees'
+	print '\n', len(FieldBTree.alltrees), FieldBTrees'
 	for i in FieldBTree.alltrees:
 		i.close()
 		print '.', ; sys.stdout.flush()
