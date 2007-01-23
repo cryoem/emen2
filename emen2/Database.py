@@ -51,11 +51,17 @@ def DB_cleanup() :
 	necessary at the next restart"""
 	print "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	print 'BTrees'
-	for i in BTree.alltrees: i.close()
+	for i in BTree.alltrees:
+		i.close()
+		print '.', ; sys.stdout.flush()
 	print 'IntBTrees'
-	for i in IntBTree.alltrees: i.close()
+	for i in IntBTree.alltrees:
+		i.close()
+		print '.', ; sys.stdout.flush()
 	print 'FieldBTrees'
-	for i in FieldBTree.alltrees: i.close()
+	for i in FieldBTree.alltrees:
+		i.close()
+		print '.', ; sys.stdout.flush()
 
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
