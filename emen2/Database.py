@@ -194,12 +194,18 @@ class BTree:
 
 	def close(self):
 		if not self.bdb: return
+		print '\nbegin'; sys.stdout.flush()
 		try:
 			self.pcdb.close()
+			print '/pc'; sys.stdout.flush()
 			self.cpdb.close()
+			print '/cp'; sys.stdout.flush()
 			self.reldb.close()
+			print '/rel'; sys.stdout.flush()
 		except: pass
+		print 'main'; sys.stdout.flush()
 		self.bdb.close()
+		print '/main'; sys.stdout.flush()
 		self.bdb=None
 	
 	def sync(self):
