@@ -1576,7 +1576,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__paramdefs.set_txn(None)
 	
 		if txn : txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		self.LOG(4,"Database initialized")
 
 	# one of these 2 methods is mapped to self.newtxn()
@@ -1643,7 +1643,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__contexts_p.set(ctx.ctxid,ctx,txn)	# persistent context database
 		ctx.db=self
 		if txn : txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
 		return ctx.ctxid
@@ -1673,7 +1673,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				except: pass
 		self.__contexts_p.set_txn(None)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	def __getcontext(self,key,host):
 		"""Takes a key and returns a context (for internal use only)
@@ -1763,7 +1763,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__bdocounter.set(key,itm,txn)
 			newid=0
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
 		
@@ -2581,7 +2581,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__users.set(username,self.__newuserqueue[username],txn)
 		self.__newuserqueue.set(username,None,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
@@ -2626,7 +2626,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__users.set(user.username,user,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		return user
 
 	
@@ -2670,7 +2670,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__users.set(username,ouser,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		return userdict
 	
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
@@ -2691,7 +2691,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__users.set(user.username,user,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		return 1
 	
 	def adduser(self,user):
@@ -2735,7 +2735,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__newuserqueue.set(user.username,user,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		
 	def getqueueduser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
@@ -2855,7 +2855,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__workflow[ctx.user]=wf
 		self.__workflow.set_txn(None)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		return work.wfid
 	
 	def delworkflowitem(self,wfid,ctxid,host=None) :
@@ -2874,7 +2874,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__workflow.set(ctx.user,wf,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		
 	def setworkflow(self,wflist,ctxid,host=None) :
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
@@ -2898,7 +2898,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		self.__workflow.set(ctx.user,wflist,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 	
 	def getvartypenames(self):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -2940,7 +2940,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__paramdefs.set(paramdef.name,paramdef,txn)
 		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		
 	def addparamchoice(self,paramdefname,choice):
 		"""This will add a new choice to records of vartype=string. This is
@@ -2952,7 +2952,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		txn=self.newtxn()
 		self.__paramdefs.set(paramdefname,d,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
@@ -3024,7 +3024,7 @@ or None if no match is found."""
 		self.__recorddefs.set(recdef.name,recdef,txn)
 		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. Defined fields should
@@ -3049,7 +3049,7 @@ or None if no match is found."""
 		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
@@ -3353,7 +3353,7 @@ or None if no match is found."""
 									
 			#print "putrec->\n",record.__dict__
 			if txn: txn.commit()
-			else : DB_syncall()
+			elif not self.__importmode : DB_syncall()
 			
 			return record.recid
 		
@@ -3439,7 +3439,7 @@ or None if no match is found."""
 		
 		self.__records.set(record.recid,orig,txn)			# This actually stores the record in the database
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 		return record.recid
 		
@@ -3645,7 +3645,7 @@ or None if no match is found."""
 		for i in secrupd.keys() :
 			self.__secrindex.addrefs(i,secrupd[i],txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 	
 	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
 		"""This removes permissions from a record. users is a username or tuple/list of
@@ -3722,7 +3722,7 @@ or None if no match is found."""
 		for i in secrupd.keys() :
 			self.__secrindex.removerefs(i,secrupd[i],txn)
 		if txn: txn.commit()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 
 	###########
 	# The following routines for xmlizing aspects of the database are very simple, 
@@ -4147,7 +4147,7 @@ or None if no match is found."""
 			txn.commit()
 			self.LOG(4,"Import Complete, checkpointing")
 			self.__dbenv.txn_checkpoint()
-		else : DB_syncall()
+		elif not self.__importmode : DB_syncall()
 		if self.__importmode :
 			self.LOG(4,"Checkpointing complete, dumping indices")
 			self.__commitindices()
