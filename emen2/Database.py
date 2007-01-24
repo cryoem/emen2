@@ -1764,7 +1764,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		# Now we need a filespec within the directory
 		# dictionary keyed by date, 1 directory per day
 
-		if self.usetxn : txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		if usetxn : txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 		else: txn=None
 		# if exists, increase counter
 		try:
