@@ -19,7 +19,7 @@ by another layer, say an xmlrpc server...
 """
 
 from bsddb3 import db
-from pickle import dumps,loads,dump,load
+from cPickle import dumps,loads,dump,load
 from sets import *
 import os
 import sys
