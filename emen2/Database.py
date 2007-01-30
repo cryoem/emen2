@@ -3318,8 +3318,8 @@ or None if no match is found."""
 
 #			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 			txn=self.newtxn()
-			record.recid=self.__records.get(-1,txn)+1
-			self.__records.set(-1,record.recid,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
+			record.recid=self.__records.get(-1,txn)
+			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
 #			record.recid = self.__dbseq.get()                                # Get a new record-id
 
 #			df=file("/tmp/dbbug3","a")
@@ -4102,8 +4102,8 @@ or None if no match is found."""
 					sys.stdout.flush()
 				oldid=r.recid
 #				r.recid = self.__dbseq.get()                                # Get a new record-id
-				r.recid=self.__records.get(-1,txn)+1
-				self.__records.set(-1,r.recid,txn)				# Update the recid counter, TODO: do the update more safely/exclusive access
+				r.recid=self.__records.get(-1,txn)
+				self.__records.set(-1,r.recid+1,txn)				# Update the recid counter, TODO: do the update more safely/exclusive access
 				recmap[oldid]=r.recid
 				self.__records.set(r.recid,r,txn)
 				r.setContext(ctx)
