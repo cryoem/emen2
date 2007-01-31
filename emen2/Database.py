@@ -50,18 +50,15 @@ def DB_cleanup() :
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
 	print "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
-	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
+#	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
 		i.close()
-		print >>sys.stderr, '.', ; sys.stderr.flush()
-	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
+#	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
-		print >>sys.stderr, '.', ; sys.stderr.flush()
-	print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
+#	print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
 	for i in FieldBTree.alltrees:
 		i.close()
-		print >>sys.stderr, '.', ; sys.stderr.flush()
 
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
@@ -194,18 +191,18 @@ class BTree:
 
 	def close(self):
 		if not self.bdb: return
-		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
+#		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
 		try:
 			self.pcdb.close()
-			print >>sys.stderr, '/pc'; sys.stderr.flush()
+#			print >>sys.stderr, '/pc'; sys.stderr.flush()
 			self.cpdb.close()
-			print >>sys.stderr, '/cp'; sys.stderr.flush()
+#			print >>sys.stderr, '/cp'; sys.stderr.flush()
 			self.reldb.close()
-			print >>sys.stderr, '/rel'; sys.stderr.flush()
+#			print >>sys.stderr, '/rel'; sys.stderr.flush()
 		except: pass
-		print >>sys.stderr, 'main'; sys.stderr.flush()
+#		print >>sys.stderr, 'main'; sys.stderr.flush()
 		self.bdb.close()
-		print >>sys.stderr, '/main'; sys.stderr.flush()
+#		print >>sys.stderr, '/main'; sys.stderr.flush()
 		self.bdb=None
 	
 	def sync(self):
@@ -3155,6 +3152,8 @@ or None if no match is found."""
 			print "Index merge complete Syncing"
 			DB_syncall()
 
+		DB_cleanup()
+		db.__dbenv.close()
 		sys.exit(0)
 		
 	def __getparamindex(self,paramname,create=1):
@@ -3924,7 +3923,7 @@ or None if no match is found."""
 		if users==None: users=self.__users.keys()
 		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
 		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
-		if records==None: records=Set(range(0,self.__records[-1]+1))
+		if records==None: records=Set(range(0,self.__records[-1]))
 		if workflows==None: workflows=Set(self.__workflow.keys())
 		if bdos==None: bdos=Set(self.__bdocounter.keys())
 		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
