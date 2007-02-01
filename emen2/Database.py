@@ -3158,6 +3158,7 @@ or None if no match is found."""
 
 		DB_cleanup()
 		self.__dbenv.close()
+		print >>sys.stderr('__dbenv.close() successful')
 		sys.exit(0)
 		
 	def __getparamindex(self,paramname,create=1):
