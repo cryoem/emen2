@@ -49,6 +49,7 @@ def DB_cleanup() :
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
+	sys.stdout.flush()
 	print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
