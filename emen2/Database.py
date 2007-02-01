@@ -3153,7 +3153,7 @@ or None if no match is found."""
 			DB_syncall()
 
 		DB_cleanup()
-		db.__dbenv.close()
+		self.__dbenv.close()
 		sys.exit(0)
 		
 	def __getparamindex(self,paramname,create=1):
