@@ -6,9 +6,16 @@
 #import time
 #import random
 
+DEBUG = 1
+
 from emen2 import ts 
 from emen2.ts import db
-from emen2.TwistSupport_html import html
+
+#from emen2.TwistSupport_html import html
+
+import emen2.TwistSupport_html.html.login
+import emen2.TwistSupport_html.html.newuser
+import emen2.TwistSupport_html.html.home
 
 from twisted.web.resource import Resource
 
@@ -24,8 +31,10 @@ class DBResource(Resource):
 	def render_GET(self,request):
 		global db,callbacks
 
+
+
 		session=request.getSession()			# sets a cookie to use as a session id
-		print "\n-------------------------\nGet: %s"%request.uri
+		print "\n--------- request ----------------\nGet: %s"%request.uri
 
 		try:
 			ctxid = session.ctxid
@@ -42,18 +51,18 @@ class DBResource(Resource):
 			except ValueError, TypeError:
 				print "Authentication Error"
 				print "...original request: %s"%session.originalrequest
-				return html.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
+				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
 			except:
 				print "Need to login..."
 				session.originalrequest = request.uri
 #				print "...requesting: %s"%request.uri
-				return html.login(request.uri,None,None,None,redir=request.uri,failed=0)
+				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)
 
-		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return html.home()
+		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return emen2.TwistSupport_html.html.home.home()
 				
 		# This is the one request that doesn't require an existing session, since it sets up the session
 		if (request.postpath[0]=="newuser"):
-			return html.newuser(request.postpath,request.args,None,request.getClientIP())
+			return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
 					
 #		print session.uid
 		db.checkcontext(ctxid,request.getClientIP())
@@ -63,8 +72,19 @@ class DBResource(Resource):
 		
 		method=request.postpath[0]
 		host=request.getClientIP()
+
+		exec("import emen2.TwistSupport_html.html.%s"%method)
 		
-		ret=eval("html."+method)(request.postpath,request.args,ctxid,host)
+		if DEBUG:
+			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
+		
+#		print "Req: "
+#		print request.content.seek(0)
+#		print request.content.readline()		
+
+
+		
+		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
 		
 		# JPEG Magic Number
 		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
