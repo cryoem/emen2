@@ -176,7 +176,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			
 	def xmlrpc_addparamdef(self,paramdef,ctxid=None,host=None,parent=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
-		r=Database.ParamDef()
+		r=ts.DB.ParamDef()
 		r.__dict__.update(paramdef)
 		ts.db.addparamdef(r,ctxid,host,parent)
 	
@@ -184,7 +184,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 
 		print locals()
-		a = Database.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
+		a = ts.DB.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
 		#print ctxid 
 		#ts.db.addparamdef(a,ctxid,host,parent)
 		print "addparamdef2 ctxid: %s"%ctxid

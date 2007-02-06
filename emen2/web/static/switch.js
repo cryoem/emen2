@@ -1,4 +1,5 @@
 var classcache = new Array();
+var oldvalues = new Array();
 
 function getStyle( element, cssRule )
 {
@@ -135,25 +136,25 @@ function init() {
 
 function makeedits() {
 	t = document.getElementById("makeedit");
-
-	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_submit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:window.location.reload()\">Cancel</span>"
+	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_submit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:makeedits_cancel()\">Cancel</span>"
 
 	list = getElementByClass("viewparam_value");
 	for (var i=0;i<list.length;i=i+1) {
 
 		value = document.getElementById(list[i] + "_2").innerHTML;
-
-		//<textarea name="%s" cols="%d" rows="%d" id="form_%s">%s</textarea />
+		if (typeof oldvalues[list[i]] == 'undefined') {oldvalues[list[i]] = value;}
+		
 		if (value.length > 80) {
 			var newinput = document.createElement("textarea");
 			newinput.cols = 70;
 			newinput.rows = 8;
 			newinput.value = value;
+			newinput.id = list[i] + "_2";
 		} else {
 			var newinput = document.createElement("input");
 			newinput.type = "text";
 			newinput.value = value;
-			newinput.size = value.length;
+			if (value.length > 0) {newinput.size = value.length;} else {newinput.size = 60;}
 			newinput.id = list[i] + "_2";
 		}
 
@@ -163,11 +164,25 @@ function makeedits() {
 
 
 	}
-	
-	
-	
-	
+}
 
+function makeedits_cancel() {
+	list = getElementByClass("viewparam_value");
+	
+	for (var i=0;i<list.length;i=i+1){
+		value = oldvalues[list[i]];
+		var element = document.createElement("span");
+		element.id = list[i] + "_2";
+		element.innerHTML = value;
+		
+		var para = document.getElementById(list[i]);
+		var old = document.getElementById(list[i] + "_2");
+		var replaced = para.replaceChild(element,old);
+	}
+
+	t = document.getElementById("makeedit");
+	t.innerHTML = "<span  class=\"jslink\"  onclick=\"javascript:makeedits()\">Edit</span>";
+	
 }
 
 

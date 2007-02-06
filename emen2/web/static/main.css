@@ -94,7 +94,20 @@ div.singlepage {
 }
 
 
+/* notifications */
 
+.notification {
+	background:#BBD9EE;  
+	padding:20px;
+	padding-bottom:25px;
+}
+
+
+.notification_inner {
+	padding:10px;
+	background:white;
+	border:solid 4px #FF8135;
+}
 
 /* Nav Tree */
 div.navtreeouter {
@@ -153,7 +166,7 @@ td.standardtable_shaded {
 	width:100%;
 	padding-left:20px; 
 }
-#comments_permissions {
+#comments_permissions,#addcommentformsmall,#addfileformsmall {
 	display:none;
 	padding:10px;
 }
