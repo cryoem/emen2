@@ -1811,7 +1811,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		except:
 			raise KeyError,"Unknown identifier %s"%ident
 
-		if self.trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid)
+		if self.trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid,recid)
 
 		raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
 		
