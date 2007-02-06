@@ -53,8 +53,9 @@ def DB_cleanup() :
 	print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
+		sys.stderr.write('closing %s\n' % str(i))
 		i.close()
-		sys.stderr.write('.')
+		sys.stderr.write('%s closed\n' % str(i))
 	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
@@ -163,6 +164,7 @@ class BTree:
 		between records are also supported. """
 		global globalenv,dbopenflags
 		BTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
+		self.name = name
 		self.txn=None	# current transaction used for all database operations
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
@@ -187,6 +189,8 @@ class BTree:
 			self.reldb=db.DB(dbenv)
 			self.reldb.open(file+".rel",name,db.DB_BTREE,dbopenflags)
 		else : self.relate=0
+
+	def __str__(self): return "<Database.BTree instance: %s>" % self.name
 
 	def __del__(self):
 		self.close()
