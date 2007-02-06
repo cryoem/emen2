@@ -198,7 +198,7 @@ class BTree:
 		except: pass
 
 	def close(self):
-		if not self.bdb: return
+		if self.bdb is None: return
 		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
 		try:
 			self.pcdb.close()
@@ -472,7 +472,7 @@ class IntBTree:
 		except: pass
 
 	def close(self):
-		if not self.bdb: return
+		if self.bdb is None: return
 		try:
 			self.pcdb.close()
 			self.cpdb.close()
@@ -689,7 +689,7 @@ class FieldBTree:
 		except: pass
 		
 	def close(self):
-		if not self.bdb: return
+		if self.bdb is None: return
 		self.bdb.close()
 		self.bdb=None
 
