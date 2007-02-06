@@ -155,7 +155,7 @@ function statechange(http_request,command,param,type) {
 							string = string + "</div>";
 							}
 							b.innerHTML = string;	
-							parentfield.value = string_parentfield;
+							try {parentfield.value = string_parentfield;} catch(error) {}
 						}
 
 						if (command == "getchildren" || command == "getcousins") {
@@ -226,7 +226,7 @@ function statechange(http_request,command,param,type) {
 
 function make_param() { 
 	var name = document.getElementById('name_of_new_parameter').value;
-	var parent = document.getElementById('parent_of_new_parameter').value;
+	var parent = document.getElementById('parent_new').value;
 	var choices = document.getElementById('choices_of_new_parameter').value;
 	var defaultunits = document.getElementById('default_units_of_new_parameter').value;
 	var vartype = document.getElementById('vartype_of_new_parameter').value;

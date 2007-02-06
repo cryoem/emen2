@@ -35,6 +35,20 @@ function toggle(id) {
 	else {
 		document.getElementById(id).style.display = 'block';
 	}
+
+//	try {
+//		alert(id);
+		button = document.getElementById(id + "_button");
+		
+		if (state != 'none') {
+			button.innerHTML = "+";
+		} else {
+			button.innerHTML = "-";
+		}
+		
+//	} catch(error) {}
+
+
 }
 
 function switchbutton(type,id) {
@@ -119,13 +133,55 @@ function init() {
 }
 
 
+function makeedits() {
+	t = document.getElementById("makeedit");
+
+	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_submit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:window.location.reload()\">Cancel</span>"
+
+	list = getElementByClass("viewparam_value");
+	for (var i=0;i<list.length;i=i+1) {
+
+		value = document.getElementById(list[i] + "_2").innerHTML;
+
+		//<textarea name="%s" cols="%d" rows="%d" id="form_%s">%s</textarea />
+		if (value.length > 80) {
+			var newinput = document.createElement("textarea");
+			newinput.cols = 70;
+			newinput.rows = 8;
+			newinput.value = value;
+		} else {
+			var newinput = document.createElement("input");
+			newinput.type = "text";
+			newinput.value = value;
+			newinput.size = value.length;
+			newinput.id = list[i] + "_2";
+		}
+
+    var para = document.getElementById(list[i]);
+    var spanElm = document.getElementById(list[i] + "_2");
+    var replaced = para.replaceChild(newinput,spanElm);
+
+
+	}
+	
+	
+	
+	
+
+}
 
 
 
 
 
-
-
+function submitattachfile() {
+	for (var i=0;i<document.fileform.elements.length;i=i+2) {
+		if (document.fileform.elements[i].value != "") {
+			try {document.fileform.elements[i+1].value = document.fileform.elements[i].value;}
+			catch(error) {}
+		} 
+	}
+}
 
 
 
@@ -134,14 +190,14 @@ function init() {
 
 function tooltip_show(tooltipId)
 {
-	hideclass('tooltip')
+//	hideclass('tooltip')
 	try {
-	document.getElementById(tooltipId).style.display = 'block';
+//	document.getElementById(tooltipId).style.display = 'block';
 	} catch(error) {}
 }
 
 function tooltip_hide(tooltipId)
 {
-	self.setTimeout('qhide(\'' + tooltipId + '\')', 5000)
-//	document.getElementById(tooltipId).style.display = 'none';
+//	self.setTimeout('qhide(\'' + tooltipId + '\')', 5000)
+////	document.getElementById(tooltipId).style.display = 'none';
 }

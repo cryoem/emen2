@@ -63,6 +63,10 @@ div#title {
 	color:black;
 	background:#BBD9EE; 
 }
+div.bluespacer {
+	background:#BBD9EE;
+	padding-top:15px;
+}
 
 div#bottom {
 	background:#BBD9EE; 
@@ -126,10 +130,11 @@ div.standardfields {
 	width:350px;
 /*	font-size:12pt; */
 }
-td.standardtable_roundedtop {
-	-moz-border-radius-topleft:8px;
+td.roundtopright {
 	-moz-border-radius-topright:8px;
-	background:#BBD9EE;
+}
+td.roundtopleft {
+	-moz-border-radius-topleft:8px;
 }
 
 td.standardtable_shaded {
@@ -143,9 +148,10 @@ td.standardtable_shaded {
 }
 
 
-#comments_history {
-	display:none;
-	padding:10px;
+#comments_history,#downloadfile {
+	display:block;
+	width:100%;
+	padding-left:20px; 
 }
 #comments_permissions {
 	display:none;
@@ -161,6 +167,11 @@ td.standardtable_shaded {
 	font-size:14pt;
 	padding:4px;
 }
+.shaded2 {
+	width:100%;
+	background:#BBD9EE;
+	border-top:solid 1px white;
+}
 
 
 /* ******* tooltips ************ */
@@ -175,7 +186,7 @@ td.standardtable_shaded {
 	padding:10px;
 }
 
-.viewparam {
+.viewparam_name, .viewparam_value {
 /*	padding-bottom:1px;
 	border-bottom:dashed 1px; */
 	color:#783766;
@@ -284,7 +295,8 @@ TEXT ELEMENTS
 =============================================================
 */
 
-a {
+a,.jslink {
+	cursor:pointer;
 	text-decoration:none;
 	color:#202060;
 }
