@@ -406,8 +406,8 @@ class BTree:
 
 	def has_key(self,key,txn=None):
 		if not txn : txn=self.txn
-		return self.bdb.has_key(dumps(key),txn=txn)
-
+		#return self.bdb.has_key(dumps(key),txn=txn)
+                return self.bdb.has_key(dumps(key),txn) # hari put this line, commented previous
 	def get(self,key,txn=None):
 		return loads(self.bdb.get(dumps(key),txn=txn))
 	
@@ -3351,6 +3351,7 @@ or None if no match is found."""
 			ptest.discard("permissions")
 			ptest.discard("rectype")
 			if len(ptest)>0 :
+			        print ptest 
 #				self.__records[-1]=record.recid-1
 				txn.abort()
 				print "One or more parameters undefined (%s)"%ptest
