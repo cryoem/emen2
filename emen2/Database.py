@@ -3059,7 +3059,7 @@ or None if no match is found."""
 
 		recdef.creator=rd.creator
 		recdef.creationtime=rd.creationtime
-		recdef.mainview=rd.mainview	#temp. change to allow mainview changes
+		#recdef.mainview=rd.mainview	#temp. change to allow mainview changes
 		recdef.findparams()
 
 		pdn=self.getparamdefnames()
