@@ -132,7 +132,9 @@ div.nav_buttons {
 #imagepreview {
 	width:520px;
 	float:right;
-	margin-bottom:10px;
+	margin:0px;
+	padding:10px;
+	line-height:0px;
 	border:solid 2px red;
 }
 
@@ -170,7 +172,8 @@ td.standardtable_shaded {
 
 #comments_history,#downloadfile {
 	display:block;
-	width:100%;
+	overflow:scroll;
+	width:300px;
 	padding-left:20px; 
 }
 #comments_permissions,#addcommentformsmall,#addfileformsmall {
