@@ -150,7 +150,7 @@ div.standardfields {
 	float:right;
 	margin-bottom:10px;
 	width:350px;
-	overflow:clip;
+	overflow:hidden;
 /*	font-size:12pt; */
 }
 td.roundtopright {
