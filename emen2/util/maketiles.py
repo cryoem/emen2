@@ -16,14 +16,11 @@ print len(bin)
 for i in bin:
 	for j in range(i[1]):
 		key=i[0]+"%05X"%j
-		print key
-#		try:
-#			name,path=db.getbinary(key,ctx)
-#			print "name: %s"%name
-#			print "path: %s"%path
-#		except:
-#			print "Id %s not found !!!"%key
-#			continue
+		try:
+			name,path=db.getbinary(key,ctx)
+		except:
+			print "Id %s not found !!!"%key
+			continue
 		
 		# see if we need to generate the tile file
 		if os.access(path+".tile",os.F_OK) : 
