@@ -129,6 +129,13 @@ div.nav_buttons {
 
 
 /* Sidebar */
+div.imagepreview {
+	width:520px;
+	float:right;
+	margin-bottom:10px;
+	border:solid 2px red;
+}
+
 .standardtable {
 	-moz-border-radius:8px;
 /*	background:white; */
