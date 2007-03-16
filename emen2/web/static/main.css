@@ -174,7 +174,7 @@ td.standardtable_shaded {
 #comments_history,#downloadfile {
 	display:block;
 	overflow:scroll;
-	width:330px;
+	width:320px;
 	padding-left:20px; 
 }
 #comments_permissions,#addcommentformsmall,#addfileformsmall {
