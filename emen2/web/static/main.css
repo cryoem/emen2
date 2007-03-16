@@ -135,7 +135,7 @@ div.nav_buttons {
 	width:400px;
 	margin-right:10px;
 	padding:10px;
-	line-height:0px;
+	line-height:100%;
 	-moz-border-radius:8px;
 	background:#E7F1F8;
 }
