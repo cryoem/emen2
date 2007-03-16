@@ -130,6 +130,7 @@ div.nav_buttons {
 
 /* Sidebar */
 #imagepreview {
+	text-align:center;
 	float:right;
 	width:400px;
 	margin-right:10px;
