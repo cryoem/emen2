@@ -132,15 +132,15 @@ div.nav_buttons {
 #imagepreview {
 	float:right;
 	width:350px;
-	margin:10px;
+	margin-right:10px;
 	padding:10px;
 	line-height:0px;
 	-moz-border-radius:8px;
 	background:#E7F1F8;
 }
 #imagepreview img {
-	width:175px;
-	height:175px;
+	width:200px;
+	height:200px;
 }
 
 .standardtable {
