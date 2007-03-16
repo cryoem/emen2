@@ -139,6 +139,9 @@ div.nav_buttons {
 	-moz-border-radius:8px;
 	background:#E7F1F8;
 }
+#imagepreview_img {
+	line-height:0px;
+}
 #imagepreview img {
 	width:200px;
 	height:200px;
