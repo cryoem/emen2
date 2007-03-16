@@ -129,7 +129,7 @@ div.nav_buttons {
 
 
 /* Sidebar */
-div.imagepreview {
+#imagepreview {
 	width:520px;
 	float:right;
 	margin-bottom:10px;
