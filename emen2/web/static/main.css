@@ -606,10 +606,12 @@ DROP DOWN MENU CSS
  ************************** */
 
 .leftcolumn {
+	width:31%;
 	float:left;
 }
 .rightcolumn {
-	float:right;
+	width:31%;
+	float:left;
 }
 
 
