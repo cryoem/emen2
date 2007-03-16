@@ -130,11 +130,15 @@ div.nav_buttons {
 
 /* Sidebar */
 #imagepreview {
-	width:520px;
+	width:350px;
 	margin:0px;
-	padding:10px;
+	padding:0px;
 	line-height:0px;
 	border:solid 2px red;
+}
+#imagepreview img {
+	width:175px;
+	height:175px;
 }
 
 .standardtable {
