@@ -132,10 +132,11 @@ div.nav_buttons {
 #imagepreview {
 	float:right;
 	width:350px;
-	margin:0px;
-	padding:0px;
+	margin:10px;
+	padding:10px;
 	line-height:0px;
-	border:solid 2px red;
+	-moz-border-radius:8px;
+	background:#E7F1F8;
 }
 #imagepreview img {
 	width:175px;
