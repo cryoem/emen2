@@ -142,11 +142,12 @@ div.nav_buttons {
 #imagepreview_img {
 	line-height:0px;
 }
+/*
 #imagepreview img {
 	width:200px;
 	height:200px;
 }
-
+*/
 #cousin_prev {
 	float:left;
 	padding:10px;
