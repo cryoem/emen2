@@ -106,7 +106,7 @@ function recalc() {
 		}
 	}
 	dbug=document.getElementById("dbug");
-	dbug.innerHTML = dx + " " + dy;
+	dbug.innerHTML = x + " " + y;
 }
 
 function setsize(w,h) {
