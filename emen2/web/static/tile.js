@@ -10,7 +10,7 @@ function tileinit(nxinit,nyinit,tileidinit) {
 	ny = nyinit;
 	tileid = tileidinit;
 	level = nx.length-1;
-	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
+//	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
 	
 	setsize(nx[level]*256,ny[level]*256);
 	var outdiv=document.getElementById("outerdiv");
@@ -82,6 +82,7 @@ function mup(event) {
 }
 
 function recalc() {
+	alert("Recalc");
 	indiv=document.getElementById("innerdiv");
 	x=-Math.ceil(tofloat(indiv.style.left)/256);
 	y=-Math.ceil(tofloat(indiv.style.top)/256);
