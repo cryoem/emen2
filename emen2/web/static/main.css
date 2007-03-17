@@ -15,6 +15,7 @@ body {
 	padding:0px;
 /*	background:#BBD9EE; */
 	background:white;
+	font-size:12px;
 }
 
 html,body {
@@ -225,10 +226,10 @@ td.standardtable_shaded {
 	font-size:10pt;
 }
 
-.viewbinary {
+/*.viewbinary {
 	font-size:14pt;
 	padding:4px;
-}
+}*/
 .shaded2 {
 	width:100%;
 	background:#BBD9EE;
@@ -275,6 +276,7 @@ TABLE STUFF
 */
 
 table.navtable {
+	font-size:12px;
 }
 
 table.groupview {
