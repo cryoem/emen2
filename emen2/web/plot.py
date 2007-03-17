@@ -15,14 +15,14 @@ print "...loading %s"%__name__
 #import plot
 
 
-#try:
-#	import matplotlib
-#	matplotlib.use('Agg')
-#	from matplotlib import pylab, font_manager
-#	from matplotlib.ticker import FormatStrFormatter
-#	from matplotlib import colors
-#except:
-#	print "No matplotlib, plotting will fail"
+try:
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab, font_manager
+	from matplotlib.ticker import FormatStrFormatter
+	from matplotlib import colors
+except:
+	print "No matplotlib, plotting will fail"
 
 def render_plot(thequery,L,clickable=0, groupby=0):
 	data = L['data']
