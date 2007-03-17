@@ -1,15 +1,17 @@
 var isdown=false;
-var nx=0;
-var ny=0;
+var nx=0
+var ny=0
+var level=nx.length-1
 var tileid = "";
-var level=0;
+
 
 function tileinit(nxinit,nyinit,tileidinit) {
 	nx = nxinit;
 	ny = nyinit;
 	tileid = tileidinit;
 	level = nx.length-1;
-//	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
+	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
+	
 	setsize(nx[level]*256,ny[level]*256);
 	var outdiv=document.getElementById("outerdiv");
 	outdiv.onmousedown = mdown;
@@ -17,7 +19,6 @@ function tileinit(nxinit,nyinit,tileidinit) {
 	outdiv.onmouseup = mup;
 	outdiv.ondragstart = function() { return false; }
 	recalc();
-
 }
 
 function tofloat(s) {
@@ -84,7 +85,6 @@ function recalc() {
 	indiv=document.getElementById("innerdiv");
 	x=-Math.ceil(tofloat(indiv.style.left)/256);
 	y=-Math.ceil(tofloat(indiv.style.top)/256);
-	//alert("Recalc: x: " + x + " y: " + y);
 	outdiv=document.getElementById("outerdiv");
 	dx=outdiv.clientWidth/256+1;
 	dy=outdiv.clientHeight/256+1;
@@ -95,7 +95,7 @@ function recalc() {
 			var im=document.getElementById(nm);
 			if (!im) {
 				im=document.createElement("img");
-				im.src="/db/tileimage/" + tileid + "?level=" + level + "&x=" + i + "&y=" + j;
+				im.src="/db/tileimage/" + tileid + "?level="+level+"&x="+i+"&y="+j;
 				im.style.position="absolute";
 				im.style.left=i*256+"px";
 				im.style.top=j*256+"px";
@@ -107,7 +107,6 @@ function recalc() {
 }
 
 function setsize(w,h) {
-	//alert("Setting size: " + w + " " + h);
 	var indiv=document.getElementById("innerdiv");
 	indiv.style.height=h;
 	indiv.style.width=w;
