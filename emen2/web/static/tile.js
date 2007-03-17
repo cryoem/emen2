@@ -72,6 +72,10 @@ function mmove(event) {
 	indiv=document.getElementById("innerdiv");
 	indiv.style.left=x0+event.clientX-mx0;
 	indiv.style.top=y0+event.clientY-my0;
+
+	dbug=document.getElementById("dbug");
+	dbug.innerHTML = indiv.style.left + " " + indiv.style.top;
+
 	recalc();
 }
 
@@ -105,8 +109,6 @@ function recalc() {
 			}
 		}
 	}
-	dbug=document.getElementById("dbug");
-	dbug.innerHTML = x + " " + y;
 }
 
 function setsize(w,h) {
