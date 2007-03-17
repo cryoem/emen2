@@ -637,7 +637,7 @@ DROP DOWN MENU CSS
 
 
 /* tile browser */
-#outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
+#outerdiv { height: 400px; width:400px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
 
 

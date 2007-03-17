@@ -55,6 +55,7 @@ function zoomin() {
 }
 
 function mdown(event) {
+	alert("mousedown");
 	if (!event) event=window.event;		// for IE
 	indiv=document.getElementById("innerdiv");
 	isdown=true;
