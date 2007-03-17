@@ -70,8 +70,8 @@ function mmove(event) {
 	if (!isdown) return;
 	if (!event) event=window.event;		// for IE
 	indiv=document.getElementById("innerdiv");
-	indiv.style.left=x0+event.clientX-mx0;
-	indiv.style.top=y0+event.clientY-my0;
+	indiv.style.left=x0+event.clientX-mx0 + "px";
+	indiv.style.top=y0+event.clientY-my0 + "px";
 
 	dbug=document.getElementById("dbug");
 	dbug.innerHTML = indiv.style.left + " " + indiv.style.top;
