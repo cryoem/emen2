@@ -82,7 +82,7 @@ function mup(event) {
 }
 
 function recalc() {
-	alert("Recalc");
+//	alert("Recalc");
 	indiv=document.getElementById("innerdiv");
 	x=-Math.ceil(tofloat(indiv.style.left)/256);
 	y=-Math.ceil(tofloat(indiv.style.top)/256);
@@ -105,6 +105,8 @@ function recalc() {
 			}
 		}
 	}
+	dbug=document.getElementById("dbug");
+	dbug.innerHTML = dx + " " + dy;
 }
 
 function setsize(w,h) {
