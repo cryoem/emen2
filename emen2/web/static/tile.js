@@ -73,9 +73,6 @@ function mmove(event) {
 	indiv.style.left=x0+event.clientX-mx0 + "px";
 	indiv.style.top=y0+event.clientY-my0 + "px";
 
-	dbug=document.getElementById("dbug");
-	dbug.innerHTML = indiv.style.left + " " + indiv.style.top;
-
 	recalc();
 }
 
