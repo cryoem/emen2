@@ -147,6 +147,35 @@ div.nav_buttons {
 	height:200px;
 }
 
+#cousin_prev {
+	float:left;
+	padding:10px;
+	margin:0px;
+	background:#BBD9EE;
+	-moz-border-radius-topleft:8px;
+	-moz-border-radius-bottomleft:8px;
+}
+#cousin_center {
+	float:left;
+	border-left:2px solid white;
+	border-right:2px solid white;
+	padding:10px;
+	margin:0px;
+	background:#E7F1F8;
+}
+#cousin_next {
+	float:left;
+	padding:10px;
+	margin:0px;
+	background:#BBD9EE;
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-bottomright:8px;
+}	
+#cousin_buttons {
+	clear:both;
+	height:35px;
+	}	
+	
 .standardtable {
 	-moz-border-radius:8px;
 /*	background:white; */
@@ -528,7 +557,7 @@ DROP DOWN MENU CSS
 	clear:both;
 }
 
-.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after {
+.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after, #cousin_buttons:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -607,7 +636,7 @@ DROP DOWN MENU CSS
 
 
 /* tile browser */
-#outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
+#outerdiv { height: 400px; width:400px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
 
 
