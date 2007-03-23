@@ -31,11 +31,15 @@ class DBResource(Resource):
 	def render_GET(self,request):
 		global db,callbacks
 
-
-
 		session=request.getSession()			# sets a cookie to use as a session id
 		print "\n--------- request ----------------\nGet: %s"%request.uri
 
+		# This is the one request that doesn't require an existing session, since it sets up the session
+		if (request.postpath[0]=="newuser"):
+			return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
+	
+		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return emen2.TwistSupport_html.html.home.home()
+		
 		try:
 			ctxid = session.ctxid
 		except:
@@ -45,7 +49,7 @@ class DBResource(Resource):
 				ctxidcookiename = 'TWISTED_SESSION_ctxid'
 				request.addCookie(ctxidcookiename, session.ctxid, path='/')
 			
-#				print "Got ctxid: %s"%session.ctxid
+				print "ctxid: %s"%session.ctxid
 				return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 						<meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest
 			except ValueError, TypeError:
@@ -54,16 +58,15 @@ class DBResource(Resource):
 				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
 			except:
 				print "Need to login..."
-				session.originalrequest = request.uri
+				if request.uri == "/db/login":
+					session.originalrequest = "/db/userhome"
+				else:
+					session.originalrequest = request.uri
+					
 #				print "...requesting: %s"%request.uri
 				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)
-
-		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return emen2.TwistSupport_html.html.home.home()
+			
 				
-		# This is the one request that doesn't require an existing session, since it sets up the session
-		if (request.postpath[0]=="newuser"):
-			return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
-					
 #		print session.uid
 		db.checkcontext(ctxid,request.getClientIP())
 #		print "Checked context with ctxid: %s"%ctxid
@@ -77,13 +80,8 @@ class DBResource(Resource):
 		
 		if DEBUG:
 			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
-		
-#		print "Req: "
-#		print request.content.seek(0)
-#		print request.content.readline()		
+			
 
-
-		
 		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
 		
 		# JPEG Magic Number

@@ -143,11 +143,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		return r.items()
 	
-	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
+	def xmlrpc_putrecord(self,recid,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
-		try:
-			r=ts.db.putrecord(recid,record,ctxid,host)
-		except: return -1
+		
+		print "recid: %s \n record: %s \n ctxid: %s"%(recid,record,ctxid)
+		
+		rec = ts.db.getrecord(recid,ctxid)
+		for i in record:
+			rec[i[0]] = i[1]
+		
+#		try:
+		r=ts.db.putrecord(rec,ctxid,host)
+#		except: return -1
 			
 		return r
 		

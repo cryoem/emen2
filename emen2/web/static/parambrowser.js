@@ -2,6 +2,7 @@ var url = "/RPC2";
 currentparam = "root";
 target = "";
 ctxid = "";
+name = "";
 
 function selecttarget() {
 //	alert(target);
@@ -84,6 +85,7 @@ function dbgetrequest(url,command, param) {
 		http_request.send(null);
 }
 
+// simple xmlrpc request
 function dbxmlrpcrequest(command,param,type) {
 	//standard
     var http_request = false;
@@ -113,6 +115,51 @@ function dbxmlrpcrequest(command,param,type) {
 			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
 		}
 		http_request.send(request);
+}
+
+
+// raw xmlrpc request
+function dbxmlrpcrequestraw(command) {
+//		input = document.getElementById("input");
+//		command = input.value;
+
+		//standard
+    var http_request = false;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+    if (!http_request) {
+        alert('Giving up :( Cannot create an XMLHTTP instance');
+        return false;
+    }
+		//end
+		http_request.onreadystatechange=function()
+ 		{		
+//			output = document.getElementById("output");
+			if (http_request.readyState==4)
+	  		{
+	  			if (http_request.status==200)
+	  			{	
+						window.location.reload();
+//					output.innerHTML = http_request.responseText
+				}
+	  			else
+	  			{
+//					output.innerHTML = "Problem retrieving data: " + http_request.statusText + "<br><br>status is  " + http_request.status;
+						alert("Error.");
+	  			}
+	  		}
+		}
+		http_request.open("POST",url,true);
+		http_request.send(command);
 }
 
 function statechange(http_request,command,param,type) {
@@ -245,8 +292,8 @@ function make_param() {
 				}
 	  			else
 	  			{
-					alert("Problem retrieving data:" + xmlhttp3.statusText);
-					alert("xmlhttp3.status is  " + xmlhttp3.status)
+					alert("Problem retrieving data:" + xmlhttp.statusText);
+					alert("xmlhttp3.status is  " + xmlhttp.status)
 	  			}
 					
 	  		}
@@ -255,4 +302,79 @@ function make_param() {
 	var request = "<methodCall> <methodName>addparamdef2</methodName> <params> <param> <value> <string>" + name + "</string> </value> </param> <param> <value> <string>" + ctxid + "</string></value></param><param> <value> <string>" + parent + "</string> </value> </param><param> <value> <string>" + vartype + "</string> </value> </param><param> <value> <string>" + desc_short + "</string> </value> </param><param> <value> <string>" + desc_long + "</string> </value> </param><param> <value> <string>" + property + "</string> </value> </param><param> <value> <string>" + defaultunits + "</string> </value> </param><param> <value> <string>" + choices + "</string> </value> </param></params></methodCall>";
 
 	xmlhttp.send(request);
+}
+
+
+
+function makeedits() {
+	t = document.getElementById("makeedit");
+	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_commit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:makeedits_cancel()\">Cancel</span>"
+
+	list = getElementByClass("viewparam_value");
+	for (var i=0;i<list.length;i=i+1) {
+
+		value = document.getElementById(list[i] + "_2").innerHTML;
+		if (typeof oldvalues[list[i]] == 'undefined') {oldvalues[list[i]] = value;}
+		
+		if (value.length > 80) {
+			var newinput = document.createElement("textarea");
+			newinput.cols = 70;
+			newinput.rows = 8;
+			newinput.value = value;
+			newinput.id = list[i] + "_2";
+		} else {
+			var newinput = document.createElement("input");
+			newinput.type = "text";
+			newinput.value = value;
+			if (value.length > 0) {newinput.size = value.length;} else {newinput.size = 60;}
+			newinput.id = list[i] + "_2";
+		}
+
+    var para = document.getElementById(list[i]);
+    var spanElm = document.getElementById(list[i] + "_2");
+    var replaced = para.replaceChild(newinput,spanElm);
+
+
+	}
+}
+
+function makeedits_cancel() {
+	list = getElementByClass("viewparam_value");
+		
+	for (var i=0;i<list.length;i=i+1){
+		value = oldvalues[list[i]];
+		var element = document.createElement("span");
+		element.id = list[i] + "_2";
+		element.innerHTML = value;
+		
+		var para = document.getElementById(list[i]);
+		var old = document.getElementById(list[i] + "_2");
+		var replaced = para.replaceChild(element,old);
+	}
+
+	t = document.getElementById("makeedit");
+	t.innerHTML = "<span  class=\"jslink\"  onclick=\"javascript:makeedits()\">Edit</span>";
+	
+}
+
+function makeedits_commit() {
+	ctxid_init_start('TWISTED_SESSION_ctxid');
+// 	recordid = document.getElementById('recordid').value;
+
+	
+	list = getElementByClass("viewparam_value");
+
+	xmlcommand1 = "<methodCall><methodName>putrecord</methodName><params><param><value><int>" + name + "</int></value></param><param><value><array>";
+	xmlcommand2 = "";
+//	xmlcommand3 = "<param><value><string>" + ctxid + "</string></value></param></params></methodCall>";
+	xmlcommand3 = "</array></value></param><param><value><string>" + ctxid + "</string></value></param></params></methodCall>";
+
+	for (var i=0;i<list.length;i=i+1){
+		value = document.getElementById(list[i] + "_2").value;
+		xmlcommand2 = xmlcommand2 + "<param><value><array><param><value><string>" + list[i] + "</string></value></param><param><value><string>" + value + "</string></value></param></array></value></param>";
+	}
+//	output = document.getElementById("output");
+//	output.innerHTML = xmlcommand1 + xmlcommand2 + xmlcommand3;
+	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3);
+
 }
