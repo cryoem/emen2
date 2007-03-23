@@ -114,7 +114,7 @@ def header(name,init=None,short=0):
 <div id="container">
 
 <div id="title">
-	<a href="/db/">
+	<a href="/db/home">
 	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
 	</a>
 </div>

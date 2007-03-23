@@ -31,15 +31,20 @@ class DBResource(Resource):
 	def render_GET(self,request):
 		global db,callbacks
 
+		# Redirects
+		if (len(request.postpath)==0):
+			request.postpath.append("home")
+			request.uri = "/db/home"
+		if (len(request.postpath[0])==0):
+			request.postpath[0] = "home"
+			request.uri = "/db/home"
+			
+		# Startup
 		session=request.getSession()			# sets a cookie to use as a session id
+		method=request.postpath[0]
+		host=request.getClientIP()
 		print "\n--------- request ----------------\nGet: %s"%request.uri
 
-		# This is the one request that doesn't require an existing session, since it sets up the session
-		if (request.postpath[0]=="newuser"):
-			return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
-	
-		if (len(request.postpath)==0 or request.postpath[0]=="index.html" or len(request.postpath[0])==0) : return emen2.TwistSupport_html.html.home.home()
-		
 		try:
 			ctxid = session.ctxid
 		except:
@@ -58,8 +63,16 @@ class DBResource(Resource):
 				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
 			except:
 				print "Need to login..."
+
+				# Is it a page that does not require authentication?
+				if (request.postpath[0] == "home"):
+					return emen2.TwistSupport_html.html.home.home(request.postpath,request.args,None,host)
+				if (request.postpath[0]=="newuser"):
+					return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
+	
+
 				if request.uri == "/db/login":
-					session.originalrequest = "/db/userhome"
+					session.originalrequest = "/db/"
 				else:
 					session.originalrequest = request.uri
 					
@@ -72,9 +85,6 @@ class DBResource(Resource):
 #		print "Checked context with ctxid: %s"%ctxid
 
 		# Ok, if we got here, we can actually start talking to the database
-		
-		method=request.postpath[0]
-		host=request.getClientIP()
 
 		exec("import emen2.TwistSupport_html.html.%s"%method)
 		
