@@ -3424,6 +3424,8 @@ or None if no match is found."""
 		
 		# Make sure all parameters are defined before we start updating the indicies
 		ptest=Set(changedparams)-Set(self.getparamdefnames())
+		# ian 03.25.07
+#		ptest.discard("permissions")
 		if len(ptest)>0 :
 			raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
 		
@@ -3523,7 +3525,7 @@ or None if no match is found."""
 				continue
 		return 0
 	
-	def getrecord(self,recid,ctxid,host=None,dbid=0) :
+	def getrecord(self,recid,ctxid,host=None,dbid=0):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
 		context"""

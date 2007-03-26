@@ -8,7 +8,8 @@ print "...loading %s"%__name__
 from sets import Set
 import re
 #import os
-from emen2.ts import db
+#from emen2.ts import *
+from emen2 import ts
 #import html
 #import tmpl
 import supp
@@ -121,13 +122,13 @@ def header(name,init=None,short=0):
 
 
 <div id="nav_table"> 
-	<div class="nav_tableli"><a href="/db/record?name=0">Browse Database</a></div>
+	<div class="nav_tableli"><a href="/db/record?name=%s">Browse Database</a></div>
 	<div class="nav_tableli"><a href="/db/queryform">Query Database</a></div>
 	<div class="nav_tableli"><a href="/db/workflow">My Workflow</a></div>
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
-		""")
+		"""%ts.GROUPROOT)
 	else:
 		ret.append("<div class=\"bluespacer\"></div>")
 		
@@ -381,7 +382,7 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 
 def stub(path,args,ctxid,host):
 	"""Example"""
-	global db
+#	global db
 
 	ret=[tmpl.header("EMEN2")]
 
