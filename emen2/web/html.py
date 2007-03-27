@@ -356,7 +356,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	ret = []
 	
 	# special fields to remove from record: held in sidebar
-	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","comments","file_image_binary"]
+	special = ["rectype","creator","creationtime","permissions","title","identifier","modifytime","modifyuser","parent","comments_text","comments","file_binary_image"]
 	
 	# start SIDEBAR
 	# Standard fields for all records
@@ -425,7 +425,7 @@ def html_record_dicttable(dict,proto,viewdef,missing=0,ctxid=None):
 	ret.append("</table>")
 
 	# If there is a data file, show it
-	bdo = dict["file_image_binary"]
+	bdo = dict["file_binary_image"]
 	if bdo:
 		# If it's a tile, link to viewer, else just download it
 		if bdo[0:3] == "bdo":
