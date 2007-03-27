@@ -33,7 +33,9 @@ def groupsettolist(groups):
 
 # just to keep it in one place
 def regexparser():
-	re1 = "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))[\s<]?|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))[\s<]?|(?P<name>((\$\#(?P<name1>\w*))\s?))"
+	re1 =  "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))[\s<]?"    \
+				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))[\s<]?" \
+				"|(?P<name>(\$\#(?P<name1>\w*)[\s<]?))"
 	return re1
 
 def macro_processor(macro,macroparameters,recordid,ctxid=None):

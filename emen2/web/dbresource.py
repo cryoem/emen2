@@ -47,6 +47,7 @@ class DBResource(Resource):
 
 		try:
 			ctxid = session.ctxid
+			db.checkcontext(ctxid,request.getClientIP())
 		except:
 			try:			
 				session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
@@ -61,7 +62,7 @@ class DBResource(Resource):
 				print "Authentication Error"
 				print "...original request: %s"%session.originalrequest
 				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
-			except:
+			except KeyError:
 				print "Need to login..."
 
 				# Is it a page that does not require authentication?
@@ -81,7 +82,6 @@ class DBResource(Resource):
 			
 				
 #		print session.uid
-		db.checkcontext(ctxid,request.getClientIP())
 #		print "Checked context with ctxid: %s"%ctxid
 
 		# Ok, if we got here, we can actually start talking to the database

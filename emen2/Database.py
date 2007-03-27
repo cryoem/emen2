@@ -93,7 +93,7 @@ def parseparmvalues(text,noempty=0):
 	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
 #	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 #	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	srch=re.findall('\$\$([a-zA-Z0-9_]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.findall('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	ret=[[],{}]
 	
 	for t in srch:
@@ -1667,6 +1667,22 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.LOG(4,"Login succeeded %s (%s)"%(username,ctx.ctxid))
 		
 		return ctx.ctxid
+		
+	
+	def deletecontext(self,ctxid):
+		"""Delete a context"""
+		txn=self.newtxn()
+		self.__contexts_p.set_txn(txn)
+		for k in self.__contexts_p.items():
+			if k[0] == ctxid:
+				try: del self.__contexts[k[0]]
+				except: pass
+				try: del self.__contexts_p[k[0]]
+				except: pass
+				self.__contexts_p.set_txn(None)
+		if txn: txn.commit()
+		elif not self.__importmode : DB_syncall()		
+
 
 	def cleanupcontexts(self):
 		"""This should be run periodically to clean up sessions that have been idle too long"""

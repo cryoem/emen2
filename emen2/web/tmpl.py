@@ -373,6 +373,35 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 
 
 
+def notifymsg(args):
+	"""Alert messages to show in the top of the page."""
+	ret = []
+	
+	if args.has_key("notify"):
+		notify = args["notify"][0].split("*")
+	else:
+		return ""
+	
+	
+	msgs = [\
+	"Added comment successfully", \
+	"Permission change successful", \
+	"Added child successfully", \
+	"Attached file successfully",\
+	"Logged out"\
+	]
+	
+	for i in notify:
+		# is integer:
+		try:
+			ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%msgs[int(i)])
+		# or string:
+		except:
+			ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%i)
+
+
+	return " ".join(ret)
+
 
 
 
