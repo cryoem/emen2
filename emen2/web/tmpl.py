@@ -379,6 +379,7 @@ def notifymsg(args):
 	
 	if args.has_key("notify"):
 		notify = args["notify"][0].split("*")
+		print notify
 	else:
 		return ""
 	
