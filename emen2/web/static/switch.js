@@ -161,9 +161,9 @@ function init() {
 
 	switchin("main","mainview");
 
-	try {
-		hideclass('page_recordview');qshow('page_recordview_defaultview');	
-	} catch(error) {}
+//	try {
+//		hideclass('page_recordview');qshow('page_recordview_defaultview');	
+//	} catch(error) {}
 
 }
 
