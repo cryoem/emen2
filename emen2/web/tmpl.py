@@ -69,6 +69,8 @@ def form_new(action="",items=(),method="POST"):
 			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="text" name="%s" value="%s" size="%s" id="form_%s" /></div>'%(i["desc"],i["name"],i["default"],i["cols"],i["name"]))
 		elif i["form"] == "hidden":
 			ret.append('<input type="hidden" name="%s" value="%s" />'%(i["name"],i["default"]))
+		elif i["form"] == "space":
+			ret.append('<br /><br />')
 		else:
 			ret.append('<div class="formcol1">Unknown field type: %s</div>'%i)
 
@@ -95,7 +97,7 @@ def header(name,init=None,short=0):
 <link rel="StyleSheet" href="/main.css" type="text/css" />
 
 <script type="text/javascript" src="/switch.js"></script>
-<script type="text/javascript" src="/ajax.js"></script>
+<script type="text/javascript" src="/xmlrpc.js"></script>
 <script type="text/JavaScript" src="/parambrowser.js"></script>
 <script type="text/javascript" src="/tile.js"></script>
 
@@ -128,7 +130,7 @@ def header(name,init=None,short=0):
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
-		"""%ts.GROUPROOT)
+		"""%ts.GROUPHOME)
 	else:
 		ret.append("<div class=\"bluespacer\"></div>")
 		
@@ -379,7 +381,7 @@ def notifymsg(args):
 	
 	if args.has_key("notify"):
 		notify = args["notify"][0].split("*")
-		print notify
+#		print notify
 	else:
 		return ""
 	
@@ -393,12 +395,13 @@ def notifymsg(args):
 	]
 	
 	for i in notify:
-		# is integer:
-		try:
-			ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%msgs[int(i)])
-		# or string:
-		except:
-			ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%i)
+		if i:
+			# is integer:
+			try:
+				ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%msgs[int(i)])
+				# or string:
+			except:
+				ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%i)
 
 
 	return " ".join(ret)

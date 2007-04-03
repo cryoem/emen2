@@ -45,7 +45,7 @@ usetxn=False
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
 
-def DB_cleanup() :
+def DB_cleanup():
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
@@ -2866,10 +2866,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				     ret = thewf.items_dict()
 		return ret
 		
-	def newworkflow(self, with) :
+	def newworkflow(self, with):
 		return WorkFlow(with)
 		
-	def addworkflowitem(self,work,ctxid,host=None) :
+	def addworkflowitem(self,work,ctxid,host=None):
 		"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 		
 		ctx=self.__getcontext(ctxid,host)
@@ -2912,7 +2912,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		
-	def setworkflow(self,wflist,ctxid,host=None) :
+	def setworkflow(self,wflist,ctxid,host=None):
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 		the external application should NEVER modify the wfid of the individual WorkFlow records.
 		Any wfid's that are None will be assigned new values in this call."""
@@ -3613,8 +3613,12 @@ or None if no match is found."""
 					try: usertuple[i]=tuple(usertuple[i])
 					except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
 
+		# all users
+		userset = Set(self.getusernames(ctxid)) | Set(("-4","-3","-2","-1"))
+
 		# get a list of records we need to update
-		if recurse>0 :
+		if recurse>0:
+			print "Add user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
@@ -3643,6 +3647,12 @@ or None if no match is found."""
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
 			newv=[Set(v) for v in usertuple]				# similar list of sets for the new users to add
 			
+			# check for valid user names
+			newv[0]&=userset
+			newv[1]&=userset
+			newv[2]&=userset
+			newv[3]&=userset
+						
 			# update the permissions for each group
 			cur[0]|=newv[0]
 			cur[1]|=newv[1]
@@ -3665,7 +3675,7 @@ or None if no match is found."""
 			if l!=l2 :
 				old=rec["permissions"]
 				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]),tuple(cur[3]))
-
+#				print "new permissions: %s"%rec["permissions"]
 # SHOULD do it this way, but too slow
 #				rec.commit()
 				
@@ -3682,7 +3692,7 @@ or None if no match is found."""
 					except: secrupd[i]=[rec.recid]
 				
 				# put the updated record back
-				self.__records(rec.recid,rec,txn)
+				self.__records.set(rec.recid,rec,txn)
 		
 		for i in secrupd.keys() :
 			self.__secrindex.addrefs(i,secrupd[i],txn)
@@ -3697,11 +3707,15 @@ or None if no match is found."""
 		this REMOVES all access permissions for the specified users on the specified
 		record."""
 
-		if isinstance(users,str) : users=Set([users])
-		else : users=Set(users)
-		
+
+		if isinstance(users,str) or isinstance(users,int):
+			users=Set([users])
+		else:
+			users=Set(users)
+
 		# get a list of records we need to update
-		if recurse>0 :
+		if recurse>0:
+			print "Del user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
@@ -3759,7 +3773,7 @@ or None if no match is found."""
 				
 				
 				# put the updated record back
-				self.__records(rec.recid,rec,txn)
+				self.__records.set(rec.recid,rec,txn)
 		
 		for i in secrupd.keys() :
 			self.__secrindex.removerefs(i,secrupd[i],txn)

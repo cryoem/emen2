@@ -16,15 +16,14 @@ import tmpl
 #import plot
 import pickle
 import timing
-
+from operator import itemgetter
 
 
 
 def groupsettolist(groups):
 	groupl = {}
 	for i in groups.keys():
-		glist = list(groups[i])
-		groupl[i] = glist
+		groupl[i] = list(groups[i])
 	return groupl		
 
 
@@ -71,53 +70,66 @@ def argmap(dict):
 		
 		
 
-		
-def invert(d):
-	nd = {}
-	returnlist = []
-	for k, v in d.iteritems():
-		if v == "":
-			v = "novalue"
-		if nd.has_key(v):
-			nd[v].append(k)
-		else:
-			nd[v] = [k]
-	return nd
 
 
 
+# much simpler; itemgetter new in python 2.4
+#def sortlistbyparamname(paramname,subset,reverse,ctxid):
+#	q = ts.db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
+#	q = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)]
 	
-def sortlistbyparamname(paramname,subset,reverse,ctxid):
-	global db
+#	global db
 #	print "Sorting..."
 #	print subset
-
-	q = ts.db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
-	nq = invert(q)
-	l = nq.keys()
-	l.sort()
-	sortedlist = []
-	for i in l:
-		j = nq[i]
-		j.sort()	
-		for k in j:
-			sortedlist.append(k)
-	for c in (Set(subset) - Set(sortedlist)):
-		sortedlist.append(c)
-	if reverse:
-		sortedlist.reverse()
+#	q = ts.db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
+#	nq = invert(q)
+#	l = nq.keys()
+#	l.sort()
+#	sortedlist = []
+#	for i in l:
+#		j = nq[i]
+#		j.sort()	
+#		for k in j:
+#			sortedlist.append(k)
+#	for c in (Set(subset) - Set(sortedlist)):
+#		sortedlist.append(c)
+#	if reverse:
+#		sortedlist.reverse()
 
 #	print "Done sorting.."
 #	print sortedlist
-	return sortedlist
+#	return sortedlist
+#
+#def invert(d):
+#	nd = {}
+#	returnlist = []
+#	for k, v in d.iteritems():
+#		if v == "":
+#			v = "novalue"
+#		if nd.has_key(v):
+#			nd[v].append(k)
+#		else:
+#			nd[v] = [k]
+#	return nd
 
-		
-
-def render_groupedhead(groupl,ctxid=None):
+def render_groupedhead(groupl,ctxid=None,recid=None,wfid=None):
 	"""Render tab switching buttons"""
 	ret = []
 	for i in groupl.keys():
-		ret.append("\t<div class=\"button_main\" id=\"button_main_%s\"><a href=\"javascript:switchin('main','%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
+#		ret.append("\t<div class=\"button_main\" id=\"button_main_%s\"><a href=\"javascript:switchin('main','%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
+#db/render_grouptable?&name=135&groupname=project&reverse_project=1&zone=zone_project
+		if not wfid:
+			req = "/db/render_grouptable?name=%s&groupname=%s&zone=zone_%s"%(recid,i,i)
+		else:
+			req = "/db/render_grouptable?wfid=%s&groupname=%s&zone=zone_%s"%(wfid,i,i)
+		ret.append("""
+		<div class="button_main" id="button_main_%s">
+			<span class="jslink" onclick="javascript:makeRequest('%s','zone_%s');switchin('main','%s')">
+				%s (%s)
+			</span>
+		</div>
+			"""%(i,req,i,i,i,len(groupl[i])))
+
 	return " ".join(ret)
 	
 		
@@ -174,41 +186,8 @@ def clearworkflowcache(ctxid):
 
 
 
-def render_groupedlist(path, args, ctxid, host, viewonly=None, sortgroup=None):
-	"""Draw tables for parents/children of a record"""
-	ret = []
-	wf = ts.db.getworkflowitem(int(args["wfid"][0]),ctxid)
-	groupl = wf['appdata']
-
-	for i in groupl.keys():
-		# do we want to render this record type?
-		if viewonly and viewonly != i:
-			pass
-		else:
-			args["groupname"] = [i]
-			table = encapsulate_render_grouptable(path,args,ctxid,host)
-	
-			ret.append("".join(table))
-
-	return " ".join(ret)
 
 
-def encapsulate_render_grouptable(path,args,ctxid,host):
-	import emen2.TwistSupport_html.html.render_grouptable
-	
-	ret = []
-
-	if args.has_key("groupname"):
-		groupname = args["groupname"][0]
-
-	ret.append("\n\n<div class=\"page_main\" id=\"page_main_%s\">"%groupname)
-	ret.append("\t<h1>%s</h1>\n"%(groupname))
-
-	r = emen2.TwistSupport_html.html.render_grouptable.render_grouptable(path,args,ctxid,host)
-	ret.append("".join(r))
-
-	ret.append("</div>")
-	return " ".join(ret)
 	
 	
 

@@ -152,6 +152,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		for i in record:
 			rec[i[0]] = i[1]
 		
+		print "storing record..."
+		print rec
+		
 #		try:
 		r=ts.db.putrecord(rec,ctxid,host)
 #		except: return -1
@@ -362,7 +365,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""look up an existing binary identifier"""
 		return ts.db.getbinary(ident,ctxid,host)
 	
-	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False) :
+	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False):
 		"""full database query"""
 		return tuple(ts.db.query(query,ctxid,host,retindex))
 	
@@ -393,16 +396,20 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_putrecorddef(self,recdef,ctxid=None,host=None):
 		return ts.db.putrecorddef(recdef,ctxid,host)
 
-	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None) :
+	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None):
 		return ts.db.getrecordnames(ctxid,dbid,host)
 	
 	def xmlrpc_getrecordschangetime(self,recids,ctxid=None,host=None):
 		return ts.db.getrecordschangetime(recids,ctxid,host)
 	
-	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid=None,host=None,recurse=0):
-		return ts.db.secrecordadduser(usertuple,recid,ctxid,host,recurse)
+	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid=None,recurse=0,host=None):
+		print "recurse: %s"%recurse
+		ts.db.secrecordadduser(usertuple,int(recid),ctxid,host,recurse)
+		# db functions need proper returns
+		return ""
 	
-	def xmlrpc_secrecorddeluser(self,users,recid,ctxid=None,host=None,recurse=0):
-		return ts.db.secrecorddeluser(users,recid,ctxid,host,recurse)
-	
-
+	def xmlrpc_secrecorddeluser(self,users,recid,ctxid=None,recurse=0,host=None):
+		print "users: %s"%users
+		print "recid: %s"%recid
+		ts.db.secrecorddeluser(users,recid,ctxid,host,recurse)
+		return ""

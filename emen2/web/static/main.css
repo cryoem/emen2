@@ -237,6 +237,18 @@ td.standardtable_shaded {
 }
 
 
+.permissions_action {
+	display:none;
+}
+
+#xmlrpc_input, #xmlrpc_output {
+	display:none;
+}
+#xmlrpc_makeedits_commit, #xmlrpc_makeedits_cancel {
+	display:none;
+}
+
+
 /* ******* tooltips ************ */
 
 .tooltip 
@@ -560,7 +572,7 @@ DROP DOWN MENU CSS
 	clear:both;
 }
 
-.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after, #cousin_buttons:after {
+.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
     content: "."; 
     display: block; 
     height: 0; 

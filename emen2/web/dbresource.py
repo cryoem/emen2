@@ -5,6 +5,7 @@
 #import traceback
 #import time
 #import random
+import timing
 
 DEBUG = 1
 
@@ -91,8 +92,10 @@ class DBResource(Resource):
 		if DEBUG:
 			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
 			
-
+		timing.start()
 		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
+		timing.finish()
+		print "Done with request: %s"%timing.micro()
 		
 		# JPEG Magic Number
 		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")

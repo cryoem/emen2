@@ -37,14 +37,14 @@ function ctxid_init_start(cookieName)
 function parambrowserinit(init,inittarget) {
 	param = init || "root";
 	target = inittarget || "";
-	ctxid_init_start('TWISTED_SESSION_ctxid')
+//	ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"paramdef");
 }
  
 function protobrowserinit(init,inittarget) {
 	param = init || "folder";
 	target = inittarget || "";
-	ctxid_init_start('TWISTED_SESSION_ctxid')
+//	ctxid_init_start('TWISTED_SESSION_ctxid')
 	display(param,"recorddef");
 }
 
@@ -60,7 +60,7 @@ function display(param,type)
 	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param,type); }
 }
 
-function dbgetrequest(url,command, param) {
+function dbgetrequest(url,command,param) {
 	//standard
     var http_request = false;
     if (window.XMLHttpRequest) { // Mozilla, Safari, ...
@@ -79,7 +79,6 @@ function dbgetrequest(url,command, param) {
         return false;
     }
 		//end
-		
 		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
 		http_request.open("GET",url,true);	
 		http_request.send(null);
@@ -101,7 +100,7 @@ function dbxmlrpcrequest(command,param,type) {
         }
     }
     if (!http_request) {
-        alert('Giving up :( Cannot create an XMLHTTP instance');
+        alert('Giving up: Cannot create an XMLHTTP instance');
         return false;
     }
 		//end
@@ -120,8 +119,9 @@ function dbxmlrpcrequest(command,param,type) {
 
 // raw xmlrpc request
 function dbxmlrpcrequestraw(command) {
-//		input = document.getElementById("input");
-//		command = input.value;
+
+	input = document.getElementById("xmlrpc_input");
+	input.value = command;
 
 		//standard
     var http_request = false;
@@ -143,18 +143,17 @@ function dbxmlrpcrequestraw(command) {
 		//end
 		http_request.onreadystatechange=function()
  		{		
-//			output = document.getElementById("output");
 			if (http_request.readyState==4)
 	  		{
 	  			if (http_request.status==200)
 	  			{	
-						window.location.reload();
-//					output.innerHTML = http_request.responseText
+						output = document.getElementById("xmlrpc_output");
+						output.value = http_request.responseText;
+//						window.location.reload();
 				}
 	  			else
 	  			{
-//					output.innerHTML = "Problem retrieving data: " + http_request.statusText + "<br><br>status is  " + http_request.status;
-						alert("Error.");
+						alert("Error with request.");
 	  			}
 	  		}
 		}
@@ -162,6 +161,8 @@ function dbxmlrpcrequestraw(command) {
 		http_request.send(command);
 }
 
+
+// fixme cleanup
 function statechange(http_request,command,param,type) {
 
     if (http_request.readyState == 4) {
@@ -190,7 +191,6 @@ function statechange(http_request,command,param,type) {
 							string_parentfield = "";
 
 							parentfield = document.getElementById("parent_of_new_parameter")
-
 														
 							for(i in array) {
 //							string_parentfield = i + " " + string_parentfield
@@ -306,9 +306,16 @@ function make_param() {
 
 
 
-function makeedits() {
-	t = document.getElementById("makeedit");
-	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_commit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:makeedits_cancel()\">Cancel</span>"
+function xmlrpc_makeedits() {
+//	t = document.getElementById("xmlrpc_makeedit");
+//	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_commit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:makeedits_cancel()\">Cancel</span>"
+//#xmlrpc_makeedits_commit, #xmlrpc_makeedits_cancel
+	toggle("xmlrpc_makeedits_commit");
+	toggle("xmlrpc_makeedits_clear");
+	toggle("xmlrpc_makeedits_cancel");
+	
+	hideclass('page_recordview');
+	qshow('page_recordview_dicttable');
 
 	list = getElementByClass("viewparam_value");
 	for (var i=0;i<list.length;i=i+1) {
@@ -333,12 +340,15 @@ function makeedits() {
     var para = document.getElementById(list[i]);
     var spanElm = document.getElementById(list[i] + "_2");
     var replaced = para.replaceChild(newinput,spanElm);
-
-
 	}
 }
 
-function makeedits_cancel() {
+function xmlrpc_makeedits_cancel() {
+
+	toggle("xmlrpc_makeedits_commit");
+	toggle("xmlrpc_makeedits_clear");
+	toggle("xmlrpc_makeedits_cancel");
+	
 	list = getElementByClass("viewparam_value");
 		
 	for (var i=0;i<list.length;i=i+1){
@@ -352,16 +362,17 @@ function makeedits_cancel() {
 		var replaced = para.replaceChild(element,old);
 	}
 
-	t = document.getElementById("makeedit");
-	t.innerHTML = "<span  class=\"jslink\"  onclick=\"javascript:makeedits()\">Edit</span>";
+//	t = document.getElementById("xmlrpc_makeedit");
+//	t.innerHTML = "<span  class=\"jslink\"  onclick=\"javascript:makeedits()\">Edit</span>";
 	
 }
 
-function makeedits_commit() {
-	ctxid_init_start('TWISTED_SESSION_ctxid');
+
+// fixme: switch to xmlrpc.js
+function xmlrpc_makeedits_commit() {
+//	ctxid_init_start('TWISTED_SESSION_ctxid');
 // 	recordid = document.getElementById('recordid').value;
 
-	
 	list = getElementByClass("viewparam_value");
 
 	xmlcommand1 = "<methodCall><methodName>putrecord</methodName><params><param><value><int>" + name + "</int></value></param><param><value><array>";
@@ -377,4 +388,87 @@ function makeedits_commit() {
 //	output.innerHTML = xmlcommand1 + xmlcommand2 + xmlcommand3;
 	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3);
 
+}
+
+
+
+
+
+function makeRequest(url,zone) {
+    var http_request = false;
+
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+        if (http_request.overrideMimeType) {
+            http_request.overrideMimeType('text/html');
+            // See note below about this line
+        }
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+
+    if (!http_request) {
+        alert('Giving up :( Cannot create an XMLHTTP instance');
+        return false;
+    }
+    http_request.onreadystatechange = function() { alertContents(http_request,zone); };
+    http_request.open('GET', url, true);
+    http_request.send(null);
+}
+
+function alertContents(http_request,zone) {
+
+    if (http_request.readyState == 4) {
+        if (http_request.status == 200) {
+						document.getElementById(zone).innerHTML  = http_request.responseText;
+//                alert(http_request.responseText);
+        } else {
+//window.location.reload()
+            alert('There was a problem with the request.');
+        }
+    }
+
+}
+
+
+
+function xmlrpc_secrecordadduser() {
+	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	user = document.xmlrpc_secrecordadduser_form.user.value;
+	level = document.xmlrpc_secrecordadduser_form.level.value;
+	
+	usertuple = [[],[],[],[]];
+	usertuple[level] = user;
+	var msg = new XMLRPCMessage("secrecordadduser"); 
+	msg.addParameter(usertuple);
+	msg.addParameter(name);
+	msg.addParameter(ctxid);
+	msg.addParameter(recurse);
+	dbxmlrpcrequestraw(msg.xml());
+	
+	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
+	
+}
+
+function xmlrpc_secrecorddeluser(user, recid) {
+	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
+//	try {	user = parseInt(user); } catch(error) {}
+	recid = parseInt(recid);
+
+	var msg = new XMLRPCMessage("secrecorddeluser"); 
+	msg.addParameter(user);
+	msg.addParameter(recid);
+	msg.addParameter(ctxid);
+	msg.addParameter(recurse);
+
+	dbxmlrpcrequestraw(msg.xml());
+	
+	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
+	
 }
