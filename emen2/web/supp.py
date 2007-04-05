@@ -122,13 +122,14 @@ def render_groupedhead(groupl,ctxid=None,recid=None,wfid=None):
 			req = "/db/render_grouptable?name=%s&groupname=%s&zone=zone_%s"%(recid,i,i)
 		else:
 			req = "/db/render_grouptable?wfid=%s&groupname=%s&zone=zone_%s"%(wfid,i,i)
+			#makeRequest('%s','zone_%s');
 		ret.append("""
 		<div class="button_main" id="button_main_%s">
-			<span class="jslink" onclick="javascript:makeRequest('%s','zone_%s');switchin('main','%s')">
+			<span class="jslink" onclick="javascript:switchin('main','%s')">
 				%s (%s)
 			</span>
 		</div>
-			"""%(i,req,i,i,i,len(groupl[i])))
+			"""%(i,i,i,len(groupl[i])))
 
 	return " ".join(ret)
 	

@@ -118,7 +118,7 @@ function dbxmlrpcrequest(command,param,type) {
 
 
 // raw xmlrpc request
-function dbxmlrpcrequestraw(command) {
+function dbxmlrpcrequestraw(command,callback) {
 
 	input = document.getElementById("xmlrpc_input");
 	input.value = command;
@@ -149,6 +149,7 @@ function dbxmlrpcrequestraw(command) {
 	  			{	
 						output = document.getElementById("xmlrpc_output");
 						output.value = http_request.responseText;
+						eval(callback);
 //						window.location.reload();
 				}
 	  			else
@@ -382,11 +383,11 @@ function xmlrpc_makeedits_commit() {
 
 	for (var i=0;i<list.length;i=i+1){
 		value = document.getElementById(list[i] + "_2").value;
-		xmlcommand2 = xmlcommand2 + "<param><value><array><param><value><string>" + list[i] + "</string></value></param><param><value><string>" + value + "</string></value></param></array></value></param>";
+		xmlcommand2 = xmlcommand2 + "<param><value><array><param><value><string>" + list[i] + "</string></value></param><param><value><string><![CDATA[" + value + "]]></string></value></param></array></value></param>";
 	}
 //	output = document.getElementById("output");
 //	output.innerHTML = xmlcommand1 + xmlcommand2 + xmlcommand3;
-	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3);
+	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3,"window.location.reload()");
 
 }
 
@@ -450,7 +451,7 @@ function xmlrpc_secrecordadduser() {
 	msg.addParameter(name);
 	msg.addParameter(ctxid);
 	msg.addParameter(recurse);
-	dbxmlrpcrequestraw(msg.xml());
+	dbxmlrpcrequestraw(msg.xml(),null);
 	
 	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
 	
@@ -467,7 +468,7 @@ function xmlrpc_secrecorddeluser(user, recid) {
 	msg.addParameter(ctxid);
 	msg.addParameter(recurse);
 
-	dbxmlrpcrequestraw(msg.xml());
+	dbxmlrpcrequestraw(msg.xml(),null);
 	
 	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
 	

@@ -6,6 +6,7 @@
 #import time
 #import random
 import timing
+import time
 
 DEBUG = 1
 
@@ -23,6 +24,9 @@ from twisted.web.resource import Resource
 
 class DBResource(Resource):
 	"""This resource serves HTML requests. Look in TwistServer for the actual server code."""
+
+
+
 	isLeaf = True
 	def getChild(self,name,request):
 		return self
@@ -31,6 +35,9 @@ class DBResource(Resource):
 		
 	def render_GET(self,request):
 		global db,callbacks
+
+		t0 = time.time()
+
 
 		# Redirects
 		if (len(request.postpath)==0):
@@ -87,19 +94,21 @@ class DBResource(Resource):
 
 		# Ok, if we got here, we can actually start talking to the database
 
+
 		exec("import emen2.TwistSupport_html.html.%s"%method)
 		
 		if DEBUG:
 			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
 			
-		timing.start()
 		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
-		timing.finish()
-		print "Done with request: %s"%timing.micro()
 		
 		# JPEG Magic Number
 		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
 		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+		
+		
+		print "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
+		
 		return ret
 #		return str(request.__dict__)
 #		return callbacks[method](request.postpath,request.args,ctxid,host)
