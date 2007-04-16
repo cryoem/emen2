@@ -51,6 +51,7 @@ def form_new(action="",items=(),method="POST"):
 		if not i.has_key("cols"): i["cols"] = 20
 		if not i.has_key("rows"): i["rows"] = 5
 		if not i.has_key("default"): i["default"] = ""
+		if not i.has_key("postfix"): i["postfix"] = ""
 
 		if i["form"] == "select":
 			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><select name="%s">'%(i["desc"],i["name"]))
@@ -62,11 +63,11 @@ def form_new(action="",items=(),method="POST"):
 			ret.append('</select></div>')
 				
 		elif i["form"] == "textarea":
-			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><textarea name="%s" cols="%d" rows="%d" id="form_%s">%s</textarea /> </div>'%(i["desc"],i["name"],i["cols"],i["rows"],i["name"],i["default"]))
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><textarea name="%s" cols="%d" rows="%d" id="form_%s">%s</textarea />%s </div>'%(i["desc"],i["name"],i["cols"],i["rows"],i["name"],i["default"],i["postfix"]))
 		elif i["form"] == "password":
-			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="password" name="%s" value="%s" size="%s" /></div>'%(i["desc"],i["name"],i["default"],i["cols"]))
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="password" name="%s" value="%s" size="%s" />%s</div>'%(i["desc"],i["name"],i["default"],i["cols"],i["postfix"]))
 		elif i["form"] == "text":
-			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="text" name="%s" value="%s" size="%s" id="form_%s" /></div>'%(i["desc"],i["name"],i["default"],i["cols"],i["name"]))
+			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><input type="text" name="%s" value="%s" size="%s" id="form_%s" />%s</div>'%(i["desc"],i["name"],i["default"],i["cols"],i["name"],i["postfix"]))
 		elif i["form"] == "hidden":
 			ret.append('<input type="hidden" name="%s" value="%s" />'%(i["name"],i["default"]))
 		elif i["form"] == "space":
