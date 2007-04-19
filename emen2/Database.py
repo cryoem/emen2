@@ -536,7 +536,7 @@ class IntBTree:
 		
 	def pcunlink(self,parenttag,childtag,txn=None):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
-		if not txn: txn=self.tnx
+		if not txn: txn=self.txn
 		if not self.relate : raise Exception,"relate option required"
 		parenttag=int(parenttag)
 		childtag=int(childtag)
