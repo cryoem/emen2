@@ -13,13 +13,13 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def _cbRender(self, result, request, ctxid=None):
 #		print "cbRender ctxid: %s"%ctxid
 		#hari:
-		#allow_none = True
+		allow_none = True
 		if isinstance(result, xmlrpc.Handler):
 			result = result.result
 		if not isinstance(result, xmlrpc.Fault):
 			result = (result,)
 		try:
-			s = xmlrpclib.dumps(result, methodresponse=1)
+			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
 		except:
 			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
 			s = xmlrpclib.dumps(f, methodresponse=1)
@@ -177,7 +177,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			r=ts.DB.Workflow()
 			return r.__dict__
 		else :
-			r=ts.DB.newrecord(classtype,ctxid,init=1)
+			r=ts.db.newrecord(classtype,ctxid,init=1)
 			return r.items()
 	
 	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None):
