@@ -134,6 +134,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		return ret
 	
+	
+	
 	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
@@ -143,21 +145,22 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		return r.items()
 	
-	def xmlrpc_putrecord(self,recid,record,ctxid=None,host=None):
+	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
-		
-		print "recid: %s \n record: %s \n ctxid: %s"%(recid,record,ctxid)
-		
-		rec = ts.db.getrecord(recid,ctxid)
-		for i in record:
-			rec[i[0]] = i[1]
-		
-		print "storing record..."
-		print rec
-		
-#		try:
+
+		recdict = {}
+		recdict.update(record)
+
+		try:
+			rec = ts.db.getrecord(int(recdict["recid"]),ctxid)
+			del(recdict["recid"])
+		except:
+			rec = ts.db.newrecord(recdict["rectype"],ctxid)
+
+		for i in recdict:
+			rec[i] = recdict[i]
+			
 		r=ts.db.putrecord(rec,ctxid,host)
-#		except: return -1
 			
 		return r
 		

@@ -3327,7 +3327,7 @@ or None if no match is found."""
 		if isinstance(record,dict) :
 			r=record
 			record=Record(r,ctxid)
-				
+										
 		if (record.recid<0) : record.recid=None
 		
 		######
