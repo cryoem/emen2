@@ -34,8 +34,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		return "pong"
 
 	def xmlrpc_test(self):
-		a=Database.WorkFlow()
-		b=Database.WorkFlow()
+		a=ts.DB.WorkFlow()
+		b=ts.DB.WorkFlow()
 		c=(a,b)
 		d=[dict(x.__dict__) for x in c]
 		
@@ -85,7 +85,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""adds a user to the new user queue. Users must be approved by an
 		administrator before they have access. 'user' is a dictionary
 		representing a User object"""
-		usero=Database.User()
+		usero=ts.DB.User()
 		usero.__dict__.update(user)
 		ts.db.adduser(self,usero)
 
@@ -110,12 +110,12 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None) :
 		"""This will set the user's entire workflow list. This should rarely be used."""
-		w=[Database.WorkFlow(with=i) for i in wflist]
+		w=[ts.DB.WorkFlow(with=i) for i in wflist]
 		ts.db.setworkflow(w,ctxid,host)
 		
 	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None) :
 		"""Adds a Workflow object to the user's workflow"""
-		worko=Database.WorkFlow()
+		worko=ts.DB.WorkFlow()
 		worko.__dict__.update(work)
 		ts.db.addworkflowitem(worko,ctxid,host)
 	
@@ -165,19 +165,19 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
 		if   (classtype.lower()=="user") :
-			r=Database.User()
+			r=ts.DB.User()
 			return r.__dict__
 		elif (classtype.lower()=="paramdef") :
-			r=Database.ParamDef()
+			r=ts.DB.ParamDef()
 			return r.__dict__
 		elif (classtype.lower()=="recorddef") :
-			r=Database.RecordDef()
+			r=ts.DB.RecordDef()
 			return r.__dict__
 		elif (classtype.lower()=="workflow") :
-			r=Database.Workflow()
+			r=ts.DB.Workflow()
 			return r.__dict__
 		else :
-			r=Database.newrecord(classtype,ctxid,init=1)
+			r=ts.DB.newrecord(classtype,ctxid,init=1)
 			return r.items()
 	
 	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None):
@@ -242,12 +242,12 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_addrecorddef(self,recdef,ctxid=None,host=None,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
-		r=Database.RecordDef(rectype)
+		r=ts.DB.RecordDef(rectype)
 		ts.db.addrecorddef(r,ctxid,parent)
 		
 	def xmlrpc_addrecorddef2(self,name,ctxid=None,mainview=None, views=None, params=None, host=None,parent=None):
 		"""New recorddefs may be added by users with record creation permission"""
-		r=Database.RecordDef(rectype)
+		r=ts.DB.RecordDef(rectype)
 		ts.db.addrecorddef(r,ctxid,parent)
 			
 #	def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
