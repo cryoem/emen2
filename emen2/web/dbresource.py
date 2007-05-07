@@ -53,6 +53,19 @@ class DBResource(Resource):
 		host=request.getClientIP()
 		print "\n--------- request ----------------\nGet: %s"%request.uri
 
+#		print request.args
+		
+#		try:
+		session.ctxid = request.args["ctxid"][0]
+#		print request.getClientIP()
+		db.checkcontext(session.ctxid,request.getClientIP())
+#		print "Got ctxid from args"
+#		except:
+#			print request.args["ctxid"][0]
+#			print "no ctxid from args"
+
+
+
 		try:
 			ctxid = session.ctxid
 			db.checkcontext(ctxid,request.getClientIP())

@@ -1,4 +1,7 @@
 from twisted.web.resource import Resource
+from twisted.web import resource, server
+from twisted.internet import defer
+
 #from emen2 import Database
 from twisted.web import xmlrpc
 import xmlrpclib
@@ -8,11 +11,13 @@ from emen2.emen2config import *
 
 from emen2 import ts
 
+Fault = xmlrpclib.Fault
+
+
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
 	def _cbRender(self, result, request, ctxid=None):
-#		print "cbRender ctxid: %s"%ctxid
-		#hari:
+	#		#hari:
 		allow_none = True
 		if isinstance(result, xmlrpc.Handler):
 			result = result.result
@@ -23,11 +28,30 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		except:
 			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
 			s = xmlrpclib.dumps(f, methodresponse=1)
-			
-		#	s = xmlrpclib.dumps(f, methodresponse=1,allow_none=1)
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
+	
+	
+	
+	def render(self, request):
+		 request.content.seek(0, 0)
+		 args, functionPath = xmlrpclib.loads(request.content.read())
+		 try:
+				 function = self._getFunction(functionPath)
+		 except Fault, f:
+				 print "fault..."
+				 self._cbRender(f, request)
+		 else:
+				 request.setHeader("content-type", "text/xml")
+				 defer.maybeDeferred(function, host=request.getClientIP(), *args).addErrback(
+						 self._ebRender
+				 ).addCallback(
+						 self._cbRender, request
+				 )
+		 return server.NOT_DONE_YET 
+	
+	
 	
 	
 	def xmlrpc_ping(self):
@@ -45,10 +69,13 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""login method, should probably be called with https, TODO: note no support for host validation yet
 		This returns a ctxid to the caller. The ctxid must be used in subsequent requests"""
 #		return str(ts.db.login(str(username),str(password),host,maxidle))
+#		print locals()
+#		print dir(self)
+#		print "host: %s"%host
 		try:
 			return str(ts.db.login(str(username),str(password),host,maxidle))
 		except:
-			return 0,"Login Failed"	
+			return 0,"Login Failed" 
 
 	def xmlrpc_checkcontext(self,ctxid=None,host=None):
 		"""This routine will verify that a context id is valid, and return the
@@ -167,7 +194,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getproto(self,classtype,ctxid=None,host=None):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
-		if   (classtype.lower()=="user") :
+		if	 (classtype.lower()=="user") :
 			r=ts.DB.User()
 			return r.__dict__
 		elif (classtype.lower()=="paramdef") :
@@ -196,7 +223,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_addparamdef2(self, name, ctxid=None, parent=None, vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 
-		print locals()
+#		print locals()
 		a = ts.DB.ParamDef(name, vartype, desc_short, desc_long, property, defaultunits, choices)
 		#print ctxid 
 		#ts.db.addparamdef(a,ctxid,host,parent)
@@ -253,7 +280,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		r=ts.DB.RecordDef(rectype)
 		ts.db.addrecorddef(r,ctxid,parent)
 			
-#	def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
+# def xmlrpc_getrecorddef(self,rectypename,ctxid,recid=None):
 	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,host=None,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
@@ -268,7 +295,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		print "getting recorddef: %s"%rectypename
 		b = ()
 		print "getrecorddef2 ctxid: %s"%host
-		a = ts.db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__ 	
+		a = ts.db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__	
 		for x in a:
 			t = x
 			t += '='
@@ -329,9 +356,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			children = list(ts.db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))
 			children.sort()
 			if not b:
-				b = (   (i,)   +   tuple( children ) , )
+				b = (		(i,)	 +	 tuple( children ) , )
 			else:
-				b = ( b ,  ((i,)  +  tuple( children ) ) )
+				b = ( b ,	 ((i,)	+	 tuple( children ) ) )
 		return b
 		
 	
