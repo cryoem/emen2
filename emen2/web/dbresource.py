@@ -19,13 +19,30 @@ import emen2.TwistSupport_html.html.login
 import emen2.TwistSupport_html.html.newuser
 import emen2.TwistSupport_html.html.home
 
-from twisted.web.resource import Resource
 
+# Sibling Imports
+from twisted.web import server
+from twisted.web import error
+from twisted.web import resource
+from twisted.web.util import redirectTo
+
+# Twisted Imports
+from twisted.web import http
+from twisted.python import threadable, log, components, failure, filepath
+from twisted.internet import abstract, interfaces, defer
+from twisted.spread import pb
+from twisted.persisted import styles
+from twisted.python.util import InsensitiveDict
+from twisted.python.runtime import platformType
+
+
+from twisted.web.resource import Resource
+from twisted.web.static import *
 
 class DBResource(Resource):
 	"""This resource serves HTML requests. Look in TwistServer for the actual server code."""
 
-
+	
 
 	isLeaf = True
 	def getChild(self,name,request):
@@ -55,14 +72,14 @@ class DBResource(Resource):
 
 #		print request.args
 		
-#		try:
-		session.ctxid = request.args["ctxid"][0]
-#		print request.getClientIP()
-		db.checkcontext(session.ctxid,request.getClientIP())
-#		print "Got ctxid from args"
-#		except:
+		try:
+			session.ctxid = request.args["ctxid"][0]
+			#		print request.getClientIP()
+			db.checkcontext(session.ctxid,request.getClientIP())
+			print "Got ctxid from args"
+		except:
 #			print request.args["ctxid"][0]
-#			print "no ctxid from args"
+			print "no ctxid from args"
 
 
 
@@ -129,3 +146,71 @@ class DBResource(Resource):
 #		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
 
 
+class DownloadFile(Resource, filepath.FilePath):
+
+	isLeaf = True
+
+
+	contentTypes = loadMimeTypes()
+
+	contentEncodings = {
+			".gz" : "gzip",
+			".bz2": "bzip2"
+			}
+
+	type = None
+	defaultType="text/html"
+
+	def render(self, request):
+		"""You know what you doing."""
+
+
+
+		# auth...
+		session=request.getSession()			# sets a cookie to use as a session id
+
+		try:
+			ctxid = session.ctxid
+			db.checkcontext(ctxid,request.getClientIP())
+		except:
+			print "Need to login..."
+			session.originalrequest = request.uri
+			return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
+
+
+		
+		bid = request.postpath[0]
+		print "bid: %s"%bid
+		
+		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+		print "bname: %s"%bname
+		print "ipath: %s"%ipath
+		print "bdocounter: %s"%bdocounter
+
+		self.path = ipath
+
+		self.type, self.encoding = getTypeAndEncoding(bname,
+																											self.contentTypes,
+																											self.contentEncodings,
+																											self.defaultType)
+
+		print "content type: %s"%self.type
+		print "encoding: %s"%self.encoding
+
+		fsize = size = self.getsize()
+		if self.type:
+				request.setHeader('content-type', self.type)
+		if self.encoding:
+				request.setHeader('content-encoding', self.encoding)
+
+		f = self.open()
+
+
+		request.setHeader('content-length', str(fsize))
+		if request.method == 'HEAD':
+				return ''
+
+		# return data
+		FileTransfer(f, size, request)
+		# and make sure the connection doesn't get closed
+		return server.NOT_DONE_YET
