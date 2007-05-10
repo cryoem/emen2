@@ -27,7 +27,7 @@ from twisted.web import resource
 from twisted.web.util import redirectTo
 
 # Twisted Imports
-from twisted.web import http
+#from twisted.web import http
 from twisted.python import threadable, log, components, failure, filepath
 from twisted.internet import abstract, interfaces, defer
 from twisted.spread import pb
