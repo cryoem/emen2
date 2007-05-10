@@ -392,7 +392,9 @@ def notifymsg(args):
 	"Permission change successful", \
 	"Added child successfully", \
 	"Attached file successfully",\
-	"Logged out"\
+	"Logged out",\
+	"Changes saved",\
+	"NOTE: Database in development mode. Changes will be erased each morning."
 	]
 	
 	for i in notify:

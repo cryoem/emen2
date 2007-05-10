@@ -387,7 +387,7 @@ function xmlrpc_makeedits_commit() {
 	}
 //	output = document.getElementById("output");
 //	output.innerHTML = xmlcommand1 + xmlcommand2 + xmlcommand3;
-	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3,"window.location.reload()");
+	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3,"window.location=window.location + '&notify=5*6'");
 
 }
 
