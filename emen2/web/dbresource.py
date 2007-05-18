@@ -31,6 +31,7 @@ from twisted.web.util import redirectTo
 #from twisted.python import threadable, log, components, failure, filepath
 from twisted.python import filepath
 #from twisted.internet import abstract, interfaces, defer
+from twisted.internet import defer, reactor, threads
 #from twisted.spread import pb
 #from twisted.persisted import styles
 #from twisted.python.util import InsensitiveDict
@@ -130,22 +131,55 @@ class DBResource(Resource):
 		
 		if DEBUG:
 			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
-			
-		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
-		
+
+
+
+#		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
+#		function = getattr(, method, None)
+		exec("function = emen2.TwistSupport_html.html.%s.%s"%(method,method))
+
+#		defer.maybeDeferred(function, request.postpath, request.args, ctxid, host).addErrback(
+#			self._ebRender
+#		 ).addCallback(
+#		 	self._cbRender, request
+#		)
+
+		d = threads.deferToThread(function, request.postpath, request.args, ctxid, host)
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender)
+
 		# JPEG Magic Number
-		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
-		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+#		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
+#		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
 		
 		
 		print "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
 		
-		return ret
+		
+#		return ret
+		return server.NOT_DONE_YET 
+#		return "ok"
 #		return str(request.__dict__)
 #		return callbacks[method](request.postpath,request.args,ctxid,host)
 
 #		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
 
+	
+	def _cbRender(self, result, request):
+		print "cbRender..."
+#		print result
+		request.setHeader("content-length", str(len(result)))
+		request.write(result)
+		request.finish()
+
+	def _ebRender(self, failure):
+		print "ebRender..."
+		request.write("fault")
+		request.finish()
+#		if isinstance(failure.value, Fault):
+#			return failure.value
+#		log.err(failure)
+#		return Fault(self.FAILURE, "error")
 
 class DownloadFile(Resource, filepath.FilePath):
 
@@ -168,15 +202,18 @@ class DownloadFile(Resource, filepath.FilePath):
 
 
 		# auth...
-		session=request.getSession()			# sets a cookie to use as a session id
 
-		try:
-			ctxid = session.ctxid
-			db.checkcontext(ctxid,request.getClientIP())
-		except:
-			print "Need to login..."
-			session.originalrequest = request.uri
-			return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
+		if request.args.has_key("ctxid"):
+			ctxid = request.args["ctxid"][0]
+		else:
+			try:
+				session=request.getSession()			# sets a cookie to use as a session id
+				ctxid = session.ctxid
+				db.checkcontext(ctxid,request.getClientIP())
+			except:
+				print "Need to login..."
+				session.originalrequest = request.uri
+				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
 
 
 		

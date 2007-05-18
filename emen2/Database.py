@@ -2365,7 +2365,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
 		This method returns a dictionary of all matching recid/value pairs
 		if subset is provided, will only return values for specified recids"""
-		ind=self.__getparamindex(paramname,create=0)
+		ind=self.__getparamindex(paramname,create=1)
 		
 		if valrange==None : r=dict(ind.items())
 		elif isinstance(valrange,tuple) or isinstance(valrange,list) : r=dict(ind.items(valrange[0],valrange[1]))
@@ -3198,7 +3198,7 @@ or None if no match is found."""
 			
 			tp=valid_vartypes[f.vartype][0]
 			if not tp :
-#				print "unindexable vartype ",f.vartype
+				print "unindexable vartype ",f.vartype
 				ret = None
 				return ret
 			if len(tp)>1 : return tp

@@ -120,8 +120,11 @@ function dbxmlrpcrequest(command,param,type) {
 // raw xmlrpc request
 function dbxmlrpcrequestraw(command,callback) {
 
-	input = document.getElementById("xmlrpc_input");
-	input.value = command;
+	try {
+		input = document.getElementById("xmlrpc_input");
+		input.value = command;
+	} catch(error) {
+	}
 
 		//standard
     var http_request = false;
@@ -147,8 +150,10 @@ function dbxmlrpcrequestraw(command,callback) {
 	  		{
 	  			if (http_request.status==200)
 	  			{	
-						output = document.getElementById("xmlrpc_output");
-						output.value = http_request.responseText;
+						try {
+							output = document.getElementById("xmlrpc_output");
+							output.value = http_request.responseText;
+						} catch(errror) {}
 						eval(callback);
 //						window.location.reload();
 				}
@@ -437,6 +442,23 @@ function alertContents(http_request,zone) {
 
 }
 
+
+function xmlrpc_findparamname() {
+	var msg = new XMLRPCMessage("findparamname");
+	msg.addParameter(document.xmlrpc_findparamname_form.q.value);
+	dbxmlrpcrequestraw(msg.xml(),"findparamname_refresh(http_request.responseXML);");
+}
+
+function findparamname_refresh(response) {
+	root = response.documentElement;
+	params = root.firstChild;
+	param = params.firstChild;
+	alert(param.length);
+//	alert(array.length);
+//	alert(params)
+//	alert(arrays.length);
+	
+}
 
 
 function xmlrpc_secrecordadduser() {

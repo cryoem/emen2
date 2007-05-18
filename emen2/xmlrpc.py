@@ -9,6 +9,8 @@ import os
 from sets import Set
 from emen2.emen2config import *
 
+import time
+
 from emen2 import ts
 
 Fault = xmlrpclib.Fault
@@ -39,6 +41,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		 args, functionPath = xmlrpclib.loads(request.content.read())
 		 try:
 				 function = self._getFunction(functionPath)
+#				 print function
 		 except Fault, f:
 				 print "fault..."
 				 self._cbRender(f, request)
@@ -52,6 +55,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		 return server.NOT_DONE_YET 
 	
 	
+	
+	def xmlrpc_slee(self):
+		time.sleep(100)
 	
 	
 	def xmlrpc_ping(self):
@@ -207,6 +213,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			r=ts.DB.Workflow()
 			return r.__dict__
 		else :
+#			print ctxid
 			r=ts.db.newrecord(classtype,ctxid,init=1)
 			return r.items()
 	
@@ -443,3 +450,29 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		print "recid: %s"%recid
 		ts.db.secrecorddeluser(users,recid,ctxid,host,recurse)
 		return ""
+		
+	def xmlrpc_findparamname(self,q,ctxid=None,host=None):
+
+		print type(q)
+		if len(q) < 3: return []
+		
+		q = q.lower()
+		ret = []
+		for i in ts.db.getparamdefnames():
+			z = ts.db.getparamdef(i)
+			
+			try:
+				if q in z.name.lower():
+					ret.append((z.name,""))
+					continue
+
+				if q in z.desc_short.lower():
+					ret.append((z.name,z.desc_short))
+					continue
+
+				if q in z.desc_long.lower():
+					ret.append((z.name,z.desc_long))
+			except:
+				pass
+			
+		return ret
