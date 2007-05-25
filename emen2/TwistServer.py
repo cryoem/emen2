@@ -7,7 +7,7 @@ from twisted.internet import reactor
 from twisted.web import static, server
 from emen2 import ts
 from emen2 import xmlrpc
-from emen2 import rest
+#from emen2 import rest
 
 #from emen2 import ts_db
 from emen2.emen2config import *
@@ -24,7 +24,7 @@ root = static.File(EMEN2ROOT+"/tweb")
 
 root.putChild("db",emen2.TwistSupport_html.dbresource.DBResource())
 root.putChild("RPC2",xmlrpc.DBXMLRPCResource())
-root.putChild("REST",rest.DBRESTResource())
+#root.putChild("REST",rest.DBRESTResource())
 
 root.putChild("download",emen2.TwistSupport_html.dbresource.DownloadFile())
 
