@@ -290,7 +290,14 @@ function xmlrpc_makeedits_commit(classname) {
 		
 		// now multiple-select types
 		// check if not single-select
-		if (formobj.elements[i].type == "checkbox" && formobj.elements[name + "___" + vartype].type != "select-one") {
+		if (formobj.elements[i].type == "checkbox") {
+	
+		// this is horribly broken/ugly FIXME
+			try {
+				 if (formobj.elements[name + "___" + vartype].type != "select-one") {break}
+				} catch(error) {
+
+
 			if (!lists[name]) {lists[name] = new Array()}
 
 			if (formobj.elements[i].checked && ext != "extendcheckbox") {
@@ -299,6 +306,7 @@ function xmlrpc_makeedits_commit(classname) {
 			if (formobj.elements[i].checked && ext == "extendcheckbox") {
 				lists[name].push(convertvartype(vartype,formobj.elements[name + "___" + vartype + "___extendtext___" + num].value));
 			}
+		}
 			nv[name] = lists[name];
 		}	
 		
