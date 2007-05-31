@@ -47,7 +47,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 				 self._cbRender(f, request)
 		 else:
 				 request.setHeader("content-type", "text/xml")
-				 defer.maybeDeferred(function, host=request.getClientIP(), *args).addErrback(
+				#host=request.getClientIP()
+				 defer.maybeDeferred(function, *args).addErrback(
 						 self._ebRender
 				 ).addCallback(
 						 self._cbRender, request
@@ -181,9 +182,12 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
 
+		print "\n\n-------- xmlrpc_putrecord ----------"
+		print record
+
 		recdict = {}
 		recdict.update(record)
-
+		
 		try:
 			rec = ts.db.getrecord(int(recdict["recid"]),ctxid)
 			del(recdict["recid"])

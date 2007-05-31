@@ -125,7 +125,7 @@ def header(name,init=None,short=0):
 
 
 <div id="nav_table"> 
-	<div class="nav_tableli"><a href="/db/record?name=%s">Browse Database</a></div>
+	<div class="nav_tableli"><a href="/db/record/%s">Browse Database</a></div>
 	<div class="nav_tableli"><a href="/db/queryform">Query Database</a></div>
 	<div class="nav_tableli"><a href="/db/workflow">My Workflow</a></div>
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>

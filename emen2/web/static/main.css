@@ -2,6 +2,11 @@
 	clear:both;
 }
 
+
+.debug, #xmlrpc_input, #xmlrpc_output {
+	display:none;
+}
+
 /* 
 =============================================================
 BLOCK ELEMENTS
@@ -210,7 +215,7 @@ td.standardtable_shaded {
 }
 
 
-#comments_history,#downloadfile {
+#comments_comments,#comments_history,#downloadfile {
 	display:block;
 	overflow:auto;
 	max-height:250px;
@@ -243,12 +248,9 @@ td.standardtable_shaded {
 }
 
 
-#xmlrpc_input, #xmlrpc_output {
-	display:none;
-}
-#xmlrpc_makeedits_commit, #xmlrpc_makeedits_cancel {
-	display:none;
-}
+
+
+
 
 
 
@@ -264,11 +266,14 @@ td.standardtable_shaded {
 	padding:10px;
 }
 
-.viewparam_name, .viewparam_value {
+.param_name, .param_value, .param_value_display {
 /*	padding-bottom:1px;
 	border-bottom:dashed 1px; */
 	color:#783766;
 /*	color:#FF8135; */
+}
+.param_value_edit {
+	display:none;
 }
 
 
@@ -396,7 +401,7 @@ h1.switchheader {
 }
 
 h2 {
-	clear:both;
+/*	clear:both; */
 	width:600px;
 	line-height:135%;
 	border-bottom:solid 1px;

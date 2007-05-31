@@ -80,8 +80,9 @@ class DBResource(Resource):
 			db.checkcontext(session.ctxid,request.getClientIP())
 			print "Got ctxid from args"
 		except:
+			pass
 #			print request.args["ctxid"][0]
-			print "no ctxid from args"
+#			print "no ctxid from args"
 
 
 
@@ -146,14 +147,14 @@ class DBResource(Resource):
 
 		d = threads.deferToThread(function, request.postpath, request.args, ctxid, host)
 		d.addCallback(self._cbRender, request)
-		d.addErrback(self._ebRender)
+		d.addErrback(self._ebRender, request)
 
 		# JPEG Magic Number
 #		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
 #		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
 		
 		
-		print "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
+		# "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
 		
 		
 #		return ret
@@ -166,20 +167,21 @@ class DBResource(Resource):
 
 	
 	def _cbRender(self, result, request):
-		print "cbRender..."
+#		print "cbRender..."
 #		print result
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
 		request.finish()
 
-	def _ebRender(self, failure):
+	def _ebRender(self, request, failure):
 		print "ebRender..."
+		print request
 		request.write("fault")
 		request.finish()
-#		if isinstance(failure.value, Fault):
-#			return failure.value
-#		log.err(failure)
-#		return Fault(self.FAILURE, "error")
+		if isinstance(failure.value, Fault):
+			return failure.value
+		log.err(failure)
+		return Fault(self.FAILURE, "error")
 
 class DownloadFile(Resource, filepath.FilePath):
 
@@ -218,12 +220,12 @@ class DownloadFile(Resource, filepath.FilePath):
 
 		
 		bid = request.postpath[0]
-		print "bid: %s"%bid
+#		print "bid: %s"%bid
 		
 		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
-		print "bname: %s"%bname
-		print "ipath: %s"%ipath
-		print "bdocounter: %s"%bdocounter
+#		print "bname: %s"%bname
+#		print "ipath: %s"%ipath
+#		print "bdocounter: %s"%bdocounter
 
 		self.path = ipath
 
@@ -232,8 +234,8 @@ class DownloadFile(Resource, filepath.FilePath):
 																											self.contentEncodings,
 																											self.defaultType)
 
-		print "content type: %s"%self.type
-		print "encoding: %s"%self.encoding
+#		print "content type: %s"%self.type
+#		print "encoding: %s"%self.encoding
 
 		fsize = size = self.getsize()
 		if self.type:

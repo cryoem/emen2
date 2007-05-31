@@ -1,8 +1,9 @@
 var classcache = new Array();
 var oldvalues = new Array();
 var statecache = new Array();
+var classstatecache = new Array();
 
-function getStyle( element, cssRule )
+function getStyle(element, cssRule)
 {
   if( document.defaultView && document.defaultView.getComputedStyle )
   {
@@ -19,11 +20,12 @@ function getStyle( element, cssRule )
 }
 
 function getElementByClass(classname) {
+
 	var inc=0
 	var elements=new Array()
 	var alltags=document.all? document.all : document.getElementsByTagName("*")
 	for (i=0; i<alltags.length; i++) {
-		if (alltags[i].className==classname)
+		if (alltags[i].className.indexOf(classname) != -1)
 		elements[inc++]=alltags[i].id
 	}
 	return elements;
@@ -40,12 +42,6 @@ function toggle(id) {
 	}
 	statecache[id] = state;
 
-//	if (state != 'none') {
-//		document.getElementById(id).style.display = 'none';
-//	}
-//	else {
-//		document.getElementById(id).style.display = 'block';
-//	}
 		try {
 			button = document.getElementById(id + "_button");		
 			if (state != 'none') {
@@ -54,6 +50,7 @@ function toggle(id) {
 				button.innerHTML = "-";
 			}
 		} catch(error) {}
+
 }
 
 
@@ -72,7 +69,7 @@ function switchbutton(type,id) {
 }
 
 
-function classprop(theClass,element,value) {
+function classprop(classname,element,value) {
 //based on http://www.shawnolson.net/scripts/public_smo_scripts.js
  var cssRules;
  if (document.all) {
@@ -83,7 +80,7 @@ function classprop(theClass,element,value) {
  }
  for (var S = 0; S < document.styleSheets.length; S++){
   for (var R = 0; R < document.styleSheets[S][cssRules].length; R++) {
-   if (document.styleSheets[S][cssRules][R].selectorText == theClass) {
+   if (document.styleSheets[S][cssRules][R].selectorText == classname) {
     document.styleSheets[S][cssRules][R].style[element] = value;
    }
   }
@@ -92,35 +89,41 @@ function classprop(theClass,element,value) {
 
 
 // hide class members, show one, switch the button
-function switchin(class, id) {	
-//	classprop(".page_" + class,"display","none")
-	hideclass("page_" + class);
-	switchbutton(class,id);
-	try { document.getElementById("page_" + class + "_" + id).style.display = 'block'; } catch (error) {}
+function switchin(classname, id) {	
+	hideclass("page_" + classname);
+	switchbutton(classname,id);
+	try { document.getElementById("page_" + classname + "_" + id).style.display = 'block'; } catch (error) {}
 }
 
 // show/hide all members of a class. cannot operate at stylesheet level because we tend to set styles for single elements.
-function hideclass(class) {
-//	classprop("." + class,"display","none")
-	list = classcache[class];
-	if (!list) { list = getElementByClass(class) }
+function hideclass(classname) {
+	list = classcache[classname];
+	if (!list) { list = getElementByClass(classname) }
+	
+	try {
+		state = getStyle(document.getElementById(list[0]),"display");
+		classstatecache[classname] = state;
+	} catch(error) {}	
+		
 	for (var i=0;i<list.length;i++) {
 		try { document.getElementById(list[i]).style.display = 'none'; } catch (error) {}
 	}
 }
 
-function showclass(class) {
-//		classprop("." + class,"display","block")
-	list = classcache[dclass];
-	if (!list) { list = getElementByClass(class) }
+function showclass(classname) {
+	list = classcache[classname];
+	if (!list) { list = getElementByClass(classname) }
+
+	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "block"}
+
 	for (var i=0;i<list.length;i++) {
-		document.getElementById(list[i]).style.display = 'block';			
+		document.getElementById(list[i]).style.display = cache;			
 	}
 }
 
-function showclassexcept(class,except) {
-	hideclass(class)
-	list = getElementByClass(class);
+function showclassexcept(classname,except) {
+	hideclass(classname)
+	list = getElementByClass(classname);
 	for (var i=0;i<list.length;i++) {
 		if (list[i] != except) {
 			document.getElementById(list[i]).style.display = 'block';			

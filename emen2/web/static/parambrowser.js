@@ -60,112 +60,7 @@ function display(param,type)
 	for (var i=0;i<commands.length;i++) { dbxmlrpcrequest(commands[i],param,type); }
 }
 
-function dbgetrequest(url,command,param) {
-	//standard
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up :( Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
-		http_request.open("GET",url,true);	
-		http_request.send(null);
-}
 
-// simple xmlrpc request
-function dbxmlrpcrequest(command,param,type) {
-	//standard
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up: Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		
-		http_request.onreadystatechange=function() { statechange(http_request,command,param,type); };
-		http_request.open("POST",url,true);
-		if (command == "getparamdef2") {
-			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
-		} else {
-//			alert("req: " + command + " .. ctxid: " + ctxid);
-			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
-		}
-		http_request.send(request);
-}
-
-
-// raw xmlrpc request
-function dbxmlrpcrequestraw(command,callback) {
-
-	try {
-		input = document.getElementById("xmlrpc_input");
-		input.value = command;
-	} catch(error) {
-	}
-
-		//standard
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up :( Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		http_request.onreadystatechange=function()
- 		{		
-			if (http_request.readyState==4)
-	  		{
-	  			if (http_request.status==200)
-	  			{	
-						try {
-							output = document.getElementById("xmlrpc_output");
-							output.value = http_request.responseText;
-						} catch(errror) {}
-						eval(callback);
-//						window.location.reload();
-				}
-	  			else
-	  			{
-						alert("Error with request.");
-	  			}
-	  		}
-		}
-		http_request.open("POST",url,true);
-		http_request.send(command);
-}
 
 
 // fixme cleanup
@@ -312,90 +207,180 @@ function make_param() {
 
 
 
-function xmlrpc_makeedits() {
-//	t = document.getElementById("xmlrpc_makeedit");
-//	t.innerHTML = "<span class=\"jslink\" onclick=\"javascript:makeedits_commit()\">Update</span> : <span  class=\"jslink\" id=\"makeedit_edit\" onclick=\"javascript:makeedits()\">Clear Form</span> : <span class=\"jslink\"  onclick=\"javascript:makeedits_cancel()\">Cancel</span>"
-//#xmlrpc_makeedits_commit, #xmlrpc_makeedits_cancel
-	toggle("xmlrpc_makeedits_commit");
-	toggle("xmlrpc_makeedits_clear");
-	toggle("xmlrpc_makeedits_cancel");
+function xmlrpc_makeedits(classname) {
+	toggle("xmlrpc_makeedits_commit_" + classname);
+	toggle("xmlrpc_makeedits_clear_" + classname);
+	toggle("xmlrpc_makeedits_cancel_" + classname);
 	
 	hideclass('page_recordview');
-	qshow('page_recordview_dicttable');
+	qshow('page_recordview_' + classname);
+	
 
-	list = getElementByClass("viewparam_value");
-	for (var i=0;i<list.length;i=i+1) {
+	hideclass('param_value_display_' + classname);
+	showclass('param_value_edit_' + classname);
+}
 
-		value = document.getElementById(list[i] + "_2").innerHTML;
-		if (typeof oldvalues[list[i]] == 'undefined') {oldvalues[list[i]] = value;}
-		
-		if (value.length > 80) {
-			var newinput = document.createElement("textarea");
-			newinput.cols = 70;
-			newinput.rows = 8;
-			newinput.value = value;
-			newinput.id = list[i] + "_2";
-		} else {
-			var newinput = document.createElement("input");
-			newinput.type = "text";
-			newinput.value = value;
-			if (value.length > 0) {newinput.size = value.length;} else {newinput.size = 60;}
-			newinput.id = list[i] + "_2";
+
+function xmlrpc_makeedits_cancel(classname) {
+	toggle("xmlrpc_makeedits_commit_" + classname);
+	toggle("xmlrpc_makeedits_clear_" + classname);
+	toggle("xmlrpc_makeedits_cancel_" + classname);
+	
+	hideclass('param_value_edit_' + classname);
+	showclass('param_value_display_' + classname);
+
+}
+
+function convertvartype(vartype,value) {
+	if (vartype == "float" || vartype == "longfloat" || vartype == "floatlist" ) {
+
+		r = parseFloat(value);
+		if (isNaN(r)) {r = null}
+
+	}
+	else if (vartype == "int" || vartype == "longint" || vartype == "intlist" ) {
+
+		r = parseInt(value);
+		if (isNaN(r)) {r = null}
+
+	}
+	else {
+
+		if (value != "") {
+			r = "<![CDATA[" + value + "]]>";
+		} else { r = null }
+
+	}
+	return r;
+}
+
+
+function xmlrpc_makeedits_commit(classname) {
+	lists = new Array();
+	newvalues = new Array(["recid",name],["rectype","project"]);
+	nv = new Array();
+	formobj = document.forms["xmlrpc_makeedits_" + classname];
+
+	for (var i=0;i<formobj.elements.length;i++) {
+
+		name = formobj.elements[i].name.split("___")[0];
+		vartype = formobj.elements[i].name.split("___")[1];
+		ext = formobj.elements[i].name.split("___")[2];
+		num = formobj.elements[i].name.split("___")[3];
+
+		// first let's handle simple, single-element parameters
+		// skip extend elements
+		if (formobj.elements[i].type == "text" && ext != "extendtext") {
+			nv[name] = convertvartype(vartype,formobj.elements[i].value);
 		}
-
-    var para = document.getElementById(list[i]);
-    var spanElm = document.getElementById(list[i] + "_2");
-    var replaced = para.replaceChild(newinput,spanElm);
-	}
-}
-
-function xmlrpc_makeedits_cancel() {
-
-	toggle("xmlrpc_makeedits_commit");
-	toggle("xmlrpc_makeedits_clear");
-	toggle("xmlrpc_makeedits_cancel");
-	
-	list = getElementByClass("viewparam_value");
 		
-	for (var i=0;i<list.length;i=i+1){
-		value = oldvalues[list[i]];
-		var element = document.createElement("span");
-		element.id = list[i] + "_2";
-		element.innerHTML = value;
+		if (formobj.elements[i].type == "select-one") {
+			// is other checked?
+			try {
+				if (formobj.elements[name + "___" + vartype + "___extendcheckbox___0"].checked) {
+					nv[name] = convertvartype(vartype,formobj.elements[name + "___" + vartype + "___extendtext___0"].value);
+				} else {
+					nv[name] = convertvartype(vartype,formobj.elements[i].value);
+				}
+			} catch(error) {	
+				nv[name] = convertvartype(vartype,formobj.elements[i].value);
+			}
+
+		}
 		
-		var para = document.getElementById(list[i]);
-		var old = document.getElementById(list[i] + "_2");
-		var replaced = para.replaceChild(element,old);
+		// now multiple-select types
+		// check if not single-select
+		if (formobj.elements[i].type == "checkbox" && formobj.elements[name + "___" + vartype].type != "select-one") {
+			if (!lists[name]) {lists[name] = new Array()}
+
+			if (formobj.elements[i].checked && ext != "extendcheckbox") {
+				lists[name].push(convertvartype(vartype,formobj.elements[i].value));
+			}
+			if (formobj.elements[i].checked && ext == "extendcheckbox") {
+				lists[name].push(convertvartype(vartype,formobj.elements[name + "___" + vartype + "___extendtext___" + num].value));
+			}
+			nv[name] = lists[name];
+		}	
+		
+	}
+	
+	document.getElementById("xmlrpc_output").value = "";
+	for (i in nv) {
+		v = document.getElementById("xmlrpc_output").value;
+		v = v + "\n" + i + ":" + nv[i];
+//		alert(nv[i]);
+		document.getElementById("xmlrpc_output").value = v;
+		if (nv[i] != null && i != null && i != "") {
+			newvalues.push([i,nv[i]]);
+		}
 	}
 
-//	t = document.getElementById("xmlrpc_makeedit");
-//	t.innerHTML = "<span  class=\"jslink\"  onclick=\"javascript:makeedits()\">Edit</span>";
+//	list = getElementByClass("param_value_" + classname);
+//	for (var i=0;i<list.length;i=i+1){
+//		newvalues.push([list[i],"<![CDATA[" + document.getElementById("param_value_edit_" + list[i] + "_box").value + "]]>"]);
+//	}
+
+	var msg = new XMLRPCMessage("putrecord"); 
+	msg.addParameter(newvalues);
+	msg.addParameter(ctxid);
+	dbxmlrpcrequestraw(msg.xml(),"window.location=window.location + '?notify=6'");
+}
+
+
+function xmlrpc_findparamname() {
+	var msg = new XMLRPCMessage("findparamname");
+	msg.addParameter(document.xmlrpc_findparamname_form.q.value);
+	dbxmlrpcrequestraw(msg.xml(),"findparamname_refresh(http_request.responseXML);");
+}
+
+function findparamname_refresh(response) {
+	root = response.documentElement;
+	params = root.firstChild;
+	param = params.firstChild;
+	alert(param.length);	
+}
+
+
+function xmlrpc_secrecordadduser() {
+	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	user = document.xmlrpc_secrecordadduser_form.user.value;
+	level = document.xmlrpc_secrecordadduser_form.level.value;
+	
+	usertuple = [[],[],[],[]];
+	usertuple[level] = user;
+	var msg = new XMLRPCMessage("secrecordadduser"); 
+	msg.addParameter(usertuple);
+	msg.addParameter(name);
+	msg.addParameter(ctxid);
+	msg.addParameter(recurse);
+	dbxmlrpcrequestraw(msg.xml(),null);
+	
+	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
+	
+}
+
+function xmlrpc_secrecorddeluser(user, recid) {
+	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
+//	try {	user = parseInt(user); } catch(error) {}
+	recid = parseInt(recid);
+
+	var msg = new XMLRPCMessage("secrecorddeluser"); 
+	msg.addParameter(user);
+	msg.addParameter(recid);
+	msg.addParameter(ctxid);
+	msg.addParameter(recurse);
+
+	dbxmlrpcrequestraw(msg.xml(),null);
+	
+	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
 	
 }
 
 
-// fixme: switch to xmlrpc.js
-function xmlrpc_makeedits_commit() {
-//	ctxid_init_start('TWISTED_SESSION_ctxid');
-// 	recordid = document.getElementById('recordid').value;
 
-	list = getElementByClass("viewparam_value");
 
-	xmlcommand1 = "<methodCall><methodName>putrecord</methodName><params><param><value><int>" + name + "</int></value></param><param><value><array>";
-	xmlcommand2 = "";
-//	xmlcommand3 = "<param><value><string>" + ctxid + "</string></value></param></params></methodCall>";
-	xmlcommand3 = "</array></value></param><param><value><string>" + ctxid + "</string></value></param></params></methodCall>";
 
-	for (var i=0;i<list.length;i=i+1){
-		value = document.getElementById(list[i] + "_2").value;
-		xmlcommand2 = xmlcommand2 + "<param><value><array><param><value><string>" + list[i] + "</string></value></param><param><value><string><![CDATA[" + value + "]]></string></value></param></array></value></param>";
-	}
-//	output = document.getElementById("output");
-//	output.innerHTML = xmlcommand1 + xmlcommand2 + xmlcommand3;
-	dbxmlrpcrequestraw(xmlcommand1 + xmlcommand2 + xmlcommand3,"window.location=window.location + '&notify=5*6'");
-
-}
-
+/***********************************************/
 
 
 
@@ -443,55 +428,109 @@ function alertContents(http_request,zone) {
 }
 
 
-function xmlrpc_findparamname() {
-	var msg = new XMLRPCMessage("findparamname");
-	msg.addParameter(document.xmlrpc_findparamname_form.q.value);
-	dbxmlrpcrequestraw(msg.xml(),"findparamname_refresh(http_request.responseXML);");
+function dbgetrequest(url,command,param) {
+	//standard
+    var http_request = false;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+    if (!http_request) {
+        alert('Giving up :( Cannot create an XMLHTTP instance');
+        return false;
+    }
+		//end
+		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
+		http_request.open("GET",url,true);	
+		http_request.send(null);
 }
 
-function findparamname_refresh(response) {
-	root = response.documentElement;
-	params = root.firstChild;
-	param = params.firstChild;
-	alert(param.length);
-//	alert(array.length);
-//	alert(params)
-//	alert(arrays.length);
-	
+// simple xmlrpc request
+function dbxmlrpcrequest(command,param,type) {
+	//standard
+    var http_request = false;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+    if (!http_request) {
+        alert('Giving up: Cannot create an XMLHTTP instance');
+        return false;
+    }
+		//end
+		
+		http_request.onreadystatechange=function() { statechange(http_request,command,param,type); };
+		http_request.open("POST",url,true);
+		if (command == "getparamdef2") {
+			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
+		} else {
+//			alert("req: " + command + " .. ctxid: " + ctxid);
+			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
+		}
+		http_request.send(request);
 }
 
 
-function xmlrpc_secrecordadduser() {
-	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
-	user = document.xmlrpc_secrecordadduser_form.user.value;
-	level = document.xmlrpc_secrecordadduser_form.level.value;
-	
-	usertuple = [[],[],[],[]];
-	usertuple[level] = user;
-	var msg = new XMLRPCMessage("secrecordadduser"); 
-	msg.addParameter(usertuple);
-	msg.addParameter(name);
-	msg.addParameter(ctxid);
-	msg.addParameter(recurse);
-	dbxmlrpcrequestraw(msg.xml(),null);
-	
-	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
-	
-}
+// raw xmlrpc request
+function dbxmlrpcrequestraw(command,callback) {
 
-function xmlrpc_secrecorddeluser(user, recid) {
-	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
-//	try {	user = parseInt(user); } catch(error) {}
-	recid = parseInt(recid);
+	try {
+		input = document.getElementById("xmlrpc_input");
+		input.value = command;
+	} catch(error) {
+	}
 
-	var msg = new XMLRPCMessage("secrecorddeluser"); 
-	msg.addParameter(user);
-	msg.addParameter(recid);
-	msg.addParameter(ctxid);
-	msg.addParameter(recurse);
-
-	dbxmlrpcrequestraw(msg.xml(),null);
-	
-	makeRequest("/db/permissions?name=" + name + "&edit=1&recurse=" + recurse,"comments_permissions");
-	
+		//standard
+    var http_request = false;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+        http_request = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE
+        try {
+            http_request = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e) {
+            try {
+                http_request = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e) {}
+        }
+    }
+    if (!http_request) {
+        alert('Giving up :( Cannot create an XMLHTTP instance');
+        return false;
+    }
+		//end
+		http_request.onreadystatechange=function()
+ 		{		
+			if (http_request.readyState==4)
+	  		{
+	  			if (http_request.status==200)
+	  			{	
+						try {
+							output = document.getElementById("xmlrpc_output");
+							output.value = http_request.responseText;
+						} catch(errror) {}
+						eval(callback);
+//						window.location.reload();
+				}
+	  			else
+	  			{
+						alert("Error with request.");
+	  			}
+	  		}
+		}
+		http_request.open("POST",url,true);
+		http_request.send(command);
 }

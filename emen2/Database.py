@@ -3198,7 +3198,7 @@ or None if no match is found."""
 			
 			tp=valid_vartypes[f.vartype][0]
 			if not tp :
-				print "unindexable vartype ",f.vartype
+#				print "unindexable vartype ",f.vartype
 				ret = None
 				return ret
 			if len(tp)>1 : return tp
