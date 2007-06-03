@@ -340,7 +340,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #		print key
 #		print keytype
 #		print ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
-		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
+#		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
+		children = list(ts.db.getchildren(key,keytype,recurse,ctxid,host))
 		children.sort()
 		return tuple(children)
 	
@@ -354,7 +355,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
 		#print tuple(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
-		return tuple(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+#		return tuple(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		return tuple(ts.db.getparents(key,keytype,recurse,ctxid,host))
 		
 	
 	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
