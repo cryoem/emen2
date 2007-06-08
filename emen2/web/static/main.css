@@ -7,6 +7,27 @@
 	display:none;
 }
 
+.browserlabel {
+	text-align:center;
+	border-bottom:solid 2px white;
+	margin-bottom:10px;
+}
+textarea {
+	display:inline;
+	color:#783766;
+
+}
+input {
+	display:inline;
+	color:#783766;
+
+}
+.typehint {
+	font-size:10pt;
+/*	font-weight:italic; */
+	color:#783766;
+}
+
 /* 
 =============================================================
 BLOCK ELEMENTS
@@ -601,20 +622,28 @@ DROP DOWN MENU CSS
 	width:400px;
 }
 
-.parent, .child {
+.parent, .child, .parentgroup {
 	-moz-border-radius-topleft:8px;
 	-moz-border-radius-topright:8px;
 	background:#BBD9EE;
-	margin:0px;
-	padding:5px; 
+	margin:1px;
+	padding:3px; 
+}
+.parentgroup {
+	background:white;
+}
+#getchildrenofparents {
+}
+.parent {
+	line-height:100%;
+	border-left:solid 1px #BBD9EE;;
+	border-right:solid 1px #BBD9EE;;
+	border-top:solid 1px #BBD9EE;;
 }
 .child:hover {
 	background:white;
 }
-.parent {
-	line-height:100%;
-	margin:0px;
-}
+
 .child {
 	-moz-border-radius:8px;
 
@@ -626,6 +655,11 @@ DROP DOWN MENU CSS
 	padding:5px;
 	margin-bottom:10px;
 	background:white;
+
+	border-left:solid 1px #BBD9EE;;
+	border-right:solid 1px #BBD9EE;;
+	border-bottom:solid 1px #BBD9EE;;
+
 }
 
 
@@ -636,7 +670,7 @@ DROP DOWN MENU CSS
 	margin:0px;
 	padding:5px;
 }
-#getparamdef2, #getrecorddef2 {
+#getparamdef, #getrecorddef {
 	background:white;
 	margin:0px;
 	padding:5px;

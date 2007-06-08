@@ -29,7 +29,7 @@ from twisted.web.util import redirectTo
 # Twisted Imports
 #from twisted.web import http
 #from twisted.python import threadable, log, components, failure, filepath
-from twisted.python import filepath
+from twisted.python import filepath, log, failure
 #from twisted.internet import abstract, interfaces, defer
 from twisted.internet import defer, reactor, threads
 #from twisted.spread import pb
@@ -167,21 +167,19 @@ class DBResource(Resource):
 
 	
 	def _cbRender(self, result, request):
-#		print "cbRender..."
-#		print result
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
 		request.finish()
 
-	def _ebRender(self, request, failure):
+	def _ebRender(self, failure, request):
 		print "ebRender..."
+		print "request"
 		print request
-		request.write("fault")
+		print "failure"
+		print failure
+		request.write(str(failure))
 		request.finish()
-		if isinstance(failure.value, Fault):
-			return failure.value
-		log.err(failure)
-		return Fault(self.FAILURE, "error")
+		return ""
 
 class DownloadFile(Resource, filepath.FilePath):
 

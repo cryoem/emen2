@@ -27,9 +27,13 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			result = (result,)
 		try:
 			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
+			print "return: "
+			print s
 		except:
 			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
 			s = xmlrpclib.dumps(f, methodresponse=1)
+			print "fault: "
+			print s
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
@@ -37,8 +41,14 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	
 	
 	def render(self, request):
+
 		 request.content.seek(0, 0)
-		 args, functionPath = xmlrpclib.loads(request.content.read())
+
+		 content = request.content.read()
+		 print "--------- xmlrpc request ----------------"
+		 print content
+		
+		 args, functionPath = xmlrpclib.loads(content)
 		 try:
 				 function = self._getFunction(functionPath)
 #				 print function
@@ -56,10 +66,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		 return server.NOT_DONE_YET 
 	
 	
+	def xmlrpc_echo(self,args):
+		for i in args:
+			print i
+		return args
 	
-	def xmlrpc_slee(self):
+	def xmlrpc_error(self):
+		raise KeyError
+		return ""
+	
+	def xmlrpc_sleep(self):
 		time.sleep(100)
-	
+		return ""
 	
 	def xmlrpc_ping(self):
 		return "pong"
@@ -142,18 +160,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		r=[x.__dict__ for x in r]
 		return r
 		
-	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None) :
+	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None):
 		"""This will set the user's entire workflow list. This should rarely be used."""
 		w=[ts.DB.WorkFlow(with=i) for i in wflist]
 		ts.db.setworkflow(w,ctxid,host)
 		
-	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None) :
+	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None):
 		"""Adds a Workflow object to the user's workflow"""
 		worko=ts.DB.WorkFlow()
 		worko.__dict__.update(work)
 		ts.db.addworkflowitem(worko,ctxid,host)
 	
-	def xmlrpc_delworkflowitem(self,wfid,ctxid=None,host=None) :
+	def xmlrpc_delworkflowitem(self,wfid,ctxid=None,host=None):
 		"""Delete a single workflow entry"""
 		ts.db.delworkflowitem(wfid,ctxid,host)
 		
@@ -194,11 +212,14 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		except:
 			rec = ts.db.newrecord(recdict["rectype"],ctxid)
 
-		for i in recdict:
+		
+
+		for i in recdict.keys():
 			rec[i] = recdict[i]
-			
+												
+		print rec	
 		r=ts.db.putrecord(rec,ctxid,host)
-			
+		print r
 		return r
 		
 	def xmlrpc_getproto(self,classtype,ctxid=None,host=None):
@@ -243,7 +264,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_getparamdef(self,paramdefname,host=None):
 		"""Anyone may retrieve any paramdef"""
-		return tuple(ts.db.getparamdef(paramdefname).__dict__)
+		return tuple(ts.db.getparamdef(paramdefname).__dict__.items())
 		
 	def xmlrpc_getparamdef2(self,paramdefname,host=None):
 		"""Anyone may retrieve any paramdef"""
@@ -296,7 +317,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
-		return ts.db.getrecorddef(recname,ctxid,host=host,recid=recid).__dict__ 
+		r = ts.db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__.items()
+		print "return: "
+		print r
+		return r
 		
 	def xmlrpc_getrecorddef2(self,rectypename,ctxid=None,host=None,recid=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
@@ -340,6 +364,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #		print key
 #		print keytype
 #		print ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
+
 #		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
 		children = list(ts.db.getchildren(key,keytype,recurse,ctxid,host))
 		children.sort()
@@ -349,52 +374,64 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		"""Unlike getchildren, this works only for 'records'. Returns a count of children
 		of the specified record classified by recorddef as a dictionary. The special "all"
 		key contains the sum of all different recorddefs"""
-		return ts.db.countchildren(key,recurse=0,ctxid=None,host=None)
+		return ts.db.countchildren(key,recurse=0,ctxid=ctxid,host=host)
 
 	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
+
 		#print tuple(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
-#		return tuple(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+
 		return tuple(ts.db.getparents(key,keytype,recurse,ctxid,host))
 		
 	
 	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Gets the children of all the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		a = list(ts.db.getparents(key,keytype,recurse=0,ctxid=None,host=None))
+		a = list(ts.db.getparents(key,keytype,recurse=0,ctxid=ctxid,host=host))
 		a.sort()
-		b = ()
+		b = []
 		for i in a:
-			children = list(ts.db.getchildren(i,keytype,recurse=0,ctxid=None,host=None))
+			children = list(ts.db.getchildren(i,keytype,recurse=0,ctxid=ctxid,host=host))
 			children.sort()
-			if not b:
-				b = (		(i,)	 +	 tuple( children ) , )
-			else:
-				b = ( b ,	 ((i,)	+	 tuple( children ) ) )
+
+			b.append([i,children])
+
+#			children.remove(key)
+#			if not b:
+#				b = (		(i,)	 +	 tuple( children ) , )
+#			else:
+#				b = ( b ,	 ((i,)	+	 tuple( children ) ) )
+
+		print "return tuple:"
+
+		print b
+
 		return b
 		
 	
 	def xmlrpc_getcousins(self,key,keytype="record",ctxid=None,host=None):
 		"""Gets the cousins (related records with no defined parent/child relationship
 		 of a record with the given key, keytype may be 'record', 'recorddef' or 'paramdef' """
-		return tuple(ts.db.getcousins(key,keytype,ctxid=None,host=None))
+		return tuple(ts.db.getcousins(key,keytype,ctxid,host))
 		
 	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Produce a parent <-> child link between two records"""
-		return ts.db.pclink(pkey,ckey,keytype,ctxid=None,host=None)
+		print pkey
+		print ckey
+		return ts.db.pclink(pkey,ckey,keytype,ctxid,host)
 		
 	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Remove a parent <-> child link. No error raised if link doesn't exist."""
-		return ts.db.pcunlink(pkey,ckey,keytype,ctxid=None,host=None)
+		return ts.db.pcunlink(pkey,ckey,keytype,ctxid,host)
 
 	def xmlrpc_link(self,key1,key2,keytype="record",ctxid=None,host=None):
 		"""Generate a 'cousin' relationship between two records"""
-		return ts.db.link(key1,key2,keytype,ctxid=None,host=None)
+		return ts.db.link(key1,key2,keytype,ctxid,host)
 		
 	def xmlrpc_unlink(self,key1,key2,keytype="record",ctxid=None,host=None):
 		"""Remove a 'cousin' relationship."""
-		return ts.db.unlink(key1,key2,keytype,ctxid=None,host=None)
+		return ts.db.unlink(key1,key2,keytype,ctxid,host)
 	
 	def xmlrpc_isManager(self,ctxid=None,host=None):
 		"""Returns true if context has manager permissions"""
@@ -459,7 +496,6 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_findparamname(self,q,ctxid=None,host=None):
 
-		print type(q)
 		if len(q) < 3: return []
 		
 		q = q.lower()

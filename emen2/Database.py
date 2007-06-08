@@ -1355,13 +1355,15 @@ class Record:
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
 
+		key = key.strip().lower()
+
 		try:
-			if value==None or value=="none" : 
-				print "rec %s, key=%s set to None"%(self.recid,key)
-			else:
-				key=key.strip().lower()
-		except:
-			key=""
+			valuelower = value.lower()
+		except: valuelower = ""
+		
+		if value==None or valuelower=="none" : 
+			print "rec %s, key=%s set to None"%(self.recid,key)
+			value = None
 
 
 		if (key=="comments") :
@@ -1418,6 +1420,8 @@ class Record:
 			"""This insures that copies of original values are made when appropriate
 			security should be handled by the parent method"""
 			if key in self.__params and self.__params[key]!=None and not key in self.__oparams : self.__oparams[key]=self.__params[key]
+
+
 			self.__params[key]=value
 									
 
@@ -2365,7 +2369,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
 		This method returns a dictionary of all matching recid/value pairs
 		if subset is provided, will only return values for specified recids"""
-		ind=self.__getparamindex(paramname,create=0)
+		ind=self.__getparamindex(paramname,create=1)
 		
 		if valrange==None : r=dict(ind.items())
 		elif isinstance(valrange,tuple) or isinstance(valrange,list) : r=dict(ind.items(valrange[0],valrange[1]))
@@ -3327,6 +3331,18 @@ or None if no match is found."""
 		if isinstance(record,dict) :
 			r=record
 			record=Record(r,ctxid)
+
+		# check data types
+		params=Set(record.keys())
+		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+		for i in params:
+			vartype=self.__paramdefs[i.lower()].vartype
+			
+			try:
+				record[i] = valid_vartypes[vartype][1](record[i])
+			except:
+				print "Error converting datatype: %s, %s"%(i,vartype)
+#				raise ValueError
 										
 		if (record.recid<0) : record.recid=None
 		
@@ -3420,7 +3436,9 @@ or None if no match is found."""
 		
 		for f in params:
 			try:
-				if (orig[f]!=record[f]) : changedparams.append(f)
+				if (orig[f]!=record[f]):
+					print "changedparams: %s ... %s %s"%(f,type(orig[f]),type(record[f]))
+					changedparams.append(f)
 			except:
 				changedparams.append(f)
 				
@@ -3505,7 +3523,7 @@ or None if no match is found."""
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
 
-	def getrecordnames(self,ctxid,dbid=0,host=None) :
+	def getrecordnames(self,ctxid,dbid=0,host=None):
 		"""This will return the ids of all records the user has permission to access""" 
 		ctx=self.__getcontext(ctxid,host)
 		

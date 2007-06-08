@@ -3,23 +3,27 @@ var oldvalues = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
 
-function getStyle(element, cssRule)
-{
-  if( document.defaultView && document.defaultView.getComputedStyle )
-  {
-    var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue( 
-      cssRule.replace( /[A-Z]/g, function( match, char ) 
-      { 
-        return "-" + char.toLowerCase(); 
-      } ) 
-    );
-  }
-  else if ( element.currentStyle ) var value = element.currentStyle[ cssRule ];
-  else                             var value = false;
+function getStyle(element, cssRule) {
+  var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
   return value;
 }
 
-function getElementByClass(classname) {
+function initialstyle() {
+	var alltags=document.getElementsByTagName("*");
+	for (i=0; i<alltags.length; i++) {
+		style = document.defaultView.getComputedStyle( alltags[i], '' ).getPropertyValue("display");
+		statecache[alltags[i].id] = style
+		classstatecache[alltags[i].className] = style
+
+		if (!classcache[alltags[i].className]) {classcache[alltags[i].className]=new Array(alltags[i].id)}
+		else {classcache[alltags[i].className].push(alltags[i].id);}
+
+	}
+}
+
+
+function getElementByClass(classname,update) {
+	if (classcache[classname] && update == 0) { return classcache[classname] }
 
 	var inc=0
 	var elements=new Array()
@@ -28,19 +32,30 @@ function getElementByClass(classname) {
 		if (alltags[i].className.indexOf(classname) != -1)
 		elements[inc++]=alltags[i].id
 	}
+	classcache[classname] = elements;
 	return elements;
+}
+
+
+function toggleclass(classname) {
+	list = getElementByClass(classname);
+
+	for (var i=0;i<list.length;i++){
+		toggle(list[i]);
+	}
 }
 
 
 function toggle(id) {
 	state = getStyle(document.getElementById(id),"display");
 	if (id in statecache) {cache = statecache[id]} else {cache = "block"}
+	statecache[id] = state;
+
 	if (state == 'none') {
 		document.getElementById(id).style.display = cache;
 	} else {
 		document.getElementById(id).style.display = "none";
 	}
-	statecache[id] = state;
 
 		try {
 			button = document.getElementById(id + "_button");		
@@ -55,7 +70,8 @@ function toggle(id) {
 
 
 function switchbutton(type,id) {
-	list = classcache["button_" + type];
+	list = getElementByClass("button_"+type);
+	
 	for (var i=0;i<list.length;i++) {
 		if (list[i] != "button_" + type + "_" + id) {
 			try {
@@ -90,31 +106,23 @@ function classprop(classname,element,value) {
 
 // hide class members, show one, switch the button
 function switchin(classname, id) {	
-	hideclass("page_" + classname);
+ 	getElementByClass(classname,1);
 	switchbutton(classname,id);
-	try { document.getElementById("page_" + classname + "_" + id).style.display = 'block'; } catch (error) {}
+	hideclass("page_" + classname);
+	qshow("page_" + classname + "_" + id);
 }
 
 // show/hide all members of a class. cannot operate at stylesheet level because we tend to set styles for single elements.
 function hideclass(classname) {
-	list = classcache[classname];
-	if (!list) { list = getElementByClass(classname) }
-	
-	try {
-		state = getStyle(document.getElementById(list[0]),"display");
-		classstatecache[classname] = state;
-	} catch(error) {}	
-		
+	list = getElementByClass(classname);		
 	for (var i=0;i<list.length;i++) {
-		try { document.getElementById(list[i]).style.display = 'none'; } catch (error) {}
+		document.getElementById(list[i]).style.display = 'none'; 
 	}
 }
 
 function showclass(classname) {
-	list = classcache[classname];
-	if (!list) { list = getElementByClass(classname) }
-
-	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "block"}
+	list = getElementByClass(classname);
+	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "inline"}
 
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = cache;			
@@ -122,13 +130,17 @@ function showclass(classname) {
 }
 
 function showclassexcept(classname,except) {
-	hideclass(classname)
-	list = getElementByClass(classname);
-	for (var i=0;i<list.length;i++) {
-		if (list[i] != except) {
-			document.getElementById(list[i]).style.display = 'block';			
-		}
-	}
+	hideclass(classname);
+	showclass(classname);
+	qhide(except);
+//	list = getElementByClass(classname);
+//	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "block"}
+//	for (var i=0;i<list.length;i++) {
+//		if (list[i] == except) {
+//			document.getElementById(list[i]).style.display = "block";			
+//		} 
+//	}
+
 }
 
 
@@ -147,20 +159,13 @@ function qhide(id) {
 
 function init() {
 	ctxid_init_start('TWISTED_SESSION_ctxid');	
-	// these have to be cached or specified for a variety of complex reasons
-	classcache["button_main"] = getElementByClass("button_main");
-	classcache["page_main"] = getElementByClass("page_main");
-	classcache["tooltip"] = getElementByClass("tooltip");			
-	classcache["button_param"] = new Array("button_param_mainview","button_param_tabularview","button_param_onelineview","button_param_defaultview","button_param_records")
-	classcache["page_param"] = new Array("page_param_mainview","page_param_tabularview","page_param_onelineview","page_param_defaultview","page_param_records")
-	classcache["button_addrecord"] = new Array("button_addrecord_paramvalue","button_addrecord_inplace")
-	classcache["page_addrecord"] = new Array("page_addrecord_paramvalue","page_addrecord_inplace")			
+
+// these have to be cached or specified for the switching methods
+//	initialstyle();
+
+// saves a little time by caching		
 	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
 
-	statecache["xmlrpc_makeedits_commit"] = "inline";
-	statecache["xmlrpc_makeedits_cancel"] = "inline";
-
-//javascript:hideclass('page_recordview');qshow('page_recordview_defaultview');
 
 	switchin("main","mainview");
 

@@ -292,13 +292,14 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 	return("""	
 	<div id="browserid">Parameter Browser</div>
 	<div id="parambrowser" %s>
+
 		<div class="floatleft" id="left">
 			<div id="getchildrenofparents"></div>
 		</div>
 
 		<div class="floatleft" id="center">
 			<div id="focus"></div>
-			<div id="getparamdef2"></div>
+			<div id="getparamdef"></div>
 			<div id="parambuttons">%s<div id="addchild">%s</div></div>
 		</div>
 		
@@ -348,7 +349,7 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 #		form.append('<div class="l">Edit</div>')
 
 	return("""	
-	<div id="browserid">Record Definition Browser</div>
+	<div id="browserid">Protocol Browser</div>
 	<div id="protobrowser" %s>
 		<div class="floatleft" id="left">
 			<div id="getchildrenofparents"></div>
@@ -356,7 +357,7 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 
 		<div class="floatleft" id="center">
 			<div id="focus"></div>
-			<div id="getrecorddef2"></div>
+			<div id="getrecorddef"></div>
 			<div id="parambuttons">%s<div id="addchild">%s</div></div>
 		</div>
 		
@@ -390,7 +391,7 @@ def notifymsg(args):
 	msgs = [\
 	"Added comment successfully", \
 	"Permission change successful", \
-	"Added child successfully", \
+	"Record operation successful", \
 	"Attached file successfully",\
 	"Logged out",\
 	"Changes saved",\
