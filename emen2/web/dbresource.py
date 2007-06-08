@@ -7,6 +7,7 @@
 #import random
 import timing
 import time
+import random
 
 DEBUG = 1
 
@@ -194,12 +195,11 @@ class DownloadFile(Resource, filepath.FilePath):
 			}
 
 	type = None
-	defaultType="text/html"
+#	defaultType="text/html"
+	defaultType="application/octet-stream"
 
 	def render(self, request):
 		"""You know what you doing."""
-
-
 
 		# auth...
 
@@ -217,38 +217,47 @@ class DownloadFile(Resource, filepath.FilePath):
 
 
 		
-		bid = request.postpath[0]
-#		print "bid: %s"%bid
+		bids = request.postpath[0].split(",")
+
+		if len(bids) > 1:
+			ipaths=[]
+			for i in bids:
+				bname,ipath,bdocounter=ts.db.getbinary(i,ctxid)						
+				ipaths.append(ipath)
+
+			self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
+			fsize = size = 0
+			p = os.popen2("tar c *.py")
+			f = p[1]
+			if self.type:	request.setHeader('content-type', self.type)
+			if self.encoding:	request.setHeader('content-encoding', self.encoding)
+			
+			r = f.read()
+			while (r):
+				request.write(r)
+				r = f.read()
+			request.finish()
+
+		else:		
+			bid = request.postpath[0]
+			bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+
+			self.path = ipath
+			self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
+			f = self.open()
+			fsize = size = os.stat(ipath).st_size
+
+	#		fsize = size = self.getsize()
+			if self.type:	request.setHeader('content-type', self.type)
+			if self.encoding:	request.setHeader('content-encoding', self.encoding)
+			if fsize:	request.setHeader('content-length', str(fsize))
+
+			if request.method == 'HEAD':	return ''
+
+			FileTransfer(f, size, request)
+			# and make sure the connection doesn't get closed
+			return server.NOT_DONE_YET
 		
-		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
-#		print "bname: %s"%bname
-#		print "ipath: %s"%ipath
-#		print "bdocounter: %s"%bdocounter
-
-		self.path = ipath
-
-		self.type, self.encoding = getTypeAndEncoding(bname,
-																											self.contentTypes,
-																											self.contentEncodings,
-																											self.defaultType)
-
-#		print "content type: %s"%self.type
-#		print "encoding: %s"%self.encoding
-
-		fsize = size = self.getsize()
-		if self.type:
-				request.setHeader('content-type', self.type)
-		if self.encoding:
-				request.setHeader('content-encoding', self.encoding)
-
-		f = self.open()
-
-
-		request.setHeader('content-length', str(fsize))
-		if request.method == 'HEAD':
-				return ''
-
-		# return data
-		FileTransfer(f, size, request)
-		# and make sure the connection doesn't get closed
-		return server.NOT_DONE_YET
+		
+		
+		

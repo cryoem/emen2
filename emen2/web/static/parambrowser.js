@@ -51,7 +51,7 @@ function display(param,type)
 	browsertype = type;
 
 	if (browsertype == "paramdef") {xmlrpcrequest("getparamdef", [param])}
-	if (browsertype == "recorddef"){
+	if (browsertype == "recorddef") {
 		xmlrpcrequest("getrecorddef",[param]);
 		makeRequest("/db/recorddefsimple/"+param,"recorddefsimple","switchin('param','mainview')");
 	}
@@ -122,11 +122,6 @@ function xmlrpc_getchildren_cb(r) {
 
 
 function xmlrpc_getrecorddef_cb(r) {
-//	console.log("getrecorddef: ");
-//	console.log(r);
-//	console.log(r[1][1]["onelineview"]);
-//	console.log(r[1][1]["defaultview"]);
-
 	f = document.getElementById("focus");
 	f.innerHTML = currentparam;
 	d = document.getElementById("getrecorddef");
@@ -148,11 +143,9 @@ function xmlrpc_getrecorddef_cb(r) {
 
 
 function xmlrpc_getcousins_cb(r) {
-//	console.log("getcousins: " + r);
 }
 
 function xmlrpc_getparamdef_cb(r) {
-//	console.log("getparamdef: "+r);
 	f = document.getElementById("focus");
 	f.innerHTML = currentparam;
 
@@ -402,71 +395,9 @@ function alertContents(http_request,zone) {
 }
 
 
-function dbgetrequest(url,command,param) {
-	//standard
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up :( Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		http_request.onreadystatechange=function() { statechange(http_request,command,param,"None"); };
-		http_request.open("GET",url,true);	
-		http_request.send(null);
-}
-
-
-// simple xmlrpc request
-
-function dbxmlrpcrequest(command,param,type) {
-	//standard
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up: Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		
-		http_request.onreadystatechange=function() { statechange(http_request,command,param,type); };
-		http_request.open("POST",url,true);
-		if (command == "getparamdef2") {
-			var request = '<methodCall><methodName>getparamdef2</methodName><params><param><value><string>' + param + '</string></value></param></params></methodCall>';
-		} else {
-//			alert("req: " + command + " .. ctxid: " + ctxid);
-			var request = '<methodCall><methodName>'+ command +'</methodName><params><param><value><string>'+param+'</string></value> </param><param><value><string>' + type + '</string> </value> </param> <param><value><string>' + ctxid + '</string></value> </param></params></methodCall>';	
-		}
-		http_request.send(request);
-}
-
-
-function xmlrpcmultirequest(methods) {	
-}
-
 // raw xmlrpc request
 function xmlrpcrequest(method,args) {
-
+	
 		command = XMLRPCMessage(method,args);
 
 //		try {	eval("cb = xmlrpc_" + method + "_cb");alert(method);} catch(error) {cb=function(a){}}
@@ -504,7 +435,7 @@ function xmlrpcrequest(method,args) {
 					} catch(error) {
 //						eb(error.faultCode,error.faultString);
 //							try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error code "+faultCode+", "+faultString)}}
-							alert("Error code "+error.faultCode+", "+error.faultString)
+							alert("Error "+error.faultCode+": "+error.faultString)
 					}
 
 					}

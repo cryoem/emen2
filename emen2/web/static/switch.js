@@ -133,14 +133,6 @@ function showclassexcept(classname,except) {
 	hideclass(classname);
 	showclass(classname);
 	qhide(except);
-//	list = getElementByClass(classname);
-//	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "block"}
-//	for (var i=0;i<list.length;i++) {
-//		if (list[i] == except) {
-//			document.getElementById(list[i]).style.display = "block";			
-//		} 
-//	}
-
 }
 
 
