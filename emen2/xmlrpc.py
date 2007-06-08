@@ -366,7 +366,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #		print ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None)
 
 #		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=None,host=None))
-		children = list(ts.db.getchildren(key,keytype,recurse,ctxid,host))
+		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=ctxid,host=host))
 		children.sort()
 		return tuple(children)
 	
