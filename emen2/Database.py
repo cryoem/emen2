@@ -949,8 +949,8 @@ valid_vartypes={
 	"url":("s",lambda x:str(x)),			# link to a generic url
 	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
 	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
-	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary
-	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display
+	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
+	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",lambda x:int(x)),
@@ -3336,7 +3336,10 @@ or None if no match is found."""
 		params=Set(record.keys())
 		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
 		for i in params:
-			vartype=self.__paramdefs[i.lower()].vartype
+			try:
+				vartype=self.__paramdefs[i.lower()].vartype
+			except:
+				raise KeyError,"Parameter undefined (%s)"%i
 			
 			try:
 				record[i] = valid_vartypes[vartype][1](record[i])

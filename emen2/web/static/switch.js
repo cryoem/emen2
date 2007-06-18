@@ -3,6 +3,18 @@ var oldvalues = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
 
+function dict() {
+}
+
+//dict.prototype.update = function(l) {
+//	for (var i=0;i<l.length;i++) {
+//		this[String(l[i][0])] = l[i][1];
+//	}
+//}
+
+
+
+
 function getStyle(element, cssRule) {
   var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
   return value;
@@ -25,15 +37,33 @@ function initialstyle() {
 function getElementByClass(classname,update) {
 	if (classcache[classname] && update == 0) { return classcache[classname] }
 
-	var inc=0
-	var elements=new Array()
+//	var testClass = new RegExp("(^|\\s)" + classname + "(\\s|$)");
+	var elements=[];
 	var alltags=document.all? document.all : document.getElementsByTagName("*")
-	for (i=0; i<alltags.length; i++) {
-		if (alltags[i].className.indexOf(classname) != -1)
-		elements[inc++]=alltags[i].id
+	var length = alltags.length;
+	for (i=0; i<length; i++) {
+		if (alltags[i].className.indexOf(classname) != -1){elements.push(alltags[i].id)}
+//			if (testClass.test(alltags[i].classname)){elements.push(alltags[i].id)}
 	}
 	classcache[classname] = elements;
 	return elements;
+}
+
+function getElementByClass2(className,update){
+	var testClass = new RegExp("(^|\\s)" + className + "(\\s|$)");
+	var tag = "*";
+	var elm = document;
+	var elements = (tag == "*" && elm.all)? elm.all : elm.getElementsByTagName(tag);
+	var returnElements = [];
+	var current;
+	var length = elements.length;
+	for(var i=0; i<length; i++){
+		current = elements[i];
+		if(testClass.test(current.className)){
+			returnElements.push(current);
+		}
+	}
+	return returnElements;
 }
 
 
@@ -47,24 +77,26 @@ function toggleclass(classname) {
 
 
 function toggle(id) {
-	state = getStyle(document.getElementById(id),"display");
-	if (id in statecache) {cache = statecache[id]} else {cache = "block"}
-	statecache[id] = state;
+	try {
+		state = getStyle(document.getElementById(id),"display");
+		if (id in statecache) {cache = statecache[id]} else {cache = "block"}
+		statecache[id] = state;
 
-	if (state == 'none') {
-		document.getElementById(id).style.display = cache;
-	} else {
-		document.getElementById(id).style.display = "none";
-	}
+		if (state == 'none') {
+			document.getElementById(id).style.display = cache;
+		} else {
+			document.getElementById(id).style.display = "none";
+		}
+	} catch(error) {}
 
-		try {
-			button = document.getElementById(id + "_button");		
-			if (state != 'none') {
-				button.innerHTML = "+";
-			} else {
-				button.innerHTML = "-";
-			}
-		} catch(error) {}
+	try {
+		button = document.getElementById(id + "_button");		
+		if (state != 'none') {
+			button.innerHTML = "+";
+		} else {
+			button.innerHTML = "-";
+		}
+	} catch(error) {}
 
 }
 
@@ -156,7 +188,7 @@ function init() {
 //	initialstyle();
 
 // saves a little time by caching		
-	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
+//	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
 
 
 	switchin("main","mainview");
@@ -167,15 +199,6 @@ function init() {
 
 }
 
-
-function submitattachfile() {
-	for (var i=0;i<document.fileform.elements.length;i=i+2) {
-		if (document.fileform.elements[i].value != "") {
-			try {document.fileform.elements[i+1].value = document.fileform.elements[i].value;}
-			catch(error) {}
-		} 
-	}
-}
 
 
 

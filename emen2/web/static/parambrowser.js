@@ -51,15 +51,48 @@ function display(param,type)
 	browsertype = type;
 
 	if (browsertype == "paramdef") {xmlrpcrequest("getparamdef", [param])}
-	if (browsertype == "recorddef") {
-		xmlrpcrequest("getrecorddef",[param]);
-		makeRequest("/db/recorddefsimple/"+param,"recorddefsimple","switchin('param','mainview')");
-	}
+	if (browsertype == "recorddef") {xmlrpcrequest("getrecorddef",[param])}
 
 	xmlrpcrequest("getchildrenofparents",[param,type,ctxid]);
 	xmlrpcrequest("getchildren",[param,type,ctxid]);
 	xmlrpcrequest("getcousins",[param,type,ctxid]);
 }
+
+
+/***********************************************/
+
+
+/***********************************************/
+
+
+function form_addfile(formobj) {
+	formobj.fname.value = formobj.filedata.value;
+}
+
+
+/***********************************************/
+
+function form_addcomment(formobj) {
+	comment = formobj.comment.value;
+	xmlrpcrequest("addcomment",[name,comment,ctxid]);
+}
+function xmlrpc_addcomment_cb(r) {
+	alert("Added comment succesfully: "+r)
+}
+
+
+
+/***********************************************/
+
+function xmlrpc_getrecord_cb(r) {
+    a = new dict();
+		a.update(r);
+		console.log(a["website"]);
+//    console.write(a["comments"])
+}
+
+
+
 
 /***********************************************/
 
@@ -122,24 +155,67 @@ function xmlrpc_getchildren_cb(r) {
 
 
 function xmlrpc_getrecorddef_cb(r) {
+
+  recdef = new dict();
+	for (var i=0;i<r.length;i++) {
+		recdef[r[i][0]] = r[i][1];
+	}
+	
+	
 	f = document.getElementById("focus");
 	f.innerHTML = currentparam;
 	d = document.getElementById("getrecorddef");
 	while (d.firstChild) {d.removeChild(d.firstChild)};	
 
-	for (var i=0;i<r.length;i++) {
-		if (r[i][0] == "creator" || r[i][0] == "creationtime") {
-			k = document.createElement('span');
-			k.innerHTML = r[i][0] + ": ";
-			v = document.createElement('span');
-			v.innerHTML = r[i][1];
-			br = document.createElement('br');
-			d.appendChild(k);
-			d.appendChild(v);
-			d.appendChild(br);
-		}
+
+	k = document.createElement('span');
+	k.innerHTML = "Creator: " + recdef["creator"] + "<br />Created: " + recdef["creationtime"];
+	br = document.createElement('br');
+	d.appendChild(k);
+	d.appendChild(br);
+
+	var views = new dict();
+	views["mainview"] = recdef["mainview"];
+	for (j in recdef["views"]) {
+		views[j] = recdef["views"][j];
 	}
+	
+
+	rdv = document.getElementById("recorddefviews");	
+	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
+
+	for (j in views) {
+		k = document.createElement('div');
+		k.className = "button_rdv";
+		k.id = "button_rdv_" + j;
+		k.innerHTML = "<a href=\"javascript:switchin('rdv','"+ j + "');>" + j + "</a>";
+		rdv.appendChild(k);
+	}
+
+
+	bl = document.createElement('div');
+	bl.style.clear = "both";
+	rdv.appendChild(bl);
+
+
+	
+	for (j in views) {
+		k = document.createElement('div');
+		kt = document.createElement('div');
+		k.className = "page_rdv";
+		kt.className = "view_rdvt";
+		k.id = "page_rdv_" + j;
+		kt.id = "page_rdvt_" + j ;
+		kt.innerHTML = views[j];
+		bl.appendChild(k);
+		k.appendChild(kt);
+	}
+	
+
+	switchin('rdv','mainview');
+	
 }
+
 
 
 function xmlrpc_getcousins_cb(r) {
@@ -161,6 +237,25 @@ function xmlrpc_getparamdef_cb(r) {
 		d.appendChild(k);
 		d.appendChild(v);
 		d.appendChild(br);
+	}
+	
+}
+
+
+function form_protobrowser_edit(formobj) {
+	hideclass("parents");
+	list = getElementByClass("view_rdvt");
+	
+	for (var i=0;i<list.length;i++) {
+		el = document.getElementById(list[i]);
+		pn = el.parentNode;
+		textarea = document.createElement('textarea');
+		textarea.id = el.id;
+		textarea.cols = "80";
+		textarea.rows = "20";
+		textarea.value = el.innerHTML
+		pn.removeChild(el);
+		pn.appendChild(textarea);
 	}
 	
 }
@@ -199,25 +294,29 @@ function xmlrpc_echo_eb(faultCode,faultString) {
 
 /***********************************************/
 
-function form_makeedits(classname) {
-	toggle("form_makeedits_commit_" + classname);
-	toggle("form_makeedits_clear_" + classname);
-	toggle("form_makeedits_cancel_" + classname);
-	hideclass('param_value_display_' + classname);
-	showclass('param_value_edit_' + classname);
+function form_makeedits(formobj){
+	formobj.commit.style.display = "block";
+	formobj.cancel.style.display = "block";
+	formobj.edit.style.display = "none";
+
+	hideclass('param_value_display_' + formobj.viewtype.value);
+	showclass('param_value_edit_' + formobj.viewtype.value);
+	return false;
 }
-function form_makeedits_cancel(classname) {
-	toggle("form_makeedits_commit_" + classname);
-	toggle("form_makeedits_clear_" + classname);
-	toggle("form_makeedits_cancel_" + classname);
-	hideclass('param_value_edit_' + classname);
-	showclass('param_value_display_' + classname);
+function form_makeedits_cancel(formobj) {
+	formobj.commit.style.display = "none";
+	formobj.cancel.style.display = "none";
+	formobj.edit.style.display = "block";
+	
+	hideclass('param_value_edit_' + formobj.viewtype.value);
+	showclass('param_value_display_' + formobj.viewtype.value);
+	return false;
 }
-function xmlrpc_putrecord(classname) {
+function xmlrpc_putrecord(formobj) {
 	newvalues = new Array(["rectype",rectype]);
 	if (name) {newvalues.push(["recid",name])};
 	nv = new Array();
-	formobj = document.forms["form_makeedits_" + classname];
+//	formobj = document.forms["form_makeedits_" + classname];
 
 	for (var i=0;i<formobj.elements.length;i++) {
 
@@ -429,8 +528,10 @@ function xmlrpcrequest(method,args) {
 
 					try {
 //						cb;
-//							try {	eval("cb = xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");alert(method);} catch(error) {cb=function(unmarshallDoc(http_request.responseXML,http_request.responseText)){}}
-							eval("cb = xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))")
+							try {	
+								eval("xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");
+							} catch(error) {console.log("error:");console.log(error);console.log(unmarshallDoc(http_request.responseXML,http_request.responseText))}
+//							eval("cb = xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))")
 
 					} catch(error) {
 //						eb(error.faultCode,error.faultString);

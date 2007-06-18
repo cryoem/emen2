@@ -19,7 +19,7 @@ from emen2.ts import db
 import emen2.TwistSupport_html.html.login
 import emen2.TwistSupport_html.html.newuser
 import emen2.TwistSupport_html.html.home
-
+import emen2.TwistSupport_html.html.error
 
 # Sibling Imports
 from twisted.web import server
@@ -146,9 +146,11 @@ class DBResource(Resource):
 #		 	self._cbRender, request
 #		)
 
+
 		d = threads.deferToThread(function, request.postpath, request.args, ctxid, host)
-		d.addCallback(self._cbRender, request)
-		d.addErrback(self._ebRender, request)
+		d.addCallback(self._cbRender, request, time.time())
+		d.addErrback(self._ebRender, request, time.time())
+
 
 		# JPEG Magic Number
 #		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
@@ -156,31 +158,33 @@ class DBResource(Resource):
 		
 		
 		# "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
-		
-		
-#		return ret
-		return server.NOT_DONE_YET 
-#		return "ok"
-#		return str(request.__dict__)
-#		return callbacks[method](request.postpath,request.args,ctxid,host)
 
-#		return "(%s)request was '%s' %s"%(ctxid,str(request.__dict__),request.getHost())
+		return server.NOT_DONE_YET 
+
 
 	
-	def _cbRender(self, result, request):
+	def _cbRender(self, result, request, t0):
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
 		request.finish()
+ 		print "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
+		return
 
-	def _ebRender(self, failure, request):
-		print "ebRender..."
-		print "request"
-		print request
-		print "failure"
+	def _ebRender(self, failure, request, t0):
 		print failure
-		request.write(str(failure))
+		request.write(emen2.TwistSupport_html.html.error.error(failure))
 		request.finish()
-		return ""
+ 		print "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
+		return
+
+#		return
+#		print "ebRender..."
+#		print "request"
+#		print request
+#		print "failure"
+#		request.write(str(failure))
+#		request.finish()
+#		return ""
 
 class DownloadFile(Resource, filepath.FilePath):
 
@@ -223,20 +227,28 @@ class DownloadFile(Resource, filepath.FilePath):
 			ipaths=[]
 			for i in bids:
 				bname,ipath,bdocounter=ts.db.getbinary(i,ctxid)						
-				ipaths.append(ipath)
+				ipaths.append((ipath,bname))
 
-			self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
+
+			self.type, self.encoding = "application/octet-stream", None
 			fsize = size = 0
-			p = os.popen2("tar c *.py")
-			f = p[1]
-			if self.type:	request.setHeader('content-type', self.type)
-			if self.encoding:	request.setHeader('content-encoding', self.encoding)
 			
-			r = f.read()
-			while (r):
-				request.write(r)
-				r = f.read()
+			request.setHeader('content-type', self.type)
+			request.setHeader('content-encoding', self.encoding)
+
+			import tarfile
+
+			# how many *hours* do you think I wasted before realizing I could simply give it the request as the file object?
+			tar = tarfile.open(mode="w|", fileobj=request)
+
+			for name in ipaths:
+				print "adding %s as %s"%(name[0],name[1])
+				tar.add(name[0],arcname=name[1])
+			tar.close()
+
 			request.finish()
+
+
 
 		else:		
 			bid = request.postpath[0]

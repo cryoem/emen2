@@ -76,7 +76,7 @@ div #content {
 	display:none;
 }
 
-.page_param {
+.page_param, .page_rdv {
 	display:none;
 	background:white;
 	padding:20px;
@@ -204,6 +204,9 @@ div.nav_buttons {
 	height:35px;
 	}	
 	
+	
+	
+	
 .standardtable {
 	-moz-border-radius:8px;
 /*	background:white; */
@@ -235,15 +238,28 @@ td.standardtable_shaded {
 	border-right:1px;
 }
 
+.sidebar_box {
+	-moz-border-radius-topleft:8px;
+	-moz-border-radius-bottomleft:8px;
+	background:white;
+	margin:5px;
+	margin-right:0px;
+	padding:10px;
+}
 
-#comments_comments,#comments_history,#downloadfile {
+#sidebar_addchild {
+	line-height:200%;
+}
+
+#sidebar_comments,#sidebar_history,#sidebar_download {
+	margin-right:0px;
 	display:block;
 	overflow:auto;
 	max-height:250px;
-	width:320px;
-	padding-left:20px; 
+/* 	width:320px; */
+	padding-left:10px; 
 }
-#comments_permissions,#addcommentformsmall,#addfileformsmall {
+#sidebar_permissions,#form_addcomment,#form_addfile {
 	display:none;
 	padding:10px;
 }
@@ -344,6 +360,7 @@ th.lastitem {
 
 td {
 	padding:4px;
+	padding-right:0px;
 }
 
 td.firstitem {
@@ -578,7 +595,7 @@ DROP DOWN MENU CSS
 
 
 
-.button_param,.button_addrecord {
+.button_param,.button_addrecord,.button_rdv {
 	padding:10px;
 	margin-right:10px;
 	-moz-border-radius-topright:8px;
@@ -586,7 +603,7 @@ DROP DOWN MENU CSS
 	float:left;
 	background:#BBD9EE;
 }
-.button_param_active,.button_addrecord_active {
+.button_param_active,.button_addrecord_active,.button_rdv_active {
 	background:white;
 }
 
@@ -601,7 +618,7 @@ DROP DOWN MENU CSS
 	clear:both;
 }
 
-.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
+.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefviews:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_rdv:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -621,6 +638,8 @@ DROP DOWN MENU CSS
 #addrecordheader {
 	width:400px;
 }
+
+
 
 .parent, .child, .parentgroup {
 	-moz-border-radius-topleft:8px;
@@ -678,8 +697,14 @@ DROP DOWN MENU CSS
 }
 
 
-#recorddefsimple {
+#recorddefsimple, #recorddefviews {
 	clear:both;
+}
+#test {
+	border-top:10px;
+	color:red;
+	border-color:red;
+	margin:10px;
 }
 
 #center {

@@ -52,6 +52,8 @@ def form_new(action="",items=(),method="POST"):
 		if not i.has_key("rows"): i["rows"] = 5
 		if not i.has_key("default"): i["default"] = ""
 		if not i.has_key("postfix"): i["postfix"] = ""
+		if not i.has_key("default"): i["default"] = ""
+		if not i.has_key("form"): i["form"] = "text"
 
 		if i["form"] == "select":
 			ret.append('<div class="formcol1">%s:</div><div class="formcol2"><select name="%s">'%(i["desc"],i["name"]))
@@ -125,9 +127,15 @@ def header(name,init=None,short=0):
 
 
 <div id="nav_table"> 
+
+	<div class="nav_tableli"><a href="/db/home">Home</a></div>
+
 	<div class="nav_tableli"><a href="/db/record/%s">Browse Database</a></div>
 	<div class="nav_tableli"><a href="/db/queryform">Query Database</a></div>
 	<div class="nav_tableli"><a href="/db/workflow">My Workflow</a></div>
+
+	<div class="nav_tableli"><a href="/db/users">Users</a></div>
+
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
@@ -142,7 +150,10 @@ def header(name,init=None,short=0):
 	return " ".join(ret)
 
 
-def footer(short=0):
+
+
+
+def footer(short=0,ctxid=None):
 	"""Common header block, includes </body>"""
 	ret = []
 	ret.append("</div>")
@@ -153,18 +164,26 @@ def footer(short=0):
 
 <img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	
 
-<!-- -->
+<!-- -->""")
 
-Loggged in as: <br />
+	try:
+		user = ts.db.checkcontext(ctxid)[0]
+		ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
+	except:
+		ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
 
+	ret.append("""
 Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
 Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
 Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
 
 </div></div>
 		""")
+
 	ret.append("</div></body></html>")
 	return " ".join(ret)
+	
+	
 	
 def singleheader(title,short=0):
 	"""For pages without option tabs, make the single tab"""
@@ -329,28 +348,30 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		form.append('<div class="l" onclick="selecttarget()">Select</div>')
 	if viewfull:
 		form.append('<div class="l"><a id="viewfull" href="">View Full</a></div>')
-	if addchild:
-		form.append('<div class="l"><a href="javascript:toggle(\'addchild\')">Add Child</a></div>')
 
-		addchildhtml = """
-		<form name="full_form" method="POST" action="javascript:make_proto()">
-		<table>
-		<tr><td>Name:</td><td><input type="text"; id = "name"></td><tr>
-		<tr><td>Parents:</td><td><input type="text"; id="parent_new"></td></tr>
-		<tr><td>Exp. Desc.:</td><td><input type="text"; id="mainview"></td></tr>
-		<tr><td>Summary:</td><td><input type="text"; id = "summary"></td></tr>
-		<tr><td>One line view:</td><td><input type="text"; id = "oneline"></td></tr>
-		<tr><td>Private:</td><td><input type="checkbox"; id = "private"></td></tr>
-		</table>
-		<input type="submit">
-		</form>"""
-		
+#	if addchild:
+#		form.append('<div class="l"><a href="javascript:toggle(\'addchild\')">Add Child</a></div>')
+#
+#		addchildhtml = """
+#		<table>
+#		<tr><td>Name:</td><td><input type="text"; id = "name"></td><tr>
+#		<tr><td>Parents:</td><td><input type="text"; id="parent_new"></td></tr>
+#		<tr><td>Exp. Desc.:</td><td><input type="text"; id="mainview"></td></tr>
+#		<tr><td>Summary:</td><td><input type="text"; id = "summary"></td></tr>
+#		<tr><td>One line view:</td><td><input type="text"; id = "oneline"></td></tr>
+#		<tr><td>Private:</td><td><input type="checkbox"; id = "private"></td></tr>
+#		</table>
+#		<input type="submit">
+#		</form>"""		
 #	if edit:
 #		form.append('<div class="l">Edit</div>')
 
 	return("""	
 	<div id="browserid">Protocol Browser</div>
 	<div id="protobrowser" %s>
+
+	<form action="javascript:void(0)" name="form_protobrowser">
+
 		<div class="floatleft" id="left">
 			<div id="getchildrenofparents"></div>
 		</div>
@@ -358,7 +379,10 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		<div class="floatleft" id="center">
 			<div id="focus"></div>
 			<div id="getrecorddef"></div>
-			<div id="parambuttons">%s<div id="addchild">%s</div></div>
+			<div id="parambuttons">%s
+				<div id="addchild">%s</div>
+			</div>
+<!--			<input type="button" value="Edit"   name="edit"   onClick="form_protobrowser_edit(this.form)"  /> -->
 		</div>
 		
 		<div class="floatleft" id="right">
@@ -366,8 +390,12 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<div id="getcousins"></div>
 		</div>
 		
-		<div id="recorddefsimple"></div>
+		<div id="recorddefviews"></div>
+		
+		
+		<div id="recorddefsimple" style="display:none"></div>
 
+	</form>
 		
 	</div>
 	
@@ -432,6 +460,6 @@ def stub(path,args,ctxid,host):
 
 	ret.append("</div>")
 
-	ret.append(tmpl.footer())
+	ret.append(tmpl.footer(ctxid=ctxid))
 	return "".join(ret)
 	
