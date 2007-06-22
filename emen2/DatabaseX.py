@@ -7,8 +7,9 @@
    fields from ncmidb encoding to ncmidb2 encoding will not change modifytime
    and modifyuser fields; also the change is not logged in the comments field.
    *** Do not use for any other purpose. ***
-   Lines commented out are marked DBX.
+   Lines commented out, added, or modified are marked DBX.
 '''
+print 'Warning: you have imported DatabaseX.py'
 
 # TODO:
 # read-only security index
@@ -3366,7 +3367,9 @@ or None if no match is found."""
 		except:
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
-
+			print '/// creating new record ///', \
+			      record.recid, record['recname'], \
+			      record['modifytime']                 #DBX
 #			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)
