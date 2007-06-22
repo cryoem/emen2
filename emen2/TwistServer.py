@@ -27,6 +27,7 @@ root.putChild("RPC2",xmlrpc.DBXMLRPCResource())
 #root.putChild("REST",rest.DBRESTResource())
 
 root.putChild("download",emen2.TwistSupport_html.dbresource.DownloadFile())
+root.putChild("upload",emen2.TwistSupport_html.dbresource.UploadFile())
 
 # You can set the port to listen on...
 reactor.listenTCP(EMEN2PORT, server.Site(root))

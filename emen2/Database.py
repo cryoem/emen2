@@ -287,8 +287,18 @@ class BTree:
 		except:
 			return
 			
-		if not (childtag,paramname) in o: return
-		
+			
+
+
+		print "trying to unlink parent %s child %s"%(parenttag,childtag)
+		print (childtag,paramname)
+		print o				
+				
+						
+		if not (childtag,paramname) in o: 
+#		if not childtag in o: 
+			return
+
 		o.remove((childtag,paramname))
 		self.pcdb.put(dumps(parenttag),dumps(o),txn=self.txn)
 		
@@ -1380,7 +1390,8 @@ class Record:
 					self.__realsetitem(i,j)
 			else :
 				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
-		elif (key=="rectype") :
+		# ian
+		elif (key=="rectype" and value.lower() != self.rectype.lower()) :
 			if self.__ptest[3]: self.rectype=value.lower()
 			else: raise SecurityError,"Insufficient permission to change the record type"
 

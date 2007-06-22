@@ -5,6 +5,7 @@ var ctxid = "";
 var name = "";
 var pclink = "";
 var newrecid;
+var valuecache = new Array();
 /***********************************************/
 
 function selecttarget() {
@@ -74,22 +75,13 @@ function form_addfile(formobj) {
 
 function form_addcomment(formobj) {
 	comment = formobj.comment.value;
-	xmlrpcrequest("addcomment",[name,comment,ctxid]);
-}
-function xmlrpc_addcomment_cb(r) {
-	alert("Added comment succesfully: "+r)
+	r = xmlrpcrequest("addcomment",[name,comment,ctxid],0);
+	window.location.reload();
 }
 
 
 
 /***********************************************/
-
-function xmlrpc_getrecord_cb(r) {
-    a = new dict();
-		a.update(r);
-		console.log(a["website"]);
-//    console.write(a["comments"])
-}
 
 
 
@@ -104,11 +96,11 @@ function xmlrpc_getchildrenofparents_cb(r) {
 	for (var i=0;i<r.length;i++) {
 		var x = document.createElement('div');
 		x.className = "parent";
-		x.id = "asdasd";
+		x.id = "parent_" + r[i][0];
 
 		var xn = document.createElement('a');
 		xn.href = "javascript:display('" + r[i][0] + "','" + browsertype + "')";
-		xn.innerHTML = r[i][0];
+		xn.innerHTML = 'parent: ' + r[i][0];
 		x.appendChild(xn);
 
 		var z = document.createElement('div');
@@ -150,23 +142,23 @@ function xmlrpc_getchildren_cb(r) {
 		y.className = "child";
 		z.appendChild(y);
 	}
-
 }
 
 
 function xmlrpc_getrecorddef_cb(r) {
-
   recdef = new dict();
+// just use this instead of dict.update for because 'for i in' is broken in js
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
 	
+	viewfull = document.getElementById("viewfull");
+	viewfull.href = "/db/recorddef/" + currentparam;
 	
-	f = document.getElementById("focus");
+	f = document.getElementById("recdef_name");
 	f.innerHTML = currentparam;
 	d = document.getElementById("getrecorddef");
 	while (d.firstChild) {d.removeChild(d.firstChild)};	
-
 
 	k = document.createElement('span');
 	k.innerHTML = "Creator: " + recdef["creator"] + "<br />Created: " + recdef["creationtime"];
@@ -180,7 +172,6 @@ function xmlrpc_getrecorddef_cb(r) {
 		views[j] = recdef["views"][j];
 	}
 	
-
 	rdv = document.getElementById("recorddefviews");	
 	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
 
@@ -191,13 +182,15 @@ function xmlrpc_getrecorddef_cb(r) {
 		k.innerHTML = "<a href=\"javascript:switchin('rdv','"+ j + "');>" + j + "</a>";
 		rdv.appendChild(k);
 	}
-
+	k = document.createElement('div');
+	k.className="button_rdv";
+	k.id="button_rdv_records";
+	k.innerHTML = '<a href=\"/db/query?parent=&query=find+'+recdef["name"]+'\">Records</a>';
+	rdv.appendChild(k);
 
 	bl = document.createElement('div');
-	bl.style.clear = "both";
+	bl.style.clear = 'both';
 	rdv.appendChild(bl);
-
-
 	
 	for (j in views) {
 		k = document.createElement('div');
@@ -211,7 +204,6 @@ function xmlrpc_getrecorddef_cb(r) {
 		k.appendChild(kt);
 	}
 	
-
 	switchin('rdv','mainview');
 	
 }
@@ -222,7 +214,7 @@ function xmlrpc_getcousins_cb(r) {
 }
 
 function xmlrpc_getparamdef_cb(r) {
-	f = document.getElementById("focus");
+	f = document.getElementById("recdef_name");
 	f.innerHTML = currentparam;
 
 	d = document.getElementById("getparamdef");
@@ -241,22 +233,186 @@ function xmlrpc_getparamdef_cb(r) {
 	
 }
 
+/***********************/
+
+function getselectchoice(obj) {
+	r = new Array();
+	for (var i=0;i<obj.length;i++) {
+    if (obj.options[i].selected) {
+			r.push(obj.options[i].text);
+		}
+  }
+	return r;
+}
+
+function xmlrpc_putrecorddef(formobj) {
+	r = xmlrpcrequest("getrecorddef",[currentparam,ctxid],0)
+	recdef = new dict();
+	for (var i=0;i<r.length;i++) {
+		recdef[r[i][0]] = r[i][1];
+	}
+	console.log(recdef);
+	recdef["mainview"] = formobj.mainview.value;
+	recdef["views"]["defaultview"] = formobj.defaultview.value;
+	recdef["views"]["tabularview"] = formobj.tabularview.value;
+	recdef["views"]["onelineview"] = formobj.onelineview.value;
+	
+	// syncronous because of linking required
+	r=xmlrpcrequest("putrecorddef",[recdef,ctxid],0);
+
+	parents = getselectchoice(formobj.parents);
+	children = getselectchoice(formobj.children);
+	
+	// relink as necessary
+	for (var i=0;i<parents.length;i++) {
+		if (valuecache["parents"].indexOf(parents[i]) == -1) { // new link
+			l = xmlrpcrequest("pclink",[parents[i],currentparam,"recorddef",ctxid],0);
+			console.log(l);
+		}
+	}
+	for (var i=0;i<valuecache["parents"].length;i++) {
+		if (parents.indexOf(valuecache["parents"][i]) == -1) { // removed link
+			l = xmlrpcrequest("pcunlink",[valuecache["parents"][i],currentparam,"recorddef",ctxid],0);
+			console.log(l);
+		}
+	}
+	
+	for (var i=0;i<children.length;i++) {
+		if (valuecache["children"].indexOf(children[i]) == -1) { // new link
+			l = xmlrpcrequest("pclink",[currentparam,children[i],"recorddef",ctxid],0);
+			console.log(l);
+		}
+	}
+	for (var i=0;i<valuecache["children"].length;i++) {
+		if (children.indexOf(valuecache["children"][i]) == -1) { // removed link
+			l = xmlrpcrequest("pcunlink",[currentparam,valuecache["children"][i],"recorddef",ctxid],0);
+			console.log(l);
+		}
+	}
+	
+}
+
+function xmlrpc_putrecorddef_cb(r) {
+//	alert("Successfully updated view");
+//	window.location.reload();
+}
+
+
+function form_protobrowser_cancel(formobj) {
+	showclass("parent");
+	showclass("parents");
+
+	toggle("form_protobrowser_edit");
+	toggle("form_protobrowser_commit");
+	toggle("form_protobrowser_cancel");	
+	
+	recdefname = document.getElementById("recdef_name")
+	recdefnameparent = recdefname.parentNode;
+	newrecdefname = document.createElement('div');
+	newrecdefname.id = "recdef_name";
+	newrecdefname.innerHTML = currentparam;
+	
+	recdefnameparent.replaceChild(newrecdefname,recdefname);	
+
+	left = document.getElementById("left");
+	left.removeChild(document.getElementById("recdef_parents"));
+	right = document.getElementById("right");
+	right.removeChild(document.getElementById("recdef_children"));
+		
+	xmlrpcrequest("getrecorddef",[currentparam])
+	
+/*
+	list = getElementByClass("view_rdvt");
+	for (var i=0;i<list.length;i++) {
+		el = document.getElementById(list[i]);
+		pn = el.parentNode;
+		view = document.createElement('div');
+		view.className = "view_rdvt";
+		view.id = el.id;
+		view.innerHTML = valuecache[el.id.split("_")[2]]
+		pn.removeChild(el);
+		pn.appendChild(view);
+	}*/	
+	
+}
 
 function form_protobrowser_edit(formobj) {
-	hideclass("parents");
+	hideclass("parents",1);
+	hideclass("parent",1);
+	qhide("button_rdv_records");
+	toggle("form_protobrowser_edit");
+	toggle("form_protobrowser_commit");
+	toggle("form_protobrowser_cancel");	
+	
 	list = getElementByClass("view_rdvt");
+	recdefname = document.getElementById("recdef_name")
+	recdefnameparent = recdefname.parentNode;
+
+	newrecdefname = document.createElement('input');
+	newrecdefname.type = "text";
+	newrecdefname.style.width="270px";
+	newrecdefname.name = "name";
+	newrecdefname.id = "recdef_name";
+	newrecdefname.value = currentparam;
+	
+	recdefnameparent.replaceChild(newrecdefname,recdefname);
+	
 	
 	for (var i=0;i<list.length;i++) {
 		el = document.getElementById(list[i]);
 		pn = el.parentNode;
 		textarea = document.createElement('textarea');
 		textarea.id = el.id;
+		textarea.className = "view_rdvt";
+		textarea.name = el.id.split("_")[2];
+		valuecache[textarea.name] = el.innerHTML;
 		textarea.cols = "80";
 		textarea.rows = "20";
 		textarea.value = el.innerHTML
 		pn.removeChild(el);
 		pn.appendChild(textarea);
 	}
+	
+	// ok, now multiple select lists...
+	xp = xmlrpcrequest("getparents",[currentparam,"recorddef",0,ctxid],0);
+	xc = xmlrpcrequest("getchildren",[currentparam,"recorddef",0,ctxid],0);
+	valuecache["parents"] = xp;
+	valuecache["children"] = xc;
+
+	r = xmlrpcrequest("getrecorddefnames",[],0);
+
+	parents = document.createElement('select');
+	parents.name = "parents"
+	parents.multiple = true;
+	parents.style.width = "300px";
+	parents.size = 8;
+	parents.id = "recdef_parents";
+	for (var i=0;i<r.length;i++) {
+		option = document.createElement('option');
+		if (xp.indexOf(r[i]) > -1) {option.selected = 1}
+		option.value=r[i];
+		option.text=r[i];
+		parents.appendChild(option);
+	}
+	left = document.getElementById("left");
+	left.appendChild(parents);
+	
+	
+	children = document.createElement('select');
+	children.name = "children"
+	children.multiple = true;
+	children.style.width = "300px";
+	children.size = 8;
+	children.id = "recdef_children";
+	for (var i=0;i<r.length;i++) {
+		option = document.createElement('option');
+		if (xc.indexOf(r[i]) > -1) {option.selected = 1}
+		option.value=r[i];
+		option.text=r[i];
+		children.appendChild(option);
+	}
+	right = document.getElementById("right");
+	right.appendChild(children);
 	
 }
 
@@ -363,9 +519,7 @@ function xmlrpc_putrecord(formobj) {
 				nv[pname].push(convertvartype(vartype,formobj.elements[pname + "___" + vartype + "___extendtext___" + num].value));
 			}
 		}
-
 		}	
-
 	}
 
 	for (k in nv) {
@@ -376,14 +530,14 @@ function xmlrpc_putrecord(formobj) {
 
 	xmlrpcrequest("putrecord",[newvalues,ctxid]);
 }
+
+// fixme: change this to use sync-callbacks
 function xmlrpc_putrecord_cb(r) {
 	newrecid = r;
 	if (!isNaN(parseInt(pclink))) {
-		xmlrpcrequest("pclink",[pclink,r,"record",ctxid]);
-		return;
-	}	else {
-		gotorecord(r);
-	}
+		pclink = xmlrpcrequest("pclink",[pclink,r,"record",ctxid],0);
+	}	
+	gotorecord(r);
 }
 function gotorecord(r) {
 	if (!isNaN(parseInt(r))) {
@@ -392,6 +546,7 @@ function gotorecord(r) {
 		window.location = window.location.protocol + "//" + window.location.host + window.location.pathname + "?notify=" + r;
 	}	
 }
+
 function convertvartype(vartype,value) {
 	if (value) {
 		r = value;
@@ -400,9 +555,6 @@ function convertvartype(vartype,value) {
 	return r;
 }
 
-function xmlrpc_pclink_cb(r) {
-	gotorecord(newrecid);
-}
 
 /***********************************************/
 
@@ -487,7 +639,7 @@ function alertContents(http_request,zone) {
         if (http_request.status == 200) {
 						document.getElementById(zone).innerHTML  = http_request.responseText;
         } else {
-            alert('There was a problem with the request.');
+            alert('Error with request: network');
         }
     }
 
@@ -495,57 +647,55 @@ function alertContents(http_request,zone) {
 
 
 // raw xmlrpc request
-function xmlrpcrequest(method,args) {
+function xmlrpcrequest(method,args,async,cb,eb) {
+	if (typeof(async)=="undefined") {async=1} else {async=0};
+	command = XMLRPCMessage(method,args);
+
+//	try {	eval("cb = xmlrpc_" + method + "_cb");alert(method);} catch(error) {cb=function(a){}}
+//	try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error code "+faultCode+", "+faultString)}}
 	
-		command = XMLRPCMessage(method,args);
-
-//		try {	eval("cb = xmlrpc_" + method + "_cb");alert(method);} catch(error) {cb=function(a){}}
-//		try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error code "+faultCode+", "+faultString)}}
-		
-    var http_request = false;
-    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
-        http_request = new XMLHttpRequest();
-    } else if (window.ActiveXObject) { // IE
-        try {
-            http_request = new ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e) {
-            try {
-                http_request = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e) {}
-        }
-    }
-    if (!http_request) {
-        alert('Giving up :( Cannot create an XMLHTTP instance');
-        return false;
-    }
-		//end
-		http_request.onreadystatechange=function()
- 		{		
-			if (http_request.readyState==4)
-	  		{
-	  			if (http_request.status==200)
-	  			{	
-
+   var http_request = false;
+   if (window.XMLHttpRequest) { // Mozilla, Safari, ...
+       http_request = new XMLHttpRequest();
+   } else if (window.ActiveXObject) { // IE
+       try {
+           http_request = new ActiveXObject("Msxml2.XMLHTTP");
+       } catch (e) {
+           try {
+               http_request = new ActiveXObject("Microsoft.XMLHTTP");
+           } catch (e) {}
+       }
+   }
+   if (!http_request) {
+       alert('Error with request: Giving up :( Cannot create an XMLHTTP instance');
+       return false;
+   }
+	//end
+	
+	if (async) {
+		http_request.onreadystatechange=function() {		
+			if (http_request.readyState==4) {
+	  		if (http_request.status==200)	{	
 					try {
-//						cb;
-							try {	
-								eval("xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");
-							} catch(error) {console.log("error:");console.log(error);console.log(unmarshallDoc(http_request.responseXML,http_request.responseText))}
-//							eval("cb = xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))")
-
+						eval("xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");
 					} catch(error) {
-//						eb(error.faultCode,error.faultString);
-//							try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error code "+faultCode+", "+faultString)}}
-							alert("Error "+error.faultCode+": "+error.faultString)
-					}
-
-					}
-	  			else
-	  			{
-						alert("Error with request.");
-	  			}
+						alert("Error with request: "+error.faultCode+", "+error.faultString);
+					} 
+				}	else {
+						alert("Error with request: network");
 	  		}
+	  	}
 		}
+		
 		http_request.open("POST",url,true);
 		http_request.send(command);
+	} else {
+		http_request.open("POST",url,false);
+		http_request.send(command);
+		console.log("sync request:");
+		console.log(http_request.responseText);
+		return unmarshallDoc(http_request.responseXML,http_request.responseText);
+	}
+
+
 }

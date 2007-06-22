@@ -122,42 +122,21 @@ class DBResource(Resource):
 #				print "...requesting: %s"%request.uri
 				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)
 			
-				
-#		print session.uid
-#		print "Checked context with ctxid: %s"%ctxid
+
 
 		# Ok, if we got here, we can actually start talking to the database
 
-
-		exec("import emen2.TwistSupport_html.html.%s"%method)
-		
+		exec("import emen2.TwistSupport_html.html.%s"%method)		
 		if DEBUG:
 			exec("reload(emen2.TwistSupport_html.html.%s)"%method)
-
-
 
 #		ret=eval("emen2.TwistSupport_html.html."+method+"."+method)(request.postpath,request.args,ctxid,host)
 #		function = getattr(, method, None)
 		exec("function = emen2.TwistSupport_html.html.%s.%s"%(method,method))
 
-#		defer.maybeDeferred(function, request.postpath, request.args, ctxid, host).addErrback(
-#			self._ebRender
-#		 ).addCallback(
-#		 	self._cbRender, request
-#		)
-
-
 		d = threads.deferToThread(function, request.postpath, request.args, ctxid, host)
 		d.addCallback(self._cbRender, request, time.time())
 		d.addErrback(self._ebRender, request, time.time())
-
-
-		# JPEG Magic Number
-#		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
-#		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
-		
-		
-		# "::::microsec for complete request %s"%int((time.time() - t0) * 1000000)
 
 		return server.NOT_DONE_YET 
 
@@ -186,10 +165,84 @@ class DBResource(Resource):
 #		request.finish()
 #		return ""
 
+
+class UploadFile(Resource):
+	isLeaf = True
+
+	def render(self,request):
+		print "-------- upload -----------"
+#		print request.args
+		print request.postpath
+		args=request.args
+
+		if args.has_key("ctxid"):
+			ctxid = request.args["ctxid"][0]
+		else:
+			try:
+				session=request.getSession()			# sets a cookie to use as a session id
+				ctxid = session.ctxid
+				db.checkcontext(ctxid,request.getClientIP())
+			except:
+				print "Need to login..."
+				session.originalrequest = request.uri
+				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
+
+
+		binary = 0
+		if args.has_key("file_binary_image"): 
+			binary = args["file_binary_image"][0]
+
+
+		fname = db.checkcontext(ctxid)[0] + " " + time.strftime("%Y/%m/%d %H:%M:%S")
+		if args.has_key("fname"): 
+			fname = args["fname"][0]
+
+
+		recid=int(request.postpath[0])
+		rec = ts.db.getrecord(recid,ctxid)
+		print rec			
+				
+		# append to file (chunk uploading) or all at once.. 
+		if args.has_key("append"):
+			a = ts.db.getbinary(args["append"][0],ctxid)
+			print "Appending to %s..."%a[1]
+			outputStream = open(a[1], "ab")
+			outputStream.write(args["filedata"][0])
+			outputStream.close()
+
+		# new file
+		else:
+			print "Get binary..."
+			a = ts.db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),os.path.basename(fname),rec.recid,ctxid)
+
+			print "Writing file... %s"%a[1]
+			outputStream = open(a[1], "wb")
+			outputStream.write(args["filedata"][0])
+			outputStream.close()
+
+			print "Setting file_binary of recid %s"%rec.recid
+	
+			if binary:
+				rec["file_binary_image"] = "bdo:%s"%a[0]
+				
+			else:
+				key = "file_binary"
+				if not rec.has_key(key):
+					rec[key] = []
+				rec[key].append("bdo:%s"%a[0])
+	
+			ts.db.putrecord(rec,ctxid)
+
+#		return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+#							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
+		return str(a[0])
+
+
+
+
 class DownloadFile(Resource, filepath.FilePath):
 
 	isLeaf = True
-
 
 	contentTypes = loadMimeTypes()
 
@@ -199,7 +252,6 @@ class DownloadFile(Resource, filepath.FilePath):
 			}
 
 	type = None
-#	defaultType="text/html"
 	defaultType="application/octet-stream"
 
 	def render(self, request):

@@ -336,7 +336,7 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 
 
 
-def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidden=None):
+def protobrowser(all=None,viewfull=1,addchild=None,edit=1,select=None,hidden=None):
 	form = []
 	addchildhtml = ""
 	hiddenhtml = ""
@@ -363,8 +363,12 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 #		</table>
 #		<input type="submit">
 #		</form>"""		
-#	if edit:
-#		form.append('<div class="l">Edit</div>')
+	if edit:
+		form.append("""
+			<div class="l" id="form_protobrowser_edit" onClick="form_protobrowser_edit(this.form)">Edit</div>
+			<div class="l" id="form_protobrowser_commit" style="display:none" ><input type="button" onClick="xmlrpc_putrecorddef(this.form)" value="Commit" /></div> 
+			<div class="l" id="form_protobrowser_cancel" style="display:none" ><input type="button" onClick="form_protobrowser_cancel(this.form)" value="Cancel"></div>
+			""")
 
 	return("""	
 	<div id="browserid">Protocol Browser</div>
@@ -377,12 +381,11 @@ def protobrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		</div>
 
 		<div class="floatleft" id="center">
-			<div id="focus"></div>
+			<div id="focus"><div id="recdef_name"></div></div>
 			<div id="getrecorddef"></div>
 			<div id="parambuttons">%s
 				<div id="addchild">%s</div>
 			</div>
-<!--			<input type="button" value="Edit"   name="edit"   onClick="form_protobrowser_edit(this.form)"  /> -->
 		</div>
 		
 		<div class="floatleft" id="right">

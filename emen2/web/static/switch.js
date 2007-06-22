@@ -13,8 +13,7 @@ function dict() {
 //}
 
 
-
-
+//getcomputedstyle shortcut
 function getStyle(element, cssRule) {
   var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
   return value;
@@ -34,6 +33,7 @@ function initialstyle() {
 }
 
 
+// fixme: change to return list of actual elements instead of list of id's.. change this behavior everywhere (=faster)
 function getElementByClass(classname,update) {
 	if (classcache[classname] && update == 0) { return classcache[classname] }
 
@@ -49,27 +49,10 @@ function getElementByClass(classname,update) {
 	return elements;
 }
 
-function getElementByClass2(className,update){
-	var testClass = new RegExp("(^|\\s)" + className + "(\\s|$)");
-	var tag = "*";
-	var elm = document;
-	var elements = (tag == "*" && elm.all)? elm.all : elm.getElementsByTagName(tag);
-	var returnElements = [];
-	var current;
-	var length = elements.length;
-	for(var i=0; i<length; i++){
-		current = elements[i];
-		if(testClass.test(current.className)){
-			returnElements.push(current);
-		}
-	}
-	return returnElements;
-}
 
 
 function toggleclass(classname) {
 	list = getElementByClass(classname);
-
 	for (var i=0;i<list.length;i++){
 		toggle(list[i]);
 	}
@@ -77,27 +60,22 @@ function toggleclass(classname) {
 
 
 function toggle(id) {
-	try {
-		state = getStyle(document.getElementById(id),"display");
-		if (id in statecache) {cache = statecache[id]} else {cache = "block"}
-		statecache[id] = state;
-
-		if (state == 'none') {
-			document.getElementById(id).style.display = cache;
-		} else {
-			document.getElementById(id).style.display = "none";
+	el = document.getElementById(id);
+	state = getStyle(el,"display");
+	if (id in statecache) {cache = statecache[id]} else {
+			(el.nodeName == "DIV") ? cache = 'block' : cache = 'inline';
 		}
-	} catch(error) {}
+	statecache[id] = state;
+	(state == 'none') ?	el.style.display = cache :  el.style.display = "none";
 
-	try {
+	if (document.getElementById(id + "_button")) {
 		button = document.getElementById(id + "_button");		
 		if (state != 'none') {
 			button.innerHTML = "+";
 		} else {
 			button.innerHTML = "-";
 		}
-	} catch(error) {}
-
+	} 
 }
 
 
@@ -106,17 +84,17 @@ function switchbutton(type,id) {
 	
 	for (var i=0;i<list.length;i++) {
 		if (list[i] != "button_" + type + "_" + id) {
-			try {
-				document.getElementById(list[i]).className = "button_" + type;
-			} catch(error) {}
+			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button_" + type}
 		}
 		else {
-			try {document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active";} catch(error) {}
+			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active"}
 		}
 	}
 }
 
 
+
+// fixme: no longer needed once new permissions script is done
 function classprop(classname,element,value) {
 //based on http://www.shawnolson.net/scripts/public_smo_scripts.js
  var cssRules;
@@ -145,20 +123,32 @@ function switchin(classname, id) {
 }
 
 // show/hide all members of a class. cannot operate at stylesheet level because we tend to set styles for single elements.
-function hideclass(classname) {
-	list = getElementByClass(classname);		
+function hideclass(classname,update) {
+	list = getElementByClass(classname,update);		
+	try {
+		el = document.getElementById(list[0]);
+		state = getStyle(el,"display");
+		classstatecache[classname] = state;
+	} catch(error) {
+//		alert(classname + " : " + list[0]);
+	}
+
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = 'none'; 
 	}
 }
 
-function showclass(classname) {
-	list = getElementByClass(classname);
-	if (classname in classstatecache) {cache = classstatecache[classname]} else {cache = "inline"}
+function showclass(classname,update) {
+	list = getElementByClass(classname,update);
+
+	if (classname in classstatecache) {cache = classstatecache[classname]} else {
+			(document.getElementById(list[0]).nodeName == "DIV") ? cache = 'block' : cache = 'inline';
+		}
 
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = cache;			
 	}
+
 }
 
 function showclassexcept(classname,except) {
@@ -186,34 +176,17 @@ function init() {
 
 // these have to be cached or specified for the switching methods
 //	initialstyle();
-
 // saves a little time by caching		
 //	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
 
+	if (document.getElementById("page_main_mainview")) {
+		switchin("main","mainview");
+	}
 
-	switchin("main","mainview");
+	if (document.getElementById("page_recordview_defaultview")) {
+		hideclass('page_recordview');
+		qshow('page_recordview_defaultview');	
+	}
+	
 
-	try {
-		hideclass('page_recordview');qshow('page_recordview_defaultview');	
-	} catch(error) {}
-
-}
-
-
-
-
-
-// tooltip stuff
-function tooltip_show(tooltipId)
-{
-//	hideclass('tooltip')
-	try {
-//	document.getElementById(tooltipId).style.display = 'block';
-	} catch(error) {}
-}
-
-function tooltip_hide(tooltipId)
-{
-//	self.setTimeout('qhide(\'' + tooltipId + '\')', 5000)
-////	document.getElementById(tooltipId).style.display = 'none';
 }

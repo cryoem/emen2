@@ -54,7 +54,6 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 				 self._cbRender(f, request)
 		 else:
 				 request.setHeader("content-type", "text/xml")
-				#host=request.getClientIP()
 				 defer.maybeDeferred(function, *args).addErrback(
 						 self._ebRender
 				 ).addCallback(
@@ -170,6 +169,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
 
+		print "ctxid: %s"%ctxid
 		recdict = {}
 		recdict.update(record)
 		
@@ -182,7 +182,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		for i in recdict.keys():
 			rec[i] = recdict[i]
 												
-		r=ts.db.putrecord(rec,ctxid,host)
+		r=ts.db.putrecord(rec,ctxid)
 		return r
 
 	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None):
@@ -268,10 +268,12 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Produce a parent <-> child link between two records"""
+		print "linking parent %s to child %s"%(pkey,ckey)
 		return ts.db.pclink(pkey,ckey,keytype,ctxid,host)
 		
 	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Remove a parent <-> child link. No error raised if link doesn't exist."""
+		print "UNlinking parent %s to child %s"%(pkey,ckey)
 		return ts.db.pcunlink(pkey,ckey,keytype,ctxid,host)
 
 	def xmlrpc_link(self,key1,key2,keytype="record",ctxid=None,host=None):
@@ -322,7 +324,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getworkflowitem(self,wfid,ctxid=None,host=None):
 		return ts.db.getworkflowitem(wfid,ctxid,host)
 	
-	def xmlrpc_putrecorddef(self,recdef,ctxid=None,host=None):
+	def xmlrpc_putrecorddef(self,recdict,ctxid=None,host=None):
+		recdef = ts.DB.RecordDef(recdict)
 		return ts.db.putrecorddef(recdef,ctxid,host)
 
 	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None):
