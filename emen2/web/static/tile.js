@@ -3,6 +3,7 @@ var nx=0
 var ny=0
 var level=nx.length-1
 var tileid = "";
+var divdim = [512,512];
 
 /*************************************************/
 
@@ -59,8 +60,10 @@ function zoom(lvl) {
 	y=tofloat(indiv.style.top);
 
 	outdiv=document.getElementById("outerdiv");
-	cx=outdiv.clientWidth/2.0;
-	cy=outdiv.clientHeight/2.0;
+//	cx=outdiv.clientWidth/2.0;
+//	cy=outdiv.clientHeight/2.0;
+	cx=outdiv.clientWidth;
+	cy=outdiv.clientHeight;
 
 	setsize(nx[lvl]*256,ny[lvl]*256);
 
