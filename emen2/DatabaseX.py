@@ -3430,6 +3430,7 @@ or None if no match is found."""
 		######
 		# If we got here, we are updating an existing record
 		######
+		print 'updating, modifytime = %s' % record['modifytime'] #DBX
 		p=orig.setContext(ctx)				# security check on the original record
 		record.setContext(ctx)				# security double-check on the record to be processed. This is required for DBProxy use.
 
@@ -3499,6 +3500,7 @@ or None if no match is found."""
 #			reduce(operator.concat,record["permissions"]),record.recid,txn)		# index security
 
 		# Updates last time changed index
+		print 'Not updating modifytime (%s)' % record['modifytime'] #DBX
 #DBX		if (not self.__importmode) : 
 #			orig["modifytime"]=modifytime
 #			orig["modifyuser"]=ctx.user
