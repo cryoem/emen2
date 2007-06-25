@@ -143,6 +143,10 @@ class DBResource(Resource):
 
 	
 	def _cbRender(self, result, request, t0):
+		# JPEG Magic Number
+		if ret[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
+		if ret[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
 		request.finish()
