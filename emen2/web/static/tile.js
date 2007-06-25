@@ -14,13 +14,15 @@ function xmlrpc_checktile_cb(r) {
 	console.log(r);
 	if (r[0][0] > 0) {
 		// tile ok
-		tileinit2(r[0],r[1],r[2])
+		console.log("ok");
+		tileinit2(r[0][1],r[0][1],r[2])
 	} else {
 		// generate tile; init on callback
 		xmlrpcrequest("createtile",[r[2],ctxid]);
 	}
 }
 function xmlrpc_createtile_cb(r) {
+	console.log(r);
 	tileinit2(r[0],r[1],r[2]);
 }
 
