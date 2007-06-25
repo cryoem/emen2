@@ -394,7 +394,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #			args["notify"][0] = "%s*Error getting binary data for %s: %s"%(args["notify"][0],rec["file_binary_image"], inst)	
 		
 		
-	def xmlrpc_maketile(self,bid,ctxid=None,host=None):
+	def xmlrpc_createtile(self,bid,ctxid=None,host=None):
 		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
 		fpath=ipath+".tile"
 		print "Generating tile... %s"%(ipath) 
