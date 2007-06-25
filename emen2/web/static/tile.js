@@ -4,8 +4,21 @@ var ny=0
 var level=nx.length-1
 var tileid = "";
 
+/*************************************************/
 
-function tileinit(nxinit,nyinit,tileidinit) {
+function tileinit(bid) {
+	xmlrpcrequest("checktile",[bid,ctxid]);
+}
+
+function xmlrpc_checktile_cb(r) {
+	console.log(r);
+}
+
+
+/*************************************************/
+
+
+function tileinit2(nxinit,nyinit,tileidinit) {
 	nx = nxinit;
 	ny = nyinit;
 	tileid = tileidinit;

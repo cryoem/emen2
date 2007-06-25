@@ -383,12 +383,12 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		fpath=ipath+".tile"
 
 		if not os.access(fpath,os.R_OK):
-			return (-1,-1)
+			return (-1,-1,bid)
 		else:
 			dims=get_tile_dim(fpath)
 			dimsx=[i[0] for i in dims]
 			dimsy=[i[1] for i in dims]
-			return dimsx,dimsy 
+			return (dimsx,dimsy,bid) 
 #			init="tileinit(%s,%s,'%s');"%(str(dimsx),str(dimsy),bid)
 #		except Exception, inst:
 #			args["notify"][0] = "%s*Error getting binary data for %s: %s"%(args["notify"][0],rec["file_binary_image"], inst)	
