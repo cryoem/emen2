@@ -376,6 +376,31 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		return {"a":None,"b":None}		
 		
 		
+	def xmlrpc_checktile(self,bid,ctxid=None,host=None):
+		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
+
+		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+		fpath=ipath+".tile"
+
+		if not os.access(fpath,os.R_OK):
+			return (-1,-1)
+		else:
+			dims=get_tile_dim(fpath)
+			dimsx=[i[0] for i in dims]
+			dimsy=[i[1] for i in dims]
+			return dimsx,dimsy 
+#			init="tileinit(%s,%s,'%s');"%(str(dimsx),str(dimsy),bid)
+#		except Exception, inst:
+#			args["notify"][0] = "%s*Error getting binary data for %s: %s"%(args["notify"][0],rec["file_binary_image"], inst)	
+		
+		
+	def xmlrpc_maketile(self,bid,ctxid=None,host=None):
+		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+		fpath=ipath+".tile"
+		print "Generating tile... %s"%(ipath) 
+		result = os.system("export PYTHONPATH=/home/EMAN2/lib;export LD_LIBRARY_PATH=/home/EMAN2/lib;cd /tmp;/home/emen2/copydata/e2tilefile.py %s --build=%s --buildpspec --decompress=%s"%(fpath,ipath,bname))
+		return 1
+			
 		
 	def xmlrpc_addcomment(self,recid,comment,ctxid=None,host=None):
 		"""Append comment to record."""
