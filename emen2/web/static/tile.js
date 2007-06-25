@@ -12,10 +12,11 @@ function tileinit(bid) {
 
 function xmlrpc_checktile_cb(r) {
 	console.log(r);
+	console.log(r[2]);
 	if (r[0][0] > 0) {
 		// tile ok
 		console.log("ok");
-		tileinit2(r[0][1],r[0][1],r[2])
+		tileinit2(r[0],r[1],r[2])
 	} else {
 		// generate tile; init on callback
 		xmlrpcrequest("createtile",[r[2],ctxid]);

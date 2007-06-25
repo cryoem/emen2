@@ -395,11 +395,18 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		
 		
 	def xmlrpc_createtile(self,bid,ctxid=None,host=None):
+		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
+
 		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
 		fpath=ipath+".tile"
 		print "Generating tile... %s"%(ipath) 
 		result = os.system("export PYTHONPATH=/home/EMAN2/lib;export LD_LIBRARY_PATH=/home/EMAN2/lib;cd /tmp;/home/emen2/copydata/e2tilefile.py %s --build=%s --buildpspec --decompress=%s"%(fpath,ipath,bname))
-		return ""
+
+		dims=get_tile_dim(fpath)
+		dimsx=[i[0] for i in dims]
+		dimsy=[i[1] for i in dims]
+		return (dimsx,dimsy,bid) 
+
 			
 		
 	def xmlrpc_addcomment(self,recid,comment,ctxid=None,host=None):

@@ -676,11 +676,11 @@ function xmlrpcrequest(method,args,async,cb,eb) {
 		http_request.onreadystatechange=function() {		
 			if (http_request.readyState==4) {
 	  		if (http_request.status==200)	{	
-					try {
+//					try {
 						eval("xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");
-					} catch(error) {
-						alert("Error with request: "+error.faultCode+", "+error.faultString);
-					} 
+//					} catch(error) {
+//						alert("Error with request: "+error.faultCode+", "+error.faultString);
+//					} 
 				}	else {
 						alert("Error with request: network");
 	  		}
