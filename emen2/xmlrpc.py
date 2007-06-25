@@ -273,8 +273,9 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Produce a parent <-> child link between two records"""
 		print "linking parent %s to child %s"%(pkey,ckey)
-		return ts.db.pclink(pkey,ckey,keytype,ctxid,host)
-		
+		r = ts.db.pclink(pkey,ckey,keytype,ctxid,host)
+		print r
+		return ""
 	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
 		"""Remove a parent <-> child link. No error raised if link doesn't exist."""
 		print "UNlinking parent %s to child %s"%(pkey,ckey)

@@ -159,7 +159,7 @@ div.nav_buttons {
 #imagepreview {
 	text-align:center;
 	float:right;
-	width:350px;
+/*	width:350px; */
 	margin-right:10px;
 	padding:10px;
 	line-height:100%;
@@ -718,7 +718,7 @@ DROP DOWN MENU CSS
 
 
 /* tile browser */
-#outerdiv { height: 350px; width:350px; border: 1px solid black; position:relative; overflow:hidden; }
+#outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
 
 
