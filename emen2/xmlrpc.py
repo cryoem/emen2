@@ -403,11 +403,13 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		os.system("export PYTHONPATH=/home/EMAN2/lib;export LD_LIBRARY_PATH=/home/EMAN2/lib;cd /tmp;/home/emen2/copydata/e2tilefile.py %s --build=%s --buildpspec --decompress=%s"%(fpath,ipath,bname))
 
 		if not os.access(fpath,os.R_OK):
+			print "error with tile."
 			return (-1,-1,bid)
 		else:
 			dims=get_tile_dim(fpath)
 			dimsx=[i[0] for i in dims]
 			dimsy=[i[1] for i in dims]
+			print (dimsx,dimsy,bid) 
 			return (dimsx,dimsy,bid) 
 
 			

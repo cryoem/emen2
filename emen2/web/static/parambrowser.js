@@ -251,7 +251,7 @@ function xmlrpc_putrecorddef(formobj) {
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
-	console.log(recdef);
+//	console.log(recdef);
 	recdef["mainview"] = formobj.mainview.value;
 	recdef["views"]["defaultview"] = formobj.defaultview.value;
 	recdef["views"]["tabularview"] = formobj.tabularview.value;
@@ -267,26 +267,26 @@ function xmlrpc_putrecorddef(formobj) {
 	for (var i=0;i<parents.length;i++) {
 		if (valuecache["parents"].indexOf(parents[i]) == -1) { // new link
 			l = xmlrpcrequest("pclink",[parents[i],currentparam,"recorddef",ctxid],0);
-			console.log(l);
+//			console.log(l);
 		}
 	}
 	for (var i=0;i<valuecache["parents"].length;i++) {
 		if (parents.indexOf(valuecache["parents"][i]) == -1) { // removed link
 			l = xmlrpcrequest("pcunlink",[valuecache["parents"][i],currentparam,"recorddef",ctxid],0);
-			console.log(l);
+//			console.log(l);
 		}
 	}
 	
 	for (var i=0;i<children.length;i++) {
 		if (valuecache["children"].indexOf(children[i]) == -1) { // new link
 			l = xmlrpcrequest("pclink",[currentparam,children[i],"recorddef",ctxid],0);
-			console.log(l);
+//			console.log(l);
 		}
 	}
 	for (var i=0;i<valuecache["children"].length;i++) {
 		if (children.indexOf(valuecache["children"][i]) == -1) { // removed link
 			l = xmlrpcrequest("pcunlink",[currentparam,valuecache["children"][i],"recorddef",ctxid],0);
-			console.log(l);
+//			console.log(l);
 		}
 	}
 	
@@ -692,8 +692,8 @@ function xmlrpcrequest(method,args,async,cb,eb) {
 	} else {
 		http_request.open("POST",url,false);
 		http_request.send(command);
-		console.log("sync request:");
-		console.log(http_request.responseText);
+//		console.log("sync request:");
+//		console.log(http_request.responseText);
 		return unmarshallDoc(http_request.responseXML,http_request.responseText);
 	}
 
