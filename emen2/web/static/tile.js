@@ -62,8 +62,9 @@ function zoom(lvl) {
 	outdiv=document.getElementById("outerdiv");
 //	cx=outdiv.clientWidth/2.0;
 //	cy=outdiv.clientHeight/2.0;
-	cx=outdiv.clientWidth;
-	cy=outdiv.clientHeight;
+	cx=outdiv.clientWidth / 2.0;
+	cy=outdiv.clientHeight / 2.0;
+	console.log([cx,cy]);
 
 	setsize(nx[lvl]*256,ny[lvl]*256);
 
