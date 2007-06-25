@@ -8,7 +8,7 @@ var tileid = "";
 
 function tileinit(bid) {
 	innerdiv=document.getElementById("innerdiv");
-	nnerdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
+	innerdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
 	xmlrpcrequest("checktile",[bid,ctxid]);
 }
 
