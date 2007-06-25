@@ -3039,7 +3039,7 @@ or None if no match is found."""
 			for p in recs:
 				if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
 				try: ret[p]=self.__paramdefs[p]
-				except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
+				except: self.LOG(2,"Request for unknown ParamDef %s"%(p))
 		else:	
 			for r in recs:
 				for p in r.keys():
