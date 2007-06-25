@@ -7,15 +7,19 @@ var tileid = "";
 /*************************************************/
 
 function tileinit(bid) {
+	outdiv=document.getElementById("outerdiv");
+	outdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
 	xmlrpcrequest("checktile",[bid,ctxid]);
 }
 
 function xmlrpc_checktile_cb(r) {
+	outdiv=document.getElementById("outerdiv");
 	if (r[0][0] > 0) {
 		// tile ok
 		tileinit2(r[0],r[1],r[2])
 	} else {
 		// generate tile; init on callback
+		outdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
 		xmlrpcrequest("createtile",[r[2],ctxid]);
 	}
 }
