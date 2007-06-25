@@ -18,13 +18,13 @@ Fault = xmlrpclib.Fault
 
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
-	def _cbRender(self, result, request, ctxid=None):
-	#		#hari:
+	def _cbRender(self, result, request, t0, ctxid=None):
 		allow_none = True
 		if isinstance(result, xmlrpc.Handler):
 			result = result.result
 		if not isinstance(result, xmlrpc.Fault):
 			result = (result,)
+			
 		try:
 			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
 		except:
@@ -35,7 +35,6 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
-	
 	
 	
 	def render(self, request):
@@ -53,12 +52,17 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 				 print "fault..."
 				 self._cbRender(f, request)
 		 else:
-				 request.setHeader("content-type", "text/xml")
-				 defer.maybeDeferred(function, *args).addErrback(
-						 self._ebRender
-				 ).addCallback(
-						 self._cbRender, request
-				 )
+				request.setHeader("content-type", "text/xml")
+
+#				exec("function = emen2.TwistSupport_html.html.%s.%s"%(method,method))
+				d = threads.deferToThread(function, *args)
+				d.addCallback(self._cbRender, request, time.time())
+				d.addErrback(self._ebRender, request)				
+#				 defer.maybeDeferred(function, *args).addErrback(
+#						 self._ebRender
+#				 ).addCallback(
+#						 self._cbRender, request
+#				 )
 		 return server.NOT_DONE_YET 
 
 
