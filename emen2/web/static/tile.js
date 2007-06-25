@@ -69,7 +69,7 @@ function zoom(lvl) {
 	scl=Math.pow(2.0,level-lvl)
 	indiv.style.left=cx-((cx-x)*scl);
 	indiv.style.top=cy-((cy-y)*scl);
-	console.log([cx-((cx-x)*scl),cy-((cy-y)*scl)];
+	console.log([cx-((cx-x)*scl),cy-((cy-y)*scl)]);
 
 	for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
 	level=lvl
