@@ -1,6 +1,6 @@
 from twisted.web.resource import Resource
 from twisted.web import resource, server
-from twisted.internet import defer
+from twisted.internet import defer, reactor, threads
 
 #from emen2 import Database
 from twisted.web import xmlrpc
