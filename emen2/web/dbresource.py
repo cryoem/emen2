@@ -237,10 +237,11 @@ class UploadFile(Resource):
 	
 			ts.db.putrecord(rec,ctxid)
 
-#		return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-#							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
-		return str(a[0])
-
+		if args.has_key("rbid"):
+			return str(a[0])
+		else:
+			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
 
 
 

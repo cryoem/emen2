@@ -36,12 +36,14 @@ function ctxid_init_start(cookieName) {
 
 function parambrowserinit(init,inittarget) {
 	param = init || "root_parameter";
+	currentparam = param;
 	target = inittarget || "";
 	display(param,"paramdef");
 }
  
 function protobrowserinit(init,inittarget) {
 	param = init || "root_protocol";
+	currentparam = param;
 	target = inittarget || "";
 	display(param,"recorddef");
 }
