@@ -85,7 +85,7 @@ def header(name,init=None,short=0):
 
 	ret = []
 
-	ret.append("""
+	ret.append("""<!--quirks mode for ie--> 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">	
 
@@ -98,6 +98,10 @@ def header(name,init=None,short=0):
 </title>
 
 <link rel="StyleSheet" href="/main.css" type="text/css" />
+<!--[if IE]>
+<link rel="StyleSheet" href="/iehx.css" type="text/css"  />
+<![endif]-->
+
 
 <script type="text/javascript" src="/switch.js"></script>
 <script type="text/javascript" src="/xmlrpc.js"></script>
@@ -121,7 +125,7 @@ def header(name,init=None,short=0):
 
 <div id="title">
 	<a href="/db/home">
-	<img id="toplogo" src="/images/logo_trans.png" alt="NCMI" /> National Center for Macromolecular Imaging
+	<img id="toplogo" src="/images/logo_trans.gif" alt="NCMI" /> National Center for Macromolecular Imaging
 	</a>
 </div>
 
@@ -197,10 +201,8 @@ def singleheader(title,short=0):
 	</div>""")
 
 	ret.append("""
-	<div id="button_main_container">
-	<div class="floatcontainer">
+<div class="floatcontainer" id="button_main_container">
 		<div class="button_main" id="button_main_mainview"><a href="">%s</a></div>
-	</div>
 	</div>
 	
 	<div class=\"pagecontainer\" id="pagecontainer_main">

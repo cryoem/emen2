@@ -67,22 +67,20 @@ div #content {
 	background:white;
 }
 
-.floatcontainer {
-/*	background:#BBD9EE;  */
-	clear:both;
-}
+
 
 .page_main {
 	display:none;
+}
+
+#page_main_mainview {
+	display:block;
 }
 
 .page_param, .page_rdv {
 	display:none;
 	background:white;
 	padding:20px;
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-bottomleft:8px;
-	-moz-border-radius-bottomright:8px;
 }
 
 div#title {
@@ -103,6 +101,7 @@ div#bottom {
 	position:absolute;
 	bottom:0px;
 	width:100%;
+	clear:both;
 }
 
 div.emptyfields {
@@ -124,14 +123,15 @@ div.singlepage {
 /* notifications */
 
 .notification {
+	clear:both;
 	background:#BBD9EE;  
-	padding:20px;
-	padding-bottom:25px;
+	padding:1.5em;
+	padding-bottom:1.5em;
 }
 
 
 .notification_inner {
-	padding:10px;
+	padding:1em;
 	background:white;
 	border:solid 4px #FF8135;
 }
@@ -139,12 +139,13 @@ div.singlepage {
 /* Nav Tree */
 div.navtreeouter {
 	background:#BBD9EE;  
-	padding:10px;
+	padding:1.0em;
+	clear:both;
 /*	border:10px solid green; */
 }
 div.navtree {
 	float:left;
-	-moz-border-radius:8px;
+
 	margin:0px;
 	background:white;
 }
@@ -163,7 +164,6 @@ div.nav_buttons {
 	margin-right:10px;
 	padding:10px;
 	line-height:100%;
-	-moz-border-radius:8px;
 	background:#E7F1F8;
 }
 #imagepreview_img {
@@ -180,8 +180,8 @@ div.nav_buttons {
 	padding:10px;
 	margin:0px;
 	background:#BBD9EE;
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-bottomleft:8px;
+
+	
 }
 #cousin_center {
 	float:left;
@@ -196,8 +196,6 @@ div.nav_buttons {
 	padding:10px;
 	margin:0px;
 	background:#BBD9EE;
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-bottomright:8px;
 }	
 #cousin_buttons {
 	clear:both;
@@ -208,7 +206,6 @@ div.nav_buttons {
 	
 	
 .standardtable {
-	-moz-border-radius:8px;
 /*	background:white; */
 	background:#E7F1F8;
 	width:350px;
@@ -221,12 +218,7 @@ div.standardfields {
 	width:350px;
 /*	font-size:12pt; */
 }
-td.roundtopright {
-	-moz-border-radius-topright:8px;
-}
-td.roundtopleft {
-	-moz-border-radius-topleft:8px;
-}
+
 
 td.standardtable_shaded {
 	width:175px;
@@ -238,9 +230,7 @@ td.standardtable_shaded {
 	border-right:1px;
 }
 
-.sidebar_box {
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-bottomleft:8px;
+.sidebar_box {	
 	background:white;
 	margin:5px;
 	margin-right:0px;
@@ -293,9 +283,7 @@ td.standardtable_shaded {
 
 /* ******* tooltips ************ */
 
-.tooltip 
-{
-	-moz-border-radius:8px;
+.tooltip  {	
 	margin:10px;
 	width:300px;
 	display:none;
@@ -479,7 +467,7 @@ DROP DOWN MENU CSS
 
 /* Top bar */
 #nav_table {
-	height:2.2em;
+	height:2.2em; 
 	background:#BBD9EE; 
 	padding-left:20px;
 	clear:both;
@@ -495,31 +483,34 @@ DROP DOWN MENU CSS
 	background:#F0F2FF;
 }
 
-#nav_table > div.nav_tableli:last-child {
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-bottomright:8px;
+#nav_table > div.nav_tableli:last-child {	
 	padding-right:10px;
 	border-right:none;
 }
 
-#nav_table > div.nav_tableli:first-child {
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-bottomleft:8px;
+#nav_table > div.nav_tableli:first-child {	
 }
 /* Switch page */
 
 
 #button_main_container {
 	background:#BBD9EE;
+	height:3.0em;
+	margin:0em;
+	padding:0em;
 }
 
 .button_main {
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-topleft:8px;
 	float:left;
-	padding:10px;
-	margin-top:5px;
-	margin-left:10px;
+	height:2em;
+	padding-top:0.5em;
+	padding-left:0.5em;
+	padding-right:0.5em;
+	margin-top:0.5em;
+	margin-left:1em;
+	margin-right:1em;
+	margin-bottom:0em;
+	padding-bottom:0em;
 	background:#E7F1F8;
 }
 .button_main_short {
@@ -532,19 +523,17 @@ DROP DOWN MENU CSS
 }
 
 .floatcontainer > div.button_main:first-child {
-	margin-top:0px;
-	padding-left:15px;
-	padding-right:15px;
-	padding-top:15px;
-	margin-left:20px;
+	margin-top:0.0em;
+	margin-left:2em;
+	padding-top:1em;
+	padding-left:1em;
+	padding-right:1em;
 }
 
 /**************************************
  param browser stuff 
 ***************************************/
 #parambuttons  {
-	-moz-border-radius-bottomleft:8px;
-	-moz-border-radius-bottomright:8px;
 	background:#FF8135;
 	margin-top:0px;
 	padding:0px;
@@ -569,8 +558,6 @@ DROP DOWN MENU CSS
 	background:white;
 }
 #addchild {
-	-moz-border-radius-bottomleft:8px;
-	-moz-border-radius-bottomright:8px;
 	background:white;
 	clear:both;
 	float:none;
@@ -579,27 +566,9 @@ DROP DOWN MENU CSS
 	padding-bottom:10px;
 	margin-bottom:0px;;
 }
-#parambrowser, #protobrowser {
-	padding:10px;
-	width:940px;
-	-moz-border-radius-topright:20px;
-	-moz-border-radius-topleft:20px;
-	-moz-border-radius-bottomright:20px;
-	-moz-border-radius-bottomleft:20px;
-
-	background:#E7F1F8;
-/*	border:solid 10px ; */
-	clear:both;
-	display:block;
-}
-
-
-
 .button_param,.button_addrecord,.button_rdv {
 	padding:10px;
 	margin-right:10px;
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-topleft:8px;
 	float:left;
 	background:#BBD9EE;
 }
@@ -626,24 +595,29 @@ DROP DOWN MENU CSS
     visibility: hidden;	
 }
 
+
+
+/**** browser stuff ***/
+#parambrowser, #protobrowser {
+	padding:10px;
+	width:940px;
+	background:#E7F1F8;
+	clear:both;
+	display:block;
+}
+
 #browserid,#addrecordheader {
 	background:#E7F1F8;
 	width:230px;
 	padding:10px;
 	padding-left:30px;
-	margin-left:30px;
-	-moz-border-radius-topleft:20px;
-	-moz-border-radius-topright:20px;
+	margin-left:30px;	
 }
 #addrecordheader {
 	width:400px;
 }
 
-
-
 .parent, .child, .parentgroup {
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-topright:8px;
 	background:#BBD9EE;
 	margin:1px;
 	padding:3px; 
@@ -664,12 +638,8 @@ DROP DOWN MENU CSS
 }
 
 .child {
-	-moz-border-radius:8px;
-
 }
-.parents {
-	-moz-border-radius-bottomleft:8px;
-	-moz-border-radius-bottomright:8px;
+.parents {	
 	line-height:200%;
 	padding:5px;
 	margin-bottom:10px;
@@ -683,8 +653,6 @@ DROP DOWN MENU CSS
 
 
 #focus {
-	-moz-border-radius-topleft:8px;
-	-moz-border-radius-topright:8px;
 	background:#BBD9EE;
 	margin:0px;
 	padding:5px;
@@ -718,6 +686,7 @@ DROP DOWN MENU CSS
 
 
 /* tile browser */
+
 #outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
 
@@ -736,11 +705,11 @@ DROP DOWN MENU CSS
  ************************** */
 
 .leftcolumn {
-	width:31%;
+	width:300px;
 	float:left;
 }
 .rightcolumn {
-	width:31%;
+	width:300px;
 	float:left;
 }
 
@@ -753,3 +722,77 @@ DROP DOWN MENU CSS
 .formcol2 {
 	width:800px;
 }
+
+
+/* *************************
+     rounded corners
+ ************************** */
+/* all */
+.standardtable, div.navtree, #imagepreview, .tooltip, .child {
+	-moz-border-radius:8px;
+	-webkit-border-radius:8px;
+}
+
+/* top only */
+.button_main, .button_param,.button_addrecord, .button_rdv, #browserid, #addrecordheader, .parent, .child, .parentgroup, #focus  {
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-topleft:8px; 
+	-webkit-border-top-right-radius:8px;
+	-webkit-border-top-left-radius:8px; 	
+}
+
+/* bottom only */
+#parambuttons, #addchild, .parents  {
+	-moz-border-radius-bottomleft:8px;
+	-moz-border-radius-bottomright:8px;
+	-webkit-border-bottom-left-radius:8px;
+	-webkit-border-bottom-right-radius:8px;
+}
+
+/* left only */
+#cousin_prev, .sidebar_box, #nav_table > div.nav_tableli:first-child {
+	-moz-border-radius-topleft:8px;
+	-moz-border-radius-bottomleft:8px;
+	-webkit-border-top-left-radius:8px;
+	-webkit-border-bottom-left-radius:8px;	
+}
+
+/* right only */
+#cousin_next, #nav_table > div.nav_tableli:last-child
+{
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-bottomright:8px;
+	-webkit-border-top-right-radius:8px;
+	-webkit-border-bottom-right-radius:8px;
+}
+
+
+
+
+/* other */
+
+td.roundtopright {
+	-moz-border-radius-topright:8px;
+	-webkit-border-top-right-radius:8px;
+	
+}
+td.roundtopleft {
+	-moz-border-radius-topleft:8px;
+	-webkit-border-top-left-radius:8px;	
+}
+
+.page_param, .page_rdv {
+	-moz-border-radius-topright:8px;
+	-moz-border-radius-bottomleft:8px;
+	-moz-border-radius-bottomright:8px;
+	-webkit-border-top-right-radius:8px;
+	-webkit-border-bottom-left-radius:8px;
+	-webkit-border-bottom-right-radius:8px;	
+}
+	
+#parambrowser, #protobrowser {
+	-moz-border-radius:20px;
+	-webkit-border-radius:20px;
+}
+
+

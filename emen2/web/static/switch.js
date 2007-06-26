@@ -13,11 +13,21 @@ function dict() {
 //}
 
 
-//getcomputedstyle shortcut
-function getStyle(element, cssRule) {
-  var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
-  return value;
+//getcomputedstyle shortcut: fixed for IE
+function getStyle(elem, cssRule, ieProp) {
+		iep = ieProp || cssRule;
+    if (elem.currentStyle) {
+      return elem.currentStyle[iep];
+    } else if (window.getComputedStyle) {
+			return document.defaultView.getComputedStyle( elem, '' ).getPropertyValue(cssRule);
+    }
+    return "";
 }
+
+//function getStyle(element, cssRule) {
+//  var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
+//  return value;
+//}
 
 function initialstyle() {
 	var alltags=document.getElementsByTagName("*");

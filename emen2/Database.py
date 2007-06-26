@@ -51,20 +51,20 @@ def DB_cleanup():
 	necessary at the next restart"""
 	sys.stdout.flush()
 	print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
-	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
+#	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
-		sys.stderr.write('closing %s\n' % str(i))
+#		sys.stderr.write('closing %s\n' % str(i))
 		i.close()
-		sys.stderr.write('%s closed\n' % str(i))
-	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
+#		sys.stderr.write('%s closed\n' % str(i))
+#	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
-		sys.stderr.write('.')
-	print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
+#		sys.stderr.write('.')
+#	print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
 	for i in FieldBTree.alltrees:
 		i.close()
-		sys.stderr.write('.')
-	sys.stderr.write('\n')
+#		sys.stderr.write('.')
+#	sys.stderr.write('\n')
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
 
@@ -199,18 +199,18 @@ class BTree:
 
 	def close(self):
 		if self.bdb is None: return
-		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
+#		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
 		try:
 			self.pcdb.close()
-			print >>sys.stderr, '/pc'; sys.stderr.flush()
+#			print >>sys.stderr, '/pc'; sys.stderr.flush()
 			self.cpdb.close()
-			print >>sys.stderr, '/cp'; sys.stderr.flush()
+#			print >>sys.stderr, '/cp'; sys.stderr.flush()
 			self.reldb.close()
-			print >>sys.stderr, '/rel'; sys.stderr.flush()
+#			print >>sys.stderr, '/rel'; sys.stderr.flush()
 		except: pass
-		print >>sys.stderr, 'main'; sys.stderr.flush()
+#		print >>sys.stderr, 'main'; sys.stderr.flush()
 		self.bdb.close()
-		print >>sys.stderr, '/main'; sys.stderr.flush()
+#		print >>sys.stderr, '/main'; sys.stderr.flush()
 		self.bdb=None
 	
 	def sync(self):

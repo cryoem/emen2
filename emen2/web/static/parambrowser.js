@@ -152,8 +152,9 @@ function xmlrpc_getrecorddef_cb(r) {
 		recdef[r[i][0]] = r[i][1];
 	}
 	
-	viewfull = document.getElementById("viewfull");
-	viewfull.href = "/db/recorddef/" + currentparam;
+	// internet explorer is mysterious...
+	viewfullie = document.getElementById("viewfull");
+	viewfullie.href = "/db/recorddef/" + currentparam;
 	
 	f = document.getElementById("recdef_name");
 	f.innerHTML = currentparam;

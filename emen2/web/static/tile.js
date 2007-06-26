@@ -8,19 +8,19 @@ var divdim = [512,512];
 /*************************************************/
 
 function tileinit(bid) {
-	innerdiv=document.getElementById("innerdiv");
-	innerdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
+	innerdivie=document.getElementById("innerdiv");
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
 	xmlrpcrequest("checktile",[bid,ctxid]);
 }
 
 function xmlrpc_checktile_cb(r) {
-	innerdiv=document.getElementById("innerdiv");
+	innerdivie=document.getElementById("innerdiv");
 	if (r[0][0] > 0) {
 		// tile ok
 		tileinit2(r[0],r[1],r[2])
 	} else {
 		// generate tile; init on callback
-		innerdiv.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
+		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
 		xmlrpcrequest("createtile",[r[2],ctxid]);
 	}
 }
