@@ -246,7 +246,7 @@ td.standardtable_shaded {
 	display:block;
 	overflow:auto;
 	max-height:250px;
-/* 	width:320px; */
+ 	width:320px; 
 	padding-left:10px; 
 }
 #sidebar_permissions,#form_addcomment,#form_addfile {
