@@ -3348,7 +3348,7 @@ or None if no match is found."""
 			try:
 				vartype=self.__paramdefs[i.lower()].vartype
 			except:
-				raise KeyError,"Parameter undefined (%s)"%i
+				raise KeyError,"Parameter %s from %d undefined"%(i,record.recid)
 
 			try:
 				record[i] = valid_vartypes[vartype][1](record[i])
