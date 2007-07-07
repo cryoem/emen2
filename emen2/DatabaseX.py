@@ -3,7 +3,7 @@
 ##############
 
 '''DatabaseX.py:
-   Database.py changed so that conversion of file_binary amd file_binary_image
+   Database.py changed so that conversion of file_binary and file_binary_image
    fields from ncmidb encoding to ncmidb2 encoding will not change modifytime
    and modifyuser fields; also the change is not logged in the comments field.
    *** Do not use for any other purpose. ***
