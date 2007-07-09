@@ -18,7 +18,7 @@ Fault = xmlrpclib.Fault
 
 class DBXMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
-	def _cbRender(self, result, request, t0, ctxid=None):
+	def _cbRender(self, result, request, t0=None):
 		allow_none = True
 		if isinstance(result, xmlrpc.Handler):
 			result = result.result
@@ -35,7 +35,15 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
-	
+		
+	def _ebRender(self,result,request):
+		f = xmlrpc.Fault(self.FAILURE, "Fault")
+		s = xmlrpclib.dumps(f, methodresponse=1)		
+		print "fault in xmlrpc function: "
+		print s
+		request.setHeader("content-length", str(len(s)))
+		request.write(s)
+		request.finish()	
 	
 	def render(self, request):
 		 request.content.seek(0, 0)
@@ -56,8 +64,8 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 
 #				exec("function = emen2.TwistSupport_html.html.%s.%s"%(method,method))
 				d = threads.deferToThread(function, *args)
-				d.addCallback(self._cbRender, request, time.time())
-				d.addErrback(self._ebRender, request)				
+				d.addCallback(self._cbRender, request, t0=time.time())
+				d.addErrback(self._ebRender,request)				
 #				 defer.maybeDeferred(function, *args).addErrback(
 #						 self._ebRender
 #				 ).addCallback(
@@ -359,13 +367,13 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_echo(self,args):
 		for i in args:
 			print i
-		return args
+		return str(args)
 	
 	def xmlrpc_error(self):
 		raise KeyError
 		return ""
 	
-	def xmlrpc_sleep(self):
+	def xmlrpc_sleep(self,args):
 		time.sleep(100)
 		return ""
 	
@@ -405,7 +413,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
 		fpath=ipath+".tile"
 		print "Generating tile... %s"%(ipath) 
-		os.system("export PYTHONPATH=/home/EMAN2/lib;export LD_LIBRARY_PATH=/home/EMAN2/lib;cd /tmp;/home/emen2/copydata/e2tilefile.py %s --build=%s --buildpspec --decompress=%s"%(fpath,ipath,bname))
+		os.system("%s %s --build=%s --decompress=%s"%(E2TILEFILE,fpath,ipath,bname))
 
 		if not os.access(fpath,os.R_OK):
 			print "error with tile."

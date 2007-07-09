@@ -319,7 +319,7 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		</div>
 
 		<div class="floatleft" id="center">
-			<div id="focus"><div id="recdef_name"></div</div>
+			<div id="focus"><div id="paramdef_name"></div></div>
 			<div id="getparamdef"></div>
 			<div id="parambuttons">%s<div id="addchild">%s</div></div>
 		</div>

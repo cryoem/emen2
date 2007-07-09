@@ -1,3 +1,11 @@
+
+.userperm {
+	margin:5px;
+	display:inline;
+	padding:5px;
+	background:blue;
+}
+
 .clear {
 	clear:both;
 }
@@ -536,21 +544,21 @@ DROP DOWN MENU CSS
 ***************************************/
 #parambuttons  {
 	background:#FF8135;
-	margin-top:0px;
-	padding:0px;
-	min-height:28px;
-	padding-bottom:2px;
+	margin-top:0em;
+	padding:0em;
+	height:2em;
+	padding-bottom:0em;
 }
 #parambuttons div.l {
-	margin:0px;
+	margin:0em;
 	float:left;
-	display:block;
-	padding-top:5px;
-	padding-bottom:5px;
-	padding-left:6px;
-	padding-right:6px;
-	height:20px;
-	border-left:solid white 2px;
+/*	display:block; */
+	padding-top:0.3em;
+	padding-bottom:0.3em;
+	padding-left:0.5em;
+	padding-right:0.5em; 
+	height:1.4em;
+	border-left:solid white 0.2em;
 }
 #parambuttons > div.l:first-child {
 	border-left:none;
@@ -620,8 +628,8 @@ DROP DOWN MENU CSS
 
 .parent, .child, .parentgroup {
 	background:#BBD9EE;
-	margin:1px;
-	padding:3px; 
+	margin:0.1em;
+	padding:0.1em; 
 }
 .parentgroup {
 	background:white;
@@ -629,7 +637,8 @@ DROP DOWN MENU CSS
 #getchildrenofparents {
 }
 .parent {
-	line-height:100%;
+/*	line-height:100%; */
+	line-height:2em;
 	border-left:solid 1px #BBD9EE;;
 	border-right:solid 1px #BBD9EE;;
 	border-top:solid 1px #BBD9EE;;
@@ -639,8 +648,19 @@ DROP DOWN MENU CSS
 }
 
 .child {
+/*	float:left; */
+	height:2em;
+	padding:0.2em;
+	margin:0.2em;
+	border:0em;
 }
-.parents {	
+.childdiv {
+	float:left;
+	padding:0em;
+	padding-left:0.5em;
+	padding-right:0.5em;	
+}
+.parents, #sidebar_permissions {	
 	line-height:200%;
 	padding:5px;
 	margin-bottom:10px;
@@ -688,7 +708,8 @@ DROP DOWN MENU CSS
 
 /* tile browser */
 
-#outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
+/*#outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }*/
+#outerdiv { height: 350px; width:350px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
 
 

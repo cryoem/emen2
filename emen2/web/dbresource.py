@@ -204,7 +204,7 @@ class UploadFile(Resource):
 
 		recid=int(request.postpath[0])
 		rec = ts.db.getrecord(recid,ctxid)
-		print rec			
+#		print rec			
 				
 		# append to file (chunk uploading) or all at once.. 
 		if args.has_key("append"):
@@ -217,7 +217,10 @@ class UploadFile(Resource):
 		# new file
 		else:
 			print "Get binary..."
-			a = ts.db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),os.path.basename(fname),rec.recid,ctxid)
+			a = ts.db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),fname.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
+
+#			can't use basename
+#			a = ts.db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),os.path.basename(fname),rec.recid,ctxid)
 
 			print "Writing file... %s"%a[1]
 			outputStream = open(a[1], "wb")

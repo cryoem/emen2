@@ -61,8 +61,8 @@ function getElementByClass(classname,update) {
 
 
 
-function toggleclass(classname) {
-	list = getElementByClass(classname);
+function toggleclass(classname,update) {
+	list = getElementByClass(classname,update);
 	for (var i=0;i<list.length;i++){
 		toggle(list[i]);
 	}
@@ -71,6 +71,7 @@ function toggleclass(classname) {
 
 function toggle(id) {
 	el = document.getElementById(id);
+	if (el == null) {return};
 	state = getStyle(el,"display");
 	if (id in statecache) {cache = statecache[id]} else {
 			(el.nodeName == "DIV") ? cache = 'block' : cache = 'inline';
@@ -138,7 +139,9 @@ function hideclass(classname,update) {
 	try {
 		el = document.getElementById(list[0]);
 		state = getStyle(el,"display");
+		console.log(classname);
 		classstatecache[classname] = state;
+//		console.log(classname + ", " + state + ", " + classstatecache[classname]);
 	} catch(error) {
 //		alert(classname + " : " + list[0]);
 	}
@@ -151,9 +154,14 @@ function hideclass(classname,update) {
 function showclass(classname,update) {
 	list = getElementByClass(classname,update);
 
-	if (classname in classstatecache) {cache = classstatecache[classname]} else {
-			(document.getElementById(list[0]).nodeName == "DIV") ? cache = 'block' : cache = 'inline';
-		}
+//	console.log(classstatecache);
+//	console.log(document.getElementById(list[0]).nodeName);
+
+//	if (classname in classstatecache) {cache = classstatecache[classname]} else {
+//			if (document.getElementById(list[0]).nodeName == "DIV") {
+				 cache = 'block' 
+//			} else {cache = 'inline' }
+//	}
 
 	for (var i=0;i<list.length;i++) {
 		document.getElementById(list[i]).style.display = cache;			

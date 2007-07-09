@@ -4,10 +4,17 @@ var ny=0
 var level=nx.length-1
 var tileid = "";
 var divdim = [512,512];
+var imgw = 256;
 
 /*************************************************/
 
 function tileinit(bid) {
+	
+	outerdivie=document.getElementById("outerdiv");
+	imgw = parseInt(getStyle(outerdivie,'height')) / 2.0;
+	if (imgw > 256) {imgw = 256;}
+//	console.log(imgw);
+	
 	innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
 	xmlrpcrequest("checktile",[bid,ctxid]);
@@ -24,12 +31,25 @@ function xmlrpc_checktile_cb(r) {
 		xmlrpcrequest("createtile",[r[2],ctxid]);
 	}
 }
-function xmlrpc_createtile_cb(r) {
-	tileinit2(r[0],r[1],r[2]);
+
+function xmlrpc_checktile_eb(c,s) {
+	tileerror();
 }
 
+function xmlrpc_createtile_cb(r) {
+	if (r[0][0] > -1) {
+		tileinit2(r[0],r[1],r[2]);
+	} else {
+		tileerror();
+	}
+}
+
+function tileerror() {
+		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/error.gif" /><br />Error: Could not create or access tiles.'
+}
 
 /*************************************************/
+
 
 
 function tileinit2(nxinit,nyinit,tileidinit) {
@@ -39,7 +59,7 @@ function tileinit2(nxinit,nyinit,tileidinit) {
 	level = nx.length-1;
 //	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
 	
-	setsize(nx[level]*256,ny[level]*256);
+	setsize(nx[level]*imgw,ny[level]*imgw);
 	var outdiv=document.getElementById("outerdiv");
 	outdiv.onmousedown = mdown;
 	outdiv.onmousemove = mmove;
@@ -64,11 +84,12 @@ function zoom(lvl) {
 	cx=outdiv.clientWidth / 2.0;
 	cy=outdiv.clientHeight / 2.0;
 
+
 	setsize(nx[lvl]*256,ny[lvl]*256);
 
 	scl=Math.pow(2.0,level-lvl)
-	indiv.style.left=cx-((cx-x)*scl);
-	indiv.style.top=cy-((cy-y)*scl);
+	indiv.style.left=cx-((cx-x)*scl) + "px";
+	indiv.style.top=cy-((cy-y)*scl) + "px";
 //	console.log([cx-((cx-x)*scl),cy-((cy-y)*scl)]);
 
 	for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
@@ -114,11 +135,11 @@ function mup(event) {
 function recalc() {
 //	alert("Recalc");
 	indiv=document.getElementById("innerdiv");
-	x=-Math.ceil(tofloat(indiv.style.left)/256);
-	y=-Math.ceil(tofloat(indiv.style.top)/256);
+	x=-Math.ceil(tofloat(indiv.style.left)/imgw);
+	y=-Math.ceil(tofloat(indiv.style.top)/imgw);
 	outdiv=document.getElementById("outerdiv");
-	dx=outdiv.clientWidth/256+1;
-	dy=outdiv.clientHeight/256+1;
+	dx=outdiv.clientWidth/imgw+1;
+	dy=outdiv.clientHeight/imgw+1;
 	for (i=x; i<x+dx; i++) {
 		for (j=y; j<y+dy; j++) {
 			if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
@@ -128,8 +149,10 @@ function recalc() {
 				im=document.createElement("img");
 				im.src="/db/tileimage/" + tileid + "?level="+level+"&x="+i+"&y="+j;
 				im.style.position="absolute";
-				im.style.left=i*256+"px";
-				im.style.top=j*256+"px";
+				im.style.height=imgw+"px";
+				im.style.width=imgw+"px";
+				im.style.left=i*imgw+"px";
+				im.style.top=j*imgw+"px";
 				im.setAttribute("id",nm);
 				indiv.appendChild(im);
 			}

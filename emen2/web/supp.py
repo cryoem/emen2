@@ -41,13 +41,14 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 	global db
 	
 	if macro == "childcount":
-		queryresult = ts.db.getchildren(int(recordid),ctxid=ctxid)
-#		mgroups1 = db.groupbyrecorddef(queryresult,ctxid=ctxid)
-#		mgroups = db.countchildren(int(recordid),ctxid=ctxid)
+		queryresult = ts.db.getchildren(int(recordid),recurse=1,ctxid=ctxid)
+		mgroups = ts.db.groupbyrecorddef(queryresult,ctxid=ctxid)
+#		mgroups = ts.db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
 		try:
-			value = len(queryresult)
-#			value = len(mgroups[macroparameters])
+#			value = len(queryresult)
+			value = len(mgroups[macroparameters])
 #			value = mgroups[macroparameters]
+			return value
 		except:
 			return ""
 	elif macro == "parentrecname":

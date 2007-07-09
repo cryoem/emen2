@@ -178,22 +178,32 @@ function xmlrpc_getrecorddef_cb(r) {
 	rdv = document.getElementById("recorddefviews");	
 	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
 
+	fcb = document.createElement('div');
+	fcb.className = "floatcontainer";
+	fcb.id = "button_rdv_container";
+	
 	for (j in views) {
 		k = document.createElement('div');
 		k.className = "button_rdv";
 		k.id = "button_rdv_" + j;
-		k.innerHTML = "<a href=\"javascript:switchin('rdv','"+ j + "');>" + j + "</a>";
-		rdv.appendChild(k);
+		kl = document.createElement('a');
+		kl.innerHTML = j;
+		kl.className = "jslink";
+		kl.href = "javascript:switchin('rdv','"+ j + "');"
+		k.appendChild(kl);
+		fcb.appendChild(k);
 	}
 	k = document.createElement('div');
 	k.className="button_rdv";
 	k.id="button_rdv_records";
 	k.innerHTML = '<a href=\"/db/query?parent=&query=find+'+recdef["name"]+'\">Records</a>';
-	rdv.appendChild(k);
+	fcb.appendChild(k);
+	rdv.appendChild(fcb);
 
-	bl = document.createElement('div');
-	bl.style.clear = 'both';
-	rdv.appendChild(bl);
+	fcp = document.createElement('div');
+	fcp.style.clear = 'both';
+	fcp.className="floatcontainer";
+	fcp.id = "page_rdv_container";	
 	
 	for (j in views) {
 		k = document.createElement('div');
@@ -203,9 +213,12 @@ function xmlrpc_getrecorddef_cb(r) {
 		k.id = "page_rdv_" + j;
 		kt.id = "page_rdvt_" + j ;
 		kt.innerHTML = views[j];
-		bl.appendChild(k);
 		k.appendChild(kt);
+		fcp.appendChild(k);
 	}
+
+	rdv.appendChild(fcp);
+	
 	
 	switchin('rdv','mainview');
 	
@@ -217,11 +230,12 @@ function xmlrpc_getcousins_cb(r) {
 }
 
 function xmlrpc_getparamdef_cb(r) {
-	f = document.getElementById("recdef_name");
+	f = document.getElementById("paramdef_name");
 	f.innerHTML = currentparam;
 
-	d = document.getElementById("getparamdef");
-	while (d.firstChild) {d.removeChild(d.firstChild)};	
+	def = document.getElementById("getparamdef");
+//	alert(def);
+	while (def.firstChild) {def.removeChild(def.firstChild)};	
 
 	for (var i=0;i<r.length;i++) {
 		k = document.createElement('span');
@@ -229,9 +243,9 @@ function xmlrpc_getparamdef_cb(r) {
 		v = document.createElement('span');
 		v.innerHTML = r[i][1];
 		br = document.createElement('br');
-		d.appendChild(k);
-		d.appendChild(v);
-		d.appendChild(br);
+		def.appendChild(k);
+		def.appendChild(v);
+		def.appendChild(br);
 	}
 	
 }
@@ -251,6 +265,7 @@ function getselectchoice(obj) {
 function xmlrpc_putrecorddef(formobj) {
 	r = xmlrpcrequest("getrecorddef",[currentparam,ctxid],0)
 	recdef = new dict();
+	// instead of .update()
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
@@ -571,6 +586,8 @@ function xmlrpc_findparamname_cb(r) {
 
 /***********************************************/
 
+
+
 function xmlrpc_secrecordadduser() {
 	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
 	user = document.xmlrpc_secrecordadduser_form.user.value;
@@ -581,21 +598,29 @@ function xmlrpc_secrecordadduser() {
 	xmlrpcrequest("secrecordadduser",[usertuple,name,ctxid,recurse]);	
 }
 function xmlrpc_secrecordadduser_cb(r) {
-		makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"comments_permissions");
+		makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
 
 /***********************************************/
+
+function form_showpermissions() {
+		
+}
+
+
+function xmlrpc_getrecord_perm_cb(r) {
+	
+}
+
 
 function xmlrpc_secrecorddeluser(user, recid) {
 	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
 //	try {	user = parseInt(user); } catch(error) {}
 	recid = parseInt(recid);
-
 	xmlrpcrequest("secrecorddeluser",[user,recid,ctxid,recurse]);		
 }
 function xmlrpc_secrecorddeluser_cb(r) {
-	alert(r);
-	makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"comments_permissions");
+	makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
 
 /***********************************************/
@@ -645,12 +670,11 @@ function alertContents(http_request,zone) {
             alert('Error with request: network');
         }
     }
-
 }
 
 
 // raw xmlrpc request
-function xmlrpcrequest(method,args,async,cb,eb) {
+function xmlrpcrequest(method,args,async) {
 	if (typeof(async)=="undefined") {async=1} else {async=0};
 	command = XMLRPCMessage(method,args);
 
@@ -679,11 +703,17 @@ function xmlrpcrequest(method,args,async,cb,eb) {
 		http_request.onreadystatechange=function() {		
 			if (http_request.readyState==4) {
 	  		if (http_request.status==200)	{	
-//					try {
-						eval("xmlrpc_" + method + "_cb(unmarshallDoc(http_request.responseXML,http_request.responseText))");
-//					} catch(error) {
-//						alert("Error with request: "+error.faultCode+", "+error.faultString);
-//					} 
+						
+						try {	eval("cb = xmlrpc_" + method + "_cb");} catch(error) {cb=function(r){}}
+						try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error with request: "+faultCode+", "+faultString)}}
+
+						try {
+							cb(unmarshallDoc(http_request.responseXML,http_request.responseText));
+						} catch(error) {
+							eb(error.faultCode,error.faultString);
+						}
+
+
 				}	else {
 						alert("Error with request: network");
 	  		}
