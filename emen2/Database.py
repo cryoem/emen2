@@ -564,8 +564,10 @@ class IntBTree:
 		if not self.has_key(tag1,txn) : raise KeyError,"Cannot link nonexistent key '%s'"%tag1
 		if not self.has_key(tag2,txn) : raise KeyError,"Cannot link nonexistent key '%s'"%tag2
 		
-		self.reldb.index_append(tag1,tag2,txn=txn)
-		self.reldb.index_append(tag2,tag1,txn=txn)
+# 		self.reldb.index_append(tag1,tag2,txn=txn)
+# 		self.reldb.index_append(tag2,tag1,txn=txn)
+		self.reldb.index_append(tag1,tag2)
+		self.reldb.index_append(tag2,tag1)
 		
 	def unlink(self,tag1,tag2,txn=None):
 		"""Removes a lateral relationship (cousins) between two tags"""
@@ -636,8 +638,8 @@ class IntBTree:
 	def has_key(self,key,txn=None):
 		if not txn : txn=self.txn
 		key=int(key)
-		return self.bdb.has_key(dumps(key),txn=txn)
-
+		#return self.bdb.has_key(dumps(key),txn=txn)
+		return self.bdb.has_key(dumps(key),txn)
 	def get(self,key,txn=None):
 		if not txn : txn=self.txn
 		key=int(key)
@@ -752,8 +754,9 @@ class FieldBTree:
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		if not txn : txn=self.txn
 		key=self.typekey(key)
-		self.bdb.index_append(key,item,txn=self.txn)
-
+		#self.bdb.index_append(key,item,txn=self.txn)
+		self.bdb.index_append(key,item)
+		
 	def addrefs(self,key,items,txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
 		if not txn : txn=self.txn
@@ -1600,9 +1603,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__paramdefs["creator"]=pd
 			pd=ParamDef("modifyuser","string","User who last changed the record","The user-id that last changed the record")
 			self.__paramdefs["modifyuser"]=pd
-			pd=ParamDef("creationtime","datetime","Creation timestamp","The date/time the record was originally created")
+			pd=ParamDef("creationtime","datetime","Creation time","The date/time the record was originally created")
 			self.__paramdefs["creationtime"]=pd
-			pd=ParamDef("modifytime","datetime","Modification timestamp","The date/time the record was last modified")
+			pd=ParamDef("modifytime","datetime","Modification time","The date/time the record was last modified")
 			self.__paramdefs["modifytime"]=pd
 			pd=ParamDef("comments","text","Record comments","Record comments")
 			self.__paramdefs["comments"]=pd
