@@ -3358,7 +3358,8 @@ or None if no match is found."""
 			try:
 				record[i] = valid_vartypes[vartype][1](record[i])
 			except:
-				print "Error converting datatype: %s, %s"%(i,vartype)
+				pass
+#				print "Error converting datatype: %s, %s"%(i,vartype)
 #				raise ValueError
 										
 		if (record.recid<0) : record.recid=None
@@ -3536,7 +3537,7 @@ or None if no match is found."""
 				
 		if init:
 			for k,v in t.params.items():
-				print k,";",v
+#				print k,";",v
 				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
 
