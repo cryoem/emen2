@@ -40,6 +40,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		f = xmlrpc.Fault(self.FAILURE, "Fault")
 		s = xmlrpclib.dumps(f, methodresponse=1)		
 		print "fault in xmlrpc function: "
+		print result
 		print s
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
@@ -181,7 +182,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
 		"""Puts a modified record back into the database"""
 
-		print "ctxid: %s"%ctxid
+#		print "ctxid: %s"%ctxid
 		recdict = {}
 		recdict.update(record)
 		
