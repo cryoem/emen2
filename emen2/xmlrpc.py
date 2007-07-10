@@ -196,7 +196,7 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			rec[i] = recdict[i]
 											
 		print "putting record..."										
-		r=ts.db.putrecord(rec,ctxid)
+		r=ts.db.putrecord(rec,ctxid=ctxid)
 		print "done..."
 		return r
 

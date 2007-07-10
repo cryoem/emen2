@@ -1375,7 +1375,7 @@ class Record:
 		except: valuelower = ""
 		
 		if value==None or valuelower=="none" : 
-			print "rec %s, key=%s set to None"%(self.recid,key)
+#			print "rec %s, key=%s set to None"%(self.recid,key)
 			value = None
 
 
