@@ -193,8 +193,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 
 		for i in recdict.keys():
 			rec[i] = recdict[i]
-												
+											
+		print "putting record..."										
 		r=ts.db.putrecord(rec,ctxid)
+		print "done..."
 		return r
 
 	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None):
