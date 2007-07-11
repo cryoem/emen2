@@ -12,6 +12,8 @@ from emen2 import Database
 #from sets import Set
 from emen2.emen2config import *
 
+import atexit
+
 # we open the database as part of the module initialization
 db=None
 DB=Database 
@@ -21,3 +23,53 @@ def startup(path):
 	db=Database.Database(EMEN2DBPATH)
 	
 
+
+#######################
+# THREAD POOL
+#######################
+
+import threading
+import Queue
+
+WORKERS = 5
+
+class Worker(threading.Thread):
+		def __init__(self, queue):
+			self.__queue = queue
+			print "Starting thead.."
+			self.db = Database.Database(EMEN2DBPATH)
+			threading.Thread.__init__(self)
+
+		def run(self):
+			while 1:
+				q = self.__queue.get()
+
+				if q is None:
+					print "Ending thread"
+					break
+
+				q[0](q[1],db=self.db)
+							
+							
+queue = Queue.Queue(0)
+threads = []
+
+for i in range(WORKERS):
+	Worker(queue).start()
+
+		
+print threads
+
+#######################
+
+import signal
+import sys
+def threadterminate():
+	print "ending worker queues..."
+	for i in range(WORKERS):
+		queue.put(None)
+	print "ended.."
+
+atexit.register(threadterminate)
+
+#######################

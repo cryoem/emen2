@@ -20,6 +20,7 @@ by another layer, say an xmlrpc server...
 
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
+
 from sets import *
 import os
 import sys
@@ -68,7 +69,7 @@ def DB_cleanup():
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
 
-def DB_syncall() :
+def DB_syncall():
 	"""This 'syncs' all open databases"""
 #	print "sync %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	t=time.time()
@@ -1755,6 +1756,10 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		return ctx			
 
+	def sleep(self):
+		import time
+		time.sleep(5)
+
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
@@ -2430,6 +2435,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 		return secureRet
 	        """
+	
+	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
+		r = {}
+		for i in records:
+			rectype = self.getrecord(i,ctxid).rectype
+			if r.has_key(rectype):
+				r[rectype].append(i)
+			else:
+				r[rectype]=[i]
+		return r
+			
+	
 	
 	def groupbyrecorddef(self,all,ctxid=None,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed

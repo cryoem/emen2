@@ -15,64 +15,52 @@ from emen2 import ts
 
 Fault = xmlrpclib.Fault
 
-
-class DBXMLRPCResource(xmlrpc.XMLRPC):
+class XMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
-	def _cbRender(self, result, request, t0=None):
-		allow_none = True
-		if isinstance(result, xmlrpc.Handler):
-			result = result.result
-		if not isinstance(result, xmlrpc.Fault):
-			result = (result,)
-			
+	
+	def render(self, request):
+		ts.queue.put((self.XMLRPCWorker,request))
+		return server.NOT_DONE_YET 
+		
+		
+	def XMLRPCWorker(self, request, db=None):
+		request.content.seek(0, 0)
+
+		content = request.content.read()
+		args, functionPath = xmlrpclib.loads(content)
+
+		print "\n--------- xmlrpc request: %s ----------------"%functionPath
+
 		try:
-			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
+			function = self._getFunction(functionPath)
+		except Fault, f:
+			print "Fault..."
+				
+		request.setHeader("content-type", "text/xml")
+		
+		try:
+			result = function(db=db, *args)
+			allow_none = True
+			if isinstance(result, xmlrpc.Handler):
+				result = result.result
+			if not isinstance(result, xmlrpc.Fault):
+				result = (result,)
+
+			try:
+				s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
+			except:
+				f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
+				s = xmlrpclib.dumps(f, methodresponse=1)
+
 		except:
-			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
-			s = xmlrpclib.dumps(f, methodresponse=1)
-			print "fault: "
-			print s
+			f = xmlrpc.Fault(self.FAILURE, "Fault")
+			s = xmlrpclib.dumps(f, methodresponse=1)		
+			print "fault in xmlrpc function: "
+			print result
+
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
-		
-	def _ebRender(self,result,request):
-		f = xmlrpc.Fault(self.FAILURE, "Fault")
-		s = xmlrpclib.dumps(f, methodresponse=1)		
-		print "fault in xmlrpc function: "
-		print result
-		print s
-		request.setHeader("content-length", str(len(s)))
-		request.write(s)
-		request.finish()	
-	
-	def render(self, request):
-		 request.content.seek(0, 0)
-
-		 content = request.content.read()
-		 args, functionPath = xmlrpclib.loads(content)
-
-		 print "--------- xmlrpc request: %s ----------------"%functionPath
-		 print args
-
-		 try:
-				 function = self._getFunction(functionPath)
-		 except Fault, f:
-				 print "fault..."
-				 self._cbRender(f, request)
-		 else:
-				request.setHeader("content-type", "text/xml")
-
-#				exec("function = emen2.TwistSupport_html.html.%s.%s"%(method,method))
-				d = threads.deferToThread(function, *args)
-				d.addCallback(self._cbRender, request, t0=time.time())
-				d.addErrback(self._ebRender,request)				
-#				 defer.maybeDeferred(function, *args).addErrback(
-#						 self._ebRender
-#				 ).addCallback(
-#						 self._cbRender, request
-#				 )
-		 return server.NOT_DONE_YET 
 
 
 
@@ -80,106 +68,106 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 	###########################
 	# xmlrpc functions		
 
-	def xmlrpc_login(self,username="anonymous",password="",host=None,maxidle=14400):
+	def xmlrpc_login(self,username="anonymous",password="",host=None,db=None,maxidle=14400):
 		"""login method, should probably be called with https, TODO: note no support for host validation yet
 		This returns a ctxid to the caller. The ctxid must be used in subsequent requests"""
 		try:
-			return str(ts.db.login(str(username),str(password),host,maxidle))
+			return str(db.login(str(username),str(password),host,maxidle))
 		except:
 			return 0,"Login Failed" 
 
-	def xmlrpc_checkcontext(self,ctxid=None,host=None):
+	def xmlrpc_checkcontext(self,ctxid=None,host=None,db=None):
 		"""This routine will verify that a context id is valid, and return the
 		authorized username for a context as well as a list of authorized groups"""
-		return ts.db.checkcontext(ctxid,host)
+		return db.checkcontext(ctxid,host)
 		
-	def xmlrpc_disableuser(self,username,ctxid=None,host=None):
+	def xmlrpc_disableuser(self,username,ctxid=None,host=None,db=None):
 		"""This will disable a user's account"""
-		ts.db.disableuser(username,ctxid,host)
+		db.disableuser(username,ctxid,host)
 	
-	def xmlrpc_approveuser(self,username,ctxid=None,host=None):
+	def xmlrpc_approveuser(self,username,ctxid=None,host=None,db=None):
 		"""Database administrators use this to approve users in the new user queue"""
-		ts.db.approveuser(username,ctxid,host)
+		db.approveuser(username,ctxid,host)
 	
-	def xmlrpc_getuserqueue(self,ctxid=None,host=None):
+	def xmlrpc_getuserqueue(self,ctxid=None,host=None,db=None):
 		"""Returns a list of users awaiting approval"""
-		return ts.db.getuserqueue(ctxid,host)
+		return db.getuserqueue(ctxid,host)
 
-	def xmlrpc_putuser(self,user,ctxid=None,host=None):
+	def xmlrpc_putuser(self,user,ctxid=None,host=None,db=None):
 		"""Commit a modified User record into the database, passwords
 		cannot be changed with this method, and only the user and root
 		can make this change."""
-		ts.db.putuser(user,ctxid,host)
+		db.putuser(user,ctxid,host)
 
-	def xmlrpc_setpassword(self,username,oldpassword,newpassword,ctxid=None,host=None):
+	def xmlrpc_setpassword(self,username,oldpassword,newpassword,ctxid=None,host=None,db=None):
 		"""This will modify a User's password. Only the user or a root
 		user may do this. oldpassword is required for the user, but not
 		for root users"""
-		ts.db.setpassword(username,oldpassword,newpassword,ctxid,host)
+		db.setpassword(username,oldpassword,newpassword,ctxid,host)
 
-	def xmlrpc_adduser(self,user,host=None):
+	def xmlrpc_adduser(self,user,host=None,db=None):
 		"""adds a user to the new user queue. Users must be approved by an
 		administrator before they have access. 'user' is a dictionary
 		representing a User object"""
 		usero=ts.DB.User()
 		usero.__dict__.update(user)
-		ts.db.adduser(self,usero)
+		db.adduser(self,usero)
 
-	def xmlrpc_getuser(self,username,ctxid=None,host=None):
+	def xmlrpc_getuser(self,username,ctxid=None,host=None,db=None):
 		"""Return a User record"""
-		return ts.db.getuser(username,ctxid,host).__dict__
+		return db.getuser(username,ctxid,host).__dict__
 		
-	def xmlrpc_getqueueduser(self,username,ctxid=None,host=None):
+	def xmlrpc_getqueueduser(self,username,ctxid=None,host=None,db=None):
 		"""Return a User record """
-		return ts.db.getuser(username,ctxid,host).__dict__
+		return db.getuser(username,ctxid,host).__dict__
 		
-	def xmlrpc_getusernames(self,ctxid=None,host=None):
+	def xmlrpc_getusernames(self,ctxid=None,host=None,db=None):
 		"""Return a list of all usernames in the database"""
-		return ts.db.getusernames(ctxid,host)
+		return db.getusernames(ctxid,host)
 
-	def xmlrpc_getworkflow(self,ctxid=None,host=None):
+	def xmlrpc_getworkflow(self,ctxid=None,host=None,db=None):
 		"""This returns a list of workflow objects (dictionaries) for the given user
 		based on the current context"""
-		r=ts.db.getworkflow(ctxid,host)
+		r=db.getworkflow(ctxid,host)
 		r=[x.__dict__ for x in r]
 		return r
 		
-	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None):
+	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None,db=None):
 		"""This will set the user's entire workflow list. This should rarely be used."""
 		w=[ts.DB.WorkFlow(with=i) for i in wflist]
-		ts.db.setworkflow(w,ctxid,host)
+		db.setworkflow(w,ctxid,host)
 		
-	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None):
+	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None,db=None):
 		"""Adds a Workflow object to the user's workflow"""
 		worko=ts.DB.WorkFlow()
 		worko.__dict__.update(work)
-		ts.db.addworkflowitem(worko,ctxid,host)
+		db.addworkflowitem(worko,ctxid,host)
 	
-	def xmlrpc_delworkflowitem(self,wfid,ctxid=None,host=None):
+	def xmlrpc_delworkflowitem(self,wfid,ctxid=None,host=None,db=None):
 		"""Delete a single workflow entry"""
-		ts.db.delworkflowitem(wfid,ctxid,host)
+		db.delworkflowitem(wfid,ctxid,host)
 		
-	def xmlrpc_getrecords(self,recids,ctxid=None,host=None,dbid=None):
+	def xmlrpc_getrecords(self,recids,ctxid=None,host=None,dbid=None,db=None):
 		"""Retrieve records from the database as a list of dictionaries"""
 		ret=[]
 		try:
 			for recid in recids:
-				ret.append(ts.db.getrecord(recid,ctxid,dbid).items())
+				ret.append(db.getrecord(recid,ctxid,dbid).items())
 		except Exception,x:
 			return 0,x
 		
 		return ret
 	
-	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None):
+	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None,db=None):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
-			r=ts.db.getrecord(recid,ctxid,dbid)
+			r=db.getrecord(recid,ctxid,dbid)
 		except Exception,x:
 			return 0,x
 		
 		return r.items()
 	
-	def xmlrpc_putrecord(self,record,ctxid=None,host=None):
+	def xmlrpc_putrecord(self,record,ctxid=None,host=None,db=None):
 		"""Puts a modified record back into the database"""
 
 #		print "ctxid: %s"%ctxid
@@ -187,34 +175,34 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		recdict.update(record)
 		
 		try:
-			rec = ts.db.getrecord(int(recdict["recid"]),ctxid)
+			rec = db.getrecord(int(recdict["recid"]),ctxid)
 			del(recdict["recid"])
 		except:
-			rec = ts.db.newrecord(recdict["rectype"],ctxid)
+			rec = db.newrecord(recdict["rectype"],ctxid)
 
 		for i in recdict.keys():
 			rec[i] = recdict[i]
 											
 		print "putting record..."										
-		r=ts.db.putrecord(rec,ctxid=ctxid)
+		r=db.putrecord(rec,ctxid=ctxid)
 		print "done..."
 		return r
 
-	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None):
+	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None,db=None):
 		"""This will add a choice to ParamDefs of vartype 'string'"""
-		ts.db.addparamchoice(paramdefname,choice)
+		db.addparamchoice(paramdefname,choice)
 			
-	def xmlrpc_addparamdef(self,paramdef,ctxid=None,host=None,parent=None):
+	def xmlrpc_addparamdef(self,paramdef,ctxid=None,host=None,parent=None,db=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 		r=ts.DB.ParamDef()
 		r.__dict__.update(paramdef)
-		ts.db.addparamdef(r,ctxid,host,parent)
+		db.addparamdef(r,ctxid,host,parent)
 	
-	def xmlrpc_getparamdef(self,paramdefname,host=None):
+	def xmlrpc_getparamdef(self,paramdefname,host=None,db=None):
 		"""Anyone may retrieve any paramdef"""
-		return tuple(ts.db.getparamdef(paramdefname).__dict__.items())
+		return tuple(db.getparamdef(paramdefname).__dict__.items())
 		
-	def xmlrpc_getparamdefs(self,recs,host=None):
+	def xmlrpc_getparamdefs(self,recs,host=None,db=None):
 		"""Return a dictionary of Paramdef objects. recs
 		may be a record id, or a list of record ids"""
 		if isinstance(recs,str): recs=(recs,)
@@ -222,143 +210,143 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		# ids, we'll make a list of unique parameters to pass in
 		l=Set()
 		for n in recs:
-			i=ts.db.getrecord(n)
+			i=db.getrecord(n)
 			l.union_update(i.keys())
-		return ts.db.getparamdefs(list(l))
+		return db.getparamdefs(list(l))
 		
-	def xmlrpc_getparamdefnames(self,host=None):
+	def xmlrpc_getparamdefnames(self,host=None,db=None):
 		"""List of all paramdef names"""
-		return tuple(ts.db.getparamdefnames())
+		return tuple(db.getparamdefnames())
 	
-	def xmlrpc_addrecorddef(self,recdef,ctxid=None,host=None,parent=None):
+	def xmlrpc_addrecorddef(self,recdef,ctxid=None,host=None,parent=None,db=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=ts.DB.RecordDef(rectype)
-		return tuple(ts.db.addrecorddef(r,ctxid,parent))
+		return tuple(db.addrecorddef(r,ctxid,parent))
 			
-	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,host=None,recid=None):
+	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,host=None,recid=None,db=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
-		r = ts.db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__.items()
+		r = db.getrecorddef(rectypename,ctxid,host=host,recid=recid).__dict__.items()
 		return r
 					
-	def xmlrpc_getrecorddefnames(self,host=None):
+	def xmlrpc_getrecorddefnames(self,host=None,db=None):
 		"""The names of all recorddefs are globally available to prevent duplication"""
-		return ts.db.getrecorddefnames()
+		return db.getrecorddefnames()
 	
-	def xmlrpc_getvartypenames(self,host=None):
+	def xmlrpc_getvartypenames(self,host=None,db=None):
 		"""The names of all variable types, ie - int,float, etc."""
-		return ts.db.getvartypenames()
+		return db.getvartypenames()
 	
-	def xmlrpc_getpropertynames(self,host=None):
+	def xmlrpc_getpropertynames(self,host=None,db=None):
 		"""The names of all valid properties: temperature, pressure, etc."""
-		return ts.db.getpropertynames()
+		return db.getpropertynames()
 
-	def xmlrpc_getpropertyunits(self,propname,host=None):
+	def xmlrpc_getpropertyunits(self,propname,host=None,db=None):
 		"""This returns a list of known units for a given physical property"""
-		return ts.db.getpropertyunits(propname)
+		return db.getpropertyunits(propname)
 		
-	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None,db=None):
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		children = list(ts.db.getchildren(key,keytype,recurse=0,ctxid=ctxid,host=host))
+		children = list(db.getchildren(key,keytype,recurse=0,ctxid=ctxid,host=host))
 		children.sort()
 		return tuple(children)
 	
-	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None):
+	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None,db=None):
 		"""Unlike getchildren, this works only for 'records'. Returns a count of children
 		of the specified record classified by recorddef as a dictionary. The special "all"
 		key contains the sum of all different recorddefs"""
-		return ts.db.countchildren(key,recurse=0,ctxid=ctxid,host=host)
+		return db.countchildren(key,recurse=0,ctxid=ctxid,host=host)
 
-	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def xmlrpc_getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None,db=None):
 		"""Gets the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		return tuple(ts.db.getparents(key,keytype,recurse,ctxid,host))
+		return tuple(db.getparents(key,keytype,recurse,ctxid,host))
 	
-	def xmlrpc_getcousins(self,key,keytype="record",ctxid=None,host=None):
+	def xmlrpc_getcousins(self,key,keytype="record",ctxid=None,host=None,db=None):
 		"""Gets the cousins (related records with no defined parent/child relationship
 		 of a record with the given key, keytype may be 'record', 'recorddef' or 'paramdef' """
-		return tuple(ts.db.getcousins(key,keytype,ctxid,host))
+		return tuple(db.getcousins(key,keytype,ctxid,host))
 		
-	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+	def xmlrpc_pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None,db=None):
 		"""Produce a parent <-> child link between two records"""
 		print "linking parent %s to child %s"%(pkey,ckey)
-		r = ts.db.pclink(pkey,ckey,keytype,ctxid,host)
-		print r
-		return ""
-	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None):
+		r = db.pclink(pkey,ckey,keytype,ctxid,host)
+		return r
+		
+	def xmlrpc_pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None,db=None):
 		"""Remove a parent <-> child link. No error raised if link doesn't exist."""
 		print "UNlinking parent %s to child %s"%(pkey,ckey)
-		return ts.db.pcunlink(pkey,ckey,keytype,ctxid,host)
+		return db.pcunlink(pkey,ckey,keytype,ctxid,host)
 
-	def xmlrpc_link(self,key1,key2,keytype="record",ctxid=None,host=None):
+	def xmlrpc_link(self,key1,key2,keytype="record",ctxid=None,host=None,db=None):
 		"""Generate a 'cousin' relationship between two records"""
-		return ts.db.link(key1,key2,keytype,ctxid,host)
+		return db.link(key1,key2,keytype,ctxid,host)
 		
-	def xmlrpc_unlink(self,key1,key2,keytype="record",ctxid=None,host=None):
+	def xmlrpc_unlink(self,key1,key2,keytype="record",ctxid=None,host=None,db=None):
 		"""Remove a 'cousin' relationship."""
-		return ts.db.unlink(key1,key2,keytype,ctxid,host)
+		return db.unlink(key1,key2,keytype,ctxid,host)
 	
-	def xmlrpc_isManager(self,ctxid=None,host=None):
+	def xmlrpc_isManager(self,ctxid=None,host=None,db=None):
 		"""Returns true if context has manager permissions"""
-		return ts.db.isManager(ctxid,host)
+		return db.isManager(ctxid,host)
 	
-	def xmlrpc_newbinary(self,date,name,ctxid=None,host=None):
+	def xmlrpc_newbinary(self,date,name,ctxid=None,host=None,db=None):
 		"""make a new binary identifier"""
-		return ts.db.newbinary(date,name,ctxid,host)
+		return db.newbinary(date,name,ctxid,host)
 	
-	def xmlrpc_getbinary(self,ident,ctxid=None,host=None):
+	def xmlrpc_getbinary(self,ident,ctxid=None,host=None,db=None):
 		"""look up an existing binary identifier"""
-		return ts.db.getbinary(ident,ctxid,host)
+		return db.getbinary(ident,ctxid,host)
 	
-	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False):
+	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False,db=None):
 		"""full database query"""
-		return tuple(ts.db.query(query,ctxid,host,retindex))
+		return tuple(db.query(query,ctxid,host,retindex))
 	
-	def xmlrpc_getindexbycontext(self,ctxid=None,host=None):
-		return tuple(ts.db.getindexbycontext(ctxid,host))
+	def xmlrpc_getindexbycontext(self,ctxid=None,host=None,db=None):
+		return tuple(db.getindexbycontext(ctxid,host))
 		
-	def xmlrpc_getindexbyuser(self,username,ctxid=None,host=None):
-		return tuple(ts.db.getindexbyuser(username,ctxid,host))
+	def xmlrpc_getindexbyuser(self,username,ctxid=None,host=None,db=None):
+		return tuple(db.getindexbyuser(username,ctxid,host))
 	
-	def xmlrpc_getindexbyrecorddef(self,recdefname,ctxid=None,host=None):
-		return tuple(ts.db.getindexbyrecorddef(recdefname,ctxid,host))
+	def xmlrpc_getindexbyrecorddef(self,recdefname,ctxid=None,host=None,db=None):
+		return tuple(db.getindexbyrecorddef(recdefname,ctxid,host))
 	
-	def xmlrpc_getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
-		return tuple(ts.db.getindexkeys(paramname,valrange,ctxid,host))
+	def xmlrpc_getindexkeys(self,paramname,valrange=None,ctxid=None,host=None,db=None):
+		return tuple(db.getindexkeys(paramname,valrange,ctxid,host))
 	
-	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid=None,host=None):
-		return tuple(ts.db.getindexbyvalue(paramname,valrange,ctxid,host))
+	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid=None,host=None,db=None):
+		return tuple(db.getindexbyvalue(paramname,valrange,ctxid,host))
 	
-	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid=None,host=None,subset=None):
-		return tuple(ts.db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset))
+	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid=None,host=None,subset=None,db=None):
+		return tuple(db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset))
 	
-	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None):
-		return ts.db.groupbyrecorddef(all,ctxid,host)
+	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None,db=None):
+		return db.groupbyrecorddef(all,ctxid,host)
 	
-	def xmlrpc_getworkflowitem(self,wfid,ctxid=None,host=None):
-		return ts.db.getworkflowitem(wfid,ctxid,host)
+	def xmlrpc_getworkflowitem(self,wfid,ctxid=None,host=None,db=None):
+		return db.getworkflowitem(wfid,ctxid,host)
 	
-	def xmlrpc_putrecorddef(self,recdict,ctxid=None,host=None):
+	def xmlrpc_putrecorddef(self,recdict,ctxid=None,host=None,db=None):
 		recdef = ts.DB.RecordDef(recdict)
-		return ts.db.putrecorddef(recdef,ctxid,host)
+		return db.putrecorddef(recdef,ctxid,host)
 
-	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None):
-		return ts.db.getrecordnames(ctxid,dbid,host)
+	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None,db=None):
+		return db.getrecordnames(ctxid,dbid,host)
 	
-	def xmlrpc_getrecordschangetime(self,recids,ctxid=None,host=None):
-		return ts.db.getrecordschangetime(recids,ctxid,host)
+	def xmlrpc_getrecordschangetime(self,recids,ctxid=None,host=None,db=None):
+		return db.getrecordschangetime(recids,ctxid,host)
 	
-	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid=None,recurse=0,host=None):
+	def xmlrpc_secrecordadduser(self,usertuple,recid,ctxid=None,recurse=0,host=None,db=None):
 		print "recurse: %s"%recurse
-		ts.db.secrecordadduser(usertuple,int(recid),ctxid,host,recurse)
+		db.secrecordadduser(usertuple,int(recid),ctxid,host,recurse)
 		return ""
 	
-	def xmlrpc_secrecorddeluser(self,users,recid,ctxid=None,recurse=0,host=None):
+	def xmlrpc_secrecorddeluser(self,users,recid,ctxid=None,recurse=0,host=None,db=None):
 		print "users: %s"%users
 		print "recid: %s"%recid
-		ts.db.secrecorddeluser(users,recid,ctxid,host,recurse)
+		db.secrecorddeluser(users,recid,ctxid,host,recurse)
 		return ""
 		
 		
@@ -367,23 +355,23 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 # Convenience functions (not direct map to db methods)
 		
 	
-	def xmlrpc_echo(self,args):
+	def xmlrpc_echo(self,args,db=None):
 		for i in args:
 			print i
 		return str(args)
 	
-	def xmlrpc_error(self):
+	def xmlrpc_error(self,db=None):
 		raise KeyError
 		return ""
 	
-	def xmlrpc_sleep(self,args):
+	def xmlrpc_sleep(self,args,db=None):
 		time.sleep(100)
 		return ""
 	
-	def xmlrpc_ping(self):
+	def xmlrpc_ping(self,db=None):
 		return "pong"
 
-	def xmlrpc_test(self):
+	def xmlrpc_test(self,db=None):
 		a=ts.DB.WorkFlow()
 		b=ts.DB.WorkFlow()
 		c=(a,b)
@@ -392,10 +380,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 		return {"a":None,"b":None}		
 		
 		
-	def xmlrpc_checktile(self,bid,ctxid=None,host=None):
+	def xmlrpc_checktile(self,bid,ctxid=None,host=None,db=None):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
-		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
 		fpath=ipath+".tile"
 
 		if not os.access(fpath,os.R_OK):
@@ -410,10 +398,10 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 #			args["notify"][0] = "%s*Error getting binary data for %s: %s"%(args["notify"][0],rec["file_binary_image"], inst)	
 		
 		
-	def xmlrpc_createtile(self,bid,ctxid=None,host=None):
+	def xmlrpc_createtile(self,bid,ctxid=None,host=None,db=None):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
-		bname,ipath,bdocounter=ts.db.getbinary(bid,ctxid)
+		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
 		fpath=ipath+".tile"
 		print "Generating tile... %s"%(ipath) 
 		os.system("%s %s --build=%s --decompress=%s"%(E2TILEFILE,fpath,ipath,bname))
@@ -430,15 +418,15 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 
 			
 		
-	def xmlrpc_addcomment(self,recid,comment,ctxid=None,host=None):
+	def xmlrpc_addcomment(self,recid,comment,ctxid=None,host=None,db=None):
 		"""Append comment to record."""
-		rec = ts.db.getrecord(recid,ctxid=ctxid)
+		rec = db.getrecord(recid,ctxid=ctxid)
 		rec["comments"] = comment
-		return ts.db.putrecord(rec,ctxid)
+		return db.putrecord(rec,ctxid)
 				
 		
 		
-	def xmlrpc_getproto(self,classtype,ctxid=None,host=None):
+	def xmlrpc_getproto(self,classtype,ctxid=None,host=None,db=None):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
 		if	 (classtype.lower()=="user") :
@@ -454,32 +442,32 @@ class DBXMLRPCResource(xmlrpc.XMLRPC):
 			r=ts.DB.Workflow()
 			return r.__dict__
 		else :
-			r=ts.db.newrecord(classtype,ctxid,init=1)
+			r=db.newrecord(classtype,ctxid,init=1)
 			return r.items()		
 		
 		
 		
-	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def xmlrpc_getchildrenofparents(self,key,keytype="record",recurse=0,ctxid=None,host=None,db=None):
 		"""Gets the children of all the parents of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		a = list(ts.db.getparents(key,keytype,recurse=0,ctxid=ctxid,host=host))
+		a = list(db.getparents(key,keytype,recurse=0,ctxid=ctxid,host=host))
 		a.sort()
 		b = []
 		for i in a:
-			children = list(ts.db.getchildren(i,keytype,recurse=0,ctxid=ctxid,host=host))
+			children = list(db.getchildren(i,keytype,recurse=0,ctxid=ctxid,host=host))
 			children.sort()
 			b.append([i,children])
 		return b		
 	
 		
 		
-	def xmlrpc_findparamname(self,q,ctxid=None,host=None):
+	def xmlrpc_findparamname(self,q,ctxid=None,host=None,db=None):
 		if len(q) < 3: return []
 		
 		q = q.lower()
 		ret = []
-		for i in ts.db.getparamdefnames():
-			z = ts.db.getparamdef(i)
+		for i in db.getparamdefnames():
+			z = db.getparamdef(i)
 			
 			try:
 				if q in z.name.lower():

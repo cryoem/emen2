@@ -21,10 +21,9 @@ from operator import itemgetter
 
 
 def groupsettolist(groups):
-	groupl = {}
 	for i in groups.keys():
-		groupl[i] = list(groups[i])
-	return groupl		
+		groups[i] = list(groups[i])
+	return groups		
 
 
 	
@@ -42,15 +41,19 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 	
 	if macro == "childcount":
 		queryresult = ts.db.getchildren(int(recordid),recurse=1,ctxid=ctxid)
-		mgroups = ts.db.groupbyrecorddef(queryresult,ctxid=ctxid)
+
+		# performance optimization
+		if len(queryresult) < 1000:
+			mgroups = ts.db.groupbyrecorddeffast(queryresult,ctxid)
+		else:
+			mgroups = ts.db.groupbyrecorddef(queryresult,ctxid)
+
 #		mgroups = ts.db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
-		try:
-#			value = len(queryresult)
-			value = len(mgroups[macroparameters])
-#			value = mgroups[macroparameters]
-			return value
-		except:
-			return ""
+		if mgroups.has_key(macroparameters):
+			return len(mgroups[macroparameters])
+		else:
+			return
+
 	elif macro == "parentrecname":
 		queryresult = ts.db.getparents(recordid,ctxid=ctxid)
 		mgroups = ts.db.groupbyrecorddef(queryresult,ctxid=ctxid)

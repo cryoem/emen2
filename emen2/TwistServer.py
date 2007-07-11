@@ -22,12 +22,12 @@ import emen2.TwistSupport_html.dbresource
 # Change this to point to static HTML content
 root = static.File(EMEN2ROOT+"/tweb")
 
-root.putChild("db",emen2.TwistSupport_html.dbresource.DBResource())
-root.putChild("RPC2",xmlrpc.DBXMLRPCResource())
+root.putChild("db",emen2.TwistSupport_html.dbresource.WebResource())
+root.putChild("RPC2",xmlrpc.XMLRPCResource())
 #root.putChild("REST",rest.DBRESTResource())
 
-root.putChild("download",emen2.TwistSupport_html.dbresource.DownloadFile())
-root.putChild("upload",emen2.TwistSupport_html.dbresource.UploadFile())
+root.putChild("download",emen2.TwistSupport_html.dbresource.DownloadResource())
+root.putChild("upload",emen2.TwistSupport_html.dbresource.UploadResource())
 
 # You can set the port to listen on...
 reactor.listenTCP(EMEN2PORT, server.Site(root))
