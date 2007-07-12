@@ -170,11 +170,11 @@ def footer(short=0,ctxid=None):
 
 <!-- -->""")
 
-	try:
-		user = ts.db.checkcontext(ctxid)[0]
-		ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
-	except:
-		ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
+#	try:
+#		user = db.checkcontext(ctxid)[0]
+#		ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
+#	except:
+#		ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
 
 	ret.append("""
 Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />

@@ -36,29 +36,30 @@ def regexparser():
 				"|(?P<name>(\$\#(?P<name1>\w*)[\s<]?))"
 	return re1
 
-def macro_processor(macro,macroparameters,recordid,ctxid=None):
-	global db
+
+
+def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
 	
 	if macro == "childcount":
-		queryresult = ts.db.getchildren(int(recordid),recurse=1,ctxid=ctxid)
+		queryresult = db.getchildren(int(recordid),recurse=1,ctxid=ctxid)
 
 		# performance optimization
 		if len(queryresult) < 1000:
-			mgroups = ts.db.groupbyrecorddeffast(queryresult,ctxid)
+			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
 		else:
-			mgroups = ts.db.groupbyrecorddef(queryresult,ctxid)
+			mgroups = db.groupbyrecorddef(queryresult,ctxid)
 
-#		mgroups = ts.db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
+###		mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
 		if mgroups.has_key(macroparameters):
 			return len(mgroups[macroparameters])
 		else:
 			return
 
 	elif macro == "parentrecname":
-		queryresult = ts.db.getparents(recordid,ctxid=ctxid)
-		mgroups = ts.db.groupbyrecorddef(queryresult,ctxid=ctxid)
+		queryresult = db.getparents(recordid,ctxid=ctxid)
+		mgroups = db.groupbyrecorddef(queryresult,ctxid=ctxid)
 		for j in mgroups[macroparameters]:
-			recorddef = ts.db.getrecord(j,ctxid=ctxid)
+			recorddef = db.getrecord(j,ctxid=ctxid)
 			try:
 				value = recorddef.items_dict()["recname"]
 			except:
@@ -72,20 +73,17 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None):
 def argmap(dict):
 	for i in dict: dict[i]=dict[i][0]
 		
-		
-
-
 
 
 # much simpler; itemgetter new in python 2.4
 #def sortlistbyparamname(paramname,subset,reverse,ctxid):
-#	q = ts.db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
+#	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
 #	q = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)]
 	
 #	global db
 #	print "Sorting..."
 #	print subset
-#	q = ts.db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
+#	q = db.getindexdictbyvalue(paramname,None,ctxid,subset=subset)
 #	nq = invert(q)
 #	l = nq.keys()
 #	l.sort()
@@ -179,15 +177,6 @@ def htable2(itmlist,cols,proto):
 #		ret.append("\t<tr>\n\t\t<td class=\"pitemname\"><a href=\"%s%s\">%s</a></td>\n\t\t<td>%s</td>\n\t</tr>\n"%(proto,k,item.desc_short,v))
 #	ret.append("</table>")
 #	return " ".join(ret)	
-
-
-def clearworkflowcache(ctxid):
-
-	wflist = ts.db.getworkflow(ctxid)
-	for wf in wflist:
-		wfdict = wf.items_dict()
-		if wfdict["wftype"] == "recordcache" or wfdict["wftype"] == "querycache":
-			ts.db.delworkflowitem(wf.wfid,ctxid)
 
 
 

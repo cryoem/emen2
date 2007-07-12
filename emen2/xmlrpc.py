@@ -17,50 +17,56 @@ Fault = xmlrpclib.Fault
 
 class XMLRPCResource(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
-	
+	def _cbRender(self, result, request, t0=None):
+		allow_none = True
+		if isinstance(result, xmlrpc.Handler):
+			result = result.result
+		if not isinstance(result, xmlrpc.Fault):
+			result = (result,)
+
+		try:
+			s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
+		except:
+			f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
+			s = xmlrpclib.dumps(f, methodresponse=1)
+			print "fault: "
+			print s
+		request.setHeader("content-length", str(len(s)))
+		request.write(s)
+		request.finish()
+
+	def _ebRender(self,result,request):
+		f = xmlrpc.Fault(self.FAILURE, "Fault")
+		s = xmlrpclib.dumps(f, methodresponse=1)
+		print "fault in xmlrpc function: "
+		print result
+		print s
+		request.setHeader("content-length", str(len(s)))
+		request.write(s)
+		request.finish()
+
 	def render(self, request):
-		ts.queue.put((self.XMLRPCWorker,request))
-		return server.NOT_DONE_YET 
-		
-		
-	def XMLRPCWorker(self, request, db=None):
 		request.content.seek(0, 0)
 
 		content = request.content.read()
 		args, functionPath = xmlrpclib.loads(content)
 
-		print "\n--------- xmlrpc request: %s ----------------"%functionPath
+		print "--------- xmlrpc request: %s ----------------"%functionPath
+		print args
 
 		try:
 			function = self._getFunction(functionPath)
 		except Fault, f:
-			print "Fault..."
-				
-		request.setHeader("content-type", "text/xml")
-		
-		try:
-			result = function(db=db, *args)
-			allow_none = True
-			if isinstance(result, xmlrpc.Handler):
-				result = result.result
-			if not isinstance(result, xmlrpc.Fault):
-				result = (result,)
+			print "fault..."
+			self._cbRender(f, request)
+		else:
+			request.setHeader("content-type", "text/xml")
 
-			try:
-				s = xmlrpclib.dumps(result, methodresponse=1,allow_none=allow_none)
-			except:
-				f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
-				s = xmlrpclib.dumps(f, methodresponse=1)
+		d = threads.deferToThread(function, *args)
+		d.addCallback(self._cbRender, request, t0=time.time())
+		d.addErrback(self._ebRender,request)
 
-		except:
-			f = xmlrpc.Fault(self.FAILURE, "Fault")
-			s = xmlrpclib.dumps(f, methodresponse=1)		
-			print "fault in xmlrpc function: "
-			print result
-
-		request.setHeader("content-length", str(len(s)))
-		request.write(s)
-		request.finish()
+		return server.NOT_DONE_YET 
 
 
 

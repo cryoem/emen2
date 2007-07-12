@@ -36,7 +36,8 @@ import atexit
 
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
-envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG
+# ian 07.12.07: added DB_THREAD
+envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_THREAD
 usetxn=False
 
 # These are for transactional database work
@@ -1524,6 +1525,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__dbenv.open(path+"/home",envopenflags|xtraflags)
 		global globalenv
 		globalenv = self.__dbenv
+
 
 		if not os.access(path+"/security",os.F_OK) : os.makedirs(path+"/security")
 		if not os.access(path+"/index",os.F_OK) : os.makedirs(path+"/index")

@@ -14,7 +14,7 @@ from emen2.emen2config import *
 
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
-#ts_db.db=ts.db
+
 
 #from emen2 import web
 import emen2.TwistSupport_html.dbresource

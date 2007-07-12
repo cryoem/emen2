@@ -27,13 +27,10 @@ from twisted.web.util import redirectTo
 # Twisted Imports
 from twisted.python import filepath, log, failure
 from twisted.internet import defer, reactor, threads
-
+#from twisted.internet import defer
 
 from twisted.web.resource import Resource
 from twisted.web.static import *
-
-
-
 
 
 
@@ -41,124 +38,148 @@ class WebResource(Resource):
 	isLeaf = True
 	
 	def render(self,request):
-# Ok, if we got here, we can actually start talking to the database
-		ts.queue.put((self.WebWorker,request))
-#		self.WebWorker(request,db=ts.db)
-		return server.NOT_DONE_YET 
 
-
-	def WebWorker(self,request,db=None):
 		print "\n------ web request: %s ------"%request.postpath
 		session=request.getSession()
 		t0 = time.time()
 
+		if len(request.postpath) < 1:
+			request.postpath.append("")
+		method = request.postpath[0]
+		if method == "": 
+			request.postpath[0] = "home"
+			method = "home"
+
+		try:
+			session.ctxid = request.args["ctxid"][0]
+			ts.db.checkcontext(session.ctxid,request.getClientIP())
+		except:
+			pass
 		try:
 			ctxid = session.ctxid
-		except:
-			if request.args.has_key("ctxid"):
-				ctxid=request.args["ctxid"][0]
-			else:
-				try:
-					session.ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-					ctxid = session.ctxid
-					ctxidcookiename = 'TWISTED_SESSION_ctxid'
-					request.addCookie(ctxidcookiename, session.ctxid, path='/')	
-					return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-                    <meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest									
-				except ValueError, TypeError:
-					print "Authentication Error"
-					return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,None,None,redir=session.originalrequest,failed=1)
-				except:
-					print "Need to login..."
-
-					# Is it a page that does not require authentication?
-#					if (request.postpath[0] == "home"):
-#						return emen2.TwistSupport_html.html.home.home(request.postpath,request.args,None,request.getClientIP())
-#					if (request.postpath[0]=="newuser"):
-#						return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,None,request.getClientIP())
-
-#					if request.uri == "/db/login":
-#						session.originalrequest = "/db/"
-#					else:
-#						session.originalrequest = request.uri
-
-					request.write(emen2.TwistSupport_html.html.login.login(None,None,None,None,redir=request.uri))
-					request.finish()
-					return
-
-		# authenticated; run page
-		try:
-			method = request.postpath[0]
+			ts.db.checkcontext(ctxid,request.getClientIP())
+		except AttributeError:
+			# Force login
+			try:			
+				session.ctxid=ts.db.login(request.args["username"][0],request.args["pw"][0],host=request.getClientIP())
 			
-			exec("import emen2.TwistSupport_html.html.%s"%request.postpath[0])		
-			module = getattr(emen2.TwistSupport_html.html,method)
-			function = getattr(module,method)
+				ctxidcookiename = 'TWISTED_SESSION_ctxid'
+				request.addCookie(ctxidcookiename, session.ctxid, path='/')
+			
+				return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+						<meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest
+			except ValueError, TypeError:
+				print "Authentication Error"
+				print "...original request: %s"%session.originalrequest
+				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,ctxid=None,host=request.getClientIP(),redir=session.originalrequest,failed=1)
+			except KeyError:
+
+				# Is it a page that does not require authentication?
+				if (request.postpath[0] == "home"):
+					return emen2.TwistSupport_html.html.home.home(request.postpath,request.args,ctxid=None,host=request.getClientIP())
+				if (request.postpath[0]=="newuser"):
+					return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,ctxid=None,host=request.getClientIP())
+				if request.uri == "/db/login":
+					session.originalrequest = "/db/"
+				else:
+					session.originalrequest = request.uri
+								
+				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)
+
+					
+		if method == "logout":
+			ts.db.deletecontext(ctxid)
+			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
+
+					
+		# authenticated; run page		
+		exec("import emen2.TwistSupport_html.html.%s"%request.postpath[0])		
+		module = getattr(emen2.TwistSupport_html.html,method)
+		function = getattr(module,method)
 
 
-			result = function( request.postpath, request.args, ctxid=ctxid, host=request.getClientIP(),db=db)
+		d = threads.deferToThread(function, request.postpath, request.args, ctxid=ctxid, host=request.getClientIP())
+		d.addCallback(self._cbRender, request, t0=t0)
+		d.addErrback(self._ebRender, request, t0=t0)
 
-			if result[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
-			if result[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
-
-
-			request.setHeader("content-length", str(len(result)))
-			request.write(result)
-			request.finish()
-
-		except Exception, inst:
-			traceback.print_exc()
-			request.write(emen2.TwistSupport_html.html.error.error(inst))
-			request.write("failure")
-			request.finish()
-
-		print ":::ms: %i"%((time.time()-t0)*1000000)
-		return
+		return server.NOT_DONE_YET
+		
 
 
+	def _cbRender(self,result,request, t0=0):
+		if result[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
+		if result[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+		request.setHeader("content-length", str(len(result)))
+		request.write(result)
+		request.finish()
+		print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
+		
+		
+		
+	def _ebRender(self,failure,request, t0=0):
+#		traceback.print_exc()
+#		request.write(emen2.TwistSupport_html.html.error.error(inst))
+		print failure
+		request.write(emen2.TwistSupport_html.html.error.error(failure))
+		request.finish()
+		print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
 
+		
 
 class UploadResource(Resource):
 	isLeaf = True
 
 	def render(self,request):
-		ts.queue.put((self.UploadWorker,request))
-		return server.NOT_DONE_YET 
+		d = threads.deferToThread(self.RenderWorker, request)
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET		
 
+		
+	def _cbRender(self,result,request):
+		request.setHeader("content-length", str(len(result)))
+		request.write(result)
+		request.finish()
+		
+	def _ebRender(self,failure,request):
+		print failure
+		request.write(emen2.TwistSupport_html.html.error.error(failure))
+		request.finish()
+	
 
-	def UploadWorker(self,request,db=None):
+	def RenderWorker(self,request,db=None):
 		print "\n-------- upload -----------"
+		print request.postpath
 		args=request.args
 
-
-		try:
-			ctxid = request.getSession().ctxid
-		except:
-			if request.args.has_key("ctxid"):
-				ctxid=request.args["ctxid"][0]
-			else:
-				try:
-					request.getSession().ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-					ctxid = request.getSession().ctxid
-				except:
-					print "need to login..."						
-					request.write(emen2.TwistSupport_html.html.login.login(None,None,None,None))
-					request.finish()
-					return
-
+		if args.has_key("ctxid"):
+			ctxid = request.args["ctxid"][0]
+		else:
+			try:
+				session=request.getSession()			# sets a cookie to use as a session id
+				ctxid = session.ctxid
+				db.checkcontext(ctxid,request.getClientIP())
+			except:
+				print "Need to login..."
+				session.originalrequest = request.uri
+				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
 
 		binary = 0
-		if request.args.has_key("file_binary_image"): 
+		if args.has_key("file_binary_image"): 
 			binary = args["file_binary_image"][0]
 
+
 		fname = db.checkcontext(ctxid)[0] + " " + time.strftime("%Y/%m/%d %H:%M:%S")
-		if request.args.has_key("fname"): 
+		if args.has_key("fname"): 
 			fname = args["fname"][0]
+
 
 		recid=int(request.postpath[0])
 		rec = db.getrecord(recid,ctxid)
-			
+#		print rec			
+				
 		# append to file (chunk uploading) or all at once.. 
-		if request.args.has_key("append"):
+		if args.has_key("append"):
 			a = db.getbinary(args["append"][0],ctxid)
 			print "Appending to %s..."%a[1]
 			outputStream = open(a[1], "ab")
@@ -176,30 +197,30 @@ class UploadResource(Resource):
 			outputStream.close()
 
 			print "Setting file_binary of recid %s"%rec.recid
-
+	
 			if binary:
 				rec["file_binary_image"] = "bdo:%s"%a[0]
-			
+				
 			else:
 				key = "file_binary"
 				if not rec.has_key(key):
 					rec[key] = []
 				rec[key].append("bdo:%s"%a[0])
-
+	
 			db.putrecord(rec,ctxid)
 
-		if request.args.has_key("rbid"):
-			request.write(str(a[0]))
+		if args.has_key("rbid"):
+			return str(a[0])
 		else:
-			request.write("""<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid)
-
-		request.finish()
+			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
 
 
 
-class DownloadResource(Resource,filepath.FilePath):
+class DownloadResource(Resource, filepath.FilePath):
+
 	isLeaf = True
+
 	contentTypes = loadMimeTypes()
 
 	contentEncodings = {
@@ -209,47 +230,54 @@ class DownloadResource(Resource,filepath.FilePath):
 
 	type = None
 	defaultType="application/octet-stream"
-	
-	def render(self, request):
-		"""You know what you doing."""
-		ts.queue.put((self.DownloadWorker,request))
-		return server.NOT_DONE_YET
 
-	def DownloadWorker(self,request,db=None):
+
+	def render(self, request):
+		print "\n------ download request: %s ------"%request.postpath
+		
+		d = threads.deferToThread(self.RenderWorker, request)
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET		
+		
+	def RenderWorker(self, request, db=None):
+		""" thread worker to get file paths from db; hand back to resource to send """
 		# auth...
-		try:
-			ctxid = request.getSession().ctxid
-		except:
-			if request.args.has_key("ctxid"):
-				ctxid=request.args["ctxid"][0]
-			else:
-				try:
-					request.getSession().ctxid=db.login(request.args["username"][0],request.args["pw"][0],request.getClientIP())
-					ctxid = request.getSession().ctxid
-				except:
-					print "need to login..."						
-					request.write(emen2.TwistSupport_html.html.login.login(None,None,None,None))
-					request.finish()
-					return
-					
-					
+		if request.args.has_key("ctxid"):
+			ctxid = request.args["ctxid"][0]
+		else:
+			try:
+				session=request.getSession()			# sets a cookie to use as a session id
+				ctxid = session.ctxid
+				db.checkcontext(ctxid,request.getClientIP())
+			except:
+				print "Need to login..."
+				session.originalrequest = request.uri
+				raise KeyError	
+
 		bids = request.postpath[0].split(",")
 
-		if len(bids) > 1:
-			ipaths=[]
-			for i in bids:
-				bname,ipath,bdocounter=db.getbinary(i,ctxid)						
-				ipaths.append((ipath,bname))
+		ipaths=[]
+		for i in bids:
+			bname,ipath,bdocounter=db.getbinary(i,ctxid)						
+			ipaths.append((ipath,bname))
+			print "download list: %s  ...  %s"%(ipath,bname)	
+		return ipaths
 
 
+	def _cbRender(self, ipaths, request):
+		"""You know what you doing."""
+
+		if len(ipaths) > 1:
 			self.type, self.encoding = "application/octet-stream", None
 			fsize = size = 0
-		
+			
 			request.setHeader('content-type', self.type)
 			request.setHeader('content-encoding', self.encoding)
 
 			import tarfile
-
+			
+			# how many *hours* do you think I wasted before realizing I could simply give it the request as the file object?
 			tar = tarfile.open(mode="w|", fileobj=request)
 
 			for name in ipaths:
@@ -258,10 +286,11 @@ class DownloadResource(Resource,filepath.FilePath):
 			tar.close()
 
 			request.finish()
-
-		else:		
-			bid = request.postpath[0]
-			bname,ipath,bdocounter=db.getbinary(bid,ctxid)
+			del tarfile
+			
+		else:
+			ipath = ipaths[0][0]
+			bname = ipaths[0][1]
 
 			self.path = ipath
 			self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
@@ -274,12 +303,11 @@ class DownloadResource(Resource,filepath.FilePath):
 			if fsize:	request.setHeader('content-length', str(fsize))
 
 			if request.method == 'HEAD':	return ''
-		
-		
+
 			FileTransfer(f, size, request)
 			# and make sure the connection doesn't get closed
-			
 		
-		
-		
-		
+	def _ebRender(self,failure,request):
+		print failure
+		request.write("Error with request.")
+		request.finish()
