@@ -41,7 +41,7 @@ def regexparser():
 def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
 	
 	if macro == "childcount":
-		queryresult = db.getchildren(int(recordid),recurse=3,ctxid=ctxid)
+		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
 
 		# performance optimization
 		if len(queryresult) < 1000:
