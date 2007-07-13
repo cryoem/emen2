@@ -4048,9 +4048,10 @@ or None if no match is found."""
 		print 'backup file opened'
 		# dump users
 		for i in users: dump(self.__users[i],out)
-		
+		print 'users dumped'
 		# dump workflow
 		for i in workflows: dump(self.__workflow[i],out)
+		print 'workflows dumped'
 		
 		# dump binary data objects
 		dump("bdos",out)
@@ -4058,6 +4059,7 @@ or None if no match is found."""
 		for i in bdos: bd[i]= self.__bdocounter[i]
 		dump(bd,out)
 		bd=None
+		print 'bdos dumped'
 		
 		# dump paramdefs and tree
 		for i in paramdefs: dump(self.__paramdefs[i],out)
@@ -4070,6 +4072,7 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("pdchildren",out)
 		dump(ch,out)
+		print 'paramdefs dumped'
 		
 		ch=[]
 		for i in paramdefs:
@@ -4079,6 +4082,7 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("pdcousins",out)
 		dump(ch,out)
+		print 'pdcousins dumped'
 				
 		# dump recorddefs and tree
 		for i in recorddefs: dump(self.__recorddefs[i],out)
@@ -4091,6 +4095,7 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("rdchildren",out)
 		dump(ch,out)
+		print 'rdchildren dumped'
 		
 		ch=[]
 		for i in recorddefs:
@@ -4100,11 +4105,13 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("rdcousins",out)
 		dump(ch,out)
+		print 'rdcousins dumped'
 
 		# dump actual database records
 		print "Backing up %d/%d records"%(len(records),self.__records[-1])
 		for i in records:
 			dump(self.__records[i],out)
+		print 'records dumped'
 
 		ch=[]
 		for i in records:
@@ -4113,6 +4120,7 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("recchildren",out)
 		dump(ch,out)
+		print 'rec children dumped'
 		
 		ch=[]
 		for i in records:
@@ -4122,6 +4130,8 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("reccousins",out)
 		dump(ch,out)
+		print 'rec cousins dumped'
+
 		out.close()
 
 	def restore(self,ctxid,host=None) :
