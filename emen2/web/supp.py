@@ -42,18 +42,17 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
 	
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
-
+		return len(queryresult)
 		# performance optimization
-		if len(queryresult) < 1000:
-			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
-		else:
-			mgroups = db.groupbyrecorddef(queryresult,ctxid)
-
+#		if len(queryresult) < 1000:
+#			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
+#		else:
+#			mgroups = db.groupbyrecorddef(queryresult,ctxid)
 ###		mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
-		if mgroups.has_key(macroparameters):
-			return len(mgroups[macroparameters])
-		else:
-			return
+#		if mgroups.has_key(macroparameters):
+#			return len(mgroups[macroparameters])
+#		else:
+#			return ""
 
 	elif macro == "parentrecname":
 		queryresult = db.getparents(recordid,ctxid=ctxid)
