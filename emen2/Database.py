@@ -4045,7 +4045,7 @@ or None if no match is found."""
 		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
 		
 		out=open(self.path+"/backup.pkl","w")
-		
+		print 'backup file opened'
 		# dump users
 		for i in users: dump(self.__users[i],out)
 		
