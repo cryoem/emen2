@@ -41,10 +41,10 @@ def regexparser():
 def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
 	
 	if macro == "childcount":
-		queryresult = db.getchildren(int(recordid),recurse=1,ctxid=ctxid)
+		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
 
 		# performance optimization
-		if len(queryresult) < 1000:
+		if len(queryresult) < 500:
 			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
 		else:
 			mgroups = db.groupbyrecorddef(queryresult,ctxid)
