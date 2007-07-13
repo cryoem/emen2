@@ -2384,6 +2384,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return ret & secure		# intersection of the two search results
 	
+	def getindexdictbyvaluefast(subset,param,valrange=None,ctxid=None,host=None):
+		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
+		v = {}
+		for i in subset:
+			rec = self.db.getrecord(i,ctxid)
+			if not valrange:
+				v[i] = rec[param]
+			else:
+				if rec[param] > valrange[0] and rec[param] < valrange[1]:
+					v[i] = rec[param]
+		return v	
+	
 	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
 		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
@@ -2439,6 +2451,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	        """
 	
 	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
+		"""quick version for records that are already in cache; e.g. table views"""
 		r = {}
 		for i in records:
 			rectype = self.getrecord(i,ctxid).rectype

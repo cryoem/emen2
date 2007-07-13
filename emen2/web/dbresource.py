@@ -58,7 +58,7 @@ class WebResource(Resource):
 		try:
 			ctxid = session.ctxid
 			ts.db.checkcontext(ctxid,request.getClientIP())
-		except AttributeError:
+		except:
 			# Force login
 			try:			
 				session.ctxid=ts.db.login(request.args["username"][0],request.args["pw"][0],host=request.getClientIP())
@@ -277,7 +277,6 @@ class DownloadResource(Resource, filepath.FilePath):
 
 			import tarfile
 			
-			# how many *hours* do you think I wasted before realizing I could simply give it the request as the file object?
 			tar = tarfile.open(mode="w|", fileobj=request)
 
 			for name in ipaths:
