@@ -2460,7 +2460,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 			else:
 				r[rectype]=[i]
 		return r
-			
+		
+
+		
+#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
+#		"""quick version when we only want a single recorddef"""
+#		return Set(all)&Set(self.__recorddefindex[recorddef])
+		
 	
 	
 	def groupbyrecorddef(self,all,ctxid=None,host=None):
