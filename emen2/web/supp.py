@@ -44,7 +44,7 @@ def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
 		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
 
 		# performance optimization
-		if len(queryresult) < 100:
+		if len(queryresult) < 1000:
 			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
 		else:
 			mgroups = db.groupbyrecorddef(queryresult,ctxid)
