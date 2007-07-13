@@ -57,7 +57,7 @@ def macroprecache(recordids,macros,db=None,ctxid=None):
 
 def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None,precache={}):
 	if precache.has_key(macro):
-		return precache[macro][recordid]
+		return precache[macro][macroparameters][recordid]
 
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
