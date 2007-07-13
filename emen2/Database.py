@@ -4122,7 +4122,7 @@ or None if no match is found."""
 			ch+=((i,c),)
 		dump("reccousins",out)
 		dump(ch,out)
-
+		out.close()
 
 	def restore(self,ctxid,host=None) :
 		"""This will restore the database from a backup file. It is nondestructive, in that new items are
