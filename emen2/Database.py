@@ -4263,7 +4263,7 @@ or None if no match is found."""
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for p,cl in rr:
 						for c in cl:
-#							print recmap[p],recmap[c[0]],c[1]
+							print recmap[p],recmap[c[0]],c[1]
 							if isinstance(c,tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 							else : self.__records.pclink(recmap[p],recmap[c],txn)
 				elif r=="reccousins" :
