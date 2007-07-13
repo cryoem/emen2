@@ -39,6 +39,7 @@ def regexparser():
 
 def macroprecache(recordids,macros,db=None,ctxid=None):
 	# this allows getindexbyrecorddef to only be called once; can reduce a 1.5s render to 0.4s
+	precache = {}
 	for macro in macros:
 		precache[macro[0]] = {macro[1]:{}}
 		if macro[0] == "childcount":
