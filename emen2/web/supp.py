@@ -40,13 +40,11 @@ def regexparser():
 
 def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None,precache={}):
 	if precache.has_key(macro):
-		print "returned precache value"
 		return precache[macro][recordid]
 
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
 #		return queryresult & db.getindexbyrecorddef(macroparameters,ctxid)
-		
 		# performance optimization
 		if len(queryresult) < 1000:
 			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
