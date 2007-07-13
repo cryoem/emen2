@@ -38,23 +38,26 @@ def regexparser():
 
 
 
-def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None):
-	
+def macro_processor(macro,macroparameters,recordid,ctxid=None,db=None,precache={}):
+	if precache.has_key(macro):
+		print "returned precache value"
+		return precache[macro][recordid]
+
 	if macro == "childcount":
 		queryresult = db.getchildren(int(recordid),recurse=5,ctxid=ctxid)
-		return queryresult & db.getindexbyrecorddef(macroparameters,ctxid)
+#		return queryresult & db.getindexbyrecorddef(macroparameters,ctxid)
 		
 		# performance optimization
-#		if len(queryresult) < 1000:
-#			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
-#		else:
-#			mgroups = db.groupbyrecorddef(queryresult,ctxid)
+		if len(queryresult) < 1000:
+			mgroups = db.groupbyrecorddeffast(queryresult,ctxid)
+		else:
+			mgroups = db.groupbyrecorddef(queryresult,ctxid)
 
-###		mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
-#		if mgroups.has_key(macroparameters):
-#			return len(mgroups[macroparameters])
-#		else:
-#			return
+#		mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid)
+		if mgroups.has_key(macroparameters):
+			return len(mgroups[macroparameters])
+		else:
+			return
 
 	elif macro == "parentrecname":
 		queryresult = db.getparents(recordid,ctxid=ctxid)
