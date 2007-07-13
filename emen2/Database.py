@@ -4032,7 +4032,7 @@ or None if no match is found."""
 	def backup(self,ctxid,host=None,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None) :
 		"""This will make a backup of all, or the selected, records, etc into a set of files
 		in the local filesystem"""
-		
+		print 'backup has begun'
 		user,groups=self.checkcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may backup the database"
 		
