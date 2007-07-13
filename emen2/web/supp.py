@@ -45,11 +45,11 @@ def macroprecache(recordids,macros,db=None,ctxid=None):
 		if macro[0] == "childcount":
 			c = {}
 			q = Set()
-			for i in recordids[pos:pos+perpage]:
+			for i in recordids:
 							c[i] = db.getchildren(i,ctxid=ctxid,recurse=4)
 							q = q | c[i]
 			macromgroup = q & db.getindexbyrecorddef(macro[1],ctxid)
-			for i in recordids[pos:pos+perpage]:
+			for i in recordids:
 				precache[macro[0]][macro[1]][i] = len(c[i] & macromgroup)
 
 	return precache
