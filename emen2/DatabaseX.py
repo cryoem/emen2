@@ -3489,7 +3489,7 @@ or None if no match is found."""
 		
 		# We begin by comparing old and new records and figuring out exactly what changed
 #DBX		modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
-		if (not self.__importmode) : record["modifytime"]=modifytime
+#		if (not self.__importmode) : record["modifytime"]=modifytime
 		params=Set(orig.keys())
 		params.union_update(record.keys())
 		params.discard("creator")
