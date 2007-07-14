@@ -3545,8 +3545,8 @@ or None if no match is found."""
 			orig[f]=record[f]
 			
 				
-#DBX		self.__reindexsec(reduce(operator.concat,orig["permissions"]),
-#			reduce(operator.concat,record["permissions"]),record.recid,txn)		# index security
+		self.__reindexsec(reduce(operator.concat,orig["permissions"]),
+			reduce(operator.concat,record["permissions"]),record.recid,txn)		# index security
 		
 		# Updates last time changed index
 #DBX		if (not self.__importmode) : 
