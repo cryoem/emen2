@@ -408,7 +408,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
 		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
-		fpath=ipath+".tile"
+		fpath=E2TILEPATH+bname+".tile"
 		print "Generating tile... %s"%(ipath) 
 		os.system("%s %s --build=%s --decompress=%s"%(E2TILEFILE,fpath,ipath,bname))
 
