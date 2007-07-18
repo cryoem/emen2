@@ -217,7 +217,7 @@ class UploadResource(Resource):
 
 
 
-class DownloadResource(Resource, filepath.FilePath):
+class DownloadResource(Resource, File):
 
 	isLeaf = True
 
@@ -293,6 +293,8 @@ class DownloadResource(Resource, filepath.FilePath):
 
 			self.path = ipath
 			self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
+			print "open file."
+			self.alwaysCreate = False
 			f = self.open()
 			fsize = size = os.stat(ipath).st_size
 

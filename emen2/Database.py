@@ -256,6 +256,7 @@ class BTree:
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 				
 		if not self.has_key(childtag,txn) : 
+			print "%s %s"%(childtag,parenttag)
 			raise KeyError,"Cannot link nonexistent key '%s'"%childtag
 			print "Cannot link nonexistent key '%s'"%childtag
 		if not self.has_key(parenttag,txn) : 
