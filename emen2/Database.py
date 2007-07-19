@@ -1605,7 +1605,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__paramdefs["owner"]=pd
 			pd=ParamDef("creator","string","Record Creator","The user-id that initially created the record")
 			self.__paramdefs["creator"]=pd
-			pd=ParamDef("modifyuser","string","User who last changed the record","The user-id that last changed the record")
+			pd=ParamDef("modifyuser","string","Modified by","The user-id that last changed the record")
 			self.__paramdefs["modifyuser"]=pd
 			pd=ParamDef("creationtime","datetime","Creation time","The date/time the record was originally created")
 			self.__paramdefs["creationtime"]=pd
