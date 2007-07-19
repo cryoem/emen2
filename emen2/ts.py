@@ -10,6 +10,8 @@ from emen2.emen2config import *
 
 import atexit
 
+from twisted.internet import reactor
+
 import threading
 import Queue
 
@@ -77,8 +79,44 @@ from twisted.python import log, runtime, context
 
 
 class newThreadPool(threadpool.ThreadPool):
-	def startAWorker(self):
+	__inited = 0
+	min = 5
+	max = 10
+	joined = 0
+	started = 0
+	workers = 0
+	name = None
 
+	def __init__(self, minthreads=5, maxthreads=10, name=None):
+		"""Create a new threadpool.
+		@param minthreads: minimum number of threads in the pool
+		@param maxthreads: maximum number of threads in the pool
+		"""
+		assert minthreads >= 0, 'minimum is negative'
+		assert minthreads <= maxthreads, 'minimum is greater than maximum'
+	
+		self.q = Queue.Queue(0)
+		self.min = minthreads
+		self.max = maxthreads
+		self.name = name
+		if runtime.platform.getType() != "java":
+			self.waiters = []
+			self.threads = []
+			self.working = []
+		else:
+			self.waiters = ThreadSafeList()
+			self.threads = ThreadSafeList()
+			self.working = ThreadSafeList()
+
+	def start(self):
+		"""Start the threadpool."""
+		print "starting threadpool..."		
+		self.joined = 0
+		self.started = 1
+		# Start some threads.
+		self.adjustPoolsize()
+
+	def startAWorker(self):
 		print "started twisted thread (newThreadPool)..."
 		print "\tworker count: %s"%self.workers
 		self.db = Database.Database(EMEN2DBPATH)
@@ -91,15 +129,26 @@ class newThreadPool(threadpool.ThreadPool):
 				firstJob = None
 				
 		newThread = threading.Thread(target=self._worker, name=name, args=(firstJob,))
-		self.threads.append(newThread)
+		self.threads.append(newThread)	
 		newThread.start() 
-				
+	
+	def stopAWorker(self):
+		self.q.put(WorkerStop)
+		self.workers = self.workers-1
+			
 	def _worker(self, o):
+			print "thread work..."
+			print "waiters: %s"%self.waiters
+			print "workers: %s"%self.workers
+			print "threads: %s"%self.threads
+			print "working: %s"%self.working
+			
 			ct = threading.currentThread()
 			while 1:
 					if o is threadpool.WorkerStop:
 							break
 					elif o is not None:
+							print "thread working..."
 							self.working.append(ct)
 							ctx, function, args, kwargs = o
 							try:
@@ -118,5 +167,4 @@ class newThreadPool(threadpool.ThreadPool):
 
 #print "installing new threadpool."
 threadpool.ThreadPool = newThreadPool
-
 	

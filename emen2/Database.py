@@ -2455,7 +2455,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""quick version for records that are already in cache; e.g. table views"""
 		r = {}
 		for i in records:
-			rectype = self.getrecord(i,ctxid).rectype
+			try: rectype = self.getrecord(i,ctxid).rectype
+			except: continue	
 			if r.has_key(rectype):
 				r[rectype].append(i)
 			else:

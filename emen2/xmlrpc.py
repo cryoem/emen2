@@ -390,7 +390,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
 		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
-		fpath=ipath+".tile"
+		fpath=ts.E2TILEPATH+bid+".tile"
 
 		if not os.access(fpath,os.R_OK):
 			return (-1,-1,bid)
@@ -408,7 +408,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
 		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
-		fpath=E2TILEPATH+bname+".tile"
+		fpath=E2TILEPATH+bid+".tile"
 		print "Generating tile... %s"%(ipath) 
 		os.system("%s %s --build=%s --decompress=%s"%(E2TILEFILE,fpath,ipath,bname))
 

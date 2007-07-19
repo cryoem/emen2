@@ -38,7 +38,7 @@ class WebResource(Resource):
 	isLeaf = True
 	
 	def render(self,request):
-
+		print reactor
 		print "\n------ web request: %s ------"%request.postpath
 		session=request.getSession()
 		t0 = time.time()
