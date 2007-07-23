@@ -73,6 +73,8 @@ class WebResource(Resource):
  		except:
  			# Force login
  			try:			
+				if request.args["username"][0] == "":
+					raise ValueError
  				session.ctxid=ts.db.login(request.args["username"][0],request.args["pw"][0],host=request.getClientIP())
  			
  				ctxidcookiename = 'TWISTED_SESSION_ctxid'

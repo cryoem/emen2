@@ -179,7 +179,7 @@ def footer(short=0,ctxid=None):
 	ret.append("""
 Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
 Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
-Please mail comments/suggestions to: <a href="mailto:htu@bcm.tmc.edu">WEBMASTER</a><br /><br />
+Please mail comments/suggestions to: <a href="mailto:ian.rees@bcm.edu">WEBMASTER</a><br /><br />
 
 </div></div>
 		""")

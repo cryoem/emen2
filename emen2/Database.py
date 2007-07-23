@@ -2403,12 +2403,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""quick version for records that are already in cache; e.g. table views"""
 #		return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
  		r = {}
- 		records = self.getrecord(list(records),ctxid)
+# 		records = self.getrecord(list(records),ctxid)
  		for i in records:
- 			if r.has_key(i.rectype):
- 				r[i.rectype].append(i.recid)
+			try: j = self.getrecord(i,ctxid=ctxid)
+			except: continue
+ 			if r.has_key(j.rectype):
+ 				r[j.rectype].append(j.recid)
  			else:
- 				r[i.rectype]=[i.recid]
+ 				r[j.rectype]=[j.recid]
  		del records
  		return r
 				
