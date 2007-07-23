@@ -23,6 +23,8 @@ import emen2.TwistSupport_html.dbresource
 root = static.File(EMEN2ROOT+"/tweb")
 
 root.putChild("db",emen2.TwistSupport_html.dbresource.WebResource())
+root.putChild("dummy",emen2.TwistSupport_html.dbresource.WebResourceDummy())
+
 root.putChild("RPC2",xmlrpc.XMLRPCResource())
 #root.putChild("REST",rest.DBRESTResource())
 
@@ -31,4 +33,7 @@ root.putChild("upload",emen2.TwistSupport_html.dbresource.UploadResource())
 
 # You can set the port to listen on...
 reactor.listenTCP(EMEN2PORT, server.Site(root))
+
+reactor.suggestThreadPoolSize(4)
+
 reactor.run()

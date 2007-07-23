@@ -51,8 +51,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		content = request.content.read()
 		args, functionPath = xmlrpclib.loads(content)
 
-		print "--------- xmlrpc request: %s ----------------"%functionPath
-		print args
+		print "\n------ xmlrpc request: %s ------"%functionPath
+#		print args
 
 		try:
 			function = self._getFunction(functionPath)

@@ -9,13 +9,13 @@ from sets import Set
 import re
 import os
 #from emen2.ts import db
-from emen2 import ts
-import html
-import tmpl
+#from emen2 import ts
+#import html
+#import tmpl
 #import supp
 #import plot
 import pickle
-import timing
+#import timing
 from operator import itemgetter
 
 
@@ -51,7 +51,6 @@ def macroprecache(recordids,macros,db=None,ctxid=None):
 			macromgroup = q & db.getindexbyrecorddef(macro[1],ctxid)
 			for i in recordids:
 				precache[macro[0]][macro[1]][i] = len(c[i] & macromgroup)
-
 	return precache
 
 

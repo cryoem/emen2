@@ -1500,7 +1500,7 @@ logfile - defualt "db.log"
 importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
 recover - Only one thread should call this. Will run recovery on the environment before opening."""
 		global envopenflags,usetxn
-		
+				
 		if usetxn: self.newtxn=self.newtxn1
 		else : self.newtxn=self.newtxn2
 
@@ -2385,17 +2385,36 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return ret & secure		# intersection of the two search results
 	
-	def getindexdictbyvaluefast(subset,param,valrange=None,ctxid=None,host=None):
+	def getindexdictbyvaluefast(self,subset,param,valrange=None,ctxid=None,host=None):
+#		return self.getindexdictbyvalue(param,valrange,ctxid,host=host,subset=subset)
 		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
 		v = {}
-		for i in subset:
-			rec = self.db.getrecord(i,ctxid)
+		records = self.getrecord(list(subset),ctxid)
+		for i in records:
 			if not valrange:
-				v[i] = rec[param]
+				v[i.recid] = i[param]
 			else:
-				if rec[param] > valrange[0] and rec[param] < valrange[1]:
-					v[i] = rec[param]
+				if i[param] > valrange[0] and i[param] < valrange[1]:
+					v[i.recid] = i[param]
+		del records
 		return v	
+
+	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
+		"""quick version for records that are already in cache; e.g. table views"""
+#		return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
+ 		r = {}
+ 		records = self.getrecord(list(records),ctxid)
+ 		for i in records:
+ 			if r.has_key(i.rectype):
+ 				r[i.rectype].append(i.recid)
+ 			else:
+ 				r[i.rectype]=[i.recid]
+ 		del records
+ 		return r
+				
+#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
+#		"""quick version when we only want a single recorddef"""
+#		return Set(all)&Set(self.__recorddefindex[recorddef])
 	
 	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
 		"""For numerical & simple string parameters, this will locate all records
@@ -2451,25 +2470,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return secureRet
 	        """
 	
-	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
-		"""quick version for records that are already in cache; e.g. table views"""
-		r = {}
-		for i in records:
-			try: rectype = self.getrecord(i,ctxid).rectype
-			except: continue	
-			if r.has_key(rectype):
-				r[rectype].append(i)
-			else:
-				r[rectype]=[i]
-		return r
-		
 
 		
-#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
-#		"""quick version when we only want a single recorddef"""
-#		return Set(all)&Set(self.__recorddefindex[recorddef])
-		
-	
 	
 	def groupbyrecorddef(self,all,ctxid=None,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed

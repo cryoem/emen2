@@ -15,7 +15,6 @@ from twisted.internet import reactor
 import threading
 import Queue
 
-
 db=None
 DB=Database 
 
@@ -25,12 +24,12 @@ def startup(path):
 	
 
 #######################
-# THREAD POOL
+# (old version; doesn't work well with twisted.web) THREAD POOL
 #######################
 #
 # 
-# WORKERS = 1
-# 
+# WORKERS = 4
+# # 
 # class Worker(threading.Thread):
 # 		def __init__(self, queue):
 # 			self.__queue = queue
@@ -46,29 +45,28 @@ def startup(path):
 # 					print "Ending thread"
 # 					break
 # 
-# 				q[0](q[1],db=self.db)
-# 							
+# 				r = q[0][0](q[0][1], q[0][2], q[0][3], q[0][4], db=self.db)
+# 				q[1][0](result=r,request=q[1][1])
 # 							
 # queue = Queue.Queue(0)
 # threads = []
 # 
 # for i in range(WORKERS):
 # 	Worker(queue).start()
-# 
 # 		
 # print threads
-#
-#######################
-#
-#import signal
-#import sys
-#def threadterminate():
-#	print "ending worker queues..."
-#	for i in range(WORKERS):
-#		queue.put(None)
-#	print "ended.."
-#
-#atexit.register(threadterminate)
+# #
+# #######################
+# #
+# import signal
+# import sys
+# def threadterminate():
+# 	print "ending worker queues..."
+# 	for i in range(WORKERS):
+# 		queue.put(None)
+# 	print "ended.."
+# 
+# atexit.register(threadterminate)
 #
 #######################
 
@@ -79,47 +77,12 @@ from twisted.python import log, runtime, context
 
 
 class newThreadPool(threadpool.ThreadPool):
-	__inited = 0
-	min = 5
-	max = 10
-	joined = 0
-	started = 0
-	workers = 0
-	name = None
-
-	def __init__(self, minthreads=5, maxthreads=10, name=None):
-		"""Create a new threadpool.
-		@param minthreads: minimum number of threads in the pool
-		@param maxthreads: maximum number of threads in the pool
-		"""
-		assert minthreads >= 0, 'minimum is negative'
-		assert minthreads <= maxthreads, 'minimum is greater than maximum'
-	
-		self.q = Queue.Queue(0)
-		self.min = minthreads
-		self.max = maxthreads
-		self.name = name
-		if runtime.platform.getType() != "java":
-			self.waiters = []
-			self.threads = []
-			self.working = []
-		else:
-			self.waiters = ThreadSafeList()
-			self.threads = ThreadSafeList()
-			self.working = ThreadSafeList()
-
-	def start(self):
-		"""Start the threadpool."""
-		print "starting threadpool..."		
-		self.joined = 0
-		self.started = 1
-		# Start some threads.
-		self.adjustPoolsize()
 
 	def startAWorker(self):
 		print "started twisted thread (newThreadPool)..."
 		print "\tworker count: %s"%self.workers
-		self.db = Database.Database(EMEN2DBPATH)
+#		self.db = Database.Database(EMEN2DBPATH)
+#		self.db = db
 
 		self.workers = self.workers + 1
 		name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
@@ -128,32 +91,31 @@ class newThreadPool(threadpool.ThreadPool):
 		except Queue.Empty:
 				firstJob = None
 				
-		newThread = threading.Thread(target=self._worker, name=name, args=(firstJob,))
+		print "initializing thread."		
+		newThread = threading.Thread(target=self._worker, name=name, args=(firstJob,Database.Database(EMEN2DBPATH)))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
-	def stopAWorker(self):
-		self.q.put(WorkerStop)
-		self.workers = self.workers-1
-			
-	def _worker(self, o):
-			print "thread work..."
-			print "waiters: %s"%self.waiters
-			print "workers: %s"%self.workers
-			print "threads: %s"%self.threads
-			print "working: %s"%self.working
-			
+	def _worker(self, o, db):		
 			ct = threading.currentThread()
 			while 1:
 					if o is threadpool.WorkerStop:
 							break
 					elif o is not None:
-							print "thread working..."
 							self.working.append(ct)
+
+#							print "workers: %s"%self.workers
+#							print "waiters: %s"%self.waiters
+#							print "threads: %s"%self.threads
+#							print "working: %s"%self.working
+#							print "btrees: %s"%len(DB.BTree.alltrees)
+#							print "intbtrees: %s"%len(DB.IntBTree.alltrees)
+#							print "fieldbtrees: %s"%len(DB.FieldBTree.alltrees)
+							
 							ctx, function, args, kwargs = o
 							try:
 									# add DB arg to all deferred calls
-									args[3]['db']=self.db
+									args[3]['db']=db
 									context.call(ctx, function, *args, **kwargs)
 							except:
 									context.call(ctx, log.deferr)
