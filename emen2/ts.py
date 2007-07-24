@@ -85,14 +85,14 @@ class newThreadPool(threadpool.ThreadPool):
 #		self.db = db
 
 		self.workers = self.workers + 1
-		name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
+#		name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
 		try:
 				firstJob = self.q.get(0)
 		except Queue.Empty:
 				firstJob = None
 				
 		print "initializing thread."		
-		newThread = threading.Thread(target=self._worker, name=name, args=(firstJob,Database.Database(EMEN2DBPATH)))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(EMEN2DBPATH)))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
