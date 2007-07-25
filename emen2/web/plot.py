@@ -11,9 +11,7 @@ import re
 import os
 import pickle 
 
-from emen2 import ts
-#from emen2.TwistSupport_html import *
-
+from emen2config import *
 
 import time
 import random

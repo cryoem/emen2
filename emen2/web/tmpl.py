@@ -7,13 +7,7 @@ print "...loading %s"%__name__
 
 from sets import Set
 import re
-#import os
-#from emen2.ts import *
-from emen2 import ts
-#import html
-#import tmpl
-import supp
-#import plot
+from emen2config import *
 
 
 def form(action="",items=(),args={},method="POST"):
@@ -143,7 +137,7 @@ def header(name,init=None,short=0):
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
-		"""%ts.GROUPHOME)
+		"""%GROUPHOME)
 	else:
 		ret.append("<div class=\"bluespacer\"></div>")
 		
@@ -157,7 +151,7 @@ def header(name,init=None,short=0):
 
 
 
-def footer(short=0,ctxid=None):
+def footer(short=0,ctxid=None,db=None):
 	"""Common header block, includes </body>"""
 	ret = []
 	ret.append("</div>")
