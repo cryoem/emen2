@@ -2399,24 +2399,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		del records
 		return v	
 
-	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
-		"""quick version for records that are already in cache; e.g. table views"""
-#		return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
- 		r = {}
-# 		records = self.getrecord(list(records),ctxid)
- 		for i in records:
-			try: j = self.getrecord(i,ctxid=ctxid)
-			except: continue
- 			if r.has_key(j.rectype):
- 				r[j.rectype].append(j.recid)
- 			else:
- 				r[j.rectype]=[j.recid]
- 		del records
- 		return r
-				
-#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
-#		"""quick version when we only want a single recorddef"""
-#		return Set(all)&Set(self.__recorddefindex[recorddef])
 	
 	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
 		"""For numerical & simple string parameters, this will locate all records
@@ -2471,10 +2453,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 		return secureRet
 	        """
-	
 
-		
-	
 	def groupbyrecorddef(self,all,ctxid=None,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
 		by their recorddef"""
@@ -2494,10 +2473,75 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 		return ret
 
+	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
+		"""quick version for records that are already in cache; e.g. table views"""
+#		return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
+ 		r = {}
+# 		records = self.getrecord(list(records),ctxid)
+ 		for i in records:
+			try: j = self.getrecord(i,ctxid=ctxid)
+			except: continue
+ 			if r.has_key(j.rectype):
+ 				r[j.rectype].append(j.recid)
+ 			else:
+ 				r[j.rectype]=[j.recid]
+# 		del records
+ 		return r
+				
+#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
+#		"""quick version when we only want a single recorddef"""
+#		return Set(all)&Set(self.__recorddefindex[recorddef])
+	
+	def groupby(self,records,param,ctxid=None,host=None):
+		"""This will group a list of record numbers based on the value of 'param' in each record.
+		Records with no defined value will be grouped under the special key None. It would be a bad idea
+		to, for example, groupby 500,000 records by a float parameter with a different value for each
+		record. It will do it, but you may regret asking.
+		
+		We really need 2 implementations here (as above), one using indices for large numbers of records and
+		another using record retrieval for small numbers of records"""
+		r = {}
+	
+		for i in records:
+			try: j = self.getrecord(i,ctxid=ctxid)
+			except: continue
+			try: k=j[param]
+			except: k=None
+			if r.has_key(k):
+				r[k].append(i)
+			else:
+				r[k]=[i]
+		
+		return r
+	
+	def groupbyparentoftype(self,records,parenttype,recurse=3,ctxid=None,host=None):
+		"""This will group a list of record numbers based on the recordid of any parents of
+		type 'parenttype'. within the specified recursion depth. If records have multiple parents
+		of a particular type, they may be multiply classified. Note that due to large numbers of
+		recursive calls, this function may be quite slow in some cases. There may also be a
+		None category if the record has no appropriate parents. The default recursion level is 3."""
+		
+		r = {}
+	
+		for i in records:
+			try: p = self.getparents(i,recurse=recurse,ctxid=ctxid,host=host)
+			except: continue
+			try: k=[ii for ii in p if self.getrecord(ii,ctxid).rectype==parenttype]
+			except: k=[None]
+			if len(k)==0 : k=[None]
+			
+			for j in k:
+				if r.has_key(j) : r[j].append(i)
+				else : r[j]=[i]
+		
+		return r
+
+	
 	def countchildren(self,key,recurse=0,ctxid=None,host=None):
 		"""Unlike getchildren, this works only for 'records'. Returns a count of children
-		of the specified record classified by recorddef as a dictionary. The special "all"
+		of the specified record classified by recorddef as a dictionary. The special 'all'
 		key contains the sum of all different recorddefs"""
+		
 		c=self.getchildren(key,"record",recurse,ctxid,host)
 		r=self.groupbyrecorddef(c,ctxid,host)
 		for k in r.keys(): r[k]=len(r[k])
