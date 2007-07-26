@@ -3437,17 +3437,21 @@ or None if no match is found."""
 		# check data types
 		params=Set(record.keys())
 		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+
+		print params
+
 		for i in params:
 			try:
 				vartype=self.__paramdefs[i.lower()].vartype
 			except:
-				raise KeyError,"Parameter undefined (%s)"%i
+				raise KeyError,"Parameters undefined (%s)"%i
+
 			
 			try:
 				record[i] = valid_vartypes[vartype][1](record[i])
 			except:
-				pass
-#				print "Error converting datatype: %s, %s"%(i,vartype)
+#				pass
+				print "Error converting datatype: %s, %s"%(i,vartype)
 #				raise ValueError
 										
 		if (record.recid<0) : record.recid=None

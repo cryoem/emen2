@@ -7,6 +7,7 @@
 #from twisted.web.resource import Resource
 from emen2 import Database
 from emen2.emen2config import *
+from emen2 import DBProxy
 
 import atexit
 
@@ -93,6 +94,7 @@ class newThreadPool(threadpool.ThreadPool):
 				
 		print "initializing thread."		
 		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(EMEN2DBPATH)))
+#		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 
 	

@@ -48,42 +48,73 @@ function protobrowserinit(init,inittarget) {
 	display(param,"recorddef");
 }
 
-function display(param,type)
-{
+function recordbrowserinit(init,inittarget) {
+	param = init || "root_protocol";
+	currentparam = param;
+	target = inittarget || "";
+	recdisplay(param);
+}
+
+
+function display(param,type) {
 	currentparam = param;
 	browsertype = type;
 
-	if (browsertype == "paramdef") {xmlrpcrequest("getparamdef", [param])}
-	if (browsertype == "recorddef") {xmlrpcrequest("getrecorddef",[param])}
 
-	xmlrpcrequest("getchildrenofparents",[param,type,ctxid]);
-	xmlrpcrequest("getchildren",[param,type,ctxid]);
+	if (browsertype == "paramdef") {
+		clearchildelements('getparamdef');				
+		xmlrpcrequest("getparamdef", [param])
+		}
+	if (browsertype == "recorddef") {
+		clearchildelements('getrecorddef');		
+		xmlrpcrequest("getrecorddef",[param])
+	}
+	
+	clearchildelements('getchildrenofparents');
+	clearchildelements('getchildren');
+
+	xmlrpcrequest("getchildrenofparents",[param,type,0,ctxid]);
+	xmlrpcrequest("getchildren",[param,type,0,ctxid]);
+	xmlrpcrequest("getcousins",[param,type,ctxid]);
+}
+function recdisplay(param) {
+	currentparam = param;
+	browsertype = "record";
+	xmlrpcrequest("getrelatedrecswithnames",[param,"children",ctxid]);
+	xmlrpcrequest("getrelatedrecswithnames",[param,"parents",ctxid]);
 	xmlrpcrequest("getcousins",[param,type,ctxid]);
 }
 
-
 /***********************************************/
 
-
-/***********************************************/
-
-
-function form_addfile(formobj) {
-	formobj.fname.value = formobj.filedata.value;
+function clearchildelements(id) {
+	p = document.getElementById(id);
+	while (p.firstChild) {p.removeChild(p.firstChild)};	
 }
 
+function xmlrpc_getrelatedrecswithnames_cb(r) {
+	d = document.createElement('div');
+	d.id = "getchildren_box";
+	d.className = "parent";
+	d.innerHTML = "children:";
+	var z = document.createElement('div');
+	z.id = "getchildren_box2";
+	z.className = "parents";
+	p.appendChild(d);
+	p.appendChild(z);
 
-/***********************************************/
+	for (var j=0;j<r.length;j++) {
+		var y = document.createElement('a');
+		y.href = "javascript:recdisplay('" + r[j][0] + "','" + browsertype + "')";
+		y.innerHTML = r[j][1] + " ";
+		y.className = "child";
+		y.style.display = "block";
+		y.style.width = "270px";
+		y.style.height = "auto";
 
-function form_addcomment(formobj) {
-	comment = formobj.comment.value;
-	r = xmlrpcrequest("addcomment",[name,comment,ctxid],0);
-	window.location.reload();
+		z.appendChild(y);
+	}
 }
-
-
-
-/***********************************************/
 
 
 
@@ -93,7 +124,7 @@ function form_addcomment(formobj) {
 
 function xmlrpc_getchildrenofparents_cb(r) {
 	p = document.getElementById('getchildrenofparents');
-	while (p.firstChild) {p.removeChild(p.firstChild)};
+//	while (p.firstChild) {p.removeChild(p.firstChild)};
 	
 	for (var i=0;i<r.length;i++) {
 		var x = document.createElement('div');
@@ -124,7 +155,7 @@ function xmlrpc_getchildrenofparents_cb(r) {
 
 function xmlrpc_getchildren_cb(r) {
 	p = document.getElementById('getchildren');
-	while (p.firstChild) {p.removeChild(p.firstChild)};	
+//	while (p.firstChild) {p.removeChild(p.firstChild)};	
 	if (r.length == 0) {return}
 
 	d = document.createElement('div');
@@ -161,7 +192,7 @@ function xmlrpc_getrecorddef_cb(r) {
 	f = document.getElementById("recdef_name");
 	f.innerHTML = currentparam;
 	d = document.getElementById("getrecorddef");
-	while (d.firstChild) {d.removeChild(d.firstChild)};	
+//	while (d.firstChild) {d.removeChild(d.firstChild)};	
 
 	k = document.createElement('span');
 	k.innerHTML = "Creator: " + recdef["creator"] + "<br />Created: " + recdef["creationtime"];
@@ -176,7 +207,8 @@ function xmlrpc_getrecorddef_cb(r) {
 	}
 	
 	rdv = document.getElementById("recorddefviews");	
-	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
+	clearchildelements('recorddefviews');
+//	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
 
 	fcb = document.createElement('div');
 	fcb.className = "floatcontainer";
@@ -235,7 +267,8 @@ function xmlrpc_getparamdef_cb(r) {
 
 	def = document.getElementById("getparamdef");
 //	alert(def);
-	while (def.firstChild) {def.removeChild(def.firstChild)};	
+//	while (def.firstChild) {def.removeChild(def.firstChild)};	
+	clearchildelements('getparamdef');
 
 	for (var i=0;i<r.length;i++) {
 		k = document.createElement('span');
@@ -249,6 +282,28 @@ function xmlrpc_getparamdef_cb(r) {
 	}
 	
 }
+
+
+/***********************************************/
+
+
+function form_addfile(formobj) {
+	formobj.fname.value = formobj.filedata.value;
+}
+
+
+/***********************************************/
+
+function form_addcomment(formobj) {
+	comment = formobj.comment.value;
+	r = xmlrpcrequest("addcomment",[name,comment,ctxid],0);
+	window.location.reload();
+}
+
+
+
+/***********************************************/
+
 
 /***********************/
 
@@ -487,6 +542,18 @@ function form_makeedits_cancel(formobj) {
 	return false;
 }
 function xmlrpc_putrecord(formobj) {
+
+	// parent permissions
+	if (!isNaN(parseInt(pclink))) {
+		p = xmlrpcrequest("getrecord",[pclink,ctxid],0);
+		parent = new dict();
+		// instead of .update()
+		for (var i=0;i<p.length;i++) {
+			parent[p[i][0]] = p[i][1];
+		}
+	}
+
+
 	newvalues = new Array(["rectype",rectype]);
 	if (name) {newvalues.push(["recid",name])};
 	nv = new Array();
@@ -546,7 +613,12 @@ function xmlrpc_putrecord(formobj) {
 		}
 	}
 
+	if (!isNaN(parseInt(pclink))) {	
+		newvalues.push(["permissions",parent["permissions"]]);
+	}
+	
 	xmlrpcrequest("putrecord",[newvalues,ctxid]);
+
 }
 
 // fixme: change this to use sync-callbacks

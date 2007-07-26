@@ -128,16 +128,19 @@ def header(name,init=None,short=0):
 
 	<div class="nav_tableli"><a href="/db/home">Home</a></div>
 
-	<div class="nav_tableli"><a href="/db/record/%s">Browse Database</a></div>
-	<div class="nav_tableli"><a href="/db/queryform">Query Database</a></div>
-	<div class="nav_tableli"><a href="/db/workflow">My Workflow</a></div>
+	<div class="nav_tableli"><a href="/db/record/%s">Browse</a></div>
+	<div class="nav_tableli"><a href="/db/queryform">Query</a></div>
+	<div class="nav_tableli"><a href="/db/workflow">Workflow</a></div>
 
 	<div class="nav_tableli"><a href="/db/users">Users</a></div>
+
+	<div class="nav_tableli"><a href="/db/record/%s">Groups</a></div>
+	<div class="nav_tableli"><a href="/db/record/%s">Microscopes</a></div>
 
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
 </div>
-		"""%GROUPHOME)
+		"""%(GROUPHOME,GROUPROOT,MICROSCOPEROOT))
 	else:
 		ret.append("<div class=\"bluespacer\"></div>")
 		
@@ -160,23 +163,21 @@ def footer(short=0,ctxid=None,db=None):
 		ret.append("""
 <div id="bottom">
 
-<img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	
+<img id="bottomlogo" src="/images/logo_alt_sm.gif" alt="Baylor College of Medicine" />	""")
 
-<!-- -->""")
+		try:
+			user = db.checkcontext(ctxid)[0]
+			ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
+		except:
+			ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
 
-#	try:
-#		user = db.checkcontext(ctxid)[0]
-#		ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
-#	except:
-#		ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
+		ret.append("""
+	Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
+	Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
+	Please mail comments/suggestions to: <a href="mailto:ian.rees@bcm.edu">WEBMASTER</a><br /><br />
 
-	ret.append("""
-Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
-Room N421 Alkek Building, One Baylor Plaza, Houston, TX, 77030<br />
-Please mail comments/suggestions to: <a href="mailto:ian.rees@bcm.edu">WEBMASTER</a><br /><br />
-
-</div></div>
-		""")
+	</div></div>
+			""")
 
 	ret.append("</div></body></html>")
 	return " ".join(ret)
@@ -332,7 +333,7 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 
 
 
-def protobrowser(all=None,viewfull=1,addchild=None,edit=1,select=None,hidden=None):
+def protobrowser(all=None,viewfull=1,addchild=None,edit=0,select=None,hidden=None):
 	form = []
 	addchildhtml = ""
 	hiddenhtml = ""
@@ -404,6 +405,14 @@ def protobrowser(all=None,viewfull=1,addchild=None,edit=1,select=None,hidden=Non
 
 
 
+
+
+
+
+
+
+
+
 def notifymsg(args):
 	"""Alert messages to show in the top of the page."""
 	ret = []
@@ -459,6 +468,6 @@ def stub(path,args,ctxid,host):
 
 	ret.append("</div>")
 
-	ret.append(tmpl.footer(ctxid=ctxid))
+	ret.append(tmpl.footer(ctxid=ctxid,db=db))
 	return "".join(ret)
 	

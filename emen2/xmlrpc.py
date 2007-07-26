@@ -39,6 +39,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		f = xmlrpc.Fault(self.FAILURE, "Fault")
 		s = xmlrpclib.dumps(f, methodresponse=1)
 		print "fault in xmlrpc function: "
+		print type(result)
 		print result
 		print s
 		request.setHeader("content-length", str(len(s)))
@@ -50,6 +51,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 
 		content = request.content.read()
 		args, functionPath = xmlrpclib.loads(content)
+		kwargs={"host":request.getClientIP()}
 
 		print "\n------ xmlrpc request: %s ------"%functionPath
 #		print args
@@ -62,7 +64,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		else:
 			request.setHeader("content-type", "text/xml")
 
-		d = threads.deferToThread(function, *args)
+		d = threads.deferToThread(function, *args, **kwargs)
 		d.addCallback(self._cbRender, request, t0=time.time())
 		d.addErrback(self._ebRender,request)
 
@@ -164,7 +166,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		
 		return ret
 	
-	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None,db=None):
+	def xmlrpc_getrecord(self,recid,ctxid=None,dbid=None,host=None,db=None):
 		"""Retrieve a record from the database as a dictionary"""
 		try:
 			r=db.getrecord(recid,ctxid,dbid)
@@ -190,6 +192,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 			rec[i] = recdict[i]
 											
 		print "putting record..."										
+#		print rec
 		r=db.putrecord(rec,ctxid=ctxid)
 		print "done..."
 		return r
@@ -198,7 +201,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		"""This will add a choice to ParamDefs of vartype 'string'"""
 		db.addparamchoice(paramdefname,choice)
 			
-	def xmlrpc_addparamdef(self,paramdef,ctxid=None,host=None,parent=None,db=None):
+	def xmlrpc_addparamdef(self,paramdef,ctxid=None,parent=None,host=None,db=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
 		r=ts.DB.ParamDef()
 		r.__dict__.update(paramdef)
@@ -224,12 +227,12 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		"""List of all paramdef names"""
 		return tuple(db.getparamdefnames())
 	
-	def xmlrpc_addrecorddef(self,recdef,ctxid=None,host=None,parent=None,db=None):
+	def xmlrpc_addrecorddef(self,recdef,ctxid=None,parent=None,host=None,db=None):
 		"""New recorddefs may be added by users with record creation permission"""
 		r=ts.DB.RecordDef(rectype)
 		return tuple(db.addrecorddef(r,ctxid,parent))
 			
-	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,host=None,recid=None,db=None):
+	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,recid=None,host=None,db=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
 		which case they may only be accessed by the user or by someone with permission
 		to access a record of that type"""
@@ -253,6 +256,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		return db.getpropertyunits(propname)
 		
 	def xmlrpc_getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None,db=None):
+		print ctxid
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
 		children = list(db.getchildren(key,keytype,recurse=0,ctxid=ctxid,host=host))
@@ -306,7 +310,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		"""look up an existing binary identifier"""
 		return db.getbinary(ident,ctxid,host)
 	
-	def xmlrpc_query(self,query,ctxid=None,host=None,retindex=False,db=None):
+	def xmlrpc_query(self,query,ctxid=None,retindex=False,host=None,db=None):
 		"""full database query"""
 		return tuple(db.query(query,ctxid,host,retindex))
 	
@@ -325,8 +329,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 	def xmlrpc_getindexbyvalue(self,paramname,valrange,ctxid=None,host=None,db=None):
 		return tuple(db.getindexbyvalue(paramname,valrange,ctxid,host))
 	
-	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid=None,host=None,subset=None,db=None):
-		return tuple(db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset))
+	def xmlrpc_getindexdictbyvalue(self,paramname,valrange,ctxid=None,subset=None,host=None,db=None):
+		return db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset).items()
 	
 	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None,db=None):
 		return db.groupbyrecorddef(all,ctxid,host)
@@ -361,23 +365,23 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 # Convenience functions (not direct map to db methods)
 		
 	
-	def xmlrpc_echo(self,args,db=None):
+	def xmlrpc_echo(self,args,host=None,db=None):
 		for i in args:
 			print i
 		return str(args)
 	
-	def xmlrpc_error(self,db=None):
+	def xmlrpc_error(self,host=None,db=None):
 		raise KeyError
 		return ""
 	
-	def xmlrpc_sleep(self,args,db=None):
+	def xmlrpc_sleep(self,args,host=None,db=None):
 		time.sleep(100)
 		return ""
 	
-	def xmlrpc_ping(self,db=None):
+	def xmlrpc_ping(self,host=None,db=None):
 		return "pong"
 
-	def xmlrpc_test(self,db=None):
+	def xmlrpc_test(self,host=None,db=None):
 		a=ts.DB.WorkFlow()
 		b=ts.DB.WorkFlow()
 		c=(a,b)
@@ -465,6 +469,18 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 			b.append([i,children])
 		return b		
 	
+	
+	
+	def xmlrpc_getrelatedrecswithnames(self,key,type,ctxid,host=None,db=None):
+		if type == "children": 
+			a = db.getchildren(key,"record",0,ctxid)
+		else: 
+			a = db.getparents(key,"record",0,ctxid)
+		r = []
+		for i in a:
+			z = db.getrecord(i,ctxid)
+			r.append((i,z["recname"]))
+		return r
 		
 		
 	def xmlrpc_findparamname(self,q,ctxid=None,host=None,db=None):

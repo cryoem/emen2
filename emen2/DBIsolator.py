@@ -149,10 +149,10 @@ class dbisolator:
 	def meth_addworkflowitem(self,work,ctxid,host=None) :
 		return db.addworkflowitem(work,ctxid,host)
 		
-	def meth_delworkflowitem(self,wfid,ctxid,host=None) :
+	def meth_delworkflowitem(self,wfid,ctxid,host=None):
 		return db.delworkflowitem(wfid,ctxid,host)
 	
-	def meth_setworkflow(self,wflist,ctxid,host=None) :
+	def meth_setworkflow(self,wflist,ctxid,host=None):
 		return db.setworkflow(wflist,ctxid,host)
 		
 	def meth_getvartypenames(self):
@@ -203,13 +203,13 @@ class dbisolator:
 		rec.localcpy=1
 		return rec
 	
-	def meth_getrecordnames(self,ctxid,dbid=0,host=None) :
+	def meth_getrecordnames(self,ctxid,dbid=0,host=None):
 		return db.getrecordnames(ctxid,dbid,host)
 	
 	def meth_getrecordschangetime(self,recids,ctxid,host=None):
 		return db.getrecordschangetime(recids,ctxid,host)
 	
-	def meth_getrecord(self,recid,ctxid,host=None,dbid=0) :
+	def meth_getrecord(self,recid,ctxid,host=None,dbid=0):
 		rec=db.getrecord(recid,ctxid,host,dbid)
 		rec.localcpy=1
 		return rec
