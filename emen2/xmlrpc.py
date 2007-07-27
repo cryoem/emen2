@@ -51,10 +51,13 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 
 		content = request.content.read()
 		args, functionPath = xmlrpclib.loads(content)
-		kwargs={"host":request.getClientIP()}
-
-		print "\n------ xmlrpc request: %s ------"%functionPath
+		host = request.getClientIP()
+		kwargs={"host":host}
+		print "\n---- [%s] [%s] ---- xmlrpc request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,functionPath)
 #		print args
+
+		if functionPath != "login":
+			print args
 
 		try:
 			function = self._getFunction(functionPath)

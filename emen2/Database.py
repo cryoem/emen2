@@ -3472,9 +3472,9 @@ or None if no match is found."""
 			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
 #			record.recid = self.__dbseq.get()                                # Get a new record-id
 
-#			df=file("/tmp/dbbug3","a")
-#			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
-#			df.close()
+			df=file("/tmp/dbbug3","a")
+			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
+			df.close()
 		
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"

@@ -48,10 +48,9 @@ class WebResource(Resource):
 	isLeaf = True
 	
 	def render(self,request):
-		print "\n------ web request: %s ------"%request.postpath
-
 		session=request.getSession()
 		t0 = time.time()
+		host=request.getClientIP()
 
 		if len(request.postpath) < 1:
 			request.postpath.append("")
@@ -64,13 +63,17 @@ class WebResource(Resource):
 
 		try:
 			session.ctxid = request.args["ctxid"][0]
-			ts.db.checkcontext(session.ctxid,request.getClientIP())
+			user=ts.db.checkcontext(session.ctxid,host)[0]
 		except:
 			pass
  		try:
  			ctxid = session.ctxid
- 			ts.db.checkcontext(ctxid,request.getClientIP())
+ 			user=ts.db.checkcontext(ctxid,host)[0]
  		except:
+
+			################# begin login ###################
+			print "\n---- [%s] [%s] ---- login request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,request.postpath)
+	
  			# Force login
  			try:			
 				if request.args["username"][0] == "":
@@ -85,21 +88,26 @@ class WebResource(Resource):
  			except ValueError, TypeError:
  				print "Authentication Error"
  				print "...original request: %s"%session.originalrequest
- 				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,ctxid=None,host=request.getClientIP(),redir=session.originalrequest,failed=1)
+				if session.originalrequest==None:
+					session.originalrequest="/db/"
+ 				return emen2.TwistSupport_html.html.login.login(session.originalrequest,None,ctxid=None,host=host,redir=session.originalrequest,failed=1)
  			except KeyError:
  
  				# Is it a page that does not require authentication?
  				if (request.postpath[0] == "home"):
- 					return emen2.TwistSupport_html.html.home.home(request.postpath,request.args,ctxid=None,host=request.getClientIP())
+ 					return emen2.TwistSupport_html.html.home.home(request.postpath,request.args,ctxid=None,host=host)
  				if (request.postpath[0]=="newuser"):
- 					return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,ctxid=None,host=request.getClientIP())
+ 					return emen2.TwistSupport_html.html.newuser.newuser(request.postpath,request.args,ctxid=None,host=host)
  				if request.uri == "/db/login":
  					session.originalrequest = "/db/"
  				else:
  					session.originalrequest = request.uri
  								
  				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)
+			################# end login ###################
 					
+		print "\n---- [%s] [%s] [%s] ---- web request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
+
 		if method == "logout":
 			ts.db.deletecontext(ctxid)
 			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
@@ -111,7 +119,7 @@ class WebResource(Resource):
 		module = getattr(emen2.TwistSupport_html.html,method)
 		function = getattr(module,method)
 
-		d = threads.deferToThread(function, request.postpath, request.args, ctxid=ctxid, host=request.getClientIP())
+		d = threads.deferToThread(function, request.postpath, request.args, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 
@@ -163,8 +171,7 @@ class UploadResource(Resource):
 		request.finish()	
 
 	def RenderWorker(self,request,db=None):
-		print "\n-------- upload -----------"
-		print request.postpath
+		host=request.getClientIP()
 		args=request.args
 
 		if args.has_key("ctxid"):
@@ -173,18 +180,22 @@ class UploadResource(Resource):
 			try:
 				session=request.getSession()			# sets a cookie to use as a session id
 				ctxid = session.ctxid
-				db.checkcontext(ctxid,request.getClientIP())
+				user=db.checkcontext(ctxid,request.getClientIP())[0]
 			except:
 				print "Need to login..."
 				session.originalrequest = request.uri
 				return emen2.TwistSupport_html.html.login.login(request.uri,None,None,None,redir=request.uri,failed=0)	
+
+
+		print "\n---- [%s] [%s] [%s] ---- upload request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
+
 
 		binary = 0
 		if args.has_key("file_binary_image"): 
 			binary = args["file_binary_image"][0]
 
 
-		fname = db.checkcontext(ctxid)[0] + " " + time.strftime("%Y/%m/%d %H:%M:%S")
+		fname = user + " " + time.strftime("%Y/%m/%d %H:%M:%S")
 		if args.has_key("fname"): 
 			fname = args["fname"][0]
 
@@ -248,27 +259,36 @@ class DownloadResource(Resource, File):
 
 
 	def render(self, request):
-		print "\n------ download request: %s ------"%request.postpath
+#		print "\n------ download request: %s ------"%request.postpath
 		
 		d = threads.deferToThread(self.RenderWorker, request)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET		
 		
+		
+		
 	def RenderWorker(self, request, db=None):
 		""" thread worker to get file paths from db; hand back to resource to send """
 		# auth...
+		
+		host=request.getClientIP()
+		
 		if request.args.has_key("ctxid"):
 			ctxid = request.args["ctxid"][0]
 		else:
 			try:
 				session=request.getSession()			# sets a cookie to use as a session id
 				ctxid = session.ctxid
-				db.checkcontext(ctxid,request.getClientIP())
+				user=db.checkcontext(ctxid,host)[0]
 			except:
 				print "Need to login..."
 				session.originalrequest = request.uri
 				raise KeyError	
+
+
+		print "\n---- [%s] [%s] [%s] ---- download request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
+
 
 		bids = request.postpath[0].split(",")
 
