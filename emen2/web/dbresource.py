@@ -176,11 +176,12 @@ class UploadResource(Resource):
 
 		if args.has_key("ctxid"):
 			ctxid = request.args["ctxid"][0]
+			user=db.checkcontext(ctxid,host)[0]
 		else:
 			try:
 				session=request.getSession()			# sets a cookie to use as a session id
 				ctxid = session.ctxid
-				user=db.checkcontext(ctxid,request.getClientIP())[0]
+				user=db.checkcontext(ctxid,host)[0]
 			except:
 				print "Need to login..."
 				session.originalrequest = request.uri
@@ -276,6 +277,7 @@ class DownloadResource(Resource, File):
 		
 		if request.args.has_key("ctxid"):
 			ctxid = request.args["ctxid"][0]
+			user=db.checkcontext(ctxid,host)[0]			
 		else:
 			try:
 				session=request.getSession()			# sets a cookie to use as a session id
