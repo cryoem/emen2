@@ -724,7 +724,7 @@ class FieldBTree:
 			time.sleep(.1)
 		self.txn=txn
 	
-	def typekey(self,key) :
+	def typekey(self,key):
 		if key==None : return None
 		if self.keytype=="f" :
 			try: return float(key)
@@ -847,15 +847,22 @@ class MemBTree:
 	def set_txn(self,txn):
 		return
 
-	def typekey(self,key) :
+	def typekey(self,key):
 		if key==None or key=="None" : return None
 		if self.keytype=="f" : 
-			try: return float(key)
+			try:
+				return float(key)
 			except: 
 				print "Invalid float(%s)"%key
 				return(0.0)
-		if self.keytype=="d" : 
-			return int(key)
+		if self.keytype=="d":
+			# try block: ian
+			try:
+				return int(key)
+			except:
+				print "Invalid int(%s)"%key
+				return 0
+			
 		return str(key)
 			
 	def removeref(self,key,item,txn=None):
@@ -2385,19 +2392,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return ret & secure		# intersection of the two search results
 	
-	def getindexdictbyvaluefast(self,subset,param,valrange=None,ctxid=None,host=None):
-#		return self.getindexdictbyvalue(param,valrange,ctxid,host=host,subset=subset)
-		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
-		v = {}
-		records = self.getrecord(list(subset),ctxid)
-		for i in records:
-			if not valrange:
-				v[i.recid] = i[param]
-			else:
-				if i[param] > valrange[0] and i[param] < valrange[1]:
-					v[i.recid] = i[param]
-		del records
-		return v	
+	
 
 	
 	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
@@ -2473,24 +2468,32 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 		return ret
 
+
 	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
 		"""quick version for records that are already in cache; e.g. table views"""
-#		return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
  		r = {}
-# 		records = self.getrecord(list(records),ctxid)
  		for i in records:
-			try: j = self.getrecord(i,ctxid=ctxid)
-			except: continue
+			if not self.trygetrecord(i,ctxid): continue
+			j = self.getrecord(i,ctxid=ctxid)
  			if r.has_key(j.rectype):
  				r[j.rectype].append(j.recid)
  			else:
  				r[j.rectype]=[j.recid]
-# 		del records
  		return r
-				
-#	def groupbyrecorddeffast2(self,records,recorddef,ctxid=None,host=None):
-#		"""quick version when we only want a single recorddef"""
-#		return Set(all)&Set(self.__recorddefindex[recorddef])
+
+
+	def getindexdictbyvaluefast(self,subset,param,valrange=None,ctxid=None,host=None):
+		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
+		v = {}
+		records = self.getrecord(list(subset),ctxid)
+		for i in records:
+			if not valrange:
+				v[i.recid] = i[param]
+			else:
+				if i[param] > valrange[0] and i[param] < valrange[1]:
+					v[i.recid] = i[param]
+		del records
+		return v				
 	
 	def groupby(self,records,param,ctxid=None,host=None):
 		"""This will group a list of record numbers based on the value of 'param' in each record.
@@ -2566,15 +2569,29 @@ parentheses not supported yet. Upon failure returns a tuple:
 		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		ret=trg.children(key)
-#		print ret
 		
 		if recurse==0 : return Set(ret)
-		
+
+# ian
+#		new = 0
+# 		r = {}
+# 		r[recurse] = Set(ret)
+# 		while recurse:
+# 			r[recurse-1] = Set()
+# 			for i in r[recurse]:
+# 				if self.trygetrecord(i,ctxid,host):	r[recurse-1] |= Set(trg.children(i))
+# 			recurse = recurse - 1
+# 
+# 		ret = Set()
+# 		for i in r.values():
+# 			ret |= i
+# 		return ret
+
 		r2=[]
 		for i in ret:
 			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host)
-		
 		return Set(ret+r2)
+		
 
 	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
@@ -3406,6 +3423,9 @@ or None if no match is found."""
 	def __reindexsec(self,oldlist,newlist,recid,txn=None):
 		"""This updates the security (read-only) index
 		takes two lists of userid/groups (may be None)"""
+#		print "reindexing security.."
+#		print oldlist
+#		print newlist
 		o=Set(oldlist)
 		n=Set(newlist)
 		
@@ -3569,7 +3589,7 @@ or None if no match is found."""
 		# Make sure all parameters are defined before we start updating the indicies
 		ptest=Set(changedparams)-Set(self.getparamdefnames())
 		# ian 03.25.07
-#		ptest.discard("permissions")
+		ptest.discard("permissions")
 		if len(ptest)>0 :
 			raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
 		
@@ -4280,6 +4300,7 @@ or None if no match is found."""
 				
 				# renumbering
 				nrec+=1
+#				print nrec
 				if nrec%1000==0 :
 					print " %8d records  (%f/sec)\r"%(nrec,nrec/(time.time()-t0))
 					sys.stdout.flush()
@@ -4295,7 +4316,12 @@ or None if no match is found."""
 				# Index record
 				for k,v in r.items():
 					if k != 'recid':
+#						try:
 						self.__reindex(k,None,v,r.recid,txn)
+#						except:
+#							print k
+#							print v
+#							print r.recid
 				
 				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid,txn)		# index security
 				self.__recorddefindex.addref(r.rectype,r.recid,txn)			# index recorddef
