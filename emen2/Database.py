@@ -3792,7 +3792,8 @@ or None if no match is found."""
 			if not isroot and ctx.user not in rec["permissions"][3] : continue		
 			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
-			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
+			xcur=[Set(v) for v in rec["permissions"]]		# copy of cur that will be changed
+#			l=[len(v) for v in cur]	#length test not sufficient # length of each tuple so we can decide if we need to commit changes
 			newv=[Set(v) for v in usertuple]				# similar list of sets for the new users to add
 			
 			# check for valid user names
@@ -3802,27 +3803,28 @@ or None if no match is found."""
 			newv[3]&=userset
 						
 			# update the permissions for each group
-			cur[0]|=newv[0]
-			cur[1]|=newv[1]
-			cur[2]|=newv[2]
-			cur[3]|=newv[3]
+			xcur[0]|=newv[0]
+			xcur[1]|=newv[1]
+			xcur[2]|=newv[2]
+			xcur[3]|=newv[3]
 			
 			# if the user already has more permission than we are trying
 			# to assign, we don't do anything. This also cleans things up
 			# so a user cannot have more than one security level
-			cur[0]-=cur[1]
-			cur[0]-=cur[2]
-			cur[0]-=cur[3]
-			cur[1]-=cur[2]
-			cur[1]-=cur[3]
-			cur[2]-=cur[3]
-			
-			l2=[len(v) for v in cur]
+			xcur[0]-=cur[1]
+			xcur[0]-=cur[2]
+			xcur[0]-=cur[3]
+			xcur[1]-=cur[2]
+			xcur[1]-=cur[3]
+			xcur[2]-=cur[3]
+#			l2=[len(v) for v in cur]  # length test not sufficient
 			
 			# update if necessary
-			if l!=l2 :
+#			if l!=l2 :
+                        if xcur[0] != cur[0] or xcur[1] != cur[1] \
+			   or xcur[2] != cur[2] or xcur[3] != cur[3]:
 				old=rec["permissions"]
-				rec["permissions"]=(tuple(cur[0]),tuple(cur[1]),tuple(cur[2]),tuple(cur[3]))
+				rec["permissions"]=(tuple(xcur[0]),tuple(xcur[1]),tuple(xcur[2]),tuple(xcur[3]))
 #				print "new permissions: %s"%rec["permissions"]
 # SHOULD do it this way, but too slow
 #				rec.commit()
@@ -3834,7 +3836,7 @@ or None if no match is found."""
 #				self.__reindexsec(reduce(operator.concat,old),
 #					reduce(operator.concat,rec["permissions"]),rec.recid)
 				
-				stu=(cur[0]|cur[1]|cur[2]|cur[3])-Set(old[0]+old[1]+old[2]+old[3])
+				stu=(xcur[0]|xcur[1]|xcur[2]|xcur[3])-Set(old[0]+old[1]+old[2]+old[3])
 				for i in stu:
 					try: secrupd[i].append(rec.recid)
 					except: secrupd[i]=[rec.recid]
