@@ -3762,7 +3762,7 @@ or None if no match is found."""
 					except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
 
 		# all users
-		userset = Set(self.getusernames(ctxid)) | Set(("-4","-3","-2","-1"))
+		userset = Set(self.getusernames(ctxid)) | Set((-4,-3,-2,-1))
 
 		# get a list of records we need to update
 		if recurse>0:
