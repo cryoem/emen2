@@ -3811,12 +3811,12 @@ or None if no match is found."""
 			# if the user already has more permission than we are trying
 			# to assign, we don't do anything. This also cleans things up
 			# so a user cannot have more than one security level
-			xcur[0]-=cur[1]
-			xcur[0]-=cur[2]
-			xcur[0]-=cur[3]
-			xcur[1]-=cur[2]
-			xcur[1]-=cur[3]
-			xcur[2]-=cur[3]
+			xcur[0]-=xcur[1]
+			xcur[0]-=xcur[2]
+			xcur[0]-=xcur[3]
+			xcur[1]-=xcur[2]
+			xcur[1]-=xcur[3]
+			xcur[2]-=xcur[3]
 #			l2=[len(v) for v in cur]  # length test not sufficient
 			
 			# update if necessary
