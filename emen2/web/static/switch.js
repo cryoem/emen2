@@ -1,7 +1,34 @@
 var classcache = new Array();
-var oldvalues = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
+
+/***** callback manager *****/
+
+Function.prototype.andThen=function(g) {
+  var f=this;
+  return function() {
+    f();g();
+  }
+};
+
+function CallbackManager() {
+	this.f = new Array();
+	this.end = function (r) {};
+	this.register = function(callbackFunction) {
+//		alert("Registered "+callbackFunction);
+		this.f.push(callbackFunction);
+	}
+	this.callback = function(r) {
+		for (i=0;i<this.f.length;i++) {
+			this.f[i](r);
+		}
+		this.end(r);
+	}
+}
+
+/***** end callback manager *****/
+
+
 
 function dict() {
 }
@@ -139,11 +166,8 @@ function hideclass(classname,update) {
 	try {
 		el = document.getElementById(list[0]);
 		state = getStyle(el,"display");
-		console.log(classname);
 		classstatecache[classname] = state;
-//		console.log(classname + ", " + state + ", " + classstatecache[classname]);
 	} catch(error) {
-//		alert(classname + " : " + list[0]);
 	}
 
 	for (var i=0;i<list.length;i++) {
@@ -153,9 +177,6 @@ function hideclass(classname,update) {
 
 function showclass(classname,update) {
 	list = getElementByClass(classname,update);
-
-//	console.log(classstatecache);
-//	console.log(document.getElementById(list[0]).nodeName);
 
 //	if (classname in classstatecache) {cache = classstatecache[classname]} else {
 //			if (document.getElementById(list[0]).nodeName == "DIV") {
@@ -189,22 +210,27 @@ function qhide(id) {
 }
 
 
+//var init = new CallbackManager();
+//init.register(function (r) {
+//	ctxid_init_start('TWISTED_SESSION_ctxid');	
+//	});
+
+//window.onload = init.callback("");
+
 function init() {
 	ctxid_init_start('TWISTED_SESSION_ctxid');	
+	}
 
+// old init
 // these have to be cached or specified for the switching methods
 //	initialstyle();
 // saves a little time by caching		
 //	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
 
-	if (document.getElementById("page_main_mainview")) {
-		switchin("main","mainview");
-	}
+//	if (document.getElementById("page_main_mainview")) {
+//		switchin("main","mainview");
+//	}
 
-	if (document.getElementById("page_recordview_defaultview")) {
-		hideclass('page_recordview');
-		qshow('page_recordview_defaultview');	
-	}
-	
-
-}
+//	if (document.getElementById("page_recordview_defaultview")) {
+//		hideclass('page_recordview');
+//		qshow('page_recordview_defaultview');	

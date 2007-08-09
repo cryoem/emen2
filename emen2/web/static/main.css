@@ -320,8 +320,40 @@ td.standardtable_shaded {
 
 .table_span {
 	font-size:16px;
-	cursor: pointer;
+/*	cursor: pointer; */
 }
+
+
+.tab {
+	margin-bottom:20px;
+	float:none;
+}
+.tab_label {
+	padding:10px;
+	padding-right:20px;
+	float:left;
+	background:#E7F1F8;
+}
+.tab_page {
+	width:940px;
+	padding:10px;
+	padding-top:20px;
+	clear:both;
+	background:#E7F1F8;
+}
+
+.roundwhitebox {
+	padding:20px;
+	background:white;
+}
+
+.page_recordview {
+	display:none;
+}
+#page_recordview_defaultview {
+	display:block;
+}
+
 
 /* 
 =============================================================
@@ -418,6 +450,16 @@ a,.jslink {
 	cursor:pointer;
 	text-decoration:none;
 	color:#202060;
+}
+.jslink_box {
+	padding:2px;
+	cursor:pointer;
+	text-decoration:none;
+	border:solid 1px black;
+	background:#F0F0F0;
+}
+.jslink_box_active {
+	background:white;
 }
 
 h1 {
@@ -588,8 +630,6 @@ DROP DOWN MENU CSS
 
 
 
-
-
 /* "clearfix" */
 
 .afterdiv {
@@ -750,13 +790,13 @@ DROP DOWN MENU CSS
      rounded corners
  ************************** */
 /* all */
-.standardtable, div.navtree, #imagepreview, .tooltip, .child {
+.standardtable, div.navtree, #imagepreview, .tooltip, .child, .roundwhitebox {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
 
 /* top only */
-.button_main, .button_param,.button_addrecord, .button_rdv, #browserid, #addrecordheader, .parent, .child, .parentgroup, #focus  {
+.button_main, .button_param,.button_addrecord, .button_rdv, #browserid, #addrecordheader, .parent, .child, .parentgroup, #focus, .tab_label  {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-topleft:8px; 
 	-webkit-border-top-right-radius:8px;
@@ -803,7 +843,7 @@ td.roundtopleft {
 	-webkit-border-top-left-radius:8px;	
 }
 
-.page_param, .page_rdv {
+.page_param, .page_rdv, .tab_page {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-bottomleft:8px;
 	-moz-border-radius-bottomright:8px;

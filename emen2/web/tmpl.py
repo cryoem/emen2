@@ -4,7 +4,6 @@
 
 print "...loading %s"%__name__
 
-
 from sets import Set
 import re
 from emen2config import *
@@ -129,7 +128,7 @@ def header(name,init=None,short=0):
 	<div class="nav_tableli"><a href="/db/home">Home</a></div>
 
 	<div class="nav_tableli"><a href="/db/record/%s">Browse</a></div>
-	<div class="nav_tableli"><a href="/db/queryform">Query</a></div>
+	<div class="nav_tableli"><a href="/db/query">Query</a></div>
 	<div class="nav_tableli"><a href="/db/workflow">Workflow</a></div>
 
 	<div class="nav_tableli"><a href="/db/users">Users</a></div>
@@ -139,6 +138,8 @@ def header(name,init=None,short=0):
 
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
+	<div class="nav_tableli"><a href="/help/">Help</a></div>
+
 </div>
 		"""%(GROUPHOME,GROUPROOT,MICROSCOPEROOT))
 	else:
@@ -197,7 +198,7 @@ def singleheader(title,short=0):
 
 	ret.append("""
 <div class="floatcontainer" id="button_main_container">
-		<div class="button_main" id="button_main_mainview"><a href="">%s</a></div>
+		<div class="button_main button_main_active" id="button_main_mainview"><a href="">%s</a></div>
 	</div>
 	
 	<div class=\"pagecontainer\" id="pagecontainer_main">

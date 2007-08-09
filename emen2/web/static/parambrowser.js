@@ -1,24 +1,25 @@
 var url = "/RPC2"; 
 var currentparam = "root_recorddef";
-var target = "";
 var ctxid = "";
-var name = "";
-var pclink = "";
-var newrecid;
+var name;
 var valuecache = new Array();
+
 /***********************************************/
 
-function selecttarget() {
-	write = document.getElementById(target);
-	write.value = write.value + " $$" + currentparam + "=";
-}
+var callbacks = new Array();
+
+/***********************************************/
+
+//function selecttarget() {
+//	write = document.getElementById(target);
+//	write.value = write.value + " $$" + currentparam + "=";
+//}
 
 function ctxid_init_start(cookieName) {
 	var sessiondid;
 	var labelLen = cookieName.length;
 	var cookieData = document.cookie;
 	var cLen = cookieData.length;
-	//alert ('cLen = length of document.cookie = ' + cLen);
 	var i = 0;
 	var cEnd;
 	while (i < cLen) {
@@ -34,24 +35,21 @@ function ctxid_init_start(cookieName) {
 	}
 }
 
-function parambrowserinit(init,inittarget) {
+function parambrowserinit(init) {
 	param = init || "root_parameter";
 	currentparam = param;
-	target = inittarget || "";
 	display(param,"paramdef");
 }
  
-function protobrowserinit(init,inittarget) {
+function protobrowserinit(init) {
 	param = init || "root_protocol";
 	currentparam = param;
-	target = inittarget || "";
 	display(param,"recorddef");
 }
 
-function recordbrowserinit(init,inittarget) {
+function recordbrowserinit(init) {
 	param = init || "root_protocol";
 	currentparam = param;
-	target = inittarget || "";
 	recdisplay(param);
 }
 
@@ -124,7 +122,6 @@ function xmlrpc_getrelatedrecswithnames_cb(r) {
 
 function xmlrpc_getchildrenofparents_cb(r) {
 	p = document.getElementById('getchildrenofparents');
-//	while (p.firstChild) {p.removeChild(p.firstChild)};
 	
 	for (var i=0;i<r.length;i++) {
 		var x = document.createElement('div');
@@ -155,7 +152,7 @@ function xmlrpc_getchildrenofparents_cb(r) {
 
 function xmlrpc_getchildren_cb(r) {
 	p = document.getElementById('getchildren');
-//	while (p.firstChild) {p.removeChild(p.firstChild)};	
+
 	if (r.length == 0) {return}
 
 	d = document.createElement('div');
@@ -180,7 +177,6 @@ function xmlrpc_getchildren_cb(r) {
 
 function xmlrpc_getrecorddef_cb(r) {
   recdef = new dict();
-// just use this instead of dict.update for because 'for i in' is broken in js
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
@@ -192,7 +188,6 @@ function xmlrpc_getrecorddef_cb(r) {
 	f = document.getElementById("recdef_name");
 	f.innerHTML = currentparam;
 	d = document.getElementById("getrecorddef");
-//	while (d.firstChild) {d.removeChild(d.firstChild)};	
 
 	k = document.createElement('span');
 	k.innerHTML = "Creator: " + recdef["creator"] + "<br />Created: " + recdef["creationtime"];
@@ -208,7 +203,6 @@ function xmlrpc_getrecorddef_cb(r) {
 	
 	rdv = document.getElementById("recorddefviews");	
 	clearchildelements('recorddefviews');
-//	while (rdv.firstChild) {rdv.removeChild(rdv.firstChild)};
 
 	fcb = document.createElement('div');
 	fcb.className = "floatcontainer";
@@ -251,7 +245,6 @@ function xmlrpc_getrecorddef_cb(r) {
 
 	rdv.appendChild(fcp);
 	
-	
 	switchin('rdv','mainview');
 	
 }
@@ -265,9 +258,7 @@ function xmlrpc_getparamdef_cb(r) {
 	f = document.getElementById("paramdef_name");
 	f.innerHTML = currentparam;
 
-	def = document.getElementById("getparamdef");
-//	alert(def);
-//	while (def.firstChild) {def.removeChild(def.firstChild)};	
+	def = document.getElementById("getparamdef");	
 	clearchildelements('getparamdef');
 
 	for (var i=0;i<r.length;i++) {
@@ -340,26 +331,22 @@ function xmlrpc_putrecorddef(formobj) {
 	for (var i=0;i<parents.length;i++) {
 		if (valuecache["parents"].indexOf(parents[i]) == -1) { // new link
 			l = xmlrpcrequest("pclink",[parents[i],currentparam,"recorddef",ctxid],0);
-//			console.log(l);
 		}
 	}
 	for (var i=0;i<valuecache["parents"].length;i++) {
 		if (parents.indexOf(valuecache["parents"][i]) == -1) { // removed link
 			l = xmlrpcrequest("pcunlink",[valuecache["parents"][i],currentparam,"recorddef",ctxid],0);
-//			console.log(l);
 		}
 	}
 	
 	for (var i=0;i<children.length;i++) {
 		if (valuecache["children"].indexOf(children[i]) == -1) { // new link
 			l = xmlrpcrequest("pclink",[currentparam,children[i],"recorddef",ctxid],0);
-//			console.log(l);
 		}
 	}
 	for (var i=0;i<valuecache["children"].length;i++) {
 		if (children.indexOf(valuecache["children"][i]) == -1) { // removed link
 			l = xmlrpcrequest("pcunlink",[currentparam,valuecache["children"][i],"recorddef",ctxid],0);
-//			console.log(l);
 		}
 	}
 	
@@ -513,7 +500,7 @@ function xmlrpc_echo() {
 	xmlrpcrequest("echo",[test]);
 }
 function xmlrpc_echo_cb(a) {
-	alert("callback");
+//	alert("callback");
 	document.getElementById("xmlrpc_output").value = a;
 }
 function xmlrpc_echo_eb(faultCode,faultString) {
@@ -532,6 +519,7 @@ function form_makeedits(formobj){
 	showclass('param_value_edit_' + formobj.viewtype.value);
 	return false;
 }
+
 function form_makeedits_cancel(formobj) {
 	formobj.commit.style.display = "none";
 	formobj.cancel.style.display = "none";
@@ -541,23 +529,32 @@ function form_makeedits_cancel(formobj) {
 	showclass('param_value_display_' + formobj.viewtype.value);
 	return false;
 }
-function xmlrpc_putrecord(formobj) {
 
-	// parent permissions
-	if (!isNaN(parseInt(pclink))) {
-		p = xmlrpcrequest("getrecord",[pclink,ctxid],0);
+function form_makeedits_putrecord(formobj) {
+	newvalues = form_makeedits_collectvalues(formobj);
+	xmlrpcrequest("putrecord",[newvalues,ctxid]);	
+}
+
+function form_makeedits_putnewrecord(formobj) {
+	newvalues = form_makeedits_collectvalues(formobj);
+
+	if (document.form_newrecord_generaloptions.inheritpermissions.checked) {
+		parentid = parseInt(document.form_newrecord_generaloptions.permissionsparent.value);
+		p = xmlrpcrequest("getrecord",[parentid,ctxid],0);
 		parent = new dict();
-		// instead of .update()
 		for (var i=0;i<p.length;i++) {
 			parent[p[i][0]] = p[i][1];
 		}
+		newvalues.push(["permissions",parent["permissions"]]);	
 	}
+	xmlrpcrequest("putrecord",[newvalues,ctxid]);
+}
 
+function form_makeedits_collectvalues(formobj) {
 
 	newvalues = new Array(["rectype",rectype]);
 	if (name) {newvalues.push(["recid",name])};
 	nv = new Array();
-//	formobj = document.forms["form_makeedits_" + classname];
 
 	for (var i=0;i<formobj.elements.length;i++) {
 
@@ -590,7 +587,7 @@ function xmlrpc_putrecord(formobj) {
 		// now multiple-select types
 		// check if not single-select
 		if (formobj.elements[i].type == "checkbox") {
-		// this is horribly broken/ugly FIXME
+		// FIXME
 			try {
 				 if (formobj.elements[pname + "___" + vartype].type != "select-one") {break}
 				} catch(error) {
@@ -613,28 +610,13 @@ function xmlrpc_putrecord(formobj) {
 		}
 	}
 
-	if (!isNaN(parseInt(pclink))) {	
-		newvalues.push(["permissions",parent["permissions"]]);
-	}
-	
-	xmlrpcrequest("putrecord",[newvalues,ctxid]);
-
+	return newvalues;
 }
 
-// fixme: change this to use sync-callbacks
-function xmlrpc_putrecord_cb(r) {
-	newrecid = r;
-	if (!isNaN(parseInt(pclink))) {
-		pclink = xmlrpcrequest("pclink",[pclink,r,"record",ctxid],0);
-	}	
-	gotorecord(r);
-}
-function gotorecord(r) {
-	if (!isNaN(parseInt(r))) {
-		window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + r + "?notify=2";
-	} else {
-		window.location = window.location.protocol + "//" + window.location.host + window.location.pathname + "?notify=" + r;
-	}	
+callbacks["putrecord"] = new CallbackManager();
+// go to new record
+callbacks["putrecord"].end = function(r) {
+	window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + r + "?notify=" + 5;
 }
 
 function convertvartype(vartype,value) {
@@ -676,12 +658,10 @@ function xmlrpc_secrecordadduser_cb(r) {
 /***********************************************/
 
 function form_showpermissions() {
-		
 }
 
 
 function xmlrpc_getrecord_perm_cb(r) {
-	
 }
 
 
@@ -695,10 +675,6 @@ function xmlrpc_secrecorddeluser_cb(r) {
 	makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
 
-/***********************************************/
-
-
-/***********************************************/
 
 
 /***********************************************/
@@ -747,12 +723,10 @@ function alertContents(http_request,zone) {
 
 // raw xmlrpc request
 function xmlrpcrequest(method,args,async) {
+	
 	if (typeof(async)=="undefined") {async=1} else {async=0};
 	command = XMLRPCMessage(method,args);
 
-//	try {	eval("cb = xmlrpc_" + method + "_cb");alert(method);} catch(error) {cb=function(a){}}
-//	try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error code "+faultCode+", "+faultString)}}
-	
    var http_request = false;
    if (window.XMLHttpRequest) { // Mozilla, Safari, ...
        http_request = new XMLHttpRequest();
@@ -775,7 +749,15 @@ function xmlrpcrequest(method,args,async) {
 		http_request.onreadystatechange=function() {		
 			if (http_request.readyState==4) {
 	  		if (http_request.status==200)	{	
+					document.body.style.cursor = "default";
+	
+					if (callbacks[method]) {
+
+						try { callbacks[method].callback(unmarshallDoc(http_request.responseXML,http_request.responseText)); }
+						catch(error) {alert("Error with request.");}
 						
+					} else {						
+
 						try {	eval("cb = xmlrpc_" + method + "_cb");} catch(error) {cb=function(r){}}
 						try {	eval("eb = xmlrpc_" + method + "_eb");} catch(error) {eb=function(faultCode,faultString){alert("Error with request: "+faultCode+", "+faultString)}}
 
@@ -785,6 +767,7 @@ function xmlrpcrequest(method,args,async) {
 							eb(error.faultCode,error.faultString);
 						}
 
+					}
 
 				}	else {
 						alert("Error with request: network");
@@ -792,13 +775,14 @@ function xmlrpcrequest(method,args,async) {
 	  	}
 		}
 		
+		document.body.style.cursor = "wait";
 		http_request.open("POST",url,true);
 		http_request.send(command);
 	} else {
+		document.body.style.cursor = "wait";
 		http_request.open("POST",url,false);
 		http_request.send(command);
-//		console.log("sync request:");
-//		console.log(http_request.responseText);
+		document.body.style.cursor = "default";
 		return unmarshallDoc(http_request.responseXML,http_request.responseText);
 	}
 

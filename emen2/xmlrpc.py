@@ -262,8 +262,9 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		print ctxid
 		"""Gets the children of a record with the given key, keytype may be 
 		'record', 'recorddef' or 'paramdef' """
-		children = list(db.getchildren(key,keytype,recurse=0,ctxid=ctxid,host=host))
+		children = list(db.getchildren(key,keytype,recurse=recurse,ctxid=ctxid,host=host))
 		children.sort()
+		print children
 		return tuple(children)
 	
 	def xmlrpc_countchildren(self,key,recurse=0,ctxid=None,host=None,db=None):

@@ -2471,6 +2471,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
 		"""quick version for records that are already in cache; e.g. table views"""
+		if len(records) > 500:
+			return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
+		
  		r = {}
  		for i in records:
 			if not self.trygetrecord(i,ctxid): continue
@@ -3648,9 +3651,11 @@ or None if no match is found."""
 		ret.rectype=rectype						# if we found it, go ahead and set up
 				
 		if init:
-			for k,v in t.params.items():
+			# minor fix, ian, 08.08.07
+			keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+			for i in keys:
 #				print k,";",v
-				ret[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
+				ret[i]=t.params[i]						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
 
 	def getrecordnames(self,ctxid,dbid=0,host=None):
