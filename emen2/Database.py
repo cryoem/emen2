@@ -1585,6 +1585,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__secrindex=FieldBTree("secrindex",path+"/security/roindex.bdb","s",dbenv=self.__dbenv)				# index of records each user can read
 			self.__recorddefindex=FieldBTree("RecordDefindex",path+"/RecordDefindex.bdb","s",dbenv=self.__dbenv)		# index of records belonging to each RecordDef
 		self.__timeindex=BTree("TimeChangedindex",path+"/TimeChangedindex.bdb",dbenv=self.__dbenv)					# key=record id, value=last time record was changed
+		self.__recorddefbyrec=IntBTree("RecordDefByRec",path+"/RecordDefByRec.bdb",dbenv=self.__dbenv,relate=0)
 		self.__fieldindex={}				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 		
 		# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
@@ -2477,11 +2478,11 @@ parentheses not supported yet. Upon failure returns a tuple:
  		r = {}
  		for i in records:
 			if not self.trygetrecord(i,ctxid): continue
-			j = self.getrecord(i,ctxid=ctxid)
- 			if r.has_key(j.rectype):
- 				r[j.rectype].append(j.recid)
+			j = self.__recorddefbyrec[i]	# security checked above
+ 			if r.has_key(j):
+ 				r[j].append(i)
  			else:
- 				r[j.rectype]=[j.recid]
+ 				r[j]=[i]
  		return r
 
 
@@ -3530,6 +3531,7 @@ or None if no match is found."""
 				#record["modifyuser"]=ptest("creator")
 				pass			
 			self.__records.set(record.recid,record,txn)		# This actually stores the record in the database
+			self.__recorddefbyrec.set(record.recid,record.rectype,txn)
 			
 			# index params
 			for k,v in record.items():
@@ -3631,6 +3633,7 @@ or None if no match is found."""
 			if not i in orig["comments"]: orig["comments"]=i[2]
 		
 		self.__records.set(record.recid,orig,txn)			# This actually stores the record in the database
+		self.__recorddefbyrec.set(record.recid,record.rectype,txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 
@@ -4317,6 +4320,7 @@ or None if no match is found."""
 				self.__records.set(-1,r.recid+1,txn)				# Update the recid counter, TODO: do the update more safely/exclusive access
 				recmap[oldid]=r.recid
 				self.__records.set(r.recid,r,txn)
+				self.__recorddefbyrec.set(r.recid,r.rectype,txn)
 				r.setContext(ctx)
 				
 				# work in progress. Faster indexing on restore.
