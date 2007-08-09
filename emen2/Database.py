@@ -2546,7 +2546,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		key contains the sum of all different recorddefs"""
 		
 		c=self.getchildren(key,"record",recurse,ctxid,host)
-		r=self.groupbyrecorddef(c,ctxid,host)
+		r=self.groupbyrecorddeffast(c,ctxid,host)
 		for k in r.keys(): r[k]=len(r[k])
 		r["all"]=len(c)
 		return r
