@@ -98,6 +98,7 @@ class WebResource(Resource):
 		print "\n---- [%s] [%s] [%s] ---- web request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
 
 		if method == "logout":
+			session.ctxid = None
 			ts.db.deletecontext(session.ctxid)
 			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
 
@@ -109,7 +110,7 @@ class WebResource(Resource):
 			method = "home"
 			exec("import emen2.TwistSupport_html.html.%s"%method)		
 
-		exec("reload(emen2.TwistSupport_html.html.%s)"%method)
+#		exec("reload(emen2.TwistSupport_html.html.%s)"%method)
 
 		module = getattr(emen2.TwistSupport_html.html,method)
 		function = getattr(module,method)
