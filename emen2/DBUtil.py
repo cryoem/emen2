@@ -20,6 +20,56 @@ def recordcountbytype(db,ctxid):
 	for rdn in names:
 		print rdn,": ",len(db.getindexbyrecorddef(rdn,ctxid))
 
+def histogramvalues(vals,min,max,bins,sep0,sepmax):
+	"""This will histogram a list of numbers. If sep0 is true
+	it will make a special bin for 0. If sepmax is true, it 
+	will make a special bin for values >max"""
+
+	n0=0
+	nmax=0
+	n=[0]*bins
+	bw=(max-min)/(float)bins)
+
+	for i in vals:
+		if i==0 : n0+=1
+		if i>mx : nmax+=1
+		b=(i-min)/bw
+		try: n[b]+=
+		except: pass
+
+	if sep0 : ret=[("0",n0)]
+	else: ret=[]
+
+	if min=floor(min) and bw=floor(bw) :
+		for i,j in enumerate(n):
+			ret.append(("%d-%d"%(min+i*bw,min+i*bw+bw)),j)
+		ret.append(">%d"%max,nmax)
+	else:
+		for i,j in enumerate(n):
+			ret.append(("%1.2g-%1.2g"%(min+i*bw,min+i*bw+bw)),j)
+		ret.append(">%1.2g"%max,nmax)
+
+	return ret
+
+def histogramtext(hist):
+	"""This will display a list of (string,int) tuples as a text histogram plot"""
+	max=0
+	maxl=0
+	for i in hist:
+		if i[1]>max : max=i[1]
+		if len(i[0])+1>maxl : maxl=len(i[0])+1
+
+	for i in range(16):
+		print " "*(maxl/2),
+		for j,k in enumerate(hist):
+			if k>(16-i)*max/16 : print "*",
+			else: print " "
+			print " "*(maxl/2),
+		print " "
+
+	for k in hist:
+		print k[0]+" "
+
 def histogrambydate(db,reclist,bintime,ctxid):
 	"""This will produce a histogram of the times all records
 	in the passed list of ids were added to the database.
