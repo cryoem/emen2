@@ -20,7 +20,7 @@ def recordcountbytype(db,ctxid):
 	for rdn in names:
 		print rdn,": ",len(db.getindexbyrecorddef(rdn,ctxid))
 
-def histogramvalues(vals,min,max,bins,sep0,sepmax):
+def histogramvalues(vals,mn,mx,bins,sep0,sepmax):
 	"""This will histogram a list of numbers. If sep0 is true
 	it will make a special bin for 0. If sepmax is true, it 
 	will make a special bin for values >max"""
@@ -28,26 +28,26 @@ def histogramvalues(vals,min,max,bins,sep0,sepmax):
 	n0=0
 	nmax=0
 	n=[0]*bins
-	bw=(max-min)/(float)bins)
+	bw=(mx-mn)/(float(bins))
 
 	for i in vals:
 		if i==0 : n0+=1
 		if i>mx : nmax+=1
-		b=(i-min)/bw
-		try: n[b]+=
+		b=(i-mn)/bw
+		try: n[b]+=1
 		except: pass
 
 	if sep0 : ret=[("0",n0)]
 	else: ret=[]
 
-	if min=floor(min) and bw=floor(bw) :
+	if mn==floor(mn) and bw==floor(bw) :
 		for i,j in enumerate(n):
-			ret.append(("%d-%d"%(min+i*bw,min+i*bw+bw)),j)
-		ret.append(">%d"%max,nmax)
+			ret.append(("%d-%d"%(mn+i*bw,mn+i*bw+bw)),j)
+		ret.append(">%d"%mx,nmax)
 	else:
 		for i,j in enumerate(n):
-			ret.append(("%1.2g-%1.2g"%(min+i*bw,min+i*bw+bw)),j)
-		ret.append(">%1.2g"%max,nmax)
+			ret.append(("%1.2g-%1.2g"%(mn+i*bw,mn+i*bw+bw)),j)
+		ret.append(">%1.2g"%mx,nmax)
 
 	return ret
 
