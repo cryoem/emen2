@@ -1,6 +1,7 @@
 from emen2 import Database
 import time
 import os
+from math import *
 
 def doplot(data):
 	out=file("outfile","w")
@@ -33,7 +34,7 @@ def histogramvalues(vals,mn,mx,bins,sep0,sepmax):
 	for i in vals:
 		if i==0 : n0+=1
 		if i>mx : nmax+=1
-		b=(i-mn)/bw
+		b=int((i-mn)/bw)
 		try: n[b]+=1
 		except: pass
 
@@ -42,33 +43,45 @@ def histogramvalues(vals,mn,mx,bins,sep0,sepmax):
 
 	if mn==floor(mn) and bw==floor(bw) :
 		for i,j in enumerate(n):
-			ret.append(("%d-%d"%(mn+i*bw,mn+i*bw+bw)),j)
-		ret.append(">%d"%mx,nmax)
+			ret.append(("%d-%d"%(mn+i*bw,mn+i*bw+bw),j))
+		ret.append((">%d"%mx,nmax))
 	else:
 		for i,j in enumerate(n):
-			ret.append(("%1.2g-%1.2g"%(mn+i*bw,mn+i*bw+bw)),j)
-		ret.append(">%1.2g"%mx,nmax)
+			ret.append(("%1.2g-%1.2g"%(mn+i*bw,mn+i*bw+bw),j))
+		ret.append((">%1.2g"%mx,nmax))
 
 	return ret
 
-def histogramtext(hist):
+def histlog(x):
+	try: return log10(x)
+	except: return 0
+
+def histogramtext(hist,maxv=0,logs=0):
 	"""This will display a list of (string,int) tuples as a text histogram plot"""
-	max=0
+	if logs : hist=[(i[0],histlog(i[1])) for i in hist]
+	
+	mx=0
 	maxl=0
 	for i in hist:
-		if i[1]>max : max=i[1]
+		if i[1]>mx : mx=i[1]
 		if len(i[0])+1>maxl : maxl=len(i[0])+1
 
-	for i in range(16):
-		print " "*(maxl/2),
+	print "Max Val: ",mx
+	if maxv>0 : mx=maxv
+	
+	for i in range(24):
 		for j,k in enumerate(hist):
-			if k>(16-i)*max/16 : print "*",
-			else: print " "
-			print " "*(maxl/2),
-		print " "
+			if k[1]>(24-i)*mx/24 : print "* ",
+			else: print "  ",
+		print " ",(24-i)*mx/24
 
-	for k in hist:
-		print k[0]+" "
+	for i in range(maxl):
+		for k in hist:
+			try: print k[0][i]+" ",
+			except: print "  ",
+		print " "
+		
+	print " "
 
 def histogrambydate(db,reclist,bintime,ctxid):
 	"""This will produce a histogram of the times all records
