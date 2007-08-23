@@ -1058,7 +1058,7 @@ class RecordDef:
 		self.paramsK = []			# ordered keys from params()
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
-		self typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
+		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
 									# implicitly includes subclasses of the referenced types
 		self.owner=None				# The owner of this record
 		self.creator=0				# original creator of the record
