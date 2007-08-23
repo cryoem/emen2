@@ -1058,6 +1058,8 @@ class RecordDef:
 		self.paramsK = []			# ordered keys from params()
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
+		self typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
+									# implicitly includes subclasses of the referenced types
 		self.owner=None				# The owner of this record
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
@@ -1065,8 +1067,8 @@ class RecordDef:
 		if (dict) : self.__dict__.update(dict)
 		
 	def __str__(self):
-		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-			self.name,self.mainview,self.views,self.stringparams(),str(self.private),self.owner,self.creator,self.creationtime,self.creationdb)
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
 
 	def stringparams(self):
 		"""returns the params for this recorddef as an indented printable string"""
@@ -3190,7 +3192,7 @@ or None if no match is found."""
 		elif not self.__importmode : DB_syncall()
 
 	def putrecorddef(self,recdef,ctxid,host=None):
-		"""This modifies an existing RecordDef. Defined fields should
+		"""This modifies an existing RecordDef. The mainview should
 		never be changed once used, since this will change the meaning of
 		data already in the database, but sometimes changes of appearance
 		are necessary, so this method is available."""
@@ -3203,6 +3205,8 @@ or None if no match is found."""
 		recdef.creator=rd.creator
 		recdef.creationtime=rd.creationtime
 		#recdef.mainview=rd.mainview	#temp. change to allow mainview changes
+		if recdef.mainview != rd.mainview and not -1 in ctx.groups :
+			raise SecurityError,"Only the administrator can modify the mainview of a RecordDef"
 		recdef.findparams()
 
 		pdn=self.getparamdefnames()
