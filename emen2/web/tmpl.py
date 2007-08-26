@@ -134,7 +134,7 @@ def header(name,init=None,short=0):
 	<div class="nav_tableli"><a href="/db/users">Users</a></div>
 
 	<div class="nav_tableli"><a href="/db/record/%s">Groups</a></div>
-	<div class="nav_tableli"><a href="/db/record/%s">Microscopes</a></div>
+	<div class="nav_tableli"><a href="/db/record/%s">Equipment</a></div>
 
 	<div class="nav_tableli"><a href="/db/paramdefs">Parameters</a></div>
 	<div class="nav_tableli"><a href="/db/recorddefs">Protocols</a></div>
