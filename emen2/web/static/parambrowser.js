@@ -1023,7 +1023,7 @@ function xmlrpc_findparamname_cb(r) {
 
 
 function form_secrecordadduser(formobj) {
-	if (formobj.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	if (formobj.recurse.checked) { recurse = 20; } else { recurse = 0; }
 	user = formobj.user.value;
 	level = formobj.level.value;
 
@@ -1046,7 +1046,7 @@ function form_showpermissions() {
 }
 
 function form_secrecorddeluser(formobj, user) {
-	if (formobj.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	if (document.form_secrecordadduser_form.recurse.checked) { recurse = 20; } else { recurse = 0; }
 	recid = parseInt(document.form_record_generaloptions.recid.value);
 	xmlrpcrequest("secrecorddeluser",[user,recid,ctxid,recurse]);		
 }
