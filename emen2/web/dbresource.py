@@ -110,7 +110,7 @@ class WebResource(Resource):
 			method = "home"
 			exec("import emen2.TwistSupport_html.html.%s"%method)		
 
-#		exec("reload(emen2.TwistSupport_html.html.%s)"%method)
+		if DEBUG: exec("reload(emen2.TwistSupport_html.html.%s)"%method)
 
 		module = getattr(emen2.TwistSupport_html.html,method)
 		function = getattr(module,method)

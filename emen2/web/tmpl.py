@@ -73,7 +73,7 @@ def form_new(action="",items=(),method="POST"):
 	return '<div class="formdiv"><form action="%s" method=%s>%s<div class="formcol1"></div><div class="formcol2"><input type="submit" value="Submit" /></div></form></div>'%(action,method," ".join(ret))
 	
 
-def header(name,init=None,short=0):
+def header(name,init=None,short=0,ctxid=None,db=None):
 	"""Common header block, includes <body>"""
 
 	ret = []
@@ -116,6 +116,8 @@ def header(name,init=None,short=0):
 
 <div id="container">
 
+<div id="precontent">
+
 <div id="title">
 	<a href="/db/home">
 	<img id="toplogo" src="/images/logo_trans.gif" alt="NCMI" /> National Center for Macromolecular Imaging
@@ -141,11 +143,17 @@ def header(name,init=None,short=0):
 	<div class="nav_tableli"><a href="/help/">Help</a></div>
 
 </div>
+
+<div class="notification" id="alert"></div>
+
 		"""%(GROUPHOME,GROUPROOT,MICROSCOPEROOT))
 	else:
 		ret.append("<div class=\"bluespacer\"></div>")
 		
 	ret.append("""
+	
+</div>	
+	
 <div id="content">
 	""")
 
@@ -169,8 +177,9 @@ def footer(short=0,ctxid=None,db=None):
 		try:
 			user = db.checkcontext(ctxid)[0]
 			ret.append("""Loggged in as: <a href="/db/user/%s">%s</a> | <a href="/db/logout">Logout</a> <br />"""%(user,user))
+			ret.append("""<script type="text/javascript">var global_user="%s";</script>"""%user)
 		except:
-			ret.append("""Not logged in. <a href="/db/login">Login?</a><br />""")
+			ret.append("""Not logged in. <a href="/db/login">Login?</a><br /><script type="text/javascript">var global_user=null;</script>""")
 
 		ret.append("""
 	Hosted by <a href="http://ncmi.bcm.tmc.edu">NCMI</a>&nbsp;&nbsp;Phone: 713-798-6989 &nbsp;&nbsp;Fax: 713-798-1625<br />
@@ -188,13 +197,13 @@ def footer(short=0,ctxid=None,db=None):
 def singleheader(title,short=0):
 	"""For pages without option tabs, make the single tab"""
 	ret = []
-	if not short:
-		ret.append("""
-	<div class="navtreeouter">	
-	<div class="navtree">
-	<table cellpadding="0" cellspacing="0" class="navtable">
-	</table></div>
-	</div>""")
+#	if not short:
+#		ret.append("""
+#	<div class="navtreeouter">	
+#	<div class="navtree">
+#	<table cellpadding="0" cellspacing="0" class="navtable">
+#	</table></div>
+#	</div>""")
 
 	ret.append("""
 <div class="floatcontainer" id="button_main_container">
@@ -226,18 +235,28 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 		form.append('<div class="l" onclick="selecttarget()">Select</div>')
 	if viewfull:
 		form.append('<div class="l"><a id="viewfull" href="">View Full</a></div>')
-	if addchild:
+#	if addchild:
+	if 1:
 		form.append('<div class="l"><a href="javascript:toggle(\'addchild\')">Add Child</a></div>')
 
 		addchildhtml = """
-		<form name="full_form" method="POST" action="javascript:make_param()">
+		<form name="form_addparamdef" ">
+
 		<table>
-		<tr><td>Name:</td><td><input type="text"; id = "name_of_new_parameter"></td><tr>
-		<tr><td>Parents:</td><td><input type="text"; id="parent_new"></td></tr>
-		<tr><td colspan="2">Short description:</td></tr><tr><td colspan="2"><input type="text"; id = "short_description_of_new_parameter"></td></tr>
-		<tr><td colspan="2">Long description:</td></tr><tr><td colspan="2"><textarea rows="5" cols="30" id = "long_description_of_new_parameter"></textarea></td></tr>
+		<tr><td>Name:</td>
+				<td><input type="text" name="r___name" /></td><tr>
+
+		<tr><td>Parents:</td>
+				<td><input type="text" name="p___parent" /></td></tr>
+
+		<tr><td colspan="2">Short description:</td></tr>
+		<tr><td colspan="2"><input type="text" name="r___desc_short" /></td></tr>
+
+		<tr><td colspan="2">Long description:</td></tr>
+		<tr><td colspan="2"><textarea rows="5" cols="30" name="r___desc_long"></textarea></td></tr>
 		
-		<tr><td colspan="2">Default units:</td></tr><tr><td colspan="2"><select id = "default_units_of_new_parameter">	
+		<tr><td colspan="2">Default units:</td></tr>
+		<tr><td colspan="2"><select name="p___defaultunits">	
 			<option value="None">None</option>
 			<option value="%">Percent (%)</option>
 			<option value="%RH">Relative Humidity (%RH)</option>
@@ -268,7 +287,8 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="unitless">Unitless</option>
 		</select></td></tr>
 
-		<tr><td>Vartype:</td><td><select id = "vartype_of_new_parameter">
+		<tr><td>Vartype:</td>
+		<td><select name="r___vartype">
 			<option value="string">String</option>
 			<option value="int">Integer</option>
 			<option value="float">Floating point</option>
@@ -282,7 +302,8 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="binary">Binary</option>
 		</select></td></tr>
 		
-		<tr><td>Property:</td><td><select id = "property_of_new_parameter">
+		<tr><td>Property:</td>
+		<td><select name="r___property">
 			<option value="None">None</option>
 			<option value="count">Count</option>
 			<option value="length">Length</option>
@@ -296,11 +317,18 @@ def parambrowser(all=None,viewfull=None,addchild=None,edit=None,select=None,hidd
 			<option value="density">Density</option>
 		</select></td></tr>
 
-		<tr><td>Choices:</td><td><input type="text"; id = "choices_of_new_parameter"></td></tr>
-
+		<tr><td>Choices:</td>
+		<td>"""
+		
+		addchildhtml += """<span class="input_elem input_list" ><br />"""
+#		for i in range(0,len(value)):
+#			ret.append("""<input name="r___%s___%s___1___%s" type="text" value="%s" /><br />"""%(paramdef.name,paramdef.vartype,i,value[i]))
+		addchildhtml += """<input name="r___choices___stringlist___1___0" type="text" value="" /> <span class="jslink" onclick="input_moreoptions(this)">[+]</span></span>"""
+		addchildhtml += """			
+		</td></tr>
 
 		</table>
-		<input type="submit">
+		<input type="button" onclick="action_addparamdef(this.form)" value="Submit" />
 		</form>"""
 		
 #	if edit:
@@ -361,12 +389,12 @@ def protobrowser(all=None,viewfull=1,addchild=None,edit=0,select=None,hidden=Non
 #		</table>
 #		<input type="submit">
 #		</form>"""		
-	if edit:
-		form.append("""
-			<div class="l" id="form_protobrowser_edit" onClick="form_protobrowser_edit(this.form)">Edit</div>
+	form.append("""
+			<div class="l" id="form_protobrowser_edit" style="display:none" onClick="form_protobrowser_edit(this.form)">Edit</div>
 			<div class="l" id="form_protobrowser_commit" style="display:none" ><input type="button" onClick="xmlrpc_putrecorddef(this.form)" value="Commit" /></div> 
 			<div class="l" id="form_protobrowser_cancel" style="display:none" ><input type="button" onClick="form_protobrowser_cancel(this.form)" value="Cancel"></div>
-			""")
+			<div class="l" id="form_protobrowser_addrecorddef"><a id="form_protobrowser_newrecorddeftarget" href="/db/newrecorddef/">Add Child</a></div>
+		""")
 
 	return("""	
 	<div id="browserid">Protocol Browser</div>
@@ -418,13 +446,8 @@ def notifymsg(args):
 	"""Alert messages to show in the top of the page."""
 	ret = []
 	
-	if args.has_key("notify"):
-		notify = args["notify"][0].split("*")
-#		print notify
-	else:
-		return ""
-	
-	
+	notify = args.split("*")
+
 	msgs = [\
 	"Added comment successfully", \
 	"Permission change successful", \
@@ -432,17 +455,25 @@ def notifymsg(args):
 	"Attached file successfully",\
 	"Logged out",\
 	"Changes saved",\
-	"NOTE: Database in development mode. Changes will be erased each morning."
+	"NOTE: Database in development mode. Changes will be erased each morning.",\
+	"Added Protocol Successfully",\
+	"Added Parameter Successfully"
 	]
+	
+	ret.append("""<script type="text/javascript">var alerts=new Array();""")
 	
 	for i in notify:
 		if i:
 			# is integer:
 			try:
-				ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%msgs[int(i)])
+				ret.append("""alerts.push("%s");"""%msgs[int(i)])
+#				ret.append("""<div class="notification" id="notification"><span class="notification_inner">%s</span></div>"""%msgs[int(i)])
 				# or string:
 			except:
-				ret.append("<div class=\"notification\" id=\"notification\"><span class=\"notification_inner\">%s</span></div>"%i)
+				ret.append("""alerts.push("%s");"""%i)				
+#				ret.append("""<div class="notification" id="notification"><span class="notification_inner">%s</span></div>"""%i)
+	
+	ret.append("""topalert(alerts);</script>""")
 
 
 	return " ".join(ret)

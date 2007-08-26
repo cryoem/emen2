@@ -1,14 +1,98 @@
 var url = "/RPC2"; 
+
+//replace with element value
 var currentparam = "root_recorddef";
+
 var ctxid = "";
-var name;
 var valuecache = new Array();
 
 /***********************************************/
 
-var callbacks = new Array();
+var callbacks = new Object();
+var errbacks = new Object();
 
 /***********************************************/
+
+function items_dict(items) {
+	r = new Object();
+	for (var i=0;i<items.length;i++) {
+		r[i[0]] = i[1];
+	}
+	return r;
+}
+
+function dict_items(dict) {
+	r = new Array();
+	for (i in dict) {
+		r.push([i,dict[i]]);
+	}
+	return r;
+}
+
+/*****************************/
+
+function combobox_onfocus(elem) {
+	target=elem.parentNode.getElementsByTagName("ul")[0];	
+	target.style.display = "block";
+}
+function combobox_setv(elem,setvalue) {
+	target=elem.parentNode.parentNode.getElementsByTagName("input")[0];
+	control=elem.parentNode;
+	if (setvalue==null) {value=elem.innerHTML} else {value=setvalue}
+	target.value = value;
+	control.style.display = "none";
+}
+
+function combobox_onkeypress(elem,e) {
+	if(window.event) {
+		keycode = e.keyCode
+	} else if(e.which)	{
+		keycode = e.which
+	}
+
+	choices = elem.parentNode.getElementsByTagName("li")
+	target=elem;
+	v = target.value;
+	len=v.length;
+	switch (keycode) {
+		case 8: //backspace  
+			v=v.substr(0,len-1);
+			break;
+		case 46: //delete
+			v=v.substr(0,len-1);		
+			break;
+		case 38: //up arrow		
+		case 40: //down arrow
+		case 37: //left arrow
+		case 39: //right arrow
+		case 33: //page up  
+		case 34: //page down	 
+		case 36: //home	
+		case 35: //end				   
+		case 13: //enter	 
+		case 9: //tab  
+		case 27: //esc  
+		case 16: //shift	 
+		case 17: //ctrl	
+		case 18: //alt  
+		case 20: //caps lock
+			break;
+
+		default:
+			v = target.value + String.fromCharCode(keycode);
+   } 
+	
+	for (i=0;i<choices.length;i++) {
+		value=choices[i].innerHTML.toLowerCase();
+		if ((value.indexOf(v.toLowerCase()) >= 0)||(v=="")) {
+			choices[i].style.display = "block";
+		} else {
+			choices[i].style.display = "none";
+		}
+	}	
+}
+
+/*****************************/
 
 //function selecttarget() {
 //	write = document.getElementById(target);
@@ -114,9 +198,6 @@ function xmlrpc_getrelatedrecswithnames_cb(r) {
 	}
 }
 
-
-
-
 /***********************************************/
 
 
@@ -176,7 +257,7 @@ function xmlrpc_getchildren_cb(r) {
 
 
 function xmlrpc_getrecorddef_cb(r) {
-  recdef = new dict();
+  recdef = new Object();
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
@@ -195,7 +276,7 @@ function xmlrpc_getrecorddef_cb(r) {
 	d.appendChild(k);
 	d.appendChild(br);
 
-	var views = new dict();
+	var views = new Object();
 	views["mainview"] = recdef["mainview"];
 	for (j in recdef["views"]) {
 		views[j] = recdef["views"][j];
@@ -245,6 +326,13 @@ function xmlrpc_getrecorddef_cb(r) {
 
 	rdv.appendChild(fcp);
 	
+	editfield=document.getElementById("form_protobrowser_edit");
+	if (global_user == recdef["creator"] || global_user == recdef["owner"]) {
+		editfield.style.display = "inline";
+	}
+	a=document.getElementById("form_protobrowser_newrecorddeftarget");
+	a.href="/db/newrecorddef/"+recdef["name"];
+	
 	switchin('rdv','mainview');
 	
 }
@@ -287,7 +375,8 @@ function form_addfile(formobj) {
 
 function form_addcomment(formobj) {
 	comment = formobj.comment.value;
-	r = xmlrpcrequest("addcomment",[name,comment,ctxid],0);
+	recid = parseInt(document.form_record_generaloptions.recid.value);
+	r = xmlrpcrequest("addcomment",[recid,comment,ctxid],0);
 	window.location.reload();
 }
 
@@ -298,7 +387,35 @@ function form_addcomment(formobj) {
 
 /***********************/
 
+function clearalerts() {
+	// use with timer to clear alerts
+	el = document.getElementById("alert");
+	clearchildelements('alert');
+}
+
+function topalert(msg) {
+	// draw alert messages in top of window
+	// now integrated with previous notify mechanism
+	el = document.getElementById("alert");
+	clearchildelements('alert');
+	if (typeof(msg) == typeof(Array())) {
+		for (var i=0;i<msg.length;i++) {
+			d = document.createElement("div");
+			d.innerHTML = msg[i];
+			d.className = "notification_inner2";
+			el.appendChild(d);
+		}
+	}	else {
+		d = document.createElement("div");
+		d.innerHTML = msg;
+		d.className = "notification_inner2";
+		el.appendChild(d);
+	}
+	scroll(0,0);
+}
+
 function getselectchoice(obj) {
+	//replace into formelementgetvalue
 	r = new Array();
 	for (var i=0;i<obj.length;i++) {
     if (obj.options[i].selected) {
@@ -308,6 +425,65 @@ function getselectchoice(obj) {
 	return r;
 }
 
+function addtextfield(id) {
+	//add an item to an extensible list of values (e.g. stringlist)
+	e = document.getElementById(id);
+	expanded = id.name.split("___");
+	ekind = expanded[0] || "r";
+	ename = expanded[1];
+	etype = expanded[2] || "string";
+	elist = parseInt(expanded[3]) || 0;
+	epos = expanded[4] || 0;
+}
+
+function form_addrecorddef(formobj) {
+	//collects values, validates, and adds recorddef
+	rv=collectpubvalues_new(formobj);
+	r=rv["r"];
+
+	if (r["views"]["defaultview"]==undefined) {
+		r["views"]["defaultview"] = r["mainview"];
+	}
+	
+	if (r["name"]==undefined||r["name"]=="") {
+		alerts.push("You must specify a name");
+	}
+	if (r["mainview"]==undefined||r["mainview"]=="") {
+		alerts.push("You must describe the experimental protocol.");
+	}
+	if (r["views"]["tabularview"]==undefined||r["views"]["tabularview"]=="") {
+		alerts.push("You must specify a table view.");
+	}
+	if (r["views"]["recname"]==undefined||r["views"]["recname"]=="") {
+		alerts.push("You must specify a format for the record name.");
+	}
+	if (r["views"]["defaultview"]!=undefined&&r["views"]["defaultview"]=="") {
+		alerts.push("A default view is required.");
+	}
+			
+	if (alerts.length > 0) {
+		topalert(alerts);
+		return
+	} 
+
+	callbacks["addrecorddef"] = new CallbackManager();
+	callbacks["addrecorddef"].end = function(r) {
+		window.location = window.location.protocol + "//" + window.location.host + "/db/recorddef/" + r + "?notify=" + 7;	
+	}
+
+	for (i in rv["p"]["parents"]) {
+		callbacks["addrecorddef"].register(eval("function (r) {xmlrpcrequest('pclink',['"+i+"','"+r["name"].toLowerCase()+"','recorddef',ctxid],0)}"));
+	}
+	for (i in rv["p"]["children"]) {
+		callbacks["addrecorddef"].register(eval("function (r) {xmlrpcrequest('pclink',['"+r["name"].toLowerCase()+"','"+i+"','recorddef',ctxid],0)}"));
+	}
+
+	xmlrpcrequest("addrecorddef",[r,ctxid]);
+	
+}
+
+
+
 function xmlrpc_putrecorddef(formobj) {
 	r = xmlrpcrequest("getrecorddef",[currentparam,ctxid],0)
 	recdef = new dict();
@@ -315,7 +491,7 @@ function xmlrpc_putrecorddef(formobj) {
 	for (var i=0;i<r.length;i++) {
 		recdef[r[i][0]] = r[i][1];
 	}
-//	console.log(recdef);
+
 	recdef["mainview"] = formobj.mainview.value;
 	recdef["views"]["defaultview"] = formobj.defaultview.value;
 	recdef["views"]["tabularview"] = formobj.tabularview.value;
@@ -350,11 +526,8 @@ function xmlrpc_putrecorddef(formobj) {
 		}
 	}
 	
-}
-
-function xmlrpc_putrecorddef_cb(r) {
-//	alert("Successfully updated view");
-//	window.location.reload();
+	topalert("Changes saved.");
+	
 }
 
 
@@ -480,18 +653,19 @@ function form_protobrowser_edit(formobj) {
 
 /***********************************************/
 
-function xmlrpc_addparamdef() { 
-	var nameparam = document.getElementById('name_of_new_parameter').value;
-	var parent = document.getElementById('parent_new').value;
-	var choices = document.getElementById('choices_of_new_parameter').value;
-	var defaultunits = document.getElementById('default_units_of_new_parameter').value;
-	var vartype = document.getElementById('vartype_of_new_parameter').value;
-	var property = document.getElementById('property_of_new_parameter').value;
-	var desc_short = document.getElementById('short_description_of_new_parameter').value;
-	var desc_long = document.getElementById('long_description_of_new_parameter').value;
+function action_addparamdef(formobj) { 
+	newvalues=collectpubvalues_new(formobj);
+//	console.log(newvalues["r"]);
+//	console.log(newvalues["p"]);
+
+	callbacks["addparamdef"] = new CallbackManager();
+	callbacks["addparamdef"].end = function(r) {
+		window.location = window.location.protocol + "//" + window.location.host + "/db/paramdef/" + r + "?notify=" + 8;	
+	}
+
+	xmlrpcrequest("addparamdef",[dict_items(newvalues["r"]),ctxid,newvalues["p"]["parent"]]);
 }
-function xmlrpc_addparamdef_cb(r) {
-}
+
 
 /***********************************************/
 
@@ -515,8 +689,9 @@ function form_makeedits(formobj){
 	formobj.cancel.style.display = "block";
 	formobj.edit.style.display = "none";
 
-	hideclass('param_value_display_' + formobj.viewtype.value);
-	showclass('param_value_edit_' + formobj.viewtype.value);
+//	qshow("tab_generaloptions");
+	showclass('input_elem');
+	hideclass('param_display');
 	return false;
 }
 
@@ -524,81 +699,278 @@ function form_makeedits_cancel(formobj) {
 	formobj.commit.style.display = "none";
 	formobj.cancel.style.display = "none";
 	formobj.edit.style.display = "block";
-	
-	hideclass('param_value_edit_' + formobj.viewtype.value);
-	showclass('param_value_display_' + formobj.viewtype.value);
+
+//	qhide("tab_generaloptions");
+	showclass('param_display');
+	hideclass('input_elem');
 	return false;
 }
 
 function form_makeedits_putrecord(formobj) {
-	newvalues = form_makeedits_collectvalues(formobj);
-	xmlrpcrequest("putrecord",[newvalues,ctxid]);	
+	newvalues = collectpubvalues_new(formobj)["r"];
+	if (newvalues) {
+		newvalues["rectype"]=rectype;
+		recid = parseInt(document.form_record_generaloptions.recid.value);
+		newvalues["recid"]=recid;
+		console.log(newvalues);
+		xmlrpcrequest("putrecord",[dict_items(newvalues),ctxid]);	
+	}
 }
 
 function form_makeedits_putnewrecord(formobj) {
-	newvalues = form_makeedits_collectvalues(formobj);
+	newvalues = collectpubvalues_new(formobj)["r"];
+	if (newvalues) {
+		newvalues["rectype"]=rectype;
 
-	if (document.form_newrecord_generaloptions.inheritpermissions.checked) {
-		parentid = parseInt(document.form_newrecord_generaloptions.permissionsparent.value);
-		p = xmlrpcrequest("getrecord",[parentid,ctxid],0);
-		parent = new dict();
-		for (var i=0;i<p.length;i++) {
-			parent[p[i][0]] = p[i][1];
+		if (document.form_record_generaloptions.inheritpermissions.checked) {
+			parentid = parseInt(document.form_record_generaloptions.permissionsparent.value);
+			p = xmlrpcrequest("getrecord",[parentid,ctxid],0);
+			parentdict = new dict();
+			for (var i=0;i<p.length;i++) {
+				parentdict[p[i][0]] = p[i][1];
+			}
+			newvalues["permissions"]=parentdict["permissions"];	
 		}
-		newvalues.push(["permissions",parent["permissions"]]);	
+	
+		if (alerts.length > 0) {
+			topalert(alerts);
+			return
+		} 
+
+	//	console.log(dict_items(newvalues));
+		xmlrpcrequest("putrecord",[dict_items(newvalues),ctxid]);
 	}
-	xmlrpcrequest("putrecord",[newvalues,ctxid]);
 }
 
-function form_makeedits_collectvalues(formobj) {
+function input_moreoptions(elem) {
+	target=elem.parentNode;
+	i=target.getElementsByTagName("input");
+	expanded = i[0].name.split("___");
+	len=i.length;
+	newname = new Array();
+	newname.push(expanded[0]);
+	newname.push(expanded[1]);
+	newname.push(expanded[2]);
+	newname.push(expanded[3]);
+	newname.push(len+1);	
+	newname = newname.join("___");
+//r___%s___%s___1___%s
+// <span class="jslink" onclick="input_moreoptions(this)">[+]</span> <br/>
+	n=document.createElement("input");
+	n.type = "text";
+	n.name=newname;
+	n2=document.createElement("br");
+	n3=document.createElement("span");
+	target.appendChild(n2); 
+	target.appendChild(n); 	
+}	
 
-	newvalues = new Array(["rectype",rectype]);
-	if (name) {newvalues.push(["recid",name])};
+
+function formelementgetvalue(elem) {
+	if (elem.type == "select-multiple") {
+		value = new Object();
+		for (var i = 0; i < elem.options.length; i++) {
+			if (elem.options[i].selected) { value[elem.options[i].value]=1 }
+		}
+	} else if (elem.type == "checkbox") {
+		if (e.checked) { value = 1 } else { value = 0 }
+	} else {
+		value = elem.value;
+	}
+	if (value==""){value=null}
+	return value;
+}
+
+
+function validate_date(date) {
+	sp = date.split(" ");
+	sd = sp[0].split("/");
+	st=0;
+	if (sp.length>1) {st=sp[1].split(":")}
+	if (st.length<3) {throw RangeError}
+	year=parseInt(sd[0]);
+	if (sd[0].length != 4) {throw RangeError}
+	month=parseInt(sd[1]);
+	if (month > 12 || sd[1].length != 2) {throw RangeError}
+	day=parseInt(sd[2]);
+	if (day > 31 || sd[1].length != 2) {throw RangeError}
+	if (st) {
+		if (st.length<3){throw RangeError};
+		hours=parseInt(st[0]);
+		if (hours>23 || st[0].length != 2){throw RangeError}
+		minutes=parseInt(st[1]);
+		if (minutes>59 || st[1].length != 2){throw RangeError}
+		seconds=parseInt(st[2]);
+		if (seconds>59 || st[2].length != 2){throw RangeError}
+	}
+	return date
+}
+function validate_float(f) {
+	r=parseFloat(f);
+	if (isNaN(r)) {throw TypeError}
+	return f
+}
+function validate_int(i) {
+	r=parseInt(i);
+	if (isNaN(r)) {throw TypeError}
+	return r
+}
+function validate_bool(b) {
+	b = parseInt(b);
+	if (b>1||b<0) {throw TypeError}
+	return b
+}
+
+function collectpubvalues_new(formobj) {
+	var r = new Object();
+	r["r"] = new Object();
+	r["p"] = new Object();
+	alerts=new Array();
+	
+	for (var i=0;i<formobj.elements.length;i++) {
+		expanded = formobj.elements[i].name.split("___");
+		e = formobj.elements[i];
+		ekind = expanded[0] || "r";
+		ename = expanded[1];
+		etype = expanded[2] || "string";
+		elist = parseInt(expanded[3]) || 0;
+		epos = expanded[4] || null;
+		
+		if (e.disabled||e.type=="button") {continue}
+		
+		if ( (elist) && (!r[ekind][ename])) {
+			if (etype=="floatlist"||etype=="stringlist"||etype=="intlist") {
+					r[ekind][ename] = new Array();
+			} else {
+					r[ekind][ename] = new Object();
+			}
+		}
+
+// # 	"int":("d",lambda x:int(x)),			# 32-bit integer
+// # 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
+// # 	"float":("f",lambda x:float(x)),		# double precision
+// # 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
+// # 	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
+// # 	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
+// # 	"text":("s",lambda x:str(x)),			# freeform text, fulltext (word) indexing
+// # 	"time":("s",lambda x:str(x)),			# HH:MM:SS
+// # 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
+// # 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
+// # 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
+// # 	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
+// # 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
+// # 	"url":("s",lambda x:str(x)),			# link to a generic url
+// # 	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
+// # 	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
+// # 	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
+// # 	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
+// # 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
+// # 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
+// # 	"boolean":("d",lambda x:int(x)),
+// # 	"dict":(None, lambda x:x)
+
+/*
+		console.log("----");
+		console.log(e);
+		console.log(ekind);
+		console.log(ename);
+		console.log(etype);
+		console.log(elist);
+		console.log(epos);
+*/
+
+		value=formelementgetvalue(e);
+		if (value!=null) {
+			if (etype=="int"||etype=="longint"||etype=="intlist") {
+				try{value=validate_int(value)} catch(error) {alerts.push(ename+": invalid integer.")}
+			}	else if (etype=="float"||etype=="longfloat"||etype=="floatlist") {
+				try{value=validate_float(value)} catch(error) {alerts.push(ename+": invalid float.")}
+			}	else if (etype == "choice") {
+
+			} else if (etype=="string"||etype=="text") {
+
+			} else if (etype=="boolean") {
+				try{value=validate_bool(value)} catch(error) {alerts.push(ename+": invalid choice.")}
+
+			} else if (etype == "dict") {
+
+			} else if (etype == "datetime"||etype=="time"||etype=="date") {
+				try{value=validate_date(value)} catch(error) {alerts.push(ename+": invalid date format.")}
+			} else {
+				// url, hdf, image, binary, binaryimage, child, link
+			}
+		
+			if (elist&&epos!=null) {
+				if (etype=="floatlist"||etype=="stringlist"||etype=="intlist") {
+					r[ekind][ename].push(value);
+				} else {
+					r[ekind][ename][epos] = value;
+				}
+			} else {
+					r[ekind][ename] = value;
+			}
+		}
+		
+	}
+
+	if (alerts.length > 0) {
+		topalert(alerts);
+		return 0
+	} 
+	return r
+}
+
+/*
+function collectpubvalues(formobj) {
+	newvalues = new Array();
 	nv = new Array();
 
 	for (var i=0;i<formobj.elements.length;i++) {
 
-		pname = formobj.elements[i].name.split("___")[0];
-		vartype = formobj.elements[i].name.split("___")[1];
-		ext = formobj.elements[i].name.split("___")[2];
-		num = formobj.elements[i].name.split("___")[3];
+		e = formobj.elements[i];
+		exp = formobj.elements[i].name.split("___")
+		epub = exp[0];
+		ename = exp[1];
+		etype = exp[2];
+		eext = exp[3];
+		epos = exp[4];
 
-		if (formobj.elements[i].type == "submit") {continue;}
+		if ( (epub != "r") || (e.disabled) ) {continue;}
 
 		// first let's handle simple, single-element parameters
 		// skip extend elements
-		if ((formobj.elements[i].type == "text" || formobj.elements[i].type == "textarea") && ext != "extendtext") {
-			nv[pname] = convertvartype(vartype,formobj.elements[i].value);
+		if ((e.type == "text" || e.type == "textarea") && eext != "etext") {
+			nv[ename] = convertvartype(etype,e.value);
 		}
 		
-		if (formobj.elements[i].type == "select-one") {
+		if (e.type == "select-one") {
 			// is other checked?
 			try {
-				if (formobj.elements[pname + "___" + vartype + "___extendcheckbox___0"].checked) {
-					nv[pname] = convertvartype(vartype,formobj.elements[pname + "___" + vartype + "___extendtext___0"].value);
+				if (formobj.elements["r___" + ename + "___" + etype + "___e___0"].checked) {
+					nv[ename] = convertvartype(etype,formobj.elements["r___" + ename + "___" + etype + "___etext___0"].value);
 				} else {
-					nv[pname] = convertvartype(vartype,formobj.elements[i].value);
+					nv[ename] = convertvartype(etype,e.value);
 				}
 			} catch(error) {	
-				nv[pname] = convertvartype(vartype,formobj.elements[i].value);
+				nv[ename] = convertvartype(etype,e.value);
 			}
 		}
 		
 		// now multiple-select types
 		// check if not single-select
-		if (formobj.elements[i].type == "checkbox") {
+		if (e.type == "checkbox") {
 		// FIXME
 			try {
-				 if (formobj.elements[pname + "___" + vartype].type != "select-one") {break}
+				 if (formobj.elements["r___" + ename + "___" + etype].type != "select-one") {break}
 				} catch(error) {
 
-			if (!nv[pname]) {nv[pname] = new Array()}
+			if (!nv[ename]) {nv[ename] = new Array()}
 
-			if (formobj.elements[i].checked && ext != "extendcheckbox") {
-				nv[pname].push(convertvartype(vartype,formobj.elements[i].value));
+			if (e.checked && eext != "e") {
+				nv[ename].push(convertvartype(etype,e.value));
 			}
-			if (formobj.elements[i].checked && ext == "extendcheckbox") {
-				nv[pname].push(convertvartype(vartype,formobj.elements[pname + "___" + vartype + "___extendtext___" + num].value));
+			if (e.checked && eext == "e") {
+				nv[ename].push(convertvartype(etype,formobj.elements["r___" + ename + "___" + etype + "___etext___" + epos].value));
 			}
 		}
 		}	
@@ -613,12 +985,6 @@ function form_makeedits_collectvalues(formobj) {
 	return newvalues;
 }
 
-callbacks["putrecord"] = new CallbackManager();
-// go to new record
-callbacks["putrecord"].end = function(r) {
-	window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + r + "?notify=" + 5;
-}
-
 function convertvartype(vartype,value) {
 	if (value) {
 		r = value;
@@ -626,6 +992,20 @@ function convertvartype(vartype,value) {
 	} else { r = null }
 	return r;
 }
+
+*/
+
+callbacks["putrecord"] = new CallbackManager();
+// go to new record
+callbacks["putrecord"].end = function(r) {
+	if (!isNaN(parseInt(r))) {
+		window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + r + "?notify=" + 5;
+	} else {
+		topalert(r);
+	}
+}
+
+
 
 
 /***********************************************/
@@ -642,37 +1022,37 @@ function xmlrpc_findparamname_cb(r) {
 
 
 
-function xmlrpc_secrecordadduser() {
-	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
-	user = document.xmlrpc_secrecordadduser_form.user.value;
-	level = document.xmlrpc_secrecordadduser_form.level.value;
+function form_secrecordadduser(formobj) {
+	if (formobj.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	user = formobj.user.value;
+	level = formobj.level.value;
+
+	recid = parseInt(document.form_record_generaloptions.recid.value);
 	
 	usertuple = [[],[],[],[]];
 	usertuple[level] = user;
-	xmlrpcrequest("secrecordadduser",[usertuple,name,ctxid,recurse]);	
+	xmlrpcrequest("secrecordadduser",[usertuple,recid,ctxid,recurse]);	
 }
 function xmlrpc_secrecordadduser_cb(r) {
-		makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"sidebar_permissions");
+	recid = parseInt(document.form_record_generaloptions.recid.value);
+	makeRequest("/db/permissions/" + recid + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
+
 
 /***********************************************/
 
 function form_showpermissions() {
+	// full javascript replacement for permissions mini-page. may not happen.
 }
 
-
-function xmlrpc_getrecord_perm_cb(r) {
-}
-
-
-function xmlrpc_secrecorddeluser(user, recid) {
-	if (document.xmlrpc_secrecordadduser_form.recurse.checked) { recurse = 5; } else { recurse = 0; }
-//	try {	user = parseInt(user); } catch(error) {}
-	recid = parseInt(recid);
+function form_secrecorddeluser(formobj, user) {
+	if (formobj.recurse.checked) { recurse = 5; } else { recurse = 0; }
+	recid = parseInt(document.form_record_generaloptions.recid.value);
 	xmlrpcrequest("secrecorddeluser",[user,recid,ctxid,recurse]);		
 }
 function xmlrpc_secrecorddeluser_cb(r) {
-	makeRequest("/db/permissions/" + name + "?edit=1&recurse=" + recurse,"sidebar_permissions");
+	recid = parseInt(document.form_record_generaloptions.recid.value);
+	makeRequest("/db/permissions/" + recid + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
 
 
@@ -725,6 +1105,7 @@ function alertContents(http_request,zone) {
 function xmlrpcrequest(method,args,async) {
 	
 	if (typeof(async)=="undefined") {async=1} else {async=0};
+	
 	command = XMLRPCMessage(method,args);
 
    var http_request = false;
@@ -751,11 +1132,17 @@ function xmlrpcrequest(method,args,async) {
 	  		if (http_request.status==200)	{	
 					document.body.style.cursor = "default";
 	
+					// use callback system
 					if (callbacks[method]) {
 
-						try { callbacks[method].callback(unmarshallDoc(http_request.responseXML,http_request.responseText)); }
-						catch(error) {alert("Error with request.");}
-						
+						try { 
+							callbacks[method].callback(unmarshallDoc(http_request.responseXML,http_request.responseText)); 
+						}	catch(error) {
+							if (errbacks[method]) {errbacks[method].callback(error.faultString)}
+							else {topalert("Error: " +error.faultString)}
+						}
+					
+					// try old callback system	
 					} else {						
 
 						try {	eval("cb = xmlrpc_" + method + "_cb");} catch(error) {cb=function(r){}}
@@ -783,7 +1170,8 @@ function xmlrpcrequest(method,args,async) {
 		http_request.open("POST",url,false);
 		http_request.send(command);
 		document.body.style.cursor = "default";
-		return unmarshallDoc(http_request.responseXML,http_request.responseText);
+		try {return unmarshallDoc(http_request.responseXML,http_request.responseText);}
+		catch(error) {topalert("Error: " +error.faultString)}
 	}
 
 

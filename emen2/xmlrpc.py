@@ -1,17 +1,19 @@
 from twisted.web.resource import Resource
 from twisted.web import resource, server
 from twisted.internet import defer, reactor, threads
-
+import traceback
 #from emen2 import Database
 from twisted.web import xmlrpc
 import xmlrpclib
 import os
 from sets import Set
 from emen2.emen2config import *
+from emen2 import Database
+import emen2.TwistSupport_html.supp
 
 import time
 
-from emen2 import ts
+#from emen2 import ts
 
 Fault = xmlrpclib.Fault
 
@@ -36,12 +38,10 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		request.finish()
 
 	def _ebRender(self,result,request):
-		f = xmlrpc.Fault(self.FAILURE, "Fault")
-		s = xmlrpclib.dumps(f, methodresponse=1)
 		print "fault in xmlrpc function: "
-		print type(result)
 		print result
-		print s
+		f = xmlrpc.Fault(self.FAILURE, result.getErrorMessage())
+		s = xmlrpclib.dumps(f, methodresponse=1)
 		request.setHeader("content-length", str(len(s)))
 		request.write(s)
 		request.finish()
@@ -50,6 +50,9 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		request.content.seek(0, 0)
 
 		content = request.content.read()
+		print "--"
+		print content
+		print "--"
 		args, functionPath = xmlrpclib.loads(content)
 		host = request.getClientIP()
 		kwargs={"host":host}
@@ -120,7 +123,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		"""adds a user to the new user queue. Users must be approved by an
 		administrator before they have access. 'user' is a dictionary
 		representing a User object"""
-		usero=ts.DB.User()
+		usero=Database.User()
 		usero.__dict__.update(user)
 		db.adduser(self,usero)
 
@@ -145,12 +148,12 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None,db=None):
 		"""This will set the user's entire workflow list. This should rarely be used."""
-		w=[ts.DB.WorkFlow(with=i) for i in wflist]
+		w=[Database.WorkFlow(with=i) for i in wflist]
 		db.setworkflow(w,ctxid,host)
 		
 	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None,db=None):
 		"""Adds a Workflow object to the user's workflow"""
-		worko=ts.DB.WorkFlow()
+		worko=Database.WorkFlow()
 		worko.__dict__.update(work)
 		db.addworkflowitem(worko,ctxid,host)
 	
@@ -206,9 +209,10 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 			
 	def xmlrpc_addparamdef(self,paramdef,ctxid=None,parent=None,host=None,db=None):
 		"""Puts a new ParamDef in the database. User must have permission to add records."""
-		r=ts.DB.ParamDef()
+		r=Database.ParamDef()
 		r.__dict__.update(paramdef)
 		db.addparamdef(r,ctxid,host,parent)
+		return r.name
 	
 	def xmlrpc_getparamdef(self,paramdefname,host=None,db=None):
 		"""Anyone may retrieve any paramdef"""
@@ -232,8 +236,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 	
 	def xmlrpc_addrecorddef(self,recdef,ctxid=None,parent=None,host=None,db=None):
 		"""New recorddefs may be added by users with record creation permission"""
-		r=ts.DB.RecordDef(rectype)
-		return tuple(db.addrecorddef(r,ctxid,parent))
+		r=Database.RecordDef(recdef)
+		return db.addrecorddef(r,ctxid,parent)
 			
 	def xmlrpc_getrecorddef(self,rectypename,ctxid=None,recid=None,host=None,db=None):
 		"""Most RecordDefs are generally accessible. Some may be declared private in
@@ -337,13 +341,16 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		return db.getindexdictbyvalue(paramname,valrange,ctxid,host,subset).items()
 	
 	def xmlrpc_groupbyrecorddef(self,all,ctxid=None,host=None,db=None):
-		return db.groupbyrecorddef(all,ctxid,host)
+		r = db.groupbyrecorddef(all,ctxid,host)
+		return emen2.TwistSupport_html.supp.groupsettolist(r).items()
+#		return db.groupbyrecorddef(all,ctxid,host).items()
 	
 	def xmlrpc_getworkflowitem(self,wfid,ctxid=None,host=None,db=None):
 		return db.getworkflowitem(wfid,ctxid,host)
 	
 	def xmlrpc_putrecorddef(self,recdict,ctxid=None,host=None,db=None):
-		recdef = ts.DB.RecordDef(recdict)
+		recdef = Database.RecordDef(recdict)
+		print recdef
 		return db.putrecorddef(recdef,ctxid,host)
 
 	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None,db=None):
@@ -386,8 +393,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		return "pong"
 
 	def xmlrpc_test(self,host=None,db=None):
-		a=ts.DB.WorkFlow()
-		b=ts.DB.WorkFlow()
+		a=Database.WorkFlow()
+		b=Database.WorkFlow()
 		c=(a,b)
 		d=[dict(x.__dict__) for x in c]
 		
@@ -398,7 +405,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		from emen2.TwistSupport_html.html.tileimage import get_tile, get_tile_dim
 
 		bname,ipath,bdocounter=db.getbinary(bid,ctxid)
-		fpath=ts.E2TILEPATH+bid+".tile"
+		fpath=E2TILEPATH+bid+".tile"
 
 		if not os.access(fpath,os.R_OK):
 			return (-1,-1,bid)
@@ -444,16 +451,16 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		"""This will generate a 'dummy' record to fill in for a particular classtype.
 		classtype may be: user,paramdef,recorddef,workflow or the name of a valid recorddef"""
 		if	 (classtype.lower()=="user") :
-			r=ts.DB.User()
+			r=Database.User()
 			return r.__dict__
 		elif (classtype.lower()=="paramdef") :
-			r=ts.DB.ParamDef()
+			r=Database.ParamDef()
 			return r.__dict__
 		elif (classtype.lower()=="recorddef") :
-			r=ts.DB.RecordDef()
+			r=Database.RecordDef()
 			return r.__dict__
 		elif (classtype.lower()=="workflow") :
-			r=ts.DB.Workflow()
+			r=Database.Workflow()
 			return r.__dict__
 		else :
 			r=db.newrecord(classtype,ctxid,init=1)

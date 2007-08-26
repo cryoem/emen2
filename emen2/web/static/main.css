@@ -1,4 +1,52 @@
 
+.input_elem {
+/*	display:none; */
+}
+
+.input_combobox, .input_multiselect, .input_textarea,.input_select {
+	display:inline-block;
+	position:relative;
+}
+.input_text,.input_select {
+	width:200px;
+}
+input_list {
+	/* until I can work out something better */
+}
+.input_combobox  ul {
+	display:inline-block;
+	position:absolute;
+	top:1em;
+	left:0em;	
+	padding: 0;
+	margin: 0;
+	list-style: none;
+	display:none;
+	background:white;
+	z-index:100;
+}
+.input_combobox ul li:hover {
+	width:auto;
+	background:#BBD9EE;
+}
+.input_combobox_items {
+	width:auto;
+	border-bottom:solid 1px;
+	border-left:solid 1px;
+	border-right:solid 1px;
+	width:200px;
+}
+.input_combobox_items li {
+	padding:2px;
+}
+.input_combobox img {
+	height:1em;
+	width:1em;
+	padding-top:0.3em;
+}
+.selecttest {
+}
+
 .userperm {
 	margin:5px;
 	display:inline;
@@ -25,6 +73,9 @@ textarea {
 	color:#783766;
 
 }
+input .text {
+	width:200px;
+}
 input {
 	display:inline;
 	color:#783766;
@@ -48,7 +99,8 @@ body {
 	margin:0px;
 	padding:0px;
 /*	background:#BBD9EE; */
-	background:white;
+	background:#BBD9EE; 
+/*	background:white; */
 	font-size:14px;
 }
 
@@ -59,6 +111,12 @@ html,body {
 #container {
 	position:relative; 
 	min-height:100%;
+	background:white;
+}
+
+div #precontent {
+	background:#BBD9EE; 
+	padding-bottom:10px;
 }
 
 div #content { 
@@ -67,6 +125,7 @@ div #content {
 	text-align:left;
 	clear:both;
 	width:auto;
+	background:white;
 }
 
 #pagecontainer_main {
@@ -87,6 +146,8 @@ div #content {
 }
 
 .page_param, .page_rdv {
+	min-width:600px;
+	float:left;
 	display:none;
 	background:white;
 	padding:20px;
@@ -134,13 +195,21 @@ div.singlepage {
 .notification {
 	clear:both;
 	background:#BBD9EE;  
-	padding:1.5em;
-	padding-bottom:1.5em;
+/*	padding:1.5em;
+	padding-bottom:1.5em; */
 }
 
 
 .notification_inner {
 	padding:1em;
+	background:white;
+	border:solid 4px #FF8135;
+}
+.notification_inner2 {
+	float:left;
+	clear:both;
+	padding:10px;
+	margin:10px;
 	background:white;
 	border:solid 4px #FF8135;
 }
@@ -300,16 +369,17 @@ td.standardtable_shaded {
 	padding:10px;
 }
 
-.param_name, .param_value, .param_value_display {
+.param_name, .param_value, .param_display {
 /*	padding-bottom:1px;
 	border-bottom:dashed 1px; */
 	color:#783766;
 /*	color:#FF8135; */
 }
+/*
 .param_value_edit {
 	display:none;
 }
-
+*/
 
 /* Arrows */
 .table_arrows {
@@ -324,21 +394,22 @@ td.standardtable_shaded {
 }
 
 
-.tab {
-	margin-bottom:20px;
-	float:none;
+.tab,.tab_float {
+	width:800px;
+	padding-top:20px;
+	padding-bottom:10px;	
 }
 .tab_label {
+	margin-left:30px;
 	padding:10px;
 	padding-right:20px;
-	float:left;
 	background:#E7F1F8;
 }
 .tab_page {
-	width:940px;
+	min-width:300px;
+	float:left;
 	padding:10px;
 	padding-top:20px;
-	clear:both;
 	background:#E7F1F8;
 }
 
@@ -610,6 +681,7 @@ DROP DOWN MENU CSS
 }
 #addchild {
 	background:white;
+	z-index:200;
 	clear:both;
 	float:none;
 	display:none;
@@ -636,7 +708,7 @@ DROP DOWN MENU CSS
 	clear:both;
 }
 
-.navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefviews:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_rdv:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
+.notification:after, .browser:after, .tab:after, .navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefviews:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_rdv:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -653,6 +725,11 @@ DROP DOWN MENU CSS
 	background:#E7F1F8;
 	clear:both;
 	display:block;
+}
+.browser {
+	float:left;
+	padding:10px;
+	background:#E7F1F8;
 }
 
 #browserid,#addrecordheader {
@@ -790,7 +867,7 @@ DROP DOWN MENU CSS
      rounded corners
  ************************** */
 /* all */
-.standardtable, div.navtree, #imagepreview, .tooltip, .child, .roundwhitebox {
+.standardtable, div.navtree, #imagepreview, .tooltip, .child, .roundwhitebox, .tab_page {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
@@ -843,7 +920,7 @@ td.roundtopleft {
 	-webkit-border-top-left-radius:8px;	
 }
 
-.page_param, .page_rdv, .tab_page {
+.page_param, .page_rdv,  {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-bottomleft:8px;
 	-moz-border-radius-bottomright:8px;
@@ -852,7 +929,7 @@ td.roundtopleft {
 	-webkit-border-bottom-right-radius:8px;	
 }
 	
-#parambrowser, #protobrowser {
+#parambrowser, #protobrowser, .browser {
 	-moz-border-radius:20px;
 	-webkit-border-radius:20px;
 }

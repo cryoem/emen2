@@ -850,18 +850,18 @@ class MemBTree:
 	def typekey(self,key):
 		if key==None or key=="None" : return None
 		if self.keytype=="f" : 
-			try:
-				return float(key)
-			except: 
-				print "Invalid float(%s)"%key
-				return(0.0)
+#			try:
+			return float(key)
+#			except: 
+#				print "Invalid float(%s)"%key
+#				return(0.0)
 		if self.keytype=="d":
 			# try block: ian
-			try:
-				return int(key)
-			except:
-				print "Invalid int(%s)"%key
-				return 0
+#			try:
+			return int(key)
+#			except:
+#				print "Invalid int(%s)"%key
+#				return 0
 			
 		return str(key)
 			
@@ -3168,8 +3168,11 @@ or None if no match is found."""
 		if not isinstance(recdef,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
 		ctx=self.__getcontext(ctxid,host)
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordDefs"
-		if self.__recorddefs.has_key(recdef.name) : raise KeyError,"RecordDef %s already exists"%recdef.name
+		if self.__recorddefs.has_key(recdef.name.lower()) : raise KeyError,"RecordDef %s already exists"%recdef.name.lower()
 		
+		# ian
+		if not recdef.name:
+			raise KeyError,"RecordDef name cannot be empty."
 		# force these values
 		if (recdef.owner==None) : recdef.owner=ctx.user
 		recdef.name=recdef.name.lower()
@@ -3190,6 +3193,7 @@ or None if no match is found."""
 		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
+		return recdef.name
 
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. The mainview should
@@ -4331,12 +4335,13 @@ or None if no match is found."""
 				# Index record
 				for k,v in r.items():
 					if k != 'recid':
-#						try:
-						self.__reindex(k,None,v,r.recid,txn)
-#						except:
-#							print k
-#							print v
-#							print r.recid
+						try:
+							self.__reindex(k,None,v,r.recid,txn)
+						except:
+							print k
+							print v
+							print r.recid
+							print 
 				
 				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid,txn)		# index security
 				self.__recorddefindex.addref(r.rectype,r.recid,txn)			# index recorddef
@@ -4372,7 +4377,7 @@ or None if no match is found."""
 					rr=load(fin)			# read the dictionary of ParamDef PC links
 					for p,cl in rr:
 						for c in cl:
-							print p, c
+#							print p, c
 #							print recmap[p],recmap[c[0]],c[1]
 							if isinstance(c,tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 							else : self.__records.pclink(recmap[p],recmap[c],txn)

@@ -2,23 +2,20 @@ var classcache = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
 
+classstatecache["input_elem"] = "inline";
+
 /***** callback manager *****/
 
-Function.prototype.andThen=function(g) {
-  var f=this;
-  return function() {
-    f();g();
-  }
-};
 
 function CallbackManager() {
 	this.f = new Array();
 	this.end = function (r) {};
 	this.register = function(callbackFunction) {
-//		alert("Registered "+callbackFunction);
-		this.f.push(callbackFunction);
+//	console.log("Registered "+callbackFunction);
+	this.f.push(callbackFunction);
 	}
 	this.callback = function(r) {
+//		console.log("Triggered callback");
 		for (i=0;i<this.f.length;i++) {
 			this.f[i](r);
 		}
@@ -33,11 +30,6 @@ function CallbackManager() {
 function dict() {
 }
 
-//dict.prototype.update = function(l) {
-//	for (var i=0;i<l.length;i++) {
-//		this[String(l[i][0])] = l[i][1];
-//	}
-//}
 
 
 //getcomputedstyle shortcut: fixed for IE
@@ -51,10 +43,6 @@ function getStyle(elem, cssRule, ieProp) {
     return "";
 }
 
-//function getStyle(element, cssRule) {
-//  var value = document.defaultView.getComputedStyle( element, '' ).getPropertyValue(cssRule);
-//  return value;
-//}
 
 function initialstyle() {
 	var alltags=document.getElementsByTagName("*");
@@ -85,6 +73,17 @@ function getElementByClass(classname,update) {
 	classcache[classname] = elements;
 	return elements;
 }
+function getElementByClass2(classname,update) {
+	if (classcache[classname] && update == 0) { return classcache[classname] }
+	var elements=[];
+	var alltags=document.all? document.all : document.getElementsByTagName("*")
+	var length = alltags.length;
+	for (i=0; i<length; i++) {
+		if (alltags[i].className.indexOf(classname) != -1){elements.push(alltags[i])}
+	}
+	classcache[classname] = elements;
+	return elements;
+}	
 
 
 
@@ -116,6 +115,20 @@ function toggle(id) {
 	} 
 }
 
+function togglelink(id,target,reverse) {
+	reverse = reverse || 0;
+	target = document.getElementById(target);
+	if (id.checked) {
+		target.disabled = 1-reverse;
+	} else {
+		target.disabled = 0+reverse;
+	}
+}
+
+function setdisable(id) {
+	el = document.getElementById(id);
+	if (el.disabled) {el.disabled = 0} else {el.disabled = 1};
+}
 
 function switchbutton(type,id) {
 	list = getElementByClass("button_"+type);
@@ -129,7 +142,6 @@ function switchbutton(type,id) {
 		}
 	}
 }
-
 
 
 // fixme: no longer needed once new permissions script is done
@@ -162,30 +174,30 @@ function switchin(classname, id) {
 
 // show/hide all members of a class. cannot operate at stylesheet level because we tend to set styles for single elements.
 function hideclass(classname,update) {
-	list = getElementByClass(classname,update);		
+	list = getElementByClass2(classname,update);		
+
 	try {
-		el = document.getElementById(list[0]);
-		state = getStyle(el,"display");
+		state = getStyle(list[0],"display");
 		classstatecache[classname] = state;
 	} catch(error) {
 	}
 
 	for (var i=0;i<list.length;i++) {
-		document.getElementById(list[i]).style.display = 'none'; 
+		list[i].style.display = 'none'; 
 	}
 }
 
 function showclass(classname,update) {
-	list = getElementByClass(classname,update);
+	list = getElementByClass2(classname,update);
 
-//	if (classname in classstatecache) {cache = classstatecache[classname]} else {
+	if (classname in classstatecache) {cache = classstatecache[classname]} else {
 //			if (document.getElementById(list[0]).nodeName == "DIV") {
 				 cache = 'block' 
 //			} else {cache = 'inline' }
-//	}
+	}
 
 	for (var i=0;i<list.length;i++) {
-		document.getElementById(list[i]).style.display = cache;			
+		list[i].style.display = cache;			
 	}
 
 }
@@ -208,6 +220,9 @@ function qhide(id) {
 		document.getElementById(id).style.display = 'none';			
 	} catch(error) {}
 }
+
+
+/************************/
 
 
 //var init = new CallbackManager();

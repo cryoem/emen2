@@ -448,13 +448,13 @@ var parseFault = function(node){
 };
 
 
-/***********************************************/
 
 /**
     XML-RPC representation of a string.
     All '&' and '<' are replaced with the '&amp;'  and  '&lt'.
     @return  A string containing the String's representation in XML.
 */
+
 String.prototype.toXmlRpc = function(){
 		if (this == "null") { return "<nil/>" }
     return "<string>" + this.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</string>";
