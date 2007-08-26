@@ -428,7 +428,7 @@ def editparamspan2(classname,paramdef,value,showedit=0):
 		ret.append("""</span>""")
 				
 	elif paramdef.vartype == "text":
-		ret.append("""<span class="input_elem input_textarea" %s><textarea name="r___%s___%s">%s</textarea><span class="typehint">%s</span></span>"""%(style,paramdef.name,paramdef.vartype,value,hint))
+		ret.append("""<span class="input_elem input_textarea" %s><textarea rows="8" cols="80" name="r___%s___%s">%s</textarea><span class="typehint">%s</span></span>"""%(style,paramdef.name,paramdef.vartype,value,hint))
 	
 	elif paramdef.vartype in ["string","int","float","longint","longfloat","url"]:
 		if paramdef.choices:
