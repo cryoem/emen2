@@ -1163,7 +1163,7 @@ administrators. -2 group is read-only administrator.
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
-	def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=1800):
+	def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 		self.ctxid=ctxid			# unique context id
 		self.db=db					# Points to Database object for this context
 		self.user=user				# validated username
@@ -1662,7 +1662,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
 
-	def login(self,username="anonymous",password="",host=None,maxidle=144000):
+	def login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access"""
 		ctx=None
