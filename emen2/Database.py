@@ -1066,6 +1066,12 @@ class RecordDef:
 		self.creationdb=None		# dbid where recorddef originated
 		if (dict) : self.__dict__.update(dict)
 		
+	def __setstate__(self,dict):
+		"""restore unpickled values to defaults after unpickling"""
+		self.__dict__.update(dict)
+		if not dict.has_key("typicalchld") : self.typicalchld=[]
+
+
 	def __str__(self):
 		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
 			self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
@@ -2282,7 +2288,27 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		# parses the strings into discrete units to process (words and operators)
-		elements=[i for i in re.split("\s|(<=|>=|><|!-|<|>|==|=|,)",query) if i!=None and len(i)>0]
+		e=[i for i in re.split("\s|(<=|>=|><|!=|<|>|==|=|,)",query) if i!=None and len(i)>0]
+
+		# this little mess rejoins quoted strings into a single element
+		elements=[]
+		i=0
+		while i<len(e) :
+			if e[i][0]=='"' or e[i][0]=="'" :
+				q=e[i][0]
+				e[i]=e[i][1:]
+				s=""
+				while(i<len(e)):
+					if e[i][-1]==q :
+						s+=e[i][:-1]
+						elements.append(s)
+						i+=1
+						break
+					s+=e[i]+" "
+					i+=1
+			else: 
+				elements.append(e[i])
+				i+=1
 		
 		# Now we clean up the list of terms and check for errors
 		for n,e in enumerate(elements):
