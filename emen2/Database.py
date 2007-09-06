@@ -732,7 +732,8 @@ class FieldBTree:
 		if self.keytype=="d" :
 			try: return int(key)
 			except: return int()
-		return str(key).lower()
+		try: return str(key).lower()
+		except: return unicode(key).encode("utf-8").lower()
 			
 	def removeref(self,key,item,txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
@@ -951,6 +952,22 @@ class MemBTree:
 			except: continue
 			self[k]=v
 
+# validation/conversion for booleans
+def boolconv(x):
+	try:
+		x=int(x)
+		if x: return 1
+		else: return 0
+	except:
+		if x[0] in ("T","t","Y","y") : return 1
+		if x[0] in ("F","f","N","n") : return 0
+		raise Exception,"Invalid boolean %s"%str(x)
+
+# validation/conversion for text, permitting unicode
+def textconv(x):
+	try: return str(x)
+	except: return unicode(x)
+
 # vartypes is a dictionary of valid data type names keying a tuple
 # with an indexing type and a validation/normalization
 # function for each. Currently the validation functions are fairly stupid.
@@ -962,7 +979,7 @@ valid_vartypes={
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
 	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
 	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
-	"text":("s",lambda x:str(x)),			# freeform text, fulltext (word) indexing
+	"text":("s",textconv),			# freeform text, fulltext (word) indexing, UNICODE PERMITTED
 	"time":("s",lambda x:str(x)),			# HH:MM:SS
 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
@@ -976,9 +993,10 @@ valid_vartypes={
 	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
-	"boolean":("d",lambda x:int(x)),
+	"boolean":("d",boolconv),
 	"dict":(None, lambda x:x)
 }
+
 
 # Valid physical property names
 # The first item in the value tuple is ostensibly a default, but this
@@ -1354,7 +1372,7 @@ class Record:
 #		for i,j in self.__params.items():
 #			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		for i,j in self.items():
-			ret.append("%12s:  %s\n"%(str(i),str(j)))
+			ret.append("%12s:  %s\n"%(str(i),unicode(j).encode("utf-8")))
 		return "".join(ret)
 		
 	def writable(self):
@@ -3753,7 +3771,7 @@ or None if no match is found."""
 				p=rec.setContext(ctx)
 				if not p[0] : raise Exception,"Permission denied on one or more records"	
 			return recl
-		else : raise KeyError,"Invalid Key"
+		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
 		"""Same as getRecord, but failure will produce None or a filtered list"""
