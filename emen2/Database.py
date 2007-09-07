@@ -1115,9 +1115,10 @@ class RecordDef:
 			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
-Users are never deleted, only disabled, for historical logging purposes. -1 group is for database
-administrators. -2 group is read-only administrator.
-	Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime,name(first,middle,last),institution,department,address,city,state,zipcode,country,webpage,email,altemail,phone,fax,cellphone"""
+Approved users are never deleted, only disabled, for historical logging purposes. -1 group is for database
+administrators. -2 group is read-only administrator. Only the metadata below is persistenly stored in this
+record. Other metadata is stored in a linked "Person" Record in the database itself once the user is approved
+	Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime"""
 	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
@@ -3136,13 +3137,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
 		paramdef.name=paramdef.name.lower()
 		if self.__paramdefs.has_key(paramdef.name) : 
-			# Root is permitted to force changes in parameters, though are supposed to be static
+			# Root is permitted to force changes in parameters, though they are supposed to be static
 			# This permits correcting typos, etc., but should not be used routinely
 			if ctx.user!="root" : raise KeyError,"paramdef %s already exists"%paramdef.name
 		else :
 			# force these values
 			paramdef.creator=ctx.user
 			paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+		
+		if isinstance(paramdef.choices,list) or isinstance(paramdef.choices,tuple) :
+			paramdef.choices=tuple([str(i).title() for i in paramdef.choices])
 		
 		# this actually stores in the database
 		txn=self.newtxn()
@@ -3157,7 +3161,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		d=self.__paramdefs[paramdefname]
 		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
 		
-		d.choices=d.choices+(choice,)
+		d.choices=d.choices+(str(choice).title(),)
 		txn=self.newtxn()
 		self.__paramdefs.set(paramdefname,d,txn)
 		if txn: txn.commit()
@@ -3518,13 +3522,20 @@ or None if no match is found."""
 
 		for i in params:
 			try:
-				vartype=self.__paramdefs[i.lower()].vartype
+				pd=self.__paramdefs[i.lower()]
+				vartype=pd.vartype
 			except:
 				raise KeyError,"Parameters undefined (%s)"%i
 
 			
 			try:
 				record[i] = valid_vartypes[vartype][1](record[i])
+				if vartype=="string" and isinstance(pd.choices,tuple):
+					if record[i].title() not in pd.choices :
+						self.addparamchoice(i,record[i].ctxid)
+				if vartype=="choice" :
+					if record[i].title() not in pd.choices :
+						raise Exception,"%s not in %s"%(record[i],pd.choices)
 			except:
 #				pass
 				print "Error converting datatype: %s, %s"%(i,vartype)

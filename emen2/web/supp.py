@@ -154,8 +154,9 @@ def render_view(rec,viewdef,viewtype="",paramdefs={},markup=0,defaults=0,allowed
 			if type(value) == list:
 				value = ", ".join(value)
 
-			value = pcomments.sub("<br />",str(value))
-
+			try: value = pcomments.sub("<br />",str(value))
+			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
+				
 			if markup:				
 				prepend	= """<span class="param_display">"""		
 				if paramdefs[match.group("var1")].defaultunits and paramdefs[match.group("var1")].defaultunits != "unitless" and value != "":
