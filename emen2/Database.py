@@ -8,7 +8,7 @@
 # XMLRPC interface
 # XML parsing
 # Database id's not supported yet
-
+DEBUG = 0
 
 """This module encapsulates an electronic notebook/oodb
 
@@ -40,6 +40,20 @@ dbopenflags=db.DB_CREATE
 envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_THREAD
 usetxn=False
 
+
+regex_pattern =  "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
+				"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
+regex = re.compile(regex_pattern)
+
+regex_pattern2 =  "(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+				"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
+				"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
+regex2 = re.compile(regex_pattern2)
+
+recommentsregex = "\n"
+pcomments = re.compile(recommentsregex)
+
 # These are for transactional database work
 #dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
 #envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_INIT_TXN
@@ -53,26 +67,26 @@ def DB_cleanup():
 	necessary at the next restart"""
 	sys.stdout.flush()
 	print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
-#	print >>sys.stderr, len(BTree.alltrees), 'BTrees'
+	if DEBUG>2: print >>sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees:
-#		sys.stderr.write('closing %s\n' % str(i))
+		if DEBUG>2: sys.stderr.write('closing %s\n' % str(i))
 		i.close()
-#		sys.stderr.write('%s closed\n' % str(i))
-#	print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
+		if DEBUG>2: sys.stderr.write('%s closed\n' % str(i))
+	if DEBUG>2: print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
 	for i in IntBTree.alltrees:
 		i.close()
-#		sys.stderr.write('.')
-#	print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
+		if DEBUG>2: sys.stderr.write('.')
+	if DEBUG>2: print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
 	for i in FieldBTree.alltrees:
 		i.close()
-#		sys.stderr.write('.')
-#	sys.stderr.write('\n')
+		if DEBUG>2: sys.stderr.write('.')
+	if DEBUG>2: sys.stderr.write('\n')
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
 
 def DB_syncall():
 	"""This 'syncs' all open databases"""
-#	print "sync %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
+	if DEBUG>2: print "sync %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	t=time.time()
 	for i in BTree.alltrees: i.sync()
 	for i in IntBTree.alltrees: i.sync()
@@ -201,18 +215,18 @@ class BTree:
 
 	def close(self):
 		if self.bdb is None: return
-#		print >>sys.stderr, '\nbegin'; sys.stderr.flush()
+		if DEBUG>2: print >>sys.stderr, '\nbegin'; sys.stderr.flush()
 		try:
 			self.pcdb.close()
-#			print >>sys.stderr, '/pc'; sys.stderr.flush()
+			if DEBUG>2: print >>sys.stderr, '/pc'; sys.stderr.flush()
 			self.cpdb.close()
-#			print >>sys.stderr, '/cp'; sys.stderr.flush()
+			if DEBUG>2: print >>sys.stderr, '/cp'; sys.stderr.flush()
 			self.reldb.close()
-#			print >>sys.stderr, '/rel'; sys.stderr.flush()
+			if DEBUG>2: print >>sys.stderr, '/rel'; sys.stderr.flush()
 		except: pass
-#		print >>sys.stderr, 'main'; sys.stderr.flush()
+		if DEBUG>2: print >>sys.stderr, 'main'; sys.stderr.flush()
 		self.bdb.close()
-#		print >>sys.stderr, '/main'; sys.stderr.flush()
+		if DEBUG>2: print >>sys.stderr, '/main'; sys.stderr.flush()
 		self.bdb=None
 	
 	def sync(self):
@@ -256,7 +270,7 @@ class BTree:
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 				
 		if not self.has_key(childtag,txn) : 
-			print "%s %s"%(childtag,parenttag)
+			if DEBUG: print "%s %s"%(childtag,parenttag)
 			raise KeyError,"Cannot link nonexistent key '%s'"%childtag
 			print "Cannot link nonexistent key '%s'"%childtag
 		if not self.has_key(parenttag,txn) : 
@@ -293,9 +307,10 @@ class BTree:
 			
 
 
-		print "trying to unlink parent %s child %s"%(parenttag,childtag)
-		print (childtag,paramname)
-		print o				
+		if DEBUG:
+			print "trying to unlink parent %s child %s"%(parenttag,childtag)
+			print (childtag,paramname)
+			print o				
 				
 						
 		if not (childtag,paramname) in o: 
@@ -994,7 +1009,8 @@ valid_vartypes={
 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",boolconv),
-	"dict":(None, lambda x:x)
+	"dict":(None, lambda x:x), 
+	"user":("s",lambda x:str(x)) # ian 09.06.07
 }
 
 
@@ -1107,8 +1123,11 @@ class RecordDef:
 		for i in self.views.values():
 			t2,d2=parseparmvalues(i)
 			for j in t2:
-				if not d.has_key(j): t.append(j)
-			d.update(d2)
+				# ian: fix for: empty default value in a view unsets default value specified in mainview
+				if not d.has_key(j):
+					t.append(j)
+					d[j] = d2[j]
+#			d.update(d2)
 
 		self.params=d
 		self.paramsK=tuple(t)
@@ -1412,7 +1431,7 @@ class Record:
 		except: valuelower = ""
 		
 		if value==None or valuelower=="none" : 
-#			print "rec %s, key=%s set to None"%(self.recid,key)
+			if DEBUG: print "rec %s, key=%s set to None"%(self.recid,key)
 			value = None
 
 
@@ -2386,15 +2405,24 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# if it's in a critical spot we can raise an error later
 		
 		return [i for i in elements if i!=None]
-		
+
+
+#	def getrecordnames(self,ctxid,dbid=0,host=None):		
 	def getindexbycontext(self,ctxid,host=None):
-		"""This will use a context to return
-		a list of records the user can access"""
-		u,g=self.checkcontext(ctxid,host)
+		"""This will return the ids of all records the user has permission to access""" 
+		ctx=self.__getcontext(ctxid,host)
 		
-		ret=Set(self.__secrindex[u])
-		for i in g: ret|=Set(self.__secrindex[i])
+		if ctx.user=="root" : return range(self.__records[-1]+1)
+		ret=Set(self.__secrindex[ctx.user])
+		for i in ctx.groups: ret|=Set(self.__secrindex[i])
 		return ret
+#		"""This will use a context to return
+#		a list of records the user can access"""
+#		u,g=self.checkcontext(ctxid,host)
+#		
+#		ret=Set(self.__secrindex[u])
+#		for i in g: ret|=Set(self.__secrindex[i])
+#		return ret
 	
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
@@ -2501,7 +2529,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
 		by their recorddef"""
 		all=Set(all)
-		all&=self.getindexbycontext(ctxid,host)
+		all&=Set(self.getindexbycontext(ctxid,host))
 		ret={}
 		while len(all)>0:
 			rid=all.pop()							# get a random record id
@@ -2518,10 +2546,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
-		"""quick version for records that are already in cache; e.g. table views"""
-		if len(records) > 500:
-			return self.groupbyrecorddef(records,ctxid=ctxid,host=host)
-		
+		"""quick version"""
  		r = {}
  		for i in records:
 			if not self.trygetrecord(i,ctxid): continue
@@ -3231,7 +3256,7 @@ or None if no match is found."""
 		pdn=self.getparamdefnames()
 		for i in recdef.params:
 			if i not in pdn:
-				print pdn
+				if DEBUG: print pdn
 				print "No such parameter %s" %i
 				raise KeyError,"No such parameter %s"%i
 		
@@ -3361,7 +3386,7 @@ or None if no match is found."""
 
 		DB_cleanup()
 		self.__dbenv.close()
-		print >>sys.stderr, '__dbenv.close() successful'
+		if DEBUG>2: print >>sys.stderr, '__dbenv.close() successful'
 		sys.exit(0)
 		
 	def __getparamindex(self,paramname,create=1):
@@ -3518,7 +3543,7 @@ or None if no match is found."""
 		params=Set(record.keys())
 		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
 
-		print params
+		if DEBUG: print params
 
 		for i in params:
 			try:
@@ -3580,7 +3605,7 @@ or None if no match is found."""
 			ptest.discard("permissions")
 			ptest.discard("rectype")
 			if len(ptest)>0 :
-			        print ptest 
+			        if DEBUG: print ptest 
 #				self.__records[-1]=record.recid-1
 				txn.abort()
 				print "One or more parameters undefined (%s)"%ptest
@@ -3635,7 +3660,7 @@ or None if no match is found."""
 		for f in params:
 			try:
 				if (orig[f]!=record[f]):
-					print "changedparams: %s ... %s %s"%(f,type(orig[f]),type(record[f]))
+					if DEBUG: print "changedparams: %s ... %s %s"%(f,type(orig[f]),type(record[f]))
 					changedparams.append(f)
 			except:
 				changedparams.append(f)
@@ -3719,9 +3744,10 @@ or None if no match is found."""
 		if init:
 			# minor fix, ian, 08.08.07
 			keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
-			for i in keys:
-#				print k,";",v
-				ret[i]=t.params[i]						# hmm, in the new scheme, perhaps this should just be a deep copy
+			if DEBUG: print t.params
+			for k in keys:
+				if DEBUG: print k,";",t.params[k]
+				ret[k]=t.params[k]						# hmm, in the new scheme, perhaps this should just be a deep copy
 		return ret
 
 	def getrecordnames(self,ctxid,dbid=0,host=None):
@@ -3747,7 +3773,7 @@ or None if no match is found."""
 		
 		return ret 
 			
- 	def trygetrecord(self,recid,ctxid,host=None,dbid=0):
+	def trygetrecord(self,recid,ctxid,host=None,dbid=0):
 		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user=="root": return 1
@@ -3837,7 +3863,7 @@ or None if no match is found."""
 
 		# get a list of records we need to update
 		if recurse>0:
-			print "Add user recursive..."
+			if DEBUG: print "Add user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
@@ -3936,7 +3962,7 @@ or None if no match is found."""
 
 		# get a list of records we need to update
 		if recurse>0:
-			print "Del user recursive..."
+			if DEBUG: print "Del user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
@@ -4000,6 +4026,117 @@ or None if no match is found."""
 			self.__secrindex.removerefs(i,secrupd[i],txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
+
+
+	##########
+	# internal view rendering functions
+	##########
+	
+	def getrecordrenderedviews(self,recid,ctxid,paramdefs={},macrocache={},host=None):
+		rec=self.getrecord(recid,ctxid,host=host)
+		recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
+		views=recdef.views
+		views["mainview"] = recdef.mainview
+		for i in views:
+			views[i] = self.renderview(rec,viewdef=views[i],paramdefs=paramdefs,macrocache=macrocache,ctxid=ctxid,host=host)
+		return views
+	
+	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,host=None):
+		if type(rec) == int:
+			rec=self.getrecord(rec,ctxid,host=host)
+		if viewdef == None:
+			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
+			if viewtype=="mainview":
+				viewdef=recdef.mainview
+			elif viewtype=="recname" and not recdef.views.has_key("recname"):
+				viewdef = "(%s)"%recdef.name
+			else:
+				viewdef=recdef.views[viewtype]
+		
+		iterator=regex2.finditer(viewdef)
+		for match in iterator:
+			if match.group("name"):
+				if not paramdefs.has_key(match.group("name1")):
+					paramdefs[match.group("name1")] = self.getparamdef(match.group("name1"))
+
+				value = paramdefs[match.group("name1")].desc_short
+				matchstr = "\$\\#"+match.group("name")+match.group("namesep")
+				viewdef = re.sub(matchstr,value+match.group("namesep"),viewdef)
+
+			elif match.group("var"):
+				if not paramdefs.has_key(match.group("var1")):
+					paramdefs[match.group("var1")] = self.getparamdef(match.group("var1"))
+
+				# represent as string
+				value = rec[match.group("var1")]
+				if type(value) == type(None):
+					value = ""
+				elif type(value) == list:
+					value = ", ".join(value)
+				elif type(value) == float:
+					value = "%0.2f"%value
+				else:
+					value = pcomments.sub("<br />",str(value))
+
+				matchstr = "\$\$"+match.group("var")+match.group("varsep")
+				viewdef = re.sub(matchstr,value+match.group("varsep"),viewdef)
+
+
+			elif match.group("macro"):
+#				try:
+#					value = str(macrocache[match.group("macro1")][match.group("macro2")][rec.recid])
+#				except:
+				value = str(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+
+				m2=match.group("macro2")
+				if m2 == None:
+					m2=""
+				matchstr = "\$\@" + match.group("macro1") + "\(" + m2 + "\)" + match.group("macrosep")
+				viewdef = re.sub(matchstr,value+match.group("macrosep"),viewdef)
+
+		return viewdef
+
+
+	def macroprocessor(self, rec, macro, macroparameters, ctxid, host=None):
+		if macro == "recid":
+			return rec.recid
+		
+	 	elif macro == "childcount":
+			if not rec.recid:
+				return ""
+ 			queryresult = self.getchildren(rec.recid,recurse=5,ctxid=ctxid,host=host)
+
+	#		option 1: return queryresult & db.getindexbyrecorddef(macroparameters,ctxid)
+	#		option 2: mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid) 
+ 			mgroups = self.groupbyrecorddeffast(queryresult,ctxid,host=host)
+
+	 		if mgroups.has_key(macroparameters):
+	 			return len(mgroups[macroparameters])
+ 			return ""
+
+		elif macro == "parentvalue":
+			p=self.getparents(rec.recid,ctxid=ctxid,host=host)
+			ret = []
+			for j in p:
+				if self.trygetrecord(j,ctxid,host=host):
+					r=self.getrecord(j,ctxid,host=host)
+					if r.has_key(macroparameters):
+						ret.append(r[macroparameters])
+			return ",".join(ret)
+		
+		elif macro == "recname":
+			if rec.has_key("recname"):
+				return rec["recname"]
+			else:
+				recdef=self.getrecorddef(rec.rectype,ctxid,host=host)
+				if recdef.views.has_key("recname"):
+					if not recdef.views["recname"].find("$@recname"):
+						return self.renderview(rec,recdef.views["recname"],ctxid=ctxid,host=host)
+					else:
+						return "(warning: recursive recname)"
+				else:
+					return "(needs $@recname view)"
+
 
 	###########
 	# The following routines for xmlizing aspects of the database are very simple, 
@@ -4393,10 +4530,11 @@ or None if no match is found."""
 						try:
 							self.__reindex(k,None,v,r.recid,txn)
 						except:
-							print k
-							print v
-							print r.recid
-							print 
+							if DEBUG: 
+								print "Unindexed value: (key, value, recid)"
+								print k
+#								print v
+								print r.recid
 				
 				self.__reindexsec(None,reduce(operator.concat,r["permissions"]),r.recid,txn)		# index security
 				self.__recorddefindex.addref(r.rectype,r.recid,txn)			# index recorddef
@@ -4452,7 +4590,7 @@ or None if no match is found."""
 			self.LOG(4,"Checkpointing complete, dumping indices")
 			self.__commitindices()
 			
-	def restoretest(self,ctxid,host=None) :
+	def restoretest(self,ctxid,host=None):
 		"""This method will check a database backup and produce some statistics without modifying the current database."""
 		
 		if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")

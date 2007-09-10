@@ -203,8 +203,8 @@ class dbisolator:
 		rec.localcpy=1
 		return rec
 	
-	def meth_getrecordnames(self,ctxid,dbid=0,host=None):
-		return db.getrecordnames(ctxid,dbid,host)
+#	def meth_getrecordnames(self,ctxid,dbid=0,host=None):
+#		return db.getrecordnames(ctxid,dbid,host)
 	
 	def meth_getrecordschangetime(self,recids,ctxid,host=None):
 		return db.getrecordschangetime(recids,ctxid,host)

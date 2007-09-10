@@ -42,3 +42,9 @@ div.navtreeouter {
 .page_recordview {
 	width:auto;
 }
+
+.page, .page_rdv {
+	float:none;
+}
+
+.notification, .browser, .tab, .navtreeouter, #parambrowser, #protobrowser, .pagecontainer, #recorddefviews, #recorddefsimple, .afterdiv, .pageparam, #paramcontainer, .floatcontainer, .page_rdv, .page_param, #cousin_buttons, .page_recordview, .pages, .buttons {height: 1%;}

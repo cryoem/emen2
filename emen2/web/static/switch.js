@@ -9,15 +9,14 @@ classstatecache["input_elem"] = "inline";
 
 function CallbackManager() {
 	this.f = new Array();
+	this.cbargs = null;
 	this.end = function (r) {};
 	this.register = function(callbackFunction) {
-//	console.log("Registered "+callbackFunction);
-	this.f.push(callbackFunction);
+		this.f.push(callbackFunction);
 	}
 	this.callback = function(r) {
-//		console.log("Triggered callback");
-		for (i=0;i<this.f.length;i++) {
-			this.f[i](r);
+		for (var i=0;i<this.f.length;i++) {
+			this.f[i](r,this.cbargs);
 		}
 		this.end(r);
 	}
@@ -135,10 +134,10 @@ function switchbutton(type,id) {
 	
 	for (var i=0;i<list.length;i++) {
 		if (list[i] != "button_" + type + "_" + id) {
-			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button_" + type}
+			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button button_" + type}
 		}
 		else {
-			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button_" + type + " " + "button_" + type + "_active"}
+			if (document.getElementById(list[i])) {document.getElementById(list[i]).className = "button button_active button_" + type + " " + "button_" + type + "_active"}
 		}
 	}
 }
@@ -197,7 +196,7 @@ function showclass(classname,update) {
 	}
 
 	for (var i=0;i<list.length;i++) {
-		list[i].style.display = cache;			
+		list[i].style.display = "block";			
 	}
 
 }

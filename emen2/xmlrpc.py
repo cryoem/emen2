@@ -50,9 +50,9 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		request.content.seek(0, 0)
 
 		content = request.content.read()
-		print "--"
-		print content
-		print "--"
+#		print "--"
+#		print content
+#		print "--"
 		args, functionPath = xmlrpclib.loads(content)
 		host = request.getClientIP()
 		kwargs={"host":host}
@@ -197,10 +197,10 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		for i in recdict.keys():
 			rec[i] = recdict[i]
 											
-		print "putting record..."										
+#		print "putting record..."										
 #		print rec
 		r=db.putrecord(rec,ctxid=ctxid)
-		print "done..."
+#		print "done..."
 		return r
 
 	def xmlrpc_addparamchoice(self,paramdefname,choice,host=None,db=None):
@@ -353,8 +353,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		print recdef
 		return db.putrecorddef(recdef,ctxid,host)
 
-	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None,db=None):
-		return db.getrecordnames(ctxid,dbid,host)
+#	def xmlrpc_getrecordnames(self,ctxid,dbid=0,host=None,db=None):
+#		return db.getrecordnames(ctxid,dbid,host)
 	
 	def xmlrpc_getrecordschangetime(self,recids,ctxid=None,host=None,db=None):
 		return db.getrecordschangetime(recids,ctxid,host)

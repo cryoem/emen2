@@ -1,3 +1,6 @@
+.permissions_edit {
+	display:none;
+}
 
 .input_elem {
 /*	display:none; */
@@ -393,25 +396,52 @@ td.standardtable_shaded {
 /*	cursor: pointer; */
 }
 
+.floatcontainer {
+	clear:both;
+}
 
-.tab,.tab_float {
+/* merge tab_page, page_tab.. tab_label, button_tab */
+.tab,.tab_float, {
 	width:800px;
 	padding-top:20px;
 	padding-bottom:10px;	
 }
-.tab_label {
+.tab_label, .button_tab, .button {
 	margin-left:30px;
 	padding:10px;
 	padding-right:20px;
 	background:#E7F1F8;
+	float:left;
+	background:grey;	
 }
-.tab_page {
-	min-width:300px;
+.button {
+	border-top:solid 2px #E7F1F8;;
+	border-left:solid 2px #E7F1F8;;
+	border-right:solid 2px #E7F1F8;;
+	background:white;	
+}
+.tab_page, .page_tab, .page {
+	min-width:900px;
 	float:left;
 	padding:10px;
 	padding-top:20px;
 	background:#E7F1F8;
 }
+.page_tab {
+}
+.button_tab {
+}
+.button_tab_active, .button_active {
+	background:#E7F1F8;
+}
+.pages {
+	clear:both;
+	margin-bottom:30px;
+}
+.buttons {
+}
+
+
 
 .roundwhitebox {
 	padding:20px;
@@ -634,6 +664,7 @@ DROP DOWN MENU CSS
 	margin-bottom:0em;
 	padding-bottom:0em;
 	background:#E7F1F8;
+	border:none;
 }
 .button_main_short {
 	margin-left:0px;
@@ -708,7 +739,7 @@ DROP DOWN MENU CSS
 	clear:both;
 }
 
-.notification:after, .browser:after, .tab:after, .navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefviews:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_rdv:after, .page_param:after, #cousin_buttons:after, .page_recordview:after {
+.notification:after, .browser:after, .tab:after, .navtreeouter:after, #parambrowser:after, #protobrowser:after, .pagecontainer:after, #recorddefviews:after, #recorddefsimple:after, .afterdiv:after, .pageparam:after, #paramcontainer:after, .floatcontainer:after, .page_rdv:after, .page_param:after, #cousin_buttons:after, .page_recordview:after, .pages:after, .buttons:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -777,7 +808,7 @@ DROP DOWN MENU CSS
 	padding-left:0.5em;
 	padding-right:0.5em;	
 }
-.parents, #sidebar_permissions {	
+.parents {	
 	line-height:200%;
 	padding:5px;
 	margin-bottom:10px;
@@ -867,13 +898,13 @@ DROP DOWN MENU CSS
      rounded corners
  ************************** */
 /* all */
-.standardtable, div.navtree, #imagepreview, .tooltip, .child, .roundwhitebox, .tab_page {
+.standardtable, div.navtree, #imagepreview, .tooltip, .child, .roundwhitebox, .page_tab, .page {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
 
 /* top only */
-.button_main, .button_param,.button_addrecord, .button_rdv, #browserid, #addrecordheader, .parent, .child, .parentgroup, #focus, .tab_label  {
+.button_main, .button_param,.button_addrecord, .button_rdv, #browserid, #addrecordheader, .parent, .child, .parentgroup, #focus, .tab_label, .button_opt, .button  {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-topleft:8px; 
 	-webkit-border-top-right-radius:8px;

@@ -393,6 +393,7 @@ function clearalerts() {
 	clearchildelements('alert');
 }
 
+
 function topalert(msg) {
 	// draw alert messages in top of window
 	// now integrated with previous notify mechanism
@@ -425,16 +426,7 @@ function getselectchoice(obj) {
 	return r;
 }
 
-function addtextfield(id) {
-	//add an item to an extensible list of values (e.g. stringlist)
-	e = document.getElementById(id);
-	expanded = id.name.split("___");
-	ekind = expanded[0] || "r";
-	ename = expanded[1];
-	etype = expanded[2] || "string";
-	elist = parseInt(expanded[3]) || 0;
-	epos = expanded[4] || 0;
-}
+
 
 function form_addrecorddef(formobj) {
 	//collects values, validates, and adds recorddef
@@ -467,15 +459,15 @@ function form_addrecorddef(formobj) {
 	} 
 
 	callbacks["addrecorddef"] = new CallbackManager();
-	callbacks["addrecorddef"].end = function(r) {
+	callbacks["addrecorddef"].end = function(r,cbargs) {
 		window.location = window.location.protocol + "//" + window.location.host + "/db/recorddef/" + r + "?notify=" + 7;	
 	}
 
 	for (i in rv["p"]["parents"]) {
-		callbacks["addrecorddef"].register(eval("function (r) {xmlrpcrequest('pclink',['"+i+"','"+r["name"].toLowerCase()+"','recorddef',ctxid],0)}"));
+		eval("callbacks['addrecorddef'].register(function (r,cbargs) {xmlrpcrequest('pclink',['"+i+"','"+r["name"].toLowerCase()+"','recorddef',ctxid],0)})");
 	}
 	for (i in rv["p"]["children"]) {
-		callbacks["addrecorddef"].register(eval("function (r) {xmlrpcrequest('pclink',['"+r["name"].toLowerCase()+"','"+i+"','recorddef',ctxid],0)}"));
+		eval("callbacks['addrecorddef'].register(function (r,cbargs) {xmlrpcrequest('pclink',['"+r["name"].toLowerCase()+"','"+i+"','recorddef',ctxid],0)})");
 	}
 
 	xmlrpcrequest("addrecorddef",[r,ctxid]);
@@ -485,7 +477,7 @@ function form_addrecorddef(formobj) {
 
 
 function xmlrpc_putrecorddef(formobj) {
-	r = xmlrpcrequest("getrecorddef",[currentparam,ctxid],0)
+	r = xmlrpcrequest("getrecorddef",[currentparam,ctxid],0);
 	recdef = new dict();
 	// instead of .update()
 	for (var i=0;i<r.length;i++) {
@@ -497,36 +489,40 @@ function xmlrpc_putrecorddef(formobj) {
 	recdef["views"]["tabularview"] = formobj.tabularview.value;
 	recdef["views"]["onelineview"] = formobj.onelineview.value;
 	
-	// syncronous because of linking required
-	r=xmlrpcrequest("putrecorddef",[recdef,ctxid],0);
+	
+	callbacks["putrecorddef"] = new CallbackManager();
+	callbacks["putrecorddef"].cbargs = formobj;
+	// syncronous because of linking required	
+	callbacks["putrecorddef"].register(
+		function (r,formobj) {
+			parents = getselectchoice(formobj.parents);
+			children = getselectchoice(formobj.children);
+			// relink as necessary
+			for (var i=0;i<parents.length;i++) {
+				if (valuecache["parents"].indexOf(parents[i]) == -1) { // new link
+					xmlrpcrequest("pclink",[parents[i],currentparam,"recorddef",ctxid],0);
+				}
+			}
+			for (var i=0;i<valuecache["parents"].length;i++) {
+				if (parents.indexOf(valuecache["parents"][i]) == -1) { // removed link
+					xmlrpcrequest("pcunlink",[valuecache["parents"][i],currentparam,"recorddef",ctxid],0);
+				}
+			}
+			for (var i=0;i<children.length;i++) {
+				if (valuecache["children"].indexOf(children[i]) == -1) { // new link
+					xmlrpcrequest("pclink",[currentparam,children[i],"recorddef",ctxid],0);
+				}
+			}
+			for (var i=0;i<valuecache["children"].length;i++) {
+				if (children.indexOf(valuecache["children"][i]) == -1) { // removed link
+					xmlrpcrequest("pcunlink",[currentparam,valuecache["children"][i],"recorddef",ctxid],0);
+				}
+			}
+		});
 
-	parents = getselectchoice(formobj.parents);
-	children = getselectchoice(formobj.children);
-	
-	// relink as necessary
-	for (var i=0;i<parents.length;i++) {
-		if (valuecache["parents"].indexOf(parents[i]) == -1) { // new link
-			l = xmlrpcrequest("pclink",[parents[i],currentparam,"recorddef",ctxid],0);
-		}
-	}
-	for (var i=0;i<valuecache["parents"].length;i++) {
-		if (parents.indexOf(valuecache["parents"][i]) == -1) { // removed link
-			l = xmlrpcrequest("pcunlink",[valuecache["parents"][i],currentparam,"recorddef",ctxid],0);
-		}
-	}
-	
-	for (var i=0;i<children.length;i++) {
-		if (valuecache["children"].indexOf(children[i]) == -1) { // new link
-			l = xmlrpcrequest("pclink",[currentparam,children[i],"recorddef",ctxid],0);
-		}
-	}
-	for (var i=0;i<valuecache["children"].length;i++) {
-		if (children.indexOf(valuecache["children"][i]) == -1) { // removed link
-			l = xmlrpcrequest("pcunlink",[currentparam,valuecache["children"][i],"recorddef",ctxid],0);
-		}
-	}
-	
-	topalert("Changes saved.");
+	callbacks["putrecorddef"].end = function(r,formobj){topalert("Changes saved.")};
+
+	r=xmlrpcrequest("putrecorddef",[recdef,ctxid]);
 	
 }
 
@@ -659,7 +655,7 @@ function action_addparamdef(formobj) {
 //	console.log(newvalues["p"]);
 
 	callbacks["addparamdef"] = new CallbackManager();
-	callbacks["addparamdef"].end = function(r) {
+	callbacks["addparamdef"].end = function(r,cbargs) {
 		window.location = window.location.protocol + "//" + window.location.host + "/db/paramdef/" + r + "?notify=" + 8;	
 	}
 
@@ -712,7 +708,7 @@ function form_makeedits_putrecord(formobj) {
 		newvalues["rectype"]=rectype;
 		recid = parseInt(document.form_record_generaloptions.recid.value);
 		newvalues["recid"]=recid;
-		console.log(newvalues);
+//		console.log(newvalues);
 		xmlrpcrequest("putrecord",[dict_items(newvalues),ctxid]);	
 	}
 }
@@ -731,14 +727,103 @@ function form_makeedits_putnewrecord(formobj) {
 			}
 			newvalues["permissions"]=parentdict["permissions"];	
 		}
-	
+
+		if (document.form_record_multiple.enable.checked) {
+			param=document.form_record_multiple.param.value;
+			prefix=document.form_record_multiple.prefix.value;
+			start=document.form_record_multiple.value_start.value;
+			end=document.form_record_multiple.value_end.value;
+			try{start=validate_int(start)}catch(error){alerts.push("Ranges must be integers")}
+			try{end=validate_int(end)}catch(error){alerts.push("Ranges must be integers")}
+			if (alerts.length > 0) {
+				topalert(alerts);
+				return
+			}
+			recids=new Array()
+			scroll(0,0);
+			topalert("Please wait; this will take a moment... 0% complete");
+
+			for (j=start;j<=end;j++) {
+				nv=prefix+String(j);
+				p=parseInt(((end-j)/(end-start))*50);
+//				console.log(p);
+				topalert("Please wait; this may take a moment... "+p+"% complete.");
+				newvalues[param]=nv;
+				r=xmlrpcrequest("putrecord",[dict_items(newvalues),ctxid],0);
+				recids.push(r);
+			}
+			for (j=0;j<recids.length;j++) {
+				callbacks["putrecord"].end = function(r){};
+				callbacks["putrecord"].callback(recids[j]);
+			}
+			window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + pclink + "?notify=" + 5;
+			return
+
+		} 
+
 		if (alerts.length > 0) {
 			topalert(alerts);
 			return
 		} 
-
-	//	console.log(dict_items(newvalues));
 		xmlrpcrequest("putrecord",[dict_items(newvalues),ctxid]);
+	}
+}
+
+
+/*******************************************/
+
+
+function form_relationships_add(formobj,type) {
+	callbacks["pclink"] = new CallbackManager();
+	callbacks["pclink"].end = function(r,cbargs) {
+		window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + name + "?notify=" + "Added relationships";	
+	}
+	value=collectpubvalues_new(formobj)["p"][type];
+	// parseInt due to IE
+	if (type == "parent" && value != null) {
+		xmlrpcrequest("pclink",[value,parseInt(name),"record",ctxid]);
+	} else if (type == "child" && value != null) {
+		xmlrpcrequest("pclink",[parseInt(name),value,"record",ctxid]);
+	}
+}
+
+
+function form_relationships_remove(formobj,type) {
+
+	callbacks["pc"] = new CallbackManager();
+	callbacks["pc"].end = function(r,cbargs) {
+		window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + name + "?notify=" + "Removed relationships";	
+	}
+	
+//	window.execScript("alert(function (r) {})");
+	
+	nv=collectpubvalues_new(formobj)["p"];
+	for (i in nv["parents"]) {
+		if (type == "parents") {
+			eval("callbacks['pc'].register(function (r,cbargs) {xmlrpcrequest('pcunlink',["+parseInt(i)+","+name+",'record',ctxid],0)})");
+		} else {
+			eval("callbacks['pc'].register(function (r,cbargs) {xmlrpcrequest('pcunlink',["+name+","+parseInt(i)+",'record',ctxid],0)})");
+		}
+	}
+	callbacks["pc"].callback(null);
+}
+
+
+
+/********************************************/
+
+function checkall(formobj) {
+	for (var i=0;i<formobj.length;i++) {
+		if (formobj[i].type == "checkbox") {
+			formobj[i].checked = 1;
+		}
+	}
+}
+function uncheckall(formobj) {
+	for (var i=0;i<formobj.length;i++) {
+		if (formobj[i].type == "checkbox") {
+			formobj[i].checked = 0;
+		}
 	}
 }
 
@@ -997,7 +1082,7 @@ function convertvartype(vartype,value) {
 
 callbacks["putrecord"] = new CallbackManager();
 // go to new record
-callbacks["putrecord"].end = function(r) {
+callbacks["putrecord"].end = function(r,cbargs) {
 	if (!isNaN(parseInt(r))) {
 		window.location = window.location.protocol + "//" + window.location.host + "/db/record/" + r + "?notify=" + 5;
 	} else {
@@ -1021,7 +1106,7 @@ function xmlrpc_findparamname_cb(r) {
 /***********************************************/
 
 
-
+/*
 function form_secrecordadduser(formobj) {
 	if (formobj.recurse.checked) { recurse = 20; } else { recurse = 0; }
 	user = formobj.user.value;
@@ -1037,14 +1122,14 @@ function xmlrpc_secrecordadduser_cb(r) {
 	recid = parseInt(document.form_record_generaloptions.recid.value);
 	makeRequest("/db/permissions/" + recid + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
-
+*/
 
 /***********************************************/
 
 function form_showpermissions() {
 	// full javascript replacement for permissions mini-page. may not happen.
 }
-
+/*
 function form_secrecorddeluser(formobj, user) {
 	if (document.form_secrecordadduser_form.recurse.checked) { recurse = 20; } else { recurse = 0; }
 	recid = parseInt(document.form_record_generaloptions.recid.value);
@@ -1054,6 +1139,44 @@ function xmlrpc_secrecorddeluser_cb(r) {
 	recid = parseInt(document.form_record_generaloptions.recid.value);
 	makeRequest("/db/permissions/" + recid + "?edit=1&recurse=" + recurse,"sidebar_permissions");
 }
+*/
+
+function form_permissions_add(formobj) {
+	nv=collectpubvalues_new(formobj)["p"];
+	user=nv["add"];
+	level=nv["addlevel"];
+	if (nv["recursive"]) {
+		recurse = 20;
+	} else {
+		recurse = 0;
+	}
+	callbacks["secrecordadduser"] = new CallbackManager();
+	callbacks["secrecordadduser"].end = function(r,cbargs) {
+		makeRequest('/db/permissions/'+name,'sidebar_permissions');
+	}
+	
+	usertuple = [[],[],[],[]];
+	usertuple[level] = user;
+	xmlrpcrequest("secrecordadduser",[usertuple,name,ctxid,recurse]);			
+}
+
+function form_permissions_remove(formobj) {
+	nv=collectpubvalues_new(formobj)["p"];
+	if (nv["recursive"]) {
+		recurse = 20;
+	} else {
+		recurse = 0;
+	}
+	callbacks["deluser"] = new CallbackManager();
+	callbacks["deluser"].end = function(r,cbargs) {
+		makeRequest('/db/permissions/'+name,'sidebar_permissions');
+	}
+
+	for (i in nv["remove"]) {
+		eval("callbacks['deluser'].register(function (r,cbargs) {xmlrpcrequest('secrecorddeluser',['"+i+"',"+name+",ctxid,"+recurse+"],0)})");
+	}
+	callbacks["deluser"].callback(null);
+}	
 
 
 
@@ -1102,8 +1225,9 @@ function alertContents(http_request,zone) {
 
 
 // raw xmlrpc request
-function xmlrpcrequest(method,args,async) {
-	
+function xmlrpcrequest(method,args,async,cbargs) {
+	cbargs = cbargs || null;
+
 	if (typeof(async)=="undefined") {async=1} else {async=0};
 	
 	command = XMLRPCMessage(method,args);
@@ -1135,8 +1259,8 @@ function xmlrpcrequest(method,args,async) {
 					// use callback system
 					if (callbacks[method]) {
 
-						try { 
-							callbacks[method].callback(unmarshallDoc(http_request.responseXML,http_request.responseText)); 
+						try {
+							callbacks[method].callback(unmarshallDoc(http_request.responseXML,http_request.responseText),cbargs); 
 						}	catch(error) {
 							if (errbacks[method]) {errbacks[method].callback(error.faultString)}
 							else {topalert("Error: " +error.faultString)}
