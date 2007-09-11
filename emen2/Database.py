@@ -41,18 +41,18 @@ envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_
 usetxn=False
 
 
-regex_pattern =  "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
 				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
-regex = re.compile(regex_pattern)
+regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
 
-regex_pattern2 =  "(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+regex_pattern2 =  u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
 				"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
-regex2 = re.compile(regex_pattern2)
+regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
 
 recommentsregex = "\n"
-pcomments = re.compile(recommentsregex)
+pcomments = re.compile(recommentsregex) # re.UNICODE
 
 # These are for transactional database work
 #dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
@@ -4053,7 +4053,10 @@ or None if no match is found."""
 			else:
 				viewdef=recdef.views[viewtype]
 		
-		iterator=regex2.finditer(viewdef)
+		# fixme: unicode issues (db keys)
+		a=viewdef.encode("utf-8")
+		iterator=regex2.finditer(a)
+				
 		for match in iterator:
 			if match.group("name"):
 				if not paramdefs.has_key(match.group("name1")):
@@ -4076,7 +4079,7 @@ or None if no match is found."""
 				elif type(value) == float:
 					value = "%0.2f"%value
 				else:
-					value = pcomments.sub("<br />",str(value))
+					value = pcomments.sub("<br />",textconv(value))
 
 				matchstr = "\$\$"+match.group("var")+match.group("varsep")
 				viewdef = re.sub(matchstr,value+match.group("varsep"),viewdef)

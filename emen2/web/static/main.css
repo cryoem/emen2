@@ -849,7 +849,7 @@ DROP DOWN MENU CSS
 
 .floatleft {
 	float:left;
-	width:300px;
+	width:300px; 
 	padding:5px;
 }
 
@@ -875,22 +875,22 @@ DROP DOWN MENU CSS
  ************************** */
 
 .leftcolumn {
-	width:300px;
+	width:auto;
 	float:left;
 }
 .rightcolumn {
-	width:300px;
+	width:auto;
 	float:left;
 }
 
 
 /********* new form styles *******/
 .formcol1 {
-	width:300px;
+/*	width:300px; */
 	float:left;
 }
 .formcol2 {
-	width:800px;
+/*	width:800px; */
 }
 
 

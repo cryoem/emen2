@@ -38,6 +38,8 @@ class WebResource(Resource):
 	
 	def render(self,request):
 		session=request.getSession()
+		print dir(session)
+#		session.startCheckingExpiration(self, 7200)
 		t0 = time.time()
 		host=request.getClientIP()
 		args=request.args
@@ -92,15 +94,16 @@ class WebResource(Resource):
 				ctxidcookiename = "TWISTED_SESSION_ctxid"
 				request.addCookie(ctxidcookiename, session.ctxid, path='/')
 				print "original request: %s"%session.originalrequest
-				return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest			
+				return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%session.originalrequest			
 
 
 		print "\n---- [%s] [%s] [%s] ---- web request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
 
 		if method == "logout":
 			session.ctxid = None
+			session.expire()
 			ts.db.deletecontext(session.ctxid)
-			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
+			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
 
 		##########################
 		# authenticated; run page				
@@ -125,14 +128,22 @@ class WebResource(Resource):
 		
 
 
-	def _cbRender(self,result,request,t0=None):
-#		print result
-		if result[:3]=="\xFF\xD8\xFF" : request.setHeader("content-type","image/jpeg")
-		if result[:4]=="\x89PNG" : request.setHeader("content-type","image/png")
+	def _cbRender(self,result,request,t0=None):		
+		if result[:3]==u"\xFF\xD8\xFF":
+			request.setHeader("content-type","image/jpeg")
+		elif result[:4]==u"\x89PNG":
+			request.setHeader("content-type","image/png")
+		else:
+			try:
+				result=result.encode("utf-8")
+			except:
+				pass
+			request.setHeader("content-type","text/html; charset=utf-8")
+
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
 		request.finish()
-		print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
+		if TIME: print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
 		
 		
 		
@@ -142,7 +153,7 @@ class WebResource(Resource):
 		print failure
 		request.write(emen2.TwistSupport_html.html.error.error(failure))
 		request.finish()
-		print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
+		if TIME: print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
 
 		
 
@@ -244,7 +255,7 @@ class UploadResource(Resource):
 		if args.has_key("rbid"):
 			return str(a[0])
 		else:
-			return """<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
 
 
