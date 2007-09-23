@@ -33,6 +33,7 @@ from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2.emen2config import *
 import atexit
+import weakref
 
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
@@ -68,16 +69,16 @@ def DB_cleanup():
 	sys.stdout.flush()
 	print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	if DEBUG>2: print >>sys.stderr, len(BTree.alltrees), 'BTrees'
-	for i in BTree.alltrees:
+	for i in BTree.alltrees.keys():
 		if DEBUG>2: sys.stderr.write('closing %s\n' % str(i))
 		i.close()
 		if DEBUG>2: sys.stderr.write('%s closed\n' % str(i))
 	if DEBUG>2: print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
-	for i in IntBTree.alltrees:
+	for i in IntBTree.alltrees.keys():
 		i.close()
 		if DEBUG>2: sys.stderr.write('.')
 	if DEBUG>2: print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
-	for i in FieldBTree.alltrees:
+	for i in FieldBTree.alltrees.keys():
 		i.close()
 		if DEBUG>2: sys.stderr.write('.')
 	if DEBUG>2: sys.stderr.write('\n')
@@ -88,9 +89,9 @@ def DB_syncall():
 	"""This 'syncs' all open databases"""
 	if DEBUG>2: print "sync %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
 	t=time.time()
-	for i in BTree.alltrees: i.sync()
-	for i in IntBTree.alltrees: i.sync()
-	for i in FieldBTree.alltrees: i.sync()
+	for i in BTree.alltrees.keys(): i.sync()
+	for i in IntBTree.alltrees.keys(): i.sync()
+	for i in FieldBTree.alltrees.keys(): i.sync()
 #	print "%f sec to sync"%(time.time()-t)
 
 def escape2(s):
@@ -172,14 +173,14 @@ class BTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
 	
-	alltrees=[]
+	alltrees=weakref.WeakKeyDictionary()
 	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
 		specified. If relate is true, then parent/child and cousin relationships
 		between records are also supported. """
 		global globalenv,dbopenflags
-		BTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
+		BTree.alltrees[self]=1		# we keep a running list of all trees so we can close everything properly
 		self.name = name
 		self.txn=None	# current transaction used for all database operations
 		if (not dbenv) : dbenv=globalenv
@@ -210,8 +211,6 @@ class BTree:
 
 	def __del__(self):
 		self.close()
-		try: BTree.alltrees.remove(self)
-		except: pass
 
 	def close(self):
 		if self.bdb is None: return
@@ -459,7 +458,7 @@ class BTree:
 class IntBTree:
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	key are integers and data may be an arbitrary pickleable type"""
-	alltrees=[]
+	alltrees=weakref.WeakKeyDictionary()
 	def __init__(self,name,file=None,dbenv=None,nelem=0,relate=0):
 		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		name is required, and will also be used as a filename if none is
@@ -468,7 +467,7 @@ class IntBTree:
 		If relate is true, then parent/child and cousin relationships
 		between records are also supported. """
 		global globalenv,dbopenflags
-		IntBTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
+		IntBTree.alltrees[self]=1		# we keep a running list of all trees so we can close everything properly
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -496,8 +495,6 @@ class IntBTree:
 
 	def __del__(self):
 		self.close()
-		try: IntBTree.alltrees.remove(self)
-		except: pass
 
 	def close(self):
 		if self.bdb is None: return
@@ -693,7 +690,7 @@ class FieldBTree:
 	"f" - float keys (64 bit)
 	"s" - string keys
 	"""
-	alltrees=[]
+	alltrees=weakref.WeakKeyDictionary()
 	def __init__(self,name,file=None,keytype="s",dbenv=None,nelem=0):
 		global globalenv,dbopenflags
 		"""
@@ -702,7 +699,7 @@ class FieldBTree:
 		globalenv.set_data_dir(".")
 		globalenv.open("./data/home" ,db.DB_CREATE+db.DB_INIT_MPOOL)
 		"""
-		FieldBTree.alltrees.append(self)		# we keep a running list of all trees so we can close everything properly
+		FieldBTree.alltrees[self]=1		# we keep a running list of all trees so we can close everything properly
 		if (not dbenv) : dbenv=globalenv
 		self.bdb=db.DB(dbenv)
 		if file==None : file=name+".bdb"
@@ -712,11 +709,12 @@ class FieldBTree:
 		self.keytype=keytype
 #		self.bdb.open(file,name,db.DB_HASH,db.DB_CREATE)
 		self.txn=None	# current transaction used for all database operations
+		self.file=file
+
 
 	def __del__(self):
 		self.close()
-		try: FieldBTree.alltrees.remove(self)
-		except: pass
+#		print("bdb %s close"%self.file)
 		
 	def close(self):
 		if self.bdb is None: return
@@ -1225,9 +1223,9 @@ class WorkFlow:
 	aren't implemented using the Record class. 
 	Implementation of workflow behavior is largely up to the
 	external application. This simply acts as a repository for tasks"""
-	def __init__(self,with=None):
-		if isinstance(with,dict) :
-			self.__dict__.update(with)
+	def __init__(self,vals=None):
+		if isinstance(vals,dict) :
+			self.__dict__.update(vals)
 		else:
 			self.wfid=None				# unique workflow id number assigned by the database
 			self.wftype=None
@@ -1546,7 +1544,7 @@ class Database:
 	ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 	
 	TODO : Probably should make more of the member variables private for slightly better security"""
-	def __init__(self,path=".",cachesize=64000000,logfile="db.log",importmode=0,rootpw=None,recover=0):
+	def __init__(self,path=".",cachesize=32000000,logfile="db.log",importmode=0,rootpw=None,recover=0):
 		"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
 logfile - defualt "db.log"
@@ -3065,8 +3063,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				     ret = thewf.items_dict()
 		return ret
 		
-	def newworkflow(self, with):
-		return WorkFlow(with)
+	def newworkflow(self, vals):
+		return WorkFlow(vals)
 		
 	def addworkflowitem(self,work,ctxid,host=None):
 		"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
@@ -3350,7 +3348,7 @@ or None if no match is found."""
 		for k,v in self.__fieldindex.items():
 			if k == 'parent':
 			      continue
-			print "commit index %s (%d)"%(k,len(v))
+			print "commit index %s (%d)\t%d\t%d"%(k,len(v),len(BTree.alltrees),len(FieldBTree.alltrees))
 			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
 			txn=self.newtxn()
 			i.set_txn(txn)
@@ -3358,6 +3356,7 @@ or None if no match is found."""
 				i.addrefs(k2,v2)
 			i.set_txn(None)
 			if txn: txn.commit()
+			i=None
 
 		print "commit security"
 		si=FieldBTree("secrindex",self.path+"/security/roindex.bdb","s",dbenv=self.__dbenv)
@@ -4439,11 +4438,10 @@ or None if no match is found."""
 		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
-		try:
-			fin=open(self.path+"/backup.pkl","r")
-		except:
-			try: fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
-			except: raise IOError,"backup.pkl not present"
+		if os.access(self.path+"/backup.pkl",os.R_OK) : fin=open(self.path+"/backup.pkl","r")
+		elif os.access(self.path+"/backup.pkl.bz2",os.R_OK) : fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
+		elif os.access(self.path+"/../backup.pkl.bz2",os.R_OK) : fin=os.popen("bzcat "+self.path+"/../backup.pkl.bz2","r")
+		else: raise IOError,"backup.pkl not present"
 
 		recmap={}
 		nrec=0
@@ -4602,11 +4600,10 @@ or None if no match is found."""
 		ctx=self.__getcontext(ctxid,host)
 		if user!="root" : raise SecurityError,"Only root may restore the database"
 		
-		try:
-			fin=open(self.path+"/backup.pkl","r")
-		except:
-			try: fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
-			except: raise IOError,"backup.pkl not present"
+		if os.access(self.path+"/backup.pkl",R_OK) : fin=open(self.path+"/backup.pkl","r")
+		elif os.access(self.path+"/backup.pkl.bz2",R_OK) : fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
+		elif os.access(self.path+"/../backup.pkl.bz2",R_OK) : fin=os.popen("bzcat "+self.path+"/../backup.pkl.bz2","r")
+		else: raise IOError,"backup.pkl not present"
 		
 		recmap={}
 		nrec=0
