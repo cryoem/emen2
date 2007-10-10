@@ -3775,7 +3775,7 @@ or None if no match is found."""
 	def trygetrecord(self,recid,ctxid,host=None,dbid=0):
 		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
-		if ctx.user=="root" or -1 in ctx.groups: return 1
+		if ctx.user=="root" or -1 in ctx.groups or -2 in ctx.groups : return 1
 		if self.__secrindex.testref(-3,recid) : return 1		# global read access
 		if self.__secrindex.testref(ctx.user,recid) : return 1	# user access
 		for i in ctx.groups: 
