@@ -128,11 +128,11 @@ class WebResource(Resource):
 
 
 	def _cbRender(self,result,request,t0=None):		
-                try:
-                        result=result.encode("utf-8")
-                except:
-                        pass
 
+		try:
+			result=result.encode("utf-8")
+		except:
+			pass
 
 
 		if result[:3]=="\xFF\xD8\xFF":
