@@ -1,39 +1,91 @@
+var name;
 var classcache = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
 
 classstatecache["input_elem"] = "inline";
 
-/***** callback manager *****/
+/***********************************************/
 
-
-function CallbackManager() {
-	this.f = new Array();
-	this.cbargs = null;
-	this.end = function (r) {};
-	this.register = function(callbackFunction) {
-		this.f.push(callbackFunction);
-	}
-	this.callback = function(r) {
-		for (var i=0;i<this.f.length;i++) {
-			this.f[i](r,this.cbargs);
-		}
-		this.end(r);
-	}
+Function.prototype.bind = function() {	
+	var z=this;
+	var args = Array.prototype.slice.call(arguments);
+	var obj=args.shift();
+  return function () {
+		z.apply(obj, args.concat(Array.prototype.slice.call(arguments))); 
+   }
 }
 
-/***** end callback manager *****/
+
+// ANGER AT IE!!
+/*
+Element.prototype.addClass = function(classname) {
+}
+Element.prototype.removeClass = function(classname) {	
+}
+Element.prototype.clearChildren = function() {
+	while (this.firstChild) {this.removeChild(this.firstChild)};	
+}	
+
+Document.prototype.getElementsByClassName = function(classname) {
+	var elements=[];
+	var alltags=document.all? document.all : document.getElementsByTagName("*")
+	var length = alltags.length;
+	for (i=0; i<length; i++) {
+		if (alltags[i].className.indexOf(classname) != -1){elements.push(alltags[i])}
+	}
+	return elements;
+}
+*/
+if(![].indexOf) Array.prototype.indexOf = function(needle){ for(var i=0; i<this.length; i++) if(this[i] == needle) return i; return -1 }
+
+
+/***********************************************/
+
+function clearChildren(elem) {
+	while (elem.firstChild) {elem.removeChild(elem.firstChild)};	
+}
+
+function clearAlerts() {
+	// use with timer to clear alerts
+	// var el = document.getElementById("alert");
+	var el = document.getElementById("alert");
+	clearChildren(el);
+}
+
+
+function topalert(msg) {
+	// draw alert messages in top of window
+	// now integrated with previous notify mechanism
+	clearAlerts();
+	el=document.getElementById("alert");
+	
+	if (msg == null) {return}
+	
+	if (typeof(msg) == typeof(Array())) {
+		for (var i=0;i<msg.length;i++) {
+			var d = document.createElement("li");
+			d.innerHTML = msg[i];
+			d.className = "notification";
+			el.appendChild(d);
+		}
+	}	else {
+		var d = document.createElement("li");
+		d.innerHTML = msg;
+		d.className = "notification";
+		el.appendChild(d);
+	}
+	scroll(0,0);
+}
 
 
 
 function dict() {
 }
 
-
-
 //getcomputedstyle shortcut: fixed for IE
 function getStyle(elem, cssRule, ieProp) {
-		iep = ieProp || cssRule;
+		var iep = ieProp || cssRule;
     if (elem.currentStyle) {
       return elem.currentStyle[iep];
     } else if (window.getComputedStyle) {
@@ -45,8 +97,8 @@ function getStyle(elem, cssRule, ieProp) {
 
 function initialstyle() {
 	var alltags=document.getElementsByTagName("*");
-	for (i=0; i<alltags.length; i++) {
-		style = document.defaultView.getComputedStyle( alltags[i], '' ).getPropertyValue("display");
+	for (var i=0; i<alltags.length; i++) {
+		var style = document.defaultView.getComputedStyle( alltags[i], '' ).getPropertyValue("display");
 		statecache[alltags[i].id] = style
 		classstatecache[alltags[i].className] = style
 
@@ -65,7 +117,7 @@ function getElementByClass(classname,update) {
 	var elements=[];
 	var alltags=document.all? document.all : document.getElementsByTagName("*")
 	var length = alltags.length;
-	for (i=0; i<length; i++) {
+	for (var i=0; i<length; i++) {
 		if (alltags[i].className.indexOf(classname) != -1){elements.push(alltags[i].id)}
 //			if (testClass.test(alltags[i].classname)){elements.push(alltags[i].id)}
 	}
@@ -85,38 +137,45 @@ function getElementByClass2(classname,update) {
 }	
 
 
-
 function toggleclass(classname,update) {
-	list = getElementByClass(classname,update);
+	var list = getElementByClass(classname,update);
 	for (var i=0;i<list.length;i++){
 		toggle(list[i]);
 	}
 }
 
+function togglesidebar(elem2) {
+	var elem=elem2.parentNode;
+	var st = getStyle(elem.nextSibling,"display");
+	if (st == "none") {
+		// fixme: do this:
+		// addClassname(elem,"sidebar_active")
+		elem.childNodes[0].style.background="#F0F0F0";
+		elem.nextSibling.style.display="block";
+	} else {
+		// rmClassname(elem,"sidebar_active")
+		elem.childNodes[0].style.background="white";
+		elem.nextSibling.style.display="none";
+	}
+}
 
 function toggle(id) {
-	el = document.getElementById(id);
+	var el = document.getElementById(id);
 	if (el == null) {return};
-	state = getStyle(el,"display");
+
+	var state = getStyle(el,"display");
+	var cache;
 	if (id in statecache) {cache = statecache[id]} else {
 			(el.nodeName == "DIV") ? cache = 'block' : cache = 'inline';
 		}
 	statecache[id] = state;
 	(state == 'none') ?	el.style.display = cache :  el.style.display = "none";
-
-	if (document.getElementById(id + "_button")) {
-		button = document.getElementById(id + "_button");		
-		if (state != 'none') {
-			button.innerHTML = "+";
-		} else {
-			button.innerHTML = "-";
-		}
-	} 
+ 
 }
 
 function togglelink(id,target,reverse) {
 	reverse = reverse || 0;
-	target = document.getElementById(target);
+	var target = document.getElementById(target);
 	if (id.checked) {
 		target.disabled = 1-reverse;
 	} else {
@@ -125,12 +184,12 @@ function togglelink(id,target,reverse) {
 }
 
 function setdisable(id) {
-	el = document.getElementById(id);
+	var el = document.getElementById(id);
 	if (el.disabled) {el.disabled = 0} else {el.disabled = 1};
 }
 
 function switchbutton(type,id) {
-	list = getElementByClass("button_"+type);
+	var list = getElementByClass("button_"+type);
 	
 	for (var i=0;i<list.length;i++) {
 		if (list[i] != "button_" + type + "_" + id) {
@@ -143,43 +202,25 @@ function switchbutton(type,id) {
 }
 
 
-// fixme: no longer needed once new permissions script is done
-function classprop(classname,element,value) {
-//based on http://www.shawnolson.net/scripts/public_smo_scripts.js
- var cssRules;
- if (document.all) {
-  cssRules = 'rules';
- }
- else if (document.getElementById) {
-  cssRules = 'cssRules';
- }
- for (var S = 0; S < document.styleSheets.length; S++){
-  for (var R = 0; R < document.styleSheets[S][cssRules].length; R++) {
-   if (document.styleSheets[S][cssRules][R].selectorText == classname) {
-    document.styleSheets[S][cssRules][R].style[element] = value;
-   }
-  }
- }	
-}
-
-
+switchedin=new Array();
+switchedin["recordview"]="defaultview";
 // hide class members, show one, switch the button
-function switchin(classname, id) {	
+function switchin(classname, id) {
+	switchedin[classname]=id;
  	getElementByClass(classname,1);
 	switchbutton(classname,id);
 	hideclass("page_" + classname);
-	qshow("page_" + classname + "_" + id);
+	document.getElementById("page_" + classname + "_" + id).style.display = 'block';	
 }
 
 // show/hide all members of a class. cannot operate at stylesheet level because we tend to set styles for single elements.
 function hideclass(classname,update) {
-	list = getElementByClass2(classname,update);		
+	var list = getElementByClass2(classname,update);		
 
 	try {
-		state = getStyle(list[0],"display");
+		var state = getStyle(list[0],"display");
 		classstatecache[classname] = state;
-	} catch(error) {
-	}
+	} catch(error) {	}
 
 	for (var i=0;i<list.length;i++) {
 		list[i].style.display = 'none'; 
@@ -187,12 +228,11 @@ function hideclass(classname,update) {
 }
 
 function showclass(classname,update) {
-	list = getElementByClass2(classname,update);
+	var list = getElementByClass2(classname,update);
 
+	var cache;
 	if (classname in classstatecache) {cache = classstatecache[classname]} else {
-//			if (document.getElementById(list[0]).nodeName == "DIV") {
-				 cache = 'block' 
-//			} else {cache = 'inline' }
+		cache = 'block' 
 	}
 
 	for (var i=0;i<list.length;i++) {
@@ -201,50 +241,8 @@ function showclass(classname,update) {
 
 }
 
-function showclassexcept(classname,except) {
-	hideclass(classname);
-	showclass(classname);
-	qhide(except);
-}
-
-
-// quick show or hide a single ID
-function qshow(id) {
-	try {
-		document.getElementById(id).style.display = 'block';			
-	} catch(error) {}
-}
-function qhide(id) {
-	try {
-		document.getElementById(id).style.display = 'none';			
-	} catch(error) {}
-}
-
 
 /************************/
 
-
-//var init = new CallbackManager();
-//init.register(function (r) {
-//	ctxid_init_start('TWISTED_SESSION_ctxid');	
-//	});
-
-//window.onload = init.callback("");
-
 function init() {
-	ctxid_init_start('TWISTED_SESSION_ctxid');	
-	}
-
-// old init
-// these have to be cached or specified for the switching methods
-//	initialstyle();
-// saves a little time by caching		
-//	classcache["page_recordview"] = new Array("page_recordview_dicttable","page_recordview_defaultview","page_recordview_protocol")						
-
-//	if (document.getElementById("page_main_mainview")) {
-//		switchin("main","mainview");
-//	}
-
-//	if (document.getElementById("page_recordview_defaultview")) {
-//		hideclass('page_recordview');
-//		qshow('page_recordview_defaultview');	
+}

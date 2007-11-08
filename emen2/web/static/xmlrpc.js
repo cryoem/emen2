@@ -1,3 +1,90 @@
+var url = "/RPC2"; 
+
+function getxmlhttprequest() {
+	var request = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+	return request
+}
+
+/***********************************************/
+
+
+function makeRequest(url,zone) {
+	var http_request = getxmlhttprequest();
+	http_request.onreadystatechange = function() {
+		if (http_request.readyState == 4) {
+			if (http_request.status == 200) {
+				document.getElementById(zone).innerHTML  = http_request.responseText;
+ 			} else {
+				alert('Error with request: network');
+			}
+		}
+	};
+	http_request.open('GET', url, true);
+	http_request.send(null);
+}
+
+
+
+/***********************************************
+*********** Callback Manager *******************
+***********************************************/
+
+function CallbackManager() {
+
+	var f = new Array();
+	var cbargs = null;
+	var end = function (r) {};
+	var e = function(r) {topalert("Error: " +r.faultString)};
+	var xmlhttprequest=getxmlhttprequest();
+	
+	
+	this.register = function(callbackFunction) {
+		f.push(callbackFunction);
+	}
+	this.setcbargs = function(r) {
+		cbargs=r;
+	}
+	this.setend = function(r) {
+		end=r;
+	}
+	this.seterror = function (r) {
+		error=r;
+	}
+	this.req = function(method,args) {
+		command = XMLRPCMessage(method,args);
+		xmlhttprequest.open("POST",url,true);
+		xmlhttprequest.send(command);
+	}
+
+	callback = function(r) {
+		if (xmlhttprequest.readyState==4) {
+			if (xmlhttprequest.status==200)	{
+				try {
+					r=unmarshallDoc(xmlhttprequest.responseXML,xmlhttprequest.responseText);
+				} catch(error) {
+					//console.log(error);
+					topalert("Error: "+error.faultString);
+					return
+				}
+
+ 				try {
+ 					for (var i=0;i<f.length;i++) {
+ 						f[i](r,cbargs);
+ 					}
+ 					end(r);
+ 				} catch(error) {
+					//console.log(error);
+ 				}				
+			}
+		}
+	}
+	xmlhttprequest.onreadystatechange=callback;
+
+}
+
+/***** end callback manager *****/
+
+
 /********************************************/
 
 
@@ -17,8 +104,6 @@ function XMLRPCMessage(methodName,args) {
 
 /******************************************/
 
-
-/************************/
 
 
 /**

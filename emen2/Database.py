@@ -303,8 +303,6 @@ class BTree:
 		except:
 			return
 			
-			
-
 
 		if DEBUG:
 			print "trying to unlink parent %s child %s"%(parenttag,childtag)
@@ -1008,7 +1006,8 @@ valid_vartypes={
 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
 	"boolean":("d",boolconv),
 	"dict":(None, lambda x:x), 
-	"user":("s",lambda x:str(x)) # ian 09.06.07
+	"user":("s",lambda x:str(x)), # ian 09.06.07
+	"userlist":(None,lambda y:map(lambda x:str(x),y))
 }
 
 
@@ -1159,7 +1158,7 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 			
 	def __str__(self):
 		return format_string_obj(self.__dict__,["username","groups","name","email","phone","fax","cellphone","webpage","",
-			"institution","department","address","city","state","zipcode","country","","disabled","privacy","creator","creationtime"])
+			"institution","department","address","city","state","zipcode","country","","disabled","privacy","creator","creationtime","record"])
 
 	def items_dict(self):		
 		ret={}
@@ -1389,13 +1388,22 @@ class Record:
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
 #		for i,j in self.__params.items():
 #			ret.append("%12s:  %s\n"%(str(i),str(j)))
-		for i,j in self.items():
+		for i,j in self.items(): 
 			ret.append("%12s:  %s\n"%(str(i),unicode(j).encode("utf-8")))
 		return "".join(ret)
+		
+		
+	def isowner(self):
+		return self.__ptest[3]	
 		
 	def writable(self):
 		"""Returns whether this record can be written using the given context"""
 		return self.__ptest[2]
+		
+	def commentable(self):
+		"""Does user have level 1 permissions? Required to comment or link."""
+		return self.__ptest[1]	
+
 		
 	def getparamkeys(self):
 		"Returns parameter keys without special values like owner, creator, etc."
@@ -1434,7 +1442,7 @@ class Record:
 
 
 		if (key=="comments") :
-			if not isinstance(value,str): return		# if someone tries to update the comments tuple, we just ignore it
+			if not isinstance(value,basestring): return		# if someone tries to update the comments tuple, we just ignore it
 			if self.__ptest[1]:
 				dict=parseparmvalues(value,noempty=1)[1]	# find any embedded params
 				if len(dict)>0 and not self.__ptest[2] : 
@@ -1451,6 +1459,11 @@ class Record:
 		elif (key=="rectype" and value.lower() != self.rectype.lower()) :
 			if self.__ptest[3]: self.rectype=value.lower()
 			else: raise SecurityError,"Insufficient permission to change the record type"
+
+		# ian
+		elif (key=="recid"):
+			if value != self.recid:
+				raise SecurityError,"Cannot change record ID."
 
 		elif (key=="creator" or key=="creationtime") :
 			# nobody is allowed to do this
@@ -2405,7 +2418,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return [i for i in elements if i!=None]
 
 
-#	def getrecordnames(self,ctxid,dbid=0,host=None):		
 	def getindexbycontext(self,ctxid,host=None):
 		"""This will return the ids of all records the user has permission to access""" 
 		ctx=self.__getcontext(ctxid,host)
@@ -2731,6 +2743,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
+		
+		# ian: circular reference detection. 
+		# is an upstream item also downstream?
+		if not self.__importmode:
+			p=self.getparents(pkey,keytype=keytype,recurse=100,ctxid=ctxid,host=host)
+			c=self.getchildren(ckey,keytype=keytype,recurse=100,ctxid=ctxid,host=host)
+			if pkey in c or ckey in p or pkey == ckey:
+				raise Exception,"Circular references are not allowed."
 		
 		if keytype=="record" : 
 			a=self.getrecord(pkey,ctxid)
@@ -3527,11 +3547,13 @@ or None if no match is found."""
 		for i in un:
 			self.__secrindex.addref(i,recid,txn=txn)
 
-	def putrecord(self,record,ctxid,host=None):
+	def putrecord(self,record,ctxid,host=None,parents=[],children=[]):
 		"""The record has everything we need to commit the data. However, to 
 		update the indices, we need the original record as well. This also provides
 		an opportunity for double-checking security vs. the original. If the 
-		record is new, recid should be set to None. recid is returned upon success"""
+		record is new, recid should be set to None. recid is returned upon success. 
+		parents and children arguments are conveniences to link new records at time of creation."""
+		
 		ctx=self.__getcontext(ctxid,host)
 		
 		if isinstance(record,dict) :
@@ -3542,7 +3564,7 @@ or None if no match is found."""
 		params=Set(record.keys())
 		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
 
-		if DEBUG: print params
+#		if DEBUG: print params
 
 		for i in params:
 			try:
@@ -3633,6 +3655,15 @@ or None if no match is found."""
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
 			
+			# ian
+			if type(parents)==int: parents=[parents]
+			for i in parents:
+				self.pclink(i,record.recid,"record",ctxid)
+
+			if type(children)==int: children=[children]
+			for i in children:
+				self.pclink(record.recid,i,"record",ctxid)
+						
 			return record.recid
 		
 		######
@@ -3698,7 +3729,9 @@ or None if no match is found."""
 			self.__reindex(f,oldval,newval,record.recid,txn)
 			
 			if (f!="comments" and f!="modifytime") :
-				orig["comments"]='LOG: $$%s="%s" old value="%s"'%(f,newval,oldval)
+				print "updating comments.."
+				orig["comments"]=u"LOG: %s updated. was: "%f + unicode(oldval)
+				print orig["comments"]
 			
 			orig[f]=record[f]
 			
@@ -3726,7 +3759,7 @@ or None if no match is found."""
 
 		return record.recid
 		
-	def newrecord(self,rectype,ctxid,host=None,init=0):
+	def newrecord(self,rectype,ctxid=None,host=None,init=0,inheritperms=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
 		ctx=self.__getcontext(ctxid,host)
@@ -3743,10 +3776,20 @@ or None if no match is found."""
 		if init:
 			# minor fix, ian, 08.08.07
 			keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
-			if DEBUG: print t.params
+#			if DEBUG: print t.params
 			for k in keys:
-				if DEBUG: print k,";",t.params[k]
+#				if DEBUG: print k,";",t.params[k]
 				ret[k]=t.params[k]						# hmm, in the new scheme, perhaps this should just be a deep copy
+
+		# ian
+		if inheritperms!=None:
+			if self.trygetrecord(inheritperms,ctxid):
+				prec=self.getrecord(inheritperms,ctxid)
+				n=[]
+				for i in range(0,len(prec["permissions"])):
+					n.append(prec["permissions"][i]+ret["permissions"][i])
+				ret["permissions"]=tuple(n)		
+		
 		return ret
 
 	def getrecordnames(self,ctxid,dbid=0,host=None):
@@ -4031,35 +4074,58 @@ or None if no match is found."""
 	# internal view rendering functions
 	##########
 	
-	def getrecordrenderedviews(self,recid,ctxid,paramdefs={},macrocache={},host=None):
+	def getrecordrecname(self,recid,ctxid):
+		"""Render the recname view for a record."""
+		rec=self.getrecord(recid,ctxid)
+		value=self.renderview(rec,viewtype="recname",ctxid=ctxid)
+		if not value:
+			value = "(%s: %s)"%(rec.rectype, rec.recid)
+		return value
+	
+	def getrecordrenderedviews(self,recid,ctxid,host=None):
+		"""Render all views for a record."""
 		rec=self.getrecord(recid,ctxid,host=host)
 		recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
 		views=recdef.views
 		views["mainview"] = recdef.mainview
 		for i in views:
-			views[i] = self.renderview(rec,viewdef=views[i],paramdefs=paramdefs,macrocache=macrocache,ctxid=ctxid,host=host)
+			views[i] = self.renderview(rec,viewdef=views[i],ctxid=ctxid,host=host)
 		return views
 	
 	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,host=None):
+		"""Render a view for a record. Takes a record instance or a recid.
+		viewdef is an arbitrary view definition. viewtype is a name view from record def.
+		paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
+		
 		if type(rec) == int:
-			rec=self.getrecord(rec,ctxid,host=host)
+			if self.trygetrecord(rec,ctxid):
+				rec=self.getrecord(rec,ctxid,host=host)
+			else:
+				print "renderview: permissions error %s"%rec
+				return ""
+				
 		if viewdef == None:
 			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			elif viewtype=="recname" and not recdef.views.has_key("recname"):
-				viewdef = "(%s)"%recdef.name
+				""
 			else:
 				viewdef=recdef.views[viewtype]
 		
-		# fixme: unicode issues (db keys)
-		a=viewdef.encode("utf-8")
+		# fixme: better, more general solution needed.
+		try:
+			a=unicode(viewdef)
+		except:
+			a=unicode(viewdef,errors="ignore")
+			
 		iterator=regex2.finditer(a)
 				
 		for match in iterator:
+
 			if match.group("name"):
 				if not paramdefs.has_key(match.group("name1")):
-					paramdefs[match.group("name1")] = self.getparamdef(match.group("name1"))
+					paramdefs[match.group("name1")] = self.getparamdef(str(match.group("name1")))
 
 				value = paramdefs[match.group("name1")].desc_short
 				matchstr = "\$\\#"+match.group("name")+match.group("namesep")
@@ -4067,10 +4133,29 @@ or None if no match is found."""
 
 			elif match.group("var"):
 				if not paramdefs.has_key(match.group("var1")):
-					paramdefs[match.group("var1")] = self.getparamdef(match.group("var1"))
+					paramdefs[match.group("var1")] = self.getparamdef(str(match.group("var1")))
 
-				# represent as string
+				# vartype representations. todo: external function
 				value = rec[match.group("var1")]
+				
+				if paramdefs[match.group("var1")].vartype in ["user","userlist"]:
+					if type(value) != list:	value=[value]
+					ustr=[]
+					for i in value:
+						try:
+							urec=self.getrecord(self.getuser(i,ctxid).record,ctxid)
+							ustr.append("""%s %s %s (%s)"""%(urec["name_first"],urec["name_middle"],urec["name_last"],i))
+						except:
+							print "Error getting real name for user %s"%i
+							ustr.append("(%s)"%i)
+					value=", ".join(ustr)
+				
+				elif paramdefs[match.group("var1")].vartype == "boolean":
+					if value:
+						value = "True"
+					else:
+						value = "False"
+				
 				if type(value) == type(None):
 					value = ""
 				elif type(value) == list:
@@ -4080,14 +4165,13 @@ or None if no match is found."""
 				else:
 					value = pcomments.sub("<br />",textconv(value))
 
+
+				# now replace..
 				matchstr = "\$\$"+match.group("var")+match.group("varsep")
 				viewdef = re.sub(matchstr,value+match.group("varsep"),viewdef)
 
 
 			elif match.group("macro"):
-#				try:
-#					value = str(macrocache[match.group("macro1")][match.group("macro2")][rec.recid])
-#				except:
 				value = str(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
 
 				m2=match.group("macro2")
@@ -4117,14 +4201,17 @@ or None if no match is found."""
  			return ""
 
 		elif macro == "parentvalue":
-			p=self.getparents(rec.recid,ctxid=ctxid,host=host)
-			ret = []
-			for j in p:
-				if self.trygetrecord(j,ctxid,host=host):
-					r=self.getrecord(j,ctxid,host=host)
-					if r.has_key(macroparameters):
-						ret.append(r[macroparameters])
-			return ",".join(ret)
+			if rec.recid:
+				p=self.getparents(rec.recid,ctxid=ctxid,host=host)
+				ret = []
+				for j in p:
+					if self.trygetrecord(j,ctxid,host=host):
+						r=self.getrecord(j,ctxid,host=host)
+						if r.has_key(macroparameters):
+							ret.append(r[macroparameters])
+				return ",".join(ret)
+			else:
+				return ""
 		
 		elif macro == "recname":
 			if rec.has_key("recname"):
@@ -4424,7 +4511,7 @@ or None if no match is found."""
 
 		out.close()
 
-	def restore(self,ctxid,host=None) :
+	def restore(self,ctxid,host=None):
 		"""This will restore the database from a backup file. It is nondestructive, in that new items are
 		added to the existing database. Naming conflicts will be reported, and the new version
 		will take precedence, except for Records, which are always appended to the end of the database

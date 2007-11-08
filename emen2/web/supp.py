@@ -4,7 +4,6 @@
 
 print "...loading %s"%__name__
 
-
 from sets import Set
 import re
 import os
@@ -14,71 +13,72 @@ import time
 
 from emen2.emen2config import *
 from emen2 import Database
+		
 
-def groupsettolist(groups):
-	for i in groups.keys():
-		groups[i] = list(groups[i])
-	return groups		
-
-
-
-
+# Parameters to keep in the sidebar
 sidebarparams = Set(["rectype","creator","creationtime","permissions","modifytime","modifyuser","comments_text","comments","file_binary_image","file_binary"])
 
 
+# Main record def view parser
 regex_pattern =  "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
 				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
 regex = re.compile(regex_pattern)
 
-# regex_pattern_var = "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"
-# regex_pattern_macro = "(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)"
-# regex_pattern_name = "(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
-# regex_var = re.compile(regex_pattern_var)
-# regex_macro = re.compile(regex_pattern_macro)
-# regex_name = re.compile(regex_pattern_name)
 
-
-
+# Convert newlines to html breaks
 recommentsregex = "\n"
 pcomments = re.compile(recommentsregex)
-# 	re1 =  "(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))[\s<]?"    \
-# 				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))[\s<]?" \
-# 				"|(?P<name>(\$\#(?P<name1>\w*)[\s<]?))"
 
 
 
+# rename
+def groupsettolist(groups):
+	"""Convert a dictionary of Sets to a dict of lists."""
+	for i in groups.keys():
+		groups[i] = list(groups[i])
+	return groups
+
+
+
+def getuserrealnames(ctxid,reverse=0,db=None):
+	"""Return a dictionary of users and full names from their record."""
+	ret = {}
+	for i in db.getusernames(ctxid):
+		try:
+			user=db.getuser(i,ctxid)
+			urec=db.getrecord(user.record,ctxid)
+			if reverse:
+				ret[i] = "%s, %s %s"%(urec["name_last"],urec["name_first"],urec["name_middle"])
+			else:
+				ret[i] = "%s %s %s"%(urec["name_first"],urec["name_middle"],urec["name_last"])
+		except:
+			ret[i] = "(%s)"%i
+	return ret
+
+
+def getuserrealname(user,ctxid,db=None):
+	"""Return the full name of a user from the user record."""
+	try:
+		urec=db.getrecord(db.getuser(user,ctxid).record,ctxid)
+		uname="%s %s %s"%(urec["name_first"],urec["name_middle"],urec["name_last"])
+	except:
+		uname="(%s)"%user
+	return uname
+	
 				
-
+				
+# remove
 def argmap(dict):
+	"""un-list the request args"""
 	for i in dict: dict[i]=dict[i][0]
 		
-
-
-def render_groupedhead(groupl,ctxid=None,recid=None,wfid=None):
-	"""Render tab switching buttons"""
-	ret = []
-	for i in groupl.keys():
-#		ret.append("\t<div class=\"button_main\" id=\"button_main_%s\"><a href=\"javascript:switchin('main','%s')\">%s (%s)</a></div>\n"%(i,i,i,len(groupl[i])))
-#db/render_grouptable?&name=135&groupname=project&reverse_project=1&zone=zone_project
-#		if not wfid:
-#			req = "/db/render_grouptable/%s?groupname=%s&zone=zone_%s"%(recid,i,i)
-#		else:
-#			req = "/db/render_grouptable/%s?groupname=%s&zone=zone_%s"%(wfid,i,i)
-#			#makeRequest('%s','zone_%s');
-		ret.append("""
-		<div class="button_main" id="button_main_%s">
-			<span class="jslink" onclick="javascript:switchin('main','%s')">
-				%s (%s)
-			</span>
-		</div>
-			"""%(i,i,i,len(groupl[i])))
-
-	return " ".join(ret)
-	
 		
+	
+# remove eventually		
 def htable(itmlist,cols,proto):
 	"""Produce a table of values in 'cols' columns"""
+	
 	ret=['\n\n<table>']
 
 	for i,j in enumerate(itmlist):
@@ -93,8 +93,10 @@ def htable(itmlist,cols,proto):
 
 
 
+# remove eventually
 def htable2(itmlist,cols,proto):
 	"""Produce a table of values and counts in 'cols' columns"""
+	
 	ret=['\n\n<table>']
 
 	for i,j in enumerate(itmlist):
@@ -103,111 +105,74 @@ def htable2(itmlist,cols,proto):
 		if (i%cols==cols-1) : ret.append("\t</tr>\n")
 
 	if (len(itmlist)%cols!=0) : ret.append("\t</tr>\n</table>\n")
-	else : ret.append("</table><br>")
+	else : ret.append("</table><br />")
 
 	return "".join(ret)
 
 
-def dicttableview(rec):
+
+def dicttableview(rec,params=[]):
+	"""Quickly build a table for viewing key/values for a record."""
+
+	if not params:
+		params = rec.keys()
+
 	dicttable = ["<table>"]	
-	for i in rec.keys():
+	for i in params:
 		if i not in sidebarparams:
 			dicttable.append("<tr><td>$#" + i + "</td><td>$$" + i + "</td></tr>")
 	dicttable.append("</table>")
 	return "".join(dicttable)
 
+
+
+###################################################
+# Preparse views for web display (important)
+
+def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
+	"""Add HTML markup to a record def view, including editing markup if requested."""
 	
-def renderpreparse(rec,viewdef,paramdefs={},allowedit=0,showedit=0,db=None,ctxid=None):
-	"""add interface markup to a view"""
-	iterator = Database.regex.finditer(viewdef)
+	iterator = Database.regex2.finditer(viewdef)
 		
 	for match in iterator:
 		prepend=""
 		postpend=""
+		
 		######## $#names #######
-		if match.group("name"):
+		if match.group("name1"):
 			prepend = """<a title="%s" href="/db/paramdef/%s">"""%(match.group("name1"),match.group("name1"))
-			postpend = """</a>""" + match.group("namesep")
-			matchstr = re.sub("\$","\$","$#" + match.group("name")) + match.group("namesep")
-			viewdef = re.sub(matchstr,prepend+match.group("name")+postpend+match.group("namesep"),viewdef)
+			postpend = """</a>"""
+			matchstr = "\$\\#"+match.group("name")+match.group("namesep")
+			viewdef = re.sub(matchstr,prepend+"$#"+match.group("name")+postpend+match.group("namesep"),viewdef)
 
+			
 		######## $$variables #######
 		elif match.group("var1"):
 			if not paramdefs.has_key(match.group("var1")):
 				paramdefs[match.group("var1")] = db.getparamdef(match.group("var1"))
 
-
-			# empty keys just return empty now
-			value = rec[match.group("var1")]
-			if type(value) == type(None):
-				value = ""
-			value_raw=value
+# 			try: value = pcomments.sub("<br />",unicode(value))
+# 			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
 				
-			if type(value) == list:
-				value = ", ".join(value)
-
-			try: value = pcomments.sub("<br />",str(value))
-			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
-				
-			if not showedit:
-				prepend	= """<span class="param_display">"""		
+			if not edit:
+				prepend	= """<strong>$$"""+match.group("var")	
+				postpend = """</strong>"""
 				if paramdefs[match.group("var1")].defaultunits and paramdefs[match.group("var1")].defaultunits != "unitless" and rec[match.group("var1")] != None:
-					postpend += """ <span class="typehint">%s</span> """%(paramdefs[match.group("var1")].defaultunits)
-				postpend += """</span>"""
+					postpend += """ <em>%s</em> """%(paramdefs[match.group("var1")].defaultunits)
 
-			if allowedit:
-				postpend += editparamspan2(paramdefs[match.group("var1")],rec[match.group("var1")],showedit=showedit,db=db,ctxid=ctxid)
-
-			matchstr = re.sub("\$","\$",match.group("var")) + match.group("varsep")
-			if showedit:
-				viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
 			else:
-				viewdef = re.sub(matchstr,prepend+match.group("var")+postpend+match.group("varsep"),viewdef)
+				postpend += editparamspan2(paramdefs[match.group("var1")],rec[match.group("var1")],db=db,ctxid=ctxid)
+
+			matchstr = "\$\$"+match.group("var")+match.group("varsep")
+			viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
 
 	return viewdef
 
 
-def macroprecache(recordids,macros,db=None,ctxid=None):
-	# this allows getindexbyrecorddef to only be called once; can reduce a 1.5s render to 0.4s
-	precache = {}
-	
-	for macro in macros:
-		t0=time.time()
-		
-		if not precache.has_key(macro[0]):
-			precache[macro[0]] = {}
-
-		if macro[0] == "recid":
-			precache[macro[0]][""] = {}
-			for i in recordids:
-				precache[macro[0]][""][i] = i
-
-		if macro[0] == "childcount":
-			precache[macro[0]][macro[1]] = {}
-			c = {}
-			q = Set()
-			for i in recordids:
-							c[i] = db.getchildren(i,ctxid=ctxid,recurse=4)
-							q = q | c[i]
-			macromgroup = q & db.getindexbyrecorddef(macro[1],ctxid)
-			for i in recordids:
-				precache[macro[0]][macro[1]][i] = len(c[i] & macromgroup)				
-
-		if macro[0] == "parentvalue":
-			precache[macro[0]][macro[1]] = {}
-			for i in recordids:
-				p=db.getparents(i,ctxid=ctxid)
-				for j in p:
-					if db.trygetrecord(j,ctxid):
-						r=db.getrecord(j,ctxid)
-						if r.has_key(macro[1]):
-							precache[macro[0]][macro[1]][i] = r[macro[1]]
-		
-		if DEBUG: print "in macro %s: %i"%(macro,(time.time()-t0)*1000000)
-	return precache
-
-
+# FIXME: write macro definitions in a more flexible way. (does python have closures/blocks?)
 def macro_names(macro,macroparameters):
+	"""Return the name of a macro, equivalent to paramdef.desc_short"""
+		
 	if macro == "recid":
 		return "Record ID"
 	elif macro == "childcount":
@@ -215,37 +180,79 @@ def macro_names(macro,macroparameters):
 	elif macro == "parentvalue":
 		return "Parent %s:"%macroparameters
 
-def editparamspan2(paramdef,value,showedit=0,db=None,ctxid=None):
-	ret = []
-#	if showedit:
-#		ret.append("""<span class="param_value_edit_%s" id="param_value_edit_%s_%s">"""%(classname,classname,paramdef.name))
-#	else:
-#		ret.append("""<span style="display:none" class="param_value_edit_%s" id="param_value_edit_%s_%s">"""%(classname,classname,paramdef.name))	
+# currently turned off
+# def macroprecache(recordids,macros,db=None,ctxid=None):
+# 	"""Generate and store a cache of macro values; this is used as a performance optimization where all the database queries necessary have already been made. Currently not used."""
+# 	
+# 	precache = {}
+# 	
+# 	for macro in macros:
+# 		t0=time.time()
+# 		
+# 		if not precache.has_key(macro[0]):
+# 			precache[macro[0]] = {}
+# 
+# 		if macro[0] == "recid":
+# 			precache[macro[0]][""] = {}
+# 			for i in recordids:
+# 				precache[macro[0]][""][i] = i
+# 
+# 		if macro[0] == "childcount":
+# 			precache[macro[0]][macro[1]] = {}
+# 			c = {}
+# 			q = Set()
+# 			for i in recordids:
+# 							c[i] = db.getchildren(i,ctxid=ctxid,recurse=4)
+# 							q = q | c[i]
+# 			macromgroup = q & db.getindexbyrecorddef(macro[1],ctxid)
+# 			for i in recordids:
+# 				precache[macro[0]][macro[1]][i] = len(c[i] & macromgroup)				
+# 
+# 		if macro[0] == "parentvalue":
+# 			precache[macro[0]][macro[1]] = {}
+# 			for i in recordids:
+# 				p=db.getparents(i,ctxid=ctxid)
+# 				for j in p:
+# 					if db.trygetrecord(j,ctxid):
+# 						r=db.getrecord(j,ctxid)
+# 						if r.has_key(macro[1]):
+# 							precache[macro[0]][macro[1]][i] = r[macro[1]]
+# 		
+# 		if DEBUG: print "in macro %s: %i"%(macro,(time.time()-t0)*1000000)
+# 	return precache
 
-# 	"int":("d",lambda x:int(x)),			# 32-bit integer
-# 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
-# 	"float":("f",lambda x:float(x)),		# double precision
-# 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-# 	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
-# 	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
-# 	"text":("s",lambda x:str(x)),			# freeform text, fulltext (word) indexing
-# 	"time":("s",lambda x:str(x)),			# HH:MM:SS
-# 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
-# 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
-# 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
-# 	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
-# 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
-# 	"url":("s",lambda x:str(x)),			# link to a generic url
-# 	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
-# 	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
-# 	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
-# 	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
-# 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
-# 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
-# 	"boolean":("d",lambda x:int(x)),
-# 	"dict":(None, lambda x:x),
-#		"user":("s",lambda x:str(x))
-#
+
+
+
+
+
+def editparamspan2(paramdef,value,db=None,ctxid=None):
+	"""Create an editable field."""
+	
+	# 	"int":("d",lambda x:int(x)),			# 32-bit integer
+	# 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
+	# 	"float":("f",lambda x:float(x)),		# double precision
+	# 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
+	# 	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
+	# 	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
+	# 	"text":("s",lambda x:str(x)),			# freeform text, fulltext (word) indexing
+	# 	"time":("s",lambda x:str(x)),			# HH:MM:SS
+	# 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
+	# 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
+	# 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
+	# 	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
+	# 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
+	# 	"url":("s",lambda x:str(x)),			# link to a generic url
+	# 	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
+	# 	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
+	# 	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
+	# 	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
+	# 	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
+	# 	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
+	# 	"boolean":("d",lambda x:int(x)),
+	# 	"dict":(None, lambda x:x),
+	#		"user":("s",lambda x:str(x))
+	#
 	#	Set(['binary', 'string', 'int', 'text', 'float', 'choice', 'boolean', 'datetime', 'stringlist', 'binaryimage'])
 	# choice = select one
 	# boolean = radio buttons: true/false
@@ -254,29 +261,17 @@ def editparamspan2(paramdef,value,showedit=0,db=None,ctxid=None):
 	# date, datetime, time = calendar widget
 	# int, longint, float, longfloat, string = 
 
-# <span class="combobox">
-# 	<input value="test" type="text" onfocus="javascript:return combobox_onfocus(this);" onkeypress="javascript:return combobox_onkeypress(this,event);" /><ul class="combobox_items">
-# 			<li onclick="combobox_setv(this);">RemorasRemoras</li>
-# 			<li onclick="combobox_setv(this);">Tigerfish</li>
-# 			<li onclick="combobox_setv(this);">Pufferfish</li>
-# 		</ul>
-# </span>
-
 	#	ekind = expanded[0] || "r";
 	#	ename = expanded[1];
 	#	etype = expanded[2] || "string";
 	#	elist = parseInt(expanded[3]) || 0;
 	#	epos = expanded[4] || null;		
+	ret = []
 
 	if value==None:
 		value=""
-	style=""
-	if not showedit:
-		style="""style="display:none" """
+
 	hint=""
-	units=""
-	if paramdef.defaultunits and paramdef.defaultunits != "unitless":
-		units = paramdef.defaultunits	
 
 	if paramdef.vartype == "time":
 		hint = " (HH:MM:SS)"
@@ -294,11 +289,14 @@ def editparamspan2(paramdef,value,showedit=0,db=None,ctxid=None):
 		hint = """ (url)"""
 	elif paramdef.vartype == "binary" or paramdef.vartype == "binaryimage":
 		hint = """ (bdo:)"""
-	elif paramdef.vartype == "boolean":
-		hint = """ (bool)"""
+
+	if paramdef.defaultunits and paramdef.defaultunits != "unitless":
+		hint = paramdef.defaultunits + hint
+
+
 
 	if paramdef.vartype == "choice":
-		ret.append("""<span class="input_elem input_select" %s>"""%style)
+		ret.append("""<span class="input_elem input_select">""")
 		ret.append("""<select name="r___%s___%s" >"""%(paramdef.name,paramdef.vartype))
 		z=list(paramdef.choices)
 		z.append("")
@@ -307,39 +305,52 @@ def editparamspan2(paramdef,value,showedit=0,db=None,ctxid=None):
 				ret.append("""<option value="%s" selected>%s</option>"""%(i,i))
 			else:
 				ret.append("""<option value="%s">%s</option>"""%(i,i))
-		ret.append("""</select></span>""")
+		ret.append("""</select></span><em>%s</em>"""%hint)
 			
+
+
 	elif paramdef.vartype == "boolean":
-		ret.append("""<span class="input_elem input_select" %s>"""%style)
+		ret.append("""<span class="input_elem input_select">""")
 		ret.append("""<select name="r___%s___%s">"""%(paramdef.name,paramdef.vartype))
 		ret.append("""<option value=""></option>""")		
-		ret.append("""<option value="0">False</option><option value="1">True</option>""")
-		ret.append("""</select></span>""")
-
-	elif paramdef.vartype == "user":
-		ret.append("""<span class="input_elem input_select" %s>"""%style)
-		ret.append("""<select name="r___%s___%s">"""%(paramdef.name,paramdef.vartype))
-		ret.append("""<option value=""></option>""")
-
-		users=db.getusernames(ctxid)
-		subset=db.getindexbyrecorddef("person",ctxid)
-		names={}
-		usernames={}
-		for i in subset:
-			r=db.getrecord(i,ctxid)
-			names[i]=r["name_last"]+", "+r["name_first"]+" "+r["name_middle"]
-			usernames[i]=r["username"]
-		s=[i for i in sorted(names.items(), key=itemgetter(1))]
-
-#		q1=db.getindexdictbyvalue("name_last",None,ctxid,subset=subset).items()
-#		q2=db.getindexdictbyvalue("name_middle",None,ctxid,subset=subset).items()
-#		q3=db.getindexdictbyvalue("name_first",None,ctxid,subset=subset).items()
-		for i in s:
-			if value == usernames[i[0]]:
-				ret.append("""<option value="%s" selected>%s (%s)</option>"""%(usernames[i[0]],i[1],usernames[i[0]]))
+		for i in [[0,"False"],[1,"True"]]:
+			if value == i[0]:
+				ret.append("""<option value="%s" selected>%s</option>"""%(i[0],i[1]))
 			else:
-				ret.append("""<option value="%s">%s (%s)</option>"""%(usernames[i[0]],i[1],usernames[i[0]]))
-		ret.append("""</select></span>""")				
+				ret.append("""<option value="%s">%s</option>"""%(i[0],i[1]))
+		ret.append("""</select></span><em>%s</em>"""%hint)
+
+
+
+	elif paramdef.vartype in ["user","userlist"]:
+
+		# sanity checks
+		if value == None:
+			value = ""
+		if paramdef.vartype == "userlist" and type(value) != list:
+			value=[value]
+		if paramdef.vartype == "userlist" and len(value) == 0:
+			value=[""]
+
+		usernames=getuserrealnames(ctxid,reverse=1,db=db)	
+		
+		# fixme: replace with a more general python->js method (JSON?)
+		js=[[k,re.sub("'","",v)+" (%s)"%k] for k,v in [i for i in sorted(usernames.items(), key=itemgetter(1))]]
+								
+		ret.append("""<span class="input_elem input_combobox"><br />""")
+
+		if paramdef.vartype == "userlist":
+			for i in range(0,len(value)):
+				ret.append("""<span><input name="r___%s___%s___1___%s" type="text" onfocus="new combobox(this, %s, true)" value="%s" /></span><br />"""%(paramdef.name,paramdef.vartype,i,js,value[i]))
+			ret.append("""<span><input name="r___%s___%s___1___%s" type="text" onfocus="new combobox(this, %s, true)" value="" /></span>"""%(paramdef.name,paramdef.vartype,i+1,js))				
+			ret.append("""<span class="jslink" onclick="javascript:input_moreoptions_combobox(this)">[+]</span>""")
+
+		else:
+			ret.append("""<span><input name="r___%s___%s" type="text" onfocus="new combobox(this, %s, true)" value="%s" /></span>"""%(paramdef.name,paramdef.vartype,js,value))
+		
+		ret.append("""</span>""")
+		
+		
 		
 	elif paramdef.vartype in ["datetime","time","date"]:
 		if value=="" and paramdef.vartype == "datetime":
@@ -348,41 +359,54 @@ def editparamspan2(paramdef,value,showedit=0,db=None,ctxid=None):
 			value=time.strftime("%H:%M:%S")
 		elif value=="" and paramdef.vartype == "date":
 			value=time.strftime("%Y/%m/%d")
-		ret.append("""<span class="input_elem input_text" %s><input name="r___%s___%s" type="text" value="%s" /><span class="typehint">%s</span></span>"""%(style,paramdef.name,paramdef.vartype,value,hint))
+		ret.append("""<span class="input_elem input_text"><input name="r___%s___%s" type="text" value="%s" size="19" maxlength="19" /></span><em>%s</em>"""%(paramdef.name,paramdef.vartype,value,hint))
+
+
 	
 	elif paramdef.vartype in ["intlist","stringlist","intlist"]:
-		ret.append("""<span class="input_elem input_list" %s ><br />"""%style)
+		ret.append("""<span class="input_elem input_list">""")
 		for i in range(0,len(value)):
 			ret.append("""<input name="r___%s___%s___1___%s" type="text" value="%s" /><br />"""%(paramdef.name,paramdef.vartype,i,value[i]))
-		ret.append("""<input name="r___%s___%s___1___%s" type="text" value="" /> <span class="jslink" onclick="input_moreoptions(this)">[+]</span><span class="typehint">%s</span>"""%(paramdef.name,paramdef.vartype,len(value),hint))
-		ret.append("""</span>""")
+		ret.append("""<input name="r___%s___%s___1___%s" type="text" value="" /> <span class="jslink" onclick="javascript:input_moreoptions_text(this)">[+]</span>"""%(paramdef.name,paramdef.vartype,len(value)))
+		ret.append("""</span><em>%s</em>"""%hint)
+
+
 				
 	elif paramdef.vartype == "text":
-		ret.append("""<span class="input_elem input_textarea" %s><textarea cols="80" rows="10" name="r___%s___%s">%s</textarea><span class="typehint">%s</span></span>"""%(style,paramdef.name,paramdef.vartype,value,hint))
+		# find a good size for textarea
+		rows=4
+		cols=40
+		if len(value) > cols: cols = len(value)
+		if cols > 80: cols = 80
+		if value.count("\n") > rows: rows = value.count("\n")
+		if len(value) > rows * 80: rows = int(len(value) / 80.0) + rows
+		if rows > 40: rows = 40
+
+		ret.append("""<span class="input_elem input_textarea"><textarea cols="%s" rows="%s" name="r___%s___%s">%s</textarea></span><em>%s</em>"""%(cols, rows, paramdef.name,paramdef.vartype,value,hint))
 
 	
+
 	elif paramdef.vartype in ["string","int","float","longint","longfloat","url"]:
 		if paramdef.choices:
-			ret.append("""<span class="input_elem input_combobox" %s >"""%style)
-			ret.append("""<input name="r___%s___%s" value="%s" type="text" onfocus="javascript:return combobox_onfocus(this);" onkeypress="javascript:return combobox_onkeypress(this,event);" />"""%(paramdef.name,paramdef.vartype,value))
-			ret.append("""<ul class="input_combobox_items">""")
-			ret.append("""<li onclick="combobox_setv(this,'');">&nbsp;</li>""")
-			for i in paramdef.choices:
-				ret.append("""<li onclick="combobox_setv(this);">%s</li>"""%i)
-			ret.append("""</ul><img class="input_combobox_image" onclick="javascript:return combobox_onfocus(this);" src="/images/dropdown.gif" valign="bottom" /><span class="typehint">%s</span></span>"""%hint)
-
+			print paramdef.choices
+			# escape for js
+			js = [[re.sub("'",r"\'",str(i)),re.sub("'",r"\'",str(i))] for i in paramdef.choices]
+			ret.append("""<span class="input_elem input_combobox"><br /><input name="r___%s___%s" type="text" onfocus="new combobox(this, %s, false)" value="%s" /></span>"""%(paramdef.name,paramdef.vartype,js,value))
 
 		else:
-			ret.append("""<span class="input_elem input_text" %s ><input name="r___%s___%s" type="text" value="%s"><span class="typehint">%s</span></span>"""%(style,paramdef.name,paramdef.vartype,value,hint))
+			size = 20
+			if len(unicode(value)) > size: size = len(unicode(value))
+			if size > 40: size = 40
+			
+			ret.append("""<span class="input_elem input_text" ><input name="r___%s___%s" type="text" value="%s" size="%s"></span><em>%s</em>"""%(paramdef.name,paramdef.vartype,value,size,hint))
 			
 
+
 	else:
-		ret.append("""edit %s: %s"""%(paramdef,value))
+		ret.append("""<br />%s: %s<br />"""%(paramdef,value))
 
 
-#	ret.append("""</span>""")
 
 	return "".join(ret)
 	
-
 

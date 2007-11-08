@@ -8,51 +8,60 @@ var imgw = 256;
 
 /*************************************************/
 
-function tileinit(bid) {
+function tile_init(bid) {
 	
-	outerdivie=document.getElementById("outerdiv");
-	imgw = parseInt(getStyle(outerdivie,'height')) / 2.0;
+	var outerdivie=document.getElementById("outerdiv");
+	var imgw = parseInt(getStyle(outerdivie,'height')) / 2.0;
 	if (imgw > 256) {imgw = 256;}
-//	console.log(imgw);
 	
-	innerdivie=document.getElementById("innerdiv");
+	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
-	xmlrpcrequest("checktile",[bid,ctxid]);
+
+	var checktile = new CallbackManager();
+	checktile.register(tile_checktile_cb);
+	checktile.seterror(tile_checktile_eb);
+	checktile.req("checktile",[bid,ctxid]);
+
 }
 
-function xmlrpc_checktile_cb(r) {
-	innerdivie=document.getElementById("innerdiv");
+function tile_checktile_cb(r) {
+	var innerdivie=document.getElementById("innerdiv");
 	if (r[0][0] > 0) {
 		// tile ok
-		tileinit2(r[0],r[1],r[2])
+		tile_init2(r[0],r[1],r[2])
 	} else {
 		// generate tile; init on callback
 		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
-		xmlrpcrequest("createtile",[r[2],ctxid]);
+
+		var createtile = new CallbackManager();
+		createtile.register(tile_createtile_cb);
+		createtile.req("createtile",[r[2],ctxid]);
+
 	}
 }
 
-function xmlrpc_checktile_eb(c,s) {
-	tileerror();
+function tile_checktile_eb(r) {
+	tile_error();
 }
 
-function xmlrpc_createtile_cb(r) {
+function tile_createtile_cb(r) {
 	if (r[0][0] > -1) {
-		tileinit2(r[0],r[1],r[2]);
+		tile_init2(r[0],r[1],r[2]);
 	} else {
-		tileerror();
+		tile_error();
 	}
 }
 
-function tileerror() {
-		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/error.gif" /><br />Error: Could not create or access tiles.'
+function tile_error() {
+	var innerdivie=document.getElementById("innerdiv");	
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/error.gif" /><br />Error: Could not create or access tiles.'
 }
 
 /*************************************************/
 
 
 
-function tileinit2(nxinit,nyinit,tileidinit) {
+function tile_init2(nxinit,nyinit,tileidinit) {
 	nx = nxinit;
 	ny = nyinit;
 	tileid = tileidinit;

@@ -31,16 +31,15 @@ from twisted.internet import defer, reactor, threads
 from twisted.web.resource import Resource
 from twisted.web.static import *
 
-
+def checkwebcontext(request):
+	session=request.getSession()
 
 class WebResource(Resource):
 	isLeaf = True
 	
 	def render(self,request):
-		session=request.getSession()
-		print dir(session)
-#		session.startCheckingExpiration(self, 7200)
 		t0 = time.time()
+		session=request.getSession()
 		host=request.getClientIP()
 		args=request.args
 
@@ -141,6 +140,12 @@ class WebResource(Resource):
 			request.setHeader("content-type","text/html; charset=utf-8")
 
 		request.setHeader("content-length", str(len(result)))
+		
+		# no caching
+		request.setHeader("Cache-Control","no-cache"); #HTTP 1.1
+		request.setHeader("Pragma","no-cache"); #HTTP 1.0
+		#request.setDateHeader("Expires", 0); #caching en proxy 
+		
 		request.write(result)
 		request.finish()
 		if TIME: print ":::ms TOTAL: %i"%((time.time()-t0)*1000000)
@@ -162,6 +167,21 @@ class WebResource(Resource):
 
 
 
+class UploadResource2(Resource):
+	isLeaf = True
+	
+	def __init__(self):
+		Resource.__init__(self)
+
+	def render(self, request):
+		request.content.seek(0,0)
+		f = file('data.dat','wb')
+
+		f.write(request.content.read())
+
+		return "ok"
+#		request.write('OK')
+#		request.finish()
 
 ##########################################
 # Upload Resource
@@ -169,7 +189,14 @@ class WebResource(Resource):
 class UploadResource(Resource):
 	isLeaf = True
 
-	def render(self,request):
+	def render_PUT(self,request):
+		return self.render2(request,request.content)
+
+	def render_POST(self,request):
+		content = StringIO(args["filedata"][0])
+		return self.render2(request,content)
+
+	def render2(self,request,content):
 
 		host=request.getClientIP()
 		
@@ -184,12 +211,11 @@ class UploadResource(Resource):
 			except:
 				print "Need to login..."
 				session.originalrequest = request.uri
-				raise KeyError	
-		
+				raise KeyError			
 		
 		print "\n---- [%s] [%s] [%s] ---- upload request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,user,request.postpath)
 
-		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid, host)		
+		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, content, ctxid, host)		
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET		
@@ -208,58 +234,74 @@ class UploadResource(Resource):
 		request.finish()	
 
 
-	def RenderWorker(self,path,args,ctxid,host,db=None):
+	def RenderWorker(self,path,args,content,ctxid,host,db=None):
 
-		binary = 0
-		if args.has_key("file_binary_image"): 
-			binary = args["file_binary_image"][0]
+		param = "file_binary"
+		if args.has_key("param"): 
+			param = args["param"][0]
 
-		if args.has_key("fname"): 
-			fname = args["fname"][0]
+		if args.has_key("name"): 
+			name = args["name"][0]
 		else:
 			user=db.checkcontext(ctxid)[0]
-			fname = user + " " + time.strftime("%Y/%m/%d %H:%M:%S")
+			name = user + " " + time.strftime("%Y/%m/%d %H:%M:%S")
 
 
-		recid=int(path[0])
+		recid = int(path[0])
 		rec = db.getrecord(recid,ctxid)
 				
-		# append to file (chunk uploading) or all at once.. 
+				
+		###################################		
+		# Append to file, or make new file.
 		if args.has_key("append"):
 			a = db.getbinary(args["append"][0],ctxid)
 			print "Appending to %s..."%a[1]
 			outputStream = open(a[1], "ab")
-			outputStream.write(args["filedata"][0])
+
+			chunk=content.read()
+			while chunk:
+				outputStream.write(chunk)
+				chunk=content.read()
+				
 			outputStream.close()
-
-		# new file
-		else:
-			print "Get binary..."
-			a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),fname.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
-
-			print "Writing file... %s"%a[1]
-			outputStream = open(a[1], "wb")
-			outputStream.write(args["filedata"][0])
-			outputStream.close()
-
-			if binary:
-				rec["file_binary_image"] = "bdo:%s"%a[0]
-			else:
-				key = "file_binary"
-				if not rec.has_key(key):
-					rec[key] = []
-				rec[key].append("bdo:%s"%a[0])
-	
-			db.putrecord(rec,ctxid)
-
-		if args.has_key("rbid"):
+			
 			return str(a[0])
+
+		###################
+		# New file
+		print "Get binary..."
+		# fixme: use basename and splitext
+		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),name.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
+
+		print "Writing file... %s"%a[1]
+		outputStream = open(a[1], "wb")
+
+		content.seek(0,0)
+		chunk=content.read()
+		while chunk:
+			outputStream.write(chunk)
+			chunk=content.read()
+		outputStream.close()
+
+
+		######################
+		# Update record
+		if param == "file_binary_image":
+			rec[param] = "bdo:%s"%a[0]
 		else:
+			if not rec.has_key(param):
+				rec[param] = []
+			if type(rec[param]) == str:
+				rec[param] = [rec[param]]
+			rec[param].append("bdo:%s"%a[0])
+			
+		db.putrecord(rec,ctxid)
+
+		if args.has_key("redirect"):
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
 
-
-
+		return str(a[0])
 
 
 ##########################################
@@ -280,7 +322,7 @@ class DownloadResource(Resource, File):
 	defaultType="application/octet-stream"
 
 
-	def render(self, request):
+	def render_GET(self, request):
 		host=request.getClientIP()
 		
 		if request.args.has_key("ctxid"):
