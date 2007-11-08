@@ -128,9 +128,16 @@ class WebResource(Resource):
 
 
 	def _cbRender(self,result,request,t0=None):		
-		if result[:3]==u"\xFF\xD8\xFF":
+                try:
+                        result=result.encode("utf-8")
+                except:
+                        pass
+
+
+
+		if result[:3]=="\xFF\xD8\xFF":
 			request.setHeader("content-type","image/jpeg")
-		elif result[:4]==u"\x89PNG":
+		elif result[:4]=="\x89PNG":
 			request.setHeader("content-type","image/png")
 		else:
 			try:
