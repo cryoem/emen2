@@ -4160,7 +4160,10 @@ or None if no match is found."""
 					else:
 						value = "False"
 				
-				if type(value) == type(None):
+				elif paramdefs[match.group("var1")].vartype in ["floatlist","intlist"]:
+					value=", ".join([str(i) for i in value])
+				
+				elif type(value) == type(None):
 					value = ""
 				elif type(value) == list:
 					value = ", ".join(value)

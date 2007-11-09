@@ -8,6 +8,8 @@ import time
 import random
 import atexit
 
+import cStringIO
+
 DEBUG = 1
 
 from emen2 import ts 
@@ -174,21 +176,6 @@ class WebResource(Resource):
 
 
 
-class UploadResource2(Resource):
-	isLeaf = True
-	
-	def __init__(self):
-		Resource.__init__(self)
-
-	def render(self, request):
-		request.content.seek(0,0)
-		f = file('data.dat','wb')
-
-		f.write(request.content.read())
-
-		return "ok"
-#		request.write('OK')
-#		request.finish()
 
 ##########################################
 # Upload Resource
@@ -200,7 +187,24 @@ class UploadResource(Resource):
 		return self.render2(request,request.content)
 
 	def render_POST(self,request):
-		content = StringIO(args["filedata"][0])
+
+		request.content.seek(0,0)
+		content = request.content.read()
+		request.content.seek(0,0)
+		
+		headers = request.received_headers
+		boundary="--"+headers["content-type"].split("boundary=")[1]
+		parts=content.split(boundary)
+
+		#todo: extend support for multiple file upload (this existed at one point in the past.)
+		
+		re_filename=re.compile("filename=\"(?P<filename>.+)\"")
+		# in case there is a large upload, don't regex the entire thing..
+		iter = re_filename.finditer(parts[1][:1000])
+		for match in iter:
+			request.args["name"]= [match.group("filename")]
+		
+		content = cStringIO.StringIO(request.args["filedata"][0])
 		return self.render2(request,content)
 
 	def render2(self,request,content):

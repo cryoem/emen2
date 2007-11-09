@@ -50,7 +50,7 @@ combobox.prototype.onkeydown = function(event) {
 
 	var keycode;
 	if (window.event) keycode = window.event.keyCode;
-	else if (e) keycode = e.which;
+	else if (event) keycode = event.which;
 
   switch (keycode) {
     case 9: // tab
@@ -75,7 +75,7 @@ combobox.prototype.onkeydown = function(event) {
 combobox.prototype.onkeyup = function(event) {
 	var keycode;
 	if (window.event) keycode = window.event.keyCode;
-	else if (e) keycode = e.which;
+	else if (event) keycode = event.which;
 
   switch (keycode) {    case 27: // escape
       this.hide();
@@ -98,7 +98,7 @@ combobox.prototype.onkeyup = function(event) {
 combobox.prototype.onkeypress = function(event) {
 	var keycode;
 	if (window.event) keycode = window.event.keyCode;
-	else if (e) keycode = e.which;
+	else if (event) keycode = event.which;
 
   switch (keycode) {    case 13: // return
     case 38: // up
