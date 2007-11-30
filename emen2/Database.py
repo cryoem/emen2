@@ -2451,7 +2451,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if username==None:
 			username=ctx.user
 
-		if (u!=username and (not -1 in ctx.groups) and (not -2 in ctx.groups)) :
+		if (ctx.user!=username and (not -1 in ctx.groups) and (not -2 in ctx.groups)) :
 			raise SecurityError,"Not authorized to get record access for %s"%username 
 		return Set(self.__secrindex[username])
 	
