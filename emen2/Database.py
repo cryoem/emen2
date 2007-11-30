@@ -1821,6 +1821,11 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		ctx.time=time.time()
 		
+		# ian. 11.30.07. Add -3 to the ctx groups of all logged in users.
+		# todo: this causes severe performance issues. need to see where __getcontext/__secrindex[-3] is used. for now, just place ctx.groups+=[-3] where appropriate.
+		#print "---getcontext---"
+		#if ctx.user!=None: ctx.groups.append(-3)
+		
 		
 		return ctx			
 
@@ -1828,11 +1833,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 		import time
 		time.sleep(5)
 
-	def checkcontext(self,ctxid,host=None):
-		"""This allows a client to test the validity of a context, and
-		get basic information on the authorized user and his/her permissions"""
-		a=self.__getcontext(ctxid,host)
-		return(a.user,a.groups)
 
 	def isManager(self,ctxid,host=None):
 		"""Checks if the user has global read access."""
@@ -1925,6 +1925,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
+		#
 		a=self.__getcontext(ctxid,host)
 		if a.user==None: return(-4,-4)
 		return(a.user,a.groups)
@@ -2419,13 +2420,19 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 	def getindexbycontext(self,ctxid,host=None):
-		"""This will return the ids of all records the user has permission to access""" 
+		"""This will return the ids of all records a context has permission to access. DOES include groups.""" 
 		ctx=self.__getcontext(ctxid,host)
 		
-		if ctx.user=="root" : return range(self.__records[-1]+1)
+		# todo: this needs to be moved back to __getcontext once performance issues are fixed
+		if ctx.user!=None: ctx.groups+=[-3]
+		
+		if [-1] in ctx.groups or [-2] in ctx.groups:
+			return Set(range(self.__records[-1]+1))
+
 		ret=Set(self.__secrindex[ctx.user])
 		for i in ctx.groups: ret|=Set(self.__secrindex[i])
 		return ret
+
 #		"""This will use a context to return
 #		a list of records the user can access"""
 #		u,g=self.checkcontext(ctxid,host)
@@ -2436,10 +2443,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
-		a list of records the user can access"""
-		u,g=self.checkcontext(ctxid,host)
-		if username==None : username=u
-		if (u!=username and (not -1 in g) and (not -2 in g)) :
+		a list of records the user can access. DOES NOT include that user's groups."""
+		# todo: add group support
+		#u,g=self.checkcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
+		if username==None:
+			username=ctx.user
+
+		if (u!=username and (not -1 in ctx.groups) and (not -2 in ctx.groups)) :
 			raise SecurityError,"Not authorized to get record access for %s"%username 
 		return Set(self.__secrindex[username])
 	
@@ -2471,8 +2482,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		elif isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
 		else: ret=Set(ind[valrange])
 		
-		u,g=self.checkcontext(ctxid,host)
-		if (-1 in g) or (-2 in g) : return ret
+		#u,g=self.checkcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups) : return ret
 		
 		secure=Set(self.getindexbycontext(ctxid,host))		# all records the user can access
 		
@@ -2516,15 +2528,21 @@ parentheses not supported yet. Upon failure returns a tuple:
 			for i,j in r.items():
 				for k in j: ret[k]=i
 		"""
-		u,g=self.checkcontext(ctxid,host)
-		if (-1 in g) or (-2 in g) : return ret
+
+		#u,g=self.checkcontext(ctxid,host)
+		ctx=self.__getcontext(ctxid,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups) : return ret
 		
+		# getindexbycontext includes groups
 		secure=self.getindexbycontext(ctxid,host)		# all records the user can access
+		# remove any recids the user cannot access		
+		for i in Set(ret.keys())-secure:
+			del ret[i]
 		
-		# remove any recids the user cannot access
+#		for i in ret.keys():
+#			if i not in secure : del ret[i]
 		
-		for i in ret.keys():
-			if i not in secure : del ret[i]
+			
 		return ret
 		#return ret & secure		# intersection of the two search results
 		"""
@@ -2570,8 +2588,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getindexdictbyvaluefast(self,subset,param,valrange=None,ctxid=None,host=None):
 		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
+
 		v = {}
-		records = self.getrecord(list(subset),ctxid)
+		records = self.getrecordsafe(list(subset),ctxid)
 		for i in records:
 			if not valrange:
 				v[i.recid] = i[param]
@@ -2658,6 +2677,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		if recurse==0 : return Set(ret)
 
+		r2=[]
+		for i in ret:
+			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host)
+		return Set(ret+r2)
+
 # ian
 #		new = 0
 # 		r = {}
@@ -2673,10 +2697,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 # 			ret |= i
 # 		return ret
 
-		r2=[]
-		for i in ret:
-			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host)
-		return Set(ret+r2)
 		
 
 	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
@@ -3793,13 +3813,14 @@ or None if no match is found."""
 		return ret
 
 	def getrecordnames(self,ctxid,dbid=0,host=None):
-		"""This will return the ids of all records the user has permission to access""" 
-		ctx=self.__getcontext(ctxid,host)
-		
-		if ctx.user=="root" : return range(self.__records[-1]+1)
-		ret=Set(self.__secrindex[ctx.user])
-		for i in ctx.groups: ret|=Set(self.__secrindex[i])
-		return ret
+		"""All record names a ctxid can access. Includes groups. Deprecated; calls getindexbycontext.""" 
+		return self.getindexbycontext(ctxid,host)
+#		ctx=self.__getcontext(ctxid,host)
+#		
+#		if ctx.user=="root" : return range(self.__records[-1]+1)
+#		ret=Set(self.__secrindex[ctx.user])
+#		for i in ctx.groups: ret|=Set(self.__secrindex[i])
+#		return ret
 	
 	def getrecordschangetime(self,recids,ctxid,host=None):
 		"""Returns a list of times for a list of recids. Times represent the last modification 
@@ -3852,7 +3873,7 @@ or None if no match is found."""
 			return recl
 		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
-	def getrecordsafe(self,recid,ctxid,dbid=0,host=None) :
+	def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
 		"""Same as getRecord, but failure will produce None or a filtered list"""
 		
 		ctx=self.__getcontext(ctxid,host)
@@ -3873,7 +3894,7 @@ or None if no match is found."""
 			except: 
 				return None
 			recl=filter(lambda x:x.setContext(ctx)[0],recl)
-			return rec
+			return recl
 		else : return None
 	
 	def secrecordadduser(self,usertuple,recid,ctxid,host=None,recurse=0):
@@ -4353,7 +4374,7 @@ or None if no match is found."""
 		"""Returns XML describing all, or a subset of records"""
 		qc={'"':'&quot'}
 		ret=[]
-		if recids==None : recids=self.getrecordnames(ctxid,host=host)
+		if recids==None : recids=self.getindexbycontext(ctxid,host=host)
 
 		for i in recids:
 			try: rec=self.getrecord(i,ctxid,host=host)
