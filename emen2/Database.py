@@ -1892,6 +1892,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 
+		#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
 		
 		return (key+"%05X"%newid,path+"/%05X"%newid)
