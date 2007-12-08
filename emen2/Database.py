@@ -3233,6 +3233,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
+		print paramdefname
 		return self.__paramdefs[paramdefname.lower()]
 		
 	def getparamdefnames(self):
@@ -4138,7 +4139,9 @@ or None if no match is found."""
 				""
 			else:
 				viewdef=recdef.views[viewtype]
-		
+	
+		#print "--------viewdef--------\n%s\n--------------\n"%viewdef
+	
 		# fixme: better, more general solution needed.
 		try:
 			a=unicode(viewdef)
