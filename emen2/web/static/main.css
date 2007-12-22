@@ -86,6 +86,8 @@ input, textarea, select {
 input_list {
 }
 
+
+
 /*
 .input_combobox input {
 	width:382px;
@@ -346,12 +348,28 @@ PAGE / TAB
 .button_rel, .button_exp, .button_rdv, .button_general {
 	background:#BBD9EE;
 }
-.button_rel_active, .button_exp_active, .button_rdv_active, .button_general_active {
+.button_rel_active, .button_exp_active, .button_rdv_active, .button_general_active, .button_comments_active {
 	background:#E7F1F8;;
 }
-.page_rel, .page_general, .page_exp, .page_rdv {
+.page_rel, .page_general, .page_exp, .page_rdv, .page_comments {
 	width:700px;
 	background:#E7F1F8;
+}
+.page_comments {
+	padding:10px;
+	width:500px;
+}
+
+
+#form_addcomment_comment {
+	width:480px;
+}
+
+.rightjustify {
+	text-align:right;
+	border-bottom:solid 1px black;
+	color:#777;
+	padding-right:10px;
 }
 
 /* 
@@ -369,9 +387,6 @@ SIDEBAR
 	line-height:150%;
 /*	background: url('images/transbackground.png'); */
 }
-#sidebar a {
-	color:grey;
-}
 #sidebar ul {
 	list-style:none;
 	padding:0px;
@@ -384,9 +399,12 @@ SIDEBAR
 /*	padding:0px;
 	margin:0px; */
 }
-#sidebar ul li strong {
+#sidebar ul li strong, #sidebar a {
 	font-weight:normal;
+	cursor:pointer;
 	padding:5px;
+	margin-left:0px;
+	color:#202060;
 }
 .sidebar_active {
 	background:#F0F0F0;
@@ -586,6 +604,12 @@ a,.jslink {
 	cursor:default;
 }
 
+a.difflink {
+	font-style:italic;
+}
+a.difflink:after {
+/*	content: url("/images/jump.gif") */
+}
 
 h1 {
 	line-height:135%;

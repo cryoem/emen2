@@ -15,10 +15,12 @@ DEBUG = 1
 from emen2 import ts 
 from emen2.emen2config import *
 
-import emen2.TwistSupport_html.html.login
+import emen2.TwistSupport_html.html
+
+##import emen2.TwistSupport_html.html.login
 #import emen2.TwistSupport_html.html.newuser
 #import emen2.TwistSupport_html.html.home
-import emen2.TwistSupport_html.html.error
+##import emen2.TwistSupport_html.html.error
 
 # Sibling Imports
 #from twisted.web import server
@@ -106,16 +108,6 @@ class WebResource(Resource):
 			ts.db.deletecontext(session.ctxid)
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
 
-		##########################
-		# authenticated; run page				
-		try:
-			exec("import emen2.TwistSupport_html.html.%s"%method)		
-		except ImportError:
-			method = "home"
-			exec("import emen2.TwistSupport_html.html.%s"%method)		
-
-		if DEBUG: exec("reload(emen2.TwistSupport_html.html.%s)"%method)
-
 		module = getattr(emen2.TwistSupport_html.html,method)
 		function = getattr(module,method)
 
@@ -123,7 +115,6 @@ class WebResource(Resource):
 		d.addCallback(self._cbRender, request, t0=t0)
 		d.addErrback(self._ebRender, request, t0=t0)
 
-#		return emen2.TwistSupport_html.html.record.record(request.postpath, request.args, ctxid=ctxid, host=request.getClientIP(),db=ts.db)
 
 		return server.NOT_DONE_YET
 		

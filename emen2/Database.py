@@ -3233,7 +3233,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
-		print paramdefname
 		return self.__paramdefs[paramdefname.lower()]
 		
 	def getparamdefnames(self):
@@ -3259,6 +3258,7 @@ or None if no match is found."""
 		defined values in recs. The results are returned as a dictionary.
 		It is much more efficient to use this on a list of records than to
 		call it individually for each of a set of records."""
+
 		ret={}
 		if isinstance(recs,Record) : recs=(recs,)
 		
@@ -4123,7 +4123,7 @@ or None if no match is found."""
 		"""Render a view for a record. Takes a record instance or a recid.
 		viewdef is an arbitrary view definition. viewtype is a name view from record def.
 		paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
-		
+				
 		if type(rec) == int:
 			if self.trygetrecord(rec,ctxid):
 				rec=self.getrecord(rec,ctxid,host=host)
@@ -4135,82 +4135,93 @@ or None if no match is found."""
 			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
-			elif viewtype=="recname" and not recdef.views.has_key("recname"):
-				""
 			else:
 				viewdef=recdef.views[viewtype]
-	
-		#print "--------viewdef--------\n%s\n--------------\n"%viewdef
-	
+		
 		# fixme: better, more general solution needed.
-		try:
-			a=unicode(viewdef)
-		except:
-			a=unicode(viewdef,errors="ignore")
+		#	try:
+		# a=unicode(viewdef)
+		#	except:
+
+ 		a=unicode(viewdef,errors="ignore")
 			
-		iterator=regex2.finditer(a)
+ 		iterator=regex2.finditer(a)
 				
 		for match in iterator:
+			pass
 
+			#################################
+			# Parameter short_desc
 			if match.group("name"):
-				if not paramdefs.has_key(match.group("name1")):
-					paramdefs[match.group("name1")] = self.getparamdef(str(match.group("name1")))
 
-				value = paramdefs[match.group("name1")].desc_short
-				matchstr = "\$\\#"+match.group("name")+match.group("namesep")
-				viewdef = re.sub(matchstr,value+match.group("namesep"),viewdef)
+				name=str(match.group("name1"))
+				if paramdefs.has_key(name):
+					value = paramdefs[name].desc_short
+				else:
+					value = self.getparamdef(name).desc_short
 
+				viewdef = viewdef.replace(u"$#"+match.group("name")+match.group("namesep"),value+match.group("namesep"))
+
+
+			#################################
+			# Record value
 			elif match.group("var"):
-				if not paramdefs.has_key(match.group("var1")):
-					paramdefs[match.group("var1")] = self.getparamdef(str(match.group("var1")))
+
+				var=str(match.group("var1"))
+				if paramdefs.has_key(var):
+					vartype=paramdefs[var].vartype					
+				else:
+					vartype = self.getparamdef(var).vartype
 
 				# vartype representations. todo: external function
-				value = rec[match.group("var1")]
+				value = rec[var]
 				
-				if paramdefs[match.group("var1")].vartype in ["user","userlist"]:
+				if vartype in ["user","userlist"]:
 					if type(value) != list:	value=[value]
 					ustr=[]
 					for i in value:
 						try:
 							urec=self.getrecord(self.getuser(i,ctxid).record,ctxid)
-							ustr.append("""%s %s %s (%s)"""%(urec["name_first"],urec["name_middle"],urec["name_last"],i))
+							ustr.append(u"""%s %s %s (%s)"""%(urec["name_first"],urec["name_middle"],urec["name_last"],i))
 						except:
-							print "Error getting real name for user %s"%i
-							ustr.append("(%s)"%i)
-					value=", ".join(ustr)
+							ustr.append(u"(%s)"%i)
+					value=u", ".join(ustr)
 				
-				elif paramdefs[match.group("var1")].vartype == "boolean":
+				elif vartype == "boolean":
 					if value:
-						value = "True"
+						value = u"True"
 					else:
-						value = "False"
+						value = u"False"
 				
-				elif paramdefs[match.group("var1")].vartype in ["floatlist","intlist"]:
-					value=", ".join([str(i) for i in value])
+				elif vartype in ["floatlist","intlist"]:
+					value=u", ".join([str(i) for i in value])
 				
 				elif type(value) == type(None):
-					value = ""
+					value = u""
 				elif type(value) == list:
-					value = ", ".join(value)
+					value = u", ".join(value)
 				elif type(value) == float:
-					value = "%0.2f"%value
+					value = u"%0.2f"%value
 				else:
-					value = pcomments.sub("<br />",textconv(value))
-
-
+					value = pcomments.sub("<br />",unicode(value))
+				
 				# now replace..
-				matchstr = "\$\$"+match.group("var")+match.group("varsep")
-				viewdef = re.sub(matchstr,value+match.group("varsep"),viewdef)
+				viewdef = viewdef.replace(u"$$"+match.group("var")+match.group("varsep"),value+match.group("varsep"))
 
+ 			######################################
+ 			# Macros
+			if match.group("macro"):
 
-			elif match.group("macro"):
-				value = str(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+				if match.group("macro")=="recid":
+					value = unicode(rec.recid)
+				else:
+					value = unicode(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
 
 				m2=match.group("macro2")
 				if m2 == None:
-					m2=""
-				matchstr = "\$\@" + match.group("macro1") + "\(" + m2 + "\)" + match.group("macrosep")
-				viewdef = re.sub(matchstr,value+match.group("macrosep"),viewdef)
+					m2=u""
+
+				viewdef = viewdef.replace(u"$@" + match.group("macro1") + u"(" + m2 + u")" + match.group("macrosep"),value+match.group("macrosep"))
 
 		return viewdef
 
@@ -4246,17 +4257,11 @@ or None if no match is found."""
 				return ""
 		
 		elif macro == "recname":
-			if rec.has_key("recname"):
-				return rec["recname"]
+			recdef=self.getrecorddef(rec.rectype,ctxid,host=host)
+			if recdef.views.has_key("recname"):
+				return self.renderview(rec,recdef.views["recname"],ctxid=ctxid,host=host)
 			else:
-				recdef=self.getrecorddef(rec.rectype,ctxid,host=host)
-				if recdef.views.has_key("recname"):
-					if not recdef.views["recname"].find("$@recname"):
-						return self.renderview(rec,recdef.views["recname"],ctxid=ctxid,host=host)
-					else:
-						return "(warning: recursive recname)"
-				else:
-					return "(needs $@recname view)"
+				return "(no recname view defined for protocol)"
 
 
 	###########
