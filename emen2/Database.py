@@ -4149,9 +4149,7 @@ or None if no match is found."""
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			else:
-				# viewdef=recdef.views[viewtype] # Edward Langley
 				viewdef = recdef.views.get(viewtype, recdef.name)
-
 		
 		# fixme: better, more general solution needed.
 		#	try:

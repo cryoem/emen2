@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python
 # This is the main server program for EMEN2
 # ts contains the actual XMLRPC methods
 # ts_html contains the HTML methods
