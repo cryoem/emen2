@@ -18,6 +18,15 @@ with sufficient intent and knowledge it is possible. To use this module securely
 by another layer, say an xmlrpc server...
 """
 
+# Edward Langley #############
+import macro                 #
+from macro import add_macro  #
+from functools import partial#
+from debug import DebugState #
+debug = DebugState()         #
+import sys                   #
+##############################
+
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
 
@@ -31,7 +40,7 @@ import operator
 import traceback
 from math import *
 from xml.sax.saxutils import escape,unescape,quoteattr
-from emen2.emen2config import *
+from emen2config import *
 import atexit
 import weakref
 
@@ -1365,7 +1374,7 @@ class Record:
 			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 			p3=Set(self.__permissions[2]+self.__permissions[3])
 			p4=Set(self.__permissions[3])
-			u1=Set(ctx.groups+[-4,])				# all users are permitted group -4 access
+			u1=Set(ctx.groups+(-4,))				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -1685,6 +1694,10 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if txn : txn.commit()
 		elif not self.__importmode : DB_syncall()
 		self.LOG(4,"Database initialized")
+
+		# Edward Langley
+		self.macroinit()
+		self.macros= macro.MacroEngine()
 
 	# one of these 2 methods is mapped to self.newtxn()
 	def newtxn1(self):
@@ -4136,7 +4149,9 @@ or None if no match is found."""
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			else:
-				viewdef=recdef.views[viewtype]
+				# viewdef=recdef.views[viewtype] # Edward Langley
+				viewdef = recdef.views.get(viewtype, recdef.name)
+
 		
 		# fixme: better, more general solution needed.
 		#	try:
@@ -4159,7 +4174,6 @@ or None if no match is found."""
 					value = paramdefs[name].desc_short
 				else:
 					value = self.getparamdef(name).desc_short
-
 				viewdef = viewdef.replace(u"$#"+match.group("name")+match.group("namesep"),value+match.group("namesep"))
 
 
@@ -4225,43 +4239,89 @@ or None if no match is found."""
 
 		return viewdef
 
-
-	def macroprocessor(self, rec, macro, macroparameters, ctxid, host=None):
-		if macro == "recid":
+	# Edward Langley #################
+	def macroinit(self):
+		@add_macro('recid')
+		def get_recid(rec, parameters, **extra):
 			return rec.recid
-		
-	 	elif macro == "childcount":
-			if not rec.recid:
-				return ""
- 			queryresult = self.getchildren(rec.recid,recurse=5,ctxid=ctxid,host=host)
 
-	#		option 1: return queryresult & db.getindexbyrecorddef(macroparameters,ctxid)
-	#		option 2: mgroups = db.countchildren(int(recordid),recurse=0,ctxid=ctxid) 
- 			mgroups = self.groupbyrecorddeffast(queryresult,ctxid,host=host)
-
-	 		if mgroups.has_key(macroparameters):
-	 			return len(mgroups[macroparameters])
- 			return ""
-
-		elif macro == "parentvalue":
-			if rec.recid:
-				p=self.getparents(rec.recid,ctxid=ctxid,host=host)
-				ret = []
-				for j in p:
-					if self.trygetrecord(j,ctxid,host=host):
-						r=self.getrecord(j,ctxid,host=host)
-						if r.has_key(macroparameters):
-							ret.append(r[macroparameters])
-				return ",".join(ret)
-			else:
-				return ""
-		
-		elif macro == "recname":
+		@add_macro('recname')
+		def get_parentvalue(rec, parameters, ctxid, host, **extra):
 			recdef=self.getrecorddef(rec.rectype,ctxid,host=host)
-			if recdef.views.has_key("recname"):
-				return self.renderview(rec,recdef.views["recname"],ctxid=ctxid,host=host)
-			else:
-				return "(no recname view defined for protocol)"
+			view = recdef.views.get("recname", "(no recname view)")
+			result = self.renderview(rec,view,ctxid=ctxid,host=host)
+			return result
+
+		def isofrecdef(recid, recdef, rinfo):
+			rec = self.getrecord(recid, **rinfo)
+			return rec.rectype == recdef
+
+		@add_macro('childcount')
+		def get_childcount(rec, recdef, ctxid, host, **extra):
+			rinfo = dict(ctxid=ctxid,host=host)
+	 		queryresult = self.getchildren(rec.recid,recurse=5,**rinfo)
+			return len([rec for rec in queryresult if isofrecdef(rec, recdef, rinfo)])
+
+		###############################################################################################################################################
+
+		def def_join_func(lis, sep=' '): return str.join(sep, lis)
+		def render_records(rec, view, get_recs, rinfo, join_func=def_join_func, renderer=None):
+			if renderer is None:
+				renderer = partial(self.renderview, viewtype=view, **rinfo)
+			recid, result = rec.recid, []
+			if isinstance(recid, int):
+				result = map(renderer, get_recs(recid))
+			return join_func(result)
+
+		html_join_func = partial(def_join_func, sep='<br />')
+
+		@add_macro('renderchildren')
+		def do_renderchildren(rec, view, ctxid, host, **extra):
+			rinfo = dict(ctxid=ctxid,host=host)
+			get_records = partial(self.getchildren, **rinfo)
+			return render_records(rec, view, get_records,rinfo, html_join_func)
+
+		@add_macro('renderchild')
+		def do_renderchild(rec, args, ctxid, host, **extra):
+			rinfo = dict(ctxid=ctxid,host=host)
+			view, key, value = args.split(' ')
+			def get_records(recid):
+				return self.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(self.getchildren(recid, **rinfo))
+			return render_records(rec, view, get_records,rinfo, html_join_func)
+
+		@add_macro('renderchildrenoftype')
+		def do_renderchildrenoftype(rec, args, ctxid, host, **extra):
+			rinfo = dict(ctxid=ctxid,host=host)
+			view, recdef = args.split(' ')
+			def get_records(recid):
+				return [rec for rec in self.getchildren(recid, **rinfo) if isofrecdef(rec, recdef, rinfo)]
+			return render_records(rec, view, get_records,rinfo, html_join_func)
+
+		################################################################################################################################################
+
+		def def_join_func(lis, sep=', '): return str.join(sep, lis)
+		def getvalue(recset, attribute, join_func=def_join_func, **rinfo):
+			isgettable = partial(self.trygetrecord, **rinfo)
+			get = partial(self.getrecord, **rinfo)
+
+			tmp = [ get(rec) for rec in recset if isgettable(rec)]
+			return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])
+			
+		@add_macro('childvalue')
+		def get_childrenvalue(rec, attribute, ctxid, host, **extra):
+			recid = rec.recid
+			children = self.getchildren(recid, ctxid=ctxid)
+			return getvalue(children, attribute, ctxid=ctxid, host=host)
+
+		@add_macro('parentvalue')
+		def get_parentvalue(rec, attribute, ctxid, host, **extra):
+			recid = rec.recid
+			parents = self.getparents(recid, ctxid=ctxid)
+			return getvalue(parents, attribute, ctxid=ctxid, host=host)
+
+	# Extensive modifications by Edward Langley
+	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
+		return macro.MacroEngine.call_macro(macr, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 	###########
