@@ -22,8 +22,8 @@ by another layer, say an xmlrpc server...
 import macro                 #
 from macro import add_macro  #
 from functools import partial#
-from debug import DebugState #
-debug = DebugState()         #
+#from debug import DebugState #
+#debug = DebugState()         #
 import sys                   #
 ##############################
 
