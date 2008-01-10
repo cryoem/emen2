@@ -1592,6 +1592,11 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__dbenv.set_cachesize(0,cachesize,4)		# gbytes, bytes, ncache (splits into groups)
 		self.__dbenv.set_data_dir(path)
 		self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT)	# internal deadlock detection
+
+		# ian: lockers
+		self.__dbenv.set_lk_max_locks(5000)
+		self.__dbenv.set_lk_max_lockers(5000)
+		
 		#if self.__dbenv.DBfailchk(flags=0) :
 			#self.LOG(1,"Database recovery required")
 			#sys.exit(1)
@@ -3855,6 +3860,8 @@ or None if no match is found."""
 		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user=="root" or -1 in ctx.groups or -2 in ctx.groups : return 1
+		# ian: fix anonymous access
+		if self.__secrindex.testref(-4,recid) : return 1 # anonymous access
 		if self.__secrindex.testref(-3,recid) : return 1		# global read access
 		if self.__secrindex.testref(ctx.user,recid) : return 1	# user access
 		for i in ctx.groups: 
@@ -4273,7 +4280,7 @@ or None if no match is found."""
 
 		html_join_func = partial(def_join_func, sep='<br />')
 
-		@add_macro('renderchildren')
+		@add_macro('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxren')
 		def do_renderchildren(rec, view, ctxid, host, **extra):
 			rinfo = dict(ctxid=ctxid,host=host)
 			get_records = partial(self.getchildren, **rinfo)
