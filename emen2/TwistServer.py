@@ -6,7 +6,6 @@
 from twisted.internet import reactor
 from twisted.web import static, server
 from emen2 import ts
-from emen2 import xmlrpc
 #from emen2 import rest
 
 #from emen2 import ts_db
