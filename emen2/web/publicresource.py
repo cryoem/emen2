@@ -12,7 +12,7 @@ import cStringIO
 import sys
 from emen2 import ts
 from emen2.emen2config import *
-
+import Database
 
 from emen2.TwistSupport_html.public import routing
 import emen2.TwistSupport_html.html.error
@@ -67,108 +67,117 @@ class PublicView(Resource):
 						return cb
 				return _reg_inside
 
+
+		def login(self,uri,msg=""):
+				page = """
+				<h2>Please login:</h2>
+				<h3>%s</h3>
+				<div id="zone_login">
+
+					<form action="%s" method="POST">
+						<table><tr>
+							<td>Username:</td>
+							<td><input type="text" name="username" /></td>
+						</tr><tr>
+							<td>Password:</td>
+							<td><input type="password" name="pw" /></td>
+						</tr></table>
+
+						<input type="submit" value="submit" />
+
+					</form>
+				</div>"""%(msg,uri)
+				return page
+					
+
 		def render(self, request):
-				response = str(request)
+				print "----------------------------"
 
-
-
-				t0 = time.time()
-				session=request.getSession()
+				response = str(request)			
 				host=request.getClientIP()
 				args=request.args
-
 				request.postpath = filter(bool, request.postpath) or ["home"]
-
 				method = request.postpath[0]
+				ctxid = request.getCookie("ctxid")
+				debug("ctxid: %s"%ctxid)
+				loginmsg=""
 
-				# Check if context ID is good, else login or view anon page
-				if not hasattr(session,"ctxid"):
-						session.ctxid = None
-				if args.has_key("ctxid"):
-						session.ctxid = args["ctxid"][0]
 
 				try:
-						user=ts.db.checkcontext(session.ctxid,host)[0]
-
+					user = ts.db.checkcontext(ctxid)[0]
 				except KeyError:
-						# on failure we do an anonymous login
-						user=None
-						# only a few methods are available without login
-						session.ctxid = ts.db.login(host=request.getClientIP())
-
-						ctxidcookiename = "TWISTED_SESSION_ctxid"
-						request.addCookie(ctxidcookiename, session.ctxid, path='/')
-
+					if ctxid != None:	loginmsg = "Session expired"
+					user = None
+					ctxid = None
+				
+				if ctxid == None:
+					# force login, or generate anonymous context
+					if request.args.has_key("username") and request.args.has_key("pw"):
+						try:
+							# login and continue with this ctxid
+							ctxid = ts.db.login(request.args["username"][0], request.args["pw"][0], host)
+							request.addCookie("ctxid", ctxid, path='/')
+						except:
+							# bad login
+							ctxid = None
+							method = "login"
+							loginmsg = "Please try again."
+					else:
+						method = "login"
+							
+				if method == "login":			
+					page = self.login(uri=request.uri,msg=loginmsg)
+					request.write(page)
+					request.finish()
+					return
+			
 				if method == "logout":
-						session.ctxid = None
-						session.expire()
-						ts.db.deletecontext(session.ctxid)
-						return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""
-
-
-				ctxid = session.ctxid
+					ts.db.deletecontext(ctxid)
+					redir = """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""
+					request.write(redir)
+					request.finish()
+					return
 
 				callback = routing.URLRegistry().execute('/'+str.join('/', request.postpath))
 
-				print "callback:"
-				print callback
-				#info = dict(ctxid=session.ctxid, host=host, request=request)
+				d = threads.deferToThread(callback, request.postpath, request.args, ctxid, host)
+				d.addCallback(self._cbsuccess, request, ctxid)
+				d.addErrback(self._ebRender, request, ctxid)
 
-				#def test_func(path, args=(), db=None, info=None, recid=0):
-				#@emen2.TwistSupport_html.publicresource.PublicView.register_url('record', '^/record/(?P<recid>\d+)$')
-				#def record(path,args,ctxid=None,host=None,db=None):
-
-				d = threads.deferToThread(callback, request.postpath, ctxid, host)
-				d.addCallback(self._cbsuccess, request)
-				d.addErrback(self._ebRender, request)
-
-				#response = str(result)
-
-
-
-		#		 return response
-
-		#		 return escape(response)
 
 				return server.NOT_DONE_YET
 
-		def _cbsuccess(self, result, request):
-				print "success"
+		def _cbsuccess(self, result, request, ctxid):
 				request.setHeader("content-type","text/html; charset=utf-8")
-
 				request.setHeader("content-length", str(len(result)))
 		
 				# no caching
 				request.setHeader("Cache-Control","no-cache"); #HTTP 1.1
 				request.setHeader("Pragma","no-cache"); #HTTP 1.0				request.write(result)
 
-				#@		<<destroy anonymous sessions>>
-
-				sess = request.session
-				ctxid = sess.ctxid
-
-				if ts.db.checkcontext(ctxid) == (-4, -4):
-					ts.db.deletecontext(sess.ctxid)
-					sess.expire()
-					sess.ctxid = None
-
 				result=result.encode("utf-8")
 				request.write(result)
 				request.finish()
+				return
 
-		def _ebRender(self,failure,request):
-				request.write(emen2.TwistSupport_html.html.error.error(failure))
+		def _ebRender(self, failure, request, ctxid):
+				
+				if isinstance(failure.value,emen2.Database.SecurityError):
+					if ctxid == None:
+						page = self.login(uri=request.uri,msg="Unable to access resource; please login.")
+					else:
+						#user=ts.db.checkcontext(ctxid)[0]
+						page = self.login(uri=request.uri,msg="Insufficient permissions to access resource.")
+					request.write(page)
+					request.finish()
+					return
+					
+				if isinstance(failure.value,KeyError):
+					page = self.login(uri=request.uri,msg="Session expired.")
+					request.write(page)
+					request.finish()
+					return
 
-				#@		<<destroy anonymous sessions>>
-				sess = request.session
-				ctxid = sess.ctxid
-
-				if ts.db.checkcontext(ctxid) == (-4, -4):
-					ts.db.deletecontext(sess.ctxid)
-					sess.expire()
-					sess.ctxid = None
-				#@-node:<<destroy anonymous sessions>>
-
+				request.write(str(failure))
 				request.finish()
-		#@-node:Error Callback -- _ebrender
-		#@-others
+				return

@@ -3885,13 +3885,13 @@ or None if no match is found."""
 		if (isinstance(recid,int)):
 			rec=self.__records[recid]
 			p=rec.setContext(ctx)
-			if not p[0] : raise Exception,"Permission Denied"
+			if not p[0] : raise SecurityError,"Permission Denied" # ian: changed Exception to SecurityError
 			return rec
 		elif (isinstance(recid,list)):
 			recl=map(lambda x:self.__records[x],recid)
 			for rec in recl:
 				p=rec.setContext(ctx)
-				if not p[0] : raise Exception,"Permission denied on one or more records"	
+				if not p[0] : raise SecurityError,"Permission denied on one or more records"	# ian: changed Exception to SecurityError
 			return recl
 		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
