@@ -35,8 +35,8 @@ EscapeAndReturnPreformattedString = utils.MultiDecorate(decs=[EscapeAndReturnStr
 #############################
 templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
 templates.register_template_engine('jinja', templating.JinjaTemplateEngine())
-templates.add_template('default', 'the folder_name is ${folder_name}')
-templates.add_template('test', 'the folder_name is ${folder_name}')
+templates.add_template('default', 'the folder_name is ${rec["folder_name"]}')
+templates.add_template('test', 'the folder_name is ${rec["folder_name"]}')
 
 emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
 
@@ -62,7 +62,7 @@ def test_func1(path, args, ctxid, host, recid=0, db=None, info=None):
         params = (Set(record.keys()) | Set(recdef.params.keys()))
         paramdefs = db.getparamdefs(list(params))
         
-        result1 = templates.render_template(record['template_name'] or 'default', dict(record))
+        result1 = templates.render_template(record['template_name'] or 'default', {'rec': record})
         debug('the result is: %s' % result1)
         return result1
 #        preparse = renderpreparse(record, result1, paramdefs=paramdefs, db=db, ctxid=ctxid)
