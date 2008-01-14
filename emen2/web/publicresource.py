@@ -1,9 +1,3 @@
-#@+leo-ver=4
-#@+node:@file view/publicresource.py
-#@@language python
-#@@tabwidth -4
-#@<<imports and init>>
-#@+node:<<imports and init>>
 from __future__ import with_statement
 import re
 import os
@@ -30,6 +24,8 @@ from twisted.internet import defer, reactor, threads
 from twisted.web.resource import Resource
 from twisted.web.static import *
 
+import debugging as debug
+
 DEBUG = 1
 from cgi import escape
 
@@ -37,6 +33,15 @@ from cgi import escape
 
 class PublicView(Resource):
 		isLeaf = True
+		redirects = {}
+
+		@classmethod
+		def getredirect(cls, name):
+			return cls.redirects.get(name, False)
+
+		@classmethod
+		def register_redirect(cls, fro, to, *args, **kwargs):
+			cls.redirects[fro] = routing.URLRegistry.reverselookup(to, *args, **kwargs)
 
 		@classmethod
 		def __registerurl(cls, name, match, cb):

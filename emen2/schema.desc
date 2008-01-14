@@ -1,0 +1,60 @@
+$template_name (string) #the template of the current record
+
+$event_name (string) #The name of the event
+$event_date (datetime) #The date of the event
+$event_agenda (text) #The event's agenda
+@event:
+ >$$event_name<br />$$event_date<br />$$event_agenda
+ #$$event_name $$event_date
+ ?$$event_name on $$event_date
+ N $$event_name
+ ---event
+ 
+$presentation_presenter (user) #The person making the presentation
+$presentation_title (string) #The title of the presentation
+$presentation_file (binary) #The presentation's slides
+@presentation:
+ >$$presentation_presenter<br />$$presentation_title<br />$$presentation_file\
+  some more stuff...\
+  continued
+ #$$presentation_presenter $$presentation_title
+ ?$$presentation_title presented by $$presentation_presenter
+ N $$presentation_title
+ ---presentation
+ 
+$sponsor_name (string) #The sponsor's name
+$sponsor_website (string) #The sponsor's website
+$sponsor_logo (binaryimage) #The sponsor's logo
+@sponsor:
+ >$$sponsor_name<br />$$sponsor_website<br />$$sponsor_logo
+ #$$sponsor_name $$sponsor_website
+ ?<a href="$$sponsor_website">$$sponsor_name</a>
+ N $$sponsor_name
+ ---sponsor
+ 
+$location_name (string) #The name of the location
+$location_address (string) #The address of the location
+@location:
+ >$$location_name<br />$$location_address
+ #$$location_name
+ ?$$location_name
+ N $$location_name
+ ---location
+ 
+$folder_name (string) #The name of a folder
+@folder:
+ >$$folder_name
+ #$$folder_name
+ ?$$folder_name
+ N $$folder_name
+ ---folder
+ 
+$template_name (string) #the name of the template
+$template_template (text) #the template's context
+@template:
+ >$$template_name $$template_template
+ #$$template_name
+ ?$$template_name<br />$$template_template
+ N $$template_name
+ ---template
+ 

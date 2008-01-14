@@ -3,6 +3,14 @@
 # ts contains the actual XMLRPC methods
 # ts_html contains the HTML methods
 
+import sys
+from debug import *
+import debug
+debug = debug.DebugState(-1, file('log.log', 'a'), sys.stdout, False)
+sys.modules['debugging'] = debug
+
+
+
 from twisted.internet import reactor
 from twisted.web import static, server
 from emen2 import ts
@@ -26,14 +34,6 @@ import emen2.TwistSupport_html.xmlrpcresource
 #############################
 # Ed's new view system
 #############################
-import sys
-class Null(object):
-	def __init__(*args, **kwargs): pass
-	def __call__(*args, **kwargs): pass
-	def __getattr__(*args, **kwargs): pass
-debug = Null(-1, 'log.log', sys.stdout, False)
-sys.modules['debug'] = debug
-
 from TwistSupport_html.public import utils
 from functools import partial
 from emen2.TwistSupport_html.supp import renderpreparse
@@ -42,38 +42,34 @@ EscapeAndReturnString = utils.MultiDecorate(decs=[utils.EscapedFun, utils.Return
 
 EscapeAndReturnPreformattedString = utils.MultiDecorate(decs=[EscapeAndReturnString, utils.PreformattedOutp])
 
-#@emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
+emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo$')
 @EscapeAndReturnPreformattedString
 def test_func(path, args=(), db=None, info=None, recid=0):
-#		 debug.msg(LOG_INIT, 'test_func->args::: ', info, path, args, info)
-		print args
-		print path
-		ctxid=info['ctxid']
-		getrecord = partial(db.getrecord, ctxid=ctxid)
-		getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
-		return str(getrecord(int(recid)))
+        debug.msg(LOG_INIT, 'test_func->args::: ', info, path, args, info)
+        print args
+        print path
+        ctxid=info['ctxid']
+        getrecord = partial(db.getrecord, ctxid=ctxid)
+        getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
+        return str(getrecord(int(recid)))
 
-#@emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)$')
-#@utils.ReturnString
-def test_func(path, args=(), recid=0, db=None, info=None):
-#		 debug.msg(LOG_INIT, info, path, args, info)
-		ctxid=info['ctxid']
-		getrecord = partial(db.getrecord, ctxid=ctxid)
-		getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
-
-		record = getrecord(int(recid))
-		recdef = getrecorddef(record.rectype)
-
-		params = (Set(record.keys()) | Set(recdef.params.keys()))
-		paramdefs = db.getparamdefs(list(params))
-
-		publicview = recdef.views.get('publicview', 'No Public View')
-		preparse = renderpreparse(record, publicview, 
+@emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)$')
+@utils.ReturnString
+def test_func1(path, args=(), recid=0, db=None, info=None):
+        debug.msg(LOG_INIT, info, path, args, info)
+        ctxid=info['ctxid']
+        getrecord = partial(db.getrecord, ctxid=ctxid)
+        getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
+        record = getrecord(int(recid))
+        recdef = getrecorddef(record.rectype)
+        params = (Set(record.keys()) | Set(recdef.params.keys()))
+        paramdefs = db.getparamdefs(list(params))
+        publicview = recdef.views.get('publicview', 'No Public View')
+        preparse = renderpreparse(record, publicview, 
 															paramdefs=paramdefs, db=db, ctxid=ctxid)
-
-		return db.renderview(record,viewdef=preparse,paramdefs=paramdefs,ctxid=ctxid)
+        return db.renderview(record,viewdef=preparse,paramdefs=paramdefs,ctxid=ctxid)
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('exec', '^/exec/(?P<expression>.+)$')
 @EscapeAndReturnString
