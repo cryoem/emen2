@@ -5,6 +5,7 @@
 
 import sys
 from debug import *
+
 import debug
 debug = debug.DebugState(-1, file('log.log', 'a'), sys.stdout, False)
 sys.modules['debugging'] = debug
@@ -34,6 +35,7 @@ import emen2.TwistSupport_html.xmlrpcresource
 #############################
 # Ed's new view system
 #############################
+
 from TwistSupport_html.public import utils
 from functools import partial
 from emen2.TwistSupport_html.supp import renderpreparse
@@ -46,9 +48,9 @@ emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','ro
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo$')
 @EscapeAndReturnPreformattedString
-def test_func(path, args=(), db=None, info=None, recid=0):
+def test_func(path, ignore, args=(), db=None, info=None, recid=0):
         debug.msg(LOG_INIT, 'test_func->args::: ', info, path, args, info)
-        print args
+        debug( args )
         print path
         ctxid=info['ctxid']
         getrecord = partial(db.getrecord, ctxid=ctxid)
@@ -57,9 +59,8 @@ def test_func(path, args=(), db=None, info=None, recid=0):
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)$')
 @utils.ReturnString
-def test_func1(path, args=(), recid=0, db=None, info=None):
-        debug.msg(LOG_INIT, info, path, args, info)
-        ctxid=info['ctxid']
+def test_func1(path, ctxid, host, recid=0, db=None, info=None):
+        debug.msg(LOG_INIT, path, info)
         getrecord = partial(db.getrecord, ctxid=ctxid)
         getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
         record = getrecord(int(recid))
