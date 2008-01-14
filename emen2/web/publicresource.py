@@ -172,12 +172,12 @@ class PublicView(Resource):
 					request.finish()
 					return
 					
-				if isinstance(failure.value,KeyError):
-					page = self.login(uri=request.uri,msg="Session expired.")
-					request.write(page)
-					request.finish()
-					return
+#				if isinstance(failure.value,KeyError):
+#					page = self.login(uri=request.uri,msg="Session expired.")
+#					request.write(page)
+#					request.finish()
+#					return
 
-				request.write(str(failure))
+				request.write('<pre>'  + escape(str(failure)) + '</pre>')
 				request.finish()
 				return

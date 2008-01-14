@@ -25,7 +25,7 @@ class TemplateFactory(object):
        
    def render_template(self, name, context):
        template_engine = self.get_current_template_engine()
-       template_engine.render_template(name, context)
+       return template_engine.render_template(name, context)
        
    def add_template(self, name, template_string): 
        self.__currentengine.add_template(name, template_string)
