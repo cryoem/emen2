@@ -118,7 +118,7 @@ class PublicView(Resource):
 				#@emen2.TwistSupport_html.publicresource.PublicView.register_url('record', '^/record/(?P<recid>\d+)$')
 				#def record(path,args,ctxid=None,host=None,db=None):
 
-				d = threads.deferToThread(callback, request.postpath, ctxid, host, info=request.args)
+				d = threads.deferToThread(callback, request.postpath, ctxid, host)
 				d.addCallback(self._cbsuccess, request)
 				d.addErrback(self._ebRender, request)
 
