@@ -14,7 +14,7 @@ TemplateEngine:
 """
 
 import mako.template
-#import jinja
+import jinja
 
 class TemplateFactory(object):
    def __init__(self, default_engine_name, default_engine):
@@ -53,10 +53,10 @@ class AbstractTemplateLoader(object):
     def __setitem__(self, name, value):
         self.templates[name] = value
 
-# class JinjaTemplateLoader(AbstractTemplateLoader):
-#     env = jinja.Environment()
-#     def __setitem__(self, name, value):
-#         self.templates[name] = self.env.from_string(value)
+class JinjaTemplateLoader(AbstractTemplateLoader):
+    env = jinja.Environment()
+    def __setitem__(self, name, value):
+        self.templates[name] = self.env.from_string(value)
 
 class MakoTemplateLoader(AbstractTemplateLoader):
     def __setitem__(self, name, value):
@@ -77,8 +77,8 @@ class StandardTemplateEngine(AbstractTemplateEngine):
     def render_template(self, name, context):
         return self.templates[name].render(**context)
         
-# class JinjaTemplateEngine(StandardTemplateEngine):
-#     templates = JinjaTemplateLoader()
+class JinjaTemplateEngine(StandardTemplateEngine):
+    templates = JinjaTemplateLoader()
     
 class MakoTemplateEngine(StandardTemplateEngine):
     templates = MakoTemplateLoader()
