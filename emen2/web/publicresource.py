@@ -25,11 +25,13 @@ from twisted.web.resource import Resource
 from twisted.web.static import *
 
 import debugging as debug
+from functools import partial
 
 DEBUG = 1
 from cgi import escape
 
-
+class custpartial(partial):
+	keywords = {}
 
 class PublicView(Resource):
 		isLeaf = True
@@ -148,13 +150,13 @@ class PublicView(Resource):
 				path="/"+"/".join(request.postpath)
 				if path[-1] != "/":
 					path+="/"
-				print path
-
-				callback = routing.URLRegistry().execute(path)
-				callback.keywords.update(tmp)
-				
+					
+				debug(path)
 				debug( 'request: %s, args: %s' % (request, tmp) )
-				
+				debug(type(tmp))
+
+				callback = routing.URLRegistry().execute(path, **tmp)
+									
 				d = threads.deferToThread(callback, request.postpath, request.args, ctxid, host)
 				d.addCallback(self._cbsuccess, request, ctxid)
 				d.addErrback(self._ebRender, request, ctxid)
@@ -187,12 +189,12 @@ class PublicView(Resource):
 					request.finish()
 					return
 					
-				if isinstance(failure.value,KeyError):
-					print failure
-					page = self.login(uri=request.uri,msg="Session expired.")
-					request.write(page)
-					request.finish()
-					return
+#				if isinstance(failure.value,KeyError):
+#					print failure
+#					page = self.login(uri=request.uri,msg="Session expired.")
+#					request.write(page)
+#					request.finish()
+#					return
 
 				request.write('<pre>'  + escape(str(failure)) + '</pre>')
 				request.finish()
