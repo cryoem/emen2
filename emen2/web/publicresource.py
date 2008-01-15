@@ -99,6 +99,7 @@ class PublicView(Resource):
 				request.postpath = filter(bool, request.postpath) or ["home"]
 				method = request.postpath[0]
 				ctxid = request.getCookie("ctxid")
+				user=None
 				debug("ctxid: %s"%ctxid)
 				loginmsg=""
 
@@ -137,12 +138,19 @@ class PublicView(Resource):
 					request.write(redir)
 					request.finish()
 					return
+
 				
 				tmp = {}
 				for key in args:
 					assert len(args[key]) == 1 # catch abnormal conditions, when will the list be longer than one? I really dont know
 					tmp[key] = args[key][0]
-				callback = routing.URLRegistry().execute('/'+str.join('/', request.postpath))
+
+				path="/"+"/".join(request.postpath)
+				if path[-1] != "/":
+					path+="/"
+				print path
+
+				callback = routing.URLRegistry().execute(path)
 				callback.keywords.update(tmp)
 				
 				debug( 'request: %s, args: %s' % (request, tmp) )
@@ -179,11 +187,12 @@ class PublicView(Resource):
 					request.finish()
 					return
 					
-#				if isinstance(failure.value,KeyError):
-#					page = self.login(uri=request.uri,msg="Session expired.")
-#					request.write(page)
-#					request.finish()
-#					return
+				if isinstance(failure.value,KeyError):
+					print failure
+					page = self.login(uri=request.uri,msg="Session expired.")
+					request.write(page)
+					request.finish()
+					return
 
 				request.write('<pre>'  + escape(str(failure)) + '</pre>')
 				request.finish()

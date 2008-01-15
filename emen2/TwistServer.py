@@ -34,7 +34,7 @@ EscapeAndReturnPreformattedString = utils.MultiDecorate(decs=[EscapeAndReturnStr
 # Ed's new view system
 #############################
 templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-templates.register_template_engine('jinja', templating.JinjaTemplateEngine())
+#templates.register_template_engine('jinja', templating.JinjaTemplateEngine())
 templates.add_template('default', 'the folder_name is ${rec["folder_name"]}')
 templates.add_template('test', 'the folder_name is ${rec["folder_name"]}')
 
@@ -80,8 +80,8 @@ def execc(path, args=(), *arg, **kwargs):
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")
-root.putChild("db",emen2.TwistSupport_html.webresource.WebResource())
-root.putChild("pub",emen2.TwistSupport_html.publicresource.PublicView())
+#root.putChild("db",emen2.TwistSupport_html.webresource.WebResource())
+root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
 root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
