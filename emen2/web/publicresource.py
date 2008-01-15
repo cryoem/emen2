@@ -137,9 +137,16 @@ class PublicView(Resource):
 					request.write(redir)
 					request.finish()
 					return
-
+				
+				tmp = {}
+				for key in args:
+					assert len(args[key]) == 1 # catch abnormal conditions, when will the list be longer than one? I really dont know
+					tmp[key] = args[key][0]
 				callback = routing.URLRegistry().execute('/'+str.join('/', request.postpath))
-
+				callback.keywords.update(tmp)
+				
+				debug( 'request: %s, args: %s' % (request, tmp) )
+				
 				d = threads.deferToThread(callback, request.postpath, request.args, ctxid, host)
 				d.addCallback(self._cbsuccess, request, ctxid)
 				d.addErrback(self._ebRender, request, ctxid)
