@@ -22,9 +22,8 @@ by another layer, say an xmlrpc server...
 import macro                 #
 from macro import add_macro  #
 from functools import partial#
-#from debug import DebugState #
-#debug = DebugState()         #
 import sys                   #
+import debugging as debug #
 ##############################
 
 from bsddb3 import db
@@ -3251,6 +3250,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
+		debug(__file__, ',', 'paramdefname = ', paramdefname)
 		return self.__paramdefs[paramdefname.lower()]
 		
 	def getparamdefnames(self):
@@ -4153,6 +4153,7 @@ or None if no match is found."""
 				
 		if viewdef == None:
 			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
+			debuf('the recdef to be rendered is: %s' % recdef)
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			else:

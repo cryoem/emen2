@@ -6,7 +6,7 @@
 import sys
 from debug import *
 import debug
-debug = debug.DebugState(0, file('log.log', 'a'), sys.stdout, False)
+debug = debug.DebugState(-10, file('log.log', 'a'), sys.stdout, False)
 sys.modules['debugging'] = debug
 
 from TwistSupport_html.public import utils
@@ -37,6 +37,7 @@ templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
 templates.register_template_engine('jinja', templating.JinjaTemplateEngine())
 templates.add_template('default', 'the folder_name is ${rec["folder_name"]}')
 templates.add_template('test', 'the folder_name is ${rec["folder_name"]}')
+templates.add_template('test1', 'another test $@recid()')
 templates.add_template('form','''<html><head></head><body><form action="/pub/form" method="POST">
                                                     <input type="text"  name="expression" />
                                                     <input type="text"  name="test" />
@@ -44,7 +45,7 @@ templates.add_template('form','''<html><head></head><body><form action="/pub/for
                                                 ${ctxid}</body></html>''')
 emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
 
-@emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo$')
+@emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo/$')
 @debug.debug_func
 @EscapeAndReturnPreformattedString
 def test_func(path, args, ctxid, host, db=None, info=None, recid=0):
@@ -56,29 +57,31 @@ def test_func(path, args, ctxid, host, db=None, info=None, recid=0):
         getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
         return str(getrecord(int(recid)))
 
-@emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)$')
+@emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)/$')
 @debug.debug_func
 @utils.ReturnString
 def test_func1(path, args, ctxid, host, recid=0, db=None, info=None):
         debug.msg(LOG_INIT, path, info)
         getrecord = partial(db.getrecord, ctxid=ctxid)
         getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
-        record = getrecord(int(recid))
+        record = debug.note_var(getrecord(int(recid)))
         recdef = getrecorddef(record.rectype)
         params = (Set(record.keys()) | Set(recdef.params.keys()))
         paramdefs = db.getparamdefs(list(params))
         
-        result1 = templates.render_template(record['template_name'] or 'default', {'rec': record})
+#        result1 = templates.render_template(record['template_name'] or 'default', {'rec': record})
+        result1 = templates.render_template('test1', {'rec': record})
         debug('the result is: %s' % result1)
+        debug.msg(-1, 'render args: ', repr(record), repr(result1), repr(paramdefs), repr(db), repr(ctxid))
         preparse = renderpreparse(record, result1, paramdefs=paramdefs, db=db, ctxid=ctxid)
-        return  db.renderview(record,viewdef=preparse,paramdefs=paramdefs,ctxid=ctxid)
+        return db.renderview(record,viewdef=preparse,paramdefs=paramdefs,ctxid=ctxid)
 
-@emen2.TwistSupport_html.publicresource.PublicView.register_url('exec', '^/exec/(?P<expression>.+)$')
+@emen2.TwistSupport_html.publicresource.PublicView.register_url('exec', '^/exec/(?P<expression>.+)/$')
 @EscapeAndReturnString
 def execc(path, args=(), *arg, **kwargs):
 		return str(eval(kwargs.get('expression', '')))
         
-@emen2.TwistSupport_html.publicresource.PublicView.register_url('exec', '^/form(/(?P<expression>.+))?$')
+@emen2.TwistSupport_html.publicresource.PublicView.register_url('exec', '^/form(/(?P<expression>.+))?/?$')
 @debug.debug_func
 def do_form(path, args, ctxid, host, expression='', db=None, info=None, **ignore):
         if not expression:

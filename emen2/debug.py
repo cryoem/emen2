@@ -19,7 +19,8 @@ class DebugState(object):
 	  return self
 
   def __enter__(self, *args):
-	  pass
+	  print args
+	  self.push_state(-1)
 
   def __exit__(self, *args):
 	  self.pop_state()
@@ -64,7 +65,7 @@ class DebugState(object):
 	'''general purpose logging function
 	logs to disk all messages whose state is
 	greater than -1'''
-	if self.__buffer and state > -1:
+	if self.__buffer:
 	  print >>self.__buffer, time.ctime(), '<%03d>:' % state, self.print_list(args), '\n---'
 	  self.__buffer.flush()
 	if state >= self.__state:
