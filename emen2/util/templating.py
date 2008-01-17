@@ -59,6 +59,7 @@ class JinjaTemplateLoader(AbstractTemplateLoader):
     def __setitem__(self, name, value):
         self.templates[name] = self.env.from_string(value)
 
+class TemplateNotFound(Exception): pass
 class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
     def __setitem__(self, name, value):
         self.templates[name] = mako.template.Template(value, lookup=self)
@@ -66,7 +67,7 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
         try:
             return self[uri]
         except KeyError:
-            return 'No Template: %s' % uri
+            raise TemplateNotFound('No Template: %s' % uri)
     
 class AbstractTemplateEngine(object):
     '''Useless Example Implementation of a Template Engine'''
