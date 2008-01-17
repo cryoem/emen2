@@ -4,6 +4,13 @@
 # ts_html contains the HTML methods
 
 import sys
+
+class loglevels:
+    LOG_ERR = 7
+    LOG_INIT = 6
+    LOG_INFO = 5
+    LOG_DEBUG = -1
+sys.modules['loglevels'] = loglevels
 from debug import *
 import debug
 debug = debug.DebugState(-10, file('log.log', 'a'), sys.stdout, False)
@@ -23,7 +30,8 @@ import emen2.TwistSupport_html.publicresource
 import emen2.TwistSupport_html.uploadresource
 import emen2.TwistSupport_html.webresource
 import emen2.TwistSupport_html.xmlrpcresource
-
+import TwistSupport_html.public.views
+reload(TwistSupport_html.public.views)
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
 
@@ -43,6 +51,10 @@ templates.add_template('form','''<html><head></head><body><form action="/pub/for
                                                     <input type="text"  name="test" />
                                                     <input type="submit" /></form>
                                                 ${ctxid}</body></html>''')
+templates.add_template('qweqwe', 'qweqwe')
+templates.add_template('include', '''hello, I include qweqwe<br />    
+                                                     <%include file="qweqwe" /> <br />and call a def in namespace testns<br /> <%namespace name="testns"  file="testns"  /> ${testns.myfunc(3)}''')
+templates.add_template('testns', '<%def name="myfunc(x)">this is myfunc, x is ${x}</%def>')
 emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo/$')
@@ -60,7 +72,8 @@ def test_func(path, args, ctxid, host, db=None, info=None, recid=0):
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root1', '^/(?P<recid>\d+)/$')
 @debug.debug_func
 @utils.ReturnString
-def test_func1(path, args, ctxid, host, recid=0, db=None, info=None):
+def test_func1(path, args, ctxid, host, recid=0, db=None, info=None, username=None, pw=None):
+        debug('pw=<<%s>>' % pw)
         debug.msg(LOG_INIT, path, info)
         getrecord = partial(db.getrecord, ctxid=ctxid)
         getrecorddef = partial(db.getrecorddef, ctxid=ctxid)
@@ -70,7 +83,7 @@ def test_func1(path, args, ctxid, host, recid=0, db=None, info=None):
         paramdefs = db.getparamdefs(list(params))
         
 #        result1 = templates.render_template(record['template_name'] or 'default', {'rec': record})
-        result1 = templates.render_template('test1', {'rec': record})
+        result1 = templates.render_template('include', {'rec': record})
         debug('the result is: %s' % result1)
         debug.msg(-1, 'render args: ', repr(record), repr(result1), repr(paramdefs), repr(db), repr(ctxid))
         preparse = renderpreparse(record, result1, paramdefs=paramdefs, db=db, ctxid=ctxid)

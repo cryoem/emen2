@@ -14,6 +14,7 @@ TemplateEngine:
 """
 
 import mako.template
+import mako.lookup
 import jinja
 
 class TemplateFactory(object):
@@ -58,9 +59,14 @@ class JinjaTemplateLoader(AbstractTemplateLoader):
     def __setitem__(self, name, value):
         self.templates[name] = self.env.from_string(value)
 
-class MakoTemplateLoader(AbstractTemplateLoader):
+class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
     def __setitem__(self, name, value):
-        self.templates[name] = mako.template.Template(value)
+        self.templates[name] = mako.template.Template(value, lookup=self)
+    def get_template(self, uri, relativeto=None):
+        try:
+            return self[uri]
+        except KeyError:
+            return 'No Template: %s' % name
     
 class AbstractTemplateEngine(object):
     '''Useless Example Implementation of a Template Engine'''

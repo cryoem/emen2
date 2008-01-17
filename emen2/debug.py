@@ -1,11 +1,9 @@
 import time, sys
 
+from loglevels import *
+
 __all__ = ['LOG_INIT', 'LOG_INFO', 'LOG_DEBUG', 'LOG_ERR', 'DebugState', 'DEBUG', 'log']
 
-LOG_ERR = 7
-LOG_INIT = 6
-LOG_INFO = 5
-LOG_DEBUG = -1
 DEBUG = 0
 log = file ('log.log', 'a')
 
