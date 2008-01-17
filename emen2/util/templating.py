@@ -56,11 +56,13 @@ class AbstractTemplateLoader(object):
 
 class JinjaTemplateLoader(AbstractTemplateLoader):
     env = jinja.Environment()
+    templates = {}
     def __setitem__(self, name, value):
         self.templates[name] = self.env.from_string(value)
 
 class TemplateNotFound(Exception): pass
 class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
+    templates = {}
     def __setitem__(self, name, value):
         self.templates[name] = mako.template.Template(value, lookup=self)
     def get_template(self, uri, relativeto=None):
