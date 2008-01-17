@@ -4,6 +4,8 @@
 # ts_html contains the HTML methods
 
 import sys
+import os
+import glob
 
 class loglevels:
     LOG_ERR = 7
@@ -51,11 +53,20 @@ templates.add_template('form','''<html><head></head><body><form action="/pub/for
                                                     <input type="text"  name="test" />
                                                     <input type="submit" /></form>
                                                 ${ctxid}</body></html>''')
-templates.add_template('qweqwe', 'qweqwe')
-templates.add_template('include', '''hello, I include qweqwe<br />    
+templates.add_template('qweqwe', 'qweqwe ${rec}')
+templates.add_template('include', '''hello, ${rec['permissions']} I include qweqwe<br />    
                                                      <%include file="qweqwe" /> <br />and call a def in namespace testns<br /> <%namespace name="testns"  file="testns"  /> ${testns.myfunc(3)}''')
 templates.add_template('testns', '<%def name="myfunc(x)">this is myfunc, x is ${x}</%def>')
 emen2.TwistSupport_html.publicresource.PublicView.register_redirect('^/test','root', recid='2')
+
+
+for i in glob.glob('./TwistSupport_html/templates/*.mako'):
+	f=open(i)
+	name=os.path.splitext(os.path.basename(i))[0]
+	data=f.read()
+	f.close()
+	templates.add_template(name,data)
+
 
 @emen2.TwistSupport_html.publicresource.PublicView.register_url('root', '^/(?P<recid>\d+)/recinfo/$')
 @debug.debug_func
@@ -110,8 +121,8 @@ def do_form(path, args, ctxid, host, expression='', db=None, info=None, **ignore
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")
-root.putChild("db",emen2.TwistSupport_html.webresource.WebResource())
-root.putChild("pub",emen2.TwistSupport_html.publicresource.PublicView())
+#root.putChild("db",emen2.TwistSupport_html.webresource.WebResource())
+root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
 root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
