@@ -66,7 +66,7 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
         try:
             return self[uri]
         except KeyError:
-            return 'No Template: %s' % name
+            return 'No Template: %s' % uri
     
 class AbstractTemplateEngine(object):
     '''Useless Example Implementation of a Template Engine'''
