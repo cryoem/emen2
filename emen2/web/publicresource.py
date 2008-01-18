@@ -1,4 +1,5 @@
 from __future__ import with_statement
+from g import *
 import re
 import os
 from sets import Set
@@ -11,7 +12,6 @@ import cStringIO
 
 import sys
 from emen2 import ts
-from emen2.emen2config import *
 import Database
 
 from emen2.TwistSupport_html.public import routing
@@ -24,10 +24,9 @@ from twisted.internet import defer, reactor, threads
 from twisted.web.resource import Resource
 from twisted.web.static import *
 
-import debugging as debug
+#import debugging as debug
 from functools import partial
 
-DEBUG = 1
 from cgi import escape
 
 class custpartial(partial):

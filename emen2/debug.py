@@ -1,8 +1,10 @@
 import time, sys
+from g import LOG_INIT,LOG_INFO
+import g
+print dir()
 
-from loglevels import *
+__all__ = ['DebugState', 'DEBUG', 'log']
 
-__all__ = ['LOG_INIT', 'LOG_INFO', 'LOG_DEBUG', 'LOG_ERR', 'DebugState', 'DEBUG', 'log']
 
 DEBUG = 0
 log = file ('log.log', 'a')
@@ -12,26 +14,25 @@ class DebugState(object):
   '''Handles logging etc..'''
   _clstate = {}
 
-  def startctxt(self, targ_state):
-	  self.push_state(targ_state)
-	  return self
-
   def __enter__(self, *args):
 	  print args
 	  self.push_state(-1)
 
   def __exit__(self, *args):
 	  self.pop_state()
-	  #if args[0]:
-	   #   raise
+
   def __init__(self, value=None, buf=None, oldstdout=None, get_state=True):
 	self.__dict__ = self._clstate
 	if (not get_state) or (not self._clstate):
 		self.__state = value
 		self.__buffer = buf
-		self.oldstdout = (oldstdout if oldstdout is not None else sys.stdout)
-		self.__state_stack = [value]
-		self.msg(LOG_INIT, 'init state: %s' % value)
+        if oldstdout:
+            self.oldstdout = oldstdout
+            sys.stdout = self
+        else:
+            self.oldstdout = sys.stdout
+        self.__state_stack = [value]
+        self.msg(LOG_INIT, 'debug init state: %s' % value)
 
   def write(self, value):
 	  value = value.strip()
@@ -45,7 +46,7 @@ class DebugState(object):
 	return self.__state
 
   def set_state(self, state):
-	self('entering: %s--leaving : %s' % (state, self.state))
+	self.msg(-2,'entering: %s--leaving : %s' % (state, self.state))
 	self.__state = state
   state = property(get_state, set_state)
   def push_state(self, state):
@@ -64,7 +65,7 @@ class DebugState(object):
 	logs to disk all messages whose state is
 	greater than -1'''
 	if self.__buffer:
-	  print >>self.__buffer, time.ctime(), '<%03d>:' % state, self.print_list(args), '\n---'
+	  print >>self.__buffer, time.ctime(), '<%03d>:' % state, self.print_list(args), ''
 	  self.__buffer.flush()
 	if state >= self.__state:
 	  print >>self.oldstdout, '<%02d>' % state, self.print_list(args)

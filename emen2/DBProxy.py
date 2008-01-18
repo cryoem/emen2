@@ -6,7 +6,8 @@
 
 from os import popen2
 from cPickle import load,dump
-from emen2.emen2config import *
+#from emen2.emen2config import *
+from g import *
 import Database
 
 #dbpath="/".join(__file__.split("/")[:-1])

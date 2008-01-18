@@ -12,7 +12,7 @@ TemplateEngine:
     render_template(name, context)
         returns a string
 """
-
+from g import debug
 import mako.template
 import mako.lookup
 import jinja
@@ -31,6 +31,12 @@ class TemplateFactory(object):
    def add_template(self, name, template_string): 
        self.__currentengine.add_template(name, template_string)
        
+   def has_template(self, name, engine=None):
+       if not engine:
+           return self.__currentengine.has_template(name)
+       else:
+           self.__template_registry[engine].has_template(name)
+           
    def set_default_template_engine(self, engine_name):
        self.__defaultengine = self.__template_registry[engine_name]
        
@@ -45,6 +51,10 @@ class TemplateFactory(object):
     
    def register_template_engine(self, engine_name, engine):
        self.__template_registry[engine_name] = engine
+    
+   def template_engines(self):
+       return  self.__template_registry.keys()
+   template_registry = property(template_engines) 
        
 class AbstractTemplateLoader(object):
     '''template loaders are dictionary like objects'''
@@ -53,6 +63,8 @@ class AbstractTemplateLoader(object):
         return self.templates[name]
     def __setitem__(self, name, value):
         self.templates[name] = value
+    def has_template(self, name):
+        return self.templates.has_key(name)
 
 class JinjaTemplateLoader(AbstractTemplateLoader):
     env = jinja.Environment()
@@ -81,6 +93,8 @@ class AbstractTemplateEngine(object):
         self.templates[name] = template_string
     def render_template(self, name, context):
         return self.templates[name]
+    def has_template(self, name):
+        return self.templates.has_template(name)
 
 class StandardTemplateEngine(AbstractTemplateEngine):
     def render_template(self, name, context):
