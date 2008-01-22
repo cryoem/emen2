@@ -56,11 +56,15 @@ class TemplateFactory(object):
        return  self.__template_registry.keys()
    template_registry = property(template_engines) 
        
+class TemplateNotFoundError(KeyError): pass    
 class AbstractTemplateLoader(object):
     '''template loaders are dictionary like objects'''
     templates = {}
     def __getitem__(self, name):
-        return self.templates[name]
+        try:
+            return self.templates[name]
+        except KeyError:
+            raise TemplateNotFoundError(name)
     def __setitem__(self, name, value):
         self.templates[name] = value
     def has_template(self, name):
@@ -83,14 +87,13 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
             return self[uri]
         except KeyError:
             raise TemplateNotFound('No Template: %s' % uri)
-    
+
 class AbstractTemplateEngine(object):
     '''Useless Example Implementation of a Template Engine'''
     templates = AbstractTemplateLoader()
     def get_template(self, name):
         return self.templates[name]
     def add_template(self, name, template_string):
-        #print self.templates
         self.templates[name] = template_string
     def render_template(self, name, context):
         return self.templates[name]
