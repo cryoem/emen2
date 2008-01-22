@@ -41,7 +41,7 @@ for i in os.walk(TEMPLATEDIR):
 			data=f.read()
 			f.close()
 			dir=i[0].replace(TEMPLATEDIR,"")
-			templates.add_template("%s/%s"%(dir,name),data)
+			g.templates.add_template("%s/%s"%(dir,name),data)
 
 
 # Setup twist server root Resources
