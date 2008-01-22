@@ -104,6 +104,10 @@ class PublicView(Resource):
 				debug("ctxid: %s"%ctxid)
 				loginmsg=""
 
+				tmp = {}
+				for key in Set(args.keys()) - Set(["db","host","user","ctxid"]):
+					assert len(args[key]) == 1 # catch abnormal conditions, when will the list be longer than one? I really dont know
+					tmp[key] = args[key][0]
 
 				try:
 					user = ts.db.checkcontext(ctxid)[0]
@@ -141,10 +145,7 @@ class PublicView(Resource):
 					return
 
 				
-				tmp = {}
-				for key in args:
-					assert len(args[key]) == 1 # catch abnormal conditions, when will the list be longer than one? I really dont know
-					tmp[key] = args[key][0]
+
 
 				path="/"+"/".join(request.postpath)
 				if path[-1] != "/":
@@ -156,7 +157,7 @@ class PublicView(Resource):
 
 				callback = routing.URLRegistry().execute(path, **tmp)
 									
-				d = threads.deferToThread(callback, request.postpath, request.args, ctxid, host)
+				d = threads.deferToThread(callback, ctxid=ctxid, host=host)
 				d.addCallback(self._cbsuccess, request, ctxid)
 				d.addErrback(self._ebRender, request, ctxid)
 
@@ -188,12 +189,12 @@ class PublicView(Resource):
 					request.finish()
 					return
 					
-#				if isinstance(failure.value,KeyError):
-#					print failure
-#					page = self.login(uri=request.uri,msg="Session expired.")
-#					request.write(page)
-#					request.finish()
-#					return
+				if isinstance(failure.value,emen2.Database.SessionError):
+					print failure
+					page = self.login(uri=request.uri,msg="Session expired.")
+					request.write(page)
+					request.finish()
+					return
 
 				request.write('<pre>'  + escape(str(failure)) + '</pre>')
 				request.finish()

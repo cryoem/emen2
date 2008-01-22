@@ -78,7 +78,7 @@ def form(action="",items=(),args={},method="POST"):
 
 
 
-def header(name,init=None,short=0,tabs=1,args=None,ctxid=None,db=None):
+def header(name,notify=None,init=None,short=0,tabs=1,ctxid=None,db=None):
 	"""Common header block, includes <body>"""
 
 	ret = []
@@ -144,7 +144,7 @@ def header(name,init=None,short=0,tabs=1,args=None,ctxid=None,db=None):
 
 		"""%(KEYRECORDS["GROUPHOME"],KEYRECORDS["GROUPROOT"],KEYRECORDS["MICROSCOPEROOT"]))	
 
-	ret.append(notifymsg(args))
+#	ret.append(notifymsg(args))
 
 	if tabs:
 		ret.append("""

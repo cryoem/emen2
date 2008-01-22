@@ -1,3 +1,7 @@
+ul {
+	margin:0px
+}
+
 .test_comments {
 	width:600px;
 	margin:20px;
@@ -170,7 +174,7 @@ html,body {
 	background:white;
 }
 
-#precontent {
+.precontent {
 	background:#BBD9EE; 
 }
 #bottom {
@@ -298,6 +302,9 @@ PAGE / TAB
 
 
 /* specific buttons */
+#buttons_main {
+	padding-top:10px;
+}
 .button_main {
 	margin-top:-5px;
 }
