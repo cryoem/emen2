@@ -111,6 +111,10 @@ def escape2(s):
 class SecurityError(Exception):
 	"Exception for a security violation"
 
+# ian
+class SessionError(KeyError):
+	"Session Expired"
+
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
@@ -1831,7 +1835,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				self.__contexts[key]=ctx	# cache result from database
 			except:
 				self.LOG(4,"Session expired %s"%key)
-				raise KeyError,"Session expired"
+				raise SessionError,"Session expired"
 			
 		if host and host!=ctx.host :
 			self.LOG(0,"Hacker alert! Attempt to spoof context (%s != %s)"%(host,ctx.host))
@@ -3251,7 +3255,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getparamdef(self,paramdefname):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
-		debug(__file__, ',', 'paramdefname = ', paramdefname)
+		#debug(__file__, ',', 'paramdefname = ', paramdefname)
 		return self.__paramdefs[paramdefname.lower()]
 		
 	def getparamdefnames(self):
@@ -4154,7 +4158,6 @@ or None if no match is found."""
 				
 		if viewdef == None:
 			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
-			debug('the recdef to be rendered is: %s' % recdef)
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			else:
