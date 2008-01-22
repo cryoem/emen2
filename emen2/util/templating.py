@@ -76,7 +76,8 @@ class TemplateNotFound(Exception): pass
 class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
     templates = {}
     def __setitem__(self, name, value):
-        self.templates[name] = mako.template.Template(value, lookup=self)
+        if not self.templates.has_key(name):
+            self.templates[name] = mako.template.Template(value, lookup=self)
     def get_template(self, uri, relativeto=None):
         try:
             return self[uri]
@@ -89,7 +90,7 @@ class AbstractTemplateEngine(object):
     def get_template(self, name):
         return self.templates[name]
     def add_template(self, name, template_string):
-        print self.templates
+        #print self.templates
         self.templates[name] = template_string
     def render_template(self, name, context):
         return self.templates[name]

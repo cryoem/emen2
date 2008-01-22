@@ -89,7 +89,7 @@ class DebugState(object):
 		  self.push_state(-1)
 		  self( 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs) )
 		  result = func(*args, **kwargs)
-		  self( 'the callable %s returned: %s' % (func, result) )
+		  self( 'the callable %s returned: %s' % (repr(func), repr(result)) )
 		  self.pop_state()
 		  return result
 	  result.__doc__ = func.__doc__

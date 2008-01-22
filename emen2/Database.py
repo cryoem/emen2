@@ -24,6 +24,7 @@ from macro import add_macro  #
 from functools import partial#
 import sys                   #
 import debugging as debug #
+import util.thread_storage
 ##############################
 
 from bsddb3 import db
@@ -42,7 +43,7 @@ from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2config import *
 import atexit
 import weakref
-
+import g
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -4139,7 +4140,7 @@ or None if no match is found."""
 			views[i] = self.renderview(rec,viewdef=views[i],ctxid=ctxid,host=host)
 		return views
 	
-	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,host=None):
+	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,host=None, showmacro=True):
 		"""Render a view for a record. Takes a record instance or a recid.
 		viewdef is an arbitrary view definition. viewtype is a name view from record def.
 		paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
@@ -4153,7 +4154,7 @@ or None if no match is found."""
 				
 		if viewdef == None:
 			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
-			debuf('the recdef to be rendered is: %s' % recdef)
+			debug('the recdef to be rendered is: %s' % recdef)
 			if viewtype=="mainview":
 				viewdef=recdef.mainview
 			else:
@@ -4173,6 +4174,7 @@ or None if no match is found."""
 
 			#################################
 			# Parameter short_desc
+			# TODO: trest
 			if match.group("name"):
 
 				name=str(match.group("name1"))
@@ -4186,7 +4188,7 @@ or None if no match is found."""
 			#################################
 			# Record value
 			elif match.group("var"):
-
+				
 				var=str(match.group("var1"))
 				if paramdefs.has_key(var):
 					vartype=paramdefs[var].vartype					
@@ -4280,8 +4282,19 @@ or None if no match is found."""
 			return join_func(result)
 
 		html_join_func = partial(def_join_func, sep='<br />')
+		import thread
+		@add_macro('rendergroup')
+		def do_rendergroup(rec, args, ctxid, host, **extra):
+			key, view = args.split(' ')
+			debug('Database.py, thread storage state = %s' % util.thread_storage.ThreadStorage.storage)
+			storage = util.thread_storage.ThreadStorage()
+			rinfo = dict(ctxid=ctxid,host=host)
+			def get_records(ignore):
+				debug('------storage_access, thread_id: %d contents: %s' % (thread.get_ident() ,storage.storage) )
+				return debug.note_var(storage.get(key, []))
+			return render_records(rec, view, get_records,rinfo, html_join_func)
 
-		@add_macro('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxren')
+		@add_macro('renderchildren')
 		def do_renderchildren(rec, view, ctxid, host, **extra):
 			rinfo = dict(ctxid=ctxid,host=host)
 			get_records = partial(self.getchildren, **rinfo)

@@ -58,11 +58,11 @@ class PublicView(Resource):
 
 		@classmethod
 		def register_url(cls, name, match):
-				print "Registering URL:"
-				print cls
-				print name
-				print match
-				print ""
+#				print "Registering URL:"
+#				print cls
+#				print name
+#				print match
+#				print ""
 				def _reg_inside(cb):
 						cls.__registerurl(name, re.compile(match), cb)
 						return cb
@@ -92,7 +92,7 @@ class PublicView(Resource):
 					
 
 		def render(self, request):
-				print "----------------------------"
+#				print "----------------------------"
 
 				response = str(request)			
 				host=request.getClientIP()
