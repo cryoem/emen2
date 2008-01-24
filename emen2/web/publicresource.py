@@ -14,7 +14,7 @@ import sys
 from emen2 import ts
 import Database
 
-from emen2.TwistSupport_html.public import routing
+from subsystems import routing
 import emen2.TwistSupport_html.html.error
 
 # Twisted Imports
@@ -59,10 +59,10 @@ class PublicView(Resource):
 		@classmethod
 		def register_url(cls, name, match):
 #				print "Registering URL:"
-#				print cls
-#				print name
-#				print match
-#				print ""
+				print cls
+				print name
+				print match
+				print ""
 				def _reg_inside(cb):
 						cls.__registerurl(name, re.compile(match), cb)
 						return cb
@@ -106,8 +106,7 @@ class PublicView(Resource):
 
 				tmp = {}
 				for key in Set(args.keys()) - Set(["db","host","user","ctxid"]):
-					assert len(args[key]) == 1 # catch abnormal conditions, when will the list be longer than one? I really dont know
-					tmp[key] = args[key][0]
+					tmp[key] = str.join('\t', args[key])
 
 				try:
 					user = ts.db.checkcontext(ctxid)[0]
@@ -143,9 +142,6 @@ class PublicView(Resource):
 					request.write(redir)
 					request.finish()
 					return
-
-				
-
 
 				path="/"+"/".join(request.postpath)
 				if path[-1] != "/":
