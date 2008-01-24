@@ -14,14 +14,14 @@ from TwistSupport_html.public import utils
 from emen2 import ts
 from twisted.internet import reactor
 from twisted.web import static, server
-from util import templating
+from subsystems import templating
 
 import emen2.TwistSupport_html.downloadresource
 import emen2.TwistSupport_html.publicresource
 import emen2.TwistSupport_html.uploadresource
 import emen2.TwistSupport_html.webresource
 import emen2.TwistSupport_html.xmlrpcresource
-
+import util.core_macros
 import TwistSupport_html.public.views
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
@@ -46,7 +46,7 @@ for i in os.walk(TEMPLATEDIR):
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")
-root.putChild("db",emen2.TwistSupport_html.webresource.WebResource())
+root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("pub",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())

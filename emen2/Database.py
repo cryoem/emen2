@@ -19,12 +19,10 @@ by another layer, say an xmlrpc server...
 """
 
 # Edward Langley #############
-import macro                 #
-from macro import add_macro  #
+from subsystems import macro                 #
 from functools import partial#
 import sys                   #
 import debugging as debug #
-import util.thread_storage
 ##############################
 
 from bsddb3 import db
@@ -4251,99 +4249,11 @@ or None if no match is found."""
 		return viewdef
 
 	# Edward Langley #################
-	def macroinit(self):
-		@add_macro('recid')
-		def get_recid(rec, parameters, **extra):
-			return rec.recid
-
-		@add_macro('recname')
-		def get_parentvalue(rec, parameters, ctxid, host, **extra):
-			recdef=self.getrecorddef(rec.rectype,ctxid,host=host)
-			view = recdef.views.get("recname", "(no recname view)")
-			result = self.renderview(rec,view,ctxid=ctxid,host=host)
-			return result
-
-		def isofrecdef(recid, recdef, rinfo):
-			rec = self.getrecord(recid, **rinfo)
-			return rec.rectype == recdef
-
-		@add_macro('childcount')
-		def get_childcount(rec, recdef, ctxid, host, **extra):
-			rinfo = dict(ctxid=ctxid,host=host)
-	 		queryresult = self.getchildren(rec.recid,recurse=5,**rinfo)
-			return len([rec for rec in queryresult if isofrecdef(rec, recdef, rinfo)])
-
-		###############################################################################################################################################
-
-		def def_join_func(lis, sep=' '): return str.join(sep, lis)
-		def render_records(rec, view, get_recs, rinfo, join_func=def_join_func, renderer=None):
-			if renderer is None:
-				renderer = partial(self.renderview, viewtype=view, **rinfo)
-			recid, result = rec.recid, []
-			if isinstance(recid, int):
-				result = map(renderer, get_recs(recid))
-			return join_func(result)
-
-		html_join_func = partial(def_join_func, sep='<br />')
-		import thread
-		@add_macro('rendergroup')
-		def do_rendergroup(rec, args, ctxid, host, **extra):
-			key, view = args.split(' ')
-			debug('Database.py, thread storage state = %s' % util.thread_storage.ThreadStorage.storage)
-			storage = util.thread_storage.ThreadStorage()
-			rinfo = dict(ctxid=ctxid,host=host)
-			def get_records(ignore):
-				debug('------storage_access, thread_id: %d contents: %s' % (thread.get_ident() ,storage.storage) )
-				return debug.note_var(storage.get(key, []))
-			return render_records(rec, view, get_records,rinfo, html_join_func)
-
-		@add_macro('renderchildren')
-		def do_renderchildren(rec, view, ctxid, host, **extra):
-			rinfo = dict(ctxid=ctxid,host=host)
-			get_records = partial(self.getchildren, **rinfo)
-			return render_records(rec, view, get_records,rinfo, html_join_func)
-
-		@add_macro('renderchild')
-		def do_renderchild(rec, args, ctxid, host, **extra):
-			rinfo = dict(ctxid=ctxid,host=host)
-			view, key, value = args.split(' ')
-			def get_records(recid):
-				return self.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(self.getchildren(recid, **rinfo))
-			return render_records(rec, view, get_records,rinfo, html_join_func)
-
-		@add_macro('renderchildrenoftype')
-		def do_renderchildrenoftype(rec, args, ctxid, host, **extra):
-			rinfo = dict(ctxid=ctxid,host=host)
-			view, recdef = args.split(' ')
-			def get_records(recid):
-				return [rec for rec in self.getchildren(recid, **rinfo) if isofrecdef(rec, recdef, rinfo)]
-			return render_records(rec, view, get_records,rinfo, html_join_func)
-
-		################################################################################################################################################
-
-		def def_join_func(lis, sep=', '): return str.join(sep, lis)
-		def getvalue(recset, attribute, join_func=def_join_func, **rinfo):
-			isgettable = partial(self.trygetrecord, **rinfo)
-			get = partial(self.getrecord, **rinfo)
-
-			tmp = [ get(rec) for rec in recset if isgettable(rec)]
-			return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])
-			
-		@add_macro('childvalue')
-		def get_childrenvalue(rec, attribute, ctxid, host, **extra):
-			recid = rec.recid
-			children = self.getchildren(recid, ctxid=ctxid)
-			return getvalue(children, attribute, ctxid=ctxid, host=host)
-
-		@add_macro('parentvalue')
-		def get_parentvalue(rec, attribute, ctxid, host, **extra):
-			recid = rec.recid
-			parents = self.getparents(recid, ctxid=ctxid)
-			return getvalue(parents, attribute, ctxid=ctxid, host=host)
+	def macroinit(self): pass
 
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-		return macro.MacroEngine.call_macro(macr, rec, macroparameters, ctxid=ctxid, host=host)	
+		return macro.MacroEngine.call_macro(macr, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 	###########
