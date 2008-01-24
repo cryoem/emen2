@@ -60,6 +60,48 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 
 ################################################################################################################################################
 
+@add_macro('getrectypesiblings')
+def getrectypesiblings(db,rec, args, ctxid, host, **extra):
+	"""returns siblings and cousins of same rectype"""
+	ret = {}
+	parents = db.getparents(recid,ctxid=ctxid)
+	siblings = set()
+
+	for i in parents:
+		siblings = siblings.union(db.getchildren(i,ctxid=ctxid))
+
+	groups = db.groupbyrecorddeffast(cousins,ctxid)
+
+	if groups.has_key(rec.rectype):
+		q = db.getindexdictbyvaluefast(cousingroups[rec.rectype],"modifytime",ctxid=ctxid)
+		ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)]	
+
+	return str(ret)
+	
+@add_macro('getfilenames')	
+def getfilenames(db,rec, args, ctxid, host, **extra):
+	"""returns dictionary of {bid:upload filename}"""
+	files = {}
+	if rec["file_binary"] or rec["file_binary_image"]:	
+		bids = []
+		if rec["file_binary"]:
+			bids += rec["file_binary"]
+		if rec["file_binary_image"]:
+			bids += [rec["file_binary_image"]]
+
+		for bid in bids:
+			bid = bid[4:]
+			try:
+				bname,ipath,bdocounter=db.getbinary(bid,ctxid,host)
+			except Exception, inst:
+				bname="Attachment error: %s"%bid
+			files[bid]=bname
+
+	return str(files)
+
+
+################################################################################################################################################
+
 def def_join_func(lis, sep=', '): return str.join(sep, lis)
 def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 	isgettable = partial(db.trygetrecord, **rinfo)
@@ -79,3 +121,6 @@ def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	parents = db.getparents(recid, ctxid=ctxid)
 	return getvalue(parents, attribute, ctxid=ctxid, host=host)
+	
+	
+
