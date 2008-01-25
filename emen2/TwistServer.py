@@ -22,6 +22,7 @@ import emen2.TwistSupport_html.uploadresource
 import emen2.TwistSupport_html.webresource
 import emen2.TwistSupport_html.xmlrpcresource
 import util.core_macros
+import util.fileops
 import TwistSupport_html.public.views
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
@@ -30,19 +31,8 @@ ts.startup(EMEN2DBPATH)
 # Ed's new view system
 #############################
 g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-
-
-TEMPLATEDIR="./TwistSupport_html/templates"
-for i in os.walk(TEMPLATEDIR):
-	for j in i[2]:
-		name,ext=os.path.splitext(os.path.basename(j))
-		if ext == ".mako":
-			f=open(i[0]+"/"+j)
-			data=f.read()
-			f.close()
-			dir=i[0].replace(TEMPLATEDIR,"")
-			g.templates.add_template("%s/%s"%(dir,name),data)
-
+g.TEMPLATEDIR="./TwistSupport_html/templates"
+util.fileops.get_templates(g.TEMPLATEDIR)
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")

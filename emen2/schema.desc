@@ -1,5 +1,4 @@
 $template_name (string) #the template of the current record
-
 $event_name (string) #The name of the event
 $event_date (datetime) #The date of the event
 $event_agenda (text) #The event's agenda
@@ -57,4 +56,53 @@ $template_template (text) #the template's context
  ?$$template_name<br />$$template_template
  N $$template_name
  ---template
+ 
+$project_title (string) #project title
+$project_dates (string) #project dates
+$project_type (string) #type of project
+$project_description (text) #project description
+$project_reprints (text) #reprints/publications of the project
+@project:
+ >$$project_title $$project_dates $$project_type $$project_description $$project_reprints
+ #$$project_title
+ ?$$project_title
+ N $$project_title
+ ---project
+
+$grant_agency_name (string) #Name of the Grant Agency
+$grant_number (int) #Grant Number
+$grant_title (string) #Grant Title
+$grant_duration (string) #Grant Duration
+$grant_total_cost (float) #Grant Total Cost
+@grant:
+ >$$grant_agency_name $$grant_number $$grant_title $$grant_duration $$grant_total_cost
+ #$$grant_title from $$grant_agency_name
+ ?$$grant_title
+ N $$grant_title
+ ---grant
+ 
+$investigator_name (string) #Name
+$investigator_degrees (string) #Degrees
+$investigator_department (string) #Department
+$investigator_institution (string) #Institution
+$investigator_phone (string) #Phone Number
+$investigator_fax (string) #Fax
+@investigator:
+ >$$investigator_name $$investigator_degrees $$investigator_department $$investigator_institution $$investigator_phone $$investigator_fax
+ #$$investigator_name
+ ?$$investigator_name
+ N $$investigator_name
+ ---investigator
+ 
+$address_top (string) #Address Top Line(s)
+$address_city (string) #City
+$address_state (string) #State
+$address_zip (int) #Zipcode	
+$address_country (string) #Country
+@address:
+ >$$address_top<br />$$address_city,$$address_state $$address_zip<br />$$address_country
+ #$$address_top
+ ?$$address_top
+ N $$address_top
+ ---address
  

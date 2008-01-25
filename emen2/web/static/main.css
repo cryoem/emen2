@@ -181,11 +181,14 @@ html,body {
 	background:#BBD9EE; 
 	font-size:10px;
 	position:absolute;
-	bottom:0px;
 	width:100%;
 }
 
 #content {
+	display:block;
+	position: relative;
+	overflow: none;
+	padding: 5px;
 }
 
 .navtable {		

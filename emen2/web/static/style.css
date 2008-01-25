@@ -1,0 +1,252 @@
+/* reset browser defaults, taken from the Blueprint CSS framework */
+html, body, div, span, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, code,
+del, dfn, em, img, q, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: inherit;
+	vertical-align: baseline;
+}
+
+body { 
+  line-height: 1.5; 
+  background: #fff; 
+  margin:1.5em 0; 
+}
+/* Tables still need 'cellspacing="0"' in the markup. */
+table { border-collapse: separate; border-spacing: 0; }
+caption, th, td { text-align: left; font-weight: normal; }
+
+/* Remove possible quote marks (") from <q>, <blockquote>. */
+blockquote:before, blockquote:after, q:before, q:after { content: ""; }
+blockquote, q { quotes: "" ""; }
+
+a img { border: none; }
+
+/* end reset */
+
+body, html {
+  background: #D3C7A6;
+}
+/*
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+}
+*/
+#container {
+  position:relative;
+  min-height:100%;
+  width: 850px;
+  margin: 0px auto;
+  background: white;
+}
+/*
+  overflow: hidden;
+  height: auto;
+}*/
+#header, #footer, #nav, #content {
+  width: 100%;
+}
+#header span, #footer span {
+  padding: 0 .2em;
+}
+
+#footer, #nav, #content {
+  clear: both;
+  background: white;
+  font-family: sans-serif;
+}
+
+#header, #footer {
+  overflow: hidden;
+  width: 100%;
+}
+
+#tright, #info {
+  position: relative;
+  float: right;
+  text-align:center;
+  margin: 20px 10px 0 0;
+}
+
+#content, #nav {
+ border-bottom: solid #D3C7A6 1px;
+}
+/*
+
+*/
+/*header elements*/
+/*
+#header {
+ background:#DCEFEE;
+}
+*/
+#ncmilogo, #bcmlogo {
+  float:left;
+}
+
+#bcmlogo {
+  margin: 10px;
+  margin-right: 20px;
+}
+
+/* content elements */
+
+#content {
+  position: relative;
+  z-index: 0;
+  padding-bottom: 115px;
+}
+
+#content ul {
+  margin-left: 1.5em;
+}
+
+/* footer elements */
+
+#footer {
+  font: small sans-serif;
+  width:100%;
+  position:absolute;
+  bottom:0;
+  clear:both;
+  border-top: solid #D3C7A6 1px;
+}
+/* navigation menu */
+
+ul#nav {
+  margin: 0px;
+}
+
+
+#nav {
+ white-space: nowrap;
+ color: #A09473;
+ width:100%;
+ position: relative;
+ cursor: pointer;
+ clear: both;
+ z-index: 500;
+}
+
+#navul {
+  display: block;
+}
+
+.mdesc {
+ font-size: large;
+ float: left;
+}
+
+.mtitle, .mitem {
+ padding: .5em;
+ font-size: 12pt;
+}
+
+.mtitle {
+ font-weight: bold;
+}
+
+.mitem {
+ margin: 2px;
+ overflow: hidden;
+}
+
+.mdesc {
+  list-style: none;
+}
+
+.mdesc:hover {
+ font-weight: bold;
+ background: maroon;
+}
+
+.menu {
+ display: none;
+ position: absolute;
+ background: olive;
+ color: white;
+ z-index: 100;
+}
+
+.mdesc:hover .menu {
+ display: block;
+}
+
+.mitem:hover {
+ background: maroon;
+}
+
+/* search box styles */
+
+#submitbutton, #sfield {
+  background: #fcfcf6;
+  border: 1px solid #fede75;
+  color: #514130;
+  font-size: 0.8em;
+  font-weight: bolder;
+  padding: 1px;
+}
+
+#submitbutton:hover, #sfield:hover {
+  background: #dadad4;
+}
+
+/* more styles */
+/*
+.person {
+  position: relative;
+  width: 75%;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.photo {
+  display: inline;
+  float: left;
+  height: 200px;
+}
+
+.info {
+  display: block;
+  float: left;
+  overflow: hidden;
+  margin: 75px 5px;
+}
+
+.name {
+  font-size: large;
+  font-weight: bolder;
+}
+*/
+/* end style.css */
+
+
+body {
+ margin:0px;
+ padding:0px;
+ font-family:sans-serif;
+}
+
+html,body {
+  height:100%;
+}
+
+#container {
+  /*width:auto;*/
+}
+
+
+#content {
+}
+
+#footer {
+}
