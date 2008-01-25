@@ -4253,7 +4253,7 @@ or None if no match is found."""
 
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-		return macro.MacroEngine.call_macro(macr, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 	###########
