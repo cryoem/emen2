@@ -86,9 +86,12 @@ $investigator_degrees (string) #Degrees
 $investigator_department (string) #Department
 $investigator_institution (string) #Institution
 $investigator_phone (string) #Phone Number
+$investigator_email (string) #Phone Number
 $investigator_fax (string) #Fax
 @investigator:
- >$$investigator_name $$investigator_degrees $$investigator_department $$investigator_institution $$investigator_phone $$investigator_fax
+ >$$investigator_name $$investigator_degrees $$investigator_department \
+    $$investigator_institution $$investigator_phone $$investigator_fax \
+    $$investigator_email
  #$$investigator_name
  ?$$investigator_name
  N $$investigator_name

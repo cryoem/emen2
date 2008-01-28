@@ -30,9 +30,15 @@ ts.startup(EMEN2DBPATH)
 #############################
 # Ed's new view system
 #############################
-g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-g.TEMPLATEDIR="./TwistSupport_html/templates"
-util.fileops.get_templates(g.TEMPLATEDIR)
+def load_views():
+    g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
+    g.TEMPLATEDIR="./TwistSupport_html/templates"
+    util.fileops.get_templates(g.TEMPLATEDIR)
+def reload_views():
+    reload(TwistSupport_html.public.views)
+    load_views()
+
+load_views()
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")

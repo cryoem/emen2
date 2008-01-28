@@ -320,6 +320,14 @@ investigator_phone.desc_short = '''Phone Number'''
 db.addparamdef(investigator_phone,ctxid)
 #end parameter: investigator_phone
 
+#begin parameter: investigator_email
+investigator_email =  Database.ParamDef()
+investigator_email.name = 'investigator_email'
+investigator_email.vartype = 'string'
+investigator_email.desc_short = '''Phone Number'''
+db.addparamdef(investigator_email,ctxid)
+#end parameter: investigator_email
+
 #begin parameter: investigator_fax
 investigator_fax =  Database.ParamDef()
 investigator_fax.name = 'investigator_fax'
@@ -331,7 +339,7 @@ db.addparamdef(investigator_fax,ctxid)
 #begin record definition: investigator
 investigator = Database.RecordDef()
 investigator.name = 'investigator'
-investigator.mainview = """$$investigator_name $$investigator_degrees $$investigator_department $$investigator_institution $$investigator_phone $$investigator_fax"""
+investigator.mainview = """$$investigator_name $$investigator_degrees $$investigator_department  $$investigator_institution $$investigator_phone $$investigator_fax  $$investigator_emai"""
 investigator.views['tabularview'] = """$$investigator_name"""
 investigator.views['defaultview'] = """$$investigator_name"""
 investigator.views['recname'] = """$$investigator_name"""
