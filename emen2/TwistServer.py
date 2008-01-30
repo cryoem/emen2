@@ -15,6 +15,7 @@ from emen2 import ts
 from twisted.internet import reactor
 from twisted.web import static, server
 from subsystems import templating
+from subsystems import macro
 
 import emen2.TwistSupport_html.downloadresource
 import emen2.TwistSupport_html.publicresource
@@ -39,6 +40,8 @@ def reload_views():
     load_views()
 
 load_views()
+
+g.macros = macro.MacroEngine()
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")

@@ -18,16 +18,10 @@ with sufficient intent and knowledge it is possible. To use this module securely
 by another layer, say an xmlrpc server...
 """
 
-# Edward Langley #############
-from subsystems import macro                 #
-from functools import partial#
-import sys                   #
-import debugging as debug #
-##############################
-
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
 
+from functools import partial
 from sets import *
 import os
 import sys
@@ -41,7 +35,10 @@ from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2config import *
 import atexit
 import weakref
+
 import g
+import debugging as debug #
+from subsystems import macro                 #
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -1701,10 +1698,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if txn : txn.commit()
 		elif not self.__importmode : DB_syncall()
 		self.LOG(4,"Database initialized")
-
-		# Edward Langley
-		self.macroinit()
-		self.macros= macro.MacroEngine()
 
 	# one of these 2 methods is mapped to self.newtxn()
 	def newtxn1(self):
@@ -4253,7 +4246,7 @@ or None if no match is found."""
 
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		return g.macros.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 	###########
