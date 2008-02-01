@@ -1,5 +1,6 @@
 from __future__ import with_statement
 from g import *
+from loglevels import LOG_ERR
 import re
 import os
 from sets import Set
@@ -173,6 +174,7 @@ class PublicView(Resource):
 				request.finish()
 				return
 
+		@debug.debug_func
 		def _ebRender(self, failure, request, ctxid):
 				
 				if isinstance(failure.value,emen2.Database.SecurityError):
@@ -185,8 +187,8 @@ class PublicView(Resource):
 					request.finish()
 					return
 					
+				debug(LOG_ERR, failure)
 				if isinstance(failure.value,emen2.Database.SessionError):
-					print failure
 					page = self.login(uri=request.uri,msg="Session expired.")
 					request.write(page)
 					request.finish()

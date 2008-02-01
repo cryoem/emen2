@@ -75,9 +75,10 @@ class DebugState(object):
 	self.msg(0, 'NOTED VAR:::', var)
 	return var
 
-  def __call__(self, *args):
-	'''log with a state of -1'''
-	self.msg(-1, *args)
+  def __call__(self, *args, **k):
+      '''log with a state of -1'''
+      join = k.get('join', ' ')
+      self.msg(-1, join.join([str(x) for x in args]))
 
   def print_list(self, lis):
 	result = []

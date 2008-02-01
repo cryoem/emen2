@@ -66,8 +66,8 @@ def inp(banner=''):
         thread.interrupt_main()
         time.sleep(10000000)
         
-sys.stderr.writelines(['enter statements, end them with Ctrl-D'])
-thread.start_new_thread(code.interact, ('',inp,locals()))
+#sys.stderr.writelines(['enter statements, end them with Ctrl-D'])
+#thread.start_new_thread(code.interact, ('',inp,locals()))
 
 # You can set the port to listen on...
 reactor.listenTCP(EMEN2PORT, server.Site(root))
