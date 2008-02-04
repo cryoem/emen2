@@ -1,5 +1,9 @@
 #!/usr/bin/expect -f
 spawn /usr/local/bin/ipython -i /Users/edwardlangley/emen2/emen2config.py
 expect "]: "
+send "import sys\n"
+expect "]: "
+send "sys.path.append('..')\n"
+expect "]: "
 send "from emen2.test import *\n"
 interact

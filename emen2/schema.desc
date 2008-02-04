@@ -109,3 +109,11 @@ $address_country (string) #Country
  N $$address_top
  ---address
  
+$menu_label (string) #Displayed menu item name
+$menu_link (string) #Menu Item target
+@menu_item:
+ >$$menu_label $$menu_link
+ #$$menu_label
+ ?$$menu_label
+ N $$menu_label
+ ---menu_item

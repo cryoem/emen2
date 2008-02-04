@@ -395,3 +395,29 @@ address.views['defaultview'] = """$$address_top"""
 address.views['recname'] = """$$address_top"""
 db.addrecorddef(address,ctxid)
 #end record definition: address
+
+#begin parameter: menu_label
+menu_label =  Database.ParamDef()
+menu_label.name = 'menu_label'
+menu_label.vartype = 'string'
+menu_label.desc_short = '''Displayed menu item name'''
+db.addparamdef(menu_label,ctxid)
+#end parameter: menu_label
+
+#begin parameter: menu_link
+menu_link =  Database.ParamDef()
+menu_link.name = 'menu_link'
+menu_link.vartype = 'string'
+menu_link.desc_short = '''Menu Item target'''
+db.addparamdef(menu_link,ctxid)
+#end parameter: menu_link
+
+#begin record definition: menu_item
+menu_item = Database.RecordDef()
+menu_item.name = 'menu_item'
+menu_item.mainview = """$$menu_label $$menu_link"""
+menu_item.views['tabularview'] = """$$menu_label"""
+menu_item.views['defaultview'] = """$$menu_label"""
+menu_item.views['recname'] = """$$menu_label"""
+db.addrecorddef(menu_item,ctxid)
+#end record definition: menu_item
