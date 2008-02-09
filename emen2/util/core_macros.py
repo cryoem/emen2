@@ -40,7 +40,7 @@ import thread
 def do_renderchildren(db, rec, view, ctxid, host, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	get_records = partial(db.getchildren, **rinfo)
-	return render_records(rec, view, get_records,rinfo, html_join_func)
+	return render_records(db, rec, view, get_records,rinfo, html_join_func)
 
 @add_macro('renderchild')
 def do_renderchild(db, rec, args, ctxid, host, **extra):
@@ -48,7 +48,7 @@ def do_renderchild(db, rec, args, ctxid, host, **extra):
 	view, key, value = args.split(' ')
 	def get_records(recid):
 		return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.getchildren(recid, **rinfo))
-	return render_records(rec, view, get_records,rinfo, html_join_func)
+	return render_records(db, rec, view, get_records,rinfo, html_join_func)
 
 @add_macro('renderchildrenoftype')
 def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
@@ -114,13 +114,13 @@ def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 def get_childrenvalue(db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	children = db.getchildren(recid, ctxid=ctxid)
-	return getvalue(children, attribute, ctxid=ctxid, host=host)
+	return getvalue(db, children, attribute, ctxid=ctxid, host=host)
 
 @add_macro('parentvalue')
 def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	parents = db.getparents(recid, ctxid=ctxid)
-	return getvalue(parents, attribute, ctxid=ctxid, host=host)
+	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
 	
 	
 

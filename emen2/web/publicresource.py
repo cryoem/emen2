@@ -1,37 +1,21 @@
-from __future__ import with_statement
-from g import *
+####TODO: investigate the need for debug in g
+import g
 from loglevels import LOG_ERR
-import re
-import os
-from sets import Set
-import pickle
-import traceback
-import time
-import random
-import atexit
-import cStringIO
 
-import sys
-from emen2 import ts
-import Database
-
-from subsystems import routing
-import emen2.TwistSupport_html.html.error
-
-# Twisted Imports
-from twisted.python import filepath, log, failure
+#twisted imports
 from twisted.internet import defer, reactor, threads
-
+from twisted.python import filepath, log, failure
 from twisted.web.resource import Resource
 from twisted.web.static import *
-
-#import debugging as debug
-from functools import partial
-
+###
 from cgi import escape
+from emen2 import ts
+from sets import Set
+import re
+from subsystems import routing
+import Database
 
-class custpartial(partial):
-	keywords = {}
+from mako import exceptions
 
 class PublicView(Resource):
 		isLeaf = True
@@ -59,11 +43,6 @@ class PublicView(Resource):
 
 		@classmethod
 		def register_url(cls, name, match):
-#				print "Registering URL:"
-				print cls
-				print name
-				print match
-				print ""
 				def _reg_inside(cb):
 						cls.__registerurl(name, re.compile(match), cb)
 						return cb
@@ -93,28 +72,26 @@ class PublicView(Resource):
 					
 
 		def render(self, request):
-#				print "----------------------------"
+				def make_callback(string):
+					cb = lambda *x, **y: string
+					return cb
 
 				response = str(request)			
-				host=request.getClientIP()
-				args=request.args
+				host = request.getClientIP()
+				args = request.args
 				request.postpath = filter(bool, request.postpath) or ["home"]
 				method = request.postpath[0]
 				ctxid = request.getCookie("ctxid")
-				user=None
-				debug("ctxid: %s"%ctxid)
-				loginmsg=""
-
-				tmp = {}
-				for key in Set(args.keys()) - Set(["db","host","user","ctxid"]):
-					tmp[key] = str.join('\t', args[key])
+				user = None
+				loginmsg = ""
+				callback = make_callback('')
 
 				try:
 					user = ts.db.checkcontext(ctxid)[0]
-				except KeyError:
-					if ctxid != None:	loginmsg = "Session expired"
-					user = None
-					ctxid = None
+				except Dabase.SecurityError:
+					if ctxid != None:	
+						loginmsg = "Session expired"
+					user, ctxid = None, None
 				
 				if ctxid == None:
 					# force login, or generate anonymous context
@@ -132,68 +109,55 @@ class PublicView(Resource):
 						method = "login"
 							
 				if method == "login":			
-					page = self.login(uri=request.uri,msg=loginmsg)
-					request.write(page)
-					request.finish()
-					return
+					callback = make_callback(self.login(uri=request.uri,msg=loginmsg))
 			
-				if method == "logout":
+				elif method == "logout":
 					ts.db.deletecontext(ctxid)
-					redir = """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""
-					request.write(redir)
-					request.finish()
-					return
-
-				path="/"+"/".join(request.postpath)
-				if path[-1] != "/":
-					path+="/"
+					callback = make_callback("""<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+																<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">""")
+				else:
+					tmp = {}
+					for key in Set(args.keys()) - Set(["db","host","user","ctxid"]):
+						tmp.update(  {key:str.join('\t', args[key])} )
+						
+					path = "/%s/" % str.join("/", request.postpath)
+					path = self.redirects.get(path, path)
 					
-				debug(path)
-				debug( 'request: %s, args: %s' % (request, tmp) )
-				debug(type(tmp))
-
-				callback = routing.URLRegistry().execute(path, **tmp)
+					g.debug( 'request: %s, args: %s' % (request, tmp) )
+					callback = routing.URLRegistry().execute(path, **tmp)
 									
 				d = threads.deferToThread(callback, ctxid=ctxid, host=host)
 				d.addCallback(self._cbsuccess, request, ctxid)
 				d.addErrback(self._ebRender, request, ctxid)
 
-
 				return server.NOT_DONE_YET
 
 		def _cbsuccess(self, result, request, ctxid):
-				request.setHeader("content-type","text/html; charset=utf-8")
-				request.setHeader("content-length", str(len(result)))
-		
-				# no caching
-				request.setHeader("Cache-Control","no-cache"); #HTTP 1.1
-				request.setHeader("Pragma","no-cache"); #HTTP 1.0				request.write(result)
-
+				def set_headers(headers):
+					for key in headers:
+						request.setHeader(key, headers[key])
+						
+				headers = {"content-type":"text/html charset=utf-8",
+				"content-length": str(len(result)),
+				"Cache-Control":"no-cache",  
+				"Pragma":"no-cache"}
+				
+				set_headers(headers) 
 				result=result.encode("utf-8")
 				request.write(result)
 				request.finish()
-				return
 
-		@debug.debug_func
 		def _ebRender(self, failure, request, ctxid):
-				
-				if isinstance(failure.value,emen2.Database.SecurityError):
+				g.debug(LOG_ERR, failure)
+				if isinstance(failure.value, Database.SecurityError):
 					if ctxid == None:
 						page = self.login(uri=request.uri,msg="Unable to access resource; please login.")
 					else:
 						#user=ts.db.checkcontext(ctxid)[0]
-						page = self.login(uri=request.uri,msg="Insufficient permissions to access resource.")
-					request.write(page)
-					request.finish()
-					return
-					
-				debug(LOG_ERR, failure)
-				if isinstance(failure.value,emen2.Database.SessionError):
-					page = self.login(uri=request.uri,msg="Session expired.")
-					request.write(page)
-					request.finish()
-					return
-
-				request.write('<pre>'  + escape(str(failure)) + '</pre>')
+						page = self.login(uri=request.uri, msg="Insufficient permissions to access resource.")
+				elif isinstance(failure.value, Database.SessionError):
+					page = self.login(uri=request.uri, msg="Session expired.")
+				else:
+					page = '<pre>'  + escape(str(failure)) + '</pre>'
+				request.write(page)
 				request.finish()
-				return

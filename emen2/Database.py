@@ -20,25 +20,25 @@ by another layer, say an xmlrpc server...
 
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
-
-from functools import partial
-from sets import *
-import os
-import sys
-import sha
-import time
-import re
-import operator
-import traceback
-from math import *
-from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2config import *
+from functools import partial
+from math import *
+from sets import *
+from subsystems import macro                 #
+from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
+import debugging as debug #
+import operator
+import os
+import re
+import sha
+import sys
+import time
+import traceback
 import weakref
 
-import g
-import debugging as debug #
-from subsystems import macro                 #
+
+
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -4241,12 +4241,9 @@ or None if no match is found."""
 
 		return viewdef
 
-	# Edward Langley #################
-	def macroinit(self): pass
-
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-		return g.macros.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 	###########

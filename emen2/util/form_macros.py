@@ -37,4 +37,4 @@ def formfromrecorddef(recorddef, db):
         pd = db.getparamdef(field)
         tmp = FormField(field, pd.desc_short+':', VarTypeRegistry.get(pd.vartype), value=str(recorddef.params[field] or ''))
         fields.append(tmp)
-    return Form(g.debug.note_var(fields))
+    return Form(fields)

@@ -421,3 +421,37 @@ menu_item.views['defaultview'] = """$$menu_label"""
 menu_item.views['recname'] = """$$menu_label"""
 db.addrecorddef(menu_item,ctxid)
 #end record definition: menu_item
+
+#begin parameter: page_name
+page_name =  Database.ParamDef()
+page_name.name = 'page_name'
+page_name.vartype = 'string'
+page_name.desc_short = '''Page Name'''
+db.addparamdef(page_name,ctxid)
+#end parameter: page_name
+
+#begin parameter: page_menus
+page_menus =  Database.ParamDef()
+page_menus.name = 'page_menus'
+page_menus.vartype = 'string'
+page_menus.desc_short = '''Page Menus'''
+db.addparamdef(page_menus,ctxid)
+#end parameter: page_menus
+
+#begin parameter: page_content
+page_content =  Database.ParamDef()
+page_content.name = 'page_content'
+page_content.vartype = 'text'
+page_content.desc_short = '''Page Content'''
+db.addparamdef(page_content,ctxid)
+#end parameter: page_content
+
+#begin record definition: page
+page = Database.RecordDef()
+page.name = 'page'
+page.mainview = """$$page_name $$page_menus $$page_content"""
+page.views['tabularview'] = """$$page_name"""
+page.views['defaultview'] = """$$page_name $$page_menus $$page_content"""
+page.views['recname'] = """$$page_name"""
+db.addrecorddef(page,ctxid)
+#end record definition: page

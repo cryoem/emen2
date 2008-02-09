@@ -117,3 +117,13 @@ $menu_link (string) #Menu Item target
  ?$$menu_label
  N $$menu_label
  ---menu_item
+
+$page_name (string) #Page Name
+$page_menus (string) #Page Menus
+$page_content (text) #Page Content
+@page: 
+ >$$page_name $$page_menus $$page_content
+ #$$page_name
+ ?$$page_name $$page_menus $$page_content
+ N $$page_name
+ ---page
