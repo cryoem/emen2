@@ -68,7 +68,7 @@ class PublicView(Resource):
 
 					</form>
 				</div>"""%(msg,uri)
-				return page
+				return page, 'text/html'
 					
 
 		def render(self, request):
@@ -88,7 +88,7 @@ class PublicView(Resource):
 
 				try:
 					user = ts.db.checkcontext(ctxid)[0]
-				except Dabase.SecurityError:
+				except:
 					if ctxid != None:	
 						loginmsg = "Session expired"
 					user, ctxid = None, None
@@ -133,31 +133,39 @@ class PublicView(Resource):
 				return server.NOT_DONE_YET
 
 		def _cbsuccess(self, result, request, ctxid):
-				def set_headers(headers):
-					for key in headers:
-						request.setHeader(key, headers[key])
-						
-				headers = {"content-type":"text/html charset=utf-8",
-				"content-length": str(len(result)),
-				"Cache-Control":"no-cache",  
-				"Pragma":"no-cache"}
-				
-				set_headers(headers) 
-				result=result.encode("utf-8")
-				request.write(result)
-				request.finish()
+			"result must be a 2-tuple: (result, mime-type)"
+			try:
+				result, mime_type = result
+			except ValueError:
+				result = result.encode('utf-8')
+				mime_type = 'text/html charset=utf-8'
+			
+			def set_headers(headers):
+				for key in headers:
+					request.setHeader(key, headers[key])
+					
+			headers = {"content-type":mime_type,
+			"content-length": str(len(result)),
+			"Cache-Control":"no-cache",  
+			"Pragma":"no-cache"}
+
+			set_headers(headers) 
+			request.write(result)
+			request.finish()
 
 		def _ebRender(self, failure, request, ctxid):
-				g.debug(LOG_ERR, failure)
-				if isinstance(failure.value, Database.SecurityError):
-					if ctxid == None:
-						page = self.login(uri=request.uri,msg="Unable to access resource; please login.")
-					else:
-						#user=ts.db.checkcontext(ctxid)[0]
-						page = self.login(uri=request.uri, msg="Insufficient permissions to access resource.")
-				elif isinstance(failure.value, Database.SessionError):
-					page = self.login(uri=request.uri, msg="Session expired.")
+			g.debug(LOG_ERR, failure)
+			if isinstance(failure.value, Database.SecurityError):
+				if ctxid == None:
+					page = self.login(uri=request.uri,msg="Unable to access resource; please login.")
 				else:
-					page = '<pre>'  + escape(str(failure)) + '</pre>'
-				request.write(page)
-				request.finish()
+					#user=ts.db.checkcontext(ctxid)[0]
+					page = self.login(uri=request.uri, msg="Insufficient permissions to access resource.")
+			elif isinstance(failure.value, Database.SessionError):
+				print 1
+				page = self.login(uri=request.uri, msg="Session expired.")
+				print 2
+			else:
+				page = '<pre>'  + escape(str(failure)) + '</pre>'
+			request.write(page)
+			request.finish()

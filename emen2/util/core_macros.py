@@ -1,4 +1,5 @@
-from subsystems.macro import add_macro  #
+from emen2.subsystems.macro import add_macro , MacroEngine #
+
 from functools import partial#
 
 @add_macro('recid')
@@ -123,4 +124,4 @@ def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
 	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
 	
 	
-
+print MacroEngine._macros

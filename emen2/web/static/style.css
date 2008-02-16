@@ -15,6 +15,11 @@ table, caption, tbody, tfoot, thead, tr, th, td {
 	vertical-align: baseline;
 }
 
+h1, h2, h3, h4 {
+	border-bottom: medium solid black;
+	width: 100%;
+}
+
 body { 
   line-height: 1.5; 
   background: #fff; 
@@ -166,7 +171,7 @@ ul#nav {
 
 .mdesc:hover {
  font-weight: bold;
- background: maroon;
+ background: url(/bg.png) maroon repeat-x bottom;
 }
 
 .menu {
@@ -249,4 +254,8 @@ html,body {
 }
 
 #footer {
+}
+
+label {
+	display: block;
 }

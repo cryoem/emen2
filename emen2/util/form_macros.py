@@ -1,6 +1,6 @@
 import g
 from subsystems.macro import add_macro
-from subsystems.formgenerator import Form, FormField, StringVar, TextVar, IntVar, VarTypeRegistry            
+from subsystems.formgenerator import Form, FormField, StringVar, TextVar, IntVar, VarTypeRegistry, ImageVar            
 
 def macroify(function):
     def inner(db, rec, parameters, **extra):
@@ -30,6 +30,12 @@ def combined_string_field(id, label, value=''):
     field = FormField(id, label, StringVar(), value)
     return field
 print add_macro('combinedstringfield')(macroify(string_field))
+
+def image_field(id, label, value=''):
+    field = FormField(id, label, ImageVar(), value)
+    return field
+print add_macro('image')(macroify(integer_field))
+print add_macro('binaryimage')(macroify(integer_field))
 
 def formfromrecorddef(recorddef, db):
     fields = []
