@@ -20,11 +20,11 @@ by another layer, say an xmlrpc server...
 
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
-from emen2config import *
+from emen2.emen2config import *
 from functools import partial
 from math import *
 from sets import *
-from subsystems import macro                 #
+from emen2.subsystems import macro                 #
 from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
 import debugging as debug #
@@ -4243,6 +4243,7 @@ or None if no match is found."""
 
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
+		print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
 		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 

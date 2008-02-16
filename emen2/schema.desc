@@ -81,21 +81,21 @@ $grant_total_cost (float) #Grant Total Cost
  N $$grant_title
  ---grant
  
-$investigator_name (string) #Name
-$investigator_degrees (string) #Degrees
-$investigator_department (string) #Department
-$investigator_institution (string) #Institution
-$investigator_phone (string) #Phone Number
-$investigator_email (string) #Phone Number
-$investigator_fax (string) #Fax
-@investigator:
- >$$investigator_name $$investigator_degrees $$investigator_department \
-    $$investigator_institution $$investigator_phone $$investigator_fax \
-    $$investigator_email
- #$$investigator_name
- ?$$investigator_name
- N $$investigator_name
- ---investigator
+$person_name (string) #Name
+$person_degrees (string) #Degrees
+$person_department (string) #Department
+$person_institution (string) #Institution
+$person_phone (string) #Phone Number
+$person_email (string) #Phone Number
+$person_fax (string) #Fax
+$person_photo (binaryimage) #A Photo
+@person:
+ >$$person_name $$person_degrees $$person_department \
+    $$person_institution $$person_phone $$person_fax $$person_email 
+ #$$person_name
+ ?$$person_name
+ N $$person_name
+ ---person
  
 $address_top (string) #Address Top Line(s)
 $address_city (string) #City
@@ -111,6 +111,8 @@ $address_country (string) #Country
  
 $menu_label (string) #Displayed menu item name
 $menu_link (string) #Menu Item target
+$menu_name (string) #The name of the URL to look up
+$menu_arguments (string) #A pickle of the arguments to pass
 @menu_item:
  >$$menu_label $$menu_link
  #$$menu_label

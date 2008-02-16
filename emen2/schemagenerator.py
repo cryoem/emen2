@@ -26,9 +26,9 @@ from string import Template
 # Match patterns
 PARAM_SHORT = r'^\$(?P<p_name>\w+) \((?P<type>\w+)\) [#](?P<desc_short>[^:\n]+)$'
 PARAM_LONG =  r'^\$(?P<p_name>\w+) \((?P<type>\w+)\) [#](?P<desc_short>[^:]+):$'
-PARAM_LONG_CONT = r'^(?P<desc_long>.+)$'
+PARAM_LONG_CONT = r'^(?P<desc_long>[^\n]+)$'
 RECORD_DEF_NAME = r'^\@(?P<r_name>\w+):'
-RECORD_DEF_MAIN_VIEW = r'^[>](?P<mainview>[^\n]+)$'
+RECORD_DEF_MAIN_VIEW = r'^[>](?P<mainview>.+)$'
 RECORD_DEF_TAB_VIEW = r'^[#](?P<tabularview>[^\n]+)$'
 RECORD_DEF_DEF_VIEW = r'^[?](?P<defaultview>[^\n]+)$'
 RECORD_DEF_RECNAME_VIEW = r'^[N] (?P<defaultview>[^\n]+)$'
@@ -333,7 +333,7 @@ class Parser(object):
           self.__fidx += 1
           tmp.append(self.get_line()[0].strip())
         if len(tmp) > 1:
-          line = ' '.join([x[:-1] for x in tmp])
+          line = ' '.join([x.rstrip('\\') for x in tmp])
         return line
 
     def process_line(self, line, ctxt=None):

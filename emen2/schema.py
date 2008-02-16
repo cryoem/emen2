@@ -69,7 +69,7 @@ db.addparamdef(presentation_file,ctxid)
 #begin record definition: presentation
 presentation = Database.RecordDef()
 presentation.name = 'presentation'
-presentation.mainview = """$$presentation_presenter<br />$$presentation_title<br />$$presentation_file some more stuff... continue"""
+presentation.mainview = """$$presentation_presenter<br />$$presentation_title<br />$$presentation_file some more stuff... continued"""
 presentation.views['tabularview'] = """$$presentation_presenter $$presentation_title"""
 presentation.views['defaultview'] = """$$presentation_title presented by $$presentation_presenter"""
 presentation.views['recname'] = """$$presentation_title"""
@@ -280,71 +280,79 @@ grant.views['recname'] = """$$grant_title"""
 db.addrecorddef(grant,ctxid)
 #end record definition: grant
 
-#begin parameter: investigator_name
-investigator_name =  Database.ParamDef()
-investigator_name.name = 'investigator_name'
-investigator_name.vartype = 'string'
-investigator_name.desc_short = '''Name'''
-db.addparamdef(investigator_name,ctxid)
-#end parameter: investigator_name
+#begin parameter: person_name
+person_name =  Database.ParamDef()
+person_name.name = 'person_name'
+person_name.vartype = 'string'
+person_name.desc_short = '''Name'''
+db.addparamdef(person_name,ctxid)
+#end parameter: person_name
 
-#begin parameter: investigator_degrees
-investigator_degrees =  Database.ParamDef()
-investigator_degrees.name = 'investigator_degrees'
-investigator_degrees.vartype = 'string'
-investigator_degrees.desc_short = '''Degrees'''
-db.addparamdef(investigator_degrees,ctxid)
-#end parameter: investigator_degrees
+#begin parameter: person_degrees
+person_degrees =  Database.ParamDef()
+person_degrees.name = 'person_degrees'
+person_degrees.vartype = 'string'
+person_degrees.desc_short = '''Degrees'''
+db.addparamdef(person_degrees,ctxid)
+#end parameter: person_degrees
 
-#begin parameter: investigator_department
-investigator_department =  Database.ParamDef()
-investigator_department.name = 'investigator_department'
-investigator_department.vartype = 'string'
-investigator_department.desc_short = '''Department'''
-db.addparamdef(investigator_department,ctxid)
-#end parameter: investigator_department
+#begin parameter: person_department
+person_department =  Database.ParamDef()
+person_department.name = 'person_department'
+person_department.vartype = 'string'
+person_department.desc_short = '''Department'''
+db.addparamdef(person_department,ctxid)
+#end parameter: person_department
 
-#begin parameter: investigator_institution
-investigator_institution =  Database.ParamDef()
-investigator_institution.name = 'investigator_institution'
-investigator_institution.vartype = 'string'
-investigator_institution.desc_short = '''Institution'''
-db.addparamdef(investigator_institution,ctxid)
-#end parameter: investigator_institution
+#begin parameter: person_institution
+person_institution =  Database.ParamDef()
+person_institution.name = 'person_institution'
+person_institution.vartype = 'string'
+person_institution.desc_short = '''Institution'''
+db.addparamdef(person_institution,ctxid)
+#end parameter: person_institution
 
-#begin parameter: investigator_phone
-investigator_phone =  Database.ParamDef()
-investigator_phone.name = 'investigator_phone'
-investigator_phone.vartype = 'string'
-investigator_phone.desc_short = '''Phone Number'''
-db.addparamdef(investigator_phone,ctxid)
-#end parameter: investigator_phone
+#begin parameter: person_phone
+person_phone =  Database.ParamDef()
+person_phone.name = 'person_phone'
+person_phone.vartype = 'string'
+person_phone.desc_short = '''Phone Number'''
+db.addparamdef(person_phone,ctxid)
+#end parameter: person_phone
 
-#begin parameter: investigator_email
-investigator_email =  Database.ParamDef()
-investigator_email.name = 'investigator_email'
-investigator_email.vartype = 'string'
-investigator_email.desc_short = '''Phone Number'''
-db.addparamdef(investigator_email,ctxid)
-#end parameter: investigator_email
+#begin parameter: person_email
+person_email =  Database.ParamDef()
+person_email.name = 'person_email'
+person_email.vartype = 'string'
+person_email.desc_short = '''Phone Number'''
+db.addparamdef(person_email,ctxid)
+#end parameter: person_email
 
-#begin parameter: investigator_fax
-investigator_fax =  Database.ParamDef()
-investigator_fax.name = 'investigator_fax'
-investigator_fax.vartype = 'string'
-investigator_fax.desc_short = '''Fax'''
-db.addparamdef(investigator_fax,ctxid)
-#end parameter: investigator_fax
+#begin parameter: person_fax
+person_fax =  Database.ParamDef()
+person_fax.name = 'person_fax'
+person_fax.vartype = 'string'
+person_fax.desc_short = '''Fax'''
+db.addparamdef(person_fax,ctxid)
+#end parameter: person_fax
 
-#begin record definition: investigator
-investigator = Database.RecordDef()
-investigator.name = 'investigator'
-investigator.mainview = """$$investigator_name $$investigator_degrees $$investigator_department  $$investigator_institution $$investigator_phone $$investigator_fax  $$investigator_emai"""
-investigator.views['tabularview'] = """$$investigator_name"""
-investigator.views['defaultview'] = """$$investigator_name"""
-investigator.views['recname'] = """$$investigator_name"""
-db.addrecorddef(investigator,ctxid)
-#end record definition: investigator
+#begin parameter: person_photo
+person_photo =  Database.ParamDef()
+person_photo.name = 'person_photo'
+person_photo.vartype = 'binaryimage'
+person_photo.desc_short = '''A Photo'''
+db.addparamdef(person_photo,ctxid)
+#end parameter: person_photo
+
+#begin record definition: person
+person = Database.RecordDef()
+person.name = 'person'
+person.mainview = """$$person_name $$person_degrees $$person_department  $$person_institution $$person_phone $$person_fax $$person_email"""
+person.views['tabularview'] = """$$person_name"""
+person.views['defaultview'] = """$$person_name"""
+person.views['recname'] = """$$person_name"""
+db.addrecorddef(person,ctxid)
+#end record definition: person
 
 #begin parameter: address_top
 address_top =  Database.ParamDef()
@@ -411,6 +419,22 @@ menu_link.vartype = 'string'
 menu_link.desc_short = '''Menu Item target'''
 db.addparamdef(menu_link,ctxid)
 #end parameter: menu_link
+
+#begin parameter: menu_name
+menu_name =  Database.ParamDef()
+menu_name.name = 'menu_name'
+menu_name.vartype = 'string'
+menu_name.desc_short = '''The name of the URL to look up'''
+db.addparamdef(menu_name,ctxid)
+#end parameter: menu_name
+
+#begin parameter: menu_arguments
+menu_arguments =  Database.ParamDef()
+menu_arguments.name = 'menu_arguments'
+menu_arguments.vartype = 'string'
+menu_arguments.desc_short = '''A pickle of the arguments to pass'''
+db.addparamdef(menu_arguments,ctxid)
+#end parameter: menu_arguments
 
 #begin record definition: menu_item
 menu_item = Database.RecordDef()

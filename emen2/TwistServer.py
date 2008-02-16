@@ -6,25 +6,28 @@
 import sys
 import os
 import glob
-
+import Database
 from emen2.emen2config import *
 import g
+print g.ROOTPW
+from subsystems import macro
+from subsystems import templating
 
-from TwistSupport_html.public import utils
-from emen2 import ts
 from twisted.internet import reactor
 from twisted.web import static, server
-from subsystems import templating
-from subsystems import macro
+from emen2.TwistSupport_html.public import utils
+from emen2 import ts
 
-import emen2.TwistSupport_html.downloadresource
-import emen2.TwistSupport_html.publicresource
-import emen2.TwistSupport_html.uploadresource
-import emen2.TwistSupport_html.webresource
-import emen2.TwistSupport_html.xmlrpcresource
-import util.core_macros
-import util.fileops
-import TwistSupport_html.public.views
+from emen2.TwistSupport_html import downloadresource
+from emen2.TwistSupport_html import publicresource
+from emen2.TwistSupport_html import uploadresource
+from emen2.TwistSupport_html import webresource
+from emen2.TwistSupport_html import xmlrpcresource
+from emen2.util import core_macros
+from emen2.util import fileops
+from emen2 import util
+from emen2 import TwistSupport_html
+from emen2.TwistSupport_html.public import views
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
 
@@ -45,11 +48,11 @@ g.macros = macro.MacroEngine()
 
 # Setup twist server root Resources
 root = static.File(EMEN2ROOT+"/tweb")
-root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
-root.putChild("pub",emen2.TwistSupport_html.publicresource.PublicView())
-root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
-root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
-root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
+root.putChild("db",TwistSupport_html.publicresource.PublicView())
+root.putChild("pub",TwistSupport_html.publicresource.PublicView())
+root.putChild("download",TwistSupport_html.downloadresource.DownloadResource())
+root.putChild("upload",TwistSupport_html.uploadresource.UploadResource())
+root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())
 
 
 import thread
@@ -65,7 +68,7 @@ def inp(banner=''):
     else:
         thread.interrupt_main()
         time.sleep(10000000)
-        
+print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
 #sys.stderr.writelines(['enter statements, end them with Ctrl-D'])
 #thread.start_new_thread(code.interact, ('',inp,locals()))
 
