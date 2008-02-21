@@ -12,7 +12,7 @@ from cgi import escape
 from emen2 import ts
 from sets import Set
 import re
-from subsystems import routing
+from emen2.subsystems import routing
 import Database
 
 from mako import exceptions

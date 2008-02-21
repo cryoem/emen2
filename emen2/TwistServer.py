@@ -10,8 +10,8 @@ import Database
 from emen2.emen2config import *
 import g
 print g.ROOTPW
-from subsystems import macro
-from subsystems import templating
+from emen2.subsystems import macro
+from emen2.subsystems import templating
 
 from twisted.internet import reactor
 from twisted.web import static, server

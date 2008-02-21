@@ -1,6 +1,6 @@
 import g
-from subsystems.macro import add_macro
-from subsystems.formgenerator import Form, FormField, StringVar, TextVar, IntVar, VarTypeRegistry, ImageVar            
+from emen2.subsystems.macro import add_macro
+from emen2.subsystems.formgenerator import Form, FormField, StringVar, TextVar, IntVar, VarTypeRegistry, ImageVar            
 
 def macroify(function):
     def inner(db, rec, parameters, **extra):
@@ -37,10 +37,25 @@ def image_field(id, label, value=''):
 print add_macro('image')(macroify(integer_field))
 print add_macro('binaryimage')(macroify(integer_field))
 
-def formfromrecorddef(recorddef, db):
+def formfromrecorddef(recorddef, db, order=None, override=None):
+    """
+    Generate a form given a recorddef.
+    
+    @param recorddef: The recorddef for which a form needs to be generated
+    @type recorddef: Database.RecordDef
+    @param db: a Database instance
+    @type db: Database.Database
+    @param order: The order of the fields in the form, defaults to alphabetical by key 
+    @type order: list
+    @param override: Keys to override with a custom field
+    @type override: dict
+    """
     fields = []
-    for field in recorddef.params.keys():
+    override = override or {}
+    
+    for field in (order or recorddef.params.keys()):
         pd = db.getparamdef(field)
         tmp = FormField(field, pd.desc_short+':', VarTypeRegistry.get(pd.vartype), value=str(recorddef.params[field] or ''))
+        tmp = override.get(field, tmp)
         fields.append(tmp)
     return Form(fields)
