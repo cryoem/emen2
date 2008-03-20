@@ -1,5 +1,13 @@
 from test import *
 
+#begin parameter: order
+order =  Database.ParamDef()
+order.name = 'order'
+order.vartype = 'intlist'
+order.desc_short = ''' The ordering of records'''
+db.addparamdef(order,ctxid)
+#end parameter: order
+
 #begin parameter: template_name
 template_name =  Database.ParamDef()
 template_name.name = 'template_name'
@@ -184,7 +192,7 @@ db.addrecorddef(template,ctxid)
 project_title =  Database.ParamDef()
 project_title.name = 'project_title'
 project_title.vartype = 'string'
-project_title.desc_short = '''project title'''
+project_title.desc_short = '''Project Title'''
 db.addparamdef(project_title,ctxid)
 #end parameter: project_title
 
@@ -192,7 +200,7 @@ db.addparamdef(project_title,ctxid)
 project_dates =  Database.ParamDef()
 project_dates.name = 'project_dates'
 project_dates.vartype = 'string'
-project_dates.desc_short = '''project dates'''
+project_dates.desc_short = '''Project Dates'''
 db.addparamdef(project_dates,ctxid)
 #end parameter: project_dates
 
@@ -200,7 +208,7 @@ db.addparamdef(project_dates,ctxid)
 project_type =  Database.ParamDef()
 project_type.name = 'project_type'
 project_type.vartype = 'string'
-project_type.desc_short = '''type of project'''
+project_type.desc_short = '''Project Type'''
 db.addparamdef(project_type,ctxid)
 #end parameter: project_type
 
@@ -208,7 +216,7 @@ db.addparamdef(project_type,ctxid)
 project_description =  Database.ParamDef()
 project_description.name = 'project_description'
 project_description.vartype = 'text'
-project_description.desc_short = '''project description'''
+project_description.desc_short = '''Project Description'''
 db.addparamdef(project_description,ctxid)
 #end parameter: project_description
 
@@ -216,7 +224,7 @@ db.addparamdef(project_description,ctxid)
 project_reprints =  Database.ParamDef()
 project_reprints.name = 'project_reprints'
 project_reprints.vartype = 'text'
-project_reprints.desc_short = '''reprints/publications of the project'''
+project_reprints.desc_short = '''Reprints/Publications of the Project'''
 db.addparamdef(project_reprints,ctxid)
 #end parameter: project_reprints
 
@@ -279,6 +287,80 @@ grant.views['defaultview'] = """$$grant_title"""
 grant.views['recname'] = """$$grant_title"""
 db.addrecorddef(grant,ctxid)
 #end record definition: grant
+
+#begin parameter: investigator_name
+investigator_name =  Database.ParamDef()
+investigator_name.name = 'investigator_name'
+investigator_name.vartype = 'string'
+investigator_name.desc_short = '''Name'''
+db.addparamdef(investigator_name,ctxid)
+#end parameter: investigator_name
+
+#begin parameter: investigator_degrees
+investigator_degrees =  Database.ParamDef()
+investigator_degrees.name = 'investigator_degrees'
+investigator_degrees.vartype = 'string'
+investigator_degrees.desc_short = '''Degrees'''
+db.addparamdef(investigator_degrees,ctxid)
+#end parameter: investigator_degrees
+
+#begin parameter: investigator_department
+investigator_department =  Database.ParamDef()
+investigator_department.name = 'investigator_department'
+investigator_department.vartype = 'string'
+investigator_department.desc_short = '''Department'''
+db.addparamdef(investigator_department,ctxid)
+#end parameter: investigator_department
+
+#begin parameter: investigator_institution
+investigator_institution =  Database.ParamDef()
+investigator_institution.name = 'investigator_institution'
+investigator_institution.vartype = 'string'
+investigator_institution.desc_short = '''Institution'''
+db.addparamdef(investigator_institution,ctxid)
+#end parameter: investigator_institution
+
+#begin parameter: investigator_phone
+investigator_phone =  Database.ParamDef()
+investigator_phone.name = 'investigator_phone'
+investigator_phone.vartype = 'string'
+investigator_phone.desc_short = '''Phone Number'''
+db.addparamdef(investigator_phone,ctxid)
+#end parameter: investigator_phone
+
+#begin parameter: investigator_email
+investigator_email =  Database.ParamDef()
+investigator_email.name = 'investigator_email'
+investigator_email.vartype = 'string'
+investigator_email.desc_short = '''Email Address'''
+db.addparamdef(investigator_email,ctxid)
+#end parameter: investigator_email
+
+#begin parameter: investigator_fax
+investigator_fax =  Database.ParamDef()
+investigator_fax.name = 'investigator_fax'
+investigator_fax.vartype = 'string'
+investigator_fax.desc_short = '''Fax'''
+db.addparamdef(investigator_fax,ctxid)
+#end parameter: investigator_fax
+
+#begin parameter: investigator_photo
+investigator_photo =  Database.ParamDef()
+investigator_photo.name = 'investigator_photo'
+investigator_photo.vartype = 'binaryimage'
+investigator_photo.desc_short = '''A Photo'''
+db.addparamdef(investigator_photo,ctxid)
+#end parameter: investigator_photo
+
+#begin record definition: investigator
+investigator = Database.RecordDef()
+investigator.name = 'investigator'
+investigator.mainview = """$$investigator_name $$investigator_degrees $$investigator_department  $$investigator_institution $$investigator_phone $$investigator_fax $$investigator_email"""
+investigator.views['tabularview'] = """$$investigator_name"""
+investigator.views['defaultview'] = """$$investigator_name"""
+investigator.views['recname'] = """$$investigator_name"""
+db.addrecorddef(investigator,ctxid)
+#end record definition: investigator
 
 #begin parameter: person_name
 person_name =  Database.ParamDef()
@@ -344,6 +426,14 @@ person_photo.desc_short = '''A Photo'''
 db.addparamdef(person_photo,ctxid)
 #end parameter: person_photo
 
+#begin parameter: person_active
+person_active =  Database.ParamDef()
+person_active.name = 'person_active'
+person_active.vartype = 'boolean'
+person_active.desc_short = '''Currently Employed?'''
+db.addparamdef(person_active,ctxid)
+#end parameter: person_active
+
 #begin record definition: person
 person = Database.RecordDef()
 person.name = 'person'
@@ -358,7 +448,7 @@ db.addrecorddef(person,ctxid)
 address_top =  Database.ParamDef()
 address_top.name = 'address_top'
 address_top.vartype = 'string'
-address_top.desc_short = '''Address Top Line(s)'''
+address_top.desc_short = '''Street'''
 db.addparamdef(address_top,ctxid)
 #end parameter: address_top
 

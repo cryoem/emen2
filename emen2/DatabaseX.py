@@ -28,19 +28,19 @@ by another layer, say an xmlrpc server...
 
 from bsddb3 import db
 from cPickle import dumps,loads,dump,load
-
-from sets import *
-import os
-import sys
-import sha
-import time
-import re
-import operator
-import traceback
-from math import *
-from xml.sax.saxutils import escape,unescape,quoteattr
 from emen2.emen2config import *
+from math import *
+from sets import *
+from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
+import operator
+import os
+import re
+import sha
+import sys
+import time
+import traceback
+
 
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE

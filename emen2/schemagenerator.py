@@ -20,8 +20,8 @@ Record Definition:
         ---
 '''
 
-import re
 from string import Template
+import re
 
 # Match patterns
 PARAM_SHORT = r'^\$(?P<p_name>\w+) \((?P<type>\w+)\) [#](?P<desc_short>[^:\n]+)$'
@@ -89,30 +89,30 @@ db.addrecorddef(${r_name},ctxid)
 class AbstractException(Exception): pass
 
 class PrettyPrinter(object):
-  def __init__(self): raise AbstractException('Do not use this class')
-  def prnt(self, obj): pass
-  def __call__(self,obj): self.prnt(obj)
+    def __init__(self): raise AbstractException('Do not use this class')
+    def prnt(self, obj): pass
+    def __call__(self,obj): self.prnt(obj)
 
 class HierchPrinter(PrettyPrinter):
-  def __init__(self): pass
-  def prnt(self,obj,indent=0):
-    for i in obj:
-      try:
-        i.split
-        print '\t'*(indent), i
-      except AttributeError:
-        self.prnt(i, indent+1)
+    def __init__(self): pass
+    def prnt(self,obj,indent=0):
+        for i in obj:
+            try:
+                i.split
+                print '\t'*(indent), i
+            except AttributeError:
+                self.prnt(i, indent+1)
         
 class MatchPrinter(PrettyPrinter):
-  def __init__(self): pass
-  def prnt(self,obj, ind=0):
-    try:
-        print '  '*ind,obj.name
-        for i in obj._Match__ctxt:
-            self.prnt(i, ind+1)
-    except:
-        for i in obj:
-            self.prnt(i, ind)
+    def __init__(self): pass
+    def prnt(self,obj, ind=0):
+        try:
+            print '  '*ind,obj.name
+            for i in obj._Match__ctxt:
+                self.prnt(i, ind+1)
+        except:
+            for i in obj:
+                self.prnt(i, ind)
         
 class TokenClass(object):
     registry = {}
@@ -173,21 +173,21 @@ class HierchList(list):
 
 class MatchContext(list):
     def __init__(self, owner=None, *args):
-      self.__parent = owner
-      list.__init__(self, *args)
+        self.__parent = owner
+        list.__init__(self, *args)
     def __repr__(self):
         return 'MatchContext(['+list.__repr__(self)+'])'
     def add_match(self, match, pos=-1):
         if self.owner != None:
-          match.p_ctxt = self.owner
+            match.p_ctxt = self.owner
         else:
-          match.set_parent_context(self)
+            match.set_parent_context(self)
         if pos != -1:
             self.append(match)
         else:
             self.insert(pos, match)
     def get_owner(self):
-      return self.__parent
+        return self.__parent
     owner = property(get_owner)
 
 class Match(object):
@@ -207,11 +207,11 @@ class Match(object):
         return '<Match: %s>' % self.name
     def match(self, stri):
         if self.__parent:
-          self.groupdict.update(self.__parent.groupdict)
+            self.groupdict.update(self.__parent.groupdict)
         result = self.__pattern.match(stri)
         if result:
-          self.groupdict.update(result.groupdict())
-          self.groupdict.update(
+            self.groupdict.update(result.groupdict())
+            self.groupdict.update(
             result.groupdict(
               self.groupdict.get('varname', None)
             )
@@ -231,16 +231,16 @@ class Match(object):
     context = property(get_context,set_context)
     def get_parent_context(self):
         if self.__parent != None:
-          return self.__parent.context
+            return self.__parent.context
         elif self.__p_ctxt != None:
-          return self.__p_ctxt
+            return self.__p_ctxt
         return None
     def set_parent_context(self, val):
         try:
-          self.__p_ctxt = val.context
-          self.__parent = val
+            self.__p_ctxt = val.context
+            self.__parent = val
         except:
-          self.__p_ctxt = val
+            self.__p_ctxt = val
         print self.__name,':',self.__parent
     p_ctxt = property(get_parent_context, set_parent_context)
     def __g_name(self):
@@ -279,7 +279,7 @@ class Parser(object):
         for i in block:
             try:
                 matcher = i['matcher']
-                match = i['match']
+                #match = i['match']
                 gdict = matcher.groupdict
                 result.append(Token(matcher.name, **gdict))
             except:
@@ -299,30 +299,30 @@ class Parser(object):
         return result
 
     def get_block(self, ind=0):
-      '''get a block (recursuve function)
-      
-      a block is defined as one line with indent == 0
-      and any lines below it with an indent > 0
-      '''
-      indent = ind
-      res = HierchList()
-      line = None
-      first = True
-      while indent >= ind:
-        tmp = self.get_line() 
-        if tmp: line, indent = tmp  #get the line
-        else: break #???
-        if not first: 
-            if indent ==0: # if it is not the first line received and the line is not indented
-                break          # quit
-        if (indent == ind): # if indent has not changed strip and append to the result
-          res.append(self.get_continuation(line.strip()))
-          self.__fidx += 1 # go to the next line
-        elif  indent > ind: # otherwise recurse with new indent
-          res.append_child(self.get_block(indent))
-        if first:
-            first = False
-      return res
+        '''get a block (recursuve function)
+          
+          a block is defined as one line with indent == 0
+          and any lines below it with an indent > 0
+          '''
+        indent = ind
+        res = HierchList()
+        line = None
+        first = True
+        while indent >= ind:
+            tmp = self.get_line() 
+            if tmp: line, indent = tmp  #get the line
+            else: break #???
+            if not first: 
+                if indent ==0: # if it is not the first line received and the line is not indented
+                    break          # quit
+            if (indent == ind): # if indent has not changed strip and append to the result
+                res.append(self.get_continuation(line.strip()))
+                self.__fidx += 1 # go to the next line
+            elif  indent > ind: # otherwise recurse with new indent
+                res.append_child(self.get_block(indent))
+            if first:
+                first = False
+        return res
 
     def get_continuation(self, line):
         '''concatenate all lines ending with a \\'''
@@ -330,10 +330,10 @@ class Parser(object):
         if len(tmp[-1]) == 0: 
             return ''
         while tmp[-1][-1] == '\\':
-          self.__fidx += 1
-          tmp.append(self.get_line()[0].strip())
+            self.__fidx += 1
+            tmp.append(self.get_line()[0].strip())
         if len(tmp) > 1:
-          line = ' '.join([x.rstrip('\\') for x in tmp])
+            line = ' '.join([x.rstrip('\\') for x in tmp])
         return line
 
     def process_line(self, line, ctxt=None):
