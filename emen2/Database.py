@@ -24,7 +24,7 @@ from emen2.emen2config import *
 from functools import partial
 from math import *
 from sets import *
-from emen2.subsystems import macro                 #
+from emen2.subsystems import macro				 #
 from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
 import debugging as debug #
@@ -46,12 +46,12 @@ envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_
 usetxn=False
 
 
-regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"	\
 				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
 regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
 
-regex_pattern2 =  u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
+regex_pattern2 =  u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"	\
 				"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
 regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
@@ -64,7 +64,7 @@ pcomments = re.compile(recommentsregex) # re.UNICODE
 #envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_INIT_TXN
 #usetxn=True
 
-LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO    ","VERBOSE ","DEBUG   "]
+LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO	","VERBOSE ","DEBUG   "]
 
 def DB_cleanup():
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
@@ -299,7 +299,7 @@ class BTree:
 			
 			o.append(parenttag)
 			self.cpdb.put(dumps(childtag),dumps(o),txn=txn)
-#	        print self.children(parenttag)
+#			print self.children(parenttag)
 		
 	def pcunlink(self,parenttag,childtag,paramname="",txn=None):
 		"""Removes a parent-child relationship, returns quietly if relationship did not exist"""
@@ -440,7 +440,7 @@ class BTree:
 	def has_key(self,key,txn=None):
 		if not txn : txn=self.txn
 		#return self.bdb.has_key(dumps(key),txn=txn)
-                return self.bdb.has_key(dumps(key),txn) # hari put this line, commented previous
+		return self.bdb.has_key(dumps(key),txn) # hari put this line, commented previous
 	def get(self,key,txn=None):
 		return loads(self.bdb.get(dumps(key),txn=txn))
 	
@@ -1149,7 +1149,7 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 		self.groups=[]				# user group membership
 									# magic groups are 0 = add new records, -1 = administrator, -2 = read-only administrator
 
-		self.disabled=0             # if this is set, the user will be unable to login
+		self.disabled=0			 # if this is set, the user will be unable to login
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
@@ -1193,7 +1193,7 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 			#nobody should change them
 			return
 		elif (key in ["password", "disabled"]):
-		        #you not supposed to change the password and disabled in here
+				#you not supposed to change the password and disabled in here
 			return 
 		elif (key == "groups"): self.groups = int(value)
 		elif (key == "privacy"):
@@ -1307,8 +1307,8 @@ class Record:
 		self.__permissions=((),(),(),())
 		"""
 		permissions for read access, comment write access, full write access,
-            and administrative access.
-	        each element is a tuple of user names or group id's,
+			and administrative access.
+			each element is a tuple of user names or group id's,
 		Group -3 includes any logged in user,
 		Group -4 includes any user (anonymous)
 		"""
@@ -1400,6 +1400,8 @@ class Record:
 			ret.append("%12s:  %s\n"%(str(i),unicode(j).encode("utf-8")))
 		return "".join(ret)
 		
+	def __repr__(self):
+		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 		
 	def isowner(self):
 		return self.__ptest[3]	
@@ -1477,12 +1479,12 @@ class Record:
 			# nobody is allowed to do this
 			if self.__creator==value or self.__creationtime==value: return
 			if self.__ptest[3]:
-			     if key=="creator":
-				 self.__creator = value
-			     else:
+				 if key=="creator":
+				 	self.__creator = value
+				 else:
 				   self.__creationtime = value
 			else:
-			     raise SecurityError,"Creation params cannot be modified"
+				 raise SecurityError,"Creation params cannot be modified"
 	
 		elif (key=="permissions") :
 			if self.__permissions==value: return
@@ -1729,7 +1731,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 	def __str__(self):
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
-
+	
 	def login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access"""
@@ -2524,13 +2526,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 		ret={}
 		all = {}
 		for i,j in r.items():
-		      for k in j: all[k]=i
+			  for k in j: all[k]=i
 		if subset:
 			for theID in subset:
-			    try:
-				ret[theID] = all[theID]
-			    except:
-				    pass
+				try:
+					ret[theID] = all[theID]
+				except:
+					pass
 		else:
 			ret = all
 		"""
@@ -2565,7 +2567,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if i in secure : secureRet[i] = ret[i]
 	
 		return secureRet
-	        """
+			"""
 
 	def groupbyrecorddef(self,all,ctxid=None,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
@@ -2850,7 +2852,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__users[username]=user
 		self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
 
-		        
+				
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
 		ctx=self.__getcontext(ctxid,host)
@@ -2886,13 +2888,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__newuserqueue[username]=None
 
 	def loginuser(self, ctxid, host=None):
-	      ctx=self.__getcontext(ctxid,host)
-	      return ctx.user
-      
+		  ctx=self.__getcontext(ctxid,host)
+		  return ctx.user
+	  
 	def isMe (self, ctxid, username, host=None):
-	        ctx=self.__getcontext(ctxid,host)
-	        if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
-		else: return 0
+			ctx=self.__getcontext(ctxid,host)
+			if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
+			else: return 0
 
 	def putuser(self,user,ctxid,host=None):
 
@@ -2932,19 +2934,19 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		for thekey in denyKeys:
 			if userdict.has_key(thekey):
-			     del userdict[thekey]
-			     
+				 del userdict[thekey]
+				 
 		userdict['name'] = []
 		for thekey in ['firstname', 'midname', 'lastname']:
-		    if userdict.has_key(thekey):
+			if userdict.has_key(thekey):
 			  userdict['name'].append(userdict[thekey])
-		    else:
-		          userdict['name'].append("")
-		    
+			else:
+				  userdict['name'].append("")
+			
 		if not (-1 in ctx.groups) :
 			userdict['groups']=ouser.groups
 			if userdict.has_key('disabled'):
-		             del userdict['disabled']
+					 del userdict['disabled']
 
 		else:
 			if isinstance(userdict['groups'], list):
@@ -2987,24 +2989,25 @@ parentheses not supported yet. Upon failure returns a tuple:
 		becomes active. This system prevents problems with securely assigning passwords
 		and errors with data entry. Anyone can create one of these"""
 		if user.username==None or len(user.username)<3 :
-		        if self.__importmode:
+			if self.__importmode:
 				pass
 			else:
 				raise KeyError,"Attempt to add user with invalid name"
 		
 		if user.username in self.__users :
-		        if not self.__importmode:
+			if not self.__importmode:
 				raise KeyError,"User with username %s already exists"%user.username
 			else:
 				pass
+
 		if user.username in self.__newuserqueue :
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
 		if len(user.password)<5 :
 			if not self.__importmode:
-			    raise SecurityError,"Passwords must be at least 5 characters long"
-		        else:
-			    pass
+				raise SecurityError,"Passwords must be at least 5 characters long"
+			else:
+				pass
 		if len(user.password)!=40 :
 			# we disallow bad passwords here, right now we just make sure that it 
 			# is at least 6 characters long
@@ -3017,7 +3020,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			user.password=s.hexdigest()
 		if not self.__importmode:
 			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-		        user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
+			user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
 		txn=self.newtxn()
 		self.__newuserqueue.set(user.username,user,txn)
@@ -3110,11 +3113,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		ret = None
 		wflist = self.getworkflow(ctxid)
 		if len(wflist) == 0:
-		     return None
-	        else:
-		     for thewf in wflist:
-			     if thewf.wfid == wfid:
-				     ret = thewf.items_dict()
+			 return None
+		else:
+			 for thewf in wflist:
+				 if thewf.wfid == wfid:
+					 ret = thewf.items_dict()
 		return ret
 		
 	def newworkflow(self, vals):
@@ -3134,8 +3137,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__workflow[-1]=work.wfid+1
 
 		if self.__workflow.has_key(ctx.user) :
-		        wf=self.__workflow[ctx.user]
-	        else:
+				wf=self.__workflow[ctx.user]
+		else:
 			wf = []
 			
 		wf.append(work)
@@ -3403,7 +3406,7 @@ or None if no match is found."""
 		
 		for k,v in self.__fieldindex.items():
 			if k == 'parent':
-			      continue
+				  continue
 			print "commit index %s (%d)\t%d\t%d"%(k,len(v),len(BTree.alltrees),len(FieldBTree.alltrees))
 			i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
 			txn=self.newtxn()
@@ -3639,7 +3642,7 @@ or None if no match is found."""
 			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)
 			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
-#			record.recid = self.__dbseq.get()                                # Get a new record-id
+#			record.recid = self.__dbseq.get()								# Get a new record-id
 
 			df=file("/tmp/dbbug3","a")
 			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
@@ -3662,7 +3665,7 @@ or None if no match is found."""
 			ptest.discard("permissions")
 			ptest.discard("rectype")
 			if len(ptest)>0 :
-			        if DEBUG: print ptest 
+				if DEBUG: print ptest 
 #				self.__records[-1]=record.recid-1
 				txn.abort()
 				print "One or more parameters undefined (%s)"%ptest
@@ -3756,10 +3759,10 @@ or None if no match is found."""
 		# Now update the indices
 		for f in changedparams:
 			# reindex will accept None as oldval or newval
-			try:    oldval=orig[f]
+			try:	oldval=orig[f]
 			except: oldval=None
 			
-			try:    newval=record[f]
+			try:	newval=record[f]
 			except: newval=None
 
 			self.__reindex(f,oldval,newval,record.recid,txn)
@@ -3878,18 +3881,20 @@ or None if no match is found."""
 		
 		# if a single id was requested, return it
 		# setContext is required to make the record valid, and returns a binary security tuple
-		if (isinstance(recid,int)):
+		if (hasattr(recid,'__int__')):
+			recid = int(recid)
 			rec=self.__records[recid]
 			p=rec.setContext(ctx)
 			if not p[0] : raise SecurityError,"Permission Denied" # ian: changed Exception to SecurityError
 			return rec
-		elif (isinstance(recid,list)):
+		elif (hasattr(recid,'__iter__')):
 			recl=map(lambda x:self.__records[x],recid)
 			for rec in recl:
 				p=rec.setContext(ctx)
 				if not p[0] : raise SecurityError,"Permission denied on one or more records"	# ian: changed Exception to SecurityError
 			return recl
-		else : raise KeyError,"Invalid Key %s"%str(recid)
+		else : raise SecurityError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
+#		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
 		"""Same as getRecord, but failure will produce None or a filtered list"""
@@ -3999,7 +4004,7 @@ or None if no match is found."""
 			
 			# update if necessary
 #			if l!=l2 :
-                        if xcur[0] != cur[0] or xcur[1] != cur[1] \
+			if xcur[0] != cur[0] or xcur[1] != cur[1] \
 			   or xcur[2] != cur[2] or xcur[3] != cur[3]:
 				old=rec["permissions"]
 				rec["permissions"]=(tuple(xcur[0]),tuple(xcur[1]),tuple(xcur[2]),tuple(xcur[3]))
@@ -4277,14 +4282,14 @@ or None if no match is found."""
 			if ch and len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
 			csn=self.getcousins(i,keytype="paramdef")
 			if csn and len(csn)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </cousins>\n')
 			ret.append('</paramdef>\n')
 			
@@ -4305,28 +4310,28 @@ or None if no match is found."""
 			if rd.params and len(rd.params)>0 :
 				ret.append('  <params>\n')
 				for k,v in rd.params.items():
-					if v==None : ret.append('    <param name="%s"/>\n'%k)
-					else: ret.append('    <param name="%s" default="%s"/>\n'%(k,v))
+					if v==None : ret.append('	<param name="%s"/>\n'%k)
+					else: ret.append('	<param name="%s" default="%s"/>\n'%(k,v))
 				ret.append('  </params>\n')
 				
 			if rd.views and len(rd.views)>0 :
 				ret.append('  <views>\n')
 				for k,v in rd.views.items():
-					ret.append('    <view name="%s">%s</view>\n'%(k,escape2(v)))
+					ret.append('	<view name="%s">%s</view>\n'%(k,escape2(v)))
 				ret.append('  </views>\n')
 				
 			ch=self.getchildren(i,keytype="recorddef")
 			if len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
 			csn=self.getcousins(i,keytype="recorddef")
 			if len(ch)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </cousins>\n')
 			
 			ret.append('</recorddef>\n')
@@ -4351,7 +4356,7 @@ or None if no match is found."""
 			if len(u.groups)>0:
 				ret.append('  <groups>\n')
 				for j in u.groups:
-					ret.append('    <group value="%s"/>\n'%j)
+					ret.append('	<group value="%s"/>\n'%j)
 				ret.append('  </groups>\n')
 			ret.append('/user\n')
 
@@ -4377,20 +4382,20 @@ or None if no match is found."""
 			
 			ret.append('  <permissions value="read">\n')
 			for j in rec["permissions"][0]:
-				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
-				else : ret.append('    <user value="%s"/>\n'%str(j))
+				if isinstance(j,int) : ret.append('	<group value="%d"/>\n'%j)
+				else : ret.append('	<user value="%s"/>\n'%str(j))
 			ret.append('  </permissions>\n')
 			
 			ret.append('  <permissions value="comment">\n')
 			for j in rec["permissions"][1]:
-				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
-				else : ret.append('    <user value="%s"/>\n'%str(j))
+				if isinstance(j,int) : ret.append('	<group value="%d"/>\n'%j)
+				else : ret.append('	<user value="%s"/>\n'%str(j))
 			ret.append('  </permissions>\n')
 			
 			ret.append('  <permissions value="write">\n')
 			for j in rec["permissions"][2]:
-				if isinstance(j,int) : ret.append('    <group value="%d"/>\n'%j)
-				else : ret.append('    <user value="%s"/>\n'%str(j))
+				if isinstance(j,int) : ret.append('	<group value="%d"/>\n'%j)
+				else : ret.append('	<user value="%s"/>\n'%str(j))
 			ret.append('  </permissions>\n')
 			
 			pk=rec.getparamkeys()
@@ -4404,14 +4409,14 @@ or None if no match is found."""
 			if len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
 			csn=self.getcousins(i,keytype="record")
 			if len(csn)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
-					ret.append('    <link name="%s"/>\n'%j)
+					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </cousins>\n')
 				
 			ret.append('</record>')
@@ -4623,7 +4628,7 @@ or None if no match is found."""
 					print " %8d records  (%f/sec)\r"%(nrec,nrec/(time.time()-t0))
 					sys.stdout.flush()
 				oldid=r.recid
-#				r.recid = self.__dbseq.get()                                # Get a new record-id
+#				r.recid = self.__dbseq.get()								# Get a new record-id
 				r.recid=self.__records.get(-1,txn)
 				self.__records.set(-1,r.recid+1,txn)				# Update the recid counter, TODO: do the update more safely/exclusive access
 				recmap[oldid]=r.recid
