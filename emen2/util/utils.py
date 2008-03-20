@@ -1,9 +1,4 @@
-
-# useful function decorators
 import cgi
-#import debug
-
-__all__ = ['EscapedFun', 'ReturnString', 'ReturnAsJPG', 'ReturnAsPNG']
 
 class BaseDecorator(object):
     def __init__(self, func):
@@ -48,7 +43,7 @@ class ReturnAsPNG(ReturnWithMimeType):
 
 def return_html(name, bases, dict):
     cls = type(name, bases, dict)
-    cls.mime_type = "text/html charset=utf-8"
+    cls.mime_type = "text/html"
     return cls
 
 class ReturnAsHTML(ReturnWithMimeType):
@@ -67,10 +62,10 @@ class MultiDecorate(BaseDecorator):
             func = i(func)
         return func
 
-class ReturnString(ReturnAsHTML):
+class ReturnString(BaseDecorator):
     def __call__(self, *args, **kwargs):
-        result = ReturnAsHTML.__call__(self, *args, **kwargs)
-        return str(result[0]).encode('utf-8'), result[1]
+        result = BaseDecorator.__call__(self, *args, **kwargs)
+        return str(result).encode('utf-8')
 
 def get_slice(str, start, end):
     if end > len(str) - 1:
@@ -82,3 +77,9 @@ def get_slice(str, start, end):
 def adj_dict(dict, items):
     dict.update(items)
     return dict
+
+def make_registry(name, bases, dict):
+    cls = type(name, bases, dict)
+    cls._registry = {}
+    return cls
+

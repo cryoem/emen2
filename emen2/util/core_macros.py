@@ -1,4 +1,4 @@
-from emen2.subsystems.macro import add_macro , MacroEngine #
+from emen2.subsystems.macro import add_macro
 
 from functools import partial#
 
@@ -7,7 +7,7 @@ def get_recid(db, rec, parameters, **extra):
 	return rec.recid
 
 @add_macro('recname')
-def get_parentvalue(db, rec, parameters, ctxid, host, **extra):
+def get_recname(db, rec, parameters, ctxid, host, **extra):
 	recdef=db.getrecorddef(rec.rectype,ctxid,host=host)
 	view = recdef.views.get("recname", "(no recname view)")
 	result = db.renderview(rec,view,ctxid=ctxid,host=host)
@@ -65,17 +65,17 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 def getrectypesiblings(db,rec, args, ctxid, host, **extra):
 	"""returns siblings and cousins of same rectype"""
 	ret = {}
-	parents = db.getparents(recid,ctxid=ctxid)
+	parents = db.getparents(rec.recid,ctxid=ctxid)
 	siblings = set()
 
 	for i in parents:
 		siblings = siblings.union(db.getchildren(i,ctxid=ctxid))
 
-	groups = db.groupbyrecorddeffast(cousins,ctxid)
+	groups = db.groupbyrecorddeffast(siblings, ctxid)
 
 	if groups.has_key(rec.rectype):
-		q = db.getindexdictbyvaluefast(cousingroups[rec.rectype],"modifytime",ctxid=ctxid)
-		ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)]	
+		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid=ctxid)
+		ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?	
 
 	return str(ret)
 	
@@ -122,6 +122,3 @@ def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	parents = db.getparents(recid, ctxid=ctxid)
 	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
-	
-	
-print MacroEngine._macros
