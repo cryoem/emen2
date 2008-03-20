@@ -15,10 +15,6 @@ table, caption, tbody, tfoot, thead, tr, th, td {
 	vertical-align: baseline;
 }
 
-h1, h2, h3, h4 {
-	border-bottom: medium solid black;
-	width: 100%;
-}
 
 body { 
   line-height: 1.5; 
@@ -49,7 +45,9 @@ body, html {
 #container {
   position:relative;
   min-height:100%;
-  width: 850px;
+  width: auto;
+  min-width: 850px;
+  max-width: 950px;
   margin: 0px auto;
   background: white;
 }
@@ -73,6 +71,10 @@ body, html {
 #header, #footer {
   overflow: hidden;
   width: 100%;
+	background: #DCEEEE;
+}
+
+#header {
 }
 
 #tright, #info {
@@ -82,9 +84,6 @@ body, html {
   margin: 20px 10px 0 0;
 }
 
-#content, #nav {
- border-bottom: solid #D3C7A6 1px;
-}
 /*
 
 */
@@ -163,6 +162,7 @@ ul#nav {
 .mitem {
  margin: 2px;
  overflow: hidden;
+ border: 2px solid olive;
 }
 
 .mdesc {
@@ -188,6 +188,8 @@ ul#nav {
 
 .mitem:hover {
  background: maroon;
+ background: url(/bg.png) maroon repeat-x bottom;
+ border: 2px black solid;
 }
 
 /* search box styles */
@@ -245,12 +247,9 @@ html,body {
   height:100%;
 }
 
-#container {
-  /*width:auto;*/
-}
-
 
 #content {
+	border-top: solid #D3C7A6 3px;
 }
 
 #footer {
@@ -258,4 +257,15 @@ html,body {
 
 label {
 	display: block;
+}
+
+h1 {
+	text-align: center;
+	font-size: x-large;
+	font-weight: bolder;
+}
+
+h2 {
+	text-align: center;
+	font-weight: bold;
 }

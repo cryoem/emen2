@@ -1,0 +1,56 @@
+body {
+	position: relative;
+	height: 100%;
+}
+
+form.input {
+	position: relative;
+	display: block;
+	width: 75%;
+	margin: 5px auto;
+	padding: .25em;
+	border: thin black solid;
+	background: #B1A584;
+}
+
+form.input > div {
+	padding: .5em;
+	border: thin black solid;
+	background: #D3C7A6;
+}
+
+form.input > div > div {
+	padding: .5em 0px;
+}
+		
+form.input div.formfield {
+	width: 100%;	
+	overflow: hidden;
+}
+
+div.formfield input, div.formfield textarea, div.formfield select{
+	width: 49%;
+	border: thin black solid;
+	float: right;
+	text-align: left;
+}
+
+form.input input[type=submit] {
+	float: none;
+}
+
+form.input label {
+	min-width: 49%;
+	float: left;
+	text-align: right;
+}
+
+h2 {
+	min-width: 49%;
+	float: right;
+	clear: right;
+}
+
+textarea {
+	min-height: 4em; 
+}
