@@ -6,16 +6,13 @@ import g
 
 def get_path_id(path, cur_dir=None, dbinfo=None):
     '''raises StopIteration if path does not exist'''
-    dbinfo=dbinfo or {}
+    #dbinfo=dbinfo or {}
     
     if cur_dir == None: # if cur_dir not supplied, assume an absolute path
         cur_dir = get_root_id(**dbinfo)
         
     if path != []: # recurse if we are not at the end of the path list
-#        try:
         tmp = get_child_id(path[0], cur_dir=cur_dir, **dbinfo)
-#        except StopIteration:
-#            return cur_dir
         return get_path_id(path[1:], tmp, dbinfo)
     else: # if we are at the end of the path list, we must be where we want to be
         return cur_dir
