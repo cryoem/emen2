@@ -94,7 +94,7 @@ class PublicView(Resource):
 			callback = make_callback('')
 			
 			try:
-				ts.db.checkcontext(ctxid)
+				ts.db.checkcontext(ctxid,host)
 			except Exception, e:
 				if ctxid != None:	
 					loginmsg = "Session expired"
@@ -115,7 +115,7 @@ class PublicView(Resource):
 						method = "login"
 						loginmsg = "Please try again."
 				else:
-					ctxid = ts.db.login()
+					ctxid = ts.db.login("","",host)
 						
 			if method == "login":			
 				callback = make_callback(self.login(uri=request.uri,msg=loginmsg))
@@ -135,7 +135,8 @@ class PublicView(Resource):
 				
 				g.debug( 'request: %s, args: %s' % (request, tmp) )
 				callback = routing.URLRegistry().execute(path, **tmp)
-										
+
+			g.debug('going to thread with context id %s user %s'%(ctxid,ts.db.checkcontext(ctxid,host)))
 			d = threads.deferToThread(callback, ctxid=ctxid, host=host)
 			d.addCallback(self._cbsuccess, request, ctxid)
 			d.addErrback(self._ebRender, request, ctxid)

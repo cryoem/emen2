@@ -1373,7 +1373,7 @@ class Record:
 			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 			p3=Set(self.__permissions[2]+self.__permissions[3])
 			p4=Set(self.__permissions[3])
-			u1=Set(ctx.groups+(-4,))				# all users are permitted group -4 access
+			u1=Set(ctx.groups+[-4])				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -1739,8 +1739,10 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		# anonymous user
 		if (username=="anonymous" or username=="") :
-			ctx=Context(None,self,None,(),host,maxidle)
-		
+			# ian: fix anon login
+			#ctx=Context(None,self,None,(),host,maxidle)
+			#def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
+			ctx=Context(None,self,None,[-4],host,maxidle)
 		# check password, hashed with sha-1 encryption
 		else :
 			s=sha.new(password)
@@ -1943,7 +1945,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		get basic information on the authorized user and his/her permissions"""
 		#
 		a=self.__getcontext(ctxid,host)
-		if a.user==None: return(-4,-4)
+		#if a.user==None: return(-4,-4)
 		return(a.user,a.groups)
 	
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
