@@ -94,7 +94,7 @@ class PublicView(Resource):
 			callback = make_callback('')
 			
 			try:
-				ts.db.checkcontext(ctxid,host)
+				ts.db.checkcontext(ctxid)
 			except Exception, e:
 				if ctxid != None:	
 					loginmsg = "Session expired"
@@ -135,8 +135,7 @@ class PublicView(Resource):
 				
 				g.debug( 'request: %s, args: %s' % (request, tmp) )
 				callback = routing.URLRegistry().execute(path, **tmp)
-
-			g.debug('going to thread with context id %s user %s'%(ctxid,ts.db.checkcontext(ctxid,host)))
+										
 			d = threads.deferToThread(callback, ctxid=ctxid, host=host)
 			d.addCallback(self._cbsuccess, request, ctxid)
 			d.addErrback(self._ebRender, request, ctxid)
@@ -177,13 +176,10 @@ class PublicView(Resource):
 				page = self.login(uri=request.uri, msg="Insufficient permissions to access resource.")
 			#print "SECURITY ERROR
 		elif isinstance(failure.value, Database.SessionError):
-			print 1
 			page = self.login(uri=request.uri, msg="Session expired.")
-			print 2
 		else:
 			page = '<pre>'  + escape(str(failure)) + '</pre>'
-			
-		print page
+
 		request.write(page[0])
 		request.finish()
 
