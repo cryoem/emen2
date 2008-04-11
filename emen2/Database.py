@@ -37,7 +37,6 @@ import traceback
 import weakref
 
 
-
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -1053,7 +1052,8 @@ valid_properties = {
 "filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
 "percentage":('%', {'%':1.0}),
 "currency":("dollars",{"dollars":1.0}),
-"pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4})
+"pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4}),
+"unitless":("unitless",{"unitless":1})
 }
 
 
@@ -1063,6 +1063,12 @@ class ParamDef:
 	conceptual relationships. The relationships are handled externally by the
 	Database object. Fields may only be modified by the administrator once
 	created, and then, they should only be modified for clarification""" 
+	
+	# non-admin users may only update descs and choices
+	allowed = ["desc_long","desc_short","choices"]
+	restricted = ["name","vartype","defaultunits","property","creator","creationtime","creationdb"]
+	
+	# name may be a dict; this allows backwards compat dictionary initialization
 	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
 		self.name=name					# This is the name of the paramdef, also used as index
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
@@ -1075,40 +1081,147 @@ class ParamDef:
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 										# creation date
 		self.creationdb=None		# dbid where paramdef originated
+		
+		if isinstance(name,dict):
+			for k,v in name.items():
+				self.__setattr__(k,v)
+
+		try:
+			self.validate()
+		except:
+			print "Warning: ParamDef '%s' does not validate."%self.name
+		
+	def __setattr__(self,key,value):
+		if key not in self.allowed+self.restricted:
+			raise AttributeError,"No attribute %s"%key
+
+		self.__dict__[key] = value
+		# self.verify()
+	
+	def validate(self):
+		if str(self.name) == "":
+			raise ValueError,"name required"
+
+		if self.vartype != None and not str(self.vartype) in valid_vartypes:
+			raise ValueError,"invalid vartype; not in valid_vartypes"
+			
+		if unicode(self.desc_short) == "":
+			raise ValueError,"Short description (desc_short) required"
+
+		if unicode(self.desc_long) == "":
+			raise ValueError,"Long description (desc_long) required"
+
+		if self.property != None and str(self.property) not in valid_properties:
+			raise ValueError,"invalid property; not in valid_properties"
+
+		if self.defaultunits != None:
+			a=[]
+			for q in valid_properties.values():
+				a.extend(q[1].keys()) 
+			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
+				raise ValueError,"invalid defaultunits; not in valid_properties"
+			
+		if self.choices != None:
+			try:
+				list(self.choices)
+				for i in self.choices:
+					unicode(i)
+			except:
+				raise ValueError,"choices must be a list of strings"
+			#if isinstance(self.choices,basestring):
+			#	raise ValueError,"choices must be strings"
+			#for i in self.choices:
+			
+
+	
 
 	def __str__(self):
 		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
+
+
 			
 class RecordDef:
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
+	
+	allowed = ["mainview","views","private","typicalchld"]
+	restricted = ["name","params","paramsK","owner","creator","creationtime","creationdb"]
+	
 	def __init__(self,dict=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.mainview=None			# a string defining the experiment with embedded params
+		self.mainview="$$rectype $$creator $$creationdate"			# a string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
-		self.views={}				# Dictionary of additional (named) views for the record
+		self.views={"recname":"$$rectype $$creator $$creationdate"}				# Dictionary of additional (named) views for the record
+		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
+									# or by someone with read access to a record of this type
+		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
+									# implicitly includes subclasses of the referenced types
+
 		self.params={}				# A dictionary keyed by the names of all params used in any of the views
 									# values are the default value for the field.
 									# this represents all params that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record
 		self.paramsK = []			# ordered keys from params()
-		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
-									# or by someone with read access to a record of this type
-		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
-									# implicitly includes subclasses of the referenced types
 		self.owner=None				# The owner of this record
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
 		self.creationdb=None		# dbid where recorddef originated
-		if (dict) : self.__dict__.update(dict)
 		
+		if (dict):
+			#self.__dict__.update(dict)
+			for k,v in dict.items():
+				self.__setattr__(k,v)
+
+		self.findparams()
+		
+		try:
+			self.validate()
+		except:
+			print "Warning: RecordDef '%s' does not validate."%self.name
+			
+	def __setattr__(self,key,value):
+		if key not in self.allowed+self.restricted:
+			raise AttributeError,"No attribute %s"%key
+
+		self.__dict__[key] = value
+		# if key == "mainview":	self.findparams()
+		# self.verify()
+	
+		
+	def validate(self):	
+		try:
+			if str(self.name) == "":
+				raise Exception
+		except:	raise ValueError,"name required; must be str or unicode"
+
+		try: dict(self.views)
+		except: raise ValueError,"views must be dict"
+
+		try: list(self.typicalchld)
+		except:	raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
+						
+		try: 
+			if unicode(self.mainview) == "": raise Exception
+		except:
+			raise ValueError,"mainview required; must be str or unicode"
+
+		if not dict(self.views).has_key("recname"):
+			print "Warning: recname view strongly suggested"
+
+		for k,v in self.views.items():
+			if not isinstance(k,str) or not isinstance(v,basestring):
+				raise ValueError,"Views names must be strings; view defs may be unicode"
+
+		if self.private not in [0,1]:
+			raise ValueError,"Invalid value for private; must be 0 or 1"
+
+
 	def __setstate__(self,dict):
 		"""restore unpickled values to defaults after unpickling"""
 		self.__dict__.update(dict)
 		if not dict.has_key("typicalchld") : self.typicalchld=[]
-
 
 	def __str__(self):
 		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
@@ -1136,12 +1249,19 @@ class RecordDef:
 		self.params=d
 		self.paramsK=tuple(t)
 			
+			
+			
 class User:
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Approved users are never deleted, only disabled, for historical logging purposes. -1 group is for database
 administrators. -2 group is read-only administrator. Only the metadata below is persistenly stored in this
-record. Other metadata is stored in a linked "Person" Record in the database itself once the user is approved
-	Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime"""
+record. Other metadata is stored in a linked "Person" Record in the database itself once the user is approved.
+Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime"""
+
+	# non-admin users can only change their privacy setting directly
+	allowed = ["privacy"]
+	restricted = ["name","email","username","groups","disabled","password","creator","creationtime","record"]
+
 	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
@@ -1153,64 +1273,93 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
 		self.record=None		# link to the user record with personal information
+
+		# required for holding values until approved; email keeps original signup address. name is removed after approval.
+		self.name=None
+		self.email=None
+
 		if (dict):
-			self.__dict__.update(dict)
-			if (dict.has_key("private")) : self.private=1
-			else : self.private=0
-			if (dict.has_key("name1")) :
-				del self.__dict__["name1"]
-				del self.__dict__["name2"]
-				del self.__dict__["name3"]
-				self.name=(dict["name1"],dict["name2"],dict["name3"])
+			#self.__dict__.update(dict)
+			for k,v in dict.items():
+				self.__setattr__(k,v)
+
+		try:
+			self.validate()
+		except:
+			print "Warning: User '%s' does not validate."%self.username
 			
-	def __str__(self):
-		return format_string_obj(self.__dict__,["username","groups","name","email","phone","fax","cellphone","webpage","",
-			"institution","department","address","city","state","zipcode","country","","disabled","privacy","creator","creationtime","record"])
+	def __setattr__(self,key,value):
+		if key not in self.allowed+self.restricted:
+			raise AttributeError,"No attribute %s"%key
 
-	def items_dict(self):		
-		ret={}
-		ret = self.__dict__
-		return ret
+		self.__dict__[key] = value
+		# self.verify()
 	
-	def __getitem__(self,key):
-		#if not self.__ptest[0] : raise SecurityError,"No permission to access record %d"%self.recid	
-		key=key.lower()
-		if self.has_key(key) : return self.key
-		return None
-	
-	def __setitem__(self,key,value):
-		"""Changes the values of an item. The password cannot be changed directly,
-		but must be modified through the Database instance."""
-		# comments may include embedded field values if the user has full write access
-		key=key.strip().lower()
-		if (key == "comments"): pass
-		elif (key=="rectype") :
-			if self.__ptest[3]: self.rectype=value.lower()
-			else: raise SecurityError,"Insufficient permission to change the record type"
+	def validate(self):
 
-		elif (key=="username", "creator" or key=="creationtime") :
-			#nobody should change them
-			return
-		elif (key in ["password", "disabled"]):
-				#you not supposed to change the password and disabled in here
-			return 
-		elif (key == "groups"): self.groups = int(value)
-		elif (key == "privacy"):
-			if int(value) in [0, 1, 2]:
-				self.privacy = int(value)
-		elif (key in ["name","email","phone","fax","cellphone","webpage","institution","department","address","city","state","zipcode","country"]):
-			pass
+		try:
+			str(self.email)
+		except:
+			raise AttributeError,"Invalid value for email"
+			
+		if self.name != None:	
+			try:
+				list(self.name)
+				str(self.name)[0]
+				str(self.name)[1]
+				str(self.name)[2]
+			except:
+				raise AttributeError,"Invalid name format."
 
+		try: 
+			list(self.groups)
+		except:
+			raise AttributeError,"Groups must be a list."
+
+		try:
+			if self.record != None: int(self.record)
+		except:
+			raise AttributeError,"Record pointer must be integer"
 		
-	def __realsetitem(self,key,value):
-			"""This insures that copies of original values are made when appropriate
-			security should be handled by the parent method"""
-			if key in self.__params and self.__params[key]!=None and not key in self.__oparams : self.__oparams[key]=self.__params[key]
-			self.__params[key]=value
+		if self.privacy not in [0,1,2]:
+			raise AttributeError,"User privacy setting may be 0, 1, or 2."
+
+		#if len(user.password)!=40:
+			# 40 = lenght of hex digest
+			# we disallow bad passwords here, right now we just make sure that it 
+			# is at least 6 characters long
+		#	if len(user.password)<6 :
+		#		if not self.__importmode:
+		#			raise SecurityError,"Passwords must be at least 6 characters long"
+		#		else:
+		#			pass
+		#	s=sha.new(user.password)
+		#	user.password=s.hexdigest()
+
+		if self.password != None and len(self.password) != 40:
+			raise AttributeError,"Invalid password hash; use setpassword to update"
+
+		if self.disabled not in [0,1]:
+			raise AttributeError,"Disabled must be 0 (active) or 1 (disabled)"
+
+	# ian: removed a bunch of methods that didn't actually work and weren't needed.				
+
+	def __str__(self):
+		return format_string_obj(self.__dict__,["username","groups","disabled","privacy","creator","creationtime","record"])
+
+	# remove if not used
+	def items_dict(self):
+		return self.__dict__
+
+
 							
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
+
+	allowed = []
+	restricted = []
+
 	def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 		self.ctxid=ctxid			# unique context id
 		self.db=db					# Points to Database object for this context
@@ -1221,7 +1370,8 @@ class Context:
 		self.maxidle=maxidle
 	
 	def __str__(self):
-		return format_string_obj(self.__dict__,["ctxid","user","groups","time","maxidle"])
+		return format_string_obj(self.__dict__,["ctxid","user","groups","time","maxidle"])	
+		
 		
 class WorkFlow:
 	"""Defines a workflow object, ie - a task that the user must complete at
@@ -1229,27 +1379,45 @@ class WorkFlow:
 	aren't implemented using the Record class. 
 	Implementation of workflow behavior is largely up to the
 	external application. This simply acts as a repository for tasks"""
-	def __init__(self,vals=None):
-		if isinstance(vals,dict) :
-			self.__dict__.update(vals)
-		else:
-			self.wfid=None				# unique workflow id number assigned by the database
-			self.wftype=None
-			# a short string defining the task to complete. Applications
-			# should select strings that are likely to be unique for
-			# their own tasks
-			self.desc=None				# A 1-line description of the task to complete
-			self.longdesc=None			# an optional longer description of the task
-			self.appdata=None			# application specific data used to implement the actual activity
-			self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+
+	allowed = ["desc","wftype","longdesc","appdata"]
+	restricted = ["wfid","creationtime"]
+
+	def __init__(self,dict=None):
+		self.wfid=None				# unique workflow id number assigned by the database
+		self.wftype=None
+		# a short string defining the task to complete. Applications
+		# should select strings that are likely to be unique for
+		# their own tasks
+		self.desc=None				# A 1-line description of the task to complete
+		self.longdesc=None			# an optional longer description of the task
+		self.appdata=None			# application specific data used to implement the actual activity
+		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+
+		if (dict):
+			for k,v in dict.items():
+				self.__setattr__(k,v)
+
+		try:
+			self.validate()
+		except:
+			print "Warning: WorkFlow wfid:'%s' does not validate."%self.wfid
+
+	def __setattr__(self,key,value):
+		if key not in self.allowed+self.restricted:
+			raise AttributeError,"No attribute %s"%key
+		self.__dict__[key] = value
+	
+	def validate(self):
+		pass
 		
 	def __str__(self):
 		return str(self.__dict__)
 	
+	# remove if possible
 	def items_dict(self):		
-		ret={}
-		ret = self.__dict__
-		return ret
+		return self.__dict__
+					
 					
 class Record:
 	"""This class encapsulates a single database record. In a sense this is an instance
@@ -1285,6 +1453,15 @@ class Record:
 	the supplied access methods. There may be appropriate uses for this when constructing
 	a new Record before committing changes back to the database.
 	"""
+	
+	# allowed = non-admin attributes editable
+	# restricted = admin only editable attributes
+	# restricted params = admin only editable params
+	allowed = []
+	restricted = ["rectype","recid","dbid","_Record__params","_Record__comments","_Record__oparams",
+	"_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"]
+	restrictedparams = ["creator","creationtime","modifyuser","modifytime"]
+	
 	def __init__(self,dict=None,ctxid=None):
 		"""Normally the record is created with no parameters, then setContext is called by the
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
@@ -1314,6 +1491,12 @@ class Record:
 		self.__context=None			# Validated access context
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
+
+	def __setattr__(self,key,value):
+		if key not in self.allowed+self.restricted:
+			raise AttributeError,"No attribute %s"%key
+		#print "set %s = %s"%(key,value)
+		self.__dict__[key] = value
 
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
@@ -1349,10 +1532,11 @@ class Record:
 		
 		self.__context=None
 
+	
+	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
 	def setContext(self,ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
-		own context will not work
-		to see if a ctx(a user context) has the permission to access/write to this record
+		own context will not work	to see if a ctx(a user context) has the permission to access/write to this record
 		"""
 		#self.__context__=ctx
 		self.__context = ctx
@@ -1362,7 +1546,7 @@ class Record:
 			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 			self.__permissions=((),(),(),(ctx.user,))
 		
-		# test for owner access in this context
+		# test for owner access in this context.
 		if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
 		else:
 			# we use the sets module to do intersections in group membership
@@ -1402,23 +1586,32 @@ class Record:
 	def __str__(self):
 		return self.__unicode__().encode('utf-8')
 		
+
+
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 		
+
+
 	def isowner(self):
 		return self.__ptest[3]	
 		
+
+
 	def writable(self):
 		"""Returns whether this record can be written using the given context"""
 		return self.__ptest[2]
 		
+
+
 	def commentable(self):
 		"""Does user have level 1 permissions? Required to comment or link."""
 		return self.__ptest[1]	
 
-		
+
+
 	def getparamkeys(self):
-		"Returns parameter keys without special values like owner, creator, etc."
+		"""Returns parameter keys without special values like owner, creator, etc."""
 		return self.__params.keys()
 
 	
@@ -1498,7 +1691,7 @@ class Record:
 				except:
 					raise TypeError,"Permissions must be a 4-tuple of tuples"
 			else: 
-				raise SecurityError,"Write permission required to modify security %d"%self.recid
+				raise SecurityError,"Ownership permission required to modify security %d"%self.recid
 		else :
 			
 			if self.__params.has_key(key) and self.__params[key]==value : return
@@ -1549,8 +1742,6 @@ class Record:
 			pass
 		return ret
 		
-
-		
 	def has_key(self,key):
 		if key in self.keys() or key in ("rectype","comments","creator","creationtime","permissions"): return True
 		return False
@@ -1559,7 +1750,21 @@ class Record:
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__context.db.putrecord(self,self.__context.ctxid,host)
+		return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
+
+	def validate(self):
+		try: 
+			if self.recid != None: int(self.recid)
+		except:
+			raise ValueError,"recid must be positive integer"
+		
+		if str(self.rectype) == "":
+			raise ValueError,"rectype must not be empty"
+			
+		x=self.__permissions
+		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
+			raise ValueError,"permissions MUST be a 4-tuple of tuples"			
+
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -1584,6 +1789,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.logfile=path+"/"+logfile
 		self.lastctxclean=time.time()
 		self.__importmode=importmode
+	
+		self.maxrecurse=50
 	
 		xtraflags=0
 		if recover: xtraflags=db.DB_RECOVER
@@ -1703,12 +1910,18 @@ recover - Only one thread should call this. Will run recovery on the environment
 		elif not self.__importmode : DB_syncall()
 		self.LOG(4,"Database initialized")
 
+
+
 	# one of these 2 methods is mapped to self.newtxn()
 	def newtxn1(self):
 		return self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 	
+	
+	# ian: why?
 	def newtxn2(self):
 		return None
+	
+	
 	
 	def LOG(self,level,message):
 		"""level is an integer describing the seriousness of the error:
@@ -1730,13 +1943,17 @@ recover - Only one thread should call this. Will run recovery on the environment
 			traceback.print_exc(file=sys.stdout)
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
+
+
 	def __str__(self):
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
-	
+
+
+	#@write,all
 	def login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
-		subsequent access"""
+		subsequent access. Returns ctxid."""
 		ctx=None
 		
 		# anonymous user
@@ -1774,9 +1991,16 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		return ctx.ctxid
 		
-	
-	def deletecontext(self,ctxid):
-		"""Delete a context"""
+		
+		
+	# ian: changed from deletecontext to __deletecontext because this should not available via rpc.
+	#@write,private
+	def __deletecontext(self,ctxid,host=None):
+		"""Delete a context. Returns None."""
+
+		# check we have access to this context
+		ctx=self.__getcontext(ctxid,host)
+		
 		txn=self.newtxn()
 		self.__contexts_p.set_txn(txn)
 		for k in self.__contexts_p.items():
@@ -1790,8 +2014,11 @@ recover - Only one thread should call this. Will run recovery on the environment
 		elif not self.__importmode : DB_syncall()		
 
 
-	def cleanupcontexts(self):
-		"""This should be run periodically to clean up sessions that have been idle too long"""
+
+	# ian: changed from cleanupcontexts to __cleanupcontexts
+	#@write,private
+	def __cleanupcontexts(self):
+		"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
 		self.lastctxclean=time.time()
 		txn=self.newtxn()
 		self.__contexts_p.set_txn(txn)
@@ -1817,11 +2044,13 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 
+
+	# ian: host required here.
 	def __getcontext(self,key,host):
-		"""Takes a key and returns a context (for internal use only)
-		Note that both key and host must match."""
+		"""Takes a ctxid key and returns a context (for internal use only)
+		Note that both key and host must match. Returns context instance."""
 		if (time.time()>self.lastctxclean+30):
-			self.cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
+			self.__cleanupcontexts()		# maybe not the perfect place to do this, but it will have to do
 			pass
 		try:
 			ctx=self.__contexts[key]
@@ -1839,40 +2068,97 @@ recover - Only one thread should call this. Will run recovery on the environment
 			raise Exception,"Bad address match, login sessions cannot be shared"
 		
 		ctx.time=time.time()
-		
 		# ian. 11.30.07. Add -3 to the ctx groups of all logged in users.
-		# todo: this causes severe performance issues. need to see where __getcontext/__secrindex[-3] is used. for now, just place ctx.groups+=[-3] where appropriate.
+		# ian todo: this causes severe performance issues. need to see where __getcontext/__secrindex[-3] is used. for now, just place ctx.groups+=[-3] where appropriate.
 		#print "---getcontext---"
 		#if ctx.user!=None: ctx.groups.append(-3)
 		
-		
 		return ctx			
 
-	def sleep(self):
-		import time
-		time.sleep(5)
+	# ian: removed to help prevent DoS attack.
+	# ian todo: need to check other time.sleep operations.
+	
+	#def sleep(self):
+	#	"""Sleep db for 5 seconds. Debug."""
+	#	import time
+	#	time.sleep(5)
 
 
-	def isManager(self,ctxid,host=None):
-		"""Checks if the user has global read access."""
-		ctx=self.__getcontext(ctxid,host)
-		if (-1 in ctx.groups) or (-2 in ctx.groups): return 1
-		else: return 0
-	def getbinarynames(self):
+
+	# ian: changed from isManager to checkadmin
+	# ian todo: these should be moved to Context methods since user never has direct access to Context instance
+	def checkadmin(self,ctx,host=None):
+		"""Checks if the user has global write access. Returns 0 or 1."""
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if (-1 in ctx.groups):
+			return 1
+		
+		return 0
+
+
+	def checkreadadmin(self,ctx,host=None):
+		"""Checks if the user has global read access. Returns 0 or 1."""
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups):
+			return 1
+		
+		return 0		
+
+
+	def checkcreate(self,ctx,host=None):
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if 0 in ctx.groups or -1 in ctx.groups:
+			return 1
+
+		return 0
+
+
+	def loginuser(self, ctxid, host=None):
+		  ctx=self.__getcontext(ctxid,host)
+		  return ctx.user
+	  
+	
+	# ian: not sure the need for this. doesn't work anyway.
+	#def isMe (self, ctxid, username, host=None):
+	#		ctx=self.__getcontext(ctxid,host)
+	#		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
+	#		else: return 0
+
+	# ian todo: define other useful ctx checks here, similar to above.	
+		
+				
+	# ian todo: should restrict this to logged in users for security (file counts, brute force attempts)
+	# ian: made ctxid required argument.
+	def getbinarynames(self,ctxid,host=None):
 		"""Returns a list of tuples which can produce all binary object
 		keys in the database. Each 2-tuple has the date key and the nubmer
-		of objects under that key. A somewhat slow operation"""
+		of objects under that key. A somewhat slow operation."""
+		ctx=self.__getcontext(ctxid,host)
+		if ctx.user==None:
+			raise SecurityError,"getbinarynames not available to anonymous users"
+
 		ret=self.__bdocounter.keys()
 		ret=[(i,len(self.__bdocounter[i])) for i in ret]
-
 		return ret
 
+
+
+	# ian: rpc export? probably not, for now.
+	#@write
 	def newbinary(self,date,name,recid,ctxid,host=None):
 		"""Get a storage path for a new binary object. Must have a
 		recordid that references this binary, used for permissions. Returns a tuple
 		with the identifier for later retrieval and the absolute path"""
 		
-		if name==None : raise ValueError,"BDO name may not be 'None'"
+		if name==None or str(name)=="": raise ValueError,"BDO name may not be 'None'"
+		
+		# ian: check for permissions because actual operations are performed.
+		rec=self.getrecord(recid,ctxid)
+		if not rec.writable():
+			raise SecurityError,"Write permission needed on referenced record."
 		
 		year=int(date[:4])
 		mon=int(date[5:7])
@@ -1916,6 +2202,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		return (key+"%05X"%newid,path+"/%05X"%newid)
 	
+	
+	
 	def getbinary(self,ident,ctxid,host=None):
 		"""Get a storage path for an existing binary object. Returns the
 		object name and the absolute path"""
@@ -1938,22 +2226,28 @@ recover - Only one thread should call this. Will run recovery on the environment
 		except:
 			raise KeyError,"Unknown identifier %s"%ident
 
-		if self.trygetrecord(recid,ctxid,host) : return (name,path+"/%05X"%bid,recid)
+		if self.trygetrecord(recid,ctxid,host=host) : return (name,path+"/%05X"%bid,recid)
 
 		raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
+		
+		
 		
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
-		#
 		a=self.__getcontext(ctxid,host)
 		#if a.user==None: return(-4,-4)
 		return(a.user,a.groups)
 	
+	
+	
+	# ian todo: eventually let's move query stuff to end of file for neatness, or separate module...
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
 	
-	def query(self,query,ctxid,host=None,retindex=False) :
+	
+	# ian todo: fix
+	def query(self,query,ctxid,host=None,retindex=False):
 		"""This performs a general database query.
 ! - exclude protocol name
 @ - protocol name
@@ -1961,7 +2255,7 @@ $ - parameter name
 % - username
 parentheses grouping not supported yet"""
 		tm0=time.time()
-		query2=self.querypreprocess(query,ctxid,host)
+		query2=self.querypreprocess(query,ctxid,host=host)
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
 #		print query2
 		
@@ -1997,8 +2291,8 @@ parentheses grouping not supported yet"""
 				
 				# We make sure that any record containing either parameter is included
 				# in the results by default, and cache the values for later use in plotting
-				ibvx=self.getindexdictbyvalue(comops[1][1:],None,ctxid,host)
-				ibvy=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
+				ibvx=self.getindexdictbyvalue(comops[1][1:],None,ctxid,host=host)
+				ibvy=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host=host)
 				
 				if len(byparamval)>0 : byparamval.intersection_update(ibvx.keys())
 				else: byparamval=Set(ibvx.keys())
@@ -2010,7 +2304,7 @@ parentheses grouping not supported yet"""
 				n+=2
 				
 				# We make sure that any record containing the parameter is included
-				ibvh=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host)
+				ibvh=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host=host)
 				if len(byparamval)>0 : byparamval.intersection_update(ibvh.keys())
 				else: byparamval=Set(ibvh.keys())
 				continue
@@ -2043,8 +2337,8 @@ parentheses grouping not supported yet"""
 				n+=1
 				continue
 			elif i[0]=="%" :
-				if len(byparamval)>0 : byparamval&=self.getindexbyuser(i[1:],ctxid,host)
-				else: byparamval=self.getindexbyuser(i[1:],ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyuser(i[1:],ctxid,host=host)
+				else: byparamval=self.getindexbyuser(i[1:],ctxid,host=host)
 			elif i[0]=="$" :
 				vrange=[None,None]
 				op=query2[n+1]
@@ -2061,8 +2355,8 @@ parentheses grouping not supported yet"""
 					if not query2[n+3] in (",","and") : raise Exception, "between X and Y (%s)"%query2[n+3]
 					vrange=[query2[n+2],query2[n+4]]
 					n+=4
-				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],vrange,ctxid,host)
-				else: byparamval=self.getindexbyvalue(i[1:],vrange,ctxid,host)
+				if len(byparamval)>0 : byparamval&=self.getindexbyvalue(i[1:],vrange,ctxid,host=host)
+				else: byparamval=self.getindexbyvalue(i[1:],vrange,ctxid,host=host)
 			elif i=="and" : pass
 			
 			else :
@@ -2112,7 +2406,7 @@ parentheses grouping not supported yet"""
 #					try: dct[r.rectype].append(i)
 #					except: dct[r.rectype]=[i]
 				for i in self.getrecorddefnames():
-					s=self.getindexbyrecorddef(i,ctxid,host)
+					s=self.getindexbyrecorddef(i,ctxid,host=host)
 					ss=s&byrecdef
 					if len(ss)>0 : dct[i]=tuple(ss)
 			ret=dct
@@ -2335,6 +2629,8 @@ parentheses grouping not supported yet"""
 		elif command=="timeline" :
 			pass
 
+
+
 	def querypreprocess(self,query,ctxid,host=None):
 		"""This performs preprocessing on a database query string.
 preprocessing involves remapping synonymous keywords/symbols and
@@ -2439,18 +2735,26 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return [i for i in elements if i!=None]
 
 
+
 	def getindexbycontext(self,ctxid,host=None):
-		"""This will return the ids of all records a context has permission to access. DOES include groups.""" 
+		"""This will return the ids of all records a context has permission to access as a Set. Does include groups.""" 
 		ctx=self.__getcontext(ctxid,host)
 		
 		# todo: this needs to be moved back to __getcontext once performance issues are fixed
-		if ctx.user!=None: ctx.groups+=[-3]
+		# ian todo: actually, does this need to exist at all?... need to think about -3 user approach.
+		# ian todo: use this to method union Sets in several places.
 		
-		if [-1] in ctx.groups or [-2] in ctx.groups:
+		# if ctx.user!=None: ctx.groups+=[-3]
+		
+		# ian todo: move this to db.checkadmincontext or user.checkadmin or similar
+		#if [-1] in ctx.groups or [-2] in ctx.groups:
+		if self.checkreadadmin(ctx):
 			return Set(range(self.__records[-1]+1))
 
 		ret=Set(self.__secrindex[ctx.user])
-		for i in ctx.groups: ret|=Set(self.__secrindex[i])
+		if ctx.user!=None:
+			ret|=Set(self.__secrindex[-3])
+
 		return ret
 
 #		"""This will use a context to return
@@ -2460,132 +2764,131 @@ parentheses not supported yet. Upon failure returns a tuple:
 #		ret=Set(self.__secrindex[u])
 #		for i in g: ret|=Set(self.__secrindex[i])
 #		return ret
+
+
 	
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
-		a list of records the user can access. DOES NOT include that user's groups."""
+		a list of records the user can access. DOES NOT include that user's groups.
+		Use getindexbycontext if you want to see all recs you can read."""
+
 		# todo: add group support
 		#u,g=self.checkcontext(ctxid,host)
 		ctx=self.__getcontext(ctxid,host)
+		# ian: why is this done? username should be explicit in args.
 		if username==None:
 			username=ctx.user
-
-		if (ctx.user!=username and (not -1 in ctx.groups) and (not -2 in ctx.groups)) :
+		if ctx.user!=username and not self.checkreadadmin(ctx):
 			raise SecurityError,"Not authorized to get record access for %s"%username 
+
 		return Set(self.__secrindex[username])
+	
+	
 	
 	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
 		"""Uses the recdefname keyed index to return all
-		records belonging to a particular RecordDef. Currently this
+		records belonging to a particular RecordDef as a Set. Currently this
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
 		return Set(self.__recorddefindex[recdefname.lower()])
 
-	def getindexkeys(self,paramname,valrange=None,ctxid=None,host=None):
-		"""For numerical & simple string parameters, this will locate all 
-		parameter values in the specified range.
-		valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
-		ind=self.__getparamindex(paramname,create=0)
-		
-		if valrange==None : return ind.keys()
-		elif isinstance(valrange,tuple) or isinstance(valrange,list) : return ind.keys(valrange[0],valrange[1])
-		elif ind.has_key(valrange): return valrange
+
+	# ian: made ctxid req'd
+	# ian: disabled for security reasons (it returns all values with no security check...)
+	def getindexkeys(self,paramname,ctxid,valrange=None,host=None):
 		return None
+	#	"""For numerical & simple string parameters, this will locate all 
+	#	parameter values in the specified range.
+	#	valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
+	#	ind=self.__getparamindex(paramname,create=0)
+	#	
+	#	if valrange==None : return ind.keys()
+	#	elif isinstance(valrange,tuple) or isinstance(valrange,list) : return ind.keys(valrange[0],valrange[1])
+	#	elif ind.has_key(valrange): return valrange
+	#	return None
 		
+
+	# ian todo: add unit support.		
 	def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
-		ind=self.__getparamindex(paramname,create=0)
+		ind=self.__getparamindex(paramname,create=0)		
 		
 		if valrange==None : ret=Set(ind.values())
 		elif isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
 		else: ret=Set(ind[valrange])
 		
 		#u,g=self.checkcontext(ctxid,host)
-		ctx=self.__getcontext(ctxid,host)
-		if (-1 in ctx.groups) or (-2 in ctx.groups) : return ret
+		#ctx=self.__getcontext(ctxid,host)
+		if self.checkreadadmin(ctxid):
+			return ret
 		
-		secure=Set(self.getindexbycontext(ctxid,host))		# all records the user can access
+		secure=Set(self.getindexbycontext(ctxid,host=host))		# all records the user can access
 		
 		return ret & secure		# intersection of the two search results
 	
 	
-
 	
-	def getindexdictbyvalue(self,paramname,valrange,ctxid,host=None,subset=None):
+	# ian: moved host after subset
+	# ian todo: unit support.
+	def getindexdictbyvalue(self,paramname,valrange,ctxid,subset=None,host=None):
 		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
 		This method returns a dictionary of all matching recid/value pairs
 		if subset is provided, will only return values for specified recids"""
 		ind=self.__getparamindex(paramname,create=1)
-		
-		if valrange==None : r=dict(ind.items())
-		elif isinstance(valrange,tuple) or isinstance(valrange,list) : r=dict(ind.items(valrange[0],valrange[1]))
-		else: r={valrange:ind[valrange]}
-		
+				
+		if valrange==None:
+			r=dict(ind.items())
+		elif isinstance(valrange,tuple) or isinstance(valrange,list):
+			r=dict(ind.items(valrange[0],valrange[1]))
+		else:
+			r={valrange:ind[valrange]}
+
 		# This takes the returned dictionary of value/list of recids
 		# and makes a dictionary of recid/value pairs
 		ret={}
 		all = {}
 		for i,j in r.items():
-			  for k in j: all[k]=i
+			 for k in j:
+				all[k]=i
 		if subset:
-			for theID in subset:
-				try:
-					ret[theID] = all[theID]
-				except:
-					pass
+			for i in subset:
+				ret[i]=all[i]
 		else:
-			ret = all
-		"""
-		if subset:
-			for i,j in r.items():
-				for k in j: 
-					if k in subset: ret[k]=i
-		else:
-			for i,j in r.items():
-				for k in j: ret[k]=i
-		"""
+			ret=all
 
-		#u,g=self.checkcontext(ctxid,host)
 		ctx=self.__getcontext(ctxid,host)
-		if (-1 in ctx.groups) or (-2 in ctx.groups) : return ret
+		#if (-1 in ctx.groups) or (-2 in ctx.groups) : return ret
+		if self.checkreadadmin(ctx):
+			return ret
 		
 		# getindexbycontext includes groups
-		secure=self.getindexbycontext(ctxid,host)		# all records the user can access
+		secure=self.getindexbycontext(ctxid,host=host)		# all records the user can access
 		# remove any recids the user cannot access		
 		for i in Set(ret.keys())-secure:
 			del ret[i]
-		
-#		for i in ret.keys():
-#			if i not in secure : del ret[i]
-		
-			
+					
 		return ret
-		#return ret & secure		# intersection of the two search results
-		"""
-		secureRet = {}
-		for i in ret.keys():
-			if i in secure : secureRet[i] = ret[i]
-	
-		return secureRet
-			"""
 
-	def groupbyrecorddef(self,all,ctxid=None,host=None):
+
+
+	# ian: made ctxid required.
+	def groupbyrecorddef(self,all,ctxid,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
 		by their recorddef"""
 		all=Set(all)
-		all&=Set(self.getindexbycontext(ctxid,host))
+		all&=Set(self.getindexbycontext(ctxid,host=host))
 		ret={}
 		while len(all)>0:
 			rid=all.pop()							# get a random record id
-			try: r=self.getrecord(rid,ctxid,host)	# get the record
+			try: r=self.getrecord(rid,ctxid,host=host)	# get the record
 			except:
 #				db.LOG(3,"Could not group by on record %d"%rid)
 				continue						# if we can't, just skip it, pop already removed it
-			ind=self.getindexbyrecorddef(r.rectype,ctxid,host)		# get the set of all records with this recorddef
+			ind=self.getindexbyrecorddef(r.rectype,ctxid,host=host)		# get the set of all records with this recorddef
 			ret[r.rectype]=all&ind					# intersect our list with this recdef
 			all-=ret[r.rectype]						# remove the results from our list since we have now classified them
 			ret[r.rectype].add(rid)					# add back the initial record to the set
@@ -2593,7 +2896,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return ret
 
 
-	def groupbyrecorddeffast(self,records,ctxid=None,host=None):
+
+	# ian: made ctxid required
+	def groupbyrecorddeffast(self,records,ctxid,host=None):
 		"""quick version"""
  		r = {}
  		for i in records:
@@ -2606,7 +2911,9 @@ parentheses not supported yet. Upon failure returns a tuple:
  		return r
 
 
-	def getindexdictbyvaluefast(self,subset,param,valrange=None,ctxid=None,host=None):
+
+	# ian todo: change to ctxid req'd
+	def getindexdictbyvaluefast(self,subset,param,ctxid,valrange=None,host=None):
 		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
 
 		v = {}
@@ -2617,10 +2924,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 			else:
 				if i[param] > valrange[0] and i[param] < valrange[1]:
 					v[i.recid] = i[param]
-		del records
 		return v				
 	
-	def groupby(self,records,param,ctxid=None,host=None):
+
+	
+	# ian: made ctxid req'd
+	def groupby(self,records,param,ctxid,host=None):
 		"""This will group a list of record numbers based on the value of 'param' in each record.
 		Records with no defined value will be grouped under the special key None. It would be a bad idea
 		to, for example, groupby 500,000 records by a float parameter with a different value for each
@@ -2629,20 +2938,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 		We really need 2 implementations here (as above), one using indices for large numbers of records and
 		another using record retrieval for small numbers of records"""
 		r = {}
-	
 		for i in records:
 			try: j = self.getrecord(i,ctxid=ctxid)
 			except: continue
-			try: k=j[param]
-			except: k=None
+			#try:
+			k=j[param]
+			#except: k=None
 			if r.has_key(k):
 				r[k].append(i)
 			else:
 				r[k]=[i]
-		
 		return r
 	
-	def groupbyparentoftype(self,records,parenttype,recurse=3,ctxid=None,host=None):
+	
+	
+	# ian: made ctxid req'd. moved it before recurse.
+	def groupbyparentoftype(self,records,parenttype,ctxid,recurse=3,host=None):
 		"""This will group a list of record numbers based on the recordid of any parents of
 		type 'parenttype'. within the specified recursion depth. If records have multiple parents
 		of a particular type, they may be multiply classified. Note that due to large numbers of
@@ -2650,7 +2961,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		None category if the record has no appropriate parents. The default recursion level is 3."""
 		
 		r = {}
-	
 		for i in records:
 			try: p = self.getparents(i,recurse=recurse,ctxid=ctxid,host=host)
 			except: continue
@@ -2664,18 +2974,23 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return r
 
+
 	
-	def countchildren(self,key,recurse=0,ctxid=None,host=None):
+	# ian: made ctxid required argument, moved recurse after ctxid
+	def countchildren(self,key,ctxid,recurse=0,host=None):
 		"""Unlike getchildren, this works only for 'records'. Returns a count of children
 		of the specified record classified by recorddef as a dictionary. The special 'all'
 		key contains the sum of all different recorddefs"""
 		
-		c=self.getchildren(key,"record",recurse,ctxid,host)
-		r=self.groupbyrecorddeffast(c,ctxid,host)
+		c=self.getchildren(key,"record",recurse,ctxid,host=host)
+		r=self.groupbyrecorddeffast(c,ctxid,host=host)
 		for k in r.keys(): r[k]=len(r[k])
 		r["all"]=len(c)
 		return r
 	
+
+	
+	# ian todo: make ctxid mandatory, but will require alot of code changes.
 	def getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
@@ -2685,7 +3000,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
-			if not self.trygetrecord(key,ctxid,host) : return Set()
+			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
@@ -2699,7 +3014,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		r2=[]
 		for i in ret:
-			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host)
+			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host=host)
 		return Set(ret+r2)
 
 # ian
@@ -2717,8 +3032,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 # 			ret |= i
 # 		return ret
 
-		
 
+		
+	# ian todo: make ctxid req'd
 	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
@@ -2727,37 +3043,46 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
-			if not self.trygetrecord(key,ctxid,host) : return Set()
+			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 #			try: a=self.getrecord(key,ctxid)
 #			except: return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
 			except: return Set()
-		elif keytype=="paramdef" : trg=self.__paramdefs
-		else: raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+		elif keytype=="paramdef":
+			trg=self.__paramdefs
+		else:
+			raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 		
 		ret=trg.parents(key)
 		
-		if recurse==0 : return Set(ret)
+		if recurse==0: return Set(ret)
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getparents(i,keytype,recurse-1,ctxid,host)
+			r2+=self.getparents(i,keytype,recurse-1,ctxid,host=host)
 		return Set(ret+r2)
 
+
+
+	# ian todo: make ctxid mandatory
 	def getcousins(self,key,keytype="record",ctxid=None,host=None):
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
 		if keytype=="record" : 
-			if not self.trygetrecord(key,ctxid,host) : return Set()
+			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 			return Set(self.__records.cousins(key))
 		if keytype=="recorddef" : return Set(self.__recorddefs.cousins(key))
 		if keytype=="paramdef" : return Set(self.__paramdefs.cousins(key))
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
+
+
+	# need similar fast versions for internal use; can check later.
+	# ian todo: make ctxid mandatory
 	def __getparentssafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Version of getparents with no security checks"""
 		
@@ -2776,19 +3101,55 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host)
+			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host=host)
 		return Set(ret+r2)
 		
-	def pclink(self,pkey,ckey,keytype="record",ctxid=None,host=None,txn=None):
+		
+	# ian: added for consistency
+	# need similar fast versions for internal use; can check later.
+	# ian todo: make ctxid mandatory
+	def __getchildrensafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+		if (recurse<0): return Set()
+		if keytype=="record" : 
+			trg=self.__records
+		elif keytype=="recorddef" : 
+			trg=self.__recorddefs
+		elif keytype=="paramdef":
+			trg=self.__paramdefs
+		else:
+			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+
+		ret=trg.children(key)
+		
+		if recurse==0 : return Set(ret)
+
+		r2=[]
+		for i in ret:
+			r2+=self.__getchildrensafe(i,keytype,recurse-1,ctxid,host=host)
+		return Set(ret+r2)
+
+
+
+	# ian: made ctxid required
+	#@write,user
+	def pclink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
 		
+		ctx=self.__getcontext(ctxid)
+		if not self.checkcreate(ctx):
+			raise SecurityError,"pclink requires record creation priveleges"
+		if keytype not in ["record","recorddef","paramdef"]:
+			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+				
 		# ian: circular reference detection. 
 		# is an upstream item also downstream?
+		# ian todo: change to use non-secure methods if quicker; we're not returning this to user.
+		#						and needed because user may not be able to see a potential circular reference.
 		if not self.__importmode:
-			p=self.getparents(pkey,keytype=keytype,recurse=100,ctxid=ctxid,host=host)
-			c=self.getchildren(ckey,keytype=keytype,recurse=100,ctxid=ctxid,host=host)
+			p=self.__getparentssafe(pkey,keytype=keytype,recurse=self.maxrecurse,ctxid=ctxid,host=host)
+			c=self.__getchildrensafe(pkey,keytype=keytype,recurse=self.maxrecurse,ctxid=ctxid,host=host)
 			if pkey in c or ckey in p or pkey == ckey:
 				raise Exception,"Circular references are not allowed."
 		
@@ -2796,57 +3157,106 @@ parentheses not supported yet. Upon failure returns a tuple:
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
 			#print a.writable(),b.writable()
-			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pclink requires partial write permission"
-			return self.__records.pclink(pkey,ckey,txn=txn)
-		if keytype=="recorddef" : return self.__recorddefs.pclink(pkey,ckey,txn=txn)
-		if keytype=="paramdef" : return self.__paramdefs.pclink(pkey,ckey,txn=txn)
-		
-		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+			if (not a.writable()) and (not b.writable()):
+				raise SecurityError,"pclink requires partial write permission"
+			r=self.__records.pclink(pkey,ckey,txn=txn)
+		if keytype=="recorddef":
+			r=self.__recorddefs.pclink(pkey,ckey,txn=txn)
+		if keytype=="paramdef":
+			r=self.__paramdefs.pclink(pkey,ckey,txn=txn)
+
+		self.LOG(0,"pclink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		return r
+			
 	
-	def pcunlink(self,pkey,ckey,keytype="record",ctxid=None,host=None,txn=None):
+	
+	# ian: made ctxid required
+	#@write,user
+	def pcunlink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
-		
+
+		ctx=self.__getcontext(ctxid)
+		if not self.checkcreate(ctx):
+			raise SecurityError,"pcunlink requires record creation priveleges"
+		if keytype not in ["record","recorddef","paramdef"]:
+			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+					
 		if keytype=="record" : 
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
-			if (not a.writable()) and (not b.writable()) : raise SecurityError,"pcunlink requires partial write permission"
-			return self.__records.pcunlink(pkey,ckey,txn)
-		if keytype=="recorddef" : return self.__recorddefs.pcunlink(pkey,ckey,txn)
-		if keytype=="paramdef" : return self.__paramdefs.pcunlink(pkey,ckey,txn)
+			if (not a.writable()) and (not b.writable()):
+				raise SecurityError,"pcunlink requires partial write permission"
+			r=return self.__records.pcunlink(pkey,ckey,txn)
+		if keytype=="recorddef":
+			r=self.__recorddefs.pcunlink(pkey,ckey,txn)
+		if keytype=="paramdef":
+			r=self.__paramdefs.pcunlink(pkey,ckey,txn)
 		
-		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+		self.LOG(0,"pcunlink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		return r
+		
 	
-	def link(self,key1,key2,keytype="record",ctxid=None,host=None,txn=None):
+	
+	# ian: made ctxid required
+	#@write,user
+	def link(self,key1,key2,ctxid,keytype="record",host=None,txn=None):
 		"""Establish a 'cousin' relationship between two keys. For Records
 		the context is required and the user must have read permission
 		for both records."""
-		
-		if keytype=="record" : 
+		# ian todo: check for circular references.
+
+		ctx=self.__getcontext(ctxid)
+		if not self.checkcreate(ctx):
+			raise SecurityError,"link requires record creation priveleges"
+		if keytype not in ["record","recorddef","paramdef"]:
+			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+
+		if keytype=="record": 
 			a=self.getrecord(key1,ctxid)
 			b=self.getrecord(key2,ctxid)
-			return self.__records.link(key1,key2)
-		if keytype=="recorddef" : return self.__recorddefs.link(key1,key2,txn)
-		if keytype=="paramdef" : return self.__paramdefs.link(key1,key2,txn)
-		
-		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+			r=self.__records.link(key1,key2)
+		if keytype=="recorddef":
+			r=self.__recorddefs.link(key1,key2,txn)
+		if keytype=="paramdef":
+			r=self.__paramdefs.link(key1,key2,txn)
+
+		self.LOG(0,"link %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		return r
 	
-	def unlink(self,key1,key2,keytype="record",ctxid=None,host=None,txn=None):
+	
+	
+	# ian: made ctxid req'd
+	#@write,user
+	def unlink(self,key1,key2,ctxid,keytype="record",host=None,txn=None):
 		"""Remove a 'cousin' relationship between two keys."""
-		
-		if keytype=="record" : 
+
+		ctx=self.__getcontext(ctxid)
+		if not self.checkcreate(ctx):
+			raise SecurityError,"unlink requires record creation priveleges"
+		if keytype not in ["record","recorddef","paramdef"]:
+			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+					
+		if keytype=="record":
 			a=self.getrecord(key1,ctxid)
 			b=self.getrecord(key2,ctxid)
-			return self.__records.unlink(key1,key2)
-		if keytype=="recorddef" : return self.__recorddefs.unlink(key1,key2,txn)
-		if keytype=="paramdef" : return self.__paramdefs.unlink(key1,key2,txn)
+			r=self.__records.unlink(key1,key2)
+		if keytype=="recorddef":
+			r=self.__recorddefs.unlink(key1,key2,txn)
+		if keytype=="paramdef":
+			r=self.__paramdefs.unlink(key1,key2,txn)
 		
-		raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+		# ian todo: add loggging
+		self.LOG(0,"unlink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		return r
 		
+
+	#@write,admin
 	def disableuser(self,username,ctxid,host=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this."""
 		ctx=self.__getcontext(ctxid,host)
-		if not -1 in ctx.groups :
+		#if not -1 in ctx.groups :
+		if not self.checkadmin(ctx):
 			raise SecurityError,"Only administrators can disable users"
 
 		if username==ctx.user : raise SecurityError,"Even administrators cannot disable themselves"
@@ -2856,13 +3266,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 		self.__users[username]=user
 		self.LOG(0,"User %s disabled by %s"%(username,ctx.user))
 
-				
+
+	#@write,admin
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
 		ctx=self.__getcontext(ctxid,host)
-		if not -1 in ctx.groups :
+		#if not -1 in ctx.groups :
+		if not self.checkadmin(ctx):
 			raise SecurityError,"Only administrators can approve new users"
-		
+				
 		if not username in self.__newuserqueue :
 			raise KeyError,"User %s is not pending approval"%username
 			
@@ -2870,20 +3282,46 @@ parentheses not supported yet. Upon failure returns a tuple:
 			self.__newuserqueue[username]=None
 			raise KeyError,"User %s already exists, deleted pending record"%username
 
+		# ian: create record for user.
+		user=self.__newuserqueue[username]
+
+		if user.record==None:
+			try:
+				userrec=self.newrecord("person",ctxid,init=1)
+				userrec["username"]=username
+				userrec["name_first"]=user.name[0]
+				userrec["name_middle"]=user.name[1]
+				userrec["name_last"]=user.name[2]
+				userrec["email"]=user.email
+				recid = self.putrecord(userrec,ctxid)
+				user.record = recid
+			except:
+				raise Exception,"Unable to create record for user %s"%username
+
+		user.validate()
+
 		txn=self.newtxn()
-		self.__users.set(username,self.__newuserqueue[username],txn)
+		self.__users.set(username,user,txn)
 		self.__newuserqueue.set(username,None,txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
+
+
 
 	def getuserqueue(self,ctxid,host=None):
 		"""Returns a list of names of unapproved users"""
 		return self.__newuserqueue.keys()
 
+
+
+	#@write,admin
 	def rejectuser(self,username,ctxid,host=None):
-		"""Remove a user from the pending new user queue - only an administrator can do thisl"""
+		"""Remove a user from the pending new user queue - only an administrator can do this"""
 		ctx=self.__getcontext(ctxid,host)
-		if not -1 in ctx.groups :
+
+		# ian todo: move to general permission level check rather than hardcode -1 at each instance. several places.
+		#if not -1 in ctx.groups :
+		if not self.checkadmin(ctx):
 			raise SecurityError,"Only administrators can approve new users"
 		
 		if not username in self.__newuserqueue :
@@ -2891,16 +3329,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		self.__newuserqueue[username]=None
 
-	def loginuser(self, ctxid, host=None):
-		  ctx=self.__getcontext(ctxid,host)
-		  return ctx.user
-	  
-	def isMe (self, ctxid, username, host=None):
-			ctx=self.__getcontext(ctxid,host)
-			if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
-			else: return 0
 
+	#@write,admin
+	# ian todo: allow users to change privacy setting
 	def putuser(self,user,ctxid,host=None):
+		"""Updates user. Takes User object (w/ validation.) Deprecated for non-administrators."""
+
+		if not isinstance(user,User):
+			try: user=User(user)
+			except: raise ValueError,"User instance or dict required"
+		user=User(user.__dict__.copy())
+		#user.validate()
 
 		try:
 			ouser=self.__users[user.username]
@@ -2908,13 +3347,23 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise KeyError,"Putuser may only be used to update existing users"
 		
 		ctx=self.__getcontext(ctxid,host)
-		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
-			raise SecurityError,"Only administrators and the actual user may update a user record"
 		
-		if not (-1 in ctx.groups) : user.groups=ouser.groups
-
+		#if not (-1 in ctx.groups): user.groups=ouser.groups
+		#if user.record!=ouser.creator and not (-1 in ctx.groups):
+		#	raise SecurityError,"Only administrators may change a user's record pointer"		
+		#if ctx.user!=ouser.username and not(-1 in ctx.groups) :
+		
+		#if -1 not in (ctx.groups):
+		if not self.checkadmin(ctx):
+			raise SecurityError,"Only administrators may update a user with this method"
+		
 		if user.password!=ouser.password:
 			raise SecurityError,"Passwords may not be changed with this method"
+		
+		if user.creator!=ouser.creator or user.creationtime!=ouser.creationtime:
+			raise SecurityError,"Creation information may not be changed"		
+		
+		user.validate()		
 		
 		txn=self.newtxn()
 		self.__users.set(user.username,user,txn)
@@ -2923,55 +3372,61 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return user
 
 	
-	def putuserdict(self,username,userdict,ctxid,host=None):
-		#use to only update user information listed in allowKeys
-		denyKeys = ["username","password","creator","creationtime"]
-		allowKeys = ["firstname","lastname", "midname","email","phone","fax","cellphone","webpage","institution","department","address","city","state","zipcode","country","groups","privacy", "disabled"]
-		try:
-			ouser=self.__users[username]
-		except:
-			raise KeyError,"Putuser may only be used to update existing users"
-		
-		ctx=self.__getcontext(ctxid,host)
-		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
-			raise SecurityError,"Only administrators and the actual user may update a user record"
-
-		for thekey in denyKeys:
-			if userdict.has_key(thekey):
-				 del userdict[thekey]
-				 
-		userdict['name'] = []
-		for thekey in ['firstname', 'midname', 'lastname']:
-			if userdict.has_key(thekey):
-			  userdict['name'].append(userdict[thekey])
-			else:
-				  userdict['name'].append("")
-			
-		if not (-1 in ctx.groups) :
-			userdict['groups']=ouser.groups
-			if userdict.has_key('disabled'):
-					 del userdict['disabled']
-
-		else:
-			if isinstance(userdict['groups'], list):
-				thegroups = [int(i) for i in userdict['groups']]
-			else:
-				thegroups = [int(userdict['groups'])]
-			userdict['groups'] = thegroups
-				
-		ouser.__dict__.update(userdict)
-		txn=self.newtxn()
-		self.__users.set(username,ouser,txn)
-		if txn: txn.commit()
-		elif not self.__importmode : DB_syncall()
-		return userdict
+#		ian 03.30.08: old method no longer necessary
+#	
+# 	def putuserdict(self,username,userdict,ctxid,host=None):
+# 		#use to only update user information listed in allowKeys
+# 		denyKeys = ["username","password","creator","creationtime"]
+# 		allowKeys = ["firstname","lastname", "midname","email","phone","fax","cellphone","webpage","institution","department","address","city","state","zipcode","country","groups","privacy", "disabled"]
+# 		try:
+# 			ouser=self.__users[username]
+# 		except:
+# 			raise KeyError,"Putuser may only be used to update existing users"
+# 		
+# 		ctx=self.__getcontext(ctxid,host)
+# 		if ctx.user!=ouser.username and not(-1 in ctx.groups) :
+# 			raise SecurityError,"Only administrators and the actual user may update a user record"
+# 
+# 		for thekey in denyKeys:
+# 			if userdict.has_key(thekey):
+# 				 del userdict[thekey]
+# 				 
+# 		userdict['name'] = []
+# 		for thekey in ['firstname', 'midname', 'lastname']:
+# 			if userdict.has_key(thekey):
+# 			  userdict['name'].append(userdict[thekey])
+# 			else:
+# 				  userdict['name'].append("")
+# 			
+# 		if not (-1 in ctx.groups) :
+# 			userdict['groups']=ouser.groups
+# 			if userdict.has_key('disabled'):
+# 					 del userdict['disabled']
+# 
+# 		else:
+# 			if isinstance(userdict['groups'], list):
+# 				thegroups = [int(i) for i in userdict['groups']]
+# 			else:
+# 				thegroups = [int(userdict['groups'])]
+# 			userdict['groups'] = thegroups
+# 				
+# 		ouser.__dict__.update(userdict)
+# 		txn=self.newtxn()
+# 		self.__users.set(username,ouser,txn)
+# 		if txn: txn.commit()
+# 		elif not self.__importmode : DB_syncall()
+# 		return userdict
 	
+	
+	
+	#@write,user
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
-		user=self.__users[username]
+		user=self.getuser(username,ctxid)
 		
 		s=sha.new(oldpassword)
-		if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
+		#if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
+		if s.hexdigest() != user.password and not self.checkadmin(ctx):
 			time.sleep(2)
 			raise SecurityError,"Original password incorrect"
 		
@@ -2987,79 +3442,91 @@ parentheses not supported yet. Upon failure returns a tuple:
 		elif not self.__importmode : DB_syncall()
 		return 1
 	
-	def adduser(self,user):
+	
+	
+	# does not require ctxid
+	#@write,all
+	def adduser(self,user,host=None):
 		"""adds a new user record. However, note that this only adds the record to the
 		new user queue, which must be processed by an administrator before the record
 		becomes active. This system prevents problems with securely assigning passwords
 		and errors with data entry. Anyone can create one of these"""
-		if user.username==None or len(user.username)<3 :
+
+		if not isinstance(user,User):
+			try: user=User(user)
+			except: raise ValueError,"User instance or dict required"
+		user=User(user.__dict__.copy())
+		#user.validate()		
+
+		if user.username==None or len(user.username)<3:
 			if self.__importmode:
 				pass
 			else:
 				raise KeyError,"Attempt to add user with invalid name"
 		
-		if user.username in self.__users :
+		if user.username in self.__users:
 			if not self.__importmode:
 				raise KeyError,"User with username %s already exists"%user.username
 			else:
 				pass
 
-		if user.username in self.__newuserqueue :
+		if user.username in self.__newuserqueue:
 			raise KeyError,"User with username %s already pending approval"%user.username
 		
-		if len(user.password)<5 :
-			if not self.__importmode:
-				raise SecurityError,"Passwords must be at least 5 characters long"
-			else:
-				pass
-		if len(user.password)!=40 :
-			# we disallow bad passwords here, right now we just make sure that it 
-			# is at least 6 characters long
-			if len(user.password)<6 :
-			   if not self.__importmode:	
-				raise SecurityError,"Passwords must be at least 6 characters long"
-			   else:
-				pass
-			s=sha.new(user.password)
-			user.password=s.hexdigest()
+		# 40 = lenght of hex digest
+		# we disallow bad passwords here, right now we just make sure that it 
+		# is at least 6 characters long
+		if len(user.password)<6 :
+			raise SecurityError,"Passwords must be at least 6 characters long"
+
+		s=sha.new(user.password)
+		user.password=s.hexdigest()
+
 		if not self.__importmode:
 			user.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 			user.modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
+		
+		user.validate()
 		
 		txn=self.newtxn()
 		self.__newuserqueue.set(user.username,user,txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		
+		return user
+		
+		
+		
 	def getqueueduser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
-		ret=self.__newuserqueue[username]
-		
 		ctx=self.__getcontext(ctxid,host)
+		if not self.checkreadadmin(ctx):
+			raise SecurityError,"Only administrators can access pending users"
+			
+		return self.__newuserqueue[username]
 		
-		# The user him/herself or administrator can get all info
-		if (-1 in ctx.groups) or (-2 in ctx.groups): return ret
-		
-		raise SecurityError,"Only administrators can access pending users"
+				
+				
 				
 	def getuser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
 		ctx=self.__getcontext(ctxid,host)
-		
 		ret=self.__users[username]
 		
 		# The user him/herself or administrator can get all info
-		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
+		#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
+		if self.checkreadadmin(ctx) or ctx.user==username: return ret
 		
 		# if the user has requested privacy, we return only basic info
 		if (ret.privacy==1 and ctx.user==None) or ret.privacy>=2 :
 			ret2=User()
 			ret2.username=ret.username
 			ret2.privacy=ret.privacy
+			# ian
 			ret2.name=ret.name
 			return ret2
 
@@ -3069,15 +3536,20 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if ctx.user==None : 
 			ret.groups=None
 			ret.email=None
-			ret.altemail=None
+			#ret.altemail=None
 		
 		return ret
+		
+		
 		
 	def getusernames(self,ctxid,host=None):
 		"""Not clear if this is a security risk, but anyone can get a list of usernames
 			This is likely needed for inter-database communications"""
 		return self.__users.keys()
 
+
+
+	# ian todo: update. the find* functions need to be fast and good at fulltext searches for autocomplete functionality.
 	def findusername(self,name,ctxid,host=None):
 		"""This will look for a username matching the provided name in a loose way"""
 		if self.__users.has_key(name) : return name
@@ -3087,8 +3559,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if len(possible)>1 : return possible
 		
 		possible=[]
-		for i in self.getusernames(ctxid,host):
-			try: u=self.getuser(name,ctxid,host)
+		for i in self.getusernames(ctxid,host=host):
+			try: u=self.getuser(name,ctxid,host=host)
 			except: continue
 			
 			for j in u.__dict__:
@@ -3100,6 +3572,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if len(possible)>1 : return possible
 					
 		return None
+	
+	
 	
 	def getworkflow(self,ctxid,host=None):
 		"""This will return an (ordered) list of workflow objects for the given context (user).
@@ -3113,7 +3587,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		except:
 			return []
 
+
+
 	def getworkflowitem(self,wfid,ctxid,host=None):
+		"""Return a workflow from wfid."""
 		ret = None
 		wflist = self.getworkflow(ctxid)
 		if len(wflist) == 0:
@@ -3124,16 +3601,31 @@ parentheses not supported yet. Upon failure returns a tuple:
 					 ret = thewf.items_dict()
 		return ret
 		
-	def newworkflow(self, vals):
+		
+		
+	def newworkflow(self, vals, host=None):
+		"""Return an initialized workflow instance."""
 		return WorkFlow(vals)
 		
+		
+		
+	#@write,user
 	def addworkflowitem(self,work,ctxid,host=None):
 		"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 		
 		ctx=self.__getcontext(ctxid,host)
-		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
 
-		if not isinstance(work,WorkFlow) : raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
+		if ctx.user==None:
+			raise SecurityError,"Anonymous users have no workflow"
+
+		if not isinstance(work,WorkFlow):
+			try: work=WorkFlow(work)
+			except: raise ValueError,"WorkFlow instance or dict required"
+		work=WorkFlow(work.__dict__.copy())
+		work.validate()
+
+		#if not isinstance(work,WorkFlow):
+		#	raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
 		
 		txn=self.newtxn()
 		self.__workflow.set_txn(txn)
@@ -3152,8 +3644,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		elif not self.__importmode : DB_syncall()
 		return work.wfid
 	
-	def delworkflowitem(self,wfid,ctxid,host=None) :
-		"""This will remove a single workflow object"""
+	
+	
+	#@write,user
+	def delworkflowitem(self,wfid,ctxid,host=None):
+		"""This will remove a single workflow object based on wfid"""
 		
 		ctx=self.__getcontext(ctxid,host)
 		if ctx.user==None: raise SecurityError,"Anonymous users have no workflow"
@@ -3170,6 +3665,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		
+		
+		
+	#@write,user
 	def setworkflow(self,wflist,ctxid,host=None):
 		"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 		the external application should NEVER modify the wfid of the individual WorkFlow records.
@@ -3183,6 +3681,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		txn=self.newtxn()
 		for w in wflist:
+			
+			if not self.__importmode:
+				#w=WorkFlow(w.__dict__.copy())
+				w.validate()
+			
 			if not isinstance(w,WorkFlow): 
 				txn.abort()
 				raise TypeError,"Only WorkFlow objects may be in the user's workflow"
@@ -3194,43 +3697,71 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 	
-	def getvartypenames(self):
+	
+	
+	def getvartypenames(self, host=None):
 		"""This returns a list of all valid variable types in the database. This is currently a
 		fixed list"""
 		return valid_vartypes.keys()
 
-	def getvartype(self, thekey):
+
+
+	def getvartype(self, thekey, host=None):
 		"""This returns a list of all valid variable types in the database. This is currently a
 		fixed list"""
 		return valid_vartypes[thekey][1]
 
-	def getpropertynames(self):
+
+
+	def getpropertynames(self, host=None):
 		"""This returns a list of all valid property types in the database. This is currently a
 		fixed list"""
 		return valid_properties.keys()
 			
-	def getpropertyunits(self,propname):
+			
+			
+	def getpropertyunits(self,propname, host=None):
 		"""Returns a list of known units for a particular property"""
 		return valid_properties[propname][1].keys()
 			
-	def addparamdef(self,paramdef,ctxid,host=None,parent=None):
+			
+			
+	# ian: moved host after parent		
+	#@write, user
+	def addparamdef(self,paramdef,ctxid,parent=None,host=None):
 		"""adds a new ParamDef object, group 0 permission is required
 		a p->c relationship will be added if parent is specified"""
-		if not isinstance(paramdef,ParamDef) : raise TypeError,"addparamdef requires a ParamDef object"
+
+		if not isinstance(paramdef,ParamDef):
+			try: paramdef=ParamDef(paramdef)
+			except: raise ValueError,"ParamDef instance or dict required"
+		paramdef=ParamDef(paramdef.__dict__.copy())
+		# paramdef.validate()
+	
+		#if not isinstance(paramdef,ParamDef):	raise TypeError,"addparamdef requires a ParamDef object"
+		
 		ctx=self.__getcontext(ctxid,host)
-		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
+		#if (not 0 in ctx.groups) and (not -1 in ctx.groups):
+		if not self.checkcreate(ctx):
+			raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
+
 		paramdef.name=paramdef.name.lower()
+		
 		if self.__paramdefs.has_key(paramdef.name) : 
 			# Root is permitted to force changes in parameters, though they are supposed to be static
 			# This permits correcting typos, etc., but should not be used routinely
-			if ctx.user!="root" : raise KeyError,"paramdef %s already exists"%paramdef.name
+			if not self.checkadmin(ctx): raise KeyError,"paramdef %s already exists"%paramdef.name
 		else :
 			# force these values
 			paramdef.creator=ctx.user
 			paramdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 		
-		if isinstance(paramdef.choices,list) or isinstance(paramdef.choices,tuple) :
+		if isinstance(paramdef.choices,list) or isinstance(paramdef.choices,tuple):
 			paramdef.choices=tuple([str(i).title() for i in paramdef.choices])
+
+		if not self.__importmode:
+			#paramdef=ParamDef(paramdef.__dict__.copy())
+			paramdef.validate()
 		
 		# this actually stores in the database
 		txn=self.newtxn()
@@ -3239,11 +3770,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		
-	def addparamchoice(self,paramdefname,choice):
+		
+	# ian: made ctxid required argument.
+	#@write,user
+	def addparamchoice(self,paramdefname,choice,ctxid,host=None):
 		"""This will add a new choice to records of vartype=string. This is
 		the only modification permitted to a ParamDef record after creation"""
+
+		# ian: change to only allow logged in users to add param choices. silent return on failure.
+		ctx=self.__getcontext(ctxid,host)
+		#if (not 0 in ctx.groups) and (not -1 in ctx.groups):
+		if not self.checkcreate(ctx):
+			return
+
 		d=self.__paramdefs[paramdefname]
-		if d.vartype!="string" : raise SecurityError,"choices may only be modified for 'string' parameters"
+		if d.vartype!="string":
+			raise SecurityError,"choices may only be modified for 'string' parameters"
 		
 		d.choices=d.choices+(str(choice).title(),)
 		txn=self.newtxn()
@@ -3251,16 +3793,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 
-	def getparamdef(self,paramdefname):
+
+
+	def getparamdef(self,paramdefname,host=None):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
 		#debug(__file__, ',', 'paramdefname = ', paramdefname)
 		return self.__paramdefs[paramdefname.lower()]
 		
-	def getparamdefnames(self):
+		
+		
+	def getparamdefnames(self,host=None):
 		"""Returns a list of all ParamDef names"""
 		return self.__paramdefs.keys()
 	
-	def findparamdefname(self,name) :
+	
+	
+	def findparamdefname(self,name,host=None):
 		"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
 		name=name.lower()
@@ -3271,7 +3819,9 @@ or None if no match is found."""
 		if name[-3:]=="ing" and self.__paramdefs.has_key(name[:-3]): return name[:-3]
 		return None
 	
-	def getparamdefs(self,recs):
+	
+	
+	def getparamdefs(self,recs,host=None):
 		"""Returns a list of ParamDef records.
 		recs may be a single record, a list of records, or a list
 		of paramdef names. This routine will 
@@ -3297,31 +3847,43 @@ or None if no match is found."""
 
 		return ret
 		
-	def addrecorddef(self,recdef,ctxid,host=None,parent=None):
-		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
-		if not isinstance(recdef,RecordDef) : raise TypeError,"addRecordDef requires a RecordDef object"
-		ctx=self.__getcontext(ctxid,host)
-		if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create new RecordDefs"
-		if self.__recorddefs.has_key(recdef.name.lower()) : raise KeyError,"RecordDef %s already exists"%recdef.name.lower()
 		
-		# ian
-		if not recdef.name:
-			raise KeyError,"RecordDef name cannot be empty."
+	# ian: moved host after parent
+	#@write,user
+	def addrecorddef(self,recdef,ctxid,parent=None,host=None):
+		"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
+
+		if not isinstance(recdef,RecordDef):
+			try: recdef=RecordDef(recdef)
+			except: raise ValueError,"RecordDef instance or dict required"
+		recdef=RecordDef(recdef.__dict__.copy())
+		# paramdef.validate()
+
+		ctx=self.__getcontext(ctxid,host)
+
+		#if (not 0 in ctx.groups) and (not -1 in ctx.groups):
+		if not self.checkcreate(ctx):
+			raise SecurityError,"No permission to create new RecordDefs"
+			
+		if self.__recorddefs.has_key(recdef.name.lower()):
+			raise KeyError,"RecordDef %s already exists"%recdef.name.lower()
+
+		recdef.findparams()
+		pdn=self.getparamdefnames()
+		for i in recdef.params:
+			if i not in pdn: raise KeyError,"No such parameter %s"%i
+
 		# force these values
 		if (recdef.owner==None) : recdef.owner=ctx.user
 		recdef.name=recdef.name.lower()
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-		recdef.findparams()
 
-		pdn=self.getparamdefnames()
-		for i in recdef.params:
-			if i not in pdn:
-				if DEBUG: print pdn
-				print "No such parameter %s" %i
-				raise KeyError,"No such parameter %s"%i
+		if not self.__importmode:
+			#recdef=RecordDef(recdef.__dict__.copy())
+			recdef.validate()
 		
-		# this actually stores in the database
+		# commit
 		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
 		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
@@ -3329,33 +3891,54 @@ or None if no match is found."""
 		elif not self.__importmode : DB_syncall()
 		return recdef.name
 
+
+
+	#@write,user partial
 	def putrecorddef(self,recdef,ctxid,host=None):
 		"""This modifies an existing RecordDef. The mainview should
 		never be changed once used, since this will change the meaning of
 		data already in the database, but sometimes changes of appearance
 		are necessary, so this method is available."""
+
+		if not isinstance(recdef,RecordDef):
+			try: recdef=RecordDef(recdef)
+			except: raise ValueError,"RecordDef instance or dict required"
+		recdef=RecordDef(recdef.__dict__.copy())
+		# paramdef.validate()
+		
+		
 		ctx=self.__getcontext(ctxid,host)
 		rd=self.__recorddefs[recdef.name]
 
-		if (not -1 in ctx.groups) and (ctx.user!=rd.owner) : 
+		#if (not -1 in ctx.groups) and (ctx.user!=rd.owner) : 
+		if ctx.user!=rd.owner and not self.checkadmin(ctx):
 			raise SecurityError,"Only the owner or administrator can modify RecordDefs"
 
-		recdef.creator=rd.creator
-		recdef.creationtime=rd.creationtime
-		#recdef.mainview=rd.mainview	#temp. change to allow mainview changes
-		if recdef.mainview != rd.mainview and not -1 in ctx.groups :
+		if recdef.mainview != rd.mainview and not self.checkadmin(ctx):
 			raise SecurityError,"Only the administrator can modify the mainview of a RecordDef"
-		recdef.findparams()
 
+		recdef.findparams()
 		pdn=self.getparamdefnames()
 		for i in recdef.params:
 			if i not in pdn: raise KeyError,"No such parameter %s"%i
-		
+
+		# reset
+		recdef.creator=rd.creator
+		recdef.creationtime=rd.creationtime
+		#recdef.mainview=rd.mainview	#temp. change to allow mainview changes
+
+		if not self.__importmode:
+			recdef=RecordDef(recdef.__dict__.copy())
+			recdef.validate()
+
+		# commit
 		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
-
+		
+		
+	# ian todo: move host to end
 	def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or  in the context of a recid the
@@ -3370,6 +3953,7 @@ or None if no match is found."""
 		
 		# if the RecordDef isn't private or if the owner is asking, just return it now
 		ctx=self.__getcontext(ctxid,host)
+		# ian: why would ret.owner be in ctx.groups?
 		if (ret.private and (ret.owner==ctx.user or ret.owner in ctx.groups)) : return ret
 
 		# ok, now we need to do a little more work. 
@@ -3382,14 +3966,19 @@ or None if no match is found."""
 		# success, the user has permission
 		return ret
 	
-	def getrecorddefnames(self):
+	
+	
+	def getrecorddefnames(self,host=None):
 		"""This will retrieve a list of all existing RecordDef names, 
 		even those the user cannot access the contents of"""
 		return self.__recorddefs.keys()
 
-	def findrecorddefname(self,name) :
+
+
+	def findrecorddefname(self,name,host=None):
 		"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef, 
-or None if no match is found."""
+		or None if no match is found."""
+
 		if self.__recorddefs.has_key(name) : return name
 		if name[-1]=="s" :
 			if self.__recorddefs.has_key(name[:-1]) : return name[:-1]
@@ -3397,9 +3986,14 @@ or None if no match is found."""
 		if name[-3:]=="ing" and self.__recorddefs.has_key(name[:-3]): return name[:-3]
 		return None
 	
-	def commitindices(self):
-		self.__commitindices()
+	
+	# ian: deprecated
+	#def commitindices(self):
+	#	self.__commitindices()
 		
+		
+		
+	#@write,private
 	def __commitindices(self):
 		"""This is used in 'importmode' after many records have been imported using
 		memory indices to dump the indices to the persistent files"""
@@ -3451,6 +4045,8 @@ or None if no match is found."""
 		if DEBUG>2: print >>sys.stderr, '__dbenv.close() successful'
 		sys.exit(0)
 		
+		
+		
 	def __getparamindex(self,paramname,create=1):
 		"""Internal function to open the parameter indices at need.
 		Later this may implement some sort of caching mechanism.
@@ -3484,6 +4080,9 @@ or None if no match is found."""
 		
 		return ret
 	
+	
+	
+	#@write,private
 	def __reindex(self,key,oldval,newval,recid,txn=None):
 		"""This function reindexes a single key/value pair
 		This includes creating any missing indices if necessary"""
@@ -3540,6 +4139,9 @@ or None if no match is found."""
 		if newval!=None : ind.addref(newval,recid,txn=txn)
 		#print ind.items()
 
+
+
+	#@write,private
 	def __reindextext(self,key,oldval,newval,recid,txn=None):
 		"""This function reindexes a single key/value pair
 		where the values are text strings designed to be searched
@@ -3567,6 +4169,9 @@ or None if no match is found."""
 		
 		#print ind.items()
 
+
+
+	#@write,private
 	def __reindexsec(self,oldlist,newlist,recid,txn=None):
 		"""This updates the security (read-only) index
 		takes two lists of userid/groups (may be None)"""
@@ -3590,7 +4195,58 @@ or None if no match is found."""
 		for i in un:
 			self.__secrindex.addref(i,recid,txn=txn)
 
-	def putrecord(self,record,ctxid,host=None,parents=[],children=[]):
+
+
+	def __validaterecord(self,record,ctxid,host=None):
+		"""Validate a record's db references. Checks vartypes and users."""
+		
+		# Check parameters
+		for i in record.keys():
+			try:
+				pd=self.__paramdefs[i.lower()]
+			except:
+				raise KeyError,"Parameters undefined (%s)"%i
+			
+			# try to convert
+			try:
+				record[i] = valid_vartypes[pd.vartype][1](record[i])
+			except:
+				print "Error converting datatype: %s, %s"%(i,pd.vartype)
+				#	raise ValueError
+
+			if pd.vartype=="choice":
+				if record[i].title() not in pd.choices :
+					# ian: should be ValueError
+					raise Exception,"%s not in %s"%(record[i],pd.choices)	
+
+		# Check Users
+		for j in record["permissions"]:
+			for k in j:
+				if not isinstance(k,int):
+					try:
+						user=self.__users[k]
+					except:
+						print ValueError,"Warning: Undefined user: %s"%k
+
+
+
+	#@write,private
+	def __validaterecordaddchoices(self,record,ctxid,host=None):
+		"""add options for extensible paramdef choices."""
+		
+		for i in record.keys():
+			pd=self.__paramdefs[i.lower()]
+			# if string/choices, add option. if choices/choices, raise exception (invalid value)
+			if pd.vartype=="string" and isinstance(pd.choices,tuple):
+				if record[i].title() not in pd.choices:
+					# ian: fixed a typo that seemed to be causing lots of grief (record[i].ctxid). it was missed because of exception handler.
+					self.addparamchoice(i,record[i],ctxid)
+	
+	
+
+	# ian: moved host to end
+	#@write,user
+	def putrecord(self,record,ctxid,parents=[],children=[],host=None):
 		"""The record has everything we need to commit the data. However, to 
 		update the indices, we need the original record as well. This also provides
 		an opportunity for double-checking security vs. the original. If the 
@@ -3599,38 +4255,28 @@ or None if no match is found."""
 		
 		ctx=self.__getcontext(ctxid,host)
 		
-		if isinstance(record,dict) :
-			r=record
-			record=Record(r,ctxid)
+		if not isinstance(record,Record):
+			try: record=Record(record,ctx)
+			except: raise ValueError,"Record instance or dict required"
+		record=Record(record.__dict__,ctx)
+		#record.validate()
+
 
 		# check data types
-		params=Set(record.keys())
-		params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+		# params=Set(record.keys())
+		# params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+		
+		#record=Record(record.__dict__.copy(),ctx)
+		#record.validate()
 
-#		if DEBUG: print params
+		print record
+		if not self.__importmode:
+			record.validate()	
+			self.__validaterecord(record,ctxid)
 
-		for i in params:
-			try:
-				pd=self.__paramdefs[i.lower()]
-				vartype=pd.vartype
-			except:
-				raise KeyError,"Parameters undefined (%s)"%i
-
-			
-			try:
-				record[i] = valid_vartypes[vartype][1](record[i])
-				if vartype=="string" and isinstance(pd.choices,tuple):
-					if record[i].title() not in pd.choices :
-						self.addparamchoice(i,record[i].ctxid)
-				if vartype=="choice" :
-					if record[i].title() not in pd.choices :
-						raise Exception,"%s not in %s"%(record[i],pd.choices)
-			except:
-#				pass
-				print "Error converting datatype: %s, %s"%(i,vartype)
-#				raise ValueError
-										
-		if (record.recid<0) : record.recid=None
+		# ian: moved to Record.validate()
+		#if (record.recid<0):
+		#	record.recid=None
 		
 		######
 		# This except block is where new records are created
@@ -3642,46 +4288,33 @@ or None if no match is found."""
 			# Record must not exist, lets create it
 			#p=record.setContext(ctx)
 
-#			txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+			# Set recid
+			#	txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)
+			print "got recid %s"%record.recid
 			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
-#			record.recid = self.__dbseq.get()								# Get a new record-id
+			#	record.recid = self.__dbseq.get()								# Get a new record-id
 
-			df=file("/tmp/dbbug3","a")
-			df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
-			df.close()
+			if not self.__importmode:
+				df=file("/tmp/dbbug3","a")
+				df.write("%s\n%s\n"%(str(ctx.__dict__),str(record)))
+				df.close()
 		
 			# Group -1 is administrator, group 0 membership is global permission to create new records
-			if (not 0 in ctx.groups) and (not -1 in ctx.groups) : raise SecurityError,"No permission to create records"
+			#if (not 0 in ctx.groups) and (not -1 in ctx.groups):
+			if not self.checkcreate(ctx):
+				raise SecurityError,"No permission to create records"
 
 			record.setContext(ctx)
 			
-			x=record["permissions"]
-			if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
-				raise ValueError,"permissions MUST be a 4-tuple of tuples"
-			
-			# Make sure all parameters are defined before we start updating the indicies
-			ptest=Set(record.keys())-Set(self.getparamdefnames())
-			if (not self.__importmode) : 
-				ptest.discard("creator")
-				ptest.discard("creationtime")
-			ptest.discard("permissions")
-			ptest.discard("rectype")
-			if len(ptest)>0 :
-				if DEBUG: print ptest 
-#				self.__records[-1]=record.recid-1
-				txn.abort()
-				print "One or more parameters undefined (%s)"%ptest
-				# Update the recid counter, TODO: do the update more safely/exclusive access
-				raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
+			# ian: moved some pieces from here to Record.validate() and self.__validaterecord()
 			
 			record["modifytime"]=record["creationtime"]
-			if (not self.__importmode) : 
+			if not self.__importmode:
 				record["modifyuser"]=ctx.user
-			else :
-				#record["modifyuser"]=ptest("creator")
-				pass			
+				
+				
 			self.__records.set(record.recid,record,txn)		# This actually stores the record in the database
 			self.__recorddefbyrec.set(record.recid,record.rectype,txn)
 			
@@ -3698,16 +4331,22 @@ or None if no match is found."""
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
 			
+			try:
+				self.__validaterecordaddchoices(record,ctxid)
+			except:
+				print "Unable to add choices to paramdefs."
+			
 			# ian
 			if type(parents)==int: parents=[parents]
 			for i in parents:
-				self.pclink(i,record.recid,"record",ctxid)
+				self.pclink(i,record.recid,ctxid)
 
 			if type(children)==int: children=[children]
 			for i in children:
-				self.pclink(record.recid,i,"record",ctxid)
+				self.pclink(record.recid,i,ctxid)
 						
 			return record.recid
+		
 		
 		######
 		# If we got here, we are updating an existing record
@@ -3715,36 +4354,27 @@ or None if no match is found."""
 		p=orig.setContext(ctx)				# security check on the original record
 		record.setContext(ctx)				# security double-check on the record to be processed. This is required for DBProxy use.
 		
-		x=record["permissions"]
-		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
-			raise ValueError,"permissions MUST be a 4-tuple of tuples"
+		# moved some validation to Record.validate/self.__validaterecord
 		
 		# We begin by comparing old and new records and figuring out exactly what changed
 		modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
-		if (not self.__importmode) : record["modifytime"]=modifytime
-		params=Set(orig.keys())
-		params.union_update(record.keys())
-		params.discard("creator")
-		params.discard("creationtime")
-		params.discard("modifytime")
-		params.discard("rectype")
+		if not self.__importmode: record["modifytime"]=modifytime
 		changedparams=[]
 		
-		for f in params:
-			try:
-				if (orig[f]!=record[f]):
-					if DEBUG: print "changedparams: %s ... %s %s"%(f,type(orig[f]),type(record[f]))
-					changedparams.append(f)
-			except:
+		for f in record.keys():
+			#try:
+			#except:			
+			if (orig[f]!=record[f]):			
 				changedparams.append(f)
-				
+
 		# If nothing changed, we just return
 		if len(changedparams)==0 : 
 			self.LOG(5,"update %d with no changes"%record.recid)
 			return "No changes made"
 		
 		# make sure the user has permission to modify the record
-#		if "creator" in changedparams or "creationtime" in changedparams: raise SecurityError,"Creation parameters cannot be modified (%d)"%record.recid		
+		if "creator" in changedparams or "creationtime" in changedparams: raise SecurityError,"Creation parameters cannot be modified (%d)"%record.recid		
+
 		if not p[3] :
 			if not p[2] :
 				if len(changedparams>1) or changedparams[0]!="comments" : 
@@ -3752,14 +4382,9 @@ or None if no match is found."""
 				if not p[1] :
 					raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
 		
-		# Make sure all parameters are defined before we start updating the indicies
-		ptest=Set(changedparams)-Set(self.getparamdefnames())
-		# ian 03.25.07
-		ptest.discard("permissions")
-		if len(ptest)>0 :
-			raise KeyError,"One or more parameters undefined (%s)"%",".join(ptest)
 		
 		txn=self.newtxn()
+
 		# Now update the indices
 		for f in changedparams:
 			# reindex will accept None as oldval or newval
@@ -3772,9 +4397,7 @@ or None if no match is found."""
 			self.__reindex(f,oldval,newval,record.recid,txn)
 			
 			if (f!="comments" and f!="modifytime") :
-				print "updating comments.."
 				orig["comments"]=u"LOG: %s updated. was: "%f + unicode(oldval)
-				print orig["comments"]
 			
 			orig[f]=record[f]
 			
@@ -3783,7 +4406,7 @@ or None if no match is found."""
 			reduce(operator.concat,record["permissions"]),record.recid,txn)		# index security
 		
 		# Updates last time changed index
-		if (not self.__importmode) : 
+		if (not self.__importmode): 
 			orig["modifytime"]=modifytime
 			orig["modifyuser"]=ctx.user
 			self.__timeindex.set(record.recid,modifytime,txn)
@@ -3802,27 +4425,31 @@ or None if no match is found."""
 
 		return record.recid
 		
-	def newrecord(self,rectype,ctxid=None,host=None,init=0,inheritperms=None):
+		
+		
+	# ian: moved host to end	
+	# ian: should ctxid be required.. you'd need one to commit the record.
+	def newrecord(self,rectype,ctxid=None,init=0,inheritperms=None,host=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
 		ctx=self.__getcontext(ctxid,host)
-		ret=Record()
-		ret.setContext(ctx)
+		rec=Record()
+		rec.setContext(ctx)
 		
 		# try to get the RecordDef entry, this still may fail even if it exists, if the
 		# RecordDef is private and the context doesn't permit access
-		t=self.getrecorddef(rectype,ctxid,host)
+		t=self.getrecorddef(rectype,ctxid,host=host)
 
-		ret.recid=None
-		ret.rectype=rectype						# if we found it, go ahead and set up
+		rec.recid=None
+		rec.rectype=rectype						# if we found it, go ahead and set up
 				
 		if init:
 			# minor fix, ian, 08.08.07
-			keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
+			#keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
 #			if DEBUG: print t.params
-			for k in keys:
 #				if DEBUG: print k,";",t.params[k]
-				ret[k]=t.params[k]						# hmm, in the new scheme, perhaps this should just be a deep copy
+			for k,v in t.params.items():
+				rec[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 
 		# ian
 		if inheritperms!=None:
@@ -3830,14 +4457,16 @@ or None if no match is found."""
 				prec=self.getrecord(inheritperms,ctxid)
 				n=[]
 				for i in range(0,len(prec["permissions"])):
-					n.append(prec["permissions"][i]+ret["permissions"][i])
-				ret["permissions"]=tuple(n)		
+					n.append(prec["permissions"][i]+rec["permissions"][i])
+				rec["permissions"]=tuple(n)		
 		
-		return ret
+		return rec
+
+
 
 	def getrecordnames(self,ctxid,dbid=0,host=None):
 		"""All record names a ctxid can access. Includes groups. Deprecated; calls getindexbycontext.""" 
-		return self.getindexbycontext(ctxid,host)
+		return self.getindexbycontext(ctxid,host=host)
 #		ctx=self.__getcontext(ctxid,host)
 #		
 #		if ctx.user=="root" : return range(self.__records[-1]+1)
@@ -3845,11 +4474,13 @@ or None if no match is found."""
 #		for i in ctx.groups: ret|=Set(self.__secrindex[i])
 #		return ret
 	
+	
+	
 	def getrecordschangetime(self,recids,ctxid,host=None):
 		"""Returns a list of times for a list of recids. Times represent the last modification 
 		of the specified records"""
 
-		secure=Set(self.getindexbycontext(ctxid,host))
+		secure=Set(self.getindexbycontext(ctxid,host=host))
 		rid=Set(recids)
 		rid-=secure
 		if len(rid)>0 : raise Exception,"Cannot access records %s"%str(rid)
@@ -3858,11 +4489,15 @@ or None if no match is found."""
 		except: raise Exception,"unindexed time on one or more recids"
 		
 		return ret 
-			
+		
+		
+	# ian todo: move host to end
 	def trygetrecord(self,recid,ctxid,host=None,dbid=0):
 		"""Checks to see if a record could be retrieved without actually retrieving it."""
 		ctx=self.__getcontext(ctxid,host)
-		if ctx.user=="root" or -1 in ctx.groups or -2 in ctx.groups : return 1
+		#if ctx.user=="root" or -1 in ctx.groups or -2 in ctx.groups:
+		if self.checkreadadmin(ctx):
+			return 1
 		# ian: fix anonymous access
 		if self.__secrindex.testref(-4,recid) : return 1 # anonymous access
 		if self.__secrindex.testref(-3,recid) : return 1		# global read access
@@ -3874,6 +4509,8 @@ or None if no match is found."""
 				continue
 		return 0
 	
+	
+	# ian todo: move host to end
 	def getrecord(self,recid,ctxid,host=None,dbid=0):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
@@ -3900,6 +4537,8 @@ or None if no match is found."""
 		else : raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
+		
+		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
 		"""Same as getRecord, but failure will produce None or a filtered list"""
 		
@@ -3924,7 +4563,14 @@ or None if no match is found."""
 			return recl
 		else : return None
 	
-	def secrecordadduser(self,usertuple,recid,ctxid,host=None,recurse=0):
+	
+	
+	# ian: moved host to end. 
+	# ian todo: give this a complete check; it's a big function.
+	# ian todo: combine with secrecorddeluser to reduce security critical code
+	#						and just alias to adduser with an arg or something.
+	#@write,user
+	def secrecordadduser(self,usertuple,recid,ctxid,recurse=0,host=None):
 		"""This adds permissions to a record. usertuple is a 4-tuple containing users
 		to have read, comment, write and administrativepermission. Each value in the tuple is either
 		a string (username) or a tuple/list of usernames. If recurse>0, the
@@ -3939,6 +4585,7 @@ or None if no match is found."""
 		if not isinstance(usertuple,tuple) and not isinstance(usertuple,list) :
 			raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints" 
 		usertuple=list(usertuple)[:4]
+		
 		for i in range(4):
 			if not isinstance(usertuple[i],tuple):
 				if usertuple[i]==None : usertuple[i]=tuple()
@@ -3951,6 +4598,9 @@ or None if no match is found."""
 		# all users
 		userset = Set(self.getusernames(ctxid)) | Set((-4,-3,-2,-1))
 
+		print userset
+		print usertuple
+
 		# get a list of records we need to update
 		if recurse>0:
 			if DEBUG: print "Add user recursive..."
@@ -3959,24 +4609,33 @@ or None if no match is found."""
 		else : trgt=Set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
-		if ctx.user=="root" or -1 in ctx.groups : isroot=1
-		else: isroot=0
+		#if ctx.user=="root" or -1 in ctx.groups :
+		if self.checkadmin(ctx):
+			isroot=1
+		else:
+			isroot=0
 		
 		# this will be a dictionary keyed by user of all records the user has
 		# just gained access to. Used for fast index updating
 		secrupd={}
 		
+		print trgt
+		
 		txn=self.newtxn()
 		# update each record as necessary
 		for i in trgt:
-			try:
-				rec=self.getrecord(i,ctxid,host)			# get the record to modify
-			except: continue
+			#try:
+			rec=self.getrecord(i,ctxid,host=host)			# get the record to modify
+			#except:
+			#	print "skipping %s"%i
+			#	continue
 			
 			# if the context does not have administrative permission on the record
 			# then we just skip this record and leave the permissions alone
 			# TODO: probably we should also check for groups in [3]
-			if not isroot and ctx.user not in rec["permissions"][3] : continue		
+			if ctx.user not in rec["permissions"][3] and not self.checkadmin(ctx): continue		
+			
+			print "rec: %s"%i
 			
 			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
 			xcur=[Set(v) for v in rec["permissions"]]		# copy of cur that will be changed
@@ -4036,7 +4695,11 @@ or None if no match is found."""
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 	
-	def secrecorddeluser(self,users,recid,ctxid,host=None,recurse=0):
+	
+	
+	# ian: moved host to end. see notes above.
+	#@write,user
+	def secrecorddeluser(self,users,recid,ctxid,recurse=0,host=None):
 		"""This removes permissions from a record. users is a username or tuple/list of
 		of usernames to have no access to the record at all (will not affect group 
 		access). If recurse>0, the operation will be performed recursively 
@@ -4059,7 +4722,8 @@ or None if no match is found."""
 		
 		ctx=self.__getcontext(ctxid,host)
 		users.discard(ctx.user)				# user cannot remove his own permissions
-		if ctx.user=="root" or -1 in ctx.groups : isroot=1
+		#if ctx.user=="root" or -1 in ctx.groups : isroot=1
+		if self.checkadmin(ctx): isroot=1
 		else: isroot=0
 
 		# this will be a dictionary keyed by user of all records the user has
@@ -4070,7 +4734,7 @@ or None if no match is found."""
 		# update each record as necessary
 		for i in trgt:
 			try:
-				rec=self.getrecord(i,ctxid,host)			# get the record to modify
+				rec=self.getrecord(i,ctxid,host=host)			# get the record to modify
 			except: continue
 			
 			# if the user does not have administrative permission on the record
@@ -4122,7 +4786,9 @@ or None if no match is found."""
 	# internal view rendering functions
 	##########
 	
-	def getrecordrecname(self,recid,ctxid):
+	
+	
+	def getrecordrecname(self,recid,ctxid,host=None):
 		"""Render the recname view for a record."""
 		try:
 			rec=self.getrecord(recid,ctxid)
@@ -4134,6 +4800,8 @@ or None if no match is found."""
 			value = "(%s: %s)"%(rec.rectype, rec.recid)
 		return value
 	
+	
+	
 	def getrecordrenderedviews(self,recid,ctxid,host=None):
 		"""Render all views for a record."""
 		rec=self.getrecord(recid,ctxid,host=host)
@@ -4144,7 +4812,11 @@ or None if no match is found."""
 			views[i] = self.renderview(rec,viewdef=views[i],ctxid=ctxid,host=host)
 		return views
 	
-	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,host=None, showmacro=True):
+	
+	
+	# ian: moved host to end
+	# ian todo: make ctxid required?
+	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,showmacro=True,host=None):
 		"""Render a view for a record. Takes a record instance or a recid.
 		viewdef is an arbitrary view definition. viewtype is a name view from record def.
 		paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
@@ -4250,10 +4922,13 @@ or None if no match is found."""
 
 		return viewdef
 
+
+
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
 		print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
 		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+
 
 
 	###########
@@ -4263,7 +4938,7 @@ or None if no match is found."""
 	# should be significantly faster, a key point if dumping an entire database
 	###########
 		
-	def getparamdefxml(self,names=None):
+	def getparamdefxml(self,names=None,host=None):
 		"""Returns XML describing all, or a subset of the existing paramdefs"""
 		
 		ret=[]
@@ -4299,13 +4974,15 @@ or None if no match is found."""
 			
 		return "".join(ret)
 
-	def getrecorddefxml(self,ctxid,host=None,names=None):
+
+	# ian: moved host to end
+	def getrecorddefxml(self,ctxid,names=None,host=None):
 		"""Returns XML describing all, or a subset of existing recorddefs"""
 		ret=[]
 		if names==None : names=self.getrecorddefnames()
 
 		for i in names:
-			try: rd=self.getrecorddef(i,ctxid,host)
+			try: rd=self.getrecorddef(i,ctxid,host=host)
 			except: continue
 
 			ret.append('<recorddef name="%s">\n  <private value="%d"/>\n  <owner value="%s"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n  <creationdb value="%s"/>\n'%(i,rd.private,rd.owner,rd.creator,rd.creationtime,rd.creationdb))
@@ -4342,14 +5019,16 @@ or None if no match is found."""
 			
 		return "".join(ret)
 
-	def getuserxml(self,ctxid,host=None,names=None):
+
+	# ian: moved host to end
+	def getuserxml(self,ctxid,names=None,host=None):
 		"""Returns XML describing all, or a subset of existing users"""
 		qc={'"':'&quot'}
 		ret=[]
-		if names==None : names=self.getusernames(ctxid,host)
+		if names==None : names=self.getusernames(ctxid,host=host)
 		
 		for i in names:
-			try: u=self.getuser(i,ctxid,host)
+			try: u=self.getuser(i,ctxid,host=host)
 			except: continue
 			ret.append('<user name="%s">\n'%i)
 			ret.append('  <password value="%s"/>\n  <disabled value="%d"/>\n  <privacy value="%d"/>\n  <creator value="%s"/>\n  <creationtime value="%s"/>\n'%(u.password,u.disabled,u.privacy,u.creator,u.creationtime))
@@ -4366,12 +5045,18 @@ or None if no match is found."""
 
 		return "".join(ret)
 
-	def getworkflowxml(self,ctxid,host=None,wfid=None):
+
+	
+	# ian: moved host to end
+	def getworkflowxml(self,ctxid,wfid=None,host=None):
 		"""Returns XML describing all, or a subset of workflows"""
 		print "WARNING getworkflowxml unimplemented"
 		return ""
 	
-	def getrecordxml(self,ctxid,host=None,recids=None):
+	
+	
+	# ian: moved host to end
+	def getrecordxml(self,ctxid,recids=None,host=None):
 		"""Returns XML describing all, or a subset of records"""
 		qc={'"':'&quot'}
 		ret=[]
@@ -4427,17 +5112,30 @@ or None if no match is found."""
 			
 		return "".join(ret)
 			
-	def getasxml(self,body):
+			
+			
+	def getasxml(self,body,host=None):
 		return '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generated by EMEN2 -->\n<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">\n%s\n</xs:schema>'%body
 
 		
-	def backup(self,ctxid,host=None,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None,outfile=None):
+	# ian: moved host to end
+	# ian: changed to __backup to not export via rpc
+	#@write,private
+	def __backup(self,ctxid,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None,outfile=None,host=None):
 		"""This will make a backup of all, or the selected, records, etc into a set of files
 		in the local filesystem"""
+
+		#if user!="root" :
+		ctx=self.__getcontext(ctxid,host)
+		if not self.checkadmin(ctx):
+			raise SecurityError,"Only root may backup the database"
+
+
 		print 'backup has begun'
-		user,groups=self.checkcontext(ctxid,host)
-		if user!="root" : raise SecurityError,"Only root may backup the database"
-		
+		#user,groups=self.checkcontext(ctxid,host)
+		user=ctx.user
+		groups=ctx.groups
+				
 		if users==None: users=self.__users.keys()
 		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
 		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
@@ -4540,6 +5238,8 @@ or None if no match is found."""
 
 		out.close()
 
+
+
 	def restore(self,ctxid,host=None):
 		"""This will restore the database from a backup file. It is nondestructive, in that new items are
 		added to the existing database. Naming conflicts will be reported, and the new version
@@ -4550,9 +5250,13 @@ or None if no match is found."""
 		if not self.__importmode: self.LOG(3,"WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
 		
 		self.LOG(4,"Begin restore operation")
-		user,groups=self.checkcontext(ctxid,host)
+		#user,groups=self.checkcontext(ctxid,host)
 		ctx=self.__getcontext(ctxid,host)
-		if user!="root" : raise SecurityError,"Only root may restore the database"
+		user=ctx.user
+		groups=ctx.groups
+		#if user!="root" :
+		if not self.checkadmin(ctx):
+			raise SecurityError,"Only root may restore the database"
 		
 		if os.access(self.path+"/backup.pkl",os.R_OK) : fin=open(self.path+"/backup.pkl","r")
 		elif os.access(self.path+"/backup.pkl.bz2",os.R_OK) : fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
@@ -4707,14 +5411,20 @@ or None if no match is found."""
 			self.LOG(4,"Checkpointing complete, dumping indices")
 			self.__commitindices()
 			
+			
+			
 	def restoretest(self,ctxid,host=None):
 		"""This method will check a database backup and produce some statistics without modifying the current database."""
 		
 		if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
 		
-		user,groups=self.checkcontext(ctxid,host)
+		#user,groups=self.checkcontext(ctxid,host)
 		ctx=self.__getcontext(ctxid,host)
-		if user!="root" : raise SecurityError,"Only root may restore the database"
+		user=ctx.user
+		groups=ctx.groups
+		#if user!="root" :
+		if not self.checkadmin(ctx):
+			raise SecurityError,"Only root may restore the database"
 		
 		if os.access(self.path+"/backup.pkl",R_OK) : fin=open(self.path+"/backup.pkl","r")
 		elif os.access(self.path+"/backup.pkl.bz2",R_OK) : fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
@@ -4782,11 +5492,16 @@ or None if no match is found."""
 								
 		print "Users=",nu,"  ParamDef=",npd,"  RecDef=",nrd,"  Records=",nr,"  Links=",np
 
+
+	#@write,private
 	def __del__(self): 
 		self.close()
 
+
+	#@write,admin
 	def close(self):
 		"disabled at the moment"
+		pass
 #		print self.__btreelist
 		#self.__btreelist.extend(self.__fieldindex.values())
 		#print self.__btreelist
