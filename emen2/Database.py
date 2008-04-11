@@ -27,7 +27,6 @@ from sets import *
 from emen2.subsystems import macro				 #
 from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
-import debugging as debug #
 import operator
 import os
 import re
@@ -1391,14 +1390,17 @@ class Record:
 		
 		return self.__ptest
 	
-	def __str__(self):
+	def __unicode__(self):
 		"A string representation of the record"
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
 #		for i,j in self.__params.items():
 #			ret.append("%12s:  %s\n"%(str(i),str(j)))
 		for i,j in self.items(): 
-			ret.append("%12s:  %s\n"%(str(i),unicode(j).encode("utf-8")))
-		return "".join(ret)
+			ret.append(u"%12s:  %s\n"%(str(i),unicode(j)))
+		return u"".join(ret)
+	
+	def __str__(self):
+		return self.__unicode__().encode('utf-8')
 		
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
@@ -3895,7 +3897,7 @@ or None if no match is found."""
 				p=rec.setContext(ctx)
 				if not p[0] : raise SecurityError,"Permission denied on one or more records"	# ian: changed Exception to SecurityError
 			return recl
-		else : raise SecurityError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
+		else : raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
