@@ -44,11 +44,13 @@ html>body #container {
 	padding-left:40px;
 	padding-right:20px;
 	padding-bottom:100px;
+	clear: both;
 }
 
 #title {
 	height:82px;
 	background:#DCEFEE;
+	float:none;
 }
 
 #footer {
@@ -60,6 +62,7 @@ html>body #container {
 	font-size:12px;
 	line-height:125%;
 	position:absolute;
+	z-index: 0;
 	bottom:0;
 	clear:both;
 }
@@ -212,6 +215,10 @@ a:hover {
 	text-decoration:underline;
 }
 
+h1, h2, h3, h4, h5, h6 {
+	clear:both;
+}	
+
 h1 {
     padding:0px;
 	margin:0px;
@@ -288,3 +295,69 @@ h2 {
 	padding-top:20px;
 }
 
+.breadcrumb {
+	font-weight: bolder;
+	background: #DCEFEE;
+	float:none;
+	clear:both;
+	overflow: hidden;
+}
+
+.breadcrumb span a {
+	text-decoration: none;
+}
+
+.bordered {
+	border: thin solid black !important;
+}
+
+.parent {
+	background: #B1A584 !important;
+}
+
+.breadnav {
+	border: thin solid black !important;
+	display:block;
+	background: #D3C7A6;
+	float:left;
+	padding: 2px;
+	margin-right: 5px;
+	overflow: hidden;
+}
+
+
+.menu {
+	display: none;
+	overflow: hidden;
+}
+
+.breadnav:hover .menu {
+	background: #FEDE75;
+	border: thin solid black;
+	display: block;
+	position: absolute;
+	z-index: 50;
+}
+
+
+.breadmenu {
+	padding: 5px;
+	cursor: pointer;
+}
+
+.breadcrumb a:hover {
+	text-decoration: none !important;
+}
+
+.breadmenu:hover {
+	padding: 5px;
+	background: white;
+}
+
+.breadmenu + .breadmenu {
+	border-top: thin solid black;
+}
+
+.parent + .child {
+	margin-left: 10px;
+}

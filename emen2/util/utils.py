@@ -83,3 +83,6 @@ def make_registry(name, bases, dict):
     cls._registry = {}
     return cls
 
+def slugify(string):
+    result = string.lower().expandtabs().split()
+    return str.join('-', result)

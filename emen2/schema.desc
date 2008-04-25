@@ -1,3 +1,7 @@
+$reference (int) #A reference to another record by id
+$indexby (string) #a string used to retrieve records
+$template (string) #a string used to retrieve records
+
 $template_name (string) #the template of the current record
 $event_name (string) #The name of the event
 $event_date (datetime) #The date of the event
@@ -57,16 +61,16 @@ $template_template (text) #the template's context
  N $$template_name
  ---template
  
-$project_title (string) #project title
+$project_name (string) #project title
 $project_dates (string) #project dates
 $project_type (string) #type of project
 $project_description (text) #project description
 $project_reprints (text) #reprints/publications of the project
 @project:
- >$$project_title $$project_dates $$project_type $$project_description $$project_reprints
- #$$project_title
- ?$$project_title
- N $$project_title
+ >$$project_name $$project_dates $$project_type $$project_description $$project_reprints
+ #$$project_name
+ ?$$project_name
+ N $$project_name
  ---project
 
 $grant_agency_name (string) #Name of the Grant Agency
@@ -82,11 +86,12 @@ $grant_total_cost (float) #Grant Total Cost
  ---grant
  
 $person_name (string) #Name
+$person_metaname (string) #Unique Identifier
 $person_degrees (string) #Degrees
 $person_department (string) #Department
 $person_institution (string) #Institution
 $person_phone (string) #Phone Number
-$person_email (string) #Phone Number
+$person_email (string) #Email Address
 $person_fax (string) #Fax
 $person_photo (binaryimage) #A Photo
 @person:
@@ -100,7 +105,7 @@ $person_photo (binaryimage) #A Photo
 $address_top (string) #Address Top Line(s)
 $address_city (string) #City
 $address_state (string) #State
-$address_zip (int) #Zipcode	
+$address_zip (string) #Zipcode	
 $address_country (string) #Country
 @address:
  >$$address_top<br />$$address_city,$$address_state $$address_zip<br />$$address_country

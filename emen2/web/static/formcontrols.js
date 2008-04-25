@@ -181,15 +181,34 @@ function uncheckall(formobj) {
 function input_moreoptions_text(elem) {
 	var target=elem.parentNode;
 	var i=target.getElementsByTagName("input");
-	var expanded = i[0].name.split("___");
-	expanded[4] = i.length+1;
+	//var a = new Array(); for (x in i[0]) {a.push(x);};a.sort();alert(a.join(" "));
+	var expanded = i[0].name//.split("___");
+	alert(expanded);
+	//expanded[4] = i.length+1;
 	var n=document.createElement("input");
 	n.type = "text";
-	n.name=expanded.join("___");
+	//n.name=expanded.join("___");
 	var n2=document.createElement("br");
 	target.appendChild(n2); 
 	target.appendChild(n); 	
 }	
+// Edward Langley
+function input_moreoptions_table(elem) {
+	var list=elem.parentNode.parentNode;
+	var target=elem.getElementsByTagName("input");
+	var nw=document.createElement('div');
+	for (em in target) {
+		var i = target[em];
+		//var expanded = i.name.split("___");
+		//expanded[4] = i.length+1;
+		var n=document.createElement("input");
+		n.type = "text";
+		n.name="test";
+		nw.appendChild(n);
+	}
+	list.appendChild(nw); 
+}	
+// End
 
 function input_moreoptions_select(elem) {
 	var target=elem.parentNode;

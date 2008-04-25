@@ -23,7 +23,8 @@ from cPickle import dumps,loads,dump,load
 from emen2.emen2config import *
 from functools import partial
 from math import *
-from sets import *
+#from sets import *
+Set = set
 from emen2.subsystems import macro				 #
 from xml.sax.saxutils import escape,unescape,quoteattr
 import atexit
@@ -59,7 +60,8 @@ pcomments = re.compile(recommentsregex) # re.UNICODE
 
 # These are for transactional database work
 #dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
-#envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_INIT_TXN
+##Ed 04.14.2008 added DB_THREAD
+#envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_THREAD|db.DB_INIT_TXN
 #usetxn=True
 
 LOGSTRINGS = ["SECURITY", "CRITICAL","ERROR   ","WARNING ","INFO	","VERBOSE ","DEBUG   "]
@@ -271,7 +273,7 @@ class BTree:
 		get a list of children only with a specific paramname. Note
 		that empty strings and None cannot be used as tags"""
 		if not txn : txn=self.txn
-		if not self.relate : raise Exception,"relate option required in BTree"
+		if not self.relate: raise Exception,"relate option required in BTree"
 		if parenttag==None or childtag==None or parenttag=="" or childtag=="" : return
 				
 		if not self.has_key(childtag,txn) : 
@@ -1462,6 +1464,8 @@ class Record:
 	"_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"]
 	restrictedparams = ["creator","creationtime","modifyuser","modifytime"]
 	
+	publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
+	
 	def __init__(self,dict=None,ctxid=None):
 		"""Normally the record is created with no parameters, then setContext is called by the
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
@@ -1764,6 +1768,9 @@ class Record:
 		x=self.__permissions
 		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
 			raise ValueError,"permissions MUST be a 4-tuple of tuples"			
+		
+	def get(self, key, default=None):
+		return self[key] or default
 
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
@@ -1783,7 +1790,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		global envopenflags,usetxn
 				
 		if usetxn: self.newtxn=self.newtxn1
-		else : self.newtxn=self.newtxn2
+		else: self.newtxn=self.newtxn2
 
 		self.path=path
 		self.logfile=path+"/"+logfile
@@ -2156,7 +2163,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if name==None or str(name)=="": raise ValueError,"BDO name may not be 'None'"
 		
 		# ian: check for permissions because actual operations are performed.
-		rec=self.getrecord(recid,ctxid)
+		print 'ctxid: %s, host: %s' % (ctxid, host)
+		rec=self.getrecord(recid,ctxid, host=host)
 		if not rec.writable():
 			raise SecurityError,"Write permission needed on referenced record."
 		
@@ -2749,11 +2757,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# ian todo: move this to db.checkadmincontext or user.checkadmin or similar
 		#if [-1] in ctx.groups or [-2] in ctx.groups:
 		if self.checkreadadmin(ctx):
-			return Set(range(self.__records[-1]+1))
+			return Set(range(self.__records[-1]))#+1)) ###Ed: Fixed an off by one error
 
-		ret=Set(self.__secrindex[ctx.user])
+		ret=Set(self.__secrindex[ctx.user or -4])
 		if ctx.user!=None:
-			ret|=Set(self.__secrindex[-3])
+			ret|=Set(self.__secrindex[-3] or [])
 
 		return ret
 
@@ -3137,7 +3145,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
 		
-		ctx=self.__getcontext(ctxid)
+		ctx=self.__getcontext(ctxid, host)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"pclink requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
@@ -3165,7 +3173,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if keytype=="paramdef":
 			r=self.__paramdefs.pclink(pkey,ckey,txn=txn)
 
-		self.LOG(0,"pclink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		self.LOG(0,"pclink %s: %s <-> %s by user %s"%(keytype,pkey,ckey,ctx.user))
 		return r
 			
 	
@@ -3175,7 +3183,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def pcunlink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 
-		ctx=self.__getcontext(ctxid)
+		ctx=self.__getcontext(ctxid, host)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"pcunlink requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
@@ -3186,13 +3194,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 			b=self.getrecord(ckey,ctxid)
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pcunlink requires partial write permission"
-			r=return self.__records.pcunlink(pkey,ckey,txn)
+			r=self.__records.pcunlink(pkey,ckey,txn)
 		if keytype=="recorddef":
 			r=self.__recorddefs.pcunlink(pkey,ckey,txn)
 		if keytype=="paramdef":
 			r=self.__paramdefs.pcunlink(pkey,ckey,txn)
 		
-		self.LOG(0,"pcunlink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
+		self.LOG(0,"pcunlink %s: %s <-> %s by user %s"%(keytype,pkey,ckey,ctx.user))
 		return r
 		
 	
@@ -4201,7 +4209,7 @@ or None if no match is found."""
 		"""Validate a record's db references. Checks vartypes and users."""
 		
 		# Check parameters
-		for i in record.keys():
+		for i in Set(record.keys()) - Set(['permissions']):
 			try:
 				pd=self.__paramdefs[i.lower()]
 			except:
@@ -4261,7 +4269,6 @@ or None if no match is found."""
 		record=Record(record.__dict__,ctx)
 		#record.validate()
 
-
 		# check data types
 		# params=Set(record.keys())
 		# params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
@@ -4269,7 +4276,7 @@ or None if no match is found."""
 		#record=Record(record.__dict__.copy(),ctx)
 		#record.validate()
 
-		print record
+		#print record
 		if not self.__importmode:
 			record.validate()	
 			self.__validaterecord(record,ctxid)
@@ -4293,7 +4300,6 @@ or None if no match is found."""
 			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)
 			print "got recid %s"%record.recid
-			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
 			#	record.recid = self.__dbseq.get()								# Get a new record-id
 
 			if not self.__importmode:
@@ -4304,6 +4310,7 @@ or None if no match is found."""
 			# Group -1 is administrator, group 0 membership is global permission to create new records
 			#if (not 0 in ctx.groups) and (not -1 in ctx.groups):
 			if not self.checkcreate(ctx):
+				txn.abort()
 				raise SecurityError,"No permission to create records"
 
 			record.setContext(ctx)
@@ -4314,7 +4321,6 @@ or None if no match is found."""
 			if not self.__importmode:
 				record["modifyuser"]=ctx.user
 				
-				
 			self.__records.set(record.recid,record,txn)		# This actually stores the record in the database
 			self.__recorddefbyrec.set(record.recid,record.rectype,txn)
 			
@@ -4323,12 +4329,16 @@ or None if no match is found."""
 				if k != 'recid':
 					self.__reindex(k,None,v,record.recid,txn)
 			
-			self.__reindexsec(None,reduce(operator.concat,record["permissions"]),record.recid, txn=txn)		# index security
+			self.__reindexsec([],reduce(operator.concat,record["permissions"]),record.recid, txn=txn)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid,txn)			# index recorddef
 			self.__timeindex.set(record.recid,record["creationtime"],txn)
+			
+			self.__records.set(-1,record.recid+1,txn)			# Update the recid counter, TODO: do the update more safely/exclusive access
 									
 			#print "putrec->\n",record.__dict__
+			print "txn: %s" % txn
 			if txn: txn.commit()
+			
 			elif not self.__importmode : DB_syncall()
 			
 			try:
@@ -4346,7 +4356,6 @@ or None if no match is found."""
 				self.pclink(record.recid,i,ctxid)
 						
 			return record.recid
-		
 		
 		######
 		# If we got here, we are updating an existing record
@@ -4381,7 +4390,6 @@ or None if no match is found."""
 					raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
 				if not p[1] :
 					raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
-		
 		
 		txn=self.newtxn()
 
@@ -4518,7 +4526,7 @@ or None if no match is found."""
 		
 		ctx=self.__getcontext(ctxid,host)
 		
-		if (dbid!=0) : raise Exception,"External database support not yet available"
+		if (dbid!=0) : raise NotImplementedError("External database support not yet available") #Ed Changed to NotimplementedError
 		
 		# if a single id was requested, return it
 		# setContext is required to make the record valid, and returns a binary security tuple
@@ -4537,7 +4545,19 @@ or None if no match is found."""
 		else : raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #		else : raise KeyError,"Invalid Key %s"%str(recid)
 		
-		
+	def getparamvalue(self,paramname,recid,ctxid,dbid=0,host=None):
+		#slow and insecure needs indexes for speed
+		paramindex = self.__getparamindex(paramname)
+		if hasattr(recid, '__iter__'):
+			results = []
+			for key in paramindex.keys():
+				if set(paramindex[key]) & set(recid):
+					results.insert(0, key)
+			return results
+		else:
+			for key in paramindex.keys():
+				if paramindex[key].pop() == recid:
+					return key
 		
 	def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
 		"""Same as getRecord, but failure will produce None or a filtered list"""
@@ -5121,7 +5141,7 @@ or None if no match is found."""
 	# ian: moved host to end
 	# ian: changed to __backup to not export via rpc
 	#@write,private
-	def __backup(self,ctxid,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None,outfile=None,host=None):
+	def _backup(self,ctxid,users=None,paramdefs=None,recorddefs=None,records=None,workflows=None,bdos=None,outfile=None,host=None):
 		"""This will make a backup of all, or the selected, records, etc into a set of files
 		in the local filesystem"""
 

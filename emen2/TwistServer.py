@@ -8,8 +8,6 @@ import os
 import glob
 import Database
 from emen2.emen2config import *
-import g
-print g.ROOTPW
 from emen2.subsystems import macro
 from emen2.subsystems import templating
 
@@ -28,6 +26,10 @@ from emen2.util import fileops
 from emen2 import util
 from emen2 import TwistSupport_html
 from emen2.TwistSupport_html.public import views
+
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+print g.ROOTPW
 
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
@@ -59,16 +61,12 @@ root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())
 import thread
 import code
 import time
+x = {}
+x.update(globals())
+exec "from test import *" in x
+a = code.InteractiveConsole(x, '')
+thread.start_new_thread(a.interact, ())
 
-def inp(banner=''):
-    if not sys.stdin.closed:
-        sys.stderr.write(banner)
-    result = sys.stdin.read()
-    if result:
-        return result
-    else:
-        thread.interrupt_main()
-        time.sleep(10000000)
 print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
 
 # You can set the port to listen on...

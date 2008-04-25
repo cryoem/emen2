@@ -5,3 +5,17 @@ def get(collection, key, default=None):
 		return default
 	except IndexError:
 		return default
+	
+def combine_lists(sep=' ', *args):
+	return (sep.join(x) for x in zip(*args))
+
+def test_get():
+	print '1 == ',  get( {2:2, 3:3, 1:1}, 1 )
+	print '1 == ', get( {2:2, 3:3}, 1, 1 )
+	print 'None == ', get( {2:2, 3:3}, 1)
+
+def run_tests():
+	test_get()
+
+if __name__ == '__main__':
+	run_tests()
