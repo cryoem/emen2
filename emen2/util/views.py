@@ -99,7 +99,7 @@ class View(object):
 class Page(object):
 	def __init__(self, template, db, ctxid, value_dict=None, host=None, **kwargs):
 		self.__template = template
-		self.__valuedict = {'menus': build_menus(g.PAGE_MENUS, db=db, ctxid=ctxid, host=host)}
+		self.__valuedict = {} #{'menus': build_menus(g.PAGE_MENUS, db=db, ctxid=ctxid, host=host)}
 		self.__valuedict.update(adj_dict(value_dict or {}, kwargs))
 		
 	def __unicode__(self):
