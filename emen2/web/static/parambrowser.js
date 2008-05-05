@@ -66,10 +66,10 @@ function picker(param, type, elem, event) {
 	return
 }
 picker.prototype.addchild = function(parent) {
-	this.pclink(parent,this.param);
+	this.pclink(parent,this.param,ctxid);
 }
 picker.prototype.addparent = function(child) {
-	this.pclink(this.param,child);
+	this.pclink(this.param,child,ctxid);
 }
 picker.prototype.pclink = function(parent,child) {
 
@@ -337,7 +337,7 @@ function picker_pcunlink(parent,child,type) {
 		var pclink = new CallbackManager();
 		pclink.register(picker_pcunlink_cb);
 		pclink.setcbargs([type]);
-		pclink.req("pcunlink",[parent,child,type,ctxid]);
+		pclink.req("pcunlink",[parent,child,ctxid,type]);
 	}
 }
 function picker_pcunlink_cb(r,cbargs) {

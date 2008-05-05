@@ -74,7 +74,7 @@ def getrectypesiblings(db,rec, args, ctxid, host, **extra):
 	groups = db.groupbyrecorddeffast(siblings, ctxid)
 
 	if groups.has_key(rec.rectype):
-		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid=ctxid)
+		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid)
 		ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?	
 
 	return str(ret)
@@ -97,8 +97,9 @@ def getfilenames(db,rec, args, ctxid, host, **extra):
 			except Exception, inst:
 				bname="Attachment error: %s"%bid
 			files[bid]=bname
-
-	return str(files)
+		
+	return files
+	#return str(files)
 
 
 ################################################################################################################################################

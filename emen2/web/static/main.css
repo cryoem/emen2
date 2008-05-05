@@ -1,3 +1,11 @@
+.editable:hover {
+	background:red;
+}
+
+.show {
+	display:block;
+}
+
 ul {
 	margin:0px
 }
@@ -174,13 +182,14 @@ html,body {
 	background:white;
 }
 
-.precontent {
+#precontent, .precontent {
 	background:#BBD9EE; 
 }
 #bottom {
 	background:#BBD9EE; 
 	font-size:10px;
-	position:absolute;
+	/*position:absolute;*/
+	/*bottom:0px;*/
 	width:100%;
 }
 
@@ -188,7 +197,7 @@ html,body {
 	display:block;
 	position: relative;
 	overflow: none;
-	padding: 5px;
+	padding:5px;
 }
 
 .navtable {		
@@ -259,13 +268,18 @@ NAV MENU
 	border-right:none;
 }	
 
+#zone_parentmap {
+	margin-bottom:10px;
+}
+
 /* 
 =============================================================
 PAGE / TAB
 =============================================================
 */
 
-.page:after, .input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons:after {
+/* recordview, .buttons:after */
+.input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -274,13 +288,18 @@ PAGE / TAB
 }
 
 
+/* all */
+
 /* all pages */
 .pages {
-	background:white;
+	clear:left;
+	margin-bottom:20px;
 }
+
 .page {
+	background:#E7F1F8;	
+	width:600px;
 	padding:20px;
-	background:white;
 	display:none;
 }
 .page_active {
@@ -297,34 +316,30 @@ PAGE / TAB
 }	
 .button {
 	padding:10px;
-	background:#E7F1F8;
+	background:#BBD9EE;
 }
 .button_active {
-	background:white;
+	background:#E7F1F8;
 }
 
 
-/* specific buttons */
+/* main */
 #buttons_main {
 	padding-top:10px;
 }
 .button_main {
 	margin-top:-5px;
 }
+.button_main_active {
+	background:white;
+}
 #button_main_mainview {
 	margin-top:-15px;
 	padding:15px;
 }
-.button_tab2, .button_tab, .button_newrecord {
-	background:#BBD9EE;
-}
-.button_tab2_active, .button_tab_active, .button_newrecord_active {
-	background:#E7F1F8;
-}
-
-
-/* specific pages */
 .page_main {
+	width:auto;
+	background:white;
 	padding-bottom:100px;
 }
 #page_main_mainview {
@@ -334,40 +349,10 @@ PAGE / TAB
 	padding-bottom:0px;
 }
 
-.page_recordview {
-	padding:0px;
-}
-#page_recordview_defaultview {
-	display:block;
-}
+/* recordview */
 .page_recordview strong {
 	font-weight:normal;
 	color:#783766;
-}
-.page_recordview {
-	padding-right:50px;
-}
-
-.page_tab2, .page_tab, .page_newrecord {
-	background:#E7F1F8;
-}
-#page_tab_parents, #page_newrecord_protocol {
-	display:block;
-}
-
-.button_rel, .button_exp, .button_rdv, .button_general {
-	background:#BBD9EE;
-}
-.button_rel_active, .button_exp_active, .button_rdv_active, .button_general_active, .button_comments_active {
-	background:#E7F1F8;;
-}
-.page_rel, .page_general, .page_exp, .page_rdv, .page_comments {
-	width:700px;
-	background:#E7F1F8;
-}
-.page_comments {
-	padding:10px;
-	width:500px;
 }
 
 
@@ -392,8 +377,10 @@ SIDEBAR
 	padding:10px;
 	padding-right:0px;
 	width:300px;
-	float:right;
-	background:white;
+	float:right; 
+/*	position:absolute; */
+	right:0px;
+	background:white; 
 	line-height:150%;
 /*	background: url('images/transbackground.png'); */
 }
@@ -421,7 +408,7 @@ SIDEBAR
 	display:block;
 }	
 #sidebar .sidebar_box {
-	display:none;	
+	/*display:none;	*/
 	background:#F0F0F0;
 	margin-bottom:10px;
 	padding:5px;
@@ -475,7 +462,6 @@ SIDEBAR
 	background:#BBD9EE;
 }	
 #cousin_buttons {
-	clear:both;
 	height:35px;
 }
 

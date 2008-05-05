@@ -1,3 +1,50 @@
+function record_permissions_show() {
+	switchin('comments','permissions');
+	$("#page_comments_permissions").append('<img src="/images/spinner.gif" />');
+	$("#page_comments_permissions").load("/main.css");
+}
+
+function record_relationships_show() {
+	switchin('comments','relationships');
+	$("#page_comments_relationships").append('<img src="/images/spinner.gif" />');
+	$("#page_comments_relationships").load("/main.css");
+}
+
+$(document).ready(function() {
+		$('.editable').click(function() {editelem(this)});
+});
+
+paramdefs = new Object();
+
+function editelem(elem) {
+	classes = elem.className.split(" ");
+	prop = new Object();
+	revert = new Object();
+	
+	for (i in classes) {
+		j = classes[i].split("___");
+		if (j.length > 1) {
+			prop[j[0]] = j[1];
+		}
+	}
+	
+	console.log(prop);
+	
+	try { name = prop["paramdef"]; } catch(except) {return};
+
+	if (prop["vartype"] == "string") {
+		var edit = '<input value="' + $(elem).html() + '" />';
+		revert[name] = $(elem).html();
+		$(elem).after(edit).remove();		
+	}
+
+	//var button = '<div><input type="button" value="SAVE" class="saveButton" /> OR <input type="button" value="CANCEL" class="cancelButton"/></div></div>';
+	//$('.saveButton').click(function(){saveChanges(elem, false);});
+	//$('.cancelButton').click(function(){saveChanges(elem, revert);});			
+	
+}
+
+
 
 /***********************************************/
 
@@ -216,9 +263,9 @@ function form_relationships_remove_cb(r,cbargs) { // r=null .. cbargs = [parents
 		cb.register(form_relationships_remove_cb);
 
 		if (type=="parents") {
-			cb.req("pcunlink",[parent,recid,'record',ctxid]);
+			cb.req("pcunlink",[parent,recid,ctxid]);
 		} else {
-			cb.req("pcunlink",[recid,parent,'record',ctxid]);
+			cb.req("pcunlink",[recid,parent,ctxid]);
 		}
 		return
 	}

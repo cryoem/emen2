@@ -10,7 +10,7 @@ db=DB.Database(EMEN2DBPATH)
 ctx=db.login("root",ROOTPW)
 
 # list of tuples describing all binary object keys
-bin=db.getbinarynames()
+bin=db.getbinarynames(ctx)
 print len(bin)
 
 for i in bin:

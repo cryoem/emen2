@@ -150,18 +150,21 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 		elif match.group("var1"):
 			if not paramdefs.has_key(match.group("var1")):
 				paramdefs[match.group("var1")] = db.getparamdef(match.group("var1"))
-
+			
+			pd=paramdefs[match.group("var1")]
+			v=rec[match.group("var1")]
+			
 # 			try: value = pcomments.sub("<br />",unicode(value))
 # 			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
 				
 			if not edit:
-				prepend	= """<strong>$$"""+match.group("var")	
+				prepend	= """<strong class="editable paramdef___%s vartype___%s defaultunits___%s property___%s">$$"""%(match.group("var"),pd.vartype,pd.defaultunits,pd.property) + match.group("var")	
 				postpend = """</strong>"""
-				if paramdefs[match.group("var1")].defaultunits and paramdefs[match.group("var1")].defaultunits != "unitless" and rec[match.group("var1")] != None:
-					postpend += """ <em>%s</em> """%(paramdefs[match.group("var1")].defaultunits)
+				if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
+					postpend += """ <em>%s</em> """%(pd.defaultunits)
 
 			else:
-				postpend += editparamspan2(paramdefs[match.group("var1")],rec[match.group("var1")],db=db,ctxid=ctxid)
+				postpend += editparamspan2(pd,v,db=db,ctxid=ctxid)
 
 			matchstr = "\$\$"+match.group("var")+match.group("varsep")
 			viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
