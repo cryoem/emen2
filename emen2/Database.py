@@ -1772,6 +1772,22 @@ class Record:
 	def get(self, key, default=None):
 		return self[key] or default
 
+
+
+class DBProxy2:
+	def __init__(self,db,ctxid,host):
+		self.db=db
+		self.ctxid=ctxid
+		self.host=host
+	def __getattr__(self,name):
+		return lambda *x: self(name,*x)		
+	def __call__(self,*args, **kwargs):
+		kwargs["ctxid"]=self.ctxid
+		kwargs["host"]=self.host
+		print args
+		print kwargs
+		return getattr(self.db,args[0])(*args[1:], **kwargs)
+
 	
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
 class Database:
@@ -1798,6 +1814,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__importmode=importmode
 	
 		self.maxrecurse=50
+	
+
 	
 		xtraflags=0
 		if recover: xtraflags=db.DB_RECOVER
@@ -1920,17 +1938,17 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 
 	# one of these 2 methods is mapped to self.newtxn()
-	def newtxn1(self):
+	def newtxn1(self,host=None):
 		return self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 	
 	
 	# ian: why?
-	def newtxn2(self):
+	def newtxn2(self,host=None):
 		return None
 	
 	
 	
-	def LOG(self,level,message):
+	def LOG(self,level,message,host=None):
 		"""level is an integer describing the seriousness of the error:
 		0 - security, security-related messages
 		1 - critical, likely to cause a crash
@@ -1951,6 +1969,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			print("Critical error!!! Cannot write log message to '%s'\n"%self.logfile)
 
 
+		
 
 	def __str__(self):
 		"""try to print something useful"""
@@ -2001,8 +2020,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		
 	# ian: changed from deletecontext to __deletecontext because this should not available via rpc.
+	# ian: made host req'd
 	#@write,private
-	def __deletecontext(self,ctxid,host=None):
+	def __deletecontext(self,ctxid,host):
 		"""Delete a context. Returns None."""
 
 		# check we have access to this context
@@ -2163,8 +2183,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if name==None or str(name)=="": raise ValueError,"BDO name may not be 'None'"
 		
 		# ian: check for permissions because actual operations are performed.
-		print 'ctxid: %s, host: %s' % (ctxid, host)
-		rec=self.getrecord(recid,ctxid, host=host)
+		rec=self.getrecord(recid,ctxid,host=host)
+
 		if not rec.writable():
 			raise SecurityError,"Write permission needed on referenced record."
 		
@@ -2282,9 +2302,9 @@ parentheses grouping not supported yet"""
 		excludeset=Set()
 		for n,i in enumerate(query2):
 			if isinstance(i,str) and i[0]=="@" and (query[n-1] not in ("by","group")):
-				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
+				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid,host=host)
 			if isinstance(i,str) and i[0]=="!":
-				excludeset|=self.getindexbyrecorddef(i[1:],ctxid)
+				excludeset|=self.getindexbyrecorddef(i[1:],ctxid,host=host)
 
 		# We go through the query word by word and perform each operation
 		byparamval=Set()
@@ -2325,20 +2345,20 @@ parentheses grouping not supported yet"""
 				n+=2
 				continue
 			elif i=="child" :
-				chl=self.getchildren(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				chl=self.getchildren(query2[n+1],ctxid,recurse=20,host=host)
 #				chl=Set([i[0] for i in chl])  # children no longer suppport names 
 				if len(byparamval)>0 : byparamval&=chl
 				else: byparamval=chl
 				n+=2
 				continue
 			elif i=="parent" :
-				if len(byparamval)>0 : byparamval&=self.getparents(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
-				else: byparamval=self.getparents(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				if len(byparamval)>0 : byparamval&=self.getparents(query2[n+1],ctxid,recurse=20,host=host)
+				else: byparamval=self.getparents(query2[n+1],ctxid,recurse=20,host=host)
 				n+=2
 				continue
 			elif i=="cousin" :
-				if len(byparamval)>0 : byparamval&=self.getcousins(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
-				else: byparamval=self.getcousins(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
+				if len(byparamval)>0 : byparamval&=self.getcousins(query2[n+1],ctxid,recurse=20,host=host)
+				else: byparamval=self.getcousins(query2[n+1],ctxid,recurse=20,host=host)
 				n+=2
 				continue
 			elif i[0]=="@" or i[0]=="!" or i in ("find","timeline") :
@@ -2388,21 +2408,21 @@ parentheses grouping not supported yet"""
 		if groupby:
 			dct={}
 			if groupby[0]=='$':
-				gbi=self.getindexdictbyvalue(groupby[1:],None,ctxid,None)
+				gbi=self.getindexdictbyvalue(groupby[1:],None,ctxid,host=host)
 				for i in byrecdef:
 					if gbi.has_key(i) :
 						try: dct[gbi[i]].append(i)
 						except: dct[gbi[i]]=[i]
 					else :
-						p=self.__getparentssafe(i,'record',4,ctxid)
+						p=self.__getparentssafe(i,recurse=4)
 						for j in p:
 							if gbi.has_key(j) :
 								try: dct[gbi[j]].append(i)
 								except: dct[gbi[j]]=[i]
 			elif groupby[0]=="@":
-				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid)
+				alloftype=self.getindexbyrecorddef(groupby[1:],ctxid,host=host)
 				for i in byrecdef:
-					p=self.__getparentssafe(i,'record',10,ctxid)
+					p=self.__getparentssafe(i,recurse=10)
 					p&=alloftype
 					for j in p:
 						try: dct[j].append(i)
@@ -2706,33 +2726,33 @@ parentheses not supported yet. Upon failure returns a tuple:
 			else: continue
 			
 			if e[0]=="@" :
-				a=self.findrecorddefname(e[1:])
+				a=self.findrecorddefname(e[1:],host=host)
 				if a==None : return (-1,"Invalid protocol",e)
 				elements[n]="@"+a
 				continue
 			if e[0]=='!':
-				a=self.findrecorddefname(e[1:])
+				a=self.findrecorddefname(e[1:],host=host)
 				if a==None : return (-1,"Invalid protocol",e)
 				elements[n]="!"+a
 				continue
 			elif e[0]=="$" :
-				a=self.findparamdefname(e[1:])
+				a=self.findparamdefname(e[1:],host=host)
 				if a==None : return (-1,"Invalid parameter",e)
 				elements[n]="$"+a
 				continue
 			elif e[0]=="%" :
-				a=self.findusername(e[1:],ctxid)
+				a=self.findusername(e[1:],ctxid,host=host)
 				if a==None : return (-1,"Username does not exist",e)
 				if isinstance(a,str) :
 					elements[n]="%"+a
 					continue
 				if len(a)>0 : return (-1,"Ambiguous username",e,a)
 			else:
-				a=self.findrecorddefname(e)
+				a=self.findrecorddefname(e,host=host)
 				if a!=None : 
 					elements[n]="@"+a
 					continue
-				a=self.findparamdefname(e)
+				a=self.findparamdefname(e,host=host)
 				if a!=None : 
 					elements[n]="$"+a
 					continue
@@ -2925,7 +2945,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
 
 		v = {}
-		records = self.getrecordsafe(list(subset),ctxid)
+		records = self.getrecordsafe(list(subset),ctxid,host=host)
 		for i in records:
 			if not valrange:
 				v[i.recid] = i[param]
@@ -2947,7 +2967,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		another using record retrieval for small numbers of records"""
 		r = {}
 		for i in records:
-			try: j = self.getrecord(i,ctxid=ctxid)
+			try: j = self.getrecord(i,ctxid=ctxid,host=host)
 			except: continue
 			#try:
 			k=j[param]
@@ -2970,9 +2990,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r = {}
 		for i in records:
-			try: p = self.getparents(i,recurse=recurse,ctxid=ctxid,host=host)
+			try: p = self.getparents(i,ctxid,recurse=recurse,host=host)
 			except: continue
-			try: k=[ii for ii in p if self.getrecord(ii,ctxid).rectype==parenttype]
+			try: k=[ii for ii in p if self.getrecord(ii,ctxid,host=host).rectype==parenttype]
 			except: k=[None]
 			if len(k)==0 : k=[None]
 			
@@ -2990,7 +3010,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		of the specified record classified by recorddef as a dictionary. The special 'all'
 		key contains the sum of all different recorddefs"""
 		
-		c=self.getchildren(key,"record",recurse,ctxid,host=host)
+		c=self.getchildren(key,ctxid,recurse=recurse,host=host)
 		r=self.groupbyrecorddeffast(c,ctxid,host=host)
 		for k in r.keys(): r[k]=len(r[k])
 		r["all"]=len(c)
@@ -2999,7 +3019,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	
 	# ian todo: make ctxid mandatory, but will require alot of code changes.
-	def getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def getchildren(self,key,ctxid,keytype="record",recurse=0,host=None):
 		"""This will get the keys of the children of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
 		on the parent object or an empty set will be returned. For recursive lookups
@@ -3011,7 +3031,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
-			try: a=self.getrecorddef(key,ctxid)
+			try: a=self.getrecorddef(key,ctxid,host=host)
 			except: return Set()
 		elif keytype=="paramdef" : trg=self.__paramdefs
 		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
@@ -3022,7 +3042,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		r2=[]
 		for i in ret:
-			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host=host)
+			r2+=self.getchildren(i,ctxid,keytype=keytype,recurse=recurse-1,host=host)
 		return Set(ret+r2)
 
 # ian
@@ -3043,7 +3063,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		
 	# ian todo: make ctxid req'd
-	def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	def getparents(self,key,ctxid,keytype="record",recurse=0,host=None):
 		"""This will get the keys of the parents of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
 		read permission on the keyed record to get a list of parents
@@ -3056,7 +3076,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 #			except: return Set()
 		elif keytype=="recorddef" : 
 			trg=self.__recorddefs
-			try: a=self.getrecorddef(key,ctxid)
+			try: a=self.getrecorddef(key,ctxid,host=host)
 			except: return Set()
 		elif keytype=="paramdef":
 			trg=self.__paramdefs
@@ -3069,13 +3089,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.getparents(i,keytype,recurse-1,ctxid,host=host)
+			r2+=self.getparents(i,ctxid,keytype=keytype,recurse=recurse-1,host=host)
 		return Set(ret+r2)
 
 
 
 	# ian todo: make ctxid mandatory
-	def getcousins(self,key,keytype="record",ctxid=None,host=None):
+	def getcousins(self,key,ctxid,keytype="record",host=None):
 		"""This will get the keys of the cousins of the referenced object
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
@@ -3090,8 +3110,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 	# need similar fast versions for internal use; can check later.
-	# ian todo: make ctxid mandatory
-	def __getparentssafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	# ian: made ctxid not required
+	def __getparentssafe(self,key,keytype="record",recurse=0):
 		"""Version of getparents with no security checks"""
 		
 		if (recurse<0): return Set()
@@ -3109,14 +3129,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		r2=[]
 		for i in ret:
-			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host=host)
+			r2+=self.__getparentssafe(i,keytype=keytype,recurse=recurse-1)
 		return Set(ret+r2)
 		
 		
 	# ian: added for consistency
 	# need similar fast versions for internal use; can check later.
-	# ian todo: make ctxid mandatory
-	def __getchildrensafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
+	# ian: made ctxid not required
+	def __getchildrensafe(self,key,keytype="record",recurse=0):
 		if (recurse<0): return Set()
 		if keytype=="record" : 
 			trg=self.__records
@@ -3133,7 +3153,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		r2=[]
 		for i in ret:
-			r2+=self.__getchildrensafe(i,keytype,recurse-1,ctxid,host=host)
+			r2+=self.__getchildrensafe(i,keytype=keytype,recurse=recurse-1)
 		return Set(ret+r2)
 
 
@@ -3145,7 +3165,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		A context is required for record links, and the user must
 		have write permission on at least one of the two."""
 		
-		ctx=self.__getcontext(ctxid, host)
+		ctx=self.__getcontext(ctxid,host)
+
 		if not self.checkcreate(ctx):
 			raise SecurityError,"pclink requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
@@ -3156,14 +3177,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# ian todo: change to use non-secure methods if quicker; we're not returning this to user.
 		#						and needed because user may not be able to see a potential circular reference.
 		if not self.__importmode:
-			p=self.__getparentssafe(pkey,keytype=keytype,recurse=self.maxrecurse,ctxid=ctxid,host=host)
-			c=self.__getchildrensafe(pkey,keytype=keytype,recurse=self.maxrecurse,ctxid=ctxid,host=host)
+			p=self.__getparentssafe(pkey,keytype=keytype,recurse=self.maxrecurse)
+			c=self.__getchildrensafe(pkey,keytype=keytype,recurse=self.maxrecurse)
 			if pkey in c or ckey in p or pkey == ckey:
 				raise Exception,"Circular references are not allowed."
 		
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid)
-			b=self.getrecord(ckey,ctxid)
+			a=self.getrecord(pkey,ctxid,host=host)
+			b=self.getrecord(ckey,ctxid,host=host)
 			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pclink requires partial write permission"
@@ -3183,15 +3204,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def pcunlink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 		"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 
-		ctx=self.__getcontext(ctxid, host)
+		ctx=self.__getcontext(ctxid,host)
+
 		if not self.checkcreate(ctx):
 			raise SecurityError,"pcunlink requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
 			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 					
 		if keytype=="record" : 
-			a=self.getrecord(pkey,ctxid)
-			b=self.getrecord(ckey,ctxid)
+			a=self.getrecord(pkey,ctxid,host=host)
+			b=self.getrecord(ckey,ctxid,host=host)
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pcunlink requires partial write permission"
 			r=self.__records.pcunlink(pkey,ckey,txn)
@@ -3213,15 +3235,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 		for both records."""
 		# ian todo: check for circular references.
 
-		ctx=self.__getcontext(ctxid)
+		ctx=self.__getcontext(ctxid,host)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"link requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
 			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		if keytype=="record": 
-			a=self.getrecord(key1,ctxid)
-			b=self.getrecord(key2,ctxid)
+			a=self.getrecord(key1,ctxid,host=host)
+			b=self.getrecord(key2,ctxid,host=host)
 			r=self.__records.link(key1,key2)
 		if keytype=="recorddef":
 			r=self.__recorddefs.link(key1,key2,txn)
@@ -3238,15 +3260,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def unlink(self,key1,key2,ctxid,keytype="record",host=None,txn=None):
 		"""Remove a 'cousin' relationship between two keys."""
 
-		ctx=self.__getcontext(ctxid)
+		ctx=self.__getcontext(ctxid,host)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"unlink requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
 			raise Exception,"pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 					
 		if keytype=="record":
-			a=self.getrecord(key1,ctxid)
-			b=self.getrecord(key2,ctxid)
+			a=self.getrecord(key1,ctxid,host=host)
+			b=self.getrecord(key2,ctxid,host=host)
 			r=self.__records.unlink(key1,key2)
 		if keytype=="recorddef":
 			r=self.__recorddefs.unlink(key1,key2,txn)
@@ -3295,13 +3317,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		if user.record==None:
 			try:
-				userrec=self.newrecord("person",ctxid,init=1)
+				userrec=self.newrecord("person",ctxid,init=1,host=host)
 				userrec["username"]=username
 				userrec["name_first"]=user.name[0]
 				userrec["name_middle"]=user.name[1]
 				userrec["name_last"]=user.name[2]
 				userrec["email"]=user.email
-				recid = self.putrecord(userrec,ctxid)
+				recid = self.putrecord(userrec,ctxid,host=host)
 				user.record = recid
 			except:
 				raise Exception,"Unable to create record for user %s"%username
@@ -3430,7 +3452,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	#@write,user
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 		ctx=self.__getcontext(ctxid,host)
-		user=self.getuser(username,ctxid)
+		user=self.getuser(username,ctxid,host=host)
 		
 		s=sha.new(oldpassword)
 		#if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
@@ -3600,7 +3622,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def getworkflowitem(self,wfid,ctxid,host=None):
 		"""Return a workflow from wfid."""
 		ret = None
-		wflist = self.getworkflow(ctxid)
+		wflist = self.getworkflow(ctxid,host=host)
 		if len(wflist) == 0:
 			 return None
 		else:
@@ -3610,8 +3632,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		return ret
 		
 		
-		
-	def newworkflow(self, vals, host=None):
+	def newworkflow(self, vals, ctxid, host=None):
 		"""Return an initialized workflow instance."""
 		return WorkFlow(vals)
 		
@@ -3774,7 +3795,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# this actually stores in the database
 		txn=self.newtxn()
 		self.__paramdefs.set(paramdef.name,paramdef,txn)
-		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
+		if (parent): self.pclink(parent,paramdef.name,ctxid,keytype="paramdef",txn=txn,host=host)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		
@@ -3894,7 +3915,7 @@ or None if no match is found."""
 		# commit
 		txn=self.newtxn()
 		self.__recorddefs.set(recdef.name,recdef,txn)
-		if (parent): self.pclink(parent,recdef.name,"recorddef",txn=txn)
+		if (parent): self.pclink(parent,recdef.name,ctxid,keytype="recorddef",txn=txn,host=host)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
 		return recdef.name
@@ -3967,7 +3988,7 @@ or None if no match is found."""
 		# ok, now we need to do a little more work. 
 		if recid==None: raise SecurityError,"User doesn't have permission to access private RecordDef '%s'"%rectypename
 		
-		rec=self.getrecord(recid)		# try to get the record, may (and should sometimes) raise an exception
+		rec=self.getrecord(recid,ctxid,host=host)		# try to get the record, may (and should sometimes) raise an exception
 
 		if rec.rectype!=rectypename: raise SecurityError,"Record %d doesn't belong to RecordDef %s"%(recid,rectypename)
 
@@ -4204,8 +4225,8 @@ or None if no match is found."""
 			self.__secrindex.addref(i,recid,txn=txn)
 
 
-
-	def __validaterecord(self,record,ctxid,host=None):
+	# ian: made ctxid, host not req'd because private method
+	def __validaterecord(self,record):
 		"""Validate a record's db references. Checks vartypes and users."""
 		
 		# Check parameters
@@ -4248,7 +4269,7 @@ or None if no match is found."""
 			if pd.vartype=="string" and isinstance(pd.choices,tuple):
 				if record[i].title() not in pd.choices:
 					# ian: fixed a typo that seemed to be causing lots of grief (record[i].ctxid). it was missed because of exception handler.
-					self.addparamchoice(i,record[i],ctxid)
+					self.addparamchoice(i,record[i],ctxid,host=host)
 	
 	
 
@@ -4279,7 +4300,7 @@ or None if no match is found."""
 		#print record
 		if not self.__importmode:
 			record.validate()	
-			self.__validaterecord(record,ctxid)
+			self.__validaterecord(record,ctxid,host=host)
 
 		# ian: moved to Record.validate()
 		#if (record.recid<0):
@@ -4342,18 +4363,18 @@ or None if no match is found."""
 			elif not self.__importmode : DB_syncall()
 			
 			try:
-				self.__validaterecordaddchoices(record,ctxid)
+				self.__validaterecordaddchoices(record,ctxid,host=host)
 			except:
 				print "Unable to add choices to paramdefs."
 			
 			# ian
 			if type(parents)==int: parents=[parents]
 			for i in parents:
-				self.pclink(i,record.recid,ctxid)
+				self.pclink(i,record.recid,ctxid,host=host)
 
 			if type(children)==int: children=[children]
 			for i in children:
-				self.pclink(record.recid,i,ctxid)
+				self.pclink(record.recid,i,ctxid,host=host)
 						
 			return record.recid
 		
@@ -4436,8 +4457,8 @@ or None if no match is found."""
 		
 		
 	# ian: moved host to end	
-	# ian: should ctxid be required.. you'd need one to commit the record.
-	def newrecord(self,rectype,ctxid=None,init=0,inheritperms=None,host=None):
+	# ian: made ctxid required
+	def newrecord(self,rectype,ctxid,init=0,inheritperms=None,host=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
 		ctx=self.__getcontext(ctxid,host)
@@ -4461,8 +4482,8 @@ or None if no match is found."""
 
 		# ian
 		if inheritperms!=None:
-			if self.trygetrecord(inheritperms,ctxid):
-				prec=self.getrecord(inheritperms,ctxid)
+			if self.trygetrecord(inheritperms,ctxid,host=host):
+				prec=self.getrecord(inheritperms,ctxid,host=host)
 				n=[]
 				for i in range(0,len(prec["permissions"])):
 					n.append(prec["permissions"][i]+rec["permissions"][i])
@@ -4523,6 +4544,9 @@ or None if no match is found."""
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used. host must match the host of the
 		context"""
+		
+		print ctxid
+		print host
 		
 		ctx=self.__getcontext(ctxid,host)
 		
@@ -4624,7 +4648,7 @@ or None if no match is found."""
 		# get a list of records we need to update
 		if recurse>0:
 			if DEBUG: print "Add user recursive..."
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt=self.getchildren(recid,ctxid,recurse=recurse-1,host=host)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
 		
@@ -4736,7 +4760,7 @@ or None if no match is found."""
 		# get a list of records we need to update
 		if recurse>0:
 			if DEBUG: print "Del user recursive..."
-			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
+			trgt=self.getchildren(recid,ctxid,recurse=recurse-1,host=host)
 			trgt.add(recid)
 		else : trgt=Set((recid,))
 		
@@ -4811,7 +4835,7 @@ or None if no match is found."""
 	def getrecordrecname(self,recid,ctxid,host=None):
 		"""Render the recname view for a record."""
 		try:
-			rec=self.getrecord(recid,ctxid)
+			rec=self.getrecord(recid,ctxid,host=host)
 		except:
 			return "(permission denied)"
 			
@@ -4829,31 +4853,34 @@ or None if no match is found."""
 		views=recdef.views
 		views["mainview"] = recdef.mainview
 		for i in views:
-			views[i] = self.renderview(rec,viewdef=views[i],ctxid=ctxid,host=host)
+			views[i] = self.renderview(rec,ctxid,viewdef=views[i],host=host)
 		return views
 	
 	
 	
 	# ian: moved host to end
-	# ian todo: make ctxid required?
-	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,showmacro=True,host=None):
+	# ian: made ctxid required
+	def renderview(self,rec,ctxid,viewdef=None,viewtype="defaultview",host=None):
 		"""Render a view for a record. Takes a record instance or a recid.
 		viewdef is an arbitrary view definition. viewtype is a name view from record def.
 		paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
 				
 		if type(rec) == int:
-			if self.trygetrecord(rec,ctxid):
+			try:
 				rec=self.getrecord(rec,ctxid,host=host)
-			else:
-				print "renderview: permissions error %s"%rec
-				return ""
+			except:
+				return "Error: no permissions for %s"%rec
+
 				
 		if viewdef == None:
-			recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
-			if viewtype=="mainview":
-				viewdef=recdef.mainview
-			else:
-				viewdef = recdef.views.get(viewtype, recdef.name)
+			try:
+				recdef=self.getrecorddef(rec["rectype"],ctxid,host=host)
+				if viewtype=="mainview":
+					viewdef=recdef.mainview
+				else:
+					viewdef = recdef.views.get(viewtype, recdef.name)
+			except:
+				return "Error: no access to recorddef"
 		
 		# fixme: better, more general solution needed.
 		#	try:
@@ -4865,18 +4892,13 @@ or None if no match is found."""
  		iterator=regex2.finditer(a)
 				
 		for match in iterator:
-			pass
 
 			#################################
 			# Parameter short_desc
 			# TODO: trest
 			if match.group("name"):
 
-				name=str(match.group("name1"))
-				if paramdefs.has_key(name):
-					value = paramdefs[name].desc_short
-				else:
-					value = self.getparamdef(name).desc_short
+				value = self.__paramdefs[str(match.group("name1"))].desc_short
 				viewdef = viewdef.replace(u"$#"+match.group("name")+match.group("namesep"),value+match.group("namesep"))
 
 
@@ -4884,21 +4906,17 @@ or None if no match is found."""
 			# Record value
 			elif match.group("var"):
 				
-				var=str(match.group("var1"))
-				if paramdefs.has_key(var):
-					vartype=paramdefs[var].vartype					
-				else:
-					vartype = self.getparamdef(var).vartype
+				vartype=self.__paramdefs[str(match.group("var1"))].vartype
 
 				# vartype representations. todo: external function
-				value = rec[var]
+				value = rec[str(match.group("var1"))]
 				
 				if vartype in ["user","userlist"]:
 					if type(value) != list:	value=[value]
 					ustr=[]
 					for i in value:
 						try:
-							urec=self.getrecord(self.getuser(i,ctxid).record,ctxid)
+							urec=self.getrecord(self.getuser(i,ctxid).record,ctxid,host=host)
 							ustr.append(u"""%s %s %s (%s)"""%(urec["name_first"],urec["name_middle"],urec["name_last"],i))
 						except:
 							ustr.append(u"(%s)"%i)
@@ -4932,7 +4950,7 @@ or None if no match is found."""
 				if match.group("macro")=="recid":
 					value = unicode(rec.recid)
 				else:
-					value = unicode(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+					value = unicode(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid, host=host))
 
 				m2=match.group("macro2")
 				if m2 == None:
@@ -4977,14 +4995,14 @@ or None if no match is found."""
 					ret.append('  <choice>%s</choice>\n'%escape2(j))
 				ret.append('  </choices>\n')
 			
-			ch=self.getchildren(i,keytype="paramdef")
+			ch=self.getchildren(i,ctxid,keytype="paramdef",host=host)
 			if ch and len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
 					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
-			csn=self.getcousins(i,keytype="paramdef")
+			csn=self.getcousins(i,ctxid,keytype="paramdef",host=host)
 			if csn and len(csn)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
@@ -5021,14 +5039,14 @@ or None if no match is found."""
 					ret.append('	<view name="%s">%s</view>\n'%(k,escape2(v)))
 				ret.append('  </views>\n')
 				
-			ch=self.getchildren(i,keytype="recorddef")
+			ch=self.getchildren(i,ctxid,keytype="recorddef",host=host)
 			if len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
 					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
-			csn=self.getcousins(i,keytype="recorddef")
+			csn=self.getcousins(i,ctxid,keytype="recorddef",host=host)
 			if len(ch)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
@@ -5114,14 +5132,14 @@ or None if no match is found."""
 			for j in rec["comments"]:
 				ret.append('  <comment user="%s" date="%s">%s</comment>\n'%(j[0],j[1],escape2(j[2])))
 			
-			ch=self.getchildren(i,keytype="record")
+			ch=self.getchildren(i,ctxid,keytype="record",host=host)
 			if len(ch)>0 :
 				ret.append('  <children>\n')
 				for j in ch:
 					ret.append('	<link name="%s"/>\n'%j)
 				ret.append('  </children>\n')
 				
-			csn=self.getcousins(i,keytype="record")
+			csn=self.getcousins(i,ctxid,keytype="record",host=host)
 			if len(csn)>0 :
 				ret.append('  <cousins>\n')
 				for j in csn:
@@ -5519,7 +5537,7 @@ or None if no match is found."""
 
 
 	#@write,admin
-	def close(self):
+	def close(self,host=None):
 		"disabled at the moment"
 		pass
 #		print self.__btreelist
