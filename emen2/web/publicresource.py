@@ -29,11 +29,12 @@ class PublicView(Resource):
         def setitem(name, val):
             dict_[name] = val
             
-        for key in set(args.keys()) - set(["db","host","user","ctxid"]):
+        for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
             name, sep, val = key.rpartition('_')
             if val.isdigit():
                 res = dict_.get(name, [])
-                res or setitem(name, res)
+                if res != []:
+                     setitem(name, res)
                 res.append(args[key][0])
             elif len(args[key]) > 1:
                 dict_[key] = args[key]
@@ -153,7 +154,6 @@ class PublicView(Resource):
                 path = '/%s/' % str.join("/", request.postpath)
                 g.debug(path)
                 path = self.redirects.get(path, path)
-                
                 callback = routing.URLRegistry().execute(path, **tmp)
                                                         
             d = threads.deferToThread(callback, ctxid=ctxid, host=host)

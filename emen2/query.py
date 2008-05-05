@@ -58,13 +58,19 @@ class GetChildren(object):
             for child in db.getchildren(recid, ctxid=ctxid, host=host):
                 yield child
 
+class GetParents(object):
+    def act(self, data, db, ctxid, host):
+        for recid in data:
+            for child in db.getparents(recid, ctxid=ctxid, host=host):
+                yield child
+
 class ParamValue(object):
     def __init__(self, param_name=None):
         self.param_name = param_name
     def act(self, data, db, ctxid, host):
         for val in data:
             res = db.getparamvalue(self.param_name, val, ctxid=ctxid, host=host)
-            if bool(res):
+            if bool(res) == True:
                 yield res
             else:
                 yield None

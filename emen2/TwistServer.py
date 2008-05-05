@@ -16,10 +16,10 @@ from twisted.web import static, server
 from emen2.util import utils
 from emen2 import ts
 
-from emen2.TwistSupport_html import downloadresource
+#from emen2.TwistSupport_html import downloadresource
 from emen2.TwistSupport_html import publicresource
-from emen2.TwistSupport_html import uploadresource
-from emen2.TwistSupport_html import webresource
+#from emen2.TwistSupport_html import uploadresource
+#from emen2.TwistSupport_html import webresource
 from emen2.TwistSupport_html import xmlrpcresource
 from emen2.util import core_macros
 from emen2.util import fileops
@@ -53,8 +53,8 @@ g.macros = macro.MacroEngine()
 root = static.File(EMEN2ROOT+"/tweb")
 root.putChild("db",TwistSupport_html.publicresource.PublicView())
 root.putChild("pub",TwistSupport_html.publicresource.PublicView())
-root.putChild("download",TwistSupport_html.downloadresource.DownloadResource())
-root.putChild("upload",TwistSupport_html.uploadresource.UploadResource())
+#root.putChild("download",TwistSupport_html.downloadresource.DownloadResource())
+#root.putChild("upload",TwistSupport_html.uploadresource.UploadResource())
 root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())
 
 

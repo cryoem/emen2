@@ -6,6 +6,15 @@ def get(collection, key, default=None):
 	except IndexError:
 		return default
 	
+def remove(collection, keys):
+	if not hasattr(keys, '__iter__'):
+		keys = [keys]
+	for key in keys:
+		try:
+			del collection[key]
+		except KeyError:
+			pass
+	
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
 
