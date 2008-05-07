@@ -4541,6 +4541,7 @@ or None if no match is found."""
 		if dbid is 0, the current database is used. host must match the host of the
 		context"""
 		
+
 		ctx=self.__getcontext(ctxid,host)
 		
 		if (dbid!=0) : raise NotImplementedError("External database support not yet available") #Ed Changed to NotimplementedError
