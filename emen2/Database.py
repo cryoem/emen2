@@ -8,7 +8,7 @@
 # XMLRPC interface
 # XML parsing
 # Database id's not supported yet
-DEBUG = 4
+DEBUG = 0
 
 """This module encapsulates an electronic notebook/oodb
 
@@ -130,6 +130,7 @@ def parseparmvalues(text,noempty=0):
 			else: val=a
 			vals[name] = val
 	return ret
+
 
 def format_string_obj(dict,keylist):
 	"""prints a formatted version of an object's dictionary"""
@@ -317,6 +318,7 @@ class BTree:
 			print (childtag,paramname)
 			print o				
 				
+						
 		if not (childtag,paramname) in o: 
 #		if not childtag in o: 
 			return
@@ -1099,6 +1101,14 @@ class ParamDef:
 		self.__dict__[key] = value
 		# self.verify()
 	
+	def toJSON(self):
+		return self.__dict__
+		
+	def fromJSON(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)
+			
+	
 	def validate(self):
 		if str(self.name) == "":
 			raise ValueError,"name required"
@@ -1190,6 +1200,12 @@ class RecordDef:
 		# if key == "mainview":	self.findparams()
 		# self.verify()
 	
+	def toJSON(self):
+		return self.__dict__
+		
+	def fromJSON(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)	
 		
 	def validate(self):	
 		try:
@@ -1273,6 +1289,7 @@ Parameters are: username,password (hashed),groups (list),disabled,privacy,creato
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
+		
 		self.record=None		# link to the user record with personal information
 
 		# required for holding values until approved; email keeps original signup address. name is removed after approval.
@@ -1295,6 +1312,13 @@ Parameters are: username,password (hashed),groups (list),disabled,privacy,creato
 
 		self.__dict__[key] = value
 		# self.verify()
+
+	def toJSON(self):
+		return self.__dict__
+		
+	def fromJSON(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)
 	
 	def validate(self):
 
@@ -1408,6 +1432,13 @@ class WorkFlow:
 		if key not in self.allowed+self.restricted:
 			raise AttributeError,"No attribute %s"%key
 		self.__dict__[key] = value
+
+	def toJSON(self):
+		u=self.__dict__
+		
+	def fromJSON(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)
 	
 	def validate(self):
 		pass
@@ -1459,9 +1490,8 @@ class Record:
 	# restricted = admin only editable attributes
 	# restricted params = admin only editable params
 	allowed = []
-	restricted = ["rectype","recid","dbid","_Record__params","_Record__comments","_Record__oparams",
-	"_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"]
-	restrictedparams = ["creator","creationtime","modifyuser","modifytime"]
+	restricted = ["dbid","_Record__params","_Record__comments","_Record__oparams","_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"]
+	restrictedparams = ["creator","creationtime","modifyuser","modifytime","rectype","recid"]
 	
 	publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
 	
@@ -1495,9 +1525,10 @@ class Record:
 		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 
+	# ian todo: fix
 	def __setattr__(self,key,value):
-		if key not in self.allowed+self.restricted:
-			raise AttributeError,"No attribute %s"%key
+		#if key not in self.allowed+self.restrictedparams+self.restricted:
+		#	raise AttributeError,"No attribute %s"%key
 		#print "set %s = %s"%(key,value)
 		self.__dict__[key] = value
 
@@ -1535,6 +1566,23 @@ class Record:
 		
 		self.__context=None
 
+	# return dict
+	def toJSON(self):
+		return self.items_dict()
+	
+	# from items_dict	
+	def fromJSON(self,d):
+		for i in ("rectype","comments","creator","creationtime","permissions"):
+			try:
+				self.__setattr__(i,d[i])
+				del d[i]
+			except:
+				pass
+		for k,v in d.items():
+			try:
+				self.__setitem__(k,v)
+			except:
+				print "could not set %s = %s"%(k,v)
 	
 	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
 	def setContext(self,ctx):
@@ -1630,6 +1678,7 @@ class Record:
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
 		if key=="comments" : return self.__comments
+		if key=="recid" : return self.recid
 		if self.__params.has_key(key) : return self.__params[key]
 		return None
 	
@@ -3177,9 +3226,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if pkey in c or ckey in p or pkey == ckey:
 				raise Exception,"Circular references are not allowed."
 		
-		if keytype=="record" :
+		if keytype=="record" : 
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
+			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pclink requires partial write permission"
 			r=self.__records.pclink(pkey,ckey,txn=txn)
@@ -3228,7 +3278,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		for both records."""
 		# ian todo: check for circular references.
 
-		ctx=self.__getcontext(ctxid, host)
+		ctx=self.__getcontext(ctxid)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"link requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
@@ -3543,6 +3593,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# The user him/herself or administrator can get all info
 		#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
 		if self.checkreadadmin(ctx) or ctx.user==username: return ret
+
+		ret.password=None		# the hashed password has limited access
 		
 		# if the user has requested privacy, we return only basic info
 		if (ret.privacy==1 and ctx.user==None) or ret.privacy>=2 :
@@ -3553,7 +3605,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 			ret2.name=ret.name
 			return ret2
 
-		ret.password=None		# the hashed password has limited access
 		
 		# Anonymous users cannot use this to extract email addresses
 		if ctx.user==None : 
@@ -4963,7 +5014,7 @@ or None if no match is found."""
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
 		print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-		return macro.MacroEngine().call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 
