@@ -1,4 +1,5 @@
-from emen2.TwistSupport_html.publicresource import PublicView
+#from emen2.TwistSupport_html.publicresource import PublicView
+from emen2.paste_server import PublicView
 from emen2.util.db_manipulation import DBTree
 
 import emen2.globalns
