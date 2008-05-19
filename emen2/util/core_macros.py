@@ -123,3 +123,8 @@ def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	parents = db.getparents(recid, ctxid=ctxid)
 	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
+
+from cgi import escape
+@add_macro('escape')
+def escape_paramdef_val(db, rec, paramname, **extra):
+	return escape(rec.get(paramname, ''))

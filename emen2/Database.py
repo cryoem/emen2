@@ -8,7 +8,7 @@
 # XMLRPC interface
 # XML parsing
 # Database id's not supported yet
-DEBUG = 0
+DEBUG = 4
 
 """This module encapsulates an electronic notebook/oodb
 
@@ -115,20 +115,20 @@ class FieldError(Exception):
 
 def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
-	# This nasty regex will extract <aaa bbb="ccc">ddd</eee> blocks as [(aaa,bbb,ccc,ddd,eee),...]
-#	srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-#	srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	srch=re.findall('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	ret=[[],{}]
+	# Ed 05/17/2008 -- cleaned up
+	#srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+	#srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	params, vals = ret=[[],{}]
 	
-	for t in srch:
-		if len(t[0])>0 :
-			ret[0].append(t[0])
-			if len(t[1])==0 and len(t[2])==0 : 
-				if noempty==0 : ret[1][t[0]]=None
-			elif len(t[1])==0 : ret[1][t[0]]=t[2]
-			else : ret[1][t[0]]=t[1]
-
+	for name, a, b in (x.groups() for x in srch):
+		if name is '': continue
+		else:
+			print name, a, b
+			params.append(name)
+			if a is None: val=b
+			else: val=a
+			vals[name] = val
 	return ret
 
 def format_string_obj(dict,keylist):
@@ -317,7 +317,6 @@ class BTree:
 			print (childtag,paramname)
 			print o				
 				
-						
 		if not (childtag,paramname) in o: 
 #		if not childtag in o: 
 			return
@@ -3178,10 +3177,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if pkey in c or ckey in p or pkey == ckey:
 				raise Exception,"Circular references are not allowed."
 		
-		if keytype=="record" : 
+		if keytype=="record" :
 			a=self.getrecord(pkey,ctxid)
 			b=self.getrecord(ckey,ctxid)
-			#print a.writable(),b.writable()
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pclink requires partial write permission"
 			r=self.__records.pclink(pkey,ckey,txn=txn)
@@ -3230,7 +3228,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		for both records."""
 		# ian todo: check for circular references.
 
-		ctx=self.__getcontext(ctxid)
+		ctx=self.__getcontext(ctxid, host)
 		if not self.checkcreate(ctx):
 			raise SecurityError,"link requires record creation priveleges"
 		if keytype not in ["record","recorddef","paramdef"]:
@@ -4965,7 +4963,7 @@ or None if no match is found."""
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
 		print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		return macro.MacroEngine().call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 
@@ -5543,7 +5541,6 @@ or None if no match is found."""
 			for btree in self.__dict__.values():
 				if getattr(btree, '__class__', object).__name__.endswith('BTree'):
 					try:
-						print btree
 						btree.close()
 					except db.InvalidArgError, e:
 						print e

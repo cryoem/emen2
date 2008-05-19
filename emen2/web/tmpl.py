@@ -6,7 +6,7 @@ print "...loading %s"%__name__
 
 from sets import Set
 import re
-from emen2config import *
+from emen2.emen2config import *
 
 
 def form(action="",items=(),args={},method="POST"):
@@ -99,6 +99,7 @@ def header(name,notify=None,init=None,short=0,tabs=1,ctxid=None,db=None):
 	<link rel="StyleSheet" href="/iehx.css" type="text/css"  />
 	<![endif]-->
 
+	<script type="text/javascript" src="/jquery.js"></script>
 	<script type="text/javascript" src="/switch.js"></script>
 	<script type="text/javascript" src="/forms.js"></script>
 	<script type="text/javascript" src="/formcontrols.js"></script>

@@ -11,6 +11,7 @@ class IntegrityError(ValueError): pass
 
 class DBTree(object):
     root = property(lambda self: self.__root)
+    ctxid = property(lambda self: self.__ctxid)
     
     def __init__(self, db, ctxid, host=None, root=None):
         self.__db = db

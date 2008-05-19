@@ -1,4 +1,5 @@
 import cgi
+from emen2.util.listops import adj_dict
 
 class BaseDecorator(object):
     def __init__(self, func):
@@ -74,10 +75,6 @@ def get_slice(str, start, end):
         start = 0
     return str[start:end]
 
-def adj_dict(dict, items):
-    dict.update(items)
-    return dict
-
 def make_registry(name, bases, dict):
     cls = type(name, bases, dict)
     cls._registry = {}
@@ -86,3 +83,6 @@ def make_registry(name, bases, dict):
 def slugify(string):
     result = string.lower().expandtabs().split()
     return str.join('-', result)
+
+def both(a, b): return ( a and b )
+def either(a, b): return ( a or b )

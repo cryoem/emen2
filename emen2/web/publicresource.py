@@ -121,11 +121,12 @@ class PublicView(Resource):
                 ts.db.checkcontext(ctxid)
             except Exception, e:
                 if ctxid != None:    
-                    loginmsg = "Session expired"
+                    msg = "Session expired"
                     ctxid = None
                 else:
                     g.debug.msg(g.LOG_ERR, "EXCEPTION <%s>" % repr(e) )
             
+            msg = None
             if ctxid == None:
                 # force login, or generate anonymous context
                 if request.args.has_key("username") and request.args.has_key("pw"):
@@ -133,16 +134,24 @@ class PublicView(Resource):
                         # login and continue with this ctxid
                         ctxid = ts.db.login(request.args["username"][0], request.args["pw"][0], host)
                         request.addCookie("ctxid", ctxid, path='/')
+                        msg=1
                     except:
                         # bad login
                         ctxid = None
                         method = "login"
-                        loginmsg = "Please try again."
+                        msg = "Please try again."
                 else:
                     ctxid = ts.db.login("","",host)
                         
-            if method == "login":            
-                callback = make_callback(self.login(uri=request.uri,msg=loginmsg))
+            if method == "login":
+                try:            
+                    print 'hello'
+                    print 'continuing %r, %s' % (callback,callback)
+                    callback = routing.URLRegistry().execute('/login/', msg=msg, uri='/db/home/')(db=ts.db, host=request.host, ctxid='')
+                    print 'bye\n%r\n%s' % (callback,callback)
+                except Exception, e:
+                    callback = str(e)
+                return str(callback)
             
             elif method == "logout":
                 ts.db.deletecontext(ctxid)

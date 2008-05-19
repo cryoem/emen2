@@ -16,15 +16,30 @@ $(document).ready(function() {
 
 paramdefs = new Object();
 
+function isInteger (s) {
+	function isDigit (c) { return ((c >= "0") && (c <= "9")) }
+	
+	for (var i = 0; i < s.length; i++) {
+	   var c = s.charAt(i);
+	   if (!isDigit(c)) return false;
+	}
+	
+	return true;
+}
+
+
+
 function editelem(elem) {
 	classes = elem.className.split(" ");
 	prop = new Object();
 	revert = new Object();
 	
-	for (i in classes) {
-		j = classes[i].split("___");
-		if (j.length > 1) {
-			prop[j[0]] = j[1];
+	for (var i in classes) {
+		if ( isInteger(i) ) {
+			var j = classes[i].split("___");
+			if (j.length > 1) {
+				prop[j[0]] = j[1];
+			}
 		}
 	}
 	
@@ -38,9 +53,9 @@ function editelem(elem) {
 		$(elem).after(edit).remove();		
 	}
 
-	//var button = '<div><input type="button" value="SAVE" class="saveButton" /> OR <input type="button" value="CANCEL" class="cancelButton"/></div></div>';
-	//$('.saveButton').click(function(){saveChanges(elem, false);});
-	//$('.cancelButton').click(function(){saveChanges(elem, revert);});			
+	var button = '<div><input type="button" value="SAVE" class="saveButton" /> OR <input type="button" value="CANCEL" class="cancelButton"/></div></div>';
+	$('.saveButton').click(function(){saveChanges(elem, false);});
+	$('.cancelButton').click(function(){saveChanges(elem, revert);});			
 	
 }
 

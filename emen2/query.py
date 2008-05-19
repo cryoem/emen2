@@ -1,5 +1,9 @@
 from emen2.util import db_manipulation
 from itertools import chain
+import operator
+
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 class DBQuery(object):
     def __init__(self, db, ctxid, host=None):
@@ -30,16 +34,40 @@ class DBQuery(object):
                 else:
                     data = op(data, self.db, self.ctxid, self.host)
             self.__ops = []
-            self.__data = list(data)
+            self.__data = data
             self.__dirty = False
         return self.__data
+    result = property(get_result)
     
     def reset(self):
         self.__ops = []
         self.__data = None
         self.__dirty = False
+
+class BoolOp(object):
+    def __init__(self, op, *args):
+        self.__ops = args
+        self.__op = op
+    def act(self, data, db, ctxid, host):
+        results = set()
+        q = DBQuery(db, ctxid, host)
+        for item in self.__ops:
+            for pred in item:
+                q << pred
+            print results
+            results = self.__op(results, set(g.debug.note_var(q.result)))
+            q.reset()   
+        for item in results:
+            yield item
         
-    result = property(get_result)
+    
+class Union(BoolOp):
+    def __init__(self, *args):
+        BoolOp.__init__(self, operator.or_, *args)
+
+class Intersection(BoolOp):
+    def __init__(self, *args):
+        BoolOp.__init__(self, operator.and_, *args)
 
 
 class GetRecord(object):

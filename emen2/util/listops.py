@@ -14,6 +14,16 @@ def remove(collection, keys):
 			del collection[key]
 		except KeyError:
 			pass
+
+def adj_dict(dict, items):
+	dict.update(items)
+	return dict
+
+def combine_dicts(*args):
+	result = dict()
+	for dct in args:
+		result.update(dct)
+	return result
 	
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))

@@ -47,15 +47,19 @@ class GlobalNamespace(module):
     __setitem__ = __setattr__
     
     @classmethod
+    def __init__(cls, name=''):
+        print 'GLOBAL NAMESPACE DICT ID: %d' % id(cls.__vardict)
+    
+    @classmethod
     def __addattr(cls, name, value):
         if not name in cls.__all__: 
             cls.__all__.append(name)
         cls.__vardict[name] = value
             
     @classmethod
-    def refresh(self): 
-        self.__all__ = [x for x in self.__vardict.keys() if x[0] != '_']
-        self.__all__.append('refresh')
+    def refresh(cls): 
+        cls.__all__ = [x for x in cls.__vardict.keys() if x[0] != '_']
+        cls.__all__.append('refresh')
         
     @classmethod
     def getattr(cls, name):
@@ -102,6 +106,7 @@ def test():
     assert (a.a == a.a)
     assert (a.a == b.a)
     assert (a.a == a.___a)
+    print "test 1 passed"
     
     #test 2
     a.reset()
@@ -111,6 +116,7 @@ def test():
         pass
     else:
         assert False
+    print "test 2 passed"
         
     #test 3
     tempdict = dict(a=1, b=2, c=3)
@@ -118,6 +124,7 @@ def test():
     assert tempdict['a'] == a.a
     assert tempdict['a'] == b.a
     assert tempdict['a'] == a.___a
+    print "test 3 passed"
     a.reset()
     
 if __name__ == '__main__':

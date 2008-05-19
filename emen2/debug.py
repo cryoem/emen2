@@ -8,7 +8,7 @@ __all__ = ['DebugState', 'DEBUG', 'log']
 
 
 DEBUG = 0
-log = file ('log.log', 'a')
+log = file ('/Users/edwardlangley/emen2/log.log', 'a')
 
 
 class DebugState(object):

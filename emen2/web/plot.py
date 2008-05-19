@@ -11,7 +11,7 @@ import re
 import os
 import pickle 
 
-from emen2config import *
+from emen2.emen2config import *
 
 import time
 import random

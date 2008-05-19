@@ -1,64 +1,17 @@
-from cPickle import loads, dumps
 from emen2.TwistSupport_html.publicresource import PublicView
-from emen2.subsystems import routing
-from emen2.util.utils import adj_dict
 from emen2.util.db_manipulation import DBTree
-from functools import partial
-
-import emen2.debug as _d
-d = _d.DebugState()
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-def process_item(item):
-	url = item['menu_target']
-	if item['menu_name'] != None:
-		name = item['menu_name']
-		args, kwargs = loads(item['menu_arguments'] or dumps(((), {})))
-		url = '/db'+routing.URLRegistry.reverselookup(name, *args, **kwargs)
-	elif item['menu_link'] != None:
-		url = item['menu_link']
-	return url
-
-def build_menus(toplevels, db, **dbinfo):
-	getrecord = partial(db.getrecord, **dbinfo)
-	menus = []
-#	try: 
-	toplevels = getrecord(toplevels)
-	for menu in toplevels:
-		items = menu['order']
-		if items == None:
-			items = db.getchildren(menu.recid, keytype='record', **dbinfo)
-		items = getrecord(items)	
-		i_list = []
-		for item in items:
-			label = item['menu_label']
-			i_list.append(( label,process_item(item) ))
-		menus.append([menu['menu_label'], i_list])
-#	finally:
-	return menus
-
-def register_view(name, bases, dict):
-	cls = type(name, bases, dict)
-	if unicode(cls.__matcher__) != cls.__matcher__:
-		PublicView.register_url(cls.__name__, cls.__matcher__[0])(cls)
-		counter = 1
-		for expression in cls.__matcher__:
-			PublicView.register_url('%s%02d' %( cls.__name__, counter ), expression)(cls)
-			counter += 1
-	else:
-		PublicView.register_url(cls.__name__, cls.__matcher__)(cls)
-	return cls
 
 class View(object):
-	'''Base Class for views, no intrinsic functionality
-	subclasses should define an __init__ method 
-	which takes the arguments the match returns
-	and a __str__ method which returns the
-	rendered view. Also, subclasses MUST call
-	View.__init__!!!'''
+	'''Base Class for views, sets up the instance variables for the class
 	
+	Subclasses are required to do two things:
+		- have a class attribute called __metaclass__ which is equal to View.register_view
+		- call View.__init__ in the __init__ methods
+	'''
 	ctxid = property(lambda self: self.__ctxid)
 	host = property(lambda self: self.__host)
 	db = property(lambda self: self.__db)
@@ -75,6 +28,24 @@ class View(object):
 		self.__pw = pw
 		self.__mimetype = mimetype
 		self.__dbtree = DBTree(db, ctxid, host)
+	
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+	
+	@classmethod
+	def register(cls):
+		print 'REGISTERING: %r' % cls
+		if unicode(cls.__matcher__) != cls.__matcher__:
+			PublicView.register_url(cls.__name__, cls.__matcher__[0])(cls)
+			counter = 1
+			for expression in cls.__matcher__:
+				PublicView.register_url('%s%02d' %( cls.__name__, counter ), expression)(cls)
+				counter += 1
+		else:
+			PublicView.register_url(cls.__name__, cls.__matcher__)(cls)
 
 	def __iter__(self):
 		'''returns (result, mimetype)'''
@@ -95,12 +66,16 @@ class View(object):
 	
 	def get_data(self):
 		return 'No Data'
+#### Backwards-compatibility #######
+register_view = View.register_view       #
+##############################
 
 class Page(object):
-	def __init__(self, template, db=None, ctxid=None, value_dict=None, host=None, **kwargs):
+	'''Abstracts template rendering, possisbly useless'''
+	def __init__(self, template, **kwargs):
 		self.__template = template
-		self.__valuedict = {} #{'menus': build_menus(g.PAGE_MENUS, db=db, ctxid=ctxid, host=host)}
-		self.__valuedict.update(adj_dict(value_dict or {}, kwargs))
+		self.__valuedict = {}
+		self.__valuedict.update(kwargs)
 		
 	def __unicode__(self):
 		return g.templates.render_template(self.__template, self.__valuedict)
@@ -109,9 +84,9 @@ class Page(object):
 		return g.templates.render_template(self.__template, self.__valuedict).encode('ascii', 'replace')
 	
 	@classmethod
-	def render_template(cls, template, db, ctxid, title='', content='', modifiers=None):
-		return cls(template, db, ctxid, content=content, title=title, value_dict=modifiers)
+	def render_template(cls, template, title='', content='', modifiers=None):
+		return cls(template, content=content, title=title, value_dict=modifiers)
 	@classmethod
-	def quick_render(cls, db, ctxid, title='', content='', modifiers=None):
-		return cls.render_template('/pages/page', db, ctxid, title, content)
+	def quick_render(cls,  title='', content='', modifiers=None):
+		return cls.render_template('/pages/page', title, content)
 

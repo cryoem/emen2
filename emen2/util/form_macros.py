@@ -48,7 +48,7 @@ def image_field(id, label, value=''):
 add_macro('image')(macroify(integer_field))
 add_macro('binaryimage')(macroify(integer_field))
 
-@g.debug.debug_func
+#@g.debug.debug_func
 def paramdeftofield(param, rec, db, ctxid, host=None):
     paramargs = {}
     if param:

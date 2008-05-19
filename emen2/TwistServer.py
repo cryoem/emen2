@@ -6,7 +6,7 @@
 import sys
 import os
 import glob
-import Database
+import emen2.Database
 from emen2.emen2config import *
 from emen2.subsystems import macro
 from emen2.subsystems import templating

@@ -90,18 +90,17 @@ class AbstractException(Exception): pass
 
 class PrettyPrinter(object):
     def __init__(self): raise AbstractException('Do not use this class')
-    def prnt(self, obj): pass
+    def prnt(self, obj, ind=0): pass
     def __call__(self,obj): self.prnt(obj)
 
 class HierchPrinter(PrettyPrinter):
     def __init__(self): pass
     def prnt(self,obj,indent=0):
         for i in obj:
-            try:
-                i.split
-                print '\t'*(indent), i
-            except AttributeError:
-                self.prnt(i, indent+1)
+            if hasattr(i, 'split'):
+               print '\t'*(indent), i
+            else:
+            	self.prnt(i, indent+1)
         
 class MatchPrinter(PrettyPrinter):
     def __init__(self): pass
@@ -128,14 +127,15 @@ class TokenClass(object):
         return self.__tmpl.safe_substitute(args)
 
 class Token(object):
-    def __init__(self, name, tokclass=None, varname='<varname>', **kwargs):
+    def __init__(self, name, varname='<varname>', **kwargs):
         self.__name = name
         self.__args = {'varname': varname}
         self.__args.update(kwargs)
         self.__tokclass = TokenClass.get_tok_class(name)
     def __unicode__(self):
         result = [u'<Token name="%s"' % self.__name]
-        [result.append(unicode("%s = %s" % (x,y))) for x,y in self.__args.items()]
+        for x,y in self.__args.items():
+		      result.append(unicode("%s = %s" % (x,y)))
         result.append(u'</Token>')
         return unicode.join(u'\n', result)
     __str__ = __unicode__
