@@ -2392,7 +2392,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return ret & secure		# intersection of the two search results
 	
-	def getindexdictbyvaluefast(subset,param,valrange=None,ctxid=None,host=None):
+	def getindexdictbyvaluefast(self, subset,param,valrange=None,ctxid=None,host=None):
 		"""quick version for records that are already in cache; e.g. table views. requires subset."""		
 		v = {}
 		for i in subset:

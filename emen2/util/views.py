@@ -1,5 +1,5 @@
-#from emen2.TwistSupport_html.publicresource import PublicView
-from emen2.paste_server import PublicView
+from emen2.util.listops import adj_dict
+from emen2.TwistSupport_html.publicresource import PublicView
 from emen2.util.db_manipulation import DBTree
 
 import emen2.globalns
@@ -20,6 +20,12 @@ class View(object):
 	pw = property(lambda self: self.__pw)
 	mimetype = property(lambda self: self.__mimetype)
 	dbtree = property(lambda self: self.__dbtree)
+	page = ''
+	def get_context(self):
+		base = dict(mimetype=self.mimetype, 
+						  dbtree=self.dbtree)
+		return adj_dict(base, self.ctxt)
+	
 	def __init__(self, ctxid, host, db=None, username=None, pw=None, mimetype='text/html; charset=utf-8'):
 		'''subclasses should remember to call the base classes __init__ method'''
 		self.__ctxid = ctxid
@@ -29,6 +35,8 @@ class View(object):
 		self.__pw = pw
 		self.__mimetype = mimetype
 		self.__dbtree = DBTree(db, ctxid, host)
+		self.template = '/pages/page'
+		self.ctxt = {}
 	
 	@staticmethod
 	def register_view(name, bases, dict):
@@ -73,9 +81,9 @@ register_view = View.register_view       #
 
 class Page(object):
 	'''Abstracts template rendering, possisbly useless'''
-	def __init__(self, template, **kwargs):
+	def __init__(self, template, value_dict=None, **kwargs):
 		self.__template = template
-		self.__valuedict = {}
+		self.__valuedict = adj_dict({}, value_dict or {})
 		self.__valuedict.update(kwargs)
 		
 	def __unicode__(self):
@@ -90,4 +98,13 @@ class Page(object):
 	@classmethod
 	def quick_render(cls,  title='', content='', modifiers=None):
 		return cls.render_template('/pages/page', title, content)
-
+	@classmethod
+	def render_view(cls, view):
+		if view.page is '':
+			result = cls.render_template(view.template, modifiers=view.ctxt)
+		else:
+			ctxt = adj_dict({}, view.ctxt)
+			if not ctxt.has_key('title'):
+				ctxt['title'] = '<b>No Title</b>'
+			result = cls.quick_render(ctxt['title'], view.page % ctxt)
+		return result

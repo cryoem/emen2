@@ -33,6 +33,13 @@ from new import module
 #    def __set__(self, owner, value):
 #        print 'Var Change'
 #        self.__value = value
+
+class ErrorThread(threading.Thread):
+    def __init__(self, err_list):
+        threading.Thread.__init__(self)
+        self.err_list = err_list
+    def run(self):
+        pass
         
 class GlobalNamespace(module):
     __vardict = {}

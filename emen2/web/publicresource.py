@@ -1,10 +1,14 @@
 from __future__ import with_statement
 #import sys
 from cgi import escape
+from urllib import quote
 from emen2 import Database
 from emen2 import ts
 from emen2.subsystems import routing
-from sets import Set
+try:
+    set
+except:
+    from sets import Set as set
 from twisted.internet import threads
 from twisted.web import error
 from twisted.web.resource import Resource
@@ -13,8 +17,6 @@ import re
 # TODO: investigate the need for debug in g
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
-
-from mako.exceptions import RichTraceback
 
 #twisted imports
 ###
@@ -34,7 +36,7 @@ class PublicView(Resource):
             if val.isdigit():
                 res = dict_.get(name, [])
                 if res != []:
-                     setitem(name, res)
+                    setitem(name, res)
                 res.append(args[key][0])
             elif len(args[key]) > 1:
                 dict_[key] = args[key]
@@ -114,7 +116,7 @@ class PublicView(Resource):
             
             method = request.postpath[0]
             ctxid = request.getCookie("ctxid")
-            loginmsg = ""
+            msg = ""
             callback = make_callback('')
             
             try:
@@ -126,44 +128,42 @@ class PublicView(Resource):
                 else:
                     g.debug.msg(g.LOG_ERR, "EXCEPTION <%s>" % repr(e) )
             
-            msg = None
             if ctxid == None:
                 # force login, or generate anonymous context
                 if request.args.has_key("username") and request.args.has_key("pw"):
                     try:
                         # login and continue with this ctxid
                         ctxid = ts.db.login(request.args["username"][0], request.args["pw"][0], host)
-                        request.addCookie("ctxid", ctxid, path='/')
-                        msg=1
+                        args['msg']=1
                     except:
-                        # bad login
-                        ctxid = None
-                        method = "login"
-                        msg = "Please try again."
+                        pass
                 else:
                     ctxid = ts.db.login("","",host)
                         
+            tmp = self.__parse_args(args)
+            
             if method == "login":
-                try:            
-                    print 'hello'
-                    print 'continuing %r, %s' % (callback,callback)
-                    callback = routing.URLRegistry().execute('/login/', msg=msg, uri='/db/home/')(db=ts.db, host=request.host, ctxid='')
-                    print 'bye\n%r\n%s' % (callback,callback)
-                except Exception, e:
-                    callback = str(e)
+                callback = routing.URLRegistry().execute('/login/', msg=tmp.get('msg', ''), uri=tmp.get('uri', '/db/home/'))(db=ts.db, host=request.host, ctxid='')
                 return str(callback)
             
             elif method == "logout":
-                ts.db.deletecontext(ctxid)
-                callback = make_callback("""<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                                                            <meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">""")
+                try:
+                    ts.db.deletecontext(ctxid)
+                    callback = make_callback("""<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+                                                                <meta http-equiv="REFRESH" content="0; URL=/db/home">""")
+                except Exception, e:
+                    callback = make_callback(e)
+                    
             else:
-                tmp = self.__parse_args(args)
                 
                 path = '/%s/' % str.join("/", request.postpath)
                 g.debug(path)
                 path = self.redirects.get(path, path)
                 callback = routing.URLRegistry().execute(path, **tmp)
+            print '11111111111'
+            print request.getCookie('ctxid')
+            if ctxid != None and ctxid != request.getCookie('ctxid'):    
+                request.addCookie("ctxid", ctxid, path='/')
                                                         
             d = threads.deferToThread(callback, ctxid=ctxid, host=host)
             d.addCallback(self._cbsuccess, request, ctxid)
@@ -202,15 +202,21 @@ class PublicView(Resource):
         
     def _ebRender(self, failure, request, ctxid):
         g.debug.msg(g.LOG_ERR, failure)
-        if isinstance(failure.value, Database.SecurityError):
-            if ctxid == None:
-                page = self.login(uri=request.uri,msg="Unable to access resource; please login.")
-            else:
-                page = self.login(uri=request.uri, msg="Insufficient permissions to access resource.")
-        elif isinstance(failure.value, Database.SessionError):
-            page = self.login(uri=request.uri, msg="Session expired.")
+        if isinstance(failure.value, Database.SecurityError) \
+         or isinstance(failure.value, Database.SessionError) \
+         or isinstance(failure.value, KeyError):
+            print 1
+            uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+            args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
+                        ('msg', quote(str(failure).strip().replace(' ', '+'))))
+            args = ( str.join('=', elem) for elem in args )
+            args = str.join('&', args)
+            uri = str.join('?', (uri,args))
+            print 2
+            request.write(redirectTo(uri, request))
         else:
             page = ('<pre>'  + escape(str(failure)) + '</pre>',)
-
-        request.write(page[0])
+            request.write(page[0])
+        print 3
         request.finish()
+            
