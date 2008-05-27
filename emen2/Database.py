@@ -110,6 +110,14 @@ class SecurityError(Exception):
 class SessionError(KeyError):
 	"Session Expired"
 
+# ed
+class AuthenticationError(ValueError):
+	"Invalid Username or Password"
+	
+# ed
+class DisabledUserError(ValueError):
+	"User %s disabled"
+
 class FieldError(Exception):
 	"Exception for problems with Field definitions"
 
@@ -124,7 +132,6 @@ def parseparmvalues(text,noempty=0):
 	for name, a, b in (x.groups() for x in srch):
 		if name is '': continue
 		else:
-			print name, a, b
 			params.append(name)
 			if a is None: val=b
 			else: val=a
@@ -2025,7 +2032,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 	#@write,all
 	def login(self,username="anonymous",password="",host=None,maxidle=14400):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
-		subsequent access. Returns ctxid."""
+		subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 		ctx=None
 		
 		# anonymous user
@@ -2037,12 +2044,15 @@ recover - Only one thread should call this. Will run recovery on the environment
 		# check password, hashed with sha-1 encryption
 		else :
 			s=sha.new(password)
-			user=self.__users[username]
-			if user.disabled : raise SecurityError,"User %s has been disabled. Please contact the administrator."
+			try:
+				user=self.__users[username]
+			except TypeError:
+				raise AuthenticationError, AuthenticationError.__doc__
+			if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
 			if (s.hexdigest()==user.password) : ctx=Context(None,self,username,user.groups,host,maxidle)
 			else:
 				self.LOG(0,"Invalid password: %s (%s)"%(username,host))
-				raise ValueError,"Invalid Password"
+				raise AuthenticationError, "Invalid Password"
 		
 		# This shouldn't happen
 		if ctx==None :
@@ -2065,9 +2075,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		
 		
-	# ian: changed from deletecontext to __deletecontext because this should not available via rpc.
 	#@write,private
-	def __deletecontext(self,ctxid,host=None):
+	def deletecontext(self,ctxid,host=None):
 		"""Delete a context. Returns None."""
 
 		# check we have access to this context
