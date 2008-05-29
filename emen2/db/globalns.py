@@ -1,38 +1,13 @@
-#NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
+'''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
-#NOTE: access globals this way:
-#  import emen2.globalns
-#  g = emen2.globalns.GlobalNamespace('')
-#  g.<varname> accesses the variable
-#  g.<varname> = <value> sets a variable in a threadsafe manner.
+NOTE: access globals this way:
+  import emen2.globalns
+  g = emen2.globalns.GlobalNamespace('')
+  g.<varname> accesses the variable
+  g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 import threading
 from new import module
-
-#class ConstError(Exception): pass
-#class Descriptor(object):
-#    def __init__(self, value):
-#        self._value = value
-#    def __get__(self, *args):
-#        return self._value
-#    def __set__(self, value):
-#        return self._value
-#  
-#class ConstDict(Descriptor):
-#    '''WARNING: __get__ returns a copy of the dict'''
-#    def __get__(self, *args):
-#        result = {}
-#        result.update(self._value)
-#        return result
-#
-#class Const(Descriptor):
-#    def __set__(self, owner, value):
-#        raise ConstError('constants are unmodifiable')
-#    
-#class Var(Descriptor):
-#    def __set__(self, owner, value):
-#        print 'Var Change'
-#        self.__value = value
 
 class ErrorThread(threading.Thread):
     def __init__(self, err_list):
@@ -52,10 +27,6 @@ class GlobalNamespace(module):
         finally:
             self.__modlock.release()
     __setitem__ = __setattr__
-    
-    @classmethod
-    def __init__(cls, name=''):
-        print 'GLOBAL NAMESPACE DICT ID: %d' % id(cls.__vardict)
     
     @classmethod
     def __addattr(cls, name, value):
