@@ -1,6 +1,15 @@
 import cgi
 from emen2.util.listops import adj_dict
 
+class prop(property):
+    '''apply prop.init to a function that returns a dictionary with keys
+    fget, fset, and/or fdel in order to create a property''' 
+    @classmethod
+    def init(cls, func):
+        result = cls(**func())
+        return result
+
+
 class BaseDecorator(object):
     def __init__(self, func):
         self.func = func

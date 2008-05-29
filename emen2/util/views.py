@@ -46,12 +46,12 @@ class View(object):
 	
 	@classmethod
 	def register(cls):
-		print 'REGISTERING: %r' % cls
+		g.debug(g.LOG_INIT, 'REGISTERING: %r as %s' % (cls, cls.__matcher__) )
 		if unicode(cls.__matcher__) != cls.__matcher__:
-			PublicView.register_url(cls.__name__, cls.__matcher__[0])(cls)
+			PublicView.register_url(cls.__name__, cls.__matcher__[0], False)(cls)
 			counter = 1
 			for expression in cls.__matcher__:
-				PublicView.register_url('%s%02d' %( cls.__name__, counter ), expression)(cls)
+				PublicView.register_url('%s%02d' %( cls.__name__, counter ), expression, False)(cls)
 				counter += 1
 		else:
 			PublicView.register_url(cls.__name__, cls.__matcher__)(cls)

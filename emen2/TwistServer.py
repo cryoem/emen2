@@ -1,35 +1,29 @@
 #!/usr/bin/python
 # This is the main server program for EMEN2
-# ts contains the actual XMLRPC methods
-# ts_html contains the HTML methods
-
-import sys
-import os
-import glob
-import emen2.Database
+from emen2 import TwistSupport_html
+from emen2 import ts
+from emen2 import util
+from emen2.TwistSupport_html import publicresource
+from emen2.TwistSupport_html import xmlrpcresource
+from emen2.TwistSupport_html.public import views
 from emen2.emen2config import *
 from emen2.subsystems import macro
 from emen2.subsystems import templating
-
-from twisted.internet import reactor
-from twisted.web import static, server
-from emen2.util import utils
-from emen2 import ts
-
-#from emen2.TwistSupport_html import downloadresource
-from emen2.TwistSupport_html import publicresource
-#from emen2.TwistSupport_html import uploadresource
-#from emen2.TwistSupport_html import webresource
-from emen2.TwistSupport_html import xmlrpcresource
 from emen2.util import core_macros
 from emen2.util import fileops
-from emen2 import util
-from emen2 import TwistSupport_html
-from emen2.TwistSupport_html.public import views
+from emen2.util import utils
+from twisted.internet import reactor
+from twisted.web import static, server
+import code
+import emen2.Database
+import glob
+import os
+import sys
+import thread
+import time
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
-print g.ROOTPW
 
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
@@ -58,14 +52,19 @@ root.putChild("pub",TwistSupport_html.publicresource.PublicView())
 root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())
 
 
-import thread
-import code
-import time
 x = {}
 x.update(globals())
 exec "from test import *" in x
 a = code.InteractiveConsole(x, '')
-thread.start_new_thread(a.interact, ())
+def interact():
+    while True:
+        a.interact()
+        exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
+        if exit[0] == 'n':
+            thread.interrupt_main()
+            return
+        
+thread.start_new_thread(interact, ())
 
 print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
 

@@ -10,11 +10,30 @@ __all__ = ['DebugState', 'DEBUG', 'log']
 DEBUG = 0
 log = file ('/Users/edwardlangley/emen2/log.log', 'a')
 
+class Ring(object):
+    def __init__(self, length=5):
+        self.__buf = []
+        self.__length = length
+    def __getitem__(self, key):
+        return self.__buf[key]
+    def __get__(self, instance, owner):
+        return self
+    def __set__(self, instance, value):
+        self.append(value)
+    def __repr__(self):
+        return 'Ring Buffer:\n%s' % str.join('\n', [repr(x) for x in self.__buf])
+    def append(self, value):
+        if len(self.__buf) > self.__length:
+            self.__buf = self.__buf[-(self.__length-1):]
+        self.__buf.append(value)
+        
+        
 
 class DebugState(object):
     '''Handles logging etc..'''
     _clstate = {}
-
+    last_debugged = Ring()
+    
     def __enter__(self, *args):
         print args
         self.push_state(-1)
@@ -91,11 +110,14 @@ class DebugState(object):
     def debug_func(self, func):
         def result(*args, **kwargs):
             self.push_state(-1)
-            self('debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
-            result = func(*args, **kwargs)
-            self('the callable %s returned: %s' % (repr(func), repr(result)))
-            self.pop_state()
-            self.last_debugged = (func, args, kwargs)
+            self('---%s\ndebugging callable: %s, args: %s, kwargs: %s'  % (func.__name__, func, args, kwargs))
+            result = None
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                self('the callable %s returned: %s\n---' % (repr(func), repr(result)))
+                self.pop_state()
+                self.last_debugged = (func, args, kwargs)
             return result
         result.__doc__ = func.__doc__
         result.__name__ = func.__name__
@@ -105,3 +127,14 @@ class DebugState(object):
         interp = code.InteractiveConsole(locals)
         interp.interact('Debugging')
         
+class debugDict(dict):
+    def __getitem__(self, name):
+        result = dict.get(self, name)
+        print name, result
+        if not self.has_key(name):
+            dict.__getitem__(self, name)
+        return result
+    def get(self, name, default=None):
+        result = dict.get(self, name, default)
+        print name, result
+        return result
