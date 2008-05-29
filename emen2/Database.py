@@ -10,6 +10,7 @@
 # Database id's not supported yet
 DEBUG = 0
 
+
 """This module encapsulates an electronic notebook/oodb
 
 Note that the database does have a security model, but it cannot be rigorously enforced at the python level.
@@ -46,7 +47,7 @@ usetxn=False
 
 
 regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"	\
-				"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
+"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 				"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
 regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
 
@@ -57,6 +58,8 @@ regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
 
 recommentsregex = "\n"
 pcomments = re.compile(recommentsregex) # re.UNICODE
+
+TIMESTR="%Y/%m/%d %H:%M:%S"
 
 # These are for transactional database work
 #dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
@@ -1075,8 +1078,9 @@ class ParamDef:
 	created, and then, they should only be modified for clarification""" 
 	
 	# non-admin users may only update descs and choices
-	allowed = ["desc_long","desc_short","choices"]
-	restricted = ["name","vartype","defaultunits","property","creator","creationtime","creationdb"]
+	attr_user = set(["desc_long","desc_short","choices"])
+	attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","creationdb"])
+	attr_all = attr_user | attr_admin
 	
 	# name may be a dict; this allows backwards compat dictionary initialization
 	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,property=None,defaultunits=None,choices=None):
@@ -1088,40 +1092,41 @@ class ParamDef:
 		self.defaultunits=defaultunits	# Default units (optional)
 		self.choices=choices			# choices for choice and string vartypes, a tuple
 		self.creator=None				# original creator of the record
-		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-										# creation date
-		self.creationdb=None		# dbid where paramdef originated
+		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")	# creation date
+		self.creationdb=None            # dbid where paramdef originated
 		
 		if isinstance(name,dict):
-			for k,v in name.items():
-				self.__setattr__(k,v)
+			self.fromdict(name)
+			
 
-		try:
-			self.validate()
-		except:
-			print "Warning: ParamDef '%s' does not validate."%self.name
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret		
+
+	def fromdict(self,d):
+		for k,v in d.items():
+			self.__dict__[k]=v
+		self.validate()
 		
-	def __setattr__(self,key,value):
-		if key not in self.allowed+self.restricted:
-			raise AttributeError,"No attribute %s"%key
-
-		self.__dict__[key] = value
-		# self.verify()
-	
 	def toJSON(self):
-		return self.__dict__
+		return self.items_dict()
 		
 	def fromJSON(self,d):
-		for k,v in d.items():
-			self.__setattr__(k,v)
-			
+		self.fromdict(d)
+	
 	
 	def validate(self):
+		
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+		
 		if str(self.name) == "":
 			raise ValueError,"name required"
 
 		if self.vartype != None and not str(self.vartype) in valid_vartypes:
-			raise ValueError,"invalid vartype; not in valid_vartypes"
+			raise ValueError,"Invalid vartype; not in valid_vartypes"
 			
 		if unicode(self.desc_short) == "":
 			raise ValueError,"Short description (desc_short) required"
@@ -1130,14 +1135,16 @@ class ParamDef:
 			raise ValueError,"Long description (desc_long) required"
 
 		if self.property != None and str(self.property) not in valid_properties:
-			raise ValueError,"invalid property; not in valid_properties"
+			#raise ValueError,"Invalid property; not in valid_properties"
+			print "Warning: Invalid property; not in valid_properties"
 
 		if self.defaultunits != None:
 			a=[]
 			for q in valid_properties.values():
 				a.extend(q[1].keys()) 
 			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
-				raise ValueError,"invalid defaultunits; not in valid_properties"
+				#raise ValueError,"Invalid defaultunits; not in valid_properties"
+				print "Warning: Invalid defaultunits; not in valid_properties"
 			
 		if self.choices != None:
 			try:
@@ -1150,9 +1157,6 @@ class ParamDef:
 			#	raise ValueError,"choices must be strings"
 			#for i in self.choices:
 			
-
-	
-
 	def __str__(self):
 		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 
@@ -1163,14 +1167,15 @@ class RecordDef:
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
 	
-	allowed = ["mainview","views","private","typicalchld"]
-	restricted = ["name","params","paramsK","owner","creator","creationtime","creationdb"]
+	attr_user = set(["mainview","views","private","typicalchld"])
+	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
+	attr_all = attr_user | attr_admin
 	
 	def __init__(self,dict=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
+		self.views={"recname":"$$rectype $$creator $$creationdate"}				# Dictionary of additional (named) views for the record
 		self.mainview="$$rectype $$creator $$creationdate"			# a string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
-		self.views={"recname":"$$rectype $$creator $$creationdate"}				# Dictionary of additional (named) views for the record
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
 		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
@@ -1188,43 +1193,57 @@ class RecordDef:
 		self.creationdb=None		# dbid where recorddef originated
 		
 		if (dict):
-			#self.__dict__.update(dict)
-			for k,v in dict.items():
-				self.__setattr__(k,v)
+			self.fromdict(dict)
 
 		self.findparams()
-		
-		try:
-			self.validate()
-		except:
-			print "Warning: RecordDef '%s' does not validate."%self.name
+					
 			
 	def __setattr__(self,key,value):
-		if key not in self.allowed+self.restricted:
-			raise AttributeError,"No attribute %s"%key
-
 		self.__dict__[key] = value
-		# if key == "mainview":	self.findparams()
-		# self.verify()
+		if key == "mainview": self.findparams()
 	
+	
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret
+		
+		
+	def fromdict(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)
+		self.validate()
+		
+		
 	def toJSON(self):
-		return self.__dict__
+		return self.items_dict()
+		
 		
 	def fromJSON(self,d):
-		for k,v in d.items():
-			self.__setattr__(k,v)	
+		self.fromdict(d)	
+	
 		
 	def validate(self):	
+		
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+		
 		try:
-			if str(self.name) == "":
+			if str(self.name) == "" or self.name==None:
 				raise Exception
-		except:	raise ValueError,"name required; must be str or unicode"
+		except:	
+			raise ValueError,"name required; must be str or unicode"
 
-		try: dict(self.views)
-		except: raise ValueError,"views must be dict"
+		try:
+			dict(self.views)
+		except:
+			raise ValueError,"views must be dict"
 
-		try: list(self.typicalchld)
-		except:	raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
+		try:
+			list(self.typicalchld)
+		except:
+			raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
 						
 		try: 
 			if unicode(self.mainview) == "": raise Exception
@@ -1247,9 +1266,11 @@ class RecordDef:
 		self.__dict__.update(dict)
 		if not dict.has_key("typicalchld") : self.typicalchld=[]
 
+
 	def __str__(self):
 		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
 			self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
+
 
 	def stringparams(self):
 		"""returns the params for this recorddef as an indented printable string"""
@@ -1257,6 +1278,7 @@ class RecordDef:
 		for k,v in self.params.items():
 			r.append("\n\t%s: %s"%(k,str(v)))
 		return "".join(r)+" }\n"
+	
 	
 	def findparams(self):
 		"""This will update the list of params by parsing the views"""
@@ -1283,9 +1305,10 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime"""
 
 	# non-admin users can only change their privacy setting directly
-	allowed = ["privacy"]
-	restricted = ["name","email","username","groups","disabled","password","creator","creationtime","record"]
-
+	attr_user = set(["privacy"])
+	attr_admin = set(["name","email","username","groups","disabled","password","creator","creationtime","record"])
+	attr_all = attr_user | attr_admin
+    
 	def __init__(self,dict=None):
 		self.username=None			# username for logging in, First character must be a letter.
 		self.password=None			# sha hashed password
@@ -1304,30 +1327,34 @@ Parameters are: username,password (hashed),groups (list),disabled,privacy,creato
 		self.email=None
 
 		if (dict):
-			#self.__dict__.update(dict)
-			for k,v in dict.items():
-				self.__setattr__(k,v)
-
-		try:
-			self.validate()
-		except:
-			print "Warning: User '%s' does not validate."%self.username
+			self.fromdict(dict)
 			
-	def __setattr__(self,key,value):
-		if key not in self.allowed+self.restricted:
-			raise AttributeError,"No attribute %s"%key
 
-		self.__dict__[key] = value
-		# self.verify()
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret		
+
+
+	def fromdict(self,d):
+		for k,v in d.items():
+			self.__dict__[k]=v
+		self.validate()
+
 
 	def toJSON(self):
-		return self.__dict__
+		return self.items_dict()
+
 		
 	def fromJSON(self,d):
-		for k,v in d.items():
-			self.__setattr__(k,v)
+		self.fromdict(d)
 	
+
 	def validate(self):
+
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
 		try:
 			str(self.email)
@@ -1379,18 +1406,15 @@ Parameters are: username,password (hashed),groups (list),disabled,privacy,creato
 	def __str__(self):
 		return format_string_obj(self.__dict__,["username","groups","disabled","privacy","creator","creationtime","record"])
 
-	# remove if not used
-	def items_dict(self):
-		return self.__dict__
-
 
 							
 class Context:
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""
 
-	allowed = []
-	restricted = []
+	attr_user = set([])
+	attr_admin = set(["ctxid","db","user","groups","host","time","maxidle"])
+	attr_all = attr_user | attr_admin
 
 	def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 		self.ctxid=ctxid			# unique context id
@@ -1400,6 +1424,8 @@ class Context:
 		self.host=host				# ip of validated host for this context
 		self.time=time.time()		# last access time for this context
 		self.maxidle=maxidle
+
+	# Contexts cannot be serialized
 	
 	def __str__(self):
 		return format_string_obj(self.__dict__,["ctxid","user","groups","time","maxidle"])	
@@ -1412,8 +1438,9 @@ class WorkFlow:
 	Implementation of workflow behavior is largely up to the
 	external application. This simply acts as a repository for tasks"""
 
-	allowed = ["desc","wftype","longdesc","appdata"]
-	restricted = ["wfid","creationtime"]
+	attr_user = set(["desc","wftype","longdesc","appdata"])
+	attr_admin = set(["wfid","creationtime"])
+	attr_all = attr_user | attr_admin
 
 	def __init__(self,dict=None):
 		self.wfid=None				# unique workflow id number assigned by the database
@@ -1427,35 +1454,38 @@ class WorkFlow:
 		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 
 		if (dict):
-			for k,v in dict.items():
-				self.__setattr__(k,v)
+			self.fromdict(dict)
+			
 
-		try:
-			self.validate()
-		except:
-			print "Warning: WorkFlow wfid:'%s' does not validate."%self.wfid
+	def validate(self):
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
-	def __setattr__(self,key,value):
-		if key not in self.allowed+self.restricted:
-			raise AttributeError,"No attribute %s"%key
-		self.__dict__[key] = value
+
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret
+
+		
+	def fromdict(self):
+		for k,v in d.items():
+			self.__dict__[k]=v
+		self.validate()				
+
 
 	def toJSON(self):
-		u=self.__dict__
+		return self.items_dict()
+	
 		
 	def fromJSON(self,d):
-		for k,v in d.items():
-			self.__setattr__(k,v)
+		self.fromdict(d)
 	
-	def validate(self):
-		pass
 		
 	def __str__(self):
 		return str(self.__dict__)
 	
-	# remove if possible
-	def items_dict(self):		
-		return self.__dict__
 					
 					
 class Record:
@@ -1493,34 +1523,31 @@ class Record:
 	a new Record before committing changes back to the database.
 	"""
 	
-	# allowed = non-admin attributes editable
-	# restricted = admin only editable attributes
-	# restricted params = admin only editable params
-	allowed = []
-	restricted = ["dbid","_Record__params","_Record__comments","_Record__oparams","_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"]
-	restrictedparams = ["creator","creationtime","modifyuser","modifytime","rectype","recid"]
+	attr_user = set([])
+	attr_admin = set(["recid","dbid","rectype"])
+	attr_private = set(["_Record__params","_Record__comments","_Record__oparams","_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"])
+	attr_all = attr_user | attr_admin | attr_private
 	
-	publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
+	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # "modifyuser","modifytime",
 	
-	def __init__(self,dict=None,ctxid=None):
+	#publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
+	
+	def __init__(self,dict=None,ctx=None):
 		"""Normally the record is created with no parameters, then setContext is called by the
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
 		may be done at initiailization time."""
-		if (dict!=None and ctxid!=None):
-			self.__dict__.update(dict)
-			self.setContext(ctxid)
-			try : self.rectype=self.rectype.lower()
-			except: pass
-			return
+
 		self.recid=None				# 32 bit integer recordid (within the current database)
-		self.dbid=None				# dbid where this record resides (any other dbs have clones)
 		self.rectype=""				# name of the RecordDef represented by this Record
-		self.__params={}			# a Dictionary containing field names associated with their data
 		self.__comments=[]			# a List of comments records
-		self.__oparams={}			# when a field value is changed, the original value is stored here
 		self.__creator=0			# original creator of the record
 		self.__creationtime=None	# creation date
 		self.__permissions=((),(),(),())
+
+		self.dbid=None				# dbid where this record resides (any other dbs have clones)
+		self.__params={}			# a Dictionary containing field names associated with their data
+		self.__oparams={}			# when a field value is changed, the original value is stored here
+
 		"""
 		permissions for read access, comment write access, full write access,
 			and administrative access.
@@ -1529,15 +1556,15 @@ class Record:
 		Group -4 includes any user (anonymous)
 		"""
 		self.__context=None			# Validated access context
-		self.__ptest=[0,0,0,0]		# Results of security test performed when the context is set
+		# ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
+		self.__ptest=[1,1,1,1]		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 
-	# ian todo: fix
-	def __setattr__(self,key,value):
-		#if key not in self.allowed+self.restrictedparams+self.restricted:
-		#	raise AttributeError,"No attribute %s"%key
-		#print "set %s = %s"%(key,value)
-		self.__dict__[key] = value
+		if (dict!=None):
+			self.fromdict(dict)
+		if (ctx!=None):
+			self.setContext(ctx)
+			
 
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
@@ -1549,11 +1576,12 @@ class Record:
 		try: del odict['_Record__context']
 		except: pass
 
-#		print odict
 		return odict
+	
 	
 	def __setstate__(self,dict):
 		"""restore unpickled values to defaults after unpickling"""
+			
 		try:
 			p=dict["_Record__params"]
 			dict["_Record__params"]={}
@@ -1573,23 +1601,36 @@ class Record:
 		
 		self.__context=None
 
+
 	# return dict
 	def toJSON(self):
 		return self.items_dict()
-	
-	# from items_dict	
+		
+
 	def fromJSON(self,d):
-		for i in ("rectype","comments","creator","creationtime","permissions"):
-			try:
-				self.__setattr__(i,d[i])
-				del d[i]
-			except:
-				pass
+		self.fromdict(d)	
+		
+
+	# from items_dict	
+	def fromdict(self,d):
+		if d.has_key("comments"):
+			self.__comments=d["comments"]
+			del d["comments"]
 		for k,v in d.items():
-			try:
-				self.__setitem__(k,v)
-			except:
-				print "could not set %s = %s"%(k,v)
+			#print "setting %s = %s"%(k,v)
+			self[k]=v
+		# generally there will be no context set at this point; validation is short form
+		self.validate()
+	
+
+	def changedparams(self):
+		cp = []
+		for k,v in self.items():
+			if self.__oparams.has_key(k):
+				if v != self.__oparams[k]:
+					cp.append(k)
+		return cp		
+
 	
 	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
 	def setContext(self,ctx):
@@ -1632,6 +1673,7 @@ class Record:
 		
 		return self.__ptest
 	
+	
 	def __unicode__(self):
 		"A string representation of the record"
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
@@ -1641,36 +1683,16 @@ class Record:
 			ret.append(u"%12s:  %s\n"%(str(i),unicode(j)))
 		return u"".join(ret)
 	
+	
 	def __str__(self):
 		return self.__unicode__().encode('utf-8')
 		
-
 
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 		
 
 
-	def isowner(self):
-		return self.__ptest[3]	
-		
-
-
-	def writable(self):
-		"""Returns whether this record can be written using the given context"""
-		return self.__ptest[2]
-		
-
-
-	def commentable(self):
-		"""Does user have level 1 permissions? Required to comment or link."""
-		return self.__ptest[1]	
-
-
-
-	def getparamkeys(self):
-		"""Returns parameter keys without special values like owner, creator, etc."""
-		return self.__params.keys()
 
 	
 	def __getitem__(self,key):
@@ -1680,14 +1702,15 @@ class Record:
 		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
 				
 		key=key.lower()
+		if key=="comments" : return self.__comments
+		if key=="recid" : return self.recid
 		if key=="rectype" : return self.rectype
 		if key=="creator" : return self.__creator
 		if key=="creationtime" : return self.__creationtime
 		if key=="permissions" : return self.__permissions
-		if key=="comments" : return self.__comments
-		if key=="recid" : return self.recid
 		if self.__params.has_key(key) : return self.__params[key]
 		return None
+	
 	
 	def __setitem__(self,key,value):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
@@ -1698,112 +1721,105 @@ class Record:
 
 		try:
 			valuelower = value.lower()
-		except: valuelower = ""
+		except:
+			valuelower = ""
 		
 		if value==None or valuelower=="none" : 
 			if DEBUG: print "rec %s, key=%s set to None"%(self.recid,key)
 			value = None
 
+		if key!="comments" and not self.__oparams.has_key(key):
+			self.__oparams[key]=self[key]
 
-		if (key=="comments") :
-			if not isinstance(value,basestring): return		# if someone tries to update the comments tuple, we just ignore it
-			if self.__ptest[1]:
-				dict=parseparmvalues(value,noempty=1)[1]	# find any embedded params
-				if len(dict)>0 and not self.__ptest[2] : 
-					raise SecurityError,"Insufficient permission to modify field in comment for record %d"%self.recid
-				
-				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself
-				
-				# now update the values of any embedded params
-				for i,j in dict.items():
-					self.__realsetitem(i,j)
-			else :
-				raise SecurityError,"Insufficient permission to add comments to record %d"%self.recid
-		# ian
-		elif (key=="rectype" and value.lower() != self.rectype.lower()) :
-			if self.__ptest[3]: self.rectype=value.lower()
-			else: raise SecurityError,"Insufficient permission to change the record type"
-
-		# ian
-		elif (key=="recid"):
-			if value != self.recid:
-				raise SecurityError,"Cannot change record ID."
-
-		elif (key=="creator" or key=="creationtime") :
-			# nobody is allowed to do this
-			if self.__creator==value or self.__creationtime==value: return
-			if self.__ptest[3]:
-				 if key=="creator":
-				 	self.__creator = value
-				 else:
-				   self.__creationtime = value
-			else:
-				 raise SecurityError,"Creation params cannot be modified"
-	
-		elif (key=="permissions") :
-			if self.__permissions==value: return
-			if self.__ptest[3]:
-				if isinstance(value,str) : value=eval(value)
-				try:
-					value=(tuple(value[0]),tuple(value[1]),tuple(value[2]),tuple(value[3]))
-					self.__permissions=value
-				except:
-					raise TypeError,"Permissions must be a 4-tuple of tuples"
-			else: 
-				raise SecurityError,"Ownership permission required to modify security %d"%self.recid
-		else :
-			
-			if self.__params.has_key(key) and self.__params[key]==value : return
-			#if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.recid)
-			if not self.__ptest[2] : raise SecurityError,"No write permission for record %s"%str(self.__ptest)
-			
-#			if key in self.__params  and self.__params[key]!=None:
-#				self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),"<field name=%s>%s</field>"%(str(key),str(value))))
-			self.__realsetitem(key,value)
-	
-	def __realsetitem(self,key,value):
-			"""This insures that copies of original values are made when appropriate
-			security should be handled by the parent method"""
-			if key in self.__params and self.__params[key]!=None and not key in self.__oparams : self.__oparams[key]=self.__params[key]
-
-
+		if key not in self.param_special:
 			self.__params[key]=value
+
+		elif key=="comments":
+			if not isinstance(value,basestring):
+				print "Warning: invalid comment"
+			d=parseparmvalues(value,noempty=1)[1]
+			if d.has_key("comments"):
+				print "Warning: cannot set comments inside a comment"			
+			self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+			# now update the values of any embedded params
+			for i,j in d.items():
+				self.__setitem__(i,j)
+				
+		elif key=="rectype":
+			self.rectype=value
+		
+		elif key=="recid":
+			self.recid=value				
+		
+		elif key=="creator":
+			self.__creator=value
+		
+		elif key=="creationtime":
+			self.__creationtime=value
+		
+		elif key=="permissions":
+			self.__permissions=value
+
+
+
+		#elif key=="modifyuser":
+		#	self.__modifyuser=value
+		
+		#elif key=="modifytime":
+		#	self.__modifytime=value
+	
+	
+	#def __realsetitem(self,key,value):
+	#	"""This insures that copies of original values are made when appropriate
+	#	security should be handled by the parent method"""
+	#	if (key in self.__params) and (self.__params[key] != None) and not (key in self.__oparams):
+	#		self.__oparams[key]=self.__params[key]
+	#	self.__params[key]=value
 									
+	def get(self, key, default=None):
+		return self[key] or default
+
 
 	def update(self,dict):
 		"""due to the processing required, it's best just to implement this as
 		a sequence of calls to the existing setitem method"""
 		for i,j in dict.items(): self[i]=j
 	
+	
 	def keys(self):
 		"""All retrievable keys for this record"""
 		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
-		return tuple(self.__params.keys())+("rectype","comments","creator","creationtime","permissions")
+		return tuple(self.__params.keys())+tuple(self.param_special)
+		
 		
 	def items(self):
 		"""Key/value pairs"""
 		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret=self.__params.items()
 		try:
-			ret+=[(i,self[i]) for i in ("rectype","comments","creator","creationtime","permissions")]
+			ret+=[(i,self[i]) for i in self.param_special]
 		except:
 			pass
 		return ret
+	
 	
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
 		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret={}
 		ret.update(self.__params)
-		try:
-			for i in ("rectype","comments","creator","creationtime","permissions"): ret[i]=self[i]
-		except:
-			pass
+		for i in self.param_special:
+			try:
+				ret[i]=self[i]
+			except:
+				pass
 		return ret
 		
+		
 	def has_key(self,key):
-		if key in self.keys() or key in ("rectype","comments","creator","creationtime","permissions"): return True
+		if key in self.keys(): return True
 		return False
+
 
 	def commit(self,host=None):
 		"""This will commit any changes back to permanent storage in the database, until
@@ -1811,7 +1827,32 @@ class Record:
 		putrecord will fail"""
 		return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
 
+
+	def setoparams(self,d):
+		self.__oparams=d
+
+
+	def isowner(self):
+		return self.__ptest[3]	
+		
+
+	def writable(self):
+		"""Returns whether this record can be written using the given context"""
+		return self.__ptest[2]
+		
+
+	def commentable(self):
+		"""Does user have level 1 permissions? Required to comment or link."""
+		return self.__ptest[1]	
+
+
+	def getparamkeys(self):
+		"""Returns parameter keys without special values like owner, creator, etc."""
+		return self.__params.keys()		
+		
+
 	def validate(self):
+
 		try: 
 			if self.recid != None: int(self.recid)
 		except:
@@ -1819,13 +1860,86 @@ class Record:
 		
 		if str(self.rectype) == "":
 			raise ValueError,"rectype must not be empty"
-			
-		x=self.__permissions
-		if not isinstance(x,tuple) or not isinstance(x[0],tuple) or not isinstance(x[1],tuple) or not isinstance(x[2],tuple) or not isinstance(x[3],tuple):
-			raise ValueError,"permissions MUST be a 4-tuple of tuples"			
 		
-	def get(self, key, default=None):
-		return self[key] or default
+		
+		p=self.__permissions
+		if not isinstance(p,tuple) or len(p) != 4:
+			raise ValueError,"permissions must be 4-tuple of tuples"
+		for i in p:
+			if not isinstance(i,tuple):
+				raise ValueError,"permissions must be 4-tuple of tuples"
+
+
+		if not self.__context:
+			print "Warning: cannot validate params, users, or security: context not set"
+			return
+
+
+		u=set()
+		users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))		
+		for j in p: u|=set(j)
+		u -= set([0,-1,-2,-3])
+		if u-users:
+			print "Warning: undefined users: %s"%",".join(u-users)
+		
+		if self.__params.keys():
+			pds=self.__context.db.getparamdefs(self.__params.keys())
+			for i,pd in pds.items():
+				try:
+					conv=valid_vartypes[pd.vartype][1](self[i])
+					self[i]=conv
+				except:
+					print "Error converting datatype: %s, %s"%(i,pd.vartype)
+					#	raise ValueError			
+			
+				if pd.vartype=="choice":
+					if self[i].lower() not in [i.lower() for i in pd.choices]:
+						# ian: should be ValueError
+						raise Exception,"%s not in %s"%(record[i],pd.choices)	
+
+
+		cp = self.changedparams()
+
+		if "recid" in cp:
+			raise ValueError,"Cannot change recid"			
+		if "creator" in cp or "creationtime" in cp:
+			raise ValueError,"Cannot change creation info directly"
+		if "modifyuser" in cp or "modifytime" in cp:
+			raise ValueError,"Cannot set modify info directly"
+		if "permissions" in cp:
+			raise ValueError,"Cannot change permissions directly; use secrecordadduser/secrecorddeluser"
+		if "comments" in cp:
+			print "Added comment"
+		if "rectype" in cp:
+			raise ValueError,"Cannot change rectype"
+			
+
+		if not self.__ptest[2]:
+			if cp != ["comments"]:
+				raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
+			if not p[1]:
+				raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
+
+
+
+
+
+
+#	#@write,private
+#	def __validaterecordaddchoices(self,record,ctxid,host=None):
+#		"""add options for extensible paramdef choices."""
+#		
+#		for i in record.keys():
+#			pd=self.__paramdefs[i.lower()]
+#			# if string/choices, add option. if choices/choices, raise exception (invalid value)
+#			if pd.vartype=="string" and isinstance(pd.choices,tuple):
+#				if record[i].title() not in pd.choices:
+#					# ian: fixed a typo that seemed to be causing lots of grief (record[i].ctxid). it was missed because of exception handler.
+#					self.addparamchoice(i,record[i],ctxid)
+	
+
+
+
 
 
 
@@ -1842,6 +1956,7 @@ class DBProxy2:
 		print args
 		print kwargs
 		return getattr(self.db,args[0])(*args[1:], **kwargs)
+
 
 
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
@@ -4280,51 +4395,6 @@ or None if no match is found."""
 
 
 
-	def __validaterecord(self,record,ctxid,host=None):
-		"""Validate a record's db references. Checks vartypes and users."""
-		
-		# Check parameters
-		for i in Set(record.keys()) - Set(['permissions']):
-			try:
-				pd=self.__paramdefs[i.lower()]
-			except:
-				raise KeyError,"Parameters undefined (%s)"%i
-			
-			# try to convert
-			try:
-				record[i] = valid_vartypes[pd.vartype][1](record[i])
-			except:
-				print "Error converting datatype: %s, %s"%(i,pd.vartype)
-				#	raise ValueError
-
-			if pd.vartype=="choice":
-				if record[i].title() not in pd.choices :
-					# ian: should be ValueError
-					raise Exception,"%s not in %s"%(record[i],pd.choices)	
-
-		# Check Users
-		for j in record["permissions"]:
-			for k in j:
-				if not isinstance(k,int):
-					try:
-						user=self.__users[k]
-					except:
-						print ValueError,"Warning: Undefined user: %s"%k
-
-
-
-	#@write,private
-	def __validaterecordaddchoices(self,record,ctxid,host=None):
-		"""add options for extensible paramdef choices."""
-		
-		for i in record.keys():
-			pd=self.__paramdefs[i.lower()]
-			# if string/choices, add option. if choices/choices, raise exception (invalid value)
-			if pd.vartype=="string" and isinstance(pd.choices,tuple):
-				if record[i].title() not in pd.choices:
-					# ian: fixed a typo that seemed to be causing lots of grief (record[i].ctxid). it was missed because of exception handler.
-					self.addparamchoice(i,record[i],ctxid)
-	
 	
 
 	# ian: moved host to end
@@ -4341,24 +4411,9 @@ or None if no match is found."""
 		if not isinstance(record,Record):
 			try: record=Record(record,ctx)
 			except: raise ValueError,"Record instance or dict required"
-		record=Record(record.__dict__,ctx)
-		#record.validate()
-
-		# check data types
-		# params=Set(record.keys())
-		# params -= Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
 		
-		#record=Record(record.__dict__.copy(),ctx)
-		#record.validate()
-
-		#print record
-		if not self.__importmode:
-			record.validate()	
-			self.__validaterecord(record,ctxid)
-
-		# ian: moved to Record.validate()
-		#if (record.recid<0):
-		#	record.recid=None
+		record.setContext(ctx)
+		record.validate()
 		
 		######
 		# This except block is where new records are created
@@ -4388,7 +4443,6 @@ or None if no match is found."""
 				txn.abort()
 				raise SecurityError,"No permission to create records"
 
-			record.setContext(ctx)
 			
 			# ian: moved some pieces from here to Record.validate() and self.__validaterecord()
 			
@@ -4416,10 +4470,10 @@ or None if no match is found."""
 			
 			elif not self.__importmode : DB_syncall()
 			
-			try:
-				self.__validaterecordaddchoices(record,ctxid)
-			except:
-				print "Unable to add choices to paramdefs."
+			#try:
+			#	self.__validaterecordaddchoices(record,ctxid)
+			#except:
+			#	print "Unable to add choices to paramdefs."
 			
 			# ian
 			if type(parents)==int: parents=[parents]
@@ -4435,41 +4489,24 @@ or None if no match is found."""
 		######
 		# If we got here, we are updating an existing record
 		######
-		p=orig.setContext(ctx)				# security check on the original record
-		record.setContext(ctx)				# security double-check on the record to be processed. This is required for DBProxy use.
-		
-		# moved some validation to Record.validate/self.__validaterecord
-		
-		# We begin by comparing old and new records and figuring out exactly what changed
-		modifytime=time.strftime("%Y/%m/%d %H:%M:%S")
-		if not self.__importmode: record["modifytime"]=modifytime
-		changedparams=[]
-		
-		for f in record.keys():
-			#try:
-			#except:			
-			if (orig[f]!=record[f]):			
-				changedparams.append(f)
+		orig.setContext(ctx)				# security check on the original record
+		record.setContext(ctx)			# security double-check on the record to be processed. This is required for DBProxy use.
+		record.setoparams(orig.items_dict())
+		record.validate()
 
 		# If nothing changed, we just return
-		if len(changedparams)==0 : 
+
+		cp = record.changedparams()
+	
+		if len(cp) == 0: 
 			self.LOG(5,"update %d with no changes"%record.recid)
 			return "No changes made"
-		
-		# make sure the user has permission to modify the record
-		if "creator" in changedparams or "creationtime" in changedparams: raise SecurityError,"Creation parameters cannot be modified (%d)"%record.recid		
 
-		if not p[3] :
-			if not p[2] :
-				if len(changedparams>1) or changedparams[0]!="comments" : 
-					raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
-				if not p[1] :
-					raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
 		
 		txn=self.newtxn()
 
 		# Now update the indices
-		for f in changedparams:
+		for f in cp:
 			# reindex will accept None as oldval or newval
 			try:	oldval=orig[f]
 			except: oldval=None
@@ -4479,7 +4516,7 @@ or None if no match is found."""
 
 			self.__reindex(f,oldval,newval,record.recid,txn)
 			
-			if (f!="comments" and f!="modifytime") :
+			if f not in ["comments","modifytime","modifyuser"]:
 				orig["comments"]=u"LOG: %s updated. was: "%f + unicode(oldval)
 			
 			orig[f]=record[f]
@@ -4490,7 +4527,7 @@ or None if no match is found."""
 		
 		# Updates last time changed index
 		if (not self.__importmode): 
-			orig["modifytime"]=modifytime
+			orig["modifytime"]=time.strftime("%Y/%m/%d %H:%M:%S")
 			orig["modifyuser"]=ctx.user
 			self.__timeindex.set(record.recid,modifytime,txn)
 		
@@ -4511,7 +4548,6 @@ or None if no match is found."""
 		
 		
 	# ian: moved host to end	
-	# ian: should ctxid be required.. you'd need one to commit the record.
 	def newrecord(self,rectype,ctxid=None,init=0,inheritperms=None,host=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist)."""
@@ -4527,10 +4563,6 @@ or None if no match is found."""
 		rec.rectype=rectype						# if we found it, go ahead and set up
 				
 		if init:
-			# minor fix, ian, 08.08.07
-			#keys=Set(t.params.keys())-Set(["creator","creationtime","modifytime","modifyuser","rectype","comments","rectype","permissions"])
-#			if DEBUG: print t.params
-#				if DEBUG: print k,";",t.params[k]
 			for k,v in t.params.items():
 				rec[k]=v						# hmm, in the new scheme, perhaps this should just be a deep copy
 
@@ -4694,8 +4726,8 @@ or None if no match is found."""
 		# all users
 		userset = Set(self.getusernames(ctxid)) | Set((-4,-3,-2,-1))
 
-		print userset
-		print usertuple
+		#print userset
+		#print usertuple
 
 		# get a list of records we need to update
 		if recurse>0:
@@ -4705,7 +4737,6 @@ or None if no match is found."""
 		else : trgt=Set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
-		#if ctx.user=="root" or -1 in ctx.groups :
 		if self.checkadmin(ctx):
 			isroot=1
 		else:
