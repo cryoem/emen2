@@ -1,20 +1,20 @@
 from __future__ import with_statement
 #import sys
-from cgi import escape
+import sys
+import cgitb
 from urllib import quote
 from emen2 import Database
 from emen2 import ts
-from emen2.subsystems import routing
+from emen2.subsystems import routing, auth
 try:
     set
 except:
     from sets import Set as set
 from twisted.internet import threads
-from twisted.web import error
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 import re
-# TODO: investigate the need for debug in g
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
@@ -65,122 +65,124 @@ class PublicView(Resource):
         cls.redirects[fro] = routing.URLRegistry.reverselookup(to, *args, **kwargs)
     
     @classmethod
-    def register_url(cls, name, match):
+    def register_url(cls, name, match, prnt=True):
+            if prnt:
+                g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
             def _reg_inside(cb):
                 g.debug('%s ::matched by:: %s' % (name,match) )
                 cls.__registerurl(name, re.compile(match), cb)
                 return cb
             return _reg_inside
     
-    def login(self,uri,msg=""):
-            page = """
-            <h2>Please login:</h2>
-            <h3>%s</h3>
-            <div id="zone_login">
-    
-                <form action="%s" method="POST">
-                   <div>
-                        <div>Username:</div>
-                        <div><input type="text" name="username" /></div>
-                    </div>
-                    <div>
-                        <div>Password:</div>
-                        <div><input type="password" name="pw" /></div>
-                    </div>
-                    <input type="submit" value="submit" />
-    
-                </form>
-            </div>"""%(msg,uri)
-            return page, 'text/html'                
+    def parse_uri(self, uri):
+        result = uri.split('?')
+        url = uri[0]
+        if len(result) > 1:
+            qs = str.join('?', result[1:])
+        else:
+            qs = ''
+        return [url, qs]
     
     def render(self, request):
-        print request.args
-        
+        ctxid = None
+        request.postpath = filter(bool, request.postpath)
+        host = request.getClientIP()
+        args = request.args
+        def make_callback(string):
+            cb = lambda *x, **y: string
+            return cb
         try:
+            # redirect special urls
+            target = None
             if request.uri.split('?')[0][-1] != '/':
-                return redirectTo(addSlash(request), request)
-
-            request.postpath = filter(bool, request.postpath)
+                target = addSlash(request)
+                return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
+            
             if not bool(request.postpath):
-                return redirectTo(request.uri+'home/', request)
+                target = self.parse_uri(request.uri)
+                target[0] = str.join('', (target[0], 'home/'))
+                # get redirection of target if any
+                target[0] = self.redirects.get(target[0], target[0])
+                while not target[-1]: 
+                    g.debug('\t-> %s %r' % (target, target.pop())) 
+                if len(target) > 1:
+                    target = (target[0], str.join('?', target[1:]))
+                target = '/%s%s' % (str.join('/',request.prepath), str.join('?', target))
             
-            def make_callback(string):
-                cb = lambda *x, **y: string
-                return cb
+            path = '/%s/' % str.join("/", request.postpath)
+            redir = self.redirects.get(path, None)
+            
+            if redir != None:
+                print redir != None, redir,
+                qs = self.parse_uri(request.uri)[1]
+                if qs: qs = str.join('', ('?', qs))
+                target = '/%s%s%s' % (str.join('/',request.prepath), redir, qs)
             
             
-            
-            host = request.getClientIP()
-            args = request.args
-            
-            
+            # begin request handling
             method = request.postpath[0]
+            callback, msg = make_callback(''), ''
+            
+            #security ###################################################
+            ##get ctxid
             ctxid = request.getCookie("ctxid")
-            msg = ""
-            callback = make_callback('')
+            print 'COOKIE CTXID: %s' % ctxid
+            ##set null username
             
-            try:
-                ts.db.checkcontext(ctxid)
-            except Exception, e:
-                if ctxid != None:    
-                    msg = "Session expired"
-                    ctxid = None
-                else:
-                    g.debug.msg(g.LOG_ERR, "EXCEPTION <%s>" % repr(e) )
+            ## initialize Authenticator
+            authen = auth.Authenticator(db=ts.db, host=host)
             
-            if ctxid == None:
-                # force login, or generate anonymous context
-                if request.args.has_key("username") and request.args.has_key("pw"):
-                    try:
-                        # login and continue with this ctxid
-                        ctxid = ts.db.login(request.args["username"][0], request.args["pw"][0], host)
-                        args['msg']=1
-                    except:
-                        pass
-                else:
-                    ctxid = ts.db.login("","",host)
-                        
-            tmp = self.__parse_args(args)
             
-            if method == "login":
-                callback = routing.URLRegistry().execute('/login/', msg=tmp.get('msg', ''), uri=tmp.get('uri', '/db/home/'))(db=ts.db, host=request.host, ctxid='')
-                return str(callback)
+            print dir(request)
+            ##get request username if any        
+            username = args.get('username', [''])[0]
+            print 'USERNAME: %s' % username
+            ##get request password if any
+            pw = request.args.get('pw', [''])[0]
             
-            elif method == "logout":
-                try:
-                    ts.db.deletecontext(ctxid)
-                    callback = make_callback("""<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-                                                                <meta http-equiv="REFRESH" content="0; URL=/db/home">""")
-                except Exception, e:
-                    callback = make_callback(e)
-                    
-            else:
+            authen.authenticate(username, pw, ctxid)
                 
-                path = '/%s/' % str.join("/", request.postpath)
-                g.debug(path)
-                path = self.redirects.get(path, path)
-                callback = routing.URLRegistry().execute(path, **tmp)
-            print '11111111111'
-            print request.getCookie('ctxid')
-            if ctxid != None and ctxid != request.getCookie('ctxid'):    
+            ctxid, username  = authen.get_auth_info()
+            if ctxid is not None:
                 request.addCookie("ctxid", ctxid, path='/')
-                                                        
+            
+            # redirect must occur after authentication so the
+            # ctxid cookie can be sent to the browser
+            if target is not None:
+                #redirects must not be unicode
+                return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
+            
+            tmp = self.__parse_args(args)
+            print tmp
+            if method == "logout":
+                authen.logout(ctxid)
+                callback = make_callback(redirectTo('/db/home/', request))
+            elif method == "login":
+                callback = routing.URLRegistry().execute('/login/', 
+                                                                           uri=tmp.get('uri', '/db/home/'))
+                callback = callback(db=ts.db, host=request.host, ctxid='', 
+                                             msg=tmp.get('msg', msg))
+                return str(callback)
+            else:
+                callback = routing.URLRegistry().execute(path, **tmp)
+            #end security ################################################
+
             d = threads.deferToThread(callback, ctxid=ctxid, host=host)
             d.addCallback(self._cbsuccess, request, ctxid)
             d.addErrback(self._ebRender, request, ctxid)
     
             return server.NOT_DONE_YET
+        
         except Exception, e:
-            error.ErrorPage(e, str(e), str(e)).render(request)
+            self._ebRender(e, request, ctxid)
     
     def _cbsuccess(self, result, request, ctxid):
         "result must be a 2-tuple: (result, mime-type)"
-        
-        g.debug('RESULT:: %s' % (type(result)))
-        
         def set_headers(headers):
             for key in headers:
                 request.setHeader(key, headers[key])
+        
+        g.debug('RESULT:: %s' % (type(result)))
         try:
             result, mime_type = result
         except ValueError:
@@ -201,22 +203,22 @@ class PublicView(Resource):
         request.finish()
         
     def _ebRender(self, failure, request, ctxid):
+        g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
         g.debug.msg(g.LOG_ERR, failure)
-        if isinstance(failure.value, Database.SecurityError) \
-         or isinstance(failure.value, Database.SessionError) \
-         or isinstance(failure.value, KeyError):
-            print 1
-            uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-            args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
-                        ('msg', quote(str(failure).strip().replace(' ', '+'))))
-            args = ( str.join('=', elem) for elem in args )
-            args = str.join('&', args)
-            uri = str.join('?', (uri,args))
-            print 2
-            request.write(redirectTo(uri, request))
-        else:
-            page = ('<pre>'  + escape(str(failure)) + '</pre>',)
-            request.write(page[0])
-        print 3
+        g.debug.msg(g.LOG_ERR, '---------------------------------')
+        request.setResponseCode(500)
+        try:
+            if isinstance(failure, Database.SecurityError) \
+             or isinstance(failure, Database.SessionError) \
+             or isinstance(failure, KeyError):
+                uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+                args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
+                            ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
+                           )
+                args = ( str.join('=', elem) for elem in args )
+                args = str.join('&', args)
+                uri = str.join('?', (uri,args))
+                request.write(redirectTo(uri, request))
+        except Exception:
+            request.write(cgitb.html(sys.exc_info()))
         request.finish()
-            
