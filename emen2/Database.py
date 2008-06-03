@@ -1619,7 +1619,10 @@ class Record(DictMixin) :
 	
 	attr_user = set([])
 	attr_admin = set(["recid","dbid","rectype"])
-	attr_private = set(["_Record__params","_Record__comments","_Record__oparams","_Record__creator","_Record__creationtime","_Record__permissions","_Record__ptest","_Record__context"])
+	attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
+					           "_Record__creator","_Record__creationtime","_Record__permissions",
+					           "_Record__ptest","_Record__context"])
+	attr_restricted = attr_private | attr_admin
 	attr_all = attr_user | attr_admin | attr_private
 	
 	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # "modifyuser","modifytime",
@@ -1986,9 +1989,10 @@ class Record(DictMixin) :
 		if "creator" in cp or "creationtime" in cp:
 			raise ValueError,"Cannot change creation info directly"
 		if "modifyuser" in cp or "modifytime" in cp:
-			raise ValueError,"Cannot set modify info directly"
+			self['modifyuser'] = self.__oparams['modifyuser']
+			self['modifytime'] = self.__oparams['modifytime']
 		if "permissions" in cp:
-			raise ValueError,"Cannot change permissions directly; use secrecordadduser/secrecorddeluser"
+			self['permissions'] = self.__oparams['permissions']
 		if "comments" in cp:
 			print "Added comment"
 		if "rectype" in cp:
@@ -4603,7 +4607,7 @@ or None if no match is found."""
 		if (not self.__importmode): 
 			orig["modifytime"]=time.strftime("%Y/%m/%d %H:%M:%S")
 			orig["modifyuser"]=ctx.user
-			self.__timeindex.set(record.recid,modifytime,txn)
+			self.__timeindex.set(record.recid,'modifytime',txn)
 		
 		# any new comments are appended to the 'orig' record
 		# attempts to modify the comment list bypassing the security
