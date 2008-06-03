@@ -2,7 +2,6 @@
 ## SUPPORT FUNCTIONS ##############################
 ###################################################
 
-print "...loading %s"%__name__
 
 from sets import Set
 import re

@@ -134,3 +134,17 @@ $page_content (text) #Page Content
  ?$$page_name $$page_menus $$page_content
  N $$page_name
  ---page
+
+$schedule_times (dict) #a dictionary of times
+@schedule:
+ >$$schedule_times
+ #$@recname()
+ ?$@recname()
+ N $$creator
+ ---schedule
+
+$username (string) #username
+$name_first (string) #first name
+$name_middle (string) #middle name
+$name_last (string) #last_name
+$email (string) #email

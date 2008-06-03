@@ -1,3 +1,5 @@
+from functools import partial
+
 def get(collection, key, default=None):
 	try:
 		return collection[key]
@@ -27,6 +29,17 @@ def combine_dicts(*args):
 	
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
+
+def filter_dict(dict, allowed, pred):
+	result = {}
+	[ result.update([(key, dict[key])]) 
+	  for key in dict 
+	  if pred(key, set(allowed)) ]
+	return result
+
+pick = partial(filter_dict, pred=(lambda x,y: x in y)) 
+drop = partial(filter_dict, pred=(lambda x,y: x not in y))
+	
 
 def test_get():
 	print '1 == ',  get( {2:2, 3:3, 1:1}, 1 )

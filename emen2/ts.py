@@ -80,8 +80,8 @@ from twisted.python import log, runtime, context
 class newThreadPool(threadpool.ThreadPool):
 
 	def startAWorker(self):
-		print "started twisted thread (newThreadPool)..."
-		print "\tworker count: %s"%self.workers
+#		print "started twisted thread (newThreadPool)..."
+#		print "\tworker count: %s"%self.workers
 #		self.db = Database.Database(EMEN2DBPATH)
 #		self.db = db
 
@@ -92,7 +92,7 @@ class newThreadPool(threadpool.ThreadPool):
 		except Queue.Empty:
 				firstJob = None
 				
-		print "initializing thread."		
+#		print "initializing thread."		
 		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(EMEN2DBPATH)))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	

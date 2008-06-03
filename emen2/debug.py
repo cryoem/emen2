@@ -1,5 +1,5 @@
 import time, sys
-from g import LOG_INIT, LOG_INFO
+from g import LOG_INFO
 import g
 print dir()
 import code

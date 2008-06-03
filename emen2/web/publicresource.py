@@ -88,6 +88,7 @@ class PublicView(Resource):
         request.postpath = filter(bool, request.postpath)
         host = request.getClientIP()
         args = request.args
+        router=routing.URLRegistry(prepend='/%s/' % str.join('/', request.prepath))
         def make_callback(string):
             cb = lambda *x, **y: string
             return cb
@@ -103,8 +104,8 @@ class PublicView(Resource):
                 target[0] = str.join('', (target[0], 'home/'))
                 # get redirection of target if any
                 target[0] = self.redirects.get(target[0], target[0])
-                while not target[-1]: 
-                    g.debug('\t-> %s %r' % (target, target.pop())) 
+                target = filter(bool, target)
+                
                 if len(target) > 1:
                     target = (target[0], str.join('?', target[1:]))
                 target = '/%s%s' % (str.join('/',request.prepath), str.join('?', target))
@@ -123,29 +124,31 @@ class PublicView(Resource):
             method = request.postpath[0]
             callback, msg = make_callback(''), ''
             
-            #security ###################################################
-            ##get ctxid
-            ctxid = request.getCookie("ctxid")
-            print 'COOKIE CTXID: %s' % ctxid
-            ##set null username
-            
+            #authentication ###################################################
             ## initialize Authenticator
             authen = auth.Authenticator(db=ts.db, host=host)
             
-            
-            print dir(request)
+            ##get request ctxid if any
+            ctxid = request.getCookie("ctxid")
             ##get request username if any        
             username = args.get('username', [''])[0]
-            print 'USERNAME: %s' % username
             ##get request password if any
             pw = request.args.get('pw', [''])[0]
             
+            ##do login,  
             authen.authenticate(username, pw, ctxid)
+            ctxid, un  = authen.get_auth_info()
+            if username and un != username:
+                print ':-)', un, username
+                target = str.join('?', (router.reverselookup('Login'), 
+                                              'msg=Invalid%%20Login&next=%s' % target))
+            else:
+                username = un
                 
-            ctxid, username  = authen.get_auth_info()
             if ctxid is not None:
                 request.addCookie("ctxid", ctxid, path='/')
             
+            #end authentication ################################################
             # redirect must occur after authentication so the
             # ctxid cookie can be sent to the browser
             if target is not None:
@@ -158,14 +161,12 @@ class PublicView(Resource):
                 authen.logout(ctxid)
                 callback = make_callback(redirectTo('/db/home/', request))
             elif method == "login":
-                callback = routing.URLRegistry().execute('/login/', 
-                                                                           uri=tmp.get('uri', '/db/home/'))
+                callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
                 callback = callback(db=ts.db, host=request.host, ctxid='', 
                                              msg=tmp.get('msg', msg))
                 return str(callback)
             else:
                 callback = routing.URLRegistry().execute(path, **tmp)
-            #end security ################################################
 
             d = threads.deferToThread(callback, ctxid=ctxid, host=host)
             d.addCallback(self._cbsuccess, request, ctxid)
@@ -183,12 +184,15 @@ class PublicView(Resource):
                 request.setHeader(key, headers[key])
         
         g.debug('RESULT:: %s' % (type(result)))
+        print ':-) :-) (-: (-:'
         try:
             result, mime_type = result
         except ValueError:
             mime_type = 'text/html; charset=utf-8'
 
         if mime_type.split('/')[0] == 'text':
+            if type(result) != unicode:
+                result = unicode(result)
             result = result.encode('utf-8')
         else:
             result = str(result)

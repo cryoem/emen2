@@ -3,9 +3,9 @@ from itertools import chain
 import emen2.Database
 from emen2.subsystems.routing import URLRegistry
 
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
-import emen2.debug as _d
-d = _d.DebugState()
 
 class IntegrityError(ValueError): pass
 
@@ -130,7 +130,10 @@ class DBTree(object):
         return '/db'+(URLRegistry.reverselookup(name, *args, **kwargs) or '')
     
     def render_view(self, recid, view):
-        return db.renderview(recid, viewtype=view)
+        return self.__db.renderview(recid, viewtype=view)
+    
+    def get_user(self):
+        return self.__db.getuser(self.__db.checkcontext(self.__ctxid)[0], self.__ctxid)
 
 
 def get_create(recdef, param, value, db, ctxid, host=None):

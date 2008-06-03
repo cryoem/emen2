@@ -9,6 +9,7 @@ from emen2.TwistSupport_html.public import views
 from emen2.emen2config import *
 from emen2.subsystems import macro
 from emen2.subsystems import templating
+from emen2.subsystems import routing
 from emen2.util import core_macros
 from emen2.util import fileops
 from emen2.util import utils
@@ -16,13 +17,13 @@ from twisted.internet import reactor
 from twisted.web import static, server
 import code
 import emen2.Database
+import emen2.globalns
 import glob
 import os
 import sys
 import thread
 import time
 
-import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 # Change this to a directory for the actual database files
@@ -35,9 +36,13 @@ def load_views():
     g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
     g.TEMPLATEDIR="./TwistSupport_html/templates"
     templating.get_templates(g.TEMPLATEDIR)
+    
 def reload_views():
     reload(TwistSupport_html.public.views)
     load_views()
+    for view in routing.URLRegistry.URLRegistry.values():
+        view = view._URL__callback.__module__
+        exec 'import %s;reload(%s)' % (view,view)
 
 load_views()
 

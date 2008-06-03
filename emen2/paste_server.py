@@ -1,7 +1,6 @@
 from emen2.emen2config import *
-from cgi import escape
 from emen2.subsystems import routing, macro, templating
-from emen2.util import core_macros, listops
+from emen2.util import listops
 from emen2.util.utils import either
 from emen2 import Database
 

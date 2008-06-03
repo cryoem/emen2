@@ -511,3 +511,61 @@ page.views['defaultview'] = """$$page_name $$page_menus $$page_content"""
 page.views['recname'] = """$$page_name"""
 db.addrecorddef(page,ctxid)
 #end record definition: page
+
+#begin parameter: schedule_times
+schedule_times =  Database.ParamDef()
+schedule_times.name = 'schedule_times'
+schedule_times.vartype = 'dict'
+schedule_times.desc_short = '''a dictionary of times'''
+db.addparamdef(schedule_times,ctxid)
+#end parameter: schedule_times
+
+#begin record definition: schedule
+schedule = Database.RecordDef()
+schedule.name = 'schedule'
+schedule.mainview = """$$schedule_times"""
+schedule.views['tabularview'] = """$@recname()"""
+schedule.views['defaultview'] = """$@recname()"""
+schedule.views['recname'] = """$$creator"""
+db.addrecorddef(schedule,ctxid)
+#end record definition: schedule
+
+#begin parameter: username
+username =  Database.ParamDef()
+username.name = 'username'
+username.vartype = 'string'
+username.desc_short = '''username'''
+db.addparamdef(username,ctxid)
+#end parameter: username
+
+#begin parameter: name_first
+name_first =  Database.ParamDef()
+name_first.name = 'name_first'
+name_first.vartype = 'string'
+name_first.desc_short = '''first name'''
+db.addparamdef(name_first,ctxid)
+#end parameter: name_first
+
+#begin parameter: name_middle
+name_middle =  Database.ParamDef()
+name_middle.name = 'name_middle'
+name_middle.vartype = 'string'
+name_middle.desc_short = '''middle name'''
+db.addparamdef(name_middle,ctxid)
+#end parameter: name_middle
+
+#begin parameter: name_last
+name_last =  Database.ParamDef()
+name_last.name = 'name_last'
+name_last.vartype = 'string'
+name_last.desc_short = '''last_name'''
+db.addparamdef(name_last,ctxid)
+#end parameter: name_last
+
+#begin parameter: email
+email =  Database.ParamDef()
+email.name = 'email'
+email.vartype = 'string'
+email.desc_short = '''email'''
+db.addparamdef(email,ctxid)
+#end parameter: email

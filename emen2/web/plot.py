@@ -2,7 +2,6 @@
 ### PLOT: From Haili's Cheetah interface
 ############################################
 
-print "...loading %s"%__name__
 
 
 import traceback
@@ -16,7 +15,6 @@ from emen2.emen2config import *
 import time
 import random
 
-print "...loading %s"%__name__
 
 
 

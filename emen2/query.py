@@ -54,8 +54,7 @@ class BoolOp(object):
         for item in self.__ops:
             for pred in item:
                 q << pred
-            print results
-            results = self.__op(results, set(g.debug.note_var(q.result)))
+            results = self.__op(results, set(q.result))
             q.reset()   
         for item in results:
             yield item
