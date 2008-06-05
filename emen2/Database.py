@@ -38,8 +38,6 @@ import time
 import traceback
 import weakref
 
-from UserDict import DictMixin
-
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -1186,7 +1184,7 @@ class ParamDef:
 
 
 			
-class RecordDef(DictMixin) :
+class RecordDef(dict) :
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
@@ -1354,7 +1352,7 @@ class RecordDef(DictMixin) :
 			
 			
 			
-class User(DictMixin) :
+class User(dict) :
 	"""This defines a database user, note that group 0 membership is required to add new records.
 Approved users are never deleted, only disabled, for historical logging purposes. -1 group is for database
 administrators. -2 group is read-only administrator. Only the metadata below is persistenly stored in this
@@ -1507,7 +1505,7 @@ class Context:
 		
 		
 		
-class WorkFlow(DictMixin):
+class WorkFlow(dict):
 	"""Defines a workflow object, ie - a task that the user must complete at
 	some point in time. These are intended to be transitory objects, so they
 	aren't implemented using the Record class. 
@@ -1582,7 +1580,7 @@ class WorkFlow(DictMixin):
 	
 					
 					
-class Record(DictMixin) :
+class Record(dict) :
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
 	every field described in the RecordDef, though this will usually be the case.
@@ -1964,7 +1962,7 @@ class Record(DictMixin) :
 		for j in p: u|=set(j)
 		u -= set([0,-1,-2,-3])
 		if u-users:
-			print "Warning: undefined users: %s"%",".join(u-users)
+			print "Warning: undefined users: %s"%",".join(map(str, u-users))
 		
 		if self.__params.keys():
 			pds=self.__context.db.getparamdefs(self.__params.keys())
