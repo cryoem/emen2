@@ -38,6 +38,9 @@ import time
 import traceback
 import weakref
 
+
+#from UserDict import DictMixin
+
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
 # ian 07.12.07: added DB_THREAD
@@ -1069,7 +1072,7 @@ valid_properties = {
 }
 
 
-class ParamDef:
+class ParamDef(dict) :
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
@@ -1111,7 +1114,10 @@ class ParamDef:
 	#################################			
 
 	def __getitem__(self,key):
-		return self.__dict__[key]
+		try:
+			return self.__dict__[key]
+		except:
+			print "no key %s"%key
 		
 	def __setitem__(self,key,value):
 		if key in self.attr_all:
@@ -1977,7 +1983,10 @@ class Record(dict) :
 				if pd.vartype=="choice":
 					if self[i].lower() not in [i.lower() for i in pd.choices]:
 						# ian: should be ValueError
-						raise Exception,"%s not in %s"%(record[i],pd.choices)	
+						raise Exception,"%s not in %s"%(self[i],pd.choices)	
+
+		# raise exception for undefined keys
+		paramdefs=self.__context.db.getparamdefs(self.keys())
 
 
 		cp = self.changedparams()
@@ -3110,6 +3119,100 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 	
 	
+	def fulltextsearch(self,q,ctxid,host=None,rectype=None,fast=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0):
+
+		subset=set(subset)
+		params=set(params)
+
+		if tokenize:
+			t=q.split(" ")
+			rt={}
+			rt[t[0]]=self.fulltextsearch(t[0],ctxid,host,rectype,fast,params,recparams,builtinparam,ignorecase,subset,tokenize=0)
+			subset=set(rt[t[0]].keys())
+			#print "initial search: key %s, %s results"%(t[0],len(subset))
+
+			for i in t[1:]:
+				rt[i]=self.fulltextsearch(i,ctxid,host,rectype,fast,params,recparams,builtinparam,ignorecase,subset,tokenize=0)
+				subset=set(rt[i].keys())
+				#print "search: key %s, %s results"%(i,subset)
+			
+			#print "final subset: %s"%subset
+			ret={}
+			for word in rt:
+				for i in subset:
+					if not ret.has_key(i): ret[i]={}
+					ret[i].update(rt[word][i])
+			return ret
+
+
+		builtin = set(["creator","creationtime","modifyuser","modifytime","permissions","comments"])
+
+		if ignorecase:
+			q=unicode(q).lower()
+
+		if rectype and not subset:
+			subset=self.getindexbyrecorddef(rectype,ctxid)
+
+		if rectype and not params:
+			pd=self.getrecorddef(rectype,ctxid)
+			params=set(pd.paramsK)
+
+		if builtinparam:
+			params |= builtin
+		else:
+			params -= builtin
+
+		
+		ret={}
+		
+		if (not ignorecase or fast or recparams) and len(subset) < 1000 and not params:
+			#print "rec search: %s, subset %s"%(q,len(subset))
+			for recid in subset:
+				rec=self.getrecord(recid,ctxid)
+
+				if recparams and builtinparam: params = set(rec.keys()) | builtin
+				if recparams and not builtinparam: params = set(rec.keys()) - builtin
+
+				q=unicode(q)
+
+				for k in params:
+					if ignorecase:
+						if q in unicode(rec[k]).lower():
+							if not ret.has_key(recid): ret[recid]={}
+							ret[recid][k]=rec[k]
+					else:
+						if q in unicode(rec[k]):
+							if not ret.has_key(recid): ret[recid]={}
+							ret[recid][k]=rec[k]
+									
+		else:
+			if len(subset) > 1000 and ignorecase:
+				print "Warning: case-sensitive searches limited to queries of 1000 records or less."
+
+			#print "index search: %s, subset %s"%(q,len(subset))
+
+			for param in params:
+				#print "searching %s"%param
+				try: 
+					r=self.__getparamindex(param)
+					for key in r.keys():
+						if q in key:
+							for recid in r[key]:
+								if not ret.has_key(recid): ret[recid]={}
+								#print recid,key,param
+								ret[recid][param]=key
+				except:
+					pass
+
+			# security check required
+			urec=set(self.getindexbycontext(ctxid))	
+			for key in set(ret.keys())&subset-urec:
+				del ret[key]
+				
+
+		return ret
+			
+	
 	# ian: moved host after subset
 	# ian todo: unit support.
 	def getindexdictbyvalue(self,paramname,valrange,ctxid,subset=None,host=None):
@@ -4116,14 +4219,18 @@ or None if no match is found."""
 		if isinstance(recs[0],str) :
 			for p in recs:
 				if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
-				try: ret[p]=self.__paramdefs[p]
-				except: self.LOG(2,"Request for unknown ParamDef %s"%(p))
+				try: 
+					ret[p]=self.__paramdefs[p]
+				except: 
+					raise KeyError,"Request for unknown ParamDef %s"%p #self.LOG(2,"Request for unknown ParamDef %s"%(p))
 		else:	
 			for r in recs:
 				for p in r.keys():
 					if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
-					try: ret[p]=self.__paramdefs[p]
-					except: self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
+					try:
+						ret[p]=self.__paramdefs[p]
+					except:
+						raise KeyError,"Request for unknown paramdef %s in %s"%(p,r.rectype) #self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 
 		return ret
 		
