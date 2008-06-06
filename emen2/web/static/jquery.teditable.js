@@ -255,7 +255,11 @@ jQuery.fn.tEditable = function(url, options) {
 	            jQuery.post(settings.url, p, function(str) {
 	                self.innerHTML = str;
 	                self.editing = false;
+		            if (settings.onsubmit != null) {
+		            	settings.onsubmit(self);
+		            }
 	            });
+	            
 	            return false;
 	        });
 	

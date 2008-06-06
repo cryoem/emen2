@@ -54,14 +54,25 @@ class DBTree(object):
     def getindex(self, recid):
         rec = self.getrecord(recid)
         index = str(recid)
-#        name = rec['%s_name' % rectype]
-#        if name:
-#            index = name
+        name = rec['%s_name' % rec.rectype]
+        if name:
+            index = name
         indexby = rec['indexby']
         if indexby:
             index = indexby
+        assert (index is '') or (index)
         return index
-        
+    
+    def get_title(self, recid, ident=''):
+        ident = ident or self.getindex(recid)
+        rec = self.getrecord(recid)
+        title = rec.get('%s_name' % rec.rectype,  ident)
+        print 'TITLE: ', title, type(title)
+        title = str.join(' ', [x.capitalize() for x in title.split()])
+        if len(title) == 1:
+            title = str.join(' ', [x.capitalize() for x in title[0].split()])
+        return '%s' % title
+
     def chroot(self, recid):
         self.__root = recid
     
@@ -82,7 +93,7 @@ class DBTree(object):
     def get_child_id(self, name, cur_dir):
         '''returns first child with a given folder_name'''
         children = self.__db.getchildren(cur_dir, keytype='record', ctxid=self.__ctxid, host=self.__host)
-        subfolders = self.__unfold_dict(self.__db.groupbyrecorddef(children, self.__ctxid))
+        subfolders = self.__unfold_dict(self.__db.groupbyrecorddef(children, ctxid=self.__ctxid, host=self.__host))
         if name == '*':
             result = subfolders
         else:
@@ -118,7 +129,7 @@ class DBTree(object):
         if name == '*':
             result = siblings
         else:
-            siblings = self.__unfold_dict(self.__db.groupbyrecorddef(siblings, self.__ctxid))
+            siblings = self.__unfold_dict(self.__db.groupbyrecorddef(siblings, ctxid=self.__ctxid, host=self.__host))
             result = [elem[1] for elem in self.__dostuff(name, siblings)]
         self.__select(result, **kwargs)
         return result
@@ -130,10 +141,14 @@ class DBTree(object):
         return '/db'+(URLRegistry.reverselookup(name, *args, **kwargs) or '')
     
     def render_view(self, recid, view):
-        return self.__db.renderview(recid, viewtype=view)
+        return self.__db.renderview(recid, viewtype=view, ctxid=self.__ctxid, host=self.__host)
     
     def get_user(self):
-        return self.__db.getuser(self.__db.checkcontext(self.__ctxid)[0], self.__ctxid)
+        un = self.__db.checkcontext(self.__ctxid, host=self.__host)[0]
+        if un is not None:
+            return self.__db.getuser(un, self.__ctxid)
+        else:
+            return None
 
 
 def get_create(recdef, param, value, db, ctxid, host=None):

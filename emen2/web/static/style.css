@@ -54,9 +54,9 @@ html>body #container {
 }
 
 #footer {
-	background:white;
+	background: #EEE;
 	width:100%;
-	border-top:solid 1px #D3C7A6;
+	border-top:medium outset #888;
 	padding-top:5px;
 	padding-bottom:5px;
 	font-size:12px;
@@ -297,10 +297,13 @@ h2 {
 
 .breadcrumb {
 	font-weight: bolder;
-	background: #DCEFEE;
+	background: #ccc;/* #DCEFEE; */
 	float:none;
 	clear:both;
 	overflow: hidden;
+	border: outset medium #ccc;
+	padding: 2px;
+	padding-bottom: 0px;
 }
 
 .breadcrumb span a {

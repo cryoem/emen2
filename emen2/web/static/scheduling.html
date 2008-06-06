@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=MacRoman" />
+        <title>Scheduling Prototype</title>
+        <style type="text/css">
+        </style><!--   
+        <script src="http://www.google.com/jsapi"></script>
+        <script>
+          // Load jQuery
+          google.load("jquery", "1");
+        </script>
+        -->
+        <script src="/jquery.js"></script>
+        <script src="/tablelib/lib/iterators.js"></script>
+        <script src="/tablelib/jquery.tablelib.js"></script>
+        <link rel="stylesheet" type="text/css" media="screen" href="/jqGrid/themes/sand/grid.css" />
+    <style>
+        table tr > * {
+            border: thin solid black;
+            background: #EEE;
+            -moz-border-radius: 5px;
+        }
+        table {
+            text-align: center;
+        }
+        table input {
+            width: 10px;
+        }
+        .even {background-color: red;}
+	    .odd {background-color: #eee;}
+    </style>
+</head>
+<body> 
+    <table id="table">
+        <thead>
+            <tr><th>a</th><th>b</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>a</td><td>b</td></tr>
+        </tbody>
+    </table>
+    <script type="text/javascript">
+        x = new $('#table').table();
+        console.log(x.objs());
+        console.log(x.save([
+            { a:'asd', b:'sdf' },
+            { a:'qwe', b: 'sdf'     }
+        ],
+        {
+        }))
+        b = 
+        console.log(x);
+    </script>
+    <div id="pager"></div>
+</body>
+</html>
