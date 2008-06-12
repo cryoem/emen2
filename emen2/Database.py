@@ -44,6 +44,12 @@ import weakref
 
 
 from UserDict import DictMixin
+def get(self, key, default=None):
+	try:
+		return self[key]
+	except KeyError:
+		return default
+DictMixin.get = get
 
 # These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
 dbopenflags=db.DB_CREATE
@@ -639,7 +645,7 @@ class IntBTree:
 		if not self.relate : raise Exception,"relate option required"
 		
 		ret=self.reldb.index_get(int(tag),txn=self.txn)
-		if ret==None: return []
+		if ret==None: return [ ]
 		return ret
 
 
@@ -1370,7 +1376,7 @@ record. Other metadata is stored in a linked "Person" Record in the database its
 Parameters are: username,password (hashed),groups (list),disabled,privacy,creator,creationtime"""
 
 	# non-admin users can only change their privacy setting directly
-	attr_user = set(["privacy"])
+	attr_user = set(["privacy", 'modifytime'])
 	attr_admin = set(["name","email","username","groups","disabled","password","creator","creationtime","record"])
 	attr_all = attr_user | attr_admin
 	
@@ -1384,6 +1390,7 @@ Parameters are: username,password (hashed),groups (list),disabled,privacy,creato
 		self.privacy=0				# 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 		self.creator=0				# administrator who approved record
 		self.creationtime=None		# creation date
+		self.modifytime = None
 		
 		self.record=None		# link to the user record with personal information
 
@@ -1761,7 +1768,19 @@ class Record(DictMixin) :
 		if self.__params.has_key(key) : return self.__params[key]
 		return None
 	
-	
+	def addcomment(self, value):
+		if not isinstance(value,basestring):
+			print "Warning: invalid comment"
+			return
+		#print "Updating comments: %s"%value
+		d=parseparmvalues(value,noempty=1)[1]
+		if d.has_key("comments"):
+			print "Warning: cannot set comments inside a comment"			
+		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+		# now update the values of any embedded params
+		for i,j in d.items():
+			self.__setitem__(i,j)
+		
 	def __setitem__(self,key,value):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
@@ -1787,32 +1806,10 @@ class Record(DictMixin) :
 			self.__params[key]=value
 
 		elif key=="comments":
-			if not isinstance(value,basestring):
-				print "Warning: invalid comment"
-				return
-			#print "Updating comments: %s"%value
-			d=parseparmvalues(value,noempty=1)[1]
-			if d.has_key("comments"):
-				print "Warning: cannot set comments inside a comment"			
-			self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
-			# now update the values of any embedded params
-			for i,j in d.items():
-				self.__setitem__(i,j)
-				
-		elif key=="rectype":
-			self.rectype=value
+			self.addcomment(value)
 		
-		elif key=="recid":
-			self.recid=value				
-		
-		elif key=="creator":
-			self.__creator=value
-		
-		elif key=="creationtime":
-			self.__creationtime=value
-		
-		elif key=="permissions":
-			self.__permissions=value
+		elif key == 'permissions':
+			self.__permissions = tuple([ tuple(set(x) | set(y))  for (x,y) in zip(value, self.__permissions)])
 
 
 	def __delitem__(self,key):
@@ -1835,7 +1832,9 @@ class Record(DictMixin) :
 	def has_key(self,key):
 		if key in self.keys(): return True
 		return False
-		
+	
+	def get(self, key, default=None):
+		return DictMixin.get(self, key) or default
 
 	#################################		
 	# record methods
@@ -1844,8 +1843,8 @@ class Record(DictMixin) :
 	def changedparams(self):
 		cp = []
 		for k,v in self.items():
-			if self.__oparams.has_key(k):
-				if v != self.__oparams[k]:
+			if k not in self.param_special and v != self.__oparams.get(k,None):
+				if v != None:
 					cp.append(k)
 		return cp		
 
@@ -1924,7 +1923,7 @@ class Record(DictMixin) :
 
 
 	def setoparams(self,d):
-		self.__oparams=d
+		self.__oparams=d.copy()
 
 
 	def isowner(self):
@@ -1979,7 +1978,7 @@ class Record(DictMixin) :
 		for j in p: u|=set(j)
 		u -= set([0,-1,-2,-3])
 		if u-users:
-			print "Warning: undefined users: %s"%",".join(u-users)
+			print "Warning: undefined users: %s"%",".join(map(str, u-users))
 		
 		if self.__params.keys():
 			pds=self.__context.db.getparamdefs(self.__params.keys())
@@ -2003,9 +2002,6 @@ class Record(DictMixin) :
 			raise ValueError,"Cannot change recid"			
 		if "creator" in cp or "creationtime" in cp:
 			raise ValueError,"Cannot change creation info directly"
-		if "modifyuser" in cp or "modifytime" in cp:
-			self['modifyuser'] = self.__oparams['modifyuser']
-			self['modifytime'] = self.__oparams['modifytime']
 		if "permissions" in cp:
 			self['permissions'] = self.__oparams['permissions']
 		if "comments" in cp:
@@ -4620,20 +4616,22 @@ or None if no match is found."""
 
 			# Set recid
 			#	txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+			print "got recid %s" % record.recid
+
 			txn=self.newtxn()
 			record.recid=self.__records.get(-1,txn)
-			print "got recid %s" % record.recid
 
 			if not self.__importmode:
 				df=file("/tmp/dbbug3","a")
 				print >>df, "%s\n%s\n"%(str(ctx.__dict__),str(record))
 				df.close()
 		
+			print 'CTX:', ctx
 			if not self.checkcreate(ctx):
-				txn.abort()
+				txn and txn.abort()
 				raise SecurityError,"No permission to create records"
 
-			record["modifytime"]=record.metadata["creationtime"]
+			record["modifytime"]=record["creationtime"]
 			if not self.__importmode:
 				record["modifyuser"]=ctx.user
 				
@@ -4645,11 +4643,6 @@ or None if no match is found."""
 				if k != 'recid':
 					self.__reindex(k,None,v,record.recid,txn)
 
-			# index metadata
-			for k,v in record.metadata.items():
-				if k != 'recid':
-					self.__reindex(k,None,v,record.recid,txn)
-			
 			self.__reindexsec([],reduce(operator.concat,record["permissions"]),record.recid, txn=txn)		# index security
 			self.__recorddefindex.addref(record.rectype,record.recid,txn)			# index recorddef
 			self.__timeindex.set(record.recid,record["creationtime"],txn)
@@ -4686,11 +4679,11 @@ or None if no match is found."""
 		g.orig = orig
 		orig.setContext(ctx)				# security check on the original record
 		record.setContext(ctx)			# security double-check on the record to be processed. This is required for DBProxy use.
-		record.setoparams(orig.items_dict())
 		record.validate()
 		
 		cp = record.changedparams()
-	
+		record.setoparams({})
+		
 		if len(cp) == 0: 
 			self.LOG(5,"update %d with no changes"%record.recid)
 			return "No changes made"

@@ -1,4 +1,9 @@
 #!/usr/bin/python
+
+import sys
+sys.path.append('/Users/edwardlangley')
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 # This is the main server program for EMEN2
 from emen2 import TwistSupport_html
 from emen2 import ts
@@ -17,14 +22,11 @@ from twisted.internet import reactor
 from twisted.web import static, server
 import code
 import emen2.Database
-import emen2.globalns
 import glob
 import os
-import sys
 import thread
 import time
 
-g = emen2.globalns.GlobalNamespace('')
 
 # Change this to a directory for the actual database files
 ts.startup(EMEN2DBPATH)
