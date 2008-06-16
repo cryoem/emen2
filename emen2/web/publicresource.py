@@ -14,47 +14,50 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 import re
-
+from emen2.util import listops
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-#twisted imports
-###
-
-
 class PublicView(Resource):
+
+
     isLeaf = True
-    redirects = {}
+    router = routing.URLRegistry()
+    
+    def __init__(self):
+        Resource.__init__(self)
     
     def __parse_args(self, args):
-        dict_ = {}
+        """Break the request.args dict into something more usable
+        
+        This algorithm takes the list of keys and removes sensitive info, and other stuff that is
+        passed in auto-magically and then groups all the params which end in _<number>
+        together as a list.
+        
+        NOTE: we should probably make sure that the _## parameters have sequential numbers
+        """
+        result = {}
         def setitem(name, val):
-            dict_[name] = val
-            
+            result[name] = val
+        
         for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
-            name, sep, val = key.rpartition('_')
+            name, _, val = key.rpartition('_')   
             if val.isdigit():
-                res = dict_.get(name, [])
-                if res != []:
-                    setitem(name, res)
+                res = result.get(name, [])
                 res.append(args[key][0])
-            elif len(args[key]) > 1:
-                dict_[key] = args[key]
+                if len(res) == 1: setitem(name, res)
             else:
-                dict_[key] = args[key][0]
-        return dict_
+                result[key] = args[key][0]
+        return result
     
     @classmethod
     def __registerurl(cls, name, match, cb):
-            '''register a pattern to select urls
-    
-            arguments:
-                    name -- the name of the url to be registered
-                    regex -- the regular expression that applies 
-                                     as a string
-                    cb -- the callback function to call
-            '''
-            return routing.URL(name, re.compile(match), cb)
+            '''register a callback to handle a urls 
+            
+            match is a compiled regex'''
+            result = routing.URL(name, match, cb)
+            cls.router.register(result)
+            return result
     
     @classmethod
     def getredirect(cls, name):
@@ -62,108 +65,112 @@ class PublicView(Resource):
     
     @classmethod
     def register_redirect(cls, fro, to, *args, **kwargs):
-        cls.redirects[fro] = routing.URLRegistry.reverselookup(to, *args, **kwargs)
+        cls.redirects[fro] = cls.router.reverselookup(to, *args, **kwargs)
+    redirects = {}
     
     @classmethod
     def register_url(cls, name, match, prnt=True):
-            if prnt:
-                g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
-            def _reg_inside(cb):
-                g.debug('%s ::matched by:: %s' % (name,match) )
-                cls.__registerurl(name, re.compile(match), cb)
-                return cb
-            return _reg_inside
+        """decorator function used to register a function to handle a specified URL
+        
+        
+            arguments:
+                name -- the name of the url to be registered
+                regex -- the regular expression that applies 
+                                 as a string
+                cb -- the callback function to call
+        """
+        if prnt:
+            g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+        def _reg_inside(cb):
+            g.debug('%s ::matched by:: %s' % (name,match) )
+            cls.__registerurl(name, re.compile(match), cb)
+            return cb
+        return _reg_inside
     
+    @g.debug.debug_func
     def parse_uri(self, uri):
-        result = uri.split('?')
-        url = uri[0]
-        if len(result) > 1:
-            qs = str.join('?', result[1:])
-        else:
-            qs = ''
+        url, _, qs = uri.partition('?')
         return [url, qs]
     
+    def __authenticate(self, request, ctxid, host, args, router, target):
+        authen = auth.Authenticator(db=ts.db, host=host)
+        ##get request ctxid if any
+        ctxid = request.getCookie("ctxid")
+        ##get request username if any
+        username = args.get('username', [''])[0]
+        ##get request password if any
+        pw = request.args.get('pw', [''])[0]
+        ##do login,
+        authen.authenticate(username, pw, ctxid)
+        ctxid, un = authen.get_auth_info()
+        if username and un != username:
+            target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
+        else:
+            username = un
+        if ctxid is not None:
+            request.addCookie("ctxid", ctxid, path='/')
+        return ctxid, target, authen
+
+
+    def __getredirect(self, request, path):
+        target = None
+       
+        if not bool(request.postpath):
+            url, qs = self.parse_uri(request.uri)
+            url = str.join('', (url, 'home/'))
+            # get redirection of target if any
+            url = self.redirects.get(url, url)
+            target = (url, qs)
+            target = '%s' % (str.join('?', target))
+        
+        redir = self.redirects.get(path, None)
+        if redir != None:
+            qs = self.parse_uri(request.uri)[1]
+            if qs:
+                qs = str.join('', ('?', qs))
+            
+            target = '/%s%s%s' % (str.join('/', request.prepath), redir, qs)
+        
+        return target
+    
     def render(self, request):
-        ctxid = None
-        request.postpath = filter(bool, request.postpath)
-        host = request.getClientIP()
+        ctxid, host = None, request.getClientIP()
         args = request.args
-        router=routing.URLRegistry(prepend='/%s/' % str.join('/', request.prepath))
-        def make_callback(string):
-            cb = lambda *x, **y: string
-            return cb
+        
+        request.postpath = filter(bool, request.postpath)
+        
+        router=self.router
+        make_callback = lambda string: (lambda *x, **y: string)
         try:
             # redirect special urls
-            target = None
-            if request.uri.split('?')[0][-1] != '/':
+            if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
                 target = addSlash(request)
                 return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
             
-            if not bool(request.postpath):
-                target = self.parse_uri(request.uri)
-                target[0] = str.join('', (target[0], 'home/'))
-                # get redirection of target if any
-                target[0] = self.redirects.get(target[0], target[0])
-                target = filter(bool, target)
-                
-                if len(target) > 1:
-                    target = (target[0], str.join('?', target[1:]))
-                target = '/%s%s' % (str.join('/',request.prepath), str.join('?', target))
-            
             path = '/%s/' % str.join("/", request.postpath)
-            redir = self.redirects.get(path, None)
-            
-            if redir != None:
-                print redir != None, redir,
-                qs = self.parse_uri(request.uri)[1]
-                if qs: qs = str.join('', ('?', qs))
-                target = '/%s%s%s' % (str.join('/',request.prepath), redir, qs)
-            
+            target = self.__getredirect(request, path)
             
             # begin request handling
-            method = request.postpath[0]
+            method = listops.get(request.postpath, 0, '')
             callback, msg = make_callback(''), ''
             
-            #authentication ###################################################
-            ## initialize Authenticator
-            authen = auth.Authenticator(db=ts.db, host=host)
+            ctxid, target, authen = self.__authenticate(request, ctxid, host, args, router, target)
             
-            ##get request ctxid if any
-            ctxid = request.getCookie("ctxid")
-            ##get request username if any        
-            username = args.get('username', [''])[0]
-            ##get request password if any
-            pw = request.args.get('pw', [''])[0]
-            
-            ##do login,  
-            authen.authenticate(username, pw, ctxid)
-            ctxid, un  = authen.get_auth_info()
-            if username and un != username:
-                print ':-)', un, username
-                target = str.join('?', (router.reverselookup('Login'), 
-                                              'msg=Invalid%%20Login&next=%s' % target))
-            else:
-                username = un
-                
-            if ctxid is not None:
-                request.addCookie("ctxid", ctxid, path='/')
-            
-            #end authentication ################################################
             # redirect must occur after authentication so the
-            # ctxid cookie can be sent to the browser
+            # ctxid cookie can be sent to the browser on a  
+            # POST request
             if target is not None:
                 #redirects must not be unicode
+                #NOTE: should URLS use punycode: http://en.wikipedia.org/wiki/Punycode ?
                 return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
             
             tmp = self.__parse_args(args)
-            print tmp
             if method == "logout":
                 authen.logout(ctxid)
                 callback = make_callback(redirectTo('/db/home/', request))
             elif method == "login":
                 callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
-                callback = callback(db=ts.db, host=request.host, ctxid='', 
-                                             msg=tmp.get('msg', msg))
+                callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
                 return str(callback)
             else:
                 callback = routing.URLRegistry().execute(path, **tmp)
@@ -184,7 +191,6 @@ class PublicView(Resource):
                 request.setHeader(key, headers[key])
         
         g.debug('RESULT:: %s' % (type(result)))
-        print ':-) :-) (-: (-:'
         try:
             result, mime_type = result
         except ValueError:
