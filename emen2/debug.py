@@ -8,7 +8,7 @@ __all__ = ['DebugState', 'DEBUG', 'log']
 
 
 DEBUG = 0
-log = file ('/Users/edwardlangley/emen2/log.log', 'a')
+log = file (g.DEBUGLOG, 'a')
 
 class Ring(object):
     def __init__(self, length=5):
