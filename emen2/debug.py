@@ -1,7 +1,7 @@
 import time, sys
 from g import LOG_INFO
 import g
-print dir()
+#print dir()
 import code
 
 __all__ = ['DebugState', 'DEBUG', 'log']
@@ -9,6 +9,7 @@ __all__ = ['DebugState', 'DEBUG', 'log']
 
 DEBUG = 0
 log = file (g.DEBUGLOG, 'a')
+
 
 class Ring(object):
     def __init__(self, length=5):
@@ -53,7 +54,7 @@ class DebugState(object):
             else:
                 self.oldstdout = sys.stdout
         self.__state_stack = [value]
-        self.msg(g.LOG_INIT, 'debug init state: %s' % value)
+        #self.msg(g.LOG_INIT, 'debug init state: %s' % value)
 
     def write(self, value):
         value = value.strip()

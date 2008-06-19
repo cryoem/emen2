@@ -156,14 +156,15 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 # 			try: value = pcomments.sub("<br />",unicode(value))
 # 			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
 				
-			if not edit:
-				prepend	= """<strong class="editable paramdef___%s vartype___%s defaultunits___%s property___%s">$$"""%(match.group("var"),pd.vartype,pd.defaultunits,pd.property) + match.group("var")	
-				postpend = """</strong>"""
-				if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
-					postpend += """ <em>%s</em> """%(pd.defaultunits)
+			#if not edit:
+			
+			prepend	= """<strong class="editable paramdef___%s">$$"""%(match.group("var")) + match.group("var")	
+			postpend = """</strong>"""
+			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
+				postpend += """ <em>%s</em> """%(pd.defaultunits)
 
-			else:
-				postpend += editparamspan2(pd,v,db=db,ctxid=ctxid)
+			#else:
+			#	postpend += editparamspan2(pd,v,db=db,ctxid=ctxid)
 
 			matchstr = "\$\$"+match.group("var")+match.group("varsep")
 			viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
@@ -181,50 +182,6 @@ def macro_names(macro,macroparameters):
 		return "%s total:"%macroparameters
 	elif macro == "parentvalue":
 		return "Parent %s:"%macroparameters
-
-# currently turned off
-# def macroprecache(recordids,macros,db=None,ctxid=None):
-# 	"""Generate and store a cache of macro values; this is used as a performance optimization where all the database queries necessary have already been made. Currently not used."""
-# 	
-# 	precache = {}
-# 	
-# 	for macro in macros:
-# 		t0=time.time()
-# 		
-# 		if not precache.has_key(macro[0]):
-# 			precache[macro[0]] = {}
-# 
-# 		if macro[0] == "recid":
-# 			precache[macro[0]][""] = {}
-# 			for i in recordids:
-# 				precache[macro[0]][""][i] = i
-# 
-# 		if macro[0] == "childcount":
-# 			precache[macro[0]][macro[1]] = {}
-# 			c = {}
-# 			q = Set()
-# 			for i in recordids:
-# 							c[i] = db.getchildren(i,ctxid=ctxid,recurse=4)
-# 							q = q | c[i]
-# 			macromgroup = q & db.getindexbyrecorddef(macro[1],ctxid)
-# 			for i in recordids:
-# 				precache[macro[0]][macro[1]][i] = len(c[i] & macromgroup)				
-# 
-# 		if macro[0] == "parentvalue":
-# 			precache[macro[0]][macro[1]] = {}
-# 			for i in recordids:
-# 				p=db.getparents(i,ctxid=ctxid)
-# 				for j in p:
-# 					if db.trygetrecord(j,ctxid):
-# 						r=db.getrecord(j,ctxid)
-# 						if r.has_key(macro[1]):
-# 							precache[macro[0]][macro[1]][i] = r[macro[1]]
-# 		
-# 		if DEBUG: print "in macro %s: %i"%(macro,(time.time()-t0)*1000000)
-# 	return precache
-
-
-
 
 
 

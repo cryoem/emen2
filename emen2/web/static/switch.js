@@ -3,7 +3,6 @@ var classcache = new Array();
 var statecache = new Array();
 var classstatecache = new Array();
 
-classstatecache["input_elem"] = "inline";
 
 /***********************************************/
 

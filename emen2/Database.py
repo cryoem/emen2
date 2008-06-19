@@ -2366,6 +2366,13 @@ recover - Only one thread should call this. Will run recovery on the environment
 	# ian: removed to help prevent DoS attack.
 	# ian todo: need to check other time.sleep operations.
 	
+	
+	#def test(self,ctxid,host=None):
+	#	print "Database test."
+	#	print ctxid
+	#	print host
+	#	return {"test":"asd"}
+	
 	#def sleep(self):
 	#	"""Sleep db for 5 seconds. Debug."""
 	#	import time
@@ -3119,20 +3126,30 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 	
 	
-	def fulltextsearch(self,q,ctxid,host=None,rectype=None,fast=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0):
-
+	def fulltextsearch(self,q,ctxid,host=None,rectype=None,indexsearch=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0,single=0):
+		"""
+		q: query
+		rectype: use all of rectype as subset
+		indexsearch: use indexes; otherwise interrogate each record
+		params: set of params to search, can be used instead of subset
+		recparams: include in-line param values
+		builtinparam: include creator, creationtime, modifyuser, modifytime, permissions, and comments
+		subset: provide a subset of records to search (useful)
+		tokenize: boolean AND for multiple space-separated search terms
+		"""
+		
 		subset=set(subset)
 		params=set(params)
 
 		if tokenize:
 			t=q.split(" ")
 			rt={}
-			rt[t[0]]=self.fulltextsearch(t[0],ctxid,host,rectype,fast,params,recparams,builtinparam,ignorecase,subset,tokenize=0)
+			rt[t[0]]=self.fulltextsearch(t[0],ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single)
 			subset=set(rt[t[0]].keys())
 			#print "initial search: key %s, %s results"%(t[0],len(subset))
 
 			for i in t[1:]:
-				rt[i]=self.fulltextsearch(i,ctxid,host,rectype,fast,params,recparams,builtinparam,ignorecase,subset,tokenize=0)
+				rt[i]=self.fulltextsearch(i,ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single)
 				subset=set(rt[i].keys())
 				#print "search: key %s, %s results"%(i,subset)
 			
@@ -3147,8 +3164,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		builtin = set(["creator","creationtime","modifyuser","modifytime","permissions","comments"])
 
-		if ignorecase:
-			q=unicode(q).lower()
+		oq=unicode(q)
+		q=oq.lower()
 
 		if rectype and not subset:
 			subset=self.getindexbyrecorddef(rectype,ctxid)
@@ -3162,53 +3179,63 @@ parentheses not supported yet. Upon failure returns a tuple:
 		else:
 			params -= builtin
 
-		
 		ret={}
+		urec=set(self.getindexbycontext(ctxid))
 		
-		if (not ignorecase or fast or recparams) and len(subset) < 1000 and not params:
+		#if (fast or recparams) and not ignorecase and len(subset) < 1000 and not params:
+		if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
 			#print "rec search: %s, subset %s"%(q,len(subset))
-			for recid in subset:
+			for recid in subset&urec:
 				rec=self.getrecord(recid,ctxid)
-
-				if recparams and builtinparam: params = set(rec.keys()) | builtin
-				if recparams and not builtinparam: params = set(rec.keys()) - builtin
-
+				
 				q=unicode(q)
+				
+				if recparams: params |= rec.getparamkeys()
 
 				for k in params:
-					if ignorecase:
-						if q in unicode(rec[k]).lower():
+					if ignorecase and q in unicode(rec[k]).lower():
 							if not ret.has_key(recid): ret[recid]={}
 							ret[recid][k]=rec[k]
-					else:
-						if q in unicode(rec[k]):
+					elif oq in unicode(rec[k]):
 							if not ret.has_key(recid): ret[recid]={}
 							ret[recid][k]=rec[k]
 									
 		else:
-			if len(subset) > 1000 and ignorecase:
-				print "Warning: case-sensitive searches limited to queries of 1000 records or less."
+			#if len(subset) > 1000 and ignorecase:
+			#	print "Warning: case-sensitive searches limited to queries of 1000 records or less."
 
 			#print "index search: %s, subset %s"%(q,len(subset))
 
 			for param in params:
 				#print "searching %s"%param
-				try: 
-					r=self.__getparamindex(param)
-					for key in r.keys():
-						if q in key:
-							for recid in r[key]:
-								if not ret.has_key(recid): ret[recid]={}
-								#print recid,key,param
-								ret[recid][param]=key
-				except:
-					pass
+				#try: 
+				r=self.__getparamindex(param)
+
+				for key in r.keys():
+					if q in str(key):
+						recs=r[key]
+						if single: recs=recs[:1]
+						for recid in recs:
+
+							if recid not in urec: continue
+							if not ret.has_key(recid): ret[recid]={}
+							
+							# return case sensitive values; simply setting to param key is faster but less useful
+							key2=self.getrecord(recid,ctxid)[param]
+							#print oq,key2,ignorecase
+							if not ignorecase and oq in key2:
+								ret[recid][param]=key2
+							else:
+								ret[recid][param]=key2
+									
+				#except Exception, inst:
+				#	print "error in search"
+				#	print inst
 
 			# security check required
-			urec=set(self.getindexbycontext(ctxid))	
-			for key in set(ret.keys())&subset-urec:
-				del ret[key]
-				
+			#urec=set(self.getindexbycontext(ctxid))	
+			#for key in set(ret.keys())&subset-urec:
+			#	del ret[key]
 
 		return ret
 			
@@ -4584,7 +4611,27 @@ or None if no match is found."""
 
 
 
-	
+	def putrecordvalue(self,recid,param,value,ctxid,host=None):
+		rec=self.getrecord(recid,ctxid,host)
+		rec[param]=value
+		self.putrecord(rec,ctxid,host)
+		return recid
+		#return self.renderview(recid,viewdef="$$%s"%param,ctxid=ctxid,host=host)
+		
+		
+	def addcomment(self,recid,comment,ctxid):
+		rec=self.getrecord(recid,ctxid)
+		rec.addcomment(comment)
+		self.putrecord(rec,ctxid)
+
+
+# ian/ed: interesting idea...
+# 	def proxy(self, __class_, __methodname_, __id_, __ctxid_, *args, **kwargs):
+# 		cls = globals()(__class_)
+# 		method = getattr(cls, __methodname_)
+# 		object = self.getrecord(0, __ctxid_)
+# 		return method(object, *args, **kwargs)
+		
 
 	# ian: moved host to end
 	#@write,user
@@ -4702,8 +4749,8 @@ or None if no match is found."""
 
 			self.__reindex(f,oldval,newval,record.recid,txn)
 			
-			if f not in ["comments","modifytime","modifyuser"]:
-				orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
+			#if f not in ["comments","modifytime","modifyuser"]:
+			#	orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
 			
 			orig[f]=record[f]
 			

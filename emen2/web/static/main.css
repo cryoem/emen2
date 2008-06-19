@@ -1,3 +1,200 @@
+/* Date picker */
+.date_selector, .date_selector * {
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  text-decoration: none;
+}
+.date_selector {
+  background: #F2F2F2;
+  border: 1px solid #bbb;
+  padding: 5px;
+  margin: -1px 0 0 0;
+  position: absolute;
+  z-index: 100000;
+  display: none;
+}
+.date_selector_ieframe {
+  position: absolute;
+  z-index: 99999;
+  display: none;
+}
+
+  .date_selector .time_nav {
+	margin:0px;
+	margin-left: 5px;
+	display:block;
+	background:white;
+	float:right;
+	text-align:center;
+  }
+	.date_selector .time_nav input {
+		background:#F0F0F0;
+		color:black;
+		font-size:20px;
+		width:30px;
+	}
+
+	.time_cont {
+		float:right;
+	}
+	.date_cont {
+		float:left;
+	}
+  .date_selector .month_nav {
+    margin: 0 0 5px 0;
+    padding: 0;
+	display:inline;
+	padding-right:50px;
+	width:auto;
+  }
+    .date_selector .month_name {
+      font-weight: bold;
+      line-height: 20px;
+      text-align: center;
+    }
+    .date_selector .month_nav a {
+/*      display: block;
+      position: absolute;
+      top: 5px;
+      width: 20px;
+      height: 20px;  */
+      line-height: 17px;
+      font-weight: bold;
+      color: #003C78;
+      text-align: center;
+      font-size: 120%;
+      overflow: hidden;
+    }
+      .date_selector .month_nav a:hover, .date_selector .month_nav a:focus {
+        background: none;
+        color: #003C78;
+        text-decoration: none;
+      }
+    .date_selector .prev {
+      left: 5px;
+    }
+    .date_selector .next {
+      right: 5px;
+    }
+  .date_selector table {
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+    .date_selector th, .date_selector td {
+      width: 2.5em;
+      height: 2em;
+      padding: 0;
+      text-align: center;
+    }
+    .date_selector td {
+      border: 1px solid #ccc;
+      line-height: 2em;
+      text-align: center;
+      white-space: nowrap;
+      background: white;
+    }
+
+    .date_selector td.today {
+      background: #FFFED9;
+    }
+    .date_selector td.unselected_month {
+      color: #ccc;
+    }
+      .date_selector td a {
+        display: block;
+        text-decoration: none !important;
+        width: 100%;
+        height: 100%;
+        line-height: 2em;
+        color: #003C78;
+        text-align: center;
+      }
+      .date_selector td.today a {
+        background: #FFFEB3;
+      }
+      .date_selector td.selected a, .date_selector tr.selected a {
+        background: #D8DFE5;
+        font-weight: bold;
+      }
+        .date_selector td a:hover {
+          background: #003C78;
+          color: white;
+        }
+
+	.date_selector .time_nav th, .date_selector .time_nav td, .date_selector .time_nav tr, .date_selector .time_nav a {
+		width:2.5em;
+		height:1em;
+		text-align:center;
+		line-height:100%;
+		border:none;
+		padding-top:2px;
+		padding-bottom:2px;
+	}
+	.date_selector .time_nav td {
+		border-right:1px solid #F2F2F2;;
+		border-top: 1px solid #F2F2F2;;
+	}
+
+
+/* autocomplete */
+
+.ac_results {
+	padding: 0px;
+	border: 1px solid black;
+	background-color: white;
+	overflow: hidden;
+	z-index: 99999;
+}
+
+.ac_results ul {
+	width: 100%;
+	list-style-position: outside;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.ac_results li {
+	margin: 0px;
+	padding: 2px 5px;
+	cursor: default;
+	display: block;
+	/* 
+	if width will be 100% horizontal scrollbar will apear 
+	when scroll mode will be used
+	*/
+	/*width: 100%;*/
+	font: menu;
+	font-size: 12px;
+	/* 
+	it is very important, if line-height not setted or setted 
+	in relative units scroll will be broken in firefox
+	*/
+	line-height: 16px;
+	overflow: hidden;
+}
+
+.ac_loading {
+	background: white url('indicator.gif') right center no-repeat;
+}
+
+.ac_odd {
+	background-color: #eee;
+}
+
+.ac_over {
+	background-color: #0A246A;
+	color: white;
+}
+
+
+/* end autocomplete */
+
 .editable:hover {
 	background:red;
 }
@@ -298,7 +495,7 @@ PAGE / TAB
 
 .page {
 	background:#E7F1F8;	
-	width:600px;
+	width:800px;
 	padding:20px;
 	display:none;
 }

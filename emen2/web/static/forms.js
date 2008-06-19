@@ -10,54 +10,8 @@ function record_relationships_show() {
 	$("#page_comments_relationships").load("/main.css");
 }
 
-$(document).ready(function() {
-		$('.editable').click(function() {editelem(this)});
-});
-
-paramdefs = new Object();
-
-function isInteger (s) {
-	function isDigit (c) { return ((c >= "0") && (c <= "9")) }
-	
-	for (var i = 0; i < s.length; i++) {
-	   var c = s.charAt(i);
-	   if (!isDigit(c)) return false;
-	}
-	
-	return true;
-}
 
 
-
-function editelem(elem) {
-	classes = elem.className.split(" ");
-	prop = new Object();
-	revert = new Object();
-	
-	for (var i in classes) {
-		if ( isInteger(i) ) {
-			var j = classes[i].split("___");
-			if (j.length > 1) {
-				prop[j[0]] = j[1];
-			}
-		}
-	}
-	
-	console.log(prop);
-	
-	try { name = prop["paramdef"]; } catch(except) {return};
-
-	if (prop["vartype"] == "string") {
-		var edit = '<input value="' + $(elem).html() + '" />';
-		revert[name] = $(elem).html();
-		$(elem).after(edit).remove();		
-	}
-
-	var button = '<div><input type="button" value="SAVE" class="saveButton" /> OR <input type="button" value="CANCEL" class="cancelButton"/></div></div>';
-	$('.saveButton').click(function(){saveChanges(elem, false);});
-	$('.cancelButton').click(function(){saveChanges(elem, revert);});			
-	
-}
 
 
 

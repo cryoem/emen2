@@ -54,6 +54,8 @@ g.macros = macro.MacroEngine()
 root = static.File(EMEN2ROOT+"/tweb")
 root.putChild("db",TwistSupport_html.publicresource.PublicView())
 root.putChild("pub",TwistSupport_html.publicresource.PublicView())
+root.putChild("json",TwistSupport_html.xmlrpcresource.JSONResource())
+
 #root.putChild("download",TwistSupport_html.downloadresource.DownloadResource())
 #root.putChild("upload",TwistSupport_html.uploadresource.UploadResource())
 root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())

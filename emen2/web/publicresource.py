@@ -18,8 +18,9 @@ from emen2.util import listops
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-class PublicView(Resource):
+#import demjson
 
+class PublicView(Resource):
 
     isLeaf = True
     router = routing.URLRegistry()
@@ -189,7 +190,8 @@ class PublicView(Resource):
         def set_headers(headers):
             for key in headers:
                 request.setHeader(key, headers[key])
-        
+       
+ 
         g.debug('RESULT:: %s' % (type(result)))
         try:
             result, mime_type = result
