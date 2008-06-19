@@ -10,12 +10,14 @@ g = emen2.globalns.GlobalNamespace('')
 class IntegrityError(ValueError): pass
 
 
-class DBWrap(obect):
-	def __init__(self,db,ctxid,host):
+class DBWrap(object):
+	def __init__(self,db,ctxid,host=None):
 		self.db=db
 		self.ctxid=ctxid
 		self.host=host
 	def __getattribute__(self, name):
+		_dict_ = object.__getattribute__(self, '__dict__')
+		if _dict_.has_key(name): return _dict_[name]
 		attr = object.__getattribute__(self, 'db')
 		attr = getattr(attr, name)
 		return partial(attr, ctxid=self.ctxid, host=self.host)
@@ -29,7 +31,7 @@ class DBTree(object):
         self.__ctxid = ctxid
         self.__host = host
         self.__root = root or min(db.getindexbyrecorddef('folder', ctxid=ctxid, host=host))
-				self.db = DBWrap(self.__db, self.__ctxid, self.__host)
+        self.db = DBWrap(self.__db, self.__ctxid, self.__host)
         self.getrecord = self.db.getrecord
 
     def __getpath(self, path=None):

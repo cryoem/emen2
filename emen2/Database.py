@@ -4176,7 +4176,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# this actually stores in the database
 		txn=self.newtxn()
-		self.__paramdefs.set(paramdef.name,paramdef,txn)
+		self.__paramdefs.set(unicode(paramdef.name),paramdef,txn)
 		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
