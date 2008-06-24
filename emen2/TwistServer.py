@@ -7,17 +7,20 @@ g = emen2.globalns.GlobalNamespace('')
 
 # This is the main server program for EMEN2
 
-from emen2 import TwistSupport_html
+from twisted.internet import reactor
+from twisted.web import static, server
+
 from emen2 import ts
 from emen2 import util
 
-from emen2.TwistSupport_html import uploadresource
-from emen2.TwistSupport_html import downloadresource
-from emen2.TwistSupport_html import publicresource
-from emen2.TwistSupport_html import xmlrpcresource
-from emen2.TwistSupport_html import jsonresource
+import emen2.TwistSupport_html.uploadresource
+import emen2.TwistSupport_html.downloadresource
+import emen2.TwistSupport_html.publicresource
+import emen2.TwistSupport_html.xmlrpcresource
+import emen2.TwistSupport_html.jsonresource
+import emen2.TwistSupport_html.public.views
 
-from emen2.TwistSupport_html.public import views
+#from emen2.TwistSupport_html.public import views
 
 from emen2.emen2config import *
 
@@ -29,9 +32,6 @@ from emen2.util import core_macros
 from emen2.util import fileops
 from emen2.util import utils
 
-from twisted.internet import reactor
-from twisted.web import static, server
-
 import code
 import emen2.Database
 import glob
@@ -41,6 +41,7 @@ import time
 
 
 # Change this to a directory for the actual database files
+# ian: remove this sometime
 ts.startup(EMEN2DBPATH)
 
 
@@ -50,7 +51,7 @@ def load_views():
     templating.get_templates(g.TEMPLATEDIR)
     
 def reload_views():
-    reload(TwistSupport_html.public.views)
+    reload(views)
     load_views()
     for view in routing.URLRegistry.URLRegistry.values():
         view = view._URL__callback.__module__
@@ -67,11 +68,11 @@ g.macros = macro.MacroEngine()
 #############################
 root = static.File(EMEN2ROOT+"/tweb")
 
-root.putChild("db",TwistSupport_html.publicresource.PublicView())
-root.putChild("download",TwistSupport_html.downloadresource.DownloadResource())
-root.putChild("upload",TwistSupport_html.uploadresource.UploadResource())
-root.putChild("RPC2",TwistSupport_html.xmlrpcresource.XMLRPCResource())
-root.putChild("json",TwistSupport_html.jsonresource.JSONResource())
+root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
+root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
+root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
+root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
+root.putChild("json",emen2.TwistSupport_html.jsonresource.JSONResource())
 
 x = {}
 x.update(globals())

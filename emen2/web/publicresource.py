@@ -219,18 +219,34 @@ class PublicView(Resource):
         g.debug.msg(g.LOG_ERR, failure)
         g.debug.msg(g.LOG_ERR, '---------------------------------')
         request.setResponseCode(500)
+        
         try:
-            if isinstance(failure, Database.SecurityError) \
-             or isinstance(failure, Database.SessionError) \
-             or isinstance(failure, KeyError):
-                uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-                args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
-                            ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
-                           )
-                args = ( str.join('=', elem) for elem in args )
-                args = str.join('&', args)
-                uri = str.join('?', (uri,args))
-                request.write(redirectTo(uri, request))
-        except Exception:
-            request.write(cgitb.html(sys.exc_info()))
+          failure.raiseException()
+        except (Database.SecurityError, Database.SessionError, KeyError), inst:
+          print "going to redir"
+          uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
+                      ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
+                     )
+          args = ( str.join('=', elem) for elem in args )
+          args = str.join('&', args)
+          uri = str.join('?', (uri,args))
+          request.write(redirectTo(uri, request).encode("utf-8"))       
+
+
+#         try:
+#             if isinstance(failure.type, Database.SecurityError) \
+#              or isinstance(failure.type, Database.SessionError) \
+#              or isinstance(failure.type, KeyError):
+#                 print "going to redir"
+#                 uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+#                 args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
+#                             ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
+#                            )
+#                 args = ( str.join('=', elem) for elem in args )
+#                 args = str.join('&', args)
+#                 uri = str.join('?', (uri,args))
+#                 request.write(redirectTo(uri, request).encode("utf-8"))
+#         except Exception:
+#             request.write(cgitb.html(sys.exc_info()))
         request.finish()

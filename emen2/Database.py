@@ -2190,6 +2190,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.__paramdefs["comments"]=pd
 			pd=ParamDef("rectype","text","Record type","Record type (RecordDef)")
 			self.__paramdefs["rectype"]=pd
+			pd=ParamDef("permissions","list","Permissions","Permissions")
+			self.__paramdefs["permissions"]=pd
 			self.__paramdefs.set_txn(None)
 	
 		if txn : txn.commit()

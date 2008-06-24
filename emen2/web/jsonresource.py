@@ -10,8 +10,6 @@ import time
 
 #from emen2 import ts
 
-Fault = xmlrpclib.Fault
-
 
 class JSONResource(Resource):
 	isLeaf = True
