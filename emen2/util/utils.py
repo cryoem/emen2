@@ -84,14 +84,18 @@ def get_slice(str, start, end):
         start = 0
     return str[start:end]
 
-def make_registry(name, bases, dict):
-    cls = type(name, bases, dict)
-    cls._registry = {}
-    return cls
-
 def slugify(string):
     result = string.lower().expandtabs().split()
     return str.join('-', result)
+
+def common_keys(dict1, dict2): return set(dict1) & set(dict2)
+    
+def dict_set(dict, key, val): dict[key] = val
+    
+def merge_dict(srcdict, targetdict, updfunc=dict_set):
+    '''copy values from srcdict to targetdict where they share keys'''
+    [updfunc(targetdict, key, srcdict[key]) for key in common_keys(srcdict, targetdict) ]
+    
 
 def both(a, b): return ( a and b )
 def either(a, b): return ( a or b )

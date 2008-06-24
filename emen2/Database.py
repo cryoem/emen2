@@ -200,7 +200,7 @@ the specified number of significant digits. ie 5722,2 -> 5800"""
 	return scl*ceil(x/scl)
 
 
-class BTree:
+class BTree(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
 	
@@ -484,7 +484,7 @@ class BTree:
 		#dbseq.open(None, 'sequence', 0|db.DB_CREATE|db.DB_THREAD)
 		#return dbseq
 		
-class IntBTree:
+class IntBTree(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	key are integers and data may be an arbitrary pickleable type"""
 	alltrees=weakref.WeakKeyDictionary()
@@ -709,7 +709,7 @@ class IntBTree:
 		#return dbseq
 
 		
-class FieldBTree:
+class FieldBTree(object):
 	"""This is a specialized version of the BTree class. This version uses type-specific 
 	keys, and supports efficient key range extraction. The referenced data is a python list
 	of 32-bit integers with no repeats allowed. The purpose of this class is to act as an
@@ -874,7 +874,7 @@ class FieldBTree:
 	def update(self,dict):
 		self.bdb.index_update(dict,txn=self.txn)
 
-class MemBTree:
+class MemBTree(object):
 	"""This class has the same interface as the FieldBTree object above, but is a simple
 	python dictionary in ram. This is used for speed in preindexing when importing
 	large numbers of records."""
@@ -1604,7 +1604,7 @@ class DictProxy(object):
 	def __repr__(self):
 		return repr(self.dict)
 
-class Record(DictMixin) :
+class Record(DictMixin):
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
 	every field described in the RecordDef, though this will usually be the case.
@@ -2052,7 +2052,7 @@ class DBProxy2:
 
 
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()	
-class Database:
+class Database(object):
 	"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
 	dbid - Database id, a unique identifier for this database server
 	recid - Record id, a unique (32 bit int) identifier for a particular record
