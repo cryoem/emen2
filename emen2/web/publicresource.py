@@ -15,6 +15,7 @@ from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 import re
 from emen2.util import listops
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
@@ -207,10 +208,10 @@ class PublicView(Resource):
 
         headers = {"content-type": mime_type,
                    "content-length": str(len(result)),
-                   "Cache-Control":"no-cache",  
+                   "Cache-Control":"no-cache",
                    "Pragma":"no-cache"}
 
-        set_headers(headers) 
+        set_headers(headers)
         request.write(result)
         request.finish()
         
@@ -223,15 +224,15 @@ class PublicView(Resource):
         try:
           failure.raiseException()
         except (Database.SecurityError, Database.SessionError, KeyError), inst:
-          print "going to redir"
           uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
-                      ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
+          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
+                      ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
                      )
           args = ( str.join('=', elem) for elem in args )
           args = str.join('&', args)
           uri = str.join('?', (uri,args))
-          request.write(redirectTo(uri, request).encode("utf-8"))       
+          request.write(redirectTo(uri, request).encode("utf-8"))
+        request.finish()
 
 
 #         try:
@@ -249,4 +250,3 @@ class PublicView(Resource):
 #                 request.write(redirectTo(uri, request).encode("utf-8"))
 #         except Exception:
 #             request.write(cgitb.html(sys.exc_info()))
-        request.finish()
