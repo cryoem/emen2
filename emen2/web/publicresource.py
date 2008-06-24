@@ -222,6 +222,7 @@ class PublicView(Resource):
         request.setResponseCode(500)
         
         try:
+          1/0
           failure.raiseException()
         except (Database.SecurityError, Database.SessionError, KeyError), inst:
           uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
@@ -232,6 +233,9 @@ class PublicView(Resource):
           args = str.join('&', args)
           uri = str.join('?', (uri,args))
           request.write(redirectTo(uri, request).encode("utf-8"))
+        except Exception, e:
+          request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
+
         request.finish()
 
 
