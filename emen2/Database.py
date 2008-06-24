@@ -1756,7 +1756,7 @@ class Record(DictMixin) :
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
 		treated identically"""
-		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
 				
 		key=key.lower()
 		if key=="comments" : return self.__comments
@@ -1786,7 +1786,7 @@ class Record(DictMixin) :
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
 
-		if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
 
 		key = key.strip().lower()
 
@@ -1814,7 +1814,7 @@ class Record(DictMixin) :
 
 	def __delitem__(self,key):
 		
-		if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
 
 		if key not in self.param_special and self.__params.has_key(key):
 			self.__setitem__(key,None)
@@ -1825,7 +1825,7 @@ class Record(DictMixin) :
 
 	def keys(self):
 		"""All retrievable keys for this record"""
-		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		return tuple(self.__params.keys())+tuple(self.param_special)
 
 		
@@ -1904,7 +1904,7 @@ class Record(DictMixin) :
 	
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
-		if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret={}
 		ret.update(self.__params)
 		for i in self.param_special:
@@ -4208,8 +4208,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def getparamdef(self,paramdefname,host=None):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
 		#debug(__file__, ',', 'paramdefname = ', paramdefname)
-		return self.__paramdefs[paramdefname.lower()]
-		
+		try:
+			return self.__paramdefs[str(paramdefname)]
+		except:
+			raise KeyError,"Unknown ParamDef: %s"%paramdefname
 		
 		
 	def getparamdefnames(self,host=None):
@@ -4231,7 +4233,7 @@ or None if no match is found."""
 	
 	
 	
-	def getparamdefs(self,recs,host=None):
+	def getparamdefs(self,recs,ctxid=None,host=None):
 		"""Returns a list of ParamDef records.
 		recs may be a single record, a list of records, or a list
 		of paramdef names. This routine will 
@@ -4241,23 +4243,39 @@ or None if no match is found."""
 		call it individually for each of a set of records."""
 
 		ret={}
-		if isinstance(recs,Record) : recs=(recs,)
-		
-		if isinstance(recs[0],str) :
-			for p in recs:
-				if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
-				try: 
-					ret[p]=self.__paramdefs[p]
-				except: 
-					raise KeyError,"Request for unknown ParamDef %s"%p #self.LOG(2,"Request for unknown ParamDef %s"%(p))
-		else:	
-			for r in recs:
-				for p in r.keys():
-					if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
-					try:
-						ret[p]=self.__paramdefs[p]
-					except:
-						raise KeyError,"Request for unknown paramdef %s in %s"%(p,r.rectype) #self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
+		if not hasattr(recs,"__iter__"): recs=(recs,)
+
+		for i in recs:
+			if isinstance(i,str):
+				if not ret.has_key(i):
+					ret[i]=self.getparamdef(i)
+			elif isinstance(i,int):
+				j=self.getrecord(i,ctxid,host)
+				for k in j.getparamkeys():
+					if not ret.has_key(k):
+						ret[k]=self.getparamdef(k)				
+			elif isinstance(i,Record):
+				for k in i.getparamkeys():
+					if not ret.has_key(k):
+						ret[k]=self.getparamdef(k)
+			else:
+				continue
+					
+# 		if isinstance(recs[0],str) :
+# 			for p in recs:
+# 				if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
+# 				try: 
+# 					ret[p]=self.__paramdefs[p]
+# 				except: 
+# 					raise KeyError,"Request for unknown ParamDef %s"%p #self.LOG(2,"Request for unknown ParamDef %s"%(p))
+# 		else:	
+# 			for r in recs:
+# 				for p in r.keys():
+# 					if ret.has_key(p) or p in ("comments","creationtime","permissions","creator","owner") : continue
+# 					try:
+# 						ret[p]=self.__paramdefs[p]
+# 					except:
+# 						raise KeyError,"Request for unknown paramdef %s in %s"%(p,r.rectype) #self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))
 
 		return ret
 		
@@ -4623,7 +4641,40 @@ or None if no match is found."""
 		rec=self.getrecord(recid,ctxid)
 		rec.addcomment(comment)
 		self.putrecord(rec,ctxid)
+		
+		
+	def getuserdisplayname(self,username,ctxid,lnf=0,host=None):
+		"""Return the full name of a user from the user record."""
 
+		if hasattr(username,"__iter__"):
+			ret={}
+			for i in username:
+				ret[i]=self.getuserdisplayname(i,ctxid,lnf,host=host)
+			return ret
+
+		try:
+			u=self.getrecord(self.getuser(username,ctxid).record,ctxid,host=host)
+		except:
+			return "(%s)"%username
+						
+		if u["name_first"] and u["name_middle"] and u["name_last"]:
+			if lnf:	uname="%s, %s %s"%(u["name_last"], u["name_middle"], u["name_last"])
+			else:	uname="%s %s %s"%(u["name_first"],u["name_middle"],u["name_last"])
+	
+		elif u["name_first"] and u["name_last"]:
+			if lnf: uname="%s, %s"%(u["name_last"],u["name_first"])
+			else: uname="%s %s"%(u["name_first"],u["name_last"])
+		
+		elif u["name_last"]:
+			uname=u["name_last"]
+		
+		elif u["name_first"]:
+			uname=u["name_first"]
+			
+		else:
+			uname=username
+
+		return uname
 
 # ian/ed: interesting idea...
 # 	def proxy(self, __class_, __methodname_, __id_, __ctxid_, *args, **kwargs):

@@ -62,7 +62,7 @@ def getuserrealname(user,ctxid,db=None):
 		urec=db.getrecord(db.getuser(user,ctxid).record,ctxid)
 		uname="%s %s %s"%(urec["name_first"],urec["name_middle"],urec["name_last"])
 	except:
-		uname="(%s)"%user
+		uname=user
 	return uname
 	
 				
