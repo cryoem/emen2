@@ -1642,8 +1642,8 @@ class Record(DictMixin):
 	attr_user = set([])
 	attr_admin = set(["recid","dbid","rectype"])
 	attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
-					           "_Record__creator","_Record__creationtime","_Record__permissions",
-					           "_Record__ptest","_Record__context"])
+							   "_Record__creator","_Record__creationtime","_Record__permissions",
+							   "_Record__ptest","_Record__context"])
 	attr_restricted = attr_private | attr_admin
 	attr_all = attr_user | attr_admin | attr_private
 	
@@ -2236,7 +2236,15 @@ recover - Only one thread should call this. Will run recovery on the environment
 	def __str__(self):
 		"""try to print something useful"""
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
-
+	
+	def checkpassword(self, username, password):
+		s=sha.new(password)
+		try:
+			user=self.__users[username]
+		except TypeError:
+			raise AuthenticationError, AuthenticationError.__doc__
+		if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
+		return s.hexdigest()==user.password
 
 	#@write,all
 	def login(self,username="anonymous",password="",host=None,maxidle=14400):
@@ -2258,7 +2266,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			except TypeError:
 				raise AuthenticationError, AuthenticationError.__doc__
 			if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-			if (s.hexdigest()==user.password) : ctx=Context(None,self,username,user.groups,host,maxidle)
+			if (self.checkpassword(username, password)) : ctx=Context(None,self,username,user.groups,host,maxidle)
 			else:
 				self.LOG(0,"Invalid password: %s (%s)"%(username,host))
 				raise AuthenticationError, "Invalid Password"
@@ -4207,8 +4215,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
-	def getparamdef(self,paramdefname,host=None):
-		"""gets an existing ParamDef object, anyone can get any field definition"""
+	def getparamdef(self,paramdefname,ctxid=None, host=None):
+		"""gets an existing ParamDef object, anyone can get any field definition
+    
+    NOTE: ctxid is unused"""
 		#debug(__file__, ',', 'paramdefname = ', paramdefname)
 		try:
 			return self.__paramdefs[str(paramdefname)]
