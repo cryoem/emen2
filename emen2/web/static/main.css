@@ -476,7 +476,7 @@ PAGE / TAB
 */
 
 /* recordview, .buttons:after */
-.input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after {
+.clearfix, .input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -526,6 +526,7 @@ PAGE / TAB
 }
 .button_main {
 	margin-top:-5px;
+	background:#E7F1F8;
 }
 .button_main_active {
 	background:white;
@@ -570,7 +571,7 @@ SIDEBAR
 =============================================================
 */
 #sidebar {
-	border-left:solid 1px; 
+	/*border-left:solid 1px; */
 	padding:10px;
 	padding-right:0px;
 	width:300px;
@@ -846,7 +847,11 @@ p.small {
 
 
 
-
+.page_comments h3 {
+	margin:0px;
+	padding:0px;
+	border-bottom:dotted 1px black;
+}
 
 
 

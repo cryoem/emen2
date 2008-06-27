@@ -193,7 +193,7 @@ class PublicView(Resource):
                 request.setHeader(key, headers[key])
        
  
-        g.debug('RESULT:: %s' % (type(result)))
+        #g.debug('RESULT:: %s' % (type(result)))
         try:
             result, mime_type = result
         except ValueError:

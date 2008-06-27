@@ -152,19 +152,11 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 			
 			pd=paramdefs[match.group("var1")]
 			v=rec[match.group("var1")]
-			
-# 			try: value = pcomments.sub("<br />",unicode(value))
-# 			except: value = pcomments.sub("<br />",unicode(value).encode("ascii","replace"))
-				
-			#if not edit:
-			
+										
 			prepend	= """<strong class="editable paramdef___%s">$$"""%(match.group("var")) + match.group("var")	
 			postpend = """</strong>"""
 			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
 				postpend += """ <em>%s</em> """%(pd.defaultunits)
-
-			#else:
-			#	postpend += editparamspan2(pd,v,db=db,ctxid=ctxid)
 
 			matchstr = "\$\$"+match.group("var")+match.group("varsep")
 			viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
@@ -184,7 +176,7 @@ def macro_names(macro,macroparameters):
 		return "Parent %s:"%macroparameters
 
 
-
+# deprecated
 def editparamspan2(paramdef,value,db=None,ctxid=None):
 	"""Create an editable field."""
 	

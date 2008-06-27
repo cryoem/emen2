@@ -438,6 +438,7 @@ class BTree(object):
 		return len(self.bdb)
 
 	def __setitem__(self,key,val):
+
 		if (val==None) :
 			self.__delitem__(key)
 		else : self.bdb.put(dumps(key),dumps(val),txn=self.txn)
@@ -1758,7 +1759,7 @@ class Record(DictMixin):
 		treated identically"""
 		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
 				
-		key=key.lower()
+		key = str(key).strip().lower()
 		if key=="comments" : return self.__comments
 		if key=="recid" : return self.recid
 		if key=="rectype" : return self.rectype
@@ -1767,19 +1768,9 @@ class Record(DictMixin):
 		if key=="permissions" : return self.__permissions
 		if self.__params.has_key(key) : return self.__params[key]
 		return None
-	
-	def addcomment(self, value):
-		if not isinstance(value,basestring):
-			print "Warning: invalid comment"
-			return
-		#print "Updating comments: %s"%value
-		d=parseparmvalues(value,noempty=1)[1]
-		if d.has_key("comments"):
-			print "Warning: cannot set comments inside a comment"			
-		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
-		# now update the values of any embedded params
-		for i,j in d.items():
-			self.__setitem__(i,j)
+
+		
+
 		
 	def __setitem__(self,key,value):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
@@ -1788,7 +1779,7 @@ class Record(DictMixin):
 
 		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
 
-		key = key.strip().lower()
+		key = str(key).strip().lower()
 
 		try:
 			valuelower = value.lower()
@@ -1815,6 +1806,7 @@ class Record(DictMixin):
 	def __delitem__(self,key):
 		
 		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		key = str(key).strip().lower()
 
 		if key not in self.param_special and self.__params.has_key(key):
 			self.__setitem__(key,None)
@@ -1830,7 +1822,7 @@ class Record(DictMixin):
 
 		
 	def has_key(self,key):
-		if key in self.keys(): return True
+		if str(key).strip().lower() in self.keys(): return True
 		return False
 	
 	def get(self, key, default=None):
@@ -1840,12 +1832,41 @@ class Record(DictMixin):
 	# record methods
 	#################################
 
+
+	def addcomment(self, value):
+		if not isinstance(value,basestring):
+			print "Warning: invalid comment"
+			return
+		#print "Updating comments: %s"%value
+		d=parseparmvalues(value,noempty=1)[1]
+		if d.has_key("comments"):
+			print "Warning: cannot set comments inside a comment"			
+		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+		# now update the values of any embedded params
+		for i,j in d.items():
+			self.__setitem__(i,j)
+			
+
 	def changedparams(self):
-		cp = []
-		for k,v in self.items():
-			if k not in self.param_special and v != self.__oparams.get(k,None):
-				if v != None:
-					cp.append(k)
+		cp = set()
+
+		print "====cp====="
+		for k in set(self.getparamkeys()) | set(self.__oparams.keys()) - (self.param_special - set(["comments"])):
+			print "----------"
+			print k
+			if not self.__oparams.has_key(k) or not self.has_key(k):
+				print "changing from or to none: %s"%k
+				cp.add(k)
+			elif self.__oparams[k] != self[k]:
+				print "-> %s"%self[k]
+				cp.add(k)
+
+
+# 		for k,v in self.items():
+# 			if k not in self.param_special and v != self.__oparams.get(k,None):
+# 				#if v != None:
+# 					cp.add(k)
+
 		return cp		
 
 	
@@ -2251,7 +2272,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 		ctx=None
-		
+				
+		username=str(username)		
+				
 		# anonymous user
 		if (username=="anonymous" or username=="") :
 			# ian: fix anon login
@@ -2513,6 +2536,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 	def getbinary(self,ident,ctxid,host=None):
 		"""Get a storage path for an existing binary object. Returns the
 		object name and the absolute path"""
+		
 		year=int(ident[:4])
 		mon =int(ident[4:6])
 		day =int(ident[6:8])
@@ -2560,6 +2584,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 $ - parameter name
 % - username
 parentheses grouping not supported yet"""
+
+		query=str(query)
+
 		tm0=time.time()
 		query2=self.querypreprocess(query,ctxid,host=host)
 		if isinstance(query2,tuple) : return query2		# preprocessing returns a tuple on failure and a list on success
@@ -3096,7 +3123,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		records belonging to a particular RecordDef as a Set. Currently this
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
-		return Set(self.__recorddefindex[recdefname.lower()])
+		return Set(self.__recorddefindex[str(recdefname).lower()])
 
 
 	# ian: made ctxid req'd. todo: fix
@@ -3119,6 +3146,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""For numerical & simple string parameters, this will locate all records
 		with the specified paramdef in the specified range.
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
+
+		paramname=str(paramname).lower()
+		
 		ind=self.__getparamindex(paramname,create=0)		
 		
 		if valrange==None : ret=Set(ind.values())
@@ -3147,7 +3177,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		subset: provide a subset of records to search (useful)
 		tokenize: boolean AND for multiple space-separated search terms
 		"""
-		
+				
 		subset=set(subset)
 		params=set(params)
 
@@ -3219,7 +3249,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			for param in params:
 				#print "searching %s"%param
 				#try: 
-				r=self.__getparamindex(param)
+				r=self.__getparamindex(str(param).lower())
 
 				for key in r.keys():
 					if q in str(key):
@@ -3258,6 +3288,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
 		This method returns a dictionary of all matching recid/value pairs
 		if subset is provided, will only return values for specified recids"""
+
+		paramname=str(paramname).lower()
+
 		ind=self.__getparamindex(paramname,create=1)
 				
 		if valrange==None:
@@ -3422,11 +3455,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 			trg=self.__records
 			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 		elif keytype=="recorddef" : 
+			key=str(key).lower()
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
 			except: return Set()
-		elif keytype=="paramdef" : trg=self.__paramdefs
-		else: raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+		elif keytype=="paramdef":
+			key=str(key).lower()
+			trg=self.__paramdefs
+		else:
+			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		ret=trg.children(key)
 		
@@ -3467,10 +3504,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 #			try: a=self.getrecord(key,ctxid)
 #			except: return Set()
 		elif keytype=="recorddef" : 
+			key=str(key).lower()
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
 			except: return Set()
 		elif keytype=="paramdef":
+			key=str(key).lower()
 			trg=self.__paramdefs
 		else:
 			raise Exception,"getparents keytype must be 'record', 'recorddef' or 'paramdef'"
@@ -3494,8 +3533,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if keytype=="record" : 
 			if not self.trygetrecord(key,ctxid,host=host) : return Set()
 			return Set(self.__records.cousins(key))
-		if keytype=="recorddef" : return Set(self.__recorddefs.cousins(key))
-		if keytype=="paramdef" : return Set(self.__paramdefs.cousins(key))
+		if keytype=="recorddef":
+			return Set(self.__recorddefs.cousins(str(key).lower()))
+		if keytype=="paramdef":
+			return Set(self.__paramdefs.cousins(str(key).lower()))
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -3530,11 +3571,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 	# ian todo: make ctxid mandatory
 	def __getchildrensafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		if (recurse<0): return Set()
-		if keytype=="record" : 
+		if keytype=="record": 
 			trg=self.__records
-		elif keytype=="recorddef" : 
+		elif keytype=="recorddef": 
+			key=str(key).lower()
 			trg=self.__recorddefs
 		elif keytype=="paramdef":
+			key=str(key).lower()			
 			trg=self.__paramdefs
 		else:
 			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
@@ -3581,9 +3624,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				raise SecurityError,"pclink requires partial write permission"
 			r=self.__records.pclink(pkey,ckey,txn=txn)
 		if keytype=="recorddef":
-			r=self.__recorddefs.pclink(pkey,ckey,txn=txn)
+			r=self.__recorddefs.pclink(str(pkey).lower(),str(ckey).lower(),txn=txn)
 		if keytype=="paramdef":
-			r=self.__paramdefs.pclink(pkey,ckey,txn=txn)
+			r=self.__paramdefs.pclink(str(pkey).lower(),str(ckey).lower(),txn=txn)
 
 		self.LOG(0,"pclink %s: %s <-> %s by user %s"%(keytype,pkey,ckey,ctx.user))
 		return r
@@ -3606,11 +3649,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 			b=self.getrecord(ckey,ctxid)
 			if (not a.writable()) and (not b.writable()):
 				raise SecurityError,"pcunlink requires partial write permission"
-			r=self.__records.pcunlink(pkey,ckey,txn)
+			r=self.__records.pcunlink(str(pkey).lower(),str(ckey).lower(),txn)
 		if keytype=="recorddef":
-			r=self.__recorddefs.pcunlink(pkey,ckey,txn)
+			r=self.__recorddefs.pcunlink(str(pkey).lower(),str(ckey).lower(),txn)
 		if keytype=="paramdef":
-			r=self.__paramdefs.pcunlink(pkey,ckey,txn)
+			r=self.__paramdefs.pcunlink(str(pkey).lower(),str(ckey).lower(),txn)
 		
 		self.LOG(0,"pcunlink %s: %s <-> %s by user %s"%(keytype,pkey,ckey,ctx.user))
 		return r
@@ -3636,9 +3679,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 			b=self.getrecord(key2,ctxid)
 			r=self.__records.link(key1,key2)
 		if keytype=="recorddef":
-			r=self.__recorddefs.link(key1,key2,txn)
+			r=self.__recorddefs.link(str(key1).lower(),str(key2).lower(),txn)
 		if keytype=="paramdef":
-			r=self.__paramdefs.link(key1,key2,txn)
+			r=self.__paramdefs.link(str(key1).lower(),str(key2).lower(),txn)
 
 		self.LOG(0,"link %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
 		return r
@@ -3661,9 +3704,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 			b=self.getrecord(key2,ctxid)
 			r=self.__records.unlink(key1,key2)
 		if keytype=="recorddef":
-			r=self.__recorddefs.unlink(key1,key2,txn)
+			r=self.__recorddefs.unlink(str(key1).lower(),str(key2).lower(),txn)
 		if keytype=="paramdef":
-			r=self.__paramdefs.unlink(key1,key2,txn)
+			r=self.__paramdefs.unlink(str(key1).lower(),str(key2).lower(),txn)
 		
 		# ian todo: add loggging
 		self.LOG(0,"unlink %s: %s <-> %s by user %s"%(keytype,key1,key2,ctx.user))
@@ -3674,6 +3717,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def disableuser(self,username,ctxid,host=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this."""
+
+		username=str(username)
+
 		ctx=self.__getcontext(ctxid,host)
 		#if not -1 in ctx.groups :
 		if not self.checkadmin(ctx):
@@ -3690,6 +3736,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 	#@write,admin
 	def approveuser(self,username,ctxid,host=None):
 		"""Only an administrator can do this, and the user must be in the queue for approval"""
+
+		username=str(username)
+
 		ctx=self.__getcontext(ctxid,host)
 		#if not -1 in ctx.groups :
 		if not self.checkadmin(ctx):
@@ -3737,6 +3786,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 	#@write,admin
 	def rejectuser(self,username,ctxid,host=None):
 		"""Remove a user from the pending new user queue - only an administrator can do this"""
+		
+		username=str(username)
+
 		ctx=self.__getcontext(ctxid,host)
 
 		# ian todo: move to general permission level check rather than hardcode -1 at each instance. several places.
@@ -3841,6 +3893,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 	#@write,user
 	def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
+
+		username=str(username)
+
 		ctx=self.__getcontext(ctxid,host)
 		user=self.getuser(username,ctxid)
 		
@@ -3921,6 +3976,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
 		
+		username=str(username)
+		
 		ctx=self.__getcontext(ctxid,host)
 		if not self.checkreadadmin(ctx):
 			raise SecurityError,"Only administrators can access pending users"
@@ -3933,6 +3990,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def getuser(self,username,ctxid,host=None):
 		"""retrieves a user's information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record"""
+		
+		username=str(username)
 		
 		ctx=self.__getcontext(ctxid,host)
 		ret=self.__users[username]
@@ -3973,6 +4032,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 	# ian todo: update. the find* functions need to be fast and good at fulltext searches for autocomplete functionality.
 	def findusername(self,name,ctxid,host=None):
 		"""This will look for a username matching the provided name in a loose way"""
+
+		name=str(name)
 		if self.__users.has_key(name) : return name
 		
 		possible=filter(lambda x: name in x,self.__users.keys())
@@ -4166,7 +4227,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if not self.checkcreate(ctx):
 			raise SecurityError,"No permission to create new paramdefs (need record creation permission)"
 
-		paramdef.name=paramdef.name.lower()
+		paramdef.name=str(paramdef.name).lower()
 		
 		if self.__paramdefs.has_key(paramdef.name) : 
 			# Root is permitted to force changes in parameters, though they are supposed to be static
@@ -4186,7 +4247,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# this actually stores in the database
 		txn=self.newtxn()
-		self.__paramdefs.set(unicode(paramdef.name),paramdef,txn)
+		self.__paramdefs.set(paramdef.name,paramdef,txn)
 		if (parent): self.pclink(parent,paramdef.name,"paramdef",txn=txn)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
@@ -4198,6 +4259,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		"""This will add a new choice to records of vartype=string. This is
 		the only modification permitted to a ParamDef record after creation"""
 
+		paramdefname=str(paramdefname).lower()
+		
 		# ian: change to only allow logged in users to add param choices. silent return on failure.
 		ctx=self.__getcontext(ctxid,host)
 		if not self.checkcreate(ctx):
@@ -4215,15 +4278,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
-	def getparamdef(self,paramdefname,ctxid=None, host=None):
+
+	def getparamdef(self,key,ctxid=None, host=None):
 		"""gets an existing ParamDef object, anyone can get any field definition
     
     NOTE: ctxid is unused"""
 		#debug(__file__, ',', 'paramdefname = ', paramdefname)
+		key=str(key).lower()
 		try:
-			return self.__paramdefs[str(paramdefname)]
+			return self.__paramdefs[key]
 		except:
-			raise KeyError,"Unknown ParamDef: %s"%paramdefname
+			raise KeyError,"Unknown ParamDef: %s"%key
 		
 		
 	def getparamdefnames(self,host=None):
@@ -4235,7 +4300,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def findparamdefname(self,name,host=None):
 		"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
-		name=name.lower()
+		name=str(name).lower()
 		if self.__paramdefs.has_key(name) : return name
 		if name[-1]=="s" :
 			if self.__paramdefs.has_key(name[:-1]) : return name[:-1]
@@ -4309,8 +4374,8 @@ or None if no match is found."""
 		if not self.checkcreate(ctx):
 			raise SecurityError,"No permission to create new RecordDefs"
 			
-		if self.__recorddefs.has_key(recdef.name.lower()):
-			raise KeyError,"RecordDef %s already exists"%recdef.name.lower()
+		if self.__recorddefs.has_key(str(recdef.name).lower()):
+			raise KeyError,"RecordDef %s already exists"%str(recdef.name).lower()
 
 		recdef.findparams()
 		pdn=self.getparamdefnames()
@@ -4319,7 +4384,7 @@ or None if no match is found."""
 
 		# force these values
 		if (recdef.owner==None) : recdef.owner=ctx.user
-		recdef.name=recdef.name.lower()
+		recdef.name=str(recdef.name).lower()
 		recdef.creator=ctx.user
 		recdef.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
 
@@ -4350,8 +4415,8 @@ or None if no match is found."""
 		# recdef=RecordDef(recdef.__dict__.copy())
 		# paramdef.validate()
 		
-		
 		ctx=self.__getcontext(ctxid,host)
+		# name doesnt have to be forced str/lower because it checks for existing recdef
 		rd=self.__recorddefs[recdef.name]
 
 		#if (not -1 in ctx.groups) and (ctx.user!=rd.owner) : 
@@ -4388,7 +4453,7 @@ or None if no match is found."""
 		private, unless the user is an owner or  in the context of a recid the
 		user has permission to access"""
 		
-		rectypename=rectypename.lower()
+		rectypename=str(rectypename).lower()
 		if not self.__recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
 		
 		ret=self.__recorddefs[rectypename]	# get the record
@@ -4423,6 +4488,8 @@ or None if no match is found."""
 		"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef, 
 		or None if no match is found."""
 
+		name=str(name).lower()
+		
 		if self.__recorddefs.has_key(name) : return name
 		if name[-1]=="s" :
 			if self.__recorddefs.has_key(name[:-1]) : return name[:-1]
@@ -4642,18 +4709,29 @@ or None if no match is found."""
 
 
 	def putrecordvalue(self,recid,param,value,ctxid,host=None):
-		rec=self.getrecord(recid,ctxid,host)
+		rec=self.getrecord(recid,ctxid,host=host)
 		rec[param]=value
-		self.putrecord(rec,ctxid,host)
-		return recid
+		self.putrecord(rec,ctxid,host=host)
+		return self.getrecord(recid,ctxid,host=host)[param]
+		#return recid
 		#return self.renderview(recid,viewdef="$$%s"%param,ctxid=ctxid,host=host)
+		
+	def putrecordvalues(self,recid,values,ctxid,host=None):
+		rec=self.getrecord(recid,ctxid,host=host)
+		for k,v in values.items():
+			if v==None:
+				del rec[k]
+			else:
+				rec[k]=v
+		self.putrecord(rec,ctxid,host=host)
+		return self.getrecord(recid,ctxid,host=host)		
 		
 		
 	def addcomment(self,recid,comment,ctxid):
 		rec=self.getrecord(recid,ctxid)
 		rec.addcomment(comment)
 		self.putrecord(rec,ctxid)
-		
+		return self.getrecord(recid,ctxid)["comments"]
 		
 	def getuserdisplayname(self,username,ctxid,lnf=0,host=None):
 		"""Return the full name of a user from the user record."""
@@ -4785,14 +4863,18 @@ or None if no match is found."""
 		######
 		# If we got here, we are updating an existing record
 		######
-		import g
-		g.orig = orig
+
+		#import g
+		#g.orig = orig
+
 		orig.setContext(ctx)				# security check on the original record
 		record.setContext(ctx)			# security double-check on the record to be processed. This is required for DBProxy use.
 		record.validate()
 		
+		record.setoparams(orig.items_dict())
 		cp = record.changedparams()
-		record.setoparams({})
+
+		print "Changed params: %s"%cp
 		
 		if len(cp) == 0: 
 			self.LOG(5,"update %d with no changes"%record.recid)
@@ -4812,9 +4894,9 @@ or None if no match is found."""
 
 			self.__reindex(f,oldval,newval,record.recid,txn)
 			
-			#if f not in ["comments","modifytime","modifyuser"]:
-			#	orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
-			
+			if f not in ["comments","modifytime","modifyuser"]:
+				#orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
+				orig._Record__comments.append((ctx.user,time.strftime("%Y/%m/%d %H:%M:%S"),(f,newval,oldval)))
 			orig[f]=record[f]
 			
 				
@@ -4945,6 +5027,9 @@ or None if no match is found."""
 		
 	def getparamvalue(self,paramname,recid,ctxid,dbid=0,host=None):
 		#slow and insecure needs indexes for speed
+
+		paramname=str(paramname).lower()
+		
 		paramindex = self.__getparamindex(paramname)
 		if hasattr(recid, '__iter__'):
 			results = []
@@ -5002,6 +5087,7 @@ or None if no match is found."""
 		
 		if not isinstance(usertuple,tuple) and not isinstance(usertuple,list) :
 			raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints" 
+
 		usertuple=list(usertuple)[:4]
 		
 		for i in range(4):
