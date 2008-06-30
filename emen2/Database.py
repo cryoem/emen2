@@ -19,31 +19,28 @@ with sufficient intent and knowledge it is possible. To use this module securely
 by another layer, say an xmlrpc server...
 """
 
+from UserDict import DictMixin
 from bsddb3 import db
-from cPickle import dumps,loads,dump,load
+from cPickle import dumps, loads, dump, load
 from emen2.emen2config import *
+from emen2.subsystems import macro #
 from functools import partial
 from math import *
-
-try:
-	Set = set
-except NameError:
-	from sets import *
-	
-from emen2.subsystems import macro				 #
-from xml.sax.saxutils import escape,unescape,quoteattr
+from xml.sax.saxutils import escape, unescape, quoteattr
 import atexit
 import operator
 import os
 import re
-import sha
+import hashlib
 import sys
 import time
 import traceback
 import weakref
 
+Set = set
+	
 
-from UserDict import DictMixin
+
 def get(self, key, default=None):
 	try:
 		return self[key]
@@ -2259,7 +2256,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		return "Database %d records\n( %s )"%(int(self.__records[-1]),format_string_obj(self.__dict__,["path","logfile","lastctxclean"]))
 	
 	def checkpassword(self, username, password):
-		s=sha.new(password)
+		s=hashlib.sha1(password)
 		try:
 			user=self.__users[username]
 		except TypeError:
@@ -2283,7 +2280,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 			ctx=Context(None,self,None,[-4],host,maxidle)
 		# check password, hashed with sha-1 encryption
 		else :
-			s=sha.new(password)
 			try:
 				user=self.__users[username]
 			except TypeError:
@@ -2300,7 +2296,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			raise Exception,"System ERROR, login()"
 		
 		# we use sha to make a key for the context as well
-		s=sha.new(username+str(host)+str(time.time()))
+		s=hashlib.sha1(username+str(host)+str(time.time()))
 		ctx.ctxid=s.hexdigest()
 		self.__contexts[ctx.ctxid]=ctx		# local context cache
 		ctx.db=None

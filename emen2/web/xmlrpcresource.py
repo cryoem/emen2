@@ -146,7 +146,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		
 	def xmlrpc_setworkflow(self,wflist,ctxid=None,host=None,db=None):
 		"""This will set the user's entire workflow list. This should rarely be used."""
-		w=[Database.WorkFlow(with=i) for i in wflist]
+		w=[Database.WorkFlow(with_=i) for i in wflist]
 		db.setworkflow(w,ctxid,host)
 		
 	def xmlrpc_addworkflowitem(self,work,ctxid=None,host=None,db=None):
