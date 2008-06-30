@@ -419,10 +419,10 @@ class BTree(object):
 #			print c
 			if paramname :
 				c=filter(lambda x:x[1]==paramname,c)
-				return [x[0] for x in c]
+				return set((x[0] for x in c))
 			else: return c
 		except:
-			return []
+			return set()
 	
 	def cousins(self,tag):
 		"""Returns a list of tags related to the given tag"""
@@ -638,7 +638,7 @@ class IntBTree(object):
 		if not self.relate : raise Exception,"relate option required"
 		
 		ret=self.pcdb.index_get(int(tag),txn=self.txn)
-		if ret==None: return []
+		if ret==None: return set()
 		return ret
 	
 	def cousins(self,tag):
@@ -3466,13 +3466,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		ret=trg.children(key)
-		
-		if recurse==0 : return Set(ret)
-
-		r2=[]
-		for i in ret:
-			r2+=self.getchildren(i,keytype,recurse-1,ctxid,host=host)
-		return Set(ret+r2)
+				
+		if recurse==0 : return ret
+		else:
+			r2 = set()
+			for key in ret:
+				r2.update(self.getchildren(key, keytype, recurse-1, ctxid, host))
+			ret.update(r2)
+			return ret
+					  
 
 # ian
 #		new = 0
