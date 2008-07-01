@@ -4279,8 +4279,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 	def getparamdef(self,key,ctxid=None, host=None):
 		"""gets an existing ParamDef object, anyone can get any field definition
-    
-    NOTE: ctxid is unused"""
+	
+	NOTE: ctxid is unused"""
 		#debug(__file__, ',', 'paramdefname = ', paramdefname)
 		key=str(key).lower()
 		try:
