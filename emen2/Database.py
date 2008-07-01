@@ -635,7 +635,7 @@ class IntBTree(object):
 		if not self.relate : raise Exception,"relate option required"
 		
 		ret=self.pcdb.index_get(int(tag),txn=self.txn)
-		if ret==None: return set()
+		if ret==None: return None #set()
 		return ret
 	
 	def cousins(self,tag):
@@ -2329,7 +2329,63 @@ recover - Only one thread should call this. Will run recovery on the environment
 				self.__contexts_p.set_txn(None)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()		
-
+	logout = deletecontext
+	# ian: rpc export? probably not, for now.
+	#@write
+	def newbinary(self,date,name,recid,ctxid,host=None):
+		"""Get a storage path for a new binary object. Must have a
+		recordid that references this binary, used for permissions. Returns a tuple
+		with the identifier for later retrieval and the absolute path"""
+		
+		if name==None or str(name)=="": raise ValueError,"BDO name may not be 'None'"
+		
+		# ian: check for permissions because actual operations are performed.
+		print 'ctxid: %s, host: %s' % (ctxid, host)
+		rec=self.getrecord(recid,ctxid, host=host)
+		if not rec.writable():
+			raise SecurityError,"Write permission needed on referenced record."
+		
+		year=int(date[:4])
+		mon=int(date[5:7])
+		day=int(date[8:10])
+	
+		# figure out where this file goes in the filesystem
+		key="%04d%02d%02d"%(year,mon,day)
+		for i in BINARYPATH:
+			if key>=i[0] and key<i[1] :
+				# actual storage path
+				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
+				break
+		else:
+			raise KeyError,"No storage specified for date %s"%key
+	
+		# try to make sure the directory exists
+		try: os.makedirs(path)
+		except: pass
+	
+		# Now we need a filespec within the directory
+		# dictionary keyed by date, 1 directory per day
+	
+		if usetxn : txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+		else: txn=None
+		# if exists, increase counter
+		try:
+			itm=self.__bdocounter.get(key,txn)
+			newid=max(itm.keys())+1
+			itm[newid]=(name,recid)
+			self.__bdocounter.set(key,itm,txn)
+		# otherwise make a new dict
+		except:
+			itm={0:(name,recid)}
+			self.__bdocounter.set(key,itm,txn)
+			newid=0
+		if txn: txn.commit()
+		elif not self.__importmode : DB_syncall()
+	
+		#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
+		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
+		
+		return (key+"%05X"%newid,path+"/%05X"%newid)
 
 
 	# ian: changed from cleanupcontexts to __cleanupcontexts
@@ -2360,8 +2416,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 		self.__contexts_p.set_txn(None)
 		if txn: txn.commit()
 		elif not self.__importmode : DB_syncall()
-
-
 	# ian: host required here.
 	def __getcontext(self,key,host):
 		"""Takes a ctxid key and returns a context (for internal use only)
@@ -2411,124 +2465,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 	# ian: changed from isManager to checkadmin
 	# ian todo: these should be moved to Context methods since user never has direct access to Context instance
-	def checkadmin(self,ctx,host=None):
-		"""Checks if the user has global write access. Returns 0 or 1."""
-		if not isinstance(ctx,Context):
-			ctx=self.__getcontext(ctx,host)
-		if (-1 in ctx.groups):
-			return 1
-		
-		return 0
-
-
-	def checkreadadmin(self,ctx,host=None):
-		"""Checks if the user has global read access. Returns 0 or 1."""
-		if not isinstance(ctx,Context):
-			ctx=self.__getcontext(ctx,host)
-		if (-1 in ctx.groups) or (-2 in ctx.groups):
-			return 1
-		
-		return 0		
-
-
-	def checkcreate(self,ctx,host=None):
-		if not isinstance(ctx,Context):
-			ctx=self.__getcontext(ctx,host)
-		if 0 in ctx.groups or -1 in ctx.groups:
-			return 1
-
-		return 0
-
-
-	def loginuser(self, ctxid, host=None):
-		  ctx=self.__getcontext(ctxid,host)
-		  return ctx.user
-	  
-	
-	# ian: not sure the need for this. doesn't work anyway.
-	#def isMe (self, ctxid, username, host=None):
-	#		ctx=self.__getcontext(ctxid,host)
-	#		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
-	#		else: return 0
-
-	# ian todo: define other useful ctx checks here, similar to above.	
-		
-				
-	# ian todo: should restrict this to logged in users for security (file counts, brute force attempts)
-	# ian: made ctxid required argument.
-	def getbinarynames(self,ctxid,host=None):
-		"""Returns a list of tuples which can produce all binary object
-		keys in the database. Each 2-tuple has the date key and the nubmer
-		of objects under that key. A somewhat slow operation."""
-		ctx=self.__getcontext(ctxid,host)
-		if ctx.user==None:
-			raise SecurityError,"getbinarynames not available to anonymous users"
-
-		ret=self.__bdocounter.keys()
-		ret=[(i,len(self.__bdocounter[i])) for i in ret]
-		return ret
-
-
-
-	# ian: rpc export? probably not, for now.
-	#@write
-	def newbinary(self,date,name,recid,ctxid,host=None):
-		"""Get a storage path for a new binary object. Must have a
-		recordid that references this binary, used for permissions. Returns a tuple
-		with the identifier for later retrieval and the absolute path"""
-		
-		if name==None or str(name)=="": raise ValueError,"BDO name may not be 'None'"
-		
-		# ian: check for permissions because actual operations are performed.
-		print 'ctxid: %s, host: %s' % (ctxid, host)
-		rec=self.getrecord(recid,ctxid, host=host)
-		if not rec.writable():
-			raise SecurityError,"Write permission needed on referenced record."
-		
-		year=int(date[:4])
-		mon=int(date[5:7])
-		day=int(date[8:10])
-
-		# figure out where this file goes in the filesystem
-		key="%04d%02d%02d"%(year,mon,day)
-		for i in BINARYPATH:
-			if key>=i[0] and key<i[1] :
-				# actual storage path
-				path="%s/%04d/%02d/%02d"%(i[2],year,mon,day)
-				break
-		else:
-			raise KeyError,"No storage specified for date %s"%key
-
-		# try to make sure the directory exists
-		try: os.makedirs(path)
-		except: pass
-
-		# Now we need a filespec within the directory
-		# dictionary keyed by date, 1 directory per day
-
-		if usetxn : txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-		else: txn=None
-		# if exists, increase counter
-		try:
-			itm=self.__bdocounter.get(key,txn)
-			newid=max(itm.keys())+1
-			itm[newid]=(name,recid)
-			self.__bdocounter.set(key,itm,txn)
-		# otherwise make a new dict
-		except:
-			itm={0:(name,recid)}
-			self.__bdocounter.set(key,itm,txn)
-			newid=0
-		if txn: txn.commit()
-		elif not self.__importmode : DB_syncall()
-
-		#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-		if os.access(path+"/%05X"%newid,os.F_OK) : self.LOG(2,"Binary data storage: overwriting existing file '%s'"%(path+"/%05X"%newid))
-		
-		return (key+"%05X"%newid,path+"/%05X"%newid)
-	
-	
-	
 	def getbinary(self,ident,ctxid,host=None):
 		"""Get a storage path for an existing binary object. Returns the
 		object name and the absolute path"""
@@ -2555,18 +2491,90 @@ recover - Only one thread should call this. Will run recovery on the environment
 		if self.trygetrecord(recid,ctxid,host=host) : return (name,path+"/%05X"%bid,recid)
 
 		raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
-		
-		
-		
 	def checkcontext(self,ctxid,host=None):
 		"""This allows a client to test the validity of a context, and
 		get basic information on the authorized user and his/her permissions"""
 		a=self.__getcontext(ctxid,host)
 		#if a.user==None: return(-4,-4)
 		return(a.user,a.groups)
+	def getindexbycontext(self,ctxid,host=None):
+		"""This will return the ids of all records a context has permission to access as a Set. Does include groups.""" 
+		ctx=self.__getcontext(ctxid,host)
+		
+		# todo: this needs to be moved back to __getcontext once performance issues are fixed
+		# ian todo: actually, does this need to exist at all?... need to think about -3 user approach.
+		# ian todo: use this to method union Sets in several places.
+		
+		# if ctx.user!=None: ctx.groups+=[-3]
+		
+		# ian todo: move this to db.checkadmincontext or user.checkadmin or similar
+		#if [-1] in ctx.groups or [-2] in ctx.groups:
+		if self.checkreadadmin(ctx):
+			return Set(range(self.__records[-1]))#+1)) ###Ed: Fixed an off by one error
+
+		ret=Set(self.__secrindex[ctx.user or -4])
+		if ctx.user!=None:
+			ret|=Set(self.__secrindex[-3] or [])
+
+		return ret
+	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
+		"""Uses the recdefname keyed index to return all
+		records belonging to a particular RecordDef as a Set. Currently this
+		is unsecured, but actual records cannot be retrieved, so it
+		shouldn't pose a security threat."""
+		return Set(self.__recorddefindex[str(recdefname).lower()])
+
+	def checkadmin(self,ctx,host=None):
+		"""Checks if the user has global write access. Returns 0 or 1."""
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if (-1 in ctx.groups):
+			return 1
+		
+		return 0
+	def checkreadadmin(self,ctx,host=None):
+		"""Checks if the user has global read access. Returns 0 or 1."""
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if (-1 in ctx.groups) or (-2 in ctx.groups):
+			return 1
+		
+		return 0		
+	def checkcreate(self,ctx,host=None):
+		if not isinstance(ctx,Context):
+			ctx=self.__getcontext(ctx,host)
+		if 0 in ctx.groups or -1 in ctx.groups:
+			return 1
+
+		return 0
+	def loginuser(self, ctxid, host=None):
+	  ctx=self.__getcontext(ctxid,host)
+	  return ctx.user
+	  
 	
-	
-	
+	# ian: not sure the need for this. doesn't work anyway.
+	#def isMe (self, ctxid, username, host=None):
+	#		ctx=self.__getcontext(ctxid,host)
+	#		if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return 1
+	#		else: return 0
+
+	# ian todo: define other useful ctx checks here, similar to above.	
+		
+				
+	# ian todo: should restrict this to logged in users for security (file counts, brute force attempts)
+	# ian: made ctxid required argument.
+	def getbinarynames(self,ctxid,host=None):
+		"""Returns a list of tuples which can produce all binary object
+		keys in the database. Each 2-tuple has the date key and the nubmer
+		of objects under that key. A somewhat slow operation."""
+		ctx=self.__getcontext(ctxid,host)
+		if ctx.user==None:
+			raise SecurityError,"getbinarynames not available to anonymous users"
+
+		ret=self.__bdocounter.keys()
+		ret=[(i,len(self.__bdocounter[i])) for i in ret]
+		return ret		
+		
 	# ian todo: eventually let's move query stuff to end of file for neatness, or separate module...
 	querykeywords=["find","plot","histogram","timeline","by","vs","sort","group","and","or","child","parent","cousin","><",">","<",">=","<=","=","!=",","]
 	querycommands=["find","plot","histogram","timeline"]
@@ -2957,9 +2965,6 @@ parentheses grouping not supported yet"""
 			
 		elif command=="timeline" :
 			pass
-
-
-
 	def querypreprocess(self,query,ctxid,host=None):
 		"""This performs preprocessing on a database query string.
 preprocessing involves remapping synonymous keywords/symbols and
@@ -3063,29 +3068,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		return [i for i in elements if i!=None]
 
-
-
-	def getindexbycontext(self,ctxid,host=None):
-		"""This will return the ids of all records a context has permission to access as a Set. Does include groups.""" 
-		ctx=self.__getcontext(ctxid,host)
-		
-		# todo: this needs to be moved back to __getcontext once performance issues are fixed
-		# ian todo: actually, does this need to exist at all?... need to think about -3 user approach.
-		# ian todo: use this to method union Sets in several places.
-		
-		# if ctx.user!=None: ctx.groups+=[-3]
-		
-		# ian todo: move this to db.checkadmincontext or user.checkadmin or similar
-		#if [-1] in ctx.groups or [-2] in ctx.groups:
-		if self.checkreadadmin(ctx):
-			return Set(range(self.__records[-1]))#+1)) ###Ed: Fixed an off by one error
-
-		ret=Set(self.__secrindex[ctx.user or -4])
-		if ctx.user!=None:
-			ret|=Set(self.__secrindex[-3] or [])
-
-		return ret
-
 #		"""This will use a context to return
 #		a list of records the user can access"""
 #		u,g=self.checkcontext(ctxid,host)
@@ -3093,8 +3075,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 #		ret=Set(self.__secrindex[u])
 #		for i in g: ret|=Set(self.__secrindex[i])
 #		return ret
-
-
 	
 	def getindexbyuser(self,username,ctxid,host=None):
 		"""This will use the user keyed record read-access index to return
@@ -3114,12 +3094,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 	
 	
 	
-	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
-		"""Uses the recdefname keyed index to return all
-		records belonging to a particular RecordDef as a Set. Currently this
-		is unsecured, but actual records cannot be retrieved, so it
-		shouldn't pose a security threat."""
-		return Set(self.__recorddefindex[str(recdefname).lower()])
 
 
 	# ian: made ctxid req'd. todo: fix
@@ -3446,15 +3420,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 		on the parent object or an empty set will be returned. For recursive lookups
 		the tree will appropriately pruned during recursion."""
 		
-		if (recurse<0): return Set()
+		if (recurse<0): return set()
 		if keytype=="record" : 
 			trg=self.__records
-			if not self.trygetrecord(key,ctxid,host=host) : return Set()
+			if not self.trygetrecord(key,ctxid,host=host) : return set()
 		elif keytype=="recorddef" : 
 			key=str(key).lower()
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
-			except: return Set()
+			except: return set()
 		elif keytype=="paramdef":
 			key=str(key).lower()
 			trg=self.__paramdefs
@@ -3462,14 +3436,24 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		ret=trg.children(key)
-				
-		if recurse==0 : return ret
-		else:
-			r2 = set()
-			for key in ret:
-				r2.update(self.getchildren(key, keytype, recurse-1, ctxid, host))
-			ret.update(r2)
-			return ret
+		result = ret.copy()
+		
+		for x in range(recurse):
+			for k in ret:
+				result.update(trg.children(k) or set())
+			del ret
+			ret = result.copy()
+		
+		return result
+		
+#
+#		if recurse==0 : return ret
+#		else:
+#			r2 = set()
+#			for key in ret:
+#				r2.update(self.getchildren(key, keytype, recurse-1, ctxid, host))
+#			ret.update(r2)
+#			return ret
 					  
 
 # ian
