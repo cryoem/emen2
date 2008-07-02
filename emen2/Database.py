@@ -633,10 +633,8 @@ class IntBTree(object):
 	def children(self,tag):
 		"""Returns a list of the tag's children."""
 		if not self.relate : raise Exception,"relate option required"
-		
-		ret=self.pcdb.index_get(int(tag),txn=self.txn)
-		if ret==None: return None #set()
-		return ret
+		return  self.pcdb.index_get(int(tag),txn=self.txn)
+
 	
 	def cousins(self,tag):
 		"""Returns a list of tags related to the given tag"""
@@ -2136,7 +2134,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			self.LOG(0,"Warning, root user recreated")
 			u=User()
 			u.username="root"
-			if rootpw : p=sha.new(rootpw)
+			if rootpw : p=hashlib.sha1(rootpw)
 			else: p=hashlib.sha1(ROOTPW)
 			u.password=p.hexdigest()
 			u.groups=[-1]
@@ -3436,15 +3434,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 			raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 		ret=trg.children(key)
-		result = ret.copy()
-		
-		for x in range(recurse):
-			for k in ret:
-				result.update(trg.children(k) or set())
-			del ret
-			ret = result.copy()
-		
-		return result
+		out = []
+		for x in xrange(recurse):
+			for k in ret.copy():
+				out.append(k)
+				out.extend(trg.children(k))
+		return (set(out) if out != [] else ret) 
 		
 #
 #		if recurse==0 : return ret
