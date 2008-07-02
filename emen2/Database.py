@@ -2137,7 +2137,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 			u=User()
 			u.username="root"
 			if rootpw : p=sha.new(rootpw)
-			else: p=sha.new(ROOTPW)
+			else: p=hashlib.sha1(ROOTPW)
 			u.password=p.hexdigest()
 			u.groups=[-1]
 			u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -4697,6 +4697,7 @@ or None if no match is found."""
 		return self.getrecord(recid,ctxid,host=host)[param]
 		#return recid
 		#return self.renderview(recid,viewdef="$$%s"%param,ctxid=ctxid,host=host)
+
 		
 	def putrecordvalues(self,recid,values,ctxid,host=None):
 		rec=self.getrecord(recid,ctxid,host=host)
@@ -4707,6 +4708,13 @@ or None if no match is found."""
 				rec[k]=v
 		self.putrecord(rec,ctxid,host=host)
 		return self.getrecord(recid,ctxid,host=host)		
+
+		
+	def putrecordsvalues(self,d,ctxid,host=None):
+		ret={}
+		for k,v in d.items():
+			ret[k]=self.putrecordvalues(k,v,ctxid,host=host)
+		return ret
 		
 		
 	def addcomment(self,recid,comment,ctxid):
@@ -4992,6 +5000,7 @@ or None if no match is found."""
 		
 		# if a single id was requested, return it
 		# setContext is required to make the record valid, and returns a binary security tuple
+		
 		if (hasattr(recid,'__int__')):
 			recid = int(recid)
 			rec=self.__records[recid]
@@ -5004,8 +5013,15 @@ or None if no match is found."""
 				p=rec.setContext(ctx)
 				if not p[0] : raise SecurityError,"Permission denied on one or more records"	# ian: changed Exception to SecurityError
 			return recl
-		else : raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
+		else:
+			# ian: js only allows strings as Array keys.. so let's fallback to attempt to recast to int before giving up
+			try:
+				recid=int(recid)
+				return self.getrecord(recid,ctxid,host)
+			except:			
+				raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #		else : raise KeyError,"Invalid Key %s"%str(recid)
+		
 		
 	def getparamvalue(self,paramname,recid,ctxid,dbid=0,host=None):
 		#slow and insecure needs indexes for speed
