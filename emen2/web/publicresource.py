@@ -222,7 +222,6 @@ class PublicView(Resource):
         request.setResponseCode(500)
         
         try:
-          1/0
           failure.raiseException()
         except (Database.SecurityError, Database.SessionError, KeyError), inst:
           uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
