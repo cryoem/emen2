@@ -656,6 +656,7 @@ class IntBTree(object):
 
 	def __getitem__(self,key):
 		key=int(key)
+		print key
 		return loads(self.bdb.get(dumps(key),txn=self.txn))
 
 	def __delitem__(self,key):
@@ -3324,6 +3325,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		r = {}
 		for i in records:
 			if not self.trygetrecord(i,ctxid): continue
+			print i
 			j = self.__recorddefbyrec[i]	# security checked above
 			if r.has_key(j):
 				r[j].append(i)
