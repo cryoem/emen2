@@ -16,10 +16,12 @@ from twisted.web.static import server, redirectTo, addSlash
 import re
 from emen2.util import listops
 
+import time
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-#import demjson
+import demjson
 
 class PublicView(Resource):
 
@@ -42,7 +44,7 @@ class PublicView(Resource):
         def setitem(name, val):
             result[name] = val
         
-        for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
+        for key in set(args.keys()) - set(["db","host","user","ctxid"]): #, "username", "pw"
             name, _, val = key.rpartition('_')   
             if val.isdigit():
                 res = result.get(name, [])
@@ -89,7 +91,7 @@ class PublicView(Resource):
             return cb
         return _reg_inside
     
-    @g.debug.debug_func
+    #@g.debug.debug_func
     def parse_uri(self, uri):
         url, _, qs = uri.partition('?')
         return [url, qs]
@@ -99,9 +101,11 @@ class PublicView(Resource):
         ##get request ctxid if any
         ctxid = request.getCookie("ctxid")
         ##get request username if any
-        username = args.get('username', [''])[0]
+        username = args.get('username', '')
+        #username=args["username"]
         ##get request password if any
-        pw = request.args.get('pw', [''])[0]
+        pw = args.get('pw', '')
+        #pw=args["pw"]
         ##do login,
         authen.authenticate(username, pw, ctxid)
         ctxid, un = authen.get_auth_info()
@@ -135,15 +139,42 @@ class PublicView(Resource):
         
         return target
     
-    def render(self, request):
-        ctxid, host = None, request.getClientIP()
-        args = request.args
-        
+
+    def __parse_jsonargs(self,content):
+      ret={}
+      try:
+        # accept json dicts to pass to methods. 
+        z=demjson.decode(content)
+        for key in set(z.keys()) - set(["db","host","user","ctxid"]): #, "username", "pw"
+          ret[key]=z[key]
+      except:
+        pass      
+      return ret
+      
+
+    def render(self, request, jsonargs={}):
+ 
         request.postpath = filter(bool, request.postpath)
+        request.content.seek(0,0)
+        content=request.content.read()
+
+        ctxid, host = None, request.getClientIP()
+        args = self.__parse_args(request.args)
+
+        print "content: %s"%content
+
+        if content:
+          args.update(self.__parse_jsonargs(content))
         
+        print "\n---- [%s] [%s] ---- web request: %s ----"%(time.strftime("%Y/%m/%d %H:%M:%S"),host,request.postpath)
+        print "args: %s"%args
+
         router=self.router
         make_callback = lambda string: (lambda *x, **y: string)
+
+
         try:
+
             # redirect special urls
             if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
                 target = addSlash(request)
@@ -165,20 +196,21 @@ class PublicView(Resource):
                 #redirects must not be unicode
                 #NOTE: should URLS use punycode: http://en.wikipedia.org/wiki/Punycode ?
                 return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
-            
-            tmp = self.__parse_args(args)
+
             if method == "logout":
                 authen.logout(ctxid)
                 callback = make_callback(redirectTo('/db/home/', request))
             elif method == "login":
-                callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
-                callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
+                callback = router.execute('/login/', uri=args.get('uri', '/db/home/'))
+                callback = callback(db=ts.db, host=request.host, ctxid='', msg=args.get('msg', msg))
                 return str(callback)
             else:
-                callback = routing.URLRegistry().execute(path, **tmp)
+                callback = routing.URLRegistry().execute(path, **args)
+
+            
 
             d = threads.deferToThread(callback, ctxid=ctxid, host=host)
-            d.addCallback(self._cbsuccess, request, ctxid)
+            d.addCallback(self._cbsuccess, request, ctxid,t0=time.time())
             d.addErrback(self._ebRender, request, ctxid)
     
             return server.NOT_DONE_YET
@@ -186,13 +218,84 @@ class PublicView(Resource):
         except Exception, e:
             self._ebRender(e, request, ctxid)
     
-    def _cbsuccess(self, result, request, ctxid):
+    def _cbsuccess(self, result, request, ctxid, t0=0):
         "result must be a 2-tuple: (result, mime-type)"
+
         def set_headers(headers):
             for key in headers:
                 request.setHeader(key, headers[key])
        
  
+<<<<<<< publicresource.py
+        #g.debug('RESULT:: %s' % (type(result)))
+        try:
+            result, mime_type = result
+        except ValueError:
+            mime_type = 'text/html; charset=utf-8'
+
+        if mime_type.split('/')[0] == 'text':
+            if type(result) != unicode:
+                result = unicode(result)
+            result = result.encode('utf-8')
+        else:
+            result = str(result)
+
+        print ":::: req total time: %s"%(time.time()-t0)
+
+
+        headers = {"content-type": mime_type,
+                   "content-length": str(len(result)),
+                   "Cache-Control":"no-cache",
+                   "Pragma":"no-cache"}
+
+        set_headers(headers)
+        request.write(result)
+        request.finish()
+        
+    def _ebRender(self, failure, request, ctxid):
+        g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
+        g.debug.msg(g.LOG_ERR, failure)
+        g.debug.msg(g.LOG_ERR, '---------------------------------')
+        print dir(failure)
+        #failure.raiseException()
+        request.setResponseCode(500)
+        
+        try:
+          #1/0
+          failure.raiseException()
+        except (Database.SecurityError, Database.SessionError, KeyError), inst:
+          print inst
+          uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
+                      ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
+                     )
+          args = ( str.join('=', elem) for elem in args )
+          args = str.join('&', args)
+          uri = str.join('?', (uri,args))
+          request.write(redirectTo(uri, request).encode("utf-8"))
+        except Exception, e:
+          print e
+          request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
+
+        request.finish()
+
+
+#         try:
+#             if isinstance(failure.type, Database.SecurityError) \
+#              or isinstance(failure.type, Database.SessionError) \
+#              or isinstance(failure.type, KeyError):
+#                 print "going to redir"
+#                 uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+#                 args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
+#                             ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
+#                            )
+#                 args = ( str.join('=', elem) for elem in args )
+#                 args = str.join('&', args)
+#                 uri = str.join('?', (uri,args))
+#                 request.write(redirectTo(uri, request).encode("utf-8"))
+#         except Exception:
+#             request.write(cgitb.html(sys.exc_info()))
+=======
         #g.debug('RESULT:: %s' % (type(result)))
         try:
             result, mime_type = result
@@ -253,3 +356,4 @@ class PublicView(Resource):
 #                 request.write(redirectTo(uri, request).encode("utf-8"))
 #         except Exception:
 #             request.write(cgitb.html(sys.exc_info()))
+>>>>>>> 1.33
