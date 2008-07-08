@@ -5,6 +5,7 @@ import traceback
 import os
 import hashlib
 import time
+from emen2.subsystems import macro
 from user import *
 from btrees import *
 from datastorage import *
