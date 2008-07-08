@@ -50,18 +50,6 @@ def get(self, key, default=None):
         return default
 DictMixin.get = get
 
-# These flags should be used whenever opening a BTree. This permits easier modification of whether transactions are used.
-# ian 07.12.07: added DB_THREAD
-
-
-
-# These are for transactional database work
-#dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
-##Ed 04.14.2008 added DB_THREAD
-#envopenflags=db.DB_CREATE|db.DB_INIT_MPOOL|db.DB_INIT_LOCK|db.DB_INIT_LOG|db.DB_THREAD|db.DB_INIT_TXN
-#usetxn=True
-
-
 def DB_cleanup():
     """This does at_exit cleanup. It would be nice if this were always called, but if python is killed
     with a signal, it isn't. This tries to nicely close everything in the database so no recovery is

@@ -152,7 +152,8 @@ class PublicView(Resource):
       return ret
       
 
-    def render(self, request, jsonargs={}):
+    def render(self, request, jsonargs=None):
+        jsonargs = jsonargs or {}
  
         request.postpath = filter(bool, request.postpath)
         request.content.seek(0,0)
@@ -256,18 +257,18 @@ class PublicView(Resource):
         request.setResponseCode(500)
         
         try:
-          failure.raiseException()
+            failure.raiseException()
         except (Database.SecurityError, Database.SessionError, KeyError), inst:
-          uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
+            uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+            args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
                       ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
                      )
-          args = ( str.join('=', elem) for elem in args )
-          args = str.join('&', args)
-          uri = str.join('?', (uri,args))
-          request.write(redirectTo(uri, request).encode("utf-8"))
+            args = ( str.join('=', elem) for elem in args )
+            args = str.join('&', args)
+            ri = str.join('?', (uri,args))
+            request.write(redirectTo(uri, request).encode("utf-8"))
         except Exception, e:
-          request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
+            request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
 
         request.finish()
 
