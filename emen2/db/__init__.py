@@ -54,20 +54,6 @@ DictMixin.get = get
 # ian 07.12.07: added DB_THREAD
 
 
-regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
-"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
-                "|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
-regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
-
-regex_pattern2 =  u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
-                "|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
-                "|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
-regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
-
-recommentsregex = "\n"
-pcomments = re.compile(recommentsregex) # re.UNICODE
-
-TIMESTR="%Y/%m/%d %H:%M:%S"
 
 # These are for transactional database work
 #dbopenflags=db.DB_CREATE|db.DB_AUTO_COMMIT|db.DB_READ_UNCOMMITTED
