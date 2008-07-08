@@ -74,19 +74,22 @@ root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
 root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
 root.putChild("json",emen2.TwistSupport_html.jsonresource.JSONResource())
 
-x = {}
-x.update(globals())
-exec "from test import *" in x
-a = code.InteractiveConsole(x, '')
-def interact():
-    while True:
-        a.interact()
-        exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
-        if exit[0] == 'n':
-            thread.interrupt_main()
-            return
+
+CONSOLE=0
+if CONSOLE:
+	x = {}
+	x.update(globals())
+	exec "from test import *" in x
+	a = code.InteractiveConsole(x, '')
+	def interact():
+	    while True:
+	        a.interact()
+	        exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
+	        if exit[0] == 'n':
+	            thread.interrupt_main()
+	            return
         
-thread.start_new_thread(interact, ())
+	thread.start_new_thread(interact, ())
 
 # print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
 

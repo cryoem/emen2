@@ -226,76 +226,7 @@ class PublicView(Resource):
                 request.setHeader(key, headers[key])
        
  
-<<<<<<< publicresource.py
-        #g.debug('RESULT:: %s' % (type(result)))
-        try:
-            result, mime_type = result
-        except ValueError:
-            mime_type = 'text/html; charset=utf-8'
 
-        if mime_type.split('/')[0] == 'text':
-            if type(result) != unicode:
-                result = unicode(result)
-            result = result.encode('utf-8')
-        else:
-            result = str(result)
-
-        print ":::: req total time: %s"%(time.time()-t0)
-
-
-        headers = {"content-type": mime_type,
-                   "content-length": str(len(result)),
-                   "Cache-Control":"no-cache",
-                   "Pragma":"no-cache"}
-
-        set_headers(headers)
-        request.write(result)
-        request.finish()
-        
-    def _ebRender(self, failure, request, ctxid):
-        g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
-        g.debug.msg(g.LOG_ERR, failure)
-        g.debug.msg(g.LOG_ERR, '---------------------------------')
-        print dir(failure)
-        #failure.raiseException()
-        request.setResponseCode(500)
-        
-        try:
-          #1/0
-          failure.raiseException()
-        except (Database.SecurityError, Database.SessionError, KeyError), inst:
-          print inst
-          uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-          args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
-                      ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
-                     )
-          args = ( str.join('=', elem) for elem in args )
-          args = str.join('&', args)
-          uri = str.join('?', (uri,args))
-          request.write(redirectTo(uri, request).encode("utf-8"))
-        except Exception, e:
-          print e
-          request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
-
-        request.finish()
-
-
-#         try:
-#             if isinstance(failure.type, Database.SecurityError) \
-#              or isinstance(failure.type, Database.SessionError) \
-#              or isinstance(failure.type, KeyError):
-#                 print "going to redir"
-#                 uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-#                 args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
-#                             ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
-#                            )
-#                 args = ( str.join('=', elem) for elem in args )
-#                 args = str.join('&', args)
-#                 uri = str.join('?', (uri,args))
-#                 request.write(redirectTo(uri, request).encode("utf-8"))
-#         except Exception:
-#             request.write(cgitb.html(sys.exc_info()))
-=======
         #g.debug('RESULT:: %s' % (type(result)))
         try:
             result, mime_type = result
@@ -356,4 +287,3 @@ class PublicView(Resource):
 #                 request.write(redirectTo(uri, request).encode("utf-8"))
 #         except Exception:
 #             request.write(cgitb.html(sys.exc_info()))
->>>>>>> 1.33

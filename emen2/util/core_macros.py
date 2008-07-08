@@ -2,6 +2,8 @@ from emen2.subsystems.macro import add_macro
 
 from functools import partial#
 
+print "importing core_macros.."
+
 @add_macro('recid')
 def get_recid(db, rec, parameters, **extra):
 	return rec.recid
@@ -19,9 +21,15 @@ def isofrecdef(db, recid, recdef, rinfo):
 
 @add_macro('childcount')
 def get_childcount(db, rec, recdef, ctxid, host, **extra):
-	rinfo = dict(ctxid=ctxid,host=host)
-	queryresult = db.getchildren(rec.recid,recurse=5,**rinfo)
-	return len([rec for rec in queryresult if isofrecdef(rec, recdef, rinfo)])
+	query=db.getchildren(rec.recid,recurse=2,ctxid=ctxid)
+	#return len(db.getindexbyrecorddef(recdef,ctxid) & query)
+	groups=db.groupbyrecorddeffast(query,ctxid)
+	if groups.has_key(recdef): return len(groups[recdef])
+	else: return 0
+	#print recdef
+	#rinfo = dict(ctxid=ctxid,host=host)
+	#queryresult = db.getchildren(rec.recid,recurse=5,**rinfo)
+	#return len([rec for rec in queryresult if isofrecdef(db,rec, recdef, rinfo)])
 
 ###############################################################################################################################################
 

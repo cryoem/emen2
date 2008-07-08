@@ -37,7 +37,7 @@ import time
 import traceback
 import weakref
 
-Set = set
+set = set
 	
 
 
@@ -1035,7 +1035,8 @@ valid_vartypes={
 	"boolean":("d",boolconv),
 	"dict":(None, lambda x:x), 
 	"user":("s",lambda x:str(x)), # ian 09.06.07
-	"userlist":(None,lambda y:map(lambda x:str(x),y))
+	"userlist":(None,lambda y:map(lambda x:str(x),y)),
+	"macro":(None,lambda x:str(x)) # this is a vartype to represent params that stand in for macros
 }
 
 
@@ -1883,13 +1884,13 @@ class Record(DictMixin):
 		if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
 		else:
 			# we use the sets module to do intersections in group membership
-			# note that an empty Set tests false, so u1&p1 will be false if
+			# note that an empty set tests false, so u1&p1 will be false if
 			# there is no intersection between the 2 sets
-			p1=Set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-			p2=Set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-			p3=Set(self.__permissions[2]+self.__permissions[3])
-			p4=Set(self.__permissions[3])
-			u1=Set(ctx.groups+[-4])				# all users are permitted group -4 access
+			p1=set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p2=set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p3=set(self.__permissions[2]+self.__permissions[3])
+			p4=set(self.__permissions[3])
+			u1=set(ctx.groups+[-4])				# all users are permitted group -4 access
 			
 			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
@@ -2497,31 +2498,31 @@ recover - Only one thread should call this. Will run recovery on the environment
 		#if a.user==None: return(-4,-4)
 		return(a.user,a.groups)
 	def getindexbycontext(self,ctxid,host=None):
-		"""This will return the ids of all records a context has permission to access as a Set. Does include groups.""" 
+		"""This will return the ids of all records a context has permission to access as a set. Does include groups.""" 
 		ctx=self.__getcontext(ctxid,host)
 		
 		# todo: this needs to be moved back to __getcontext once performance issues are fixed
 		# ian todo: actually, does this need to exist at all?... need to think about -3 user approach.
-		# ian todo: use this to method union Sets in several places.
+		# ian todo: use this to method union sets in several places.
 		
 		# if ctx.user!=None: ctx.groups+=[-3]
 		
 		# ian todo: move this to db.checkadmincontext or user.checkadmin or similar
 		#if [-1] in ctx.groups or [-2] in ctx.groups:
 		if self.checkreadadmin(ctx):
-			return Set(range(self.__records[-1]))#+1)) ###Ed: Fixed an off by one error
+			return set(range(self.__records[-1]))#+1)) ###Ed: Fixed an off by one error
 
-		ret=Set(self.__secrindex[ctx.user or -4])
+		ret=set(self.__secrindex[ctx.user or -4])
 		if ctx.user!=None:
-			ret|=Set(self.__secrindex[-3] or [])
+			ret|=set(self.__secrindex[-3] or [])
 
 		return ret
 	def getindexbyrecorddef(self,recdefname,ctxid,host=None):
 		"""Uses the recdefname keyed index to return all
-		records belonging to a particular RecordDef as a Set. Currently this
+		records belonging to a particular RecordDef as a set. Currently this
 		is unsecured, but actual records cannot be retrieved, so it
 		shouldn't pose a security threat."""
-		return Set(self.__recorddefindex[str(recdefname).lower()])
+		return set(self.__recorddefindex[str(recdefname).lower()])
 
 	def checkadmin(self,ctx,host=None):
 		"""Checks if the user has global write access. Returns 0 or 1."""
@@ -2606,8 +2607,8 @@ parentheses grouping not supported yet"""
 		# each record can only have one type, so intersection combined with
 		# multiple record types would always yield nothing, so we assume
 		# the intent is union, not intersection
-		byrecdef=Set()
-		excludeset=Set()
+		byrecdef=set()
+		excludeset=set()
 		for n,i in enumerate(query2):
 			if isinstance(i,str) and i[0]=="@" and (query[n-1] not in ("by","group")):
 				byrecdef|=self.getindexbyrecorddef(i[1:],ctxid)
@@ -2615,7 +2616,7 @@ parentheses grouping not supported yet"""
 				excludeset|=self.getindexbyrecorddef(i[1:],ctxid)
 
 		# We go through the query word by word and perform each operation
-		byparamval=Set()
+		byparamval=set()
 		groupby=None
 		n=0
 		while (n<len(query2)):
@@ -2631,7 +2632,7 @@ parentheses grouping not supported yet"""
 				ibvy=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host=host)
 				
 				if len(byparamval)>0 : byparamval.intersection_update(ibvx.keys())
-				else: byparamval=Set(ibvx.keys())
+				else: byparamval=set(ibvx.keys())
 				byparamval.intersection_update(ibvy.keys())
 				continue
 			elif i=="histogram" :
@@ -2642,7 +2643,7 @@ parentheses grouping not supported yet"""
 				# We make sure that any record containing the parameter is included
 				ibvh=self.getindexdictbyvalue(comops[0][1:],None,ctxid,host=host)
 				if len(byparamval)>0 : byparamval.intersection_update(ibvh.keys())
-				else: byparamval=Set(ibvh.keys())
+				else: byparamval=set(ibvh.keys())
 				continue
 			elif i=="group" :
 				if query2[n+1]=="by" :
@@ -2654,7 +2655,7 @@ parentheses grouping not supported yet"""
 				continue
 			elif i=="child" :
 				chl=self.getchildren(query2[n+1],"record",recurse=20,ctxid=ctxid,host=host)
-#				chl=Set([i[0] for i in chl])  # children no longer suppport names 
+#				chl=set([i[0] for i in chl])  # children no longer suppport names 
 				if len(byparamval)>0 : byparamval&=chl
 				else: byparamval=chl
 				n+=2
@@ -2707,7 +2708,7 @@ parentheses grouping not supported yet"""
 			
 		
 		# Complicated block of code to handle 'groupby' queries
-		# this splits the Set of located records (byrecdef) into
+		# this splits the set of located records (byrecdef) into
 		# a dictionary keyed by whatever the 'groupby' request wants
 		# For splits based on a parameter ($something), it will recurse
 		# into the parent records up to 3 levels to try to find the
@@ -2935,8 +2936,8 @@ parentheses grouping not supported yet"""
 					# get all of the values for the histogrammed field
 					# and associated record ids. Note that for string/choice
 					# this may be a list of values rather than a single value
-					gkeys=Set()		# group key list
-					vkeys=Set()		# item key list
+					gkeys=set()		# group key list
+					vkeys=set()		# item key list
 					for k,j in ret.items(): 
 						gkeys.add(k)
 						for i in j: 
@@ -3071,8 +3072,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 #		a list of records the user can access"""
 #		u,g=self.checkcontext(ctxid,host)
 #		
-#		ret=Set(self.__secrindex[u])
-#		for i in g: ret|=Set(self.__secrindex[i])
+#		ret=set(self.__secrindex[u])
+#		for i in g: ret|=set(self.__secrindex[i])
 #		return ret
 	
 	def getindexbyuser(self,username,ctxid,host=None):
@@ -3089,7 +3090,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		if ctx.user!=username and not self.checkreadadmin(ctx):
 			raise SecurityError,"Not authorized to get record access for %s"%username 
 
-		return Set(self.__secrindex[username])
+		return set(self.__secrindex[username])
 	
 	
 	
@@ -3120,16 +3121,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		ind=self.__getparamindex(paramname,create=0)		
 		
-		if valrange==None : ret=Set(ind.values())
-		elif isinstance(valrange,tuple) or isinstance(valrange,list) : ret=Set(ind.values(valrange[0],valrange[1]))
-		else: ret=Set(ind[valrange] or [])
+		if valrange==None : ret=set(ind.values())
+		elif isinstance(valrange,tuple) or isinstance(valrange,list) : ret=set(ind.values(valrange[0],valrange[1]))
+		else: ret=set(ind[valrange] or [])
 		
 		#u,g=self.checkcontext(ctxid,host)
 		#ctx=self.__getcontext(ctxid,host)
 		if self.checkreadadmin(ctxid):
 			return ret
 		
-		secure=Set(self.getindexbycontext(ctxid,host=host))		# all records the user can access
+		secure=set(self.getindexbycontext(ctxid,host=host))		# all records the user can access
 		
 		return ret & secure		# intersection of the two search results
 	
@@ -3290,7 +3291,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# getindexbycontext includes groups
 		secure=self.getindexbycontext(ctxid,host=host)		# all records the user can access
 		# remove any recids the user cannot access		
-		for i in Set(ret.keys())-secure:
+		for i in set(ret.keys())-secure:
 			del ret[i]
 					
 		return ret
@@ -3301,8 +3302,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def groupbyrecorddef(self,all,ctxid,host=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
 		by their recorddef"""
-		all=Set(all)
-		all&=Set(self.getindexbycontext(ctxid,host=host))
+		all=set(all)
+		all&=set(self.getindexbycontext(ctxid,host=host))
 		ret={}
 		while len(all)>0:
 			rid=all.pop()							# get a random record id
@@ -3456,14 +3457,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 # ian
 #		new = 0
 #		 r = {}
-#		 r[recurse] = Set(ret)
+#		 r[recurse] = set(ret)
 #		 while recurse:
-#			 r[recurse-1] = Set()
+#			 r[recurse-1] = set()
 #			 for i in r[recurse]:
-#				 if self.trygetrecord(i,ctxid,host):	r[recurse-1] |= Set(trg.children(i))
+#				 if self.trygetrecord(i,ctxid,host):	r[recurse-1] |= set(trg.children(i))
 #			 recurse = recurse - 1
 # 
-#		 ret = Set()
+#		 ret = set()
 #		 for i in r.values():
 #			 ret |= i
 #		 return ret
@@ -3476,17 +3477,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 		keytype is 'record', 'recorddef', or 'paramdef'. User must have
 		read permission on the keyed record to get a list of parents
 		or an empty set will be returned."""
-		if (recurse<0): return Set()
+		if (recurse<0): return set()
 		if keytype=="record" : 
 			trg=self.__records
-			if not self.trygetrecord(key,ctxid,host=host) : return Set()
+			if not self.trygetrecord(key,ctxid,host=host) : return set()
 #			try: a=self.getrecord(key,ctxid)
-#			except: return Set()
+#			except: return set()
 		elif keytype=="recorddef" : 
 			key=str(key).lower()
 			trg=self.__recorddefs
 			try: a=self.getrecorddef(key,ctxid)
-			except: return Set()
+			except: return set()
 		elif keytype=="paramdef":
 			key=str(key).lower()
 			trg=self.__paramdefs
@@ -3495,12 +3496,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		ret=trg.parents(key)
 		
-		if recurse==0: return Set(ret)
+		if recurse==0: return set(ret)
 		
 		r2=[]
 		for i in ret:
 			r2+=self.getparents(i,keytype,recurse-1,ctxid,host=host)
-		return Set(ret+r2)
+		return set(ret+r2)
 
 
 
@@ -3510,12 +3511,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 		keytype is 'record', 'recorddef', or 'paramdef'"""
 		
 		if keytype=="record" : 
-			if not self.trygetrecord(key,ctxid,host=host) : return Set()
-			return Set(self.__records.cousins(key))
+			if not self.trygetrecord(key,ctxid,host=host) : return set()
+			return set(self.__records.cousins(key))
 		if keytype=="recorddef":
-			return Set(self.__recorddefs.cousins(str(key).lower()))
+			return set(self.__recorddefs.cousins(str(key).lower()))
 		if keytype=="paramdef":
-			return Set(self.__paramdefs.cousins(str(key).lower()))
+			return set(self.__paramdefs.cousins(str(key).lower()))
 		
 		raise Exception,"getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -3526,7 +3527,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 	def __getparentssafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 		"""Version of getparents with no security checks"""
 		
-		if (recurse<0): return Set()
+		if (recurse<0): return set()
 		if keytype=="record" : 
 			trg=self.__records
 		elif keytype=="recorddef" : 
@@ -3537,19 +3538,19 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		ret=trg.parents(key)
 		
-		if recurse==0 : return Set(ret)
+		if recurse==0 : return set(ret)
 		
 		r2=[]
 		for i in ret:
 			r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host=host)
-		return Set(ret+r2)
+		return set(ret+r2)
 		
 		
 	# ian: added for consistency
 	# need similar fast versions for internal use; can check later.
 	# ian todo: make ctxid mandatory
 	def __getchildrensafe(self,key,keytype="record",recurse=0,ctxid=None,host=None):
-		if (recurse<0): return Set()
+		if (recurse<0): return set()
 		if keytype=="record": 
 			trg=self.__records
 		elif keytype=="recorddef": 
@@ -3563,12 +3564,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		ret=trg.children(key)
 		
-		if recurse==0 : return Set(ret)
+		if recurse==0 : return set(ret)
 
 		r2=[]
 		for i in ret:
 			r2+=self.__getchildrensafe(i,keytype,recurse-1,ctxid,host=host)
-		return Set(ret+r2)
+		return set(ret+r2)
 
 
 
@@ -4598,15 +4599,15 @@ or None if no match is found."""
 			return
 		
 		if ind=="child" or ind=="link" :
-			# make oldval and newval into Sets
-			try: oldval=Set((int(oldval),))
+			# make oldval and newval into sets
+			try: oldval=set((int(oldval),))
 			except: 
-				if oldval==None : oldval=Set()
-				else: oldval=Set(oldval)
-			try: newval=Set((int(newval),))
+				if oldval==None : oldval=set()
+				else: oldval=set(oldval)
+			try: newval=set((int(newval),))
 			except: 
-				if newval==None : newval=Set()
-				else : newval=Set(newval)
+				if newval==None : newval=set()
+				else : newval=set(newval)
 				
 			i=oldval&newval		# intersection
 			oldval-=i
@@ -4668,8 +4669,8 @@ or None if no match is found."""
 #		print "reindexing security.."
 #		print oldlist
 #		print newlist
-		o=Set(oldlist)
-		n=Set(newlist)
+		o=set(oldlist)
+		n=set(newlist)
 		
 		uo=o-n	# unique elements in the 'old' list
 		un=n-o	# unique elements in the 'new' list
@@ -4789,7 +4790,7 @@ or None if no match is found."""
 			# Record must not exist, lets create it
 			# p=record.setContext(ctx)
 
-			# Set recid
+			# set recid
 			#	txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
 			print "got recid %s" % record.recid
 
@@ -4954,8 +4955,8 @@ or None if no match is found."""
 		"""Returns a list of times for a list of recids. Times represent the last modification 
 		of the specified records"""
 
-		secure=Set(self.getindexbycontext(ctxid,host=host))
-		rid=Set(recids)
+		secure=set(self.getindexbycontext(ctxid,host=host))
+		rid=set(recids)
 		rid-=secure
 		if len(rid)>0 : raise Exception,"Cannot access records %s"%str(rid)
 		
@@ -5095,7 +5096,7 @@ or None if no match is found."""
 					except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
 
 		# all users
-		userset = Set(self.getusernames(ctxid)) | Set((-4,-3,-2,-1))
+		userset = set(self.getusernames(ctxid)) | set((-4,-3,-2,-1))
 
 		#print userset
 		#print usertuple
@@ -5105,7 +5106,7 @@ or None if no match is found."""
 			if DEBUG: print "Add user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
-		else : trgt=Set((recid,))
+		else : trgt=set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
 		if self.checkadmin(ctx):
@@ -5135,10 +5136,10 @@ or None if no match is found."""
 			
 			print "rec: %s"%i
 			
-			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
-			xcur=[Set(v) for v in rec["permissions"]]		# copy of cur that will be changed
+			cur=[set(v) for v in rec["permissions"]]		# make a list of sets out of the current permissions
+			xcur=[set(v) for v in rec["permissions"]]		# copy of cur that will be changed
 #			l=[len(v) for v in cur]	#length test not sufficient # length of each tuple so we can decide if we need to commit changes
-			newv=[Set(v) for v in usertuple]				# similar list of sets for the new users to add
+			newv=[set(v) for v in usertuple]				# similar list of sets for the new users to add
 			
 			# check for valid user names
 			newv[0]&=userset
@@ -5180,7 +5181,7 @@ or None if no match is found."""
 #				self.__reindexsec(reduce(operator.concat,old),
 #					reduce(operator.concat,rec["permissions"]),rec.recid)
 				
-				stu=(xcur[0]|xcur[1]|xcur[2]|xcur[3])-Set(old[0]+old[1]+old[2]+old[3])
+				stu=(xcur[0]|xcur[1]|xcur[2]|xcur[3])-set(old[0]+old[1]+old[2]+old[3])
 				for i in stu:
 					try: secrupd[i].append(rec.recid)
 					except: secrupd[i]=[rec.recid]
@@ -5207,16 +5208,16 @@ or None if no match is found."""
 
 
 		if isinstance(users,str) or isinstance(users,int):
-			users=Set([users])
+			users=set([users])
 		else:
-			users=Set(users)
+			users=set(users)
 
 		# get a list of records we need to update
 		if recurse>0:
 			if DEBUG: print "Del user recursive..."
 			trgt=self.getchildren(recid,ctxid=ctxid,host=host,recurse=recurse-1)
 			trgt.add(recid)
-		else : trgt=Set((recid,))
+		else : trgt=set((recid,))
 		
 		ctx=self.__getcontext(ctxid,host)
 		users.discard(ctx.user)				# user cannot remove his own permissions
@@ -5240,7 +5241,7 @@ or None if no match is found."""
 			# TODO: probably we should also check for groups in [3]			
 			if (not isroot) and (ctx.user not in rec["permissions"][3]) : continue		
 			
-			cur=[Set(v) for v in rec["permissions"]]		# make a list of Sets out of the current permissions
+			cur=[set(v) for v in rec["permissions"]]		# make a list of sets out of the current permissions
 			l=[len(v) for v in cur]							# length of each tuple so we can decide if we need to commit changes
 			
 			cur[0]-=users
@@ -5312,6 +5313,38 @@ or None if no match is found."""
 	
 	
 	
+	
+	
+	def rendervalue(self,value,param,ctxid=None,host=None):
+		vartype=param.vartype
+		
+		if vartype in ["user","userlist"]:
+			if type(value) != list:	value=[value]
+			ustr=[]
+			for i in value:
+				ustr.append(getuserdisplayname(i,ctxid,host))
+			value=u", ".join(ustr)
+		
+		elif vartype == "boolean":
+			if value:
+				value = u"True"
+			else:
+				value = u"False"
+		
+		elif vartype in ["floatlist","intlist"]:
+			value=u", ".join([str(i) for i in value])
+		
+		elif type(value) == type(None):
+			value = u""
+		elif type(value) == list:
+			value = u", ".join(value)
+		elif type(value) == float:
+			value = u"%0.2f"%value
+		else:
+			value = pcomments.sub("<br />",unicode(value))
+					
+					
+						
 	# ian: moved host to end
 	# ian todo: make ctxid required?
 	def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,showmacro=True,host=None):
@@ -5422,10 +5455,11 @@ or None if no match is found."""
 
 
 
+	import emen2.util.core_macros
 	# Extensive modifications by Edward Langley
 	def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-		print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-		return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)	
+		#print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
+		return macro.MacroEngine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)	
 
 
 
@@ -5635,12 +5669,12 @@ or None if no match is found."""
 		groups=ctx.groups
 				
 		if users==None: users=self.__users.keys()
-		if paramdefs==None: paramdefs=Set(self.__paramdefs.keys())
-		if recorddefs==None: recorddefs=Set(self.__recorddefs.keys())
-		if records==None: records=Set(range(0,self.__records[-1]))
-		if workflows==None: workflows=Set(self.__workflow.keys())
-		if bdos==None: bdos=Set(self.__bdocounter.keys())
-		if isinstance(records,list) or isinstance(records,tuple): records=Set(records)
+		if paramdefs==None: paramdefs=set(self.__paramdefs.keys())
+		if recorddefs==None: recorddefs=set(self.__recorddefs.keys())
+		if records==None: records=set(range(0,self.__records[-1]))
+		if workflows==None: workflows=set(self.__workflow.keys())
+		if bdos==None: bdos=set(self.__bdocounter.keys())
+		if isinstance(records,list) or isinstance(records,tuple): records=set(records)
 		
 		if outfile == None:
 			out=open(self.path+"/backup.pkl","w")
@@ -5667,8 +5701,8 @@ or None if no match is found."""
 		for i in paramdefs: dump(self.__paramdefs[i],out)
 		ch=[]
 		for i in paramdefs:
-			c=Set(self.__paramdefs.children(i))
-#			c=Set([i[0] for i in c])
+			c=set(self.__paramdefs.children(i))
+#			c=set([i[0] for i in c])
 			c&=paramdefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -5678,7 +5712,7 @@ or None if no match is found."""
 		
 		ch=[]
 		for i in paramdefs:
-			c=Set(self.__paramdefs.cousins(i))
+			c=set(self.__paramdefs.cousins(i))
 			c&=paramdefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -5690,8 +5724,8 @@ or None if no match is found."""
 		for i in recorddefs: dump(self.__recorddefs[i],out)
 		ch=[]
 		for i in recorddefs:
-			c=Set(self.__recorddefs.children(i))
-#			c=Set([i[0] for i in c])
+			c=set(self.__recorddefs.children(i))
+#			c=set([i[0] for i in c])
 			c&=recorddefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -5701,7 +5735,7 @@ or None if no match is found."""
 		
 		ch=[]
 		for i in recorddefs:
-			c=Set(self.__recorddefs.cousins(i))
+			c=set(self.__recorddefs.cousins(i))
 			c&=recorddefs
 			c=tuple(c)
 			ch+=((i,c),)
@@ -5726,7 +5760,7 @@ or None if no match is found."""
 		
 		ch=[]
 		for i in records:
-			c=Set(self.__records.cousins(i))
+			c=set(self.__records.cousins(i))
 			c&=records
 			c=tuple(c)
 			ch+=((i,c),)

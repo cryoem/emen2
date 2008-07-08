@@ -1,3 +1,7 @@
+td.shaded {
+	background:red;
+}
+
 /* Date picker */
 .date_selector, .date_selector * {
   width: auto;

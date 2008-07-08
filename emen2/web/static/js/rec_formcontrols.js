@@ -19,6 +19,17 @@ function updatecomments() {
 }
 
 
+$.postJSON = function(uri,data,callback,errback) {
+	$.ajax({
+    type: "POST",
+    url: uri,
+    data: $.toJSON(data),
+    success: callback,
+    error: errback,
+		dataType: "json"
+    });
+}
+
 $.jsonRPC = function(method,data,callback,errback) {
 	$.ajax({
     type: "POST",
@@ -29,6 +40,38 @@ $.jsonRPC = function(method,data,callback,errback) {
 		dataType: "json"
     });
 }
+
+
+function set_tablestate(key,value) {
+	console.log(tablestate);
+	
+	// these events reset position to zero
+	if (key=="sortkey") {
+		if (tablestate["sortkey"] == value) {
+			tablestate["reverse"] = tablestate["reverse"] ? 0 : 1
+		} else {
+			tablestate["reverse"] = 0;
+		}
+		tablestate["pos"]=0;
+	}	
+	
+	tablestate[key]=value;
+	
+	//$(tableargs['id']).
+	$.postJSON(
+		'/db/table/'+tableargs["mode"]+'/'+tableargs["args"].join('/')+'/',
+		tablestate,
+		function(data) {
+			var elem=document.getElementById(tableargs['id']);
+			elem.innerHTML=data;
+			}
+		);
+
+		return
+
+	}
+
+
 
 function reload_record_view(view) {
 	if (!view) {view="defaultview"}
@@ -54,7 +97,7 @@ function jsonrpcerror(xhr){
 
 
 $(document).ready(function() {
-		editelem_makeeditable();
+		//editelem_makeeditable();
 		$("#page_comments_commentstext").addcomment()
 });
 
@@ -130,6 +173,15 @@ function tableinit() {
 	var testtable=document.getElementById("testtable");
 
 	var order=1;
+
+	var tr=document.createElement("tr");
+	for(var j=0;j<tablekeys.length;j++) {
+		var th=document.createElement("th");
+		th.innerHTML=tablekeys[j];
+		new multiwidget(th,{restrictparams:[tablekeys[j]], rootless:1, controlsroot: $(th)});
+		tr.appendChild(th);
+	}
+	testtable.appendChild(tr);
 
 	for (var i=0;i<recids.length;i++) {
 		var tr=document.createElement("tr");

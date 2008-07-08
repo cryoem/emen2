@@ -32,7 +32,6 @@ class JSONResource(Resource):
 
 	def render(self, request):
 		request.content.seek(0, 0)
-
 		content = request.content.read()
 		method = request.uri.split("/")[2]
 		args = demjson.decode(content)
