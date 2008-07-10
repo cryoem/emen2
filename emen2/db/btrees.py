@@ -465,7 +465,7 @@ class IntBTree(object):
 
     def __getitem__(self,key):
         key=int(key)
-        print key
+        #print key
         return loads(self.bdb.get(dumps(key),txn=self.txn))
 
     def __delitem__(self,key):

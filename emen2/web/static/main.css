@@ -1,3 +1,14 @@
+th {
+	text-align:left;
+}
+
+span.th_edit {
+	padding:5px;
+}
+img.th_edit_img {
+	padding-left:5px;
+}
+
 td.shaded {
 	background:red;
 }

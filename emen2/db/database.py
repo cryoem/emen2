@@ -10,6 +10,8 @@ from user import *
 from btrees import *
 from datastorage import *
 
+import operator
+
 regex_pattern =  u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"    \
 "|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
                 "|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
@@ -405,6 +407,7 @@ recover - Only one thread should call this. Will run recovery on the environment
     def __getcontext(self,key,host):
         """Takes a ctxid key and returns a context (for internal use only)
         Note that both key and host must match. Returns context instance."""
+        key=str(key)
         if (time.time()>self.lastctxclean+30):
             self.__cleanupcontexts()        # maybe not the perfect place to do this, but it will have to do
             pass
@@ -735,6 +738,8 @@ parentheses grouping not supported yet"""
         else: ret=byrecdef
 
         if command=="find" :
+            allrec=self.getindexbycontext(ctxid)
+            ret &= allrec
             # Simple find request, no further processing required
             if isinstance(ret, dict):
                 return { 'type':'find', 'querytime':time.time()-tm0, 'data':ret}
@@ -1311,7 +1316,7 @@ parentheses not supported yet. Upon failure returns a tuple:
         r = {}
         for i in records:
             if not self.trygetrecord(i,ctxid): continue
-            print i
+            #print i
             j = self.__recorddefbyrec[i]    # security checked above
             if r.has_key(j):
                 r[j].append(i)
@@ -2416,8 +2421,7 @@ or None if no match is found."""
     def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
         """Retrieves a RecordDef object. This will fail if the RecordDef is
         private, unless the user is an owner or  in the context of a recid the
-        user has permission to access"""
-        
+        user has permission to access"""     
         rectypename=str(rectypename).lower()
         if not self.__recorddefs.has_key(rectypename) : raise KeyError,"No such RecordDef %s"%rectypename
         
@@ -2868,8 +2872,8 @@ or None if no match is found."""
             self.__reindex(f,oldval,newval,record.recid,txn)
             
             if f not in ["comments","modifytime","modifyuser"]:
-                #orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
-                orig._Record__comments.append((ctx.user,time.strftime("%Y/%m/%d %H:%M:%S"),(f,newval,oldval)))
+                orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
+                #orig._Record__comments.append((ctx.user,time.strftime("%Y/%m/%d %H:%M:%S"),(f,newval,oldval)))
             orig[f]=record[f]
             
                 
@@ -2976,7 +2980,6 @@ or None if no match is found."""
         if dbid is 0, the current database is used. host must match the host of the
         context"""
         
-
         ctx=self.__getcontext(ctxid,host)
         
         if (dbid!=0) : raise NotImplementedError("External database support not yet available") #Ed Changed to NotimplementedError
@@ -3411,7 +3414,7 @@ or None if no match is found."""
     # Extensive modifications by Edward Langley
     def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
         print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-        return macro.MacroEngine.call_macro(macr, True, self, rec, macroparameters, ctxid=ctxid, host=host)    
+        return macro.MacroEngine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)    
 
 
 

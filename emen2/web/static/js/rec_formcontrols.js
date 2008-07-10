@@ -26,7 +26,7 @@ $.postJSON = function(uri,data,callback,errback) {
     data: $.toJSON(data),
     success: callback,
     error: errback,
-		dataType: "json"
+		dataType: "html"
     });
 }
 
@@ -42,47 +42,70 @@ $.jsonRPC = function(method,data,callback,errback) {
 }
 
 
-function set_tablestate(key,value) {
-	console.log(tablestate);
+function table_reload() {
+	var ns={};
+	ns["sortkey"]=tablestate["sortkey"];
+	ns["reverse"]=tablestate["reverse"];
+	ns["pos"]=tablestate["pos"];
+	ns["reset"]=1;
 	
-	// these events reset position to zero
-	if (key=="sortkey") {
-		if (tablestate["sortkey"] == value) {
-			tablestate["reverse"] = tablestate["reverse"] ? 0 : 1
-		} else {
-			tablestate["reverse"] = 0;
-		}
-		tablestate["pos"]=0;
-	}	
-	
-	tablestate[key]=value;
-	
-	//$(tableargs['id']).
 	$.postJSON(
-		'/db/table/'+tableargs["mode"]+'/'+tableargs["args"].join('/')+'/',
-		tablestate,
+		'/db/table/'+tablestate["mode"]+'/'+tablestate["args"].join('/')+'/',
+		ns,
 		function(data) {
-			var elem=document.getElementById(tableargs['id']);
-			elem.innerHTML=data;
+			$(tablestate['id']).html(data);
 			}
 		);
+}
 
-		return
+function table_setpos(pos) {
+	var ns={};
+	//def table_children(recid,group,recids=None,pos=0,count=100,reccount=None,sortkey=None,reverse=0,ctxid=None,db=None,rctx=0,reset=1,host=None):
+	//ns["pos"]=pos;
+	//ns["count"]=tablestate["count"];
 
-	}
+	ns["recids"]=tablestate["recids"].slice(pos,pos+tablestate["count"]);
+
+	ns["sortkey"]=tablestate["sortkey"];
+	ns["reverse"]=tablestate["reverse"];
+	ns["reccount"]=tablestate["reccount"];
+	ns["pos"]=pos;
+	ns["reset"]=0;
+
+	$.postJSON(
+		'/db/table/'+tablestate["mode"]+'/'+tablestate["args"].join('/')+'/',
+		ns,
+		function(data) {
+			$(tablestate['id_inner']).html(data);
+		}
+		);
+}
+
+function table_sort(key) {
+	var ns={};
+	ns["sortkey"]=key;
+
+	// these events reset position to zero
+	if (tablestate["sortkey"] == key) {
+		ns["reverse"] = tablestate["reverse"] ? 0 : 1
+	} 
+
+	$.postJSON(
+		'/db/table/'+tablestate["mode"]+'/'+tablestate["args"].join('/')+'/',
+		ns,
+		function(data) {
+			$(tablestate['id']).html(data);
+			}
+		);
+	
+}
 
 
 
 function reload_record_view(view) {
 	if (!view) {view="defaultview"}
-
+	$("#page_recordview_"+view).remove(".controls");
 	$("#page_recordview_"+view+" .view").load("/db/recordview/"+recid+"/"+view,{},	function(data){editelem_makeeditable();});
-	
-	//$.get("/db/recordview/"+recid+"/"+view,{},	function(data){
-	//	$("#page_recordview_"+view+" .view").html(data);	
-	//	editelem_makeeditable();
-	//});
-
 }
 
 function jsonrpccallback(json){}
@@ -93,15 +116,6 @@ function jsonrpcerror(xhr){
 }
 
 
-
-
-
-$(document).ready(function() {
-		//editelem_makeeditable();
-		$("#page_comments_commentstext").addcomment()
-});
-
-
 function editelem_revertview(page,view) {
 	if (!view) {view="defaultview"}
 	$(page).load("/db/recordview/"+recid+"/"+view,{},	function(){editelem_makeeditable()});
@@ -109,8 +123,9 @@ function editelem_revertview(page,view) {
 
 
 function editelem_makeeditable() {
-	$('.editable').widget();
-	$('.page_recordview').multiwidget();
+	$('.editable').bind("click",function(){new widget(this)});
+	//$('.page_recordview .view').multiwidget();
+
 	//$(".page_recordview").each( function(i) {
 		//
 	//});
@@ -119,14 +134,13 @@ function editelem_makeeditable() {
 
 
 paramindex={};
-rec={};
-recs={};
+//rec={};
+//recs={};
 
 function getvalue(recid,param) {
 	if (paramindex[param]) {
 		if (paramindex[param][recid]) {return paramindex[param][recid]}
 		}
-	if (rec[param]) {return rec[param]}
 	if (recs[recid]) {
 		if (recs[recid][param]) {return recs[recid][param]}
 	}
@@ -138,9 +152,6 @@ function setvalue(recid,param,value) {
 			paramindex[param][recid]=value
 			}
 	}
-	if (rec[param]) {
-		rec[param]=value
-		}
 	if (recs[recid]) {
 		if (recs[recid][param]) {
 			recs[recid][param]=value
@@ -148,19 +159,16 @@ function setvalue(recid,param,value) {
 	}
 }
 function setrecord(recid,record) {
-	if (recs[recid]) {
-		recs[recid]=record;
-		}
-	if (rec) {
-		rec=record;
-	}
+	recs[recid]=record;
+}
+function setrecords(records) {
+	$.each(records,function(i){
+		recs[i]=this;
+	});
 }
 function getrecord(recid) {
 	if (recs[recid]) {
 		return recs[recid];
-	}
-	if (rec) {
-		if (rec["recid"]==recid) {return rec}
 	}
 }
 
@@ -220,25 +228,53 @@ multiwidget.DEFAULT_OPTS = {
 	popup: 0,
 	now: 0,	
 	controls: 0,
+	root: null,
 	controlsroot: null,	
+	ext_edit_button: 0,
 	restrictparams: null,
-	rootless: 0
+	rootless: 0,
+	commitcallback: function(){reload_record_view(switchedin["recordview"])}
 };
 
 multiwidget.prototype = {
 	
 	init: function() {
-		this.editcontrol=$('<input class="editbutton" type="button" value="Edit" />').click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
-		if (!this.controlsroot) {this.controlsroot=this.elem}
-		this.controlsroot.append(this.editcontrol);	
+
+		if (this.controls) {
+			this.controls.empty()
+		} else {
+			this.controls=$('<div class="controls"></div>');
+		}
+
+		if (!this.controlsroot) {
+			this.controlsroot=this.elem;
+		}
+
+		if (this.root) {
+			this.root=$(this.root);
+		} else {
+			this.root=this.elem;
+		}
+
+		if (this.ext_edit_button) {
+			this.elem.hide();
+		}
+
+		this.controlsroot.after(this.controls);	
+
 		if (this.now) {
-			this.build();
-		}	
+			this.build()
+		} else if (!this.ext_edit_button) {	
+			this.edit=$('<input class="editbutton" type="button" value="Edit" />').click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
+			this.controls.append(this.edit);
+		}
+		
 	},
 	
   build: function() {
 		
-		if (this.editcontrol) {this.editcontrol.remove()}
+		//if (this.edit) {this.edit.remove()}
+		this.controls.empty();
 
 		var ws=[];
 
@@ -249,7 +285,7 @@ multiwidget.prototype = {
 		}
 
 		if (this.rootless==0) {
-			$(cl,this.elem).each( function(i) {
+			$(cl,this.root).each( function(i) {
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});
 		} else {
@@ -263,7 +299,7 @@ multiwidget.prototype = {
 		this.savebutton=$('<input type="button" value="Save" />').click(this.bindToObj(function(e) {e.stopPropagation();this.save()}));
 		this.cancel=$('<input type="button" value="Cancel" />').click(this.bindToObj(function(e) {e.stopPropagation();this.revert()}));
 
-		$(this.controlsroot).append(this.savebutton,this.cancel);		
+		$(this.controls).append(this.savebutton,this.cancel);		
 	},
 	
 	////////////////////////////
@@ -315,23 +351,24 @@ multiwidget.prototype = {
 		console.log("revert");
 		$(this.ws).each(function(i){
 			this.revert();
+			this.remove();
 		});
+		this.now=0;
 		this.init();
+		this.elem.show();
 	},
 	
 	commit: function(values) {
-
-		console.log("committing..");
-		console.log(values);
+		var cb=this.commitcallback;
+		var self=this;
+		console.log("commit...");
 	
 		$.jsonRPC("putrecordsvalues",[values,ctxid],
 	 		function(json){
-				console.log(json);
-				//setrecord(rec,json);
-				//rec=json;
-	 			//rec[this.param]=json;
-	 			reload_record_view(switchedin["recordview"]);
+				setrecords(json);
+	 			cb();
 				notify("Changes saved");
+				self.revert();
 	 		},
 			function(xhr){
 				//ole.log("error, "+xhr.responseText);
@@ -376,8 +413,7 @@ function widget(elem, opts) {
   
   this.elem = $(elem);
   //this.bindMethodsToObj("show", "hide", "hideIfClickOutside", "selectDate", "prevMonth", "nextMonth", "prevYear", "nextYear");
-  
-  this.init();
+  //this.init();
 	if (this.show) {
 		this.build();
 	}
@@ -386,12 +422,14 @@ function widget(elem, opts) {
 widget.DEFAULT_OPTS = {
 	popup: 1,
 	controls: 1,
-	show: 0
+	show: 1
 };
 
 widget.prototype = {
 	init: function() {
-		this.elem.click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
+		//this.elem.click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
+		//this.elem.one("click",this.bindToObj(function(e) {this.build();return false}));
+		//this.build();
 	},
 	
   build: function() {
@@ -421,7 +459,7 @@ widget.prototype = {
 			this.edit=$('<select></select>');
 
 			for (var i=0;i<paramdefs[this.param]["choices"].length;i++) {
-				this.edit.append('<option val="'+this.pd["choices"][i]+'">'+paramdefs[this.param]["choices"][i]+'</option>');
+				this.edit.append('<option val="'+paramdefs[this.param]["choices"][i]+'">'+paramdefs[this.param]["choices"][i]+'</option>');
 			}
 		
 		} else if (paramdefs[this.param]["vartype"]=="datetime") {
@@ -466,6 +504,11 @@ widget.prototype = {
 		}
 		
 	},
+	
+	remove: function() {
+		//this.w=None;
+		this.elem.unbind("click");
+	},
 
 	////////////////////////
 	getprops: function() {
@@ -503,10 +546,13 @@ widget.prototype = {
 	save: function() {
 		var save=$(":submit",this.w);
 		save.val("Saving...");
+
+		var recid=this.recid;
+		var param=this.param;
 	
 		$.jsonRPC("putrecordvalue",[recid,this.param,this.getval(),ctxid],
 	 		function(json){
-				setvalue(rec,this.param,json);
+				setvalue(recid,param,json);
 	 			//rec[this.param]=json;
 	 			reload_record_view(switchedin["recordview"]);
 				notify("Changes saved");
@@ -582,8 +628,8 @@ addcomment.prototype = {
 
 		$.each(cr, function() {
 			var dname=this[0];
-			if (displaynames[user]!=null) {
-				var dname = displaynames[user];
+			if (displaynames[this[0]]!=null) {
+				var dname = displaynames[this[0]];
 			}
 			var time=this[1];
 			
@@ -601,10 +647,7 @@ addcomment.prototype = {
 	
 	////////////////////////////
 	save: function() {
-		console.log("saving comment");
-		console.log(this.edit.val());
 		var self=this;
-		
 		
 		$.jsonRPC("addcomment",[recid,this.edit.val(),ctxid],
 	 		function(json){

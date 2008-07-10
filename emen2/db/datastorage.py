@@ -702,7 +702,7 @@ class Record(DictMixin):
 #                cp.add(k)
 
         for k,v in self.items():
-            if k not in self.param_special and v != self.__oparams.get(k,None):
+            if k not in (self.param_special-set(["comments"])) and v != self.__oparams.get(k,None):
                 cp.add(k)
 
         return cp        
