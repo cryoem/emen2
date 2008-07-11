@@ -20,7 +20,6 @@ by another layer, say an xmlrpc server...
 
 from UserDict import DictMixin
 from emen2.emen2config import *
-from emen2.subsystems import macro #
 from functools import partial
 from xml.sax.saxutils import escape, unescape, quoteattr
 import atexit
@@ -49,30 +48,6 @@ def get(self, key, default=None):
     except KeyError:
         return default
 DictMixin.get = get
-
-def DB_cleanup():
-    """This does at_exit cleanup. It would be nice if this were always called, but if python is killed
-    with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
-    necessary at the next restart"""
-    sys.stdout.flush()
-    print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
-    if DEBUG>2: print >>sys.stderr, len(BTree.alltrees), 'BTrees'
-    for i in BTree.alltrees.keys():
-        if DEBUG>2: sys.stderr.write('closing %s\n' % str(i))
-        i.close()
-        if DEBUG>2: sys.stderr.write('%s closed\n' % str(i))
-    if DEBUG>2: print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
-    for i in IntBTree.alltrees.keys():
-        i.close()
-        if DEBUG>2: sys.stderr.write('.')
-    if DEBUG>2: print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
-    for i in FieldBTree.alltrees.keys():
-        i.close()
-        if DEBUG>2: sys.stderr.write('.')
-    if DEBUG>2: sys.stderr.write('\n')
-# This rmakes sure the database gets closed properly at exit
-atexit.register(DB_cleanup)
-
 
 def escape2(s):
     qc={'"':'&quot'}
@@ -114,20 +89,6 @@ the specified number of significant digits. ie 5722,2 -> 5800"""
 
 
 
-# vartypes is a dictionary of valid data type names keying a tuple
-# with an indexing type and a validation/normalization
-# function for each. Currently the validation functions are fairly stupid.
-# some types aren't currently indexed, but should be eventually
-
-
-
-
-
-
-
-                            
-        
-
 ################################################################<<<XXX>>>########################################################
 class DictProxy(object):
     def __init__(self, dct):
@@ -139,16 +100,3 @@ class DictProxy(object):
     def __repr__(self):
         return repr(self.dict)
 
-
-
-#    #@write,private
-#    def __validaterecordaddchoices(self,record,ctxid,host=None):
-#        """add options for extensible paramdef choices."""
-#        
-#        for i in record.keys():
-#            pd=self.__paramdefs[i.lower()]
-#            # if string/choices, add option. if choices/choices, raise exception (invalid value)
-#            if pd.vartype=="string" and isinstance(pd.choices,tuple):
-#                if record[i].title() not in pd.choices:
-#                    # ian: fixed a typo that seemed to be causing lots of grief (record[i].ctxid). it was missed because of exception handler.
-#                    self.addparamchoice(i,record[i],ctxid)

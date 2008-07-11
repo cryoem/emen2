@@ -7,11 +7,14 @@
 from os import popen2
 from cPickle import load,dump
 #from emen2.emen2config import *
-from g import *
+#from g import *
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
 import Database
 
 #dbpath="/".join(__file__.split("/")[:-1])
-dbpath=EMEN2ROOT
+dbpath=g.EMEN2ROOT
 if len(dbpath)==0 : dbpath="."
 
 class DBProxy:
@@ -19,7 +22,7 @@ class DBProxy:
 DBIsolator process for security. Its interface is virtually identical
 to the public Database interface, though it returns dictionaries and
 lists rather than objects"""
-	def __init__(self,path=EMEN2DBPATH):
+	def __init__(self,path=g.EMEN2DBPATH):
 		global dbpath
 		self.iso=popen2('%s/DBIsolator.py %s 2>/tmp/dbug.txt'%(dbpath,path))	# returns a write,read file tuple
 #		self.iso=popen2("%s/DBIsolator.py %s 2>/dev/null"%(dbpath,path))	# returns a write,read file tuple

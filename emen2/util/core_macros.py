@@ -1,4 +1,4 @@
-from emen2.subsystems.macro import add_macro
+from emen2.Database.subsystems.macro import add_macro
 
 from functools import partial#
 

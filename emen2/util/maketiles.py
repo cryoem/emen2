@@ -6,8 +6,8 @@ import os
 import pickle
 
 DB=Database
-db=DB.Database(EMEN2DBPATH)
-ctx=db.login("root",ROOTPW)
+db=DB.Database(g.EMEN2DBPATH)
+ctx=db.login("root",g.ROOTPW)
 
 # list of tuples describing all binary object keys
 bin=db.getbinarynames(ctx)

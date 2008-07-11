@@ -25,8 +25,8 @@ def main():
 	if len(sys.argv)>1 : dbpath=sys.argv[1]
 	else : 
 		try: dbpath=os.getenv("EMEN2DB")
-		except: dbpath=EMEN2DBPATH
-	if dbpath==None : dbpath=EMEN2DBPATH
+		except: dbpath=g.EMEN2DBPATH
+	if dbpath==None : dbpath=g.EMEN2DBPATH
 	db=DB.Database(dbpath)
 
 	# here is the main loop, respond to requests indefinitely

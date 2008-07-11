@@ -21,7 +21,7 @@ DB=Database
 
 def startup(path):
 	global db
-	db=Database.Database(EMEN2DBPATH)
+	db=Database.Database(g.EMEN2DBPATH)
 	
 
 #######################
@@ -93,7 +93,7 @@ class newThreadPool(threadpool.ThreadPool):
 				firstJob = None
 				
 #		print "initializing thread."		
-		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(EMEN2DBPATH)))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(g.EMEN2DBPATH)))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 

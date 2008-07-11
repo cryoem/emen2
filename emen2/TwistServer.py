@@ -24,7 +24,7 @@ import emen2.TwistSupport_html.public.views
 
 from emen2.emen2config import *
 
-from emen2.subsystems import macro
+from emen2.Database.subsystems import macro
 from emen2.subsystems import templating
 from emen2.subsystems import routing
 
@@ -42,7 +42,7 @@ import time
 
 # Change this to a directory for the actual database files
 # ian: remove this sometime
-ts.startup(EMEN2DBPATH)
+ts.startup(g.EMEN2DBPATH)
 
 
 def load_views():
@@ -66,7 +66,7 @@ g.macros = macro.MacroEngine()
 #############################
 # Resources
 #############################
-root = static.File(EMEN2ROOT+"/tweb")
+root = static.File(g.EMEN2ROOT+"/tweb")
 
 root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
@@ -96,7 +96,7 @@ if CONSOLE:
 #############################
 # Start server
 #############################
-reactor.listenTCP(EMEN2PORT, server.Site(root))
+reactor.listenTCP(g.EMEN2PORT, server.Site(root))
 reactor.suggestThreadPoolSize(4)
 reactor.run()
 

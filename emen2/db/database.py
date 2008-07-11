@@ -1,14 +1,16 @@
 from bsddb3 import db
+import operator
 from emen2.Database.exceptions import *
 import sys
 import traceback
 import os
 import hashlib
 import time
-from emen2.subsystems import macro
+from emen2.Database.subsystems import macro
 from user import *
 from btrees import *
 from datastorage import *
+from emen2.emen2config import *
 
 import operator
 
@@ -124,7 +126,7 @@ recover - Only one thread should call this. Will run recovery on the environment
             u=User()
             u.username="root"
             if rootpw : p=hashlib.sha1(rootpw)
-            else: p=hashlib.sha1(ROOTPW)
+            else: p=hashlib.sha1(g.ROOTPW)
             u.password=p.hexdigest()
             u.groups=[-1]
             u.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
@@ -2484,7 +2486,7 @@ or None if no match is found."""
         
         for k,v in self.__fieldindex.items():
             if k == 'parent':
-                  continue
+              continue
             print "commit index %s (%d)\t%d\t%d"%(k,len(v),len(BTree.alltrees),len(FieldBTree.alltrees))
             i=FieldBTree(v.bdbname,v.bdbfile,v.keytype,v.bdbenv)
             txn=self.newtxn()
@@ -3327,7 +3329,7 @@ or None if no match is found."""
         # a=unicode(viewdef)
         #    except:
 
-        a=unicode(viewdef,errors="ignore")
+        a=viewdef.encode('utf-8', "ignore")
             
         iterator=regex2.finditer(a)
                 
@@ -4005,3 +4007,25 @@ or None if no match is found."""
 #        for bt in self.__btreelist:
 #            print '--', bt ; sys.stdout.flush()
 #            bt.close()
+
+def DB_cleanup():
+  """This does at_exit cleanup. It would be nice if this were always called, but if python is killed
+  with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
+  necessary at the next restart"""
+  sys.stdout.flush()
+  print >>sys.stderr, "Closing %d BDB databases"%(len(BTree.alltrees)+len(IntBTree.alltrees)+len(FieldBTree.alltrees))
+  if DEBUG>2: print >>sys.stderr, len(BTree.alltrees), 'BTrees'
+  for i in BTree.alltrees.keys():
+    if DEBUG>2: sys.stderr.write('closing %s\n' % str(i))
+    i.close()
+    if DEBUG>2: sys.stderr.write('%s closed\n' % str(i))
+    if DEBUG>2: print >>sys.stderr, '\n', len(IntBTree.alltrees), 'IntBTrees'
+    for i in IntBTree.alltrees.keys(): i.close()
+    if DEBUG>2: sys.stderr.write('.')
+    if DEBUG>2: print >>sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
+    for i in FieldBTree.alltrees.keys(): i.close()
+    if DEBUG>2: sys.stderr.write('.')
+    if DEBUG>2: sys.stderr.write('\n')
+# This rmakes sure the database gets closed properly at exit
+import atexit
+atexit.register(DB_cleanup)
