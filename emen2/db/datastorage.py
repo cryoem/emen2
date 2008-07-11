@@ -2,6 +2,7 @@ from UserDict import DictMixin
 from math import *
 import time
 import re
+from emen2.emen2config import g
 from emen2.Database.exceptions import SecurityError
 # validation/conversion for booleans
 def boolconv(x):
@@ -609,14 +610,17 @@ class Record(DictMixin):
         treated identically"""
         #if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
                 
-        key = str(key).strip().lower()
-        if key=="comments" : return self.__comments
-        if key=="recid" : return self.recid
-        if key=="rectype" : return self.rectype
-        if key=="creator" : return self.__creator
-        if key=="creationtime" : return self.__creationtime
-        if key=="permissions" : return self.__permissions
-        return self.__params.get(key)
+        key = key.encode('utf-8', 'replace').strip().lower()
+        result = None
+        if key=="comments" : result = [[x.encode('utf-8', 'replace') for x in y] for y in self.__comments]
+        elif key=="recid" : result = self.recid
+        elif key=="rectype" : result = self.rectype
+        elif key=="creator" : result = self.__creator
+        elif key=="creationtime" : result = self.__creationtime
+        elif key=="permissions" : result = self.__permissions
+        else: result = self.__params.get(key)
+        g.debug.msg('LOG_DEBUG', key, repr(result))
+        return result
 
     def __setitem__(self,key,value):
         """This and 'update' are the primary mechanisms for modifying the params in a record
