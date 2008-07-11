@@ -41,6 +41,7 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have sequential numbers
 		"""
 		result = {}
+		result.update(self.__parse_jsonargs(args.get('args_json','{}')))
 		def setitem(name, val):
 			result[name] = val
 		
@@ -50,6 +51,8 @@ class PublicView(Resource):
 				res = result.get(name, [])
 				res.append(args[key][0])
 				if len(res) == 1: setitem(name, res)
+			elif val is 'json':
+				result[name] = self.__parse_args(args[name][0])
 			else:
 				result[key] = args[key][0]
 		return result
