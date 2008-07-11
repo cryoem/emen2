@@ -4,8 +4,6 @@ function sortNumber(a, b) {
 }
 
 var edit=0;
-var paramdefs={};
-var recs={};
 
 
 function notify(msg) {
