@@ -229,6 +229,9 @@ class PublicView(Resource):
 		
 		except Exception, e:
 			self._ebRender(e, request, ctxid)
+	def __deunicode(self, string):
+		print type(string)
+		return unicode(string).encode('utf-8', 'replace')
 	
 	def _cbsuccess(self, result, request, ctxid, t0=0):
 		"result must be a 2-tuple: (result, mime-type)"
@@ -243,10 +246,10 @@ class PublicView(Resource):
 			result, mime_type = result
 		except ValueError:
 			mime_type = 'text/html; charset=utf-8'
-			result = result.encode('utf-8')
+			result = self.__deunicode(result)
 
 		if mime_type.split('/')[0] == 'text':
-			result = result.encode('utf-8')
+			result = self.__deunicode(result)
 
 		headers = {"content-type": mime_type,
 				   "content-length": str(len(result)),
@@ -281,8 +284,8 @@ class PublicView(Resource):
 			uri = str.join('?', (uri,args))
 			g.debug('ERROR redirect: %s' % uri)
 			request.write(redirectTo(uri, request).encode("utf-8"))
-		except Exception:
-			request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
+		except Exception,e:
+			request.write(g.templates.handle_error(e).encode('utf-8'))
 
 		request.finish()
 

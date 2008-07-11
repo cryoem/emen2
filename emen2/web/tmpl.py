@@ -142,7 +142,7 @@ def header(name,notify=None,init=None,short=0,tabs=1,ctxid=None,db=None):
 
 <ul id="alert"><li style="display:none"></li></ul>
 
-		"""%(KEYRECORDS["GROUPHOME"],KEYRECORDS["GROUPROOT"],KEYRECORDS["MICROSCOPEROOT"]))	
+		"""%(g.KEYRECORDS["GROUPHOME"],g.KEYRECORDS["GROUPROOT"],g.KEYRECORDS["MICROSCOPEROOT"]))	
 
 #	ret.append(notifymsg(args))
 

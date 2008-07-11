@@ -24,6 +24,7 @@ class JSONResource(Resource):
 		return
 
 	def _ebRender(self, result, request):
+		print result
 		result=unicode(result)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
@@ -57,5 +58,5 @@ class JSONResource(Resource):
 	def action(self, method, args, db=None, host=None):
 		method = getattr(db,method)
 		result = method(*args)
-		result = simplejson.dumps(result)
+		result = demjson.encode(result, escape_unicode=True)
 		return result.encode("utf-8", 'replace')

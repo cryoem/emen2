@@ -612,14 +612,14 @@ class Record(DictMixin):
                 
         key = key.encode('utf-8', 'replace').strip().lower()
         result = None
-        if key=="comments" : result = [[x.encode('utf-8', 'replace') for x in y] for y in self.__comments]
+        if key=="comments" : result = self.__comments
         elif key=="recid" : result = self.recid
         elif key=="rectype" : result = self.rectype
         elif key=="creator" : result = self.__creator
         elif key=="creationtime" : result = self.__creationtime
         elif key=="permissions" : result = self.__permissions
         else: result = self.__params.get(key)
-        g.debug.msg('LOG_DEBUG', key, repr(result))
+        #g.debug.msg('LOG_DEBUG', key, repr(result))
         return result
 
     def __setitem__(self,key,value):
