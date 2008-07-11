@@ -4,7 +4,8 @@ function sortNumber(a, b) {
 }
 
 var edit=0;
-
+var paramdefs={};
+var recs={};
 
 
 function notify(msg) {
@@ -20,6 +21,11 @@ function updatecomments() {
 
 
 $.postJSON = function(uri,data,callback,errback) {
+	if (!errback) {
+		errback = function(xhr){
+				$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
+			}
+		}
 	$.ajax({
     type: "POST",
     url: uri,
@@ -40,6 +46,53 @@ $.jsonRPC = function(method,data,callback,errback) {
 		dataType: "json"
     });
 }
+
+function getrecords_paramdefs(recids,finalcallback) {
+	// get data.
+	
+	$.jsonRPC(
+		"getrecord",
+		[recids,ctxid],
+ 		function(json){
+			//console.log("got records");
+			$.each(json, function() {
+				setrecord(this["recid"],this);
+			});			
+
+			//
+			$.jsonRPC(
+				"getparamdefs",
+				[recids,ctxid],
+				function (json) {
+					//console.log("got paramdefs");
+					$.each(json, function(i) {
+						//console.log(i,this);
+						paramdefs[i]=this;
+					});
+					// calling final callback
+					finalcallback();
+				}
+			);
+			//
+
+ 		}
+	);
+}
+
+
+function table_editcolumn(elem,key) {
+
+	new multiwidget(
+			elem, {
+				'commitcallback':function(){table_reload()},
+				'now':1,
+				'ext_edit_button':1,
+				'rootless':1,
+				'restrictparams':[key]
+				});	
+
+}	
+
 
 
 function table_reload() {
@@ -125,17 +178,12 @@ function editelem_revertview(page,view) {
 function editelem_makeeditable() {
 	$('.editable').bind("click",function(){new widget(this)});
 	//$('.page_recordview .view').multiwidget();
-
-	//$(".page_recordview").each( function(i) {
-		//
-	//});
-
 }
 
 
 paramindex={};
-//rec={};
-//recs={};
+rec={};
+recs={};
 
 function getvalue(recid,param) {
 	if (paramindex[param]) {
@@ -175,7 +223,7 @@ function getrecord(recid) {
 
 
 //////////////////////////////////////////
-
+// not used; for testing
 function tableinit() {
 
 	var testtable=document.getElementById("testtable");
@@ -220,7 +268,7 @@ multiwidget = (function($) { // Localise the $ function
 function multiwidget(elem, opts) {
   if (typeof(opts) != "object") opts = {};
   $.extend(this, multiwidget.DEFAULT_OPTS, opts);
-  this.elem = $(elem);  
+  this.elem = $(elem);
   this.init();
 };
 
@@ -239,6 +287,7 @@ multiwidget.DEFAULT_OPTS = {
 multiwidget.prototype = {
 	
 	init: function() {
+		console.log("multiwidget init");
 
 		if (this.controls) {
 			this.controls.empty()
@@ -273,8 +322,8 @@ multiwidget.prototype = {
 	
   build: function() {
 		
-		//if (this.edit) {this.edit.remove()}
-		this.controls.empty();
+		console.log("multiwidget building...");
+
 
 		var ws=[];
 
@@ -373,7 +422,7 @@ multiwidget.prototype = {
 			function(xhr){
 				//ole.log("error, "+xhr.responseText);
 				//editelem_revert(elem,key);
-				$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
+				$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");
 			}
 		)	
 				
@@ -412,8 +461,6 @@ function widget(elem, opts) {
   $.extend(this, widget.DEFAULT_OPTS, opts);
   
   this.elem = $(elem);
-  //this.bindMethodsToObj("show", "hide", "hideIfClickOutside", "selectDate", "prevMonth", "nextMonth", "prevYear", "nextYear");
-  //this.init();
 	if (this.show) {
 		this.build();
 	}
@@ -427,13 +474,14 @@ widget.DEFAULT_OPTS = {
 
 widget.prototype = {
 	init: function() {
+		console.log("widget init");
 		//this.elem.click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
 		//this.elem.one("click",this.bindToObj(function(e) {this.build();return false}));
 		//this.build();
 	},
 	
   build: function() {
-		//console.log("building...");
+		console.log("widget building...");
 				
 		var props=this.getprops();		
 		this.param=props["paramdef"];
