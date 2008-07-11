@@ -18,7 +18,7 @@ class JSONResource(Resource):
 		#result=demjson.encode(result)
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(200)
-		request.write(result)
+		request.write(result.encode('utf-8'))
 		request.finish()		
 		return
 
