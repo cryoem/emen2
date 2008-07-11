@@ -243,13 +243,10 @@ class PublicView(Resource):
 			result, mime_type = result
 		except ValueError:
 			mime_type = 'text/html; charset=utf-8'
+			result = result.encode('utf-8')
 
 		if mime_type.split('/')[0] == 'text':
-			if type(result) != unicode:
-				result = unicode(result)
 			result = result.encode('utf-8')
-		else:
-			result = str(result)
 
 		headers = {"content-type": mime_type,
 				   "content-length": str(len(result)),
