@@ -3401,7 +3401,7 @@ or None if no match is found."""
                 if match.group("macro")=="recid":
                     value = unicode(rec.recid)
                 else:
-                    value = unicode(self.macroprocessor(rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+                    value = unicode(self.macroprocessor(macro.MacroEngine(), rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
 
                 m2=match.group("macro2")
                 if m2 == None:
@@ -3414,9 +3414,10 @@ or None if no match is found."""
 
 
     # Extensive modifications by Edward Langley
-    def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
+#    def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
 #        print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-        return macro.MacroEngine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)    
+    def macroprocessor(self, macroengine, rec, macr, macroparameters, ctxid, host=None):
+        return macroengine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)    
 
 
 

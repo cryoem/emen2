@@ -5,31 +5,33 @@ from functools import partial#
 print "importing core_macros.."
 
 @add_macro('recid')
-def get_recid(db, rec, parameters, **extra):
+def get_recid(engine, db, rec, parameters, **extra):
 	return rec.recid
 
 @add_macro('recname')
-def get_recname(db, rec, parameters, ctxid, host, **extra):
+def get_recname(engine,db, rec, parameters, ctxid, host, **extra):
 	recdef=db.getrecorddef(rec.rectype,ctxid,host=host)
 	view = recdef.views.get("recname", "(no recname view)")
 	result = db.renderview(rec,view,ctxid=ctxid,host=host)
 	return result
 
-def isofrecdef(db, recid, recdef, rinfo):
+def isofrecdef(engine, db, recid, recdef, rinfo):
 	rec = db.getrecord(recid, **rinfo)
 	return rec.rectype == recdef
 
 @add_macro('childcount')
-def get_childcount(db, rec, recdef, ctxid, host, **extra):
-	query=db.getchildren(rec.recid,recurse=2,ctxid=ctxid)
-	#return len(db.getindexbyrecorddef(recdef,ctxid) & query)
-	groups=db.groupbyrecorddeffast(query,ctxid)
-	if groups.has_key(recdef): return len(groups[recdef])
-	else: return 0
-	#print recdef
-	#rinfo = dict(ctxid=ctxid,host=host)
-	#queryresult = db.getchildren(rec.recid,recurse=5,**rinfo)
-	#return len([rec for rec in queryresult if isofrecdef(db,rec, recdef, rinfo)])
+def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
+	recid = rec['recid']
+	key = engine.get_cache_key(recid)
+	res = engine.check_cache(key)
+	hit, groups = res or (False, {})
+	if hit is False:
+		query=db.getchildren(recid,recurse=2,ctxid=ctxid)
+		groups=db.groupbyrecorddeffast(query,ctxid)
+		engine.store(engine.get_cache_key(recid), groups)
+	result = 0
+	if groups.has_key(recdef): result = len(groups[recdef])
+	return result
 
 ###############################################################################################################################################
 
@@ -46,13 +48,13 @@ html_join_func = partial(def_join_func, sep='<br />')
 import thread
 
 @add_macro('renderchildren')
-def do_renderchildren(db, rec, view, ctxid, host, **extra):
+def do_renderchildren(engine, db, rec, view, ctxid, host, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	get_records = partial(db.getchildren, **rinfo)
 	return render_records(db, rec, view, get_records,rinfo, html_join_func)
 
 @add_macro('renderchild')
-def do_renderchild(db, rec, args, ctxid, host, **extra):
+def do_renderchild(engine, db, rec, args, ctxid, host, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	view, key, value = args.split(' ')
 	def get_records(recid):
@@ -70,7 +72,7 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 ################################################################################################################################################
 
 @add_macro('getrectypesiblings')
-def getrectypesiblings(db,rec, args, ctxid, host, **extra):
+def getrectypesiblings(engine, db,rec, args, ctxid, host, **extra):
 	"""returns siblings and cousins of same rectype"""
 	ret = {}
 	parents = db.getparents(rec.recid,ctxid=ctxid)
@@ -88,7 +90,7 @@ def getrectypesiblings(db,rec, args, ctxid, host, **extra):
 	return str(ret)
 	
 @add_macro('getfilenames')	
-def getfilenames(db,rec, args, ctxid, host, **extra):
+def getfilenames(engine, db,rec, args, ctxid, host, **extra):
 	"""returns dictionary of {bid:upload filename}"""
 	files = {}
 	if rec["file_binary"] or rec["file_binary_image"]:	
@@ -121,18 +123,18 @@ def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 	return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])
 	
 @add_macro('childvalue')
-def get_childrenvalue(db, rec, attribute, ctxid, host, **extra):
+def get_childrenvalue(engine, db, rec, attribute, ctxid, host, **extra):
 	recid = rec.recid
 	children = db.getchildren(recid, ctxid=ctxid)
 	return getvalue(db, children, attribute, ctxid=ctxid, host=host)
 
 @add_macro('parentvalue')
-def get_parentvalue(db, rec, attribute, ctxid, host, **extra):
-	recid = rec.recid
+def get_parentvalue(engine, db, rec, attribute, ctxid, host, **extra):
+	recid = rec['recid']
 	parents = db.getparents(recid, ctxid=ctxid)
 	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
 
 from cgi import escape
 @add_macro('escape')
-def escape_paramdef_val(db, rec, paramname, **extra):
+def escape_paramdef_val(engine, db, rec, paramname, **extra):
 	return escape(rec.get(paramname, ''))

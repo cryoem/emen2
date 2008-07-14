@@ -53,7 +53,7 @@ class PublicView(Resource):
 				res.append(args[key][0])
 				if len(res) == 1: setitem(name, res)
 			elif val is 'json':
-				result[name] = self.__parse_args(args[name][0])
+				result[name] = self.__parse_jsonargs(args[name][0])
 			else:
 				result[key] = args[key][0]
 		return result

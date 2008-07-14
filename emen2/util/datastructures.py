@@ -95,10 +95,3 @@ class MultiKeyDict(object, UserDict.DictMixin):
 		return self._values.values()
 	def as_dict(self): return dict(self.items())
 	def __repr__(self): return str(self.as_dict())
-
-class MultiKeyPredDict(MultiKeyDict):
-	def __init__(self, pred):
-		self.pred = pred
-		MultiKeyDict.__init__(self)
-	def __getitem__(self, key):
-		return set((self._values[x] for x in self._values if self.pred(x,key)))
