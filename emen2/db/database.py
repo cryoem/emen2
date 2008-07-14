@@ -3415,7 +3415,7 @@ or None if no match is found."""
 
     # Extensive modifications by Edward Langley
     def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
-        print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
+#        print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
         return macro.MacroEngine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)    
 
 
