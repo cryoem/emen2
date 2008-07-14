@@ -1,3 +1,4 @@
+import itertools
 class Ring(object):
 	def __init__(self, length=5):
 		self.__buf = []
@@ -68,3 +69,36 @@ class Enum(set):
 	def get_name(self, value):
 		'get the name of a state'
 		return (x[0] for x in self.values.items() if x[1] == value).next()
+
+import UserDict
+class MultiKeyDict(object, UserDict.DictMixin):
+	def __init__(self):
+		self._values = {}
+	def _iterify(self, key):
+		if not hasattr(key, '__iter__'): key = set([key])
+		return key
+	def __setitem__(self, key, value):
+		key = self._iterify(key)
+		self._values[frozenset(key)] = value
+	def __getitem__(self, key):
+		key = self._iterify(key)
+		return set((self._values[x] for x in self._values if x.issuperset(key)))
+	def filterbypred(self, key, pred, type=int):
+		result = set()
+		for x in (k for k in self.keys() if pred(key,k)): result &= self[x]
+		return set(filter(lambda x: isinstance(x,type), result))
+	def keys(self):
+		a = set()
+		for x in self._values.keys(): a |= x
+		return a
+	def values(self):
+		return self._values.values()
+	def as_dict(self): return dict(self.items())
+	def __repr__(self): return str(self.as_dict())
+
+class MultiKeyPredDict(MultiKeyDict):
+	def __init__(self, pred):
+		self.pred = pred
+		MultiKeyDict.__init__(self)
+	def __getitem__(self, key):
+		return set((self._values[x] for x in self._values if self.pred(x,key)))

@@ -22,7 +22,8 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 import demjson
-
+g.debug.add_output('LOG_DEBUG', file(g.LOGROOT+'/pbresource.log','a'))
+g.debug('test')
 class PublicView(Resource):
 
 	isLeaf = True
