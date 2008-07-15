@@ -41,12 +41,12 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have sequential numbers
 		"""
 		result = {}
+		sdict = {}   
 		def setitem(name, val):
 			result[name] = val
 		
 		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
 			name, _, val = key.rpartition('_')
-			sdict = {}   
 			if val.isdigit():
 				res = result.get(name, [])
 				res.append(args[key][0])
@@ -54,9 +54,11 @@ class PublicView(Resource):
 			elif val == 'json' and name is not '':
 				value = self.__parse_jsonargs(args[key][0])
 				if name == 'args': sdict = value
-				result[name] = value
+				else: result[name] = value
 			else:
 				result[key] = args[key][0]
+				
+		result.update(sdict)
 		return result
 	   
 	def __parse_jsonargs(self,content):
@@ -254,22 +256,3 @@ class PublicView(Resource):
 		  request.write(g.templates.handle_error(e).encode("utf-8"))
 
 		request.finish()
-
-
-#		 try:
-#			 if isinstance(failure.type, Database.SecurityError) \
-#			  or isinstance(failure.type, Database.SessionError) \
-#			  or isinstance(failure.type, KeyError):
-#				 print "going to redir"
-#				 uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-#				 args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))), 
-#							 ('msg', quote( str.join('<br />', [str(failure)]) ) ) 
-#							)
-#				 args = ( str.join('=', elem) for elem in args )
-#				 args = str.join('&', args)
-#				 uri = str.join('?', (uri,args))
-#				 request.write(redirectTo(uri, request).encode("utf-8"))
-#		 except Exception:
-#			 request.write(cgitb.html(sys.exc_info()))
-
-	

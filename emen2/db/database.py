@@ -2298,6 +2298,7 @@ or None if no match is found."""
 				# ian: rewrote this to include recdef keys and perhaps be a bit faster.
 				params=set()
 				if not hasattr(recs,"__iter__"): recs=(recs,)
+				recs = list(recs)
 
 				if isinstance(recs[0],int):
 					recs=self.getrecord(recs,ctxid)
