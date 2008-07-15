@@ -29,7 +29,7 @@ $.postJSON = function(uri,data,callback,errback) {
 	$.ajax({
     type: "POST",
     url: uri,
-    data: $.toJSON(data),
+    data: {"args_json":$.toJSON(data)},
     success: callback,
     error: errback,
 		dataType: "html"
