@@ -251,7 +251,7 @@ class PublicView(Resource):
 		  uri = str.join('?', (uri,args))
 		  request.write(redirectTo(uri, request).encode("utf-8"))
 		except Exception, e:
-		  request.write(cgitb.html(sys.exc_info()).encode('utf-8'))
+		  request.write(g.templates.handle_error(e).encode("utf-8"))
 
 		request.finish()
 
