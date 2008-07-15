@@ -4,6 +4,8 @@ function sortNumber(a, b) {
 }
 
 var edit=0;
+var paramdefs={};
+var recs={};
 
 
 function notify(msg) {
@@ -77,6 +79,15 @@ function getrecords_paramdefs(recids,finalcallback) {
 	);
 }
 
+
+function record_page_edit(elem, key) {
+	new multiwidget(
+		elem, {
+			'now':1,
+			'ext_edit_button':1,
+			'root': '#page_recordview_'+key
+			});
+}
 
 function table_editcolumn(elem,key) {
 

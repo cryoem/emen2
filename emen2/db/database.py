@@ -29,6 +29,9 @@ pcomments = re.compile(recommentsregex) # re.UNICODE
 
 TIMESTR="%Y/%m/%d %H:%M:%S"
 
+
+
+
 class DBProxy2:
     def __init__(self,db,ctxid,host):
         self.db=db
@@ -2291,8 +2294,21 @@ or None if no match is found."""
         It is much more efficient to use this on a list of records than to
         call it individually for each of a set of records."""
 
-        ret={}
+
+				# ian: rewrote this to include recdef keys and perhaps be a bit faster.
+        params=set()
         if not hasattr(recs,"__iter__"): recs=(recs,)
+
+				if isinstance(i[0],int):
+					recs=self.getrecords(recs,ctxid)
+
+				if isinstance(i[0],Record):
+					q=set((i.rectype for i in recs))
+					for i in q:
+						params |= set(self.getrecorddef(i,ctxid).paramsK)
+					for i in recs:
+						params |= set(i.getparamkeys())
+					
 
         for i in recs:
             if isinstance(i,str):
