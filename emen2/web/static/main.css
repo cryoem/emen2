@@ -5,18 +5,19 @@
 }
 
 .user {
+	font-size:10pt;
 	float:left;
-	margin:5px;
-	padding:5px;
+	margin:2px;
+	padding:2px;
 }
 
 .user .action {
 	background:red;
-	padding:5px;
+	padding:2px;
 	border:solid red 1px;
 }
 .user .name {
-	padding:5px;
+	padding:2px;
 	border:solid red 1px;
 }
 
