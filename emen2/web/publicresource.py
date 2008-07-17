@@ -185,6 +185,8 @@ class PublicView(Resource):
 				#NOTE: should URLS use punycode: http://en.wikipedia.org/wiki/Punycode ?
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
 			
+			print "\n\n=== web request === %s :: %s :: %s"%(method, args, ctxid)
+			
 			tmp = self.__parse_args(args)
 			if method == "logout":
 				authen.logout(ctxid)
@@ -197,7 +199,7 @@ class PublicView(Resource):
 				callback = routing.URLRegistry().execute(path, **tmp)
 
 			d = threads.deferToThread(callback, ctxid=ctxid, host=host)
-			d.addCallback(self._cbsuccess, request, ctxid)
+			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
 			d.addErrback(self._ebRender, request, ctxid)
 	
 			return server.NOT_DONE_YET
@@ -205,8 +207,12 @@ class PublicView(Resource):
 		except Exception, e:
 			self._ebRender(e, request, ctxid)
 	
-	def _cbsuccess(self, result, request, ctxid):
+	def _cbsuccess(self, result, request, ctxid, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
+
+		print "::: time 1 ---- %s"%(time.time()-t)
+		t1=time.time()
+
 		def set_headers(headers):
 			for key in headers:
 				request.setHeader(key, headers[key])
@@ -233,6 +239,8 @@ class PublicView(Resource):
 		set_headers(headers)
 		request.write(result)
 		request.finish()
+		
+		print "::: time 2 ---- %s"%(time.time()-t1)
 		
 	def _ebRender(self, failure, request, ctxid):
 		g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')

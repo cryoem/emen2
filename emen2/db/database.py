@@ -484,12 +484,14 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if self.trygetrecord(recid,ctxid,host=host) : return (name,path+"/%05X"%bid,recid)
 
 				raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
+
 		def checkcontext(self,ctxid,host=None):
 				"""This allows a client to test the validity of a context, and
 				get basic information on the authorized user and his/her permissions"""
 				a=self.__getcontext(ctxid,host)
 				#if a.user==None: return(-4,-4)
 				return(a.user,a.groups)
+
 		def getindexbycontext(self,ctxid,host=None):
 				"""This will return the ids of all records a context has permission to access as a set. Does include groups.""" 
 				ctx=self.__getcontext(ctxid,host)
@@ -510,12 +512,14 @@ recover - Only one thread should call this. Will run recovery on the environment
 						ret|=set(self.__secrindex[-3] or [])
 
 				return ret
+
 		def getindexbyrecorddef(self,recdefname,ctxid,host=None):
 				"""Uses the recdefname keyed index to return all
 				records belonging to a particular RecordDef as a set. Currently this
 				is unsecured, but actual records cannot be retrieved, so it
 				shouldn't pose a security threat."""
 				return set(self.__recorddefindex[str(recdefname).lower()])
+
 
 		def checkadmin(self,ctx,host=None):
 				"""Checks if the user has global write access. Returns 0 or 1."""
@@ -525,6 +529,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 						return 1
 				
 				return 0
+
 		def checkreadadmin(self,ctx,host=None):
 				"""Checks if the user has global read access. Returns 0 or 1."""
 				if not isinstance(ctx,Context):
@@ -533,13 +538,14 @@ recover - Only one thread should call this. Will run recovery on the environment
 						return 1
 				
 				return 0				
+		
 		def checkcreate(self,ctx,host=None):
 				if not isinstance(ctx,Context):
 						ctx=self.__getcontext(ctx,host)
 				if 0 in ctx.groups or -1 in ctx.groups:
 						return 1
-
 				return 0
+
 		def loginuser(self, ctxid, host=None):
 			ctx=self.__getcontext(ctxid,host)
 			return ctx.user
@@ -1131,7 +1137,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		
-		def fulltextsearch(self,q,ctxid,host=None,rectype=None,indexsearch=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0,single=0):
+		def fulltextsearch(self,q,ctxid,host=None,rectype=None,indexsearch=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0,single=0,includeparams=set()):
 				"""
 				q: query
 				rectype: use all of rectype as subset
@@ -1141,6 +1147,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				builtinparam: include creator, creationtime, modifyuser, modifytime, permissions, and comments
 				subset: provide a subset of records to search (useful)
 				tokenize: boolean AND for multiple space-separated search terms
+				single: stop at first match for each param
+				includeparams: include these values w/ all results
 				"""
 								
 				subset=set(subset)
@@ -1149,12 +1157,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if tokenize:
 						t=q.split(" ")
 						rt={}
-						rt[t[0]]=self.fulltextsearch(t[0],ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single)
+						rt[t[0]]=self.fulltextsearch(t[0],ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single,includeparams)
 						subset=set(rt[t[0]].keys())
 						#print "initial search: key %s, %s results"%(t[0],len(subset))
 
 						for i in t[1:]:
-								rt[i]=self.fulltextsearch(i,ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single)
+								rt[i]=self.fulltextsearch(i,ctxid,host,rectype,indexsearch,params,recparams,builtinparam,ignorecase,subset,0,single,includeparams)
 								subset=set(rt[i].keys())
 								#print "search: key %s, %s results"%(i,subset)
 						
@@ -1187,7 +1195,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 				ret={}
 				urec=set(self.getindexbycontext(ctxid))
 				
-				#if (fast or recparams) and not ignorecase and len(subset) < 1000 and not params:
 				if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
 						#print "rec search: %s, subset %s"%(q,len(subset))
 						for recid in subset&urec:
@@ -1205,6 +1212,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 														if not ret.has_key(recid): ret[recid]={}
 														ret[recid][k]=rec[k]
 																		
+								if ret.has_key(recid) and includeparams:
+									for i in includeparams:
+										ret[recid][i]=rec[i]										
+																		
 				else:
 						#if len(subset) > 1000 and ignorecase:
 						#		 print "Warning: case-sensitive searches limited to queries of 1000 records or less."
@@ -1212,30 +1223,35 @@ parentheses not supported yet. Upon failure returns a tuple:
 						#print "index search: %s, subset %s"%(q,len(subset))
 
 						for param in params:
-								#print "searching %s"%param
-								#try: 
-								r=self.__getparamindex(str(param).lower())
+								print "searching %s"%param
+								try: 
+									r=self.__getparamindex(str(param).lower())
 
-								for key in r.keys():
-										if q in str(key):
-												recs=r[key]
-												if single: recs=recs[:1]
-												for recid in recs:
+									for key in r.keys():
+											# initial case-insensitive match
+											if q in str(key):
+													recs=r[key]
+													if single: recs=list(recs)[:1]
+													for recid in recs:
 
-														if recid not in urec: continue
-														if not ret.has_key(recid): ret[recid]={}
-														
-														# return case sensitive values; simply setting to param key is faster but less useful
-														key2=self.getrecord(recid,ctxid)[param]
-														#print oq,key2,ignorecase
-														if not ignorecase and oq in key2:
-																ret[recid][param]=key2
-														else:
-																ret[recid][param]=key2
-																		
-								#except Exception, inst:
-								#		 print "error in search"
-								#		 print inst
+															if recid not in urec: continue
+															if not ret.has_key(recid): ret[recid]={}
+													
+															# return case sensitive values; simply setting to param key is faster but less useful
+															rec=self.getrecord(recid,ctxid)
+															#print oq,key2,ignorecase
+															if not ignorecase:
+																if oq in rec[param]:
+																	ret[recid][param]=rec[param]
+															else:
+																ret[recid][param]=rec[param]
+															
+															for i in includeparams:
+																ret[recid][i]=rec[i]
+																											
+								except Exception, inst:
+										 print "error in search"
+										 print inst
 
 						# security check required
 						#urec=set(self.getindexbycontext(ctxid))		
@@ -2711,7 +2727,11 @@ or None if no match is found."""
 
 				
 		def putrecordvalues(self,recid,values,ctxid,host=None):
-				rec=self.getrecord(recid,ctxid,host=host)
+				try:
+					rec=self.getrecord(recid,ctxid,host=host)
+				except:
+					return
+					
 				for k,v in values.items():
 						if v==None:
 								del rec[k]
@@ -2784,6 +2804,9 @@ or None if no match is found."""
 				record is new, recid should be set to None. recid is returned upon success. 
 				parents and children arguments are conveniences to link new records at time of creation."""
 				
+				print "--------"
+				print record
+				
 				ctx=self.__getcontext(ctxid,host)
 				
 				if not isinstance(record,Record):
@@ -2792,6 +2815,8 @@ or None if no match is found."""
 				
 				record.setContext(ctx)
 				record.validate()
+				
+				print record
 				
 				######
 				# This except block is where new records are created
@@ -2805,7 +2830,7 @@ or None if no match is found."""
 
 						# set recid
 						#		 txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-						print "got recid %s" % record.recid
+						# print "got recid %s" % record.recid
 
 						txn=self.newtxn()
 						record.recid=self.__records.get(-1,txn)
@@ -2815,7 +2840,7 @@ or None if no match is found."""
 								print >>df, "%s\n%s\n"%(str(ctx.__dict__),str(record))
 								df.close()
 				
-						print 'CTX:', ctx
+						#print 'CTX:', ctx
 						if not self.checkcreate(ctx):
 								txn and txn.abort()
 								raise SecurityError,"No permission to create records"

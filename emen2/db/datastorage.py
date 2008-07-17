@@ -432,7 +432,7 @@ class Record(DictMixin):
     attr_restricted = attr_private | attr_admin
     attr_all = attr_user | attr_admin | attr_private
     
-    param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # "modifyuser","modifytime",
+    param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # dbid # "modifyuser","modifytime",
     
     #publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
         
@@ -466,7 +466,8 @@ class Record(DictMixin):
         self.__permissions=kwargs.get('permissions',((),(),(),()))
 
         self.dbid=kwargs.get('dbid',None)
-        self.__params=kwargs.get('params',{}).copy()
+        #self.__params=kwargs.get('params',{}).copy()
+        self.__params={}
         self.__oparams= self.__params.copy()
 
         self.__ptest=[1,1,1,1] 
@@ -479,6 +480,11 @@ class Record(DictMixin):
         if ctx != None: ctx = ctx  
         else: ctx = kwargs.get('context')
         if (ctx!=None): self.setContext(ctx)
+
+        for key in set(kwargs.keys())-self.param_special:
+          print "record init: %s -> %s"%(key,kwargs[key])
+          self[key]=kwargs[key]
+
             
     def validate(self):
 
@@ -491,12 +497,15 @@ class Record(DictMixin):
             raise ValueError,"rectype must not be empty"
         
         
+        try:
+          self.__permissions = tuple((tuple(i) for i in self.__permissions))
+        except:
+          raise ValueError,"permissions must be 4-tuple of tuples"
         p=self.__permissions
-        if not isinstance(p,tuple) or len(p) != 4:
-            raise ValueError,"permissions must be 4-tuple of tuples"
-        for i in p:
-            if not isinstance(i,tuple):
-                raise ValueError,"permissions must be 4-tuple of tuples"
+
+        #for i in p:
+        #    if not isinstance(i,tuple):
+        #        raise ValueError,"permissions must be 4-tuple of tuples"
 
 
         if not self.__context or not self.__context.db:
@@ -633,7 +642,6 @@ class Record(DictMixin):
         # comments may include embedded field values if the user has full write access
 
         #if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
-
         key = str(key).strip().lower()
 
         try:
@@ -642,7 +650,6 @@ class Record(DictMixin):
             valuelower = ""
         
         if value==None or valuelower=="none" : 
-            if DEBUG: print "rec %s, key=%s set to None"%(self.recid,key)
             value = None
 
         if key!="comments" and not self.__oparams.has_key(key):

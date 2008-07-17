@@ -36,15 +36,18 @@ class JSONResource(Resource):
 		request.content.seek(0, 0)
 		content = request.content.read()
 		method = request.uri.split("/")[2]
-		args = simplejson.loads(content)
-		#args = demjson.decode(content)
+		#args = simplejson.loads(content)
+		args = demjson.decode(content)
 		host = request.getClientIP()
 		kwargs={"host":host}
 
-		print content
-		print method
-		print args
-		print host
+#		print content
+#		print method
+#		print args
+#		print host
+
+		print "\n\n=== jsonrpc === %s \n %s \n %s"%(method, args, kwargs)
+
 
 		request.setHeader("content-type", "text/xml")
 
