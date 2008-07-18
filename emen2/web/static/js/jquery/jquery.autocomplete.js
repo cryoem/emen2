@@ -364,7 +364,6 @@ $.Autocompleter = function(input, options) {
 	
 	function parse(data) {
 
-		console.log(options.parsecallback);
 		if (options.parsecallback) {return options.parsecallback(data)}
 		
 		var rows = data.split("\n");

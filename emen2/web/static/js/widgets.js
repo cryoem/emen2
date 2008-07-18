@@ -416,23 +416,26 @@ function permissions(elem, opts) {
 
 permissions.DEFAULT_OPTS = {
 	list: [ [],[],[],[] ],
-	levels: ["Read","Comment","Write","Admin"]
+	levels: ["Read","Comment","Write","Admin"],
+	inherit: []
 };
 
 permissions.prototype = {
 	
 	init: function() {
-		this.build();
-	},
-	
-  build: function() {
 
-		
-		this.elem.empty();
-		var userarea=$("<div></div>");
+		this.inheritarea=$("<div>Inherit permissions: </div>");
+
+		if (this.inherit.length > 0) {
+			for (var i=0;i<this.inherit.length;i++) {
+				this.addinherititem(this.inherit[i],1);
+			}
+		}
+
+		this.elem.append(this.inheritarea);
+
 		var useradd=$("<div></div>");
-
-
+		var self=this;
 		this.search=$('<input class="value" size="20" type="text" value="" />').autocomplete(
 			"/db/finduser/", {
 			parsecallback: autocomplete_parse_finduser,
@@ -444,12 +447,56 @@ permissions.prototype = {
 		this.levelselect=$('<select><option value="Read">Read</option><option value="Comment">Comment</option><option value="Write">Write</option><option value="Admin">Admin</option></select>');
 		this.adduserbutton=$('<input type="submit" value="Add">');
 		this.adduserbutton.click(function(){
-			self.add(self.search.val(),self.levelselect.val())
+			self.add(self.search.val(),self.levelselect.val());
+			self.build();
 		});
 		
 		useradd.append(this.search,this.levelselect,this.adduserbutton);
 		this.elem.append(useradd);
 
+		this.userarea = $("<div></div>");
+		this.elem.append(this.userarea);
+
+		this.build();
+	},
+	
+	addinherititem: function(recid,check) {
+		console.log(recid);
+		if (this.inherit.indexOf(recid) > -1) {return}
+
+		this.inherit.push(recid);
+		var p=getvalue(recid,"permissions");
+		
+		if (check) {
+			this.addlist(p);
+			check="checked";
+		} else { 
+			check="";
+		}
+		
+		var self=this;
+		var input=$('<input type="checkbox" '+check+' />').change(function(){
+			this.checked=(this.checked) ? 1:0;
+			if (this.checked) {
+				self.addlist(p);
+				self.build()
+			}	else {
+				self.removelist(p);
+				self.build()
+				}
+		});
+		this.inheritarea.append(input);
+
+		var count=0;
+		for (var j=0;j<p.length;j++) {count+=p[j].length;}
+		this.inheritarea.append('<span>'+recnames[recid]+' (recid: '+recid+', '+count+' users)</span>');
+		
+	},
+	
+  build: function() {
+
+		
+		this.userarea.empty();
 
 		var self=this;
 		$.each(this.list, function(k,v) {
@@ -461,7 +508,7 @@ permissions.prototype = {
 
 					var userdiv=$('<div class="user"></div>');
 					var username=$('<span class="name">'+displaynames[v2]+'</span>');
-					var useraction=$('<span class="action">X</span>').click(function(){self.remove(useraction.username)});
+					var useraction=$('<span class="action">X</span>').click(function(){self.remove(useraction.username);self.build();});
 
 					useraction.username=v2;
 					useraction.level=k;
@@ -470,24 +517,33 @@ permissions.prototype = {
 					level.append(userdiv);
 
 				});
-				userarea.append(level);
+				self.userarea.append(level);
 			}
 		});
 
-		this.elem.append(userarea);
+		//this.elem.append(userarea);
 		//$.each(users, function(k,v){console.log(v.level+": "+v.username)});
 
 	},
 	
 	add: function(username,level) {
 		level=this.levels.indexOf(level);
-		console.log(username);
+		if (displaynames[username] == null) {return}
 		this.list[level].push(username);
-		this.build();
+	},
+	
+	addlist: function(list) {
+		if (list==null){return}
+		for (var i=0;i<list.length;i++) {
+			for (var j=0;j<list[i].length;j++) {
+				if ((displaynames[list[i][j]]!=null) && (this.list[i].indexOf(list[i][j]) == -1)) {
+					this.list[i].push(list[i][j]);
+				}
+			}
+		}
 	},
 	
 	remove: function(username) {
-
 		if (username==user) {return}
 		
 		var newlist=[];
@@ -499,8 +555,26 @@ permissions.prototype = {
 			newlist.push(v);
 		});
 		this.list=newlist;
-		console.log(this.list);
-		this.build();	
+	},
+	
+	removelist: function(list) {
+		var newlist=[];
+		console.log(list);
+		console.log("====================");
+
+		if (list==null){return}
+		for (var i=0;i<this.list.length;i++) {
+			var l=[];
+			console.log(this.list[i]);
+			for (var j=0;j<this.list[i].length;j++) {
+				if ((list[i].indexOf(this.list[i][j]) == -1)||(this.list[i][j]==user)) {
+					l.push(this.list[i][j]);
+				}
+			}
+			newlist.push(l);
+		}
+		console.log(newlist);
+		this.list=newlist;
 	},
 	
 	///////////////////////

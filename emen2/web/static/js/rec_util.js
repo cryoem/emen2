@@ -37,7 +37,7 @@ function record_updatecomments() {
 function record_pageedit(elem, key) {
 	new multiwidget(
 		elem, {
-			'commitcallback':function(values){commit_putrecords(value,alert("ok"))},
+			'commitcallback':function(values){commit_putrecords(values,function(){window.location.reload()})},
 			'now':1,
 			'ext_edit_button':1,
 			'root': '#page_recordview_'+key

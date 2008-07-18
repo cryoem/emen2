@@ -1,3 +1,10 @@
+paramdefs={};
+recs={};
+rec={};
+recid=null;
+displaynames={};
+
+
 /////////// autocomplete callbacks ////////////
 
 function autocomplete_parse_finduser(data) {
@@ -58,7 +65,7 @@ function commit_newrecord(values,cb) {
 	var rec_update=getrecord(null);
 
 	$.each(values[NaN], function(i,value) {
-		if ((value!=null) || (getvalue(null,i)!=null)) {
+		if ((value!=null) || (getvalue(recid,i)!=null)) {
 			rec_update[i]=value;
 		}
 	});
