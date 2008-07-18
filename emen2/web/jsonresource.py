@@ -50,8 +50,9 @@ class JSONResource(Resource):
 
 
 		request.setHeader("content-type", "text/xml")
-
-		d = threads.deferToThread(self.action, method, args, **kwargs)
+		
+		db = Database.Database(g.EMEN2DBPATH)
+		d = threads.deferToThread(self.action, method, args, db, **kwargs)
 		d.addCallback(self._cbRender,request)
 		d.addErrback(self._ebRender,request)
 
@@ -59,7 +60,10 @@ class JSONResource(Resource):
 
 
 	def action(self, method, args, db=None, host=None):
-		method = getattr(db,method)
-		result = method(*args)
-		result = demjson.encode(result, escape_unicode=True)
-		return result.encode("utf-8", 'replace')
+		try:
+			method = getattr(db,method)
+			result = method(*args)
+			result = demjson.encode(result, escape_unicode=True)
+			return result.encode("utf-8", 'replace')
+		finally:
+			db.close()

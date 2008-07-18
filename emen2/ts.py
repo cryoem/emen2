@@ -91,12 +91,12 @@ class newThreadPool(threadpool.ThreadPool):
 				firstJob = None
 				
 #		print "initializing thread."		
-		newThread = threading.Thread(target=self._worker, args=(firstJob,Database.Database(g.EMEN2DBPATH)))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
-	def _worker(self, o, db):		
+	def _worker(self, o):		
 			ct = threading.currentThread()
 			while 1:
 					if o is threadpool.WorkerStop:

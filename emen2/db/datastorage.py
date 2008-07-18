@@ -6,19 +6,19 @@ from emen2.emen2config import g
 from emen2.Database.exceptions import SecurityError
 # validation/conversion for booleans
 def boolconv(x):
-    try:
-        x=int(x)
-        if x: return 1
-        else: return 0
-    except:
-        if x[0] in ("T","t","Y","y") : return 1
-        if x[0] in ("F","f","N","n") : return 0
-        raise Exception,"Invalid boolean %s"%str(x)
+	try:
+		x=int(x)
+		if x: return 1
+		else: return 0
+	except:
+		if x[0] in ("T","t","Y","y") : return 1
+		if x[0] in ("F","f","N","n") : return 0
+		raise Exception,"Invalid boolean %s"%str(x)
 
 # validation/conversion for text, permitting unicode
 def textconv(x):
-    try: return str(x)
-    except: return unicode(x)
+	try: return str(x)
+	except: return unicode(x)
 
 DEBUG=0
 
@@ -28,30 +28,30 @@ def tojson(o):
 	return o
 
 valid_vartypes={
-    "int":("d",lambda x:int(x)),            # 32-bit integer
-    "longint":("d",lambda x:int(x)),        # not indexed properly this way
-    "float":("f",lambda x:float(x)),        # double precision
-    "longfloat":("f",lambda x:float(x)),    # arbitrary precision, limited index precision
-    "choice":("s",lambda x:str(x)),            # string from a fixed enumerated list, eg "yes","no","maybe"
-    "string":("s",lambda x:str(x)),            # a string indexed as a whole, may have an extensible enumerated list or be arbitrary
-    "text":("s",textconv),            # freeform text, fulltext (word) indexing, UNICODE PERMITTED
-    "time":("s",lambda x:str(x)),            # HH:MM:SS
-    "date":("s",lambda x:str(x)),            # yyyy/mm/dd
-    "datetime":("s",lambda x:str(x)),        # yyyy/mm/dd HH:MM:SS
-    "intlist":(None,lambda y:map(lambda x:int(x),y)),        # list of integers
-    "floatlist":(None,lambda y:map(lambda x:float(x),y)),    # list of floats
-    "stringlist":(None,lambda y:map(lambda x:str(x),y)),    # list of enumerated strings
-    "url":("s",lambda x:str(x)),            # link to a generic url
-    "hdf":("s",lambda x:str(x)),            # url points to an HDF file
-    "image":("s",lambda x:str(x)),            # url points to a browser-compatible image
-    "binary":("s",lambda y:map(lambda x:str(x),y)),                # url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
-    "binaryimage":("s",lambda x:str(x)),        # non browser-compatible image requiring extra 'help' to display... 'bdo:....'
-    "child":("child",lambda y:map(lambda x:int(x),y)),    # link to dbid/recid of a child record
-    "link":("link",lambda y:map(lambda x:int(x),y)),        # lateral link to related record dbid/recid
-    "boolean":("d",boolconv),
-    "dict":(None, lambda x:x), 
-    "user":("s",lambda x:str(x)), # ian 09.06.07
-    "userlist":(None,lambda y:map(lambda x:str(x),y))
+	"int":("d",lambda x:int(x)),			# 32-bit integer
+	"longint":("d",lambda x:int(x)),		# not indexed properly this way
+	"float":("f",lambda x:float(x)),		# double precision
+	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
+	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
+	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
+	"text":("s",textconv),			# freeform text, fulltext (word) indexing, UNICODE PERMITTED
+	"time":("s",lambda x:str(x)),			# HH:MM:SS
+	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
+	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
+	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
+	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
+	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
+	"url":("s",lambda x:str(x)),			# link to a generic url
+	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
+	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
+	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
+	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
+	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
+	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
+	"boolean":("d",boolconv),
+	"dict":(None, lambda x:x), 
+	"user":("s",lambda x:str(x)), # ian 09.06.07
+	"userlist":(None,lambda y:map(lambda x:str(x),y))
 }
 
 # Valid physical property names
@@ -62,13 +62,13 @@ valid_properties = {
 "count":(None,{"k":1000, "K":1000, "pixels":1}),
 "unitless":(None,{"n/a": None}),
 "length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
-    "millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
-    "A":1.0e-10}),
+	"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
+	"A":1.0e-10}),
 "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
 "volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3, "ul":1.0e-9, "uL":1.0e-9}),
 "mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "dalton":1.6605387e-24}),
 "temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
-    "degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
+	"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
 "pH":("pH",{"pH":1.0}),
 "voltage":("volt",{"V":1.0,"volt":1.0,"kv":1000.0,"kilovolt":1000.0,"mv":.001,"millivolt":.001}),
 "current":("amp",{"A":1.0,"amp":1.0,"ampere":1.0}),
@@ -94,727 +94,723 @@ valid_properties = {
 }
 
 class ParamDef(DictMixin) :
-    """This class defines an individual data Field that may be stored in a Record.
-    Field definitions are related in a tree, with arbitrary lateral linkages for
-    conceptual relationships. The relationships are handled externally by the
-    Database object. Fields may only be modified by the administrator once
-    created, and then, they should only be modified for clarification""" 
-    
-    # non-admin users may only update descs and choices
-    attr_user = set(["desc_long","desc_short","choices"])
-    attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","creationdb"])
-    attr_all = attr_user | attr_admin
-    
-    # name may be a dict; this allows backwards compat dictionary initialization
-    def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
-                      property=None,defaultunits=None,choices=None):
-        self.name=name                    # This is the name of the paramdef, also used as index
-        self.vartype=vartype            # Variable data type. List of valid types in the module global 'vartypes'
-        self.desc_short=desc_short        # This is a very short description for use in forms
-        self.desc_long=desc_long        # A complete description of the meaning of this variable
-        self.property=property            # Physical property represented by this field, List in 'properties'
-        self.defaultunits=defaultunits    # Default units (optional)
-        self.choices=choices            # choices for choice and string vartypes, a tuple
-        self.creator=None                # original creator of the record
-        self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")    # creation date
-        self.creationdb=None            # dbid where paramdef originated
-        
-        if isinstance(name,dict):
-            self.update(name)
+	"""This class defines an individual data Field that may be stored in a Record.
+	Field definitions are related in a tree, with arbitrary lateral linkages for
+	conceptual relationships. The relationships are handled externally by the
+	Database object. Fields may only be modified by the administrator once
+	created, and then, they should only be modified for clarification""" 
+	
+	# non-admin users may only update descs and choices
+	attr_user = set(["desc_long","desc_short","choices"])
+	attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","creationdb"])
+	attr_all = attr_user | attr_admin
+	
+	# name may be a dict; this allows backwards compat dictionary initialization
+	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
+					  property=None,defaultunits=None,choices=None):
+		self.name=name					# This is the name of the paramdef, also used as index
+		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
+		self.desc_short=desc_short		# This is a very short description for use in forms
+		self.desc_long=desc_long		# A complete description of the meaning of this variable
+		self.property=property			# Physical property represented by this field, List in 'properties'
+		self.defaultunits=defaultunits	# Default units (optional)
+		self.choices=choices			# choices for choice and string vartypes, a tuple
+		self.creator=None				# original creator of the record
+		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")	# creation date
+		self.creationdb=None			# dbid where paramdef originated
+		
+		if isinstance(name,dict):
+			self.update(name)
 
 
-    #################################        
-    # repr methods
-    #################################            
+	#################################		
+	# repr methods
+	#################################			
 
-    def __str__(self):
-        return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
-
-
-    #################################        
-    # mapping methods
-    #################################            
-
-    def __getitem__(self,key):
-        try:
-            return self.__dict__[key]
-        except:
-            pass
-            #print "no key %s"%key
-        
-    def __setitem__(self,key,value):
-        if key in self.attr_all:
-            self.__dict__[key]=value
-        else:
-            raise KeyError,"Invalid key: %s"%key
-            
-    def __delitem__(self,key):
-        raise KeyError,"Key deletion not allowed"
-        
-    def keys(self):
-        return tuple(self.attr_all)
-        
-        
-    #################################        
-    # ParamDef methods
-    #################################                
-
-    def items_dict(self):
-        ret = {}
-        for k in self.attr_all:
-            ret[k]=self.__dict__[k]
-        return ret        
+	def __str__(self):
+		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 
 
-    #################################        
-    # validation methods
-    #################################                
-    
-    def validate(self):
-        
-        if set(self.__dict__.keys())-self.attr_all:
-            raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
-        
-        if str(self.name) == "":
-            raise ValueError,"name required"
+	#################################		
+	# mapping methods
+	#################################			
 
-        if self.vartype != None and not str(self.vartype) in valid_vartypes:
-            raise ValueError,"Invalid vartype; not in valid_vartypes"
-            
-        if unicode(self.desc_short) == "":
-            raise ValueError,"Short description (desc_short) required"
+	def __getitem__(self,key):
+		try:
+			return self.__dict__[key]
+		except:
+			pass
+			#print "no key %s"%key
+		
+	def __setitem__(self,key,value):
+		if key in self.attr_all:
+			self.__dict__[key]=value
+		else:
+			raise KeyError,"Invalid key: %s"%key
+			
+	def __delitem__(self,key):
+		raise KeyError,"Key deletion not allowed"
+		
+	def keys(self):
+		return tuple(self.attr_all)
+		
+		
+	#################################		
+	# ParamDef methods
+	#################################				
 
-        if unicode(self.desc_long) == "":
-            raise ValueError,"Long description (desc_long) required"
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret		
 
-        if self.property != None and str(self.property) not in valid_properties:
-            #raise ValueError,"Invalid property; not in valid_properties"
-            print "Warning: Invalid property; not in valid_properties"
 
-        if self.defaultunits != None:
-            a=[]
-            for q in valid_properties.values():
-                a.extend(q[1].keys()) 
-            if not str(self.defaultunits) in a and str(self.defaultunits) != '':
-                #raise ValueError,"Invalid defaultunits; not in valid_properties"
-                print "Warning: Invalid defaultunits; not in valid_properties"
-            
-        if self.choices != None:
-            try:
-                list(self.choices)
-                for i in self.choices:
-                    unicode(i)
-            except:
-                raise ValueError,"choices must be a list of strings"
-            #if isinstance(self.choices,basestring):
-            #    raise ValueError,"choices must be strings"
-            #for i in self.choices:
+	#################################		
+	# validation methods
+	#################################				
+	
+	def validate(self):
+		
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+		
+		if str(self.name) == "":
+			raise ValueError,"name required"
+
+		if self.vartype != None and not str(self.vartype) in valid_vartypes:
+			raise ValueError,"Invalid vartype; not in valid_vartypes"
+			
+		if unicode(self.desc_short) == "":
+			raise ValueError,"Short description (desc_short) required"
+
+		if unicode(self.desc_long) == "":
+			raise ValueError,"Long description (desc_long) required"
+
+		if self.property != None and str(self.property) not in valid_properties:
+			#raise ValueError,"Invalid property; not in valid_properties"
+			print "Warning: Invalid property; not in valid_properties"
+
+		if self.defaultunits != None:
+			a=[]
+			for q in valid_properties.values():
+				a.extend(q[1].keys()) 
+			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
+				#raise ValueError,"Invalid defaultunits; not in valid_properties"
+				print "Warning: Invalid defaultunits; not in valid_properties"
+			
+		if self.choices != None:
+			try:
+				list(self.choices)
+				for i in self.choices:
+					unicode(i)
+			except:
+				raise ValueError,"choices must be a list of strings"
+			#if isinstance(self.choices,basestring):
+			#	raise ValueError,"choices must be strings"
+			#for i in self.choices:
 
 def parseparmvalues(text,noempty=0):
-    """This will extract parameter names $param or $param=value """
-    # Ed 05/17/2008 -- cleaned up
-    #srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-    #srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-    srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-    params, vals = ret=[[],{}]
-    
-    for name, a, b in (x.groups() for x in srch):
-        if name is '': continue
-        else:
-            params.append(name)
-            if a is None: val=b
-            else: val=a
-            vals[name] = val
-    return ret
+	"""This will extract parameter names $param or $param=value """
+	# Ed 05/17/2008 -- cleaned up
+	#srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+	#srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	params, vals = ret=[[],{}]
+	
+	for name, a, b in (x.groups() for x in srch):
+		if name is '': continue
+		else:
+			params.append(name)
+			if a is None: val=b
+			else: val=a
+			vals[name] = val
+	return ret
 
 
 class RecordDef(DictMixin) :
-    """This class defines a prototype for Database Records. Each Record is a member of
-    a RecordClass. This class contains the information giving meaning to the data Fields
-    contained by the Record"""
-    
-    attr_user = set(["mainview","views","private","typicalchld"])
-    attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
-    attr_all = attr_user | attr_admin
-    
-    def __init__(self,d=None):
-        self.name=None                # the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-        self.views={"recname":"$$rectype $$creator $$creationdate"}                # Dictionary of additional (named) views for the record
-        self.mainview="$$rectype $$creator $$creationdate"            # a string defining the experiment with embedded params
-                                    # this is the primary definition of the contents of the record
-        self.private=0                # if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
-                                    # or by someone with read access to a record of this type
-        self.typicalchld=[]            # A list of RecordDef names of typical child records for this RecordDef
-                                    # implicitly includes subclasses of the referenced types
+	"""This class defines a prototype for Database Records. Each Record is a member of
+	a RecordClass. This class contains the information giving meaning to the data Fields
+	contained by the Record"""
+	
+	attr_user = set(["mainview","views","private","typicalchld"])
+	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
+	attr_all = attr_user | attr_admin
+	
+	def __init__(self,d=None):
+		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
+		self.views={"recname":"$$rectype $$creator $$creationdate"}				# Dictionary of additional (named) views for the record
+		self.mainview="$$rectype $$creator $$creationdate"			# a string defining the experiment with embedded params
+									# this is the primary definition of the contents of the record
+		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
+									# or by someone with read access to a record of this type
+		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
+									# implicitly includes subclasses of the referenced types
 
-        self.params={}                # A dictionary keyed by the names of all params used in any of the views
-                                    # values are the default value for the field.
-                                    # this represents all params that must be defined to have a complete
-                                    # representation of the record. Note, however, that such completeness
-                                    # is NOT REQUIRED to have a valid Record
-        self.paramsK = []            # ordered keys from params()
-        self.owner=None                # The owner of this record
-        self.creator=0                # original creator of the record
-        self.creationtime=None        # creation date
-        self.creationdb=None        # dbid where recorddef originated
-        
-        if (d):
-            self.update(d)
+		self.params={}				# A dictionary keyed by the names of all params used in any of the views
+									# values are the default value for the field.
+									# this represents all params that must be defined to have a complete
+									# representation of the record. Note, however, that such completeness
+									# is NOT REQUIRED to have a valid Record
+		self.paramsK = []			# ordered keys from params()
+		self.owner=None				# The owner of this record
+		self.creator=0				# original creator of the record
+		self.creationtime=None		# creation date
+		self.creationdb=None		# dbid where recorddef originated
+		
+		if (d):
+			self.update(d)
 
-        self.findparams()
-                    
+		self.findparams()
+					
 
-    def __setattr__(self,key,value):
-        self.__dict__[key] = value
-        if key == "mainview": self.findparams()            
-
-
-    #################################        
-    # pickle methods
-    #################################
-    
-    def __setstate__(self,dict):
-        """restore unpickled values to defaults after unpickling"""
-        self.__dict__.update(dict)
-        if not dict.has_key("typicalchld") : self.typicalchld=[]        
+	def __setattr__(self,key,value):
+		self.__dict__[key] = value
+		if key == "mainview": self.findparams()			
 
 
-    #################################        
-    # repr methods
-    #################################
-
-    def __str__(self):
-        return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-            self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
-
-    def stringparams(self):
-        """returns the params for this recorddef as an indented printable string"""
-        r=["{"]
-        for k,v in self.params.items():
-            r.append("\n\t%s: %s"%(k,str(v)))
-        return "".join(r)+" }\n"
-    
-
-    #################################        
-    # mapping methods
-    #################################
-            
-    def __getitem__(self,key):
-        return self.__dict__[key]
-        
-    def __setitem__(self,key,value):
-        if key in self.attr_all:
-            self.__dict__[key]=value
-        else:
-            raise AttributeError,"Invalid key: %s"%key
-            
-    def __delitem__(self,key):
-        raise AttributeError,"Key deletion not allowed"
-        
-    def keys(self):
-        return tuple(self.attr_all)
+	#################################		
+	# pickle methods
+	#################################
+	
+	def __setstate__(self,dict):
+		"""restore unpickled values to defaults after unpickling"""
+		self.__dict__.update(dict)
+		if not dict.has_key("typicalchld") : self.typicalchld=[]		
 
 
-    #################################        
-    # RecordDef methods
-    #################################
+	#################################		
+	# repr methods
+	#################################
 
-    def findparams(self):
-        """This will update the list of params by parsing the views"""
-        t,d=parseparmvalues(self.mainview)
-        for i in self.views.values():
-            t2,d2=parseparmvalues(i)
-            for j in t2:
-                # ian: fix for: empty default value in a view unsets default value specified in mainview
-                if not d.has_key(j):
-                    t.append(j)
-                    d[j] = d2[j]
-#            d.update(d2)
+	def __str__(self):
+		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
+			self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
 
-        self.params=d
-        self.paramsK=tuple(t)
+	def stringparams(self):
+		"""returns the params for this recorddef as an indented printable string"""
+		r=["{"]
+		for k,v in self.params.items():
+			r.append("\n\t%s: %s"%(k,str(v)))
+		return "".join(r)+" }\n"
+	
+
+	#################################		
+	# mapping methods
+	#################################
+			
+	def __getitem__(self,key):
+		return self.__dict__[key]
+		
+	def __setitem__(self,key,value):
+		if key in self.attr_all:
+			self.__dict__[key]=value
+		else:
+			raise AttributeError,"Invalid key: %s"%key
+			
+	def __delitem__(self,key):
+		raise AttributeError,"Key deletion not allowed"
+		
+	def keys(self):
+		return tuple(self.attr_all)
 
 
-    def items_dict(self):
-        ret = {}
-        for k in self.attr_all:
-            ret[k]=self.__dict__[k]
-        return ret
-        
-        
-    def fromdict(self,d):
-        for k,v in d.items():
-            self.__setattr__(k,v)
-        self.validate()
+	#################################		
+	# RecordDef methods
+	#################################
 
-        
-    #################################        
-    # validate methods
-    #################################        
-        
-    def validate(self):    
-        
-        if set(self.__dict__.keys())-self.attr_all:
-            raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
-        
-        try:
-            if str(self.name) == "" or self.name==None:
-                raise Exception
-        except:    
-            raise ValueError,"name required; must be str or unicode"
+	def findparams(self):
+		"""This will update the list of params by parsing the views"""
+		t,d=parseparmvalues(self.mainview)
+		for i in self.views.values():
+			t2,d2=parseparmvalues(i)
+			for j in t2:
+				# ian: fix for: empty default value in a view unsets default value specified in mainview
+				if not d.has_key(j):
+					t.append(j)
+					d[j] = d2[j]
+#			d.update(d2)
 
-        try:
-            dict(self.views)
-        except:
-            raise ValueError,"views must be dict"
+		self.params=d
+		self.paramsK=tuple(t)
 
-        try:
-            list(self.typicalchld)
-        except:
-            raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
-                        
-        try: 
-            if unicode(self.mainview) == "": raise Exception
-        except:
-            raise ValueError,"mainview required; must be str or unicode"
 
-        if not dict(self.views).has_key("recname"):
-            print "Warning: recname view strongly suggested"
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+			ret[k]=self.__dict__[k]
+		return ret
+		
+		
+	def fromdict(self,d):
+		for k,v in d.items():
+			self.__setattr__(k,v)
+		self.validate()
 
-        for k,v in self.views.items():
-            if not isinstance(k,str) or not isinstance(v,basestring):
-                raise ValueError,"Views names must be strings; view defs may be unicode"
+		
+	#################################		
+	# validate methods
+	#################################		
+		
+	def validate(self):	
+		
+		if set(self.__dict__.keys())-self.attr_all:
+			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+		
+		try:
+			if str(self.name) == "" or self.name==None:
+				raise Exception
+		except:	
+			raise ValueError,"name required; must be str or unicode"
 
-        if self.private not in [0,1]:
-            raise ValueError,"Invalid value for private; must be 0 or 1"
+		try:
+			dict(self.views)
+		except:
+			raise ValueError,"views must be dict"
+
+		try:
+			list(self.typicalchld)
+		except:
+			raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
+						
+		try: 
+			if unicode(self.mainview) == "": raise Exception
+		except:
+			raise ValueError,"mainview required; must be str or unicode"
+
+		if not dict(self.views).has_key("recname"):
+			print "Warning: recname view strongly suggested"
+
+		for k,v in self.views.items():
+			if not isinstance(k,str) or not isinstance(v,basestring):
+				raise ValueError,"Views names must be strings; view defs may be unicode"
+
+		if self.private not in [0,1]:
+			raise ValueError,"Invalid value for private; must be 0 or 1"
 
 
 class Record(DictMixin):
-    """This class encapsulates a single database record. In a sense this is an instance
-    of a particular RecordDef, however, note that it is not required to have a value for
-    every field described in the RecordDef, though this will usually be the case.
-    
-    To modify the params in a record use the normal obj[key]= or update() approaches. 
-    Changes are not stored in the database until commit() is called. To examine params, 
-    use obj[key]. There are a few special keys, handled differently:
-    creator,creationtime,permissions,comments
+	"""This class encapsulates a single database record. In a sense this is an instance
+	of a particular RecordDef, however, note that it is not required to have a value for
+	every field described in the RecordDef, though this will usually be the case.
+	
+	To modify the params in a record use the normal obj[key]= or update() approaches. 
+	Changes are not stored in the database until commit() is called. To examine params, 
+	use obj[key]. There are a few special keys, handled differently:
+	creator,creationtime,permissions,comments
 
-    Record instances must ONLY be created by the Database class through retrieval or
-    creation operations. self.context will store information about security and
-    storage for the record.
-    
-    Mechanisms for changing existing params are a bit complicated. In a sense, as in a 
-    physical lab notebook, an original value can never be changed, only superceded. 
-    All records have a 'magic' field called 'comments', which is an extensible array
-    of text blocks with immutable entries. 'comments' entries can contain new field
-    definitions, which will supercede the original definition as well as any previous
-    comments. Changing a field will result in a new comment being automatically generated
-    describing and logging the value change.
-    
-    From a database standpoint, this is rather odd behavior. Such tasks would generally be
-    handled with an audit log of some sort. However, in this case, as an electronic
-    representation of a Scientific lab notebook, it is absolutely necessary
-    that all historical values are permanently preserved for any field, and there is no
-    particular reason to store this information in a separate file. Generally speaking,
-    such changes should be infrequent.
-    
-    Naturally, as with anything in Python, anyone with code-level access to the database
-    can override this behavior by changing 'params' directly rather than using
-    the supplied access methods. There may be appropriate uses for this when constructing
-    a new Record before committing changes back to the database.
-    """
-    
-    attr_user = set([])
-    attr_admin = set(["recid","dbid","rectype"])
-    attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
-                               "_Record__creator","_Record__creationtime","_Record__permissions",
-                               "_Record__ptest","_Record__context"])
-    attr_restricted = attr_private | attr_admin
-    attr_all = attr_user | attr_admin | attr_private
-    
-    param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # dbid # "modifyuser","modifytime",
-    
-    #publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
-        
-    def __init__(self,d=None,ctx=None, **kwargs):
-        """Normally the record is created with no parameters, then setContext is called by the
-        Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
-        may be done at initiailization time."""
-        kwargs.update(d or {})
-        ## recognized keys
-        # recid -- 32 bit integer recordid (within the current database)
-        # rectype -- name of the RecordDef represented by this Record
-        # comments -- a List of comments records
-        # creator -- original creator of the record
-        # creationtime -- creation date
-        # dbid -- dbid where this record resides (any other dbs have clones)
-        # params -- a Dictionary containing field names associated with their data
-        # oparams -- when a field value is changed, the original value is stored here
-                # TODO: remove
-        # permissions -- permissions for 
-                        # read access, comment write access, full write access, 
-                        # and administrative access. Each element is a tuple of 
-                        # user names or group id's,
-                        # Group -3 includes any logged in user,
-                        # Group -4 includes any user (anonymous)
-        
-        self.recid=kwargs.get('recid')
-        self.rectype=kwargs.get('rectype', '')                
-        self.__comments=kwargs.get('comments',[])            
-        self.__creator=kwargs.get('creator',0)
-        self.__creationtime=kwargs.get('creationtime')
-        self.__permissions=kwargs.get('permissions',((),(),(),()))
+	Record instances must ONLY be created by the Database class through retrieval or
+	creation operations. self.context will store information about security and
+	storage for the record.
+	
+	Mechanisms for changing existing params are a bit complicated. In a sense, as in a 
+	physical lab notebook, an original value can never be changed, only superceded. 
+	All records have a 'magic' field called 'comments', which is an extensible array
+	of text blocks with immutable entries. 'comments' entries can contain new field
+	definitions, which will supercede the original definition as well as any previous
+	comments. Changing a field will result in a new comment being automatically generated
+	describing and logging the value change.
+	
+	From a database standpoint, this is rather odd behavior. Such tasks would generally be
+	handled with an audit log of some sort. However, in this case, as an electronic
+	representation of a Scientific lab notebook, it is absolutely necessary
+	that all historical values are permanently preserved for any field, and there is no
+	particular reason to store this information in a separate file. Generally speaking,
+	such changes should be infrequent.
+	
+	Naturally, as with anything in Python, anyone with code-level access to the database
+	can override this behavior by changing 'params' directly rather than using
+	the supplied access methods. There may be appropriate uses for this when constructing
+	a new Record before committing changes back to the database.
+	"""
+	
+	attr_user = set([])
+	attr_admin = set(["recid","dbid","rectype"])
+	attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
+							   "_Record__creator","_Record__creationtime","_Record__permissions",
+							   "_Record__ptest","_Record__context"])
+	attr_restricted = attr_private | attr_admin
+	attr_all = attr_user | attr_admin | attr_private
+	
+	param_special = set(["recid","rectype","comments","creator","creationtime",
+						 "permissions"]) # dbid # "modifyuser","modifytime",
+	
+	#publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
+		
+	def __init__(self,d=None,ctx=None, **kwargs):
+		"""Normally the record is created with no parameters, then setContext is called by the
+		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
+		may be done at initiailization time."""
+		kwargs.update(d or {})
+		## recognized keys
+		# recid -- 32 bit integer recordid (within the current database)
+		# rectype -- name of the RecordDef represented by this Record
+		# comments -- a List of comments records
+		# creator -- original creator of the record
+		# creationtime -- creation date
+		# dbid -- dbid where this record resides (any other dbs have clones)
+		# params -- a Dictionary containing field names associated with their data
+		# permissions -- permissions for 
+						# read access, comment write access, full write access, 
+						# and administrative access. Each element is a tuple of 
+						# user names or group id's,
+						# Group -3 includes any logged in user,
+						# Group -4 includes any user (anonymous)
+		
+		self.recid=kwargs.get('recid')
+		self.rectype=kwargs.get('rectype', '')				
+		self.__comments=kwargs.get('comments',[])			
+		self.__creator=kwargs.get('creator',0)
+		self.__creationtime=kwargs.get('creationtime')
+		self.__permissions=kwargs.get('permissions',((),(),(),()))
 
-        self.dbid=kwargs.get('dbid',None)
-        #self.__params=kwargs.get('params',{}).copy()
-        self.__params={}
-        self.__oparams= self.__params.copy()
+		self.dbid=kwargs.get('dbid',None)
+		self.__params={}#kwargs.get('params',{}).copy()
+		for key in set(kwargs.keys())-self.param_special:
+			self.__params[key]=kwargs[key]
 
-        self.__ptest=[1,1,1,1] 
-            # ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
-            # ed: NOTE: should this be passed in the init dictionary? 
-            # Results of security test performed when the context is set
-            # correspond to, read,comment,write and owner permissions, return from setContext
-            
-        self.__context=None # Validated access context 
-        if ctx != None: ctx = ctx  
-        else: ctx = kwargs.get('context')
-        if (ctx!=None): self.setContext(ctx)
+		self.__oparams= self.__params.copy()
 
-        for key in set(kwargs.keys())-self.param_special:
-          print "record init: %s -> %s"%(key,kwargs[key])
-          self[key]=kwargs[key]
+		self.__ptest=[1,1,1,1] 
+			# ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
+			# ed: NOTE: should this be passed in the init dictionary? 
+			# Results of security test performed when the context is set
+			# correspond to, read,comment,write and owner permissions, return from setContext
+			
+		self.__context=None # Validated access context 
+		if ctx != None: ctx = ctx  
+		else: ctx = kwargs.get('context')
+		if (ctx!=None): self.setContext(ctx)
 
-            
-    def validate(self):
+			
+	def validate(self):
 
-        try: 
-            if self.recid != None: int(self.recid)
-        except:
-            raise ValueError,"recid must be positive integer"
-        
-        if str(self.rectype) == "":
-            raise ValueError,"rectype must not be empty"
-        
-        
-        try:
-          self.__permissions = tuple((tuple(i) for i in self.__permissions))
-        except:
-          raise ValueError,"permissions must be 4-tuple of tuples"
-        p=self.__permissions
+		try: 
+			if self.recid != None: int(self.recid)
+		except:
+			raise ValueError,"recid must be positive integer"
+		
+		if str(self.rectype) == "":
+			raise ValueError,"rectype must not be empty"
+		
+		
+		try:
+		  self.__permissions = tuple((tuple(i) for i in self.__permissions))
+		except:
+		  raise ValueError,"permissions must be 4-tuple of tuples"
+		p=self.__permissions
 
-        #for i in p:
-        #    if not isinstance(i,tuple):
-        #        raise ValueError,"permissions must be 4-tuple of tuples"
+		#for i in p:
+		#	if not isinstance(i,tuple):
+		#		raise ValueError,"permissions must be 4-tuple of tuples"
 
 
-        if not self.__context or not self.__context.db:
-            print "Warning: cannot validate params, users, or security: context not set"
-            return
-        else:
-            u=set()
-            users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))        
-            for j in p: u|=set(j)
-            u -= set([0,-1,-2,-3])
-            if u-users:
-                print "Warning: undefined users: %s"%",".join(map(str, u-users))
-            
-            if self.__params.keys():
-                pds=self.__context.db.getparamdefs(self.__params.keys())
-                for i,pd in pds.items():
-                    try:
-                        conv=valid_vartypes[pd.vartype][1](self[i])
-                        self[i]=conv
-                    except:
-                        print "Error converting datatype: %s, %s"%(i,pd.vartype)
-                        #    raise ValueError            
-                
-                    if pd.vartype=="choice":
-                        if self[i].lower() not in [i.lower() for i in pd.choices]:
-                            # ian: should be ValueError
-                            raise ValueError,"%s not in %s"%(record[i],pd.choices)    
+		if not self.__context or not self.__context.db:
+			print "Warning: cannot validate params, users, or security: context not set"
+			return
+		else:
+			u=set()
+			users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))		
+			for j in p: u|=set(j)
+			u -= set([0,-1,-2,-3])
+			if u-users:
+				print "Warning: undefined users: %s"%",".join(map(str, u-users))
+			
+			if self.__params.keys():
+				pds=self.__context.db.getparamdefs(self.__params.keys())
+				for i,pd in pds.items():
+					try:
+						conv=valid_vartypes[pd.vartype][1](self[i])
+						self[i]=conv
+					except:
+						print "Error converting datatype: %s, %s"%(i,pd.vartype)
+						#	raise ValueError			
+				
+					if pd.vartype=="choice":
+						if self[i].lower() not in [i.lower() for i in pd.choices]:
+							# ian: should be ValueError
+							raise ValueError,"%s not in %s"%(record[i],pd.choices)	
 
 
-        cp = self.changedparams()
+		cp = self.changedparams()
 
-        if "recid" in cp:
-            raise ValueError,"Cannot change recid"            
-        if "creator" in cp or "creationtime" in cp:
-            raise ValueError,"Cannot change creation info directly"
-        if "permissions" in cp:
-            self['permissions'] = self.__oparams['permissions']
-        if "comments" in cp:
-            print "Added comment"
-        if "rectype" in cp:
-            raise ValueError,"Cannot change rectype"
-            
+		if "recid" in cp:
+			raise ValueError,"Cannot change recid"			
+		if "creator" in cp or "creationtime" in cp:
+			raise ValueError,"Cannot change creation info directly"
+		if "permissions" in cp:
+			self['permissions'] = self.__oparams['permissions']
+		if "comments" in cp:
+			print "Added comment"
+		if "rectype" in cp:
+			raise ValueError,"Cannot change rectype"
+			
 
-        if not self.__ptest[2]:
-            if cp != ["comments"]:
-                raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
-            if not p[1]:
-                raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
-        
-    #################################        
-    # pickle methods
-    #################################
-    
-    def __getstate__(self):
-        """the context and other session-specific information should not be pickled"""
-        odict = self.__dict__.copy() # copy the dict since we change it
-        if not odict.has_key("localcpy") :
-            try: del odict['_Record__ptest']
-            except: pass
-        
-        try: del odict['_Record__context']
-        except: pass
+		if not self.__ptest[2]:
+			if cp != ["comments"]:
+				raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
+			if not p[1]:
+				raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
+		
+	#################################		
+	# pickle methods
+	#################################
+	
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		if not odict.has_key("localcpy") :
+			try: del odict['_Record__ptest']
+			except: pass
+		
+		try: del odict['_Record__context']
+		except: pass
 
-        return odict
-    
-    def __setstate__(self,dict):
-        """restore unpickled values to defaults after unpickling"""
-            
-        try:
-            p=dict["_Record__params"]
-            dict["_Record__params"]={}
-            for i,j in p.items(): 
-                if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
-        except:
-            traceback.print_exc(file=sys.stdout)
-        dict["rectype"]=dict["rectype"].lower()
-        
-        if dict.has_key("localcpy") :
-            del dict["localcpy"]
-            self.__dict__.update(dict)    
-            self.__ptest=[1,1,1,1]
-        else:
-            self.__dict__.update(dict)    
-            self.__ptest=[0,0,0,0]
-        
-        self.__context=None
+		return odict
+	
+	def __setstate__(self,dict):
+		"""restore unpickled values to defaults after unpickling"""
+			
+		try:
+			p=dict["_Record__params"]
+			dict["_Record__params"]={}
+			for i,j in p.items(): 
+				if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
+		except:
+			traceback.print_exc(file=sys.stdout)
+		dict["rectype"]=dict["rectype"].lower()
+		
+		if dict.has_key("localcpy") :
+			del dict["localcpy"]
+			self.__dict__.update(dict)	
+			self.__ptest=[1,1,1,1]
+		else:
+			self.__dict__.update(dict)	
+			self.__ptest=[0,0,0,0]
+		
+		self.__context=None
 
-    
-    
-    #################################        
-    # repr methods
-    #################################
-    
-    def __unicode__(self):
-        "A string representation of the record"
-        ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
-        for i,j in self.items(): 
-            ret.append(u"%12s:  %s\n"%(str(i),unicode(j)))
-        return u"".join(ret)
-    
-    def __str__(self):
-        return self.__unicode__().encode('utf-8')
+	
+	
+	#################################		
+	# repr methods
+	#################################
+	
+	def __unicode__(self):
+		"A string representation of the record"
+		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
+		for i,j in self.items(): 
+			ret.append(u"%12s:  %s\n"%(str(i),unicode(j)))
+		return u"".join(ret)
+	
+	def __str__(self):
+		return self.__unicode__().encode('utf-8')
 
-    def __repr__(self):
-        return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
-        
+	def __repr__(self):
+		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
+		
 
-    #################################        
-    # mapping methods; 
-    #        DictMixin provides the remainder
-    #################################
-    
-    def __getitem__(self,key):
-        """Behavior is to return None for undefined params, None is also
-        the default value for existant, but undefined params, which will be
-        treated identically"""
-        #if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
-                
-        key = key.encode('utf-8', 'replace').strip().lower()
-        result = None
-        if key=="comments" : result = self.__comments
-        elif key=="recid" : result = self.recid
-        elif key=="rectype" : result = self.rectype
-        elif key=="creator" : result = self.__creator
-        elif key=="creationtime" : result = self.__creationtime
-        elif key=="permissions" : result = self.__permissions
-        else: result = self.__params.get(key)
-        #g.debug.msg('LOG_DEBUG', key, repr(result))
-        return result
+	#################################		
+	# mapping methods; 
+	#		DictMixin provides the remainder
+	#################################
+	
+	def __getitem__(self,key):
+		"""Behavior is to return None for undefined params, None is also
+		the default value for existant, but undefined params, which will be
+		treated identically"""
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
+				
+		key = key.encode('utf-8', 'replace').strip().lower()
+		result = None
+		if key=="comments" : result = self.__comments
+		elif key=="recid" : result = self.recid
+		elif key=="rectype" : result = self.rectype
+		elif key=="creator" : result = self.__creator
+		elif key=="creationtime" : result = self.__creationtime
+		elif key=="permissions" : result = self.__permissions
+		else: result = self.__params.get(key)
+		#g.debug.msg('LOG_DEBUG', key, repr(result))
+		return result
 
-    def __setitem__(self,key,value):
-        """This and 'update' are the primary mechanisms for modifying the params in a record
-        Changes are not written to the database until the commit() method is called!"""
-        # comments may include embedded field values if the user has full write access
+	def __setitem__(self,key,value):
+		"""This and 'update' are the primary mechanisms for modifying the params in a record
+		Changes are not written to the database until the commit() method is called!"""
+		# comments may include embedded field values if the user has full write access
 
-        #if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
-        key = str(key).strip().lower()
+		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		key = str(key).strip().lower()
 
-        try:
-            valuelower = value.lower()
-        except:
-            valuelower = ""
-        
-        if value==None or valuelower=="none" : 
-            value = None
+		try:
+			valuelower = value.lower()
+		except:
+			valuelower = ""
+		
+		if value==None or valuelower=="none" : 
+			value = None
 
-        if key!="comments" and not self.__oparams.has_key(key):
-            self.__oparams[key]=self[key]
+		if key!="comments" and not self.__oparams.has_key(key):
+			self.__oparams[key]=self[key]
 
-        if key not in self.param_special:
-            self.__params[key]=value
+		if key not in self.param_special:
+			self.__params[key]=value
 
-        elif key=="comments":
-            self.addcomment(value)
-        
-        elif key == 'permissions':
-            self.__permissions = tuple([ tuple(set(x) | set(y))  for (x,y) in zip(value, self.__permissions)])
+		elif key=="comments":
+			self.addcomment(value)
+		
+		elif key == 'permissions':
+			self.__permissions = tuple([ tuple(set(x) | set(y))  for (x,y) in zip(value, self.__permissions)])
 
-    def __delitem__(self,key):
-        
-        #if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
-        key = str(key).strip().lower()
+	def __delitem__(self,key):
+		
+		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		key = str(key).strip().lower()
 
-        if key not in self.param_special and self.__params.has_key(key):
-            self.__setitem__(key,None)
-        else:
-            raise KeyError,"Cannot delete key %s"%key    
+		if key not in self.param_special and self.__params.has_key(key):
+			self.__setitem__(key,None)
+		else:
+			raise KeyError,"Cannot delete key %s"%key	
 
-    def keys(self):
-        """All retrievable keys for this record"""
-        #if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid        
-        return tuple(self.__params.keys())+tuple(self.param_special)
-        
-    def has_key(self,key):
-        if str(key).strip().lower() in self.keys(): return True
-        return False
-    
-    def get(self, key, default=None):
-        return DictMixin.get(self, key) or default
+	def keys(self):
+		"""All retrievable keys for this record"""
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
+		return tuple(self.__params.keys())+tuple(self.param_special)
+		
+	def has_key(self,key):
+		if str(key).strip().lower() in self.keys(): return True
+		return False
+	
+	def get(self, key, default=None):
+		return DictMixin.get(self, key) or default
 
-    #################################        
-    # record methods
-    #################################
+	#################################		
+	# record methods
+	#################################
 
-    def addcomment(self, value):
-        if not isinstance(value,basestring):
-            print "Warning: invalid comment"
-            return
-        #print "Updating comments: %s"%value
-        d=parseparmvalues(value,noempty=1)[1]
-        if d.has_key("comments"):
-            print "Warning: cannot set comments inside a comment"            
-        self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))    # store the comment string itself        
-        # now update the values of any embedded params
-        for i,j in d.items():
-            self.__setitem__(i,j)
+	def addcomment(self, value):
+		if not isinstance(value,basestring):
+			print "Warning: invalid comment"
+			return
+		#print "Updating comments: %s"%value
+		d=parseparmvalues(value,noempty=1)[1]
+		if d.has_key("comments"):
+			print "Warning: cannot set comments inside a comment"			
+		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+		# now update the values of any embedded params
+		for i,j in d.items():
+			self.__setitem__(i,j)
 
-    def getparamkeys(self):
-        """Returns parameter keys without special values like owner, creator, etc."""
-        return self.__params.keys()        
-        
+	def getparamkeys(self):
+		"""Returns parameter keys without special values like owner, creator, etc."""
+		return self.__params.keys()		
+		
 
-    def changedparams(self):
-        cp = set()
+	def changedparams(self):
+		cp = set()
 
-#        for k in set(self.getparamkeys()) | set(self.__oparams.keys()) - (self.param_special - set(["comments"])):
-#            if not self.__oparams.has_key(k) or not self.has_key(k):
-#                cp.add(k)
-#            elif self.__oparams[k] != self[k]:
-#                cp.add(k)
+#		for k in set(self.getparamkeys()) | set(self.__oparams.keys()) - (self.param_special - set(["comments"])):
+#			if not self.__oparams.has_key(k) or not self.has_key(k):
+#				cp.add(k)
+#			elif self.__oparams[k] != self[k]:
+#				cp.add(k)
 
-        for k,v in self.items():
-            if k not in (self.param_special-set(["comments"])) and v != self.__oparams.get(k,None):
-                cp.add(k)
+		for k,v in self.items():
+			if k not in (self.param_special-set(["comments"])) and v != self.__oparams.get(k,None):
+				cp.add(k)
 
-        return cp        
+		return cp		
 
 
-    
-    # ian: hard coded groups here need to be in sync with the various check*ctx methods.
+	
+	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
 
-    def setContext(self,ctx):
-        """This method may ONLY be used directly by the Database class. Constructing your
-        own context will not work    to see if a ctx(a user context) has the permission to access/write to this record
-        """
-        #self.__context__=ctx
-        self.__context = ctx
-        
-        if self.__creator==0:
-            self.__creator=ctx.user
-            self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
-            self.__permissions=((),(),(),(ctx.user,))
-        
-        # test for owner access in this context.
-        if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
-        else:
-            # we use the sets module to do intersections in group membership
-            # note that an empty set tests false, so u1&p1 will be false if
-            # there is no intersection between the 2 sets
-            p1=set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-            p2=set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-            p3=set(self.__permissions[2]+self.__permissions[3])
-            p4=set(self.__permissions[3])
-            u1=set(ctx.groups+[-4])                # all users are permitted group -4 access
-            
-            if ctx.user!=None : u1.add(-3)        # all logged in users are permitted group -3 access
-            
-            # test for read permission in this context
-            if (-2 in u1 or ctx.user in p1 or u1&p1) : self.__ptest[0]=1
-    
-            # test for comment write permission in this context
-            if (ctx.user in p2 or u1&p2): self.__ptest[1]=1
-                        
-            # test for general write permission in this context
-            if (ctx.user in p3 or u1&p3) : self.__ptest[2]=1
-            
-            # test for administrative permission in this context
-            if (ctx.user in p4 or u1&p4) : self.__ptest[3]=1
-        
-        return self.__ptest
-        
-        
-    # from items_dict    
-    
-    def fromdict(self,d):
-        if d.has_key("comments"):
-            self.__comments=d["comments"]
-            del d["comments"]
-        for k,v in d.items():
-            #print "setting %s = %s"%(k,v)
-            self[k]=v
-        # generally there will be no context set at this point; validation is short form
-        # ed: no validation here!!! 
-        # self.validate()        
-    
-    def items_dict(self):
-        """Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
-        #if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid        
-        ret={}
-        ret.update(self.__params)
-        for i in self.param_special:
-            try:
-                ret[i]=self[i]
-            except:
-                pass
-        return ret
+	def setContext(self,ctx):
+		"""This method may ONLY be used directly by the Database class. Constructing your
+		own context will not work	to see if a ctx(a user context) has the permission to access/write to this record
+		"""
+		#self.__context__=ctx
+		self.__context = ctx
+		
+		if self.__creator==0:
+			self.__creator=ctx.user
+			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			self.__permissions=((),(),(),(ctx.user,))
+		
+		# test for owner access in this context.
+		if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
+		else:
+			# we use the sets module to do intersections in group membership
+			# note that an empty set tests false, so u1&p1 will be false if
+			# there is no intersection between the 2 sets
+			p1=set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p2=set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
+			p3=set(self.__permissions[2]+self.__permissions[3])
+			p4=set(self.__permissions[3])
+			u1=set(ctx.groups+[-4])				# all users are permitted group -4 access
+			
+			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
+			
+			# test for read permission in this context
+			if (-2 in u1 or ctx.user in p1 or u1&p1) : self.__ptest[0]=1
+	
+			# test for comment write permission in this context
+			if (ctx.user in p2 or u1&p2): self.__ptest[1]=1
+						
+			# test for general write permission in this context
+			if (ctx.user in p3 or u1&p3) : self.__ptest[2]=1
+			
+			# test for administrative permission in this context
+			if (ctx.user in p4 or u1&p4) : self.__ptest[3]=1
+		
+		return self.__ptest
+		
+		
+	# from items_dict	
+	
+	def fromdict(self,d):
+		if d.has_key("comments"):
+			self.__comments=d["comments"]
+			del d["comments"]
+		for k,v in d.items():
+			#print "setting %s = %s"%(k,v)
+			self[k]=v
+		# generally there will be no context set at this point; validation is short form
+		# ed: no validation here!!! 
+		# self.validate()		
+	
+	def items_dict(self):
+		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
+		ret={}
+		ret.update(self.__params)
+		for i in self.param_special:
+			try:
+				ret[i]=self[i]
+			except:
+				pass
+		return ret
 
-    def commit(self,host=None):
-        """This will commit any changes back to permanent storage in the database, until
-        this is called, all changes are temporary. host must match the context host or the
-        putrecord will fail"""
-        return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
+	def commit(self,host=None):
+		"""This will commit any changes back to permanent storage in the database, until
+		this is called, all changes are temporary. host must match the context host or the
+		putrecord will fail"""
+		return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
 
-    def setoparams(self,d):
-        self.__oparams=d.copy()
+	def setoparams(self,d):
+		self.__oparams=d.copy()
 
-    def isowner(self):
-        return self.__ptest[3]    
+	def isowner(self):
+		return self.__ptest[3]	
 
-    def writable(self):
-        """Returns whether this record can be written using the given context"""
-        return self.__ptest[2]
-        
+	def writable(self):
+		"""Returns whether this record can be written using the given context"""
+		return self.__ptest[2]
+		
 
-    def commentable(self):
-        """Does user have level 1 permissions? Required to comment or link."""
-        return self.__ptest[1]    
+	def commentable(self):
+		"""Does user have level 1 permissions? Required to comment or link."""
+		return self.__ptest[1]	
 
-    #################################        
-    # validation methods
-    #################################
-
+	#################################		
+	# validation methods
+	#################################

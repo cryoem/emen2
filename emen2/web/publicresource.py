@@ -1,30 +1,24 @@
 from __future__ import with_statement
-#import sys
-import sys
-import cgitb
-from urllib import quote
-from emen2 import Database
-from emen2 import ts
+from emen2 import Database, ts
 from emen2.subsystems import routing, auth
-try:
-	set
-except:
-	from sets import Set as set
+from emen2.util import listops
 from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
+from urllib import quote
+import demjson
+import emen2.globalns
 import re
-from emen2.util import listops
-
 import time
 
-import emen2.globalns
+try: set
+except:
+	from sets import Set as set
+
 g = emen2.globalns.GlobalNamespace('')
 
-import demjson
-g.debug.add_output('LOG_DEBUG', file(g.LOGROOT+'/pbresource.log','a'))
-g.debug('test')
 class PublicView(Resource):
+
 	isLeaf = True
 	router = routing.URLRegistry()
 	
@@ -34,19 +28,22 @@ class PublicView(Resource):
 	def __parse_args(self, args):
 		"""Break the request.args dict into something more usable
 		
-		This algorithm takes the list of keys and removes sensitive info, and other stuff that is
-		passed in auto-magically and then groups all the params which end in _<number>
-		together as a list.
+		This algorithm takes the list of keys and removes sensitive info, and 
+		other stuff that is passed in auto-magically decodes any params that end 
+		in _json with demjson and then groups all the params which end in 
+		_<number> together as a list.
 		
-		NOTE: we should probably make sure that the _## parameters have sequential numbers
+		NOTE: we should probably make sure that the _## parameters have 
+		      sequential numbers
 		"""
 		result = {}
-		sdict = {}   
 		def setitem(name, val):
 			result[name] = val
 		
-		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
+		for key in set(args.keys()) - set(["db","host","user","ctxid", 
+										   "username", "pw"]):
 			name, _, val = key.rpartition('_')
+			sdict = {}   
 			if val.isdigit():
 				res = result.get(name, [])
 				res.append(args[key][0])
@@ -57,37 +54,34 @@ class PublicView(Resource):
 				else: result[name] = value
 			else:
 				result[key] = args[key][0]
-				
-		result.update(sdict)
+			result.update(sdict)
 		return result
-	   
+	
 	def __parse_jsonargs(self,content):
+		'decode a json string'
 		ret={}
 		try:
-			# accept json dicts to pass to methods. 
 			z=demjson.decode(content)
-			for key in set(z.keys()) - set(["db","host","user","ctxid"]): #, "username", "pw"
+			for key in set(z.keys()) - set(["db","host","user","ctxid", 
+										    "username", "pw"]):
 				ret[str(key)]=z[key]
 		except: pass	  
 		return ret
 	
+	
 	@classmethod
 	def __registerurl(cls, name, match, cb):
-			'''register a callback to handle a urls 
-			
-			match is a compiled regex'''
+			'register a callback to handle a urls match is a compiled regex'
 			result = routing.URL(name, match, cb)
 			cls.router.register(result)
 			return result
 	
+	redirects = {}
 	@classmethod
-	def getredirect(cls, name):
-		return cls.redirects.get(name, False)
-	
+	def getredirect(cls, name): return cls.redirects.get(name, False)
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
 		cls.redirects[fro] = cls.router.reverselookup(to, *args, **kwargs)
-	redirects = {}
 	
 	@classmethod
 	def register_url(cls, name, match, prnt=True):
@@ -108,20 +102,21 @@ class PublicView(Resource):
 			return cb
 		return _reg_inside
 	
-	@g.debug.debug_func
-	def parse_uri(self, uri):
-		url, _, qs = uri.partition('?')
-		return [url, qs]
+	def parse_uri(self, uri): 
+		base, _, qs = uri.partition('?')
+		return base, qs
 	
-	def __authenticate(self, request, ctxid, host, args, router, target):
-		authen = auth.Authenticator(db=ts.db, host=host)
-		##get request ctxid if any
+	def __authenticate(self, db, request, ctxid, host, args, router, target):
+		'authenticate a user'
+		authen = auth.Authenticator(db=db, host=host)
+		## if the browser has a ctxid cookie, get it
 		ctxid = request.getCookie("ctxid")
-		##get request username if any
+		## if the user requested to be logged in as a particular user
+		## get the username and the password
 		username = args.get('username', [''])[0]
-		##get request password if any
 		pw = request.args.get('pw', [''])[0]
-		##do login,
+		## check credentials
+		## if username is not associated with the ctxid passed, log user in
 		authen.authenticate(username, pw, ctxid)
 		ctxid, un = authen.get_auth_info()
 		if username and un != username:
@@ -135,7 +130,7 @@ class PublicView(Resource):
 
 	def __getredirect(self, request, path):
 		target = None
-	   
+		
 		if not bool(request.postpath):
 			url, qs = self.parse_uri(request.uri)
 			url = str.join('', (url, 'home/'))
@@ -154,6 +149,10 @@ class PublicView(Resource):
 		
 		return target
 	
+	def finish_request(self, db, request):
+		db.close()
+		request.finish()
+	
 	def render(self, request):
 		ctxid, host = None, request.getClientIP()
 		args = request.args
@@ -161,7 +160,8 @@ class PublicView(Resource):
 		request.postpath = filter(bool, request.postpath)
 		
 		router=self.router
-		make_callback = lambda string: (lambda *x, **y: string)
+		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
+		db = Database.Database(g.EMEN2DBPATH)
 		try:
 			# redirect special urls
 			if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
@@ -175,7 +175,10 @@ class PublicView(Resource):
 			method = listops.get(request.postpath, 0, '')
 			callback, msg = make_callback(''), ''
 			
-			ctxid, target, authen = self.__authenticate(request, ctxid, host, args, router, target)
+			
+			ctxid, target, authen = self.__authenticate(db, request, ctxid, 
+													    host, args, router, 
+													    target)
 			
 			# redirect must occur after authentication so the
 			# ctxid cookie can be sent to the browser on a  
@@ -190,77 +193,67 @@ class PublicView(Resource):
 			tmp = self.__parse_args(args)
 			if method == "logout":
 				authen.logout(ctxid)
-				callback = make_callback(redirectTo('/db/home/', request))
+				return redirectTo('/db/home/', request).encode('utf-8')
 			elif method == "login":
 				callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
 				callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
 				return str(callback)
 			else:
-				callback = routing.URLRegistry().execute(path, **tmp)
+				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, db=db, **tmp)()
 
-			d = threads.deferToThread(callback, ctxid=ctxid, host=host)
-			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
-			d.addErrback(self._ebRender, request, ctxid)
+			d = threads.deferToThread(list, callback)
+			d.addCallback(self._cbsuccess, request, db, ctxid)
+
+			d.addErrback(self._ebRender, request, db, ctxid)
 	
 			return server.NOT_DONE_YET
 		
 		except Exception, e:
-			self._ebRender(e, request, ctxid)
+			self._ebRender(e, request, db, ctxid)
 	
-	def _cbsuccess(self, result, request, ctxid, t=0):
+	def _cbsuccess(self, result, request, db, ctxid):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
-
-		print "::: time 1 ---- %s"%(time.time()-t)
-		t1=time.time()
-
-		def set_headers(headers):
-			for key in headers:
-				request.setHeader(key, headers[key])
-	   
- 
-		#g.debug('RESULT:: %s' % (type(result)))
 		try:
-			result, mime_type = result
-		except ValueError:
-			mime_type = 'text/html; charset=utf-8'
-
-		if mime_type.split('/')[0] == 'text':
-			if type(result) != unicode:
-				result = unicode(result)
-			result = result.encode('utf-8')
-		else:
-			result = str(result)
-
-		headers = {"content-type": mime_type,
-				   "content-length": str(len(result)),
-				   "Cache-Control":"no-cache",
-				   "Pragma":"no-cache"}
-
-		set_headers(headers)
-		request.write(result)
-		request.finish()
+#			print "::: time 1 ---- %s"%(time.time()-t)
+			t1=time.time()
+			headers = {"content-type": "text/html; charset=utf-8",
+					   "Cache-Control":"no-cache", "Pragma":"no-cache"}
+	
+			request.setResponseCode(200)
+			[request.setHeader(key, headers[key]) for key in headers]
+			try: 
+				result, content_headers = result
+				headers['content_type'] = content_headers
+			except ValueError: pass
+			headers['content-length'] = len(result)
+	
 		
-		print "::: time 2 ---- %s"%(time.time()-t1)
+			request.write(unicode(result).encode('utf-8'))
+#			print "::: time 2 ---- %s"%(time.time()-t1)
+		finally: self.finish_request(db, request)
 		
-	def _ebRender(self, failure, request, ctxid):
-		g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
-		g.debug.msg(g.LOG_ERR, failure)
-		g.debug.msg(g.LOG_ERR, '---------------------------------')
-		request.setResponseCode(500)
 		
+	def _ebRender(self, failure, request, db, ctxid):
 		try:
-		  if isinstance(failure, BaseException): raise failure
-		  else: failure.raiseException()
-		except (Database.SecurityError, Database.SessionError), inst:
-		  uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-		  args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
-					  ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
-					 )
-		  args = ( str.join('=', elem) for elem in args )
-		  args = str.join('&', args)
-		  uri = str.join('?', (uri,args))
-		  request.write(redirectTo(uri, request).encode("utf-8"))
-		except Exception, e:
-		  request.write(g.templates.handle_error(e).encode("utf-8"))
+			g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
+			g.debug.msg(g.LOG_ERR, failure)
+			g.debug.msg(g.LOG_ERR, '---------------------------------')
+			request.setResponseCode(500)
+			
+			try:
+				if isinstance(failure, BaseException): raise
+				else: failure.raiseException()
+			except (Database.SecurityError, Database.SessionError):
+				uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
+				args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
+							  ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
+							 )
+				args = ( str.join('=', elem) for elem in args )
+				args = str.join('&', args)
+				uri = str.join('?', (uri,args))
+				request.write(redirectTo(uri, request).encode("utf-8"))
+	
+			except Exception, e:
+				request.write(g.templates.handle_error(e).encode('utf-8'))
+		finally: self.finish_request(db, request)
 
-		request.finish()
