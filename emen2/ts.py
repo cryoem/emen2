@@ -5,16 +5,17 @@
 # have a limited lifespan
 
 #from twisted.web.resource import Resource
-from emen2 import Database
+from emen2 import DBProxy, Database
 from emen2.emen2config import *
-from emen2 import DBProxy
-
-import atexit
-
-from twisted.internet import reactor
-
-import threading
+from twisted.internet import defer, reactor, threads, reactor
+from twisted.python import log, runtime, context, threadpool
 import Queue
+import atexit
+import threading
+import time
+
+
+
 
 db=None
 DB=Database 
@@ -72,9 +73,6 @@ def startup(path):
 #######################
 
 
-from twisted.python import threadpool
-from twisted.internet import defer, reactor, threads
-from twisted.python import log, runtime, context
 
 
 class newThreadPool(threadpool.ThreadPool):
@@ -113,14 +111,16 @@ class newThreadPool(threadpool.ThreadPool):
 #							print "btrees: %s"%len(DB.BTree.alltrees)
 #							print "intbtrees: %s"%len(DB.IntBTree.alltrees)
 #							print "fieldbtrees: %s"%len(DB.FieldBTree.alltrees)
-							
+							t1 = time.time(); g.debug.msg('LOG_INFO', '---Time 1 :: %r' % t1)
 							ctx, function, args, kwargs = o
 							try:
 									# add DB arg to all deferred calls
-									args[3]['db']=db
+									#args[3]['db']=db
 									context.call(ctx, function, *args, **kwargs)
 							except:
 									context.call(ctx, log.deferr)
+							t2 = time.time(); g.debug.msg('LOG_INFO', '---Time 2 :: %r' % t2)
+							g.debug.msg('LOG_INFO', 'Total Time (t2-t1) == %r' % (t2-t1))
 							self.working.remove(ct)
 							del o, ctx, function, args, kwargs
 					self.waiters.append(ct)
