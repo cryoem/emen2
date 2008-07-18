@@ -1434,25 +1434,26 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				if (recurse<0): return set()
 				if keytype=="record" : 
-						trg=self.__records
-						if not self.trygetrecord(key,ctxid,host=host) : return set()
+					trg=self.__records
+					if not self.trygetrecord(key,ctxid,host=host) : return set()
 				elif keytype=="recorddef" : 
-						key=str(key).lower()
-						trg=self.__recorddefs
-						try: a=self.getrecorddef(key,ctxid)
-						except: return set()
+					key=str(key).lower()
+					trg=self.__recorddefs
+					try: a=self.getrecorddef(key,ctxid)
+					except: return set()
 				elif keytype=="paramdef":
-						key=str(key).lower()
-						trg=self.__paramdefs
+					key=str(key).lower()
+					trg=self.__paramdefs
 				else:
-						raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+					raise Exception,"getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 				ret=trg.children(key)
 				out = []
 				for x in xrange(recurse):
-						for k in ret.copy():
-								out.append(k)
-								out.extend(trg.children(k))
+					for k in ret.copy():
+						out.append(k)
+						out.extend(x for x in trg.children(k) if 
+								   self.trygetrecord(x,ctxid,host))
 				return (set(out) if out != [] else ret) 
 				
 #
@@ -1479,8 +1480,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 #					for i in r.values():
 #							ret |= i
 #					return ret
-
-
+					
+					
+				
 				
 		# ian todo: make ctxid req'd
 		def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
@@ -1509,10 +1511,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				if recurse==0: return set(ret)
 				
-				r2=[]
+				r2=set([])
 				for i in ret:
-						r2+=self.getparents(i,keytype,recurse-1,ctxid,host=host)
-				return set(ret+r2)
+					r2.update(self.getparents(i,keytype,recurse-1,ctxid,host=host))
+				return set(r2)
 
 
 
