@@ -149,9 +149,7 @@ class PublicView(Resource):
 		
 		return target
 	
-	def finish_request(self, db, request):
-		db.close()
-		request.finish()
+	def finish_request(self, request): request.finish()
 	
 	def render(self, request):
 		ctxid, host = None, request.getClientIP()
@@ -161,7 +159,6 @@ class PublicView(Resource):
 		
 		router=self.router
 		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
-		db = Database.Database(g.EMEN2DBPATH)
 		try:
 			# redirect special urls
 			if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
@@ -176,7 +173,7 @@ class PublicView(Resource):
 			callback, msg = make_callback(''), ''
 			
 			
-			ctxid, target, authen = self.__authenticate(db, request, ctxid, 
+			ctxid, target, authen = self.__authenticate(ts.db, request, ctxid, 
 													    host, args, router, 
 													    target)
 			
@@ -199,19 +196,25 @@ class PublicView(Resource):
 				callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
 				return str(callback)
 			else:
-				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, db=db, **tmp)()
+				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **tmp)
+				
+			def batch(*args, **kwargs):
+				'''
+				 helper function for batching... 
+				 returns a list (result, mime-type)
+				'''
+				return list(callback(*args, **kwargs))
 
-			d = threads.deferToThread(list, callback)
-			d.addCallback(self._cbsuccess, request, db, ctxid)
-
-			d.addErrback(self._ebRender, request, db, ctxid)
+			d = threads.deferToThread(batch)
+			d.addCallback(self._cbsuccess, request, ctxid)
+			d.addErrback(self._ebRender, request, ctxid)
 	
 			return server.NOT_DONE_YET
 		
 		except Exception, e:
-			self._ebRender(e, request, db, ctxid)
+			self._ebRender(e, request, ctxid)
 	
-	def _cbsuccess(self, result, request, db, ctxid):#, t=0):
+	def _cbsuccess(self, result, request, ctxid):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
 		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
@@ -230,10 +233,10 @@ class PublicView(Resource):
 		
 			request.write(unicode(result).encode('utf-8'))
 #			print "::: time 2 ---- %s"%(time.time()-t1)
-		finally: self.finish_request(db, request)
+		finally: self.finish_request(request)
 		
 		
-	def _ebRender(self, failure, request, db, ctxid):
+	def _ebRender(self, failure, request, ctxid):
 		try:
 			g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
 			g.debug.msg(g.LOG_ERR, failure)
@@ -255,5 +258,5 @@ class PublicView(Resource):
 	
 			except Exception, e:
 				request.write(g.templates.handle_error(e).encode('utf-8'))
-		finally: self.finish_request(db, request)
+		finally: self.finish_request(request)
 

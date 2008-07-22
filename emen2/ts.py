@@ -17,12 +17,11 @@ import time
 
 
 
-db=None
 DB=Database 
 
 def startup(path):
 	global db
-	db=Database.Database(g.EMEN2DBPATH)
+db=Database.Database(g.EMEN2DBPATH)
 	
 
 #######################
@@ -80,7 +79,7 @@ class newThreadPool(threadpool.ThreadPool):
 	def startAWorker(self):
 #		print "started twisted thread (newThreadPool)..."
 #		print "\tworker count: %s"%self.workers
-#		self.db = Database.Database(EMEN2DBPATH)
+		self.db = Database.Database(g.EMEN2DBPATH)
 #		self.db = db
 
 		self.workers = self.workers + 1
@@ -91,12 +90,12 @@ class newThreadPool(threadpool.ThreadPool):
 				firstJob = None
 				
 #		print "initializing thread."		
-		newThread = threading.Thread(target=self._worker, args=(firstJob,))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,db))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
-	def _worker(self, o):		
+	def _worker(self, o, db):		
 			ct = threading.currentThread()
 			while 1:
 					if o is threadpool.WorkerStop:
@@ -115,7 +114,7 @@ class newThreadPool(threadpool.ThreadPool):
 							ctx, function, args, kwargs = o
 							try:
 									# add DB arg to all deferred calls
-									#args[3]['db']=db
+									args[3]['db']=db
 									context.call(ctx, function, *args, **kwargs)
 							except:
 									context.call(ctx, log.deferr)
