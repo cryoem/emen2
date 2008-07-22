@@ -4039,17 +4039,14 @@ or None if no match is found."""
 
 		#@write,admin
 		def close(self):
-				"disabled at the moment"
-				if self.__allowclose == True:
-						for btree in self.__dict__.values():
-								if getattr(btree, '__class__', object).__name__.endswith('BTree'):
-										try:
-												btree.close()
-										except db.InvalidArgError, e:
-												print e
-						for btree in self.__fieldindex.values():
-								btree.close()
-						self.__dbenv.close()
+			"disabled at the moment"
+			if self.__allowclose == True:
+				for btree in self.__dict__.values():
+					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
+						try: btree.close()
+						except db.InvalidArgError, e: print e
+					for btree in self.__fieldindex.values(): btree.close()
+					self.__dbenv.close()
 #				 pass
 #				 print self.__btreelist
 #				 self.__btreelist.extend(self.__fieldindex.values())
