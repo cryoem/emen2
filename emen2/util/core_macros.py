@@ -22,7 +22,7 @@ def isofrecdef(engine, db, recid, recdef, rinfo):
 @add_macro('childcount')
 def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
 	recid = rec['recid']
-	key = engine.get_cache_key(recid)
+	key = engine.get_cache_key('ccount',recid)
 	res = engine.check_cache(key)
 	hit, groups = res or (False, {})
 	if hit is False:
