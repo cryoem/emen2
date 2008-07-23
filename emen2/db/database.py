@@ -2756,8 +2756,30 @@ or None if no match is found."""
 				self.putrecord(rec,ctxid)
 				return self.getrecord(recid,ctxid)["comments"]
 				
-		def getuserdisplayname(self,username,ctxid,lnf=0,host=None):
+		def getuserdisplayname(self,username,ctxid,lnf=1,host=None):
 				"""Return the full name of a user from the user record."""
+
+				if isinstance(username,int):
+					username=self.getrecord(username,ctxid)
+				if isinstance(username,Record):
+
+					namestoget=set()
+					namestoget |= set([username["creator"]])
+					paramdefs=self.getparamdefs(username.getparamkeys())
+					
+					for k in username.getparamkeys():
+						if paramdefs[k].vartype == "user":
+							namestoget |= set([username[k]])
+						if paramdefs[k].vartype == "userlist":
+							namestoget |= set(username[k])
+					for k in username["comments"]:
+						namestoget |= set([k[0]])
+
+					# add flattened permissions list
+					namestoget |= set(sum(list(username["permissions"]), ()))
+					return self.getuserdisplayname(namestoget,ctxid,lnf=lnf)
+					#displaynames=self.db.getuserdisplayname(namestoget,self.ctxid,lnf=1)					
+					
 
 				if hasattr(username,"__iter__"):
 						ret={}
@@ -2771,7 +2793,7 @@ or None if no match is found."""
 						return "(%s)"%username
 												
 				if u["name_first"] and u["name_middle"] and u["name_last"]:
-						if lnf:		 uname="%s, %s %s"%(u["name_last"], u["name_middle"], u["name_last"])
+						if lnf:		 uname="%s, %s %s"%(u["name_last"], u["name_first"], u["name_middle"])
 						else:		 uname="%s %s %s"%(u["name_first"],u["name_middle"],u["name_last"])
 		
 				elif u["name_first"] and u["name_last"]:

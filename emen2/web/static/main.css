@@ -1,22 +1,116 @@
+.widget ul {
+	list-style:none;
+	margin:0px;
+	padding:0px;
+}
+
 #permissions {
 }
 
 .user {
 	font-size:10pt;
-	float:left;
-	margin:2px;
-	padding:2px;
+	margin:0px;
+	padding:0px;
+	margin-right:5px;
+	margin-top:5px;
 }
 
+.user_removed {
+	clear:both;
+}
+.user_removed .user {
+	float:left;
+}
+.user_level ul {
+	list-style:none;
+	padding:0px;
+	margin:0px;
+	margin-right:6px;
+	min-height:100px;
+	max-height:400px;
+	overflow:auto;
+	width:18boo	0px;
+}
+.user_level ul li {
+	padding:0px;
+	margin:0px;
+	margin-right:5px;
+	margin-top:5px;
+}
 .user .action {
-	background:red;
+	background:#BBD9EE;
 	padding:2px;
-	border:solid red 1px;
+	border:solid #BBD9EE 1px;
+	display:block;
+	float:left;
 }
 .user .name {
+	display:block;
+	float:left;
+	min-width:130px;
 	padding:2px;
+	padding-left:4px;
+	padding-right:6px;
+	border:solid #BBD9EE 1px;
+	background:white;
+}
+.changed .action {
+	background: #FF8135;
+	border:solid #FF8135 1px;
+}
+.changed .name {
+	border:solid #FF8135 1px;
+}
+.removed .action {
+	background: red;
 	border:solid red 1px;
 }
+.removed .name {
+	border:solid red 1px;
+}
+
+.user_level {
+	float:left;
+	margin-top:4px;
+	padding-top:4px;
+	padding-bottom:4px;
+}
+
+.user_outer {
+	margin-top:5px;
+}
+
+.user_add {
+	width:586px;
+	border:solid 2px #BBD9EE; 
+	padding:5px;
+	background:white;
+}
+
+.inherittable {
+	width:600px;
+}
+.inherittable th {
+	background:#BBD9EE;
+	padding:4px;
+	font-size:10pt;
+	border-right:solid 2px white;
+}
+.inherittable td {
+	background:white;	
+}
+.inherittable td:first-child {
+	border-left:solid 2px #BBD9EE;
+}
+.inherittable td:last-child {
+	border-right:solid 2px #BBD9EE;
+}
+.inherittable tbody tr:last-child td {
+	border-bottom:solid 2px #BBD9EE;
+}
+
+
+/* ------------------------------ */
 
 .ptest {
 	border:solid 1px green;
@@ -1099,4 +1193,15 @@ li.sidebar_box {
 	-webkit-border-radius:20px;
 }
 
+/* top left */
+.inherittable th:first-child {
+	-webkit-border-top-left-radius:8px;
+	-moz-border-radius-topleft:8px;
+}
 
+/* top right */
+.inherittable th:last-child {
+	-webkit-border-top-right-radius:8px;
+	-moz-border-radius-topright:8px;
+	border-right:none;
+}

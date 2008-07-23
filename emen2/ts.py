@@ -110,7 +110,8 @@ class newThreadPool(threadpool.ThreadPool):
 #							print "btrees: %s"%len(DB.BTree.alltrees)
 #							print "intbtrees: %s"%len(DB.IntBTree.alltrees)
 #							print "fieldbtrees: %s"%len(DB.FieldBTree.alltrees)
-							t1 = time.time(); g.debug.msg('LOG_INFO', '---Time 1 :: %r' % t1)
+#							t1 = time.time(); g.debug.msg('LOG_INFO', '---Time 1 :: %r' % t1)
+							t1=time.time()
 							ctx, function, args, kwargs = o
 							try:
 									# add DB arg to all deferred calls
@@ -118,8 +119,9 @@ class newThreadPool(threadpool.ThreadPool):
 									context.call(ctx, function, *args, **kwargs)
 							except:
 									context.call(ctx, log.deferr)
-							t2 = time.time(); g.debug.msg('LOG_INFO', '---Time 2 :: %r' % t2)
-							g.debug.msg('LOG_INFO', 'Total Time (t2-t1) == %r' % (t2-t1))
+#							t2 = time.time(); g.debug.msg('LOG_INFO', '---Time 2 :: %r' % t2)
+							t2=time.time()
+#							g.debug.msg('LOG_INFO', 'Total Time (t2-t1) == %r' % (t2-t1))
 							self.working.remove(ct)
 							del o, ctx, function, args, kwargs
 					self.waiters.append(ct)
