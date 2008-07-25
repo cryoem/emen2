@@ -3348,12 +3348,13 @@ or None if no match is found."""
 		
 		
 		
-		def getrecordrecname(self,recid,ctxid,host=None):
+		def getrecordrecname(self,rec,ctxid,host=None):
 				"""Render the recname view for a record."""
-				try:
-						rec=self.getrecord(recid,ctxid)
-				except:
-						return "(permission denied)"
+				if isinstance(rec,int):
+					try:
+							rec=self.getrecord(rec,ctxid)
+					except:
+							return "(permission denied)"
 						
 				value=self.renderview(rec,viewtype="recname",ctxid=ctxid)
 				if not value:

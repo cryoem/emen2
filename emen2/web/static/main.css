@@ -1,3 +1,53 @@
+.precontent .map {
+	background:white;
+	margin-left:20px;
+	margin-right:10px;
+	padding-top:5px;
+	padding-bottom:5px;
+
+}
+
+.map {
+	font-size:10pt;
+}
+.map td {
+	min-width:32px;
+}
+.map td.next {
+	background:url("/images/next.png") center center;
+}
+.map td.next_reverse {
+	background:url("/images/next.png") center center;
+}
+.map td.branch_next {
+	background:url("/images/branch_next.png") center center;
+}
+.map td.branch_up {
+	background:url("/images/branch_up.png") center center;
+}
+.map td.branch_spacer {
+	background:url("/images/branch_spacer.png") center center;
+}
+.map td.branch_both {
+	background:url("/images/branch_both.png") center center;
+}
+.map td.branch_next_reverse {
+	background:url("/images/branch_next.reverse.png") center center;
+}
+.map td.branch_up_reverse {
+	background:url("/images/branch_up.reverse.png") center center;
+}
+.map td.branch_spacer_reverse {
+	background:url("/images/branch_spacer.reverse.png") center center;
+}
+.map td.branch_both_reverse {
+	background:url("/images/branch_both.reverse.png") center center;
+}
+.map td.blank {
+	
+}
+
+
 .widget ul {
 	list-style:none;
 	margin:0px;
@@ -518,8 +568,8 @@ html,body {
 #bottom {
 	background:#BBD9EE; 
 	font-size:10px;
-	/*position:absolute;*/
-	/*bottom:0px;*/
+	position:absolute;
+	bottom:0px;
 	width:100%;
 }
 
@@ -1140,7 +1190,7 @@ QUICK BROWSER ELEMENTS
 }
 
 /* all */
-#alert li, .navtable, #imagepreview, .tooltip, .child, .roundwhitebox, .page, div.sidebar, .browser {
+.precontent .map, #alert li, .navtable, #imagepreview, .tooltip, .child, .roundwhitebox, .page, div.sidebar, .browser {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }

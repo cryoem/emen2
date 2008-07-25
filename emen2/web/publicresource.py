@@ -205,8 +205,9 @@ class PublicView(Resource):
 				'''
 				return list(callback(*args, **kwargs))
 
+
 			d = threads.deferToThread(batch)
-			d.addCallback(self._cbsuccess, request, ctxid)
+			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
 			d.addErrback(self._ebRender, request, ctxid)
 	
 			return server.NOT_DONE_YET
@@ -214,7 +215,7 @@ class PublicView(Resource):
 		except Exception, e:
 			self._ebRender(e, request, ctxid)
 	
-	def _cbsuccess(self, result, request, ctxid):#, t=0):
+	def _cbsuccess(self, result, request, ctxid, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
 		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
@@ -230,7 +231,7 @@ class PublicView(Resource):
 			except ValueError: pass
 			headers['content-length'] = len(result)
 	
-		
+			print "::: time total: %s"%(time.time()-t)
 			request.write(unicode(result).encode('utf-8'))
 #			print "::: time 2 ---- %s"%(time.time()-t1)
 		finally: self.finish_request(request)
