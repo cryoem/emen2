@@ -110,7 +110,8 @@ class User(DictMixin):
     #################################
             
     def __getitem__(self,key):
-        return self.__dict__[key]
+      return self.__dict__.get(key)
+        #return self.__dict__[key]
         
     def __setitem__(self,key,value):
         if key in self.attr_all:

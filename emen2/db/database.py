@@ -1553,10 +1553,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				if recurse==0 : return set(ret)
 				
-				r2=[]
+				r2=set()
 				for i in ret:
-						r2+=self.__getparentssafe(i,keytype,recurse-1,ctxid,host=host)
-				return set(ret+r2)
+						r2 |= self.__getparentssafe(i,keytype,recurse-1,ctxid,host=host)
+
+				return ret | r2
 				
 				
 		# ian: added for consistency
@@ -1579,10 +1580,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				if recurse==0 : return set(ret)
 
-				r2=[]
+				r2=set()
 				for i in ret:
-						r2+=self.__getchildrensafe(i,keytype,recurse-1,ctxid,host=host)
-				return set(ret+r2)
+						r2 |= self.__getchildrensafe(i,keytype,recurse-1,ctxid,host=host)
+				return ret | r2
 
 
 
@@ -1926,7 +1927,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#user=User(user.__dict__.copy())
 				#user.validate()				
 
-				if user.username==None or len(user.username)<3:
+				if user.username==None or len(str(user.username))<3:
 						if self.__importmode:
 								pass
 						else:
@@ -1984,10 +1985,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 				"""retrieves a user's information. Information may be limited to name and id if the user
 				requested privacy. Administrators will get the full record"""
 				
-				username=str(username)
+				if not isinstance(username,int):
+					username=str(username)
 				
 				ctx=self.__getcontext(ctxid,host)
-				ret=self.__users[username]
+				try:
+					ret=self.__users[username]
+				except:
+					raise KeyError,"No such user: %s"%(username)
 				
 				# The user him/herself or administrator can get all info
 				#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
@@ -2574,6 +2579,9 @@ or None if no match is found."""
 				Later this may implement some sort of caching mechanism.
 				If create is not set and index doesn't exist, raises
 				KeyError. Returns "link" or "child" for this type of indexing"""
+
+				paramname=str(paramname).lower()
+				
 				try:
 						ret=self.__fieldindex[paramname]				# Try to get the index for this key
 				except:
@@ -2759,8 +2767,12 @@ or None if no match is found."""
 		def getuserdisplayname(self,username,ctxid,lnf=1,host=None):
 				"""Return the full name of a user from the user record."""
 
+				#print "====="
+				#print username
+
 				if isinstance(username,int):
-					username=self.getrecord(username,ctxid)
+					if username >= 0:
+						username=self.getrecord(username,ctxid)
 				if isinstance(username,Record):
 
 					namestoget=set()
@@ -2900,11 +2912,11 @@ or None if no match is found."""
 						#		 print "Unable to add choices to paramdefs."
 						
 						# ian
-						if type(parents)==int: parents=[parents]
+						if type(parents)==int: parents=set([parents])
 						for i in parents:
 								self.pclink(i,record.recid,ctxid)
 
-						if type(children)==int: children=[children]
+						if type(children)==int: children=set([children])
 						for i in children:
 								self.pclink(record.recid,i,ctxid)
 												

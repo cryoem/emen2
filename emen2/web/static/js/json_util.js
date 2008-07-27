@@ -43,42 +43,7 @@ function autocomplete_parse_findvalue(data) {
 ///////// editing callbacks ///////////////////
 
 
-function commit_putrecords(records,cb) {
-	if (cb==null) {cb=function(){}}
 
-	$.jsonRPC("putrecordsvalues",[records,ctxid],
- 		function(json){
-//			setrecords(json);
- 			cb(json);
-//			notify("Changes saved");
-//			self.revert();
- 		},
-		function(xhr){
-			$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
-		}
-	);	
-}
-	
-	
-function commit_newrecord(values,cb) {
-	if (cb==null) {cb=function(){}}
-	var rec_update=getrecord(null);
-
-	$.each(values[NaN], function(i,value) {
-		if ((value!=null) || (getvalue(recid,i)!=null)) {
-			rec_update[i]=value;
-		}
-	});
-	
-	$.jsonRPC("putrecord", [rec_update,ctxid],
-		function(json){
-			cb(json);
-		},
-		function(xhr){
-			$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");				
-		}
-	);
-}
 
 
 

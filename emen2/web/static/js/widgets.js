@@ -647,6 +647,9 @@ permissions.prototype = {
 		if (this.inheritcontrols.indexOf(recid) > -1) {return}
 		this.inheritcontrols.push(recid);
 
+		if (this.parents.indexOf(recid) == -1) {this.parents.push(recid);}
+		
+
 		var control=$("<tr></tr>");
 
 		var p=getvalue(recid,"permissions");
@@ -1066,10 +1069,10 @@ addcomment.prototype = {
 			var time=this[1];
 			
 			if (typeof(this[2])=="object") {
-				comments.append('<h3>'+dname+' @ '+time+'</h3><p>'+this[2][0]+'changed: '+this[2][2]+' -&gt; '+this[2][1]+'</p>');
+				comments.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2][0]+'changed: '+this[2][2]+' -&gt; '+this[2][1]+'</p>');
 			}
 			else {
-				comments.append('<h3>'+dname+' @ '+time+'</h3><p>'+this[2]+'</p>');
+				comments.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');
 			}
 		});
 		this.elem.append(comments);

@@ -1,3 +1,5 @@
+
+
 .precontent .map {
 	background:white;
 	margin-left:20px;
@@ -607,7 +609,11 @@ html,body {
 }
 /* alerts */
 #alert {	
+	position:fixed;
+	top:0px;
+	z-index:1000;
 	margin:0px;
+	margin-top:30px;
 	list-style:none;
 	padding-left:0px;
 }
@@ -754,7 +760,7 @@ SIDEBAR
 =============================================================
 */
 #sidebar {
-	/*border-left:solid 1px; */
+	border-left:solid 1px;
 	padding:10px;
 	padding-right:0px;
 	width:300px;
@@ -1029,11 +1035,17 @@ p.small {
 }
 
 
-
-.page_comments h3 {
+.page_comments p {
+	clear:both;
+	margin-top:2px;
+}
+.page_comments strong {
+	font-size:10pt;
+	font-weight:normal;
+	font-style:italic;
 	margin:0px;
 	padding:0px;
-	border-bottom:dotted 1px black;
+	border-bottom:solid 1px black;
 }
 
 
