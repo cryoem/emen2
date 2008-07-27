@@ -6,7 +6,6 @@ from twisted.web.resource import Resource
 
 import os
 import demjson
-import simplejson
 import time
 
 #from emen2 import ts
