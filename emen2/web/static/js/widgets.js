@@ -845,7 +845,7 @@ parentcontrol.prototype = {
 
 		this.elem.append(this.inheritarea_addcontrols);
 	},
-	
+
 	addinherititem: function(recid,check) {
 		//console.log(recid);
 		
@@ -1009,7 +1009,7 @@ skeleton.prototype = {
 }
 
 $.fn.skeleton = function(opts) {
-  return this.each(function() {
+    return this.each(function() {
 		new skeleton(this, opts);
 	});
 };
