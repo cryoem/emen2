@@ -16,7 +16,6 @@ slideshow = ( function($) { // Localise the $ function
 			var children = self.elem.children()
 			if (children.length > 0) {
 				self.first = $(children.get(0)) 
-				alert(self.first);
 				self.current = self.first
 				self.first.siblings().animate({opacity: 'toggle'});
 			}
@@ -29,7 +28,8 @@ slideshow = ( function($) { // Localise the $ function
             function toggle(elem){elem.animate({opacity: 'toggle'})};
             var next = self.current.next();
             if (next.length == 0){var next = self.first};
-            toggle(self.current); 	toggle(next);
+            toggle(self.current);
+            toggle(next);
             self.current = next;
 		};
 		
