@@ -1,5 +1,6 @@
 from __future__ import with_statement
 from emen2 import Database, ts
+from emen2.Database import exceptions
 from emen2.subsystems import routing, auth
 from emen2.util import listops
 from twisted.internet import threads
@@ -247,7 +248,8 @@ class PublicView(Resource):
 			try:
 				if isinstance(failure, BaseException): raise
 				else: failure.raiseException()
-			except (Database.SecurityError, Database.SessionError):
+			except (Database.exceptions.SecurityError, 
+					Database.exceptions.SessionError):
 				uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
 				args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
 							  ('msg', quote( str.join('<br />', [str(failure.value)]) ) )

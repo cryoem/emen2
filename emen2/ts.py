@@ -5,7 +5,8 @@
 # have a limited lifespan
 
 #from twisted.web.resource import Resource
-from emen2 import DBProxy, Database
+from emen2 import DBProxy
+from emen2.Database import database
 from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor
 from twisted.python import log, runtime, context, threadpool
@@ -17,11 +18,11 @@ import time
 
 
 
-DB=Database 
+DB=database 
 
 def startup(path):
 	global db
-db=Database.Database(g.EMEN2DBPATH)
+db=database.Database(g.EMEN2DBPATH)
 	
 
 #######################
@@ -79,7 +80,7 @@ class newThreadPool(threadpool.ThreadPool):
 	def startAWorker(self):
 #		print "started twisted thread (newThreadPool)..."
 #		print "\tworker count: %s"%self.workers
-		self.db = Database.Database(g.EMEN2DBPATH)
+		self.db = database.Database(g.EMEN2DBPATH)
 #		self.db = db
 
 		self.workers = self.workers + 1

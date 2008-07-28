@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from functools import partial
 from itertools import chain
 import emen2.Database
@@ -20,60 +21,11 @@ class DBWrap(object):
 		attr = getattr(attr, name)
 		return partial(attr, ctxid=self.ctxid, host=self.host)
 
-def if_caching(f):
-	def _inner(*args, **kwargs):
-		if args[0].caching: return f(*args, **kwargs)
-		else: pass
-	return _inner
-
-def cache(f):
-	def _inner(*args, **kwargs):
-		self = args[0]
-		cargs = [ (tuple(x) if hasattr(x,'__iter__') else x) for x in args]
-		ckey = self.get_cache_key(f.func_name, *cargs[1:], **kwargs)
-		if ckey is not None:
-			hit, result = self.check_cache(ckey)
-			if hit: return result
-		result = f(*args, **kwargs)
-		if result and ckey is not None:
-			self.store(ckey, result)
-		return result
-	return _inner
-
 class DBTree(object):
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
-	
-	def reset_cache(self): self.cache = {}
-	
-	def start_caching(self): 
-		self.caching = True
-		self.reset_cache()
-	
-	def stop_caching(self):
-		self.caching = False
-		self.reset_cache()
-		
-	def toggle_caching(self):
-		self.caching = not self.caching
-	
-	@if_caching
-	def get_cache_key(self, *args, **kwargs): 
-		return (args, tuple(kwargs.items()))
-	
-	@if_caching
-	def store(self, key, result): self.cache[key] = result
 
-	@if_caching
-	def check_cache(self, key):
-		result = False, None
-		if self.cache.has_key(key): 
-			result = True, self.cache[key]
-			g.debug('hit')
-		return result
-	
 	def __init__(self, db, ctxid, host=None, root=None):
-		self.reset_cache()
 		self.caching = False
 		self.__db = db
 		self.__ctxid = ctxid
@@ -94,17 +46,14 @@ class DBTree(object):
 		
 	def __unfold_dict(self, dict):
 		result = []
-		[ [ result.append((key, item)) for item in items ] 
-				 	   	   for key, items in dict.iteritems()]
+		[ [ result.append((key, item)) for item in items ] for key, items in dict.iteritems()]
 		return result
 				
 	
 	def __select(self, data, **kwargs):
 		unionset = set()
 		for param, value in kwargs.iteritems():
-			unionset |= self.__db.getindexbyvalue(param, value, 
-												  ctxid=self.__ctxid, 
-												  host=self.__host)
+			unionset |= self.__db.getindexbyvalue(param, value, ctxid=self.__ctxid, host=self.__host)
 		data &= unionset
 		# no return since sets are weakly referenced
 		
@@ -127,7 +76,6 @@ class DBTree(object):
 	def chroot(self, recid):
 		self.__root = recid
 	
-	@cache
 	def get_path_id(self, path, cur_dir=None):
 		'''raises StopIteration if path does not exist'''
 		cur_dir = cur_dir or self.root
@@ -140,14 +88,14 @@ class DBTree(object):
 			result = set([cur_dir])
 		return result
 	
-	@cache
 	def get_child_id(self, name, cur_dir):
 		'''returns first child with a given folder_name'''
 #		ckey = self.get_cache_key('get_child_id', name, cur_dir)
 #		hit, result = self.check_cache(ckey) or (False, None)
 #		if hit is False:
 		children = self.__db.getchildren(cur_dir, keytype='record', ctxid=self.__ctxid, host=self.__host)
-		subfolders = self.__unfold_dict(self.__db.groupbyrecorddef(children, ctxid=self.__ctxid, host=self.__host))
+		group = self.__db.groupbyrecorddef(children, ctxid=self.__ctxid, host=self.__host)
+		subfolders = self.__unfold_dict(group)
 		if name == '*': result = list(subfolders)
 		else: result = list(self.__dostuff(name, subfolders))
 #		if bool(result): self.store(ckey, result)
@@ -194,7 +142,7 @@ class DBTree(object):
 		return '/db'+(URLRegistry.reverselookup(name, *args, **kwargs) or '')
 	
 	def render_view(self, recid, view):
-		return self.__db.renderview(recid, viewtype=view, ctxid=self.__ctxid, host=self.__host)
+		return self.db.renderview(recid, viewtype=view)
 	
 	def get_user(self):
 		un = self.__db.checkcontext(self.__ctxid, host=self.__host)[0]

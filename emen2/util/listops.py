@@ -12,10 +12,8 @@ def remove(collection, keys):
 	if not hasattr(keys, '__iter__'):
 		keys = [keys]
 	for key in keys:
-		try:
-			del collection[key]
-		except KeyError:
-			pass
+		try: del collection[key]
+		except KeyError: pass
 
 def adj_dict(dict, items):
 	dict.update(items)
@@ -23,8 +21,7 @@ def adj_dict(dict, items):
 
 def combine_dicts(*args):
 	result = dict()
-	for dct in args:
-		result.update(dct)
+	for dct in args: result.update(dct)
 	return result
 	
 def combine_lists(sep=' ', *args):

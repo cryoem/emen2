@@ -131,7 +131,7 @@ def dicttableview(rec,params=[]):
 def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 	"""Add HTML markup to a record def view, including editing markup if requested."""
 	
-	iterator = Database.regex2.finditer(viewdef)
+	iterator = Database.database.regex2.finditer(viewdef)
 		
 	for match in iterator:
 		prepend=""

@@ -7,10 +7,10 @@ import os
 import hashlib
 import time
 from emen2.Database.subsystems import macro
+from emen2.emen2config import *
 from user import *
 from btrees import *
 from datastorage import *
-from emen2.emen2config import *
 
 import operator
 
@@ -1313,6 +1313,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		def groupbyrecorddef(self,all,ctxid,host=None):
 				"""This will take a set/list of record ids and return a dictionary of ids keyed
 				by their recorddef"""
+				if len(all) < 500: return self.groupbyrecorddeffast(all, ctxid, host)
 				all=set(all)
 				all&=set(self.getindexbycontext(ctxid,host=host))
 				ret={}
@@ -2890,8 +2891,8 @@ or None if no match is found."""
 						
 						# index params
 						for k,v in record.items():
-								if k != 'recid':
-										self.__reindex(k,None,v,record.recid,txn)
+							if k != 'recid':
+								self.__reindex(k,None,v,record.recid,txn)
 
 						self.__reindexsec([],reduce(operator.concat,record["permissions"]),record.recid, txn=txn)				 # index security
 						self.__recorddefindex.addref(record.rectype,record.recid,txn)						 # index recorddef
