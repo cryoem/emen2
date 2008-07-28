@@ -154,18 +154,12 @@ multiwidget.prototype = {
 			var newval;
 			var count=0;
 
-	 		//if (getvalue(this.recid,this.param)==null && value != "" && value != null) {
-	 		//	console.log("new value "+this.param+"; orig is null");
-			//	newval=value;
-			//	count+=1;
-	 		//}
+
 			if (getvalue(this.recid,this.param)!=null && value == null) {
-				//console.log("unsetting "+this.param);
 				newval=null;
 				count+=1;
 	 		}
 	 		else if (getvalue(this.recid,this.param)!=value) {
-	 			//console.log("changed: "+this.param+" , "+getvalue(this.recid,this.param)+" , "+value);
 				newval=value;
 				count+=1;
 	 		}
@@ -175,9 +169,7 @@ multiwidget.prototype = {
 			allcount+=count;
 
 		});
-		
-		//console.log(changed);
-		
+				
 		if (allcount==0) {
 			//console.log("no changes made..");
 		} else {
@@ -247,10 +239,7 @@ widget.DEFAULT_OPTS = {
 
 widget.prototype = {
 	init: function() {
-		//console.log("widget init");
-		//this.elem.click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
-		//this.elem.one("click",this.bindToObj(function(e) {this.build();return false}));
-		//this.build();
+
 	},
 	
   build: function() {
@@ -258,55 +247,58 @@ widget.prototype = {
 		var props=this.getprops();		
 		this.param=props["paramdef"];
 		this.recid=parseInt(props["recid"]);		
-		//console.log(this.recid);
-
 		this.value=getvalue(this.recid,this.param);
 
-		if (this.value==null) {
-			this.value="";
-		}
-
+		// editw has val() method
+		this.editw = $('<input />');
+		// container
 		this.w = $('<span class="widget"></span>');
-		this.edit = $('<input />');
 
+
+		// replace this big switch with something better
 		if (paramdefs[this.param]["vartype"]=="text") {
 
-			this.edit=$('<textarea class="value" cols="40" rows="10"></textarea>');
-			this.edit.val(this.value);
+			this.editw=$('<textarea class="value" cols="40" rows="10"></textarea>');
+			this.w.append(this.editw);				
+
 
 		} else if (paramdefs[this.param]["vartype"]=="choice") {
 
-			this.edit=$('<select></select>');
+			this.editw=$('<select></select>');
 
 			for (var i=0;i<paramdefs[this.param]["choices"].length;i++) {
-				this.edit.append('<option val="'+paramdefs[this.param]["choices"][i]+'">'+paramdefs[this.param]["choices"][i]+'</option>');
+				this.editw.append('<option val="'+paramdefs[this.param]["choices"][i]+'">'+paramdefs[this.param]["choices"][i]+'</option>');
 			}
-		
+			
+			this.w.append(this.editw);				
+							
 		} else if (paramdefs[this.param]["vartype"]=="datetime") {
 		
-			this.edit=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
-			//.date_input();
+			this.editw=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
+			this.w.append(this.editw);				
 
 		} else if (paramdefs[this.param]["vartype"]=="boolean") {
 		
-			this.edit=$("<select><option>True</option><option>False</option></select>");
+			this.editw=$("<select><option>True</option><option>False</option></select>");
+			this.w.append(this.editw);				
 		
 		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(paramdefs[this.param]["vartype"]) > -1) {
-			
-			this.edit=$('<div></div>').listwidget({values:this.value,paramdef:paramdefs[this.param]});
+
+			this.value = ["ok","test"];
+			this.editw = new listwidget(this.w,{values:this.value,paramdef:paramdefs[this.param]});
 		
 		} else {
 
-			this.edit=$('<input class="value" size="20" type="text" value="'+this.value+'" />');
+			this.editw=$('<input class="value" size="20" type="text" value="'+this.value+'" />');
 			//.autocomplete("/db/findvalue/"+this.param, {
 			//	width: 260,
 			//	selectFirst: true,
 			//});
+			this.w.append(this.editw);				
 
 		}
 
 	
-		this.w.append(this.edit);				
 
 		if (this.controls) {
 
@@ -319,13 +311,14 @@ widget.prototype = {
 
 		}
 
+
 		$(this.elem).after(this.w);
 		$(this.elem).hide();
 
-		if (this.popup) {
-			this.edit.focus();
-			this.edit.select();
-		}
+		//if (this.popup) {
+		//	this.edit.focus();
+		//	this.edit.select();
+		//}
 		
 	},
 	
@@ -353,11 +346,11 @@ widget.prototype = {
 
 	////////////////////////
 	getval: function() {
-		var ret=this.edit.val();
-		if (ret == "") {
+		var ret = this.editw.val();		
+		if (ret == "" || ret == []) {
 			ret = null;
 		}
-		return ret		
+		return ret
 	},
 
 	////////////////////////
@@ -368,6 +361,7 @@ widget.prototype = {
 	
 	////////////////////////	
 	save: function() {
+				
 		var save=$(":submit",this.w);
 		save.val("Saving...");
 
