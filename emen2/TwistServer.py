@@ -51,7 +51,7 @@ def load_views():
     templating.get_templates(g.TEMPLATEDIR)
     
 def reload_views():
-    reload(views)
+    reload(emen2.TwistSupport_html.public.views)
     load_views()
     for view in routing.URLRegistry.URLRegistry.values():
         view = view._URL__callback.__module__
