@@ -13,25 +13,49 @@ slideshow = ( function($) { // Localise the $ function
 
 		this.build = function() {
 			console.log(self.elem);
-			var children = self.elem.children()
+			children = self.elem.children();
 			if (children.length > 0) {
-				self.first = $(children.get(0)) 
-				self.current = self.first
-				self.first.siblings().animate({opacity: 'toggle'});
+				self.first = $(children.get(0));
+				self.first.css({'z-index': 2});
+				self.current = self.first;
+				self.first.siblings().animate({opacity: 'toggle', width:'toggle'});
+				if (self.controls != undefined && self.name != undefined) {
+					var counter = 0;
+					children.each(function (){
+						var new_control = $('<div class="control" onclick='
+											+self.name+'.switchto('+counter+');>'
+											+counter+'</div>')
+						self.controls.append(new_control);
+						counter ++;
+					});
+				}
 			}
 		};
 		this.start = function() {
-			setInterval(self.rotate, self.timer)
+			self.pid = setInterval(self.rotate, self.timer)
 		};
 			
-		this.rotate = function() {
-            function toggle(elem){elem.animate({opacity: 'toggle'})};
-            var next = self.current.next();
-            if (next.length == 0){var next = self.first};
-            toggle(self.current);
-            toggle(next);
-            self.current = next;
+		this.toggle = function (elem){
+            self.current.css({'z-index': 0});
+            self.current.animate({width:'toggle'}, 'slow')
+            elem.css({'z-index': 1});
+            elem.animate({width:'toggle'}, 'slow')
+            self.current = elem;
 		};
+		
+		this.rotate = function() {
+			var next = self.current.next();
+            if (next.length == 0){var next = self.first};
+            self.toggle(next);
+		};
+		
+		this.switchto = function(frameno) {
+			var next = self.elem.children()[frameno]
+			if (next != undefined) {                                
+				if (self.pid != undefined) { clearInterval(self.pid); }
+				self.toggle($(next));
+			}
+		}
 		
 		this.addFrame = function(elem) {
 			var n = $('<div class="frame" />');
