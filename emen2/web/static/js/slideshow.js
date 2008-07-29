@@ -16,14 +16,14 @@ slideshow = ( function($) { // Localise the $ function
 			children = self.elem.children();
 			if (children.length > 0) {
 				self.first = $(children.get(0));
-				self.first.css({'z-index': 2});
+				self.first.css({'z-index': 1});
+				self.first.siblings().css({'z-index': 0});
 				self.current = self.first;
-				self.first.siblings().animate({opacity: 'toggle', width:'toggle'});
 				if (self.controls != undefined && self.name != undefined) {
-					var counter = 0;
+					var counter = 1;
 					children.each(function (){
 						var new_control = $('<div class="control" onclick='
-											+self.name+'.switchto('+counter+');>'
+											+self.name+'.switchto('+(counter-1)+');>'
 											+counter+'</div>')
 						self.controls.append(new_control);
 						counter ++;
@@ -36,10 +36,9 @@ slideshow = ( function($) { // Localise the $ function
 		};
 			
 		this.toggle = function (elem){
+			elem.css({'z-index': 2});
             self.current.css({'z-index': 0});
-            self.current.animate({width:'toggle'}, 'slow')
-            elem.css({'z-index': 1});
-            elem.animate({width:'toggle'}, 'slow')
+			elem.css({'z-index': 1});
             self.current = elem;
 		};
 		

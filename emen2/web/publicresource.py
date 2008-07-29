@@ -210,7 +210,6 @@ class PublicView(Resource):
 			d = threads.deferToThread(batch)
 			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
 			d.addErrback(self._ebRender, request, ctxid)
-	
 			return server.NOT_DONE_YET
 		
 		except Exception, e:
@@ -221,8 +220,11 @@ class PublicView(Resource):
 		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
 			t1=time.time()
+			#very important do not change
 			headers = {"content-type": "text/html; charset=utf-8",
-					   "Cache-Control":"no-cache", "Pragma":"no-cache"}
+					   "Cache-Control":"no-cache", "Pragma":"no-cache",
+					   'X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c': 
+					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c'}
 	
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
@@ -244,6 +246,9 @@ class PublicView(Resource):
 			g.debug.msg(g.LOG_ERR, failure)
 			g.debug.msg(g.LOG_ERR, '---------------------------------')
 			request.setResponseCode(500)
+			request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+			request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
+					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
 			
 			try:
 				if isinstance(failure, BaseException): raise
