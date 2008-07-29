@@ -1,4 +1,3 @@
-from __future__ import with_statement
 from functools import partial
 from itertools import chain
 import emen2.Database
@@ -7,8 +6,6 @@ from emen2.subsystems.routing import URLRegistry
 from emen2.emen2config import *
 
 class IntegrityError(ValueError): pass
-
-
 class DBWrap(object):
 	def __init__(self,db,ctxid,host=None):
 		self.db=db
@@ -115,9 +112,7 @@ class DBTree(object):
 		for rec in path:
 			new = [ elem[1] for elem in self.get_child_id('*', rec) ]
 			result.update(new)
-			print new, result
-		if kwargs != {}:
-			self.__select(result, **kwargs)
+		if kwargs != {}: self.__select(result, **kwargs)
 		return result
 	
 	def get_siblings(self, path=None, **kwargs):
