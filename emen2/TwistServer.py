@@ -75,7 +75,7 @@ root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
 root.putChild("json",emen2.TwistSupport_html.jsonresource.JSONResource())
 
 
-CONSOLE=0
+CONSOLE=1
 if CONSOLE:
 	x = {}
 	x.update(globals())

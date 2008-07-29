@@ -79,10 +79,18 @@ class PublicView(Resource):
 	
 	redirects = {}
 	@classmethod
-	def getredirect(cls, name): return cls.redirects.get(name, False)
+	def getredirect(cls, name):
+		redir = cls.redirects.get(name, False)
+		result = None
+		if redir != False:
+			to, args, kwargs = redir  
+			result = routing.URLRegistry.reverselookup(to, *args, **kwargs)
+		return result
+	
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
-		cls.redirects[fro] = cls.router.reverselookup(to, *args, **kwargs)
+		g.debug.msg('LOG_INIT', 'Redirect Registered::: FROM:',fro, 'TO:', to, args, kwargs)
+		cls.redirects[fro] = (to, args, kwargs)
 	
 	@classmethod
 	def register_url(cls, name, match, prnt=True):
@@ -131,16 +139,7 @@ class PublicView(Resource):
 
 	def __getredirect(self, request, path):
 		target = None
-		
-		if not bool(request.postpath):
-			url, qs = self.parse_uri(request.uri)
-			url = str.join('', (url, 'home/'))
-			# get redirection of target if any
-			url = self.redirects.get(url, url)
-			target = (url, qs)
-			target = '%s' % (str.join('?', target))
-		
-		redir = self.redirects.get(path, None)
+		redir = self.getredirect(path)
 		if redir != None:
 			qs = self.parse_uri(request.uri)[1]
 			if qs:
@@ -166,7 +165,8 @@ class PublicView(Resource):
 				target = addSlash(request)
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
 			
-			path = '/%s/' % str.join("/", request.postpath)
+			path = '/%s' % str.join("/", request.postpath)
+			if not path.endswith('/'): path = '%s/' % path
 			target = self.__getredirect(request, path)
 			
 			# begin request handling

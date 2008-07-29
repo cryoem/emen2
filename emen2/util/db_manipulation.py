@@ -113,8 +113,11 @@ class DBTree(object):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
-			result.update([ elem[1] for elem in self.get_child_id('*', rec) ])
-		self.__select(result, **kwargs)
+			new = [ elem[1] for elem in self.get_child_id('*', rec) ]
+			result.update(new)
+			print new, result
+		if kwargs != {}:
+			self.__select(result, **kwargs)
 		return result
 	
 	def get_siblings(self, path=None, **kwargs):
