@@ -14,9 +14,7 @@ function getvalue(recid,param) {
 		if (paramindex[param][recid]) {return paramindex[param][recid]}
 		}
 	if (recs[recid]) {
-		console.log("q");
-		console.log(recs[recid][param]);
-		if (recs[recid][param]) {return recs[recid][param]}
+		return recs[recid][param]
 	}
 	return null
 }
