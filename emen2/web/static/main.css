@@ -1,4 +1,26 @@
+.editpage_edit {
+	padding:4px;
+	padding-left:2px;
+	background:#EEE;
+	font-size:10pt;
+	border:solid 1px #CCC;
+	color:#783766;
+}
+.editpage_edit img {
+	vertical-align:middle;
+	margin:2px;
+	margin-top:0px;
+}
 
+.commentswidget_controls {
+	margin-bottom:10px;
+}
+
+.listwidget_add, .listwidget_remove {
+	vertical-align: middle;
+	padding:2px;
+
+}
 
 .precontent .map {
 	background:white;
@@ -380,8 +402,15 @@ td.shaded {
 
 /* end autocomplete */
 
+.editable {
+	padding:2px;
+	padding-bottom:0px;
+	border-bottom:dotted #783766 1px;
+}
+
 .editable:hover {
-	background:red;
+	background:#783766;
+	color:white;
 }
 
 .show {

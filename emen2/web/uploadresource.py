@@ -35,16 +35,104 @@ from twisted.internet import defer, reactor, threads
 from twisted.web.resource import Resource
 from twisted.web.static import *
 
-##########################################
-# Upload Resource
+
+class UploadBatchResource(Resource):
+	isLeaf = True
+	
+	def render(self, request):
+		host=request.getClientIP()
+		session=request.getSession()
+		args=request.args
+		path=request.postpath
+		ctxid=None
+		
+		print "== upload request !! =="
+		
+		ctxid = request.getCookie("ctxid")
+
+		print "test ctxid: %s"%ctxid
+
+		if hasattr(session,"ctxid"):
+			print "Upload ctxid: %s"%session.ctxid
+			ctxid=session.ctxid
+		else:
+			print "No ctxid"
+		
+		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid=ctxid, host=host, session=session)		
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET
+		
+				
+		
+	def RenderWorker(self,path,args,ctxid=None,host=None,session=None,db=None):
+
+		pass
+			
+
 
 class UploadResource(Resource):
 	isLeaf = True
 
-	def render_PUT(self,request):
+
+	def render(self,request):
+		host=request.getClientIP()
+		session=request.getSession()
+		args=request.args
+		path=request.postpath
+		ctxid=None
+		
+		print "== upload request !! =="
+		
+		ctxid = request.getCookie("ctxid")
+
+		print "test ctxid: %s"%ctxid
+
+		if hasattr(session,"ctxid"):
+			print "Upload ctxid: %s"%session.ctxid
+			ctxid=session.ctxid
+		else:
+			print "No ctxid"
+		
+		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid=ctxid, host=host, session=session)		
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET
+		
+		
+	def RenderWorker(self,path,args,ctxid=None,host=None,session=None,db=None):
+		filename=args["Filename"][0]
+		filedata=args["Filedata"][0]
+		
+		recid=int(path[0])
+		param = "file_binary"
+		if args.has_key("param"): 
+			param = args["param"][0]		
+
+		
+		print "\n\n========================="
+		print filename
+		print len(filedata)
+		print session
+		return "ok"		
+		
+
+
+	def _cbRender(self,result,request):
+		request.setHeader("content-length", str(len(result)))
+		request.write(result)
+		request.finish()
+		
+
+	def _ebRender(self,failure,request):
+		print failure
+		#request.write(emen2.TwistSupport_html.html.error.error(failure))
+		request.finish()	
+
+	def render_PUT_OLD(self,request):
 		return self.render2(request,request.content)
 
-	def render_POST(self,request):
+	def render_POST_OLD(self,request):
 
 		request.content.seek(0,0)
 		content = request.content.read()
@@ -65,7 +153,7 @@ class UploadResource(Resource):
 		content = cStringIO.StringIO(request.args["filedata"][0])
 		return self.render2(request,content)
 
-	def render2(self,request,content):
+	def render2_OLD(self,request,content):
 
 		host=request.getClientIP()
 		
@@ -87,23 +175,9 @@ class UploadResource(Resource):
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, content, ctxid, host)		
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
-		return server.NOT_DONE_YET		
-
+		return server.NOT_DONE_YET	
 		
-
-	def _cbRender(self,result,request):
-		request.setHeader("content-length", str(len(result)))
-		request.write(result)
-		request.finish()
-		
-
-	def _ebRender(self,failure,request):
-		print failure
-		request.write(emen2.TwistSupport_html.html.error.error(failure))
-		request.finish()	
-
-
-	def RenderWorker(self,path,args,content,ctxid,host,db=None):
+	def RenderWorker_OLD(self,path,args,content,ctxid,host,db=None):
 
 		param = "file_binary"
 		if args.has_key("param"): 

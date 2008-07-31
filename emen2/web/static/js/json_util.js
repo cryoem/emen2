@@ -49,7 +49,23 @@ function autocomplete_parse_findvalue(data) {
 
 ///////// get data /////////////////////
 
-function getrecords_paramdefs(recids,finalcallback) {
+function getparamdefs(recids,cb) {
+	
+	$.jsonRPC(
+		"getparamdefs",
+		[recids,ctxid],
+		function (json) {
+			$.each(json, function(i) {
+				paramdefs[i]=this;
+			});
+			cb();
+		}
+	);
+	
+}
+
+
+function getrecords_paramdefs(recids,cb) {
 	// get data.
 	
 	$.jsonRPC(
@@ -72,7 +88,7 @@ function getrecords_paramdefs(recids,finalcallback) {
 						paramdefs[i]=this;
 					});
 					// calling final callback
-					finalcallback();
+					cb();
 				}
 			);
 			//

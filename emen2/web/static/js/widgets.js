@@ -9,11 +9,13 @@ recs={};
 
 
 function getvalue(recid,param) {
-	if (rec["recid"]==recid || recid==null) {return rec[param]}
+	//if (rec["recid"]==recid || recid==null) {return rec[param]}
 	if (paramindex[param]) {
 		if (paramindex[param][recid]) {return paramindex[param][recid]}
 		}
 	if (recs[recid]) {
+		console.log("q");
+		console.log(recs[recid][param]);
 		if (recs[recid][param]) {return recs[recid][param]}
 	}
 	return null
@@ -105,8 +107,9 @@ multiwidget.prototype = {
 
 		if (this.now) {
 			this.build()
-		} else if (!this.ext_edit_button) {	
-			this.edit=$('<input class="editbutton" type="button" value="Edit" />').click(this.bindToObj(function(e) {e.stopPropagation();this.build()}));
+		} else if (!this.ext_edit_button) {
+			var self=this;
+			this.edit=$('<input class="editbutton" type="button" value="Edit" />').click(function(e) {e.stopPropagation();self.build()});
 			this.controls.append(this.edit);
 		}
 		
@@ -133,34 +136,48 @@ multiwidget.prototype = {
 		}
 
 		this.ws = ws;
-	
-		this.savebutton=$('<input type="button" value="Save" />').click(this.bindToObj(function(e) {e.stopPropagation();this.save()}));
+		var self=this;
+		this.savebutton=$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()});
 
 		if (!this.newrecord) {
-			this.cancel=$('<input type="button" value="Cancel" />').click(this.bindToObj(function(e) {e.stopPropagation();this.revert()}));
+			this.cancel=$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.revert()});
 		}
 		
 		$(this.controls).append(this.savebutton,this.cancel);		
+	},
+	
+	compare: function(a,b) {
+		if (a instanceof Array && b instanceof Array) {
+  		// array comparator
+			if (a.length != b.length) return false
+			for (var i=0;i<a.length;i++) {
+				if (a[i] != b[i]) return false
+			}
+			return true
+		} else {
+			return a==b
+		}
 	},
 	
 	////////////////////////////
 	save: function() {
 		var changed={};
 		var allcount=0;
-
+		var self=this;
 		$(this.ws).each(function(i){
 
-			var value=this.getval();
-			var newval;
+			var oldval=getvalue(this.recid,this.param);
+			if (this.changed) {
+				var newval=this.getval();
+			} else {
+				var newval=oldval;
+			}
 			var count=0;
 
-
-			if (getvalue(this.recid,this.param)!=null && value == null) {
-				newval=null;
+			if ( oldval != null && newval == null) {
 				count+=1;
 	 		}
-	 		else if (getvalue(this.recid,this.param)!=value) {
-				newval=value;
+	 		else if ( !self.compare(oldval,newval) ) {
 				count+=1;
 	 		}
 
@@ -172,9 +189,11 @@ multiwidget.prototype = {
 				
 		if (allcount==0) {
 			//console.log("no changes made..");
+			notify("No changes made");
 		} else {
 			//console.log("commit callback");
-			this.commitcallback(changed);
+			this.savebutton.val("Saving...");
+			this.commitcallback(this,changed);
 		}
 
 
@@ -189,15 +208,7 @@ multiwidget.prototype = {
 		this.now=0;
 		this.init();
 		this.elem.show();
-	},
-
-	
-	
-	///////////////////////
-  bindToObj: function(fn) {
-    var self = this;
-    return function() { return fn.apply(self, arguments) };
-  }	
+	}
 	
 }
 
@@ -239,7 +250,7 @@ widget.DEFAULT_OPTS = {
 
 widget.prototype = {
 	init: function() {
-
+		this.changed=0;
 	},
 	
   build: function() {
@@ -248,9 +259,14 @@ widget.prototype = {
 		this.param=props["paramdef"];
 		this.recid=parseInt(props["recid"]);		
 		this.value=getvalue(this.recid,this.param);
+		var self=this;
 
-		// editw has val() method
-		this.editw = $('<input />');
+		//console.log(this.value);
+		if (this.value == null) {
+			this.value = "";
+		}
+
+
 		// container
 		this.w = $('<span class="widget"></span>');
 
@@ -258,53 +274,81 @@ widget.prototype = {
 		// replace this big switch with something better
 		if (paramdefs[this.param]["vartype"]=="text") {
 
-			this.editw=$('<textarea class="value" cols="40" rows="10"></textarea>');
+			this.editw=$('<textarea class="value" cols="40" rows="10">'+this.value+'</textarea>');
+			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
-
+			
 
 		} else if (paramdefs[this.param]["vartype"]=="choice") {
-
-			this.editw=$('<select></select>');
-
-			for (var i=0;i<paramdefs[this.param]["choices"].length;i++) {
-				this.editw.append('<option val="'+paramdefs[this.param]["choices"][i]+'">'+paramdefs[this.param]["choices"][i]+'</option>');
-			}
 			
+			this.editw=$('<select></select>');
+			var pdc=paramdefs[this.param]["choices"];
+			pdc.unshift("");
+			
+			for (var i=0;i<pdc.length;i++) {
+				var selected="";
+				if (this.value == pdc[i]) selected = "selected";
+				this.editw.append('<option val="'+pdc[i]+'" '+selected+'>'+pdc[i]+'</option>');
+			}
+
+			this.editw.change(function(){self.changed=1;});			
 			this.w.append(this.editw);				
 							
 		} else if (paramdefs[this.param]["vartype"]=="datetime") {
 		
 			this.editw=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
+			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
 
 		} else if (paramdefs[this.param]["vartype"]=="boolean") {
 		
 			this.editw=$("<select><option>True</option><option>False</option></select>");
+			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
 		
 		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(paramdefs[this.param]["vartype"]) > -1) {
 
-			this.value = ["ok","test"];
 			this.editw = new listwidget(this.w,{values:this.value,paramdef:paramdefs[this.param]});
+			this.editw.change(function(){self.changed=1;});
 		
 		} else {
 
 			this.editw=$('<input class="value" size="20" type="text" value="'+this.value+'" />');
+			console.log("=="+this.value);
 			//.autocomplete("/db/findvalue/"+this.param, {
 			//	width: 260,
 			//	selectFirst: true,
 			//});
-			this.w.append(this.editw);				
+			this.editw.change(function(){self.changed=1;});
+			this.w.append(this.editw);
+			
+			var property=paramdefs[this.param]["property"];
+			var units=paramdefs[this.param]["defaultunits"];
+
+			if (property != null) {
+
+				this.editw_units=$('<select></select>');
+
+				for (var i=0;i<valid_properties[property][1].length;i++) {
+					var sel="";
+					if (units == valid_properties[property][1][i]) sel = "selected";
+					this.editw_units.append('<option '+sel+'>'+valid_properties[property][1][i]+'</option>');
+				}
+				
+				this.editw_units.change(function(){self.changed=1;});
+				this.w.append(this.editw_units);
+
+			}
+
 
 		}
 
 	
 
 		if (this.controls) {
-
 			this.controls=$('<div class="controls"></div>').append(
-				$('<input type="submit" value="Save" />').click(this.bindToObj(function(e) {e.stopPropagation();this.save()})),
-				$('<input type="button" value="Cancel" />').click(this.bindToObj(function(e) {e.stopPropagation();this.revert()}))
+				$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
+				$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.revert()})
 			);
 
 			this.w.append(this.controls);
@@ -347,9 +391,13 @@ widget.prototype = {
 	////////////////////////
 	getval: function() {
 		var ret = this.editw.val();		
+
 		if (ret == "" || ret == []) {
-			ret = null;
+			return null;
 		}
+		if (this.editw_units) {
+			ret = ret + this.editw_units.val();
+		}		
 		return ret
 	},
 
@@ -372,7 +420,7 @@ widget.prototype = {
 	 		function(json){
 				setvalue(recid,param,json);
 	 			//rec[this.param]=json;
-	 			reload_record_view(switchedin["recordview"]);
+	 			record_view_reload(recid,switchedin["recordview"]);
 				notify("Changes saved");
 	 		},
 			function(xhr){
@@ -381,13 +429,7 @@ widget.prototype = {
 				$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
 			}
 		);		
-	},
-	
-	///////////////////////
-  bindToObj: function(fn) {
-    var self = this;
-    return function() { return fn.apply(self, arguments) };
-  }	
+	}	
 	
 }
 
@@ -913,52 +955,67 @@ listwidget.DEFAULT_OPTS = {
 listwidget.prototype = {
 	
 	init: function() {
+		//this.w=$("<div></div>");
+		//this.elem.append(this.w);
+		this.items=$('<ul></ul>');
+		this.elem.append(this.items);
 		this.build();
 	},
 	
   build: function() {
-		this.elem.empty();
+
+		if (this.values.length == 0) {
+			this.values = [""];
+		}
+	
+		this.items.empty();
 		var self=this;
-		var items=$('<ul></ul>');
 		//for (var i=0;i<this.values.length;i++) {
 		$.each(this.values, function(k,v) {
 			var item=$('<li></li>');
 			var edit=$('<input type="text" value="'+v+'" />');
-			var add=$('<span>+</span>').click(function() {
+			var add=$('<span><img src="/images/add_small.png" class="listwidget_add" /></span>').click(function() {
 				self.addoption(k+1);
 				self.build();
 			});
-			var remove=$('<span>X</span>').click(function() {
+			var remove=$('<span><img src="/images/remove_small.png" class="listwidget_remove" /></span>').click(function() {
 				self.removeoption(k);
 				self.build();
 			});
 			item.append(edit,add,remove);
-			items.append(item);
+			self.items.append(item);
 		});
-		this.elem.append(items);
-
+		//this.elem.append(items);
 	},
 
 	// add another option to list
 	addoption: function(pos) {
 		// save current state so rebuilding does not erase changes
-		this.values = this.val();
+		this.values = this.val_withblank();
 		this.values.splice(pos,0,"");
 	},
 	
 	// remove an option from the list
 	removeoption: function(pos) {
-		this.values = this.val();
+		this.values = this.val_withblank();
 		this.values.splice(pos,1);
 	},
 	
 	// return the values
 	val: function() {
 		var ret=[];
-		$("input",this.elem).each(function(){
-			ret.push(this.value);
+		$("input:text",this.elem).each(function(){
+			if (this.value != "") ret.push(this.value);
 		});
 		return ret
+	},
+	
+	val_withblank: function() {
+		var ret=[];
+		$("input:text",this.elem).each(function(){
+			ret.push(this.value);
+		});
+		return ret		
 	}
 	
 }
@@ -1016,44 +1073,71 @@ return skeleton;
 
 /////////////////////////////////////////////
 
-addcomment = (function($) { // Localise the $ function
+commentswidget = (function($) { // Localise the $ function
 
-function addcomment(elem, opts) {
+function commentswidget(elem, opts) {
   if (typeof(opts) != "object") opts = {};
-  $.extend(this, addcomment.DEFAULT_OPTS, opts);
+  $.extend(this, commentswidget.DEFAULT_OPTS, opts);
   this.elem = $(elem);  
   this.init();
 };
 
-addcomment.DEFAULT_OPTS = {
+commentswidget.DEFAULT_OPTS = {
+	elem_title: 0,
+	elem_body: 0
 };
 
-addcomment.prototype = {
+commentswidget.prototype = {
 	
 	init: function() {
+		this.comments = [];
+		
+		if (!this.elem_body) {
+			this.elem_body = $("<div></div>");
+			this.elem.append(this.elem_body);
+		}
 		this.build();
+	},
+	
+	partition: function() {
+		var reccomments = getvalue(recid,"comments");
+		this.comments = [];
+		this.log = [];
+		for (var i=0;i<reccomments.length;i++) {
+			if (reccomments[i][2].indexOf("LOG") != 0) {
+				this.comments.push(reccomments[i]);
+			}
+		}
 	},
 	
   build: function() {
 
-		this.elem.empty();
+		this.partition();
 
-		var comments = $('<div style="clear:both;padding-top:20px;"></div>');
+		this.elem_body.empty();
 
-		this.widget = $('<div></div>');
+		this.widget = $('<div class="commentswidget_controls clearfix"></div>');
 		
-		this.edit = $('<textarea style="float:left" cols="60" rows="2"></textarea>');
+		this.edit = $('<textarea cols="60" rows="2"></textarea>');
 		
+		var self=this;
 		this.controls=$('<div></div>');
-		this.commit=$('<input class="editbutton" type="submit" value="Save" />').click(this.bindToObj(function(e) {e.stopPropagation();this.save()}));
-		this.clear=$('<input class="editbutton" type="button" value="Revert" />').click(this.bindToObj(function(e) {e.stopPropagation();this.revert()}));
-		this.controls.append(this.commit,"<br />",this.clear);
+		this.commit=$('<input class="editbutton" type="submit" value="Add Comment" />').click(function(e) {e.stopPropagation();self.save()});
+		this.clear=$('<input class="editbutton" type="button" value="Clear" />').click(function(e) {e.stopPropagation();self.revert()});
+		this.controls.append(this.commit,this.clear);
 
 		this.widget.append(this.edit, this.controls);
-		this.elem.append(this.widget);
+		this.elem_body.append(this.widget);
 
-		var cr=getvalue(recid,"comments").reverse();
-		//rec["comments"].reverse();
+		var cr=this.comments.reverse();
+
+		if (cr.length == 0) {
+			this.elem_body.append('<p>No Comments</p>');
+		}
+		
+		if (this.elem_title) {
+			this.elem_title.html("Comments ("+cr.length+")");
+		}
 
 		$.each(cr, function() {
 			var dname=this[0];
@@ -1062,22 +1146,21 @@ addcomment.prototype = {
 			}
 			var time=this[1];
 			
-			if (typeof(this[2])=="object") {
-				comments.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2][0]+'changed: '+this[2][2]+' -&gt; '+this[2][1]+'</p>');
-			}
-			else {
-				comments.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');
-			}
+			self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');
+
 		});
-		this.elem.append(comments);
 		
 
+	},
+	
+	revert: function() {
+		this.edit.val("");
 	},
 	
 	////////////////////////////
 	save: function() {
 		var self=this;
-		
+
 		$.jsonRPC("addcomment",[recid,this.edit.val(),ctxid],
 	 		function(json){
 				//console.log(json);
@@ -1087,37 +1170,104 @@ addcomment.prototype = {
 				notify("Changes saved");
 	 		},
 			function(xhr){
-				//ole.log("error, "+xhr.responseText);
-				//editelem_revert(elem,key);
-				$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
+				notify("Error Adding Comment");
 			}
-		)			
-		
-		
-	},
-	
-	revert: function() {
-		//console.log("revert");
-	},
-	
-	commit: function(values) {
-				
-	},
-	
-	///////////////////////
-  bindToObj: function(fn) {
-    var self = this;
-    return function() { return fn.apply(self, arguments) };
-  }	
-	
+		)		
+	}	
 }
 
-$.fn.addcomment = function(opts) {
+$.fn.commentswidget = function(opts) {
   return this.each(function() {
-		new addcomment(this, opts);
+		new commentswidget(this, opts);
 	});
 };
 
-return addcomment;
+return commentswidget;
+
+})(jQuery); // End localisation of the $ function
+
+
+/////////////////////////////////////////////
+
+logwidget = (function($) { // Localise the $ function
+
+function logwidget(elem, opts) {
+  if (typeof(opts) != "object") opts = {};
+  $.extend(this, logwidget.DEFAULT_OPTS, opts);
+  this.elem = $(elem);  
+  this.init();
+};
+
+logwidget.DEFAULT_OPTS = {
+	elem_title: 0,
+	elem_body: 0
+};
+
+logwidget.prototype = {
+	
+	init: function() {
+		this.reccomments = getvalue(recid,"comments");
+		this.log = [];
+		
+		if (!this.elem_body) {
+			this.elem_body = $("<div></div>");
+			this.elem.append(this.elem_body);
+		}
+		
+		this.build();
+	},
+	
+	partition: function() {
+		this.log = [];
+		for (var i=0;i<this.reccomments.length;i++) {
+			if (this.reccomments[i][2].indexOf("LOG") > -1) {
+				this.log.push(this.reccomments[i]);
+			}
+		}
+	},
+		
+	build: function() {
+
+		this.partition();
+		
+		this.elem_body.empty();
+
+		var cr=this.log.reverse();
+
+		if (cr.length == 0) {
+			this.elem_body.append('<p>No Recorded Changes</p>');
+		}
+
+		if (this.elem_title) {
+			this.elem_title.html("History ("+cr.length+")");
+		}
+		
+		var self=this;
+
+		$.each(cr, function() {
+			var dname=this[0];
+			if (displaynames[this[0]]!=null) {
+				var dname = displaynames[this[0]];
+			}
+			var time=this[1];
+			
+			if (typeof(this[2])=="object") {
+				this.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2][0]+'changed: '+this[2][2]+' -&gt; '+this[2][1]+'</p>');
+			}
+			else {
+				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');
+			}
+		});		
+		
+	}
+}
+
+$.fn.logwidget = function(opts) {
+  return this.each(function() {
+		new logwidget(this, opts);
+	});
+};
+
+return logwidget;
 
 })(jQuery); // End localisation of the $ function

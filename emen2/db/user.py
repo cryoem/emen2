@@ -229,10 +229,10 @@ class WorkFlow(DictMixin):
         return self.__dict__[key]
         
     def __setitem__(self,key,value):
-        if key in self.attr_all:
-            self.__dict__[key]=value
-        else:
-            raise AttributeError,"Invalid attribute: %s"%key
+        #if key in self.attr_all:
+        self.__dict__[key]=value
+        #else:
+        #raise AttributeError,"Invalid attribute: %s"%key
             
     def __delitem__(self,key):
         raise AttributeError,"Attribute deletion not allowed"
@@ -256,5 +256,6 @@ class WorkFlow(DictMixin):
     #################################
 
     def validate(self):
-        if set(self.__dict__.keys())-self.attr_all:
-            raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+      pass
+        #if set(self.__dict__.keys())-self.attr_all:
+        #    raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)

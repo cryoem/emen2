@@ -2203,7 +2203,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 						
 		def getpropertyunits(self,propname, host=None):
 				"""Returns a list of known units for a particular property"""
-				return valid_properties[propname][1].keys()
+				# ian
+				return set(valid_properties[propname][1].keys()) | set(valid_properties[propname][2].keys())
 						
 						
 						
@@ -2824,15 +2825,80 @@ or None if no match is found."""
 
 				return uname
 
-# ian/ed: interesting idea...
-#			def proxy(self, __class_, __methodname_, __id_, __ctxid_, *args, **kwargs):
-#					cls = globals()(__class_)
-#					method = getattr(cls, __methodname_)
-#					object = self.getrecord(0, __ctxid_)
-#					return method(object, *args, **kwargs)
-				
+		
 
-		# ian: moved host to end
+		def __putnewrecord(self,record,ctxid,parents=[],children=[],host=None):
+			# Record must not exist, lets create it
+
+			print "---putnewrecord-----"
+			print record
+			
+			ctx=self.__getcontext(ctxid,host)
+			
+			if not isinstance(record,Record):
+					try: record=Record(record,ctx)
+					except: raise ValueError,"Record instance or dict required"
+			
+			record.setContext(ctx)
+			record.validate()
+
+			#	txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+
+			txn=self.newtxn()
+			record.recid=self.__records.get(-1,txn)
+
+			if not self.__importmode:
+					df=file("/tmp/dbbug3","a")
+					print >>df, "%s\n%s\n"%(str(ctx.__dict__),str(record))
+					df.close()
+
+			#print 'CTX:', ctx
+			if not self.checkcreate(ctx):
+					txn and txn.abort()
+					raise SecurityError,"No permission to create records"
+
+			record["modifytime"]=record["creationtime"]
+			if not self.__importmode:
+					record["modifyuser"]=ctx.user
+				
+			self.__records.set(record.recid,record,txn)				 # This actually stores the record in the database
+			self.__recorddefbyrec.set(record.recid,record.rectype,txn)
+		
+			# index params
+			for k,v in record.items():
+				if k != 'recid':
+					self.__reindex(k,None,v,record.recid,txn)
+
+			self.__reindexsec([],reduce(operator.concat,record["permissions"]),record.recid, txn=txn)				 # index security
+			self.__recorddefindex.addref(record.rectype,record.recid,txn)						 # index recorddef
+			self.__timeindex.set(record.recid,record["creationtime"],txn)
+		
+			self.__records.set(-1,record.recid+1,txn)						 # Update the recid counter, TODO: do the update more safely/exclusive access
+														
+			#print "putrec->\n",record.__dict__
+			#print "txn: %s" % txn
+			if txn: txn.commit()
+		
+			elif not self.__importmode : DB_syncall()
+		
+			# ian todo: restore this
+			#try:
+			#		 self.__validaterecordaddchoices(record,ctxid)
+			#except:
+			#		 print "Unable to add choices to paramdefs."
+		
+			# ian
+			if type(parents)==int: parents=set([parents])
+			for i in parents:
+					self.pclink(i,record.recid,ctxid)
+
+			if type(children)==int: children=set([children])
+			for i in children:
+					self.pclink(record.recid,i,ctxid)
+								
+			return record.recid			
+
+
 		#@write,user
 		def putrecord(self,record,ctxid,parents=[],children=[],host=None):
 				"""The record has everything we need to commit the data. However, to 
@@ -2852,134 +2918,61 @@ or None if no match is found."""
 				
 				record.setContext(ctx)
 				record.validate()
-				
-				print record
-				
-				######
-				# This except block is where new records are created
-				######
-				try:
-						orig=self.__records[record.recid]				 # get the unmodified record
-				
-				except:
-						# Record must not exist, lets create it
-						# p=record.setContext(ctx)
-
-						# set recid
-						#		 txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-						# print "got recid %s" % record.recid
-
-						txn=self.newtxn()
-						record.recid=self.__records.get(-1,txn)
-
-						if not self.__importmode:
-								df=file("/tmp/dbbug3","a")
-								print >>df, "%s\n%s\n"%(str(ctx.__dict__),str(record))
-								df.close()
-				
-						#print 'CTX:', ctx
-						if not self.checkcreate(ctx):
-								txn and txn.abort()
-								raise SecurityError,"No permission to create records"
-
-						record["modifytime"]=record["creationtime"]
-						if not self.__importmode:
-								record["modifyuser"]=ctx.user
 								
-						self.__records.set(record.recid,record,txn)				 # This actually stores the record in the database
-						self.__recorddefbyrec.set(record.recid,record.rectype,txn)
-						
-						# index params
-						for k,v in record.items():
-							if k != 'recid':
-								self.__reindex(k,None,v,record.recid,txn)
-
-						self.__reindexsec([],reduce(operator.concat,record["permissions"]),record.recid, txn=txn)				 # index security
-						self.__recorddefindex.addref(record.rectype,record.recid,txn)						 # index recorddef
-						self.__timeindex.set(record.recid,record["creationtime"],txn)
-						
-						self.__records.set(-1,record.recid+1,txn)						 # Update the recid counter, TODO: do the update more safely/exclusive access
-																		
-						#print "putrec->\n",record.__dict__
-						#print "txn: %s" % txn
-						if txn: txn.commit()
-						
-						elif not self.__importmode : DB_syncall()
-						
-						# ian todo: restore this
-						#try:
-						#		 self.__validaterecordaddchoices(record,ctxid)
-						#except:
-						#		 print "Unable to add choices to paramdefs."
-						
-						# ian
-						if type(parents)==int: parents=set([parents])
-						for i in parents:
-								self.pclink(i,record.recid,ctxid)
-
-						if type(children)==int: children=set([children])
-						for i in children:
-								self.pclink(record.recid,i,ctxid)
-												
-						return record.recid
+				try:
+					orecord=self.__records[record.recid]				 # get the unmodified record
+				except:
+					return self.__putnewrecord(record,ctxid,parents=parents,children=children,host=host)
 				
-				######
-				# If we got here, we are updating an existing record
-				######
-
-				#import g
-				#g.orig = orig
-
-				orig.setContext(ctx)								# security check on the original record
-				record.setContext(ctx)						# security double-check on the record to be processed. This is required for DBProxy use.
-				record.validate()
 				
-				record.setoparams(orig.items_dict())
+				orecord.setContext(ctx)								# security check on the original record				
+
+				record.setoparams(orecord.items_dict())
 				cp = record.changedparams()
 
-				print "Changed params: %s"%cp
+				print "putrecord changed params: %s"%cp
 				
-				if len(cp) == 0: 
+				if len(cp-set(["creator","creationtime","modifyuser","modifytime","recid"])) == 0: 
 						self.LOG(5,"update %d with no changes"%record.recid)
 						return "No changes made"
-
 
 				txn=self.newtxn()
 
 				# Now update the indices
-				for f in cp:
-						# reindex will accept None as oldval or newval
-						try:		oldval=orig[f]
-						except: oldval=None
-						
-						try:		newval=record[f]
-						except: newval=None
+				log=[]
 
-						self.__reindex(f,oldval,newval,record.recid,txn)
+				for f in (cp - record.param_special):
+						self.__reindex(f,orecord[f],record[f],record.recid,txn)						
+						log.append((ctx.user, time.strftime("%Y/%m/%d %H:%M:%S"), u"LOG: %s updated. was: %s"%(f,orecord[f])))
+						orecord[f]=record[f]
 						
-						if f not in ["comments","modifytime","modifyuser"]:
-								orig.addcomment(u"LOG: %s updated. was: "%f + unicode(oldval))
-								#orig._Record__comments.append((ctx.user,time.strftime("%Y/%m/%d %H:%M:%S"),(f,newval,oldval)))
-						orig[f]=record[f]
-						
-								
-				self.__reindexsec(reduce(operator.concat,orig["permissions"]),
+
+				# Update: ignore creator, creationtime, recid, rectype
+
+				# Update: permissions
+				self.__reindexsec(reduce(operator.concat,orecord["permissions"]),
 						reduce(operator.concat,record["permissions"]),record.recid,txn)				 # index security
-				
-				# Updates last time changed index
+
+				# Update: modifytime / modifyuser
 				if (not self.__importmode): 
-						orig["modifytime"]=time.strftime("%Y/%m/%d %H:%M:%S")
-						orig["modifyuser"]=ctx.user
+						orecord["modifytime"]=time.strftime("%Y/%m/%d %H:%M:%S")
+						orecord["modifyuser"]=ctx.user
 						self.__timeindex.set(record.recid,'modifytime',txn)
 				
+				# Update: comments
+				for i in log:
+					if not i in orecord._Record__comments:
+						orecord._Record__comments.append(i)
+				for i in record["comments"]:
+					if not i in orecord._Record__comments:
+						orecord._Record__comments.append(i)
+						
 				# any new comments are appended to the 'orig' record
 				# attempts to modify the comment list bypassing the security
 				# in the record class will result in a bunch of new comments
-				# being added to the record.
-				for i in record["comments"]:
-						if not i in orig["comments"]: orig["comments"]=i[2]
+				# being added to the record.							
 				
-				self.__records.set(record.recid,orig,txn)						 # This actually stores the record in the database
+				self.__records.set(record.recid,orecord,txn)						 # This actually stores the record in the database
 				self.__recorddefbyrec.set(record.recid,record.rectype,txn)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()

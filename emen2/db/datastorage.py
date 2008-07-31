@@ -39,7 +39,7 @@ valid_vartypes={
 	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
 	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
-	"floatlist":(None,lambda y:map(lambda x:float(x),y)),	# list of floats
+	"floatlist":(None,lambda y:map(lambda x:float(x),y)), # list of floats
 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
 	"url":("s",lambda x:str(x)),			# link to a generic url
 	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
@@ -58,40 +58,196 @@ valid_vartypes={
 # The first item in the value tuple is ostensibly a default, but this
 # will generally be provided by the ParamDef. It may be that
 # synonyms should be combined in a better way
-valid_properties = { 
-"count":(None,{"k":1000, "K":1000, "pixels":1}),
-"unitless":(None,{"n/a": None}),
-"length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
-	"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
-	"A":1.0e-10}),
-"area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
-"volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3, "ul":1.0e-9, "uL":1.0e-9}),
-"mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "dalton":1.6605387e-24}),
-"temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
-	"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
-"pH":("pH",{"pH":1.0}),
-"voltage":("volt",{"V":1.0,"volt":1.0,"kv":1000.0,"kilovolt":1000.0,"mv":.001,"millivolt":.001}),
-"current":("amp",{"A":1.0,"amp":1.0,"ampere":1.0}),
-"resistance":("ohm",{"ohm":1.0}),
-"inductance":("henry",{"H":1.0,"henry":1.0}),
-"transmittance":("%T",{"%T":1.0}),
-"relative_humidity":("%RH",{"%RH":1.0}),
-"velocity":("m/s",{"m/s":1.0}),
-"momentum":("kg m/s",{"kg m/s":1.0}),
-"force":("N",{"N":1.0,"newton":1.0}),
-"energy":("J",{"J":1.0,"joule":1.0}),
-"angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi, "mrad":0.18/pi}),
-"concentration":("mg/ml", {"mg/ml":1.0, "p/ml":1.0, "pfu":1.0}),
-"resolution":('A/pix', {'A/pix':1.0}),
-"bfactor":('A^2', {"A^2":1.0, "A2":1.0}),
-"dose":('e/A2/sec', {'e/A2/sec':1.0}),
-"currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
-"filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
-"percentage":('%', {'%':1.0}),
-"currency":("dollars",{"dollars":1.0}),
-"pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4}),
-"unitless":("unitless",{"unitless":1})
+# valid_properties = { 
+# "count":(None,{"k":1000, "K":1000, "pixels":1}),
+# "unitless":(None,{"n/a": None}),
+# "length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
+#		"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
+#		"A":1.0e-10}),
+# "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
+# "volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3, "ul":1.0e-9, "uL":1.0e-9}),
+# "mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "dalton":1.6605387e-24}),
+# "temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
+#		"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
+# "pH":("pH",{"pH":1.0}),
+# "voltage":("volt",{"V":1.0,"volt":1.0,"kv":1000.0,"kilovolt":1000.0,"mv":.001,"millivolt":.001}),
+# "current":("amp",{"A":1.0,"amp":1.0,"ampere":1.0}),
+# "resistance":("ohm",{"ohm":1.0}),
+# "inductance":("henry",{"H":1.0,"henry":1.0}),
+# "transmittance":("%T",{"%T":1.0}),
+# "relative_humidity":("%RH",{"%RH":1.0}),
+# "velocity":("m/s",{"m/s":1.0}),
+# "momentum":("kg m/s",{"kg m/s":1.0}),
+# "force":("N",{"N":1.0,"newton":1.0}),
+# "energy":("J",{"J":1.0,"joule":1.0}),
+# "angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi, "mrad":0.18/pi}),
+# "concentration":("mg/ml", {"mg/ml":1.0, "p/ml":1.0, "pfu":1.0}),
+# "resolution":('A/pix', {'A/pix':1.0}),
+# "bfactor":('A^2', {"A^2":1.0, "A2":1.0}),
+# "dose":('e/A2/sec', {'e/A2/sec':1.0}),
+# "currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
+# "filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
+# "percentage":('%', {'%':1.0}),
+# "currency":("dollars",{"dollars":1.0}),
+# "pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4}),
+# "unitless":("unitless",{"unitless":1})
+# }
+
+# ian: added better synonym support
+valid_properties = {
+
+"time": ("s", 
+	{"s":1., "min":60, "hour":3600, "day":86400, "ms":.001, "us":1.0e-6, "ns": 1.0e-9}, 
+	{"hours":"hour", "mins":"min", "seconds":"s", "secs":"s", "sec": "s", "days":"day", "nanosecond":"ns", "nanoseconds":"ns", "microseconds":"us", "microsecond":"us", "milliseconds":"ms", "millisecond":"ms"}
+	),
+
+"length":("m",
+	{"m":1., "km":1000., "cm":0.01, "mm":0.001, "um":1.0e-6, "nm":1.0e-9, "A":1.0e-10},
+	{"meters":"m", "meter":"m", "kilometer":"km", "kilometers":"km", "centimeter":"cm", "centimeters":"cm", "millimeter":"mm", "millimeters":"mm", "micron":"um", "microns": "um", "nanometer":"nm", "nanometers":"nm", "angstrom":"A", "Angstroms":"A", "angstroms":"A", "Angstrom":"A"}
+	),
+	
+"count":("count",
+	{"K":1000, "pixels":1, "count":1},
+	{"k":"K"}
+	),
+	
+"unitless":("unitless", 
+	{"unitless":1},
+	{}
+	),
+	
+"area":("m^2",
+	{"m^2":1.,"cm^2":1.0e-4},
+	{}
+	),
+	
+"volume":("m^3",
+	{"m^3":1,"ml":1.0e-6,"l":1.0e-3,"ul":1.0e-9,"ul":1.0e-9},
+	{"cm^3":"ml", "milliliter":"ml", "milliliters":"ml", "uL":"ul"}
+	),	
+	
+"mass":("gram",
+	{"g":1.,"mg":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "MDa":1.6605387e-18},
+	{"gram":"g", "grams":"g", "milligram":"mg", "milligrams":"mg", "dalton":"Da", "daltons":"Da", "kilodaltons":"KDa", "kilodalton":"KDa", "megadaltons":"MDa", "megadalton":"MDa"}
+	),	
+
+"temperature":("K",
+	{"K":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.},
+	{"kelvin":"K","degrees C":"C", "degrees F":"F"}
+	),
+	
+"pH":("pH",
+	{"pH":1.0},
+	{}
+	),
+	
+"voltage":("volt",
+	{"V":1.0,"kv":1000.0,"mv":.001},
+	{"volt":"V", "volts":"V", "kilovolt":"kv", "kilovolts":"kv", "millivolt":"mv", "millivolts":"mv"}
+	),	
+	
+"current":("amp",
+	{"amp":1.0},
+	{"ampere":"amp"}
+	),
+	
+"resistance":("ohm",
+	{"ohm":1.0},
+	{}
+	),
+	
+"inductance":("henry",
+	{"H":1.0},
+	{"henry":"H"}
+	),
+	
+"transmittance":("%T",
+	{"%T":1.0},
+	{}
+	),
+	
+"relative_humidity":("%RH",
+	{"%RH":1.0},
+	{}
+	),
+	
+"velocity":("m/s",
+	{"m/s":1.0},
+	{}
+	),
+	
+"momentum":("kg m/s",
+	{"kg m/s":1.0},
+	{}
+	),
+	
+"force":("N",
+	{"N":1.0},
+	{"newton":"N"}
+	),
+	
+"energy":("J",
+	{"J":1.0},
+	{"joule":"J"}
+	),
+	
+"angle":("degree",
+	{"degree":1.0,"radian":180.0/pi, "mrad":0.18/pi},
+	{"deg":"degree", "degrees":"degree"}
+	),
+	
+"concentration":("mg/ml", 
+	{"mg/ml":1.0, "p/ml":1.0, "pfu":1.0},
+	{}
+	),
+
+"resolution":('A/pix', 
+	{'A/pix':1.0},
+	{}
+	),
+	
+"bfactor":('A^2',
+	{"A^2":1.0},
+	{"A2":"A^2"}
+	),
+	
+"dose":('e/A2/sec',
+	{'e/A2/sec':1.0},
+	{'e/A^2/sec':'e/A2/sec'}
+	),
+	
+"exposure":('e/A2',
+	{'e/A2':1.0},
+	{'e/A^2':'e/A2'}
+	),
+	
+"currentdensity":('Pi Amp/cm2',
+	{'Pi Amp/cm2':1.0},
+	{}
+	),
+	
+"filesize": ('bytes',
+	{'bytes':1.0, 'kB':1.0e3, 'MB':1.0e6, 'GB':1.0e9, 'KiB':1024, 'MiB': 1048576, 'GiB': 1073741824},
+	{'B':'bytes'}
+	),
+	
+"percentage":('%',
+	{'%':1.0},
+	{}
+	),
+	
+"currency":("dollars",
+	{"dollars":1.0},
+	{}
+	),
+	
+"pressure":("Pa",
+	{"Pa":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"psi":1.450377e-4},
+	{"pascal":"Pa", "mmHg":"torr"}
+	),
+	
 }
+
 
 class ParamDef(DictMixin) :
 	"""This class defines an individual data Field that may be stored in a Record.
@@ -107,7 +263,7 @@ class ParamDef(DictMixin) :
 	
 	# name may be a dict; this allows backwards compat dictionary initialization
 	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
-					  property=None,defaultunits=None,choices=None):
+						property=None,defaultunits=None,choices=None):
 		self.name=name					# This is the name of the paramdef, also used as index
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
 		self.desc_short=desc_short		# This is a very short description for use in forms
@@ -194,7 +350,9 @@ class ParamDef(DictMixin) :
 		if self.defaultunits != None:
 			a=[]
 			for q in valid_properties.values():
+				# ian
 				a.extend(q[1].keys()) 
+				a.extend(q[2].keys())
 			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
 				#raise ValueError,"Invalid defaultunits; not in valid_properties"
 				print "Warning: Invalid defaultunits; not in valid_properties"
@@ -207,7 +365,7 @@ class ParamDef(DictMixin) :
 			except:
 				raise ValueError,"choices must be a list of strings"
 			#if isinstance(self.choices,basestring):
-			#	raise ValueError,"choices must be strings"
+			# raise ValueError,"choices must be strings"
 			#for i in self.choices:
 
 def parseparmvalues(text,noempty=0):
@@ -352,7 +510,7 @@ class RecordDef(DictMixin) :
 	# validate methods
 	#################################		
 		
-	def validate(self):	
+	def validate(self): 
 		
 		if set(self.__dict__.keys())-self.attr_all:
 			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
@@ -360,7 +518,7 @@ class RecordDef(DictMixin) :
 		try:
 			if str(self.name) == "" or self.name==None:
 				raise Exception
-		except:	
+		except: 
 			raise ValueError,"name required; must be str or unicode"
 
 		try:
@@ -427,8 +585,8 @@ class Record(DictMixin):
 	attr_user = set([])
 	attr_admin = set(["recid","dbid","rectype"])
 	attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
-							   "_Record__creator","_Record__creationtime","_Record__permissions",
-							   "_Record__ptest","_Record__context"])
+								 "_Record__creator","_Record__creationtime","_Record__permissions",
+								 "_Record__ptest","_Record__context"])
 	attr_restricted = attr_private | attr_admin
 	attr_all = attr_user | attr_admin | attr_private
 	
@@ -469,7 +627,7 @@ class Record(DictMixin):
 		for key in set(kwargs.keys())-self.param_special:
 			self.__params[key]=kwargs[key]
 
-		self.__oparams= self.__params.copy()
+		self.__oparams={}
 
 		self.__ptest=[1,1,1,1] 
 			# ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
@@ -478,79 +636,152 @@ class Record(DictMixin):
 			# correspond to, read,comment,write and owner permissions, return from setContext
 			
 		self.__context=None # Validated access context 
-		if ctx != None: ctx = ctx  
+		if ctx != None: ctx = ctx	 
 		else: ctx = kwargs.get('context')
 		if (ctx!=None): self.setContext(ctx)
 
 			
-	def validate(self):
-
-		try: 
-			if self.recid != None: int(self.recid)
-		except:
-			raise ValueError,"recid must be positive integer"
-		
-		if str(self.rectype) == "":
-			raise ValueError,"rectype must not be empty"
-		
-		
-		try:
-		  self.__permissions = tuple((tuple(i) for i in self.__permissions))
-		except:
-		  raise ValueError,"permissions must be 4-tuple of tuples"
-		p=self.__permissions
-
-		#for i in p:
-		#	if not isinstance(i,tuple):
-		#		raise ValueError,"permissions must be 4-tuple of tuples"
-
-
-		if not self.__context or not self.__context.db:
-			print "Warning: cannot validate params, users, or security: context not set"
-			return
-		else:
-			u=set()
-			users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))		
-			for j in p: u|=set(j)
-			u -= set([0,-1,-2,-3])
-			if u-users:
-				print "Warning: undefined users: %s"%",".join(map(str, u-users))
 			
-			if self.__params.keys():
-				pds=self.__context.db.getparamdefs(self.__params.keys())
-				for i,pd in pds.items():
-					try:
-						conv=valid_vartypes[pd.vartype][1](self[i])
-						self[i]=conv
-					except:
-						print "Error converting datatype: %s, %s"%(i,pd.vartype)
-						#	raise ValueError			
-				
-					if pd.vartype=="choice":
-						if self[i].lower() not in [i.lower() for i in pd.choices]:
-							# ian: should be ValueError
-							raise ValueError,"%s not in %s"%(record[i],pd.choices)	
+	def validate(self):
+		self.validate_recid()
+		self.validate_rectype()
+		self.validate_permissions()
 
+		if self.__context.db:
+			self.validate_permissions_users()
+			self.validate_params()
+			self.validate_security()
 
+		
+
+	def validate_security(self):
 		cp = self.changedparams()
 
 		if "recid" in cp:
 			raise ValueError,"Cannot change recid"			
 		if "creator" in cp or "creationtime" in cp:
 			raise ValueError,"Cannot change creation info directly"
-		if "permissions" in cp:
-			self['permissions'] = self.__oparams['permissions']
-		if "comments" in cp:
-			print "Added comment"
 		if "rectype" in cp:
 			raise ValueError,"Cannot change rectype"
+		#if "permissions" in cp:
+		#	self['permissions'] = self.__oparams['permissions']
 			
-
 		if not self.__ptest[2]:
 			if cp != ["comments"]:
 				raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
 			if not p[1]:
 				raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
+				
+					
+	def validate_recid(self):
+		try: 
+			if self.recid != None: int(self.recid)
+		except:
+			raise ValueError,"recid must be positive integer"
+
+
+	def validate_rectype(self):			
+		if str(self.rectype) == "":
+			raise ValueError,"rectype must not be empty"
+
+
+	def validate_permissions(self):		
+		try:
+			self.__permissions = tuple((tuple(i) for i in self.__permissions))
+		except:
+			raise ValueError,"permissions must be 4-tuple of tuples"
+
+
+	def validate_permissions_users(self):
+		u=set()
+		users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))		
+		for j in self.__permissions: u|=set(j)
+		u -= set([0,-1,-2,-3])
+		if u-users:
+			print "Warning: undefined users: %s"%",".join(map(str, u-users))
+			
+			
+
+	def validate_param(self, value, pd):
+		print "___ validate %s ___"%(pd.name)
+		#print "vartype: %s"%pd.vartype
+		#print "property: %s"%pd.property
+		#print "defaultunits: %s"%pd.defaultunits
+
+		if pd.property and isinstance(value,basestring):
+			print "______ checking units __________"
+			value,units=re.compile("([0-9.,]+)?(.*)").search(value).groups()
+			value=float(value)
+			units=units.strip()
+			defaultunits=valid_properties[pd.property][0]
+
+			#print self[pd.name]
+			print value
+			print units
+			#print defaultunits
+
+			if pd.defaultunits != None:
+				defaultunits=pd.defaultunits
+
+			if units in valid_properties[pd.property][1].keys():
+				pass
+
+			elif units in valid_properties[pd.property][2].keys():
+				units=valid_properties[pd.property][2][units]
+
+			elif units == "":
+				units = defaultunits
+
+			else:
+				raise ValueError,"Unknown units: %s"%units
+
+			try:
+				# convert units
+				value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
+				print "newval: %s"%value
+			except:
+				raise ValueError,"Unable to convert %s = %s; skipping value"%(pd.name,value)
+
+		try:
+			value=valid_vartypes[pd.vartype][1](value)
+		except:
+			raise ValueError,"Error converting datatype: %s, %s"%(pd.name,pd.vartype)
+	
+		if pd.vartype=="choice" and value!=None:
+			if value.lower() not in [i.lower() for i in pd.choices]:
+				raise ValueError,"%s not in %s"%(value,pd.choices)
+		
+		
+		# Save validated value
+		self[pd.name]=value
+
+		return
+		
+		
+	def validate_params(self):
+		if self.__params.keys():
+			pds=self.__context.db.getparamdefs(self.__params.keys())
+			for i,pd in pds.items():
+				self.validate_param(self[i],pd)
+
+
+	def changedparams(self):
+
+		print "===== changed params ====="
+
+		cp = set()
+		for k in self.keys():
+			if k not in (self.param_special-set(["comments"])) and self[k] != self.__oparams.get(k,None):
+
+				if k == "comments":
+					print "%s : ..."%(k)
+				else:
+					print "%s : %s --> %s"%(k,self.__oparams.get(k,None),self[k])
+					
+				cp.add(k)
+
+		print "changedparams result: %s"%cp
+		return cp		
 		
 	#################################		
 	# pickle methods
@@ -600,7 +831,7 @@ class Record(DictMixin):
 		"A string representation of the record"
 		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
 		for i,j in self.items(): 
-			ret.append(u"%12s:  %s\n"%(str(i),unicode(j)))
+			ret.append(u"%12s:	%s\n"%(str(i),unicode(j)))
 		return u"".join(ret)
 	
 	def __str__(self):
@@ -620,17 +851,15 @@ class Record(DictMixin):
 		the default value for existant, but undefined params, which will be
 		treated identically"""
 		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
-				
 		key = key.encode('utf-8', 'replace').strip().lower()
 		result = None
-		if key=="comments" : result = self.__comments
+		if   key=="comments" : result = self.__comments
 		elif key=="recid" : result = self.recid
 		elif key=="rectype" : result = self.rectype
 		elif key=="creator" : result = self.__creator
 		elif key=="creationtime" : result = self.__creationtime
 		elif key=="permissions" : result = self.__permissions
 		else: result = self.__params.get(key)
-		#g.debug.msg('LOG_DEBUG', key, repr(result))
 		return result
 
 	def __setitem__(self,key,value):
@@ -638,18 +867,20 @@ class Record(DictMixin):
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
 
-		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
 		key = str(key).strip().lower()
 
-		try:
-			valuelower = value.lower()
-		except:
-			valuelower = ""
+		#try: valuelower = value.lower()
+		#except:	valuelower = ""
 		
-		if value==None or valuelower=="none" : 
+		if str(value) == "None": 
 			value = None
+		try:
+			if len(value) == 0:
+				value = None
+		except:
+			pass
 
-		if key!="comments" and not self.__oparams.has_key(key):
+		if key != "comments" and not self.__oparams.has_key(key):
 			self.__oparams[key]=self[key]
 
 		if key not in self.param_special:
@@ -659,7 +890,8 @@ class Record(DictMixin):
 			self.addcomment(value)
 		
 		elif key == 'permissions':
-			self.__permissions = tuple([ tuple(set(x) | set(y))  for (x,y) in zip(value, self.__permissions)])
+			self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
+
 
 	def __delitem__(self,key):
 		
@@ -669,7 +901,7 @@ class Record(DictMixin):
 		if key not in self.param_special and self.__params.has_key(key):
 			self.__setitem__(key,None)
 		else:
-			raise KeyError,"Cannot delete key %s"%key	
+			raise KeyError,"Cannot delete key %s"%key 
 
 	def keys(self):
 		"""All retrievable keys for this record"""
@@ -691,42 +923,30 @@ class Record(DictMixin):
 		if not isinstance(value,basestring):
 			print "Warning: invalid comment"
 			return
+
 		#print "Updating comments: %s"%value
 		d=parseparmvalues(value,noempty=1)[1]
+
 		if d.has_key("comments"):
 			print "Warning: cannot set comments inside a comment"			
+			return
+			
 		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+
 		# now update the values of any embedded params
 		for i,j in d.items():
 			self.__setitem__(i,j)
+
 
 	def getparamkeys(self):
 		"""Returns parameter keys without special values like owner, creator, etc."""
 		return self.__params.keys()		
 		
 
-	def changedparams(self):
-		cp = set()
-
-#		for k in set(self.getparamkeys()) | set(self.__oparams.keys()) - (self.param_special - set(["comments"])):
-#			if not self.__oparams.has_key(k) or not self.has_key(k):
-#				cp.add(k)
-#			elif self.__oparams[k] != self[k]:
-#				cp.add(k)
-
-		for k,v in self.items():
-			if k not in (self.param_special-set(["comments"])) and v != self.__oparams.get(k,None):
-				cp.add(k)
-
-		return cp		
-
-
-	
 	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
-
 	def setContext(self,ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
-		own context will not work	to see if a ctx(a user context) has the permission to access/write to this record
+		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
 		"""
 		#self.__context__=ctx
 		self.__context = ctx
@@ -765,7 +985,7 @@ class Record(DictMixin):
 		return self.__ptest
 		
 		
-	# from items_dict	
+	# from items_dict 
 	
 	def fromdict(self,d):
 		if d.has_key("comments"):

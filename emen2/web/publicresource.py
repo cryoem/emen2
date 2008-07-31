@@ -120,6 +120,7 @@ class PublicView(Resource):
 		authen = auth.Authenticator(db=db, host=host)
 		## if the browser has a ctxid cookie, get it
 		ctxid = request.getCookie("ctxid")
+		#print "AUTH: GET CTXID COOKIE: %s"%ctxid
 		## if the user requested to be logged in as a particular user
 		## get the username and the password
 		username = args.get('username', [''])[0]

@@ -153,13 +153,18 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 			pd=paramdefs[match.group("var1")]
 			v=rec[match.group("var1")]
 										
-			prepend	= """<strong class="editable paramdef___%s">$$"""%(match.group("var")) + match.group("var")	
-			postpend = """</strong>"""
+# 			prepend	= """<strong class="editable paramdef___%s">$$"""%(match.group("var")) + match.group("var")	
+# 			postpend = """</strong>"""
+# 			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
+# 				postpend += """ <em>%s</em> """%(pd.defaultunits)
+# 
+ 			matchstr = "\$\$"+match.group("var")+match.group("varsep")
+			units=""
 			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
-				postpend += """ <em>%s</em> """%(pd.defaultunits)
+				units=pd.defaultunits
+			replstr = """<strong class="editable paramdef___%s">$$%s %s </strong>%s"""%(match.group("var"), match.group("var"), units, match.group("varsep"))
 
-			matchstr = "\$\$"+match.group("var")+match.group("varsep")
-			viewdef = re.sub(matchstr,prepend+postpend+match.group("varsep"),viewdef)
+			viewdef = re.sub(matchstr,replstr,viewdef)
 
 	return viewdef
 
