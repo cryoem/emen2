@@ -135,6 +135,7 @@ class PublicView(Resource):
 			username = un
 		if ctxid is not None:
 			request.addCookie("ctxid", ctxid, path='/')
+		target = '/%s/%s' % ('/'.join(request.prepath), target)
 		return ctxid, target, authen
 
 
@@ -175,7 +176,7 @@ class PublicView(Resource):
 			callback, msg = make_callback(''), ''
 			
 			
-			ctxid, target, authen = self.__authenticate(ts.db, request, ctxid, 
+			ctxid, tmp, authen = self.__authenticate(ts.db, request, ctxid, 
 													    host, args, router, 
 													    target)
 			
@@ -227,18 +228,20 @@ class PublicView(Resource):
 					   'X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c': 
 					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c'}
 	
-			request.setResponseCode(200)
-			[request.setHeader(key, headers[key]) for key in headers]
 			try: 
 				result, content_headers = result
 				headers['content_type'] = content_headers
 			except ValueError: pass
 			headers['content-length'] = len(result)
 	
+			request.setResponseCode(200)
+			[request.setHeader(key, headers[key]) for key in headers]
 			print "::: time total: %s"%(time.time()-t)
 			request.write(unicode(result).encode('utf-8'))
 #			print "::: time 2 ---- %s"%(time.time()-t1)
-		finally: self.finish_request(request)
+		finally: 
+			self.finish_request(request)
+
 		
 		
 	def _ebRender(self, failure, request, ctxid):
@@ -246,26 +249,31 @@ class PublicView(Resource):
 			g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
 			g.debug.msg(g.LOG_ERR, failure)
 			g.debug.msg(g.LOG_ERR, '---------------------------------')
-			request.setResponseCode(500)
-			request.setHeader('X-ERROR', ' '.join(str(failure).split()))
-			request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
-					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
-			
+			data = ''
 			try:
 				if isinstance(failure, BaseException): raise
 				else: failure.raiseException()
 			except (Database.exceptions.SecurityError, 
-					Database.exceptions.SessionError):
-				uri = '/%s%s' % ( str.join('/', request.prepath), routing.URLRegistry.reverselookup(name='Login') )
-				args = (('uri', quote('/%s/' % str.join('/', request.prepath + request.postpath))),
-							  ('msg', quote( str.join('<br />', [str(failure.value)]) ) )
-							 )
-				args = ( str.join('=', elem) for elem in args )
-				args = str.join('&', args)
-				uri = str.join('?', (uri,args))
-				request.write(redirectTo(uri, request).encode("utf-8"))
+					Database.exceptions.SessionError), e:
+				request.setResponseCode(401)
+				args = {'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
+						'msg':quote( str.join('<br />', [str(failure.value)]) ),
+						'db': ts.db,
+						'ctxid': ctxid,
+						'host': request.host
+					   }
+				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 	
 			except Exception, e:
-				request.write(g.templates.handle_error(e).encode('utf-8'))
-		finally: self.finish_request(request)
+				request.setResponseCode(500)
+				data = g.templates.handle_error(e).encode('utf-8')
+
+			request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+			request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
+						   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
+			request.write(data)
+		finally: 
+			self.finish_request(request)
+
+		
 
