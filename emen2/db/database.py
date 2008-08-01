@@ -8,9 +8,13 @@ import hashlib
 import time
 from emen2.Database.subsystems import macro
 from emen2.emen2config import *
-from user import *
-from btrees import *
-from datastorage import *
+from emen2.Database.user import *
+from emen2.Database.btrees import *
+from emen2.Database.datastorage import *
+
+
+from cPickle import load, dump
+
 
 import operator
 
@@ -3820,7 +3824,7 @@ or None if no match is found."""
 				#if user!="root" :
 				if not self.checkadmin(ctx):
 						raise SecurityError,"Only root may restore the database"
-				
+								
 				if os.access(self.path+"/backup.pkl",os.R_OK) : fin=open(self.path+"/backup.pkl","r")
 				elif os.access(self.path+"/backup.pkl.bz2",os.R_OK) : fin=os.popen("bzcat "+self.path+"/backup.pkl.bz2","r")
 				elif os.access(self.path+"/../backup.pkl.bz2",os.R_OK) : fin=os.popen("bzcat "+self.path+"/../backup.pkl.bz2","r")
@@ -3833,16 +3837,22 @@ or None if no match is found."""
 				txn=None
 				nel=0
 				
+				#print "begin restore"
+				#print load(fin)
+				
+				
 				while (1):
 						try:
 								r=load(fin)
-						except:
+						except Exception,inst:
+								#print inst
 								break
 						
 						# new transaction every 100 elements
 						#if nel%100==0 :
 								#if txn : txn.commit()
 								#txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+								
 						nel+=1
 						if txn: txn.commit()
 						else : 
@@ -3855,8 +3865,10 @@ or None if no match is found."""
 
 						txn=self.newtxn()
 						
+						
 						# insert User
 						if isinstance(r,User) :
+								#print "user"
 								if self.__users.has_key(r.username,txn) :
 										print "Duplicate user ",r.username
 										self.__users.set(r.username,r,txn)
@@ -3864,9 +3876,11 @@ or None if no match is found."""
 										self.__users.set(r.username,r,txn)
 						# insert Workflow
 						elif isinstance(r,WorkFlow) :
+								#print "workflow"
 								self.__workflow.set(r.wfid,r,txn)
 						# insert paramdef
 						elif isinstance(r,ParamDef) :
+								#print "paramdef"
 								r.name=r.name.lower()
 								if self.__paramdefs.has_key(r.name,txn):
 										print "Duplicate paramdef ",r.name
@@ -3875,6 +3889,7 @@ or None if no match is found."""
 										self.__paramdefs.set(r.name,r,txn)
 						# insert recorddef
 						elif isinstance(r,RecordDef) :
+								#print "recorddef"
 								r.name=r.name.lower()
 								if self.__recorddefs.has_key(r.name,txn):
 										print "Duplicate recorddef ",r.name
@@ -3883,6 +3898,7 @@ or None if no match is found."""
 										self.__recorddefs.set(r.name,r,txn)
 						# insert and renumber record
 						elif isinstance(r,Record) :
+								#print "record"
 								# This is necessary only to import legacy database backups from before 04/16/2006
 								try:
 										o=r._Record__owner
@@ -3926,31 +3942,37 @@ or None if no match is found."""
 
 								
 						elif isinstance(r,str) :
+								#print "bdo"
 								if r=="bdos" :
 										rr=load(fin)						# read the dictionary of bdos
 										for i,d in rr.items():
 												self.__bdocounter.set(i,d,txn)
 								elif r=="pdchildren" :
+										#print "pdchildren"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for p,cl in rr:
 												for c in cl:
 														self.__paramdefs.pclink(p,c,txn)
 								elif r=="pdcousins" :
+										#print "pdcousins"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for a,bl in rr:
 												for b in bl:
 														self.__paramdefs.link(a,b,txn)
 								elif r=="rdchildren" :
+										#print "rdchildren"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for p,cl in rr:
 												for c in cl:
 														self.__recorddefs.pclink(p,c,txn)
 								elif r=="rdcousins" :
+										#print "rdcousins"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for a,bl in rr:
 												for b in bl:
 														self.__recorddefs.link(a,b,txn)
 								elif r=="recchildren" :
+										#print "recchildren"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for p,cl in rr:
 												for c in cl:
@@ -3959,6 +3981,7 @@ or None if no match is found."""
 														if isinstance(c,tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 														else : self.__records.pclink(recmap[p],recmap[c],txn)
 								elif r=="reccousins" :
+										#print "reccousins"
 										rr=load(fin)						# read the dictionary of ParamDef PC links
 										for a,bl in rr:
 												for b in bl:

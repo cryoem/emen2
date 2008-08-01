@@ -1041,3 +1041,7 @@ class Record(DictMixin):
 	#################################		
 	# validation methods
 	#################################
+import emen2.Database
+emen2.Database.ParamDef = ParamDef
+emen2.Database.Record = Record
+emen2.Database.RecordDef = RecordDef

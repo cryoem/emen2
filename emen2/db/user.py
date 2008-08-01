@@ -259,3 +259,8 @@ class WorkFlow(DictMixin):
       pass
         #if set(self.__dict__.keys())-self.attr_all:
         #    raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+
+import emen2.Database
+emen2.Database.User = User
+emen2.Database.Context = Context
+emen2.Database.WorkFlow = WorkFlow

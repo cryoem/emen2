@@ -697,7 +697,7 @@ class MemBTree(object):
 
 	def set_txn(self,txn):
 		return
-	@g.debug.debug_func
+
 	def typekey(self,key):
 		if key==None or key=="None" : return None
 		if self.keytype=="f" : 
@@ -715,7 +715,7 @@ class MemBTree(object):
 #				return 0
 			
 		result = str(key)
-		print 'TYPEKEY::: %r' % result
+		#print 'TYPEKEY::: %r' % result
 		return result
 			
 	def removeref(self,key,item,txn=None):
