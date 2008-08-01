@@ -716,8 +716,8 @@ class Record(DictMixin):
 			defaultunits=valid_properties[pd.property][0]
 
 			#print self[pd.name]
-			print value
-			print units
+			#print value
+			#print units
 			#print defaultunits
 
 			if pd.defaultunits != None:
@@ -753,7 +753,8 @@ class Record(DictMixin):
 		
 		
 		# Save validated value
-		self[pd.name]=value
+		if self[pd.name]!=value:
+			self[pd.name]=value
 
 		return
 		
@@ -790,6 +791,8 @@ class Record(DictMixin):
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
+		odict["_Record__oparams"]={}
+		
 		if not odict.has_key("localcpy") :
 			try: del odict['_Record__ptest']
 			except: pass
@@ -800,25 +803,29 @@ class Record(DictMixin):
 		return odict
 	
 	def __setstate__(self,dict):
-		"""restore unpickled values to defaults after unpickling"""
+		"""restore unpickled values to defaults after unpickling"""	
+		#print "unpickle: _Record__oparams"
+		#if dict["_Record__oparams"]	!= {}:
+		#	print dict["recid"],dict["_Record__oparams"]
 			
-		try:
-			p=dict["_Record__params"]
-			dict["_Record__params"]={}
-			for i,j in p.items(): 
-				if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
-		except:
-			traceback.print_exc(file=sys.stdout)
-		dict["rectype"]=dict["rectype"].lower()
+		# this is properly handled by putrecord	
+		# try:
+		# 	p=dict["_Record__params"]
+		#		dict["_Record__params"]={}
+		#		for i,j in p.items(): 
+		#			if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
+		#except:
+		#	traceback.print_exc(file=sys.stdout)
+		#dict["rectype"]=dict["rectype"].lower()
 		
-		if dict.has_key("localcpy") :
-			del dict["localcpy"]
-			self.__dict__.update(dict)	
-			self.__ptest=[1,1,1,1]
-		else:
-			self.__dict__.update(dict)	
-			self.__ptest=[0,0,0,0]
-		
+		#if dict.has_key("localcpy") :
+		#	del dict["localcpy"]
+		self.__dict__.update(dict)	
+		#	self.__ptest=[1,1,1,1]
+		#else:
+		#	self.__dict__.update(dict)	
+		#	self.__ptest=[0,0,0,0]
+		self.__ptest=[0,0,0,0]
 		self.__context=None
 
 	

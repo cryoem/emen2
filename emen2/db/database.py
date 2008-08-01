@@ -2829,9 +2829,6 @@ or None if no match is found."""
 
 		def __putnewrecord(self,record,ctxid,parents=[],children=[],host=None):
 			# Record must not exist, lets create it
-
-			print "---putnewrecord-----"
-			print record
 			
 			ctx=self.__getcontext(ctxid,host)
 			
@@ -2839,6 +2836,7 @@ or None if no match is found."""
 					try: record=Record(record,ctx)
 					except: raise ValueError,"Record instance or dict required"
 			
+			# security check / validate input
 			record.setContext(ctx)
 			record.validate()
 
@@ -2906,28 +2904,25 @@ or None if no match is found."""
 				an opportunity for double-checking security vs. the original. If the 
 				record is new, recid should be set to None. recid is returned upon success. 
 				parents and children arguments are conveniences to link new records at time of creation."""
-				
-				print "--------"
-				print record
-				
+								
 				ctx=self.__getcontext(ctxid,host)
 				
 				if not isinstance(record,Record):
 						try: record=Record(record,ctx)
 						except: raise ValueError,"Record instance or dict required"
-				
-				record.setContext(ctx)
-				record.validate()
-								
+												
 				try:
 					orecord=self.__records[record.recid]				 # get the unmodified record
 				except:
 					return self.__putnewrecord(record,ctxid,parents=parents,children=children,host=host)
 				
 				
-				orecord.setContext(ctx)								# security check on the original record				
-
-				record.setoparams(orecord.items_dict())
+				record.setContext(ctx)				
+				orecord.setContext(ctx)	# security check on the original record				
+				# copy old record to check for changed values
+				record.setoparams(orecord.items_dict()) 
+				# validate here, after oparams are set
+				record.validate()
 				cp = record.changedparams()
 
 				print "putrecord changed params: %s"%cp

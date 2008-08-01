@@ -201,7 +201,7 @@ multiwidget.prototype = {
 		//console.log("revert");
 		$(this.ws).each(function(i){
 			this.revert();
-			this.remove();
+			//this.remove();
 		});
 		this.now=0;
 		this.init();
@@ -307,12 +307,13 @@ widget.prototype = {
 		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(paramdefs[this.param]["vartype"]) > -1) {
 
 			this.editw = new listwidget(this.w,{values:this.value,paramdef:paramdefs[this.param]});
-			this.editw.change(function(){self.changed=1;});
+			//needs comparison to see if changed
+			this.changed=1;
+			//this.editw.change(function(){self.changed=1;});
 		
 		} else {
 
 			this.editw=$('<input class="value" size="20" type="text" value="'+this.value+'" />');
-			console.log("=="+this.value);
 			//.autocomplete("/db/findvalue/"+this.param, {
 			//	width: 260,
 			//	selectFirst: true,
@@ -1114,7 +1115,7 @@ commentswidget.prototype = {
 
 		this.elem_body.empty();
 
-		this.widget = $('<div class="commentswidget_controls clearfix"></div>');
+		this.widget = $('<div class="commentswidget_controls"></div>');
 		
 		this.edit = $('<textarea cols="60" rows="2"></textarea>');
 		

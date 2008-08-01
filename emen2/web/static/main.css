@@ -1,4 +1,27 @@
+a img {
+	border:0px;
+}
+
+.users_navbar {
+	border:solid 1px #ccc;
+	text-align:center;
+	width:800px;
+}
+.users_navbar a {
+	padding:5px;
+}
+
+.users_table td {
+	width:200px;
+}
+
+.singlepage {
+	padding:20px;
+	padding-bottom:100px;
+}
+
 .editpage_edit {
+	width:70px;
 	padding:4px;
 	padding-left:2px;
 	background:#EEE;
@@ -405,9 +428,13 @@ td.shaded {
 .editable {
 	padding:2px;
 	padding-bottom:0px;
-	border-bottom:dotted #783766 1px;
+	font-weight:normal;
+	color:#783766;
 }
 
+.editable img {
+	border-bottom:dotted #783766 1px;
+}
 .editable:hover {
 	background:#783766;
 	color:white;
@@ -765,11 +792,7 @@ PAGE / TAB
 	padding-bottom:0px;
 }
 
-/* recordview */
-.page_recordview strong {
-	font-weight:normal;
-	color:#783766;
-}
+
 
 
 #form_addcomment_comment {
@@ -793,9 +816,8 @@ SIDEBAR
 	padding:10px;
 	padding-right:0px;
 	width:300px;
-	float:right; 
-/*	position:absolute; */
-	right:0px;
+	float:right;  
+/*	position:absolute;  */
 	background:white; 
 	line-height:150%;
 /*	background: url('images/transbackground.png'); */
@@ -1065,7 +1087,6 @@ p.small {
 
 
 .page_comments p {
-	clear:both;
 	margin-top:2px;
 }
 .page_comments strong {

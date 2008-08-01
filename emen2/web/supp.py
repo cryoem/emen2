@@ -128,8 +128,12 @@ def dicttableview(rec,params=[]):
 ###################################################
 # Preparse views for web display (important)
 
-def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
+def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None,ctxid=None):
 	"""Add HTML markup to a record def view, including editing markup if requested."""
+
+	editclass=""
+	if edit:
+		editclass="editable"
 	
 	iterator = Database.database.regex2.finditer(viewdef)
 		
@@ -139,8 +143,9 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 		
 		######## $#names #######
 		if match.group("name1"):
-			prepend = """<a title="%s" href="/db/paramdef/%s">"""%(match.group("name1"),match.group("name1"))
-			postpend = """</a>"""
+			if paramlinks:
+				prepend = """<a title="%s" href="/db/paramdef/%s">"""%(match.group("name1"),match.group("name1"))
+				postpend = """</a>"""
 			matchstr = "\$\\#"+match.group("name")+match.group("namesep")
 			viewdef = re.sub(matchstr,prepend+"$#"+match.group("name")+postpend+match.group("namesep"),viewdef)
 
@@ -162,7 +167,7 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,db=None,ctxid=None):
 			units=""
 			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
 				units=pd.defaultunits
-			replstr = """<strong class="editable paramdef___%s">$$%s %s </strong>%s"""%(match.group("var"), match.group("var"), units, match.group("varsep"))
+			replstr = """<strong class="%s paramdef___%s">$$%s %s </strong>%s"""%(editclass,match.group("var"), match.group("var"), units, match.group("varsep"))
 
 			viewdef = re.sub(matchstr,replstr,viewdef)
 

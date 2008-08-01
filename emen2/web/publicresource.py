@@ -89,7 +89,7 @@ class PublicView(Resource):
 	
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
-		g.debug.msg('LOG_INIT', 'Redirect Registered::: FROM:',fro, 'TO:', to, args, kwargs)
+		#g.debug.msg('LOG_INIT', 'Redirect Registered::: FROM:',fro, 'TO:', to, args, kwargs)
 		cls.redirects[fro] = (to, args, kwargs)
 	
 	@classmethod
