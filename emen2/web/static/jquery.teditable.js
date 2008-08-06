@@ -62,6 +62,25 @@
   *             
   */
 
+cycler = function(elem) {
+	 var self = this;
+	 this.chars = ["-", "\\", "|", "/"]
+	 this.current = 0
+	 this.next =  function () {
+		 elem.html(self.chars[self.current++]);
+         if (self.current >= self.chars.length) self.current = 0;		 
+	 }
+	 this.start = function() {
+		 self.pid = setInterval(self.next, 95);
+	 }
+	 this.stop = function() {
+		 if (self.pid != undefined) {
+			 clearInterval(self.pid);
+		 }
+	 }
+}
+ 
+
 jQuery.fn.tEditable = function(url, options) {
 	 var settings = {
         url    : url,
@@ -247,13 +266,16 @@ jQuery.fn.tEditable = function(url, options) {
 				
 	
 	            /* show the saving indicator */
-	            if (settings.indicator)
+	            if (settings.indicator) {
 					jQuery(self).html(settings.indicator);
-				else 
-					jQuery(self).html("-");
-					     
+	            } else {
+					self.spin = new cycler(jQuery(self));
+		            self.spin.start();
+				};
+				
 	            jQuery.post(settings.url, p, function(str) {
-	                self.innerHTML = str;
+	                self.spin.stop();
+	            	self.textContent = str;
 	                self.editing = false;
 		            if (settings.onsubmit != null) {
 		            	settings.onsubmit(self);
@@ -272,4 +294,3 @@ jQuery.fn.tEditable = function(url, options) {
 	});		
 	return(this);
 }
-
