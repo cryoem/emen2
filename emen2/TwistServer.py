@@ -45,21 +45,6 @@ import time
 ts.startup(g.EMEN2DBPATH)
 
 
-def load_views():
-    g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-    g.TEMPLATEDIR="./TwistSupport_html/templates"
-    templating.get_templates(g.TEMPLATEDIR)
-    
-def reload_views():
-    reload(emen2.TwistSupport_html.public.views)
-    load_views()
-    for view in routing.URLRegistry.URLRegistry.values():
-        view = view._URL__callback.__module__
-        exec 'import %s;reload(%s)' % (view,view)
-
-
-load_views()
-
 g.macros = macro.MacroEngine()
 
 

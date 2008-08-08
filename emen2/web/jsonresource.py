@@ -62,7 +62,11 @@ class JSONResource(Resource):
 
 
 	def action(self, method, args, db=None, host=None):
-		method = getattr(db,method)
-		result = method(*args)
-		result = demjson.encode(result, escape_unicode=True)
+		print 'json request'
+		method_ = db.publicmethods.get(method, None)
+		if method_ is not None:
+			result = method_(db, *args)
+			result = demjson.encode(result, escape_unicode=True)
+		else:
+			raise NotImplementedError('remote method %s not implemented' % method)
 		return result.encode("utf-8", 'replace')

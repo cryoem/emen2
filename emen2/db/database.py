@@ -64,7 +64,10 @@ def DB_syncall():
 		for i in FieldBTree.alltrees.keys(): i.sync()
 #		 print "%f sec to sync"%(time.time()-t)
 
-
+def publicmethod(func):
+	publicmethods = sys._getframe(1).f_locals['publicmethods']
+	publicmethods[func.func_name] = func
+	return func
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()		
 class Database(object):
 		"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
@@ -73,6 +76,8 @@ class Database(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 		
 		TODO : Probably should make more of the member variables private for slightly better security"""
+		publicmethods = {}
+		
 		def __init__(self,path=".",cachesize=32000000,logfile="db.log",importmode=0,rootpw=None,recover=0,allowclose=True):
 				"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
@@ -254,9 +259,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		def checkpassword(self, username, password):
 				s=hashlib.sha1(password)
 				try:
-						user=self.__users[username]
+					user=self.__users[username]
 				except TypeError:
-						raise AuthenticationError, AuthenticationError.__doc__
+					raise AuthenticationError, AuthenticationError.__doc__
 				if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
 				return s.hexdigest()==user.password
 
@@ -1116,7 +1121,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		#		 return None
 				
 
-		# ian todo: add unit support.				 
+		# ian todo: add unit support.
 		def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 				"""For numerical & simple string parameters, this will locate all records
 				with the specified paramdef in the specified range.
@@ -1954,7 +1959,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if len(user.password)<6 :
 						raise SecurityError,"Passwords must be at least 6 characters long"
 
-				s=sha.new(user.password)
+				s=hashlib.sha1(user.password)
 				user.password=s.hexdigest()
 
 				if not self.__importmode:
@@ -2315,6 +2320,7 @@ or None if no match is found."""
 		
 		
 		
+		@publicmethod
 		def getparamdefs(self,recs,ctxid=None,host=None):
 				"""Returns a list of ParamDef records.
 				recs may be a single record, a list of records, or a list
@@ -2472,6 +2478,7 @@ or None if no match is found."""
 				
 				
 		# ian todo: move host to end
+		@publicmethod
 		def getrecorddef(self,rectypename,ctxid,host=None,recid=None):
 				"""Retrieves a RecordDef object. This will fail if the RecordDef is
 				private, unless the user is an owner or	 in the context of a recid the
@@ -2734,6 +2741,7 @@ or None if no match is found."""
 
 
 
+		@publicmethod
 		def putrecordvalue(self,recid,param,value,ctxid,host=None):
 				rec=self.getrecord(recid,ctxid,host=host)
 				rec[param]=value
@@ -2758,6 +2766,7 @@ or None if no match is found."""
 				return self.getrecord(recid,ctxid,host=host)				
 
 				
+		@publicmethod
 		def putrecordsvalues(self,d,ctxid,host=None):
 				ret={}
 				for k,v in d.items():
@@ -2765,6 +2774,7 @@ or None if no match is found."""
 				return ret
 				
 				
+		@publicmethod
 		def addcomment(self,recid,comment,ctxid):
 				rec=self.getrecord(recid,ctxid)
 				rec.addcomment(comment)
@@ -2772,11 +2782,13 @@ or None if no match is found."""
 				return self.getrecord(recid,ctxid)["comments"]
 				
 				
+		@publicmethod
 		def getgroupdisplayname(self,groupname,ctxid,host=None):
 				groupnames={"-3":"All Authenticated Users","-4":"Anonymous Access","-1":"Database Administrator"}
 				return groupnames[str(username)]						
 				
 				
+		@publicmethod
 		def getuserdisplayname(self,username,ctxid,lnf=1,host=None):
 				"""Return the full name of a user from the user record."""
 
@@ -3066,6 +3078,7 @@ or None if no match is found."""
 		
 		
 		# ian todo: move host to end
+		@publicmethod
 		def getrecord(self,recid,ctxid,host=None,dbid=0):
 				"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 				if dbid is 0, the current database is used. host must match the host of the
@@ -3145,6 +3158,7 @@ or None if no match is found."""
 		
 		
 		#@write,user
+		@publicmethod
 		def secrecordadduser(self,usertuple,recid,ctxid,recurse=0,reassign=0,mode="union",host=None):
 				"""This adds permissions to a record. usertuple is a 4-tuple containing users
 				to have read, comment, write and administrativepermission. Each value in the tuple is either
@@ -3312,6 +3326,7 @@ or None if no match is found."""
 		
 		# ian: moved host to end. see notes above.
 		#@write,user
+		@publicmethod
 		def secrecorddeluser(self,users,recid,ctxid,recurse=0,host=None):
 				"""This removes permissions from a record. users is a username or tuple/list of
 				of usernames to have no access to the record at all (will not affect group 
@@ -3401,6 +3416,7 @@ or None if no match is found."""
 		
 		
 		
+		@publicmethod
 		def getrecordrecname(self,rec,ctxid,host=None):
 				"""Render the recname view for a record."""
 				
