@@ -74,7 +74,7 @@ multiwidget.prototype = {
 		console.log("t");
 		if (this.rootless==0) {
 			$(cl,this.root).each( function(i) {
-				console.log(z);
+//				console.log(z);
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});
 		} else {
