@@ -1,3 +1,32 @@
+td .editable {
+	color:#202060;
+}
+td .editable:hover {
+	background:none;
+	color:#202060;
+}
+
+.record_editbar {
+	padding:0px;
+	padding-top:0px;
+	margin-bottom:10px;
+}
+
+.record_editbar_addchild, .record_editbar_item {
+	font-size:10pt;
+	background:#EEEEEE;
+	color:#783766;
+	padding:4px;
+	margin:4px;
+	border:solid 1px #CCC;
+}
+
+.permissions_savearea {
+	border-top:solid 2px #ccc;
+	padding-top:10px;
+	margin-top:10px;
+}
+
 a img {
 	border:0px;
 }
@@ -56,6 +85,7 @@ a img {
 
 .map {
 	font-size:10pt;
+	background:white;
 }
 .map td {
 	min-width:32px;
@@ -93,6 +123,11 @@ a img {
 .map td.blank {
 	
 }
+.map td.editablelink:hover {
+	background:url("/images/remove.png") center center;
+	repeat-x: none;
+	repeat-y: none;
+}
 
 
 .widget ul {
@@ -124,9 +159,10 @@ a img {
 	margin:0px;
 	margin-right:6px;
 	min-height:100px;
+	/*
 	max-height:400px;
-	overflow:auto;
-	width:18boo	0px;
+	overflow:auto;*/
+	width:180px;
 }
 .user_level ul li {
 	padding:0px;
@@ -165,6 +201,13 @@ a img {
 .removed .name {
 	border:solid red 1px;
 }
+.reassigned .action {
+	background: #fdff4b;
+	border:solid #fdff4b 1px;
+}
+.reassigned .name {
+	border:solid #fdff4b 1px;
+}
 
 .user_level {
 	float:left;
@@ -180,7 +223,7 @@ a img {
 .user_add {
 	width:586px;
 	border:solid 2px #BBD9EE; 
-	padding:5px;
+	padding:10px;
 	background:white;
 }
 
@@ -228,7 +271,8 @@ td.shaded {
 	background:red;
 }
 
-/* Date picker */
+
+/* Some resets for compatibility with existing CSS */
 .date_selector, .date_selector * {
   width: auto;
   height: auto;
@@ -253,46 +297,23 @@ td.shaded {
   z-index: 99999;
   display: none;
 }
-
-  .date_selector .time_nav {
-	margin:0px;
-	margin-left: 5px;
-	display:block;
-	background:white;
-	float:right;
-	text-align:center;
-  }
-	.date_selector .time_nav input {
-		background:#F0F0F0;
-		color:black;
-		font-size:20px;
-		width:30px;
-	}
-
-	.time_cont {
-		float:right;
-	}
-	.date_cont {
-		float:left;
-	}
   .date_selector .month_nav {
     margin: 0 0 5px 0;
     padding: 0;
-	display:inline;
-	padding-right:50px;
-	width:auto;
+    display: block;
   }
     .date_selector .month_name {
       font-weight: bold;
       line-height: 20px;
+      display: block;
       text-align: center;
     }
     .date_selector .month_nav a {
-/*      display: block;
+      display: block;
       position: absolute;
       top: 5px;
       width: 20px;
-      height: 20px;  */
+      height: 20px;
       line-height: 17px;
       font-weight: bold;
       color: #003C78;
@@ -328,7 +349,6 @@ td.shaded {
       white-space: nowrap;
       background: white;
     }
-
     .date_selector td.today {
       background: #FFFED9;
     }
@@ -347,7 +367,7 @@ td.shaded {
       .date_selector td.today a {
         background: #FFFEB3;
       }
-      .date_selector td.selected a, .date_selector tr.selected a {
+      .date_selector td.selected a {
         background: #D8DFE5;
         font-weight: bold;
       }
@@ -356,22 +376,37 @@ td.shaded {
           color: white;
         }
 
-	.date_selector .time_nav th, .date_selector .time_nav td, .date_selector .time_nav tr, .date_selector .time_nav a {
-		width:2.5em;
-		height:1em;
-		text-align:center;
-		line-height:100%;
-		border:none;
-		padding-top:2px;
-		padding-bottom:2px;
-	}
-	.date_selector .time_nav td {
-		border-right:1px solid #F2F2F2;;
-		border-top: 1px solid #F2F2F2;;
-	}
 
 
 /* autocomplete */
+
+ul.jq-ui-autocomplete {
+	max-height:400px;
+    position: absolute;
+    overflow: auto;
+    background-color: #fff;
+    border: 1px solid #aaa;
+    margin: 0px;
+    padding: 0;
+    list-style: none;
+    font: normal .75em/.75em Verdana, Arial, sans-serif;
+    color: #333;	
+}
+ul.jq-ui-autocomplete li { 
+  display: block; 
+  padding: .3em .5em .3em .3em; 
+  overflow: hidden;
+  line-height:150%;
+  width: 95%;
+}
+
+ul.jq-ui-autocomplete li.active { 
+  background-color: #3875d7; 
+  color: #fff;
+}
+
+
+
 
 .ac_results {
 	padding: 0px;
@@ -721,7 +756,7 @@ PAGE / TAB
 */
 
 /* recordview, .buttons:after */
-.clearfix:after, #permissions:after, .input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after {
+.clearfix:after, .page:after, #permissions:after, .input_combobox:after, .browser:after, .table_header:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -741,7 +776,7 @@ PAGE / TAB
 .page {
 	background:#E7F1F8;	
 	width:800px;
-	padding:20px;
+	padding:10px;
 	display:none;
 }
 .page_active {
@@ -812,7 +847,7 @@ SIDEBAR
 =============================================================
 */
 #sidebar {
-	border-left:solid 1px;
+/*	border-left:solid 1px; */
 	padding:10px;
 	padding-right:0px;
 	width:300px;
@@ -1232,6 +1267,8 @@ QUICK BROWSER ELEMENTS
 #F0F2FF;
 
 */
+
+
 
 /* *************************
      rounded corners

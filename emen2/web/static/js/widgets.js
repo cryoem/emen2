@@ -1,58 +1,4 @@
-//////////////////////////////////////////
-
-// access values from correct sources
-
-paramindex={};
-rec={};
-recs={};
-
-
-
-function getvalue(recid,param) {
-	//if (rec["recid"]==recid || recid==null) {return rec[param]}
-	if (paramindex[param]) {
-		if (paramindex[param][recid]) {return paramindex[param][recid]}
-		}
-	if (recs[recid]) {
-		return recs[recid][param]
-	}
-	return null
-}
-function setvalue(recid,param,value) {
-	if (rec["recid"]==recid || recid==null) {rec[param]=value}
-	if (paramindex[param]) {
-		if (paramindex[param][recid]) {
-			paramindex[param][recid]=value
-			}
-	}
-	if (recs[recid]) {
-		if (recs[recid][param]) {
-			recs[recid][param]=value
-			}
-	}
-}
-function setrecord(recid,record) {
-	recs[recid]=record;
-}
-function setrecords(records) {
-	$.each(records,function(i){
-		recs[i]=this;
-	});
-}
-function getrecord(recid) {
-	if (recid==null) { return rec }
-	if (recs[recid]) {
-		return recs[recid];
-	}
-}
-
-
-
-
-
-
-
-//////////////////////////////////////////
+/////////////////////////////////////////
 
 
 multiwidget = (function($) { // Localise the $ function
@@ -103,6 +49,8 @@ multiwidget.prototype = {
 
 		this.controlsroot.after(this.controls);	
 
+		console.log(this.now);
+		
 		if (this.now) {
 			this.build()
 		} else if (!this.ext_edit_button) {
@@ -123,15 +71,22 @@ multiwidget.prototype = {
 			for (var i=0;i<this.restrictparams.length;i++) {cl += ".editable.paramdef___"+this.restrictparams[i]+","}
 		}
 
+		console.log("t");
 		if (this.rootless==0) {
 			$(cl,this.root).each( function(i) {
+				console.log(z);
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});
 		} else {
+		
 			$(cl).each( function(i) {
+		console.log("Z2");
+
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});			
 		}
+
+		console.log("Z");
 
 		this.ws = ws;
 		var self=this;
@@ -184,13 +139,14 @@ multiwidget.prototype = {
 			allcount+=count;
 
 		});
-				
+		
 		if (allcount==0) {
 			//console.log("no changes made..");
 			notify("No changes made");
 		} else {
 			//console.log("commit callback");
 			this.savebutton.val("Saving...");
+			console.log(this.commitcallback);
 			this.commitcallback(this,changed);
 		}
 
@@ -252,7 +208,6 @@ widget.prototype = {
 	},
 	
   build: function() {
-				
 		var props=this.getprops();		
 		this.param=props["paramdef"];
 		this.recid=parseInt(props["recid"]);		
@@ -295,6 +250,7 @@ widget.prototype = {
 		} else if (paramdefs[this.param]["vartype"]=="datetime") {
 		
 			this.editw=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
+			this.popup=new DateInput(this.editw);
 			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
 
@@ -313,11 +269,17 @@ widget.prototype = {
 		
 		} else {
 
-			this.editw=$('<input class="value" size="20" type="text" value="'+this.value+'" />');
-			//.autocomplete("/db/findvalue/"+this.param, {
-			//	width: 260,
-			//	selectFirst: true,
-			//});
+			this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
+
+			// autocomplete only for string vartype
+			if (paramdefs[this.param]["vartype"]=="string") {
+				this.editw.autocomplete({ 
+					ajax: "/db/findvalue/"+this.param+"/",
+					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					insertText: function(value)  { return value[1] },
+				}).bind("activate.autocomplete", function(e,d) { console.log(d) })
+			}
+			
 			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);
 			
@@ -402,13 +364,18 @@ widget.prototype = {
 
 	////////////////////////
 	revert: function() {
+
+		//if (this.popup) {this.popup.hide()}
+				
 		this.w.siblings(".editable").show();
 		this.w.remove();		
 	},
 	
 	////////////////////////	
 	save: function() {
-				
+		
+		//if (this.popup) {this.popup.hide()}
+		
 		var save=$(":submit",this.w);
 		save.val("Saving...");
 
@@ -466,10 +433,18 @@ permissions.prototype = {
 	init: function() {
 
 		var self=this;
+		console.log(this.elem);
 
 		this.inheritcontrols=[];
-		this.changed=[];
+
+		this.olist=[];
+		for (var i=0;i<4;i++) {
+			this.olist.push(this.list[i].slice());
+		}
+		this.newusers=[];
 		this.removed=[];
+		this.reassigned=[];
+
 		this.removedlevel={};
 
 
@@ -481,42 +456,42 @@ permissions.prototype = {
 			for (var i=0;i<this.inherit.length;i++) {
 				this.addinherititem(this.inherit[i],1);
 			}
-		}
 
-		this.inheritarea_addcontrols = $('<tr></tr>');
-		this.inheritarea_addfield = $('<input type="text" value="" />');
+			this.inheritarea_addcontrols = $('<tr></tr>');
+			this.inheritarea_addfield = $('<input type="text" value="" />');
 		
-		// add new inherit/parent item
-		this.inheritarea_addbutton = $('<input type="button" value="Add Record" />').click(function(){
-			var getrecid=parseInt(self.inheritarea_addfield.val());
+			// add new inherit/parent item
+			this.inheritarea_addbutton = $('<input type="button" value="Add Record" />').click(function(){
+				var getrecid=parseInt(self.inheritarea_addfield.val());
 
-			$.getJSON("/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
+				$.getJSON("/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
 
-				setrecord(getrecid,result["recs"][getrecid]);
+					setrecord(getrecid,result["recs"][getrecid]);
 
-				$.each(result["displaynames"], function(k,v) {
-					displaynames[k]=v;
-				});
+					$.each(result["displaynames"], function(k,v) {
+						setdisplayname(k,v);
+					});
 				
-				$.each(result["recnames"], function(k,v) {
-					recnames[k]=v;
-				});
+					$.each(result["recnames"], function(k,v) {
+						recnames[k]=v;
+					});
 
-				self.addinherititem(getrecid,1);
-				self.build();
+					self.addinherititem(getrecid,1);
+					self.build();
+
+				});
 
 			});
-
-		});
 		
-		this.inheritarea_addcontrols.append(
-			$("<td></td><td></td>"),
-			$("<td></td>").append(this.inheritarea_addfield,this.inheritarea_addbutton)
-			);
-		this.inheritarea.append(this.inheritarea_addcontrols);
+			this.inheritarea_addcontrols.append(
+				$("<td></td><td></td>"),
+				$("<td></td>").append(this.inheritarea_addfield,this.inheritarea_addbutton)
+				);
+			this.inheritarea.append(this.inheritarea_addcontrols);
 		
-		this.elem.append(this.inheritarea);
+			this.elem.append(this.inheritarea);
 
+		}
 
 
 		////////////////////////////////
@@ -524,41 +499,64 @@ permissions.prototype = {
 		
 		var user_outer=$('<div class="user_outer"></div>');
 		
-		var useradd=$('<div class="user_add">Assign Permissions: </div>');
+		var useradd=$('<div class="user_add">Assign Permissions:</div>');
+		var useradd_user=$('<div/>');
+		var useradd_group=$('<div/>');
 
-		// Search using autocomplete plugin
-		this.search=$('<input class="value" size="20" type="text" value="" />').autocomplete(
-			"/db/finduser/", {
-			parsecallback: autocomplete_parse_finduser,
-			width: 260,
-			minChars:3,
-			dataType:"json",
-			selectFirst: true,
-		});
-		
-		this.levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
+		this.user_search=$('<input class="value" size="20" type="text" value="" />');
+		this.user_search.autocomplete({ 
+					ajax: "/db/finduser/",
+					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					insertText: function(value)  { 
+						//displaynames[value[0]]=value[1];
+						setdisplayname(value[0],value[1]);
+						return value[0] 
+						},
+					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+				}).bind("activate.autocomplete", function(e,d) {  });
 
-		this.adduserbutton=$('<input type="submit" value="Add User">');
+		this.user_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
+		this.user_addbutton=$('<input type="button" value="Add User">');
 
-		this.adduserbutton.click(function(){
-			self.add(self.search.val(),self.levelselect.val());
+		this.user_addbutton.click(function(){
+			self.add(self.user_search.val(),self.user_levelselect.val());
 			self.build();
 		});
 		
-		useradd.append(this.search,this.levelselect,this.adduserbutton);
 
-		user_outer.append(useradd);
+		this.group_search=$('<select><option></option></select>');
+		$.each(groupnames,function(k,v){
+			self.group_search.append('<option value="'+k+'">'+v+'</option>');
+		});
+		this.group_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
+		this.group_addbutton=$('<input type="button" value="Add Group">');
+		this.group_addbutton.click(function(){
+			console.log(parseInt(self.group_search.val()));
+			console.log(self.group_levelselect.val());
+			self.add(parseInt(self.group_search.val()),self.group_levelselect.val());
+			self.build();
+			console.log(self.list);
+		});
 
+
+		useradd_user.append(this.user_search, this.user_levelselect, this.user_addbutton);
+		useradd_group.append(this.group_search, this.group_levelselect, this.group_addbutton);	
+		useradd.append(useradd_user, useradd_group);
 
 		// Save controls
 		if (!this.newrecord) {
-			this.savearea = $('<div></div>');
-			this.savearea.append('<input type="button" value="Save for this Record" />');
-			this.savearea.append('<input type="button" value="Apply ADDED users to children" />');
-			this.savearea.append('<input type="button" value="Apply REMOVED users to children" />');
-			user_outer.append(this.savearea);
+			this.savearea = $('<div class="permissions_savearea" />');
+			var savearea_apply = $('<input type="button" value="Save for this Record" />').click(function(){self.save_record()});
+			this.savearea.append(savearea_apply);
+			this.savearea.append('<br /><hr />Apply to children: ');
+			this.savearea_children=$('<select><option>ADD (orange) users</option><option>REMOVE (red) users</option><option>REASSIGN (yellow) users</option><option>UNION of this set</option><option>INTERSECTION of this set</option></select>')
+			this.savearea.append(this.savearea_children);
+			this.savearea.append('<input type="button" value="Apply" />');
+
+			useradd.append(this.savearea);
 		}
 
+		user_outer.append(useradd);
 
 		this.userarea_removed = $("<div></div>");
 		this.userarea = $("<div></div>");
@@ -593,7 +591,7 @@ permissions.prototype = {
 			this.removed = this.sortbydisplayname(this.removed);
 			$.each(this.removed, function(k,v) {
 					var userdiv=$('<div class="user removed"></div>');
-					var username=$('<span class="name">'+displaynames[v]+'</span>');
+					var username=$('<span class="name">'+getdisplayname(v)+'</span>');
 					var useraction=$('<span class="action">+</span>').click(function(){
 						self.add(useraction.username,self.removedlevel[useraction.username]);
 						self.build();
@@ -619,11 +617,19 @@ permissions.prototype = {
 		var self=this;
 
 		$.each(this.list, function(k,v) {
+			
 			v=self.sortbydisplayname(v);
-			if (v.length>0) {
+			
+			var level=$('<div class="clearfix user_level"><h6>'+self.levels[k]+'</h6></div>');
+			
+			level_ul = $("<ul></ul>");
 
-				var level=$('<div class="clearfix user_level">'+self.levels[k]+' </div>');
-				var level_removeall=$('<span>[<span class="jslink">X</span>]</span>').click(function () {
+
+			if (v.length == 0) {
+				//level_ul.append("<li>Emtpy</li>");
+			} else {
+				
+				var level_removeall=$('<span class="small">[<span class="jslink">X</span>]</span>').click(function () {
 					var q=v.slice();
 					for (var i=0;i<q.length;i++) {
 						self.remove(q[i]);
@@ -631,16 +637,15 @@ permissions.prototype = {
 					self.build();
 				});
 				level.append(level_removeall);
-				
-				level_ul = $("<ul></ul>");
-				
+
 				$.each(v, function(k2,v2) {
 
 					var userdiv=$('<li class="user clearfix"></li>');
 
-					if (self.changed.indexOf(v2) > -1) {userdiv.addClass("changed")}
-					
-					var username=$('<span class="name">'+displaynames[v2]+'</span>');
+					if (self.newusers.indexOf(v2) > -1) {userdiv.addClass("changed")}
+					if (self.reassigned.indexOf(v2) > -1) {userdiv.addClass("reassigned")}
+				
+					var username=$('<span class="name">'+getdisplayname(v2)+'</span>');
 					var useraction=$('<span class="action">X</span>').click(function(){
 						if(self.remove(useraction.username)){
 							self.build();
@@ -653,11 +658,26 @@ permissions.prototype = {
 					level_ul.append(userdiv);
 
 				});
-				level.append(level_ul)
-				self.userarea.append(level);
 			}
+			
+			level.append(level_ul)
+			self.userarea.append(level);
+
+
 		});
 
+	},
+	
+	getolevel: function(username) {
+		for (var i=0;i<this.list.length;i++) {
+			if (this.olist[i].indexOf(username) > -1) return i
+		}
+	},
+	
+	getlevel: function(username) {
+		for (var i=0;i<this.list.length;i++) {
+			if (this.list[i].indexOf(username) > -1) return i
+		}		
 	},
 
 	// sort usernames by their display names	
@@ -666,8 +686,8 @@ permissions.prototype = {
 		var sortnames=[];
 		var retnames=[];
 		for (var i=0;i<list.length;i++) {
-		    reversenames[displaynames[list[i]]]=list[i];
-		    sortnames.push(displaynames[list[i]]);
+		    reversenames[getdisplayname(list[i])]=list[i];
+		    sortnames.push(getdisplayname(list[i]));
 		}
 		sortnames.sort();
 		for (var i=0;i<sortnames.length;i++) {
@@ -733,14 +753,38 @@ permissions.prototype = {
 	add: function(username,level) {
 		ret = 0;
 		level=parseInt(level);
-		if (displaynames[username] == null) {return}
-		if (this.list[level].indexOf(username) == -1) {
+
+		if (getdisplayname(username) == null) {
+			console.log("no display name");
+			return
+		}
+
+		var olevel=this.getolevel(username)
+		var clevel=this.getlevel(username)
+		
+		if (olevel==null && clevel==null) {
 			this.remove(username);
 			this.list[level].push(username);
-			if (this.changed.indexOf(username)==-1) {this.changed.push(username)}
-			if (this.removed.indexOf(username) > -1) {this.removed.splice(this.removed.indexOf(username),1)}
+			this.newusers.push(username);
 			ret=1;
+		}	else if (olevel != level) {
+			this.remove(username);
+			this.list[level].push(username);
+			this.reassigned.push(username);
+			ret=1;
+		} else if (olevel == level) {
+			if (this.list[level].indexOf(username)==-1) {this.list[level].push(username);}
 		}
+		if (this.removed.indexOf(username) > -1) {
+			this.removed.splice(this.removed.indexOf(username),1)
+		}
+//		if (this.list[level].indexOf(username) == -1) {
+//			this.remove(username);
+//			this.list[level].push(username);
+//			if (this.newusers.indexOf(username)==-1) {this.newusers.push(username)}
+//			if (this.removed.indexOf(username) > -1) {this.removed.splice(this.removed.indexOf(username),1)}
+//			ret=1;
+//		}
 		return ret
 		
 	},
@@ -759,23 +803,37 @@ permissions.prototype = {
 	remove: function(username) {
 		if (username==user) {
 			return 0
-			}
-		
-		var newlist=[];
-		var self=this;
-		$.each(this.list, function(k,v) {
-			var pos=v.indexOf(username);
-			if (pos>-1) {
-				v.splice(pos,1);
-				self.removedlevel[username]=k;
-			}
-			newlist.push(v);
-		});
-		this.list=newlist;
+		}
+			
+		var clevel = this.getlevel(username);
+		if (clevel!=null) {
+			this.list[clevel].splice(this.list[clevel].indexOf(username),1);
+			this.removedlevel[username]=clevel;
+		}
 
+		//for (var i=0;i<this.list.length;i++) {
+		//	var pos=this.list[i].indexOf(username);
+		//	if (pos>-1) {
+		//		this.list[i].splice(pos,1);
+		//		this.removedlevel[username]=i;
+		//	}
+		//}		
+		//var newlist=[];
+		//var self=this;
+		//$.each(this.list, function(k,v) {
+		//	var pos=v.indexOf(username);
+		//	if (pos>-1) {
+		//		v.splice(pos,1);
+		//		self.removedlevel[username]=k;
+		//	}
+		//	newlist.push(v);
+		//});
+		//this.list=newlist;
+
+		// set the indexes
 		if (this.removed.indexOf(username) == -1) {this.removed.push(username)}
-		if (this.changed.indexOf(username) > -1) {this.changed.splice(this.changed.indexOf(username),1)}
-
+		if (this.newusers.indexOf(username) > -1) {this.newusers.splice(this.newusers.indexOf(username),1)}
+		if (this.reassigned.indexOf(username) > -1) {this.reassigned.splice(this.reassigned.indexOf(username),1)}
 
 		return 1
 	},
@@ -815,7 +873,55 @@ permissions.prototype = {
 		
 	getparents: function() {
 		return this.parents
-	}	
+	}, 
+	
+	save_record: function() {
+		
+		ajaxqueue["record_permissions_save"]=1;
+		var self=this;
+		// only remove users present in original permissions..
+		var r=[];
+		for (var i=0;i<this.removed.length;i++) {
+			if (this.getolevel(this.removed[i]) != null) r.push(this.removed[i]);
+		}
+		if (r.length > 0) {
+
+			ajaxqueue["record_permissions_save"]++;
+			$.jsonRPC("secrecorddeluser",[r,recid,ctxid], function() {
+				ajaxqueue["record_permissions_save"]--;
+				if (ajaxqueue["record_permissions_save"]==0) {
+					console.log("ajax queue done");
+					self.reinit();
+				}
+			});
+
+		}
+
+		// run with recurse = 0, reassign = 1
+		$.jsonRPC("secrecordadduser",[this.list, recid, ctxid,0,1], function(permissions) {
+				setvalue(recid,"permissions");
+				ajaxqueue["record_permissions_save"]--;
+				if (ajaxqueue["record_permissions_save"]==0) {
+					console.log("ajax queue done");
+					self.reinit(permissions);
+				}
+			});		
+
+
+	},
+	
+	reinit: function(list) {
+		notify("Saved Permissions");
+		if (list) {this.list=list;}
+		this.newusers=[];
+		this.removed=[];
+		this.reassigned=[];	
+		this.olist=[];
+		for (var i=0;i<4;i++) {
+			this.olist.push(this.list[i].slice());
+		}
+		this.build();
+	}
 	
 }
 
@@ -973,6 +1079,28 @@ listwidget.prototype = {
 		$.each(this.values, function(k,v) {
 			var item=$('<li></li>');
 			var edit=$('<input type="text" value="'+v+'" />');
+			
+			if (self.paramdef["vartype"]=="userlist") {
+
+				edit.autocomplete({ 
+					ajax: "/db/finduser/",
+					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					insertText: function(value)  { return value[0] },
+					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+				}).bind("activate.autocomplete", function(e,d) {  });
+
+			} else if (self.paramdef["vartype"]=="stringlist") {
+
+				editw.autocomplete({ 
+
+					ajax: "/db/findvalue/"+this.param+"/",
+					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					insertText: function(value)  { return value[1] },
+					
+				}).bind("activate.autocomplete", function(e,d) {  })
+				
+			}
+			
 			var add=$('<span><img src="/images/add_small.png" class="listwidget_add" /></span>').click(function() {
 				self.addoption(k+1);
 				self.build();
@@ -1072,6 +1200,101 @@ return skeleton;
 
 /////////////////////////////////////////////
 
+relationshipcontrol = (function($) { // Localise the $ function
+
+function relationshipcontrol(elem, opts) {
+  if (typeof(opts) != "object") opts = {};
+  $.extend(this, relationshipcontrol.DEFAULT_OPTS, opts);
+  this.elem = $(elem);  
+  this.init();
+};
+
+relationshipcontrol.DEFAULT_OPTS = {
+		parents: [],
+		children: []
+};
+
+relationshipcontrol.prototype = {
+	
+	init: function() {
+		this.build();
+	},
+	
+  build: function() {
+		console.log("parents/children");
+		console.log(parents);
+		console.log(children);
+		
+		this.table = $('<table class="map" cellpadding="0" cellspacing="0" />');
+		var len=parents.length;
+		if (children.length > len) len=children.length;
+		
+		this.table.append('<tr><td><h6>Parents</h6></td><td /><td><h6>Current Record</h6></td><td /><td><h6>Children</h6></td></tr>');
+		
+		for (var i=0;i<len;i++) {
+			var row=$('<tr></tr>');
+			
+			if (this.parents[i]!=null) {
+
+				var img="next";
+				if (this.parents.length > 1 && i==0) {img="branch_next"}
+				if (this.parents.length > 1 && i>0) {img="branch_both"}
+				if (this.parents.length > 1 && i==this.parents.length-1) {img="branch_up"}				
+				row.append('<td><a href="/db/record/'+this.parents[i]+'">'+recnames[this.parents[i]]+'</a></td>');
+				row.append('<td class="'+img+' editablelink"> </td>');
+
+			} else {
+				row.append('<td /><td />');
+			}
+			
+			if (i==0) {
+				row.append('<td>'+recnames[recid]+'</td><td />')
+			}	else {
+				row.append('<td /><td />');
+			}
+			
+			if (this.children[i]!=null) {
+
+				var img="next_reverse";
+				if (this.children.length > 1 && i==0) {img="branch_next_reverse"}
+				if (this.children.length > 1 && i>0) {img="branch_both_reverse"}
+				if (this.children.length > 1 && i==this.children.length-1) {img="branch_up_reverse"}
+
+				var button=$('<td class="'+img+' editablelink"> </td>');
+				var self=this;
+				button.recid=this.children[i];
+				button.click(function(){console.log(this)});
+
+				row.append(button, '<td><a href="/db/record/'+this.children[i]+'">'+recnames[this.children[i]]+'</a></td>');
+
+			} else {
+				row.append('<td /><td />');
+			}
+			
+			this.table.append(row);
+		}
+		
+		this.elem.append(this.table);
+
+	}
+	
+}
+
+$.fn.relationshipcontrol = function(opts) {
+    return this.each(function() {
+		new relationshipcontrol(this, opts);
+	});
+};
+
+return relationshipcontrol;
+
+})(jQuery); // End localisation of the $ function
+
+
+
+/////////////////////////////////////////////
+
+
 commentswidget = (function($) { // Localise the $ function
 
 function commentswidget(elem, opts) {
@@ -1140,8 +1363,8 @@ commentswidget.prototype = {
 
 		$.each(cr, function() {
 			var dname=this[0];
-			if (displaynames[this[0]]!=null) {
-				var dname = displaynames[this[0]];
+			if (getdisplayname(this[0])!=null) {
+				var dname = getdisplayname(this[0]);
 			}
 			var time=this[1];
 			
@@ -1245,8 +1468,8 @@ logwidget.prototype = {
 
 		$.each(cr, function() {
 			var dname=this[0];
-			if (displaynames[this[0]]!=null) {
-				var dname = displaynames[this[0]];
+			if (getdisplayname(this[0])!=null) {
+				var dname = getdisplayname(this[0]);
 			}
 			var time=this[1];
 			

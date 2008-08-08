@@ -1,6 +1,163 @@
+// globals
+
 valid_properties = {"angle":["degree",["mrad","radian","degree"]],"area":["m^2",["cm^2","m^2"]],"bfactor":["A^2",["A^2"]],"concentration":["mg/ml",["p/ml","mg/ml","pfu"]],"count":["count",["count","K","pixels"]],"currency":["dollars",["dollars"]],"current":["amp",["amp"]],"currentdensity":["Pi Amp/cm2",["Pi Amp/cm2"]],"dose":["e/A2/sec",["e/A2/sec"]],"energy":["J",["J"]],"exposure":["e/A2",["e/A2"]],"filesize":["bytes",["kB","MB","MiB","bytes","GB","KiB","GiB"]],"force":["N",["N"]],"inductance":["henry",["H"]],"length":["m",["A","nm","cm","mm","m","km","um"]],"mass":["gram",["mg","MDa","KDa","g","Da"]],"momentum":["kg m/s",["kg m/s"]],"pH":["pH",["pH"]],"percentage":["%",["%"]],"pressure":["Pa",["torr","psi","Pa","bar","atm"]],"relative_humidity":["%RH",["%RH"]],"resistance":["ohm",["ohm"]],"resolution":["A/pix",["A/pix"]],"temperature":["K",["K","C","F"]],"time":["s",["hour","min","us","s","ms","ns","day"]],"transmittance":["%T",["%T"]],"unitless":["unitless",["unitless"]],"velocity":["m/s",["m/s"]],"voltage":["volt",["mv","kv","V"]],"volume":["m^3",["ml","m^3","l","ul"]]}
 
 
+paramindex={};
+paramdefs={};
+
+recid=null;
+rec={};
+recs={};
+parents=[];
+children=[];
+
+recnames={};
+displaynames={};
+groupnames={};
+groupnames["-4"]="Anonymous Access";
+groupnames["-3"]="Authenticated Users";
+groupnames["-1"]="Administrators";
+
+ajaxqueue={};
+
+
+function getctxid() {
+	name="ctxid";
+	var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+	}
+	return null;
+}
+
+ctxid = getctxid();
+
+
+//////////////////////////////////////////
+
+// access values from correct sources
+
+
+
+function getdisplayname(name) {
+	if (displaynames[name]!=null) return displaynames[name];
+	if (groupnames[name]!=null) return "Group: "+groupnames[name]; 
+}
+
+function setdisplayname(name,value) {
+	if (isNaN(parseInt(name))) {
+		displaynames[name]=value;
+	} else {
+		groupnames[name]=value;
+	}
+}
+
+function getvalue(recid,param) {
+	//if (rec["recid"]==recid || recid==null) {return rec[param]}
+	if (paramindex[param]) {
+		if (paramindex[param][recid]) {return paramindex[param][recid]}
+		}
+	if (recs[recid]) {
+		return recs[recid][param]
+	}
+	return null
+}
+function setvalue(recid,param,value) {
+	if (rec["recid"]==recid || recid==null) {rec[param]=value}
+	if (paramindex[param]) {
+		if (paramindex[param][recid]) {
+			paramindex[param][recid]=value
+			}
+	}
+	if (recs[recid]) {
+		if (recs[recid][param]) {
+			recs[recid][param]=value
+			}
+	}
+}
+function setrecord(recid,record) {
+	recs[recid]=record;
+}
+function setrecords(records) {
+	$.each(records,function(i){
+		recs[i]=this;
+	});
+}
+function getrecord(recid) {
+	if (recid==null) { return rec }
+	if (recs[recid]) {
+		return recs[recid];
+	}
+}
+
+
+
+//////////////////////////////////////////
+
+
+function record_upload_show() {
+		$("#page_comments_upload").empty();
+		$("#page_comments_upload").append(
+		'<embed width="600px" height="600px" name="plugin" src="http://localhost:8080/flash/multipleUpload.swf" type="application/x-shockwave-flash" flashvars="uploaduri=http%3A%2F%2Flocalhost%3A8080%2Fupload%2F136" />');
+		switchin('comments','upload');
+}
+
+
+function record_relationships_show() {
+	if (relationships==null) {
+		
+		$("#page_comments_relationships").empty();
+		
+		$.jsonRPC("getrecordrecname",[parents.concat(children).concat([recid]), ctxid], function(result) {
+			$.each(result, function(k,v) {
+					recnames[k]=v;
+			});
+			relationships = new relationshipcontrol($("#page_comments_relationships"), {
+				'parents':parents,
+				'children':children
+			});
+			
+			switchin('comments','relationships');
+
+		});
+
+	} else {
+
+		switchin('comments','relationships');
+		
+	}
+}
+
+
+function record_permissions_show() {
+	// setup permissions controls
+	console.log(permissionscontrol);
+	if (permissionscontrol==null) {
+	
+		$("#page_comments_permissions").empty();
+	
+		$.jsonRPC("getuserdisplayname",[recid,ctxid], function(result) {
+			$.each(result, function(k,v) {
+				setdisplayname(k,v);
+			});
+			permissionscontrol = new permissions($("#page_comments_permissions"), {
+				'list':getvalue(recid,"permissions"),
+				}
+			);
+			
+			switchin('comments','permissions');		
+		
+		});
+	
+	} else {
+		switchin('comments','permissions');		
+	}
+	
+}
 
 function record_view_makeeditable(recid,viewtype) {
 	$('#page_recordview_'+viewtype+' .editable').bind("click",function(){
@@ -40,7 +197,7 @@ function newrecord_getoptionsandcommit(self, values) {
 
 function commit_putrecords(self, records, cb) {
 	if (cb==null) {cb=function(json){}}
-
+	console.log(records);
 	$.jsonRPC("putrecordsvalues",[records,ctxid],
  		function(json){
  			cb(json);
@@ -105,6 +262,7 @@ function record_reloadview(view) {
 
 
 function record_form_newrecord(elem) {
-	val=elem.form.addchild.value;
+	t=document.getElementById("record_editbar_addchild_select");
+	val=t.value;
 	window.location='/db/newrecord/'+recid+'/'+val+'/';
 }

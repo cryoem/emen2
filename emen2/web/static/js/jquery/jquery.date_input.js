@@ -1,8 +1,6 @@
 /*
-Date Input 1.1.5
-Requires jQuery version: 1.2
-Requires plugins:
-  * Dimensions - http://plugins.jquery.com/files/dimensions_1.2.zip
+Date Input 1.1.6
+Requires jQuery version: 1.2.6
 
 Copyright (c) 2007-2008 Jonathan Leighton & Torchbox Ltd
 
@@ -35,10 +33,8 @@ function DateInput(el, opts) {
   $.extend(this, DateInput.DEFAULT_OPTS, opts);
   
   this.input = $(el);
-  this.bindMethodsToObj("show", "hide", "hideIfClickOutside", "selectDate", "prevMonth", "nextMonth", "prevYear", "nextYear");
+  this.bindMethodsToObj("show", "hide", "hideIfClickOutside", "selectDate", "prevMonth", "nextMonth");
   
-	this.currentDate = new Date();
-
   this.build();
   this.selectDate();
   this.hide();
@@ -47,58 +43,35 @@ DateInput.DEFAULT_OPTS = {
   month_names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
   short_month_names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   short_day_names: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-	time_rows: 12,
-	start_hour: 7,
-	min_interval: 5,
-	sec_interval: 5,
-	disp_hour: 8,
-	disp_min: 0,
-	disp_sec: 0,
-  start_of_week: 1
+  start_of_week: 1,
+	save_button: 0,
+	cancel_button: 0
 };
 DateInput.prototype = {
   build: function() {
 	
-		this.currentHour=null;
-		this.currentMin=null;
-		this.currentSec=null;
-		
-		this.timecont = $('<div class="time_cont"></div>');
-		this.timeNav = $('<table class="time_nav"></table>');
-
-		this.timeNav.append($(
-			$("<thead></thead>").append(
-				$('<th>H </th>').append(
-					$('<a href="#">+</a>').click(this.bindToObj(function(event) {this.incrTime("hour",1)})),
-					$('<a href="#">-</a>').click(this.bindToObj(function(event) {this.incrTime("hour",-1)}))
-					),
-				$('<th>M </th>').append(
-					$('<a href="#">+</a>').click(this.bindToObj(function(event) {this.incrTime("min",1)})),
-					$('<a href="#">-</a>').click(this.bindToObj(function(event) {this.incrTime("min",-1)}))
-					),
-				$('<th>S </th>').append(
-					$('<a href="#">+</a>').click(this.bindToObj(function(event) {this.incrTime("sec",1)})),
-					$('<a href="#">-</a>').click(this.bindToObj(function(event) {this.incrTime("sec",-1)}))
-					)
-				)
-			)
-		);
-		
-		this.hourNav = $('<td class="hour_nav"></td>');
-		this.minNav = $('<td class="min_nav"></td>');
-		this.secNav = $('<td class="sec_nav"></td>');	
-		this.timeNav.append(this.hourNav,this.minNav,this.secNav);
-		this.timecont.append(this.timeNav);
+		this.timeSpan = $('<span class="time_name"></span>');
+		var hournav = $('<select></select>');
+		for (var i=0;i<24;i++) {
+			hournav.append('<option>'+i+'</option>');
+		}
+		var minnav = $('<select></select>');
+		for (var i=0;i<60;i++) {
+			minnav.append('<option>'+i+'</option>');
+		}
+		var secnav = $('<select></select>');
+		for (var i=0;i<60;i++) {
+			secnav.append('<option>'+i+'</option>');
+		}	
+		this.timeSpan.append(hournav,minnav,secnav);
 	
-    this.monthNameSpan = $('<span class="month_name"></span>');
+	
+    this.monthNameSpan = $('<div class="month_name"></div>');
     var monthNav = $('<p class="month_nav"></p>').append(
-      $('<a href="#" class="prev">&laquo;</a>').click(this.prevMonth), " ",
-      $('<a href="#" class="next">&raquo;</a>').click(this.nextMonth), " ",
-      this.monthNameSpan
+      $('<a href="#" class="prev">&laquo;</a>').click(this.prevMonth),
+      " ", this.monthNameSpan, " ",
+      $('<a href="#" class="next">&raquo;</a>').click(this.nextMonth)
     );
-
-		this.yearNameSpan = $('<p class="month_name"></p>');
-		var yearNav = $('<p class="month_nav"></p>').append(this.yearNameSpan, $('<a href="#" class="prev">&laquo;</a>').click(this.prevYear), " ", $('<a href="#" class="next">&raquo;</a>').click(this.nextYear));
     
     var tableShell = "<table><thead><tr>";
     $(this.adjustDays(this.short_day_names)).each(function() {
@@ -106,9 +79,8 @@ DateInput.prototype = {
     });
     tableShell += "</tr></thead><tbody></tbody></table>";
     
-		var datecont = $('<div class="date_cont"></div>');
-		datecont.append(monthNav,yearNav,tableShell);
-    this.dateSelector = this.rootLayers = $('<div class="date_selector"></div>').append(this.timecont, datecont).appendTo(document.body);
+		this.dateSelectorDay = $('<div/>').append(monthNav,tableShell);
+    this.dateSelector = this.rootLayers = $('<div class="date_selector"></div>').append(this.timeSpan, this.dateSelectorDay).appendTo(document.body);
     
     if ($.browser.msie && $.browser.version < 7) {
       this.ieframe = $('<iframe class="date_selector_ieframe" frameborder="0" src="#"></iframe>').insertBefore(this.dateSelector);
@@ -116,107 +88,11 @@ DateInput.prototype = {
     };
     
     this.tbody = $("tbody", this.dateSelector);
-    // this.selectTime();
+    
     // The anon function ensures the event is discarded
     this.input.change(this.bindToObj(function() { this.selectDate(); }));
   },
   
-	selectTime: function(date) {
-
-		//this.checktimebounds();
-
-		//console.log("selectTime: "+date);
-
-		if (date.getHours() == 0 && date.getMinutes() == 0 && date.getSeconds() == 0) {
-			this.disp_hour = 8;
-			this.disp_min = 1;
-			this.disp_sec = 1;
-		} else {
-			this.disp_hour = date.getHours();
-			this.disp_min = date.getMinutes();
-			this.disp_sec = date.getSeconds();
-		}
-
-		this.hourNav.empty();
-		this.minNav.empty();
-		this.secNav.empty();
-		
-		this.start_hour = this.disp_hour - this.time_rows / 2;
-		if (this.start_hour < 0) {this.start_hour=0}
-		if (this.start_hour > 24-this.time_rows) {this.start_hour = 24-this.time_rows}
-		
-		var secs=Array();
-		var mins=Array();
-
-		for (var i =0; i < 60; i=i+this.sec_interval) {	secs.push(i);	}
-		if (secs.indexOf(this.disp_sec) < 0) {
-			secs.push(this.disp_sec);
-			secs.sort(sortNumber);
-		} 
-		
-		for (var i =0; i < 60; i=i+this.min_interval) {	mins.push(i);	}
-		if (mins.indexOf(this.disp_min) < 0) {
-			mins.push(this.disp_min);
-			mins.sort(sortNumber);
-		}
-	
-		for (var i = 0; i < this.time_rows; i++) {
-			var ti=this.start_hour+i;
-			var t=$('<tr time="'+ti+'"><a href="#">'+ti+'</a></tr>').click(this.bindToObj(function(event) {this.selectHour(event)}));
-			if (ti==this.disp_hour) {t.addClass("selected")};
-			this.hourNav.append(t);			
-		}
-		for (i in mins) {
-			var t=$('<tr time="'+mins[i]+'"><a href="#">'+mins[i]+'</a></tr>').click(this.bindToObj(function(event) {this.selectMin(event)}));
-			if (mins[i]==this.disp_min) {t.addClass("selected")};
-			this.minNav.append(t);			
-		}
-		for (i in secs) {
-			var t=$('<tr time="'+secs[i]+'"><a href="#">'+secs[i]+'</a></tr>').click(this.bindToObj(function(event) {this.selectSec(event)}));
-			if (secs[i]==this.disp_sec) {t.addClass("selected")};
-			this.secNav.append(t);			
-		}
-
-		//console.log("wtf");
-		this.changeTimeField(date);
-		this.selectMonth(date);
-		
-	},
-	
-	incrTime: function(type,value) {
-		if (type=="hour") {
-			this.currentDate.setHours(this.disp_hour + value);
-		} else if (type=="min") {
-			this.currentDate.setMinutes(this.disp_min + value);
-		} else if (type=="sec") {
-			this.currentDate.setSeconds(this.disp_sec + value);
-		}
-		this.selectTime(this.currentDate);	
-		return false;
-	},
-	
-	selectHour: function(e) {
-		//console.log(e);
-		this.currentDate.setHours(parseInt($(e.target).parent().attr('time')));
-		//console.log("e");
-		this.selectTime(this.currentDate);
-	},
-	
-	selectMin: function(e) {
-		this.currentDate.setMinutes(parseInt($(e.target).parent().attr('time')));
-		this.selectTime(this.currentDate);
-	},
-
-	selectSec: function(e) {
-		this.currentDate.setSeconds(parseInt($(e.target).parent().attr('time')));
-		this.selectTime(this.currentDate);
-	},
-	
-	changeTimeField: function(date) {
-		//console.log("setfield");
-		this.input.val(this.dateToString(date));	
-	},
-
   selectMonth: function(date) {
     this.currentMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     
@@ -238,8 +114,7 @@ DateInput.prototype = {
       if (this.isLastDayOfWeek(currentDay)) dayCells += "</tr>";
     };
     
-    this.monthNameSpan.empty().append(this.monthName(date));
-		this.yearNameSpan.empty().append(date.getFullYear());
+    this.monthNameSpan.empty().append(this.monthName(date) + " " + date.getFullYear());
     this.tbody.empty().append(dayCells);
     
     $("a", this.tbody).click(this.bindToObj(function(event) {
@@ -258,9 +133,7 @@ DateInput.prototype = {
     
     if (date) {
       this.selectedDate = date;
-			this.currentDate = date;
       this.selectMonth(date);
-			this.selectTime(date);
       var stringDate = this.dateToString(date);
       $('td[date=' + stringDate + ']', this.tbody).addClass("selected");
       
@@ -271,17 +144,17 @@ DateInput.prototype = {
       this.selectMonth(new Date());
     };
   },
-
+  
   show: function() {
     this.rootLayers.css("display", "block");
     this.setPosition();
     this.input.unbind("focus", this.show);
-    //$([window, document.body]).click(this.hideIfClickOutside);
+    $([window, document.body]).click(this.hideIfClickOutside);
   },
   
   hide: function() {
     this.rootLayers.css("display", "none");
-    //$([window, document.body]).unbind("click", this.hideIfClickOutside);
+    $([window, document.body]).unbind("click", this.hideIfClickOutside);
     this.input.focus(this.show);
   },
   
@@ -291,6 +164,19 @@ DateInput.prototype = {
     };
   },
   
+//   stringToDate: function(string) {
+//     var matches;
+//     if (matches = string.match(/^(\d{1,2}) ([^\s]+) (\d{4,4})$/)) {
+//       return new Date(matches[3], this.shortMonthNum(matches[2]), matches[1]);
+//     } else {
+//       return null;
+//     };
+//   },
+//   
+//   dateToString: function(date) {
+//     return date.getDate() + " " + this.short_month_names[date.getMonth()] + " " + date.getFullYear();
+//   },
+
   stringToDate: function(string) {
 		// this is ugly because js regex support isn't great
 		//return null;
@@ -308,12 +194,6 @@ DateInput.prototype = {
 
 		console.log(Date(date[0],date[1] - 1,date[2],time[0],time[1],time[2]));
 		return new Date(date[0],date[1] - 1,date[2],time[0],time[1],time[2])
-//     var matches;
-//     if (matches = string.match(/^(\d{4,4})\/(\d{2,2})\/(\d{2,2})$/)) {
-//       return new Date(matches[1], matches[2] - 1, matches[3]);
-//     } else {
-//       return null;
-//     };
   },
 
   dateToString: function(date) {
@@ -337,6 +217,7 @@ DateInput.prototype = {
 
     return date.getFullYear() + "/" + month + "/" + dom + " " + hours + ":" + mins + ":" + secs;
   },
+
   
   setPosition: function() {
     var offset = this.input.offset();
@@ -356,12 +237,6 @@ DateInput.prototype = {
   moveMonthBy: function(amount) {
     this.selectMonth(new Date(this.currentMonth.setMonth(this.currentMonth.getMonth() + amount)));
   },
-
-	moveYearBy: function(amount) {
-		var year = this.currentDate.getFullYear() + amount;
-		this.currentDate.setFullYear(year);
-		this.selectDate(this.currentDate);
-	},
   
   prevMonth: function() {
     this.moveMonthBy(-1);
@@ -372,16 +247,6 @@ DateInput.prototype = {
     this.moveMonthBy(1);
     return false;
   },
-
-	prevYear: function() {
-    this.moveYearBy(-1);
-    return false;
-	},
-	
-	nextYear: function() {
-		this.moveYearBy(1);
-		return false;
-	},
   
   monthName: function(date) {
     return this.month_names[date.getMonth()];

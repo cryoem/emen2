@@ -338,6 +338,9 @@ $.Autocompleter = function(input, options) {
 				extraParams[key] = typeof param == "function" ? param() : param;
 			});
 			
+			console.log("start ajax");
+			select.addSpinner();
+			console.log($input);
 			$.ajax({
 				// try to leverage ajaxQueue plugin to abort previous requests
 				mode: "abort",
@@ -350,6 +353,7 @@ $.Autocompleter = function(input, options) {
 					limit: options.max
 				}, extraParams),
 				success: function(data) {
+					select.removeSpinner();
 					var parsed = options.parse && options.parse(data) || parse(data);
 					cache.add(term, parsed);
 					success(term, parsed);
@@ -573,6 +577,8 @@ $.Autocompleter.Select = function (options, input, select, config) {
 		.addClass(options.resultsClass)
 		.css("position", "absolute")
 		.appendTo(document.body);
+
+		console.log("autocompleter.select.init");
 	
 		list = $("<ul/>").appendTo(element).mouseover( function(event) {
 			if(target(event).nodeName && target(event).nodeName.toUpperCase() == 'LI') {
@@ -660,6 +666,7 @@ $.Autocompleter.Select = function (options, input, select, config) {
 		if ( $.fn.bgiframe )
 			list.bgiframe();
 	}
+
 	
 	return {
 		display: function(d, q) {
@@ -737,6 +744,13 @@ $.Autocompleter.Select = function (options, input, select, config) {
 		},
 		unbind: function() {
 			element && element.remove();
+		},
+		addSpinner: function() {
+			console.log("add spinner");
+			var spinner=$('<img src="/images/spinner.gif" />');
+		},
+		removeSpinner: function() {
+			console.log("remove spinner");
 		}
 	};
 };

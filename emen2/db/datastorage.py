@@ -897,7 +897,8 @@ class Record(DictMixin):
 			self.addcomment(value)
 		
 		elif key == 'permissions':
-			self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
+			self.__permissions = tuple(tuple(x) for x in value)
+			#self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
 
 
 	def __delitem__(self,key):

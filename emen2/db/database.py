@@ -1288,13 +1288,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# This takes the returned dictionary of value/list of recids
 				# and makes a dictionary of recid/value pairs
 				ret={}
-				all = {}
+				all={}
 				for i,j in r.items():
 						 for k in j:
 								all[k]=i
 				if subset:
 						for i in subset:
-								ret[i]=all[i]
+								if all.has_key(i): ret[i]=all[i]
+				
 				else:
 						ret=all
 
@@ -2770,6 +2771,12 @@ or None if no match is found."""
 				self.putrecord(rec,ctxid)
 				return self.getrecord(recid,ctxid)["comments"]
 				
+				
+		def getgroupdisplayname(self,groupname,ctxid,host=None):
+				groupnames={"-3":"All Authenticated Users","-4":"Anonymous Access","-1":"Database Administrator"}
+				return groupnames[str(username)]						
+				
+				
 		def getuserdisplayname(self,username,ctxid,lnf=1,host=None):
 				"""Return the full name of a user from the user record."""
 
@@ -2777,8 +2784,13 @@ or None if no match is found."""
 				#print username
 
 				if isinstance(username,int):
-					if username >= 0:
+					if username > 0:
 						username=self.getrecord(username,ctxid)
+					else:
+						return
+						#return self.getgroupdisplayname(username,ctxid)
+
+						
 				if isinstance(username,Record):
 
 					namestoget=set()
@@ -2802,7 +2814,8 @@ or None if no match is found."""
 				if hasattr(username,"__iter__"):
 						ret={}
 						for i in username:
-								ret[i]=self.getuserdisplayname(i,ctxid,lnf,host=host)
+							un=self.getuserdisplayname(i,ctxid,lnf,host=host)
+							if un: ret[str(i)]=un
 						return ret
 
 				try:
@@ -3130,12 +3143,9 @@ or None if no match is found."""
 		
 		
 		
-		# ian: moved host to end. 
-		# ian todo: give this a complete check; it's a big function.
-		# ian todo: combine with secrecorddeluser to reduce security critical code
-		#												 and just alias to adduser with an arg or something.
+		
 		#@write,user
-		def secrecordadduser(self,usertuple,recid,ctxid,recurse=0,host=None):
+		def secrecordadduser(self,usertuple,recid,ctxid,recurse=0,reassign=0,mode="union",host=None):
 				"""This adds permissions to a record. usertuple is a 4-tuple containing users
 				to have read, comment, write and administrativepermission. Each value in the tuple is either
 				a string (username) or a tuple/list of usernames. If recurse>0, the
@@ -3153,13 +3163,32 @@ or None if no match is found."""
 				usertuple=list(usertuple)[:4]
 				
 				for i in range(4):
-						if not isinstance(usertuple[i],tuple):
-								if usertuple[i]==None : usertuple[i]=tuple()
-								elif isinstance(usertuple[i],str) : usertuple[i]=(usertuple[i],)
-								elif isinstance(usertuple[i],int) : usertuple[i]=(usertuple[i],)
-								else:
-										try: usertuple[i]=tuple(usertuple[i])
-										except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
+					if not hasattr(usertuple[i],"__iter__"):
+						usertuple[i]=[usertuple[i]]
+				
+					for j,k in enumerate(usertuple[i]):
+						if not isinstance(usertuple[i][j],int):
+							try:
+								usertuple[i][j]=str(usertuple[i][j])
+							except:
+								raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
+					
+										
+# 						if not isinstance(usertuple[i],(list,tuple)):
+# 								if usertuple[i]==None : usertuple[i]=[]
+# 								elif hasattr(usertuple[i],"__iter__"):
+# 									nl=[]
+# 									for j in usertuple[i]:
+# 										if isinstance(j,int): nl.push
+# 											
+# 								elif isinstance(usertuple[i],str) : usertuple[i]=(usertuple[i],)
+# 								elif isinstance(usertuple[i],int) : usertuple[i]=(usertuple[i],)
+# 
+# 								#else:
+# 										try: usertuple[i]=tuple(usertuple[i])
+# 										except: raise ValueError,"permissions must be a 4-tuple/list of tuples,strings,ints"
+
+
 
 				# all users
 				userset = set(self.getusernames(ctxid)) | set((-4,-3,-2,-1))
@@ -3211,23 +3240,39 @@ or None if no match is found."""
 						newv[0]&=userset
 						newv[1]&=userset
 						newv[2]&=userset
-						newv[3]&=userset
-												
+						newv[3]&=userset				
+
+						# if we allow level change, remove all changed users then add back..
+						if reassign:
+							print "reassign"
+							allnew = newv[0] | newv[1] | newv[2] | newv[3]
+							print allnew
+							xcur[0]-=allnew
+							xcur[1]-=allnew
+							xcur[2]-=allnew
+							xcur[3]-=allnew							
+							print xcur
+							
 						# update the permissions for each group
 						xcur[0]|=newv[0]
 						xcur[1]|=newv[1]
 						xcur[2]|=newv[2]
 						xcur[3]|=newv[3]
-						
+						print "updated"
+						print xcur							
 						# if the user already has more permission than we are trying
 						# to assign, we don't do anything. This also cleans things up
 						# so a user cannot have more than one security level
+						# -- assign higher permissions or lower permissions							
 						xcur[0]-=xcur[1]
 						xcur[0]-=xcur[2]
 						xcur[0]-=xcur[3]
 						xcur[1]-=xcur[2]
 						xcur[1]-=xcur[3]
 						xcur[2]-=xcur[3]
+						print "pruned"
+						print xcur
+
 #						 l2=[len(v) for v in cur]	 # length test not sufficient
 						
 						# update if necessary
@@ -3236,7 +3281,9 @@ or None if no match is found."""
 							 or xcur[2] != cur[2] or xcur[3] != cur[3]:
 								old=rec["permissions"]
 								rec["permissions"]=(tuple(xcur[0]),tuple(xcur[1]),tuple(xcur[2]),tuple(xcur[3]))
-#								 print "new permissions: %s"%rec["permissions"]
+								print "new permissions:"
+								print (tuple(xcur[0]),tuple(xcur[1]),tuple(xcur[2]),tuple(xcur[3]))
+								print rec["permissions"]
 # SHOULD do it this way, but too slow
 #								 rec.commit()
 								
@@ -3259,7 +3306,8 @@ or None if no match is found."""
 						self.__secrindex.addrefs(i,secrupd[i],txn)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
-		
+
+				return rec["permissions"]
 		
 		
 		# ian: moved host to end. see notes above.
@@ -3355,6 +3403,18 @@ or None if no match is found."""
 		
 		def getrecordrecname(self,rec,ctxid,host=None):
 				"""Render the recname view for a record."""
+				
+				if hasattr(rec,"__iter__") and not isinstance(rec,Record):
+					ret={}
+					# convert to int to prevent infinite recursion
+					for i in rec:
+						try: 
+							int(i)
+							ret[i]=self.getrecordrecname(i,ctxid,host)
+						except:
+							raise ValueError,"Only int recids are accepted in list format"
+					return ret
+
 				if isinstance(rec,int):
 					try:
 							rec=self.getrecord(rec,ctxid)

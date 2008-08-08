@@ -2,7 +2,7 @@ function table_editcolumn(elem,key) {
 
 	new multiwidget(
 			elem, {
-				'commitcallback':function(values){commit_putrecords(values,table_reload())},
+				'commitcallback':function(self,values){commit_putrecords(self,values,table_reload)},
 				'now':1,
 				'ext_edit_button':1,
 				'rootless':1,
