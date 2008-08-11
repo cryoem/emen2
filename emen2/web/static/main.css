@@ -1,3 +1,7 @@
+#page_comments_relationships .map {
+	width:100%;
+}
+
 td .editable {
 	color:#202060;
 }

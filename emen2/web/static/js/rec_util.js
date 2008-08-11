@@ -118,7 +118,8 @@ function record_relationships_show() {
 			});
 			relationships = new relationshipcontrol($("#page_comments_relationships"), {
 				'parents':parents,
-				'children':children
+				'children':children,
+				'recid':recid
 			});
 			
 			switchin('comments','relationships');

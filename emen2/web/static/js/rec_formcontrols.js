@@ -5,7 +5,7 @@ function sortNumber(a, b) {
 
 
 function notify(msg) {
-	$("#alert").empty();
+	//$("#alert").empty();
 	var msg=$('<li>'+msg+'</li>');
 	$("#alert").append(msg).fadeIn();
 	setTimeout(function(){msg.fadeOut()},3000)
