@@ -266,6 +266,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				return s.hexdigest()==user.password
 
 		#@write,all
+		@publicmethod
 		def login(self,username="anonymous",password="",host=None,maxidle=14400):
 				"""Logs a given user in to the database and returns a ctxid, which can then be used for
 				subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
@@ -313,6 +314,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 				
 		#@write,private
+		@publicmethod
 		def deletecontext(self,ctxid,host=None):
 				"""Delete a context. Returns None."""
 
@@ -331,8 +333,10 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()				 
 		logout = deletecontext
+		
 		# ian: rpc export? probably not, for now.
 		#@write
+		@publicmethod
 		def newbinary(self,date,name,recid,ctxid,host=None):
 				"""Get a storage path for a new binary object. Must have a
 				recordid that references this binary, used for permissions. Returns a tuple
@@ -417,6 +421,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				self.__contexts_p.set_txn(None)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
+				
 		# ian: host required here.
 		def __getcontext(self,key,host):
 				"""Takes a ctxid key and returns a context (for internal use only)
@@ -467,6 +472,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 		# ian: changed from isManager to checkadmin
 		# ian todo: these should be moved to Context methods since user never has direct access to Context instance
+		@publicmethod
 		def getbinary(self,ident,ctxid,host=None):
 				"""Get a storage path for an existing binary object. Returns the
 				object name and the absolute path"""
@@ -494,6 +500,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 				raise SecurityError,"Not authorized to access %s(%0d)"%(ident,recid)
 
+
+		@publicmethod
 		def checkcontext(self,ctxid,host=None):
 				"""This allows a client to test the validity of a context, and
 				get basic information on the authorized user and his/her permissions"""
@@ -501,6 +509,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				#if a.user==None: return(-4,-4)
 				return(a.user,a.groups)
 
+		@publicmethod
 		def getindexbycontext(self,ctxid,host=None):
 				"""This will return the ids of all records a context has permission to access as a set. Does include groups.""" 
 				ctx=self.__getcontext(ctxid,host)
@@ -522,6 +531,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 				return ret
 
+
+		@publicmethod
 		def getindexbyrecorddef(self,recdefname,ctxid,host=None):
 				"""Uses the recdefname keyed index to return all
 				records belonging to a particular RecordDef as a set. Currently this
@@ -530,6 +541,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				return set(self.__recorddefindex[str(recdefname).lower()])
 
 
+		@publicmethod
 		def checkadmin(self,ctx,host=None):
 				"""Checks if the user has global write access. Returns 0 or 1."""
 				if not isinstance(ctx,Context):
@@ -539,6 +551,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 				return 0
 
+
+		@publicmethod
 		def checkreadadmin(self,ctx,host=None):
 				"""Checks if the user has global read access. Returns 0 or 1."""
 				if not isinstance(ctx,Context):
@@ -548,12 +562,15 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 				return 0				
 		
+		
+		@publicmethod
 		def checkcreate(self,ctx,host=None):
 				if not isinstance(ctx,Context):
 						ctx=self.__getcontext(ctx,host)
 				if 0 in ctx.groups or -1 in ctx.groups:
 						return 1
 				return 0
+
 
 		def loginuser(self, ctxid, host=None):
 			ctx=self.__getcontext(ctxid,host)
@@ -571,6 +588,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 								
 		# ian todo: should restrict this to logged in users for security (file counts, brute force attempts)
 		# ian: made ctxid required argument.
+		@publicmethod
 		def getbinarynames(self,ctxid,host=None):
 				"""Returns a list of tuples which can produce all binary object
 				keys in the database. Each 2-tuple has the date key and the nubmer
@@ -588,7 +606,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		querycommands=["find","plot","histogram","timeline"]
 		
 		
+		
 		# ian todo: fix
+		@publicmethod
 		def query(self,query,ctxid,host=None,retindex=False):
 				"""This performs a general database query.
 ! - exclude protocol name
@@ -975,6 +995,8 @@ parentheses grouping not supported yet"""
 						
 				elif command=="timeline" :
 						pass
+						
+										
 		def querypreprocess(self,query,ctxid,host=None):
 				"""This performs preprocessing on a database query string.
 preprocessing involves remapping synonymous keywords/symbols and
@@ -1086,6 +1108,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 #				 for i in g: ret|=set(self.__secrindex[i])
 #				 return ret
 		
+		@publicmethod
 		def getindexbyuser(self,username,ctxid,host=None):
 				"""This will use the user keyed record read-access index to return
 				a list of records the user can access. DOES NOT include that user's groups.
@@ -1120,8 +1143,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 		#		 elif ind.has_key(valrange): return valrange
 		#		 return None
 				
+				
 
 		# ian todo: add unit support.
+		@publicmethod
 		def getindexbyvalue(self,paramname,valrange,ctxid,host=None):
 				"""For numerical & simple string parameters, this will locate all records
 				with the specified paramdef in the specified range.
@@ -1145,7 +1170,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return ret & secure				 # intersection of the two search results
 		
 		
-		
+		@publicmethod
 		def fulltextsearch(self,q,ctxid,host=None,rectype=None,indexsearch=1,params=set(),recparams=0,builtinparam=0,ignorecase=1,subset=[],tokenize=0,single=0,includeparams=set()):
 				"""
 				q: query
@@ -1270,8 +1295,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return ret
 						
 		
+		
 		# ian: moved host after subset
 		# ian todo: unit support.
+		@publicmethod
 		def getindexdictbyvalue(self,paramname,valrange,ctxid,subset=None,host=None):
 				"""For numerical & simple string parameters, this will locate all records
 				with the specified paramdef in the specified range.
@@ -1320,6 +1347,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		# ian: made ctxid required.
+		@publicmethod
 		def groupbyrecorddef(self,all,ctxid,host=None):
 				"""This will take a set/list of record ids and return a dictionary of ids keyed
 				by their recorddef"""
@@ -1343,6 +1371,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		# ian: made ctxid required
+		@publicmethod
 		def groupbyrecorddeffast(self,records,ctxid,host=None):
 				"""quick version"""
 				r = {}
@@ -1359,6 +1388,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		# ian todo: change to ctxid req'd
+		@publicmethod
 		def getindexdictbyvaluefast(self,subset,param,ctxid,valrange=None,host=None):
 				"""quick version for records that are already in cache; e.g. table views. requires subset."""				 
 
@@ -1375,6 +1405,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		
 		# ian: made ctxid req'd
+		@publicmethod
 		def groupby(self,records,param,ctxid,host=None):
 				"""This will group a list of record numbers based on the value of 'param' in each record.
 				Records with no defined value will be grouped under the special key None. It would be a bad idea
@@ -1399,6 +1430,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		# ian: made ctxid req'd. moved it before recurse.
+		@publicmethod
 		def groupbyparentoftype(self,records,parenttype,ctxid,recurse=3,host=None):
 				"""This will group a list of record numbers based on the recordid of any parents of
 				type 'parenttype'. within the specified recursion depth. If records have multiple parents
@@ -1423,6 +1455,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		
 		# ian: made ctxid required argument, moved recurse after ctxid
+		@publicmethod
 		def countchildren(self,key,ctxid,recurse=0,host=None):
 				"""Unlike getchildren, this works only for 'records'. Returns a count of children
 				of the specified record classified by recorddef as a dictionary. The special 'all'
@@ -1437,6 +1470,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		
 		# ian todo: make ctxid mandatory, but will require alot of code changes.
+		@publicmethod
 		def getchildren(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 				"""This will get the keys of the children of the referenced object
 				keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
@@ -1496,6 +1530,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				
 		# ian todo: make ctxid req'd
+		@publicmethod
 		def getparents(self,key,keytype="record",recurse=0,ctxid=None,host=None):
 				"""This will get the keys of the parents of the referenced object
 				keytype is 'record', 'recorddef', or 'paramdef'. User must have
@@ -1530,6 +1565,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		# ian todo: make ctxid mandatory
+		@publicmethod
 		def getcousins(self,key,keytype="record",ctxid=None,host=None):
 				"""This will get the keys of the cousins of the referenced object
 				keytype is 'record', 'recorddef', or 'paramdef'"""
@@ -1600,6 +1636,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		# ian: made ctxid required
 		#@write,user
+		@publicmethod
 		def pclink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 				"""Establish a parent-child relationship between two keys.
 				A context is required for record links, and the user must
@@ -1640,6 +1677,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# ian: made ctxid required
 		#@write,user
+		@publicmethod
 		def pcunlink(self,pkey,ckey,ctxid,keytype="record",host=None,txn=None):
 				"""Remove a parent-child relationship between two keys. Simply returns if link doesn't exist."""
 
@@ -1667,6 +1705,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# ian: made ctxid required
 		#@write,user
+		@publicmethod
 		def link(self,key1,key2,ctxid,keytype="record",host=None,txn=None):
 				"""Establish a 'cousin' relationship between two keys. For Records
 				the context is required and the user must have read permission
@@ -1695,6 +1734,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# ian: made ctxid req'd
 		#@write,user
+		@publicmethod
 		def unlink(self,key1,key2,ctxid,keytype="record",host=None,txn=None):
 				"""Remove a 'cousin' relationship between two keys."""
 
@@ -1719,6 +1759,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 
 		#@write,admin
+		@publicmethod
 		def disableuser(self,username,ctxid,host=None):
 				"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 				a complete historical record is maintained. Only an administrator can do this."""
@@ -1739,6 +1780,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		#@write,admin
+		@publicmethod
 		def approveuser(self,username,ctxid,host=None):
 				"""Only an administrator can do this, and the user must be in the queue for approval"""
 
@@ -1781,7 +1823,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				elif not self.__importmode : DB_syncall()
 
 
-
+		@publicmethod
 		def getuserqueue(self,ctxid,host=None):
 				"""Returns a list of names of unapproved users"""
 				return self.__newuserqueue.keys()
@@ -1789,6 +1831,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 		#@write,admin
+		@publicmethod
 		def rejectuser(self,username,ctxid,host=None):
 				"""Remove a user from the pending new user queue - only an administrator can do this"""
 				
@@ -1809,6 +1852,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		#@write,admin
 		# ian todo: allow users to change privacy setting
+		@publicmethod
 		def putuser(self,user,ctxid,host=None):
 				"""Updates user. Takes User object (w/ validation.) Deprecated for non-administrators."""
 
@@ -1897,6 +1941,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		#@write,user
+		@publicmethod
 		def setpassword(self,username,oldpassword,newpassword,ctxid,host=None):
 
 				username=str(username)
@@ -1926,6 +1971,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		# does not require ctxid
 		#@write,all
+		@publicmethod
 		def adduser(self,user,host=None):
 				"""adds a new user record. However, note that this only adds the record to the
 				new user queue, which must be processed by an administrator before the record
@@ -1977,6 +2023,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				
 				
+		@publicmethod		
 		def getqueueduser(self,username,ctxid,host=None):
 				"""retrieves a user's information. Information may be limited to name and id if the user
 				requested privacy. Administrators will get the full record"""
@@ -1991,7 +2038,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 								
 								
-								
+		@publicmethod						
 		def getuser(self,username,ctxid,host=None):
 				"""retrieves a user's information. Information may be limited to name and id if the user
 				requested privacy. Administrators will get the full record"""
@@ -2030,7 +2077,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return ret
 				
 				
-				
+		@publicmethod		
 		def getusernames(self,ctxid,host=None):
 				"""Not clear if this is a security risk, but anyone can get a list of usernames
 						This is likely needed for inter-database communications"""
@@ -2038,7 +2085,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
+
 		# ian todo: update. the find* functions need to be fast and good at fulltext searches for autocomplete functionality.
+		# delete this method; no longer used
 		def findusername(self,name,ctxid,host=None):
 				"""This will look for a username matching the provided name in a loose way"""
 
@@ -2065,7 +2114,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return None
 		
 		
-		
+		@publicmethod
 		def getworkflow(self,ctxid,host=None):
 				"""This will return an (ordered) list of workflow objects for the given context (user).
 				it is an exceptionally bad idea to change a WorkFlow object's wfid."""
@@ -2080,6 +2129,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
+		@publicmethod
 		def getworkflowitem(self,wfid,ctxid,host=None):
 				"""Return a workflow from wfid."""
 				ret = None
@@ -2093,14 +2143,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return ret
 				
 				
-				
+
+		@publicmethod
 		def newworkflow(self, vals, host=None):
 				"""Return an initialized workflow instance."""
 				return WorkFlow(vals)
 				
 				
 				
+				
 		#@write,user
+		@publicmethod
 		def addworkflowitem(self,work,ctxid,host=None):
 				"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 				
@@ -2138,6 +2191,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		#@write,user
+		@publicmethod
 		def delworkflowitem(self,wfid,ctxid,host=None):
 				"""This will remove a single workflow object based on wfid"""
 				
@@ -2159,6 +2213,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				
 		#@write,user
+		@publicmethod
 		def setworkflow(self,wflist,ctxid,host=None):
 				"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 				the external application should NEVER modify the wfid of the individual WorkFlow records.
@@ -2188,8 +2243,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
 		
+
 		
-		
+		@publicmethod
 		def getvartypenames(self, host=None):
 				"""This returns a list of all valid variable types in the database. This is currently a
 				fixed list"""
@@ -2197,20 +2253,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
+		@publicmethod
 		def getvartype(self, thekey, host=None):
 				"""This returns a list of all valid variable types in the database. This is currently a
 				fixed list"""
 				return valid_vartypes[thekey][1]
 
 
-
+		@publicmethod
 		def getpropertynames(self, host=None):
 				"""This returns a list of all valid property types in the database. This is currently a
 				fixed list"""
 				return valid_properties.keys()
 						
 						
-						
+
+		@publicmethod						
 		def getpropertyunits(self,propname, host=None):
 				"""Returns a list of known units for a particular property"""
 				# ian
@@ -2220,6 +2278,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 						
 		# ian: moved host after parent				
 		#@write, user
+		@publicmethod
 		def addparamdef(self,paramdef,ctxid,parent=None,host=None):
 				"""adds a new ParamDef object, group 0 permission is required
 				a p->c relationship will be added if parent is specified"""
@@ -2262,9 +2321,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
 				
+
 				
 		# ian: made ctxid required argument.
 		#@write,user
+		@publicmethod
 		def addparamchoice(self,paramdefname,choice,ctxid,host=None):
 				"""This will add a new choice to records of vartype=string. This is
 				the only modification permitted to a ParamDef record after creation"""
@@ -2288,7 +2349,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
-
+		@publicmethod
 		def getparamdef(self,key,ctxid=None, host=None):
 				"""gets an existing ParamDef object, anyone can get any field definition
 		
@@ -2300,13 +2361,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 				except:
 						raise KeyError,"Unknown ParamDef: %s"%key
 				
-				
+
+		@publicmethod				
 		def getparamdefnames(self,host=None):
 				"""Returns a list of all ParamDef names"""
 				return self.__paramdefs.keys()
 		
+
 		
-		
+		# ian: remove this method
 		def findparamdefname(self,name,host=None):
 				"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
@@ -2386,9 +2449,11 @@ or None if no match is found."""
 #													ret[p]=self.__paramdefs[p]
 #											except:
 #													raise KeyError,"Request for unknown paramdef %s in %s"%(p,r.rectype) #self.LOG(2,"Request for unknown ParamDef %s in %s"%(p,r.rectype))				 
+
 				
 		# ian: moved host after parent
 		#@write,user
+		@publicmethod
 		def addrecorddef(self,recdef,ctxid,parent=None,host=None):
 				"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
 
@@ -2433,6 +2498,7 @@ or None if no match is found."""
 
 
 		#@write,user partial
+		@publicmethod
 		def putrecorddef(self,recdef,ctxid,host=None):
 				"""This modifies an existing RecordDef. The mainview should
 				never be changed once used, since this will change the meaning of
@@ -2476,6 +2542,7 @@ or None if no match is found."""
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
 				
+
 				
 		# ian todo: move host to end
 		@publicmethod
@@ -2506,7 +2573,8 @@ or None if no match is found."""
 				return ret
 		
 		
-		
+	
+		@publicmethod	
 		def getrecorddefnames(self,host=None):
 				"""This will retrieve a list of all existing RecordDef names, 
 				even those the user cannot access the contents of"""
@@ -2514,6 +2582,7 @@ or None if no match is found."""
 
 
 
+		@publicmethod
 		def findrecorddefname(self,name,host=None):
 				"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef, 
 				or None if no match is found."""
@@ -2750,7 +2819,8 @@ or None if no match is found."""
 				#return recid
 				#return self.renderview(recid,viewdef="$$%s"%param,ctxid=ctxid,host=host)
 
-				
+
+		@publicmethod				
 		def putrecordvalues(self,recid,values,ctxid,host=None):
 				try:
 					rec=self.getrecord(recid,ctxid,host=host)
@@ -2765,6 +2835,7 @@ or None if no match is found."""
 				self.putrecord(rec,ctxid,host=host)
 				return self.getrecord(recid,ctxid,host=host)				
 
+
 				
 		@publicmethod
 		def putrecordsvalues(self,d,ctxid,host=None):
@@ -2774,6 +2845,7 @@ or None if no match is found."""
 				return ret
 				
 				
+
 		@publicmethod
 		def addcomment(self,recid,comment,ctxid):
 				rec=self.getrecord(recid,ctxid)
@@ -2781,6 +2853,7 @@ or None if no match is found."""
 				self.putrecord(rec,ctxid)
 				return self.getrecord(recid,ctxid)["comments"]
 				
+
 				
 		@publicmethod
 		def getgroupdisplayname(self,groupname,ctxid,host=None):
@@ -2788,6 +2861,7 @@ or None if no match is found."""
 				return groupnames[str(username)]						
 				
 				
+
 		@publicmethod
 		def getuserdisplayname(self,username,ctxid,lnf=1,host=None):
 				"""Return the full name of a user from the user record."""
@@ -2927,6 +3001,7 @@ or None if no match is found."""
 
 
 		#@write,user
+		@publicmethod
 		def putrecord(self,record,ctxid,parents=[],children=[],host=None):
 				"""The record has everything we need to commit the data. However, to 
 				update the indices, we need the original record as well. This also provides
@@ -3006,6 +3081,7 @@ or None if no match is found."""
 				
 				
 		# ian: moved host to end		
+		@publicmethod
 		def newrecord(self,rectype,ctxid=None,init=0,inheritperms=None,host=None):
 				"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 				already exist)."""
@@ -3037,12 +3113,14 @@ or None if no match is found."""
 
 
 
+		@publicmethod
 		def getrecordnames(self,ctxid,dbid=0,host=None):
 				"""All record names a ctxid can access. Includes groups. Deprecated; calls getindexbycontext.""" 
 				return self.getindexbycontext(ctxid,host=host)
 		
 		
 		
+		@publicmethod		
 		def getrecordschangetime(self,recids,ctxid,host=None):
 				"""Returns a list of times for a list of recids. Times represent the last modification 
 				of the specified records"""
@@ -3059,6 +3137,7 @@ or None if no match is found."""
 				
 				
 		# ian todo: move host to end
+		@publicmethod
 		def trygetrecord(self,recid,ctxid,host=None,dbid=0):
 				"""Checks to see if a record could be retrieved without actually retrieving it."""
 				ctx=self.__getcontext(ctxid,host)
@@ -3112,7 +3191,8 @@ or None if no match is found."""
 								raise KeyError,"Invalid Key %s"%str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #				 else : raise KeyError,"Invalid Key %s"%str(recid)
 				
-				
+
+		@publicmethod				
 		def getparamvalue(self,paramname,recid,ctxid,dbid=0,host=None):
 				#slow and insecure needs indexes for speed
 
@@ -3129,7 +3209,9 @@ or None if no match is found."""
 						for key in paramindex.keys():
 								if paramindex[key].pop() == recid:
 										return key
-				
+
+
+		@publicmethod				
 		def getrecordsafe(self,recid,ctxid,dbid=0,host=None):
 				"""Same as getRecord, but failure will produce None or a filtered list"""
 				
@@ -3324,6 +3406,7 @@ or None if no match is found."""
 				return rec["permissions"]
 		
 		
+		
 		# ian: moved host to end. see notes above.
 		#@write,user
 		@publicmethod
@@ -3442,8 +3525,9 @@ or None if no match is found."""
 						value = "(%s: %s)"%(rec.rectype, rec.recid)
 				return value
 		
+
 		
-		
+		@publicmethod
 		def getrecordrenderedviews(self,recid,ctxid,host=None):
 				"""Render all views for a record."""
 				rec=self.getrecord(recid,ctxid,host=host)
@@ -3458,6 +3542,7 @@ or None if no match is found."""
 		
 		# ian: moved host to end
 		# ian todo: make ctxid required?
+		@publicmethod		
 		def renderview(self,rec,viewdef=None,viewtype="defaultview",paramdefs={},macrocache={},ctxid=None,showmacro=True,host=None):
 				"""Render a view for a record. Takes a record instance or a recid.
 				viewdef is an arbitrary view definition. viewtype is a name view from record def.
@@ -3580,6 +3665,7 @@ or None if no match is found."""
 		# be done with a function for, say, xmlizing a dictionary. However, this explicit approach
 		# should be significantly faster, a key point if dumping an entire database
 		###########
+
 				
 		def getparamdefxml(self,names=None,host=None):
 				"""Returns XML describing all, or a subset of the existing paramdefs"""
