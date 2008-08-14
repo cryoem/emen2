@@ -117,6 +117,8 @@ class PublicView(Resource):
 	
 	def __authenticate(self, db, request, ctxid, host, args, router, target):
 		'authenticate a user'
+		print "zzzzzzzzzzzz"
+		print db
 		authen = auth.Authenticator(db=db, host=host)
 		## if the browser has a ctxid cookie, get it
 		ctxid = request.getCookie("ctxid")
