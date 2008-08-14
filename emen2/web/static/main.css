@@ -79,7 +79,7 @@ a img {
 }
 
 .precontent .map {
-	background:white;
+	background:white; 
 	margin-left:20px;
 	margin-right:10px;
 	padding-top:5px;
@@ -89,7 +89,7 @@ a img {
 
 .map {
 	font-size:10pt;
-	background:white;
+/*	background:white; */
 }
 .map td {
 	min-width:32px;
@@ -224,7 +224,7 @@ a img {
 	margin-top:5px;
 }
 
-.user_add {
+.user_add, .relationship_add {
 	width:586px;
 	border:solid 2px #BBD9EE; 
 	padding:10px;

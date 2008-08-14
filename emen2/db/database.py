@@ -2904,6 +2904,32 @@ or None if no match is found."""
 						ret[k] = self.putrecordvalues(k, v, ctxid, host=host)
 				return ret
 				
+		
+		
+		@publicmethod
+		def deleterecord(self,recid,ctxid,host=None):
+			rec=self.getrecord(recid,ctxid,host=host)
+			if not rec.isowner():
+				raise Exception,"No permission to delete record"
+			
+			parents=self.getparents(recid,ctxid=ctxid,host=host)
+			children=self.getchildren(recid,ctxid=ctxid,host=host)
+			
+			rec["deleted"]=1
+			rec["comments"]="Record marked for deletion; unlinked from %s"%", ".join([str(x) for x in parents])
+			
+			self.putrecord(rec,ctxid,host=host)
+						
+			for i in parents:
+				self.pcunlink(i,recid,ctxid=ctxid,host=host)
+				
+			for i in children:
+				c2=self.getchildren(i,ctxid=ctxid,host=host)
+				c2.remove(recid)
+				if len(c2) == 0:
+					pass
+					#finish
+
 				
 
 		@publicmethod
@@ -4212,6 +4238,7 @@ or None if no match is found."""
 												for c in cl:
 #														 print p, c
 #														 print recmap[p],recmap[c[0]],c[1]
+
 														if isinstance(c, tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 														else : self.__records.pclink(recmap[p], recmap[c], txn)
 								elif r == "reccousins" :

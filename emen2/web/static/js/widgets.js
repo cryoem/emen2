@@ -546,12 +546,12 @@ permissions.prototype = {
 		// Save controls
 		if (!this.newrecord) {
 			this.savearea = $('<div class="permissions_savearea" />');
-			var savearea_apply = $('<input type="button" value="Save for this Record" />').click(function(){self.save_record()});
+			var savearea_apply = $('<input type="button" value="Apply Permissions" />').click(function(){self.save_record()});
 			this.savearea.append(savearea_apply);
-			this.savearea.append('<br /><hr />Apply to children: ');
-			this.savearea_children=$('<select><option>ADD (orange) users</option><option>REMOVE (red) users</option><option>REASSIGN (yellow) users</option><option>UNION of this set</option><option>INTERSECTION of this set</option></select>')
-			this.savearea.append(this.savearea_children);
-			this.savearea.append('<input type="button" value="Apply" />');
+			//this.savearea.append('<br /><hr />Apply to children: ');
+			//this.savearea_children=$('<select><option>ADD (orange) users</option><option>REMOVE (red) users</option><option>REASSIGN (yellow) users</option><option>UNION of this set</option><option>INTERSECTION of this set</option></select>')
+			//this.savearea.append(this.savearea_children);
+			//this.savearea.append('<input type="button" value="Apply" />');
 
 			useradd.append(this.savearea);
 		}
@@ -1218,6 +1218,8 @@ relationshipcontrol.DEFAULT_OPTS = {
 relationshipcontrol.prototype = {
 	
 	init: function() {
+		this.oparents=this.parents.slice();
+		this.ochildren=this.children.slice();
 		this.removedc=[];
 		this.removedp=[];
 		this.build();
@@ -1226,7 +1228,7 @@ relationshipcontrol.prototype = {
 	build: function() {
 		this.elem.empty();
 		this.tablearea=$('<div/>');
-		this.controlsarea=$('<div/>');
+		this.controlsarea=$('<div class="relationship_add" />');
 		this.elem.append(this.controlsarea,this.tablearea);
 		this.build_controls();
 		this.build_map();
@@ -1235,21 +1237,29 @@ relationshipcontrol.prototype = {
 	build_controls: function() {
 		this.controlsarea.empty();
 		var self=this;
+
 		if (this.removedc.length > 0) {
-			var carea=$('<div>Children to remove:</div>')
+			var carea=$('<div>Children to remove ('+this.removedc.length+' items, </div>');
+			carea.append($('<span>undo all)</span>:').click(function(){self.reset}));
+			var carea2=$('<div/>');
 			$.each(this.removedc, function(k,v) {
-				carea.append(recnames[v]+', ');
+				carea2.append(recnames[v]+', ');
 			});
-			self.controlsarea.append(carea);
+			self.controlsarea.append(carea,carea2);
 		}
+		
 		if (this.removedp.length > 0) {
-			var parea=$('<div>Parents to remove:</div>')
+			var parea=$('<div>Parents to remove ('+this.removedp.length+' items, </div>');
+			parea.append($('<span>undo all)</span>:').click(function(){self.reset}));
+			var parea2=$('<div/>');
 			$.each(this.removedp, function(k,v) {
-				parea.append(recnames[v]+', ');
+				parea2.append(recnames[v]+', ');
 			});
-			self.controlsarea.append(parea);
+			self.controlsarea.append(parea,parea2);
 		}	
+
 		this.controlsarea.append('<input type="button" value="Apply Changes" />');
+		this.controlsarea.append('<input type="button" value="Reset" />').click(function(){self.reset();self.build_controls();self.build_map();});
 
 		//this.controlsarea.append();
 	},
@@ -1260,8 +1270,20 @@ relationshipcontrol.prototype = {
 		this.table = $('<table class="map" cellpadding="0" cellspacing="0" />');
 		var len=parents.length;
 		if (children.length > len) len=children.length;		
+
+		var self=this;
+
+		var header=$('<tr />');
+		header.append($('<td><h6>Parents</h6></td>').append(
+			$(' <span> [X]</span>').click(function(){console.log("z");self.removeallparents();self.build_controls();self.build_map();})
+			));
+		header.append('<td />');
+		header.append('<td><h6>This Record</h6></td><td />');
+		header.append($('<td><h6>Children</h6></td>').append(
+			$(' <span> [X]</span>').click(function(){console.log("z");self.removeallchildren();self.build_controls();self.build_map();})
+			));
+		this.table.append(header);
 		
-		this.table.append('<tr><td><h6>Parents</h6></td><td /><td><h6>Current Record</h6></td><td /><td><h6>Children</h6></td></tr>');
 		
 		for (var i=0;i<len;i++) {
 			var row=$('<tr></tr>');
@@ -1272,8 +1294,17 @@ relationshipcontrol.prototype = {
 				if (this.parents.length > 1 && i==0) {img="branch_next"}
 				if (this.parents.length > 1 && i>0) {img="branch_both"}
 				if (this.parents.length > 1 && i==this.parents.length-1) {img="branch_up"}				
-				row.append('<td><a href="/db/record/'+this.parents[i]+'">'+recnames[this.parents[i]]+'</a></td>');
-				row.append('<td class="'+img+' editablelink"> </td>');
+
+				var button=$('<td class="'+img+' editablelink"> </td>');
+				button.data("recid",this.parents[i]);
+				button.click(function(){
+					self.removeparent(this)
+					self.build_map();
+					self.build_controls();
+					});
+
+				row.append('<td><a href="/db/record/'+this.parents[i]+'">'+recnames[this.parents[i]]+'</a></td>', button);
+
 
 			} else {
 				row.append('<td /><td />');
@@ -1293,7 +1324,6 @@ relationshipcontrol.prototype = {
 				if (this.children.length > 1 && i==this.children.length-1) {img="branch_up_reverse"}
 
 				var button=$('<td class="'+img+' editablelink"> </td>');
-				var self=this;
 				button.data("recid",this.children[i]);
 				button.click(function(){
 					self.removechild(this)
@@ -1310,16 +1340,28 @@ relationshipcontrol.prototype = {
 			this.table.append(row);
 		}
 		
-		this.elem.append(this.table);
+		this.tablearea.append(this.table);
 
 	},
 	
+	reset: function() {
+		this.removedc=[];
+		this.removedp=[];
+		this.children=this.ochildren.slice();
+		this.parents=this.oparents.slice();
+	},
+
+	removeparent: function(elem) {
+		var parentid=$(elem).data("recid");
+		this.removedp.push(parentid);
+		this.parents.splice(this.parents.indexOf(parentid),1);
+	},
+	
 	removechild: function(elem) {
-		elem=$(elem);
-		childid=elem.data("recid");
-		console.log(childid);
-		this.children.splice(this.children.indexOf(childid),1);
+		//elem=$(elem);
+		var childid=$(elem).data("recid");
 		this.removedc.push(childid);
+		this.children.splice(this.children.indexOf(childid),1);
 //		elem.css("background",'url("/images/spinner2.gif") center center no-repeat');
 //		var self=this;
 // 		$.jsonRPC("pcunlink",[this.recid,childid,ctxid], function() {
@@ -1334,8 +1376,14 @@ relationshipcontrol.prototype = {
 		
 	},
 	
-	removeparent: function(parentid) {
-		
+	removeallparents: function() {
+		this.removedp=this.oparents.slice();
+		this.parents=[];
+	},
+	
+	removeallchildren: function() {
+		this.removedc=this.ochildren.slice();
+		this.children=[];
 	}
 	
 }
