@@ -57,6 +57,7 @@ class PublicView(Resource):
 				result[key] = args[key][0]
 			result.update(sdict)
 		return result
+		
 	
 	def __parse_jsonargs(self,content):
 		'decode a json string'
