@@ -12,7 +12,7 @@ slideshow = ( function($) { // Localise the $ function
 		this.init = function() { self.build() };
 
 		this.build = function() {
-			console.log(self.elem);
+			//console.log(self.elem);
 			children = self.elem.children();
 			if (children.length > 0) {
 				self.first = $(children.get(0));

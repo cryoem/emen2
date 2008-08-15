@@ -49,7 +49,7 @@ multiwidget.prototype = {
 
 		this.controlsroot.after(this.controls);	
 
-		console.log(this.now);
+		//console.log(this.now);
 		
 		if (this.now) {
 			this.build()
@@ -71,7 +71,7 @@ multiwidget.prototype = {
 			for (var i=0;i<this.restrictparams.length;i++) {cl += ".editable.paramdef___"+this.restrictparams[i]+","}
 		}
 
-		console.log("t");
+		//console.log("t");
 		if (this.rootless==0) {
 			$(cl,this.root).each( function(i) {
 //				console.log(z);
@@ -80,13 +80,13 @@ multiwidget.prototype = {
 		} else {
 		
 			$(cl).each( function(i) {
-		console.log("Z2");
+		//console.log("Z2");
 
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});			
 		}
 
-		console.log("Z");
+		//console.log("Z");
 
 		this.ws = ws;
 		var self=this;
@@ -146,7 +146,7 @@ multiwidget.prototype = {
 		} else {
 			//console.log("commit callback");
 			this.savebutton.val("Saving...");
-			console.log(this.commitcallback);
+			//console.log(this.commitcallback);
 			this.commitcallback(this,changed);
 		}
 
@@ -277,7 +277,7 @@ widget.prototype = {
 					ajax: "/db/findvalue/"+this.param+"/",
 					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
 					insertText: function(value)  { return value[1] },
-				}).bind("activate.autocomplete", function(e,d) { console.log(d) })
+				}).bind("activate.autocomplete", function(e,d) {  })
 			}
 			
 			this.editw.change(function(){self.changed=1;});
@@ -433,7 +433,7 @@ permissions.prototype = {
 	init: function() {
 
 		var self=this;
-		console.log(this.elem);
+		//console.log(this.elem);
 
 		this.inheritcontrols=[];
 
@@ -531,11 +531,11 @@ permissions.prototype = {
 		this.group_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
 		this.group_addbutton=$('<input type="button" value="Add Group">');
 		this.group_addbutton.click(function(){
-			console.log(parseInt(self.group_search.val()));
-			console.log(self.group_levelselect.val());
+			//console.log(parseInt(self.group_search.val()));
+			//console.log(self.group_levelselect.val());
 			self.add(parseInt(self.group_search.val()),self.group_levelselect.val());
 			self.build();
-			console.log(self.list);
+			//console.log(self.list);
 		});
 
 
@@ -755,7 +755,7 @@ permissions.prototype = {
 		level=parseInt(level);
 
 		if (getdisplayname(username) == null) {
-			console.log("no display name");
+			//console.log("no display name");
 			return
 		}
 
@@ -890,7 +890,7 @@ permissions.prototype = {
 			$.jsonRPC("secrecorddeluser",[r,recid,ctxid], function() {
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
-					console.log("ajax queue done");
+					//console.log("ajax queue done");
 					self.reinit();
 				}
 			});
@@ -902,7 +902,7 @@ permissions.prototype = {
 				setvalue(recid,"permissions");
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
-					console.log("ajax queue done");
+					//console.log("ajax queue done");
 					self.reinit(permissions);
 				}
 			});		
@@ -1006,10 +1006,10 @@ parentcontrol.prototype = {
 			//console.log(p);
 			this.checked=(this.checked) ? 1:0;
 			if (this.checked) {
-				console.log("remove");
+				//console.log("remove");
 				//self.build()
 			}	else {
-				console.log("add");
+				//console.log("add");
 				//self.build()
 			}
 		});
@@ -1275,12 +1275,12 @@ relationshipcontrol.prototype = {
 
 		var header=$('<tr />');
 		header.append($('<td><h6>Parents</h6></td>').append(
-			$(' <span> [X]</span>').click(function(){console.log("z");self.removeallparents();self.build_controls();self.build_map();})
+			$(' <span> [X]</span>').click(function(){self.removeallparents();self.build_controls();self.build_map();})
 			));
 		header.append('<td />');
 		header.append('<td><h6>This Record</h6></td><td />');
 		header.append($('<td><h6>Children</h6></td>').append(
-			$(' <span> [X]</span>').click(function(){console.log("z");self.removeallchildren();self.build_controls();self.build_map();})
+			$(' <span> [X]</span>').click(function(){self.removeallchildren();self.build_controls();self.build_map();})
 			));
 		this.table.append(header);
 		

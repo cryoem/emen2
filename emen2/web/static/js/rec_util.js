@@ -213,7 +213,7 @@ function record_relationships_show() {
 
 function record_permissions_show() {
 	// setup permissions controls
-	console.log(permissionscontrol);
+	//console.log(permissionscontrol);
 	if (permissionscontrol==null) {
 	
 		$("#page_comments_permissions").empty();
@@ -257,8 +257,8 @@ function record_view_reload(recid,viewtype) {
 function newrecord_getoptionsandcommit(self, values) {
 	values[NaN]["permissions"]=permissionscontrol.getpermissions();
 	var parents=permissionscontrol.getparents();
-	console.log(parents);
-	console.log(values);
+	//console.log(parents);
+	//console.log(values);
 
 	// commit
 	commit_newrecord(
@@ -275,7 +275,7 @@ function newrecord_getoptionsandcommit(self, values) {
 
 function commit_putrecords(self, records, cb) {
 	if (cb==null) {cb=function(json){}}
-	console.log(records);
+	//console.log(records);
 	$.jsonRPC("putrecordsvalues",[records,ctxid],
  		function(json){
  			cb(json);

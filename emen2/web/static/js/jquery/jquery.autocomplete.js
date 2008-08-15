@@ -338,9 +338,9 @@ $.Autocompleter = function(input, options) {
 				extraParams[key] = typeof param == "function" ? param() : param;
 			});
 			
-			console.log("start ajax");
+			//console.log("start ajax");
 			select.addSpinner();
-			console.log($input);
+			//console.log($input);
 			$.ajax({
 				// try to leverage ajaxQueue plugin to abort previous requests
 				mode: "abort",
@@ -578,7 +578,7 @@ $.Autocompleter.Select = function (options, input, select, config) {
 		.css("position", "absolute")
 		.appendTo(document.body);
 
-		console.log("autocompleter.select.init");
+		//console.log("autocompleter.select.init");
 	
 		list = $("<ul/>").appendTo(element).mouseover( function(event) {
 			if(target(event).nodeName && target(event).nodeName.toUpperCase() == 'LI') {
@@ -746,11 +746,11 @@ $.Autocompleter.Select = function (options, input, select, config) {
 			element && element.remove();
 		},
 		addSpinner: function() {
-			console.log("add spinner");
+			//console.log("add spinner");
 			var spinner=$('<img src="/images/spinner.gif" />');
 		},
 		removeSpinner: function() {
-			console.log("remove spinner");
+			//console.log("remove spinner");
 		}
 	};
 };
