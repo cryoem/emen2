@@ -223,8 +223,12 @@ widget.prototype = {
 		// container
 		this.w = $('<span class="widget"></span>');
 
-
 		// replace this big switch with something better
+
+		if (paramdefs[this.param] == null) {
+			return
+		}
+
 		if (paramdefs[this.param]["vartype"]=="text") {
 
 			this.editw=$('<textarea class="value" cols="40" rows="10">'+this.value+'</textarea>');

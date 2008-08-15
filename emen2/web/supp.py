@@ -116,7 +116,7 @@ def dicttableview(rec,params=[]):
 	if not params:
 		params = rec.keys()
 
-	dicttable = ["<table>"]	
+	dicttable = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]	
 	for i in params:
 		if i not in sidebarparams:
 			dicttable.append("<tr><td>$#" + i + "</td><td>$$" + i + "</td></tr>")

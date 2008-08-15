@@ -65,6 +65,7 @@ switchedin=new Array();
 switchedin["recordview"]="defaultview";
 // hide class members, show one, switch the button
 function switchin(classname, id) {
+	//console.log("Switching in "+classname+" "+id);
 	switchedin[classname]=id;
 	switchbutton(classname,id);
 	$(".page_"+classname).css("display","none");
@@ -248,7 +249,7 @@ function record_view_makeeditable(recid,viewtype) {
 
 
 function record_view_reload(recid,viewtype) {
-	$('#page_recordview_'+viewtype+' .view').load("/db/recordview/"+recid+"/"+viewtype+"/",null,function() {
+	$('#page_recordview_'+viewtype).load("/db/recordview/"+recid+"/"+viewtype+"/",null,function() {
 		record_view_makeeditable(recid,viewtype);
 	});
 }
@@ -319,6 +320,7 @@ function record_updatecomments() {
 
 
 function record_pageedit(elem, key) {
+	//console.log("editing "+key);
 	new multiwidget(
 		elem, {
 			'commitcallback':function(self, values){commit_putrecords(self, values,function(){window.location.reload()})},
@@ -335,7 +337,7 @@ function record_pageedit(elem, key) {
 function record_reloadview(view) {
 	if (!view) {view="defaultview"}
 	$("#page_recordview_"+view).remove(".controls");
-	$("#page_recordview_"+view+" .view").load("/db/recordview/"+recid+"/"+view,{},	function(data){editelem_makeeditable();});
+	$("#page_recordview_"+view).load("/db/recordview/"+recid+"/"+view,{},	function(data){editelem_makeeditable();});
 }
 
 
