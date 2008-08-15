@@ -1091,7 +1091,7 @@ listwidget.prototype = {
 
 			} else if (self.paramdef["vartype"]=="stringlist") {
 
-				editw.autocomplete({ 
+				edit.autocomplete({ 
 
 					ajax: "/db/findvalue/"+this.param+"/",
 					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				

@@ -217,8 +217,11 @@ class PublicView(Resource):
 		except Exception, e:
 			self._ebRender(e, request, ctxid)
 	
+	
+	
 	def _cbsuccess(self, result, request, ctxid, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
+
 		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
 			t1=time.time()
@@ -228,17 +231,24 @@ class PublicView(Resource):
 					   'X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c': 
 					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c'}
 	
-			try: 
+			try:
 				result, content_headers = result
-				headers['content_type'] = content_headers
-			except ValueError: pass
+				headers['content-type'] = content_headers
+			except ValueError:
+				pass
+
 			headers['content-length'] = len(result)
 	
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
 			print "::: time total: %s"%(time.time()-t)
-			request.write(unicode(result).encode('utf-8'))
-#			print "::: time 2 ---- %s"%(time.time()-t1)
+
+
+			if headers["content-type"] in ["image/jpeg","image/png"]:
+				request.write(result)
+			else:
+				request.write(unicode(result).encode('utf-8'))
+
 		finally: 
 			self.finish_request(request)
 

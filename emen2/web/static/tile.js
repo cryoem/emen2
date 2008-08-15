@@ -5,37 +5,101 @@ var level=nx.length-1
 var tileid = "";
 var divdim = [512,512];
 var imgw = 256;
+var bid = null;
 
 /*************************************************/
 
-function tile_init(bid) {
+
+function tile_download() {
+	alert("Not implemented; see attachments area");
+}
+
+function tile_bindresize() {   
+	var resizeTimer = null;
+	$(window).bind('resize', function() {
+		if (resizeTimer) clearTimeout(resizeTimer);
+		resizeTimer = setTimeout(tile_fitheight, 100);
+	});	
+}
+
+function tile_fitheight() {
+
+	var e1=$(window).height();
+	$("#outerdiv").height(e1-120);
+	tile_center();
+	
+}
+
+function tile_center() {
+	indiv=document.getElementById("innerdiv");	
+	indiv.style.left=($("#outerdiv").width() - (imgw*nx[level]))/2 + "px";
+	indiv.style.top=($("#outerdiv").height() - (imgw*ny[level]))/2 + "px";
+}
+
+function tile_larger() {
+	window.location = "/db/tiles/large/"+bid;
+}
+
+function tile_pspec(bid) {
+	indiv=document.getElementById("innerdiv");
+	indiv.style.left="0px";
+	indiv.style.top="0px";
+	var e=document.createElement("img");
+	e.src='/db/tiles/image/'+bid+'?level=-1&amp;x=0&amp;y=0';
+	e.width=divdim[0];
+	e.height=divdim[1];
+	$(indiv).empty().append(e);
+}
+function tile_1d(bid) {
+	indiv=document.getElementById("innerdiv");
+	indiv.style.left="0px";
+	indiv.style.top="0px";
+	var e=document.createElement("img");
+	e.src='/db/tiles/image/'+bid+'?level=-2&amp;x=0&amp;y=0';
+	e.width=divdim[0];
+	e.height=divdim[1];
+	$(indiv).empty().append(e);
+}
+
+
+function tile_init(ibid) {
+	bid = ibid;
 	
 	var outerdivie=document.getElementById("outerdiv");
-	var imgw = parseInt(getStyle(outerdivie,'height')) / 2.0;
+	var imgw = $("#outerdiv").height() / 2.0;
 	if (imgw > 256) {imgw = 256;}
 	
 	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
 
-	var checktile = new CallbackManager();
-	checktile.register(tile_checktile_cb);
-	checktile.seterror(tile_checktile_eb);
-	checktile.req("checktile",[bid,ctxid]);
+	$.getJSON("/db/tiles/check/"+bid, tile_checktile_cb);
 
 }
 
+
+function tile_rebuild() {
+	var innerdivie=document.getElementById("innerdiv");
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'	
+	$.getJSON("/db/tiles/create/"+bid, tile_createtile_cb);
+}
+
+
 function tile_checktile_cb(r) {
+	console.log("got checktile cb");
+	console.log(r);
+	
 	var innerdivie=document.getElementById("innerdiv");
 	if (r[0][0] > 0) {
 		// tile ok
-		tile_init2(r[0],r[1],r[2])
+		tile_init2(r[0],r[1],r[2]);
+		tile_center();
 	} else {
 		// generate tile; init on callback
 		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
-
-		var createtile = new CallbackManager();
-		createtile.register(tile_createtile_cb);
-		createtile.req("createtile",[r[2],ctxid]);
+		tiles_rebuild();
+		//var createtile = new CallbackManager();
+		//createtile.register(tile_createtile_cb);
+		//createtile.req("createtile",[r[2],ctxid]);
 
 	}
 }
@@ -156,7 +220,7 @@ function recalc() {
 			var im=document.getElementById(nm);
 			if (!im) {
 				im=document.createElement("img");
-				im.src="/db/tileimage/" + tileid + "?level="+level+"&x="+i+"&y="+j;
+				im.src="/db/tiles/image/" + tileid + "?level="+level+"&x="+i+"&y="+j;
 				im.style.position="absolute";
 				im.style.height=imgw+"px";
 				im.style.width=imgw+"px";

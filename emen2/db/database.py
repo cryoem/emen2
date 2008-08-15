@@ -491,7 +491,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				bid = int(ident[8:], 16)
 
 				key = "%04d%02d%02d" % (year, mon, day)
-				for i in BINARYPATH:
+				for i in g.BINARYPATH:
 						if key >= i[0] and key < i[1] :
 								# actual storage path
 								path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
@@ -1517,14 +1517,20 @@ parentheses not supported yet. Upon failure returns a tuple:
 				else:
 					raise Exception, "getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
+
 				ret = trg.children(key)
+				if ret == None: return set()
+				if len(ret) == 0: return set()
+
 				out = []
 				for x in xrange(recurse):
-					for k in ret.copy():
+					for k in ret:
+						z=trg.children(k)
 						out.append(k)
-						out.extend(x for x in trg.children(k) if 
-												self.trygetrecord(x, ctxid, host))
-				return (set(out) if out != [] else ret) 
+						if z != None:
+							out.extend(x for x in z if self.trygetrecord(x, ctxid, host))
+
+				return (set(out) if out != [] else ret) or set()
 				
 #
 #				 if recurse==0 : return ret
@@ -1623,9 +1629,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 						trg = self.__paramdefs
 				else: raise Exception, "getparents keytype must be 'record', 'recorddef' or 'paramdef'"
 				
-				ret = trg.parents(key)
+				ret = trg.parents(key) or set()
+				if ret: ret=set(ret)
 				
-				if recurse == 0 : return set(ret)
+				if recurse == 0:
+					return set(ret)
 				
 				r2 = set()
 				for i in ret:
@@ -1638,6 +1646,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# need similar fast versions for internal use; can check later.
 		# ian todo: make ctxid mandatory
 		def __getchildrensafe(self, key, keytype="record", recurse=0, ctxid=None, host=None):
+
 				if (recurse < 0): return set()
 				if keytype == "record": 
 						trg = self.__records
@@ -1650,13 +1659,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 				else:
 						raise Exception, "getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
-				ret = trg.children(key)
+				ret = trg.children(key) or set()
+				if ret: ret=set(ret)
 				
-				if recurse == 0 : return set(ret)
+				if recurse == 0:
+					return set(ret)
 
 				r2 = set()
 				for i in ret:
 						r2 |= self.__getchildrensafe(i, keytype, recurse - 1, ctxid, host=host)
+
 				return ret | r2
 
 
@@ -2080,7 +2092,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		def getuser(self, username, ctxid, host=None):
 				"""retrieves a user's information. Information may be limited to name and id if the user
 				requested privacy. Administrators will get the full record"""
-				self = db
+				#self = db
 				
 				if not isinstance(username, int):
 					username = str(username)
@@ -2915,9 +2927,12 @@ or None if no match is found."""
 			parents=self.getparents(recid,ctxid=ctxid,host=host)
 			children=self.getchildren(recid,ctxid=ctxid,host=host)
 			
+			if len(parents) > 0 and rec["deleted"] !=1 :
+				rec["comments"]="Record marked for deletion and unlinked from parents: %s"%", ".join([str(x) for x in parents])
+			elif rec["deleted"] != 1:
+				rec["comments"]="Record marked for deletion"
+
 			rec["deleted"]=1
-			rec["comments"]="Record marked for deletion; unlinked from %s"%", ".join([str(x) for x in parents])
-			
 			self.putrecord(rec,ctxid,host=host)
 						
 			for i in parents:
@@ -2926,9 +2941,12 @@ or None if no match is found."""
 			for i in children:
 				c2=self.getchildren(i,ctxid=ctxid,host=host)
 				c2.remove(recid)
-				if len(c2) == 0:
-					pass
-					#finish
+				# if child had more than one parent, make a note one parent was removed
+				if len(c2) > 0:
+					rec2=self.getrecord(i,ctxid,host=host)
+					rec["comments"]="Parent record %s was deleted"%recid
+					self.putrecord(rec2)
+					self.pcunlink(recid,i,ctxid=ctxid,host=host)
 
 				
 
@@ -2971,9 +2989,9 @@ or None if no match is found."""
 					paramdefs = self.getparamdefs(username.getparamkeys())
 					
 					for k in username.getparamkeys():
-						if paramdefs[k].vartype == "user":
+						if paramdefs[k].vartype == "user" and username[k] != None:
 							namestoget |= set([username[k]])
-						if paramdefs[k].vartype == "userlist":
+						if paramdefs[k].vartype == "userlist" and username[k] != None:
 							namestoget |= set(username[k])
 					for k in username["comments"]:
 						namestoget |= set([k[0]])

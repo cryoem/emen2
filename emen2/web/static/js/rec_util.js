@@ -37,6 +37,42 @@ function getctxid() {
 ctxid = getctxid();
 
 
+// js is stupid at sorting.
+function sortNumber(a, b) {
+	return a - b;
+}
+
+
+
+/// switch.js
+
+
+function switchbutton(type,id) {
+	$(".button_"+type).each(function() {
+		var elem=$(this);
+		if (this.id != "button_"+type+"_"+id) {
+			elem.removeClass("button_active");
+			elem.removeClass("button_"+type+"_active");
+		} else {
+			elem.addClass("button_active");
+			elem.addClass("button_"+type+"_active");
+		}
+	});
+}
+
+
+switchedin=new Array();
+switchedin["recordview"]="defaultview";
+// hide class members, show one, switch the button
+function switchin(classname, id) {
+	switchedin[classname]=id;
+	switchbutton(classname,id);
+	$(".page_"+classname).css("display","none");
+	document.getElementById("page_" + classname + "_" + id).style.display = 'block';	
+}
+
+
+
 //////////////////////////////////////////
 
 // access values from correct sources
@@ -98,6 +134,47 @@ function getrecord(recid) {
 
 //////////////////////////////////////////
 
+
+function notify(msg,nofade) {
+	//$("#alert").empty();
+	var msg=$('<li>'+msg+'</li>');
+	msg.click(function(){$(this).fadeOut()});
+	$("#alert").append(msg).fadeIn();
+	if (!nofade) {
+		setTimeout(function(){msg.fadeOut()},3000)
+	}
+}
+
+
+function notify_post(uri,msgs) {
+  var postform = document.createElement("form");
+  postform.method="post" ;
+  postform.action = uri;
+	for (var i=0;i<msgs.length;i++) {
+		var note = document.createElement("input") ;
+		note.setAttribute("name", "notify_"+i) ;
+		note.setAttribute("value", msgs[i]);
+		postform.appendChild(note) ;
+	}
+	document.body.appendChild(postform);
+  postform.submit();	
+}
+
+//////////////////////////////////////////
+
+
+function record_action_delete(drecid) {
+	var test=confirm("Are you sure you want to delete this record?");
+	if (test) {
+		$.jsonRPC("deleterecord",[drecid,ctxid], function() {
+			//$.post("/db/record/"+recid,{"notify_0":"This record has been marked for deletion and removed from hierarchy"});
+			//notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
+			window.location.reload();
+		}, function() {
+			notify("Error deleting record!");
+		});
+	}
+}
 
 function record_upload_show() {
 		$("#page_comments_upload").empty();

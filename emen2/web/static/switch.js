@@ -1,86 +1,7 @@
-var name;
-var classcache = new Array();
-var statecache = new Array();
-var classstatecache = new Array();
-
-
-/***********************************************/
-
-Function.prototype.bind = function() {	
-	var z=this;
-	var args = Array.prototype.slice.call(arguments);
-	var obj=args.shift();
-  return function () {
-		z.apply(obj, args.concat(Array.prototype.slice.call(arguments))); 
-   }
-}
-
-
-// ANGER AT IE!!
-/*
-Element.prototype.addClass = function(classname) {
-}
-Element.prototype.removeClass = function(classname) {	
-}
-Element.prototype.clearChildren = function() {
-	while (this.firstChild) {this.removeChild(this.firstChild)};	
-}	
-
-Document.prototype.getElementsByClassName = function(classname) {
-	var elements=[];
-	var alltags=document.all? document.all : document.getElementsByTagName("*")
-	var length = alltags.length;
-	for (i=0; i<length; i++) {
-		if (alltags[i].className.indexOf(classname) != -1){elements.push(alltags[i])}
-	}
-	return elements;
-}
-*/
 if(![].indexOf) Array.prototype.indexOf = function(needle){ for(var i=0; i<this.length; i++) if(this[i] == needle) return i; return -1 }
 
 
 /***********************************************/
-
-function clearChildren(elem) {
-	while (elem.firstChild) {elem.removeChild(elem.firstChild)};	
-}
-
-function clearAlerts() {
-	// use with timer to clear alerts
-	// var el = document.getElementById("alert");
-	var el = document.getElementById("alert");
-	clearChildren(el);
-}
-
-
-function topalert(msg) {
-	// draw alert messages in top of window
-	// now integrated with previous notify mechanism
-	clearAlerts();
-	el=document.getElementById("alert");
-	
-	if (msg == null) {return}
-	
-	if (typeof(msg) == typeof(Array())) {
-		for (var i=0;i<msg.length;i++) {
-			var d = document.createElement("li");
-			d.innerHTML = msg[i];
-			d.className = "notification";
-			el.appendChild(d);
-		}
-	}	else {
-		var d = document.createElement("li");
-		d.innerHTML = msg;
-		d.className = "notification";
-		el.appendChild(d);
-	}
-	scroll(0,0);
-}
-
-
-
-function dict() {
-}
 
 //getcomputedstyle shortcut: fixed for IE
 function getStyle(elem, cssRule, ieProp) {
@@ -239,20 +160,3 @@ function showclass(classname,update) {
 	}
 
 }
-
-
-/************************/
-
-function init() {
-}
-
-
-
-
-
-
-
-
-
-
-

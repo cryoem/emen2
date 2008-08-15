@@ -743,7 +743,8 @@ class Record(DictMixin):
 				raise ValueError,"Unable to convert %s = %s; skipping value"%(pd.name,value)
 
 		try:
-			value=valid_vartypes[pd.vartype][1](value)
+			if value != None:
+				value=valid_vartypes[pd.vartype][1](value)
 		except:
 			raise ValueError,"Error converting datatype: %s, %s"%(pd.name,pd.vartype)
 	
