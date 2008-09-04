@@ -93,6 +93,14 @@ function setdisplayname(name,value) {
 	}
 }
 
+function getrecname(name) {
+	return recnames[name]
+}
+function setrecname(name,value) {
+	recnames[name]=value;
+}
+
+
 function getvalue(recid,param) {
 	//if (rec["recid"]==recid || recid==null) {return rec[param]}
 	if (paramindex[param]) {
@@ -180,7 +188,7 @@ function record_action_delete(drecid) {
 function record_upload_show() {
 		$("#page_comments_upload").empty();
 		$("#page_comments_upload").append(
-		'<embed width="600px" height="600px" name="plugin" src="http://localhost:8080/flash/multipleUpload.swf" type="application/x-shockwave-flash" flashvars="uploaduri=http%3A%2F%2Flocalhost%3A8080%2Fupload%2F136" />');
+		'<embed width="580px" height="245px" name="plugin" src="http://localhost:8080/flash/test.swf" type="application/x-shockwave-flash" flashvars="uploaduri=%2Fupload%2F'+recid+'%3Fctxid%3D'+ctxid+'" />');
 		switchin('comments','upload');
 }
 
@@ -192,7 +200,8 @@ function record_relationships_show() {
 		
 		$.jsonRPC("getrecordrecname",[parents.concat(children).concat([recid]), ctxid], function(result) {
 			$.each(result, function(k,v) {
-					recnames[k]=v;
+					setrecname(k,v);
+					//recnames[v[0]]=v[1];
 			});
 			relationships = new relationshipcontrol($("#page_comments_relationships"), {
 				'parents':parents,

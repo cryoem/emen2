@@ -19,19 +19,55 @@ def isofrecdef(engine, db, recid, recdef, rinfo):
 	rec = db.getrecord(recid, **rinfo)
 	return rec.rectype == recdef
 
+import time
+
 @add_macro('childcount')
 def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
+	#print "childcount"
 	recid = rec['recid']
-	key = engine.get_cache_key('ccount',recid)
-	res = engine.check_cache(key)
-	hit, groups = res or (False, {})
-	if hit is False:
-		query=db.getchildren(recid,recurse=2,ctxid=ctxid)
-		groups=db.groupbyrecorddeffast(query,ctxid)
-		engine.store(engine.get_cache_key(recid), groups)
-	result = 0
-	if groups.has_key(recdef): result = len(groups[recdef])
-	return result
+
+	key1 = engine.get_cache_key('indexbyrecorddef',recdef)
+	key2 = engine.get_cache_key('ccount')
+	
+	res1 = engine.check_cache(key1)
+	res2 = engine.check_cache(key2)
+	
+	hit1, ind = res1 or (False, set())
+	hit2, childrendict = res2 or (False, {})
+
+	#print childrendict
+
+	if hit1 is False:
+		print "getindexbyrecorddef"
+		ind=db.getindexbyrecorddef(recdef, ctxid)
+		engine.store(key1, ind)
+
+	#if hit3 is False:
+	#	print "getindexdictbycontext"
+	#	indc=db.getindexbycontext(ctxid)
+	#	engine.store(key3,indc)
+
+	if hit2 is False or not childrendict.has_key(recid):
+		print "macro getchildren"
+		childrendict[recid]=db.getchildren(recid,recurse=2,ctxid=ctxid)
+		
+	return len(childrendict[recid] & ind)	
+		
+	#if hit is False:
+		#t=time.time()
+		#query=db.getchildren(recid,recurse=2,ctxid=ctxid)
+		##r=query & db.getindexbyrecorddef(recdef, ctxid)
+		#query=db.getchildren(recid,recurse=2,ctxid=ctxid)
+		##print query
+		##print len(query)
+		#groups=db.groupbyrecorddef(query,ctxid)
+		##print time.time()-t
+		#engine.store(engine.get_cache_key(recid), groups)
+
+	#groups={}
+	#result = 0
+	#if groups.has_key(recdef): result = len(groups[recdef])
+	#return result
 
 ###############################################################################################################################################
 
@@ -81,7 +117,7 @@ def getrectypesiblings(engine, db,rec, args, ctxid, host, **extra):
 	for i in parents:
 		siblings = siblings.union(db.getchildren(i,ctxid=ctxid))
 
-	groups = db.groupbyrecorddeffast(siblings, ctxid)
+	groups = db.groupbyrecorddef(siblings, ctxid)
 
 	if groups.has_key(rec.rectype):
 		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid)

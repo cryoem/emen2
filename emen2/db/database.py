@@ -362,7 +362,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 				# figure out where this file goes in the filesystem
 				key = "%04d%02d%02d" % (year, mon, day)
-				for i in BINARYPATH:
+				for i in g.BINARYPATH:
 						if key >= i[0] and key < i[1] :
 								# actual storage path
 								path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
@@ -1366,11 +1366,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		# ian: made ctxid required.
 		@publicmethod
-		def groupbyrecorddef(self, all, ctxid, host=None):
+		def groupbyrecorddef(self, all, ctxid, host=None, optimize=1):
 				"""This will take a set/list of record ids and return a dictionary of ids keyed
 				by their recorddef"""
 				#self = db
-				if len(all) < 500: return self.groupbyrecorddeffast(all, ctxid, host)
+				if len(all) == 0: return {}
+				if optimize and len(all) < 500: return self.groupbyrecorddeffast(all, ctxid, host)
 				all = set(all)
 				all &= set(self.getindexbycontext(ctxid, host=host))
 				ret = {}
@@ -1378,7 +1379,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 						rid = all.pop()														 # get a random record id
 						try: r = self.getrecord(rid, ctxid, host=host)		# get the record
 						except:
-#								 db.LOG(3,"Could not group by on record %d"%rid)
 								continue												# if we can't, just skip it, pop already removed it
 						ind = self.getindexbyrecorddef(r.rectype, ctxid, host=host)				 # get the set of all records with this recorddef
 						ret[r.rectype] = all & ind										# intersect our list with this recdef
@@ -1389,14 +1389,28 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
-		# ian: made ctxid required
 		@publicmethod
+		#this one gets records directly
 		def groupbyrecorddeffast(self, records, ctxid, host=None):
-				"""quick version"""
+			if len(records) == 0: return {}
+			recs=self.getrecordsafe(records, ctxid)
+			ret={}
+			for i in recs:
+				if not ret.has_key(i.rectype): ret[i.rectype]=[i.recid]
+				else: ret[i.rectype].append(i.recid)
+			return ret
+				
+				
+		# ian: made ctxid required
+		# this one gets rectype by index
+		@publicmethod
+		def groupbyrecorddeffast2(self, records, ctxid, host=None):
 				#self = db
+				if len(records) == 0: return {}
 				r = {}
+				records=set(records) & self.getindexbycontext(ctxid)
 				for i in records:
-						if not self.trygetrecord(i, ctxid): continue
+						#if not self.trygetrecord(i, ctxid): continue
 						#print i
 						j = self.__recorddefbyrec[i]		# security checked above
 						if r.has_key(j):
@@ -1486,113 +1500,129 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 				
 				c = self.getchildren(key, "record", recurse, ctxid, host=host)
-				r = self.groupbyrecorddeffast(c, ctxid, host=host)
+				r = self.groupbyrecorddef(c, ctxid, host=host)
 				for k in r.keys(): r[k] = len(r[k])
 				r["all"] = len(c)
 				return r
 		
-
 		
-		# ian todo: make ctxid mandatory, but will require alot of code changes.
+		
+		@publicmethod
+		def getchildren_recordmulti(self, keys, recurse=0, ctxid=None, host=None):
+			"""Optimized way to get child sets for multiple records; e.g. during childcount in table"""
+			indc = self.getindexbycontext(ctxid)
+			ret={}
+			for key in keys:
+				ret[key]=self.__getrel(key, "record", recurse, ctxid, host, indc, "children")
+			return ret
+				
+				
+		# done to hide indc optimization from public methods
 		@publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, ctxid=None, host=None):
+			return self.__getrel(key, keytype, recurse, ctxid, host, None, "children")
+
+		@publicmethod
+		def getparents(self, key, keytype="record", recurse=0, ctxid=None, host=None):
+			return self.__getrel(key, keytype, recurse, ctxid, host, None, "parents")
+
+				
+
+		# ian todo: make ctxid mandatory, but will require alot of code changes.
+		def __getrel(self, key, keytype="record", recurse=0, ctxid=None, host=None, indc=None, rel="children"):
 				"""This will get the keys of the children of the referenced object
 				keytype is 'record', 'recorddef', or 'paramdef'. User must have read permission
 				on the parent object or an empty set will be returned. For recursive lookups
 				the tree will appropriately pruned during recursion."""
 				#self = db
-				
+								
+				# if user can read record, can see all children; not filtered for permissions
+								
 				if (recurse < 0): return set()
-				if keytype == "record" : 
+
+				if keytype == "record":
 					trg = self.__records
+					key=int(key)
 					if not self.trygetrecord(key, ctxid, host=host) : return set()
+
 				elif keytype == "recorddef" : 
 					key = str(key).lower()
 					trg = self.__recorddefs
 					try: a = self.getrecorddef(key, ctxid)
 					except: return set()
+
 				elif keytype == "paramdef":
 					key = str(key).lower()
 					trg = self.__paramdefs
+
 				else:
 					raise Exception, "getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
-
-				ret = trg.children(key)
-				if ret == None: return set()
-				if len(ret) == 0: return set()
-
-				out = []
-				for x in xrange(recurse):
-					for k in ret:
-						z=trg.children(k)
-						out.append(k)
-						if z != None:
-							out.extend(x for x in z if self.trygetrecord(x, ctxid, host))
-
-				return (set(out) if out != [] else ret) or set()
-				
-#
-#				 if recurse==0 : return ret
-#				 else:
-#						 r2 = set()
-#						 for key in ret:
-#								 r2.update(self.getchildren(key, keytype, recurse-1, ctxid, host))
-#						 ret.update(r2)
-#						 return ret
-											
-
-# ian
-#				 new = 0
-#					r = {}
-#					r[recurse] = set(ret)
-#					while recurse:
-#							r[recurse-1] = set()
-#							for i in r[recurse]:
-#									if self.trygetrecord(i,ctxid,host):		 r[recurse-1] |= set(trg.children(i))
-#							recurse = recurse - 1
-# 
-#					ret = set()
-#					for i in r.values():
-#							ret |= i
-#					return ret
-					
-					
-				
-				
-		# ian todo: make ctxid req'd
-		@publicmethod
-		def getparents(self, key, keytype="record", recurse=0, ctxid=None, host=None):
-				"""This will get the keys of the parents of the referenced object
-				keytype is 'record', 'recorddef', or 'paramdef'. User must have
-				read permission on the keyed record to get a list of parents
-				or an empty set will be returned."""
-				#self = db
-				if (recurse < 0): return set()
-				if keytype == "record" : 
-						trg = self.__records
-						if not self.trygetrecord(key, ctxid, host=host) : return set()
-#						 try: a=self.getrecord(key,ctxid)
-#						 except: return set()
-				elif keytype == "recorddef" : 
-						key = str(key).lower()
-						trg = self.__recorddefs
-						try: a = self.getrecorddef(key, ctxid)
-						except: return set()
-				elif keytype == "paramdef":
-						key = str(key).lower()
-						trg = self.__paramdefs
+				if rel=="children":
+					rel=trg.children
+				elif rel=="parents":
+					rel=trg.parents
 				else:
-						raise Exception, "getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+					raise Exception, "Unknown relationship mode"
+					
+				ret=rel(key) or []
+
+				if recurse == 0:
+					return set(ret)
+
+				st=[set(ret)]
+				std={key: ret}
+				for x in xrange(recurse):
+					st.append(set())
+					for k in st[x]:
+						z=rel(k) or []
+						st[x+1] |= set(z)
+						std[k] = z
+
+				if keytype=="record":
+					if not indc:
+						indc = self.getindexbycontext(ctxid)
+					b=set(std.keys()) & indc
+				else:
+					b=set(std.keys())
+					
+				if len(b) == 0: return set()
+				return set(reduce(operator.add, [std[k] for k in b]))
+
+					
 				
-				ret = trg.parents(key)
 				
-				if recurse == 0: return set(ret)
-				
-				r2 = set([])
-				for i in ret:
-					r2.update(self.getparents(i, keytype, recurse - 1, ctxid, host=host))
-				return set(r2)
+## 		ian todo: make ctxid req'd
+# 		@publicmethod
+# 		def getparents(self, key, keytype="record", recurse=0, ctxid=None, host=None):
+# 				"""This will get the keys of the parents of the referenced object
+# 				keytype is 'record', 'recorddef', or 'paramdef'. User must have
+# 				read permission on the keyed record to get a list of parents
+# 				or an empty set will be returned."""
+# 				#self = db
+# 				if (recurse < 0): return set()
+# 				if keytype == "record" : 
+# 						trg = self.__records
+# 						if not self.trygetrecord(key, ctxid, host=host) : return set()
+# 				elif keytype == "recorddef" : 
+# 						key = str(key).lower()
+# 						trg = self.__recorddefs
+# 						try: a = self.getrecorddef(key, ctxid)
+# 						except: return set()
+# 				elif keytype == "paramdef":
+# 						key = str(key).lower()
+# 						trg = self.__paramdefs
+# 				else:
+# 						raise Exception, "getparents keytype must be 'record', 'recorddef' or 'paramdef'"
+# 				
+# 				ret = trg.parents(key)
+# 				
+# 				if recurse == 0: return set(ret)
+# 				
+# 				r2 = set([])
+# 				for i in ret:
+# 					r2.update(self.getparents(i, keytype, recurse - 1, ctxid, host=host))
+# 				return set(r2)
 
 
 
@@ -3255,9 +3285,9 @@ or None if no match is found."""
 				if self.checkreadadmin(ctx):
 						return 1
 				# ian: fix anonymous access
-				if self.__secrindex.testref(- 4, recid) : return 1 # anonymous access
-				if self.__secrindex.testref(- 3, recid) : return 1				# global read access
 				if self.__secrindex.testref(ctx.user, recid) : return 1		# user access
+				if self.__secrindex.testref(-4, recid) : return 1 # anonymous access
+				if self.__secrindex.testref(-3, recid) : return 1				# global read access
 				for i in ctx.groups: 
 						try:
 								if self.__secrindex.testref(i, recid) : return 1
@@ -3293,7 +3323,7 @@ or None if no match is found."""
 								if not p[0] : raise SecurityError, "Permission denied on one or more records"		# ian: changed Exception to SecurityError
 						return recl
 				else:
-						# ian: js only allows strings as Array keys.. so let's fallback to attempt to recast to int before giving up
+						# ian: js only allows strings as Array keys.. so let's fallback to int before giving up
 						try:
 								recid = int(recid)
 								return self.getrecord(recid, ctxid, host)
@@ -3338,7 +3368,7 @@ or None if no match is found."""
 						p = rec.setContext(ctx)
 						if not p[0] : return None
 						return rec
-				elif (isinstance(recid, list)):
+				elif hasattr(recid, "__iter__"):
 						try:
 								recl = map(lambda x:self.__records[x], recid)
 						except: 
@@ -3376,7 +3406,10 @@ or None if no match is found."""
 				
 					for j, k in enumerate(usertuple[i]):
 						if not isinstance(usertuple[i][j], int):
+							# sometimes group ints will be sent as str.
 							try:
+								usertuple[i][j] = int(usertuple[i][j])
+							except ValueError:
 								usertuple[i][j] = str(usertuple[i][j])
 							except:
 								raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
@@ -3611,22 +3644,27 @@ or None if no match is found."""
 		##########
 		
 		
+		import operator
 		
 		@publicmethod
-		def getrecordrecname(self, rec, ctxid, host=None):
+		def getrecordrecname(self, rec, ctxid, returnsorted=0, showrectype=0, host=None):
 				"""Render the recname view for a record."""
 				#self = db
 				
 				if hasattr(rec, "__iter__") and not isinstance(rec, Record):
 					ret = {}
+					recs = {}
+					recs.update([(i.recid, i) for i in self.getrecordsafe(rec, ctxid)])
 					# convert to int to prevent infinite recursion
-					for i in rec:
-						try: 
-							int(i)
-							ret[i] = self.getrecordrecname(i, ctxid, host)
-						except:
-							raise ValueError, "Only int recids are accepted in list format"
-					return ret
+					for i in recs:
+						ret[i] = self.getrecordrecname(i, ctxid, showrectype=showrectype, host=host)
+
+					if returnsorted:
+						sl=[(k,recs[k].rectype+" "+v.lower()) for k,v in ret.items()]
+						return [(k,ret[k]) for k,v in sorted(sl, key=operator.itemgetter(1))]
+					else:
+						return ret
+						
 
 				if isinstance(rec, int):
 					try:
@@ -3635,8 +3673,14 @@ or None if no match is found."""
 							return "(permission denied)"
 						
 				value = self.renderview(rec, viewtype="recname", ctxid=ctxid)
+
 				if not value:
-						value = "(%s: %s)" % (rec.rectype, rec.recid)
+					value = "(%s)"%(rec.recid)
+
+				if showrectype:
+					value = "%s: %s"%(rec.rectype, value)
+
+				#print value
 				return value
 		
 

@@ -625,6 +625,7 @@ class Record(DictMixin):
 		self.dbid=kwargs.get('dbid',None)
 		self.__params={}#kwargs.get('params',{}).copy()
 		for key in set(kwargs.keys())-self.param_special:
+			key=str(key).strip().lower()
 			self.__params[key]=kwargs[key]
 
 		self.__oparams={}
@@ -859,7 +860,8 @@ class Record(DictMixin):
 		the default value for existant, but undefined params, which will be
 		treated identically"""
 		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
-		key = key.encode('utf-8', 'replace').strip().lower()
+		# key = key.encode('utf-8', 'replace').strip().lower()
+		key = str(key).strip().lower()
 		result = None
 		if   key=="comments" : result = self.__comments
 		elif key=="recid" : result = self.recid
