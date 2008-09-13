@@ -1877,18 +1877,15 @@ parentheses not supported yet. Upon failure returns a tuple:
 				user = self.__newuserqueue[username]
 
 				if user.record == None:
-						try:
-								userrec = self.newrecord("person", ctxid, init=1)
-								userrec["username"] = username
-								userrec["name_first"] = user.name[0]
-								userrec["name_middle"] = user.name[1]
-								userrec["name_last"] = user.name[2]
-								userrec["email"] = user.email
-								recid = self.putrecord(userrec, ctxid)
-								user.record = recid
-						except:
-								raise Exception, "Unable to create record for user %s" % username
-
+					userrec = self.newrecord("person", ctxid=ctxid, host=host, init=1)
+					print user
+					userrec["username"] = username
+					userrec["name_first"] = user.name[0]
+					userrec["name_middle"] = user.name[1]
+					userrec["name_last"] = user.name[2]
+					userrec["email"] = user.email
+					recid = self.putrecord(userrec, ctxid)
+					user.record = recid
 				user.validate()
 
 				txn = self.newtxn()
