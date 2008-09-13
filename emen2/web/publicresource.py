@@ -234,11 +234,11 @@ class PublicView(Resource):
 	
 			try:
 				result, content_headers = result
+				result = unicode(result)
 				headers['content-type'] = content_headers
 			except ValueError:
 				pass
 
-			headers['content-length'] = len(result)
 	
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
@@ -246,9 +246,12 @@ class PublicView(Resource):
 
 
 			if headers["content-type"] in ["image/jpeg","image/png"]:
+				headers['content-length'] = len(result)
 				request.write(result)
 			else:
-				request.write(unicode(result).encode('utf-8'))
+				result = unicode(result).encode('utf-8')
+				headers['content-length'] = len(result)
+				request.write(result)
 
 		finally: 
 			self.finish_request(request)
