@@ -60,7 +60,8 @@ function getrecords_paramdefs(recids,cb) {
 $.postJSON = function(uri,data,callback,errback) {
 	if (!errback) {
 		errback = function(xhr){
-				$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
+				//$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
+				notify("Error: "+xhr.responseText);
 			}
 		}
 	$.ajax({

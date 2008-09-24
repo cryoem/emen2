@@ -105,7 +105,52 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 		return [rec for rec in db.getchildren(recid, **rinfo) if isofrecdef(rec, recdef, rinfo)]
 	return render_records(rec, view, get_records,rinfo, html_join_func)
 
+
+
 ################################################################################################################################################
+
+print "import core macro"
+@add_macro('img')
+def do_img(engine, db, rec, args, ctxid, host, **extra):
+	print "img macro"
+	default=["file_binary_image","640","640"]
+	try:
+		ps=args.split(" ")
+	except:
+		return "(Image Error)"
+	for i,v in list(enumerate(ps))[:3]:
+		default[i]=v
+	param,width,height=default
+	
+	try:	
+		pd=db.getparamdef(param)
+	except:
+		return "(Unknown parameter)"
+
+	print pd.vartype
+
+	if pd.vartype=="binary":
+		bdos=rec[param]		
+	elif pd.vartype=="binaryimage":
+		bdos=[rec[param]]
+	else:
+		return "(Invalid parameter)"
+	
+	print bdos
+	if bdos==None:
+		return "(No Image)"
+	
+	ret=[]
+	for i in bdos:
+		try:
+			fname,bname,lrecid=db.getbinary(i[4:],ctxid)
+			ret.append('<img src="/download/%s/%s" style="max-height:%spx;max-width:%spx;" />'%(i[4:],fname,height,width))
+		except:
+			ret.append("(Error: %s)"%i)
+		
+	return "".join(ret)
+
+
 
 @add_macro('getrectypesiblings')
 def getrectypesiblings(engine, db,rec, args, ctxid, host, **extra):

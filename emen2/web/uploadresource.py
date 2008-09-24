@@ -77,23 +77,6 @@ class UploadResource(Resource):
 
 
 	def render(self,request):
-# 		host=request.getClientIP()
-# 		session=request.getSession()
-# 		args=request.args
-# 		path=request.postpath
-# 		ctxid=None
-# 		
-# 		print "== upload request !! =="
-# 		
-# 		ctxid = request.getCookie("ctxid")
-# 
-# 		print "test ctxid: %s"%ctxid
-# 
-# 		if hasattr(session,"ctxid"):
-# 			print "Upload ctxid: %s"%session.ctxid
-# 			ctxid=session.ctxid
-# 		else:
-# 			print "No ctxid"
 
 		host = request.getClientIP()
 		args = request.args
@@ -111,6 +94,15 @@ class UploadResource(Resource):
 		
 		print "\n\n=== upload request === %s :: %s"%(request.postpath, ctxid)
 		
+		
+		# ian: ugly hack around broken twisted.web post form
+		if not args.has_key("filename"):
+			request.content.seek(0)
+			data=request.content.read()
+			b=re.compile("filename=\"(.+)\"")		
+			args["Filename"]=b.findall(data)
+		
+		
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid=ctxid, host=host)		
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
@@ -118,8 +110,17 @@ class UploadResource(Resource):
 		
 		
 	def RenderWorker(self,path,args,ctxid=None,host=None,db=None):
-		filename=args["Filename"][0]
-		filedata=args["Filedata"][0]
+
+		print args
+		
+		try:
+			filename=args["Filename"][0]
+		except:
+			filename="(Error with filename during upload)"
+		try:
+			filedata=args["Filedata"][0]
+		except:
+			filedata=args["filedata"][0]
 		
 		recid=int(path[0])
 		rec=db.getrecord(recid,ctxid)

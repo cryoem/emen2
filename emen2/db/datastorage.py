@@ -20,6 +20,15 @@ def textconv(x):
 	try: return str(x)
 	except: return unicode(x)
 
+def datetimeconv(x):
+	return str(x)
+	
+def timeconv(x):
+	return str(x)
+
+def dateconv(x):
+	return str(x)
+
 DEBUG=0
 
 def tojson(o):
@@ -32,12 +41,12 @@ valid_vartypes={
 	"longint":("d",lambda x:int(x)),		# not indexed properly this way
 	"float":("f",lambda x:float(x)),		# double precision
 	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-	"choice":("s",lambda x:str(x)),			# string from a fixed enumerated list, eg "yes","no","maybe"
-	"string":("s",lambda x:str(x)),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
+	"choice":("s",textconv),			# string from a fixed enumerated list, eg "yes","no","maybe"
+	"string":("s",textconv),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
 	"text":("s",textconv),			# freeform text, fulltext (word) indexing, UNICODE PERMITTED
-	"time":("s",lambda x:str(x)),			# HH:MM:SS
-	"date":("s",lambda x:str(x)),			# yyyy/mm/dd
-	"datetime":("s",lambda x:str(x)),		# yyyy/mm/dd HH:MM:SS
+	"time":("s",timeconv),			# HH:MM:SS
+	"date":("s",dateconv),			# yyyy/mm/dd
+	"datetime":("s",datetimeconv),		# yyyy/mm/dd HH:MM:SS
 	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
 	"floatlist":(None,lambda y:map(lambda x:float(x),y)), # list of floats
 	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
@@ -397,8 +406,8 @@ class RecordDef(DictMixin) :
 	
 	def __init__(self,d=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.views={"recname":"$$rectype $$creator $$creationdate"}				# Dictionary of additional (named) views for the record
-		self.mainview="$$rectype $$creator $$creationdate"			# a string defining the experiment with embedded params
+		self.views={"recname":"$$rectype $$creator $$creationtime"}				# Dictionary of additional (named) views for the record
+		self.mainview="$$rectype $$creator $$creationtime"			# a string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
 		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
@@ -882,7 +891,7 @@ class Record(DictMixin):
 		#try: valuelower = value.lower()
 		#except:	valuelower = ""
 		
-		if str(value) == "None": 
+		if value == "None": 
 			value = None
 		try:
 			if len(value) == 0:

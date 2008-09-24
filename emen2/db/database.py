@@ -34,7 +34,7 @@ recommentsregex = "\n"
 pcomments = re.compile(recommentsregex) # re.UNICODE
 
 TIMESTR = "%Y/%m/%d %H:%M:%S"
-
+MAXIDLE = 604800
 
 
 
@@ -270,7 +270,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 		#@write,all
 		@publicmethod
-		def login(self, username="anonymous", password="", host=None, maxidle=14400):
+		def login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE):
 				"""Logs a given user in to the database and returns a ctxid, which can then be used for
 				subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 				##self = db
@@ -294,7 +294,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 						if (self.checkpassword(username, password)) : ctx = Context(None, self, username, user.groups, host, maxidle)
 						else:
 								self.LOG(0, "Invalid password: %s (%s)" % (username, host))
-								raise AuthenticationError, "Invalid Password"
+								raise AuthenticationError, AuthenticationError.__doc__
 				
 				# This shouldn't happen
 				if ctx == None :

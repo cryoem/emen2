@@ -45,10 +45,6 @@ relationshipcontrol.prototype = {
 		this.oparents=this.parents.slice();
 		this.ochildren=this.children.slice();
 		this.linkstate={};
-//		this.addc=[];
-//		this.addp=[];
-//		this.removedc=[];
-//		this.removedp=[];
 		this.build();
 	},
 	
@@ -202,7 +198,10 @@ relationshipcontrol.prototype = {
 	},
 	
 	getstatetag: function(precid) {
-		return this.linkstate[precid] || ""
+		var state=this.linkstate[precid];
+		if (state == "removeparent" || state == "removechild") {return "removed"};
+		if (state == "addparent" || state == "addchild") {return "changed"};
+		return ""
 	},
 	
 	addparentpopup: function(el) {
@@ -219,30 +218,22 @@ relationshipcontrol.prototype = {
 		this.parents=this.oparents.slice();
 	},
 	addparent: function(id) {
-		//console.log("addparent");
 		if (this.parents.indexOf(id) == -1) {this.parents.push(id)};
-		if (this.linkstate[id]=="removed") {this.linkstate[id]=""}
-		else {this.linkstate[id]="changed"}
-		//console.log(this.parents)
+		if (this.linkstate[id]=="removeparent") {this.linkstate[id]=""}
+		else {this.linkstate[id]="addparent"}
 	},
 	addchild: function(id) {
 		if (this.children.indexOf(id) == -1) {this.children.push(id)};
-		if (this.linkstate[id]=="removed") {this.linkstate[id]=""}
-		else {this.linkstate[id]="changed"}
+		if (this.linkstate[id]=="removechild") {this.linkstate[id]=""}
+		else {this.linkstate[id]="addchild"}
 	},
 	removeparent: function(parentid) {
 		if (this.parents.indexOf(parentid) == -1) return	
-		//if (this.addp.indexOf(parentid) > -1) {
-		//	this.addp.splice(this.addp.indexOf(parentid),1)
-		//} else {
-		//	this.removedp.push(parentid);
-		//}
-		//this.parents.splice(this.parents.indexOf(parentid),1);
-		this.linkstate[parentid]="removed";
+		this.linkstate[parentid]="removeparent";
 	},
 	removechild: function(childid) {
 		if (this.children.indexOf(childid) == -1) return	
-		this.linkstate[childid]="removed";
+		this.linkstate[childid]="removechild";
 	},
 	
 	nullchild: function(precid) {
@@ -251,7 +242,6 @@ relationshipcontrol.prototype = {
 	},
 	
 	nullparent: function(precid) {
-		console.log("nullparent");
 		if (this.parents.indexOf(precid) > -1) {this.parents.splice(this.parents.indexOf(precid),1)}
 		this.linkstate[precid]="";
 	},
@@ -273,19 +263,71 @@ relationshipcontrol.prototype = {
 	save_links: function() {
 	
 		var self=this;
-		var add=[];
-		var remove=[];
+		var actions={};
 		var all=this.parents.concat(this.children);
 		for (var i=0;i<all.length;i++) {
-			if (this.linkstate[all[i]]=="changed") {add.push(all[i])}
-			if (this.linkstate[all[i]]=="removed") {remove.push(all[i])}
+			var state=this.linkstate[all[i]];
+			if (actions[state]==null) {actions[state]=[]};
+			actions[state].push(all[i]);
 		}
 	
-		console.log("destroy links");
-		console.log(remove);
-		console.log("create links");
-		console.log(add);
+		//console.log(actions);
+		this.rpcqueue = 0;
 		
+		if (actions["removeparent"]!=null) {
+			for (var i=0;i<actions["removeparent"].length;i++) {
+				this.rpc("pcunlink",[actions["removeparent"][i],this.recid]);
+			}
+		}
+
+
+		if (actions["removechild"]!=null) {
+			for (var i=0;i<actions["removechild"].length;i++) {
+				this.rpc("pcunlink",[this.recid, actions["removechild"][i]]);				
+			}
+		}
+		
+		if (actions["addparent"]!=null) {
+			for (var i=0;i<actions["addparent"].length;i++) {
+				this.rpc("pclink",[actions["addparent"][i], this.recid]);
+			}
+		}
+		
+		if (actions["addchild"]!=null) {
+			for (var i=0;i<actions["addchild"].length;i++) {
+				this.rpc("pclink",[this.recid, actions["addchild"][i]]);				
+			}
+		}						
+		
+	},
+	
+	rpc: function(method, args) {
+		this.rpcqueue++;
+		var self=this;
+		$.jsonRPC(method,[args[0], args[1], ctxid, "record"], function(result) {
+			self.checkqueue();
+		});					
+		
+	},
+	
+	checkqueue: function() {
+		console.log(this.rpcqueue);
+		this.rpcqueue--;
+		if (this.rpcqueue==0) {
+			this.postnotify("Relationships Saved");
+		}
+	},
+	
+	postnotify: function(message) {
+		var addr=window.location.pathname;
+		var f=$("<form>")
+		f.attr("action",addr);
+		f.attr("method","POST");
+		var fin=$('<input type="hidden" name="notify_json" value="" />');
+		fin.val($.toJSON([message]));
+		f.append(fin);
+		$(document.body).append(f);
+		f.submit();		
 	}
 	
 }

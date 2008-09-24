@@ -7,7 +7,7 @@ g = emen2.globalns.GlobalNamespace('')
 
 # This is the main server program for EMEN2
 
-from twisted.internet import reactor
+from twisted.internet import reactor, ssl
 from twisted.web import static, server
 
 from emen2 import ts
@@ -82,6 +82,7 @@ if CONSOLE:
 # Start server
 #############################
 reactor.listenTCP(g.EMEN2PORT, server.Site(root))
+#reactor.listenSSL(8081, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
 reactor.suggestThreadPoolSize(4)
 reactor.run()
 

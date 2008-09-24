@@ -144,14 +144,18 @@ function getrecord(recid) {
 //////////////////////////////////////////
 
 
-function notify(msg,nofade) {
+function notify(msg,fade) {
 	//$("#alert").empty();
 	var msg=$('<li>'+msg+'</li>');
 	msg.click(function(){$(this).fadeOut()});
 	$("#alert").append(msg).fadeIn();
-	if (!nofade) {
+	if (!fade) {
 		setTimeout(function(){msg.fadeOut()},3000)
 	}
+	if (fade > 0) {
+		setTimeout(function(){msg.fadeOut()},fade*1000)
+	}
+	
 }
 
 
@@ -172,6 +176,12 @@ function notify_post(uri,msgs) {
 //////////////////////////////////////////
 
 
+
+
+
+/////////////////////////////////////////
+
+
 function record_action_delete(drecid) {
 	var test=confirm("Are you sure you want to delete this record?");
 	if (test) {
@@ -186,10 +196,33 @@ function record_action_delete(drecid) {
 }
 
 function record_upload_show() {
-		$("#page_comments_upload").empty();
-		$("#page_comments_upload").append(
+	var a=$("#page_comments_upload")
+	a.empty();
+	a.append(' \
+		<div> \
+		<form action="/upload/'+recid+'" enctype="multipart/form-data" method="POST"> \
+		<p><input name="filedata" type="file" /></p> \
+		<p><input type="submit" value="Upload file" /><input type="hidden" name="redirect" value="1" /> \
+		</p> \
+		</form> \
+		</div>');
+	switchin('comments','upload');
+
+/*
+	<div>
+	test
+			<form action="/upload/${rec.recid}" enctype="multipart/form-data" method="post">
+			<p><input name="filedata" type="file" /></p>
+			<p><input type="submit" value="Upload file" /></p>
+			
+		</form>	
+	</div>
+	*/
+			
+/*		$("#page_comments_upload").append(
 		'<embed width="580px" height="245px" name="plugin" src="http://localhost:8080/flash/test.swf" type="application/x-shockwave-flash" flashvars="uploaduri=%2Fupload%2F'+recid+'%3Fctxid%3D'+ctxid+'" />');
 		switchin('comments','upload');
+*/
 }
 
 
@@ -292,7 +325,8 @@ function commit_putrecords(self, records, cb) {
 //			notify("Changes saved");
  		},
 		function(xhr){
-			$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
+			//$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
+			notify("Error: "+xhr.responseText);
 			self.savebutton.val("Retry Save");
 		}
 	);	
@@ -314,7 +348,8 @@ function commit_newrecord(self, values,parents,cb,self) {
 			cb(json);
 		},
 		function(xhr){
-			$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");
+			//$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");
+			notify("Error: "+this.param+", "+xhr.responseText);
 			self.savebutton.val("Retry Commit");		
 		}
 	);

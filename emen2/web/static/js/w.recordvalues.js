@@ -144,9 +144,10 @@ multiwidget.prototype = {
 
 		});
 		
-		if (allcount==0) {
-			//console.log("no changes made..");
+		if (allcount==0) changed[NaN]={};
+		if (allcount==0 && self.newrecord==0) {
 			notify("No changes made");
+			return
 		} else {
 			//console.log("commit callback");
 			this.savebutton.val("Saving...");
@@ -401,7 +402,8 @@ widget.prototype = {
 			function(xhr){
 				//ole.log("error, "+xhr.responseText);
 				//editelem_revert(elem,key);
-				$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
+				//$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
+				notify("Error: "+this.param+","+xhr.responseText);
 			}
 		);		
 	}	

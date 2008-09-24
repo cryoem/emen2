@@ -37,3 +37,7 @@ $.fn.skeleton = function(opts) {
 return skeleton;
 
 })(jQuery); // End localisation of the $ function
+
+
+
+

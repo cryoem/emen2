@@ -50,7 +50,12 @@ class PublicView(Resource):
 				res.append(args[key][0])
 				if len(res) == 1: setitem(name, res)
 			elif val == 'json' and name is not '':
-				value = self.__parse_jsonargs(args[key][0])
+				#value = self.__parse_jsonargs(args[key][0])
+				try:
+					value=demjson.decode(args[key][0])
+				except:
+					print "error decoding json: %s, %s"%(key, args[key][0])
+					value=""
 				if name == 'args': sdict = value
 				else: result[name] = value
 			else:
@@ -64,8 +69,7 @@ class PublicView(Resource):
 		ret={}
 		try:
 			z=demjson.decode(content)
-			for key in set(z.keys()) - set(["db","host","user","ctxid", 
-										    "username", "pw"]):
+			for key in set(z.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
 				ret[str(key)]=z[key]
 		except: pass	  
 		return ret
@@ -124,12 +128,15 @@ class PublicView(Resource):
 		#print "AUTH: GET CTXID COOKIE: %s"%ctxid
 		## if the user requested to be logged in as a particular user
 		## get the username and the password
+		#print "cookie ctxid: %s"%ctxid
 		username = args.get('username', [''])[0]
 		pw = request.args.get('pw', [''])[0]
 		## check credentials
 		## if username is not associated with the ctxid passed, log user in
 		authen.authenticate(username, pw, ctxid)
 		ctxid, un = authen.get_auth_info()
+		#print "==authen.get_auth_info=="
+		#print ctxid,un
 		if username and un != username:
 			target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
 		else:
@@ -271,11 +278,13 @@ class PublicView(Resource):
 					Database.exceptions.SessionError), e:
 				request.setResponseCode(401)
 				args = {'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
-						'msg':quote( str.join('<br />', [str(failure.value)]) ),
+						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),
 						'db': ts.db,
 						'ctxid': ctxid,
 						'host': request.host
 					   }
+				#data = "Permission Denied"
+				print args
 				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 	
 			except Exception, e:

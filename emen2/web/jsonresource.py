@@ -24,7 +24,7 @@ class JSONResource(Resource):
 
 	def _ebRender(self, result, request):
 		print result
-		result=unicode(result)
+		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(500)

@@ -1,3 +1,93 @@
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+
+loginwidget = (function($) { // Localise the $ function
+
+function loginwidget(elem, opts) {
+  if (typeof(opts) != "object") opts = {};
+  $.extend(this, loginwidget.DEFAULT_OPTS, opts);
+  this.elem = $(elem);  
+  this.init();
+};
+
+loginwidget.DEFAULT_OPTS = {
+	buildform:0,
+	callback:null
+};
+
+loginwidget.prototype = {
+	
+	init: function() {
+		this.build();
+	},
+	
+  build: function() {
+		var self=this;
+
+		if (this.buildform) {
+			console.log("build");
+			this.f = $('<form name="login" action="/db/login" method="POST">');
+			this.username = $('<input name="username" type="text" />');
+			this.pw = $('<input name="pw" type="password" />');
+			this.submit = $('<input type="submit" value="Login" />');
+			this.f.append(this.username, this.pw, this.submit);
+			this.elem.append(this.f);
+		} else {
+			console.log("no build");
+			this.f = this.elem.children("form");
+			this.username = this.elem.find("input:text");
+			this.pw = this.elem.find("input:password");
+			this.submit = this.elem.find("input:button");
+			console.log(this.f.attr("action"));
+		}
+		
+		this.msg = $("<div />");
+		this.elem.prepend(this.msg);
+		
+		this.submit.click(function(){self.login();return false});
+		
+	},
+	
+	login: function() {
+		var self=this;
+		var username=this.username.val();
+		var pw=this.pw.val();
+		if (username==""|| pw==""){self.fail("Username or password empty"); return false}
+		
+		$.jsonRPC("login",[username,pw],
+			function(){self.success()},
+			function(e){self.fail(e.responseText)}
+		);
+
+	},
+		
+	success: function() {
+		console.log("Success!");
+		//return false
+		this.f.submit();
+	},
+	
+	fail: function(msg) {
+		this.msg.html(msg);
+	}
+		
+	
+}
+
+$.fn.loginwidget = function(opts) {
+    return this.each(function() {
+		new loginwidget(this, opts);
+	});
+};
+
+return loginwidget;
+
+})(jQuery); // End localisation of the $ function
+
+
 // record metadata edit/view controls
 
 /////////////////////////////////////////////
@@ -518,8 +608,8 @@ commentswidget.prototype = {
 		var self=this;
 		this.controls=$('<div></div>');
 		this.commit=$('<input class="editbutton" type="submit" value="Add Comment" />').click(function(e) {e.stopPropagation();self.save()});
-		this.clear=$('<input class="editbutton" type="button" value="Clear" />').click(function(e) {e.stopPropagation();self.revert()});
-		this.controls.append(this.commit,this.clear);
+		//this.clear=$('<input class="editbutton" type="button" value="Clear" />').click(function(e) {e.stopPropagation();self.revert()});
+		this.controls.append(this.commit);
 
 		this.widget.append(this.edit, this.controls);
 		this.elem_body.append(this.widget);
