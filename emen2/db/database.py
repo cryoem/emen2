@@ -1856,43 +1856,43 @@ parentheses not supported yet. Upon failure returns a tuple:
 		#@write,admin
 		@publicmethod
 		def approveuser(self, username, ctxid, host=None):
-				"""Only an administrator can do this, and the user must be in the queue for approval"""
-				#self = db
+			"""Only an administrator can do this, and the user must be in the queue for approval"""
+			#self = db
 
-				username = str(username)
+			username = str(username)
 
-				ctx = self.__getcontext(ctxid, host)
-				#if not -1 in ctx.groups :
-				if not self.checkadmin(ctx):
-						raise SecurityError, "Only administrators can approve new users"
-								
-				if not username in self.__newuserqueue :
-						raise KeyError, "User %s is not pending approval" % username
-						
-				if username in self.__users :
-						self.__newuserqueue[username] = None
-						raise KeyError, "User %s already exists, deleted pending record" % username
+			ctx = self.__getcontext(ctxid, host)
+			#if not -1 in ctx.groups :
+			if not self.checkadmin(ctx):
+				raise SecurityError, "Only administrators can approve new users"
+							
+			if not username in self.__newuserqueue :
+				raise KeyError, "User %s is not pending approval" % username
+					
+			if username in self.__users :
+				self.__newuserqueue[username] = None
+				raise KeyError, "User %s already exists, deleted pending record" % username
 
-				# ian: create record for user.
-				user = self.__newuserqueue[username]
+			# ian: create record for user.
+			user = self.__newuserqueue[username]
 
-				if user.record == None:
-					userrec = self.newrecord("person", ctxid=ctxid, host=host, init=1)
-					print user
-					userrec["username"] = username
-					userrec["name_first"] = user.name[0]
-					userrec["name_middle"] = user.name[1]
-					userrec["name_last"] = user.name[2]
-					userrec["email"] = user.email
-					recid = self.putrecord(userrec, ctxid)
-					user.record = recid
-				user.validate()
+			if user.record == None:
+				userrec = self.newrecord("person", ctxid=ctxid, host=host, init=1)
+				print user
+				userrec["username"] = username
+				userrec["name_first"] = user.name[0]
+				userrec["name_middle"] = user.name[1]
+				userrec["name_last"] = user.name[2]
+				userrec["email"] = user.email
+				recid = self.putrecord(userrec, ctxid)
+				user.record = recid
+			user.validate()
 
-				txn = self.newtxn()
-				self.__users.set(username, user, txn)
-				self.__newuserqueue.set(username, None, txn)
-				if txn: txn.commit()
-				elif not self.__importmode : DB_syncall()
+			txn = self.newtxn()
+			self.__users.set(username, user, txn)
+			self.__newuserqueue.set(username, None, txn)
+			if txn: txn.commit()
+			elif not self.__importmode : DB_syncall()
 
 
 		@publicmethod
@@ -1902,7 +1902,21 @@ parentheses not supported yet. Upon failure returns a tuple:
 				return self.__newuserqueue.keys()
 
 
-
+		def getnewuser(self, username, ctxid, host=None):
+			"Allows an administrator to get the User object of a user awaiting approval"
+			username = str(username)
+			result = None
+			if self.checkadmin(self.__getcontext(ctxid, host), host):
+				if username in self.__newuserqueue:
+					result = self.__newuserqueue[username]
+				else:
+					raise KeyError, "User %s is not pending approval" % username
+			else:
+				raise SecurityError, "Only administrators can get new users"
+			return result
+		
+		
+		
 		#@write,admin
 		@publicmethod
 		def rejectuser(self, username, ctxid, host=None):
@@ -2117,42 +2131,42 @@ parentheses not supported yet. Upon failure returns a tuple:
 								
 		@publicmethod						
 		def getuser(self, username, ctxid, host=None):
-				"""retrieves a user's information. Information may be limited to name and id if the user
-				requested privacy. Administrators will get the full record"""
-				#self = db
-				
-				if not isinstance(username, int):
-					username = str(username)
-				
-				ctx = self.__getcontext(ctxid, host)
-				try:
-					ret = self.__users[username]
-				except:
-					raise KeyError, "No such user: %s" % (username)
-				
-				# The user him/herself or administrator can get all info
-				#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
-				if self.checkreadadmin(ctx) or ctx.user == username: return ret
+			"""retrieves a user's information. Information may be limited to name and id if the user
+			requested privacy. Administrators will get the full record"""
+			#self = db
+			
+			if not isinstance(username, int):
+				username = str(username)
+			
+			ctx = self.__getcontext(ctxid, host)
+			try:
+				ret = self.__users[username]
+			except:
+				raise KeyError, "No such user: %s" % (username)
+			
+			# The user him/herself or administrator can get all info
+			#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
+			if self.checkreadadmin(ctx) or ctx.user == username: return ret
 
-				ret.password = None				 # the hashed password has limited access
-				
-				# if the user has requested privacy, we return only basic info
-				if (ret.privacy == 1 and ctx.user == None) or ret.privacy >= 2 :
-						ret2 = User()
-						ret2.username = ret.username
-						ret2.privacy = ret.privacy
-						# ian
-						ret2.name = ret.name
-						return ret2
+			ret.password = None				 # the hashed password has limited access
+			
+			# if the user has requested privacy, we return only basic info
+			if (ret.privacy == 1 and ctx.user == None) or ret.privacy >= 2 :
+					ret2 = User()
+					ret2.username = ret.username
+					ret2.privacy = ret.privacy
+					# ian
+					ret2.name = ret.name
+					return ret2
 
-				
-				# Anonymous users cannot use this to extract email addresses
-				if ctx.user == None : 
-						ret.groups = None
-						ret.email = None
-						#ret.altemail=None
-				
-				return ret
+			
+			# Anonymous users cannot use this to extract email addresses
+			if ctx.user == None : 
+					ret.groups = None
+					ret.email = None
+					#ret.altemail=None
+			
+			return ret
 				
 				
 		@publicmethod		

@@ -1,5 +1,5 @@
 #!/usr/bin/expect -f
-spawn /usr/bin/python -i /home/emen2/emen2/emen2config.py
+spawn /usr/bin/python
 expect "> "
 send "import sys\n"
 expect "> "
