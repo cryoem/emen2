@@ -1577,7 +1577,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 					for k in st[x]:
 						z=rel(k) or []
 						st[x+1] |= set(z)
-						std[k] = z
+						std[k] = set(z)
 
 				if keytype=="record":
 					if not indc:
@@ -1587,7 +1587,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 					b=set(std.keys())
 					
 				if len(b) == 0: return set()
-				return set(reduce(operator.add, [std[k] for k in b]))
+				#print std
+				#print b
+				return reduce(operator.or_, [std[k] for k in b])
+				#return set(reduce(operator.add, [std[k] for k in b]))
 
 					
 				
