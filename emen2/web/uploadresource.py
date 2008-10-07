@@ -76,66 +76,58 @@ class UploadResource(Resource):
 	isLeaf = True
 
 
-	def render(self,request):
+	def render_POST(self, request):
 
+		# ian: ugly hack around broken twisted.web post form
+		if not request.args.has_key("filename"):
+			request.content.seek(0)
+			content=request.content.read()
+			b=re.compile("filename=\"(.+)\"")		
+			filename=b.findall(content[:5000])[0]
+		else:
+			filename=request.args["Filename"][0]
+			
+		return self.render_PUT(request, filename=filename, filedata=request.args["filedata"][0])
+		
+			
+	def render_PUT(self, request, filename=None, filedata=None):
+		
 		host = request.getClientIP()
 		args = request.args
 		request.postpath = filter(bool, request.postpath)		
-		ctxid = request.getCookie("ctxid") or args.get('ctxid',[None])[0]
-		print "cookie"
-		print ctxid
-		
+		ctxid = request.getCookie("ctxid") or args.get('ctxid',[None])[0]		
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
-		
 		authen = auth.Authenticator(db=ts.db, host=host)
 		authen.authenticate(username, pw, ctxid)
 		ctxid, un = authen.get_auth_info()
 		
 		print "\n\n=== upload request === %s :: %s"%(request.postpath, ctxid)
 		
-		
-		# ian: ugly hack around broken twisted.web post form
-		if not args.has_key("filename"):
-			request.content.seek(0)
-			data=request.content.read()
-			b=re.compile("filename=\"(.+)\"")		
-			args["Filename"]=b.findall(data)
-		
-		
-		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid=ctxid, host=host)		
+		recid = int(request.postpath[0])
+		param = str(args.get("param",["file_binary"])[0]).strip().lower()		
+		redirect = args.get("redirect",[0])[0]
+
+		d = threads.deferToThread(self.RenderWorker, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)		
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET
 		
 		
-	def RenderWorker(self,path,args,ctxid=None,host=None,db=None):
+	def RenderWorker(self, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
 
-		print args
-		
-		try:
-			filename=args["Filename"][0]
-		except:
-			filename="(Error with filename during upload)"
-		try:
-			filedata=args["Filedata"][0]
-		except:
-			filedata=args["filedata"][0]
-		
-		recid=int(path[0])
 		rec=db.getrecord(recid,ctxid)
 
 		if not rec.commentable():
 			raise SecurityError,"Cannot add file to record %s"%recid
 		
-
-		param = str(args.get("param",["file_binary"])[0]).strip().lower()
 		pd=db.getparamdef(param)
 
 		###################
 		# New file
 		print "Get binary..."
 		# fixme: use basename and splitext
+		print filename
 		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),filename.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
 
 		print "Writing file... %s"%a[1]
@@ -173,9 +165,8 @@ class UploadResource(Resource):
 			
 		db.putrecord(rec,ctxid)			
 			
-		if args.has_key("redirect"):
-			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s">"""%recid
+		if redirect:
+			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=/db/record/%s">"""%recid
 
 		return str(a[0])		
 
@@ -183,7 +174,7 @@ class UploadResource(Resource):
 	def _cbRender(self,result,request):
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
-		request.finish()
+		#request.finish()
 		
 
 	def _ebRender(self,failure,request):

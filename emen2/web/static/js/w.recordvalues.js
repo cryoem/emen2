@@ -237,7 +237,7 @@ widget.prototype = {
 
 		if (paramdefs[this.param]["vartype"]=="text") {
 
-			this.editw=$('<textarea class="value" cols="40" rows="10">'+this.value+'</textarea>');
+			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.value+'</textarea>');
 			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
 			
@@ -396,8 +396,10 @@ widget.prototype = {
 	 		function(json){
 				setvalue(recid,param,json);
 	 			//rec[this.param]=json;
-	 			record_view_reload(recid,switchedin["recordview"]);
-				notify("Changes saved");
+	 			//record_view_reload(recid,switchedin["recordview"]);
+				// ian: just reload the page instead of trying to update everything.. for now..
+				notify_post(window.location.pathname, ["Changes Saved"]);
+				//notify("Changes saved");
 	 		},
 			function(xhr){
 				//ole.log("error, "+xhr.responseText);

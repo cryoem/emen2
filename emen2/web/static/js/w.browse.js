@@ -314,7 +314,7 @@ relationshipcontrol.prototype = {
 		console.log(this.rpcqueue);
 		this.rpcqueue--;
 		if (this.rpcqueue==0) {
-			this.postnotify("Relationships Saved");
+			notify_post(window.location.pathname, ["Relationships Saved"]);
 		}
 	},
 	

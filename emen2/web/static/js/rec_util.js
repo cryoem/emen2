@@ -187,98 +187,101 @@ function record_action_delete(drecid) {
 	if (test) {
 		$.jsonRPC("deleterecord",[drecid,ctxid], function() {
 			//$.post("/db/record/"+recid,{"notify_0":"This record has been marked for deletion and removed from hierarchy"});
-			//notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
-			window.location.reload();
+			notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
+			//window.location.reload();
 		}, function() {
 			notify("Error deleting record!");
 		});
 	}
 }
 
-function record_upload_show() {
-	var a=$("#page_comments_upload")
-	a.empty();
-	a.append(' \
-		<div> \
-		<form action="/upload/'+recid+'" enctype="multipart/form-data" method="POST"> \
-		<p><input name="filedata" type="file" /></p> \
-		<p><input type="submit" value="Upload file" /><input type="hidden" name="redirect" value="1" /> \
-		</p> \
-		</form> \
-		</div>');
-	switchin('comments','upload');
 
-/*
-	<div>
-	test
-			<form action="/upload/${rec.recid}" enctype="multipart/form-data" method="post">
-			<p><input name="filedata" type="file" /></p>
-			<p><input type="submit" value="Upload file" /></p>
-			
-		</form>	
-	</div>
-	*/
-			
-/*		$("#page_comments_upload").append(
-		'<embed width="580px" height="245px" name="plugin" src="http://localhost:8080/flash/test.swf" type="application/x-shockwave-flash" flashvars="uploaduri=%2Fupload%2F'+recid+'%3Fctxid%3D'+ctxid+'" />');
-		switchin('comments','upload');
-*/
+
+
+function toggle_record_menu(elem) {
+	
+	var elem=$(elem);
+	var state=elem.data("active");
+	if (state == null || state == 0) {state=1} else {state=0}
+
+	// reset state
+	$(".record_editbar_hidden").hide();
+	$(".record_editbar_item").removeClass("record_editbar_no_border_bottom");	
+	$(".record_editbar_item").addClass("record_editbar_border_bottom");	
+	$(".record_editbar_item").children("span").data("active",0);
+	elem.data("active",state);
+	
+	//elem.data("active",elem.data("active") ? 0 : 1);
+
+	if (state) {
+		console.log("show");
+		elem.parent().addClass("record_editbar_no_border_bottom");	
+		elem.parent().removeClass("record_editbar_border_bottom");	
+		elem.siblings(".record_editbar_hidden").show();
+	}
+
+}
+
+function record_permissions_toggle(elem) {
+	toggle_record_menu(elem);
+	var target=$(elem).siblings(".record_editbar_hidden");				
+
+	if (permissionscontrol==null) {
+	
+		target.empty();
+	
+		$.jsonRPC("getuserdisplayname",[recid,ctxid], function(result) {
+			$.each(result, function(k,v) {
+				setdisplayname(k,v);
+			});
+			permissionscontrol = new permissions(target, {
+				'list':getvalue(recid,"permissions"),
+				}
+			);
+					
+		});
+	}
+
+	return false
+
+}
+
+function record_form_newrecord_toggle(elem) {
+	toggle_record_menu(elem);
 }
 
 
-function record_relationships_show() {
+function record_upload_toggle(elem) {
+	toggle_record_menu(elem);
+}
+
+
+function record_relationships_toggle(elem) {
+	toggle_record_menu(elem);
+	var target=$(elem).siblings(".record_editbar_hidden");
+	
 	if (relationships==null) {
 		
-		$("#page_comments_relationships").empty();
+		target.empty();
 		
 		$.jsonRPC("getrecordrecname",[parents.concat(children).concat([recid]), ctxid], function(result) {
 			$.each(result, function(k,v) {
 					setrecname(k,v);
 					//recnames[v[0]]=v[1];
 			});
-			relationships = new relationshipcontrol($("#page_comments_relationships"), {
+			relationships = new relationshipcontrol(target, {
 				'parents':parents,
 				'children':children,
 				'recid':recid
 			});
 			
-			switchin('comments','relationships');
-
 		});
 
-	} else {
-
-		switchin('comments','relationships');
-		
-	}
+	} 
 }
 
 
-function record_permissions_show() {
-	// setup permissions controls
-	//console.log(permissionscontrol);
-	if (permissionscontrol==null) {
-	
-		$("#page_comments_permissions").empty();
-	
-		$.jsonRPC("getuserdisplayname",[recid,ctxid], function(result) {
-			$.each(result, function(k,v) {
-				setdisplayname(k,v);
-			});
-			permissionscontrol = new permissions($("#page_comments_permissions"), {
-				'list':getvalue(recid,"permissions"),
-				}
-			);
-			
-			switchin('comments','permissions');		
-		
-		});
-	
-	} else {
-		switchin('comments','permissions');		
-	}
-	
-}
+
 
 function record_view_makeeditable(recid,viewtype) {
 	$('#page_recordview_'+viewtype+' .editable').bind("click",function(){
@@ -309,7 +312,8 @@ function newrecord_getoptionsandcommit(self, values) {
 		values,
 		parents,
 		function(recid){
-			window.location='/db/record/'+recid
+			//window.location='/db/record/'+recid
+			notify_post(window.location.pathname,["Changes Saved"]);
 		}
 	);
 	
@@ -367,7 +371,10 @@ function record_pageedit(elem, key) {
 	//console.log("editing "+key);
 	new multiwidget(
 		elem, {
-			'commitcallback':function(self, values){commit_putrecords(self, values,function(){window.location.reload()})},
+			'commitcallback':function(self, values){commit_putrecords(self, values,function(){
+				notify_post(window.location.pathname, ["Changes Saved"]);
+				//window.location.reload()
+				})},
 			'now':1,
 			'ext_edit_button':1,
 			'root': '#page_recordview_'+key
@@ -385,8 +392,11 @@ function record_reloadview(view) {
 }
 
 
-function record_form_newrecord(elem) {
-	t=document.getElementById("record_editbar_addchild_select");
-	val=t.value;
-	window.location='/db/newrecord/'+recid+'/'+val+'/';
-}
+
+
+
+
+
+
+
+

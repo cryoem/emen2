@@ -8,6 +8,7 @@
 
 .relationshipbrowser_container {
 	position:fixed;
+	z-index:200;
 	top:0px;
 	left:0px;
 	width:100%;
@@ -104,7 +105,7 @@ td .editable:hover {
 	margin-bottom:10px;
 }
 
-.record_editbar div {
+.record_editbar_item {
 	float:left;
 	height:20px;	
 	font-size:10pt;
@@ -113,14 +114,15 @@ td .editable:hover {
 	color: #555;
 	padding:4px;
 	margin:0px;
-	border-bottom:solid 1px #CCC;
+	/* border-bottom:solid 1px #CCC; */
 	border-right:solid 1px #CCC;
 	/* border:solid 1px #CCC; */
+	z-index:6;
 }
-.record_editbar div:last-child {
+ .record_editbar div:last-child {
 	border-right:none;
-}
-.record_editbar div img {
+} 
+.record_editbar_img {
 	vertical-align:middle;
 	margin:0px;
 }
@@ -128,6 +130,51 @@ td .editable:hover {
 	padding:0px;
 	height:18px;
 	vertical-align:middle;
+}
+.record_editbar_border_bottom {
+	border-top:none;
+	border-bottom:solid #CCC 1px;
+}
+.record_editbar_no_border_bottom {
+	border-top:solid #CCC 1px;
+	border-bottom:none;
+}
+.record_editbar_hidden {
+	padding:10px;
+	display:none;
+}
+.record_editbar_hidden {
+	display:none;
+	position:absolute;
+	width:200px;
+	height:300px;
+	overflow:auto;
+	background:white;
+	top:44px;
+	margin-left:-5px;
+	border:solid 1px #ccc;
+	border-top:none;
+	z-index:5;
+	padding:10px;
+}
+#record_editbar_menu_relationships {
+	left:100px;
+	width:800px;
+	height:600px;
+}
+#record_editbar_menu_upload {
+	width:300px;
+	height:100px;
+}
+#record_editbar_menu_permissions {
+	left:100px;
+	width:800px;
+	height:600px;
+}
+#record_editbar_menu_newrecord ul {
+	list-style:none;
+	margin:0px;
+	padding:0px;
 }
 
 .permissions_savearea {
@@ -374,6 +421,7 @@ a img {
 /* autocomplete */
 
 ul.jq-ui-autocomplete {
+	z-index:100;
 	max-height:400px;
     position: absolute;
     overflow: auto;
@@ -413,8 +461,9 @@ ul.jq-ui-autocomplete li.active {
 	border-bottom:dotted #783766 1px;
 }
 .editable:hover {
-	background:#783766;
-	color:white;
+	/*background:#783766;
+	color:white; */
+	border-bottom:dotted 1px #783766;
 }
 
 .show {
@@ -525,7 +574,7 @@ html,body {
 #alert {	
 	position:fixed;
 	top:0px;
-	z-index:1000;
+	z-index:10;
 	margin:0px;
 	margin-top:30px;
 	list-style:none;
@@ -537,7 +586,7 @@ html,body {
 	padding:5px;
 	background:white;
 	margin:0px;
-	margin-left:20px;
+	margin-left:35px;
 	margin-bottom:10px;
 	border:solid 4px #FF8135;
 }
@@ -888,6 +937,9 @@ a,.jslink {
 	cursor:pointer;
 	text-decoration:none;
 	color:#202060;
+}
+.jslink img {
+	vertical-align: middle;
 }
 .jslink_box {
 	padding:2px 6px;

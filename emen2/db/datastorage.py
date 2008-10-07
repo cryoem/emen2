@@ -858,6 +858,9 @@ class Record(DictMixin):
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 		
+		
+	def json_equivalent(self):
+		return self.items_dict()
 
 	#################################		
 	# mapping methods; 

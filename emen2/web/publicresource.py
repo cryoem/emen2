@@ -44,18 +44,20 @@ class PublicView(Resource):
 		for key in set(args.keys()) - set(["db","host","user","ctxid", 
 										   "username", "pw"]):
 			name, _, val = key.rpartition('_')
-			sdict = {}   
+			sdict = {} 
+			key=str(key)
+			print "process key %s"%key
 			if val.isdigit():
 				res = result.get(name, [])
 				res.append(args[key][0])
 				if len(res) == 1: setitem(name, res)
 			elif val == 'json' and name is not '':
-				#value = self.__parse_jsonargs(args[key][0])
-				try:
-					value=demjson.decode(args[key][0])
-				except:
-					print "error decoding json: %s, %s"%(key, args[key][0])
-					value=""
+				value = self.__parse_jsonargs(args[key][0])
+				#try:
+				#	value=demjson.decode(args[key][0])
+				#except:
+				#	print "error decoding json: %s, %s"%(key, args[key][0])
+				#	value=""
 				if name == 'args': sdict = value
 				else: result[name] = value
 			else:
@@ -207,6 +209,7 @@ class PublicView(Resource):
 				callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
 				return str(callback)
 			else:
+				print tmp
 				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **tmp)
 				
 			def batch(*args, **kwargs):

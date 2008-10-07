@@ -1,7 +1,7 @@
 from twisted.web import server, xmlrpc #, resource
 from twisted.internet import threads #, defer, reactor
 from emen2.emen2config import *
-from emen2.Database import database
+import emen2.Database
 from twisted.web.resource import Resource
 
 import xmlrpclib
@@ -12,7 +12,116 @@ Fault = xmlrpclib.Fault
 
 
 
+
 class XMLRPCResource(xmlrpc.XMLRPC):
+	isLeaf = True
+	
+	def _cbRender(self, result, request):
+		request.setHeader("content-length", len(result))
+		request.setResponseCode(200)
+		request.write(result)
+		request.finish()		
+		return
+
+	def _ebRender(self, result, request):
+		result=unicode(result.value)
+		result=result.encode('utf-8')
+		request.setHeader("content-length", len(result))
+		request.setResponseCode(500)
+		request.write(result)
+		request.finish()
+	
+	def finish_request(self, result, db, request):
+		db.close()
+		request.finish()
+		
+		
+	def getmethod(self, content):
+		args, method = xmlrpclib.loads(content)
+		return args, method
+
+
+	def render(self, request):
+		request.content.seek(0, 0)
+		content = request.content.read()
+		args, method = self.getmethod(content)
+		host = request.getClientIP()
+		kwargs={"host":host}
+
+		print "\n\n=== xmlrpc === %s \n %s \n %s"%(method, args, kwargs)
+
+
+		request.setHeader("content-type", "text/xml")
+		
+		d = threads.deferToThread(self.action, method, args, **kwargs)
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET 
+
+
+	def __enc(self, value):
+		if isinstance(value, (emen2.Database.Record, emen2.Database.RecordDef, emen2.Database.ParamDef, emen2.Database.User, emen2.Database.WorkFlow)):
+			return dict(value)
+
+		elif hasattr(value,"items"):
+			for k,v in value.items():
+				value[k]=self.__enc(v)
+			return value
+
+		elif hasattr(value,"__iter__"):
+			ret=[]
+			for i in value:
+				ret.append(self.__enc(i))
+			return ret
+			
+		return value		
+
+
+	def action(self, method, args, db=None, host=None):
+		print 'xmlrpc request'
+		method_ = db.publicmethods.get(method, None)
+		if method_ is not None:
+			result = method_(db, *args)
+		else:
+			raise NotImplementedError('remote method %s not implemented' % method)
+
+		allow_none = True
+
+		try:
+			print "result:"
+			#print result
+			print "encoding.."
+			result = self.__enc(result)
+			#print result
+			print "... to xmlrpc"
+			if not isinstance(result, tuple):
+				result = (result,)
+			result = xmlrpclib.dumps(result, methodresponse=1, allow_none=allow_none)
+		except Exception, inst:
+			print inst
+
+		#if isinstance(result,dict):
+		#	d2={}
+		#	for k,v in result.items():
+		#		d2[str(k)]=v
+		#	result=d2
+
+		#if not isinstance(result, xmlrpc.Fault):
+		#	result = (result,)
+
+		#try:
+		#except:
+		#	f = xmlrpc.Fault(self.FAILURE, "can't serialize output")
+		#	result = xmlrpclib.dumps(f, methodresponse=1)
+		#	print "fault: "
+		#	print result
+			
+		return result.encode("utf-8", 'replace')
+
+
+
+
+class XMLRPCResourceOld(xmlrpc.XMLRPC):
 	"""replaces the default version that doesn't allow None"""
 	def _cbRender(self, result, request, t0=None):
 		allow_none = True

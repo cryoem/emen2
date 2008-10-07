@@ -174,8 +174,8 @@ permissions.prototype = {
 		////////////////////////////////
 		// Add user controls
 		
-		var user_outer=$('<div class="user_outer"></div>');
-		var useradd=$('<div class="user_add">Assign Permissions:</div>');
+		var user_outer=$('<div class="user_outer clearfix"></div>');
+		var useradd=$('<div class="user_add clearfix">Assign Permissions:</div>');
 		var useradd_user=$('<div/>');
 		var useradd_group=$('<div/>');
 
@@ -617,7 +617,7 @@ commentswidget.prototype = {
 		var cr=this.comments.reverse();
 
 		if (cr.length == 0) {
-			this.elem_body.append('<p>No Comments</p>');
+			//this.elem_body.append('<p>No Comments</p>');
 		}
 		
 		if (this.elem_title) {
@@ -652,7 +652,7 @@ commentswidget.prototype = {
 				setvalue(recid,"comments",json);
 				//rec["comments"]=json;
 	 			self.build();
-				notify("Changes saved");
+				notify("Comment Added");
 	 		},
 			function(xhr){
 				notify("Error Adding Comment");
