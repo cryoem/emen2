@@ -255,6 +255,7 @@ class PublicView(Resource):
 			print "::: time total: %s"%(time.time()-t)
 
 
+			print  headers["content-type"]
 			if headers["content-type"] in ["image/jpeg","image/png"]:
 				headers['content-length'] = len(result)
 				request.write(result)

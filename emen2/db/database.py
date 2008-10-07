@@ -1565,7 +1565,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				else:
 					raise Exception, "Unknown relationship mode"
 					
-				ret=rel(key) or []
+				ret=rel(key) or set()
 
 				if recurse == 0:
 					return set(ret)
@@ -1575,7 +1575,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				for x in xrange(recurse):
 					st.append(set())
 					for k in st[x]:
-						z=rel(k) or []
+						z=rel(k) or set()
 						st[x+1] |= set(z)
 						std[k] = set(z)
 
