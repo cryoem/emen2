@@ -259,7 +259,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				"""try to print something useful"""
 				return "Database %d records\n( %s )" % (int(self.__records[ - 1]), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
 		
-		def checkpassword(self, username, password):
+		def checkpassword(self, username, password, ctxid=None, host=None):
 				s = hashlib.sha1(password)
 				try:
 					user = self.__users[username]
@@ -270,13 +270,16 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 		#@write,all
 		@publicmethod
-		def login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE):
+		def login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctxid=None):
 				"""Logs a given user in to the database and returns a ctxid, which can then be used for
 				subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 				##self = db
 				ctx = None
 								
 				username = str(username)				
+
+
+				#print "LOGIN ATTEMPT: user = %s, host = %s"%(username, host)
 								
 				# anonymous user
 				if (username == "anonymous" or username == "") :
@@ -291,7 +294,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 						except TypeError:
 								raise AuthenticationError, AuthenticationError.__doc__
 						if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-						if (self.checkpassword(username, password)) : ctx = Context(None, self, username, user.groups, host, maxidle)
+						if (self.checkpassword(username, password, ctxid=ctxid, host=host)) : ctx = Context(None, self, username, user.groups, host, maxidle)
 						else:
 								self.LOG(0, "Invalid password: %s (%s)" % (username, host))
 								raise AuthenticationError, AuthenticationError.__doc__
@@ -351,8 +354,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if name == None or str(name) == "": raise ValueError, "BDO name may not be 'None'"
 				
 				# ian: check for permissions because actual operations are performed.
-				print 'ctxid: %s, host: %s' % (ctxid, host)
-				rec = self.getrecord(recid, ctxid, host=host)
+				#print 'ctxid: %s, host: %s' % (ctxid, host)
+				rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				if not rec.writable():
 						raise SecurityError, "Write permission needed on referenced record."
 				
@@ -504,7 +507,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				except:
 						raise KeyError, "Unknown identifier %s" % ident
 
-				if self.trygetrecord(recid, ctxid, host=host) : return (name, path + "/%05X" % bid, recid)
+				if self.trygetrecord(recid, ctxid=ctxid, host=host) : return (name, path + "/%05X" % bid, recid)
 
 				raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
@@ -635,7 +638,7 @@ parentheses grouping not supported yet"""
 				query = str(query)
 
 				tm0 = time.time()
-				query2 = self.querypreprocess(query, ctxid, host=host)
+				query2 = self.querypreprocess(query, ctxid=ctxid, host=host)
 				if isinstance(query2, tuple) : return query2				 # preprocessing returns a tuple on failure and a list on success
 #				 print query2
 				
@@ -654,9 +657,9 @@ parentheses grouping not supported yet"""
 				excludeset = set()
 				for n, i in enumerate(query2):
 						if isinstance(i, str) and i[0] == "@" and (query[n - 1] not in ("by", "group")):
-								byrecdef |= self.getindexbyrecorddef(i[1:], ctxid)
+								byrecdef |= self.getindexbyrecorddef(i[1:], ctxid=ctxid, host=host)
 						if isinstance(i, str) and i[0] == "!":
-								excludeset |= self.getindexbyrecorddef(i[1:], ctxid)
+								excludeset |= self.getindexbyrecorddef(i[1:], ctxid=ctxid, host=host)
 
 				# We go through the query word by word and perform each operation
 				byparamval = set()
@@ -671,8 +674,8 @@ parentheses grouping not supported yet"""
 								
 								# We make sure that any record containing either parameter is included
 								# in the results by default, and cache the values for later use in plotting
-								ibvx = self.getindexdictbyvalue(comops[1][1:], None, ctxid, host=host)
-								ibvy = self.getindexdictbyvalue(comops[0][1:], None, ctxid, host=host)
+								ibvx = self.getindexdictbyvalue(comops[1][1:], None, ctxid=ctxid, host=host)
+								ibvy = self.getindexdictbyvalue(comops[0][1:], None, ctxid=ctxid, host=host)
 								
 								if len(byparamval) > 0 : byparamval.intersection_update(ibvx.keys())
 								else: byparamval = set(ibvx.keys())
@@ -684,7 +687,7 @@ parentheses grouping not supported yet"""
 								n += 2
 								
 								# We make sure that any record containing the parameter is included
-								ibvh = self.getindexdictbyvalue(comops[0][1:], None, ctxid, host=host)
+								ibvh = self.getindexdictbyvalue(comops[0][1:], None, ctxid=ctxid, host=host)
 								if len(byparamval) > 0 : byparamval.intersection_update(ibvh.keys())
 								else: byparamval = set(ibvh.keys())
 								continue
@@ -717,8 +720,8 @@ parentheses grouping not supported yet"""
 								n += 1
 								continue
 						elif i[0] == "%" :
-								if len(byparamval) > 0 : byparamval &= self.getindexbyuser(i[1:], ctxid, host=host)
-								else: byparamval = self.getindexbyuser(i[1:], ctxid, host=host)
+								if len(byparamval) > 0 : byparamval &= self.getindexbyuser(i[1:], ctxid=ctxid, host=host)
+								else: byparamval = self.getindexbyuser(i[1:], ctxid=ctxid, host=host)
 						elif i[0] == "$" :
 								vrange = [None, None]
 								op = query2[n + 1]
@@ -735,8 +738,8 @@ parentheses grouping not supported yet"""
 										if not query2[n + 3] in (",", "and") : raise Exception, "between X and Y (%s)" % query2[n + 3]
 										vrange = [query2[n + 2], query2[n + 4]]
 										n += 4
-								if len(byparamval) > 0 : byparamval &= self.getindexbyvalue(i[1:], vrange, ctxid, host=host)
-								else: byparamval = self.getindexbyvalue(i[1:], vrange, ctxid, host=host)
+								if len(byparamval) > 0 : byparamval &= self.getindexbyvalue(i[1:], vrange, ctxid=ctxid, host=host)
+								else: byparamval = self.getindexbyvalue(i[1:], vrange, ctxid=ctxid, host=host)
 						elif i == "and" : pass
 						
 						else :
@@ -760,21 +763,21 @@ parentheses grouping not supported yet"""
 				if groupby:
 						dct = {}
 						if groupby[0] == '$':
-								gbi = self.getindexdictbyvalue(groupby[1:], None, ctxid, None)
+								gbi = self.getindexdictbyvalue(groupby[1:], None, None, ctxid=ctxid, host=host)
 								for i in byrecdef:
 										if gbi.has_key(i) :
 												try: dct[gbi[i]].append(i)
 												except: dct[gbi[i]] = [i]
 										else :
-												p = self.__getparentssafe(i, 'record', 4, ctxid)
+												p = self.__getparentssafe(i, 'record', 4, ctxid=ctxid, host=host)
 												for j in p:
 														if gbi.has_key(j) :
 																try: dct[gbi[j]].append(i)
 																except: dct[gbi[j]] = [i]
 						elif groupby[0] == "@":
-								alloftype = self.getindexbyrecorddef(groupby[1:], ctxid)
+								alloftype = self.getindexbyrecorddef(groupby[1:], ctxid=ctxid, host=host)
 								for i in byrecdef:
-										p = self.__getparentssafe(i, 'record', 10, ctxid)
+										p = self.__getparentssafe(i, 'record', 10, ctxid=ctxid, host=host)
 										p &= alloftype
 										for j in p:
 												try: dct[j].append(i)
@@ -785,15 +788,15 @@ parentheses grouping not supported yet"""
 #										 r=self.getrecord(i,ctxid)
 #										 try: dct[r.rectype].append(i)
 #										 except: dct[r.rectype]=[i]
-								for i in self.getrecorddefnames():
-										s = self.getindexbyrecorddef(i, ctxid, host=host)
+								for i in self.getrecorddefnames(ctxid=ctxid, host=host):
+										s = self.getindexbyrecorddef(i, ctxid=ctxid, host=host)
 										ss = s & byrecdef
 										if len(ss) > 0 : dct[i] = tuple(ss)
 						ret = dct
 				else: ret = byrecdef
 
 				if command == "find" :
-						allrec = self.getindexbycontext(ctxid)
+						allrec = self.getindexbycontext(ctxid=ctxid,host=host)
 						ret &= allrec
 						# Simple find request, no further processing required
 						if isinstance(ret, dict):
@@ -859,7 +862,7 @@ parentheses grouping not supported yet"""
 						if 1:
 								ret2 = {}
 								tmp = []
-								pd = self.getparamdef(comops[0][1:])
+								pd = self.getparamdef(comops[0][1:],ctxid=ctxid,host=host)
 								
 								if (pd.vartype in ("int", "longint", "float", "longfloat")) :
 										# get all of the values for the histogrammed field
@@ -1079,33 +1082,33 @@ parentheses not supported yet. Upon failure returns a tuple:
 						else: continue
 						
 						if e[0] == "@" :
-								a = self.findrecorddefname(e[1:])
+								a = self.findrecorddefname(e[1:],ctxid=ctxid,host=host)
 								if a == None : return (- 1, "Invalid protocol", e)
 								elements[n] = "@" + a
 								continue
 						if e[0] == '!':
-								a = self.findrecorddefname(e[1:])
+								a = self.findrecorddefname(e[1:],ctxid=ctxid,host=host)
 								if a == None : return (- 1, "Invalid protocol", e)
 								elements[n] = "!" + a
 								continue
 						elif e[0] == "$" :
-								a = self.findparamdefname(e[1:])
+								a = self.findparamdefname(e[1:],ctxid=ctxid,host=host)
 								if a == None : return (- 1, "Invalid parameter", e)
 								elements[n] = "$" + a
 								continue
 						elif e[0] == "%" :
-								a = self.findusername(e[1:], ctxid)
+								a = self.findusername(e[1:], ctxid,ctxid=ctxid,host=host)
 								if a == None : return (- 1, "Username does not exist", e)
 								if isinstance(a, str) :
 										elements[n] = "%" + a
 										continue
 								if len(a) > 0 : return (- 1, "Ambiguous username", e, a)
 						else:
-								a = self.findrecorddefname(e)
+								a = self.findrecorddefname(e,ctxid=ctxid,host=host)
 								if a != None : 
 										elements[n] = "@" + a
 										continue
-								a = self.findparamdefname(e)
+								a = self.findparamdefname(e,ctxid=ctxid,host=host)
 								if a != None : 
 										elements[n] = "$" + a
 										continue
@@ -1170,7 +1173,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 			paramname = str(paramname).lower()
 			
-			ind = self.__getparamindex(paramname, create=0)				
+			ind = self.__getparamindex(paramname, create=0, ctxid=ctxid, host=host)				
 			
 			if valrange == None : ret = set(ind.values())
 			elif isinstance(valrange, tuple) or isinstance(valrange, list) : ret = set(ind.values(valrange[0], valrange[1]))
@@ -1178,10 +1181,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 			#u,g=self.checkcontext(ctxid,host)
 			#ctx=self.__getcontext(ctxid,host)
-			if self.checkreadadmin(ctxid):
+			if self.checkreadadmin(ctxid=ctxid,host=host):
 					return ret
 			
-			secure = set(self.getindexbycontext(ctxid, host=host))				 # all records the user can access
+			secure = set(self.getindexbycontext(ctxid=ctxid, host=host))				 # all records the user can access
 			
 			return ret & secure				 # intersection of the two search results
 		
@@ -1208,12 +1211,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if tokenize:
 						t = q.split(" ")
 						rt = {}
-						rt[t[0]] = self.fulltextsearch(t[0], ctxid, host, rectype, indexsearch, params, recparams, builtinparam, ignorecase, subset, 0, single, includeparams)
+						rt[t[0]] = self.fulltextsearch(t[0], ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparam, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
 						subset = set(rt[t[0]].keys())
 						#print "initial search: key %s, %s results"%(t[0],len(subset))
 
 						for i in t[1:]:
-								rt[i] = self.fulltextsearch(i, ctxid, host, rectype, indexsearch, params, recparams, builtinparam, ignorecase, subset, 0, single, includeparams)
+								rt[i] = self.fulltextsearch(i, ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparams, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
 								subset = set(rt[i].keys())
 								#print "search: key %s, %s results"%(i,subset)
 						
@@ -1232,10 +1235,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				q = oq.lower()
 
 				if rectype and not subset:
-						subset = self.getindexbyrecorddef(rectype, ctxid)
+						subset = self.getindexbyrecorddef(rectype, ctxid=ctxid, host=host)
 
 				if rectype and not params:
-						pd = self.getrecorddef(rectype, ctxid)
+						pd = self.getrecorddef(rectype, ctxid=ctxid, host=host)
 						params = set(pd.paramsK)
 
 				if builtinparam:
@@ -1244,12 +1247,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 						params -= builtin
 
 				ret = {}
-				urec = set(self.getindexbycontext(ctxid))
+				urec = set(self.getindexbycontext(ctxid=ctxid,host=host))
 				
 				if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
 						#print "rec search: %s, subset %s"%(q,len(subset))
 						for recid in subset & urec:
-								rec = self.getrecord(recid, ctxid)
+								rec = self.getrecord(recid, ctxid=ctxid, host=host)
 								
 								q = unicode(q)
 								
@@ -1274,10 +1277,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 						#print "index search: %s, subset %s"%(q,len(subset))
 
 						for param in params:
-								print "searching %s" % param
-								try: 
-									r = self.__getparamindex(str(param).lower())
+								#print "searching %s" % param
+								#try: 
+								#if 1:
+								r = self.__getparamindex(str(param).lower(), ctxid=ctxid, host=host)
 
+								print param
+								print r
+								if r:
 									for key in r.keys():
 											# initial case-insensitive match
 											if q in str(key):
@@ -1287,22 +1294,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 															if recid not in urec: continue
 															if not ret.has_key(recid): ret[recid] = {}
-													
+												
 															# return case sensitive values; simply setting to param key is faster but less useful
-															rec = self.getrecord(recid, ctxid)
+															rec = self.getrecord(recid, ctxid=ctxid, host=host)
 															#print oq,key2,ignorecase
 															if not ignorecase:
 																if oq in rec[param]:
 																	ret[recid][param] = rec[param]
 															else:
 																ret[recid][param] = rec[param]
-															
+														
 															for i in includeparams:
 																ret[recid][i] = rec[i]
 																											
-								except Exception, inst:
-										print "error in search"
-										print inst
+								#except Exception, inst:
+								#		print "Error in search"
+								#		print inst
 
 						# security check required
 						#urec=set(self.getindexbycontext(ctxid))		
@@ -1326,7 +1333,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				paramname = str(paramname).lower()
 
-				ind = self.__getparamindex(paramname, create=1)
+				ind = self.__getparamindex(paramname, create=1, ctxid=ctxid, host=host)
 								
 				if valrange == None:
 						r = dict(ind.items())
@@ -1355,7 +1362,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 						return ret
 				
 				# getindexbycontext includes groups
-				secure = self.getindexbycontext(ctxid, host=host)				# all records the user can access
+				secure = self.getindexbycontext(ctxid=ctxid, host=host)				# all records the user can access
 				# remove any recids the user cannot access				
 				for i in set(ret.keys()) - secure:
 						del ret[i]
@@ -1371,16 +1378,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 				by their recorddef"""
 				#self = db
 				if len(all) == 0: return {}
-				if optimize and len(all) < 500: return self.groupbyrecorddeffast(all, ctxid, host)
+				if optimize and len(all) < 500: return self.groupbyrecorddeffast(all, ctxid=ctxid, host=host)
 				all = set(all)
-				all &= set(self.getindexbycontext(ctxid, host=host))
+				all &= set(self.getindexbycontext(ctxid=ctxid, host=host))
 				ret = {}
 				while len(all) > 0:
 						rid = all.pop()														 # get a random record id
-						try: r = self.getrecord(rid, ctxid, host=host)		# get the record
+						try: r = self.getrecord(rid, ctxid=ctxid, host=host)		# get the record
 						except:
 								continue												# if we can't, just skip it, pop already removed it
-						ind = self.getindexbyrecorddef(r.rectype, ctxid, host=host)				 # get the set of all records with this recorddef
+						ind = self.getindexbyrecorddef(r.rectype, ctxid=ctxid, host=host)				 # get the set of all records with this recorddef
 						ret[r.rectype] = all & ind										# intersect our list with this recdef
 						all -= ret[r.rectype]												 # remove the results from our list since we have now classified them
 						ret[r.rectype].add(rid)										 # add back the initial record to the set
@@ -1393,7 +1400,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		#this one gets records directly
 		def groupbyrecorddeffast(self, records, ctxid, host=None):
 			if len(records) == 0: return {}
-			recs=self.getrecordsafe(records, ctxid)
+			recs=self.getrecordsafe(records, ctxid=ctxid, host=host)
 			ret={}
 			for i in recs:
 				if not ret.has_key(i.rectype): ret[i.rectype]=[i.recid]
@@ -1408,7 +1415,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 				if len(records) == 0: return {}
 				r = {}
-				records=set(records) & self.getindexbycontext(ctxid)
+				records=set(records) & self.getindexbycontext(ctxid=ctxid, host=host)
 				for i in records:
 						#if not self.trygetrecord(i, ctxid): continue
 						#print i
@@ -1428,7 +1435,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 
 				v = {}
-				records = self.getrecordsafe(list(subset), ctxid)
+				records = self.getrecordsafe(list(subset), ctxid=ctxid, host=host)
 				for i in records:
 						if not valrange:
 								v[i.recid] = i[param]
@@ -1452,7 +1459,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 				r = {}
 				for i in records:
-						try: j = self.getrecord(i, ctxid=ctxid)
+						try: j = self.getrecord(i, ctxid=ctxid, host=host)
 						except: continue
 						#try:
 						k = j[param]
@@ -1479,7 +1486,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				for i in records:
 						try: p = self.getparents(i, recurse=recurse, ctxid=ctxid, host=host)
 						except: continue
-						try: k = [ii for ii in p if self.getrecord(ii, ctxid).rectype == parenttype]
+						try: k = [ii for ii in p if self.getrecord(ii, ctxid=ctxid, host=host).rectype == parenttype]
 						except: k = [None]
 						if len(k) == 0 : k = [None]
 						
@@ -1499,8 +1506,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				key contains the sum of all different recorddefs"""
 				#self = db
 				
-				c = self.getchildren(key, "record", recurse, ctxid, host=host)
-				r = self.groupbyrecorddef(c, ctxid, host=host)
+				c = self.getchildren(key, "record", recurse, ctxid=ctxid, host=host)
+				r = self.groupbyrecorddef(c, ctxid=ctxid, host=host)
 				for k in r.keys(): r[k] = len(r[k])
 				r["all"] = len(c)
 				return r
@@ -1510,21 +1517,21 @@ parentheses not supported yet. Upon failure returns a tuple:
 		@publicmethod
 		def getchildren_recordmulti(self, keys, recurse=0, ctxid=None, host=None):
 			"""Optimized way to get child sets for multiple records; e.g. during childcount in table"""
-			indc = self.getindexbycontext(ctxid)
+			indc = self.getindexbycontext(ctxid=ctxid,host=host)
 			ret={}
 			for key in keys:
-				ret[key]=self.__getrel(key, "record", recurse, ctxid, host, indc, "children")
+				ret[key]=self.__getrel(key=key, keytype="record", recurse=recurse, indc=indc, rel="children", ctxid=ctxid, host=host)
 			return ret
 				
 				
 		# done to hide indc optimization from public methods
 		@publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, ctxid=None, host=None):
-			return self.__getrel(key, keytype, recurse, ctxid, host, None, "children")
+			return self.__getrel(key=key, keytype=keytype, recurse=recurse, indc=None, rel="children", ctxid=ctxid, host=host)
 
 		@publicmethod
 		def getparents(self, key, keytype="record", recurse=0, ctxid=None, host=None):
-			return self.__getrel(key, keytype, recurse, ctxid, host, None, "parents")
+			return self.__getrel(key=key, keytype=keytype, recurse=recurse, indc=None, rel="parents", ctxid=ctxid, host=host)
 
 				
 
@@ -1538,17 +1545,19 @@ parentheses not supported yet. Upon failure returns a tuple:
 								
 				# if user can read record, can see all children; not filtered for permissions
 								
+				#print "getrel host = %s"%host				
+								
 				if (recurse < 0): return set()
 
 				if keytype == "record":
 					trg = self.__records
 					key=int(key)
-					if not self.trygetrecord(key, ctxid, host=host) : return set()
+					if not self.trygetrecord(key, ctxid=ctxid, host=host) : return set()
 
 				elif keytype == "recorddef" : 
 					key = str(key).lower()
 					trg = self.__recorddefs
-					try: a = self.getrecorddef(key, ctxid)
+					try: a = self.getrecorddef(key, ctxid=ctxid)
 					except: return set()
 
 				elif keytype == "paramdef":
@@ -1581,7 +1590,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				if keytype=="record":
 					if not indc:
-						indc = self.getindexbycontext(ctxid)
+						indc = self.getindexbycontext(ctxid=ctxid, host=host)
 					b=set(std.keys()) & indc
 				else:
 					b=set(std.keys())
@@ -1637,7 +1646,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 				
 				if keytype == "record" : 
-						if not self.trygetrecord(key, ctxid, host=host) : return set()
+						if not self.trygetrecord(key, ctxid=ctxid, host=host) : return set()
 						return set(self.__records.cousins(key))
 				if keytype == "recorddef":
 						return set(self.__recorddefs.cousins(str(key).lower()))
@@ -1670,7 +1679,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				r2 = set()
 				for i in ret:
-						r2 |= self.__getparentssafe(i, keytype, recurse - 1, ctxid, host=host)
+						r2 |= self.__getparentssafe(i, keytype, recurse - 1, ctxid=ctxid, host=host)
 
 				return ret | r2
 				
@@ -1700,7 +1709,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				r2 = set()
 				for i in ret:
-						r2 |= self.__getchildrensafe(i, keytype, recurse - 1, ctxid, host=host)
+						r2 |= self.__getchildrensafe(i, keytype, recurse - 1, ctxid=ctxid, host=host)
 
 				return ret | r2
 
@@ -1732,8 +1741,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 								raise Exception, "Circular references are not allowed."
 				
 				if keytype == "record" : 
-						a = self.getrecord(pkey, ctxid)
-						b = self.getrecord(ckey, ctxid)
+						a = self.getrecord(pkey, ctxid=ctxid, host=host)
+						b = self.getrecord(ckey, ctxid=ctxid, host=host)
 						#print a.writable(),b.writable()
 						if (not a.writable()) and (not b.writable()):
 								raise SecurityError, "pclink requires partial write permission"
@@ -1762,8 +1771,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 						raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 										
 				if keytype == "record" : 
-						a = self.getrecord(pkey, ctxid)
-						b = self.getrecord(ckey, ctxid)
+						a = self.getrecord(pkey, ctxid=ctxid, host=host)
+						b = self.getrecord(ckey, ctxid=ctxid, host=host)
 						if (not a.writable()) and (not b.writable()):
 								raise SecurityError, "pcunlink requires partial write permission"
 						r = self.__records.pcunlink(str(pkey).lower(), str(ckey).lower(), txn)
@@ -1794,8 +1803,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 						raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 
 				if keytype == "record": 
-						a = self.getrecord(key1, ctxid)
-						b = self.getrecord(key2, ctxid)
+						a = self.getrecord(key1, ctxid=ctxid, host=host)
+						b = self.getrecord(key2, ctxid=ctxid, host=host)
 						r = self.__records.link(key1, key2)
 				if keytype == "recorddef":
 						r = self.__recorddefs.link(str(key1).lower(), str(key2).lower(), txn)
@@ -1821,8 +1830,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 						raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 										
 				if keytype == "record":
-						a = self.getrecord(key1, ctxid)
-						b = self.getrecord(key2, ctxid)
+						a = self.getrecord(key1, ctxid=ctxid, host=host)
+						b = self.getrecord(key2, ctxid=ctxid, host=host)
 						r = self.__records.unlink(key1, key2)
 				if keytype == "recorddef":
 						r = self.__recorddefs.unlink(str(key1).lower(), str(key2).lower(), txn)
@@ -1862,12 +1871,21 @@ parentheses not supported yet. Upon failure returns a tuple:
 			"""Only an administrator can do this, and the user must be in the queue for approval"""
 			#self = db
 
-			username = str(username)
-
 			ctx = self.__getcontext(ctxid, host)
 			#if not -1 in ctx.groups :
 			if not self.checkadmin(ctx):
 				raise SecurityError, "Only administrators can approve new users"
+
+
+			if hasattr(username,"__iter__"):
+				ret=[]
+				for i in username:
+					ret.append(self.approveuser(username=i,ctxid=ctxid,host=host))
+				return ret
+
+			username = str(username)
+
+			return username
 							
 			if not username in self.__newuserqueue :
 				raise KeyError, "User %s is not pending approval" % username
@@ -1880,14 +1898,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 			user = self.__newuserqueue[username]
 
 			if user.record == None:
-				userrec = self.newrecord("person", ctxid=ctxid, host=host, init=1)
-				print user
+				userrec = self.newrecord("person", init=1, ctxid=ctxid, host=host)
+				#print user
 				userrec["username"] = username
 				userrec["name_first"] = user.name[0]
 				userrec["name_middle"] = user.name[1]
 				userrec["name_last"] = user.name[2]
 				userrec["email"] = user.email
-				recid = self.putrecord(userrec, ctxid)
+				recid = self.putrecord(userrec, ctxid=ctxid, host=host)
 				user.record = recid
 			user.validate()
 
@@ -1896,6 +1914,39 @@ parentheses not supported yet. Upon failure returns a tuple:
 			self.__newuserqueue.set(username, None, txn)
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
+
+			return username
+
+		#@write,admin
+		@publicmethod
+		def rejectuser(self, username, ctxid, host=None):
+			"""Remove a user from the pending new user queue - only an administrator can do this"""
+			#self = db
+				
+
+			ctx = self.__getcontext(ctxid, host)
+
+			# ian todo: move to general permission level check rather than hardcode -1 at each instance. several places.
+			#if not -1 in ctx.groups :
+			if not self.checkadmin(ctx):
+				raise SecurityError, "Only administrators can approve new users"
+
+			if hasattr(username,"__iter__"):
+				ret=[]
+				for i in username:
+					ret.append(self.rejectuser(username=i,ctxid=ctxid,host=host))
+				return ret
+				
+			username = str(username)
+
+			return username
+								
+			if not username in self.__newuserqueue :
+				raise KeyError, "User %s is not pending approval" % username
+
+			self.__newuserqueue[username] = None
+
+			return username
 
 
 		@publicmethod
@@ -1920,25 +1971,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 		
 		
-		#@write,admin
-		@publicmethod
-		def rejectuser(self, username, ctxid, host=None):
-				"""Remove a user from the pending new user queue - only an administrator can do this"""
-				#self = db
-				
-				username = str(username)
-
-				ctx = self.__getcontext(ctxid, host)
-
-				# ian todo: move to general permission level check rather than hardcode -1 at each instance. several places.
-				#if not -1 in ctx.groups :
-				if not self.checkadmin(ctx):
-						raise SecurityError, "Only administrators can approve new users"
-				
-				if not username in self.__newuserqueue :
-						raise KeyError, "User %s is not pending approval" % username
-
-				self.__newuserqueue[username] = None
 
 
 		#@write,admin
@@ -2039,9 +2071,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				username = str(username)
 
 				ctx = self.__getcontext(ctxid, host)
-				user = self.getuser(username, ctxid)
+				user = self.getuser(username, ctxid=ctxid, host=host)
 				
-				s = sha.new(oldpassword)
+				s = hashlib.sha1(oldpassword)
 				#if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
 				if s.hexdigest() != user.password and not self.checkadmin(ctx):
 						time.sleep(2)
@@ -2050,7 +2082,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# we disallow bad passwords here, right now we just make sure that it 
 				# is at least 6 characters long
 				if (len(newpassword) < 6) : raise SecurityError, "Passwords must be at least 6 characters long" 
-				t = sha.new(newpassword)
+				t = hashlib.sha1(newpassword)
 				user.password = t.hexdigest()
 				
 				txn = self.newtxn()
@@ -2064,7 +2096,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# does not require ctxid
 		#@write,all
 		@publicmethod
-		def adduser(self, user, host=None):
+		def adduser(self, user, ctxid=None, host=None):
 				"""adds a new user record. However, note that this only adds the record to the
 				new user queue, which must be processed by an administrator before the record
 				becomes active. This system prevents problems with securely assigning passwords
@@ -2137,6 +2169,16 @@ parentheses not supported yet. Upon failure returns a tuple:
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 			#self = db
+						
+			# ian: add support for multiple getuser
+			if hasattr(username,"__iter__"):
+				ret={}
+				for i in username:
+					try:
+						ret[i]=self.getuser(username=i,ctxid=ctxid,host=host)
+					except:
+						pass
+				return ret
 			
 			if not isinstance(username, int):
 				username = str(username)
@@ -2144,8 +2186,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 			ctx = self.__getcontext(ctxid, host)
 			try:
 				ret = self.__users[username]
-			except:
-				raise KeyError, "No such user: %s" % (username)
+			except KeyError:
+				ret = int(username)
+				return ret
+			#finally:
+			#	raise KeyError, "No such user: %s" % (username)
 			
 			# The user him/herself or administrator can get all info
 			#if (-1 in ctx.groups) or (-2 in ctx.groups) or (ctx.user==username) : return ret
@@ -2195,8 +2240,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if len(possible) > 1 : return possible
 				
 				possible = []
-				for i in self.getusernames(ctxid, host=host):
-						try: u = self.getuser(name, ctxid, host=host)
+				for i in self.getusernames(ctxid=ctxid, host=host):
+						try: u = self.getuser(name, ctxid=ctxid, host=host)
 						except: continue
 						
 						for j in u.__dict__:
@@ -2231,7 +2276,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				"""Return a workflow from wfid."""
 				#self = db
 				ret = None
-				wflist = self.getworkflow(ctxid)
+				wflist = self.getworkflow(ctxid=ctxid,host=host)
 				if len(wflist) == 0:
 					return None
 				else:
@@ -2424,7 +2469,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# this actually stores in the database
 				txn = self.newtxn()
 				self.__paramdefs.set(paramdef.name, paramdef, txn)
-				if (parent): self.pclink(parent, paramdef.name, "paramdef", txn=txn)
+				if (parent): self.pclink(parent, paramdef.name, "paramdef", txn=txn, ctxid=ctxid, host=host)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
 				
@@ -2472,7 +2517,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 
 		@publicmethod				
-		def getparamdefnames(self, host=None):
+		def getparamdefnames(self, ctxid=None, host=None):
 				"""Returns a list of all ParamDef names"""
 				#self = db
 				return self.__paramdefs.keys()
@@ -2480,7 +2525,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		
 		# ian: remove this method
-		def findparamdefname(self, name, host=None):
+		def findparamdefname(self, name, ctxid=None, host=None):
 				"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, 
 or None if no match is found."""
 				name = str(name).lower()
@@ -2511,12 +2556,12 @@ or None if no match is found."""
 				recs = list(recs)
 				if len(recs) <= 0: return {}
 				if isinstance(recs[0], int):
-					recs = self.getrecord(recs, ctxid)
+					recs = self.getrecord(recs, ctxid=ctxid, host=host)
 
 				if isinstance(recs[0], Record):
 					q = set((i.rectype for i in recs))
 					for i in q:
-						params |= set(self.getrecorddef(i, ctxid).paramsK)
+						params |= set(self.getrecorddef(i, ctxid=ctxid, host=host).paramsK)
 					for i in recs:
 						params |= set(i.getparamkeys())
 				
@@ -2525,7 +2570,7 @@ or None if no match is found."""
 					
 				paramdefs = {}
 				for i in params:
-					paramdefs[i] = self.getparamdef(i)
+					paramdefs[i] = self.getparamdef(i, ctxid=ctxid, host=host)
 				return paramdefs
 				
 
@@ -2585,7 +2630,7 @@ or None if no match is found."""
 						raise KeyError, "RecordDef %s already exists" % str(recdef.name).lower()
 
 				recdef.findparams()
-				pdn = self.getparamdefnames()
+				pdn = self.getparamdefnames(ctxid=ctxid,host=host)
 				for i in recdef.params:
 						if i not in pdn: raise KeyError, "No such parameter %s" % i
 
@@ -2602,7 +2647,7 @@ or None if no match is found."""
 				# commit
 				txn = self.newtxn()
 				self.__recorddefs.set(recdef.name, recdef, txn)
-				if (parent): self.pclink(parent, recdef.name, "recorddef", txn=txn)
+				if (parent): self.pclink(parent, recdef.name, "recorddef", txn=txn, ctxid=ctxid, host=host)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
 				return recdef.name
@@ -2636,7 +2681,7 @@ or None if no match is found."""
 						raise SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 				recdef.findparams()
-				pdn = self.getparamdefnames()
+				pdn = self.getparamdefnames(ctxid=ctxid,host=host)
 				for i in recdef.params:
 						if i not in pdn: raise KeyError, "No such parameter %s" % i
 
@@ -2679,7 +2724,7 @@ or None if no match is found."""
 				# ok, now we need to do a little more work. 
 				if recid == None: raise SecurityError, "User doesn't have permission to access private RecordDef '%s'" % rectypename
 				
-				rec = self.getrecord(recid)				 # try to get the record, may (and should sometimes) raise an exception
+				rec = self.getrecord(recid, ctxid=ctxid, host=host)				 # try to get the record, may (and should sometimes) raise an exception
 
 				if rec.rectype != rectypename: raise SecurityError, "Record %d doesn't belong to RecordDef %s" % (recid, rectypename)
 
@@ -2689,7 +2734,7 @@ or None if no match is found."""
 		
 	
 		@publicmethod	
-		def getrecorddefnames(self, host=None):
+		def getrecorddefnames(self, ctxid=None, host=None):
 				"""This will retrieve a list of all existing RecordDef names, 
 				even those the user cannot access the contents of"""
 				#self = db
@@ -2698,7 +2743,7 @@ or None if no match is found."""
 
 
 		@publicmethod
-		def findrecorddefname(self, name, host=None):
+		def findrecorddefname(self, name, ctxid=None, host=None):
 				"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef, 
 				or None if no match is found."""
 				#self = db
@@ -2773,7 +2818,7 @@ or None if no match is found."""
 				
 				
 				
-		def __getparamindex(self, paramname, create=1):
+		def __getparamindex(self, paramname, create=1, ctxid=None, host=None):
 				"""Internal function to open the parameter indices at need.
 				Later this may implement some sort of caching mechanism.
 				If create is not set and index doesn't exist, raises
@@ -2928,10 +2973,10 @@ or None if no match is found."""
 
 		@publicmethod
 		def putrecordvalue(self, recid, param, value, ctxid, host=None):
-				rec = self.getrecord(recid, ctxid, host=host)
+				rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				rec[param] = value
-				self.putrecord(rec, ctxid, host=host)
-				return self.getrecord(recid, ctxid, host=host)[param]
+				self.putrecord(rec, ctxid=ctxid, host=host)
+				return self.getrecord(recid, ctxid=ctxid, host=host)[param]
 				#return recid
 				#return self.renderview(recid,viewdef="$$%s"%param,ctxid=ctxid,host=host)
 
@@ -2939,7 +2984,7 @@ or None if no match is found."""
 		@publicmethod				
 		def putrecordvalues(self, recid, values, ctxid, host=None):
 				try:
-					rec = self.getrecord(recid, ctxid, host=host)
+					rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				except:
 					return
 					
@@ -2948,8 +2993,8 @@ or None if no match is found."""
 								del rec[k]
 						else:
 								rec[k] = v
-				self.putrecord(rec, ctxid, host=host)
-				return self.getrecord(recid, ctxid, host=host)				
+				self.putrecord(rec, ctxid=ctxid, host=host)
+				return self.getrecord(recid, ctxid=ctxid, host=host)				
 
 
 				
@@ -2957,14 +3002,14 @@ or None if no match is found."""
 		def putrecordsvalues(self, d, ctxid, host=None):
 				ret = {}
 				for k, v in d.items():
-						ret[k] = self.putrecordvalues(k, v, ctxid, host=host)
+						ret[k] = self.putrecordvalues(k, v, ctxid=ctxid, host=host)
 				return ret
 				
 		
 		
 		@publicmethod
 		def deleterecord(self,recid,ctxid,host=None):
-			rec=self.getrecord(recid,ctxid,host=host)
+			rec=self.getrecord(recid,ctxid=ctxid,host=host)
 			if not rec.isowner():
 				raise Exception,"No permission to delete record"
 			
@@ -2977,7 +3022,7 @@ or None if no match is found."""
 				rec["comments"]="Record marked for deletion"
 
 			rec["deleted"]=1
-			self.putrecord(rec,ctxid,host=host)
+			self.putrecord(rec,ctxid=ctxid,host=host)
 						
 			for i in parents:
 				self.pcunlink(i,recid,ctxid=ctxid,host=host)
@@ -2987,19 +3032,19 @@ or None if no match is found."""
 				c2.remove(recid)
 				# if child had more than one parent, make a note one parent was removed
 				if len(c2) > 0:
-					rec2=self.getrecord(i,ctxid,host=host)
+					rec2=self.getrecord(i,ctxid=ctxid,host=host)
 					rec["comments"]="Parent record %s was deleted"%recid
-					self.putrecord(rec2)
+					self.putrecord(rec2,ctxid=ctxid,host=host)
 					self.pcunlink(recid,i,ctxid=ctxid,host=host)
 
 				
 
 		@publicmethod
-		def addcomment(self, recid, comment, ctxid):
-				rec = self.getrecord(recid, ctxid)
+		def addcomment(self, recid, comment, ctxid, host=None):
+				rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				rec.addcomment(comment)
-				self.putrecord(rec, ctxid)
-				return self.getrecord(recid, ctxid)["comments"]
+				self.putrecord(rec, ctxid=ctxid, host=host)
+				return self.getrecord(recid, ctxid=ctxid, host=host)["comments"]
 				
 
 				
@@ -3020,7 +3065,7 @@ or None if no match is found."""
 
 				if isinstance(username, int):
 					if username > 0:
-						username = self.getrecord(username, ctxid)
+						username = self.getrecord(username, ctxid=ctxid, host=host)
 					else:
 						return
 						#return self.getgroupdisplayname(username,ctxid)
@@ -3030,7 +3075,7 @@ or None if no match is found."""
 
 					namestoget = set()
 					namestoget |= set([username["creator"]])
-					paramdefs = self.getparamdefs(username.getparamkeys())
+					paramdefs = self.getparamdefs(username.getparamkeys(), ctxid=ctxid, host=host)
 					
 					for k in username.getparamkeys():
 						if paramdefs[k].vartype == "user" and username[k] != None:
@@ -3042,19 +3087,19 @@ or None if no match is found."""
 
 					# add flattened permissions list
 					namestoget |= set(sum(list(username["permissions"]), ()))
-					return self.getuserdisplayname(namestoget, ctxid, lnf=lnf)
+					return self.getuserdisplayname(namestoget, ctxid=ctxid, host=host, lnf=lnf)
 					#displaynames=self.db.getuserdisplayname(namestoget,self.ctxid,lnf=1)					
 					
 
 				if hasattr(username, "__iter__"):
 						ret = {}
 						for i in username:
-							un = self.getuserdisplayname(i, ctxid, lnf, host=host)
+							un = self.getuserdisplayname(i, ctxid=ctxid, lnf=lnf, host=host)
 							if un: ret[str(i)] = un
 						return ret
 
 				try:
-						u = self.getrecord(self.getuser(username, ctxid).record, ctxid, host=host)
+						u = self.getrecord(self.getuser(username, ctxid).record, ctxid=ctxid, host=host)
 				except:
 						return "(%s)" % username
 												
@@ -3140,11 +3185,11 @@ or None if no match is found."""
 			# ian
 			if type(parents) == int: parents = set([parents])
 			for i in parents:
-					self.pclink(i, record.recid, ctxid)
+					self.pclink(i, record.recid, ctxid=ctxid)
 
 			if type(children) == int: children = set([children])
 			for i in children:
-					self.pclink(record.recid, i, ctxid)
+					self.pclink(record.recid, i, ctxid=ctxid, host=host)
 								
 			return record.recid			
 
@@ -3158,7 +3203,9 @@ or None if no match is found."""
 				record is new, recid should be set to None. recid is returned upon success. 
 				parents and children arguments are conveniences to link new records at time of creation."""
 				#self = db
-								
+				
+				#print "putrecord"
+				#print self.checkcontext(ctxid, host)				
 				ctx = self.__getcontext(ctxid, host)
 				
 				if not isinstance(record, Record):
@@ -3168,7 +3215,7 @@ or None if no match is found."""
 				try:
 					orecord = self.__records[record.recid]				 # get the unmodified record
 				except:
-					return self.__putnewrecord(record, ctxid, parents=parents, children=children, host=host)
+					return self.__putnewrecord(record, ctxid=ctxid, parents=parents, children=children, host=host)
 				
 				
 				record.setContext(ctx)				
@@ -3179,7 +3226,7 @@ or None if no match is found."""
 				record.validate()
 				cp = record.changedparams()
 
-				print "putrecord changed params: %s" % cp
+				#print "putrecord changed params: %s" % cp
 				
 				if len(cp - set(["creator", "creationtime", "modifyuser", "modifytime", "recid"])) == 0: 
 						self.LOG(5, "update %d with no changes" % record.recid)
@@ -3242,7 +3289,7 @@ or None if no match is found."""
 				
 				# try to get the RecordDef entry, this still may fail even if it exists, if the
 				# RecordDef is private and the context doesn't permit access
-				t = self.getrecorddef(rectype, ctxid, host=host)
+				t = self.getrecorddef(rectype, ctxid=ctxid, host=host)
 
 				rec.recid = None
 				rec.rectype = rectype												 # if we found it, go ahead and set up
@@ -3253,8 +3300,8 @@ or None if no match is found."""
 
 				# ian
 				if inheritperms != None:
-						if self.trygetrecord(inheritperms, ctxid):
-								prec = self.getrecord(inheritperms, ctxid)
+						if self.trygetrecord(inheritperms, ctxid=ctxid, host=host):
+								prec = self.getrecord(inheritperms, ctxid=ctxid, host=host)
 								n = []
 								for i in range(0, len(prec["permissions"])):
 										n.append(prec["permissions"][i] + rec["permissions"][i])
@@ -3268,7 +3315,7 @@ or None if no match is found."""
 		def getrecordnames(self, ctxid, dbid=0, host=None):
 				"""All record names a ctxid can access. Includes groups. Deprecated; calls getindexbycontext.""" 
 				#self = db
-				return self.getindexbycontext(ctxid, host=host)
+				return self.getindexbycontext(ctxid=ctxid, host=host)
 		
 		
 		
@@ -3278,7 +3325,7 @@ or None if no match is found."""
 				of the specified records"""
 				#self = db
 
-				secure = set(self.getindexbycontext(ctxid, host=host))
+				secure = set(self.getindexbycontext(ctxid=ctxid, host=host))
 				rid = set(recids)
 				rid -= secure
 				if len(rid) > 0 : raise Exception, "Cannot access records %s" % str(rid)
@@ -3340,7 +3387,7 @@ or None if no match is found."""
 						# ian: js only allows strings as Array keys.. so let's fallback to int before giving up
 						try:
 								recid = int(recid)
-								return self.getrecord(recid, ctxid, host)
+								return self.getrecord(recid, ctxid=ctxid, host=host)
 						except:						 
 								raise KeyError, "Invalid Key %s" % str(recid) # Edward Langley changed Key Error to SecurityError for consistency
 #				 else : raise KeyError,"Invalid Key %s"%str(recid)
@@ -3352,7 +3399,7 @@ or None if no match is found."""
 
 				paramname = str(paramname).lower()
 				
-				paramindex = self.__getparamindex(paramname)
+				paramindex = self.__getparamindex(paramname, ctxid=ctxid, host=host)
 				if hasattr(recid, '__iter__'):
 						results = []
 						for key in paramindex.keys():
@@ -3446,14 +3493,14 @@ or None if no match is found."""
 
 
 				# all users
-				userset = set(self.getusernames(ctxid)) | set((- 4, - 3, - 2, - 1))
+				userset = set(self.getusernames(ctxid=ctxid, host=host)) | set((- 4, - 3, - 2, - 1))
 
 				#print userset
 				#print usertuple
 
 				# get a list of records we need to update
 				if recurse > 0:
-						if DEBUG: print "Add user recursive..."
+						#if DEBUG: print "Add user recursive..."
 						trgt = self.getchildren(recid, ctxid=ctxid, host=host, recurse=recurse - 1)
 						trgt.add(recid)
 				else : trgt = set((recid,))
@@ -3468,13 +3515,13 @@ or None if no match is found."""
 				# just gained access to. Used for fast index updating
 				secrupd = {}
 				
-				print trgt
+				#print trgt
 				
 				txn = self.newtxn()
 				# update each record as necessary
 				for i in trgt:
 						#try:
-						rec = self.getrecord(i, ctxid, host=host)						 # get the record to modify
+						rec = self.getrecord(i, ctxid=ctxid, host=host)						 # get the record to modify
 						#except:
 						#		 print "skipping %s"%i
 						#		 continue
@@ -3484,7 +3531,7 @@ or None if no match is found."""
 						# TODO: probably we should also check for groups in [3]
 						if ctx.user not in rec["permissions"][3] and not self.checkadmin(ctx): continue				 
 						
-						print "rec: %s" % i
+						#print "rec: %s" % i
 						
 						cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
 						xcur = [set(v) for v in rec["permissions"]]				 # copy of cur that will be changed
@@ -3499,22 +3546,22 @@ or None if no match is found."""
 
 						# if we allow level change, remove all changed users then add back..
 						if reassign:
-							print "reassign"
+							#print "reassign"
 							allnew = newv[0] | newv[1] | newv[2] | newv[3]
-							print allnew
+							#print allnew
 							xcur[0] -= allnew
 							xcur[1] -= allnew
 							xcur[2] -= allnew
 							xcur[3] -= allnew							
-							print xcur
+							#print xcur
 							
 						# update the permissions for each group
 						xcur[0] |= newv[0]
 						xcur[1] |= newv[1]
 						xcur[2] |= newv[2]
 						xcur[3] |= newv[3]
-						print "updated"
-						print xcur							
+						#print "updated"
+						#print xcur							
 						# if the user already has more permission than we are trying
 						# to assign, we don't do anything. This also cleans things up
 						# so a user cannot have more than one security level
@@ -3525,8 +3572,8 @@ or None if no match is found."""
 						xcur[1] -= xcur[2]
 						xcur[1] -= xcur[3]
 						xcur[2] -= xcur[3]
-						print "pruned"
-						print xcur
+						#print "pruned"
+						#print xcur
 
 #						 l2=[len(v) for v in cur]	 # length test not sufficient
 						
@@ -3536,9 +3583,9 @@ or None if no match is found."""
 							 or xcur[2] != cur[2] or xcur[3] != cur[3]:
 								old = rec["permissions"]
 								rec["permissions"] = (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
-								print "new permissions:"
-								print (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
-								print rec["permissions"]
+								#print "new permissions:"
+								#print (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
+								#print rec["permissions"]
 # SHOULD do it this way, but too slow
 #								 rec.commit()
 								
@@ -3586,7 +3633,7 @@ or None if no match is found."""
 
 				# get a list of records we need to update
 				if recurse > 0:
-						if DEBUG: print "Del user recursive..."
+						#if DEBUG: print "Del user recursive..."
 						trgt = self.getchildren(recid, ctxid=ctxid, host=host, recurse=recurse - 1)
 						trgt.add(recid)
 				else : trgt = set((recid,))
@@ -3605,7 +3652,7 @@ or None if no match is found."""
 				# update each record as necessary
 				for i in trgt:
 						try:
-								rec = self.getrecord(i, ctxid, host=host)						 # get the record to modify
+								rec = self.getrecord(i, ctxid=ctxid, host=host)						 # get the record to modify
 						except: continue
 						
 						# if the user does not have administrative permission on the record
@@ -3668,10 +3715,10 @@ or None if no match is found."""
 				if hasattr(rec, "__iter__") and not isinstance(rec, Record):
 					ret = {}
 					recs = {}
-					recs.update([(i.recid, i) for i in self.getrecordsafe(rec, ctxid)])
+					recs.update([(i.recid, i) for i in self.getrecordsafe(rec, ctxid=ctxid, host=host)])
 					# convert to int to prevent infinite recursion
 					for i in recs:
-						ret[i] = self.getrecordrecname(i, ctxid, showrectype=showrectype, host=host)
+						ret[i] = self.getrecordrecname(i, ctxid=ctxid, showrectype=showrectype, host=host)
 
 					if returnsorted:
 						sl=[(k,recs[k].rectype+" "+v.lower()) for k,v in ret.items()]
@@ -3682,11 +3729,11 @@ or None if no match is found."""
 
 				if isinstance(rec, int):
 					try:
-							rec = self.getrecord(rec, ctxid)
+							rec = self.getrecord(rec, ctxid=ctxid, host=host)
 					except:
 							return "(permission denied)"
 						
-				value = self.renderview(rec, viewtype="recname", ctxid=ctxid)
+				value = self.renderview(rec, viewtype="recname", ctxid=ctxid, host=host)
 
 				if not value:
 					value = "(%s)"%(rec.recid)
@@ -3703,8 +3750,8 @@ or None if no match is found."""
 		def getrecordrenderedviews(self, recid, ctxid, host=None):
 				"""Render all views for a record."""
 				#self = db
-				rec = self.getrecord(recid, ctxid, host=host)
-				recdef = self.getrecorddef(rec["rectype"], ctxid, host=host)
+				rec = self.getrecord(recid, ctxid=ctxid, host=host)
+				recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
 				views = recdef.views
 				views["mainview"] = recdef.mainview
 				for i in views:
@@ -3723,14 +3770,14 @@ or None if no match is found."""
 				#self = db
 								
 				if type(rec) == int:
-						if self.trygetrecord(rec, ctxid):
-								rec = self.getrecord(rec, ctxid, host=host)
+						if self.trygetrecord(rec, ctxid=ctxid, host=host):
+								rec = self.getrecord(rec, ctxid=ctxid, host=host)
 						else:
 								print "renderview: permissions error %s" % rec
 								return ""
 								
 				if viewdef == None:
-						recdef = self.getrecorddef(rec["rectype"], ctxid, host=host)
+						recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
 						if viewtype == "mainview":
 								viewdef = recdef.mainview
 						else:
@@ -3757,7 +3804,7 @@ or None if no match is found."""
 								if paramdefs.has_key(name):
 										value = paramdefs[name].desc_short
 								else:
-										value = self.getparamdef(name).desc_short
+										value = self.getparamdef(name, ctxid=ctxid, host=host).desc_short
 								viewdef = viewdef.replace(u"$#" + match.group("name") + match.group("namesep"), value + match.group("namesep"))
 
 
@@ -3769,7 +3816,7 @@ or None if no match is found."""
 								if paramdefs.has_key(var):
 										vartype = paramdefs[var].vartype										
 								else:
-										vartype = self.getparamdef(var).vartype
+										vartype = self.getparamdef(var, ctxid=ctxid, host=host).vartype
 
 								# vartype representations. todo: external function
 								value = rec[var]
@@ -3779,7 +3826,7 @@ or None if no match is found."""
 										ustr = []
 										for i in value:
 												try:
-														urec = self.getrecord(self.getuser(i, ctxid).record, ctxid)
+														urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
 														ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
 												except:
 														ustr.append(u"(%s)" % i)
@@ -3845,11 +3892,11 @@ or None if no match is found."""
 				"""Returns XML describing all, or a subset of the existing paramdefs"""
 				
 				ret = []
-				if names == None : names = self.getparamdefnames()
+				if names == None : names = self.getparamdefnames(ctxid=ctxid, host=host)
 				
 				# these lines are long for better speed despite their ugliness
 				for i in names:
-						pd = self.getparamdef(i)
+						pd = self.getparamdef(i, ctxid=ctxid, host=host)
 						# This should probably be modified to make sure all included strings are XML-safe
 						ret.append('<paramdef name="%s">\n	<vartype value="%s"/>\n	 <desc_short value="%s"/>\n	 <desc_long value="%s"/>\n' % (pd.name, pd.vartype, escape2(pd.desc_short), escape2(pd.desc_long)))
 						ret.append('	<property value="%s"/>\n	<defaultunits value="%s"/>\n	<creator value="%s"/>\n	 <creationtime value="%s"/>\n	 <creationdb value="%s"/>\n' % (pd.property, escape2(pd.defaultunits), pd.creator, pd.creationtime, pd.creationdb))
@@ -3860,14 +3907,14 @@ or None if no match is found."""
 										ret.append('	<choice>%s</choice>\n' % escape2(j))
 								ret.append('	</choices>\n')
 						
-						ch = self.getchildren(i, keytype="paramdef")
+						ch = self.getchildren(i, keytype="paramdef", ctxid=ctxid, host=host)
 						if ch and len(ch) > 0 :
 								ret.append('	<children>\n')
 								for j in ch:
 										ret.append('		<link name="%s"/>\n' % j)
 								ret.append('	</children>\n')
 								
-						csn = self.getcousins(i, keytype="paramdef")
+						csn = self.getcousins(i, keytype="paramdef", ctxid=ctxid, host=host)
 						if csn and len(csn) > 0 :
 								ret.append('	<cousins>\n')
 								for j in csn:
@@ -3882,10 +3929,10 @@ or None if no match is found."""
 		def getrecorddefxml(self, ctxid, names=None, host=None):
 				"""Returns XML describing all, or a subset of existing recorddefs"""
 				ret = []
-				if names == None : names = self.getrecorddefnames()
+				if names == None : names = self.getrecorddefnames(ctxid=ctxid, host=host)
 
 				for i in names:
-						try: rd = self.getrecorddef(i, ctxid, host=host)
+						try: rd = self.getrecorddef(i, ctxid=ctxid, host=host)
 						except: continue
 
 						ret.append('<recorddef name="%s">\n	 <private value="%d"/>\n	<owner value="%s"/>\n	 <creator value="%s"/>\n	<creationtime value="%s"/>\n	<creationdb value="%s"/>\n' % (i, rd.private, rd.owner, rd.creator, rd.creationtime, rd.creationdb))
@@ -3904,14 +3951,14 @@ or None if no match is found."""
 										ret.append('		<view name="%s">%s</view>\n' % (k, escape2(v)))
 								ret.append('	</views>\n')
 								
-						ch = self.getchildren(i, keytype="recorddef")
+						ch = self.getchildren(i, keytype="recorddef", ctxid=ctxid, host=host)
 						if len(ch) > 0 :
 								ret.append('	<children>\n')
 								for j in ch:
 										ret.append('		<link name="%s"/>\n' % j)
 								ret.append('	</children>\n')
 								
-						csn = self.getcousins(i, keytype="recorddef")
+						csn = self.getcousins(i, keytype="recorddef", ctxid=ctxid, host=host)
 						if len(ch) > 0 :
 								ret.append('	<cousins>\n')
 								for j in csn:
@@ -3928,10 +3975,10 @@ or None if no match is found."""
 				"""Returns XML describing all, or a subset of existing users"""
 				qc = {'"':'&quot'}
 				ret = []
-				if names == None : names = self.getusernames(ctxid, host=host)
+				if names == None : names = self.getusernames(ctxid=ctxid, host=host)
 				
 				for i in names:
-						try: u = self.getuser(i, ctxid, host=host)
+						try: u = self.getuser(i, ctxid=ctxid, host=host)
 						except: continue
 						ret.append('<user name="%s">\n' % i)
 						ret.append('	<password value="%s"/>\n	<disabled value="%d"/>\n	<privacy value="%d"/>\n	 <creator value="%s"/>\n	<creationtime value="%s"/>\n' % (u.password, u.disabled, u.privacy, u.creator, u.creationtime))
@@ -3963,10 +4010,10 @@ or None if no match is found."""
 				"""Returns XML describing all, or a subset of records"""
 				qc = {'"':'&quot'}
 				ret = []
-				if recids == None : recids = self.getindexbycontext(ctxid, host=host)
+				if recids == None : recids = self.getindexbycontext(ctxid=ctxid, host=host)
 
 				for i in recids:
-						try: rec = self.getrecord(i, ctxid, host=host)
+						try: rec = self.getrecord(i, ctxid=ctxid, host=host)
 						except: continue
 						
 						ret.append('<record name="%s" dbid="%s" rectype="%s">\n' % (i, str(rec.dbid), rec.rectype))
@@ -3997,14 +4044,14 @@ or None if no match is found."""
 						for j in rec["comments"]:
 								ret.append('	<comment user="%s" date="%s">%s</comment>\n' % (j[0], j[1], escape2(j[2])))
 						
-						ch = self.getchildren(i, keytype="record")
+						ch = self.getchildren(i, keytype="record", ctxid=ctxid, host=host)
 						if len(ch) > 0 :
 								ret.append('	<children>\n')
 								for j in ch:
 										ret.append('		<link name="%s"/>\n' % j)
 								ret.append('	</children>\n')
 								
-						csn = self.getcousins(i, keytype="record")
+						csn = self.getcousins(i, keytype="record", ctxid=ctxid, host=host)
 						if len(csn) > 0 :
 								ret.append('	<cousins>\n')
 								for j in csn:

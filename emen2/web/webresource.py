@@ -61,7 +61,7 @@ class WebResource(Resource):
 			session.ctxid = args["ctxid"][0]
 
 		try:
-			user=ts.db.checkcontext(session.ctxid,host)[0]
+			user=ts.db.checkcontext(ctxid=session.ctxid,host=host)[0]
 		except KeyError:
 			user=None
 			# only a few methods are available without login
@@ -80,7 +80,7 @@ class WebResource(Resource):
 				print "Set originalrequest to %s"%session.originalrequest
 
 				try:
-					session.ctxid=ts.db.login(request.args["username"][0],request.args["pw"][0],host=request.getClientIP())
+					session.ctxid=ts.db.login(request.args["username"][0],request.args["pw"][0],ctxid=None,host=request.getClientIP())
 
 				# Bad login
 				except ValueError, TypeError:
@@ -102,7 +102,7 @@ class WebResource(Resource):
 		if method == "logout":
 			session.ctxid = None
 			session.expire()
-			ts.db.deletecontext(session.ctxid)
+			ts.db.deletecontext(ctxid=session.ctxid,host=host)
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n<meta http-equiv="REFRESH" content="0; URL=/db/home?notify=4">"""					
 
 		module = getattr(emen2.TwistSupport_html.html,method)

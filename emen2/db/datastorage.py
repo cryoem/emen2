@@ -293,7 +293,8 @@ class ParamDef(DictMixin) :
 	#################################			
 
 	def __str__(self):
-		return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
+		return str(dict(self))
+		#return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 
 
 	#################################		
@@ -721,7 +722,11 @@ class Record(DictMixin):
 		if pd.property and isinstance(value,basestring):
 			print "______ checking units __________"
 			value,units=re.compile("([0-9.,]+)?(.*)").search(value).groups()
-			value=float(value)
+			try:
+				value=float(value)
+			except:
+				raise ValueError,"Data type error: Parameter %s=%s cannot be converted to %s"%(pd.name,value,pd.vartype)
+				
 			units=units.strip()
 			defaultunits=valid_properties[pd.property][0]
 
@@ -756,7 +761,7 @@ class Record(DictMixin):
 			if value != None:
 				value=valid_vartypes[pd.vartype][1](value)
 		except:
-			raise ValueError,"Error converting datatype: %s, %s"%(pd.name,pd.vartype)
+			raise ValueError,"Data type error: Parameter %s=%s cannot be converted to %s"%(pd.name,value,pd.vartype)
 	
 		if pd.vartype=="choice" and value!=None:
 			if value.lower() not in [i.lower() for i in pd.choices]:

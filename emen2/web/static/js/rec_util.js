@@ -175,9 +175,98 @@ function notify_post(uri,msgs) {
 
 //////////////////////////////////////////
 
+function home_form_approveusers_checkall(elem) {
+	$('input:radio[value=true]',$(elem.form)).each(function(){
+		$(this).attr("checked","true");
+	});
+}
+function home_form_approveusers_uncheckall(elem) {
+	$('input:radio[value=false]',$(elem.form)).each(function(){
+		$(this).attr("checked","false");
+	});
+}
 
 
+function home_form_approveusers(elem) {
+	var approve=[];
+	var reject=[];
+	var form=$(elem.form);
+	$('input:checked', form).each(function() {
+		if ($(this).val() == "true") {
+			approve.push($(this).attr("name"));
+		} else {
+			reject.push($(this).attr("name"));
+		}
+	});
+	//console.log(approve);
+	//console.log(reject);
 
+	if (approve.length > 0) {
+		$.jsonRPC("approveuser",[approve,ctxid],
+			function(data) {
+				notify("Approved users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$("#userqueue_"+data[i]).remove();
+				}
+			},
+			function(data) {
+				
+			}
+		);
+	};
+
+	if (reject.length > 0) {
+		$.jsonRPC("rejectuser",[reject,ctxid],
+			function(data) {
+				notify("Rejected users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$("#userqueue_"+data[i]).remove();
+				}				
+			},
+			function(data) {
+				
+			}
+		);
+	};
+
+}
+
+
+function home_form_chpasswd(elem) {
+	var form=$(elem.form);
+	var oldpass=form.find("input[name='oldpass']");
+	var newpass1=form.find("input[name='newpass1']");
+	var newpass2=form.find("input[name='newpass2']");
+	
+	if (newpass1.val() != newpass2.val()) {
+		notify("Passwords do not match");
+		newpass1.val("");
+		newpass2.val("");
+		return false
+		}
+	if (newpass1.val().length < 6) {
+		notify("Minimum 6 chars for password");
+		newpass1.val("");
+		newpass2.val("");
+		return false
+	}
+	
+
+	$.jsonRPC("setpassword",[username,oldpass.val(),newpass1.val(),ctxid], 
+		function(data) {
+			//console.log("ok");
+			//console.log(data)
+			notify_post("/db/home/",["Password Updated Successfully"]);
+		},
+		function(data) {
+			//console.log("fail");
+			//console.log(data)
+			notify("Incorrect Password");
+			form.find("input[name='oldpass']").val("")
+		}
+	);
+
+}
 
 /////////////////////////////////////////
 
@@ -224,6 +313,7 @@ function toggle_record_menu(elem) {
 
 function record_permissions_toggle(elem) {
 	toggle_record_menu(elem);
+	//var target=$("#record_editbar_menu_permissions");	
 	var target=$(elem).siblings(".record_editbar_hidden");				
 
 	if (permissionscontrol==null) {
@@ -313,7 +403,7 @@ function newrecord_getoptionsandcommit(self, values) {
 		parents,
 		function(recid){
 			//window.location='/db/record/'+recid
-			notify_post(window.location.pathname,["Changes Saved"]);
+			notify_post('/db/record/'+recid,["Record Saved"]);
 		}
 	);
 	
@@ -347,7 +437,7 @@ function commit_newrecord(self, values,parents,cb,self) {
 		}
 	});
 	
-	$.jsonRPC("putrecord", [rec_update,ctxid, parents],
+	$.jsonRPC("putrecord", [rec_update, ctxid, parents],
 		function(json){
 			cb(json);
 		},

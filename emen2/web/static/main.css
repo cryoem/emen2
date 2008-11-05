@@ -1,3 +1,73 @@
+
+.shaded td {
+	background:#ccc;
+}
+
+/***************/
+
+.home_opts {
+	float:left;
+	width:240px;
+	padding:20px;
+	border-right:solid 1px #ccc;
+}
+
+.home_info {
+	float:left;
+	width:700px;
+	padding:20px;
+}
+.home_info .small {
+	padding-top:10px;
+	border-bottom:solid 1px #ccc;
+}
+.home_info p {
+	margin:4px;
+	margin-bottom:10px;
+}
+.home_userinfo_name {
+	font-size:20pt;
+	margin-bottom:10px;
+	border-bottom:dashed 1px #ccc;
+}
+
+
+
+.home_opts img {
+	padding:20px;
+	width:200px;
+}
+.home_opts_opts {
+	margin-top:20px;
+}
+.home_userinfo_noimg {
+	width:160px;
+	height:260px;
+	margin-right:20px;
+	background:white;
+	padding:20px;
+	border:solid 1px #ccc;
+}
+#home_upload_person_photo {
+	display:none;
+}
+
+
+.home_projects {
+	margin-top:50px;
+}	
+
+
+.home_admin_userqueue_table th, .admin_userlist th {
+	padding:5px;
+	text-align:left;
+	font-weight:normal;
+	border-bottom:solid 1px #CCC;
+}
+
+/***************/
+
+
 .relationshipcontrol_pc span {
 	padding:4px;
 }
@@ -120,7 +190,7 @@ td .editable:hover {
 	z-index:6;
 }
  .record_editbar div:last-child {
-	border-right:none;
+	/*border-right:none;*/
 } 
 .record_editbar_img {
 	vertical-align:middle;
@@ -136,8 +206,9 @@ td .editable:hover {
 	border-bottom:solid #CCC 1px;
 }
 .record_editbar_no_border_bottom {
-	border-top:solid #CCC 1px;
-	border-bottom:none;
+	border-top:solid #CCC 3px;
+	border-left:solid #CCC 2px;
+	border-right:solid #CCC 3px;
 }
 .record_editbar_hidden {
 	padding:10px;
@@ -151,10 +222,10 @@ td .editable:hover {
 	overflow:auto;
 	background:white;
 	top:44px;
-	margin-left:-5px;
-	border:solid 1px #ccc;
+	margin-left:-7px;
+	margin-top:0px;
+	border:solid 3px #CCC;
 	border-top:none;
-	z-index:5;
 	padding:10px;
 }
 #record_editbar_menu_relationships {
@@ -539,7 +610,7 @@ html,body {
 	background: #BBD9EE; /* #DCEFEE #D3C7A6; */
 }
 #bottom {
-	background:#DCEFEE; 
+	background:#BBD9EE; 
 	font-size:10px;
 	position:absolute;
 	bottom:0px;
@@ -930,6 +1001,9 @@ TEXT ELEMENTS
 
 .small { 
 	line-height:120%;
+	font-size:10pt;
+}
+.small2 {
 	font-size:10pt;
 }
 

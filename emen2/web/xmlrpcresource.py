@@ -32,7 +32,7 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		request.finish()
 	
 	def finish_request(self, result, db, request):
-		db.close()
+		#request.close()
 		request.finish()
 		
 		
@@ -48,52 +48,52 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		host = request.getClientIP()
 		kwargs={"host":host}
 
-		print "\n\n=== xmlrpc === %s \n %s \n %s"%(method, args, kwargs)
+		print "\n\n=== xmlrpc === %s \n %s : %s"%(method, args, kwargs)
 
 
 		request.setHeader("content-type", "text/xml")
 		
-		d = threads.deferToThread(self.action, method, args, **kwargs)
+		d = threads.deferToThread(self.action, method, args, kwargs)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET 
 
-
+		
 	def __enc(self, value):
 		if isinstance(value, (emen2.Database.Record, emen2.Database.RecordDef, emen2.Database.ParamDef, emen2.Database.User, emen2.Database.WorkFlow)):
-			return dict(value)
+			return self.__enc(dict(value))
 
 		elif hasattr(value,"items"):
+			v2={}
 			for k,v in value.items():
-				value[k]=self.__enc(v)
-			return value
+				v2[str(k)]=self.__enc(v)
+			return v2
 
 		elif hasattr(value,"__iter__"):
 			ret=[]
 			for i in value:
 				ret.append(self.__enc(i))
 			return ret
-			
+				
 		return value		
 
 
-	def action(self, method, args, db=None, host=None):
-		print 'xmlrpc request'
+	def action(self, method, args, kwargs, db=None):
 		method_ = db.publicmethods.get(method, None)
 		if method_ is not None:
-			result = method_(db, *args)
+			result = method_(db, *args, **kwargs)
 		else:
 			raise NotImplementedError('remote method %s not implemented' % method)
 
 		allow_none = True
 
 		try:
-			print "result:"
+			#print "result:"
 			#print result
-			print "encoding.."
+			#print "encoding.."
 			result = self.__enc(result)
 			#print result
-			print "... to xmlrpc"
+			#print "... to xmlrpc"
 			if not isinstance(result, tuple):
 				result = (result,)
 			result = xmlrpclib.dumps(result, methodresponse=1, allow_none=allow_none)

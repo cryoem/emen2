@@ -128,7 +128,7 @@ def dicttableview(rec,params=[]):
 ###################################################
 # Preparse views for web display (important)
 
-def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None,ctxid=None):
+def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None,ctxid=None,host=None):
 	"""Add HTML markup to a record def view, including editing markup if requested."""
 
 	editclass=""
@@ -153,7 +153,7 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None,ctxid=No
 		######## $$variables #######
 		elif match.group("var1"):
 			if not paramdefs.has_key(match.group("var1")):
-				paramdefs[match.group("var1")] = db.getparamdef(match.group("var1"))
+				paramdefs[match.group("var1")] = db.getparamdef(match.group("var1"), ctxid=ctxid, host=host)
 			
 			pd=paramdefs[match.group("var1")]
 			v=rec[match.group("var1")]

@@ -46,7 +46,7 @@ class PublicView(Resource):
 			name, _, val = key.rpartition('_')
 			sdict = {} 
 			key=str(key)
-			print "process key %s"%key
+			#print "process key %s"%key
 			if val.isdigit():
 				res = result.get(name, [])
 				res.append(args[key][0])
@@ -135,7 +135,7 @@ class PublicView(Resource):
 		pw = request.args.get('pw', [''])[0]
 		## check credentials
 		## if username is not associated with the ctxid passed, log user in
-		authen.authenticate(username, pw, ctxid)
+		authen.authenticate(username, pw, ctxid, host=host)
 		ctxid, un = authen.get_auth_info()
 		#print "==authen.get_auth_info=="
 		#print ctxid,un
@@ -161,7 +161,8 @@ class PublicView(Resource):
 		
 		return target
 	
-	def finish_request(self, request): request.finish()
+	def finish_request(self, request):
+		request.finish()
 	
 	def render(self, request):
 		ctxid, host = None, request.getClientIP()
@@ -206,10 +207,10 @@ class PublicView(Resource):
 				return redirectTo('/db/home/', request).encode('utf-8')
 			elif method == "login":
 				callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
-				callback = callback(db=ts.db, host=request.host, ctxid='', msg=tmp.get('msg', msg))
+				callback = callback(db=ts.db, host=host, ctxid='', msg=tmp.get('msg', msg))
 				return str(callback)
 			else:
-				print tmp
+				#print tmp
 				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **tmp)
 				
 			def batch(*args, **kwargs):
@@ -217,10 +218,12 @@ class PublicView(Resource):
 				 helper function for batching... 
 				 returns a list (result, mime-type)
 				'''
-				return list(callback(*args, **kwargs))
+				print "batch"
+				a=list(callback(*args, **kwargs))
+				print a
+				return a
 
-
-			d = threads.deferToThread(batch)
+			d = threads.deferToThread(callback)
 			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
 			d.addErrback(self._ebRender, request, ctxid)
 			return server.NOT_DONE_YET
@@ -255,7 +258,7 @@ class PublicView(Resource):
 			print "::: time total: %s"%(time.time()-t)
 
 
-			print  headers["content-type"]
+			#print  headers["content-type"]
 			if headers["content-type"] in ["image/jpeg","image/png"]:
 				headers['content-length'] = len(result)
 				request.write(result)
@@ -264,9 +267,14 @@ class PublicView(Resource):
 				headers['content-length'] = len(result)
 				request.write(result)
 
-		finally: 
-			self.finish_request(request)
+		except Exception, inst:
+			print inst
+			print "wtf?"
 
+		#finally: 
+		#	self.finish_request(request)
+		request.finish()
+		#request.close()
 		
 		
 	def _ebRender(self, failure, request, ctxid):
@@ -285,10 +293,10 @@ class PublicView(Resource):
 						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),
 						'db': ts.db,
 						'ctxid': ctxid,
-						'host': request.host
+						'host': request.getClientIP()
 					   }
 				#data = "Permission Denied"
-				print args
+				#print args
 				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 	
 			except Exception, e:

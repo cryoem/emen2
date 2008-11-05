@@ -92,6 +92,7 @@ class UploadResource(Resource):
 			
 	def render_PUT(self, request, filename=None, filedata=None):
 		
+				
 		host = request.getClientIP()
 		args = request.args
 		request.postpath = filter(bool, request.postpath)		
@@ -99,14 +100,20 @@ class UploadResource(Resource):
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
 		authen = auth.Authenticator(db=ts.db, host=host)
-		authen.authenticate(username, pw, ctxid)
+		authen.authenticate(username, pw, ctxid, host=host)
 		ctxid, un = authen.get_auth_info()
 		
-		print "\n\n=== upload request === %s :: %s"%(request.postpath, ctxid)
+		if filename==None:
+			if args.has_key("name"):
+				filename=args["name"][0].split("/")[-1].split("\\")[-1]
+			else:
+				filename="No_Filename_Specified"
 		
 		recid = int(request.postpath[0])
 		param = str(args.get("param",["file_binary"])[0]).strip().lower()		
 		redirect = args.get("redirect",[0])[0]
+
+		print "\n\n=== upload request === %s, %s, filename=%s, recid=%s, param=%s"%(username, host, filename, recid, param)
 
 		d = threads.deferToThread(self.RenderWorker, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)		
 		d.addCallback(self._cbRender, request)
@@ -116,19 +123,19 @@ class UploadResource(Resource):
 		
 	def RenderWorker(self, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
 
-		rec=db.getrecord(recid,ctxid)
+		rec=db.getrecord(recid,ctxid=ctxid,host=host)
 
 		if not rec.commentable():
 			raise SecurityError,"Cannot add file to record %s"%recid
 		
-		pd=db.getparamdef(param)
+		pd=db.getparamdef(param,ctxid=ctxid,host=host)
 
 		###################
 		# New file
 		print "Get binary..."
 		# fixme: use basename and splitext
 		print filename
-		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),filename.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
+		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),filename,rec.recid,ctxid=ctxid,host=host)
 
 		print "Writing file... %s"%a[1]
 
@@ -157,13 +164,14 @@ class UploadResource(Resource):
 			if not isinstance(v, list):
 				v=[v]
 			v.append("bdo:%s"%a[0])
+			rec[param]=v
+
 
 		else:
 			raise ValueError,"Param %s does not accept attachments"%param
 
-		rec[param]=v
 			
-		db.putrecord(rec,ctxid)			
+		db.putrecord(rec,ctxid=ctxid,host=host)			
 			
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=/db/record/%s">"""%recid
@@ -174,7 +182,7 @@ class UploadResource(Resource):
 	def _cbRender(self,result,request):
 		request.setHeader("content-length", str(len(result)))
 		request.write(result)
-		#request.finish()
+		request.finish()
 		
 
 	def _ebRender(self,failure,request):
@@ -192,18 +200,18 @@ class UploadResource(Resource):
 		if args.has_key("name"): 
 			name = args["name"][0]
 		else:
-			user=db.checkcontext(ctxid)[0]
+			user=db.checkcontext(ctxid=ctxid,host=host)[0]
 			name = user + " " + time.strftime("%Y/%m/%d %H:%M:%S")
 
 
 		recid = int(path[0])
-		rec = db.getrecord(recid,ctxid)
+		rec = db.getrecord(recid,ctxid=ctxid,host=host)
 				
 				
 		###################################		
 		# Append to file, or make new file.
 		if args.has_key("append"):
-			a = db.getbinary(args["append"][0],ctxid)
+			a = db.getbinary(args["append"][0],ctxid=ctxid,host=host)
 			print "Appending to %s..."%a[1]
 			outputStream = open(a[1], "ab")
 
@@ -220,7 +228,7 @@ class UploadResource(Resource):
 		# New file
 		print "Get binary..."
 		# fixme: use basename and splitext
-		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),name.split("/")[-1].split("\\")[-1],rec.recid,ctxid)
+		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),name.split("/")[-1].split("\\")[-1],rec.recid,ctxid=ctxid,host=host)
 		print a
 
 		print "Writing file... %s"%a[1]
@@ -245,7 +253,7 @@ class UploadResource(Resource):
 				rec[param] = [rec[param]]
 			rec[param].append("bdo:%s"%a[0])
 			
-		db.putrecord(rec,ctxid)
+		db.putrecord(rec,ctxid=ctxid,host=host)
 
 		if args.has_key("redirect"):
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">

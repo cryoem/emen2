@@ -32,7 +32,7 @@ class JSONResource(Resource):
 		request.finish()
 	
 	def finish_request(self, result, db, request):
-		db.close()
+		#db.close()
 		request.finish()
 		
 
