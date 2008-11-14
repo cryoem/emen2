@@ -75,6 +75,10 @@ $.postJSON = function(uri,data,callback,errback) {
 }
 
 $.jsonRPC = function(method,data,callback,errback) {
+	if (errback==null) {
+		errback=function(error){notify("Error: "+error.responseText)};
+	}
+	
 	$.ajax({
     type: "POST",
     url: "/json/"+method,

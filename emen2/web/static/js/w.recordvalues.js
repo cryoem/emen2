@@ -260,7 +260,7 @@ widget.prototype = {
 		} else if (paramdefs[this.param]["vartype"]=="datetime") {
 		
 			this.editw=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
-			this.popup=new DateInput(this.editw);
+			//this.popup=new DateInput(this.editw);
 			this.editw.change(function(){self.changed=1;});
 			this.w.append(this.editw);				
 

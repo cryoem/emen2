@@ -505,7 +505,9 @@ permissions.prototype = {
 					//console.log("ajax queue done");
 					self.reinit();
 				}
-			});
+			}
+			
+			);
 
 		}
 
@@ -516,12 +518,14 @@ permissions.prototype = {
 				if (ajaxqueue["record_permissions_save"]==0) {
 					self.reinit(permissions);
 				}
-			});		
+			}
+			);		
 
 
 	},
 	
 	reinit: function(list) {
+		// ian todo: reget record
 		notify("Saved Permissions");
 		// reinit inituserstate;
 		this.list=this.getlist();

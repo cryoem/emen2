@@ -1,8 +1,25 @@
+.imgbutton {
+	padding:2px;
+	background:#eee;
+	border:solid 1px #ccc;
+}
+.imgbutton img {
+	vertical-align:middle;
+	margin:2px;
+}
 
+td {
+	vertical-align:top;
+}
+.autherror {
+	color:red;
+}
 .shaded td {
 	background:#ccc;
 }
-
+.recordtable {
+	background:white;
+}
 /***************/
 
 .home_opts {
@@ -14,7 +31,7 @@
 
 .home_info {
 	float:left;
-	width:700px;
+	/*width:700px;*/
 	padding:20px;
 }
 .home_info .small {
@@ -58,7 +75,7 @@
 }	
 
 
-.home_admin_userqueue_table th, .admin_userlist th {
+.admin_userqueue_table th, .admin_userlist th {
 	padding:5px;
 	text-align:left;
 	font-weight:normal;
@@ -153,9 +170,11 @@
 	border:solid 4px #FF8135;	
 }
 
-.page_comments, .page_attachments {
+.page_comments, .page_attachments, .page_query1, .page_query2 {
 	width:800px;
 }
+
+
 
 #page_comments_relationships .map {
 	width:100%;
@@ -189,7 +208,7 @@ td .editable:hover {
 	/* border:solid 1px #CCC; */
 	z-index:6;
 }
- .record_editbar div:last-child {
+.record_editbar div:last-child {
 	/*border-right:none;*/
 } 
 .record_editbar_img {
@@ -793,7 +812,9 @@ PAGE / TAB
 	padding-bottom:0px;
 }
 
-
+.page_newrecord {
+	background:none;
+}
 
 /* 
 =============================================================

@@ -679,9 +679,9 @@ class Record(DictMixin):
 			
 		if not self.__ptest[2]:
 			if cp != ["comments"]:
-				raise SecurityError,"Insufficient permission to change field values (%d)"%record.recid
+				raise SecurityError,"Insufficient permission to change field values (%d)"%self.recid
 			if not p[1]:
-				raise SecurityError,"Insufficient permission to add comments to record (%d)"%record.recid
+				raise SecurityError,"Insufficient permission to add comments to record (%d)"%self.recid
 				
 					
 	def validate_recid(self):
@@ -752,9 +752,12 @@ class Record(DictMixin):
 
 			try:
 				# convert units
+				#print valid_properties
+				#print pd.property
+				#print valid_properties[pd.property]
 				value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
 				print "newval: %s"%value
-			except:
+			except Exception, inst:
 				raise ValueError,"Unable to convert %s = %s; skipping value"%(pd.name,value)
 
 		try:

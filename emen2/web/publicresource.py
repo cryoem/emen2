@@ -236,8 +236,9 @@ class PublicView(Resource):
 	def _cbsuccess(self, result, request, ctxid, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
 
-		try:
+#		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
+		if 1:
 			t1=time.time()
 			#very important do not change
 			headers = {"content-type": "text/html; charset=utf-8",
@@ -267,9 +268,9 @@ class PublicView(Resource):
 				headers['content-length'] = len(result)
 				request.write(result)
 
-		except Exception, inst:
-			print inst
-			print "wtf?"
+		#except Exception, inst:
+		#	print inst
+		#	print "wtf?"
 
 		#finally: 
 		#	self.finish_request(request)
@@ -287,7 +288,8 @@ class PublicView(Resource):
 				if isinstance(failure, BaseException): raise
 				else: failure.raiseException()
 			except (Database.exceptions.SecurityError, 
-					Database.exceptions.SessionError), e:
+				Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
+					
 				request.setResponseCode(401)
 				args = {'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
 						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),

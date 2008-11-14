@@ -37,7 +37,6 @@ TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
 
 
-
 class DBProxy2:
 		def __init__(self, db, ctxid, host):
 				self.db = db
@@ -1403,8 +1402,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 			recs=self.getrecordsafe(records, ctxid=ctxid, host=host)
 			ret={}
 			for i in recs:
-				if not ret.has_key(i.rectype): ret[i.rectype]=[i.recid]
-				else: ret[i.rectype].append(i.recid)
+				if not ret.has_key(i.rectype): ret[i.rectype]=set([i.recid])
+				else: ret[i.rectype].add(i.recid)
 			return ret
 				
 				
@@ -1421,9 +1420,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 						#print i
 						j = self.__recorddefbyrec[i]		# security checked above
 						if r.has_key(j):
-								r[j].append(i)
+								r[j].add(i)
 						else:
-								r[j] = [i]
+								r[j] = set([i])
 				return r
 
 
@@ -1842,28 +1841,56 @@ parentheses not supported yet. Upon failure returns a tuple:
 				self.LOG(0, "unlink %s: %s <-> %s by user %s" % (keytype, key1, key2, ctx.user))
 				return r
 				
-
+				
 		#@write,admin
 		@publicmethod
 		def disableuser(self, username, ctxid, host=None):
-				"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
-				a complete historical record is maintained. Only an administrator can do this."""
-				#self = db
+			"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
+			a complete historical record is maintained. Only an administrator can do this."""
+			return self.__userstate(username, 1, ctxid, host)
+		
+		@publicmethod
+		def enableuser(self, username, ctxid, host=None):
+			return self.__userstate(username, 0, ctxid, host)
 
-				username = str(username)
 
-				ctx = self.__getcontext(ctxid, host)
-				#if not -1 in ctx.groups :
-				if not self.checkadmin(ctx):
-						raise SecurityError, "Only administrators can disable users"
+		def __userstate(self, username, state, ctxid, host=None):
+			"""Set user enabled/disabled. 0 is enabled. 1 is disabled."""
 
-				if username == ctx.user : raise SecurityError, "Even administrators cannot disable themselves"
-						
-				user = self.__users[username]
-				user.disabled = 1
-				self.__users[username] = user
-				self.LOG(0, "User %s disabled by %s" % (username, ctx.user))
+			if state not in [0,1]:
+				raise Exception, "Invalid state. Must be 0 or 1."
 
+			ctx = self.__getcontext(ctxid, host)
+			if not self.checkadmin(ctx):
+					raise SecurityError, "Only administrators can disable users"
+
+			if not hasattr(username, "__iter__"):
+				username=[username]
+				
+			ret=[]
+			for i in username:
+				if i == ctx.user:
+					continue
+				#	raise SecurityError, "Even administrators cannot disable themselves"
+				i=str(i)
+				user = self.__users[i]
+				if user.disabled == state:
+					continue
+				
+				user.disabled = int(state)
+				self.__users[i] = user
+				ret.append(i)
+				
+				if state:
+					self.LOG(0, "User %s disabled by %s" % (username, ctx.user))
+				else:
+					self.LOG(0, "User %s enabled by %s" % (username, ctx.user))
+			
+			if len(ret)==0: return None
+			#if len(ret)==1: return ret[0]
+			return ret
+					
+					
 
 		#@write,admin
 		@publicmethod
@@ -1885,7 +1912,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 			username = str(username)
 
-			return username
+			#return username
 							
 			if not username in self.__newuserqueue :
 				raise KeyError, "User %s is not pending approval" % username
@@ -1905,8 +1932,18 @@ parentheses not supported yet. Upon failure returns a tuple:
 				userrec["name_middle"] = user.name[1]
 				userrec["name_last"] = user.name[2]
 				userrec["email"] = user.email
+
+				p=userrec["permissions"]
+				p=(p[0]+(-3,),p[1],p[2],p[3])
+				userrec["permissions"]=p
+
+				for k,v in user.signupinfo.items():
+					userrec[k]=v
+
 				recid = self.putrecord(userrec, ctxid=ctxid, host=host)
 				user.record = recid
+				user.signupinfo=None
+				
 			user.validate()
 
 			txn = self.newtxn()
@@ -1922,7 +1959,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 		def rejectuser(self, username, ctxid, host=None):
 			"""Remove a user from the pending new user queue - only an administrator can do this"""
 			#self = db
-				
 
 			ctx = self.__getcontext(ctxid, host)
 
@@ -1939,7 +1975,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 			username = str(username)
 
-			return username
+			#return username
 								
 			if not username in self.__newuserqueue :
 				raise KeyError, "User %s is not pending approval" % username
@@ -1951,9 +1987,12 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 		@publicmethod
 		def getuserqueue(self, ctxid, host=None):
-				"""Returns a list of names of unapproved users"""
-				#self = db
-				return self.__newuserqueue.keys()
+			"""Returns a list of names of unapproved users"""
+			#self = db
+			ctx = self.__getcontext(ctxid, host)				
+			if not self.checkadmin(ctx):
+				raise SecurityError, "Only administrators can approve new users"				
+			return self.__newuserqueue.keys()
 
 
 		def getnewuser(self, username, ctxid, host=None):
@@ -2222,6 +2261,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				"""Not clear if this is a security risk, but anyone can get a list of usernames
 						This is likely needed for inter-database communications"""
 				#self = db
+				ctx = self.__getcontext(ctxid, host)
+				if ctx.user == None: return
+				
 				return self.__users.keys()
 
 
@@ -2231,6 +2273,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# delete this method; no longer used
 		def findusername(self, name, ctxid, host=None):
 				"""This will look for a username matching the provided name in a loose way"""
+
+				ctx = self.__getcontext(ctxid, host)
+				if ctx.user == None: return
 
 				name = str(name)
 				if self.__users.has_key(name) : return name
@@ -3495,6 +3540,7 @@ or None if no match is found."""
 				# all users
 				userset = set(self.getusernames(ctxid=ctxid, host=host)) | set((- 4, - 3, - 2, - 1))
 
+
 				#print userset
 				#print usertuple
 
@@ -3510,6 +3556,10 @@ or None if no match is found."""
 						isroot = 1
 				else:
 						isroot = 0
+
+				rec=self.getrecord(recid,ctxid=ctxid,host=host)
+				if ctx.user not in rec["permissions"][3] and not isroot:
+					raise SecurityError,"Insufficient permissions for record %s"%recid
 				
 				# this will be a dictionary keyed by user of all records the user has
 				# just gained access to. Used for fast index updating
@@ -3869,7 +3919,6 @@ or None if no match is found."""
 								viewdef = viewdef.replace(u"$@" + match.group("macro1") + u"(" + m2 + u")" + match.group("macrosep"), value + match.group("macrosep"))
 
 				return viewdef
-
 
 
 		# Extensive modifications by Edward Langley
