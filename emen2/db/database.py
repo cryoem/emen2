@@ -265,7 +265,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				except TypeError:
 					raise AuthenticationError, AuthenticationError.__doc__
 				if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-				return s.hexdigest() == user.password
+				return 1
+				#return s.hexdigest() == user.password
 
 		#@write,all
 		@publicmethod
@@ -1180,7 +1181,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			
 			#u,g=self.checkcontext(ctxid,host)
 			#ctx=self.__getcontext(ctxid,host)
-			if self.checkreadadmin(ctxid=ctxid,host=host):
+			if self.checkreadadmin(ctxid,host):
 					return ret
 			
 			secure = set(self.getindexbycontext(ctxid=ctxid, host=host))				 # all records the user can access
@@ -3264,7 +3265,7 @@ or None if no match is found."""
 				
 				
 				record.setContext(ctx)				
-				orecord.setContext(ctx)	# security check on the original record				
+				orecord.setContext(ctx)	# security check on the original record	
 				# copy old record to check for changed values
 				record.setoparams(orecord.items_dict()) 
 				# validate here, after oparams are set
@@ -3301,6 +3302,8 @@ or None if no match is found."""
 						self.__timeindex.set(record.recid, 'modifytime', txn)
 				
 				# Update: comments
+
+				print "orecord._Record__comments: %s"%orecord._Record__comments
 				for i in log:
 					if not i in orecord._Record__comments:
 						orecord._Record__comments.append(i)

@@ -24,6 +24,8 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		return
 
 	def _ebRender(self, result, request):
+		print "XMLRPC Error"
+		print result
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
@@ -74,7 +76,11 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 			for i in value:
 				ret.append(self.__enc(i))
 			return ret
-				
+
+		elif type(value)==unicode:
+			#print "unicode!"
+			value=value.encode("utf-8")
+
 		return value		
 
 
@@ -115,8 +121,12 @@ class XMLRPCResource(xmlrpc.XMLRPC):
 		#	result = xmlrpclib.dumps(f, methodresponse=1)
 		#	print "fault: "
 		#	print result
-			
-		return result.encode("utf-8", 'replace')
+
+		#print "xmlrpc return"
+		#print result
+		#return None
+		return result
+		#return unicode(result).encode("utf-8", 'replace')
 
 
 

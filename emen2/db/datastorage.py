@@ -627,7 +627,8 @@ class Record(DictMixin):
 		
 		self.recid=kwargs.get('recid')
 		self.rectype=kwargs.get('rectype', '')				
-		self.__comments=kwargs.get('comments',[])			
+		self.__comments=kwargs.get('comments',[]) or []
+		print "__INIT__ COMMENTS: %s"%self.__comments
 		self.__creator=kwargs.get('creator',0)
 		self.__creationtime=kwargs.get('creationtime')
 		self.__permissions=kwargs.get('permissions',((),(),(),()))
@@ -719,13 +720,17 @@ class Record(DictMixin):
 		#print "property: %s"%pd.property
 		#print "defaultunits: %s"%pd.defaultunits
 
+		if hasattr(value,"__len__"):
+			if len(value)==0:
+				value=None
+
 		if pd.property and isinstance(value,basestring):
 			print "______ checking units __________"
 			value,units=re.compile("([0-9.,]+)?(.*)").search(value).groups()
 			try:
 				value=float(value)
 			except:
-				raise ValueError,"Data type error: Parameter %s=%s cannot be converted to %s"%(pd.name,value,pd.vartype)
+				raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
 				
 			units=units.strip()
 			defaultunits=valid_properties[pd.property][0]
@@ -764,7 +769,7 @@ class Record(DictMixin):
 			if value != None:
 				value=valid_vartypes[pd.vartype][1](value)
 		except:
-			raise ValueError,"Data type error: Parameter %s=%s cannot be converted to %s"%(pd.name,value,pd.vartype)
+			raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
 	
 		if pd.vartype=="choice" and value!=None:
 			if value.lower() not in [i.lower() for i in pd.choices]:
@@ -1048,6 +1053,8 @@ class Record(DictMixin):
 		return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
 
 	def setoparams(self,d):
+		# ian: fix this more elegantly..
+		self.rectype=d["rectype"]
 		self.__oparams=d.copy()
 
 	def isowner(self):
