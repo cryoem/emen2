@@ -265,8 +265,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				except TypeError:
 					raise AuthenticationError, AuthenticationError.__doc__
 				if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-				return 1
-				#return s.hexdigest() == user.password
+				return s.hexdigest() == user.password
 
 		#@write,all
 		@publicmethod

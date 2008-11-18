@@ -244,16 +244,13 @@ class PublicView(Resource):
 		headers = {"content-type": "text/html; charset=utf-8",
 				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
 
-		#try:
 		result, content_headers = result
-		print result
-		#print type(result)
-		#result = unicode(result)
-		#result = unicode(result).encode('utf-8')		
-		#print result
-		#except ValueError:
-		#	pass
-		
+
+		try:
+			result = unicode(result).encode('utf-8')		
+		except:
+			result = str(result)		
+
 		headers['content-type'] = content_headers
 		headers['content-length'] = len(result)
 
