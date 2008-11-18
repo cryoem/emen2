@@ -250,28 +250,26 @@ class PublicView(Resource):
 		#result = unicode(result)
 		#result = unicode(result).encode('utf-8')		
 		#print result
-		headers['content-type'] = content_headers
 		#except ValueError:
 		#	pass
+		
+		headers['content-type'] = content_headers
+		headers['content-length'] = len(result)
 
+		print "HEADERS"
+		print headers
 
 		request.setResponseCode(200)
 		[request.setHeader(key, headers[key]) for key in headers]
 		print "::: time total: %s"%(time.time()-t)
 
 
-
-		headers['content-length'] = len(result)
-		
 		if headers["content-type"] in ["image/jpeg","image/png"]:
 			request.write(result)
 		else:
 			result = unicode(result).encode('utf-8')
 			request.write(result)
-
-		print "HEADERS"
-		print headers
-
+			
 		#except Exception, inst:
 		#	print inst
 		#	print "wtf?"
