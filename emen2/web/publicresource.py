@@ -246,7 +246,7 @@ class PublicView(Resource):
 
 		#try:
 		result, content_headers = result
-		print result
+		print type(result)
 		#result = unicode(result)
 		headers['content-type'] = content_headers
 		#except ValueError:
