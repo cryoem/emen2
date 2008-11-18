@@ -261,13 +261,12 @@ class PublicView(Resource):
 
 			print "HEADERS"
 			print headers
-			#print  headers["content-type"]
+			headers['content-length'] = len(result)
+			
 			if headers["content-type"] in ["image/jpeg","image/png"]:
-				headers['content-length'] = len(result)
 				request.write(result)
 			else:
 				result = unicode(result).encode('utf-8')
-				headers['content-length'] = len(result)
 				request.write(result)
 
 		#except Exception, inst:
