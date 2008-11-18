@@ -277,7 +277,7 @@ class PublicView(Resource):
 		#finally: 
 		#	self.finish_request(request)
 		print "REQUEST FINISH"
-		#request.finish()
+		request.finish()
 		#request.close()
 		
 		
