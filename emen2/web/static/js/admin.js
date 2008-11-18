@@ -86,8 +86,8 @@ function admin_userstate_form(elem) {
 		}
 	});
 	
-	console.log(enable);
-	console.log(disable);
+	//console.log(enable);
+	//console.log(disable);
 	//return
 	
 	if (enable.length > 0) {
@@ -97,7 +97,7 @@ function admin_userstate_form(elem) {
 					notify("Enabled users: "+data);
 					for (var i=0;i<data.length;i++) {
 						admin_userstate_cache[data[i]]=0;
-						console.log(admin_userstate_cache[data[i]]);
+						//console.log(admin_userstate_cache[data[i]]);
 					}
 				}
 			}
@@ -111,7 +111,7 @@ function admin_userstate_form(elem) {
 					notify("Disabled users: "+data);
 					for (var i=0;i<data.length;i++) {
 						admin_userstate_cache[data[i]]=1;
-						console.log(admin_userstate_cache[data[i]]);						
+						//console.log(admin_userstate_cache[data[i]]);						
 					}					
 				}
 			}

@@ -25,7 +25,7 @@ ajaxqueue={};
 function getctxid() {
 	name="ctxid";
 	var nameEQ = name + "=";
-	console.log(document.cookie);
+	//console.log(document.cookie);
 	var ca = document.cookie.split(';');
 	for(var i=0;i < ca.length;i++) {
 		var c = ca[i];
@@ -211,7 +211,7 @@ function toggle_record_menu(elem) {
 	//elem.data("active",elem.data("active") ? 0 : 1);
 
 	if (state) {
-		console.log("show");
+		//console.log("show");
 		elem.parent().addClass("record_editbar_no_border_bottom");	
 		elem.parent().removeClass("record_editbar_border_bottom");	
 		elem.siblings(".record_editbar_hidden").show();

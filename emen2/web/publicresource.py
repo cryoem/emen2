@@ -254,8 +254,8 @@ class PublicView(Resource):
 		headers['content-type'] = content_headers
 		headers['content-length'] = len(result)
 
-		print "HEADERS"
-		print headers
+		#print "HEADERS"
+		#print headers
 
 		request.setResponseCode(200)
 		[request.setHeader(key, headers[key]) for key in headers]
@@ -274,7 +274,7 @@ class PublicView(Resource):
 
 		#finally: 
 		#	self.finish_request(request)
-		print "REQUEST FINISH"
+		#print "REQUEST FINISH"
 		request.finish()
 		#request.close()
 		

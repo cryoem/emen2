@@ -28,7 +28,7 @@ loginwidget.prototype = {
 		var self=this;
 
 		if (this.buildform) {
-			console.log("build");
+			//console.log("build");
 			this.f = $('<form name="login" action="/db/login" method="POST">');
 			this.username = $('<input name="username" type="text" />');
 			this.pw = $('<input name="pw" type="password" />');
@@ -36,12 +36,12 @@ loginwidget.prototype = {
 			this.f.append(this.username, this.pw, this.submit);
 			this.elem.append(this.f);
 		} else {
-			console.log("no build");
+			//console.log("no build");
 			this.f = this.elem.children("form");
 			this.username = this.elem.find("input:text");
 			this.pw = this.elem.find("input:password");
 			this.submit = this.elem.find("input:button");
-			console.log(this.f.attr("action"));
+			//console.log(this.f.attr("action"));
 		}
 		
 		this.msg = $("<div />");
@@ -65,7 +65,7 @@ loginwidget.prototype = {
 	},
 		
 	success: function() {
-		console.log("Success!");
+		//console.log("Success!");
 		//return false
 		this.f.submit();
 	},

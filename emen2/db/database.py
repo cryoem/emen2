@@ -3898,7 +3898,8 @@ or None if no match is found."""
 								elif type(value) == list:
 										value = u", ".join(value)
 								elif type(value) == float:
-										value = u"%0.2f" % value
+										value = u"%s"%value
+										#value = u"%0.2f" % value
 								else:
 										value = pcomments.sub("<br />", unicode(value))
 								
