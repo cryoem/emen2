@@ -10,8 +10,8 @@ var bid = null;
 /*************************************************/
 
 
-function tile_download() {
-	alert("Not implemented; see attachments area");
+function tile_download(bid,filename) {
+	alert("Download "+bid+", "+filename);
 }
 
 function tile_bindresize() {   
