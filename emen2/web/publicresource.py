@@ -259,8 +259,7 @@ class PublicView(Resource):
 			print "::: time total: %s"%(time.time()-t)
 
 
-			print "HEADERS"
-			print headers
+
 			headers['content-length'] = len(result)
 			
 			if headers["content-type"] in ["image/jpeg","image/png"]:
@@ -268,6 +267,9 @@ class PublicView(Resource):
 			else:
 				result = unicode(result).encode('utf-8')
 				request.write(result)
+
+		print "HEADERS"
+		print headers
 
 		#except Exception, inst:
 		#	print inst
