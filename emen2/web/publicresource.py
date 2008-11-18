@@ -137,7 +137,7 @@ class PublicView(Resource):
 		## if username is not associated with the ctxid passed, log user in
 		authen.authenticate(username, pw, ctxid, host=host)
 		ctxid, un = authen.get_auth_info()
-		#print "==authen.get_auth_info=="
+		#print	 "==authen.get_auth_info=="
 		#print ctxid,un
 		if username and un != username:
 			target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
@@ -274,6 +274,7 @@ class PublicView(Resource):
 
 		#finally: 
 		#	self.finish_request(request)
+		print "REQUEST FINISH"
 		request.finish()
 		#request.close()
 		
