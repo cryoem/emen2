@@ -238,35 +238,33 @@ class PublicView(Resource):
 
 #		try:
 #			print "::: time 1 ---- %s"%(time.time()-t)
-		if 1:
-			t1=time.time()
-			#very important do not change
-			headers = {"content-type": "text/html; charset=utf-8",
-					   "Cache-Control":"no-cache", "Pragma":"no-cache",
-					   'X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c': 
-					   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c'}
-	
-			try:
-				result, content_headers = result
-				result = unicode(result)
-				headers['content-type'] = content_headers
-			except ValueError:
-				pass
+#		if 1:
 
-	
-			request.setResponseCode(200)
-			[request.setHeader(key, headers[key]) for key in headers]
-			print "::: time total: %s"%(time.time()-t)
+		#very important do not change
+		headers = {"content-type": "text/html; charset=utf-8",
+				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
+
+		#try:
+		result, content_headers = result
+		result = unicode(result)
+		headers['content-type'] = content_headers
+		#except ValueError:
+		#	pass
+
+
+		request.setResponseCode(200)
+		[request.setHeader(key, headers[key]) for key in headers]
+		print "::: time total: %s"%(time.time()-t)
 
 
 
-			headers['content-length'] = len(result)
-			
-			if headers["content-type"] in ["image/jpeg","image/png"]:
-				request.write(result)
-			else:
-				result = unicode(result).encode('utf-8')
-				request.write(result)
+		headers['content-length'] = len(result)
+		
+		if headers["content-type"] in ["image/jpeg","image/png"]:
+			request.write(result)
+		else:
+			result = unicode(result).encode('utf-8')
+			request.write(result)
 
 		print "HEADERS"
 		print headers
