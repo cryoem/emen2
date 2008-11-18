@@ -13,7 +13,7 @@ var bid = null;
 function tile_download(bid,filename) {
 	//alert("Download "+bid+", "+filename);
 	//http://ncmidb2:8080/download/200412170010B/20041208031758.dm3.gz
-	window.location("/download/"+bid+"/"+filename);
+	//window.location("/download/"+bid+"/"+filename);
 }
 
 function tile_bindresize() {   
