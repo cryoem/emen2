@@ -246,8 +246,8 @@ class PublicView(Resource):
 
 		#try:
 		result, content_headers = result
-		print type(result)
-		#result = unicode(result)
+		#print type(result)
+		result = unicode(result)
 		headers['content-type'] = content_headers
 		#except ValueError:
 		#	pass
@@ -278,7 +278,7 @@ class PublicView(Resource):
 		#	self.finish_request(request)
 		print "REQUEST FINISH"
 		request.finish()
-		#request.close()
+		request.close()
 		
 		
 	def _ebRender(self, failure, request, ctxid):
