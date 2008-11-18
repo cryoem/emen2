@@ -278,7 +278,7 @@ class PublicView(Resource):
 		#	self.finish_request(request)
 		print "REQUEST FINISH"
 		#request.finish()
-		request.close()
+		#request.close()
 		
 		
 	def _ebRender(self, failure, request, ctxid):
