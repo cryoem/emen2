@@ -246,6 +246,7 @@ class PublicView(Resource):
 
 		#try:
 		result, content_headers = result
+		print result
 		#print type(result)
 		#result = unicode(result)
 		#result = unicode(result).encode('utf-8')		
