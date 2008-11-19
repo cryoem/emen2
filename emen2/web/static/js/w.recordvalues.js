@@ -285,12 +285,13 @@ widget.prototype = {
 			if (paramdefs[this.param]["vartype"]=="string") {
 				this.editw.autocomplete({ 
 					ajax: "/db/findvalue/"+this.param+"/",
-					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
-					insertText: function(value)  { return value[1] },
-				}).bind("activate.autocomplete", function(e,d) {  })
+					match: function(typed) { return this[1].match(new RegExp(typed, "i")) },				
+					insertText: function(value)  { return value[1] }
+				}).bind("activate.autocomplete", function(e,d) {  }
+				)
 			}
 			
-			this.editw.change(function(){self.changed=1;});
+			this.editw.change(function(){self.changed=1});
 			this.w.append(this.editw);
 			
 			var property=paramdefs[this.param]["property"];
@@ -481,7 +482,7 @@ listwidget.prototype = {
 
 					ajax: "/db/findvalue/"+this.param+"/",
 					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
-					insertText: function(value)  { return value[1] },
+					insertText: function(value)  { return value[1] }
 					
 				}).bind("activate.autocomplete", function(e,d) {  })
 				

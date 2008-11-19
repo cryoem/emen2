@@ -1,3 +1,4 @@
+
 .imgbutton {
 	padding:2px;
 	background:#eee;
@@ -628,13 +629,21 @@ html,body {
 #precontent, .precontent {
 	background: #BBD9EE; /* #DCEFEE #D3C7A6; */
 }
+
 #bottom {
+	/*display:none;*/
 	background:#BBD9EE; 
 	font-size:10px;
 	position:absolute;
+	margin:0px;
+	padding:0px;
 	bottom:0px;
 	width:100%;
 }
+#bottom img {
+	float:left;
+}
+
 
 #content {
 	display:block;
@@ -653,9 +662,7 @@ html,body {
 }
 
 
-#bottom img {
-	float:left;
-}
+
 
 
 
@@ -760,7 +767,7 @@ PAGE / TAB
 
 .page {
 	background:#E7F1F8;	
-	/*width:800px;*/
+	width:800px;
 	padding:10px;
 	display:none;
 }
@@ -1196,4 +1203,8 @@ li.sidebar_box {
 
 .page_main {
 /*	background:red; */
+}
+
+.page_recordview {
+	background:white;
 }

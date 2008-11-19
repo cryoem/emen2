@@ -265,7 +265,8 @@ class PublicView(Resource):
 		if headers["content-type"] in ["image/jpeg","image/png"]:
 			request.write(result)
 		else:
-			result = unicode(result).encode('utf-8')
+			result
+			#result = unicode(result).encode('utf-8')
 			request.write(result)
 			
 		#except Exception, inst:

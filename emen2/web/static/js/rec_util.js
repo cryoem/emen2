@@ -233,9 +233,9 @@ function record_permissions_toggle(elem) {
 				setdisplayname(k,v);
 			});
 			permissionscontrol = new permissions(target, {
-				'list':getvalue(recid,"permissions"),
+				'list':getvalue(recid,"permissions")
 				}
-			);
+			)
 					
 		});
 	}

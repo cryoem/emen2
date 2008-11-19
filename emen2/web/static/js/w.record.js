@@ -29,7 +29,7 @@ loginwidget.prototype = {
 
 		if (this.buildform) {
 			//console.log("build");
-			this.f = $('<form name="login" action="/db/login" method="POST">');
+			this.f = $('<form name="login" action="/db/login" method="post">');
 			this.username = $('<input name="username" type="text" />');
 			this.pw = $('<input name="pw" type="password" />');
 			this.submit = $('<input type="submit" value="Login" />');

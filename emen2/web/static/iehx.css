@@ -1,19 +1,9 @@
 /* ie hacks */
 
 
-bottom {
-	clear:both;
-}
 
-.page_recordview {
-	width:600px;
-} 
 
-#sidebar {
-	width:300px;
-}
-
-/* specific buttons  */
+/* specific buttons  
 .button_main {
 	margin-top:10px;
 }
@@ -21,7 +11,7 @@ bottom {
 	margin-top:0px;
 	padding:15px;
 }
-/*
+
 .button_tab, .button_newrecord {
 	background:#BBD9EE;
 }
@@ -30,8 +20,16 @@ bottom {
 }  */
 
 
+#bottom {
+	margin-top:100px;
+	clear:both;
+} 
 
+/*
 
+#sidebar {
+	width:300px;
+}
 
 #container {
 	min-height:100%;
@@ -46,3 +44,5 @@ bottom {
 	position:absolute;
 	height:400px;
 }
+
+*/
