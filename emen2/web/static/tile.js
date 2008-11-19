@@ -79,7 +79,7 @@ function tile_init(ibid) {
 }
 
 
-function tile_rebuild() {
+function tile_rebuild(bid) {
 	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'	
 	$.getJSON("/db/tiles/create/"+bid, tile_createtile_cb);
