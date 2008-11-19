@@ -38,7 +38,7 @@ function tile_center() {
 	indiv.style.top=($("#outerdiv").height() - (imgw*ny[level]))/2 + "px";
 }
 
-function tile_larger() {
+function tile_larger(bid) {
 	window.location = "/db/tiles/large/"+bid;
 }
 
