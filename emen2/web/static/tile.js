@@ -98,7 +98,7 @@ function tile_checktile_cb(r) {
 	} else {
 		// generate tile; init on callback
 		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
-		tile_rebuild();
+		tile_rebuild(r[2]);
 		//var createtile = new CallbackManager();
 		//createtile.register(tile_createtile_cb);
 		//createtile.req("createtile",[r[2],ctxid]);
