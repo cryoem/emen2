@@ -140,8 +140,9 @@ valid_properties = {
 	{"gram":"g", "grams":"g", "milligram":"mg", "milligrams":"mg", "dalton":"Da", "daltons":"Da", "kilodaltons":"KDa", "kilodalton":"KDa", "megadaltons":"MDa", "megadalton":"MDa"}
 	),	
 
+# ian: temperature conversion needs work!!
 "temperature":("K",
-	{"K":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.},
+	{"K":1.,"C":1, "F":1}, #"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.
 	{"kelvin":"K","degrees C":"C", "degrees F":"F"}
 	),
 	
@@ -730,7 +731,8 @@ class Record(DictMixin):
 			try:
 				value=float(value)
 			except:
-				raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
+				print "WARNING: Validation: Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
+				#raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
 				
 			units=units.strip()
 			defaultunits=valid_properties[pd.property][0]
@@ -753,7 +755,9 @@ class Record(DictMixin):
 				units = defaultunits
 
 			else:
-				raise ValueError,"Unknown units: %s"%units
+				units = defaultunits
+				print "WARNING: Validation: Unknown units; parameter %s='%s'; property: %s, units: %s, defaultunits: %s"%(pd.name,value,pd.property,units,defaultunits)
+				#raise ValueError,"Unknown units: %s"%units
 
 			try:
 				# convert units
@@ -763,17 +767,23 @@ class Record(DictMixin):
 				value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
 				print "newval: %s"%value
 			except Exception, inst:
-				raise ValueError,"Unable to convert %s = %s; skipping value"%(pd.name,value)
+				#print inst
+				#print valid_properties[pd.property][1][units]
+				#print valid_properties[pd.property][1][defaultunits]
+				#raise ValueError,
+				print "WARNING: Validation: Unable to convert parameter %s='%s'; Error: %s, property: %s, units: %s, defaultunits: %s"%(pd.name,value,inst,pd.property,units,defaultunits)
 
 		try:
 			if value != None:
 				value=valid_vartypes[pd.vartype][1](value)
 		except:
-			raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
+			print "WARNING: Validation: Data type error; %s='%s'; Error: %s, property: %s, units: %s, defaultunits: %s"%(pd.name,value,inst,pd.property,units,defaultunits)
+			#raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
 	
 		if pd.vartype=="choice" and value!=None:
 			if value.lower() not in [i.lower() for i in pd.choices]:
-				raise ValueError,"%s not in %s"%(value,pd.choices)
+				#raise ValueError,
+				print "WARNING: Validation: paramter %s, %s not in choices %s"%(value,pd.choices)
 		
 		
 		# Save validated value

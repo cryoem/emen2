@@ -1,4 +1,3 @@
-
 .imgbutton {
 	padding:2px;
 	background:#eee;
@@ -581,25 +580,32 @@ INPUT ELEMENTS
 =============================================================
 */
 
+/*
+
 input, textarea, select {
 	margin:2px;
 	padding:2px;
 	border:solid 1px #CCC;
 }
 
+*/
+
+
+
 textarea {
-/*	display:inline; */
 	display:block;
 	color:#783766;
 
 }
+
+/*
 
 input {
 	display:inline;
 	color:#783766;
 
 }
-
+*/
 
 
 
@@ -1207,4 +1213,29 @@ li.sidebar_box {
 
 .page_recordview {
 	background:white;
+}
+
+
+
+/*******/
+
+.table_keys_menu {
+	display:none;
+	position:absolute;
+	margin-top:40px;
+	background:white;
+	border:solid #ccc 3px;
+	border-top:none;
+}
+.table_keys_menu ul {
+	list-style:none;
+	padding:10px;
+	line-height:100%;
+}
+.table_keys_menu ul li {
+	margin:0px;
+	padding:0px;
+}
+.table_keys_menu input {
+	margin:4px;
 }

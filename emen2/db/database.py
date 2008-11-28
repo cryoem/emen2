@@ -3074,7 +3074,8 @@ or None if no match is found."""
 				
 			for i in children:
 				c2=self.getchildren(i,ctxid=ctxid,host=host)
-				c2.remove(recid)
+				#c2.remove(recid)
+				c2 -= set([recid])
 				# if child had more than one parent, make a note one parent was removed
 				if len(c2) > 0:
 					rec2=self.getrecord(i,ctxid=ctxid,host=host)

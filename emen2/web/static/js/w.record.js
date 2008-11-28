@@ -111,7 +111,8 @@ permissions.DEFAULT_OPTS = {
 	levels: ["Read","Comment","Write","Admin"],
 	inherit: [],
 	parents: [],
-	newrecord: 0
+	newrecord: 0,
+	recurse: null
 };
 
 permissions.prototype = {
@@ -220,8 +221,10 @@ permissions.prototype = {
 		// Save controls
 		if (!this.newrecord) {
 			this.savearea = $('<div class="permissions_savearea" />');
-			var savearea_apply = $('<input type="button" value="Apply Permissions" />').click(function(){self.save_record()});
-			this.savearea.append(savearea_apply);
+			var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
+			var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});
+
+			this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
 			//this.savearea.append('<br /><hr />Apply to children: ');
 			//this.savearea_children=$('<select><option>ADD (orange) users</option><option>REMOVE (red) users</option><option>REASSIGN (yellow) users</option><option>UNION of this set</option><option>INTERSECTION of this set</option></select>')
 			//this.savearea.append(this.savearea_children);
@@ -491,6 +494,12 @@ permissions.prototype = {
 		ajaxqueue["record_permissions_save"]=1;
 		var self=this;
 		
+		
+		var rlevels=0;
+		if (this.recurse) {
+			rlevels=20;
+		}
+		
 		var r=[];
 		$.each(this.userstate, function(k,v) {
 			if ( v == -1 && self.inituserstate[k] > -1) {r.push(k)}
@@ -499,7 +508,7 @@ permissions.prototype = {
 		if (r.length > 0) {
 
 			ajaxqueue["record_permissions_save"]++;
-			$.jsonRPC("secrecorddeluser",[r,recid,ctxid], function() {
+			$.jsonRPC("secrecorddeluser",[r,recid,ctxid,rlevels], function() {
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
 					//console.log("ajax queue done");
@@ -512,7 +521,7 @@ permissions.prototype = {
 		}
 
 		// run with recurse = 0, reassign = 1
-		$.jsonRPC("secrecordadduser",[this.getlist(), recid, ctxid,0,1], function(permissions) {
+		$.jsonRPC("secrecordadduser",[this.getlist(), recid, ctxid,rlevels,1], function(permissions) {
 				setvalue(recid,"permissions");
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
