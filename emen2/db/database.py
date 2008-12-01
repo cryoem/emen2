@@ -3941,7 +3941,7 @@ or None if no match is found."""
 
 						######################################
 						# Macros
-						if match.group("macro"):
+						if match.group("macro") and showmacro:
 
 								if match.group("macro") == "recid":
 										value = unicode(rec.recid)
