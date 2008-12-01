@@ -699,10 +699,14 @@ parentheses grouping not supported yet"""
 								n += 2
 								continue
 						elif i == "child" :
-								chl = self.getchildren(query2[n + 1], "record", recurse=20, ctxid=ctxid, host=host)
+								#print "QUERY CHILD OF: %s"%query2[n+1]
+								#print query2
+								chl = self.getchildren(query2[n + 1], recurse=20, ctxid=ctxid, host=host)
+								#print "getchildren result... %s"%len(chl)
 #								 chl=set([i[0] for i in chl])	 # children no longer suppport names 
 								if len(byparamval) > 0 : byparamval &= chl
 								else: byparamval = chl
+								#print byparamval
 								n += 2
 								continue
 						elif i == "parent" :
@@ -1598,23 +1602,34 @@ parentheses not supported yet. Upon failure returns a tuple:
 				st=[set(ret)]
 				std={key: ret}
 				for x in xrange(recurse):
+					#print "getrel recurse... %s... need to check %s rels"%(x,len(st[x]))
 					st.append(set())
 					for k in st[x]:
 						z=rel(k) or set()
 						st[x+1] |= set(z)
 						std[k] = set(z)
 
+				#print "recurse done..."
+
 				if keytype=="record":
 					if not indc:
 						indc = self.getindexbycontext(ctxid=ctxid, host=host)
+					#print "got indexbycontext"
 					b=set(std.keys()) & indc
+					#print "union..."
 				else:
 					b=set(std.keys())
 					
 				if len(b) == 0: return set()
-				#print std
-				#print b
-				return reduce(operator.or_, [std[k] for k in b])
+
+				rz=set()
+				#print len(b)
+				for i in b:
+					#print len(std[i])
+					rz|=std[i]
+				return rz
+				# not sure why this is slow...
+				#return reduce(operator.or_, [std[k] for k in b])
 				#return set(reduce(operator.add, [std[k] for k in b]))
 
 					
