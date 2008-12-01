@@ -25,7 +25,7 @@ ajaxqueue={};
 function getctxid() {
 	name="ctxid";
 	var nameEQ = name + "=";
-	console.log(document.cookie);
+	//console.log(document.cookie);
 	var ca = document.cookie.split(';');
 	for(var i=0;i < ca.length;i++) {
 		var c = ca[i];

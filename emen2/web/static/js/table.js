@@ -76,8 +76,8 @@ function table_generate_viewdef(tk) {
 	var viewdef="";
 	for (var i=0;i<tk.length;i++) {
 		if (tablestate["macros"][tk[i]]!=null) {
-			console.log("macro");
-			console.log(tk[i]);
+			//console.log("macro");
+			//console.log(tk[i]);
 			viewdef+=" $@"+tk[i]+"()";
 		} else {
 			viewdef+=" $$"+tk[i];
