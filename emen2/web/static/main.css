@@ -1,3 +1,10 @@
+
+.label {
+	width:300px;
+	display:block;
+	float:left;
+}
+
 .imgbutton {
 	padding:2px;
 	background:#eee;
