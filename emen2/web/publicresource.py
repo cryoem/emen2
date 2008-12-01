@@ -41,25 +41,23 @@ class PublicView(Resource):
 		def setitem(name, val):
 			result[name] = val
 		
-		for key in set(args.keys()) - set(["db","host","user","ctxid", 
-										   "username", "pw"]):
+		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
 			name, _, val = key.rpartition('_')
 			sdict = {} 
 			key=str(key)
 			#print "process key %s"%key
+
 			if val.isdigit():
 				res = result.get(name, [])
-				res.append(args[key][0])
-				if len(res) == 1: setitem(name, res)
+				res.insert(int(val), args[key][0])
+				#res.append(args[key][0])
+				if len(res) > 0: setitem(name, res)
+
 			elif val == 'json' and name is not '':
 				value = self.__parse_jsonargs(args[key][0])
-				#try:
-				#	value=demjson.decode(args[key][0])
-				#except:
-				#	print "error decoding json: %s, %s"%(key, args[key][0])
-				#	value=""
 				if name == 'args': sdict = value
 				else: result[name] = value
+
 			else:
 				result[key] = args[key][0]
 			result.update(sdict)

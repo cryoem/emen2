@@ -783,7 +783,7 @@ class Record(DictMixin):
 		if pd.vartype=="choice" and value!=None:
 			if value.lower() not in [i.lower() for i in pd.choices]:
 				#raise ValueError,
-				print "WARNING: Validation: paramter %s, %s not in choices %s"%(value,pd.choices)
+				print "WARNING: Validation: paramter %s, %s not in choices %s"%(pd.name,value,pd.choices)
 		
 		
 		# Save validated value

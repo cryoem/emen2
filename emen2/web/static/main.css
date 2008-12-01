@@ -170,11 +170,14 @@ td {
 	border:solid 4px #FF8135;	
 }
 
-.page_comments, .page_attachments, .page_query1, .page_query2 {
+
+
+.page_query {
+	width:auto;
+}
+.page_comments, .page_attachments, #page_query_form, #page_query_text {
 	width:800px;
 }
-
-
 
 #page_comments_relationships .map {
 	width:100%;
@@ -773,7 +776,7 @@ PAGE / TAB
 
 .page {
 	background:#E7F1F8;	
-	width:800px;
+/*	width:800px; */
 	padding:10px;
 	display:none;
 }
@@ -1222,7 +1225,8 @@ li.sidebar_box {
 .table_keys_menu {
 	display:none;
 	position:absolute;
-	margin-top:40px;
+	width:200px;
+	margin-top:0px;
 	background:white;
 	border:solid #ccc 3px;
 	border-top:none;

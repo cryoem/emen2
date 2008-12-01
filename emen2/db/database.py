@@ -1162,6 +1162,22 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
+		# ian: finish..
+		# decide how much security to allow...
+		@publicmethod
+		def getparamstatistics(self, paramname, ctxid, host=None):
+			ctx = self.__getcontext(ctxid, host)
+			if ctx.user == None:
+				raise SecurityError, "Not authorized to retrieve parameter statistics" 			
+			
+			try:
+				ind = self.__getparamindex(paramname, create=0, ctxid=ctxid, host=host)
+				# number of values, number of records
+				return (len(ind.keys()), len(ind.values()))
+			except:
+				return (0,0)
+			
+
 		# ian todo: add unit support.
 		@publicmethod
 		def getindexbyvalue(self, paramname, valrange, ctxid, host=None):
@@ -1281,10 +1297,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 								#if 1:
 								r = self.__getparamindex(str(param).lower(), ctxid=ctxid, host=host)
 
-								print param
-								print r
+								#print param
+								#print r
 								if r:
 									for key in r.keys():
+										try:
 											# initial case-insensitive match
 											if q in str(key):
 													recs = r[key]
@@ -1306,9 +1323,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 															for i in includeparams:
 																ret[recid][i] = rec[i]
 																											
-								#except Exception, inst:
-								#		print "Error in search"
-								#		print inst
+										except Exception, inst:
+											print "Error in search"
+											print inst
 
 						# security check required
 						#urec=set(self.getindexbycontext(ctxid))		

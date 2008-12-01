@@ -38,7 +38,7 @@ def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
 	#print childrendict
 
 	if hit1 is False:
-		print "getindexbyrecorddef"
+		#print "getindexbyrecorddef"
 		ind=db.getindexbyrecorddef(recdef, ctxid)
 		engine.store(key1, ind)
 
@@ -48,7 +48,7 @@ def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
 	#	engine.store(key3,indc)
 
 	if hit2 is False or not childrendict.has_key(recid):
-		print "macro getchildren"
+		#print "macro getchildren"
 		childrendict[recid]=db.getchildren(recid,recurse=2,ctxid=ctxid)
 		
 	return len(childrendict[recid] & ind)	
@@ -112,7 +112,7 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 print "import core macro"
 @add_macro('img')
 def do_img(engine, db, rec, args, ctxid, host, **extra):
-	print "img macro"
+	#print "img macro"
 	default=["file_binary_image","640","640"]
 	try:
 		ps=args.split(" ")
@@ -127,7 +127,7 @@ def do_img(engine, db, rec, args, ctxid, host, **extra):
 	except:
 		return "(Unknown parameter)"
 
-	print pd.vartype
+	#print pd.vartype
 
 	if pd.vartype=="binary":
 		bdos=rec[param]		
@@ -136,7 +136,7 @@ def do_img(engine, db, rec, args, ctxid, host, **extra):
 	else:
 		return "(Invalid parameter)"
 	
-	print bdos
+	#print bdos
 	if bdos==None:
 		return "(No Image)"
 	
