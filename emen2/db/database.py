@@ -1546,8 +1546,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 		# done to hide indc optimization from public methods
 		@publicmethod
-		def getchildren(self, key, keytype="record", recurse=0, ctxid=None, host=None):
-			return self.__getrel(key=key, keytype=keytype, recurse=recurse, indc=None, rel="children", ctxid=ctxid, host=host)
+		def getchildren(self, key, keytype="record", recurse=0, ctxid=None, host=None, rectype=None):
+			res=self.__getrel(key=key, keytype=keytype, recurse=recurse, indc=None, rel="children", ctxid=ctxid, host=host)
+			if not rectype:
+				return res
+			return self.groupbyrecorddef(res,ctxid=ctxid,host=host).get(rectype,set())
+			
+			
 
 		@publicmethod
 		def getparents(self, key, keytype="record", recurse=0, ctxid=None, host=None):

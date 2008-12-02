@@ -848,7 +848,7 @@ SIDEBAR
 /*	border-left:solid 1px; */
 	padding:0px;
 	padding-right:0px;
-	width:20px;
+/*	width:100px; */
 	float:right;  
 /*	position:absolute;  */
 	background:white; 
@@ -909,25 +909,23 @@ SIDEBAR
 	line-height:0px;
 }
 
-#cousin_prev {
-	padding:10px;
-	margin:0px;
-	background:#BBD9EE;
-}
-#cousin_center {
-	border-left:2px solid white;
-	border-right:2px solid white;
-	padding:10px;
-	margin:0px;
-	background:#E7F1F8;
-}
-#cousin_next {
-	padding:10px;
-	margin:0px;
-	background:#BBD9EE;
-}	
+
 #cousin_buttons {
+	text-align:right;
 	height:35px;
+}
+#cousin_buttons a {
+	border-top:solid 1px #BBD9EE;
+	border-bottom:solid 1px #BBD9EE;	
+}
+#cousin_buttons a:first-child {
+	background:#BBD9EE;
+}
+#cousin_buttons a:last-child {
+	background:#BBD9EE;
+}
+#cousin_buttons .middle {
+	background:none;	
 }
 
 /* tile browser */
@@ -1178,7 +1176,7 @@ p.small {
 
 
 /* left only */
-.relationshipcontrol_pc .action, .user .action, #cousin_prev { 
+.relationshipcontrol_pc .action, .user .action, #cousin_buttons a:first-child { 
 	-moz-border-radius-topleft:8px;
 	-moz-border-radius-bottomleft:8px;
 	-webkit-border-top-left-radius:8px;
@@ -1186,7 +1184,7 @@ p.small {
 }
 
 /* right only */
-.relationshipcontrol_pc .name, .user .name, #cousin_next
+.relationshipcontrol_pc .name, .user .name, #cousin_buttons a:last-child
 {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-bottomright:8px;
