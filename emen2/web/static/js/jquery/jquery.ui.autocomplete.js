@@ -22,6 +22,7 @@
  */
  
 
+
 (function($) {
   
   $.ui = $.ui || {}; $.ui.autocomplete = $.ui.autocomplete || {}; var active;
@@ -63,7 +64,8 @@
     }).bind("click.autocomplete", function(e) {
       $("body").trigger("activate.autocomplete"); $.data(document.body, "suppressKey", false); 
     });
-    
+
+
     input
       .bind("keydown.autocomplete", function(e) {
         if(e.which == 27) { $("body").trigger("cancel.autocomplete"); }
@@ -81,12 +83,15 @@
         } else { return true; }
         $.data(document.body, "suppressKey", true);
       });
+
+
+
   };
   
   $.fn.autocomplete = function(opt) {
     
     opt = $.extend({}, {
-      timeout: 300,
+      timeout: 200,
       getList: function(input) { input.trigger("updateList", [opt.list]); },
       template: function(str) { return "<li>" + opt.insertText(str) + "</li>"; },
       insertText: function(str) { return str; },
@@ -103,7 +108,12 @@
     } }
 
     return this.each(function() {
-  
+  	
+			$(this).click(function(e) {
+				//console.log("init from click..");
+				$(e.target).trigger("autocomplete");
+				});
+			
       $(this)
         .keypress(function(e) {
           var typingTimeout = $.data(this, "typingTimeout");
@@ -122,45 +132,80 @@
           var self = $(this);
 
 					self.one("load_start", function(e) {
+
 						//console.log("load start");
 						if (opt.container) opt.container.remove();
             list = $('<li><img src="/images/spinner2.gif" /></li>');            
             var container = list.wrapAll(opt.wrapper).parents(":last").children();
             var offset = self.offset();
             opt.container = container
-              .css({top: offset.top + self.outerHeight(), left: offset.left, width: self.width()})
+              .css({top: offset.top + self.outerHeight(), left: offset.left, width: self.width()+8})
               .appendTo("body");
           	
 					});
+					
 					self.one("load_end", function(e) {
 						//console.log("load end");
 						opt.container.remove();						
 					});
 
           self.one("updateList", function(e, list) {
+
+						var c=0;
+
+						if (list) {
+							c+=list.length;
+	            list = $(list)
+	              .filter(function() {
+// 									console.log(this[1]);
+// 									if (opt.list != null) {
+// 										console.log(opt.list);
+// 										if (opt.list.inArray(this[1])>-1) return
+// 									}
+									return opt.match.call(this, self.val());
+								})
+	              .map(function() {
+	                var node = $(opt.template(this))[0];
+	                $.data(node, "originalObject", this);
+	                return node; 
+	              });
+						}
 						
-            list = $(list)
-              .filter(function() { return opt.match.call(this, self.val()); })
-              .map(function() {
-                var node = $(opt.template(this))[0];
-                $.data(node, "originalObject", this);
-                return node; 
-              });
-						//console.log(list);
-          
+
+						if (opt.list) {
+							c+=opt.list.length;
+							list_choices = $(opt.list)
+	              .map(function() {
+	                var node = $(opt.template(this))[0];
+	                $.data(node, "originalObject", this);
+	                return node; 
+	              });
+						}
+
             $("body").trigger("off.autocomplete");
           
-            if(!list.length) return false;
-          
-            var container = list.wrapAll(opt.wrapper).parents(":last").children();
-            
+						if (c==0) return false
+
+            var container = $(opt.wrapper);
+
+						if (opt.list) {
+							container.append(list_choices);
+						}
+						if (opt.list != null && list != null) {
+							container.append($("<li><hr /></li>").data("originalObject",0));							
+						}
+						if (list) {
+							container.append(list);
+						}
+
             var offset = self.offset();
           
             opt.container = container
-              .css({top: offset.top + self.outerHeight(), left: offset.left, width: self.width()})
+              .css({top: offset.top + self.outerHeight(), left: offset.left, width: self.width()+8})
               .appendTo("body");
           
-            $("body").autocompleteMode(container, self, list.length, opt);
+            $("body").autocompleteMode(container, self, c, opt);
+
           });
 
           opt.getList(self);

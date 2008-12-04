@@ -18,10 +18,14 @@
   $.ui.autocomplete.ext.ajax = function(opt) {
     var ajax = opt.ajax;
     return { getList: function(input) { 
-			console.log("start ajax");
+			//console.log("start ajax");
 			input.trigger("load_start");
 
-      $.getJSON(ajax, "val=" + input.val(), function(json) { input.trigger("load_end"); input.trigger("updateList", [json]); }); 
+      $.getJSON(ajax, "val=" + input.val(), function(json) {
+				input.trigger("load_end");
+				input.trigger("updateList", [json]);
+				}); 
+
     } };
   };
   

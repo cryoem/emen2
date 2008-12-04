@@ -3915,11 +3915,12 @@ or None if no match is found."""
 										if type(value) != list:		 value = [value]
 										ustr = []
 										for i in value:
-												try:
-														urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
-														ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
-												except:
-														ustr.append(u"(%s)" % i)
+											ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
+												#try:	
+														#urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
+														#ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
+												#except:
+												#		ustr.append(u"(%s)" % i)
 										value = u", ".join(ustr)
 								
 								elif vartype == "boolean":

@@ -285,7 +285,7 @@ function record_view_makeeditable(recid,viewtype) {
 	$('#page_recordview_'+viewtype+' .editable').bind("click",function(){
 		var self=this;
 		getparamdefs([recid],function(){
-			new widget(self);
+			new widget(self,{"inplace":1})
 		});
 	});
 }

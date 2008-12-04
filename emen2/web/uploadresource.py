@@ -174,7 +174,7 @@ class UploadResource(Resource):
 		db.putrecord(rec,ctxid=ctxid,host=host)			
 			
 		if redirect:
-			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=/db/record/%s">"""%recid
+			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect
 
 		return str(a[0])		
 
@@ -189,74 +189,3 @@ class UploadResource(Resource):
 		print failure
 		#request.write(emen2.TwistSupport_html.html.error.error(failure))
 		request.finish()	
-
-		
-	def RenderWorker_OLD(self,path,args,content,ctxid,host,db=None):
-
-		param = "file_binary"
-		if args.has_key("param"): 
-			param = args["param"][0]
-
-		if args.has_key("name"): 
-			name = args["name"][0]
-		else:
-			user=db.checkcontext(ctxid=ctxid,host=host)[0]
-			name = user + " " + time.strftime("%Y/%m/%d %H:%M:%S")
-
-
-		recid = int(path[0])
-		rec = db.getrecord(recid,ctxid=ctxid,host=host)
-				
-				
-		###################################		
-		# Append to file, or make new file.
-		if args.has_key("append"):
-			a = db.getbinary(args["append"][0],ctxid=ctxid,host=host)
-			print "Appending to %s..."%a[1]
-			outputStream = open(a[1], "ab")
-
-			chunk=content.read()
-			while chunk:
-				outputStream.write(chunk)
-				chunk=content.read()
-				
-			outputStream.close()
-			
-			return str(a[0])
-
-		###################
-		# New file
-		print "Get binary..."
-		# fixme: use basename and splitext
-		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),name.split("/")[-1].split("\\")[-1],rec.recid,ctxid=ctxid,host=host)
-		print a
-
-		print "Writing file... %s"%a[1]
-		outputStream = open(a[1], "wb")
-
-		content.seek(0,0)
-		chunk=content.read()
-		while chunk:
-			outputStream.write(chunk)
-			chunk=content.read()
-		outputStream.close()
-
-
-		######################
-		# Update record
-		if param == "file_binary_image":
-			rec[param] = "bdo:%s"%a[0]
-		else:
-			if not rec.has_key(param):
-				rec[param] = []
-			if type(rec[param]) == str:
-				rec[param] = [rec[param]]
-			rec[param].append("bdo:%s"%a[0])
-			
-		db.putrecord(rec,ctxid=ctxid,host=host)
-
-		if args.has_key("redirect"):
-			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-							<meta http-equiv="REFRESH" content="0; URL=/db/record/%s?notify=3">"""%recid
-
-		return str(a[0])

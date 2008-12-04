@@ -146,7 +146,7 @@ permissions.prototype = {
 			this.inheritarea_addfield = $('<input type="text" value="" />');
 		
 			// add new inherit/parent item
-			this.inheritarea_addbutton = $('<input type="button" value="Add Record" />').click(function(){
+			this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
 				var getrecid=parseInt(self.inheritarea_addfield.val());
 				$.getJSON("/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
 					setrecord(getrecid,result["recs"][getrecid]);

@@ -32,7 +32,8 @@ multiwidget.prototype = {
 	init: function() {
 
 		if (this.controls) {
-			this.controls.empty()
+			this.controls.remove();
+			return
 		} else {
 			this.controls=$('<div class="controls"></div>');
 		}
@@ -204,6 +205,7 @@ function widget(elem, opts) {
 
 widget.DEFAULT_OPTS = {
 	popup: 1,
+	inplace: 0,
 	controls: 1,
 	show: 1
 };
@@ -228,6 +230,9 @@ widget.prototype = {
 
 		// container
 		this.w = $('<span class="widget"></span>');
+		if (this.inplace) {
+			this.w.addClass("widget_inplace");
+		}
 
 		// replace this big switch with something better
 
@@ -277,18 +282,37 @@ widget.prototype = {
 			this.changed=1;
 			//this.editw.change(function(){self.changed=1;});
 		
+		}  else if (paramdefs[this.param]["vartype"]=="user") {
+
+				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
+				this.editw.autocomplete({ 
+					ajax: "/db/finduser/",
+					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					insertText: function(value)  { return value[0] },
+					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+				}).bind("activate.autocomplete", function(e,d) {  });
+				this.editw.change(function(){self.changed=1;});
+				this.w.append(this.editw);			
+
 		} else {
 
 			this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
-
-			// autocomplete only for string vartype
+			
 			if (paramdefs[this.param]["vartype"]=="string") {
+
+				var l=null;
+				if (paramdefs[this.param]["choices"] != null) {
+					l=$(paramdefs[this.param]["choices"]).map(function(n){return [[n,this]]})
+				} 
+				
 				this.editw.autocomplete({ 
+					list: l,				
 					ajax: "/db/findvalue/"+this.param+"/",
 					match: function(typed) { return this[1].match(new RegExp(typed, "i")) },				
 					insertText: function(value)  { return value[1] }
 				}).bind("activate.autocomplete", function(e,d) {  }
 				)
+
 			}
 			
 			this.editw.change(function(){self.changed=1});
@@ -329,6 +353,7 @@ widget.prototype = {
 
 
 		$(this.elem).after(this.w);
+		//$(this.elem).css("color","white");
 		$(this.elem).hide();
 
 		//if (this.popup) {
@@ -464,9 +489,9 @@ listwidget.prototype = {
 		var self=this;
 		//for (var i=0;i<this.values.length;i++) {
 		$.each(this.values, function(k,v) {
-			var item=$('<li></li>');
+			var item=$('<li class="widget_list"></li>');
 			var edit=$('<input type="text" value="'+v+'" />');
-			
+						
 			if (self.paramdef["vartype"]=="userlist") {
 
 				edit.autocomplete({ 

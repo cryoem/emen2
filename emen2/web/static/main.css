@@ -1,4 +1,46 @@
 
+.widget_inplace {
+	background:white;
+	border:solid 2px #ccc;
+	padding:0px;
+	margin:0px;
+	position:absolute;	
+	z-index:110;
+}
+.widget_inplace input, .widget_inplace textarea {
+	background:#f0f0f0;
+	color:black;
+	padding:5px;
+	border:none;
+}
+.widget_inplace select {
+	padding:4px;	
+	background:#f0f0f0;
+	border:none;
+}
+.widget_inplace input, .widget_inplace select {
+	float:left;
+}
+.widget_list input {
+	border-bottom:solid 1px white;
+}
+.widget_inplace .controls {
+	float:left;
+}
+.widget_inplace .controls input {
+	margin:0px;
+	margin-left:4px;
+	padding:4px;
+	border:none;
+	border-left:solid 2px #ccc;
+	height:auto;
+}
+.record_editbar .controls {
+}
+
+
+/***********************/
+
 .label {
 	width:300px;
 	display:block;
@@ -204,7 +246,7 @@ td .editable:hover {
 	margin-bottom:10px;
 }
 
-.record_editbar_item {
+.record_editbar_item, .record_editbar .controls {
 	float:left;
 	height:20px;	
 	font-size:10pt;
@@ -314,7 +356,7 @@ a img {
 
 .listwidget_add, .listwidget_remove {
 	vertical-align: middle;
-	padding:2px;
+	padding:5px;
 
 }
 
@@ -521,7 +563,7 @@ a img {
 /* autocomplete */
 
 ul.jq-ui-autocomplete {
-	z-index:100;
+	z-index:120;
 	max-height:400px;
     position: absolute;
     overflow: auto;
@@ -531,14 +573,15 @@ ul.jq-ui-autocomplete {
     padding: 0;
     list-style: none;
     font: normal .75em/.75em Verdana, Arial, sans-serif;
-    color: #333;	
+    color: #333;
+	width:300px;
 }
 ul.jq-ui-autocomplete li { 
   display: block; 
-  padding: .3em .5em .3em .3em; 
+  padding:4px;
+  width:95%;
   overflow: hidden;
   line-height:150%;
-  width: 95%;
 }
 
 ul.jq-ui-autocomplete li.active { 
@@ -604,8 +647,6 @@ input, textarea, select {
 
 textarea {
 	display:block;
-	color:#783766;
-
 }
 
 /*
@@ -666,6 +707,8 @@ html,body {
 	position: relative;
 	overflow: none;
 	padding:5px;
+	padding-bottom:60px;
+
 }
 
 .navtable {		
@@ -826,7 +869,7 @@ PAGE / TAB
 .page_main {
 	width:auto;
 	background:white;
-	padding-bottom:100px;
+	padding-bottom:20px;
 }
 #page_main_mainview {
 	display:block;	
@@ -977,7 +1020,7 @@ table.groupview th:first-child {
 	border:solid 2px #E7F1F8;
 }
 .recordtable input {
-	margin:10px;
+/*	margin:10px; */
 }
 
 .table_header {
