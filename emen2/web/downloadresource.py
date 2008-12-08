@@ -47,6 +47,11 @@ class DownloadResource(Resource, File):
 		request.postpath = filter(bool, request.postpath)		
 		ctxid = request.getCookie("ctxid")
 		
+		if not ctxid:
+			if request.args.get("ctxid"):
+				print "got ctxid from kwargs"
+				ctxid = request.args.get("ctxid",[None])[0]
+		
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
 		
