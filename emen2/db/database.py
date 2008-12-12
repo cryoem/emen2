@@ -3462,7 +3462,7 @@ or None if no match is found."""
 						recid = int(recid)
 						rec = self.__records[recid]
 						p = rec.setContext(ctx)
-						if not p[0] : raise SecurityError, "Permission Denied" # ian: changed Exception to SecurityError
+						if not p[0] : raise SecurityError, "Permission Denied: %s"%recid # ian: changed Exception to SecurityError
 						return rec
 				elif (hasattr(recid, '__iter__')):
 						recl = map(lambda x:self.__records[x], recid)
@@ -3550,7 +3550,7 @@ or None if no match is found."""
 				
 				for i in range(4):
 					if not hasattr(usertuple[i], "__iter__"):
-						usertuple[i] = [usertuple[i]]
+						usertuple[i] = [list(usertuple[i])]
 				
 					for j, k in enumerate(usertuple[i]):
 						if not isinstance(usertuple[i][j], int):
