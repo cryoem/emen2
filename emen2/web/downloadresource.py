@@ -76,7 +76,7 @@ class DownloadResource(Resource, File):
 		ipaths=[]
 		for i in bids:
 			bname,ipath,bdocounter=db.getbinary(i,ctxid)						
-			#ipath="/Users/irees/emen2/emen2/emen2config.py"
+			ipath="/Users/irees/emen2/emen2/startup.sh"
 			ipaths.append((ipath,bname))
 			print "download list: %s  ...  %s"%(ipath,bname)	
 		return ipaths

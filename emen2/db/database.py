@@ -4160,7 +4160,6 @@ or None if no match is found."""
 
 				
 		# ian: moved host to end
-		# ian: changed to __backup to not export via rpc
 		#@write,private
 		def _backup(self, ctxid, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, host=None):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
