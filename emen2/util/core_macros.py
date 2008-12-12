@@ -203,7 +203,7 @@ def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 	tmp = []
 	for i in recset:
 		try:
-			tmp.append(db.getrecord(i,**rinfo))
+			tmp.append(db.getrecord(i,**rinfo)
 		except:
 			print "error with macro get record: %s"%i
 	return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])
