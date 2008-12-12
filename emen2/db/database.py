@@ -1548,6 +1548,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 		@publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, ctxid=None, host=None, rectype=None):
 			res=self.__getrel(key=key, keytype=keytype, recurse=recurse, indc=None, rel="children", ctxid=ctxid, host=host)
+			indc=self.getindexbycontext(ctxid=ctxid,host=host)
+			res &= indc
 			if not rectype:
 				return res
 			return self.groupbyrecorddef(res,ctxid=ctxid,host=host).get(rectype,set())
