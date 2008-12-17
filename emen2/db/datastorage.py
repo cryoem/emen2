@@ -777,7 +777,7 @@ class Record(DictMixin):
 			if value != None:
 				value=valid_vartypes[pd.vartype][1](value)
 		except:
-			print "WARNING: Validation: Data type error; %s='%s'; Error: %s, property: %s, units: %s, defaultunits: %s"%(pd.name,value,pd.property,units,defaultunits)
+			print "WARNING: Validation: Data type error; %s='%s'" % (pd.name,value)
 			#raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
 	
 		if pd.vartype=="choice" and value!=None:
