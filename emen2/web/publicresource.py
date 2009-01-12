@@ -23,10 +23,14 @@ class PublicView(Resource):
 	isLeaf = True
 	router = routing.URLRegistry()
 	
+	
+	
 	def __init__(self):
 		Resource.__init__(self)
 	
-	def __parse_args(self, args):
+	
+	
+	def __parse_args(self, args, content=None):
 		"""Break the request.args dict into something more usable
 		
 		This algorithm takes the list of keys and removes sensitive info, and 
@@ -37,32 +41,62 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have 
 		      sequential numbers
 		"""
+		
 		result = {}
-		def setitem(name, val):
-			result[name] = val
+		filenames = {}
+		
+		if content:
+			filenames = self.__parse_filenames(content)
+		
 		
 		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
-			name, _, val = key.rpartition('_')
-			sdict = {} 
+			#name, _, val = key.rpartition('_')
+
+			value=args[key][0]
+
+			p=key.split("___")
+			name=p[0]
+			format=None
+			pos=None
+			
+			if key=="":
+				continue
+			
+			if len(p)==3:
+				format=p[1]
+				pos=p[2]
+			if len(p)==2:
+				if p[1].isdigit():
+					pos=p[1]
+				else:
+					format=p[1]
+			
+			sdict = {}
 			key=str(key)
-			#print "process key %s"%key
 
-			if val.isdigit():
-				res = result.get(name, [])
-				res.insert(int(val), args[key][0])
-				#res.append(args[key][0])
-				if len(res) > 0: setitem(name, res)
+			if format=="json":
+				value = self.__parse_jsonargs(value)
+			
+			if format=="file":
+				fn=filenames.get(key)
+				value=(fn,value)
+			
+			if pos!=None:
+				v2 = result.get(name, [])
+				v2.insert(int(pos), value)
+				value=v2
+			
+			if value != None and value != "" and value != []:
+				result[name]=value	
+			#result.update(sdict)
 
-			elif val == 'json' and name is not '':
-				value = self.__parse_jsonargs(args[key][0])
-				if name == 'args': sdict = value
-				else: result[name] = value
-
-			else:
-				result[key] = args[key][0]
-			result.update(sdict)
+		print "kwargs:"
+		print result
+		
 		return result
 		
+
+
 	
 	def __parse_jsonargs(self,content):
 		'decode a json string'
@@ -75,12 +109,22 @@ class PublicView(Resource):
 		return ret
 	
 	
+	
 	@classmethod
 	def __registerurl(cls, name, match, cb):
 			'register a callback to handle a urls match is a compiled regex'
 			result = routing.URL(name, match, cb)
 			cls.router.register(result)
 			return result
+	
+	
+	
+	def __parse_filenames(self, content):
+		b=re.compile('name="(.+)"; filename="(.+)"')
+		ret={}
+		return dict(b.findall(content))
+	
+	
 	
 	redirects = {}
 	@classmethod
@@ -92,10 +136,16 @@ class PublicView(Resource):
 			result = routing.URLRegistry.reverselookup(to, *args, **kwargs)
 		return result
 	
+	
+	
+	
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
 		#g.debug.msg('LOG_INIT', 'Redirect Registered::: FROM:',fro, 'TO:', to, args, kwargs)
 		cls.redirects[fro] = (to, args, kwargs)
+	
+	
+	
 	
 	@classmethod
 	def register_url(cls, name, match, prnt=True):
@@ -116,27 +166,29 @@ class PublicView(Resource):
 			return cb
 		return _reg_inside
 	
+	
+	
+	
 	def parse_uri(self, uri): 
 		base, _, qs = uri.partition('?')
 		return base, qs
+	
+	
+	
 	
 	def __authenticate(self, db, request, ctxid, host, args, router, target):
 		'authenticate a user'
 		authen = auth.Authenticator(db=db, host=host)
 		## if the browser has a ctxid cookie, get it
 		ctxid = request.getCookie("ctxid")
-		#print "AUTH: GET CTXID COOKIE: %s"%ctxid
 		## if the user requested to be logged in as a particular user
 		## get the username and the password
-		#print "cookie ctxid: %s"%ctxid
 		username = args.get('username', [''])[0]
 		pw = request.args.get('pw', [''])[0]
 		## check credentials
 		## if username is not associated with the ctxid passed, log user in
 		authen.authenticate(username, pw, ctxid, host=host)
 		ctxid, un = authen.get_auth_info()
-		#print	 "==authen.get_auth_info=="
-		#print ctxid,un
 		if username and un != username:
 			target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
 		else:
@@ -145,6 +197,8 @@ class PublicView(Resource):
 			request.addCookie("ctxid", ctxid, path='/')
 		target = '/%s/%s' % ('/'.join(request.prepath), target)
 		return ctxid, target, authen
+
+
 
 
 	def __getredirect(self, request, path):
@@ -159,10 +213,22 @@ class PublicView(Resource):
 		
 		return target
 	
+	
+	
+	
 	def finish_request(self, request):
 		request.finish()
 	
-	def render(self, request):
+	
+	
+	def render_POST(self, request):
+		print "...POST"
+		request.content.seek(0)
+		content=request.content.read()
+		return self.render_GET(request, content=content)
+	
+	
+	def render_GET(self, request, content=None):
 		ctxid, host = None, request.getClientIP()
 		args = request.args
 		
@@ -170,6 +236,8 @@ class PublicView(Resource):
 		
 		router=self.router
 		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
+
+
 		try:
 			# redirect special urls
 			if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
@@ -189,26 +257,36 @@ class PublicView(Resource):
 													    host, args, router, 
 													    target)
 			
+			
 			# redirect must occur after authentication so the
 			# ctxid cookie can be sent to the browser on a  
 			# POST request
 			if target is not None:
 				#redirects must not be unicode
-				#NOTE: should URLS use punycode: http://en.wikipedia.org/wiki/Punycode ?
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
 			
-			print "\n\n=== web request === %s :: %s :: %s"%(method, args, ctxid)
+			print "\n\n=== web request === %s :: %s"%(method, ctxid)
 			
-			tmp = self.__parse_args(args)
+			tmp = self.__parse_args(args, content=content)
+			
+			
+			if "filedata" in tmp.keys():
+				print "getting filenames..."
+				request.content.seek(0)
+				content=request.content.read()
+				filenames=self.__parse_filenames(content)
+			
+			
 			if method == "logout":
 				authen.logout(ctxid)
 				return redirectTo('/db/home/', request).encode('utf-8')
+
 			elif method == "login":
 				callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
 				callback = callback(db=ts.db, host=host, ctxid='', msg=tmp.get('msg', msg))
 				return str(callback)
+
 			else:
-				#print tmp
 				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **tmp)
 				
 			def batch(*args, **kwargs):
@@ -216,9 +294,9 @@ class PublicView(Resource):
 				 helper function for batching... 
 				 returns a list (result, mime-type)
 				'''
-				print "batch"
+				#print "batch"
 				a=list(callback(*args, **kwargs))
-				print a
+				#print a
 				return a
 
 			d = threads.deferToThread(callback)
@@ -234,11 +312,6 @@ class PublicView(Resource):
 	def _cbsuccess(self, result, request, ctxid, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
 
-#		try:
-#			print "::: time 1 ---- %s"%(time.time()-t)
-#		if 1:
-
-		#very important do not change
 		headers = {"content-type": "text/html; charset=utf-8",
 				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
 
@@ -249,21 +322,13 @@ class PublicView(Resource):
 		except:
 			result = str(result)		
 
-		#print content_headers
-
 		headers['content-type'] = content_headers
 		headers['content-length'] = len(result)
-
-		#print "HEADERS"
-		#print headers
 
 		request.setResponseCode(200)
 		[request.setHeader(key, headers[key]) for key in headers]
 		print "::: time total: %s"%(time.time()-t)
 
-		#print "HEADERS"
-		#print headers
-		
 		if headers["content-type"] in ["image/jpeg","image/png"]:
 			request.write(result)
 		else:
@@ -271,15 +336,8 @@ class PublicView(Resource):
 			#result = unicode(result).encode('utf-8')
 			request.write(result)
 			
-		#except Exception, inst:
-		#	print inst
-		#	print "wtf?"
-
-		#finally: 
-		#	self.finish_request(request)
-		#print "REQUEST FINISH"
 		request.finish()
-		#request.close()
+		
 		
 		
 	def _ebRender(self, failure, request, ctxid):
@@ -301,8 +359,6 @@ class PublicView(Resource):
 						'ctxid': ctxid,
 						'host': request.getClientIP()
 					   }
-				#data = "Permission Denied"
-				#print args
 				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 	
 			except Exception, e:

@@ -341,29 +341,36 @@ recover - Only one thread should call this. Will run recovery on the environment
 				elif not self.__importmode : DB_syncall()				 
 		logout = deletecontext
 		
-		# ian: rpc export? probably not, for now.
+		
+		
+		
 		#@write
 		@publicmethod
-		def newbinary(self, date, name, recid, ctxid, host=None):
+		def newbinary(self, date, name, recid, ctxid, host=None, filedata=None, paramname=None):
 				"""Get a storage path for a new binary object. Must have a
 				recordid that references this binary, used for permissions. Returns a tuple
 				with the identifier for later retrieval and the absolute path"""
-				#db = db
+
 				
-				if name == None or str(name) == "": raise ValueError, "BDO name may not be 'None'"
-				
+				if name == None or str(name) == "":
+					raise ValueError, "BDO name may not be 'None'"				
+
+
+				if date == None:
+					date = time.strftime("%Y/%m/%d %H:%M:%S")
+			
+				year = int(date[:4])
+				mon = int(date[5:7])
+				day = int(date[8:10])
+				key = "%04d%02d%02d" % (year, mon, day)
+
+
 				# ian: check for permissions because actual operations are performed.
-				#print 'ctxid: %s, host: %s' % (ctxid, host)
 				rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				if not rec.writable():
 						raise SecurityError, "Write permission needed on referenced record."
 				
-				year = int(date[:4])
-				mon = int(date[5:7])
-				day = int(date[8:10])
-		
-				# figure out where this file goes in the filesystem
-				key = "%04d%02d%02d" % (year, mon, day)
+
 				for i in g.BINARYPATH:
 						if key >= i[0] and key < i[1] :
 								# actual storage path
@@ -372,33 +379,71 @@ recover - Only one thread should call this. Will run recovery on the environment
 				else:
 						raise KeyError, "No storage specified for date %s" % key
 		
+		
 				# try to make sure the directory exists
 				try: os.makedirs(path)
 				except: pass
 		
+		
 				# Now we need a filespec within the directory
 				# dictionary keyed by date, 1 directory per day
-		
-				if usetxn : txn = self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-				else: txn = None
+				if usetxn:
+					txn = self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+				else:
+					txn = None
+
 				# if exists, increase counter
 				try:
 						itm = self.__bdocounter.get(key, txn)
 						newid = max(itm.keys()) + 1
 						itm[newid] = (name, recid)
 						self.__bdocounter.set(key, itm, txn)
+
 				# otherwise make a new dict
 				except:
 						itm = {0:(name, recid)}
 						self.__bdocounter.set(key, itm, txn)
 						newid = 0
-				if txn: txn.commit()
-				elif not self.__importmode : DB_syncall()
-		
+						
+				if txn:
+					txn.commit()
+				elif not self.__importmode:
+					DB_syncall()
+
+
+				filename = path + "/%05X"%newid
+				bdo = key + "%05X"%newid
+
 				#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-				if os.access(path + "/%05X" % newid, os.F_OK) : self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
+				if os.access(path + "/%05X" % newid, os.F_OK):
+					raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
+					#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
+				
+				# if a filedata is supplied, write it out...
+				# todo: use only this mechanism for putting files on disk
+				if filedata:
+					print "Writing %s bytes disk: %s"%(len(filedata),filename)
+					f=open(filename,"wb")
+					f.write(filedata)
+					f.close()
+					print "...done"
+					
+				
+				if paramname:
+					param=self.getparamdef(paramname,ctxid=ctxid,host=host)
+					if param.vartype == "binary":
+						v=rec.get(paramname,[])
+						v.append("bdo:"+bdo)
+						rec[paramname]=v
+					elif param.vartype == "binaryimage":
+						rec[paramname]="bdo:"+bdo
+					else:
+						raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(paramname, param.vartype)
+					self.putrecord(rec,ctxid=ctxid,host=host)
+				
 				
 				return (key + "%05X" % newid, path + "/%05X" % newid)
+
 
 
 		# ian: changed from cleanupcontexts to __cleanupcontexts
@@ -1779,6 +1824,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 								raise Exception, "Circular references are not allowed."
 				
 				if keytype == "record" : 
+						print "pclink: %s -> %s"%(pkey,ckey)
 						a = self.getrecord(pkey, ctxid=ctxid, host=host)
 						b = self.getrecord(ckey, ctxid=ctxid, host=host)
 						#print a.writable(),b.writable()
@@ -2865,10 +2911,15 @@ or None if no match is found."""
 						txn = self.newtxn()
 						i.set_txn(txn)
 						for k2, v2 in v.items():
+								print "... addref: %s %s"%(k2,v2)
 								i.addrefs(k2, v2)
 						i.set_txn(None)
-						if txn: txn.commit()
+						if txn:
+							print "begin txn"
+							txn.commit()
+							print "end txn"
 						i = None
+						print "... done commit index"
 
 				print "commit security"
 				si = FieldBTree("secrindex", self.path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)
@@ -3270,6 +3321,7 @@ or None if no match is found."""
 			# ian
 			if type(parents) == int: parents = set([parents])
 			for i in parents:
+					print "...linking %s -> %s"%(i,record.recid)
 					self.pclink(i, record.recid, ctxid=ctxid)
 
 			if type(children) == int: children = set([children])
@@ -4373,8 +4425,11 @@ or None if no match is found."""
 										self.__recorddefs.set(r.name, r, txn)
 						# insert and renumber record
 						elif isinstance(r, Record) :
+
 								#print "record"
-								# This is necessary only to import legacy database backups from before 04/16/2006
+								#if nrec>1000:
+								#	continue
+										
 								try:
 										o = r._Record__owner
 										a = r._Record__permissions
@@ -4389,6 +4444,9 @@ or None if no match is found."""
 								if nrec % 1000 == 0 :
 										print " %8d records	 (%f/sec)\r" % (nrec, nrec / (time.time() - t0))
 										sys.stdout.flush()
+
+
+										
 								oldid = r.recid
 #								 r.recid = self.__dbseq.get()																 # Get a new record-id
 								r.recid = self.__records.get(- 1, txn)

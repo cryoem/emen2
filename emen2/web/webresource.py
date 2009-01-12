@@ -38,6 +38,18 @@ from twisted.web.static import *
 class WebResource(Resource):
 	isLeaf = True
 	
+	
+	def getfilenames(self,content):
+		if not request.args.has_key("filename"):
+			request.content.seek(0)
+			content=request.content.read()
+			b=re.compile("filename=\"(.+)\"")		
+			filename=b.findall(content[:5000])[0]
+		else:
+			filename=request.args["Filename"][0]		
+	
+	
+	
 	def render(self,request):
 		t0 = time.time()
 		session=request.getSession()

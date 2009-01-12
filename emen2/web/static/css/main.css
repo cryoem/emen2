@@ -72,14 +72,18 @@ td {
 /***************/
 
 .home_opts {
-	float:left;
+	position:absolute;
+	top:20px;
+	left:0px;
 	width:240px;
 	padding:20px;
 	border-right:solid 1px #ccc;
 }
 
 .home_info {
-	float:left;
+	position:absolute;
+	top:20px;
+	left:280px;
 	/*width:700px;*/
 	padding:20px;
 }
@@ -670,7 +674,7 @@ body {
 	font-family: arial, Verdana, Helvetica, sans-serif;
 	margin:0px;
 	padding:0px;
-	background:#BBD9EE; 
+	/* background:#BBD9EE; */
 }
 
 html,body {
