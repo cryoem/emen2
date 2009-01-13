@@ -48,13 +48,12 @@ class PublicView(Resource):
 		if content:
 			filenames = self.__parse_filenames(content)
 		
-		
 		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
 			#name, _, val = key.rpartition('_')
-
+			sdict = {} 
 			value=args[key][0]
-
-			p=key.split("___")
+			
+			p=str(key).split("_")
 			name=p[0]
 			format=None
 			pos=None
@@ -65,6 +64,7 @@ class PublicView(Resource):
 			if len(p)==3:
 				format=p[1]
 				pos=p[2]
+
 			if len(p)==2:
 				if p[1].isdigit():
 					pos=p[1]
@@ -74,10 +74,17 @@ class PublicView(Resource):
 			sdict = {}
 			key=str(key)
 
+			#print "parse key: %s"%key
+			#print "...format: %s, pos: %s"%(format, pos)
+			#print "...value: %s"%value
+
 			if format=="json":
 				value = self.__parse_jsonargs(value)
-			
-			if format=="file":
+				if name == 'args':
+					sdict = value
+					value = None
+
+			elif format=="file":
 				fn=filenames.get(key)
 				value=(fn,value)
 			
@@ -87,12 +94,11 @@ class PublicView(Resource):
 				value=v2
 			
 			if value != None and value != "" and value != []:
-				result[name]=value	
-			#result.update(sdict)
+				result[name]=value
+				
+			result.update(sdict)	
 
-		print "kwargs:"
-		print result
-		
+
 		return result
 		
 
@@ -222,7 +228,6 @@ class PublicView(Resource):
 	
 	
 	def render_POST(self, request):
-		print "...POST"
 		request.content.seek(0)
 		content=request.content.read()
 		return self.render_GET(request, content=content)
@@ -267,15 +272,7 @@ class PublicView(Resource):
 			
 			print "\n\n=== web request === %s :: %s"%(method, ctxid)
 			
-			tmp = self.__parse_args(args, content=content)
-			
-			
-			if "filedata" in tmp.keys():
-				print "getting filenames..."
-				request.content.seek(0)
-				content=request.content.read()
-				filenames=self.__parse_filenames(content)
-			
+			tmp = self.__parse_args(args, content=content)		
 			
 			if method == "logout":
 				authen.logout(ctxid)
@@ -294,10 +291,7 @@ class PublicView(Resource):
 				 helper function for batching... 
 				 returns a list (result, mime-type)
 				'''
-				#print "batch"
-				a=list(callback(*args, **kwargs))
-				#print a
-				return a
+				return list(callback(*args, **kwargs))
 
 			d = threads.deferToThread(callback)
 			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
