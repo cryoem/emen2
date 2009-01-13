@@ -380,6 +380,7 @@ relationshipbrowser.prototype = {
 		$(document.body).append(this.container.append(this.elem));
 		this.build();	
 		this.select(recid);
+		this.failgetnames=[];
 	},
 	
 	build: function() {
@@ -388,15 +389,19 @@ relationshipbrowser.prototype = {
 		this.elem.empty();
 		this.statusimg=$('<img src="/images/blank.png" class="floatleft">');
 		
+		
+		this.gotorecord=$('<input type="text" size="8" />');
+		var gotorecordbutton=$('<input type="button" value="Go To Record" />').click(function() {
+			//console.log(self.gotorecord.val());
+			self.select(self.gotorecord.val());
+			});
+		
 		var bookmarks=$('<select />').change(function() {
-			//console.log($(this).val());
 			self.select($(this).val());
 		});
 		var bm={
 			"NCMI":136,
 			"Microscopes":1,
-			"Test":137,
-			"Random":1001
 		}
 		bookmarks.append('<option value="0"></option>');
 		$.each(bm, function(k,v) {
@@ -406,11 +411,15 @@ relationshipbrowser.prototype = {
 		var title=$('<div class="relationshipbrowser_title clearfix"><span class="floatleft">Record Chooser</span></div>').append(
 			this.statusimg, 
 			$('<span class="floatright"></span>').append(
+				this.gotorecord,
+				gotorecordbutton,
+				'<span class="relationshipbrowser_spacer"></span>',
 				'Bookmarks:',
-				bookmarks, 
-				$('<input type="button" value="Select" />').click(function(){
-					self.ok();
-				}), 
+				bookmarks,
+				'<span class="relationshipbrowser_spacer"></span>',
+				//$('<input type="button" value="Select" />').click(function(){
+				//	self.ok();
+				//}), 
 				$('<input type="button" value="Close" />').click(function(){
 					self.close();
 				})
@@ -451,7 +460,7 @@ relationshipbrowser.prototype = {
 			if (this.children.length > 1 && i==this.children.length-1) {cimg="branch_up_reverse"}		
 
 			if (this.parents[i]!=null) {
-				var item=$('<td>'+getrecname(this.parents[i])+'</td>');
+				var item=$('<td class="jslink">'+getrecname(this.parents[i])+'</td>');
 				item.data("recid",this.parents[i]);
 				item.click(function() {self.select($(this).data("recid"));});
 				prow.append(item, '<td class="'+pimg+'"></td>');
@@ -459,7 +468,7 @@ relationshipbrowser.prototype = {
 				prow.append('<td/><td/>');
 			}
 			if (this.children[i]!=null) {
-				var item=$('<td>'+getrecname(this.children[i])+'</td>');
+				var item=$('<td class="jslink">'+getrecname(this.children[i])+'</td>');
 				item.data("recid",this.children[i]);
 				item.click(function() {self.select($(this).data("recid"));});
 				crow.append('<td class="'+cimg+'"></td>', item);				
@@ -472,6 +481,11 @@ relationshipbrowser.prototype = {
 		
 		this.infoc = $('<div class="relationshipbrowser_info floatleft" />');
 		this.infoc.append('<div class="relationshipbrowser_info_name">'+getrecname(this.currentid)+'</div>');
+		this.infoc.append(
+			$('<input type="button" value="Select" />').click(function(){
+					self.ok();
+				})
+			);
 		this.info_view = $('<div class="relationshipbrowser_info_view"></div>');
 		this.infoc.append(this.info_view);
 		
@@ -508,6 +522,15 @@ relationshipbrowser.prototype = {
 			$.each(result, function(k,v) {
 					setrecname(k,v);
 			});
+			
+			// hack to prevent infinite loop
+			//for (var i=0;i<recids.length;i++) {
+			//	if (getrecname(recids[i])=="undefined") {
+			//		console.log();
+			//		setrecname(recids[i],"(permission denied)");
+			//	}
+			//}
+			
 			self.checklocalindex();
 			self.build_map();
 		});		
@@ -534,6 +557,11 @@ relationshipbrowser.prototype = {
 		}
 		if (getnames.length > 0) {
 			this.getrecnames(getnames, this.build_map);
+			
+			for (var i=0;i<getnames.length;i++) {
+				setrecname(getnames[i],"Record "+getnames[i]);
+			}
+			
 		} else {
 			this.build_map();
 			this.getrecord(this.currentid);
@@ -561,6 +589,9 @@ relationshipbrowser.prototype = {
 		var reversenames={};
 		var sortnames=[];
 		var retnames=[];
+
+		if (list==null) {return []}
+		
 		for (var i=0;i<list.length;i++) {
 		    reversenames[getrecname(list[i])]=list[i];
 		    sortnames.push(getrecname(list[i]));

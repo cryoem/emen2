@@ -170,6 +170,11 @@ td {
 	border:solid 2px #BBD9EE;
 	border-bottom:none;
 }
+.relationshipbrowser_spacer {
+	margin:5px;
+	color:white;
+	border-right:solid 2px white;
+}
 
 
 .relationshipbrowser_tablearea {
@@ -884,6 +889,17 @@ PAGE / TAB
 
 .page_newrecord {
 	background:none;
+}
+
+
+#pagescontainer_usertype {
+	width:400px;
+	float:left;
+	padding-right:20px;
+}
+#pagescontainer_userinfo {
+	width:500px;
+	float:left;
 }
 
 /* 
