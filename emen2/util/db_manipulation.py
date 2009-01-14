@@ -38,7 +38,7 @@ class DBTree(object):
 			
 	def __dostuff(self, name, subfolders):
 		for (rectype, rec) in subfolders:
-			if (str(rec) == name) or (self.getrecord(rec)['indexby'] == name):
+			if (str(rec) == name) or (self.getrecord(rec)['recname'] == name):
 				yield (rectype, rec)
 		
 	def __unfold_dict(self, dict):
@@ -64,7 +64,7 @@ class DBTree(object):
 	
 	def getindex(self, recid=None, rec=None):
 		rec = self.getrecord(recid) if rec is None else rec
-		index = rec.get('indexby', str(rec.recid))
+		index = rec.get('recname', str(recid))
 		return index
 	
 	def get_title(self, recid, ident=''):
@@ -110,8 +110,11 @@ class DBTree(object):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
-			new = [ elem[1] for elem in self.get_child_id('*', rec) ]
-			result.update(new)
+ 			new = [ elem[1] for elem in self.get_child_id('*', rec) ]
+			if len(result) == 0:
+				result.update(new)
+			else:
+				result.intersection_update(new)
 		if kwargs != {}: self.__select(result, **kwargs)
 		return result
 	

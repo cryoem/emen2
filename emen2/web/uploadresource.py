@@ -14,7 +14,7 @@ DEBUG = 1
 
 from emen2 import ts 
 from emen2.emen2config import *
-
+from emen2.Database import exceptions
 
 from emen2.subsystems import routing, auth
 
@@ -126,7 +126,7 @@ class UploadResource(Resource):
 		rec=db.getrecord(recid,ctxid=ctxid,host=host)
 
 		if not rec.commentable():
-			raise SecurityError,"Cannot add file to record %s"%recid
+			raise exceptions.SecurityError,"Cannot add file to record %s"%recid
 		
 		pd=db.getparamdef(param,ctxid=ctxid,host=host)
 

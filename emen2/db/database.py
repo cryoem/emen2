@@ -2564,7 +2564,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				"""adds a new ParamDef object, group 0 permission is required
 				a p->c relationship will be added if parent is specified"""
 				#self = db
-
+				print isinstance(paramdef, ParamDef)
 				if not isinstance(paramdef, ParamDef):
 						try: paramdef = ParamDef(paramdef)
 						except: raise ValueError, "ParamDef instance or dict required"
