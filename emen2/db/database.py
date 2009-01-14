@@ -3770,7 +3770,7 @@ or None if no match is found."""
 				#self = db
 
 
-				if isinstance(users, str) or isinstance(users, int):
+				if isinstance(users, unicode) or isinstance(users, str) or isinstance(users, int):
 						users = set([users])
 				else:
 						users = set(users)
