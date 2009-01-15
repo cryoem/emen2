@@ -94,11 +94,11 @@ class PublicView(Resource):
 				value=v2
 			
 			if value != None and value != "" and value != []:
-				result[name]=value
+				result[key]=value
 				
 			result.update(sdict)	
 
-
+		print "!!!!!!!RESULT::::: %s" % result
 		return result
 		
 
