@@ -2019,7 +2019,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				userrec["email"] = user.email
 
 				p=userrec["permissions"]
-				p=(p[0]+(-3,),p[1],p[2],p[3])
+				p=(p[0]+(-3,),p[1]+(userrec['username'],),p[2]+(userrec['username'],),p[3])
 				userrec["permissions"]=p
 
 				for k,v in user.signupinfo.items():

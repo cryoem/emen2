@@ -122,7 +122,7 @@ class UploadResource(Resource):
 		
 		
 	def RenderWorker(self, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
-
+		print db.checkcontext(ctxid=ctxid, host=host)
 		rec=db.getrecord(recid,ctxid=ctxid,host=host)
 
 		if not rec.commentable():
