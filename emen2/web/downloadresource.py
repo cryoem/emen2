@@ -59,7 +59,7 @@ class DownloadResource(Resource, File):
 		authen.authenticate(username, pw, ctxid)
 		ctxid, un = authen.get_auth_info()
 		
-		print "\n\n=== download request === %s :: %s :: %s"%(request.postpath, args, ctxid)
+		print "\n\n:: download :: %s :: %s@%s"%(request.uri, un, host)
 
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid, host)	
 		d.addCallback(self._cbRender, request)
@@ -84,6 +84,7 @@ class DownloadResource(Resource, File):
 
 	def _cbRender(self, ipaths, request):
 		"""You know what you doing."""
+
 
 		if len(ipaths) > 1:
 			self.type, self.encoding = "application/octet-stream", None
@@ -124,7 +125,30 @@ class DownloadResource(Resource, File):
 			FileTransfer(f, size, request)
 			# and make sure the connection doesn't get closed
 		
+		
 	def _ebRender(self,failure,request):
-		print failure
-		request.write("Error with request.")
+
+		errmsg="Test Error"
+		errcode=500
+		
+ 		try:
+ 			failure.raiseException()
+ 		except IOError,e:
+			errcode=404
+ 			errmsg="File Not Found"
+ 		except Exception,e:
+ 			errmsg=str(e)
+
+#		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+		
+		data = g.templates.render_template("/errors/error",context={"errmsg":errmsg,"title":"Error"}).encode('utf-8')
+
+		request.setResponseCode(errcode)
+		request.setHeader("content-type", "text/html; charset=utf-8")
+		request.setHeader('content-length',len(data))
+		request.write(data)
+		
 		request.finish()
+		
+		
+		

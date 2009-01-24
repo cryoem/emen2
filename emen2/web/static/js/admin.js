@@ -27,7 +27,7 @@ function admin_approveusers_form(elem) {
 	//console.log(reject);
 
 	if (approve.length > 0) {
-		$.jsonRPC("approveuser",[approve,ctxid],
+		$.jsonRPC("wrapper_approveuser_sendmail",[approve,ctxid],
 			function(data) {
 				notify("Approved users: "+data);
 				for (var i=0;i<data.length;i++) {
@@ -44,7 +44,7 @@ function admin_approveusers_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("rejectuser",[reject,ctxid],
+		$.jsonRPC("wrapper_rejectuser_sendmail",[reject,ctxid],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {

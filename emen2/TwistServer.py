@@ -16,7 +16,7 @@ from emen2 import util
 import emen2.TwistSupport_html.uploadresource
 import emen2.TwistSupport_html.downloadresource
 import emen2.TwistSupport_html.publicresource
-import emen2.TwistSupport_html.xmlrpcresource
+#import emen2.TwistSupport_html.xmlrpcresource
 import emen2.TwistSupport_html.jsonresource
 import emen2.TwistSupport_html.public.views
 
@@ -42,10 +42,11 @@ import time
 
 # Change this to a directory for the actual database files
 # ian: remove this sometime
-ts.startup(g.EMEN2DBPATH)
+#ts.startup(g.EMEN2DBPATH)
 
 
 g.macros = macro.MacroEngine()
+
 
 
 #############################
@@ -53,11 +54,15 @@ g.macros = macro.MacroEngine()
 #############################
 root = static.File(g.EMEN2ROOT+"/tweb")
 
+
+
 root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
-root.putChild("RPC2",emen2.TwistSupport_html.xmlrpcresource.XMLRPCResource())
-root.putChild("json",emen2.TwistSupport_html.jsonresource.JSONResource())
+
+# use new service system
+root.putChild("RPC2",emen2.TwistSupport_html.jsonresource.RPCResource(format="xmlrpc"))
+root.putChild("json",emen2.TwistSupport_html.jsonresource.RPCResource(format="json"))
 
 
 CONSOLE=0

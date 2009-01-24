@@ -2,7 +2,9 @@ from emen2.Database.subsystems.macro import add_macro
 
 from functools import partial#
 
-print "importing core_macros.."
+#g = emen2.globalns.GlobalNamespace('')
+#g.debug.msg(g.LOG_INIT, 'MACROS: Importing core macros')
+
 
 @add_macro('recid')
 def get_recid(engine, db, rec, parameters, **extra):
@@ -109,7 +111,7 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 
 ################################################################################################################################################
 
-print "import core macro"
+#print "import core macro"
 @add_macro('img')
 def do_img(engine, db, rec, args, ctxid, host, **extra):
 	#print "img macro"
@@ -203,7 +205,7 @@ def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 	tmp = []
 	for i in recset:
 		try:
-			tmp.append(db.getrecord(i,**rinfo)
+			tmp.append(db.getrecord(i,**rinfo))
 		except:
 			print "error with macro get record: %s"%i
 	return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])

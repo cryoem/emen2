@@ -18,8 +18,6 @@ import time
 import traceback
 
 
-
-
 regex_pattern = 	 u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		 \
 "|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 								"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
@@ -37,24 +35,95 @@ TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
 
 
-class DBProxy2:
-		def __init__(self, db, ctxid, host):
-				self.db = db
-				self.ctxid = ctxid
-				self.host = host
-		def __getattr__(self, name):
-				return lambda * x: self(name, *x)				 
-		def __call__(self, *args, **kwargs):
-				kwargs["ctxid"] = self.ctxid
-				kwargs["host"] = self.host
-				print args
-				print kwargs
-				return getattr(self.db, args[0])(*args[1:], **kwargs)
-
 usetxn = False
 envopenflags = db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG | db.DB_THREAD
 LOGSTRINGS = ["SECURITY", "CRITICAL", "ERROR		", "WARNING ", "INFO		", "VERBOSE ", "DEBUG		"]
 DEBUG = 0 #TODO consolidate debug flag
+
+
+
+
+class DBProxy:
+
+	__publicmethods = {}
+	__extmethods = {}
+	__allmethods=set()
+
+	def __init__(self, db=None, dbpath=None, ctxid=None, host=None):
+		if not db:
+			self.__db = Database(dbpath)
+		else:
+			self.__db=db
+		
+		
+	def __getattr__(self, name):
+		return lambda *x, **y: self(name, *x, **y)
+		
+
+	def _ismethod(self, name):
+		if name in self.__allmethods: return True
+		return False
+
+
+	@classmethod
+	def _register_publicmethod(cls, name, func):
+		print "registering.. %s, %s"%(name,func)
+		cls.__publicmethods[name]=func
+		cls.__allmethods.add(name)
+		
+
+	@classmethod
+	def _register_extmethod(cls, name, refcl):
+		if name in cls.__extmethods.keys():
+			raise Exception,"Cannot override core method %s"%name
+		print "registering.. %s, %s"%(name, refcl)
+		cls.__extmethods[name]=refcl
+		cls.__allmethods.add(name)
+
+	
+	def _callmethod(self, method, args, kwargs):	
+		args.insert(0,method)
+		return self.__call__(*args, **kwargs)
+		
+	def __call__(self, *args, **kwargs):
+		print "DB: %s, kwargs: %s"%(args,kwargs.keys())
+		if self.__publicmethods.get(args[0]):
+			return getattr(self.__db, args[0])(*args[1:], **kwargs)
+		elif self.__extmethods.get(args[0]):
+			kwargs["db"]=self.__db
+			a=self.__extmethods.get(args[0])()
+			return a.execute(*args[1:],**kwargs)
+		else:
+			raise Exception, "No such method %s"%(args[0])
+
+
+
+class DBExt(object):
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+	@classmethod
+	def register(cls):
+		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
+
+		
+		
+
+class dbtest(DBExt):
+	__metaclass__ = DBExt.register_view
+	__methodname__ = "exttest"
+	def execute(self, *args, **kwargs):
+		print "exc"
+		print args
+		print kwargs
+		return ["ok"]
+
+
+
+		
+		
 
 def DB_syncall():
 		"""This 'syncs' all open databases"""
@@ -65,10 +134,10 @@ def DB_syncall():
 		for i in FieldBTree.alltrees.keys(): i.sync()
 #		 print "%f sec to sync"%(time.time()-t)
 
-def publicmethod(func):
-	publicmethods = sys._getframe(1).f_locals['publicmethods']
-	publicmethods[func.func_name] = func
-	return func
+
+
+
+
 
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()		
 class Database(object):
@@ -78,8 +147,14 @@ class Database(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 		
 		TODO : Probably should make more of the member variables private for slightly better security"""
-		publicmethods = {}
 		
+		
+		def publicmethod(func):
+			DBProxy._register_publicmethod(func.func_name, func)
+			return func
+			
+		
+
 		def __init__(self, path=".", cachesize=32000000, logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True):
 				"""path - The path to the database files, this is the root of a tree of directories for the database
 cachesize - default is 64M, in bytes
@@ -497,7 +572,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 						
 				if host and host != ctx.host :
 						self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, ctx.host))
-						raise Exception, "Bad address match, login sessions cannot be shared"
+						raise SessionError, "Bad address match, login sessions cannot be shared"
 				
 				ctx.time = time.time()
 				# ian. 11.30.07. Add -3 to the ctx groups of all logged in users.
@@ -507,8 +582,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 				return ctx						
 
-		# ian: removed to help prevent DoS attack.
-		# ian todo: need to check other time.sleep operations.
 		
 		
 		#def test(self,ctxid,host=None):
@@ -627,7 +700,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		def checkcreate(self, ctx, host=None):
 				if not isinstance(ctx, Context):
 						ctx = self.__getcontext(ctx, host)
-				if 0 in ctx.groups or - 1 in ctx.groups:
+				if 0 in ctx.groups or -1 in ctx.groups:
 						return 1
 				return 0
 
@@ -1992,7 +2065,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 			if hasattr(username,"__iter__"):
 				ret=[]
 				for i in username:
-					ret.append(self.approveuser(username=i,ctxid=ctxid,host=host))
+					ret.append(self.approveuser(username=str(i),ctxid=ctxid,host=host))
 				return ret
 
 			username = str(username)
@@ -3904,21 +3977,29 @@ or None if no match is found."""
 		
 		
 		
-		# ian: moved host to end
-		# ian todo: make ctxid required?
+ 
 		@publicmethod		
-		def renderview(self, rec, viewdef=None, viewtype="defaultview", paramdefs={}, macrocache={}, ctxid=None, showmacro=True, host=None):
-				"""Render a view for a record. Takes a record instance or a recid.
-				viewdef is an arbitrary view definition. viewtype is a name view from record def.
-				paramdefs and macrocache are prefetched values to speed up when called many times. macrocache not currently used."""
-				#self = db
+		def renderview(self, rec, viewdef=None, viewtype="defaultview", paramdefs={}, ctxid=None, showmacro=True, host=None):
+				"""Render a view for a record. Takes a record instance or a recid."""								
 								
-				if type(rec) == int:
-						if self.trygetrecord(rec, ctxid=ctxid, host=host):
-								rec = self.getrecord(rec, ctxid=ctxid, host=host)
-						else:
-								print "renderview: permissions error %s" % rec
-								return ""
+				if not isinstance(Record, int):				
+					if hasattr(rec,"__iter__"):
+						ret={}
+						for i in rec:
+							ret[i]=self.renderview(i,viewdef=viewdef,viewtype=viewtype, paramdefs=paramdefs, ctxid=ctxid, showmacro=showmacro, host=host)
+						return ret
+
+					elif type(rec) == int:
+							if self.trygetrecord(rec, ctxid=ctxid, host=host):
+									rec = self.getrecord(rec, ctxid=ctxid, host=host)
+							else:
+									print "renderview: permissions error %s" % rec
+									return ""
+					
+					else:
+						raise Exception,"rec must be Record, int, or list: %s"%rec	
+												
+												
 								
 				if viewdef == None:
 						recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
@@ -3927,10 +4008,6 @@ or None if no match is found."""
 						else:
 								viewdef = recdef.views.get(viewtype, recdef.name)
 				
-				# fixme: better, more general solution needed.
-				#		 try:
-				# a=unicode(viewdef)
-				#		 except:
 
 				a = viewdef.encode('utf-8', "ignore")
 						

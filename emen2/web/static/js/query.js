@@ -110,7 +110,7 @@ function form_query_paramaddmarkup(index, ptext, param, choices, compare, value)
 	p.html(ptext);
 
 	var pn=$("<select />");
-	pn.attr("name","params_0"+index);
+	pn.attr("name","params___0"+index);
 	pn.append("<option />");
 	for (var i=0;i<choices.length;i++) {
 		var z=$('<option value="'+choices[i]+'">'+choices[i]+' --- '+paramdef_desc[choices[i]]+'</option>');
@@ -119,7 +119,7 @@ function form_query_paramaddmarkup(index, ptext, param, choices, compare, value)
 	}
 
 	var pc=$("<select />");
-	pc.attr("name","paramcompare_0"+index);
+	pc.attr("name","paramcompare___0"+index);
 	$.each(comparators, function(k,v) {
 		var z=$('<option value="'+k+'">'+v+'</option>');
 		if (compare==k) {z.attr("selected","selected");}
@@ -128,7 +128,7 @@ function form_query_paramaddmarkup(index, ptext, param, choices, compare, value)
 	
 	
 	var pv=$('<input type="text" />');
-	pv.attr("name","paramvalue_0"+index);
+	pv.attr("name","paramvalue___0"+index);
 	pv.val(value);
 	
 	p.append(pn," ",pc," ",pv);

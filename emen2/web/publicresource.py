@@ -53,7 +53,7 @@ class PublicView(Resource):
 			sdict = {} 
 			value=args[key][0]
 			
-			p=str(key).split("_")
+			p=str(key).split("___")
 			name=p[0]
 			format=None
 			pos=None
@@ -83,18 +83,21 @@ class PublicView(Resource):
 				if name == 'args':
 					sdict = value
 					value = None
+				result[name]=value
 
 			elif format=="file":
 				fn=filenames.get(key)
 				value=(fn,value)
-			
+				result[name]=value
+				
 			if pos!=None:
 				v2 = result.get(name, [])
 				v2.insert(int(pos), value)
-				value=v2
+				result[name]=v2
 			
-			if value != None and value != "" and value != []:
+			if format==None and pos==None:
 				result[key]=value
+
 				
 			result.update(sdict)	
 
@@ -164,10 +167,10 @@ class PublicView(Resource):
 								 as a string
 				cb -- the callback function to call
 		"""
-		if prnt:
-			g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+		#if prnt:
+		#	g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
 		def _reg_inside(cb):
-			g.debug('%s ::matched by:: %s' % (name,match) )
+			#g.debug('MATCH: %s  <->  %s' % (name,match) )
 			cls.__registerurl(name, re.compile(match), cb)
 			return cb
 		return _reg_inside
@@ -202,7 +205,7 @@ class PublicView(Resource):
 		if ctxid is not None:
 			request.addCookie("ctxid", ctxid, path='/')
 		target = '/%s/%s' % ('/'.join(request.prepath), target)
-		return ctxid, target, authen
+		return username, ctxid, target, authen
 
 
 
@@ -258,7 +261,7 @@ class PublicView(Resource):
 			callback, msg = make_callback(''), ''
 			
 			
-			ctxid, tmp, authen = self.__authenticate(ts.db, request, ctxid, 
+			username, ctxid, tmp, authen = self.__authenticate(ts.db, request, ctxid, 
 													    host, args, router, 
 													    target)
 			
@@ -270,7 +273,7 @@ class PublicView(Resource):
 				#redirects must not be unicode
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
 			
-			print "\n\n=== web request === %s :: %s"%(method, ctxid)
+			print "\n\n:: web :: %s :: %s@%s"%(request.uri, username, host)
 			
 			tmp = self.__parse_args(args, content=content)		
 			
@@ -326,7 +329,6 @@ class PublicView(Resource):
 		if headers["content-type"] in ["image/jpeg","image/png"]:
 			request.write(result)
 		else:
-			result
 			#result = unicode(result).encode('utf-8')
 			request.write(result)
 			
@@ -340,9 +342,11 @@ class PublicView(Resource):
 			g.debug.msg(g.LOG_ERR, failure)
 			g.debug.msg(g.LOG_ERR, '---------------------------------')
 			data = ''
+
 			try:
 				if isinstance(failure, BaseException): raise
 				else: failure.raiseException()
+				
 			except (Database.exceptions.SecurityError, 
 				Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 					
@@ -360,9 +364,10 @@ class PublicView(Resource):
 				data = g.templates.handle_error(e).encode('utf-8')
 
 			request.setHeader('X-ERROR', ' '.join(str(failure).split()))
-			request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
-						   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
+			#request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
+			#			   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
 			request.write(data)
+
 		finally: 
 			self.finish_request(request)
 

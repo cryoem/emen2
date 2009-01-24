@@ -57,7 +57,7 @@ function getrecords_paramdefs(recids,cb) {
 
 
 
-$.postJSON = function(uri,data,callback,errback) {
+$.postJSON = function(uri,data,callback,errback,dataType) {
 	if (!errback) {
 		errback = function(xhr){
 				//$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
@@ -67,10 +67,10 @@ $.postJSON = function(uri,data,callback,errback) {
 	$.ajax({
     type: "POST",
     url: uri,
-    data: {"args_json":$.toJSON(data)},
+    data: {"args___json":$.toJSON(data)},
     success: callback,
     error: errback,
-		dataType: "html"
+		dataType: dataType || "html"
     });
 }
 

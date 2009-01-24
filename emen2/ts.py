@@ -18,69 +18,22 @@ import time
 
 
 
-DB=database 
+#DB=database 
 
-def startup(path):
-	global db
-db=database.Database(g.EMEN2DBPATH)
+#def startup(path):
+#	global db
+
 	
-
-#######################
-# (old version; doesn't work well with twisted.web) THREAD POOL
-#######################
-#
-# 
-# WORKERS = 4
-# # 
-# class Worker(threading.Thread):
-# 		def __init__(self, queue):
-# 			self.__queue = queue
-# 			print "Starting thead.."
-# 			self.db = Database.Database(EMEN2DBPATH)
-# 			threading.Thread.__init__(self)
-# 
-# 		def run(self):
-# 			while 1:
-# 				q = self.__queue.get()
-# 
-# 				if q is None:
-# 					print "Ending thread"
-# 					break
-# 
-# 				r = q[0][0](q[0][1], q[0][2], q[0][3], q[0][4], db=self.db)
-# 				q[1][0](result=r,request=q[1][1])
-# 							
-# queue = Queue.Queue(0)
-# threads = []
-# 
-# for i in range(WORKERS):
-# 	Worker(queue).start()
-# 		
-# print threads
-# #
-# #######################
-# #
-# import signal
-# import sys
-# def threadterminate():
-# 	print "ending worker queues..."
-# 	for i in range(WORKERS):
-# 		queue.put(None)
-# 	print "ended.."
-# 
-# atexit.register(threadterminate)
-#
-#######################
-
-
-
+db=database.DBProxy(dbpath=g.EMEN2DBPATH)
+	
 
 class newThreadPool(threadpool.ThreadPool):
 
 	def startAWorker(self):
 #		print "started twisted thread (newThreadPool)..."
 #		print "\tworker count: %s"%self.workers
-		self.db = database.Database(g.EMEN2DBPATH)
+		self.db=database.DBProxy(dbpath=g.EMEN2DBPATH)
+		#self.db = database.Database(g.EMEN2DBPATH)
 #		self.db = db
 
 		self.workers = self.workers + 1
@@ -91,7 +44,7 @@ class newThreadPool(threadpool.ThreadPool):
 				firstJob = None
 				
 #		print "initializing thread."		
-		newThread = threading.Thread(target=self._worker, args=(firstJob,db))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,self.db))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 

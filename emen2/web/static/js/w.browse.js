@@ -323,7 +323,7 @@ relationshipcontrol.prototype = {
 		var f=$("<form>")
 		f.attr("action",addr);
 		f.attr("method","POST");
-		var fin=$('<input type="hidden" name="notify_json" value="" />');
+		var fin=$('<input type="hidden" name="notify___json" value="" />');
 		fin.val($.toJSON([message]));
 		f.append(fin);
 		$(document.body).append(f);

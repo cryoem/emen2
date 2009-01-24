@@ -166,7 +166,7 @@ function notify_post(uri,msgs) {
   postform.action = uri;
 	for (var i=0;i<msgs.length;i++) {
 		var note = document.createElement("input") ;
-		note.setAttribute("name", "notify_"+i) ;
+		note.setAttribute("name", "notify___"+i) ;
 		note.setAttribute("value", msgs[i]);
 		postform.appendChild(note) ;
 	}
@@ -183,7 +183,7 @@ function record_action_delete(drecid) {
 	var test=confirm("Are you sure you want to delete this record?");
 	if (test) {
 		$.jsonRPC("deleterecord",[drecid,ctxid], function() {
-			//$.post("/db/record/"+recid,{"notify_0":"This record has been marked for deletion and removed from hierarchy"});
+			//$.post("/db/record/"+recid,{"notify___0":"This record has been marked for deletion and removed from hierarchy"});
 			notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
 			//window.location.reload();
 		}, function() {
