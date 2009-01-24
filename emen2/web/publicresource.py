@@ -101,7 +101,7 @@ class PublicView(Resource):
 				
 			result.update(sdict)	
 
-		print "!!!!!!!RESULT::::: %s" % result
+		#print "!!!!!!!RESULT::::: %s" % result
 		return result
 		
 
