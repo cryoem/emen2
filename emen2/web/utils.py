@@ -1,5 +1,4 @@
 #standard imports
-from sets import Set
 import re
 import os
 from operator import itemgetter
@@ -18,48 +17,10 @@ import demjson
 
 
 ###### ian
-import emen2.TwistSupport_html.supp
 from emen2.TwistSupport_html.public.views import View, Page
 from emen2.TwistSupport_html.publicresource import PublicView
-import operator
-
-import smtplib
-from email.mime.text import MIMEText
 
 
-def sendmailtemplate(recipient,template,ctxt=None):
-	if ctxt==None: ctxt={}
-	ctxt["recipient"]=recipient
-	ctxt["MAILADMIN"]=g.MAILADMIN
-	msg = g.templates.render_template(template, ctxt)
-	sendmailraw(recipient,msg)	
-
-
-
-
-def sendmail(recipient,subject,msgtxt,ctxid=None,host=None,db=None):
-
-	msg=MIMEText(msgtxt)
-	msg['Subject'] = subject
-	msg['From'] = g.MAILADMIN
-	msg['To'] = recipient
-
-	#return
-	# Send the message via our own SMTP server, but don't include the
-	# envelope header.
-
-	s = smtplib.SMTP(g.MAILHOST)
-	s.set_debuglevel(1)
-	s.sendmail(g.MAILADMIN, [recipient], msg.as_string())
-
-	
-	
-	
-def sendmailraw(recipient,content):
-	#return
-	s = smtplib.SMTP(g.MAILHOST)
-	s.set_debuglevel(1)
-	s.sendmail(g.MAILADMIN, [recipient], content)		
 
 
 
