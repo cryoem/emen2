@@ -5,7 +5,7 @@
 # have a limited lifespan
 
 #from twisted.web.resource import Resource
-from emen2 import DBProxy
+from emen2.Database.database import DBProxy
 from emen2.Database import database
 from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor

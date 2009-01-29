@@ -87,15 +87,11 @@ class DBTree(object):
 	
 	def get_child_id(self, name, cur_dir):
 		'''returns first child with a given folder_name'''
-#		ckey = self.get_cache_key('get_child_id', name, cur_dir)
-#		hit, result = self.check_cache(ckey) or (False, None)
-#		if hit is False:
 		children = self.__db.getchildren(cur_dir, keytype='record', ctxid=self.__ctxid, host=self.__host)
 		group = self.__db.groupbyrecorddef(children, ctxid=self.__ctxid, host=self.__host)
 		subfolders = self.__unfold_dict(group)
 		if name == '*': result = list(subfolders)
 		else: result = list(self.__dostuff(name, subfolders))
-#		if bool(result): self.store(ckey, result)
 		return result
 	
 	def get_parents(self, path=None, **kwargs):

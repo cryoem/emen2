@@ -17,7 +17,7 @@ import emen2.TwistSupport_html.uploadresource
 import emen2.TwistSupport_html.downloadresource
 import emen2.TwistSupport_html.publicresource
 #import emen2.TwistSupport_html.xmlrpcresource
-import emen2.TwistSupport_html.jsonresource
+#import emen2.TwistSupport_html.jsonresource
 import emen2.TwistSupport_html.public.views
 
 #from emen2.TwistSupport_html.public import views
@@ -61,8 +61,8 @@ root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResour
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
 
 # use new service system
-root.putChild("RPC2",emen2.TwistSupport_html.jsonresource.RPCResource(format="xmlrpc"))
-root.putChild("json",emen2.TwistSupport_html.jsonresource.RPCResource(format="json"))
+#root.putChild("RPC2",emen2.TwistSupport_html.jsonresource.RPCResource(format="xmlrpc"))
+#root.putChild("json",emen2.TwistSupport_html.jsonresource.RPCResource(format="json"))
 
 
 CONSOLE=0

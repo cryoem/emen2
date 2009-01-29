@@ -3,6 +3,7 @@ from cPickle import load, dump
 from emen2.Database.btrees import *
 from emen2.Database.datastorage import *
 from emen2.Database.exceptions import *
+from functools import partial
 from emen2.Database.subsystems import macro
 from emen2.Database.user import *
 from emen2.emen2config import *
@@ -82,19 +83,26 @@ class DBProxy:
 
 	
 	def _callmethod(self, method, args, kwargs):	
-		args.insert(0,method)
-		return self.__call__(*args, **kwargs)
+		return self.__call__(method, *args, **kwargs)
 		
 	def __call__(self, *args, **kwargs):
 		print "DB: %s, kwargs: %s"%(args,kwargs.keys())
-		if self.__publicmethods.get(args[0]):
-			return getattr(self.__db, args[0])(*args[1:], **kwargs)
-		elif self.__extmethods.get(args[0]):
-			kwargs["db"]=self.__db
-			a=self.__extmethods.get(args[0])()
-			return a.execute(*args[1:],**kwargs)
-		else:
+		methodname=args[0]
+		result = None
+		if methodname.startswith('__') and methodname.endswith('__'):
+			result = getattr(self.__db, methodname)()
+		elif self.__publicmethods.has_key(methodname) or self.__extmethods.has_key(methodname):
+			method = self.__publicmethods.get(methodname)
+			if method: method = partial(method, self.__db)
+			else: 
+				method = self.__extmethods.get(methodname)()
+				if method: method = partial(method, db=self.__db)
+			if method:
+				result = method(*args[1:], **kwargs)
+		if result == None:
 			raise Exception, "No such method %s"%(args[0])
+		else:
+			return result
 
 
 
@@ -3927,6 +3935,7 @@ or None if no match is found."""
 		@publicmethod
 		def getrecordrecname(self, rec, ctxid, returnsorted=0, showrectype=0, host=None):
 				"""Render the recname view for a record."""
+				print 'asdasdasd>>', rec, ctxid, returnsorted, showrectype, host
 				#self = db
 				
 				if hasattr(rec, "__iter__") and not isinstance(rec, Record):
@@ -3980,118 +3989,110 @@ or None if no match is found."""
  
 		@publicmethod		
 		def renderview(self, rec, viewdef=None, viewtype="defaultview", paramdefs={}, ctxid=None, showmacro=True, host=None):
-				"""Render a view for a record. Takes a record instance or a recid."""								
-								
-				if not isinstance(Record, int):				
-					if hasattr(rec,"__iter__"):
-						ret={}
-						for i in rec:
-							ret[i]=self.renderview(i,viewdef=viewdef,viewtype=viewtype, paramdefs=paramdefs, ctxid=ctxid, showmacro=showmacro, host=host)
-						return ret
+			"""Render a view for a record. Takes a record instance or a recid."""								
+	
+			if isinstance(rec, int):
+				if self.trygetrecord(rec, ctxid=ctxid, host=host):
+					rec = self.getrecord(rec, ctxid=ctxid, host=host)
+				else:
+					print "renderview: permissions error %s" % rec
+					return ""
 
-					elif type(rec) == int:
-							if self.trygetrecord(rec, ctxid=ctxid, host=host):
-									rec = self.getrecord(rec, ctxid=ctxid, host=host)
-							else:
-									print "renderview: permissions error %s" % rec
-									return ""
+			else:
+				if hasattr(rec, 'recid'): pass
+				elif hasattr(rec,"__iter__"):
+					ret={}
+					for i in rec:
+						ret[i]=self.renderview(i, viewdef=viewdef, viewtype=viewtype, paramdefs=paramdefs, ctxid=ctxid, showmacro=showmacro, host=host)
+					return ret
+				else:
+					raise Exception,"rec must be Record, int, or list: %s"%rec	
+
+			if viewdef == None:
+				recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
+				if viewtype == "mainview":
+					viewdef = recdef.mainview
+				else:
+					viewdef = recdef.views.get(viewtype, recdef.name)
+			
+
+			a = viewdef.encode('utf-8', "ignore")
 					
-					else:
-						raise Exception,"rec must be Record, int, or list: %s"%rec	
-												
-												
-								
-				if viewdef == None:
-						recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
-						if viewtype == "mainview":
-								viewdef = recdef.mainview
+			iterator = regex2.finditer(a)
+							
+			for match in iterator:
+				#################################
+				# Parameter short_desc
+				# TODO: trest
+				if match.group("name"):
+
+					name = str(match.group("name1"))
+					value = paramdefs.get(name,False) or self.getparamdef(name, ctxid=ctxid, host=host)
+					value = value.desc_short
+					viewdef = viewdef.replace(u"$#" + match.group("name") + 
+													  match.group("namesep"), 
+											  value + match.group("namesep"))
+
+
+				#################################
+				# Record value
+				elif match.group("var"):
+					var = str(match.group("var1"))
+					vartype = (paramdefs.get(var,False) or self.getparamdef(var, ctxid=ctxid, host=host)).vartype
+
+					# vartype representations. todo: external function
+					value = rec[var]
+					
+					if vartype in ["user", "userlist"]:
+						if type(value) != list:		 value = [value]
+						ustr = []
+						for i in value:
+							ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
+#							try:	
+#								urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
+#								ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
+#							except:
+#								ustr.append(u"(%s)" % i)
+						value = u", ".join(ustr)
+					
+					elif vartype == "boolean":
+						if value:
+							value = u"True"
 						else:
-								viewdef = recdef.views.get(viewtype, recdef.name)
-				
+							value = u"False"
+					
+					elif vartype in ["floatlist", "intlist"]:
+						value = u", ".join([str(i) for i in value])
+					
+					elif type(value) == type(None):
+							value = u""
+					elif type(value) == list:
+							value = u", ".join(value)
+					elif type(value) == float:
+							value = u"%s"%value
+							#value = u"%0.2f" % value
+					else:
+							value = pcomments.sub("<br />", unicode(value))
+					
+					# now replace..
+					viewdef = viewdef.replace(u"$$" + match.group("var") + match.group("varsep"), value + match.group("varsep"))
 
-				a = viewdef.encode('utf-8', "ignore")
-						
-				iterator = regex2.finditer(a)
-								
-				for match in iterator:
-						pass
+				######################################
+				# Macros
+				if match.group("macro") and showmacro:
+	
+						if match.group("macro") == "recid":
+								value = unicode(rec.recid)
+						else:
+								value = unicode(self.macroprocessor(macro.MacroEngine(), rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+	
+						m2 = match.group("macro2")
+						if m2 == None:
+								m2 = u""
+	
+						viewdef = viewdef.replace(u"$@" + match.group("macro1") + u"(" + m2 + u")" + match.group("macrosep"), value + match.group("macrosep"))
 
-						#################################
-						# Parameter short_desc
-						# TODO: trest
-						if match.group("name"):
-
-								name = str(match.group("name1"))
-								if paramdefs.has_key(name):
-										value = paramdefs[name].desc_short
-								else:
-										value = self.getparamdef(name, ctxid=ctxid, host=host).desc_short
-								viewdef = viewdef.replace(u"$#" + match.group("name") + match.group("namesep"), value + match.group("namesep"))
-
-
-						#################################
-						# Record value
-						elif match.group("var"):
-								
-								var = str(match.group("var1"))
-								if paramdefs.has_key(var):
-										vartype = paramdefs[var].vartype										
-								else:
-										vartype = self.getparamdef(var, ctxid=ctxid, host=host).vartype
-
-								# vartype representations. todo: external function
-								value = rec[var]
-								
-								if vartype in ["user", "userlist"]:
-										if type(value) != list:		 value = [value]
-										ustr = []
-										for i in value:
-											ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
-												#try:	
-														#urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
-														#ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
-												#except:
-												#		ustr.append(u"(%s)" % i)
-										value = u", ".join(ustr)
-								
-								elif vartype == "boolean":
-										if value:
-												value = u"True"
-										else:
-												value = u"False"
-								
-								elif vartype in ["floatlist", "intlist"]:
-										value = u", ".join([str(i) for i in value])
-								
-								elif type(value) == type(None):
-										value = u""
-								elif type(value) == list:
-										value = u", ".join(value)
-								elif type(value) == float:
-										value = u"%s"%value
-										#value = u"%0.2f" % value
-								else:
-										value = pcomments.sub("<br />", unicode(value))
-								
-								# now replace..
-								viewdef = viewdef.replace(u"$$" + match.group("var") + match.group("varsep"), value + match.group("varsep"))
-
-						######################################
-						# Macros
-						if match.group("macro") and showmacro:
-
-								if match.group("macro") == "recid":
-										value = unicode(rec.recid)
-								else:
-										value = unicode(self.macroprocessor(macro.MacroEngine(), rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
-
-								m2 = match.group("macro2")
-								if m2 == None:
-										m2 = u""
-
-								viewdef = viewdef.replace(u"$@" + match.group("macro1") + u"(" + m2 + u")" + match.group("macrosep"), value + match.group("macrosep"))
-
-				return viewdef
+			return viewdef
 
 
 		# Extensive modifications by Edward Langley
