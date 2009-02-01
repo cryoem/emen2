@@ -58,7 +58,7 @@ class DBProxy:
 		
 		
 	def __getattr__(self, name):
-		return lambda *x, **y: self(name, *x, **y)
+		return partial(self, name)
 		
 
 	def _ismethod(self, name):
@@ -68,6 +68,8 @@ class DBProxy:
 
 	@classmethod
 	def _register_publicmethod(cls, name, func):
+		if name in cls.__allmethods:
+			raise ValueError('''method %s already registered''' % name)
 		print "registering.. %s, %s"%(name,func)
 		cls.__publicmethods[name]=func
 		cls.__allmethods.add(name)
@@ -75,15 +77,15 @@ class DBProxy:
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
-		if name in cls.__extmethods.keys():
-			raise Exception,"Cannot override core method %s"%name
+		if name in cls.__allmethods:
+			raise ValueError('''method %s already registered''' % name)
 		print "registering.. %s, %s"%(name, refcl)
 		cls.__extmethods[name]=refcl
 		cls.__allmethods.add(name)
 
 	
-	def _callmethod(self, method, args, kwargs):	
-		return self.__call__(method, *args, **kwargs)
+#	def _callmethod(self, method, args, kwargs):	
+#		return self.__call__(method, *args, **kwargs)
 		
 	def __call__(self, *args, **kwargs):
 		print "DB: %s, kwargs: %s"%(args,kwargs.keys())
@@ -96,7 +98,7 @@ class DBProxy:
 			if method: method = partial(method, self.__db)
 			else: 
 				method = self.__extmethods.get(methodname)()
-				if method: method = partial(method, db=self.__db)
+				if method: method = partial(method.execute, db=self.__db)
 			if method:
 				result = method(*args[1:], **kwargs)
 		if result == None:
@@ -3990,13 +3992,13 @@ or None if no match is found."""
 		@publicmethod		
 		def renderview(self, rec, viewdef=None, viewtype="defaultview", paramdefs={}, ctxid=None, showmacro=True, host=None):
 			"""Render a view for a record. Takes a record instance or a recid."""								
-	
+			result = [False, ""]
 			if isinstance(rec, int):
 				if self.trygetrecord(rec, ctxid=ctxid, host=host):
 					rec = self.getrecord(rec, ctxid=ctxid, host=host)
 				else:
 					print "renderview: permissions error %s" % rec
-					return ""
+					result[0] = True
 
 			else:
 				if hasattr(rec, 'recid'): pass
@@ -4004,102 +4006,98 @@ or None if no match is found."""
 					ret={}
 					for i in rec:
 						ret[i]=self.renderview(i, viewdef=viewdef, viewtype=viewtype, paramdefs=paramdefs, ctxid=ctxid, showmacro=showmacro, host=host)
-					return ret
+					result = [True, ret]
 				else:
 					raise Exception,"rec must be Record, int, or list: %s"%rec	
-
-			if viewdef == None:
-				recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
-				if viewtype == "mainview":
-					viewdef = recdef.mainview
-				else:
-					viewdef = recdef.views.get(viewtype, recdef.name)
-			
-
-			a = viewdef.encode('utf-8', "ignore")
-					
-			iterator = regex2.finditer(a)
-							
-			for match in iterator:
-				#################################
-				# Parameter short_desc
-				# TODO: trest
-				if match.group("name"):
-
-					name = str(match.group("name1"))
-					value = paramdefs.get(name,False) or self.getparamdef(name, ctxid=ctxid, host=host)
-					value = value.desc_short
-					viewdef = viewdef.replace(u"$#" + match.group("name") + 
-													  match.group("namesep"), 
-											  value + match.group("namesep"))
-
-
-				#################################
-				# Record value
-				elif match.group("var"):
-					var = str(match.group("var1"))
-					vartype = (paramdefs.get(var,False) or self.getparamdef(var, ctxid=ctxid, host=host)).vartype
-
-					# vartype representations. todo: external function
-					value = rec[var]
-					
-					if vartype in ["user", "userlist"]:
-						if type(value) != list:		 value = [value]
-						ustr = []
-						for i in value:
-							ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
-#							try:	
-#								urec = self.getrecord(self.getuser(i, ctxid=ctxid, host=host).record, ctxid=ctxid, host=host)
-#								ustr.append(u"""%s %s %s (%s)""" % (urec["name_first"], urec["name_middle"], urec["name_last"], i))
-#							except:
-#								ustr.append(u"(%s)" % i)
-						value = u", ".join(ustr)
-					
-					elif vartype == "boolean":
-						if value:
-							value = u"True"
-						else:
-							value = u"False"
-					
-					elif vartype in ["floatlist", "intlist"]:
-						value = u", ".join([str(i) for i in value])
-					
-					elif type(value) == type(None):
-							value = u""
-					elif type(value) == list:
-							value = u", ".join(value)
-					elif type(value) == float:
-							value = u"%s"%value
-							#value = u"%0.2f" % value
+			if not result[0]:
+				if viewdef == None:
+					recdef = self.getrecorddef(rec["rectype"], ctxid=ctxid, host=host)
+					if viewtype == "mainview":
+						viewdef = recdef.mainview
 					else:
-							value = pcomments.sub("<br />", unicode(value))
-					
-					# now replace..
-					viewdef = viewdef.replace(u"$$" + match.group("var") + match.group("varsep"), value + match.group("varsep"))
-
-				######################################
-				# Macros
-				if match.group("macro") and showmacro:
+						viewdef = recdef.views.get(viewtype, recdef.name)
+				
 	
-						if match.group("macro") == "recid":
-								value = unicode(rec.recid)
+				a = viewdef.encode('utf-8', "ignore")
+						
+				iterator = regex2.finditer(a)
+								
+				for match in iterator:
+					#################################
+					# Parameter short_desc
+					# TODO: trest
+					if match.group("name"):
+	
+						name = str(match.group("name1"))
+						value = (paramdefs.get(name,False) or self.getparamdef(name, ctxid=ctxid, host=host)).desc_short
+						viewdef = viewdef.replace(u"$#" + match.group("name") + 
+														  match.group("namesep"), 
+												  value + match.group("namesep"))
+	
+	
+					#################################
+					# Record value
+					elif match.group("var"):
+						var = str(match.group("var1"))
+						vartype = (paramdefs.get(var,False) or self.getparamdef(var, ctxid=ctxid, host=host)).vartype
+	
+						# vartype representations. todo: external function
+						value = rec[var]
+						
+						if vartype in ["user", "userlist"]:
+							if not isinstance(value, list): value = [value]
+							ustr = []
+							for i in value:
+								ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
+							value = u", ".join(ustr)
+						
+						elif vartype == "boolean":
+							value = unicode(value)
+#							if value:
+#								value = u"True"
+#							else:
+#								value = u"False"
+						
+						elif vartype in ["floatlist", "intlist"]:
+							value = unicode.join(u", ", [unicode(i) for i in value])
+						
+						elif value == None:
+								value = u""
+						elif hasattr(value, '__iter__'):
+								value = unicode.join(u", ", [unicode(e) for e in value])
+						elif isinstance(value, float):
+								value = u"%s"%value
+								#value = u"%0.2f" % value
 						else:
-								value = unicode(self.macroprocessor(macro.MacroEngine(), rec, match.group("macro1"), match.group("macro2"), ctxid=ctxid, host=host))
+								value = pcomments.sub("<br />", unicode(value))
+						
+						# now replace..
+						viewdef = viewdef.replace(u"$$" + match.group("var") + match.group("varsep"), value + match.group("varsep"))
 	
+					######################################
+					# Macros
+					if match.group("macro") and showmacro:
+		
+						if match.group("macro") == "recid":
+							value = unicode(rec.recid)
+						else:
+							value = macro.MacroEngine().call_macro(match.group("macro1"), False, self, rec, match.group("macro2"), ctxid=ctxid, host=host)
+							value = unicode(value)
+		
 						m2 = match.group("macro2")
-						if m2 == None:
-								m2 = u""
+						if m2 == None: m2 = u""
 	
 						viewdef = viewdef.replace(u"$@" + match.group("macro1") + u"(" + m2 + u")" + match.group("macrosep"), value + match.group("macrosep"))
-
-			return viewdef
+				result = [True, viewdef]
+			
+			return result[1]
 
 
 		# Extensive modifications by Edward Langley
 #		 def macroprocessor(self, rec, macr, macroparameters, ctxid, host=None):
 #				 print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)
-		def macroprocessor(self, macroengine, rec, macr, macroparameters, ctxid, host=None):
-				return macroengine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)		
+#		def macroprocessor(self, macroengine, rec, macr, macroparameters, ctxid, host=None):
+#				return macroengine.call_macro(macr, False, self, rec, macroparameters, ctxid=ctxid, host=host)		
 
 
 

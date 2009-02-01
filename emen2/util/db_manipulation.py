@@ -7,6 +7,7 @@ from emen2.emen2config import *
 
 class IntegrityError(ValueError): pass
 class DBWrap(object):
+	'''wraps the db in order to get rid of ctxid in db calls.''' 
 	def __init__(self,db,ctxid,host=None):
 		self.db=db
 		self.ctxid=ctxid
@@ -19,11 +20,11 @@ class DBWrap(object):
 		return partial(attr, ctxid=self.ctxid, host=self.host)
 
 class DBTree(object):
+	'''emulates a tree structure on to of the Database'''
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
 
 	def __init__(self, db, ctxid, host=None, root=None):
-		self.caching = False
 		self.__db = db
 		self.__ctxid = ctxid
 		self.__host = host
@@ -48,10 +49,8 @@ class DBTree(object):
 				
 	
 	def __select(self, data, **kwargs):
-		unionset = set()
 		for param, value in kwargs.iteritems():
-			unionset |= self.__db.getindexbyvalue(param, value, ctxid=self.__ctxid, host=self.__host)
-		data &= unionset
+			data &= self.__db.getindexbyvalue(param, value, ctxid=self.__ctxid, host=self.__host)
 		# no return since sets are weakly referenced
 		
 	def __to_path(self, recid, path=None):
