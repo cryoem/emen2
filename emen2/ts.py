@@ -5,7 +5,9 @@
 # have a limited lifespan
 
 #from twisted.web.resource import Resource
+
 from emen2.Database.database import DBProxy
+
 from emen2.Database import database
 from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor
@@ -50,36 +52,34 @@ class newThreadPool(threadpool.ThreadPool):
 		newThread.start() 
 	
 	def _worker(self, o, db):		
-		ct = threading.currentThread()
-		while 1:
-			if o is threadpool.WorkerStop:
-					break
-			elif o is not None:
-				self.working.append(ct)
+			ct = threading.currentThread()
+			while 1:
+					if o is threadpool.WorkerStop:
+							break
+					elif o is not None:
+							self.working.append(ct)
+							ctx, function, args, kwargs = o
+							
+							db._clearcontext()
 
-#				print "workers: %s"%self.workers
-#				print "waiters: %s"%self.waiters
-#				print "threads: %s"%self.threads
-#				print "working: %s"%self.working
-#				print "btrees: %s"%len(DB.BTree.alltrees)
-#				print "intbtrees: %s"%len(DB.IntBTree.alltrees)
-#				print "fieldbtrees: %s"%len(DB.FieldBTree.alltrees)
-#				t1 = time.time(); g.debug.msg('LOG_INFO', '---Time 1 :: %r' % t1)
-				t1=time.time()
-				ctx, function, args, kwargs = o
-				try:
-					# add DB arg to all deferred calls
-					args[3]['db']=db
-					context.call(ctx, function, *args, **kwargs)
-				except:
-					context.call(ctx, log.deferr)
-#				t2 = time.time(); g.debug.msg('LOG_INFO', '---Time 2 :: %r' % t2)
-#				g.debug.msg('LOG_INFO', 'Total Time (t2-t1) == %r' % (t2-t1))
-				self.working.remove(ct)
-				del o, ctx, function, args, kwargs
-			self.waiters.append(ct)
-			o = self.q.get()
-			self.waiters.remove(ct)
+							#if kwargs.get("ctxid") != None and kwargs.get("host") != None:
+							#	print "ts:setcontext"
+							#	db._setcontext(kwargs.get("ctxid"),kwargs.get("host"))
+							#	del kwargs["ctxid"]
+							#	del kwargs["host"]
+							
+							try:
+									args[3]['db']=db
+									context.call(ctx, function, *args, **kwargs)
+							except:
+									context.call(ctx, log.deferr)
+
+							self.working.remove(ct)
+							del o, ctx, function, args, kwargs
+					self.waiters.append(ct)
+					o = self.q.get()
+					self.waiters.remove(ct)
+
 
 		self.threads.remove(ct)			
 
