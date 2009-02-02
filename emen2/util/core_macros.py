@@ -11,7 +11,7 @@ def get_recid(engine, db, rec, parameters, **extra):
 	return rec.recid
 
 @add_macro('recname')
-def get_recname(engine,db, rec, parameters, ctxid, host, **extra):
+def get_recname(engine,db, rec, parameters, ctxid=None, host=None, **extra):
 	recdef=db.getrecorddef(rec.rectype,ctxid,host=host)
 	view = recdef.views.get("recname", "(no recname view)")
 	result = db.renderview(rec,view,ctxid=ctxid,host=host)
@@ -24,7 +24,8 @@ def isofrecdef(engine, db, recid, recdef, rinfo):
 import time
 
 @add_macro('childcount')
-def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
+def get_childcount(engine, db, rec, recdef, ctxid=None, host=None, **extra):
+	"""This is very optimized; don't touch :)"""
 	#print "childcount"
 	recid = rec['recid']
 
@@ -37,11 +38,12 @@ def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
 	hit1, ind = res1 or (False, set())
 	hit2, childrendict = res2 or (False, {})
 
+	#print "CHILDRENDICT:"
 	#print childrendict
 
 	if hit1 is False:
 		#print "getindexbyrecorddef"
-		ind=db.getindexbyrecorddef(recdef, ctxid)
+		ind=db.getindexbyrecorddef(recdef, ctxid=ctxid, host=host)
 		engine.store(key1, ind)
 
 	#if hit3 is False:
@@ -51,7 +53,7 @@ def get_childcount(engine, db, rec, recdef, ctxid, host, **extra):
 
 	if hit2 is False or not childrendict.has_key(recid):
 		#print "macro getchildren"
-		childrendict[recid]=db.getchildren(recid,recurse=2,ctxid=ctxid)
+		childrendict[recid]=db.getchildren(recid,recurse=2,tree=0,filter=1,ctxid=ctxid,host=host)
 		
 	return len(childrendict[recid] & ind)	
 		
@@ -86,13 +88,13 @@ html_join_func = partial(def_join_func, sep='<br />')
 import thread
 
 @add_macro('renderchildren')
-def do_renderchildren(engine, db, rec, view, ctxid, host, **extra):
+def do_renderchildren(engine, db, rec, view, ctxid=None, host=None, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	get_records = partial(db.getchildren, **rinfo)
 	return render_records(db, rec, view, get_records,rinfo, html_join_func)
 
 @add_macro('renderchild')
-def do_renderchild(engine, db, rec, args, ctxid, host, **extra):
+def do_renderchild(engine, db, rec, args, ctxid=None, host=None, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	view, key, value = args.split(' ')
 	def get_records(recid):
@@ -100,7 +102,7 @@ def do_renderchild(engine, db, rec, args, ctxid, host, **extra):
 	return render_records(db, rec, view, get_records,rinfo, html_join_func)
 
 @add_macro('renderchildrenoftype')
-def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
+def do_renderchildrenoftype(db, rec, args, ctxid=None, host=None, **extra):
 	rinfo = dict(ctxid=ctxid,host=host)
 	view, recdef = args.split(' ')
 	def get_records(recid):
@@ -113,7 +115,7 @@ def do_renderchildrenoftype(db, rec, args, ctxid, host, **extra):
 
 #print "import core macro"
 @add_macro('img')
-def do_img(engine, db, rec, args, ctxid, host, **extra):
+def do_img(engine, db, rec, args, ctxid=None, host=None, **extra):
 	#print "img macro"
 	default=["file_binary_image","640","640"]
 	try:
@@ -145,7 +147,7 @@ def do_img(engine, db, rec, args, ctxid, host, **extra):
 	ret=[]
 	for i in bdos:
 		try:
-			fname,bname,lrecid=db.getbinary(i[4:],ctxid)
+			fname,bname,lrecid=db.getbinary(i[4:],ctxid=ctxid)
 			ret.append('<img src="/download/%s/%s" style="max-height:%spx;max-width:%spx;" />'%(i[4:],fname,height,width))
 		except:
 			ret.append("(Error: %s)"%i)
@@ -155,25 +157,25 @@ def do_img(engine, db, rec, args, ctxid, host, **extra):
 
 
 @add_macro('getrectypesiblings')
-def getrectypesiblings(engine, db,rec, args, ctxid, host, **extra):
+def getrectypesiblings(engine, db,rec, args, ctxid=None, host=None, **extra):
 	"""returns siblings and cousins of same rectype"""
 	ret = {}
-	parents = db.getparents(rec.recid,ctxid=ctxid)
+	parents = db.getparents(rec.recid,ctxid=ctxid,host=host)
 	siblings = set()
 
 	for i in parents:
-		siblings = siblings.union(db.getchildren(i,ctxid=ctxid))
+		siblings = siblings.union(db.getchildren(i,ctxid=ctxid,host=host))
 
-	groups = db.groupbyrecorddef(siblings, ctxid)
+	groups = db.groupbyrecorddef(siblings, ctxid=ctxid,host=host)
 
 	if groups.has_key(rec.rectype):
-		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid)
+		q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime",ctxid=ctxid,host=host)
 		ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?	
 
 	return str(ret)
 	
 @add_macro('getfilenames')	
-def getfilenames(engine, db,rec, args, ctxid, host, **extra):
+def getfilenames(engine, db,rec, args, ctxid=None, host=None, **extra):
 	"""returns dictionary of {bid:upload filename}"""
 	files = {}
 	if rec["file_binary"] or rec["file_binary_image"]:	
@@ -186,7 +188,7 @@ def getfilenames(engine, db,rec, args, ctxid, host, **extra):
 		for bid in bids:
 			bid = bid[4:]
 			try:
-				bname,ipath,bdocounter=db.getbinary(bid,ctxid,host)
+				bname,ipath,bdocounter=db.getbinary(bid,ctxid=ctxid,host=host)
 			except Exception, inst:
 				bname="Attachment error: %s"%bid
 			files[bid]=bname
@@ -211,15 +213,15 @@ def getvalue(db, recset, attribute, join_func=def_join_func, **rinfo):
 	return join_func([rec[attribute] for rec in tmp if rec.has_key(attribute)])
 	
 @add_macro('childvalue')
-def get_childrenvalue(engine, db, rec, attribute, ctxid, host, **extra):
+def get_childrenvalue(engine, db, rec, attribute, ctxid=None, host=None, **extra):
 	recid = rec.recid
-	children = db.getchildren(recid, ctxid=ctxid)
+	children = db.getchildren(recid, ctxid=ctxid, host=host)
 	return getvalue(db, children, attribute, ctxid=ctxid, host=host)
 
 @add_macro('parentvalue')
-def get_parentvalue(engine, db, rec, attribute, ctxid, host, **extra):
+def get_parentvalue(engine, db, rec, attribute, ctxid=None, host=None, **extra):
 	recid = rec['recid']
-	parents = db.getparents(recid, ctxid=ctxid)
+	parents = db.getparents(recid, ctxid=ctxid, host=host)
 	return getvalue(db, parents, attribute, ctxid=ctxid, host=host)
 
 from cgi import escape

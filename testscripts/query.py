@@ -72,7 +72,7 @@ class Intersection(BoolOp):
 class GetRecord(object):
 	def act(self, data, db, ctxid, host):
 		for recid in data:
-			yield db.getrecord(recid, ctxid, host)
+			yield db.getrecord(recid, ctxid=ctxid, host=host)
 
 class GetRecordDef(object):
 	def act(self, data, db, ctxid, host):
@@ -111,7 +111,7 @@ class FilterByRecordDef(object):
 	def act(self, data, db, ctxid, host):
 		result = set([])
 		for name in self.recorddefs:
-			result.update(db.getindexbyrecorddef(name, ctxid, host))
+			result.update(db.getindexbyrecorddef(name, ctxid=ctxid, host=host))
 		if data:
 			result = ( set(result) & set(data) ) or result
 		
@@ -121,9 +121,9 @@ class FilterByRecordDef(object):
 class FilterByContext(object):
 	def act(self, data, db, ctxid, host):
 		if data:
-			result = ( set(data) & set(db.getindexbycontext(ctxid, host=host)) ) or data
+			result = ( set(data) & set(db.getindexbycontext(ctxid=ctxid, host=host)) ) or data
 		else:
-			result = db.getindexbycontext(ctxid, host=host)
+			result = db.getindexbycontext(ctxid=ctxid, host=host)
 		
 		for item in result:
 			yield item
@@ -156,7 +156,7 @@ class FilterByParentType(object):
 	def act(self, data, db, ctxid, host):
 		queryset = [ (x, db.getparents(x, ctxid=ctxid, host=host)) for x in data ]
 		for rec, parents in queryset:
-			parents = db.groupbyrecorddef(parents, ctxid, host=host)
+			parents = db.groupbyrecorddef(parents, ctxid=ctxid, host=host)
 			if parents.get(self.recorddef, False) != False:
 				yield rec
 
@@ -214,7 +214,7 @@ class EditRecord(object):
 class Commit(object):
 	def act(self, data, db, ctxid, host):
 		for rec in data:
-			db.puterecord(rec, ctxid, host=host)
+			db.puterecord(rec, ctxid=ctxid, host=host)
 			yield rec
 			
 class Unlink(object):

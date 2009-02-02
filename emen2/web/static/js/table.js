@@ -55,6 +55,8 @@ function table_keys_menu_toggle(elem) {
 	tmp_table_keys_menu_init=1;
 }
 
+
+
 function table_keys_menu_apply(elem) {
 	var form=$(elem.form);
 	tablestate["tablekeys"]=[];
@@ -72,6 +74,8 @@ function table_keys_menu_apply(elem) {
 	table_generate_viewdef(tablestate["tablekeys"]);	
 }
 
+
+
 function table_generate_viewdef(tk) {
 	var viewdef="";
 	for (var i=0;i<tk.length;i++) {
@@ -88,6 +92,8 @@ function table_generate_viewdef(tk) {
 	tmp_table_keys_menu_init=0;
 	table_refresh(0);
 }
+
+
 
 function table_editcolumn(elem,key) {
 
@@ -116,9 +122,13 @@ function table_setcount(count) {
 	
 }
 
+
+
 function table_reinit() {
 	table_refresh(1);
 }
+
+
 
 function table_refresh(reset) {
 	var ns={};
@@ -146,6 +156,8 @@ function table_refresh(reset) {
 		);
 }
 
+
+
 function table_setpos(pos) {
 	var ns={};
 
@@ -170,6 +182,8 @@ function table_setpos(pos) {
 		}
 		);
 }
+
+
 
 function table_sort(key) {
 	var ns={};

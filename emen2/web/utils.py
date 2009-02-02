@@ -22,6 +22,22 @@ from emen2.TwistSupport_html.publicresource import PublicView
 
 
 
+# from: http://basicproperty.sourceforge.net
+def flatten(l, ltypes=(set, list, tuple)):
+    ltype = type(l)
+    l = list(l)
+    i = 0
+    while i < len(l):
+        while isinstance(l[i], ltypes):
+            if not l[i]:
+                l.pop(i)
+                i -= 1
+                break
+            else:
+                l[i:i + 1] = l[i]
+        i += 1
+    return ltype(l)
+
 
 
 def commonareas(ctxid=None,host=None,db=None):
@@ -32,21 +48,32 @@ def commonareas(ctxid=None,host=None,db=None):
 
 def projecttree(ctxid=None,host=None,db=None,subs=1):
 	# walk GROUP -> PROJECT -> SUBPROJECT
-	recnames={}
-	q_groups=db.groupbyrecorddeffast(db.getchildren(g.GROUPROOT,ctxid=ctxid,host=host),ctxid=ctxid,host=host).get("group",set())
-	for group in q_groups:				
-		group_name=db.renderview(group,ctxid=ctxid,host=host,viewdef="$$name_group") #viewtype="recname"
-		q_projects=db.groupbyrecorddeffast(db.getchildren(group,ctxid=ctxid,host=host),ctxid=ctxid,host=host).get("project",set())
-		for project in q_projects:
-			project_name=db.renderview(project,ctxid=ctxid,host=host,viewdef="$$name_project")#viewtype="recname"
-			recnames[project]="%s / %s"%(group_name, project_name)
-			if subs:
-				q_subprojects=db.groupbyrecorddeffast(db.getchildren(project,ctxid=ctxid,host=host),ctxid=ctxid,host=host).get("subproject",set())
-				for subproject in q_subprojects:
-					subproject_name=db.renderview(subproject,ctxid=ctxid,host=host,viewtype="recname")
-					recnames[subproject]="%s / %s / %s"%(group_name, project_name, subproject_name)
-				
-	#subproject_sorted=[i[0] for i in sorted(recnames.items(), key=itemgetter(1))]
-	#for i in subproject_sorted: print recnames[i]
+
+	children=db.getchildren(g.GROUPROOT,recurse=2,filter=1,tree=1)
+	all=set(flatten(children.values()))
+
+	rectypes=["group","project"]
+	if subs: rectypes.append("subproject")
 	
-	return recnames
+	groups={}
+	for i in rectypes:
+		groups[i]=db.getindexbyrecorddef(i) & all
+		
+	recnames={}	
+	ret={}
+	recnames.update(db.renderview(all & groups["group"],viewdef="$$name_group"))
+	recnames.update(db.renderview(all & groups["project"],viewdef="$$name_project"))
+	if subs:
+		recnames.update(db.renderview(all & groups["subproject"],viewtype="recname"))
+	
+	for group in children[g.GROUPROOT] & groups["group"]:
+		for project in children[group] & groups["project"]:
+
+			if subs:
+				for subproject in children[project] & groups["subproject"]:
+					ret[subproject]="%s / %s / %s"%(recnames[group],recnames[project],recnames[subproject])
+
+			else:
+				ret[project]="%s / %s"%(recnames[group],recnames[project])
+
+	return ret

@@ -23,7 +23,7 @@ print demjson.encode(jsvp)
 #import sys
 #sys.exit(0)
 
-for i in db.getparamdefnames(ctxid):
+for i in db.getparamdefnames():
  	z=db.getparamdef(i)
  	if z.defaultunits != None and z.defaultunits != "":
 		try:
@@ -31,7 +31,7 @@ for i in db.getparamdefnames(ctxid):
 				print "Need to fix: %s"%z.name
 				print "\tdu: %s\n\tprop: %s -> %s"%(z.defaultunits, z.property, rvp[z.defaultunits])
 				z.property=rvp[z.defaultunits]
-				db.addparamdef(z,ctxid)
+				db.addparamdef(z)
 
 		except:
 			print "wtf %s, %s"%(z.name, z.defaultunits)

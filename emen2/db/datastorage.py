@@ -707,7 +707,7 @@ class Record(DictMixin):
 
 	def validate_permissions_users(self):
 		u=set()
-		users=set(self.__context.db.getusernames(self.__context.ctxid,host=self.__context.host))		
+		users=set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
 		for j in self.__permissions: u|=set(j)
 		u -= set([0,-1,-2,-3])
 		if u-users:
@@ -1012,12 +1012,14 @@ class Record(DictMixin):
 			p2=set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 			p3=set(self.__permissions[2]+self.__permissions[3])
 			p4=set(self.__permissions[3])
-			u1=set(ctx.groups+[-4])				# all users are permitted group -4 access
-			
-			if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
+			u1=set(ctx.groups)				#+[-4] all users are permitted group -4 access
+			#if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 			
 			# test for read permission in this context
-			if (-2 in u1 or ctx.user in p1 or u1&p1) : self.__ptest[0]=1
+			if (-2 in u1 or ctx.user in p1 or u1&p1):
+				self.__ptest[0]=1
+			else:
+				raise SecurityError,"Permission Denied: %s"%self.recid
 	
 			# test for comment write permission in this context
 			if (ctx.user in p2 or u1&p2): self.__ptest[1]=1
@@ -1060,7 +1062,7 @@ class Record(DictMixin):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__context.db.putrecord(self,self.__context.ctxid,host=host)
+		return self.__context.db.putrecord(self,ctxid=self.__context.ctxid,host=host)
 
 	def setoparams(self,d):
 		# ian: fix this more elegantly..

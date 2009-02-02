@@ -4,7 +4,7 @@ function getparamdefs(recids,cb) {
 	
 	$.jsonRPC(
 		"getparamdefs",
-		[recids,ctxid],
+		[recids],
 		function (json) {
 			$.each(json, function(i) {
 				paramdefs[i]=this;
@@ -21,7 +21,7 @@ function getrecords_paramdefs(recids,cb) {
 	
 	$.jsonRPC(
 		"getrecord",
-		[recids,ctxid],
+		[recids],
  		function(json){
 			//console.log("got records");
 			$.each(json, function() {
@@ -31,7 +31,7 @@ function getrecords_paramdefs(recids,cb) {
 			//
 			$.jsonRPC(
 				"getparamdefs",
-				[recids,ctxid],
+				[recids],
 				function (json) {
 					//console.log("got paramdefs");
 					$.each(json, function(i) {

@@ -508,7 +508,7 @@ permissions.prototype = {
 		if (r.length > 0) {
 
 			ajaxqueue["record_permissions_save"]++;
-			$.jsonRPC("secrecorddeluser",[r,recid,ctxid,rlevels], function() {
+			$.jsonRPC("secrecorddeluser",[r,recid,rlevels], function() {
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
 					//console.log("ajax queue done");
@@ -521,7 +521,7 @@ permissions.prototype = {
 		}
 
 		// run with recurse = 0, reassign = 1
-		$.jsonRPC("secrecordadduser",[this.getlist(), recid, ctxid,rlevels,1], function(permissions) {
+		$.jsonRPC("secrecordadduser",[this.getlist(), recid, rlevels,1], function(permissions) {
 				setvalue(recid,"permissions");
 				ajaxqueue["record_permissions_save"]--;
 				if (ajaxqueue["record_permissions_save"]==0) {
@@ -659,7 +659,7 @@ commentswidget.prototype = {
 	save: function() {
 		var self=this;
 
-		$.jsonRPC("addcomment",[recid,this.edit.val(),ctxid],
+		$.jsonRPC("addcomment",[recid,this.edit.val()],
 	 		function(json){
 				//console.log(json);
 				setvalue(recid,"comments",json);

@@ -185,26 +185,33 @@ class PublicView(Resource):
 	
 	
 	
-	def __authenticate(self, db, request, ctxid, host, args, router, target):
+	def __authenticate(self, db, request, router, target):
 		'authenticate a user'
-		authen = auth.Authenticator(db=db, host=host)
-		## if the browser has a ctxid cookie, get it
+
+		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid")
-		## if the user requested to be logged in as a particular user
-		## get the username and the password
+		args = request.args
+		if args.has_key("ctxid"):
+			ctxid = args["ctxid"][0]
+		
+		authen = auth.Authenticator(db=db, host=host)
+
+		# try login
 		username = args.get('username', [''])[0]
 		pw = request.args.get('pw', [''])[0]
-		## check credentials
-		## if username is not associated with the ctxid passed, log user in
 		authen.authenticate(username, pw, ctxid, host=host)
-		ctxid, un = authen.get_auth_info()
-		if username and un != username:
-			target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
-		else:
-			username = un
+
+		ctxid, username = authen.get_auth_info()
+
+		#if username and un != username:
+		#	target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
+		#else:
+		#	username = un
+
 		if ctxid is not None:
 			request.addCookie("ctxid", ctxid, path='/')
-		target = '/%s/%s' % ('/'.join(request.prepath), target)
+
+		#target = '/%s/%s' % ('/'.join(request.prepath), target)
 		return username, ctxid, target, authen
 
 
@@ -237,77 +244,68 @@ class PublicView(Resource):
 	
 	
 	def render_GET(self, request, content=None):
-		ctxid, host = None, request.getClientIP()
-		args = request.args
-		
+
+		host = request.getClientIP()
 		request.postpath = filter(bool, request.postpath)
-		
 		router=self.router
 		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
 
 
 		try:
+
 			# redirect special urls
 			if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
 				target = addSlash(request)
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
 			
+			
+			# begin request handling
 			path = '/%s' % str.join("/", request.postpath)
 			if not path.endswith('/'): path = '%s/' % path
 			target = self.__getredirect(request, path)
-			
-			# begin request handling
+
 			method = listops.get(request.postpath, 0, '')
 			callback, msg = make_callback(''), ''
 			
-			
-			username, ctxid, tmp, authen = self.__authenticate(ts.db, request, ctxid, 
-													    host, args, router, 
-													    target)
+			# auth
+			username, ctxid, target, authen = self.__authenticate(ts.db, request, router, target)
 			
 			
-			# redirect must occur after authentication so the
-			# ctxid cookie can be sent to the browser on a  
-			# POST request
 			if target is not None:
-				#redirects must not be unicode
 				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
+			
 			
 			print "\n\n:: web :: %s :: %s@%s"%(request.uri, username, host)
 			
-			tmp = self.__parse_args(args, content=content)		
+			args = self.__parse_args(request.args, content=content)		
 			
 			if method == "logout":
 				authen.logout(ctxid)
 				return redirectTo('/db/home/', request).encode('utf-8')
 
 			elif method == "login":
-				callback = router.execute('/login/', uri=tmp.get('uri', '/db/home/'))
-				callback = callback(db=ts.db, host=host, ctxid='', msg=tmp.get('msg', msg))
+				callback = router.execute('/login/', uri=args.get('uri', '/db/home/'))
+				callback = callback(db=ts.db, host=host, ctxid='', msg=args.get('msg', msg))
 				return str(callback)
 
 			else:
-				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **tmp)
+				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
 				
-			def batch(*args, **kwargs):
-				'''
-				 helper function for batching... 
-				 returns a list (result, mime-type)
-				'''
-				return list(callback(*args, **kwargs))
-
+				
 			d = threads.deferToThread(callback)
-			d.addCallback(self._cbsuccess, request, ctxid, t=time.time())
-			d.addErrback(self._ebRender, request, ctxid)
+			d.addCallback(self._cbsuccess, request, t=time.time())
+			d.addErrback(self._ebRender, request)
 			return server.NOT_DONE_YET
 		
 		except Exception, e:
-			self._ebRender(e, request, ctxid)
+			self._ebRender(e, request)
 	
 	
 	
-	def _cbsuccess(self, result, request, ctxid, t=0):#, t=0):
+	def _cbsuccess(self, result, request, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
+
+		print "publicresource: _cbsuccess"
 
 		headers = {"content-type": "text/html; charset=utf-8",
 				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
@@ -336,7 +334,7 @@ class PublicView(Resource):
 		
 		
 		
-	def _ebRender(self, failure, request, ctxid):
+	def _ebRender(self, failure, request):
 		try:
 			g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
 			g.debug.msg(g.LOG_ERR, failure)
@@ -354,7 +352,6 @@ class PublicView(Resource):
 				args = {'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
 						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),
 						'db': ts.db,
-						'ctxid': ctxid,
 						'host': request.getClientIP()
 					   }
 				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")

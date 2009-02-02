@@ -27,7 +27,7 @@ function admin_approveusers_form(elem) {
 	//console.log(reject);
 
 	if (approve.length > 0) {
-		$.jsonRPC("wrapper_approveuser_sendmail",[approve,ctxid],
+		$.jsonRPC("wrapper_approveuser_sendmail",[approve],
 			function(data) {
 				notify("Approved users: "+data);
 				for (var i=0;i<data.length;i++) {
@@ -44,7 +44,7 @@ function admin_approveusers_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("wrapper_rejectuser_sendmail",[reject,ctxid],
+		$.jsonRPC("wrapper_rejectuser_sendmail",[reject],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {
@@ -91,7 +91,7 @@ function admin_userstate_form(elem) {
 	//return
 	
 	if (enable.length > 0) {
-		$.jsonRPC("enableuser",[enable,ctxid],
+		$.jsonRPC("enableuser",[enable],
 			function(data) {
 				if (data) {
 					notify("Enabled users: "+data);
@@ -105,7 +105,7 @@ function admin_userstate_form(elem) {
 	}
 
 	if (disable.length > 0) {
-		$.jsonRPC("disableuser",[disable,ctxid],
+		$.jsonRPC("disableuser",[disable],
 			function(data) {
 				if (data) {
 					notify("Disabled users: "+data);
@@ -142,7 +142,7 @@ function admin_chpasswd_form(elem) {
 	}
 	
 
-	$.jsonRPC("setpassword",[username,oldpass.val(),newpass1.val(),ctxid], 
+	$.jsonRPC("setpassword",[username,oldpass.val(),newpass1.val()], 
 		function(data) {
 			//console.log("ok");
 			//console.log(data)

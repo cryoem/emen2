@@ -304,7 +304,7 @@ relationshipcontrol.prototype = {
 	rpc: function(method, args) {
 		this.rpcqueue++;
 		var self=this;
-		$.jsonRPC(method,[args[0], args[1], ctxid, "record"], function(result) {
+		$.jsonRPC(method,[args[0], args[1]], function(result) {
 			self.checkqueue();
 		});					
 		
@@ -501,7 +501,7 @@ relationshipbrowser.prototype = {
 	getchildren: function(recid,cb) {
 		this.children=null;
 		var self=this;
-		$.jsonRPC("getchildren",[this.currentid, "record", 0, ctxid], function(result) {
+		$.jsonRPC("getchildren",[this.currentid, "record", 0], function(result) {
 			self.children=result;
 			self.checklocalindex();
 		});
@@ -510,7 +510,7 @@ relationshipbrowser.prototype = {
 	getparents: function(cb) {
 		this.parents=null;
 		var self=this;
-		$.jsonRPC("getparents",[this.currentid, "record", 0, ctxid], function(result) {
+		$.jsonRPC("getparents",[this.currentid, "record", 0], function(result) {
 			self.parents=result;
 			self.checklocalindex();
 		});
@@ -518,7 +518,7 @@ relationshipbrowser.prototype = {
 	
 	getrecnames: function(recids, cb) {
 		var self=this;
-		$.jsonRPC("getrecordrecname",[recids, ctxid], function(result) {
+		$.jsonRPC("getrecordrecname",[recids], function(result) {
 			$.each(result, function(k,v) {
 					setrecname(k,v);
 			});

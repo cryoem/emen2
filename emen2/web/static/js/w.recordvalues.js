@@ -418,7 +418,7 @@ widget.prototype = {
 		var recid=this.recid;
 		var param=this.param;
 	
-		$.jsonRPC("putrecordvalue",[recid,this.param,this.getval(),ctxid],
+		$.jsonRPC("putrecordvalue",[recid,this.param,this.getval()],
 	 		function(json){
 				setvalue(recid,param,json);
 	 			//rec[this.param]=json;

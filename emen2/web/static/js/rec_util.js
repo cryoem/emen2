@@ -35,7 +35,7 @@ function getctxid() {
 	return null;
 }
 
-ctxid = getctxid();
+//ctxid = getctxid();
 
 
 // js is stupid at sorting.
@@ -182,7 +182,7 @@ function notify_post(uri,msgs) {
 function record_action_delete(drecid) {
 	var test=confirm("Are you sure you want to delete this record?");
 	if (test) {
-		$.jsonRPC("deleterecord",[drecid,ctxid], function() {
+		$.jsonRPC("deleterecord",[drecid], function() {
 			//$.post("/db/record/"+recid,{"notify___0":"This record has been marked for deletion and removed from hierarchy"});
 			notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
 			//window.location.reload();
@@ -228,7 +228,7 @@ function record_permissions_toggle(elem) {
 	
 		target.empty();
 	
-		$.jsonRPC("getuserdisplayname",[recid,ctxid], function(result) {
+		$.jsonRPC("getuserdisplayname",[recid,1,1], function(result) {
 			$.each(result, function(k,v) {
 				setdisplayname(k,v);
 			});
@@ -262,7 +262,7 @@ function record_relationships_toggle(elem) {
 		
 		target.empty();
 		
-		$.jsonRPC("getrecordrecname",[parents.concat(children).concat([recid]), ctxid], function(result) {
+		$.jsonRPC("getrecordrecname",[parents.concat(children).concat([recid])], function(result) {
 			$.each(result, function(k,v) {
 					setrecname(k,v);
 					//recnames[v[0]]=v[1];
@@ -321,7 +321,7 @@ function newrecord_getoptionsandcommit(self, values) {
 function commit_putrecords(self, records, cb) {
 	if (cb==null) {cb=function(json){}}
 	//console.log(records);
-	$.jsonRPC("putrecordsvalues",[records,ctxid],
+	$.jsonRPC("putrecordsvalues",[records],
  		function(json){
  			cb(json);
 //			notify("Changes saved");
@@ -345,7 +345,7 @@ function commit_newrecord(self, values,parents,cb,self) {
 		}
 	});
 	
-	$.jsonRPC("putrecord", [rec_update, ctxid, parents],
+	$.jsonRPC("putrecord", [rec_update, parents],
 		function(json){
 			cb(json);
 		},

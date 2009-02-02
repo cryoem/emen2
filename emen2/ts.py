@@ -52,34 +52,27 @@ class newThreadPool(threadpool.ThreadPool):
 		newThread.start() 
 	
 	def _worker(self, o, db):		
-			ct = threading.currentThread()
-			while 1:
-					if o is threadpool.WorkerStop:
-							break
-					elif o is not None:
-							self.working.append(ct)
-							ctx, function, args, kwargs = o
-							
-							db._clearcontext()
 
-							#if kwargs.get("ctxid") != None and kwargs.get("host") != None:
-							#	print "ts:setcontext"
-							#	db._setcontext(kwargs.get("ctxid"),kwargs.get("host"))
-							#	del kwargs["ctxid"]
-							#	del kwargs["host"]
-							
-							try:
-									args[3]['db']=db
-									context.call(ctx, function, *args, **kwargs)
-							except:
-									context.call(ctx, log.deferr)
+		ct = threading.currentThread()
+		while 1:
+			if o is threadpool.WorkerStop:
+					break
+			elif o is not None:
+				self.working.append(ct)
 
-							self.working.remove(ct)
-							del o, ctx, function, args, kwargs
-					self.waiters.append(ct)
-					o = self.q.get()
-					self.waiters.remove(ct)
+				ctx, function, args, kwargs = o
+				try:
+					# add DB arg to all deferred calls
+					args[3]['db']=db
+					context.call(ctx, function, *args, **kwargs)
+				except:
+					context.call(ctx, log.deferr)
 
+				self.working.remove(ct)
+				del o, ctx, function, args, kwargs
+			self.waiters.append(ct)
+			o = self.q.get()
+			self.waiters.remove(ct)
 
 		self.threads.remove(ct)			
 
