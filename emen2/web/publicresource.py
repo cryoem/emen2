@@ -349,10 +349,12 @@ class PublicView(Resource):
 				Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 					
 				request.setResponseCode(401)
-				args = {'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
+				args = {
+						'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
 						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),
 						'db': ts.db,
-						'host': request.getClientIP()
+						'host': request.getClientIP(),
+						'ctxid':None
 					   }
 				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 	

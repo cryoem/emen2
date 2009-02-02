@@ -116,37 +116,37 @@ class DBProxy:
 		
 		
 	def __call__(self, *args, **kwargs):
-# 		print "\n\nDB: %s, kwargs: %s"%(args,kwargs.keys())
-# 
-# 		if self.__ctxid:
-# 			kwargs["ctxid"]=self.__ctxid
-# 		if self.__host:
-# 			kwargs["host"]=self.__host
-# 
-# 			
-# 		if self.__publicmethods.get(args[0]):
-# 			return getattr(self.__db, args[0])(*args[1:], **kwargs)
-# 		elif self.__extmethods.get(args[0]):
-# 			kwargs["db"]=self.__db
-# 			a=self.__extmethods.get(args[0])()
-# 			return a.execute(*args[1:],**kwargs)
-		print "DB: %s, kwargs: %s"%(args,kwargs.keys())
-		methodname=args[0]
-		result = None
-		if methodname.startswith('__') and methodname.endswith('__'):
-			result = getattr(self.__db, methodname)()
-		elif self.__publicmethods.has_key(methodname) or self.__extmethods.has_key(methodname):
-			method = self.__publicmethods.get(methodname)
-			if method: method = partial(method, self.__db)
-			else: 
-				method = self.__extmethods.get(methodname)()
-				if method: method = partial(method.execute, db=self.__db)
-			if method:
-				result = method(*args[1:], **kwargs)
-		if result == None:
-			raise Exception, "No such method %s"%(args[0])
-		else:
-			return result
+		print "\n\nDB: %s, kwargs: %s"%(args,kwargs.keys())
+
+		if self.__ctxid:
+			kwargs["ctxid"]=self.__ctxid
+		if self.__host:
+			kwargs["host"]=self.__host
+
+			
+		if self.__publicmethods.get(args[0]):
+			return getattr(self.__db, args[0])(*args[1:], **kwargs)
+		elif self.__extmethods.get(args[0]):
+			kwargs["db"]=self.__db
+			a=self.__extmethods.get(args[0])()
+			return a.execute(*args[1:],**kwargs)
+# 		print "DB: %s, kwargs: %s"%(args,kwargs.keys())
+# 		methodname=args[0]
+# 		result = None
+# 		if methodname.startswith('__') and methodname.endswith('__'):
+# 			result = getattr(self.__db, methodname)()
+# 		elif self.__publicmethods.has_key(methodname) or self.__extmethods.has_key(methodname):
+# 			method = self.__publicmethods.get(methodname)
+# 			if method: method = partial(method, self.__db)
+# 			else: 
+# 				method = self.__extmethods.get(methodname)()
+# 				if method: method = partial(method.execute, db=self.__db)
+# 			if method:
+# 				result = method(*args[1:], **kwargs)
+# 		if result == None:
+# 			raise Exception, "No such method %s"%(args[0])
+# 		else:
+# 			return result
 
 
 
