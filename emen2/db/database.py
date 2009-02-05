@@ -89,7 +89,7 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls.__allmethods:
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "registering.. %s, %s"%(name,func))
+		g.debug.msg('LOG_INIT', "registering extension %s"% name)
 		cls.__publicmethods[name]=func
 		cls.__allmethods.add(name)
 		
