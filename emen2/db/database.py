@@ -111,7 +111,6 @@ class DBProxy(object):
 		
 		
 #	def __call__(self, *args, **kwargs):
-	@g.debug.debug_func
 	def __getattribute__(self, name):
 #		print "\n\nDB: %s, kwargs: %s"%(args,kwargs.keys())
  		if name.startswith('__') and name.endswith('__'):
