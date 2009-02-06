@@ -89,7 +89,9 @@ if CONSOLE:
 # Start server
 #############################
 reactor.listenTCP(g.EMEN2PORT, server.Site(root))
-#reactor.listenSSL(8081, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
+if g.EMEN2HTTPS:
+	reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
+
 reactor.suggestThreadPoolSize(4)
 reactor.run()
 

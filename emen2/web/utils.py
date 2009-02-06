@@ -49,7 +49,7 @@ def commonareas(ctxid=None,host=None,db=None):
 def projecttree(ctxid=None,host=None,db=None,subs=1):
 	# walk GROUP -> PROJECT -> SUBPROJECT
 
-	children=db.getchildren(g.GROUPROOT,recurse=2,filter=1,tree=1)
+	children=db.getchildren(g.KEYRECORDS["grouproot"],recurse=2,filter=1,tree=1)
 	all=set(flatten(children.values()))
 
 	rectypes=["group","project"]
@@ -66,7 +66,7 @@ def projecttree(ctxid=None,host=None,db=None,subs=1):
 	if subs:
 		recnames.update(db.renderview(all & groups["subproject"],viewtype="recname"))
 	
-	for group in children[g.GROUPROOT] & groups["group"]:
+	for group in children[g.KEYRECORDS["grouproot"]] & groups["group"]:
 		for project in children[group] & groups["project"]:
 
 			if subs:

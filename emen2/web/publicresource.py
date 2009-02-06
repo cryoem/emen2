@@ -7,6 +7,7 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 from urllib import quote
+import urlparse
 import demjson
 import emen2.globalns
 import re
@@ -48,7 +49,7 @@ class PublicView(Resource):
 		if content:
 			filenames = self.__parse_filenames(content)
 		
-		for key in set(args.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
+		for key in set(args.keys()) - set(["db","host","user","ctxid"]):
 			#name, _, val = key.rpartition('_')
 			sdict = {} 
 			value=args[key][0]
@@ -101,7 +102,6 @@ class PublicView(Resource):
 				
 			result.update(sdict)	
 
-		#print "!!!!!!!RESULT::::: %s" % result
 		return result
 		
 
@@ -146,7 +146,7 @@ class PublicView(Resource):
 		return result
 	
 	
-	
+
 	
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
@@ -177,48 +177,67 @@ class PublicView(Resource):
 	
 	
 	
-	
 	def parse_uri(self, uri): 
 		base, _, qs = uri.partition('?')
 		return base, qs
 	
 	
 	
+	def __loginredir(self,request):
+		target=request.args.get("redirect",["/db/home/"])[0]
+		u=urlparse.urlsplit(target)
+		du=list(u)
+		#if u.hostname == None and u.port == None and u.scheme == None:
+		du[0]="http"
+		du[1]=request.getHeader("host").split(":")[0]
+		if g.EMEN2PORT != 80:
+			du[1]="%s:%s"%(du[1],g.EMEN2PORT)
+		return urlparse.urlunsplit(du)		
 	
-	def __authenticate(self, db, request, router, target):
+	
+	
+	def __authenticate(self, db, request):
 		'authenticate a user'
 
-		host = request.getClientIP()
-		ctxid = request.getCookie("ctxid")
 		args = request.args
-		if args.has_key("ctxid"):
-			ctxid = args["ctxid"][0]
-		
-		authen = auth.Authenticator(db=db, host=host)
 
-		# try login
-		username = args.get('username', [''])[0]
+		host = request.getClientIP()
+		ctxid = request.getCookie("ctxid") or args.get("ctxid",[None])[0]
+		username = args.get('username', [None])[0]
 		pw = request.args.get('pw', [''])[0]
-		authen.authenticate(username, pw, ctxid, host=host)
-
-		ctxid, username = authen.get_auth_info()
-
-		#if username and un != username:
-		#	target = str.join('?', (router.reverselookup('Login'), 'msg=Invalid%%20Login&next=%s' % target))
-		#else:
-		#	username = un
-
-		if ctxid is not None:
-			request.addCookie("ctxid", ctxid, path='/')
-
-		#target = '/%s/%s' % ('/'.join(request.prepath), target)
-		return username, ctxid, target, authen
-
-
-
-
-	def __getredirect(self, request, path):
 		target = None
+		
+		#authen = auth.Authenticator(db=db, host=host)
+		#authen.authenticate(username, pw, ctxid, host=host)
+		#ctxid, username = authen.get_auth_info()
+
+		method = listops.get(request.postpath, 0, '')
+
+		if method=="logout":
+			request.addCookie("ctxid", '', path='/')	
+			ctxid, username, target = None, None, None
+
+		# raise exception if bad login; catch and return _ebRender
+		elif method == "login" and username != None:
+			ctxid = db.login(username, pw, host=host)
+			request.addCookie("ctxid", ctxid, path='/')
+			target = self.__loginredir(request)
+			#print "LOGIN OK, target is %s"%target
+			
+		if ctxid == "": ctxid = None
+		
+		try:
+			username, groups = db.checkcontext(ctxid,host)
+		except:
+			username = None
+			ctxid = None
+
+		return username, ctxid, target
+
+
+
+
+	def __getredirect(self, target, request, path):
 		redir = self.getredirect(path)
 		if redir != None:
 			qs = self.parse_uri(request.uri)[1]
@@ -231,10 +250,7 @@ class PublicView(Resource):
 	
 	
 	
-	
-	def finish_request(self, request):
-		request.finish()
-	
+
 	
 	
 	def render_POST(self, request):
@@ -243,70 +259,59 @@ class PublicView(Resource):
 		return self.render_GET(request, content=content)
 	
 	
+	
+	
 	def render_GET(self, request, content=None):
+
 
 		host = request.getClientIP()
 		request.postpath = filter(bool, request.postpath)
 		router=self.router
 		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
-
+		target = None
 
 		try:
+			username, ctxid, target = self.__authenticate(ts.db, request)
+		except Exception, e:
+			self._ebRender(e, request, ctxid=None)
+			return server.NOT_DONE_YET
 
-			# redirect special urls
-			if self.parse_uri(request.uri)[0][-1] != '/': # special case, hairy to refactor
-				target = addSlash(request)
-				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
-			
-			
-			# begin request handling
-			path = '/%s' % str.join("/", request.postpath)
-			if not path.endswith('/'): path = '%s/' % path
-			target = self.__getredirect(request, path)
 
-			method = listops.get(request.postpath, 0, '')
-			callback, msg = make_callback(''), ''
-			
-			# auth
-			username, ctxid, target, authen = self.__authenticate(ts.db, request, router, target)
-			
-			
-			if target is not None:
-				return redirectTo(target.encode('ascii', 'xmlcharrefreplace'), request)
-			
-			
-			print "\n\n:: web :: %s :: %s@%s"%(request.uri, username, host)
-			
-			args = self.__parse_args(request.args, content=content)		
-			
-			if method == "logout":
-				authen.logout(ctxid)
-				return redirectTo('/db/home/', request).encode('utf-8')
+		path = '/%s' % str.join("/", request.postpath)
+		if path[-1] != '/': path = '%s/' % path	
+		target = self.__getredirect(target, request, path)
 
-			elif method == "login":
-				callback = router.execute('/login/', uri=args.get('uri', '/db/home/'))
-				callback = callback(db=ts.db, host=host, ctxid='', msg=args.get('msg', msg))
-				return str(callback)
 
-			else:
-				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
-				
-				
-			d = threads.deferToThread(callback)
-			d.addCallback(self._cbsuccess, request, t=time.time())
-			d.addErrback(self._ebRender, request)
+		if target is not None:
+			#print "REDIR -> %s"%target
+			request.redirect(target)
+			request.finish()
 			return server.NOT_DONE_YET
 		
-		except Exception, e:
-			self._ebRender(e, request)
+		
+		print "\n\n:: web :: %s :: %s@%s"%(request.uri, username, host)
+
+		args = self.__parse_args(request.args, content=content)		
+		callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
+	
+		d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
+		d.addCallback(self._cbsuccess, request, ctxid=ctxid, t=time.time())
+		d.addErrback(self._ebRender, request, ctxid=ctxid)
+		return server.NOT_DONE_YET
 	
 	
 	
-	def _cbsuccess(self, result, request, t=0):#, t=0):
+	# wrap db with context; view never has to see ctxid/host
+	def _action(self, callback, db=None, ctxid=None, host=None):
+		db._clearcontext()
+		db._setcontext(ctxid,host)
+		return callback(db=db)
+	
+	
+	
+	def _cbsuccess(self, result, request, ctxid=None, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
-
-		print "publicresource: _cbsuccess"
-
+			
 		headers = {"content-type": "text/html; charset=utf-8",
 				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
 
@@ -332,43 +337,44 @@ class PublicView(Resource):
 			
 		request.finish()
 		
+
 		
 		
-	def _ebRender(self, failure, request):
+	def _ebRender(self, failure, request, ctxid=None):
+		g.debug.msg(g.LOG_ERR, failure)
+		data = ''
+
 		try:
-			g.debug.msg(g.LOG_ERR, 'ERROR---------------------------')
-			g.debug.msg(g.LOG_ERR, failure)
-			g.debug.msg(g.LOG_ERR, '---------------------------------')
-			data = ''
-
-			try:
-				if isinstance(failure, BaseException): raise
-				else: failure.raiseException()
+			if isinstance(failure, BaseException): raise failure
+			else: failure.raiseException()
+			
+		except (Database.exceptions.SecurityError, Database.exceptions.AuthenticationError,
+			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
+			
+			redirect=request.args.get("redirect",[request.uri])[0]
+			if redirect == "/db/login/": redirect = "/db/home/"
+			
+			request.setResponseCode(401)
+			args = {
+					'redirect': quote(redirect), #str.join('/', request.prepath+request.postpath),  #quote('/%s/' %str.join('/', request.prepath+request.postpath)),
+					'msg': 'Error: %s'%e,  #quote( str.join('<br />', [str(failure.value)]) ),
+					'db': ts.db,
+					'host': request.getClientIP(),
+					'ctxid':None
+				   }
 				
-			except (Database.exceptions.SecurityError, 
-				Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
-					
-				request.setResponseCode(401)
-				args = {
-						'uri':quote('/%s/' % str.join('/', request.prepath + request.postpath)),
-						'msg': str(failure.value),  #quote( str.join('<br />', [str(failure.value)]) ),
-						'db': ts.db,
-						'host': request.getClientIP(),
-						'ctxid':None
-					   }
-				data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
-	
-			except Exception, e:
-				request.setResponseCode(500)
-				data = g.templates.handle_error(e).encode('utf-8')
+			data = unicode(routing.URLRegistry.call_view('Login', **args)).encode("utf-8")
 
-			request.setHeader('X-ERROR', ' '.join(str(failure).split()))
-			#request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
-			#			   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
-			request.write(data)
+		except Exception, e:
+			request.setResponseCode(500)
+			data = g.templates.handle_error(e).encode('utf-8')
 
-		finally: 
-			self.finish_request(request)
+		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+		#request.setHeader('X-\x45\x64\x2d\x69\x73\x2d\x43\x6f\x6f\x6c', 
+		#			   	'\x45\x64\x20\x69\x73\x20\x56\x65\x72\x79\x20\x43\x6f\x6f\x6c')
 
-		
+		request.write(data)
+		request.finish()
 
+		#finally: 
+		#	self.finish_request(request)

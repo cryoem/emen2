@@ -380,15 +380,24 @@ recover - Only one thread should call this. Will run recovery on the environment
 				return "Database %d records\n( %s )" % (int(self.__records[ - 1]), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
 		
 		
-		
+		@publicmethod
 		def checkpassword(self, username, password, ctxid=None, host=None):
+
+				if username=="anonymous":
+					return True
+				
 				s = hashlib.sha1(password)
 				try:
 					user = self.__users[username]
 				except TypeError:
 					raise AuthenticationError, AuthenticationError.__doc__
 				if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-				return s.hexdigest() == user.password
+				
+				if s.hexdigest() == user.password:
+					return True
+				else:
+					#time.sleep(2)
+					return False
 
 
 
@@ -406,22 +415,26 @@ recover - Only one thread should call this. Will run recovery on the environment
 				#print "LOGIN ATTEMPT: user = %s, host = %s"%(username, host)
 								
 				# anonymous user
-				if (username == "anonymous" or username == "") :
-						# ian: fix anon login
-						#ctx=Context(None,self,None,(),host,maxidle)
-						#def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
-						ctx = Context(None, self, None, [ - 4], host, maxidle)
+				if (username == "anonymous"): # or username == ""
+						ctx = Context(None, self, None, [-4], host, maxidle)
+
 				# check password, hashed with sha-1 encryption
 				else :
+
 						try:
 								user = self.__users[username]
 						except TypeError:
 								raise AuthenticationError, AuthenticationError.__doc__
-						if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-						if (self.checkpassword(username, password, ctxid=ctxid, host=host)) : ctx = Context(None, self, username, user.groups, host, maxidle)
+
+						if user.disabled:
+							raise DisabledUserError, DisabledUserError.__doc__ % username
+
+						if (self.checkpassword(username, password, ctxid=ctxid, host=host)):
+							ctx = Context(None, self, username, user.groups, host, maxidle)
+
 						else:
-								self.LOG(0, "Invalid password: %s (%s)" % (username, host))
-								raise AuthenticationError, AuthenticationError.__doc__
+							self.LOG(0, "Invalid password: %s (%s)" % (username, host))
+							raise AuthenticationError, AuthenticationError.__doc__
 				
 				# This shouldn't happen
 				if ctx == None :
@@ -447,26 +460,28 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 		#@write,private
 		@publicmethod
-		def deletecontext(self, ctxid=None, host=None):
-				"""Delete a context. Returns None."""
-				##self = db
+		def logout(self, ctxid=None, host=None):
+			"""Delete a context. Returns None."""
+			print "logout.."
 
-				# check we have access to this context
-				ctx = self.__getcontext(ctxid, host)
+			# check we have access to this context
+			ctx = self.__getcontext(ctxid, host)
+			
+			txn = self.newtxn()
+			self.__contexts_p.set_txn(txn)
+			for k in self.__contexts_p.items():
+					if k[0] == ctxid:
+							try: del self.__contexts[k[0]]
+							except: pass
+							try: del self.__contexts_p[k[0]]
+							except: pass
+							self.__contexts_p.set_txn(None)
+			if txn:
+				txn.commit()
+			elif not self.__importmode:
+				DB_syncall()
 				
-				txn = self.newtxn()
-				self.__contexts_p.set_txn(txn)
-				for k in self.__contexts_p.items():
-						if k[0] == ctxid:
-								try: del self.__contexts[k[0]]
-								except: pass
-								try: del self.__contexts_p[k[0]]
-								except: pass
-								self.__contexts_p.set_txn(None)
-				if txn: txn.commit()
-				elif not self.__importmode : DB_syncall()				 
-		logout = deletecontext
-		
+			
 		
 		
 		
@@ -608,6 +623,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		def __getcontext(self, key, host):
 				"""Takes a ctxid key and returns a context (for internal use only)
 				Note that both key and host must match. Returns context instance."""
+				
+				if key==None:
+					return Context()
 
 				key = str(key)
 
@@ -1720,7 +1738,14 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# wraps getrel / works as both getchildren/getparents
 		@publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, rectype=None, rel="children", filter=0, tree=0, ctxid=None, host=None):
+			
+			print ctxid
+			print host
+			print self.checkcontext(ctxid,host)
+			
+			returnsingle=0
 			if not hasattr(key,"__iter__"):
+				returnsingle=1
 				key=[key]
 
 			# use getindexbycontext because we are passing it to getrel multiple times
@@ -1741,10 +1766,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 				r=self.groupbyrecorddef(self.__flatten(ret.values()),ctxid=ctxid,host=host).get(rectype,set())
 				for k,v in ret.items():
 					ret[k]=ret[k]&r
-					if not ret[k]: del ret[k]
+					#if not ret[k]: del ret[k]
 
-			if len(key)==1 and tree==0: return ret.get(key[0],set())
-			if len(key)==1 and tree==1: return ret.get(key[0],{})
+			if returnsingle and not tree: return ret.get(key[0],set())
+			if returnsingle and tree: return ret.get(key[0],{})
 			return ret
 			
 			
@@ -2261,7 +2286,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				s = hashlib.sha1(oldpassword)
 				#if not (-1 in ctx.groups) and s.hexdigest()!=user.password :
 				if s.hexdigest() != user.password and not self.checkadmin(ctx):
-						time.sleep(2)
+						#time.sleep(2)
 						raise SecurityError, "Original password incorrect"
 				
 				# we disallow bad passwords here, right now we just make sure that it 
