@@ -18,7 +18,7 @@ import emen2.TwistSupport_html.downloadresource
 import emen2.TwistSupport_html.publicresource
 #import emen2.TwistSupport_html.xmlrpcresource
 import emen2.TwistSupport_html.rpcresource
-
+import emen2.TwistSupport_html.authresource
 import emen2.TwistSupport_html.public.views
 
 #from emen2.TwistSupport_html.public import views
@@ -58,6 +58,9 @@ root = static.File(g.EMEN2ROOT+"/tweb")
 
 
 root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
+root.putChild("auth",emen2.TwistSupport_html.authresource.AuthResource())
+
+
 root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
 root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
 
