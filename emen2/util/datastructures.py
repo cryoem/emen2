@@ -84,7 +84,8 @@ class MultiKeyDict(object, UserDict.DictMixin):
 		key = self._iterify(key)
 		return set((self._values[x] for x in self._values if x.issuperset(key)))
 	def filterbypred(self, key, pred, type=int):
-		result = set()
+		result = set(self.values())
+		print result
 		for x in (k for k in self.keys() if pred(key,k)): result &= self[x]
 		return set(filter(lambda x: isinstance(x,type), result))
 	def keys(self):

@@ -29,7 +29,8 @@ class DBTree(object):
 		self.__ctxid = ctxid
 		self.__host = host
 		self.__root = root or min(db.getindexbyrecorddef('folder', ctxid=ctxid, host=host))
-		self.db = DBWrap(self.__db, self.__ctxid, self.__host)
+#		self.db = DBWrap(self.__db, self.__ctxid, self.__host)
+		self.db = self.__db
 		self.getrecord = self.db.getrecord
 
 	def __getpath(self, path=None):
@@ -144,9 +145,9 @@ class DBTree(object):
 		return self.db.renderview(recid, viewtype=view)
 	
 	def get_user(self):
-		un = self.__db.checkcontext(self.__ctxid, host=self.__host)[0]
+		un = self.__db.checkcontext()[0]
 		if un is not None:
-			return self.__db.getuser(un, self.__ctxid)
+			return self.__db.getuser(un)
 		else:
 			return None
 
