@@ -53,6 +53,7 @@ class DBProxy(object):
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None):
 		self.__ctxid=ctxid
 		self.__host=host
+		self._bound = False
 		if not db:
 			self.__db = Database(dbpath)
 		else:
@@ -69,12 +70,14 @@ class DBProxy(object):
 
 	@g.debug.debug_func
 	def _setcontext(self, ctxid=None, host=None):
-		print "dbproxy: setcontext %s %s"%(ctxid,host)
+		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
+		self._bound = True
 		self.__ctxid=ctxid
 		self.__host=host
 		
 	def _clearcontext(self):
-		print "dbproxy: clearcontext"
+		g.debug("dbproxy: clearcontext")
+		self._bound = False
 		self.__ctxid=None
 		self.__host=None	
 

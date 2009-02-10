@@ -72,8 +72,8 @@ class RPCFormatXMLRPC:
 			value = xmlrpclib.dumps(value, methodresponse=1, allow_none=True)
 
 		except Exception, inst:
-			print "Problem w/ XML-RPC Encoding:"
-			print inst
+			g.debug.msg("LOG_ERROR","Problem w/ XML-RPC Encoding:")
+			g.debug.msg("LOG_ERROR", inst)
 			value = "Error"
 		
 		return value		
@@ -127,7 +127,7 @@ class RPCResource(Resource):
 
 
 	def _ebRender(self, result, request):
-		print result
+		g.debug.msg("LOG_ERROR", result)
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
@@ -152,8 +152,8 @@ class RPCResource(Resource):
 		if not kwargs.get("ctxid"):
 			kwargs["ctxid"] = request.getCookie("ctxid")			
 
-		print "\n\n:: rpc :: %s :: %s :: %s"%(method,kwargs["host"],self.format)
-		print "\targs, kwargs: %s, %s"%(args, kwargs)	
+		g.debug("\n\n:: rpc :: %s :: %s :: %s"%(method,kwargs["host"],self.format))
+		g.debug("\targs, kwargs: %s, %s"%(args, kwargs))	
 
 		request.setHeader("content-type", "text/xml")
 		

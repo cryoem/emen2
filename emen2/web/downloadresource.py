@@ -49,7 +49,7 @@ class DownloadResource(Resource, File):
 		
 		if not ctxid:
 			if request.args.get("ctxid"):
-				print "got ctxid from kwargs"
+				g.debug("got ctxid from kwargs")
 				ctxid = request.args.get("ctxid",[None])[0]
 		
 		username = args.get('username',[''])[0]
@@ -59,7 +59,7 @@ class DownloadResource(Resource, File):
 		authen.authenticate(username, pw, ctxid)
 		ctxid, un = authen.get_auth_info()
 		
-		print "\n\n:: download :: %s :: %s@%s"%(request.uri, un, host)
+		g.debug("\n\n:: download :: %s :: %s@%s"%(request.uri, un, host))
 
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid, host)	
 		d.addCallback(self._cbRender, request)
@@ -78,7 +78,7 @@ class DownloadResource(Resource, File):
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
 			#ipath="/Users/irees/emen2/emen2/startup.sh"
 			ipaths.append((ipath,bname))
-			print "download list: %s  ...  %s"%(ipath,bname)	
+			g.debug("download list: %s  ...  %s"%(ipath,bname))	
 		return ipaths
 
 
@@ -98,7 +98,7 @@ class DownloadResource(Resource, File):
 			tar = tarfile.open(mode="w|", fileobj=request)
 
 			for name in ipaths:
-				print "adding %s as %s"%(name[0],name[1])
+				g.debug("adding %s as %s"%(name[0],name[1]))
 				tar.add(name[0],arcname=name[1])
 			tar.close()
 

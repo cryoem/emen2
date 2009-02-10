@@ -78,7 +78,7 @@ class AuthResource(Resource):
 
 	# the meat, raise exception if bad login	
 	def _action(self, l, db=None):
-		print "auth -> %s"%l
+		g.debug("auth -> %s"%l)
 
 		if l["method"] == "login":
 			cls=emen2.TwistSupport_html.public.login.Login
@@ -91,13 +91,13 @@ class AuthResource(Resource):
 			
 		
 		# do work here
-		db._setcontext(l["ctxid"],l["host"])
+#		db._setcontext(l["ctxid"],l["host"])
 		p = cls(db=db,**l)
 		ctxid = p.get_context()["ctxid"]
 		data = unicode(p.get_data()).encode("utf-8")
-		db._clearcontext()
+#		db._clearcontext()
 		
-		print "->ctxid:%s"%ctxid		
+		g.debug("->ctxid:%s"%ctxid)
 
 		return ctxid, data
 		
@@ -109,11 +109,11 @@ class AuthResource(Resource):
 		
 		msg = None
 		if ctxid != largs["ctxid"]:
-			print "-> setting ctxid to %s"%ctxid
+			g.debug("-> setting ctxid to %s"%ctxid)
 			request.addCookie("ctxid", ctxid, path='/')
 				
 			if largs["redirect"] != None:
-				print "redirect->%s"%largs["redirect"]
+				g.debug("redirect->%s"%largs["redirect"])
 				request.redirect(largs["redirect"])
 				request.finish()
 				return
@@ -125,8 +125,8 @@ class AuthResource(Resource):
 		
 		
 	def _ebrender(self, failure, request, largs):
-		print "Failure: %s"%failure
-		print "-> unsetting ctxid"
+		g.debug("Failure: %s"%failure)
+		g.debug("-> unsetting ctxid")
 		
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')

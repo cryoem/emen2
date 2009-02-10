@@ -223,13 +223,13 @@ class PublicView(Resource):
 			return server.NOT_DONE_YET
 		
 		
-		print "\n\n:: web :: %s :: %s"%(request.uri, host)
+		g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
 
 		args = self.__parse_args(request.args, content=content)		
 		callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
 	
 		d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
-		d.addCallback(self._cbsuccess, request, ctxid=ctxid, t=time.time())
+		d.addCallback(self._cbsuccess, request, t=time.time())
 		d.addErrback(self._ebRender, request, ctxid=ctxid)
 		return server.NOT_DONE_YET
 	
@@ -238,15 +238,13 @@ class PublicView(Resource):
 	
 	# wrap db with context; view never has to see ctxid/host
 	def _action(self, callback, db=None, ctxid=None, host=None):
-		db._setcontext(ctxid,host)
-		ret=callback(db=db)
-		db._clearcontext()
+		ret=callback(db=db, ctxid=ctxid, host=host)
 		return ret
 	
 	
 	
 	
-	def _cbsuccess(self, result, request, ctxid=None, t=0):#, t=0):
+	def _cbsuccess(self, result, request, t=0):#, t=0):
 		"result must be a 2-tuple: (result, mime-type)"
 			
 		headers = {"content-type": "text/html; charset=utf-8",
@@ -264,12 +262,12 @@ class PublicView(Resource):
 
 		request.setResponseCode(200)
 		[request.setHeader(key, headers[key]) for key in headers]
-		print "::: time total: %s"%(time.time()-t)
+		g.debug("::: time total: %s"%(time.time()-t))
 
-		if headers["content-type"] in ["image/jpeg","image/png"]:
-			request.write(result)
-		else:
-			request.write(result)
+#		if headers["content-type"] in ["image/jpeg","image/png"]:
+#			request.write(result)
+#		else:
+		request.write(result)
 			
 		request.finish()
 		
