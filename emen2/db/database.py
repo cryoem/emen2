@@ -101,7 +101,7 @@ class DBProxy(object):
 	def _register_extmethod(cls, name, refcl):
 		if name in cls.__allmethods:
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)"% name)
+		#g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)"% name)
 		cls.__extmethods[name]=refcl
 		cls.__allmethods.add(name)
 
