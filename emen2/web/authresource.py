@@ -1,7 +1,7 @@
 from __future__ import with_statement
 from emen2 import Database, ts
 from emen2.Database import exceptions
-from emen2.subsystems import routing, auth
+from emen2.subsystems import routing
 from emen2.util import listops
 from twisted.internet import threads
 from twisted.web.resource import Resource
@@ -132,7 +132,8 @@ class AuthResource(Resource):
 		request.addCookie("ctxid", '', path='/')
 		
 		#result = self._getpage("Login",str(failure), largs["redirect"])
-		result = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
+		#result = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
+		result = "eb render %s"%failure
 		request.write(unicode(result).encode("utf-8"))
 		request.finish()
 		return

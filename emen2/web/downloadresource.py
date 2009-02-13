@@ -13,8 +13,7 @@ from emen2 import ts
 from emen2.emen2config import *
 from emen2 import Database, ts
 import emen2.TwistSupport_html.html
-from emen2.subsystems import routing, auth
-
+from emen2.subsystems import routing
 
 # Twisted Imports
 from twisted.python import filepath, log, failure
@@ -52,14 +51,14 @@ class DownloadResource(Resource, File):
 				g.debug("got ctxid from kwargs")
 				ctxid = request.args.get("ctxid",[None])[0]
 		
-		username = args.get('username',[''])[0]
-		pw = args.get('pw',[''])[0]
+		#username = args.get('username',[''])[0]
+		#pw = args.get('pw',[''])[0]
 		
-		authen = auth.Authenticator(db=ts.db, host=host)
-		authen.authenticate(username, pw, ctxid)
-		ctxid, un = authen.get_auth_info()
+		#authen = auth.Authenticator(db=ts.db, host=host)
+		#authen.authenticate(username, pw, ctxid)
+		#ctxid, un = authen.get_auth_info()
 		
-		g.debug("\n\n:: download :: %s :: %s@%s"%(request.uri, un, host))
+		g.debug("\n\n:: download :: %s :: %s"%(request.uri, host))
 
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid, host)	
 		d.addCallback(self._cbRender, request)

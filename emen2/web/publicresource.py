@@ -1,7 +1,7 @@
 from __future__ import with_statement
 from emen2 import Database, ts
 from emen2.Database import exceptions
-from emen2.subsystems import routing, auth
+from emen2.subsystems import routing
 from emen2.util import listops
 from twisted.internet import threads
 from twisted.web.resource import Resource
@@ -293,10 +293,10 @@ class PublicView(Resource):
 					'host': request.getClientIP(),
 					'ctxid': ctxid
 		   }
-
-			p = emen2.TwistSupport_html.public.login.Login(**args)
-			data = unicode(p.get_data()).encode("utf-8")
-
+			
+			#p = emen2.TwistSupport_html.public.login.Login(**args)
+			#data = unicode(p.get_data()).encode("utf-8")
+			data="Auth Error %s"%e
 
 		except Exception, e:
 			request.setResponseCode(500)

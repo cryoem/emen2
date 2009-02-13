@@ -186,6 +186,10 @@ function table_setpos(pos) {
 
 
 function table_sort(key) {
+	
+	console.log(this);
+	return
+	
 	var ns={};
 	ns["sortkey"]=key;
 	ns["viewdef"]=tablestate["viewdef"];
@@ -203,6 +207,8 @@ function table_sort(key) {
 
 	var uri='/db/table/'+tablestate["mode"]+'/'
 	if (tablestate["args"]){uri+=tablestate["args"].join('/')+'/'}
+	ns["showtablestate"]=0;
+
 
 	$.postJSON(
 		uri,
@@ -213,3 +219,110 @@ function table_sort(key) {
 		);
 	
 }
+
+
+
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+/////////////////////////////////////////////
+
+//	$("#page_comments_log").logwidget({
+//		elem_title: $("#button_comments_log")
+//	});
+
+
+TableControl = (function($) { // Localise the $ function
+
+function TableControl(elem, opts) {
+  if (typeof(opts) != "object") opts = {};
+  $.extend(this, TableControl.DEFAULT_OPTS, opts);
+  this.elem = $(elem);  
+  this.init();
+};
+
+TableControl.DEFAULT_OPTS = {
+};
+
+TableControl.prototype = {
+	
+	init: function() {
+		this.ts = $(this.elem).metadata({type:'elem',name:'script'});
+		this.ts.showtablestate = 0;
+		console.log(this.ts);
+		this.bindelems();
+	},
+	
+	bindelems: function() {	
+		var self=this;
+		$(".table_sortkey",this.elem).click(function(e){self.sortkey(e)});
+		$(".table_setpos",this.elem).click(function(e){self.setpos(e)});
+		$(".table_setcount",this.elem).change(function(e){self.setcount(e)});
+		$(".table_editcol",this.elem).click(function(e){self.editcol(e)});
+		$(".table_properties",this.elem).click(function(e){self.toggleprop(e)});
+	},
+	
+	replace: function(data) {
+		this.elem.html(data);
+		this.bindelems();
+	},
+	
+	reverse: function() {
+		if (this.ts.reverse) {this.ts.reverse = 0} else {this.ts.reverse = 1}
+	},
+	
+	refresh: function() {
+		var self=this;
+		this.ts.showtablestate=0;
+		$.postJSON("/db/table/list/",this.ts,function(data){self.replace(data)});
+	},	
+	
+	toggleprop: function(e) {
+	},
+	
+	editcol: function(e) {
+		md=$(e.target).metadata({type:'attr',name:'data'});
+	},
+	
+	setcount: function(e) {
+		this.ts.pos=0;
+		this.ts.count=parseInt($(e.target).val());
+		this.refresh();
+	},
+	
+	setpos: function(e) {
+		md=$(e.target).metadata({type:'attr',name:'data'});
+		this.ts.pos=md.pos;
+		this.refresh();
+	},
+	
+	sortkey: function(e) {
+		md=$(e.target).metadata({type:'attr',name:'data'});
+		if (this.ts["sortkey"] == md.key) {this.reverse()}
+		this.ts.pos=0;
+		this.ts.sortkey=md.key;
+		this.refresh();
+	},
+
+	build: function() {
+		//console.log("table control build");
+	}
+}
+
+$.fn.TableControl = function(opts) {
+  return this.each(function() {
+		new TableControl(this, opts);
+	});
+};
+
+return TableControl;
+
+})(jQuery); // End localisation of the $ function
+
+
+
+
+$(document).ready(function() {
+	$(".recordtable").TableControl({});
+});

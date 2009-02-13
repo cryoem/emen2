@@ -92,7 +92,7 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls.__allmethods:
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)"% name)
+		#g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)"% name)
 		cls.__publicmethods[name]=func
 		cls.__allmethods.add(name)
 		
@@ -4026,7 +4026,7 @@ or None if no match is found."""
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctxid=None, host=None):
 				"""Render the recname view for a record."""
 
-				print 'asdasdasd>>', rec, ctxid, returnsorted, showrectype, host
+				#print 'asdasdasd>>', rec, ctxid, returnsorted, showrectype, host
 				#self = db
 				
 				if hasattr(rec, "__iter__") and not isinstance(rec, Record):
