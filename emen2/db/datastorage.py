@@ -2,8 +2,10 @@ from UserDict import DictMixin
 from math import *
 import time
 import re
-from emen2.emen2config import g
 from emen2.Database.exceptions import SecurityError
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
 # validation/conversion for booleans
 def boolconv(x):
 	try:
@@ -795,6 +797,7 @@ class Record(DictMixin):
 		
 	def validate_params(self):
 		if self.__params.keys():
+			g.debug(self.__params.keys())
 			pds=self.__context.db.getparamdefs(self.__params.keys())
 			for i,pd in pds.items():
 				self.validate_param(self[i],pd)

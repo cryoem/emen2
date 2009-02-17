@@ -16,10 +16,11 @@ class ErrorThread(threading.Thread):
 	def run(self):
 		pass
 		
-class GlobalNamespace(module):
+class GlobalNamespace(object):
 	__vardict = {}
 	__modlock = threading.RLock()
 	__all__ = []
+	def __init__(self,_):pass
 	def __setattr__(self, name, value):
 		self.__modlock.acquire(1)
 		try:

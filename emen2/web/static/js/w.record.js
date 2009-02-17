@@ -658,11 +658,11 @@ commentswidget.prototype = {
 	////////////////////////////
 	save: function() {
 		var self=this;
-
+		console.log([recid,this.edit.val()])
 		$.jsonRPC("addcomment",[recid,this.edit.val()],
 	 		function(json){
-				//console.log(json);
-				setvalue(recid,"comments",json);
+				console.log(json);
+				//setvalue(recid,"comments",json);
 				//rec["comments"]=json;
 	 			self.build();
 				notify("Comment Added");

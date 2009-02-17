@@ -1,9 +1,10 @@
 from twisted.web import server, xmlrpc
 from twisted.internet import threads
-from emen2.emen2config import *
 from emen2 import Database
 from twisted.web.resource import Resource
 
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 import os
 import time
 
@@ -19,11 +20,14 @@ class RPCFormatJSON:
 		
 	def decode(self, content, kw):
 		#method=None
+		g.debug(repr(kw))
 		args=demjson.decode(content)
 		kwargs={}
-		
 		for k,v in kw.items():
-			kwargs[str(k)]=demjson.decode(v[0])
+			try:
+				kwargs[str(k)]=demjson.decode(v[0])
+			except demjson.JSONDecodeError:
+				pass
 
 		if hasattr(args,"items"):
 			for k,v in args.items():
@@ -128,6 +132,7 @@ class RPCResource(Resource):
 
 	def _ebRender(self, result, request):
 		g.debug.msg("LOG_ERROR", result)
+		request.setHeader("X-Error", ' '.join(str(result).split()))
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
@@ -146,14 +151,14 @@ class RPCResource(Resource):
 		if kwargs.has_key("method"):
 			method = kwargs["method"]
 		if method==None:
-			method = request.uri.split("/")[-1]			
+			method = request.uri.split("/")[-1]
 
 		kwargs["host"] = request.getClientIP()
 		if not kwargs.get("ctxid"):
-			kwargs["ctxid"] = request.getCookie("ctxid")			
+			kwargs["ctxid"] = request.getCookie("ctxid")
 
-		g.debug("\n\n:: rpc :: %s :: %s :: %s"%(method,kwargs["host"],self.format))
-		g.debug("\targs, kwargs: %s, %s"%(args, kwargs))	
+		g.debug(":: rpc :: %s :: %s :: %s" % (method, kwargs["host"], self.format))
+		g.debug("\targs, kwargs: %s, %s" % (args, kwargs))
 
 		request.setHeader("content-type", "text/xml")
 		
@@ -170,8 +175,6 @@ class RPCResource(Resource):
 		#db._setcontext(ctxid,host)		
 		#if not db._ismethod(method):
 		#	raise NotImplementedError('remote method %s not implemented' % method)
+		g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
 		result = db._callmethod(method, args, kwargs)
 		return self.handler.encode(method, result)
-
-
-

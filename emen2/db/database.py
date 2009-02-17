@@ -6,7 +6,6 @@ from emen2.Database.exceptions import *
 from functools import partial
 from emen2.Database.subsystems import macro
 from emen2.Database.user import *
-from emen2.emen2config import *
 import atexit
 import emen2
 import emen2.util.utils
@@ -18,6 +17,8 @@ import sys
 import time
 import traceback
 
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 regex_pattern = 	 u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		 \
 "|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
@@ -38,72 +39,75 @@ MAXIDLE = 604800
 
 usetxn = False
 envopenflags = db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG | db.DB_THREAD
-LOGSTRINGS = ["SECURITY", "CRITICAL", "ERROR		", "WARNING ", "INFO		", "VERBOSE ", "DEBUG		"]
+LOGSTRINGS = ["SECURITY", "CRITICAL", "ERROR", "WARNING ", "INFO", "VERBOSE ", "DEBUG"]
 DEBUG = 0 #TODO consolidate debug flag
 
 
 
-
+from emen2.util.utils import prop
 class DBProxy(object):
 
 	__publicmethods = {}
 	__extmethods = {}
-	__allmethods=set()
+	
+	@classmethod
+	def _allmethods(cls):
+		return set(cls.__publicmethods) | set(cls.__extmethods)
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None):
-		self.__ctxid=ctxid
-		self.__host=host
-		self._bound = False
+		self.__bound = False
+		self._setcontext(ctxid, host)
 		if not db:
 			self.__db = Database(dbpath)
 		else:
 			self.__db=db
 		
 		
-#	def __getattr__(self, name):
-#		return partial(self, name)
-		
+	def _login(self, username, password, host=None):
+		ctxid = self.__db.login(username, password)
+		self._setcontext(ctxid, host)
+		return self.__ctxid
 
-	def _ismethod(self, name):
-		if name in self.__allmethods: return True
-		return False
-
-	@g.debug.debug_func
 	def _setcontext(self, ctxid=None, host=None):
-		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
-		self._bound = True
 		self.__ctxid=ctxid
 		self.__host=host
+		if ctxid is not None:
+			self.__bound = True
 		
 	def _clearcontext(self):
 		g.debug("dbproxy: clearcontext")
-		self._bound = False
-		self.__ctxid=None
-		self.__host=None	
-
-
-	def _login(self, username, password, host=None):
-		self.__ctxid = self.__db.login(username, password)
-		self.__host = host
-		return self.__ctxid
+		if self.__bound:
+			self.__ctxid=None
+			self.__host=None
+			self.__bound = False
+	
+	@prop.init
+	def _bound():
+		def fget(self): return self.__bound
+		def fdel(self): self._clearcontext()
+		return dict(fget=fget, fdel=fdel)
+	
+	def _ismethod(self, name):
+		if name in self._allmethods(): return True
+		return False
 		
 
 	@classmethod
 	def _register_publicmethod(cls, name, func):
-		if name in cls.__allmethods:
+		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		#g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)"% name)
+		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)"% name)
 		cls.__publicmethods[name]=func
-		cls.__allmethods.add(name)
+#		cls._allmethods.add(name)
 		
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
-		if name in cls.__allmethods:
+		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		#g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)"% name)
+		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)"% name)
 		cls.__extmethods[name]=refcl
-		cls.__allmethods.add(name)
+#		cls._allmethods.add(name)
 
 	
 	def _callmethod(self, method, args, kwargs):	
@@ -1872,8 +1876,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 						#p = self.__getparentssafe(pkey, keytype=keytype, recurse=self.maxrecurse, ctxid=ctxid, host=host)
 						#c = self.__getchildrensafe(pkey, keytype=keytype, recurse=self.maxrecurse, ctxid=ctxid, host=host)
 						# get parents/children without filtering
-						p = self.__getrel(key=pkey, keytype="keytype", recurse=self.maxrecurse, rel="parents", ctxid=ctxid, host=host)
-						c = self.__getrel(key=pkey, keytype="keytype", recurse=self.maxrecurse, rel="children", ctxid=ctxid, host=host)
+						p = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="parents", ctxid=ctxid, host=host)
+						c = self.__getrel(key=pkey, keytype=	keytype, recurse=self.maxrecurse, rel="children", ctxid=ctxid, host=host)
 						if pkey in c or ckey in p or pkey == ckey:
 								raise Exception, "Circular references are not allowed."
 				
@@ -4026,7 +4030,7 @@ or None if no match is found."""
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctxid=None, host=None):
 				"""Render the recname view for a record."""
 
-				#print 'asdasdasd>>', rec, ctxid, returnsorted, showrectype, host
+				g.debug('asdasdasd>>', rec, ctxid, returnsorted, showrectype, host)
 				#self = db
 				
 				if hasattr(rec, "__iter__") and not isinstance(rec, Record):

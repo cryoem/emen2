@@ -6,18 +6,6 @@ from emen2.subsystems.routing import URLRegistry
 from emen2.emen2config import *
 
 class IntegrityError(ValueError): pass
-class DBWrap(object):
-	'''wraps the db in order to get rid of ctxid in db calls.''' 
-	def __init__(self,db,ctxid,host=None):
-		self.db=db
-		self.ctxid=ctxid
-		self.host=host
-	def __getattribute__(self, name):
-		_dict_ = object.__getattribute__(self, '__dict__')
-		if _dict_.has_key(name): return _dict_[name]
-		attr = object.__getattribute__(self, 'db')
-		attr = getattr(attr, name)
-		return partial(attr, ctxid=self.ctxid, host=self.host)
 
 class DBTree(object):
 	'''emulates a tree structure on to of the Database'''
@@ -29,19 +17,13 @@ class DBTree(object):
 		self.__ctxid = ctxid
 		self.__host = host
 		self.__root = root or min(db.getindexbyrecorddef('folder', ctxid=ctxid, host=host))
-#		self.db = DBWrap(self.__db, self.__ctxid, self.__host)
 		self.db = self.__db
-		self.getrecord = self.db.getrecord
 
 	def __getpath(self, path=None):
 		if path != None: path = self.get_path_id(path)
 		else: path = [self.root]
 		return path
 			
-	def __dostuff(self, name, subfolders):
-		for (rectype, rec) in subfolders:
-			if (str(rec) == name) or (self.getrecord(rec)['recname'] == name):
-				yield (rectype, rec)
 		
 	def __unfold_dict(self, dict):
 		result = []
@@ -51,19 +33,19 @@ class DBTree(object):
 	
 	def __select(self, data, **kwargs):
 		for param, value in kwargs.iteritems():
-			data &= self.__db.getindexbyvalue(param, value, ctxid=self.__ctxid, host=self.__host)
+			data &= self.__db.getindexbyvalue(param, value)#, ctxid=self.__ctxid, host=self.__host)
 		# no return since sets are weakly referenced
 		
 	def __to_path(self, recid, path=None):
 		path = path or []
-		parents = self.__db.getparents(recid, ctxid=self.__ctxid, host=self.__host)
+		parents = self.__db.getparents(recid)#, ctxid=self.__ctxid, host=self.__host)
 		if self.root not in parents:
 			path.extend(self.__to_path(parents.pop(), path))
 		path.append(str(recid))
 		return path
 	
 	def getindex(self, recid=None, rec=None):
-		rec = self.getrecord(recid) if rec is None else rec
+		rec = self.__db.getrecord(recid) if rec is None else rec
 		index = rec.get('recname', str(recid))
 		return index
 	
@@ -72,12 +54,20 @@ class DBTree(object):
 
 	def chroot(self, recid):
 		self.__root = recid
+		
 	
 	def get_path_id(self, path, cur_dir=None):
-		'''raises StopIteration if path does not exist'''
+		'''
+		takes a list iterates through it and follows parent-child relationships in the db
+		selecting children with a recname parameter equal to the current list item
+		
+		empty list signifies current directory
+		
+		raises StopIteration if path does not exist
+		'''
 		cur_dir = cur_dir or self.root
 		if path != []: # recurse if we are not at the end of the path list
-			children = ( elem[1] for elem in self.get_child_id(path[0], cur_dir=cur_dir) )
+			children = ( elem for elem in self.get_child_id(path[0], cur_dir=cur_dir) )
 			result = set()
 			for recset in ( self.get_path_id(path[1:], recid) for recid in children ): # << recurse here
 				result.update(recset)
@@ -86,19 +76,20 @@ class DBTree(object):
 		return result
 	
 	def get_child_id(self, name, cur_dir):
-		'''returns first child with a given folder_name'''
-		children = self.__db.getchildren(cur_dir, keytype='record', ctxid=self.__ctxid, host=self.__host)
-		group = self.__db.groupbyrecorddef(children, ctxid=self.__ctxid, host=self.__host)
-		subfolders = self.__unfold_dict(group)
-		if name == '*': result = list(subfolders)
-		else: result = list(self.__dostuff(name, subfolders))
-		return result
+		'''returns children of a record with a given recname'''
+		children = self.__db.getchildren(cur_dir, keytype='record')#, ctxid=self.__ctxid, host=self.__host)
+		if name == '*': 
+			( (yield child) for child in children)
+		else:
+			for rec in children:
+				if self.__db.getrecord(rec)['recname'] == name:
+					yield (rec)
 	
 	def get_parents(self, path=None, **kwargs):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
-			result.update(self.__db.getparents(rec, ctxid=self.__ctxid, host=self.__host))
+			result.update(self.__db.getparents(rec))#, ctxid=self.__ctxid, host=self.__host))
 		self.__select(result, **kwargs)
 		return result
 	
@@ -118,9 +109,14 @@ class DBTree(object):
 		parents = self.get_parents(path)
 		result = set()
 		for parent in parents:
-			result.update(self.__db.getchildren(parent, ctxid=self.__ctxid, host=self.__host))
+			result.update(self.__db.getchildren(parent))#, ctxid=self.__ctxid, host=self.__host))
 		self.__select(result, **kwargs)
 		return result
+	
+	def __dostuff(self, name, records):
+		for rec in records:
+			if (str(rec) == name) or (self.__db.getrecord(rec)['recname'] == name):
+				yield (rec)
 	
 	def get_sibling(self, name, **kwargs):
 		siblings = self.get_siblings()
@@ -139,7 +135,7 @@ class DBTree(object):
 		return '/db'+(URLRegistry.reverselookup(name, *args, **kwargs) or '')
 	
 	def render_template_view(self, name, *args, **kwargs):
-		return URLRegistry.call_view(name, db=self.__db, ctxid=self.__ctxid, host=self.__host, *args, **kwargs )
+		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )#ctxid=self.__ctxid, host=self.__host, 
 	
 	def render_view(self, recid, view):
 		return self.db.renderview(recid, viewtype=view)

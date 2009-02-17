@@ -1,4 +1,5 @@
-from emen2.emen2config import g
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 from bsddb3 import db
 from cPickle import dumps, loads
 import sys
@@ -54,18 +55,18 @@ class BTree(object):
 
 	def close(self):
 		if self.bdb is None: return
-		if DEBUG>2: print >>sys.stderr, '\nbegin'; sys.stderr.flush()
+		if DEBUG>2: g.debug.msg('LOG_ERROR', '\nbegin')
 		try:
 			self.pcdb.close()
-			if DEBUG>2: print >>sys.stderr, '/pc'; sys.stderr.flush()
+			if DEBUG>2: g.debug.msg('LOG_ERROR', '/pc')
 			self.cpdb.close()
-			if DEBUG>2: print >>sys.stderr, '/cp'; sys.stderr.flush()
+			if DEBUG>2: g.debug.msg('LOG_ERROR', '/cp')
 			self.reldb.close()
-			if DEBUG>2: print >>sys.stderr, '/rel'; sys.stderr.flush()
+			if DEBUG>2: g.debug.msg('LOG_ERROR', '/rel')
 		except: pass
-		if DEBUG>2: print >>sys.stderr, 'main'; sys.stderr.flush()
+		if DEBUG>2: g.debug.msg('LOG_ERROR', 'main')
 		self.bdb.close()
-		if DEBUG>2: print >>sys.stderr, '/main'; sys.stderr.flush()
+		if DEBUG>2: g.debug.msg('LOG_ERROR', '/main')
 		self.bdb=None
 	
 	def sync(self):
@@ -110,10 +111,8 @@ class BTree(object):
 		if not self.has_key(childtag,txn) : 
 			if DEBUG: print "%s %s"%(childtag,parenttag)
 			raise KeyError,"Cannot link nonexistent key '%s'"%childtag
-			print "Cannot link nonexistent key '%s'"%childtag
 		if not self.has_key(parenttag,txn) : 
 			raise KeyError,"Cannot link nonexistent key '%s'"%parenttag
-			print "Cannot link nonexistent key '%s'"%parenttag
 		try:
 			o=loads(self.pcdb.get(dumps(parenttag),txn=self.txn))
 		except:
@@ -388,10 +387,8 @@ class IntBTree(object):
 		
 		if not self.has_key(childtag,txn) : 
 			raise KeyError,"Cannot link nonexistent key '%d'"%childtag
-			print "Cannot link nonexistent key '%d'"%childtag
 		if not self.has_key(parenttag,txn) : 
 			raise KeyError,"Cannot link nonexistent key '%d'"%parenttag
-			print "Cannot link nonexistent key '%d'"%parenttag
 		
 		self.pcdb.index_append(parenttag,childtag,txn=txn)
 		self.cpdb.index_append(childtag,parenttag,txn=txn)

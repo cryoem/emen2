@@ -3,13 +3,14 @@
 # This uses DBIsolator.py to provide access to the database without the possibility
 # using low-level python programming to bypass security. It establishes a 
 # 2-way pipe to the isolator, which performs all DB work
-
-from os import popen2
-from cPickle import load,dump
-#from emen2.emen2config import *
-#from g import *
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+g.debug('DBProxy::: am I used?')
+#comment this line to use this
+#untested code
+raise Exception('DBProxy is unused and probably broken!!!')
+from os import popen2
+from cPickle import load,dump
 
 import Database
 

@@ -4,7 +4,12 @@
 # This program is used to isolate a server (like Apache) from
 # direct interface with the database code. This program is run
 # as a separate process and pipes data back and forth via stdio
-
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+g.debug('DBIsolator::: am I used?')
+#comment this line if you want to use this
+#untested code
+raise Exception('DBIsolator is unused and probably broken!!!')
 from emen2 import Database
 from emen2.emen2config import *
 import os

@@ -78,7 +78,7 @@ $.jsonRPC = function(method,data,callback,errback) {
 	if (errback==null) {
 		errback=function(error){notify("Error: "+error.responseText)};
 	}
-	
+	console.log($.toJSON(data))
 	$.ajax({
     type: "POST",
     url: "/json/"+method,
