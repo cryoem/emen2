@@ -8,10 +8,21 @@
 multiwidget = (function($) { // Localise the $ function
 
 function multiwidget(elem, opts) {
-  if (typeof(opts) != "object") opts = {};
-  $.extend(this, multiwidget.DEFAULT_OPTS, opts);
   this.elem = $(elem);
-  this.init();
+	var self = this.elem.data("ref");
+
+	// init
+	if (!self) {
+		this.elem.data("ref",this);		
+  	if (typeof(opts) != "object") opts = {};
+  	$.extend(this, multiwidget.DEFAULT_OPTS, opts);
+		this.init();
+		self=this;
+	} 
+	
+	// show widgets
+  self.show();
+
 };
 
 multiwidget.DEFAULT_OPTS = {
@@ -29,14 +40,9 @@ multiwidget.DEFAULT_OPTS = {
 
 multiwidget.prototype = {
 	
-	init: function() {
+	init_old: function() {
 
-		if (this.controls) {
-			this.controls.remove();
-			return
-		} else {
-			this.controls=$('<div class="controls"></div>');
-		}
+		this.controls=$('<div class="controls"></div>');
 
 		if (!this.controlsroot) {
 			this.controlsroot=this.elem;
@@ -66,27 +72,45 @@ multiwidget.prototype = {
 		
 	},
 	
-  build: function() {
+	init: function() {
+
+		this.elems = $(".editable",this.root);
+		this.elems.widget({controls:0,popup:0,show:0});
+		
+// 		var ws = [];
+// 		//this.elems.widget({controls:0,popup:0,show:0});
+// 		this.elems.each(function() {
+// 			ws.push(new widget(this));
+// 		});
+// 		this.ws=$(ws);
+		
+	},
+	
+	build: function() {
+
+	},
+	
+	show: function() {
+		this.elems.each(function(){$(this).data("ref").showz()});
+	},
+	
+  build_old: function() {
 
 		var ws=[];
 
 		var cl=".editable";
-		if (this.restrictparams) {
-			cl="";
-			for (var i=0;i<this.restrictparams.length;i++) {cl += ".editable.paramdef___"+this.restrictparams[i]+","}
-		}
+		//if (this.restrictparams) {
+		//	cl="";
+		//	for (var i=0;i<this.restrictparams.length;i++) {cl += ".editable.paramdef___"+this.restrictparams[i]+","}
+		//}
 
 		//console.log("t");
 		if (this.rootless==0) {
 			$(cl,this.root).each( function(i) {
-//				console.log(z);
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});
 		} else {
-		
 			$(cl).each( function(i) {
-		//console.log("Z2");
-
 				ws.push(new widget(this, {controls:0,popup:0,show:1}));
 			});			
 		}
@@ -194,13 +218,32 @@ return multiwidget;
 widget = (function($) { // Localise the $ function
 
 function widget(elem, opts) {
-  if (typeof(opts) != "object") opts = {};
-  $.extend(this, widget.DEFAULT_OPTS, opts);
-  
-  this.elem = $(elem);
-	if (this.show) {
-		this.build();
+
+	this.elem = $(elem);
+	var self=this;
+	if (this.elem.data("ref")) {
+
+		console.log("found ref");
+		self=this.elem.data("ref");
+
+	} else {
+
+  	if (typeof(opts) != "object") opts = {};
+  	$.extend(this, widget.DEFAULT_OPTS, opts);		
+
 	}
+
+
+
+	if (self.show) {
+		self.build();
+	}
+
+
+	console.log(this.elem);
+	console.log("setting ref");
+	this.elem.data("ref",this);
+
 };
 
 widget.DEFAULT_OPTS = {
@@ -211,18 +254,19 @@ widget.DEFAULT_OPTS = {
 };
 
 widget.prototype = {
+
 	init: function() {
 		this.changed=0;
 	},
 	
   build: function() {
 		var props=this.getprops();		
-		this.param=props["paramdef"];
-		this.recid=parseInt(props["recid"]);		
+		this.param=props.param;
+		this.recid=props.recid;		
 		this.value=getvalue(this.recid,this.param);
 		var self=this;
 
-		//console.log(this.value);
+
 		if (this.value == null) {
 			this.value = "";
 		}
@@ -235,7 +279,7 @@ widget.prototype = {
 		}
 
 		// replace this big switch with something better
-
+		
 		if (paramdefs[this.param] == null) {
 			return
 		}
@@ -363,6 +407,10 @@ widget.prototype = {
 		
 	},
 	
+	showz: function() {
+		console.log("show!");
+	},
+	
 	remove: function() {
 		//this.w=None;
 		this.elem.unbind("click");
@@ -370,19 +418,11 @@ widget.prototype = {
 
 	////////////////////////
 	getprops: function() {
-		var classes = this.elem.attr("class").split(" ");
-		var prop = new Object();
-		for (var i in classes) {
-			var j = classes[i].split("___");
-			if (j.length > 1) {
-				prop[j[0]] = j[1];
-			}
-		}
-		
-		if (!prop["recid"]) {prop["recid"]=recid}
-		
-		return prop;	
-		
+		var prop=new Object();
+		prop.recid=parseInt(this.elem.attr("data-recid"));
+		prop.param=this.elem.attr("data-param");
+		if (!prop.recid) {prop.recid=recid}
+		return prop
 	},
 
 	////////////////////////
@@ -561,7 +601,7 @@ listwidget.prototype = {
 
 $.fn.listwidget = function(opts) {
   return this.each(function() {
-		new listwidget(this, opts);
+		return new listwidget(this, opts);
 	});
 };
 

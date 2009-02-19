@@ -132,8 +132,8 @@ class AuthResource(Resource):
 		request.addCookie("ctxid", '', path='/')
 		
 		#result = self._getpage("Login",str(failure), largs["redirect"])
-		#result = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
-		result = "eb render %s"%failure
+		result = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
+		#result = "eb render %s"%failure
 		request.write(unicode(result).encode("utf-8"))
 		request.finish()
 		return

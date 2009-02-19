@@ -26,7 +26,6 @@ import time
 @add_macro('childcount')
 def get_childcount(engine, db, rec, recdef, ctxid=None, host=None, **extra):
 	"""This is very optimized; don't touch :)"""
-	#print "childcount"
 	recid = rec['recid']
 
 	key1 = engine.get_cache_key('indexbyrecorddef',recdef)

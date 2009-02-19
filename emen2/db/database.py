@@ -71,7 +71,7 @@ class DBProxy(object):
 	def _setcontext(self, ctxid=None, host=None):
 		#g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
 
-		self._bound = True
+		#self._bound = True
 
 		self.__ctxid=ctxid
 		self.__host=host

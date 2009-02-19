@@ -101,7 +101,7 @@ def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None):
 			units=""
 			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
 				units=pd.defaultunits
-			replstr = """<strong class="%s paramdef___%s">$$%s %s </strong>%s"""%(editclass,match.group("var"), match.group("var"), units, match.group("varsep"))
+			replstr = """<strong class="%s" data-param="%s">$$%s %s </strong>%s"""%(editclass,match.group("var"), match.group("var"), units, match.group("varsep"))
 
 			viewdef = re.sub(matchstr,replstr,viewdef)
 

@@ -1292,8 +1292,6 @@ li.sidebar_box {
 
 .table_keys_menu {
 	display:none;
-	position:absolute;
-	width:200px;
 	margin-top:0px;
 	background:white;
 	border:solid #ccc 3px;

@@ -302,10 +302,12 @@ class PublicView(Resource):
 					'host': request.getClientIP(),
 					'ctxid': ctxid
 		   }
-			
+
+			data = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
+			data = unicode(data.get_data()).encode("utf-8")
 			#p = emen2.TwistSupport_html.public.login.Login(**args)
 			#data = unicode(p.get_data()).encode("utf-8")
-			data="Auth Error %s"%e
+			#data="Auth Error %s"%e
 
 		except Exception, e:
 			request.setResponseCode(500)

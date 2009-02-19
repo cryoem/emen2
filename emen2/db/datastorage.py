@@ -381,6 +381,8 @@ class ParamDef(DictMixin) :
 			# raise ValueError,"choices must be strings"
 			#for i in self.choices:
 
+
+
 def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# Ed 05/17/2008 -- cleaned up
@@ -397,6 +399,8 @@ def parseparmvalues(text,noempty=0):
 			else: val=a
 			vals[name] = val
 	return ret
+
+
 
 
 class RecordDef(DictMixin) :
@@ -631,7 +635,6 @@ class Record(DictMixin):
 		self.recid=kwargs.get('recid')
 		self.rectype=kwargs.get('rectype', '')				
 		self.__comments=kwargs.get('comments',[]) or []
-		print "__INIT__ COMMENTS: %s"%self.__comments
 		self.__creator=kwargs.get('creator',0)
 		self.__creationtime=kwargs.get('creationtime')
 		self.__permissions=kwargs.get('permissions',((),(),(),()))
@@ -957,9 +960,11 @@ class Record(DictMixin):
 		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		return tuple(self.__params.keys())+tuple(self.param_special)
 		
+		
 	def has_key(self,key):
 		if str(key).strip().lower() in self.keys(): return True
 		return False
+	
 	
 	def get(self, key, default=None):
 		return DictMixin.get(self, key) or default
@@ -1049,6 +1054,7 @@ class Record(DictMixin):
 		# ed: no validation here!!! 
 		# self.validate()		
 	
+	
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
 		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
@@ -1061,19 +1067,23 @@ class Record(DictMixin):
 				pass
 		return ret
 
+
 	def commit(self,host=None):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
 		return self.__context.db.putrecord(self,ctxid=self.__context.ctxid,host=host)
 
+
 	def setoparams(self,d):
 		# ian: fix this more elegantly..
 		self.rectype=d["rectype"]
 		self.__oparams=d.copy()
 
+
 	def isowner(self):
 		return self.__ptest[3]	
+
 
 	def writable(self):
 		"""Returns whether this record can be written using the given context"""
