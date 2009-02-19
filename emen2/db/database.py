@@ -69,6 +69,10 @@ class DBProxy(object):
 		return self.__ctxid
 
 	def _setcontext(self, ctxid=None, host=None):
+		#g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
+
+		self._bound = True
+
 		self.__ctxid=ctxid
 		self.__host=host
 		if ctxid is not None:
@@ -118,7 +122,7 @@ class DBProxy(object):
 		
 #	def __call__(self, *args, **kwargs):
 	def __getattribute__(self, name):
-#		print "\n\nDB: %s, kwargs: %s"%(args,kwargs.keys())
+
  		if name.startswith('__') and name.endswith('__'):
  			result = getattr(self.__db, name)()
 		elif name.startswith('_'): return object.__getattribute__(self, name)
@@ -132,8 +136,11 @@ class DBProxy(object):
 
  		result = None
  		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
+
+			#print "\n\nDB: %s, kwargs: %s"%(name,kwargs.keys())
+
  			result = self.__publicmethods.get(name)
- 			if result: result = partial(result,db, **kwargs)
+ 			if result: result = partial(result, db, **kwargs)
  			else: 
  				result = self.__extmethods.get(name)()
  				kwargs['db'] = db
@@ -405,35 +412,41 @@ recover - Only one thread should call this. Will run recovery on the environment
 				subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 				##self = db
 				ctx = None
-								
 				username = str(username)				
 
 
 				#print "LOGIN ATTEMPT: user = %s, host = %s"%(username, host)
-								
-				# anonymous user
-				if (username == "anonymous" or username == "") :
-						# ian: fix anon login
-						#ctx=Context(None,self,None,(),host,maxidle)
-						#def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
-						ctx = Context(None, self, None, [ - 4], host, maxidle)
+				
+
+				if (username == "anonymous" or username == ""):
+					# ian: fixed anon login
+					ctx = Context(None, self, None, [-4], host, maxidle)
+
 				# check password, hashed with sha-1 encryption
 				else :
-						try:
-								user = self.__users[username]
-						except TypeError:
-								raise AuthenticationError, AuthenticationError.__doc__
-						if user.disabled : raise DisabledUserError, DisabledUserError.__doc__ % username
-						if (self.checkpassword(username, password, ctxid=ctxid, host=host)) : ctx = Context(None, self, username, user.groups, host, maxidle)
-						else:
-								self.LOG(0, "Invalid password: %s (%s)" % (username, host))
-								raise AuthenticationError, AuthenticationError.__doc__
+					try:
+						user = self.__users[username]
+					except TypeError:
+						raise AuthenticationError, AuthenticationError.__doc__
+
+					if user.disabled:
+						raise DisabledUserError, DisabledUserError.__doc__ % username
+
+					# admins can change users
+					if (self.checkpassword(username, password, ctxid=ctxid, host=host)) or self.checkadmin(ctxid,host):
+						ctx = Context(None, self, username, user.groups, host, maxidle)
+
+					else:
+						self.LOG(0, "Invalid password: %s (%s)" % (username, host))
+						raise AuthenticationError, AuthenticationError.__doc__
+
 				
 				# This shouldn't happen
-				if ctx == None :
-						self.LOG(1, "System ERROR, login(): %s (%s)" % (username, host))
-						raise Exception, "System ERROR, login()"
+				if ctx == None:
+					self.LOG(1, "System ERROR, login(): %s (%s)" % (username, host))
+					raise Exception, "System ERROR, login()"
 				
+
 				# we use sha to make a key for the context as well
 				s = hashlib.sha1(username + str(host) + str(time.time()))
 				ctx.ctxid = s.hexdigest()
@@ -727,6 +740,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		def checkadmin(self, ctxid=None, host=None):
 				"""Checks if the user has global write access. Returns 0 or 1."""
 				#self = db
+				if ctxid == None: return 0
+				
 				if not isinstance(ctxid, Context):
 						ctxid = self.__getcontext(ctxid, host)
 				if (-1 in ctxid.groups):
@@ -740,6 +755,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		@publicmethod
 		def checkreadadmin(self, ctxid=None, host=None):
 				"""Checks if the user has global read access. Returns 0 or 1."""
+
+				if ctxid == None: return 0
+				
 				if not isinstance(ctxid, Context):
 						ctxid = self.__getcontext(ctxid, host)
 				if (-1 in ctxid.groups) or (-2 in ctxid.groups):
@@ -751,6 +769,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		@publicmethod
 		def checkcreate(self, ctxid=None, host=None):
+				
+				if ctxid == None: return 0
+			
 				if not isinstance(ctxid, Context):
 						ctxid = self.__getcontext(ctxid, host)
 				if 0 in ctxid.groups or -1 in ctxid.groups:
@@ -1406,33 +1427,35 @@ parentheses not supported yet. Upon failure returns a tuple:
 				#self = db
 								
 				subset = set(subset)
+				# search these params
 				params = set(params)
 
-				if tokenize:
-						t = q.split(" ")
-						rt = {}
-						rt[t[0]] = self.fulltextsearch(t[0], ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparam, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
-						subset = set(rt[t[0]].keys())
-						#print "initial search: key %s, %s results"%(t[0],len(subset))
-
-						for i in t[1:]:
-								rt[i] = self.fulltextsearch(i, ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparams, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
-								subset = set(rt[i].keys())
-								#print "search: key %s, %s results"%(i,subset)
-						
-						#print "final subset: %s"%subset
-						ret = {}
-						for word in rt:
-								for i in subset:
-										if not ret.has_key(i): ret[i] = {}
-										ret[i].update(rt[word][i])
-						return ret
+# 				if tokenize:
+# 						t = q.split(" ")
+# 						rt = {}
+# 						rt[t[0]] = self.fulltextsearch(t[0], ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparam, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
+# 						subset = set(rt[t[0]].keys())
+# 						#print "initial search: key %s, %s results"%(t[0],len(subset))
+# 
+# 						for i in t[1:]:
+# 								rt[i] = self.fulltextsearch(i, ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparams, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
+# 								subset = set(rt[i].keys())
+# 								#print "search: key %s, %s results"%(i,subset)
+# 						
+# 						#print "final subset: %s"%subset
+# 						ret = {}
+# 						for word in rt:
+# 								for i in subset:
+# 										if not ret.has_key(i): ret[i] = {}
+# 										ret[i].update(rt[word][i])
+# 						return ret
 
 
 				builtin = set(["creator", "creationtime", "modifyuser", "modifytime", "permissions", "comments"])
 
 				oq = unicode(q)
 				q = oq.lower()
+
 
 				if rectype and not subset:
 						subset = self.getindexbyrecorddef(rectype, ctxid=ctxid, host=host)
@@ -1446,72 +1469,98 @@ parentheses not supported yet. Upon failure returns a tuple:
 				else:
 						params -= builtin
 
+
 				ret = {}
-				#urec = set(self.getindexbycontext(ctxid=ctxid,host=host))
-				subset = self.filterbypermissions(subset,ctxid=ctxid,host=host)
+				
+				print params
 				
 				if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
-						#print "rec search: %s, subset %s"%(q,len(subset))
-						for recid in subset:
-								rec = self.getrecord(recid, ctxid=ctxid, host=host)
+						print "rec search: %s, subset %s"%(q,len(subset))
+
+						for rec in self.getrecord(subset,filter=1,ctxid=ctxid,host=host):
 								
-								q = unicode(q)
-								
-								if recparams: params |= rec.getparamkeys()
+								#if recparams:
+								#	params = set(rec.getparamkeys())
+								#	#params |= set(rec.getparamkeys())
 
 								for k in params:
-										if ignorecase and q in unicode(rec[k]).lower():
-														if not ret.has_key(recid): ret[recid] = {}
-														ret[recid][k] = rec[k]
-										elif oq in unicode(rec[k]):
-														if not ret.has_key(recid): ret[recid] = {}
-														ret[recid][k] = rec[k]
+									if ignorecase:
+										if q in unicode(rec[k]).lower():
+											if not ret.has_key(rec.recid): ret[rec.recid] = {}
+											ret[rec.recid][k] = rec[k]
+									else:
+										if q in unicode(rec[k]):
+											if not ret.has_key(rec.recid): ret[rec.recid] = {}
+											ret[rec.recid][k] = rec[k]
 																		
-								if ret.has_key(recid) and includeparams:
+								if ret.has_key(rec.recid) and includeparams:
 									for i in includeparams:
-										ret[recid][i] = rec[i]										
+										ret[rec.recid][i] = rec[i]										
 																		
 				else:
-						#if len(subset) > 1000 and ignorecase:
-						#		 print "Warning: case-sensitive searches limited to queries of 1000 records or less."
+						print "index search: %s, subset %s"%(q,len(subset))
 
-						#print "index search: %s, subset %s"%(q,len(subset))
+						subset = self.filterbypermissions(subset,ctxid=ctxid,host=host)
 
 						for param in params:
-								#print "searching %s" % param
-								#try: 
-								#if 1:
+								print "searching %s" % param
 								r = self.__getparamindex(str(param).lower(), ctxid=ctxid, host=host)
+								for key in r.keys():
+									if q in str(key):
+										recs=r[key]
+										
+										if single:
+											recs = list(recs)[:1]
+										
+										recs = self.getrecord(recs, filter=1, ctxid=ctxid, host=host)
+										
+										for rec in recs:
+											if not ret.has_key(rec.recid): ret[rec.recid]={}
+											if not ignorecase:
+												if oq in rec[param]:
+													ret[rec.recid][param]=rec[param]
+											else:
+												ret[rec.recid][param]=rec[param]
 
-								#print param
-								#print r
-								if r:
-									for key in r.keys():
-										try:
-											# initial case-insensitive match
-											if q in str(key):
-													recs = r[key]
-													if single: recs = list(recs)[:1]
-													for recid in recs:
+										for i in includeparams:
+											ret[rec.recid][i]=rec[i]		
+										
+											
 
-															#if recid not in urec: continue
-															if not ret.has_key(recid): ret[recid] = {}
-												
-															# return case sensitive values; simply setting to param key is faster but less useful
-															rec = self.getrecord(recid, ctxid=ctxid, host=host)
-															#print oq,key2,ignorecase
-															if not ignorecase:
-																if oq in rec[param]:
-																	ret[recid][param] = rec[param]
-															else:
-																ret[recid][param] = rec[param]
-														
-															for i in includeparams:
-																ret[recid][i] = rec[i]
-																											
-										except Exception, inst:
-											print "Error in search"
-											print inst
+# 								#print param
+# 								#print r
+# 								if r:
+# 									for key in r.keys():
+# 										try:
+# 											# initial case-insensitive match
+# 											if q in str(key):
+# 													recs = r[key]
+# 													if single: recs = list(recs)[:1]
+# 													for recid in recs:
+# 
+# 															#if recid not in urec: continue
+# 															if not ret.has_key(recid): ret[recid] = {}
+# 												
+# 															# return case sensitive values; simply setting to param key is faster but less useful
+# 															try:
+# 																rec = self.getrecord(recid, ctxid=ctxid, host=host)
+# 															except Exception, inst:
+# 																print inst
+# 																continue
+# 																
+# 															#print oq,key2,ignorecase
+# 															if not ignorecase:
+# 																if oq in rec[param]:
+# 																	ret[recid][param] = rec[param]
+# 															else:
+# 																ret[recid][param] = rec[param]
+# 														
+# 															for i in includeparams:
+# 																ret[recid][i] = rec[i]
+# 																											
+# 										except Exception, inst:
+# 											print "Error in search"
+# 											print inst
 
 						# security check required
 						#urec=set(self.getindexbycontext(ctxid))		
@@ -1530,8 +1579,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				This method returns a dictionary of all matching recid/value pairs
 				if subset is provided, will only return values for specified recids"""
 
-		
-				print "z: %s"%paramname
+
+
+
 				paramname = str(paramname).lower()
 
 				ind = self.__getparamindex(paramname, create=1, ctxid=ctxid, host=host)
@@ -1552,8 +1602,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 						all[k] = i
 				if subset:
 						for i in subset:
-								if all.has_key(i): ret[i] = all[i]
-				
+								ret[i]=all.get(i)
 				else:
 						ret = all
 
@@ -1636,7 +1685,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 
-		# ian todo: change to ctxid req'd
 		@publicmethod
 		def getindexdictbyvaluefast(self, subset, param, valrange=None, ctxid=None, host=None):
 				"""quick version for records that are already in cache; e.g. table views. requires subset."""				 
@@ -1726,31 +1774,47 @@ parentheses not supported yet. Upon failure returns a tuple:
 		# wraps getrel / works as both getchildren/getparents
 		@publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, rectype=None, rel="children", filter=0, tree=0, ctxid=None, host=None):
-			if not hasattr(key,"__iter__"):
-				key=[key]
 
-			# use getindexbycontext because we are passing it to getrel multiple times
-			#indc = self.filterbypermissions(key,ctxid=ctxid,host=host)
-			indc=None
-			if filter:
-				indc = self.getindexbycontext(ctxid=ctxid,host=host)
+			#print "getchildren: %s, recurse=%s, rectype=%s, filter=%s, tree=%s"%(key,recurse,rectype,filter,tree)
+
+			ol=0
+			if not hasattr(key,"__iter__"):
+				ol=1
+				key=[key]
 
 			if tree and rectype:
 				raise Exception,"tree and rectype are mutually exclusive"
 
-			# this replaces getchildren_recordmulti
 			ret={}
+			all=set()
+			
 			for i in key:
-				ret[i]=self.__getrel(key=i, keytype="record", recurse=recurse, indc=indc, rel=rel, ctxid=ctxid, host=host)[tree]
-
+				r = self.__getrel(key=i, keytype="record", recurse=recurse, rel=rel, ctxid=ctxid, host=host)
+				ret[i] = r[tree]
+				all |= r[0]
+				
+				
+			# ian: think about doing this a better way	
+			if filter:
+				all=self.filterbypermissions(all,ctxid=ctxid,host=host)
+				#all=self.getindexbycontext(ctxid=ctxid,host=host)
+				if not tree:
+					for k,v in ret.items():
+						ret[k] = ret[k] & all
+				else:
+					for k,v in ret.items():
+						for k2,v2 in v.items():
+							ret[k][k2] = v2 & all
+							
+				
 			if rectype:
 				r=self.groupbyrecorddef(self.__flatten(ret.values()),ctxid=ctxid,host=host).get(rectype,set())
 				for k,v in ret.items():
 					ret[k]=ret[k]&r
 					if not ret[k]: del ret[k]
 
-			if len(key)==1 and tree==0: return ret.get(key[0],set())
-			if len(key)==1 and tree==1: return ret.get(key[0],{})
+			if ol and tree==0: return ret.get(key[0],set())
+			if ol and tree==1: return ret.get(key[0],{})
 			return ret
 			
 			
@@ -1770,7 +1834,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 				if (recurse < 0):
-					return {},set()
+					return set(),{}
 
 				if keytype == "record":
 					trg = self.__records
@@ -1779,13 +1843,13 @@ parentheses not supported yet. Upon failure returns a tuple:
 					try:
 						self.getrecord(key, ctxid=ctxid, host=host)
 					except:
-						return {},set()
+						return set(),{}
 
 				elif keytype == "recorddef" : 
 					key = str(key).lower()
 					trg = self.__recorddefs
 					try: a = self.getrecorddef(key, ctxid=ctxid, host=host)
-					except: return {},set()
+					except: return set(),{}
 
 				elif keytype == "paramdef":
 					key = str(key).lower()
@@ -1820,7 +1884,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 					all &= indc
 					#print "flatten & indc: %s"%all
 					for k,v in result.items():
-						result[k]=result[k]&all
+						result[k] = result[k] & all
 
 
 				return all,result
@@ -2762,12 +2826,12 @@ or None if no match is found."""
 					for i in recs:
 						params |= set(i.getparamkeys())
 				
-				if isinstance(recs[0], str):
+				if isinstance(recs[0], basestring):
 					params = set(recs)
 					
 				paramdefs = {}
 				for i in params:
-					paramdefs[i] = self.__paramdefs[i]
+					paramdefs[i] = self.__paramdefs[str(i)]
 				return paramdefs
 				
 
@@ -3302,53 +3366,62 @@ or None if no match is found."""
 		def getuserdisplayname(self, username, lnf=1, perms=0, ctxid=None, host=None):
 				"""Return the full name of a user from the user record."""
 
+				namestoget = set()
+				ret = {}
+				print "getuserdisplayname"
+				print username
 
-				if isinstance(username, int):
-					if username > 0:
-						username = self.getrecord(username, ctxid=ctxid, host=host)
-					else:
-						return
-
-						
-				if isinstance(username, Record):					
-# 					namestoget = [username.get("creator"),username.get("modifyuser")]
-# 					for k in username.getparamkeys():
-# 						if paramdefs[k].vartype == "user":
-# 							namestoget.append(username[k])
-# 						if paramdefs[k].vartype == "userlist":
-# 							namestoget.concat(username.get(k,[]))
-# 					for k in username["comments"]:
-# 						namestoget.append(k[0])
-#					# add flattened permissions list
-#					namestoget.append(sum(list(username["permissions"]),()))
-#					#namestoget |= set(sum(list(username["permissions"]), ()))
-
-					keys=set(username.keys())
-					if not perms:
-						keys.remove("permissions")
-					paramdefs = self.getparamdefs(keys, ctxid=ctxid, host=host)
-					namestoget = self.filtervartype(username, ["user","userlist"], paramdefs=paramdefs, flat=1)
-					print "namestoget: %s"%namestoget
-					for k in username["comments"]:
-						namestoget.add(k[0])
-						
-					return self.getuserdisplayname(namestoget, ctxid=ctxid, host=host, lnf=lnf)
+				ol=0
+				if not hasattr(username,"__iter__"):
+					ol=1
+					username=[username]
+				if isinstance(username,Record):
+					username=[username]
+	
 					
+				for i in username:
+					
+					if isinstance(i,int):
+						i = self.getrecord(i,ctxid=ctxid,host=host,filter=1)
+						
+					if isinstance(i,Record):
+						keys=set(i.keys())
+						perms=1
+						if not perms:
+							keys.remove("permissions")
+						paramdefs = self.getparamdefs(keys, ctxid=ctxid, host=host)
+						namestoget |= self.filtervartype(i, ["user","userlist"], paramdefs=paramdefs, flat=1)
 
-				if hasattr(username, "__iter__"):
-						ret = {}
-						for i in username:
-							un = self.getuserdisplayname(i, ctxid=ctxid, lnf=lnf, host=host)
-							if un: ret[str(i)] = un
-						return ret
+						for k in i["comments"]:
+							namestoget.add(k[0])	
+						i = None
+						
+					# patch, sometimes username is passed nested lists	
+					elif hasattr(i,"__iter__"):
+						namestoget |= set(i)
+
+					elif i != None:
+						namestoget.add(i)
+							
+					
+				print "namestoget: %s"%namestoget
+
+				for i in namestoget:
+					if isinstance(i,int):
+						continue
+					try:
+						user = self.getuser(i,ctxid=ctxid,host=host)
+						ret[i] = self.__formatusername(self.getrecord(user.record,ctxid=ctxid,host=host),lnf=1)
+					except:
+						ret[i] = i
 
 
-				try:
-						u = self.getrecord(self.getuser(username, ctxid).record, ctxid=ctxid, host=host)
-				except:
-						return "(%s)" % username
+				if ol: return ret.get(username[0],"(%s)"%username[0])
+				return ret		
+												
 												
 
+		def __formatusername(self,u,lnf=1):
 				if u["name_first"] and u["name_middle"] and u["name_last"]:
 						if lnf:		 uname = "%s, %s %s" % (u["name_last"], u["name_first"], u["name_middle"])
 						else:		 uname = "%s %s %s" % (u["name_first"], u["name_middle"], u["name_last"])
@@ -4155,8 +4228,11 @@ or None if no match is found."""
 										ustr = []
 										for i in value:
 											ustr.append(self.getuserdisplayname(i,ctxid=ctxid, host=host, lnf=0))
-										print "ustr? %s"%ustr
-										value = u", ".join(ustr)
+
+										try:
+											value = u", ".join(ustr)
+										except:
+											value = u"(error: %s)"%ustr
 								
 								elif vartype == "boolean":
 										if value:
