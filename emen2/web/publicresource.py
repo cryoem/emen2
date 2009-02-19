@@ -181,14 +181,24 @@ class PublicView(Resource):
 
 
 	def __getredirect(self, target, request, path):
-		redir = self.getredirect(path)
-		if redir != None:
-			qs = self.parse_uri(request.uri)[1]
-			if qs:
-				qs = str.join('', ('?', qs))
+		npath = None
+		base,qs = self.parse_uri(request.uri)
+		#no trailing slash
+		if base[-1] != '/': npath = '%s/' % path
 			
-			target = '/%s%s%s' % (str.join('/', request.prepath), redir, qs)
+		#too many slashes
+		if base[3:] != path: npath = path
+			
+		#registered redirect
+		redir = self.getredirect(npath or path)
+		if redir != None: npath = redir
+			
+		#redirect if necessary
+		if npath is not None:
+			if qs: qs = str.join('', ('?', qs))
+			target = '/%s%s%s' % (str.join('/', request.prepath), npath, qs)
 		
+		#return new target or None for no redirect
 		return target
 	
 	
@@ -209,13 +219,12 @@ class PublicView(Resource):
 		ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
 
 		request.postpath = filter(bool, request.postpath)
+		request.postpath.append('')
 		router=self.router
 		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
-
+		
 		path = '/%s' % str.join("/", request.postpath)
-		if path[-1] != '/': path = '%s/' % path
 		target = self.__getredirect(None, request, path)
-
 
 		if target is not None:
 			request.redirect(target)

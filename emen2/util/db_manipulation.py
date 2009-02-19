@@ -75,11 +75,12 @@ class DBTree(object):
 			result = set([cur_dir])
 		return result
 	
+	
 	def get_child_id(self, name, cur_dir):
 		'''returns children of a record with a given recname'''
 		children = self.__db.getchildren(cur_dir, keytype='record')#, ctxid=self.__ctxid, host=self.__host)
 		if name == '*': 
-			( (yield child) for child in children)
+			[(yield child) for child in children]
 		else:
 			for rec in children:
 				if self.__db.getrecord(rec)['recname'] == name:
@@ -97,7 +98,7 @@ class DBTree(object):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
- 			new = [ elem[1] for elem in self.get_child_id('*', rec) ]
+ 			new = [ elem for elem in self.get_child_id('*', rec) ]
 			if len(result) == 0:
 				result.update(new)
 			else:
@@ -123,7 +124,6 @@ class DBTree(object):
 		if name == '*':
 			result = siblings
 		else:
-			siblings = self.__unfold_dict(self.__db.groupbyrecorddef(siblings, ctxid=self.__ctxid, host=self.__host))
 			result = [elem[1] for elem in self.__dostuff(name, siblings)]
 		self.__select(result, **kwargs)
 		return result
