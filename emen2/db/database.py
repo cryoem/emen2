@@ -3789,7 +3789,7 @@ or None if no match is found."""
 						rec=self.__records[int(i)]
 						rec.setContext(ctx)
 						ret.append(rec)
-					except Exception, e:
+					except SecurityError, e:
 						# if filtering, skip record; else bubble (SecurityError) exception
 						if filter: pass
 						else: raise e

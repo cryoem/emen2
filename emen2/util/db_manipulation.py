@@ -82,9 +82,8 @@ class DBTree(object):
 		if name == '*': 
 			[(yield child) for child in children]
 		else:
-			for rec in children:
-				if self.__db.getrecord(rec)['recname'] == name:
-					yield (rec)
+			for rec in self.__dostuff(name, children):
+				yield (rec)
 	
 	def get_parents(self, path=None, **kwargs):
 		path = self.__getpath(path)

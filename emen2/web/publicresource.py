@@ -87,12 +87,12 @@ class PublicView(Resource):
 				value=(fn,value)
 				result[name]=value
 				
-			if pos!=None:
+			if pos is not None:
 				v2 = result.get(name, [])
 				v2.insert(int(pos), value)
 				result[name]=v2
 			
-			if format==None and pos==None:
+			if format is None and pos is None:
 				result[key]=value
 
 				
@@ -302,12 +302,10 @@ class PublicView(Resource):
 					'host': request.getClientIP(),
 					'ctxid': ctxid
 		   }
-
-			data = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=str(failure))
-			data = unicode(data.get_data()).encode("utf-8")
+			
 			#p = emen2.TwistSupport_html.public.login.Login(**args)
 			#data = unicode(p.get_data()).encode("utf-8")
-			#data="Auth Error %s"%e
+			data="Auth Error %s"%e
 
 		except Exception, e:
 			request.setResponseCode(500)
