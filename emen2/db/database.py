@@ -610,8 +610,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 								c = self.__contexts[k[0]]
 								k[1].time = c.time
 						except: pass
-						
-						if k[1].time + k[1].maxidle < time.time() : 
+						g.debug.msg('LOG_DEBUG', k[1].time, k[1].maxidle)
+						if k[1].time + (k[1].maxidle or 0) < time.time() : 
 								self.LOG(4, "Expire context (%s) %d" % (k[1].ctxid, time.time() - k[1].time))
 								try: del self.__contexts[k[0]]
 								except: pass

@@ -55,7 +55,7 @@ class GlobalNamespace(object):
 			result = object.__getattribute__(self, 'getattr')(name)
 			if result == None:
 				try: 
-					result = module.__getattribute__(self, name)
+					result = object.__getattribute__(self, name)
 				except AttributeError:
 					pass
 		if result == None:
