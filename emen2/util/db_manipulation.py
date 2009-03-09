@@ -49,7 +49,7 @@ class DBTree(object):
 		index = rec.get('recname', str(recid))
 		return index
 	
-	def get_title(self, recid, ident=''):
+	def get_title(self, recid):
 		return self.render_view(recid, 'recname').rpartition(':')[0::2]
 
 	def chroot(self, recid):
