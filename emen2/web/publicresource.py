@@ -218,6 +218,8 @@ class PublicView(Resource):
 		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
 
+		print "ctxid is: %s"%ctxid
+
 		request.postpath = filter(bool, request.postpath)
 		request.postpath.append('')
 		router=self.router
@@ -247,6 +249,7 @@ class PublicView(Resource):
 	
 	# wrap db with context; view never has to see ctxid/host
 	def _action(self, callback, db=None, ctxid=None, host=None):
+		db._setcontext(ctxid,host)
 		ret=callback(db=db, ctxid=ctxid, host=host)
 		return ret
 	

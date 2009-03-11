@@ -65,44 +65,763 @@ valid_vartypes={
 	"userlist":(None,lambda y:map(lambda x:str(x),y))
 }
 
-# Valid physical property names
-# The first item in the value tuple is ostensibly a default, but this
-# will generally be provided by the ParamDef. It may be that
-# synonyms should be combined in a better way
-# valid_properties = { 
-# "count":(None,{"k":1000, "K":1000, "pixels":1}),
-# "unitless":(None,{"n/a": None}),
-# "length":("meter",{"m":1.,"meters":1,"km":1000.,"kilometer":1000.,"cm":0.01,"centimeter":0.01,"mm":0.001,
-#		"millimeter":0.001, "um":1.0e-6, "micron":1.0e-6,"nm":1.0e-9,"nanometer":1.0e-9,"angstrom":1.0e-10,
-#		"A":1.0e-10}),
-# "area":("m^2",{"m^2":1.,"cm^2":1.0e-4}),
-# "volume":("m^3",{"m^3":1,"cm^3":1.0e-6,"ml":1.0e-6,"milliliter":1.0e-6,"l":1.0e-3, "ul":1.0e-9, "uL":1.0e-9}),
-# "mass":("gram",{"g":1.,"gram":1.,"mg":.001,"milligram":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "dalton":1.6605387e-24}),
-# "temperature":("K",{"K":1.,"kelvin":1.,"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.,
-#		"degrees C":lambda x:x+273.15,"degrees F":lambda x:(x+459.67)*5./9.}),
-# "pH":("pH",{"pH":1.0}),
-# "voltage":("volt",{"V":1.0,"volt":1.0,"kv":1000.0,"kilovolt":1000.0,"mv":.001,"millivolt":.001}),
-# "current":("amp",{"A":1.0,"amp":1.0,"ampere":1.0}),
-# "resistance":("ohm",{"ohm":1.0}),
-# "inductance":("henry",{"H":1.0,"henry":1.0}),
-# "transmittance":("%T",{"%T":1.0}),
-# "relative_humidity":("%RH",{"%RH":1.0}),
-# "velocity":("m/s",{"m/s":1.0}),
-# "momentum":("kg m/s",{"kg m/s":1.0}),
-# "force":("N",{"N":1.0,"newton":1.0}),
-# "energy":("J",{"J":1.0,"joule":1.0}),
-# "angle":("degree",{"degree":1.0,"deg":1.0,"radian":180.0/pi, "mrad":0.18/pi}),
-# "concentration":("mg/ml", {"mg/ml":1.0, "p/ml":1.0, "pfu":1.0}),
-# "resolution":('A/pix', {'A/pix':1.0}),
-# "bfactor":('A^2', {"A^2":1.0, "A2":1.0}),
-# "dose":('e/A2/sec', {'e/A2/sec':1.0}),
-# "currentdensity":('Pi Amp/cm2', {'Pi Amp/cm2':1.0}),
-# "filesize": ('bytes', {'bytes':1.0, 'kb':1.0e3, 'Mb':1.0e6, 'GB':1.0e9}),
-# "percentage":('%', {'%':1.0}),
-# "currency":("dollars",{"dollars":1.0}),
-# "pressure":("Pa",{"Pa":1.0,"pascal":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"mmHg":7.500617e-6,"psi":1.450377e-4}),
-# "unitless":("unitless",{"unitless":1})
-# }
+
+
+class VartypeManager(object):
+
+	__vartypes = {}
+	__properties = {}
+	__vartypes_inst = {}
+	__properties_inst = {}
+	
+	@classmethod
+	def _register_vartype(cls, name, refcl):
+		if name in cls.__vartypes.keys():
+			raise ValueError('''vartype %s already registered''' % name)
+		g.debug.msg('LOG_INIT', "REGISTERING VARTYPE (%s)"% name)
+		cls.__vartypes[name]=refcl
+		cls.__vartypes_inst[name]=refcl()
+
+	@classmethod
+	def _register_property(cls, name, refcl):
+		if name in cls.__properties.keys():
+			raise ValueError('''property %s already registered''' % name)
+		g.debug.msg('LOG_INIT', "REGISTERING PROPERTY (%s)"% name)
+		cls.__properties[name]=refcl
+		cls.__properties_inst[name]=refcl()
+
+	def render(self, vartype, value, mode="unicode", db=None, ctxid=None, host=None):
+		return self.__vartypes_inst[vartype].render(mode,value,db,ctxid,host)
+
+	def paramdesc_render(self,pd,mode="unicode",db=None,ctxid=None,host=None):
+		if mode == "html":
+			return u"""<a href="/db/paramdef/%s/">%s</a>"""%(pd.name,pd.desc_short)
+		else:
+			return unicode(pd.desc_short)	 
+
+	def validate(self,vartype,value,db=None,ctxid=None,host=None):
+		#if value==None or value=="":
+		#	return None
+		return self.__vartypes_inst[vartype].validate(value,db,ctxid,host)
+
+	def getvartypes(self):
+		return self.__vartypes.keys()
+	
+	def getproperties(self):
+		return self.__properties.keys()
+		
+		
+		
+
+class Vartype(object):
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+		
+	@classmethod
+	def register(cls):
+		VartypeManager._register_vartype(cls.__vartype__, cls)
+
+	def __init__(self):
+		# typical modes: html, unicode, edit
+		self.modes={"html":self.render_html}
+
+	def render(self, mode, value, db, ctxid, host):
+		#print "..rendering: %s %s %s %s %s"%(mode, value, db, ctxid, host)
+		return self.modes.get(mode, self.render_unicode)(value,db,ctxid,host)
+		
+	def render_unicode(self, value, db, ctxid, host):
+		return unicode(value)
+		
+	def render_html(self, value, db, ctxid, host):
+		if value in [None, "None", ""]:
+			return "(EDIT)"
+		else:
+			return self.render_unicode(value, db, ctxid, host)	
+		
+	def validate(self, value, db, ctxid, host):
+		return value
+		
+
+
+class Property(object):
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+		
+	@classmethod
+	def register(cls):
+		VartypeManager._register_property(cls.__property__, cls)
+
+
+	def convert(self, value):
+		if hasattr(value,"__float__"):
+			return float(value)
+		
+		try:
+			v, sep, u = value.partition(" ")
+			v = float(v)
+			u = unicode(u).strip()
+		except:
+			raise Exception,"Invalid unit format: '%s'. Must be 'value units'. Value must be convertible to float. Units must be basestring."%value
+		
+		if u == self.defaultunits or not u:
+			return v
+
+		equiv = self.units.get(u) or self.units.get(self.equiv.get(u))
+		
+		if equiv == None:
+			raise Exception, "Unknown units '%s'. Valid units: %s"%(u, set([self.defaultunits]) | set(self.units.keys()) | set(self.equiv.keys()))
+		
+		print "Using units %s, conversion factor %s"%(u, equiv)
+			
+			
+		#print float(value)
+		
+# 		self.defaultunits = "%T"
+# 		self.units = {'%T': 1.0}
+# 		self.equiv = {}
+
+
+
+class vt_int(Vartype):
+	"""32-bit integer"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "int"
+	def validate(self, value, db, ctxid, host):
+		return int(value)
+
+
+class vt_longint(Vartype):
+	"""64-bit integer"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "longint"
+	def validate(self, value, db, ctxid, host):
+		return int(value)	
+
+
+class vt_float(Vartype):
+	"""single-precision floating-point"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "float"
+	def validate(self, value, db, ctxid, host):
+		return float(value)	
+	
+	def render_unicode(self, value, db, ctxid, host):
+		return "%02f"%value
+
+
+class vt_longfloat(Vartype):
+	"""double-precision floating-point"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "longfloat"
+	def validate(self, value, db, ctxid, host):
+		return float(value)
+
+
+class vt_choice(Vartype):
+	"""string from a fixed enumerated list, eg "yes","no","maybe"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "choice"
+	def validate(self, value, db, ctxid, host):
+		try: return str(value)
+		except: return unicode(value)
+
+
+class vt_string(Vartype):
+	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "string"
+	def validate(self, value, db, ctxid, host):
+		try: return str(value)
+		except: return unicode(value)
+
+
+class vt_text(Vartype):
+	"""freeform text, fulltext (word) indexing, str or unicode"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "text"
+	def validate(self, value, db, ctxid, host):
+		try: return str(value)
+		except: return unicode(value)
+
+
+class vt_time(Vartype):
+	"""time, HH:MM:SS"""	
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "time"
+	def validate(self, value, db, ctxid, host):
+		# convert time
+		return str(value)
+
+
+class vt_date(Vartype):
+	"""date, yyyy/mm/dd"""	
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "date"
+	def validate(self, value, db, ctxid, host):
+		# convert time
+		return str(value)
+
+
+class vt_datetime(Vartype):
+	"""date/time, yyyy/mm/dd HH:MM:SS"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "datetime"
+	def validate(self, value, db, ctxid, host):
+		# convert time
+		return str(value)
+
+
+class vt_intlist(Vartype):
+	"""list of ints"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "intlist"
+	def validate(self, value, db, ctxid, host):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		return [int(x) for x in value]
+
+
+class vt_floatlist(Vartype):
+	"""list of floats"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "floatlist"
+	def validate(self, value, db, ctxid, host):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		return [float(x) for x in value]
+
+
+class vt_stringlist(Vartype):
+	"""list of strings"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "stringlist"
+	def validate(self, value, db, ctxid, host):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		try: return [str(x) for x in value]	
+		except: return [unicode(x) for x in value]	
+
+
+class vt_url(Vartype):
+	"""link to a generic url"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "url"
+	def validate(self, value, db, ctxid, host):
+		return str(value)
+
+
+
+class vt_hdf(Vartype):
+	"""url points to an HDF file"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "hdf"
+	def validate(self, value, db, ctxid, host):
+		return str(value)
+
+
+
+class vt_image(Vartype):
+	"""url points to a browser-compatible image"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "image"
+	def validate(self, value, db, ctxid, host):
+		return str(value)
+
+
+
+class vt_binary(Vartype):
+	"""url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "binary"
+	def validate(self, value, db, ctxid, host):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		return [str(x) for x in value]
+
+
+class vt_binaryimage(Vartype):
+	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "binaryimage"
+	def validate(self, value, db, ctxid, host):
+		return str(value)
+
+
+class vt_child(Vartype):
+	"""link to dbid/recid of a child record"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "child"
+	def validate(self, value, db, ctxid, host):
+		return int(value)
+
+
+class vt_link(Vartype):
+	"""lateral link to related record dbid/recid"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "link"
+	def validate(self, value, db, ctxid, host):
+		return int(value)
+
+
+class vt_boolean(Vartype):
+	"""boolean"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "boolean"
+	def validate(self, value, db, ctxid, host):
+		try:
+			return int(bool(int(value)))
+		except:
+			if x[0] in ("T","t","Y","y"): return 1
+			if x[0] in ("F","f","N","n"): return 0
+			raise Exception,"Invalid boolean %s"%str(x)
+
+
+class vt_dict(Vartype):
+	"""dict"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "dict"
+	def validate(self, value, db, ctxid, host):
+		return dict(value)
+
+
+class vt_user(Vartype):
+	"""user, by username"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "user"
+	def validate(self, value, db, ctxid, host):
+		user=db.getuser(value,filter=0,ctxid=ctxid,host=host)
+		return user.username
+		
+	def render_unicode(self, value, db, ctxid, host):
+		try:
+			return db.getuserdisplayname(value, ctxid=ctxid, host=host, lnf=0)
+		except:
+			return "(%s)"%value
+
+
+class vt_userlist(Vartype):
+	"""list of usernames"""
+	__metaclass__ = Vartype.register_view
+	__vartype__ = "userlist"
+	def validate(self, value, db, ctxid, host):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		users=db.getuser(value, filter=0, ctxid=ctxid, host=host)
+		return [str(x) for x in value]
+
+	def render_unicode(self, value, db, ctxid, host):
+		if not value: return ""
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		unames=db.getuserdisplayname(value, ctxid=ctxid, host=host, lnf=0)
+		ret=[unames.get(i,"(%s)"%i) for i in value]
+		return ", ".join(ret)
+
+
+
+
+
+
+
+
+
+class prop_transmittance(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "transmittance"
+
+	def __init__(self):
+		self.defaultunits = "%T"
+		self.units = {'%T': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_force(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "force"
+
+	def __init__(self):
+		self.defaultunits = "N"
+		self.units = {'N': 1.0}
+		self.equiv = {'newton': 'N'}
+
+
+		
+
+
+class prop_energy(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "energy"
+
+	def __init__(self):
+		self.defaultunits = "J"
+		self.units = {'J': 1.0}
+		self.equiv = {'joule': 'J'}
+
+
+		
+
+
+class prop_resistance(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "resistance"
+
+	def __init__(self):
+		self.defaultunits = "ohm"
+		self.units = {'ohm': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_dose(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "dose"
+
+	def __init__(self):
+		self.defaultunits = "e/A2/sec"
+		self.units = {'e/A2/sec': 1.0}
+		self.equiv = {'e/A^2/sec': 'e/A2/sec'}
+
+
+		
+
+
+class prop_currency(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "currency"
+
+	def __init__(self):
+		self.defaultunits = "dollars"
+		self.units = {'dollars': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_voltage(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "voltage"
+
+	def __init__(self):
+		self.defaultunits = "volt"
+		self.units = {'mv': 0.001, 'kv': 1000.0, 'V': 1.0}
+		self.equiv = {'kilovolt': 'kv', 'millivolt': 'mv', 'kilovolts': 'kv', 'millivolts': 'mv', 'volts': 'V', 'volt': 'V'}
+
+
+		
+
+
+class prop_pH(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "pH"
+
+	def __init__(self):
+		self.defaultunits = "pH"
+		self.units = {'pH': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_concentration(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "concentration"
+
+	def __init__(self):
+		self.defaultunits = "mg/ml"
+		self.units = {'p/ml': 1.0, 'mg/ml': 1.0, 'pfu': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_angle(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "angle"
+
+	def __init__(self):
+		self.defaultunits = "degree"
+		self.units = 	{"degree":1.0,"radian":180.0/pi, "mrad":0.18/pi},
+		self.equiv = {'degrees': 'degree', 'deg': 'degree'}
+
+
+		
+
+
+class prop_temperature(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "temperature"
+
+	def __init__(self):
+		self.defaultunits = "K"
+		self.units = {'K': 1.0, 'C': 1, 'F': 1}
+		self.equiv = {'kelvin': 'K', 'degrees F': 'F', 'degrees C': 'C'}
+
+
+		
+
+
+class prop_area(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "area"
+
+	def __init__(self):
+		self.defaultunits = "m^2"
+		self.units = {'cm^2': 0.0001, 'm^2': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_current(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "current"
+
+	def __init__(self):
+		self.defaultunits = "amp"
+		self.units = {'amp': 1.0}
+		self.equiv = {'ampere': 'amp'}
+
+
+		
+
+
+class prop_filesize(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "filesize"
+
+	def __init__(self):
+		self.defaultunits = "bytes"
+		self.units = {'kB': 1000, 'MB': 1000000, 'MiB': 1048576, 'bytes': 1.0, 'GB': 1000000000, 'KiB': 1024, 'GiB': 1073741824}
+		self.equiv = {'B': 'bytes'}
+
+
+		
+
+
+class prop_percentage(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "percentage"
+
+	def __init__(self):
+		self.defaultunits = "%"
+		self.units = {'%': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_momentum(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "momentum"
+
+	def __init__(self):
+		self.defaultunits = "kg m/s"
+		self.units = {'kg m/s': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_volume(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "volume"
+
+	def __init__(self):
+		self.defaultunits = "m^3"
+		self.units = 	{"m^3":1,"ml":1.0e-6,"l":1.0e-3,"ul":1.0e-9,"ul":1.0e-9},
+		self.equiv = {'cm^3': 'ml', 'milliliter': 'ml', 'uL': 'ul', 'milliliters': 'ml'}
+
+
+		
+
+
+class prop_pressure(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "pressure"
+
+	def __init__(self):
+		self.defaultunits = "Pa"
+		self.units = 	{"Pa":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"psi":1.450377e-4},
+		self.equiv = {'mmHg': 'torr', 'pascal': 'Pa'}
+
+
+		
+
+
+class prop_unitless(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "unitless"
+
+	def __init__(self):
+		self.defaultunits = "unitless"
+		self.units = {'unitless': 1}
+		self.equiv = {}
+
+
+		
+
+
+class prop_inductance(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "inductance"
+
+	def __init__(self):
+		self.defaultunits = "henry"
+		self.units = {'H': 1.0}
+		self.equiv = {'henry': 'H'}
+
+
+		
+
+
+class prop_currentdensity(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "currentdensity"
+
+	def __init__(self):
+		self.defaultunits = "Pi Amp/cm2"
+		self.units = {'Pi Amp/cm2': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_exposure(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "exposure"
+
+	def __init__(self):
+		self.defaultunits = "e/A2"
+		self.units = {'e/A2': 1.0}
+		self.equiv = {'e/A^2': 'e/A2'}
+
+
+		
+
+
+class prop_count(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "count"
+
+	def __init__(self):
+		self.defaultunits = "count"
+		self.units = {'count': 1, 'K': 1000, 'pixels': 1}
+		self.equiv = {'k': 'K'}
+
+
+		
+
+
+class prop_bfactor(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "bfactor"
+
+	def __init__(self):
+		self.defaultunits = "A^2"
+		self.units = {'A^2': 1.0}
+		self.equiv = {'A2': 'A^2'}
+
+
+		
+
+
+class prop_relative_humidity(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "relative_humidity"
+
+	def __init__(self):
+		self.defaultunits = "%RH"
+		self.units = {'%RH': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_length(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "length"
+
+	def __init__(self):
+		self.defaultunits = "m"
+		self.units = 	{"m":1., "km":1000., "cm":0.01, "mm":0.001, "um":1.0e-6, "nm":1.0e-9, "A":1.0e-10},
+		self.equiv = {'microns': 'um', 'nanometers': 'nm', 'nanometer': 'nm', 'Angstroms': 'A', 'meter': 'm', 'angstroms': 'A', 'millimeter': 'mm', 'kilometer': 'km', 'meters': 'm', 'angstrom': 'A', 'millimeters': 'mm', 'kilometers': 'km', 'micron': 'um', 'centimeters': 'cm', 'centimeter': 'cm', 'Angstrom': 'A'}
+
+
+		
+
+
+class prop_mass(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "mass"
+
+	def __init__(self):
+		self.defaultunits = "gram"
+		self.units = 	{"g":1.,"mg":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "MDa":1.6605387e-18},
+		self.equiv = {'kilodaltons': 'KDa', 'grams': 'g', 'milligrams': 'mg', 'daltons': 'Da', 'milligram': 'mg', 'megadaltons': 'MDa', 'megadalton': 'MDa', 'gram': 'g', 'dalton': 'Da', 'kilodalton': 'KDa'}
+
+
+		
+
+
+class prop_time(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "time"
+
+	def __init__(self):
+		self.defaultunits = "s"
+		self.units = {'hour': 3600, 'min': 60, 'us': 1e-6, 's': 1.0, 'ms': 0.001, 'ns': 1e-09, 'day': 86400}
+		self.equiv = {'millisecond': 'ms', 'seconds': 's', 'nanoseconds': 'ns', 'nanosecond': 'ns', 'days': 'day', 'hours': 'hour', 'secs': 's', 'microsecond': 'us', 'sec': 's', 'microseconds': 'us', 'mins': 'min', 'milliseconds': 'ms'}
+
+
+		
+
+
+class prop_velocity(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "velocity"
+
+	def __init__(self):
+		self.defaultunits = "m/s"
+		self.units = {'m/s': 1.0}
+		self.equiv = {}
+
+
+		
+
+
+class prop_resolution(Property):
+	__metaclass__ = Property.register_view
+	__property__ = "resolution"
+
+	def __init__(self):
+		self.defaultunits = "A/pix"
+		self.units = {'A/pix': 1.0}
+		self.equiv = {}
+
+		
+		
+
+
+
 
 # ian: added better synonym support
 valid_properties = {
@@ -358,7 +1077,7 @@ class ParamDef(DictMixin) :
 
 		if self.property != None and str(self.property) not in valid_properties:
 			#raise ValueError,"Invalid property; not in valid_properties"
-			print "Warning: Invalid property; not in valid_properties"
+			print "WARNING:: Invalid property; not in valid_properties"
 
 		if self.defaultunits != None:
 			a=[]
@@ -368,7 +1087,7 @@ class ParamDef(DictMixin) :
 				a.extend(q[2].keys())
 			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
 				#raise ValueError,"Invalid defaultunits; not in valid_properties"
-				print "Warning: Invalid defaultunits; not in valid_properties"
+				print "WARNING:: Invalid defaultunits; not in valid_properties"
 			
 		if self.choices != None:
 			try:
@@ -435,6 +1154,7 @@ class RecordDef(DictMixin) :
 		
 		if (d):
 			self.update(d)
+
 
 		self.findparams()
 					
@@ -539,6 +1259,11 @@ class RecordDef(DictMixin) :
 			raise ValueError,"name required; must be str or unicode"
 
 		try:
+			self.name=str(self.name)
+		except:
+			self.name=unicode(self.name)
+
+		try:
 			dict(self.views)
 		except:
 			raise ValueError,"views must be dict"
@@ -553,14 +1278,24 @@ class RecordDef(DictMixin) :
 		except:
 			raise ValueError,"mainview required; must be str or unicode"
 
+
 		if not dict(self.views).has_key("recname"):
-			print "Warning: recname view strongly suggested"
+			print "WARNING:: recname view strongly suggested"
 
+
+		newviews={}
 		for k,v in self.views.items():
-			if not isinstance(k,str) or not isinstance(v,basestring):
-				raise ValueError,"Views names must be strings; view defs may be unicode"
-
-		if self.private not in [0,1]:
+			try:
+				newviews[str(k)]=unicode(v)
+			except:
+				raise Exception,"View names must be str, views must be str/unicode"
+		self.views=newviews
+					
+			
+		#if self.private not in [0,1]:
+		try:
+			self.private=int(bool(self.private))
+		except:
 			raise ValueError,"Invalid value for private; must be 0 or 1"
 
 
@@ -607,10 +1342,8 @@ class Record(DictMixin):
 	attr_restricted = attr_private | attr_admin
 	attr_all = attr_user | attr_admin | attr_private
 	
-	param_special = set(["recid","rectype","comments","creator","creationtime",
-						 "permissions"]) # dbid # "modifyuser","modifytime",
+	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # dbid # "modifyuser","modifytime",
 	
-	#publicparams = property(lambda self: set(self.__params) - set(self.restrictedparams))
 		
 	def __init__(self,d=None,ctx=None, **kwargs):
 		"""Normally the record is created with no parameters, then setContext is called by the
@@ -640,12 +1373,12 @@ class Record(DictMixin):
 		self.__permissions=kwargs.get('permissions',((),(),(),()))
 
 		self.dbid=kwargs.get('dbid',None)
-		self.__params={}#kwargs.get('params',{}).copy()
+		self.__params={} #kwargs.get('params',{}).copy()
+
 		for key in set(kwargs.keys())-self.param_special:
 			key=str(key).strip().lower()
 			self.__params[key]=kwargs[key]
 
-		self.__oparams={}
 
 		self.__ptest=[1,1,1,1] 
 			# ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
@@ -653,176 +1386,155 @@ class Record(DictMixin):
 			# Results of security test performed when the context is set
 			# correspond to, read,comment,write and owner permissions, return from setContext
 			
-		self.__context=None # Validated access context 
+		self.__context = None # Validated access context 
 		if ctx != None: ctx = ctx	 
 		else: ctx = kwargs.get('context')
 		if (ctx!=None): self.setContext(ctx)
 
 			
 			
-	def validate(self):
-		self.validate_recid()
-		self.validate_rectype()
-		self.validate_permissions()
-
-		if self.__context.db:
-			self.validate_permissions_users()
-			self.validate_params()
-			self.validate_security()
-
+	def validate(self,orec={},warning=0):
+		if not self.__context.db:
+			raise Exception,"Cannot validate without context"
 		
+		validators = [
+			self.validate_recid,
+			self.validate_rectype,
+			self.validate_comments,
+			self.validate_creator,
+			self.validate_creationtime,
+			self.validate_permissions,
+			self.validate_permissions_users,
+			self.validate_params
+			]
 
-	def validate_security(self):
-		cp = self.changedparams()
+		for i in validators:
+			try:
+				i(orec)
+			except Exception, inst:
+				if warning:	print "VALIDATION WARNING:: %s"%inst
+				else:	raise Exception, inst
 
-		if "recid" in cp:
-			raise ValueError,"Cannot change recid"			
-		if "creator" in cp or "creationtime" in cp:
-			raise ValueError,"Cannot change creation info directly"
-		if "rectype" in cp:
-			raise ValueError,"Cannot change rectype"
-		#if "permissions" in cp:
-		#	self['permissions'] = self.__oparams['permissions']
-			
-		if not self.__ptest[2]:
-			if cp != ["comments"]:
-				raise SecurityError,"Insufficient permission to change field values (%d)"%self.recid
-			if not p[1]:
-				raise SecurityError,"Insufficient permission to add comments to record (%d)"%self.recid
+
 				
-					
-	def validate_recid(self):
+	def validate_recid(self,orec={}):
 		try: 
-			if self.recid != None: int(self.recid)
+			
+			if self.recid != None:
+				self.recid = int(self.recid)
+
+				if self.recid < 0:
+					raise Exception
+
 		except:
 			raise ValueError,"recid must be positive integer"
 
+		if self.recid != orec.get("recid") and orec.get("recid") != None:
+			raise ValueError,"recid cannot be changed (%s != %s)"%(self.recid,orec.get("recid"))
 
-	def validate_rectype(self):			
-		if str(self.rectype) == "":
+
+	def validate_rectype(self,orec={}):
+
+		self.rectype=str(self.rectype)
+		
+		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
+			raise ValueError,"rectype cannot be changed (%s != %s)"%(self.rectype,orec.get("rectype"))
+		
+		if self.rectype == "":
 			raise ValueError,"rectype must not be empty"
 
+		if self.rectype not in self.__context.db.getrecorddefnames(self.__context.ctxid,self.__context.host):
+			raise ValueError,"invalid rectype %s"%(self.rectype)
+			
+	
+	def validate_comments(self,orec={}):
+		# validate comments
+		users=[]
+		dates=[]
+		newcomments=[]
+		for i in self.__comments:
+			users.append(i[0])
+			dates.append(i[1])
+			newcomments.append((str(i[0]),str(i[1]),unicode(i[2])))
+		
+		try:
+			self.__context.db.getuser(users, filter=0, ctxid=self.__context.ctxid, host=self.__context.host)
+		except:
+			raise Exception,"Invalid users in comments: %s"%(users)
+			
+		# validate date formats
+		for i in dates:
+			pass
+		
+		self.__comments = newcomments	
+			
+		
+	def validate_creator(self,orec={}):
+		self.__creator=str(self.__creator)
+		try:
+			self.__context.db.getuser(self.__creator, filter=0, ctxid=self.__context.ctxid, host=self.__context.host)
+		except:
+			raise Exception,"Invalid creator: %s"%(self.__creator)
+		
+		
+	def validate_creationtime(self,orec={}):
+		# validate creation time format
+		pass		
 
-	def validate_permissions(self):		
+
+	def validate_permissions(self,orec={}):
+		#if self.recid != None:
+		#	if self.__permissions != orec.get("permissions") and orec.get("permissions") != None:
+		#		raise Exception, ValueError, "permissions may not be changed in this method for existing records; use secrecordadduser/secrecorddeluser"
+			
 		try:
 			self.__permissions = tuple((tuple(i) for i in self.__permissions))
 		except:
 			raise ValueError,"permissions must be 4-tuple of tuples"
 
 
-	def validate_permissions_users(self):
+	def validate_permissions_users(self,orec={}):
 		u=set()
 		users=set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
-		for j in self.__permissions: u|=set(j)
+		for j in self.__permissions: u |= set(j)
 		u -= set([0,-1,-2,-3])
 		if u-users:
-			print "Warning: undefined users: %s"%",".join(map(str, u-users))
+			raise Exception,"Undefined users: %s"%",".join(map(str, u-users))
 			
 			
-
-	def validate_param(self, value, pd):
-		print "___ validate %s ___"%(pd.name)
-		#print "vartype: %s"%pd.vartype
-		#print "property: %s"%pd.property
-		#print "defaultunits: %s"%pd.defaultunits
-
-		if hasattr(value,"__len__"):
-			if len(value)==0:
-				value=None
-
-		if pd.property and isinstance(value,basestring):
-			print "______ checking units __________"
-			value,units=re.compile("([0-9.,]+)?(.*)").search(value).groups()
-			try:
-				value=float(value)
-			except:
-				print "WARNING: Validation: Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
-				#raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
-				
-			units=units.strip()
-			defaultunits=valid_properties[pd.property][0]
-
-			#print self[pd.name]
-			#print value
-			#print units
-			#print defaultunits
-
-			if pd.defaultunits != None:
-				defaultunits=pd.defaultunits
-
-			if units in valid_properties[pd.property][1].keys():
-				pass
-
-			elif units in valid_properties[pd.property][2].keys():
-				units=valid_properties[pd.property][2][units]
-
-			elif units == "":
-				units = defaultunits
-
-			else:
-				units = defaultunits
-				print "WARNING: Validation: Unknown units; parameter %s='%s'; property: %s, units: %s, defaultunits: %s"%(pd.name,value,pd.property,units,defaultunits)
-				#raise ValueError,"Unknown units: %s"%units
-
-			try:
-				# convert units
-				#print valid_properties
-				#print pd.property
-				#print valid_properties[pd.property]
-				value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
-				print "newval: %s"%value
-			except Exception, inst:
-				#print inst
-				#print valid_properties[pd.property][1][units]
-				#print valid_properties[pd.property][1][defaultunits]
-				#raise ValueError,
-				print "WARNING: Validation: Unable to convert parameter %s='%s'; Error: %s, property: %s, units: %s, defaultunits: %s"%(pd.name,value,inst,pd.property,units,defaultunits)
-
-		try:
-			if value != None:
-				value=valid_vartypes[pd.vartype][1](value)
-		except:
-			print "WARNING: Validation: Data type error; %s='%s'" % (pd.name,value)
-			#raise ValueError,"Data type error: Parameter %s='%s' cannot be converted to %s"%(pd.name,value,pd.vartype)
-	
-		if pd.vartype=="choice" and value!=None:
-			if value.lower() not in [i.lower() for i in pd.choices]:
-				#raise ValueError,
-				print "WARNING: Validation: paramter %s, %s not in choices %s"%(pd.name,value,pd.choices)
-		
-		
-		# Save validated value
-		if self[pd.name]!=value:
-			self[pd.name]=value
-
-		return
-		
-		
-	def validate_params(self):
+	def validate_params(self,orec={}):
 		if self.__params.keys():
-			g.debug(self.__params.keys())
-			pds=self.__context.db.getparamdefs(self.__params.keys())
+			vtm=VartypeManager()			
+			pds=self.__context.db.getparamdefs(set(self.__params.keys())-self.param_special)
+			newpd={}
 			for i,pd in pds.items():
-				self.validate_param(self[i],pd)
+				newpd[i]=self.validate_param(self[i],pd,vtm)			
+			self.__params = newpd
 
 
-	def changedparams(self):
+	def validate_param(self, value, pd, vtm):
+		v=vtm.validate(pd.vartype,value,db=self.__context.db,ctxid=self.__context.ctxid,host=self.__context.host)
 
-		print "===== changed params ====="
+		if v != value:
+			print "ALERT:: %s (%s) changed during validation:\n\t%s '%s'\n\t%s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v)
 
-		cp = set()
-		for k in self.keys():
-			if k not in (self.param_special-set(["comments"])) and self[k] != self.__oparams.get(k,None):
+		#print "validate %s: %s: %s -> %s"%(pd.vartype, pd.name, value, v)
+		return v
 
-				if k == "comments":
-					print "%s : ..."%(k)
-				else:
-					print "%s : %s --> %s"%(k,self.__oparams.get(k,None),self[k])
-					
-				cp.add(k)
 
-		print "changedparams result: %s"%cp
-		return cp		
+	def changedparams(self,orec={}):
+		"""get list of params of mutable values that have changed w.r.t. original record"""
+		
+		cp=[]
+		nkeys = set(self.keys())
+		okeys = set(orec.keys())
+		for i in (nkeys | okeys): #-self.param_special:
+			if self.get(i) != orec.get(i):
+				cp.append(i)
+		
+		#print "changed params: %s"%cp
+		return cp
+
 		
 	#################################		
 	# pickle methods
@@ -831,7 +1543,7 @@ class Record(DictMixin):
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		odict["_Record__oparams"]={}
+		#odict["_Record__oparams"]={}
 		
 		if not odict.has_key("localcpy") :
 			try: del odict['_Record__ptest']
@@ -900,8 +1612,6 @@ class Record(DictMixin):
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
 		treated identically"""
-		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
-		# key = key.encode('utf-8', 'replace').strip().lower()
 		key = str(key).strip().lower()
 		result = None
 		if   key=="comments" : result = self.__comments
@@ -913,15 +1623,13 @@ class Record(DictMixin):
 		else: result = self.__params.get(key)
 		return result
 
+
 	def __setitem__(self,key,value):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
 
 		key = str(key).strip().lower()
-
-		#try: valuelower = value.lower()
-		#except:	valuelower = ""
 		
 		if value == "None": 
 			value = None
@@ -930,9 +1638,6 @@ class Record(DictMixin):
 				value = None
 		except:
 			pass
-
-		if key != "comments" and not self.__oparams.has_key(key):
-			self.__oparams[key]=self[key]
 
 		if key not in self.param_special:
 			self.__params[key]=value
@@ -944,6 +1649,9 @@ class Record(DictMixin):
 			self.__permissions = tuple(tuple(x) for x in value)
 			#self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
 
+		else:
+			raise Exception, "Cannot set item %s in this way"%key
+
 
 	def __delitem__(self,key):
 		
@@ -954,6 +1662,7 @@ class Record(DictMixin):
 			self.__setitem__(key,None)
 		else:
 			raise KeyError,"Cannot delete key %s"%key 
+
 
 	def keys(self):
 		"""All retrievable keys for this record"""
@@ -973,16 +1682,48 @@ class Record(DictMixin):
 	# record methods
 	#################################
 
+	# these can only be used on new records before commit for now...
+	def addpermissionstuple(self, usertuple, reassign=1):
+		for i,users in enumerate(usertuple):
+			self.adduser(i,users,reassign=1)
+			
+
+	def adduser(self, level, users, reassign=1):
+		p=[set(x) for x in self.__permissions]
+		level=int(level)
+		if -1 < level < 3:
+			raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
+		
+		if not hasattr(users,"__iter__"):
+			users=[users]
+		users=set(users)
+
+		if reassign:
+			p=[i-users for i in p]
+		
+		p[level] |= users
+		self.__permissions = tuple([tuple(i) for i in p])
+		
+		
+	def removeuser(self, users):
+		p=[set(x) for x in self.__permissions]
+		if not hasattr(users,"__iter__"):
+			users=[users]
+		users=set(users)
+		p=[i-users for i in p]
+		self.__permissions = tuple([tuple(i) for i in p])
+
+
 	def addcomment(self, value):
 		if not isinstance(value,basestring):
-			print "Warning: invalid comment"
+			print "WARNING:: invalid comment"
 			return
 
 		#print "Updating comments: %s"%value
 		d=parseparmvalues(value,noempty=1)[1]
 
 		if d.has_key("comments"):
-			print "Warning: cannot set comments inside a comment"			
+			print "WARNING:: cannot set comments inside a comment"			
 			return
 			
 		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
@@ -1076,9 +1817,10 @@ class Record(DictMixin):
 
 
 	def setoparams(self,d):
+		return
 		# ian: fix this more elegantly..
-		self.rectype=d["rectype"]
-		self.__oparams=d.copy()
+		#self.rectype=d["rectype"]
+		#self.__oparams=d.copy()
 
 
 	def isowner(self):
@@ -1097,6 +1839,8 @@ class Record(DictMixin):
 	#################################		
 	# validation methods
 	#################################
+
+
 import emen2.Database
 emen2.Database.ParamDef = ParamDef
 emen2.Database.Record = Record

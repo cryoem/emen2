@@ -19,23 +19,6 @@ groupnames["-4"]="Anonymous Access";
 groupnames["-3"]="Authenticated Users";
 groupnames["-1"]="Administrators";
 
-ajaxqueue={};
-
-
-function getctxid() {
-	name="ctxid";
-	var nameEQ = name + "=";
-	//console.log(document.cookie);
-	var ca = document.cookie.split(';');
-	for(var i=0;i < ca.length;i++) {
-		var c = ca[i];
-		while (c.charAt(0)==' ') c = c.substring(1,c.length);
-		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-	}
-	return null;
-}
-
-//ctxid = getctxid();
 
 
 // js is stupid at sorting.
@@ -46,8 +29,6 @@ function sortNumber(a, b) {
 
 
 /// switch.js
-
-
 function switchbutton(type,id) {
 	$(".button_"+type).each(function() {
 		var elem=$(this);
@@ -76,10 +57,7 @@ function switchin(classname, id) {
 
 
 //////////////////////////////////////////
-
-// access values from correct sources
-
-
+// access values from cached sources
 
 function getdisplayname(name) {
 	if (displaynames[name]!=null) return displaynames[name];
@@ -280,29 +258,12 @@ function record_relationships_toggle(elem) {
 
 
 
-
-function record_view_makeeditable(recid,viewtype) {
-	$('#page_recordview_'+viewtype+' .editable').bind("click",function(){
-		var self=this;
-		getparamdefs([recid],function(){
-			new widget(self,{"inplace":1})
-		});
-	});
-}
-
-
-function record_view_reload(recid,viewtype) {
-	$('#page_recordview_'+viewtype).load("/db/recordview/"+recid+"/"+viewtype+"/",null,function() {
-		record_view_makeeditable(recid,viewtype);
-	});
-}
-
-
 function newrecord_getoptionsandcommit(self, values) {
-	values[NaN]["permissions"]=permissionscontrol.getpermissions();
+	
+	if (!values["None"]){values["None"]={}}
+	
+	values["None"]["permissions"]=permissionscontrol.getpermissions();
 	var parents=permissionscontrol.getparents();
-	//console.log(parents);
-	//console.log(values);
 
 	// commit
 	commit_newrecord(
@@ -310,36 +271,17 @@ function newrecord_getoptionsandcommit(self, values) {
 		values,
 		parents,
 		function(recid){
-			//window.location='/db/record/'+recid
 			notify_post('/db/record/'+recid,["Record Saved"]);
 		}
 	);
 	
 }
-
-
-function commit_putrecords(self, records, cb) {
-	if (cb==null) {cb=function(json){}}
-	//console.log(records);
-	$.jsonRPC("putrecordsvalues",[records],
- 		function(json){
- 			cb(json);
-//			notify("Changes saved");
- 		},
-		function(xhr){
-			//$("#alert").append("<li>Error: "+xhr.responseText+"</li>");
-			notify("Error: "+xhr.responseText);
-			self.savebutton.val("Retry Save");
-		}
-	);	
-}
-	
 	
 function commit_newrecord(self, values,parents,cb,self) {
 	if (cb==null) {cb=function(){}}
 	var rec_update=getrecord(null);
 
-	$.each(values[NaN], function(i,value) {
+	$.each(values["None"], function(i,value) {
 		if ((value!=null) || (getvalue(recid,i)!=null)) {
 			rec_update[i]=value;
 		}
@@ -356,39 +298,6 @@ function commit_newrecord(self, values,parents,cb,self) {
 		}
 	);
 }
-
-
-
-function record_updatecomments() {
-	elem=$("#page_comments_commentstext");
-}
-
-
-
-function record_pageedit(elem, key) {
-	//console.log("editing "+key);
-	new multiwidget(
-		elem, {
-			'commitcallback':function(self, values){commit_putrecords(self, values,function(){
-				notify_post(window.location.pathname, ["Changes Saved"]);
-				//window.location.reload()
-				})},
-			'now':1,
-			'ext_edit_button':1,
-			'root': '#page_recordview_'+key
-		}
-	);
-}
-
-
-
-// remove
-function record_reloadview(view) {
-	if (!view) {view="defaultview"}
-	$("#page_recordview_"+view).remove(".controls");
-	$("#page_recordview_"+view).load("/db/recordview/"+recid+"/"+view,{},	function(data){editelem_makeeditable();});
-}
-
 
 
 

@@ -18,114 +18,205 @@ function multiwidget(elem, opts) {
   	$.extend(this, multiwidget.DEFAULT_OPTS, opts);
 		this.init();
 		self=this;
-	} 
-	
-	// show widgets
-  self.show();
+	}
 
 };
 
 multiwidget.DEFAULT_OPTS = {
 	popup: 0,
-	now: 0,	
-	controls: 0,
-	root: null,
-	controlsroot: null,	
-	ext_edit_button: 0,
+	controls: 1,
+	controlsroot: null,
+	ext_save: null,
+	ext_cancel: null,
+	ext_elems: null,
 	restrictparams: null,
-	rootless: 0,
-	newrecord: 0,
-	commitcallback: function(){}
+	display: 0,
+	recid: null,
+	root: null,
+	widgetopts_hide: {controls:1,popup:1,display:0,inplace:1},
+	widgetopts_show: {controls:0,popup:1,display:0,inplace:0},
+	save_callback: function(self,changed) {self.save_default_callback(self,changed)},
+	commit_callback: function(self,r) {self.commit_default_callback(r)},
+	commit_errback: function(self,r) {self.commit_default_errback(r)}
 };
 
 multiwidget.prototype = {
-	
-	init_old: function() {
+		
+	init: function() {
+		//console.log("multiw init");
 
-		this.controls=$('<div class="controls"></div>');
+		var self=this;
+		this.built = 0;
+		this.trygetparamdef = 0;
+		this.paramdefs=[];
+		this.elems = [];
 
+		if (!this.ext_elems) {
+			this.ext_elems = $(".editable",this.root);
+		}
+		
+		this.bindeditable();
+		this.bind();
+
+
+		if (this.display) {
+			this.build(1);
+		}
+		
 		if (!this.controlsroot) {
 			this.controlsroot=this.elem;
 		}
 
-		if (this.root) {
-			this.root=$(this.root);
-		} else {
-			this.root=this.elem;
-		}
-
-		if (this.ext_edit_button) {
-			this.elem.hide();
-		}
-
-		this.controlsroot.after(this.controls);	
-
-		//console.log(this.now);
+	},
+	
+	bindeditable: function() {
+		//console.log("multiw bindeditable");		
 		
-		if (this.now) {
-			this.build()
-		} else if (!this.ext_edit_button) {
+		var self=this;
+		this.ext_elems.each(function(){
+			self.elems.push(new widget($(this),self.widgetopts_hide));
+			self.paramdefs.push($(this).attr("data-param"));
+		});
+	},
+	
+	bind: function() {
+		//console.log("multiw bind");
+		
+		if (this.controls) {
 			var self=this;
-			this.edit=$('<input class="editbutton" type="button" value="Edit" />').click(function(e) {e.stopPropagation();self.build()});
-			this.controls.append(this.edit);
+			this.elem.one("click",function(e){e.stopPropagation();self.event_click(e)});
+		}
+	},	
+
+	event_click: function(e) {
+		this.show();
+	},
+
+	event_save: function(e) {
+		this.save();
+	},
+	
+	event_cancel: function(e) {
+		this.hide();
+	},
+		
+	build: function(show) {
+		//console.log("multiw build");
+
+		
+		var self=this;
+		if (this.trygetparamdef==0) {
+			this.trygetparamdef = 1;
+			var getpd = [];
+			for (var i=0;i<this.paramdefs.length;i++) {
+				if (!paramdefs[this.paramdefs[i]]) { getpd.push(this.paramdefs[i]) }
+			}
+			if (getpd.length) {
+				getparamdefs(getpd,function(){self.build(show)});
+				return
+			}
 		}
 		
-	},
-	
-	init: function() {
-
-		this.elems = $(".editable",this.root);
-		this.elems.widget({controls:0,popup:0,show:0});
+		if (this.built){return}
+				
+		this.built = 1;
 		
-// 		var ws = [];
-// 		//this.elems.widget({controls:0,popup:0,show:0});
-// 		this.elems.each(function() {
-// 			ws.push(new widget(this));
-// 		});
-// 		this.ws=$(ws);
-		
-	},
-	
-	build: function() {
+		if (this.controls) {
+			this.c_edit = $(".jslink",this.controlsroot);
+			
+			this.ext_save = $('<input type="submit" value="Save" />').click(function(e){e.stopPropagation();self.event_save(e)});
+			this.ext_cancel = $('<input type="button" value="Cancel" />').click(function(e){e.stopPropagation();self.event_cancel(e)});
 
+			this.c_box = $('<span />');
+			this.c_box.append(this.ext_save,this.ext_cancel);
+			this.controlsroot.append(this.c_box);
+		}
+		
+		if (this.ext_save) {
+			var self=this;
+			this.ext_save.click(function(e){e.stopPropagation();self.event_save(e)});
+		}
+		
+		if (this.ext_cancel) {
+			var self=this;
+			this.ext_cancel.click(function(e){e.stopPropagation();self.event_cancel(e)});
+		}
+		
+		if (show) {this.show()}
+		
 	},
 	
 	show: function() {
-		this.elems.each(function(){$(this).data("ref").showz()});
+		//console.log("multiw show");
+		
+		if (!this.built) {
+			this.build(1)
+			return
+		}
+				
+		var self=this;
+				
+		$.each(this.elems, function(){
+			this.reset_opts(self.widgetopts_show);
+			this.show();
+		});
+
+		if (this.controls) {
+			this.c_edit.hide();
+			this.c_box.show();
+			this.bind();
+		}
+				
 	},
 	
-  build_old: function() {
-
-		var ws=[];
-
-		var cl=".editable";
-		//if (this.restrictparams) {
-		//	cl="";
-		//	for (var i=0;i<this.restrictparams.length;i++) {cl += ".editable.paramdef___"+this.restrictparams[i]+","}
-		//}
-
-		//console.log("t");
-		if (this.rootless==0) {
-			$(cl,this.root).each( function(i) {
-				ws.push(new widget(this, {controls:0,popup:0,show:1}));
-			});
-		} else {
-			$(cl).each( function(i) {
-				ws.push(new widget(this, {controls:0,popup:0,show:1}));
-			});			
-		}
-
-		//console.log("Z");
-
-		this.ws = ws;
-		var self=this;
-		this.savebutton=$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()});
-
-		if (!this.newrecord) {
-			this.cancel=$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.revert()});
-		}
+	hide: function() {
+		//console.log("multiw hide");
 		
-		$(this.controls).append(this.savebutton,this.cancel);		
+ 		if (this.controls) {
+			this.c_box.hide();
+ 			this.c_edit.show();
+ 		}
+		var self=this;
+
+		$.each(this.elems,function(){
+			this.hide();
+			this.reset_opts(self.widgetopts_hide);
+		});
+		
+	},
+	
+	remove: function() {
+		//console.log("multiw remove");
+		
+		if (this.built) {this.hide()};
+		this.ext_elems=null;
+		this.init();
+	},
+	
+	reset: function(root) {
+		//console.log("multiw reset");
+		
+		this.root=root;
+		this.remove();
+	},
+	
+
+	
+	save: function() {
+		//console.log("multiw save");
+
+		var changed={};
+		$.each(this.elems, function(){
+			if (this.changed) {
+				if (!changed[this.recid]) {changed[this.recid]={}}
+				changed[this.recid][this.param]=this.getval();
+			} else {
+				//console.log(r.param+" is unchanged");
+			}
+		});
+		
+		this.save_callback(this,changed);
+		
 	},
 	
 	compare: function(a,b) {
@@ -141,59 +232,29 @@ multiwidget.prototype = {
 		}
 	},
 	
-	////////////////////////////
-	save: function() {
-		var changed={};
-		var allcount=0;
-		var self=this;
-		$(this.ws).each(function(i){
-
-			var oldval=getvalue(this.recid,this.param);
-			if (this.changed) {
-				var newval=this.getval();
-			} else {
-				var newval=oldval;
-			}
-			var count=0;
-
-			if ( oldval != null && newval == null) {
-				count+=1;
-	 		}
-	 		else if ( !self.compare(oldval,newval) ) {
-				count+=1;
-	 		}
-
-			if (!changed[this.recid] && count > 0) {changed[this.recid]={}}
-			if (count > 0) {changed[this.recid][this.param]=newval}
-			allcount+=count;
-
-		});
-		
-		if (allcount==0) changed[NaN]={};
-		if (allcount==0 && self.newrecord==0) {
-			notify("No changes made");
-			return
-		} else {
-			//console.log("commit callback");
-			this.savebutton.val("Saving...");
-			//console.log(this.commitcallback);
-			this.commitcallback(this,changed);
-		}
-
-
+	save_start: function() {
+		this.ext_save.val("Saving...");
 	},
 	
-	revert: function() {
-		//console.log("revert");
-		$(this.ws).each(function(i){
-			this.revert();
-			//this.remove();
-		});
-		this.now=0;
-		this.init();
-		this.elem.show();
-	}
+	save_end: function(text) {
+		if (text==null){text="Retry"}
+		this.ext_save.val(text);
+	},
 	
+	save_default_callback: function(self, changed) {
+		self.save_start();
+		$.jsonRPC("putrecordsvalues",[changed],function(data){self.commit_default_callback(self,data)},function(data){self.commit_default_errback(self,data)});
+	},
+	
+	commit_default_errback: function(self,r) {
+		notify(r.responseText);
+		self.save_end();
+	},
+	
+	commit_default_callback: function(self,r) {
+		self.save_end("Save Successful");
+		notify_post(window.location.pathname, ["Changes Saved"]);
+	}
 }
 
 $.fn.multiwidget = function(opts) {
@@ -220,68 +281,78 @@ widget = (function($) { // Localise the $ function
 function widget(elem, opts) {
 
 	this.elem = $(elem);
-	var self=this;
-	if (this.elem.data("ref")) {
-
-		console.log("found ref");
-		self=this.elem.data("ref");
-
-	} else {
-
-  	if (typeof(opts) != "object") opts = {};
-  	$.extend(this, widget.DEFAULT_OPTS, opts);		
-
-	}
-
-
-
-	if (self.show) {
-		self.build();
-	}
-
-
-	console.log(this.elem);
-	console.log("setting ref");
-	this.elem.data("ref",this);
+	this.opts=opts;
+	if (typeof(opts) != "object") opts = {};
+	$.extend(this, widget.DEFAULT_OPTS, opts);
+	this.init();
 
 };
 
 widget.DEFAULT_OPTS = {
-	popup: 1,
+	popup: 0,
 	inplace: 0,
-	controls: 1,
-	show: 1
+	controls: 0,
+	display: 0
 };
 
 widget.prototype = {
 
 	init: function() {
+		//console.log("w init");
+		
 		this.changed=0;
-	},
-	
-  build: function() {
-		var props=this.getprops();		
-		this.param=props.param;
-		this.recid=props.recid;		
-		this.value=getvalue(this.recid,this.param);
+		this.built=0;
+		this.trygetparamdef=0;
+		this.bind();
+		
 		var self=this;
 
+		var props=this.getprops();
+		this.param=props.param;
+		this.recid=props.recid;
+		this.value=getvalue(this.recid,this.param);
+		
+		
+		if (this.display) {
+			this.build(this.show);
+		}
+		
+	},
+	
+	event_click: function(e) {
+		this.show();
+	},
+	
+	bind: function() {
+		//console.log("w bind");
+
+		var self=this;
+		this.elem.click(function(e) {self.event_click(e)});
+	},
+	
+  build: function(show) {
+		//console.log("w build");
+
+		if (this.built){return}
+
+		this.built=1;
+		
+
+		// replace this big switch with something better
+		if (paramdefs[this.param] == null) {
+			return
+		}
 
 		if (this.value == null) {
 			this.value = "";
 		}
 
+		var self=this;
 
 		// container
 		this.w = $('<span class="widget"></span>');
 		if (this.inplace) {
 			this.w.addClass("widget_inplace");
-		}
-
-		// replace this big switch with something better
-		
-		if (paramdefs[this.param] == null) {
-			return
 		}
 
 		if (paramdefs[this.param]["vartype"]=="text") {
@@ -331,7 +402,7 @@ widget.prototype = {
 				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
 				this.editw.autocomplete({ 
 					ajax: "/db/finduser/",
-					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
 				}).bind("activate.autocomplete", function(e,d) {  });
@@ -383,37 +454,70 @@ widget.prototype = {
 
 		}
 
-	
-
 		if (this.controls) {
-			this.controls=$('<div class="controls"></div>').append(
+			this.c_controls=$('<div class="controls"></div>').append(
 				$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
-				$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.revert()})
+				$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.hide()})
 			);
-
-			this.w.append(this.controls);
-
+			this.w.append(this.c_controls);
 		}
 
 
 		$(this.elem).after(this.w);
 		//$(this.elem).css("color","white");
-		$(this.elem).hide();
+		//$(this.elem).hide();
 
 		//if (this.popup) {
 		//	this.edit.focus();
 		//	this.edit.select();
 		//}
+		if (show){this.show()}
 		
 	},
 	
-	showz: function() {
-		console.log("show!");
+	show: function() {
+		//console.log("w show");
+
+		var self=this;
+
+		if (!paramdefs[this.param] && this.trygetparamdef==0) {
+			this.trygetparamdef=1;
+			getparamdefs([this.param],function(){self.show()});
+			return
+		}
+		
+		if (!this.built) {this.build()}
+		this.elem.hide();
+		this.w.show();
+
+	},
+	
+	hide: function() {
+		//console.log("w hide");
+
+		this.w.hide();
+		this.elem.show();
 	},
 	
 	remove: function() {
-		//this.w=None;
-		this.elem.unbind("click");
+		//console.log("w remove");		
+		
+		if (this.built==0){return}
+		this.w.remove();
+		this.built=0;
+	},
+	
+	reset_opts: function(opts) {
+		//console.log("w reset_opts");
+		this.remove();
+		this.set_opts(widget.DEFAULT_OPTS);
+		this.set_opts(this.opts);
+		this.set_opts(opts);
+	},
+	
+	set_opts: function(opts) {
+		if (typeof(opts) != "object") opts = {};
+		$.extend(this, opts);
 	},
 
 	////////////////////////
@@ -427,6 +531,8 @@ widget.prototype = {
 
 	////////////////////////
 	getval: function() {
+		//console.log("w getval");		
+		
 		var ret = this.editw.val();		
 
 		if (ret == "" || ret == []) {
@@ -438,20 +544,11 @@ widget.prototype = {
 		return ret
 	},
 
-	////////////////////////
-	revert: function() {
-
-		//if (this.popup) {this.popup.hide()}
-				
-		this.w.siblings(".editable").show();
-		this.w.remove();		
-	},
 	
 	////////////////////////	
 	save: function() {
-		
-		//if (this.popup) {this.popup.hide()}
-		
+		//console.log("w save");
+
 		var save=$(":submit",this.w);
 		save.val("Saving...");
 
@@ -461,16 +558,10 @@ widget.prototype = {
 		$.jsonRPC("putrecordvalue",[recid,this.param,this.getval()],
 	 		function(json){
 				setvalue(recid,param,json);
-	 			//rec[this.param]=json;
-	 			//record_view_reload(recid,switchedin["recordview"]);
 				// ian: just reload the page instead of trying to update everything.. for now..
 				notify_post(window.location.pathname, ["Changes Saved"]);
-				//notify("Changes saved");
 	 		},
 			function(xhr){
-				//ole.log("error, "+xhr.responseText);
-				//editelem_revert(elem,key);
-				//$("#alert").append("<li>Error: "+this.param+","+xhr.responseText+"</li>");
 				notify("Error: "+this.param+","+xhr.responseText);
 			}
 		);		
@@ -536,7 +627,7 @@ listwidget.prototype = {
 
 				edit.autocomplete({ 
 					ajax: "/db/finduser/",
-					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
 				}).bind("activate.autocomplete", function(e,d) {  });

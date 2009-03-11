@@ -175,6 +175,6 @@ class RPCResource(Resource):
 		#db._setcontext(ctxid,host)		
 		#if not db._ismethod(method):
 		#	raise NotImplementedError('remote method %s not implemented' % method)
-		g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
+		#g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
 		result = db._callmethod(method, args, kwargs)
 		return self.handler.encode(method, result)
