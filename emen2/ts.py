@@ -53,7 +53,6 @@ class newThreadPool(threadpool.ThreadPool):
 		self.threads.append(newThread)	
 		newThread.start() 
 	
-	@g.debug.debug_func
 	def _worker(self, db, count):
 		""" 
 		Method used as target of the created threads: retrieve task to run
