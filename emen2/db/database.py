@@ -1794,7 +1794,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				else:
 					for k,v in ret.items():
 						for k2,v2 in v.items():
-							ret[k][k2] = v2 & all
+							ret[k][k2] = set(v2) & set(all)
 							
 				
 			if rectype:
