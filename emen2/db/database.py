@@ -1136,7 +1136,7 @@ parentheses grouping not supported yet"""
 																ret2[kn] = [0] * n
 														else: kn = ret2['keys'].index(i[2])
 														try: ret2[kn][ret2['x'].index(i[0][:13])] += 1
-														except: print "Index error on ", i[0]
+														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
 												
 										elif totaltime < 31 * 24 * 3600:		# by day, less than ~1 month
 												for i in range(t0, t1 + 3600 * 24 - 1, 3600 * 24):
@@ -1150,7 +1150,7 @@ parentheses grouping not supported yet"""
 																ret2[kn] = [0] * n
 														else: kn = ret2['keys'].index(i[2])
 														try: ret2[kn][ret2['x'].index(i[0][:10])] += 1
-														except: print "Index error on ", i[0]
+														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
 												
 										elif totaltime < 52 * 7 * 24 * 3600: # by week, less than ~1 year
 												for i in range(int(t0), int(t1) + 3600 * 24 * 7 - 1, 3600 * 24 * 7):
@@ -1164,7 +1164,7 @@ parentheses grouping not supported yet"""
 																ret2[kn] = [0] * n
 														else: kn = ret2['keys'].index(i[2])
 														try: ret2[kn][ret2['x'].index(timetoweekstr(i[0]))] += 1
-														except: print "Index error on ", i[0]
+														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
 														
 										elif totaltime < 4 * 365 * 24 * 3600: # by month, less than ~4 years
 												m0 = int(tmp[0][0][:4]) * 12 + int(tmp[0][0][5:7]) - 1
@@ -1179,7 +1179,7 @@ parentheses grouping not supported yet"""
 																ret2[kn] = [0] * n
 														else: kn = ret2['keys'].index(i[2])
 														try: ret2[kn][ret2['x'].index(i[0][:7])] += 1
-														except: print "Index error on ", i[0]
+														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
 										else :		# by year
 												for i in range(int(tmp[0][0][:4]), int(tmp[ - 1][0][:4]) + 1):
 														ret2['x'].append("%04d" % i)
@@ -1401,10 +1401,10 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				ret = {}
 				
-				print params
+				g.debug(params)
 				
 				if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
-						print "rec search: %s, subset %s"%(q,len(subset))
+						g.debug("rec search: %s, subset %s"%(q,len(subset)))
 
 						for rec in self.getrecord(subset,filter=1,ctxid=ctxid,host=host):
 
@@ -1423,11 +1423,11 @@ parentheses not supported yet. Upon failure returns a tuple:
 										ret[rec.recid][i] = rec[i]										
 
 				else:
-						print "index search: %s, subset %s"%(q,len(subset))
+						g.debug("index search: %s, subset %s"%(q,len(subset)))
 						#subset = self.filterbypermissions(subset,ctxid=ctxid,host=host)
 
 						for param in params:
-								print "searching %s" % param
+								g.debug("searching %s" % param)
 								try:
 									r = self.__getparamindex(str(param).lower(), ctxid=ctxid, host=host)
 									s = filter(lambda x:q in x, r.keys())
@@ -1448,7 +1448,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 									for i in includeparams:
 										ret[rec.recid][i]=rec[i]		
 
-				for k,v in ret.items(): print k,v
+				for k,v in ret.items(): g.debug(k,v)
 				return ret
 
 
@@ -1932,7 +1932,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				
 				if keytype == "record": 
-						print "pclink: %s -> %s"%(pkey,ckey)
+						g.debug("pclink: %s -> %s"%(pkey,ckey))
 						a = self.getrecord(pkey, ctxid=ctxid, host=host)
 						b = self.getrecord(ckey, ctxid=ctxid, host=host)
 						#print a.writable(),b.writable()
@@ -3055,7 +3055,7 @@ or None if no match is found."""
 				memory indices to dump the indices to the persistent files"""
 				
 				if not self.__importmode:
-						print "commitindices may only be used in importmode"
+						g.debug.msg('LOG_ERROR',"commitindices may only be used in importmode")
 						sys.exit(1)
 				
 				for k, v in self.__fieldindex.items():
@@ -3215,7 +3215,7 @@ or None if no match is found."""
 				
 				ind = self.__getparamindex(key)
 				if ind == None:
-						print 'No parameter index for ', key
+						g.debug.msg('LOG_ERROR', 'No parameter index for ', key)
 						return
 				
 				# remove the old ref and add the new one
@@ -3453,7 +3453,7 @@ or None if no match is found."""
 				if ol:
 					return ret.get(ret.keys()[0])
 
-				print ret
+				g.debug(ret)
 				return ret	
 
 
@@ -4204,8 +4204,8 @@ or None if no match is found."""
 				values={}
 				macros={}
 				pd=[]
-				for g,vd in groupviews.items():
-					print "PARSING %s"%g
+				for gr,vd in groupviews.items():
+					g.debug("PARSING %s"%gr)
 					n=[]
 					v=[]
 					m=[]
@@ -4224,18 +4224,18 @@ or None if no match is found."""
 									m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
 
 					paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
-					print "PD:%s"%paramdefs.keys()
+					g.debug("PD:%s"%paramdefs.keys())
 
 					# invariant to recid
 					if n:
 						for i in n:
 							vrend=self.vtm.paramdesc_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
 							vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-						groupviews[g]=vd
+						groupviews[gr]=vd
 					
-					names[g]=n
-					values[g]=v
-					macros[g]=m
+					names[gr]=n
+					values[gr]=v
+					macros[gr]=m
 
 										
 				ret={}
@@ -4246,11 +4246,11 @@ or None if no match is found."""
 					if viewdef: key = None
 					a = groupviews.get(key)
 					
-					print values[key]
+					g.debug(values[key])
 					for i in values[key]:
 						print i
 						v=self.vtm.render(paramdefs[i[2]].vartype, rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-						print "%s: %s -> %s"%(paramdefs[i[2]].vartype, rec.get(i[2]), v)
+						g.debug("%s: %s -> %s"%(paramdefs[i[2]].vartype, rec.get(i[2]), v))
 						a=a.replace(u"$$" + i[0] + i[1], v + i[1])
 
 					if showmacro:

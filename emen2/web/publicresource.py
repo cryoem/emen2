@@ -218,7 +218,7 @@ class PublicView(Resource):
 		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
 
-		print "ctxid is: %s"%ctxid
+		g.debug("ctxid is: %s"%ctxid)
 
 		request.postpath = filter(bool, request.postpath)
 		request.postpath.append('')
