@@ -130,8 +130,8 @@ class DBTree(object):
 	def to_path(self, recid):
 		return str.join('/', self.__to_path(recid))
 	
-	def reverse(self, name, *args, **kwargs):
-		return '/db'+(URLRegistry.reverselookup(name, *args, **kwargs) or '')
+	def reverse(self, _name, *args, **kwargs):
+		return '/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')
 	
 	def render_template_view(self, name, *args, **kwargs):
 		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )#ctxid=self.__ctxid, host=self.__host, 
