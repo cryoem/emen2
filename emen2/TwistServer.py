@@ -13,12 +13,6 @@ from twisted.web import static, server
 from emen2 import ts
 from emen2 import util
 
-import emen2.TwistSupport_html.uploadresource
-import emen2.TwistSupport_html.downloadresource
-import emen2.TwistSupport_html.publicresource
-#import emen2.TwistSupport_html.xmlrpcresource
-import emen2.TwistSupport_html.rpcresource
-import emen2.TwistSupport_html.authresource
 import emen2.TwistSupport_html.public.views
 
 #from emen2.TwistSupport_html.public import views
@@ -53,30 +47,21 @@ g.macros = macro.MacroEngine()
 #############################
 # Resources
 #############################
-root = static.File(g.EMEN2ROOT+"/tweb")
+import emen2.TwistSupport_html.uploadresource
+import emen2.TwistSupport_html.downloadresource
+import emen2.TwistSupport_html.publicresource
+#import emen2.TwistSupport_html.xmlrpcresource
+import emen2.TwistSupport_html.rpcresource
+import emen2.TwistSupport_html.authresource
 
+## g.STATICPATH = g.EMEN2ROOT+"/tweb"
 
+def load_resources(root, resources):
+	for path, resource in resources.items():
+		root.putChild(path, resource)
 
-root.putChild("db",emen2.TwistSupport_html.publicresource.PublicView())
-root.putChild("auth",emen2.TwistSupport_html.authresource.AuthResource())
-
-
-root.putChild("download",emen2.TwistSupport_html.downloadresource.DownloadResource())
-root.putChild("upload",emen2.TwistSupport_html.uploadresource.UploadResource())
-
-# use new service system
-root.putChild("RPC2",emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"))
-root.putChild("json",emen2.TwistSupport_html.rpcresource.RPCResource(format="json"))
-
-
-
-CONSOLE=0
-if CONSOLE:
-	x = {}
-	x.update(globals())
-	exec "from test import *" in x
-	a = code.InteractiveConsole(x, '')
-	def interact():
+def interact():
+	if g.CONSOLE:
 	    while True:
 	        a.interact()
 	        exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
@@ -84,18 +69,36 @@ if CONSOLE:
 	            thread.interrupt_main()
 	            return
         
-	thread.start_new_thread(interact, ())
+def main():
+	root = static.File(g.STATICPATH)
+	resources = dict(
+		db = emen2.TwistSupport_html.publicresource.PublicView(),
+		auth = emen2.TwistSupport_html.authresource.AuthResource(),
+		download = emen2.TwistSupport_html.downloadresource.DownloadResource(),
+		upload = emen2.TwistSupport_html.uploadresource.UploadResource(),
+		RPC2 = emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"),
+		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json")
+	)
+	
+	load_resources(root, resources)
+	
+	if g.CONSOLE:
+		x = {}
+		x.update(globals())
+		exec "from test import *" in x
+		a = code.InteractiveConsole(x, '')
+		thread.start_new_thread(interact, ())
 
-# print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
+	# print 'macros(%d): %s' % (id(macro.MacroEngine._macros), macro.MacroEngine._macros)        
+	
+	#############################
+	# Start server
+	#############################
+	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
+	if g.EMEN2HTTPS:
+		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
+	
+	reactor.suggestThreadPoolSize(4)
+	reactor.run()
 
-#############################
-# Start server
-#############################
-reactor.listenTCP(g.EMEN2PORT, server.Site(root))
-if g.EMEN2HTTPS:
-	reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
-
-reactor.suggestThreadPoolSize(4)
-reactor.run()
-
-
+main()
