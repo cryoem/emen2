@@ -1,6 +1,6 @@
 import time
 from UserDict import DictMixin
-
+import emen2.Database.database
 
 def format_string_obj(dict,keylist):
 		"""prints a formatted version of an object's dictionary"""
@@ -14,6 +14,8 @@ def format_string_obj(dict,keylist):
 								r.append("\n%s: None"%k)
 		r.append(" }\n")
 		return "".join(r)
+
+
 
 class Context:
 		"""Defines a database context (like a session). After a user is authenticated
@@ -211,7 +213,7 @@ class WorkFlow(DictMixin):
 				self.desc=None								# A 1-line description of the task to complete
 				self.longdesc=None						# an optional longer description of the task
 				self.appdata=None						 # application specific data used to implement the actual activity
-				self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+				self.creationtime=time.strftime(emen2.Database.database.TIMESTR)
 
 				if (d):
 						self.update(d)

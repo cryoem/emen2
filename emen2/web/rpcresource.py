@@ -1,15 +1,19 @@
-from twisted.web import server, xmlrpc
-from twisted.internet import threads
-from emen2 import Database
-from twisted.web.resource import Resource
-
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
 import os
 import time
 
+from twisted.web import server, xmlrpc
+from twisted.internet import threads
+from twisted.web.resource import Resource
+
+from emen2 import Database
+from emen2.Database import database
+
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
 import xmlrpclib
 import demjson
+
 
 Fault = xmlrpclib.Fault
 
@@ -53,8 +57,8 @@ class RPCFormatXMLRPC:
 		args=list(args)
 		kwargs = {}
 		# add kwargs support to xmlrpc:: if last arg is dict...
-		if isinstance(args[-1],dict):
-			kwargs = args.pop()
+		#if isinstance(args[-1],dict):
+		#	kwargs = args.pop()
 		
 		# not really supported... no decode; values limited to strings.
 		for k,v in kw.items():
@@ -86,7 +90,7 @@ class RPCFormatXMLRPC:
 	def encode_serialize(self, value):
 		"""Serializes in UTF-8 DB instances for unsophisticated encoders (e.g. xmlrpc)"""
 		# convert to dict using class method
-		if isinstance(value, (Database.Record, Database.RecordDef, Database.ParamDef, Database.User, Database.WorkFlow)):
+		if isinstance(value, (database.Record, database.RecordDef, database.ParamDef, database.User, database.WorkFlow)):
 			return self.encode_serialize(dict(value))
 
 		elif hasattr(value,"items"):

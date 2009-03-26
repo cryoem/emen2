@@ -120,7 +120,7 @@ relationshipcontrol.prototype = {
 					self.build_map();
 					self.build_controls();
 					});
-				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="/db/record/'+this.parents[i]+'">'+getrecname(this.parents[i])+'</a></span></td>');
+				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.parents[i]+'/">'+getrecname(this.parents[i])+'</a></span></td>');
 				item.data("recid",this.parents[i]);
 				var tag=this.getstatetag(this.parents[i])
 				item.addClass(tag);		
@@ -166,7 +166,7 @@ relationshipcontrol.prototype = {
 					self.build_map();
 					self.build_controls();
 					});
-				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="/db/record/'+this.children[i]+'">'+getrecname(this.children[i])+'</a></span></td>');
+				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.children[i]+'/">'+getrecname(this.children[i])+'</a></span></td>');
 				item.data("recid",this.children[i]);
 				var tag=this.getstatetag(this.children[i])
 				item.addClass(tag);		
@@ -387,7 +387,7 @@ relationshipbrowser.prototype = {
 		var self=this;
 		
 		this.elem.empty();
-		this.statusimg=$('<img src="/images/blank.png" class="floatleft">');
+		this.statusimg=$('<img src="'+EMEN2WEBROOT+'/images/blank.png" class="floatleft">');
 		
 		
 		this.gotorecord=$('<input type="text" size="8" />');
@@ -436,7 +436,7 @@ relationshipbrowser.prototype = {
 		this.children = this.sortbyrecname(this.children);
 		this.parents = this.sortbyrecname(this.parents);
 		
-		this.statusimg.attr("src","/images/blank.png");
+		this.statusimg.attr("src",EMEN2WEBROOT+"/images/blank.png");
 
 		this.tablearea.empty();
 		var self=this;
@@ -538,7 +538,7 @@ relationshipbrowser.prototype = {
 	
 	getrecord: function(irecid) {
 		var self=this;
-		$.get("/db/recordview/"+irecid+"/table/", {}, function(data) {
+		$.get(EMEN2WEBROOT+"/db/recordview/"+irecid+"/table/", {}, function(data) {
 			if (irecid == self.currentid) {
 				self.info_view.append(data);
 			}
@@ -577,7 +577,7 @@ relationshipbrowser.prototype = {
 	},
 	
 	select: function(newid) {
-		this.statusimg.attr("src","/images/spinner2.gif");
+		this.statusimg.attr("src",EMEN2WEBROOT+"/images/spinner2.gif");
 		this.parents=null;
 		this.children=null;
 		this.currentid=newid;

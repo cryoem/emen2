@@ -29,7 +29,7 @@ loginwidget.prototype = {
 
 		if (this.buildform) {
 			//console.log("build");
-			this.f = $('<form name="login" action="/auth/login/" method="post">');
+			this.f = $('<form name="login" action="'+EMEN2WEBROOT+'/auth/login/" method="post">');
 			this.username = $('<input name="username" type="text" />');
 			this.pw = $('<input name="pw" type="password" />');
 			this.submit = $('<input type="submit" value="Login" />');
@@ -150,7 +150,7 @@ permissions.prototype = {
 			// add new inherit/parent item
 			this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
 				var getrecid=parseInt(self.inheritarea_addfield.val());
-				$.getJSON("/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
+				$.getJSON(EMEN2WEBROOT+"/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
 					setrecord(getrecid,result["recs"][getrecid]);
 					$.each(result["displaynames"], function(k,v) {
 						setdisplayname(k,v);
@@ -185,7 +185,7 @@ permissions.prototype = {
 
 		this.user_search=$('<input class="value" size="20" type="text" value="" />');
 		this.user_search.autocomplete({ 
-					ajax: "/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/finduser/",
 					match:      function(typed) { return true	},
 					insertText: function(value)  { 
 						setdisplayname(value[0],value[1]);
@@ -899,12 +899,12 @@ RecordDefEditor.prototype = {
 	
 	default_commit_put: function() {
 		var self=this;
-		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post('/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},
 	
 	default_commit_add: function() {
 		var self=this;
-		$.jsonRPC("addrecorddef",[this.rd,this.parent],function(data){notify_post('/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("addrecorddef",[this.rd,this.parent],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},	
 	
 	refreshall: function(e) {
@@ -926,7 +926,7 @@ RecordDefEditor.prototype = {
 		
 		var oname=$('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
 		var ocopy=$('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
-		var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="/images/remove_small.png" /> Remove</li>');
+		var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/images/remove_small.png" /> Remove</li>');
 		ul.append(oname, ocopy, oremove);
 		
 		var ovalue=$('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');

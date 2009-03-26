@@ -18,7 +18,7 @@ function ParamNameControl(form, paramnames) {
 	
 	apply.onclick = function selectOnClick() {
 		$.ajax({
-			url: '/db/pd/'+select.options[select.selectedIndex].text+'/',
+			url: EMEN2WEBROOT+'/db/pd/'+select.options[select.selectedIndex].text+'/',
 			type: 'GET',
 			dataType: 'json',
 			timeout: 0,
@@ -51,7 +51,7 @@ function Multiparam(form, paramnames) {
 			var param = paramnames[x]
 			var suffix = box.childNodes.length
 			$.ajax({
-				url: '/db/pd/'+param+'/',
+				url: EMEN2WEBROOT+'/db/pd/'+param+'/',
 				type: 'GET',
 				dataType: 'json',
 				timeout: 1000,

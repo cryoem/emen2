@@ -146,7 +146,7 @@ function admin_chpasswd_form(elem) {
 		function(data) {
 			//console.log("ok");
 			//console.log(data)
-			notify_post("/db/home/",["Password Updated Successfully"]);
+			notify_post(EMEN2WEBROOT+"/db/home/",["Password Updated Successfully"]);
 		},
 		function(data) {
 			//console.log("fail");

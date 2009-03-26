@@ -81,7 +81,7 @@ $.jsonRPC = function(method,data,callback,errback) {
 	//console.log($.toJSON(data))
 	$.ajax({
     type: "POST",
-    url: "/json/"+method,
+    url: EMEN2WEBROOT+"/json/"+method,
     data: $.toJSON(data),
     success: callback,
     error: errback,

@@ -39,7 +39,7 @@ function tile_center() {
 }
 
 function tile_larger(bid) {
-	window.location = "/db/tiles/large/"+bid;
+	window.location = EMEN2WEBROOT+"/db/tiles/large/"+bid;
 }
 
 function tile_pspec(bid) {
@@ -47,7 +47,7 @@ function tile_pspec(bid) {
 	indiv.style.left="0px";
 	indiv.style.top="0px";
 	var e=document.createElement("img");
-	e.src='/db/tiles/image/'+bid+'?level=-1&amp;x=0&amp;y=0';
+	e.src=EMEN2WEBROOT+'/db/tiles/image/'+bid+'?level=-1&amp;x=0&amp;y=0';
 	e.width=divdim[0];
 	e.height=divdim[1];
 	$(indiv).empty().append(e);
@@ -57,7 +57,7 @@ function tile_1d(bid) {
 	indiv.style.left="0px";
 	indiv.style.top="0px";
 	var e=document.createElement("img");
-	e.src='/db/tiles/image/'+bid+'?level=-2&amp;x=0&amp;y=0';
+	e.src=EMEN2WEBROOT+'/db/tiles/image/'+bid+'?level=-2&amp;x=0&amp;y=0';
 	e.width=divdim[0];
 	e.height=divdim[1];
 	$(indiv).empty().append(e);
@@ -72,17 +72,17 @@ function tile_init(ibid) {
 	if (imgw > 256) {imgw = 256;}
 	
 	var innerdivie=document.getElementById("innerdiv");
-	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Checking tiles...'
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Checking tiles...'
 
-	$.getJSON("/db/tiles/check/"+bid, tile_checktile_cb);
+	$.getJSON(EMEN2WEBROOT+"/db/tiles/check/"+bid, tile_checktile_cb);
 
 }
 
 
 function tile_rebuild(bid) {
 	var innerdivie=document.getElementById("innerdiv");
-	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'	
-	$.getJSON("/db/tiles/create/"+bid, tile_createtile_cb);
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'	
+	$.getJSON(EMEN2WEBROOT+"/db/tiles/create/"+bid, tile_createtile_cb);
 }
 
 
@@ -97,7 +97,7 @@ function tile_checktile_cb(r) {
 		tile_center();
 	} else {
 		// generate tile; init on callback
-		innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/spinner.gif" /><br />Generating tiles...'
+		innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'
 		tile_rebuild(r[2]);
 		//var createtile = new CallbackManager();
 		//createtile.register(tile_createtile_cb);
@@ -120,7 +120,7 @@ function tile_createtile_cb(r) {
 
 function tile_error() {
 	var innerdivie=document.getElementById("innerdiv");	
-	innerdivie.innerHTML = '<img style="margin-top:60px;" src="/images/error.gif" /><br />Error: Could not create or access tiles.'
+	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/error.gif" /><br />Error: Could not create or access tiles.'
 }
 
 /*************************************************/
@@ -222,7 +222,7 @@ function recalc() {
 			var im=document.getElementById(nm);
 			if (!im) {
 				im=document.createElement("img");
-				im.src="/db/tiles/image/" + tileid + "?level="+level+"&x="+i+"&y="+j;
+				im.src=EMEN2WEBROOT+"/db/tiles/image/" + tileid + "?level="+level+"&x="+i+"&y="+j;
 				im.style.position="absolute";
 				im.style.height=imgw+"px";
 				im.style.width=imgw+"px";

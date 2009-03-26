@@ -1,17 +1,25 @@
 from __future__ import with_statement
-from emen2 import Database, ts
-from emen2.Database import exceptions
-from emen2.subsystems import routing
-from emen2.util import listops
-from twisted.internet import threads
-from twisted.web.resource import Resource
-from twisted.web.static import server, redirectTo, addSlash
-from urllib import quote
+
 import urlparse
 import demjson
 import emen2.globalns
 import re
 import time
+
+
+from emen2 import Database
+from emen2 import ts
+from emen2.Database import exceptions
+from emen2.subsystems import routing
+from emen2.util import listops
+
+
+from twisted.internet import threads
+from twisted.web.resource import Resource
+from twisted.web.static import server, redirectTo, addSlash
+from urllib import quote
+
+
 
 g = emen2.globalns.GlobalNamespace('')
 
@@ -183,6 +191,7 @@ class PublicView(Resource):
 	def __getredirect(self, target, request, path):
 		npath = None
 		base,qs = self.parse_uri(request.uri)
+
 		#no trailing slash
 		if base[-1] != '/': npath = '%s/' % path
 			
@@ -196,7 +205,7 @@ class PublicView(Resource):
 		#redirect if necessary
 		if npath is not None:
 			if qs: qs = str.join('', ('?', qs))
-			target = '/%s%s%s' % (str.join('/', request.prepath), npath, qs)
+			target = '%s/%s%s%s' % (g.EMEN2WEBROOT,str.join('/', request.prepath), npath, qs)
 		
 		#return new target or None for no redirect
 		return target
@@ -250,8 +259,8 @@ class PublicView(Resource):
 	# wrap db with context; view never has to see ctxid/host
 	def _action(self, callback, db=None, ctxid=None, host=None):
 		db._setcontext(ctxid,host)
-		ret=callback(db=db, ctxid=ctxid, host=host)
-		return ret
+		#ret=callback(db=db, ctxid=ctxid, host=host)
+		return callback(db=db, ctxid=ctxid, host=host)
 	
 	
 	
@@ -287,6 +296,7 @@ class PublicView(Resource):
 		
 		
 	def _ebRender(self, failure, request, ctxid=None):
+
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
 
@@ -300,16 +310,20 @@ class PublicView(Resource):
 			request.setResponseCode(401)
 			args = {
 					'redirect': request.uri,
-					'msg': str(failure),
+					'msg': str(e),
 					'db': ts.db,
 					'host': request.getClientIP(),
 					'ctxid': ctxid
 		   }
 			
-			#p = emen2.TwistSupport_html.public.login.Login(**args)
-			#data = unicode(p.get_data()).encode("utf-8")
-			request.redirect('/auth/login')
-			data = 'Auth Failure'
+			p = emen2.TwistSupport_html.public.login.Login(**args)
+			data = unicode(p.get_data()).encode("utf-8")
+			data="Auth Error %s"%e
+
+
+			#request.redirect('/auth/login')
+			#data = 'Auth Failure'
+
 
 		except Exception, e:
 			request.setResponseCode(500)

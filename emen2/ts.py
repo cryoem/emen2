@@ -1,4 +1,3 @@
-from __future__ import with_statement
 # ts.py	 Steven Ludtke	06/2004
 # This module provides the resources needed for HTTP and XMLRPC servers using Twist
 # Note that the login methods return a ctxid (context id). This id is required
@@ -12,7 +11,7 @@ from emen2.Database.database import DBProxy
 from emen2.Database import database
 from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor
-from twisted.python import log, runtime, context, threadpool, failure
+from twisted.python import log, runtime, context, threadpool
 import Queue
 import atexit
 import threading
@@ -31,7 +30,7 @@ db=database.DBProxy(dbpath=g.EMEN2DBPATH)
 	
 
 class newThreadPool(threadpool.ThreadPool):
-	counter = 0
+
 	def startAWorker(self):
 #		print "started twisted thread (newThreadPool)..."
 #		print "\tworker count: %s"%self.workers
@@ -41,18 +40,18 @@ class newThreadPool(threadpool.ThreadPool):
 
 		self.workers = self.workers + 1
 #		name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
-#		try:
-#				firstJob = self.q.get(0)
-#		except Queue.Empty:
-#				firstJob = None
+		try:
+				firstJob = self.q.get(0)
+		except Queue.Empty:
+				firstJob = None
 				
 #		print "initializing thread."		
-		self.counter += 1
-		newThread = threading.Thread(target=self._worker, args=(database.DBProxy(dbpath=g.EMEN2DBPATH),self.counter))
+		newThread = threading.Thread(target=self._worker, args=(firstJob,database.DBProxy(dbpath=g.EMEN2DBPATH)))
 #		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
+
 	def _worker(self, db, count):
 		""" 
 		Method used as target of the created threads: retrieve task to run
@@ -81,21 +80,28 @@ class newThreadPool(threadpool.ThreadPool):
 
 			del function, args, kwargs
 
-			self.working.remove(ct)
+		ct = threading.currentThread()
+		while 1:
+			if o is threadpool.WorkerStop:
+					break
+			elif o is not None:
+				self.working.append(ct)
 
-			if onResult is not None:
+				ctx, function, args, kwargs = o
 				try:
-					context.call(ctx, onResult, success, result)
+					# add DB arg to all deferred calls
+					args[3]['db']=db
+					context.call(ctx, function, *args, **kwargs)
 				except:
-					context.call(ctx, log.err)
+					context.call(ctx, log.deferr)
 
-			del ctx, onResult, result
-
+				self.working.remove(ct)
+				del o, ctx, function, args, kwargs
 			self.waiters.append(ct)
 			o = self.q.get()
 			self.waiters.remove(ct)
 
-		self.threads.remove(ct)
+		self.threads.remove(ct)			
 
 #print "installing new threadpool."
 threadpool.ThreadPool = newThreadPool

@@ -748,7 +748,7 @@ $.Autocompleter.Select = function (options, input, select, config) {
 		},
 		addSpinner: function() {
 			//console.log("add spinner");
-			var spinner=$('<img src="/images/spinner.gif" />');
+			var spinner=$('<img src="'+EMEN2WEBROOT+'/images/spinner.gif" />');
 		},
 		removeSpinner: function() {
 			//console.log("remove spinner");

@@ -1,6 +1,5 @@
 // globals
 
-valid_properties = {"angle":["degree",["mrad","radian","degree"]],"area":["m^2",["cm^2","m^2"]],"bfactor":["A^2",["A^2"]],"concentration":["mg/ml",["p/ml","mg/ml","pfu"]],"count":["count",["count","K","pixels"]],"currency":["dollars",["dollars"]],"current":["amp",["amp"]],"currentdensity":["Pi Amp/cm2",["Pi Amp/cm2"]],"dose":["e/A2/sec",["e/A2/sec"]],"energy":["J",["J"]],"exposure":["e/A2",["e/A2"]],"filesize":["bytes",["kB","MB","MiB","bytes","GB","KiB","GiB"]],"force":["N",["N"]],"inductance":["henry",["H"]],"length":["m",["A","nm","cm","mm","m","km","um"]],"mass":["gram",["mg","MDa","KDa","g","Da"]],"momentum":["kg m/s",["kg m/s"]],"pH":["pH",["pH"]],"percentage":["%",["%"]],"pressure":["Pa",["torr","psi","Pa","bar","atm"]],"relative_humidity":["%RH",["%RH"]],"resistance":["ohm",["ohm"]],"resolution":["A/pix",["A/pix"]],"temperature":["K",["K","C","F"]],"time":["s",["hour","min","us","s","ms","ns","day"]],"transmittance":["%T",["%T"]],"unitless":["unitless",["unitless"]],"velocity":["m/s",["m/s"]],"voltage":["volt",["mv","kv","V"]],"volume":["m^3",["ml","m^3","l","ul"]]}
 
 
 paramindex={};
@@ -50,8 +49,12 @@ function switchin(classname, id) {
 	//console.log("Switching in "+classname+" "+id);
 	switchedin[classname]=id;
 	switchbutton(classname,id);
-	$(".page_"+classname).css("display","none");
-	document.getElementById("page_" + classname + "_" + id).style.display = 'block';	
+	$(".page_"+classname).removeClass("page_active");
+	$(".page_"+classname).removeClass("page_"+classname+"_active");	
+	$("#page_"+classname+"_"+id).addClass("page_active");
+	$("#page_"+classname+"_"+id).addClass("page_"+classname+"_active");
+	//$(".page_"+classname).css("display","none");
+	//document.getElementById("page_" + classname + "_" + id).style.display = 'block';	
 }
 
 
@@ -231,6 +234,9 @@ function record_upload_toggle(elem) {
 	toggle_record_menu(elem);
 }
 
+function record_tools_toggle(elem) {
+	toggle_record_menu(elem);
+}
 
 function record_relationships_toggle(elem) {
 	toggle_record_menu(elem);
@@ -271,7 +277,7 @@ function newrecord_getoptionsandcommit(self, values) {
 		values,
 		parents,
 		function(recid){
-			notify_post('/db/record/'+recid,["Record Saved"]);
+			notify_post(EMEN2WEBROOT+'/db/record/'+recid+'/',["Record Saved"]);
 		}
 	);
 	

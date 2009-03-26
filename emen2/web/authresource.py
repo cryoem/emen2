@@ -1,19 +1,27 @@
 from __future__ import with_statement
-from emen2 import Database, ts
-from emen2.Database import exceptions
-from emen2.subsystems import routing
-from emen2.util import listops
+
+
+import re
+import time
+
+
 from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 from urllib import quote
+
+
+from emen2 import Database
+from emen2 import ts
+from emen2.Database import exceptions
+from emen2.subsystems import routing
+from emen2.util import listops
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
+
 import urlparse
 import demjson
-import emen2.globalns
-import re
-import time
-
-g = emen2.globalns.GlobalNamespace('')
 
 
 
@@ -51,7 +59,8 @@ class AuthResource(Resource):
 		newpw = request.args.get('newpw',[None])[0]
 		redirect = request.args.get("redirect",[request.uri])[0]
 		redirect = self.loginredir(redirect,request)
-		if "auth/" in redirect: redirect = "/db/home/"
+		if "auth/" in redirect:
+			redirect = "%s/db/home/"%(g.EMEN2WEBROOT)
 
 		return {
 			"username":username,

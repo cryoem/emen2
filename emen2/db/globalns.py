@@ -58,8 +58,10 @@ class GlobalNamespace(object):
 					result = object.__getattribute__(self, name)
 				except AttributeError:
 					pass
+
 		if result == None:
 			raise AttributeError('Attribute Not Found: %s' % name)
+
 		else:
 			return result
 	__getitem__ = __getattribute__

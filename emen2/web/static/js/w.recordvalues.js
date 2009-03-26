@@ -401,7 +401,7 @@ widget.prototype = {
 
 				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
 				this.editw.autocomplete({ 
-					ajax: "/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/finduser/",
 					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
@@ -422,7 +422,7 @@ widget.prototype = {
 				
 				this.editw.autocomplete({ 
 					list: l,				
-					ajax: "/db/findvalue/"+this.param+"/",
+					ajax: EMEN2WEBROOT+"/db/findvalue/"+this.param+"/",
 					match: function(typed) { return this[1].match(new RegExp(typed, "i")) },				
 					insertText: function(value)  { return value[1] }
 				}).bind("activate.autocomplete", function(e,d) {  }
@@ -626,7 +626,7 @@ listwidget.prototype = {
 			if (self.paramdef["vartype"]=="userlist") {
 
 				edit.autocomplete({ 
-					ajax: "/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/finduser/",
 					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
@@ -636,7 +636,7 @@ listwidget.prototype = {
 
 				edit.autocomplete({ 
 
-					ajax: "/db/findvalue/"+this.param+"/",
+					ajax: EMEN2WEBROOT+"/db/findvalue/"+this.param+"/",
 					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
 					insertText: function(value)  { return value[1] }
 					
@@ -644,11 +644,11 @@ listwidget.prototype = {
 				
 			}
 			
-			var add=$('<span><img src="/images/add_small.png" class="listwidget_add" /></span>').click(function() {
+			var add=$('<span><img src="'+EMEN2WEBROOT+'/images/add_small.png" class="listwidget_add" /></span>').click(function() {
 				self.addoption(k+1);
 				self.build();
 			});
-			var remove=$('<span><img src="/images/remove_small.png" class="listwidget_remove" /></span>').click(function() {
+			var remove=$('<span><img src="'+EMEN2WEBROOT+'/images/remove_small.png" class="listwidget_remove" /></span>').click(function() {
 				self.removeoption(k);
 				self.build();
 			});

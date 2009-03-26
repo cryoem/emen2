@@ -1,3 +1,4 @@
+raise Exception, "Deprecated"
 
 # move these two functions elsewhere...
 
@@ -60,49 +61,3 @@ def dicttableview(rec,params=[]):
 	dicttable.append("</table>")
 	return "".join(dicttable)
 
-
-
-
-###################################################
-# Preparse views for web display (important)
-
-def renderpreparse(rec,viewdef,paramdefs={},edit=0,paramlinks=1,db=None):
-	"""Add HTML markup to a record def view, including editing markup if requested."""
-
-	editclass=""
-	if edit:
-		editclass="editable"
-	
-	iterator = Database.database.regex2.finditer(viewdef)
-		
-	for match in iterator:
-		prepend=""
-		postpend=""
-		
-		######## $#names #######
-		if match.group("name1"):
-			if paramlinks:
-				prepend = """<a title="%s" href="/db/paramdef/%s">"""%(match.group("name1"),match.group("name1"))
-				postpend = """</a>"""
-			matchstr = "\$\\#"+match.group("name")+match.group("namesep")
-			viewdef = re.sub(matchstr,prepend+"$#"+match.group("name")+postpend+match.group("namesep"),viewdef)
-
-			
-		######## $$variables #######
-		elif match.group("var1"):
-			
-			if not paramdefs.has_key(match.group("var1")):
-				paramdefs[match.group("var1")] = db.getparamdef(match.group("var1"))
-			
-			pd=paramdefs[match.group("var1")]
-			v=rec[match.group("var1")]
-
- 			matchstr = "\$\$"+match.group("var")+match.group("varsep")
-			units=""
-			if pd.defaultunits and pd.defaultunits != "unitless" and v != None:
-				units=pd.defaultunits
-			replstr = """<strong class="%s" data-param="%s">$$%s %s </strong>%s"""%(editclass,match.group("var"), match.group("var"), units, match.group("varsep"))
-
-			viewdef = re.sub(matchstr,replstr,viewdef)
-
-	return viewdef

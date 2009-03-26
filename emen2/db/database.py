@@ -1,11 +1,14 @@
 from bsddb3 import db
 from cPickle import load, dump
+
 from emen2.Database.btrees import *
 from emen2.Database.datastorage import *
 from emen2.Database.exceptions import *
-from functools import partial
-from emen2.Database.subsystems import macro
 from emen2.Database.user import *
+import emen2.Database.subsystems
+
+from functools import partial
+
 import atexit
 import emen2
 import emen2.util.utils
@@ -17,13 +20,16 @@ import sys
 import time
 import traceback
 
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+
 
 regex_pattern = 	 u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		 \
 "|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
 								"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
 regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
+
 
 regex_pattern2 = 	u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
 								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
@@ -69,7 +75,7 @@ class DBProxy(object):
 		return self.__ctxid
 
 	def _setcontext(self, ctxid=None, host=None):
-		#g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
+		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
 		#self._bound = True
 
 		self.__ctxid=ctxid
@@ -78,7 +84,7 @@ class DBProxy(object):
 			self.__bound = True
 		
 	def _clearcontext(self):
-		#g.debug("dbproxy: clearcontext")
+		g.debug("dbproxy: clearcontext")
 		if self.__bound:
 			self.__ctxid=None
 			self.__host=None
@@ -128,6 +134,7 @@ class DBProxy(object):
 		
 		db = self.__db
 		kwargs = {}
+
 		ctxid = self.__ctxid
 		host = self.__host
 		if ctxid and not kwargs.get('ctxid'):
@@ -135,21 +142,26 @@ class DBProxy(object):
 		if host and not kwargs.get('host'):
 			kwargs["host"]=host
 
+
  		result = None
  		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
 
-			#print "\n\nDB: %s, kwargs: %s"%(name,kwargs.keys())
+			#print "\n\nDB: %s, kwargs: %s"%(name,kwargs)
 
- 			result = self.__publicmethods.get(name)
- 			if result: result = partial(result, db, **kwargs)
- 			else: 
+ 			result = self.__publicmethods.get(name)# or self.__extmethods.get(name)()
+			print result
+ 			if result:
+				result = partial(result, db, **kwargs)
+ 			else:
  				result = self.__extmethods.get(name)()
+
  				kwargs['db'] = db
  				if result: result = result(method.execute, **kwargs)
 # 			if method:
 # 				result = method(*args[1:], **kwargs)
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
+
  		return result
 
 
@@ -164,21 +176,6 @@ class DBExt(object):
 	def register(cls):
 		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
 
-		
-		
-
-class dbtest(DBExt):
-	__metaclass__ = DBExt.register_view
-	__methodname__ = "exttest"
-	def execute(self, *args, **kwargs):
-		print "exc"
-		print args
-		print kwargs
-		return ["ok"]
-
-
-
-		
 		
 
 def DB_syncall():
@@ -220,8 +217,11 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 				global envopenflags, usetxn
 								
-				if usetxn: self.newtxn = self.newtxn1
-				else: self.newtxn = self.newtxn2
+				if usetxn:
+					self.newtxn = self.newtxn1
+				else:
+					print "Note: transaction support disabled"
+					self.newtxn = self.newtxn2
 
 				self.path = path
 				self.logfile = path + "/" + logfile
@@ -230,8 +230,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		
 				# ian: this helps render and validate vartypes and convert between properties/units
-				self.vtm = emen2.Database.datastorage.VartypeManager()
-				#print "->init->%s"%self.__vartypemanager.getvartypes()
+				self.vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+				self.indexablevartypes=set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
+
 			
 				self.maxrecurse = 50
 		
@@ -247,8 +248,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				self.__dbenv.set_data_dir(path)
 				self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT)		# internal deadlock detection
 				# ian: lockers
-				self.__dbenv.set_lk_max_locks(5000)
-				self.__dbenv.set_lk_max_lockers(5000)
+				self.__dbenv.set_lk_max_locks(20000)
+				self.__dbenv.set_lk_max_lockers(20000)
 				
 				#if self.__dbenv.DBfailchk(flags=0):
 						#self.LOG(1,"Database recovery required")
@@ -278,8 +279,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 						if rootpw : p = hashlib.sha1(rootpw)
 						else: p = hashlib.sha1(g.ROOTPW)
 						u.password = p.hexdigest()
-						u.groups = [ - 1]
-						u.creationtime = time.strftime("%Y/%m/%d %H:%M:%S")
+						u.groups = [-1]
+						u.creationtime = time.strftime(TIMESTR)
 						u.name = ('Database', '', 'Administrator')
 						self.__users.set("root", u, txn)
 
@@ -382,9 +383,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if (level < 0 or level > 6) : level = 0
 				try:
 						o = file(self.logfile, "a")
-						o.write("%s: (%s)	 %s\n" % (time.strftime("%Y/%m/%d %H:%M:%S"), LOGSTRINGS[level], message))
+						o.write("%s: (%s)	 %s\n" % (time.strftime(TIMESTR), LOGSTRINGS[level], message))
 						o.close()
-						if level < 4 : print "%s: (%s)	%s" % (time.strftime("%Y/%m/%d %H:%M:%S"), LOGSTRINGS[level], message)
+						if level < 4 : print "%s: (%s)	%s" % (time.strftime(TIMESTR), LOGSTRINGS[level], message)
 				except:
 						traceback.print_exc(file=sys.stdout)
 						print("Critical error!!! Cannot write log message to '%s'\n" % self.logfile)
@@ -524,7 +525,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 
 				if date == None:
-					date = time.strftime("%Y/%m/%d %H:%M:%S")
+					date = time.strftime(TIMESTR)
 			
 				year = int(date[:4])
 				mon = int(date[5:7])
@@ -635,7 +636,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 								k[1].time = c.time
 
 						except: pass
-						g.debug.msg('LOG_DEBUG', k[1].time, k[1].maxidle)
+						#g.debug.msg('LOG_DEBUG', k[1].time, k[1].maxidle)
 						if k[1].time + (k[1].maxidle or 0) < time.time(): 
 								self.LOG(4, "Expire context (%s) %d" % (k[1].ctxid, time.time() - k[1].time))
 								try: del self.__contexts[k[0]]
@@ -1436,6 +1437,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 								g.debug("searching %s" % param)
 								try:
 									r = self.__getparamindex(str(param).lower(), ctxid=ctxid, host=host)
+									#if not q in r:
+									#	print "\tskipping"
+									#	continue
 									s = filter(lambda x:q in x, r.keys())
 								except:
 									continue
@@ -1557,6 +1561,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				paramname = str(paramname).lower()
 
+
+
 				ind = self.__getparamindex(paramname, create=1, ctxid=ctxid, host=host)
 								
 				if valrange == None:
@@ -1570,7 +1576,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# and makes a dictionary of recid/value pairs
 				ret = {}
 				all = {}
-				for i, j in r.items():
+
+				for i,j in r.items():
 					for k in j:
 						all[k] = i
 				if subset:
@@ -1860,7 +1867,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 				stack=[ret]
 				result={key: ret}
 				for x in xrange(recurse):
-					if x > self.maxrecurse: 
+					if len(stack[x])==0:
+						break
+					if x >= self.maxrecurse-1: 
 						raise Exception, "Recurse limit reached; check for circular relationships?"
 					stack.append([])
 					
@@ -2143,22 +2152,23 @@ parentheses not supported yet. Upon failure returns a tuple:
 				userrec["name_last"] = user.name[2]
 				userrec["email"] = user.email
 
-				p=userrec["permissions"]
-				p=(p[0]+(-3,),p[1]+(userrec['username'],),p[2]+(userrec['username'],),p[3])
-				userrec["permissions"]=p
+				# can't add permissions before user is approved
+				#p=(p[0]+(-3,),p[1]+(userrec['username'],),p[2]+(userrec['username'],),p[3])
 
 				for k,v in user.signupinfo.items():
 					userrec[k]=v
 
-				recid = self.putrecord(userrec, ctxid=ctxid, host=host)
-				user.record = recid
-				user.signupinfo=None
-				
+
 			user.validate()
 
 			txn = self.newtxn()
-			self.__users.set(username, user, txn)
-			self.__newuserqueue.set(username, None, txn)
+
+			user.record = self.putrecord(userrec, ctxid=ctxid, host=host, txn=txn)
+			user.signupinfo = None
+			self.__users.set(username, user, txn=txn)
+			self.__newuserqueue.set(username, None, txn=txn)
+			self.secrecordadduser([[],[],[],[user.username]],user.record,ctxid=ctxid,host=host,txn=txn)
+
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
 
@@ -2384,8 +2394,8 @@ parentheses not supported yet. Upon failure returns a tuple:
 				user.password = s.hexdigest()
 
 				if not self.__importmode:
-						user.creationtime = time.strftime("%Y/%m/%d %H:%M:%S")
-						user.modifytime = time.strftime("%Y/%m/%d %H:%M:%S")
+						user.creationtime = time.strftime(TIMESTR)
+						user.modifytime = time.strftime(TIMESTR)
 				
 				user.validate()
 				
@@ -2653,80 +2663,86 @@ parentheses not supported yet. Upon failure returns a tuple:
 		def getvartypenames(self, ctxid=None, host=None):
 				"""This returns a list of all valid variable types in the database. This is currently a
 				fixed list"""
-				return self.vtm.getvartypes()
-				#return valid_vartypes.keys()
+				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+				return vtm.getvartypes()
 
 
 
 		@publicmethod
-		def getvartype(self, thekey, ctxid=None, host=None):
+		def getvartype(self, name, ctxid=None, host=None):
 				"""This returns a list of all valid variable types in the database. This is currently a
 				fixed list"""
-				return valid_vartypes[thekey][1]
+				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+				return vtm.getvartype(name)
+				#return valid_vartypes[thekey][1]
 
 
 		@publicmethod
 		def getpropertynames(self, ctxid=None, host=None):
 				"""This returns a list of all valid property types in the database. This is currently a
 				fixed list"""
-				return self.vtm.getproperties()
-				#return valid_properties.keys()
+				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+				return vtm.getproperties()
+
 						
 						
 
 		@publicmethod						
 		def getpropertyunits(self, propname, ctxid=None, host=None):
 				"""Returns a list of known units for a particular property"""
-				return set(valid_properties[propname][1].keys()) | set(valid_properties[propname][2].keys())
+				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+				# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
+				return set(vtm.getproperty(propname).units)
 						
 						
 						
 
 
 		@publicmethod
-		def addparamdef(self, paramdef, parent=None, ctxid=None, host=None):
-				"""adds a new ParamDef object, group 0 permission is required
-				a p->c relationship will be added if parent is specified"""
+		def addparamdef(self, paramdef, parents=[], ctxid=None, host=None):
+			"""adds a new ParamDef object, group 0 permission is required
+			a p->c relationship will be added if parent is specified"""
 
-				if not isinstance(paramdef, ParamDef):
-						try: paramdef = ParamDef(paramdef)
-						except: raise ValueError, "ParamDef instance or dict required"
-				#paramdef=ParamDef(paramdef.__dict__.copy())
-				# paramdef.validate()
-		
-		
-				ctx = self.__getcontext(ctxid, host)
 
-				if not self.checkcreate(ctx):
-						raise SecurityError, "No permission to create new paramdefs (need record creation permission)"
+			if not isinstance(paramdef, ParamDef):
+				try: paramdef = ParamDef(paramdef)
+				except: raise ValueError, "ParamDef instance or dict required"
+			#paramdef=ParamDef(paramdef.__dict__.copy())
+			# paramdef.validate()
+	
+	
+			ctx = self.__getcontext(ctxid, host)
 
-				paramdef.name = str(paramdef.name).lower()
-				
-				if self.__paramdefs.has_key(paramdef.name) : 
-						# Root is permitted to force changes in parameters, though they are supposed to be static
-						# This permits correcting typos, etc., but should not be used routinely
-						if not self.checkadmin(ctx):
-							raise KeyError, "paramdef %s already exists" % paramdef.name
+			if not self.checkcreate(ctx):
+				raise SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
-				else:
-						# force these values
-						paramdef.creator = ctx.user
-						paramdef.creationtime = time.strftime("%Y/%m/%d %H:%M:%S")
+			paramdef.name = str(paramdef.name).lower()
+			
+			if self.__paramdefs.has_key(paramdef.name) : 
+				# Root is permitted to force changes in parameters, though they are supposed to be static
+				# This permits correcting typos, etc., but should not be used routinely
+				# skip relinking if we're editing
+				parents=[]
+				if not self.checkadmin(ctx):
+					raise KeyError, "paramdef %s already exists" % paramdef.name
 
-				
-				if isinstance(paramdef.choices, list) or isinstance(paramdef.choices, tuple):
-						paramdef.choices = tuple([str(i).title() for i in paramdef.choices])
+			else:
+				# force these values
+				paramdef.creator = ctx.user
+				paramdef.creationtime = time.strftime(TIMESTR)
 
-				if not self.__importmode:
-						#paramdef=ParamDef(paramdef.__dict__.copy())
-						paramdef.validate()
-				
-				# this actually stores in the database
-				txn = self.newtxn()
-				self.__paramdefs.set(paramdef.name, paramdef, txn)
-				if (parent): self.pclink(parent, paramdef.name, "paramdef", txn=txn, ctxid=ctxid, host=host)
-				if txn: txn.commit()
-				elif not self.__importmode : DB_syncall()
+
+			if not self.__importmode:
+				paramdef.validate()
+
+
+			# this actually stores in the database
+			txn = self.newtxn()
+			self.__paramdefs.set(paramdef.name, paramdef, txn)
+			for parent in parents:
+				self.pclink(parent, paramdef.name, "paramdef", txn=txn, ctxid=ctxid, host=host)
+			if txn: txn.commit()
+			elif not self.__importmode : DB_syncall()
 				
 
 				
@@ -2904,7 +2920,7 @@ or None if no match is found."""
 				if (recdef.owner == None) : recdef.owner = ctx.user
 				recdef.name = str(recdef.name).lower()
 				recdef.creator = ctx.user
-				recdef.creationtime = time.strftime("%Y/%m/%d %H:%M:%S")
+				recdef.creationtime = time.strftime(TIMESTR)
 
 
 				if not self.__importmode:
@@ -3049,36 +3065,28 @@ or None if no match is found."""
 		
 		
 
-		# ian: deprecated
-		#def commitindices(self):
-		#		 self.__commitindices()
 				
-				
-				
-
 		def __commitindices(self):
 				"""This is used in 'importmode' after many records have been imported using
 				memory indices to dump the indices to the persistent files"""
 				
 				if not self.__importmode:
 						g.debug.msg('LOG_ERROR',"commitindices may only be used in importmode")
-						sys.exit(1)
+						return
 				
 				for k, v in self.__fieldindex.items():
 						if k == 'parent':
 							continue
-						print "commit index %s (%d)\t%d\t%d" % (k, len(v), len(BTree.alltrees), len(FieldBTree.alltrees))
+						print "commit index %s (%d)\tbtrees: %d\tfieldbtrees: %d" % (k, len(v), len(BTree.alltrees), len(FieldBTree.alltrees))
 						i = FieldBTree(v.bdbname, v.bdbfile, v.keytype, v.bdbenv)
 						txn = self.newtxn()
 						i.set_txn(txn)
 						for k2, v2 in v.items():
-								print "... addref: %s %s"%(k2,v2)
+								print "... addref: %s, len: %s"%(k2, len(v2))#,v2)
 								i.addrefs(k2, v2)
 						i.set_txn(None)
 						if txn:
-							print "begin txn"
 							txn.commit()
-							print "end txn"
 						i = None
 						print "... done commit index"
 
@@ -3123,61 +3131,114 @@ or None if no match is found."""
 				paramname = str(paramname).lower()
 				
 				try:
-						ret = self.__fieldindex[paramname]				# Try to get the index for this key
-				except:
-						# index not open yet, open/create it
-						try:
-								f = self.__paramdefs[paramname]				 # Look up the definition of this field
-						except:
-								# Undefined field, we can't create it, since we don't know the type
-								raise FieldError, "No such field %s defined" % paramname
-						
-						tp = valid_vartypes[f.vartype][0]
-						if not tp :
-#								 print "unindexable vartype ",f.vartype
-								ret = None
-								return ret
-						if len(tp) > 1 : return tp
-						
-						if not create and not os.access("%s/index/%s.bdb" % (self.path, paramname), os.F_OK): raise KeyError, "No index for %s" % paramname
-						
-						# create/open index
-						if self.__importmode:
-								self.__fieldindex[paramname] = MemBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
-						else:
-								self.__fieldindex[paramname] = FieldBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
-						ret = self.__fieldindex[paramname]
+						return self.__fieldindex[paramname]				# Try to get the index for this key
+				except Exception, inst:
+						pass
+
+				# index not open yet, open/create it
+				#try:
+				f = self.__paramdefs[paramname]				 # Look up the definition of this field
+				#except:
+				#		# Undefined field, we can't create it, since we don't know the type
+				#		raise FieldError, "No such field %s defined" % paramname
 				
-				return ret
-		
-		
-		
+
+				if f.vartype not in self.indexablevartypes:
+						print "\tunindexable vartype ",f.vartype
+						return None
+
+				tp = self.vtm.getvartype(f.vartype).getindextype()
+
+				#print "Open paramindex for %s: vartype=%s, keytype=%s"%(f.name,f.vartype,tp)
+
+
+				if not create and not os.access("%s/index/%s.bdb" % (self.path, paramname), os.F_OK):
+					raise KeyError, "No index for %s" % paramname
+				
+				# create/open index
+				if self.__importmode:
+						print "->MemBTree"
+						self.__fieldindex[paramname] = MemBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
+				else:
+						self.__fieldindex[paramname] = FieldBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
+
+				return self.__fieldindex[paramname]
+				
+
+		# testing...
+		def __testreindex(self,q=None,ctxid=None,host=None):
+				#recs=self.getindexbyrecorddef("subproject",ctxid=ctxid,host=host)
+				#keys=self.getrecorddef("subproject",ctxid=ctxid,host=host).paramsK+("creator",)
+				keys=sorted(self.getparamdefnames(),reverse=True)
+				oq=q or "catalase"
+				oq=str(oq).lower()
+				#keys=self.getparamdefnames()
+				#[:500])#-set(["visualization_bitrate"])
+				#keys=["url"]
+
+				for key in keys:
+					f = self.__paramdefs[key]
+					tp = self.vtm.getvartype(f.vartype).getindextype()
+					print "Trying key: %s, vartype is %s, tp is %s"%(key, f.vartype, tp)
+
+					if tp != None:
+
+						if tp=="f":
+							try: q=float(oq)
+							except: q=None
+						elif tp=="d":
+							try: q=int(oq)
+							except: q=None
+						elif tp=="s":
+							try: q=str(oq)
+							except: q=None
+
+						if q==None: continue
+
+						bdb=db.DB(globalenv)
+						bdb.index_open("%s/index/%s.bdb" % (self.path, key),tp,key,db.DB_BTREE,dbopenflags)
+						print "\topened, keys: %s"%len(bdb)
+						if bdb.has_key(q):
+							print "\tdirect test: %s"%(bdb.index_get(q))
+						bdb.close()
+
+						#bt=FieldBTree(key, "%s/index/%s.bdb" % (self.path, key), tp, self.__dbenv)
+						#try:
+						#	print "\tindirect: %s"%bt.get(q)
+						#except:
+						#	print "\tindirect error"
+						#bt.close()
+
+				print "done"
+				
 
 		def __reindex(self, key, oldval, newval, recid, txn=None):
 				"""This function reindexes a single key/value pair
 				This includes creating any missing indices if necessary"""
 
+				#print "REINDEX: key: %s, oldval: %s, newval: %s, recid: %s"%(key,oldval,newval,recid)
 				if (key == "comments" or key == "permissions") : return				 # comments & permissions are not currently indexed 
+
 				if (oldval == newval) : return				# no change, no indexing required
+
+				f=self.__paramdefs[key]
+				if f.vartype not in self.indexablevartypes:
+					print "Unindexable vartype %s"%f.vartype
+					return
 				
 				# Painful, but if this is a 'text' field, we index the words not the value
-				# ie - full text indexing
-				if isinstance(oldval, str) or isinstance(newval, str) :
-						try:
-								f = self.__paramdefs[key]				 # Look up the definition of this field
-						except:
-								raise FieldError, "No such field %s defined" % key
-						if f.vartype == "text" :
-								self.__reindextext(key, oldval, newval, recid)
-								return
+				# ie - full text indexing				
+				if f.vartype == "text":
+					return self.__reindextext(key, oldval, newval, recid)
 				
 				# whew, not full text, get the index for this key
 				ind = self.__getparamindex(key)
-#				 print ind 
+
 				if ind == None:
-						return
+					return
 				
-				if ind == "child" or ind == "link" :
+				if ind == "child" or ind == "link":
+						print "reindex, child or link"
 						# make oldval and newval into sets
 						try: oldval = set((int(oldval),))
 						except: 
@@ -3204,9 +3265,12 @@ or None if no match is found."""
 								return
 						else:
 								return
+
 				# remove the old ref and add the new one
-				if oldval != None : ind.removeref(oldval, recid, txn=txn)
-				if newval != None : ind.addref(newval, recid, txn=txn)
+				if oldval != None:
+					ind.removeref(oldval, recid, txn=txn)
+				if newval != None:
+					ind.addref(newval, recid, txn=txn)
 				#print ind.items()
 
 
@@ -3217,7 +3281,7 @@ or None if no match is found."""
 				where the values are text strings designed to be searched
 				by 'word' """
 
-				unindexed_words = ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]				# need to expand this
+				unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])				# need to expand this
 				
 				ind = self.__getparamindex(key)
 				if ind == None:
@@ -3226,16 +3290,12 @@ or None if no match is found."""
 				
 				# remove the old ref and add the new one
 				if oldval != None:
-						for s in oldval.split():
-								t = s.lower()
-								if len(s) < 2 or t in unindexed_words: pass
-								ind.removeref(t, recid, txn=txn)
+						for s in set([x.lower() for x in oldval.split()])-unindexed_words:
+							ind.removeref(s,recid,txn=txn)		
 		
 				if newval != None:
-						for s in newval.split():
-								t = s.lower()
-								if len(s) < 2 or t in unindexed_words: pass
-								ind.addref(t, recid, txn=txn)
+						for s in set([x.lower() for x in newval.split()])-unindexed_words:
+							ind.addref(s,recid,txn=txn)
 				
 				#print ind.items()
 
@@ -3266,9 +3326,86 @@ or None if no match is found."""
 						self.__secrindex.addref(i, recid, txn=txn)
 
 
+		@publicmethod
+		def publish(self, recids, policy="anonymous", allresources=0, resources=None, children=0, includerectypes=None, excluderectypes=None, ctxid=None, host=None, txn=None):
+			"""Mark records available for cloning to selected resources
+			policy = access policy on clone server
+			resources = which resources can access published records
+			allchildren = include children
+			childrectypes = include children of this rectype
+			"""
+
+			if not hasattr(recids,"__iter__"):
+				recids=[recids]
+			recids=set(recids)
+
+			policydef=self.getparamdef("publish")
+			if policy not in policydef.choices:
+				raise Exception,"Invalid policy %s; options=%s"%(policy,policydef.choices)
+				
+							
+			resources=set(resources or [])
+			includerectypes=set(includerectypes or [])
+			excluderectypes=set(excluderectypes or [])
+
+
+			if len(includerectypes) > 0 and len(excluderectypes) > 0:
+				raise Exception,"includerectypes/excluderectypes are mutually exclusive"
+
+			childids = set()
+			if children:
+				child = self.getchildren(recids, recurse=self.maxrecurse, ctxid=ctxid, host=host)
+				childids = reduce(lambda x,y:x|y,child.values())
+			
+			#recs=self.getrecord(recids | childids,filter=1,ctxid=ctxid,host=host)
+			#rectypes=dict([(rec.recid,rec.rectype) for rec in recs])
+			rectypes = self.groupbyrecorddef(recids | childids, ctxid=ctxid, host=host)
+
+			if len(includerectypes) == 0:
+				recids |= childids
+
+			for i in includerectypes:
+				recids |= rectypes.get(i,set())
+
+			for i in excluderectypes:
+				recids -= rectypes.get(i,set())
+
+			if len(recids)==0:
+				raise Exception,"No records to publish"
+			
+
+			print recids
+
+			# group -5 is resources
+			if allresources:
+				resources = [-5]
+			else:
+				resources = map(lambda x:x.username, filter(lambda x:-5 in x.groups, self.getuser(resources,ctxid=ctxid,host=host).values()))
+				if len(resources)==0:
+					raise Exception,"No valid resources"
+			
+							
+			ret=[]
+			for i in recids:
+				try:
+					print "adding %s to %s"%(resources,i)
+					self.putrecordvalue(i,"publish",policy,ctxid=ctxid,host=host,txn=txn)
+					self.secrecordadduser([resources,[],[],[]],i,ctxid=ctxid,host=host,txn=txn)
+					ret.append(i)
+				except Exception,inst:
+					print "Error publishing recid %s:%s"%(i,inst)
+				
+			return ret
+			
 
 		@publicmethod
-		def putrecordvalue(self, recid, param, value, ctxid=None, host=None):
+		def unpublish(self, recids, children=0, ctxid=None, host=None, txn=None):
+			pass
+
+
+
+		@publicmethod
+		def putrecordvalue(self, recid, param, value, ctxid=None, host=None, txn=None):
 				"""Make a single change to a single record"""
 				rec = self.getrecord(recid, ctxid=ctxid, host=host)
 				rec[param] = value
@@ -3278,7 +3415,7 @@ or None if no match is found."""
 
 
 		@publicmethod				
-		def putrecordvalues(self, recid, values, ctxid=None, host=None):
+		def putrecordvalues(self, recid, values, ctxid=None, host=None, txn=None):
 				"""Make multiple changes to a single record"""
 
 				try:
@@ -3459,7 +3596,7 @@ or None if no match is found."""
 				if ol:
 					return ret.get(ret.keys()[0])
 
-				g.debug(ret)
+
 				return ret	
 
 
@@ -3512,7 +3649,7 @@ or None if no match is found."""
 			record.recid = self.__records.get(- 1, txn)
 
 			record._Record__creator = ctx.user
-			record._Record__creationtime = time.strftime("%Y/%m/%d %H:%M:%S")
+			record._Record__creationtime = time.strftime(TIMESTR)
 			
 			if not self.__importmode:
 				record["modifytime"] = record["creationtime"]
@@ -3568,7 +3705,7 @@ or None if no match is found."""
 
 		#@write,user
 		@publicmethod
-		def putrecord(self, record, parents=[], children=[], ctxid=None, host=None):
+		def putrecord(self, record, parents=[], children=[], ctxid=None, host=None, txn=None):
 				"""The record has everything we need to commit the data. However, to 
 				update the indices, we need the original record as well. This also provides
 				an opportunity for double-checking security vs. the original. If the 
@@ -3595,18 +3732,20 @@ or None if no match is found."""
 				record.validate(orecord)
 				cp = record.changedparams(orecord)
 
-				# permissions can be changed using this method again, pref using adduser/removeuser
+				# permissions can be changed using putrecord again, pref using adduser/removeuser
 				if len(cp)==0:
 						return "No changes made"
 
-				txn = self.newtxn()
+				if not txn:
+					txn = self.newtxn()
+
 
 				# Now update the indices
 				log = []
 
 				for f in cp: #record.param_special
 						self.__reindex(f, orecord[f], record[f], record.recid, txn)						
-						log.append((ctx.user, time.strftime("%Y/%m/%d %H:%M:%S"), u"LOG: %s updated. was: %s" % (f, orecord[f])))
+						log.append((ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (f, orecord[f])))
 						orecord[f] = record[f]
 						
 				# Update: ignore creator, creationtime, recid, rectype
@@ -3619,7 +3758,7 @@ or None if no match is found."""
 
 				# Update: modifytime / modifyuser
 				if (not self.__importmode): 
-						orecord["modifytime"] = time.strftime("%Y/%m/%d %H:%M:%S")
+						orecord["modifytime"] = time.strftime(TIMESTR)
 						orecord["modifyuser"] = ctx.user
 						self.__timeindex.set(record.recid, 'modifytime', txn)
 				
@@ -3671,8 +3810,10 @@ or None if no match is found."""
 				rec.rectype = rectype												 # if we found it, go ahead and set up
 								
 				if init:
-						for k, v in t.params.items():
-								rec[k] = v												# hmm, in the new scheme, perhaps this should just be a deep copy
+					rec.update(t.params)
+						#for k, v in t.params.items():
+						#		if v:
+						#				rec[k] = v												# hmm, in the new scheme, perhaps this should just be a deep copy
 
 				# ian
 				if inheritperms != None:
@@ -3816,7 +3957,7 @@ or None if no match is found."""
 				for i in ctx.groups: 
 						try:
 								if self.__secrindex.testref(i, recid) : return 1
-						except: 
+						except:
 								continue
 				return 0
 		
@@ -3828,9 +3969,13 @@ or None if no match is found."""
 				"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 				if dbid is 0, the current database is used. host must match the host of the
 				context"""
+
+				#print "GETRECORD %s ctxid=%s %s"%(recid,ctxid,type(ctxid))
+				
 				ctx = self.__getcontext(ctxid, host)
 				
-				if (dbid != 0) : raise NotImplementedError("External database support not yet available") #Ed Changed to NotimplementedError
+				if (dbid != 0):
+					raise NotImplementedError("External database support not yet available") #Ed Changed to NotimplementedError
 				
 				if not hasattr(recid,"__iter__"):
 					chop=1
@@ -3838,13 +3983,13 @@ or None if no match is found."""
 				else:
 					chop=0
 				
-				#print "getrecord.. %s"%len(recid)
-
-				#recl = map(lambda x:self.__records[int(x)], recid)
+				#recl = map(lambda x:self.__records[int(x)], recid)				
+				recid = map(lambda x:int(x), recid)
+				
 				ret=[]
 				for i in recid:
 					try:
-						rec=self.__records[int(i)]
+						rec=self.__records[i]
 						rec.setContext(ctx)
 						ret.append(rec)
 					except SecurityError, e:
@@ -3887,7 +4032,7 @@ or None if no match is found."""
 		
 		# ian todo: check this thoroughly
 		@publicmethod
-		def secrecordadduser(self, usertuple, recid, recurse=0, reassign=0, mode="union", ctxid=None, host=None):
+		def secrecordadduser(self, usertuple, recid, recurse=0, reassign=0, mode="union", ctxid=None, host=None, txn=None):
 				"""This adds permissions to a record. usertuple is a 4-tuple containing users
 				to have read, comment, write and administrativepermission. Each value in the tuple is either
 				a string (username) or a tuple/list of usernames. If recurse>0, the
@@ -3920,7 +4065,7 @@ or None if no match is found."""
 					
 					
 				# all users
-				userset = set(self.getusernames(ctxid=ctxid, host=host)) | set((-4, -3, -2, -1))
+				userset = set(self.getusernames(ctxid=ctxid, host=host)) | set((-5, -4, -3, -2, -1))
 
 
 				# get a list of records we need to update
@@ -3948,8 +4093,8 @@ or None if no match is found."""
 				
 				#print trgt
 				#recs = self.getrecord(trgt, ctxid=ctxid, host=host)
-				
-				txn = self.newtxn()
+				if not txn:
+					txn = self.newtxn()
 
 
 				for i in trgt:
@@ -4183,29 +4328,26 @@ or None if no match is found."""
 		@publicmethod		
 		def renderview(self, recs, viewdef=None, viewtype="defaultview", paramdefs={}, showmacro=True, mode="unicode", ctxid=None, host=None):
 				"""Render views"""
-			
+						
 				ol=0
 				if not hasattr(recs,"__iter__") or isinstance(recs,Record):
 					ol=1
 					recs=[recs]
 				
-				if len(recs) != 0:
-					if not isinstance(list(recs)[0],Record):
-						recs=self.getrecord(recs,ctxid=ctxid,host=host,filter=1)
-									
-					groupviews={}
-					if not viewdef:
-						groups=set([rec.rectype for rec in recs])
-						for i in groups:
-							rd=self.getrecorddef(i,ctxid=ctxid,host=host)
-							if viewtype=="mainview":
-								groupviews[i]=rd.mainview
-							else:
-								groupviews[i]=rd.views.get(viewtype, rd.name)
-	
-					else:
-						groupviews[None]=viewdef
+
+				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+												
+				names={}
+				values={}
+				macros={}
+				pd=[]
+				for g,vd in groupviews.items():
+					n=[]
+					v=[]
+					m=[]
+
 					
+
 									
 					names={}
 					values={}
@@ -4248,26 +4390,19 @@ or None if no match is found."""
 					ret={}
 	
 					
-					for rec in recs:
-						key = rec.rectype
-						if viewdef: key = None
-						a = groupviews.get(key)
-						
-						g.debug(values[key])
-						for i in values[key]:
-							g.debug("%s: %s -> %s"%(paramdefs[i[2]].vartype, rec.get(i[2]), v))
-							g.debug('i -> %r -- v-> %r' % (i,v))
-							v=self.vtm.render(paramdefs[i[2]].vartype, rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-							a=a.replace(u"$$" + i[0] + i[1], (v or "<N>") + i[1])
-	
-						if showmacro:
-							for i in macros[key]:
-								a=a.replace(u"$@" + i[0] + i[1], "macro" + i[1])
-						
-						ret[rec.recid]=a
-	
-					if ol: return ret.values()[0]
-				else: ret = {}
+					for i in values[key]:
+						v=vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+						a=a.replace(u"$$" + i[0] + i[1], v + i[1])
+
+					if showmacro:
+						for i in macros[key]:
+							v=vtm.macro_render(i[2], "params", rec, mode=mode, db=self, ctxid=ctxid, host=host) #macro, params, rec, mode="unicode", db=None, ctxid=None, host=None
+							a=a.replace(u"$@" + i[0], v + i[1])
+					
+					ret[rec.recid]=a
+
+				if ol: return ret.values()[0]
+
 				return ret
 
 
@@ -4583,28 +4718,41 @@ or None if no match is found."""
 
 
 
-		def restore(self, ctxid=None, host=None):
+		def restore(self, restorefile=None, ctxid=None, host=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
 				added to the existing database. Naming conflicts will be reported, and the new version
 				will take precedence, except for Records, which are always appended to the end of the database
 				regardless of their original id numbers. If maintaining record id numbers is important, then a full
 				backup of the database must be performed, and the restore must be performed on an empty database."""
 				
-				if not self.__importmode: self.LOG(3, "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+				if not self.__importmode:
+					self.LOG(3, "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+					return
 				
 				self.LOG(4, "Begin restore operation")
-				#user,groups=self.checkcontext(ctxid,host)
+
 				ctx = self.__getcontext(ctxid, host)
 				user = ctx.user
 				groups = ctx.groups
-				#if user!="root" :
+
 				if not self.checkadmin(ctx):
-						raise SecurityError, "Only root may restore the database"
-								
-				if os.access(self.path + "/backup.pkl", os.R_OK) : fin = open(self.path + "/backup.pkl", "r")
-				elif os.access(self.path + "/backup.pkl.bz2", os.R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
-				elif os.access(self.path + "/../backup.pkl.bz2", os.R_OK) : fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
-				else: raise IOError, "backup.pkl not present"
+						raise SecurityError, "Database restore requires admin access"
+
+				if os.access(str(restorefile), os.R_OK):
+					fin = open(restorefile, "r")
+
+				if os.access(self.path + "/backup.pkl", os.R_OK):
+					fin = open(self.path + "/backup.pkl", "r")
+
+				elif os.access(self.path + "/backup.pkl.bz2", os.R_OK) :
+					fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
+
+				elif os.access(self.path + "/../backup.pkl.bz2", os.R_OK) :
+					fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
+
+				else:
+					raise IOError, "Restore file (e.g. backup.pkl) not present"
+
 
 				recmap = {}
 				nrec = 0
@@ -4616,12 +4764,11 @@ or None if no match is found."""
 				#print "begin restore"
 				#print load(fin)
 				
-				
 				while (1):
 						try:
 								r = load(fin)
 						except Exception, inst:
-								#print inst
+								print inst
 								break
 						
 						# new transaction every 100 elements
@@ -4646,7 +4793,7 @@ or None if no match is found."""
 						
 						# insert User
 						if isinstance(r, User) :
-								#print "user"
+								print "user: %s"%r.username
 								if self.__users.has_key(r.username, txn) :
 										print "Duplicate user ", r.username
 										self.__users.set(r.username, r, txn)
@@ -4654,11 +4801,11 @@ or None if no match is found."""
 										self.__users.set(r.username, r, txn)
 						# insert Workflow
 						elif isinstance(r, WorkFlow) :
-								#print "workflow"
+								print "workflow: %s"%r.wfid
 								self.__workflow.set(r.wfid, r, txn)
 						# insert paramdef
 						elif isinstance(r, ParamDef) :
-								#print "paramdef"
+								print "paramdef: %s"%r.name
 								r.name = r.name.lower()
 								if self.__paramdefs.has_key(r.name, txn):
 										print "Duplicate paramdef ", r.name
@@ -4667,58 +4814,61 @@ or None if no match is found."""
 										self.__paramdefs.set(r.name, r, txn)
 						# insert recorddef
 						elif isinstance(r, RecordDef) :
-								#print "recorddef"
+								print "recorddef: %s"%r.name
 								r.name = r.name.lower()
 								if self.__recorddefs.has_key(r.name, txn):
 										print "Duplicate recorddef ", r.name
 										self.__recorddefs.set(r.name, r, txn)
 								else :
 										self.__recorddefs.set(r.name, r, txn)
+
 						# insert and renumber record
 						elif isinstance(r, Record) :
-
-								#print "record"
-								#if nrec>1000:
-								#	continue
 										
-								try:
-										o = r._Record__owner
-										a = r._Record__permissions
-										r._Record__permissions = (a[0], a[1], a[2], (o,))
-										del r._Record__owner
-								except:
-										pass
+								#try:
+								#		o = r._Record__owner
+								#		a = r._Record__permissions
+								#		r._Record__permissions = (a[0], a[1], a[2], (o,))
+								#		del r._Record__owner
+								#except:
+								#		pass
 								
 								# renumbering
 								nrec += 1
-#								 print nrec
-								if nrec % 10000 == 0 :
-										print " %8d records	 (%f/sec)\r" % (nrec, nrec / (time.time() - t0))
+								if nrec % 1000 == 0 :
+										print "%8d records	 (%f/sec)\r" % (nrec, nrec / (time.time() - t0))
 										sys.stdout.flush()
 
 
 										
 								oldid = r.recid
-#								 r.recid = self.__dbseq.get()																 # Get a new record-id
+								# r.recid = self.__dbseq.get()																 # Get a new record-id
 								r.recid = self.__records.get(- 1, txn)
 								self.__records.set(- 1, r.recid + 1, txn)								# Update the recid counter, TODO: do the update more safely/exclusive access
 								recmap[oldid] = r.recid
 								self.__records.set(r.recid, r, txn)
+								#self.__records.set(r.recid, {}, txn)
 								self.__recorddefbyrec.set(r.recid, r.rectype, txn)
-								r.setContext(ctx)
+								#r.setContext(ctx)
 								
 								# work in progress. Faster indexing on restore.
 								# Index record
-								for k, v in r.items():
-										if k != 'recid':
-												try:
-														self.__reindex(k, None, v, r.recid, txn)
-												except:
-														if DEBUG: 
-																print "Unindexed value: (key, value, recid)"
-																print k
-#																 print v
-																print r.recid
+								#for k, v in r.items():
+								#		if self.__paramdefs[k].vartype in indexablevartypes:
+								#				try:
+								#						self.__reindex(k, None, v, r.recid, txn)
+								#				except Exception, inst:
+								#						pass
+								#						#print "Error indexing %s (%s): %s"%(k,r.recid, inst)
+								#						#print "\t%s"%inst
+								#set(r.keys()) & indexableparams:
+								for k,v in r.items(): 
+									#if k != "number_exposure":
+									#	continue
+									try:
+										self.__reindex(k, None, r[k], r.recid, txn)
+									except Exception, inst:
+										print "Error indexing %s (%s): %s"%(k,r.recid,inst)
 								
 								
 								self.__reindexsec([], reduce(operator.concat, r["permissions"]), r.recid, txn)				# index security
@@ -4727,7 +4877,7 @@ or None if no match is found."""
 
 								
 						elif isinstance(r, str):
-								print "TYPE: %s"%r
+								print "btree type: %s"%r
 								if r == "bdos" :
 										#print "bdo"
 										rr = load(fin)						# read the dictionary of bdos
@@ -4764,7 +4914,6 @@ or None if no match is found."""
 												for c in cl:
 #														 print p, c
 #														 print recmap[p],recmap[c[0]],c[1]
-
 														if isinstance(c, tuple) : print "Invalid (deprecated) named PC link, database restore will be incomplete"
 														else : self.__records.pclink(recmap[p], recmap[c], txn)
 								elif r == "reccousins" :
@@ -4774,6 +4923,8 @@ or None if no match is found."""
 												for b in bl:
 														self.__records.link(recmap[a], recmap[b], txn)
 								else : print "Unknown category ", r
+				
+				print "Done!"
 				
 				if txn: 
 						txn.commit()
@@ -4888,6 +5039,9 @@ or None if no match is found."""
 #				 for bt in self.__btreelist:
 #						 print '--', bt ; sys.stdout.flush()
 #						 bt.close()
+
+
+
 
 def DB_cleanup():
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed

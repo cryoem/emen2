@@ -1,5 +1,6 @@
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+
 from bsddb3 import db
 from cPickle import dumps, loads
 import sys
@@ -572,7 +573,7 @@ class FieldBTree(object):
 			self.txn=txn
 	
 	def typekey(self,key):
-		if key==None : return None
+		if key==None: return None
 		if self.keytype=="f" :
 			try: return float(key)
 			except: return float()
@@ -667,6 +668,7 @@ class FieldBTree(object):
 	
 	def get(self,key,txn=None):
 		key=self.typekey(key)
+		print key
 		return self.bdb.index_get(key,txn=txn)
 	
 	def set(self,key,val,txn=None):

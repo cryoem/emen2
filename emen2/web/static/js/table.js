@@ -49,10 +49,12 @@ TableControl.prototype = {
 		
 		// controls
 		$(".table_sortkey",this.elem).click(function(e){self.event_sortkey(e)});
+		$(".table_selectsort",this.elem).change(function(e){self.event_selectsort(e)});
 		$(".table_setpos",this.elem).click(function(e){self.event_setpos(e)});
 		$(".table_setcount",this.elem).change(function(e){self.event_setcount(e)});
-		$(".table_query_submit",this.elem).click(function(e){self.event_query(e)});
-		$(".table_query_clear",this.elem).click(function(e){self.event_clear(e)});
+		$(".table_viewtype",this.elem).change(function(e){self.event_viewtype(e)});		
+		$(".table_quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
+		$(".table_quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
 		//$(".table_properties",this.elem).TableColumnControl({tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
 		this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
 		//$(".table_properties",this.elem).click(function(e){self.tablecolumncontrol.event_toggleprop(e)});
@@ -65,29 +67,39 @@ TableControl.prototype = {
 		this.bindelems();
 	},
 	
-	reverse: function() {
-		if (this.ts.reverse) {this.ts.reverse = 0} else {this.ts.reverse = 1}
+	reverse: function(reverse) {
+		if (reverse==null) {
+			if (this.ts.reverse) {reverse = 0} else {reverse = 1}
+		}
+		if (reverse==0) {this.ts.reverse = 0} else {this.ts.reverse = 1}
+		this.ts.pos=0
 	},
 	
 	refresh: function() {
 		var self=this;
 		this.tablecontrol.hide();
 		this.ts.showtablestate=0;
-		$.postJSON("/db/table/list/",this.ts,function(data){self.replace(data)});
+		$.postJSON(EMEN2WEBROOT+"/db/table/list/",this.ts,function(data){self.replace(data)});
 	},	
 	
 	editcol: function(e) {
 		var editkey=$(e.target).attr("data-editkey");
 	},
 	
-	event_query: function(e) {
-		var query=$(e.target).prev().val();
-		this.ts.query=query;
+	event_viewtype: function(e) {
+		var viewtype=$(e.target).val();
+		this.ts.viewtype=viewtype;
+		this.refresh();
+	},
+	
+	event_quickquery: function(e) {
+		var quickquery=$(e.target).prev().val();
+		this.ts.quickquery=quickquery;
 		this.refresh();
 	},
 	
 	event_clear: function(e) {
-		this.ts.query=null;
+		this.ts.quickquery=null;
 		this.refresh();
 	},
 	
@@ -103,7 +115,13 @@ TableControl.prototype = {
 	
 	event_sortkey: function(e) {
 		var key=$(e.target).attr("data-sortkey");
-		this.sortkey(key)
+		this.sortkey(key);
+	},
+	
+	event_selectsort: function(e) {
+		var key=$(e.target).val();
+		var reverse=$('option:selected',e.target).attr("data-reverse");
+		this.sortkey(key,reverse);
 	},
 	
 	setcount: function(count) {
@@ -117,9 +135,12 @@ TableControl.prototype = {
 		this.refresh();
 	},
 	
-	sortkey: function(key) {
-		if (this.ts["sortkey"] == key) {this.reverse()}
-		this.ts.pos=0;
+	sortkey: function(key, reverse) {
+		if (reverse==null) {
+			if (this.ts.sortkey==key) {this.reverse()}
+		} else {
+			this.reverse(reverse);
+		}
 		this.ts.sortkey=key;
 		this.refresh();
 	},
@@ -243,9 +264,9 @@ TableColumnControl.prototype = {
 			};
 
 			var row=$('<tr />');
-			var x=$('<img src="/images/remove_small.png" alt="remove" />').click(function(e){self.event_removetablekey(e)});
-			var up=$('<img src="/images/sort_0.png" alt="up" />').click(function(e){self.event_tablekey_move(e,1)});
-			var down=$('<img src="/images/sort_1.png" alt="down" />').click(function(e){self.event_tablekey_move(e,-1)});
+			var x=$('<img src="'+EMEN2WEBROOT+'/images/remove_small.png" alt="remove" />').click(function(e){self.event_removetablekey(e)});
+			var up=$('<img src="'+EMEN2WEBROOT+'/images/sort_0.png" alt="up" />').click(function(e){self.event_tablekey_move(e,1)});
+			var down=$('<img src="'+EMEN2WEBROOT+'/images/sort_1.png" alt="down" />').click(function(e){self.event_tablekey_move(e,-1)});
 			var b=$("<td/>");
 			b.append(x,up,down);
 			row.append(b);
@@ -270,13 +291,21 @@ TableColumnControl.prototype = {
 		
 		var sel=$("<select />");
 		sel.append('<option value="">Add Parameter</option>');
-		sel.append('<option value="">----------</option>');
+		sel.append('<option value="">----- Protocol Parameters -----</option>');
 		
 		$.each(this.allparams, function(i,j,k) {
 			if (self.tablekeys.indexOf(j) == -1) {
 				sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
 			}
 		});
+		
+		sel.append('<option value="">----- All Parameters -----</option>');		
+		
+		//$.each(this.allparams, function(i,j,k) {
+		//	if (self.allparamdefs.indexOf(j) == -1) {
+		//		sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
+		//	}
+		//});		
 		
 		var example_macros = {childcount:"Count Children of *arg type",parentvalue:"Values of parent records for parameter *arg",recname:"Generated record title"}
 		

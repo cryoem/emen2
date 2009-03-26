@@ -1,40 +1,27 @@
 import re
 import os
-from sets import Set
 import pickle
 import traceback
-#import timing
 import time
 import random
 import atexit
-
 import cStringIO
 
-DEBUG = 1
-
+# emen2 imports
 from emen2 import ts 
-from emen2.emen2config import *
 from emen2.Database import exceptions
 
+
 from emen2.subsystems import routing, auth
-
-##import emen2.TwistSupport_html.html.login
-#import emen2.TwistSupport_html.html.newuser
-#import emen2.TwistSupport_html.html.home
-##import emen2.TwistSupport_html.html.error
-
-# Sibling Imports
-#from twisted.web import server
-#from twisted.web import error
-#from twisted.web import resource
-#from twisted.web.util import redirectTo
 
 # Twisted Imports
 from twisted.python import filepath, log, failure
 from twisted.internet import defer, reactor, threads
-
 from twisted.web.resource import Resource
 from twisted.web.static import *
+
+
+DEBUG = 1
 
 
 class UploadBatchResource(Resource):
@@ -135,7 +122,7 @@ class UploadResource(Resource):
 		print "Get binary..."
 		# fixme: use basename and splitext
 		print filename
-		a = db.newbinary(time.strftime("%Y/%m/%d %H:%M:%S"),filename,rec.recid,ctxid=ctxid,host=host)
+		a = db.newbinary(time.strftime(db.TIMESTR),filename,rec.recid,ctxid=ctxid,host=host)
 
 		print "Writing file... %s"%a[1]
 

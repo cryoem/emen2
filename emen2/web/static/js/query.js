@@ -93,7 +93,7 @@ function form_query_paramadd(param, choices, compare, value) {
 function form_query_paramaddmarkup(index, ptext, param, choices, compare, value) {
 
 	if (inband[index] == 1) {
-		ptext='<img src="/images/branch_up.reverse.png" height="32" width="32" />';
+		ptext='<img src="'+EMEN2WEBROOT+'/images/branch_up.reverse.png" height="32" width="32" />';
 	} else {
 		ptext="Parameter ";
 	}

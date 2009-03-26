@@ -3,928 +3,12 @@ from math import *
 import time
 import re
 from emen2.Database.exceptions import SecurityError
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
 
-# validation/conversion for booleans
-def boolconv(x):
-	try:
-		x=int(x)
-		if x: return 1
-		else: return 0
-	except:
-		if x[0] in ("T","t","Y","y") : return 1
-		if x[0] in ("F","f","N","n") : return 0
-		raise Exception,"Invalid boolean %s"%str(x)
 
-# validation/conversion for text, permitting unicode
-def textconv(x):
-	try: return str(x)
-	except: return unicode(x)
+# validation
+import emen2.Database.subsystems
+import emen2.Database.database
 
-def datetimeconv(x):
-	return str(x)
-	
-def timeconv(x):
-	return str(x)
-
-def dateconv(x):
-	return str(x)
-
-DEBUG=0
-
-def tojson(o):
-	if isinstance(o,(Database.Record,Database.ParamDef,Database.User,Database.RecordDef)):
-		return dict(o)
-	return o
-
-valid_vartypes={
-	"int":("d",lambda x:int(x)),			# 32-bit integer
-	"longint":("d",lambda x:int(x)),		# not indexed properly this way
-	"float":("f",lambda x:float(x)),		# double precision
-	"longfloat":("f",lambda x:float(x)),	# arbitrary precision, limited index precision
-	"choice":("s",textconv),			# string from a fixed enumerated list, eg "yes","no","maybe"
-	"string":("s",textconv),			# a string indexed as a whole, may have an extensible enumerated list or be arbitrary
-	"text":("s",textconv),			# freeform text, fulltext (word) indexing, UNICODE PERMITTED
-	"time":("s",timeconv),			# HH:MM:SS
-	"date":("s",dateconv),			# yyyy/mm/dd
-	"datetime":("s",datetimeconv),		# yyyy/mm/dd HH:MM:SS
-	"intlist":(None,lambda y:map(lambda x:int(x),y)),		# list of integers
-	"floatlist":(None,lambda y:map(lambda x:float(x),y)), # list of floats
-	"stringlist":(None,lambda y:map(lambda x:str(x),y)),	# list of enumerated strings
-	"url":("s",lambda x:str(x)),			# link to a generic url
-	"hdf":("s",lambda x:str(x)),			# url points to an HDF file
-	"image":("s",lambda x:str(x)),			# url points to a browser-compatible image
-	"binary":("s",lambda y:map(lambda x:str(x),y)),				# url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']
-	"binaryimage":("s",lambda x:str(x)),		# non browser-compatible image requiring extra 'help' to display... 'bdo:....'
-	"child":("child",lambda y:map(lambda x:int(x),y)),	# link to dbid/recid of a child record
-	"link":("link",lambda y:map(lambda x:int(x),y)),		# lateral link to related record dbid/recid
-	"boolean":("d",boolconv),
-	"dict":(None, lambda x:x), 
-	"user":("s",lambda x:str(x)), # ian 09.06.07
-	"userlist":(None,lambda y:map(lambda x:str(x),y))
-}
-
-
-
-class VartypeManager(object):
-
-	__vartypes = {}
-	__properties = {}
-	__vartypes_inst = {}
-	__properties_inst = {}
-	
-	@classmethod
-	def _register_vartype(cls, name, refcl):
-		if name in cls.__vartypes.keys():
-			raise ValueError('''vartype %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING VARTYPE (%s)"% name)
-		cls.__vartypes[name]=refcl
-		cls.__vartypes_inst[name]=refcl()
-
-	@classmethod
-	def _register_property(cls, name, refcl):
-		if name in cls.__properties.keys():
-			raise ValueError('''property %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING PROPERTY (%s)"% name)
-		cls.__properties[name]=refcl
-		cls.__properties_inst[name]=refcl()
-
-	def render(self, vartype, value, mode="unicode", db=None, ctxid=None, host=None):
-		return self.__vartypes_inst[vartype].render(mode,value,db,ctxid,host)
-
-	def paramdesc_render(self,pd,mode="unicode",db=None,ctxid=None,host=None):
-		if mode == "html":
-			return u"""<a href="/db/paramdef/%s/">%s</a>"""%(pd.name,pd.desc_short)
-		else:
-			return unicode(pd.desc_short)	 
-
-	def validate(self,vartype,value,db=None,ctxid=None,host=None):
-		if value==None or value=="":
-			return None
-		return self.__vartypes_inst[vartype].validate(value,db,ctxid,host)
-
-	def getvartypes(self):
-		return self.__vartypes.keys()
-	
-	def getproperties(self):
-		return self.__properties.keys()
-		
-		
-		
-
-class Vartype(object):
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-		
-	@classmethod
-	def register(cls):
-		VartypeManager._register_vartype(cls.__name__.partition('_')[2], cls)
-
-	def __init__(self):
-		# typical modes: html, unicode, edit
-		self.modes={"html":self.render_html}
-
-	def render(self, mode, value, db, ctxid, host):
-		#print "..rendering: %s %s %s %s %s"%(mode, value, db, ctxid, host)
-		return self.modes.get(mode, self.render_unicode)(value,db,ctxid,host)
-		
-	def render_unicode(self, value, db, ctxid, host):
-		return unicode(value)
-		
-	def render_html(self, value, db, ctxid, host):
-		if value in [None, "None", ""]:
-			return "(EDIT)"
-		else:
-			return self.render_unicode(value, db, ctxid, host)	
-		
-	def validate(self, value, db, ctxid, host):
-		return value
-		
-
-
-class Property(object):
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-		
-	@classmethod
-	def register(cls):
-		VartypeManager._register_property(cls.__name__.partition('_')[2], cls)
-
-
-	def convert(self, value):
-		if hasattr(value,"__float__"):
-			return float(value)
-		
-		try:
-			v, sep, u = value.partition(" ")
-			v = float(v)
-			u = unicode(u).strip()
-		except:
-			raise Exception,"Invalid unit format: '%s'. Must be 'value units'. Value must be convertible to float. Units must be basestring."%value
-		
-		if u == self.defaultunits or not u:
-			return v
-
-		equiv = self.units.get(u) or self.units.get(self.equiv.get(u))
-		
-		if equiv == None:
-			raise Exception, "Unknown units '%s'. Valid units: %s"%(u, set([self.defaultunits]) | set(self.units.keys()) | set(self.equiv.keys()))
-		
-		print "Using units %s, conversion factor %s"%(u, equiv)
-			
-			
-		#print float(value)
-		
-# 		self.defaultunits = "%T"
-# 		self.units = {'%T': 1.0}
-# 		self.equiv = {}
-
-
-
-class vt_int(Vartype):
-	"""32-bit integer"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return int(value)
-
-
-class vt_longint(Vartype):
-	"""64-bit integer"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return int(value)	
-
-
-class vt_float(Vartype):
-	"""single-precision floating-point"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return float(value)	
-	
-	def render_unicode(self, value, db, ctxid, host):
-		return "%02f"%value
-
-#????? python doesn't distinguish, why do we?
-class vt_longfloat(Vartype):
-	"""double-precision floating-point"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return float(value)
-
-
-class vt_choice(Vartype):
-	"""string from a fixed enumerated list, eg "yes","no","maybe"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		try: return str(value)
-		except: return unicode(value)
-
-
-class vt_string(Vartype):
-	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		try: return str(value)
-		except: return unicode(value)
-
-
-class vt_text(Vartype):
-	"""freeform text, fulltext (word) indexing, str or unicode"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		try: return str(value)
-		except: return unicode(value)
-
-
-class vt_time(Vartype):
-	"""time, HH:MM:SS"""	
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		# convert time
-		return str(value)
-
-
-class vt_date(Vartype):
-	"""date, yyyy/mm/dd"""	
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		# convert time
-		return str(value)
-
-
-class vt_datetime(Vartype):
-	"""date/time, yyyy/mm/dd HH:MM:SS"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		# convert time
-		return str(value)
-
-
-class vt_intlist(Vartype):
-	"""list of ints"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		return [int(x) for x in value]
-
-
-class vt_floatlist(Vartype):
-	"""list of floats"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		return [float(x) for x in value]
-
-
-class vt_stringlist(Vartype):
-	"""list of strings"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		try: return [str(x) for x in value]	
-		except: return [unicode(x) for x in value]	
-
-
-class vt_url(Vartype):
-	"""link to a generic url"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return str(value)
-
-
-
-class vt_hdf(Vartype):
-	"""url points to an HDF file"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return str(value)
-
-
-
-class vt_image(Vartype):
-	"""url points to a browser-compatible image"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return str(value)
-
-
-
-class vt_binary(Vartype):
-	"""url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		return [str(x) for x in value]
-
-
-class vt_binaryimage(Vartype):
-	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return str(value)
-
-
-class vt_child(Vartype):
-	"""link to dbid/recid of a child record"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return int(value)
-
-
-class vt_link(Vartype):
-	"""lateral link to related record dbid/recid"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return int(value)
-
-
-class vt_boolean(Vartype):
-	"""boolean"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		try:
-			return int(bool(int(value)))
-		except:
-			if x[0] in ("T","t","Y","y"): return 1
-			if x[0] in ("F","f","N","n"): return 0
-			raise Exception,"Invalid boolean %s"%str(x)
-
-
-class vt_dict(Vartype):
-	"""dict"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		return dict(value)
-
-
-class vt_user(Vartype):
-	"""user, by username"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		user=db.getuser(value,filter=0,ctxid=ctxid,host=host)
-		return user.username
-		
-	def render_unicode(self, value, db, ctxid, host):
-		try:
-			return db.getuserdisplayname(value, ctxid=ctxid, host=host, lnf=0)
-		except:
-			return "(%s)"%value
-
-
-class vt_userlist(Vartype):
-	"""list of usernames"""
-	__metaclass__ = Vartype.register_view
-	def validate(self, value, db, ctxid, host):
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		users=db.getuser(value, filter=0, ctxid=ctxid, host=host)
-		return [str(x) for x in value]
-
-	def render_unicode(self, value, db, ctxid, host):
-		if not value: return ""
-		if not hasattr(value,"__iter__"):
-			value=[value]
-		unames=db.getuserdisplayname(value, ctxid=ctxid, host=host, lnf=0)
-		ret=[unames.get(i,"(%s)"%i) for i in value]
-		return ", ".join(ret)
-
-
-
-
-
-
-
-
-
-class prop_transmittance(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "%T"
-		self.units = {'%T': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_force(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "N"
-		self.units = {'N': 1.0}
-		self.equiv = {'newton': 'N'}
-
-
-		
-
-
-class prop_energy(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "J"
-		self.units = {'J': 1.0}
-		self.equiv = {'joule': 'J'}
-
-
-		
-
-
-class prop_resistance(Property):
-	__metaclass__ = Property.register_view
-
-
-	def __init__(self):
-		self.defaultunits = "ohm"
-		self.units = {'ohm': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_dose(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "e/A2/sec"
-		self.units = {'e/A2/sec': 1.0}
-		self.equiv = {'e/A^2/sec': 'e/A2/sec'}
-
-
-		
-
-
-class prop_currency(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "dollars"
-		self.units = {'dollars': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_voltage(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "volt"
-		self.units = {'mv': 0.001, 'kv': 1000.0, 'V': 1.0}
-		self.equiv = {'kilovolt': 'kv', 'millivolt': 'mv', 'kilovolts': 'kv', 'millivolts': 'mv', 'volts': 'V', 'volt': 'V'}
-
-
-		
-
-
-class prop_pH(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "pH"
-		self.units = {'pH': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_concentration(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "mg/ml"
-		self.units = {'p/ml': 1.0, 'mg/ml': 1.0, 'pfu': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_angle(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "degree"
-		self.units = 	{"degree":1.0,"radian":180.0/pi, "mrad":0.18/pi},
-		self.equiv = {'degrees': 'degree', 'deg': 'degree'}
-
-
-		
-
-
-class prop_temperature(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "K"
-		self.units = {'K': 1.0, 'C': 1, 'F': 1}
-		self.equiv = {'kelvin': 'K', 'degrees F': 'F', 'degrees C': 'C'}
-
-
-		
-
-
-class prop_area(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "m^2"
-		self.units = {'cm^2': 0.0001, 'm^2': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_current(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "amp"
-		self.units = {'amp': 1.0}
-		self.equiv = {'ampere': 'amp'}
-
-
-		
-
-
-class prop_filesize(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "bytes"
-		self.units = {'kB': 1000, 'MB': 1000000, 'MiB': 1048576, 'bytes': 1.0, 'GB': 1000000000, 'KiB': 1024, 'GiB': 1073741824}
-		self.equiv = {'B': 'bytes'}
-
-
-		
-
-
-class prop_percentage(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "%"
-		self.units = {'%': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_momentum(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "kg m/s"
-		self.units = {'kg m/s': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_volume(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "m^3"
-		self.units = 	{"m^3":1,"ml":1.0e-6,"l":1.0e-3,"ul":1.0e-9,"ul":1.0e-9},
-		self.equiv = {'cm^3': 'ml', 'milliliter': 'ml', 'uL': 'ul', 'milliliters': 'ml'}
-
-
-		
-
-
-class prop_pressure(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "Pa"
-		self.units = 	{"Pa":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"psi":1.450377e-4},
-		self.equiv = {'mmHg': 'torr', 'pascal': 'Pa'}
-
-
-		
-
-
-class prop_unitless(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "unitless"
-		self.units = {'unitless': 1}
-		self.equiv = {}
-
-
-		
-
-
-class prop_inductance(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "henry"
-		self.units = {'H': 1.0}
-		self.equiv = {'henry': 'H'}
-
-
-		
-
-
-class prop_currentdensity(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "Pi Amp/cm2"
-		self.units = {'Pi Amp/cm2': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_exposure(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "e/A2"
-		self.units = {'e/A2': 1.0}
-		self.equiv = {'e/A^2': 'e/A2'}
-
-
-		
-
-
-class prop_count(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "count"
-		self.units = {'count': 1, 'K': 1000, 'pixels': 1}
-		self.equiv = {'k': 'K'}
-
-
-		
-
-
-class prop_bfactor(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "A^2"
-		self.units = {'A^2': 1.0}
-		self.equiv = {'A2': 'A^2'}
-
-
-		
-
-
-class prop_relative_humidity(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "%RH"
-		self.units = {'%RH': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_length(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "m"
-		self.units = 	{"m":1., "km":1000., "cm":0.01, "mm":0.001, "um":1.0e-6, "nm":1.0e-9, "A":1.0e-10},
-		self.equiv = {'microns': 'um', 'nanometers': 'nm', 'nanometer': 'nm', 'Angstroms': 'A', 'meter': 'm', 'angstroms': 'A', 'millimeter': 'mm', 'kilometer': 'km', 'meters': 'm', 'angstrom': 'A', 'millimeters': 'mm', 'kilometers': 'km', 'micron': 'um', 'centimeters': 'cm', 'centimeter': 'cm', 'Angstrom': 'A'}
-
-
-		
-
-
-class prop_mass(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "gram"
-		self.units = 	{"g":1.,"mg":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "MDa":1.6605387e-18},
-		self.equiv = {'kilodaltons': 'KDa', 'grams': 'g', 'milligrams': 'mg', 'daltons': 'Da', 'milligram': 'mg', 'megadaltons': 'MDa', 'megadalton': 'MDa', 'gram': 'g', 'dalton': 'Da', 'kilodalton': 'KDa'}
-
-
-		
-
-
-class prop_time(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "s"
-		self.units = {'hour': 3600, 'min': 60, 'us': 1e-6, 's': 1.0, 'ms': 0.001, 'ns': 1e-09, 'day': 86400}
-		self.equiv = {'millisecond': 'ms', 'seconds': 's', 'nanoseconds': 'ns', 'nanosecond': 'ns', 'days': 'day', 'hours': 'hour', 'secs': 's', 'microsecond': 'us', 'sec': 's', 'microseconds': 'us', 'mins': 'min', 'milliseconds': 'ms'}
-
-
-		
-
-
-class prop_velocity(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "m/s"
-		self.units = {'m/s': 1.0}
-		self.equiv = {}
-
-
-		
-
-
-class prop_resolution(Property):
-	__metaclass__ = Property.register_view
-
-	def __init__(self):
-		self.defaultunits = "A/pix"
-		self.units = {'A/pix': 1.0}
-		self.equiv = {}
-
-		
-		
-
-
-
-
-# ian: added better synonym support
-valid_properties = {
-
-"time": ("s", 
-	{"s":1., "min":60, "hour":3600, "day":86400, "ms":.001, "us":1.0e-6, "ns": 1.0e-9}, 
-	{"hours":"hour", "mins":"min", "seconds":"s", "secs":"s", "sec": "s", "days":"day", "nanosecond":"ns", "nanoseconds":"ns", "microseconds":"us", "microsecond":"us", "milliseconds":"ms", "millisecond":"ms"}
-	),
-
-"length":("m",
-	{"m":1., "km":1000., "cm":0.01, "mm":0.001, "um":1.0e-6, "nm":1.0e-9, "A":1.0e-10},
-	{"meters":"m", "meter":"m", "kilometer":"km", "kilometers":"km", "centimeter":"cm", "centimeters":"cm", "millimeter":"mm", "millimeters":"mm", "micron":"um", "microns": "um", "nanometer":"nm", "nanometers":"nm", "angstrom":"A", "Angstroms":"A", "angstroms":"A", "Angstrom":"A"}
-	),
-	
-"count":("count",
-	{"K":1000, "pixels":1, "count":1},
-	{"k":"K"}
-	),
-	
-"unitless":("unitless", 
-	{"unitless":1},
-	{}
-	),
-	
-"area":("m^2",
-	{"m^2":1.,"cm^2":1.0e-4},
-	{}
-	),
-	
-"volume":("m^3",
-	{"m^3":1,"ml":1.0e-6,"l":1.0e-3,"ul":1.0e-9,"ul":1.0e-9},
-	{"cm^3":"ml", "milliliter":"ml", "milliliters":"ml", "uL":"ul"}
-	),	
-	
-"mass":("gram",
-	{"g":1.,"mg":.001,"Da":1.6605387e-24,"KDa":1.6605387e-21, "MDa":1.6605387e-18},
-	{"gram":"g", "grams":"g", "milligram":"mg", "milligrams":"mg", "dalton":"Da", "daltons":"Da", "kilodaltons":"KDa", "kilodalton":"KDa", "megadaltons":"MDa", "megadalton":"MDa"}
-	),	
-
-# ian: temperature conversion needs work!!
-"temperature":("K",
-	{"K":1.,"C":1, "F":1}, #"C":lambda x:x+273.15,"F":lambda x:(x+459.67)*5./9.
-	{"kelvin":"K","degrees C":"C", "degrees F":"F"}
-	),
-	
-"pH":("pH",
-	{"pH":1.0},
-	{}
-	),
-	
-"voltage":("volt",
-	{"V":1.0,"kv":1000.0,"mv":.001},
-	{"volt":"V", "volts":"V", "kilovolt":"kv", "kilovolts":"kv", "millivolt":"mv", "millivolts":"mv"}
-	),	
-	
-"current":("amp",
-	{"amp":1.0},
-	{"ampere":"amp"}
-	),
-	
-"resistance":("ohm",
-	{"ohm":1.0},
-	{}
-	),
-	
-"inductance":("henry",
-	{"H":1.0},
-	{"henry":"H"}
-	),
-	
-"transmittance":("%T",
-	{"%T":1.0},
-	{}
-	),
-	
-"relative_humidity":("%RH",
-	{"%RH":1.0},
-	{}
-	),
-	
-"velocity":("m/s",
-	{"m/s":1.0},
-	{}
-	),
-	
-"momentum":("kg m/s",
-	{"kg m/s":1.0},
-	{}
-	),
-	
-"force":("N",
-	{"N":1.0},
-	{"newton":"N"}
-	),
-	
-"energy":("J",
-	{"J":1.0},
-	{"joule":"J"}
-	),
-	
-"angle":("degree",
-	{"degree":1.0,"radian":180.0/pi, "mrad":0.18/pi},
-	{"deg":"degree", "degrees":"degree"}
-	),
-	
-"concentration":("mg/ml", 
-	{"mg/ml":1.0, "p/ml":1.0, "pfu":1.0},
-	{}
-	),
-
-"resolution":('A/pix', 
-	{'A/pix':1.0},
-	{}
-	),
-	
-"bfactor":('A^2',
-	{"A^2":1.0},
-	{"A2":"A^2"}
-	),
-	
-"dose":('e/A2/sec',
-	{'e/A2/sec':1.0},
-	{'e/A^2/sec':'e/A2/sec'}
-	),
-	
-"exposure":('e/A2',
-	{'e/A2':1.0},
-	{'e/A^2':'e/A2'}
-	),
-	
-"currentdensity":('Pi Amp/cm2',
-	{'Pi Amp/cm2':1.0},
-	{}
-	),
-	
-"filesize": ('bytes',
-	{'bytes':1.0, 'kB':1.0e3, 'MB':1.0e6, 'GB':1.0e9, 'KiB':1024, 'MiB': 1048576, 'GiB': 1073741824},
-	{'B':'bytes'}
-	),
-	
-"percentage":('%',
-	{'%':1.0},
-	{}
-	),
-	
-"currency":("dollars",
-	{"dollars":1.0},
-	{}
-	),
-	
-"pressure":("Pa",
-	{"Pa":1.0,"bar":1.0e-5,"atm":9.8692327e-6,"torr":7.500617e-6,"psi":1.450377e-4},
-	{"pascal":"Pa", "mmHg":"torr"}
-	),
-	
-}
 
 
 class ParamDef(DictMixin) :
@@ -950,7 +34,7 @@ class ParamDef(DictMixin) :
 		self.defaultunits=defaultunits	# Default units (optional)
 		self.choices=choices			# choices for choice and string vartypes, a tuple
 		self.creator=None				# original creator of the record
-		self.creationtime=time.strftime("%Y/%m/%d %H:%M:%S")	# creation date
+		self.creationtime=time.strftime(emen2.Database.database.TIMESTR)	# creation date
 		self.creationdb=None			# dbid where paramdef originated
 		
 		if isinstance(name,dict):
@@ -1007,45 +91,66 @@ class ParamDef(DictMixin) :
 	
 	def validate(self):
 		
+		vtm=emen2.Database.subsystems.datatypes.VartypeManager()	
+
+		
 		if set(self.__dict__.keys())-self.attr_all:
 			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 		
-		if str(self.name) == "":
+		try:
+			self.name=str(self.name)
+			if len(self.desc_short)==0: raise Exception
+		except:
 			raise ValueError,"name required"
 
-		if self.vartype != None and not str(self.vartype) in valid_vartypes:
-			raise ValueError,"Invalid vartype; not in valid_vartypes"
+
+		try:
+			self.vartype=str(self.vartype)
+			if self.vartype not in vtm.getvartypes(): raise Exception
+		except:
+			raise ValueError,"Invalid vartype %s; not in valid_vartypes"%self.vartype
 			
-		if unicode(self.desc_short) == "":
+
+		try:
+			self.desc_short=unicode(self.desc_short)
+			if len(self.desc_short)==0: raise Exception
+		except:
 			raise ValueError,"Short description (desc_short) required"
 
-		if unicode(self.desc_long) == "":
+
+		try:
+			self.desc_long=unicode(self.desc_long)
+			if len(self.desc_long)==0: raise Exception
+		except:
 			raise ValueError,"Long description (desc_long) required"
 
-		if self.property != None and str(self.property) not in valid_properties:
-			#raise ValueError,"Invalid property; not in valid_properties"
-			print "WARNING:: Invalid property; not in valid_properties"
-
-		if self.defaultunits != None:
-			a=[]
-			for q in valid_properties.values():
-				# ian
-				a.extend(q[1].keys()) 
-				a.extend(q[2].keys())
-			if not str(self.defaultunits) in a and str(self.defaultunits) != '':
-				#raise ValueError,"Invalid defaultunits; not in valid_properties"
-				print "WARNING:: Invalid defaultunits; not in valid_properties"
-			
-		if self.choices != None:
+		
+		if self.property == "": self.property=None
+		if self.property != None:
 			try:
-				list(self.choices)
-				for i in self.choices:
-					unicode(i)
+				self.property = str(self.property)
+				if self.property not in vtm.getproperties(): raise Exception
 			except:
-				raise ValueError,"choices must be a list of strings"
-			#if isinstance(self.choices,basestring):
-			# raise ValueError,"choices must be strings"
-			#for i in self.choices:
+				print "WARNING:: Invalid property %s"%self.property
+
+
+		if self.defaultunits == "": self.defaultunits = None
+		if self.defaultunits != None:
+			self.defaultunits=str(self.defaultunits)
+			if self.property == None:
+				raise ValueError,"Units requires property"
+			prop=vtm.getproperty(self.property)
+			if self.defaultunits not in set(prop.units):
+				raise Exception,"Invalid default units %s for property %s"%(self.defaultunits,self.property)
+			
+					
+		if self.choices:
+			try:
+				self.choices = map(unicode, filter(bool, self.choices))
+			except:
+				raise ValueError, "Invalid choices"
+
+		return
 
 
 
@@ -1098,6 +203,8 @@ class RecordDef(DictMixin) :
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
 		self.creationdb=None		# dbid where recorddef originated
+		self.desc_short=None
+		self.desc_long=None
 		
 		if (d):
 			self.update(d)
@@ -1360,7 +467,7 @@ class Record(DictMixin):
 				i(orec)
 			except Exception, inst:
 				if warning:	print "VALIDATION WARNING:: %s"%inst
-				else:	raise Exception, inst
+				else:	raise Exception, "%s: %s"%(i.func_name,inst)
 
 
 				
@@ -1451,7 +558,9 @@ class Record(DictMixin):
 			
 	def validate_params(self,orec={}):
 		if self.__params.keys():
-			vtm=VartypeManager()			
+
+			vtm=emen2.Database.subsystems.datatypes.VartypeManager()	
+
 			pds=self.__context.db.getparamdefs(set(self.__params.keys())-self.param_special)
 			newpd={}
 			for i,pd in pds.items():
@@ -1461,7 +570,7 @@ class Record(DictMixin):
 
 
 	def validate_param(self, value, pd, vtm):
-		v=vtm.validate(pd.vartype,value,db=self.__context.db,ctxid=self.__context.ctxid,host=self.__context.host)
+		v=vtm.validate(pd,value,db=self.__context.db,ctxid=self.__context.ctxid,host=self.__context.host)
 
 		if v != value:
 			print "ALERT:: %s (%s) changed during validation:\n\t%s '%s'\n\t%s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v)
@@ -1598,7 +707,7 @@ class Record(DictMixin):
 			#self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
 
 		else:
-			raise Exception, "Cannot set item %s in this way"%key
+			print "WARNING:: Cannot set item %s in this way"%key
 
 
 	def __delitem__(self,key):
@@ -1624,7 +733,7 @@ class Record(DictMixin):
 	
 	
 	def get(self, key, default=None):
-		return DictMixin.get(self, key) or default
+		return DictMixin.get(self, key)# or default
 
 	#################################		
 	# record methods
@@ -1674,7 +783,7 @@ class Record(DictMixin):
 			print "WARNING:: cannot set comments inside a comment"			
 			return
 			
-		self.__comments.append((self.__context.user,time.strftime("%Y/%m/%d %H:%M:%S"),value))	# store the comment string itself		
+		self.__comments.append((self.__context.user,time.strftime(emen2.Database.database.TIMESTR),value))	# store the comment string itself		
 
 		# now update the values of any embedded params
 		for i,j in d.items():
@@ -1696,7 +805,7 @@ class Record(DictMixin):
 		
 		if self.__creator==0:
 			self.__creator=ctx.user
-			self.__creationtime=time.strftime("%Y/%m/%d %H:%M:%S")
+			self.__creationtime=time.strftime(emen2.Database.database.TIMESTR)
 			self.__permissions=((),(),(),(ctx.user,))
 		
 		# test for owner access in this context.
@@ -1789,7 +898,7 @@ class Record(DictMixin):
 	#################################
 
 
-import emen2.Database
-emen2.Database.ParamDef = ParamDef
-emen2.Database.Record = Record
-emen2.Database.RecordDef = RecordDef
+#import emen2.Database
+#emen2.Database.ParamDef = ParamDef
+#emen2.Database.Record = Record
+#emen2.Database.RecordDef = RecordDef

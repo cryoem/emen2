@@ -38,9 +38,9 @@
 	height:auto;
 }
 .widget_bigbutton {
-	padding:20px;
+	padding:10px;
 	margin:10px;
-	margin-left:20px;
+	margin-left:0px;
 	display:block;
 	float:left;
 	background:orange;
@@ -697,6 +697,13 @@ textarea {
 	display:block;
 }
 
+input.smallinput {
+	border:solid 1px #ccc;
+	font-size:9pt;
+	padding:0px;
+	margin:0px;
+}
+
 /*
 
 input {
@@ -935,7 +942,10 @@ PAGE / TAB
 	margin-top:20px;
 	width:800px;
 }
-
+#pagescontainer_map {
+	margin-top:0px;
+	width:auto;
+}
 #pagescontainer_usertype {
 	width:400px;
 	float:left;
@@ -950,6 +960,9 @@ PAGE / TAB
 	background:none;
 	margin:0px;
 	padding:0px;
+}
+.page_map span {
+	background:white;
 }
 #buttons_map {
 	padding-left:20px;
@@ -1266,8 +1279,20 @@ p.small {
 	border-bottom:solid 1px black;
 }
 
+.capsule {
+	padding:5px;
+	border:solid 1px #ccc;
+	border-left:none;
+	border-top:none;
+}
 
-
+ul.nonlist {
+	list-style:none;
+	text-indent:0px;
+	padding:0px;
+}
+ul.nonlist li {
+}
 
 
 /* colors
@@ -1288,7 +1313,7 @@ p.small {
 
 /* all */
 /* .relationshipbrowser_container, */
-.precontent .map, #alert li, .navtable, #imagepreview, .tooltip, .child, .roundwhitebox, .page, div.sidebar, .browser, .widget_bigbutton {
+.capsule, .precontent .map, #alert li, .navtable, #imagepreview, .tooltip, .child, .roundwhitebox, .page, div.sidebar, .browser, .widget_bigbutton {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }

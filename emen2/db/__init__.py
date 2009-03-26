@@ -2,12 +2,6 @@
 # Database.py  Steve Ludtke  05/21/2004
 ##############
 
-# TODO:
-# read-only security index
-# search interface
-# XMLRPC interface
-# XML parsing
-# Database id's not supported yet
 
 
 """This module encapsulates an electronic notebook/oodb
@@ -19,9 +13,9 @@ by another layer, say an xmlrpc server...
 """
 
 from UserDict import DictMixin
-from emen2.emen2config import *
 from functools import partial
 from xml.sax.saxutils import escape, unescape, quoteattr
+
 import atexit
 import operator
 import os
@@ -41,18 +35,6 @@ __all__ = ['btrees', 'datastorage', 'user', 'database']
 
     
 
-
-def get(self, key, default=None):
-    try:
-        return self[key]
-    except KeyError:
-        return default
-DictMixin.get = get
-
-def escape2(s):
-    qc={'"':'&quot'}
-    if not isinstance(s,str) : return "None"
-    return escape(s,qc)
 
 
 def timetosec(timestr):
@@ -86,17 +68,3 @@ def setdigits(x,n):
 the specified number of significant digits. ie 5722,2 -> 5800"""
     scl=10**(floor(log10(x))-n+1)
     return scl*ceil(x/scl)
-
-
-
-################################################################<<<XXX>>>########################################################
-class DictProxy(object):
-    def __init__(self, dct):
-        self.dict = dct
-    def __getitem__(self, name):
-        return self.dict[name]
-    def get(self, name, default=None):
-        return self.dict.get(name, default)
-    def __repr__(self):
-        return repr(self.dict)
-

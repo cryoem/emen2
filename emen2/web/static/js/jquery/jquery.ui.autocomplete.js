@@ -135,7 +135,7 @@
 
 						//console.log("load start");
 						if (opt.container) opt.container.remove();
-            list = $('<li><img src="/images/spinner2.gif" /></li>');            
+            list = $('<li><img src="'+EMEN2WEBROOT+'/images/spinner2.gif" /></li>');            
             var container = list.wrapAll(opt.wrapper).parents(":last").children();
             var offset = self.offset();
             opt.container = container

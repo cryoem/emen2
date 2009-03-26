@@ -6,20 +6,14 @@ import time
 import random
 import cStringIO
 
-DEBUG = 1
-
-
-from emen2 import ts 
-from emen2.emen2config import *
-from emen2 import Database, ts
-import emen2.TwistSupport_html.html
-from emen2.subsystems import routing
 
 # Twisted Imports
-from twisted.python import filepath, log, failure
-from twisted.internet import defer, reactor, threads
+from twisted.python import failure, filepath
+from twisted.internet import defer
 from twisted.web.resource import Resource
 from twisted.web.static import *
+
+
 
 ##########################################
 # Download Resource
