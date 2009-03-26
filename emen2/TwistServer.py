@@ -71,7 +71,7 @@ def interact():
 					 thread.interrupt_main()
 					 return
 
-				
+
 def main():
 	root = static.File(g.STATICPATH)
 	
