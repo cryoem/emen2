@@ -64,14 +64,14 @@ def load_resources(root, resources):
 
 def interact():
 	if g.CONSOLE:
-    while True:
-        a.interact()
-        exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
-        if exit[0] == 'n':
-            thread.interrupt_main()
-            return
+		while True:
+			 a.interact()
+			 exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
+			 if exit[0] == 'n':
+					 thread.interrupt_main()
+					 return
 
-        
+				
 def main():
 	root = static.File(g.STATICPATH)
 	
