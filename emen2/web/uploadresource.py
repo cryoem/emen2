@@ -16,7 +16,7 @@ from emen2 import ts
 from emen2.emen2config import *
 from emen2.Database import exceptions
 
-from emen2.subsystems import routing
+from emen2.subsystems import routing, auth
 
 ##import emen2.TwistSupport_html.html.login
 #import emen2.TwistSupport_html.html.newuser

@@ -128,10 +128,12 @@ class DBProxy(object):
 		
 		db = self.__db
 		kwargs = {}
-		if self.__ctxid and not kwargs.get('ctxid'):
-			kwargs["ctxid"]=self.__ctxid
-		if self.__host and not kwargs.get('host'):
-			kwargs["host"]=self.__host
+		ctxid = self.__ctxid
+		host = self.__host
+		if ctxid and not kwargs.get('ctxid'):
+			kwargs["ctxid"]=ctxid
+		if host and not kwargs.get('host'):
+			kwargs["host"]=host
 
  		result = None
  		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
@@ -146,7 +148,9 @@ class DBProxy(object):
  				if result: result = result(method.execute, **kwargs)
 # 			if method:
 # 				result = method(*args[1:], **kwargs)
- 		return result
+		else:
+			raise AttributeError('No such attribute %s of %r' % (name, db))
+ 		return g.debug.note_var(result)
 
 
 
@@ -501,7 +505,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 
 		# Logout is the same as delete context
-		logout = deletecontext
+		@publicmethod
+		def logout(self, ctxid=None, host=None): 
+			self.deletecontext(	ctxid, host)
 		
 		
 		
@@ -4182,84 +4188,86 @@ or None if no match is found."""
 				if not hasattr(recs,"__iter__") or isinstance(recs,Record):
 					ol=1
 					recs=[recs]
-
-				if not isinstance(list(recs)[0],Record):
-					recs=self.getrecord(recs,ctxid=ctxid,host=host,filter=1)
-								
-				groupviews={}
-				if not viewdef:
-					groups=set([rec.rectype for rec in recs])
-					for i in groups:
-						rd=self.getrecorddef(i,ctxid=ctxid,host=host)
-						if viewtype=="mainview":
-							groupviews[i]=rd.mainview
-						else:
-							groupviews[i]=rd.views.get(viewtype, rd.name)
-
-				else:
-					groupviews[None]=viewdef
 				
-								
-				names={}
-				values={}
-				macros={}
-				pd=[]
-				for gr,vd in groupviews.items():
-					g.debug("PARSING %s"%gr)
-					n=[]
-					v=[]
-					m=[]
+				if len(recs) != 0:
+					if not isinstance(list(recs)[0],Record):
+						recs=self.getrecord(recs,ctxid=ctxid,host=host,filter=1)
+									
+					groupviews={}
+					if not viewdef:
+						groups=set([rec.rectype for rec in recs])
+						for i in groups:
+							rd=self.getrecorddef(i,ctxid=ctxid,host=host)
+							if viewtype=="mainview":
+								groupviews[i]=rd.mainview
+							else:
+								groupviews[i]=rd.views.get(viewtype, rd.name)
+	
+					else:
+						groupviews[None]=viewdef
 					
-					vd = vd.encode('utf-8', "ignore")
-					iterator = regex2.finditer(vd)
-				
-					for match in iterator:
-							if match.group("name"):
-									n.append((match.group("name"),match.group("namesep"),match.group("name1")))
-									pd.append(match.group("name1"))
-							elif match.group("var"):
-									v.append((match.group("var"),match.group("varsep"),match.group("var1")))						
-									pd.append(match.group("var1"))
-							elif match.group("macro"):
-									m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
-
-					paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
-					g.debug("PD:%s"%paramdefs.keys())
-
-					# invariant to recid
-					if n:
-						for i in n:
-							vrend=self.vtm.paramdesc_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-							vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-						groupviews[gr]=vd
+									
+					names={}
+					values={}
+					macros={}
+					pd=[]
+					for gr,vd in groupviews.items():
+						g.debug("PARSING %s"%gr)
+						n=[]
+						v=[]
+						m=[]
+						
+						vd = vd.encode('utf-8', "ignore")
+						iterator = regex2.finditer(vd)
 					
-					names[gr]=n
-					values[gr]=v
-					macros[gr]=m
-
-										
-				ret={}
-
-				
-				for rec in recs:
-					key = rec.rectype
-					if viewdef: key = None
-					a = groupviews.get(key)
+						for match in iterator:
+								if match.group("name"):
+										n.append((match.group("name"),match.group("namesep"),match.group("name1")))
+										pd.append(match.group("name1"))
+								elif match.group("var"):
+										v.append((match.group("var"),match.group("varsep"),match.group("var1")))						
+										pd.append(match.group("var1"))
+								elif match.group("macro"):
+										m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
+	
+						paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
+						g.debug("PD:%s"%paramdefs.keys())
+	
+						# invariant to recid
+						if n:
+							for i in n:
+								vrend=self.vtm.paramdesc_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+								vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
+							groupviews[gr]=vd
+						
+						names[gr]=n
+						values[gr]=v
+						macros[gr]=m
+	
+											
+					ret={}
+	
 					
-					g.debug(values[key])
-					for i in values[key]:
-						print i
-						v=self.vtm.render(paramdefs[i[2]].vartype, rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-						g.debug("%s: %s -> %s"%(paramdefs[i[2]].vartype, rec.get(i[2]), v))
-						a=a.replace(u"$$" + i[0] + i[1], v + i[1])
-
-					if showmacro:
-						for i in macros[key]:
-							a=a.replace(u"$@" + i[0] + i[1], "macro" + i[1])
-					
-					ret[rec.recid]=a
-
-				if ol: return ret.values()[0]
+					for rec in recs:
+						key = rec.rectype
+						if viewdef: key = None
+						a = groupviews.get(key)
+						
+						g.debug(values[key])
+						for i in values[key]:
+							g.debug("%s: %s -> %s"%(paramdefs[i[2]].vartype, rec.get(i[2]), v))
+							g.debug('i -> %r -- v-> %r' % (i,v))
+							v=self.vtm.render(paramdefs[i[2]].vartype, rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+							a=a.replace(u"$$" + i[0] + i[1], (v or "<N>") + i[1])
+	
+						if showmacro:
+							for i in macros[key]:
+								a=a.replace(u"$@" + i[0] + i[1], "macro" + i[1])
+						
+						ret[rec.recid]=a
+	
+					if ol: return ret.values()[0]
+				else: ret = {}
 				return ret
 
 

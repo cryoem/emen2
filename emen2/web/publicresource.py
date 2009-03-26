@@ -294,7 +294,7 @@ class PublicView(Resource):
 			if isinstance(failure, BaseException): raise failure
 			else: failure.raiseException()
 			
-		except (Database.exceptions.SecurityError, Database.exceptions.AuthenticationError,
+		except (Database.exceptions.AuthenticationError,
 			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 			
 			request.setResponseCode(401)
@@ -308,7 +308,8 @@ class PublicView(Resource):
 			
 			#p = emen2.TwistSupport_html.public.login.Login(**args)
 			#data = unicode(p.get_data()).encode("utf-8")
-			data="Auth Error %s"%e
+			request.redirect('/auth/login')
+			data = 'Auth Failure'
 
 		except Exception, e:
 			request.setResponseCode(500)

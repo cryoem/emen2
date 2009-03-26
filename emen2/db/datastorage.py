@@ -100,8 +100,8 @@ class VartypeManager(object):
 			return unicode(pd.desc_short)	 
 
 	def validate(self,vartype,value,db=None,ctxid=None,host=None):
-		#if value==None or value=="":
-		#	return None
+		if value==None or value=="":
+			return None
 		return self.__vartypes_inst[vartype].validate(value,db,ctxid,host)
 
 	def getvartypes(self):
@@ -122,7 +122,7 @@ class Vartype(object):
 		
 	@classmethod
 	def register(cls):
-		VartypeManager._register_vartype(cls.__vartype__, cls)
+		VartypeManager._register_vartype(cls.__name__.partition('_')[2], cls)
 
 	def __init__(self):
 		# typical modes: html, unicode, edit
@@ -155,7 +155,7 @@ class Property(object):
 		
 	@classmethod
 	def register(cls):
-		VartypeManager._register_property(cls.__property__, cls)
+		VartypeManager._register_property(cls.__name__.partition('_')[2], cls)
 
 
 	def convert(self, value):
@@ -191,7 +191,6 @@ class Property(object):
 class vt_int(Vartype):
 	"""32-bit integer"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "int"
 	def validate(self, value, db, ctxid, host):
 		return int(value)
 
@@ -199,7 +198,6 @@ class vt_int(Vartype):
 class vt_longint(Vartype):
 	"""64-bit integer"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "longint"
 	def validate(self, value, db, ctxid, host):
 		return int(value)	
 
@@ -207,18 +205,16 @@ class vt_longint(Vartype):
 class vt_float(Vartype):
 	"""single-precision floating-point"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "float"
 	def validate(self, value, db, ctxid, host):
 		return float(value)	
 	
 	def render_unicode(self, value, db, ctxid, host):
 		return "%02f"%value
 
-
+#????? python doesn't distinguish, why do we?
 class vt_longfloat(Vartype):
 	"""double-precision floating-point"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "longfloat"
 	def validate(self, value, db, ctxid, host):
 		return float(value)
 
@@ -226,7 +222,6 @@ class vt_longfloat(Vartype):
 class vt_choice(Vartype):
 	"""string from a fixed enumerated list, eg "yes","no","maybe"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "choice"
 	def validate(self, value, db, ctxid, host):
 		try: return str(value)
 		except: return unicode(value)
@@ -235,7 +230,6 @@ class vt_choice(Vartype):
 class vt_string(Vartype):
 	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "string"
 	def validate(self, value, db, ctxid, host):
 		try: return str(value)
 		except: return unicode(value)
@@ -244,7 +238,6 @@ class vt_string(Vartype):
 class vt_text(Vartype):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "text"
 	def validate(self, value, db, ctxid, host):
 		try: return str(value)
 		except: return unicode(value)
@@ -253,7 +246,6 @@ class vt_text(Vartype):
 class vt_time(Vartype):
 	"""time, HH:MM:SS"""	
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "time"
 	def validate(self, value, db, ctxid, host):
 		# convert time
 		return str(value)
@@ -262,7 +254,6 @@ class vt_time(Vartype):
 class vt_date(Vartype):
 	"""date, yyyy/mm/dd"""	
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "date"
 	def validate(self, value, db, ctxid, host):
 		# convert time
 		return str(value)
@@ -271,7 +262,6 @@ class vt_date(Vartype):
 class vt_datetime(Vartype):
 	"""date/time, yyyy/mm/dd HH:MM:SS"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "datetime"
 	def validate(self, value, db, ctxid, host):
 		# convert time
 		return str(value)
@@ -280,7 +270,6 @@ class vt_datetime(Vartype):
 class vt_intlist(Vartype):
 	"""list of ints"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "intlist"
 	def validate(self, value, db, ctxid, host):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -290,7 +279,6 @@ class vt_intlist(Vartype):
 class vt_floatlist(Vartype):
 	"""list of floats"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "floatlist"
 	def validate(self, value, db, ctxid, host):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -300,7 +288,6 @@ class vt_floatlist(Vartype):
 class vt_stringlist(Vartype):
 	"""list of strings"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "stringlist"
 	def validate(self, value, db, ctxid, host):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -311,7 +298,6 @@ class vt_stringlist(Vartype):
 class vt_url(Vartype):
 	"""link to a generic url"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "url"
 	def validate(self, value, db, ctxid, host):
 		return str(value)
 
@@ -320,7 +306,6 @@ class vt_url(Vartype):
 class vt_hdf(Vartype):
 	"""url points to an HDF file"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "hdf"
 	def validate(self, value, db, ctxid, host):
 		return str(value)
 
@@ -329,7 +314,6 @@ class vt_hdf(Vartype):
 class vt_image(Vartype):
 	"""url points to a browser-compatible image"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "image"
 	def validate(self, value, db, ctxid, host):
 		return str(value)
 
@@ -338,7 +322,6 @@ class vt_image(Vartype):
 class vt_binary(Vartype):
 	"""url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "binary"
 	def validate(self, value, db, ctxid, host):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -348,7 +331,6 @@ class vt_binary(Vartype):
 class vt_binaryimage(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "binaryimage"
 	def validate(self, value, db, ctxid, host):
 		return str(value)
 
@@ -356,7 +338,6 @@ class vt_binaryimage(Vartype):
 class vt_child(Vartype):
 	"""link to dbid/recid of a child record"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "child"
 	def validate(self, value, db, ctxid, host):
 		return int(value)
 
@@ -364,7 +345,6 @@ class vt_child(Vartype):
 class vt_link(Vartype):
 	"""lateral link to related record dbid/recid"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "link"
 	def validate(self, value, db, ctxid, host):
 		return int(value)
 
@@ -372,7 +352,6 @@ class vt_link(Vartype):
 class vt_boolean(Vartype):
 	"""boolean"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "boolean"
 	def validate(self, value, db, ctxid, host):
 		try:
 			return int(bool(int(value)))
@@ -385,7 +364,6 @@ class vt_boolean(Vartype):
 class vt_dict(Vartype):
 	"""dict"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "dict"
 	def validate(self, value, db, ctxid, host):
 		return dict(value)
 
@@ -393,7 +371,6 @@ class vt_dict(Vartype):
 class vt_user(Vartype):
 	"""user, by username"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "user"
 	def validate(self, value, db, ctxid, host):
 		user=db.getuser(value,filter=0,ctxid=ctxid,host=host)
 		return user.username
@@ -408,7 +385,6 @@ class vt_user(Vartype):
 class vt_userlist(Vartype):
 	"""list of usernames"""
 	__metaclass__ = Vartype.register_view
-	__vartype__ = "userlist"
 	def validate(self, value, db, ctxid, host):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -433,7 +409,6 @@ class vt_userlist(Vartype):
 
 class prop_transmittance(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "transmittance"
 
 	def __init__(self):
 		self.defaultunits = "%T"
@@ -446,7 +421,6 @@ class prop_transmittance(Property):
 
 class prop_force(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "force"
 
 	def __init__(self):
 		self.defaultunits = "N"
@@ -459,7 +433,6 @@ class prop_force(Property):
 
 class prop_energy(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "energy"
 
 	def __init__(self):
 		self.defaultunits = "J"
@@ -472,7 +445,7 @@ class prop_energy(Property):
 
 class prop_resistance(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "resistance"
+
 
 	def __init__(self):
 		self.defaultunits = "ohm"
@@ -485,7 +458,6 @@ class prop_resistance(Property):
 
 class prop_dose(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "dose"
 
 	def __init__(self):
 		self.defaultunits = "e/A2/sec"
@@ -498,7 +470,6 @@ class prop_dose(Property):
 
 class prop_currency(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "currency"
 
 	def __init__(self):
 		self.defaultunits = "dollars"
@@ -511,7 +482,6 @@ class prop_currency(Property):
 
 class prop_voltage(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "voltage"
 
 	def __init__(self):
 		self.defaultunits = "volt"
@@ -524,7 +494,6 @@ class prop_voltage(Property):
 
 class prop_pH(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "pH"
 
 	def __init__(self):
 		self.defaultunits = "pH"
@@ -537,7 +506,6 @@ class prop_pH(Property):
 
 class prop_concentration(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "concentration"
 
 	def __init__(self):
 		self.defaultunits = "mg/ml"
@@ -550,7 +518,6 @@ class prop_concentration(Property):
 
 class prop_angle(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "angle"
 
 	def __init__(self):
 		self.defaultunits = "degree"
@@ -563,7 +530,6 @@ class prop_angle(Property):
 
 class prop_temperature(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "temperature"
 
 	def __init__(self):
 		self.defaultunits = "K"
@@ -576,7 +542,6 @@ class prop_temperature(Property):
 
 class prop_area(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "area"
 
 	def __init__(self):
 		self.defaultunits = "m^2"
@@ -589,7 +554,6 @@ class prop_area(Property):
 
 class prop_current(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "current"
 
 	def __init__(self):
 		self.defaultunits = "amp"
@@ -602,7 +566,6 @@ class prop_current(Property):
 
 class prop_filesize(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "filesize"
 
 	def __init__(self):
 		self.defaultunits = "bytes"
@@ -615,7 +578,6 @@ class prop_filesize(Property):
 
 class prop_percentage(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "percentage"
 
 	def __init__(self):
 		self.defaultunits = "%"
@@ -628,7 +590,6 @@ class prop_percentage(Property):
 
 class prop_momentum(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "momentum"
 
 	def __init__(self):
 		self.defaultunits = "kg m/s"
@@ -641,7 +602,6 @@ class prop_momentum(Property):
 
 class prop_volume(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "volume"
 
 	def __init__(self):
 		self.defaultunits = "m^3"
@@ -654,7 +614,6 @@ class prop_volume(Property):
 
 class prop_pressure(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "pressure"
 
 	def __init__(self):
 		self.defaultunits = "Pa"
@@ -667,7 +626,6 @@ class prop_pressure(Property):
 
 class prop_unitless(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "unitless"
 
 	def __init__(self):
 		self.defaultunits = "unitless"
@@ -680,7 +638,6 @@ class prop_unitless(Property):
 
 class prop_inductance(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "inductance"
 
 	def __init__(self):
 		self.defaultunits = "henry"
@@ -693,7 +650,6 @@ class prop_inductance(Property):
 
 class prop_currentdensity(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "currentdensity"
 
 	def __init__(self):
 		self.defaultunits = "Pi Amp/cm2"
@@ -706,7 +662,6 @@ class prop_currentdensity(Property):
 
 class prop_exposure(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "exposure"
 
 	def __init__(self):
 		self.defaultunits = "e/A2"
@@ -719,7 +674,6 @@ class prop_exposure(Property):
 
 class prop_count(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "count"
 
 	def __init__(self):
 		self.defaultunits = "count"
@@ -732,7 +686,6 @@ class prop_count(Property):
 
 class prop_bfactor(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "bfactor"
 
 	def __init__(self):
 		self.defaultunits = "A^2"
@@ -745,7 +698,6 @@ class prop_bfactor(Property):
 
 class prop_relative_humidity(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "relative_humidity"
 
 	def __init__(self):
 		self.defaultunits = "%RH"
@@ -758,7 +710,6 @@ class prop_relative_humidity(Property):
 
 class prop_length(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "length"
 
 	def __init__(self):
 		self.defaultunits = "m"
@@ -771,7 +722,6 @@ class prop_length(Property):
 
 class prop_mass(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "mass"
 
 	def __init__(self):
 		self.defaultunits = "gram"
@@ -784,7 +734,6 @@ class prop_mass(Property):
 
 class prop_time(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "time"
 
 	def __init__(self):
 		self.defaultunits = "s"
@@ -797,7 +746,6 @@ class prop_time(Property):
 
 class prop_velocity(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "velocity"
 
 	def __init__(self):
 		self.defaultunits = "m/s"
@@ -810,7 +758,6 @@ class prop_velocity(Property):
 
 class prop_resolution(Property):
 	__metaclass__ = Property.register_view
-	__property__ = "resolution"
 
 	def __init__(self):
 		self.defaultunits = "A/pix"
@@ -1508,6 +1455,7 @@ class Record(DictMixin):
 			pds=self.__context.db.getparamdefs(set(self.__params.keys())-self.param_special)
 			newpd={}
 			for i,pd in pds.items():
+				g.debug('self[%r] -> %r' % (i, self[i]),'pd -> %r' % pd,'vtm -> %r' % vtm)
 				newpd[i]=self.validate_param(self[i],pd,vtm)			
 			self.__params = newpd
 
