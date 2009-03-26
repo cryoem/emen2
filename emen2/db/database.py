@@ -150,7 +150,7 @@ class DBProxy(object):
 # 				result = method(*args[1:], **kwargs)
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
- 		return g.debug.note_var(result)
+ 		return result
 
 
 
