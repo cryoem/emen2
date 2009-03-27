@@ -4327,83 +4327,90 @@ or None if no match is found."""
 
 		@publicmethod		
 		def renderview(self, recs, viewdef=None, viewtype="defaultview", paramdefs={}, showmacro=True, mode="unicode", ctxid=None, host=None):
-				"""Render views"""
+			"""Render views"""
 						
-				ol=0
-				if not hasattr(recs,"__iter__") or isinstance(recs,Record):
-					ol=1
-					recs=[recs]
+			ol=0
+			if not hasattr(recs,"__iter__") or isinstance(recs,Record):
+				ol=1
+				recs=[recs]
+
+			if not isinstance(list(recs)[0],Record):
+				recs=self.getrecord(recs,ctxid=ctxid,host=host,filter=1)
+							
+			groupviews={}
+			if not viewdef:
+				groups=set([rec.rectype for rec in recs])
+				for i in groups:
+					rd=self.getrecorddef(i,ctxid=ctxid,host=host)
+					if viewtype=="mainview":
+						groupviews[i]=rd.mainview
+					else:
+						groupviews[i]=rd.views.get(viewtype, rd.name)
+
+			else:
+				groupviews[None]=viewdef
+			
+
+			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+											
+			names={}
+			values={}
+			macros={}
+			pd=[]
+			for g,vd in groupviews.items():
+				n=[]
+				v=[]
+				m=[]
 				
+				vd = vd.encode('utf-8', "ignore")
+				iterator = regex2.finditer(vd)
+			
+				for match in iterator:
+						if match.group("name"):
+								n.append((match.group("name"),match.group("namesep"),match.group("name1")))
+								pd.append(match.group("name1"))
+						elif match.group("var"):
+								v.append((match.group("var"),match.group("varsep"),match.group("var1")))						
+								pd.append(match.group("var1"))
+						elif match.group("macro"):
+								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
 
-				vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-												
-				names={}
-				values={}
-				macros={}
-				pd=[]
-				for g,vd in groupviews.items():
-					n=[]
-					v=[]
-					m=[]
+				paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
+				#print "PD:%s"%paramdefs.keys()
 
-					
+				# invariant to recid
+				if n:
+					for i in n:
+						vrend=vtm.name_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+						vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
+					groupviews[g]=vd
+				
+				names[g]=n
+				values[g]=v
+				macros[g]=m
 
 									
-					names={}
-					values={}
-					macros={}
-					pd=[]
-					for gr,vd in groupviews.items():
-						g.debug("PARSING %s"%gr)
-						n=[]
-						v=[]
-						m=[]
-						
-						vd = vd.encode('utf-8', "ignore")
-						iterator = regex2.finditer(vd)
-					
-						for match in iterator:
-								if match.group("name"):
-										n.append((match.group("name"),match.group("namesep"),match.group("name1")))
-										pd.append(match.group("name1"))
-								elif match.group("var"):
-										v.append((match.group("var"),match.group("varsep"),match.group("var1")))						
-										pd.append(match.group("var1"))
-								elif match.group("macro"):
-										m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
-	
-						paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
-						g.debug("PD:%s"%paramdefs.keys())
-	
-						# invariant to recid
-						if n:
-							for i in n:
-								vrend=self.vtm.paramdesc_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-								vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-							groupviews[gr]=vd
-						
-						names[gr]=n
-						values[gr]=v
-						macros[gr]=m
-	
-											
-					ret={}
-	
-					
-					for i in values[key]:
-						v=vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-						a=a.replace(u"$$" + i[0] + i[1], v + i[1])
+			ret={}
 
-					if showmacro:
-						for i in macros[key]:
-							v=vtm.macro_render(i[2], "params", rec, mode=mode, db=self, ctxid=ctxid, host=host) #macro, params, rec, mode="unicode", db=None, ctxid=None, host=None
-							a=a.replace(u"$@" + i[0], v + i[1])
-					
-					ret[rec.recid]=a
+			
+			for rec in recs:
+				key = rec.rectype
+				if viewdef: key = None
+				a = groupviews.get(key)
+				
+				for i in values[key]:
+					v=vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+					a=a.replace(u"$$" + i[0] + i[1], v + i[1])
 
-				if ol: return ret.values()[0]
+				if showmacro:
+					for i in macros[key]:
+						v=vtm.macro_render(i[2], "params", rec, mode=mode, db=self, ctxid=ctxid, host=host) #macro, params, rec, mode="unicode", db=None, ctxid=None, host=None
+						a=a.replace(u"$@" + i[0], v + i[1])
+				
+				ret[rec.recid]=a
 
-				return ret
+			if ol: return ret.values()[0]
+			return ret
 
 
 

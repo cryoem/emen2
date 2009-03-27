@@ -318,7 +318,7 @@ class PublicView(Resource):
 			
 			p = emen2.TwistSupport_html.public.login.Login(**args)
 			data = unicode(p.get_data()).encode("utf-8")
-			data="Auth Error %s"%e
+			#data="Auth Error %s"%e
 
 
 			#request.redirect('/auth/login')
