@@ -149,7 +149,7 @@ class DBProxy(object):
 			#print "\n\nDB: %s, kwargs: %s"%(name,kwargs)
 
  			result = self.__publicmethods.get(name)# or self.__extmethods.get(name)()
-			print result
+
  			if result:
 				result = partial(result, db, **kwargs)
  			else:
@@ -3705,6 +3705,7 @@ or None if no match is found."""
 
 		#@write,user
 		@publicmethod
+		@g.debug.debug_func
 		def putrecord(self, record, parents=[], children=[], ctxid=None, host=None, txn=None):
 				"""The record has everything we need to commit the data. However, to 
 				update the indices, we need the original record as well. This also provides
@@ -3713,13 +3714,16 @@ or None if no match is found."""
 				parents and children arguments are conveniences to link new records at time of creation."""
 			
 				ctx = self.__getcontext(ctxid, host)
+				cp = dict()
 				
 				if not isinstance(record, Record):
 						try: record = Record(record, ctx)
 						except: raise ValueError, "Record instance or dict required"
-												
+							
+				records = [record]
 				try:
 					orecord = self.__records[record.recid]				 # get the unmodified record
+					orecords = [self.__records[rec.recid] for rec in [record.recid]]
 				except:
 					return self.__putnewrecord(record, ctxid=ctxid, parents=parents, children=children, host=host)
 				
@@ -3730,11 +3734,18 @@ or None if no match is found."""
 				orecord.setContext(ctx)
 
 				record.validate(orecord)
-				cp = record.changedparams(orecord)
+				ncp = record.changedparams(orecord)
 
 				# permissions can be changed using putrecord again, pref using adduser/removeuser
-				if len(cp)==0:
+				if len(ncp)==0:
 						return "No changes made"
+				
+				for x in ncp:
+					if cp.has_key(x):
+						cp[x].append((record, orecord))
+					else:
+						cp[x] = [(record, orecord)]
+				g.debug('cp -> %r' % cp)
 
 				if not txn:
 					txn = self.newtxn()
@@ -3742,18 +3753,6 @@ or None if no match is found."""
 
 				# Now update the indices
 				log = []
-
-				for f in cp: #record.param_special
-						self.__reindex(f, orecord[f], record[f], record.recid, txn)						
-						log.append((ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (f, orecord[f])))
-						orecord[f] = record[f]
-						
-				# Update: ignore creator, creationtime, recid, rectype
-
-				# Update: permissions
-				# index security
-				self.__reindexsec(reduce(operator.concat, orecord["permissions"]),
-						reduce(operator.concat, record["permissions"]), record.recid, txn)
 
 
 				# Update: modifytime / modifyuser
@@ -3783,6 +3782,23 @@ or None if no match is found."""
 
 				# recdef index
 				self.__recorddefbyrec.set(record.recid, record.rectype, txn)
+### indexing
+				for name, recs in cp.items(): #record.param_special
+						for rec, orec in recs:
+							g.debug('rec ->', name, "rec -> %r" % rec)
+							self.__reindex(name, orec[name], rec[name], rec.recid, txn)						
+							log.append((ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (name, orec[name])))
+							g.debug(ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (name, orec[name]))
+							orec[name] = rec[name]
+						
+				# Update: ignore creator, creationtime, recid, rectype
+
+				# Update: permissions
+				# index security
+				for rec, orec in zip(records, orecords):
+					g.debug('rec -> (%r), orec -> (%r)' % (rec, orec))
+					self.__reindexsec(reduce(operator.concat, orec["permissions"]),
+							reduce(operator.concat, rec["permissions"]), rec.recid, txn)
 				
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()

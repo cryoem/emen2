@@ -16,7 +16,7 @@ class DBTree(object):
 		self.__db = db
 		self.__ctxid = ctxid
 		self.__host = host
-		self.__root = root or min(db.getindexbyrecorddef('folder', ctxid=ctxid, host=host) or [0])
+		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
 		self.db = self.__db
 
 	def __getpath(self, path=None):

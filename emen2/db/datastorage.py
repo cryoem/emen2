@@ -3,6 +3,8 @@ from math import *
 import time
 import re
 from emen2.Database.exceptions import SecurityError
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 
 # validation
