@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 sys.path.append('/Users/edwardlangley')
+import emen2.emen2config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
