@@ -3211,6 +3211,38 @@ or None if no match is found."""
 
 				print "done"
 				
+		def __reindexmanyrecs(self, key, oparamdict, nparamdict, txn=None):
+				"""This function reindexes a single key/value pair
+				This includes creating any missing indices if necessary"""
+
+				#print "REINDEX: key: %s, oldval: %s, newval: %s, recid: %s"%(key,oldval,newval,recid)
+				if (key == "comments" or key == "permissions") : return				 # comments & permissions are not currently indexed 
+
+				f=self.__paramdefs[key]
+				if f.vartype not in self.indexablevartypes:
+					print "Unindexable vartype %s"%f.vartype
+					return
+				
+				# Painful, but if this is a 'text' field, we index the words not the value
+				# ie - full text indexing				
+				if f.vartype == "text":
+					for oldval, newval in  zip(oldvals, newvals):
+						return self.__reindextext(key, oldval, newval, recid)
+				
+				# whew, not full text, get the index for this key
+				ind = self.__getparamindex(key)
+
+				if ind == None:
+					return
+				
+				# remove the old ref and add the new one
+				for oval in oparamdict:
+					g.debug('ind.removerefs(',oval,',', '%r' % oparamdict[oval])
+					ind.removerefs(oval, oparamdict[oval], txn=txn)
+				for nval in nparamdict:
+					g.debug('ind.addrefs(',nval,',', '%r' % nparamdict[nval])
+					ind.addrefs(nval, nparamdict[nval], txn=txn)
+				#print ind.items()
 
 		def __reindex(self, key, oldval, newval, recid, txn=None):
 				"""This function reindexes a single key/value pair
@@ -3658,9 +3690,9 @@ or None if no match is found."""
 				
 
 			if not self.__importmode:
-					df = file("/tmp/dbbug3", "a")
-					print >> df, "%s\n%s\n" % (str(ctx.__dict__), str(record))
-					df.close()
+				df = file("/tmp/dbbug3", "a")
+				print >> df, "%s\n%s\n" % (str(ctx.__dict__), str(record))
+				df.close()
 
 
 			self.__records.set(record.recid, record, txn)				 # This actually stores the record in the database
@@ -3705,108 +3737,121 @@ or None if no match is found."""
 
 		#@write,user
 		@publicmethod
-		@g.debug.debug_func
-		def putrecord(self, record, parents=[], children=[], ctxid=None, host=None, txn=None):
+		def putrecord(self, records, parents=[], children=[], ctxid=None, host=None, txn=None):
 				"""The record has everything we need to commit the data. However, to 
 				update the indices, we need the original record as well. This also provides
 				an opportunity for double-checking security vs. the original. If the 
 				record is new, recid should be set to None. recid is returned upon success. 
 				parents and children arguments are conveniences to link new records at time of creation."""
-			
+
 				ctx = self.__getcontext(ctxid, host)
+				orecords, results = [], set([])
+				recdict = {}
 				cp = dict()
-				
-				if not isinstance(record, Record):
-						try: record = Record(record, ctx)
-						except: raise ValueError, "Record instance or dict required"
-							
-				records = [record]
-				try:
-					orecord = self.__records[record.recid]				 # get the unmodified record
-					orecords = [self.__records[rec.recid] for rec in [record.recid]]
-				except:
-					return self.__putnewrecord(record, ctxid=ctxid, parents=parents, children=children, host=host)
-				
-				
-				# security check on the original record	
-				# copy old record to check for changed values				
-				record.setContext(ctx)				
-				orecord.setContext(ctx)
+				_recs = records
+				if not isinstance(records, list):
+					_recs = [records]
 
-				record.validate(orecord)
-				ncp = record.changedparams(orecord)
+				for record in _recs:
+					g.debug('record -> %r' % record)
 
-				# permissions can be changed using putrecord again, pref using adduser/removeuser
-				if len(ncp)==0:
-						return "No changes made"
-				
-				for x in ncp:
-					if cp.has_key(x):
-						cp[x].append((record, orecord))
+					if not isinstance(record, Record):
+							try: record = Record(record, ctx)
+							except: raise ValueError, "Record instance or dict required"
+
+					if record.recid is None:
+						results.add(self.__putnewrecord(record, ctxid=ctxid, parents=parents, children=children, host=host))
+						continue
 					else:
-						cp[x] = [(record, orecord)]
-				g.debug('cp -> %r' % cp)
+						orecord = self.__records[record.recid]				 # get the unmodified record
+						orecords.append(orecord)
+						recdict[record.recid] = orecord
 
-				if not txn:
-					txn = self.newtxn()
+					# security check on the original record	
+					# copy old record to check for changed values
+					record.setContext(ctx)
+					orecord.setContext(ctx)
 
+					record.validate(orecord)
+					ncp = record.changedparams(orecord)
 
-				# Now update the indices
-				log = []
-
-
-				# Update: modifytime / modifyuser
-				if (not self.__importmode): 
-						orecord["modifytime"] = time.strftime(TIMESTR)
-						orecord["modifyuser"] = ctx.user
-						self.__timeindex.set(record.recid, 'modifytime', txn)
-				
-				
-				# Update: comments
-				#print "orecord._Record__comments: %s"%orecord._Record__comments
-				for i in log:
-					if not i in orecord._Record__comments:
-						orecord._Record__comments.append(i)
-
-				for i in record["comments"]:
-					if not i in orecord._Record__comments:
-						orecord._Record__comments.append(i)
-						
-				# any new comments are appended to the 'orig' record
-				# attempts to modify the comment list bypassing the security
-				# in the record class will result in a bunch of new comments
-				# being added to the record.							
-				
-				# This actually stores the record in the database
-				self.__records.set(record.recid, orecord, txn)
-
-				# recdef index
-				self.__recorddefbyrec.set(record.recid, record.rectype, txn)
+					# permissions can be changed using putrecord again, pref using adduser/removeuser
+					if len(ncp)==0:
+						results.add("Record %d: No changes made" % record.recid)
+						del recdict[record.recid]
+					else:
+						for x in ncp:
+							if cp.has_key(x):
+								cp[x].append((record, orecord))
+							else:
+								cp[x] = [(record, orecord)]
+						g.debug('cp -> %r' % cp)
+		
+						if not txn:
+							txn = self.newtxn()
+		
+		
+						# Now update the indices
+						log = []
+		
+		
+						# Update: modifytime / modifyuser
+						if (not self.__importmode): 
+								orecord["modifytime"] = time.strftime(TIMESTR)
+								orecord["modifyuser"] = ctx.user
+								self.__timeindex.set(record.recid, 'modifytime', txn)
+	
+	
+						# Update: comments
+						#print "orecord._Record__comments: %s"%orecord._Record__comments
+						for i in log:
+							if not i in orecord._Record__comments:
+								orecord._Record__comments.append(i)
+	
+						for i in record["comments"]:
+							if not i in orecord._Record__comments:
+								orecord._Record__comments.append(i)
 ### indexing
 				for name, recs in cp.items(): #record.param_special
+						newvals, oldvals, recids = [],[], []
+						for new, old in recs:
+							newvals.append(new[name])
+							oldvals.append(old[name])
+							recids.append(new.recid)
+						oparamdict = {}
+						nparamdict = {}
+						for nv, ov, recid in zip(newvals, oldvals, recids):
+							if nparamdict.has_key(nv): nparamdict[nv].append(recid)
+							else: nparamdict[nv] = [recid]
+							if oparamdict.has_key(ov): oparamdict[ov].append(recid)
+							else: oparamdict[ov] = [recid]
+						self.__reindexmanyrecs(name, oparamdict, nparamdict)
 						for rec, orec in recs:
-							g.debug('rec ->', name, "rec -> %r" % rec)
-							self.__reindex(name, orec[name], rec[name], rec.recid, txn)						
 							log.append((ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (name, orec[name])))
-							g.debug(ctx.user, time.strftime(TIMESTR), u"LOG: %s updated. was: %s" % (name, orec[name]))
 							orec[name] = rec[name]
 						
-				# Update: ignore creator, creationtime, recid, rectype
-
 				# Update: permissions
 				# index security
-				for rec, orec in zip(records, orecords):
-					g.debug('rec -> (%r), orec -> (%r)' % (rec, orec))
+				for rec, orec in zip(recdict.values(), orecords):
 					self.__reindexsec(reduce(operator.concat, orec["permissions"]),
 							reduce(operator.concat, rec["permissions"]), rec.recid, txn)
 				
+				
+#				# This actually stores the record in the database
+				self.__records.update(recdict)
+				results.update(recdict.keys())
+				for orecord in orecords:
+					# recdef index
+					self.__recorddefbyrec.set(orecord.recid, orecord.rectype, txn)
 				if txn: txn.commit()
 				elif not self.__importmode : DB_syncall()
+				if not hasattr(records, 'commit'):
+					return results
+				else:
+					return results.pop()
 
-				return record.recid
-				
-				
-				
+
+
 		# ian: todo: improve newrecord/putrecord	
 		@publicmethod
 		def newrecord(self, rectype, init=0, inheritperms=None, ctxid=None, host=None):

@@ -7,7 +7,6 @@ NOTE: access globals this way:
   g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 import threading
-from new import module
 
 class ErrorThread(threading.Thread):
 	def __init__(self, err_list):

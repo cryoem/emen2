@@ -468,7 +468,7 @@ class Record(DictMixin):
 			try:
 				i(orec)
 			except Exception, inst:
-				if warning:	print "VALIDATION WARNING:: %s"%inst
+				if warning:	g.debug("VALIDATION WARNING:: %s"%inst)
 				else:	raise Exception, "%s: %s"%(i.func_name,inst)
 
 
