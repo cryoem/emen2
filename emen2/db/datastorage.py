@@ -553,7 +553,7 @@ class Record(DictMixin):
 		u=set()
 		users=set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
 		for j in self.__permissions: u |= set(j)
-		u -= set([0,-1,-2,-3])
+		u -= set([0,-1,-2,-3, -4])
 		if u-users:
 			raise Exception,"Undefined users: %s"%",".join(map(str, u-users))
 			

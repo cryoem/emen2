@@ -1,6 +1,3 @@
-import new
-print dir(new)
-
 import emen2.emen2config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
@@ -27,7 +24,7 @@ import emen2.TwistSupport_html.public.views
 emen2.TwistSupport_html.public.views.load_views()
 
 import emen2.TwistSupport_html.html
-
+import emen2.TwistSupport_html.public.record
 
 def prepare_properties(outfile):
 	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
@@ -98,6 +95,7 @@ def main():
 	#############################
 	# Start server
 	#############################
+	g.debug.msg(g.LOG_INIT, 'Listening ...')
 	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
 	if g.EMEN2HTTPS:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))

@@ -3225,9 +3225,9 @@ or None if no match is found."""
 				
 				# Painful, but if this is a 'text' field, we index the words not the value
 				# ie - full text indexing				
-				if f.vartype == "text":
-					for oldval, newval in  zip(oldvals, newvals):
-						return self.__reindextext(key, oldval, newval, recid)
+				if f.vartype == "text":pass
+#					for oldval, newval in  zip(oldvals, newvals):
+#						return self.__reindextext(key, oldval, newval, recid)
 				
 				# whew, not full text, get the index for this key
 				ind = self.__getparamindex(key)
