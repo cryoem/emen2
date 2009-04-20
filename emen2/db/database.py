@@ -693,39 +693,77 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 
 		@publicmethod
-		def getbinary(self, ident, ctxid=None, host=None):
+		def getbinary(self, idents, ctxid=None, host=None, filt=1):
 				"""Get a storage path for an existing binary object. Returns the
 				object name and the absolute path"""
-				#self = db
+
+				# process idents argument for bids (into list bids) and then process bids
+				ret={}
+				bids=[]				
+				recs=[]
+
+				ol=0
+				if isinstance(idents,basestring):# or not hasattr(idents,"__iter__"):
+					ol=1
+					bids=[idents]
+					idents=bids
+				if isinstance(idents,(int,Record)):
+					idents=[idents]
 				
-				year = int(ident[:4])
-				mon = int(ident[4:6])
-				day = int(ident[6:8])
-				bid = int(ident[8:], 16)
+				bids.extend(filter(lambda x:isinstance(x,(basestring)), idents))
+				
+				recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), ctxid=ctxid, host=host, filt=1))
+				recs.extend(filter(lambda x:isinstance(x,Record), idents))
+				bids.extend(self.filtervartype(recs, ["binary","binaryimage"], ctxid=ctxid, host=host, flat=1))
 
-				key = "%04d%02d%02d" % (year, mon, day)
-				for i in g.BINARYPATH:
-						if key >= i[0] and key < i[1] :
-								# actual storage path
-								path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-								break
-				else:
-						raise KeyError, "No storage specified for date %s" % key
+				
+				for ident in bids:
+					prot, _, key = ident.rpartition(":")
+					if prot == "": prot = "bdo"
+					if prot not in ["bdo"]:
+						if filt:
+							continue
+						else:
+							raise Exception, "Invalid binary storage protocol: %s"%prot
 
-				try:
-						name, recid = self.__bdocounter[key][bid]
-				except:
-						raise KeyError, "Unknown identifier %s" % ident
+					# for bdo: protocol
+					# validate key
+					year = int(key[:4])
+					mon = int(key[4:6])
+					day = int(key[6:8])
+					bid = int(key[8:], 16)
+					key = "%04d%02d%02d" % (year, mon, day)
+
+					for i in g.BINARYPATH:
+							if key >= i[0] and key < i[1] :
+									# actual storage path
+									path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
+									break
+					else:
+							raise KeyError, "No storage specified for date %s" % key
+
+					try:
+							name, recid = self.__bdocounter[key][bid]
+					except:
+							if filt:
+								continue
+							else:
+								raise KeyError, "Unknown identifier %s" % ident
 
 
-				try:
-					self.getrecord(recid, ctxid=ctxid, host=host)
-					return (name, path + "/%05X" % bid, recid)
+					try:
+						self.getrecord(recid, ctxid=ctxid, host=host)
+						ret[ident] = (name, path + "/%05X" % bid, recid)
 
-				except:
-					raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+					except:
+						if filt:
+							continue
+						else:
+							raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
+				if ol: return ret.values()[0]
+				return ret
 
 
 		@publicmethod
@@ -1366,27 +1404,6 @@ parentheses not supported yet. Upon failure returns a tuple:
 				# search these params
 				params = set(params)
 
-# 				if tokenize:
-# 						t = q.split(" ")
-# 						rt = {}
-# 						rt[t[0]] = self.fulltextsearch(t[0], ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparam, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
-# 						subset = set(rt[t[0]].keys())
-# 						#print "initial search: key %s, %s results"%(t[0],len(subset))
-# 
-# 						for i in t[1:]:
-# 								rt[i] = self.fulltextsearch(i, ctxid=ctxid, host=host, rectype=rectype, indexsearch=indexsearch, params=params, recparams=recparams, builtinparam=builtinparams, ignorecase=ignorecase, subset=subset, tokenize=0, single=single, includeparams=includeparams)
-# 								subset = set(rt[i].keys())
-# 								#print "search: key %s, %s results"%(i,subset)
-# 						
-# 						#print "final subset: %s"%subset
-# 						ret = {}
-# 						for word in rt:
-# 								for i in subset:
-# 										if not ret.has_key(i): ret[i] = {}
-# 										ret[i].update(rt[word][i])
-# 						return ret
-
-
 				builtin = set(["creator", "creationtime", "modifyuser", "modifytime", "permissions", "comments"])
 
 				oq = unicode(q)
@@ -1400,6 +1417,9 @@ parentheses not supported yet. Upon failure returns a tuple:
 						pd = self.getrecorddef(rectype, ctxid=ctxid, host=host)
 						params = set(pd.paramsK)
 
+				if not params:
+						params = set(self.getparamdefnames(ctxid=ctxid,host=host))
+				
 				if builtinparam:
 						params |= builtin
 				else:
@@ -1413,7 +1433,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
 						g.debug("rec search: %s, subset %s"%(q,len(subset)))
 
-						for rec in self.getrecord(subset,filter=1,ctxid=ctxid,host=host):
+						for rec in self.getrecord(subset,filt=1,ctxid=ctxid,host=host):
 
 								for k in params:
 									if ignorecase:
@@ -1424,6 +1444,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 										if q in unicode(rec[k]):
 											if not ret.has_key(rec.recid): ret[rec.recid] = {}
 											ret[rec.recid][k] = rec[k]
+									
 																		
 								if ret.has_key(rec.recid) and includeparams:
 									for i in includeparams:
@@ -1446,7 +1467,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 									
 								recs = set()
 								for i in s: recs |= r[i]
-								for rec in self.getrecord(recs & subset,filter=1,ctxid=ctxid,host=host):
+								for rec in self.getrecord(recs,filt=1,ctxid=ctxid,host=host): #&subset; add security back...?
 
 									if not ret.has_key(rec.recid): ret[rec.recid]={}
 									if not ignorecase:
@@ -1607,7 +1628,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				"""quick version for records that are already in cache; e.g. table views. requires subset."""				 
 
 				v = {}
-				records = self.getrecord(subset, ctxid=ctxid, host=host, filter=1)
+				records = self.getrecord(subset, ctxid=ctxid, host=host, filt=1)
 				for i in records:
 						if not valrange:
 								v[i.recid] = i[param]
@@ -1656,7 +1677,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 		def __groupbyrecorddeffast(self, records, ctxid=None, host=None):
 
 			if not isinstance(list(records)[0],Record):
-				recs=self.getrecord(records, ctxid=ctxid, host=host, filter=1)
+				recs=self.getrecord(records, ctxid=ctxid, host=host, filt=1)
 				#if len(records)==1: recs=[recs]
 			
 			ret={}
@@ -1754,28 +1775,28 @@ parentheses not supported yet. Upon failure returns a tuple:
 		
 
 		@publicmethod
-		def getchildren(self, key, keytype="record", recurse=0, rectype=None, filter=0, tree=0, ctxid=None, host=None):
+		def getchildren(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctxid=None, host=None):
 			"""Get children;
 			keytype: record, paramdef, recorddef
 			recurse: recursion depth
 			rectype: for records, return only children of type rectype
-			filter: filter by permissions
+			filt: filt by permissions
 			tree: return results in graph format; default is set format 
 			"""
-			return self.__getrel_wrapper(key=key,keytype=keytype,recurse=recurse,ctxid=ctxid,host=host,rectype=rectype,rel="children",filter=filter,tree=tree)
+			return self.__getrel_wrapper(key=key,keytype=keytype,recurse=recurse,ctxid=ctxid,host=host,rectype=rectype,rel="children",filt=filt,tree=tree)
 
 
 				
 		@publicmethod
-		def getparents(self, key, keytype="record", recurse=0, rectype=None, filter=0, tree=0, ctxid=None, host=None):
+		def getparents(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctxid=None, host=None):
 			"""see: getchildren"""
-			return self.__getrel_wrapper(key=key,keytype=keytype,recurse=recurse,ctxid=ctxid,host=host,rectype=rectype,rel="parents",filter=filter,tree=tree)
+			return self.__getrel_wrapper(key=key,keytype=keytype,recurse=recurse,ctxid=ctxid,host=host,rectype=rectype,rel="parents",filt=filt,tree=tree)
 				
 				
 
 		# wraps getrel / works as both getchildren/getparents
 		@publicmethod
-		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filter=0, tree=0, ctxid=None, host=None):
+		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filt=0, tree=0, ctxid=None, host=None):
 			#print "getchildren: %s, recurse=%s, rectype=%s, filter=%s, tree=%s"%(key,recurse,rectype,filter,tree)
 			"""Add some extra features to __getrel"""
 
@@ -1797,7 +1818,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 				
 				
 			# ian: think about doing this a better way	
-			if filter:
+			if filt:
 				all=self.filterbypermissions(all,ctxid=ctxid,host=host)
 
 				if not tree:
@@ -2412,7 +2433,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 								
 								
 		@publicmethod						
-		def getuser(self, usernames, filter=1, ctxid=None, host=None):
+		def getuser(self, usernames, filt=1, ctxid=None, host=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
@@ -2437,7 +2458,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 					except:
 						pass
 						
-					if filter:
+					if filt:
 						continue
 					else:
 						raise KeyError, "No such user: %s"%i
@@ -3551,73 +3572,91 @@ or None if no match is found."""
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
 		@publicmethod
-		def filtervartype(self, rec, vt, paramdefs={},flat=0,ctxid=None,host=None):
+		def filtervartype(self, recs, vts, paramdefs=None, filt=1, flat=0, returndict=0, ignore=None, ctxid=None, host=None):
 
-			if isinstance(rec,int):
-				rec=self.getrecord(rec,ctxid=ctxid,host=host)
+			if not recs:
+				return [None]
+
+			if not paramdefs: paramdefs={}
+			recs2=[]
+			
+			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
+			ol=0
+			if isinstance(recs,(int,Record)):
+				ol=1
+				recs=[recs]
+
+			if not hasattr(vts,"__iter__"):
+				vts=[vts]
+				
+			if not hasattr(ignore,"__iter__"):
+				ignore=[ignore]
+			ignore=set(ignore)
+
+			recs2.extend(filter(lambda x:isinstance(x,Record),recs))
+			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs),ctxid=ctxid,host=host,filt=filt))
 
 			if not paramdefs:
-				paramdefs.update(self.getparamdefs(rec))
+				pds=set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
+				paramdefs.update(self.getparamdefs(pds))
+			
+			l = set([pd.name for pd in paramdefs.values() if pd.vartype in vts]) - ignore
+			#l = set(map(lambda x:x.name, filter(lambda x:x.vartype in vts, paramdefs.values()))) - ignore
+			##l = set(filter(lambda x:x.vartype in vts, paramdefs.values())) - ignore
+			
+			if returndict or ol:
+				ret={}
+				for rec in recs2:
+					re=[rec.get(pd) or None for pd in l]
+					if flat:							
+						re=set(self.__flatten(re))-set([None])
+					ret[rec.recid]=re
 
-			if not hasattr(vt,"__iter__"):
-				vt=[vt]			
+				if ol: return ret.values()[0]
+				return ret
 
-			l=filter(lambda x:x.vartype in vt, paramdefs.values())
-
-			re=[rec.get(pd.name) or None for pd in l]
-
+			# if not returndict
+			re=[[rec.get(pd) for pd in l if rec.get(pd)] for rec in recs2]
+			#re=filter(lambda x:x,map(lambda x:[x.get(pd) or None for pd in l],a))
 			if flat:
 				return set(self.__flatten(re))-set([None])
-
-			return set(re)-set([None])
+			return re
 
 
 
 		@publicmethod
-		def getuserdisplayname(self, username, lnf=1, perms=0, filter=1, ctxid=None, host=None):
-				"""Return the full name of a user from the user record."""
+		def getuserdisplayname(self, username, lnf=1, perms=0, filt=1, ctxid=None, host=None):
+				"""Return the full name of a user from the user record; include permissions param if perms=1"""
 
-				namestoget = set()
+				namestoget = []
 				ret = {}
 
-
 				ol=0
-				if not hasattr(username,"__iter__"):
+				if isinstance(username, basestring):
 					ol=1
-					username=[username]
-				if isinstance(username,Record):
+				if isinstance(username, (basestring, int, Record)):
 					username=[username]
 	
-					
-				for i in username:
-					
-					if isinstance(i,int):
-						ol = 0
-						i = self.getrecord(i,ctxid=ctxid,host=host,filter=filter)
-						
-					if isinstance(i,Record):
-						keys=set(i.keys())
-						if not perms:
-							keys.remove("permissions")
-						
-						#print "getting display names for keys %s"%keys
-						paramdefs = self.getparamdefs(keys, ctxid=ctxid, host=host)
-						namestoget |= self.filtervartype(i, ["user","userlist"], paramdefs=paramdefs, flat=1)
+				namestoget=[]
+				namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
 
-						for k in i["comments"]:
-							namestoget.add(k[0])	
-						i = None
-						
-					# patch, sometimes username is passed nested lists	
-					elif hasattr(i,"__iter__"):
-						namestoget |= set(i)
+				vts=["user","userlist"]
+				if perms:
+					vts.append("acl")
 
-					elif i != None:
-						namestoget.add(i)
-							
+				recs=[]
+				recs.extend(filter(lambda x:isinstance(x,Record), username))
+				recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), username),filt=filt,ctxid=ctxid,host=host))				
+				
+				if recs:
+					namestoget.extend(self.filtervartype(recs, vts, flat=1, ctxid=ctxid, host=host))
+					# ... need to parse comments since it's special
+					namestoget.extend(reduce(lambda x,y: x+y, [[i[0] for i in rec["comments"]] for rec in recs]))
+
+				namestoget=set(namestoget)
 					
-				users = self.getuser(namestoget,filter=filter,ctxid=ctxid,host=host)
-				recs = self.getrecord([user.record for user in users.values()],filter=filter,ctxid=ctxid,host=host)
+				users = self.getuser(namestoget,filt=filt,ctxid=ctxid,host=host)
+				recs = self.getrecord([user.record for user in users.values()],filt=filt,ctxid=ctxid,host=host)
 				recs = dict([(i.recid,i) for i in recs])
 							
 				for k,v in users.items():
@@ -3626,8 +3665,7 @@ or None if no match is found."""
 				if len(ret.keys())==0:
 					return None			
 				if ol:
-					return ret.get(ret.keys()[0])
-
+					return ret.values()[0]
 
 				return ret	
 
@@ -4026,7 +4064,7 @@ or None if no match is found."""
 		
 		# ian: improved!
 		@publicmethod
-		def getrecord(self, recid, filter=1, dbid=0, ctxid=None, host=None):
+		def getrecord(self, recid, filt=1, dbid=0, ctxid=None, host=None):
 				"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 				if dbid is 0, the current database is used. host must match the host of the
 				context"""
@@ -4055,7 +4093,7 @@ or None if no match is found."""
 						ret.append(rec)
 					except SecurityError, e:
 						# if filtering, skip record; else bubble (SecurityError) exception
-						if filter: pass
+						if filt: pass
 						else: raise e
 
 				if len(ret)==1 and chop: return ret[0]
@@ -4352,7 +4390,7 @@ or None if no match is found."""
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctxid=None, host=None):
 			"""Render the recname view for a record."""
 
-			recs=self.getrecord(rec,ctxid=ctxid,host=host,filter=1)
+			recs=self.getrecord(rec,ctxid=ctxid,host=host,filt=1)
 			ret=self.renderview(recs,viewtype="recname",ctxid=ctxid,host=host)
 			recs=dict([(i.recid,i) for i in recs])				
 
@@ -4396,7 +4434,7 @@ or None if no match is found."""
 				recs=[recs]
 
 			if not isinstance(list(recs)[0],Record):
-				recs=self.getrecord(recs,ctxid=ctxid,host=host,filter=1)
+				recs=self.getrecord(recs,ctxid=ctxid,host=host,filt=1)
 							
 			groupviews={}
 			if not viewdef:

@@ -854,8 +854,7 @@ PAGE / TAB
 =============================================================
 */
 
-/* recordview, .buttons:after */
-.clearfix:after, .page:after, #permissions:after, #alert:after, #nav:after, .buttons_main:after, .page_main:after, .table_header:after {
+.clearfix:after, #buttons_main:after, .buttons:after, .pages:after, #permissions:after, #alert:after, #nav:after, .table_header:after {
     content: "."; 
     display: block; 
     height: 0; 

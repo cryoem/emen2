@@ -514,7 +514,7 @@ class Record(DictMixin):
 			newcomments.append((str(i[0]),str(i[1]),unicode(i[2])))
 		
 		try:
-			self.__context.db.getuser(users, filter=0, ctxid=self.__context.ctxid, host=self.__context.host)
+			self.__context.db.getuser(users, filt=0, ctxid=self.__context.ctxid, host=self.__context.host)
 		except:
 			raise Exception,"Invalid users in comments: %s"%(users)
 			
@@ -528,7 +528,7 @@ class Record(DictMixin):
 	def validate_creator(self,orec={}):
 		self.__creator=str(self.__creator)
 		try:
-			self.__context.db.getuser(self.__creator, filter=0, ctxid=self.__context.ctxid, host=self.__context.host)
+			self.__context.db.getuser(self.__creator, filt=0, ctxid=self.__context.ctxid, host=self.__context.host)
 		except:
 			raise Exception,"Invalid creator: %s"%(self.__creator)
 		
