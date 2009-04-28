@@ -133,9 +133,16 @@ class HTMLTab():
 		if not self.active:
 			self.autoactive()
 			
-		print "cls: %s"%self.classname
-		print "\talltabs: %s"%alltabs
-		print "\tcontent: %s"%self.content
-		print "\torder: %s"%self.order
-		print "\tactive: %s"%self.active
+		#print "cls: %s"%self.classname
+		#print "\talltabs: %s"%alltabs
+		#print "\tcontent: %s"%self.content
+		#print "\torder: %s"%self.order
+		#print "\tactive: %s"%self.active
+		
+
+
+
+		
+
+		
 			

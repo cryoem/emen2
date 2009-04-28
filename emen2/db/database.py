@@ -231,8 +231,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 				# ian: this helps render and validate vartypes and convert between properties/units
 				self.vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-				self.indexablevartypes=set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
-
+				self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
+				self.unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])	
 			
 				self.maxrecurse = 50
 		
@@ -335,22 +335,33 @@ recover - Only one thread should call this. Will run recovery on the environment
 				# This sets up a few standard ParamDefs common to all records
 				if not self.__paramdefs.has_key("owner"):
 						self.__paramdefs.set_txn(txn)
+
 						pd = ParamDef("owner", "string", "Record Owner", "This is the user-id of the 'owner' of the record")
 						self.__paramdefs["owner"] = pd
-						pd = ParamDef("creator", "string", "Record Creator", "The user-id that initially created the record")
+
+						pd = ParamDef("creator", "user", "Record Creator", "The user-id that initially created the record")
 						self.__paramdefs["creator"] = pd
-						pd = ParamDef("modifyuser", "string", "Modified by", "The user-id that last changed the record")
+
+						pd = ParamDef("modifyuser", "user", "Modified by", "The user-id that last changed the record")
 						self.__paramdefs["modifyuser"] = pd
+
 						pd = ParamDef("creationtime", "datetime", "Creation time", "The date/time the record was originally created")
 						self.__paramdefs["creationtime"] = pd
+
 						pd = ParamDef("modifytime", "datetime", "Modification time", "The date/time the record was last modified")
 						self.__paramdefs["modifytime"] = pd
-						pd = ParamDef("comments", "text", "Record comments", "Record comments")
+
+						pd = ParamDef("comments", "comments", "Record comments", "Record comments")
 						self.__paramdefs["comments"] = pd
-						pd = ParamDef("rectype", "text", "Record type", "Record type (RecordDef)")
+
+						pd = ParamDef("rectype", "string", "Record type", "Record type (RecordDef)")
 						self.__paramdefs["rectype"] = pd
-						pd = ParamDef("permissions", "list", "Permissions", "Permissions")
+
+						pd = ParamDef("permissions", "acl", "Permissions", "Permissions")
 						self.__paramdefs["permissions"] = pd
+
+						
+
 						self.__paramdefs.set_txn(None)
 		
 				if txn : txn.commit()
@@ -693,7 +704,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 
 
 		@publicmethod
-		def getbinary(self, idents, ctxid=None, host=None, filt=1):
+		def getbinary(self, idents, ctxid=None, host=None, vts=None, params=None, filt=1):
 				"""Get a storage path for an existing binary object. Returns the
 				object name and the absolute path"""
 
@@ -701,6 +712,9 @@ recover - Only one thread should call this. Will run recovery on the environment
 				ret={}
 				bids=[]				
 				recs=[]
+
+				if not vts:
+					vts=["binary","binaryimage"]
 
 				ol=0
 				if isinstance(idents,basestring):# or not hasattr(idents,"__iter__"):
@@ -710,12 +724,13 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if isinstance(idents,(int,Record)):
 					idents=[idents]
 				
-				bids.extend(filter(lambda x:isinstance(x,(basestring)), idents))
+				bids.extend(filter(lambda x:isinstance(x,basestring), idents))
 				
 				recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), ctxid=ctxid, host=host, filt=1))
 				recs.extend(filter(lambda x:isinstance(x,Record), idents))
-				bids.extend(self.filtervartype(recs, ["binary","binaryimage"], ctxid=ctxid, host=host, flat=1))
-
+				bids.extend(self.filtervartype(recs, vts, ctxid=ctxid, host=host, flat=1))
+				
+				bids=filter(lambda x:isinstance(x, basestring), bids)
 				
 				for ident in bids:
 					prot, _, key = ident.rpartition(":")
@@ -2812,7 +2827,7 @@ or None if no match is found."""
 		
 		
 		@publicmethod
-		def getparamdefs(self, recs, ctxid=None, host=None):
+		def getparamdefs(self, recs, filt=0, ctxid=None, host=None):
 				"""Returns a list of ParamDef records.
 				recs may be a single record, a list of records, or a list
 				of paramdef names. This routine will 
@@ -2846,7 +2861,14 @@ or None if no match is found."""
 					
 				paramdefs = {}
 				for i in params:
-					paramdefs[i] = self.__paramdefs[str(i)]
+					try:
+						paramdefs[i] = self.__paramdefs[str(i)]
+					except:
+						if filt:
+							print "WARNING: Invalid param: %s"%i
+							pass
+						else:
+							raise Exception, "Invalid param: %s"%i
 
 				return paramdefs
 				
@@ -3232,6 +3254,7 @@ or None if no match is found."""
 
 				print "done"
 				
+				
 		def __reindexmanyrecs(self, key, oparamdict, nparamdict, txn=None):
 				"""This function reindexes a single key/value pair
 				This includes creating any missing indices if necessary"""
@@ -3258,12 +3281,13 @@ or None if no match is found."""
 				
 				# remove the old ref and add the new one
 				for oval in oparamdict:
-					g.debug('ind.removerefs(',oval,',', '%r' % oparamdict[oval])
+					#g.debug('ind.removerefs(',oval,',', '%r' % oparamdict[oval])
 					ind.removerefs(oval, oparamdict[oval], txn=txn)
 				for nval in nparamdict:
 					g.debug('ind.addrefs(',nval,',', '%r' % nparamdict[nval])
 					ind.addrefs(nval, nparamdict[nval], txn=txn)
 				#print ind.items()
+
 
 		def __reindex(self, key, oldval, newval, recid, txn=None):
 				"""This function reindexes a single key/value pair
@@ -3353,6 +3377,32 @@ or None if no match is found."""
 				#print ind.items()
 
 
+
+		def __reindexsec2(self, items, txn=None):
+			# item format:
+			# [recid, newusers, oldusers]
+			deluser=set(reduce(lambda x,y:x+y, [i[2] for i in items]))
+			deluser=dict([[i,[]] for i in deluser])
+			adduser=set(reduce(lambda x,y:x+y, [i[1] for i in items]))
+			adduser=dict([[i,[]] for i in adduser])
+
+			for i in items:
+				for j in i[2]:
+					deluser[j].append(i[0])
+				for j in i[1]:
+					adduser[j].append(i[0])
+
+
+			for user in deluser.keys()+adduser.keys():
+				deluser[user]=set(deluser[user])
+				adduser[user]=set(adduser[user])
+				deluser[user] -= adduser[user]
+				if deluser[user]:
+					self.__secrindex.removerefs(deluser[user], txn=txn)
+				if adduser[user]:
+					self.__secrindex.addrefs(adduser[user], txn=txn)
+				
+				
 
 		#@write,private
 		def __reindexsec(self, oldlist, newlist, recid, txn=None):
@@ -3572,7 +3622,7 @@ or None if no match is found."""
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
 		@publicmethod
-		def filtervartype(self, recs, vts, paramdefs=None, filt=1, flat=0, returndict=0, ignore=None, ctxid=None, host=None):
+		def filtervartype(self, recs, vts, params=None, paramdefs=None, filt=1, flat=0, returndict=0, ignore=None, ctxid=None, host=None):
 
 			if not recs:
 				return [None]
@@ -3595,6 +3645,9 @@ or None if no match is found."""
 
 			recs2.extend(filter(lambda x:isinstance(x,Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs),ctxid=ctxid,host=host,filt=filt))
+
+			if params:
+				paramdefs=self.getparamdefs(params)
 
 			if not paramdefs:
 				pds=set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
@@ -3773,6 +3826,177 @@ or None if no match is found."""
 
 
 
+		@publicmethod
+		def putrecord2(self, recs, parents=[], children=[], warning=0, ctxid=None, host=None, txn=None):
+			"""test"""
+			
+			ctx=self.__getcontext(ctxid,host)
+
+			if warning and not self.checkadmin(ctx):
+				raise Exception,"Only administrators may bypass record validation"
+
+			ol=0
+			if isinstance(recs,Record):
+				ol=1
+				recs=[recs]
+
+			updrecs=filter(lambda x:isinstance(x,Record) and x.recid != None, recs)
+			newrecs=filter(lambda x:isinstance(x,Record) and x.recid == None, recs)
+			
+			ret=[]
+			
+			ind=dict([(i,[]) for i in self.getparamdefnames()])
+			orecs=[]
+			secrupdate=[]
+			timeupdate={}
+			
+			for rec in updrecs:
+				#orec=self.__records[rec.recid]
+				# try to get all at once before starting..
+				orec=self.getrecord(rec.recid, ctxid=ctxid, host=host)
+				#orec is validated below instead..
+				#rec.validate(orec)
+				cp=rec.changedparams(orec)
+				
+				if len(cp)==0:
+					print "No changes"
+					continue
+				
+				t = time.strftime(TIMESTR)
+				
+				if not self.__importmode:
+					ind["modifytime"].append((orec.recid,t,orec.get("modifytime")))
+					ind["modifyuser"].append((orec.recid,ctx.user,orec.get("modifyuser")))
+					orec["modifytime"] = t
+					orec["modifyuser"] = ctx.user
+				
+				for i in rec["comments"]:
+					if i not in orec._Record__comments:
+						orec._Record__comments.append(i)
+						
+				for param in cp:
+					orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (orec.recid, orec[param])))
+					ind[param].append((orec.recid,rec[param],orec[param]))		
+					orec[param]=rec[param]
+			
+				secr=[orec.recid, set(reduce(operator.concat, rec["permissions"])), set(reduce(operator.concat, orec["permissions"]))]
+				if secr[1] != secr[2]:
+					secrupdate.append(t)
+
+				timeupdate[orec.recid]=t
+				
+				orec.validate(warning=warning)
+				orecs.append(orec)
+				
+				
+
+			if not txn:
+				txn=self.newtxn()			
+
+			print "putrecord2: recs to commit: %s"%len(orecs)
+
+			for orec in orecs:
+				self.__records.set(orec.recid, orec, txn)				 # This actually stores the record in the database
+
+			for k,v in filter(lambda x:x[1],ind.items()):
+				self.__reindex2(k,v)
+
+			if secrupdate:
+				self.__reindexsec2(secrupdate, txn=txn)
+
+			for k,v in timeupdate.items():
+				self.__timeindex.set(k, v, txn=txn)
+
+			
+			if ol:
+				return [orecs][0].recid
+			return [i.recid for i in orecs]
+			
+			
+			
+
+		def __reindex2(self, key, items, txn=None):
+			# items format:
+			# [recid, newval, oldval]
+			
+			ind = self.__getparamindex(key)
+			pd = self.__paramdefs[key]
+			
+			if ind == None:
+				return			
+			
+			if pd.vartype not in self.indexablevartypes:
+				print "Unindexable vartype: %s"%pd.vartype
+				return
+							
+			# remove oldval=newval; strip out wrong keys
+			items = filter(lambda x:x[1]!=x[2], items)
+
+			# these vartypes require special indexing
+			if pd.vartype=="comments":
+				return
+			if pd.vartype=="text":
+				return self.reindextext2(key,items)
+				
+			oldvals = dict([[i,set()] for i in set([i[2] for i in items])])
+			newvals = dict([[i,set()] for i in set([i[1] for i in items])])
+			for i in items:
+				oldvals[i[2]].add(i[0])
+				newvals[i[1]].add(i[0])
+			
+			if oldvals.has_key(None): del oldvals[None]
+			if newvals.has_key(None): del newvals[None]
+				
+			for oldval,recs in oldvals.items():
+				print "reindex: param: %s, removerefs: %s, recs: %s"%(key,oldval,recs)
+				ind.removerefs(oldval, recs, txn=txn)
+			for newval,recs in newvals.items():
+				print "reindex: param: %s, addrefs: %s, recs: %s"%(key,newval,recs)
+				ind.addrefs(newval, recs, txn=txn)
+						
+
+
+		@publicmethod
+		def reindextext2(self, key, items, txn=None):
+			# ind is already ok and indexable, items is filtered for unchanged items
+			ind = self.__getparamindex(key)
+
+			allwords=[i[2].lower() for i in items if isinstance(i[2],basestring)] + [i[1].lower() for i in items if isinstance(i[1],basestring)]
+			allwords=set(reduce(lambda x,y: x+y, [x.split() for x in allwords]))
+			# key=word, val=recids
+			addrefs=dict([i,[]] for i in allwords)
+			delrefs=dict([i,[]] for i in allwords)
+			
+			for item in items:
+				otxt=[]
+				ntxt=[]
+				if isinstance(item[2],basestring):
+					otxt=[i for i in item[3].split()]
+				if isinstance(item[1],basestring):
+					ntxt=[i for i in item[2].split()]
+				for i in otxt:
+					delrefs[i].append(i[0])
+				for i in ntxt:
+					addrefs[i].append(i[0])	
+			
+			for i in allwords:
+				# make set, remove unchanged items
+				addrefs[i] = set(addrefs[i])
+				delrefs[i] = set(delrefs[i])
+				u = addrefs[i] & delrefs[i]
+				addrefs[i] -= u
+				delrefs[i] -= u
+
+			for word in allwords - self.unindexed_words:
+				if delrefs[word]:
+					print "reindex text: param:%s delrefs: %s, recs: %s"%(key, word, delrefs[word])
+					ind.removerefs(key, delrefs[word], txn=txn)
+				if addrefs[word]:
+					print "reindex text: param:%s delrefs: %s, recs: %s"%(key, word, delrefs[word])
+					ind.addrefs(key, addrefs[word], txn=txn)
+						
+
+
 		#@write,user
 		@publicmethod
 		def putrecord(self, records, parents=[], children=[], ctxid=None, host=None, txn=None):
@@ -3786,6 +4010,7 @@ or None if no match is found."""
 				orecords, results = [], set([])
 				recdict = {}
 				cp = dict()
+				
 				_recs = records
 				if not isinstance(records, list):
 					_recs = [records]
@@ -4422,11 +4647,33 @@ or None if no match is found."""
 		
 		
  
+
+		def __dicttable_view(self, params, paramdefs={}, mode="unicode"):
+			"""generate html table of params"""
+						
+			if mode=="html":
+				dt = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]	
+				for i in params:
+					dt.append("<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))	
+				dt.append("</table>")
+			else:
+				dt = []
+				for i in params:
+					dt.append("$#%s:\t$$%s\n"%(i,i))
+			return "".join(dt)
+			
+			
+
+				
 			
 
 		@publicmethod		
-		def renderview(self, recs, viewdef=None, viewtype="defaultview", paramdefs={}, showmacro=True, mode="unicode", ctxid=None, host=None):
+		def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs={}, showmacro=True, mode="unicode", outband=0, ctxid=None, host=None):
 			"""Render views"""
+			
+			# viewtype "dicttable" is builtin now.
+			if not recs:
+				return
 						
 			ol=0
 			if not hasattr(recs,"__iter__") or isinstance(recs,Record):
@@ -4435,20 +4682,43 @@ or None if no match is found."""
 
 			if not isinstance(list(recs)[0],Record):
 				recs=self.getrecord(recs,ctxid=ctxid,host=host,filt=1)
+						
+			
+			builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
+			builtinparamsshow=["recid","rectype","comments","creator","creationtime"]
 							
 			groupviews={}
+			groups=set([rec.rectype for rec in recs])
+			recdefs=self.getrecorddef(groups, ctxid=ctxid, host=host)
+
 			if not viewdef:
-				groups=set([rec.rectype for rec in recs])
 				for i in groups:
-					rd=self.getrecorddef(i,ctxid=ctxid,host=host)
+					rd=recdefs.get(i)
+
 					if viewtype=="mainview":
 						groupviews[i]=rd.mainview
+
+					elif viewtype=="dicttable":
+						# move built in params to end of table
+						par=[p for p in rd.paramsK if p not in builtinparams]
+						par+=builtinparamsshow
+						groupviews[i]=self.__dicttable_view(par,mode=mode)
+
 					else:
 						groupviews[i]=rd.views.get(viewtype, rd.name)
 
 			else:
 				groupviews[None]=viewdef
-			
+
+
+			if outband:
+				for rec in recs:
+					obparams=[i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
+					if obparams:
+						groupviews[rec.recid]=groupviews[rec.rectype] + self.__dicttable_view(obparams,mode=mode)					
+					# switching to record-specific views; no need to parse group views
+					#del groupviews[rec.rectype]
+
 
 			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 											
@@ -4493,7 +4763,10 @@ or None if no match is found."""
 
 			
 			for rec in recs:
-				key = rec.rectype
+				if groupviews.get(rec.recid):
+					key = rec.recid
+				else:
+					key = rec.rectype
 				if viewdef: key = None
 				a = groupviews.get(key)
 				

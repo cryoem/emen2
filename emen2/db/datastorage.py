@@ -185,6 +185,7 @@ class RecordDef(DictMixin) :
 	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
 	attr_all = attr_user | attr_admin
 	
+	
 	def __init__(self,d=None):
 		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
 		self.views={"recname":"$$rectype $$creator $$creationtime"}				# Dictionary of additional (named) views for the record
@@ -562,11 +563,11 @@ class Record(DictMixin):
 		if self.__params.keys():
 
 			vtm=emen2.Database.subsystems.datatypes.VartypeManager()	
-
+			
 			pds=self.__context.db.getparamdefs(set(self.__params.keys())-self.param_special)
 			newpd={}
 			for i,pd in pds.items():
-				g.debug('self[%r] -> %r' % (i, self[i]),'pd -> %r' % pd,'vtm -> %r' % vtm)
+				#g.debug('self[%r] -> %r' % (i, self[i]),'pd -> %r' % pd,'vtm -> %r' % vtm)
 				newpd[i]=self.validate_param(self[i],pd,vtm)			
 			self.__params = newpd
 

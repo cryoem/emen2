@@ -45,19 +45,4 @@ from emen2 import Database
 
 
 
-def dicttableview(rec,params=[]):
-	"""Quickly build a table for viewing key/values for a record."""
-	#if len(params)==0: return
-
-	#print "dicttableview params: %s"%params
-
-	if params == None:
-		params = rec.getparamkeys()
-
-	dicttable = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]	
-	for i in params:
-		#if i not in sidebarparams:
-		dicttable.append("<tr><td>$#" + i + "</td><td>$$" + i + "</td></tr>")
-	dicttable.append("</table>")
-	return "".join(dicttable)
 

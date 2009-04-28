@@ -538,7 +538,7 @@ relationshipbrowser.prototype = {
 	
 	getrecord: function(irecid) {
 		var self=this;
-		$.get(EMEN2WEBROOT+"/db/recordview/"+irecid+"/table/", {}, function(data) {
+		$.get(EMEN2WEBROOT+"/db/recordview/"+irecid+"/dicttable/", {}, function(data) {
 			if (irecid == self.currentid) {
 				self.info_view.append(data);
 			}
