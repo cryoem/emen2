@@ -540,6 +540,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				recordid that references this binary, used for permissions. Returns a tuple
 				with the identifier for later retrieval and the absolute path"""
 
+				ctx = self.__getcontext(ctxid, host)
 				
 				if name == None or str(name) == "":
 					raise ValueError, "BDO name may not be 'None'"				
