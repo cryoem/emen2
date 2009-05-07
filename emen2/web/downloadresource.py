@@ -8,6 +8,7 @@ import cStringIO
 
 
 # Twisted Imports
+from twisted.internet import threads
 from twisted.python import failure, filepath
 from twisted.internet import defer
 from twisted.web.resource import Resource
@@ -52,7 +53,7 @@ class DownloadResource(Resource, File):
 		#authen.authenticate(username, pw, ctxid)
 		#ctxid, un = authen.get_auth_info()
 		
-		g.debug("\n\n:: download :: %s :: %s"%(request.uri, host))
+		#g.debug("\n\n:: download :: %s :: %s"%(request.uri, host))
 
 		d = threads.deferToThread(self.RenderWorker, request.postpath, request.args, ctxid, host)	
 		d.addCallback(self._cbRender, request)
@@ -71,7 +72,7 @@ class DownloadResource(Resource, File):
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
 			#ipath="/Users/irees/emen2/emen2/startup.sh"
 			ipaths.append((ipath,bname))
-			g.debug("download list: %s  ...  %s"%(ipath,bname))	
+			#g.debug("download list: %s  ...  %s"%(ipath,bname))	
 		return ipaths
 
 
@@ -91,7 +92,7 @@ class DownloadResource(Resource, File):
 			tar = tarfile.open(mode="w|", fileobj=request)
 
 			for name in ipaths:
-				g.debug("adding %s as %s"%(name[0],name[1]))
+				#g.debug("adding %s as %s"%(name[0],name[1]))
 				tar.add(name[0],arcname=name[1])
 			tar.close()
 
@@ -134,7 +135,8 @@ class DownloadResource(Resource, File):
 
 #		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
 		
-		data = g.templates.render_template("/errors/error",context={"errmsg":errmsg,"title":"Error"}).encode('utf-8')
+		#data = g.templates.render_template("/errors/error",context={"errmsg":errmsg,"title":"Error"}).encode('utf-8')
+		data = "error"
 
 		request.setResponseCode(errcode)
 		request.setHeader("content-type", "text/html; charset=utf-8")

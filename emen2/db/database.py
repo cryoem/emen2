@@ -281,7 +281,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 						u.password = p.hexdigest()
 						u.groups = [-1]
 						u.creationtime = time.strftime(TIMESTR)
-						u.name = ('Database', '', 'Administrator')
+						u.name = ('','','Admin')
 						self.__users.set("root", u, txn)
 
 				# Binary data names indexed by date
@@ -360,8 +360,18 @@ recover - Only one thread should call this. Will run recovery on the environment
 						pd = ParamDef("permissions", "acl", "Permissions", "Permissions")
 						self.__paramdefs["permissions"] = pd
 
-						
+						pd = ParamDef("parents","links","Parents", "Parents")
+						self.__paramdefs["parents"] = pd
 
+						pd = ParamDef("children","links","Children", "Children")
+						self.__paramdefs["children"] = pd
+						
+						pd = ParamDef("publish","boolean","Publish", "Publish")
+						self.__paramdefs["publish"] = pd						
+						
+						pd = ParamDef("deleted","boolean","Deleted", "Deleted")
+						self.__paramdefs["deleted"] = pd
+						
 						self.__paramdefs.set_txn(None)
 		
 				if txn : txn.commit()
@@ -1600,6 +1610,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 
 				ind = self.__getparamindex(paramname, create=1, ctxid=ctxid, host=host)
+
 								
 				if valrange == None:
 						r = dict(ind.items())
@@ -1973,13 +1984,17 @@ parentheses not supported yet. Upon failure returns a tuple:
 
 				if keytype not in ["record", "recorddef", "paramdef"]:
 						raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
+
+				if pkey==ckey:
+					print "WARNING: Cannot link to self."
+					return
 								
 				# ian: circular reference detection. 
 				if not self.__importmode:
 						p = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="parents", ctxid=ctxid, host=host)[0]
 						c = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="children", ctxid=ctxid, host=host)[0]
 						if pkey in c or ckey in p or pkey == ckey:
-								raise Exception, "Circular references are not allowed."
+								raise Exception, "Circular references are not allowed: parent=%s child=%s"%(pkey,ckey)
 				
 				
 				if keytype == "record": 
@@ -2478,7 +2493,7 @@ parentheses not supported yet. Upon failure returns a tuple:
 					else:
 						raise KeyError, "No such user: %s"%i
 
-				if self.checkreadadmin(ctx) or ctx.user == username:
+				if self.checkreadadmin(ctx) or ctx.user == i:
 					ret[i]=user
 					continue
 					
@@ -3393,14 +3408,16 @@ or None if no match is found."""
 					adduser[j].append(i[0])
 
 
+			print deluser
+			
 			for user in deluser.keys()+adduser.keys():
-				deluser[user]=set(deluser[user])
-				adduser[user]=set(adduser[user])
+				deluser[user]=set(deluser.get(user,[]))
+				adduser[user]=set(adduser.get(user,[]))
 				deluser[user] -= adduser[user]
 				if deluser[user]:
-					self.__secrindex.removerefs(deluser[user], txn=txn)
+					self.__secrindex.removerefs(user, deluser[user], txn=txn)
 				if adduser[user]:
-					self.__secrindex.addrefs(adduser[user], txn=txn)
+					self.__secrindex.addrefs(user, adduser[user], txn=txn)
 				
 				
 
@@ -3677,6 +3694,7 @@ or None if no match is found."""
 
 
 
+
 		@publicmethod
 		def getuserdisplayname(self, username, lnf=1, perms=0, filt=1, ctxid=None, host=None):
 				"""Return the full name of a user from the user record; include permissions param if perms=1"""
@@ -3708,7 +3726,10 @@ or None if no match is found."""
 
 				namestoget=set(namestoget)
 					
-				users = self.getuser(namestoget,filt=filt,ctxid=ctxid,host=host)
+				users = self.getuser(namestoget,filt=filt,ctxid=ctxid,host=host).items()
+				users = filter(lambda x:x[1].record!=None, users)
+				users = dict(users)
+
 				recs = self.getrecord([user.record for user in users.values()],filt=filt,ctxid=ctxid,host=host)
 				recs = dict([(i.recid,i) for i in recs])
 							
@@ -3716,7 +3737,7 @@ or None if no match is found."""
 					ret[k] = self.__formatusername(k,recs[v.record],lnf=lnf)
 				
 				if len(ret.keys())==0:
-					return None			
+					return {}
 				if ol:
 					return ret.values()[0]
 
@@ -3825,44 +3846,139 @@ or None if no match is found."""
 			return record.recid			
 
 
+		@publicmethod
+		def clonerecord(self, recs, ctxid=None, host=None, txn=None):
+			"""clone records"""
+
+			ctx=self.__getcontext(ctxid,host)
+			if not self.checkadmin(ctx):
+				raise Exception,"Only administrators may clone"
+			
+			dictrecs=filter(lambda x:isinstance(x,dict), recs)
+			dictrecs=map(lambda x:Record(x), dictrecs)
+			recs.extend(dictrecs)		
+			updrecs=filter(lambda x:isinstance(x,Record), recs)
+
+			ind=dict([(i,[]) for i in self.getparamdefnames(ctxid=ctxid,host=host)])			
+			ret=[]
+			orecs=[]
+			pc=[]
+			cp=[]
+			secrupdate=[]
+			timeupdate={}			
+			
+			for offset, rec in enumerate(updrecs):
+				pc.extend([(i,rec.recid) for i in rec.get("parents",[])])
+				cp.extend([(rec.recid,i) for i in rec.get("children",[])])
+				rec["children"]=None
+				rec["parents"]=None
+				rec["permissions"]=((-4,),(),(),())
+				
+				for param in filter(lambda x:rec.get(x), rec.keys()):
+					ind[param].append((rec.recid,rec[param],None))		
+
+				secr=[rec.recid, reduce(operator.concat, rec["permissions"]), []]
+				secrupdate.append(secr)
+				timeupdate[rec.recid]=rec.get("modifytime")
+				orecs.append(rec)
+
+			if not txn:
+				txn=self.newtxn()			
+
+			#maxrecid = self.__records.get(-1)
+			#newmax = max([i.recid for i in orecs])
+			#if newmax > maxrecid:
+			#	self.__records.set(-1, maxrecid+1)
+			
+			for orec in orecs:
+				self.__records.set(orec.recid, orec, txn=txn)
+				self.__recorddefbyrec.set(orec.recid, orec.rectype, txn=txn)
+				self.__recorddefindex.addref(orec.rectype, orec.recid, txn=txn)			
+	
+			# Now update indices
+			for k,v in filter(lambda x:x[1],ind.items()):
+				try: self.__reindex2(k,v)
+				except Exception, inst: print "Could not index %s: %s"%(k,inst)
+
+			if secrupdate:
+				self.__reindexsec2(secrupdate, txn=txn)
+
+			for k,v in timeupdate.items():
+				self.__timeindex.set(k, v, txn=txn)
+
+			# create links
+			for link in pc+cp:
+				try: self.pclink(link[0],link[1],ctxid=ctxid,host=host)
+				except: print "couldn't link %s -> %s"%(link[0],link[1])
+
 
 		@publicmethod
-		def putrecord2(self, recs, parents=[], children=[], warning=0, ctxid=None, host=None, txn=None):
+		def putrecord2(self, recs, warning=0, clone=0, ctxid=None, host=None, txn=None):
 			"""test"""
 			
 			ctx=self.__getcontext(ctxid,host)
 
 			if warning and not self.checkadmin(ctx):
-				raise Exception,"Only administrators may bypass record validation"
+				raise Exception,"Only administrators may bypass record validation"	
 
 			ol=0
 			if isinstance(recs,Record):
 				ol=1
 				recs=[recs]
-
-			updrecs=filter(lambda x:isinstance(x,Record) and x.recid != None, recs)
-			newrecs=filter(lambda x:isinstance(x,Record) and x.recid == None, recs)
+				
+				
+			dictrecs=filter(lambda x:isinstance(x,dict), recs)
+			dictrecs=map(lambda x:Record(x), dictrecs)
+			recs.extend(dictrecs)		
 			
+			updrecs=filter(lambda x:isinstance(x,Record), recs)
+
 			ret=[]
 			
-			ind=dict([(i,[]) for i in self.getparamdefnames()])
+			ind=dict([(i,[]) for i in self.getparamdefnames(ctxid=ctxid,host=host)])
 			orecs=[]
+			nrecs=[]
+			pc=[]
+			cp=[]
+			
 			secrupdate=[]
 			timeupdate={}
+			baserecid=self.__records.get(-1, txn=txn)
 			
-			for rec in updrecs:
-				#orec=self.__records[rec.recid]
-				# try to get all at once before starting..
-				orec=self.getrecord(rec.recid, ctxid=ctxid, host=host)
-				#orec is validated below instead..
-				#rec.validate(orec)
+						
+			for offset,rec in enumerate(updrecs):
+				t = time.strftime(TIMESTR)
+				newrecord=0
+				
+				try:
+					orec=self.getrecord(rec.recid, ctxid=ctxid, host=host)					
+
+				except TypeError, inst:
+					if not self.checkcreate(ctx):
+						raise SecurityError, "No permission to create records"
+					# new record here... assign negative recid
+					newrecord=1
+					orec=Record()
+					rec.setContext(ctx)
+					orec.setContext(ctx)
+					orec.recid = (baserecid+offset+1)*-1
+					orec.rectype = rec.rectype
+					orec._Record__creator = ctx.user
+					orec._Record__creationtime = t
+				
+				# why isn't this working normally...
+				test1=rec.get("parents") or []
+				test2=rec.get("children") or []
+				pc.extend([(i,orec.recid) for i in test1])
+				cp.extend([(orec.recid,i) for i in test2])
+				rec["children"]=None
+				rec["parents"]=None
+					
 				cp=rec.changedparams(orec)
 				
-				if len(cp)==0:
+				if len(cp)==0 and not newrecord:
 					print "No changes"
-					continue
-				
-				t = time.strftime(TIMESTR)
+					continue				
 				
 				if not self.__importmode:
 					ind["modifytime"].append((orec.recid,t,orec.get("modifytime")))
@@ -3875,31 +3991,72 @@ or None if no match is found."""
 						orec._Record__comments.append(i)
 						
 				for param in cp:
-					orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (orec.recid, orec[param])))
+					if not newrecord:
+						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (orec.recid, orec[param])))
 					ind[param].append((orec.recid,rec[param],orec[param]))		
 					orec[param]=rec[param]
 			
 				secr=[orec.recid, set(reduce(operator.concat, rec["permissions"])), set(reduce(operator.concat, orec["permissions"]))]
 				if secr[1] != secr[2]:
-					secrupdate.append(t)
+					secrupdate.append(secr)
 
 				timeupdate[orec.recid]=t
 				
 				orec.validate(warning=warning)
-				orecs.append(orec)
+
+				if newrecord:
+					nrecs.append(orec)
+				else:
+					orecs.append(orec)
 				
 				
 
 			if not txn:
 				txn=self.newtxn()			
 
-			print "putrecord2: recs to commit: %s"%len(orecs)
-
+			print "putrecord2: recs to update: %s"%len(orecs)
+			
 			for orec in orecs:
-				self.__records.set(orec.recid, orec, txn)				 # This actually stores the record in the database
+				self.__records.set(orec.recid, orec, txn=txn)				 # This actually stores the record in the database
 
+			if nrecs:
+				print "putrecord2: recs to add: %s"%len(nrecs)
+				recidmap={}
+				count=len(nrecs)
+				# update rec counter
+				baserecid=self.__records.get(-1, txn=txn)
+				self.__records.set(-1, baserecid + count, txn=txn)
+
+				for offset,orec in enumerate(nrecs):
+					newrecid=offset+baserecid
+					print "new record: prov=%s final=%s"%(orec.recid,newrecid)
+					recidmap[orec.recid]=newrecid
+					orec.recid=newrecid
+					self.__records.set(orec.recid, orec, txn=txn)
+					self.__recorddefbyrec.set(orec.recid, orec.rectype, txn=txn)
+					self.__recorddefindex.addref(orec.rectype, orec.recid, txn=txn)	
+
+				# adjust indices
+				for k,v in ind.items():
+					v=map(lambda x:(recidmap.get(x[0],x[0]),x[1],x[2]), v)
+					ind[k]=v
+
+				secrupdate=map(lambda x:(recidmap.get(x[0],x[0]), x[1], x[2]), secrupdate)
+
+				t2=map(lambda x:(recidmap.get(x[0],x[0]),x[1]), timeupdate.items())
+				timeupdate=dict(t2)
+				
+				pc=map(lambda x:(recidmap.get(x[0],x[0]), recidmap.get(x[1],x[1])), pc)
+				cp=map(lambda x:(recidmap.get(x[0],x[0]), recidmap.get(x[1],x[1])), cp)
+			
+			
+
+			# Now update indices
 			for k,v in filter(lambda x:x[1],ind.items()):
-				self.__reindex2(k,v)
+				try:
+					self.__reindex2(k,v)
+				except Exception, inst:
+					print "Could not index %s: %s"%(k,inst)
 
 			if secrupdate:
 				self.__reindexsec2(secrupdate, txn=txn)
@@ -3907,10 +4064,24 @@ or None if no match is found."""
 			for k,v in timeupdate.items():
 				self.__timeindex.set(k, v, txn=txn)
 
+			# create links
+			for link in pc:
+				try:
+					self.pclink(link[0],link[1],ctxid=ctxid,host=host)
+				except:
+					print "couldn't link"
+
+			for link in cp:
+				try:
+					self.pclink(link[0],link[1],ctxid=ctxid,host=host)
+				except:
+					print "couldn't link"
 			
-			if ol:
-				return [orecs][0].recid
-			return [i.recid for i in orecs]
+			# fix returns
+			#if ol:
+			#	return [orecs][0].recid
+			#return orecs
+			#return [i.recid for i in orecs]
 			
 			
 			
@@ -3919,22 +4090,23 @@ or None if no match is found."""
 			# items format:
 			# [recid, newval, oldval]
 			
-			ind = self.__getparamindex(key)
 			pd = self.__paramdefs[key]
 			
-			if ind == None:
-				return			
 			
-			if pd.vartype not in self.indexablevartypes:
+			if pd.vartype not in self.indexablevartypes or pd.name in ["recid","comments"]:
 				print "Unindexable vartype: %s"%pd.vartype
 				return
+
+			ind = self.__getparamindex(key)
+			if ind == None:
+				return			
 							
 			# remove oldval=newval; strip out wrong keys
 			items = filter(lambda x:x[1]!=x[2], items)
 
 			# these vartypes require special indexing
-			if pd.vartype=="comments":
-				return
+			#if pd.vartype=="comments":
+			#	return
 			if pd.vartype=="text":
 				return self.reindextext2(key,items)
 				
@@ -3963,6 +4135,7 @@ or None if no match is found."""
 
 			allwords=[i[2].lower() for i in items if isinstance(i[2],basestring)] + [i[1].lower() for i in items if isinstance(i[1],basestring)]
 			allwords=set(reduce(lambda x,y: x+y, [x.split() for x in allwords]))
+			# lprint "allwords: %s"%allwords
 			# key=word, val=recids
 			addrefs=dict([i,[]] for i in allwords)
 			delrefs=dict([i,[]] for i in allwords)
@@ -3971,9 +4144,9 @@ or None if no match is found."""
 				otxt=[]
 				ntxt=[]
 				if isinstance(item[2],basestring):
-					otxt=[i for i in item[3].split()]
+					otxt=[i.lower() for i in item[2].split()]
 				if isinstance(item[1],basestring):
-					ntxt=[i for i in item[2].split()]
+					ntxt=[i.lower() for i in item[1].split()]
 				for i in otxt:
 					delrefs[i].append(i[0])
 				for i in ntxt:
@@ -4288,6 +4461,7 @@ or None if no match is found."""
 		
 		
 		# ian: improved!
+
 		@publicmethod
 		def getrecord(self, recid, filt=1, dbid=0, ctxid=None, host=None):
 				"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.

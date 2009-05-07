@@ -133,18 +133,22 @@ class ParamDef(DictMixin) :
 				self.property = str(self.property)
 				if self.property not in vtm.getproperties(): raise Exception
 			except:
-				print "WARNING:: Invalid property %s"%self.property
+				print "WARNING: Invalid property %s"%self.property
 
 
-		if self.defaultunits == "": self.defaultunits = None
+		if self.defaultunits == "" or self.defaultunits == "unitless": self.defaultunits = None
 		if self.defaultunits != None:
 			self.defaultunits=str(self.defaultunits)
 			if self.property == None:
-				raise ValueError,"Units requires property"
-			prop=vtm.getproperty(self.property)
-			if self.defaultunits not in set(prop.units):
-				raise Exception,"Invalid default units %s for property %s"%(self.defaultunits,self.property)
-			
+				#raise ValueError,"Units requires property"
+				print "WARNING: Units requires property"
+			else:
+				prop=vtm.getproperty(self.property)
+				if prop.equiv.get(self.defaultunits):
+					self.defaultunits=prop.equiv.get(self.defaultunits)
+				if self.defaultunits not in set(prop.units):
+					#raise Exception,"Invalid default units %s for property %s"%(self.defaultunits,self.property)
+					print "WARNING: Invalid default units %s for property %s"%(self.defaultunits,self.property)
 					
 		if self.choices:
 			try:
@@ -181,7 +185,7 @@ class RecordDef(DictMixin) :
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
 	
-	attr_user = set(["mainview","views","private","typicalchld"])
+	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short"])
 	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
 	attr_all = attr_user | attr_admin
 	
@@ -423,7 +427,7 @@ class Record(DictMixin):
 						# Group -4 includes any user (anonymous)
 		
 		self.recid=kwargs.get('recid')
-		self.rectype=kwargs.get('rectype', '')				
+		self.rectype=kwargs.get('rectype')				
 		self.__comments=kwargs.get('comments',[]) or []
 		self.__creator=kwargs.get('creator',0)
 		self.__creationtime=kwargs.get('creationtime')
@@ -588,7 +592,7 @@ class Record(DictMixin):
 		cp=[]
 		nkeys = set(self.keys())
 		okeys = set(orec.keys())
-		for i in (nkeys | okeys): #-self.param_special:
+		for i in (nkeys | okeys) - set(["recid"]): #-self.param_special:
 			if self.get(i) != orec.get(i):
 				cp.append(i)
 		
