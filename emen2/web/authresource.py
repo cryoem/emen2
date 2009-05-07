@@ -40,7 +40,7 @@ class AuthResource(Resource):
 		u=urlparse.urlsplit(redirect)
 		du=list(u)
 		if u.hostname == None and u.port == None and u.scheme == None:
-		du[0]="http"
+			du[0]="http"
 		#du[1]=request.getHeader("host").split(":")[0]
 		du[1]=g.EMEN2HOST
 		if g.EMEN2PORT != 80:
