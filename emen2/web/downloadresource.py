@@ -43,7 +43,7 @@ class DownloadResource(Resource, File):
 		
 		if not ctxid:
 			if request.args.get("ctxid"):
-				g.debug("got ctxid from kwargs")
+				#g.debug("got ctxid from kwargs")
 				ctxid = request.args.get("ctxid",[None])[0]
 		
 		#username = args.get('username',[''])[0]

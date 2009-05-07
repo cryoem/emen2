@@ -45,7 +45,7 @@ class ParamDef(DictMixin) :
 
 	#################################		
 	# repr methods
-	#################################			
+	#################################
 
 	def __str__(self):
 		return str(dict(self))
@@ -256,7 +256,7 @@ class RecordDef(DictMixin) :
 	#################################
 			
 	def __getitem__(self,key):
-		return self.__dict__[key]
+		return self.__dict__.get(key)
 		
 	def __setitem__(self,key,value):
 		if key in self.attr_all:
