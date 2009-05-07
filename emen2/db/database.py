@@ -3950,6 +3950,8 @@ or None if no match is found."""
 				t = time.strftime(TIMESTR)
 				newrecord=0
 				
+				print "putrecord2 processing: %s"%rec
+				
 				try:
 					orec=self.getrecord(rec.recid, ctxid=ctxid, host=host)					
 
