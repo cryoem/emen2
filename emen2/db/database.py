@@ -128,8 +128,8 @@ class DBProxy(object):
 #	def __call__(self, *args, **kwargs):
 	def __getattribute__(self, name):
 
- 		if name.startswith('__') and name.endswith('__'):
- 			result = getattr(self.__db, name)()
+		if name.startswith('__') and name.endswith('__'):
+			result = getattr(self.__db, name)()
 		elif name.startswith('_'): return object.__getattribute__(self, name)
 		
 		db = self.__db
@@ -143,26 +143,26 @@ class DBProxy(object):
 			kwargs["host"]=host
 
 
- 		result = None
- 		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
+		result = None
+		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
 
 			#print "\n\nDB: %s, kwargs: %s"%(name,kwargs)
 
- 			result = self.__publicmethods.get(name)# or self.__extmethods.get(name)()
+			result = self.__publicmethods.get(name)# or self.__extmethods.get(name)()
 
- 			if result:
+			if result:
 				result = partial(result, db, **kwargs)
- 			else:
- 				result = self.__extmethods.get(name)()
+			else:
+				result = self.__extmethods.get(name)()
 
- 				kwargs['db'] = db
- 				if result: result = result(method.execute, **kwargs)
+				kwargs['db'] = db
+				if result: result = partial(result.execute, **kwargs)
 # 			if method:
 # 				result = method(*args[1:], **kwargs)
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
 
- 		return result
+		return result
 
 
 
@@ -3297,9 +3297,11 @@ or None if no match is found."""
 				
 				# remove the old ref and add the new one
 				print oparamdict
+				for x in oparamdict:pass
 				for oval in oparamdict:
 					#g.debug('ind.removerefs(',oval,',', '%r' % oparamdict[oval])
-					ind.removerefs(oval, oparamdict[oval], txn=txn)
+					if oval is not None:
+						ind.removerefs(oval, oparamdict[oval], txn=txn)
 				for nval in nparamdict:
 					g.debug('ind.addrefs(',nval,',', '%r' % nparamdict[nval])
 					ind.addrefs(nval, nparamdict[nval], txn=txn)
