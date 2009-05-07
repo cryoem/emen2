@@ -606,7 +606,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 				bdo = key + "%05X"%newid
 
 				#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-				if os.access(path + "/%05X" % newid, os.F_OK):
+				if os.access(path + "/%05X" % newid, os.F_OK) and not self.checkadmin(ctx):
 					raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
 					#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
 				
@@ -3949,19 +3949,19 @@ or None if no match is found."""
 						
 			for offset,rec in enumerate(updrecs):
 				t = time.strftime(TIMESTR)
-				newrecord=0
+				newrecord = 0
 				
-				print "putrecord2 processing: %s"%rec
+				#print "putrecord2 processing: %s"%rec.recid
 				
 				try:
-					orec=self.getrecord(rec.recid, ctxid=ctxid, host=host)					
+					orec = self.getrecord(rec.recid, ctxid=ctxid, host=host)					
 
 				except TypeError, inst:
 					if not self.checkcreate(ctx):
 						raise SecurityError, "No permission to create records"
 					# new record here... assign negative recid
-					newrecord=1
-					orec=Record()
+					newrecord = 1
+					orec = Record()
 					rec.setContext(ctx)
 					orec.setContext(ctx)
 					orec.recid = (baserecid+offset+1)*-1
@@ -3983,6 +3983,8 @@ or None if no match is found."""
 					print "No changes"
 					continue				
 				
+				print "putrecord2 recid: %s cp: %s"%(orec.recid,cp)
+				
 				if not self.__importmode:
 					ind["modifytime"].append((orec.recid,t,orec.get("modifytime")))
 					ind["modifyuser"].append((orec.recid,ctx.user,orec.get("modifyuser")))
@@ -3999,8 +4001,9 @@ or None if no match is found."""
 					ind[param].append((orec.recid,rec[param],orec[param]))		
 					orec[param]=rec[param]
 			
-				secr=[orec.recid, set(reduce(operator.concat, rec["permissions"])), set(reduce(operator.concat, orec["permissions"]))]
-				if secr[1] != secr[2]:
+				
+				if rec["permissions"] != orec["permissions"]:
+					secr=[orec.recid, set(reduce(operator.concat, rec["permissions"])), set(reduce(operator.concat, orec["permissions"]))]
 					secrupdate.append(secr)
 
 				timeupdate[orec.recid]=t
