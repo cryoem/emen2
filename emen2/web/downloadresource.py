@@ -10,10 +10,13 @@ import cStringIO
 # Twisted Imports
 from twisted.internet import threads
 from twisted.python import failure, filepath
+from twisted.internet import threads
 from twisted.internet import defer
 from twisted.web.resource import Resource
 from twisted.web.static import *
 
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 
 ##########################################

@@ -23,7 +23,7 @@ g = emen2.globalns.GlobalNamespace('')
 import urlparse
 import demjson
 
-
+class Null(object): pass
 
 class AuthResource(Resource):
 

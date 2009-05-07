@@ -104,7 +104,7 @@ class PublicView(Resource):
 				result[key]=value
 
 				
-			result.update(sdict)	
+			result.update(sdict)
 
 		return result
 		
@@ -118,7 +118,7 @@ class PublicView(Resource):
 			z=demjson.decode(content)
 			for key in set(z.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
 				ret[str(key)]=z[key]
-		except: pass	  
+		except: pass
 		return ret
 	
 	
@@ -171,8 +171,8 @@ class PublicView(Resource):
 								 as a string
 				cb -- the callback function to call
 		"""
-		#if prnt:
-		#	g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+		if prnt:
+			g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
 		def _reg_inside(cb):
 			#g.debug('MATCH: %s  <->  %s' % (name,match) )
 			cls.__registerurl(name, re.compile(match), cb)

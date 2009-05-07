@@ -32,13 +32,15 @@ class RPCFormatJSON:
 				kwargs[str(k)]=demjson.decode(v[0])
 			except demjson.JSONDecodeError:
 				pass
+		g.debug('decoding args result == %r, %r' % (args, kwargs))
 
 		if hasattr(args,"items"):
 			for k,v in args.items():
 				kwargs[str(k)]=v
 			args=[]
 		
-		return None, args, kwargs
+		g.debug('decoding args result == %r, %r' % (args, kwargs))
+		return None, tuple(args), kwargs
 
 	def encode(self, method, value):
 		value = demjson.encode(value, escape_unicode=True)			
@@ -179,6 +181,6 @@ class RPCResource(Resource):
 		#db._setcontext(ctxid,host)		
 		#if not db._ismethod(method):
 		#	raise NotImplementedError('remote method %s not implemented' % method)
-		#g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
+		g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
 		result = db._callmethod(method, args, kwargs)
 		return self.handler.encode(method, result)

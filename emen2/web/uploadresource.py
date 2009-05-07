@@ -10,6 +10,7 @@ import cStringIO
 # emen2 imports
 from emen2 import ts 
 from emen2.Database import exceptions
+import emen2.Database.database
 
 
 from emen2.subsystems import routing, auth
@@ -122,7 +123,7 @@ class UploadResource(Resource):
 		print "Get binary..."
 		# fixme: use basename and splitext
 		print filename
-		a = db.newbinary(time.strftime(db.TIMESTR),filename,rec.recid,ctxid=ctxid,host=host)
+		a = db.newbinary(time.strftime(emen2.Database.database.TIMESTR),filename,rec.recid,ctxid=ctxid,host=host)
 
 		print "Writing file... %s"%a[1]
 

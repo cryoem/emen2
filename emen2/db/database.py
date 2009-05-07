@@ -3295,6 +3295,7 @@ or None if no match is found."""
 					return
 				
 				# remove the old ref and add the new one
+				print oparamdict
 				for oval in oparamdict:
 					#g.debug('ind.removerefs(',oval,',', '%r' % oparamdict[oval])
 					ind.removerefs(oval, oparamdict[oval], txn=txn)
@@ -4259,6 +4260,9 @@ or None if no match is found."""
 						oparamdict = {}
 						nparamdict = {}
 						for nv, ov, recid in zip(newvals, oldvals, recids):
+							if type(nv) == list: nv = tuple(nv)
+							if type(ov) == list: ov = tuple(nv)
+							g.debug('nv = <%r>, ov = <%r>, recid = <%r>' % (nv, ov, recid))
 							if nparamdict.has_key(nv): nparamdict[nv].append(recid)
 							else: nparamdict[nv] = [recid]
 							if oparamdict.has_key(ov): oparamdict[ov].append(recid)
@@ -4843,12 +4847,14 @@ or None if no match is found."""
 				
 			
 
-		@publicmethod		
+		@publicmethod
+		@g.debug.debug_func
 		def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs={}, showmacro=True, mode="unicode", outband=0, ctxid=None, host=None):
 			"""Render views"""
 			
 			# viewtype "dicttable" is builtin now.
-			if not recs:
+			if recs != 0 and not recs:
+				g.debug('NOT RECS!!!')
 				return
 						
 			ol=0
@@ -4902,7 +4908,7 @@ or None if no match is found."""
 			values={}
 			macros={}
 			pd=[]
-			for g,vd in groupviews.items():
+			for g1,vd in groupviews.items():
 				n=[]
 				v=[]
 				m=[]
@@ -4928,11 +4934,11 @@ or None if no match is found."""
 					for i in n:
 						vrend=vtm.name_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
 						vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-					groupviews[g]=vd
+					groupviews[g1]=vd
 				
-				names[g]=n
-				values[g]=v
-				macros[g]=m
+				names[g1]=n
+				values[g1]=v
+				macros[g1]=m
 
 									
 			ret={}
@@ -4957,7 +4963,9 @@ or None if no match is found."""
 				
 				ret[rec.recid]=a
 
-			if ol: return ret.values()[0]
+			g.debug('ol ->', ol) 
+			if ol:
+				return ret.values()[0]
 			return ret
 
 

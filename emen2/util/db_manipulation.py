@@ -50,7 +50,7 @@ class DBTree(object):
 		return index
 	
 	def get_title(self, recid):
-		return self.render_view(recid, 'recname').rpartition(':')[0::2]
+		return g.debug.note_var(self.render_view(recid, 'recname')).rpartition(':')[0::2]
 
 	def chroot(self, recid):
 		self.__root = recid
