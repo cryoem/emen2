@@ -535,7 +535,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 		
 		@publicmethod
-		def newbinary(self, date, name, recid, filedata=None, paramname=None, ctxid=None, host=None):
+		def newbinary(self, date, name, recid, key=None, filedata=None, paramname=None, ctxid=None, host=None):
 				"""Get a storage path for a new binary object. Must have a
 				recordid that references this binary, used for permissions. Returns a tuple
 				with the identifier for later retrieval and the absolute path"""
@@ -544,15 +544,32 @@ recover - Only one thread should call this. Will run recovery on the environment
 				
 				if name == None or str(name) == "":
 					raise ValueError, "BDO name may not be 'None'"				
-
+				
+				if key and not self.checkadmin(ctx):
+					raise SecurityError, "Only admins may manipulate binary tree directly"
 
 				if date == None:
 					date = time.strftime(TIMESTR)
-			
-				year = int(date[:4])
-				mon = int(date[5:7])
-				day = int(date[8:10])
+				
+				
+				if not key:
+					year = int(date[:4])
+					mon = int(date[5:7])
+					day = int(date[8:10])
+					newid = 0
+				else:
+					date=str(key)
+					year=int(date[:4])
+					mon=int(date[4:6])
+					day=int(date[6:8])
+					newid=int(date[9:13],16)	
+					
+				print year
+				print mon
+				print day
+				print newid
 				key = "%04d%02d%02d" % (year, mon, day)
+				print "newbinary key is %s; date=%s"%(key,date)
 
 
 				# ian: check for permissions because actual operations are performed.
@@ -577,26 +594,21 @@ recover - Only one thread should call this. Will run recovery on the environment
 		
 				# Now we need a filespec within the directory
 				# dictionary keyed by date, 1 directory per day
-				if usetxn:
-					txn = self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-				else:
-					txn = None
+				#if usetxn:
+				#	txn = self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
+				#else:
+				txn = self.newtxn()
 
-
-				# if exists, increase counter
 				try:
-						itm = self.__bdocounter.get(key, txn)
-						newid = max(itm.keys()) + 1
-						itm[newid] = (name, recid)
-						self.__bdocounter.set(key, itm, txn)
-
-
-				# otherwise make a new dict
+					itm=self.__bdocounter.get(key,txn)
+					newid = max(itm.keys()) + 1
 				except:
-						itm = {0:(name, recid)}
-						self.__bdocounter.set(key, itm, txn)
-						newid = 0
-						
+					itm = {}
+				
+				itm[newid] = (name, recid)
+				self.__bdocounter.set(key, itm, txn)
+					
+
 				if txn:
 					txn.commit()
 				elif not self.__importmode:
@@ -610,7 +622,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if os.access(path + "/%05X" % newid, os.F_OK) and not self.checkadmin(ctx):
 					raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
 					#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
-				
+			
+			
 				# if a filedata is supplied, write it out...
 				# todo: use only this mechanism for putting files on disk
 				if filedata:
@@ -788,7 +801,7 @@ recover - Only one thread should call this. Will run recovery on the environment
 							raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
-				if ol: return ret.values()[0]
+				#if ol: return ret.values()[0]
 				return ret
 
 

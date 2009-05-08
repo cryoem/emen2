@@ -43,8 +43,8 @@ class AuthResource(Resource):
 			du[0]="http"
 		#du[1]=request.getHeader("host").split(":")[0]
 		du[1]=g.EMEN2HOST
-		if g.EMEN2PORT != 80:
-			du[1]="%s:%s"%(du[1],g.EMEN2PORT)
+		#if g.EMEN2PORT != 80:
+		#	du[1]="%s:%s"%(du[1],g.EMEN2PORT)
 		return urlparse.urlunsplit(du)	
 		
 				

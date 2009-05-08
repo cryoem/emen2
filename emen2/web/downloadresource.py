@@ -44,10 +44,11 @@ class DownloadResource(Resource, File):
 		request.postpath = filter(bool, request.postpath)		
 		ctxid = request.getCookie("ctxid")
 		
-		if not ctxid:
-			if request.args.get("ctxid"):
-				#g.debug("got ctxid from kwargs")
-				ctxid = request.args.get("ctxid",[None])[0]
+		#if not ctxid:
+		if request.args.get("ctxid"):
+			print "got ctxid from qs"
+			#g.debug("got ctxid from kwargs")
+			ctxid = request.args.get("ctxid",[None])[0]
 		
 		#username = args.get('username',[''])[0]
 		#pw = args.get('pw',[''])[0]
@@ -75,7 +76,7 @@ class DownloadResource(Resource, File):
 			print i
 			print db.getbinary(i,ctxid=ctxid,host=host,filt=0)
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
-			#ipath="/Users/irees/emen2/emen2/startup.sh"
+			ipath="/home/emen2/emen2/tweb/index.html"
 			ipaths.append((ipath,bname))
 			#g.debug("download list: %s  ...  %s"%(ipath,bname))	
 		return ipaths
