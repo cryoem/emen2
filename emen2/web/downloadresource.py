@@ -72,6 +72,8 @@ class DownloadResource(Resource, File):
 
 		ipaths=[]
 		for i in bids:
+			print i
+			print db.getbinary(i,ctxid=ctxid,host=host,filt=0)
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
 			#ipath="/Users/irees/emen2/emen2/startup.sh"
 			ipaths.append((ipath,bname))
@@ -125,6 +127,8 @@ class DownloadResource(Resource, File):
 		
 	def _ebRender(self,failure,request):
 
+		print failure
+		
 		errmsg="Test Error"
 		errcode=500
 		
@@ -139,7 +143,7 @@ class DownloadResource(Resource, File):
 #		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
 		
 		#data = g.templates.render_template("/errors/error",context={"errmsg":errmsg,"title":"Error"}).encode('utf-8')
-		data = "error"
+		data = errmsg
 
 		request.setResponseCode(errcode)
 		request.setHeader("content-type", "text/html; charset=utf-8")
