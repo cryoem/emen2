@@ -76,7 +76,7 @@ class DownloadResource(Resource, File):
 			print i
 			print db.getbinary(i,ctxid=ctxid,host=host,filt=0)
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
-			ipath="/home/emen2/emen2/tweb/index.html"
+			#ipath="/home/emen2/emen2/tweb/index.html"
 			ipaths.append((ipath,bname))
 			#g.debug("download list: %s  ...  %s"%(ipath,bname))	
 		return ipaths
