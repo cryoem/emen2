@@ -73,8 +73,6 @@ class DownloadResource(Resource, File):
 
 		ipaths=[]
 		for i in bids:
-			print i
-			print db.getbinary(i,ctxid=ctxid,host=host,filt=0)
 			bname,ipath,bdocounter=db.getbinary(i,ctxid=ctxid,host=host)						
 			#ipath="/home/emen2/emen2/tweb/index.html"
 			ipaths.append((ipath,bname))

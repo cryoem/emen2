@@ -40,7 +40,18 @@ def prepare_properties(outfile):
 	f.write("var EMEN2WEBROOT=%s;\n\n"%demjson.encode(g.EMEN2WEBROOT))
 	f.close()
 
+
+def prepare_web():
+	print "Adjusting EMEN2WEBROOT in static files"	
+	f=open(g.EMEN2ROOT+"/tweb/index.html","w")
+	f.write("""<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	<meta http-equiv="REFRESH" content="0; URL=%s/db/">"""%g.EMEN2WEBROOT)
+	f.close()
+
+
+
 prepare_properties(g.EMEN2ROOT+"/tweb/js/datatypes.js")
+prepare_web()
 
 
 #############################
