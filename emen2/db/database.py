@@ -3864,8 +3864,8 @@ or None if no match is found."""
 
 
 		@publicmethod
-		def clonerecord(self, recs, ctxid=None, host=None, txn=None):
-			"""clone records; fix this up and integrate with putrecord"""
+		def clonerecord(self, recs, anon=1, ctxid=None, host=None, txn=None):
+			"""clone records; fix this up and integrate with putrecord. kwarg anon= include anonymous access, otherwise requires account"""
 
 			ctx=self.__getcontext(ctxid,host)
 			if not self.checkadmin(ctx):
@@ -3889,7 +3889,10 @@ or None if no match is found."""
 				cp.extend([(rec.recid,i) for i in rec.get("children",[])])
 				rec["children"]=None
 				rec["parents"]=None
-				rec["permissions"]=((-3,),(),(),())
+				if anon:
+					rec["permissions"]=((-4,),(),(),())
+				else:
+					rec["permissions"]=((-3,),(),(),())
 				
 				for param in filter(lambda x:rec.get(x), rec.keys()):
 					ind[param].append((rec.recid,rec[param],None))		
