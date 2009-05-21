@@ -1,9 +1,11 @@
+from emen2.emen2config import *
+import time
+from emen2.subsystems.routing import URLRegistry
 from functools import partial
 from itertools import chain
+import emen2.util.datastructures
 import emen2.Database
-from emen2.subsystems.routing import URLRegistry
 
-from emen2.emen2config import *
 
 class IntegrityError(ValueError): pass
 
@@ -50,7 +52,7 @@ class DBTree(object):
 		return index
 	
 	def get_title(self, recid):
-		return g.debug.note_var(self.render_view(recid, 'recname')).rpartition(':')[0::2]
+		return self.render_view(recid, 'recname').rpartition(':')[0::2]
 
 	def chroot(self, recid):
 		self.__root = recid
@@ -78,7 +80,7 @@ class DBTree(object):
 	
 	def get_child_id(self, name, cur_dir):
 		'''returns children of a record with a given recname'''
-		children = self.__db.getchildren(cur_dir, keytype='record')#, ctxid=self.__ctxid, host=self.__host)
+		children = self.__db.getchildren(cur_dir, filt=True)
 		if name == '*': 
 			[(yield child) for child in children]
 		else:
@@ -92,12 +94,12 @@ class DBTree(object):
 			result.update(self.__db.getparents(rec))#, ctxid=self.__ctxid, host=self.__host))
 		self.__select(result, **kwargs)
 		return result
-	
+
 	def get_children(self, path=None, **kwargs):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
- 			new = [ elem for elem in self.get_child_id('*', rec) ]
+			new = [ elem for elem in self.get_child_id('*', rec) ]
 			if len(result) == 0:
 				result.update(new)
 			else:
@@ -115,6 +117,7 @@ class DBTree(object):
 	
 	def __dostuff(self, name, records):
 		for rec in records:
+			g.debug(rec)
 			if (str(rec) == name) or (self.__db.getrecord(rec)['recname'] == name):
 				yield (rec)
 	
@@ -131,7 +134,7 @@ class DBTree(object):
 		return str.join('/', self.__to_path(recid))
 	
 	def reverse(self, _name, *args, **kwargs):
-		return g.EMEN2WEBROOT+'/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')
+		return g.EMEN2WEBROOT+'/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')+'/'
 	
 	def render_template_view(self, name, *args, **kwargs):
 		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )#ctxid=self.__ctxid, host=self.__host, 
@@ -145,10 +148,23 @@ class DBTree(object):
 			return self.__db.getuser(un)
 		else:
 			return None
-
-
+	
+	def get_menu(self, depth=1):
+		recs = self.db.getchildren(self.root, recurse=depth, tree=True, filt=True)
+		folders = self.db.getindexbyrecorddef('folder')
+		recs1 = {}
+		keys = filter(lambda x: x in folders, recs)
+		for key in keys:
+			value = recs[key] & folders
+			recs1[key] = value
+		#t3 = time.time();g.debug.msg('LOG_INFO', 'start::', t3)
+		recs = emen2.util.datastructures.Tree(recs1, self.root,
+									app=lambda x: (x, self.getindex(x)))
+		#t4 = time.time();g.debug.msg('LOG_INFO', 'elapsed::', t4-t3)
+		return recs
+		
 def get_create(recdef, param, value, db, ctxid, host=None):
-	record =  db.getindexbyvalue(param, value, ctxid, host)
+	record = db.getindexbyvalue(param, value, ctxid, host)
 	record = db.groupbyrecorddef(record, ctxid, host).get(recdef, set())
 	if len(record) == 1:
 		record = db.getrecord(record.pop(), ctxid)

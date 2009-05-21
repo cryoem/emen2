@@ -1,5 +1,9 @@
 import itertools
+import operator
+import UserDict
+
 class Ring(object):
+	'A fixed length buffer which overwrites the oldest entries when full'
 	def __init__(self, length=5):
 		self.__buf = []
 		self.__length = length
@@ -30,9 +34,10 @@ class AttributedDict(dict):
 	def __setattr__(self, name, value):
 		self[name] = value
 	def __repr__(self):
-		print 'AttributedDict(%s)' % dict.__repr__(self)
+		return 'AttributedDict(%s)' % dict.__repr__(self)
 
 class Enum(set):
+	'A class that maps names to numbers and allows the numbers to be referenced by name'
 	def __init__(self, dct):
 		set.__init__(self, (x.upper() for x in dct))
 		self.values = dict(( (x.upper(), int(dct[x])) for x in dct))
@@ -70,7 +75,6 @@ class Enum(set):
 		'get the name of a state'
 		return (x[0] for x in self.values.items() if x[1] == value).next()
 
-import UserDict
 class MultiKeyDict(object, UserDict.DictMixin):
 	def __init__(self):
 		self._values = {}
@@ -95,3 +99,71 @@ class MultiKeyDict(object, UserDict.DictMixin):
 		return self._values.values()
 	def as_dict(self): return dict(self.items())
 	def __repr__(self): return str(self.as_dict())
+
+class Tree(object, UserDict.DictMixin):
+	'processes and treeifies a dictionary'
+	def __init__(self, table, root, app=lambda x:x):
+		self.key = app(root)
+		self.filled = False
+		self.children = {}
+		if root in table:
+			for child in table[root]:
+				self.children[app(child)] = Tree(table, child, app)
+			self.filled = True
+
+	def __getitem__(self, key):
+		if hasattr(key, '__iter__'): 
+			return self.find([self.key] + list(key))
+		return self.children[key]
+
+	def keys(self): 
+		return self.children.keys()
+
+	def find(self, path):
+		if len(path) == 1:
+			return self
+		else:
+			value = self[path[1]]
+			if value is not None:
+				value = value.find(path[1:])
+				return value
+
+	def __str__(self): 
+		return '\n'.join(self.mkstrtree(0))
+
+	def mkstrtree(self, level, space='--'):
+		result = [space*level+str(self.key)]
+		for id, child in self.children.items():
+			result.extend(child.mkstrtree(level+1)) 
+		return result
+
+	def mktree(self):
+		result = {}
+		def setitem(dict, key, value): dict[key] = value
+		for key, value in self.children.items():
+			if value.filled:
+				setitem(result, key, value.mktree()) 
+			else:
+				setitem(result, key, None) 
+		return result
+
+	def count(self):
+		return len(self) + reduce(operator.add,
+								[x.count() for x in self.children.values()],
+								0)
+
+	def apply(self, func, normalize=True):
+		result = {}
+		self.key = func(self.key)
+		for key, value in self.children.items():
+			key = func(key)
+			value.apply(func)
+			if normalize and key != value.key:
+				value.key = key
+			result[key] = value
+		self.children = result
+
+	#def normalize_keys(self):
+	#	for key, value in self.children.items():
+	#		if key != value.key: value.key = key
+	#		value.normalize_keys()

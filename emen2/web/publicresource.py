@@ -289,6 +289,12 @@ class PublicView(Resource):
 #			request.write(result)
 #		else:
 		request.write(result)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
+				host = request.getClientIP(),
+				time = time.ctime(),
+				path = request.uri,
+				size = len(result)
+		))
 			
 		request.finish()
 		
@@ -307,7 +313,8 @@ class PublicView(Resource):
 		except (Database.exceptions.AuthenticationError,
 			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 			
-			request.setResponseCode(401)
+			response = 401
+			request.setResponseCode(response)
 			args = {
 					'redirect': request.uri,
 					'msg': str(e),
@@ -326,9 +333,17 @@ class PublicView(Resource):
 
 
 		except Exception, e:
-			request.setResponseCode(500)
+			response = 500
+			request.setResponseCode(response)
 			data = g.templates.handle_error(e).encode('utf-8')
 
 		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
 		request.write(data)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+			host = request.getClientIP(),
+			time = time.ctime(),
+			path = request.uri,
+			response = response,
+			size = 0
+		))
 		request.finish()

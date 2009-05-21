@@ -15,6 +15,10 @@ def remove(collection, keys):
 		try: del collection[key]
 		except KeyError: pass
 
+def adj_list(list, items):
+	list.extend(items)
+	return list
+
 def adj_dict(dict, items):
 	dict.update(items)
 	return dict

@@ -58,7 +58,7 @@ img {
 }
 
 #footer { /*background: #b1a584;*/
-	position: absolute;
+	position: relative;
 	width: 100%;
 	border-top: 2px solid #cccccc;
 	padding-top: 5px;

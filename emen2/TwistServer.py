@@ -33,7 +33,7 @@ def prepare_properties(outfile):
 		p=vtm.getproperty(prop)
 		properties[prop]=[p.defaultunits,[i[0] for i in sorted(p.units.items(), key=operator.itemgetter(1), reverse=True)]]
 	
-	print "Writing Properties files"
+	g.debug.msg(g.LOG_INIT, "Writing Properties files")
 	f=open(outfile,"w")
 	f.write("var valid_properties=%s;\n\n"%demjson.encode(properties))
 	f.write("var valid_vartypes=%s;\n\n"%demjson.encode(vtm.getvartypes()))
@@ -42,7 +42,7 @@ def prepare_properties(outfile):
 
 
 def prepare_web():
-	print "Adjusting EMEN2WEBROOT in static files"	
+	g.debug.msg(g.LOG_INIT, "Adjusting EMEN2WEBROOT in static files")
 	f=open(g.EMEN2ROOT+"/tweb/index.html","w")
 	f.write("""<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 	<meta http-equiv="REFRESH" content="0; URL=%s/db/">"""%g.EMEN2WEBROOT)
