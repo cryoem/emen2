@@ -4,3 +4,4 @@ _darcs
 shell.expect
 *.pyc
 *.tbz
+.*project
