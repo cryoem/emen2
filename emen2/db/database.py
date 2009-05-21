@@ -4870,7 +4870,6 @@ or None if no match is found."""
 			
 
 		@publicmethod
-		@g.debug.debug_func
 		def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs={}, showmacro=True, mode="unicode", outband=0, ctxid=None, host=None):
 			"""Render views"""
 			

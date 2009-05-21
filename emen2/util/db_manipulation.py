@@ -5,9 +5,23 @@ from functools import partial
 from itertools import chain
 import emen2.util.datastructures
 import emen2.Database
-
+import hashlib
 
 class IntegrityError(ValueError): pass
+
+class CacheKeyStore(object):
+	__keys = {}
+	@g.debug.debug_func
+	def get_key(self, ident):
+		result = self.__keys.get(ident, False)
+		t = time.time()
+		if not result or t > result[0]+30:
+			if result:
+				g.debug('result', result[0]+30, 'time', t)
+			g.debug('Cache Key regenerated! ident: (%s)' % ident)
+			result = (t, hashlib.sha1(str(t)+ident).hexdigest())
+			self.__keys[ident] = result
+		return g.debug.note_var(result[1])
 
 class DBTree(object):
 	'''emulates a tree structure on to of the Database'''
@@ -19,7 +33,11 @@ class DBTree(object):
 		self.__ctxid = ctxid
 		self.__host = host
 		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
+		self.__cache_key = CacheKeyStore()
 		self.db = self.__db
+	
+	def get_cache_key(self, ident):
+		self.__cache_key.get_key(ident + self.db.checkcontext()[0])
 
 	def __getpath(self, path=None):
 		if path != None: path = self.get_path_id(path)
