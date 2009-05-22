@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import urlparse
+import urllib2
 import demjson
 import emen2.globalns
 import re
@@ -196,7 +197,8 @@ class PublicView(Resource):
 		if base[-1] != '/': npath = '%s/' % path
 
 		#too many slashes
-		if base[3:] != path: npath = path
+		if urllib2.unquote(base)[3:] != path: npath = path
+		g.debug('npath 2-> (', npath, ') base -> (', base, ') path -> (', path, ')')
 
 		#registered redirect
 		redir = self.getredirect(npath or path)
@@ -236,6 +238,7 @@ class PublicView(Resource):
 
 		path = '/%s' % str.join("/", request.postpath)
 		target = self.__getredirect(None, request, path)
+		g.debug('redirect target --> (', target, ')')
 
 		if target is not None:
 			request.redirect(target)
