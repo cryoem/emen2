@@ -7,3 +7,4 @@ shell.expect
 .*project
 *.log
 *.cover
+.*
