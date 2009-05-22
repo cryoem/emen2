@@ -6,3 +6,4 @@ shell.expect
 *.tbz
 .*project
 *.log
+*.cover
