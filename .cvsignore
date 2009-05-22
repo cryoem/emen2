@@ -5,3 +5,5 @@ shell.expect
 *.pyc
 *.tbz
 .*project
+*.log
+.*

@@ -239,6 +239,13 @@ class PublicView(Resource):
 
 		if target is not None:
 			request.redirect(target)
+			g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+				host = request.getClientIP(),
+				time = time.ctime(),
+				path = request.uri,
+				response = request.code,
+				size = 0
+			))
 			request.finish()
 			return server.NOT_DONE_YET
 		
@@ -332,6 +339,13 @@ class PublicView(Resource):
 			#data = 'Auth Failure'
 
 
+		except routing.NotFoundError, e:
+			response = 404
+			request.setResponseCode(response)
+			data = g.templates.render_template('/notfound', dict(
+				EMEN2WEBROOT = "",
+				msg = request.uri
+			)).encode("utf-8")
 		except Exception, e:
 			response = 500
 			request.setResponseCode(response)
@@ -343,7 +357,7 @@ class PublicView(Resource):
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
-			response = response,
+			response = request.code,
 			size = 0
 		))
 		request.finish()
