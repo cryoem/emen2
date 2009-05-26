@@ -57,7 +57,7 @@ class User(DictMixin):
 		# non-admin users can only change their privacy setting directly
 		attr_user = set(["privacy", 'modifytime'])
 		attr_admin = set(["signupinfo","name","email","username","groups","disabled","password",
-											"creator","creationtime","record"])
+											"creator","creationtime","record", "secret"])
 		attr_all = attr_user | attr_admin
 		
 		def __init__(self,d=None, **kwargs):
@@ -106,6 +106,7 @@ class User(DictMixin):
 				self.record = kwargs.get('record') 
 				self.name = kwargs.get('name')
 				self.email = kwargs.get('email')
+				self.secret = kwargs.get('secret')
 				self.signupinfo = {}
 
 		#################################				 

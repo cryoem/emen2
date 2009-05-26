@@ -695,7 +695,6 @@ recover - Only one thread should call this. Will run recovery on the environment
 				if (time.time() > self.lastctxclean + 30):
 						# maybe not the perfect place to do this, but it will have to do
 						self.__cleanupcontexts()
-						pass
 
 				try:
 						ctx = self.__contexts[key]
@@ -707,7 +706,8 @@ recover - Only one thread should call this. Will run recovery on the environment
 								self.__contexts[key] = ctx		# cache result from database
 						except:
 								self.LOG(4, "Session expired %s" % key)
-								raise SessionError, "Session expired"
+								ctx = emen2.Database.Context(db=self, groups=[-4], host=host)
+								#raise SessionError, "Session expired"
 						
 				if host and host != ctx.host :
 						self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, ctx.host))
@@ -2180,64 +2180,67 @@ parentheses not supported yet. Upon failure returns a tuple:
 					
 
 		@publicmethod
-		def approveuser(self, username, ctxid=None, host=None):
+		def approveuser(self, username, ctxid=None, host=None, secret=None):
 			"""Only an administrator can do this, and the user must be in the queue for approval"""
 
-			ctx = self.__getcontext(ctxid, host)
-
-			if not self.checkadmin(ctx):
-				raise SecurityError, "Only administrators can approve new users"
+			if secret is None:
+				ctx = self.__getcontext(ctxid, host)
+				admin = self.checkadmin(ctx)
+				if not admin:
+					raise SecurityError, "Only administrators or people who know the secret can approve new users"
 
 			if hasattr(username,"__iter__"):
 				ret=[]
 				for i in username:
 					ret.append(self.approveuser(username=str(i),ctxid=ctxid,host=host))
-				return ret
+			else:
 
-			username = str(username)
-							
-			if not username in self.__newuserqueue :
-				raise KeyError, "User %s is not pending approval" % username
-					
-			if username in self.__users :
-				self.__newuserqueue[username] = None
-				raise KeyError, "User %s already exists, deleted pending record" % username
+				username = str(username)
 
-			# ian: create record for user.
-			user = self.__newuserqueue[username]
+				if not username in self.__newuserqueue :
+					raise KeyError, "User %s is not pending approval" % username
 
-			user.validate()
+				if username in self.__users :
+					self.__newuserqueue[username] = None
+					raise KeyError, "User %s already exists, deleted pending record" % username
 
-			if user.record == None:
-				userrec = self.newrecord("person", init=1, ctxid=ctxid, host=host)
-				#print user
-				userrec["username"] = username
-				userrec["name_first"] = user.name[0]
-				userrec["name_middle"] = user.name[1]
-				userrec["name_last"] = user.name[2]
-				userrec["email"] = user.email
+				# ian: create record for user.
+				user = self.__newuserqueue[username]
+				if user.secret != secret:
+					raise SecurityError, "He doesn't know the secret, how can he approve the user if he doesn't know the secret?"
 
-				# can't add permissions before user is approved
-				#p=(p[0]+(-3,),p[1]+(userrec['username'],),p[2]+(userrec['username'],),p[3])
+				user.validate()
 
-				for k,v in user.signupinfo.items():
-					userrec[k]=v
+				if user.record == None and ctxid is not None:
+					userrec = self.newrecord("person", init=1, ctxid=ctxid, host=host)
+					#print user
+					userrec["username"] = username
+					userrec["name_first"] = user.name[0]
+					userrec["name_middle"] = user.name[1]
+					userrec["name_last"] = user.name[2]
+					userrec["email"] = user.email
+
+					# can't add permissions before user is approved
+					#p=(p[0]+(-3,),p[1]+(userrec['username'],),p[2]+(userrec['username'],),p[3])
+
+					for k,v in user.signupinfo.items():
+						userrec[k]=v
 
 
-			user.validate()
+				user.validate()
 
-			txn = self.newtxn()
+				txn = self.newtxn()
 
-			user.record = self.putrecord(userrec, ctxid=ctxid, host=host, txn=txn)
-			user.signupinfo = None
-			self.__users.set(username, user, txn=txn)
-			self.__newuserqueue.set(username, None, txn=txn)
-			self.secrecordadduser([[],[],[],[user.username]],user.record,ctxid=ctxid,host=host,txn=txn)
+				user.record = self.putrecord(userrec, ctxid=ctxid, host=host, txn=txn)
+				user.signupinfo = None
+				self.__users.set(username, user, txn=txn)
+				self.__newuserqueue.set(username, None, txn=txn)
+				self.secrecordadduser([[],[],[],[user.username]],user.record,ctxid=ctxid,host=host,txn=txn)
 
-			if txn: txn.commit()
-			elif not self.__importmode : DB_syncall()
+				if txn: txn.commit()
+				elif not self.__importmode : DB_syncall()
 
-			return username
+				return username
 
 
 
