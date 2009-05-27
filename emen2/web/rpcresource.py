@@ -131,6 +131,13 @@ class RPCResource(Resource):
 	def _cbRender(self, result, request):
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(200)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+			host = request.getClientIP(),
+			time = time.ctime(),
+			path = request.uri,
+			response = request.code,
+			size = len(result)
+		))
 		request.write(result)
 		request.finish()		
 
@@ -143,6 +150,13 @@ class RPCResource(Resource):
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(500)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+			host = request.getClientIP(),
+			time = time.ctime(),
+			path = request.uri,
+			response = request.code,
+			size = len(result)
+		))
 		request.write(result)
 		request.finish()
 		

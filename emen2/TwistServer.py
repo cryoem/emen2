@@ -25,6 +25,7 @@ emen2.TwistSupport_html.public.views.load_views()
 
 import emen2.TwistSupport_html.html
 import emen2.TwistSupport_html.public.record
+import emen2.TwistSupport_html.public.template_render
 
 def prepare_properties(outfile):
 	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
