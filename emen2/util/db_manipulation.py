@@ -11,7 +11,6 @@ class IntegrityError(ValueError): pass
 
 class CacheKeyStore(object):
 	__keys = {}
-	@g.debug.debug_func
 	def get_key(self, ident):
 		result = self.__keys.get(ident, False)
 		t = time.time()
@@ -152,7 +151,9 @@ class DBTree(object):
 		return str.join('/', self.__to_path(recid))
 	
 	def reverse(self, _name, *args, **kwargs):
-		return g.EMEN2WEBROOT+'/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')+'/'
+		result = g.EMEN2WEBROOT+'/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')
+		if not result.endswith('/'): result = ''.join([result, '/'])
+		return result
 	
 	def render_template_view(self, name, *args, **kwargs):
 		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )#ctxid=self.__ctxid, host=self.__host, 
