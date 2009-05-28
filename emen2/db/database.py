@@ -146,7 +146,7 @@ class DBProxy(object):
 		result = None
 		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
 
-			g.debug("\n\nDB: %s, kwargs: %s"%(name,kwargs))
+			g.debug("DB: %s, kwargs: %s"%(name,kwargs))
 
 			result = self.__publicmethods.get(name)# or self.__extmethods.get(name)()
 
