@@ -4087,6 +4087,7 @@ or None if no match is found."""
 				self.__timeindex.set(k, v, txn=txn)
 
 			# create links
+			#TODO:  possibly give more useful names to variables
 			for link in pc:
 				try:
 					self.pclink(link[0],link[1],ctxid=ctxid,host=host)
