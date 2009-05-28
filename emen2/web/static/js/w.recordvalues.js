@@ -355,7 +355,13 @@ widget.prototype = {
 			this.w.addClass("widget_inplace");
 		}
 
-		if (paramdefs[this.param]["vartype"]=="text") {
+		if (paramdefs[this.param]["vartype"]=="html") {
+			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.value+'</textarea>');
+			this.editw.change(function(){self.changed=1;});
+			this.w.append(this.editw);				
+			
+
+		} else if (paramdefs[this.param]["vartype"]=="text") {
 
 			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.value+'</textarea>');
 			this.editw.change(function(){self.changed=1;});

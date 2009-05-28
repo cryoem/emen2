@@ -1,3 +1,6 @@
+.content_box {
+	display: inline-block
+}
 .widget {
 	display:none;
 }
