@@ -265,17 +265,17 @@ h2 {
 }
 
 .breadcrumb {
-	font-weight: bolder;
 	background: #b1a584; /* #DCEFEE; */
 	background: #446699;
 	float: none;
 	clear: both;
 	overflow: hidden;
+	height: 33px;
+	padding-left: 4px;
 	/*border-bottom: outset medium #ccc;*/
 	/*	border-bottom: medium #908362 solid;
 	border-top: medium #908362 solid;*/
-	padding: 2px;
-	padding-bottom: 0px;
+	/*padding-bottom: 0px;*/
 }
 
 .breadcrumb span a {
@@ -298,9 +298,7 @@ h2 {
 	display: block;
 	/* background: #D3C7A6; */
 	float: left;
-	padding: 2px;
 	margin-right: 5px;
-	margin-bottom: 2px;
 	overflow: hidden;
 	border-radius: 2px;
 	-moz-border-radius: 4px;
@@ -328,6 +326,15 @@ h2 {
 .breadmenu {
 	padding: 5px;
 	cursor: pointer;
+}
+
+.menuheading {
+	color: white !important;
+	padding: 11px 7px 7px;
+}
+
+.menuheading * {
+	color: white !important;
 }
 
 .breadcrumb a:hover {
