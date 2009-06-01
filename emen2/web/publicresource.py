@@ -36,6 +36,7 @@ class PublicView(Resource):
 
 
 
+	special_keys = set(["db","host","user","ctxid", "username", "pw"])
 	def __parse_args(self, args, content=None):
 		"""Break the request.args dict into something more usable
 
@@ -54,22 +55,20 @@ class PublicView(Resource):
 		if content:
 			filenames = self.__parse_filenames(content)
 
-		for key in set(args.keys()) - set(["db","host","user","ctxid"]):
-			#name, _, val = key.rpartition('_')
+		for key in set(args.keys()) - self.special_keys:
 			sdict = {}
-			value=args[key][0]
+			format=None
+			pos=None
+
 
 			p=str(key).split("___")
 			name=p[0]
-			format=None
-			pos=None
 
 			if key=="":
 				continue
 
 			if len(p)==3:
-				format=p[1]
-				pos=p[2]
+				format, pos =p[1:3]
 
 			if len(p)==2:
 				if p[1].isdigit():
@@ -80,17 +79,14 @@ class PublicView(Resource):
 			sdict = {}
 			key=str(key)
 
-			#print "parse key: %s"%key
-			#print "...format: %s, pos: %s"%(format, pos)
-			#print "...value: %s"%value
-
+			value=args[key][0]
 			if format=="json":
 				value = self.__parse_jsonargs(value)
 				if name == 'args':
 					sdict = value
 					value = None
 				result[name]=value
-
+			# What is the utility of this?
 			elif format=="file":
 				fn=filenames.get(key)
 				value=(fn,value)
@@ -100,10 +96,8 @@ class PublicView(Resource):
 				v2 = result.get(name, [])
 				v2.insert(int(pos), value)
 				result[name]=v2
-
-			if format is None and pos is None:
+			elif format is None:
 				result[key]=value
-
 
 			result.update(sdict)
 
@@ -111,16 +105,23 @@ class PublicView(Resource):
 
 
 
-
 	def __parse_jsonargs(self,content):
 		'decode a json string'
 		ret={}
-		try:
-			z=demjson.decode(content)
-			for key in set(z.keys()) - set(["db","host","user","ctxid", "username", "pw"]):
+		z=demjson.decode(content)
+		if hasattr(z, 'keys'):
+			for key in set(z.keys()) - self.special_keys:
 				ret[str(key)]=z[key]
-		except: pass
+		else:
+			ret = z
 		return ret
+
+
+
+	def __parse_filenames(self, content):
+		b=re.compile('name="(.+)"; filename="(.+)"')
+		ret={}
+		return dict(b.findall(content))
 
 
 
@@ -130,13 +131,6 @@ class PublicView(Resource):
 			result = routing.URL(name, match, cb)
 			cls.router.register(result)
 			return result
-
-
-
-	def __parse_filenames(self, content):
-		b=re.compile('name="(.+)"; filename="(.+)"')
-		ret={}
-		return dict(b.findall(content))
 
 
 
@@ -151,31 +145,24 @@ class PublicView(Resource):
 		return result
 
 
-
-
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
-		#g.debug.msg('LOG_INIT', 'Redirect Registered::: FROM:',fro, 'TO:', to, args, kwargs)
 		cls.redirects[fro] = (to, args, kwargs)
 
 
-
-
 	@classmethod
-	def register_url(cls, name, match, prnt=True):
+	def register_url(cls, name, match, _=True):
 		"""decorator function used to register a function to handle a specified URL
 
 
 			arguments:
 				name -- the name of the url to be registered
-				regex -- the regular expression that applies
+				match -- the regular expression that applies
 								 as a string
 				cb -- the callback function to call
 		"""
-		if prnt:
-			g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+		g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
 		def _reg_inside(cb):
-			#g.debug('MATCH: %s  <->  %s' % (name,match) )
 			cls.__registerurl(name, re.compile(match), cb)
 			return cb
 		return _reg_inside
@@ -268,9 +255,17 @@ class PublicView(Resource):
 
 	# wrap db with context; view never has to see ctxid/host
 	def _action(self, callback, db=None, ctxid=None, host=None):
+		'''set db context, call view, and get string result
+
+		put together to minimize amount of blocking code'''
 		db._setcontext(ctxid,host)
-		#ret=callback(db=db, ctxid=ctxid, host=host)
-		return callback(db=db)#, ctxid=ctxid, host=host)
+		ret, headers = callback(db=db)
+		try:
+			ret = unicode(ret).encode('utf-8')
+		except:
+			ret = str(ret)
+
+		return ret, headers
 
 
 
@@ -283,12 +278,7 @@ class PublicView(Resource):
 
 		result, content_headers = result
 
-		try:
-			result = unicode(result).encode('utf-8')
-		except:
-			result = str(result)
-
-		headers['content-type'] = content_headers
+		headers['content-type'] = content_headers.get('content-type')
 		headers['content-length'] = len(result)
 
 		request.setResponseCode(200)

@@ -29,13 +29,9 @@ class AuthResource(Resource):
 
 	isLeaf = True
 	methods = ["login","logout","chpasswd"]
-		
-		
 
 
-		
-		
-	# switch back to non-ssl	
+	# switch back to non-ssl
 	def loginredir(self,redirect,request):
 		u=urlparse.urlsplit(redirect)
 		du=list(u)
@@ -45,10 +41,10 @@ class AuthResource(Resource):
 		du[1]=g.EMEN2HOST
 		if g.EMEN2EXTPORT != 80:
 			du[1]="%s:%s"%(du[1],g.EMEN2PORT)
-		return urlparse.urlunsplit(du)	
-		
-				
-				
+		return urlparse.urlunsplit(du)
+
+
+
 	# parse request for params
 	def getloginparams(self, request):
 		args=request.args
@@ -72,9 +68,9 @@ class AuthResource(Resource):
 			"method":method,
 			"redirect":redirect
 			}
-			
-	
-	
+
+
+
 	def render(self, request):
 		largs = self.getloginparams(request)
 
@@ -86,7 +82,7 @@ class AuthResource(Resource):
 
 
 
-	# the meat, raise exception if bad login	
+	# the meat, raise exception if bad login
 	def _action(self, l, db=None):
 		g.debug("auth -> %s"%l)
 
@@ -98,49 +94,50 @@ class AuthResource(Resource):
 			cls=emen2.TwistSupport_html.public.login.Chpasswd
 		else:
 			raise Exception,"Unsupported auth method: %s"%method
-			
-		
+
+
 		# do work here
 #		db._setcontext(l["ctxid"],l["host"])
 		p = cls(db=db,**l)
 		ctxid = p.get_context()["ctxid"]
 		data = unicode(p.get_data()).encode("utf-8")
 #		db._clearcontext()
-		
+
 		g.debug("->ctxid:%s"%ctxid)
 
 		return ctxid, data
-		
-		
-		
-	def _cbrender(self, result, request, largs):		
+
+
+
+	@g.debug.debug_func
+	def _cbrender(self, result, request, largs):
 		ctxid = result[0]
 		data = result[1]
-		
+
 		msg = None
 		if ctxid != largs["ctxid"]:
 			g.debug("-> setting ctxid to %s"%ctxid)
 			request.addCookie("ctxid", ctxid, path='/')
-				
+
 			if largs["redirect"] != None:
 				g.debug("redirect->%s"%largs["redirect"])
 				request.redirect(largs["redirect"])
 				request.finish()
 				return
-		
+
 		request.write(data)
 		request.finish()
 		return
-		
-		
-		
+
+
+
 	def _ebrender(self, failure, request, largs):
 		g.debug("Failure: %s"%failure)
 		g.debug("-> unsetting ctxid")
-		
+
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
-		
+
 		#result = self._getpage("Login",str(failure), largs["redirect"])
 		result = emen2.TwistSupport_html.public.login.Login(db=ts.db,ctxid=None,host=None,msg=failure)
 		#result = "eb render %s"%failure

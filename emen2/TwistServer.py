@@ -33,7 +33,7 @@ def prepare_properties(outfile):
 	for prop in vtm.getproperties():
 		p=vtm.getproperty(prop)
 		properties[prop]=[p.defaultunits,[i[0] for i in sorted(p.units.items(), key=operator.itemgetter(1), reverse=True)]]
-	
+
 	g.debug.msg(g.LOG_INIT, "Writing Properties files")
 	f=open(outfile,"w")
 	f.write("var valid_properties=%s;\n\n"%demjson.encode(properties))
@@ -83,7 +83,7 @@ def interact():
 
 def main():
 	root = static.File(g.STATICPATH)
-	
+
 	resources = dict(
 		db = emen2.TwistSupport_html.publicresource.PublicView(),
 		auth = emen2.TwistSupport_html.authresource.AuthResource(),
@@ -92,9 +92,9 @@ def main():
 		RPC2 = emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"),
 		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json")
 	)
-	
+
 	load_resources(root, resources)
-	
+
 	if g.CONSOLE:
 		x = {}
 		x.update(globals())
@@ -102,7 +102,7 @@ def main():
 		a = code.InteractiveConsole(x, '')
 		thread.start_new_thread(interact, ())
 
-	
+
 	#############################
 	# Start server
 	#############################
@@ -110,7 +110,7 @@ def main():
 	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
 	if g.EMEN2HTTPS:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
-	
+
 	reactor.suggestThreadPoolSize(4)
 	reactor.run()
 
