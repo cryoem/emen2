@@ -1,3 +1,4 @@
+import sys
 import emen2.emen2config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')

@@ -307,6 +307,7 @@ h2 {
 .menu {
 	display: none;
 	overflow: hidden;
+	margin-top: -2px;
 	-moz-border-radius: 4px;
 }
 

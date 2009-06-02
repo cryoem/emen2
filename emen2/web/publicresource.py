@@ -211,44 +211,45 @@ class PublicView(Resource):
 
 
 	def render_GET(self, request, content=None):
+		try:
+			host = request.getClientIP()
+			ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
 
+			g.debug("ctxid is: %s"%ctxid)
 
-		host = request.getClientIP()
-		ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
+			request.postpath = filter(bool, request.postpath)
+			request.postpath.append('')
+			router=self.router
+			make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
 
-		g.debug("ctxid is: %s"%ctxid)
+			path = '/%s' % str.join("/", request.postpath)
+			target = self.__getredirect(None, request, path)
+			g.debug('redirect target --> (', target, ')')
 
-		request.postpath = filter(bool, request.postpath)
-		request.postpath.append('')
-		router=self.router
-		make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
+			if target is not None:
+				request.redirect(target)
+				g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+					host = request.getClientIP(),
+					time = time.ctime(),
+					path = request.uri,
+					response = request.code,
+					size = 0
+				))
+				request.finish()
 
-		path = '/%s' % str.join("/", request.postpath)
-		target = self.__getredirect(None, request, path)
-		g.debug('redirect target --> (', target, ')')
+			else:
+				g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
 
-		if target is not None:
-			request.redirect(target)
-			g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
-				host = request.getClientIP(),
-				time = time.ctime(),
-				path = request.uri,
-				response = request.code,
-				size = 0
-			))
-			request.finish()
+				args = self.__parse_args(request.args, content=content)
+				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
+
+				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
+				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid)
+				d.addErrback(self._ebRender, request, ctxid=ctxid)
+
 			return server.NOT_DONE_YET
-
-
-		g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
-
-		args = self.__parse_args(request.args, content=content)
-		callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
-
-		d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
-		d.addCallback(self._cbsuccess, request, t=time.time())
-		d.addErrback(self._ebRender, request, ctxid=ctxid)
-		return server.NOT_DONE_YET
+		except BaseException, e:
+			self._ebRender(e, request, ctxid=ctxid)
 
 
 
@@ -270,28 +271,30 @@ class PublicView(Resource):
 
 
 
-	def _cbsuccess(self, result, request, t=0):#, t=0):
+	def _cbsuccess(self, result, request, t=0, ctxid=None):
 		"result must be a 2-tuple: (result, mime-type)"
+		try:
+			headers = {"content-type": "text/html; charset=utf-8",
+					   "Cache-Control":"no-cache", "Pragma":"no-cache"}
 
-		headers = {"content-type": "text/html; charset=utf-8",
-				   "Cache-Control":"no-cache", "Pragma":"no-cache"}
+			result, content_headers = result
 
-		result, content_headers = result
+			headers['content-type'] = content_headers.get('content-type')
+			headers['content-length'] = len(result)
 
-		headers['content-type'] = content_headers.get('content-type')
-		headers['content-length'] = len(result)
+			request.setResponseCode(200)
+			[request.setHeader(key, headers[key]) for key in headers]
+			g.debug("::: time total: %s"%(time.time()-t))
 
-		request.setResponseCode(200)
-		[request.setHeader(key, headers[key]) for key in headers]
-		g.debug("::: time total: %s"%(time.time()-t))
-
-		request.write(result)
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
-				host = request.getClientIP(),
-				time = time.ctime(),
-				path = request.uri,
-				size = len(result)
-		))
+			request.write(result)
+			g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
+					host = request.getClientIP(),
+					time = time.ctime(),
+					path = request.uri,
+					size = len(result)
+			))
+		except BaseException, e:
+			self._ebRender(e, request, ctxid=ctxid)
 
 		request.finish()
 
