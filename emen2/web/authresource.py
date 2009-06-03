@@ -109,7 +109,6 @@ class AuthResource(Resource):
 
 
 
-	@g.debug.debug_func
 	def _cbrender(self, result, request, largs):
 		ctxid = result[0]
 		data = result[1]

@@ -151,9 +151,8 @@ class PublicView(Resource):
 
 
 	@classmethod
-	def register_url(cls, name, match, _=True):
+	def register_url(cls, name, match):
 		"""decorator function used to register a function to handle a specified URL
-
 
 			arguments:
 				name -- the name of the url to be registered
