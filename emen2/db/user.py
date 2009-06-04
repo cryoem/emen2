@@ -35,11 +35,26 @@ class Context:
 				self.maxidle=maxidle
 
 		# Contexts cannot be serialized
-		def __str__(self): return format_string_obj(self.__dict__,
-																								["ctxid","user",
-																								 "groups","time",
-																								 "maxidle"])		
+		def __str__(self):
+			return format_string_obj(self.__dict__, ["ctxid","user","groups","time","maxidle"])		
 				
+		def checkadmin(self):
+			if (-1 in self.groups):
+					return True
+			return False
+
+
+		def checkreadadmin(self):
+			if (-1 in self.groups) or (-2 in self.groups):
+					return True
+			return False
+
+
+		def checkcreate(self):
+			if 0 in self.groups or -1 in self.groups:
+					return True
+			return False
+
 				
 class User(DictMixin):
 		"""This defines a database user, note that group 0 membership is required to

@@ -729,6 +729,17 @@ class MemBTree(object):
 		try: self.bdb[key].append(item)
 		except: self.bdb[key]=[item]
 
+
+	def addrefs(self,key,items,txn=None):
+		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
+		key=self.typekey(key)
+		try:
+			self.bdb[key].extend(list(items))
+		except:
+			self.bdb[key]=list(items)
+		#self.bdb.index_extend(key,list(items),txn=self.txn)
+
+
 	def close(self):
 		self.bdb=None
 
