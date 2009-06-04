@@ -534,8 +534,8 @@ class Database(object):
 				ctx = self.__getcontext(ctxid, host)
 
 				if name == None or str(name) == "":
-					raise ValueError, "BDO name may not be 'None'"				
-				
+					raise ValueError, "BDO name may not be 'None'"
+
 				if key and not ctx.checkadmin():
 					raise SecurityError, "Only admins may manipulate binary tree directly"
 
@@ -681,6 +681,7 @@ class Database(object):
 				"""Takes a ctxid key and returns a context (for internal use only)
 				Note that both key and host must match. Returns context instance."""
 
+				if key == None: return Context(user='anonymous', groups=[-4])
 				key = str(key)
 
 				if (time.time() > self.lastctxclean + 30):
@@ -802,7 +803,7 @@ class Database(object):
 				get basic information on the authorized user and his/her permissions"""
 
 				a = self.__getcontext(ctxid, host)
-				return(a.user, a.groups)
+				return (a.user, a.groups)
 
 
 
@@ -819,25 +820,25 @@ class Database(object):
 
 
 
-		# 
+		#
 		@publicmethod
 		def checkadmin(self, ctxid=None, host=None):
 				"""Checks if the user has global write access. Returns bool."""
-				try: return self.__getcontext(ctxid, host).checkadmin()		
+				try: return self.__getcontext(ctxid, host).checkadmin()
 				except: return False
-		
+
 
 		@publicmethod
 		def checkreadadmin(self, ctxid=None, host=None):
 				"""Checks if the user has global read access. Returns bool."""
-				try: return self.__getcontext(ctxid, host).checkreadadmin()		
+				try: return self.__getcontext(ctxid, host).checkreadadmin()
 				except: return False
 
 
 		@publicmethod
 		def checkcreate(self, ctxid=None, host=None):
 				"""Check for permission to create records. Returns bool."""
-				try: return self.__getcontext(ctxid, host).checkcreate()		
+				try: return self.__getcontext(ctxid, host).checkcreate()
 				except: return False
 
 
@@ -1515,7 +1516,7 @@ class Database(object):
 					username = ctx.user
 
 				if ctx.user != username and not ctx.checkreadadmin():
-					raise SecurityError, "Not authorized to get record access for %s" % username 
+					raise SecurityError, "Not authorized to get record access for %s" % username
 
 
 				return set(self.__secrindex[username])
@@ -2000,7 +2001,7 @@ class Database(object):
 				"""Remove a parent-child relationship between two keys. Returns none if link doesn't exist."""
 
 				ctx = self.__getcontext(ctxid, host)
-				
+
 				if not ctx.checkcreate():
 						raise SecurityError, "pcunlink requires record creation priveleges"
 
@@ -2250,7 +2251,7 @@ class Database(object):
 			ctx = self.__getcontext(ctxid, host)
 
 			if not ctx.checkadmin():
-				raise SecurityError, "Only administrators can approve new users"				
+				raise SecurityError, "Only administrators can approve new users"
 
 			return self.__newuserqueue.keys()
 
@@ -2296,7 +2297,7 @@ class Database(object):
 						raise KeyError, "Putuser may only be used to update existing users"
 
 				ctx = self.__getcontext(ctxid, host)
-				
+
 				if not ctx.checkadmin():
 						raise SecurityError, "Only administrators may update a user with this method"
 
@@ -3151,14 +3152,14 @@ or None if no match is found."""
 					try:
 						self.__secrindex.removerefs(user, deluser[user], txn=txn)
 					except Exception, inst:
-						g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, adduser[user], inst))						
+						g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, adduser[user], inst))
 
 				if adduser[user]:
 					try:
 						self.__secrindex.addrefs(user, adduser[user], txn=txn)
 					except Exception, inst:
 						g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, adduser[user], inst))
-				
+
 
 
 		@publicmethod
@@ -3413,16 +3414,16 @@ or None if no match is found."""
 			ctx = self.__getcontext(ctxid,host)
 
 			if warning and not ctx.checkadmin():
-				raise Exception,"Only administrators may bypass record validation"	
+				raise Exception,"Only administrators may bypass record validation"
 
 			# filter input for dicts/records
 			ol = 0
 			if isinstance(recs,Record):
 				ol = 1
-				recs = [recs]			
+				recs = [recs]
 
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
-			recs.extend(map(lambda x:Record(x), dictrecs))				
+			recs.extend(map(lambda x:Record(x), dictrecs))
 			recs = filter(lambda x:isinstance(x,Record), recs)
 
 			# new records and updated records
@@ -3467,27 +3468,27 @@ or None if no match is found."""
 				if self.__importmode:
 					t = rec.get("creaiontime")
 					creator = rec.get("creator")
-				else:	
+				else:
 					t = time.strftime(TIMESTR)
 					creator = ctx.user
 
 				# create skeleton record; new record will be copied into this skeleton after validation during __putrecord
 				orec = Record()
 				orec._Record__creator = creator
-	 			orec._Record__creationtime = t
-	 			orec.rectype = rec.rectype			
-	 			orec.recid = recid
+				orec._Record__creationtime = t
+				orec.rectype = rec.rectype
+				orec.recid = recid
 
 				rec.setContext(ctx)
 				rec._Record__creator = creator
-				rec._Record__creationtime = t				
+				rec._Record__creationtime = t
 				rec.recid = recid
 
 				# all records need to validate at this stage before committing...
 				rec.validate(warning=warning)
 
-	 			#updrecs[recid] = rec
-	 			updrecs.append(rec)
+				#updrecs[recid] = rec
+				updrecs.append(rec)
 				orecs[recid] = orec
 
 
@@ -3515,14 +3516,14 @@ or None if no match is found."""
 
 			for k,v in rectypes.items():
 				try:
-					self.__recorddefindex.addrefs(k, v, txn=txn)			
+					self.__recorddefindex.addrefs(k, v, txn=txn)
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update recorddef index %s, records: %s (%s)"%(k,v,inst))
 
 			return crecs #[rec.recid for rec in crecs]
 
 
-			
+
 		def __reindexrecs(self, updrecs, orecs={}, ctx=None, txn=None):
 			ind=dict([(i,[]) for i in self.__paramdefs.keys()])
 			secrupdate=[]
@@ -3586,7 +3587,7 @@ or None if no match is found."""
 			#for recid, orec in orecs.items():
 			for updrec in updrecs:
 
-				t = time.strftime(TIMESTR)			
+				t = time.strftime(TIMESTR)
 				recid = updrec.recid
 				orec = orecs[recid]
 
@@ -3599,8 +3600,8 @@ or None if no match is found."""
 				updrec["children"]=None
 
 
-				# compare to original record					
-				orec.setContext(ctx)		
+				# compare to original record
+				orec.setContext(ctx)
 				# note: changedparams compares two records,
 				#	returns list of all mutable params + permissions + comments that are different
 				cp=orec.changedparams(updrec)
@@ -3610,7 +3611,7 @@ or None if no match is found."""
 					print "No changes"
 					continue
 
-				# copy updates to orec, log changes, add to index updates		
+				# copy updates to orec, log changes, add to index updates
 				for param in set(cp) - set(["comments", "permissions"]):
 					if log:
 						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
@@ -3626,7 +3627,7 @@ or None if no match is found."""
 
 				if not self.__importmode:
 					orec["modifytime"] = t
-					orec["modifyuser"] = ctx.user				
+					orec["modifyuser"] = ctx.user
 
 				if validate:
 					orec.validate(warning=warning, params=cp)
@@ -3635,10 +3636,10 @@ or None if no match is found."""
 				#crecs[recid] = orec
 
 
-			# take all checked records and commit and update indices	
+			# take all checked records and commit and update indices
 
 			if not txn:
-				txn=self.newtxn()			
+				txn=self.newtxn()
 
 
 			# This actually stores the record in the database
@@ -3650,9 +3651,9 @@ or None if no match is found."""
 			self.__reindexrecs(crecs, orecs, ctx=ctx)
 
 
-			# Create pc links	
+			# Create pc links
 			for link in updrels:
-				try: 
+				try:
 					self.pclink(link[0],link[1])
 				except:
 					print "Could not link"
@@ -3676,7 +3677,7 @@ or None if no match is found."""
 
 			ind = self.__getparamindex(key)
 			if ind == None:
-				return			
+				return
 
 			# remove oldval=newval; strip out wrong keys
 			items = filter(lambda x:x[1]!=x[2], items)
@@ -4089,8 +4090,8 @@ or None if no match is found."""
 						# then we just skip this record and leave the permissions alone
 						# TODO: probably we should also check for groups in [3]
 
-						if ctx.user not in rec["permissions"][3] and not ctx.checkadmin(): continue				 
-	
+						if ctx.user not in rec["permissions"][3] and not ctx.checkadmin(): continue
+
 						#print "rec: %s" % i
 
 						cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
@@ -4756,7 +4757,23 @@ or None if no match is found."""
 
 				out.close()
 
+		def _backup2(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctxid=None, host=None):
+				"""This will make a backup of all, or the selected, records, etc into a set of files
+				in the local filesystem"""
+				import demjson
 
+				#if user!="root" :
+				ctx = self.__getcontext(ctxid, host)
+				if not self.checkadmin(ctx):
+						raise SecurityError, "Only root may backup the database"
+
+
+				print 'backup has begun'
+				#user,groups=self.checkcontext(ctxid,host)
+				user = ctx.user
+				groups = ctx.groups
+
+				return demjson.encode(self.__users.values())
 
 		def restore(self, restorefile=None, ctxid=None, host=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
@@ -4800,14 +4817,14 @@ or None if no match is found."""
 				tmpindex = {}
 				txn = None
 				nel = 0
-				
+
 				recblock=[]
 				#print "begin restore"
-				#print load(fin)				
+				#print load(fin)
 				recblocklength=10000
 
 				while (1):
-					
+
 						try:
 								r = load(fin)
 						except Exception, inst:
@@ -4830,11 +4847,11 @@ or None if no match is found."""
 #										 print self.__dbenv.lock_stat()["nlocks"]
 
 						txn = self.newtxn()
-						
+
 						commitrecs=0
-						
+
 						# insert and renumber record
-						if isinstance(r, Record):	
+						if isinstance(r, Record):
 							#print "record: %s"%r.recid
 							recblock.append(r)
 							if len(recblock) >= recblocklength:
@@ -4842,16 +4859,16 @@ or None if no match is found."""
 						else:
 							commitrecs=1
 
-						
+
 						if commitrecs:
 							newrecs = self.__putnewrecord(recblock, warning=1, ctx=ctx)
 							for rec,newrec in zip(recblock,newrecs):
 								recmap[rec.recid] = newrec.recid
 								if rec.recid != newrec.recid:
 									print "Warning: recid %s changed to %s"%(rec.recid,newrec.recid)
-							recblock=[]						
-						
-						
+							recblock=[]
+
+
 
 						# insert User
 						if isinstance(r, User) :
@@ -4935,8 +4952,8 @@ or None if no match is found."""
 														self.__records.link(recmap[a], recmap[b], txn)
 								else:
 									print "Unknown category ", r
-						
-				
+
+
 				print "Done!"
 
 				if txn:

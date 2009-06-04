@@ -21,7 +21,7 @@ Fault = xmlrpclib.Fault
 class RPCFormatJSON:
 	def __init__(self):
 		pass
-		
+
 	def decode(self, content, kw):
 		#method=None
 		g.debug(repr(kw))
@@ -38,13 +38,13 @@ class RPCFormatJSON:
 			for k,v in args.items():
 				kwargs[str(k)]=v
 			args=[]
-		
+
 		g.debug('decoding args result == %r, %r' % (args, kwargs))
 		return None, tuple(args), kwargs
 
 	def encode(self, method, value):
-		value = demjson.encode(value, escape_unicode=True)			
-		return value.encode("utf-8", 'replace')	
+		value = demjson.encode(value, escape_unicode=True)
+		return value.encode("utf-8", 'replace')
 
 
 
@@ -52,25 +52,25 @@ class RPCFormatJSON:
 class RPCFormatXMLRPC:
 	def __init__(self):
 		pass
-		
+
 	def decode(self, content, kw):
 		args, method = xmlrpclib.loads(content)
-		
+
 		args=list(args)
 		kwargs = {}
 		# add kwargs support to xmlrpc:: if last arg is dict...
 		#if isinstance(args[-1],dict):
 		#	kwargs = args.pop()
-		
+
 		# not really supported... no decode; values limited to strings.
 		for k,v in kw.items():
 			kwargs[str(k)]=v[0]
-		
+
 		if hasattr(args,"items"):
 			for k,v in args.items():
 				kwargs[str(k)]=v
 			args=[]
-			
+
 		return method, args, kwargs
 
 	def encode(self, method, value):
@@ -85,8 +85,8 @@ class RPCFormatXMLRPC:
 			g.debug.msg("LOG_ERROR","Problem w/ XML-RPC Encoding:")
 			g.debug.msg("LOG_ERROR", inst)
 			value = "Error"
-		
-		return value		
+
+		return value
 
 
 	def encode_serialize(self, value):
@@ -116,8 +116,8 @@ class RPCFormatXMLRPC:
 
 class RPCResource(Resource):
 	isLeaf = True
-	
-	
+
+
 	def __init__(self,format="xmlrpc"):
 		Resource.__init__(self)
 		self.format = format
@@ -125,9 +125,9 @@ class RPCResource(Resource):
 			self.handler = RPCFormatJSON()
 		elif format=="xmlrpc":
 			self.handler = RPCFormatXMLRPC()
-	
 
-	
+
+
 	def _cbRender(self, result, request):
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(200)
@@ -139,7 +139,7 @@ class RPCResource(Resource):
 			size = len(result)
 		))
 		request.write(result)
-		request.finish()		
+		request.finish()
 
 
 
@@ -159,7 +159,7 @@ class RPCResource(Resource):
 		))
 		request.write(result)
 		request.finish()
-		
+
 
 
 	def render(self, request):
@@ -181,18 +181,18 @@ class RPCResource(Resource):
 		g.debug("\targs, kwargs: %s, %s" % (args, kwargs))
 
 		request.setHeader("content-type", "text/xml")
-		
+
 		d = threads.deferToThread(self.action, method, args, kwargs)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
-		return server.NOT_DONE_YET 
+		return server.NOT_DONE_YET
 
 
 
 
 	def action(self, method, args, kwargs, db=None, host=None):
 		#method_ = db.publicmethods.get(method, None)
-		#db._setcontext(ctxid,host)		
+		#db._setcontext(ctxid,host)
 		#if not db._ismethod(method):
 		#	raise NotImplementedError('remote method %s not implemented' % method)
 		g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
