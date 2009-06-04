@@ -387,6 +387,7 @@ class Database(object):
 				elif not self.__importmode : DB_syncall()
 				self.LOG(4, "Database initialized")
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
+				self.__anonymouscontext = self.__getcontext(self.login(), None)
 
 
 
@@ -681,7 +682,7 @@ class Database(object):
 				"""Takes a ctxid key and returns a context (for internal use only)
 				Note that both key and host must match. Returns context instance."""
 
-				if key == None: return Context(user='anonymous', groups=[-4])
+				if key in set([None, 'None']): return self.__anonymouscontext
 				key = str(key)
 
 				if (time.time() > self.lastctxclean + 30):

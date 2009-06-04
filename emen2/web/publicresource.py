@@ -12,6 +12,7 @@ from emen2 import Database
 from emen2 import ts
 from emen2.Database import exceptions
 from emen2.subsystems import routing
+import emen2.subsystems.responsecodes
 from emen2.util import listops
 
 
@@ -305,6 +306,10 @@ class PublicView(Resource):
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
 
+		#request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+
+		headers = {}
+
 		try:
 			if isinstance(failure, BaseException): raise failure
 			else: failure.raiseException()
@@ -313,37 +318,36 @@ class PublicView(Resource):
 			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 
 			response = 401
-			request.setResponseCode(response)
 			args = {
 					'redirect': request.uri,
 					'msg': str(e),
 					'db': ts.db,
 					'host': request.getClientIP(),
 					'ctxid': ctxid
-		   }
+			}
 
 			p = emen2.TwistSupport_html.public.login.Login(**args)
 			data = unicode(p.get_data()).encode("utf-8")
-			#data="Auth Error %s"%e
 
-
-			#request.redirect('/auth/login')
-			#data = 'Auth Failure'
-
-
-		except routing.NotFoundError, e:
-			response = 404
-			request.setResponseCode(response)
+		except emen2.subsystems.responsecodes.NotFoundError, e:
+			response = e.code
 			data = g.templates.render_template('/notfound', dict(
 				EMEN2WEBROOT = "",
 				msg = request.uri
 			)).encode("utf-8")
+
+		except emen2.subsystems.responsecodes.HTTPResponseCode, e:
+			response = e.code
+			headers.update(e.headers)
+
+
 		except Exception, e:
 			response = 500
-			request.setResponseCode(response)
 			data = g.templates.handle_error(e).encode('utf-8')
 
-		request.setHeader('X-ERROR', ' '.join(str(failure).split()))
+		[request.setHeader(key, headers[key]) for key in headers]
+
+		request.setResponseCode(response)
 		request.write(data)
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
