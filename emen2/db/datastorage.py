@@ -394,13 +394,6 @@ class Record(DictMixin):
 	a new Record before committing changes back to the database.
 	"""
 
-	attr_user = set([])
-	attr_admin = set(["recid","dbid","rectype"])
-	attr_private = set(["_Record__params","_Record__comments","_Record__oparams",
-								 "_Record__creator","_Record__creationtime","_Record__permissions",
-								 "_Record__ptest","_Record__context"])
-	attr_restricted = attr_private | attr_admin
-	attr_all = attr_user | attr_admin | attr_private
 
 	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"]) # dbid # "modifyuser","modifytime",
 
@@ -410,6 +403,7 @@ class Record(DictMixin):
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
 		may be done at initiailization time."""
 		kwargs.update(d or {})
+		
 		## recognized keys
 		# recid -- 32 bit integer recordid (within the current database)
 		# rectype -- name of the RecordDef represented by this Record
@@ -425,31 +419,35 @@ class Record(DictMixin):
 						# Group -3 includes any logged in user,
 						# Group -4 includes any user (anonymous)
 
-		self.recid=kwargs.get('recid')
-		self.rectype=kwargs.get('rectype')
-		self.__comments=kwargs.get('comments',[]) or []
-		self.__creator=kwargs.get('creator',0)
-		self.__creationtime=kwargs.get('creationtime')
-		self.__permissions=kwargs.get('permissions',((),(),(),()))
+		self.recid = kwargs.get('recid')
+		self.rectype = kwargs.get('rectype')
+		self.__comments = kwargs.get('comments',[]) or []
+		self.__creator = kwargs.get('creator',0)
+		self.__creationtime = kwargs.get('creationtime')
+		self.__permissions = kwargs.get('permissions',((),(),(),()))
 
-		self.dbid=kwargs.get('dbid',None)
-		self.__params={} #kwargs.get('params',{}).copy()
+		self.dbid = kwargs.get('dbid',None)
+		self.__params = {} #kwargs.get('params',{}).copy()
 
-		for key in set(kwargs.keys())-self.param_special:
-			key=str(key).strip().lower()
-			self.__params[key]=kwargs[key]
+		for key in set(kwargs.keys()) - self.param_special:
+			key = str(key).strip().lower()
+			self.__params[key] = kwargs[key]
 
 
-		self.__ptest=[1,1,1,1]
-			# ian: changed to [1,1,1,1] so you can create instances (recid=None) directly
-			# ed: NOTE: should this be passed in the init dictionary?
-			# Results of security test performed when the context is set
-			# correspond to, read,comment,write and owner permissions, return from setContext
+		self.__ptest = [1,1,1,1]
+		# Results of security test performed when the context is set
+		# correspond to, read,comment,write and owner permissions, return from setContext
 
 		self.__context = None # Validated access context
-		if ctx != None: ctx = ctx
-		else: ctx = kwargs.get('context')
-		if (ctx!=None): self.setContext(ctx)
+		ctx = ctx or kwargs.get('context', ctx)
+		if ctx:
+			self.setContext(ctx)
+
+
+
+	#################################
+	# validation methods
+	#################################
 
 
 	def validationwarning(self, msg):
@@ -467,7 +465,7 @@ class Record(DictMixin):
 			self.validate_comments,
 			self.validate_creator,
 			self.validate_creationtime,
-			self.validate_permissions#,
+			self.validate_permissions
 			#self.validate_permissions_users
 			]
 
@@ -480,7 +478,6 @@ class Record(DictMixin):
 				else:
 					raise Exception, "%s: %s"%(i.func_name,inst)
 
-
 		self.validate_params(orec,warning=warning,params=params)
 				
 				
@@ -491,8 +488,8 @@ class Record(DictMixin):
 			if self.recid != None:
 				self.recid = int(self.recid)
 
-				if self.recid < 0:
-					raise Exception
+				#if self.recid < 0:
+				#	raise Exception
 
 		except:
 			raise ValueError, "recid must be positive integer"
@@ -529,7 +526,7 @@ class Record(DictMixin):
 		
 		usernames = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
 		if set(users) - usernames:
-			raise Exception, "invalid users in comments: %s"%(users)		
+			raise Exception, "invalid users in comments: %s"%(set(users) - usernames)		
 			
 		# validate date formats
 		for i in dates:
@@ -560,48 +557,43 @@ class Record(DictMixin):
 
 
 	def validate_permissions_users(self,orec={}):
-		u=set()
-		users=set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))
+		u = set()
+		users = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))
 		for j in self.__permissions: u |= set(j)
-		u -= set([0,-1,-2,-3, -4])
+		# todo: get group names...
+		u -= set([0,-1,-2,-3,-4])
 		if u-users:
 			raise Exception, "undefined users: %s"%",".join(map(str, u-users))
 			
 			
 			
 	def validate_params(self, orec={}, warning=0, params=[]):
-		if params:
- 			params = set(self.__params.keys()) & set(params)
-		else:
-			params = set(self.__params.keys())
+
+		p2 = set(self.__params.keys()) & set(params or self.__params.keys())
+		if not p2:
+			return
 		
+		vtm = emen2.Database.subsystems.datatypes.VartypeManager()	
 
-		if params:
-			vtm=emen2.Database.subsystems.datatypes.VartypeManager()	
-
-			pds=self.__context.db.getparamdefs( params - self.param_special )
-			newpd={}
-			exceptions=[]
-			
-			for i,pd in pds.items():
-				#g.debug('self[%r] -> %r' % (i, self[i]),'pd -> %r' % pd,'vtm -> %r' % vtm)
-				try:
-					nv=self.validate_param(self[i],pd,vtm)			
-				except Exception, inst:
-					nv=self[i]
-					exceptions.append("parameter %s: %s"%(i,str(inst)))
-					
-				if nv != None:
-					newpd[i]=nv	
-					
-			for i in exceptions:
-				self.validationwarning(i)
-			
-			if exceptions and not warning:
-				raise Exception, "Validation exceptions:\n\t%s\n\n"%"\n\t".join(exceptions)
-								
-					
-			self.__params = newpd
+		pds = self.__context.db.getparamdefs(p2)
+		newpd = {}
+		exceptions = []
+		
+		for param,pd in pds.items():
+			try:
+				newpd[param] = self.validate_param(self[param],pd,vtm)
+			except Exception, inst:
+				exceptions.append("parameter %s: %s"%(param,str(inst)))
+				
+				
+		for i in exceptions:
+			self.validationwarning(i)
+		
+		if exceptions and not warning:
+			raise Exception, "Validation exceptions:\n\t%s\n\n"%"\n\t".join(exceptions)
+							
+				
+		self.__params.update(newpd)
 
 
 
@@ -610,27 +602,19 @@ class Record(DictMixin):
 		if value == "" or value == None:
 			return None
 
-		v = vtm.validate(pd,value,db=self.__context.db,ctxid=self.__context.ctxid,host=self.__context.host)
+		v = vtm.validate(pd, value, db=self.__context.db, ctxid=self.__context.ctxid, host=self.__context.host)
 		#print "validate %s: %s: %s -> %s"%(pd.vartype, pd.name, value, v)
 
 		if v != value:
 			self.validationwarning("parameter: %s (%s) changed during validation:\n\t%s '%s'\n\t%s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v))
 
-		#v=vtm.decode(pd,value)
 		return v
 
 
 	def changedparams(self,orec={}):
-		"""get list of params of mutable values that have changed w.r.t. original record"""
-				
-		allkeys = set(self.getparamkeys()) | set(orec.getparamkeys()) | set(["comments","permissions"])
-		#(set(self.keys()) | set(orec.keys())) - set(["recid","rectype","comments","creator","creationtime","permissions"])
+		"""difference between two records"""
+		allkeys = set(self.keys() + orec.keys())
 		return filter(lambda k:self.get(k) != orec.get(k), allkeys)
-		
-		#for i in (nkeys | okeys) - set(["recid"]): #-self.param_special:
-		#	if self.get(i) != orec.get(i):
-		#		cp.append(i)
-		#return cp
 
 
 
@@ -642,14 +626,21 @@ class Record(DictMixin):
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
+
 		#odict["_Record__oparams"]={}
+		#if not odict.has_key("localcpy") :
+		try:
+			del odict['_Record__ptest']
+		except:
+			pass
 
-		if not odict.has_key("localcpy") :
-			try: del odict['_Record__ptest']
-			except: pass
+		try:
+			del odict['_Record__context']
+		except:
+			pass
 
-		try: del odict['_Record__context']
-		except: pass
+		# filter out values that are None
+		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None,odict["_Record__params"].items()))
 
 		return odict
 
@@ -672,11 +663,12 @@ class Record(DictMixin):
 
 		#if dict.has_key("localcpy") :
 		#	del dict["localcpy"]
-		self.__dict__.update(dict)
 		#	self.__ptest=[1,1,1,1]
 		#else:
 		#	self.__dict__.update(dict)
 		#	self.__ptest=[0,0,0,0]
+		
+		self.__dict__.update(dict)
 		self.__ptest=[0,0,0,0]
 		self.__context=None
 
@@ -699,9 +691,10 @@ class Record(DictMixin):
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 
-
 	def json_equivalent(self):
 		return self.items_dict()
+
+
 
 	#################################
 	# mapping methods;
@@ -712,16 +705,23 @@ class Record(DictMixin):
 		"""Behavior is to return None for undefined params, None is also
 		the default value for existant, but undefined params, which will be
 		treated identically"""
+		
 		key = str(key).strip().lower()
-		result = None
-		if   key=="comments" : result = self.__comments
-		elif key=="recid" : result = self.recid
-		elif key=="rectype" : result = self.rectype
-		elif key=="creator" : result = self.__creator
-		elif key=="creationtime" : result = self.__creationtime
-		elif key=="permissions" : result = self.__permissions
-		else: result = self.__params.get(key)
-		return result
+		if self.__params.has_key(key):
+			return self.__params.get(key)
+		if key=="comments":
+			return self.__comments
+		elif key=="recid":
+			return self.recid
+		elif key=="rectype":
+			return self.rectype
+		elif key=="creator":
+			return self.__creator
+		elif key=="creationtime":
+			return self.__creationtime
+		elif key=="permissions":
+			return self.__permissions
+		return None
 
 
 	def __setitem__(self,key,value):
@@ -739,6 +739,7 @@ class Record(DictMixin):
 		except:
 			pass
 
+		# special params have get/set handlers
 		if key not in self.param_special:
 			self.__params[key]=value
 
@@ -750,23 +751,22 @@ class Record(DictMixin):
 			#self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
 
 		else:
+			#raise Exception
 			self.validationwarning("cannot set item %s in this way"%key)
 
 
 	def __delitem__(self,key):
-
-		#if not self.__ptest[1] : raise SecurityError,"Permission Denied (%d)"%self.recid
 		key = str(key).strip().lower()
 
 		if key not in self.param_special and self.__params.has_key(key):
-			self.__setitem__(key,None)
+			del self.__params[key]
+			#self.__setitem__(key,None)
 		else:
 			raise KeyError,"Cannot delete key %s"%key
 
 
 	def keys(self):
 		"""All retrievable keys for this record"""
-		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
 		return tuple(self.__params.keys())+tuple(self.param_special)
 
 
@@ -840,6 +840,8 @@ class Record(DictMixin):
 	def getparamkeys(self):
 		"""Returns parameter keys without special values like owner, creator, etc."""
 		return self.__params.keys()
+		
+		
 
 
 	# ian: hard coded groups here need to be in sync with the various check*ctx methods.
@@ -856,7 +858,8 @@ class Record(DictMixin):
 			self.__permissions=((),(),(),(ctx.user,))
 
 		# test for owner access in this context.
-		if (-1 in ctx.groups) : self.__ptest=[1,1,1,1]
+		if (-1 in ctx.groups):
+			self.__ptest=[1,1,1,1]
 		else:
 			# we use the sets module to do intersections in group membership
 			# note that an empty set tests false, so u1&p1 will be false if
@@ -886,24 +889,9 @@ class Record(DictMixin):
 		return self.__ptest
 
 
-	# from items_dict
-
-	def fromdict(self,d):
-		if d.has_key("comments"):
-			self.__comments=d["comments"]
-			del d["comments"]
-		for k,v in d.items():
-			self[k]=v
-
-		# generally there will be no context set at this point; validation is short form
-		# ed: no validation here!!!
-		# self.validate()
-
-
-
 	def items_dict(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
-		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid
+		#if not self.__ptest[0] : raise SecurityError,"Permission Denied (%d)"%self.recid		
 		ret={}
 		ret.update(self.__params)
 		for i in self.param_special:
@@ -941,12 +929,3 @@ class Record(DictMixin):
 		"""Does user have level 1 permissions? Required to comment or link."""
 		return self.__ptest[1]
 
-	#################################
-	# validation methods
-	#################################
-
-
-#import emen2.Database
-#emen2.Database.ParamDef = ParamDef
-#emen2.Database.Record = Record
-#emen2.Database.RecordDef = RecordDef

@@ -9,6 +9,7 @@ import emen2.Database.subsystems
 
 from functools import partial
 
+import copy
 import atexit
 import emen2
 import emen2.util.utils
@@ -3125,41 +3126,8 @@ or None if no match is found."""
 				return self.__fieldindex[paramname]
 
 
-
-
-		def __reindexsec(self, items, txn=None):
-			# item format:
-			# [recid, newusers, oldusers]
-			deluser=set(reduce(lambda x,y:x+y, [i[2] for i in items]))
-			deluser=dict([[i,[]] for i in deluser])
-			adduser=set(reduce(lambda x,y:x+y, [i[1] for i in items]))
-			adduser=dict([[i,[]] for i in adduser])
-
-			for i in items:
-				for j in i[2]:
-					deluser[j].append(i[0])
-				for j in i[1]:
-					adduser[j].append(i[0])
-
-
-			print deluser
-
-			for user in deluser.keys()+adduser.keys():
-				deluser[user]=set(deluser.get(user,[]))
-				adduser[user]=set(adduser.get(user,[]))
-				deluser[user] -= adduser[user]
-
-				if deluser[user]:
-					try:
-						self.__secrindex.removerefs(user, deluser[user], txn=txn)
-					except Exception, inst:
-						g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, adduser[user], inst))
-
-				if adduser[user]:
-					try:
-						self.__secrindex.addrefs(user, adduser[user], txn=txn)
-					except Exception, inst:
-						g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, adduser[user], inst))
+			
+			
 
 
 
@@ -3407,6 +3375,10 @@ or None if no match is found."""
 				return uname
 
 
+		@publicmethod
+		def gettime(self, ctxid=None, host=None):
+			return time.strftime(TIMESTR)
+
 
 		@publicmethod
 		def putrecord(self, recs, filt=1, warning=0, ctxid=None, host=None, txn=None):
@@ -3419,7 +3391,7 @@ or None if no match is found."""
 
 			# filter input for dicts/records
 			ol = 0
-			if isinstance(recs,Record):
+			if isinstance(recs,(Record,dict)):
 				ol = 1
 				recs = [recs]
 
@@ -3427,50 +3399,62 @@ or None if no match is found."""
 			recs.extend(map(lambda x:Record(x), dictrecs))
 			recs = filter(lambda x:isinstance(x,Record), recs)
 
+			ret = self.__putrecord(recs, warning=warning, ctx=ctx, txn=txn)
+			
+			if ol: return ret[0]
+			return ret
+
+			
+		def __putrecord(self, recs, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
 			# new records and updated records
 			updrecs = filter(lambda x:x.recid != None, recs)
 			newrecs = filter(lambda x:x.recid == None, recs)
 
-
 			# check original records for write permission
-			orecs = self.getrecord([rec.recid for rec in updrecs],ctxid=ctxid,host=host,filt=1)
+			orecs = self.getrecord([rec.recid for rec in updrecs], ctxid=ctx.ctxid, host=ctx.host, filt=0)
 			orecs = dict(map(lambda x:(x.recid,x),filter(lambda x:x.writable(), orecs)))
-
+			
+			permerror = set([rec.recid for rec in updrecs]) - set(orecs.keys())
+			if permerror:
+				raise SecurityError,"No permission to write to records: %s"%permerror
 
 			if newrecs and not ctx.checkcreate():
 				raise SecurityError,"No permission to create records"
 
-			nrecs = self.__putnewrecord(newrecs, ctx=ctx, txn=txn)
-			crecs = self.__putrecord(updrecs, orecs, warning=warning, ctx=ctx, txn=txn)
+			# def __putrecord_check(self, updrecs, orecs={}, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
+			nrecs, norecs, nrels = self.__putrecord_checknew(newrecs, ctx=ctx, txn=txn)
+			urecs, uorecs, urels = self.__putrecord_check(updrecs, orecs=orecs, warning=warning, validate=validate, forceupdate=forceupdate, ctx=ctx, txn=txn)
+			
+			orecs2 = {}
+			orecs2.update(norecs)
+			orecs2.update(uorecs)
+			updrels2 = nrels + urels
+			crecs2 = nrecs + urecs
+			
+			# commit
+			# def __putrecord_commit(self, crecs, orecs, updrels=[], ctx=None, txn=None):
+			crecs2 = self.__putrecord_commit(crecs2, orecs2, updrels2, ctx=ctx, txn=txn)
 
-			ret=[crec.recid for crec in nrecs+crecs]
-			if ol: return ret[0]
-			return ret
+			return crecs2
+			
 
 
-
-
-		def __putnewrecord(self, newrecs, warning=0, ctx=None,txn=None):
-			# public methods should check for permission to create recs; this exists for automated creation, e.g. self approved users
-
-			if len(newrecs) == 0:
-				return []
-
-			baserecid = self.__records.get(-1, txn=txn)
-
+		def __putrecord_checknew(self, newrecs, ctx=None, txn=None):
+			# preprocess for __putrecordcheck, which itself is a filter to check before committing
+			
 			updrecs = []
 			orecs = {}
 
 			# preprocess before putrecord
 			for offset,rec in enumerate(newrecs):
 
-				recid = offset + baserecid
+				recid = -1 * (offset + 1)
 
 				if self.__importmode:
 					t = rec.get("creaiontime")
 					creator = rec.get("creator")
 				else:
-					t = time.strftime(TIMESTR)
+					t = self.gettime()
 					creator = ctx.user
 
 				# create skeleton record; new record will be copied into this skeleton after validation during __putrecord
@@ -3478,117 +3462,38 @@ or None if no match is found."""
 				orec._Record__creator = creator
 				orec._Record__creationtime = t
 				orec.rectype = rec.rectype
+				orec.adduser(3, creator)
 				orec.recid = recid
 
-				rec.setContext(ctx)
 				rec._Record__creator = creator
 				rec._Record__creationtime = t
 				rec.recid = recid
+				rec.adduser(3, creator)
 
-				# all records need to validate at this stage before committing...
-				rec.validate(warning=warning)
-
-				#updrecs[recid] = rec
 				updrecs.append(rec)
 				orecs[recid] = orec
 
-
-			if not txn:
-				txn = self.newtxn()
-
-
-			# adjust record length index
-			self.__records.set(-1, baserecid + len(updrecs), txn=txn)
-
-			# now commit.. turn log off for initial value setting
-			crecs = self.__putrecord(updrecs, orecs, warning=warning, validate=0, log=0, ctx=ctx, txn=txn)
-			print "committed %s recs"%len(crecs)
-
-			# new records require some index updates for immutable values
-			for crec in crecs:
-				try:
-					self.__recorddefbyrec.set(crec.recid, crec.rectype, txn=txn)
-				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(crec.recid, crec.rectype, inst))
-
-			rectypes = dict([(i,[]) for i in set([i.rectype for i in crecs])])
-			for crec in crecs:
-				rectypes[crec.rectype].append(crec.recid)
-
-			for k,v in rectypes.items():
-				try:
-					self.__recorddefindex.addrefs(k, v, txn=txn)
-				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update recorddef index %s, records: %s (%s)"%(k,v,inst))
-
-			return crecs #[rec.recid for rec in crecs]
+			
+			return self.__putrecord_check(updrecs, orecs, warning=0, validate=1, log=0, forceupdate=1, ctx=ctx, txn=txn)
 
 
-
-		def __reindexrecs(self, updrecs, orecs={}, ctx=None, txn=None):
-			ind=dict([(i,[]) for i in self.__paramdefs.keys()])
-			secrupdate=[]
-			timeupdate={}
-			rectypes={}
-
-
-			#for recid, updrec in updrecs.items():
-			for updrec in updrecs:
-				recid = updrec.recid
-				# if no orec, treat as new record
-				orec = Record() #orecs.get(recid,{})
-				cp = orec.changedparams(updrec)
-
-				if not cp:
-					continue
-
-				for param in set(cp) - set(["comments","permissions"]):
-					ind[param].append((recid,updrec.get(param),orec.get(param)))
-
-				if "permissions" in cp:
-					secr = [recid, reduce(operator.concat, updrec.get("permissions")), reduce(operator.concat, orec.get("permissions"))]
-					secrupdate.append(secr)
-
-				timeupdate[recid] = updrec.get("modifytime") or updrec.get("creationtime")
-
-
-			# Now update indices; filter because most param indexes have no changes
-			for k,v in filter(lambda x:x[1],ind.items()):
-				#try:
-				self.__reindex(k,v)
-				#except Exception, inst:
-				#print "Could not index %s: %s"%(k,inst)
-
-
-			for k,v in timeupdate.items():
-				try:
-					self.__timeindex.set(k, v, txn=txn)
-				except Exception, inst:
-					print "WTF???? Could not update time index (%s)"%inst
-
-
-			if secrupdate:
-				#try:
-				self.__reindexsec(secrupdate, txn=txn)
-				#except:
-				#	print "Could not update security index"
-
-
-
-		def __putrecord(self, updrecs, orecs={}, warning=0, validate=1, log=1, ctx=None, txn=None):
-			# updrecs must be list, not dict...
+				
+		
+		def __putrecord_check(self, updrecs, orecs={}, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
+			# process before committing
 
 			if len(orecs) == 0:
-				return []
+				return [], {}, []
 
-			crecs=[]
-			updrels=[]
+			crecs = []
+			updrels = []
+			orecscopy = copy.deepcopy(orecs)
+			immutableparams = set(["recid","rectype","creator","creationtime"])
 
 			# preprocess: copy updated record into original record (updrec -> orec)
-			#for recid, orec in orecs.items():
 			for updrec in updrecs:
 
-				t = time.strftime(TIMESTR)
+				t = self.gettime()
 				recid = updrec.recid
 				orec = orecs[recid]
 
@@ -3597,59 +3502,150 @@ or None if no match is found."""
 				_c=updrec.get("children") or []
 				updrels.extend([(i,recid) for i in _p])
 				updrels.extend([(recid,i) for i in _c])
-				updrec["parents"]=None
-				updrec["children"]=None
+				if _p: del updrecs["parents"]
+				if _c: del updrecs["children"]
 
-
-				# compare to original record
+				# compare to original record					
+				# note: changedparams compares two records
 				orec.setContext(ctx)
-				# note: changedparams compares two records,
-				#	returns list of all mutable params + permissions + comments that are different
-				cp=orec.changedparams(updrec)
+				cp = set(orec.changedparams(updrec)) - immutableparams
 
-
-				if len(cp)==0:
+				if not cp and not forceupdate:
 					print "No changes"
 					continue
-
-				# copy updates to orec, log changes, add to index updates
-				for param in set(cp) - set(["comments", "permissions"]):
-					if log:
-						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
-					orec[param] = updrec[param]
-
-				if "permissions" in cp:
-					orec["permissions"] = updrec["permissions"]
 
 				# add new comments
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
 						orec._Record__comments.append(i)
 
+				# copy updates to orec, log changes, add to index updates
+				for param in set(cp) - set(["comments", "permissions"]):
+					if log:
+						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
+						#orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (param, orec[param]), param, orec[param]))
+					orec[param] = updrec[param]
+
+				if "permissions" in cp:
+					orec["permissions"] = updrec["permissions"]
+
 				if not self.__importmode:
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.user
 
-				if validate:
+				if validate:					
 					orec.validate(warning=warning, params=cp)
 
 				crecs.append(orec)
-				#crecs[recid] = orec
+
+			# return records to commit, copies of the originals for indexing, and any relationships to update
+			return crecs, orecscopy, updrels
 
 
-			# take all checked records and commit and update indices
+		
+		# commit
+		def __putrecord_commit(self, crecs, orecs, updrels=[], ctx=None, txn=None):
+
+			recmap = {}
+			rectypes = {}
+			newrecs = filter(lambda x:x.recid < 0, crecs)
+
+			# first, get index updates
+			indexupdates = self.__reindex_params(crecs, orecs, ctx=ctx)
+			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, orecs, ctx=ctx)
+			timeupdate = self.__reindex_time(crecs, ctx=ctx)
 
 			if not txn:
-				txn=self.newtxn()
+				txn = self.newtxn()
 
+			# this needs a lock.
+			if newrecs:
+				baserecid = self.__records.get(-1, txn=txn)
+				self.__records.set(-1, baserecid + len(newrecs))
+
+			# add recids to new records, create map from temp recid, setup index
+			for offset, newrec in enumerate(newrecs):
+				oldid = newrec.recid
+				newrec.recid = offset + baserecid
+				recmap[oldid] = newrec.recid
+				if not rectypes.has_key(newrec.rectype):
+					rectypes[newrec.rectype]=[]
+				rectypes[newrec.rectype].append(newrec.recid)
+
+
+			if filter(lambda x:x.recid < 0, crecs):
+				raise Exception, "Some new records were not given real recids; giving up"
+			
+				
 
 			# This actually stores the record in the database
-			#for recid,crec in crecs.items():
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
 
-			# Another pass to update indexes
-			self.__reindexrecs(crecs, orecs, ctx=ctx)
+
+			# New record RecordDef indexes
+			for rec in newrecs:
+				try:
+					self.__recorddefbyrec.set(rec.recid, rec.rectype, txn=txn)
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
+				
+			for rectype,recs in rectypes.items():
+				try:
+					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
+			
+
+			# Param index
+			for param, upds in indexupdates.items():
+				# addrefs = upds[0], delrefs = upds[1]
+				if not upds[0] and not upds[1]:
+					continue
+					
+				try:
+					ind = self.__getparamindex(param)
+					if ind == None:
+						raise Exception, "Index was None"
+				except Exception, inst:
+					g.debug("LOG_ERR","Could not open param index: %s (%s)"%param, inst)
+					continue
+					
+				for newval,recs in upds[0].items():
+					recs = map(lambda x:recmap.get(x,x), recs)
+					try:
+						ind.addrefs(newval, recs, txn=txn)
+					except Exception, inst:
+						g.debug("LOG_ERR", "Could not update param index %s: addrefs %s, records %s (%s)"%(key,newval,recs,inst))
+					
+				for oldval,recs in upds[1].items():
+					recs = map(lambda x:recmap.get(x,x), recs)
+					try:
+						ind.removerefs(oldval, recs, txn=txn)
+					except Exception, inst:
+						g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(key,oldval,recs,inst))
+
+
+			# Time index
+			for recid,time in timeupdate.items():
+				try:
+					self.__timeindex.set(recmap.get(recid,recid), time, txn=txn)
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
+
+
+			# Security index
+			for user, recs in secr_addrefs.items():
+				try:
+					self.__secrindex.addrefs(user, recs, txn=txn)
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
+
+			for user, recs in secr_removerefs.items():
+				try:
+					self.__secrindex.removerefs(user, recs, txn=txn)
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))						
 
 
 			# Create pc links
@@ -3657,118 +3653,157 @@ or None if no match is found."""
 				try:
 					self.pclink(link[0],link[1])
 				except:
-					print "Could not link"
+					g.debug("LOG_ERR", "Could not link %s to %s"%(link[0], link[1]))
+
 
 			return crecs
 
 
 
-		def __reindex(self, key, items, txn=None):
+
+					
+
+		# index update methods
+		def __reindex_params(self, updrecs, orecs={}, ctx=None, txn=None):
+			"""update param indices"""
+			
+			ind = dict([(i,[]) for i in self.__paramdefs.keys()])
+			indexupdates = {}
+			unindexed = set(["recid","rectype","comments","permissions"])
+
+			for updrec in updrecs:
+				recid = updrec.recid
+				orec = orecs.get(recid,Record())
+				cp = orec.changedparams(updrec)
+
+				if not cp:
+					continue
+
+				for param in set(cp) - unindexed:
+					ind[param].append((recid,updrec.get(param),orec.get(param)))
+
+			# Now update indices; filter because most param indexes have no changes
+			for key,v in filter(lambda x:x[1],ind.items()):
+				indexupdates[key] = self.__reindex_param(key,v)
+
+			return indexupdates
+
+
+
+		def __reindex_param(self, key, items, txn=None):
 			# items format:
 			# [recid, newval, oldval]
 
 			pd = self.__paramdefs[key]
-
+			addrefs = {}
+			delrefs = {}
+			
 			if pd.name in ["recid","comments","permissions"]:
-				return
+				return addrefs, delrefs
 
 			if pd.vartype not in self.indexablevartypes:
-				#print "\tunindexable vartype: %s, %s"%(pd.name,pd.vartype)
-				return
-
-			ind = self.__getparamindex(key)
-			if ind == None:
-				return
+				return addrefs, delrefs
 
 			# remove oldval=newval; strip out wrong keys
-			items = filter(lambda x:x[1]!=x[2], items)
+			items = filter(lambda x:x[1] != x[2], items)
 
-			# these vartypes require special indexing
-			#if pd.vartype=="comments":
-			#	return
-			if pd.vartype=="text":
-				return self.__reindextext(key,items)
+			if pd.vartype == "text":
+				return self.__reindex_paramtext(key,items)
 
-
-			oldvals = dict([[i,set()] for i in set([i[2] for i in items])])
-			newvals = dict([[i,set()] for i in set([i[1] for i in items])])
+			addrefs = dict([[i,set()] for i in set([i[1] for i in items])])
+			delrefs = dict([[i,set()] for i in set([i[2] for i in items])])
 			for i in items:
-				oldvals[i[2]].add(i[0])
-				newvals[i[1]].add(i[0])
+				addrefs[i[1]].add(i[0])
+				delrefs[i[2]].add(i[0])
 
-			if oldvals.has_key(None): del oldvals[None]
-			if newvals.has_key(None): del newvals[None]
-
-			for oldval,recs in oldvals.items():
-				#print "\tparam: %s, removerefs: %s, recs: %s"%(key,oldval,recs)
-				try:
-					ind.removerefs(oldval, recs, txn=txn)
-				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update index %s: removerefs %s, recs %s (%s)"%(key,oldval,recs,inst))
-
-			for newval,recs in newvals.items():
-				#print "\tparam: %s, addrefs: %s, recs: %s"%(key,newval,recs)
-				try:
-					ind.addrefs(newval, recs, txn=txn)
-				except Exception, inst:
-					#g.debug("LOG_ERR", "Could not update index %s: addrefs %s, recs %s (%s)"%(key,newval,recs,inst))
-					print "Could not update index %s: addrefs %s, recs %s (%s)"%(key,newval,recs,inst)
+			if addrefs.has_key(None): del addrefs[None]
+			if delrefs.has_key(None): del delrefs[None]
+			
+			return addrefs, delrefs
 
 
 
-		def __getindexwords(self, value):
-			if value==None: return []
-			m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
-			return set(map(lambda x:x[0] or x[1], m.findall(unicode(value).lower())))
-
-
-
-		def __reindextext(self, key, items, txn=None):
-			# items format:
-			# [recid, newval, oldval]
-
-			# ind is already ok and indexable, items is filtered for unchanged items
-			ind = self.__getparamindex(key)
-
+		def __reindex_paramtext(self, key, items, txn=None):
 			addrefs={}
 			delrefs={}
 
 			for item in items:
-				nwords = self.__getindexwords(item[1])
-				owords = self.__getindexwords(item[2])
-				for i in nwords:
-					if not addrefs.has_key(i): addrefs[i]=[]
-					addrefs[i].append(i)
-				for i in owords:
-					if not delrefs.has_key(i): delrefs[i]=[]
-					delrefs[i].append(i)
+				for i in self.__reindex_getindexwords(item[1]):
+					if not addrefs.has_key(i):
+						addrefs[i]=[]
+					addrefs[i].append(item[0])
 
-			allwords = set(addrefs.keys() + delrefs.keys())
+				for i in self.__reindex_getindexwords(item[2]):
+					if not delrefs.has_key(i):
+						delrefs[i]=[]
+					delrefs[i].append(item[0])
 
+			allwords = set(addrefs.keys() + delrefs.keys()) - self.unindexed_words
+
+			addrefs2 = {}
+			delrefs2 = {}
 			for i in allwords:
 				# make set, remove unchanged items
-				addrefs[i] = set(addrefs.get(i,[]))
-				delrefs[i] = set(delrefs.get(i,[]))
-				u = addrefs[i] & delrefs[i]
-				addrefs[i] -= u
-				delrefs[i] -= u
+				addrefs2[i] = set(addrefs.get(i,[]))
+				delrefs2[i] = set(delrefs.get(i,[]))
+				u = addrefs2[i] & delrefs2[i]
+				addrefs2[i] -= u
+				delrefs2[i] -= u
 
 
-			for word in allwords - self.unindexed_words:
-				if delrefs[word]:
-					#print "\treindex text: param:%s delrefs: %s, recs: %s"%(key, word, delrefs[word])
-					try:
-						ind.removerefs(word, delrefs[word], txn=txn)
-					except Exception, inst:
-						g.debug("LOG_ERR", "Could not update index %s: removerefs %s, recs %s (%s)"%(key,word,delrefs[word],inst))
+			return addrefs2, delrefs2
+			
 
-				if addrefs[word]:
-					#print "\treindex text: param:%s addrefs: %s, recs: %s"%(key, word, addrefs[word])
-					try:
-						ind.addrefs(word, addrefs[word], txn=txn)
-					except Exception, inst:
-						g.debug("LOG_ERR", "Could not update index %s: addrefs %s, recs %s (%s)"%(key,word,addrefs[word],inst))
+		def __reindex_getindexwords(self, value):
+			if value==None: return []
+			m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
+			return set(map(lambda x:x[0] or x[1], m.findall(unicode(value).lower())))
+			
+			
+		
 
+		def __reindex_time(self, updrecs, ctx=None, txn=None):
+			timeupdate = {}
+
+			for updrec in updrecs:
+				timeupdate[updrec.recid] = updrec.get("modifytime") or updrec.get("creationtime")
+			
+			return timeupdate
+			
+			
+
+		#def __reindex_security(self, updrecs, orecs={}, ctx=None, txn=None):
+		def __reindex_security(self, updrecs, orecs, ctx=None, txn=None):
+
+			secrupdate = []
+			addrefs = {}
+			delrefs = {}
+
+
+			for updrec in updrecs:
+				recid = updrec.recid
+				orec = orecs.get(recid, Record())
+
+				if updrec["permissions"] == orec["permissions"]:
+					continue
+
+				nperms = set(reduce(operator.concat, updrec["permissions"]))
+				operms = set(reduce(operator.concat, orec["permissions"]))
+
+				for user in nperms - operms:
+					if not addrefs.has_key(user): addrefs[user] = []
+					addrefs[user].append(recid)
+				for user in operms - nperms:
+					if not delrefs.has_key(user): delrefs[user] = []
+					delrefs[user].append(recid)
+
+
+			return addrefs, delrefs			
+			
+			
+
+
+			
 
 
 		# ian: todo: improve newrecord/putrecord
@@ -3787,30 +3822,24 @@ or None if no match is found."""
 				t = self.getrecorddef(rectype, ctxid=ctxid, host=host)
 
 				rec.recid = None
-				rec.rectype = rectype												 # if we found it, go ahead and set up
+				rec.rectype = rectype # if we found it, go ahead and set up
 
 				if init:
 					rec.update(t.params)
-						#for k, v in t.params.items():
-						#		if v:
-						#				rec[k] = v												# hmm, in the new scheme, perhaps this should just be a deep copy
 
 				# ian
 				if inheritperms != None:
-						#if self.trygetrecord(inheritperms, ctxid=ctxid, host=host):
-						try:
-								prec = self.getrecord(inheritperms, ctxid=ctxid, host=host)
-								n = []
-								for i in range(0, len(prec["permissions"])):
-										n.append(prec["permissions"][i] + rec["permissions"][i])
-								rec["permissions"] = tuple(n)
-						except:
-								pass
+					#if self.trygetrecord(inheritperms, ctxid=ctxid, host=host):
+					try:
+						prec = self.getrecord(inheritperms, ctxid=ctxid, host=host)
+						n = []
+						for i in range(0, len(prec["permissions"])):
+							n.append(prec["permissions"][i] + rec["permissions"][i])
+						rec["permissions"] = tuple(n)
+					except:
+						pass
 
 				rec.adduser(3,ctx.user)
-
-				# make sure we have ownership
-				#rec["permissions"][3] = rec["permissions"][3] + (ctx.user,)
 
 				return rec
 
