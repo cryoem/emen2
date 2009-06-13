@@ -57,156 +57,157 @@ class Context:
 
 				
 class User(DictMixin):
-		"""This defines a database user, note that group 0 membership is required to
-		 add new records. Approved users are never deleted, only disabled, 
-		 for historical logging purposes. -1 group is for database administrators. 
-		 -2 group is read-only administrator. Only the metadata below is persistenly 
-		 stored in this record. Other metadata is stored in a linked "Person" Record 
-		 in the database itself once the user is approved.
-		 
-		Parameters are: username,password (hashed),
-										groups (list),disabled,
-										privacy,creator,creationtime
+	"""This defines a database user, note that group 0 membership is required to
+	 add new records. Approved users are never deleted, only disabled, 
+	 for historical logging purposes. -1 group is for database administrators. 
+	 -2 group is read-only administrator. Only the metadata below is persistenly 
+	 stored in this record. Other metadata is stored in a linked "Person" Record 
+	 in the database itself once the user is approved.
+	 
+	Parameters are: username,password (hashed),
+					groups (list),disabled,
+					privacy,creator,creationtime
+	"""
+
+	# non-admin users can only change their privacy setting directly
+	attr_user = set(["privacy", 'modifytime'])
+	attr_admin = set(["signupinfo","name","email","username","groups","disabled","password",
+										"creator","creationtime","record", "secret"])
+	attr_all = attr_user | attr_admin
+	
+	def __init__(self,d=None, **kwargs):
+		"""User class, takes either a dictionary or a set of keyword arguments
+		as an initializer
+	
+		Recognized keys:
+			username --string
+					username for logging in, First character must be a letter.
+			password -- string
+					sha1 hashed password
+					TODO: should be salted but is not
+			groups -- list
+					user group membership
+					TODO: should be made more flexible
+					magic groups are:
+							0 = add new records, 
+							-1 = administrator, 
+							-2 = read-only administrator
+			disabled --int
+					if this is set, the user will be unable to login
+			privacy -- int
+					1 conceals personal information from anonymous users, 
+					2 conceals personal information from all users
+			creator -- int, string?
+					administrator who approved record, link to username?
+			record -- int
+					link to the user record with personal information
+			creationtime -- int or datetime?
+			modifytime -- int or datetime?
+		
+			these are required for holding values until approved; email keeps 
+			original signup address. name is removed after approval.
+			name -- string
+			email --string
 		"""
-
-		# non-admin users can only change their privacy setting directly
-		attr_user = set(["privacy", 'modifytime'])
-		attr_admin = set(["signupinfo","name","email","username","groups","disabled","password",
-											"creator","creationtime","record", "secret"])
-		attr_all = attr_user | attr_admin
 		
-		def __init__(self,d=None, **kwargs):
-				"""User class, takes either a dictionary or a set of keyword arguments
-				as an initializer
+		kwargs.update(d or {})
+		self.username=kwargs.get('username') 
+		self.password=kwargs.get('password') 
+		self.groups=kwargs.get('groups', [-4])
+		self.disabled=kwargs.get('disabled',0) 
+		self.privacy=kwargs.get('privacy',0) 
+		self.creator=kwargs.get('creator',0) 
+		self.creationtime=kwargs.get('creationtime')
+		self.modifytime = kwargs.get('modifytime')
+		self.record = kwargs.get('record') 
+		self.name = kwargs.get('name')
+		self.email = kwargs.get('email')
+		# secret in signupinfo
+		# self.secret = kwargs.get('secret')
+		self.signupinfo = {}
+
+	#################################				 
+	# mapping methods
+	#################################
+					
+	def __getitem__(self,key):
+		return self.__dict__.get(key)
+		#return self.__dict__[key]
+			
+	def __setitem__(self,key,value):
+		if key in self.attr_all:
+			self.__dict__[key]=value
+		else:
+			raise KeyError,"Invalid key: %s"%key
+					
+	def __delitem__(self,key):
+		raise AttributeError,"Key deletion not allowed"
+			
+	def keys(self):
+		return tuple(self.attr_all)
+
+
+	#################################				 
+	# User methods
+	#################################
+
+	def items_dict(self):
+		ret = {}
+		for k in self.attr_all:
+				ret[k]=self.__dict__[k]
+		return ret				
+
+
+	def fromdict(self,d):
+		for k,v in d.items():
+				self.__dict__[k]=v
+		self.validate()
+
+	# ian: removed a bunch of methods that didn't actually work and weren't needed.										 
+	
+	#################################				 
+	# validation methods
+	#################################		 
+
+	def validate(self):
+		#if set(self.__dict__.keys())-self.attr_all:	
+				#raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+		for i in set(self.__dict__.keys())-self.attr_all:
+			del self.__dict__[i]
+
+		try:
+			str(self.email)
+		except:
+			raise AttributeError,"Invalid value for email"
 				
-				Recognized keys:
-						username --string
-								username for logging in, First character must be a letter.
-						password -- string
-								sha1 hashed password
-								TODO: should be salted but is not
-						groups -- list
-								user group membership
-								TODO: should be made more flexible
-								magic groups are:
-										0 = add new records, 
-										-1 = administrator, 
-										-2 = read-only administrator
-						disabled --int
-								if this is set, the user will be unable to login
-						privacy -- int
-								1 conceals personal information from anonymous users, 
-								2 conceals personal information from all users
-						creator -- int, string?
-								administrator who approved record, link to username?
-						record -- int
-								link to the user record with personal information
-						creationtime -- int or datetime?
-						modifytime -- int or datetime?
-						
-						these are required for holding values until approved; email keeps 
-						original signup address. name is removed after approval.
-						name -- string
-						email --string
-				"""
-				kwargs.update(d or {})
-				self.username=kwargs.get('username') 
-				self.password=kwargs.get('password') 
-				self.groups=kwargs.get('groups', [-4])
-				self.disabled=kwargs.get('disabled',0) 
-				self.privacy=kwargs.get('privacy',0) 
-				self.creator=kwargs.get('creator',0) 
-				self.creationtime=kwargs.get('creationtime')
-				self.modifytime = kwargs.get('modifytime')
-				self.record = kwargs.get('record') 
-				self.name = kwargs.get('name')
-				self.email = kwargs.get('email')
-				self.secret = kwargs.get('secret')
-				self.signupinfo = {}
+		if self.name != None:		 
+			try:
+				list(self.name)
+				str(self.name)[0]
+				str(self.name)[1]
+				str(self.name)[2]
+			except:
+				raise AttributeError,"Invalid name format."
 
-		#################################				 
-		# mapping methods
-		#################################
-						
-		def __getitem__(self,key):
-			return self.__dict__.get(key)
-				#return self.__dict__[key]
-				
-		def __setitem__(self,key,value):
-				if key in self.attr_all:
-						self.__dict__[key]=value
-				else:
-						raise KeyError,"Invalid key: %s"%key
-						
-		def __delitem__(self,key):
-				raise AttributeError,"Key deletion not allowed"
-				
-		def keys(self):
-				return tuple(self.attr_all)
+		try: 
+			list(self.groups)
+		except:
+			raise AttributeError,"Groups must be a list."
 
-
-		#################################				 
-		# User methods
-		#################################
-
-		def items_dict(self):
-				ret = {}
-				for k in self.attr_all:
-						ret[k]=self.__dict__[k]
-				return ret				
-
-
-		def fromdict(self,d):
-				for k,v in d.items():
-						self.__dict__[k]=v
-				self.validate()
-
-		# ian: removed a bunch of methods that didn't actually work and weren't needed.										 
+		try:
+			if self.record != None: int(self.record)
+		except:
+			raise AttributeError,"Record pointer must be integer"
 		
-		#################################				 
-		# validation methods
-		#################################		 
+		if self.privacy not in [0,1,2]:
+			raise AttributeError,"User privacy setting may be 0, 1, or 2."
 
-		def validate(self):
+		if self.password != None and len(self.password) != 40:
+			raise AttributeError,"Invalid password hash; use setpassword to update"
 
-				#if set(self.__dict__.keys())-self.attr_all:	
-						#raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
-				for i in set(self.__dict__.keys())-self.attr_all:
-					del self.__dict__[i]
-
-				try:
-						str(self.email)
-				except:
-						raise AttributeError,"Invalid value for email"
-						
-				if self.name != None:		 
-						try:
-								list(self.name)
-								str(self.name)[0]
-								str(self.name)[1]
-								str(self.name)[2]
-						except:
-								raise AttributeError,"Invalid name format."
-
-				try: 
-						list(self.groups)
-				except:
-						raise AttributeError,"Groups must be a list."
-
-				try:
-						if self.record != None: int(self.record)
-				except:
-						raise AttributeError,"Record pointer must be integer"
-				
-				if self.privacy not in [0,1,2]:
-						raise AttributeError,"User privacy setting may be 0, 1, or 2."
-
-				if self.password != None and len(self.password) != 40:
-						raise AttributeError,"Invalid password hash; use setpassword to update"
-
-				if self.disabled not in [0,1]:
-						raise AttributeError,"Disabled must be 0 (active) or 1 (disabled)"
-				
+		if self.disabled not in [0,1]:
+			raise AttributeError,"Disabled must be 0 (active) or 1 (disabled)"
+			
 				
 
 class WorkFlow(DictMixin):
