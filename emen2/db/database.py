@@ -447,7 +447,7 @@ class Database(object):
 			if (level < 0 or level > 6):
 				level = 6
 			try:
-				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(), LOGSTRINGS.get(level, level), message))
+				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(), LOGSTRINGS[level], message))
 				#if level < 4 : print "%s: (%s)	%s" % (time.strftime(TIMESTR), LOGSTRINGS[level], message)
 			except:
 				traceback.print_exc(file=sys.stdout)
@@ -589,7 +589,7 @@ class Database(object):
 			else:
 				try:
 					del self.__contexts[k[0]]
-				except:
+				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
 								
 				try:
@@ -2033,7 +2033,7 @@ class Database(object):
 			return self.__link("unlink", pkey, ckey, keytype=keytype, ctx=ctx)
 
 
-		def __link(self, mode, pkey, ckey, keytype="record", txn=None, ctx=None, txn=None):
+		def __link(self, mode, pkey, ckey, keytype="record", ctx=None, txn=None):
 
 			if keytype not in ["record", "recorddef", "paramdef"]:
 				raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
@@ -2594,8 +2594,8 @@ class Database(object):
 
 		@publicmethod
 		def getworkflow(self, ctxid=None, host=None):
-				"""This will return an (ordered) list of workflow objects for the given context (user).
-				it is an exceptionally bad idea to change a WorkFlow object's wfid."""
+			"""This will return an (ordered) list of workflow objects for the given context (user).
+			it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 
 			ctx = self.__getcontext(ctxid, host)
 			if ctx.user == None:
@@ -3766,7 +3766,7 @@ class Database(object):
 				try:
 					self.pclink(recmap.get(link[0],link[0]),recmap.get(link[1],link[1]))
 				except:
-					g.debug("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1]))
+					g.debug("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
 
 
 			return crecs
@@ -3779,7 +3779,8 @@ class Database(object):
 			
 			# addrefs = upds[0], delrefs = upds[1]
 			if not addrefs and not delrefs:
-				continue
+				return
+				#continue
 				
 			try:
 				ind = self.__getparamindex(param)
