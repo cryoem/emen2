@@ -723,6 +723,11 @@ class MemBTree(object):
 		try: self.bdb[key].remove(item)
 		except: pass
 		
+	def removerefs(self, key, items, txn=None):
+		key=self.typekey(key)
+		for item in items:
+			self.removeref(key, item)
+		
 	def addref(self,key,item,txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		key=self.typekey(key)

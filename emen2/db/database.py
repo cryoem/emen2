@@ -209,7 +209,8 @@ class Database(object):
 			3: 'LOG_WARNING',
 			4: 'LOG_INFO',
 			5: 'LOG_DEBUG',
-			6: 'LOG_DEBUG'
+			6: 'LOG_DEBUG',
+			7: 'LOG_COMMIT'
 			}
 
 
@@ -581,6 +582,8 @@ class Database(object):
 				try:
 					ctx.db = None
 					self.__contexts_p.set(ctx.ctxid, ctx)
+					g.debug("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%ctx.ctxid)
+
 					ctx.db = self
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to add persistent context %s (%s)"%(ctxid, inst))
@@ -593,7 +596,9 @@ class Database(object):
 					self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
 								
 				try:
-					self.__contexts_p[ctxid]
+					del self.__contexts_p[ctxid]
+					g.debug("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid)
+					
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete persistent context %s (%s)"%(ctxid, inst))
 				
@@ -675,13 +680,8 @@ class Database(object):
 					day=int(date[6:8])
 					newid=int(date[9:13],16)
 
-				#print year
-				#print mon
-				#print day
-				#print newid
-				key = "%04d%02d%02d" % (year, mon, day)
-				#print "newbinary key is %s; date=%s"%(key,date)
 
+				key = "%04d%02d%02d" % (year, mon, day)
 
 				# ian: check for permissions because actual operations are performed.
 				rec = self.getrecord(recid, ctxid=ctxid, host=host)
@@ -723,6 +723,7 @@ class Database(object):
 
 				itm[newid] = (name, recid)
 				self.__bdocounter.set(key, itm, txn)
+				g.debug("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%key)
 
 
 				if txn:
@@ -2092,6 +2093,7 @@ class Database(object):
 				txn = self.newtxn()
 			
 			linker(pkey, ckey, txn=txn)
+			g.debug("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
@@ -2222,13 +2224,13 @@ class Database(object):
 				user.signupinfo = None
 				addusers[username] = user
 				
-			recs, orecs, updrels = self.__putrecord_checknew(records.values(), ctx=ctx)
+			#recs, orecs, updrels = self.__putrecord_checknew(records.values(), ctx=ctx)
 
 			#@begin
 			
 			txn = self.txncheck()
 
-			crecs = self.__commit_records(recs, orecs, updrels, ctx=ctx, txn=txn)
+			crecs = self.__putrecord(recs, ctx=ctx, txn=txn)
 			for rec in crecs:
 				addusers[rec.get("username")].record = rec.recid
 
@@ -2419,7 +2421,6 @@ class Database(object):
 
 
 
-		# ian todo: allow users to change privacy setting
 		#@write #self.__users
 		def __commit_users(self, users, ctx=None, txn=None):
 			"""Updates user. Takes User object (w/ validation.) Deprecated for non-administrators."""
@@ -2453,6 +2454,7 @@ class Database(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn)
+				g.debug("LOG_COMMIT","Commit: self.__users.set: %s"%user.username)
 
 			if txn:	txn.commit()
 			elif not self.__importmode:	DB_syncall()
@@ -2472,6 +2474,7 @@ class Database(object):
 			
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
+				g.debug("LOG_COMMIT","Commit: self.__newuserqueue.set: %s"%username)
 
 			self.txncommit(txn)			
 
@@ -2865,6 +2868,7 @@ class Database(object):
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
+				g.debug("LOG_COMMIT","Commit: self.__paramdefs.set: %s"%paramdef.name)
 			
 			self.txncommit(txn)
 
@@ -3067,7 +3071,8 @@ class Database(object):
 			
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recdef.name, recdef, txn=txn)
-			
+				g.debug("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recdef.name)
+
 			self.txncommit(txn)
 			
 			#@end
@@ -3165,7 +3170,7 @@ class Database(object):
 				txn = self.newtxn()
 				i.set_txn(txn)
 				for k2, v2 in v.items():
-					print "... addref: %s, len: %s"%(k2, len(v2))#,v2)
+					#print "... addref: %s, len: %s"%(k2, len(v2))#,v2)
 					i.addrefs(k2, v2)
 				i.set_txn(None)
 				if txn:
@@ -3515,6 +3520,7 @@ class Database(object):
 		@publicmethod
 		def putrecord(self, recs, filt=1, warning=0, ctxid=None, host=None, txn=None):
 			"""commits a record"""
+			# input validation for __putrecord
 
 			ctx = self.__getcontext(ctxid,host)
 
@@ -3528,8 +3534,24 @@ class Database(object):
 				recs = [recs]
 
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
-			recs.extend(map(lambda x:Record(x), dictrecs))
+			recs.extend(map(lambda x:Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,Record), recs)
+
+			# new records and updated records
+			updrecs = filter(lambda x:x.recid != None, recs)
+			newrecs = filter(lambda x:x.recid == None, recs)			
+
+			# check original records for write permission
+			orecs = self.getrecord([rec.recid for rec in updrecs], ctxid=ctx.ctxid, host=ctx.host, filt=0)
+			orecs = set(map(lambda x:x.recid, filter(lambda x:x.commentable(), orecs)))
+						
+			permerror = set([rec.recid for rec in updrecs]) - orecs
+			if permerror:
+				raise SecurityError,"No permission to write to records: %s"%permerror
+
+			if newrecs and not ctx.checkcreate():
+				raise SecurityError,"No permission to create records"
+
 
 			ret = self.__putrecord(recs, warning=warning, ctx=ctx, txn=txn)
 			
@@ -3538,133 +3560,167 @@ class Database(object):
 
 			
 			
-		def __putrecord(self, recs, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
-			# new records and updated records
-			updrecs = filter(lambda x:x.recid != None, recs)
-			newrecs = filter(lambda x:x.recid == None, recs)
-
-			# check original records for write permission
-			orecs = self.getrecord([rec.recid for rec in updrecs], ctxid=ctx.ctxid, host=ctx.host, filt=0)
-			orecs = dict(map(lambda x:(x.recid,x),filter(lambda x:x.writable(), orecs)))
-			
-			permerror = set([rec.recid for rec in updrecs]) - set(orecs.keys())
-			if permerror:
-				raise SecurityError,"No permission to write to records: %s"%permerror
-
-			if newrecs and not ctx.checkcreate():
-				raise SecurityError,"No permission to create records"
-
-			# def __putrecord_check(self, updrecs, orecs={}, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
-			nrecs, norecs, nrels = self.__putrecord_checknew(newrecs, ctx=ctx, txn=txn)
-			urecs, uorecs, urels = self.__putrecord_check(updrecs, orecs=orecs, warning=warning, validate=validate, forceupdate=forceupdate, ctx=ctx, txn=txn)
-			
-			orecs2 = {}
-			orecs2.update(norecs)
-			orecs2.update(uorecs)
-			updrels2 = nrels + urels
-			crecs2 = nrecs + urecs
-			
-			# commit
-			# def __putrecord_commit(self, crecs, orecs, updrels=[], ctx=None, txn=None):
-			crecs2 = self.__commit_records(crecs2, orecs2, updrels2, ctx=ctx, txn=txn)
-
-			return crecs2
+		# def __putrecord(self, recs, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
+		# 
+		# 	# i might change orecs in the future; for now it's a bit of a kludge to deal with new recs
+		# 	nrecs, nrels = self.__putrecord_checknew(newrecs, ctx=ctx, txn=txn)
+		# 	urecs, urels = self.__putrecord_check(updrecs, warning=warning, validate=validate, forceupdate=forceupdate, ctx=ctx, txn=txn)
+		# 	
+		# 	# commit
+		# 	crecs = self.__commit_records(nrecs + urecs, updrels=nrels + urels, ctx=ctx, txn=txn)
+		# 
+		# 	return crecs2
 			
 
 
-		def __putrecord_checknew(self, newrecs, ctx=None, txn=None):
-			# preprocess for __putrecordcheck, which itself is a filter to check before committing
-			
-			updrecs = []
-			orecs = {}
-
-			# preprocess before putrecord
-			for offset,rec in enumerate(newrecs):
-
-				recid = -1 * (offset + 1)
-
-				if self.__importmode:
-					t = rec.get("creaiontime")
-					creator = rec.get("creator")
-				else:
-					t = self.gettime()
-					creator = ctx.user
-
-				# create skeleton record; new record will be copied into this skeleton after validation during __putrecord
-				orec = Record()
-				orec._Record__creator = creator
-				orec._Record__creationtime = t
-				orec.rectype = rec.rectype
-				orec.adduser(3, creator)
-				orec.recid = recid
-
-				rec._Record__creator = creator
-				rec._Record__creationtime = t
-				rec.recid = recid
-				rec.adduser(3, creator)
-
-				updrecs.append(rec)
-				orecs[recid] = orec
-
-			
-			return self.__putrecord_check(updrecs, orecs, warning=0, validate=1, log=0, forceupdate=1, ctx=ctx, txn=txn)
-
-
-				
+		# def __putrecord_checknew(self, newrecs, setcreator=1, ctx=None, txn=None):
+		# 	# preprocess for __putrecordcheck, which itself is a filter to check before committing
+		# 	
+		# 	updrecs = []
+		# 	orecs = {}
+		# 
+		# 	# preprocess before putrecord
+		# 	for offset,rec in enumerate(newrecs):
+		# 
+		# 		recid = -1 * (offset + 1)
+		# 
+		# 		if self.__importmode or not setcreator:
+		# 			t = rec.get("creaiontime")
+		# 			creator = rec.get("creator")
+		# 		else:
+		# 			t = self.gettime()
+		# 			creator = ctx.user
+		# 
+		# 		# set uneditable fields
+		# 		rec._Record__creator = creator
+		# 		rec._Record__creationtime = t
+		# 		rec.recid = recid
+		# 		rec.adduser(3, creator)
+		# 
+		# 		updrecs.append(rec)
+		# 
+		# 	return self.__putrecord_check(updrecs, warning=0, validate=1, log=0, forceupdate=1, ctx=ctx, txn=txn)
 		
-		def __putrecord_check(self, updrecs, orecs={}, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
+				
+		def __putrecord_getupdrels(self, updrecs):
+			# get parents/children to update relationships
+			r = []
+			for updrec in updrecs:
+				_p = updrec.get("parents") or []
+				_c = updrec.get("children") or []
+				if _p:
+					r.extend([(i,updrec.recid) for i in _p])
+					del updrecs["parents"]
+				if _c:
+					r.extend([(updrec.recid,i) for i in _c])
+					del updrecs["children"]
+			return r
+			
+			
+	
+		# def __putrecord_getorecs(self, updrecs, ctx=None):
+		# 	orecs = {}
+		# 
+		# 	for updrec in updrecs:
+		# 		try:
+		# 			orec = self.__records[updrec.recid]
+		# 			orec.setContext(ctx)
+		# 			#orec = self.getrecord(updrec.recid, ctxid=ctx.ctxid, host=ctx.host)
+		# 
+		# 		except TypeError, inst:
+		# 			# new record... assign temp recid
+		# 			orec = Record()
+		# 			orec.setContext(ctx)
+		# 			orec.rectype = updrec.rectype
+		# 			orec.recid = updrec.recid
+		# 			if self.__importmode:
+		# 				orec._Record__creator = updrec["creator"]
+		# 				orec._Record__creationtime = updrec["creationtime"]
+		# 		
+		# 		orecs[updrec.recid] = orec
+		# 	
+		# 	return orecs
+	
+		
+							
+		def __putrecord(self, updrecs, warning=0, validate=1, newrecord=0, log=1, ctx=None, txn=None):
 			# process before committing
+			# extended validation...
 
-			if len(orecs) == 0:
-				return [], {}, []
+			if len(updrecs) == 0:
+				return [], []
 
 			crecs = []
 			updrels = []
-			orecscopy = copy.deepcopy(orecs)
-			immutableparams = set(["recid","rectype","creator","creationtime"])
+			param_immutable = set(["recid","rectype","creator","creationtime"])
+			param_special = param_immutable | set(["comments","permissions"])
+
+			# assign temp recids to new records
+			for offset,rec in enumerate(filter(lambda x:x.recid == None, updrecs)):
+				rec.recid = -1 * (offset + 100)
+
+			#print "ok, assigned temp recids"
+			#print [rec.recid for rec in updrecs]
+
+			updrels = self.__putrecord_getupdrels(updrecs)
 
 			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
 
 				t = self.gettime()
 				recid = updrec.recid
-				orec = orecs[recid]
 
-				# get parents/children to update relationships
-				_p=updrec.get("parents") or []
-				_c=updrec.get("children") or []
-				updrels.extend([(i,recid) for i in _p])
-				updrels.extend([(recid,i) for i in _c])
-				if _p: del updrecs["parents"]
-				if _c: del updrecs["children"]
+				try:
+					orec = self.__records[updrec.recid]
+					orec.setContext(ctx)
+				except TypeError, inst:
+					orec = self.newrecord(updrec.rectype, ctxid=ctx.ctxid, host=ctx.host)
+					orec.recid = updrec.recid
+					
+					if self.__importmode:
+						orec._Record__creator = updrec["creator"]
+						orec._Record__creationtime = updrec["creationtime"]
+					
+					if recid > 0:
+						raise Exception, "Cannot update non-existent record %s"%recid
+
 
 				# compare to original record					
-				# note: changedparams compares two records
-				orec.setContext(ctx)
-				cp = set(orec.changedparams(updrec)) - immutableparams
+				cp = orec.changedparams(updrec) - param_immutable
 
-				if not cp and not forceupdate:
-					print "No changes"
+				if not cp and not orec.recid < 0:
+					g.debug("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 					continue
-
-				# add new comments
+					
+					
+				# add new comments; already checked for comment level security...
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
 						orec._Record__comments.append(i)
+				# ian todo: need to check for param updates from comments here...
 
-				# copy updates to orec, log changes, add to index updates
-				for param in set(cp) - set(["comments", "permissions"]):
+
+				# copy updates to orec, log changes
+				if cp - param_special and not orec.writable():
+					raise SecurityError, "Cannot change params in %s"%recid
+					
+				for param in cp - param_special:
 					if log:
 						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
-						#orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (param, orec[param]), param, orec[param]))
+						#% (param, orec[param]), param, orec[param]))
 					orec[param] = updrec[param]
 
+				
 				if "permissions" in cp:
+					if not orec.isowner():
+						raise SecurityError, "Cannot change permissions for %s"%recid
 					orec["permissions"] = updrec["permissions"]
+
 
 				if not self.__importmode:
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.user
+					
 
 				if validate:					
 					orec.validate(warning=warning, params=cp)
@@ -3672,26 +3728,30 @@ class Database(object):
 				crecs.append(orec)
 
 			# return records to commit, copies of the originals for indexing, and any relationships to update
-			return crecs, orecscopy, updrels
+			#return crecs, updrels
 
+			return self.__commit_records(crecs, updrels, ctx=ctx)
 
 		
 		# commit
-		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex, self.__timeindex, self.__secrindex
-		# also, self.fieldindex* through __commit_paramindex()
-		def __commit_records(self, crecs, orecs, updrels=[], ctx=None, txn=None):
+		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex, self.__timeindex
+		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
+		def __commit_records(self, crecs, updrels=[], ctx=None, txn=None):
+
+			print "commiting %s recs"%(len(crecs))
 
 			recmap = {}
 			rectypes = {}
+			timeupdate = {}
 			newrecs = filter(lambda x:x.recid < 0, crecs)
 
 			# first, get index updates
-			indexupdates = self.__reindex_params(crecs, orecs, ctx=ctx)
-			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, orecs, ctx=ctx)
+			indexupdates = self.__reindex_params(crecs, ctx=ctx)
+			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx)
 			timeupdate = self.__reindex_time(crecs, ctx=ctx)
-
-			if not txn:
-				txn = self.newtxn()
+			
+			#@begin
+			txn = self.txncheck(txn)
 
 			# this needs a lock.
 			if newrecs:
@@ -3715,12 +3775,16 @@ class Database(object):
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
+				#g.debug("LOG_COMMIT","Commit: self.__records.set: %s"%crec.recid)
+				
 
 
 			# New record RecordDef indexes
 			for rec in newrecs:
 				try:
 					self.__recorddefbyrec.set(rec.recid, rec.rectype, txn=txn)
+					#g.debug("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
+					
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
 				
@@ -3728,37 +3792,29 @@ class Database(object):
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
+					#g.debug("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs))
+					
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 			
 
 			# Param index
-			for param, upds in indexupdates.items():
-				self.__commit_paramindex(param, upds[0], upds[1], recmap=recmap, ctx=ctx, txn=txn)
+			for param, updates in indexupdates.items():
+				self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
+
+
+			# Security index
+			self.__commit_secrindex(secr_addrefs, secr_removerefs, recmap=recmap, ctx=ctx, txn=txn)
 
 
 			# Time index
 			for recid,time in timeupdate.items():
 				try:
 					self.__timeindex.set(recmap.get(recid,recid), time, txn=txn)
+					#g.debug("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
+
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
-
-
-			# Security index
-			for user, recs in secr_addrefs.items():
-				recs = map(lambda x:recmap.get(x,x), recs)				
-				try:
-					self.__secrindex.addrefs(user, recs, txn=txn)
-				except Exception, inst:
-					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
-
-			for user, recs in secr_removerefs.items():
-				recs = map(lambda x:recmap.get(x,x), recs)				
-				try:
-					self.__secrindex.removerefs(user, recs, txn=txn)
-				except Exception, inst:
-					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))						
 
 
 			# Create pc links
@@ -3768,15 +3824,44 @@ class Database(object):
 				except:
 					g.debug("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
 
-
+			self.txncommit(txn)
+			#@end
+			
 			return crecs
 
 
+		#@write #self.__secrindex
+		def __commit_secrindex(self, addrefs, removerefs, recmap={}, ctx=None, txn=None):
+			
+			txn = self.txncheck(txn)
+			
+			# Security index
+			for user, recs in addrefs.items():
+				recs = map(lambda x:recmap.get(x,x), recs)				
+				try:
+					if recs:
+						self.__secrindex.addrefs(user, recs, txn=txn)
+						g.debug("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, %s"%(user, recs))
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
+
+			for user, recs in removerefs.items():
+				recs = map(lambda x:recmap.get(x,x), recs)				
+				try:
+					if recs:
+						self.__secrindex.removerefs(user, recs, txn=txn)
+						g.debug("LOG_COMMIT","Commit: secrindex.removerefs: user %s, recs %s"%(user, recs))
+				except Exception, inst:
+					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
+					
+			self.txncommit(txn)
+
+			
 
 		#@write #self.__fieldindex*
 		def __commit_paramindex(self, param, addrefs, delrefs, recmap={}, ctx=None, txn=None):
 			"""commit param updates"""
-			
+						
 			# addrefs = upds[0], delrefs = upds[1]
 			if not addrefs and not delrefs:
 				return
@@ -3793,21 +3878,26 @@ class Database(object):
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					ind.addrefs(newval, recs, txn=txn)
+					if recs: ind.addrefs(newval, recs, txn=txn)
+					#g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))					
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: addrefs %s, records %s (%s)"%(key,newval,recs,inst))
+					g.debug("LOG_ERR", "Could not update param index %s: addrefs %s, records %s (%s)"%(param,newval,recs,inst))
+				
 				
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					ind.removerefs(oldval, recs, txn=txn)
+					if recs:
+						ind.removerefs(oldval, recs, txn=txn)
+						#g.debug("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(key,oldval,recs,inst))			
+					g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(param,oldval,recs,inst))			
+
 
 					
 
 		# index update methods
-		def __reindex_params(self, updrecs, orecs={}, ctx=None, txn=None):
+		def __reindex_params(self, updrecs, ctx=None, txn=None):
 			"""update param indices"""
 			
 			ind = dict([(i,[]) for i in self.__paramdefs.keys()])
@@ -3816,8 +3906,12 @@ class Database(object):
 
 			for updrec in updrecs:
 				recid = updrec.recid
-				orec = orecs.get(recid,Record())
-				cp = orec.changedparams(updrec)
+				
+				# this is a fix for proper indexing of new records...
+				try: orec = self.__records[recid]
+				except:	orec = {}
+				
+				cp = updrec.changedparams(orec)
 
 				if not cp:
 					continue
@@ -3916,22 +4010,24 @@ class Database(object):
 			
 
 		#def __reindex_security(self, updrecs, orecs={}, ctx=None, txn=None):
-		def __reindex_security(self, updrecs, orecs, ctx=None, txn=None):
+		def __reindex_security(self, updrecs, ctx=None, txn=None):
 
 			secrupdate = []
 			addrefs = {}
 			delrefs = {}
 
-
 			for updrec in updrecs:
 				recid = updrec.recid
-				orec = orecs.get(recid, Record())
 
-				if updrec["permissions"] == orec["permissions"]:
+				# this is a fix for proper indexing of new records...
+				try: orec = self.__records[recid]
+				except:	orec = {}
+
+				if updrec.get("permissions") == orec.get("permissions"):
 					continue
 
 				nperms = set(reduce(operator.concat, updrec["permissions"]))
-				operms = set(reduce(operator.concat, orec["permissions"]))
+				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
 
 				for user in nperms - operms:
 					if not addrefs.has_key(user): addrefs[user] = []
@@ -3939,7 +4035,6 @@ class Database(object):
 				for user in operms - nperms:
 					if not delrefs.has_key(user): delrefs[user] = []
 					delrefs[user].append(recid)
-
 
 			return addrefs, delrefs			
 			
@@ -3950,6 +4045,7 @@ class Database(object):
 
 
 		# ian: todo: improve newrecord/putrecord
+		# ian: todo: allow to copy existing record
 		@publicmethod
 		def newrecord(self, rectype, init=0, inheritperms=None, ctxid=None, host=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
@@ -3957,8 +4053,9 @@ class Database(object):
 
 			ctx = self.__getcontext(ctxid, host)
 
-			rec = Record()
-			rec.setContext(ctx)
+
+			rec = Record(ctx=ctx)
+			#rec.setContext(ctx)
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
@@ -3974,11 +4071,13 @@ class Database(object):
 			if inheritperms != None:
 				#if self.trygetrecord(inheritperms, ctxid=ctxid, host=host):
 				try:
-					prec = self.getrecord(inheritperms, ctxid=ctxid, host=host)
-					n = []
-					for i in range(0, len(prec["permissions"])):
-						n.append(prec["permissions"][i] + rec["permissions"][i])
-					rec["permissions"] = tuple(n)
+					prec = self.getrecord(inheritperms, ctxid=ctxid, host=host, filt=0)
+					for level, users in enumerate(prec["permissions"]):
+						rec.adduser(level, users)
+					#n = []
+					#for i in range(0, len(prec["permissions"])):
+					#	n.append(prec["permissions"][i] + rec["permissions"][i])
+					#rec["permissions"] = tuple(n)
 				except Exception, inst:
 					self.log("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
@@ -4175,7 +4274,37 @@ class Database(object):
 
 
 
+		@publicmethod
+		def secrecordadduser2(self, recids, level, users, reassign=0, ctxid=None, host=None, txn=None):
+				ctx = self.__getcontext(ctxid, host)
+				
+				if not hasattr(recids,"__iter__"):
+					recids = [recids]
+				recids = set(recids)
+				
+				if not hasattr(users,"__iter__"):
+					users = [users]
+				users = set(users)
+				
+				# change child perms
+				if recurse:
+					for c in self.getchildren(recids, recurse=recurse, ctxid=ctxid, host=host).values():
+						recids |= c
 
+				# check users
+				try:
+					db.getuser(users, filt=0, ctxid=ctxid, host=host)
+				except KeyError, inst:
+					raise
+					
+				recs = self.getrecord(recids, filt=1, ctxid=ctxid, host=host)
+				
+				for rec in recs:
+					rec.adduser(level, users, reassign=reassign)
+				
+				
+				
+				
 
 		# ian todo: check this thoroughly; probably rewrite
 		#@txn
@@ -4263,7 +4392,8 @@ class Database(object):
 
 						cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
 						xcur = [set(v) for v in rec["permissions"]]				 # copy of cur that will be changed
-#						 l=[len(v) for v in cur]		#length test not sufficient # length of each tuple so we can decide if we need to commit changes
+						# l=[len(v) for v in cur]
+						#length test not sufficient # length of each tuple so we can decide if we need to commit changes
 						newv = [set(v) for v in usertuple]								# similar list of sets for the new users to add
 
 						# check for valid user names
@@ -5027,18 +5157,25 @@ class Database(object):
 
 
 					if commitrecs:
-						newrecs = self.__putrecord(recblock, warning=1, ctx=ctx)
-						for rec,newrec in zip(recblock,newrecs):
-							recmap[rec.recid] = newrec.recid
-							if rec.recid != newrec.recid:
-								print "Warning: recid %s changed to %s"%(rec.recid,newrec.recid)
-						recblock=[]
+						# remove recids to put as new records...
+						oldids = [rec.recid for rec in recblock]
+						for i in recblock:
+							i.recid = None
 
+						newrecs = self.__putrecord(recblock, warning=1, newrecord=1, ctx=ctx)
+						for oldid,newrec in zip(oldids,newrecs):
+							recmap[oldid] = newrec.recid
+							#print "Recmap %s -> %s"%(oldid, newrec.recid)
+							if oldid != newrec.recid:
+								print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
+						recblock=[]
+						#sys.exit(0)
 
 
 					# insert User
 					if isinstance(r, User):
 						print "user: %s"%r.username
+						#self.__commit_users([r], ctx=ctx, txn=txn)
 						if self.__users.has_key(r.username, txn):
 							print "Duplicate user ", r.username
 							self.__users.set(r.username, r, txn)
@@ -5055,6 +5192,7 @@ class Database(object):
 					# insert paramdef
 					elif isinstance(r, ParamDef):
 						print "paramdef: %s"%r.name
+						#self.__commit_paramdefs([r], ctx=ctx, txn=txn)
 						r.name = r.name.lower()
 						if self.__paramdefs.has_key(r.name, txn):
 							print "Duplicate paramdef ", r.name
@@ -5065,6 +5203,7 @@ class Database(object):
 					# insert recorddef
 					elif isinstance(r, RecordDef):
 						print "recorddef: %s"%r.name
+						#self.__commit_recorddefs([r], ctx=ctx, txn=txn)
 						r.name = r.name.lower()
 						if self.__recorddefs.has_key(r.name, txn):
 							print "Duplicate recorddef ", r.name
