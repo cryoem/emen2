@@ -5,9 +5,10 @@ from emen2.Database.btrees import *
 from emen2.Database.datastorage import *
 from emen2.Database.exceptions import *
 from emen2.Database.user import *
+import copy
 import emen2.Database.subsystems
 
-from functools import partial
+from functools import partial, wraps
 
 import copy
 import atexit
@@ -106,18 +107,16 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)"% name)
-		cls.__publicmethods[name]=func
-#		cls._allmethods.add(name)
+		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
+		cls.__publicmethods[name] = func
 
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)"% name)
-		cls.__extmethods[name]=refcl
-#		cls._allmethods.add(name)
+		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
+		cls.__extmethods[name] = refcl
 
 
 	def _callmethod(self, method, args, kwargs):
@@ -145,7 +144,7 @@ class DBProxy(object):
 
 
 		result = None
-		if self.__publicmethods.has_key(name) or self.__extmethods.has_key(name):
+		if name in self._allmethods():
 
 			g.debug("DB: %s, kwargs: %s"%(name,kwargs))
 
@@ -158,8 +157,8 @@ class DBProxy(object):
 
 				kwargs['db'] = db
 				if result: result = partial(result.execute, **kwargs)
-# 			if method:
-# 				result = method(*args[1:], **kwargs)
+
+			result = wraps(result.func)(result)
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
 
@@ -253,9 +252,9 @@ class Database(object):
 				xtraflags = db.DB_RECOVER
 
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
-			if not os.access(path + "/home", os.F_OK): 
+			if not os.access(path + "/home", os.F_OK):
 				os.makedirs(path + "/home")
-				
+
 			self.LOG(4, "Database initialization started")
 			self.__allowclose = bool(allowclose)
 			self.__dbenv = db.DBEnv()
@@ -331,7 +330,7 @@ class Database(object):
 			else:
 				self.__secrindex = FieldBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)	# index of records each user can read
 				self.__recorddefindex = FieldBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv)	# index of records belonging to each RecordDef
-			
+
 			self.__timeindex = BTree("TimeChangedindex", path + "/TimeChangedindex.bdb", dbenv=self.__dbenv) # key=record id, value=last time record was changed
 			self.__recorddefbyrec = IntBTree("RecordDefByRec", path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
 			self.__fieldindex = {} # dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
@@ -404,7 +403,7 @@ class Database(object):
 				txn.commit()
 			elif not self.__importmode:
 				DB_syncall()
-			
+
 			self.LOG(4, "Database initialized")
 			g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
 			self.__anonymouscontext = self.__getcontext(self.login(), None)
@@ -425,14 +424,14 @@ class Database(object):
 				txn = self.newtxn()
 			return txn
 
-			
+
 		def txncommit(self, txn=None):
 			txn = self.txncheck(txn)
 			if txn:
 				txn.commit()
 			elif not self.__importmode:
 				DB_syncall()
-				
+
 
 		def LOG(self, level, message):
 			"""level is an integer describing the seriousness of the error:
@@ -509,15 +508,15 @@ class Database(object):
 
 			# we use sha to make a key for the context as well
 			s = hashlib.sha1(username + str(host) + str(time.time()))
-			
+
 			ctx.ctxid = s.hexdigest()
 			self.__setcontext(ctx.ctxid, ctx=ctx)
-			
+
 			self.LOG(4, "Login succeeded %s (%s)" % (username, ctx.ctxid))
 			return ctx.ctxid
-			
-			
-			
+
+
+
 		#@txn
 		@publicmethod
 		def deletecontext(self, ctxid=None, host=None):
@@ -530,18 +529,18 @@ class Database(object):
 
 			for c in ctxid:
 				# check we have access to this context
-				ctx = self.__getcontext(c, host)					
+				ctx = self.__getcontext(c, host)
 				self.__setcontext(ctxid, ctx=None)
-				
-				
-				
+
+
+
 		# Logout is the same as delete context
 		@publicmethod
 		def logout(self, ctxid=None, host=None):
 			self.deletecontext(ctxid, host)
 
-	
-				
+
+
 
 		# ian: change so all __setcontext calls go through same txn
 		def __cleanupcontexts(self):
@@ -555,7 +554,7 @@ class Database(object):
 					ctx.time = c.time
 				except:
 					pass
-					
+
 				if ctx.time + (ctx.maxidle or 0) < time.time():
 					self.LOG(4, "Expire context (%s) %d" % (ctx.ctxid, time.time() - ctx.time))
 					self.__setcontext(ctx.ctxid, ctx=None)
@@ -570,7 +569,7 @@ class Database(object):
 			if not txn:
 				txn = self.newtxn()
 
-			self.__contexts_p.set_txn(txn)				
+			self.__contexts_p.set_txn(txn)
 
 			# set context
 			if ctx != None:
@@ -594,22 +593,22 @@ class Database(object):
 					del self.__contexts[k[0]]
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
-								
+
 				try:
 					del self.__contexts_p[ctxid]
 					g.debug("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid)
-					
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete persistent context %s (%s)"%(ctxid, inst))
-				
-			self.__contexts_p.set_txn(None)	
-				
+
+			self.__contexts_p.set_txn(None)
+
 			if txn:
 				txn.commit()
 			elif not self.__importmode:
 				DB_syncall()
 			#@end
-				
+
 
 		def __getcontext(self, key, host):
 			"""Takes a ctxid key and returns a context (for internal use only)
@@ -919,520 +918,6 @@ class Database(object):
 
 
 
-		# ian todo: eventually let's move query stuff to end of file for neatness, or separate module...
-		querykeywords = ["find", "plot", "histogram", "timeline", "by", "vs", "sort", "group", "and", "or", "child", "parent", "cousin", "><", ">", "<", ">=", "<=", "=", "!=", ","]
-		querycommands = ["find", "plot", "histogram", "timeline"]
-
-		# ian todo: fix
-		@publicmethod
-		def query(self, query, retindex=False, ctxid=None, host=None):
-				"""This performs a general database query.
-				! - exclude protocol name
-				@ - protocol name
-				$ - parameter name
-				% - username
-				parentheses grouping not supported yet"""
-				#self = db
-
-				query = str(query)
-
-				tm0 = time.time()
-				query2 = self.querypreprocess(query, ctxid=ctxid, host=host)
-				if isinstance(query2, tuple) : return query2				 # preprocessing returns a tuple on failure and a list on success
-#				 print query2
-
-				# Make sure there is only one command in the query
-				command = [i for i in Database.querycommands if (i in query2)]
-
-				if len(command) == 0 : command = "find"
-				elif len(command) == 1 : command = command[0]
-				else : return (- 2, "Too many commands in query", command)
-
-				# start by querying for specified record type
-				# each record can only have one type, so intersection combined with
-				# multiple record types would always yield nothing, so we assume
-				# the intent is union, not intersection
-				byrecdef = set()
-				excludeset = set()
-				for n, i in enumerate(query2):
-						if isinstance(i, str) and i[0] == "@" and (query[n - 1] not in ("by", "group")):
-								byrecdef |= self.getindexbyrecorddef(i[1:], ctxid=ctxid, host=host)
-						if isinstance(i, str) and i[0] == "!":
-								excludeset |= self.getindexbyrecorddef(i[1:], ctxid=ctxid, host=host)
-
-				# We go through the query word by word and perform each operation
-				byparamval = set()
-				groupby = None
-				n = 0
-				while (n < len(query2)):
-						i = query2[n]
-						if i == "plot" :
-								if not query2[n + 2] in (",", "vs", "vs.") : return (- 1, "plot <y param> vs <x param>", "")
-								comops = (query2[n + 1], query2[n + 3])
-								n += 4
-
-								# We make sure that any record containing either parameter is included
-								# in the results by default, and cache the values for later use in plotting
-								ibvx = self.getindexdictbyvalue(comops[1][1:], None, ctxid=ctxid, host=host)
-								ibvy = self.getindexdictbyvalue(comops[0][1:], None, ctxid=ctxid, host=host)
-
-								if len(byparamval) > 0 : byparamval.intersection_update(ibvx.keys())
-								else: byparamval = set(ibvx.keys())
-								byparamval.intersection_update(ibvy.keys())
-								continue
-						elif i == "histogram" :
-								if not query2[n + 1][0] == "$" : return (- 1, "histogram <parametername>", "")
-								comops = (query2[n + 1],)
-								n += 2
-
-								# We make sure that any record containing the parameter is included
-								ibvh = self.getindexdictbyvalue(comops[0][1:], None, ctxid=ctxid, host=host)
-								if len(byparamval) > 0 : byparamval.intersection_update(ibvh.keys())
-								else: byparamval = set(ibvh.keys())
-								continue
-						elif i == "group" :
-								if query2[n + 1] == "by" :
-										groupby = query2[n + 2]
-										n += 3
-										continue
-								groupby = query2[n + 1]
-								n += 2
-								continue
-						elif i == "child" :
-								#print "QUERY CHILD OF: %s"%query2[n+1]
-								#print query2
-								chl = self.getchildren(query2[n + 1], recurse=20, ctxid=ctxid, host=host)
-								#print "getchildren result... %s"%len(chl)
-#								 chl=set([i[0] for i in chl])	 # children no longer suppport names
-								if len(byparamval) > 0 : byparamval &= chl
-								else: byparamval = chl
-								#print byparamval
-								n += 2
-								continue
-						elif i == "parent" :
-								if len(byparamval) > 0 : byparamval &= self.getparents(query2[n + 1], "record", recurse=20, ctxid=ctxid, host=host)
-								else: byparamval = self.getparents(query2[n + 1], "record", recurse=20, ctxid=ctxid, host=host)
-								n += 2
-								continue
-						elif i == "cousin" :
-								if len(byparamval) > 0 : byparamval &= self.getcousins(query2[n + 1], "record", recurse=20, ctxid=ctxid, host=host)
-								else: byparamval = self.getcousins(query2[n + 1], "record", recurse=20, ctxid=ctxid, host=host)
-								n += 2
-								continue
-						elif i[0] == "@" or i[0] == "!" or i in ("find", "timeline") :
-								n += 1
-								continue
-						elif i[0] == "%" :
-								if len(byparamval) > 0 : byparamval &= self.getindexbyuser(i[1:], ctxid=ctxid, host=host)
-								else: byparamval = self.getindexbyuser(i[1:], ctxid=ctxid, host=host)
-						elif i[0] == "$" :
-								vrange = [None, None]
-								op = query2[n + 1]
-								if op == ">" or op == ">=" :
-										vrange[0] = query2[n + 2]		 # indexing mechanism doesn't support > or < yet
-										n += 2
-								elif op == "<" or op == "<=" :
-										vrange[1] = query2[n + 2]		 # so we treat them the same for now
-										n += 2
-								elif op == "=" :
-										vrange = query2[n + 2]
-										n += 2
-								elif op == "><" :
-										if not query2[n + 3] in (",", "and") : raise Exception, "between X and Y (%s)" % query2[n + 3]
-										vrange = [query2[n + 2], query2[n + 4]]
-										n += 4
-								if len(byparamval) > 0 : byparamval &= self.getindexbyvalue(i[1:], vrange, ctxid=ctxid, host=host)
-								else: byparamval = self.getindexbyvalue(i[1:], vrange, ctxid=ctxid, host=host)
-						elif i == "and" : pass
-
-						else :
-								return (- 1, "Unknown word", i)
-
-						n += 1
-
-				if len(byrecdef) == 0: byrecdef = byparamval
-				elif len(byparamval) != 0: byrecdef &= byparamval
-
-				if len(excludeset) > 0 : byrecdef -= excludeset
-
-
-				# Complicated block of code to handle 'groupby' queries
-				# this splits the set of located records (byrecdef) into
-				# a dictionary keyed by whatever the 'groupby' request wants
-				# For splits based on a parameter ($something), it will recurse
-				# into the parent records up to 3 levels to try to find the
-				# referenced parameter. If a protocol name is supplied, it will
-				# look for a parent record of that class.
-				if groupby:
-						dct = {}
-						if groupby[0] == '$':
-								gbi = self.getindexdictbyvalue(groupby[1:], None, None, ctxid=ctxid, host=host)
-								for i in byrecdef:
-										if gbi.has_key(i) :
-												try: dct[gbi[i]].append(i)
-												except: dct[gbi[i]] = [i]
-										else :
-												p = self.getparents(i,'record',4,ctxid=ctxid,host=host)
-												#p = self.__getparentssafe(i, 'record', 4, ctxid=ctxid, host=host)
-												for j in p:
-														if gbi.has_key(j) :
-																try: dct[gbi[j]].append(i)
-																except: dct[gbi[j]] = [i]
-						elif groupby[0] == "@":
-								alloftype = self.getindexbyrecorddef(groupby[1:], ctxid=ctxid, host=host)
-								for i in byrecdef:
-										#p = self.__getparentssafe(i, 'record', 10, ctxid=ctxid, host=host)
-										p = self.getparents(i,'record',10,ctxid=ctxid,host=host)
-										p &= alloftype
-										for j in p:
-												try: dct[j].append(i)
-												except: dct[j] = [i]
-#										 else: print p,alloftype,self.getparents(i,'record',10,ctxid)
-						elif groupby in ("class", "protocol", "recorddef") :
-#								 for i in byrecdef:
-#										 r=self.getrecord(i,ctxid)
-#										 try: dct[r.rectype].append(i)
-#										 except: dct[r.rectype]=[i]
-								for i in self.getrecorddefnames(ctxid=ctxid, host=host):
-										s = self.getindexbyrecorddef(i, ctxid=ctxid, host=host)
-										ss = s & byrecdef
-										if len(ss) > 0 : dct[i] = tuple(ss)
-						ret = dct
-				else: ret = byrecdef
-
-				if command == "find" :
-						allrec = self.getindexbycontext(ctxid=ctxid,host=host)
-						ret &= allrec
-						# Simple find request, no further processing required
-						if isinstance(ret, dict):
-								return { 'type':'find', 'querytime':time.time() - tm0, 'data':ret}
-						else:
-								return { 'type':'find', 'querytime':time.time() - tm0, 'data':tuple(ret) }
-				elif command == "plot" :
-						# This deals with 'plot' requests, which are currently 2D scatter plots
-						# It will return a sorted list of (x,y) pairs, or if a groupby request,
-						# a dictionary of such lists. Note that currently output is also
-						# written to plot*txt text files
-						if isinstance(ret, dict) :
-								multi = {}
-								# this means we had a 'groupby' request
-								x0, x1, y0, y1 = 1e38, - 1e38, 1e38, - 1e38
-								for j in ret.keys():
-										ret2x = []
-										ret2y = []
-										ret2i = []
-										for i in ret[j]:
-												ret2x.append(ibvx[i])
-												ret2y.append(ibvy[i])
-												ret2i.append(i)
-												x0 = min(x0, ibvx[i])
-												y0 = min(y0, ibvy[i])
-												x1 = max(x1, ibvx[i])
-												y1 = max(y1, ibvy[i])
-
-										if retindex:
-												multi[j] = { 'x':ret2x, 'y':ret2y, 'i':ret2i }
-										else:
-												multi[j] = { 'x':ret2x, 'y':ret2y }
-								return {'type': 'multiplot', 'data': multi, 'xrange': (x0, x1), 'yrange': (y0, y1), 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'groupby': groupby, 'querytime':time.time() - tm0, 'query':query2}
-
-						else:
-								# no 'groupby', just a single query
-								x0, x1, y0, y1 = 1e38, - 1e38, 1e38, - 1e38
-								ret2x = []
-								ret2y = []
-								ret2i = []
-								for i in byrecdef:
-										ret2x.append(ibvx[i])
-										ret2y.append(ibvy[i])
-										ret2i.append(i)
-										x0 = min(x0, ibvx[i])
-										y0 = min(y0, ibvy[i])
-										x1 = max(x1, ibvx[i])
-										y1 = max(y1, ibvy[i])
-
-								if retindex :
-										return {'type': 'plot', 'data': {'x':ret2x, 'y':ret2y, 'i':ret2i}, 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'xrange': (x0, x1), 'yrange': (y0, y1), 'querytime':time.time() - tm0, 'query':query2}
-								else:
-										return {'type': 'plot', 'data': {'x':ret2x, 'y':ret2y}, 'xlabel': comops[1][1:], 'ylabel': comops[0][1:], 'xrange': (x0, x1), 'yrange': (y0, y1), 'querytime':time.time() - tm0, 'query':query2}
-				elif command == "histogram" :
-						# This deals with 'histogram' requests
-						# This is much more complicated than the plot query, since a wide variety
-						# of datatypes must be handled sensibly
-						if len(byrecdef) == 0 : return (- 1, "no records found", "")
-
-						if not isinstance(ret, dict) :				 # we make non groupby requests look like a groupby with one null category
-								ret = {"":ret}
-
-						if 1:
-								ret2 = {}
-								tmp = []
-								pd = self.getparamdef(comops[0][1:],ctxid=ctxid,host=host)
-
-								if (pd.vartype in ("int", "longint", "float", "longfloat")) :
-										# get all of the values for the histogrammed field
-										# and associated numbers, (value, record #, split key)
-										for k, j in ret.items():
-												for i in j: tmp.append((ibvh[i], i, k))
-										tmp.sort()
-
-										# Find limits and make a decent range for the histogram
-										m0, m1 = float(tmp[0][0]), float(tmp[ - 1][0])
-										n = min(len(tmp) / 10, 50)
-										step = setdigits((m1 - m0) / (n - 1), 2)				 # round the step to 2 digits
-										m0 = step * (floor(m0 / step) - .5)								 # round the min val to match step size
-										n = int(ceil((m1 - m0) / step)) + 1
-#										 if m0+step*n<=m1 : n+=1
-										digits = max(0, 1 - floor(log10(step)))
-										fmt = "%%1.%df" % digits
-
-										# now we build the actual histogram. Result is ret2 = { 'keys':keylist,'x':xvalues,1:first hist,2:2nd hist,... }
-										ret2 = {}
-										ret2['keys'] = []
-										for i in tmp:
-												if not i[2] in ret2['keys']:
-														ret2['keys'].append(i[2])
-														kn = ret2['keys'].index(i[2])
-														ret2[kn] = [0] * n
-												else: kn = ret2['keys'].index(i[2])
-												ret2[kn][int(floor((i[0] - m0) / step))] += 1
-
-										# These are the x values
-										ret2['x'] = [fmt % ((m0 + step * (i + 0.5))) for i in range(n)]
-								elif (pd.vartype in ("date", "datetime")) :
-										# get all of the values for the histogrammed field
-										# and associated numbers
-										# This could be rewritten MUCH more concisely
-										for k, j in ret.items():
-												for i in j: tmp.append((ibvh[i], i, k))
-										tmp.sort()
-
-										# Work out x-axis values. This is complicated for dates
-										t0 = int(timetosec(tmp[0][0]))
-										t1 = int(timetosec(tmp[ - 1][0]))
-										totaltime = t1 - t0				 # total time span in seconds
-
-										# now we build the actual histogram. Result is ret2 = { 'keys':keylist,'x':xvalues,1:first hist,2:2nd hist,... }
-										ret2 = {}
-										ret2['keys'] = []
-										ret2['x'] = []
-
-										if totaltime < 72 * 3600:		 # by hour, less than 3 days
-												for i in range(t0, t1 + 3599, 3600):
-														t = time.localtime(i)
-														ret2['x'].append("%04d/%02d/%02d %02d" % (t[0], t[1], t[2], t[3]))
-												n = len(ret2['x'])
-												for i in tmp:
-														if not i[2] in ret2['keys']:
-																ret2['keys'].append(i[2])
-																kn = ret2['keys'].index(i[2])
-																ret2[kn] = [0] * n
-														else: kn = ret2['keys'].index(i[2])
-														try: ret2[kn][ret2['x'].index(i[0][:13])] += 1
-														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
-
-										elif totaltime < 31 * 24 * 3600:		# by day, less than ~1 month
-												for i in range(t0, t1 + 3600 * 24 - 1, 3600 * 24):
-														t = time.localtime(i)
-														ret2['x'].append("%04d/%02d/%02d" % (t[0], t[1], t[2]))
-												n = len(ret2['x'])
-												for i in tmp:
-														if not i[2] in ret2['keys']:
-																ret2['keys'].append(i[2])
-																kn = ret2['keys'].index(i[2])
-																ret2[kn] = [0] * n
-														else: kn = ret2['keys'].index(i[2])
-														try: ret2[kn][ret2['x'].index(i[0][:10])] += 1
-														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
-
-										elif totaltime < 52 * 7 * 24 * 3600: # by week, less than ~1 year
-												for i in range(int(t0), int(t1) + 3600 * 24 * 7 - 1, 3600 * 24 * 7):
-														t = time.localtime(i)
-														ret2['x'].append(timetoweekstr("%04d/%02d/%02d" % (t[0], t[1], t[2])))
-												n = len(ret2['x'])
-												for i in tmp:
-														if not i[2] in ret2['keys']:
-																ret2['keys'].append(i[2])
-																kn = ret2['keys'].index(i[2])
-																ret2[kn] = [0] * n
-														else: kn = ret2['keys'].index(i[2])
-														try: ret2[kn][ret2['x'].index(timetoweekstr(i[0]))] += 1
-														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
-
-										elif totaltime < 4 * 365 * 24 * 3600: # by month, less than ~4 years
-												m0 = int(tmp[0][0][:4]) * 12 + int(tmp[0][0][5:7]) - 1
-												m1 = int(tmp[ - 1][0][:4]) * 12 + int(tmp[ - 1][0][5:7]) - 1
-												for i in range(m0, m1 + 1):
-														ret2['x'].append("%04d/%02d" % (i / 12, (i % 12) + 1))
-												n = len(ret2['x'])
-												for i in tmp:
-														if not i[2] in ret2['keys']:
-																ret2['keys'].append(i[2])
-																kn = ret2['keys'].index(i[2])
-																ret2[kn] = [0] * n
-														else: kn = ret2['keys'].index(i[2])
-														try: ret2[kn][ret2['x'].index(i[0][:7])] += 1
-														except: g.debug.msg('LOG_ERROR', "Index error on ", i[0])
-										else :		# by year
-												for i in range(int(tmp[0][0][:4]), int(tmp[ - 1][0][:4]) + 1):
-														ret2['x'].append("%04d" % i)
-												n = len(ret2['x'])
-												for i in tmp:
-														if not i[2] in ret2['keys']:
-																ret2['keys'].append(i[2])
-																kn = ret2['keys'].index(i[2])
-																ret2[kn] = [0] * n
-														else: kn = ret2['keys'].index(i[2])
-														ret2[kn][ret2['x'].index(i[0][:4])] += 1
-
-								elif (pd.vartype in ("choice", "string")):
-										# get all of the values for the histogrammed field
-										# and associated record ids. Note that for string/choice
-										# this may be a list of values rather than a single value
-										gkeys = set()				 # group key list
-										vkeys = set()				 # item key list
-										for k, j in ret.items():
-												gkeys.add(k)
-												for i in j:
-														v = ibvh[i]
-														vkeys.add(v)
-														if isinstance(v, str) : tmp.append((v, i, k))
-														else:
-																for l in v: tmp.append((l, i, k))
-
-										gkeys = list(gkeys)
-										gkeys.sort()
-										vkeys = list(vkeys)
-										vkeys.sort()
-
-										# a string field
-										tmp2 = [[0] * len(vkeys) for i in range(len(gkeys))]
-										for i in tmp:
-												tmp2[gkeys.index(i[2])][vkeys.index(i[0])] += 1
-
-										ret2 = { 'keys':gkeys, 'x':vkeys}
-										for i, j in enumerate(tmp2): ret2[i] = tmp2[i]
-
-#								 ret2.sort()
-								return {'type': 'histogram', 'data': ret2, 'xlabel': comops[0][1:], 'ylabel': "Counts", 'querytime':time.time() - tm0, 'query':query2}
-
-				elif command == "timeline" :
-						pass
-
-
-		def querypreprocess(self, query, ctxid=None, host=None):
-				"""This performs preprocessing on a database query string.
-				preprocessing involves remapping synonymous keywords/symbols and
-				identification of parameter and recorddef names, it is normally
-				called by query()
-
-				! - exclude protocol
-				@ - protocol name
-				$ - parameter name
-				% - username
-				parentheses not supported yet. Upon failure returns a tuple:
-				(code, message, bad element)"""
-
-				# Words get replaced with their normalized equivalents
-				replacetable = {
-				"less":"<", "before":"<", "lower":"<", "under":"<", "older":"<", "shorter":"<",
-				"greater":">", "after":">", "more":">", "over":">", "newer":">", "taller":">",
-				"between":"><", "&":"and", "|":"or", "$$":"$", "==":"=", "equal":"=", "equals":"=",
-				"locate":"find", "split":"group", "children":"child", "parents":"parent", "cousins":"cousin",
-				"than":None, "is":None, "where":None, "of":None}
-
-
-				# parses the strings into discrete units to process (words and operators)
-				e = [i for i in re.split("\s|(<=|>=|><|!=|<|>|==|=|,)", query) if i != None and len(i) > 0]
-
-				# this little mess rejoins quoted strings into a single element
-				elements = []
-				i = 0
-				while i < len(e) :
-						if e[i][0] == '"' or e[i][0] == "'" :
-								q = e[i][0]
-								e[i] = e[i][1:]
-								s = ""
-								while(i < len(e)):
-										if e[i][ - 1] == q :
-												s += e[i][: - 1]
-												elements.append(s)
-												i += 1
-												break
-										s += e[i] + " "
-										i += 1
-						else:
-								elements.append(e[i])
-								i += 1
-
-				# Now we clean up the list of terms and check for errors
-				for n, e in enumerate(elements):
-						# replace descriptive words with standard symbols
-						if replacetable.has_key(e) :
-								elements[n] = replacetable[e]
-								e = replacetable[e]
-
-						if e == None or len(e) == 0 : continue
-
-						# if it's a keyword, we don't need to do anything else to it
-						if e in Database.querykeywords : continue
-
-						# this checks to see if the element is simply a number, in which case we need to keep it!
-						try: elements[n] = int(e)
-						except: pass
-						else: continue
-
-						try: elements[n] = float(e)
-						except: pass
-						else: continue
-
-						if e[0] == "@" :
-								a = self.findrecorddefname(e[1:],ctxid=ctxid,host=host)
-								if a == None : return (- 1, "Invalid protocol", e)
-								elements[n] = "@" + a
-								continue
-						if e[0] == '!':
-								a = self.findrecorddefname(e[1:],ctxid=ctxid,host=host)
-								if a == None : return (- 1, "Invalid protocol", e)
-								elements[n] = "!" + a
-								continue
-						elif e[0] == "$" :
-								a = self.findparamdefname(e[1:],ctxid=ctxid,host=host)
-								if a == None : return (- 1, "Invalid parameter", e)
-								elements[n] = "$" + a
-								continue
-						elif e[0] == "%" :
-								a = self.findusername(e[1:], ctxid,ctxid=ctxid,host=host)
-								if a == None : return (- 1, "Username does not exist", e)
-								if isinstance(a, str) :
-										elements[n] = "%" + a
-										continue
-								if len(a) > 0 : return (- 1, "Ambiguous username", e, a)
-						else:
-								a = self.findrecorddefname(e,ctxid=ctxid,host=host)
-								if a != None :
-										elements[n] = "@" + a
-										continue
-								a = self.findparamdefname(e,ctxid=ctxid,host=host)
-								if a != None :
-										elements[n] = "$" + a
-										continue
-
-								# Ok, if we don't recognize the word, we just ignore it
-								# if it's in a critical spot we can raise an error later
-
-				return [i for i in elements if i != None]
-
-#				 """This will use a context to return
-#				 a list of records the user can access"""
-#				 u,g=self.checkcontext(ctxid,host)
-#
-#				 ret=set(self.__secrindex[u])
-#				 for i in g: ret|=set(self.__secrindex[i])
-#				 return ret
-
-
-
 		@publicmethod
 		def fulltextsearch(self, q, rectype=None, indexsearch=1, params=set(), recparams=0, builtinparam=0, ignorecase=1, subset=[], tokenize=0, single=0, includeparams=set(), ctxid=None, host=None):
 			"""
@@ -1497,7 +982,7 @@ class Database(object):
 					if ret.has_key(rec.recid) and includeparams:
 						for i in includeparams:
 							ret[rec.recid][i] = rec[i]
-							
+
 
 			else:
 				g.debug("index search: %s, subset %s"%(q,len(subset)))
@@ -1605,7 +1090,7 @@ class Database(object):
 			if valrange == None:
 				ret = set(ind.values())
 
-			elif isinstance(valrange, [tuple, list]):
+			elif isinstance(valrange, (tuple, list)):
 				ret = set(ind.values(valrange[0], valrange[1]))
 
 			else:
@@ -2002,13 +1487,13 @@ class Database(object):
 
 
 
-			
+
 		#@txn
 		@publicmethod
 		def pclink(self, pkey, ckey, keytype="record", txn=None, ctxid=None, host=None):
 			"""Establish a parent-child relationship between two keys.
 			A context is required for record links, and the user must
-			have write permission on at least one of the two."""			
+			have write permission on at least one of the two."""
 			ctx = self.__getcontext(ctxid, host)
 			return self.__link("pclink", pkey, ckey, keytype=keytype, ctx=ctx)
 
@@ -2019,8 +1504,8 @@ class Database(object):
 			"""Remove a parent-child relationship between two keys. Returns none if link doesn't exist."""
 			ctx = self.__getcontext(ctxid, host)
 			return self.__link("pcunlink", pkey, ckey, keytype=keytype, ctx=ctx)
-			
-			
+
+
 		#@txn
 		@publicmethod
 		def link(self, pkey, ckey, keytype="record", txn=None, ctxid=None, host=None):
@@ -2044,7 +1529,7 @@ class Database(object):
 
 			if not ctx.checkcreate():
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
-				
+
 			if pkey==ckey:
 				self.log("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
 				return
@@ -2084,14 +1569,14 @@ class Database(object):
 			elif keytype == "paramdef":
 				index = self.__paramdefs
 			else:
-				raise Exception, "Invalid keytype %s"%keytype	
-				
+				raise Exception, "Invalid keytype %s"%keytype
+
 			linker = getattr(index, mode)
-			
+
 			#@begin
 			if not txn:
 				txn = self.newtxn()
-			
+
 			linker(pkey, ckey, txn=txn)
 			g.debug("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
@@ -2147,10 +1632,10 @@ class Database(object):
 				user.disabled = int(state)
 				commitusers.append(i)
 
-			
+
 			ret = self.__commit_users(commitusers)
-			self.LOG(0, "Users %s disabled by %s"%([user.username for user in ret], ctx.user))					
-					
+			self.LOG(0, "Users %s disabled by %s"%([user.username for user in ret], ctx.user))
+
 			if ol: return ret[0].username
 			return [user.username for user in ret]
 
@@ -2183,7 +1668,7 @@ class Database(object):
 			delusers = {}
 			addusers = {}
 			records = {}
-			
+
 			for username in usernames:
 				if not username in self.__newuserqueue.keys():
 					raise KeyError, "User %s is not pending approval" % username
@@ -2215,19 +1700,19 @@ class Database(object):
 					rec["name_last"] = user.name[2]
 					rec["email"] = user.email
 					rec.adduser(3,username)
-					
+
 					for k,v in user.signupinfo.items():
 						rec[k]=v
 
 					records[username] = rec
-				
+
 				user.signupinfo = None
 				addusers[username] = user
-				
+
 			#recs, orecs, updrels = self.__putrecord_checknew(records.values(), ctx=ctx)
 
 			#@begin
-			
+
 			txn = self.txncheck()
 
 			crecs = self.__putrecord(recs, ctx=ctx, txn=txn)
@@ -2240,11 +1725,11 @@ class Database(object):
 			self.txncommit(txn)
 
 			#@end
-			
+
 			ret = addusers.keys()
 			if ol and len(ret)==1: return ret[0]
 			return ret
-			
+
 
 		#@txn
 		@publicmethod
@@ -2324,8 +1809,8 @@ class Database(object):
 					raise ValueError
 			except ValueError, inst:
 				raise Exception, "Invalid state. Must be 0 or 1."
-			
-			
+
+
 			ol = 0
 			if not hasattr(usernames,"__iter__"):
 				ol = 1
@@ -2337,8 +1822,8 @@ class Database(object):
 				user = self.getuser(username, ctxid=ctxid, host=host)
 				user.privacy = state
 				commitusers.append(user)
-			
-			
+
+
 			return self.__commit_users(commitusers, ctx=ctx)
 
 
@@ -2414,7 +1899,7 @@ class Database(object):
 				user.modifytime = self.gettime()
 
 			user.validate()
-			
+
  			self.__commit_newusers({user.username:user}, ctx=None)
 
 			return user
@@ -2432,7 +1917,7 @@ class Database(object):
 				if not isinstance(user, User):
 					try:
 						user = User(user)
-					except:	
+					except:
 						raise ValueError, "User instance or dict required"
 
 				try:
@@ -2444,11 +1929,11 @@ class Database(object):
 					raise SecurityError, "Creation information may not be changed"
 
 				user.validate()
-				
+
 				commitusers.append(user)
 
 			#@begin
-			
+
 			if not txn:
 				txn = self.newtxn()
 
@@ -2458,12 +1943,12 @@ class Database(object):
 
 			if txn:	txn.commit()
 			elif not self.__importmode:	DB_syncall()
-			
+
 			#@end
 
-			return commitusers		
-		
-		
+			return commitusers
+
+
 		#@write #self.__newuserqueue
 		def __commit_newusers(self, users, ctx=None, txn=None):
 			"""write to newuserqueue; users is dict; set value to None to del"""
@@ -2471,12 +1956,12 @@ class Database(object):
 			#@begin
 
 			txn = self.txncheck(txn)
-			
+
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
 				g.debug("LOG_COMMIT","Commit: self.__newuserqueue.set: %s"%username)
 
-			self.txncommit(txn)			
+			self.txncommit(txn)
 
 			#@end
 
@@ -2796,8 +2281,8 @@ class Database(object):
 					paramdef = ParamDef(paramdef)
 				except:
 					raise ValueError, "ParamDef instance or dict required"
-			#paramdef=ParamDef(paramdef.__dict__.copy())
-			# paramdef.validate()
+				#paramdef=ParamDef(paramdef.__dict__.copy())
+				# paramdef.validate()
 
 			ctx = self.__getcontext(ctxid, host)
 
@@ -2863,13 +2348,13 @@ class Database(object):
 		def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
 
 			#@begin
-			
+
 			txn = self.checktxn(txn)
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
 				g.debug("LOG_COMMIT","Commit: self.__paramdefs.set: %s"%paramdef.name)
-			
+
 			self.txncommit(txn)
 
 			#@end
@@ -3064,17 +2549,17 @@ class Database(object):
 
 		#@write #self.__recorddefs
 		def __commit_recorddefs(self, recorddefs, ctx=None, txn=None):
-			
+
 			#@begin
-			
+
 			txn = self.txncheck(txn)
-			
+
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recdef.name, recdef, txn=txn)
 				g.debug("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recdef.name)
 
 			self.txncommit(txn)
-			
+
 			#@end
 
 
@@ -3252,10 +2737,10 @@ class Database(object):
 			return self.__fieldindex[paramname]
 
 
-			
-			
 
-	
+
+
+
 		# ian todo: redo these three methods
 		#@txn
 		@publicmethod
@@ -3518,6 +3003,7 @@ class Database(object):
 
 		#@txn
 		@publicmethod
+		@g.debug.debug_func
 		def putrecord(self, recs, filt=1, warning=0, ctxid=None, host=None, txn=None):
 			"""commits a record"""
 			# input validation for __putrecord
@@ -3539,12 +3025,12 @@ class Database(object):
 
 			# new records and updated records
 			updrecs = filter(lambda x:x.recid != None, recs)
-			newrecs = filter(lambda x:x.recid == None, recs)			
+			newrecs = filter(lambda x:x.recid == None, recs)
 
 			# check original records for write permission
 			orecs = self.getrecord([rec.recid for rec in updrecs], ctxid=ctx.ctxid, host=ctx.host, filt=0)
 			orecs = set(map(lambda x:x.recid, filter(lambda x:x.commentable(), orecs)))
-						
+
 			permerror = set([rec.recid for rec in updrecs]) - orecs
 			if permerror:
 				raise SecurityError,"No permission to write to records: %s"%permerror
@@ -3552,56 +3038,55 @@ class Database(object):
 			if newrecs and not ctx.checkcreate():
 				raise SecurityError,"No permission to create records"
 
-
 			ret = self.__putrecord(recs, warning=warning, ctx=ctx, txn=txn)
-			
+
 			if ol: return ret[0]
 			return ret
 
-			
-			
+
+
 		# def __putrecord(self, recs, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
-		# 
+		#
 		# 	# i might change orecs in the future; for now it's a bit of a kludge to deal with new recs
 		# 	nrecs, nrels = self.__putrecord_checknew(newrecs, ctx=ctx, txn=txn)
 		# 	urecs, urels = self.__putrecord_check(updrecs, warning=warning, validate=validate, forceupdate=forceupdate, ctx=ctx, txn=txn)
-		# 	
+		#
 		# 	# commit
 		# 	crecs = self.__commit_records(nrecs + urecs, updrels=nrels + urels, ctx=ctx, txn=txn)
-		# 
+		#
 		# 	return crecs2
-			
+
 
 
 		# def __putrecord_checknew(self, newrecs, setcreator=1, ctx=None, txn=None):
 		# 	# preprocess for __putrecordcheck, which itself is a filter to check before committing
-		# 	
+		#
 		# 	updrecs = []
 		# 	orecs = {}
-		# 
+		#
 		# 	# preprocess before putrecord
 		# 	for offset,rec in enumerate(newrecs):
-		# 
+		#
 		# 		recid = -1 * (offset + 1)
-		# 
+		#
 		# 		if self.__importmode or not setcreator:
 		# 			t = rec.get("creaiontime")
 		# 			creator = rec.get("creator")
 		# 		else:
 		# 			t = self.gettime()
 		# 			creator = ctx.user
-		# 
+		#
 		# 		# set uneditable fields
 		# 		rec._Record__creator = creator
 		# 		rec._Record__creationtime = t
 		# 		rec.recid = recid
 		# 		rec.adduser(3, creator)
-		# 
+		#
 		# 		updrecs.append(rec)
-		# 
+		#
 		# 	return self.__putrecord_check(updrecs, warning=0, validate=1, log=0, forceupdate=1, ctx=ctx, txn=txn)
-		
-				
+
+
 		def __putrecord_getupdrels(self, updrecs):
 			# get parents/children to update relationships
 			r = []
@@ -3615,18 +3100,18 @@ class Database(object):
 					r.extend([(updrec.recid,i) for i in _c])
 					del updrecs["children"]
 			return r
-			
-			
-	
+
+
+
 		# def __putrecord_getorecs(self, updrecs, ctx=None):
 		# 	orecs = {}
-		# 
+		#
 		# 	for updrec in updrecs:
 		# 		try:
 		# 			orec = self.__records[updrec.recid]
 		# 			orec.setContext(ctx)
 		# 			#orec = self.getrecord(updrec.recid, ctxid=ctx.ctxid, host=ctx.host)
-		# 
+		#
 		# 		except TypeError, inst:
 		# 			# new record... assign temp recid
 		# 			orec = Record()
@@ -3636,13 +3121,13 @@ class Database(object):
 		# 			if self.__importmode:
 		# 				orec._Record__creator = updrec["creator"]
 		# 				orec._Record__creationtime = updrec["creationtime"]
-		# 		
+		#
 		# 		orecs[updrec.recid] = orec
-		# 	
+		#
 		# 	return orecs
-	
-		
-							
+
+
+
 		def __putrecord(self, updrecs, warning=0, validate=1, newrecord=0, log=1, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
@@ -3676,23 +3161,23 @@ class Database(object):
 				except TypeError, inst:
 					orec = self.newrecord(updrec.rectype, ctxid=ctx.ctxid, host=ctx.host)
 					orec.recid = updrec.recid
-					
+
 					if self.__importmode:
 						orec._Record__creator = updrec["creator"]
 						orec._Record__creationtime = updrec["creationtime"]
-					
+
 					if recid > 0:
 						raise Exception, "Cannot update non-existent record %s"%recid
 
 
-				# compare to original record					
+				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
 
 				if not cp and not orec.recid < 0:
 					g.debug("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 					continue
-					
-					
+
+
 				# add new comments; already checked for comment level security...
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
@@ -3703,14 +3188,14 @@ class Database(object):
 				# copy updates to orec, log changes
 				if cp - param_special and not orec.writable():
 					raise SecurityError, "Cannot change params in %s"%recid
-					
+
 				for param in cp - param_special:
 					if log:
 						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
 						#% (param, orec[param]), param, orec[param]))
 					orec[param] = updrec[param]
 
-				
+
 				if "permissions" in cp:
 					if not orec.isowner():
 						raise SecurityError, "Cannot change permissions for %s"%recid
@@ -3720,9 +3205,9 @@ class Database(object):
 				if not self.__importmode:
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.user
-					
 
-				if validate:					
+
+				if validate:
 					orec.validate(warning=warning, params=cp)
 
 				crecs.append(orec)
@@ -3732,7 +3217,7 @@ class Database(object):
 
 			return self.__commit_records(crecs, updrels, ctx=ctx)
 
-		
+
 		# commit
 		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex, self.__timeindex
 		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
@@ -3749,7 +3234,7 @@ class Database(object):
 			indexupdates = self.__reindex_params(crecs, ctx=ctx)
 			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx)
 			timeupdate = self.__reindex_time(crecs, ctx=ctx)
-			
+
 			#@begin
 			txn = self.txncheck(txn)
 
@@ -3770,13 +3255,14 @@ class Database(object):
 
 			if filter(lambda x:x.recid < 0, crecs):
 				raise Exception, "Some new records were not given real recids; giving up"
-			
+
+
 
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
 				#g.debug("LOG_COMMIT","Commit: self.__records.set: %s"%crec.recid)
-				
+
 
 
 			# New record RecordDef indexes
@@ -3784,19 +3270,19 @@ class Database(object):
 				try:
 					self.__recorddefbyrec.set(rec.recid, rec.rectype, txn=txn)
 					#g.debug("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
-					
+
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
-				
-				
+
+
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
 					#g.debug("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs))
-					
+
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
-			
+
 
 			# Param index
 			for param, updates in indexupdates.items():
@@ -3826,18 +3312,18 @@ class Database(object):
 
 			self.txncommit(txn)
 			#@end
-			
+
 			return crecs
 
 
 		#@write #self.__secrindex
 		def __commit_secrindex(self, addrefs, removerefs, recmap={}, ctx=None, txn=None):
-			
+
 			txn = self.txncheck(txn)
-			
+
 			# Security index
 			for user, recs in addrefs.items():
-				recs = map(lambda x:recmap.get(x,x), recs)				
+				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
@@ -3846,27 +3332,27 @@ class Database(object):
 					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			for user, recs in removerefs.items():
-				recs = map(lambda x:recmap.get(x,x), recs)				
+				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
 						g.debug("LOG_COMMIT","Commit: secrindex.removerefs: user %s, recs %s"%(user, recs))
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
-					
+
 			self.txncommit(txn)
 
-			
+
 
 		#@write #self.__fieldindex*
 		def __commit_paramindex(self, param, addrefs, delrefs, recmap={}, ctx=None, txn=None):
 			"""commit param updates"""
-						
+
 			# addrefs = upds[0], delrefs = upds[1]
 			if not addrefs and not delrefs:
 				return
 				#continue
-				
+
 			try:
 				ind = self.__getparamindex(param)
 				if ind == None:
@@ -3874,16 +3360,16 @@ class Database(object):
 			except Exception, inst:
 				g.debug("LOG_ERR","Could not open param index: %s (%s)"%param, inst)
 				return
-				
+
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs: ind.addrefs(newval, recs, txn=txn)
-					#g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))					
+					#g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not update param index %s: addrefs %s, records %s (%s)"%(param,newval,recs,inst))
-				
-				
+
+
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
@@ -3891,26 +3377,26 @@ class Database(object):
 						ind.removerefs(oldval, recs, txn=txn)
 						#g.debug("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(param,oldval,recs,inst))			
+					g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(param,oldval,recs,inst))
 
 
-					
+
 
 		# index update methods
 		def __reindex_params(self, updrecs, ctx=None, txn=None):
 			"""update param indices"""
-			
+
 			ind = dict([(i,[]) for i in self.__paramdefs.keys()])
 			indexupdates = {}
 			unindexed = set(["recid","rectype","comments","permissions"])
 
 			for updrec in updrecs:
 				recid = updrec.recid
-				
+
 				# this is a fix for proper indexing of new records...
 				try: orec = self.__records[recid]
 				except:	orec = {}
-				
+
 				cp = updrec.changedparams(orec)
 
 				if not cp:
@@ -3934,7 +3420,7 @@ class Database(object):
 			pd = self.__paramdefs[key]
 			addrefs = {}
 			delrefs = {}
-			
+
 			if pd.name in ["recid","comments","permissions"]:
 				return addrefs, delrefs
 
@@ -3955,7 +3441,7 @@ class Database(object):
 
 			if addrefs.has_key(None): del addrefs[None]
 			if delrefs.has_key(None): del delrefs[None]
-			
+
 			return addrefs, delrefs
 
 
@@ -3989,25 +3475,25 @@ class Database(object):
 
 
 			return addrefs2, delrefs2
-			
+
 
 		def __reindex_getindexwords(self, value):
 			if value==None: return []
 			m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
 			return set(map(lambda x:x[0] or x[1], m.findall(unicode(value).lower())))
-			
-			
-		
+
+
+
 
 		def __reindex_time(self, updrecs, ctx=None, txn=None):
 			timeupdate = {}
 
 			for updrec in updrecs:
 				timeupdate[updrec.recid] = updrec.get("modifytime") or updrec.get("creationtime")
-			
+
 			return timeupdate
-			
-			
+
+
 
 		#def __reindex_security(self, updrecs, orecs={}, ctx=None, txn=None):
 		def __reindex_security(self, updrecs, ctx=None, txn=None):
@@ -4036,12 +3522,11 @@ class Database(object):
 					if not delrefs.has_key(user): delrefs[user] = []
 					delrefs[user].append(recid)
 
-			return addrefs, delrefs			
-			
-			
+			return addrefs, delrefs
 
 
-			
+
+
 
 
 		# ian: todo: improve newrecord/putrecord
@@ -4215,6 +3700,7 @@ class Database(object):
 
 
 		# ian: improved!
+		# ed: more improvments!
 		@publicmethod
 		def getrecord(self, recid, filt=1, dbid=0, ctxid=None, host=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -4277,15 +3763,15 @@ class Database(object):
 		@publicmethod
 		def secrecordadduser2(self, recids, level, users, reassign=0, ctxid=None, host=None, txn=None):
 				ctx = self.__getcontext(ctxid, host)
-				
+
 				if not hasattr(recids,"__iter__"):
 					recids = [recids]
 				recids = set(recids)
-				
+
 				if not hasattr(users,"__iter__"):
 					users = [users]
 				users = set(users)
-				
+
 				# change child perms
 				if recurse:
 					for c in self.getchildren(recids, recurse=recurse, ctxid=ctxid, host=host).values():
@@ -4296,15 +3782,15 @@ class Database(object):
 					db.getuser(users, filt=0, ctxid=ctxid, host=host)
 				except KeyError, inst:
 					raise
-					
+
 				recs = self.getrecord(recids, filt=1, ctxid=ctxid, host=host)
-				
+
 				for rec in recs:
 					rec.adduser(level, users, reassign=reassign)
-				
-				
-				
-				
+
+
+
+
 
 		# ian todo: check this thoroughly; probably rewrite
 		#@txn
@@ -5071,7 +4557,7 @@ class Database(object):
 				return demjson.encode(self.__users.values())
 
 		#@txn
-		#@write #everything... 
+		#@write #everything...
 		def restore(self, restorefile=None, ctxid=None, host=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
 				added to the existing database. Naming conflicts will be reported, and the new version
@@ -5217,7 +4703,7 @@ class Database(object):
 						if r == "bdos" :
 							print "bdo"
 							# read the dictionary of bdos
-							rr = load(fin)	
+							rr = load(fin)
 							for i, d in rr.items():
 								self.__bdocounter.set(i, d, txn)
 
@@ -5414,6 +4900,6 @@ def DB_cleanup():
 		for i in FieldBTree.alltrees.keys(): i.close()
 		if DEBUG > 2: sys.stderr.write('.')
 		if DEBUG > 2: sys.stderr.write('\n')
-		
+
 # This rmakes sure the database gets closed properly at exit
 atexit.register(DB_cleanup)
