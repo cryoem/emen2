@@ -10,7 +10,7 @@ Param Definition:
   or
     $Param_name (Param_type) #Short Description:
         Long Description
-        
+
 Record Definition:
     @Recorddef_name:
         >mainview
@@ -44,7 +44,7 @@ ${p_name}.vartype = '${type}'
 ${p_name}.desc_short = '''${desc_short}'''
 db.addparamdef(${p_name},ctxid)
 #end parameter: ${p_name}\
-"""    
+"""
 
 LONG_PARAM_TEMPLATE = """
 #begin parameter: ${p_name}
@@ -52,7 +52,7 @@ ${p_name} =  Database.ParamDef()
 ${p_name}.name = '${p_name}'
 ${p_name}.vartype = '${type}'
 ${p_name}.desc_short = '''${desc_short}'''\
-"""    
+"""
 
 LONG_PARAM_CONT_TEMPLATE = """\
 ${p_name}.desc_long = '${desc_long}'
@@ -100,8 +100,8 @@ class HierchPrinter(PrettyPrinter):
             if hasattr(i, 'split'):
                print '\t'*(indent), i
             else:
-            	self.prnt(i, indent+1)
-        
+               self.prnt(i, indent+1)
+
 class MatchPrinter(PrettyPrinter):
     def __init__(self): pass
     def prnt(self,obj, ind=0):
@@ -112,7 +112,7 @@ class MatchPrinter(PrettyPrinter):
         except:
             for i in obj:
                 self.prnt(i, ind)
-        
+
 class TokenClass(object):
     registry = {}
     @classmethod
@@ -246,19 +246,19 @@ class Match(object):
     def __g_name(self):
         return self.__name
     name = property(__g_name)
-    
+
 class Parser(object):
     def __init__(self, fd):
         self.finfo = fd.readlines()
         self.__fidx = 0
         self.__ctxt = MatchContext()
-        
+
     def add_match(self, match, pos=-1):
         self.__ctxt.add_match(match, pos)
 
     def get_line(self):
         '''get and preprocess the current line
-        
+
         returns the line and its indent'''
         if self.__fidx >= len(self.finfo): return (None, None) #Has the file ended?
         result = self.finfo[self.__fidx].rstrip().expandtabs(1) #rstrip line and expand its tabs
@@ -267,7 +267,7 @@ class Parser(object):
             if i != '': break
             indent += 1
         return result, indent       #returns (the line, the indent of the line)
-    
+
     def get_next_line(self):
         self.__fidx += 1
         return self.get_line()
@@ -286,7 +286,7 @@ class Parser(object):
                 print 'Error: \nlast groupdict = %s\nblock = %s\n i = %s' % (gdict, block, i)
                 raise
         return result
-        
+
     def process_block(self, block, ctxt=None):
         '''process the lines in a block'''
         result = []
@@ -300,7 +300,7 @@ class Parser(object):
 
     def get_block(self, ind=0):
         '''get a block (recursuve function)
-          
+
           a block is defined as one line with indent == 0
           and any lines below it with an indent > 0
           '''
@@ -309,10 +309,10 @@ class Parser(object):
         line = None
         first = True
         while indent >= ind:
-            tmp = self.get_line() 
+            tmp = self.get_line()
             if tmp: line, indent = tmp  #get the line
             else: break #???
-            if not first: 
+            if not first:
                 if indent ==0: # if it is not the first line received and the line is not indented
                     break          # quit
             if (indent == ind): # if indent has not changed strip and append to the result
@@ -327,7 +327,7 @@ class Parser(object):
     def get_continuation(self, line):
         '''concatenate all lines ending with a \\'''
         tmp = [line]
-        if len(tmp[-1]) == 0: 
+        if len(tmp[-1]) == 0:
             return ''
         while tmp[-1][-1] == '\\':
             self.__fidx += 1
@@ -338,7 +338,7 @@ class Parser(object):
 
     def process_line(self, line, ctxt=None):
         '''outputs a dictionary with keys match and matcher
-        
+
         match is the match object
         matcher is the Match object which matched
         returns None for both if there is no match'''
@@ -349,14 +349,14 @@ class Parser(object):
         context = ctxt or self.__ctxt
         for match in context: # get the first matching regexp
             mtch = match.match(line)
-            if mtch: 
+            if mtch:
                 result['matcher'] = match
                 result['match'] = mtch
                 break
         return result
 
 
-        
+
     def tokenize_file(self):
         '''process a file, return a list of tokenized blocks'''
         block = self.get_block()
@@ -366,8 +366,8 @@ class Parser(object):
             result.append(self.tokenize_block(proced_block))
             block = self.get_block()
         return result
-            
-    
+
+
 
 def generate_all(tok_file):
     result = []
@@ -376,7 +376,7 @@ def generate_all(tok_file):
             rndr = token.render()
             if rndr: result.append(rndr)
     return 'from test import *\n' + '\n'.join(result)
-    
+
 if __name__ == '__main__':
     import sys
     a = Parser(file(sys.argv[1]))
@@ -388,7 +388,7 @@ if __name__ == '__main__':
     mtcha.append(Match('recname_recorddef', RECORD_DEF_RECNAME_VIEW))
     mtcha.append(Match('end_recorddef', RECORD_DEF_END))
     MatchPrinter().prnt(mtcha)
-    a.add_match(mtcha)    
+    a.add_match(mtcha)
     a.add_match(Match('short_param', PARAM_SHORT))
     mtchb = Match('long_param', PARAM_LONG)
     mtchb.append(Match('long_param_cont', PARAM_LONG_CONT))
@@ -410,5 +410,5 @@ if __name__ == '__main__':
 
     b = a.tokenize_file()
     res = generate_all(b)
-    
+
     file(sys.argv[2],'w').write(res)
