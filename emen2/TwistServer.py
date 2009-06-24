@@ -30,6 +30,7 @@ emen2.TwistSupport_html.public.views.load_views()
 import emen2.TwistSupport_html.html
 import emen2.TwistSupport_html.public.record
 import emen2.TwistSupport_html.public.template_render
+import emen2.Database.extensions.query_exts
 
 def prepare_properties(outfile):
 	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
@@ -83,32 +84,32 @@ def interact():
 		if exit[0] == 'n':
 				thread.interrupt_main()
 				return
-def bonjour_register():
-	import pybonjour
-	import select
-	sdRef = pybonjour.DNSServiceRegister(name = 'EMEN2',
-											regtype = '_http._tcp',
-											port = g.EMEN2PORT,
-											callBack = lambda *args: None
-	)
-	try:
-		try:
-			while True:
-				ready = select.select([sdRef], [], [])
-				if sdRef in ready[0]:
-					print 1
-					pybonjour.DNSServiceProcessResult(sdRef)
-		except KeyboardInterrupt:
-			pass
-	finally:
-		sdRef.close()
+#def bonjour_register():
+#	import pybonjour
+#	import select
+#	sdRef = pybonjour.DNSServiceRegister(name = 'EMEN2',
+#											regtype = '_http._tcp',
+#											port = g.EMEN2PORT,
+#											callBack = lambda *args: None
+#	)
+#	try:
+#		try:
+#			while True:
+#				ready = select.select([sdRef], [], [])
+#				if sdRef in ready[0]:
+#					print 1
+#					pybonjour.DNSServiceProcessResult(sdRef)
+#		except KeyboardInterrupt:
+#			pass
+#	finally:
+#		sdRef.close()
 
 
 
 def main():
 	try:
 		if g.USEBONJOUR:
-			thread.start_new_thread(bonjour_register, ())
+			pass#thread.start_new_thread(bonjour_register, ())
 	except AttributeError: pass
 
 	root = static.File(g.STATICPATH)
