@@ -3,7 +3,7 @@ import emen2.emen2config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 if __name__ == '__main__':
-	pass#	g.debug.swapstdout()
+		g.debug.swapstdout()
 
 # This is the main server program for EMEN2
 from twisted.internet import reactor, ssl
@@ -30,7 +30,6 @@ emen2.TwistSupport_html.public.views.load_views()
 import emen2.TwistSupport_html.html
 import emen2.TwistSupport_html.public.record
 import emen2.TwistSupport_html.public.template_render
-import emen2.Database.extensions.query_exts
 
 def prepare_properties(outfile):
 	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
