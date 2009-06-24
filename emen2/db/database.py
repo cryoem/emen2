@@ -1584,7 +1584,10 @@ class Database(object):
 			elif not self.__importmode : DB_syncall()
 			#@end
 
-			self.LOG(0, "pclink %s: %s <-> %s by user %s" % (keytype, pkey, ckey, ctx.user))
+			if ctx is None:
+				self.LOG(0, "pclink %s: %s <-> %s by unknown user" % (keytype, pkey, ckey))
+			else:
+				self.LOG(0, "pclink %s: %s <-> %s by user %s" % (keytype, pkey, ckey, ctx.user))
 
 
 		#@txn
