@@ -1536,14 +1536,14 @@ class Database(object):
 
 			# ian: circular reference detection.
 			if mode=="pclink" and not self.__importmode:
-				p = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="parents", ctxid=ctxid, host=host)[0]
-				c = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="children", ctxid=ctxid, host=host)[0]
+				p = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="parents", ctxid=ctx.ctxid, host=host)[0]
+				c = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="children", ctxid=ctx.ctxid, host=host)[0]
 				if pkey in c or ckey in p or pkey == ckey:
 					raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
 
 			if keytype == "record":
-				a = self.getrecord(pkey, ctxid=ctxid, host=host)
-				b = self.getrecord(ckey, ctxid=ctxid, host=host)
+				a = self.getrecord(pkey, ctxid=ctx.ctxid, host=host)
+				b = self.getrecord(ckey, ctxid=ctx.ctxid, host=host)
 				if (not a.writable()) and (not b.writable()):
 					raise SecurityError, "pclink requires partial write permission"
 
