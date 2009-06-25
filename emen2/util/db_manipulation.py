@@ -64,7 +64,7 @@ class DBTree(object):
 		return path
 
 	def getindex(self, recid=None, rec=None):
-		rec = self.__db.getrecord(recid) if rec is None else rec
+		rec = self.__db.getrecord(recid, filt=False) if rec is None else rec
 		index = rec.get('recname', str(recid))
 		return index
 

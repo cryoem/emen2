@@ -1531,7 +1531,7 @@ class Database(object):
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if pkey==ckey:
-				self.log("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
+				self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
 				return
 
 			# ian: circular reference detection.
@@ -3567,7 +3567,7 @@ class Database(object):
 					#	n.append(prec["permissions"][i] + rec["permissions"][i])
 					#rec["permissions"] = tuple(n)
 				except Exception, inst:
-					self.log("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
+					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
 			rec.adduser(3,ctx.user)
 

@@ -263,7 +263,7 @@ class PublicView(Resource):
 		ret, headers = callback(db=db)
 		try:
 			ret = unicode(ret).encode('utf-8')
-		except:
+		except Exception, e:
 			ret = str(ret)
 
 		return ret, headers
@@ -275,7 +275,7 @@ class PublicView(Resource):
 		"result must be a 2-tuple: (result, mime-type)"
 		try:
 			headers = {"content-type": "text/html; charset=utf-8",
-					   "Cache-Control":"no-cache", "Pragma":"no-cache"}
+					 "Cache-Control":"no-cache", "Pragma":"no-cache"}
 
 			result, content_headers = result
 
