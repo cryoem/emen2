@@ -13,7 +13,7 @@ def openreadclose(path):
     finally:
         tmp.close()
     return result
-        
+
 def walk_path(extension, cb):
     def res(pathname, *args, **kwargs):
         for pwd in os.walk(pathname):
@@ -29,4 +29,4 @@ def locate(pattern, root=os.curdir):
     for path, dirs, files in os.walk(os.path.abspath(root)):
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)
-            
+
