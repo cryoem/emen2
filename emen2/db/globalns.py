@@ -14,12 +14,12 @@ class ErrorThread(threading.Thread):
 		self.err_list = err_list
 	def run(self):
 		pass
-		
+
 class GlobalNamespace(object):
 	__vardict = {}
 	__modlock = threading.RLock()
 	__all__ = []
-	def __init__(self,_):pass
+	def __init__(self,_=None):pass
 	def __setattr__(self, name, value):
 		self.__modlock.acquire(1)
 		try:
@@ -27,25 +27,25 @@ class GlobalNamespace(object):
 		finally:
 			self.__modlock.release()
 	__setitem__ = __setattr__
-	
+
 	@classmethod
 	def __addattr(cls, name, value):
-		if not name in cls.__all__: 
+		if not name in cls.__all__:
 			cls.__all__.append(name)
 		cls.__vardict[name] = value
-			
+
 	@classmethod
-	def refresh(cls): 
+	def refresh(cls):
 		cls.__all__ = [x for x in cls.__vardict.keys() if x[0] != '_']
 		cls.__all__.append('refresh')
-		
+
 	@classmethod
 	def getattr(cls, name):
 		if name.startswith('___'):
 			name = name.partition('___')[-1]
 		result = cls.__vardict.get(name)
 		return result
-	
+
 	def __getattribute__(self, name):
 		result = None
 		try:
@@ -53,7 +53,7 @@ class GlobalNamespace(object):
 		except AttributeError:
 			result = object.__getattribute__(self, 'getattr')(name)
 			if result == None:
-				try: 
+				try:
 					result = object.__getattribute__(self, name)
 				except AttributeError:
 					pass
@@ -64,12 +64,25 @@ class GlobalNamespace(object):
 		else:
 			return result
 	__getitem__ = __getattribute__
-	
+
 	def update(self, dict):
 		self.__vardict.update(dict)
-	
+
 	def reset(self):
 		self.__class__.__vardict = {}
+
+import emen2.subsystems.debug
+class DebugStub(emen2.subsystems.debug.DebugState):
+	def __init__(self, *args):
+		self.__dict__ = self._clstate
+		emen2.subsystems.debug.DebugState.__init__(self, value='LOG_INIT', buf=None, get_state=False, logfile_state=None, prnt=True, acquire_dict=False)
+
+	def swapstdout(self): pass
+	def closestdout(self): pass
+	def msg(self, sn, *args):
+		sn = self.debugstates.get_name(self.debugstates[sn])
+		print u'%s :: %s' % (sn, self.print_list(args))
+GlobalNamespace().debug = DebugStub()
 
 def test():
 	a = GlobalNamespace('one instance')
@@ -87,7 +100,7 @@ def test():
 	assert (a.a == b.a)
 	assert (a.a == a.___a)
 	print "test 1 passed"
-	
+
 	#test 2
 	a.reset()
 	try:
@@ -97,7 +110,7 @@ def test():
 	else:
 		assert False
 	print "test 2 passed"
-		
+
 	#test 3
 	tempdict = dict(a=1, b=2, c=3)
 	a.update(tempdict)
@@ -125,10 +138,10 @@ try:
 					else: tmp[k] = b[k]
 				res.update(tmp)
 		GlobalNamespace._GlobalNamespace__vardict = res
-			
+
 except ImportError:
 	YAMLLoader = False
 
-	
+
 if __name__ == '__main__':
 	test()

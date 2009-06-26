@@ -4581,7 +4581,10 @@ class Database(object):
 				if not ctx.checkadmin():
 						raise SecurityError, "Database restore requires admin access"
 
-				if os.access(str(restorefile), os.R_OK):
+				if type(restorefile) == file:
+					fin = restorefile
+
+				elif os.access(str(restorefile), os.R_OK):
 					fin = open(restorefile, "r")
 
 				elif os.access(self.path + "/backup.pkl", os.R_OK):

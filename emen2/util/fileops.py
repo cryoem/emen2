@@ -18,8 +18,8 @@ def walk_path(extension, cb):
     def res(pathname, *args, **kwargs):
         for pwd in os.walk(pathname):
             for fil in pwd[2]:
-                item=os.path.splitext(os.path.basename(fil))
-                cb(pwd, pathname, extension, item, *args, **kwargs)
+                name, ext =os.path.splitext(os.path.basename(fil))
+                cb(pwd, pathname, extension, name, ext, *args, **kwargs)
     return res
 
 #from Python Cookbook http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/499305

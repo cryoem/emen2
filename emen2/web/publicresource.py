@@ -227,14 +227,9 @@ class PublicView(Resource):
 			g.debug('redirect target --> (', target, ')')
 
 			if target is not None:
-				request.redirect(target)
-				g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
-					host = request.getClientIP(),
-					time = time.ctime(),
-					path = request.uri,
-					response = request.code,
-					size = 0
-				))
+				#request.redirect(target)
+				g.debug.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
+				raise emen2.subsystems.responsecodes.HTTPMovedPermanently('', target)
 				request.finish()
 
 			else:
@@ -309,12 +304,13 @@ class PublicView(Resource):
 		#request.setHeader('X-ERROR', ' '.join(str(failure).split()))
 
 		headers = {}
+		response = 500
 
 		try:
 			if isinstance(failure, BaseException): raise failure
 			else: failure.raiseException()
 
-		except (Database.exceptions.AuthenticationError,
+		except (Database.exceptions.AuthenticationError, Database.exceptions.SecurityError,
 			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
 
 			response = 401
@@ -342,18 +338,19 @@ class PublicView(Resource):
 
 
 		except Exception, e:
-			response = 500
 			data = g.templates.handle_error(e).encode('utf-8')
 
 		[request.setHeader(key, headers[key]) for key in headers]
 
 		request.setResponseCode(response)
+		g.debug(data)
 		request.write(data)
+		g.debug.msg('LOG_INFO', 'response -> (%r)' % response)
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
 			response = request.code,
-			size = 0
+			size = len(data)
 		))
 		request.finish()

@@ -1,5 +1,7 @@
 import cgi
-from emen2.util.listops import adj_dict
+try:
+	from emen2.util.listops import adj_dict
+except ImportError: pass
 
 class prop(property):
     '''apply prop.init to a function that returns a dictionary with keys

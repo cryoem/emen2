@@ -151,8 +151,14 @@ class DBTree(object):
 		return str.join('/', self.__to_path(recid))
 
 	def reverse(self, _name, *args, **kwargs):
-		result = g.EMEN2WEBROOT+'/db'+(URLRegistry.reverselookup(_name, *args, **kwargs) or '')
-		if not result.endswith('/'): result = ''.join([result, '/'])
+		_full = kwargs.get('_full', False)
+		prefix = '/%s' % g.EMEN2WEBROOT
+		if not prefix.endswith('/'): prefix = '%s/' % prefix
+		if _full == True:
+			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
+
+		result = '%s%s%s' % (prefix, 'db', (URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+		if not result.endswith('/'): result = '%s/' % result
 		return result
 
 	def render_template_view(self, name, *args, **kwargs):
