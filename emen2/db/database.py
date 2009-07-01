@@ -4669,7 +4669,7 @@ class Database(object):
 						for i in recblock:
 							i.recid = None
 
-						newrecs = self.__putrecord(recblock, warning=1, ctx=ctx)
+						newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx)
 						committed += len(newrecs)
 						print "Committed total: %s"%committed
 
