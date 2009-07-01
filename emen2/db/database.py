@@ -324,13 +324,13 @@ class Database(object):
 				self.LOG(3, "New database created")
 
 			# Indices
-			if self.__importmode:
-				self.__secrindex = MemBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv) # index of records each user can read
-				self.__recorddefindex = MemBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv) # index of records belonging to each RecordDef
-			else:
-				self.__secrindex = FieldBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)	# index of records each user can read
-				self.__recorddefindex = FieldBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv)	# index of records belonging to each RecordDef
-
+			#if self.__importmode:
+			#	self.__secrindex = MemBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv) # index of records each user can read
+			#	self.__recorddefindex = MemBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv) # index of records belonging to each RecordDef
+			#else:
+			self.__secrindex = FieldBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)	# index of records each user can read
+			self.__recorddefindex = FieldBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv)	# index of records belonging to each RecordDef
+			
 			self.__timeindex = BTree("TimeChangedindex", path + "/TimeChangedindex.bdb", dbenv=self.__dbenv) # key=record id, value=last time record was changed
 			self.__recorddefbyrec = IntBTree("RecordDefByRec", path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
 			self.__fieldindex = {} # dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
@@ -2658,13 +2658,17 @@ class Database(object):
 				txn = self.newtxn()
 				i.set_txn(txn)
 				for k2, v2 in v.items():
-					#print "... addref: %s, len: %s"%(k2, len(v2))#,v2)
+					#print "... addref: %s, len: %s"%(k2, len(v2))    #,v2)
+					try:
+						print "\t",unicode(k2).encode("utf-8")
+					except:
+						print k2
 					i.addrefs(k2, v2)
 				i.set_txn(None)
 				if txn:
 					txn.commit()
 				i = None
-				print "... done commit index"
+				#print "... done commit index"
 
 			print "commit security"
 			si = FieldBTree("secrindex", self.path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)
@@ -2731,11 +2735,11 @@ class Database(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			if self.__importmode:
+			#if self.__importmode:
 				#print "->MemBTree: %s"%paramname
-				self.__fieldindex[paramname] = MemBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
-			else:
-				self.__fieldindex[paramname] = FieldBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
+			#	self.__fieldindex[paramname] = MemBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
+			#else:
+			self.__fieldindex[paramname] = FieldBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
 
 			return self.__fieldindex[paramname]
 
@@ -3131,12 +3135,15 @@ class Database(object):
 
 
 
-		def __putrecord(self, updrecs, warning=0, validate=1, newrecord=0, log=1, ctx=None, txn=None):
+		def __putrecord(self, updrecs, warning=0, validate=1, setcreationinfo=0, log=1, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
 
 			if len(updrecs) == 0:
 				return [], []
+				
+			if self.__importmode:
+				setcreationinfo = 1
 
 			crecs = []
 			updrels = []
@@ -3147,8 +3154,6 @@ class Database(object):
 			for offset,rec in enumerate(filter(lambda x:x.recid == None, updrecs)):
 				rec.recid = -1 * (offset + 100)
 
-			#print "ok, assigned temp recids"
-			#print [rec.recid for rec in updrecs]
 
 			updrels = self.__putrecord_getupdrels(updrecs)
 
@@ -3164,8 +3169,8 @@ class Database(object):
 				except TypeError, inst:
 					orec = self.newrecord(updrec.rectype, ctxid=ctx.ctxid, host=ctx.host)
 					orec.recid = updrec.recid
-
-					if self.__importmode:
+					
+					if setcreationinfo:
 						orec._Record__creator = updrec["creator"]
 						orec._Record__creationtime = updrec["creationtime"]
 
@@ -3184,25 +3189,22 @@ class Database(object):
 				# add new comments; already checked for comment level security...
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
+						#orec.addcomment(i[2])
 						orec._Record__comments.append(i)
-				# ian todo: need to check for param updates from comments here...
+						# ian todo: need to check for param updates from comments here...
 
 
-				# copy updates to orec, log changes
-				if cp - param_special and not orec.writable():
-					raise SecurityError, "Cannot change params in %s"%recid
 
 				for param in cp - param_special:
 					if log:
-						orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
+						orec.addcomment(u"LOG: %s updated. was: %s" % (recid, orec[param]))
+						#orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
 						#% (param, orec[param]), param, orec[param]))
 					orec[param] = updrec[param]
 
 
 				if "permissions" in cp:
-					if not orec.isowner():
-						raise SecurityError, "Cannot change permissions for %s"%recid
-					orec["permissions"] = updrec["permissions"]
+					orec["permissions"] = updrec["permissions"] 
 
 
 				if not self.__importmode:
@@ -3212,6 +3214,7 @@ class Database(object):
 
 				if validate:
 					orec.validate(warning=warning, params=cp)
+
 
 				crecs.append(orec)
 
@@ -3257,9 +3260,8 @@ class Database(object):
 
 
 			if filter(lambda x:x.recid < 0, crecs):
-				raise Exception, "Some new records were not given real recids; giving up"
-
-
+				raise ValueError, "Some new records were not given real recids; giving up"
+			
 
 			# This actually stores the record in the database
 			for crec in crecs:
@@ -3330,7 +3332,7 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						g.debug("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, %s"%(user, recs))
+						#g.debug("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)))
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
@@ -3339,7 +3341,7 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						g.debug("LOG_COMMIT","Commit: secrindex.removerefs: user %s, recs %s"%(user, recs))
+						#g.debug("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)))
 				except Exception, inst:
 					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 
@@ -3367,21 +3369,27 @@ class Database(object):
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs: ind.addrefs(newval, recs, txn=txn)
-					#g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))
+					if recs:
+						# ian todo: fix unicode index support
+						str(newval)
+						g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))					
+						ind.addrefs(newval, recs, txn=txn)
+						print "...done"
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: addrefs %s, records %s (%s)"%(param,newval,recs,inst))
+					g.debug("LOG_ERR", "Could not update param index %s: addrefs '%s', records %s (%s)"%(param,newval,recs,inst))
+
 
 
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
+						# ian todo: fix unicode index support
+						str(newval)
+						g.debug("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
 						ind.removerefs(oldval, recs, txn=txn)
-						#g.debug("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: removerefs %s, records %s (%s)"%(param,oldval,recs,inst))
-
+					g.debug("LOG_ERR", "Could not update param index %s: removerefs '%s', records %s (%s)"%(param,oldval,recs,inst))			
 
 
 
@@ -3515,8 +3523,12 @@ class Database(object):
 				if updrec.get("permissions") == orec.get("permissions"):
 					continue
 
+				
 				nperms = set(reduce(operator.concat, updrec["permissions"]))
 				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
+				
+				#g.debug("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
+				
 
 				for user in nperms - operms:
 					if not addrefs.has_key(user): addrefs[user] = []
@@ -3540,7 +3552,6 @@ class Database(object):
 			already exist)."""
 
 			ctx = self.__getcontext(ctxid, host)
-
 
 			rec = Record(ctx=ctx)
 			#rec.setContext(ctx)
@@ -3569,7 +3580,8 @@ class Database(object):
 				except Exception, inst:
 					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
-			rec.adduser(3,ctx.user)
+			if ctx.user != "root":
+				rec.adduser(3,ctx.user)
 
 			return rec
 
@@ -4560,8 +4572,8 @@ class Database(object):
 				return demjson.encode(self.__users.values())
 
 		#@txn
-		#@write #everything...
-		def restore(self, restorefile=None, ctxid=None, host=None):
+		#@write #everything... 
+		def restore(self, restorefile=None, types=None, ctxid=None, host=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
 				added to the existing database. Naming conflicts will be reported, and the new version
 				will take precedence, except for Records, which are always appended to the end of the database
@@ -4607,10 +4619,26 @@ class Database(object):
 				txn = None
 				nel = 0
 
-				recblock=[]
-				#print "begin restore"
-				recblocklength=10000
 
+				recblock = []
+				recblocklength = 10000
+				commitrecs = 0
+				maxrecs = 1000000
+				committed = 0
+				
+				
+				#types = ["record","user","recorddef","paramdef"]
+				
+				if not types:
+					types = ["record","user","workflow","recorddef","paramdef","bdos","pdchildren","pdcousins","rdcousins","recchildren","reccousins"]
+					
+				# backup types =
+				# [
+				#	"record","user","recorddef","paramdef",
+				#	"bdos","pdchildren","pdcousins","rdcousins","recchildren","reccousins"
+				#]
+				#print "begin restore"
+				
 				while (1):
 
 					try:
@@ -4619,53 +4647,44 @@ class Database(object):
 						print inst
 						break
 
-					# new transaction every 100 elements
-					# if nel%100==0 :
-						# if txn : txn.commit()
-						# txn=self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-
-					nel += 1
-					if txn:
-						txn.commit()
-					elif nel % 500 == 0:
-						# print "SYNC:",self.__dbenv.lock_stat()["nlocks"]," ... ",
-						DB_syncall()
-						# print self.__dbenv.lock_stat()["nlocks"]
-						# time.sleep(10.0)
-						# print self.__dbenv.lock_stat()["nlocks"]
-
-					txn = self.newtxn()
-
-					commitrecs=0
+					#txn = self.newtxn()
+					txn = None
+					
+					commitrecs = 0
 
 					# insert and renumber record
-					if isinstance(r, Record):
+					if isinstance(r, Record) and "record" in types:
 						#print "record: %s"%r.recid
-						recblock.append(r)
+						if committed < maxrecs:
+							recblock.append(r)
 						if len(recblock) >= recblocklength:
-							commitrecs=1
+							commitrecs = 1
 					else:
-						commitrecs=1
+						commitrecs = 1
 
 
-					if commitrecs:
+					if commitrecs and recblock:
 						# remove recids to put as new records...
 						oldids = [rec.recid for rec in recblock]
 						for i in recblock:
 							i.recid = None
 
-						newrecs = self.__putrecord(recblock, warning=1, newrecord=1, ctx=ctx)
+						newrecs = self.__putrecord(recblock, warning=1, ctx=ctx)
+						committed += len(newrecs)
+						print "Committed total: %s"%committed
+
 						for oldid,newrec in zip(oldids,newrecs):
 							recmap[oldid] = newrec.recid
 							#print "Recmap %s -> %s"%(oldid, newrec.recid)
 							if oldid != newrec.recid:
 								print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
-						recblock=[]
+						
+						recblock = []
 						#sys.exit(0)
 
 
 					# insert User
-					if isinstance(r, User):
+					if isinstance(r, User) and "user" in types:
 						print "user: %s"%r.username
 						#self.__commit_users([r], ctx=ctx, txn=txn)
 						if self.__users.has_key(r.username, txn):
@@ -4676,13 +4695,13 @@ class Database(object):
 
 
 					# insert Workflow
-					elif isinstance(r, WorkFlow):
+					elif isinstance(r, WorkFlow) and "workflow" in types:
 						print "workflow: %s"%r.wfid
 						self.__workflow.set(r.wfid, r, txn)
 
 
 					# insert paramdef
-					elif isinstance(r, ParamDef):
+					elif isinstance(r, ParamDef) and "paramdef" in types:
 						print "paramdef: %s"%r.name
 						#self.__commit_paramdefs([r], ctx=ctx, txn=txn)
 						r.name = r.name.lower()
@@ -4692,8 +4711,9 @@ class Database(object):
 						else :
 							self.__paramdefs.set(r.name, r, txn)
 
+
 					# insert recorddef
-					elif isinstance(r, RecordDef):
+					elif isinstance(r, RecordDef) and "recorddef" in types:
 						print "recorddef: %s"%r.name
 						#self.__commit_recorddefs([r], ctx=ctx, txn=txn)
 						r.name = r.name.lower()
@@ -4706,49 +4726,54 @@ class Database(object):
 
 					elif isinstance(r, str):
 						print "btree type: %s"%r
-						if r == "bdos" :
+						rr = load(fin)
+						
+						if r not in types:
+							continue
+						
+						if r == "bdos":
 							print "bdo"
 							# read the dictionary of bdos
-							rr = load(fin)
+							#rr = load(fin)	
 							for i, d in rr.items():
 								self.__bdocounter.set(i, d, txn)
 
-						elif r == "pdchildren" :
+						elif r == "pdchildren":
 							print "pdchildren"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for p, cl in rr:
 								for c in cl:
 									self.__paramdefs.pclink(p, c, txn)
 
-						elif r == "pdcousins" :
+						elif r == "pdcousins":
 							print "pdcousins"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for a, bl in rr:
 								for b in bl:
 									self.__paramdefs.link(a, b, txn)
 
-						elif r == "rdchildren" :
+						elif r == "rdchildren":
 							print "rdchildren"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for p, cl in rr:
 								for c in cl:
 									self.__recorddefs.pclink(p, c, txn)
 
-						elif r == "rdcousins" :
+						elif r == "rdcousins":
 							print "rdcousins"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for a, bl in rr:
 								for b in bl:
 									self.__recorddefs.link(a, b, txn)
 
-						elif r == "recchildren" :
+						elif r == "recchildren":
 							print "recchildren"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for p, cl in rr:
 								for c in cl:
 									if isinstance(c, tuple):
@@ -4756,16 +4781,16 @@ class Database(object):
 									else:
 										self.__records.pclink(recmap[p], recmap[c], txn)
 
-						elif r == "reccousins" :
+						elif r == "reccousins":
 							print "reccousins"
 							# read the dictionary of ParamDef PC links
-							rr = load(fin)
+							#rr = load(fin)
 							for a, bl in rr:
 								for b in bl:
 									self.__records.link(recmap[a], recmap[b], txn)
 
 						else:
-							print "Unknown category ", r
+							print "Unknown category: ", r
 
 
 				print "Done!"
@@ -4775,12 +4800,15 @@ class Database(object):
 					self.LOG(4, "Import Complete, checkpointing")
 					self.__dbenv.txn_checkpoint()
 
-				elif not self.__importmode:
-					DB_syncall()
 
-				if self.__importmode:
-					self.LOG(4, "Checkpointing complete, dumping indices")
-					self.__commit_indices()
+				#elif not self.__importmode:
+				#DB_syncall()
+					
+
+				#if self.__importmode:
+				#self.LOG(4, "Checkpointing complete, dumping indices")
+				DB_syncall()
+				#self.__commit_indices()
 
 
 

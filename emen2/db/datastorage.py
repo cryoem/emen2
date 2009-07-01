@@ -473,11 +473,11 @@ class Record(DictMixin):
 		for i in validators:
 			try:
 				i(orec)
-			except ValueError, inst:
+			except (TypeError, ValueError), inst:
 				if warning:
 					self.validationwarning("%s: %s"%(i.func_name, inst))
 				else:
-					raise Exception, "%s: %s"%(i.func_name, inst)
+					raise ValueError, "%s: %s"%(i.func_name, inst)
 
 		self.validate_params(orec, warning=warning, params=params)
 				
@@ -485,7 +485,6 @@ class Record(DictMixin):
 				
 	def validate_recid(self, orec={}):
 		try:
-
 			if self.recid != None:
 				self.recid = int(self.recid)
 				# negative recids are used as temp ids for new records
@@ -493,7 +492,7 @@ class Record(DictMixin):
 				#if self.recid < 0:
 				#	raise ValueError
 
-		except:
+		except (TypeError, ValueError):
 			raise ValueError, "recid must be positive integer"
 
 		if self.recid != orec.get("recid") and orec.get("recid") != None:
@@ -504,15 +503,15 @@ class Record(DictMixin):
 	def validate_rectype(self, orec={}):
 
 		self.rectype = str(self.rectype)
-
-		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
-			raise ValueError, "rectype cannot be changed (%s != %s)"%(self.rectype,orec.get("rectype"))
 		
-		if self.rectype == "":
+		if self.rectype in ["",None]:
 			raise ValueError, "rectype must not be empty"
 
 		if self.rectype not in self.__context.db.getrecorddefnames(self.__context.ctxid,self.__context.host):
 			raise ValueError, "invalid rectype %s"%(self.rectype)
+
+		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
+			raise ValueError, "rectype cannot be changed (%s != %s)"%(self.rectype,orec.get("rectype"))
 
 
 
@@ -522,10 +521,13 @@ class Record(DictMixin):
 		dates=[]
 		newcomments=[]
 		for i in self.__comments:
-			users.append(i[0])
-			dates.append(i[1])
-			newcomments.append((str(i[0]),str(i[1]),unicode(i[2])))
-		
+			try:
+				users.append(i[0])
+				dates.append(i[1])
+				newcomments.append((str(i[0]),str(i[1]),unicode(i[2])))
+			except:
+				raise ValueError, "invalid comment format: %s; skipping"%(i)
+				
 		usernames = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)		
@@ -552,12 +554,7 @@ class Record(DictMixin):
 
 
 	def validate_permissions(self, orec={}):
-		try:
-			self.__permissions = tuple((tuple(i) for i in self.__permissions))
-			if len(self.__permissions) > 4:
-				raise ValueError
-		except:
-			raise ValueError, "permissions must be 4-tuple of tuples"
+		self.__permissions = self.__checkpermissionsformat(self.__permissions)
 
 
 	def validate_permissions_users(self,orec={}):
@@ -590,7 +587,7 @@ class Record(DictMixin):
 				newpd[param] = self.validate_param(self[param], pd, vtm)
 			except (ValueError,KeyError), inst:
 				#print traceback.print_exc()
-				exceptions.append("parameter %s: %s"%(param,str(inst)))
+				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,str(inst)))
 								
 		for i in exceptions:
 			self.validationwarning(i)
@@ -607,7 +604,7 @@ class Record(DictMixin):
 
 		v = vtm.validate(pd, value, db=self.__context.db, ctxid=self.__context.ctxid, host=self.__context.host)
 
-		if v != value:
+		if v != value and v != None:
 			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v))
 
 		return v
@@ -615,6 +612,7 @@ class Record(DictMixin):
 
 	def changedparams(self,orec={}):
 		"""difference between two records"""
+		
 		allkeys = set(self.keys() + orec.keys())
 		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
 
@@ -704,21 +702,21 @@ class Record(DictMixin):
 		treated identically"""
 		
 		key = str(key).strip().lower()
-		if self.__params.has_key(key):
-			return self.__params.get(key)
-		if key=="comments":
+
+		if key == "comments":
 			return self.__comments
-		elif key=="recid":
+		elif key == "recid":
 			return self.recid
-		elif key=="rectype":
+		elif key == "rectype":
 			return self.rectype
-		elif key=="creator":
+		elif key == "creator":
 			return self.__creator
-		elif key=="creationtime":
+		elif key == "creationtime":
 			return self.__creationtime
-		elif key=="permissions":
+		elif key == "permissions":
 			return self.__permissions
-		return None
+
+		return self.__params.get(key)
 
 
 	def __setitem__(self, key, value):
@@ -739,15 +737,16 @@ class Record(DictMixin):
 		
 		# special params have get/set handlers
 		if key not in self.param_special:
+			if not self.writable():
+				raise SecurityError, "Insufficient permissions to change param %s"%key
 			self.__params[key] = value
 
 		elif key == "comments":
 			self.addcomment(value)
 
 		elif key == 'permissions':
-			self.__permissions = tuple(tuple(x) for x in value)
-			#self.__permissions = tuple([ tuple(set(x) | set(y))	 for (x,y) in zip(value, self.__permissions)])
-
+			self.setpermissions(value)
+			
 		else:
 			#raise Exception # ValueError or KeyError?
 			self.validationwarning("cannot set item %s in this way"%key)
@@ -786,6 +785,7 @@ class Record(DictMixin):
 
 	# these can only be used on new records before commit for now...
 	def adduser(self, level, users, reassign=1):
+			
 		p = [set(x) for x in self.__permissions]
 		level=int(level)
 		if -1 < level < 3:
@@ -793,10 +793,15 @@ class Record(DictMixin):
 
 		if not hasattr(users,"__iter__"):
 			users=[users]
-		users=set(users)
+
+		# Strip out "None"
+		users=set(filter(lambda x:x != None, users))
+
+		if not users:
+			return
 
 		if reassign:
-			p = [ i-users for i in p ]
+			p = [i-users for i in p ]
 
 		p[level] |= users
 		
@@ -804,19 +809,65 @@ class Record(DictMixin):
 		p[1] -= p[2] | p[3]
 		p[2] -= p[3]
 		
-		self.__permissions = tuple([tuple(i) for i in p])
+		self.setpermissions(p)
+		#self.__permissions = tuple([tuple(i) for i in p])
 
 
 	def removeuser(self, users):
+				
 		p=[set(x) for x in self.__permissions]
 		if not hasattr(users,"__iter__"):
 			users=[users]
 		users=set(users)
 		p=[i-users for i in p]
-		self.__permissions = tuple([tuple(i) for i in p])
+		
+		self.setpermissions(p)
+		#self.__permissions = tuple([tuple(i) for i in p])
 
+
+	def __partitionints(self, i):
+		ints=[]
+		strs=[]
+		for j in i:
+			try:
+				ints.append(int(j))
+			except:
+				strs.append(j)
+		return ints + strs
+
+
+	def __checkpermissionsformat(self, value):
+		if value == None:
+			value = ((),(),(),())
+
+		try:
+			if len(value) != 4:
+				raise ValueError
+			for j in value:
+				if not hasattr(value,"__iter__"):
+					raise ValueError
+		except ValueError:
+			self.validationwarning("invalid permissions format: %s"%value)
+			raise
+
+		r = [self.__partitionints(i) for i in value]
+
+		return tuple(tuple(x) for x in r)
+		
+
+	def setpermissions(self, value):
+		
+		if not self.isowner():
+			raise SecurityError, "Insufficient permissions to change permissions"
+		
+		self.__permissions = self.__checkpermissionsformat(value)
+		
+	
 
 	def addcomment(self, value):
+		
+		if not self.commentable():
+			raise SecurityError, "Insufficient permissions to add comment"
 		
 		if not isinstance(value,basestring):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
@@ -824,15 +875,18 @@ class Record(DictMixin):
 
 		d = parseparmvalues(value,noempty=1)[1]
 
-		if d.has_key("comments"):
-			self.validationwarning("addcomment: cannot set comments inside a comment")				
+		if d.has_key("comments") or d.has_key("permissions"):
+			self.validationwarning("addcomment: cannot set comments/permissions inside a comment")				
 			return
+
+		# now update the values of any embedded params
+		# if setting value fails, comment won't be added; record can still be committed, perhaps with partial changes,
+		# 	but validation would catch anything the user could not normally set otherwise
+		for i,j in d.items():
+			self[i] = j
 
 		self.__comments.append((self.__context.user,time.strftime(emen2.Database.database.TIMESTR),value))	# store the comment string itself
 
-		# now update the values of any embedded params
-		for i,j in d.items():
-			self[i] = j
 
 
 	def getparamkeys(self):

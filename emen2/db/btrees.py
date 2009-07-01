@@ -571,16 +571,19 @@ class FieldBTree(object):
 			while self.txn: time.sleep(.1)
 			self.txn=txn
 	
-	def typekey(self,key):
-		if key==None: return None
-		if self.keytype=="f" :
-			try: return float(key)
-			except: return float()
-		if self.keytype=="d" :
-			try: return int(key)
-			except: return int()
-		try: return str(key).lower()
-		except: return unicode(key).encode("utf-8").lower()
+	
+	def typekey(self, key):
+		if key==None:
+			return None
+
+		if self.keytype=="f":
+			return float(key)
+
+		if self.keytype=="d":
+			return int(key)
+	
+		return unicode(key).lower()
+
 			
 	def removeref(self,key,item,txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
@@ -697,24 +700,17 @@ class MemBTree(object):
 		return
 
 	def typekey(self,key):
-		if key==None or key=="None" : return None
-		if self.keytype=="f" : 
-#			try:
+		if key == None:
+			return None
+
+		if self.keytype == "f": 
 			return float(key)
-#			except: 
-#				print "Invalid float(%s)"%key
-#				return(0.0)
-		if self.keytype=="d":
-			# try block: ian
-#			try:
+
+		if self.keytype == "d":
 			return int(key)
-#			except:
-#				print "Invalid int(%s)"%key
-#				return 0
 			
-		result = str(key)
-		#print 'TYPEKEY::: %r' % result
-		return result
+		return unicode(key).lower()
+			
 			
 	def removeref(self,key,item,txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
