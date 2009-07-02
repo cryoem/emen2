@@ -22,6 +22,13 @@ def walk_path(extension, cb):
                 cb(pwd, pathname, extension, name, ext, *args, **kwargs)
     return res
 
+def walk_paths(__extension_, __cb_):
+	walker = walk_path(__extension_, __cb_)
+	def res(__plist_, *args, **kwargs):
+		for path in __plist_:
+			walker(path, *args, **kwargs)
+	return res
+
 #from Python Cookbook http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/499305
 def locate(pattern, root=os.curdir):
     '''Locate all files matching supplied filename pattern in and below

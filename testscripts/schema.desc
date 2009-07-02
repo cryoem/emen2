@@ -148,3 +148,14 @@ $name_first (string) #first name
 $name_middle (string) #middle name
 $name_last (string) #last_name
 $email (string) #email
+
+$linkset (string) #the set the link belongs to
+$link_image (binaryimage) #the image for the link
+$link_destination (string) #the link's destination
+$link_text (string) #the text displayed for the link
+@link:
+ >$#linkset $$linkset<br/>$#link_image $$link_image<br/>$#link_destination $$link_destination<br/>$#link_text $$link_text
+ #$$linkset $$link_destination $$link_text
+ ?$$linkset $$link_destination $$link_text
+ N $$linkset - $$link_text
+ ---linkset

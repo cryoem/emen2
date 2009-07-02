@@ -2275,7 +2275,7 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		def addparamdef(self, paramdef, parents=[], ctxid=None, host=None):
+		def addparamdef(self, paramdef, parents=[], ctxid=None, host=None, txn=None):
 			"""adds a new ParamDef object, group 0 permission is required
 			a p->c relationship will be added if parent is specified"""
 
@@ -2450,7 +2450,7 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		def addrecorddef(self, recdef, parent=None, ctxid=None, host=None):
+		def addrecorddef(self, recdef, parent=None, ctxid=None, host=None, txn=None):
 			"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
 
 			if not isinstance(recdef, RecordDef):
@@ -2501,7 +2501,7 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		def putrecorddef(self, recdef, ctxid=None, host=None):
+		def putrecorddef(self, recdef, ctxid=None, host=None, txn=None):
 			"""This modifies an existing RecordDef. The mainview should
 			never be changed once used, since this will change the meaning of
 			data already in the database, but sometimes changes of appearance
@@ -2558,8 +2558,8 @@ class Database(object):
 			txn = self.txncheck(txn)
 
 			for recorddef in recorddefs:
-				self.__recorddefs.set(recdef.name, recdef, txn=txn)
-				g.debug("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recdef.name)
+				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
+				g.debug("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recorddef.name)
 
 			self.txncommit(txn)
 
@@ -3052,6 +3052,7 @@ class Database(object):
 
 
 
+		def checktxn(*args, **kwargs): pass
 		# def __putrecord(self, recs, warning=0, validate=1, log=1, forceupdate=0, ctx=None, txn=None):
 		#
 		# 	# i might change orecs in the future; for now it's a bit of a kludge to deal with new recs
