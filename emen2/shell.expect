@@ -1,5 +1,5 @@
 #!/usr/bin/expect -f
-spawn /usr/bin/python
+spawn python
 expect "> "
 send "import sys\n"
 expect "> "
