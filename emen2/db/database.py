@@ -397,7 +397,11 @@ class Database(object):
 				pd = ParamDef("deleted","boolean","Deleted", "Deleted")
 				self.__paramdefs["deleted"] = pd
 
+				pd = ParamDef("uri","string","Resource Location", "Resource Location")
+				self.__paramdefs["uri"] = pd
+
 				self.__paramdefs.set_txn(None)
+
 
 			if txn:
 				txn.commit()
@@ -1110,35 +1114,71 @@ class Database(object):
 
 
 		@publicmethod
-		def getindexdictbyvalue(self, paramname, valrange, subset=None, ctxid=None, host=None):
+		def getindexdictbyvalue(self, paramname, valrange=None, subset=None, ctxid=None, host=None):
 			"""For numerical & simple string parameters, this will locate all records
 			with the specified paramdef in the specified range.
 			valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
 			This method returns a dictionary of all matching recid/value pairs
 			if subset is provided, will only return values for specified recids"""
 
+			print "getindexdictbyvalue"
+
 			paramname = str(paramname).lower()
 
 			ind = self.__getparamindex(paramname, create=1, ctxid=ctxid, host=host)
+			if ind == None:
+				print "No such index %s"%paramname
+				return {}
 
-			if valrange == None:
-				r = dict(ind.items())
-			elif isinstance(valrange, tuple) or isinstance(valrange, list):
-				r = dict(ind.items(valrange[0], valrange[1]))
-			else:
-				r = {valrange:ind[valrange]}
+			
+			print "ind"
+			print ind
+				
+			#if valrange == None:
+			#	r = dict(ind.items())
+			#elif isinstance(valrange, tuple) or isinstance(valrange, list):
+			#	r = dict(ind.items(valrange[0], valrange[1]))
+			#else:
+			#	r = {valrange:ind[valrange]}
 
 			# This takes the returned dictionary of value/list of recids
 			# and makes a dictionary of recid/value pairs
 			ret = {}
 			all = {}
 
-			for i,j in r.items():
+			# try:
+			# 				items = ind.items()
+			# 				for i in t:
+			# 					print "t: ",t
+			# 			except Exception, inst:
+			# 				g.debug("LOG_ERR","DB FieldBTree error! Index is empty? %s"%inst)
+			# 				return {}
+			# 			
+				
+			#print "ok, check items"
+			#print "keys"
+			#print ind.keys()
+			#print "values"
+			#print ind.values()
+
+			#print "try items"					
+			#items = ind.items()
+			wtf = {}
+			try:
+				for k in ind.keys():
+					wtf[k]=ind[k]
+			except:
+				return {}
+			
+			for i,j in wtf.items():
 				for k in j:
 					all[k] = i
+			
+
 			if subset:
 				for i in subset:
 					ret[i]=all.get(i)
+
 			else:
 				ret = all
 
@@ -2282,7 +2322,7 @@ class Database(object):
 			if not isinstance(paramdef, ParamDef):
 				try:
 					paramdef = ParamDef(paramdef)
-				except:
+				except ValueError, inst:
 					raise ValueError, "ParamDef instance or dict required"
 				#paramdef=ParamDef(paramdef.__dict__.copy())
 				# paramdef.validate()
@@ -3031,8 +3071,8 @@ class Database(object):
 			recs = filter(lambda x:isinstance(x,Record), recs)
 
 			# new records and updated records
-			updrecs = filter(lambda x:x.recid != None, recs)
-			newrecs = filter(lambda x:x.recid == None, recs)
+			updrecs = filter(lambda x:x.recid >= 0, recs)
+			newrecs = filter(lambda x:x.recid < 0, recs)
 
 			# check original records for write permission
 			orecs = self.getrecord([rec.recid for rec in updrecs], ctxid=ctx.ctxid, host=ctx.host, filt=0)
@@ -3258,7 +3298,7 @@ class Database(object):
 				if not rectypes.has_key(newrec.rectype):
 					rectypes[newrec.rectype]=[]
 				rectypes[newrec.rectype].append(newrec.recid)
-
+				
 
 			if filter(lambda x:x.recid < 0, crecs):
 				raise ValueError, "Some new records were not given real recids; giving up"
@@ -3696,7 +3736,7 @@ class Database(object):
 
 
 		# @publicmethod
-		def trygetrecord(self, recid, dbid=0, ctxid=None, host=None):
+		def trygetrecord(self, recid, ctxid=None, host=None):
 			"""Checks to see if a record could be retrieved without actually retrieving it."""
 			#self = db
 			ctx = self.__getcontext(ctxid, host)
@@ -3718,16 +3758,16 @@ class Database(object):
 		# ian: improved!
 		# ed: more improvments!
 		@publicmethod
-		def getrecord(self, recid, filt=1, dbid=0, ctxid=None, host=None):
+		def getrecord(self, recid, filt=1, ctxid=None, host=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
 			#print "GETRECORD %s ctxid=%s %s"%(recid,ctxid,type(ctxid))
 
 			ctx = self.__getcontext(ctxid, host)
 
-			if (dbid != 0):
-				raise NotImplementedError("External database support not yet available")
-				#Ed Changed to NotimplementedError
+			#if (dbid != 0):
+			#	raise NotImplementedError("External database support not yet available")
+			#	#Ed Changed to NotimplementedError
 
 			ol=0
 			if not hasattr(recid,"__iter__"):
@@ -3758,7 +3798,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getparamvalue(self, paramname, recid, dbid=0, ctxid=None, host=None):
+		def getparamvalue(self, paramname, recid, ctxid=None, host=None):
 			paramname = str(paramname).lower()
 			paramindex = self.__getparamindex(paramname, ctxid=ctxid, host=host)
 

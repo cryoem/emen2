@@ -23,12 +23,12 @@ class ParamDef(DictMixin) :
 
 	# non-admin users may only update descs and choices
 	attr_user = set(["desc_long","desc_short","choices"])
-	attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","creationdb"])
+	attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","uri","creationdb"]) #
 	attr_all = attr_user | attr_admin
 
 	# name may be a dict; this allows backwards compat dictionary initialization
 	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
-						property=None,defaultunits=None,choices=None):
+						property=None,defaultunits=None,choices=None,uri=None):
 		self.name=name					# This is the name of the paramdef, also used as index
 		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
 		self.desc_short=desc_short		# This is a very short description for use in forms
@@ -38,7 +38,8 @@ class ParamDef(DictMixin) :
 		self.choices=choices			# choices for choice and string vartypes, a tuple
 		self.creator=None				# original creator of the record
 		self.creationtime=time.strftime(emen2.Database.database.TIMESTR)	# creation date
-		self.creationdb=None			# dbid where paramdef originated
+		self.creationdb=None			# dbid where paramdef originated # deprecated; use URI
+		self.uri = None
 
 		if isinstance(name,dict):
 			self.update(name)
@@ -186,7 +187,7 @@ class RecordDef(DictMixin) :
 	contained by the Record"""
 
 	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short"])
-	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","creationdb"])
+	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","uri","creationdb"])#
 	attr_all = attr_user | attr_admin
 
 
@@ -210,6 +211,7 @@ class RecordDef(DictMixin) :
 		self.creator=0				# original creator of the record
 		self.creationtime=None		# creation date
 		self.creationdb=None		# dbid where recorddef originated
+		self.uri=None
 		self.desc_short=None
 		self.desc_long=None
 
@@ -360,6 +362,9 @@ class RecordDef(DictMixin) :
 			raise ValueError,"Invalid value for private; must be 0 or 1"
 
 
+
+
+
 class Record(DictMixin):
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
@@ -395,7 +400,7 @@ class Record(DictMixin):
 	a new Record before committing changes back to the database.
 	"""
 
-	param_special = set(["recid","rectype","comments","creator","creationtime","permissions","dbid"])
+	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"])#"dbid",#"uri"
 	 	# dbid # "modifyuser","modifytime",
 
 
@@ -424,7 +429,8 @@ class Record(DictMixin):
 
 		self.recid = d.get('recid')
 		self.rectype = d.get('rectype')
-		self.dbid = d.get('dbid',None)
+		#self.dbid = d.get('dbid',None)
+		#self.uri = d.get('uri',None)
 		
 		self.__comments = d.get('comments',[])
 		self.__creator = d.get('creator')
@@ -432,10 +438,8 @@ class Record(DictMixin):
 		self.__permissions = d.get('permissions',((),(),(),()))
 		self.__params = {}
 
-		for key in set(d.keys()) - self.param_special:
-			self[key] = d[key]
-
 		self.__ptest = [0,0,0,0]
+
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 
@@ -444,7 +448,10 @@ class Record(DictMixin):
 		if ctx:
 			self.setContext(ctx)
 
-
+		for key in set(d.keys()) - self.param_special:
+			self[key] = d[key]
+			
+			
 
 	#################################
 	# validation methods
@@ -566,7 +573,11 @@ class Record(DictMixin):
 		if u-users:
 			raise ValueError, "undefined users: %s"%",".join(map(str, u-users))
 			
-			
+
+	def validate_uri(self, orec={}, warning=0):
+		pass
+		
+		
 			
 	def validate_params(self, orec={}, warning=0, params=[]):
 
@@ -715,6 +726,8 @@ class Record(DictMixin):
 			return self.__creationtime
 		elif key == "permissions":
 			return self.__permissions
+		#elif key == "uri":
+		#	return self.uri
 
 		return self.__params.get(key)
 
@@ -741,7 +754,7 @@ class Record(DictMixin):
 				raise SecurityError, "Insufficient permissions to change param %s"%key
 			self.__params[key] = value
 
-		elif key == "comments":
+		elif key == 'comments':
 			self.addcomment(value)
 
 		elif key == 'permissions':
