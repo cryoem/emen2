@@ -231,7 +231,7 @@ class Database(object):
 			if usetxn:
 				self.newtxn = self.newtxn1
 			else:
-				g.debug("LOG_INFO","Note: transaction support disabled")
+				self.LOG("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 
 			self.path = path
@@ -585,7 +585,7 @@ class Database(object):
 				try:
 					ctx.db = None
 					self.__contexts_p.set(ctx.ctxid, ctx)
-					g.debug("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%ctx.ctxid)
+					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%ctx.ctxid)
 
 					ctx.db = self
 				except Exception, inst:
@@ -600,7 +600,7 @@ class Database(object):
 
 				try:
 					del self.__contexts_p[ctxid]
-					g.debug("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid)
+					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid)
 
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete persistent context %s (%s)"%(ctxid, inst))
@@ -726,7 +726,7 @@ class Database(object):
 
 				itm[newid] = (name, recid)
 				self.__bdocounter.set(key, itm, txn)
-				g.debug("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%key)
+				self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%key)
 
 
 				if txn:
@@ -1151,7 +1151,7 @@ class Database(object):
 			# 				for i in t:
 			# 					print "t: ",t
 			# 			except Exception, inst:
-			# 				g.debug("LOG_ERR","DB FieldBTree error! Index is empty? %s"%inst)
+			# 				self.LOG("LOG_ERR","DB FieldBTree error! Index is empty? %s"%inst)
 			# 				return {}
 			# 			
 				
@@ -1618,7 +1618,7 @@ class Database(object):
 				txn = self.newtxn()
 
 			linker(pkey, ckey, txn=txn)
-			g.debug("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
+			self.LOG("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
@@ -1982,7 +1982,7 @@ class Database(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn)
-				g.debug("LOG_COMMIT","Commit: self.__users.set: %s"%user.username)
+				self.LOG("LOG_COMMIT","Commit: self.__users.set: %s"%user.username)
 
 			if txn:	txn.commit()
 			elif not self.__importmode:	DB_syncall()
@@ -2002,7 +2002,7 @@ class Database(object):
 
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
-				g.debug("LOG_COMMIT","Commit: self.__newuserqueue.set: %s"%username)
+				self.LOG("LOG_COMMIT","Commit: self.__newuserqueue.set: %s"%username)
 
 			self.txncommit(txn)
 
@@ -2396,7 +2396,7 @@ class Database(object):
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
-				g.debug("LOG_COMMIT","Commit: self.__paramdefs.set: %s"%paramdef.name)
+				self.LOG("LOG_COMMIT","Commit: self.__paramdefs.set: %s"%paramdef.name)
 
 			self.txncommit(txn)
 
@@ -2599,7 +2599,7 @@ class Database(object):
 
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
-				g.debug("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recorddef.name)
+				self.LOG("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recorddef.name)
 
 			self.txncommit(txn)
 
@@ -3223,7 +3223,7 @@ class Database(object):
 				cp = orec.changedparams(updrec) - param_immutable
 
 				if not cp and not orec.recid < 0:
-					g.debug("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
+					self.LOG("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 					continue
 
 
@@ -3307,7 +3307,7 @@ class Database(object):
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
-				#g.debug("LOG_COMMIT","Commit: self.__records.set: %s"%crec.recid)
+				#self.LOG("LOG_COMMIT","Commit: self.__records.set: %s"%crec.recid)
 
 
 
@@ -3315,19 +3315,19 @@ class Database(object):
 			for rec in newrecs:
 				try:
 					self.__recorddefbyrec.set(rec.recid, rec.rectype, txn=txn)
-					#g.debug("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
+					#self.LOG("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
 
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
+					self.LOG("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
 
 
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-					#g.debug("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs))
+					#self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs))
 
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
+					self.LOG("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 
 
 			# Param index
@@ -3343,10 +3343,10 @@ class Database(object):
 			for recid,time in timeupdate.items():
 				try:
 					self.__timeindex.set(recmap.get(recid,recid), time, txn=txn)
-					#g.debug("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
+					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
 
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
+					self.LOG("LOG_ERR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 
 
 			# Create pc links
@@ -3354,7 +3354,7 @@ class Database(object):
 				try:
 					self.pclink(recmap.get(link[0],link[0]),recmap.get(link[1],link[1]))
 				except:
-					g.debug("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
+					self.LOG("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
 
 			self.txncommit(txn)
 			#@end
@@ -3373,18 +3373,18 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						#g.debug("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)))
+						#self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)))
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
+					self.LOG("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						#g.debug("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)))
+						#self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)))
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
+					self.LOG("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			self.txncommit(txn)
 
@@ -3404,7 +3404,7 @@ class Database(object):
 				if ind == None:
 					raise Exception, "Index was None"
 			except Exception, inst:
-				g.debug("LOG_ERR","Could not open param index: %s (%s)"%param, inst)
+				self.LOG("LOG_ERR","Could not open param index: %s (%s)"%param, inst)
 				return
 
 			for newval,recs in addrefs.items():
@@ -3413,11 +3413,11 @@ class Database(object):
 					if recs:
 						# ian todo: fix unicode index support
 						str(newval)
-						g.debug("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))					
+						self.LOG("LOG_COMMIT","Commit: param index %s.addrefs: '%s', %s"%(param, newval, recs))					
 						ind.addrefs(newval, recs, txn=txn)
 						print "...done"
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: addrefs '%s', records %s (%s)"%(param,newval,recs,inst))
+					self.LOG("LOG_ERR", "Could not update param index %s: addrefs '%s', records %s (%s)"%(param,newval,recs,inst))
 
 
 
@@ -3427,10 +3427,10 @@ class Database(object):
 					if recs:
 						# ian todo: fix unicode index support
 						str(newval)
-						g.debug("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
+						self.LOG("LOG_COMMIT","Commit: param index %s.removerefs: '%s', %s"%(param, oldval, recs))
 						ind.removerefs(oldval, recs, txn=txn)
 				except Exception, inst:
-					g.debug("LOG_ERR", "Could not update param index %s: removerefs '%s', records %s (%s)"%(param,oldval,recs,inst))			
+					self.LOG("LOG_ERR", "Could not update param index %s: removerefs '%s', records %s (%s)"%(param,oldval,recs,inst))			
 
 
 
@@ -3568,7 +3568,7 @@ class Database(object):
 				nperms = set(reduce(operator.concat, updrec["permissions"]))
 				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
 				
-				#g.debug("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
+				#self.LOG("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 				
 
 				for user in nperms - operms:

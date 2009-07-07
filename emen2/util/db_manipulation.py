@@ -152,7 +152,7 @@ class DBTree(object):
 
 	def reverse(self, _name, *args, **kwargs):
 		_full = kwargs.get('_full', False)
-		prefix = '/%s' % g.EMEN2WEBROOT
+		prefix = '%s' % g.EMEN2WEBROOT
 		if not prefix.endswith('/'): prefix = '%s/' % prefix
 		if _full == True:
 			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
