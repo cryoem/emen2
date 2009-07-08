@@ -2,8 +2,6 @@ import bsddb3
 from bsddb3 import db
 from cPickle import load, dump
 
-#import bsddb3.dbobj
-
 from emen2.Database.btrees2 import *
 from emen2.Database.datastorage import *
 from emen2.Database.exceptions import *
@@ -130,7 +128,7 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
+		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
 
 
@@ -138,7 +136,7 @@ class DBProxy(object):
 	def _register_extmethod(cls, name, refcl):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		self.LOG('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
+		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
 		cls.__extmethods[name] = refcl
 
 
@@ -306,9 +304,9 @@ class Database(object):
 				os.makedirs(path + "/index")
 
 			# Users
-			self.__users = BTree("users", path + "/security/users.bdb", dbenv=self.__dbenv)	# active database users
-			self.__newuserqueue = BTree("newusers", path + "/security/newusers.bdb", dbenv=self.__dbenv) # new users pending approval
-			self.__contexts_p = BTree("contexts", path + "/security/contexts.bdb", dbenv=self.__dbenv) # multisession persistent contexts
+			self.__users = BTree("users", filename=path+"/security/users.bdb", dbenv=self.__dbenv)	# active database users
+			self.__newuserqueue = BTree("newusers", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv) # new users pending approval
+			self.__contexts_p = BTree("contexts", filename=path+"/security/contexts.bdb", dbenv=self.__dbenv) # multisession persistent contexts
 			self.__contexts = {} # local cache dictionary of valid contexts
 
 			txn = self.newtxn()
@@ -329,19 +327,19 @@ class Database(object):
 				self.__users.set("root", u, txn)
 
 			# Binary data names indexed by date
-			self.__bdocounter = BTree("BinNames", path + "/BinNames.bdb", dbenv=self.__dbenv, relate=0)
+			self.__bdocounter = BTree("BinNames", filename=path+"/BinNames.bdb", dbenv=self.__dbenv, relate=0)
 
 			# Defined ParamDefs
-			self.__paramdefs = BTree("ParamDefs", path + "/ParamDefs.bdb", dbenv=self.__dbenv, relate=1) # ParamDef objects indexed by name
+			self.__paramdefs = BTree("ParamDefs", filename=path+"/ParamDefs.bdb", dbenv=self.__dbenv, relate=1) # ParamDef objects indexed by name
 
 			# Defined RecordDefs
-			self.__recorddefs = BTree("RecordDefs", path + "/RecordDefs.bdb", dbenv=self.__dbenv, relate=1)	# RecordDef objects indexed by name
+			self.__recorddefs = BTree("RecordDefs", filename=path+"/RecordDefs.bdb", dbenv=self.__dbenv, relate=1)	# RecordDef objects indexed by name
 
 			# The actual database, keyed by recid, a positive integer unique in this DB instance
 			# ian todo: check this statement:
 			# 2 special keys exist, the record counter is stored with key -1
 			# and database information is stored with key=0
-			self.__records = IntBTree("database", path + "/database.bdb", dbenv=self.__dbenv, relate=1)	# The actual database, containing id referenced Records
+			self.__records = IntBTree("database", filename=path+"/database.bdb", dbenv=self.__dbenv, relate=1)	# The actual database, containing id referenced Records
 
 			try:
 				maxr = self.__records.get(-1, txn)
@@ -354,10 +352,10 @@ class Database(object):
 			#	self.__secrindex = MemBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv) # index of records each user can read
 			#	self.__recorddefindex = MemBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv) # index of records belonging to each RecordDef
 			#else:
-			self.__secrindex = FieldBTree("secrindex", path + "/security/roindex.bdb", "s", dbenv=self.__dbenv)	# index of records each user can read
-			self.__recorddefindex = FieldBTree("RecordDefindex", path + "/RecordDefindex.bdb", "s", dbenv=self.__dbenv)	# index of records belonging to each RecordDef
+			self.__secrindex = FieldBTree("secrindex", filename=path+"/security/roindex.bdb", keytype="s", dbenv=self.__dbenv)	# index of records each user can read
+			self.__recorddefindex = FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)	# index of records belonging to each RecordDef
 			
-			self.__timeindex = BTree("TimeChangedindex", path + "/TimeChangedindex.bdb", dbenv=self.__dbenv) # key=record id, value=last time record was changed
+			self.__timeindex = BTree("TimeChangedindex", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv) # key=record id, value=last time record was changed
 			#self.__recorddefbyrec = IntBTree("RecordDefByRec", path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
 			self.__fieldindex = {} # dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 
@@ -368,12 +366,12 @@ class Database(object):
 
 
 			# The mirror database for storing offsite records
-			self.__mirrorrecords = BTree("mirrordatabase", path + "/mirrordatabase.bdb", dbenv=self.__dbenv)
+			self.__mirrorrecords = BTree("mirrordatabase", filename=path+"/mirrordatabase.bdb", dbenv=self.__dbenv)
 
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
-			self.__workflow = BTree("workflow", path + "/workflow.bdb", dbenv=self.__dbenv)
+			self.__workflow = BTree("workflow", filename=path+"/workflow.bdb", dbenv=self.__dbenv)
 
 			try:
 				max = self.__workflow[ - 1]
@@ -1120,7 +1118,7 @@ class Database(object):
 				return None
 
 			if valrange == None:
-				ret = set(paramindex.values())
+				ret = paramindex.values()
 
 			else:
 				ret = set(paramindex.values(valrange[0], valrange[1]))
@@ -2744,7 +2742,7 @@ class Database(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = FieldBTree(paramname, "%s/index/%s.bdb" % (self.path, paramname), tp, self.__dbenv)
+			self.__fieldindex[paramname] = FieldBTree(paramname, filename="%s/index/%s.bdb"%(self.path, paramname), keytype=tp, dbenv=self.__dbenv)
 
 			return self.__fieldindex[paramname]
 
@@ -3018,7 +3016,6 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		@g.debug.debug_func
 		def putrecord(self, recs, filt=1, warning=0, log=1, importmode=1, ctxid=None, host=None, txn=None):
 			"""commits a record"""
 			# input validation for __putrecord
@@ -3341,7 +3338,7 @@ class Database(object):
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
 			except Exception, inst:
-				self.LOG("LOG_ERR","Could not open param index: %s (%s)"%param, inst)
+				self.LOG("LOG_ERR","Could not open param index: %s (%s)"% (param, inst))
 				return
 
 
@@ -4437,7 +4434,7 @@ class Database(object):
 
 					try:
 						r = load(fin)
-					except Exception, inst:
+					except EOFError, inst:
 						print inst
 						break
 
