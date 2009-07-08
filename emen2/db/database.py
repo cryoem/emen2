@@ -130,7 +130,7 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		self.LOG('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
+		g.debug('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
 
 
@@ -1981,12 +1981,14 @@ class Database(object):
 				try:
 					ouser = self.__users[user.username]
 				except:
-					raise KeyError, "Putuser may only be used to update existing users"
+					ouser = user
+					#raise KeyError, "Putuser may only be used to update existing users"
 
-				if user.creator != ouser.creator or user.creationtime != ouser.creationtime:
-					raise SecurityError, "Creation information may not be changed"
 
-				user.validate()
+				#if user.creator != ouser.creator or user.creationtime != ouser.creationtime:
+				#	raise SecurityError, "Creation information may not be changed"
+
+				# user.validate()
 
 				commitusers.append(user)
 
@@ -4475,7 +4477,7 @@ class Database(object):
 					# insert User
 					if isinstance(r, User) and "user" in types:
 						print "user: %s"%r.username
-						self.adduser(r, ctxid=ctxid, host=host)
+						self.putuser(r, validate=0, ctxid=ctxid, host=host)
 						#self.__commit_users([r], ctx=ctx, txn=txn)
 						# if self.__users.has_key(r.username, txn):
 						# 	print "Duplicate user ", r.username
