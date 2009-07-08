@@ -904,7 +904,7 @@ RecordDefEditor.prototype = {
 	
 	default_commit_add: function() {
 		var self=this;
-		$.jsonRPC("addrecorddef",[this.rd,this.parent],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd,this.parent],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},	
 	
 	refreshall: function(e) {

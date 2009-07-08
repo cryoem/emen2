@@ -31,7 +31,7 @@ for i in db.getparamdefnames():
 				print "Need to fix: %s"%z.name
 				print "\tdu: %s\n\tprop: %s -> %s"%(z.defaultunits, z.property, rvp[z.defaultunits])
 				z.property=rvp[z.defaultunits]
-				db.addparamdef(z)
+				db.putparamdef(z)
 
 		except:
 			print "wtf %s, %s"%(z.name, z.defaultunits)

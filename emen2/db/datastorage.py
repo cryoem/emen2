@@ -28,17 +28,17 @@ class ParamDef(DictMixin) :
 
 	# name may be a dict; this allows backwards compat dictionary initialization
 	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
-						property=None,defaultunits=None,choices=None,uri=None):
-		self.name=name					# This is the name of the paramdef, also used as index
-		self.vartype=vartype			# Variable data type. List of valid types in the module global 'vartypes'
-		self.desc_short=desc_short		# This is a very short description for use in forms
-		self.desc_long=desc_long		# A complete description of the meaning of this variable
-		self.property=property			# Physical property represented by this field, List in 'properties'
-		self.defaultunits=defaultunits	# Default units (optional)
-		self.choices=choices			# choices for choice and string vartypes, a tuple
-		self.creator=None				# original creator of the record
-		self.creationtime=time.strftime(emen2.Database.database.TIMESTR)	# creation date
-		self.creationdb=None			# dbid where paramdef originated # deprecated; use URI
+						property=None,defaultunits=None,choices=None,uri=None, ctx=None):
+		self.name = name					# This is the name of the paramdef, also used as index
+		self.vartype = vartype			# Variable data type. List of valid types in the module global 'vartypes'
+		self.desc_short = desc_short		# This is a very short description for use in forms
+		self.desc_long = desc_long		# A complete description of the meaning of this variable
+		self.property = property			# Physical property represented by this field, List in 'properties'
+		self.defaultunits = defaultunits	# Default units (optional)
+		self.choices = choices			# choices for choice and string vartypes, a tuple
+		self.creator = None				# original creator of the record
+		self.creationtime = time.strftime(emen2.Database.database.TIMESTR)	# creation date
+		self.creationdb = None			# dbid where paramdef originated # deprecated; use URI
 		self.uri = None
 
 		if isinstance(name,dict):
@@ -191,35 +191,40 @@ class RecordDef(DictMixin) :
 	attr_all = attr_user | attr_admin
 
 
-	def __init__(self,d=None):
-		self.name=None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.views={"recname":"$$rectype $$creator $$creationtime"}				# Dictionary of additional (named) views for the record
-		self.mainview="$$rectype $$creator $$creationtime"			# a string defining the experiment with embedded params
+	def __init__(self, d=None, ctx=None):
+		self.name = None				# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
+		self.views = {"recname":"$$rectype $$creator $$creationtime"}				# Dictionary of additional (named) views for the record
+		self.mainview = "$$rectype $$creator $$creationtime"			# a string defining the experiment with embedded params
 									# this is the primary definition of the contents of the record
-		self.private=0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
+		self.private = 0				# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 									# or by someone with read access to a record of this type
-		self.typicalchld=[]			# A list of RecordDef names of typical child records for this RecordDef
+		self.typicalchld = []			# A list of RecordDef names of typical child records for this RecordDef
 									# implicitly includes subclasses of the referenced types
 
-		self.params={}				# A dictionary keyed by the names of all params used in any of the views
+		self.params = {}				# A dictionary keyed by the names of all params used in any of the views
 									# values are the default value for the field.
 									# this represents all params that must be defined to have a complete
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record
 		self.paramsK = []			# ordered keys from params()
-		self.owner=None				# The owner of this record
-		self.creator=0				# original creator of the record
-		self.creationtime=None		# creation date
-		self.creationdb=None		# dbid where recorddef originated
-		self.uri=None
-		self.desc_short=None
-		self.desc_long=None
+		self.owner = None				# The owner of this record
+		self.creator = 0				# original creator of the record
+		self.creationtime = None		# creation date
+		self.creationdb = None		# dbid where recorddef originated
+		self.uri = None
+		self.desc_short = None
+		self.desc_long = None
 
 		if (d):
 			self.update(d)
 
-
 		self.findparams()
+		
+		if ctx:
+			if not self.owner: self.owner = ctx.user
+			if not self.creator: self.creator = ctx.user
+			if not self.creationtime: self.creationtime = ctx.db.gettime()
+			
 
 
 	def __setattr__(self,key,value):
@@ -527,6 +532,7 @@ class Record(DictMixin):
 		users=[]
 		dates=[]
 		newcomments=[]
+		
 		for i in self.__comments:
 			try:
 				users.append(i[0])
@@ -549,6 +555,7 @@ class Record(DictMixin):
 	def validate_creator(self, orec={}):
 		return
 		self.__creator=str(self.__creator)
+
 		try:
 			self.__context.db.getuser(self.__creator, filt=0, ctxid=self.__context.ctxid, host=self.__context.host)
 		except:
@@ -621,10 +628,20 @@ class Record(DictMixin):
 		return v
 
 
-	def changedparams(self,orec={}):
+	def changedparams(self,orec=None):
 		"""difference between two records"""
 		
 		allkeys = set(self.keys() + orec.keys())
+		#paramkeys = set(self.getparamkeys() + orec.getparamkeys())
+
+		#print type(self)
+		#print type(orec)
+
+		#for k in allkeys:
+		#	if self.get(k) != orec.get(k): 
+		#		print "%s\n\t%s\n\t%s"(k, self.get(k), orec.get(k))
+				
+				
 		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
 
 
