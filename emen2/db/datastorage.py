@@ -131,7 +131,8 @@ class ParamDef(DictMixin) :
 				raise Exception
 			self.desc_long = unicode(self.desc_long)
 		except:
-			raise ValueError,"Long description (desc_long) required"
+			pass
+			#raise ValueError,"Long description (desc_long) required"
 
 
 		if self.property == "":
@@ -178,8 +179,10 @@ class ParamDef(DictMixin) :
 		self.creationtime = unicode(self.creationtime)
 		self.creator = unicode(self.creator)
 
-		if self.uri:
+		if hasattr(self, 'uri') and self.uri:
 			self.uri = unicode(self.uri)
+		elif not hasattr(self, 'uri'):
+			self.uri = None
 
 		return
 
@@ -391,14 +394,20 @@ class RecordDef(DictMixin) :
 			raise ValueError, "No creationtime"
 		self.creationtime = unicode(self.creationtime)
 		
-		if self.uri != None:
+		if hasattr(self, 'uri') and self.uri != None:
 			self.uri = unicode(self.uri)
+		elif not hasattr(self, 'uri'):
+			self.uri = None
 			
-		if self.desc_short != None:
+		if hasattr(self, 'desc_short') and self.desc_short != None:
 			self.desc_short = unicode(self.desc_short)
+		elif not hasattr(self, 'desc_short'):
+			self.desc_short = unicode('')
 
-		if self.desc_long != None:
+		if hasattr(self, 'desc_long') and self.desc_long != None:
 			self.desc_long = unicode(self.desc_long)
+		elif not hasattr(self, 'desc_long'):
+			self.desc_short = unicode('')
 
 		try:
 			self.private=int(bool(self.private))

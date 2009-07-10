@@ -289,8 +289,10 @@ class RelateBTree(BTree):
 	"""BTree with parent/child/cousin relationships between keys"""
 
 
+	@g.debug.debug_func
  	def __init__(self, *args, **kwargs):
  		BTree.__init__(self, *args, **kwargs)
+		self.relate = 1
 
 		dbenv = kwargs.get("dbenv")
 		filename = kwargs.get("filename")
