@@ -12,118 +12,8 @@ import weakref
 
 dbopenflags=bsddb3.db.DB_CREATE
 
-#
-# class IndexDB(bsddb3.dbobj.DB):
-#
-# 	def __dumpkey(self, key):
-# 		return dumps(self.__keyconv(key))
-#
-#
-# 	def __dumpvalue(self, value):
-# 		return dumps(set([self.__valueconv(i) for i in value]))
-#
-#
-# 	# self.bdb.index_append(key,item,txn=txn)
-# 	def index_append(self, key, item, txn=None):
-# 		value = self.index_get(key, txn=txn)
-# 		value.add(self.__valueconv(value))
-# 		return self.index_put(key, value, txn=txn)
-#
-#
-#
-# 	# self.bdb.index_extend(key,list(set(items)),txn=self.txn)
-# 	def index_extend(self, key, items, txn=None):
-# 		value = self.index_get(key, txn=txn)
-# 		value |= set([self.__valueconv(i) for i in items])
-# 		return self.index_put(key, value, txn=txn)
-#
-#
-# 	# return self.bdb.index_get(key,txn=txn)
-# 	# get(key, default=None, txn=None, flags=0, dlen=-1, doff=-1)
-# 	def index_get(self, key, default=None, txn=None, flags=0):
-# 		return loads(self.get(self.__dumpkey(key), default=default, txn=txn, flags=flags))
-#
-#
-# 	# return self.bdb.index_has_key(key,txn=txn)
-# 	# has_key(key, txn=None)
-# 	def index_has_key(self, key, txn=None):
-# 		return self.has_key(self.__dumpkey(key), txn=txn)
-#
-#
-# 	# return self.bdb.index_items(mink,maxk,txn=self.txn)
-# 	# items(txn=None)
-# 	def index_items(self, mink=None, maxk=None, txn=None):
-# 		return [(loads(k),loads(v)) for k,v in self.items(txn=txn)]
-#
-#
-# 	# return self.bdb.index_keys(mink,maxk,txn=self.txn)
-# 	# keys(txn=None)
-# 	def index_keys(self, mink=None, maxk=None, txn=None):
-# 		return [loads(k) for k in self.keys(txn=txn)]
-#
-#
-#
-# 	# return self.bdb.index_values(mink, maxk, txn=self.txn)
-# 	# values(txn=None)
-# 	def index_values(self, mink=None, maxk=None, txn=None):
-# 		return [loads(k) for k in self.values(txn=txn)]
-#
-#
-# 	# self.bdb.index_put(key,val,txn=self.txn)
-# 	# put(key, data, txn=None, flags=0, dlen=-1, doff=-1)
-# 	def index_put(self, key, data, txn=None, flags=0):
-# 		return self.put(self.__dumpkey(key), self.__dumpvalue(value), txn=txn, flags=flags)
-#
-#
-# 	# self.bdb.index_remove(key,item,txn=self.txn)
-# 	# delete(key, txn=None, flags=0)
-# 	def index_remove(self, key, item, txn=None):
-# 		value = self.index_get(key, txn=txn)
-# 		value.remove(self.__valueconv(item))
-# 		return self.index_put(key, value, txn=txn)
-#
-#
-# 	# self.bdb.index_removelist(key,items,txn=self.txn)
-# 	def index_removelist(self, key, items, txn=None):
-# 		value = self.index_get(key, txn=txn)
-# 		value -= set([self.__valueconv(i) for i in items])
-# 		return self.index_put(key, value, txn=txn)
-#
-#
-# 	# return self.bdb.index_test(key,item,txn=self.txn)
-# 	# """Tests for the presence if item in key'ed index """
-# 	def index_test(self, key, item, txn=None):
-# 		value = self.index_get(key)
-# 		return item in value
-#
-#
-# 	# self.bdb.index_update(dict,txn=self.txn)
-# 	def index_update(self, d, txn=None):
-# 		print "Unsupported? DB.index_update"
-# 		for k,v in d.items():
-# 			self.index_put(k,v)
-#
-#
-#
-# 	# self.pcdb.index_open(file+".pc","d",name,db.DB_BTREE,dbopenflags)
-# 	# open(filename, dbname=None, dbtype=DB_UNKNOWN, flags=0, mode=0660, txn=None)
-# 	def index_open(self, filename, keytype="s", dbname=None, dbtype=None, flags=0, mode=0660, txn=None):
-# 		self.keytype = keytype
-#
-# 		if keytype == "f":
-# 			self.__keyconv = float
-# 		elif keytype == "d":
-# 			self.__keyconv = int
-# 		elif keytype == "s":
-# 			self.__keyconv = str
-# 		else:
-# 			raise Exception, "Invalid index type %s"%keytype
-#
-# 		return self.open(filename, dbname=dbname, dbtype=dbtype, flags=flags, mode=mode, txn=txn)
 
-
-
-
+# Berkeley DB wrapper classes
 
 
 class BTree(object):
@@ -132,54 +22,147 @@ class BTree(object):
 
 	alltrees=weakref.WeakKeyDictionary()
 
-	def __init__(self, name, filename=None, dbenv=None, nelem=0, relate=0, cfunc=None):
-		"""This is a persistent dictionary implemented as a BerkeleyDB BTree
-		name is required, and will also be used as a filename if none is
-		specified. If relate is true, then parent/child and cousin relationships
-		between records are also supported. """
-		g.debug('asdasdasdasdasd')
-
-		global globalenv,dbopenflags
+	def __init__(self, name, filename=None, dbenv=None, nelem=0, keytype=None, cfunc=None):
+		#"""This is a persistent dictionary implemented as a BerkeleyDB BTree
+		#name is required, and will also be used as a filename if none is
+		#specified. If relate is true, then parent/child and cousin relationships
+		#between records are also supported. """
 		#BTree.alltrees[self] = 1	# we keep a running list of all trees so we can close everything properly
-		self.__setweakrefopen()
 
 		self.name = name
+		self.__setkeytype(keytype)
+
+		cfunc = None
+		if self.keytype in ("d", "f"):
+			cfunc = self.__num_compare
+
+
+		#else:
+		#	raise Exception, "Invalid keytype %s"%keytype
+
+		if filename == None:
+			filename = name+".bdb"
+
+		global globalenv,dbopenflags
 		self.txn = None	# current transaction used for all database operations
 
 		if not dbenv:
 			dbenv = globalenv
 
+		g.debug("BTree init: %s"%filename)
 		self.bdb = bsddb3.db.DB(dbenv)
-
-		if filename == None:
-			filename = name+".bdb"
 
 		if cfunc is not None:
 			self.bdb.set_bt_compare(cfunc)
+
+		self.__setweakrefopen()			
 		self.bdb.open(filename, name, bsddb3.db.DB_BTREE, dbopenflags)
 
-		if relate:
-			self.relate=1
 
-			# Parent keyed list of children
-			self.pcdb=bsddb3.db.DB(dbenv)
-			self.pcdb.open(filename+".pc", name, bsddb3.db.DB_BTREE, dbopenflags)
+	def __setkeytype(self, keytype):
+		self.keytype = keytype
+		
+		if self.keytype == "d":
+			self.set_typekey(self.__typekey_int)
+			
+		elif self.keytype == "f":
+			self.set_typekey(self.__typekey_float)
 
-			# Child keyed list of parents
-			self.cpdb=bsddb3.db.DB(dbenv)
-			self.cpdb.open(filename+".cp", name, bsddb3.db.DB_BTREE, dbopenflags)
+		elif self.keytype == "s":
+			self.set_typekey(self.__typekey_unicode)
+			self.dumpkey = self.__dumpkey_unicode
+			self.loadkey = self.__loadkey_unicode
+			
+		elif self.keytype == "ds":
+			self.set_typekey(self.__typekey_unicode_int)		
+			self.dumpkey = self.__dumpkey_unicode_int
+			self.loadkey = self.__loadkey_unicode_int
 
-			# lateral links between records (nondirectional), 'getcousins'
-			self.reldb=bsddb3.db.DB(dbenv)
-			self.reldb.open(filename+".rel", name, bsddb3.db.DB_BTREE, dbopenflags)
 
-		else:
-			self.relate=0
+	def __num_compare(self, k1, k2):
+		if not k1: k1 = 0
+		else: k1 = pickle.loads(k1)
 
+		if not k2: k2 = 0
+		else: k2 = pickle.loads(k2)
+
+		return cmp(k1, k2)
+
+
+	# optional keytypes
+	def __typekey_int(self, key):
+		if key is None: key = 0
+		return int(key)
+		
+		
+	def __typekey_float(self, key):
+		if key is None: key = 0
+		return float(key)
+
+
+	def __typekey_unicode(self, key):
+		if key is None: key = ''
+		return unicode(key)
+
+
+	def __typekey_unicode_int(self, key):
+		if key is None: key = 0
+		try: return int(key)
+		except: return unicode(key)
+		
+
+	# special key dumps
+	def __dumpkey_unicode(self, key):
+		return key.encode("utf-8")
+
+
+	def __dumpkey_unicode_int(self, key):
+		if isinstance(key, int): return dumps(int(key))
+		return dumps(unicode(key).encode("utf-8"))
+
+
+	# special key loads
+	def __loadkey_unicode(self, key):
+		return key.decode("utf-8")
+	
+
+	def __loadkey_unicode_int(self, key):
+		key = loads(key)
+		if isinstance(key,int): return key
+		return key.encode("utf-8")
+		
+
+	# enforce key types
+	def typekey(self, key):
+		return key
+
+	def dumpkey(self, key):
+		return dumps(self.typekey(key))
+
+	def loadkey(self, key):
+		return loads(key)
+
+
+	# default keytypes and datatypes
+	def typedata(self, data):
+		return data
+		
+	def dumpdata(self, data):
+		return dumps(self.typedata(data))
+
+	def loaddata(self, data):
+		return loads(data)
+
+
+
+	# change key/data behavior
 	def set_typekey(self, func):
 		self.typekey = func
+				
 	def set_typedata(self, func):
 		self.typedata = func
+
+
 
 
 	def __setweakrefopen(self):
@@ -201,33 +184,15 @@ class BTree(object):
 		if g.DEBUG>2:
 			g.debug.msg('LOG_DEBUG', '\nbegin')
 
-		if self.relate:
-			try:
-				self.pcdb.close()
-				if g.DEBUG>2: g.debug.msg('LOG_DEBUG', '/pc')
-				self.cpdb.close()
-				if g.DEBUG>2: g.debug.msg('LOG_DEBUG', '/cp')
-				self.reldb.close()
-				if g.DEBUG>2: g.debug.msg('LOG_DEBUG', '/rel')
-			except Exception, e:
-				g.debug('LOG_ERROR', str(e))
-
-		g.debug.msg('LOG_DEBUG', 'main')
+		#g.debug.msg('LOG_DEBUG', 'main')
 		self.bdb.close()
-		g.debug.msg('LOG_DEBUG', '/main')
+		#g.debug.msg('LOG_DEBUG', '/main')
 
 		self.bdb=None
 
 
 	def sync(self):
-		#try:
-		if self.relate:
-			self.bdb.sync()
-			self.pcdb.sync()
-			self.cpdb.sync()
-			self.reldb.sync()
-		#except:
-		#	pass
+		self.bdb.sync()
 
 
 	def set_txn(self,txn):
@@ -237,7 +202,7 @@ class BTree(object):
 			self.txn=None
 			return
 		if self.txn:
-			g.debug.msg('LOG_WARNING',"Transaction deadlock %s"%str(self))
+			g.debug.msg('LOG_WARNING',"Transaction deadlock %s"%unicode(self))
 		counter = 0
 		while self.txn:
 			time.sleep(.1)
@@ -247,10 +212,138 @@ class BTree(object):
 
 
 
+
+	def __len__(self):
+		return len(self.bdb)
+
+
+	def __setitem__(self, key, data):
+		if data == None:
+			self.__delitem__(self.typekey(key))
+		else:
+			#self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
+			self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=self.txn)
+
+
+	def __getitem__(self, key):
+		return self.loaddata(self.bdb.get(self.dumpkey(key), txn=self.txn))
+
+
+	def __delitem__(self, key):
+		self.bdb.delete(self.dumpkey(key), txn=self.txn)
+
+
+	def __contains__(self, key):
+		return self.bdb.has_key(self.dumpkey(key), txn=self.txn)
+
+
+	def keys(self, txn=None):
+		return map(lambda x:self.loadkey(x), self.bdb.keys())
+
+
+	def values(self, txn=None):
+		if not txn: txn=self.txn
+		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values())) #txn=txn
+
+
+	def items(self, txn=None):
+		if not txn: txn=self.txn
+		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items()) #txn=txn
+
+
+	def has_key(self, key, txn=None):
+		if not txn: txn=self.txn
+		return self.bdb.has_key(self.dumpkey(key)) #, txn=txn
+
+
+	def get(self, key, txn=None):
+		if not txn: txn=self.txn
+		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
+		try:
+			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn))
+		except:
+			return None
+
+	def set(self, key, data, txn=None):
+		"Alternative to x[key]=val with transaction set"
+		if not txn: txn=self.txn
+		if data == None:
+			return self.bdb.delete(self.dumpkey(key), txn=txn)
+		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
+
+
+	def update(self, d, txn=None):
+		if not txn: txn=self.txn
+		d = dict(map(lambda x:self.typekey(x[0]), self.typedata(x[1]), d.items()))
+		for i,j in dict.items():
+			self.bdb.put(self.dumpkey(i), self.dumpdata(j), txn=txn)
+			#self.set(i,j,txn=txn)
+
+
+
+
+
+	
+	
+class RelateBTree(BTree):
+	"""BTree with parent/child/cousin relationships between keys"""
+
+
+ 	def __init__(self, *args, **kwargs):
+ 		BTree.__init__(self, *args, **kwargs)
+
+		dbenv = kwargs.get("dbenv")
+		filename = kwargs.get("filename")
+		name = kwargs.get("name")
+		
+		# Parent keyed list of children
+		self.pcdb = bsddb3.db.DB(dbenv)
+		self.pcdb.open(filename+".pc", name, bsddb3.db.DB_BTREE, dbopenflags)
+
+		# Child keyed list of parents
+		self.cpdb = bsddb3.db.DB(dbenv)
+		self.cpdb.open(filename+".cp", name, bsddb3.db.DB_BTREE, dbopenflags)
+
+		# lateral links between records (nondirectional), 'getcousins'
+		self.reldb = bsddb3.db.DB(dbenv)
+		self.reldb.open(filename+".rel", name, bsddb3.db.DB_BTREE, dbopenflags)
+
+			
+			
+	def close(self):
+		if self.bdb is None:
+			return
+
+		#try:
+		self.pcdb.close()
+		self.cpdb.close()
+		self.reldb.close()
+		#except Exception, e:
+		#	g.debug('LOG_ERROR', unicode(e))
+
+		self.bdb.close()
+		self.bdb = None			
+
+
+
+	def sync(self):
+		#try:
+		self.bdb.sync()
+		self.pcdb.sync()
+		self.cpdb.sync()
+		self.reldb.sync()
+		#except:
+		#	pass
+
+
 	def __relate(self, db1, db2, method, tag1, tag2, txn=None):
+
+		# key = normal key
+		# data = set of keys
 
 		if not self.relate:
 			raise Exception,"relate option required in BTree"
+
 		if not txn:	txn = self.txn
 
 		tag1, tag2 = self.typekey(tag1), self.typekey(tag2)
@@ -262,22 +355,22 @@ class BTree(object):
 			raise KeyError,"Nonexistent key in %s <-> %s"%(tag1, tag2)
 
 		try:
-			o = loads(db1.get(dumps(tag1), txn=txn))
+			o = loads(db1.get(self.dumpkey(tag1), txn=txn))
 		except:
 			o = set()
 
 		if (method == "add" and tag2 not in o) or (method == "remove" and tag2 in o):
 			getattr(o, method)(tag2)
-			db1.put(dumps(tag1), dumps(o), txn=txn)
+			db1.put(self.dumpkey(tag1), dumps(o), txn=txn)
 
 		try:
-			o = loads(_db2.get(dumps(tag2), txn=txn))
+			o = loads(_db2.get(self.dumpkey(tag2), txn=txn))
 		except:
 			o = set()
 
 		if (method == "add" and tag1 not in o) or (method == "remove" and tag1 in o):
 			getattr(o, method)(tag1)
-			db2.put(dumps(tag2), dumps(o), txn=txn)
+			db2.put(self.dumpkey(tag2), dumps(o), txn=txn)
 
 
 
@@ -309,10 +402,9 @@ class BTree(object):
 		if not self.relate:
 			raise Exception,"relate option required"
 		if not txn:	txn = self.txn
-		tag = self.typekey(tag)
 
 		try:
-			return loads(self.cpdb.get(dumps(tag), txn=txn))
+			return loads(self.cpdb.get(self.dumpkey(tag), txn=txn))
 		except:
 			return set()
 
@@ -323,10 +415,9 @@ class BTree(object):
 		if not self.relate:
 			raise Exception,"relate option required"
 		if not txn:	txn = self.txn
-		tag = self.typekey(tag)
 
 		try:
-			return loads(self.pcdb.get(dumps(tag), txn=txn))
+			return loads(self.pcdb.get(self.dumpkey(tag), txn=txn))
 			#if paramname :
 			#	return set(x[0] for x in c if x[1]==paramname)
 			#else: return c
@@ -339,107 +430,17 @@ class BTree(object):
 		if not self.relate:
 			raise Exception,"relate option required"
 		if not txn:	txn = self.txn
-		tag = self.typekey(tag)
 
 		try:
-			return loads(self.reldb.get(dumps(tag),txn=txn))
+			return loads(self.reldb.get(self.dumpkey(tag),txn=txn))
 		except:
 			return set()
-
-
-	def typekey(self, key):
-		return key
-
-
-	def typedata(self, data):
-		return data
-
-
-	def __len__(self):
-		return len(self.bdb)
-
-
-	def __setitem__(self, key, data):
-		if data == None:
-			self.__delitem__(self.typekey(key))
-		else:
-			self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
-
-
-	def __getitem__(self, key):
-		return loads(self.bdb.get(dumps(self.typekey(key)), txn=self.txn))
-
-
-	def __delitem__(self, key):
-		self.bdb.delete(dumps(self.typekey(key)), txn=self.txn)
-
-
-	def __contains__(self, key):
-		return self.bdb.has_key(dumps(self.typekey(key)), txn=self.txn)
-
-
-	def keys(self, txn=None):
-		return map(lambda x:loads(x), self.bdb.keys())
-
-
-	def values(self, txn=None):
-		if not txn: txn=self.txn
-		return reduce(set.union, (pickle.loads(x) for x in self.bdb.values())) #txn=txn
-
-
-	def items(self, txn=None):
-		if not txn: txn=self.txn
-		return map(lambda x:(loads(x[0]),loads(x[1])), self.bdb.items()) #txn=txn
-
-
-	def has_key(self, key, txn=None):
-		if not txn: txn=self.txn
-		return self.bdb.has_key(dumps(self.typekey(key))) #, txn=txn
-
-
-	def get(self, key, txn=None):
-		if not txn: txn=self.txn
-		try:
-			return loads(self.bdb.get(dumps(self.typekey(key)),txn=txn))
-		except:
-			return None
-
-
-	def set(self, key, data, txn=None):
-		"Alternative to x[key]=val with transaction set"
-		if not txn: txn=self.txn
-		if data == None:
-			return self.bdb.delete(dumps(self.typekey(key)), txn=txn)
-		return self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=txn)
-
-
-	def update(self, d, txn=None):
-		if not txn: txn=self.txn
-		d = dict(map(lambda x:self.typekey(x[0]), self.typedata(x[1]), d.items()))
-		for i,j in dict.items():
-			self.bdb.put(dumps(i), dumps(j), txn=txn)
-			#self.set(i,j,txn=txn)
+			
 
 
 
 
 
-
-class IntBTree(BTree):
-	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
-	key are integers and data may be an arbitrary pickleable type"""
-
-	# IntBTree.alltrees[self]=1		# we keep a running list of all trees so we can close everything properly
-
-	def __init__(self, *args, **kwargs):
-		super(IntBTree, self).__init__(*args, **kwargs)
-		self.set_typekey(self.typekey)
-
-	def typekey(self, key):
-		return int(key)
-
-	def __setweakrefopen(self):
-		IntBTree.alltrees[self] = 1
 
 
 
@@ -457,52 +458,8 @@ class FieldBTree(BTree):
 	"s" - string keys
 	"""
 
-	# def __init__(self, name, filename=None, dbenv=None, nelem=0, relate=0):
-	def __init__(self, *args, **kwargs):
-		keytype = kwargs.get('keytype', 's')
-		if 'keytype' in kwargs: del kwargs['keytype']
-		cfunc = None
-		if keytype in ("d", "f"):
-			cfunc = self.__num_compare
-		super(FieldBTree,self).__init__(cfunc=cfunc, *args, **kwargs)
-
-		if keytype == "d":
-			self.set_typekey(self.__typekey_int)
-		elif keytype == "f":
-			self.set_typekey(self.__typekey_float)
-		elif keytype == "s":
-			self.set_typekey(self.__typekey_str)
-		else:
-			raise Exception, "Invalid keytype %s"%keytype
-
-
-		self.keytype=keytype
-
-
-	def __num_compare(self, k1, k2):
-		if not k1: k1 = 0
-		else: k1 = pickle.loads(k1)
-
-		if not k2: k2 = 0
-		else: k2 = pickle.loads(k2)
-
-		return cmp(k1, k2)
-
-	def __typekey_int(self, key):
-		if key is None: key = 0
-		return int(key)
-
-	def __typekey_float(self, key):
-		if key is None: key = 0
-		return float(key)
-
-	def __typekey_str(self, key):
-		if key is None: key = ''
-		return unicode(key).lower()
-
 	def typedata(self, data):
 		return set(map(int, data))
-
 
 
 	def removeref(self, key, item, txn=None):
@@ -511,7 +468,6 @@ class FieldBTree(BTree):
 		o = self.get(key, txn=txn) or set()
 		o.remove(item)
 		return self.set(key, o, txn=txn)
-		#self.bdb.index_remove(key,item,txn=self.txn)
 
 
 	def removerefs(self, key, items, txn=None):
@@ -520,8 +476,6 @@ class FieldBTree(BTree):
 		o = self.get(key, txn=txn) or set()
 		o -= set(items)
 		return self.set(key, o, txn=txn)
-		#key=self.typekey(key)
-		#self.bdb.index_removelist(key,items,txn=self.txn)
 
 
 	def testref(self, key, item, txn=None):
@@ -529,8 +483,6 @@ class FieldBTree(BTree):
 		if not txn: txn=self.txn
 		o = self.get(key, txn=txn) or set()
 		return item in o
-		#key=self.typekey(key)
-		#return self.bdb.index_test(key,item,txn=self.txn)
 
 
 	def addref(self, key, item, txn=None):
@@ -539,8 +491,6 @@ class FieldBTree(BTree):
 		o = self.get(key, txn=txn) or set()
 		o.add(item)
 		return self.set(key, o, txn=txn)
-		#key=self.typekey(key)
-		#self.bdb.index_append(key,item,txn=txn)
 
 
 	def addrefs(self, key, items, txn=None):
@@ -549,7 +499,7 @@ class FieldBTree(BTree):
 		o = self.get(key, txn=txn) or set()
 		o |= set(items)
 		return self.set(key, o, txn=txn)
-		#key=self.typekey(key)
+
 
 	def items(self, mink=None, maxk=None, txn=None):
 		if not txn : txn=self.txn
@@ -573,15 +523,18 @@ class FieldBTree(BTree):
 
 		return items
 
+
 	def keys(self,mink=None,maxk=None,txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
  		minimum and maximum key values to retrieve"""
 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
 
+
 	def values(self,mink=None,maxk=None,txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
 		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)))
+
 
 
 

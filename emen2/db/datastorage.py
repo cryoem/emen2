@@ -45,12 +45,14 @@ class ParamDef(DictMixin) :
 			self.update(name)
 
 
+
+
 	#################################
 	# repr methods
 	#################################
 
 	def __str__(self):
-		return str(dict(self))
+		return unicode(dict(self))
 		#return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 
 
@@ -101,45 +103,54 @@ class ParamDef(DictMixin) :
 			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
 		try:
-			self.name=str(self.name)
-			if len(self.desc_short)==0: raise Exception
+			if not self.name:
+				raise Exception
+			self.name = unicode(self.name)
 		except:
 			raise ValueError,"name required"
 
 
 		try:
-			self.vartype=str(self.vartype)
-			if self.vartype not in vtm.getvartypes(): raise Exception
+			self.vartype = unicode(self.vartype)
+			if self.vartype not in vtm.getvartypes():
+				raise Exception
 		except:
 			raise ValueError,"Invalid vartype %s; not in valid_vartypes"%self.vartype
 
 
 		try:
-			self.desc_short=unicode(self.desc_short)
-			if len(self.desc_short)==0: raise Exception
+			if not self.desc_short:
+				raise Exception
+			self.desc_short = unicode(self.desc_short)
 		except:
 			raise ValueError,"Short description (desc_short) required"
 
 
 		try:
-			self.desc_long=unicode(self.desc_long)
-			if len(self.desc_long)==0: raise Exception
+			if not self.desc_long:
+				raise Exception
+			self.desc_long = unicode(self.desc_long)
 		except:
 			raise ValueError,"Long description (desc_long) required"
 
 
-		if self.property == "": self.property=None
+		if self.property == "":
+			self.property=None
+
 		if self.property != None:
 			try:
-				self.property = str(self.property)
-				if self.property not in vtm.getproperties(): raise Exception
+				self.property = unicode(self.property)
+				if self.property not in vtm.getproperties():
+					raise Exception
 			except:
 				g.debug("WARNING: Invalid property %s"%self.property)
 
 
-		if self.defaultunits == "" or self.defaultunits == "unitless": self.defaultunits = None
+		if self.defaultunits == "" or self.defaultunits == "unitless":
+			self.defaultunits = None
+			
 		if self.defaultunits != None:
-			self.defaultunits=str(self.defaultunits)
+			self.defaultunits=unicode(self.defaultunits)
 			if self.property == None:
 				#raise ValueError,"Units requires property"
 				g.debug("WARNING: Units requires property")
@@ -154,8 +165,21 @@ class ParamDef(DictMixin) :
 		if self.choices:
 			try:
 				self.choices = map(unicode, filter(bool, self.choices))
-			except:
-				raise ValueError, "Invalid choices"
+			except Exception, inst:
+				raise ValueError, "Invalid choices (%s)"%(inst)
+
+		if not self.creationtime or not self.creator:
+			g.debug("WARNING: Invalid creation info: %s %s"%(self.creationtime, self.creator))
+			#raise Exception, "Invalid creation info: %s %s"%(self.creationtime, self.creator)
+
+		if not self.creator:
+			self.creator = u"root"
+
+		self.creationtime = unicode(self.creationtime)
+		self.creator = unicode(self.creator)
+
+		if self.uri:
+			self.uri = unicode(self.uri)
 
 		return
 
@@ -239,7 +263,7 @@ class RecordDef(DictMixin) :
 	def __setstate__(self,dict):
 		"""restore unpickled values to defaults after unpickling"""
 		self.__dict__.update(dict)
-		if not dict.has_key("typicalchld") : self.typicalchld=[]
+		if not dict.has_key("typicalchld") : self.typicalchld = []
 
 
 	#################################
@@ -248,13 +272,13 @@ class RecordDef(DictMixin) :
 
 	def __str__(self):
 		return "{ name: %s\nmainview:\n%s\nviews: %s\nparams: %s\nprivate: %s\ntypicalchld: %s\nowner: %s\ncreator: %s\ncreationtime: %s\ncreationdb: %s}\n"%(
-			self.name,self.mainview,self.views,self.stringparams(),str(self.private),str(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
+			self.name,self.mainview,self.views,self.stringparams(),unicode(self.private),unicode(self.typicalchld),self.owner,self.creator,self.creationtime,self.creationdb)
 
 	def stringparams(self):
 		"""returns the params for this recorddef as an indented printable string"""
 		r=["{"]
 		for k,v in self.params.items():
-			r.append("\n\t%s: %s"%(k,str(v)))
+			r.append("\n\t%s: %s"%(k,unicode(v)))
 		return "".join(r)+" }\n"
 
 
@@ -317,50 +341,65 @@ class RecordDef(DictMixin) :
 
 	def validate(self):
 
-		if set(self.__dict__.keys())-self.attr_all:
+		if set(self.__dict__.keys()) - self.attr_all:
 			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
 		try:
-			if str(self.name) == "" or self.name==None:
+			if not self.name:
 				raise Exception
+			self.name = unicode(self.name)
 		except:
 			raise ValueError,"name required; must be str or unicode"
 
 		try:
-			self.name=str(self.name)
-		except:
-			self.name=unicode(self.name)
-
-		try:
-			dict(self.views)
+			self.views = dict(map(lambda x:(unicode(x[0]), unicode(x[1])), self.views.items()))
 		except:
 			raise ValueError,"views must be dict"
 
 		try:
-			list(self.typicalchld)
+			self.typicalchld = map(unicode, self.typicalchld)
 		except:
 			raise ValueError,"Invalid value for typicalchld; list of recorddefs required."
 
 		try:
-			if unicode(self.mainview) == "": raise Exception
+			if not self.mainview:
+				raise Exception
+			self.mainview = unicode(self.mainview)
 		except:
-			raise ValueError,"mainview required; must be str or unicode"
+			raise ValueError,"mainview required"
 
 
 		if not dict(self.views).has_key("recname"):
-			g.debug("WARNING:: recname view strongly suggested")
+			g.debug("WARNING: recname view strongly suggested")
 
+		
+		# ian: todo: fix database
+		if not self.owner:
+			g.debug("WARNING: No owner")
+			self.owner = u"root"
+			#raise ValueError, "No owner"
+		self.owner = unicode(self.owner)
+		
+		if not self.creator:
+			g.debug("WARNING: No creator")
+			self.creator = u"root"
+			#raise ValueError, "No creator"
+		self.creator = unicode(self.creator)
+		
+		
+		if not self.creationtime:
+			raise ValueError, "No creationtime"
+		self.creationtime = unicode(self.creationtime)
+		
+		if self.uri != None:
+			self.uri = unicode(self.uri)
+			
+		if self.desc_short != None:
+			self.desc_short = unicode(self.desc_short)
 
-		newviews={}
-		for k,v in self.views.items():
-			try:
-				newviews[str(k)]=unicode(v)
-			except:
-				raise Exception,"View names must be str, views must be str/unicode"
-		self.views=newviews
+		if self.desc_long != None:
+			self.desc_long = unicode(self.desc_long)
 
-
-		#if self.private not in [0,1]:
 		try:
 			self.private=int(bool(self.private))
 		except:
@@ -514,10 +553,10 @@ class Record(DictMixin):
 
 	def validate_rectype(self, orec={}):
 
-		self.rectype = str(self.rectype)
-		
-		if self.rectype in ["",None]:
+		if not self.rectype:
 			raise ValueError, "rectype must not be empty"
+
+		self.rectype = unicode(self.rectype)
 
 		if self.rectype not in self.__context.db.getrecorddefnames(self.__context.ctxid,self.__context.host):
 			raise ValueError, "invalid rectype %s"%(self.rectype)
@@ -534,14 +573,14 @@ class Record(DictMixin):
 		newcomments=[]
 		
 		for i in self.__comments:
-			try:
-				users.append(i[0])
-				dates.append(i[1])
-				newcomments.append((str(i[0]),str(i[1]),unicode(i[2])))
-			except:
-				raise ValueError, "invalid comment format: %s; skipping"%(i)
+			#try:
+			users.append(i[0])
+			dates.append(i[1])
+			newcomments.append((unicode(i[0]),unicode(i[1]),unicode(i[2])))
+			#except:
+			#	raise ValueError, "invalid comment format: %s; skipping"%(i)
 				
-		usernames = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))		
+		usernames = set(self.__context.db.getusernames(ctxid=self.__context.ctxid, host=self.__context.host))
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)		
 			
@@ -553,8 +592,8 @@ class Record(DictMixin):
 
 
 	def validate_creator(self, orec={}):
+		self.__creator = unicode(self.__creator)
 		return
-		self.__creator=str(self.__creator)
 
 		try:
 			self.__context.db.getuser(self.__creator, filt=0, ctxid=self.__context.ctxid, host=self.__context.host)
@@ -562,9 +601,11 @@ class Record(DictMixin):
 			raise ValueError, "invalid creator: %s"%(self.__creator)
 		
 		
+		
 	def validate_creationtime(self, orec={}):
 		# validate creation time format
-		return
+		self.__creationtime = unicode(self.__creationtime)
+
 
 
 	def validate_permissions(self, orec={}):
@@ -576,13 +617,14 @@ class Record(DictMixin):
 		users = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))
 		for j in self.__permissions: u |= set(j)
 		# todo: get group names...
-		u -= set([0,-1,-2,-3,-4])
-		if u-users:
-			raise ValueError, "undefined users: %s"%",".join(map(str, u-users))
+		u -= set([0,-1,-2,-3,-4,-5])
+		if u - users:
+			raise ValueError, "undefined users: %s"%",".join(map(unicode, u-users))
 			
 
 	def validate_uri(self, orec={}, warning=0):
-		pass
+		self.uri = unicode(self.uri)
+		
 		
 		
 			
@@ -602,19 +644,20 @@ class Record(DictMixin):
 		for param,pd in pds.items():
 			#print "\tValidate param: %s: %s (vartype: %s, property: %s)"%(pd.name, self[param], pd.vartype, pd.property)
 			try:
-				newpd[param] = self.validate_param(self[param], pd, vtm)
+				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm)
 			except (ValueError,KeyError), inst:
+				newpd[param] = self.__params.get(param)
 				#print traceback.print_exc()
-				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,str(inst)))
+				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
 								
 		for i in exceptions:
 			self.validationwarning(i)
 		
 		if exceptions and not warning:
 			raise ValueError, "Validation exceptions:\n\t%s\n\n"%"\n\t".join(exceptions)
-							
-				
-		self.__params.update(newpd)
+														
+		self.__params = newpd		
+		#self.__params.update(newpd)
 
 
 
@@ -703,9 +746,9 @@ class Record(DictMixin):
 
 	def __unicode__(self):
 		"A string representation of the record"
-		ret=["%s (%s)\n"%(str(self.recid),self.rectype)]
+		ret=["%s (%s)\n"%(unicode(self.recid),self.rectype)]
 		for i,j in self.items():
-			ret.append(u"%12s:	%s\n"%(str(i),unicode(j)))
+			ret.append(u"%12s:	%s\n"%(unicode(i),unicode(j)))
 		return u"".join(ret)
 
 	def __str__(self):
@@ -729,7 +772,7 @@ class Record(DictMixin):
 		the default value for existant, but undefined params, which will be
 		treated identically"""
 		
-		key = str(key).strip().lower()
+		key = unicode(key)
 
 		if key == "comments":
 			return self.__comments
@@ -753,9 +796,6 @@ class Record(DictMixin):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
 		Changes are not written to the database until the commit() method is called!"""
 		# comments may include embedded field values if the user has full write access
-
-		key = str(key).strip().lower()
-
 		# replaced by validation...
 		# if value == "None":
 		# 			value = None
@@ -764,6 +804,8 @@ class Record(DictMixin):
 		# 				value = None
 		# 		except:
 		# 			pass
+		
+		key = unicode(key)
 		
 		# special params have get/set handlers
 		if key not in self.param_special:
@@ -783,7 +825,8 @@ class Record(DictMixin):
 
 
 	def __delitem__(self,key):
-		key = str(key).strip().lower()
+
+		key = unicode(key)
 
 		if key not in self.param_special and self.__params.has_key(key):
 			del self.__params[key]
@@ -799,7 +842,7 @@ class Record(DictMixin):
 
 
 	def has_key(self,key):
-		if str(key).strip().lower() in self.keys(): return True
+		if unicode(key) in self.keys(): return True
 		return False
 
 
@@ -815,9 +858,10 @@ class Record(DictMixin):
 
 	# these can only be used on new records before commit for now...
 	def adduser(self, level, users, reassign=1):
-			
-		p = [set(x) for x in self.__permissions]
+		
 		level=int(level)
+
+		p = [set(x) for x in self.__permissions]
 		if -1 < level < 3:
 			raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
 
@@ -825,7 +869,7 @@ class Record(DictMixin):
 			users=[users]
 
 		# Strip out "None"
-		users=set(filter(lambda x:x != None, users))
+		users = set(filter(lambda x:x != None, users))
 
 		if not users:
 			return
@@ -845,24 +889,24 @@ class Record(DictMixin):
 
 	def removeuser(self, users):
 				
-		p=[set(x) for x in self.__permissions]
+		p = [set(x) for x in self.__permissions]
 		if not hasattr(users,"__iter__"):
-			users=[users]
-		users=set(users)
-		p=[i-users for i in p]
+			users = [users]
+		users = set(users)
+		p = [i-users for i in p]
 		
 		self.setpermissions(p)
 		#self.__permissions = tuple([tuple(i) for i in p])
 
 
 	def __partitionints(self, i):
-		ints=[]
-		strs=[]
+		ints = []
+		strs = []
 		for j in i:
 			try:
 				ints.append(int(j))
 			except:
-				strs.append(j)
+				strs.append(unicode(j))
 		return ints + strs
 
 
@@ -914,8 +958,10 @@ class Record(DictMixin):
 		# 	but validation would catch anything the user could not normally set otherwise
 		for i,j in d.items():
 			self[i] = j
-
-		self.__comments.append((self.__context.user,time.strftime(emen2.Database.database.TIMESTR),value))	# store the comment string itself
+			
+		value = unicode(value)
+		self.__comments.append((unicode(self.__context.user),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
+		# store the comment string itself
 
 
 
@@ -933,9 +979,9 @@ class Record(DictMixin):
 		self.__context = ctx
 
 		if not self.__creator:
-			self.__creator = ctx.user
-			self.__creationtime = time.strftime(emen2.Database.database.TIMESTR)
-			self.__permissions = ((),(),(),(ctx.user,))
+			self.__creator = unicode(ctx.user)
+			self.__creationtime = unicode(time.strftime(emen2.Database.database.TIMESTR))
+			self.__permissions = ((),(),(),(unicode(ctx.user),))
 
 		# test for owner access in this context.
 		if (-1 in ctx.groups):

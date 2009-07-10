@@ -9,7 +9,7 @@ def format_string_obj(dict,keylist):
 				if (k==None or len(k)==0) : r.append("\n")
 				else:
 						try:
-								r.append("\n%s: %s"%(k,str(dict[k])))
+								r.append("\n%s: %s"%(k,unicode(dict[k])))
 						except:
 								r.append("\n%s: None"%k)
 		r.append(" }\n")
@@ -176,16 +176,16 @@ class User(DictMixin):
 			del self.__dict__[i]
 
 		try:
-			str(self.email)
+			unicode(self.email)
 		except:
 			raise AttributeError,"Invalid value for email"
 
 		if self.name != None:
 			try:
 				list(self.name)
-				str(self.name)[0]
-				str(self.name)[1]
-				str(self.name)[2]
+				unicode(self.name)[0]
+				unicode(self.name)[1]
+				unicode(self.name)[2]
 			except:
 				raise AttributeError,"Invalid name format."
 
@@ -241,7 +241,7 @@ class WorkFlow(DictMixin):
 		#################################
 
 		def __str__(self):
-				return str(self.__dict__)
+				return unicode(self.__dict__)
 
 		#################################
 		# mapping methods
