@@ -49,7 +49,6 @@ MAXIDLE = 604800
 
 usetxn = False
 envopenflags = db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG | db.DB_THREAD
-LOGSTRINGS = ["SECURITY", "CRITICAL", "ERROR", "WARNING ", "INFO", "VERBOSE ", "DEBUG"]
 DEBUG = 0 #TODO consolidate debug flag
 
 
@@ -230,7 +229,7 @@ class Database(object):
 			4: 'LOG_INFO',
 			5: 'LOG_DEBUG',
 			6: 'LOG_DEBUG',
-			7: 'LOG_COMMIT'
+		#	7: 'LOG_COMMIT'
 			}
 
 
@@ -466,16 +465,14 @@ class Database(object):
 			4 - info, informational only
 			5 - verbose, verbose logging
 			6 - debug only"""
-			global LOGSTRINGS
 
-			if (level < 0 or level > 6):
+			if type(level) is int and (level < 0 or level > 7):
 				level = 6
 			try:
-				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(), LOGSTRINGS[level], message))
-				#if level < 4 : print "%s: (%s)	%s" % (time.strftime(TIMESTR), LOGSTRINGS[level], message)
+				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(), self.log_levels.get(level, level), message))
 			except:
 				traceback.print_exc(file=sys.stdout)
-				print("Critical error!!! Cannot write log message to '%s'\n" % self.logfile)
+				print("Critical error!!! Cannot write log message to '%s'\n")
 
 
 
@@ -3241,7 +3238,7 @@ class Database(object):
 			# 		#g.debug("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
 			# 
 			# 	except Exception, inst:
-			# 		g.debug("LOG_ERR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
+			# 		g.debug("LOG_ERROR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
 
 
 			for rectype,recs in rectypes.items():
@@ -3250,7 +3247,7 @@ class Database(object):
 					self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs))
 
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
+					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 
 
 			# Param index
@@ -3265,11 +3262,14 @@ class Database(object):
 			# Time index
 			for recid,time in timeupdate.items():
 				try:
-					self.__timeindex.set(recmap.get(recid,recid), time, txn=txn)
+					recid = recmap.get(recid,recid)
+					if not isinstance(recid, basestring):
+						recid = unicode(recid).encode('utf-8')
+					self.__timeindex.set(recid, time, txn=txn)
 					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
 
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
+					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 
 
 			# Create pc links
@@ -3277,7 +3277,7 @@ class Database(object):
 				try:
 					self.pclink(recmap.get(link[0],link[0]),recmap.get(link[1],link[1]))
 				except:
-					self.LOG("LOG_ERR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
+					self.LOG("LOG_ERROR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
 
 
 			self.txncommit(txn)
@@ -3299,7 +3299,7 @@ class Database(object):
 						self.__secrindex.addrefs(user, recs, txn=txn)
 						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)))
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
+					self.LOG("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
@@ -3308,7 +3308,7 @@ class Database(object):
 						self.__secrindex.removerefs(user, recs, txn=txn)
 						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)))
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
+					self.LOG("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			self.txncommit(txn)
 
@@ -3328,7 +3328,7 @@ class Database(object):
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
 			except Exception, inst:
-				self.LOG("LOG_ERR","Could not open param index: %s (%s)"% (param, inst))
+				self.LOG("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst))
 				return
 
 
@@ -3339,7 +3339,7 @@ class Database(object):
 						self.LOG("LOG_COMMIT","Commit: param index %s.addrefs: %s '%s', %s"%(param, type(newval), newval, len(recs)))					
 						paramindex.addrefs(newval, recs, txn=txn)
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
+					self.LOG("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 
 
 
@@ -3350,7 +3350,7 @@ class Database(object):
 						self.LOG("LOG_COMMIT","Commit: param index %s.removerefs: %s '%s', %s"%(param, type(oldval), oldval, len(recs)))
 						paramindex.removerefs(oldval, recs, txn=txn)
 				except Exception, inst:
-					self.LOG("LOG_ERR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))			
+					self.LOG("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))			
 
 
 
