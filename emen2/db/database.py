@@ -792,7 +792,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getbinary(self, idents, filt=1, vts=None, params=None, ctxid=None, host=None):
+		def getbinary(self, idents, filt=True, vts=None, params=None, ctxid=None, host=None):
 				"""Get a storage path for an existing binary object. Returns the
 				object name and the absolute path"""
 
@@ -940,7 +940,7 @@ class Database(object):
 
 
 		@publicmethod
-		def fulltextsearch(self, q, rectype=None, indexsearch=1, params=set(), recparams=0, builtinparam=0, ignorecase=1, subset=[], tokenize=0, single=0, includeparams=set(), ctxid=None, host=None):
+		def fulltextsearch(self, q, rectype=None, indexsearch=True, params=set(), recparams=0, builtinparam=0, ignorecase=True, subset=[], tokenize=0, single=0, includeparams=set(), ctxid=None, host=None):
 			"""
 			q: query
 			rectype: use all of rectype as subset
@@ -1186,7 +1186,7 @@ class Database(object):
 
 		# ian: todo: better way to decide which grouping mechanism to use
 		@publicmethod
-		def groupbyrecorddef(self, recids, optimize=1, ctxid=None, host=None):
+		def groupbyrecorddef(self, recids, optimize=True, ctxid=None, host=None):
 			"""This will take a set/list of record ids and return a dictionary of ids keyed
 			by their recorddef"""
 
@@ -1197,7 +1197,7 @@ class Database(object):
 				return {}
 
 			if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],Record)):
-				return self.__groupbyrecorddeffast(all, ctxid=ctxid, host=host)
+				return self.__groupbyrecorddeffast(recids, ctxid=ctxid, host=host)
 
 			# also converts to set..
 			recids = self.filterbypermissions(recids,ctxid=ctxid,host=host)
@@ -1919,7 +1919,7 @@ class Database(object):
 
 
 		@publicmethod
-		def putuser(self, user, validate=1, ctxid=None, host=None, txn=None):
+		def putuser(self, user, validate=True, ctxid=None, host=None, txn=None):
 
 			if not isinstance(user, User):
 				try:
@@ -2009,7 +2009,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getuser(self, usernames, filt=1, ctxid=None, host=None):
+		def getuser(self, usernames, filt=True, ctxid=None, host=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
@@ -2428,7 +2428,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getparamdefs(self, recs, filt=1, ctxid=None, host=None, txn=None):
+		def getparamdefs(self, recs, filt=True, ctxid=None, host=None, txn=None):
 			"""Returns a list of ParamDef records.
 			recs may be a single record, a list of records, or a list
 			of paramdef names. This routine will
@@ -2693,7 +2693,7 @@ class Database(object):
 
 
 
-		def __getparamindex(self, paramname, create=1, ctxid=None, host=None):
+		def __getparamindex(self, paramname, create=True, ctxid=None, host=None):
 			"""Internal function to open the parameter indices at need.
 			Later this may implement some sort of caching mechanism.
 			If create is not set and index doesn't exist, raises
@@ -2862,7 +2862,7 @@ class Database(object):
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
 		@publicmethod
-		def filtervartype(self, recs, vts, params=None, paramdefs=None, filt=1, flat=0, returndict=0, ignore=None, ctxid=None, host=None):
+		def filtervartype(self, recs, vts, params=None, paramdefs=None, filt=True, flat=0, returndict=0, ignore=None, ctxid=None, host=None):
 
 			if not recs:
 				return [None]
@@ -2919,7 +2919,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getuserdisplayname(self, username, lnf=1, perms=0, filt=1, ctxid=None, host=None):
+		def getuserdisplayname(self, username, lnf=1, perms=0, filt=True, ctxid=None, host=None):
 			"""Return the full name of a user from the user record; include permissions param if perms=1"""
 
 			namestoget = []
@@ -2969,7 +2969,7 @@ class Database(object):
 
 
 
-		def __formatusername(self, username, u, lnf=1):
+		def __formatusername(self, username, u, lnf=True):
 			if u["name_first"] and u["name_middle"] and u["name_last"]:
 				if lnf:
 					uname = "%s, %s %s" % (u["name_last"], u["name_first"], u["name_middle"])
@@ -3003,7 +3003,7 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		def putrecord(self, recs, filt=1, warning=0, log=1, importmode=1, ctxid=None, host=None, txn=None):
+		def putrecord(self, recs, filt=True, warning=0, log=True, importmode=True, ctxid=None, host=None, txn=None):
 			"""commits a record"""
 			# input validation for __putrecord
 
@@ -3080,7 +3080,7 @@ class Database(object):
 
 
 
-		def __putrecord(self, updrecs, warning=0, validate=1, importmode=0, log=1, ctx=None, txn=None):
+		def __putrecord(self, updrecs, warning=0, validate=True, importmode=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
 
@@ -3680,7 +3680,7 @@ class Database(object):
 		# ian: improved!
 		# ed: more improvments!
 		@publicmethod
-		def getrecord(self, recid, filt=1, ctxid=None, host=None):
+		def getrecord(self, recid, filt=True, ctxid=None, host=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
 			#print "GETRECORD %s ctxid=%s %s"%(recid,ctxid,type(ctxid))
