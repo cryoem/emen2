@@ -505,23 +505,26 @@ class FieldBTree(BTree):
 
 	def items(self, mink=None, maxk=None, txn=None):
 		if not txn : txn=self.txn
-		cur = self.bdb.cursor(txn=txn)
-		items = []
-		if mink is not None:
-			mink=self.typekey(mink)
-			entry = cur.set_range(pickle.dumps(mink))
+		if mink is None and maxk is None:
+			items = super(FieldBTree, self).items()
 		else:
-			entry = cur.first()
+			cur = self.bdb.cursor(txn=txn)
+			items = []
+			if mink is not None:
+				mink=self.typekey(mink)
+				entry = cur.set_range(pickle.dumps(mink))
+			else:
+				entry = cur.first()
 
-		if maxk is not None:
-			maxk=self.typekey(maxk)
+			if maxk is not None:
+				maxk=self.typekey(maxk)
 
-		while entry is not None:
-			key, value = (pickle.loads(x) for x in entry)
-			if maxk is not None and key >= maxk:
-				break
-			items.append((key,value))
-			entry = cur.next()
+			while entry is not None:
+				key, value = (pickle.loads(x) for x in entry)
+				if maxk is not None and key >= maxk:
+					break
+				items.append((key,value))
+				entry = cur.next()
 
 		return items
 
