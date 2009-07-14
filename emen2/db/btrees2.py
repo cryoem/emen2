@@ -310,6 +310,10 @@ class RelateBTree(BTree):
 		self.reldb = bsddb3.db.DB(dbenv)
 		self.reldb.open(filename+".rel", name, bsddb3.db.DB_BTREE, dbopenflags)
 
+
+	def __str__(self):
+		return "<Database.RelateBTree instance: %s>" % self.name
+
 			
 			
 	def close(self):
@@ -364,16 +368,21 @@ class RelateBTree(BTree):
 		if (method == "add" and tag2 not in o) or (method == "remove" and tag2 in o):
 			getattr(o, method)(tag2)
 			db1.put(self.dumpkey(tag1), dumps(o), txn=txn)
+		#try:
+		#except Exception, inst:
+		#	print "Error linking 2... %s"%inst
 
 		try:
-			o = loads(_db2.get(self.dumpkey(tag2), txn=txn))
+			o = loads(db2.get(self.dumpkey(tag2), txn=txn))
 		except:
 			o = set()
 
 		if (method == "add" and tag1 not in o) or (method == "remove" and tag1 in o):
 			getattr(o, method)(tag1)
 			db2.put(self.dumpkey(tag2), dumps(o), txn=txn)
-
+		#try:
+		#except Exception, inst:
+		#	print "Error linking 1... %s"%inst
 
 
 	def pclink(self, parenttag, childtag, txn=None):
@@ -460,6 +469,12 @@ class FieldBTree(BTree):
 	"s" - string keys
 	"""
 
+
+	def __str__(self):
+		return "<Database.FieldBTree instance: %s>" % self.name
+
+
+
 	def typedata(self, data):
 		return set(map(int, data))
 
@@ -504,10 +519,13 @@ class FieldBTree(BTree):
 
 
 	def items(self, mink=None, maxk=None, txn=None):
+		if mink == None and maxk == None: return self.items()
+		
 		if not txn : txn=self.txn
 		if mink is None and maxk is None:
 			items = super(FieldBTree, self).items()
 		else:
+			print "cur"
 			cur = self.bdb.cursor(txn=txn)
 			items = []
 			if mink is not None:
@@ -516,6 +534,8 @@ class FieldBTree(BTree):
 			else:
 				entry = cur.first()
 
+			print "entry"
+			
 			if maxk is not None:
 				maxk=self.typekey(maxk)
 
@@ -532,12 +552,14 @@ class FieldBTree(BTree):
 	def keys(self,mink=None,maxk=None,txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
  		minimum and maximum key values to retrieve"""
+		if mink == None and maxk == None: return super(FieldBTree, self).keys()
 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
 
 
 	def values(self,mink=None,maxk=None,txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
+		if mink == None and maxk == None: return super(FieldBTree, self).values()
 		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)))
 
 

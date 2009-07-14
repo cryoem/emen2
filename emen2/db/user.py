@@ -51,6 +51,7 @@ class Context:
 
 
 		def checkcreate(self):
+			print "checkcreate: self.groups %s"%self.groups
 			if 0 in self.groups or -1 in self.groups:
 					return True
 			return False

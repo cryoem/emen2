@@ -268,8 +268,9 @@ function newrecord_getoptionsandcommit(self, values) {
 	
 	if (!values["None"]){values["None"]={}}
 	
-	values["None"]["permissions"]=permissionscontrol.getpermissions();
-	var parents=permissionscontrol.getparents();
+	values["None"]["permissions"] = permissionscontrol.getpermissions();
+	values["None"]["parents"] = permissionscontrol.getparents();
+	//var parents=permissionscontrol.getparents();
 
 	// commit
 	commit_newrecord(

@@ -856,7 +856,7 @@ class Record(DictMixin):
 
 
 	def get(self, key, default=None):
-		return DictMixin.get(self, key) # or default
+		return DictMixin.get(self, key, default) # or default
 
 
 
@@ -871,7 +871,7 @@ class Record(DictMixin):
 		level=int(level)
 
 		p = [set(x) for x in self.__permissions]
-		if -1 < level < 3:
+		if not -1 < level < 4:
 			raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
 
 		if not hasattr(users,"__iter__"):

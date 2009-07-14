@@ -14,7 +14,9 @@ function multiwidget(elem, opts) {
 	// init
 	if (!self) {
 		this.elem.data("ref",this);		
+
   	if (typeof(opts) != "object") opts = {};
+
   	$.extend(this, multiwidget.DEFAULT_OPTS, opts);
 		this.init();
 		self=this;

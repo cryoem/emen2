@@ -185,7 +185,7 @@ class DBProxy(object):
 		result = None
 		if name in self._allmethods():
 
-			g.debug("DB: %s, kwargs: %s"%(name,kwargs))
+			#g.debug("DB: %s, kwargs: %s"%(name,kwargs))
 
 			result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
 
@@ -300,9 +300,9 @@ class Database(object):
 			self.__dbenv.set_data_dir(path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			#self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
-			#self.__dbenv.set_lk_max_locks(20000)
-			#self.__dbenv.set_lk_max_lockers(20000)
+			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
+			self.__dbenv.set_lk_max_locks(20000)
+			self.__dbenv.set_lk_max_lockers(20000)
 
 			#if self.__dbenv.DBfailchk(flags=0):
 				#self.LOG(1,"Database recovery required")
@@ -362,7 +362,7 @@ class Database(object):
 			self.__recorddefindex = FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# key=record id, value=last time record was changed
-			self.__timeindex = BTree("TimeChangedindex", keytype="s", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv)
+			self.__timeindex = BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv) 
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
@@ -409,7 +409,7 @@ class Database(object):
 
 
 
-		def __createskeletondb(self):
+		def __createskeletondb(self, txn=None):
 
 			txn = self.newtxn()
 
@@ -446,10 +446,8 @@ class Database(object):
 
 				self.__commit_paramdefs(basepds)
 
-			if txn:
-				txn.commit()
-			elif not self.__importmode:
-				DB_syncall()
+
+			self.txncommit(txn)
 
 
 		# one of these 2 methods is mapped to self.newtxn()
@@ -1033,7 +1031,11 @@ class Database(object):
 
 					try:
 						paramindex = self.__getparamindex(param, ctxid=ctxid, host=host)
+						print "paramindex"
+						print paramindex
+						print paramindex.keys()
 						s = filter(lambda x:q in x, paramindex.keys())
+						print s
 					except:
 						continue
 
@@ -2653,6 +2655,7 @@ class Database(object):
 
 
 			try:
+				#ret = self.__recorddefs[rectypename]
 				ret = self.__recorddefs[rectypename]
 			except:
 				raise KeyError, "No such RecordDef %s" % rectypename
@@ -2727,12 +2730,8 @@ class Database(object):
 
 
 			#paramname = self.__paramdefs.typekey(paramname)
-			paramname = unicode(paramname)
-
-			print self.__paramdefs.keys()
-
 			f = self.__paramdefs[paramname]				 # Look up the definition of this field
-
+			paramname = f.name
 
 			if f.vartype not in self.indexablevartypes:
 				#print "\tunindexable vartype ",f.vartype
@@ -3089,11 +3088,11 @@ class Database(object):
 				_p = updrec.get("parents") or []
 				_c = updrec.get("children") or []
 				if _p:
-					r.extend([(i,updrec.recid) for i in _p])
-					del updrecs["parents"]
+					r.extend([(i, updrec.recid) for i in _p])
+					del updrec["parents"]
 				if _c:
 					r.extend([(updrec.recid,i) for i in _c])
-					del updrecs["children"]
+					del updrec["children"]
 			return r
 
 
@@ -3169,8 +3168,8 @@ class Database(object):
 
 
 				for param in cp - param_special:
-					if log:
-						orec.addcomment(u"LOG: %s updated. was: %s" % (recid, orec[param]))
+					if log and orec.recid >= 0:
+						orec.addcomment(u"LOG: %s updated. was: %s" % (param, orec[param]))
 						#orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
 						#% (param, orec[param]), param, orec[param]))
 					orec[param] = updrec[param]
@@ -3294,9 +3293,9 @@ class Database(object):
 			# Create pc links
 			for link in updrels:
 				try:
-					self.pclink(recmap.get(link[0],link[0]),recmap.get(link[1],link[1]))
-				except:
-					self.LOG("LOG_ERROR", "Could not link %s to %s"%(recmap.get(link[0],link[0]),recmap.get(link[1],link[1])))
+					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctxid=ctx.ctxid, host=ctx.host)
+				except Exception, inst:
+					self.LOG("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
 			self.txncommit(txn)
@@ -4222,7 +4221,7 @@ class Database(object):
 
 				ret[rec.recid]=a
 
-			g.debug('ol ->', ol)
+			#g.debug('ol ->', ol)
 			if ol:
 				return ret.values()[0]
 			return ret

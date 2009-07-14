@@ -106,8 +106,9 @@ relationshipcontrol.prototype = {
 		for (var i=0;i<len;i++) {
 			var row=$('<tr></tr>');
 			
+			
 			if (this.parents[i]!=null) {
-
+			
 				var img="next";
 				if (this.parents.length > 1 && i==0) {img="branch_next"}
 				if (this.parents.length > 1 && i>0) {img="branch_both"}

@@ -39,17 +39,20 @@ class HTMLTab():
 		self.active = active
 
 	def autoorder(self):
-		if not self.order:
+		if not self.order:# or self.order == [None]:
 			self.order = self.content.keys()
 		self.order = sorted(list(self.order))
 		if not self.order:
-			self.order=[None]
+			self.order = []
 		 # or [None]
 
 	def autoactive(self):
 		if not self.order:
 			self.autoorder()
-		self.active=self.order[0]
+		if len(self.order) > 0:
+			self.active = self.order[0]
+		else:
+			self.active = None
 
 	def setlabel(self, name, title):
 		self.labels[name]=title
@@ -123,7 +126,7 @@ class HTMLTab():
 		return ""
 		
 	def check(self):
-		alltabs = set(self.content.keys() + self.labels.keys() + self.href.keys() + self.order + [self.active])-set([None])
+		alltabs = set(self.content.keys() + self.labels.keys() + self.href.keys() + self.order + [self.active]) - set([None])
 		
 		if not self.classname:
 			self.classname=md5.md5.hexdigest("%s%s"%(random.random(),alltabs))
