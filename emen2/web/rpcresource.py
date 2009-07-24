@@ -23,8 +23,6 @@ class RPCFormatJSON:
 		pass
 
 	def decode(self, content, kw):
-		#method=None
-		g.debug(repr(kw))
 		args=demjson.decode(content)
 		kwargs={}
 		for k,v in kw.items():
@@ -32,14 +30,12 @@ class RPCFormatJSON:
 				kwargs[str(k)]=demjson.decode(v[0])
 			except demjson.JSONDecodeError:
 				pass
-		g.debug('decoding args result == %r, %r' % (args, kwargs))
 
 		if hasattr(args,"items"):
 			for k,v in args.items():
 				kwargs[str(k)]=v
 			args=[]
 
-		g.debug('decoding args result == %r, %r' % (args, kwargs))
 		return None, tuple(args), kwargs
 
 	def encode(self, method, value):
@@ -112,6 +108,16 @@ class RPCFormatXMLRPC:
 
 		return value
 
+class RPCChain(Resource):
+	isLeaf = True
+
+	@g.debug.debug_func
+	def render(self, request):
+		request.content.seek(0,0)
+		result = demjson.decode(request.content.read())
+		return result
+
+
 
 
 class RPCResource(Resource):
@@ -123,13 +129,16 @@ class RPCResource(Resource):
 		self.format = format
 		if format=="json":
 			self.handler = RPCFormatJSON()
+			self.fmt = 'application/json'
 		elif format=="xmlrpc":
 			self.handler = RPCFormatXMLRPC()
+			self.fmt = 'text/xml'
 
 
 
-	def _cbRender(self, result, request):
+	def _cbRender(self, result, request, fmt):
 		request.setHeader("content-length", len(result))
+		request.setHeader("content-type", fmt)
 		request.setResponseCode(200)
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
@@ -163,7 +172,18 @@ class RPCResource(Resource):
 
 
 	def render(self, request):
+		d = threads.deferToThread(self.action, request)
+		d.addCallback(self._cbRender, request, self.fmt)
+		d.addErrback(self._ebRender, request, self.fmt)
+		return server.NOT_DONE_YET
 
+
+
+
+	def action(self, request, db=None, host=None):
+		#method_ = db.publicmethods.get(method, None)
+		#db._setcontext(ctxid,host)
+		#if not db._ismethod(method):
 		request.content.seek(0, 0)
 		content = request.content.read()
 		method, args, kwargs = self.handler.decode(content,request.args)
@@ -177,24 +197,5 @@ class RPCResource(Resource):
 		if not kwargs.get("ctxid"):
 			kwargs["ctxid"] = request.getCookie("ctxid")
 
-		g.debug(":: rpc :: %s :: %s :: %s" % (method, kwargs["host"], self.format))
-		g.debug("\targs, kwargs: %s, %s" % (args, kwargs))
-
-		request.setHeader("content-type", "text/xml")
-
-		d = threads.deferToThread(self.action, method, args, kwargs)
-		d.addCallback(self._cbRender, request)
-		d.addErrback(self._ebRender, request)
-		return server.NOT_DONE_YET
-
-
-
-
-	def action(self, method, args, kwargs, db=None, host=None):
-		#method_ = db.publicmethods.get(method, None)
-		#db._setcontext(ctxid,host)
-		#if not db._ismethod(method):
-		#	raise NotImplementedError('remote method %s not implemented' % method)
-		g.debug('I AM CALLING %s with args: %r, %r' % (method, args, kwargs))
 		result = db._callmethod(method, args, kwargs)
 		return self.handler.encode(method, result)
