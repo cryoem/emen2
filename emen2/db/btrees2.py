@@ -55,16 +55,16 @@ class BTree(object):
 		if cfunc is not None:
 			self.bdb.set_bt_compare(cfunc)
 
-		self.__setweakrefopen()			
+		self.__setweakrefopen()
 		self.bdb.open(filename, name, bsddb3.db.DB_BTREE, dbopenflags)
 
 
 	def __setkeytype(self, keytype):
 		self.keytype = keytype
-		
+
 		if self.keytype == "d":
 			self.set_typekey(self.__typekey_int)
-			
+
 		elif self.keytype == "f":
 			self.set_typekey(self.__typekey_float)
 
@@ -72,9 +72,9 @@ class BTree(object):
 			self.set_typekey(self.__typekey_unicode)
 			self.dumpkey = self.__dumpkey_unicode
 			self.loadkey = self.__loadkey_unicode
-			
+
 		elif self.keytype == "ds":
-			self.set_typekey(self.__typekey_unicode_int)		
+			self.set_typekey(self.__typekey_unicode_int)
 			self.dumpkey = self.__dumpkey_unicode_int
 			self.loadkey = self.__loadkey_unicode_int
 
@@ -93,8 +93,8 @@ class BTree(object):
 	def __typekey_int(self, key):
 		if key is None: key = 0
 		return int(key)
-		
-		
+
+
 	def __typekey_float(self, key):
 		if key is None: key = 0
 		return float(key)
@@ -109,7 +109,7 @@ class BTree(object):
 		if key is None: key = 0
 		try: return int(key)
 		except: return unicode(key)
-		
+
 
 	# special key dumps
 	def __dumpkey_unicode(self, key):
@@ -124,13 +124,13 @@ class BTree(object):
 	# special key loads
 	def __loadkey_unicode(self, key):
 		return key.decode("utf-8")
-	
+
 
 	def __loadkey_unicode_int(self, key):
 		key = loads(key)
 		if isinstance(key,int): return key
 		return key.encode("utf-8")
-		
+
 
 	# enforce key types
 	def typekey(self, key):
@@ -146,7 +146,7 @@ class BTree(object):
 	# default keytypes and datatypes
 	def typedata(self, data):
 		return data
-		
+
 	def dumpdata(self, data):
 		return dumps(self.typedata(data))
 
@@ -158,7 +158,7 @@ class BTree(object):
 	# change key/data behavior
 	def set_typekey(self, func):
 		self.typekey = func
-				
+
 	def set_typedata(self, func):
 		self.typedata = func
 
@@ -226,7 +226,13 @@ class BTree(object):
 
 
 	def __getitem__(self, key):
-		return self.loaddata(self.bdb.get(self.dumpkey(key), txn=self.txn))
+		data = self.bdb.get(self.dumpkey(key), txn=self.txn)
+		if data is None:
+			#Ed: for Backwards compatibility raise TypeError, should be KeyError
+			raise TypeError, 'Key Not Found: %r' % key
+			# raise KeyError, 'Key Not Found: %r' % key
+		else:
+			return self.loaddata(data)
 
 
 	def __delitem__(self, key):
@@ -283,13 +289,12 @@ class BTree(object):
 
 
 
-	
-	
+
+
 class RelateBTree(BTree):
 	"""BTree with parent/child/cousin relationships between keys"""
 
 
-	@g.debug.debug_func
  	def __init__(self, *args, **kwargs):
  		BTree.__init__(self, *args, **kwargs)
 		self.relate = 1
@@ -297,7 +302,7 @@ class RelateBTree(BTree):
 		dbenv = kwargs.get("dbenv")
 		filename = kwargs.get("filename")
 		name = kwargs.get("name")
-		
+
 		# Parent keyed list of children
 		self.pcdb = bsddb3.db.DB(dbenv)
 		self.pcdb.open(filename+".pc", name, bsddb3.db.DB_BTREE, dbopenflags)
@@ -314,8 +319,8 @@ class RelateBTree(BTree):
 	def __str__(self):
 		return "<Database.RelateBTree instance: %s>" % self.name
 
-			
-			
+
+
 	def close(self):
 		if self.bdb is None:
 			return
@@ -328,7 +333,7 @@ class RelateBTree(BTree):
 		#	g.debug('LOG_ERROR', unicode(e))
 
 		self.bdb.close()
-		self.bdb = None			
+		self.bdb = None
 
 
 
@@ -446,7 +451,7 @@ class RelateBTree(BTree):
 			return loads(self.reldb.get(self.dumpkey(tag),txn=txn))
 		except:
 			return set()
-			
+
 
 
 
@@ -520,7 +525,7 @@ class FieldBTree(BTree):
 
 	def items(self, mink=None, maxk=None, txn=None):
 		if mink == None and maxk == None: return self.items()
-		
+
 		if not txn : txn=self.txn
 		if mink is None and maxk is None:
 			items = super(FieldBTree, self).items()
@@ -535,7 +540,7 @@ class FieldBTree(BTree):
 				entry = cur.first()
 
 			print "entry"
-			
+
 			if maxk is not None:
 				maxk=self.typekey(maxk)
 

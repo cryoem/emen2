@@ -36,7 +36,7 @@ regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
 
 
 regex_pattern2 = 	u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
-								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
+								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s,]+)\))?))(?P<macrosep>[\s<]?)" \
 								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
 regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
 
@@ -4105,6 +4105,7 @@ class Database(object):
 
 
 		@publicmethod
+		@g.debug.debug_func
 		def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs={}, showmacro=True, mode="unicode", outband=0, ctxid=None, host=None):
 			"""Render views"""
 
@@ -4182,7 +4183,8 @@ class Database(object):
 								v.append((match.group("var"),match.group("varsep"),match.group("var1")))
 								pd.append(match.group("var1"))
 						elif match.group("macro"):
-								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1")))
+								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
+				g.debug("macro stuff -> %r" %m)
 
 				paramdefs.update(self.getparamdefs(pd,ctxid=ctxid,host=host))
 				#print "PD:%s"%paramdefs.keys()
@@ -4216,7 +4218,7 @@ class Database(object):
 
 				if showmacro:
 					for i in macros[key]:
-						v=vtm.macro_render(i[2], "params", rec, mode=mode, db=self, ctxid=ctxid, host=host) #macro, params, rec, mode="unicode", db=None, ctxid=None, host=None
+						v=vtm.macro_render(i[2], i[3], rec, mode=mode, db=self, ctxid=ctxid, host=host) #macro, params, rec, mode="unicode", db=None, ctxid=None, host=None
 						a=a.replace(u"$@" + i[0], v + i[1])
 
 				ret[rec.recid]=a
