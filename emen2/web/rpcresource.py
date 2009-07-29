@@ -111,11 +111,57 @@ class RPCFormatXMLRPC:
 class RPCChain(Resource):
 	isLeaf = True
 
-	@g.debug.debug_func
 	def render(self, request):
 		request.content.seek(0,0)
-		result = demjson.decode(request.content.read())
-		return result
+		data = request.content.read()
+		d = threads.deferToThread(self.action, data)
+		d.addCallback(self._cbRender, request)
+		d.addErrback(self._ebRender, request)
+		return server.NOT_DONE_YET
+
+	def action(self, data, db=None, ctxid=None):
+		data = demjson.decode(data)
+		method = data['method']
+		args = data['args']
+		kwargs = dict( (key.encode('utf-8'), value) for key, value in data['kwargs'].iteritems() )
+		result = db._callmethod(method, args, kwargs)
+		method = data['next']
+		arg = data['next_arg']
+		result = db._callmethod(method, (), {arg.encode('utf-8'):result})
+		g.debug(result)
+		return demjson.encode(result).encode('utf-8')
+
+	def _cbRender(self, result, request):
+		request.setHeader("content-length", len(result))
+		request.setHeader("content-type", 'application/json')
+		request.setResponseCode(200)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+			host = request.getClientIP(),
+			time = time.ctime(),
+			path = request.uri,
+			response = request.code,
+			size = len(result)
+		))
+		request.write(result)
+		request.finish()
+
+	def _ebRender(self, result, request):
+		g.debug.msg("LOG_ERROR", result)
+		request.setHeader("X-Error", ' '.join(str(result).split()))
+		result=unicode(result.value)
+		result=result.encode('utf-8')
+		request.setHeader("content-length", len(result))
+		request.setResponseCode(500)
+		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+			host = request.getClientIP(),
+			time = time.ctime(),
+			path = request.uri,
+			response = request.code,
+			size = len(result)
+		))
+		request.write(result)
+		request.finish()
+
 
 
 

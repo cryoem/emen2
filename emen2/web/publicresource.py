@@ -297,48 +297,39 @@ class PublicView(Resource):
 
 
 	def _ebRender(self, failure, request, ctxid=None):
-
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
-
-		#request.setHeader('X-ERROR', ' '.join(str(failure).split()))
-
 		headers = {}
 		response = 500
-
 		try:
-			if isinstance(failure, BaseException): raise failure
-			else: failure.raiseException()
+			try:
+				if isinstance(failure, BaseException): raise failure
+				else: failure.raiseException()
+			except (Database.exceptions.AuthenticationError,
+						Database.exceptions.SecurityError,
+						Database.exceptions.SessionError,
+						Database.exceptions.DisabledUserError), e:
+				response = 401
+				args = {'redirect': request.uri, 'msg': str(e),
+							'db': ts.db, 'ctxid': ctxid,
+							'host': request.getClientIP()}
 
-		except (Database.exceptions.AuthenticationError, Database.exceptions.SecurityError,
-			Database.exceptions.SessionError, Database.exceptions.DisabledUserError), e:
+				p = emen2.TwistSupport_html.public.login.Login(**args)
+				data = unicode(p.get_data()).encode("utf-8")
 
-			response = 401
-			args = {
-					'redirect': request.uri,
-					'msg': str(e),
-					'db': ts.db,
-					'host': request.getClientIP(),
-					'ctxid': ctxid
-			}
+			except emen2.subsystems.responsecodes.NotFoundError, e:
+					response = e.code
+					data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
+					data = unicode(data).encode('utf-8')
 
-			p = emen2.TwistSupport_html.public.login.Login(**args)
-			data = unicode(p.get_data()).encode("utf-8")
-
-		except emen2.subsystems.responsecodes.NotFoundError, e:
-			response = e.code
-			data = g.templates.render_template('/notfound', dict(
-				EMEN2WEBROOT = "",
-				msg = request.uri
-			)).encode("utf-8")
-
-		except emen2.subsystems.responsecodes.HTTPResponseCode, e:
-			response = e.code
-			headers.update(e.headers)
+			except emen2.subsystems.responsecodes.HTTPResponseCode, e:
+				response = e.code
+				headers.update(e.headers)
 
 
-		except Exception, e:
+		except BaseException, e:
 			data = g.templates.handle_error(e).encode('utf-8')
+
 
 		[request.setHeader(key, headers[key]) for key in headers]
 
