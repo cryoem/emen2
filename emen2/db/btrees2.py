@@ -249,7 +249,7 @@ class BTree(object):
 
 	def values(self, txn=None):
 		if not txn: txn=self.txn
-		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values())) #txn=txn
+		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values()), set()) #txn=txn
 
 
 	def items(self, txn=None):
@@ -565,7 +565,7 @@ class FieldBTree(BTree):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
 		if mink == None and maxk == None: return super(FieldBTree, self).values()
-		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)))
+		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)), set())
 
 
 

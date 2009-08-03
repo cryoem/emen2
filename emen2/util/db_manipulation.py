@@ -1,4 +1,5 @@
 from emen2.emen2config import *
+import urllib2
 import time
 from emen2.subsystems.routing import URLRegistry
 from functools import partial
@@ -8,19 +9,6 @@ import emen2.Database
 import hashlib
 
 class IntegrityError(ValueError): pass
-
-class CacheKeyStore(object):
-	__keys = {}
-	def get_key(self, ident):
-		result = self.__keys.get(ident, False)
-		t = time.time()
-		if not result or t > result[0]+30:
-			if result:
-				g.debug('result', result[0]+30, 'time', t)
-			g.debug('Cache Key regenerated! ident: (%s)' % ident)
-			result = (t, hashlib.sha1(str(t)+ident).hexdigest())
-			self.__keys[ident] = result
-		return g.debug.note_var(result[1])
 
 class DBTree(object):
 	'''emulates a tree structure on to of the Database'''
@@ -32,11 +20,7 @@ class DBTree(object):
 		self.__ctxid = ctxid
 		self.__host = host
 		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
-		self.__cache_key = CacheKeyStore()
 		self.db = self.__db
-
-	def get_cache_key(self, ident):
-		self.__cache_key.get_key(ident + self.db.checkcontext()[0])
 
 	def __getpath(self, path=None):
 		if path != None: path = self.get_path_id(path)
@@ -60,7 +44,7 @@ class DBTree(object):
 		parents = self.__db.getparents(recid)#, ctxid=self.__ctxid, host=self.__host)
 		if self.root not in parents:
 			path.extend(self.__to_path(parents.pop(), path))
-		path.append(str(recid))
+		path.append(self.getindex(recid))
 		return path
 
 	def getindex(self, recid=None, rec=None):
@@ -102,7 +86,7 @@ class DBTree(object):
 			[(yield child) for child in children]
 		else:
 			for rec in self.__dostuff(name, children):
-				yield (rec)
+				yield rec
 
 	def get_parents(self, path=None, **kwargs):
 		path = self.__getpath(path)
@@ -113,14 +97,17 @@ class DBTree(object):
 		return result
 
 	def get_children(self, path=None, **kwargs):
-		path = self.__getpath(path)
 		result = set()
-		for rec in path:
-			new = [ elem for elem in self.get_child_id('*', rec) ]
-			if len(result) == 0:
-				result.update(new)
-			else:
-				result.intersection_update(new)
+		if path is None:
+			result = self.db.getchildren(self.root)
+		else:
+			path = self.__getpath(path)
+			for rec in path:
+				new = [ elem for elem in self.get_child_id('*', rec) ]
+				if len(result) == 0:
+					result.update(new)
+				else:
+					result.intersection_update(new)
 		if kwargs != {}: self.__select(result, **kwargs)
 		return result
 
@@ -134,7 +121,6 @@ class DBTree(object):
 
 	def __dostuff(self, name, records):
 		for rec in records:
-			g.debug(rec)
 			if (str(rec) == name) or (self.__db.getrecord(rec)['recname'] == name):
 				yield (rec)
 
@@ -148,7 +134,7 @@ class DBTree(object):
 		return result
 
 	def to_path(self, recid):
-		return str.join('/', self.__to_path(recid))
+		return urllib2.quote('/'.join(self.__to_path(recid)))
 
 	def reverse(self, _name, *args, **kwargs):
 		_full = kwargs.get('_full', False)
@@ -175,17 +161,17 @@ class DBTree(object):
 			return None
 
 	def get_menu(self, depth=1):
-		recs = self.db.getchildren(self.root, recurse=depth, tree=True, filt=True)
+		recs = self.db.getchildren(self.root, recurse=depth, tree=True)#, filt=True)
 		folders = self.db.getindexbyrecorddef('folder')
 		recs1 = {}
 		keys = filter(lambda x: x in folders, recs)
 		for key in keys:
 			value = recs[key] & folders
 			recs1[key] = value
-		#t3 = time.time();g.debug.msg('LOG_INFO', 'start::', t3)
+
 		recs = emen2.util.datastructures.Tree(recs1, self.root,
 									app=lambda x: (x, self.getindex(x)))
-		#t4 = time.time();g.debug.msg('LOG_INFO', 'elapsed::', t4-t3)
+
 		return recs
 
 def get_create(recdef, param, value, db, ctxid, host=None):

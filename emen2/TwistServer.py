@@ -117,7 +117,8 @@ def main():
 		download = emen2.TwistSupport_html.downloadresource.DownloadResource(),
 		upload = emen2.TwistSupport_html.uploadresource.UploadResource(),
 		RPC2 = emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"),
-		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json")
+		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json"),
+		chain = emen2.TwistSupport_html.rpcresource.RPCChain(),
 	)
 
 	load_resources(root, resources)

@@ -354,3 +354,11 @@ h2 {
 .parent+.child {
 	margin-left: 10px;
 }
+
+#userbox div + div {
+	border-top: thin solid black;
+}
+
+#userbox {
+	text-align: center
+}
