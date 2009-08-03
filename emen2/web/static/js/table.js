@@ -203,12 +203,13 @@ TableColumnControl.prototype = {
 
 		this.built=0;
 		this.p=$('<div class="table_keys_menu" />');
-		this.p.css({position:"absolute", width:400, top:th.offset().top+th.outerHeight(),left:pos.left-250});
+		this.p.css({position:"absolute", width:400, top:th.offset().top+th.outerHeight(),left:ts.pos.left-250});
 
 		//this.elem.css({background:"white",border:"2px solid #ccc", padding:4});
 
 
 		$("body").append(this.p);
+		//console.log(this.elem);
 		this.elem.click(function(e){self.event_toggleprop(e)});
 
 	},

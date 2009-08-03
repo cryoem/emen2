@@ -23,6 +23,7 @@ import sys
 import time
 import traceback
 import operator
+import collections
 
 
 import emen2.globalns
@@ -40,8 +41,13 @@ regex_pattern2 = 	u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<v
 								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
 regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
 
+
+
 recommentsregex = "\n"
 pcomments = re.compile(recommentsregex) # re.UNICODE
+
+
+
 
 TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
@@ -84,7 +90,6 @@ DEBUG = 0 #TODO consolidate debug flag
 #				args[0].extend(args[2])
 #				args = args[0]
 #			return func(*args, *kwargs)
-
 
 
 
@@ -301,8 +306,11 @@ class Database(object):
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
 			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
-			self.__dbenv.set_lk_max_locks(20000)
-			self.__dbenv.set_lk_max_lockers(20000)
+			self.__dbenv.set_lk_max_locks(80000)
+			self.__dbenv.set_lk_max_lockers(80000)
+			self.__dbenv.set_lk_max_objects(80000)
+			#set_lk_max_lockers
+			#set_lk_max_locks
 
 			#if self.__dbenv.DBfailchk(flags=0):
 				#self.LOG(1,"Database recovery required")
@@ -324,8 +332,15 @@ class Database(object):
 
 			# Users
 
-			# active database users
+			# active database users / groups
 			self.__users = BTree("users", keytype="s", filename=path+"/security/users.bdb", dbenv=self.__dbenv)
+			self.__usersbygroup = IndexKeyBTree("usersbygroup", keytype="s", filename=path+"/security/usersbygroup", dbenv=self.__dbenv)
+			#self.__secrindex = FieldBTree("secrindex", filename=path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv)
+			
+			self.__groups = BTree("groups", keytype="ds", filename=path+"/security/groups.bdb", dbenv=self.__dbenv)
+			#self.__updatecontexts = False
+
+
 			# new users pending approval
 			self.__newuserqueue = BTree("newusers", keytype="s", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv)
 			# multisession persistent contexts
@@ -366,6 +381,11 @@ class Database(object):
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
+
+
+			self.__indexkeys = IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv) 
+
+
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
@@ -500,7 +520,7 @@ class Database(object):
 
 
 		def __checkpassword(self, username, password, ctxid=None, host=None):
-			"""Check password against stored hash value; Returns bool"""
+			"""Check password against stored hash value"""
 			s = hashlib.sha1(password)
 
 			try:
@@ -511,7 +531,8 @@ class Database(object):
 			if user.disabled:
 				raise DisabledUserError, DisabledUserError.__doc__ % username
 
-			return s.hexdigest() == user.password, user
+			#return s.hexdigest() == user.password,
+			return user
 
 
 		#@txn
@@ -523,32 +544,42 @@ class Database(object):
 			ctx = None
 			username = unicode(username)
 
+			# def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 			# Anonymous access
 			if (username == "anonymous"): # or username == ""
-				ctx = Context(None, self, None, [-4], host, maxidle)
+				ctx = Context(db=self, user=None, ctxid=None, host=host)
 
 			else:
-				auth_result, user = self.__checkpassword(username, password, ctxid=ctxid, host=host)
+				#auth_result, 
+				user = self.__checkpassword(username, password, ctxid=ctxid, host=host)
 
 				# Admins can "su"
-
 				if (user) or self.checkadmin(ctxid,host):
-					ctx = Context(None, self, username, user.groups, host, maxidle)
+					ctx = Context(db=self, user=user, ctxid=None, host=host)
+
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host))
 					raise AuthenticationError, AuthenticationError.__doc__
 
 
 			# This shouldn't happen
-			if ctx == None:
-				self.LOG(1, "System error, login: %s (%s)" % (username, host))
-				raise Exception, "System error, login: %s (%s)" % (username, host)
+			#if ctx == None:
+			#	self.LOG(1, "System error, login: %s (%s)" % (username, host))
+			#	raise Exception, "System error, login: %s (%s)" % (username, host)
 
 			# we use sha to make a key for the context as well
+			# ian todo: add a well-seeded random number here
 			s = hashlib.sha1(username + unicode(host) + unicode(time.time()))
-
+			
 			ctx.ctxid = s.hexdigest()
+
+			#if ctx.user != None:
+			#	ctx.groups.append(-3)
+			#ctx.groups.append(-4)
+			#ctx.groups=list(set(ctx.groups))
+
 			self.__setcontext(ctx.ctxid, ctx=ctx)
+
 
 			self.LOG(4, "Login succeeded %s (%s)" % (username, ctx.ctxid))
 			return ctx.ctxid
@@ -622,13 +653,13 @@ class Database(object):
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%ctx.ctxid)
 
 					ctx.db = self
-				except Exception, inst:
+				except Exception, inst:	
 					self.LOG("LOG_ERROR","Unable to add persistent context %s (%s)"%(ctxid, inst))
 
 			# delete context
 			else:
 				try:
-					del self.__contexts[k[0]]
+					del self.__contexts[ctxid]
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
 
@@ -656,7 +687,7 @@ class Database(object):
 				return self.__anonymouscontext
 			key = unicode(key)
 
-			if (time.time() > self.lastctxclean + 30):
+			if (time.time() > self.lastctxclean + 30):# or self.__updatecontexts):
 				# maybe not the perfect place to do this, but it will have to do
 				self.__cleanupcontexts()
 
@@ -678,10 +709,6 @@ class Database(object):
 
 			ctx.time = time.time()
 
-			if ctx.user != None:
-				ctx.groups.append(-3)
-			ctx.groups.append(-4)
-			ctx.groups=list(set(ctx.groups))
 
 			return ctx
 
@@ -903,7 +930,8 @@ class Database(object):
 			records belonging to a particular RecordDef as a set. Currently this
 			is unsecured, but actual records cannot be retrieved, so it
 			shouldn't pose a security threat."""
-			return self.__recorddefindex[unicode(recdefname).lower()]
+			return self.__recorddefindex.get(recdefname) or set()#[recdefname]
+			#return self.__recorddefindex[unicode(recdefname).lower()]
 
 
 
@@ -956,111 +984,271 @@ class Database(object):
 
 
 
+
+
+		#@publicmethod
+		#def buildindexkeys(self, ctxid=None, host=None, txn=None):
+		def __rebuild_indexkeys(self, ctxid=None, host=None, txn=None):
+
+			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i)) for i in self.getparamdefnames()]))
+
+			self.__indexkeys.truncate()
+			
+			for k,v in inds.items():
+					print "indexkeys: %s, len keys %s"%(k, len(v.keys()))
+					self.__indexkeys.set(k, set(v.keys()), txn=txn)
+
+			
+			
 		@publicmethod
-		def fulltextsearch(self, q, rectype=None, indexsearch=True, params=set(), recparams=0, builtinparam=0, ignorecase=True, subset=[], tokenize=0, single=0, includeparams=set(), ctxid=None, host=None):
-			"""
-			q: query
-			rectype: use all of rectype as subset
-			indexsearch: use indexes; otherwise interrogate each record
-			params: set of params to search, can be used instead of subset
-			recparams: include in-line param values
-			builtinparam: include creator, creationtime, modifyuser, modifytime, permissions, and comments
-			subset: provide a subset of records to search (useful)
-			tokenize: boolean AND for multiple space-separated search terms
-			single: stop at first match for each param
-			includeparams: include these values w/ all results
-			"""
+		def searchindexkeys(self, q=None, ignorecase=1, ctxid=None, host=None, txn=None):
+			if not q:
+				return {}
 
-			subset = set(subset)
+			q = unicode(q)
+			if ignorecase:
+				q = q.lower()
+				matcher = lambda x:q in unicode(x).lower()
+			else:
+				matcher = lambda x:q in unicode(x)
+
+			matches = {}
+			
+			
+			for k,v in self.__indexkeys.items():
+				# print "searching %s"%k
+				r = filter(matcher, v)
+				if r: matches[k] = r
+
+			#print matches
+			matches2 = []
+
+			for k,v in matches.items():
+				ind = self.__getparamindex(k)
+				for i in v:
+					j = ind.get(i)
+					for x in j:
+						matches2.append((x, k, i))
+			
+			for i in matches2:
+				print i
+				
+		
+				
+				
+		@publicmethod
+		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, returndict=False, includeparams=None, ctxid=None, host=None):
+
+			if boolmode not in ["AND","OR"]:
+				raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
+
+			constraints = constraints or []
+			subset = set(subset or [])
+			includeparams = set(includeparams or [])
+
+			if q:
+				constraints.append(["*","contains",unicode(q)])
+
+			if recurse:
+				recurse=self.maxrecurse
+
+
+			# include these methods to make life easier...
+			if not constraints:
+				recs = []
+				if childof:
+					recs.append(self.getchildren(childof, recurse=recurse, ctxid=ctxid, host=host))
+				if parentof:
+					recs.append(self.getparents(parentof, recurse=recurse, ctxid=ctxid, host=host))
+				if rectype:
+					recs.append(self.getindexbyrecorddef(rectype, ctxid=ctxid, host=host))
+				if boolmode=="AND":
+					return reduce(set.intersection, recs)
+				return reduce(set.union, recs)
+
+
+
+			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+
+			# x is argument, y is record value
+			cmps = {
+				"==": lambda y,x:x == y,
+				"!=": lambda y,x:x != y,
+				"contains": lambda y,x:unicode(x) in unicode(y),
+				"!contains": lambda y,x:unicode(x) not in unicode(y),
+				">": lambda y,x: x > y,
+				"<": lambda y,x: x < y,
+				">=": lambda y,x: x >= y,
+				"<=": lambda y,x: x <= y #,
+				#"range": lambda x,y,z: y < x < z
+			}
+			
+			if ignorecase:
+				cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
+				cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()								
+
+			# wildcard param searching only useful with the following comparators...
+			globalsearchcmps = ["==","!=","contains","!contains"]
+
+			# check that constraints are sane, then partition into wildcard and normal
+			# vtm.validate(self.__paramdefs[i[0]], i[1], db=self, ctxid=ctxid, host=host)				
+
+			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
+			constraints = dict(enumerate(map(lambda i:(unicode(i[0]), str(i[1]), i[2]), constraints)))
+			c_results_paramkeys = dict((i,{}) for i in constraints.keys())  # {}
+			c_results_recs = dict((i,set()) for i in constraints.keys()) # {}
+			inds = set()
+							
+			for param, pkeys in self.__indexkeys.items():
+				# ian todo: find a way to reduce number of lookups/validations needed..				
+				for name, c in constraints.items():
+					if c[0] != param and c[0] != "*":
+						continue
+
+					try:
+						cargs = vtm.validate(self.__paramdefs[param], c[2], db=self, ctxid=ctxid, host=host)
+					except Exception, inst:
+						if c[0] != "*":
+							raise Exception, "Unable to satisfy constraint..."
+						continue
+
+					comp = partial(cmps[c[1]], cargs) #*cargs
+					r = filter(comp, pkeys)
+					# print "filtered %s: %s -> %s"%(param, cargs, r)
+					if r:
+						c_results_paramkeys[name][param] = r    #.append((param, r))
+						inds.add(param)
+			
+			matches = {}			
+			
+			for param in inds:
+				ind = self.__getparamindex(param)
+
+				for name, paramkeys in c_results_paramkeys.items():
+
+					paramkeys = paramkeys.get(param, [])
+					for key in paramkeys:
+
+						recids = ind.get(key)
+
+						if not c_results_recs.has_key(name):
+							c_results_recs[name] = set()
+						c_results_recs[name] |= recids
+
+						for recid in recids:
+							if not matches.has_key(recid):
+								matches[recid] = set()
+							matches[recid].add(param)
+			
+
+			#recs = set(matches.keys())
+
+			# if boolmode is "AND", filter for records that do not satisfy all named constraints
+			subsets = c_results_recs.values()
+
+			subsets.append(set(matches.keys()))
+
+			if subset:
+				subsets.append(subset)
+			if childof:
+				subsets.append(self.getchildren(childof, recurse=recurse, ctxid=ctxid, host=host))
+			if parentof:
+				subsets.append(self.getparents(parentof, recurse=recurse, ctxid=ctxid, host=host))
+			if rectype:
+				subsets.append(self.getindexbyrecorddef(rectype, ctxid=ctxid, host=host))
+				
+			if boolmode=="AND":
+				recs = reduce(set.intersection, subsets)
+			else:
+				recs = reduce(set.union, subsets)
+								
+				
+			if not returndict:
+				return recs			
+				
+			#print "getrecords... len %s"%len(recs)
+			recs = self.getrecord(recs, filt=1, ctxid=ctxid, host=host)
+			#if rectype:
+			#	recs = filter(lambda x:x.rectype == rectype, recs)
+
+			#print "preparing results..."
+			ret = {}			
+			for i in recs:
+				ret[i.recid] = {}
+				for param in matches.get(i.recid, set()) | includeparams:
+					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
+					ret[i.recid][param] = i.get(param)					
+				
+			return ret
+					
+				
+
+		@publicmethod
+		#def fulltextsearch(self, q, rectype=None, indexsearch=True, params=set(), recparams=0, builtinparam=0, ignorecase=True, subset=[], tokenize=0, single=0, includeparams=set(), ctxid=None, host=None):
+		def fulltextsearch(self, q, rectype=None, params=None, ignorecase=True, subset=None, includeparams=None, bool_and=False, bool_or=False, ctxid=None, host=None, txn=None):
+
 			# search these params
-			params = set(params)
-
+			subset = set(subset or [])
+			params = set(params or [])
+			includeparams = set(includeparams or [])
+			
 			builtin = set(["creator", "creationtime", "modifyuser", "modifytime", "permissions", "comments"])
 
-			oq = unicode(q)
-			q = oq.lower()
+				
 
+			q = unicode(q)
 
-			if rectype and not subset:
-				subset = self.getindexbyrecorddef(rectype, ctxid=ctxid, host=host)
-
-			if rectype and not params:
-				pd = self.getrecorddef(rectype, ctxid=ctxid, host=host)
-				params = set(pd.paramsK)
-
-			if not params:
-				params = set(self.getparamdefnames(ctxid=ctxid,host=host))
-
-			if builtinparam:
-				params |= builtin
+			if ignorecase:
+				q = q.lower()
+				matcher = lambda x:qitem in unicode(x).lower()
 			else:
-				params -= builtin
+				matcher = lambda x:qitem in unicode(x)
+			
+			q = set(q.split())
+			
+			indexmatches = {}
+			#indexkeysitems = self.__indexkeys.items()
+			
+			for param,paramvalues in self.__indexkeys.items():
+				for qitem in q:
+					r = filter(matcher, paramvalues)
+					if r:
+						if (not params) or (params and param in params):
+							if not indexmatches.has_key(param):
+								indexmatches[param] = set()
+							indexmatches[param] |= set(r)
+
+			matches2 = {}
+
+			for param,matchkeys in indexmatches.items():
+				ind = self.__getparamindex(param)
+				for key in matchkeys:
+					for recid in ind.get(key):
+						if not matches2.has_key(recid):
+							 matches2[recid] = set()
+						matches2[recid].add(param)
+
+
+			recs = set(matches2.keys())
+			if subset:
+				recs &= subset
+
+			recs = self.getrecord(recs, filt=1, ctxid=ctxid, host=host)
+			if rectype:
+				recs = filter(lambda x:x.rectype == rectype, recs)
 
 
 			ret = {}
-
-
-			if not indexsearch or recparams: # and not params and ... and len(subset) < 1000
-				g.debug("rec search: %s, subset %s"%(q,len(subset)))
-
-				for rec in self.getrecord(subset,filt=1,ctxid=ctxid,host=host):
-
-					for k in params:
-						if ignorecase:
-							if q in unicode(rec[k]).lower():
-								if not ret.has_key(rec.recid): ret[rec.recid] = {}
-								ret[rec.recid][k] = rec[k]
-						else:
-							if q in unicode(rec[k]):
-								if not ret.has_key(rec.recid): ret[rec.recid] = {}
-								ret[rec.recid][k] = rec[k]
-
-
-					if ret.has_key(rec.recid) and includeparams:
-						for i in includeparams:
-							ret[rec.recid][i] = rec[i]
-
-
-			else:
-				g.debug("index search: %s, subset %s"%(q,len(subset)))
-				#subset = self.filterbypermissions(subset,ctxid=ctxid,host=host)
-
-				for param in params:
-
-					g.debug("searching %s" % param)
-
-					try:
-						paramindex = self.__getparamindex(param, ctxid=ctxid, host=host)
-						print "paramindex"
-						print paramindex
-						print paramindex.keys()
-						s = filter(lambda x:q in x, paramindex.keys())
-						print s
-					except:
-						continue
-
-					recs = set()
-					for i in s:
-						recs |= paramindex[i]
-
-					for rec in self.getrecord(recs,filt=1,ctxid=ctxid,host=host): #&subset; add security back...?
-
-						if not ret.has_key(rec.recid):
-							ret[rec.recid]={}
-						if not ignorecase:
-							if oq in rec[param]:
-								ret[rec.recid][param]=rec[param]
-						else:
-							ret[rec.recid][param]=rec[param]
-
-						for i in includeparams:
-							ret[rec.recid][i]=rec[i]
-
-			for k,v in ret.items():
-				g.debug(k,v)
-
-			return ret
-
+			
+			for i in recs:
+				ret[i.recid] = {}
+				for param in matches2.get(i.recid, set()):# | includeparams:
+					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
+					ret[i.recid][param] = i.get(param)			
+			
+			
+			
+			return ret		
 
 
 
@@ -1889,9 +2077,157 @@ class Database(object):
 			return 1
 
 
+		
+		##########################
+		# groups
+		##########################
+
+
+		@publicmethod
+		def getgroupnames(self, ctxid=None, host=None, txn=None):
+			return set(self.__groups.keys())
+			
+			
+
+		@publicmethod
+		def getgroup(self, groups, filt=1, ctxid=None, host=None, txn=None):
+			ol=0
+			if not hasattr(groups,"__iter__"):
+				ol=1
+				groups = [groups]
+			
+			
+			if filt: filt = None
+			else: filt = lambda x:x.name
+			ret = dict( [(x.name, x) for x in filter(filt, map(self.__groups.get, groups)) ] )			
+
+			
+			if ol==1 and len(ret) == 1:
+				return ret.values()[0]
+			return ret
+
+
+
+
+		#@write self.__usersbygroup
+		def __commit_usersbygroup(self, addrefs=None, delrefs=None, ctxid=None, host=None, txn=None):
+
+			#@begin
+
+			for user,groups in addrefs.items():
+				try:
+					if groups:
+						self.LOG("LOG_COMMIT","Commit: __usersbygroup key: %s, addrefs: %s"%(user, groups))
+						self.__usersbygroup.addrefs(user, groups, txn=txn)
+				except Exception, inst:
+					self.LOG("LOG_ERROR", "Could not update __usersbygroup key: %s, addrefs %s"%(user, groups))
+				
+			for user,groups in delrefs.items():
+				try:
+					if groups:
+						self.LOG("LOG_COMMIT","Commit: __usersbygroup key: %s, removerefs: %s"%(user, groups))
+						self.__usersbygroup.removerefs(user, groups, txn=txn)
+				except Exception, inst:
+					self.LOG("LOG_ERROR", "Could not update __usersbygroup key: %s, removerefs %s"%(user, groups))
+
+			#@end
+
+
+			
+			
+		#@write self.__usersbygroup
+		def __rebuild_usersbygroup(self, ctxid=None, host=None, txn=None):
+			groups = self.getgroup(self.getgroupnames(ctxid=ctxid, host=host), ctxid=ctxid, host=host)
+			#users = dict([(i, set()) for i in self.getusernames(ctxid=ctxid, host=host)])
+			users = collections.defaultdict(set)
+			
+			for k, group in groups.items():
+				for user in group.members():
+					#try:
+					users[user].add(k)
+					#except Exception, inst:
+					#	print "unknown user %s (%s)"%(user, inst)
+			
+			
+			#@begin			
+
+			self.__usersbygroup.truncate(txn=txn)
+
+			for k,v in users.items():
+				self.__usersbygroup.addrefs(k, v, txn=txn)
+
+			#@end
+				
+
+			
+
+			
+		def __reindex_usersbygroup(self, groups, txn=None):
+
+			addrefs = collections.defaultdict(set)
+			delrefs = collections.defaultdict(set)
+			
+			for group in groups:
+				
+				ngm = group.members()
+				try: ogm = self.__groups.get(group.groupname, txn=txn).members()
+				except: ogm = set()
+				
+				addusers = ngm - ogm
+				delusers = ogm - ngm
+				
+				for user in newusers:
+					addrefs[user].add(group.groupname)
+				for user in oldusers:
+					delrefs[user].add(group.groupname)
+			
+			return addrefs, delrefs
+			
+
+
+		#@write self.__groups, self.__usersbygroup
+		@publicmethod
+		def putgroup(self, groups, ctxid=None, host=None, txn=None):
+
+			if isinstance(groups, (Group, dict)): # or not hasattr(groups, "__iter__"):
+				groups = [groups]
+
+			groups2 = []
+			groups2.extend(filter(lambda x:isinstance(x, Group), groups)
+			groups2.extend(map(lambda x:Group(x), filter(lambda x:isinstance(x, dict), groups)))			
+
+			allusernames = self.getusernames(ctxid=ctxid, host=host)
+
+			for group in groups2:
+				group.validate()
+				if group.members() - allusernames:
+					raise Exception, "Invalid user names: %s"%(group.members() - allusernames)
+						
+			addrefs, delrefs = self.__reindex_usersbygroup(groups2)
+			
+			#@begin
+			
+			txn = self.txncheck(txn)			
+
+			for group in groups2:
+				self.__groups.set(group.name, group)
+
+			self.__commit_usersbygroup(addrefs=addrefs, delrefs=delrefs, ctxid=ctxid, host=host, txn=txn)
+			
+			self.txncommit(txn)
+
+			#@end
+			
+			
+			
+		###############################
+		# users
+		###############################	
+			
+
 		#@txn
 		@publicmethod
-		def adduser(self, user, ctxid=None, host=None):
+		def adduser(self, user, ctxid=None, host=None, txn=None):
 			"""adds a new user record. However, note that this only adds the record to the
 			new user queue, which must be processed by an administrator before the record
 			becomes active. This system prevents problems with securely assigning passwords
@@ -2715,6 +3051,8 @@ class Database(object):
 
 
 
+
+
 		def __getparamindex(self, paramname, create=True, ctxid=None, host=None):
 			"""Internal function to open the parameter indices at need.
 			Later this may implement some sort of caching mechanism.
@@ -2739,13 +3077,11 @@ class Database(object):
 
 			tp = self.vtm.getvartype(f.vartype).getindextype()
 
-			#print "Open paramindex for %s: vartype=%s, keytype=%s"%(f.name,f.vartype,tp)
-
 			if not create and not os.access("%s/index/%s.bdb" % (self.path, paramname), os.F_OK):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv)
+			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, keyindex=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv)
 
 			return self.__fieldindex[paramname]
 
@@ -2852,8 +3188,21 @@ class Database(object):
 		# merge with getuser?
 		@publicmethod
 		def getgroupdisplayname(self, groupname, ctxid=None, host=None):
-			groupnames = {"-3":"All Authenticated Users", "-4":"Anonymous Access", "-1":"Database Administrator"}
-			return groupnames[unicode(username)]
+			ol = 0
+			if not hasattr(groupname,"__iter__"):
+				groupname = [groupname]
+				ol = 1
+				
+			groups = self.getgroup(groupname, ctxid=ctxid, host=host)
+			print "got groups %s"%groups
+			
+			ret = {}
+			
+			for i in groups.values():
+				ret[i.name]="Test: %s"%i.name
+				
+			if ol and len(ret)==1: return ret.values()[0]	
+			return ret
 
 
 
@@ -3068,7 +3417,7 @@ class Database(object):
 
 			ret = self.__putrecord(recs, warning=warning, importmode=importmode, log=log, ctx=ctx, txn=txn)
 
-			if ol:
+			if ol and len(ret) > 0:
 				return ret[0]
 			return ret
 
@@ -3342,7 +3691,7 @@ class Database(object):
 				#continue
 
 			try:
-				paramindex = self.__getparamindex(param)
+				paramindex = self.__getparamindex(param, ctxid=ctx.ctxid, host=ctx.host)
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
 			except Exception, inst:
@@ -3623,7 +3972,8 @@ class Database(object):
 			# method 2
 			#ret=set()
 			ret = []
-			ret.extend(recids & set(self.__secrindex[ctx.user]))
+			if ctx.user != None:
+				ret.extend(recids & set(self.__secrindex[ctx.user]))
 			#ret |= recids & set(self.__secrindex[ctx.user])
 			#recids -= ret
 			for group in sorted(ctx.groups, reverse=True):
@@ -3757,6 +4107,11 @@ class Database(object):
 
 
 
+		
+
+
+
+
 		@publicmethod
 		def secrecordadduser2(self, recids, level, users, reassign=0, ctxid=None, host=None, txn=None):
 				ctx = self.__getcontext(ctxid, host)
@@ -3769,24 +4124,21 @@ class Database(object):
 					users = [users]
 				users = set(users)
 
+				checkitems = self.getusernames(ctxid=ctxid, host=host) | self.getgroupnames(ctxid=ctxid, host=host)
+				if users - checkitems:
+					raise SecurityError, "Invalid users/groups: %s"%(users-checkitems)
+
 				# change child perms
 				if recurse:
-					for c in self.getchildren(recids, recurse=recurse, ctxid=ctxid, host=host).values():
-						recids |= c
-
-				# check users
-				try:
-					db.getuser(users, filt=0, ctxid=ctxid, host=host)
-				except KeyError, inst:
-					raise
+					recids |= self.getchildren(recids, recurse=recurse, filt=1, ctxid=ctxid, host=host)
 
 				recs = self.getrecord(recids, filt=1, ctxid=ctxid, host=host)
 
 				for rec in recs:
 					rec.adduser(level, users, reassign=reassign)
 
-
-
+				self.putrecord(recs, ctxid=ctxid, host=host)
+				
 
 
 		# ian todo: check this thoroughly; probably rewrite
@@ -4181,6 +4533,9 @@ class Database(object):
 						elif match.group("var"):
 								v.append((match.group("var"),match.group("varsep"),match.group("var1")))
 								pd.append(match.group("var1"))
+						#elif match.group("reqvar"):
+						#		v.append((match.group("reqvar"),match.group("reqvarsep"),match.group("reqvar1")))
+						#		pd.append(match.group("reqvar1"))
 						elif match.group("macro"):
 								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
 				g.debug("macro stuff -> %r" %m)
@@ -4191,13 +4546,13 @@ class Database(object):
 				# invariant to recid
 				if n:
 					for i in n:
-						vrend=vtm.name_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-						vd=vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-					groupviews[g1]=vd
+						vrend = vtm.name_render(paramdefs.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+						vd = vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
+					groupviews[g1] = vd
 
-				names[g1]=n
-				values[g1]=v
-				macros[g1]=m
+				names[g1] = n
+				values[g1] = v
+				macros[g1] = m
 
 
 			ret={}
@@ -4212,8 +4567,8 @@ class Database(object):
 				a = groupviews.get(key)
 
 				for i in values[key]:
-					v=vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
-					a=a.replace(u"$$" + i[0] + i[1], v + i[1])
+					v = vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctxid=ctxid, host=host)
+					a = a.replace(u"$$" + i[0] + i[1], v + i[1])
 
 				if showmacro:
 					for i in macros[key]:

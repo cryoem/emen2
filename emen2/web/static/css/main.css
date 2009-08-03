@@ -259,12 +259,21 @@ td {
 }
 
 
-
+#button_queryparams_main, #page_queryparams_main {
+	background:white;
+}
 .page_query {
 	width:auto;
 }
-.page_comments, .page_attachments, #page_query_form, #page_query_text {
+.page_comments, .page_attachments,  #page_query_text {
 	width:800px;
+}
+#page_query_form {
+	width:800px;
+}
+#form_query_params {
+	padding:10px;
+	background:#ddf;
 }
 
 #page_comments_relationships .map {

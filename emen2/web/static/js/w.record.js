@@ -664,8 +664,10 @@ commentswidget.prototype = {
 		$.jsonRPC("addcomment",[recid,this.edit.val()],
 	 		function(json){
 				//console.log(json);
-				//setvalue(recid,"comments",json);
+				setvalue(recid,"comments",json);
 				//rec["comments"]=json;
+				//console.log("addcomments return");
+				//console.log(json);
 	 			self.build();
 				notify("Comment Added");
 	 		},

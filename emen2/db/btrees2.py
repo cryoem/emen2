@@ -10,6 +10,11 @@ import weakref
 
 
 
+
+	
+		
+
+
 dbopenflags=bsddb3.db.DB_CREATE
 
 
@@ -191,6 +196,10 @@ class BTree(object):
 		self.bdb=None
 
 
+	def truncate(self,txn=None):
+		self.bdb.truncate(txn=txn)
+		
+
 	def sync(self):
 		self.bdb.sync()
 
@@ -244,11 +253,13 @@ class BTree(object):
 
 
 	def keys(self, txn=None):
-		return map(lambda x:self.loadkey(x), self.bdb.keys())
+		return map(self.loadkey, self.bdb.keys())
 
 
 	def values(self, txn=None):
 		if not txn: txn=self.txn
+		#return reduce(set.union, map(self.loaddata, self.bdb.values())) #(self.loaddata(x) for x in self.bdb.values())) #txn=txn
+		# set() needed if empty
 		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values()), set()) #txn=txn
 
 
@@ -462,7 +473,6 @@ class RelateBTree(BTree):
 
 
 
-
 class FieldBTree(BTree):
 	"""This is a specialized version of the BTree class. This version uses type-specific
 	keys, and supports efficient key range extraction. The referenced data is a python list
@@ -473,11 +483,14 @@ class FieldBTree(BTree):
 	"f" - float keys (64 bit)
 	"s" - string keys
 	"""
+	def __init__(*args, **kwargs):
+		self.__indexkeys = kwargs.pop("indexkeys", None)
+		BTree.__init__(self, *args, **kwargs)
 
+		
 
 	def __str__(self):
 		return "<Database.FieldBTree instance: %s>" % self.name
-
 
 
 	def typedata(self, data):
@@ -489,7 +502,9 @@ class FieldBTree(BTree):
 		if not txn: txn=self.txn
 		o = self.get(key, txn=txn) or set()
 		o.remove(item)
-		return self.set(key, o, txn=txn)
+		if not o and self.__indexkeys != None:
+			self.__indexkeys.removeref(self.name, key, txn=txn)
+		return self.set(key, o or None, txn=txn)
 
 
 	def removerefs(self, key, items, txn=None):
@@ -497,7 +512,9 @@ class FieldBTree(BTree):
 		if not txn: txn=self.txn
 		o = self.get(key, txn=txn) or set()
 		o -= set(items)
-		return self.set(key, o, txn=txn)
+		if not o and self.__indexkeys != None:
+			self.__indexkeys.removeref(self.name, key, txn=txn)
+		return self.set(key, o or None, txn=txn)
 
 
 	def testref(self, key, item, txn=None):
@@ -511,6 +528,8 @@ class FieldBTree(BTree):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 		if not txn: txn=self.txn
 		o = self.get(key, txn=txn) or set()
+		if self.__indexkeys != None and not o:
+			self.__indexkeys.addref(self.name, key, txn=txn)
 		o.add(item)
 		return self.set(key, o, txn=txn)
 
@@ -519,6 +538,8 @@ class FieldBTree(BTree):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
 		if not txn: txn=self.txn
 		o = self.get(key, txn=txn) or set()
+		if self.__indexkeys != None and not o:
+			self.__indexkeys.addref(self.name, key, txn=txn)
 		o |= set(items)
 		return self.set(key, o, txn=txn)
 
@@ -557,7 +578,8 @@ class FieldBTree(BTree):
 	def keys(self,mink=None,maxk=None,txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
  		minimum and maximum key values to retrieve"""
-		if mink == None and maxk == None: return super(FieldBTree, self).keys()
+		if mink == None and maxk == None:
+			return super(FieldBTree, self).keys()
 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
 
 
@@ -571,52 +593,37 @@ class FieldBTree(BTree):
 
 
 
-# 	def __len__(self):
-# 		"Number of elements in the database. Warning, this isn't transaction protected..."
-# 		return len(self.bdb)
-# #		if (self.len<0) : self.keyinit()
-# #		return self.len
-#
-# 	def __setitem__(self,key,val):
-# 		key=self.typekey(key)
-# 		if (val==None) :
-# 			self.__delitem__(key)
-# 		else : self.bdb.index_put(key,val,txn=self.txn)
-#
-# 	def __getitem__(self,key):
-# 		key=self.typekey(key)
-# 		return self.bdb.index_get(key,txn=self.txn)
-#
-# 	def __delitem__(self,key):
-# 		key=self.typekey(key)
-# 		self.bdb.delete(key,txn=self.txn)
-#
-# 	def __contains__(self,key):
-# 		key=self.typekey(key)
-# 		return self.bdb.index_has_key(key,txn=self.txn)
-#
-#
-# 	def items(self,mink=None,maxk=None,txn=None):
-# 		if not txn : txn=self.txn
-# 		mink=self.typekey(mink)
-# 		maxk=self.typekey(maxk)
-# 		return self.bdb.index_items(mink,maxk,txn=self.txn)
-#
-# 	def has_key(self,key,txn=None):
-# 		if not txn : txn=self.txn
-# 		key=self.typekey(key)
-# 		return self.bdb.index_has_key(key,txn=txn)
-#
-# 	def get(self,key,txn=None):
-# 		key=self.typekey(key)
-# 		return self.bdb.index_get(key,txn=txn)
-#
-# 	def set(self,key,val,txn=None):
-# 		"Alternative to x[key]=val with transaction set"
-# 		key=self.typekey(key)
-# 		if (val==None) :
-# 			self.bdb.delete(key,txn=txn)
-# 		else : self.bdb.index_put(key,val,txn=txn)
-#
-# 	def update(self,dict):
-# 		self.bdb.index_update(dict,txn=self.txn)
+class IndexKeyBTree(FieldBTree):
+	"""index of all param keys for quick searching (in 2-stages: find param/keys, then lookup recids)"""
+
+	def __str__(self):
+		return "<Database.IndexKeyBTree instance: %s>" % self.name
+
+
+	def keys(self, txn=None):
+		return map(self.loadkey, self.bdb.keys())
+
+	def values(self, txn=None):
+		return map(self.loaddata, self.bdb.values())
+
+	def typedata(self, data):
+		return set(data)
+		
+
+	def removeref(self, key, item, txn=None):
+		"""like FieldBTree method, but doesn't delete key if empty"""
+		if not txn: txn=self.txn
+		o = self.get(key, txn=txn) or set()
+		o.remove(item)
+		return self.set(key, o, txn=txn)	
+
+
+	def addref(self, key, item, txn=None):
+		"""like FieldBTree method, but doesn't delete key if empty"""
+		if not txn: txn=self.txn
+		o = self.get(key, txn=txn) or set()
+		o.add(item)
+		return self.set(key, o, txn=txn)
+		
+		
+		

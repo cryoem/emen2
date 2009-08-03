@@ -234,6 +234,7 @@ class RecordDef(DictMixin) :
 									# representation of the record. Note, however, that such completeness
 									# is NOT REQUIRED to have a valid Record
 		self.paramsK = []			# ordered keys from params()
+		self.paramsR = set()			# required parameters (will throw exception on commit if empty)
 		self.owner = None				# The owner of this record
 		self.creator = 0				# original creator of the record
 		self.creationtime = None		# creation date
@@ -453,7 +454,9 @@ class Record(DictMixin):
 	a new Record before committing changes back to the database.
 	"""
 
-	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"])#"dbid",#"uri"
+	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"])
+		#"groups",
+		#"dbid",#"uri"
 	 	# dbid # "modifyuser","modifytime",
 
 
@@ -488,7 +491,12 @@ class Record(DictMixin):
 		self.__comments = d.get('comments',[])
 		self.__creator = d.get('creator')
 		self.__creationtime = d.get('creationtime')
+		
+		
 		self.__permissions = d.get('permissions',((),(),(),()))
+		#self.__groups = d.get('groups',set())
+		
+		
 		self.__params = {}
 
 		self.__ptest = [0,0,0,0]
@@ -622,19 +630,10 @@ class Record(DictMixin):
 
 
 	def validate_permissions_users(self,orec={}):
-		u = set()
 		users = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))
-		for j in self.__permissions: u |= set(j)
-		# todo: get group names...
-		u -= set([0,-1,-2,-3,-4,-5])
+		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
 			raise ValueError, "undefined users: %s"%",".join(map(unicode, u-users))
-			
-
-	def validate_uri(self, orec={}, warning=0):
-		self.uri = unicode(self.uri)
-		
-		
 		
 			
 	def validate_params(self, orec={}, warning=0, params=[]):
@@ -684,16 +683,6 @@ class Record(DictMixin):
 		"""difference between two records"""
 		
 		allkeys = set(self.keys() + orec.keys())
-		#paramkeys = set(self.getparamkeys() + orec.getparamkeys())
-
-		#print type(self)
-		#print type(orec)
-
-		#for k in allkeys:
-		#	if self.get(k) != orec.get(k): 
-		#		print "%s\n\t%s\n\t%s"(k, self.get(k), orec.get(k))
-				
-				
 		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
 
 
@@ -795,6 +784,8 @@ class Record(DictMixin):
 			return self.__creationtime
 		elif key == "permissions":
 			return self.__permissions
+		#elif key == "groups":
+		#	return self.__groups
 		#elif key == "uri":
 		#	return self.uri
 
@@ -827,6 +818,9 @@ class Record(DictMixin):
 
 		elif key == 'permissions':
 			self.setpermissions(value)
+			
+		#elif key == 'groups':
+		#	self.setgroups(value)
 			
 		else:
 			#raise Exception # ValueError or KeyError?
@@ -933,9 +927,8 @@ class Record(DictMixin):
 			self.validationwarning("invalid permissions format: %s"%value)
 			raise
 
-		r = [self.__partitionints(i) for i in value]
-
-		return tuple(tuple(x) for x in r)
+		value = [self.__partitionints(i) for i in value]
+		return tuple(tuple(x) for x in value)
 		
 
 	def setpermissions(self, value):
@@ -946,6 +939,23 @@ class Record(DictMixin):
 		self.__permissions = self.__checkpermissionsformat(value)
 		
 	
+	
+	def setgroups(self, value):
+		if not self.isowner():
+			raise SecurityError, "Insufficient permissions to change permissions"
+		self.__groups = set(value)
+
+
+	def addgroup(self, value):
+		self.__groups.add(value)	
+	
+	
+	def removegroup(self, value):
+		try:
+			self.__groups.remove(value)
+		except:
+			pass
+			
 
 	def addcomment(self, value):
 		
