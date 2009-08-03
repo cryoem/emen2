@@ -249,8 +249,8 @@ class RecordDef(DictMixin) :
 		self.findparams()
 		
 		if ctx:
-			if not self.owner: self.owner = ctx.user
-			if not self.creator: self.creator = ctx.user
+			if not self.owner: self.owner = ctx.username
+			if not self.creator: self.creator = ctx.username
 			if not self.creationtime: self.creationtime = ctx.db.gettime()
 			
 
@@ -998,9 +998,9 @@ class Record(DictMixin):
 		self.__context = ctx
 
 		if not self.__creator:
-			self.__creator = unicode(ctx.user)
+			self.__creator = unicode(ctx.username)
 			self.__creationtime = unicode(time.strftime(emen2.Database.database.TIMESTR))
-			self.__permissions = ((),(),(),(unicode(ctx.user),))
+			self.__permissions = ((),(),(),(unicode(ctx.username),))
 
 		# test for owner access in this context.
 		if (-1 in ctx.groups):
@@ -1021,19 +1021,20 @@ class Record(DictMixin):
 		#if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 
 		# test for read permission in this context
-		if (-2 in u1 or ctx.user in p1 or u1 & p1):
+		#if (-2 in u1 or ctx.user in p1 or u1 & p1):
+		if (-2 in u1 or ctx.username in p1 or u1 & p1):
 			self.__ptest[0] = 1
 		else:
 			raise SecurityError,"Permission Denied: %s"%self.recid
 
 		# test for comment write permission in this context
-		if (ctx.user in p2 or u1 & p2): self.__ptest[1] = 1
+		if (ctx.username in p2 or u1 & p2): self.__ptest[1] = 1
 
 		# test for general write permission in this context
-		if (ctx.user in p3 or u1 & p3): self.__ptest[2] = 1
+		if (ctx.username in p3 or u1 & p3): self.__ptest[2] = 1
 
 		# test for administrative permission in this context
-		if (ctx.user in p4 or u1 & p4): self.__ptest[3] = 1
+		if (ctx.username in p4 or u1 & p4): self.__ptest[3] = 1
 
 
 	def items_dict(self):

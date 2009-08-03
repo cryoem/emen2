@@ -483,7 +483,7 @@ class FieldBTree(BTree):
 	"f" - float keys (64 bit)
 	"s" - string keys
 	"""
-	def __init__(*args, **kwargs):
+	def __init__(self, *args, **kwargs):
 		self.__indexkeys = kwargs.pop("indexkeys", None)
 		BTree.__init__(self, *args, **kwargs)
 

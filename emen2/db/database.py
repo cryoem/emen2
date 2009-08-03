@@ -661,7 +661,8 @@ class Database(object):
 				try:
 					del self.__contexts[ctxid]
 				except Exception, inst:
-					self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
+					pass
+					#self.LOG("LOG_ERROR","Unable to delete local context %s (%s)"%(ctxid, inst))
 
 				try:
 					del self.__contexts_p[ctxid]
@@ -962,7 +963,7 @@ class Database(object):
 		def loginuser(self, ctxid=None, host=None):
 			"""Who am I?"""
 			ctx = self.__getcontext(ctxid, host)
-			return ctx.user
+			return ctx.username
 
 
 
@@ -973,7 +974,7 @@ class Database(object):
 			of objects under that key. A somewhat slow operation."""
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 					raise SecurityError, "getbinarynames not available to anonymous users"
 
 			ret = self.__bdocounter.keys()
@@ -1257,7 +1258,7 @@ class Database(object):
 		@publicmethod
 		def getparamstatistics(self, paramname, ctxid=None, host=None):
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 				raise SecurityError, "Not authorized to retrieve parameter statistics"
 
 			try:
@@ -1278,9 +1279,9 @@ class Database(object):
 			ctx = self.__getcontext(ctxid, host)
 
 			if username == None:
-				username = ctx.user
+				username = ctx.username
 
-			if ctx.user != username and not ctx.checkreadadmin():
+			if ctx.username != username and not ctx.checkreadadmin():
 				raise SecurityError, "Not authorized to get record access for %s" % username
 
 
@@ -1847,7 +1848,7 @@ class Database(object):
 
 			commitusers = []
 			for i in username:
-				if i == ctx.user:
+				if i == ctx.username:
 					continue
 					# raise SecurityError, "Even administrators cannot disable themselves"
 				user = self.__users[i]
@@ -1859,7 +1860,7 @@ class Database(object):
 
 
 			ret = self.__commit_users(commitusers)
-			self.LOG(0, "Users %s disabled by %s"%([user.username for user in ret], ctx.user))
+			self.LOG(0, "Users %s disabled by %s"%([user.username for user in ret], ctx.username))
 
 			if ol: return ret[0].username
 			return [user.username for user in ret]
@@ -2193,7 +2194,7 @@ class Database(object):
 				groups = [groups]
 
 			groups2 = []
-			groups2.extend(filter(lambda x:isinstance(x, Group), groups)
+			groups2.extend(filter(lambda x:isinstance(x, Group), groups))
 			groups2.extend(map(lambda x:Group(x), filter(lambda x:isinstance(x, dict), groups)))			
 
 			allusernames = self.getusernames(ctxid=ctxid, host=host)
@@ -2396,12 +2397,12 @@ class Database(object):
 					else:
 						raise KeyError, "No such user: %s"%i
 
-				if ctx.checkreadadmin() or ctx.user == i:
+				if ctx.checkreadadmin() or ctx.username == i:
 					ret[i]=user
 					continue
 
 				# if the user has requested privacy, we return only basic info
-				if (user.privacy == 1 and ctx.user == None) or user.privacy >= 2:
+				if (user.privacy == 1 and ctx.username == None) or user.privacy >= 2:
 					user2 = User()
 					user2.username = user.username
 					user2.privacy = user.privacy
@@ -2410,7 +2411,7 @@ class Database(object):
 					user = user2
 
 				# Anonymous users cannot use this to extract email addresses
-				if ctx.user == None:
+				if ctx.username == None:
 					user.groups = None
 					user.email = None
 					#ret.altemail=None
@@ -2433,7 +2434,7 @@ class Database(object):
 					This is likely needed for inter-database communications"""
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 				return
 			return self.__users.keys()
 
@@ -2445,7 +2446,7 @@ class Database(object):
 			"""This will look for a username matching the provided name in a loose way"""
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None: return
+			if ctx.username == None: return
 
 			if self.__users.has_key(name) : return name
 
@@ -2483,11 +2484,11 @@ class Database(object):
 			it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 				raise SecurityError, "Anonymous users have no workflow"
 
 			try:
-				return self.__workflow[ctx.user]
+				return self.__workflow[ctx.username]
 			except:
 				return []
 
@@ -2523,7 +2524,7 @@ class Database(object):
 			"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 			ctx = self.__getcontext(ctxid, host)
 
-			if ctx.user == None:
+			if ctx.username == None:
 				raise SecurityError, "Anonymous users have no workflow"
 
 			if not isinstance(work, WorkFlow):
@@ -2542,13 +2543,13 @@ class Database(object):
 			work.wfid = self.__workflow[-1]
 			self.__workflow[-1] = work.wfid + 1
 
-			if self.__workflow.has_key(ctx.user):
-				wf = self.__workflow[ctx.user]
+			if self.__workflow.has_key(ctx.username):
+				wf = self.__workflow[ctx.username]
 			else:
 				wf = []
 
 			wf.append(work)
-			self.__workflow[ctx.user] = wf
+			self.__workflow[ctx.username] = wf
 			self.__workflow.set_txn(None)
 
 			if txn:	txn.commit()
@@ -2566,10 +2567,10 @@ class Database(object):
 			#self = db
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 				raise SecurityError, "Anonymous users have no workflow"
 
-			wf = self.__workflow[ctx.user]
+			wf = self.__workflow[ctx.username]
 			for i, w in enumerate(wf):
 				if w.wfid == wfid :
 					del wf[i]
@@ -2578,7 +2579,7 @@ class Database(object):
 				raise KeyError, "Unknown workflow id"
 
 			txn = self.newtxn()
-			self.__workflow.set(ctx.user, wf, txn)
+			self.__workflow.set(ctx.username, wf, txn)
 
 			if txn:	txn.commit()
 			elif not self.__importmode:	DB_syncall()
@@ -2595,7 +2596,7 @@ class Database(object):
 			#self = db
 
 			ctx = self.__getcontext(ctxid, host)
-			if ctx.user == None:
+			if ctx.username == None:
 				raise SecurityError, "Anonymous users have no workflow"
 
 			if wflist == None:
@@ -2616,7 +2617,7 @@ class Database(object):
 					w.wfid = self.__workflow[-1]
 					self.__workflow.set(-1, w.wfid + 1, txn)
 
-			self.__workflow.set(ctx.user, wflist, txn)
+			self.__workflow.set(ctx.username, wflist, txn)
 
 			if txn: txn.commit()
 			elif not self.__importmode : DB_syncall()
@@ -2700,7 +2701,7 @@ class Database(object):
 					self.LOG("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype))
 
 			except:
-				paramdef.creator = ctx.user
+				paramdef.creator = ctx.username
 				paramdef.creationtime = self.gettime()
 
 
@@ -2929,7 +2930,7 @@ class Database(object):
 				rd = RecordDef(recdef, ctx=ctx)
 				#raise Exception, "No such recorddef %s"%recdef.name
 
-			if ctx.user != rd.owner and not ctx.checkadmin():
+			if ctx.username != rd.owner and not ctx.checkadmin():
 				raise SecurityError, "Only the owner or administrator can modify RecordDefs"
 
 			if recdef.mainview != rd.mainview and not ctx.checkadmin():
@@ -3001,7 +3002,7 @@ class Database(object):
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
 			ctx = self.__getcontext(ctxid, host)
-			if (ret.private and (ret.owner == ctx.user or ret.owner in ctx.groups or ctx.checkreadadmin())):
+			if (ret.private and (ret.owner == ctx.username or ret.owner in ctx.groups or ctx.checkreadadmin())):
 				return ret
 
 			# ian todo: make sure all calls to getrecorddef pass recid they are requesting
@@ -3530,7 +3531,7 @@ class Database(object):
 
 				if log:
 					orec["modifytime"] = t
-					orec["modifyuser"] = ctx.user
+					orec["modifyuser"] = ctx.username
 
 				if importmode:
 					orec["modifytime"] = updrec["modifytime"]
@@ -3907,7 +3908,7 @@ class Database(object):
 				except Exception, inst:
 					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
-			if ctx.user != "root":
+			if ctx.username != "root":
 				rec.adduser(3, ctx.user)
 
 			return rec
@@ -3945,7 +3946,7 @@ class Database(object):
 			if ctx.checkreadadmin():
 				return set(range(self.__records[-1])) #+1)) # Ed: Fixed an off by one error
 
-			ret = set(self.__secrindex[ctx.user])
+			ret = set(self.__secrindex[ctx.username])
 			for group in sorted(ctx.groups,reverse=True):
 				ret |= set(self.__secrindex[group])
 
@@ -3972,8 +3973,8 @@ class Database(object):
 			# method 2
 			#ret=set()
 			ret = []
-			if ctx.user != None:
-				ret.extend(recids & set(self.__secrindex[ctx.user]))
+			if ctx.username != None:
+				ret.extend(recids & set(self.__secrindex[ctx.username]))
 			#ret |= recids & set(self.__secrindex[ctx.user])
 			#recids -= ret
 			for group in sorted(ctx.groups, reverse=True):
@@ -4067,19 +4068,20 @@ class Database(object):
 			#recl = map(lambda x:self.__records[int(x)], recid)
 			recid = map(lambda x:int(x), recid)
 
+
 			ret=[]
 			for i in recid:
-				try:
-					rec = self.__records[i]
-					rec.setContext(ctx)
-					ret.append(rec)
-				except SecurityError, e:
-					# if filtering, skip record; else bubble (SecurityError) exception
-					if filt: pass
-					else: raise e
-				except TypeError, e:
-					if filt: pass
-					else: raise KeyError, "No such record %s"%i
+				#try:
+				rec = self.__records[0] #self.__records[i]
+				rec.setContext(ctx)
+				ret.append(rec)
+				# except SecurityError, e:
+				# 	# if filtering, skip record; else bubble (SecurityError) exception
+				# 	if filt: pass
+				# 	else: raise e
+				# except TypeError, e:
+				# 	if filt: pass
+				# 	else: raise KeyError, "No such record %s"%i
 
 			if len(ret)==1 and ol:
 				return ret[0]
@@ -4197,7 +4199,7 @@ class Database(object):
 
 
 				rec=self.getrecord(recid,ctxid=ctxid,host=host)
-				if ctx.user not in rec["permissions"][3] and not isroot:
+				if ctx.username not in rec["permissions"][3] and not isroot:
 					raise SecurityError,"Insufficient permissions for record %s"%recid
 
 				# this will be a dictionary keyed by user of all records the user has
@@ -4221,7 +4223,7 @@ class Database(object):
 						# then we just skip this record and leave the permissions alone
 						# TODO: probably we should also check for groups in [3]
 
-						if ctx.user not in rec["permissions"][3] and not ctx.checkadmin(): continue
+						if ctx.username not in rec["permissions"][3] and not ctx.checkadmin(): continue
 
 						#print "rec: %s" % i
 
@@ -4332,7 +4334,7 @@ class Database(object):
 				else : trgt = set((recid,))
 
 				ctx = self.__getcontext(ctxid, host)
-				users.discard(ctx.user)								 # user cannot remove his own permissions
+				users.discard(ctx.username)								 # user cannot remove his own permissions
 				#if ctx.user=="root" or -1 in ctx.groups : isroot=1
 				if ctx.checkadmin(): isroot = 1
 				else: isroot = 0
@@ -4351,7 +4353,7 @@ class Database(object):
 						# if the user does not have administrative permission on the record
 						# then we just skip this record and leave the permissions alone
 						# TODO: probably we should also check for groups in [3]
-						if (not isroot) and (ctx.user not in rec["permissions"][3]) : continue
+						if (not isroot) and (ctx.username not in rec["permissions"][3]) : continue
 
 						cur = [set(v) for v in rec["permissions"]]				# make a list of Sets out of the current permissions
 						l = [len(v) for v in cur]														 # length of each tuple so we can decide if we need to commit changes
@@ -4599,7 +4601,7 @@ class Database(object):
 
 				print 'backup has begun'
 				#user,groups=self.checkcontext(ctxid,host)
-				user = ctx.user
+				user = ctx.username
 				groups = ctx.groups
 
 				if users == None: users = self.__users.keys()
@@ -4720,7 +4722,7 @@ class Database(object):
 
 				print 'backup has begun'
 				#user,groups=self.checkcontext(ctxid,host)
-				user = ctx.user
+				user = ctx.username
 				groups = ctx.groups
 
 				return demjson.encode(self.__users.values())
@@ -4743,7 +4745,7 @@ class Database(object):
 				self.LOG(4, "Begin restore operation")
 
 				ctx = self.__getcontext(ctxid, host)
-				user = ctx.user
+				user = ctx.username
 				groups = ctx.groups
 
 				if not ctx.checkadmin():

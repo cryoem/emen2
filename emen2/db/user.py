@@ -25,6 +25,8 @@ class Context:
 		attr_admin = set(["ctxid","db","user","groups","host","time","maxidle"])
 		attr_all = attr_user | attr_admin
 
+		username = property(lambda self:self.user.username)
+
 		def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 				self.ctxid = ctxid						# unique context id
 				self.db = db										# Points to Database object for this context
