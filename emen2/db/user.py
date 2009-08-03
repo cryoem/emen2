@@ -25,7 +25,6 @@ class Context:
 		attr_admin = set(["ctxid","db","user","groups","host","time","maxidle"])
 		attr_all = attr_user | attr_admin
 
-		username = property(lambda self:self.user.username)
 
 		def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
 				self.ctxid = ctxid						# unique context id
@@ -40,6 +39,14 @@ class Context:
 		# Contexts cannot be serialized
 		def __str__(self):
 			return format_string_obj(self.__dict__, ["ctxid","user","groups","time","maxidle"])
+
+		def __getusername(self):
+			try:
+				return self.user.username
+			except:
+				return None
+				
+		username = property(__getusername)
 
 		def checkadmin(self):
 			if (-1 in self.groups):

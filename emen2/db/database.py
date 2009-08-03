@@ -3317,15 +3317,15 @@ class Database(object):
 
 			namestoget=set(namestoget)
 
-			users = self.getuser(namestoget,filt=filt,ctxid=ctxid,host=host).items()
-			users = filter(lambda x:x[1].record!=None, users)
+			users = self.getuser(namestoget, filt=filt, ctxid=ctxid, host=host).items()
+			users = filter(lambda x:x[1].record != None, users)
 			users = dict(users)
 
-			recs = self.getrecord([user.record for user in users.values()],filt=filt,ctxid=ctxid,host=host)
+			recs = self.getrecord([user.record for user in users.values()], filt=filt, ctxid=ctxid, host=host)
 			recs = dict([(i.recid,i) for i in recs])
 
 			for k,v in users.items():
-				ret[k] = self.__formatusername(k,recs[v.record],lnf=lnf)
+				ret[k] = self.__formatusername(k, recs[v.record], lnf=lnf)
 
 			if len(ret.keys())==0:
 				return {}
@@ -4071,17 +4071,17 @@ class Database(object):
 
 			ret=[]
 			for i in recid:
-				#try:
-				rec = self.__records[0] #self.__records[i]
-				rec.setContext(ctx)
-				ret.append(rec)
-				# except SecurityError, e:
-				# 	# if filtering, skip record; else bubble (SecurityError) exception
-				# 	if filt: pass
-				# 	else: raise e
-				# except TypeError, e:
-				# 	if filt: pass
-				# 	else: raise KeyError, "No such record %s"%i
+				try:
+					rec = self.__records[i]
+					rec.setContext(ctx)
+					ret.append(rec)
+				except SecurityError, e:
+					# if filtering, skip record; else bubble (SecurityError) exception
+					if filt: pass
+					else: raise e
+				except TypeError, e:
+					if filt: pass
+					else: raise KeyError, "No such record %s"%i
 
 			if len(ret)==1 and ol:
 				return ret[0]
