@@ -334,7 +334,6 @@ class PublicView(Resource):
 		[request.setHeader(key, headers[key]) for key in headers]
 
 		request.setResponseCode(response)
-		g.debug(data)
 		request.write(data)
 		g.debug.msg('LOG_INFO', 'response -> (%r)' % response)
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(

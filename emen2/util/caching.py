@@ -21,28 +21,30 @@ def cache(f):
 
 class CacheMixin:
 	def reset_cache(self): self.cache = {}
-	
-	def start_caching(self): 
+
+	def start_caching(self):
 		self.caching = True
 		self.reset_cache()
-	
+
 	def stop_caching(self):
 		self.caching = False
 		self.reset_cache()
-		
+
 	def toggle_caching(self):
 		self.caching = not self.caching
-	
+
 	@if_caching
-	def get_cache_key(self, *args, **kwargs): 
+	def get_cache_key(self, *args, **kwargs):
 		return (args, tuple(kwargs.items()))
-	
+
 	@if_caching
 	def store(self, key, result): self.cache[key] = result
 
 	@if_caching
 	def check_cache(self, key):
+		print key
 		result = False, None
-		if self.cache.has_key(key): 
+		if self.cache.has_key(key):
+			print 'hit'
 			result = True, self.cache[key]
 		return result

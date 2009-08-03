@@ -67,7 +67,7 @@ class AuthResource(Resource):
 			"host":host,
 			"method":method,
 			"redirect":redirect
-			}
+		}
 
 
 

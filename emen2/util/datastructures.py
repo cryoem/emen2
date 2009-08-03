@@ -1,3 +1,4 @@
+from emen2.util import caching
 import itertools
 import operator
 import UserDict
@@ -20,28 +21,12 @@ class Ring(object):
 			self.__buf = self.__buf[-(self.__length-1):]
 		self.__buf.append(value)
 
-class AttributedDict(dict):
-	def __getattribute__(self, name):
-		result = None
-		try:
-			result = dict.__getattribute__(self, name)
-		except AttributeError, a:
-			try:
-				result = dict.__getitem__(self, name)
-			except KeyError, k:
-				raise a
-		return result
-	def __setattr__(self, name, value):
-		self[name] = value
-	def __repr__(self):
-		return 'AttributedDict(%s)' % dict.__repr__(self)
-
 class Enum(set):
 	'A class that maps names to numbers and allows the numbers to be referenced by name'
 	def __init__(self, dct):
 		set.__init__(self, (x.upper() for x in dct))
 		self.values = dict(( (x.upper(), int(dct[x])) for x in dct))
-		
+
 	def __getattribute__(self, name):
 		'returns the value associated with an state name'
 		result = None
@@ -53,7 +38,7 @@ class Enum(set):
 			except KeyError:
 				raise a
 		return result
-	
+
 	def __getitem__(self, name):
 		'gets the value associated with the state name'
 		try:
@@ -70,39 +55,16 @@ class Enum(set):
 		val = value[0].upper()
 		set.add(self, val)
 		self.values.update((val, int(value[1])))
-	
+
 	def get_name(self, value):
 		'get the name of a state'
 		return (x[0] for x in self.values.items() if x[1] == value).next()
 
-class MultiKeyDict(object, UserDict.DictMixin):
-	def __init__(self):
-		self._values = {}
-	def _iterify(self, key):
-		if not hasattr(key, '__iter__'): key = set([key])
-		return key
-	def __setitem__(self, key, value):
-		key = self._iterify(key)
-		self._values[frozenset(key)] = value
-	def __getitem__(self, key):
-		key = self._iterify(key)
-		return set((self._values[x] for x in self._values if x.issuperset(key)))
-	def filterbypred(self, key, pred, type=int):
-		result = set(self.values())
-		for x in (k for k in self.keys() if pred(key,k)): result &= self[x]
-		return set(filter(lambda x: isinstance(x,type), result))
-	def keys(self):
-		a = set()
-		for x in self._values.keys(): a |= x
-		return a
-	def values(self):
-		return self._values.values()
-	def as_dict(self): return dict(self.items())
-	def __repr__(self): return str(self.as_dict())
-
-class Tree(object, UserDict.DictMixin):
+class Tree(object, UserDict.DictMixin, caching.CacheMixin):
 	'processes and treeifies a dictionary'
 	def __init__(self, table, root, app=lambda x:x):
+		cache = {}
+		self.start_caching()
 		self.key = app(root)
 		self.filled = False
 		self.children = {}
@@ -112,13 +74,18 @@ class Tree(object, UserDict.DictMixin):
 			self.filled = True
 
 	def __getitem__(self, key):
-		if hasattr(key, '__iter__'): 
+		if hasattr(key, '__iter__'):
 			return self.find([self.key] + list(key))
 		return self.children[key]
 
-	def keys(self): 
+	def keys(self):
 		return self.children.keys()
 
+	def get_cache_key(self, func_name, path, *args, **kwargs):
+		print func_name, path, args, kwargs
+		return (func_name, tuple(path))
+
+	@caching.cache
 	def find(self, path):
 		if len(path) == 1:
 			return self
@@ -128,13 +95,13 @@ class Tree(object, UserDict.DictMixin):
 				value = value.find(path[1:])
 				return value
 
-	def __str__(self): 
+	def __str__(self):
 		return '\n'.join(self.mkstrtree(0))
 
 	def mkstrtree(self, level, space='--'):
 		result = [space*level+str(self.key)]
 		for id, child in self.children.items():
-			result.extend(child.mkstrtree(level+1)) 
+			result.extend(child.mkstrtree(level+1))
 		return result
 
 	def mktree(self):
@@ -142,9 +109,9 @@ class Tree(object, UserDict.DictMixin):
 		def setitem(dict, key, value): dict[key] = value
 		for key, value in self.children.items():
 			if value.filled:
-				setitem(result, key, value.mktree()) 
+				setitem(result, key, value.mktree())
 			else:
-				setitem(result, key, None) 
+				setitem(result, key, None)
 		return result
 
 	def count(self):
@@ -163,7 +130,3 @@ class Tree(object, UserDict.DictMixin):
 			result[key] = value
 		self.children = result
 
-	#def normalize_keys(self):
-	#	for key, value in self.children.items():
-	#		if key != value.key: value.key = key
-	#		value.normalize_keys()
