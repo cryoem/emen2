@@ -14,12 +14,12 @@ def dumpfile(data,fsp):
 	for i in data: out.write("%f\t%f\n"%(i[0],i[1]))
 	out.close()
 	
-def recordcountbytype(db,ctxid):
+def recordcountbytype(db, ctx=None, txn=None):
 	"""Prints a list of the number of records defined for
 	every existing RecordDef"""
-	names=db.getrecorddefnames()
+	names=db.getrecorddefnames(ctx=ctx, txn=txn)
 	for rdn in names:
-		print rdn,": ",len(db.getindexbyrecorddef(rdn,ctxid))
+		print rdn,": ",len(db.getindexbyrecorddef(rdn, ctx=ctx, txn=txn))
 
 def histogramvalues(vals,mn,mx,bins,sep0,sepmax):
 	"""This will histogram a list of numbers. If sep0 is true
@@ -83,14 +83,14 @@ def histogramtext(hist,maxv=0,logs=0):
 		
 	print " "
 
-def histogrambydate(db,reclist,bintime,ctxid):
+def histogrambydate(db,reclist,bintime,ctx=None, txn=None):
 	"""This will produce a histogram of the times all records
 	in the passed list of ids were added to the database.
 	bintime is in seconds. 3600 for hours, 86400 for days"""
 	hist={}
 	
 	curtime=time.time()
-	times=db.getrecordschangetime(reclist,ctxid)
+	times=db.getrecordschangetime(reclist, ctx=ctx, txn=txn)
 	for i in times:
 		t=int((Database.timetosec(i)-curtime)/bintime)
 		try: hist[t]=hist[t]+1
@@ -100,13 +100,13 @@ def histogrambydate(db,reclist,bintime,ctxid):
 	r.sort()
 	return r
 	
-def histogrambymonth(db,reclist,ctxid):
+def histogrambymonth(db,reclist,ctx=None,txn=None):
 	"""This will produce a histogram of the times all records
 	in the passed list of ids were added to the database.
 	Time is in months which may contain varying numbers of days"""
 	hist={}
 	
-	times=db.getrecordschangetime(reclist,ctxid)
+	times=db.getrecordschangetime(reclist, ctx=ctx, txn=txn)
 	
 	curtime=time.localtime()
 	year=curtime[0]
@@ -123,14 +123,14 @@ def histogrambymonth(db,reclist,ctxid):
 	r.sort()
 	return r
 	
-def histogrambystring(db,reclist,param,ctxid):
+def histogrambystring(db,reclist,param, ctx=None, txn=None):
 	"""This will produce a histogram of the provided parameter name
 	for all records in the provided list.
 	Time is in months which may contain varying numbers of days"""
 	hist={}
 	
 	for i in reclist:
-		r=db.getrecord(i,ctxid)
+		r=db.getrecord(i, ctx=ctx, txn=txn)
 		try: u=r[param]
 		except: pass
 		try: hist[u]=hist[u]+1
@@ -140,14 +140,14 @@ def histogrambystring(db,reclist,param,ctxid):
 	r.sort()
 	return r
 	
-def histogrambyvalue(db,reclist,param,binsize,ctxid):
+def histogrambyvalue(db,reclist,param,binsize, ctx=None, txn=None):
 	"""This will produce a histogram of the provided parameter name
 	for all records in the provided list using the supplied bin size.
 	Time is in months which may contain varying numbers of days"""
 	hist={}
 	
 	for i in reclist:
-		r=db.getrecord(i,ctxid)
+		r=db.getrecord(i, ctx=ctx, txn=txn)
 		try: u=int(r[param]/binsize)
 		except: pass
 		try: hist[u]=hist[u]+1
@@ -157,7 +157,7 @@ def histogrambyvalue(db,reclist,param,binsize,ctxid):
 	r.sort()
 	return r
 	
-def splitbystring(db,reclist,param,ctxid):
+def splitbystring(db,reclist,param, ctx=None, txn=None):
 	"""This will generate a dictionary of lists of recids
 	split using the value of the provided parameter name
 	for all records in the provided list.
@@ -165,7 +165,7 @@ def splitbystring(db,reclist,param,ctxid):
 	hist={}
 	
 	for i in reclist:
-		r=db.getrecord(i,ctxid)
+		r=db.getrecord(i, ctx=ctx, txn=txn)
 		try: u=r[param]
 		except: pass
 		try: hist[u].append(i)

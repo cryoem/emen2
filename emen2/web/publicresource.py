@@ -254,12 +254,15 @@ class PublicView(Resource):
 		'''set db context, call view, and get string result
 
 		put together to minimize amount of blocking code'''
+
 		db._setcontext(ctxid,host)
+		# db._starttxn()
 		ret, headers = callback(db=db)
 		try:
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
 			ret = str(ret)
+		
 
 		return ret, headers
 

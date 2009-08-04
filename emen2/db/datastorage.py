@@ -575,7 +575,7 @@ class Record(DictMixin):
 
 		self.rectype = unicode(self.rectype)
 
-		if self.rectype not in self.__context.db.getrecorddefnames(self.__context.ctxid,self.__context.host):
+		if self.rectype not in self.__context.db.getrecorddefnames(ctx=self.__context.ctx):
 			raise ValueError, "invalid rectype %s"%(self.rectype)
 
 		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
@@ -597,7 +597,7 @@ class Record(DictMixin):
 			#except:
 			#	raise ValueError, "invalid comment format: %s; skipping"%(i)
 				
-		usernames = set(self.__context.db.getusernames(ctxid=self.__context.ctxid, host=self.__context.host))
+		usernames = set(self.__context.db.getusernames(ctx=self.__context))
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)		
 			
@@ -613,7 +613,7 @@ class Record(DictMixin):
 		return
 
 		try:
-			self.__context.db.getuser(self.__creator, filt=0, ctxid=self.__context.ctxid, host=self.__context.host)
+			self.__context.db.getuser(self.__creator, filt=0, ctx=self.__context)
 		except:
 			raise ValueError, "invalid creator: %s"%(self.__creator)
 		
@@ -630,7 +630,7 @@ class Record(DictMixin):
 
 
 	def validate_permissions_users(self,orec={}):
-		users = set(self.__context.db.getusernames(ctxid=self.__context.ctxid,host=self.__context.host))
+		users = set(self.__context.db.getusernames(ctx=self.__context.ctx))
 		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
 			raise ValueError, "undefined users: %s"%",".join(map(unicode, u-users))
@@ -671,7 +671,7 @@ class Record(DictMixin):
 
 	def validate_param(self, value, pd, vtm):
 
-		v = vtm.validate(pd, value, db=self.__context.db, ctxid=self.__context.ctxid, host=self.__context.host)
+		v = vtm.validate(pd, value, db=self.__context.db, ctx=self.__context)
 
 		if v != value and v != None:
 			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v))
@@ -1053,7 +1053,7 @@ class Record(DictMixin):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__context.db.putrecord(self, ctxid=self.__context.ctxid, host=self.__context.host)
+		return self.__context.db.putrecord(self, ctx=self.__context)
 
 
 	def isowner(self):
