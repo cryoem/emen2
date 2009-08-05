@@ -214,8 +214,7 @@ class PublicView(Resource):
 		try:
 			host = request.getClientIP()
 			ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
-
-			g.debug("ctxid is: %s"%ctxid)
+			#g.debug("ctxid is: %s"%ctxid)
 
 			request.postpath = filter(bool, request.postpath)
 			request.postpath.append('')
@@ -224,7 +223,7 @@ class PublicView(Resource):
 
 			path = '/%s' % str.join("/", request.postpath)
 			target = self.__getredirect(None, request, path)
-			g.debug('redirect target --> (', target, ')')
+			# g.debug('redirect target --> (', target, ')')
 
 			if target is not None:
 				#request.redirect(target)
@@ -236,15 +235,16 @@ class PublicView(Resource):
 				g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
 
 				args = self.__parse_args(request.args, content=content)
-				callback = routing.URLRegistry().execute(path, ctxid=ctxid, host=host, **args)
+				callback = routing.URLRegistry().execute(path, **args)
 
 				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
-				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid)
-				d.addErrback(self._ebRender, request, ctxid=ctxid)
+				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
+				d.addErrback(self._ebRender, request, ctxid=ctxid, host=host)
 
 			return server.NOT_DONE_YET
+
 		except BaseException, e:
-			self._ebRender(e, request, ctxid=ctxid)
+			self._ebRender(e, request, ctxid=ctxid, host=host)
 
 
 
@@ -255,9 +255,12 @@ class PublicView(Resource):
 
 		put together to minimize amount of blocking code'''
 
+		# this binds the Context to the DBProxy for the duration of the view
 		db._setcontext(ctxid,host)
 		# db._starttxn()
+
 		ret, headers = callback(db=db)
+
 		try:
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
@@ -269,8 +272,9 @@ class PublicView(Resource):
 
 
 
-	def _cbsuccess(self, result, request, t=0, ctxid=None):
+	def _cbsuccess(self, result, request, t=0, ctxid=None, host=None):
 		"result must be a 2-tuple: (result, mime-type)"
+
 		try:
 			headers = {"content-type": "text/html; charset=utf-8",
 					 "Cache-Control":"no-cache", "Pragma":"no-cache"}
@@ -292,14 +296,14 @@ class PublicView(Resource):
 					size = len(result)
 			))
 		except BaseException, e:
-			self._ebRender(e, request, ctxid=ctxid)
+			self._ebRender(e, request, ctxid=ctxid, host=host)
 
 		request.finish()
 
 
 
 
-	def _ebRender(self, failure, request, ctxid=None):
+	def _ebRender(self, failure, request, ctxid=None, host=None):
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
 		headers = {}

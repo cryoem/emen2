@@ -23,7 +23,11 @@ g = emen2.globalns.GlobalNamespace('')
 import urlparse
 import demjson
 
-class Null(object): pass
+
+
+#class Null(object): pass
+
+
 
 class AuthResource(Resource):
 
@@ -86,24 +90,25 @@ class AuthResource(Resource):
 	def _action(self, l, db=None):
 		g.debug("auth -> %s"%l)
 
+
 		if l["method"] == "login":
-			cls=emen2.TwistSupport_html.public.login.Login
+			cls = emen2.TwistSupport_html.public.login.Login
+
 		elif l["method"] == "logout":
-			cls=emen2.TwistSupport_html.public.login.Logout
+			cls = emen2.TwistSupport_html.public.login.Logout
+
 		elif l["method"] == "chpasswd":
-			cls=emen2.TwistSupport_html.public.login.Chpasswd
+			cls = emen2.TwistSupport_html.public.login.Chpasswd
+
 		else:
 			raise Exception,"Unsupported auth method: %s"%method
 
 
 		# do work here
-#		db._setcontext(l["ctxid"],l["host"])
-		p = cls(db=db,**l)
-		ctxid = p.get_context()["ctxid"]
+		p = cls(db=db, **l)
+		ctxid = p.get_context().get("ctxid") #["ctxid"]
 		data = unicode(p.get_data()).encode("utf-8")
-#		db._clearcontext()
 
-		g.debug("->ctxid:%s"%ctxid)
 
 		return ctxid, data
 
@@ -112,7 +117,7 @@ class AuthResource(Resource):
 	def _cbrender(self, result, request, largs):
 		ctxid = result[0]
 		data = result[1]
-
+				
 		msg = None
 		if ctxid != largs["ctxid"]:
 			g.debug("-> setting ctxid to %s"%ctxid)

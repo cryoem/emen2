@@ -15,10 +15,8 @@ class DBTree(object):
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
 
-	def __init__(self, db, ctxid, host=None, root=None):
+	def __init__(self, db, root=None):
 		self.__db = db
-		self.__ctxid = ctxid
-		self.__host = host
 		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
 		self.db = self.__db
 

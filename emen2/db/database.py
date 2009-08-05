@@ -120,6 +120,7 @@ class DBProxy(object):
 			self.__db = Database(dbpath)
 		else:
 			self.__db = db
+		self.__ctx = None
 		#self._setcontext(ctxid, host)
 
 
@@ -127,7 +128,7 @@ class DBProxy(object):
 	def _login(self, username="anonymous", password="", host=None):
 		ctx = self.__db._login(username, password, host=host)
 		self.__ctx = ctx
-		return ctx.ctxid, ctx.host
+		return ctx.ctxid, ctx.groups
 
 
 
@@ -135,10 +136,10 @@ class DBProxy(object):
 		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
 		#self._bound = True
 
-		try:
-			self.__ctx = self.__db._getcontext(ctxid, host)
-		except:
-			self.__ctx = self.__db._getcontext(None, host)
+		#try:
+		self.__ctx = self.__db._getcontext(ctxid, host)
+		#except:
+		#	self.__ctx = self.__db._getcontext(None, host)
 		
 		
 		self.__bound = True
@@ -208,7 +209,6 @@ class DBProxy(object):
 		# if host and not kwargs.get('host'):
 		# 	kwargs["host"]=host
 		kwargs["ctx"] = self.__ctx
-		
 
 		result = None
 		if name in self._allmethods():
@@ -286,6 +286,8 @@ class Database(object):
 
 		def publicmethod(func):
 			DBProxy._register_publicmethod(func.func_name, func)
+			return func
+			
 			@wraps(func)
 			def _inner(self, *args, **kwargs):
 				txn = kwargs.get('txn')
@@ -299,6 +301,7 @@ class Database(object):
 					raise
 				else:
 					txn and txn.commit()
+			
 			return _inner
 
 
@@ -730,8 +733,10 @@ class Database(object):
 		@publicmethod
 		def deletecontext(self, ctx=None, txn=None):
 			"""Delete a context/Logout user. Returns None."""
-			self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
-
+			try:
+				self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
+			except:
+				pass
 
 
 		# ian: change so all __setcontext calls go through same txn
@@ -764,7 +769,7 @@ class Database(object):
 			#self.__contexts_p.set_txn(txn)
 
 			# set context
-			if ctxid != None:
+			if context != None:
 				try:
 					self.__contexts[ctxid] = context
 				except Exception, inst:
@@ -833,7 +838,7 @@ class Database(object):
 
 
 			if host and host != context.host :
-				self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, ctx.host))
+				self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, context.host))
 				raise SessionError, "Bad address match, login sessions cannot be shared"
 
 			context.time = time.time()
@@ -1768,9 +1773,10 @@ class Database(object):
 
 
 			# ian: think about doing this a better way
-			if filt:
+			if filt and keytype=="record":
+				
 				allr = self.filterbypermissions(allr, ctx=ctx, txn=txn)
-
+				
 				if not tree:
 					for k,v in ret.items():
 						ret[k] = ret[k] & allr
@@ -3401,6 +3407,7 @@ class Database(object):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
 
+
 			#if (dbid != 0):
 			#	raise NotImplementedError("External database support not yet available")
 			#	#Ed Changed to NotimplementedError
@@ -4161,17 +4168,22 @@ class Database(object):
 			# this is usually the fastest
 			# method 2
 			#ret=set()
+
 			ret = []
+
 			if ctx.username != None:
 				ret.extend(recids & set(self.__secrindex[ctx.username]))
+
 			#ret |= recids & set(self.__secrindex[ctx.user])
 			#recids -= ret
+
 			for group in sorted(ctx.groups, reverse=True):
 				#if recids:
 				#print "searching group %s"%group
 				#ret |= recids & set(self.__secrindex[group])
 				#recids -= ret
 				ret.extend(recids & set(self.__secrindex[group]))
+			
 			return set(ret)
 
 
