@@ -1,6 +1,8 @@
 import time
 from UserDict import DictMixin
 import emen2.Database.database
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace()
 
 def format_string_obj(dict,keylist):
 		"""prints a formatted version of an object's dictionary"""
@@ -45,10 +47,11 @@ class Context:
 				return self.user.username
 			except:
 				return None
-				
+
 		username = property(__getusername)
 
 		def checkadmin(self):
+			g.debug(self.groups)
 			if (-1 in self.groups):
 					return True
 			return False
@@ -70,29 +73,29 @@ class Context:
 import operator
 
 class Group(DictMixin):
-	
+
 	attr_user = set(["privacy", "modifytime","permissions"])
 	attr_admin = set(["name","disabled","creator","creationtime"])
 	attr_all = attr_user | attr_admin
-	
-	
+
+
 	def __init__(self, d=None, **kwargs):
 		kwargs.update(d or {})
 		ctx = kwargs.get('ctx',None)
-		
+
 		self.name = kwargs.get('name')
 		self.disabled = kwargs.get('disabled',False)
 		self.privacy = kwargs.get('privacy',False)
 		self.creator = kwargs.get('creator',None)
 		self.creationtime = kwargs.get('creationtime',None)
 		self.modifytime = kwargs.get('modifytime',None)
-				
+
 		self.setpermissions(kwargs.get('permissions'))
 
 		if ctx:
 			self.creator = ctx.user
 			self.adduser(3, self.creator)
-			self.creationtime = ctx.db.gettime()	
+			self.creationtime = ctx.db.gettime()
 			self.validate(ctx=ctx)
 
 		#self.__permissions = kwargs.get('permissions')
@@ -101,14 +104,14 @@ class Group(DictMixin):
 
 	def members(self):
 		return set(reduce(operator.concat, self.__permissions))
-		
-		
+
+
 	def owners(self):
 		return self.__permissions[3]
-		
+
 
 	def adduser(self, level, users, reassign=1):
-		
+
 		level=int(level)
 
 		p = [set(x) for x in self.__permissions]
@@ -128,26 +131,26 @@ class Group(DictMixin):
 			p = [i-users for i in p ]
 
 		p[level] |= users
-		
+
 		p[0] -= p[1] | p[2] | p[3]
 		p[1] -= p[2] | p[3]
 		p[2] -= p[3]
-		
+
 		self.setpermissions(p)
 
 
 	##########################################
 	# taken from Record
 	##########################################
-		
+
 	def removeuser(self, users):
-				
+
 		p = [set(x) for x in self.__permissions]
 		if not hasattr(users,"__iter__"):
 			users = [users]
 		users = set(users)
 		p = [i-users for i in p]
-		
+
 		self.setpermissions(p)
 		#self.__permissions = tuple([tuple(i) for i in p])
 
@@ -180,27 +183,27 @@ class Group(DictMixin):
 		r = [self.__partitionints(i) for i in value]
 
 		return tuple(tuple(x) for x in r)
-		
+
 
 	def setpermissions(self, value):
 		#if not self.isowner():
 		#	raise SecurityError, "Insufficient permissions to change permissions"
 		self.__permissions = self.__checkpermissionsformat(value)
-		
-	
+
+
 	def getpermissions(self):
 		return self.__permissions
-		
+
 
 
 	################################
-	
+
 	def validate(self, ctx=None):
 		return True
 
 	####
 	#def isowner(self):
-	#	return 
+	#	return
 
 	################################
 	# mapping methods
@@ -209,7 +212,7 @@ class Group(DictMixin):
 		if key == "permissions":
 			return self.getpermissions()
 		return self.__dict__.get(key)
-	
+
 	def __setitem__(self,key,value):
 		if key == "permissions":
 			return self.setpermissions(value)
@@ -217,10 +220,10 @@ class Group(DictMixin):
 			self.__dict__[key]=value
 		else:
 			raise KeyError,"Invalid key: %s"%key
-	
+
 	def __delitem__(self,key):
 		raise AttributeError,"Key deletion not allowed"
-	
+
 	def keys(self):
 		return tuple(self.attr_all)
 
@@ -279,13 +282,13 @@ class User(DictMixin):
 			name -- string
 			email --string
 		"""
-		
-		
+
+
 
 		kwargs.update(d or {})
 		ctx = kwargs.get('ctx',None)
-		
-		
+
+
 		self.username=kwargs.get('username')
 		self.password=kwargs.get('password')
 		self.groups=kwargs.get('groups', [-4])
@@ -300,8 +303,8 @@ class User(DictMixin):
 		# secret in signupinfo
 		# self.secret = kwargs.get('secret')
 		self.signupinfo = {}
-		
-		
+
+
 		if ctx:
 			# fill this in...
 			pass
@@ -427,7 +430,7 @@ class WorkFlow(DictMixin):
 		if ctx:
 			# update with ctx info...
 			pass
-			
+
 
 	#################################
 	# repr methods

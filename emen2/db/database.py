@@ -1488,7 +1488,10 @@ class Database(object):
 				ret = paramindex.values()
 
 			else:
-				ret = set(paramindex.values(valrange[0], valrange[1]))
+				if hasattr(valrange, '__iter__'):
+					ret = set(paramindex.values(valrange[0], valrange[1]))
+				else:
+					ret = paramindex.values(valrange)
 
 			if ctx.checkreadadmin():
 				return ret
@@ -4868,8 +4871,8 @@ class Database(object):
 				user = ctx.username
 				groups = ctx.groups
 
-				if not ctx.checkadmin():
-					raise SecurityError, "Database restore requires admin access"
+	#~			if not ctx.checkadmin():
+	#~				raise SecurityError, "Database restore requires admin access"
 
 				if type(restorefile) == file:
 					fin = restorefile

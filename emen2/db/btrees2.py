@@ -485,6 +485,7 @@ class FieldBTree(BTree):
 	"""
 	def __init__(self, *args, **kwargs):
 		self.__indexkeys = kwargs.pop("indexkeys", None)
+		kwargs.pop('keyindex', None)
 		BTree.__init__(self, *args, **kwargs)
 
 		
@@ -545,12 +546,12 @@ class FieldBTree(BTree):
 
 
 	def items(self, mink=None, maxk=None, txn=None):
-		#if mink == None and maxk == None:
-		#	return self.bdb.items()
-
-		if not txn : txn=self.txn
+		if not txn: txn=self.txn
 		if mink is None and maxk is None:
-			items = super(FieldBTree, self).items()
+			items = BTree.items(self)
+		elif mink is not None and maxk is None:
+			mink = self.typekey(mink)
+			items = [(mink, self[mink])]
 		else:
 			print "cur"
 			cur = self.bdb.cursor(txn=txn)
@@ -566,12 +567,15 @@ class FieldBTree(BTree):
 			if maxk is not None:
 				maxk=self.typekey(maxk)
 
-			while entry is not None:
-				key, value = (pickle.loads(x) for x in entry)
-				if maxk is not None and key >= maxk:
-					break
-				items.append((key,value))
-				entry = cur.next()
+				while entry is not None:
+					key, value = entry
+					key = key.decode('utf-8')
+					value = pickle.loads(value)
+					if maxk is not None and key >= maxk:
+						break
+					items.append((key,value))
+					entry = cur.next()
+			cur.close()
 
 		return items
 
@@ -580,14 +584,14 @@ class FieldBTree(BTree):
 		"""Returns a list of valid keys, mink and maxk allow specification of
  		minimum and maximum key values to retrieve"""
 		if mink == None and maxk == None:
-			return super(FieldBTree, self).keys()
+			return BTree.keys(self)
 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
 
 
 	def values(self,mink=None,maxk=None,txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
-		if mink == None and maxk == None: return super(FieldBTree, self).values()
+		if mink == None and maxk == None: return BTree.values(self)
 		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)), set())
 
 

@@ -1,17 +1,14 @@
-from emen2.emen2config import *
 import urllib2
-import time
-from emen2.subsystems.routing import URLRegistry
-from functools import partial
-from itertools import chain
 import emen2.util.datastructures
 import emen2.Database
-import hashlib
 
-class IntegrityError(ValueError): pass
+from emen2.subsystems.routing import URLRegistry
+
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace()
 
 class DBTree(object):
-	'''emulates a tree structure on to of the Database'''
+	'''emulates a tree structure on top of the Database'''
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
 
@@ -20,22 +17,55 @@ class DBTree(object):
 		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
 		self.db = self.__db
 
-	def __getpath(self, path=None):
-		if path != None: path = self.get_path_id(path)
-		else: path = [self.root]
-		return path
+	def get_path_id(self, path, cur_dir=None):
+		'''
+		takes a list iterates through it and follows parent-child relationships in the db
+		selecting children with a recname parameter equal to the current list item
 
+		empty list signifies current directory
 
-	def __unfold_dict(self, dict):
-		result = []
-		[ [ result.append((key, item)) for item in items ] for key, items in dict.iteritems()]
+		raises StopIteration if path does not exist
+		'''
+		cur_dir = cur_dir or self.root
+		if path == []: # empty path == found result
+			result = set([cur_dir])
+		else: # recurse if we are not at the end of the path list
+			children = self.get_child_id(path[0], cur_dir=cur_dir)
+			result = reduce(set.union, self.__gpi_helper_1(path[1:], children), set())
 		return result
+
+
+	def __gpi_helper_1(self, path, children):
+		for recid in children:
+			yield self.get_path_id(path, recid)
+
+
+	def get_child_id(self, name, cur_dir):
+		'''returns children of a record with a given recname'''
+		children = self.__db.getchildren(cur_dir, filt=True)
+		if name == '*':
+			[(yield child) for child in children]
+		else:
+			for rec in self.__dostuff(name, children):
+				yield rec
+
+
+	def __dostuff(self, name, records):
+		for rec in records:
+			if (str(rec) == name) or (rec in self.__db.getindexbyvalue('recname', name)):
+				yield (rec)
 
 
 	def __select(self, data, **kwargs):
 		for param, value in kwargs.iteritems():
-			data &= self.__db.getindexbyvalue(param, value)#, ctxid=self.__ctxid, host=self.__host)
+			data &= self.__db.getindexbyvalue(param, value)
 		# no return since sets are weakly referenced
+
+
+	def __getpath(self, path=None):
+		if path != None: path = self.get_path_id(path)
+		else: path = [self.root]
+		return path
 
 	def __to_path(self, recid, path=None):
 		path = path or []
@@ -57,40 +87,13 @@ class DBTree(object):
 		self.__root = recid
 
 
-	def get_path_id(self, path, cur_dir=None):
-		'''
-		takes a list iterates through it and follows parent-child relationships in the db
-		selecting children with a recname parameter equal to the current list item
 
-		empty list signifies current directory
-
-		raises StopIteration if path does not exist
-		'''
-		cur_dir = cur_dir or self.root
-		if path != []: # recurse if we are not at the end of the path list
-			children = ( elem for elem in self.get_child_id(path[0], cur_dir=cur_dir) )
-			result = set()
-			for recset in ( self.get_path_id(path[1:], recid) for recid in children ): # << recurse here
-				result.update(recset)
-		else: # if we are at the end of the path list, we must be where we want to be
-			result = set([cur_dir])
-		return result
-
-
-	def get_child_id(self, name, cur_dir):
-		'''returns children of a record with a given recname'''
-		children = self.__db.getchildren(cur_dir, filt=True)
-		if name == '*':
-			[(yield child) for child in children]
-		else:
-			for rec in self.__dostuff(name, children):
-				yield rec
 
 	def get_parents(self, path=None, **kwargs):
 		path = self.__getpath(path)
 		result = set()
 		for rec in path:
-			result.update(self.__db.getparents(rec))#, ctxid=self.__ctxid, host=self.__host))
+			result.update(self.__db.getparents(rec))
 		self.__select(result, **kwargs)
 		return result
 
@@ -113,14 +116,9 @@ class DBTree(object):
 		parents = self.get_parents(path)
 		result = set()
 		for parent in parents:
-			result.update(self.__db.getchildren(parent))#, ctxid=self.__ctxid, host=self.__host))
+			result.update(self.__db.getchildren(parent))
 		self.__select(result, **kwargs)
 		return result
-
-	def __dostuff(self, name, records):
-		for rec in records:
-			if (str(rec) == name) or (self.__db.getrecord(rec)['recname'] == name):
-				yield (rec)
 
 	def get_sibling(self, name, **kwargs):
 		siblings = self.get_siblings()
@@ -146,7 +144,7 @@ class DBTree(object):
 		return result
 
 	def render_template_view(self, name, *args, **kwargs):
-		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )#ctxid=self.__ctxid, host=self.__host,
+		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )
 
 	def render_view(self, recid, view):
 		return self.db.renderview(recid, viewtype=view)
@@ -172,14 +170,10 @@ class DBTree(object):
 
 		return recs
 
-def get_create(recdef, param, value, db, ctxid, host=None):
-	record = db.getindexbyvalue(param, value, ctxid, host)
-	record = db.groupbyrecorddef(record, ctxid, host).get(recdef, set())
-	if len(record) == 1:
-		record = db.getrecord(record.pop(), ctxid)
-	elif len(record) > 1:
-		raise IntegrityError('Value Not Unique')
-	else:
-		record = db.newrecord(recdef, ctxid)
-		record[param] = value
-	return record
+	def __unfold_dict(self, dict):
+		result = []
+		[ [ result.append((key, item)) for item in items ] for key, items in dict.iteritems()]
+		return result
+
+
+
