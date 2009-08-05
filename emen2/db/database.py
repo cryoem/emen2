@@ -1267,6 +1267,7 @@ class Database(object):
 		#def fulltextsearch(self, q, rectype=None, indexsearch=True, params=set(), recparams=0, builtinparam=0, ignorecase=True, subset=[], tokenize=0, single=0, includeparams=set()):
 		def fulltextsearch(self, q, rectype=None, params=None, ignorecase=True, subset=None, includeparams=None, bool_and=False, bool_or=False, ctx=None, txn=None):
 
+
 			# search these params
 			subset = set(subset or [])
 			params = set(params or [])
@@ -1286,8 +1287,11 @@ class Database(object):
 			
 			q = set(q.split())
 			
+			
+			
 			indexmatches = {}
 			#indexkeysitems = self.__indexkeys.items()
+			
 			
 			for param,paramvalues in self.__indexkeys.items():
 				for qitem in q:
@@ -1297,6 +1301,7 @@ class Database(object):
 							if not indexmatches.has_key(param):
 								indexmatches[param] = set()
 							indexmatches[param] |= set(r)
+
 
 			matches2 = {}
 
@@ -1309,6 +1314,7 @@ class Database(object):
 						matches2[recid].add(param)
 
 
+
 			recs = set(matches2.keys())
 			if subset:
 				recs &= subset
@@ -1317,7 +1323,7 @@ class Database(object):
 			if rectype:
 				recs = filter(lambda x:x.rectype == rectype, recs)
 
-
+			
 			ret = {}
 			
 			for i in recs:
@@ -3180,7 +3186,7 @@ class Database(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, keyindex=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv)
+			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv)
 
 			return self.__fieldindex[paramname]
 			

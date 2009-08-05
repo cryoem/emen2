@@ -545,7 +545,8 @@ class FieldBTree(BTree):
 
 
 	def items(self, mink=None, maxk=None, txn=None):
-		if mink == None and maxk == None: return self.items()
+		#if mink == None and maxk == None:
+		#	return self.bdb.items()
 
 		if not txn : txn=self.txn
 		if mink is None and maxk is None:
