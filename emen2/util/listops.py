@@ -7,7 +7,7 @@ def get(collection, key, default=None):
 		return default
 	except IndexError:
 		return default
-	
+
 def remove(collection, keys):
 	if not hasattr(keys, '__iter__'):
 		keys = [keys]
@@ -27,20 +27,20 @@ def combine_dicts(*args):
 	result = dict()
 	for dct in args: result.update(dct)
 	return result
-	
+
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
 
 def filter_dict(dict, allowed, pred):
 	result = {}
-	[ result.update([(key, dict[key])]) 
-	  for key in dict 
-	  if pred(key, set(allowed)) ]
+	[ result.update([(key, dict[key])])
+		for key in dict
+		if pred(key, set(allowed)) ]
 	return result
 
-pick = partial(filter_dict, pred=(lambda x,y: x in y)) 
+pick = partial(filter_dict, pred=(lambda x,y: x in y))
 drop = partial(filter_dict, pred=(lambda x,y: x not in y))
-	
+
 
 def test_get():
 	print '1 == ',  get( {2:2, 3:3, 1:1}, 1 )
