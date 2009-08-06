@@ -1,8 +1,13 @@
 import time
 from UserDict import DictMixin
+import operator
+
+
+
 import emen2.Database.database
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+
 
 def format_string_obj(dict,keylist):
 		"""prints a formatted version of an object's dictionary"""
@@ -28,53 +33,63 @@ class Context:
 		attr_all = attr_user | attr_admin
 
 
-		def __init__(self,ctxid=None,db=None,user=None,groups=None,host=None,maxidle=14400):
-				self.ctxid = ctxid						# unique context id
-				self.db = db										# Points to Database object for this context
-				self.user = user								# validated username
-				self.groups = groups or {}						# groups for this user
-				self.user
-				self.host = host								# ip of validated host for this context
-				self.time = time.time()				 # last access time for this context
+		def __init__(self, ctxid=None, db=None, username=None, user=None, groups=None, host=None, maxidle=14400):
+				self.ctxid = ctxid	# unique context id
+				self.db = db	# Points to Database object for this context
+				self._user = user	# validated user instance, w/ user record, displayname, groups
+				self.host = host # ip of validated host for this context
+				self.time = time.time()	# last access time for this context
 				self.maxidle = maxidle
+				self._username = username # login name, fall back if user.username does not exist
+
 
 		# Contexts cannot be serialized
 		def __str__(self):
 			return format_string_obj(self.__dict__, ["ctxid","user","groups","time","maxidle"])
 
+
 		def __getusername(self):
 			try:
-				return self.user.username
+				return self._user.username
 			except:
-				return None
+				return self._username
+
+
+		def __getgroups(self):
+			try:
+				return self._user.groups
+			except:
+				return set()
+				
 
 		username = property(__getusername)
+		groups = property(__getgroups)
+
 
 		def checkadmin(self):
-			g.debug(self.groups)
-			if (-1 in self.groups):
+			if ("admin" in self.groups):
 					return True
 			return False
 
 
 		def checkreadadmin(self):
-			if (-1 in self.groups) or (-2 in self.groups):
+			if ("admin" in self.groups) or ("readadmin" in self.groups):
 					return True
 			return False
 
 
 		def checkcreate(self):
-			if 0 in self.groups or -1 in self.groups:
+			print "what is self.groups? %s"%self.groups
+			if "create" in self.groups or "admin" in self.groups:
 					return True
 			return False
 
 
 
-import operator
 
 class Group(DictMixin):
 
-	attr_user = set(["privacy", "modifytime","permissions"])
+	attr_user = set(["privacy", "modifytime","modifyuser","permissions"])
 	attr_admin = set(["name","disabled","creator","creationtime"])
 	attr_all = attr_user | attr_admin
 
@@ -89,11 +104,12 @@ class Group(DictMixin):
 		self.creator = kwargs.get('creator',None)
 		self.creationtime = kwargs.get('creationtime',None)
 		self.modifytime = kwargs.get('modifytime',None)
-
+		self.modifyuser = kwargs.get('modifyuser',None)
+		
 		self.setpermissions(kwargs.get('permissions'))
 
 		if ctx:
-			self.creator = ctx.user
+			self.creator = ctx.username
 			self.adduser(3, self.creator)
 			self.creationtime = ctx.db.gettime()
 			self.validate(ctx=ctx)
@@ -243,10 +259,10 @@ class User(DictMixin):
 	"""
 
 	# non-admin users can only change their privacy setting directly
-	attr_user = set(["privacy", 'modifytime'])
-	attr_admin = set(["signupinfo","name","email","username","groups","disabled","password",
-										"creator","creationtime","record", "secret"])
+	attr_user = set(["privacy", "modifytime", "password", "modifyuser","signupinfo"])
+	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record"])
 	attr_all = attr_user | attr_admin
+	
 
 	def __init__(self, d=None, **kwargs):
 		"""User class, takes either a dictionary or a set of keyword arguments
@@ -289,25 +305,35 @@ class User(DictMixin):
 		ctx = kwargs.get('ctx',None)
 
 
-		self.username=kwargs.get('username')
-		self.password=kwargs.get('password')
-		self.groups=kwargs.get('groups', [-4])
-		self.disabled=kwargs.get('disabled',0)
-		self.privacy=kwargs.get('privacy',0)
-		self.creator=kwargs.get('creator',0)
-		self.creationtime=kwargs.get('creationtime')
-		self.modifytime = kwargs.get('modifytime')
+		self.username = kwargs.get('username')
+		self.password = kwargs.get('password')
+		
+
+		self.disabled = kwargs.get('disabled',0)
+		self.privacy = kwargs.get('privacy',0)
+
 		self.record = kwargs.get('record')
-		self.name = kwargs.get('name')
-		self.email = kwargs.get('email')
-		# secret in signupinfo
-		# self.secret = kwargs.get('secret')
+
 		self.signupinfo = {}
 
+		self.creator = kwargs.get('creator',0)
+		self.creationtime = kwargs.get('creationtime')
+		self.modifytime = kwargs.get('modifytime')
+		self.modifyuser = kwargs.get('modifyuser')
+
+		# read only attributes, set at getuser time
+		# self.groups = None
+		# self.userrec = None
+		# self.email = None
+		
+		#self.groups = set() #kwargs.get('groups', [-4])
+		#self.name = kwargs.get('name')
+		#self.email = kwargs.get('email')
 
 		if ctx:
-			# fill this in...
 			pass
+
+	
 
 	#################################
 	# mapping methods
@@ -334,19 +360,6 @@ class User(DictMixin):
 	# User methods
 	#################################
 
-	def items_dict(self):
-		ret = {}
-		for k in self.attr_all:
-				ret[k]=self.__dict__[k]
-		return ret
-
-
-	def fromdict(self,d):
-		for k,v in d.items():
-				self.__dict__[k]=v
-		self.validate()
-
-	# ian: removed a bunch of methods that didn't actually work and weren't needed.
 
 	#################################
 	# validation methods
@@ -363,19 +376,19 @@ class User(DictMixin):
 		except:
 			raise AttributeError,"Invalid value for email"
 
-		if self.name != None:
-			try:
-				list(self.name)
-				unicode(self.name)[0]
-				unicode(self.name)[1]
-				unicode(self.name)[2]
-			except:
-				raise AttributeError,"Invalid name format."
+		# if self.name != None:
+		# 	try:
+		# 		list(self.name)
+		# 		unicode(self.name)[0]
+		# 		unicode(self.name)[1]
+		# 		unicode(self.name)[2]
+		# 	except:
+		# 		raise AttributeError,"Invalid name format."
 
-		try:
-			self.groups = set(self.get('groups',[]))
-		except:
-			raise AttributeError,"Groups must be a list."
+		# try:
+		# 	self.groups = set(self.get('groups',[]))
+		# except:
+		# 	raise AttributeError,"Groups must be a list."
 
 		try:
 			if self.record != None:
@@ -463,12 +476,6 @@ class WorkFlow(DictMixin):
 	# WorkFlow methods
 	#################################
 
-	# ian: todo: remove items_dict methods
-	def items_dict(self):
-		ret = {}
-		for k in self.attr_all:
-				ret[k]=self.__dict__[k]
-		return ret
 
 	#################################
 	# Validation methods

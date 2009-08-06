@@ -11,11 +11,8 @@ import weakref
 
 
 
-	
-		
 
-
-dbopenflags=bsddb3.db.DB_CREATE
+openflags = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
 
 
 # Berkeley DB wrapper classes
@@ -48,12 +45,13 @@ class BTree(object):
 		if filename == None:
 			filename = name+".bdb"
 
-		global globalenv,dbopenflags
+		#global globalenv#, dbopenflags
 		self.txn = None	# current transaction used for all database operations
 
 		if not dbenv:
 			dbenv = globalenv
-
+			
+			
 		g.debug("BTree init: %s"%filename)
 		self.bdb = bsddb3.db.DB(dbenv)
 
@@ -61,7 +59,7 @@ class BTree(object):
 			self.bdb.set_bt_compare(cfunc)
 
 		self.__setweakrefopen()
-		self.bdb.open(filename, name, bsddb3.db.DB_BTREE, dbopenflags)
+		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
 
 
 	def __setkeytype(self, keytype):
@@ -273,13 +271,22 @@ class BTree(object):
 		return self.bdb.has_key(self.dumpkey(key)) #, txn=txn
 
 
-	def get(self, key, txn=None):
+	# DB_subscript with txn; passes exception instead of default
+	def sget(self, key, txn=None):
+		ret = self.get(key, txn=txn)
+		if ret == None:
+			raise KeyError, "No such key %s"%key
+		return ret
+		
+
+	def get(self, key, default=None, txn=None):
 		if not txn: txn=self.txn
 		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
 		try:
 			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn))
 		except:
-			return None
+			return default
+
 
 	def set(self, key, data, txn=None):
 		"Alternative to x[key]=val with transaction set"
@@ -309,6 +316,7 @@ class RelateBTree(BTree):
  	def __init__(self, *args, **kwargs):
  		BTree.__init__(self, *args, **kwargs)
 		self.relate = 1
+		#txn = kwargs.get("txn")
 
 		dbenv = kwargs.get("dbenv")
 		filename = kwargs.get("filename")
@@ -316,15 +324,15 @@ class RelateBTree(BTree):
 
 		# Parent keyed list of children
 		self.pcdb = bsddb3.db.DB(dbenv)
-		self.pcdb.open(filename+".pc", name, bsddb3.db.DB_BTREE, dbopenflags)
+		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
 
 		# Child keyed list of parents
 		self.cpdb = bsddb3.db.DB(dbenv)
-		self.cpdb.open(filename+".cp", name, bsddb3.db.DB_BTREE, dbopenflags)
+		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
 
 		# lateral links between records (nondirectional), 'getcousins'
 		self.reldb = bsddb3.db.DB(dbenv)
-		self.reldb.open(filename+".rel", name, bsddb3.db.DB_BTREE, dbopenflags)
+		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
 
 
 	def __str__(self):

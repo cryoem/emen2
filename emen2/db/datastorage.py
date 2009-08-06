@@ -83,11 +83,6 @@ class ParamDef(DictMixin) :
 	# ParamDef methods
 	#################################
 
-	def items_dict(self):
-		ret = {}
-		for k in self.attr_all:
-			ret[k]=self.__dict__[k]
-		return ret
 
 
 	#################################
@@ -326,17 +321,8 @@ class RecordDef(DictMixin) :
 		self.paramsK=tuple(t)
 
 
-	def items_dict(self):
-		ret = {}
-		for k in self.attr_all:
-			ret[k]=self.__dict__[k]
-		return ret
 
 
-	def fromdict(self,d):
-		for k,v in d.items():
-			self.__setattr__(k,v)
-		self.validate()
 
 
 	#################################
@@ -523,7 +509,7 @@ class Record(DictMixin):
 		print "Validation warning: %s: %s"%(self.recid, msg)
 			
 			
-	def validate(self, orec={}, warning=0, params=[]):
+	def validate(self, orec={}, warning=0, params=[], txn=None):
 		if not self.__context.db:
 			self.validationwarning("No context; cannot validate")
 			return
@@ -540,18 +526,18 @@ class Record(DictMixin):
 
 		for i in validators:
 			try:
-				i(orec)
+				i(orec, txn=txn)
 			except (TypeError, ValueError), inst:
 				if warning:
 					self.validationwarning("%s: %s"%(i.func_name, inst))
 				else:
 					raise ValueError, "%s: %s"%(i.func_name, inst)
 
-		self.validate_params(orec, warning=warning, params=params)
+		self.validate_params(orec, warning=warning, params=params, txn=txn)
 				
 				
 				
-	def validate_recid(self, orec={}):
+	def validate_recid(self, orec={}, txn=None):
 		try:
 			if self.recid != None:
 				self.recid = int(self.recid)
@@ -568,14 +554,14 @@ class Record(DictMixin):
 
 
 
-	def validate_rectype(self, orec={}):
+	def validate_rectype(self, orec={}, txn=None):
 
 		if not self.rectype:
 			raise ValueError, "rectype must not be empty"
 
 		self.rectype = unicode(self.rectype)
 
-		if self.rectype not in self.__context.db.getrecorddefnames(ctx=self.__context.ctx):
+		if self.rectype not in self.__context.db.getrecorddefnames(ctx=self.__context, txn=txn):
 			raise ValueError, "invalid rectype %s"%(self.rectype)
 
 		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
@@ -583,7 +569,7 @@ class Record(DictMixin):
 
 
 
-	def validate_comments(self, orec={}):
+	def validate_comments(self, orec={}, txn=None):
 		# validate comments
 		users=[]
 		dates=[]
@@ -597,7 +583,7 @@ class Record(DictMixin):
 			#except:
 			#	raise ValueError, "invalid comment format: %s; skipping"%(i)
 				
-		usernames = set(self.__context.db.getusernames(ctx=self.__context))
+		usernames = set(self.__context.db.getusernames(ctx=self.__context, txn=txn))
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)		
 			
@@ -608,35 +594,35 @@ class Record(DictMixin):
 		self.__comments = newcomments
 
 
-	def validate_creator(self, orec={}):
+	def validate_creator(self, orec={}, txn=None):
 		self.__creator = unicode(self.__creator)
 		return
 
 		try:
-			self.__context.db.getuser(self.__creator, filt=0, ctx=self.__context)
+			self.__context.db.getuser(self.__creator, filt=0, ctx=self.__context, txn=txn)
 		except:
 			raise ValueError, "invalid creator: %s"%(self.__creator)
 		
 		
 		
-	def validate_creationtime(self, orec={}):
+	def validate_creationtime(self, orec={}, txn=None):
 		# validate creation time format
 		self.__creationtime = unicode(self.__creationtime)
 
 
 
-	def validate_permissions(self, orec={}):
+	def validate_permissions(self, orec={}, txn=None):
 		self.__permissions = self.__checkpermissionsformat(self.__permissions)
 
 
-	def validate_permissions_users(self,orec={}):
-		users = set(self.__context.db.getusernames(ctx=self.__context.ctx))
+	def validate_permissions_users(self,orec={}, txn=None):
+		users = set(self.__context.db.getusernames(ctx=self.__context.ctx, txn=txn))
 		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
 			raise ValueError, "undefined users: %s"%",".join(map(unicode, u-users))
 		
 			
-	def validate_params(self, orec={}, warning=0, params=[]):
+	def validate_params(self, orec={}, warning=0, params=[], txn=None):
 
 		# restrict by params if given
 		p2 = set(self.__params.keys()) & set(params or self.__params.keys())
@@ -645,14 +631,14 @@ class Record(DictMixin):
 		
 		vtm = emen2.Database.subsystems.datatypes.VartypeManager()	
 
-		pds = self.__context.db.getparamdefs(p2)
+		pds = self.__context.db.getparamdefs(p2, txn=txn)
 		newpd = {}
 		exceptions = []
 		
 		for param,pd in pds.items():
 			#print "\tValidate param: %s: %s (vartype: %s, property: %s)"%(pd.name, self[param], pd.vartype, pd.property)
 			try:
-				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm)
+				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm, txn=txn)
 			except (ValueError,KeyError), inst:
 				newpd[param] = self.__params.get(param)
 				#print traceback.print_exc()
@@ -669,9 +655,9 @@ class Record(DictMixin):
 
 
 
-	def validate_param(self, value, pd, vtm):
+	def validate_param(self, value, pd, vtm, txn=None):
 
-		v = vtm.validate(pd, value, db=self.__context.db, ctx=self.__context)
+		v = vtm.validate(pd, value, db=self.__context.db, ctx=self.__context, txn=txn)
 
 		if v != value and v != None:
 			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v))
@@ -755,8 +741,17 @@ class Record(DictMixin):
 	def __repr__(self):
 		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
 
+
 	def json_equivalent(self):
-		return self.items_dict()
+		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
+		ret={}
+		ret.update(self.__params)
+		for i in self.param_special:
+			try:
+				ret[i]=self[i]
+			except:
+				pass
+		return ret
 
 
 
@@ -1037,23 +1032,12 @@ class Record(DictMixin):
 		if (ctx.username in p4 or u1 & p4): self.__ptest[3] = 1
 
 
-	def items_dict(self):
-		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information"""
-		ret={}
-		ret.update(self.__params)
-		for i in self.param_special:
-			try:
-				ret[i]=self[i]
-			except:
-				pass
-		return ret
 
-
-	def commit(self):
+	def commit(self, txn=None):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__context.db.putrecord(self, ctx=self.__context)
+		return self.__context.db.putrecord(self, ctx=self.__context, txn=txn)
 
 
 	def isowner(self):
