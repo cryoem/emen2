@@ -114,7 +114,7 @@ class DBProxy(object):
 	def _allmethods(cls):
 		return set(cls.__publicmethods) | set(cls.__extmethods)
 
-	
+
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None):
 		self.__txn = None
@@ -292,7 +292,7 @@ class Database(object):
 
 		def publicmethod(func):
 			DBProxy._register_publicmethod(func.func_name, func)
-			
+
 			#@g.debug.debug_func
 			@wraps(func)
 			def _inner(self, *args, **kwargs):
@@ -323,9 +323,9 @@ class Database(object):
 					if commit is True:
 						g.debug('committing')
 						txn and txn.commit()
-					
+
 				return result
-			
+
 			return _inner
 
 
@@ -341,7 +341,7 @@ class Database(object):
 
 			if usetxn:
 				self.newtxn = self.newtxn1
-				envopenflags |= db.DB_INIT_TXN				
+				envopenflags |= db.DB_INIT_TXN
 			else:
 				self.LOG("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
@@ -378,10 +378,10 @@ class Database(object):
 
 
 		#def __opendbenv(self):
-				
+
 			self.LOG(4, "Database initialization started")
 
-			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()			
+			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()
 			self.__dbenv.set_data_dir(self.path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
@@ -413,13 +413,13 @@ class Database(object):
 			self.__users = BTree("users", keytype="s", filename=path+"/security/users.bdb", dbenv=self.__dbenv)
 
 			self.__groupsbyuser = IndexKeyBTree("groupsbyuser", keytype="s", filename=path+"/security/groupsbyuser", dbenv=self.__dbenv)
-		
+
 			self.__groups = BTree("groups", keytype="ds", filename=path+"/security/groups.bdb", dbenv=self.__dbenv)
 			#self.__updatecontexts = False
 
 			# new users pending approval
 			self.__newuserqueue = BTree("newusers", keytype="s", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv)
-			
+
 			# multisession persistent contexts
 			self.__contexts_p = BTree("contexts", keytype="s", filename=path+"/security/contexts.bdb", dbenv=self.__dbenv)
 
@@ -459,13 +459,13 @@ class Database(object):
 			self.__recorddefindex = FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# key=record id, value=last time record was changed
-			self.__timeindex = BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv) 
+			self.__timeindex = BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
 
 
-			self.__indexkeys = IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv) 
+			self.__indexkeys = IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv)
 
 
 
@@ -486,7 +486,7 @@ class Database(object):
 
 
 
-				
+
 
 			#try:
 			#	max = self.__workflow[-1]
@@ -515,10 +515,10 @@ class Database(object):
 				raise
 			finally:
 				self.txncommit(txn=txn)
-			
-			
 
-			
+
+
+
 
 
 
@@ -563,35 +563,35 @@ class Database(object):
 				self.__commit_paramdefs(basepds, ctx=ctx, txn=txn)
 
 			if not self.__recorddefs.get("folder", txn=txn):
-				
+
 				folder = RecordDef()
 				folder.name = "folder"
 				folder.desc_long = "Folder"
 				folder.desc_short = "Folder"
 				folder.mainview = "Folder!"
-				
+
 				self.__commit_recorddefs([folder], ctx=ctx, txn=txn)
-				
+
 			if not self.__groups.get("admin", txn=txn):
-				
-				
+
+
 				_admin = Group()
 				_admin.name = "admin"
 				_admin.adduser(3, "root")
-			
+
 				_readadmin = Group()
 				_readadmin.name = "readadmin"
-			
+
 				_create = Group()
 				_create.name = "create"
 				_create.adduser(3, "root")
-				
+
 				_anon = Group()
 				_anon.name = "anon"
-				
-				
-				
-				
+
+
+
+
 				self.__commit_groups([_admin, _readadmin, _create, _anon], ctx=ctx, txn=txn)
 
 
@@ -601,18 +601,18 @@ class Database(object):
 		###############################
 
 
-		
+
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
 			print "\n\nNEW TXN --> %s"%txn
 			return txn
-			
+
 
 		def newtxn(self, ctxn=None):
 			return None
-			
-		
+
+
 		def newtxn2(self, ctx=None):
 			return None
 
@@ -627,7 +627,7 @@ class Database(object):
 			print "TXN ABORT --> %s\n\n"%txn
 			if txn:
 				txn.abort()
-				
+
 
 		def txncommit(self, ctx=None, txn=None):
 			print "TXN COMMIT --> %s\n\n"%txn
@@ -691,7 +691,7 @@ class Database(object):
 #				 for bt in self.__btreelist:
 #						 print '--', bt ; sys.stdout.flush()
 #						 bt.close()
-					
+
 
 		# ian: this can be slow; reconsider use
 		# from: http://basicproperty.sourceforge.net
@@ -733,10 +733,8 @@ class Database(object):
 		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
 			subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
-
-
 			# ctx will typically be None here
-			
+
 			newcontext = None
 			username = unicode(username)
 
@@ -746,7 +744,7 @@ class Database(object):
 
 			else:
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
-				
+
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
 					newcontext = Context(db=self, username=username, host=host)
@@ -756,9 +754,9 @@ class Database(object):
 					raise AuthenticationError, AuthenticationError.__doc__
 
 
-			# ian: todo: add a well-seeded random number here			
+			# ian: todo: add a well-seeded random number here
 			s = hashlib.sha1(username + unicode(host) + unicode(time.time()))
-			
+
 			newcontext.ctxid = s.hexdigest()
 
 			#if ctx.user != None:
@@ -777,8 +775,8 @@ class Database(object):
 			except:
 				self.LOG(4, "Error writing login context, txn aborting!", ctx=ctx, txn=txn)
 				self.txnabort(txn=txn2)
-						
-						
+
+
 			return newcontext.ctxid, newcontext.host
 			#result = self._getcontext(newcontext.ctxid, newcontext.host, ctx=ctx, txn=txn)
 			#return result
@@ -807,9 +805,9 @@ class Database(object):
 
 			if s.hexdigest() == user.password:
 				return True
-			
+
 			#raise AuthenticationError, "Invalid password"
-			
+
 
 
 		###############################
@@ -858,20 +856,21 @@ class Database(object):
 
 				# any time you set the context, delete the cached context
 				# this will retrieve it from disk next time it's needed
-				
+
 				try:
 					del self.__contexts[ctxid]
 				except Exception, inst:
 					pass
-				
+
 				try:
 					context.db = None
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%context.ctxid, ctx=ctx, txn=txn)
-					
-				except Exception, inst:	
+
+				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					raise
 
 
 			# delete context
@@ -887,6 +886,7 @@ class Database(object):
 
 				except Exception, inst:
 					self.LOG("LOG_ERROR","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					raise
 
 			#@end
 
@@ -1197,9 +1197,9 @@ class Database(object):
 		# section: query
 		###############################
 
-		
-				
-				
+
+
+
 		@publicmethod
 		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, returndict=False, includeparams=None, ctx=None, txn=None):
 
@@ -1246,25 +1246,25 @@ class Database(object):
 				"<=": lambda y,x: x <= y #,
 				#"range": lambda x,y,z: y < x < z
 			}
-			
+
 			if ignorecase:
 				cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-				cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()								
+				cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
 
 			# wildcard param searching only useful with the following comparators...
 			globalsearchcmps = ["==","!=","contains","!contains"]
 
 			# check that constraints are sane, then partition into wildcard and normal
-			# vtm.validate(self.__paramdefs[i[0]], i[1], db=self, ctx=ctx, txn=txn)				
+			# vtm.validate(self.__paramdefs[i[0]], i[1], db=self, ctx=ctx, txn=txn)
 
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
 			constraints = dict(enumerate(map(lambda i:(unicode(i[0]), str(i[1]), i[2]), constraints)))
 			c_results_paramkeys = dict((i,{}) for i in constraints.keys())  # {}
 			c_results_recs = dict((i,set()) for i in constraints.keys()) # {}
 			inds = set()
-							
+
 			for param, pkeys in self.__indexkeys.items(txn=txn):
-				# ian todo: find a way to reduce number of lookups/validations needed..				
+				# ian todo: find a way to reduce number of lookups/validations needed..
 				for name, c in constraints.items():
 					if c[0] != param and c[0] != "*":
 						continue
@@ -1282,9 +1282,9 @@ class Database(object):
 					if r:
 						c_results_paramkeys[name][param] = r    #.append((param, r))
 						inds.add(param)
-			
-			matches = {}			
-			
+
+			matches = {}
+
 			for param in inds:
 				ind = self.__getparamindex(param, ctx=ctx, txn=txn)
 
@@ -1303,7 +1303,7 @@ class Database(object):
 							if not matches.has_key(recid):
 								matches[recid] = set()
 							matches[recid].add(param)
-			
+
 
 			#recs = set(matches.keys())
 
@@ -1320,33 +1320,33 @@ class Database(object):
 				subsets.append(self.getparents(parentof, recurse=recurse, ctx=ctx, txn=txn))
 			if rectype:
 				subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
-				
+
 			if boolmode=="AND":
 				recs = reduce(set.intersection, subsets)
 			else:
 				recs = reduce(set.union, subsets)
-								
-				
+
+
 			if not returndict:
-				return recs			
-				
+				return recs
+
 			#print "getrecords... len %s"%len(recs)
 			recs = self.getrecord(recs, filt=1, ctx=ctx, txn=txn)
 			#if rectype:
 			#	recs = filter(lambda x:x.rectype == rectype, recs)
 
 			#print "preparing results..."
-			ret = {}			
+			ret = {}
 			for i in recs:
 				ret[i.recid] = {}
 				for param in matches.get(i.recid, set()) | includeparams:
 					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
-					ret[i.recid][param] = i.get(param)					
-				
+					ret[i.recid][param] = i.get(param)
+
 			return ret
-					
-				
-				
+
+
+
 
 		# ian todo: deprecate
 		@publicmethod
@@ -1358,10 +1358,10 @@ class Database(object):
 			subset = set(subset or [])
 			params = set(params or [])
 			includeparams = set(includeparams or [])
-			
+
 			builtin = set(["creator", "creationtime", "modifyuser", "modifytime", "permissions", "comments"])
 
-				
+
 
 			q = unicode(q)
 
@@ -1370,15 +1370,15 @@ class Database(object):
 				matcher = lambda x:qitem in unicode(x).lower()
 			else:
 				matcher = lambda x:qitem in unicode(x)
-			
+
 			q = set(q.split())
-			
-			
-			
+
+
+
 			indexmatches = {}
 			#indexkeysitems = self.__indexkeys.items()
-			
-			
+
+
 			for param,paramvalues in self.__indexkeys.items(txn=txn):
 				for qitem in q:
 					r = filter(matcher, paramvalues)
@@ -1409,18 +1409,18 @@ class Database(object):
 			if rectype:
 				recs = filter(lambda x:x.rectype == rectype, recs)
 
-			
+
 			ret = {}
-			
+
 			for i in recs:
 				ret[i.recid] = {}
 				for param in matches2.get(i.recid, set()):# | includeparams:
 					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
-					ret[i.recid][param] = i.get(param)			
-			
-			
-			
-			return ret		
+					ret[i.recid][param] = i.get(param)
+
+
+
+			return ret
 
 
 
@@ -1432,13 +1432,13 @@ class Database(object):
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
 			self.__indexkeys.truncate(txn=txn)
-			
+
 			for k,v in inds.items():
 					print "indexkeys: %s, len keys %s"%(k, len(v.keys(txn=txn)))
 					self.__indexkeys.set(k, set(v.keys()), txn=txn)
 
-			
-			
+
+
 		@publicmethod
 		def searchindexkeys(self, q=None, ignorecase=1, ctx=None, txn=None):
 			if not q:
@@ -1452,8 +1452,8 @@ class Database(object):
 				matcher = lambda x:q in unicode(x)
 
 			matches = {}
-			
-			
+
+
 			for k,v in self.__indexkeys.items(txn=txn):
 				# print "searching %s"%k
 				r = filter(matcher, v)
@@ -1468,12 +1468,12 @@ class Database(object):
 					j = paramindex.get(i, txn=txn)
 					for x in j:
 						matches2.append((x, k, i))
-			
+
 			for i in matches2:
 				print i
-				
-				
-				
+
+
+
 
 		#########################
 		# section: indexes
@@ -1525,8 +1525,8 @@ class Database(object):
 		# 		for key in paramindex.keys():
 		# 			if paramindex[key].pop() == recid:
 		# 				return key
-		
-		
+
+
 
 
 		# ian: todo: finish..
@@ -1659,8 +1659,8 @@ class Database(object):
 
 
 			return ret
-			
-			
+
+
 
 
 		# ian: todo: return dictionary instead of list?
@@ -1682,7 +1682,7 @@ class Database(object):
 				raise Exception, "unindexed time on one or more recids"
 
 			return ret
-			
+
 
 
 
@@ -1870,9 +1870,9 @@ class Database(object):
 
 			# ian: think about doing this a better way
 			if filt and keytype=="record":
-				
+
 				allr = self.filterbypermissions(allr, ctx=ctx, txn=txn)
-				
+
 				if not tree:
 					for k,v in ret.items():
 						ret[k] = ret[k] & allr
@@ -2369,9 +2369,9 @@ class Database(object):
 
 
 
-			
 
-		
+
+
 		##########################
 		# section: group
 		##########################
@@ -2380,8 +2380,8 @@ class Database(object):
 		@publicmethod
 		def getgroupnames(self, ctx=None, txn=None):
 			return set(self.__groups.keys(txn=txn))
-			
-			
+
+
 
 		@publicmethod
 		def getgroup(self, groups, filt=1, ctx=None, txn=None):
@@ -2389,12 +2389,12 @@ class Database(object):
 			if not hasattr(groups,"__iter__"):
 				ol=1
 				groups = [groups]
-			
-			
+
+
 			if filt: filt = None
 			else: filt = lambda x:x.name
 			ret = dict( [(x.name, x) for x in filter(filt, [self.__groups.get(i, txn=txn) for i in groups]) ] )
-			
+
 			if ol==1 and len(ret) == 1:
 				return ret.values()[0]
 			return ret
@@ -2414,7 +2414,7 @@ class Database(object):
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
-				
+
 			for user,groups in delrefs.items():
 				try:
 					if groups:
@@ -2426,23 +2426,23 @@ class Database(object):
 			#@end
 
 
-			
-			
+
+
 		#@write self.__groupsbyuser
 		def __rebuild_groupsbyuser(self, ctx=None, txn=None):
 			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 			#users = dict([(i, set()) for i in self.getusernames()])
 			users = collections.defaultdict(set)
-			
+
 			for k, group in groups.items():
 				for user in group.members():
 					#try:
 					users[user].add(k)
 					#except Exception, inst:
 					#	print "unknown user %s (%s)"%(user, inst)
-			
-			
-			#@begin			
+
+
+			#@begin
 
 			self.__groupsbyuser.truncate(txn=txn)
 
@@ -2450,32 +2450,32 @@ class Database(object):
 				self.__groupsbyuser.addrefs(k, v, txn=txn)
 
 			#@end
-				
 
-			
 
-			
+
+
+
 		def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
 
 			addrefs = collections.defaultdict(set)
 			delrefs = collections.defaultdict(set)
-			
+
 			for group in groups:
-				
+
 				ngm = group.members()
 				try: ogm = self.__groups.get(group.groupname, txn=txn).members()
 				except: ogm = set()
-				
+
 				addusers = ngm - ogm
 				delusers = ogm - ngm
-				
+
 				for user in addusers:
 					addrefs[user].add(group.name)
 				for user in delusers:
 					delrefs[user].add(group.name)
-			
+
 			return addrefs, delrefs
-			
+
 
 
 		#@write self.__groups, self.__groupsbyuser
@@ -2487,7 +2487,7 @@ class Database(object):
 
 			groups2 = []
 			groups2.extend(filter(lambda x:isinstance(x, Group), groups))
-			groups2.extend(map(lambda x:Group(x), filter(lambda x:isinstance(x, dict), groups)))			
+			groups2.extend(map(lambda x:Group(x), filter(lambda x:isinstance(x, dict), groups)))
 
 			allusernames = self.getusernames(ctx=ctx, txn=txn)
 
@@ -2495,20 +2495,20 @@ class Database(object):
 				group.validate()
 				if group.members() - allusernames:
 					raise Exception, "Invalid user names: %s"%(group.members() - allusernames)
-			
-			
+
+
 			self.__commit_groups(groups2, ctx=ctx, txn=txn)
-			
-			
-			
-			
-		def __commit_groups(self, groups, ctx=None, txn=None):	
+
+
+
+
+		def __commit_groups(self, groups, ctx=None, txn=None):
 
 			addrefs, delrefs = self.__reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
-			
+
 			#@begin
 			print "ok1"
-			
+
 			for group in groups:
 				print group
 				print txn
@@ -2516,11 +2516,11 @@ class Database(object):
 
 			print "ok"
 			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
-			
+
 			#@end
-			
-			
-			
+
+
+
 		# merge with getuser?
 		@publicmethod
 		def getgroupdisplayname(self, groupname, ctx=None, txn=None):
@@ -2528,24 +2528,24 @@ class Database(object):
 			if not hasattr(groupname,"__iter__"):
 				groupname = [groupname]
 				ol = 1
-				
+
 			groups = self.getgroup(groupname, ctx=ctx, txn=txn)
 			print "got groups %s"%groups
-			
+
 			ret = {}
-			
+
 			for i in groups.values():
 				ret[i.name]="Test: %s"%i.name
-				
-			if ol and len(ret)==1: return ret.values()[0]	
+
+			if ol and len(ret)==1: return ret.values()[0]
 			return ret
 
-			
-			
+
+
 		###############################
 		# users
-		###############################	
-			
+		###############################
+
 
 		#@txn
 		@publicmethod
@@ -2691,7 +2691,7 @@ class Database(object):
 			#def __getuser(self, usernames, filt=True, lnf=False, ctx=None, txn=None):
 
 			ret={}
-			
+
 			for i in usernames:
 
 				user = self.__users.get(i, None, txn=txn)
@@ -2714,7 +2714,7 @@ class Database(object):
 				# Anonymous users cannot use this to extract email addresses
 				#if ctx.username == None:
 				#	user.groups = None
-				
+
 				print "ctx is %r"%ctx
 
 				print "user record is %s"%user.record
@@ -2726,13 +2726,13 @@ class Database(object):
 						raise Exception
 				except:
 					user._userrec = {}
-										
+
 				user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
 
 				# print "setting email: %s -> %s"%(user.get("email"), user.userrec.get("email"))
 				user.email = user._userrec.get("email")
 
-				ret[i] = user	
+				ret[i] = user
 
 
 
@@ -2800,7 +2800,7 @@ class Database(object):
 			nf = u.get("name_first")
 			nm = u.get("name_middle")
 			nl = u.get("name_last")
-			
+
 			#if u["name_first"] and u["name_middle"] and u["name_last"]:
 			if nf and nm and nl:
 				if lnf:
@@ -2872,16 +2872,16 @@ class Database(object):
 				return possible
 
 			return None
-			
-			
-			
-			
+
+
+
+
 		#########################
 		# section: workflow
 		#########################
-			
-			
-			
+
+
+
 		@publicmethod
 		def getworkflow(self, ctx=None, txn=None):
 			"""This will return an (ordered) list of workflow objects for the given context (user).
@@ -3269,7 +3269,7 @@ class Database(object):
 			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv)
 
 			return self.__fieldindex[paramname]
-			
+
 
 
 
@@ -3502,7 +3502,7 @@ class Database(object):
 			if not hasattr(recids,"__iter__"):
 				ol=1
 				recids=[recids]
-			
+
 			#print "-> recids"
 			#print recids
 			#recids = map(int, recids)
@@ -3510,7 +3510,7 @@ class Database(object):
 			# if filt: filt = None
 			# else: filt = lambda x:x.rectype
 			# recs = map(self.__records.get, recid)
-			
+
 			ret=[]
 			for i in recids:
 				try:
@@ -3528,8 +3528,8 @@ class Database(object):
 			if len(ret)==1 and ol:
 				return ret[0]
 			return ret
-			
-			
+
+
 		# does not setContext!!
 		def __getrecord(self, recids, filt=True, ctx=None, txn=None):
 			pass
@@ -3571,7 +3571,7 @@ class Database(object):
 				rec.adduser(3, ctx.user)
 
 			return rec
-			
+
 
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
@@ -3734,9 +3734,9 @@ class Database(object):
 			for k, v in d.items():
 				ret[k] = self.putrecordvalues(k, v, ctx=ctx, txn=txn)
 			return ret
-			
-			
-			
+
+
+
 		#@txn
 		@publicmethod
 		def putrecord(self, recs, filt=True, warning=0, log=True, importmode=True, ctx=None, txn=None):
@@ -3824,7 +3824,7 @@ class Database(object):
 				try:
 					orec = self.__records.sget(updrec.recid, txn=txn) # [updrec.recid]
 					orec.setContext(ctx)
-					
+
 				except (KeyError, TypeError), inst:
 					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
 					orec.recid = updrec.recid
@@ -4269,7 +4269,7 @@ class Database(object):
 				#ret |= recids & set(self.__secrindex[group])
 				#recids -= ret
 				ret.extend(recids & set(self.__secrindex.sget(group, txn=txn)))
-			
+
 			return set(ret)
 
 
@@ -4308,8 +4308,8 @@ class Database(object):
 			# 			ret.append(recid)
 			# 			continue
 			# return set(ret)
-			
-			
+
+
 
 		@publicmethod
 		def secrecordadduser2(self, recids, level, users, reassign=0, ctx=None, txn=None):
@@ -4336,7 +4336,7 @@ class Database(object):
 					rec.adduser(level, users, reassign=reassign)
 
 				self.putrecord(recs, ctx=ctx, txn=txn)
-				
+
 
 
 		# ian todo: check this thoroughly; probably rewrite
@@ -4777,13 +4777,13 @@ class Database(object):
 
 
 
-		
-		
+
+
 		###########################
 		# section: backup / restore
 		###########################
-		
-		
+
+
 
 		def _backup(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
