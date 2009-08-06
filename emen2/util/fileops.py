@@ -2,16 +2,12 @@ import fnmatch
 import os
 import os.path
 import codecs
-#import g
-
 import listops
 
 def openreadclose(path):
     tmp = codecs.open(path, 'r', 'utf-8')
-    try:
-        result = tmp.read()
-    finally:
-        tmp.close()
+    try: result = tmp.read()
+    finally: tmp.close()
     return result
 
 def walk_path(extension, cb):
