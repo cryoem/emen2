@@ -129,14 +129,17 @@ class DBProxy(object):
 
 	def _starttxn(self):
 		self.__txn = self.__db.newtxn()
+		#self.__txn = self.__db.newtxn()
 
 	def _committxn(self):
-		if self.__txn is not None:
-			self.__txn.commit()
+		self.__db.txncommit(txn=self.__txn)
+		#if self.__txn is not None:
+		#	self.__txn.commit()
 
 	def _aborttxn(self):
-		if self.__txn is not None:
-			self.__txn.abort()
+		self.__db.txnabort(txn=self.__txn)
+		#if self.__txn is not None:
+		#	self.__txn.abort()
 
 
 	def _login(self, username="anonymous", password="", host=None):
@@ -862,9 +865,8 @@ class Database(object):
 					pass
 				
 				try:
-					u = context.user
 					context.db = None
-					context.user = None
+					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%context.ctxid, ctx=ctx, txn=txn)
 					
@@ -2715,8 +2717,13 @@ class Database(object):
 				
 				print "ctx is %r"%ctx
 
+				print "user record is %s"%user.record
+
 				try:
-					user._userrec = self.getrecord(user.record, ctx=ctx, txn=txn)
+					if user.record:
+						user._userrec = self.getrecord(user.record, filt=0, ctx=ctx, txn=txn)
+					else:
+						raise Exception
 				except:
 					user._userrec = {}
 										
@@ -2788,7 +2795,8 @@ class Database(object):
 
 
 
-		def __formatusername(self, username, u, lnf=True, ctx=None, txn=None):
+		def __formatusername(self, username, u={}, lnf=True, ctx=None, txn=None):
+			print "u is %s"%u
 			nf = u.get("name_first")
 			nm = u.get("name_middle")
 			nl = u.get("name_last")
