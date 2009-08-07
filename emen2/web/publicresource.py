@@ -257,7 +257,8 @@ class PublicView(Resource):
 
 		# this binds the Context to the DBProxy for the duration of the view
 		db._setcontext(ctxid,host)
-		# db._starttxn()
+
+		db._starttxn()
 
 		ret, headers = callback(db=db)
 
@@ -265,7 +266,9 @@ class PublicView(Resource):
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
 			ret = str(ret)
-		
+			db._aborttxn()
+		else:
+			db._committxn()
 
 		return ret, headers
 

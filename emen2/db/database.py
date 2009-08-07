@@ -151,6 +151,9 @@ class DBProxy(object):
 	def _setcontext(self, ctxid=None, host=None):
 		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
 		self.__ctx = self.__db._getcontext(ctxid, host)
+		print "dbproxy _getcontext"
+		print self.__ctx
+		
 		self.__bound = True
 
 
@@ -507,9 +510,10 @@ class Database(object):
 
 
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
-				self.__anonymouscontext = self._login(txn=txn)
-
+				#self.__anonymouscontext = self._login(txn=txn)
+				_actxid, _ahost = self._login(txn=txn)
 				self.__createskeletondb(txn=txn)
+				
 			except:
 				txn and self.txnabort()
 				raise
@@ -518,7 +522,7 @@ class Database(object):
 
 
 
-
+			self.__anonymouscontext = self._getcontext(_actxid, _ahost)
 
 
 
@@ -910,7 +914,6 @@ class Database(object):
 				context = self.__contexts[key]
 
 			except:
-				print self.__contexts_p.keys(txn=txn)
 				try:
 					context = self.__contexts_p.sget(key, txn=txn) #[key]
 				except:
@@ -932,6 +935,8 @@ class Database(object):
 			context.time = time.time()
 
 			#g.debug('!!!!!!!!!!!!!!!!!!!!!!******************************!!!!!!!!!!!!!!!!!!!!!!!!!')
+			print "what is context???"
+			print context
 			return context
 
 
@@ -2775,7 +2780,7 @@ class Database(object):
 
 			namestoget=set(namestoget)
 
-			users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items(txn=txn)
+			users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
 			users = filter(lambda x:x[1].record != None, users)
 			users = dict(users)
 
@@ -4245,7 +4250,9 @@ class Database(object):
 		@publicmethod
 		def filterbypermissions(self, recids, ctx=None, txn=None):
 
-
+			print "ctx is"
+			print ctx
+			
 			if ctx.checkreadadmin():
 				return set(recids)
 

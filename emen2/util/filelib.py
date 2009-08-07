@@ -1,4 +1,8 @@
 import emen2.util.utils
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
+
 class ExtFileLibrary(object):
 	def __register(registry):
 		@staticmethod
