@@ -79,7 +79,6 @@ class Context:
 
 
 		def checkcreate(self):
-			print "what is self.groups? %s"%self.groups
 			if "create" in self.groups or "admin" in self.groups:
 					return True
 			return False

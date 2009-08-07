@@ -12,7 +12,8 @@ import weakref
 
 
 
-openflags = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
+dbopenflags = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE 
+#| bsddb3.db.DB_AUTO_COMMIT
 
 
 # Berkeley DB wrapper classes
@@ -24,7 +25,7 @@ class BTree(object):
 
 	alltrees=weakref.WeakKeyDictionary()
 
-	def __init__(self, name, filename=None, dbenv=None, nelem=0, keytype=None, cfunc=None):
+	def __init__(self, name, filename=None, dbenv=None, nelem=0, keytype=None, cfunc=None, txn=None):
 		#"""This is a persistent dictionary implemented as a BerkeleyDB BTree
 		#name is required, and will also be used as a filename if none is
 		#specified. If relate is true, then parent/child and cousin relationships
@@ -45,7 +46,7 @@ class BTree(object):
 		if filename == None:
 			filename = name+".bdb"
 
-		#global globalenv#, dbopenflags
+		#global globalenv#, dbdbopenflags
 		self.txn = None	# current transaction used for all database operations
 
 		if not dbenv:
@@ -59,7 +60,9 @@ class BTree(object):
 			self.bdb.set_bt_compare(cfunc)
 
 		self.__setweakrefopen()
-		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
+
+
+		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
 
 
 	def __setkeytype(self, keytype):
@@ -194,7 +197,7 @@ class BTree(object):
 		self.bdb=None
 
 
-	def truncate(self,txn=None):
+	def truncate(self, txn=None):
 		self.bdb.truncate(txn=txn)
 		
 
@@ -219,56 +222,54 @@ class BTree(object):
 
 
 
-
-	def __len__(self):
-		return len(self.bdb)
-
-
-	def __setitem__(self, key, data):
-		if data == None:
-			self.__delitem__(self.typekey(key))
-		else:
-			#self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
-			self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=self.txn)
-
-
-	def __getitem__(self, key):
-		data = self.bdb.get(self.dumpkey(key), txn=self.txn)
-		if data is None:
-			#Ed: for Backwards compatibility raise TypeError, should be KeyError
-			raise TypeError, 'Key Not Found: %r' % key
-			# raise KeyError, 'Key Not Found: %r' % key
-		else:
-			return self.loaddata(data)
-
-
-	def __delitem__(self, key):
-		self.bdb.delete(self.dumpkey(key), txn=self.txn)
-
-
-	def __contains__(self, key):
-		return self.bdb.has_key(self.dumpkey(key), txn=self.txn)
+	# these methods temp. disabled due to difficulty passing txn
+	#
+	# def __len__(self, txn=txn):
+	# 	return len(self.bdb, txn=txn)
+	# 
+	# 
+	# def __setitem__(self, key, data, txn=txn):
+	# 	if data == None:
+	# 		self.__delitem__(self.typekey(key), txn=txn)
+	# 	else:
+	# 		#self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
+	# 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
+	# 
+	# 
+	# def __getitem__(self, key, txn=txn):
+	# 	data = self.bdb.get(self.dumpkey(key), txn=self.txn)
+	# 	if data is None:
+	# 		#Ed: for Backwards compatibility raise TypeError, should be KeyError
+	# 		raise TypeError, 'Key Not Found: %r' % key
+	# 		# raise KeyError, 'Key Not Found: %r' % key
+	# 	else:
+	# 		return self.loaddata(data)
+	# 
+	# 
+	# def __delitem__(self, key, txn=txn):
+	# 	self.bdb.delete(self.dumpkey(key), txn=txn)
+	# 
+	# 
+	# def __contains__(self, key, txn=txn):
+	# 	return self.bdb.has_key(self.dumpkey(key), txn=txn)
 
 
 	def keys(self, txn=None):
-		return map(self.loadkey, self.bdb.keys())
+		return map(self.loadkey, self.bdb.keys(txn))
 
 
 	def values(self, txn=None):
-		if not txn: txn=self.txn
 		#return reduce(set.union, map(self.loaddata, self.bdb.values())) #(self.loaddata(x) for x in self.bdb.values())) #txn=txn
 		# set() needed if empty
-		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values()), set()) #txn=txn
+		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values(txn=txn)), set()) #txn=txn
 
 
 	def items(self, txn=None):
-		if not txn: txn=self.txn
-		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items()) #txn=txn
+		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn=txn)) #txn=txn
 
 
 	def has_key(self, key, txn=None):
-		if not txn: txn=self.txn
-		return self.bdb.has_key(self.dumpkey(key)) #, txn=txn
+		return self.bdb.has_key(self.dumpkey(key), txn=txn) #, txn=txn
 
 
 	# DB_subscript with txn; passes exception instead of default
@@ -280,7 +281,6 @@ class BTree(object):
 		
 
 	def get(self, key, default=None, txn=None):
-		if not txn: txn=self.txn
 		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
 		try:
 			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn))
@@ -290,14 +290,12 @@ class BTree(object):
 
 	def set(self, key, data, txn=None):
 		"Alternative to x[key]=val with transaction set"
-		if not txn: txn=self.txn
 		if data == None:
 			return self.bdb.delete(self.dumpkey(key), txn=txn)
 		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
 
 
 	def update(self, d, txn=None):
-		if not txn: txn=self.txn
 		d = dict(map(lambda x:self.typekey(x[0]), self.typedata(x[1]), d.items()))
 		for i,j in dict.items():
 			self.bdb.put(self.dumpkey(i), self.dumpdata(j), txn=txn)
@@ -316,7 +314,7 @@ class RelateBTree(BTree):
  	def __init__(self, *args, **kwargs):
  		BTree.__init__(self, *args, **kwargs)
 		self.relate = 1
-		#txn = kwargs.get("txn")
+		txn = kwargs.get("txn")
 
 		dbenv = kwargs.get("dbenv")
 		filename = kwargs.get("filename")
@@ -324,15 +322,15 @@ class RelateBTree(BTree):
 
 		# Parent keyed list of children
 		self.pcdb = bsddb3.db.DB(dbenv)
-		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
+		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
 
 		# Child keyed list of parents
 		self.cpdb = bsddb3.db.DB(dbenv)
-		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
+		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
 
 		# lateral links between records (nondirectional), 'getcousins'
 		self.reldb = bsddb3.db.DB(dbenv)
-		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=openflags)
+		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
 
 
 	def __str__(self):
@@ -374,7 +372,7 @@ class RelateBTree(BTree):
 		if not self.relate:
 			raise Exception,"relate option required in BTree"
 
-		if not txn:	txn = self.txn
+
 
 		tag1, tag2 = self.typekey(tag1), self.typekey(tag2)
 
@@ -384,17 +382,21 @@ class RelateBTree(BTree):
 		if not self.has_key(tag2, txn=txn) or not self.has_key(tag1, txn=txn):
 			raise KeyError,"Nonexistent key in %s <-> %s"%(tag1, tag2)
 
+
+
 		try:
 			o = loads(db1.get(self.dumpkey(tag1), txn=txn))
 		except:
 			o = set()
 
+
+
 		if (method == "add" and tag2 not in o) or (method == "remove" and tag2 in o):
 			getattr(o, method)(tag2)
 			db1.put(self.dumpkey(tag1), dumps(o), txn=txn)
-		#try:
-		#except Exception, inst:
-		#	print "Error linking 2... %s"%inst
+
+
+
 
 		try:
 			o = loads(db2.get(self.dumpkey(tag2), txn=txn))
@@ -404,9 +406,7 @@ class RelateBTree(BTree):
 		if (method == "add" and tag1 not in o) or (method == "remove" and tag1 in o):
 			getattr(o, method)(tag1)
 			db2.put(self.dumpkey(tag2), dumps(o), txn=txn)
-		#try:
-		#except Exception, inst:
-		#	print "Error linking 1... %s"%inst
+
 
 
 	def pclink(self, parenttag, childtag, txn=None):
@@ -436,7 +436,7 @@ class RelateBTree(BTree):
 		"""Returns a list of the tag's parents"""
 		if not self.relate:
 			raise Exception,"relate option required"
-		if not txn:	txn = self.txn
+
 
 		try:
 			return loads(self.cpdb.get(self.dumpkey(tag), txn=txn))
@@ -449,7 +449,7 @@ class RelateBTree(BTree):
 		omitted, all named and unnamed children will be returned"""
 		if not self.relate:
 			raise Exception,"relate option required"
-		if not txn:	txn = self.txn
+
 
 		try:
 			return loads(self.pcdb.get(self.dumpkey(tag), txn=txn))
@@ -464,7 +464,6 @@ class RelateBTree(BTree):
 		"""Returns a list of tags related to the given tag"""
 		if not self.relate:
 			raise Exception,"relate option required"
-		if not txn:	txn = self.txn
 
 		try:
 			return loads(self.reldb.get(self.dumpkey(tag),txn=txn))
@@ -493,6 +492,7 @@ class FieldBTree(BTree):
 	"""
 	def __init__(self, *args, **kwargs):
 		self.__indexkeys = kwargs.pop("indexkeys", None)
+		self.__indexkeys = None
 		kwargs.pop('keyindex', None)
 		BTree.__init__(self, *args, **kwargs)
 
@@ -508,7 +508,7 @@ class FieldBTree(BTree):
 
 	def removeref(self, key, item, txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		o.remove(item)
 		if not o and self.__indexkeys != None:
@@ -518,7 +518,7 @@ class FieldBTree(BTree):
 
 	def removerefs(self, key, items, txn=None):
 		"""The keyed value must be a list of objects. list of 'items' will be removed from this list"""
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		o -= set(items)
 		if not o and self.__indexkeys != None:
@@ -528,14 +528,14 @@ class FieldBTree(BTree):
 
 	def testref(self, key, item, txn=None):
 		"""Tests for the presence if item in key'ed index """
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		return item in o
 
 
 	def addref(self, key, item, txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		if self.__indexkeys != None and not o:
 			self.__indexkeys.addref(self.name, key, txn=txn)
@@ -545,7 +545,7 @@ class FieldBTree(BTree):
 
 	def addrefs(self, key, items, txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		if self.__indexkeys != None and not o:
 			self.__indexkeys.addref(self.name, key, txn=txn)
@@ -554,7 +554,7 @@ class FieldBTree(BTree):
 
 
 	def items(self, mink=None, maxk=None, txn=None):
-		if not txn: txn=self.txn
+
 		if mink is None and maxk is None:
 			items = BTree.items(self)
 		elif mink is not None and maxk is None:
@@ -588,15 +588,15 @@ class FieldBTree(BTree):
 		return items
 
 
-	def keys(self,mink=None,maxk=None,txn=None):
+	def keys(self, mink=None, maxk=None, txn=None):
 		"""Returns a list of valid keys, mink and maxk allow specification of
  		minimum and maximum key values to retrieve"""
 		if mink == None and maxk == None:
-			return BTree.keys(self)
+			return BTree.keys(self, txn)
 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
 
 
-	def values(self,mink=None,maxk=None,txn=None):
+	def values(self, mink=None, maxk=None, txn=None):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
 		if mink == None and maxk == None: return BTree.values(self)
@@ -614,10 +614,10 @@ class IndexKeyBTree(FieldBTree):
 
 
 	def keys(self, txn=None):
-		return map(self.loadkey, self.bdb.keys())
+		return map(self.loadkey, self.bdb.keys(txn))
 
 	def values(self, txn=None):
-		return map(self.loaddata, self.bdb.values())
+		return map(self.loaddata, self.bdb.values(txn=txn))
 
 	def typedata(self, data):
 		return set(data)
@@ -625,7 +625,7 @@ class IndexKeyBTree(FieldBTree):
 
 	def removeref(self, key, item, txn=None):
 		"""like FieldBTree method, but doesn't delete key if empty"""
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		o.remove(item)
 		return self.set(key, o, txn=txn)	
@@ -633,7 +633,7 @@ class IndexKeyBTree(FieldBTree):
 
 	def addref(self, key, item, txn=None):
 		"""like FieldBTree method, but doesn't delete key if empty"""
-		if not txn: txn=self.txn
+
 		o = self.get(key, txn=txn) or set()
 		o.add(item)
 		return self.set(key, o, txn=txn)
