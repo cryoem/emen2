@@ -250,6 +250,7 @@ class PublicView(Resource):
 
 
 	# wrap db with context; view never has to see ctxid/host
+	@g.debug.debug_func
 	def _action(self, callback, db=None, ctxid=None, host=None):
 		'''set db context, call view, and get string result
 
@@ -259,15 +260,17 @@ class PublicView(Resource):
 		db._setcontext(ctxid,host)
 
 		db._starttxn()
-
-		ret, headers = callback(db=db)
+		g.debug('View transaction started')
 
 		try:
+			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			ret = str(ret)
+			g.debug('View transaction aborted')
 			db._aborttxn()
+			raise
 		else:
+			g.debug('View transaction committed')
 			db._committxn()
 
 		return ret, headers

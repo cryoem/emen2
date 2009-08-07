@@ -265,7 +265,7 @@ class BTree(object):
 
 
 	def items(self, txn=None):
-		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn=txn)) #txn=txn
+		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) #txn=txn
 
 
 	def has_key(self, key, txn=None):
@@ -559,7 +559,7 @@ class FieldBTree(BTree):
 			items = BTree.items(self)
 		elif mink is not None and maxk is None:
 			mink = self.typekey(mink)
-			items = [(mink, self[mink])]
+			items = [(mink, self.get(mink, txn=txn))]
 		else:
 			print "cur"
 			cur = self.bdb.cursor(txn=txn)

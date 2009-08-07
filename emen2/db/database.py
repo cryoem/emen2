@@ -656,6 +656,7 @@ class Database(object):
 			5 - verbose, verbose logging
 			6 - debug only"""
 
+			txn = txn or 1
 			if type(level) is int and (level < 0 or level > 7):
 				level = 6
 			try:
