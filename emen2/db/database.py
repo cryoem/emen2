@@ -5006,8 +5006,7 @@ class Database(object):
 				while (1):
 
 					try:
-						data = fin.read()
-						r = loads(data)
+						r = load(fin)
 					except EOFError, inst:
 						print inst
 						break
