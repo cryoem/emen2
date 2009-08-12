@@ -2,6 +2,7 @@ import cgi
 try:
 	from emen2.util.listops import adj_dict
 except ImportError: pass
+import functools
 
 class prop(property):
     '''apply prop.init to a function that returns a dictionary with keys
@@ -52,3 +53,20 @@ def get_slice(str, start, end):
         start = 0
     return str[start:end]
 
+class return_list_or_single(object):
+	def __init__(self, argname=1):
+		self.__triggerarg = argname
+
+	def __call__(self, func):
+		@functools.wraps(func)
+		def _inner(*args, **kwargs):
+			if isinstance(self.__triggerarg, basestring):
+				lst = kwargs.get(self.__triggerarg)
+			else:
+				lst = args[self.__triggerarg]
+			lst = hasattr(lst, '__iter__')
+			result = func(*args, **kwargs)
+			if not lst:
+				result = result[0]
+			return result
+		return _inner

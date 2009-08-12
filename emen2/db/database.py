@@ -728,6 +728,14 @@ class Database(object):
 		# section: login / passwords
 		###############################
 
+		@g.debug.debug_func
+		def __makecontext(self, username="anonymous", host=None):
+			'''so we can simulate a context for approveuser'''
+			newcontext = Context(db=self, username=username, host=host)
+			# ian: todo: add a well-seeded random number here
+			s = hashlib.sha1(username + unicode(host) + unicode(time.time()))
+			newcontext.ctxid = s.hexdigest()
+			return newcontext
 
 
 		#@txn
@@ -743,24 +751,24 @@ class Database(object):
 
 			# Anonymous access
 			if username == "anonymous": # or username == ""
-				newcontext = Context(db=self, host=host)
+				newcontext = self.__makecontext()
+				g.debug('Anonymous Login!!!')
 
 			else:
+				g.debug('Authentication Login!!!')
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
-					newcontext = Context(db=self, username=username, host=host)
+					g.debug('new context: %r' %newcontext)
+					newcontext = self.__makecontext(username, host)
+					g.debug('new context: %r' %newcontext)
 
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
 					raise AuthenticationError, AuthenticationError.__doc__
 
 
-			# ian: todo: add a well-seeded random number here
-			s = hashlib.sha1(username + unicode(host) + unicode(time.time()))
-
-			newcontext.ctxid = s.hexdigest()
 
 			#if ctx.user != None:
 			#	ctx.groups.append(-3)
@@ -777,6 +785,7 @@ class Database(object):
 
 			except:
 				self.LOG(4, "Error writing login context, txn aborting!", ctx=ctx, txn=txn)
+				raise
 				#self.txnabort(txn=txn2)
 
 
@@ -895,6 +904,10 @@ class Database(object):
 
 
 
+		def __init_context(self, context, user=None, txn=None):
+			context.db = self
+			context._user = user or self.getuser(context._username, ctx=context, txn=txn)
+
 
 		def _getcontext(self, key, host, ctx=None, txn=None):
 			"""Takes a ctxid key and returns a context (for internal use only)
@@ -926,8 +939,7 @@ class Database(object):
 
 
 			# this sets up db handle ref, users, groups for context...
-			context.db = self
-			context._user = self.getuser(context._username, ctx=context, txn=txn)
+			self.__init_context(context, txn=txn)
 
 			self.__contexts[key] = context		# cache result from database
 
@@ -2048,6 +2060,10 @@ class Database(object):
 			if not ctx.checkcreate():
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
+			self.__link_internal(self, mode, links, keytype="record", ctx=None, txn=None)
+		
+		def __link_internal(self, mode, links, keytype="record", ctx=None, txn=None):
+
 
 			if filter(lambda x:x[0] == x[1], links):
 				self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
@@ -2169,31 +2185,36 @@ class Database(object):
 
 		#@txn
 		@publicmethod
+		@emen2.util.utils.return_list_or_single(1)
+		@g.debug.debug_func
 		def approveuser(self, usernames, secret=None, ctx=None, txn=None):
-			"""Only an administrator can do this, and the user must be in the queue for approval"""
+			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret
+			
+			adduser creates a secret, should work hear
+			"""
 
 			try:
 				admin = ctx.checkadmin()
-				if secret == None or not admin:
+				g.debug('admin is : %r, secret is : %r, secret == None is : %r, not admin is : %r' % (admin, secret, secret == None, not admin))
+				if (secret == None) and (not admin):
 					raise SecurityError, "Only administrators or users with self-authorization codes can approve new users"
 
 			except SecurityError:
 				raise
 
-			except:
+			except BaseException, e:
 				admin = False
-				if secret != None: pass
-				else: raise
+				if secret is None: raise
+				else:
+					g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
 
 
-			ol=0
-			if not hasattr(username,"__iter__"):
-				ol=1
+			#ol=False
+			if not hasattr(usernames,"__iter__"):
+				#ol=True
 				usernames = [usernames]
 
-			delusers = {}
-			addusers = {}
-			records = {}
+			delusers, addusers, records, childstore = {}, {}, {}, {}
 
 			for username in usernames:
 				if not username in self.__newuserqueue.keys(txn=txn):
@@ -2209,40 +2230,41 @@ class Database(object):
 				user = self.__newuserqueue.sget(username, txn=txn) #[username]
 				user.validate()
 
-				usersecret = user.signupinfo.get("secret")
-				try: del user.signupinfo["secret"]
-				except:	pass
-
-
-				if secret and usersecret != secret:
+				if secret is not None and not user.validate_secret(secret):
 					self.LOG("LOG_ERROR","Incorrect secret for user %s; skipping"%username, ctx=ctx, txn=txn)
 					time.sleep(2)
-					continue
 
+				else:
+					if user.record == None:
+						tmpctx = ctx
+						if ctx.username == None:
+							tmpctx = self.__makecontext(username=username, host=ctx.host)
+							self.__init_context(tmpctx, user, txn=txn)
 
-				if user.record == None:
-					rec = self.newrecord("person", init=1, ctx=ctx, txn=txn)
-					rec["username"] = username
-					rec["name_first"] = user.name[0]
-					rec["name_middle"] = user.name[1]
-					rec["name_last"] = user.name[2]
-					rec["email"] = user.email
-					rec.adduser(3,username)
+						rec = self.newrecord("person", init=1, ctx=tmpctx, txn=txn)
+						rec["username"] = username
+						name = user.signupinfo.get('name', ['', '', ''])
+						rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
+						rec["email"] = user.signupinfo.get('email')
+						rec.adduser(3,username)
 
-					for k,v in user.signupinfo.items():
-						rec[k]=v
+						childrecs = []
+						for k,v in user.signupinfo.items():
+							if k.endswith('__child'):
+								childrecs.append(v)
+							else:
+								rec[k]=v
 
-					records[username] = rec
+						childstore[id(rec)] = childrecs
+						records[username] = rec
 
-				user.signupinfo = None
-				addusers[username] = user
+					user.signupinfo = None
+					addusers[username] = user
 
-			#recs, orecs, updrels = self.__putrecord_checknew(records.values(), ctx=ctx)
-
-			#@begin
-
-			crecs = self.__putrecord(recs, ctx=ctx, txn=txn)
-			for rec in crecs:
+			records = self.__putrecord(records.values(), ctx=tmpctx, txn=txn)
+			for rec in records:
+				#g.debug('record has children: %r' % childstore.get(id(rec), []))
+				#self.__link_internal(rec.recid, childstore.get(id(rec),[]))
 				addusers[rec.get("username")].record = rec.recid
 
 			self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
@@ -2251,8 +2273,8 @@ class Database(object):
 			#@end
 
 			ret = addusers.keys()
-			if ol and len(ret)==1:
-				return ret[0]
+			# if ol and len(ret)==1:
+			# 	return ret[0]
 			return ret
 
 
@@ -2554,25 +2576,24 @@ class Database(object):
 			new user queue, which must be processed by an administrator before the record
 			becomes active. This system prevents problems with securely assigning passwords
 			and errors with data entry. Anyone can create one of these"""
-
-			if not isinstance(user, User):
-				try:
-					user = User(user)
-				except:
-					raise ValueError, "User instance or dict required"
+			secret = hashlib.sha1(str(id(user)) + str(time.time()) + file('/dev/urandom').read(5))
+			try:
+				user = User(user, secret=secret.hexdigest())
+				g.debug(User)
+			except:
+				raise ValueError, "User instance or dict required"
 
 			if user.username == None or len(user.username) < 3:
-				if self.__importmode:
-					pass
+				if self.__importmode: pass
 				else:
 					raise KeyError, "Attempt to add user with invalid name"
 
 			#if user.username in self.__users:
 			if self.__users.get(user.username, txn=txn):
-				if not self.__importmode:
-					raise KeyError, "User with username %s already exists" % user.username
+				if self.__importmode: pass
 				else:
-					pass
+					raise KeyError, "User with username %s already exists" % user.username
+
 
 			#if user.username in self.__newuserqueue:
 			if self.__newuserqueue.get(user.username, txn=txn):
@@ -2582,7 +2603,7 @@ class Database(object):
 			# 40 = lenght of hex digest
 			# we disallow bad passwords here, right now we just make sure that it
 			# is at least 6 characters long
-			if len(user.password) < 6 :
+			if len(user.password) < 6:
 					raise SecurityError, "Passwords must be at least 6 characters long"
 
 			s = hashlib.sha1(user.password)
@@ -2592,9 +2613,11 @@ class Database(object):
 				user.creationtime = self.gettime(ctx=ctx, txn=txn)
 				user.modifytime = self.gettime(ctx=ctx, txn=txn)
 
+			g.debug(dir(user))
+			assert hasattr(user, '_User__secret')
 			user.validate()
 
- 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
+			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
 
 			return user
 
@@ -3565,7 +3588,7 @@ class Database(object):
 					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
 
 			if ctx.username != "root":
-				rec.adduser(3, ctx.user)
+				rec.adduser(3, ctx._user)
 
 			return rec
 

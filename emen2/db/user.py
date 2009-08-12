@@ -60,7 +60,7 @@ class Context:
 				return self._user.groups
 			except:
 				return set()
-				
+
 
 		username = property(__getusername)
 		groups = property(__getgroups)
@@ -104,7 +104,7 @@ class Group(DictMixin):
 		self.creationtime = kwargs.get('creationtime',None)
 		self.modifytime = kwargs.get('modifytime',None)
 		self.modifyuser = kwargs.get('modifyuser',None)
-		
+
 		self.setpermissions(kwargs.get('permissions'))
 
 		if ctx:
@@ -259,9 +259,9 @@ class User(DictMixin):
 
 	# non-admin users can only change their privacy setting directly
 	attr_user = set(["privacy", "modifytime", "password", "modifyuser","signupinfo"])
-	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record"])
+	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record","secret"])
 	attr_all = attr_user | attr_admin
-	
+
 
 	def __init__(self, d=None, **kwargs):
 		"""User class, takes either a dictionary or a set of keyword arguments
@@ -300,13 +300,15 @@ class User(DictMixin):
 
 
 
-		kwargs.update(d or {})
+		d = d or {}
+		d.update(kwargs or {})
+		kwargs = d
+
 		ctx = kwargs.get('ctx',None)
 
 
 		self.username = kwargs.get('username')
 		self.password = kwargs.get('password')
-		
 
 		self.disabled = kwargs.get('disabled',0)
 		self.privacy = kwargs.get('privacy',0)
@@ -319,12 +321,15 @@ class User(DictMixin):
 		self.creationtime = kwargs.get('creationtime')
 		self.modifytime = kwargs.get('modifytime')
 		self.modifyuser = kwargs.get('modifyuser')
+		self.__secret = kwargs.get('secret')
+		g.debug(kwargs)
+		g.debug('User.__secret = %r' % self.__secret)
 
 		# read only attributes, set at getuser time
 		# self.groups = None
 		# self.userrec = None
 		# self.email = None
-		
+
 		#self.groups = set() #kwargs.get('groups', [-4])
 		#self.name = kwargs.get('name')
 		#self.email = kwargs.get('email')
@@ -332,7 +337,7 @@ class User(DictMixin):
 		if ctx:
 			pass
 
-	
+
 
 	#################################
 	# mapping methods
@@ -368,31 +373,14 @@ class User(DictMixin):
 		#if set(self.__dict__.keys())-self.attr_all:
 			#raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 		for i in set(self.__dict__.keys())-self.attr_all:
-			del self.__dict__[i]
-
-		try:
-			unicode(self.email)
-		except:
-			raise AttributeError,"Invalid value for email"
-
-		# if self.name != None:
-		# 	try:
-		# 		list(self.name)
-		# 		unicode(self.name)[0]
-		# 		unicode(self.name)[1]
-		# 		unicode(self.name)[2]
-		# 	except:
-		# 		raise AttributeError,"Invalid name format."
-
-		# try:
-		# 	self.groups = set(self.get('groups',[]))
-		# except:
-		# 	raise AttributeError,"Groups must be a list."
+			if not i.startswith('_'):
+				del self.__dict__[i]
 
 		try:
 			if self.record != None:
 				self.record = int(self.record)
-		except:
+		except BaseException, e:
+			g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
 			raise AttributeError,"Record pointer must be integer"
 
 		if self.privacy not in [0,1,2]:
@@ -403,8 +391,16 @@ class User(DictMixin):
 
 		try:
 			self.disabled = bool(self.disabled)
-		except:
+		except BaseException, e:
+			g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
 			raise AttributeError,"Disabled must be 0 (active) or 1 (disabled)"
+
+	def validate_secret(self, secret):
+		result = self.__secret == secret
+		return result
+
+	def kill_secret(self):
+		self.__secret = None
 
 
 

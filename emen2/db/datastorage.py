@@ -974,7 +974,7 @@ class Record(DictMixin):
 			self[i] = j
 			
 		value = unicode(value)
-		self.__comments.append((unicode(self.__context.user),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
+		self.__comments.append((unicode(self.__context._user),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
 		# store the comment string itself
 
 
@@ -985,6 +985,7 @@ class Record(DictMixin):
 		
 
 
+	@g.debug.debug_func
 	def setContext(self, ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
@@ -1013,10 +1014,10 @@ class Record(DictMixin):
 
 		# ian: fixed ctx.groups to include these implicit groups
 		#+[-4] all users are permitted group -4 access
-		#if ctx.user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
+		#if ctx._user!=None : u1.add(-3)		# all logged in users are permitted group -3 access
 
 		# test for read permission in this context
-		#if (-2 in u1 or ctx.user in p1 or u1 & p1):
+		#if (-2 in u1 or ctx._user in p1 or u1 & p1):
 		if (-2 in u1 or ctx.username in p1 or u1 & p1):
 			self.__ptest[0] = 1
 		else:
