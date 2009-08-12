@@ -280,10 +280,10 @@ class BTree(object):
 		return ret
 		
 
-	def get(self, key, default=None, txn=None):
+	def get(self, key, default=None, txn=None, flags=None):
 		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
 		try:
-			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn))
+			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
 		except:
 			return default
 

@@ -59,7 +59,9 @@ MAXIDLE = 604800
 
 usetxn = True
 
-envopenflags = db.DB_CREATE | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG | db.DB_THREAD | db.DB_INIT_TXN
+envopenflags = db.DB_CREATE | db.DB_THREAD | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG |  db.DB_INIT_TXN | db.DB_MULTIVERSION
+txnflags_read = db.DB_TXN_SNAPSHOT
+txnflags_rmw = db.DB_TXN_SNAPSHOT
 
 
 #| db.DB_READ_UNCOMMITTED
@@ -2795,15 +2797,21 @@ class Database(object):
 
 			namestoget=set(namestoget)
 
-			users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
-			users = filter(lambda x:x[1].record != None, users)
-			users = dict(users)
+			# users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
+			# users = filter(lambda x:x[1].record != None, users)
+			# users = dict(users)
+			# 
+			# recs = self.getrecord([user.record for user in users.values()], filt=filt, ctx=ctx, txn=txn)
+			# recs = dict([(i.recid,i) for i in recs])
+			# 
+			# for k,v in users.items():
+			# 	ret[k] = self.__formatusername(k, recs.get(v.record, {}), lnf=lnf, ctx=ctx, txn=txn)
 
-			recs = self.getrecord([user.record for user in users.values()], filt=filt, ctx=ctx, txn=txn)
-			recs = dict([(i.recid,i) for i in recs])
-
-			for k,v in users.items():
-				ret[k] = self.__formatusername(k, recs[v.record], lnf=lnf, ctx=ctx, txn=txn)
+			users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
+			ret = {}
+			
+			for i in users.values():
+				ret[i.username] = i.displayname
 
 			if len(ret.keys())==0:
 				return {}
@@ -2816,7 +2824,6 @@ class Database(object):
 
 
 		def __formatusername(self, username, u={}, lnf=True, ctx=None, txn=None):
-			print "u is %s"%u
 			nf = u.get("name_first")
 			nm = u.get("name_middle")
 			nl = u.get("name_last")
@@ -3957,7 +3964,9 @@ class Database(object):
 			if newrecs:
 				baserecid = self.__records.get(-1, txn=txn) or 0
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
-
+				
+				
+				
 
 			# add recids to new records, create map from temp recid, setup index
 			for offset, newrec in enumerate(newrecs):

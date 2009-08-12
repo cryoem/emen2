@@ -14,6 +14,90 @@ import emen2.Database.database
 
 
 
+def parseparmvalues(text,noempty=0):
+	"""This will extract parameter names $param or $param=value """
+	# Ed 05/17/2008 -- cleaned up
+	#srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
+	#srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+	params, vals = ret=[[],{}]
+
+	for name, a, b in (x.groups() for x in srch):
+		if name is '': continue
+		else:
+			params.append(name)
+			if a is None: val=b
+			else: val=a
+			vals[name] = val
+	return ret
+
+
+
+
+
+
+class BaseDBObject(DictMixin):
+	
+	attr_user = set()
+	att_admin = set()
+	attr_all = attr_user | attr_admin
+	
+	def __init__(self, _d=None, **kwargs):
+		if _d == None:
+			d = {}
+		
+		_d.update(kwargs)
+		
+		self.init(_d)
+		
+		
+	def init(d):
+		pass
+		
+		
+
+	def __str__(self):
+		return unicode(dict(self))
+
+
+	#################################
+	# mapping methods
+	#################################
+
+	def __getitem__(self,key):
+		try:
+			return self.__dict__[key]
+		except:
+			pass
+
+
+	def __setitem__(self,key,value):
+		if key in self.attr_all:
+			self.__dict__[key]=value
+		else:
+			raise KeyError,"Invalid key: %s"%key
+
+
+	def __delitem__(self,key):
+		raise KeyError,"Key deletion not allowed"
+
+
+	def keys(self):
+		return tuple(self.attr_all)
+
+
+
+
+
+class Binary(BaseDBObject):
+	
+	def init(d):
+		
+
+
+
+
+
 class ParamDef(DictMixin) :
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
@@ -181,24 +265,6 @@ class ParamDef(DictMixin) :
 
 		return
 
-
-
-def parseparmvalues(text,noempty=0):
-	"""This will extract parameter names $param or $param=value """
-	# Ed 05/17/2008 -- cleaned up
-	#srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
-	#srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	params, vals = ret=[[],{}]
-
-	for name, a, b in (x.groups() for x in srch):
-		if name is '': continue
-		else:
-			params.append(name)
-			if a is None: val=b
-			else: val=a
-			vals[name] = val
-	return ret
 
 
 
@@ -695,7 +761,7 @@ class Record(DictMixin):
 		return odict
 
 
-	def __setstate__(self,dict):
+	def __setstate__(self, dict):
 		"""restore unpickled values to defaults after unpickling"""
 		#g.debug("unpickle: _Record__oparams")
 		#if dict["_Record__oparams"]	!= {}:
