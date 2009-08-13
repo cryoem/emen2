@@ -2064,8 +2064,9 @@ class Database(object):
 
 			self.__link_internal(self, mode, links, keytype="record", ctx=None, txn=None)
 		
-		def __link_internal(self, mode, links, keytype="record", ctx=None, txn=None):
 
+
+		def __link_internal(self, mode, links, keytype="record", ctx=None, txn=None):
 
 			if filter(lambda x:x[0] == x[1], links):
 				self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
@@ -2235,6 +2236,7 @@ class Database(object):
 				if secret is not None and not user.validate_secret(secret):
 					self.LOG("LOG_ERROR","Incorrect secret for user %s; skipping"%username, ctx=ctx, txn=txn)
 					time.sleep(2)
+
 
 				else:
 					if user.record == None:
@@ -2440,6 +2442,7 @@ class Database(object):
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+					raise
 
 			for user,groups in delrefs.items():
 				try:
@@ -2448,6 +2451,7 @@ class Database(object):
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+					raise
 
 			#@end
 
@@ -2457,7 +2461,6 @@ class Database(object):
 		#@write self.__groupsbyuser
 		def __rebuild_groupsbyuser(self, ctx=None, txn=None):
 			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-			#users = dict([(i, set()) for i in self.getusernames()])
 			users = collections.defaultdict(set)
 
 			for k, group in groups.items():
@@ -3594,6 +3597,7 @@ class Database(object):
 				except Exception, inst:
 					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
 
+
 			if ctx.username != "root":
 				rec.adduser(3, ctx._user)
 
@@ -3849,7 +3853,8 @@ class Database(object):
 				recid = updrec.recid
 
 				try:
-					orec = self.__records.sget(updrec.recid, txn=txn) # [updrec.recid]
+					# we need to acquire RMW lock here to prevent changes during commit
+					orec = self.__records.sget(updrec.recid, txn=txn, flags=db.DB_RMW) # [updrec.recid]
 					orec.setContext(ctx)
 
 				except (KeyError, TypeError), inst:
@@ -3948,10 +3953,12 @@ class Database(object):
 			print "commiting %s recs"%(len(crecs))
 
 			recmap = {}
-			rectypes = {}
+			rectypes = collections.defaultdict(list) # {}
 			timeupdate = {}
 			newrecs = filter(lambda x:x.recid < 0, crecs)
 
+
+			# acquire write locks on records at this point
 			# first, get index updates
 			indexupdates = self.__reindex_params(crecs, ctx=ctx, txn=txn)
 			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx, txn=txn)
@@ -3960,11 +3967,13 @@ class Database(object):
 
 			#@begin
 
+			# ntxn = self.newtxn(txn=txn)
+
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.get(-1, txn=txn) or 0
+				baserecid = self.__records.get(-1, flags=db.DB_RMW, txn=txn) or 0
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
-				
+			
 				
 				
 
@@ -3973,13 +3982,11 @@ class Database(object):
 				oldid = newrec.recid
 				newrec.recid = offset + baserecid
 				recmap[oldid] = newrec.recid
-				if not rectypes.has_key(newrec.rectype):
-					rectypes[newrec.rectype]=[]
 				rectypes[newrec.rectype].append(newrec.recid)
 
 
-			if filter(lambda x:x.recid < 0, crecs):
-				raise ValueError, "Some new records were not given real recids; giving up"
+			#if filter(lambda x:x.recid < 0, crecs):
+			#	raise ValueError, "Some new records were not given real recids; giving up"
 
 
 			# This actually stores the record in the database
@@ -3990,14 +3997,6 @@ class Database(object):
 
 
 			# # New record RecordDef indexes
-			# for rec in newrecs:
-			# 	try:
-			# 		self.__recorddefbyrec.set(rec.recid, rec.rectype, txn=txn)
-			# 		#g.debug("LOG_COMMIT","Commit: self.__recorddefbyrec.set: %s, %s"%(rec.recid, rec.rectype))
-			#
-			# 	except Exception, inst:
-			# 		g.debug("LOG_ERROR", "Could not update recorddefbyrec: record %s, rectype %s (%s)"%(rec.recid, rec.rectype, inst))
-
 
 			#txn2 = self.newtxn(parent=txn)
 
@@ -4008,7 +4007,8 @@ class Database(object):
 
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
-
+					raise
+					
 
 			# Param index
 			for param, updates in indexupdates.items():
@@ -4030,7 +4030,8 @@ class Database(object):
 
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
-
+					raise
+					
 
 			# Create pc links
 			for link in updrels:
@@ -4038,7 +4039,7 @@ class Database(object):
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
-
+					raise
 
 			#if txn2:
 			#	self.txncommit(txn2)
@@ -4060,6 +4061,8 @@ class Database(object):
 						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					raise
+					
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
@@ -4069,7 +4072,7 @@ class Database(object):
 						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
-
+					raise
 
 
 
@@ -4088,7 +4091,7 @@ class Database(object):
 					raise Exception, "Index was None; unindexable?"
 			except Exception, inst:
 				self.LOG("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
-				return
+				raise
 
 
 			for newval,recs in addrefs.items():
@@ -4099,7 +4102,7 @@ class Database(object):
 						paramindex.addrefs(newval, recs, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
-
+					raise
 
 
 			for oldval,recs in delrefs.items():
@@ -4110,14 +4113,15 @@ class Database(object):
 						paramindex.removerefs(oldval, recs, txn=txn)
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
-
+					raise
 
 
 		# index update methods
 		def __reindex_params(self, updrecs, ctx=None, txn=None):
 			"""update param indices"""
 
-			ind = dict([(i,[]) for i in self.__paramdefs.keys(txn=txn)])
+			#ind = dict([(i,[]) for i in self.__paramdefs.keys(txn=txn)])
+			ind = collections.defaultdict(list)
 			indexupdates = {}
 			unindexed = set(["recid","rectype","comments","permissions"])
 
@@ -4125,6 +4129,7 @@ class Database(object):
 				recid = updrec.recid
 
 				# this is a fix for proper indexing of new records...
+				# if existing record, RMW lock already placed at beginning of txn
 				try: orec = self.__records.sget(recid, txn=txn) # [recid]
 				except:	orec = {}
 
@@ -4167,32 +4172,31 @@ class Database(object):
 			if pd.vartype == "text":
 				return self.__reindex_paramtext(key, items, ctx=ctx, txn=txn)
 
-			addrefs = dict([[i,set()] for i in set([i[1] for i in items])])
-			delrefs = dict([[i,set()] for i in set([i[2] for i in items])])
+			#addrefs = dict([[i,set()] for i in set([i[1] for i in items])])
+			#delrefs = dict([[i,set()] for i in set([i[2] for i in items])])
+			addrefs = collections.defaultdict(set)
+			delrefs = collections.defaultdict(set)
+			
 			for i in items:
 				addrefs[i[1]].add(i[0])
 				delrefs[i[2]].add(i[0])
 
-			if addrefs.has_key(None): del addrefs[None]
-			if delrefs.has_key(None): del delrefs[None]
+			if None in addrefs: del addrefs[None]
+			if None in delrefs: del delrefs[None]
 
 			return addrefs, delrefs
 
 
 
 		def __reindex_paramtext(self, key, items, ctx=None, txn=None):
-			addrefs={}
-			delrefs={}
-
+			addrefs = collections.defaultdict(list)
+			delrefs = collections.defaultdict(list)
+			
 			for item in items:
 				for i in self.__reindex_getindexwords(item[1], ctx=ctx, txn=txn):
-					if not addrefs.has_key(i):
-						addrefs[i]=[]
 					addrefs[i].append(item[0])
 
 				for i in self.__reindex_getindexwords(item[2], ctx=ctx, txn=txn):
-					if not delrefs.has_key(i):
-						delrefs[i]=[]
 					delrefs[i].append(item[0])
 
 			allwords = set(addrefs.keys() + delrefs.keys()) - self.unindexed_words
@@ -4214,7 +4218,8 @@ class Database(object):
 
 		# ian: todo: is re.compile expensive?
 		def __reindex_getindexwords(self, value, ctx=None, txn=None):
-			if value==None: return []
+			if value == None:
+				return []
 			m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
 			return set(map(lambda x:x[0] or x[1], m.findall(unicode(value).lower())))
 
@@ -4234,31 +4239,28 @@ class Database(object):
 		def __reindex_security(self, updrecs, ctx=None, txn=None):
 
 			secrupdate = []
-			addrefs = {}
-			delrefs = {}
+			addrefs = collections.defaultdict(list)
+			delrefs = collections.defaultdict(list)
 
 			for updrec in updrecs:
 				recid = updrec.recid
 
 				# this is a fix for proper indexing of new records...
+				# write lock acquire at beginning of txn
 				try: orec = self.__records.sget(recid, txn=txn) # [recid]
 				except:	orec = {}
 
 				if updrec.get("permissions") == orec.get("permissions"):
 					continue
 
-
 				nperms = set(reduce(operator.concat, updrec["permissions"]))
 				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
 
 				#self.LOG("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 
-
 				for user in nperms - operms:
-					if not addrefs.has_key(user): addrefs[user] = []
 					addrefs[user].append(recid)
 				for user in operms - nperms:
-					if not delrefs.has_key(user): delrefs[user] = []
 					delrefs[user].append(recid)
 
 			return addrefs, delrefs

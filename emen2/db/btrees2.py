@@ -197,11 +197,11 @@ class BTree(object):
 		self.bdb=None
 
 
-	def truncate(self, txn=None):
+	def truncate(self, txn=None, flags=0):
 		self.bdb.truncate(txn=txn)
 		
 
-	def sync(self):
+	def sync(self, txn=None, flags=0):
 		self.bdb.sync()
 
 
@@ -255,6 +255,7 @@ class BTree(object):
 
 
 	def keys(self, txn=None):
+		# ian: todo: submit bug report for bdb.keys not accepting kwargs, despite documentation
 		return map(self.loadkey, self.bdb.keys(txn))
 
 
@@ -273,14 +274,14 @@ class BTree(object):
 
 
 	# DB_subscript with txn; passes exception instead of default
-	def sget(self, key, txn=None):
+	def sget(self, key, txn=None, flags=0):
 		ret = self.get(key, txn=txn)
 		if ret == None:
 			raise KeyError, "No such key %s"%key
 		return ret
 		
 
-	def get(self, key, default=None, txn=None, flags=None):
+	def get(self, key, default=None, txn=None, flags=0):
 		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
 		try:
 			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
@@ -288,17 +289,17 @@ class BTree(object):
 			return default
 
 
-	def set(self, key, data, txn=None):
+	def set(self, key, data, txn=None, flags=0):
 		"Alternative to x[key]=val with transaction set"
 		if data == None:
-			return self.bdb.delete(self.dumpkey(key), txn=txn)
-		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
+			return self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
+		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
 
 
-	def update(self, d, txn=None):
+	def update(self, d, txn=None, flags=0):
 		d = dict(map(lambda x:self.typekey(x[0]), self.typedata(x[1]), d.items()))
 		for i,j in dict.items():
-			self.bdb.put(self.dumpkey(i), self.dumpdata(j), txn=txn)
+			self.bdb.put(self.dumpkey(i), self.dumpdata(j), txn=txn, flags=flags)
 			#self.set(i,j,txn=txn)
 
 
@@ -372,8 +373,6 @@ class RelateBTree(BTree):
 		if not self.relate:
 			raise Exception,"relate option required in BTree"
 
-
-
 		tag1, tag2 = self.typekey(tag1), self.typekey(tag2)
 
 		if tag1 == None or tag2 == None:
@@ -385,7 +384,7 @@ class RelateBTree(BTree):
 
 
 		try:
-			o = loads(db1.get(self.dumpkey(tag1), txn=txn))
+			o = loads(db1.get(self.dumpkey(tag1), txn=txn, flags=bsddb3.db.DB_RMW))
 		except:
 			o = set()
 
@@ -399,7 +398,7 @@ class RelateBTree(BTree):
 
 
 		try:
-			o = loads(db2.get(self.dumpkey(tag2), txn=txn))
+			o = loads(db2.get(self.dumpkey(tag2), txn=txn, flags=bsddb3.db.DB_RMW))
 		except:
 			o = set()
 
@@ -509,7 +508,7 @@ class FieldBTree(BTree):
 	def removeref(self, key, item, txn=None):
 		"""The keyed value must be a list of objects. 'item' will be removed from this list"""
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o.remove(item)
 		if not o and self.__indexkeys != None:
 			self.__indexkeys.removeref(self.name, key, txn=txn)
@@ -519,7 +518,7 @@ class FieldBTree(BTree):
 	def removerefs(self, key, items, txn=None):
 		"""The keyed value must be a list of objects. list of 'items' will be removed from this list"""
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o -= set(items)
 		if not o and self.__indexkeys != None:
 			self.__indexkeys.removeref(self.name, key, txn=txn)
@@ -528,7 +527,6 @@ class FieldBTree(BTree):
 
 	def testref(self, key, item, txn=None):
 		"""Tests for the presence if item in key'ed index """
-
 		o = self.get(key, txn=txn) or set()
 		return item in o
 
@@ -536,7 +534,7 @@ class FieldBTree(BTree):
 	def addref(self, key, item, txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'item' is added to the list. """
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		if self.__indexkeys != None and not o:
 			self.__indexkeys.addref(self.name, key, txn=txn)
 		o.add(item)
@@ -546,7 +544,7 @@ class FieldBTree(BTree):
 	def addrefs(self, key, items, txn=None):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		if self.__indexkeys != None and not o:
 			self.__indexkeys.addref(self.name, key, txn=txn)
 		o |= set(items)
@@ -626,7 +624,7 @@ class IndexKeyBTree(FieldBTree):
 	def removeref(self, key, item, txn=None):
 		"""like FieldBTree method, but doesn't delete key if empty"""
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o.remove(item)
 		return self.set(key, o, txn=txn)	
 
@@ -634,9 +632,8 @@ class IndexKeyBTree(FieldBTree):
 	def addref(self, key, item, txn=None):
 		"""like FieldBTree method, but doesn't delete key if empty"""
 
-		o = self.get(key, txn=txn) or set()
+		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o.add(item)
 		return self.set(key, o, txn=txn)
 		
-		
-		
+
