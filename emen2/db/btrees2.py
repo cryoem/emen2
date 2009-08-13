@@ -275,7 +275,7 @@ class BTree(object):
 
 	# DB_subscript with txn; passes exception instead of default
 	def sget(self, key, txn=None, flags=0):
-		ret = self.get(key, txn=txn)
+		ret = self.get(key, txn=txn, flags=flags)
 		if ret == None:
 			raise KeyError, "No such key %s"%key
 		return ret

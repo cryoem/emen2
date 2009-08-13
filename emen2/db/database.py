@@ -393,9 +393,9 @@ class Database(object):
 			self.__dbenv.set_data_dir(self.path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			self.__dbenv.set_lg_bsize(1024*1024*16)
-			self.__dbenv.set_lg_max(1024*1024*128)
-			self.__dbenv.set_lg_regionmax(1024*1024*8)
+			self.__dbenv.set_lg_bsize(1024*1024)
+			self.__dbenv.set_lg_max(1024*1024*16)
+			self.__dbenv.set_lg_regionmax(1024*1024*1024)
 			
 			
 			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection

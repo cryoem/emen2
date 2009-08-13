@@ -39,7 +39,7 @@ def parseparmvalues(text,noempty=0):
 class BaseDBObject(DictMixin):
 	
 	attr_user = set()
-	att_admin = set()
+	attr_admin = set()
 	attr_all = attr_user | attr_admin
 	
 	def __init__(self, _d=None, **kwargs):
@@ -92,7 +92,7 @@ class BaseDBObject(DictMixin):
 class Binary(BaseDBObject):
 	
 	def init(d):
-		
+		pass
 
 
 
@@ -1051,7 +1051,7 @@ class Record(DictMixin):
 		
 
 
-	@g.debug.debug_func
+	#@g.debug.debug_func
 	def setContext(self, ctx):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
