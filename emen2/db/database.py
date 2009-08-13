@@ -61,7 +61,7 @@ usetxn = True
 
 envopenflags = db.DB_CREATE | db.DB_THREAD | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG |  db.DB_INIT_TXN | db.DB_MULTIVERSION
 txnflags_read = db.DB_TXN_SNAPSHOT
-txnflags_rmw = db.DB_TXN_SNAPSHOT
+#txnflags_rmw = db.DB_TXN_SNAPSHOT
 
 
 #| db.DB_READ_UNCOMMITTED
@@ -294,7 +294,7 @@ class Database(object):
 			4: 'LOG_INFO',
 			5: 'LOG_DEBUG',
 			6: 'LOG_DEBUG',
-			# 7: 'LOG_COMMIT'
+			7: 'LOG_COMMIT'
 			}
 
 
@@ -393,15 +393,15 @@ class Database(object):
 			self.__dbenv.set_data_dir(self.path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			self.__dbenv.set_lg_bsize(1024*1024*4)
-			self.__dbenv.set_lg_max(1024*1024*32)
-			self.__dbenv.set_lg_regionmax(1024*1024)
+			self.__dbenv.set_lg_bsize(1024*1024*16)
+			self.__dbenv.set_lg_max(1024*1024*128)
+			self.__dbenv.set_lg_regionmax(1024*1024*8)
 			
 			
 			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
-			self.__dbenv.set_lk_max_locks(80000)
-			self.__dbenv.set_lk_max_lockers(80000)
-			self.__dbenv.set_lk_max_objects(80000)
+			self.__dbenv.set_lk_max_locks(100000)
+			self.__dbenv.set_lk_max_lockers(100000)
+			self.__dbenv.set_lk_max_objects(100000)
 			#set_lk_max_lockers
 			#set_lk_max_locks
 
@@ -608,7 +608,7 @@ class Database(object):
 
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			txn = self.__dbenv.txn_begin(parent=parent)
+			txn = self.__dbenv.txn_begin(parent=parent, flags=txnflags_read)
 			print "\n\nNEW TXN --> %s    PARENT IS %s"%(txn,parent)
 			return txn
 
@@ -881,9 +881,13 @@ class Database(object):
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%context.ctxid, ctx=ctx, txn=txn)
-
+				
+				# except ValueError, inst:
+				# 	self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+				# 	
+				# except db.DBError, inst:
 				except Exception, inst:
-					self.LOG("LOG_ERROR","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
 					raise
 
 
@@ -899,7 +903,7 @@ class Database(object):
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid, ctx=ctx, txn=txn)
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					self.LOG("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
 					raise
 
 			#@end
@@ -2440,18 +2444,28 @@ class Database(object):
 					if groups:
 						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %s, addrefs: %s"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
-				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
 					raise
+					
+				except ValueError, inst:
+					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+
 
 			for user,groups in delrefs.items():
 				try:
 					if groups:
 						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %s, removerefs: %s"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
-				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
 					raise
+
+				except ValueError, inst:
+					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+
 
 			#@end
 
@@ -3594,6 +3608,7 @@ class Database(object):
 					prec = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
 					for level, users in enumerate(prec["permissions"]):
 						rec.adduser(level, users)
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
 
@@ -3854,8 +3869,9 @@ class Database(object):
 
 				try:
 					# we need to acquire RMW lock here to prevent changes during commit
-					orec = self.__records.sget(updrec.recid, txn=txn, flags=db.DB_RMW) # [updrec.recid]
+					orec = self.__records.sget(updrec.recid, txn=txn, flags=db.DB_RMW) # [updrec.recid] #, flags=db.DB_RMW
 					orec.setContext(ctx)
+
 
 				except (KeyError, TypeError), inst:
 					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
@@ -3867,7 +3883,6 @@ class Database(object):
 
 					if recid > 0:
 						raise Exception, "Cannot update non-existent record %s"%recid
-
 
 
 				if validate:
@@ -4005,9 +4020,12 @@ class Database(object):
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
 					self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs), ctx=ctx, txn=txn)
 
-				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
 					raise
+
+				except ValueError, inst:
+					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
 					
 
 			# Param index
@@ -4028,18 +4046,26 @@ class Database(object):
 					self.__timeindex.set(recid, time, txn=txn)
 					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
 
-				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
 					raise
 					
+				except ValueError, inst:
+					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+
 
 			# Create pc links
 			for link in updrels:
 				try:
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
+					raise
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
-					raise
+
 
 			#if txn2:
 			#	self.txncommit(txn2)
@@ -4059,9 +4085,14 @@ class Database(object):
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
 						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					raise
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
-					raise
+
 					
 
 			for user, recs in removerefs.items():
@@ -4070,6 +4101,11 @@ class Database(object):
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
 						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					raise
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 					raise
@@ -4089,9 +4125,16 @@ class Database(object):
 				paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
+
+			except db.DBError, inst:
+				self.LOG("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
+				raise
+
 			except Exception, inst:
 				self.LOG("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
 				raise
+
+
 
 
 			for newval,recs in addrefs.items():
@@ -4100,9 +4143,14 @@ class Database(object):
 					if recs:
 						self.LOG("LOG_COMMIT","Commit: param index %s.addrefs: %s '%s', %s"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.addrefs(newval, recs, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
+					raise
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
-					raise
+
 
 
 			for oldval,recs in delrefs.items():
@@ -4111,9 +4159,15 @@ class Database(object):
 					if recs:
 						self.LOG("LOG_COMMIT","Commit: param index %s.removerefs: %s '%s', %s"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.removerefs(oldval, recs, txn=txn)
+
+				except db.DBError, inst:
+					self.LOG("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
+					raise
+
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
-					raise
+
+
 
 
 		# index update methods
@@ -5008,7 +5062,7 @@ class Database(object):
 
 
 				recblock = []
-				recblocklength = 10000
+				recblocklength = 50000
 				commitrecs = 0
 				committed = 0
 
@@ -5063,13 +5117,15 @@ class Database(object):
 						for i in recblock:
 							i.recid = None
 
+
 						newrectxn = self.newtxn(parent=txn)
-						try:
-							newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=newrectxn)
-						except:
-							self.txnabort(txn=newrectxn)
-						else:
-							self.txncommit(txn=newrectxn)
+						print "newrectxn is %s"%newrectxn
+						#try:
+						newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=newrectxn)
+						#except:
+						#	self.txnabort(txn=newrectxn)
+						#else:
+						self.txncommit(txn=newrectxn)
 
 
 						print "checkpointing"
