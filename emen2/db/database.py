@@ -274,6 +274,59 @@ def DB_syncall():
 	# print "%f sec to sync"%(time.time()-t)
 
 
+def publicmethod(func):
+	DBProxy._register_publicmethod(func.func_name, func)
+
+	@wraps(func)
+	def _inner(self, *args, **kwargs):
+		result = None
+		txn = kwargs.get('txn')
+		commit = False
+		if txn is None:
+			#g.debug("txn is None, starting new, for func: %r" % func)
+			txn = self.newtxn()
+			commit = True
+		#g.debug('txn:: %r' % txn)
+		kwargs['txn'] = txn
+
+
+		try:
+			#g.debug('calling func: %r' %  func)
+			result = func(self, *args, **kwargs)
+			#g.debug('finished func: %r' %  func)
+		except Exception, e:
+			g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
+			traceback.print_exc(e)
+			if commit is True:
+				g.debug('aborting !!!!!')
+				txn.abort()
+			raise
+		else:
+			#g.debug('checking whether to commit???')
+			if commit is True:
+				g.debug('committing')
+				txn and txn.commit()
+
+		return result
+
+	return _inner
+
+def adminmethod(func):
+	@wraps(func)
+	def _inner(*args, **kwargs):
+		ctx = kwargs.get('ctx')
+		if ctx is None:
+			ctx = [c for x in args is isinstance(x, User)] or None
+			if ctx is not None:
+				ctx = ctx.pop()
+		if ctx.checkadmin():
+			return func(*args, **kwargs)
+		else:
+			raise SecurityError, 'No Admin Priviliges'
+	return _inner
+
+
+
 
 
 
@@ -298,43 +351,6 @@ class Database(object):
 			}
 
 
-		def publicmethod(func):
-			DBProxy._register_publicmethod(func.func_name, func)
-
-			#@g.debug.debug_func
-			@wraps(func)
-			def _inner(self, *args, **kwargs):
-				result = None
-				txn = kwargs.get('txn')
-				commit = False
-				if txn is None:
-					#g.debug("txn is None, starting new, for func: %r" % func)
-					txn = self.newtxn()
-					commit = True
-				#g.debug('txn:: %r' % txn)
-				kwargs['txn'] = txn
-
-
-				try:
-					#g.debug('calling func: %r' %  func)
-					result = func(self, *args, **kwargs)
-					#g.debug('finished func: %r' %  func)
-				except Exception, e:
-					g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
-					traceback.print_exc(e)
-					if commit is True:
-						g.debug('aborting !!!!!')
-						txn.abort()
-					raise
-				else:
-					#g.debug('checking whether to commit???')
-					if commit is True:
-						g.debug('committing')
-						txn and txn.commit()
-
-				return result
-
-			return _inner
 
 
 
@@ -393,8 +409,8 @@ class Database(object):
 			self.__dbenv.set_data_dir(self.path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			self.__dbenv.set_lg_bsize(1024*1024*16)
-			self.__dbenv.set_lg_max(1024*1024*128)
+			self.__dbenv.set_lg_bsize(1024*1024)
+			self.__dbenv.set_lg_max(1024*1024*16)
 			self.__dbenv.set_lg_regionmax(1024*1024*1024)
 			
 			
@@ -608,8 +624,8 @@ class Database(object):
 
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			txn = self.__dbenv.txn_begin(parent=parent, flags=txnflags_read)
-			print "\n\nNEW TXN --> %s    PARENT IS %s"%(txn,parent)
+			txn = self.__dbenv.txn_begin(parent=parent)
+			g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			return txn
 
 
@@ -628,13 +644,13 @@ class Database(object):
 
 
 		def txnabort(self, ctx=None, txn=None):
-			print "TXN ABORT --> %s\n\n"%txn
+			g.debug('LOG_ERROR', "TXN ABORT --> %s\n\n"%txn)
 			if txn:
 				txn.abort()
 
 
 		def txncommit(self, ctx=None, txn=None):
-			print "TXN COMMIT --> %s\n\n"%txn
+			g.debug("TXN COMMIT --> %s\n\n"%txn)
 			if txn:
 				txn.commit()
 			elif not self.__importmode:
@@ -730,7 +746,6 @@ class Database(object):
 		# section: login / passwords
 		###############################
 
-		@g.debug.debug_func
 		def __makecontext(self, username="anonymous", host=None):
 			'''so we can simulate a context for approveuser'''
 			newcontext = Context(db=self, username=username, host=host)
@@ -2066,12 +2081,6 @@ class Database(object):
 			if not ctx.checkcreate():
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
-			self.__link_internal(self, mode, links, keytype="record", ctx=None, txn=None)
-		
-
-
-		def __link_internal(self, mode, links, keytype="record", ctx=None, txn=None):
-
 			if filter(lambda x:x[0] == x[1], links):
 				self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
 				return
@@ -2188,12 +2197,15 @@ class Database(object):
 			if len(ret)==1 and ol: return ret[0].username
 			return [user.username for user in ret]
 
+		@publicmethod
+		@adminmethod
+		def getsecret(self, username, ctx=None, txn=None):
+			return self.__newuserqueue.get(username, txn=txn).get_secret()
 
 
 		#@txn
 		@publicmethod
 		@emen2.util.utils.return_list_or_single(1)
-		@g.debug.debug_func
 		def approveuser(self, usernames, secret=None, ctx=None, txn=None):
 			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret
 			
@@ -2256,24 +2268,21 @@ class Database(object):
 						rec["email"] = user.signupinfo.get('email')
 						rec.adduser(3,username)
 
-						childrecs = []
 						for k,v in user.signupinfo.items():
-							if k.endswith('__child'):
-								childrecs.append(v)
-							else:
-								rec[k]=v
+							rec[k]=v
 
-						childstore[id(rec)] = childrecs
-						records[username] = rec
+						g.debug('rec == %r'%rec)
+						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
+
+						children = user.create_childrecords(ctx=tmpctx, txn=txn)
+						children = self.__putrecord(children, ctx=tmpctx, txn=txn)
+						g.debug('children:- %r' % (children,))
+						if children != []:
+							self.__link('pclink', [(rec.recid, child.recid) for child in children], ctx=tmpctx, txn=txn)
+						user.record = rec.recid
 
 					user.signupinfo = None
 					addusers[username] = user
-
-			records = self.__putrecord(records.values(), ctx=tmpctx, txn=txn)
-			for rec in records:
-				#g.debug('record has children: %r' % childstore.get(id(rec), []))
-				#self.__link_internal(rec.recid, childstore.get(id(rec),[]))
-				addusers[rec.get("username")].record = rec.recid
 
 			self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
 			self.__commit_newusers(delusers, ctx=ctx, txn=txn)
@@ -2552,8 +2561,8 @@ class Database(object):
 			#@begin
 
 			for group in groups:
-				print group
-				print txn
+				g.debug(group)
+				g.debug(txn)
 				self.__groups.set(group.name, group, txn=txn)
 
 			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -2590,15 +2599,14 @@ class Database(object):
 
 		#@txn
 		@publicmethod
-		def adduser(self, user, ctx=None, txn=None):
+		def adduser(self, inuser, ctx=None, txn=None):
 			"""adds a new user record. However, note that this only adds the record to the
 			new user queue, which must be processed by an administrator before the record
 			becomes active. This system prevents problems with securely assigning passwords
 			and errors with data entry. Anyone can create one of these"""
-			secret = hashlib.sha1(str(id(user)) + str(time.time()) + file('/dev/urandom').read(5))
+			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + file('/dev/urandom').read(5))
 			try:
-				user = User(user, secret=secret.hexdigest())
-				g.debug(User)
+				user = User(inuser, secret=secret.hexdigest())
 			except:
 				raise ValueError, "User instance or dict required"
 
@@ -2632,13 +2640,12 @@ class Database(object):
 				user.creationtime = self.gettime(ctx=ctx, txn=txn)
 				user.modifytime = self.gettime(ctx=ctx, txn=txn)
 
-			g.debug(dir(user))
 			assert hasattr(user, '_User__secret')
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
 
-			return user
+			return inuser
 
 
 
@@ -3843,7 +3850,7 @@ class Database(object):
 			# extended validation...
 
 			if len(updrecs) == 0:
-				return [], []
+				return []
 
 			if self.__importmode:
 				importmode = 1

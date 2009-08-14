@@ -5,6 +5,7 @@ import operator
 
 
 import emen2.Database.database
+import emen2.Database.datastorage
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
@@ -259,7 +260,7 @@ class User(DictMixin):
 
 	# non-admin users can only change their privacy setting directly
 	attr_user = set(["privacy", "modifytime", "password", "modifyuser","signupinfo"])
-	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record","secret"])
+	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record","childrecs"])
 	attr_all = attr_user | attr_admin
 
 
@@ -301,8 +302,7 @@ class User(DictMixin):
 
 
 		d = d or {}
-		d.update(kwargs or {})
-		kwargs = d
+		kwargs.update( (k,v) for k,v in d.iteritems() if k not in kwargs)
 
 		ctx = kwargs.get('ctx',None)
 
@@ -316,13 +316,13 @@ class User(DictMixin):
 		self.record = kwargs.get('record')
 
 		self.signupinfo = {}
+		self.childrecs = kwargs.get('childrecs', {})
 
 		self.creator = kwargs.get('creator',0)
 		self.creationtime = kwargs.get('creationtime')
 		self.modifytime = kwargs.get('modifytime')
 		self.modifyuser = kwargs.get('modifyuser')
 		self.__secret = kwargs.get('secret')
-		g.debug(kwargs)
 		g.debug('User.__secret = %r' % self.__secret)
 
 		# read only attributes, set at getuser time
@@ -399,8 +399,19 @@ class User(DictMixin):
 		result = self.__secret == secret
 		return result
 
+	def get_secret(self):
+			return self.__secret
+
 	def kill_secret(self):
 		self.__secret = None
+
+	def create_childrecords(self, ctx, txn=None):
+		def _step(rectype, recdata):
+			rec = ctx.db.newrecord(rectype, ctx=ctx, txn=txn)
+			rec.update(recdata)
+			return rec
+		return [_step(rectype, recdata) for rectype, recdata in self.childrecs.iteritems()]
+
 
 
 
