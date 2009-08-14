@@ -2082,7 +2082,7 @@ class Database(object):
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if filter(lambda x:x[0] == x[1], links):
-				self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
+				#self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
 				return
 
 			if not links:
