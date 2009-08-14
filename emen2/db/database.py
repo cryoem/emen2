@@ -2294,6 +2294,11 @@ class Database(object):
 			# 	return ret[0]
 			return ret
 
+		@publicmethod
+		@adminmethod
+		def getpendinguser(self, username, ctx=None, txn=None):
+			return self.__newuserqueue.get(username, txn=txn)
+
 
 
 		#@txn

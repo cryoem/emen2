@@ -332,7 +332,7 @@ class User(DictMixin):
 
 		#self.groups = set() #kwargs.get('groups', [-4])
 		#self.name = kwargs.get('name')
-		#self.email = kwargs.get('email')
+		self.email = kwargs.get('email')
 
 		if ctx:
 			pass
