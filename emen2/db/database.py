@@ -26,7 +26,6 @@ import operator
 import collections
 
 
-
 from emen2.util.utils import prop
 
 
@@ -283,10 +282,8 @@ def publicmethod(func):
 		txn = kwargs.get('txn')
 		commit = False
 		if txn is None:
-			#g.debug("txn is None, starting new, for func: %r" % func)
 			txn = self.newtxn()
 			commit = True
-		#g.debug('txn:: %r' % txn)
 		kwargs['txn'] = txn
 
 
@@ -354,7 +351,7 @@ class Database(object):
 
 
 
-		def __init__(self, path=".", cachesize=32000000, logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True):
+		def __init__(self, path=".", cachesize=32000000, logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True, more_flags=0):
 			"""path - The path to the database files, this is the root of a tree of directories for the database
 			cachesize - default is 64M, in bytes
 			logfile - defualt "db.log"
@@ -405,13 +402,19 @@ class Database(object):
 
 			self.LOG(4, "Database initialization started")
 
+			dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
+			dbco = file(self.path + '/home/DB_CONFIG', 'w')
+			try:
+				dbco.write(dbci.read())
+			finally:
+				[fil.close() for fil in (dbci, dbco)]
+
 			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()
 			self.__dbenv.set_data_dir(self.path)
 
 			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
 			self.__dbenv.set_lg_bsize(1024*1024)
-			self.__dbenv.set_lg_max(1024*1024*16)
-			self.__dbenv.set_lg_regionmax(1024*1024*1024)
+			self.__dbenv.set_lg_max(1024*1024*8)
 			
 			
 			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
@@ -696,14 +699,17 @@ class Database(object):
 
 
 		# ian: todo: wtf.
-		def close(self, ctx=None, txn=None):
+		def closedb(self, ctx=None, txn=None):
+			self.LOG('LOG_DEBUG', 'closing dbs')
 			if self.__allowclose == True:
 				for btree in self.__dict__.values():
 					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
 						try: btree.close()
 						except db.InvalidArgError, e: print e
 					for btree in self.__fieldindex.values(): btree.close()
-					self.__dbenv.close()
+		def close(self, ctx=None, txn=None):
+			self.closedb(ctx, txn=txn)
+			self.__dbenv.close()
 
 #				 pass
 #				 print self.__btreelist
@@ -5034,6 +5040,7 @@ class Database(object):
 				will take precedence, except for Records, which are always appended to the end of the database
 				regardless of their original id numbers. If maintaining record id numbers is important, then a full
 				backup of the database must be performed, and the restore must be performed on an empty database."""
+				if not txn: txn = None
 
 				if not self.__importmode:
 					self.LOG(3, "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
@@ -5104,13 +5111,13 @@ class Database(object):
 				#print "begin restore"
 
 
+				iteration = 0
 				while (1):
 
 					try:
 						r = load(fin)
 					except EOFError, inst:
-						print inst
-						break
+						self.LOG('LOG_INFO', inst)
 
 
 					commitrecs = 0
@@ -5124,126 +5131,133 @@ class Database(object):
 						commitrecs = 1
 
 
-					if commitrecs and recblock:
-						oldids = [rec.recid for rec in recblock]
-						for i in recblock:
-							i.recid = None
+					txn = self.newtxn()
+					print "txn is %s"%txn, "iteration is %d" % iteration
+					iteration += 1
+
+					try:
+						if commitrecs and recblock:
+							oldids = [rec.recid for rec in recblock]
+							for i in recblock:
+								i.recid = None
 
 
-						newrectxn = self.newtxn(parent=txn)
-						print "newrectxn is %s"%newrectxn
-						#try:
-						newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=newrectxn)
-						#except:
-						#	self.txnabort(txn=newrectxn)
-						#else:
-						self.txncommit(txn=newrectxn)
+							#try:
+							newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=txn)
+							#except:
+							#	self.txnabort(txn=newrectxn)
+							#else:
 
 
+
+
+							committed += len(newrecs)
+							print "Committed total: %s"%committed
+
+							for oldid,newrec in zip(oldids,newrecs):
+								recmap[oldid] = newrec.recid
+								if oldid != newrec.recid:
+									print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
+
+							recblock = []
+							#sys.exit(0)
+
+
+						# insert User
+						if isinstance(r, User) and "user" in types:
+							#print "user: %s"%r.username
+							self.putuser(r, validate=0, ctx=ctx, txn=txn)
+
+
+
+						# insert Workflow
+						elif isinstance(r, WorkFlow) and "workflow" in types:
+							#print "workflow: %s"%r.wfid
+							self.__workflow.set(r.wfid, r, txn=txn)
+
+
+
+						# insert paramdef
+						elif isinstance(r, ParamDef) and "paramdef" in types:
+							#print "paramdef: %s"%r.name
+							self.putparamdef(r, ctx=ctx, txn=txn)
+
+
+						# insert recorddef
+						elif isinstance(r, RecordDef) and "recorddef" in types:
+							#print "recorddef: %s"%r.name
+							self.putrecorddef(r, ctx=ctx, txn=txn)
+
+
+
+						elif isinstance(r, str):
+							print "btree type: %s"%r
+							rr = load(fin)
+
+							if r not in types:
+								continue
+
+							if r == "bdos":
+								print "bdo"
+								# read the dictionary of bdos
+								for i, d in rr.items():
+									self.__bdocounter.set(i, d, txn=txn)
+
+							elif r == "pdchildren":
+								print "pdchildren"
+								# read the dictionary of ParamDef PC links
+								for p, cl in rr:
+									for c in cl:
+										self.__paramdefs.pclink(p, c, txn=txn)
+
+							elif r == "pdcousins":
+								print "pdcousins"
+								# read the dictionary of ParamDef PC links
+								for a, bl in rr:
+									for b in bl:
+										self.__paramdefs.link(a, b, txn=txn)
+
+							elif r == "rdchildren":
+								print "rdchildren"
+								# read the dictionary of ParamDef PC links
+								for p, cl in rr:
+									for c in cl:
+										self.__recorddefs.pclink(p, c, txn=txn)
+
+							elif r == "rdcousins":
+								print "rdcousins"
+								# read the dictionary of ParamDef PC links
+								for a, bl in rr:
+									for b in bl:
+										self.__recorddefs.link(a, b, txn=txn)
+
+							elif r == "recchildren":
+								print "recchildren"
+								# read the dictionary of ParamDef PC links
+								for p, cl in rr:
+									for c in cl:
+										if isinstance(c, tuple):
+											print "Invalid (deprecated) named PC link, database restore will be incomplete"
+										else:
+											self.__records.pclink(recmap[p], recmap[c], txn=txn)
+
+
+							elif r == "reccousins":
+								print "reccousins"
+								# read the dictionary of ParamDef PC links
+								for a, bl in rr:
+									for b in bl:
+										self.__records.link(recmap[a], recmap[b], txn=txn)
+
+							else:
+								print "Unknown category: ", r
+
+					finally:
+						self.txncommit(txn=txn)
 						print "checkpointing"
 						self.__dbenv.txn_checkpoint()
-
-
-						committed += len(newrecs)
-						print "Committed total: %s"%committed
-
-						for oldid,newrec in zip(oldids,newrecs):
-							recmap[oldid] = newrec.recid
-							if oldid != newrec.recid:
-								print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
-
-						recblock = []
-						#sys.exit(0)
-
-
-					# insert User
-					if isinstance(r, User) and "user" in types:
-						#print "user: %s"%r.username
-						self.putuser(r, validate=0, ctx=ctx, txn=txn)
-
-
-
-					# insert Workflow
-					elif isinstance(r, WorkFlow) and "workflow" in types:
-						#print "workflow: %s"%r.wfid
-						self.__workflow.set(r.wfid, r, txn=txn)
-
-
-
-					# insert paramdef
-					elif isinstance(r, ParamDef) and "paramdef" in types:
-						#print "paramdef: %s"%r.name
-						self.putparamdef(r, ctx=ctx, txn=txn)
-
-
-					# insert recorddef
-					elif isinstance(r, RecordDef) and "recorddef" in types:
-						#print "recorddef: %s"%r.name
-						self.putrecorddef(r, ctx=ctx, txn=txn)
-
-
-
-					elif isinstance(r, str):
-						print "btree type: %s"%r
-						rr = load(fin)
-
-						if r not in types:
-							continue
-
-						if r == "bdos":
-							print "bdo"
-							# read the dictionary of bdos
-							for i, d in rr.items():
-								self.__bdocounter.set(i, d, txn=txn)
-
-						elif r == "pdchildren":
-							print "pdchildren"
-							# read the dictionary of ParamDef PC links
-							for p, cl in rr:
-								for c in cl:
-									self.__paramdefs.pclink(p, c, txn=txn)
-
-						elif r == "pdcousins":
-							print "pdcousins"
-							# read the dictionary of ParamDef PC links
-							for a, bl in rr:
-								for b in bl:
-									self.__paramdefs.link(a, b, txn=txn)
-
-						elif r == "rdchildren":
-							print "rdchildren"
-							# read the dictionary of ParamDef PC links
-							for p, cl in rr:
-								for c in cl:
-									self.__recorddefs.pclink(p, c, txn=txn)
-
-						elif r == "rdcousins":
-							print "rdcousins"
-							# read the dictionary of ParamDef PC links
-							for a, bl in rr:
-								for b in bl:
-									self.__recorddefs.link(a, b, txn=txn)
-
-						elif r == "recchildren":
-							print "recchildren"
-							# read the dictionary of ParamDef PC links
-							for p, cl in rr:
-								for c in cl:
-									if isinstance(c, tuple):
-										print "Invalid (deprecated) named PC link, database restore will be incomplete"
-									else:
-										self.__records.pclink(recmap[p], recmap[c], txn=txn)
-
-
-						elif r == "reccousins":
-							print "reccousins"
-							# read the dictionary of ParamDef PC links
-							for a, bl in rr:
-								for b in bl:
-									self.__records.link(recmap[a], recmap[b], txn=txn)
-
-						else:
-							print "Unknown category: ", r
+						self.__dbenv.log_archive(db.DB_ARCH_REMOVE)
+						DB_syncall()
 
 
 				print "Done!"
@@ -5254,7 +5268,6 @@ class Database(object):
 					self.__dbenv.txn_checkpoint()
 
 
-				DB_syncall()
 
 
 

@@ -30,7 +30,7 @@ class BTree(object):
 		#name is required, and will also be used as a filename if none is
 		#specified. If relate is true, then parent/child and cousin relationships
 		#between records are also supported. """
-		#BTree.alltrees[self] = 1	# we keep a running list of all trees so we can close everything properly
+		BTree.alltrees[self] = 1	# we keep a running list of all trees so we can close everything properly
 
 		self.name = name
 		self.__setkeytype(keytype)
