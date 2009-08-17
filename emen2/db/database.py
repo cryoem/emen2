@@ -2282,10 +2282,14 @@ class Database(object):
 						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
 						children = user.create_childrecords(ctx=tmpctx, txn=txn)
-						children = self.__putrecord(children, ctx=tmpctx, txn=txn)
+						children = [(self.__putrecord(child, ctx=tmpctx, txn=txn).recid, parents) for child in children]
 						g.debug('children:- %r' % (children,))
 						if children != []:
-							self.__link('pclink', [(rec.recid, child.recid) for child in children], ctx=tmpctx, txn=txn)
+							self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
+							for links in children:
+								child, parents = links
+								self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+
 						user.record = rec.recid
 
 					user.signupinfo = None
@@ -5083,7 +5087,7 @@ class Database(object):
 
 				recblock = []
 				recblocklength = 50000
-				commitrecs = 0
+				commitrecs = False
 				committed = 0
 
 
@@ -5113,6 +5117,7 @@ class Database(object):
 
 
 				iteration = 0
+				cleanup_needed = False
 				while (1):
 
 					try:
@@ -5121,15 +5126,15 @@ class Database(object):
 						self.LOG('LOG_INFO', inst)
 
 
-					commitrecs = 0
+					commitrecs = False
 
 					# insert and renumber record
 					if isinstance(r, Record) and "record" in types:
 						recblock.append(r)
 						if len(recblock) >= recblocklength:
-							commitrecs = 1
+							commitrecs = True
 					else:
-						commitrecs = 1
+						commitrecs = True
 
 
 					txn = self.newtxn()
@@ -5254,11 +5259,12 @@ class Database(object):
 								print "Unknown category: ", r
 
 					finally:
-						self.txncommit(txn=txn)
-						print "checkpointing"
-						self.__dbenv.txn_checkpoint()
-						self.__dbenv.log_archive(db.DB_ARCH_REMOVE)
-						DB_syncall()
+						if commitrecs:
+							self.txncommit(txn=txn)
+							print "checkpointing"
+							self.__dbenv.txn_checkpoint()
+							self.__dbenv.log_archive(db.DB_ARCH_REMOVE)
+							DB_syncall()
 
 
 				print "Done!"

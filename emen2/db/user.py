@@ -406,10 +406,17 @@ class User(DictMixin):
 		self.__secret = None
 
 	def create_childrecords(self, ctx, txn=None):
+		'''create records to be chldren of person record.
+				childrecs format:
+					{ rectype : { 'data': {},
+										'parents': []
+					}}
+		'''
 		def _step(rectype, recdata):
+			data = recdata.get('data', recdata)
 			rec = ctx.db.newrecord(rectype, ctx=ctx, txn=txn)
-			rec.update(recdata)
-			return rec
+			rec.update(data)
+			return rec, recdata.get('parents', [])
 		return [_step(rectype, recdata) for rectype, recdata in self.childrecs.iteritems()]
 
 
