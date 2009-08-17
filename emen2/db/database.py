@@ -5137,7 +5137,9 @@ class Database(object):
 						commitrecs = True
 
 
-					txn = self.newtxn()
+					txn = None
+					if commitrecs:
+						txn = self.newtxn()
 					print "txn is %s"%txn, "iteration is %d" % iteration
 					iteration += 1
 
