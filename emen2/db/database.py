@@ -2282,13 +2282,13 @@ class Database(object):
 						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
 						children = user.create_childrecords(ctx=tmpctx, txn=txn)
-						children = [(self.__putrecord(child, ctx=tmpctx, txn=txn).recid, parents) for child in children]
+						children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
 						g.debug('children:- %r' % (children,))
 						if children != []:
 							self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
 							for links in children:
 								child, parents = links
-								self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+								g.debug.debug_func(self.__link)('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
 
 						user.record = rec.recid
 
@@ -3861,6 +3861,7 @@ class Database(object):
 
 
 
+		@g.debug.debug_func
 		def __putrecord(self, updrecs, warning=0, validate=True, importmode=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
