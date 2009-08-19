@@ -147,17 +147,12 @@ class DBProxy(object):
 
 	def _starttxn(self):
 		self.__txn = self.__db.newtxn()
-		#self.__txn = self.__db.newtxn()
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
-		#if self.__txn is not None:
-		#	self.__txn.commit()
 
 	def _aborttxn(self):
 		self.__db.txnabort(txn=self.__txn)
-		#if self.__txn is not None:
-		#	self.__txn.abort()
 
 
 	def _login(self, username="anonymous", password="", host=None):
@@ -169,9 +164,6 @@ class DBProxy(object):
 	def _setcontext(self, ctxid=None, host=None):
 		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
 		self.__ctx = self.__db._getcontext(ctxid, host)
-		print "dbproxy _getcontext"
-		print self.__ctx
-
 		self.__bound = True
 
 
@@ -224,12 +216,13 @@ class DBProxy(object):
 
 
 	def _callmethod(self, method, args, kwargs):
-		args=list(args)
+		args = list(args)
 		return getattr(self, method)(*args, **kwargs)
 
 
 	def _getctx(self):
 		return self.__ctx
+
 
 	def __getattribute__(self, name):
 
@@ -253,22 +246,26 @@ class DBProxy(object):
 
 			if 'admin' in self.__ctx.groups:
 				result = self.__adminmethods.get(name)
-				g.debug('administrator !!! -- %r' % result)
+				#g.debug('administrator !!! -- %r' % result)
 
 			if result is None:
 				result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
 
 			if result:
 				result = wraps(result)(partial(result, db, **kwargs))
+
 			else:
 				result = self.__extmethods.get(name)()
 
 				kwargs['db'] = db
-				if result: result = partial(result.execute, **kwargs)
+				if result:
+					result = partial(result.execute, **kwargs)
 
 			result = wraps(result.func)(result)
+			
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
+
 
 		return result
 
@@ -282,6 +279,7 @@ class DBExt(object):
 		cls = type(name, bases, dict)
 		cls.register()
 		return cls
+
 	@classmethod
 	def register(cls):
 		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
@@ -301,10 +299,12 @@ def DB_syncall():
 	# print "%f sec to sync"%(time.time()-t)
 
 
+
 def publicmethod(func):
 
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
+		
 		result = None
 		txn = kwargs.get('txn')
 		commit = False
@@ -315,26 +315,28 @@ def publicmethod(func):
 
 
 		try:
-			#g.debug('calling func: %r' %  func)
 			result = func(self, *args, **kwargs)
-			#g.debug('finished func: %r' %  func)
+
 		except Exception, e:
-			g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
+			#g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
 			traceback.print_exc(e)
 			if commit is True:
-				g.debug('aborting !!!!!')
-				txn.abort()
+				print "TXN ABORT: %s (%s)\n\n"%(txn, e)
+				txn and txn.abort()
 			raise
+			
 		else:
 			#g.debug('checking whether to commit???')
 			if commit is True:
-				g.debug('committing')
+				print "TXN COMMIT: %s\n\n"%txn
 				txn and txn.commit()
 
 		return result
 
 	DBProxy._register_publicmethod(func.func_name, _inner)
 	return _inner
+
+
 
 def adminmethod(func):
 	g.debug('admin method registered :: (%s) -> %r' % (func.func_name, func))
@@ -470,7 +472,6 @@ class Database(object):
 		#def __opencoredb(self):
 
 			txn = self.newtxn()
-			#print "txn is %s"%txn
 
 
 			# Users
@@ -660,7 +661,7 @@ class Database(object):
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
-			g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
+			g.debug("\n\nNEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			return txn
 
 
@@ -685,7 +686,7 @@ class Database(object):
 
 
 		def txncommit(self, ctx=None, txn=None):
-			g.debug("TXN COMMIT --> %s\n\n"%txn)
+			g.debug("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
 			if txn:
 				txn.commit()
 			elif not self.__importmode:
@@ -713,7 +714,7 @@ class Database(object):
 			if type(level) is int and (level < 0 or level > 7):
 				level = 6
 			try:
-				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
+				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.__gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
 			except:
 				traceback.print_exc(file=sys.stdout)
 				print("Critical error!!! Cannot write log message to '%s'\n")
@@ -776,7 +777,10 @@ class Database(object):
 		@publicmethod
 		def gettime(self, ctx=None, txn=None):
 			return time.strftime(TIMESTR)
-
+		
+		
+		def __gettime(self, ctx=None, txn=None):
+			return time.strftime(TIMESTR)
 
 
 
@@ -807,7 +811,7 @@ class Database(object):
 			# Anonymous access
 			if username == "anonymous": # or username == ""
 				newcontext = self.__makecontext()
-				g.debug('Anonymous Login!!!')
+				#g.debug('Anonymous Login!!!')
 
 			else:
 				g.debug('Authentication Login!!!')
@@ -1068,7 +1072,7 @@ class Database(object):
 					raise SecurityError, "Only admins may manipulate binary tree directly"
 
 				if date == None:
-					date = self.gettime(ctx=ctx, txn=txn)
+					date = self.__gettime(ctx=ctx, txn=txn)
 
 				if not key:
 					year = int(date[:4])
@@ -1403,17 +1407,14 @@ class Database(object):
 			if not returndict:
 				return recs
 
-			#print "getrecords... len %s"%len(recs)
 			recs = self.getrecord(recs, filt=1, ctx=ctx, txn=txn)
 			#if rectype:
 			#	recs = filter(lambda x:x.rectype == rectype, recs)
 
-			#print "preparing results..."
 			ret = {}
 			for i in recs:
 				ret[i.recid] = {}
 				for param in matches.get(i.recid, set()) | includeparams:
-					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
 					ret[i.recid][param] = i.get(param)
 
 			return ret
@@ -1488,7 +1489,6 @@ class Database(object):
 			for i in recs:
 				ret[i.recid] = {}
 				for param in matches2.get(i.recid, set()):# | includeparams:
-					#print "i.recid %s param %s value %s"%(i.recid, param, i.get(param))
 					ret[i.recid][param] = i.get(param)
 
 
@@ -1507,7 +1507,6 @@ class Database(object):
 			self.__indexkeys.truncate(txn=txn)
 
 			for k,v in inds.items():
-					print "indexkeys: %s, len keys %s"%(k, len(v.keys(txn=txn)))
 					self.__indexkeys.set(k, set(v.keys()), txn=txn)
 
 
@@ -1528,11 +1527,9 @@ class Database(object):
 
 
 			for k,v in self.__indexkeys.items(txn=txn):
-				# print "searching %s"%k
 				r = filter(matcher, v)
 				if r: matches[k] = r
 
-			#print matches
 			matches2 = []
 
 			for k,v in matches.items():
@@ -1542,8 +1539,6 @@ class Database(object):
 					for x in j:
 						matches2.append((x, k, i))
 
-			for i in matches2:
-				print i
 
 
 
@@ -1669,12 +1664,10 @@ class Database(object):
 			This method returns a dictionary of all matching recid/value pairs
 			if subset is provided, will only return values for specified recids"""
 
-			print "getindexdictbyvalue"
 
 
 			paramindex = self.__getparamindex(paramname, ctx=ctx, txn=txn)
 			if paramindex == None:
-				print "No such index %s"%paramname
 				return {}
 
 			if valrange == None:
@@ -1921,7 +1914,6 @@ class Database(object):
 		# wraps getrel / works as both getchildren/getparents
 		@publicmethod
 		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filt=0, tree=0, ctx=None, txn=None):
-			#print "getchildren: %s, recurse=%s, rectype=%s, filter=%s, tree=%s"%(key,recurse,rectype,filter,tree)
 			"""Add some extra features to __getrel"""
 
 			ol=0
@@ -2627,7 +2619,6 @@ class Database(object):
 				ol = 1
 
 			groups = self.getgroup(groupname, ctx=ctx, txn=txn)
-			print "got groups %s"%groups
 
 			ret = {}
 
@@ -2684,8 +2675,8 @@ class Database(object):
 			user.password = s.hexdigest()
 
 			if not self.__importmode:
-				user.creationtime = self.gettime(ctx=ctx, txn=txn)
-				user.modifytime = self.gettime(ctx=ctx, txn=txn)
+				user.creationtime = self.__gettime(ctx=ctx, txn=txn)
+				user.modifytime = self.__gettime(ctx=ctx, txn=txn)
 
 			assert hasattr(user, '_User__secret')
 			user.validate()
@@ -2822,7 +2813,6 @@ class Database(object):
 
 				user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
 
-				# print "setting email: %s -> %s"%(user.get("email"), user.userrec.get("email"))
 				user.email = user._userrec.get("email")
 
 				ret[i] = user
@@ -3100,7 +3090,7 @@ class Database(object):
 					w.validate()
 
 				if not isinstance(w, WorkFlow):
-					txn.abort()
+					self.txnabort(txn=txn) #txn.abort()
 					raise TypeError, "Only WorkFlow objects may be in the user's workflow"
 				if w.wfid == None:
 					w.wfid = self.__workflow.sget(-1, txn=txn) #[-1]
@@ -3193,7 +3183,7 @@ class Database(object):
 
 			except:
 				paramdef.creator = ctx.username
-				paramdef.creationtime = self.gettime(ctx=ctx, txn=txn)
+				paramdef.creationtime = self.__gettime(ctx=ctx, txn=txn)
 
 
 			# if not self.__importmode:
@@ -3355,7 +3345,6 @@ class Database(object):
 			paramname = f.name
 
 			if f.vartype not in self.indexablevartypes:
-				#print "\tunindexable vartype ",f.vartype
 				return None
 
 			tp = self.vtm.getvartype(f.vartype).getindextype()
@@ -3600,10 +3589,6 @@ class Database(object):
 			if not hasattr(recids,"__iter__"):
 				ol=1
 				recids=[recids]
-
-			#print "-> recids"
-			#print recids
-			#recids = map(int, recids)
 
 			# if filt: filt = None
 			# else: filt = lambda x:x.rectype
@@ -3892,7 +3877,7 @@ class Database(object):
 
 
 
-		@g.debug.debug_func
+		#@g.debug.debug_func
 		def __putrecord(self, updrecs, warning=0, validate=True, importmode=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
@@ -3914,30 +3899,33 @@ class Database(object):
 			for offset,updrec in enumerate(filter(lambda x:x.recid < 0, updrecs)):
 				updrec.recid = -1 * (offset + 100)
 
+
 			updrels = self.__putrecord_getupdrels(updrecs, ctx=ctx, txn=txn)
 
 			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
 
-				t = self.gettime(ctx=ctx, txn=txn)
+				t = self.__gettime(ctx=ctx, txn=txn)
 				recid = updrec.recid
 
-				try:
+
+				if self.__records.exists(updrec.recid, txn=txn, flags=db.DB_RMW):
 					# we need to acquire RMW lock here to prevent changes during commit
-					orec = self.__records.sget(updrec.recid, txn=txn, flags=db.DB_RMW) # [updrec.recid] #, flags=db.DB_RMW
+					orec = self.__records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
 
 
-				except (KeyError, TypeError), inst:
+				else:
 					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
 					orec.recid = updrec.recid
-
+					
 					if importmode:
 						orec._Record__creator = updrec["creator"]
 						orec._Record__creationtime = updrec["creationtime"]
 
-					if recid > 0:
-						raise Exception, "Cannot update non-existent record %s"%recid
+					#if recid > 0:
+					#	raise Exception, "Cannot update non-existent record %s"%recid
+
 
 
 				if validate:
@@ -3952,7 +3940,6 @@ class Database(object):
 					self.LOG("LOG_INFO","putrecord: No changes for record %s, skipping"%recid, ctx=ctx, txn=txn)
 					continue
 
-				#print "%s cp: %s"%(orec.recid, cp)
 
 
 				# add new comments; already checked for comment level security...
@@ -4020,8 +4007,6 @@ class Database(object):
 		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
 		def __commit_records(self, crecs, updrels=[], ctx=None, txn=None):
 
-			print "commiting %s recs"%(len(crecs))
-
 			recmap = {}
 			rectypes = collections.defaultdict(list) # {}
 			timeupdate = {}
@@ -4041,11 +4026,11 @@ class Database(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.get(-1, flags=db.DB_RMW, txn=txn) or 0
+				baserecid = self.__records.sget(-1, txn=txn, flags=db.DB_RMW)
+				self.LOG("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
-
-
-
+			
+				
 
 			# add recids to new records, create map from temp recid, setup index
 			for offset, newrec in enumerate(newrecs):
@@ -4410,7 +4395,6 @@ class Database(object):
 
 			for group in sorted(ctx.groups, reverse=True):
 				#if recids:
-				#print "searching group %s"%group
 				#ret |= recids & set(self.__secrindex[group])
 				#recids -= ret
 				ret.extend(recids & set(self.__secrindex.sget(group, txn=txn)))
@@ -4546,7 +4530,6 @@ class Database(object):
 				# just gained access to. Used for fast index updating
 				secrupd = {}
 
-				#print trgt
 				#recs = self.getrecord(trgt, ctx=ctx, txn=txn)
 
 				for i in trgt:
@@ -4878,7 +4861,6 @@ class Database(object):
 				g.debug("macro stuff -> %r" %m)
 
 				paramdefs.update(self.getparamdefs(pd, ctx=ctx, txn=txn))
-				#print "PD:%s"%paramdefs.keys()
 
 				# invariant to recid
 				if n:
