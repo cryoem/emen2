@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import bsddb3
 from bsddb3 import db
 from cPickle import load, dump
@@ -112,6 +113,7 @@ DEBUG = 0 #TODO consolidate debug flag
 class DBProxy(object):
 
 	__publicmethods = {}
+	__adminmethods = {}
 	__extmethods = {}
 
 	@classmethod
@@ -129,6 +131,18 @@ class DBProxy(object):
 			self.__db = db
 		self.__ctx = None
 		#self._setcontext(ctxid, host)
+
+	def __enter__(self):
+		self._starttxn()
+		return self
+
+	def __exit__(self, type, value, traceback):
+		if type is None:
+			self._committxn()
+		else:
+			self._aborttxn()
+
+
 
 
 	def _starttxn(self):
@@ -157,7 +171,7 @@ class DBProxy(object):
 		self.__ctx = self.__db._getcontext(ctxid, host)
 		print "dbproxy _getcontext"
 		print self.__ctx
-		
+
 		self.__bound = True
 
 
@@ -190,6 +204,13 @@ class DBProxy(object):
 			raise ValueError('''method %s already registered''' % name)
 		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
+
+	@classmethod
+	def _register_adminmethod(cls, name, func):
+		if name in cls._allmethods():
+			raise ValueError('''method %s already registered''' % name)
+		g.debug.msg('LOG_INIT', "REGISTERING ADMINMETHOD (%s)" % name)
+		cls.__adminmethods[name] = func
 
 
 
@@ -228,7 +249,14 @@ class DBProxy(object):
 
 			#g.debug("DB: %s, kwargs: %s"%(name,kwargs))
 
-			result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
+			result = None
+
+			if 'admin' in self.__ctx.groups:
+				result = self.__adminmethods.get(name)
+				g.debug('administrator !!! -- %r' % result)
+
+			if result is None:
+				result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
 
 			if result:
 				result = wraps(result)(partial(result, db, **kwargs))
@@ -274,7 +302,6 @@ def DB_syncall():
 
 
 def publicmethod(func):
-	DBProxy._register_publicmethod(func.func_name, func)
 
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
@@ -306,9 +333,13 @@ def publicmethod(func):
 
 		return result
 
+	DBProxy._register_publicmethod(func.func_name, _inner)
 	return _inner
 
 def adminmethod(func):
+	g.debug('admin method registered :: (%s) -> %r' % (func.func_name, func))
+	DBProxy._register_adminmethod(func.func_name, func)
+
 	@wraps(func)
 	def _inner(*args, **kwargs):
 		ctx = kwargs.get('ctx')
@@ -386,6 +417,13 @@ class Database(object):
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(path + "/home", os.F_OK):
 				os.makedirs(path + "/home")
+				dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
+				dbco = file(self.path + '/home/DB_CONFIG', 'w')
+				try:
+					dbco.write(dbci.read())
+				finally:
+					[fil.close() for fil in (dbci, dbco)]
+
 
 			if not os.access(path + "/security", os.F_OK):
 				os.makedirs(path + "/security")
@@ -402,13 +440,6 @@ class Database(object):
 
 			self.LOG(4, "Database initialization started")
 
-			dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
-			dbco = file(self.path + '/home/DB_CONFIG', 'w')
-			try:
-				dbco.write(dbci.read())
-			finally:
-				[fil.close() for fil in (dbci, dbco)]
-
 			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()
 			self.__dbenv.set_data_dir(self.path)
 
@@ -416,8 +447,8 @@ class Database(object):
 			self.__dbenv.set_cachesize(0, 256*1024*1024, 4)
 			self.__dbenv.set_lg_bsize(1024*1024)
 			self.__dbenv.set_lg_max(1024*1024*8)
-			
-			
+
+
 			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
 			self.__dbenv.set_lk_max_locks(100000)
 			self.__dbenv.set_lk_max_lockers(100000)
@@ -437,7 +468,7 @@ class Database(object):
 
 
 		#def __opencoredb(self):
-		
+
 			txn = self.newtxn()
 			#print "txn is %s"%txn
 
@@ -541,7 +572,7 @@ class Database(object):
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
 				#self.__anonymouscontext = self._login(txn=txn)
 				_actxid, _ahost = self._login(txn=txn)
-				
+
 			except:
 				txn and self.txnabort(txn=txn)
 				raise
@@ -903,10 +934,10 @@ class Database(object):
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
 					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%context.ctxid, ctx=ctx, txn=txn)
-				
+
 				# except ValueError, inst:
 				# 	self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
-				# 	
+				#
 				# except db.DBError, inst:
 				except Exception, inst:
 					self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
@@ -2215,7 +2246,7 @@ class Database(object):
 		@emen2.util.utils.return_list_or_single(1)
 		def approveuser(self, usernames, secret=None, ctx=None, txn=None):
 			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret
-			
+
 			adduser creates a secret, should work hear
 			"""
 
@@ -2473,7 +2504,7 @@ class Database(object):
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
 					raise
-					
+
 				except ValueError, inst:
 					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
 
@@ -2840,16 +2871,16 @@ class Database(object):
 			# users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
 			# users = filter(lambda x:x[1].record != None, users)
 			# users = dict(users)
-			# 
+			#
 			# recs = self.getrecord([user.record for user in users.values()], filt=filt, ctx=ctx, txn=txn)
 			# recs = dict([(i.recid,i) for i in recs])
-			# 
+			#
 			# for k,v in users.items():
 			# 	ret[k] = self.__formatusername(k, recs.get(v.record, {}), lnf=lnf, ctx=ctx, txn=txn)
 
 			users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 			ret = {}
-			
+
 			for i in users.values():
 				ret[i.username] = i.displayname
 
@@ -4012,9 +4043,9 @@ class Database(object):
 			if newrecs:
 				baserecid = self.__records.get(-1, flags=db.DB_RMW, txn=txn) or 0
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
-			
-				
-				
+
+
+
 
 			# add recids to new records, create map from temp recid, setup index
 			for offset, newrec in enumerate(newrecs):
@@ -4050,7 +4081,7 @@ class Database(object):
 
 				except ValueError, inst:
 					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
-					
+
 
 			# Param index
 			for param, updates in indexupdates.items():
@@ -4073,7 +4104,7 @@ class Database(object):
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
 					raise
-					
+
 				except ValueError, inst:
 					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
 
@@ -4117,7 +4148,7 @@ class Database(object):
 				except Exception, inst:
 					self.LOG("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 
-					
+
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
@@ -4254,7 +4285,7 @@ class Database(object):
 			#delrefs = dict([[i,set()] for i in set([i[2] for i in items])])
 			addrefs = collections.defaultdict(set)
 			delrefs = collections.defaultdict(set)
-			
+
 			for i in items:
 				addrefs[i[1]].add(i[0])
 				delrefs[i[2]].add(i[0])
@@ -4269,7 +4300,7 @@ class Database(object):
 		def __reindex_paramtext(self, key, items, ctx=None, txn=None):
 			addrefs = collections.defaultdict(list)
 			delrefs = collections.defaultdict(list)
-			
+
 			for item in items:
 				for i in self.__reindex_getindexwords(item[1], ctx=ctx, txn=txn):
 					addrefs[i].append(item[0])
@@ -4359,7 +4390,7 @@ class Database(object):
 		@publicmethod
 		def filterbypermissions(self, recids, ctx=None, txn=None):
 
-			
+
 			if ctx.checkreadadmin():
 				return set(recids)
 
@@ -5036,6 +5067,20 @@ class Database(object):
 				return demjson.encode(self.__users.values(txn=txn))
 
 
+		def get_dbpath(self, tail):
+			return os.path.join(self.path, tail)
+
+		@adminmethod
+		def archivelogs(self, ctx=None, txn=None):
+			self.LOG('LOG_INFO', "checkpointing")
+			self.txncommit(txn=txn)
+			self.__dbenv.txn_checkpoint()
+			archivefiles = self.__dbenv.log_archive(db.DB_ARCH_ABS)
+			archivepath = self.get_dbpath('archives')
+			if not os.access(archivepath, os.F_OK):
+				os.makedirs(archivepath)
+			for file_ in archivefiles:
+				os.path.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
 
 		#@txn
 		#@write #everything...
@@ -5124,7 +5169,7 @@ class Database(object):
 					try:
 						r = load(fin)
 					except EOFError, inst:
-						self.LOG('LOG_INFO', inst)
+						self.LOG('LOG_INFO', 'Import Done')
 
 
 					commitrecs = False
@@ -5201,7 +5246,10 @@ class Database(object):
 
 						elif isinstance(r, str):
 							print "btree type: %s"%r
-							rr = load(fin)
+							try:
+								rr = load(fin)
+							except EOFError:
+								self.LOG('LOG_INFO', 'done')
 
 							if r not in types:
 								continue
@@ -5263,10 +5311,7 @@ class Database(object):
 
 					finally:
 						if commitrecs:
-							self.txncommit(txn=txn)
-							print "checkpointing"
-							self.__dbenv.txn_checkpoint()
-							self.__dbenv.log_archive(db.DB_ARCH_REMOVE)
+							self.archivelogs(ctx=ctx, txn=txn)
 							DB_syncall()
 
 
