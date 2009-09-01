@@ -38,21 +38,38 @@ def parseparmvalues(text,noempty=0):
 
 class BaseDBObject(DictMixin):
 
-	attr_user = set()
-	attr_admin = set()
+	attr_user = set(["modifyuser","modifytime"])
+	attr_admin = set(["creator","creationtime","name"])
 	attr_all = attr_user | attr_admin
 
-	def __init__(self, _d=None, **kwargs):
+	attr_vartypes = {
+		"modifyuser":"user",
+		"modifytime":"datetime",
+		"creator":"user",
+		"creationtime":"datetime",
+		"name":"str"
+		}
+	
+
+	def __init__(self, _d=None, ctx=None, **kwargs):
+
 		if _d == None:
-			d = {}
+			_d = {}
 
 		_d.update(kwargs)
+		self.setContext(ctx)
 
 		self.init(_d)
 
 
-	def init(d):
+
+	def init(self, d):
 		pass
+
+
+
+	def setContext(self, ctx=None):
+		self.__ctx = ctx
 
 
 
@@ -83,7 +100,20 @@ class BaseDBObject(DictMixin):
 
 
 	def keys(self):
-		return tuple(self.attr_all)
+		return self.attr_all
+		
+		
+	
+	#################################
+	# validate
+	#################################
+
+	def validate(self):
+		for k,v in attr_vartypes.items():
+			try:
+				self[k]=v
+			except:
+				raise ValidationError,"Validation error"
 
 
 
@@ -650,6 +680,7 @@ class Record(DictMixin):
 			#	raise ValueError, "invalid comment format: %s; skipping"%(i)
 
 		usernames = set(self.__context.db.getusernames(ctx=self.__context, txn=txn))
+
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)
 
@@ -1040,7 +1071,7 @@ class Record(DictMixin):
 			self[i] = j
 
 		value = unicode(value)
-		self.__comments.append((unicode(self.__context._user),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
+		self.__comments.append((unicode(self.__context.username),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
 		# store the comment string itself
 
 

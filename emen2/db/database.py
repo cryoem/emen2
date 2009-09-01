@@ -25,7 +25,7 @@ import time
 import traceback
 import operator
 import collections
-
+import random
 
 from emen2.util.utils import prop
 
@@ -132,6 +132,7 @@ class DBProxy(object):
 		self.__ctx = None
 		#self._setcontext(ctxid, host)
 
+
 	def __enter__(self):
 		self._starttxn()
 		return self
@@ -156,20 +157,31 @@ class DBProxy(object):
 
 
 	def _login(self, username="anonymous", password="", host=None):
-		ctxid, host = self.__db._login(username, password, host=host)
-		self._setcontext(ctxid, host)
+		try:
+			ctxid, host = self.__db._login(username, password, host=host, txn=self.__txn)
+			self._setcontext(ctxid, host)
+			
+		except:
+			if self.__txn: self._aborttxn()
+			raise
+			
 		return ctxid, host
 
 
 	def _setcontext(self, ctxid=None, host=None):
-		g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
-		self.__ctx = self.__db._getcontext(ctxid, host)
+		#g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
+		try:
+			self.__ctx = self.__db._getcontext(ctxid, host, txn=self.__txn)
+		except:
+			if self.__txn: self._aborttxn()
+			raise
+			
 		self.__bound = True
 
 
 
 	def _clearcontext(self):
-		g.debug("dbproxy: clearcontext")
+		#g.debug("dbproxy: clearcontext")
 		if self.__bound:
 			self.__ctx = None
 			self.__bound = False
@@ -244,9 +256,9 @@ class DBProxy(object):
 
 			result = None
 
-			if 'admin' in self.__ctx.groups:
-				result = self.__adminmethods.get(name)
-				#g.debug('administrator !!! -- %r' % result)
+			#if 'admin' in self.__ctx.groups:
+			#	result = self.__adminmethods.get(name)
+			#	#g.debug('administrator !!! -- %r' % result)
 
 			if result is None:
 				result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
@@ -321,15 +333,15 @@ def publicmethod(func):
 			#g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
 			traceback.print_exc(e)
 			if commit is True:
-				print "TXN ABORT: %s (%s)\n\n"%(txn, e)
-				txn and txn.abort()
+				#print "publicmethod: TXN ABORT: %s (%s)\n\n"%(txn, e)
+				txn and self.txnabort(txn=txn) #txn.abort()
 			raise
 			
 		else:
 			#g.debug('checking whether to commit???')
 			if commit is True:
-				print "TXN COMMIT: %s\n\n"%txn
-				txn and txn.commit()
+				#print "publicmethod: TXN COMMIT: %s\n\n"%txn
+				txn and self.txncommit(txn=txn) #txn.commit()
 
 		return result
 
@@ -661,7 +673,8 @@ class Database(object):
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
-			g.debug("\n\nNEW TXN --> %s    PARENT IS %s"%(txn,parent))
+			#self.LOG("LOG_INFO","\n\nnewtxn: NEW TXN --> %s    PARENT IS %s"%(txn,parent))
+			print "\n\n______________\nNEW TXN --> %s    PARENT IS %s"%(txn,parent)
 			return txn
 
 
@@ -680,13 +693,15 @@ class Database(object):
 
 
 		def txnabort(self, ctx=None, txn=None):
-			g.debug('LOG_ERROR', "TXN ABORT --> %s\n\n"%txn)
+			#self.LOG('LOG_ERROR', "txnabort: TXN ABORT --> %s\n\n"%txn)
+			print "TXN ABORT --> %s\n^^^^^^^^^^^^^^^^\n\n"%txn
 			if txn:
 				txn.abort()
 
 
 		def txncommit(self, ctx=None, txn=None):
-			g.debug("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
+			#self.LOG("LOG_INFO","txncommit: TXN COMMIT --> %s\n\n"%txn)
+			print "TXN COMMIT --> %s\n^^^^^^^^^^^^^^^^\n\n"%txn
 			if txn:
 				txn.commit()
 			elif not self.__importmode:
@@ -699,6 +714,12 @@ class Database(object):
 		# section: utility
 		###############################
 
+
+
+		@publicmethod
+		def raise_exception(self, ctx=None, txn=None):
+			raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
+			
 
 		def LOG(self, level, message, ctx=None, txn=None):
 			"""level is an integer describing the seriousness of the error:
@@ -811,17 +832,17 @@ class Database(object):
 			# Anonymous access
 			if username == "anonymous": # or username == ""
 				newcontext = self.__makecontext()
-				#g.debug('Anonymous Login!!!')
+
 
 			else:
-				g.debug('Authentication Login!!!')
+
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
-					g.debug('new context: %r' %newcontext)
+					#g.debug('new context: %r' %newcontext)
 					newcontext = self.__makecontext(username, host)
-					g.debug('new context: %r' %newcontext)
+					#g.debug('new context: %r' %newcontext)
 
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
@@ -1008,7 +1029,6 @@ class Database(object):
 
 			context.time = time.time()
 
-			#g.debug('!!!!!!!!!!!!!!!!!!!!!!******************************!!!!!!!!!!!!!!!!!!!!!!!!!')
 			return context
 
 
@@ -1503,10 +1523,13 @@ class Database(object):
 		def __rebuild_indexkeys(self, ctx=None, txn=None):
 
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
-
+			
+			print "truncating indexkeys"
 			self.__indexkeys.truncate(txn=txn)
 
+			print "rebuilding indexkeys"
 			for k,v in inds.items():
+					print k,v
 					self.__indexkeys.set(k, set(v.keys()), txn=txn)
 
 
@@ -1797,10 +1820,10 @@ class Database(object):
 		def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
 
 			if not isinstance(list(records)[0],Record):
-				recs = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
+				records = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
 
 			ret={}
-			for i in recs:
+			for i in records:
 				if not ret.has_key(i.rectype): ret[i.rectype]=set([i.recid])
 				else: ret[i.rectype].add(i.recid)
 
@@ -2163,7 +2186,7 @@ class Database(object):
 
 			for pkey,ckey in links:
 				linker(pkey, ckey, txn=txn)
-				g.debug("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey), ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey), ctx=ctx, txn=txn)
 
 			#@end
 
@@ -2255,7 +2278,7 @@ class Database(object):
 				admin = False
 				if secret is None: raise
 				else:
-					g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
+					self.LOG('LOG_DEBUG', 'Ignored: (%s)' % e)
 
 
 			#ol=False
@@ -2301,12 +2324,12 @@ class Database(object):
 						for k,v in user.signupinfo.items():
 							rec[k]=v
 
-						g.debug('rec == %r'%rec)
+						#g.debug('rec == %r'%rec)
 						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
 						children = user.create_childrecords(ctx=tmpctx, txn=txn)
 						children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
-						g.debug('children:- %r' % (children,))
+						#g.debug('children:- %r' % (children,))
 						if children != []:
 							self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
 							for links in children:
@@ -2600,8 +2623,6 @@ class Database(object):
 			#@begin
 
 			for group in groups:
-				g.debug(group)
-				g.debug(txn)
 				self.__groups.set(group.name, group, txn=txn)
 
 			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -2642,36 +2663,36 @@ class Database(object):
 			new user queue, which must be processed by an administrator before the record
 			becomes active. This system prevents problems with securely assigning passwords
 			and errors with data entry. Anyone can create one of these"""
-			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + file('/dev/urandom').read(5))
+
+			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + str(random.random()))
+
 			try:
 				user = User(inuser, secret=secret.hexdigest())
 			except:
 				raise ValueError, "User instance or dict required"
 
-			if user.username == None or len(user.username) < 3:
-				if self.__importmode: pass
-				else:
-					raise KeyError, "Attempt to add user with invalid name"
 
 			#if user.username in self.__users:
 			if self.__users.get(user.username, txn=txn):
-				if self.__importmode: pass
+				if self.__importmode:
+					pass
 				else:
-					raise KeyError, "User with username %s already exists" % user.username
+					raise KeyError, "User with username '%s' already exists" % user.username
 
 
 			#if user.username in self.__newuserqueue:
 			if self.__newuserqueue.get(user.username, txn=txn):
-				raise KeyError, "User with username %s already pending approval" % user.username
+				raise KeyError, "User with username '%s' already pending approval" % user.username
 
 
 			# 40 = lenght of hex digest
 			# we disallow bad passwords here, right now we just make sure that it
 			# is at least 6 characters long
 			if len(user.password) < 6:
-					raise SecurityError, "Passwords must be at least 6 characters long"
+					raise ValueError, "Passwords must be at least 6 characters long"
 
-			s = hashlib.sha1(user.password)
+
+			s = hashlib.sha1(user.password) #.hexdigest()
 			user.password = s.hexdigest()
 
 			if not self.__importmode:
@@ -3782,7 +3803,11 @@ class Database(object):
 		@publicmethod
 		def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 			"""Make a single change to a single record"""
+			print "recid %s param %s value %s"%(recid,param,value)
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
+			print rec
+			print ctx
+			print txn
 			rec[param] = value
 			self.putrecord(rec, ctx=ctx, txn=txn)
 			return self.getrecord(recid, ctx=ctx, txn=txn)[param]
@@ -4858,7 +4883,7 @@ class Database(object):
 						#		pd.append(match.group("reqvar1"))
 						elif match.group("macro"):
 								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
-				g.debug("macro stuff -> %r" %m)
+				#g.debug("macro stuff -> %r" %m)
 
 				paramdefs.update(self.getparamdefs(pd, ctx=ctx, txn=txn))
 
@@ -4896,7 +4921,6 @@ class Database(object):
 
 				ret[rec.recid]=a
 
-			#g.debug('ol ->', ol)
 			if ol:
 				return ret.values()[0]
 			return ret

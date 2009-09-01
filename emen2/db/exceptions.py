@@ -15,3 +15,7 @@ class DisabledUserError(ValueError):
 
 class FieldError(Exception):
     "Exception for problems with Field definitions"
+
+
+class ValidationError(ValueError):
+	"""Validation Error"""

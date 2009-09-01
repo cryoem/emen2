@@ -1,7 +1,7 @@
 import time
 from UserDict import DictMixin
 import operator
-
+import hashlib
 
 
 import emen2.Database.database
@@ -34,6 +34,9 @@ class Context:
 		attr_all = attr_user | attr_admin
 
 
+
+		# ian: todo: put current txn in ctx?
+		
 		def __init__(self, ctxid=None, db=None, username=None, user=None, groups=None, host=None, maxidle=14400):
 				self.ctxid = ctxid	# unique context id
 				self.db = db	# Points to Database object for this context
@@ -259,12 +262,12 @@ class User(DictMixin):
 	"""
 
 	# non-admin users can only change their privacy setting directly
-	attr_user = set(["privacy", "modifytime", "password", "modifyuser","signupinfo"])
+	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo"])
 	attr_admin = set(["email","groups","username","disabled","creator","creationtime","record","childrecs"])
 	attr_all = attr_user | attr_admin
 
 
-	def __init__(self, d=None, **kwargs):
+	def __init__(self, _d=None, **kwargs):
 		"""User class, takes either a dictionary or a set of keyword arguments
 		as an initializer
 
@@ -301,8 +304,8 @@ class User(DictMixin):
 
 
 
-		d = d or {}
-		kwargs.update( (k,v) for k,v in d.iteritems() if k not in kwargs)
+		_d = _d or {}
+		kwargs.update( (k,v) for k,v in _d.iteritems() if k not in kwargs)
 
 		ctx = kwargs.get('ctx',None)
 
@@ -316,23 +319,28 @@ class User(DictMixin):
 		self.record = kwargs.get('record')
 
 		self.signupinfo = {}
+		
 		self.childrecs = kwargs.get('childrecs', {})
 
 		self.creator = kwargs.get('creator',0)
 		self.creationtime = kwargs.get('creationtime')
 		self.modifytime = kwargs.get('modifytime')
 		self.modifyuser = kwargs.get('modifyuser')
+
+		self.email = kwargs.get('email')
+
 		self.__secret = kwargs.get('secret')
-		g.debug('User.__secret = %r' % self.__secret)
+
+		# g.debug('User.__secret = %r' % self.__secret)
 
 		# read only attributes, set at getuser time
 		# self.groups = None
 		# self.userrec = None
 		# self.email = None
 
-		#self.groups = set() #kwargs.get('groups', [-4])
-		#self.name = kwargs.get('name')
-		self.email = kwargs.get('email')
+		# self.groups = set() #kwargs.get('groups', [-4])
+		# self.name = kwargs.get('name')
+
 
 		if ctx:
 			pass
@@ -372,6 +380,7 @@ class User(DictMixin):
 	def validate(self, ctx=None):
 		#if set(self.__dict__.keys())-self.attr_all:
 			#raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
+
 		for i in set(self.__dict__.keys())-self.attr_all:
 			if not i.startswith('_'):
 				del self.__dict__[i]
@@ -380,30 +389,71 @@ class User(DictMixin):
 			if self.record != None:
 				self.record = int(self.record)
 		except BaseException, e:
-			g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
-			raise AttributeError,"Record pointer must be integer"
+			raise ValueError,"Record pointer must be integer"
+
 
 		if self.privacy not in [0,1,2]:
-			raise AttributeError,"User privacy setting may be 0, 1, or 2."
+			raise ValueError,"User privacy setting may be 0, 1, or 2."
+
 
 		if self.password != None and len(self.password) != 40:
-			raise AttributeError,"Invalid password hash; use setpassword to update"
+			raise ValueError,"Invalid password hash; use setpassword to update"
+
 
 		try:
 			self.disabled = bool(self.disabled)
 		except BaseException, e:
-			g.debug.msg('LOG_DEBUG', 'Ignored: (%s)' % e)
-			raise AttributeError,"Disabled must be 0 (active) or 1 (disabled)"
+			raise ValueError,"Disabled must be 0 (active) or 1 (disabled)"
+
+
+		# simple email checking...
+		if not self.email:
+			raise ValueError,"Invalid email '%s'"%self.email
+			
+		self.email = unicode(self.email)
+		if not re.match("(\S+@\S+)",self.email):
+			raise ValueError,"Invalid email '%s'"%self.email
+
+
+
+
+	def checkpassword(self, password):
+		pass
+		
+		
+	def setpassword(self, oldpassword, newpassword):
+		if len(newpassword) < 6:
+			raise ValueError, "Password too short; minimum 6 characters required"
+
+		s = hashlib.sha1(newpassword).hexdigest()
+
+		if self.password != None and s != self.password:
+			raise SecurityError, "Could not update password; incorrect password given"
+		self.password = s
+		
+	def setemail(self, value):
+		self.email = value
+
+
+	def getemail(self, value):
+		return self.email
+		
+	
+		
+		
 
 	def validate_secret(self, secret):
 		result = self.__secret == secret
 		return result
 
+
 	def get_secret(self):
 			return self.__secret
 
+
 	def kill_secret(self):
 		self.__secret = None
+
 
 	def create_childrecords(self, ctx, txn=None):
 		'''create records to be chldren of person record.

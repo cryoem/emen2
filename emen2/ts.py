@@ -62,7 +62,7 @@ class newThreadPool(threadpool.ThreadPool):
 		ct = self.currentThread()
 		o = self.q.get()
 		while o is not threadpool.WorkerStop:
-			g.debug('thread %d still alive!!!' % count)
+			#g.debug('thread %d still alive!!!' % count)
 			self.working.append(ct)
 			ctx, function, args, kwargs, onResult = o 
 			del o

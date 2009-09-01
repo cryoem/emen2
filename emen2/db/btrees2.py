@@ -12,7 +12,7 @@ import weakref
 
 
 
-dbopenflags = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE 
+dbopenflags = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
 #| bsddb3.db.DB_AUTO_COMMIT
 
 
@@ -62,7 +62,7 @@ class BTree(object):
 		self.__setweakrefopen()
 
 
-		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
+		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
 
 
 	def __setkeytype(self, keytype):
@@ -327,15 +327,15 @@ class RelateBTree(BTree):
 
 		# Parent keyed list of children
 		self.pcdb = bsddb3.db.DB(dbenv)
-		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
+		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
 
 		# Child keyed list of parents
 		self.cpdb = bsddb3.db.DB(dbenv)
-		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
+		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
 
 		# lateral links between records (nondirectional), 'getcousins'
 		self.reldb = bsddb3.db.DB(dbenv)
-		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags, txn=txn)
+		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
 
 
 	def __str__(self):

@@ -198,7 +198,7 @@ class RPCResource(Resource):
 
 
 
-	def _ebRender(self, result, request):
+	def _ebRender(self, result, request, *args, **kwargs):
 		g.debug.msg("LOG_ERROR", result)
 		request.setHeader("X-Error", ' '.join(str(result).split()))
 		result=unicode(result.value)
@@ -218,7 +218,10 @@ class RPCResource(Resource):
 
 
 	def render(self, request):
-		d = threads.deferToThread(self.action, request)
+		ctxid = request.getCookie("ctxid")
+		host = request.getClientIP()
+		
+		d = threads.deferToThread(self.action, request, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request, self.fmt)
 		d.addErrback(self._ebRender, request, self.fmt)
 		return server.NOT_DONE_YET
@@ -226,10 +229,9 @@ class RPCResource(Resource):
 
 
 
-	def action(self, request, db=None, host=None):
-		#method_ = db.publicmethods.get(method, None)
-		#db._setcontext(ctxid,host)
-		#if not db._ismethod(method):
+	def action(self, request, db=None, ctxid=None, host=None):
+		# this binds the Context to the DBProxy for the duration of the view
+				
 		request.content.seek(0, 0)
 		content = request.content.read()
 		method, args, kwargs = self.handler.decode(content,request.args)
@@ -239,9 +241,28 @@ class RPCResource(Resource):
 		if method==None:
 			method = request.uri.split("/")[-1]
 
-		kwargs["host"] = request.getClientIP()
-		if not kwargs.get("ctxid"):
-			kwargs["ctxid"] = request.getCookie("ctxid")
 
-		result = db._callmethod(method, args, kwargs)
+		print "\n\n====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host)
+		
+		print args
+		print kwargs
+		
+		db._starttxn()
+
+		db._setcontext(ctxid,host)
+
+		try:
+			result = db._callmethod(method, args, kwargs)
+		except Exception, e:
+			db._aborttxn()
+			raise
+		else:
+			db._committxn()
+
+
+		print result
+		
 		return self.handler.encode(method, result)
+
+
+

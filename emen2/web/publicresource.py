@@ -185,7 +185,7 @@ class PublicView(Resource):
 
 		#too many slashes
 		if urllib2.unquote(base)[3:] != path: npath = path
-		g.debug('npath 2-> (', npath, ') base -> (', base, ') path -> (', path, ')')
+		#g.debug('npath 2-> (', npath, ') base -> (', base, ') path -> (', path, ')')
 
 		#registered redirect
 		redir = self.getredirect(npath or path)
@@ -232,14 +232,14 @@ class PublicView(Resource):
 				request.finish()
 
 			else:
-				g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
+				#g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
 
 				args = self.__parse_args(request.args, content=content)
 				callback = routing.URLRegistry().execute(path, **args)
 
-				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host)
+				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
-				d.addErrback(self._ebRender, request, ctxid=ctxid, host=host)
+				d.addErrback(self._ebRender, request, t=time.time(), ctxid=ctxid, host=host)
 
 			return server.NOT_DONE_YET
 
@@ -250,27 +250,31 @@ class PublicView(Resource):
 
 
 	# wrap db with context; view never has to see ctxid/host
-	@g.debug.debug_func
-	def _action(self, callback, db=None, ctxid=None, host=None):
+	#@g.debug.debug_func
+	def _action(self, callback, db=None, ctxid=None, host=None, path=None):
 		'''set db context, call view, and get string result
-
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-		db._setcontext(ctxid,host)
+
+		print "\n\n====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host)
+
 
 		db._starttxn()
-		g.debug('View transaction started')
+
+		db._setcontext(ctxid,host)
+
+		#g.debug('View transaction started')
 
 		try:
 			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			g.debug('View transaction aborted')
+			#g.debug('View transaction aborted')
 			db._aborttxn()
 			raise
 		else:
-			g.debug('View transaction committed')
+			#g.debug('View transaction committed')
 			db._committxn()
 
 		return ret, headers
@@ -292,7 +296,7 @@ class PublicView(Resource):
 
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
-			g.debug("::: time total: %s"%(time.time()-t))
+			g.debug("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
 			g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
@@ -309,7 +313,7 @@ class PublicView(Resource):
 
 
 
-	def _ebRender(self, failure, request, ctxid=None, host=None):
+	def _ebRender(self, failure, request, t=0, ctxid=None, host=None):
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
 		headers = {}
@@ -348,7 +352,7 @@ class PublicView(Resource):
 
 		request.setResponseCode(response)
 		request.write(data)
-		g.debug.msg('LOG_INFO', 'response -> (%r)' % response)
+		#g.debug.msg('LOG_INFO', 'response -> (%r)' % response)
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
