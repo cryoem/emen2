@@ -1,4 +1,5 @@
 from __future__ import with_statement
+import emen2.util.ticker
 import bsddb3
 from bsddb3 import db
 from cPickle import load, dump
@@ -25,6 +26,8 @@ import time
 import traceback
 import operator
 import collections
+import itertools
+
 import random
 
 from emen2.util.utils import prop
@@ -85,7 +88,7 @@ DEBUG = 0 #TODO consolidate debug flag
 # 				txn.discard()
 # 			raise
 # 		else:
-# 			txn.commit()
+# 			self.txncommit(ctx=ctx, txn=txn)
 
 #class extract_recid(object):
 #	def __init__(self, argno):
@@ -142,8 +145,6 @@ class DBProxy(object):
 			self._committxn()
 		else:
 			self._aborttxn()
-
-
 
 
 	def _starttxn(self):
@@ -239,7 +240,11 @@ class DBProxy(object):
 	def __getattribute__(self, name):
 
 		if name.startswith('__') and name.endswith('__'):
-			result = getattr(self.__db, name)()
+			try:
+				result = getattr(self.__db, name)
+			except:
+				result = object.__getattribute__(self, name)
+			return result
 		elif name.startswith('_'):
 			return object.__getattribute__(self, name)
 
@@ -274,7 +279,7 @@ class DBProxy(object):
 					result = partial(result.execute, **kwargs)
 
 			result = wraps(result.func)(result)
-			
+
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, db))
 
@@ -316,9 +321,10 @@ def publicmethod(func):
 
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
-		
+
 		result = None
 		txn = kwargs.get('txn')
+		ctx = kwargs.get('ctx')
 		commit = False
 		if txn is None:
 			txn = self.newtxn()
@@ -333,15 +339,15 @@ def publicmethod(func):
 			#g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
 			traceback.print_exc(e)
 			if commit is True:
-				#print "publicmethod: TXN ABORT: %s (%s)\n\n"%(txn, e)
-				txn and self.txnabort(txn=txn) #txn.abort()
+				self.LOG('LOG_ERROR', "TXN ABORT: %s (%s)"%(txn, e))
+				txn and self.txnabort(ctx=ctx, txn=txn)
 			raise
-			
+
 		else:
 			#g.debug('checking whether to commit???')
 			if commit is True:
-				#print "publicmethod: TXN COMMIT: %s\n\n"%txn
-				txn and self.txncommit(txn=txn) #txn.commit()
+				self.LOG('LOG_INFO', "TXN COMMIT: %s"%txn)
+				txn and self.txncommit(ctx=ctx, txn=txn)
 
 		return result
 
@@ -352,15 +358,15 @@ def publicmethod(func):
 
 def adminmethod(func):
 	g.debug('admin method registered :: (%s) -> %r' % (func.func_name, func))
-	DBProxy._register_adminmethod(func.func_name, func)
+	if not func.func_name.startswith('_'):
+		DBProxy._register_adminmethod(func.func_name, func)
 
 	@wraps(func)
 	def _inner(*args, **kwargs):
 		ctx = kwargs.get('ctx')
 		if ctx is None:
-			ctx = [c for x in args is isinstance(x, User)] or None
-			if ctx is not None:
-				ctx = ctx.pop()
+			ctx = [x for x in args is isinstance(x, User)] or None
+			if ctx is not None: ctx = ctx.pop()
 		if ctx.checkadmin():
 			return func(*args, **kwargs)
 		else:
@@ -416,6 +422,8 @@ class Database(object):
 			self.logfile = path + "/" + logfile
 			self.lastctxclean = time.time()
 			self.__importmode = importmode
+			self.txnid = 0
+			self.txnlog = {}
 
 			# ian: this helps render and validate vartypes and convert between properties/units
 			self.vtm = emen2.Database.subsystems.datatypes.VartypeManager()
@@ -673,8 +681,8 @@ class Database(object):
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
-			#self.LOG("LOG_INFO","\n\nnewtxn: NEW TXN --> %s    PARENT IS %s"%(txn,parent))
-			print "\n\n______________\nNEW TXN --> %s    PARENT IS %s"%(txn,parent)
+			self.txnlog[id(txn)] = txn
+			g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			return txn
 
 
@@ -692,18 +700,20 @@ class Database(object):
 			return txn
 
 
-		def txnabort(self, ctx=None, txn=None):
-			#self.LOG('LOG_ERROR', "txnabort: TXN ABORT --> %s\n\n"%txn)
-			print "TXN ABORT --> %s\n^^^^^^^^^^^^^^^^\n\n"%txn
+		def txnabort(self, txnid=0, ctx=None, txn=None):
+			self.LOG('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			txn = self.txnlog.get(txnid if txn is None else id(txn))
 			if txn:
 				txn.abort()
+				del self.txnlog[id(txn)]
 
 
-		def txncommit(self, ctx=None, txn=None):
-			#self.LOG("LOG_INFO","txncommit: TXN COMMIT --> %s\n\n"%txn)
-			print "TXN COMMIT --> %s\n^^^^^^^^^^^^^^^^\n\n"%txn
+		def txncommit(self, txnid=0, ctx=None, txn=None):
+			self.LOG("LOG_INFO","TXN COMMIT --> %s"%txn)
+			txn = self.txnlog.get(txnid if txn is None else id(txn))
 			if txn:
 				txn.commit()
+				del self.txnlog[id(txn)]
 			elif not self.__importmode:
 				DB_syncall()
 
@@ -738,7 +748,7 @@ class Database(object):
 				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.__gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
 			except:
 				traceback.print_exc(file=sys.stdout)
-				print("Critical error!!! Cannot write log message to '%s'\n")
+				self.LOG('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
 
 
 		# needs txn?
@@ -754,21 +764,21 @@ class Database(object):
 
 		# ian: todo: wtf.
 		def closedb(self, ctx=None, txn=None):
-			self.LOG('LOG_DEBUG', 'closing dbs')
+			self.LOG('LOG_INFO', 'closing dbs')
 			if self.__allowclose == True:
 				for btree in self.__dict__.values():
 					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
 						try: btree.close()
-						except db.InvalidArgError, e: print e
+						except db.InvalidArgError, e: self.LOG('LOG_ERROR', e)
 					for btree in self.__fieldindex.values(): btree.close()
 		def close(self, ctx=None, txn=None):
 			self.closedb(ctx, txn=txn)
 			self.__dbenv.close()
 
 #				 pass
-#				 print self.__btreelist
+#				 self.LOG('LOG_DEBUG', self.__btreelist)
 #				 self.__btreelist.extend(self.__fieldindex.values())
-#				 print self.__btreelist
+#				 self.LOG('LOG_DEBUG', self.__btreelist)
 #				 for bt in self.__btreelist:
 #						 print '--', bt ; sys.stdout.flush()
 #						 bt.close()
@@ -798,8 +808,8 @@ class Database(object):
 		@publicmethod
 		def gettime(self, ctx=None, txn=None):
 			return time.strftime(TIMESTR)
-		
-		
+
+
 		def __gettime(self, ctx=None, txn=None):
 			return time.strftime(TIMESTR)
 
@@ -958,7 +968,7 @@ class Database(object):
 					context.db = None
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
-					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %s"%context.ctxid, ctx=ctx, txn=txn)
+					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid, ctx=ctx, txn=txn)
 
 				# except ValueError, inst:
 				# 	self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
@@ -978,7 +988,7 @@ class Database(object):
 
 				try:
 					self.__contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
-					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %s"%ctxid, ctx=ctx, txn=txn)
+					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid, ctx=ctx, txn=txn)
 
 				except Exception, inst:
 					self.LOG("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
@@ -1147,7 +1157,7 @@ class Database(object):
 
 				itm[newid] = (name, recid)
 				self.__bdocounter.set(key, itm, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%key, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %r"%key, ctx=ctx, txn=txn)
 
 
 				#@end
@@ -1164,11 +1174,11 @@ class Database(object):
 				# if a filedata is supplied, write it out...
 				# todo: use only this mechanism for putting files on disk
 				if filedata:
-					print "Writing %s bytes disk: %s"%(len(filedata),filename)
+					self.LOG('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),filename))
 					f=open(filename,"wb")
 					f.write(filedata)
 					f.close()
-					print "...done"
+					self.LOG('LOG_INFO', "...done")
 
 
 				if paramname:
@@ -2278,7 +2288,7 @@ class Database(object):
 				admin = False
 				if secret is None: raise
 				else:
-					self.LOG('LOG_DEBUG', 'Ignored: (%s)' % e)
+					self.LOG('LOG_INFO', 'Ignored: (%s)' % e)
 
 
 			#ol=False
@@ -2513,7 +2523,7 @@ class Database(object):
 			for user,groups in addrefs.items():
 				try:
 					if groups:
-						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %s, addrefs: %s"%(user, groups), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
@@ -2527,7 +2537,7 @@ class Database(object):
 			for user,groups in delrefs.items():
 				try:
 					if groups:
-						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %s, removerefs: %s"%(user, groups), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
@@ -2764,7 +2774,7 @@ class Database(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__users.set: %s"%user.username, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__users.set: %r"%user.username, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -2779,7 +2789,7 @@ class Database(object):
 
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__newuserqueue.set: %s"%username, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -3257,7 +3267,7 @@ class Database(object):
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__paramdefs.set: %s"%paramdef.name, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -3319,7 +3329,7 @@ class Database(object):
 					paramdefs[i] = self.__paramdefs.sget(i, txn=txn) # [i]
 				except:
 					if filt:
-						print "WARNING: Invalid param: %s"%i
+						self.LOG('LOG_WARNING', "WARNING: Invalid param: %s"%i)
 						pass
 					else:
 						raise Exception, "Invalid param: %s"%i
@@ -3378,6 +3388,12 @@ class Database(object):
 
 			return self.__fieldindex[paramname]
 
+		@adminmethod
+		def __closeparamindex(self, paramname, ctx=None, txn=None):
+			self.__fieldindex.pop(paramname).close()
+
+		def __closeparamindexes(self, ctx=None, txn=None):
+			map(lambda x: self.__closeparamindex(x, ctx=ctx, txn=txn), self.__fieldindex.keys())
 
 
 
@@ -3502,7 +3518,7 @@ class Database(object):
 
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__recorddefs.set: %s"%recorddef.name, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -3867,6 +3883,8 @@ class Database(object):
 			if isinstance(recs,(Record,dict)):
 				ol = 1
 				recs = [recs]
+			elif not hasattr(recs, 'extend'):
+				recs = list(recs)
 
 
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
@@ -3902,7 +3920,6 @@ class Database(object):
 
 
 
-		#@g.debug.debug_func
 		def __putrecord(self, updrecs, warning=0, validate=True, importmode=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
@@ -3943,7 +3960,7 @@ class Database(object):
 				else:
 					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
 					orec.recid = updrec.recid
-					
+
 					if importmode:
 						orec._Record__creator = updrec["creator"]
 						orec._Record__creationtime = updrec["creationtime"]
@@ -4054,8 +4071,8 @@ class Database(object):
 				baserecid = self.__records.sget(-1, txn=txn, flags=db.DB_RMW)
 				self.LOG("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
-			
-				
+
+
 
 			# add recids to new records, create map from temp recid, setup index
 			for offset, newrec in enumerate(newrecs):
@@ -4072,7 +4089,7 @@ class Database(object):
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__records.set: %s"%crec.recid, ctx=ctx, txn=txn)
+				self.LOG("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid, ctx=ctx, txn=txn)
 
 
 
@@ -4083,7 +4100,7 @@ class Database(object):
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-					self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %s, %s"%(rectype,recs), ctx=ctx, txn=txn)
+					self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
@@ -4109,7 +4126,7 @@ class Database(object):
 					if not isinstance(recid, basestring):
 						recid = unicode(recid).encode('utf-8')
 					self.__timeindex.set(recid, time, txn=txn)
-					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %s, %s"%(recmap.get(recid,recid), time))
+					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
@@ -4149,7 +4166,7 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
@@ -4165,7 +4182,7 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %s, len %s"%(user, len(recs)), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
 					self.LOG("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
@@ -4206,7 +4223,7 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						self.LOG("LOG_COMMIT","Commit: param index %s.addrefs: %s '%s', %s"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.addrefs(newval, recs, txn=txn)
 
 				except db.DBError, inst:
@@ -4222,7 +4239,7 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						self.LOG("LOG_COMMIT","Commit: param index %s.removerefs: %s '%s', %s"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
+						self.LOG("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.removerefs(oldval, recs, txn=txn)
 
 				except db.DBError, inst:
@@ -4945,7 +4962,7 @@ class Database(object):
 						raise SecurityError, "Only root may backup the database"
 
 
-				print 'backup has begun'
+				self.LOG('LOG_INFO', 'backup has begun')
 				#user,groups=self.checkcontext(ctx=ctx, txn=txn)
 				user = ctx.username
 				groups = ctx.groups
@@ -4963,14 +4980,14 @@ class Database(object):
 				else:
 						out = open(outfile, "w")
 
-				print 'backup file opened'
+				self.LOG('LOG_INFO', 'backup file opened')
 				# dump users
 				for i in users: dump(self.__users.sget(i, txn=txn), out)
-				print 'users dumped'
+				self.LOG('LOG_INFO', 'users dumped')
 
 				# dump workflow
 				for i in workflows: dump(self.__workflow.sget(i, txn=txn), out)
-				print 'workflows dumped'
+				self.LOG('LOG_INFO', 'workflows dumped')
 
 				# dump binary data objects
 				dump("bdos", out)
@@ -4978,7 +4995,7 @@ class Database(object):
 				for i in bdos: bd[i] = self.__bdocounter.sget(i, txn=txn)
 				dump(bd, out)
 				bd = None
-				print 'bdos dumped'
+				self.LOG('LOG_INFO', 'bdos dumped')
 
 				# dump paramdefs and tree
 				for i in paramdefs: dump(self.__paramdefs.sget(i, txn=txn), out)
@@ -4991,7 +5008,7 @@ class Database(object):
 						ch += ((i, c),)
 				dump("pdchildren", out)
 				dump(ch, out)
-				print 'paramdefs dumped'
+				self.LOG('LOG_INFO', 'paramdefs dumped')
 
 				ch = []
 				for i in paramdefs:
@@ -5001,7 +5018,7 @@ class Database(object):
 						ch += ((i, c),)
 				dump("pdcousins", out)
 				dump(ch, out)
-				print 'pdcousins dumped'
+				self.LOG('LOG_INFO', 'pdcousins dumped')
 
 				# dump recorddefs and tree
 				for i in recorddefs: dump(self.__recorddefs.sget(i, txn=txn), out)
@@ -5014,7 +5031,7 @@ class Database(object):
 						ch += ((i, c),)
 				dump("rdchildren", out)
 				dump(ch, out)
-				print 'rdchildren dumped'
+				self.LOG('LOG_INFO', 'rdchildren dumped')
 
 				ch = []
 				for i in recorddefs:
@@ -5024,13 +5041,13 @@ class Database(object):
 						ch += ((i, c),)
 				dump("rdcousins", out)
 				dump(ch, out)
-				print 'rdcousins dumped'
+				self.LOG('LOG_INFO', 'rdcousins dumped')
 
 				# dump actual database records
-				print "Backing up %d/%d records" % (len(records), self.__records.sget(-1, txn=txn))
+				self.LOG('LOG_INFO', "Backing up %d/%d records" % (len(records), self.__records.sget(-1, txn=txn)))
 				for i in records:
 						dump(self.__records.sget(i, txn=txn), out)
-				print 'records dumped'
+				self.LOG('LOG_INFO', 'records dumped')
 
 				ch = []
 				for i in records:
@@ -5039,7 +5056,7 @@ class Database(object):
 						ch += ((i, c),)
 				dump("recchildren", out)
 				dump(ch, out)
-				print 'rec children dumped'
+				self.LOG('LOG_INFO', 'rec children dumped')
 
 				ch = []
 				for i in records:
@@ -5049,7 +5066,7 @@ class Database(object):
 						ch += ((i, c),)
 				dump("reccousins", out)
 				dump(ch, out)
-				print 'rec cousins dumped'
+				self.LOG('LOG_INFO', 'rec cousins dumped')
 
 				out.close()
 
@@ -5065,7 +5082,7 @@ class Database(object):
 						raise SecurityError, "Only root may backup the database"
 
 
-				print 'backup has begun'
+				self.LOG('LOG_INFO', 'backup has begun')
 				#user,groups=self.checkcontext(ctx=ctx, txn=txn)
 				user = ctx.username
 				groups = ctx.groups
@@ -5079,43 +5096,61 @@ class Database(object):
 		@adminmethod
 		def archivelogs(self, ctx=None, txn=None):
 			self.LOG('LOG_INFO', "checkpointing")
-			self.txncommit(txn=txn)
 			self.__dbenv.txn_checkpoint()
 			archivefiles = self.__dbenv.log_archive(db.DB_ARCH_ABS)
 			archivepath = self.get_dbpath('archives')
 			if not os.access(archivepath, os.F_OK):
 				os.makedirs(archivepath)
 			for file_ in archivefiles:
-				os.path.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
+				os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
 
-		#@txn
-		#@write #everything...
-		@publicmethod
-		def restore(self, restorefile=None, types=None, ctx=None, txn=None):
-				"""This will restore the database from a backup file. It is nondestructive, in that new items are
-				added to the existing database. Naming conflicts will be reported, and the new version
-				will take precedence, except for Records, which are always appended to the end of the database
-				regardless of their original id numbers. If maintaining record id numbers is important, then a full
-				backup of the database must be performed, and the restore must be performed on an empty database."""
-				if not txn: txn = None
 
-				if not self.__importmode:
-					self.LOG(3, "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
-					return
 
-				self.LOG(4, "Begin restore operation", ctx=ctx, txn=txn)
+		def __restore_rec(self, recblock,  recmap, ctx=None, txn=None):
+			def swapin(obj, key, value):
+				result = getattr(obj, key)
+				setattr(obj, key, value)
+				return result
 
-				user = ctx.username
-				groups = ctx.groups
+			oldids = map(lambda rec: swapin(rec, 'recid', None), recblock)
 
-				if not ctx.checkadmin():
-					raise SecurityError, "Database restore requires admin access"
+			newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=txn)
 
+			for oldid,newrec in itertools.izip(oldids,newrecs):
+				recmap[oldid] = newrec.recid
+				if oldid != newrec.recid:
+					print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
+			return len(newrecs)
+
+		def __restore_commitblocks(self, *blocks, **kwargs):
+			ctx, txn = kwargs.get('ctx'), kwargs.get('txn')
+			mp = kwargs.get('map')
+			changesmade = False
+			if any(blocks):
+				to_commit = filter(None, blocks)
+				commit_funcs = {
+					ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
+					RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
+					User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
+				}
+				for block in to_commit:
+					if isinstance(block[0], Record):
+						self.__restore_rec(block, mp, ctx=ctx, txn=txn)
+					else:
+						map(commit_funcs[type(block[0])], block)
+					del block[:]
+				changesmade = True
+			return changesmade
+
+		def __restore_openfile(self, restorefile):
 				if type(restorefile) == file:
 					fin = restorefile
 
 				elif os.access(str(restorefile), os.R_OK):
-					fin = open(restorefile, "r")
+					if restorefile.endswith('.bz2'):
+						fin = os.popen("bzcat %s" % restorefile, "r")
+					else:
+						fin = open(restorefile, "r")
 
 				elif os.access(self.path + "/backup.pkl", os.R_OK):
 					fin = open(self.path + "/backup.pkl", "r")
@@ -5128,205 +5163,163 @@ class Database(object):
 
 				else:
 					raise IOError, "Restore file (e.g. backup.pkl) not present"
+				return fin
 
+		def __restore_relate(self, r, fin, types, recmap, txn=None):
+			rr = load(fin)
+			if r not in types: return False
+
+			def link(lis, link_func, txn=txn):
+				for a,bl in lis:
+					for b in bl:
+						link_func(a,b, txn=txn)
+
+			simple_choices = dict(
+				pdchildren=self.__paramdefs.pclink,
+				pdcousins=self.__paramdefs.link,
+				rdchildren=self.__recorddefs.pclink,
+				rdcousins=self.__recorddefs.link,
+				reccousins=self.__records.link
+			)
+
+			if r == "bdos":
+				self.LOG('LOG_INFO', "bdo")
+				# read the dictionary of bdos
+				for i, d in rr.items():
+					self.__bdocounter.set(i, d, txn=txn)
+
+			elif r == "recchildren":
+				self.LOG('LOG_INFO', "recchildren")
+				# read the dictionary of ParamDef PC links
+				for p, cl in rr:
+					for c in cl:
+						if isinstance(c, tuple):
+							self.LOG('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
+						else:
+							self.__records.pclink(recmap[p], recmap[c], txn=txn)
+
+			elif r in simple_choices:
+				self.LOG('LOG_INFO', r)
+				link(rr, simple_choices[r])
+
+			else:
+				self.LOG('LOG_ERROR', "Unknown category: ", r)
+			return True
+
+
+		#@write #everything...
+		@publicmethod
+		def restore(self, restorefile=None, types=None, ctx=None, txn=None):
+				"""This will restore the database from a backup file. It is nondestructive, in that new items are
+				added to the existing database. Naming conflicts will be reported, and the new version
+				will take precedence, except for Records, which are always appended to the end of the database
+				regardless of their original id numbers. If maintaining record id numbers is important, then a full
+				backup of the database must be performed, and the restore must be performed on an empty database."""
+				if not txn: txn = None
+				self.LOG(4, "Begin restore operation", ctx=ctx, txn=txn)
+
+				if not self.__importmode:
+					self.LOG(3, "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+					return
+
+				user, groups = ctx.username, ctx.groups
+
+				if not ctx.checkadmin():
+					raise SecurityError, "Database restore requires admin access"
 
 				recmap = {}
 				nrec = 0
+
 				t0 = time.time()
 				tmpindex = {}
 				nel = 0
 
 
-				recblock = []
-				recblocklength = 50000
+				recblock, paramblock, recdefblock, userblock = [],[],[],[]
+				blocklength = 5000
 				commitrecs = False
-				committed = 0
+				changesmade = False
 
-
-				#types = ["record","user","recorddef","paramdef"]
 
 				if not types:
-					types = [
-						"record",
-						"user",
-						"workflow",
-						"recorddef",
-						"paramdef",
-						"bdos",
-						"pdchildren",
-						"pdcousins",
-						"rdcousins",
-						"recchildren",
-						"reccousins"
-						]
-
-				# backup types =
-				# [
-				#	"record","user","recorddef","paramdef",
-				#	"bdos","pdchildren","pdcousins","rdcousins","recchildren","reccousins"
-				#]
-				#print "begin restore"
+					types = set(["record", "user", "workflow",
+						"recorddef", "paramdef", "bdos",
+						"pdchildren", "pdcousins", "rdcousins",
+						"recchildren", "reccousins"])
 
 
 				iteration = 0
 				cleanup_needed = False
-				while (1):
 
-					try:
-						r = load(fin)
-					except EOFError, inst:
-						self.LOG('LOG_INFO', 'Import Done')
+				fin = self.__restore_openfile(restorefile)
+				running = True
+				try:
+					with emen2.util.ticker.spinning_distraction():
+						while running:
+							r = load(fin)
+							commitrecs = False
 
+							# insert and renumber record
+							if isinstance(r, Record) and "record" in types:
+								recblock.append(r)
+							elif isinstance(r, RecordDef) and "recorddef" in types:
+								recdefblock.append(r)
+							elif isinstance(r, ParamDef) and "paramdef" in types:
+								paramblock.append(r)
+							elif isinstance(r, User) and "user" in types:
+								userblock.append(r)
 
-					commitrecs = False
+							if sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= blocklength:
+								commitrecs = True
 
-					# insert and renumber record
-					if isinstance(r, Record) and "record" in types:
-						recblock.append(r)
-						if len(recblock) >= recblocklength:
-							commitrecs = True
-					else:
-						commitrecs = True
+							restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)
 
+							if commitrecs: txn = txn or self.newtxn()
+							elif txn is None: txn = self.newtxn()
 
-					txn = None
-					if commitrecs:
-						txn = self.newtxn()
-					print "txn is %s"%txn, "iteration is %d" % iteration
-					iteration += 1
+							iteration += 1
 
-					try:
-						if commitrecs and recblock:
-							oldids = [rec.recid for rec in recblock]
-							for i in recblock:
-								i.recid = None
-
-
-							#try:
-							newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=txn)
-							#except:
-							#	self.txnabort(txn=newrectxn)
-							#else:
-
-
-
-
-							committed += len(newrecs)
-							print "Committed total: %s"%committed
-
-							for oldid,newrec in zip(oldids,newrecs):
-								recmap[oldid] = newrec.recid
-								if oldid != newrec.recid:
-									print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
-
-							recblock = []
-							#sys.exit(0)
-
-
-						# insert User
-						if isinstance(r, User) and "user" in types:
-							#print "user: %s"%r.username
-							self.putuser(r, validate=0, ctx=ctx, txn=txn)
-
-
-
-						# insert Workflow
-						elif isinstance(r, WorkFlow) and "workflow" in types:
-							#print "workflow: %s"%r.wfid
-							self.__workflow.set(r.wfid, r, txn=txn)
-
-
-
-						# insert paramdef
-						elif isinstance(r, ParamDef) and "paramdef" in types:
-							#print "paramdef: %s"%r.name
-							self.putparamdef(r, ctx=ctx, txn=txn)
-
-
-						# insert recorddef
-						elif isinstance(r, RecordDef) and "recorddef" in types:
-							#print "recorddef: %s"%r.name
-							self.putrecorddef(r, ctx=ctx, txn=txn)
-
-
-
-						elif isinstance(r, str):
-							print "btree type: %s"%r
 							try:
-								rr = load(fin)
-							except EOFError:
-								self.LOG('LOG_INFO', 'done')
+								if commitrecs: changesmade = restoreblocks()
+								# insert Workflow
+								elif isinstance(r, WorkFlow) and "workflow" in types:
+									self.__workflow.set(r.wfid, r, txn=txn)
+									changesmade = True
 
-							if r not in types:
-								continue
+								elif isinstance(r, str):
+									changesmade = restoreblocks()
+									changesmade = self.__restore_relate(r, fin, types, recmap, txn=txn)
 
-							if r == "bdos":
-								print "bdo"
-								# read the dictionary of bdos
-								for i, d in rr.items():
-									self.__bdocounter.set(i, d, txn=txn)
-
-							elif r == "pdchildren":
-								print "pdchildren"
-								# read the dictionary of ParamDef PC links
-								for p, cl in rr:
-									for c in cl:
-										self.__paramdefs.pclink(p, c, txn=txn)
-
-							elif r == "pdcousins":
-								print "pdcousins"
-								# read the dictionary of ParamDef PC links
-								for a, bl in rr:
-									for b in bl:
-										self.__paramdefs.link(a, b, txn=txn)
-
-							elif r == "rdchildren":
-								print "rdchildren"
-								# read the dictionary of ParamDef PC links
-								for p, cl in rr:
-									for c in cl:
-										self.__recorddefs.pclink(p, c, txn=txn)
-
-							elif r == "rdcousins":
-								print "rdcousins"
-								# read the dictionary of ParamDef PC links
-								for a, bl in rr:
-									for b in bl:
-										self.__recorddefs.link(a, b, txn=txn)
-
-							elif r == "recchildren":
-								print "recchildren"
-								# read the dictionary of ParamDef PC links
-								for p, cl in rr:
-									for c in cl:
-										if isinstance(c, tuple):
-											print "Invalid (deprecated) named PC link, database restore will be incomplete"
-										else:
-											self.__records.pclink(recmap[p], recmap[c], txn=txn)
+							finally:
+								self.LOG('LOG_DEBUG', 'finnaly')
+								if changesmade:
+									self.__closeparamindexes(ctx=ctx, txn=txn)
+									self.txncommit(txn=txn)
+									self.archivelogs(ctx=ctx, txn=txn)
+									DB_syncall()
+									txn = None
+									changesmade = False
+								self.LOG('LOG_DEBUG', 'iteration --> %d' %iteration)
 
 
-							elif r == "reccousins":
-								print "reccousins"
-								# read the dictionary of ParamDef PC links
-								for a, bl in rr:
-									for b in bl:
-										self.__records.link(recmap[a], recmap[b], txn=txn)
+				except EOFError:
+					self.LOG('LOG_DEBUG', 'EOF')
+					self.LOG('LOG_INFO', 'Import Done')
+					running = False
 
-							else:
-								print "Unknown category: ", r
+				self.LOG('LOG_INFO', "Done!")
+				if txn: self.txncommit(txn=txn)
 
-					finally:
-						if commitrecs:
-							self.archivelogs(ctx=ctx, txn=txn)
-							DB_syncall()
-
-
-				print "Done!"
+				txn = self.newtxn()
+				changesmade = restoreblocks()
 
 				if txn:
-					#txn.commit()
+					self.txncommit(txn=txn)
 					self.LOG(4, "Import Complete, checkpointing", ctx=ctx, txn=txn)
 					self.__dbenv.txn_checkpoint()
+
+				assert len(self.txnlog) == 0
+				self.LOG('LOG_DEBUG', 'restore done')
 
 
 

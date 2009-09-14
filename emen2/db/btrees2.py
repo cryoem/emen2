@@ -51,8 +51,8 @@ class BTree(object):
 
 		if not dbenv:
 			dbenv = globalenv
-			
-			
+
+
 		g.debug("BTree init: %s"%filename)
 		self.bdb = bsddb3.db.DB(dbenv)
 
@@ -191,6 +191,7 @@ class BTree(object):
 			g.debug.msg('LOG_DEBUG', '\nbegin')
 
 		#g.debug.msg('LOG_DEBUG', 'main')
+		del self.alltrees[self]
 		self.bdb.close()
 		#g.debug.msg('LOG_DEBUG', '/main')
 
@@ -199,10 +200,11 @@ class BTree(object):
 
 	def truncate(self, txn=None, flags=0):
 		self.bdb.truncate(txn=txn)
-		
+
 
 	def sync(self, txn=None, flags=0):
-		self.bdb.sync()
+		if self.bdb is not None:
+			self.bdb.sync()
 
 
 	def set_txn(self,txn):
@@ -226,16 +228,16 @@ class BTree(object):
 	#
 	# def __len__(self, txn=txn):
 	# 	return len(self.bdb, txn=txn)
-	# 
-	# 
+	#
+	#
 	# def __setitem__(self, key, data, txn=txn):
 	# 	if data == None:
 	# 		self.__delitem__(self.typekey(key), txn=txn)
 	# 	else:
 	# 		#self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
 	# 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
-	# 
-	# 
+	#
+	#
 	# def __getitem__(self, key, txn=txn):
 	# 	data = self.bdb.get(self.dumpkey(key), txn=self.txn)
 	# 	if data is None:
@@ -244,12 +246,12 @@ class BTree(object):
 	# 		# raise KeyError, 'Key Not Found: %r' % key
 	# 	else:
 	# 		return self.loaddata(data)
-	# 
-	# 
+	#
+	#
 	# def __delitem__(self, key, txn=txn):
 	# 	self.bdb.delete(self.dumpkey(key), txn=txn)
-	# 
-	# 
+	#
+	#
 	# def __contains__(self, key, txn=txn):
 	# 	return self.bdb.has_key(self.dumpkey(key), txn=txn)
 
@@ -275,7 +277,7 @@ class BTree(object):
 
 	def exists(self, key, txn=None, flags=0):
 		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags)
-		
+
 
 	# DB_subscript with txn; passes exception instead of default
 	def sget(self, key, txn=None, flags=0):
@@ -283,7 +285,7 @@ class BTree(object):
 			return self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
 		except Exception, inst:
 			raise KeyError, "No such key %s (%s)"%(key,inst)
-		
+
 
 	def get(self, key, default=None, txn=None, flags=0):
 		#print "get: key is %s %s -> %s %s -> %s %s"%(type(key), key, type(self.typekey(key)), self.typekey(key), type(self.dumpkey(key)), self.dumpkey(key))
@@ -499,7 +501,7 @@ class FieldBTree(BTree):
 		kwargs.pop('keyindex', None)
 		BTree.__init__(self, *args, **kwargs)
 
-		
+
 
 	def __str__(self):
 		return "<Database.FieldBTree instance: %s>" % self.name
@@ -623,14 +625,14 @@ class IndexKeyBTree(FieldBTree):
 
 	def typedata(self, data):
 		return set(data)
-		
+
 
 	def removeref(self, key, item, txn=None):
 		"""like FieldBTree method, but doesn't delete key if empty"""
 
 		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o.remove(item)
-		return self.set(key, o, txn=txn)	
+		return self.set(key, o, txn=txn)
 
 
 	def addref(self, key, item, txn=None):
@@ -639,5 +641,5 @@ class IndexKeyBTree(FieldBTree):
 		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
 		o.add(item)
 		return self.set(key, o, txn=txn)
-		
+
 

@@ -90,7 +90,7 @@ class Context:
 
 
 
-class Group(DictMixin):
+class Group(object, DictMixin):
 
 	attr_user = set(["privacy", "modifytime","modifyuser","permissions"])
 	attr_admin = set(["name","disabled","creator","creationtime"])
@@ -248,7 +248,7 @@ class Group(DictMixin):
 
 
 
-class User(DictMixin):
+class User(object, DictMixin):
 	"""This defines a database user, note that group 0 membership is required to
 	 add new records. Approved users are never deleted, only disabled,
 	 for historical logging purposes. -1 group is for database administrators.
@@ -472,7 +472,7 @@ class User(DictMixin):
 
 
 
-class WorkFlow(DictMixin):
+class WorkFlow(object, DictMixin):
 	"""Defines a workflow object, ie - a task that the user must complete at
 	some point in time. These are intended to be transitory objects, so they
 	aren't implemented using the Record class.

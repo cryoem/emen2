@@ -36,7 +36,7 @@ def parseparmvalues(text,noempty=0):
 
 
 
-class BaseDBObject(DictMixin):
+class BaseDBObject(object, DictMixin):
 
 	attr_user = set(["modifyuser","modifytime"])
 	attr_admin = set(["creator","creationtime","name"])
@@ -49,7 +49,7 @@ class BaseDBObject(DictMixin):
 		"creationtime":"datetime",
 		"name":"str"
 		}
-	
+
 
 	def __init__(self, _d=None, ctx=None, **kwargs):
 
@@ -101,9 +101,9 @@ class BaseDBObject(DictMixin):
 
 	def keys(self):
 		return self.attr_all
-		
-		
-	
+
+
+
 	#################################
 	# validate
 	#################################
@@ -128,7 +128,7 @@ class Binary(BaseDBObject):
 
 
 
-class ParamDef(DictMixin) :
+class ParamDef(object, DictMixin) :
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
@@ -299,13 +299,13 @@ class ParamDef(DictMixin) :
 
 
 
-class RecordDef(DictMixin) :
+class RecordDef(object, DictMixin) :
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
 
 	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short"])
-	attr_admin = set(["name","params","paramsK","owner","creator","creationtime","uri","creationdb"])#
+	attr_admin = set(["name","params", "paramsR", "paramsK","owner","creator","creationtime","uri","creationdb"])#
 	attr_all = attr_user | attr_admin
 
 
@@ -474,7 +474,8 @@ class RecordDef(DictMixin) :
 
 
 		if not self.creationtime:
-			raise ValueError, "No creationtime"
+			pass
+			#raise ValueError, "No creationtime"
 		self.creationtime = unicode(self.creationtime)
 
 		if hasattr(self, 'uri') and self.uri != None:
@@ -501,7 +502,7 @@ class RecordDef(DictMixin) :
 
 
 
-class Record(DictMixin):
+class Record(object, DictMixin):
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
 	every field described in the RecordDef, though this will usually be the case.
