@@ -5291,7 +5291,6 @@ class Database(object):
 									changesmade = self.__restore_relate(r, fin, types, recmap, txn=txn)
 
 							finally:
-								self.LOG('LOG_DEBUG', 'finnaly')
 								if changesmade:
 									self.__closeparamindexes(ctx=ctx, txn=txn)
 									self.txncommit(txn=txn)
@@ -5299,7 +5298,6 @@ class Database(object):
 									DB_syncall()
 									txn = None
 									changesmade = False
-								self.LOG('LOG_DEBUG', 'iteration --> %d' %iteration)
 
 
 				except EOFError:
