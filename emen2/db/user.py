@@ -10,6 +10,10 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
 
+import hashlib
+import random
+
+
 def format_string_obj(dict,keylist):
 		"""prints a formatted version of an object's dictionary"""
 		r=["{"]
@@ -29,44 +33,44 @@ class Context:
 		"""Defines a database context (like a session). After a user is authenticated
 		a Context is created, and used for subsequent access."""
 
-		attr_user = set([])
-		attr_admin = set(["ctxid","db","user","groups","host","time","maxidle"])
+		attr_user = set()
+		attr_admin = set()
 		attr_all = attr_user | attr_admin
 
 
-
 		# ian: todo: put current txn in ctx?
-		
 		def __init__(self, ctxid=None, db=None, username=None, user=None, groups=None, host=None, maxidle=14400):
-				self.ctxid = ctxid	# unique context id
+
 				self.db = db	# Points to Database object for this context
+
+				self.ctxid = ctxid	# unique context id
+				if not self.ctxid:
+					self.ctxid = hashlib.sha1(username + unicode(host) + unicode(time.time()) + unicode(random.random())).hexdigest()
+
+
 				self._user = user	# validated user instance, w/ user record, displayname, groups
+				self.username = username # login name, fall back if user.username does not exist
+
 				self.host = host # ip of validated host for this context
 				self.time = time.time()	# last access time for this context
 				self.maxidle = maxidle
-				self._username = username # login name, fall back if user.username does not exist
+				
+				if db != None:
+					self.getuser()
 
 
-		# Contexts cannot be serialized
-		def __str__(self):
-			return format_string_obj(self.__dict__, ["ctxid","user","groups","time","maxidle"])
 
-
-		def __getusername(self):
-			try:
-				return self._user.username
-			except:
-				return self._username
+		def getuser(self, txn=None):
+			# the _user has to be set before we can add the user record....
+			self._user = self.db.getuser(self.username, getrecord=False, ctx=self, txn=txn)
+			self._user = self.db.getuser(self.username, getrecord=True, ctx=self, txn=txn)
 
 
 		def __getgroups(self):
-			try:
+			if self._user:
 				return self._user.groups
-			except:
-				return set()
+			return set()
 
-
-		username = property(__getusername)
 		groups = property(__getgroups)
 
 

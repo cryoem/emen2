@@ -159,26 +159,25 @@ class DBProxy(object):
 
 	def _login(self, username="anonymous", password="", host=None):
 		try:
-			ctxid, host = self.__db._login(username, password, host=host, txn=self.__txn)
-			self._setcontext(ctxid, host)
+			ctxid = self.__db._login(username=username, password=password, host=host, txn=self.__txn) #host
+			self._setcontext(ctxid=ctxid, host=host)
 			
 		except:
 			if self.__txn: self._aborttxn()
 			raise
 			
-		return ctxid, host
+		return ctxid
 
 
 	def _setcontext(self, ctxid=None, host=None):
-		#g.debug("dbproxy: setcontext %s %s"%(ctxid,host))
+		#g.debug("dbproxy: setcontext ctxid %s, host %s"%(ctxid,host))
 		try:
-			self.__ctx = self.__db._getcontext(ctxid, host, txn=self.__txn)
+			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 		except:
 			if self.__txn: self._aborttxn()
 			raise
 			
 		self.__bound = True
-
 
 
 	def _clearcontext(self):
@@ -257,7 +256,7 @@ class DBProxy(object):
 		result = None
 		if name in self._allmethods():
 
-			#g.debug("DB: %s, kwargs: %s"%(name,kwargs))
+			g.debug("DB: %s, kwargs: %s"%(name,kwargs))
 
 			result = None
 
@@ -591,8 +590,8 @@ class Database(object):
 
 
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
-				#self.__anonymouscontext = self._login(txn=txn)
-				_actxid, _ahost = self._login(txn=txn)
+				self.__anonymouscontext = self._login(txn=txn)
+				_actxid = self._login(txn=txn)
 
 			except:
 				txn and self.txnabort(txn=txn)
@@ -602,7 +601,7 @@ class Database(object):
 
 
 
-			self.__anonymouscontext = self._getcontext(_actxid, _ahost)
+			self.__anonymouscontext = self._getcontext(_actxid, None)
 
 
 
@@ -821,11 +820,7 @@ class Database(object):
 
 		def __makecontext(self, username="anonymous", host=None):
 			'''so we can simulate a context for approveuser'''
-			newcontext = Context(db=self, username=username, host=host)
-			# ian: todo: add a well-seeded random number here
-			s = hashlib.sha1(username + unicode(host) + unicode(time.time()))
-			newcontext.ctxid = s.hexdigest()
-			return newcontext
+			return Context(db=self, username=username, host=host)
 
 
 		#@txn
@@ -834,7 +829,6 @@ class Database(object):
 		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
 			subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
-			# ctx will typically be None here
 
 			newcontext = None
 			username = unicode(username)
@@ -843,16 +837,13 @@ class Database(object):
 			if username == "anonymous": # or username == ""
 				newcontext = self.__makecontext()
 
-
 			else:
 
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
-					#g.debug('new context: %r' %newcontext)
 					newcontext = self.__makecontext(username, host)
-					#g.debug('new context: %r' %newcontext)
 
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
@@ -860,28 +851,16 @@ class Database(object):
 
 
 
-			#if ctx.user != None:
-			#	ctx.groups.append(-3)
-			#ctx.groups.append(-4)
-			#ctx.groups=list(set(ctx.groups))
-
-			# ian: todo: add parent=
-			#txn2 = self.newtxn(parent=txn)
-
 			try:
 				self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
 				self.LOG(4, "Login succeeded %s (%s)" % (username, newcontext.ctxid), ctx=ctx, txn=txn)
-				#self.txncommit(txn=txn2)
 
 			except:
 				self.LOG(4, "Error writing login context, txn aborting!", ctx=ctx, txn=txn)
 				raise
-				#self.txnabort(txn=txn2)
 
-
-			return newcontext.ctxid, newcontext.host
-			#result = self._getcontext(newcontext.ctxid, newcontext.host, ctx=ctx, txn=txn)
-			#return result
+			
+			return newcontext.ctxid #, newcontext.host
 
 
 
@@ -932,7 +911,10 @@ class Database(object):
 		def __cleanupcontexts(self, ctx=None, txn=None):
 			"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
 			self.lastctxclean = time.time()
-
+			
+			# ian: todo: fix!!!!!!
+			return
+			
 			for ctxid, context in self.__contexts_p.items():
 				# use the cached time if available
 				try:
@@ -998,33 +980,34 @@ class Database(object):
 
 
 
-		def __init_context(self, context, user=None, txn=None):
-			context.db = self
-			context._user = user or self.getuser(context._username, ctx=context, txn=txn)
+		#def __init_context(self, context, user=None, txn=None):
+		#	print "setting context user"
+		#	context.db = self
+		#	context._user = user or self.getuser(context.__username, ctx=context, txn=txn)
 
 
-		def _getcontext(self, key, host, ctx=None, txn=None):
+		def _getcontext(self, ctxid, host, ctx=None, txn=None):
 			"""Takes a ctxid key and returns a context (for internal use only)
 			Note that both key and host must match. Returns context instance."""
 
-			if key in set([None, 'None']):
+			if not ctxid:
 				return self.__anonymouscontext
-
-			key = unicode(key)
 
 			if (time.time() > self.lastctxclean + 30): # or self.__updatecontexts):
 				# maybe not the perfect place to do this, but it will have to do
 				self.__cleanupcontexts(ctx=ctx, txn=txn)
 
+
 			try:
-				context = self.__contexts[key]
+				context = self.__contexts[ctxid]
+				return context
 
 			except:
 				try:
-					context = self.__contexts_p.sget(key, txn=txn) #[key]
-				except:
-					self.LOG(4, "Session expired %s" % key, ctx=ctx, txn=txn)
-					raise SessionError, "Session expired: %s"%key
+					context = self.__contexts_p.sget(ctxid, txn=txn) #[key]
+				except Exception, inst:
+					self.LOG(4, "Session expired %s (%s)" %(ctxid, inst), ctx=ctx, txn=txn)
+					raise SessionError, "Session expired: %s (%s)"%(ctxid, inst)
 
 
 			if host and host != context.host :
@@ -1033,9 +1016,10 @@ class Database(object):
 
 
 			# this sets up db handle ref, users, groups for context...
-			self.__init_context(context, txn=txn)
+			context.db = self
+			context.getuser(txn=txn)
 
-			self.__contexts[key] = context		# cache result from database
+			self.__contexts[ctxid] = context		# cache result from database
 
 			context.time = time.time()
 
@@ -1085,120 +1069,170 @@ class Database(object):
 		# section: binaries
 		###############################
 
+		@publicmethod
+		def newbinary(self, *args, **kwargs):
+			raise Exception, "Use putbinary"
+			
+
+
 
 		#@txn
 		#@write #self.__bdocounter
 		@publicmethod
-		def newbinary(self, date, name, recid, key=None, filedata=None, paramname=None, ctx=None, txn=None):
-				"""Get a storage path for a new binary object. Must have a
-				recordid that references this binary, used for permissions. Returns a tuple
-				with the identifier for later retrieval and the absolute path"""
+		def putbinary(self, filename, recid, key=None, filedata=None, paramname=None, ctx=None, txn=None):
+			"""Get a storage path for a new binary object. Must have a
+			recordid that references this binary, used for permissions. Returns a tuple
+			with the identifier for later retrieval and the absolute path"""
+					
+
+			#if filename == None or unicode(filename) == "":
+			if not filename:
+				raise ValueError, "Filename may not be 'None'"
+
+			if key and not ctx.checkadmin():
+				raise SecurityError, "Only admins may manipulate binary tree directly"
+
+			# ian: todo: acquire lock?
+			rec = self.getrecord(recid, ctx=ctx, txn=txn)
+			
+			if not rec.writable():
+				raise SecurityError, "Write permission needed on referenced record."
 
 
-				if name == None or unicode(name) == "":
-					raise ValueError, "BDO name may not be 'None'"
-
-				if key and not ctx.checkadmin():
-					raise SecurityError, "Only admins may manipulate binary tree directly"
-
-				if date == None:
-					date = self.__gettime(ctx=ctx, txn=txn)
-
-				if not key:
-					year = int(date[:4])
-					mon = int(date[5:7])
-					day = int(date[8:10])
-					newid = 0
-				else:
-					date=unicode(key)
-					year=int(date[:4])
-					mon=int(date[4:6])
-					day=int(date[6:8])
-					newid=int(date[9:13],16)
+			bdokey = self.__putbinary(filename, recid, key=key, ctx=ctx, txn=txn)
 
 
-				key = "%04d%02d%02d" % (year, mon, day)
-
-				# ian: check for permissions because actual operations are performed.
-				rec = self.getrecord(recid, ctx=ctx, txn=txn)
-				if not rec.writable():
-					raise SecurityError, "Write permission needed on referenced record."
 
 
-				for i in g.BINARYPATH:
-					if key >= i[0] and key < i[1]:
-						# actual storage path
-						path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-						break
-				else:
-					raise KeyError, "No storage specified for date %s" % key
+			print "Writing to record"
+
+			if not paramname:
+				paramname = "file_binary"
+				
+			param = self.getparamdef(paramname, ctx=ctx, txn=txn)
+
+			if param.vartype == "binary":
+				v = rec.get(paramname) or []
+				v.append("bdo:"+bdokey)
+				rec[paramname]=v
+
+			elif param.vartype == "binaryimage":
+				rec[paramname]="bdo:"+bdokey
+
+			else:
+				raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(paramname, param.vartype)
+
+			self.putrecord(rec, ctx=ctx, txn=txn)
 
 
-				# try to make sure the directory exists
-				try:
-					os.makedirs(path)
-				except:
-					pass
+
+			if filedata:
+				self.__putbinary_file(bdokey, filedata, ctx=ctx, txn=txn)
 
 
-				# Now we need a filespec within the directory
-				# dictionary keyed by date, 1 directory per day
-				#if usetxn:
-				#	txn = self.__dbenv.txn_begin(flags=db.DB_READ_UNCOMMITTED)
-				#else:
-
-				#@begin
-
-				try:
-					itm = self.__bdocounter.get(key, txn=txn)
-					newid = max(itm.keys()) + 1
-				except:
-					itm = {}
-
-				itm[newid] = (name, recid)
-				self.__bdocounter.set(key, itm, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %r"%key, ctx=ctx, txn=txn)
+			return bdokey
+			
 
 
-				#@end
+		def __putbinary(self, filename, recid, key=None, ctx=None, txn=None):
+			# fetch BDO day dict, add item, and commit
 
-				filename = path + "/%05X"%newid
-				bdo = key + "%05X"%newid
+			date = self.gettime(ctx=ctx, txn=txn)
 
-				#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-				if os.access(path + "/%05X" % newid, os.F_OK) and not ctx.checkadmin():
-					raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
-					#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
+			if not key:
+				year = int(date[:4])
+				mon = int(date[5:7])
+				day = int(date[8:10])
+			else:
+				date=unicode(key)
+				year=int(date[:4])
+				mon=int(date[4:6])
+				day=int(date[6:8])
+				newid=int(date[9:13],16)
 
-
-				# if a filedata is supplied, write it out...
-				# todo: use only this mechanism for putting files on disk
-				if filedata:
-					self.LOG('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),filename))
-					f=open(filename,"wb")
-					f.write(filedata)
-					f.close()
-					self.LOG('LOG_INFO', "...done")
+			datekey = "%04d%02d%02d" % (year, mon, day)
 
 
-				if paramname:
-					param = self.getparamdef(paramname, ctx=ctx, txn=txn)
-					if param.vartype == "binary":
-						v = rec.get(paramname,[])
-						v.append("bdo:"+bdo)
-						rec[paramname]=v
+			#@begin
 
-					elif param.vartype == "binaryimage":
-						rec[paramname]="bdo:"+bdo
+			# bdo items are stored one bdo per day
+			# key is sequential item #, value is (filename, recid)
+			
+			# ian: todo: will this lock prevent others from overwriting new items?
+			# acquire RMW lock to prevent others from editing...
+			bdo = self.__bdocounter.get(datekey, txn=txn, flags=db.DB_RMW) or {}
 
-					else:
-						raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(paramname, param.vartype)
+			try:
+				newid = max(bdo.keys()) + 1
+			except ValueError:
+				newid = 0
 
-					self.putrecord(rec, ctx=ctx, txn=txn)
+
+			if bdo.get(newid) and not ctx.checkadmin():
+				raise SecurityError, "Only admin may overwrite existing BDO"
 
 
-				return (bdo, filename)
-				#return (key + "%05X" % newid, path + "/%05X" % newid)
+			bdo[newid] = (filename, recid)
+			self.__bdocounter.set(datekey, bdo, txn=txn)
+			
+			self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey, ctx=ctx, txn=txn)
+			#@end
+
+			#return (bdo, filename)
+			#return (key + "%05X" % newid, path + "/%05X" % newid)
+
+			return datekey + "%05X"%newid
+
+
+
+		def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
+
+			date = unicode(bdokey)
+			year = int(date[:4])
+			mon = int(date[4:6])
+			day = int(date[6:8])
+			newid = int(date[9:13],16)
+
+			datekey = "%04d%02d%02d" % (year, mon, day)
+
+			for i in g.BINARYPATH:
+				if datekey >= i[0] and datekey < i[1]:
+					# actual storage path
+					filepath = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
+					self.LOG("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
+					break
+			else:
+				raise KeyError, "No storage specified for date %s" % key
+
+
+			# try to make sure the directory exists
+			try:
+				os.makedirs(filepath)
+			except:
+				pass
+
+
+			filename = filepath + "/%05X"%newid
+			self.LOG("LOG_DEBUG","filename is %s"%filename)
+
+			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
+			if os.access(filename, os.F_OK) and not ctx.checkadmin():
+				raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
+				#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
+				
+
+			# if a filedata is supplied, write it out...
+			# todo: use only this mechanism for putting files on disk
+			print "Writing %s bytes disk: %s"%(len(filedata),filename)
+			f=open(filename,"wb")
+			f.write(filedata)
+			f.close()
+			print "...done"
+
+			return True
+			
+			
+
 
 
 
@@ -1206,80 +1240,86 @@ class Database(object):
 
 		@publicmethod
 		def getbinary(self, idents, filt=True, vts=None, params=None, ctx=None, txn=None):
-				"""Get a storage path for an existing binary object. Returns the
-				object name and the absolute path"""
+			"""Get a storage path for an existing binary object. Returns the
+			object name and the absolute path"""
 
-				# process idents argument for bids (into list bids) and then process bids
-				ret={}
-				bids=[]
-				recs=[]
+			# process idents argument for bids (into list bids) and then process bids
+			ret = {}
+			bids = []
+			recs = []
 
-				if not vts:
-					vts=["binary","binaryimage"]
+			if not vts:
+				vts = ["binary","binaryimage"]
 
-				ol=0
-				if isinstance(idents,basestring):# or not hasattr(idents,"__iter__"):
-					ol=1
-					bids=[idents]
-					idents=bids
-				if isinstance(idents,(int,Record)):
-					idents=[idents]
+			ol=0
+			if isinstance(idents,basestring):# or not hasattr(idents,"__iter__"):
+				ol=1
+				bids = [idents]
+				idents = bids
+			if isinstance(idents,(int,Record)):
+				idents = [idents]
 
-				bids.extend(filter(lambda x:isinstance(x,basestring), idents))
 
-				recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), filt=1, ctx=ctx, txn=txn))
-				recs.extend(filter(lambda x:isinstance(x,Record), idents))
-				bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
+			bids.extend(filter(lambda x:isinstance(x,basestring), idents))
 
-				bids=filter(lambda x:isinstance(x, basestring), bids)
+			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), filt=1, ctx=ctx, txn=txn))
+			recs.extend(filter(lambda x:isinstance(x,Record), idents))
 
-				for ident in bids:
-					prot, _, key = ident.rpartition(":")
-					if prot == "": prot = "bdo"
-					if prot not in ["bdo"]:
-						if filt:
-							continue
-						else:
-							raise Exception, "Invalid binary storage protocol: %s"%prot
+			# ian: todo: speed this up some..
+			print "1"
+			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
+			print "2"
 
-					# for bdo: protocol
-					# validate key
-					year = int(key[:4])
-					mon = int(key[4:6])
-					day = int(key[6:8])
-					bid = int(key[8:], 16)
-					key = "%04d%02d%02d" % (year, mon, day)
+			bids = filter(lambda x:isinstance(x, basestring), bids)
 
-					for i in g.BINARYPATH:
-							if key >= i[0] and key < i[1] :
-									# actual storage path
-									path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-									break
+
+			for ident in bids:
+				prot, _, key = ident.rpartition(":")
+				if prot == "": prot = "bdo"
+				if prot not in ["bdo"]:
+					if filt:
+						continue
 					else:
-							raise KeyError, "No storage specified for date %s" % key
+						raise Exception, "Invalid binary storage protocol: %s"%prot
 
-					try:
-							name, recid = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
-					except:
-							if filt:
-								continue
-							else:
-								raise KeyError, "Unknown identifier %s" % ident
+				# for bdo: protocol
+				# validate key
+				year = int(key[:4])
+				mon = int(key[4:6])
+				day = int(key[6:8])
+				bid = int(key[8:], 16)
+				key = "%04d%02d%02d" % (year, mon, day)
 
+				for i in g.BINARYPATH:
+						if key >= i[0] and key < i[1] :
+								# actual storage path
+								path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
+								break
+				else:
+						raise KeyError, "No storage specified for date %s" % key
 
-					try:
-						self.getrecord(recid, ctx=ctx, txn=txn)
-						ret[ident] = (name, path + "/%05X" % bid, recid)
-
-					except:
+				try:
+						name, recid = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
+				except:
 						if filt:
 							continue
 						else:
-							raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+							raise KeyError, "Unknown identifier %s" % ident
 
 
-				#if ol: return ret.values()[0]
-				return ret
+				try:
+					self.getrecord(recid, ctx=ctx, txn=txn, filt=0)
+					ret[ident] = (name, path + "/%05X" % bid, recid)
+
+				except:
+					if filt:
+						continue
+					else:
+						raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+
+
+			#if ol: return ret.values()[0]
+			return ret
 
 
 
@@ -1305,17 +1345,21 @@ class Database(object):
 		###############################
 
 
-
-
 		@publicmethod
-		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, returndict=False, includeparams=None, ctx=None, txn=None):
+		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, filt=True, returnrecs=True, ctx=None, txn=None):
+			#includeparams=None, 
 
+			
 			if boolmode not in ["AND","OR"]:
 				raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
 			constraints = constraints or []
-			subset = set(subset or [])
-			includeparams = set(includeparams or [])
+			recs = recs or []
+			subsets = []
+			if subset:
+				subsets.append(set(subset))
+				
+			#includeparams = set(includeparams or [])
 
 			if q:
 				constraints.append(["*","contains",unicode(q)])
@@ -1324,29 +1368,41 @@ class Database(object):
 				recurse = self.maxrecurse
 
 
-			# include these methods to make life easier...
+
+			# makes life simpler...
 			if not constraints:
-				recs = []
+					
 				if childof:
-					recs.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
+					subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
 				if parentof:
-					recs.append(self.getparents(parentof, recurse=recurse, ctx=ctx, txn=txn))
+					subsets.append(self.getparents(parentof, recurse=recurse, ctx=ctx, txn=txn))
 				if rectype:
-					recs.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
+					subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
+
 				if boolmode=="AND":
-					return reduce(set.intersection, recs)
-				return reduce(set.union, recs)
+					ret = reduce(set.intersection, subsets)
+				else:
+				 	ret = reduce(set.union, subsets)
+
+				if recs:
+					ret = set([x.recid for x in recs]) & ret
+				
+				ret = self.getrecord(subsets, filt=filt, ctx=ctx, txn=txn)
+				
+				if returnrecs:
+					return ret
+				return set([x.recid for x in ret])
+					
 
 
 
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 
 			# x is argument, y is record value
 			cmps = {
 				"==": lambda y,x:x == y,
 				"!=": lambda y,x:x != y,
-				"contains": lambda y,x:unicode(x) in unicode(y),
-				"!contains": lambda y,x:unicode(x) not in unicode(y),
+				"contains": lambda y,x:unicode(y) in unicode(x),
+				"!contains": lambda y,x:unicode(y) not in unicode(x),
 				">": lambda y,x: x > y,
 				"<": lambda y,x: x < y,
 				">=": lambda y,x: x >= y,
@@ -1361,66 +1417,21 @@ class Database(object):
 			# wildcard param searching only useful with the following comparators...
 			globalsearchcmps = ["==","!=","contains","!contains"]
 
-			# check that constraints are sane, then partition into wildcard and normal
-			# vtm.validate(self.__paramdefs[i[0]], i[1], db=self, ctx=ctx, txn=txn)
 
+
+			# db.getrecord(reduce(set.union, [ind.get(x) for x in filter(lambda x:"Nan" in x, ddb._Database__indexkeys.get("name_project"))]), filt=True)
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
-			constraints = dict(enumerate(map(lambda i:(unicode(i[0]), str(i[1]), i[2]), constraints)))
-			c_results_paramkeys = dict((i,{}) for i in constraints.keys())  # {}
-			c_results_recs = dict((i,set()) for i in constraints.keys()) # {}
-			inds = set()
 
-			for param, pkeys in self.__indexkeys.items(txn=txn):
-				# ian todo: find a way to reduce number of lookups/validations needed..
-				for name, c in constraints.items():
-					if c[0] != param and c[0] != "*":
-						continue
-
-					try:
-						cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
-					except Exception, inst:
-						if c[0] != "*":
-							raise Exception, "Unable to satisfy constraint..."
-						continue
-
-					comp = partial(cmps[c[1]], cargs) #*cargs
-					r = filter(comp, pkeys)
-					# print "filtered %s: %s -> %s"%(param, cargs, r)
-					if r:
-						c_results_paramkeys[name][param] = r    #.append((param, r))
-						inds.add(param)
-
-			matches = {}
-
-			for param in inds:
-				ind = self.__getparamindex(param, ctx=ctx, txn=txn)
-
-				for name, paramkeys in c_results_paramkeys.items():
-
-					paramkeys = paramkeys.get(param, [])
-					for key in paramkeys:
-
-						recids = ind.get(key)
-
-						if not c_results_recs.has_key(name):
-							c_results_recs[name] = set()
-						c_results_recs[name] |= recids
-
-						for recid in recids:
-							if not matches.has_key(recid):
-								matches[recid] = set()
-							matches[recid].add(param)
+				
+			if recs:
+				s = self.__query_recs(constraints, cmps=cmps, recs=recs, ctx=ctx, txn=txn)
+			else:
+				s = self.__query_index(constraints, cmps=cmps, recs=recs, ctx=ctx, txn=txn)
 
 
-			#recs = set(matches.keys())
-
+			subsets.extend(s)
+			
 			# if boolmode is "AND", filter for records that do not satisfy all named constraints
-			subsets = c_results_recs.values()
-
-			subsets.append(set(matches.keys()))
-
-			if subset:
-				subsets.append(subset)
 			if childof:
 				subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
 			if parentof:
@@ -1428,104 +1439,104 @@ class Database(object):
 			if rectype:
 				subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
 
+
 			if boolmode=="AND":
 				recs = reduce(set.intersection, subsets)
 			else:
 				recs = reduce(set.union, subsets)
 
 
-			if not returndict:
-				return recs
-
-			recs = self.getrecord(recs, filt=1, ctx=ctx, txn=txn)
-			#if rectype:
-			#	recs = filter(lambda x:x.rectype == rectype, recs)
-
-			ret = {}
-			for i in recs:
-				ret[i.recid] = {}
-				for param in matches.get(i.recid, set()) | includeparams:
-					ret[i.recid][param] = i.get(param)
-
-			return ret
+			if returnrecs:
+				return self.getrecord(recs, filt=filt, ctx=ctx, txn=txn)
+			return recs
 
 
 
 
-		# ian todo: deprecate
-		@publicmethod
-		#def fulltextsearch(self, q, rectype=None, indexsearch=True, params=set(), recparams=0, builtinparam=0, ignorecase=True, subset=[], tokenize=0, single=0, includeparams=set()):
-		def fulltextsearch(self, q, rectype=None, params=None, ignorecase=True, subset=None, includeparams=None, bool_and=False, bool_or=False, ctx=None, txn=None):
+		def __query_index(self, constraints, cmps=None, recs=None, ctx=None, txn=None):
+			subsets = []
+			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+			# nested dictionary, results[constraint position][param]
+			results = collections.defaultdict(partial(collections.defaultdict, set))
 
+			# stage 1: search __indexkeys
+			for count,c in enumerate(constraints):
+				if c[0] == "*":
+					for param, pkeys in self.__indexkeys.items(txn=txn):
+						try:
+							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+						except (ValueError, KeyError):
+							continue
+					
+						comp = partial(cmps[c[1]], cargs) #*cargs
+						r = set(filter(comp, pkeys))
+						if r: 
+							results[count][param] = r
+							print "param %s reults %s"%(param, results[count][param])
 
-			# search these params
-			subset = set(subset or [])
-			params = set(params or [])
-			includeparams = set(includeparams or [])
+				else:
+					param = c[0]
+					pkeys = self.__indexkeys.get(param, txn=txn)
+					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+					comp = partial(cmps[c[1]], cargs) #*cargs
+					results[count][param] = set(filter(comp, pkeys))
 
-			builtin = set(["creator", "creationtime", "modifyuser", "modifytime", "permissions", "comments"])
+	
+			# stage 2: search individual param indexes
+			for count, r in results.items():
+				constraint_matches = set()
 
+				for param, matchkeys in r.items():
+					ind = self.__getparamindex(param, ctx=ctx, txn=txn)
+					for matchkey in matchkeys:
+						constraint_matches |= ind.get(matchkey, txn=txn)
 
+				subsets.append(constraint_matches)
 
-			q = unicode(q)
-
-			if ignorecase:
-				q = q.lower()
-				matcher = lambda x:qitem in unicode(x).lower()
-			else:
-				matcher = lambda x:qitem in unicode(x)
-
-			q = set(q.split())
-
-
-
-			indexmatches = {}
-			#indexkeysitems = self.__indexkeys.items()
-
-
-			for param,paramvalues in self.__indexkeys.items(txn=txn):
-				for qitem in q:
-					r = filter(matcher, paramvalues)
-					if r:
-						if (not params) or (params and param in params):
-							if not indexmatches.has_key(param):
-								indexmatches[param] = set()
-							indexmatches[param] |= set(r)
-
-
-			matches2 = {}
-
-			for param,matchkeys in indexmatches.items():
-				ind = self.__getparamindex(param, ctx=ctx, txn=txn)
-				for key in matchkeys:
-					for recid in ind.get(key):
-						if not matches2.has_key(recid):
-							 matches2[recid] = set()
-						matches2[recid].add(param)
+			return subsets
 
 
 
-			recs = set(matches2.keys())
-			if subset:
-				recs &= subset
 
-			recs = self.getrecord(recs, filt=1, ctx=ctx, txn=txn)
-			if rectype:
-				recs = filter(lambda x:x.rectype == rectype, recs)
+		def __query_recs(self, constraints, cmps=None, recs=None, ctx=None, txn=None):
+			subsets = []
+			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+			#allp = "*" in [c[0] for c in constraints]
+				
+			# this is ugly :(
+			for count, c in enumerate(constraints):
+				cresult = []
+			
+				if c[0] == "*":
+					# cache
+					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]))
+					for param in allparams:
+						try:
+							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+						except (ValueError, KeyError):
+							continue
+						
+						cc = cmps[c[1]]
+						cresult.extend([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
+						
+						
 
 
-			ret = {}
-
-			for i in recs:
-				ret[i.recid] = {}
-				for param in matches2.get(i.recid, set()):# | includeparams:
-					ret[i.recid][param] = i.get(param)
-
+				else:
+					param = c[0]
+					cc = cmps[c[1]]
+					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+					cresult.extend([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
 
 
-			return ret
-
-
+				if cresult: 
+					subsets.append(cresult)
+		
+			print subsets
+			return subsets
+											
+							
+			
 
 
 		#@publicmethod
@@ -2322,7 +2333,7 @@ class Database(object):
 						tmpctx = ctx
 						if ctx.username == None:
 							tmpctx = self.__makecontext(username=username, host=ctx.host)
-							self.__init_context(tmpctx, user, txn=txn)
+							#self.__init_context(tmpctx, user, txn=txn)
 
 						rec = self.newrecord("person", init=1, ctx=tmpctx, txn=txn)
 						rec["username"] = username
@@ -2796,7 +2807,7 @@ class Database(object):
 
 
 		@publicmethod
-		def getuser(self, usernames, filt=True, lnf=False, ctx=None, txn=None):
+		def getuser(self, usernames, filt=True, lnf=False, getrecord=True, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
@@ -2804,9 +2815,6 @@ class Database(object):
 			if not hasattr(usernames,"__iter__"):
 				ol=1
 				usernames = [usernames]
-
-			#ret = self.__getuser(usernames, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
-			#def __getuser(self, usernames, filt=True, lnf=False, ctx=None, txn=None):
 
 			ret={}
 
@@ -2834,17 +2842,17 @@ class Database(object):
 				#	user.groups = None
 
 
-				try:
-					if user.record:
-						user._userrec = self.getrecord(user.record, filt=0, ctx=ctx, txn=txn)
-					else:
-						raise Exception
-				except:
-					user._userrec = {}
+				# ian: todo: it's easier if we get record directly here....
+				#user._userrec = self.__records.sget(user.record, txn=txn)
+				if getrecord:
+					try:
+						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
+					except:
+						user._userrec = {}
+					
+					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
+					user.email = user._userrec.get("email")
 
-				user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
-
-				user.email = user._userrec.get("email")
 
 				ret[i] = user
 
@@ -2852,6 +2860,7 @@ class Database(object):
 
 			if len(ret)==1 and ol:
 				return ret[ret.keys()[0]]
+				
 			return ret
 
 
@@ -3366,7 +3375,7 @@ class Database(object):
 
 
 			try:
-				return self.__fieldindex.sget(paramname, txn=txn) # [paramname]				# Try to get the index for this key
+				return self.__fieldindex[paramname] # [paramname]				# Try to get the index for this key
 			except Exception, inst:
 				pass
 
@@ -3548,7 +3557,7 @@ class Database(object):
 				return ret
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if (ret.private and (ret.owner == ctx.username or ret.owner in ctx.groups or ctx.checkreadadmin())):
+			if (ret.private and (ret.owner == ctx.username or ctx.checkreadadmin())): #ret.owner in ctx.groups 
 				return ret
 
 			# ian todo: make sure all calls to getrecorddef pass recid they are requesting
@@ -3695,60 +3704,71 @@ class Database(object):
 			return rec
 
 
+
+		@publicmethod
+		def getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
+			if not hasattr(vts,"__iter__"):
+				vts = [vts]
+
+			if not paramdefs:
+				paramdefs = self.getparamdefs(self.getparamdefnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+
+			return [y.name for y in filter(lambda x:x.vartype in vts, paramdefs.values())]
+			
+			
+
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
 		@publicmethod
-		def filtervartype(self, recs, vts, params=None, paramdefs=None, filt=True, flat=0, returndict=0, ignore=None, ctx=None, txn=None):
+		def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 
 			if not recs:
 				return [None]
 
-			if not paramdefs: paramdefs={}
 			recs2 = []
 
 			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
 			ol = 0
 			if isinstance(recs,(int,Record)):
 				ol = 1
-				recs=[recs]
+				recs = [recs]
 
-			if not hasattr(vts,"__iter__"):
-				vts = [vts]
 
-			if not hasattr(ignore,"__iter__"):
-				ignore = [ignore]
-			ignore = set(ignore)
-
+			# get the records...
 			recs2.extend(filter(lambda x:isinstance(x,Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
-			if params:
-				paramdefs = self.getparamdefs(params, ctx=ctx, txn=txn)
-
-			if not paramdefs:
-				pds = set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
-				paramdefs.update(self.getparamdefs(pds, ctx=ctx, txn=txn))
-
-			l = set([pd.name for pd in paramdefs.values() if pd.vartype in vts]) - ignore
+			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
+			
+			# get the params...
+			#if params:
+			#	paramdefs = self.getparamdefs(params, ctx=ctx, txn=txn)
+			#if not paramdefs:
+			#	pds = set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
+			#	paramdefs.update(self.getparamdefs(pds, ctx=ctx, txn=txn))
+			
+			# l = set([pd.name for pd in paramdefs.values() if pd.vartype in vts]) - ignore
 			#l = set(map(lambda x:x.name, filter(lambda x:x.vartype in vts, paramdefs.values()))) - ignore
 			##l = set(filter(lambda x:x.vartype in vts, paramdefs.values())) - ignore
 
-			if returndict or ol:
-				ret = {}
-				for rec in recs2:
-					re = [rec.get(pd) or None for pd in l]
-					if flat:
-						re = set(self.__flatten(re))-set([None])
-					ret[rec.recid]=re
-
-				if ol: return ret.values()[0]
-				return ret
-
+			# if returndict or ol:
+			# 				ret = {}
+			# 				for rec in recs2:
+			# 					re = [rec.get(pd) or None for pd in l]
+			# 					if flat:
+			# 						re = set(self.__flatten(re))-set([None])
+			# 					ret[rec.recid]=re
+			# 
+			# 				if ol: return ret.values()[0]
+			# 				return ret
+			
 			# if not returndict
-			re = [[rec.get(pd) for pd in l if rec.get(pd)] for rec in recs2]
-			#re=filter(lambda x:x,map(lambda x:[x.get(pd) or None for pd in l],a))
+			
+			re = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
+
 			if flat:
 				return set(self.__flatten(re))-set([None])
+
 			return re
 
 

@@ -497,7 +497,7 @@ class FieldBTree(BTree):
 	"""
 	def __init__(self, *args, **kwargs):
 		self.__indexkeys = kwargs.pop("indexkeys", None)
-		self.__indexkeys = None
+		#self.__indexkeys = None
 		kwargs.pop('keyindex', None)
 		BTree.__init__(self, *args, **kwargs)
 

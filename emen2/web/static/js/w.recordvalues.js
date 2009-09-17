@@ -409,7 +409,7 @@ widget.prototype = {
 
 				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
 				this.editw.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/find/user/",
 					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
@@ -430,7 +430,7 @@ widget.prototype = {
 				
 				this.editw.autocomplete({ 
 					list: l,				
-					ajax: EMEN2WEBROOT+"/db/findvalue/"+this.param+"/",
+					ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
 					match: function(typed) { return this[1].match(new RegExp(typed, "i")) },				
 					insertText: function(value)  { return value[1] }
 				}).bind("activate.autocomplete", function(e,d) {  }
@@ -634,7 +634,7 @@ listwidget.prototype = {
 			if (self.paramdef["vartype"]=="userlist") {
 
 				edit.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/find/user/",
 					match:      function(typed) { return true },				
 					insertText: function(value)  { return value[0] },
 					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
@@ -644,7 +644,7 @@ listwidget.prototype = {
 
 				edit.autocomplete({ 
 
-					ajax: EMEN2WEBROOT+"/db/findvalue/"+this.param+"/",
+					ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
 					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
 					insertText: function(value)  { return value[1] }
 					

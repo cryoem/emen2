@@ -1092,11 +1092,13 @@ class Record(object, DictMixin):
 
 		if not self.__creator:
 			self.__creator = unicode(ctx.username)
-			self.__creationtime = unicode(time.strftime(emen2.Database.database.TIMESTR))
+			self.__creationtime = ctx.db.gettime() #unicode(time.strftime(emen2.Database.database.TIMESTR))
 			self.__permissions = ((),(),(),(unicode(ctx.username),))
 
+		# print "setContext: ctx.groups is %s"%ctx.groups
+
 		# test for owner access in this context.
-		if (-1 in ctx.groups):
+		if ctx.checkreadadmin():
 			self.__ptest = [1,1,1,1]
 			return
 
