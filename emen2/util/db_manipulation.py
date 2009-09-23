@@ -69,7 +69,7 @@ class DBTree(object):
 
 	def __to_path(self, recid, path=None):
 		path = path or []
-		parents = self.__db.getparents(recid)#, ctxid=self.__ctxid, host=self.__host)
+		parents = self.__db.getparents(recid)
 		if self.root not in parents:
 			path.extend(self.__to_path(parents.pop(), path))
 		path.append(self.getindex(recid))

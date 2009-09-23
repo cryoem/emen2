@@ -11,6 +11,8 @@ import cStringIO
 from emen2 import ts
 from emen2.Database import exceptions
 import emen2.Database.database
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace()
 
 
 from emen2.subsystems import routing#, auth
@@ -81,7 +83,7 @@ class UploadResource(Resource):
 				chunk = content.read()
 				filedata += chunk
 
-		print "\n\n====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param)
+		g.debug.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
 
 		d = threads.deferToThread(self._action, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)

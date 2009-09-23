@@ -256,8 +256,6 @@ class DBProxy(object):
 		result = None
 		if name in self._allmethods():
 
-			g.debug("DB: %s, kwargs: %s"%(name,kwargs))
-
 			result = None
 
 			#if 'admin' in self.__ctx.groups:
@@ -681,6 +679,7 @@ class Database(object):
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
 			self.txnlog[id(txn)] = txn
+			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
 			g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			return txn
 
@@ -705,6 +704,7 @@ class Database(object):
 			if txn:
 				txn.abort()
 				del self.txnlog[id(txn)]
+			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
@@ -715,6 +715,7 @@ class Database(object):
 				del self.txnlog[id(txn)]
 			elif not self.__importmode:
 				DB_syncall()
+			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
 
 
 
@@ -818,9 +819,12 @@ class Database(object):
 		# section: login / passwords
 		###############################
 
+		@g.debug.debug_func
 		def __makecontext(self, username="anonymous", host=None):
 			'''so we can simulate a context for approveuser'''
-			return Context(db=self, username=username, host=host)
+			db = self
+			if username is "anonymous": db = None
+			return Context(db=db, username=username, host=host)
 
 
 		#@txn
@@ -4973,13 +4977,12 @@ class Database(object):
 
 
 
-		def _backup(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
+		def _backup(self, encode_func=dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
 				in the local filesystem"""
 
 				#if user!="root" :
-				if not ctx.checkadmin():
-						raise SecurityError, "Only root may backup the database"
+				if not ctx.checkadmin(): raise SecurityError, "Only root may backup the database"
 
 
 				self.LOG('LOG_INFO', 'backup has begun')
@@ -5002,71 +5005,48 @@ class Database(object):
 
 				self.LOG('LOG_INFO', 'backup file opened')
 				# dump users
-				for i in users: dump(self.__users.sget(i, txn=txn), out)
+				for i in users: encode_func(self.__users.sget(i, txn=txn), out)
 				self.LOG('LOG_INFO', 'users dumped')
 
 				# dump workflow
-				for i in workflows: dump(self.__workflow.sget(i, txn=txn), out)
+				for i in workflows: encode_func(self.__workflow.sget(i, txn=txn), out)
 				self.LOG('LOG_INFO', 'workflows dumped')
 
 				# dump binary data objects
-				dump("bdos", out)
+				encode_func("bdos", out)
 				bd = {}
 				for i in bdos: bd[i] = self.__bdocounter.sget(i, txn=txn)
-				dump(bd, out)
+				encode_func(bd, out)
 				bd = None
 				self.LOG('LOG_INFO', 'bdos dumped')
 
 				# dump paramdefs and tree
-				for i in paramdefs: dump(self.__paramdefs.sget(i, txn=txn), out)
-				ch = []
-				for i in paramdefs:
-						c = set(self.__paramdefs.children(i, txn=txn))
-#						 c=set([i[0] for i in c])
-						c &= paramdefs
-						c = tuple(c)
-						ch += ((i, c),)
-				dump("pdchildren", out)
-				dump(ch, out)
-				self.LOG('LOG_INFO', 'paramdefs dumped')
+				def encode_relations(recordtree, records, dump_method, outfile, txn=txn):
+					ch = []
+					for i in records:
+							c = tuple(set(dump_method(i, txn=txn)) & records)
+							ch += ((i, c),)
+					encode_func("pdchildren", out)
+					encode_func(ch, out)
 
-				ch = []
-				for i in paramdefs:
-						c = set(self.__paramdefs.cousins(i, txn=txn))
-						c &= paramdefs
-						c = tuple(c)
-						ch += ((i, c),)
-				dump("pdcousins", out)
-				dump(ch, out)
-				self.LOG('LOG_INFO', 'pdcousins dumped')
+				for i in paramdefs: encode_func(self.__paramdefs.sget(i, txn=txn), out)
+				self.LOG('LOG_INFO', 'paramdefs dumped')
+				encode_relations(self.__paramdefs, paramdefs, self.__paramdefs.children, out)
+				self.LOG('LOG_INFO', 'paramchildren dumped')
+				encode_relations(self.__paramdefs, paramdefs, self.__paramdefs.cousins, out)
+				self.LOG('LOG_INFO', 'paramcousins dumped')
 
 				# dump recorddefs and tree
-				for i in recorddefs: dump(self.__recorddefs.sget(i, txn=txn), out)
-				ch = []
-				for i in recorddefs:
-						c = set(self.__recorddefs.children(i, txn=txn))
-#						 c=set([i[0] for i in c])
-						c &= recorddefs
-						c = tuple(c)
-						ch += ((i, c),)
-				dump("rdchildren", out)
-				dump(ch, out)
-				self.LOG('LOG_INFO', 'rdchildren dumped')
-
-				ch = []
-				for i in recorddefs:
-						c = set(self.__recorddefs.cousins(i, txn=txn))
-						c &= recorddefs
-						c = tuple(c)
-						ch += ((i, c),)
-				dump("rdcousins", out)
-				dump(ch, out)
-				self.LOG('LOG_INFO', 'rdcousins dumped')
+				for i in recorddefs: encode_func(self.__recorddefs.sget(i, txn=txn), out)
+				self.LOG('LOG_INFO', 'recorddefs dumped')
+				encode_relations(self.__recorddefs, recorddefs, self.__recorddefs.children, out)
+				self.LOG('LOG_INFO', 'recdefchildren dumped')
+				encode_relations(self.__recorddefs, recorddefs, self.__recorddefs.cousins, out)
+				self.LOG('LOG_INFO', 'recdefcousins dumped')
 
 				# dump actual database records
 				self.LOG('LOG_INFO', "Backing up %d/%d records" % (len(records), self.__records.sget(-1, txn=txn)))
-				for i in records:
-						dump(self.__records.sget(i, txn=txn), out)
+				for i in records: encode_func(self.__records.sget(i, txn=txn), out)
 				self.LOG('LOG_INFO', 'records dumped')
 
 				ch = []
@@ -5074,8 +5054,8 @@ class Database(object):
 						c = [x for x in self.__records.children(i, txn=txn) if x in records]
 						c = tuple(c)
 						ch += ((i, c),)
-				dump("recchildren", out)
-				dump(ch, out)
+				encode_func("recchildren", out)
+				encode_func(ch, out)
 				self.LOG('LOG_INFO', 'rec children dumped')
 
 				ch = []
@@ -5084,8 +5064,8 @@ class Database(object):
 						c &= records
 						c = tuple(c)
 						ch += ((i, c),)
-				dump("reccousins", out)
-				dump(ch, out)
+				encode_func("reccousins", out)
+				encode_func(ch, out)
 				self.LOG('LOG_INFO', 'rec cousins dumped')
 
 				out.close()
@@ -5096,19 +5076,14 @@ class Database(object):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
 				in the local filesystem"""
 				import demjson
-
-				#if user!="root" :
-				if not self.checkadmin(ctx):
-						raise SecurityError, "Only root may backup the database"
-
-
-				self.LOG('LOG_INFO', 'backup has begun')
-				#user,groups=self.checkcontext(ctx=ctx, txn=txn)
-				user = ctx.username
-				groups = ctx.groups
-
-				return demjson.encode(self.__users.values(txn=txn))
-
+				def enc(value, fil):
+					if type(value) == dict:
+						for x in value.items():
+							print x
+							demjson.encode(x)
+					value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
+					fil.write('\n')
+				self._backup(enc,users, paramdefs, recorddefs, records, workflows, bdos, outfile, ctx=ctx, txn=txn)
 
 		def get_dbpath(self, tail):
 			return os.path.join(self.path, tail)

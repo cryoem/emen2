@@ -538,6 +538,7 @@ class Record(object, DictMixin):
 	"""
 
 	param_special = set(["recid","rectype","comments","creator","creationtime","permissions"])
+	cleared_fields = set(["viewcache"])
 		#"groups",
 		#"dbid",#"uri"
 	 	# dbid # "modifyuser","modifytime",
@@ -548,9 +549,7 @@ class Record(object, DictMixin):
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
 		may be done at initiailization time."""
 
-		if not d:
-			d = {}
-		#kwargs.update(d or {})
+		if not d: d = {}
 		## recognized keys
 		# recid -- 32 bit integer recordid (within the current database)
 		# rectype -- name of the RecordDef represented by this Record
@@ -571,6 +570,7 @@ class Record(object, DictMixin):
 		#self.dbid = d.get('dbid',None)
 		#self.uri = d.get('uri',None)
 
+		self.viewcache = {}
 		self.__comments = d.get('comments',[])
 		self.__creator = d.get('creator')
 		self.__creationtime = d.get('creationtime')
@@ -607,6 +607,9 @@ class Record(object, DictMixin):
 
 
 	def validate(self, orec={}, warning=0, params=[], txn=None):
+		for field in self.cleared_fields:
+			setattr(self, field, None)
+
 		if not self.__context.db:
 			self.validationwarning("No context; cannot validate")
 			return

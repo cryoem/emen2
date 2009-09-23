@@ -1,12 +1,9 @@
 from functools import partial
 
 def get(collection, key, default=None):
-	try:
-		return collection[key]
-	except KeyError:
-		return default
-	except IndexError:
-		return default
+	try: return collection[key]
+	except KeyError: return default
+	except IndexError: return default
 
 def remove(collection, keys):
 	if not hasattr(keys, '__iter__'):
@@ -33,9 +30,7 @@ def combine_lists(sep=' ', *args):
 
 def filter_dict(dict, allowed, pred):
 	result = {}
-	[ result.update([(key, dict[key])])
-		for key in dict
-		if pred(key, set(allowed)) ]
+	[ result.update([(key, dict[key])]) for key in dict if pred(key, set(allowed)) ]
 	return result
 
 pick = partial(filter_dict, pred=(lambda x,y: x in y))

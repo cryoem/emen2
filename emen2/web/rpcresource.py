@@ -242,7 +242,7 @@ class RPCResource(Resource):
 			method = request.uri.split("/")[-1]
 
 
-		print "\n\n====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host)
+		g.debug.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 		
 		print args
 		print kwargs
