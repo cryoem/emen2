@@ -23,7 +23,6 @@ class BTree(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
 
-	__metaclass__ = g.debug.instrument_class
 	alltrees=weakref.WeakKeyDictionary()
 
 	def __init__(self, name, filename=None, dbenv=None, nelem=0, keytype=None, cfunc=None, txn=None):
@@ -317,7 +316,6 @@ class BTree(object):
 
 class RelateBTree(BTree):
 	"""BTree with parent/child/cousin relationships between keys"""
-	__metaclass__ = g.debug.instrument_class
 
 
  	def __init__(self, *args, **kwargs):
@@ -488,7 +486,6 @@ class RelateBTree(BTree):
 
 
 class FieldBTree(BTree):
-	__metaclass__ = g.debug.instrument_class
 	"""This is a specialized version of the BTree class. This version uses type-specific
 	keys, and supports efficient key range extraction. The referenced data is a python list
 	of 32-bit integers with no repeats allowed. The purpose of this class is to act as an
@@ -615,7 +612,6 @@ class FieldBTree(BTree):
 
 
 class IndexKeyBTree(FieldBTree):
-	__metaclass__ = g.debug.instrument_class
 	"""index of all param keys for quick searching (in 2-stages: find param/keys, then lookup recids)"""
 
 	def __str__(self):

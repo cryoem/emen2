@@ -325,7 +325,6 @@ def DB_syncall():
 
 def publicmethod(func):
 
-	@g.debug.debug_func
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
 
@@ -394,7 +393,6 @@ class Database(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 
 		TODO : Probably should make more of the member variables private for slightly better security"""
-		__metaclass__ = g.debug.instrument_class
 		log_levels = {
 			0: 'LOG_CRITICAL',
 			1: 'LOG_CRITICAL',
