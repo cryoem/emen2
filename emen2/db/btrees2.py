@@ -23,6 +23,7 @@ class BTree(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary,
 	keys and data may be arbitrary pickleable types"""
 
+	__metaclass__ = g.debug.instrument_class
 	alltrees=weakref.WeakKeyDictionary()
 
 	def __init__(self, name, filename=None, dbenv=None, nelem=0, keytype=None, cfunc=None, txn=None):
@@ -264,7 +265,7 @@ class BTree(object):
 	def values(self, txn=None):
 		#return reduce(set.union, map(self.loaddata, self.bdb.values())) #(self.loaddata(x) for x in self.bdb.values())) #txn=txn
 		# set() needed if empty
-		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values(txn=txn)), set()) #txn=txn
+		return reduce(set.union, (self.loaddata(x) for x in self.bdb.values(txn)), set()) #txn=txn
 
 
 	def items(self, txn=None):
@@ -316,6 +317,7 @@ class BTree(object):
 
 class RelateBTree(BTree):
 	"""BTree with parent/child/cousin relationships between keys"""
+	__metaclass__ = g.debug.instrument_class
 
 
  	def __init__(self, *args, **kwargs):
@@ -486,6 +488,7 @@ class RelateBTree(BTree):
 
 
 class FieldBTree(BTree):
+	__metaclass__ = g.debug.instrument_class
 	"""This is a specialized version of the BTree class. This version uses type-specific
 	keys, and supports efficient key range extraction. The referenced data is a python list
 	of 32-bit integers with no repeats allowed. The purpose of this class is to act as an
@@ -560,6 +563,7 @@ class FieldBTree(BTree):
 	def items(self, mink=None, maxk=None, txn=None):
 
 		if mink is None and maxk is None:
+			g.debug('BTree called')
 			items = BTree.items(self)
 		elif mink is not None and maxk is None:
 			mink = self.typekey(mink)
@@ -604,13 +608,14 @@ class FieldBTree(BTree):
 		"""Returns a single list containing the concatenation of the lists of,
  		all of the individual keys in the mink to maxk range"""
 		if mink == None and maxk == None: return BTree.values(self)
-		return reduce(set.union, (set(x[1]) for x in self.items(mink, maxk, txn=txn)), set())
+		return reduce(set.union, (set(x[1] or []) for x in self.items(mink, maxk, txn=txn)), set())
 
 
 
 
 
 class IndexKeyBTree(FieldBTree):
+	__metaclass__ = g.debug.instrument_class
 	"""index of all param keys for quick searching (in 2-stages: find param/keys, then lookup recids)"""
 
 	def __str__(self):

@@ -16,8 +16,12 @@ class DBTree(object):
 		self.__db = db
 		self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
 		self.db = self.__db
+		self.__initmethods()
 
-	def get_path_id(self, path, cur_dir=None):
+	def __initmethods(self):
+		self.get_path_id = self.__db._wrapmethod(self.__get_path_id)
+
+	def __get_path_id(self, path, cur_dir=None):
 		'''
 		takes a list iterates through it and follows parent-child relationships in the db
 		selecting children with a recname parameter equal to the current list item
@@ -37,7 +41,7 @@ class DBTree(object):
 
 	def __gpi_helper_1(self, path, children):
 		for recid in children:
-			yield self.get_path_id(path, recid)
+			yield self.__get_path_id(path, recid)
 
 
 	def get_child_id(self, name, cur_dir):
@@ -52,7 +56,10 @@ class DBTree(object):
 
 	def __dostuff(self, name, records):
 		for rec in records:
-			if (str(rec) == name) or (rec in self.__db.getindexbyvalue('recname', name)):
+			recnamep = self.__db.getindexbyvalue('recname', name)
+			if (str(rec) == name) or (rec in recnamep):
+				yield (rec)
+			elif self.render_view(rec, 'recname') == name:
 				yield (rec)
 
 
@@ -75,9 +82,12 @@ class DBTree(object):
 		path.append(self.getindex(recid))
 		return path
 
+	@g.debug.debug_func
 	def getindex(self, recid=None, rec=None):
 		rec = self.__db.getrecord(recid, filt=False) if rec is None else rec
 		index = rec.get('recname', str(recid))
+		if index == None:
+			index = self.render_view(rec.recid, 'recname')
 		return index
 
 	def get_title(self, recid):
@@ -130,7 +140,8 @@ class DBTree(object):
 		return result
 
 	def to_path(self, recid):
-		return urllib2.quote('/'.join(self.__to_path(recid)))
+		with self.__db:
+			return urllib2.quote('/'.join(self.__to_path(recid)))
 
 	def reverse(self, _name, *args, **kwargs):
 		_full = kwargs.get('_full', False)

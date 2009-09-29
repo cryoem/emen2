@@ -112,7 +112,6 @@ DEBUG = 0 #TODO consolidate debug flag
 
 
 
-
 class DBProxy(object):
 
 	__publicmethods = {}
@@ -137,35 +136,38 @@ class DBProxy(object):
 
 
 	def __enter__(self):
-		self._starttxn()
+		self.__oldtxn = self.__txn
+		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
 		return self
 
 	def __exit__(self, type, value, traceback):
-		if type is None:
-			self._committxn()
-		else:
-			self._aborttxn()
+		if self.__oldtxn is not self.__txn:
+			if type is None: self._committxn()
+			else: self._aborttxn()
+		del self.__oldtxn
 
 
 	def _starttxn(self):
-		self.__txn = self.__db.newtxn()
+		self.__txn = self.__db.newtxn(self.__txn)
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
+		self.__txn = None
 
 	def _aborttxn(self):
 		self.__db.txnabort(txn=self.__txn)
+		self.__txn = None
 
 
 	def _login(self, username="anonymous", password="", host=None):
 		try:
 			ctxid = self.__db._login(username=username, password=password, host=host, txn=self.__txn) #host
 			self._setcontext(ctxid=ctxid, host=host)
-			
+
 		except:
 			if self.__txn: self._aborttxn()
 			raise
-			
+
 		return ctxid
 
 
@@ -176,7 +178,7 @@ class DBProxy(object):
 		except:
 			if self.__txn: self._aborttxn()
 			raise
-			
+
 		self.__bound = True
 
 
@@ -235,6 +237,13 @@ class DBProxy(object):
 	def _getctx(self):
 		return self.__ctx
 
+	def _wrapmethod(self, func):
+		@wraps(func)
+		def _inner(*args, **kwargs):
+			with self:
+				result = func(*args, **kwargs)
+			return result
+		return _inner
 
 	def __getattribute__(self, name):
 
@@ -316,6 +325,7 @@ def DB_syncall():
 
 def publicmethod(func):
 
+	@g.debug.debug_func
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
 
@@ -336,14 +346,14 @@ def publicmethod(func):
 			#g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
 			traceback.print_exc(e)
 			if commit is True:
-				self.LOG('LOG_ERROR', "TXN ABORT: %s (%s)"%(txn, e))
+				g.debug.msg('LOG_ERROR', "TXN ABORT: %s (%s)"%(txn, e))
 				txn and self.txnabort(ctx=ctx, txn=txn)
 			raise
 
 		else:
 			#g.debug('checking whether to commit???')
 			if commit is True:
-				self.LOG('LOG_INFO', "TXN COMMIT: %s"%txn)
+				g.debug.msg('LOG_INFO', "TXN COMMIT: %s"%txn)
 				txn and self.txncommit(ctx=ctx, txn=txn)
 
 		return result
@@ -384,6 +394,7 @@ class Database(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 
 		TODO : Probably should make more of the member variables private for slightly better security"""
+		__metaclass__ = g.debug.instrument_class
 		log_levels = {
 			0: 'LOG_CRITICAL',
 			1: 'LOG_CRITICAL',
@@ -394,8 +405,6 @@ class Database(object):
 			6: 'LOG_DEBUG',
 			7: 'LOG_COMMIT'
 			}
-
-
 
 
 
@@ -412,7 +421,7 @@ class Database(object):
 				self.newtxn = self.newtxn1
 				envopenflags |= db.DB_INIT_TXN
 			else:
-				self.LOG("LOG_INFO","Note: transaction support disabled")
+				g.debug.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 
 			self.path = path
@@ -675,12 +684,17 @@ class Database(object):
 
 
 
+		txncounter = 0
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			txn = self.__dbenv.txn_begin(parent=parent)
-			self.txnlog[id(txn)] = txn
-			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
-			g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
+			try:
+				type(self).txncounter += 1
+				self.txnlog[id(txn)] = txn
+				g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
+			except:
+				self.txnabort(ctx=ctx, txn=txn)
+				raise
 			return txn
 
 
@@ -699,23 +713,29 @@ class Database(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			self.LOG('LOG_ERROR', "TXN ABORT --> %s"%txn)
-			txn = self.txnlog.get(txnid if txn is None else id(txn))
+			g.debug.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.abort()
-				del self.txnlog[id(txn)]
-			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
+				if id(txn) in self.txnlog:
+					del self.txnlog[id(txn)]
+				type(self).txncounter -= 1
+			else:
+				raise ValueError, 'transaction not found'
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			self.LOG("LOG_INFO","TXN COMMIT --> %s"%txn)
-			txn = self.txnlog.get(txnid if txn is None else id(txn))
+			g.debug.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.commit()
-				del self.txnlog[id(txn)]
-			elif not self.__importmode:
+				if id(txn) in self.txnlog:
+					del self.txnlog[id(txn)]
+				type(self).txncounter -= 1
+			else:
+				raise ValueError, 'transaction not found'
+			if not self.__importmode:
 				DB_syncall()
-			self.LOG('LOG_INFO', 'new txn, txn log --> %r' % self.txnlog)
 
 
 
@@ -729,7 +749,7 @@ class Database(object):
 		@publicmethod
 		def raise_exception(self, ctx=None, txn=None):
 			raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
-			
+
 
 		def LOG(self, level, message, ctx=None, txn=None):
 			"""level is an integer describing the seriousness of the error:
@@ -748,7 +768,7 @@ class Database(object):
 				g.debug.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.__gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
 			except:
 				traceback.print_exc(file=sys.stdout)
-				self.LOG('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
+				g.debug.msg('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
 
 
 		# needs txn?
@@ -764,21 +784,21 @@ class Database(object):
 
 		# ian: todo: wtf.
 		def closedb(self, ctx=None, txn=None):
-			self.LOG('LOG_INFO', 'closing dbs')
+			g.debug.msg('LOG_INFO', 'closing dbs')
 			if self.__allowclose == True:
 				for btree in self.__dict__.values():
 					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
 						try: btree.close()
-						except db.InvalidArgError, e: self.LOG('LOG_ERROR', e)
+						except db.InvalidArgError, e: g.debug.msg('LOG_ERROR', e)
 					for btree in self.__fieldindex.values(): btree.close()
 		def close(self, ctx=None, txn=None):
 			self.closedb(ctx, txn=txn)
 			self.__dbenv.close()
 
 #				 pass
-#				 self.LOG('LOG_DEBUG', self.__btreelist)
+#				 g.debug.msg('LOG_DEBUG', self.__btreelist)
 #				 self.__btreelist.extend(self.__fieldindex.values())
-#				 self.LOG('LOG_DEBUG', self.__btreelist)
+#				 g.debug.msg('LOG_DEBUG', self.__btreelist)
 #				 for bt in self.__btreelist:
 #						 print '--', bt ; sys.stdout.flush()
 #						 bt.close()
@@ -863,7 +883,7 @@ class Database(object):
 				self.LOG(4, "Error writing login context, txn aborting!", ctx=ctx, txn=txn)
 				raise
 
-			
+
 			return newcontext.ctxid #, newcontext.host
 
 
@@ -915,10 +935,10 @@ class Database(object):
 		def __cleanupcontexts(self, ctx=None, txn=None):
 			"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
 			self.lastctxclean = time.time()
-			
+
 			# ian: todo: fix!!!!!!
 			return
-			
+
 			for ctxid, context in self.__contexts_p.items():
 				# use the cached time if available
 				try:
@@ -954,14 +974,14 @@ class Database(object):
 					context.db = None
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
-					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid, ctx=ctx, txn=txn)
 
 				# except ValueError, inst:
-				# 	self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+				# 	g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
 				#
 				# except db.DBError, inst:
 				except Exception, inst:
-					self.LOG("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
 					raise
 
 
@@ -974,10 +994,10 @@ class Database(object):
 
 				try:
 					self.__contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
-					self.LOG("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid, ctx=ctx, txn=txn)
 
 				except Exception, inst:
-					self.LOG("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
 					raise
 
 			#@end
@@ -1076,7 +1096,7 @@ class Database(object):
 		@publicmethod
 		def newbinary(self, *args, **kwargs):
 			raise Exception, "Use putbinary"
-			
+
 
 
 
@@ -1087,7 +1107,7 @@ class Database(object):
 			"""Get a storage path for a new binary object. Must have a
 			recordid that references this binary, used for permissions. Returns a tuple
 			with the identifier for later retrieval and the absolute path"""
-					
+
 
 			#if filename == None or unicode(filename) == "":
 			if not filename:
@@ -1098,7 +1118,7 @@ class Database(object):
 
 			# ian: todo: acquire lock?
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
-			
+
 			if not rec.writable():
 				raise SecurityError, "Write permission needed on referenced record."
 
@@ -1112,7 +1132,7 @@ class Database(object):
 
 			if not paramname:
 				paramname = "file_binary"
-				
+
 			param = self.getparamdef(paramname, ctx=ctx, txn=txn)
 
 			if param.vartype == "binary":
@@ -1135,7 +1155,7 @@ class Database(object):
 
 
 			return bdokey
-			
+
 
 
 		def __putbinary(self, filename, recid, key=None, ctx=None, txn=None):
@@ -1161,7 +1181,7 @@ class Database(object):
 
 			# bdo items are stored one bdo per day
 			# key is sequential item #, value is (filename, recid)
-			
+
 			# ian: todo: will this lock prevent others from overwriting new items?
 			# acquire RMW lock to prevent others from editing...
 			bdo = self.__bdocounter.get(datekey, txn=txn, flags=db.DB_RMW) or {}
@@ -1178,8 +1198,8 @@ class Database(object):
 
 			bdo[newid] = (filename, recid)
 			self.__bdocounter.set(datekey, bdo, txn=txn)
-			
-			self.LOG("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey, ctx=ctx, txn=txn)
+
+			g.debug.msg("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey, ctx=ctx, txn=txn)
 			#@end
 
 			#return (bdo, filename)
@@ -1203,7 +1223,7 @@ class Database(object):
 				if datekey >= i[0] and datekey < i[1]:
 					# actual storage path
 					filepath = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-					self.LOG("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
+					g.debug.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
 					break
 			else:
 				raise KeyError, "No storage specified for date %s" % key
@@ -1217,13 +1237,13 @@ class Database(object):
 
 
 			filename = filepath + "/%05X"%newid
-			self.LOG("LOG_DEBUG","filename is %s"%filename)
+			g.debug.msg("LOG_DEBUG","filename is %s"%filename)
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 			if os.access(filename, os.F_OK) and not ctx.checkadmin():
 				raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
 				#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
-				
+
 
 			# if a filedata is supplied, write it out...
 			# todo: use only this mechanism for putting files on disk
@@ -1234,8 +1254,8 @@ class Database(object):
 			print "...done"
 
 			return True
-			
-			
+
+
 
 
 
@@ -1351,9 +1371,9 @@ class Database(object):
 
 		@publicmethod
 		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, filt=True, returnrecs=True, ctx=None, txn=None):
-			#includeparams=None, 
+			#includeparams=None,
 
-			
+
 			if boolmode not in ["AND","OR"]:
 				raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
@@ -1362,7 +1382,7 @@ class Database(object):
 			subsets = []
 			if subset:
 				subsets.append(set(subset))
-				
+
 			#includeparams = set(includeparams or [])
 
 			if q:
@@ -1375,7 +1395,7 @@ class Database(object):
 
 			# makes life simpler...
 			if not constraints:
-					
+
 				if childof:
 					subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
 				if parentof:
@@ -1390,13 +1410,13 @@ class Database(object):
 
 				if recs:
 					ret = set([x.recid for x in recs]) & ret
-				
+
 				ret = self.getrecord(subsets, filt=filt, ctx=ctx, txn=txn)
-				
+
 				if returnrecs:
 					return ret
 				return set([x.recid for x in ret])
-					
+
 
 
 
@@ -1426,7 +1446,7 @@ class Database(object):
 			# db.getrecord(reduce(set.union, [ind.get(x) for x in filter(lambda x:"Nan" in x, ddb._Database__indexkeys.get("name_project"))]), filt=True)
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
 
-				
+
 			if recs:
 				s = self.__query_recs(constraints, cmps=cmps, recs=recs, ctx=ctx, txn=txn)
 			else:
@@ -1434,7 +1454,7 @@ class Database(object):
 
 
 			subsets.extend(s)
-			
+
 			# if boolmode is "AND", filter for records that do not satisfy all named constraints
 			if childof:
 				subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
@@ -1471,10 +1491,10 @@ class Database(object):
 							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
 						except (ValueError, KeyError):
 							continue
-					
+
 						comp = partial(cmps[c[1]], cargs) #*cargs
 						r = set(filter(comp, pkeys))
-						if r: 
+						if r:
 							results[count][param] = r
 							print "param %s reults %s"%(param, results[count][param])
 
@@ -1485,7 +1505,7 @@ class Database(object):
 					comp = partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys))
 
-	
+
 			# stage 2: search individual param indexes
 			for count, r in results.items():
 				constraint_matches = set()
@@ -1506,11 +1526,11 @@ class Database(object):
 			subsets = []
 			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 			#allp = "*" in [c[0] for c in constraints]
-				
+
 			# this is ugly :(
 			for count, c in enumerate(constraints):
 				cresult = []
-			
+
 				if c[0] == "*":
 					# cache
 					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]))
@@ -1519,11 +1539,11 @@ class Database(object):
 							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
 						except (ValueError, KeyError):
 							continue
-						
+
 						cc = cmps[c[1]]
 						cresult.extend([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
-						
-						
+
+
 
 
 				else:
@@ -1533,14 +1553,14 @@ class Database(object):
 					cresult.extend([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
 
 
-				if cresult: 
+				if cresult:
 					subsets.append(cresult)
-		
+
 			print subsets
 			return subsets
-											
-							
-			
+
+
+
 
 
 		#@publicmethod
@@ -1548,7 +1568,7 @@ class Database(object):
 		def __rebuild_indexkeys(self, ctx=None, txn=None):
 
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
-			
+
 			print "truncating indexkeys"
 			self.__indexkeys.truncate(txn=txn)
 
@@ -2160,7 +2180,7 @@ class Database(object):
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if filter(lambda x:x[0] == x[1], links):
-				#self.LOG("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
+				#g.debug.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
 				return
 
 			if not links:
@@ -2211,7 +2231,7 @@ class Database(object):
 
 			for pkey,ckey in links:
 				linker(pkey, ckey, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey), ctx=ctx, txn=txn)
 
 			#@end
 
@@ -2303,7 +2323,7 @@ class Database(object):
 				admin = False
 				if secret is None: raise
 				else:
-					self.LOG('LOG_INFO', 'Ignored: (%s)' % e)
+					g.debug.msg('LOG_INFO', 'Ignored: (%s)' % e)
 
 
 			#ol=False
@@ -2320,7 +2340,7 @@ class Database(object):
 				#if username in self.__users:
 				if self.__users.get(username, txn=txn):
 					delusers[username] = None
-					self.LOG("LOG_ERROR","User %s already exists, deleted pending record" % username, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","User %s already exists, deleted pending record" % username, ctx=ctx, txn=txn)
 
 
 				# ian: create record for user.
@@ -2328,7 +2348,7 @@ class Database(object):
 				user.validate()
 
 				if secret is not None and not user.validate_secret(secret):
-					self.LOG("LOG_ERROR","Incorrect secret for user %s; skipping"%username, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username, ctx=ctx, txn=txn)
 					time.sleep(2)
 
 
@@ -2538,29 +2558,29 @@ class Database(object):
 			for user,groups in addrefs.items():
 				try:
 					if groups:
-						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
 					raise
 
 				except ValueError, inst:
-					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
 
 
 			for user,groups in delrefs.items():
 				try:
 					if groups:
-						self.LOG("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups), ctx=ctx, txn=txn)
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
 					raise
 
 				except ValueError, inst:
-					self.LOG("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
 
 
 			#@end
@@ -2789,7 +2809,7 @@ class Database(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__users.set: %r"%user.username, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__users.set: %r"%user.username, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -2804,7 +2824,7 @@ class Database(object):
 
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -2853,7 +2873,7 @@ class Database(object):
 						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
 					except:
 						user._userrec = {}
-					
+
 					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
 					user.email = user._userrec.get("email")
 
@@ -2864,7 +2884,7 @@ class Database(object):
 
 			if len(ret)==1 and ol:
 				return ret[ret.keys()[0]]
-				
+
 			return ret
 
 
@@ -3223,7 +3243,7 @@ class Database(object):
 					raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
 
 				if pd.vartype != paramdef.vartype:
-					self.LOG("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype), ctx=ctx, txn=txn)
 
 			except:
 				paramdef.creator = ctx.username
@@ -3280,7 +3300,7 @@ class Database(object):
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -3342,7 +3362,7 @@ class Database(object):
 					paramdefs[i] = self.__paramdefs.sget(i, txn=txn) # [i]
 				except:
 					if filt:
-						self.LOG('LOG_WARNING', "WARNING: Invalid param: %s"%i)
+						g.debug.msg('LOG_WARNING', "WARNING: Invalid param: %s"%i)
 						pass
 					else:
 						raise Exception, "Invalid param: %s"%i
@@ -3531,7 +3551,7 @@ class Database(object):
 
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name, ctx=ctx, txn=txn)
 
 			#@end
 
@@ -3561,7 +3581,7 @@ class Database(object):
 				return ret
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if (ret.private and (ret.owner == ctx.username or ctx.checkreadadmin())): #ret.owner in ctx.groups 
+			if (ret.private and (ret.owner == ctx.username or ctx.checkreadadmin())): #ret.owner in ctx.groups
 				return ret
 
 			# ian todo: make sure all calls to getrecorddef pass recid they are requesting
@@ -3699,7 +3719,7 @@ class Database(object):
 						rec.adduser(level, users)
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
 
 
 			if ctx.username != "root":
@@ -3718,8 +3738,8 @@ class Database(object):
 				paramdefs = self.getparamdefs(self.getparamdefnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 
 			return [y.name for y in filter(lambda x:x.vartype in vts, paramdefs.values())]
-			
-			
+
+
 
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
@@ -3743,14 +3763,14 @@ class Database(object):
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
-			
+
 			# get the params...
 			#if params:
 			#	paramdefs = self.getparamdefs(params, ctx=ctx, txn=txn)
 			#if not paramdefs:
 			#	pds = set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
 			#	paramdefs.update(self.getparamdefs(pds, ctx=ctx, txn=txn))
-			
+
 			# l = set([pd.name for pd in paramdefs.values() if pd.vartype in vts]) - ignore
 			#l = set(map(lambda x:x.name, filter(lambda x:x.vartype in vts, paramdefs.values()))) - ignore
 			##l = set(filter(lambda x:x.vartype in vts, paramdefs.values())) - ignore
@@ -3762,12 +3782,12 @@ class Database(object):
 			# 					if flat:
 			# 						re = set(self.__flatten(re))-set([None])
 			# 					ret[rec.recid]=re
-			# 
+			#
 			# 				if ol: return ret.values()[0]
 			# 				return ret
-			
+
 			# if not returndict
-			
+
 			re = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
 			if flat:
@@ -4003,7 +4023,7 @@ class Database(object):
 
 				# orec.recid < 0 because new records will always be committed, even if skeletal
 				if not cp and not orec.recid < 0:
-					self.LOG("LOG_INFO","putrecord: No changes for record %s, skipping"%recid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid, ctx=ctx, txn=txn)
 					continue
 
 
@@ -4093,7 +4113,7 @@ class Database(object):
 			# this needs a lock.
 			if newrecs:
 				baserecid = self.__records.sget(-1, txn=txn, flags=db.DB_RMW)
-				self.LOG("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
+				g.debug.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
 
 
@@ -4113,7 +4133,7 @@ class Database(object):
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
-				self.LOG("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid, ctx=ctx, txn=txn)
 
 
 
@@ -4124,14 +4144,14 @@ class Database(object):
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-					self.LOG("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
 					raise
 
 				except ValueError, inst:
-					self.LOG("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
 
 
 			# Param index
@@ -4150,14 +4170,14 @@ class Database(object):
 					if not isinstance(recid, basestring):
 						recid = unicode(recid).encode('utf-8')
 					self.__timeindex.set(recid, time, txn=txn)
-					#self.LOG("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
+					#g.debug.msg("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
 					raise
 
 				except ValueError, inst:
-					self.LOG("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
 
 
 			# Create pc links
@@ -4166,11 +4186,11 @@ class Database(object):
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
 					raise
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
 
 
 			#if txn2:
@@ -4190,14 +4210,14 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						self.LOG("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 					raise
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 
 
 
@@ -4206,14 +4226,14 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						self.LOG("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 					raise
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
 					raise
 
 
@@ -4233,11 +4253,11 @@ class Database(object):
 					raise Exception, "Index was None; unindexable?"
 
 			except db.DBError, inst:
-				self.LOG("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
 				raise
 
 			except Exception, inst:
-				self.LOG("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
 				raise
 
 
@@ -4247,15 +4267,15 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						self.LOG("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.addrefs(newval, recs, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
 					raise
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
 
 
 
@@ -4263,15 +4283,15 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						self.LOG("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
 						paramindex.removerefs(oldval, recs, txn=txn)
 
 				except db.DBError, inst:
-					self.LOG("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
 					raise
 
 				except Exception, inst:
-					self.LOG("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
 
 
 
@@ -4416,7 +4436,7 @@ class Database(object):
 				nperms = set(reduce(operator.concat, updrec["permissions"]))
 				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
 
-				#self.LOG("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
+				#g.debug.msg("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 
 				for user in nperms - operms:
 					addrefs[user].append(recid)
@@ -4985,7 +5005,7 @@ class Database(object):
 				if not ctx.checkadmin(): raise SecurityError, "Only root may backup the database"
 
 
-				self.LOG('LOG_INFO', 'backup has begun')
+				g.debug.msg('LOG_INFO', 'backup has begun')
 				#user,groups=self.checkcontext(ctx=ctx, txn=txn)
 				user = ctx.username
 				groups = ctx.groups
@@ -5003,14 +5023,14 @@ class Database(object):
 				else:
 						out = open(outfile, "w")
 
-				self.LOG('LOG_INFO', 'backup file opened')
+				g.debug.msg('LOG_INFO', 'backup file opened')
 				# dump users
 				for i in users: encode_func(self.__users.sget(i, txn=txn), out)
-				self.LOG('LOG_INFO', 'users dumped')
+				g.debug.msg('LOG_INFO', 'users dumped')
 
 				# dump workflow
 				for i in workflows: encode_func(self.__workflow.sget(i, txn=txn), out)
-				self.LOG('LOG_INFO', 'workflows dumped')
+				g.debug.msg('LOG_INFO', 'workflows dumped')
 
 				# dump binary data objects
 				encode_func("bdos", out)
@@ -5018,7 +5038,7 @@ class Database(object):
 				for i in bdos: bd[i] = self.__bdocounter.sget(i, txn=txn)
 				encode_func(bd, out)
 				bd = None
-				self.LOG('LOG_INFO', 'bdos dumped')
+				g.debug.msg('LOG_INFO', 'bdos dumped')
 
 				# dump paramdefs and tree
 				def encode_relations(recordtree, records, dump_method, outfile, txn=txn):
@@ -5030,24 +5050,24 @@ class Database(object):
 					encode_func(ch, out)
 
 				for i in paramdefs: encode_func(self.__paramdefs.sget(i, txn=txn), out)
-				self.LOG('LOG_INFO', 'paramdefs dumped')
+				g.debug.msg('LOG_INFO', 'paramdefs dumped')
 				encode_relations(self.__paramdefs, paramdefs, self.__paramdefs.children, out)
-				self.LOG('LOG_INFO', 'paramchildren dumped')
+				g.debug.msg('LOG_INFO', 'paramchildren dumped')
 				encode_relations(self.__paramdefs, paramdefs, self.__paramdefs.cousins, out)
-				self.LOG('LOG_INFO', 'paramcousins dumped')
+				g.debug.msg('LOG_INFO', 'paramcousins dumped')
 
 				# dump recorddefs and tree
 				for i in recorddefs: encode_func(self.__recorddefs.sget(i, txn=txn), out)
-				self.LOG('LOG_INFO', 'recorddefs dumped')
+				g.debug.msg('LOG_INFO', 'recorddefs dumped')
 				encode_relations(self.__recorddefs, recorddefs, self.__recorddefs.children, out)
-				self.LOG('LOG_INFO', 'recdefchildren dumped')
+				g.debug.msg('LOG_INFO', 'recdefchildren dumped')
 				encode_relations(self.__recorddefs, recorddefs, self.__recorddefs.cousins, out)
-				self.LOG('LOG_INFO', 'recdefcousins dumped')
+				g.debug.msg('LOG_INFO', 'recdefcousins dumped')
 
 				# dump actual database records
-				self.LOG('LOG_INFO', "Backing up %d/%d records" % (len(records), self.__records.sget(-1, txn=txn)))
+				g.debug.msg('LOG_INFO', "Backing up %d/%d records" % (len(records), self.__records.sget(-1, txn=txn)))
 				for i in records: encode_func(self.__records.sget(i, txn=txn), out)
-				self.LOG('LOG_INFO', 'records dumped')
+				g.debug.msg('LOG_INFO', 'records dumped')
 
 				ch = []
 				for i in records:
@@ -5056,7 +5076,7 @@ class Database(object):
 						ch += ((i, c),)
 				encode_func("recchildren", out)
 				encode_func(ch, out)
-				self.LOG('LOG_INFO', 'rec children dumped')
+				g.debug.msg('LOG_INFO', 'rec children dumped')
 
 				ch = []
 				for i in records:
@@ -5066,7 +5086,7 @@ class Database(object):
 						ch += ((i, c),)
 				encode_func("reccousins", out)
 				encode_func(ch, out)
-				self.LOG('LOG_INFO', 'rec cousins dumped')
+				g.debug.msg('LOG_INFO', 'rec cousins dumped')
 
 				out.close()
 
@@ -5090,7 +5110,7 @@ class Database(object):
 
 		@adminmethod
 		def archivelogs(self, ctx=None, txn=None):
-			self.LOG('LOG_INFO', "checkpointing")
+			g.debug.msg('LOG_INFO', "checkpointing")
 			self.__dbenv.txn_checkpoint()
 			archivefiles = self.__dbenv.log_archive(db.DB_ARCH_ABS)
 			archivepath = self.get_dbpath('archives')
@@ -5178,27 +5198,27 @@ class Database(object):
 			)
 
 			if r == "bdos":
-				self.LOG('LOG_INFO', "bdo")
+				g.debug.msg('LOG_INFO', "bdo")
 				# read the dictionary of bdos
 				for i, d in rr.items():
 					self.__bdocounter.set(i, d, txn=txn)
 
 			elif r == "recchildren":
-				self.LOG('LOG_INFO', "recchildren")
+				g.debug.msg('LOG_INFO', "recchildren")
 				# read the dictionary of ParamDef PC links
 				for p, cl in rr:
 					for c in cl:
 						if isinstance(c, tuple):
-							self.LOG('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
+							g.debug.msg('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
 						else:
 							self.__records.pclink(recmap[p], recmap[c], txn=txn)
 
 			elif r in simple_choices:
-				self.LOG('LOG_INFO', r)
+				g.debug.msg('LOG_INFO', r)
 				link(rr, simple_choices[r])
 
 			else:
-				self.LOG('LOG_ERROR', "Unknown category: ", r)
+				g.debug.msg('LOG_ERROR', "Unknown category: ", r)
 			return True
 
 
@@ -5296,11 +5316,11 @@ class Database(object):
 
 
 				except EOFError:
-					self.LOG('LOG_DEBUG', 'EOF')
-					self.LOG('LOG_INFO', 'Import Done')
+					g.debug.msg('LOG_DEBUG', 'EOF')
+					g.debug.msg('LOG_INFO', 'Import Done')
 					running = False
 
-				self.LOG('LOG_INFO', "Done!")
+				g.debug.msg('LOG_INFO', "Done!")
 				if txn: self.txncommit(txn=txn)
 
 				txn = self.newtxn()
@@ -5312,7 +5332,7 @@ class Database(object):
 					self.__dbenv.txn_checkpoint()
 
 				assert len(self.txnlog) == 0
-				self.LOG('LOG_DEBUG', 'restore done')
+				g.debug.msg('LOG_DEBUG', 'restore done')
 
 
 
@@ -5409,6 +5429,7 @@ def DB_cleanup():
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
 	sys.stdout.flush()
+	print >> sys.stderr, "DB has %d transactions left" % Database.txncounter
 	print >> sys.stderr, "Closing %d BDB databases" % (len(BTree.alltrees) + len(RelateBTree.alltrees) + len(FieldBTree.alltrees))
 	if DEBUG > 2: print >> sys.stderr, len(BTree.alltrees), 'BTrees'
 	for i in BTree.alltrees.keys():
