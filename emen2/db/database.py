@@ -336,6 +336,7 @@ def publicmethod(func):
 			txn = self.newtxn()
 			commit = True
 		kwargs['txn'] = txn
+		g.debug('kwargs::', kwargs, 'func:::', func)
 
 
 		try:
@@ -4589,7 +4590,7 @@ class Database(object):
 
 
 				# all users
-				userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, tcxn=txn)
+				userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, cxn=txn)
 
 
 				# get a list of records we need to update

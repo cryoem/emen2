@@ -220,7 +220,7 @@ class RPCResource(Resource):
 	def render(self, request):
 		ctxid = request.getCookie("ctxid")
 		host = request.getClientIP()
-		
+
 		d = threads.deferToThread(self.action, request, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request, self.fmt)
 		d.addErrback(self._ebRender, request, self.fmt)
@@ -231,7 +231,7 @@ class RPCResource(Resource):
 
 	def action(self, request, db=None, ctxid=None, host=None):
 		# this binds the Context to the DBProxy for the duration of the view
-				
+
 		request.content.seek(0, 0)
 		content = request.content.read()
 		method, args, kwargs = self.handler.decode(content,request.args)
@@ -243,16 +243,16 @@ class RPCResource(Resource):
 
 
 		g.debug.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
-		
+
 		print args
 		print kwargs
-		
+
 		db._starttxn()
 
 		db._setcontext(ctxid,host)
 
 		try:
-			result = db._callmethod(method, args, kwargs)
+			result = g.debug.debug_func(db._callmethod)(method, args, kwargs)
 		except Exception, e:
 			db._aborttxn()
 			raise
@@ -261,7 +261,7 @@ class RPCResource(Resource):
 
 
 		print result
-		
+
 		return self.handler.encode(method, result)
 
 
