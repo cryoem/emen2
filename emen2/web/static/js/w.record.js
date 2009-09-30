@@ -185,7 +185,7 @@ permissions.prototype = {
 
 		this.user_search=$('<input class="value" size="20" type="text" value="" />');
 		this.user_search.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/finduser/",
+					ajax: EMEN2WEBROOT+"/db/find/user/",
 					match:      function(typed) { return true	},
 					insertText: function(value)  { 
 						setdisplayname(value[0],value[1]);

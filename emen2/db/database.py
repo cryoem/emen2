@@ -2986,7 +2986,7 @@ class Database(object):
 
 			if ctx.username == None:
 				return
-			return self.__users.keys(txn=txn)
+			return set(self.__users.keys(txn=txn))
 
 
 
@@ -4590,7 +4590,7 @@ class Database(object):
 
 
 				# all users
-				userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, cxn=txn)
+				userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
 
 				# get a list of records we need to update
