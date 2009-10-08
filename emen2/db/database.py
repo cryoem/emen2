@@ -689,7 +689,7 @@ class Database(object):
 			try:
 				type(self).txncounter += 1
 				self.txnlog[id(txn)] = txn
-				g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
+		#		g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			except:
 				self.txnabort(ctx=ctx, txn=txn)
 				raise
@@ -723,7 +723,7 @@ class Database(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.debug.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+		#	g.debug.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.commit()
