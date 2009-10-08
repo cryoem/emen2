@@ -971,14 +971,14 @@ class Database(object):
 					context.db = None
 					context._user = None
 					self.__contexts_p.set(ctxid, context, txn=txn)
-					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid)
 
 				# except ValueError, inst:
-				# 	g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+				# 	g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
 				#
 				# except db.DBError, inst:
 				except Exception, inst:
-					g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
 					raise
 
 
@@ -991,10 +991,10 @@ class Database(object):
 
 				try:
 					self.__contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
-					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid)
 
 				except Exception, inst:
-					g.debug.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst))
 					raise
 
 			#@end
@@ -1196,7 +1196,7 @@ class Database(object):
 			bdo[newid] = (filename, recid)
 			self.__bdocounter.set(datekey, bdo, txn=txn)
 
-			g.debug.msg("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey, ctx=ctx, txn=txn)
+			g.debug.msg("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey)
 			#@end
 
 			#return (bdo, filename)
@@ -2177,7 +2177,7 @@ class Database(object):
 				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if filter(lambda x:x[0] == x[1], links):
-				#g.debug.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey), ctx=ctx, txn=txn)
+				#g.debug.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
 				return
 
 			if not links:
@@ -2228,7 +2228,7 @@ class Database(object):
 
 			for pkey,ckey in links:
 				linker(pkey, ckey, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
 			#@end
 
@@ -2337,7 +2337,7 @@ class Database(object):
 				#if username in self.__users:
 				if self.__users.get(username, txn=txn):
 					delusers[username] = None
-					g.debug.msg("LOG_ERROR","User %s already exists, deleted pending record" % username, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","User %s already exists, deleted pending record" % username)
 
 
 				# ian: create record for user.
@@ -2345,7 +2345,7 @@ class Database(object):
 				user.validate()
 
 				if secret is not None and not user.validate_secret(secret):
-					g.debug.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 					time.sleep(2)
 
 
@@ -2555,29 +2555,29 @@ class Database(object):
 			for user,groups in addrefs.items():
 				try:
 					if groups:
-						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups))
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
 					raise
 
 				except ValueError, inst:
-					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
 
 
 			for user,groups in delrefs.items():
 				try:
 					if groups:
-						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups))
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
 					raise
 
 				except ValueError, inst:
-					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
 
 
 			#@end
@@ -2806,7 +2806,7 @@ class Database(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: self.__users.set: %r"%user.username, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__users.set: %r"%user.username)
 
 			#@end
 
@@ -2821,7 +2821,7 @@ class Database(object):
 
 			for username, user in users.items():
 				self.__newuserqueue.set(username, user, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username)
 
 			#@end
 
@@ -3240,7 +3240,7 @@ class Database(object):
 					raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
 
 				if pd.vartype != paramdef.vartype:
-					g.debug.msg("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype))
 
 			except:
 				paramdef.creator = ctx.username
@@ -3297,7 +3297,7 @@ class Database(object):
 
 			for paramdef in paramdefs:
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name)
 
 			#@end
 
@@ -3548,7 +3548,7 @@ class Database(object):
 
 			for recorddef in recorddefs:
 				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name)
 
 			#@end
 
@@ -3716,7 +3716,7 @@ class Database(object):
 						rec.adduser(level, users)
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
 
 			if ctx.username != "root":
@@ -4020,7 +4020,7 @@ class Database(object):
 
 				# orec.recid < 0 because new records will always be committed, even if skeletal
 				if not cp and not orec.recid < 0:
-					g.debug.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid, ctx=ctx, txn=txn)
+					g.debug.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 					continue
 
 
@@ -4130,7 +4130,7 @@ class Database(object):
 			# This actually stores the record in the database
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
-				g.debug.msg("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid, ctx=ctx, txn=txn)
+				g.debug.msg("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid)
 
 
 
@@ -4141,14 +4141,14 @@ class Database(object):
 			for rectype,recs in rectypes.items():
 				try:
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-					g.debug.msg("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs))
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 					raise
 
 				except ValueError, inst:
-					g.debug.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 
 
 			# Param index
@@ -4170,11 +4170,11 @@ class Database(object):
 					#g.debug.msg("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 					raise
 
 				except ValueError, inst:
-					g.debug.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 
 
 			# Create pc links
@@ -4183,11 +4183,11 @@ class Database(object):
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 					raise
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
 			#if txn2:
@@ -4207,14 +4207,14 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						g.debug.msg("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)))
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
 
 
@@ -4223,14 +4223,14 @@ class Database(object):
 				try:
 					if recs:
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						g.debug.msg("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
 
 
@@ -4250,11 +4250,11 @@ class Database(object):
 					raise Exception, "Index was None; unindexable?"
 
 			except db.DBError, inst:
-				g.debug.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
 				raise
 
 			except Exception, inst:
-				g.debug.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst), ctx=ctx, txn=txn)
+				g.debug.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst))
 				raise
 
 
@@ -4264,15 +4264,15 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						g.debug.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 					raise
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 
 
 
@@ -4280,15 +4280,15 @@ class Database(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						g.debug.msg("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)), ctx=ctx, txn=txn)
+						g.debug.msg("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
 						paramindex.removerefs(oldval, recs, txn=txn)
 
 				except db.DBError, inst:
-					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 					raise
 
 				except Exception, inst:
-					g.debug.msg("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst), ctx=ctx, txn=txn)
+					g.debug.msg("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 
 
 
