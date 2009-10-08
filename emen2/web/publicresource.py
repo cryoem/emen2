@@ -84,9 +84,10 @@ class PublicView(Resource):
 			if format=="json":
 				value = self.__parse_jsonargs(value)
 				if name == 'args':
-					sdict = value
+					sdict = dict((k.encode('utf-8'), v) for k,v in value.iteritems())
 					value = None
-				result[name]=value
+				else:
+					result[name]=value
 			# What is the utility of this?
 			elif format=="file":
 				fn=filenames.get(key)
@@ -110,7 +111,7 @@ class PublicView(Resource):
 		'decode a json string'
 		ret={}
 		z=demjson.decode(content)
-		if hasattr(z, 'keys'):
+		if hasattr(z, 'args'):
 			for key in set(z.keys()) - self.special_keys:
 				ret[str(key)]=z[key]
 		else:
@@ -320,7 +321,7 @@ class PublicView(Resource):
 		response = 500
 		try:
 			try:
-				if isinstance(failure, BaseException): raise failure
+				if isinstance(failure, BaseException): raise; failure
 				else: failure.raiseException()
 			except (Database.exceptions.AuthenticationError,
 						Database.exceptions.SecurityError,

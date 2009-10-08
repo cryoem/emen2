@@ -336,7 +336,6 @@ def publicmethod(func):
 			txn = self.newtxn()
 			commit = True
 		kwargs['txn'] = txn
-		g.debug('kwargs::', kwargs, 'func:::', func)
 
 
 		try:
@@ -838,7 +837,6 @@ class Database(object):
 		# section: login / passwords
 		###############################
 
-		@g.debug.debug_func
 		def __makecontext(self, username="anonymous", host=None):
 			'''so we can simulate a context for approveuser'''
 			db = self

@@ -1,6 +1,7 @@
 import emen2.util.utils
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+import emen2.subsystems.routing
 
 
 class ExtFileLibrary(object):
@@ -41,7 +42,11 @@ class ExtFileLibrary(object):
 class BaseJS(ExtFileLibrary):
 	__metaclass__ = ExtFileLibrary.registerjs
 	def init(self):
-		self.files = ['%s/js/jquery/jquery.js' % g.EMEN2WEBROOT]
+		self.files = [
+			'%s/js/jquery/jquery.js' % g.EMEN2WEBROOT,
+			self.dbtree.reverse('TemplateRender', '/base/settings.js'),
+			'%s/js/reverse.js' % g.EMEN2WEBROOT,
+		]
 		super(BaseJS, self).init()
 
 class BaseCSS(ExtFileLibrary):

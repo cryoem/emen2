@@ -252,7 +252,7 @@ class RPCResource(Resource):
 		db._setcontext(ctxid,host)
 
 		try:
-			result = g.debug.debug_func(db._callmethod)(method, args, kwargs)
+			result = db._callmethod(method, args, kwargs)
 		except Exception, e:
 			db._aborttxn()
 			raise

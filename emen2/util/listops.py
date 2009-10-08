@@ -36,6 +36,15 @@ def filter_dict(dict, allowed, pred):
 pick = partial(filter_dict, pred=(lambda x,y: x in y))
 drop = partial(filter_dict, pred=(lambda x,y: x not in y))
 
+def chunk(list, grouper=lambda x: x[0]==x[1]):
+   result = [[list[0]]]
+   for x in xrange(len(list)-1):
+      window = list[x:x+2]
+      if not grouper(window):
+         result.append([])
+      result[-1].append(window[1])
+   return result
+
 
 def test_get():
 	print '1 == ',  get( {2:2, 3:3, 1:1}, 1 )
