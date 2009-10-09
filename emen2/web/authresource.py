@@ -44,7 +44,7 @@ class AuthResource(Resource):
 		#du[1]=request.getHeader("host").split(":")[0]
 		du[1]=g.EMEN2HOST
 		if g.EMEN2EXTPORT != 80:
-			du[1]="%s:%s"%(du[1],g.EMEN2PORT)
+			du[1]="%s:%s"%(du[1],g.EMEN2EXTPORT)
 		return urlparse.urlunsplit(du)
 
 
