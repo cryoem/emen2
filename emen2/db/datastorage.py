@@ -109,7 +109,7 @@ class BaseDBObject(object, DictMixin):
 	#################################
 
 	def validate(self):
-		for k,v in attr_vartypes.items():
+		for k,v in self.attr_vartypes.items():
 			try:
 				self[k]=v
 			except:
@@ -121,7 +121,24 @@ class BaseDBObject(object, DictMixin):
 
 class Binary(BaseDBObject):
 
-	def init(d):
+	attr_user = set(["filename","filepath", "uri","recid","modifyuser","modifytime"])
+	attr_admin = set(["creator","creationtime","name"])
+	attr_all = attr_user | attr_admin
+
+	attr_vartypes = {
+		"recid":"int",
+		"filename":"string",
+		"uri":"string",
+		"modifyuser":"user",
+		"modifytime":"datetime",
+		"creator":"user",
+		"creationtime":"datetime",
+		"name":"str"
+		}
+
+
+	# name is BDO	
+	def init(self, d):
 		pass
 
 
@@ -905,8 +922,8 @@ class Record(object, DictMixin):
 
 		# special params have get/set handlers
 		if key not in self.param_special:
-			if not self.writable():
-				raise SecurityError, "Insufficient permissions to change param %s"%key
+			#if not self.writable():
+			#	raise SecurityError, "Insufficient permissions to change param %s"%key
 			self.__params[key] = value
 
 		elif key == 'comments':

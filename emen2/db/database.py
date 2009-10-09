@@ -1100,7 +1100,7 @@ class Database(object):
 		#@txn
 		#@write #self.__bdocounter
 		@publicmethod
-		def putbinary(self, filename, recid, key=None, filedata=None, paramname=None, ctx=None, txn=None):
+		def putbinary(self, filename, recid, key=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
 			"""Get a storage path for a new binary object. Must have a
 			recordid that references this binary, used for permissions. Returns a tuple
 			with the identifier for later retrieval and the absolute path"""
@@ -1120,42 +1120,40 @@ class Database(object):
 				raise SecurityError, "Write permission needed on referenced record."
 
 
-			bdokey = self.__putbinary(filename, recid, key=key, ctx=ctx, txn=txn)
-
-
+			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
 
 
 			print "Writing to record"
 
-			if not paramname:
-				paramname = "file_binary"
+			if not param:
+				param = "file_binary"
 
-			param = self.getparamdef(paramname, ctx=ctx, txn=txn)
+			param = self.getparamdef(param, ctx=ctx, txn=txn)
 
 			if param.vartype == "binary":
-				v = rec.get(paramname) or []
-				v.append("bdo:"+bdokey)
-				rec[paramname]=v
+				v = rec.get(param.name) or []
+				v.append("bdo:"+bdoo.get("name"))
+				rec[param.name]=v
 
 			elif param.vartype == "binaryimage":
-				rec[paramname]="bdo:"+bdokey
+				rec[param.name]="bdo:"+bdoo.get("name")
 
 			else:
-				raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(paramname, param.vartype)
+				raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
 
-			self.putrecord(rec, ctx=ctx, txn=txn)
-
-
-
-			if filedata:
-				self.__putbinary_file(bdokey, filedata, ctx=ctx, txn=txn)
-
-
-			return bdokey
+			self.putrecord(rec, warning=1, ctx=ctx, txn=txn)
 
 
 
-		def __putbinary(self, filename, recid, key=None, ctx=None, txn=None):
+			if filedata != None:
+				self.__putbinary_file(bdoo.get("name"), filedata, ctx=ctx, txn=txn)
+
+
+			return bdoo
+
+
+
+		def __putbinary(self, filename, recid, key=None, uri=None, ctx=None, txn=None):
 			# fetch BDO day dict, add item, and commit
 
 			date = self.gettime(ctx=ctx, txn=txn)
@@ -1164,6 +1162,7 @@ class Database(object):
 				year = int(date[:4])
 				mon = int(date[5:7])
 				day = int(date[8:10])
+				newid = None
 			else:
 				date=unicode(key)
 				year=int(date[:4])
@@ -1172,6 +1171,9 @@ class Database(object):
 				newid=int(date[9:13],16)
 
 			datekey = "%04d%02d%02d" % (year, mon, day)
+
+
+			# uri is for files copied from an external source, similar to records, paramdefs, etc.
 
 
 			#@begin
@@ -1183,17 +1185,23 @@ class Database(object):
 			# acquire RMW lock to prevent others from editing...
 			bdo = self.__bdocounter.get(datekey, txn=txn, flags=db.DB_RMW) or {}
 
-			try:
-				newid = max(bdo.keys()) + 1
-			except ValueError:
-				newid = 0
-
+			if newid == None:
+				newid = max(bdo.keys() or [-1]) + 1
+				
 
 			if bdo.get(newid) and not ctx.checkadmin():
 				raise SecurityError, "Only admin may overwrite existing BDO"
 
 
-			bdo[newid] = (filename, recid)
+			nb = emen2.Database.datastorage.Binary()
+			nb["uri"] = uri
+			nb["filename"] = filename
+			nb["recid"] = recid
+			nb["creator"] = ctx.username
+			nb["creationtime"] = self.gettime()
+			nb["name"] = datekey + "%05X"%newid
+
+			bdo[newid] = nb #(filename, recid, uri)
 			self.__bdocounter.set(datekey, bdo, txn=txn)
 
 			g.debug.msg("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey)
@@ -1202,7 +1210,8 @@ class Database(object):
 			#return (bdo, filename)
 			#return (key + "%05X" % newid, path + "/%05X" % newid)
 
-			return datekey + "%05X"%newid
+			#return datekey + "%05X"%newid
+			return nb
 
 
 
@@ -1287,9 +1296,7 @@ class Database(object):
 			recs.extend(filter(lambda x:isinstance(x,Record), idents))
 
 			# ian: todo: speed this up some..
-			print "1"
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
-			print "2"
 
 			bids = filter(lambda x:isinstance(x, basestring), bids)
 
@@ -1319,8 +1326,9 @@ class Database(object):
 				else:
 						raise KeyError, "No storage specified for date %s" % key
 
+
 				try:
-						name, recid = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
+						name = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
 				except:
 						if filt:
 							continue
@@ -1329,8 +1337,10 @@ class Database(object):
 
 
 				try:
-					self.getrecord(recid, ctx=ctx, txn=txn, filt=0)
-					ret[ident] = (name, path + "/%05X" % bid, recid)
+					self.getrecord(name["recid"], ctx=ctx, txn=txn, filt=0)
+					name["filepath"] = path+"/%05X"%bid
+					ret[ident] = name
+					#(name, path + "/%05X" % bid, recid)
 
 				except:
 					if filt:
@@ -1339,7 +1349,8 @@ class Database(object):
 						raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
-			#if ol: return ret.values()[0]
+			if len(ret)==1 and ol:
+				return ret.values()[0]
 			return ret
 
 
@@ -2868,7 +2879,8 @@ class Database(object):
 				if getrecord:
 					try:
 						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
-					except:
+					except Exception, inst:
+						print "problem getting record user %s record %s: %s"%(user.username, user.record, inst)
 						user._userrec = {}
 
 					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
@@ -4470,7 +4482,7 @@ class Database(object):
 
 			ret = []
 
-			if ctx.username != None:
+			if ctx.username != None and ctx.username != "anonymous":
 				ret.extend(recids & set(self.__secrindex.sget(ctx.username, txn=txn)))
 
 			#ret |= recids & set(self.__secrindex[ctx.user])

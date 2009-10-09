@@ -69,7 +69,7 @@ class Context:
 		def __getgroups(self):
 			if self._user:
 				return self._user.groups
-			return set()
+			return set(["anon"])
 
 		groups = property(__getgroups)
 

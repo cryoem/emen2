@@ -88,9 +88,10 @@ class DownloadResource(Resource, File):
 		bdos = result[0]
 
 		first_bdo = bdos.values()[0]
-		bname = first_bdo[0]
+		bname = first_bdo.get("filename")
+		#first_bdo[0]
 
-		self.path = first_bdo[1]
+		self.path = first_bdo.get("filepath") #first_bdo[1]
 		self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
 		self.alwaysCreate = False
 
