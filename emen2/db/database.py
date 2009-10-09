@@ -1454,6 +1454,9 @@ class Database(object):
 			# db.getrecord(reduce(set.union, [ind.get(x) for x in filter(lambda x:"Nan" in x, ddb._Database__indexkeys.get("name_project"))]), filt=True)
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
 
+			print "******** query constraints"
+			print constraints
+
 
 			if recs:
 				s = self.__query_recs(constraints, cmps=cmps, recs=recs, ctx=ctx, txn=txn)
@@ -1508,7 +1511,7 @@ class Database(object):
 
 				else:
 					param = c[0]
-					pkeys = self.__indexkeys.get(param, txn=txn)
+					pkeys = self.__indexkeys.get(param, txn=txn) or []
 					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
 					comp = partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys))
