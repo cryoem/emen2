@@ -551,8 +551,8 @@ class FieldBTree(BTree):
 		"""The keyed value must be a list, and is created if nonexistant. 'items' is a list to be added to the list. """
 
 		o = self.get(key, txn=txn, flags=bsddb3.db.DB_RMW) or set()
-		if self.__indexkeys != None and not o:
-			self.__indexkeys.addref(self.name, key, txn=txn)
+		#if self.__indexkeys != None and not o:
+		#	self.__indexkeys.addref(self.name, key, txn=txn)
 		o |= set(items)
 		return self.set(key, o, txn=txn)
 

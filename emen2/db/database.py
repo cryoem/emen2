@@ -856,7 +856,7 @@ class Database(object):
 
 			# Anonymous access
 			if username == "anonymous": # or username == ""
-				newcontext = self.__makecontext()
+				newcontext = self.__makecontext(host=host)
 
 			else:
 
@@ -5205,6 +5205,7 @@ class Database(object):
 				# read the dictionary of ParamDef PC links
 				for p, cl in rr:
 					for c in cl:
+						print "%s -> %s"%(recmap[p], recmap[c])
 						if isinstance(c, tuple):
 							g.debug.msg('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
 						else:
