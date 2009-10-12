@@ -1110,6 +1110,9 @@ class Record(object, DictMixin):
 
 		self.__context = ctx
 
+		if ctx == None:
+			raise SecurityError, "No ctx!"
+
 		if not self.__creator:
 			self.__creator = unicode(ctx.username)
 			self.__creationtime = ctx.db.gettime() #unicode(time.strftime(emen2.Database.database.TIMESTR))

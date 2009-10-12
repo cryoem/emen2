@@ -1123,7 +1123,7 @@ class Database(object):
 			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
 
 
-			print "Writing to record"
+			#print "Writing to record"
 
 			if not param:
 				param = "file_binary"
@@ -1253,11 +1253,10 @@ class Database(object):
 
 			# if a filedata is supplied, write it out...
 			# todo: use only this mechanism for putting files on disk
-			print "Writing %s bytes disk: %s"%(len(filedata),filename)
+			self.LOG("Writing %s bytes disk: %s"%(len(filedata),filename))
 			f=open(filename,"wb")
 			f.write(filedata)
 			f.close()
-			print "...done"
 
 			return True
 
@@ -1454,8 +1453,9 @@ class Database(object):
 			# db.getrecord(reduce(set.union, [ind.get(x) for x in filter(lambda x:"Nan" in x, ddb._Database__indexkeys.get("name_project"))]), filt=True)
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
 
-			print "******** query constraints"
-			print constraints
+			#print "******** query constraints"
+			#print constraints
+			
 
 
 			if recs:
@@ -1507,7 +1507,7 @@ class Database(object):
 						r = set(filter(comp, pkeys))
 						if r:
 							results[count][param] = r
-							print "param %s reults %s"%(param, results[count][param])
+							#print "param %s reults %s"%(param, results[count][param])
 
 				else:
 					param = c[0]
@@ -1567,7 +1567,7 @@ class Database(object):
 				if cresult:
 					subsets.append(cresult)
 
-			print subsets
+			#print subsets
 			return subsets
 
 
@@ -1580,12 +1580,11 @@ class Database(object):
 
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
-			print "truncating indexkeys"
+			self.LOG("truncating indexkeys")
 			self.__indexkeys.truncate(txn=txn)
 
-			print "rebuilding indexkeys"
+			self.LOG("rebuilding indexkeys")
 			for k,v in inds.items():
-					print k,v
 					self.__indexkeys.set(k, set(v.keys()), txn=txn)
 
 
@@ -2883,7 +2882,7 @@ class Database(object):
 					try:
 						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
 					except Exception, inst:
-						print "problem getting record user %s record %s: %s"%(user.username, user.record, inst)
+						self.LOG("problem getting record user %s record %s: %s"%(user.username, user.record, inst))
 						user._userrec = {}
 
 					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
@@ -3875,11 +3874,7 @@ class Database(object):
 		@publicmethod
 		def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 			"""Make a single change to a single record"""
-			print "recid %s param %s value %s"%(recid,param,value)
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
-			print rec
-			print ctx
-			print txn
 			rec[param] = value
 			self.putrecord(rec, ctx=ctx, txn=txn)
 			return self.getrecord(recid, ctx=ctx, txn=txn)[param]
@@ -5111,7 +5106,7 @@ class Database(object):
 				def enc(value, fil):
 					if type(value) == dict:
 						for x in value.items():
-							print x
+							#print x
 							demjson.encode(x)
 					value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
 					fil.write('\n')
@@ -5146,7 +5141,7 @@ class Database(object):
 			for oldid,newrec in itertools.izip(oldids,newrecs):
 				recmap[oldid] = newrec.recid
 				if oldid != newrec.recid:
-					print "Warning: recid %s changed to %s"%(oldid,newrec.recid)
+					self.LOG("Warning: recid %s changed to %s"%(oldid,newrec.recid))
 			return len(newrecs)
 
 		def __restore_commitblocks(self, *blocks, **kwargs):
@@ -5220,7 +5215,6 @@ class Database(object):
 				# read the dictionary of ParamDef PC links
 				for p, cl in rr:
 					for c in cl:
-						print "%s -> %s"%(recmap[p], recmap[c])
 						if isinstance(c, tuple):
 							g.debug.msg('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
 						else:
