@@ -172,7 +172,6 @@ class DBProxy(object):
 
 
 	def _setcontext(self, ctxid=None, host=None):
-		#g.debug("dbproxy: setcontext ctxid %s, host %s"%(ctxid,host))
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 		except:
@@ -183,7 +182,6 @@ class DBProxy(object):
 
 
 	def _clearcontext(self):
-		#g.debug("dbproxy: clearcontext")
 		if self.__bound:
 			self.__ctx = None
 			self.__bound = False
@@ -269,7 +267,6 @@ class DBProxy(object):
 
 			#if 'admin' in self.__ctx.groups:
 			#	result = self.__adminmethods.get(name)
-			#	#g.debug('administrator !!! -- %r' % result)
 
 			if result is None:
 				result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
@@ -342,7 +339,6 @@ def publicmethod(func):
 			result = func(self, *args, **kwargs)
 
 		except Exception, e:
-			#g.debug('aborting %r if we started the txn -- Exception raised: %r, %s !!!' % (func, e, e))
 			traceback.print_exc(e)
 			if commit is True:
 				g.debug.msg('LOG_ERROR', "TXN ABORT: %s (%s)"%(txn, e))
@@ -350,7 +346,6 @@ def publicmethod(func):
 			raise
 
 		else:
-			#g.debug('checking whether to commit???')
 			if commit is True:
 				g.debug.msg('LOG_INFO', "TXN COMMIT: %s"%txn)
 				txn and self.txncommit(ctx=ctx, txn=txn)
@@ -363,7 +358,6 @@ def publicmethod(func):
 
 
 def adminmethod(func):
-	g.debug('admin method registered :: (%s) -> %r' % (func.func_name, func))
 	if not func.func_name.startswith('_'):
 		DBProxy._register_adminmethod(func.func_name, func)
 
@@ -689,7 +683,6 @@ class Database(object):
 			try:
 				type(self).txncounter += 1
 				self.txnlog[id(txn)] = txn
-		#		g.debug("NEW TXN --> %s    PARENT IS %s"%(txn,parent))
 			except:
 				self.txnabort(ctx=ctx, txn=txn)
 				raise
@@ -2322,7 +2315,6 @@ class Database(object):
 
 			try:
 				admin = ctx.checkadmin()
-				g.debug('admin is : %r, secret is : %r, secret == None is : %r, not admin is : %r' % (admin, secret, secret == None, not admin))
 				if (secret == None) and (not admin):
 					raise SecurityError, "Only administrators or users with self-authorization codes can approve new users"
 
@@ -2379,17 +2371,16 @@ class Database(object):
 						for k,v in user.signupinfo.items():
 							rec[k]=v
 
-						#g.debug('rec == %r'%rec)
 						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
 						children = user.create_childrecords(ctx=tmpctx, txn=txn)
 						children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
-						#g.debug('children:- %r' % (children,))
+
 						if children != []:
 							self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
 							for links in children:
 								child, parents = links
-								g.debug.debug_func(self.__link)('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+								self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
 
 						user.record = rec.recid
 
@@ -4817,6 +4808,7 @@ class Database(object):
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 			"""Render the recname view for a record."""
 
+			if not hasattr(rec, '__iter__'): rec = [rec]
 			recs=self.getrecord(rec, filt=1, ctx=ctx, txn=txn)
 			ret=self.renderview(recs,viewtype="recname", ctx=ctx, txn=txn)
 			recs=dict([(i.recid,i) for i in recs])
@@ -4951,7 +4943,6 @@ class Database(object):
 						#		pd.append(match.group("reqvar1"))
 						elif match.group("macro"):
 								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
-				#g.debug("macro stuff -> %r" %m)
 
 				paramdefs.update(self.getparamdefs(pd, ctx=ctx, txn=txn))
 

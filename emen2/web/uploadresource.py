@@ -72,8 +72,6 @@ class UploadResource(Resource):
 		redirect = args.get("redirect",[0])[0]
 
 
-		#print "Request headers"
-		#print request.getAllHeaders()
 
 		if not filedata:
 			filedata = ""
@@ -119,7 +117,6 @@ class UploadResource(Resource):
 
 
 	def _ebRender(self,failure,request):
-		print failure
 		#request.write(emen2.TwistSupport_html.html.error.error(failure))
 		request.finish()
 

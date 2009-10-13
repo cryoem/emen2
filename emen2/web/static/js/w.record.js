@@ -150,16 +150,19 @@ permissions.prototype = {
 			// add new inherit/parent item
 			this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
 				var getrecid=parseInt(self.inheritarea_addfield.val());
-				$.getJSON(EMEN2WEBROOT+"/db/getrecordwithdisplay/"+getrecid+"/",null,function(result){
-					setrecord(getrecid,result["recs"][getrecid]);
-					$.each(result["displaynames"], function(k,v) {
-						setdisplayname(k,v);
-					});
-					$.each(result["recnames"], function(k,v) {
-						setrecname(k,v);
-					});
-					self.addinherititem(getrecid,1);
-					self.build();
+				$.getFromURL({
+					'name': 'getrecordwithdisplay',
+					'kwargs': {'recid': getrecid}
+					}, null,function(result){
+						setrecord(getrecid,result["recs"][getrecid]);
+						$.each(result["displaynames"], function(k,v) {
+							setdisplayname(k,v);
+						});
+						$.each(result["recnames"], function(k,v) {
+							setrecname(k,v);
+						});
+						self.addinherititem(getrecid,1);
+						self.build();
 				});
 			});
 		

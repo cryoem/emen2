@@ -270,7 +270,7 @@ class ParamDef(object, DictMixin) :
 				if self.property not in vtm.getproperties():
 					raise Exception
 			except:
-				g.debug("WARNING: Invalid property %s"%self.property)
+				g.debug.msg("LOG_WARNING", "Invalid property %s"%self.property)
 
 
 		if self.defaultunits == "" or self.defaultunits == "unitless":
@@ -280,14 +280,14 @@ class ParamDef(object, DictMixin) :
 			self.defaultunits=unicode(self.defaultunits)
 			if self.property == None:
 				#raise ValueError,"Units requires property"
-				g.debug("WARNING: Units requires property")
+				g.debug.msg("LOG_WARNING", "Units requires property")
 			else:
 				prop=vtm.getproperty(self.property)
 				if prop.equiv.get(self.defaultunits):
 					self.defaultunits=prop.equiv.get(self.defaultunits)
 				if self.defaultunits not in set(prop.units):
 					#raise Exception,"Invalid default units %s for property %s"%(self.defaultunits,self.property)
-					g.debug("WARNING: Invalid default units %s for property %s"%(self.defaultunits,self.property))
+					g.debug.msg("LOG_WARNING", "Invalid default units %s for property %s"%(self.defaultunits,self.property))
 
 		if self.choices:
 			try:
@@ -296,7 +296,7 @@ class ParamDef(object, DictMixin) :
 				raise ValueError, "Invalid choices (%s)"%(inst)
 
 		if not self.creationtime or not self.creator:
-			g.debug("WARNING: Invalid creation info: %s %s"%(self.creationtime, self.creator))
+			g.debug.msg("LOG_WARNING", "Invalid creation info: %s %s"%(self.creationtime, self.creator))
 			#raise Exception, "Invalid creation info: %s %s"%(self.creationtime, self.creator)
 
 		if not self.creator:
@@ -473,18 +473,18 @@ class RecordDef(object, DictMixin) :
 
 
 		if not dict(self.views).has_key("recname"):
-			g.debug("WARNING: recname view strongly suggested")
+			g.debug.msg("LOG_WARNING", "recname view strongly suggested")
 
 
 		# ian: todo: fix database
 		if not self.owner:
-			g.debug("WARNING: No owner")
+			g.debug.msg("LOG_WARNING", "No owner")
 			self.owner = u"root"
 			#raise ValueError, "No owner"
 		self.owner = unicode(self.owner)
 
 		if not self.creator:
-			g.debug("WARNING: No creator")
+			g.debug.msg("LOG_WARNING", "No creator")
 			self.creator = u"root"
 			#raise ValueError, "No creator"
 		self.creator = unicode(self.creator)
@@ -815,9 +815,7 @@ class Record(object, DictMixin):
 
 	def __setstate__(self, dict):
 		"""restore unpickled values to defaults after unpickling"""
-		#g.debug("unpickle: _Record__oparams")
 		#if dict["_Record__oparams"]	!= {}:
-		#	g.debug(dict["recid"],dict["_Record__oparams"])
 
 		# this is properly handled by putrecord
 		# try:
@@ -826,7 +824,6 @@ class Record(object, DictMixin):
 		#		for i,j in p.items():
 		#			if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
 		#except:
-		#	traceback.g.debug(=sys.stdout))
 		#dict["rectype"]=dict["rectype"].lower()
 
 		#if dict.has_key("localcpy") :

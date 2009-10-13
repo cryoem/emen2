@@ -128,7 +128,6 @@ class RPCChain(Resource):
 		method = data['next']
 		arg = data['next_arg']
 		result = db._callmethod(method, (), {arg.encode('utf-8'):result})
-		g.debug(result)
 		return demjson.encode(result).encode('utf-8')
 
 	def _cbRender(self, result, request):
@@ -244,8 +243,6 @@ class RPCResource(Resource):
 
 		g.debug.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
-		print args
-		print kwargs
 
 		db._starttxn()
 
@@ -260,7 +257,6 @@ class RPCResource(Resource):
 			db._committxn()
 
 
-		print result
 
 		return self.handler.encode(method, result)
 

@@ -82,7 +82,6 @@ class DBTree(object):
 		path.append(self.getindex(recid))
 		return path
 
-	@g.debug.debug_func
 	def getindex(self, recid=None, rec=None):
 		rec = self.__db.getrecord(recid, filt=False) if rec is None else rec
 		index = rec.get('recname', str(recid))
@@ -150,7 +149,8 @@ class DBTree(object):
 		if _full == True:
 			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
 
-		result = '%s%s%s' % (prefix, 'db', (URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+		result = '%s%s%s' % (prefix, 'db', (
+			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
 		if not result.endswith('/'): result = '%s/' % result
 		return result
 

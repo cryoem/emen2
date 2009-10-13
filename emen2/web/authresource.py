@@ -91,7 +91,6 @@ class AuthResource(Resource):
 
 	# the meat, raise exception if bad login
 	def _action(self, l, db=None):
-		g.debug("auth -> %s"%l)
 
 
 		if l["method"] == "login":
@@ -123,11 +122,9 @@ class AuthResource(Resource):
 				
 		msg = None
 		if ctxid != largs["ctxid"]:
-			g.debug("-> setting ctxid to %s"%ctxid)
 			request.addCookie("ctxid", ctxid, path='/')
 
 			if largs["redirect"] != None:
-				g.debug("redirect->%s"%largs["redirect"])
 				request.redirect(largs["redirect"])
 				request.finish()
 				return
@@ -139,8 +136,6 @@ class AuthResource(Resource):
 
 
 	def _ebrender(self, failure, request, largs):
-		g.debug("Failure: %s"%failure)
-		g.debug("-> unsetting ctxid")
 
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')

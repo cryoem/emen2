@@ -53,7 +53,6 @@ class BTree(object):
 			dbenv = globalenv
 
 
-		g.debug("BTree init: %s"%filename)
 		self.bdb = bsddb3.db.DB(dbenv)
 
 		if cfunc is not None:
@@ -354,7 +353,6 @@ class RelateBTree(BTree):
 		self.cpdb.close()
 		self.reldb.close()
 		#except Exception, e:
-		#	g.debug('LOG_ERROR', unicode(e))
 
 		self.bdb.close()
 		self.bdb = None
@@ -560,7 +558,6 @@ class FieldBTree(BTree):
 	def items(self, mink=None, maxk=None, txn=None):
 
 		if mink is None and maxk is None:
-			g.debug('BTree called')
 			items = BTree.items(self)
 		elif mink is not None and maxk is None:
 			mink = self.typekey(mink)

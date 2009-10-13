@@ -335,8 +335,6 @@ class User(object, DictMixin):
 
 		self.__secret = kwargs.get('secret')
 
-		# g.debug('User.__secret = %r' % self.__secret)
-
 		# read only attributes, set at getuser time
 		# self.groups = None
 		# self.userrec = None

@@ -25,7 +25,7 @@ try:
 	from matplotlib.ticker import FormatStrFormatter
 	from matplotlib import colors
 except:
-	print "No matplotlib, plotting will fail"
+	g.debug("No matplotlib, plotting will fail")
 
 def render_plot(thequery,L,clickable=0, groupby=0):
 	data = L['data']

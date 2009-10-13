@@ -186,7 +186,6 @@ class PublicView(Resource):
 
 		#too many slashes
 		if urllib2.unquote(base)[3:] != path: npath = path
-		#g.debug('npath 2-> (', npath, ') base -> (', base, ') path -> (', path, ')')
 
 		#registered redirect
 		redir = self.getredirect(npath or path)
@@ -215,7 +214,6 @@ class PublicView(Resource):
 		try:
 			host = request.getClientIP()
 			ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
-			#g.debug("ctxid is: %s"%ctxid)
 
 			request.postpath = filter(bool, request.postpath)
 			request.postpath.append('')
@@ -224,7 +222,6 @@ class PublicView(Resource):
 
 			path = '/%s' % str.join("/", request.postpath)
 			target = self.__getredirect(None, request, path)
-			# g.debug('redirect target --> (', target, ')')
 
 			if target is not None:
 				#request.redirect(target)
@@ -233,7 +230,6 @@ class PublicView(Resource):
 				request.finish()
 
 			else:
-				#g.debug("\n\n:: web :: %s :: %s"%(request.uri, host))
 
 				args = self.__parse_args(request.args, content=content)
 				callback = routing.URLRegistry().execute(path, **args)
@@ -265,17 +261,14 @@ class PublicView(Resource):
 
 		db._setcontext(ctxid,host)
 
-		#g.debug('View transaction started')
 
 		try:
 			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			#g.debug('View transaction aborted')
 			db._aborttxn()
 			raise
 		else:
-			#g.debug('View transaction committed')
 			db._committxn()
 
 		return ret, headers
