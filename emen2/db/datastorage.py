@@ -10,6 +10,7 @@ import traceback
 
 # validation
 import emen2.Database.subsystems
+import emen2.Database.subsystems.dataobject
 import emen2.Database.database
 
 
@@ -36,7 +37,7 @@ def parseparmvalues(text,noempty=0):
 
 
 
-class Binary(BaseDBObject):
+class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
 
 	attr_user = set(["filename","filepath", "uri","recid","modifyuser","modifytime"])
 	attr_admin = set(["creator","creationtime","name"])

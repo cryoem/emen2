@@ -10,6 +10,7 @@ from emen2.Database.exceptions import *
 from emen2.Database.user import *
 import copy
 import emen2.Database.subsystems
+import emen2.Database.datatypes
 
 from functools import partial, wraps
 
