@@ -311,12 +311,12 @@ class DBExt(object):
 def DB_syncall():
 	"""This 'syncs' all open databases"""
 	#if DEBUG > 2:
-	#	print "sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees))
+	#	g.debug("sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees)))
 	#t = time.time()
 	for i in BTree.alltrees.keys(): i.sync()
 	for i in RelateBTree.alltrees.keys(): i.sync()
 	for i in FieldBTree.alltrees.keys(): i.sync()
-	# print "%f sec to sync"%(time.time()-t)
+	# g.debug("%f sec to sync"%(time.time()-t))
 
 
 
@@ -589,18 +589,17 @@ class Database(object):
 
 
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
-				self.__anonymouscontext = self._login(txn=txn)
-				_actxid = self._login(txn=txn)
+				self.__anonymouscontext = self.__makecontext()
 
 			except:
 				txn and self.txnabort(txn=txn)
 				raise
-			finally:
+			else:
 				self.txncommit(txn=txn)
 
 
 
-			self.__anonymouscontext = self._getcontext(_actxid, None)
+			#self.__anonymouscontext = self._getcontext(_actxid, None)
 
 
 
@@ -791,7 +790,7 @@ class Database(object):
 #				 self.__btreelist.extend(self.__fieldindex.values())
 #				 g.debug.msg('LOG_DEBUG', self.__btreelist)
 #				 for bt in self.__btreelist:
-#						 print '--', bt ; sys.stdout.flush()
+#						 g.debug('--', bt ; sys.stdout.flush())
 #						 bt.close()
 
 
@@ -837,8 +836,6 @@ class Database(object):
 			return Context(db=db, username=username, host=host)
 
 
-		#@txn
-		#@publicmethod
 		# No longer public method; only through DBProxy to force host=...
 		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
@@ -848,11 +845,9 @@ class Database(object):
 			username = unicode(username)
 
 			# Anonymous access
-			if username == "anonymous": # or username == ""
-				newcontext = self.__makecontext(host=host)
+			if username == "anonymous": newcontext = self.__anonymouscontext
 
 			else:
-
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
@@ -863,8 +858,6 @@ class Database(object):
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
 					raise AuthenticationError, AuthenticationError.__doc__
 
-
-
 			try:
 				self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
 				self.LOG(4, "Login succeeded %s (%s)" % (username, newcontext.ctxid), ctx=ctx, txn=txn)
@@ -874,7 +867,7 @@ class Database(object):
 				raise
 
 
-			return newcontext.ctxid #, newcontext.host
+			return newcontext.ctxid
 
 
 
@@ -995,7 +988,7 @@ class Database(object):
 
 
 		#def __init_context(self, context, user=None, txn=None):
-		#	print "setting context user"
+		#	g.debug("setting context user")
 		#	context.db = self
 		#	context._user = user or self.getuser(context.__username, ctx=context, txn=txn)
 
@@ -1004,8 +997,7 @@ class Database(object):
 			"""Takes a ctxid key and returns a context (for internal use only)
 			Note that both key and host must match. Returns context instance."""
 
-			if not ctxid:
-				return self.__anonymouscontext
+			if not ctxid: return self.__anonymouscontext
 
 			if (time.time() > self.lastctxclean + 30): # or self.__updatecontexts):
 				# maybe not the perfect place to do this, but it will have to do
@@ -1116,7 +1108,7 @@ class Database(object):
 			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
 
 
-			#print "Writing to record"
+			#g.debug("Writing to record")
 
 			if not param:
 				param = "file_binary"
@@ -1180,7 +1172,7 @@ class Database(object):
 
 			if newid == None:
 				newid = max(bdo.keys() or [-1]) + 1
-				
+
 
 			if bdo.get(newid) and not ctx.checkadmin():
 				raise SecurityError, "Only admin may overwrite existing BDO"
@@ -1446,9 +1438,9 @@ class Database(object):
 			# db.getrecord(reduce(set.union, [ind.get(x) for x in filter(lambda x:"Nan" in x, ddb._Database__indexkeys.get("name_project"))]), filt=True)
 			# ok, new approach: name each constraint, search and store result, then join at the end if bool=AND
 
-			#print "******** query constraints"
-			#print constraints
-			
+			#g.debug("******** query constraints")
+			#g.debug(constraints)
+
 
 
 			if recs:
@@ -1500,7 +1492,7 @@ class Database(object):
 						r = set(filter(comp, pkeys))
 						if r:
 							results[count][param] = r
-							#print "param %s reults %s"%(param, results[count][param])
+							#g.debug("param %s reults %s"%(param, results[count][param]))
 
 				else:
 					param = c[0]
@@ -1560,7 +1552,7 @@ class Database(object):
 				if cresult:
 					subsets.append(cresult)
 
-			#print subsets
+			#g.debug(subsets)
 			return subsets
 
 
@@ -2599,7 +2591,7 @@ class Database(object):
 					#try:
 					users[user].add(k)
 					#except Exception, inst:
-					#	print "unknown user %s (%s)"%(user, inst)
+					#	g.debug("unknown user %s (%s)"%(user, inst))
 
 
 			#@begin
@@ -3648,32 +3640,22 @@ class Database(object):
 		# ian: improved!
 		# ed: more improvments!
 		@publicmethod
+		@g.debug.debug_func
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
-
-
-			#if (dbid != 0):
-			#	raise NotImplementedError("External database support not yet available")
-			#	#Ed Changed to NotimplementedError
-
-			ol=0
+			ol=False
 			if not hasattr(recids,"__iter__"):
-				ol=1
+				ol=True
 				recids=[recids]
-
-			# if filt: filt = None
-			# else: filt = lambda x:x.rectype
-			# recs = map(self.__records.get, recid)
 
 			ret=[]
 			for i in recids:
 				try:
 					rec = self.__records.sget(i, txn=txn) # [i]
-					rec.setContext(ctx)
+					#rec.setContext(ctx)
 					ret.append(rec)
 				except SecurityError, e:
-					# if filtering, skip record; else bubble (SecurityError) exception
 					if filt: pass
 					else: raise e
 				except (KeyError, TypeError), e:
@@ -4580,12 +4562,9 @@ class Database(object):
 					for j, k in enumerate(usertuple[i]):
 						if not isinstance(usertuple[i][j], int):
 							# sometimes group ints will be sent as str.
-							try:
-								usertuple[i][j] = int(usertuple[i][j])
-							except ValueError:
-								usertuple[i][j] = unicode(usertuple[i][j])
-							except:
-								raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
+							try: usertuple[i][j] = int(usertuple[i][j])
+							except ValueError: usertuple[i][j] = unicode(usertuple[i][j])
+							except: raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
 
 
 				# all users
@@ -4600,10 +4579,8 @@ class Database(object):
 					trgt = set((recid,))
 
 
-				if ctx.checkadmin():
-						isroot = 1
-				else:
-						isroot = 0
+				if ctx.checkadmin(): isroot = True
+				else: isroot = False
 
 
 				rec=self.getrecord(recid, ctx=ctx, txn=txn)
@@ -4614,14 +4591,8 @@ class Database(object):
 				# just gained access to. Used for fast index updating
 				secrupd = {}
 
-				#recs = self.getrecord(trgt, ctx=ctx, txn=txn)
-
 				for i in trgt:
-						#try:
 						rec = self.getrecord(i, ctx=ctx, txn=txn)						 # get the record to modify
-						#except:
-						#		 print "skipping %s"%i
-						#		 continue
 
 						# if the context does not have administrative permission on the record
 						# then we just skip this record and leave the permissions alone
@@ -4629,11 +4600,9 @@ class Database(object):
 
 						if ctx.username not in rec["permissions"][3] and not ctx.checkadmin(): continue
 
-						#print "rec: %s" % i
 
 						cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
 						xcur = [set(v) for v in rec["permissions"]]				 # copy of cur that will be changed
-						# l=[len(v) for v in cur]
 						#length test not sufficient # length of each tuple so we can decide if we need to commit changes
 						newv = [set(v) for v in usertuple]								# similar list of sets for the new users to add
 
@@ -4645,55 +4614,29 @@ class Database(object):
 
 						# if we allow level change, remove all changed users then add back..
 						if reassign:
-							#print "reassign"
 							allnew = newv[0] | newv[1] | newv[2] | newv[3]
-							#print allnew
 							xcur[0] -= allnew
 							xcur[1] -= allnew
 							xcur[2] -= allnew
 							xcur[3] -= allnew
-							#print xcur
 
 						# update the permissions for each group
 						xcur[0] |= newv[0]
 						xcur[1] |= newv[1]
 						xcur[2] |= newv[2]
 						xcur[3] |= newv[3]
-						#print "updated"
-						#print xcur
 						# if the user already has more permission than we are trying
 						# to assign, we don't do anything. This also cleans things up
 						# so a user cannot have more than one security level
 						# -- assign higher permissions or lower permissions
-						xcur[0] -= xcur[1]
-						xcur[0] -= xcur[2]
-						xcur[0] -= xcur[3]
-						xcur[1] -= xcur[2]
-						xcur[1] -= xcur[3]
+						xcur[0] -= xcur[1] | xcur[2] | xcur[3]
+						xcur[1] -= xcur[2] | xcur[3]
 						xcur[2] -= xcur[3]
-						#print "pruned"
-						#print xcur
 
-#						 l2=[len(v) for v in cur]	 # length test not sufficient
-
-						# update if necessary
-#						 if l!=l2 :
 						if xcur[0] != cur[0] or xcur[1] != cur[1] \
-							 or xcur[2] != cur[2] or xcur[3] != cur[3]:
+							or xcur[2] != cur[2] or xcur[3] != cur[3]:
 								old = rec["permissions"]
 								rec["permissions"] = (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
-								#print "new permissions:"
-								#print (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
-								#print rec["permissions"]
-# SHOULD do it this way, but too slow
-#								 rec.commit()
-
-								# commit is slow because of the extensive checks for changes
-								# in this case we know only the security changed. We also don't
-								# update the modification time. In fact, we build up a list of changes
-								# then do it all at once.
-#								 self.__reindexsec(reduce(operator.concat,old),
-#										 reduce(operator.concat,rec["permissions"]),rec.recid)
 
 								stu = (xcur[0] | xcur[1] | xcur[2] | xcur[3]) - set(old[0] + old[1] + old[2] + old[3])
 								for i in stu:
@@ -4730,7 +4673,7 @@ class Database(object):
 
 				# get a list of records we need to update
 				if recurse > 0:
-						#if DEBUG: print "Del user recursive..."
+						#if DEBUG: g.debug("Del user recursive...")
 						trgt = self.getchildren(recid, recurse=recurse-1, ctx=ctx, txn=txn)
 						trgt.add(recid)
 				else : trgt = set((recid,))
@@ -4770,17 +4713,6 @@ class Database(object):
 						if l != l2 :
 								old = rec["permissions"]
 								rec["permissions"] = (tuple(cur[0]), tuple(cur[1]), tuple(cur[2]), tuple(cur[3]))
-
-# SHOULD do it this way, but too slow
-#								 rec.commit()
-
-								# commit is slow because of the extensive checks for changes
-								# in this case we know only the security changed. We also don't
-								# update the modification time
-#								 print reduce(operator.concat,old)
-#								 print reduce(operator.concat,rec["permissions"])
-#								 self.__reindexsec(reduce(operator.concat,old),
-#										 reduce(operator.concat,rec["permissions"]),rec.recid)
 
 								for i in users:
 										try: secrupd[i].append(rec.recid)
@@ -5097,7 +5029,7 @@ class Database(object):
 				def enc(value, fil):
 					if type(value) == dict:
 						for x in value.items():
-							#print x
+							#g.debug(x)
 							demjson.encode(x)
 					value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
 					fil.write('\n')
@@ -5220,7 +5152,6 @@ class Database(object):
 			return True
 
 
-		#@write #everything...
 		@publicmethod
 		def restore(self, restorefile=None, types=None, ctx=None, txn=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
@@ -5391,7 +5322,7 @@ class Database(object):
 			# 						del r._Record__owner
 			# 				except:
 			# 						pass
-			# 				if (nr < 20) : print r["identifier"]
+			# 				if (nr < 20) : g.debug(r["identifier"])
 			# 				nr += 1
 			#
 			# 		elif isinstance(r, str) :
@@ -5413,9 +5344,9 @@ class Database(object):
 			# 				elif r == "reccousins" :
 			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
-			# 				else : print "Unknown category ", r
+			# 				else : g.debug("Unknown category ", r)
 			#
-			# print "Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np
+			# g.debug("Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np)
 
 
 
