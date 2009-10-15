@@ -10,7 +10,6 @@ from emen2.Database.exceptions import *
 from emen2.Database.user import *
 import copy
 import emen2.Database.subsystems
-import emen2.Database.datatypes
 
 from functools import partial, wraps
 
@@ -3641,7 +3640,7 @@ class Database(object):
 		# ian: improved!
 		# ed: more improvments!
 		@publicmethod
-		@g.debug.debug_func
+		#@g.debug.debug_func
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
