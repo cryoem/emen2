@@ -3,6 +3,13 @@ import time
 import os
 from math import *
 
+def timetosec(timestr):
+    """takes a date-time string in the format yyyy/mm/dd hh:mm:ss and
+    returns the standard time in seconds since the beginning of time"""
+    try: return time.mktime(time.strptime(timestr,"%Y/%m/%d %H:%M:%S"))
+    except: return time.mktime(time.strptime(timestr,"%Y/%m/%d"))
+
+
 def doplot(data):
 	out=file("outfile","w")
 	for i in data: out.write("%f\t%f\n"%(i[0],i[1]))
