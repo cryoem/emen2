@@ -65,17 +65,10 @@ class DownloadResource(Resource, File):
 
 		bids = path[0].split(",")
 
-		db._starttxn()
 		db._setcontext(ctxid,host)
-
-		try:
-			bdos = db.getbinary(bids)
-		except Exception, e:
-			db._aborttxn()
-			raise
-		else:
-			db._committxn()
-
+		bdos = db.getbinary(bids)
+		db._clearcontext()
+		
 		return bdos, db
 
 

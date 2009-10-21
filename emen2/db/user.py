@@ -60,10 +60,10 @@ class Context:
 
 
 
-		def getuser(self, txn=None):
+		def getuser(self):
 			# the _user has to be set before we can add the user record....
-			self._user = self.db.getuser(self.username, getrecord=False, ctx=self, txn=txn)
-			self._user = self.db.getuser(self.username, getrecord=True, ctx=self, txn=txn)
+			self._user = self.db.getuser(self.username, getrecord=False, ctx=self)
+			self._user = self.db.getuser(self.username, getrecord=True, ctx=self)
 
 
 		def __getgroups(self):
@@ -116,12 +116,21 @@ class Group(object, DictMixin):
 		self.setpermissions(kwargs.get('permissions'))
 
 		if ctx:
-			self.creator = ctx.username
+			self.__ctx = ctx
+			self.creator = self.__ctx.username
 			self.adduser(3, self.creator)
-			self.creationtime = ctx.db.gettime()
-			self.validate(ctx=ctx)
+			self.creationtime = self.__ctx.db.gettime()
+			self.validate()
 
 		#self.__permissions = kwargs.get('permissions')
+
+
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		try: del odict['_Group__ctx']
+		except:	pass
+		return odict
 
 
 
@@ -221,12 +230,10 @@ class Group(object, DictMixin):
 
 	################################
 
-	def validate(self, ctx=None):
+	def validate(self):
 		return True
 
-	####
-	#def isowner(self):
-	#	return
+
 
 	################################
 	# mapping methods
@@ -249,6 +256,7 @@ class Group(object, DictMixin):
 
 	def keys(self):
 		return tuple(self.attr_all)
+
 
 
 
@@ -345,8 +353,16 @@ class User(object, DictMixin):
 
 
 		if ctx:
-			pass
+			self.__ctx = ctx
 
+
+
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		try: del odict['_Group__ctx']
+		except:	pass
+		return odict
 
 
 	#################################
@@ -379,7 +395,7 @@ class User(object, DictMixin):
 	# validation methods
 	#################################
 
-	def validate(self, ctx=None):
+	def validate(self):
 		#if set(self.__dict__.keys())-self.attr_all:
 			#raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
@@ -457,7 +473,7 @@ class User(object, DictMixin):
 		self.__secret = None
 
 
-	def create_childrecords(self, ctx, txn=None):
+	def create_childrecords(self):
 		'''create records to be chldren of person record.
 				childrecs format:
 					{ rectype : { 'data': {},
@@ -466,7 +482,7 @@ class User(object, DictMixin):
 		'''
 		def _step(rectype, recdata):
 			data = recdata.get('data', recdata)
-			rec = ctx.db.newrecord(rectype, ctx=ctx, txn=txn)
+			rec = self.__ctx.db.newrecord(rectype)
 			rec.update(data)
 			return rec, recdata.get('parents', [])
 		return [_step(rectype, recdata) for rectype, recdata in self.childrecs.iteritems()]
@@ -507,7 +523,16 @@ class WorkFlow(object, DictMixin):
 
 		if ctx:
 			# update with ctx info...
+			self.__ctx = ctx
 			pass
+
+
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		try: del odict['_WorkFlow__ctx']
+		except:	pass
+		return odict
 
 
 	#################################
@@ -546,7 +571,7 @@ class WorkFlow(object, DictMixin):
 	# Validation methods
 	#################################
 
-	def validate(self, ctx=None):
+	def validate(self):
 		pass
 		#if set(self.__dict__.keys())-self.attr_all:
 		#		 raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)

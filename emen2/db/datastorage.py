@@ -94,7 +94,17 @@ class ParamDef(emen2.Database.subsystems.dataobject.BaseDBInterface):
 		self.uri = None
 
 
+		if ctx:
+			self.__ctx = ctx
+			
 
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		try: del odict['_ParamDef__ctx']
+		except:	pass
+		return odict
+			
 
 	#################################
 	# mapping methods
@@ -223,9 +233,11 @@ class RecordDef(object, DictMixin) :
 		self.findparams()
 
 		if ctx:
-			if not self.owner: self.owner = ctx.username
-			if not self.creator: self.creator = ctx.username
-			if not self.creationtime: self.creationtime = ctx.db.gettime()
+			self.__ctx = ctx
+			if not self.owner: self.owner = self.__ctx.username
+			if not self.creator: self.creator = self.__ctx.username
+			if not self.creationtime: self.creationtime = self.__ctx.db.gettime()
+
 
 
 
@@ -242,6 +254,14 @@ class RecordDef(object, DictMixin) :
 		"""restore unpickled values to defaults after unpickling"""
 		self.__dict__.update(dict)
 		if not dict.has_key("typicalchld") : self.typicalchld = []
+
+
+	def __getstate__(self):
+		"""the context and other session-specific information should not be pickled"""
+		odict = self.__dict__.copy() # copy the dict since we change it
+		try: del odict['_RecordDef__ctx']
+		except:	pass
+		return odict
 
 
 	#################################
@@ -470,8 +490,8 @@ class Record(object, DictMixin):
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 
-		self.__context = None # Validated access context
-		#ctx = ctx or kwargs.get('context', ctx)
+		self.__ctx = None # Validated access context
+
 		if ctx:
 			self.setContext(ctx)
 
@@ -489,11 +509,11 @@ class Record(object, DictMixin):
 		print "Validation warning: %s: %s"%(self.recid, msg)
 
 
-	def validate(self, orec={}, warning=0, params=[], txn=None):
+	def validate(self, orec={}, warning=0, params=[]):
 		for field in self.cleared_fields:
 			setattr(self, field, None)
 
-		if not self.__context.db:
+		if not self.__ctx.db:
 			self.validationwarning("No context; cannot validate")
 			return
 
@@ -509,18 +529,18 @@ class Record(object, DictMixin):
 
 		for i in validators:
 			try:
-				i(orec, txn=txn)
+				i(orec)
 			except (TypeError, ValueError), inst:
 				if warning:
 					self.validationwarning("%s: %s"%(i.func_name, inst))
 				else:
 					raise ValueError, "%s: %s"%(i.func_name, inst)
 
-		self.validate_params(orec, warning=warning, params=params, txn=txn)
+		self.validate_params(orec, warning=warning, params=params)
 
 
 
-	def validate_recid(self, orec={}, txn=None):
+	def validate_recid(self, orec={}):
 		try:
 			if self.recid != None:
 				self.recid = int(self.recid)
@@ -537,14 +557,14 @@ class Record(object, DictMixin):
 
 
 
-	def validate_rectype(self, orec={}, txn=None):
+	def validate_rectype(self, orec={}):
 
 		if not self.rectype:
 			raise ValueError, "rectype must not be empty"
 
 		self.rectype = unicode(self.rectype)
 
-		if self.rectype not in self.__context.db.getrecorddefnames(ctx=self.__context, txn=txn):
+		if self.rectype not in self.__ctx.db.getrecorddefnames():
 			raise ValueError, "invalid rectype %s"%(self.rectype)
 
 		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
@@ -552,7 +572,7 @@ class Record(object, DictMixin):
 
 
 
-	def validate_comments(self, orec={}, txn=None):
+	def validate_comments(self, orec={}):
 		# validate comments
 		users=[]
 		dates=[]
@@ -566,7 +586,7 @@ class Record(object, DictMixin):
 			#except:
 			#	raise ValueError, "invalid comment format: %s; skipping"%(i)
 
-		usernames = set(self.__context.db.getusernames(ctx=self.__context, txn=txn))
+		usernames = set(self.__ctx.db.getusernames())
 
 		if set(users) - usernames:
 			raise ValueError, "invalid users in comments: %s"%(set(users) - usernames)
@@ -578,35 +598,35 @@ class Record(object, DictMixin):
 		self.__comments = newcomments
 
 
-	def validate_creator(self, orec={}, txn=None):
+	def validate_creator(self, orec={}):
 		self.__creator = unicode(self.__creator)
 		return
 
 		try:
-			self.__context.db.getuser(self.__creator, filt=0, ctx=self.__context, txn=txn)
+			self.__ctx.db.getuser(self.__creator, filt=0)
 		except:
 			raise ValueError, "invalid creator: %s"%(self.__creator)
 
 
 
-	def validate_creationtime(self, orec={}, txn=None):
+	def validate_creationtime(self, orec={}):
 		# validate creation time format
 		self.__creationtime = unicode(self.__creationtime)
 
 
 
-	def validate_permissions(self, orec={}, txn=None):
+	def validate_permissions(self, orec={}):
 		self.__permissions = self.__checkpermissionsformat(self.__permissions)
 
 
-	def validate_permissions_users(self,orec={}, txn=None):
-		users = set(self.__context.db.getusernames(ctx=self.__context.ctx, txn=txn))
+	def validate_permissions_users(self,orec={}):
+		users = set(self.__ctx.db.getusernames())
 		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
 			raise ValueError, "undefined users: %s"%",".join(map(unicode, u-users))
 
 
-	def validate_params(self, orec={}, warning=0, params=[], txn=None):
+	def validate_params(self, orec={}, warning=0, params=[]):
 
 		# restrict by params if given
 		p2 = set(self.__params.keys()) & set(params or self.__params.keys())
@@ -615,14 +635,14 @@ class Record(object, DictMixin):
 
 		vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 
-		pds = self.__context.db.getparamdefs(p2, txn=txn)
+		pds = self.__ctx.db.getparamdefs(p2)
 		newpd = {}
 		exceptions = []
 
 		for param,pd in pds.items():
 			#print "\tValidate param: %s: %s (vartype: %s, property: %s)"%(pd.name, self[param], pd.vartype, pd.property)
 			try:
-				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm, txn=txn)
+				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm)
 			except (ValueError,KeyError), inst:
 				newpd[param] = self.__params.get(param)
 				#print traceback.print_exc()
@@ -639,9 +659,9 @@ class Record(object, DictMixin):
 
 
 
-	def validate_param(self, value, pd, vtm, txn=None):
+	def validate_param(self, value, pd, vtm):
 
-		v = vtm.validate(pd, value, db=self.__context.db, ctx=self.__context, txn=txn)
+		v = vtm.validate(pd, value, db=self.__ctx.db)
 
 		if v != value and v != None:
 			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v))
@@ -670,7 +690,7 @@ class Record(object, DictMixin):
 		try: del odict['_Record__ptest']
 		except:	pass
 
-		try: del odict['_Record__context']
+		try: del odict['_Record__ctx']
 		except:	pass
 
 		# filter out values that are None
@@ -681,27 +701,10 @@ class Record(object, DictMixin):
 
 	def __setstate__(self, dict):
 		"""restore unpickled values to defaults after unpickling"""
-		#if dict["_Record__oparams"]	!= {}:
-
-		# this is properly handled by putrecord
-		# try:
-		# 	p=dict["_Record__params"]
-		#		dict["_Record__params"]={}
-		#		for i,j in p.items():
-		#			if j!=None and j!="None" : dict["_Record__params"][i.lower()]=j
-		#except:
-		#dict["rectype"]=dict["rectype"].lower()
-
-		#if dict.has_key("localcpy") :
-		#	del dict["localcpy"]
-		#	self.__ptest=[1,1,1,1]
-		#else:
-		#	self.__dict__.update(dict)
-		#	self.__ptest=[0,0,0,0]
 
 		self.__dict__.update(dict)
-		self.__ptest=[0,0,0,0]
-		self.__context=None
+		self.__ptest = [0,0,0,0]
+		self.__ctx = None
 
 
 
@@ -955,7 +958,7 @@ class Record(object, DictMixin):
 			self[i] = j
 
 		value = unicode(value)
-		self.__comments.append((unicode(self.__context.username),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
+		self.__comments.append((unicode(self.__ctx.username),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
 		# store the comment string itself
 
 
@@ -966,25 +969,25 @@ class Record(object, DictMixin):
 
 
 
-	def setContext(self, ctx):
+	def setContext(self, ctx=None):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
 		"""
 
-		self.__context = ctx
+		self.__ctx = ctx
 
-		if ctx == None:
+		if self.__ctx == None:
 			raise SecurityError, "No ctx!"
 
 		if not self.__creator:
-			self.__creator = unicode(ctx.username)
-			self.__creationtime = ctx.db.gettime() #unicode(time.strftime(emen2.Database.database.TIMESTR))
-			self.__permissions = ((),(),(),(unicode(ctx.username),))
+			self.__creator = unicode(self.__ctx.username)
+			self.__creationtime = self.__ctx.db.gettime() #unicode(time.strftime(emen2.Database.database.TIMESTR))
+			self.__permissions = ((),(),(),(unicode(self.__ctx.username),))
 
 		# print "setContext: ctx.groups is %s"%ctx.groups
 
 		# test for owner access in this context.
-		if ctx.checkreadadmin():
+		if self.__ctx.checkreadadmin():
 			self.__ptest = [1,1,1,1]
 			return
 
@@ -995,7 +998,7 @@ class Record(object, DictMixin):
 		p2 = set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
 		p3 = set(self.__permissions[2]+self.__permissions[3])
 		p4 = set(self.__permissions[3])
-		u1 = set(ctx.groups)
+		u1 = set(self.__ctx.groups)
 
 		# ian: fixed ctx.groups to include these implicit groups
 		#+[-4] all users are permitted group -4 access
@@ -1003,27 +1006,27 @@ class Record(object, DictMixin):
 
 		# test for read permission in this context
 		#if (-2 in u1 or ctx._user in p1 or u1 & p1):
-		if (-2 in u1 or ctx.username in p1 or u1 & p1):
+		if (-2 in u1 or self.__ctx.username in p1 or u1 & p1):
 			self.__ptest[0] = 1
 		else:
 			raise SecurityError,"Permission Denied: %s"%self.recid
 
 		# test for comment write permission in this context
-		if (ctx.username in p2 or u1 & p2): self.__ptest[1] = 1
+		if (self.__ctx.username in p2 or u1 & p2): self.__ptest[1] = 1
 
 		# test for general write permission in this context
-		if (ctx.username in p3 or u1 & p3): self.__ptest[2] = 1
+		if (self.__ctx.username in p3 or u1 & p3): self.__ptest[2] = 1
 
 		# test for administrative permission in this context
-		if (ctx.username in p4 or u1 & p4): self.__ptest[3] = 1
+		if (self.__ctx.username in p4 or u1 & p4): self.__ptest[3] = 1
 
 
 
-	def commit(self, txn=None):
+	def commit(self):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__context.db.putrecord(self, ctx=self.__context, txn=txn)
+		return self.__ctx.db.putrecord(self)
 
 
 	def isowner(self):

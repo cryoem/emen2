@@ -19,7 +19,7 @@ def sendmailtemplate(recipient,template,ctxt=None):
 
 
 
-def sendmail(recipient,subject,msgtxt, ctx=None, txn=None, db=None):
+def sendmail(recipient,subject,msgtxt, db=None):
 
 	msg=MIMEText(msgtxt)
 	msg['Subject'] = subject

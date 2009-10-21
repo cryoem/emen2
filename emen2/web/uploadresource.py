@@ -91,16 +91,11 @@ class UploadResource(Resource):
 
 
 	def _action(self, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
-		db._starttxn()
-		db._setcontext(ctxid,host)
 
-		try:
-			bdokey = db.putbinary(filename, recid, filedata=filedata)
-		except Exception, e:
-			db._aborttxn()
-			raise
-		else:
-			db._committxn()
+		#db._starttxn()
+		db._setcontext(ctxid,host)
+		bdokey = db.putbinary(filename, recid, filedata=filedata)
+		db._clearcontext()
 
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect

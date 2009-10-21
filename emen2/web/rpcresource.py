@@ -108,6 +108,7 @@ class RPCFormatXMLRPC:
 
 		return value
 
+
 class RPCChain(Resource):
 	isLeaf = True
 
@@ -244,18 +245,10 @@ class RPCResource(Resource):
 		g.debug.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
 
-		db._starttxn()
-
+		#db._starttxn()
 		db._setcontext(ctxid,host)
-
-		try:
-			result = db._callmethod(method, args, kwargs)
-		except Exception, e:
-			db._aborttxn()
-			raise
-		else:
-			db._committxn()
-
+		result = db._callmethod(method, args, kwargs)
+		db._clearcontext()
 
 
 		return self.handler.encode(method, result)

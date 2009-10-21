@@ -37,21 +37,6 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
-regex_pattern = 	 u"(?P<var>(\$\$(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		 \
-"|(?P<macro>(\$\@(?P<macro1>\w*)(?:\((?P<macro2>[\w\s]+)\))?))(?P<macrosep>[\s<]?)" \
-								"|(?P<name>(\$\#(?P<name1>\w*)(?P<namesep>[\s<:]?)))"
-regex = re.compile(regex_pattern, re.UNICODE) # re.UNICODE
-
-
-regex_pattern2 = 	u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
-								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s,]+)\))?))(?P<macrosep>[\s<]?)" \
-								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
-regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
-
-
-
-recommentsregex = "\n"
-pcomments = re.compile(recommentsregex) # re.UNICODE
 
 
 
@@ -124,14 +109,15 @@ class DBProxy(object):
 
 
 
-	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None):
+	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None, ctx=None, txn=None):
 		self.__txn = None
 		self.__bound = False
 		if not db:
 			self.__db = Database(dbpath, importmode=importmode)
 		else:
 			self.__db = db
-		self.__ctx = None
+		self.__ctx = ctx
+		self.__txn = txn		
 		#self._setcontext(ctxid, host)
 
 
@@ -146,6 +132,9 @@ class DBProxy(object):
 			else: self._aborttxn()
 		del self.__oldtxn
 
+
+	def _settxn(self, txn=None):
+		self.__txn = txn
 
 	def _starttxn(self):
 		self.__txn = self.__db.newtxn(self.__txn)
@@ -174,6 +163,7 @@ class DBProxy(object):
 	def _setcontext(self, ctxid=None, host=None):
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
+			self.__ctx.db = self
 		except:
 			if self.__txn: self._aborttxn()
 			raise
@@ -254,13 +244,13 @@ class DBProxy(object):
 		elif name.startswith('_'):
 			return object.__getattribute__(self, name)
 
-		db = self.__db
-		kwargs = {}
 
+		kwargs = {}
 		kwargs["ctx"] = self.__ctx
 		kwargs["txn"] = self.__txn
 
 		result = None
+		
 		if name in self._allmethods():
 
 			result = None
@@ -269,23 +259,23 @@ class DBProxy(object):
 			#	result = self.__adminmethods.get(name)
 
 			if result is None:
-				result = self.__publicmethods.get(name) # or self.__extmethods.get(name)()
+				result = self.__publicmethods.get(name)
 
 			if result:
-				result = wraps(result)(partial(result, db, **kwargs))
+				result = wraps(result)(partial(result, self.__db, **kwargs))
 
 			else:
 				result = self.__extmethods.get(name)()
 
-				kwargs['db'] = db
+				kwargs['db'] = self.__db
 				if result:
 					result = partial(result.execute, **kwargs)
+
 
 			result = wraps(result.func)(result)
 
 		else:
-			raise AttributeError('No such attribute %s of %r' % (name, db))
-
+			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
 
 		return result
 
@@ -329,6 +319,8 @@ def publicmethod(func):
 		txn = kwargs.get('txn')
 		ctx = kwargs.get('ctx')
 		commit = False
+
+
 		if txn is None:
 			txn = self.newtxn()
 			commit = True
@@ -341,13 +333,11 @@ def publicmethod(func):
 		except Exception, e:
 			traceback.print_exc(e)
 			if commit is True:
-				g.debug.msg('LOG_ERROR', "TXN ABORT: %s (%s)"%(txn, e))
 				txn and self.txnabort(ctx=ctx, txn=txn)
 			raise
 
 		else:
 			if commit is True:
-				g.debug.msg('LOG_INFO', "TXN COMMIT: %s"%txn)
 				txn and self.txncommit(ctx=ctx, txn=txn)
 
 		return result
@@ -678,6 +668,9 @@ class Database(object):
 		txncounter = 0
 		# one of these 2 methods is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
+			g.debug.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
+			#traceback.print_stack()
+
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -704,6 +697,8 @@ class Database(object):
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
 			g.debug.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			#traceback.print_stack()
+
 			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.abort()
@@ -715,7 +710,9 @@ class Database(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-		#	g.debug.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			g.debug.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			#traceback.print_stack()
+			
 			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.commit()
@@ -831,9 +828,10 @@ class Database(object):
 
 		def __makecontext(self, username="anonymous", host=None):
 			'''so we can simulate a context for approveuser'''
-			db = self
-			if username is "anonymous": db = None
-			return Context(db=db, username=username, host=host)
+			#db = self
+			#if username is "anonymous":
+			#	db = None
+			return Context(username=username, host=host)
 
 
 		# No longer public method; only through DBProxy to force host=...
@@ -845,7 +843,8 @@ class Database(object):
 			username = unicode(username)
 
 			# Anonymous access
-			if username == "anonymous": newcontext = self.__anonymouscontext
+			if username == "anonymous":
+				newcontext = self.__anonymouscontext
 
 			else:
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
@@ -997,7 +996,8 @@ class Database(object):
 			"""Takes a ctxid key and returns a context (for internal use only)
 			Note that both key and host must match. Returns context instance."""
 
-			if not ctxid: return self.__anonymouscontext
+			if not ctxid:
+				return self.__anonymouscontext
 
 			if (time.time() > self.lastctxclean + 30): # or self.__updatecontexts):
 				# maybe not the perfect place to do this, but it will have to do
@@ -1023,7 +1023,7 @@ class Database(object):
 
 			# this sets up db handle ref, users, groups for context...
 			context.db = self
-			context.getuser(txn=txn)
+			context.getuser()
 
 			self.__contexts[ctxid] = context		# cache result from database
 
@@ -1238,7 +1238,7 @@ class Database(object):
 
 			# if a filedata is supplied, write it out...
 			# todo: use only this mechanism for putting files on disk
-			self.LOG("Writing %s bytes disk: %s"%(len(filedata),filename))
+			self.LOG(4, "Writing %s bytes disk: %s"%(len(filedata),filename))
 			f=open(filename,"wb")
 			f.write(filedata)
 			f.close()
@@ -1475,7 +1475,7 @@ class Database(object):
 
 		def __query_index(self, constraints, cmps=None, recs=None, ctx=None, txn=None):
 			subsets = []
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+			
 			# nested dictionary, results[constraint position][param]
 			results = collections.defaultdict(partial(collections.defaultdict, set))
 
@@ -1484,7 +1484,7 @@ class Database(object):
 				if c[0] == "*":
 					for param, pkeys in self.__indexkeys.items(txn=txn):
 						try:
-							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+							cargs = self.vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
 						except (ValueError, KeyError):
 							continue
 
@@ -1497,7 +1497,7 @@ class Database(object):
 				else:
 					param = c[0]
 					pkeys = self.__indexkeys.get(param, txn=txn) or []
-					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+					cargs = self.vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
 					comp = partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys))
 
@@ -1520,7 +1520,6 @@ class Database(object):
 
 		def __query_recs(self, constraints, cmps=None, recs=None, ctx=None, txn=None):
 			subsets = []
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 			#allp = "*" in [c[0] for c in constraints]
 
 			# this is ugly :(
@@ -1532,7 +1531,7 @@ class Database(object):
 					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]))
 					for param in allparams:
 						try:
-							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+							cargs = self.vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
 						except (ValueError, KeyError):
 							continue
 
@@ -1545,7 +1544,7 @@ class Database(object):
 				else:
 					param = c[0]
 					cc = cmps[c[1]]
-					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=self, ctx=ctx, txn=txn)
+					cargs = self.vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
 					cresult.extend([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
 
 
@@ -2865,7 +2864,7 @@ class Database(object):
 					try:
 						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
 					except Exception, inst:
-						self.LOG("problem getting record user %s record %s: %s"%(user.username, user.record, inst))
+						self.LOG(4, "problem getting record user %s record %s: %s"%(user.username, user.record, inst))
 						user._userrec = {}
 
 					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
@@ -2914,7 +2913,7 @@ class Database(object):
 				# ... need to parse comments since it's special
 				namestoget.extend(reduce(lambda x,y: x+y, [[i[0] for i in rec["comments"]] for rec in recs]))
 
-			namestoget=set(namestoget)
+			namestoget = set(namestoget)
 
 			# users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
 			# users = filter(lambda x:x[1].record != None, users)
@@ -3176,8 +3175,7 @@ class Database(object):
 		def getvartypenames(self, ctx=None, txn=None):
 			"""This returns a list of all valid variable types in the database. This is currently a
 			fixed list"""
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-			return vtm.getvartypes()
+			return self.vtm.getvartypes()
 
 
 
@@ -3185,8 +3183,7 @@ class Database(object):
 		def getvartype(self, name, ctx=None, txn=None):
 			"""This returns a list of all valid variable types in the database. This is currently a
 			fixed list"""
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-			return vtm.getvartype(name)
+			return self.vtm.getvartype(name)
 			#return valid_vartypes[thekey][1]
 
 
@@ -3195,17 +3192,15 @@ class Database(object):
 		def getpropertynames(self, ctx=None, txn=None):
 			"""This returns a list of all valid property types in the database. This is currently a
 			fixed list"""
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-			return vtm.getproperties()
+			return self.vtm.getproperties()
 
 
 
 		@publicmethod
 		def getpropertyunits(self, propname, ctx=None, txn=None):
 			"""Returns a list of known units for a particular property"""
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
 			# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
-			return set(vtm.getproperty(propname).units)
+			return set(self.vtm.getproperty(propname).units)
 
 
 
@@ -3238,6 +3233,7 @@ class Database(object):
 
 				if pd.vartype != paramdef.vartype:
 					g.debug.msg("LOG_INFO","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype))
+
 
 			except:
 				paramdef.creator = ctx.username
@@ -3299,21 +3295,6 @@ class Database(object):
 			#@end
 
 
-
-		# # ian: remove this method
-		# def findparamdefname(self, name):
-		# 	"""Find a paramdef similar to the passed 'name'. Returns the actual ParamDef, or None if no match is found."""
-		# 	name = str(name).lower()
-		# 	if self.__paramdefs.has_key(name):
-		# 		return name
-		# 	if name[-1] == "s":
-		# 		if self.__paramdefs.has_key(name[:-1]):
-		# 			return name[:-1]
-		# 		if name[ - 2] == "e" and self.__paramdefs.has_key(name[:-2]):
-		# 			return name[: - 2]
-		# 	if name[-3:] == "ing" and self.__paramdefs.has_key(name[:-3]):
-		# 		return name[: - 3]
-		# 	return None
 
 
 
@@ -3429,56 +3410,6 @@ class Database(object):
 		#########################
 
 
-
-		# #@txn
-		# @publicmethod
-		# def addrecorddef(self, recdef, parent=None, ctx=ctx, txn=None):
-		# 	"""adds a new RecordDef object. The user must be an administrator or a member of group 0"""
-		#
-		# 	if not isinstance(recdef, RecordDef):
-		# 		try:
-		# 			recdef = RecordDef(recdef)
-		# 		except:
-		# 			raise ValueError, "RecordDef instance or dict required"
-		#
-		# 	ctx = self.__getcontext()
-		#
-		# 	recdef.validate()
-		#
-		# 	if not ctx.checkcreate():
-		# 		raise SecurityError, "No permission to create new RecordDefs"
-		#
-		# 	if self.__recorddefs.has_key(str(recdef.name).lower()):
-		# 		raise KeyError, "RecordDef %s already exists" % str(recdef.name).lower()
-		#
-		# 	recdef.findparams()
-		# 	pdn = self.getparamdefnames()
-		# 	for i in recdef.params:
-		# 		if i not in pdn:
-		# 			raise KeyError, "No such parameter %s" % i
-		#
-		#
-		# 	# force these values
-		# 	if (recdef.owner == None) : recdef.owner = ctx.user
-		# 	recdef.name = str(recdef.name).lower()
-		# 	recdef.creator = ctx.user
-		# 	recdef.creationtime = self.gettime()
-		#
-		#
-		# 	if not self.__importmode:
-		# 		recdef=RecordDef(recdef.__dict__.copy())
-		# 		recdef.validate()
-		#
-		# 	# commit
-		# 	txn = self.txncheck(txn)
-		# 	self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
-		#
-		# 	if parent:
-		# 		self.pclink(parent, recdef.name, "recorddef", txn=txn)
-		#
-		# 	self.txncommit(txn)
-		#
-		# 	return recdef.name
 
 
 		#@txn
@@ -3653,11 +3584,13 @@ class Database(object):
 			for i in recids:
 				try:
 					rec = self.__records.sget(i, txn=txn) # [i]
-					#rec.setContext(ctx)
+					rec.setContext(ctx=ctx)
 					ret.append(rec)
 				except SecurityError, e:
 					if filt: pass
-					else: raise e
+					else:
+						traceback.print_stack()
+						raise e
 				except (KeyError, TypeError), e:
 					if filt: pass
 					else: raise KeyError, "No such record %s"%i
@@ -3995,7 +3928,7 @@ class Database(object):
 
 
 				if validate:
-					updrec.validate(warning=warning, txn=txn)
+					updrec.validate(warning=warning)
 
 				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
@@ -4454,7 +4387,7 @@ class Database(object):
 			ret = []
 
 			if ctx.username != None and ctx.username != "anonymous":
-				ret.extend(recids & set(self.__secrindex.sget(ctx.username, txn=txn)))
+				ret.extend(recids & set(self.__secrindex.get(ctx.username, [], txn=txn)))
 
 			#ret |= recids & set(self.__secrindex[ctx.user])
 			#recids -= ret
@@ -4463,7 +4396,7 @@ class Database(object):
 				#if recids:
 				#ret |= recids & set(self.__secrindex[group])
 				#recids -= ret
-				ret.extend(recids & set(self.__secrindex.sget(group, txn=txn)))
+				ret.extend(recids & set(self.__secrindex.get(group, [], txn=txn)))
 
 			return set(ret)
 
@@ -4774,150 +4707,19 @@ class Database(object):
 
 
 
-		def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
-			"""generate html table of params"""
-
-			if mode=="html":
-				dt = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]
-				for i in params:
-					dt.append("<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-				dt.append("</table>")
-			else:
-				dt = []
-				for i in params:
-					dt.append("$#%s:\t$$%s\n"%(i,i))
-			return "".join(dt)
 
 
 
 
-
-
+		# It is a cold, cold, cruel world... moved to VartypeManager
 		@publicmethod
-		def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs={}, showmacro=True, mode="unicode", outband=0, ctx=None, txn=None):
+		def renderview(self, *args, **kwargs):
 			"""Render views"""
-
-			# viewtype "dicttable" is builtin now.
-			# ian: todo: remove.
-			if recs != 0 and not recs:
-				return
-
-
-			ol = 0
-			if not hasattr(recs,"__iter__") or isinstance(recs,Record):
-				ol = 1
-				recs = [recs]
-
-
-			if not isinstance(list(recs)[0],Record):
-				recs = self.getrecord(recs,filt=1, ctx=ctx, txn=txn)
-
-
-			builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
-			builtinparamsshow=["recid","rectype","comments","creator","creationtime"]
-
-			groupviews={}
-			groups=set([rec.rectype for rec in recs])
-			recdefs=self.getrecorddef(groups, ctx=ctx, txn=txn)
-
-			if not viewdef:
-				for i in groups:
-					rd=recdefs.get(i)
-
-					if viewtype=="mainview":
-						groupviews[i]=rd.mainview
-
-					elif viewtype=="dicttable":
-						# move built in params to end of table
-						par=[p for p in rd.paramsK if p not in builtinparams]
-						par+=builtinparamsshow
-						groupviews[i]=self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
-
-					else:
-						groupviews[i]=rd.views.get(viewtype, rd.name)
-
-			else:
-				groupviews[None]=viewdef
-
-
-			if outband:
-				for rec in recs:
-					obparams=[i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
-					if obparams:
-						groupviews[rec.recid]=groupviews[rec.rectype] + self.__dicttable_view(obparams, mode=mode, ctx=ctx, txn=txn)
-					# switching to record-specific views; no need to parse group views
-					#del groupviews[rec.rectype]
-
-
-			vtm = emen2.Database.subsystems.datatypes.VartypeManager()
-
-			names={}
-			values={}
-			macros={}
-			pd=[]
-			for g1,vd in groupviews.items():
-				n=[]
-				v=[]
-				m=[]
-
-				vd = vd.encode('utf-8', "ignore")
-				iterator = regex2.finditer(vd)
-
-				for match in iterator:
-						if match.group("name"):
-								n.append((match.group("name"),match.group("namesep"),match.group("name1")))
-								pd.append(match.group("name1"))
-						elif match.group("var"):
-								v.append((match.group("var"),match.group("varsep"),match.group("var1")))
-								pd.append(match.group("var1"))
-						#elif match.group("reqvar"):
-						#		v.append((match.group("reqvar"),match.group("reqvarsep"),match.group("reqvar1")))
-						#		pd.append(match.group("reqvar1"))
-						elif match.group("macro"):
-								m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
-
-				paramdefs.update(self.getparamdefs(pd, ctx=ctx, txn=txn))
-
-				# invariant to recid
-				if n:
-					for i in n:
-						vrend = vtm.name_render(paramdefs.get(i[2]), mode=mode, db=self, ctx=ctx, txn=txn)
-						vd = vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-					groupviews[g1] = vd
-
-				names[g1] = n
-				values[g1] = v
-				macros[g1] = m
-
-
-			ret={}
-
-
-			for rec in recs:
-				if groupviews.get(rec.recid):
-					key = rec.recid
-				else:
-					key = rec.rectype
-				if viewdef: key = None
-				a = groupviews.get(key)
-
-				for i in values[key]:
-					v = vtm.param_render(paramdefs[i[2]], rec.get(i[2]), mode=mode, db=self, ctx=ctx, txn=txn)
-					a = a.replace(u"$$" + i[0] + i[1], v + i[1])
-
-				if showmacro:
-					for i in macros[key]:
-						v=vtm.macro_render(i[2], i[3], rec, mode=mode, db=self, ctx=ctx, txn=txn) #macro, params, rec, mode="unicode", db=None, , ctx=ctx, txn=txn
-						a=a.replace(u"$@" + i[0], v + i[1])
-
-				ret[rec.recid]=a
-
-			if ol:
-				return ret.values()[0]
-			return ret
-
-
-
+			# calls out to places that expect DBProxy need a DBProxy...
+			kwargs["db"] = kwargs["ctx"].db
+			if kwargs.get("ctx"): del kwargs["ctx"]
+			if kwargs.get("txn"): del kwargs["txn"]
+			return self.vtm.renderview(*args, **kwargs)
 
 
 

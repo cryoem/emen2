@@ -36,8 +36,8 @@ class PublicView(Resource):
 		Resource.__init__(self)
 
 
-
 	special_keys = set(["db","host","user","ctxid", "username", "pw"])
+
 	def __parse_args(self, args, content=None):
 		"""Break the request.args dict into something more usable
 
@@ -212,6 +212,7 @@ class PublicView(Resource):
 
 	def render_GET(self, request, content=None):
 		try:
+
 			host = request.getClientIP()
 			ctxid = request.getCookie("ctxid") or request.args.get("ctxid",[None])[0]
 
@@ -253,14 +254,11 @@ class PublicView(Resource):
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-
 		g.debug.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 
 		db._starttxn()
-
 		db._setcontext(ctxid,host)
-
 
 		try:
 			ret, headers = callback(db=db)
@@ -270,6 +268,8 @@ class PublicView(Resource):
 			raise
 		else:
 			db._committxn()
+
+		db._clearcontext()
 
 		return ret, headers
 
@@ -346,7 +346,7 @@ class PublicView(Resource):
 
 		request.setResponseCode(response)
 		request.write(data)
-		#g.debug.msg('LOG_INFO', 'response -> (%r)' % response)
+
 		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
