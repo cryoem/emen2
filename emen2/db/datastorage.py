@@ -39,9 +39,11 @@ def parseparmvalues(text,noempty=0):
 
 class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
 
-	attr_user = set(["filename","filepath", "uri","recid","modifyuser","modifytime"])
-	attr_admin = set(["creator","creationtime","name"])
-	attr_all = attr_user | attr_admin
+	@property
+	def attr_user(self): return set(["filename","filepath", "uri","recid","modifyuser","modifytime"])
+
+	@property
+	def attr_admin(self): return set(["creator","creationtime","name"])
 
 	attr_vartypes = {
 		"recid":"int",
@@ -56,14 +58,15 @@ class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
 
 
 	# name is BDO	
-	def init(self, d):
-		pass
+	def init(self, d): pass
+
+	def validate(self): pass
 
 
 
 
 
-class ParamDef(object, DictMixin) :
+class ParamDef(emen2.Database.subsystems.dataobject.BaseDBInterface):
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
@@ -71,67 +74,34 @@ class ParamDef(object, DictMixin) :
 	created, and then, they should only be modified for clarification"""
 
 	# non-admin users may only update descs and choices
-	attr_user = set(["desc_long","desc_short","choices"])
-	attr_admin = set(["name","vartype","defaultunits","property","creator","creationtime","uri","creationdb"]) #
-	attr_all = attr_user | attr_admin
+	@property
+	def attr_user(self): return set(["desc_long","desc_short","choices"])
+	@property
+	def attr_admin(self): return set(["name","vartype","defaultunits","property","creator","creationtime","uri","creationdb"])
 
 	# name may be a dict; this allows backwards compat dictionary initialization
-	def __init__(self,name=None,vartype=None,desc_short=None,desc_long=None,
-						property=None,defaultunits=None,choices=None,uri=None, ctx=None):
-		self.name = name					# This is the name of the paramdef, also used as index
-		self.vartype = vartype			# Variable data type. List of valid types in the module global 'vartypes'
-		self.desc_short = desc_short		# This is a very short description for use in forms
-		self.desc_long = desc_long		# A complete description of the meaning of this variable
-		self.property = property			# Physical property represented by this field, List in 'properties'
-		self.defaultunits = defaultunits	# Default units (optional)
-		self.choices = choices			# choices for choice and string vartypes, a tuple
+	def init(self,d):
+		self.name = d.get('name')					# This is the name of the paramdef, also used as index
+		self.vartype = d.get('vartype')			# Variable data type. List of valid types in the module global 'vartypes'
+		self.desc_short = d.get('desc_short')		# This is a very short description for use in forms
+		self.desc_long = d.get('desc_long')		# A complete description of the meaning of this variable
+		self.property = d.get('property')			# Physical property represented by this field, List in 'properties'
+		self.defaultunits = d.get('defaultunits')	# Default units (optional)
+		self.choices = d.get('choices')			# choices for choice and string vartypes, a tuple
 		self.creator = None				# original creator of the record
 		self.creationtime = time.strftime(emen2.Database.database.TIMESTR)	# creation date
 		self.creationdb = None			# dbid where paramdef originated # deprecated; use URI
 		self.uri = None
 
-		if isinstance(name,dict):
-			self.update(name)
 
-
-
-
-	#################################
-	# repr methods
-	#################################
-
-	def __str__(self):
-		return unicode(dict(self))
-		#return format_string_obj(self.__dict__,["name","vartype","desc_short","desc_long","property","defaultunits","","creator","creationtime","creationdb"])
 
 
 	#################################
 	# mapping methods
 	#################################
 
-	def __getitem__(self,key):
-		try:
-			return self.__dict__[key]
-		except:
-			pass
-
-	def __setitem__(self,key,value):
-		if key in self.attr_all:
-			self.__dict__[key]=value
-		else:
-			raise KeyError,"Invalid key: %s"%key
-
-	def __delitem__(self,key):
-		raise KeyError,"Key deletion not allowed"
-
 	def keys(self):
 		return tuple(self.attr_all)
-
-
-	#################################
-	# ParamDef methods
-	#################################
-
 
 
 	#################################
@@ -146,48 +116,30 @@ class ParamDef(object, DictMixin) :
 		if set(self.__dict__.keys())-self.attr_all:
 			raise AttributeError,"Invalid attributes: %s"%",".join(set(self.__dict__.keys())-self.attr_all)
 
-		try:
-			if not self.name:
-				raise Exception
-			self.name = unicode(self.name)
-		except:
+		if not self.name:
 			raise ValueError,"name required"
+		self.name = unicode(self.name)
 
 
-		try:
-			self.vartype = unicode(self.vartype)
-			if self.vartype not in vtm.getvartypes():
-				raise Exception
-		except:
+		self.vartype = unicode(self.vartype)
+		if self.vartype not in vtm.getvartypes():
 			raise ValueError,"Invalid vartype %s; not in valid_vartypes"%self.vartype
 
 
-		try:
-			if not self.desc_short:
-				raise Exception
-			self.desc_short = unicode(self.desc_short)
-		except:
+		if not self.desc_short:
 			raise ValueError,"Short description (desc_short) required"
+		self.desc_short = unicode(self.desc_short)
 
 
-		try:
-			if not self.desc_long:
-				raise Exception
-			self.desc_long = unicode(self.desc_long)
-		except:
-			pass
-			#raise ValueError,"Long description (desc_long) required"
+		self.desc_long = unicode(self.desc_long)
 
 
 		if self.property == "":
 			self.property=None
 
 		if self.property != None:
-			try:
-				self.property = unicode(self.property)
-				if self.property not in vtm.getproperties():
-					raise Exception
-			except:
+			self.property = unicode(self.property)
+			if self.property not in vtm.getproperties():
 				g.debug.msg("LOG_WARNING", "Invalid property %s"%self.property)
 
 
@@ -197,25 +149,23 @@ class ParamDef(object, DictMixin) :
 		if self.defaultunits != None:
 			self.defaultunits=unicode(self.defaultunits)
 			if self.property == None:
-				#raise ValueError,"Units requires property"
 				g.debug.msg("LOG_WARNING", "Units requires property")
 			else:
 				prop=vtm.getproperty(self.property)
 				if prop.equiv.get(self.defaultunits):
 					self.defaultunits=prop.equiv.get(self.defaultunits)
 				if self.defaultunits not in set(prop.units):
-					#raise Exception,"Invalid default units %s for property %s"%(self.defaultunits,self.property)
 					g.debug.msg("LOG_WARNING", "Invalid default units %s for property %s"%(self.defaultunits,self.property))
 
 		if self.choices:
-			try:
-				self.choices = map(unicode, filter(bool, self.choices))
-			except Exception, inst:
-				raise ValueError, "Invalid choices (%s)"%(inst)
+			self.choices = filter(None, self.choices)
+			# try:
+			#	self.choices = map(unicode, filter(bool, self.choices))
+			# except Exception, inst:
+			#	raise ValueError, "Invalid choices (%s)"%(inst)
 
 		if not self.creationtime or not self.creator:
 			g.debug.msg("LOG_WARNING", "Invalid creation info: %s %s"%(self.creationtime, self.creator))
-			#raise Exception, "Invalid creation info: %s %s"%(self.creationtime, self.creator)
 
 		if not self.creator:
 			self.creator = u"root"
@@ -227,8 +177,6 @@ class ParamDef(object, DictMixin) :
 			self.uri = unicode(self.uri)
 		elif not hasattr(self, 'uri'):
 			self.uri = None
-
-		return
 
 
 
