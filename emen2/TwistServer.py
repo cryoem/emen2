@@ -53,7 +53,7 @@ def prepare_web():
 
 
 
-prepare_properties(g.EMEN2ROOT+"/tweb/js/datatypes.js")
+#prepare_properties(g.EMEN2ROOT+"/tweb/js/datatypes.js")
 prepare_web()
 
 
