@@ -2,5 +2,5 @@ var valid_properties={"angle":["degree",["radian","degree","mrad"]],"area":["m^2
 
 var valid_vartypes=["longfloat","links","int","text","image","float","datetime","boolean","stringlist","binaryimage","binary","userlist","comments","html","dict","intlist","string","choice","link","user","child","date","url","list","acl","hdf","longint","time","floatlist"];
 
-var EMEN2WEBROOT="";
+var EMEN2WEBROOT="/pd";
 

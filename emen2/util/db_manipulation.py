@@ -139,8 +139,8 @@ class DBTree(object):
 		return result
 
 	def to_path(self, recid):
-		with self.__db:
-			return urllib2.quote('/'.join(self.__to_path(recid)))
+		#with self.__db:
+		return urllib2.quote('/'.join(self.__to_path(recid)))
 
 	def reverse(self, _name, *args, **kwargs):
 		_full = kwargs.get('_full', False)
