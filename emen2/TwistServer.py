@@ -21,13 +21,13 @@ import emen2.TwistSupport_html.publicresource
 import emen2.TwistSupport_html.rpcresource
 import emen2.TwistSupport_html.authresource
 
-
 import emen2.TwistSupport_html.public.views
 emen2.TwistSupport_html.public.views.load_views()
 
 import emen2.TwistSupport_html.html
 import emen2.TwistSupport_html.public.record
 import emen2.TwistSupport_html.public.template_render
+
 
 def prepare_properties(outfile):
 	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
@@ -60,12 +60,6 @@ prepare_web()
 #############################
 # Resources
 #############################
-import emen2.TwistSupport_html.uploadresource
-import emen2.TwistSupport_html.downloadresource
-import emen2.TwistSupport_html.publicresource
-#import emen2.TwistSupport_html.xmlrpcresource
-import emen2.TwistSupport_html.rpcresource
-import emen2.TwistSupport_html.authresource
 
 
 ## g.STATICPATH = g.EMEN2ROOT+"/tweb"
@@ -81,6 +75,7 @@ def interact():
 		if exit[0] == 'n':
 				thread.interrupt_main()
 				return
+
 #def bonjour_register():
 #	import pybonjour
 #	import select

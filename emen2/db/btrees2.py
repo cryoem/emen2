@@ -2,18 +2,11 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 import bsddb3
-from cPickle import dumps, loads
 import cPickle as pickle
 import sys
 import time
 import weakref
 
-
-
-
-
-dbopenflags = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
-#| bsddb3.db.DB_AUTO_COMMIT
 
 
 # Berkeley DB wrapper classes
@@ -46,7 +39,7 @@ class BTree(object):
 		if filename == None:
 			filename = name+".bdb"
 
-		#global globalenv#, dbdbopenflags
+		#global globalenv#, dbDBOPENFLAGS
 		self.txn = None	# current transaction used for all database operations
 
 		if not dbenv:
@@ -61,7 +54,7 @@ class BTree(object):
 		self.__setweakrefopen()
 
 
-		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
+		self.bdb.open(filename, name, dbtype=bsddb3.db.DB_BTREE, flags=emen2.Database.database.DBOPENFLAGS)
 
 
 	def __setkeytype(self, keytype):
@@ -122,8 +115,8 @@ class BTree(object):
 
 
 	def __dumpkey_unicode_int(self, key):
-		if isinstance(key, int): return dumps(int(key))
-		return dumps(unicode(key).encode("utf-8"))
+		if isinstance(key, int): return pickle.dumps(int(key))
+		return pickle.dumps(unicode(key).encode("utf-8"))
 
 
 	# special key loads
@@ -132,7 +125,7 @@ class BTree(object):
 
 
 	def __loadkey_unicode_int(self, key):
-		key = loads(key)
+		key = pickle.loads(key)
 		if isinstance(key,int): return key
 		return key.encode("utf-8")
 
@@ -142,10 +135,10 @@ class BTree(object):
 		return key
 
 	def dumpkey(self, key):
-		return dumps(self.typekey(key))
+		return pickle.dumps(self.typekey(key))
 
 	def loadkey(self, key):
-		return loads(key)
+		return pickle.loads(key)
 
 
 	# default keytypes and datatypes
@@ -153,10 +146,10 @@ class BTree(object):
 		return data
 
 	def dumpdata(self, data):
-		return dumps(self.typedata(data))
+		return pickle.dumps(self.typedata(data))
 
 	def loaddata(self, data):
-		return loads(data)
+		return pickle.loads(data)
 
 
 
@@ -233,7 +226,7 @@ class BTree(object):
 	# 	if data == None:
 	# 		self.__delitem__(self.typekey(key), txn=txn)
 	# 	else:
-	# 		#self.bdb.put(dumps(self.typekey(key)), dumps(self.typedata(data)), txn=self.txn)
+	# 		#self.bdb.put(pickle.dumps(self.typekey(key)), pickle.dumps(self.typedata(data)), txn=self.txn)
 	# 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn)
 	#
 	#
@@ -328,15 +321,15 @@ class RelateBTree(BTree):
 
 		# Parent keyed list of children
 		self.pcdb = bsddb3.db.DB(dbenv)
-		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
+		self.pcdb.open(filename+".pc", name, dbtype=bsddb3.db.DB_BTREE, flags=emen2.Database.database.DBOPENFLAGS)
 
 		# Child keyed list of parents
 		self.cpdb = bsddb3.db.DB(dbenv)
-		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
+		self.cpdb.open(filename+".cp", name, dbtype=bsddb3.db.DB_BTREE, flags=emen2.Database.database.DBOPENFLAGS)
 
 		# lateral links between records (nondirectional), 'getcousins'
 		self.reldb = bsddb3.db.DB(dbenv)
-		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=dbopenflags)
+		self.reldb.open(filename+".rel", name, dbtype=bsddb3.db.DB_BTREE, flags=emen2.Database.database.DBOPENFLAGS)
 
 
 	def __str__(self):
@@ -388,7 +381,7 @@ class RelateBTree(BTree):
 
 
 		try:
-			o = loads(db1.get(self.dumpkey(tag1), txn=txn, flags=bsddb3.db.DB_RMW))
+			o = pickle.loads(db1.get(self.dumpkey(tag1), txn=txn, flags=bsddb3.db.DB_RMW))
 		except:
 			o = set()
 
@@ -396,19 +389,19 @@ class RelateBTree(BTree):
 
 		if (method == "add" and tag2 not in o) or (method == "remove" and tag2 in o):
 			getattr(o, method)(tag2)
-			db1.put(self.dumpkey(tag1), dumps(o), txn=txn)
+			db1.put(self.dumpkey(tag1), pickle.dumps(o), txn=txn)
 
 
 
 
 		try:
-			o = loads(db2.get(self.dumpkey(tag2), txn=txn, flags=bsddb3.db.DB_RMW))
+			o = pickle.loads(db2.get(self.dumpkey(tag2), txn=txn, flags=bsddb3.db.DB_RMW))
 		except:
 			o = set()
 
 		if (method == "add" and tag1 not in o) or (method == "remove" and tag1 in o):
 			getattr(o, method)(tag1)
-			db2.put(self.dumpkey(tag2), dumps(o), txn=txn)
+			db2.put(self.dumpkey(tag2), pickle.dumps(o), txn=txn)
 
 
 
@@ -442,7 +435,7 @@ class RelateBTree(BTree):
 
 
 		try:
-			return loads(self.cpdb.get(self.dumpkey(tag), txn=txn))
+			return pickle.loads(self.cpdb.get(self.dumpkey(tag), txn=txn))
 		except:
 			return set()
 
@@ -455,7 +448,7 @@ class RelateBTree(BTree):
 
 
 		try:
-			return loads(self.pcdb.get(self.dumpkey(tag), txn=txn))
+			return pickle.loads(self.pcdb.get(self.dumpkey(tag), txn=txn))
 			#if paramname :
 			#	return set(x[0] for x in c if x[1]==paramname)
 			#else: return c
@@ -469,7 +462,7 @@ class RelateBTree(BTree):
 			raise Exception,"relate option required"
 
 		try:
-			return loads(self.reldb.get(self.dumpkey(tag),txn=txn))
+			return pickle.loads(self.reldb.get(self.dumpkey(tag),txn=txn))
 		except:
 			return set()
 
@@ -568,7 +561,7 @@ class FieldBTree(BTree):
 			items = []
 			if mink is not None:
 				mink=self.typekey(mink)
-				entry = cur.set_range(pickle.dumps(mink))
+				entry = cur.set_range(pickle.pickle.dumps(mink))
 			else:
 				entry = cur.first()
 

@@ -1,19 +1,27 @@
-from UserDict import DictMixin
-from math import *
 import time
 import re
-from emen2.Database.exceptions import SecurityError
+import traceback
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-import traceback
 
 # validation
-import emen2.Database.subsystems
-import emen2.Database.subsystems.dataobject
-import emen2.Database.database
+#import emen2
+#import emen2.Database.database
+#import emen2.Database.subsystems
+#import emen2.Database.subsystems.dataobject
+
+#import emen2.Database.subsystems.dataobject.BaseDBObject
+#.BaseDBObject
 
 
+from UserDict import DictMixin
+from math import *
+
+import subsystems.dataobject
+print subsystems.dataobject
+#print emen2.Database.subsystems.dataobject.BaseDBObject
 
 def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
@@ -37,7 +45,7 @@ def parseparmvalues(text,noempty=0):
 
 
 
-class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
+class Binary(subsystems.dataobject.BaseDBObject):
 
 	@property
 	def attr_user(self): return set(["filename","filepath", "uri","recid","modifyuser","modifytime"])
@@ -66,7 +74,7 @@ class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
 
 
 
-class ParamDef(emen2.Database.subsystems.dataobject.BaseDBInterface):
+class ParamDef(subsystems.dataobject.BaseDBInterface):
 	"""This class defines an individual data Field that may be stored in a Record.
 	Field definitions are related in a tree, with arbitrary lateral linkages for
 	conceptual relationships. The relationships are handled externally by the
@@ -78,6 +86,7 @@ class ParamDef(emen2.Database.subsystems.dataobject.BaseDBInterface):
 	def attr_user(self): return set(["desc_long","desc_short","choices"])
 	@property
 	def attr_admin(self): return set(["name","vartype","defaultunits","property","creator","creationtime","uri","creationdb"])
+
 
 	# name may be a dict; this allows backwards compat dictionary initialization
 	def init(self,d):
@@ -93,9 +102,10 @@ class ParamDef(emen2.Database.subsystems.dataobject.BaseDBInterface):
 		self.creationdb = None			# dbid where paramdef originated # deprecated; use URI
 		self.uri = None
 
+		ctx = d.get("ctx")
 
-		if ctx:
-			self.__ctx = ctx
+		#if ctx:
+		#	self.__ctx = ctx
 			
 
 	def __getstate__(self):
@@ -233,10 +243,10 @@ class RecordDef(object, DictMixin) :
 		self.findparams()
 
 		if ctx:
-			self.__ctx = ctx
-			if not self.owner: self.owner = self.__ctx.username
-			if not self.creator: self.creator = self.__ctx.username
-			if not self.creationtime: self.creationtime = self.__ctx.db.gettime()
+			if not self.owner: self.owner = ctx.username
+			if not self.creator: self.creator = ctx.username
+			if not self.creationtime: self.creationtime = ctx.db.gettime()
+			#self.__ctx = ctx
 
 
 

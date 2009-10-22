@@ -4,8 +4,10 @@ import operator
 import hashlib
 
 
-import emen2.Database.database
-import emen2.Database.datastorage
+#import emen2.Database.database
+#import emen2.Database.datastorage
+import emen2.Database
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
@@ -578,8 +580,8 @@ class WorkFlow(object, DictMixin):
 
 
 
-import emen2.Database
-emen2.Database.User = User
-emen2.Database.Context = Context
-emen2.Database.WorkFlow = WorkFlow
-emen2.Database.Group = Group
+#import emen2.Database
+#emen2.Database.User = User
+#emen2.Database.Context = Context
+#emen2.Database.WorkFlow = WorkFlow
+#emen2.Database.Group = Group

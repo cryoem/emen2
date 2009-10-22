@@ -1,18 +1,6 @@
 from __future__ import with_statement
-import emen2.util.ticker
 import bsddb3
-from bsddb3 import db
-from cPickle import load, dump
-
-from emen2.Database.btrees2 import *
-from emen2.Database.datastorage import *
-from emen2.Database.exceptions import *
-from emen2.Database.user import *
 import copy
-import emen2.Database.subsystems
-
-from functools import partial, wraps
-
 import copy
 import atexit
 import emen2
@@ -27,11 +15,14 @@ import traceback
 import operator
 import collections
 import itertools
-
 import random
 
-from emen2.util.utils import prop
+from functools import partial, wraps
+from cPickle import load, dump
+from bsddb3 import db
 
+import emen2.util.ticker
+import emen2.util.utils
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
@@ -39,58 +30,111 @@ g = emen2.globalns.GlobalNamespace('')
 
 
 
-
-
 TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
+USETXN = True
+DEBUG = 0
 
 
-usetxn = True
+ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL | bsddb3.db.DB_INIT_LOCK | bsddb3.db.DB_INIT_LOG | bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_MULTIVERSION
+#bsddb3.db.DB_TXN_SNAPSHOT	
+TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT
+DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
 
-envopenflags = db.DB_CREATE | db.DB_THREAD | db.DB_INIT_MPOOL | db.DB_INIT_LOCK | db.DB_INIT_LOG |  db.DB_INIT_TXN | db.DB_MULTIVERSION
-txnflags_read = db.DB_TXN_SNAPSHOT
-#txnflags_rmw = db.DB_TXN_SNAPSHOT
 
-
-#| db.DB_READ_UNCOMMITTED
-# | db.DB_INIT_TXN
-DEBUG = 0 #TODO consolidate debug flag
+#if USETXN:
+#	ENVOPENFLAGS |= TXNFLAGS
 
 
 
-# def txn_decorator(func):
-# 	def _inner(self, *args, **kwargs):
-# 		txn = kwargs.get('txn')
-# 		txn_started = False
-# 		if txn is None:
-# 			txn = self.newtxn()
-# 			txn_started = True
-# 		kwargs['txn'] = txn
-# 		try:
-# 			func(self,*args, **kwargs)
-# 		except:
-# 			if txn_started:
-# 				txn.discard()
-# 			raise
-# 		else:
-# 			self.txncommit(ctx=ctx, txn=txn)
-
-#class extract_recid(object):
-#	def __init__(self, argno):
-#		self.argno = argno-1
-#	def __call__(self, func):
-#		check = partial(any, lambda rec: isinstance(rec, Record))
-#		def _inner(*args, **kwargs):
-#			if check(args[self.argno]):
-#				args = (list(args[:self.argno]),
-#						[rec.rectype if isinstance(x, datastorage.Record) else rec for rec in args[self.argno]],
-#						args[self.argno+1:])
-#				args[0].extend(args[1])
-#				args[0].extend(args[2])
-#				args = args[0]
-#			return func(*args, *kwargs)
+def DB_syncall():
+	"""This 'syncs' all open databases"""
+	#if DEBUG > 2:
+	#	g.debug("sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees)))
+	#t = time.time()
+	for i in emen2.Database.btrees2.BTree.alltrees.keys(): i.sync()
+	for i in emen2.Database.btrees2.RelateBTree.alltrees.keys(): i.sync()
+	for i in emen2.Database.btrees2.FieldBTree.alltrees.keys(): i.sync()
+	# g.debug("%f sec to sync"%(time.time()-t))
 
 
+def DB_cleanup():
+	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
+	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
+	necessary at the next restart"""
+	sys.stdout.flush()
+	print >> sys.stderr, "DB has %d transactions left" % Database.txncounter
+	print >> sys.stderr, "Closing %d BDB databases" % (len(emen2.Database.btrees2.BTree.alltrees) + len(emen2.Database.btrees2.RelateBTree.alltrees) + len(emen2.Database.btrees2.FieldBTree.alltrees))
+	if DEBUG > 2: print >> sys.stderr, len(emen2.Database.btrees2.BTree.alltrees), 'BTrees'
+	for i in emen2.Database.btrees2.BTree.alltrees.keys():
+		if DEBUG > 2: sys.stderr.write('closing %s\n' % unicode(i))
+		i.close()
+		if DEBUG > 2: sys.stderr.write('%s closed\n' % unicode(i))
+		if DEBUG > 2: print >> sys.stderr, '\n', len(emen2.Database.btrees2.RelateBTree.alltrees), 'RelateBTrees'
+		for i in emen2.Database.btrees2.RelateBTree.alltrees.keys(): i.close()
+		if DEBUG > 2: sys.stderr.write('.')
+		if DEBUG > 2: print >> sys.stderr, '\n', len(emen2.Database.btrees2.FieldBTree.alltrees), 'FieldBTrees'
+		for i in emen2.Database.btrees2.FieldBTree.alltrees.keys(): i.close()
+		if DEBUG > 2: sys.stderr.write('.')
+		if DEBUG > 2: sys.stderr.write('\n')
+
+
+# This rmakes sure the database gets closed properly at exit
+atexit.register(DB_cleanup)
+
+
+def publicmethod(func):
+
+	@wraps(func)
+	def _inner(self, *args, **kwargs):
+
+		result = None
+		txn = kwargs.get('txn')
+		ctx = kwargs.get('ctx')
+		commit = False
+
+
+		if txn is None:
+			txn = self.newtxn()
+			commit = True
+		kwargs['txn'] = txn
+
+
+		try:
+			result = func(self, *args, **kwargs)
+
+		except Exception, e:
+			traceback.print_exc(e)
+			if commit is True:
+				txn and self.txnabort(ctx=ctx, txn=txn)
+			raise
+
+		else:
+			if commit is True:
+				txn and self.txncommit(ctx=ctx, txn=txn)
+
+		return result
+
+	DBProxy._register_publicmethod(func.func_name, _inner)
+	return _inner
+
+
+
+def adminmethod(func):
+	if not func.func_name.startswith('_'):
+		DBProxy._register_adminmethod(func.func_name, func)
+
+	@wraps(func)
+	def _inner(*args, **kwargs):
+		ctx = kwargs.get('ctx')
+		if ctx is None:
+			ctx = [x for x in args is isinstance(x, emen2.Database.user.User)] or None
+			if ctx is not None: ctx = ctx.pop()
+		if ctx.checkadmin():
+			return func(*args, **kwargs)
+		else:
+			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
+	return _inner
 
 
 
@@ -178,7 +222,7 @@ class DBProxy(object):
 
 
 
-	@prop.init
+	@emen2.util.utils.prop.init
 	def _bound():
 		def fget(self): return self.__bound
 		def fdel(self): self._clearcontext()
@@ -298,71 +342,6 @@ class DBExt(object):
 
 
 
-def DB_syncall():
-	"""This 'syncs' all open databases"""
-	#if DEBUG > 2:
-	#	g.debug("sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees)))
-	#t = time.time()
-	for i in BTree.alltrees.keys(): i.sync()
-	for i in RelateBTree.alltrees.keys(): i.sync()
-	for i in FieldBTree.alltrees.keys(): i.sync()
-	# g.debug("%f sec to sync"%(time.time()-t))
-
-
-
-def publicmethod(func):
-
-	@wraps(func)
-	def _inner(self, *args, **kwargs):
-
-		result = None
-		txn = kwargs.get('txn')
-		ctx = kwargs.get('ctx')
-		commit = False
-
-
-		if txn is None:
-			txn = self.newtxn()
-			commit = True
-		kwargs['txn'] = txn
-
-
-		try:
-			result = func(self, *args, **kwargs)
-
-		except Exception, e:
-			traceback.print_exc(e)
-			if commit is True:
-				txn and self.txnabort(ctx=ctx, txn=txn)
-			raise
-
-		else:
-			if commit is True:
-				txn and self.txncommit(ctx=ctx, txn=txn)
-
-		return result
-
-	DBProxy._register_publicmethod(func.func_name, _inner)
-	return _inner
-
-
-
-def adminmethod(func):
-	if not func.func_name.startswith('_'):
-		DBProxy._register_adminmethod(func.func_name, func)
-
-	@wraps(func)
-	def _inner(*args, **kwargs):
-		ctx = kwargs.get('ctx')
-		if ctx is None:
-			ctx = [x for x in args is isinstance(x, User)] or None
-			if ctx is not None: ctx = ctx.pop()
-		if ctx.checkadmin():
-			return func(*args, **kwargs)
-		else:
-			raise SecurityError, 'No Admin Priviliges'
-	return _inner
-
 
 
 
@@ -397,11 +376,11 @@ class Database(object):
 			importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
 			recover - Only one thread should call this. Will run recovery on the environment before opening."""
 
-			global envopenflags, usetxn
+			global ENVOPENFLAGS, USETXN
 
-			if usetxn:
+			if USETXN:
 				self.newtxn = self.newtxn1
-				envopenflags |= db.DB_INIT_TXN
+				ENVOPENFLAGS |= bsddb3.db.DB_INIT_TXN
 			else:
 				g.debug.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
@@ -422,7 +401,7 @@ class Database(object):
 
 			#xtraflags = 0
 			if recover:
-				envopenflags |= db.DB_RECOVER
+				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
 
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(path + "/home", os.F_OK):
@@ -450,6 +429,7 @@ class Database(object):
 
 			self.LOG(4, "Database initialization started")
 
+
 			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()
 			self.__dbenv.set_data_dir(self.path)
 
@@ -459,18 +439,19 @@ class Database(object):
 			self.__dbenv.set_lg_max(1024*1024*8)
 
 
-			self.__dbenv.set_lk_detect(db.DB_LOCK_DEFAULT) # internal deadlock detection
+			self.__dbenv.set_lk_detect(bsddb3.db.DB_LOCK_DEFAULT) # internal deadlock detection
 			self.__dbenv.set_lk_max_locks(100000)
 			self.__dbenv.set_lk_max_lockers(100000)
 			self.__dbenv.set_lk_max_objects(100000)
 			#set_lk_max_lockers
 			#set_lk_max_locks
 
-			#if self.__dbenv.DBfailchk(flags=0):
-				#self.LOG(1,"Database recovery required")
-				#sys.exit(1)
+			# ian: todo: is this method no longer in the bsddb3 API?
+			#if self.__dbenv.failchk(flags=0):
+			#	self.LOG(1,"Database recovery required")
+			#	sys.exit(1)
 
-			self.__dbenv.open(self.path + "/home", envopenflags)
+			self.__dbenv.open(self.path + "/home", ENVOPENFLAGS)
 
 			global globalenv
 			globalenv = self.__dbenv
@@ -484,18 +465,18 @@ class Database(object):
 
 			# Users
 			# active database users / groups
-			self.__users = BTree("users", keytype="s", filename=path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__users = emen2.Database.btrees2.BTree("users", keytype="s", filename=path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
 
-			self.__groupsbyuser = IndexKeyBTree("groupsbyuser", keytype="s", filename=path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
+			self.__groupsbyuser = emen2.Database.btrees2.IndexKeyBTree("groupsbyuser", keytype="s", filename=path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
 
-			self.__groups = BTree("groups", keytype="ds", filename=path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__groups = emen2.Database.btrees2.BTree("groups", keytype="ds", filename=path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
 			#self.__updatecontexts = False
 
 			# new users pending approval
-			self.__newuserqueue = BTree("newusers", keytype="s", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__newuserqueue = emen2.Database.btrees2.BTree("newusers", keytype="s", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# multisession persistent contexts
-			self.__contexts_p = BTree("contexts", keytype="s", filename=path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__contexts_p = emen2.Database.btrees2.BTree("contexts", keytype="s", filename=path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# local cache dictionary of valid contexts
 			self.__contexts = {}
@@ -504,15 +485,15 @@ class Database(object):
 
 
 			# Binary data names indexed by date
-			self.__bdocounter = BTree("BinNames", keytype="s", filename=path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__bdocounter = emen2.Database.btrees2.BTree("BinNames", keytype="s", filename=path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Defined ParamDefs
 			# ParamDef objects indexed by name
-			self.__paramdefs = RelateBTree("ParamDefs", keytype="s", filename=path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__paramdefs = emen2.Database.btrees2.RelateBTree("ParamDefs", keytype="s", filename=path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Defined RecordDefs
 			# RecordDef objects indexed by name
-			self.__recorddefs = RelateBTree("RecordDefs", keytype="s", filename=path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefs = emen2.Database.btrees2.RelateBTree("RecordDefs", keytype="s", filename=path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 
@@ -522,31 +503,31 @@ class Database(object):
 			# and database information is stored with key=0
 
 			# The actual database, containing id referenced Records
-			self.__records = RelateBTree("database", keytype="d", filename=path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__records = emen2.Database.btrees2.RelateBTree("database", keytype="d", filename=path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = FieldBTree("secrindex", filename=path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
+			self.__secrindex = emen2.Database.btrees2.FieldBTree("secrindex", filename=path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
 
 			# index of records belonging to each RecordDef
-			self.__recorddefindex = FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefindex = emen2.Database.btrees2.FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
 
 			# key=record id, value=last time record was changed
-			self.__timeindex = BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__timeindex = emen2.Database.btrees2.BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
 
 
-			self.__indexkeys = IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__indexkeys = emen2.Database.btrees2.IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
-			self.__workflow = BTree("workflow", keytype="d", filename=path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__workflow = emen2.Database.btrees2.BTree("workflow", keytype="d", filename=path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 			# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
@@ -599,7 +580,7 @@ class Database(object):
 		def __createskeletondb(self, ctx=None, txn=None):
 
 			# Create an initial administrative user for the database
-			u = User()
+			u = emen2.Database.user.User()
 			u.username = u"root"
 			u.password = hashlib.sha1(g.ROOTPW).hexdigest()
 
@@ -610,28 +591,38 @@ class Database(object):
 			self.__commit_users([u], ctx=ctx, txn=txn)
 
 
-
 			#pd = ParamDef("owner", "string", "Record Owner", "This is the user-id of the 'owner' of the record")
-			basepds = [
-				ParamDef("creator", "user", "Record Creator", "The user-id that initially created the record"),
-				ParamDef("modifyuser", "user", "Modified by", "The user-id that last changed the record"),
-				ParamDef("creationtime", "datetime", "Creation time", "The date/time the record was originally created"),
-				ParamDef("modifytime", "datetime", "Modification time", "The date/time the record was last modified"),
-				ParamDef("comments", "comments", "Record comments", "Record comments"),
-				ParamDef("rectype", "string", "Record type", "Record type (RecordDef)"),
-				ParamDef("permissions", "acl", "Permissions", "Permissions"),
-				ParamDef("parents","links","Parents", "Parents"),
-				ParamDef("children","links","Children", "Children"),
-				ParamDef("publish","boolean","Publish", "Publish"),
-				ParamDef("deleted","boolean","Deleted", "Deleted"),
-				ParamDef("recid","int","Record ID","Record ID"),
-				ParamDef("uri","string","Resource Location", "Resource Location")
+			b = [
+				("creator", "user", "Record Creator", "The user-id that initially created the record"),
+				("modifyuser", "user", "Modified by", "The user-id that last changed the record"),
+				("creationtime", "datetime", "Creation time", "The date/time the record was originally created"),
+				("modifytime", "datetime", "Modification time", "The date/time the record was last modified"),
+				("comments", "comments", "Record comments", "Record comments"),
+				("rectype", "string", "Record type", "Record type (RecordDef)"),
+				("permissions", "acl", "Permissions", "Permissions"),
+				("parents","links","Parents", "Parents"),
+				("children","links","Children", "Children"),
+				("publish","boolean","Publish", "Publish"),
+				("deleted","boolean","Deleted", "Deleted"),
+				("recid","int","Record ID","Record ID"),
+				("uri","string","Resource Location", "Resource Location")
 			]
+			
+			basepds = []
+			for i in b:
+				p = emen2.Database.datastorage.ParamDef(
+					name = i[0],
+					vartype = i[1],
+					desc_short = i[2],
+					desc_long = i[3]
+				)
+				basepds.append(p)
+			
 
 			self.__commit_paramdefs(basepds, ctx=ctx, txn=txn)
 
 
-			folder = RecordDef()
+			folder = emen2.Database.datastorage.RecordDef()
 			folder.name = "folder"
 			folder.desc_long = "Folder"
 			folder.desc_short = "Folder"
@@ -641,18 +632,18 @@ class Database(object):
 
 
 
-			_admin = Group()
+			_admin = emen2.Database.user.Group()
 			_admin.name = "admin"
 			_admin.adduser(3, "root")
 
-			_readadmin = Group()
+			_readadmin = emen2.Database.user.Group()
 			_readadmin.name = "readadmin"
 
-			_create = Group()
+			_create =  emen2.Database.user.Group()
 			_create.name = "create"
 			_create.adduser(3, "root")
 
-			_anon = Group()
+			_anon =  emen2.Database.user.Group()
 			_anon.name = "anon"
 
 			self.__commit_groups([_admin, _readadmin, _create, _anon], ctx=ctx, txn=txn)
@@ -776,7 +767,7 @@ class Database(object):
 				for btree in self.__dict__.values():
 					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
 						try: btree.close()
-						except db.InvalidArgError, e: g.debug.msg('LOG_ERROR', e)
+						except bsddb3.db.InvalidArgError, e: g.debug.msg('LOG_ERROR', e)
 					for btree in self.__fieldindex.values(): btree.close()
 		def close(self, ctx=None, txn=None):
 			self.closedb(ctx, txn=txn)
@@ -831,7 +822,7 @@ class Database(object):
 			#db = self
 			#if username is "anonymous":
 			#	db = None
-			return Context(username=username, host=host)
+			return emen2.Database.user.Context(username=username, host=host)
 
 
 		# No longer public method; only through DBProxy to force host=...
@@ -855,7 +846,7 @@ class Database(object):
 
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
-					raise AuthenticationError, AuthenticationError.__doc__
+					raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
 
 			try:
 				self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
@@ -885,10 +876,10 @@ class Database(object):
 			try:
 				user = self.__users.sget(username, txn=txn)
 			except:
-				raise AuthenticationError, AuthenticationError.__doc__
+				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
 
 			if user.disabled:
-				raise DisabledUserError, DisabledUserError.__doc__ % username
+				raise emen2.Database.exceptions.DisabledUserError, emen2.Database.exceptions.DisabledUserError.__doc__ % username
 
 			if s.hexdigest() == user.password:
 				return True
@@ -1013,12 +1004,12 @@ class Database(object):
 					context = self.__contexts_p.sget(ctxid, txn=txn) #[key]
 				except Exception, inst:
 					self.LOG(4, "Session expired %s (%s)" %(ctxid, inst), ctx=ctx, txn=txn)
-					raise SessionError, "Session expired: %s (%s)"%(ctxid, inst)
+					raise emen2.Database.exceptions.SessionError, "Session expired: %s (%s)"%(ctxid, inst)
 
 
 			if host and host != context.host :
 				self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, context.host), ctx=ctx, txn=txn)
-				raise SessionError, "Bad address match, login sessions cannot be shared"
+				raise emen2.Database.exceptions.SessionError, "Bad address match, login sessions cannot be shared"
 
 
 			# this sets up db handle ref, users, groups for context...
@@ -1096,13 +1087,13 @@ class Database(object):
 				raise ValueError, "Filename may not be 'None'"
 
 			if key and not ctx.checkadmin():
-				raise SecurityError, "Only admins may manipulate binary tree directly"
+				raise emen2.Database.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
 			# ian: todo: acquire lock?
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 
 			if not rec.writable():
-				raise SecurityError, "Write permission needed on referenced record."
+				raise emen2.Database.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
 			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
@@ -1168,14 +1159,14 @@ class Database(object):
 
 			# ian: todo: will this lock prevent others from overwriting new items?
 			# acquire RMW lock to prevent others from editing...
-			bdo = self.__bdocounter.get(datekey, txn=txn, flags=db.DB_RMW) or {}
+			bdo = self.__bdocounter.get(datekey, txn=txn, flags=bsddb3.db.DB_RMW) or {}
 
 			if newid == None:
 				newid = max(bdo.keys() or [-1]) + 1
 
 
 			if bdo.get(newid) and not ctx.checkadmin():
-				raise SecurityError, "Only admin may overwrite existing BDO"
+				raise emen2.Database.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 
 			nb = emen2.Database.datastorage.Binary()
@@ -1232,7 +1223,7 @@ class Database(object):
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 			if os.access(filename, os.F_OK) and not ctx.checkadmin():
-				raise SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
+				raise emen2.Database.exceptions.SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
 				#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
 
 
@@ -1270,14 +1261,14 @@ class Database(object):
 				ol=1
 				bids = [idents]
 				idents = bids
-			if isinstance(idents,(int,Record)):
+			if isinstance(idents,(int,emen2.Database.datastorage.Record)):
 				idents = [idents]
 
 
 			bids.extend(filter(lambda x:isinstance(x,basestring), idents))
 
 			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), filt=1, ctx=ctx, txn=txn))
-			recs.extend(filter(lambda x:isinstance(x,Record), idents))
+			recs.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), idents))
 
 			# ian: todo: speed this up some..
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
@@ -1330,7 +1321,7 @@ class Database(object):
 					if filt:
 						continue
 					else:
-						raise SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+						raise emen2.Database.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
 			if len(ret)==1 and ol:
@@ -1346,7 +1337,7 @@ class Database(object):
 			of objects under that key. A somewhat slow operation."""
 
 			if ctx.username == None:
-					raise SecurityError, "getbinarynames not available to anonymous users"
+					raise emen2.Database.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
 			ret = self.__bdocounter.keys(txn=txn)
 			ret = [(i, len(self.__bdocounter.get(txn=txn))) for i in ret]
@@ -1633,7 +1624,7 @@ class Database(object):
 				username = ctx.username
 
 			if ctx.username != username and not ctx.checkreadadmin():
-				raise SecurityError, "Not authorized to get record access for %s" % username
+				raise emen2.Database.exceptions.SecurityError, "Not authorized to get record access for %s" % username
 
 			return set(self.__secrindex.sget(username, txn=txn)) #[username]
 
@@ -1664,7 +1655,7 @@ class Database(object):
 		def getparamstatistics(self, paramname, ctx=None, txn=None):
 
 			if ctx.username == None:
-				raise SecurityError, "Not authorized to retrieve parameter statistics"
+				raise emen2.Database.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
 
 			try:
 				paramindex = self.__getparamindex(paramname, create=0, ctx=ctx, txn=txn)
@@ -1831,7 +1822,7 @@ class Database(object):
 			if len(recids) == 0:
 				return {}
 
-			if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],Record)):
+			if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],emen2.Database.datastorage.Record)):
 				return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 			# also converts to set..
@@ -1858,7 +1849,7 @@ class Database(object):
 		# this one gets records directly
 		def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
 
-			if not isinstance(list(records)[0],Record):
+			if not isinstance(list(records)[0],emen2.Database.datastorage.Record):
 				records = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
 
 			ret={}
@@ -2171,7 +2162,7 @@ class Database(object):
 				raise Exception, "Invalid relationship mode %s"%mode
 
 			if not ctx.checkcreate():
-				raise SecurityError, "linking mode %s requires record creation priveleges"%mode
+				raise emen2.Database.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if filter(lambda x:x[0] == x[1], links):
 				#g.debug.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
@@ -2194,7 +2185,7 @@ class Database(object):
 				recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
 				for a,b in links:
 					if not (recs[a].writable() or recs[b].writable()):
-						raise SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
+						raise emen2.Database.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 			else:
 				links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
@@ -2263,7 +2254,7 @@ class Database(object):
 				raise Exception, "Invalid state. Must be 0 or 1."
 
 			if not ctx.checkadmin():
-					raise SecurityError, "Only administrators can disable users"
+					raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
 
 			ol = 0
 			if not hasattr(username, "__iter__"):
@@ -2274,7 +2265,7 @@ class Database(object):
 			for i in username:
 				if i == ctx.username:
 					continue
-					# raise SecurityError, "Even administrators cannot disable themselves"
+					# raise emen2.Database.exceptions.SecurityError, "Even administrators cannot disable themselves"
 				user = self.__users.sget(i, txn=txn) #[i]
 				if user.disabled == state:
 					continue
@@ -2307,9 +2298,9 @@ class Database(object):
 			try:
 				admin = ctx.checkadmin()
 				if (secret == None) and (not admin):
-					raise SecurityError, "Only administrators or users with self-authorization codes can approve new users"
+					raise emen2.Database.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
 
-			except SecurityError:
+			except emen2.Database.exceptions.SecurityError:
 				raise
 
 			except BaseException, e:
@@ -2402,7 +2393,7 @@ class Database(object):
 
 
 			if not ctx.checkadmin():
-				raise SecurityError, "Only administrators can approve new users"
+				raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
 
 			ol = 0
 			if not hasattr(username,"__iter__"):
@@ -2432,7 +2423,7 @@ class Database(object):
 			"""Returns a list of names of unapproved users"""
 
 			if not ctx.checkadmin():
-				raise SecurityError, "Only administrators can approve new users"
+				raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
 
 			return self.__newuserqueue.keys(txn=txn)
 
@@ -2444,7 +2435,7 @@ class Database(object):
 			requested privacy. Administrators will get the full record"""
 
 			if not ctx.checkreadadmin():
-				raise SecurityError, "Only administrators can access pending users"
+				raise emen2.Database.exceptions.SecurityError, "Only administrators can access pending users"
 
 			if hasattr(username,"__iter__"):
 				ret={}
@@ -2492,13 +2483,13 @@ class Database(object):
 
 			if s.hexdigest() != user.password and not ctx.checkadmin():
 				time.sleep(2)
-				raise SecurityError, "Original password incorrect"
+				raise emen2.Database.exceptions.SecurityError, "Original password incorrect"
 
 			# we disallow bad passwords here, right now we just make sure that it
 			# is at least 6 characters long
 
 			if len(newpassword) < 6:
-				raise SecurityError, "Passwords must be at least 6 characters long"
+				raise emen2.Database.exceptions.SecurityError, "Passwords must be at least 6 characters long"
 
 			t = hashlib.sha1(newpassword)
 			user.password = t.hexdigest()
@@ -2553,7 +2544,7 @@ class Database(object):
 						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups))
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
 					raise
 
@@ -2567,7 +2558,7 @@ class Database(object):
 						g.debug.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups))
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
 					raise
 
@@ -2633,12 +2624,12 @@ class Database(object):
 		@publicmethod
 		def putgroup(self, groups, ctx=None, txn=None):
 
-			if isinstance(groups, (Group, dict)): # or not hasattr(groups, "__iter__"):
+			if isinstance(groups, (emen2.Database.user.Group, dict)): # or not hasattr(groups, "__iter__"):
 				groups = [groups]
 
 			groups2 = []
-			groups2.extend(filter(lambda x:isinstance(x, Group), groups))
-			groups2.extend(map(lambda x:Group(x), filter(lambda x:isinstance(x, dict), groups)))
+			groups2.extend(filter(lambda x:isinstance(x, emen2.Database.user.Group), groups))
+			groups2.extend(map(lambda x:emen2.Database.user.Group(x), filter(lambda x:isinstance(x, dict), groups)))
 
 			allusernames = self.getusernames(ctx=ctx, txn=txn)
 
@@ -2704,7 +2695,7 @@ class Database(object):
 			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + str(random.random()))
 
 			try:
-				user = User(inuser, secret=secret.hexdigest())
+				user = emen2.Database.user.User(inuser, secret=secret.hexdigest())
 			except:
 				raise ValueError, "User instance or dict required"
 
@@ -2748,14 +2739,14 @@ class Database(object):
 		@publicmethod
 		def putuser(self, user, validate=True, ctx=None, txn=None):
 
-			if not isinstance(user, User):
+			if not isinstance(user, emen2.Database.user.User):
 				try:
-					user = User(user)
+					user = emen2.Database.user.User(user)
 				except:
 					raise ValueError, "User instance or dict required"
 
 			if not ctx.checkadmin():
-				raise SecurityError, "Only administrators may add/modify users with this method"
+				raise emen2.Database.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 
 
 			if validate:
@@ -2777,9 +2768,9 @@ class Database(object):
 
 			for user in users:
 
-				if not isinstance(user, User):
+				if not isinstance(user, emen2.Database.user.User):
 					try:
-						user = User(user)
+						user = emen2.Database.user.User(user)
 					except:
 						raise ValueError, "User instance or dict required"
 
@@ -2791,7 +2782,7 @@ class Database(object):
 
 
 				#if user.creator != ouser.creator or user.creationtime != ouser.creationtime:
-				#	raise SecurityError, "Creation information may not be changed"
+				#	raise emen2.Database.exceptions.SecurityError, "Creation information may not be changed"
 
 				# user.validate()
 
@@ -2849,7 +2840,7 @@ class Database(object):
 				# if the user has requested privacy, we return only basic info
 				#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 				if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
-					user2 = User()
+					user2 = emen2.Database.user.User()
 					user2.username = user.username
 					user = user2
 
@@ -2894,7 +2885,7 @@ class Database(object):
 			ol = 0
 			if isinstance(username, basestring):
 				ol = 1
-			if isinstance(username, (basestring, int, Record)):
+			if isinstance(username, (basestring, int, emen2.Database.datastorage.Record)):
 				username=[username]
 
 			namestoget=[]
@@ -2905,7 +2896,7 @@ class Database(object):
 				vts.append("acl")
 
 			recs = []
-			recs.extend(filter(lambda x:isinstance(x,Record), username))
+			recs.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), username))
 			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), username), filt=filt, ctx=ctx, txn=txn))
 
 			if recs:
@@ -3033,7 +3024,7 @@ class Database(object):
 			it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 
 			if ctx.username == None:
-				raise SecurityError, "Anonymous users have no workflow"
+				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			try:
 				return self.__workflow.sget(ctx.username, txn=txn) #[ctx.username]
@@ -3073,7 +3064,7 @@ class Database(object):
 			"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 
 			if ctx.username == None:
-				raise SecurityError, "Anonymous users have no workflow"
+				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			if not isinstance(work, WorkFlow):
 				try:
@@ -3110,7 +3101,7 @@ class Database(object):
 			#self = db
 
 			if ctx.username == None:
-				raise SecurityError, "Anonymous users have no workflow"
+				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			wf = self.__workflow.sget(ctx.username, txn=txn) #[ctx.username]
 			for i, w in enumerate(wf):
@@ -3135,7 +3126,7 @@ class Database(object):
 			#self = db
 
 			if ctx.username == None:
-				raise SecurityError, "Anonymous users have no workflow"
+				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			if wflist == None:
 				wflist = []
@@ -3211,15 +3202,15 @@ class Database(object):
 			"""adds a new ParamDef object, group 0 permission is required
 			a p->c relationship will be added if parent is specified"""
 
-			if not isinstance(paramdef, ParamDef):
+			if not isinstance(paramdef, emen2.Database.datastorage.ParamDef):
 				try:
-					paramdef = ParamDef(paramdef)
+					paramdef = emen2.Database.datastorage.ParamDef(paramdef)
 				except ValueError, inst:
 					raise ValueError, "ParamDef instance or dict required"
 
 
 			if not ctx.checkcreate():
-				raise SecurityError, "No permission to create new paramdefs (need record creation permission)"
+				raise emen2.Database.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
 			paramdef.name = unicode(paramdef.name).lower()
 
@@ -3271,7 +3262,7 @@ class Database(object):
 
 			d = self.__paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
 			if d.vartype != "string":
-				raise SecurityError, "choices may only be modified for 'string' parameters"
+				raise emen2.Database.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
 
 			d.choices = d.choices + (unicode(choice).title(),)
 
@@ -3321,7 +3312,7 @@ class Database(object):
 			if isinstance(recs[0], int):
 				recs = self.getrecord(recs, ctx=ctx, txn=txn)
 
-			if isinstance(recs[0], Record):
+			if isinstance(recs[0], emen2.Database.datastorage.Record):
 				q = set((i.rectype for i in recs))
 				for i in q:
 					params |= set(self.getrecorddef(i, ctx=ctx, txn=txn).paramsK)
@@ -3392,7 +3383,7 @@ class Database(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv, txn=txn)
+			self.__fieldindex[paramname] = emen2.Database.btrees2.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv, txn=txn)
 
 			return self.__fieldindex[paramname]
 
@@ -3421,29 +3412,29 @@ class Database(object):
 			are necessary, so this method is available."""
 			#self = db
 
-			if not isinstance(recdef, RecordDef):
+			if not isinstance(recdef, emen2.Database.datastorage.RecordDef):
 				try:
-					recdef = RecordDef(recdef)
+					recdef = emen2.Database.datastorage.RecordDef(recdef)
 				except:
 					raise ValueError, "RecordDef instance or dict required"
 
 			recdef.validate()
 
 			if not ctx.checkcreate():
-				raise SecurityError, "No permission to create new RecordDefs"
+				raise emen2.Database.exceptions.SecurityError, "No permission to create new RecordDefs"
 
 
 			try:
 				rd = self.__recorddefs.sget(recdef.name, txn=txn) #[recdef.name]
 			except:
-				rd = RecordDef(recdef, ctx=ctx)
+				rd = emen2.Database.datastorage.RecordDef(recdef, ctx=ctx)
 				#raise Exception, "No such recorddef %s"%recdef.name
 
 			if ctx.username != rd.owner and not ctx.checkadmin():
-				raise SecurityError, "Only the owner or administrator can modify RecordDefs"
+				raise emen2.Database.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
 			if recdef.mainview != rd.mainview and not ctx.checkadmin():
-				raise SecurityError, "Only the administrator can modify the mainview of a RecordDef"
+				raise emen2.Database.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 
 			recdef.findparams()
@@ -3513,13 +3504,13 @@ class Database(object):
 
 			# ok, now we need to do a little more work.
 			if recid == None:
-				raise SecurityError, "User doesn't have permission to access private RecordDef '%s'" % rectypename
+				raise emen2.Database.exceptions.SecurityError, "User doesn't have permission to access private RecordDef '%s'" % rectypename
 
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 			# try to get the record, may (and should sometimes) raise an exception
 
 			if rec.rectype != rectypename:
-				raise SecurityError, "Record %d doesn't belong to RecordDef %s" % (recid, rectypename)
+				raise emen2.Database.exceptions.SecurityError, "Record %d doesn't belong to RecordDef %s" % (recid, rectypename)
 
 			# success, the user has permission
 			return ret
@@ -3586,7 +3577,7 @@ class Database(object):
 					rec = self.__records.sget(i, txn=txn) # [i]
 					rec.setContext(ctx=ctx)
 					ret.append(rec)
-				except SecurityError, e:
+				except emen2.Database.exceptions.SecurityError, e:
 					if filt: pass
 					else:
 						traceback.print_stack()
@@ -3615,7 +3606,7 @@ class Database(object):
 			already exist)."""
 
 
-			rec = Record(ctx=ctx)
+			rec = emen2.Database.datastorage.Record(ctx=ctx)
 			#rec.setContext(ctx)
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
@@ -3670,13 +3661,13 @@ class Database(object):
 
 			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
 			ol = 0
-			if isinstance(recs,(int,Record)):
+			if isinstance(recs,(int,emen2.Database.datastorage.Record)):
 				ol = 1
 				recs = [recs]
 
 
 			# get the records...
-			recs2.extend(filter(lambda x:isinstance(x,Record),recs))
+			recs2.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
@@ -3828,16 +3819,16 @@ class Database(object):
 
 			if not ctx.checkadmin():
 				if warning:
-					raise SecurityError, "Only administrators may bypass record validation"
+					raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass record validation"
 				if not log:
-					raise SecurityError, "Only administrators may bypass logging"
+					raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass logging"
 				if not importmode:
-					raise SecurityError, "Only administrators may use importmode"
+					raise emen2.Database.exceptions.SecurityError, "Only administrators may use importmode"
 
 
 			# filter input for dicts/records
 			ol = 0
-			if isinstance(recs,(Record,dict)):
+			if isinstance(recs,(emen2.Database.datastorage.Record,dict)):
 				ol = 1
 				recs = [recs]
 			elif not hasattr(recs, 'extend'):
@@ -3845,8 +3836,8 @@ class Database(object):
 
 
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
-			recs.extend(map(lambda x:Record(x, ctx=ctx), dictrecs))
-			recs = filter(lambda x:isinstance(x,Record), recs)
+			recs.extend(map(lambda x:emen2.Database.datastorage.Record(x, ctx=ctx), dictrecs))
+			recs = filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), recs)
 
 			# new records and updated records
 			updrecs = filter(lambda x:x.recid >= 0, recs)
@@ -3860,11 +3851,11 @@ class Database(object):
 
 			permerror = set([rec.recid for rec in updrecs]) - orecs
 			if permerror:
-				raise SecurityError, "No permission to write to records: %s"%permerror
+				raise emen2.Database.exceptions.SecurityError, "No permission to write to records: %s"%permerror
 
 
 			if newrecs and not ctx.checkcreate():
-				raise SecurityError, "No permission to create records"
+				raise emen2.Database.exceptions.SecurityError, "No permission to create records"
 
 			ret = self.__putrecord(recs, warning=warning, importmode=importmode, log=log, ctx=ctx, txn=txn)
 
@@ -3908,7 +3899,7 @@ class Database(object):
 				recid = updrec.recid
 
 
-				if self.__records.exists(updrec.recid, txn=txn, flags=db.DB_RMW):
+				if self.__records.exists(updrec.recid, txn=txn, flags=bsddb3.db.DB_RMW):
 					# we need to acquire RMW lock here to prevent changes during commit
 					orec = self.__records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
@@ -4025,7 +4016,7 @@ class Database(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.sget(-1, txn=txn, flags=db.DB_RMW)
+				baserecid = self.__records.sget(-1, txn=txn, flags=bsddb3.db.DB_RMW)
 				g.debug.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
 
@@ -4059,7 +4050,7 @@ class Database(object):
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
 					g.debug.msg("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs))
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 					raise
 
@@ -4085,7 +4076,7 @@ class Database(object):
 					self.__timeindex.set(recid, time, txn=txn)
 					#g.debug.msg("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 					raise
 
@@ -4098,7 +4089,7 @@ class Database(object):
 				try:
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 					raise
 
@@ -4125,7 +4116,7 @@ class Database(object):
 						self.__secrindex.addrefs(user, recs, txn=txn)
 						g.debug.msg("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)))
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
 
@@ -4141,7 +4132,7 @@ class Database(object):
 						self.__secrindex.removerefs(user, recs, txn=txn)
 						g.debug.msg("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
 
@@ -4165,7 +4156,7 @@ class Database(object):
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
 
-			except db.DBError, inst:
+			except bsddb3.db.DBError, inst:
 				g.debug.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
 				raise
 
@@ -4183,7 +4174,7 @@ class Database(object):
 						g.debug.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 					raise
 
@@ -4199,7 +4190,7 @@ class Database(object):
 						g.debug.msg("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
 						paramindex.removerefs(oldval, recs, txn=txn)
 
-				except db.DBError, inst:
+				except bsddb3.db.DBError, inst:
 					g.debug.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 					raise
 
@@ -4452,7 +4443,7 @@ class Database(object):
 
 				checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 				if users - checkitems:
-					raise SecurityError, "Invalid users/groups: %s"%(users-checkitems)
+					raise emen2.Database.exceptions.SecurityError, "Invalid users/groups: %s"%(users-checkitems)
 
 				# change child perms
 				if recurse:
@@ -4518,7 +4509,7 @@ class Database(object):
 
 				rec=self.getrecord(recid, ctx=ctx, txn=txn)
 				if ctx.username not in rec["permissions"][3] and not isroot:
-					raise SecurityError,"Insufficient permissions for record %s"%recid
+					raise emen2.Database.exceptions.SecurityError,"Insufficient permissions for record %s"%recid
 
 				# this will be a dictionary keyed by user of all records the user has
 				# just gained access to. Used for fast index updating
@@ -4734,7 +4725,7 @@ class Database(object):
 				in the local filesystem"""
 
 				#if user!="root" :
-				if not ctx.checkadmin(): raise SecurityError, "Only root may backup the database"
+				if not ctx.checkadmin(): raise emen2.Database.exceptions.SecurityError, "Only root may backup the database"
 
 
 				g.debug.msg('LOG_INFO', 'backup has begun')
@@ -4844,7 +4835,7 @@ class Database(object):
 		def archivelogs(self, ctx=None, txn=None):
 			g.debug.msg('LOG_INFO', "checkpointing")
 			self.__dbenv.txn_checkpoint()
-			archivefiles = self.__dbenv.log_archive(db.DB_ARCH_ABS)
+			archivefiles = self.__dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 			archivepath = self.get_dbpath('archives')
 			if not os.access(archivepath, os.F_OK):
 				os.makedirs(archivepath)
@@ -4876,12 +4867,12 @@ class Database(object):
 			if any(blocks):
 				to_commit = filter(None, blocks)
 				commit_funcs = {
-					ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
-					RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
-					User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
+					emen2.Database.datastorage.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
+					emen2.Database.datastorage.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
+					emen2.Database.user.User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
 				}
 				for block in to_commit:
-					if isinstance(block[0], Record):
+					if isinstance(block[0], emen2.Database.datastorage.Record):
 						self.__restore_rec(block, mp, ctx=ctx, txn=txn)
 					else:
 						map(commit_funcs[type(block[0])], block)
@@ -4971,7 +4962,7 @@ class Database(object):
 				user, groups = ctx.username, ctx.groups
 
 				if not ctx.checkadmin():
-					raise SecurityError, "Database restore requires admin access"
+					raise emen2.Database.exceptions.SecurityError, "Database restore requires admin access"
 
 				recmap = {}
 				nrec = 0
@@ -5006,13 +4997,13 @@ class Database(object):
 							commitrecs = False
 
 							# insert and renumber record
-							if isinstance(r, Record) and "record" in types:
+							if isinstance(r, emen2.Database.datastorage.Record) and "record" in types:
 								recblock.append(r)
-							elif isinstance(r, RecordDef) and "recorddef" in types:
+							elif isinstance(r, emen2.Database.datastorage.RecordDef) and "recorddef" in types:
 								recdefblock.append(r)
-							elif isinstance(r, ParamDef) and "paramdef" in types:
+							elif isinstance(r, emen2.Database.datastorage.ParamDef) and "paramdef" in types:
 								paramblock.append(r)
-							elif isinstance(r, User) and "user" in types:
+							elif isinstance(r, emen2.Database.user.User) and "user" in types:
 								userblock.append(r)
 
 							if sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= blocklength:
@@ -5082,7 +5073,7 @@ class Database(object):
 			# groups = ctx.groups
 			# #if user!="root" :
 			# if not ctx.checkadmin():
-			# 		raise SecurityError, "Only root may restore the database"
+			# 		raise emen2.Database.exceptions., "Only root may restore the database"
 			#
 			# if os.access(self.path + "/backup.pkl", R_OK) : fin = open(self.path + "/backup.pkl", "r")
 			# elif os.access(self.path + "/backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
@@ -5149,31 +5140,3 @@ class Database(object):
 			# 				else : g.debug("Unknown category ", r)
 			#
 			# g.debug("Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np)
-
-
-
-
-
-
-def DB_cleanup():
-	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
-	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
-	necessary at the next restart"""
-	sys.stdout.flush()
-	print >> sys.stderr, "DB has %d transactions left" % Database.txncounter
-	print >> sys.stderr, "Closing %d BDB databases" % (len(BTree.alltrees) + len(RelateBTree.alltrees) + len(FieldBTree.alltrees))
-	if DEBUG > 2: print >> sys.stderr, len(BTree.alltrees), 'BTrees'
-	for i in BTree.alltrees.keys():
-		if DEBUG > 2: sys.stderr.write('closing %s\n' % unicode(i))
-		i.close()
-		if DEBUG > 2: sys.stderr.write('%s closed\n' % unicode(i))
-		if DEBUG > 2: print >> sys.stderr, '\n', len(RelateBTree.alltrees), 'RelateBTrees'
-		for i in RelateBTree.alltrees.keys(): i.close()
-		if DEBUG > 2: sys.stderr.write('.')
-		if DEBUG > 2: print >> sys.stderr, '\n', len(FieldBTree.alltrees), 'FieldBTrees'
-		for i in FieldBTree.alltrees.keys(): i.close()
-		if DEBUG > 2: sys.stderr.write('.')
-		if DEBUG > 2: sys.stderr.write('\n')
-
-# This rmakes sure the database gets closed properly at exit
-atexit.register(DB_cleanup)
