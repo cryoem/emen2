@@ -1,33 +1,22 @@
 import time
 import re
 import traceback
+import math
+import UserDict
 
+
+import subsystems.dataobject
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
-# validation
-#import emen2
-#import emen2.Database.database
-#import emen2.Database.subsystems
-#import emen2.Database.subsystems.dataobject
-
-#import emen2.Database.subsystems.dataobject.BaseDBObject
-#.BaseDBObject
-
-
-from UserDict import DictMixin
-from math import *
-
-import subsystems.dataobject
-print subsystems.dataobject
-#print emen2.Database.subsystems.dataobject.BaseDBObject
 
 def parseparmvalues(text,noempty=0):
 	"""This will extract parameter names $param or $param=value """
 	# Ed 05/17/2008 -- cleaned up
 	#srch=re.findall('<([^> ]*) ([^=]*)="([^"]*)" *>([^<]*)</([^>]*)>' ,text)
 	#srch=re.findall('\$\$([^\$\d\s<>=,;-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+
 	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
 	params, vals = ret=[[],{}]
 
@@ -38,6 +27,7 @@ def parseparmvalues(text,noempty=0):
 			if a is None: val=b
 			else: val=a
 			vals[name] = val
+
 	return ret
 
 
@@ -98,7 +88,7 @@ class ParamDef(subsystems.dataobject.BaseDBInterface):
 		self.defaultunits = d.get('defaultunits')	# Default units (optional)
 		self.choices = d.get('choices')			# choices for choice and string vartypes, a tuple
 		self.creator = None				# original creator of the record
-		self.creationtime = time.strftime(emen2.Database.database.TIMESTR)	# creation date
+		self.creationtime = emen2.Database.database.gettime()	# creation date
 		self.creationdb = None			# dbid where paramdef originated # deprecated; use URI
 		self.uri = None
 
@@ -202,7 +192,7 @@ class ParamDef(subsystems.dataobject.BaseDBInterface):
 
 
 
-class RecordDef(object, DictMixin) :
+class RecordDef(object, UserDict.DictMixin) :
 	"""This class defines a prototype for Database Records. Each Record is a member of
 	a RecordClass. This class contains the information giving meaning to the data Fields
 	contained by the Record"""
@@ -415,7 +405,7 @@ class RecordDef(object, DictMixin) :
 
 
 
-class Record(object, DictMixin):
+class Record(object, UserDict.DictMixin):
 	"""This class encapsulates a single database record. In a sense this is an instance
 	of a particular RecordDef, however, note that it is not required to have a value for
 	every field described in the RecordDef, though this will usually be the case.
@@ -751,7 +741,7 @@ class Record(object, DictMixin):
 
 	#################################
 	# mapping methods;
-	#		DictMixin provides the remainder
+	#		UserDict.DictMixin provides the remainder
 	#################################
 
 	def __getitem__(self, key):
@@ -839,7 +829,7 @@ class Record(object, DictMixin):
 
 
 	def get(self, key, default=None):
-		return DictMixin.get(self, key, default) # or default
+		return UserDict.DictMixin.get(self, key, default) # or default
 
 
 
@@ -968,7 +958,7 @@ class Record(object, DictMixin):
 			self[i] = j
 
 		value = unicode(value)
-		self.__comments.append((unicode(self.__ctx.username),unicode(time.strftime(emen2.Database.database.TIMESTR)),value))
+		self.__comments.append((unicode(self.__ctx.username),unicode(emen2.Database.database.gettime()),value))
 		# store the comment string itself
 
 
@@ -991,7 +981,7 @@ class Record(object, DictMixin):
 
 		if not self.__creator:
 			self.__creator = unicode(self.__ctx.username)
-			self.__creationtime = self.__ctx.db.gettime() #unicode(time.strftime(emen2.Database.database.TIMESTR))
+			self.__creationtime = self.__ctx.db.gettime()
 			self.__permissions = ((),(),(),(unicode(self.__ctx.username),))
 
 		# print "setContext: ctx.groups is %s"%ctx.groups

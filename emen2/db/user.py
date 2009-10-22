@@ -517,7 +517,7 @@ class WorkFlow(object, DictMixin):
 		self.desc=None								# A 1-line description of the task to complete
 		self.longdesc=None						# an optional longer description of the task
 		self.appdata=None						 # application specific data used to implement the actual activity
-		self.creationtime=time.strftime(emen2.Database.database.TIMESTR)
+		self.creationtime=emen2.Database.database.gettime()
 
 		if (d):
 			self.update(d)

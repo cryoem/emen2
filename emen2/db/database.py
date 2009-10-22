@@ -1,50 +1,50 @@
 from __future__ import with_statement
-import bsddb3
-import copy
+
 import copy
 import atexit
-import emen2
-import emen2.util.utils
 import hashlib
-import operator
 import operator
 import os
 import sys
 import time
 import traceback
-import operator
 import collections
 import itertools
 import random
+import cPickle as pickle
+import bsddb3
+import demjson
 
 from functools import partial, wraps
-from cPickle import load, dump
-from bsddb3 import db
 
-import emen2.util.ticker
 import emen2.util.utils
-
+import emen2.util.ticker
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
-
-
+# Constants... move these to config file
 TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
 USETXN = True
 DEBUG = 0
 
 
+# Berkeley DB Config flags
 ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL | bsddb3.db.DB_INIT_LOCK | bsddb3.db.DB_INIT_LOG | bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_MULTIVERSION
-#bsddb3.db.DB_TXN_SNAPSHOT	
 TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT
 DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
 
+if USETXN:
+	ENVOPENFLAGS |= TXNFLAGS
 
-#if USETXN:
-#	ENVOPENFLAGS |= TXNFLAGS
 
+
+
+
+def gettime():
+	"""Return database local time in format %s"""%TIMESTR
+	return time.strftime(TIMESTR)
 
 
 def DB_syncall():
@@ -83,8 +83,10 @@ def DB_cleanup():
 atexit.register(DB_cleanup)
 
 
-def publicmethod(func):
 
+# Wrapper methods for public API and admin API methods
+def publicmethod(func):
+	"""Decorator for public API database method"""
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
 
@@ -121,6 +123,8 @@ def publicmethod(func):
 
 
 def adminmethod(func):
+	"""Decorator for public admin API database method"""
+	
 	if not func.func_name.startswith('_'):
 		DBProxy._register_adminmethod(func.func_name, func)
 
@@ -142,7 +146,7 @@ def adminmethod(func):
 
 
 class DBProxy(object):
-
+	"""Proxy container for database. Implements the public APIs. All clients use the proxy instead of the database instance directly.9"""
 	__publicmethods = {}
 	__adminmethods = {}
 	__extmethods = {}
@@ -328,6 +332,8 @@ class DBProxy(object):
 
 
 class DBExt(object):
+	"""Database extension"""
+
 	@staticmethod
 	def register_view(name, bases, dict):
 		cls = type(name, bases, dict)
@@ -336,6 +342,7 @@ class DBExt(object):
 
 	@classmethod
 	def register(cls):
+		"""Register database extension decorator"""
 		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
 
 
@@ -356,6 +363,7 @@ class Database(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 
 		TODO : Probably should make more of the member variables private for slightly better security"""
+
 		log_levels = {
 			0: 'LOG_CRITICAL',
 			1: 'LOG_CRITICAL',
@@ -425,7 +433,7 @@ class Database(object):
 
 
 
-		#def __opendbenv(self):
+			#def __opendbenv(self):
 
 			self.LOG(4, "Database initialization started")
 
@@ -458,7 +466,7 @@ class Database(object):
 
 
 
-		#def __opencoredb(self):
+			#def __opencoredb(self):
 
 			txn = self.newtxn()
 
@@ -805,11 +813,11 @@ class Database(object):
 
 		@publicmethod
 		def gettime(self, ctx=None, txn=None):
-			return time.strftime(TIMESTR)
+			return gettime()
 
 
 		def __gettime(self, ctx=None, txn=None):
-			return time.strftime(TIMESTR)
+			return gettime()
 
 
 
@@ -2378,6 +2386,8 @@ class Database(object):
 			# if ol and len(ret)==1:
 			# 	return ret[0]
 			return ret
+
+
 
 		@publicmethod
 		@adminmethod
@@ -4097,8 +4107,6 @@ class Database(object):
 					g.debug.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
-			#if txn2:
-			#	self.txncommit(txn2)
 
 			#@end
 
@@ -4390,7 +4398,6 @@ class Database(object):
 				ret.extend(recids & set(self.__secrindex.get(group, [], txn=txn)))
 
 			return set(ret)
-
 
 			# # method 3
 			# ret=[]
@@ -4720,7 +4727,7 @@ class Database(object):
 
 
 
-		def _backup(self, encode_func=dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
+		def _backup(self, encode_func=pickle.dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
 				in the local filesystem"""
 
@@ -4818,7 +4825,6 @@ class Database(object):
 		def _backup2(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
 				"""This will make a backup of all, or the selected, records, etc into a set of files
 				in the local filesystem"""
-				import demjson
 				def enc(value, fil):
 					if type(value) == dict:
 						for x in value.items():
@@ -4904,7 +4910,7 @@ class Database(object):
 				return fin
 
 		def __restore_relate(self, r, fin, types, recmap, txn=None):
-			rr = load(fin)
+			rr = pickle.load(fin)
 			if r not in types: return False
 
 			def link(lis, link_func, txn=txn):
@@ -4993,7 +4999,7 @@ class Database(object):
 				try:
 					with emen2.util.ticker.spinning_distraction():
 						while running:
-							r = load(fin)
+							r = pickle.load(fin)
 							commitrecs = False
 
 							# insert and renumber record
@@ -5089,7 +5095,7 @@ class Database(object):
 			#
 			# while (1):
 			# 		try:
-			# 				r = load(fin)
+			# 				r = pickle.load(fin)
 			# 		except:
 			# 				break
 			#
@@ -5120,22 +5126,22 @@ class Database(object):
 			#
 			# 		elif isinstance(r, str) :
 			# 				if r == "pdchildren" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				elif r == "pdcousins" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				elif r == "rdchildren" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				elif r == "rdcousins" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				elif r == "recchildren" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				elif r == "reccousins" :
-			# 						rr = load(fin)						# read the dictionary of ParamDef PC links
+			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
 			# 						np += len(rr)
 			# 				else : g.debug("Unknown category ", r)
 			#
