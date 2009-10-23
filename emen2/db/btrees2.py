@@ -180,12 +180,12 @@ class BTree(object):
 			return
 
 		if g.DEBUG>2:
-			g.debug.msg('LOG_DEBUG', '\nbegin')
+			g.log.msg('LOG_DEBUG', '\nbegin')
 
-		#g.debug.msg('LOG_DEBUG', 'main')
+		#g.log.msg('LOG_DEBUG', 'main')
 		del self.alltrees[self]
 		self.bdb.close()
-		#g.debug.msg('LOG_DEBUG', '/main')
+		#g.log.msg('LOG_DEBUG', '/main')
 
 		self.bdb=None
 
@@ -206,12 +206,12 @@ class BTree(object):
 			self.txn=None
 			return
 		if self.txn:
-			g.debug.msg('LOG_WARNING',"Transaction deadlock %s"%unicode(self))
+			g.log.msg('LOG_WARNING',"Transaction deadlock %s"%unicode(self))
 		counter = 0
 		while self.txn:
 			time.sleep(.1)
 			counter += 1
-			g.debug.msg('LOG_INFO', 'thread sleeping on transaction msg #%d' % counter)
+			g.log.msg('LOG_INFO', 'thread sleeping on transaction msg #%d' % counter)
 		self.txn=txn
 
 
