@@ -38,7 +38,7 @@ def sendmailraw(recipient,content):
 	s = smtplib.SMTP(g.MAILHOST)
 	s.set_debuglevel(1)
 	s.sendmail(g.MAILADMIN, [recipient], content)
-	g.debug('mail sent %r' %content)
+	g.log('mail sent %r' %content)
 
 
 

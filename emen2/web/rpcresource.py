@@ -76,8 +76,8 @@ class RPCFormatXMLRPC:
 			value = xmlrpclib.dumps(value, methodresponse=1, allow_none=True)
 
 		except Exception, inst:
-			g.debug.msg("LOG_ERROR","Problem w/ XML-RPC Encoding:")
-			g.debug.msg("LOG_ERROR", inst)
+			g.log.msg("LOG_ERROR","Problem w/ XML-RPC Encoding:")
+			g.log.msg("LOG_ERROR", inst)
 			value = "Error"
 
 		return value
@@ -133,7 +133,7 @@ class RPCChain(Resource):
 		request.setHeader("content-length", len(result))
 		request.setHeader("content-type", 'application/json')
 		request.setResponseCode(200)
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
@@ -144,13 +144,13 @@ class RPCChain(Resource):
 		request.finish()
 
 	def _ebRender(self, result, request):
-		g.debug.msg("LOG_ERROR", result)
+		g.log.msg("LOG_ERROR", result)
 		request.setHeader("X-Error", ' '.join(str(result).split()))
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(500)
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
@@ -184,7 +184,7 @@ class RPCResource(Resource):
 		request.setHeader("content-length", len(result))
 		request.setHeader("content-type", fmt)
 		request.setResponseCode(200)
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
@@ -197,13 +197,13 @@ class RPCResource(Resource):
 
 
 	def _ebRender(self, result, request, *args, **kwargs):
-		g.debug.msg("LOG_ERROR", result)
+		g.log.msg("LOG_ERROR", result)
 		request.setHeader("X-Error", ' '.join(str(result).split()))
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
 		request.setResponseCode(500)
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
@@ -240,7 +240,7 @@ class RPCResource(Resource):
 			method = request.uri.split("/")[-1]
 
 
-		g.debug.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
+		g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
 
 		#db._starttxn()

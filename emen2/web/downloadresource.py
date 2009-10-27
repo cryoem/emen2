@@ -50,7 +50,7 @@ class DownloadResource(Resource, File):
 			ctxid = request.args.get("ctxid",[None])[0]
 
 
-		g.debug.msg("LOG_INFO", "====== downloadresource action: %s host=%s ctxid=%s"%(request.postpath, host, ctxid))
+		g.log.msg("LOG_INFO", "====== downloadresource action: %s host=%s ctxid=%s"%(request.postpath, host, ctxid))
 
 		d = threads.deferToThread(self._action, request.postpath, request.args, ctxid, host)
 		d.addCallback(self._cbRender, request)

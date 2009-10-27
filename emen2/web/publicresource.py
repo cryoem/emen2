@@ -162,7 +162,7 @@ class PublicView(Resource):
 								 as a string
 				cb -- the callback function to call
 		"""
-		g.debug.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+		g.log.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
 		def _reg_inside(cb):
 			cls.__registerurl(name, re.compile(match), cb)
 			return cb
@@ -226,7 +226,7 @@ class PublicView(Resource):
 
 			if target is not None:
 				#request.redirect(target)
-				g.debug.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
+				g.log.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
 				raise emen2.subsystems.responsecodes.HTTPMovedPermanently('', target)
 				request.finish()
 
@@ -248,13 +248,13 @@ class PublicView(Resource):
 
 
 	# wrap db with context; view never has to see ctxid/host
-	#@g.debug.debug_func
+	#@g.log.debug_func
 	def _action(self, callback, db=None, ctxid=None, host=None, path=None):
 		'''set db context, call view, and get string result
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-		g.debug.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
+		g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 
 
@@ -295,10 +295,10 @@ class PublicView(Resource):
 
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
-			g.debug("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
+			g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
-			g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
+			g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
 					host = request.getClientIP(),
 					time = time.ctime(),
 					path = request.uri,
@@ -314,9 +314,7 @@ class PublicView(Resource):
 
 
 	def _ebRender(self, failure, request, t=0, ctxid=None, host=None):
-		print "error handler?"
-		
-		g.debug.msg(g.LOG_ERR, failure)
+		g.log.msg(g.LOG_ERR, failure)
 		data = ''
 		headers = {}
 		response = 500
@@ -355,8 +353,8 @@ class PublicView(Resource):
 
 		request.setResponseCode(response)
 		request.write(data)
-
-		g.debug.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		#g.log.msg('LOG_INFO', 'response -> (%r)' % response)
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
