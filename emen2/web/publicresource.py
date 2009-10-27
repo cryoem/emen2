@@ -7,19 +7,19 @@ import emen2.globalns
 import re
 import time
 
-
-from emen2 import Database
-from emen2 import ts
-from emen2.Database import exceptions
-from emen2.subsystems import routing
-import emen2.subsystems.responsecodes
-from emen2.util import listops
-
-
 from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 from urllib import quote
+
+# emen2 imports
+import emen2.subsystems.routing
+import emen2.subsystems.responsecodes
+import emen2.Database.subsystems.exceptions
+
+# ian: todo: get rid of ts.db... again...
+import ts
+
 
 
 
@@ -28,7 +28,7 @@ g = emen2.globalns.GlobalNamespace('')
 class PublicView(Resource):
 
 	isLeaf = True
-	router = routing.URLRegistry()
+	router = emen2.subsystems.routing.URLRegistry()
 
 
 
@@ -130,7 +130,7 @@ class PublicView(Resource):
 	@classmethod
 	def __registerurl(cls, name, match, cb):
 			'register a callback to handle a urls match is a compiled regex'
-			result = routing.URL(name, match, cb)
+			result = emen2.subsystems.routing.URL(name, match, cb)
 			cls.router.register(result)
 			return result
 
@@ -143,7 +143,7 @@ class PublicView(Resource):
 		result = None
 		if redir != False:
 			to, args, kwargs = redir
-			result = routing.URLRegistry.reverselookup(to, *args, **kwargs)
+			result = emen2.subsystems.routing.URLRegistry.reverselookup(to, *args, **kwargs)
 		return result
 
 
@@ -233,7 +233,7 @@ class PublicView(Resource):
 			else:
 
 				args = self.__parse_args(request.args, content=content)
-				callback = routing.URLRegistry().execute(path, **args)
+				callback = emen2.subsystems.routing.URLRegistry().execute(path, **args)
 
 				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
@@ -257,14 +257,19 @@ class PublicView(Resource):
 		g.debug.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 
+
 		db._starttxn()
-		db._setcontext(ctxid,host)
 
 		try:
+			print "Setcontext..."
+			print ctxid, host
+			db._setcontext(ctxid,host)
 			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			db._aborttxn()
+			print "there was an exception."
+			print e
+			#db._aborttxn()
 			raise
 		else:
 			db._committxn()
@@ -299,6 +304,7 @@ class PublicView(Resource):
 					path = request.uri,
 					size = len(result)
 			))
+			
 		except BaseException, e:
 			self._ebRender(e, request, ctxid=ctxid, host=host)
 
@@ -308,21 +314,24 @@ class PublicView(Resource):
 
 
 	def _ebRender(self, failure, request, t=0, ctxid=None, host=None):
+		print "error handler?"
+		
 		g.debug.msg(g.LOG_ERR, failure)
 		data = ''
 		headers = {}
 		response = 500
+		
 		try:
 			try:
 				if isinstance(failure, BaseException): raise; failure
 				else: failure.raiseException()
-			except (Database.exceptions.AuthenticationError,
-						Database.exceptions.SecurityError,
-						Database.exceptions.SessionError,
-						Database.exceptions.DisabledUserError), e:
+			except (emen2.Database.subsystems.exceptions.AuthenticationError,
+						emen2.Database.subsystems.exceptions.SecurityError,
+						emen2.Database.subsystems.exceptions.SessionError,
+						emen2.Database.subsystems.exceptions.DisabledUserError), e:
 				response = 401
 				args = {'redirect': request.uri, 'msg': str(e),
-							'db': ts.db, 'ctxid': ctxid,
+							'ctxid': ctxid, 'db':ts.db, 
 							'host': request.getClientIP()}
 
 				p = emen2.TwistSupport_html.public.login.Login(**args)

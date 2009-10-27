@@ -1,11 +1,9 @@
-#standard emen2 imports
-from emen2.emen2config import *
 import smtplib
-from email.MIMEText import MIMEText
-#from email.mime.text import MIMEText
+import email.MIMEText
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+
 
 def sendmailtemplate(recipient,template,ctxt=None):
 	if ctxt==None: ctxt={}
@@ -18,10 +16,9 @@ def sendmailtemplate(recipient,template,ctxt=None):
 
 
 
-
 def sendmail(recipient,subject,msgtxt, db=None):
 
-	msg=MIMEText(msgtxt)
+	msg=email.MIMEText.MIMEText(msgtxt)
 	msg['Subject'] = subject
 	msg['From'] = g.MAILADMIN
 	msg['To'] = recipient
@@ -29,7 +26,6 @@ def sendmail(recipient,subject,msgtxt, db=None):
 	#return
 	# Send the message via our own SMTP server, but don't include the
 	# envelope header.
-
 	s = smtplib.SMTP(g.MAILHOST)
 	s.set_debuglevel(1)
 	s.sendmail(g.MAILADMIN, [recipient], msg.as_string())

@@ -1,6 +1,6 @@
 from test import *
 
-vp = emen2.Database.datastorage.valid_properties
+vp = emen2.Database.datatypes.datastorage.valid_properties
 rvp = {}
 for k,v in vp.items():
 	for i in v[1]:

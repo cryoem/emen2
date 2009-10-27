@@ -7,21 +7,17 @@ import random
 import atexit
 import cStringIO
 
-# emen2 imports
-from emen2 import ts
-from emen2.Database import exceptions
-import emen2.Database.database
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
-
-
-from emen2.subsystems import routing#, auth
 
 # Twisted Imports
 from twisted.python import filepath, log, failure
 from twisted.internet import defer, reactor, threads
 from twisted.web.resource import Resource
 from twisted.web.static import *
+
+
+# emen2 imports
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace()
 
 
 DEBUG = 1
@@ -57,7 +53,7 @@ class UploadResource(Resource):
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
 
-		#authen = auth.Authenticator(db=ts.db, host=host)
+		#authen = auth.Authenticator(db=db, host=host)
 		#authen.authenticate(username, pw, ctxid, host=host)
 		#ctxid, un = authen.get_auth_info()
 

@@ -1,18 +1,16 @@
 import os
 import time
+import xmlrpclib
+import demjson
 
+# Twisted imports
 from twisted.web import server, xmlrpc
 from twisted.internet import threads
 from twisted.web.resource import Resource
 
-from emen2 import Database
-from emen2.Database import database
-
+# emen2 imports
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
-
-import xmlrpclib
-import demjson
 
 
 Fault = xmlrpclib.Fault

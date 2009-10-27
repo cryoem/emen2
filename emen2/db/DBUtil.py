@@ -1,7 +1,11 @@
+raise Exception("Deprecated; update or remove")
+
+
 from emen2 import Database
 import time
 import os
 from math import *
+
 
 def timetosec(timestr):
     """takes a date-time string in the format yyyy/mm/dd hh:mm:ss and

@@ -7,9 +7,7 @@ from __future__ import with_statement
 
 #from twisted.web.resource import Resource
 
-from emen2.Database.database import DBProxy
 
-from emen2.Database import database
 from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor
 from twisted.python import log, runtime, context, threadpool, failure
@@ -18,7 +16,7 @@ import atexit
 import threading
 import time
 
-
+import emen2.Database.DBProxy
 
 
 #DB=database 
@@ -27,29 +25,26 @@ import time
 #	global db
 
 	
-db=database.DBProxy(dbpath=g.EMEN2DBPATH)
+db = emen2.Database.DBProxy.DBProxy()
 	
 
 class newThreadPool(threadpool.ThreadPool):
 	counter = 0
 	def startAWorker(self):
-#		print "started twisted thread (newThreadPool)..."
-#		print "\tworker count: %s"%self.workers
-#		self.db=database.DBProxy(dbpath=g.EMEN2DBPATH)
-		#self.db = database.Database(g.EMEN2DBPATH)
-#		self.db = db
-
+		print "started twisted thread (newThreadPool)..."
+		print "\tworker count: %s"%self.workers
+		#self.db = database.DBProxy()
 		self.workers = self.workers + 1
-#		name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
-#		try:
-#				firstJob = self.q.get(0)
-#		except Queue.Empty:
-#				firstJob = None
+		# name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
+		# try:
+		# 		firstJob = self.q.get(0)
+		# except Queue.Empty:
+		# 		firstJob = None
 				
-#		print "initializing thread."		
+		# print "initializing thread."		
 		self.counter += 1
-		newThread = threading.Thread(target=self._worker, args=(database.DBProxy(dbpath=g.EMEN2DBPATH),self.counter))
-#		newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
+		newThread = threading.Thread(target=self._worker, args=(emen2.Database.DBProxy.DBProxy(),self.counter))
+		# newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
 		self.threads.append(newThread)	
 		newThread.start() 
 	
@@ -67,7 +62,7 @@ class newThreadPool(threadpool.ThreadPool):
 			del o
 
 			try:
-				kwargs['db']=db
+				kwargs['db'] = db
 				result = context.call(ctx, function, *args, **kwargs)
 				success = True
 			except:
@@ -95,6 +90,7 @@ class newThreadPool(threadpool.ThreadPool):
 			self.waiters.remove(ct)
 
 		self.threads.remove(ct)
+
 
 #print "installing new threadpool."
 threadpool.ThreadPool = newThreadPool

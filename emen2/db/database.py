@@ -17,28 +17,32 @@ import demjson
 
 from functools import partial, wraps
 
+import emen2
 import emen2.util.utils
 import emen2.util.ticker
+
+import emen2config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
+import DBProxy
+import DBExt
+import datatypes
+import extensions
+import subsystems
+
+
+#print "\n\nIMPORT DB\n\n"
+#traceback.print_stack()
+
+
+from DBFlags import *
+
 # Constants... move these to config file
 TIMESTR = "%Y/%m/%d %H:%M:%S"
 MAXIDLE = 604800
-USETXN = True
 DEBUG = 0
-
-
-# Berkeley DB Config flags
-ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL | bsddb3.db.DB_INIT_LOCK | bsddb3.db.DB_INIT_LOG | bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_MULTIVERSION
-TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT
-DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT
-
-if USETXN:
-	ENVOPENFLAGS |= TXNFLAGS
-
-
 
 
 
@@ -52,10 +56,12 @@ def DB_syncall():
 	#if DEBUG > 2:
 	#	g.debug("sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees)))
 	#t = time.time()
-	for i in emen2.Database.btrees2.BTree.alltrees.keys(): i.sync()
-	for i in emen2.Database.btrees2.RelateBTree.alltrees.keys(): i.sync()
-	for i in emen2.Database.btrees2.FieldBTree.alltrees.keys(): i.sync()
+	for i in subsystems.btrees2.BTree.alltrees.keys():
+		i.sync()
+	# for i in subsystems.btrees2.RelateBTree.alltrees.keys(): i.sync()
+	# for i in subsystems.btrees2.FieldBTree.alltrees.keys(): i.sync()
 	# g.debug("%f sec to sync"%(time.time()-t))
+
 
 
 def DB_cleanup():
@@ -63,20 +69,59 @@ def DB_cleanup():
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
 	sys.stdout.flush()
-	print >> sys.stderr, "DB has %d transactions left" % Database.txncounter
-	print >> sys.stderr, "Closing %d BDB databases" % (len(emen2.Database.btrees2.BTree.alltrees) + len(emen2.Database.btrees2.RelateBTree.alltrees) + len(emen2.Database.btrees2.FieldBTree.alltrees))
-	if DEBUG > 2: print >> sys.stderr, len(emen2.Database.btrees2.BTree.alltrees), 'BTrees'
-	for i in emen2.Database.btrees2.BTree.alltrees.keys():
-		if DEBUG > 2: sys.stderr.write('closing %s\n' % unicode(i))
+	print >> sys.stderr, "DB has %d transactions left" % DB.txncounter
+	
+	tx_max = dbenv.get_tx_max()
+	print "Open transactions: %s"%tx_max
+	
+	txn_stat = dbenv.txn_stat()
+	print "Transaction stats: "
+	for k,v in txn_stat.items():
+		print "\t%s: %s"%(k,v)
+	
+	log_archive = dbenv.log_archive()
+	print "Archive: %s"%log_archive
+	
+	lock_stat = dbenv.lock_stat()
+	print "Lock stats: "
+	for k,v in lock_stat.items():
+		print "\t%s: %s"%(k,v)
+
+	print "Mutex stats: "
+	# print dir(dbenv)
+	print dbenv.mutex_get_max()
+	#print dbenv.mutex_stat_print()
+	
+	
+	
+	print >> sys.stderr, "Closing %d BDB databases"%(len(subsystems.btrees2.BTree.alltrees) + len(subsystems.btrees2.RelateBTree.alltrees) + len(subsystems.btrees2.FieldBTree.alltrees))
+
+	if DEBUG > 2:
+		print >> sys.stderr, len(subsystems.btrees2.BTree.alltrees), 'BTrees'
+
+	for i in subsystems.btrees2.BTree.alltrees.keys():
+		#if DEBUG > 2:
+		sys.stderr.write('closing %s\n' % unicode(i))
 		i.close()
 		if DEBUG > 2: sys.stderr.write('%s closed\n' % unicode(i))
-		if DEBUG > 2: print >> sys.stderr, '\n', len(emen2.Database.btrees2.RelateBTree.alltrees), 'RelateBTrees'
-		for i in emen2.Database.btrees2.RelateBTree.alltrees.keys(): i.close()
-		if DEBUG > 2: sys.stderr.write('.')
-		if DEBUG > 2: print >> sys.stderr, '\n', len(emen2.Database.btrees2.FieldBTree.alltrees), 'FieldBTrees'
-		for i in emen2.Database.btrees2.FieldBTree.alltrees.keys(): i.close()
-		if DEBUG > 2: sys.stderr.write('.')
-		if DEBUG > 2: sys.stderr.write('\n')
+		if DEBUG > 2: print >> sys.stderr, '\n', len(subsystems.btrees2.RelateBTree.alltrees), 'RelateBTrees'
+
+	dbenv.close()
+
+	# for i in subsystems.btrees2.RelateBTree.alltrees.keys():
+	# 	i.close()
+	# 	if DEBUG > 2: sys.stderr.write('.')
+	# 	if DEBUG > 2: print >> sys.stderr, '\n', len(subsystems.btrees2.FieldBTree.alltrees), 'FieldBTrees'
+	# 
+	# for i in subsystems.btrees2.FieldBTree.alltrees.keys():
+	# 	i.close()
+	# 	if DEBUG > 2: sys.stderr.write('.')
+	# 	if DEBUG > 2: sys.stderr.write('\n')
+	# 
+	# for i in subsystems.btrees2.IndexKeyBTree.alltrees.keys():
+	# 	i.close()
+	# 	if DEBUG > 2: sys.stderr.write('.')
+	# 	if DEBUG > 2: sys.stderr.write('\n')
 
 
 # This rmakes sure the database gets closed properly at exit
@@ -84,266 +129,7 @@ atexit.register(DB_cleanup)
 
 
 
-# Wrapper methods for public API and admin API methods
-def publicmethod(func):
-	"""Decorator for public API database method"""
-	@wraps(func)
-	def _inner(self, *args, **kwargs):
 
-		result = None
-		txn = kwargs.get('txn')
-		ctx = kwargs.get('ctx')
-		commit = False
-
-
-		if txn is None:
-			txn = self.newtxn()
-			commit = True
-		kwargs['txn'] = txn
-
-
-		try:
-			result = func(self, *args, **kwargs)
-
-		except Exception, e:
-			traceback.print_exc(e)
-			if commit is True:
-				txn and self.txnabort(ctx=ctx, txn=txn)
-			raise
-
-		else:
-			if commit is True:
-				txn and self.txncommit(ctx=ctx, txn=txn)
-
-		return result
-
-	DBProxy._register_publicmethod(func.func_name, _inner)
-	return _inner
-
-
-
-def adminmethod(func):
-	"""Decorator for public admin API database method"""
-	
-	if not func.func_name.startswith('_'):
-		DBProxy._register_adminmethod(func.func_name, func)
-
-	@wraps(func)
-	def _inner(*args, **kwargs):
-		ctx = kwargs.get('ctx')
-		if ctx is None:
-			ctx = [x for x in args is isinstance(x, emen2.Database.user.User)] or None
-			if ctx is not None: ctx = ctx.pop()
-		if ctx.checkadmin():
-			return func(*args, **kwargs)
-		else:
-			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
-	return _inner
-
-
-
-
-
-
-class DBProxy(object):
-	"""Proxy container for database. Implements the public APIs. All clients use the proxy instead of the database instance directly.9"""
-	__publicmethods = {}
-	__adminmethods = {}
-	__extmethods = {}
-
-	@classmethod
-	def _allmethods(cls):
-		return set(cls.__publicmethods) | set(cls.__extmethods)
-
-
-
-	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None, ctx=None, txn=None):
-		self.__txn = None
-		self.__bound = False
-		if not db:
-			self.__db = Database(dbpath, importmode=importmode)
-		else:
-			self.__db = db
-		self.__ctx = ctx
-		self.__txn = txn		
-		#self._setcontext(ctxid, host)
-
-
-	def __enter__(self):
-		self.__oldtxn = self.__txn
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
-		return self
-
-	def __exit__(self, type, value, traceback):
-		if self.__oldtxn is not self.__txn:
-			if type is None: self._committxn()
-			else: self._aborttxn()
-		del self.__oldtxn
-
-
-	def _settxn(self, txn=None):
-		self.__txn = txn
-
-	def _starttxn(self):
-		self.__txn = self.__db.newtxn(self.__txn)
-
-	def _committxn(self):
-		self.__db.txncommit(txn=self.__txn)
-		self.__txn = None
-
-	def _aborttxn(self):
-		self.__db.txnabort(txn=self.__txn)
-		self.__txn = None
-
-
-	def _login(self, username="anonymous", password="", host=None):
-		try:
-			ctxid = self.__db._login(username=username, password=password, host=host, txn=self.__txn) #host
-			self._setcontext(ctxid=ctxid, host=host)
-
-		except:
-			if self.__txn: self._aborttxn()
-			raise
-
-		return ctxid
-
-
-	def _setcontext(self, ctxid=None, host=None):
-		try:
-			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.db = self
-		except:
-			if self.__txn: self._aborttxn()
-			raise
-
-		self.__bound = True
-
-
-	def _clearcontext(self):
-		if self.__bound:
-			self.__ctx = None
-			self.__bound = False
-
-
-
-	@emen2.util.utils.prop.init
-	def _bound():
-		def fget(self): return self.__bound
-		def fdel(self): self._clearcontext()
-		return dict(fget=fget, fdel=fdel)
-
-
-
-	def _ismethod(self, name):
-		if name in self._allmethods(): return True
-		return False
-
-
-
-	@classmethod
-	def _register_publicmethod(cls, name, func):
-		if name in cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
-		cls.__publicmethods[name] = func
-
-	@classmethod
-	def _register_adminmethod(cls, name, func):
-		if name in cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING ADMINMETHOD (%s)" % name)
-		cls.__adminmethods[name] = func
-
-
-
-	@classmethod
-	def _register_extmethod(cls, name, refcl):
-		if name in cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
-		cls.__extmethods[name] = refcl
-
-
-
-	def _callmethod(self, method, args, kwargs):
-		args = list(args)
-		return getattr(self, method)(*args, **kwargs)
-
-
-	def _getctx(self):
-		return self.__ctx
-
-	def _wrapmethod(self, func):
-		@wraps(func)
-		def _inner(*args, **kwargs):
-			with self:
-				result = func(*args, **kwargs)
-			return result
-		return _inner
-
-	def __getattribute__(self, name):
-
-		if name.startswith('__') and name.endswith('__'):
-			try:
-				result = getattr(self.__db, name)
-			except:
-				result = object.__getattribute__(self, name)
-			return result
-		elif name.startswith('_'):
-			return object.__getattribute__(self, name)
-
-
-		kwargs = {}
-		kwargs["ctx"] = self.__ctx
-		kwargs["txn"] = self.__txn
-
-		result = None
-		
-		if name in self._allmethods():
-
-			result = None
-
-			#if 'admin' in self.__ctx.groups:
-			#	result = self.__adminmethods.get(name)
-
-			if result is None:
-				result = self.__publicmethods.get(name)
-
-			if result:
-				result = wraps(result)(partial(result, self.__db, **kwargs))
-
-			else:
-				result = self.__extmethods.get(name)()
-
-				kwargs['db'] = self.__db
-				if result:
-					result = partial(result.execute, **kwargs)
-
-
-			result = wraps(result.func)(result)
-
-		else:
-			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
-
-		return result
-
-
-
-
-
-class DBExt(object):
-	"""Database extension"""
-
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-
-	@classmethod
-	def register(cls):
-		"""Register database extension decorator"""
-		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
 
 
 
@@ -356,7 +142,7 @@ class DBExt(object):
 
 
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()
-class Database(object):
+class DB(object):
 		"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
 		dbid - Database id, a unique identifier for this database server
 		recid - Record id, a unique (32 bit int) identifier for a particular record
@@ -377,12 +163,13 @@ class Database(object):
 
 
 
-		def __init__(self, path=".", cachesize=32000000, logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True, more_flags=0):
+		def __init__(self, path=".", logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True, more_flags=0):
 			"""path - The path to the database files, this is the root of a tree of directories for the database
 			cachesize - default is 64M, in bytes
 			logfile - defualt "db.log"
 			importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
 			recover - Only one thread should call this. Will run recovery on the environment before opening."""
+
 
 			global ENVOPENFLAGS, USETXN
 
@@ -393,27 +180,28 @@ class Database(object):
 				g.debug.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 
-			self.path = path
-			self.logfile = path + "/" + logfile
+
+			
+			self.path = path or g.EMEN2DBPATH
+			self.logfile = self.path + "/" + logfile
 			self.lastctxclean = time.time()
 			self.__importmode = importmode
 			self.txnid = 0
 			self.txnlog = {}
 
-			# ian: this helps render and validate vartypes and convert between properties/units
-			self.vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+			self.vtm = datatypes.datatypes.VartypeManager()			
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 			self.unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
 
-			self.maxrecurse = 50
+			self.MAXRECURSE = 50
 
-			#xtraflags = 0
 			if recover:
 				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
 
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
-			if not os.access(path + "/home", os.F_OK):
-				os.makedirs(path + "/home")
+			if not os.access(self.path + "/home", os.F_OK):
+				os.makedirs(self.path + "/home")
+				print "Copying DB_CONFIG"
 				dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
 				dbco = file(self.path + '/home/DB_CONFIG', 'w')
 				try:
@@ -422,38 +210,34 @@ class Database(object):
 					[fil.close() for fil in (dbci, dbco)]
 
 
-			if not os.access(path + "/security", os.F_OK):
-				os.makedirs(path + "/security")
+			if not os.access(self.path + "/security", os.F_OK):
+				os.makedirs(self.path + "/security")
 
-			if not os.access(path + "/index", os.F_OK):
-				os.makedirs(path + "/index")
+			if not os.access(self.path + "/index", os.F_OK):
+				os.makedirs(self.path + "/index")
 
 			self.__allowclose = bool(allowclose)
 
 
-
-
-			#def __opendbenv(self):
-
-			self.LOG(4, "Database initialization started")
+			self.LOG(4, "Database opening...")
 
 
 			self.__dbenv = bsddb3.db.DBEnv() #db.DBEnv()
 			self.__dbenv.set_data_dir(self.path)
+			global dbenv
+			dbenv = self.__dbenv
 
-			#self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			self.__dbenv.set_cachesize(0, 256*1024*1024, 4)
-			self.__dbenv.set_lg_bsize(1024*1024)
-			self.__dbenv.set_lg_max(1024*1024*8)
-
-
-			self.__dbenv.set_lk_detect(bsddb3.db.DB_LOCK_DEFAULT) # internal deadlock detection
-			self.__dbenv.set_lk_max_locks(100000)
-			self.__dbenv.set_lk_max_lockers(100000)
-			self.__dbenv.set_lk_max_objects(100000)
-			#set_lk_max_lockers
-			#set_lk_max_locks
-
+			# # #self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
+			# self.__dbenv.set_cachesize(*CACHESIZE)
+			# self.__dbenv.set_lg_bsize(LG_BSIZE)
+			# self.__dbenv.set_lg_max(LG_MAX)
+			# self.__dbenv.set_lk_detect(bsddb3.db.DB_LOCK_DEFAULT) # internal deadlock detection
+			# self.__dbenv.set_lk_max_locks(MAX_LOCKS)
+			# self.__dbenv.set_lk_max_lockers(MAX_LOCKERS)
+			# self.__dbenv.set_lk_max_objects(MAX_OBJECTS)
+			# set_lg_regionmax
+			
+			
 			# ian: todo: is this method no longer in the bsddb3 API?
 			#if self.__dbenv.failchk(flags=0):
 			#	self.LOG(1,"Database recovery required")
@@ -461,30 +245,27 @@ class Database(object):
 
 			self.__dbenv.open(self.path + "/home", ENVOPENFLAGS)
 
-			global globalenv
-			globalenv = self.__dbenv
 
-
-
-			#def __opencoredb(self):
-
+			# Open Database
+			
 			txn = self.newtxn()
+			ctx = self.__makerootcontext(txn=txn, dbproxy=True)
 
 
 			# Users
 			# active database users / groups
-			self.__users = emen2.Database.btrees2.BTree("users", keytype="s", filename=path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__users = subsystems.btrees2.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
 
-			self.__groupsbyuser = emen2.Database.btrees2.IndexKeyBTree("groupsbyuser", keytype="s", filename=path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
+			self.__groupsbyuser = subsystems.btrees2.IndexKeyBTree("groupsbyuser", keytype="s", filename=self.path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
 
-			self.__groups = emen2.Database.btrees2.BTree("groups", keytype="ds", filename=path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__groups = subsystems.btrees2.BTree("groups", keytype="ds", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
 			#self.__updatecontexts = False
 
 			# new users pending approval
-			self.__newuserqueue = emen2.Database.btrees2.BTree("newusers", keytype="s", filename=path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__newuserqueue = subsystems.btrees2.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# multisession persistent contexts
-			self.__contexts_p = emen2.Database.btrees2.BTree("contexts", keytype="s", filename=path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__contexts_p = subsystems.btrees2.BTree("contexts", keytype="s", filename=self.path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# local cache dictionary of valid contexts
 			self.__contexts = {}
@@ -493,15 +274,15 @@ class Database(object):
 
 
 			# Binary data names indexed by date
-			self.__bdocounter = emen2.Database.btrees2.BTree("BinNames", keytype="s", filename=path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__bdocounter = subsystems.btrees2.BTree("BinNames", keytype="s", filename=self.path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Defined ParamDefs
 			# ParamDef objects indexed by name
-			self.__paramdefs = emen2.Database.btrees2.RelateBTree("ParamDefs", keytype="s", filename=path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__paramdefs = subsystems.btrees2.RelateBTree("ParamDefs", keytype="s", filename=self.path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Defined RecordDefs
 			# RecordDef objects indexed by name
-			self.__recorddefs = emen2.Database.btrees2.RelateBTree("RecordDefs", keytype="s", filename=path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefs = subsystems.btrees2.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 
@@ -511,41 +292,41 @@ class Database(object):
 			# and database information is stored with key=0
 
 			# The actual database, containing id referenced Records
-			self.__records = emen2.Database.btrees2.RelateBTree("database", keytype="d", filename=path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__records = subsystems.btrees2.RelateBTree("database", keytype="d", filename=self.path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = emen2.Database.btrees2.FieldBTree("secrindex", filename=path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
+			self.__secrindex = subsystems.btrees2.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
 
 			# index of records belonging to each RecordDef
-			self.__recorddefindex = emen2.Database.btrees2.FieldBTree("RecordDefindex", filename=path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefindex = subsystems.btrees2.FieldBTree("RecordDefindex", filename=self.path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
 
 			# key=record id, value=last time record was changed
-			self.__timeindex = emen2.Database.btrees2.BTree("TimeChangedindex", keytype="d", filename=path+"/TimeChangedindex.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__timeindex = subsystems.btrees2.BTree("TimeChangedindex", keytype="d", filename=self.path+"/TimeChangedindex.bdb", dbenv=self.__dbenv, txn=txn)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
 
 
-			self.__indexkeys = emen2.Database.btrees2.IndexKeyBTree("IndexKeys", keytype="s", filename=path+"/IndexKeys.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__indexkeys = subsystems.btrees2.IndexKeyBTree("IndexKeys", keytype="s", filename=self.path+"/IndexKeys.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
-			self.__workflow = emen2.Database.btrees2.BTree("workflow", keytype="d", filename=path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__workflow = subsystems.btrees2.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
 
 
 			# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
 			#db sequence
 			# self.__dbseq = self.__records.create_sequence()
 
-			#self.__recorddefbyrec = IntBTree("RecordDefByRec", path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
+			#self.__recorddefbyrec = IntBTree("RecordDefByRec", self.path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
 
 			# The mirror database for storing offsite records
-			#self.__mirrorrecords = BTree("mirrordatabase", filename=path+"/mirrordatabase.bdb", dbenv=self.__dbenv)
+			#self.__mirrorrecords = BTree("mirrordatabase", filename=self.path+"/mirrordatabase.bdb", dbenv=self.__dbenv)
 
 
 			#try:
@@ -559,23 +340,24 @@ class Database(object):
 			#txn = self.newtxn()
 
 			try:
+				
 				try:
 					maxr = self.__records.sget(-1, txn=txn)
 				except:
 					self.__records.set(-1, 0, txn=txn)
 					self.LOG(3, "New records database created")
-					self.__createskeletondb(txn=txn)
+					self.__createskeletondb(ctx=ctx, txn=txn)
 
 
 				g.debug.add_output(self.log_levels.values(), file(self.logfile, "a"))
-				self.__anonymouscontext = self.__makecontext()
+				self.__anonymouscontext = self.__makecontext(dbproxy=True)
+
 
 			except:
 				txn and self.txnabort(txn=txn)
 				raise
 			else:
 				self.txncommit(txn=txn)
-
 
 
 			#self.__anonymouscontext = self._getcontext(_actxid, None)
@@ -586,75 +368,42 @@ class Database(object):
 
 
 		def __createskeletondb(self, ctx=None, txn=None):
-
-			# Create an initial administrative user for the database
-			u = emen2.Database.user.User()
-			u.username = u"root"
-			u.password = hashlib.sha1(g.ROOTPW).hexdigest()
-
-			#u.groups = [-1]
-			#u.creationtime = self.gettime()
-			#self.__users.set(u"root", u, txn)
-
-			self.__commit_users([u], ctx=ctx, txn=txn)
-
-
-			#pd = ParamDef("owner", "string", "Record Owner", "This is the user-id of the 'owner' of the record")
-			b = [
-				("creator", "user", "Record Creator", "The user-id that initially created the record"),
-				("modifyuser", "user", "Modified by", "The user-id that last changed the record"),
-				("creationtime", "datetime", "Creation time", "The date/time the record was originally created"),
-				("modifytime", "datetime", "Modification time", "The date/time the record was last modified"),
-				("comments", "comments", "Record comments", "Record comments"),
-				("rectype", "string", "Record type", "Record type (RecordDef)"),
-				("permissions", "acl", "Permissions", "Permissions"),
-				("parents","links","Parents", "Parents"),
-				("children","links","Children", "Children"),
-				("publish","boolean","Publish", "Publish"),
-				("deleted","boolean","Deleted", "Deleted"),
-				("recid","int","Record ID","Record ID"),
-				("uri","string","Resource Location", "Resource Location")
-			]
+			# typically uses SpecialRootContext
 			
-			basepds = []
-			for i in b:
-				p = emen2.Database.datastorage.ParamDef(
-					name = i[0],
-					vartype = i[1],
-					desc_short = i[2],
-					desc_long = i[3]
-				)
-				basepds.append(p)
+			import skeleton
+						
+			for i in skeleton.core_paramdefs.items:
+				self.putparamdef(i, ctx=ctx, txn=txn)
 			
+			for i in skeleton.core_recorddefs.items:
+				self.putrecorddef(i, ctx=ctx, txn=txn)			
 
-			self.__commit_paramdefs(basepds, ctx=ctx, txn=txn)
+			for i in skeleton.core_users.items:
+				self.adduser(i, ctx=ctx, txn=txn)
+			
+			for i in skeleton.core_groups.items:
+				self.putgroup(i, ctx=ctx, txn=txn)
+			
+			self.setpassword("root", g.ROOTPW, g.ROOTPW, ctx=ctx, txn=txn)
 
+			# pds = [datatypes.datastorage.ParamDef(i) for i in skeleton.core_paramdefs.items]
+			# rds = [datatypes.datastorage.RecordDef(i) for i in skeleton.core_recorddefs.items]
+			# users = [datatypes.user.User(i) for i in skeleton.core_users.items]
+			# groups = [datatypes.user.Group(i) for i in skeleton.core_groups.items]
 
-			folder = emen2.Database.datastorage.RecordDef()
-			folder.name = "folder"
-			folder.desc_long = "Folder"
-			folder.desc_short = "Folder"
-			folder.mainview = "Folder!"
+			#[i.validate() for i in pds]
+			#[i.validate() for i in rds]
+			#[i.validate() for i in users]
+			#[i.validate() for i in groups]
 
-			self.__commit_recorddefs([folder], ctx=ctx, txn=txn)
-
-
-
-			_admin = emen2.Database.user.Group()
-			_admin.name = "admin"
-			_admin.adduser(3, "root")
-
-			_readadmin = emen2.Database.user.Group()
-			_readadmin.name = "readadmin"
-
-			_create =  emen2.Database.user.Group()
-			_create.name = "create"
-			_create.adduser(3, "root")
-
-			_anon =  emen2.Database.user.Group()
-			_anon.name = "anon"
-
-			self.__commit_groups([_admin, _readadmin, _create, _anon], ctx=ctx, txn=txn)
+			#self.__commit_paramdefs(pds, ctx=ctx, txn=txn)
+			#self.__commit_recorddefs(rds, ctx=ctx, txn=txn)
+			#self.__commit_users(users, ctx=ctx, txn=txn)
+			#self.__commit_groups(groups, ctx=ctx, txn=txn)
+			
+			# ctx.getuser(txn=txn)
+			
+			
 
 
 
@@ -713,15 +462,15 @@ class Database(object):
 			#traceback.print_stack()
 			
 			txn = self.txnlog.get(txnid, txn)
-			if txn:
+			if txn != None:
 				txn.commit()
 				if id(txn) in self.txnlog:
 					del self.txnlog[id(txn)]
 				type(self).txncounter -= 1
-			else:
-				raise ValueError, 'transaction not found'
-			if not self.__importmode:
-				DB_syncall()
+			#else:
+			#	raise ValueError, 'transaction not found'
+			#if not self.__importmode:
+			#	DB_syncall()
 
 
 
@@ -731,8 +480,7 @@ class Database(object):
 		###############################
 
 
-
-		@publicmethod
+		@DBProxy.publicmethod
 		def raise_exception(self, ctx=None, txn=None):
 			raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
 
@@ -768,7 +516,7 @@ class Database(object):
 			self.close()
 
 
-		# ian: todo: wtf.
+		# ian: todo
 		def closedb(self, ctx=None, txn=None):
 			g.debug.msg('LOG_INFO', 'closing dbs')
 			if self.__allowclose == True:
@@ -777,17 +525,20 @@ class Database(object):
 						try: btree.close()
 						except bsddb3.db.InvalidArgError, e: g.debug.msg('LOG_ERROR', e)
 					for btree in self.__fieldindex.values(): btree.close()
+
+
 		def close(self, ctx=None, txn=None):
 			self.closedb(ctx, txn=txn)
 			self.__dbenv.close()
+			# pass
+			# g.debug.msg('LOG_DEBUG', self.__btreelist)
+			# self.__btreelist.extend(self.__fieldindex.values())
+			# g.debug.msg('LOG_DEBUG', self.__btreelist)
+			# for bt in self.__btreelist:
+			# 	 g.debug('--', bt ; sys.stdout.flush())
+			# 	 bt.close()
 
-#				 pass
-#				 g.debug.msg('LOG_DEBUG', self.__btreelist)
-#				 self.__btreelist.extend(self.__fieldindex.values())
-#				 g.debug.msg('LOG_DEBUG', self.__btreelist)
-#				 for bt in self.__btreelist:
-#						 g.debug('--', bt ; sys.stdout.flush())
-#						 bt.close()
+
 
 
 		# ian: this can be slow; reconsider use
@@ -811,7 +562,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def gettime(self, ctx=None, txn=None):
 			return gettime()
 
@@ -825,12 +576,26 @@ class Database(object):
 		# section: login / passwords
 		###############################
 
-		def __makecontext(self, username="anonymous", host=None):
+		def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None, dbproxy=False):
 			'''so we can simulate a context for approveuser'''
-			#db = self
-			#if username is "anonymous":
-			#	db = None
-			return emen2.Database.user.Context(username=username, host=host)
+			ctx = datatypes.user.Context(username=username, host=host)
+			if dbproxy:
+				ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
+			else:
+				ctx.db = self
+			return ctx
+				
+				
+		def __makerootcontext(self, ctx=None, txn=None, dbproxy=False):
+			ctx = datatypes.user.SpecialRootContext()
+			ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
+			if dbproxy:
+				ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
+			else:
+				ctx.db = self
+			
+			return ctx
+
 
 
 		# No longer public method; only through DBProxy to force host=...
@@ -850,11 +615,12 @@ class Database(object):
 
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
-					newcontext = self.__makecontext(username, host)
+					newcontext = self.__makecontext(username, host, dbproxy=False)
 
 				else:
 					self.LOG(0, "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
-					raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
+					raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
+
 
 			try:
 				self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
@@ -871,7 +637,7 @@ class Database(object):
 
 
 		# Logout is the same as delete context
-		@publicmethod
+		@DBProxy.publicmethod
 		def logout(self, ctx=None, txn=None):
 			self.deletecontext(ctx=ctx, txn=txn)
 
@@ -881,18 +647,17 @@ class Database(object):
 			"""Check password against stored hash value"""
 			s = hashlib.sha1(password)
 
+
 			try:
 				user = self.__users.sget(username, txn=txn)
 			except:
-				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
+				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
 
 			if user.disabled:
-				raise emen2.Database.exceptions.DisabledUserError, emen2.Database.exceptions.DisabledUserError.__doc__ % username
+				raise subsystems.exceptions.DisabledUserError, subsystems.exceptions.DisabledUserError.__doc__ % username
 
-			if s.hexdigest() == user.password:
-				return True
 
-			#raise AuthenticationError, "Invalid password"
+			return s.hexdigest() == user.password
 
 
 
@@ -902,7 +667,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def deletecontext(self, ctx=None, txn=None):
 			"""Delete a context/Logout user. Returns None."""
 			try:
@@ -1012,12 +777,12 @@ class Database(object):
 					context = self.__contexts_p.sget(ctxid, txn=txn) #[key]
 				except Exception, inst:
 					self.LOG(4, "Session expired %s (%s)" %(ctxid, inst), ctx=ctx, txn=txn)
-					raise emen2.Database.exceptions.SessionError, "Session expired: %s (%s)"%(ctxid, inst)
+					raise subsystems.exceptions.SessionError, "Session expired: %s (%s)"%(ctxid, inst)
 
 
 			if host and host != context.host :
 				self.LOG(0, "Hacker alert! Attempt to spoof context (%s != %s)" % (host, context.host), ctx=ctx, txn=txn)
-				raise emen2.Database.exceptions.SessionError, "Bad address match, login sessions cannot be shared"
+				raise subsystems.exceptions.SessionError, "Bad address match, login sessions cannot be shared"
 
 
 			# this sets up db handle ref, users, groups for context...
@@ -1032,7 +797,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def checkcontext(self, ctx=None, txn=None):
 			"""This allows a client to test the validity of a context, and
 			get basic information on the authorized user and his/her permissions"""
@@ -1042,21 +807,21 @@ class Database(object):
 				return None, None
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def checkadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global write access. Returns bool."""
 			return ctx.checkadmin()
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def checkreadadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global read access. Returns bool."""
 			return ctx.checkreadadmin()
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def checkcreate(self, ctx=None, txn=None):
 			"""Check for permission to create records. Returns bool."""
 			return ctx.checkcreate()
@@ -1074,7 +839,7 @@ class Database(object):
 		# section: binaries
 		###############################
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def newbinary(self, *args, **kwargs):
 			raise Exception, "Use putbinary"
 
@@ -1083,8 +848,8 @@ class Database(object):
 
 		#@txn
 		#@write #self.__bdocounter
-		@publicmethod
-		def putbinary(self, filename, recid, key=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
+		@DBProxy.publicmethod
+		def putbinary(self, filename, recid, validate=True, key=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
 			"""Get a storage path for a new binary object. Must have a
 			recordid that references this binary, used for permissions. Returns a tuple
 			with the identifier for later retrieval and the absolute path"""
@@ -1095,13 +860,17 @@ class Database(object):
 				raise ValueError, "Filename may not be 'None'"
 
 			if key and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+
+			if not validate and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+							
 
 			# ian: todo: acquire lock?
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 
 			if not rec.writable():
-				raise emen2.Database.exceptions.SecurityError, "Write permission needed on referenced record."
+				raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
 			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
@@ -1167,17 +936,17 @@ class Database(object):
 
 			# ian: todo: will this lock prevent others from overwriting new items?
 			# acquire RMW lock to prevent others from editing...
-			bdo = self.__bdocounter.get(datekey, txn=txn, flags=bsddb3.db.DB_RMW) or {}
+			bdo = self.__bdocounter.get(datekey, txn=txn, flags=RMWFLAGS) or {}
 
 			if newid == None:
 				newid = max(bdo.keys() or [-1]) + 1
 
 
 			if bdo.get(newid) and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only admin may overwrite existing BDO"
+				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 
-			nb = emen2.Database.datastorage.Binary()
+			nb = datatypes.datastorage.Binary()
 			nb["uri"] = uri
 			nb["filename"] = filename
 			nb["recid"] = recid
@@ -1231,7 +1000,7 @@ class Database(object):
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 			if os.access(filename, os.F_OK) and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
+				raise subsystems.exceptions.SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
 				#self.LOG(2, "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
 
 
@@ -1251,7 +1020,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getbinary(self, idents, filt=True, vts=None, params=None, ctx=None, txn=None):
 			"""Get a storage path for an existing binary object. Returns the
 			object name and the absolute path"""
@@ -1269,14 +1038,14 @@ class Database(object):
 				ol=1
 				bids = [idents]
 				idents = bids
-			if isinstance(idents,(int,emen2.Database.datastorage.Record)):
+			if isinstance(idents,(int,datatypes.datastorage.Record)):
 				idents = [idents]
 
 
 			bids.extend(filter(lambda x:isinstance(x,basestring), idents))
 
 			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), filt=1, ctx=ctx, txn=txn))
-			recs.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), idents))
+			recs.extend(filter(lambda x:isinstance(x,datatypes.datastorage.Record), idents))
 
 			# ian: todo: speed this up some..
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
@@ -1329,7 +1098,7 @@ class Database(object):
 					if filt:
 						continue
 					else:
-						raise emen2.Database.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+						raise subsystems.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
 			if len(ret)==1 and ol:
@@ -1338,14 +1107,14 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getbinarynames(self, ctx=None, txn=None):
 			"""Returns a list of tuples which can produce all binary object
 			keys in the database. Each 2-tuple has the date key and the nubmer
 			of objects under that key. A somewhat slow operation."""
 
 			if ctx.username == None:
-					raise emen2.Database.exceptions.SecurityError, "getbinarynames not available to anonymous users"
+				raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
 			ret = self.__bdocounter.keys(txn=txn)
 			ret = [(i, len(self.__bdocounter.get(txn=txn))) for i in ret]
@@ -1360,7 +1129,7 @@ class Database(object):
 		###############################
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, filt=True, returnrecs=True, ctx=None, txn=None):
 			#includeparams=None,
 
@@ -1380,7 +1149,7 @@ class Database(object):
 				constraints.append(["*","contains",unicode(q)])
 
 			if recurse:
-				recurse = self.maxrecurse
+				recurse = self.MAXRECURSE
 
 
 
@@ -1557,7 +1326,7 @@ class Database(object):
 
 
 
-		#@publicmethod
+		#@DBProxy.publicmethod
 		#def buildindexkeys(self, txn=None):
 		def __rebuild_indexkeys(self, ctx=None, txn=None):
 
@@ -1572,7 +1341,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def searchindexkeys(self, q=None, ignorecase=1, ctx=None, txn=None):
 			if not q:
 				return {}
@@ -1610,7 +1379,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getindexbyrecorddef(self, recdefname, ctx=None, txn=None):
 			"""Uses the recdefname keyed index to return all
 			records belonging to a particular RecordDef as a set. Currently this
@@ -1622,7 +1391,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getindexbyuser(self, username, ctx=None, txn=None):
 			"""This will use the user keyed record read-access index to return
 			a list of records the user can access. DOES NOT include that user's groups.
@@ -1632,13 +1401,13 @@ class Database(object):
 				username = ctx.username
 
 			if ctx.username != username and not ctx.checkreadadmin():
-				raise emen2.Database.exceptions.SecurityError, "Not authorized to get record access for %s" % username
+				raise subsystems.exceptions.SecurityError, "Not authorized to get record access for %s" % username
 
 			return set(self.__secrindex.sget(username, txn=txn)) #[username]
 
 
 
-		# @publicmethod
+		# @DBProxy.publicmethod
 		# def getparamvalue(self, paramname, recid):
 		# 	paramname = str(paramname).lower()
 		# 	paramindex = self.__getparamindex(paramname)
@@ -1659,11 +1428,11 @@ class Database(object):
 
 
 		# ian: todo: finish..
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparamstatistics(self, paramname, ctx=None, txn=None):
 
 			if ctx.username == None:
-				raise emen2.Database.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
+				raise subsystems.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
 
 			try:
 				paramindex = self.__getparamindex(paramname, create=0, ctx=ctx, txn=txn)
@@ -1690,7 +1459,7 @@ class Database(object):
 
 
 		# ian todo: add unit support.
-		@publicmethod
+		@DBProxy.publicmethod
 		def getindexbyvalue(self, paramname, valrange=None, ctx=None, txn=None):
 			"""For numerical & simple string parameters, this will locate all records
 			with the specified paramdef in the specified range.
@@ -1717,7 +1486,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getindexdictbyvalue(self, paramname, valrange=None, subset=None, ctx=None, txn=None):
 			"""For numerical & simple string parameters, this will locate all records
 			with the specified paramdef in the specified range.
@@ -1772,7 +1541,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getindexbycontext(self, ctx=None, txn=None):
 			"""This will return the ids of all records a context has permission to access as a set. Does include groups."""
 
@@ -1791,7 +1560,7 @@ class Database(object):
 
 
 		# ian: todo: return dictionary instead of list?
-		@publicmethod
+		@DBProxy.publicmethod
 		def getrecordschangetime(self, recids, ctx=None, txn=None):
 			"""Returns a list of times for a list of recids. Times represent the last modification
 			of the specified records"""
@@ -1819,7 +1588,7 @@ class Database(object):
 
 
 		# ian: todo: better way to decide which grouping mechanism to use
-		@publicmethod
+		@DBProxy.publicmethod
 		def groupbyrecorddef(self, recids, optimize=True, ctx=None, txn=None):
 			"""This will take a set/list of record ids and return a dictionary of ids keyed
 			by their recorddef"""
@@ -1830,7 +1599,7 @@ class Database(object):
 			if len(recids) == 0:
 				return {}
 
-			if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],emen2.Database.datastorage.Record)):
+			if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],datatypes.datastorage.Record)):
 				return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 			# also converts to set..
@@ -1857,7 +1626,7 @@ class Database(object):
 		# this one gets records directly
 		def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
 
-			if not isinstance(list(records)[0],emen2.Database.datastorage.Record):
+			if not isinstance(list(records)[0],datatypes.datastorage.Record):
 				records = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
 
 			ret={}
@@ -1871,7 +1640,7 @@ class Database(object):
 
 
 		# ian: unused?
-		@publicmethod
+		@DBProxy.publicmethod
 		def groupby(self, records, param, ctx=None, txn=None):
 			"""This will group a list of record numbers based on the value of 'param' in each record.
 			Records with no defined value will be grouped under the special key None. It would be a bad idea
@@ -1898,7 +1667,7 @@ class Database(object):
 
 
 		# ian: unused?
-		@publicmethod
+		@DBProxy.publicmethod
 		def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
 			"""This will group a list of record numbers based on the recordid of any parents of
 			type 'parenttype'. within the specified recursion depth. If records have multiple parents
@@ -1936,7 +1705,7 @@ class Database(object):
 
 
 		# ian: unused?
-		@publicmethod
+		@DBProxy.publicmethod
 		def countchildren(self, key, recurse=0, ctx=None, txn=None):
 			"""Unlike getchildren, this works only for 'records'. Returns a count of children
 			of the specified record classified by recorddef as a dictionary. The special 'all'
@@ -1950,7 +1719,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getchildren(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctx=None, txn=None):
 			"""Get children;
 			keytype: record, paramdef, recorddef
@@ -1963,7 +1732,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparents(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctx=None, txn=None):
 			"""see: getchildren"""
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, tree=tree, ctx=ctx, txn=txn)
@@ -1973,7 +1742,7 @@ class Database(object):
 
 
 		# wraps getrel / works as both getchildren/getparents
-		@publicmethod
+		@DBProxy.publicmethod
 		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filt=0, tree=0, ctx=None, txn=None):
 			"""Add some extra features to __getrel"""
 
@@ -2069,7 +1838,7 @@ class Database(object):
 			for x in xrange(recurse):
 				if len(stack[x])==0:
 					break
-				if x >= self.maxrecurse-1:
+				if x >= self.MAXRECURSE-1:
 					raise Exception, "Recurse limit reached; check for circular relationships?"
 				stack.append(set())
 
@@ -2099,7 +1868,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getcousins(self, key, keytype="record", ctx=None, txn=None):
 			"""This will get the keys of the cousins of the referenced object
 			keytype is 'record', 'recorddef', or 'paramdef'"""
@@ -2123,18 +1892,18 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def pclinks(self, links, keytype="record", ctx=None, txn=None):
 			return self.__link("pclink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def pcunlinks(self, links, keytype="record", ctx=None, txn=None):
 			return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def pclink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			"""Establish a parent-child relationship between two keys.
 			A context is required for record links, and the user must
@@ -2143,19 +1912,19 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def pcunlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			"""Remove a parent-child relationship between two keys. Returns none if link doesn't exist."""
 			return self.__link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def link(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			return self.__link("link", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def unlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
@@ -2170,7 +1939,7 @@ class Database(object):
 				raise Exception, "Invalid relationship mode %s"%mode
 
 			if not ctx.checkcreate():
-				raise emen2.Database.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
+				raise subsystems.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 			if filter(lambda x:x[0] == x[1], links):
 				#g.debug.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
@@ -2183,8 +1952,8 @@ class Database(object):
 
 			# ian: circular reference detection.
 			#if mode=="pclink" and not self.__importmode:
-			#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="parents")[0]
-			#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.maxrecurse, rel="children")[0]
+			#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="parents")[0]
+			#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
 			#	if pkey in c or ckey in p or pkey == ckey:
 			#		raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
 
@@ -2193,7 +1962,7 @@ class Database(object):
 				recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
 				for a,b in links:
 					if not (recs[a].writable() or recs[b].writable()):
-						raise emen2.Database.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
+						raise subsystems.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 			else:
 				links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
@@ -2238,7 +2007,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def disableuser(self, username, ctx=None, txn=None):
 			"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 			a complete historical record is maintained. Only an administrator can do this."""
@@ -2247,7 +2016,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def enableuser(self, username, ctx=None, txn=None):
 			return self.__setuserstate(username, 0, ctx=ctx, txn=txn)
 
@@ -2262,7 +2031,7 @@ class Database(object):
 				raise Exception, "Invalid state. Must be 0 or 1."
 
 			if not ctx.checkadmin():
-					raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
+				raise subsystems.exceptions.SecurityError, "Only administrators can disable users"
 
 			ol = 0
 			if not hasattr(username, "__iter__"):
@@ -2273,7 +2042,7 @@ class Database(object):
 			for i in username:
 				if i == ctx.username:
 					continue
-					# raise emen2.Database.exceptions.SecurityError, "Even administrators cannot disable themselves"
+					# raise subsystems.exceptions.SecurityError, "Even administrators cannot disable themselves"
 				user = self.__users.sget(i, txn=txn) #[i]
 				if user.disabled == state:
 					continue
@@ -2288,27 +2057,25 @@ class Database(object):
 			if len(ret)==1 and ol: return ret[0].username
 			return [user.username for user in ret]
 
-		@publicmethod
-		@adminmethod
+
+		@DBProxy.publicmethod
+		@DBProxy.adminmethod
 		def getsecret(self, username, ctx=None, txn=None):
 			return self.__newuserqueue.get(username, txn=txn).get_secret()
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		@emen2.util.utils.return_list_or_single(1)
 		def approveuser(self, usernames, secret=None, ctx=None, txn=None):
-			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret
-
-			adduser creates a secret, should work hear
-			"""
+			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret"""
 
 			try:
 				admin = ctx.checkadmin()
 				if (secret == None) and (not admin):
-					raise emen2.Database.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
+					raise subsystems.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
 
-			except emen2.Database.exceptions.SecurityError:
+			except subsystems.exceptions.SecurityError:
 				raise
 
 			except BaseException, e:
@@ -2322,6 +2089,7 @@ class Database(object):
 			if not hasattr(usernames,"__iter__"):
 				#ol=True
 				usernames = [usernames]
+
 
 			delusers, addusers, records, childstore = {}, {}, {}, {}
 
@@ -2337,6 +2105,8 @@ class Database(object):
 
 				# ian: create record for user.
 				user = self.__newuserqueue.sget(username, txn=txn) #[username]
+				
+				user.setContext(ctx)
 				user.validate()
 
 				if secret is not None and not user.validate_secret(secret):
@@ -2346,12 +2116,14 @@ class Database(object):
 
 				else:
 					if user.record == None:
-						tmpctx = ctx
-						if ctx.username == None:
-							tmpctx = self.__makecontext(username=username, host=ctx.host)
-							#self.__init_context(tmpctx, user, txn=txn)
+						#tmpctx = ctx
+						#if ctx.username == None:
+						#	tmpctx = self.__makecontext(username=username, host=ctx.host)
+						#	#self.__init_context(tmpctx, user, txn=txn)
 
-						rec = self.newrecord("person", init=1, ctx=tmpctx, txn=txn)
+						tmpctx = self.__makerootcontext(txn=txn, dbproxy=True)
+
+						rec = self.newrecord("person", ctx=tmpctx, txn=txn)
 						rec["username"] = username
 						name = user.signupinfo.get('name', ['', '', ''])
 						rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
@@ -2359,18 +2131,22 @@ class Database(object):
 						rec.adduser(3,username)
 
 						for k,v in user.signupinfo.items():
-							rec[k]=v
-
+							rec[k] = v
+						
+						#print "putting record..."
 						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
-						children = user.create_childrecords(ctx=tmpctx, txn=txn)
-						children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
+						# ian: todo: turning this off for now..
+						#print "creating child records"
+						#children = user.create_childrecords()
+						#children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
 
-						if children != []:
-							self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
-							for links in children:
-								child, parents = links
-								self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+						#if children != []:
+						#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
+						#	for links in children:
+						#		child, parents = links
+						#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+
 
 						user.record = rec.recid
 
@@ -2389,21 +2165,22 @@ class Database(object):
 
 
 
-		@publicmethod
-		@adminmethod
+
+		@DBProxy.publicmethod
+		@DBProxy.adminmethod
 		def getpendinguser(self, username, ctx=None, txn=None):
 			return self.__newuserqueue.get(username, txn=txn)
 
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def rejectuser(self, usernames, ctx=None, txn=None):
 			"""Remove a user from the pending new user queue - only an administrator can do this"""
 
 
 			if not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
+				raise subsystems.exceptions.SecurityError, "Only administrators can approve new users"
 
 			ol = 0
 			if not hasattr(username,"__iter__"):
@@ -2428,24 +2205,24 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getuserqueue(self, ctx=None, txn=None):
 			"""Returns a list of names of unapproved users"""
 
 			if not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
+				raise subsystems.exceptions.SecurityError, "Only administrators can approve new users"
 
 			return self.__newuserqueue.keys(txn=txn)
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getqueueduser(self, username, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
 			if not ctx.checkreadadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only administrators can access pending users"
+				raise subsystems.exceptions.SecurityError, "Only administrators can access pending users"
 
 			if hasattr(username,"__iter__"):
 				ret={}
@@ -2457,7 +2234,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def setuserprivacy(self, usernames, state, ctx=None, txn=None):
 
 			try:
@@ -2484,7 +2261,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def setpassword(self, username, oldpassword, newpassword, ctx=None, txn=None):
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
@@ -2493,16 +2270,18 @@ class Database(object):
 
 			if s.hexdigest() != user.password and not ctx.checkadmin():
 				time.sleep(2)
-				raise emen2.Database.exceptions.SecurityError, "Original password incorrect"
+				raise subsystems.exceptions.SecurityError, "Original password incorrect"
 
 			# we disallow bad passwords here, right now we just make sure that it
 			# is at least 6 characters long
 
 			if len(newpassword) < 6:
-				raise emen2.Database.exceptions.SecurityError, "Passwords must be at least 6 characters long"
+				raise subsystems.exceptions.SecurityError, "Passwords must be at least 6 characters long"
 
 			t = hashlib.sha1(newpassword)
 			user.password = t.hexdigest()
+
+			g.debug.msg("LOG_INFO","Changing password for %s"%user.username)
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
@@ -2518,13 +2297,13 @@ class Database(object):
 		##########################
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getgroupnames(self, ctx=None, txn=None):
 			return set(self.__groups.keys(txn=txn))
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getgroup(self, groups, filt=1, ctx=None, txn=None):
 			ol=0
 			if not hasattr(groups,"__iter__"):
@@ -2631,20 +2410,28 @@ class Database(object):
 
 
 		#@write self.__groups, self.__groupsbyuser
-		@publicmethod
-		def putgroup(self, groups, ctx=None, txn=None):
+		@DBProxy.publicmethod
+		def putgroup(self, groups, validate=True, ctx=None, txn=None):
 
-			if isinstance(groups, (emen2.Database.user.Group, dict)): # or not hasattr(groups, "__iter__"):
+			if isinstance(groups, (datatypes.user.Group, dict)): # or not hasattr(groups, "__iter__"):
 				groups = [groups]
 
 			groups2 = []
-			groups2.extend(filter(lambda x:isinstance(x, emen2.Database.user.Group), groups))
-			groups2.extend(map(lambda x:emen2.Database.user.Group(x), filter(lambda x:isinstance(x, dict), groups)))
+			groups2.extend(filter(lambda x:isinstance(x, datatypes.user.Group), groups))
+			groups2.extend(map(lambda x:datatypes.user.Group(x), filter(lambda x:isinstance(x, dict), groups)))
 
 			allusernames = self.getusernames(ctx=ctx, txn=txn)
 
+			if not validate and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+
 			for group in groups2:
-				group.validate()
+			
+				group.setContext(ctx)
+				
+				if validate:
+					group.validate()
+
 				if group.members() - allusernames:
 					raise Exception, "Invalid user names: %s"%(group.members() - allusernames)
 
@@ -2670,7 +2457,7 @@ class Database(object):
 
 
 		# merge with getuser?
-		@publicmethod
+		@DBProxy.publicmethod
 		def getgroupdisplayname(self, groupname, ctx=None, txn=None):
 			ol = 0
 			if not hasattr(groupname,"__iter__"):
@@ -2695,7 +2482,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def adduser(self, inuser, ctx=None, txn=None):
 			"""adds a new user record. However, note that this only adds the record to the
 			new user queue, which must be processed by an administrator before the record
@@ -2705,9 +2492,9 @@ class Database(object):
 			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + str(random.random()))
 
 			try:
-				user = emen2.Database.user.User(inuser, secret=secret.hexdigest())
-			except:
-				raise ValueError, "User instance or dict required"
+				user = datatypes.user.User(inuser, secret=secret.hexdigest(), ctx=ctx)
+			except Exception, inst:
+				raise ValueError, "User instance or dict required (%s)"%inst
 
 
 			#if user.username in self.__users:
@@ -2722,51 +2509,40 @@ class Database(object):
 			if self.__newuserqueue.get(user.username, txn=txn):
 				raise KeyError, "User with username '%s' already pending approval" % user.username
 
-
-			# 40 = lenght of hex digest
-			# we disallow bad passwords here, right now we just make sure that it
-			# is at least 6 characters long
-			if len(user.password) < 6:
-					raise ValueError, "Passwords must be at least 6 characters long"
-
-
-			s = hashlib.sha1(user.password) #.hexdigest()
-			user.password = s.hexdigest()
-
-			if not self.__importmode:
-				user.creationtime = self.__gettime(ctx=ctx, txn=txn)
-				user.modifytime = self.__gettime(ctx=ctx, txn=txn)
-
 			assert hasattr(user, '_User__secret')
+
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
+
+			if ctx.checkadmin():
+				#print "approving %s"%user.username
+				self.approveuser(user.username, ctx=ctx, txn=txn)
 
 			return inuser
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def putuser(self, user, validate=True, ctx=None, txn=None):
 
-			if not isinstance(user, emen2.Database.user.User):
+			if not isinstance(user, datatypes.user.User):
 				try:
-					user = emen2.Database.user.User(user)
+					user = datatypes.user.User(user, ctx=ctx)
 				except:
 					raise ValueError, "User instance or dict required"
 
 			if not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only administrators may add/modify users with this method"
+				raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 
-
-			if validate:
+			if not validate and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+			
+			if validate:	
 				user.validate()
-
+				
 			self.__commit_users([user], ctx=ctx, txn=txn)
-			#try:
-			#	user = self.getuser(user.username, filt=0)
-			#except:
-			#	pass
+
 
 
 
@@ -2778,9 +2554,9 @@ class Database(object):
 
 			for user in users:
 
-				if not isinstance(user, emen2.Database.user.User):
+				if not isinstance(user, datatypes.user.User):
 					try:
-						user = emen2.Database.user.User(user)
+						user = datatypes.user.User(user, ctx=ctx)
 					except:
 						raise ValueError, "User instance or dict required"
 
@@ -2789,10 +2565,6 @@ class Database(object):
 				except:
 					ouser = user
 					#raise KeyError, "Putuser may only be used to update existing users"
-
-
-				#if user.creator != ouser.creator or user.creationtime != ouser.creationtime:
-				#	raise emen2.Database.exceptions.SecurityError, "Creation information may not be changed"
 
 				# user.validate()
 
@@ -2823,7 +2595,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getuser(self, usernames, filt=True, lnf=False, getrecord=True, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
@@ -2850,7 +2622,7 @@ class Database(object):
 				# if the user has requested privacy, we return only basic info
 				#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 				if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
-					user2 = emen2.Database.user.User()
+					user2 = datatypes.user.User()
 					user2.username = user.username
 					user = user2
 
@@ -2865,7 +2637,7 @@ class Database(object):
 					try:
 						user._userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
 					except Exception, inst:
-						self.LOG(4, "problem getting record user %s record %s: %s"%(user.username, user.record, inst))
+						#self.LOG(4, "problem getting record user %s record %s: %s"%(user.username, user.record, inst))
 						user._userrec = {}
 
 					user.displayname = self.__formatusername(user.username, user._userrec, lnf=lnf, ctx=ctx, txn=txn)
@@ -2885,7 +2657,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getuserdisplayname(self, username, lnf=1, perms=0, filt=True, ctx=None, txn=None):
 			"""Return the full name of a user from the user record; include permissions param if perms=1"""
 
@@ -2895,7 +2667,7 @@ class Database(object):
 			ol = 0
 			if isinstance(username, basestring):
 				ol = 1
-			if isinstance(username, (basestring, int, emen2.Database.datastorage.Record)):
+			if isinstance(username, (basestring, int, datatypes.datastorage.Record)):
 				username=[username]
 
 			namestoget=[]
@@ -2906,7 +2678,7 @@ class Database(object):
 				vts.append("acl")
 
 			recs = []
-			recs.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), username))
+			recs.extend(filter(lambda x:isinstance(x,datatypes.datastorage.Record), username))
 			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), username), filt=filt, ctx=ctx, txn=txn))
 
 			if recs:
@@ -2974,7 +2746,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getusernames(self, ctx=None, txn=None):
 			"""Not clear if this is a security risk, but anyone can get a list of usernames
 					This is likely needed for inter-database communications"""
@@ -2986,7 +2758,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def findusername(self, name, ctx=None, txn=None):
 			"""This will look for a username matching the provided name in a loose way"""
 
@@ -3028,13 +2800,13 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getworkflow(self, ctx=None, txn=None):
 			"""This will return an (ordered) list of workflow objects for the given context (user).
 			it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 
 			if ctx.username == None:
-				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			try:
 				return self.__workflow.sget(ctx.username, txn=txn) #[ctx.username]
@@ -3043,7 +2815,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getworkflowitem(self, wfid, ctx=None, txn=None):
 			"""Return a workflow from wfid."""
 
@@ -3060,7 +2832,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def newworkflow(self, vals, ctx=None, txn=None):
 			"""Return an initialized workflow instance."""
 			return WorkFlow(vals)
@@ -3069,12 +2841,12 @@ class Database(object):
 
 		#@txn
 		#@write #self.__workflow
-		@publicmethod
+		@DBProxy.publicmethod
 		def addworkflowitem(self, work, ctx=None, txn=None):
 			"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 
 			if ctx.username == None:
-				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			if not isinstance(work, WorkFlow):
 				try:
@@ -3105,13 +2877,13 @@ class Database(object):
 
 		#@txn
 		#@write #self.__workflow
-		@publicmethod
+		@DBProxy.publicmethod
 		def delworkflowitem(self, wfid, ctx=None, txn=None):
 			"""This will remove a single workflow object based on wfid"""
 			#self = db
 
 			if ctx.username == None:
-				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			wf = self.__workflow.sget(ctx.username, txn=txn) #[ctx.username]
 			for i, w in enumerate(wf):
@@ -3128,7 +2900,7 @@ class Database(object):
 
 		#@txn
 		#@write #self.__workflow
-		@publicmethod
+		@DBProxy.publicmethod
 		def setworkflow(self, wflist, ctx=None, txn=None):
 			"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 			the external application should NEVER modify the wfid of the individual WorkFlow records.
@@ -3136,7 +2908,7 @@ class Database(object):
 			#self = db
 
 			if ctx.username == None:
-				raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
 
 			if wflist == None:
 				wflist = []
@@ -3172,7 +2944,7 @@ class Database(object):
 		#########################
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getvartypenames(self, ctx=None, txn=None):
 			"""This returns a list of all valid variable types in the database. This is currently a
 			fixed list"""
@@ -3180,7 +2952,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getvartype(self, name, ctx=None, txn=None):
 			"""This returns a list of all valid variable types in the database. This is currently a
 			fixed list"""
@@ -3189,7 +2961,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getpropertynames(self, ctx=None, txn=None):
 			"""This returns a list of all valid property types in the database. This is currently a
 			fixed list"""
@@ -3197,7 +2969,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getpropertyunits(self, propname, ctx=None, txn=None):
 			"""Returns a list of known units for a particular property"""
 			# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
@@ -3207,20 +2979,20 @@ class Database(object):
 
 		#@txn
 		# ian: renamed addparamdef -> putparamdef for consistency
-		@publicmethod
-		def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
+		@DBProxy.publicmethod
+		def putparamdef(self, paramdef, validate=True, parents=None, children=None, ctx=None, txn=None):
 			"""adds a new ParamDef object, group 0 permission is required
 			a p->c relationship will be added if parent is specified"""
 
-			if not isinstance(paramdef, emen2.Database.datastorage.ParamDef):
+			if not isinstance(paramdef, datatypes.datastorage.ParamDef):
 				try:
-					paramdef = emen2.Database.datastorage.ParamDef(paramdef)
+					paramdef = datatypes.datastorage.ParamDef(paramdef, ctx=ctx)
 				except ValueError, inst:
 					raise ValueError, "ParamDef instance or dict required"
 
 
 			if not ctx.checkcreate():
-				raise emen2.Database.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
+				raise subsystems.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
 			paramdef.name = unicode(paramdef.name).lower()
 
@@ -3241,9 +3013,12 @@ class Database(object):
 				paramdef.creationtime = self.__gettime(ctx=ctx, txn=txn)
 
 
-			# if not self.__importmode:
-			# 	paramdef.validate()
-
+			if not validate and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+			
+			if validate:
+				paramdef.validate()
+				
 			# this actually stores in the database
 
 			self.__commit_paramdefs([paramdef], ctx=ctx, txn=txn)
@@ -3259,7 +3034,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def addparamchoice(self, paramdefname, choice, ctx=None, txn=None):
 			"""This will add a new choice to records of vartype=string. This is
 			the only modification permitted to a ParamDef record after creation"""
@@ -3272,9 +3047,12 @@ class Database(object):
 
 			d = self.__paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
 			if d.vartype != "string":
-				raise emen2.Database.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
+				raise subsystems.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
 
 			d.choices = d.choices + (unicode(choice).title(),)
+
+			d.setContext(ctx)
+			d.validate()
 
 			self.__commit_paramdefs([d], ctx=ctx, txn=txn)
 
@@ -3283,9 +3061,6 @@ class Database(object):
 		#ian: todo
 		#@write #self.__paramdefs
 		def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
-
-			for i in paramdefs:
-				i.validate()
 
 			#@begin
 
@@ -3299,7 +3074,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparamdefs(self, recs, filt=True, ctx=None, txn=None):
 			"""Returns a list of ParamDef records.
 			recs may be a single record, a list of records, or a list
@@ -3322,7 +3097,7 @@ class Database(object):
 			if isinstance(recs[0], int):
 				recs = self.getrecord(recs, ctx=ctx, txn=txn)
 
-			if isinstance(recs[0], emen2.Database.datastorage.Record):
+			if isinstance(recs[0], datatypes.datastorage.Record):
 				q = set((i.rectype for i in recs))
 				for i in q:
 					params |= set(self.getrecorddef(i, ctx=ctx, txn=txn).paramsK)
@@ -3349,7 +3124,7 @@ class Database(object):
 
 
 		# ian todo: combine this and getparamdefs; alot of older places use this version
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparamdef(self, key, ctx=None, txn=None):
 			"""gets an existing ParamDef object, anyone can get any field definition"""
 			try:
@@ -3359,7 +3134,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparamdefnames(self, ctx=None, txn=None):
 			"""Returns a list of all ParamDef names"""
 			return self.__paramdefs.keys(txn=txn)
@@ -3393,11 +3168,11 @@ class Database(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = emen2.Database.btrees2.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv, txn=txn)
+			self.__fieldindex[paramname] = subsystems.btrees2.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv, txn=txn)
 
 			return self.__fieldindex[paramname]
 
-		@adminmethod
+		@DBProxy.adminmethod
 		def __closeparamindex(self, paramname, ctx=None, txn=None):
 			self.__fieldindex.pop(paramname).close()
 
@@ -3414,37 +3189,41 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
-		def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
+		@DBProxy.publicmethod
+		def putrecorddef(self, recdef, validate=True, parents=None, children=None, ctx=None, txn=None):
 			"""Add or update RecordDef. The mainview should
 			never be changed once used, since this will change the meaning of
 			data already in the database, but sometimes changes of appearance
 			are necessary, so this method is available."""
 			#self = db
 
-			if not isinstance(recdef, emen2.Database.datastorage.RecordDef):
+			if not isinstance(recdef, datatypes.datastorage.RecordDef):
 				try:
-					recdef = emen2.Database.datastorage.RecordDef(recdef)
+					recdef = datatypes.datastorage.RecordDef(recdef)
 				except:
 					raise ValueError, "RecordDef instance or dict required"
 
-			recdef.validate()
-
 			if not ctx.checkcreate():
-				raise emen2.Database.exceptions.SecurityError, "No permission to create new RecordDefs"
+				raise subsystems.exceptions.SecurityError, "No permission to create new RecordDefs"
+
+			if not validate and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+			
 
 
 			try:
 				rd = self.__recorddefs.sget(recdef.name, txn=txn) #[recdef.name]
+				rd.setContext(ctx)
+				
 			except:
-				rd = emen2.Database.datastorage.RecordDef(recdef, ctx=ctx)
+				rd = datatypes.datastorage.RecordDef(recdef, ctx=ctx)
 				#raise Exception, "No such recorddef %s"%recdef.name
 
 			if ctx.username != rd.owner and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
+				raise subsystems.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
 			if recdef.mainview != rd.mainview and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
+				raise subsystems.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 
 			recdef.findparams()
@@ -3456,7 +3235,10 @@ class Database(object):
 			recdef.creator = rd.creator
 			recdef.creationtime = rd.creationtime
 
+			if validate:	
+				recdef.validate()
 
+				
 			# commit
 			self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
 
@@ -3484,7 +3266,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getrecorddef(self, rectypename, recid=None, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
 			private, unless the user is an owner or	 in the context of a recid the
@@ -3514,20 +3296,20 @@ class Database(object):
 
 			# ok, now we need to do a little more work.
 			if recid == None:
-				raise emen2.Database.exceptions.SecurityError, "User doesn't have permission to access private RecordDef '%s'" % rectypename
+				raise subsystems.exceptions.SecurityError, "User doesn't have permission to access private RecordDef '%s'" % rectypename
 
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 			# try to get the record, may (and should sometimes) raise an exception
 
 			if rec.rectype != rectypename:
-				raise emen2.Database.exceptions.SecurityError, "Record %d doesn't belong to RecordDef %s" % (recid, rectypename)
+				raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef %s" % (recid, rectypename)
 
 			# success, the user has permission
 			return ret
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getrecorddefnames(self, ctx=None, txn=None):
 			"""This will retrieve a list of all existing RecordDef names,
 			even those the user cannot access the contents of"""
@@ -3535,7 +3317,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def findrecorddefname(self, name, ctx=None, txn=None):
 			"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef,
 			or None if no match is found."""
@@ -3563,15 +3345,9 @@ class Database(object):
 		#########################
 
 
-
-
-
-
-
-
 		# ian: improved!
 		# ed: more improvments!
-		@publicmethod
+		@DBProxy.publicmethod
 		#@g.debug.debug_func
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -3581,20 +3357,24 @@ class Database(object):
 				ol=True
 				recids=[recids]
 
+			#traceback.print_stack()
+
 			ret=[]
-			for i in recids:
+			for i in recids:				
 				try:
 					rec = self.__records.sget(i, txn=txn) # [i]
 					rec.setContext(ctx=ctx)
 					ret.append(rec)
-				except emen2.Database.exceptions.SecurityError, e:
+				except subsystems.exceptions.SecurityError, e:
 					if filt: pass
 					else:
 						traceback.print_stack()
 						raise e
 				except (KeyError, TypeError), e:
-					if filt: pass
-					else: raise KeyError, "No such record %s"%i
+					if filt:
+						pass
+					else:
+						raise KeyError, "No such record %s"%i
 
 			if len(ret)==1 and ol:
 				return ret[0]
@@ -3610,13 +3390,13 @@ class Database(object):
 
 		# ian: todo: improve newrecord/putrecord
 		# ian: todo: allow to copy existing record
-		@publicmethod
+		@DBProxy.publicmethod
 		def newrecord(self, rectype, init=0, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
 
 
-			rec = emen2.Database.datastorage.Record(ctx=ctx)
+			rec = datatypes.datastorage.Record(ctx=ctx)
 			#rec.setContext(ctx)
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
@@ -3647,7 +3427,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
 			if not hasattr(vts,"__iter__"):
 				vts = [vts]
@@ -3661,7 +3441,7 @@ class Database(object):
 
 		# ian: this might be helpful
 		# e.g.: __filtervartype(136, ["user","userlist"])
-		@publicmethod
+		@DBProxy.publicmethod
 		def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 
 			if not recs:
@@ -3671,13 +3451,13 @@ class Database(object):
 
 			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
 			ol = 0
-			if isinstance(recs,(int,emen2.Database.datastorage.Record)):
+			if isinstance(recs,(int,datatypes.datastorage.Record)):
 				ol = 1
 				recs = [recs]
 
 
 			# get the records...
-			recs2.extend(filter(lambda x:isinstance(x,emen2.Database.datastorage.Record),recs))
+			recs2.extend(filter(lambda x:isinstance(x,datatypes.datastorage.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
@@ -3722,7 +3502,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def deleterecord(self, recid, ctx=None, txn=None):
 			"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden."""
 
@@ -3761,7 +3541,7 @@ class Database(object):
 
 		# ian: todo: should be extension
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def addcomment(self, recid, comment, ctx=None, txn=None):
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 			rec.addcomment(comment)
@@ -3778,7 +3558,7 @@ class Database(object):
 
 		# ian todo: redo these three methods
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 			"""Make a single change to a single record"""
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
@@ -3789,7 +3569,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def putrecordvalues(self, recid, values, ctx=None, txn=None):
 			"""Make multiple changes to a single record"""
 
@@ -3810,7 +3590,7 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
+		@DBProxy.publicmethod
 		def putrecordsvalues(self, d, ctx=None, txn=None):
 			"""Make multiple changes to multiple records"""
 
@@ -3822,23 +3602,23 @@ class Database(object):
 
 
 		#@txn
-		@publicmethod
-		def putrecord(self, recs, filt=True, warning=0, log=True, importmode=True, ctx=None, txn=None):
+		@DBProxy.publicmethod
+		def putrecord(self, recs, filt=True, validate=True, warning=0, log=True, importmode=True, ctx=None, txn=None):
 			"""commits a record"""
 			# input validation for __putrecord
 
 			if not ctx.checkadmin():
-				if warning:
-					raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass record validation"
+				if not validate or warning:
+					raise subsystems.exceptions.SecurityError, "Only administrators may bypass record validation"					
 				if not log:
-					raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass logging"
+					raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging"
 				if not importmode:
-					raise emen2.Database.exceptions.SecurityError, "Only administrators may use importmode"
+					raise subsystems.exceptions.SecurityError, "Only administrators may use importmode"
 
 
 			# filter input for dicts/records
 			ol = 0
-			if isinstance(recs,(emen2.Database.datastorage.Record,dict)):
+			if isinstance(recs,(datatypes.datastorage.Record,dict)):
 				ol = 1
 				recs = [recs]
 			elif not hasattr(recs, 'extend'):
@@ -3846,8 +3626,8 @@ class Database(object):
 
 
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
-			recs.extend(map(lambda x:emen2.Database.datastorage.Record(x, ctx=ctx), dictrecs))
-			recs = filter(lambda x:isinstance(x,emen2.Database.datastorage.Record), recs)
+			recs.extend(map(lambda x:datatypes.datastorage.Record(x, ctx=ctx), dictrecs))
+			recs = filter(lambda x:isinstance(x,datatypes.datastorage.Record), recs)
 
 			# new records and updated records
 			updrecs = filter(lambda x:x.recid >= 0, recs)
@@ -3861,13 +3641,14 @@ class Database(object):
 
 			permerror = set([rec.recid for rec in updrecs]) - orecs
 			if permerror:
-				raise emen2.Database.exceptions.SecurityError, "No permission to write to records: %s"%permerror
+				raise subsystems.exceptions.SecurityError, "No permission to write to records: %s"%permerror
 
 
 			if newrecs and not ctx.checkcreate():
-				raise emen2.Database.exceptions.SecurityError, "No permission to create records"
+				raise subsystems.exceptions.SecurityError, "No permission to create records"
 
-			ret = self.__putrecord(recs, warning=warning, importmode=importmode, log=log, ctx=ctx, txn=txn)
+			ret = self.__putrecord(recs, validate=validate, warning=warning, importmode=importmode, log=log, ctx=ctx, txn=txn)
+
 
 			if ol and len(ret) > 0:
 				return ret[0]
@@ -3878,7 +3659,7 @@ class Database(object):
 
 
 
-		def __putrecord(self, updrecs, warning=0, validate=True, importmode=0, log=True, ctx=None, txn=None):
+		def __putrecord(self, updrecs, validate=True, warning=0, importmode=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
 
@@ -3909,7 +3690,7 @@ class Database(object):
 				recid = updrec.recid
 
 
-				if self.__records.exists(updrec.recid, txn=txn, flags=bsddb3.db.DB_RMW):
+				if self.__records.exists(updrec.recid, txn=txn, flags=RMWFLAGS):
 					# we need to acquire RMW lock here to prevent changes during commit
 					orec = self.__records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
@@ -4026,7 +3807,7 @@ class Database(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.sget(-1, txn=txn, flags=bsddb3.db.DB_RMW)
+				baserecid = self.__records.sget(-1, txn=txn, flags=RMWFLAGS)
 				g.debug.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
 
@@ -4370,7 +4151,7 @@ class Database(object):
 
 
 		# ian: todo: benchmark these again
-		@publicmethod
+		@DBProxy.publicmethod
 		def filterbypermissions(self, recids, ctx=None, txn=None):
 
 
@@ -4437,7 +4218,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def secrecordadduser2(self, recids, level, users, reassign=0, ctx=None, txn=None):
 
 				if not hasattr(recids,"__iter__"):
@@ -4450,7 +4231,7 @@ class Database(object):
 
 				checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 				if users - checkitems:
-					raise emen2.Database.exceptions.SecurityError, "Invalid users/groups: %s"%(users-checkitems)
+					raise subsystems.exceptions.SecurityError, "Invalid users/groups: %s"%(users-checkitems)
 
 				# change child perms
 				if recurse:
@@ -4468,7 +4249,7 @@ class Database(object):
 		# ian todo: check this thoroughly; probably rewrite
 		#@txn
 		#@write #self.__records, self.__secrindex
-		@publicmethod
+		@DBProxy.publicmethod
 		def secrecordadduser(self, usertuple, recid, recurse=0, reassign=0, mode="union", ctx=None, txn=None):
 				"""This adds permissions to a record. usertuple is a 4-tuple containing users
 				to have read, comment, write and administrativepermission. Each value in the tuple is either
@@ -4516,7 +4297,7 @@ class Database(object):
 
 				rec=self.getrecord(recid, ctx=ctx, txn=txn)
 				if ctx.username not in rec["permissions"][3] and not isroot:
-					raise emen2.Database.exceptions.SecurityError,"Insufficient permissions for record %s"%recid
+					raise subsystems.exceptions.SecurityError,"Insufficient permissions for record %s"%recid
 
 				# this will be a dictionary keyed by user of all records the user has
 				# just gained access to. Used for fast index updating
@@ -4586,7 +4367,7 @@ class Database(object):
 		# ian todo: see above
 		#@txn
 		#@write	#self.__records, self.__secrindex
-		@publicmethod
+		@DBProxy.publicmethod
 		def secrecorddeluser(self, users, recid, recurse=0, ctx=None, txn=None):
 				"""This removes permissions from a record. users is a username or tuple/list of
 				of usernames to have no access to the record at all (will not affect group
@@ -4667,7 +4448,7 @@ class Database(object):
 
 
 		# ian: todo: deprecate
-		@publicmethod
+		@DBProxy.publicmethod
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 			"""Render the recname view for a record."""
 
@@ -4689,7 +4470,7 @@ class Database(object):
 
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def getrecordrenderedviews(self, recid, ctx=None, txn=None):
 			"""Render all views for a record."""
 
@@ -4710,13 +4491,17 @@ class Database(object):
 
 
 		# It is a cold, cold, cruel world... moved to VartypeManager
-		@publicmethod
+		@DBProxy.publicmethod
 		def renderview(self, *args, **kwargs):
 			"""Render views"""
 			# calls out to places that expect DBProxy need a DBProxy...
 			kwargs["db"] = kwargs["ctx"].db
 			if kwargs.get("ctx"): del kwargs["ctx"]
 			if kwargs.get("txn"): del kwargs["txn"]
+			print "Calling out to renderview..."
+			traceback.print_stack()
+			print args
+			print kwargs
 			return self.vtm.renderview(*args, **kwargs)
 
 
@@ -4732,7 +4517,8 @@ class Database(object):
 				in the local filesystem"""
 
 				#if user!="root" :
-				if not ctx.checkadmin(): raise emen2.Database.exceptions.SecurityError, "Only root may backup the database"
+				if not ctx.checkadmin():
+					raise subsystems.exceptions.SecurityError, "Only root may backup the database"
 
 
 				g.debug.msg('LOG_INFO', 'backup has begun')
@@ -4837,7 +4623,7 @@ class Database(object):
 		def get_dbpath(self, tail):
 			return os.path.join(self.path, tail)
 
-		@adminmethod
+		@DBProxy.adminmethod
 		def archivelogs(self, ctx=None, txn=None):
 			g.debug.msg('LOG_INFO', "checkpointing")
 			self.__dbenv.txn_checkpoint()
@@ -4873,12 +4659,12 @@ class Database(object):
 			if any(blocks):
 				to_commit = filter(None, blocks)
 				commit_funcs = {
-					emen2.Database.datastorage.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
-					emen2.Database.datastorage.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
-					emen2.Database.user.User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
+					datatypes.datastorage.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
+					datatypes.datastorage.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
+					datatypes.user.User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
 				}
 				for block in to_commit:
-					if isinstance(block[0], emen2.Database.datastorage.Record):
+					if isinstance(block[0], datatypes.datastorage.Record):
 						self.__restore_rec(block, mp, ctx=ctx, txn=txn)
 					else:
 						map(commit_funcs[type(block[0])], block)
@@ -4951,7 +4737,7 @@ class Database(object):
 			return True
 
 
-		@publicmethod
+		@DBProxy.publicmethod
 		def restore(self, restorefile=None, types=None, ctx=None, txn=None):
 				"""This will restore the database from a backup file. It is nondestructive, in that new items are
 				added to the existing database. Naming conflicts will be reported, and the new version
@@ -4968,7 +4754,7 @@ class Database(object):
 				user, groups = ctx.username, ctx.groups
 
 				if not ctx.checkadmin():
-					raise emen2.Database.exceptions.SecurityError, "Database restore requires admin access"
+					raise subsystems.exceptions.SecurityError, "Database restore requires admin access"
 
 				recmap = {}
 				nrec = 0
@@ -5003,13 +4789,13 @@ class Database(object):
 							commitrecs = False
 
 							# insert and renumber record
-							if isinstance(r, emen2.Database.datastorage.Record) and "record" in types:
+							if isinstance(r, datatypes.datastorage.Record) and "record" in types:
 								recblock.append(r)
-							elif isinstance(r, emen2.Database.datastorage.RecordDef) and "recorddef" in types:
+							elif isinstance(r, datatypes.datastorage.RecordDef) and "recorddef" in types:
 								recdefblock.append(r)
-							elif isinstance(r, emen2.Database.datastorage.ParamDef) and "paramdef" in types:
+							elif isinstance(r, datatypes.datastorage.ParamDef) and "paramdef" in types:
 								paramblock.append(r)
-							elif isinstance(r, emen2.Database.user.User) and "user" in types:
+							elif isinstance(r, datatypes.user.User) and "user" in types:
 								userblock.append(r)
 
 							if sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= blocklength:
@@ -5079,7 +4865,7 @@ class Database(object):
 			# groups = ctx.groups
 			# #if user!="root" :
 			# if not ctx.checkadmin():
-			# 		raise emen2.Database.exceptions., "Only root may restore the database"
+			# 		raise subsystems.exceptions., "Only root may restore the database"
 			#
 			# if os.access(self.path + "/backup.pkl", R_OK) : fin = open(self.path + "/backup.pkl", "r")
 			# elif os.access(self.path + "/backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")

@@ -1,27 +1,23 @@
 from __future__ import with_statement
 
-
 import re
 import time
+import urlparse
+import demjson
 
 
+# Twisted imports
 from twisted.internet import threads
 from twisted.web.resource import Resource
 from twisted.web.static import server, redirectTo, addSlash
 from urllib import quote
 
-
-from emen2 import Database
-from emen2 import ts
-from emen2.Database import exceptions
-from emen2.subsystems import routing
-from emen2.util import listops
+# emen2 imports
+import emen2.util.listops
+import emen2.Database.subsystems.exceptions
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-
-import urlparse
-import demjson
 
 
 
@@ -55,7 +51,7 @@ class AuthResource(Resource):
 	# parse request for params
 	def getloginparams(self, request):
 		args=request.args
-		method = listops.get(request.postpath, 0, '')
+		method = emen2.util.listops.get(request.postpath, 0, '')
 		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid") or args.get("ctxid",[None])[0]
 		username = args.get('username', [None])[0]
@@ -141,7 +137,7 @@ class AuthResource(Resource):
 		request.addCookie("ctxid", '', path='/')
 
 		#result = self._getpage("Login",str(failure), largs["redirect"])
-		result = emen2.TwistSupport_html.public.login.Login(db=ts.db,msg=failure)
+		result = emen2.TwistSupport_html.public.login.Login(msg=failure)
 		#result = "eb render %s"%failure
 		request.write(unicode(result).encode("utf-8"))
 		request.finish()

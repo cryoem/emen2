@@ -1,1 +1,1 @@
-import Database
+import globalns
