@@ -128,14 +128,14 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
+		g.log.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
 
 	@classmethod
 	def _register_adminmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING ADMINMETHOD (%s)" % name)
+		g.log.msg('LOG_INIT', "REGISTERING ADMINMETHOD (%s)" % name)
 		cls.__adminmethods[name] = func
 
 
@@ -144,7 +144,7 @@ class DBProxy(object):
 	def _register_extmethod(cls, name, refcl):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		g.debug.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
+		g.log.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
 		cls.__extmethods[name] = refcl
 
 

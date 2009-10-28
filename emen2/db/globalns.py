@@ -7,6 +7,11 @@ NOTE: access globals this way:
   g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 import threading
+try: import yaml
+except ImportError:
+	try: import syck as yaml
+	except ImportError:
+		yaml = False
 
 class ErrorThread(threading.Thread):
 	def __init__(self, err_list):
@@ -20,6 +25,26 @@ class GlobalNamespace(object):
 	__modlock = threading.RLock()
 	__all__ = []
 	def __init__(self,_=None):pass
+
+
+	@classmethod
+	def from_yaml(cls, fn):
+		self = cls()
+		if not yaml: raise NotImplementedError, 'yaml not found'
+		with file(fn) as a: data = yaml.load(a)
+
+		for key in data:
+			if key != 'root':
+				b = data[key]
+				pref = ''.join(b.pop('prefix',[]))
+				for key, value in b.iteritems():
+					if hasattr(value, '__iter__'):
+						value = [pref+item for item in value]
+					elif isinstance(value, (str, unicode)):
+						value = pref+value
+					self.__addattr(key,value)
+		return self
+
 	def __setattr__(self, name, value):
 		self.__modlock.acquire(1)
 		try:
@@ -72,7 +97,7 @@ class GlobalNamespace(object):
 		self.__class__.__vardict = {}
 
 import emen2.subsystems.debug
-class DebugStub(emen2.subsystems.debug.DebugState):
+class LoggerStub(emen2.subsystems.debug.DebugState):
 	def __init__(self, *args):
 		self.__dict__ = self._clstate
 		emen2.subsystems.debug.DebugState.__init__(self, value='LOG_INIT', buf=None, get_state=False, logfile_state=None, prnt=True, acquire_dict=False)
@@ -82,7 +107,7 @@ class DebugStub(emen2.subsystems.debug.DebugState):
 	def msg(self, sn, *args):
 		sn = self.debugstates.get_name(self.debugstates[sn])
 		print u'%s :: %s' % (sn, self.print_list(args))
-GlobalNamespace().debug = DebugStub()
+GlobalNamespace().log = LoggerStub()
 
 def test():
 	a = GlobalNamespace('one instance')
@@ -119,29 +144,6 @@ def test():
 	assert tempdict['a'] == a.___a
 	print "test 3 passed"
 	a.reset()
-
-try:
-	import syck
-	def YAMLLoader():
-		a = file('/Users/edwlan/test.yml')
-		result = syck.load(a)
-		res = {}
-		for key in result:
-			print key
-			if key != 'root':
-				b = result[key]
-				pref = ''.join(b.get('prefix',[]))
-				if pref is not '': del b['prefix']
-				tmp = {}
-				for k in b:
-					if pref: tmp[k] = pref+b[k]
-					else: tmp[k] = b[k]
-				res.update(tmp)
-		GlobalNamespace._GlobalNamespace__vardict = res
-
-except ImportError:
-	YAMLLoader = False
-
 
 if __name__ == '__main__':
 	test()

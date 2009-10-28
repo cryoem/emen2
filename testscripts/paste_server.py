@@ -73,13 +73,13 @@ class PublicView(object):
     
     @classmethod
     def register_redirect(cls, fro, to, *args, **kwargs):
-        g.debug('REDIRECT: %s, %s' % (fro,to))
+        g.log('REDIRECT: %s, %s' % (fro,to))
         cls.redirects[fro] = routing.URLRegistry.reverselookup(to, *args, **kwargs)
     
     @classmethod
     def register_url(cls, name, match):
             def _reg_inside(cb):
-                g.debug('%s ::matched by:: %s' % (name,match) )
+                g.log('%s ::matched by:: %s' % (name,match) )
                 cls.__registerurl(name, re.compile(match), cb)
                 return cb
             return _reg_inside
