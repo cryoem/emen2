@@ -88,7 +88,8 @@ class AuthResource(Resource):
 	# the meat, raise exception if bad login
 	def _action(self, l, db=None):
 
-
+		
+		
 		if l["method"] == "login":
 			cls = emen2.TwistSupport_html.public.login.Login
 
@@ -101,6 +102,9 @@ class AuthResource(Resource):
 		else:
 			raise Exception,"Unsupported auth method: %s"%method
 
+
+		print "args"
+		print l
 
 		# do work here
 		p = cls(db=db, **l)
@@ -118,7 +122,7 @@ class AuthResource(Resource):
 				
 		msg = None
 		if ctxid != largs["ctxid"]:
-			request.addCookie("ctxid", ctxid, path='/')
+			request.addCookie("ctxid", ctxid or "", path='/')
 
 			if largs["redirect"] != None:
 				request.redirect(largs["redirect"])

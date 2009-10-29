@@ -14,6 +14,7 @@ import random
 import cPickle as pickle
 import bsddb3
 import demjson
+import re
 
 from functools import partial, wraps
 
@@ -38,7 +39,6 @@ import subsystems.datastorage
 import subsystems.exceptions
 import subsystems.user
 
-import re
 
 
 from DBFlags import *
@@ -65,10 +65,7 @@ def DB_syncall():
 
 
 
-def DB_cleanup():
-	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
-	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
-	necessary at the next restart"""
+def DB_stat():
 	sys.stdout.flush()
 	print >> sys.stderr, "DB has %d transactions left" % DB.txncounter
 
@@ -88,6 +85,18 @@ def DB_cleanup():
 	for k,v in lock_stat.items():
 		print "\t%s: %s"%(k,v)
 
+	#print "Mutex max: "
+	#print dbenv.mutex_get_max()
+	
+
+def DB_cleanup():
+	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
+	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
+	necessary at the next restart"""
+	
+	DB_stat()
+	
+	print >> sys.stderr, "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees) + len(subsystems.btrees.RelateBTree.alltrees) + len(subsystems.btrees.FieldBTree.alltrees))
 	print "Mutex stats: "
 	# print dir(dbenv)
 	print dbenv.mutex_get_max()
@@ -139,7 +148,7 @@ atexit.register(DB_cleanup)
 #keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()
 class DB(object):
 		"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
-		dbid - Database id, a unique identifier for this database server
+		4650 - Database id, a unique identifier for this database server
 		recid - Record id, a unique (32 bit int) identifier for a particular record
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 
@@ -202,7 +211,6 @@ class DB(object):
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(self.path + "/home", os.F_OK):
 				os.makedirs(self.path + "/home")
-				print "Copying DB_CONFIG"
 				dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
 				dbco = file(self.path + '/home/DB_CONFIG', 'w')
 				try:
@@ -380,6 +388,8 @@ class DB(object):
 				self.putrecorddef(i, ctx=ctx, txn=txn)
 
 			for i in skeleton.core_users.items:
+				if self.__importmode:
+					i["signupinfo"] = None
 				self.adduser(i, ctx=ctx, txn=txn)
 
 			for i in skeleton.core_groups.items:
@@ -446,6 +456,7 @@ class DB(object):
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
 			g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+
 			txn = self.txnlog.get(txnid, txn)
 			if txn:
 				txn.abort()
@@ -457,13 +468,14 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-		#	g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 			if txn != None:
 				txn.commit()
 				if id(txn) in self.txnlog:
 					del self.txnlog[id(txn)]
 				type(self).txncounter -= 1
+
 			#else:
 			#	raise ValueError, 'transaction not found'
 			#if not self.__importmode:
@@ -639,8 +651,10 @@ class DB(object):
 
 		def __checkpassword(self, username, password, ctx=None, txn=None):
 			"""Check password against stored hash value"""
-			s = hashlib.sha1(password)
 
+			print "?"
+
+			s = hashlib.sha1(password)
 
 			try:
 				user = self.__users.sget(username, txn=txn)
@@ -651,7 +665,7 @@ class DB(object):
 			if user.disabled:
 				raise subsystems.exceptions.DisabledUserError, subsystems.exceptions.DisabledUserError.__doc__ % username
 
-
+			print password, s, user.password
 			return s.hexdigest() == user.password
 
 
@@ -755,7 +769,7 @@ class DB(object):
 			"""Takes a ctxid key and returns a context (for internal use only)
 			Note that both key and host must match. Returns context instance."""
 
-			if not ctxid:
+			if not ctxid or ctxid == "None":
 				return self.__anonymouscontext
 
 			if (time.time() > self.lastctxclean + 30): # or self.__updatecontexts):
@@ -805,27 +819,27 @@ class DB(object):
 		@DBProxy.publicmethod
 		def checkadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global write access. Returns bool."""
-			return ctx.checkadmin()
+			if ctx: return ctx.checkadmin()
 
 
 
 		@DBProxy.publicmethod
 		def checkreadadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global read access. Returns bool."""
-			return ctx.checkreadadmin()
+			if ctx: return ctx.checkreadadmin()
 
 
 
 		@DBProxy.publicmethod
 		def checkcreate(self, ctx=None, txn=None):
 			"""Check for permission to create records. Returns bool."""
-			return ctx.checkcreate()
+			if ctx: return ctx.checkcreate()
 
 
 
 		def loginuser(self, ctx=None, txn=None):
 			"""Who am I?"""
-			return ctx.username
+			if ctx: return ctx.username
 
 
 
@@ -1114,7 +1128,7 @@ class DB(object):
 				raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
 			ret = self.__bdocounter.keys(txn=txn)
-			ret = [(i, len(self.__bdocounter.get(txn=txn))) for i in ret]
+			ret = [(i, len(self.__bdocounter.get(i, txn=txn))) for i in ret]
 			return ret
 
 
@@ -1933,7 +1947,7 @@ class DB(object):
 			if keytype not in ["record", "recorddef", "paramdef"]:
 				raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 
-			if mode not in ["pclink","pcunlink","link","unlink"]:
+			if mode not in ["pclinks", "pclink","pcunlink","link","unlink"]:
 				raise Exception, "Invalid relationship mode %s"%mode
 
 			if not ctx.checkcreate():
@@ -1949,7 +1963,7 @@ class DB(object):
 			items = set(reduce(operator.concat, links))
 
 			# ian: circular reference detection.
-			#if mode=="pclink" and not self.__importmode:
+			#if mode=="pclink":
 			#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="parents")[0]
 			#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
 			#	if pkey in c or ckey in p or pkey == ckey:
@@ -1989,9 +2003,12 @@ class DB(object):
 
 			#@begin
 
-			for pkey,ckey in links:
-				linker(pkey, ckey, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
+			if mode == "pclinks":
+				linker(links, txn=txn)
+			else:
+				for pkey,ckey in links:
+					linker(pkey, ckey, txn=txn)
+					g.log.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
 			#@end
 
@@ -2113,7 +2130,7 @@ class DB(object):
 
 
 				else:
-					if user.record == None:
+					if user.record == None and user.signupinfo:
 						#tmpctx = ctx
 						#if ctx.username == None:
 						#	tmpctx = self.__makecontext(username=username, host=ctx.host)
@@ -2132,7 +2149,7 @@ class DB(object):
 							rec[k] = v
 
 						#print "putting record..."
-						rec = self.__putrecord([rec], ctx=tmpctx, txn=txn)[0]
+						rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
 
 						# ian: todo: turning this off for now..
 						#print "creating child records"
@@ -2430,8 +2447,8 @@ class DB(object):
 				if validate:
 					group.validate()
 
-				if group.members() - allusernames:
-					raise Exception, "Invalid user names: %s"%(group.members() - allusernames)
+					if group.members() - allusernames:
+						raise Exception, "Invalid user names: %s"%(group.members() - allusernames)
 
 
 			self.__commit_groups(groups2, ctx=ctx, txn=txn)
@@ -2497,10 +2514,7 @@ class DB(object):
 
 			#if user.username in self.__users:
 			if self.__users.get(user.username, txn=txn):
-				if self.__importmode:
-					pass
-				else:
-					raise KeyError, "User with username '%s' already exists" % user.username
+				raise KeyError, "User with username '%s' already exists" % user.username
 
 
 			#if user.username in self.__newuserqueue:
@@ -3361,7 +3375,7 @@ class DB(object):
 				except subsystems.exceptions.SecurityError, e:
 					if filt: pass
 					else:
-						traceback.print_stack()
+						#traceback.print_stack()
 						raise e
 				except (KeyError, TypeError), e:
 					if filt: pass
@@ -3369,9 +3383,6 @@ class DB(object):
 			return ret
 
 
-		# does not setContext!!
-		def __getrecord(self, recids, filt=True, ctx=None, txn=None):
-			pass
 
 
 
@@ -3379,23 +3390,19 @@ class DB(object):
 		# ian: todo: improve newrecord/putrecord
 		# ian: todo: allow to copy existing record
 		@DBProxy.publicmethod
-		def newrecord(self, rectype, init=0, inheritperms=None, ctx=None, txn=None):
+		def newrecord(self, rectype, init=False, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
 
 
-			rec = subsystems.datastorage.Record(ctx=ctx)
-			#rec.setContext(ctx)
-
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
-			t = self.getrecorddef(rectype, ctx=ctx, txn=txn)
-
-			rec.recid = None
-			rec.rectype = rectype # if we found it, go ahead and set up
+			t = self.getrecorddef(rectype, ctx=ctx, txn=txn).params
+			
+			rec = subsystems.datastorage.Record(rectype=rectype, ctx=ctx)
 
 			if init:
-				rec.update(t.params)
+				rec.update(t)
 
 			# ian
 			if inheritperms != None:
@@ -3407,9 +3414,6 @@ class DB(object):
 				except Exception, inst:
 					g.log.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
 
-
-			if ctx.username != "root":
-				rec.adduser(3, ctx._user)
 
 			return rec
 
@@ -3593,7 +3597,7 @@ class DB(object):
 
 		#@txn
 		@DBProxy.publicmethod
-		def putrecord(self, recs, filt=True, validate=True, warning=0, log=True, importmode=True, ctx=None, txn=None):
+		def putrecord(self, recs, filt=True, validate=True, warning=0, log=True, ctx=None, txn=None):
 			"""commits a record"""
 			# input validation for __putrecord
 
@@ -3602,8 +3606,6 @@ class DB(object):
 					raise subsystems.exceptions.SecurityError, "Only administrators may bypass record validation"
 				if not log:
 					raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging"
-				if not importmode:
-					raise subsystems.exceptions.SecurityError, "Only administrators may use importmode"
 
 
 			# filter input for dicts/records
@@ -3620,28 +3622,28 @@ class DB(object):
 			recs = filter(lambda x:isinstance(x,subsystems.datastorage.Record), recs)
 
 			# new records and updated records
-			updrecs = filter(lambda x:x.recid >= 0, recs)
-			newrecs = filter(lambda x:x.recid < 0, recs)
+			# updrecs = filter(lambda x:x.recid >= 0, recs)
+			# newrecs = filter(lambda x:x.recid < 0, recs)
 
 
+			# ian: record validation handles this now...
 			# check original records for write permission
-			orecs = self.getrecord([rec.recid for rec in updrecs], filt=0, ctx=ctx, txn=txn)
-			orecs = set(map(lambda x:x.recid, filter(lambda x:x.commentable(), orecs)))
+			# orecs = self.getrecord([rec.recid for rec in updrecs], filt=0, ctx=ctx, txn=txn)
+			# orecs = set(map(lambda x:x.recid, filter(lambda x:x.commentable(), orecs)))
 
+			# permerror = set([rec.recid for rec in updrecs]) - orecs
+			# if permerror:
+			#	raise subsystems.exceptions.SecurityError, "No permission to write to records: %s"%permerror
 
-			permerror = set([rec.recid for rec in updrecs]) - orecs
-			if permerror:
-				raise subsystems.exceptions.SecurityError, "No permission to write to records: %s"%permerror
+			# if newrecs and not ctx.checkcreate():
+			#	raise subsystems.exceptions.SecurityError, "No permission to create records"
 
-
-			if newrecs and not ctx.checkcreate():
-				raise subsystems.exceptions.SecurityError, "No permission to create records"
-
-			ret = self.__putrecord(recs, validate=validate, warning=warning, importmode=importmode, log=log, ctx=ctx, txn=txn)
+			ret = self.__putrecord(recs, validate=validate, warning=warning, log=log, ctx=ctx, txn=txn)
 
 
 			if ol and len(ret) > 0:
 				return ret[0]
+
 			return ret
 
 
@@ -3649,15 +3651,13 @@ class DB(object):
 
 
 
-		def __putrecord(self, updrecs, validate=True, warning=0, importmode=0, log=True, ctx=None, txn=None):
+		def __putrecord(self, updrecs, validate=True, warning=0, log=True, ctx=None, txn=None):
 			# process before committing
 			# extended validation...
 
 			if len(updrecs) == 0:
 				return []
 
-			if self.__importmode:
-				importmode = 1
 
 			crecs = []
 			updrels = []
@@ -3676,31 +3676,31 @@ class DB(object):
 			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
 
+				if self.__importmode:
+					crecs.append(updrec)
+					continue
+					
+
 				t = self.__gettime(ctx=ctx, txn=txn)
 				recid = updrec.recid
 
 
+				# we need to acquire RMW lock here to prevent changes during commit
 				if self.__records.exists(updrec.recid, txn=txn, flags=RMWFLAGS):
-					# we need to acquire RMW lock here to prevent changes during commit
 					orec = self.__records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
 
-
-				else:
+				elif recid < 0:
 					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
 					orec.recid = updrec.recid
 
-					if importmode:
-						orec._Record__creator = updrec["creator"]
-						orec._Record__creationtime = updrec["creationtime"]
-
-					#if recid > 0:
-					#	raise Exception, "Cannot update non-existent record %s"%recid
-
+				else:
+					raise Exception, "Cannot update non-existent record %s"%recid
 
 
 				if validate:
-					updrec.validate(warning=warning)
+					updrec.validate(orec=orec, warning=warning)
+
 
 				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
@@ -3716,30 +3716,24 @@ class DB(object):
 				# add new comments; already checked for comment level security...
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
-						#orec.addcomment(i[2])
-						orec._Record__comments.append(i)
-						# ian todo: need to check for param updates from comments here...
+						orec.addcomment(i[2])							
 
 
 				for param in cp - param_special:
 					if log and orec.recid >= 0:
-						orec.addcomment(u"LOG: %s updated. was: %s" % (param, orec[param]))
+						#orec.addlog(param)
+						orec.addcomment(u"LOG: %s updated. was: %s"%(param, orec[param]))
 						#orec._Record__comments.append((ctx.user, t, u"LOG: %s updated. was: %s" % (recid, orec[param])))
 						#% (param, orec[param]), param, orec[param]))
 					orec[param] = updrec[param]
 
 
 				if "permissions" in cp:
-					orec["permissions"] = updrec["permissions"]
+					orec.setpermissions(updrec.get("permissions"))
 
-
-				if log:
+				if log:				
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.username
-
-				if importmode:
-					orec["modifytime"] = updrec["modifytime"]
-					orec["modifyuser"] = updrec["modifyuser"]
 
 
 				#if validate:
@@ -3778,14 +3772,15 @@ class DB(object):
 		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
 		def __commit_records(self, crecs, updrels=[], ctx=None, txn=None):
 
-			recmap = {}
 			rectypes = collections.defaultdict(list) # {}
-			timeupdate = {}
 			newrecs = filter(lambda x:x.recid < 0, crecs)
+			recmap = {}
+			timeupdate = {}
 
 
 			# acquire write locks on records at this point
 			# first, get index updates
+
 			indexupdates = self.__reindex_params(crecs, ctx=ctx, txn=txn)
 			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx, txn=txn)
 			timeupdate = self.__reindex_time(crecs, ctx=ctx, txn=txn)
@@ -3811,11 +3806,14 @@ class DB(object):
 				rectypes[newrec.rectype].append(newrec.recid)
 
 
+			# return crecs
+
 			#if filter(lambda x:x.recid < 0, crecs):
 			#	raise ValueError, "Some new records were not given real recids; giving up"
 
 
 			# This actually stores the record in the database
+			print "...updating records"
 			for crec in crecs:
 				self.__records.set(crec.recid, crec, txn=txn)
 				g.log.msg("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid)
@@ -3825,6 +3823,7 @@ class DB(object):
 			# # New record RecordDef indexes
 
 			#txn2 = self.newtxn(parent=txn)
+			print "...updating recorddefindex"
 
 			for rectype,recs in rectypes.items():
 				try:
@@ -3840,7 +3839,12 @@ class DB(object):
 
 
 			# Param index
+			#count=0
+			#total=len(indexupdates)
+			print "...updating param indexes"
 			for param, updates in indexupdates.items():
+				#print "...updating param index %s (%s of %s)"%(param, count, total)
+				#count+=1
 				self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
 
 
@@ -3849,6 +3853,7 @@ class DB(object):
 
 
 			# Time index
+			print "...updating timeindex"
 			for recid,time in timeupdate.items():
 				try:
 					recid = recmap.get(recid,recid)
@@ -3878,6 +3883,7 @@ class DB(object):
 					g.log.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
+			print "...done! Committed %s records"%(len(crecs))
 
 			#@end
 
@@ -3886,6 +3892,7 @@ class DB(object):
 
 		#@write #self.__secrindex
 		def __commit_secrindex(self, addrefs, removerefs, recmap={}, ctx=None, txn=None):
+			print "...updating secrindex"
 
 			# Security index
 			for user, recs in addrefs.items():
@@ -3950,7 +3957,7 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						g.log.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+						#g.log.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 
 				except bsddb3.db.DBError, inst:
@@ -3982,6 +3989,7 @@ class DB(object):
 		# index update methods
 		def __reindex_params(self, updrecs, ctx=None, txn=None):
 			"""update param indices"""
+			print "Calculating param index updates..."
 
 			#ind = dict([(i,[]) for i in self.__paramdefs.keys(txn=txn)])
 			ind = collections.defaultdict(list)
@@ -4015,6 +4023,7 @@ class DB(object):
 
 
 		def __reindex_param(self, key, items, ctx=None, txn=None):
+
 			# items format:
 			# [recid, newval, oldval]
 
@@ -4090,6 +4099,8 @@ class DB(object):
 
 
 		def __reindex_time(self, updrecs, ctx=None, txn=None):
+			print "Calculating time updates..."
+			
 			timeupdate = {}
 
 			for updrec in updrecs:
@@ -4100,6 +4111,7 @@ class DB(object):
 
 
 		def __reindex_security(self, updrecs, ctx=None, txn=None):
+			print "Calculating security updates..."
 
 			secrupdate = []
 			addrefs = collections.defaultdict(list)
@@ -4488,10 +4500,6 @@ class DB(object):
 			kwargs["db"] = kwargs["ctx"].db
 			if kwargs.get("ctx"): del kwargs["ctx"]
 			if kwargs.get("txn"): del kwargs["txn"]
-			print "Calling out to renderview..."
-			traceback.print_stack()
-			print args
-			print kwargs
 			return self.vtm.renderview(*args, **kwargs)
 
 
@@ -4610,8 +4618,10 @@ class DB(object):
 					fil.write('\n')
 				self._backup(enc,users, paramdefs, recorddefs, records, workflows, bdos, outfile, ctx=ctx, txn=txn)
 
+
 		def get_dbpath(self, tail):
 			return os.path.join(self.path, tail)
+
 
 		@DBProxy.adminmethod
 		def archivelogs(self, ctx=None, txn=None):
@@ -4634,13 +4644,14 @@ class DB(object):
 
 			oldids = map(lambda rec: swapin(rec, 'recid', None), recblock)
 
-			newrecs = self.__putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=txn)
+			newrecs = self.putrecord(recblock, warning=1, validate=0, ctx=ctx, txn=txn)
 
 			for oldid,newrec in itertools.izip(oldids,newrecs):
 				recmap[oldid] = newrec.recid
 				if oldid != newrec.recid:
-					g.log.msg("Warning: recid %s changed to %s"%(oldid,newrec.recid))
+					g.log.msg("LOG_WARNING", "Warning: recid %s changed to %s"%(oldid,newrec.recid))
 			return len(newrecs)
+
 
 		def __restore_commitblocks(self, *blocks, **kwargs):
 			ctx, txn = kwargs.get('ctx'), kwargs.get('txn')
@@ -4661,6 +4672,7 @@ class DB(object):
 					del block[:]
 				changesmade = True
 			return changesmade
+
 
 		def __restore_openfile(self, restorefile):
 				if type(restorefile) == file:
@@ -4685,6 +4697,7 @@ class DB(object):
 					raise IOError, "Restore file (e.g. backup.pkl) not present"
 				return fin
 
+				
 		def __restore_relate(self, r, fin, types, recmap, txn=None):
 			rr = pickle.load(fin)
 			if r not in types: return False
@@ -4692,7 +4705,10 @@ class DB(object):
 			def link(lis, link_func, txn=txn):
 				for a,bl in lis:
 					for b in bl:
-						link_func(a,b, txn=txn)
+						try:
+							link_func(a,b, txn=txn)
+						except Exception, e:
+							self.LOG("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
 
 			simple_choices = dict(
 				pdchildren=self.__paramdefs.pclink,
@@ -4709,14 +4725,20 @@ class DB(object):
 					self.__bdocounter.set(i, d, txn=txn)
 
 			elif r == "recchildren":
-				g.log.msg('LOG_INFO', "recchildren")
-				# read the dictionary of ParamDef PC links
+				g.debug.msg('LOG_INFO', "recchildren")
+				# read the dictionary of ParamDef PC links					
+				#if txn:
+				#	self.txncommit(txn)
+				
+				#links = [(recmap[p], recmap[c]) for p,c in rr]
+				links = []
 				for p, cl in rr:
+					#recmap[p], map(recmap.get, cl)
 					for c in cl:
-						if isinstance(c, tuple):
-							g.log.msg('LOG_WARNING', "Invalid (deprecated) named PC link, database restore will be incomplete")
-						else:
-							self.__records.pclink(recmap[p], recmap[c], txn=txn)
+						links.append((recmap[p], recmap[c]))
+					
+				self.__records.pclinks(links, txn=txn)
+					
 
 			elif r in simple_choices:
 				g.log.msg('LOG_INFO', r)
@@ -4741,6 +4763,9 @@ class DB(object):
 					g.log.msg('LOG_WARNING', "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
 					return
 
+
+				# ian: todo: change this to some other mechanism...
+				ctx = self.__makerootcontext(dbproxy=True)
 				user, groups = ctx.username, ctx.groups
 
 				if not ctx.checkadmin():
@@ -4755,10 +4780,10 @@ class DB(object):
 
 
 				recblock, paramblock, recdefblock, userblock = [],[],[],[]
-				blocklength = 5000
+				blocklength = 100000
 				commitrecs = False
 				changesmade = False
-
+				OVERWRITE = False
 
 				if not types:
 					types = set(["record", "user", "workflow",
@@ -4770,36 +4795,60 @@ class DB(object):
 				iteration = 0
 				cleanup_needed = False
 
+
+				if OVERWRITE:
+					existing_users = set()
+					existing_paramdefs = set()
+					existing_recorddefs = set()
+					existing_groups = set()
+				else:
+					existing_users = self.getusernames(ctx=ctx, txn=txn)
+					existing_paramdefs = self.getparamdefnames(ctx=ctx, txn=txn)
+					existing_recorddefs = self.getrecorddefnames(ctx=ctx, txn=txn)
+					existing_groups = self.getgroupnames(ctx=ctx, txn=txn)
+				
+
 				fin = self.__restore_openfile(restorefile)
 				running = True
 				try:
 					with emen2.util.ticker.spinning_distraction():
 						while running:
-							r = pickle.load(fin)
+
+							try:
+								r = pickle.load(fin)
+							except Exception, e:
+								#print "Pickle load error: %s"%e
+								self.LOG("LOG_WARNING","Pickle load error (eof?)")
+								raise EOFError
+								
 							commitrecs = False
 
 							# insert and renumber record
 							if isinstance(r, subsystems.datastorage.Record) and "record" in types:
 								recblock.append(r)
-							elif isinstance(r, subsystems.datastorage.RecordDef) and "recorddef" in types:
+							elif isinstance(r, subsystems.datastorage.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
 								recdefblock.append(r)
-							elif isinstance(r, subsystems.datastorage.ParamDef) and "paramdef" in types:
+							elif isinstance(r, subsystems.datastorage.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
 								paramblock.append(r)
-							elif isinstance(r, subsystems.user.User) and "user" in types:
+							elif isinstance(r, subsystems.user.User) and "user" in types and r.username not in existing_users:
 								userblock.append(r)
 
-							if sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= blocklength:
+							if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= blocklength:
 								commitrecs = True
 
 							restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)
 
-							if commitrecs: txn = txn or self.newtxn()
-							elif txn is None: txn = self.newtxn()
+							if commitrecs:
+								txn = txn or self.newtxn()
+							elif txn is None:
+								txn = self.newtxn()
 
 							iteration += 1
 
 							try:
-								if commitrecs: changesmade = restoreblocks()
+								if commitrecs:
+									changesmade = restoreblocks()
+
 								# insert Workflow
 								elif isinstance(r, subsystems.user.WorkFlow) and "workflow" in types:
 									self.__workflow.set(r.wfid, r, txn=txn)

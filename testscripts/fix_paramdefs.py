@@ -1,3 +1,5 @@
+raise Exception, "Needs to be updated"
+
 from test import *
 
 vp = emen2.Database.datatypes.datastorage.valid_properties

@@ -261,15 +261,12 @@ class PublicView(Resource):
 		db._starttxn()
 
 		try:
-			print "Setcontext..."
-			print ctxid, host
 			db._setcontext(ctxid,host)
 			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			print "there was an exception."
 			print e
-			#db._aborttxn()
+			db._aborttxn()
 			raise
 		else:
 			db._committxn()
@@ -319,6 +316,8 @@ class PublicView(Resource):
 		headers = {}
 		response = 500
 		
+		
+		
 		try:
 			try:
 				if isinstance(failure, BaseException): raise; failure
@@ -329,15 +328,16 @@ class PublicView(Resource):
 						emen2.Database.subsystems.exceptions.DisabledUserError), e:
 				response = 401
 				args = {'redirect': request.uri, 'msg': str(e),
-							'ctxid': ctxid, 'db':ts.db, 
+							'ctxid': ctxid, 'db':None, 
 							'host': request.getClientIP()}
 
-				p = emen2.TwistSupport_html.public.login.Login(**args)
-				data = unicode(p.get_data()).encode("utf-8")
+				#p = emen2.TwistSupport_html.public.login.Login(**args)
+				#data = unicode(p.get_data()).encode("utf-8")
+				data = "Error: %s"%e
 
 			except emen2.subsystems.responsecodes.NotFoundError, e:
 					response = e.code
-					data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
+					#data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
 					data = unicode(data).encode('utf-8')
 
 			except emen2.subsystems.responsecodes.HTTPResponseCode, e:
