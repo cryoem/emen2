@@ -397,22 +397,6 @@ class DB(object):
 
 			self.setpassword("root", g.ROOTPW, g.ROOTPW, ctx=ctx, txn=txn)
 
-			# pds = [subsystems.datastorage.ParamDef(i) for i in skeleton.core_paramdefs.items]
-			# rds = [subsystems.datastorage.RecordDef(i) for i in skeleton.core_recorddefs.items]
-			# users = [subsystems.user.User(i) for i in skeleton.core_users.items]
-			# groups = [subsystems.user.Group(i) for i in skeleton.core_groups.items]
-
-			#[i.validate() for i in pds]
-			#[i.validate() for i in rds]
-			#[i.validate() for i in users]
-			#[i.validate() for i in groups]
-
-			#self.__commit_paramdefs(pds, ctx=ctx, txn=txn)
-			#self.__commit_recorddefs(rds, ctx=ctx, txn=txn)
-			#self.__commit_users(users, ctx=ctx, txn=txn)
-			#self.__commit_groups(groups, ctx=ctx, txn=txn)
-
-			# ctx.getuser(txn=txn)
 
 
 
@@ -4826,9 +4810,9 @@ class DB(object):
 							# insert and renumber record
 							if isinstance(r, subsystems.datastorage.Record) and "record" in types:
 								recblock.append(r)
-							elif isinstance(r, subsystems.datastorage.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
+							elif isinstance(r, dataobjects.recorddef.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
 								recdefblock.append(r)
-							elif isinstance(r, subsystems.datastorage.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
+							elif isinstance(r, dataobjects.paramdef.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
 								paramblock.append(r)
 							elif isinstance(r, subsystems.user.User) and "user" in types and r.username not in existing_users:
 								userblock.append(r)
