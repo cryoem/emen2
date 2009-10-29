@@ -8,7 +8,6 @@ from __future__ import with_statement
 #from twisted.web.resource import Resource
 
 
-from emen2.emen2config import *
 from twisted.internet import defer, reactor, threads, reactor
 from twisted.python import log, runtime, context, threadpool, failure
 import Queue

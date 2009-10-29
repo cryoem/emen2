@@ -22,7 +22,7 @@ import emen2
 import emen2.util.utils
 import emen2.util.ticker
 
-import emen2.emen2config2
+import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
@@ -211,7 +211,7 @@ class DB(object):
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(self.path + "/home", os.F_OK):
 				os.makedirs(self.path + "/home")
-				dbci = file(g.EMEN2ROOT+'/DB_CONFIG')
+				dbci = file(g.EMEN2ROOT+'/config/DB_CONFIG')
 				dbco = file(self.path + '/home/DB_CONFIG', 'w')
 				try:
 					dbco.write(dbci.read())
@@ -636,7 +636,6 @@ class DB(object):
 		def __checkpassword(self, username, password, ctx=None, txn=None):
 			"""Check password against stored hash value"""
 
-			print "?"
 
 			s = hashlib.sha1(password)
 
@@ -649,7 +648,6 @@ class DB(object):
 			if user.disabled:
 				raise subsystems.exceptions.DisabledUserError, subsystems.exceptions.DisabledUserError.__doc__ % username
 
-			print password, s, user.password
 			return s.hexdigest() == user.password
 
 
@@ -3867,7 +3865,7 @@ class DB(object):
 					g.log.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
-			print "...done! Committed %s records"%(len(crecs))
+			print "...done! Committed %s records; total recs = %s"%(len(crecs), baserecid + len(newrecs))
 
 			#@end
 
