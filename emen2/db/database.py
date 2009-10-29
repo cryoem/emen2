@@ -21,7 +21,7 @@ import emen2
 import emen2.util.utils
 import emen2.util.ticker
 
-import emen2.emen2config
+import emen2.emen2config2
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
@@ -35,10 +35,10 @@ import subsystems.user
 import subsystems.btrees
 import subsystems.datatypes
 import subsystems.datastorage
-import datatypes.core_vartypes
-import datatypes.core_macros
-import datatypes.core_properties
-import emen2.Database.datatypes
+import subsystems.exceptions
+import subsystems.user
+
+import re
 
 
 from DBFlags import *
@@ -156,6 +156,11 @@ class DB(object):
 			7: 'LOG_COMMIT'
 			}
 
+		@staticmethod
+		def init_vtm():
+			import datatypes.core_vartypes
+			import datatypes.core_macros
+			import datatypes.core_properties
 
 
 		def __init__(self, path=".", logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True, more_flags=0):
@@ -184,6 +189,7 @@ class DB(object):
 			self.txnid = 0
 			self.txnlog = {}
 
+			self.init_vtm()
 			self.vtm = subsystems.datatypes.VartypeManager()
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 			self.unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
@@ -607,15 +613,15 @@ class DB(object):
 					newcontext = self.__makecontext(username, host, dbproxy=False)
 
 				else:
-					g.log.msg('LOG_ERROR', "Invalid password: %s (%s)" % (username, host), ctx=ctx, txn=txn)
-					raise subsystems.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
+					g.log.msg('LOG_ERROR', "Invalid password: %s (%s)" % (username, host))
+					raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
 
 			try:
 				self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
-				g.log.msg('LOG_INFO', "Login succeeded %s (%s)" % (username, newcontext.ctxid), ctx=ctx, txn=txn)
+				g.log.msg('LOG_INFO', "Login succeeded %s (%s)" % (username, newcontext.ctxid))
 
 			except:
-				g.log.msg('LOG_ERROR', "Error writing login context, txn aborting!", ctx=ctx, txn=txn)
+				g.log.msg('LOG_ERROR', "Error writing login context, txn aborting!")
 				raise
 
 
@@ -683,7 +689,7 @@ class DB(object):
 					pass
 
 				if context.time + (context.maxidle or 0) < time.time():
-					g.log("Expire context (%s) %d" % (context.ctxid, time.time() - context.time), ctx=ctx, txn=txn)
+					g.log("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
 					self.__setcontext(context.ctxid, None, ctx=ctx, txn=txn)
 
 
@@ -765,12 +771,12 @@ class DB(object):
 				try:
 					context = self.__contexts_p.sget(ctxid, txn=txn) #[key]
 				except Exception, inst:
-					g.log.msg('LOG_ERROR', "Session expired %s (%s)" %(ctxid, inst), ctx=ctx, txn=txn)
+					g.log.msg('LOG_ERROR', "Session expired %s (%s)" %(ctxid, inst))
 					raise subsystems.exceptions.SessionError, "Session expired: %s (%s)"%(ctxid, inst)
 
 
 			if host and host != context.host :
-				g.log.msg('LOG_CRITICAL', "Hacker alert! Attempt to spoof context (%s != %s)" % (host, context.host), ctx=ctx, txn=txn)
+				g.log.msg('LOG_CRITICAL', "Hacker alert! Attempt to spoof context (%s != %s)" % (host, context.host))
 				raise subsystems.exceptions.SessionError, "Bad address match, login sessions cannot be shared"
 
 
@@ -2044,7 +2050,7 @@ class DB(object):
 
 
 			ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
-			g.log.msg('LOG_INFO', "Users %s disabled by %s"%([user.username for user in ret], ctx.username), ctx=ctx, txn=txn)
+			g.log.msg('LOG_INFO', "Users %s disabled by %s"%([user.username for user in ret], ctx.username))
 
 			if len(ret)==1 and ol: return ret[0].username
 			return [user.username for user in ret]
@@ -4729,7 +4735,7 @@ class DB(object):
 				regardless of their original id numbers. If maintaining record id numbers is important, then a full
 				backup of the database must be performed, and the restore must be performed on an empty database."""
 				if not txn: txn = None
-				g.log.msg('LOG_INFO', "Begin restore operation", ctx=ctx, txn=txn)
+				g.log.msg('LOG_INFO', "Begin restore operation")
 
 				if not self.__importmode:
 					g.log.msg('LOG_WARNING', "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
@@ -4795,7 +4801,7 @@ class DB(object):
 							try:
 								if commitrecs: changesmade = restoreblocks()
 								# insert Workflow
-								elif isinstance(r, WorkFlow) and "workflow" in types:
+								elif isinstance(r, subsystems.user.WorkFlow) and "workflow" in types:
 									self.__workflow.set(r.wfid, r, txn=txn)
 									changesmade = True
 
@@ -4826,7 +4832,7 @@ class DB(object):
 
 				if txn:
 					self.txncommit(txn=txn)
-					g.log.msg('LOG_INFO', "Import Complete, checkpointing", ctx=ctx, txn=txn)
+					g.log.msg('LOG_INFO', "Import Complete, checkpointing")
 					self.__dbenv.txn_checkpoint()
 
 				assert len(self.txnlog) == 0
