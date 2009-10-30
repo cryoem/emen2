@@ -39,7 +39,7 @@ import subsystems.datastorage
 import subsystems.exceptions
 import subsystems.user
 
-
+import dataobjects
 
 from DBFlags import *
 
@@ -162,7 +162,8 @@ class DB(object):
 			4: 'LOG_INFO',
 			5: 'LOG_DEBUG',
 			6: 'LOG_DEBUG',
-			7: 'LOG_COMMIT'
+			7: 'LOG_COMMIT',
+			8: 'LOG_COMMIT_INDEX'
 			}
 
 		@staticmethod
@@ -235,17 +236,6 @@ class DB(object):
 			self.__dbenv.set_data_dir(self.path)
 			global dbenv
 			dbenv = self.__dbenv
-
-			# # #self.__dbenv.set_cachesize(0, cachesize, 4) # gbytes, bytes, ncache (splits into groups)
-			# self.__dbenv.set_cachesize(*CACHESIZE)
-			# self.__dbenv.set_lg_bsize(LG_BSIZE)
-			# self.__dbenv.set_lg_max(LG_MAX)
-			# self.__dbenv.set_lk_detect(bsddb3.db.DB_LOCK_DEFAULT) # internal deadlock detection
-			# self.__dbenv.set_lk_max_locks(MAX_LOCKS)
-			# self.__dbenv.set_lk_max_lockers(MAX_LOCKERS)
-			# self.__dbenv.set_lk_max_objects(MAX_OBJECTS)
-			# set_lg_regionmax
-
 
 			# ian: todo: is this method no longer in the bsddb3 API?
 			#if self.__dbenv.failchk(flags=0):
@@ -710,8 +700,8 @@ class DB(object):
 				try:
 					context.db = None
 					context._user = None
+					g.log.msg("LOG_COMMIT","self.__contexts_p.set: %r"%context.ctxid)
 					self.__contexts_p.set(ctxid, context, txn=txn)
-					g.log.msg("LOG_COMMIT","Commit: self.__contexts_p.set: %r"%context.ctxid)
 
 				# except ValueError, inst:
 				# 	g.log.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
@@ -730,8 +720,8 @@ class DB(object):
 					pass
 
 				try:
+					g.log.msg("LOG_COMMIT","self.__contexts_p.__delitem__: %r"%ctxid)
 					self.__contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
-					g.log.msg("LOG_COMMIT","Commit: self.__contexts_p.__delitem__: %r"%ctxid)
 
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst))
@@ -946,9 +936,10 @@ class DB(object):
 			nb["name"] = datekey + "%05X"%newid
 
 			bdo[newid] = nb #(filename, recid, uri)
+
+			g.log.msg("LOG_COMMIT","self.__bdocounter.set: %s"%datekey)
 			self.__bdocounter.set(datekey, bdo, txn=txn)
 
-			g.log.msg("LOG_COMMIT","Commit: self.__bdocounter.set: %s"%datekey)
 			#@end
 
 			#return (bdo, filename)
@@ -1325,10 +1316,10 @@ class DB(object):
 
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
-			g.log.msg("truncating indexkeys")
+			g.log.msg("LOG_COMMIT_INDEX","self.__indexkeys.truncate")
 			self.__indexkeys.truncate(txn=txn)
 
-			g.log.msg("rebuilding indexkeys")
+			g.log.msg("LOG_COMMIT_INDEX", "self.__indexkeys: rebuilding...")
 			for k,v in inds.items():
 					self.__indexkeys.set(k, set(v.keys()), txn=txn)
 
@@ -1989,8 +1980,8 @@ class DB(object):
 				linker(links, txn=txn)
 			else:
 				for pkey,ckey in links:
+					g.log.msg("LOG_COMMIT","link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 					linker(pkey, ckey, txn=txn)
-					g.log.msg("LOG_COMMIT","Commit: link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
 
 			#@end
 
@@ -2094,7 +2085,6 @@ class DB(object):
 				if not username in self.__newuserqueue.keys(txn=txn):
 					raise KeyError, "User %s is not pending approval" % username
 
-				#if username in self.__users:
 				if self.__users.get(username, txn=txn):
 					delusers[username] = None
 					g.log.msg("LOG_ERROR","User %s already exists, deleted pending record" % username)
@@ -2327,7 +2317,7 @@ class DB(object):
 			for user,groups in addrefs.items():
 				try:
 					if groups:
-						g.log.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, addrefs: %r"%(user, groups))
+						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
 
 				except bsddb3.db.DBError, inst:
@@ -2341,7 +2331,7 @@ class DB(object):
 			for user,groups in delrefs.items():
 				try:
 					if groups:
-						g.log.msg("LOG_COMMIT","Commit: __groupsbyuser key: %r, removerefs: %r"%(user, groups))
+						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
 				except bsddb3.db.DBError, inst:
@@ -2371,6 +2361,8 @@ class DB(object):
 
 
 			#@begin
+
+			g.log.msg("LOG_COMMIT_INDEX","self.__groupsbyuser: rebuilding index")
 
 			self.__groupsbyuser.truncate(txn=txn)
 
@@ -2445,6 +2437,7 @@ class DB(object):
 			#@begin
 
 			for group in groups:
+				g.log.msg("LOG_COMMIT","__groups.set: %r"%(group))
 				self.__groups.set(group.name, group, txn=txn)
 
 			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -2494,7 +2487,6 @@ class DB(object):
 				raise ValueError, "User instance or dict required (%s)"%inst
 
 
-			#if user.username in self.__users:
 			if self.__users.get(user.username, txn=txn):
 				raise KeyError, "User with username '%s' already exists" % user.username
 
@@ -2568,7 +2560,7 @@ class DB(object):
 
 			for user in commitusers:
 				self.__users.set(user.username, user, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: self.__users.set: %r"%user.username)
+				g.log.msg("LOG_COMMIT","self.__users.set: %r"%user.username)
 
 			#@end
 
@@ -2582,8 +2574,12 @@ class DB(object):
 			#@begin
 
 			for username, user in users.items():
+				if user == None:
+					g.log.msg("LOG_COMMIT","self.__newuserqueue.set: %r"%username)
+				else:
+					g.log.msg("LOG_COMMIT","self.__newuserqueue.set: %r, deleting"%username)
+					
 				self.__newuserqueue.set(username, user, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: self.__newuserqueue.set: %r"%username)
 
 			#@end
 
@@ -2747,6 +2743,7 @@ class DB(object):
 
 			if ctx.username == None:
 				return
+				
 			return set(self.__users.keys(txn=txn))
 
 
@@ -2758,7 +2755,8 @@ class DB(object):
 
 			if ctx.username == None: return
 
-			if self.__users.get(name, txn=txn) : return name
+			if self.__users.get(name, txn=txn):
+				return name
 
 			possible = filter(lambda x: name in x, self.__users.keys(txn=txn))
 			if len(possible) == 1:
@@ -2887,6 +2885,7 @@ class DB(object):
 			else:
 				raise KeyError, "Unknown workflow id"
 
+			g.log.msg("LOG_COMMIT","self.__workflow.set: %r, deleting %s"%(ctx.username, wfid))
 			self.__workflow.set(ctx.username, wf, txn=txn)
 
 
@@ -2920,6 +2919,7 @@ class DB(object):
 					w.wfid = self.__workflow.sget(-1, txn=txn) #[-1]
 					self.__workflow.set(-1, w.wfid + 1, txn=txn)
 
+			g.log.msg("LOG_COMMIT","self.__workflow.set: %r"%ctx.username)			
 			self.__workflow.set(ctx.username, wflist, txn=txn)
 
 
@@ -3059,8 +3059,8 @@ class DB(object):
 			#@begin
 
 			for paramdef in paramdefs:
+				g.log.msg("LOG_COMMIT","self.__paramdefs.set: %r"%paramdef.name)
 				self.__paramdefs.set(paramdef.name, paramdef, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: self.__paramdefs.set: %r"%paramdef.name)
 
 			#@end
 
@@ -3252,8 +3252,8 @@ class DB(object):
 			#@begin
 
 			for recorddef in recorddefs:
+				g.log.msg("LOG_COMMIT","self.__recorddefs.set: %r"%recorddef.name)
 				self.__recorddefs.set(recorddef.name, recorddef, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: self.__recorddefs.set: %r"%recorddef.name)
 
 			#@end
 
@@ -3795,22 +3795,22 @@ class DB(object):
 
 
 			# This actually stores the record in the database
-			print "...updating records"
+			# print "...updating records"
 			for crec in crecs:
+				g.log.msg("LOG_COMMIT","self.__records.set: %r"%crec.recid)
 				self.__records.set(crec.recid, crec, txn=txn)
-				g.log.msg("LOG_COMMIT","Commit: self.__records.set: %r"%crec.recid)
 
 
 
 			# # New record RecordDef indexes
 
 			#txn2 = self.newtxn(parent=txn)
-			print "...updating recorddefindex"
+			# print "...updating recorddefindex"
 
 			for rectype,recs in rectypes.items():
 				try:
+					g.log.msg("LOG_COMMIT_INDEX","self.__recorddefindex.addrefs: %r, %r"%(rectype,recs))
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-					g.log.msg("LOG_COMMIT","Commit: self.__recorddefindex.addrefs: %r, %r"%(rectype,recs))
 
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
@@ -3821,9 +3821,9 @@ class DB(object):
 
 
 			# Param index
-			#count=0
-			#total=len(indexupdates)
-			print "...updating param indexes"
+			# count=0
+			# total=len(indexupdates)
+			# print "...updating param indexes"
 			for param, updates in indexupdates.items():
 				#print "...updating param index %s (%s of %s)"%(param, count, total)
 				#count+=1
@@ -3835,14 +3835,14 @@ class DB(object):
 
 
 			# Time index
-			print "...updating timeindex"
+			# print "...updating timeindex"
 			for recid,time in timeupdate.items():
 				try:
 					recid = recmap.get(recid,recid)
 					if not isinstance(recid, basestring):
 						recid = unicode(recid).encode('utf-8')
+					g.log.msg("LOG_COMMIT_INDEX","self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 					self.__timeindex.set(recid, time, txn=txn)
-					#g.log.msg("LOG_COMMIT","Commit: self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
 
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
@@ -3865,7 +3865,7 @@ class DB(object):
 					g.log.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
-			print "...done! Committed %s records; total recs = %s"%(len(crecs), baserecid + len(newrecs))
+			g.log.msg("LOG_INFO", "Committed %s records; total recs = %s"%(len(crecs), baserecid + len(newrecs)))
 
 			#@end
 
@@ -3874,15 +3874,15 @@ class DB(object):
 
 		#@write #self.__secrindex
 		def __commit_secrindex(self, addrefs, removerefs, recmap={}, ctx=None, txn=None):
-			print "...updating secrindex"
+			# print "...updating secrindex"
 
 			# Security index
 			for user, recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
+						g.log.msg("LOG_COMMIT_INDEX","self.__secrindex.addrefs: %r, len %r"%(user, len(recs)))
 						self.__secrindex.addrefs(user, recs, txn=txn)
-						g.log.msg("LOG_COMMIT","Commit: self.__secrindex.addrefs: %r, len %r"%(user, len(recs)))
 
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -3897,8 +3897,8 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
+						g.log.msg("LOG_COMMIT_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 						self.__secrindex.removerefs(user, recs, txn=txn)
-						g.log.msg("LOG_COMMIT","Commit: secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -3939,7 +3939,7 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						#g.log.msg("LOG_COMMIT","Commit: param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 
 				except bsddb3.db.DBError, inst:
@@ -3955,7 +3955,7 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						g.log.msg("LOG_COMMIT","Commit: param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+						g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
 						paramindex.removerefs(oldval, recs, txn=txn)
 
 				except bsddb3.db.DBError, inst:
@@ -3971,9 +3971,8 @@ class DB(object):
 		# index update methods
 		def __reindex_params(self, updrecs, ctx=None, txn=None):
 			"""update param indices"""
-			print "Calculating param index updates..."
+			# print "Calculating param index updates..."
 
-			#ind = dict([(i,[]) for i in self.__paramdefs.keys(txn=txn)])
 			ind = collections.defaultdict(list)
 			indexupdates = {}
 			unindexed = set(["recid","rectype","comments","permissions"])
@@ -4081,7 +4080,7 @@ class DB(object):
 
 
 		def __reindex_time(self, updrecs, ctx=None, txn=None):
-			print "Calculating time updates..."
+			# print "Calculating time updates..."
 			
 			timeupdate = {}
 
@@ -4093,7 +4092,7 @@ class DB(object):
 
 
 		def __reindex_security(self, updrecs, ctx=None, txn=None):
-			print "Calculating security updates..."
+			# print "Calculating security updates..."
 
 			secrupdate = []
 			addrefs = collections.defaultdict(list)
@@ -4707,7 +4706,7 @@ class DB(object):
 					self.__bdocounter.set(i, d, txn=txn)
 
 			elif r == "recchildren":
-				g.debug.msg('LOG_INFO', "recchildren")
+				g.log.msg('LOG_INFO', "recchildren")
 				# read the dictionary of ParamDef PC links					
 				#if txn:
 				#	self.txncommit(txn)
