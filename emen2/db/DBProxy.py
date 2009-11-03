@@ -94,7 +94,7 @@ class DBProxy(object):
 
 
 	def _setcontext(self, ctxid=None, host=None):
-		print "setting context.. %s %s"%(ctxid, host)
+		#print "setting context.. %s %s"%(ctxid, host)
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 			self.__ctx.db = self
@@ -191,7 +191,7 @@ class DBProxy(object):
 
 			result = None
 
-			print "-> ",name
+			#print "-> ",name
 
 			#if 'admin' in self.__ctx.groups:
 			#	result = self.__adminmethods.get(name)
@@ -271,7 +271,7 @@ def adminmethod(func):
 	def _inner(*args, **kwargs):
 		ctx = kwargs.get('ctx')
 		if ctx is None:
-			ctx = [x for x in args is isinstance(x, emen2.Database.subsystems.user.User)] or None
+			ctx = [x for x in args is isinstance(x, emen2.Database.dataobjects.user.User)] or None
 			if ctx is not None: ctx = ctx.pop()
 		if ctx.checkadmin():
 			return func(*args, **kwargs)

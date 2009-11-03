@@ -2,7 +2,7 @@ raise Exception, "Needs to be updated"
 
 from test import *
 
-vp = emen2.Database.datatypes.datastorage.valid_properties
+vp = valid_properties
 rvp = {}
 for k,v in vp.items():
 	for i in v[1]:

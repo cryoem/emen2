@@ -12,6 +12,7 @@ from twisted.web.resource import Resource
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
+import emen2.Database.dataobjects
 
 Fault = xmlrpclib.Fault
 
@@ -86,7 +87,7 @@ class RPCFormatXMLRPC:
 	def encode_serialize(self, value):
 		"""Serializes in UTF-8 DB instances for unsophisticated encoders (e.g. xmlrpc)"""
 		# convert to dict using class method
-		if isinstance(value, (database.Record, database.RecordDef, database.ParamDef, database.User, database.WorkFlow)):
+		if isinstance(value, (emen2.Database.dataobjects.record.Record, emen2.Database.dataobjects.recorddef.RecordDef, emen2.Database.dataobjects.paramdef.ParamDef, emen2.Database.dataobjects.user.User, emen2.Database.dataobjects.workflow.WorkFlow)):
 			return self.encode_serialize(dict(value))
 
 		elif hasattr(value,"items"):

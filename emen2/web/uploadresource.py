@@ -17,6 +17,7 @@ from twisted.web.static import *
 
 # emen2 imports
 import emen2.globalns
+
 g = emen2.globalns.GlobalNamespace()
 
 
