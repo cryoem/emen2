@@ -718,6 +718,8 @@ logwidget.prototype = {
 	
 	init: function() {
 		this.reccomments = getvalue(recid,"comments");
+		this.rechistory = getvalue(recid,"history");
+		
 		this.log = [];
 		
 		if (!this.elem_body) {
@@ -734,6 +736,9 @@ logwidget.prototype = {
 			if (this.reccomments[i][2].indexOf("LOG") > -1) {
 				this.log.push(this.reccomments[i]);
 			}
+		}
+		for (var i=0;i<this.rechistory.length;i++) {
+			this.log.push(this.rechistory[i]);
 		}
 	},
 		
@@ -762,8 +767,9 @@ logwidget.prototype = {
 			}
 			var time=this[1];
 			
-			if (typeof(this[2])=="object") {
-				this.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2][0]+'changed: '+this[2][2]+' -&gt; '+this[2][1]+'</p>');
+			//if (typeof(this[2])=="object") {
+			if (this.length == 4) {
+				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>LOG (new format): ' + this[2] + ' updated: was '+this[3]+'</p>');
 			}
 			else {
 				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');

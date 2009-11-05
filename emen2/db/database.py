@@ -257,7 +257,7 @@ class DB(object):
 
 			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename=self.path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
 
-			self.__groups = subsystems.btrees.BTree("groups", keytype="ds", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
 			#self.__updatecontexts = False
 
 			# new users pending approval
@@ -296,8 +296,8 @@ class DB(object):
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
-			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/groindex.bdb", keytype="ds", dbenv=self.__dbenv, txn=txn)
+			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
+			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/groindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
 
 			# index of records belonging to each RecordDef
 			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename=self.path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
@@ -350,7 +350,6 @@ class DB(object):
 
 
 				g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
-				self.__anonymouscontext = self.__makecontext()
 
 
 			except:
@@ -360,7 +359,6 @@ class DB(object):
 				self.txncommit(txn=txn)
 
 
-			#self.__anonymouscontext = self._getcontext(_actxid, None)
 
 
 
@@ -562,7 +560,7 @@ class DB(object):
 			'''so we can simulate a context for approveuser'''
 
 			if username == "anonymous":
-				ctx = dataobjects.context.AnonymousContext()
+				ctx = dataobjects.context.AnonymousContext(host=host)
 			else:
 				ctx = dataobjects.context.Context(username=username, host=host)
 
@@ -574,7 +572,6 @@ class DB(object):
 		def __makerootcontext(self, ctx=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
-
 			return ctx
 
 
@@ -589,14 +586,14 @@ class DB(object):
 
 			# Anonymous access
 			if username == "anonymous":
-				newcontext = self.__anonymouscontext
+				newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 
 			else:
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
 				if checkpass or self.checkadmin(ctx=ctx, txn=txn):
-					newcontext = self.__makecontext(username, host)
+					newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 
 				else:
 					g.log.msg('LOG_ERROR', "Invalid password: %s (%s)" % (username, host))
@@ -742,7 +739,7 @@ class DB(object):
 			Note that both key and host must match. Returns context instance."""
 
 			if not ctxid or ctxid == "None":
-				return self.__anonymouscontext
+				return self.__makecontext(host=host, ctx=ctx, txn=txn)
 
 			if (time.time() > self.lastctxclean + 30): # or self.__updatecontexts):
 				# maybe not the perfect place to do this, but it will have to do
@@ -1369,9 +1366,12 @@ class DB(object):
 			records belonging to a particular RecordDef as a set. Currently this
 			is unsecured, but actual records cannot be retrieved, so it
 			shouldn't pose a security threat."""
-			return self.__recorddefindex.get(recdefname, txn=txn) or set()
-			#[recdefname]
-			#return self.__recorddefindex[unicode(recdefname).lower()]
+			if isinstance(recdefname, basestring):
+				recdefname = [recdefname]
+			ret = set()
+			for i in recdefname:	
+			 	ret |= self.__recorddefindex.get(i, txn=txn) or set()
+			return ret
 
 
 
@@ -1704,7 +1704,7 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
-		def getchildren(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctx=None, txn=None):
+		def getchildren(self, key, keytype="record", recurse=0, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 			"""Get children;
 			keytype: record, paramdef, recorddef
 			recurse: recursion depth
@@ -1712,101 +1712,92 @@ class DB(object):
 			filt: filt by permissions
 			tree: return results in graph format; default is set format
 			"""
-			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", filt=filt, tree=tree, ctx=ctx, txn=txn)
+			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
 
 		@DBProxy.publicmethod
-		def getparents(self, key, keytype="record", recurse=0, rectype=None, filt=0, tree=0, ctx=None, txn=None):
+		def getparents(self, key, keytype="record", recurse=0, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 			"""see: getchildren"""
-			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, tree=tree, ctx=ctx, txn=txn)
-
-
+			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
 
 		# wraps getrel / works as both getchildren/getparents
 		@DBProxy.publicmethod
-		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filt=0, tree=0, ctx=None, txn=None):
+		def __getrel_wrapper(self, key, keytype="record", recurse=0, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
 			"""Add some extra features to __getrel"""
 
-			ol=0
+			ol = 0
 			if not hasattr(key,"__iter__"):
-				ol=1
-				key=[key]
+				ol = 1
+				key = [key]
+			
+			# ret is a two-level dictionary
+			# k1 = input recids
+			# k2 = recid and v2 = children of k2
 
-			if tree and rectype:
-				raise Exception,"tree and rectype are mutually exclusive"
-
-			ret={}
-			allr=set()
-
+			ret = {}
 			for i in key:
-				r = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
-				ret[i] = r[tree]
-				allr |= r[0]
+				ret[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
 
+			if rectype or filt:
+				allr = reduce(set.union, [reduce(set.union, i.values()) for i in ret.values()])
 
-			# ian: think about doing this a better way
-			if filt and keytype=="record":
+				if rectype:
+					allr = allr & self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
+							
+				if filt and keytype=="record":
+					allr = self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
-				allr = self.filterbypermissions(allr, ctx=ctx, txn=txn)
+				# perform filtering on both levels, and removing any items that become empty
+				# ret = dict(filter(lambda x:x[1], [ ( k, dict(filter(lambda x:x[1], [ (k2,v2 & allr) for k2, v2 in v.items() ] ) ) ) for k,v in ret.items() ]))
+				# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
 
-				if not tree:
-					for k,v in ret.items():
-						ret[k] = ret[k] & allr
-
-				else:
-					for k,v in ret.items():
-						for k2,v2 in v.items():
-							ret[k][k2] = set(v2) & set(allr)
-
-
-			if rectype:
-				#TODO: replace with reduce
-				r=self.groupbyrecorddef(self.__flatten(ret.values()), ctx=ctx, txn=txn).get(rectype,set())
 				for k,v in ret.items():
-					ret[k]=ret[k]&r
+					ret[k] = dict(filter(lambda x:x[1], [ (k2, v2 & allr) for k2, v2 in v.items() ]))
 					if not ret[k]: del ret[k]
 
-			if ol and tree==0:
-				return ret.get(key[0],set())
-			if ol and tree==1:
-				return ret.get(key[0],{})
 
+			# tree: flatten each item in keys; flat = flatten all
+			if not tree or flat:
+				ret = dict( [ ( k, reduce(set.union, v.values()) ) for k,v in ret.items() ] )
+
+			if flat:
+				return set( reduce(set.union, ret.values()) )
+
+			if ol:
+				return ret.get(key[0],set())
+				
 			return ret
 
 
-
-
-
-
-		def __getrel(self, key, keytype="record", recurse=0, indc=None, rel="children", ctx=None, txn=None):
+		def __getrel(self, key, keytype="record", recurse=0, rel="children", ctx=None, txn=None):
 			# indc is restricted subset (e.g. getindexbycontext)
 			"""get parent/child relationships; see: getchildren"""
 
+
 			if (recurse < 0):
-				return set(),{}
+				return {}
 
 			if keytype == "record":
 				trg = self.__records
 				key = int(key)
 				# read permission required
-				try:
-					self.getrecord(key, ctx=ctx, txn=txn)
-				except:
-					return set(),{}
+				try: self.getrecord(key, ctx=ctx, txn=txn)
+				except:	return {}
 
 			elif keytype == "recorddef":
 				trg = self.__recorddefs
 				try: a = self.getrecorddef(key, ctx=ctx, txn=txn)
-				except: return set(),{}
+				except: return {}
 
 			elif keytype == "paramdef":
 				trg = self.__paramdefs
 
 			else:
 				raise Exception, "getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
+
 
 			if rel=="children":
 				rel = trg.children
@@ -1818,35 +1809,30 @@ class DB(object):
 			# base result
 			ret = rel(key, txn=txn) or set()
 
+			# ian: todo: use collections.queue
 			stack = [ret]
 			result = {key: ret}
+			visited = set()
+			
 			for x in xrange(recurse):
-				if len(stack[x])==0:
+
+				
+				if not stack[x]:
 					break
-				if x >= self.MAXRECURSE-1:
-					raise Exception, "Recurse limit reached; check for circular relationships?"
+				if x > self.MAXRECURSE:
+					raise Exception, "Recurse limit reached; check for circular relationships"
+				
 				stack.append(set())
+				
+				for k in stack[x] - visited:
+					new = rel(k, txn=txn) #or set()
+					if new:
+						stack[x+1] |= new #.extend(new)
+						result[k] = new
 
-				for k in stack[x] - set(result.keys()):
-					new = rel(k, txn=txn) or set()
-					stack[x+1] |= new #.extend(new)
-					result[k] = set(new)
+				visited |= stack[x]
 
-
-			# flatten
-			allr = []
-			for i in stack:
-				allr.extend(i)
-			allr = set(allr)
-
-
-			if indc:
-				allr &= indc
-				for k,v in result.items():
-					result[k] = result[k] & allr
-
-
-			return allr, result
+			return result
 
 
 
@@ -2103,10 +2089,6 @@ class DB(object):
 
 				else:
 					if user.record == None and user.signupinfo:
-						#tmpctx = ctx
-						#if ctx.username == None:
-						#	tmpctx = self.__makecontext(username=username, host=ctx.host)
-						#	#self.__init_context(tmpctx, user, txn=txn)
 
 						tmpctx = self.__makerootcontext(txn=txn)
 
@@ -2304,6 +2286,7 @@ class DB(object):
 
 			if ol==1 and len(ret) == 1:
 				return ret.values()[0]
+
 			return ret
 
 
@@ -3346,28 +3329,36 @@ class DB(object):
 
 		# ian: improved!
 		# ed: more improvments!
+		#@emen2.util.utils.return_list_or_single(1)
 		@DBProxy.publicmethod
-		@emen2.util.utils.return_list_or_single(1)
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
-			if not hasattr(recids, '__iter__'): recids = [recids]
-			ret=[]
-			for i in recids:
+			
+			ol = False
+			if not hasattr(recids, '__iter__'): 
+				ol = True
+				recids = [recids]
+
+			ret = []
+			for i in sorted(recids):
 				try:
-					rec = self.__records.sget(i, txn=txn) # [i]
-					rec.setContext(ctx=ctx)
+					rec = self.__records.sget(i, txn=txn)
+					rec.setContext(ctx)
 					ret.append(rec)
-				except subsystems.exceptions.SecurityError, e:
+				except emen2.Database.subsystems.exceptions.SecurityError, e:
 					if filt: pass
-					else:
-						#traceback.print_stack()
-						raise e
+					else: raise e
 				except (KeyError, TypeError), e:
 					if filt: pass
-					else: raise KeyError, "No such record %s"%i
+					else: raise KeyError, "No such record %s"%(i) #, e)
+		
+		
+			if ol and not ret:
+				return None
+			if ol:	
+				return ret.pop()
 			return ret
-
 
 
 
@@ -3376,21 +3367,19 @@ class DB(object):
 		# ian: todo: improve newrecord/putrecord
 		# ian: todo: allow to copy existing record
 		@DBProxy.publicmethod
-		def newrecord(self, rectype, init=False, inheritperms=None, ctx=None, txn=None):
+		def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
-
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
 			t = self.getrecorddef(rectype, ctx=ctx, txn=txn).params
 			
-			rec = dataobjects.record.Record(rectype=rectype, ctx=ctx)
+			rec = dataobjects.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 			if init:
 				rec.update(t)
 
-			# ian
 			if inheritperms != None:
 				try:
 					prec = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
@@ -3605,22 +3594,6 @@ class DB(object):
 			recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
 
-			# new records and updated records
-			# updrecs = filter(lambda x:x.recid >= 0, recs)
-			# newrecs = filter(lambda x:x.recid < 0, recs)
-
-			# ian: record validation handles this now...
-			# check original records for write permission
-			# orecs = self.getrecord([rec.recid for rec in updrecs], filt=0, ctx=ctx, txn=txn)
-			# orecs = set(map(lambda x:x.recid, filter(lambda x:x.commentable(), orecs)))
-
-			# permerror = set([rec.recid for rec in updrecs]) - orecs
-			# if permerror:
-			#	raise subsystems.exceptions.SecurityError, "No permission to write to records: %s"%permerror
-
-			# if newrecs and not ctx.checkcreate():
-			#	raise subsystems.exceptions.SecurityError, "No permission to create records"
-
 			ret = self.__putrecord(recs, validate=validate, warning=warning, log=log, ctx=ctx, txn=txn)
 
 			if ol and len(ret) > 0:
@@ -3645,7 +3618,7 @@ class DB(object):
 			updrels = []
 
 			param_immutable = set(["recid","rectype","creator","creationtime","modifytime","modifyuser"])
-			param_special = param_immutable | set(["comments","permissions"])
+			param_special = param_immutable | set(["comments","permissions","groups","history"])
 
 
 			# assign temp recids to new records
@@ -3662,7 +3635,6 @@ class DB(object):
 					crecs.append(updrec)
 					continue
 					
-
 				t = self.__gettime(ctx=ctx, txn=txn)
 				recid = updrec.recid
 
@@ -3670,11 +3642,13 @@ class DB(object):
 				# we need to acquire RMW lock here to prevent changes during commit
 				if self.__records.exists(updrec.recid, txn=txn, flags=RMWFLAGS):
 					orec = self.__records.sget(updrec.recid, txn=txn)
+					#orcp = self.__records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
+					#orcp.setContext(ctx)
 
 				elif recid < 0:
-					orec = self.newrecord(updrec.rectype, ctx=ctx, txn=txn)
-					orec.recid = updrec.recid
+					orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
+					#orcp = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
 
 				else:
 					raise Exception, "Cannot update non-existent record %s"%recid
@@ -3683,19 +3657,15 @@ class DB(object):
 				if validate:
 					updrec.validate(orec=orec, warning=warning)
 
-
 				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
 
-
 				# orec.recid < 0 because new records will always be committed, even if skeletal
-				if not cp and not orec.recid < 0:
+				if not cp and orec.recid >= 0:
 					g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 					continue
 
 
-
-				# add new comments; already checked for comment level security...
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
 						orec.addcomment(i[2])							
@@ -3709,20 +3679,19 @@ class DB(object):
 
 				if "permissions" in cp:
 					orec.setpermissions(updrec.get("permissions"))
+				if "groups" in cp:
+					orec.setgroups(updrec.get("groups"))
+
 
 				if log:				
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.username
 
 
-				#if validate:
-				#	orec.validate(warning=warning, params=cp)
-
+				# if validate:
+				# 	orec.validate(orec=orcp, warning=warning, params=cp)
 
 				crecs.append(orec)
-
-			# return records to commit, copies of the originals for indexing, and any relationships to update
-			#return crecs, updrels
 
 			return self.__commit_records(crecs, updrels, ctx=ctx, txn=txn)
 
@@ -4246,226 +4215,249 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
-		def secrecordadduser2(self, recids, level, users, reassign=0, ctx=None, txn=None):
+		def secrecordadduser(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
+			return self.__putrecord_setsecurity(recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
 
-				if not hasattr(recids,"__iter__"):
-					recids = [recids]
-				recids = set(recids)
-
-				if not hasattr(users,"__iter__"):
-					users = [users]
-				users = set(users)
-
-				checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
-				if users - checkitems:
-					raise subsystems.exceptions.SecurityError, "Invalid users/groups: %s"%(users-checkitems)
-
-				# change child perms
-				if recurse:
-					recids |= self.getchildren(recids, recurse=recurse, filt=1, ctx=ctx, txn=txn)
-
-				recs = self.getrecord(recids, filt=1, ctx=ctx, txn=txn)
-
-				for rec in recs:
-					rec.adduser(users, level=level, reassign=reassign)
-
-				self.putrecord(recs, ctx=ctx, txn=txn)
-
-
-
-		# ian todo: check this thoroughly; probably rewrite
-		#@txn
-		#@write #self.__records, self.__secrindex
 		@DBProxy.publicmethod
-		def secrecordadduser(self, usertuple, recid, recurse=0, reassign=0, mode="union", ctx=None, txn=None):
-				"""This adds permissions to a record. usertuple is a 4-tuple containing users
-				to have read, comment, write and administrativepermission. Each value in the tuple is either
-				a string (username) or a tuple/list of usernames. If recurse>0, the
-				operation will be performed recursively on the specified record's children
-				to a limited recursion depth. Note that this ADDS permissions to existing
-				permissions on the record. If addition of a lesser permission than the
-				existing permission is requested, no change will be made. ie - giving a
-				user read access to a record they already have write access to will
-				have no effect. Any children the user doesn't have permission to
-				update will be silently ignored."""
+		def secrecordremoveuser(self, recids, users, recurse=0, ctx=None, txn=None):
+			return self.__putrecord_setsecurity(recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
 
-				if not isinstance(usertuple, tuple) and not isinstance(usertuple, list) :
-						raise ValueError, "permissions must be a 4-tuple/list of tuples,strings,ints"
-
-				usertuple = list(usertuple)[:4]
-
-				for i in range(4):
-					if not hasattr(usertuple[i], "__iter__"):
-						usertuple[i] = [list(usertuple[i])]
-
-					for j, k in enumerate(usertuple[i]):
-						if not isinstance(usertuple[i][j], int):
-							# sometimes group ints will be sent as str.
-							try: usertuple[i][j] = int(usertuple[i][j])
-							except ValueError: usertuple[i][j] = unicode(usertuple[i][j])
-							except: raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
-
-
-				# all users
-				userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
-
-
-				# get a list of records we need to update
-				if recurse > 0:
-						trgt = self.getchildren(recid, recurse=recurse-1, ctx=ctx, txn=txn)
-						trgt.add(recid)
-				else:
-					trgt = set((recid,))
-
-
-				if ctx.checkadmin(): isroot = True
-				else: isroot = False
-
-
-				rec=self.getrecord(recid, ctx=ctx, txn=txn)
-				if ctx.username not in rec["permissions"][3] and not isroot:
-					raise subsystems.exceptions.SecurityError,"Insufficient permissions for record %s"%recid
-
-				# this will be a dictionary keyed by user of all records the user has
-				# just gained access to. Used for fast index updating
-				secrupd = {}
-
-				for i in trgt:
-						rec = self.getrecord(i, ctx=ctx, txn=txn)						 # get the record to modify
-
-						# if the context does not have administrative permission on the record
-						# then we just skip this record and leave the permissions alone
-						# TODO: probably we should also check for groups in [3]
-
-						if ctx.username not in rec["permissions"][3] and not ctx.checkadmin(): continue
-
-
-						cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
-						xcur = [set(v) for v in rec["permissions"]]				 # copy of cur that will be changed
-						#length test not sufficient # length of each tuple so we can decide if we need to commit changes
-						newv = [set(v) for v in usertuple]								# similar list of sets for the new users to add
-
-						# check for valid user names
-						newv[0] &= userset
-						newv[1] &= userset
-						newv[2] &= userset
-						newv[3] &= userset
-
-						# if we allow level change, remove all changed users then add back..
-						if reassign:
-							allnew = newv[0] | newv[1] | newv[2] | newv[3]
-							xcur[0] -= allnew
-							xcur[1] -= allnew
-							xcur[2] -= allnew
-							xcur[3] -= allnew
-
-						# update the permissions for each group
-						xcur[0] |= newv[0]
-						xcur[1] |= newv[1]
-						xcur[2] |= newv[2]
-						xcur[3] |= newv[3]
-						# if the user already has more permission than we are trying
-						# to assign, we don't do anything. This also cleans things up
-						# so a user cannot have more than one security level
-						# -- assign higher permissions or lower permissions
-						xcur[0] -= xcur[1] | xcur[2] | xcur[3]
-						xcur[1] -= xcur[2] | xcur[3]
-						xcur[2] -= xcur[3]
-
-						if xcur[0] != cur[0] or xcur[1] != cur[1] \
-							or xcur[2] != cur[2] or xcur[3] != cur[3]:
-								old = rec["permissions"]
-								rec["permissions"] = (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
-
-								stu = (xcur[0] | xcur[1] | xcur[2] | xcur[3]) - set(old[0] + old[1] + old[2] + old[3])
-								for i in stu:
-										try: secrupd[i].append(rec.recid)
-										except: secrupd[i] = [rec.recid]
-
-								# put the updated record back
-								self.__records.set(rec.recid, rec, txn=txn)
-
-				for i in secrupd.keys() :
-						self.__secrindex.addrefs(i, secrupd[i], txn=txn)
-
-				return rec["permissions"]
-
-
-		# ian todo: see above
-		#@txn
-		#@write	#self.__records, self.__secrindex
 		@DBProxy.publicmethod
-		def secrecorddeluser(self, users, recid, recurse=0, ctx=None, txn=None):
-				"""This removes permissions from a record. users is a username or tuple/list of
-				of usernames to have no access to the record at all (will not affect group
-				access). If recurse>0, the operation will be performed recursively
-				on the specified record's children to a limited recursion depth. Note that
-				this REMOVES all access permissions for the specified users on the specified
-				record."""
-				#self = db
+		def secrecordaddgroup(self, recids, groups, recurse=0, ctx=None, txn=None):
+			return self.__putrecord_setsecurity(recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
+		@DBProxy.publicmethod
+		def secrecordremovegroup(self, recids, groups, recurse=0, ctx=None, txn=None):
+			return self.__putrecord_setsecurity(recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
-				if isinstance(users, basestring) or isinstance(users, int):
-						users = set([users])
-				else:
-						users = set(users)
+		def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], recurse=0, reassign=False, ctx=None, txn=None):
 
-				# get a list of records we need to update
-				if recurse > 0:
-						#if DEBUG: g.log("Del user recursive...")
-						trgt = self.getchildren(recid, recurse=recurse-1, ctx=ctx, txn=txn)
-						trgt.add(recid)
-				else : trgt = set((recid,))
+			if not hasattr(recids,"__iter__"): recids = [recids]
+			if not hasattr(addusers,"__iter__"): addusers = [addusers]
+			if not hasattr(addgroups,"__iter__"): addgroups = [addgroups]
+			if not hasattr(delusers,"__iter__"): delusers = [delusers]
+			if not hasattr(delgroups,"__iter__"): delgroups = [delgroups]
 
+			recids = set(recids)
+			addusers = set(addusers)
+			addgroups = set(addgroups)
+			delusers = set(delusers)
+			delgroups = set(delgroups)
 
-				users.discard(ctx.username)								 # user cannot remove his own permissions
-				#if ctx.user=="root" or -1 in ctx.groups : isroot=1
-				if ctx.checkadmin(): isroot = 1
-				else: isroot = 0
+			checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
-				# this will be a dictionary keyed by user of all records the user has
-				# just gained access to. Used for fast index updating
-				secrupd = {}
+			if (addusers | addgroups | delusers | delgroups) - checkitems:
+				raise subsystems.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
 
-				# update each record as necessary
-				for i in trgt:
-						try:
-								rec = self.getrecord(i, ctx=ctx, txn=txn)						 # get the record to modify
-						except: continue
+			# change child perms
+			if recurse:
+				recids |= self.getchildren(recids, recurse=recurse, filt=True, flat=True, ctx=ctx, txn=txn)
 
-						# if the user does not have administrative permission on the record
-						# then we just skip this record and leave the permissions alone
-						# TODO: probably we should also check for groups in [3]
-						if (not isroot) and (ctx.username not in rec["permissions"][3]) : continue
+			recs = self.getrecord(recids, filt=True, ctx=ctx, txn=txn)
+			
+			for rec in recs:
+				if addusers: rec.adduser(addusers, level=addlevel, reassign=reassign)
+				if delusers: rec.removeuser(delusers)
+				if addgroups: rec.addgroup(addgroups)
+				if delgroups: rec.removegroup(delgroups)
 
-						cur = [set(v) for v in rec["permissions"]]				# make a list of Sets out of the current permissions
-						l = [len(v) for v in cur]														 # length of each tuple so we can decide if we need to commit changes
-
-						cur[0] -= users
-						cur[1] -= users
-						cur[2] -= users
-						cur[3] -= users
-
-						l2 = [len(v) for v in cur]
-
-						# update if necessary
-						if l != l2 :
-								old = rec["permissions"]
-								rec["permissions"] = (tuple(cur[0]), tuple(cur[1]), tuple(cur[2]), tuple(cur[3]))
-
-								for i in users:
-										try: secrupd[i].append(rec.recid)
-										except: secrupd[i] = [rec.recid]
-
-
-								# put the updated record back
-								self.__records.set(rec.recid, rec, txn=txn)
-
-				for i in secrupd.keys() :
-						self.__secrindex.removerefs(i, secrupd[i], txn=txn)
+			return self.putrecord(recs, ctx=ctx, txn=txn)
 
 
 
+		# # ian todo: check this thoroughly; probably rewrite
+		# #@txn
+		# #@write #self.__records, self.__secrindex
+		# @DBProxy.publicmethod
+		# def secrecordadduser(self, usertuple, recid, recurse=0, reassign=0, mode="union", ctx=None, txn=None):
+		# 		"""This adds permissions to a record. usertuple is a 4-tuple containing users
+		# 		to have read, comment, write and administrativepermission. Each value in the tuple is either
+		# 		a string (username) or a tuple/list of usernames. If recurse>0, the
+		# 		operation will be performed recursively on the specified record's children
+		# 		to a limited recursion depth. Note that this ADDS permissions to existing
+		# 		permissions on the record. If addition of a lesser permission than the
+		# 		existing permission is requested, no change will be made. ie - giving a
+		# 		user read access to a record they already have write access to will
+		# 		have no effect. Any children the user doesn't have permission to
+		# 		update will be silently ignored."""
+		# 
+		# 		if not isinstance(usertuple, tuple) and not isinstance(usertuple, list) :
+		# 				raise ValueError, "permissions must be a 4-tuple/list of tuples,strings,ints"
+		# 
+		# 		usertuple = list(usertuple)[:4]
+		# 
+		# 		for i in range(4):
+		# 			if not hasattr(usertuple[i], "__iter__"):
+		# 				usertuple[i] = [list(usertuple[i])]
+		# 
+		# 			for j, k in enumerate(usertuple[i]):
+		# 				if not isinstance(usertuple[i][j], int):
+		# 					# sometimes group ints will be sent as str.
+		# 					try: usertuple[i][j] = int(usertuple[i][j])
+		# 					except ValueError: usertuple[i][j] = unicode(usertuple[i][j])
+		# 					except: raise ValueError, "Invalid permissions format; must be 4-tuple/list of tuple/list/string/int"
+		# 
+		# 
+		# 		# all users
+		# 		userset = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
+		# 
+		# 
+		# 		# get a list of records we need to update
+		# 		if recurse > 0:
+		# 				trgt = self.getchildren(recid, recurse=recurse-1, ctx=ctx, txn=txn)
+		# 				trgt.add(recid)
+		# 		else:
+		# 			trgt = set((recid,))
+		# 
+		# 
+		# 		if ctx.checkadmin(): isroot = True
+		# 		else: isroot = False
+		# 
+		# 
+		# 		rec=self.getrecord(recid, ctx=ctx, txn=txn)
+		# 		if ctx.username not in rec["permissions"][3] and not isroot:
+		# 			raise subsystems.exceptions.SecurityError,"Insufficient permissions for record %s"%recid
+		# 
+		# 		# this will be a dictionary keyed by user of all records the user has
+		# 		# just gained access to. Used for fast index updating
+		# 		secrupd = {}
+		# 
+		# 		for i in trgt:
+		# 				rec = self.getrecord(i, ctx=ctx, txn=txn)						 # get the record to modify
+		# 
+		# 				# if the context does not have administrative permission on the record
+		# 				# then we just skip this record and leave the permissions alone
+		# 				# TODO: probably we should also check for groups in [3]
+		# 
+		# 				if ctx.username not in rec["permissions"][3] and not ctx.checkadmin(): continue
+		# 
+		# 
+		# 				cur = [set(v) for v in rec["permissions"]]				# make a list of sets out of the current permissions
+		# 				xcur = [set(v) for v in rec["permissions"]]				 # copy of cur that will be changed
+		# 				#length test not sufficient # length of each tuple so we can decide if we need to commit changes
+		# 				newv = [set(v) for v in usertuple]								# similar list of sets for the new users to add
+		# 
+		# 				# check for valid user names
+		# 				newv[0] &= userset
+		# 				newv[1] &= userset
+		# 				newv[2] &= userset
+		# 				newv[3] &= userset
+		# 
+		# 				# if we allow level change, remove all changed users then add back..
+		# 				if reassign:
+		# 					allnew = newv[0] | newv[1] | newv[2] | newv[3]
+		# 					xcur[0] -= allnew
+		# 					xcur[1] -= allnew
+		# 					xcur[2] -= allnew
+		# 					xcur[3] -= allnew
+		# 
+		# 				# update the permissions for each group
+		# 				xcur[0] |= newv[0]
+		# 				xcur[1] |= newv[1]
+		# 				xcur[2] |= newv[2]
+		# 				xcur[3] |= newv[3]
+		# 				# if the user already has more permission than we are trying
+		# 				# to assign, we don't do anything. This also cleans things up
+		# 				# so a user cannot have more than one security level
+		# 				# -- assign higher permissions or lower permissions
+		# 				xcur[0] -= xcur[1] | xcur[2] | xcur[3]
+		# 				xcur[1] -= xcur[2] | xcur[3]
+		# 				xcur[2] -= xcur[3]
+		# 
+		# 				if xcur[0] != cur[0] or xcur[1] != cur[1] \
+		# 					or xcur[2] != cur[2] or xcur[3] != cur[3]:
+		# 						old = rec["permissions"]
+		# 						rec["permissions"] = (tuple(xcur[0]), tuple(xcur[1]), tuple(xcur[2]), tuple(xcur[3]))
+		# 
+		# 						stu = (xcur[0] | xcur[1] | xcur[2] | xcur[3]) - set(old[0] + old[1] + old[2] + old[3])
+		# 						for i in stu:
+		# 								try: secrupd[i].append(rec.recid)
+		# 								except: secrupd[i] = [rec.recid]
+		# 
+		# 						# put the updated record back
+		# 						self.__records.set(rec.recid, rec, txn=txn)
+		# 
+		# 		for i in secrupd.keys() :
+		# 				self.__secrindex.addrefs(i, secrupd[i], txn=txn)
+		# 
+		# 		return rec["permissions"]
+		# 
+		# 
+		# # ian todo: see above
+		# #@txn
+		# #@write	#self.__records, self.__secrindex
+		# @DBProxy.publicmethod
+		# def secrecorddeluser(self, users, recid, recurse=0, ctx=None, txn=None):
+		# 		"""This removes permissions from a record. users is a username or tuple/list of
+		# 		of usernames to have no access to the record at all (will not affect group
+		# 		access). If recurse>0, the operation will be performed recursively
+		# 		on the specified record's children to a limited recursion depth. Note that
+		# 		this REMOVES all access permissions for the specified users on the specified
+		# 		record."""
+		# 		#self = db
+		# 
+		# 
+		# 		if isinstance(users, basestring) or isinstance(users, int):
+		# 				users = set([users])
+		# 		else:
+		# 				users = set(users)
+		# 
+		# 		# get a list of records we need to update
+		# 		if recurse > 0:
+		# 				#if DEBUG: g.log("Del user recursive...")
+		# 				trgt = self.getchildren(recid, recurse=recurse-1, ctx=ctx, txn=txn)
+		# 				trgt.add(recid)
+		# 		else : trgt = set((recid,))
+		# 
+		# 
+		# 		users.discard(ctx.username)								 # user cannot remove his own permissions
+		# 		#if ctx.user=="root" or -1 in ctx.groups : isroot=1
+		# 		if ctx.checkadmin(): isroot = 1
+		# 		else: isroot = 0
+		# 
+		# 		# this will be a dictionary keyed by user of all records the user has
+		# 		# just gained access to. Used for fast index updating
+		# 		secrupd = {}
+		# 
+		# 		# update each record as necessary
+		# 		for i in trgt:
+		# 				try:
+		# 						rec = self.getrecord(i, ctx=ctx, txn=txn)						 # get the record to modify
+		# 				except: continue
+		# 
+		# 				# if the user does not have administrative permission on the record
+		# 				# then we just skip this record and leave the permissions alone
+		# 				# TODO: probably we should also check for groups in [3]
+		# 				if (not isroot) and (ctx.username not in rec["permissions"][3]) : continue
+		# 
+		# 				cur = [set(v) for v in rec["permissions"]]				# make a list of Sets out of the current permissions
+		# 				l = [len(v) for v in cur]														 # length of each tuple so we can decide if we need to commit changes
+		# 
+		# 				cur[0] -= users
+		# 				cur[1] -= users
+		# 				cur[2] -= users
+		# 				cur[3] -= users
+		# 
+		# 				l2 = [len(v) for v in cur]
+		# 
+		# 				# update if necessary
+		# 				if l != l2 :
+		# 						old = rec["permissions"]
+		# 						rec["permissions"] = (tuple(cur[0]), tuple(cur[1]), tuple(cur[2]), tuple(cur[3]))
+		# 
+		# 						for i in users:
+		# 								try: secrupd[i].append(rec.recid)
+		# 								except: secrupd[i] = [rec.recid]
+		# 
+		# 
+		# 						# put the updated record back
+		# 						self.__records.set(rec.recid, rec, txn=txn)
+		# 
+		# 		for i in secrupd.keys() :
+		# 				self.__secrindex.removerefs(i, secrupd[i], txn=txn)
+		# 
+		# 
+		# 
 
 
 
