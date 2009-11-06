@@ -1,6 +1,6 @@
 from emen2 import Database
 from emen2.DBUtil import *
-from emen2.emen2config import *
+from emen2.emen2config2 import *
 import os
 
 DB=Database

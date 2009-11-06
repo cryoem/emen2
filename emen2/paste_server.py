@@ -1,4 +1,4 @@
-from emen2.emen2config import *
+from emen2.emen2config2 import *
 from emen2.subsystems import routing, macro, templating
 from emen2.util import listops
 from emen2.util.utils import either

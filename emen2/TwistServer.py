@@ -1,7 +1,7 @@
 import sys
-
+import emen2.config.config
 import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+g = emen2.globalns.GlobalNamespace()
 
 # This is the main server program for EMEN2
 from twisted.internet import reactor, ssl
@@ -27,13 +27,14 @@ emen2.TwistSupport_html.public.views.load_views()
 import emen2.TwistSupport_html.html
 import emen2.TwistSupport_html.public.record
 import emen2.TwistSupport_html.public.template_render
+import emen2.Database.subsystems.datatypes
 
 import ts
 
 
 
 def prepare_properties(outfile):
-	vtm=emen2.Database.datatypes.datatypes.VartypeManager()
+	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
 	properties={}
 	for prop in vtm.getproperties():
 		p=vtm.getproperty(prop)

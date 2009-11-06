@@ -17,7 +17,7 @@ import demjson
 
 from functools import partial, wraps
 
-import emen2
+import emen2.globalns
 import emen2.util.utils
 
 g = emen2.globalns.GlobalNamespace('')
@@ -43,13 +43,13 @@ class DBProxy(object):
 		self.__bound = False
 		if not dbpath:
 			dbpath = g.EMEN2DBPATH
-		
+
 		if not db:
 			self.__db = database.DB(dbpath, importmode=importmode)
 		else:
 			self.__db = db
 		self.__ctx = ctx
-		self.__txn = txn		
+		self.__txn = txn
 		#self._setcontext(ctxid, host)
 
 
@@ -100,7 +100,7 @@ class DBProxy(object):
 			self.__ctx.db = self
 		except:
 			self.__ctx = None
-			
+
 			if self.__txn: self._aborttxn()
 			raise
 
@@ -186,7 +186,7 @@ class DBProxy(object):
 		kwargs["txn"] = self.__txn
 
 		result = None
-		
+
 		if name in self._allmethods():
 
 			result = None
@@ -263,7 +263,7 @@ def publicmethod(func):
 
 def adminmethod(func):
 	"""Decorator for public admin API database method"""
-	
+
 	if not func.func_name.startswith('_'):
 		DBProxy._register_adminmethod(func.func_name, func)
 

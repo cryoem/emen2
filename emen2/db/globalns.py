@@ -20,8 +20,18 @@ class ErrorThread(threading.Thread):
 	def run(self):
 		pass
 
+import emen2.subsystems.debug
 class GlobalNamespace(object):
-	__vardict = {}
+	class LoggerStub(emen2.subsystems.debug.DebugState):
+		def __init__(self, *args):
+			emen2.subsystems.debug.DebugState.__init__(self, output_level='LOG_INIT', logfile=None, get_state=False, logfile_state=None)
+		def swapstdout(self): pass
+		def closestdout(self): pass
+		def msg(self, sn, *args):
+			sn = self.debugstates.get_name(self.debugstates[sn])
+			print u'%s :: %s' % (sn, self.print_list(args))
+
+	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__all__ = []
 	def __init__(self,_=None):pass
@@ -95,19 +105,6 @@ class GlobalNamespace(object):
 
 	def reset(self):
 		self.__class__.__vardict = {}
-
-import emen2.subsystems.debug
-class LoggerStub(emen2.subsystems.debug.DebugState):
-	def __init__(self, *args):
-		self.__dict__ = self._clstate
-		emen2.subsystems.debug.DebugState.__init__(self, value='LOG_INIT', buf=None, get_state=False, logfile_state=None, prnt=True, acquire_dict=False)
-
-	def swapstdout(self): pass
-	def closestdout(self): pass
-	def msg(self, sn, *args):
-		sn = self.debugstates.get_name(self.debugstates[sn])
-		print u'%s :: %s' % (sn, self.print_list(args))
-GlobalNamespace().log = LoggerStub()
 
 def test():
 	a = GlobalNamespace('one instance')
