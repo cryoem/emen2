@@ -87,19 +87,22 @@ def DB_stat():
 
 	#print "Mutex max: "
 	#print dbenv.mutex_get_max()
-	
+
 
 def DB_cleanup():
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
-	
+
 	#DB_stat()
-	
+
 	print >> sys.stderr, "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees) + len(subsystems.btrees.RelateBTree.alltrees) + len(subsystems.btrees.FieldBTree.alltrees))
-	print "Mutex stats: "
 	# print dir(dbenv)
-	print dbenv.mutex_get_max()
+	try:
+		x = dbenv.mutex_get_max()
+		print "Mutex stats: "
+		print x
+	except AttributeError: pass
 	#print dbenv.mutex_stat_print()
 
 
@@ -468,15 +471,6 @@ class DB(object):
 
 
 		def LOG(self, level, message, ctx=None, txn=None):
-			"""level is an integer describing the seriousness of the error:
-			0 - security, security-related messages
-			1 - critical, likely to cause a crash
-			2 - serious, user will experience problems
-			3 - minor, likely to cause minor annoyances
-			4 - info, informational only
-			5 - verbose, verbose logging
-			6 - debug only"""
-
 			txn = txn or 1
 			if type(level) is int and (level < 0 or level > 7):
 				level = 6
@@ -2561,7 +2555,7 @@ class DB(object):
 					g.log.msg("LOG_COMMIT","self.__newuserqueue.set: %r"%username)
 				else:
 					g.log.msg("LOG_COMMIT","self.__newuserqueue.set: %r, deleting"%username)
-					
+
 				self.__newuserqueue.set(username, user, txn=txn)
 
 			#@end
@@ -2622,7 +2616,7 @@ class DB(object):
 					user.displayname = user.username
 					user.email = None
 
-					
+
 				ret[i] = user
 
 
@@ -2732,7 +2726,7 @@ class DB(object):
 
 			if ctx.username == None:
 				return
-				
+
 			return set(self.__users.keys(txn=txn))
 
 
@@ -2908,7 +2902,7 @@ class DB(object):
 					w.wfid = self.__workflow.sget(-1, txn=txn) #[-1]
 					self.__workflow.set(-1, w.wfid + 1, txn=txn)
 
-			g.log.msg("LOG_COMMIT","self.__workflow.set: %r"%ctx.username)			
+			g.log.msg("LOG_COMMIT","self.__workflow.set: %r"%ctx.username)
 			self.__workflow.set(ctx.username, wflist, txn=txn)
 
 
@@ -3350,6 +3344,7 @@ class DB(object):
 					if filt: pass
 					else: raise e
 				except (KeyError, TypeError), e:
+					raise
 					if filt: pass
 					else: raise KeyError, "No such record %s"%(i) #, e)
 		
@@ -3374,7 +3369,6 @@ class DB(object):
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
 			t = self.getrecorddef(rectype, ctx=ctx, txn=txn).params
-			
 			rec = dataobjects.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 			if init:
@@ -3634,7 +3628,6 @@ class DB(object):
 				if self.__importmode:
 					crecs.append(updrec)
 					continue
-					
 				t = self.__gettime(ctx=ctx, txn=txn)
 				recid = updrec.recid
 
@@ -3668,7 +3661,7 @@ class DB(object):
 
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
-						orec.addcomment(i[2])							
+						orec.addcomment(i[2])
 
 
 				for param in cp - param_special:
@@ -3683,7 +3676,7 @@ class DB(object):
 					orec.setgroups(updrec.get("groups"))
 
 
-				if log:				
+				if log:
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.username
 
@@ -3724,8 +3717,8 @@ class DB(object):
 			newrecs = filter(lambda x:x.recid < 0, crecs)
 			recmap = {}
 			timeupdate = {}
-			
-			
+
+
 			cache = {}
 			for i in crecs:
 				if i.recid < 0: continue
@@ -4073,7 +4066,7 @@ class DB(object):
 
 		def __reindex_time(self, updrecs, cache=None, ctx=None, txn=None):
 			# print "Calculating time updates..."
-			
+
 			timeupdate = {}
 
 			for updrec in updrecs:
@@ -4675,27 +4668,27 @@ class DB(object):
 			mp = kwargs.get('map')
 			changesmade = False
 			if any(blocks):
-				
+
 				to_commit = filter(None, blocks)
-				
+
 				commit_funcs = {
 					dataobjects.paramdef.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
 					dataobjects.recorddef.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
 					dataobjects.user.User: lambda r: self.putuser(r, validate=0, ctx=ctx, txn=txn),
 				}
-				
+
 				for block in to_commit:
 
 					for item in block:
 						emen2.migrate.upgrade(item, ctx=ctx, txn=txn)
-						
+
 					if isinstance(block[0], dataobjects.record.Record):
 						self.__restore_rec(block, mp, ctx=ctx, txn=txn)
 					else:
 						map(commit_funcs[type(block[0])], block)
 
 					del block[:]
-				
+
 				changesmade = True
 
 			return changesmade
@@ -4724,7 +4717,7 @@ class DB(object):
 					raise IOError, "Restore file (e.g. backup.pkl) not present"
 				return fin
 
-				
+
 		def __restore_relate(self, r, fin, types, recmap, txn=None):
 			rr = pickle.load(fin)
 			if r not in types: return False
@@ -4758,9 +4751,9 @@ class DB(object):
 				for p, cl in rr:
 					for c in cl:
 						links.append((recmap[p], recmap[c]))
-					
+
 				self.__records.pclinks(links, txn=txn)
-					
+
 
 			elif r in simple_choices:
 				g.log.msg('LOG_INFO', r)
@@ -4791,7 +4784,7 @@ class DB(object):
 
 
 				# ian: todo: this will be better implemented in a flexible way when restore is moved into a standalone module
-				
+
 
 				# ian: todo: change this to some other mechanism...
 				ctx = self.__makerootcontext()
@@ -4835,7 +4828,7 @@ class DB(object):
 					existing_paramdefs = self.getparamdefnames(ctx=ctx, txn=txn)
 					existing_recorddefs = self.getrecorddefnames(ctx=ctx, txn=txn)
 					existing_groups = self.getgroupnames(ctx=ctx, txn=txn)
-				
+
 
 				# Record = dataobjects.record.Record
 				# RecordDef = dataobjects.recorddef.RecordDef
@@ -4854,7 +4847,7 @@ class DB(object):
 								#print "Pickle load error: %s"%e
 								self.LOG("LOG_WARNING","Pickle load error (eof?) %s"%e)
 								raise EOFError
-								
+
 							commitrecs = False
 
 							# insert and renumber record
