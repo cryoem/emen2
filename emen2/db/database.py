@@ -589,6 +589,7 @@ class DB(object):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
 			#ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
+
 			return ctx
 
 
@@ -3190,6 +3191,8 @@ class DB(object):
 			are necessary, so this method is available."""
 
 			if not isinstance(recdef, dataobjects.recorddef.RecordDef):
+				print "recdef"
+				print recdef
 				try: recdef = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
 				except: raise ValueError, "RecordDef instance or dict required"
 
