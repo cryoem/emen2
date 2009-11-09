@@ -1763,32 +1763,31 @@ class DB(object):
 				ret[i], ret_visited[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
 			
 
-			if rectype or filt:
+			if rectype or filt or flat:
 				# ian: note: use a [] initializer for reduce to prevent exceptions when values is empty
-				allr = reduce(set.union, ret_visited.values(), set())
+				allr = reduce(set.union, ret_visited.values())
 
 				if rectype:
-					allr = allr & self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
-							
+					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
+		
 				if filt and keytype=="record":
-					allr = self.filterbypermissions(allr, ctx=ctx, txn=txn)
+					allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
+
+				if flat:
+					return allr
 
 				# perform filtering on both levels, and removing any items that become empty
 				# ret = dict(filter(lambda x:x[1], [ ( k, dict(filter(lambda x:x[1], [ (k2,v2 & allr) for k2, v2 in v.items() ] ) ) ) for k,v in ret.items() ]))
 				# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
+				if tree:
+					for k in ret:
+						for k2 in ret[k]:
+							ret[k][k2] &= allr
 
-				for k,v in ret.items():
-					ret[k] = dict(filter(lambda x:x[1], [ (k2, v2 & allr) for k2, v2 in v.items() ]))
-					if not ret[k]: del ret[k]
-
-
-			# tree: flatten each item in keys; flat = flatten all
-			if (not tree) or flat:
-				ret = ret_visited
-
-			if flat:
-				if not ret.values(): return set()
-				return set( reduce(set.union, ret.values()) )
+				else:
+					for k in ret_visited:
+						ret_visited[k] &= allr
+					ret = ret_visited
 
 			if ol:
 				return ret.get(key[0],set())
