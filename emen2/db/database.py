@@ -577,14 +577,18 @@ class DB(object):
 			else:
 				ctx = dataobjects.context.Context(username=username, host=host)
 
-			ctx.setdb(db=self, txn=txn)
+			#def refresh(self, user=None, groups=None, db=None, txn=None):
+			#context.refresh(user=user, groups=groups, db=self, txn=txn)
+			#ctx.setdb(db=self, txn=txn)
+			#ctx.refresh(db=self, txn=txn)
 
 			return ctx
 
 
 		def __makerootcontext(self, ctx=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
-			ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
+			ctx.refresh(db=self, txn=txn)
+			#ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
 			return ctx
 
 
