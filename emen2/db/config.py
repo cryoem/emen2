@@ -15,8 +15,10 @@ parser.add_option('--logfile_level', action='store', dest='logfile_level')
 
 options, args = parser.parse_args()
 map(g.from_yaml, options.configfile or [])
+
 g.TEMPLATEDIRS.extend(options.templatedirs or [])
 g.VIEWPATHS.extend(options.viewdirs or [])
+
 if options.log_level == None: options.log_level = 'LOG_INFO'
 if options.logfile_level == None: options.logfile_level = 'LOG_DEBUG'
 

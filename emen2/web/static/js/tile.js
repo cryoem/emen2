@@ -39,7 +39,7 @@ function tile_center() {
 }
 
 function tile_larger(bid) {
-	window.location = EMEN2WEBROOT+"/db/tiles/large/"+bid;
+	window.location = EMEN2WEBROOT+"/db/tiles/"+bid+"/large/";
 }
 
 function tile_pspec(bid) {
@@ -47,7 +47,7 @@ function tile_pspec(bid) {
 	indiv.style.left="0px";
 	indiv.style.top="0px";
 	var e=document.createElement("img");
-	e.src=EMEN2WEBROOT+'/db/tiles/image/'+bid+'?level=-1&amp;x=0&amp;y=0';
+	e.src=EMEN2WEBROOT+'/db/tiles/'+bid+'/image/?level=-1&amp;x=0&amp;y=0';
 	e.width=divdim[0];
 	e.height=divdim[1];
 	$(indiv).empty().append(e);
@@ -57,7 +57,7 @@ function tile_1d(bid) {
 	indiv.style.left="0px";
 	indiv.style.top="0px";
 	var e=document.createElement("img");
-	e.src=EMEN2WEBROOT+'/db/tiles/image/'+bid+'?level=-2&amp;x=0&amp;y=0';
+	e.src=EMEN2WEBROOT+'/db/tiles/'+bid+'/image/?level=-2&amp;x=0&amp;y=0';
 	e.width=divdim[0];
 	e.height=divdim[1];
 	$(indiv).empty().append(e);
@@ -74,7 +74,7 @@ function tile_init(ibid) {
 	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Checking tiles...'
 
-	$.getJSON(EMEN2WEBROOT+"/db/tiles/check/"+bid, tile_checktile_cb);
+	$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/check/", tile_checktile_cb);
 
 }
 
@@ -82,7 +82,7 @@ function tile_init(ibid) {
 function tile_rebuild(bid) {
 	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'	
-	$.getJSON(EMEN2WEBROOT+"/db/tiles/create/"+bid, tile_createtile_cb);
+	$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/create/", tile_createtile_cb);
 }
 
 
@@ -222,7 +222,7 @@ function recalc() {
 			var im=document.getElementById(nm);
 			if (!im) {
 				im=document.createElement("img");
-				im.src=EMEN2WEBROOT+"/db/tiles/image/" + tileid + "?level="+level+"&x="+i+"&y="+j;
+				im.src=EMEN2WEBROOT+"/db/tiles/" + tileid + "/image/?level="+level+"&x="+i+"&y="+j;
 				im.style.position="absolute";
 				im.style.height=imgw+"px";
 				im.style.width=imgw+"px";

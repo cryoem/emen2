@@ -261,7 +261,8 @@ class PublicView(Resource):
 		try:
 			db._setcontext(ctxid,host)
 			ret, headers = callback(db=db)
-			ret = unicode(ret).encode('utf-8')
+			if headers.get('content-type') != "image/jpeg":
+				ret = unicode(ret).encode('utf-8')
 		except Exception, e:
 			# ian: todo: print this?
 			g.log.msg("LOG_ERROR",e)
@@ -291,6 +292,7 @@ class PublicView(Resource):
 
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
+
 			g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
