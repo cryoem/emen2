@@ -106,7 +106,11 @@ def DB_cleanup():
 	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
 	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
 	necessary at the next restart"""
-	
+
+	print "DB_cleanup and sync"
+	DB_syncall()
+
+	#return
 	
 	global dbenv
 	if not dbenv:
