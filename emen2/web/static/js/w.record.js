@@ -106,8 +106,10 @@ function permissions(elem, opts) {
   this.init();
 };
 
+
 permissions.DEFAULT_OPTS = {
 	list: [ [],[],[],[] ],
+	groups: [],
 	levels: ["Read","Comment","Write","Admin"],
 	inherit: [],
 	parents: [],
@@ -121,58 +123,75 @@ permissions.prototype = {
 
 		var self=this;
 
-		this.userstate={};
-		this.inituserstate={};
-		for (var i=0;i<4;i++) {
-			for (var j=0;j<this.list[i].length;j++) {
-				this.userstate[this.list[i][j]]=i;
-				this.inituserstate[this.list[i][j]]=i;
-			}
-		}
+		this.reinit();
+
+		// this.userstate = {};
+		// this.groupstate = {};
+		// this.inituserstate = {};
+		// this.initgroups = [];
+		// 
+		// // set up init states, so we know what to apply...
+		// for (var i=0;i<this.groups.length;i++) {
+		// 	this.initgroups.push(this.groups[i]);
+		// }
+		// for (var i=0;i<4;i++) {
+		// 	for (var j=0;j<this.list[i].length;j++) {
+		// 		this.userstate[this.list[i][j]]=i;
+		// 		this.inituserstate[this.list[i][j]]=i;
+		// 	}
+		// }
+		// 
 		
 		this.ajaxqueue={};
 		
 		this.inheritcontrols=[];
-
-
+		
 		////////////////////////////////
 		// Inherit / parent controls
 		this.inheritarea=$('<table class="inherittable" cellspacing="0" cellpadding="0"><tr><th>Parent</th><th>Permissions</th><th>Record</th></tr></table>');
 
 		if (this.inherit.length > 0) {
+
+
+			var ihc = $('<div class="user_add clearfix">Parents:</div>');
+			var ihcul = $('<ul />');
+			ihc.append(ihcul);
 			for (var i=0;i<this.inherit.length;i++) {
 				this.addinherititem(this.inherit[i],1);
+				ihcul.append('<li>'+recnames[this.inherit[i]]+' ('+this.inherit[i]+')</li>');
 			}
-
-			this.inheritarea_addcontrols = $('<tr></tr>');
-			this.inheritarea_addfield = $('<input type="text" value="" />');
-		
-			// add new inherit/parent item
-			this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
-				var getrecid=parseInt(self.inheritarea_addfield.val());
-				$.getFromURL({
-					'name': 'getrecordwithdisplay',
-					'kwargs': {'recid': getrecid}
-					}, null,function(result){
-						setrecord(getrecid,result["recs"][getrecid]);
-						$.each(result["displaynames"], function(k,v) {
-							setdisplayname(k,v);
-						});
-						$.each(result["recnames"], function(k,v) {
-							setrecname(k,v);
-						});
-						self.addinherititem(getrecid,1);
-						self.build();
-				});
-			});
-		
-			this.inheritarea_addcontrols.append(
-				$("<td></td><td></td>"),
-				$("<td></td>").append(this.inheritarea_addfield,this.inheritarea_addbutton)
-				);
-			this.inheritarea.append(this.inheritarea_addcontrols);
-		
-			this.elem.append(this.inheritarea);
+			this.elem.append(ihc);
+			
+			
+			// this.inheritarea_addcontrols = $('<tr></tr>');
+			// this.inheritarea_addfield = $('<input type="text" value="" />');
+			// 	
+			// // add new inherit/parent item
+			// this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
+			// 	var getrecid=parseInt(self.inheritarea_addfield.val());
+			// 	$.getFromURL({
+			// 		'name': 'getrecordwithdisplay',
+			// 		'kwargs': {'recid': getrecid}
+			// 		}, null,function(result){
+			// 			setrecord(getrecid,result["recs"][getrecid]);
+			// 			$.each(result["displaynames"], function(k,v) {
+			// 				setdisplayname(k,v);
+			// 			});
+			// 			$.each(result["recnames"], function(k,v) {
+			// 				setrecname(k,v);
+			// 			});
+			// 			self.addinherititem(getrecid,1);
+			// 			self.build();
+			// 	});
+			// });
+			// 	
+			// this.inheritarea_addcontrols.append(
+			// 	$("<td></td><td></td>"),
+			// 	$("<td></td>").append(this.inheritarea_addfield,this.inheritarea_addbutton)
+			// 	);
+			// this.inheritarea.append(this.inheritarea_addcontrols);
+			// 	
+			// this.elem.append(this.inheritarea);
 
 		}
 
@@ -181,21 +200,29 @@ permissions.prototype = {
 		// Add user controls
 		
 		var user_outer=$('<div class="user_outer clearfix"></div>');
-		var useradd=$('<div class="user_add clearfix">Assign Permissions:</div>');
+		var useradd=$('<div class="user_add clearfix"></div>');
 		var useradd_user=$('<div/>');
 		var useradd_group=$('<div/>');
 
 
 		this.user_search=$('<input class="value" size="20" type="text" value="" />');
-		this.user_search.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/find/user/",
-					match:      function(typed) { return true	},
-					insertText: function(value)  { 
-						setdisplayname(value[0],value[1]);
-						return value[0] 
-						},
-					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-				}).bind("activate.autocomplete", function(e,d) {  });
+		// this.user_search.autocomplete({ 
+		// 			ajax: EMEN2WEBROOT+"/db/find/user/",
+		// 			match:      function(typed) { return true	},
+		// 			insertText: function(value)  { 
+		// 				setdisplayname(value[0],value[1]);
+		// 				return value[0] 
+		// 				},
+		// 			template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+		// 		}).bind("activate.autocomplete", function(e,d) {  });
+		this.user_search.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
+			minChars: 0,
+			max: 1000,
+			matchSubset: false,
+			scrollHeight: 360,
+			highlight: false,
+			formatResult: function(value, pos, count)  { return value }			
+		});
 
 
 		this.user_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
@@ -207,21 +234,38 @@ permissions.prototype = {
 		});
 		
 
-		this.group_search=$('<select><option></option></select>');
-		$.each(groupnames,function(k,v){
-			self.group_search.append('<option value="'+k+'">'+v+'</option>');
+		
+		this.group_search=$('<input class="value" size="20" type="text" value="" />');
+		// this.group_search.autocomplete({ 
+		// 			ajax: EMEN2WEBROOT+"/db/find/group/",
+		// 			match:      function(typed) { return true	},
+		// 			insertText: function(value)  { 
+		// 				groupnames[value[0]]=value[1];//(value[0],value[1]);
+		// 				return value[0] 
+		// 				},
+		// 			template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+		// 		}).bind("activate.autocomplete", function(e,d) {  });
+		this.group_search.autocomplete( EMEN2WEBROOT+"/db/find/group/", { 
+			minChars: 0,
+			max: 100,
+			matchSubset: false,
+			scrollHeight: 360,
+			formatResult: function(value, pos, count)  { return value }			
 		});
-		this.group_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
+
+		
+		//this.group_levelselect=$('<select><option value="0">Read</option><option value="1">Comment</option><option value="2">Write</option><option value="3">Admin</option></select>');
 		this.group_addbutton=$('<input type="button" value="Add Group">');
 		this.group_addbutton.click(function(){
-			self.add(parseInt(self.group_search.val()),self.group_levelselect.val());
-			self.build();
+			self.addgroup(self.group_search.val());
+			self.build_grouparea();
 		});
 
 
 		useradd_user.append(this.user_search, this.user_levelselect, this.user_addbutton);
 		useradd_group.append(this.group_search, this.group_levelselect, this.group_addbutton);	
 		useradd.append(useradd_user, useradd_group);
+
 
 		// Save controls
 		if (!this.newrecord) {
@@ -239,103 +283,125 @@ permissions.prototype = {
 
 		user_outer.append(useradd);
 
-		//this.userarea_removed = $("<div></div>");
+		this.grouparea = $('<div clearfix user_level></div>');
 		this.userarea = $("<div></div>");
+
+		user_outer.append($('<h6>Groups:</h6>'))
+		user_outer.append(this.grouparea);
 		user_outer.append(this.userarea);
 
 		this.elem.append(user_outer);
 
 		// Build user lists
-		this.build();
+		// this.build();
+		this.getdisplaynames();
+
+	},
+	
+	getdisplaynames: function() {
+
+		// build widgets on callback...
+		var self=this;
+		
+		// def getuserdisplayname(self, username, lnf=1, perms=0, filt=True, ctx=None, txn=None):
+		// get group names...
+		$.jsonRPC("getuserdisplayname",[recid, 1, 1, 1], function(names){
+			$.each(names, function(k,v) {
+				displaynames[k] = v;
+			});			
+			self.build_userarea();
+		});
+
+		// get group names...
+		$.jsonRPC("getgroupdisplayname", [recid], function(names) {
+			$.each(names, function(k,v) {
+				groupnames[k] = v;
+			});			
+			self.build_grouparea();
+		});
 		
 	},
 	
-	/*
-	build_removed: function() {
-		// build list of removed users
-		// this.userarea_removed.empty()
-
+	
+	build_grouparea: function() {
 		var self=this;
 
-		if (this.removed.length > 0) {
-			var self=this;
+		this.grouparea.empty();
 
-			var level_remove=$('<div class="clearfix user_removed"> Removed ('+this.removed.length+' users) </div>');
-			var level_remove_undoall=$('<span class="jslink">(undo all)</span>').click(function() {
-				while (self.removed.length > 0) {
-					self.add(self.removed[0],self.removedlevel[self.removed[0]]);
-				}
-				self.build();
-			});
-			level_remove.append(level_remove_undoall);
+		// group area
+		var level_ul = $('<ul></ul>');
+		$.each(this.groups, function(k,v) {
+			var userdiv = $('<li class="user clearfix"></li>');
+			var username=$('<span class="name">'+(groupnames[v] || v)+'</span>');
+			var useraction=$('<span class="action">X</span>');
+			var tag=self.groupstatetag(v);			
+			userdiv.addClass(tag);
+			if (tag=="removed") {	
+				useraction.html("U");
+				useraction.click(function(){
+					self.addgroup(useraction.username);
+					self.build_grouparea();
+				});
+			} else {
+				useraction.click(function(){
+				self.removegroup(useraction.username);
+				self.build_grouparea();});	
+			}
 
-			this.removed = this.sortbydisplayname(this.removed);
-			$.each(this.removed, function(k,v) {
-					var userdiv=$('<div class="user removed"></div>');
-					var username=$('<span class="name">'+getdisplayname(v)+'</span>');
-					var useraction=$('<span class="action">+</span>').click(function(){
-						self.add(useraction.username,self.removedlevel[useraction.username]);
-						self.build();
-					});
-					useraction.username=v;
-										
-					userdiv.append(useraction,username);					
-					level_remove.append(userdiv);
+			useraction.username=v;
+			userdiv.append(useraction,username);
+			level_ul.append(userdiv);
 					
-			});
-			this.userarea_removed.append(level_remove);
-		}
+		});
+		
+		this.grouparea.append(level_ul);
 		
 	},
-	*/
-	
-  build: function() {
 
-		//this.build_removed();
-		
-		// build list of user permissions
-		this.userarea.empty();
+
+	build_userarea: function() {
 
 		var self=this;
-		$.each(this.getlist(1), function(k,v) {
-			
-			v=self.sortbydisplayname(v);
-			
-			var level=$('<div class="clearfix user_level"><h6>'+self.levels[k]+'</h6></div>');
-			
-			level_ul = $("<ul></ul>");
 
+		this.userarea.empty();
+		$.each(this.getlist(1), function(k,v) {
+
+			v=self.sortbydisplayname(v);
+			var level=$('<div class="clearfix user_level"><h6>'+self.levels[k]+'</h6></div>');
+			var level_ul = $("<ul></ul>");
 
 			if (v.length == 0) {
 				//level_ul.append("<li>Emtpy</li>");
 			} else {
-				
+		
 				var level_removeall=$('<span class="small">[<span class="jslink">X</span>]</span>').click(function () {
 					var q=v.slice();
 					for (var i=0;i<q.length;i++) {
 						self.remove(q[i]);
 					}
-					self.build();
+					self.build_userarea();
 				});
 				level.append(level_removeall);
 
 				$.each(v, function(k2,v2) {
 
 					var userdiv=$('<li class="user clearfix"></li>');
-					var tag=self.userstatetag(v2)
+					var tag=self.userstatetag(v2);
 					userdiv.addClass(tag);
-				
-					var username=$('<span class="name">'+getdisplayname(v2)+'</span>');
-					var useraction=$('<span class="action">X</span>')
+		
+					var username=$('<span class="name">'+(displaynames[v2] || v2)+'</span>');
+					var useraction=$('<span class="action">X</span>');
 					if (tag=="removed") {	
 						useraction.html("U");
 						useraction.click(function(){
-						self.add(useraction.username,useraction.level);
-						self.build();});
+							self.add(useraction.username,useraction.level);
+							self.build_userarea();
+						});
 					} else {
 						useraction.click(function(){
-						self.remove(useraction.username);
-						self.build();});	
+							self.remove(useraction.username);
+							self.build_userarea();
+						});	
 					}
 
 					useraction.username=v2;
@@ -345,13 +411,28 @@ permissions.prototype = {
 
 				});
 			}
-			
+	
 			level.append(level_ul)
 			self.userarea.append(level);
 
 
-		});
+		});	
+	 },
 
+	build: function() {
+		this.build_grouparea();
+		this.build_userarea();
+	},
+
+	getlistchanged: function() {
+		var l=[[],[],[],[]];
+		var self=this;
+		$.each(this.userstate, function(k,v) {
+			if (v > -1 && self.inituserstate[k] != v) {
+				l[v].push(k);
+			}
+		});
+		return l
 	},
 
 	getlist: function(showrem) {
@@ -371,6 +452,13 @@ permissions.prototype = {
 		if (ol==null && cl>-1) {return "newuser"}
 		if (ol > -1 && cl==-1) {return "removed"}
 		if (ol!=cl) {return "reassigned"}
+	},
+	
+	groupstatetag: function(group) {
+		if (this.groupstate[group] == -1){
+			return "removed"
+		}
+		return "newuser"
 	},
 
 	// sort usernames by their display names	
@@ -397,7 +485,6 @@ permissions.prototype = {
 
 		if (this.parents.indexOf(precid) == -1) {this.parents.push(precid);}
 		
-
 		var control=$("<tr></tr>");
 
 		var p=getvalue(precid,"permissions");
@@ -424,6 +511,7 @@ permissions.prototype = {
 			this.checked=(this.checked) ? 1:0;
 			if (this.checked) {
 				self.addlist(p);
+				self.addgroups(getvalue(precid, 'groups'));
 				self.build()
 			}	else {
 				self.removelist(p);
@@ -442,10 +530,23 @@ permissions.prototype = {
 
 	},	
 	
+	addgroup: function(group) {
+		if (this.groups.indexOf(group) == -1) {
+			this.groups.push(group);
+		}
+		this.groupstate[group] = 1;
+	},
+	
+	addgroups: function(groups) {
+		for (var i=0;i<groups.length;i++) {
+			this.addgroup(groups[i]);
+		}
+	},
+	
 	// add a user to permissions	
 	add: function(username,level) {
 		level=parseInt(level);
-		if (getdisplayname(username) == null) {return 0}
+		//if (getdisplayname(username) == null) {return 0}
 		if (username==user) {return 0}
 		this.userstate[username]=level;
 		return 1		
@@ -459,6 +560,15 @@ permissions.prototype = {
 				this.add(list[i][j],i);
 			}
 		}
+	},
+	
+	removegroup: function(group) {
+		if (this.initgroups.indexOf(group) == -1) {
+			this.groups.splice(this.groups.indexOf(group), 1);			
+			return
+		}
+		this.groupstate[group] = -1;
+
 	},
 	
 	// remove a user
@@ -489,6 +599,14 @@ permissions.prototype = {
 	getpermissions: function() {
 		return this.getlist()
 	}, 
+	
+	getgroups: function() {
+		ret=[];
+		for (var i=0;i<this.groups.length;i++) {
+			if (this.groupstate[this.groups[i]] != -1) {ret.push(this.groups[i])}
+		}
+		return ret
+	},
 		
 	getparents: function() {
 		return this.parents
@@ -499,50 +617,74 @@ permissions.prototype = {
 		this.ajaxqueue["record_permissions_save"]=1;
 		var self=this;
 		
-		
 		var rlevels=0;
 		if (this.recurse) {
-			rlevels=20;
+			rlevels=50;
 		}
 		
-		var r=[];
-		$.each(this.userstate, function(k,v) {
-			if ( v == -1 && self.inituserstate[k] > -1) {r.push(k)}
-		});
+
+		var sec_commit = {};
+		sec_commit["recid"] = recid;
+		sec_commit["umask"] = this.getlistchanged();
+		sec_commit["delusers"] = this.getdelusers();
+		sec_commit["addgroups"] = this.getaddgroups();
+		sec_commit["delgroups"] = this.getdelgroups();
+		sec_commit["reassign"] = 1;
+		sec_commit["recurse"] = rlevels;
+
+		// console.log(sec_commit);
+		// return
 		
-		if (r.length > 0) {
-
-			this.ajaxqueue["record_permissions_save"]++;
-			$.jsonRPC("secrecorddeluser",[r,recid,rlevels], function() {
-				self.ajaxqueue["record_permissions_save"]--;
-				if (self.ajaxqueue["record_permissions_save"]==0) {
-					//console.log("ajax queue done");
-					self.reinit();
-				}
-			}
-			
-			);
-
-		}
-
-		// run with recurse = 0, reassign = 1
-		$.jsonRPC("secrecordadduser",[this.getlist(), recid, rlevels,1], function(permissions) {
-				setvalue(recid,"permissions");
-				self.ajaxqueue["record_permissions_save"]--;
-				if (self.ajaxqueue["record_permissions_save"]==0) {
-					self.reinit(permissions);
-				}
-			}
-			);		
+		$.jsonRPC("secrecordadduser_compat", sec_commit, function() {
+			$.jsonRPC("getrecord",[recid], function(record) {
+				notify("Saved Permissions");
+				recs[recid] = record;
+				self.reinit();
+				self.build();
+			});
+		});		
 
 
 	},
 	
-	reinit: function(list) {
-		// ian todo: reget record
-		notify("Saved Permissions");
+	getaddgroups: function() {
+		var self=this;
+		var r=[];
+		$.each(this.groups, function(k,v) {
+			if (self.initgroups.indexOf(v) == -1) {
+				r.push(v);
+			}
+		});
+		return r
+	},
+	
+	getdelgroups: function() {
+		var self=this;
+		var r=[];
+		$.each(this.initgroups, function(k,v) {
+			if (self.groupstate[v]==-1) {
+				r.push(v);
+			}
+		});
+		return r
+	},
+	
+	getdelusers: function() {
+		var self=this;
+		var r=[];
+		$.each(this.userstate, function(k,v) {
+			if ( v == -1 && self.inituserstate[k] > -1) {r.push(k)}
+		});
+		return r		
+	},
+	
+	reinit: function() {
+		// ian: todo: reget record
+		
+		var r = recs[recid];
+		
 		// reinit inituserstate;
-		this.list=this.getlist();
+		this.list = r["permissions"]
 		this.userstate={};
 		this.inituserstate={};
 		for (var i=0;i<4;i++) {
@@ -551,7 +693,14 @@ permissions.prototype = {
 				this.inituserstate[this.list[i][j]]=i;
 			}
 		}
-		this.build();
+
+		this.initgroups = [];
+		this.groupstate = {};	
+		this.groups = r["groups"];
+		for (var i=0;i<this.groups.length;i++) {
+			this.initgroups.push(this.groups[i]);
+		}
+
 	}
 	
 }

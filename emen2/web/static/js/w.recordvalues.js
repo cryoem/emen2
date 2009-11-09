@@ -45,7 +45,7 @@ multiwidget.DEFAULT_OPTS = {
 multiwidget.prototype = {
 		
 	init: function() {
-		//console.log("multiw init");
+		//console.log("multiwidget init");
 
 		var self=this;
 		this.built = 0;
@@ -213,7 +213,7 @@ multiwidget.prototype = {
 				if (!changed[this.recid]) {changed[this.recid]={}}
 				changed[this.recid][this.param]=this.getval();
 			} else {
-				//console.log(r.param+" is unchanged");
+				// console.log(this.param+" is unchanged; value is "+this.getval());
 			}
 		});
 		
@@ -408,13 +408,26 @@ widget.prototype = {
 		}  else if (paramdefs[this.param]["vartype"]=="user") {
 
 				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
-				this.editw.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/find/user/",
-					match:      function(typed) { return true },				
-					insertText: function(value)  { return value[0] },
-					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-				}).bind("activate.autocomplete", function(e,d) {  });
-				this.editw.change(function(){self.changed=1;});
+				// this.editw.autocomplete({ 
+				// 	ajax: EMEN2WEBROOT+"/db/find/user/",
+				// 	match:      function(typed) { return true },				
+				// 	insertText: function(value)  { return value[0] },
+				// 	template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+				// }).bind("activate.autocomplete", function(e,d) {  });
+				// this.editw.change(function(){self.changed=1;});
+
+				this.editw.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
+					minChars: 0,
+					max: 1000,
+					matchSubset: false,
+					scrollHeight: 360,
+					highlight: false,
+					formatResult: function(value, pos, count)  { return value }			
+				});
+				this.editw.blur(function(e,d) {		//bind("onblur", function(e,d) {
+					self.changed = 1;
+				});
+				
 				this.w.append(this.editw);			
 
 		} else {
@@ -428,17 +441,21 @@ widget.prototype = {
 					l=$(paramdefs[this.param]["choices"]).map(function(n){return [[n,this]]})
 				} 
 				
-				this.editw.autocomplete({ 
-					list: l,				
-					ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
-					match: function(typed) { return this[1].match(new RegExp(typed, "i")) },				
-					insertText: function(value)  { return value[1] }
-				}).bind("activate.autocomplete", function(e,d) {  }
+				this.editw.autocomplete( EMEN2WEBROOT+"/db/find/value/"+this.param+"/", { 
+					minChars: 0,
+					max: 100,
+					matchSubset: false,
+					scrollHeight: 360,
+					formatResult: function(value, pos, count)  { return value }			
+				});
+				this.editw.blur(function(e,d) {		//bind("onblur", function(e,d) {
+					self.changed = 1;
+				}
 				)
 
 			}
-			
-			this.editw.change(function(){self.changed=1});
+
+			this.editw.change(function(){self.changed=1});			
 			this.w.append(this.editw);
 			
 			var property=paramdefs[this.param]["property"];
@@ -633,23 +650,47 @@ listwidget.prototype = {
 						
 			if (self.paramdef["vartype"]=="userlist") {
 
-				edit.autocomplete({ 
-					ajax: EMEN2WEBROOT+"/db/find/user/",
-					match:      function(typed) { return true },				
-					insertText: function(value)  { return value[0] },
-					template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-				}).bind("activate.autocomplete", function(e,d) {  });
+				// edit.autocomplete({ 
+				// 	ajax: EMEN2WEBROOT+"/db/find/user/",
+				// 	match:      function(typed) { return true },				
+				// 	insertText: function(value)  { return value[0] },
+				// 	template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
+				// }).bind("activate.autocomplete", function(e,d) {  });
+
+				edit.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
+					minChars: 0,
+					max: 1000,
+					matchSubset: false,
+					scrollHeight: 360,
+					highlight: false,
+					formatResult: function(value, pos, count)  { return value }			
+				});
+				edit.blur(function(e,d) {		//bind("onblur", function(e,d) {
+					//self.changed = 1;
+				});
 
 			} else if (self.paramdef["vartype"]=="stringlist") {
 
-				edit.autocomplete({ 
+				// edit.autocomplete({ 
+				// 
+				// 	ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
+				// 	match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
+				// 	insertText: function(value)  { return value[1] }
+				// 	
+				// }).bind("activate.autocomplete", function(e,d) {  })
 
-					ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
-					match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
-					insertText: function(value)  { return value[1] }
-					
-				}).bind("activate.autocomplete", function(e,d) {  })
-				
+				edit.autocomplete( EMEN2WEBROOT+"/db/find/value/"+this.param+"/", { 
+					minChars: 0,
+					max: 100,
+					matchSubset: false,
+					scrollHeight: 360,
+					formatResult: function(value, pos, count)  { return value }			
+				});
+				edit.blur(function(e,d) {		//bind("onblur", function(e,d) {
+					//self.changed = 1;
+				});
+
+
 			}
 			
 			var add=$('<span><img src="'+EMEN2WEBROOT+'/images/add_small.png" class="listwidget_add" /></span>').click(function() {

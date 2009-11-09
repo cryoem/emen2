@@ -1,6 +1,6 @@
 import sys
 from optparse import OptionParser
-EMEN2CONFIG = "/Users/edwlan/Programming/emen2/emen2/config/config.yml"
+EMEN2CONFIG = "config/config.yml"
 from emen2.globalns import GlobalNamespace
 g = GlobalNamespace()
 g.from_yaml(EMEN2CONFIG)
@@ -37,6 +37,6 @@ try:
 
 	g.log.add_output(['LOG_WEB'], file(g.LOGROOT + '/access.log', 'a', 0))
 except ImportError:
-	print 'debug not loaded!!!'
+	raise ImportError, 'Debug not loaded!!!'
 
 g.refresh()

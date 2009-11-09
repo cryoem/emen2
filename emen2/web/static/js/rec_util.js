@@ -14,9 +14,10 @@ children=[];
 recnames={};
 displaynames={};
 groupnames={};
-groupnames["-4"]="Anonymous Access";
-groupnames["-3"]="Authenticated Users";
-groupnames["-1"]="Administrators";
+// groupnames={};
+// groupnames["-4"]="Anonymous Access";
+// groupnames["-3"]="Authenticated Users";
+// groupnames["-1"]="Administrators";
 
 
 
@@ -214,7 +215,8 @@ function record_permissions_toggle(elem) {
 				setdisplayname(k,v);
 			});
 			permissionscontrol = new permissions(target, {
-				'list':getvalue(recid,"permissions")
+				'list':getvalue(recid,"permissions"),
+				'groups':getvalue(recid,"groups")
 				}
 			)
 					
@@ -265,13 +267,16 @@ function record_relationships_toggle(elem) {
 
 
 function newrecord_getoptionsandcommit(self, values) {
-	
+		
 	if (!values["None"]){values["None"]={}}
 	
 	values["None"]["permissions"] = permissionscontrol.getpermissions();
 	values["None"]["parents"] = permissionscontrol.getparents();
+	values["None"]["groups"] = permissionscontrol.getgroups();
 	//var parents=permissionscontrol.getparents();
-
+	// console.log(values);
+	// return
+	
 	// commit
 	commit_newrecord(
 		self,

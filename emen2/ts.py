@@ -16,6 +16,8 @@ import threading
 import time
 
 import emen2.Database.DBProxy
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 
 #DB=database 
@@ -24,16 +26,19 @@ import emen2.Database.DBProxy
 #	global db
 
 	
-db = emen2.Database.DBProxy.DBProxy()
+#db = emen2.Database.DBProxy.DBProxy()
 	
 
 class newThreadPool(threadpool.ThreadPool):
 	counter = 0
 	def startAWorker(self):
-		print "started twisted thread (newThreadPool)..."
-		print "\tworker count: %s"%self.workers
+		#print "started twisted thread (newThreadPool)..."
+		#print "\tworker count: %s"%self.workers
 		#self.db = database.DBProxy()
+
 		self.workers = self.workers + 1
+		g.log.msg("LOG_INIT","New twisted thread: worker count: %s"%self.workers)
+
 		# name = "PoolThread-%s-%s" % (self.name or id(self), self.workers)
 		# try:
 		# 		firstJob = self.q.get(0)

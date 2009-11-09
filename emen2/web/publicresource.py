@@ -256,8 +256,6 @@ class PublicView(Resource):
 		# this binds the Context to the DBProxy for the duration of the view
 		g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
-
-
 		db._starttxn()
 
 		try:
@@ -265,7 +263,8 @@ class PublicView(Resource):
 			ret, headers = callback(db=db)
 			ret = unicode(ret).encode('utf-8')
 		except Exception, e:
-			print e
+			# ian: todo: print this?
+			g.log.msg("LOG_ERROR",e)
 			db._aborttxn()
 			raise
 		else:

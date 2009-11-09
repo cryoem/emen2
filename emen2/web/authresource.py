@@ -42,7 +42,7 @@ class AuthResource(Resource):
 		if g.EMEN2EXTPORT != 80:
 			du[1]="%s:%s"%(du[1],g.EMEN2EXTPORT)
 		
-		print "redir is %s"%urlparse.urlunsplit(du)
+		#print "redir is %s"%urlparse.urlunsplit(du)
 		
 		return urlparse.urlunsplit(du)
 
@@ -103,8 +103,8 @@ class AuthResource(Resource):
 			raise Exception,"Unsupported auth method: %s"%method
 
 
-		print "args"
-		print l
+		#print "args"
+		#print l
 
 		# do work here
 		p = cls(db=db, **l)
@@ -139,10 +139,16 @@ class AuthResource(Resource):
 
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
-
-		#result = self._getpage("Login",str(failure), largs["redirect"])
-		result = emen2.TwistSupport_html.public.login.Login(msg=failure)
-		#result = "eb render %s"%failure
+		
+		errmsg = "There was a problem with your request."
+		try:
+			if isinstance(failure, BaseException): raise; failure
+			else: failure.raiseException()
+		except Exception, inst:
+			errmsg = str(inst)
+				
+		#result = emen2.TwistSupport_html.public.login.Login(msg=failure)
+		result = "Authentication failure: %s"%errmsg
 		request.write(unicode(result).encode("utf-8"))
 		request.finish()
 		return

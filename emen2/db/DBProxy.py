@@ -37,10 +37,10 @@ class DBProxy(object):
 		return set(cls.__publicmethods) | set(cls.__extmethods)
 
 
-
 	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None, ctx=None, txn=None):
 		self.__txn = None
 		self.__bound = False
+		
 		if not dbpath:
 			dbpath = g.EMEN2DBPATH
 
@@ -48,9 +48,9 @@ class DBProxy(object):
 			self.__db = database.DB(dbpath, importmode=importmode)
 		else:
 			self.__db = db
+
 		self.__ctx = ctx
-		self.__txn = txn
-		#self._setcontext(ctxid, host)
+		self.__txn = txn		
 
 
 	def __enter__(self):
@@ -58,12 +58,16 @@ class DBProxy(object):
 		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
 		return self
 
+
 	def __exit__(self, type, value, traceback):
 		if self.__oldtxn is not self.__txn:
 			if type is None: self._committxn()
 			else: self._aborttxn()
 		del self.__oldtxn
 
+
+	def _gettxn(self):
+		return self.__txn
 
 	def _settxn(self, txn=None):
 		self.__txn = txn
@@ -83,7 +87,7 @@ class DBProxy(object):
 
 	def _login(self, username="anonymous", password="", host=None):
 		try:
-			ctxid = self.__db._login(username=username, password=password, host=host, txn=self.__txn) #host
+			ctxid = self.__db._login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn) #host
 			self._setcontext(ctxid=ctxid, host=host)
 
 		except:
@@ -97,7 +101,9 @@ class DBProxy(object):
 		#print "setting context.. %s %s"%(ctxid, host)
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.db = self
+			self.__ctx.setdb(db=self)
+			#self.__ctx.db = self
+
 		except:
 			self.__ctx = None
 
@@ -191,8 +197,9 @@ class DBProxy(object):
 
 			result = None
 
+			#t = time.time()
 			#print "-> ",name
-
+			
 			#if 'admin' in self.__ctx.groups:
 			#	result = self.__adminmethods.get(name)
 
@@ -211,6 +218,7 @@ class DBProxy(object):
 
 
 			result = wraps(result.func)(result)
+			#print "-> %s %s"%(name, (time.time()-t)*1000)
 
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
@@ -228,6 +236,7 @@ def publicmethod(func):
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
 
+		
 		result = None
 		txn = kwargs.get('txn')
 		ctx = kwargs.get('ctx')
@@ -241,10 +250,12 @@ def publicmethod(func):
 
 
 		try:
+			# t = time.time()
 			result = func(self, *args, **kwargs)
+			# print "%s %s"%((time.time()-t)*1000, func.func_name)
 
 		except Exception, e:
-			traceback.print_exc(e)
+			# traceback.print_exc(e)
 			if commit is True:
 				txn and self.txnabort(ctx=ctx, txn=txn)
 			raise
