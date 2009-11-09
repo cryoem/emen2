@@ -641,8 +641,6 @@ class DB(object):
 		def __checkpassword(self, username, password, ctx=None, txn=None):
 			"""Check password against stored hash value"""
 
-			return True
-
 			if ctx:
 				if ctx.checkadmin():
 					return True
@@ -2508,7 +2506,10 @@ class DB(object):
 			if not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 
-			user.validate()
+			if self.__importmode:
+				user.validate(warning=True)
+			else:
+				user.validate()
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
@@ -3191,8 +3192,6 @@ class DB(object):
 			are necessary, so this method is available."""
 
 			if not isinstance(recdef, dataobjects.recorddef.RecordDef):
-				print "recdef"
-				print recdef
 				try: recdef = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
 				except: raise ValueError, "RecordDef instance or dict required"
 
@@ -3212,10 +3211,10 @@ class DB(object):
 			#if not validate and not ctx.checkadmin():
 			#	raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
 
-			if ctx.username != rd.owner and not ctx.checkadmin():
+			if ctx.username != orec.owner and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
-			if recdef.mainview != rd.mainview and not ctx.checkadmin():
+			if recdef.mainview != orec.mainview and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 			recdef.findparams()
