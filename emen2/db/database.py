@@ -48,7 +48,11 @@ from DBFlags import *
 dbenv = None
 
 # ian: todo: move this into the YAML config...
-BINARYPATH = [["19700101","21000101","/Users/irees/emen2/emen2files"]]
+#BINARYPATH = {
+#	0: "/raid1/emen2",
+#	20050101: "/raid2/emen2",
+#	20070321: "/raid3/emen2"
+#}
 
 
 # Constants... move these to config file
@@ -939,16 +943,22 @@ class DB(object):
 			day = int(date[6:8])
 			newid = int(date[9:13],16)
 
-			datekey = "%04d%02d%02d" % (year, mon, day)
+			datekey = "%04d%02d%02d"% (year, mon, day)
 
-			for i in BINARYPATH:
-				if datekey >= i[0] and datekey < i[1]:
-					# actual storage path
-					filepath = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-					g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
-					break
-			else:
-				raise KeyError, "No storage specified for date %s" % key
+			bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
+			basepath = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
+
+			filepath = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
+			g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
+
+			#for i in /BINARYPATH:
+			#	if datekey >= i[0] and datekey < i[1]:
+			#		# actual storage path
+			#		filepath = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
+			#		g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
+			#		break
+			#else:
+			#	raise KeyError, "No storage specified for date %s" % key
 
 
 			# try to make sure the directory exists
@@ -1035,13 +1045,22 @@ class DB(object):
 				bid = int(key[8:], 16)
 				key = "%04d%02d%02d" % (year, mon, day)
 
-				for i in BINARYPATH:
-						if key >= i[0] and key < i[1] :
-								# actual storage path
-								path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-								break
-				else:
-						raise KeyError, "No storage specified for date %s" % key
+				try:
+					bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
+					basepath = bp[filter(lambda x:x<=key, sorted(bp.keys()))[-1]]
+					path = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
+					g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
+				except:
+					raise KeyError, "No storage specified for date %s"%key
+
+
+				#for i in BINARYPATH:
+				#		if key >= i[0] and key < i[1] :
+				#				# actual storage path
+				#				path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
+				#				break
+				#else:
+				#		raise KeyError, "No storage specified for date %s" % key
 
 
 				try:

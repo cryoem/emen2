@@ -69,7 +69,8 @@ class DownloadResource(Resource, File):
 		bdos = db.getbinary(bids)
 		db._clearcontext()
 		
-		return bdos, db
+		return bdos #db
+		# ian: who put db return in there?
 
 
 
@@ -78,12 +79,12 @@ class DownloadResource(Resource, File):
 		"""You know what you doing."""
 
 		# ian: todo: implement working archive Producer...
-		bdos = result[0]
+		# bdos = result[0]
 
-		first_bdo = bdos.values()[0]
+		first_bdo = result.values()[0]
 		bname = first_bdo.get("filename")
-		#first_bdo[0]
 
+		
 		self.path = first_bdo.get("filepath") #first_bdo[1]
 		self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
 		self.alwaysCreate = False
@@ -119,8 +120,8 @@ class DownloadResource(Resource, File):
 			errmsg = str(e)
 
 
-		data = g.templates.render_template("/errors/simple_error",context={"EMEN2WEBROOT":g.EMEN2WEBROOT, "errmsg":errmsg,"def_title":"Error: %s"%errcode}).encode('utf-8')
-		#data = errmsg
+		#idata = g.templates.render_template("/errors/simple_error",context={"EMEN2WEBROOT":g.EMEN2WEBROOT, "errmsg":errmsg,"def_title":"Error: %s"%errcode}).encode('utf-8')
+		data = errmsg
 
 		request.setResponseCode(errcode)
 		request.setHeader("content-type", "text/html; charset=utf-8")
