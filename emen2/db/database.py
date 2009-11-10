@@ -15,6 +15,8 @@ import cPickle as pickle
 import bsddb3
 import demjson
 import re
+import shutil
+import weakref
 
 from functools import partial, wraps
 
@@ -45,14 +47,7 @@ import subsystems.exceptions
 
 from DBFlags import *
 
-dbenv = None
-
-# ian: todo: move this into the YAML config...
-#BINARYPATH = {
-#	0: "/raid1/emen2",
-#	20050101: "/raid2/emen2",
-#	20070321: "/raid3/emen2"
-#}
+DBENV = None
 
 
 # Constants... move these to config file
@@ -60,102 +55,58 @@ MAXIDLE = 604800
 DEBUG = 0
 
 
+@atexit.register
+def DB_Close():
+	l = DB.opendbs.keys()
+	for i in l:
+		print i._DB__dbenv
+		i.close()
+	
+	
+
 
 def DB_syncall():
 	"""This 'syncs' all open databases"""
-	#if DEBUG > 2:
-	#	g.log("sync %d BDB databases" % (len(BTree.alltrees) + len(IntBTree.alltrees) + len(FieldBTree.alltrees)))
-	#t = time.time()
-	for i in subsystems.btrees.BTree.alltrees.keys(): i.sync()
-	# for i in subsystems.btrees.RelateBTree.alltrees.keys(): i.sync()
-	# for i in subsystems.btrees.FieldBTree.alltrees.keys(): i.sync()
-	# g.log("%f sec to sync"%(time.time()-t))
+	pass
+	#for i in subsystems.btrees.BTree.alltrees.keys(): i.sync()
 
 
 
 def DB_stat():
 
-	global dbenv
-	if not dbenv:
+	global DBENV
+	if not DBENV:
 		return
 		
 	sys.stdout.flush()
 	print >> sys.stderr, "DB has %d transactions left" % DB.txncounter
 
-	tx_max = dbenv.get_tx_max()
+	tx_max = DBENV.get_tx_max()
 	print "Open transactions: %s"%tx_max
 
-	txn_stat = dbenv.txn_stat()
+	txn_stat = DBENV.txn_stat()
 	print "Transaction stats: "
 	for k,v in txn_stat.items():
 		print "\t%s: %s"%(k,v)
 
-	log_archive = dbenv.log_archive()
+	log_archive = DBENV.log_archive()
 	print "Archive: %s"%log_archive
 
-	lock_stat = dbenv.lock_stat()
+	lock_stat = DBENV.lock_stat()
 	print "Lock stats: "
 	for k,v in lock_stat.items():
 		print "\t%s: %s"%(k,v)
 
 	#print "Mutex max: "
-	#print dbenv.mutex_get_max()
-
-
-def DB_cleanup():
-	"""This does at_exit cleanup. It would be nice if this were always called, but if python is killed
-	with a signal, it isn't. This tries to nicely close everything in the database so no recovery is
-	necessary at the next restart"""
-
-	print "DB_cleanup and sync"
-	DB_syncall()
-
-	#return
-	
-	global dbenv
-	if not dbenv:
-		return
-
-	#DB_stat()
-
-	print >> sys.stderr, "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees) + len(subsystems.btrees.RelateBTree.alltrees) + len(subsystems.btrees.FieldBTree.alltrees))
-	# print dir(dbenv)
-	#print dbenv.mutex_stat_print()
+	#print DBENV.mutex_get_max()
 
 
 
-	print >> sys.stderr, "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees) + len(subsystems.btrees.RelateBTree.alltrees) + len(subsystems.btrees.FieldBTree.alltrees))
 
-	if DEBUG > 2:
-		print >> sys.stderr, len(subsystems.btrees.BTree.alltrees), 'BTrees'
-
-	for i in subsystems.btrees.BTree.alltrees.keys():
-		#if DEBUG > 2:
-		sys.stderr.write('closing %s\n' % unicode(i))
-		i.close()
-		if DEBUG > 2: sys.stderr.write('%s closed\n' % unicode(i))
-		if DEBUG > 2: print >> sys.stderr, '\n', len(subsystems.btrees.RelateBTree.alltrees), 'RelateBTrees'
-
-	dbenv.close()
-
-	# for i in subsystems.btrees.RelateBTree.alltrees.keys():
-	# 	i.close()
-	# 	if DEBUG > 2: sys.stderr.write('.')
-	# 	if DEBUG > 2: print >> sys.stderr, '\n', len(subsystems.btrees.FieldBTree.alltrees), 'FieldBTrees'
-	#
-	# for i in subsystems.btrees.FieldBTree.alltrees.keys():
-	# 	i.close()
-	# 	if DEBUG > 2: sys.stderr.write('.')
-	# 	if DEBUG > 2: sys.stderr.write('\n')
-	#
-	# for i in subsystems.btrees.IndexKeyBTree.alltrees.keys():
-	# 	i.close()
-	# 	if DEBUG > 2: sys.stderr.write('.')
-	# 	if DEBUG > 2: sys.stderr.write('\n')
 
 
 # This rmakes sure the database gets closed properly at exit
-atexit.register(DB_cleanup)
+# atexit.register(DB_cleanup)
 
 
 
@@ -173,6 +124,8 @@ class DB(object):
 		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
 
 		TODO : Probably should make more of the member variables private for slightly better security"""
+
+		opendbs = weakref.WeakKeyDictionary()
 
 		log_levels = {
 			0: 'LOG_CRITICAL',
@@ -200,7 +153,6 @@ class DB(object):
 			importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
 			recover - Only one thread should call this. Will run recovery on the environment before opening."""
 
-
 			global ENVOPENFLAGS, USETXN
 
 			if USETXN:
@@ -210,7 +162,6 @@ class DB(object):
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 			
-
 
 			self.path = path or g.EMEN2DBPATH
 			self.logfile = self.path + "/" + logfile
@@ -229,6 +180,7 @@ class DB(object):
 			
 			if recover:
 				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
+
 
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(self.path + "/home", os.F_OK):
@@ -250,18 +202,18 @@ class DB(object):
 			self.__allowclose = bool(allowclose)
 
 
-			g.log.msg('LOG_INIT', "Database initialization started")
+			# g.log.msg('LOG_INIT', "Database initialization started")
 
-			global dbenv
+			global DBENV
 
-
-			if dbenv == None:
+			if DBENV == None:
 				g.log.msg("LOG_INFO","Opening Database Environment")
-				dbenv = bsddb3.db.DBEnv()
-				dbenv.set_data_dir(self.path)
-				dbenv.open(self.path + "/home", ENVOPENFLAGS)
+				DBENV = bsddb3.db.DBEnv()
+				DBENV.set_data_dir(self.path)
+				DBENV.open(self.path+"/home", ENVOPENFLAGS)
+				DB.opendbs[self] = 1
 
-			self.__dbenv = dbenv
+			self.__dbenv = DBENV
 
 			# ian: todo: is this method no longer in the bsddb3 API?
 			#if self.__dbenv.failchk(flags=0):
@@ -270,24 +222,20 @@ class DB(object):
 
 			# Open Database
 
-			txn = self.newtxn()
-			ctx = self.__makerootcontext(txn=txn)
-
-
 			# Users
 			# active database users / groups
-			self.__users = subsystems.btrees.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__users = subsystems.btrees.BTree("users", keytype="s", filename="security/users.bdb", dbenv=self.__dbenv)
 
-			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename=self.path+"/security/groupsbyuser", dbenv=self.__dbenv, txn=txn)
+			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename="security/groupsbyuser", dbenv=self.__dbenv)
 
-			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename="security/groups.bdb", dbenv=self.__dbenv)
 			#self.__updatecontexts = False
 
 			# new users pending approval
-			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename="security/newusers.bdb", dbenv=self.__dbenv)
 
 			# multisession persistent contexts
-			self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=self.path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename="security/contexts.bdb", dbenv=self.__dbenv)
 
 			# local cache dictionary of valid contexts
 			self.__contexts = {}
@@ -296,15 +244,15 @@ class DB(object):
 
 
 			# Binary data names indexed by date
-			self.__bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename=self.path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename="BinNames.bdb", dbenv=self.__dbenv)
 
 			# Defined ParamDefs
 			# ParamDef objects indexed by name
-			self.__paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename=self.path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename="ParamDefs.bdb", dbenv=self.__dbenv)
 
 			# Defined RecordDefs
 			# RecordDef objects indexed by name
-			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename="RecordDefs.bdb", dbenv=self.__dbenv)
 
 
 
@@ -314,20 +262,20 @@ class DB(object):
 			# and database information is stored with key=0
 
 			# The actual database, containing id referenced Records
-			self.__records = subsystems.btrees.RelateBTree("database", keytype="d", filename=self.path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__records = subsystems.btrees.RelateBTree("database", keytype="d", filename="database.bdb", dbenv=self.__dbenv)
 
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
-			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/groindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
+			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename="security/roindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename="security/groindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# index of records belonging to each RecordDef
-			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename=self.path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv, txn=txn)
+			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename="RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# key=record id, value=last time record was changed
 			# ian: todo: to simplify, just handle this through modifytime param...
-			self.__timeindex = subsystems.btrees.BTree("TimeChangedindex", keytype="d", filename=self.path+"/TimeChangedindex.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__timeindex = subsystems.btrees.BTree("TimeChangedindex", keytype="d", filename="TimeChangedindex.bdb", dbenv=self.__dbenv)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
@@ -339,55 +287,44 @@ class DB(object):
 				_rebuild = False
 				if not os.path.exists(self.path+"/IndexKeys.bdb"):
 					_rebuild = True
-				self.__indexkeys = subsystems.btrees.IndexKeyBTree("IndexKeys", keytype="s", filename=self.path+"/IndexKeys.bdb", dbenv=self.__dbenv, txn=txn)
-				if _rebuild:
-					self.__rebuild_indexkeys(txn=txn)
+				self.__indexkeys = subsystems.btrees.IndexKeyBTree("IndexKeys", keytype="s", filename="IndexKeys.bdb", dbenv=self.__dbenv)
+
 
 
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
-			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
+			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename="workflow.bdb", dbenv=self.__dbenv)
 
 
 			# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
 			#db sequence
 			# self.__dbseq = self.__records.create_sequence()
 
-			#self.__recorddefbyrec = IntBTree("RecordDefByRec", self.path + "/RecordDefByRec.bdb", dbenv=self.__dbenv, relate=0)
 
-			# The mirror database for storing offsite records
-			#self.__mirrorrecords = BTree("mirrordatabase", filename=self.path+"/mirrordatabase.bdb", dbenv=self.__dbenv)
-
-
-			#try:
-			#	max = self.__workflow[-1]
-			#
-			#except:
-			#	self.__workflow[-1] = 1
-			#	g.log.msg(3, "New workflow database created")
-
-
-			#txn = self.newtxn()
+			txn = self.newtxn()
+			ctx = self.__makerootcontext(txn=txn)
 
 			try:
 
 				try:
 					maxr = self.__records.sget(-1, txn=txn)
+					# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
 				except KeyError:
-					self.__records.set(-1, 0, txn=txn)
-					g.log.msg('LOG_INFO', "New records database created")
+					g.log.msg('LOG_INFO', "Initializing skeleton database")
 					self.__createskeletondb(ctx=ctx, txn=txn)
 
+				#if _rebuild:
+				#	self.__rebuild_indexkeys(txn=txn)
 
-				g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
+			except Exception, inst:
+				print inst					
+				self.txnabort(txn=txn)
+			
+			self.txncommit(txn=txn)
 
-			except:
-				txn and self.txnabort(txn=txn)
-				raise
-			else:
-				self.txncommit(txn=txn)
+			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
 
 
@@ -399,6 +336,8 @@ class DB(object):
 		def __createskeletondb(self, ctx=None, txn=None):
 			# typically uses SpecialRootContext
 
+			self.__records.set(-1, 0, txn=txn)
+			
 			import skeleton
 
 			for i in skeleton.core_paramdefs.items:
@@ -431,9 +370,7 @@ class DB(object):
 		txncounter = 0
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
-			#traceback.print_stack()
-
+			#g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -461,9 +398,9 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
-
+			#g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
+
 			if txn:
 				txn.abort()
 				if id(txn) in self.txnlog:
@@ -474,18 +411,17 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			#g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
+
 			if txn != None:
 				txn.commit()
 				if id(txn) in self.txnlog:
 					del self.txnlog[id(txn)]
 				type(self).txncounter -= 1
-
-			#else:
-			#	raise ValueError, 'transaction not found'
-			#if not self.__importmode:
-			#	DB_syncall()
+								
+			else:
+				raise ValueError, 'transaction not found'
 
 
 
@@ -519,30 +455,29 @@ class DB(object):
 
 		# needs txn?
 		def __del__(self):
+			print "del!"
 			self.close()
 
 
 		# ian: todo
-		def closedb(self, ctx=None, txn=None):
-			g.log.msg('LOG_INFO', 'closing dbs')
-			if self.__allowclose == True:
-				for btree in self.__dict__.values():
-					if getattr(btree, '__class__', object).__name__.endswith('BTree'):
-						try: btree.close()
-						except bsddb3.db.InvalidArgError, e: g.log.msg('LOG_ERROR', e)
-					for btree in self.__fieldindex.values(): btree.close()
+		def close(self):
+			print "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees))
+			try:
+				for i in subsystems.btrees.BTree.alltrees.keys():
+					sys.stderr.write('closing %s\n' % unicode(i))
+					i.close()
+			except Exception, inst:
+				print inst
 
-
-		def close(self, ctx=None, txn=None):
-			self.closedb(ctx, txn=txn)
 			self.__dbenv.close()
-			# pass
-			# g.log.msg('LOG_DEBUG', self.__btreelist)
-			# self.__btreelist.extend(self.__fieldindex.values())
-			# g.log.msg('LOG_DEBUG', self.__btreelist)
-			# for bt in self.__btreelist:
-			# 	 g.log('--', bt ; sys.stdout.flush())
-			# 	 bt.close()
+
+			# if self.__allowclose == True:
+			# 	for btree in self.__dict__.values():
+			# 		if getattr(btree, '__class__', object).__name__.endswith('BTree'):
+			# 			try: btree.close()
+			# 			except bsddb3.db.InvalidArgError, e: g.log.msg('LOG_ERROR', e)
+			# 		for btree in self.__fieldindex.values(): btree.close()
+
 
 
 		# ian: this can be slow; reconsider use
@@ -596,7 +531,6 @@ class DB(object):
 		def __makerootcontext(self, ctx=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
-			#ctx.db = DBProxy.DBProxy(db=self, ctx=ctx, txn=txn)
 
 			return ctx
 
@@ -2425,7 +2359,7 @@ class DB(object):
 
 			groups2 = []
 			groups2.extend(filter(lambda x:isinstance(x, dataobjects.group.Group), groups))
-			groups2.extend(map(lambda x:dataobjects.group.Group(x), filter(lambda x:isinstance(x, dict), groups)))
+			groups2.extend(map(lambda x:dataobjects.group.Group(x, ctx=ctx), filter(lambda x:isinstance(x, dict), groups)))
 
 			for group in groups2:
 				group.setContext(ctx)
@@ -3182,7 +3116,7 @@ class DB(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path, paramname), dbenv=self.__dbenv, txn=txn)
+			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="index/%s.bdb"%(paramname), dbenv=self.__dbenv)
 
 			return self.__fieldindex[paramname]
 
@@ -4524,7 +4458,9 @@ class DB(object):
 			if not os.access(archivepath, os.F_OK):
 				os.makedirs(archivepath)
 			for file_ in archivefiles:
-				os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
+				# ian: changed to copy -- safer.
+				shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
+				# os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
 
 
 

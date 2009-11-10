@@ -14,6 +14,7 @@ import random
 import cPickle as pickle
 import bsddb3
 import demjson
+import weakref
 
 from functools import partial, wraps
 
@@ -45,9 +46,9 @@ class DBProxy(object):
 			dbpath = g.EMEN2DBPATH
 
 		if not db:
-			self.__db = database.DB(dbpath, importmode=importmode)
-		else:
-			self.__db = db
+			db = database.DB(dbpath, importmode=importmode)
+			
+		self.__db = weakref.proxy(db)
 
 		self.__ctx = ctx
 		self.__txn = txn		
