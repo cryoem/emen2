@@ -177,7 +177,8 @@ class DBProxy(object):
 		return _inner
 
 	def __getattribute__(self, name):
-
+		result = None
+		g.log('getattr -> self: %r -> name: %r' % (self, name))
 		if name.startswith('__') and name.endswith('__'):
 			try:
 				result = getattr(self.__db, name)
@@ -185,30 +186,15 @@ class DBProxy(object):
 				result = object.__getattribute__(self, name)
 			return result
 		elif name.startswith('_'):
-			return object.__getattribute__(self, name)
+			result = object.__getattribute__(self, name)
 
-
-		kwargs = {}
-		kwargs["ctx"] = self.__ctx
-		kwargs["txn"] = self.__txn
-
-		result = None
-
-		if name in self._allmethods():
-
-			result = None
-
-			#t = time.time()
-			#print "-> ",name
-			
-			#if 'admin' in self.__ctx.groups:
-			#	result = self.__adminmethods.get(name)
-
+		elif name in self._allmethods():
+			kwargs = dict(ctx=self.__ctx, txn=self.__txn)
 			if result is None:
 				result = self.__publicmethods.get(name)
 
 			if result:
-				result = wraps(result)(partial(result, self.__db, **kwargs))
+				result = partial(result, self.__db, **kwargs)
 
 			else:
 				result = self.__extmethods.get(name)()
