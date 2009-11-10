@@ -649,9 +649,9 @@ class DB(object):
 		def __checkpassword(self, username, password, ctx=None, txn=None):
 			"""Check password against stored hash value"""
 
-			if ctx:
-				if ctx.checkadmin():
-					return True
+			#if ctx:
+			#	if ctx.checkadmin():
+			#		return True
 
 			s = hashlib.sha1(password)
 

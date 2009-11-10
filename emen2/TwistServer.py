@@ -1,51 +1,15 @@
 import sys
+import thread
+
+from twisted.internet import reactor, ssl
+from twisted.web import static, server
+
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
+
 # This is the main server program for EMEN2
-from twisted.internet import reactor, ssl
-from twisted.web import static, server
-
-import demjson
-import operator
-import thread
-
-# emen2 imports
-from emen2.subsystems import templating
-from emen2.subsystems import routing
-
-import emen2.TwistSupport_html.uploadresource
-import emen2.TwistSupport_html.downloadresource
-import emen2.TwistSupport_html.publicresource
-import emen2.TwistSupport_html.rpcresource
-import emen2.TwistSupport_html.authresource
-
-import emen2.TwistSupport_html.public.views
-emen2.TwistSupport_html.public.views.load_views()
-
-import emen2.TwistSupport_html.html
-import emen2.TwistSupport_html.public.record
-import emen2.TwistSupport_html.public.template_render
-import emen2.Database.subsystems.datatypes
-
-import ts
-
-
-
-def prepare_properties(outfile):
-	vtm=emen2.Database.subsystems.datatypes.VartypeManager()
-	properties={}
-	for prop in vtm.getproperties():
-		p=vtm.getproperty(prop)
-		properties[prop]=[p.defaultunits,[i[0] for i in sorted(p.units.items(), key=operator.itemgetter(1), reverse=True)]]
-
-	g.log.msg(g.LOG_INIT, "Writing Properties files")
-	f=open(outfile,"w")
-	f.write("var valid_properties=%s;\n\n"%demjson.encode(properties))
-	f.write("var valid_vartypes=%s;\n\n"%demjson.encode(vtm.getvartypes()))
-	f.write("var EMEN2WEBROOT=%s;\n\n"%demjson.encode(g.EMEN2WEBROOT))
-	f.close()
 
 
 def prepare_web():
@@ -56,21 +20,10 @@ def prepare_web():
 	f.close()
 
 
-
-#prepare_properties(g.EMEN2ROOT+"/tweb/js/datatypes.js")
-prepare_web()
-
-
-#############################
-# Resources
-#############################
-
-
-## g.STATICPATH = g.EMEN2ROOT+"/tweb"
-
 def load_resources(root, resources):
 	for path, resource in resources.items():
 		root.putChild(path, resource)
+
 
 def interact():
 	while True:
@@ -80,34 +33,24 @@ def interact():
 				thread.interrupt_main()
 				return
 
-#def bonjour_register():
-#	import pybonjour
-#	import select
-#	sdRef = pybonjour.DNSServiceRegister(name = 'EMEN2',
-#											regtype = '_http._tcp',
-#											port = g.EMEN2PORT,
-#											callBack = lambda *args: None
-#	)
-#	try:
-#		try:
-#			while True:
-#				ready = select.select([sdRef], [], [])
-#				if sdRef in ready[0]:
-#					print 1
-#					pybonjour.DNSServiceProcessResult(sdRef)
-#		except KeyboardInterrupt:
-#			pass
-#	finally:
-#		sdRef.close()
 
 
+def inithttpd():	
+	import emen2.TwistSupport_html.uploadresource
+	import emen2.TwistSupport_html.downloadresource
+	import emen2.TwistSupport_html.publicresource
+	import emen2.TwistSupport_html.rpcresource
+	import emen2.TwistSupport_html.authresource
 
-def main():
-	try:
-		if g.USEBONJOUR:
-			pass#thread.start_new_thread(bonjour_register, ())
-	except AttributeError: pass
+	import emen2.TwistSupport_html.html
+	import emen2.TwistSupport_html.public.record
+	import emen2.TwistSupport_html.public.template_render
 
+	import emen2.TwistSupport_html.public.views
+	emen2.TwistSupport_html.public.views.load_views()
+	
+	print "static path is"
+	print g.STATICPATH
 	root = static.File(g.STATICPATH)
 
 	resources = dict(
@@ -120,21 +63,16 @@ def main():
 		chain = emen2.TwistSupport_html.rpcresource.RPCChain(),
 	)
 
+	prepare_web()
+	
 	load_resources(root, resources)
 
-	if g.CONSOLE:
-		x = {}
-		x.update(globals())
-		exec "from test import *" in x
-		a = code.InteractiveConsole(x, '')
-		thread.start_new_thread(interact, ())
 
-
-	#############################
-	# Start server
-	#############################
+	# Start server	
 	g.log.msg(g.LOG_INIT, 'Listening ...')
+	
 	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
+
 	if g.EMEN2HTTPS:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
 
@@ -142,5 +80,11 @@ def main():
 	reactor.run()
 
 
-main()
 
+
+if __name__ == "__main__":
+	parser = emen2.config.config.DBOptions()
+	parser.parse_args()
+	inithttpd()
+	
+	

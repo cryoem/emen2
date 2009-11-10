@@ -217,7 +217,7 @@ class RPCResource(Resource):
 
 
 	def render(self, request):
-		ctxid = request.getCookie("ctxid")
+		ctxid = request.getCookie("ctxid") or request.args.get("ctxid", [None])[0]
 		host = request.getClientIP()
 
 		d = threads.deferToThread(self.action, request, ctxid=ctxid, host=host)

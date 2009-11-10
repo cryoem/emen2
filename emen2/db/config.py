@@ -21,9 +21,11 @@ class DBOptions(optparse.OptionParser):
 		self.add_option('-l', '--log_level', action='store', dest='log_level')
 		self.add_option('--logfile_level', action='store', dest='logfile_level')		
 
+
 	def parse_args(self, *args, **kwargs):
-		self._args = optparse.OptionParser.parse_args(self,  *args, **kwargs)
+		r1, r2 = optparse.OptionParser.parse_args(self,  *args, **kwargs)
 		self.load_config()
+		return r1, r2
 		
 		
 	def load_config(self):
@@ -61,8 +63,6 @@ class DBOptions(optparse.OptionParser):
 
 		g.refresh()
 
-		print "g:"
-		print g
 
 #loader = DBOptions()
 #loader.parse_args()
