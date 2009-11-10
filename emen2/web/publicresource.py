@@ -254,7 +254,7 @@ class PublicView(Resource):
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-		g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
+		# g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 		db._starttxn()
 
