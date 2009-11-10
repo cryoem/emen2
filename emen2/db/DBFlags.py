@@ -5,10 +5,10 @@ RECOVER = False
 
 # Berkeley DB Config flags
 ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL 
-DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE 
+DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_MULTIVERSION
 RMWFLAGS = 0
 
-TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT | bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_INIT_LOCK | bsddb3.db.DB_MULTIVERSION | bsddb3.db.DB_INIT_LOG
+TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT | bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_INIT_LOCK |  bsddb3.db.DB_INIT_LOG
 RECOVERFLAGS = bsddb3.db.DB_RECOVER
 
 
