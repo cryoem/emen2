@@ -926,8 +926,15 @@ class DB(object):
 
 
 
-
-
+		def __parsebdokey(self, key):
+			# for bdo: protocol
+			# validate key
+			year = int(key[:4])
+			mon = int(key[4:6])
+			day = int(key[6:8])
+			bid = int(key[8:], 16)
+			key = "%04d%02d%02d" % (year, mon, day)			
+			return [year, mon, day, bid], key
 
 
 		@DBProxy.publicmethod
@@ -958,53 +965,53 @@ class DB(object):
 			recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), idents))
 
 			# ian: todo: speed this up some..
-			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
+			if recs:
+				bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 
 			bids = filter(lambda x:isinstance(x, basestring), bids)
 
+			# keyed by recid
+			byrec = collections.defaultdict(set)
 
 			for ident in bids:
 				prot, _, key = ident.rpartition(":")
-				if prot == "": prot = "bdo"
+				if prot == "":
+					prot = "bdo"
+					
+				# ian: todo: implement other BDO protocols, e.g. references to uris	
 				if prot not in ["bdo"]:
 					if filt:
 						continue
 					else:
 						raise Exception, "Invalid binary storage protocol: %s"%prot
 
-				# for bdo: protocol
 				# validate key
-				year = int(key[:4])
-				mon = int(key[4:6])
-				day = int(key[6:8])
-				bid = int(key[8:], 16)
-				key = "%04d%02d%02d" % (year, mon, day)
+				(year, mon, day, bid), key = self.__parsebdokey(key)
 
 				try:
+					# ian: todo: clean this up... see also putbinary
 					bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
 					basepath = bp[filter(lambda x:x<=key, sorted(bp.keys()))[-1]]
+
 					path = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
 					g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
+
 				except:
 					raise KeyError, "No storage specified for date %s"%key
 
 
-				#for i in BINARYPATH:
-				#		if key >= i[0] and key < i[1] :
-				#				# actual storage path
-				#				path = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-				#				break
-				#else:
-				#		raise KeyError, "No storage specified for date %s" % key
-
 
 				try:
-						name = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
+						bdo = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
 				except:
 						if filt:
 							continue
 						else:
 							raise KeyError, "Unknown identifier %s" % ident
+						
+						
+				# ian: finish this filtering...
+				byrec[name.get("recid")].add(bdo)
 
 
 				try:
