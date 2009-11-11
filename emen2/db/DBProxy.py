@@ -178,7 +178,7 @@ class DBProxy(object):
 
 	def __getattribute__(self, name):
 		result = None
-		g.log('getattr -> self: %r -> name: %r' % (self, name))
+		#g.log('getattr -> self: %r -> name: %r' % (self, name))
 		if name.startswith('__') and name.endswith('__'):
 			try:
 				result = getattr(self.__db, name)
@@ -205,7 +205,6 @@ class DBProxy(object):
 
 
 			result = wraps(result.func)(result)
-			#print "-> %s %s"%(name, (time.time()-t)*1000)
 
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
@@ -237,9 +236,9 @@ def publicmethod(func):
 
 
 		try:
-			# t = time.time()
+			t = time.time()
 			result = func(self, *args, **kwargs)
-			# print "%s %s"%((time.time()-t)*1000, func.func_name)
+			print "-> %0.4f %s"%((time.time()-t)*1000, func.func_name)
 
 		except Exception, e:
 			# traceback.print_exc(e)

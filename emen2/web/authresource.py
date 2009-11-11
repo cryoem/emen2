@@ -20,6 +20,12 @@ g = emen2.globalns.GlobalNamespace('')
 
 
 
+def render_security_error(redirect, e):
+	args = {'redirect': redirect, 'msg': str(e)}
+	p = emen2.TwistSupport_html.public.login.Login(**args)
+	data = unicode(p.get_data()).encode("utf-8")
+	return data
+
 
 #class Null(object): pass
 
@@ -140,15 +146,17 @@ class AuthResource(Resource):
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
 		
-		errmsg = "There was a problem with your request."
+		data = "There was a problem with your request."
 		try:
 			if isinstance(failure, BaseException): raise; failure
 			else: failure.raiseException()
-		except Exception, inst:
-			errmsg = str(inst)
-				
-		#result = emen2.TwistSupport_html.public.login.Login(msg=failure)
-		result = "Authentication failure: %s"%errmsg
-		request.write(unicode(result).encode("utf-8"))
+		except Exception, e:
+			data = render_security_error('/', e)
+
+		request.write(unicode(data).encode("utf-8"))
 		request.finish()
 		return
+
+
+
+

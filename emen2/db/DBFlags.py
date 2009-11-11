@@ -5,7 +5,7 @@ RECOVER = False
 
 # Berkeley DB Config flags
 ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL 
-DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE | bsddb3.db.DB_MULTIVERSION | bsddb3.db.DB_AUTO_COMMIT
+DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE  | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_MULTIVERSION 
 RMWFLAGS = 0
 
 

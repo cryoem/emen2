@@ -20,6 +20,8 @@ import emen2.Database.subsystems.exceptions
 # ian: todo: get rid of ts.db... again...
 import ts
 
+from authresource import render_security_error
+
 
 
 
@@ -256,6 +258,7 @@ class PublicView(Resource):
 		# this binds the Context to the DBProxy for the duration of the view
 		# g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
+		
 		db._starttxn()
 
 		try:
@@ -320,26 +323,29 @@ class PublicView(Resource):
 		
 		
 		try:
+
 			try:
 				if isinstance(failure, BaseException): raise; failure
 				else: failure.raiseException()
-			except (emen2.Database.subsystems.exceptions.AuthenticationError,
-						emen2.Database.subsystems.exceptions.SecurityError,
-						emen2.Database.subsystems.exceptions.SessionError,
-						emen2.Database.subsystems.exceptions.DisabledUserError), e:
-				response = 401
-				args = {'redirect': request.uri, 'msg': str(e),
-							'ctxid': ctxid, 'db':None, 
-							'host': request.getClientIP()}
 
-				#p = emen2.TwistSupport_html.public.login.Login(**args)
-				#data = unicode(p.get_data()).encode("utf-8")
-				data = "Error: %s"%e
+			except (emen2.Database.subsystems.exceptions.AuthenticationError, 
+					emen2.Database.subsystems.exceptions.SessionError,
+					emen2.Database.subsystems.exceptions.DisabledUserError), e:
+
+                                request.addCookie("ctxid", '', path='/')
+                                response = 401
+                                data = render_security_error(request.uri, e)
+	
+			except (emen2.Database.subsystems.exceptions.SecurityError), e:
+
+		                request.addCookie("ctxid", '', path='/')
+				response = 401
+				data = render_security_error(request.uri, e)
 
 			except emen2.subsystems.responsecodes.NotFoundError, e:
-					response = e.code
-					#data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
-					data = unicode(data).encode('utf-8')
+				response = e.code
+				#data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
+				data = unicode(data).encode('utf-8')
 
 			except emen2.subsystems.responsecodes.HTTPResponseCode, e:
 				response = e.code
@@ -354,7 +360,7 @@ class PublicView(Resource):
 
 		request.setResponseCode(response)
 		request.write(data)
-		#g.log.msg('LOG_INFO', 'response -> (%r)' % response)
+
 		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
@@ -362,4 +368,8 @@ class PublicView(Resource):
 			response = request.code,
 			size = len(data)
 		))
+
 		request.finish()
+
+
+

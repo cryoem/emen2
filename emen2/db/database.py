@@ -215,6 +215,9 @@ class DB(object):
 
 			self.__dbenv = DBENV
 
+			print "cachemax"
+			print self.__dbenv.get_cachesize()
+
 			# ian: todo: is this method no longer in the bsddb3 API?
 			#if self.__dbenv.failchk(flags=0):
 			#	g.log.msg(1,"Database recovery required")
@@ -370,7 +373,7 @@ class DB(object):
 		txncounter = 0
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			#g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
+			g.log.msg("LOG_INFO","\n\nNEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -398,7 +401,7 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			#g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			g.log.msg('LOG_ERROR', "TXN ABORT --> %s\n\n"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn:
@@ -411,7 +414,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			#g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -524,7 +527,6 @@ class DB(object):
 			#context.refresh(user=user, groups=groups, db=self, txn=txn)
 			#ctx.setdb(db=self, txn=txn)
 			#ctx.refresh(db=self, txn=txn)
-
 			return ctx
 
 
@@ -583,16 +585,11 @@ class DB(object):
 		def __checkpassword(self, username, password, ctx=None, txn=None):
 			"""Check password against stored hash value"""
 
-			#if ctx:
-			#	if ctx.checkadmin():
-			#		return True
-
 			s = hashlib.sha1(password)
 
 			try:
 				user = self.__users.sget(username, txn=txn)
 			except:
-				raise
 				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
 
 			if user.disabled:
@@ -2524,7 +2521,7 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
-		def getuser(self, usernames, filt=True, lnf=False, getgroups=True, getrecord=True, ctx=None, txn=None):
+		def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
@@ -2615,7 +2612,6 @@ class DB(object):
 			if isinstance(username, (basestring, int, dataobjects.record.Record)):
 				username=[username]
 
-			namestoget=[]
 			namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
 
 			vts=["user","userlist"]
@@ -2624,7 +2620,9 @@ class DB(object):
 
 			recs = []
 			recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), username))
-			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), username), filt=filt, ctx=ctx, txn=txn))
+			rec_ints = filter(lambda x:isinstance(x,int), username)
+			if rec_ints:
+				recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
 
 			if recs:
 				namestoget.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
@@ -2632,16 +2630,6 @@ class DB(object):
 				namestoget.extend(reduce(lambda x,y: x+y, [[i[0] for i in rec["comments"]] for rec in recs]))
 
 			namestoget = set(namestoget)
-
-			# users = self.getuser(namestoget, filt=filt, ctx=ctx, txn=txn).items()#txn=txn)
-			# users = filter(lambda x:x[1].record != None, users)
-			# users = dict(users)
-			#
-			# recs = self.getrecord([user.record for user in users.values()], filt=filt, ctx=ctx, txn=txn)
-			# recs = dict([(i.recid,i) for i in recs])
-			#
-			# for k,v in users.items():
-			# 	ret[k] = self.__formatusername(k, recs.get(v.record, {}), lnf=lnf, ctx=ctx, txn=txn)
 
 			users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 			ret = {}
@@ -3116,7 +3104,7 @@ class DB(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="index/%s.bdb"%(paramname), dbenv=self.__dbenv)
+			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
 
 			return self.__fieldindex[paramname]
 
