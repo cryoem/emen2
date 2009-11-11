@@ -55,6 +55,16 @@ MAXIDLE = 604800
 DEBUG = 0
 
 
+# ian: todo: do this in a better way
+# this is used by db.checkversion
+VERSION = 20091110
+
+VERSIONS = {
+	"API": VERSION,
+	"emen2client": 20091110
+}
+
+
 @atexit.register
 def DB_Close():
 	l = DB.opendbs.keys()
@@ -509,6 +519,10 @@ class DB(object):
 			return subsystems.dbtime.gettime()
 
 
+
+		@DBProxy.publicmethod
+		def checkversion(self, program="API", ctx=None, txn=None):
+			return VERSIONS.get(program)
 
 
 		###############################
