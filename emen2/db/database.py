@@ -1011,13 +1011,13 @@ class DB(object):
 						
 						
 				# ian: finish this filtering...
-				byrec[name.get("recid")].add(bdo)
+				byrec[bdo.get("recid")].add(bdo)
 
 
 				try:
-					self.getrecord(name["recid"], ctx=ctx, txn=txn, filt=0)
-					name["filepath"] = path+"/%05X"%bid
-					ret[ident] = name
+					self.getrecord(bdo.get("recid"), filt=False, ctx=ctx, txn=txn)
+					bdo["filepath"] = path+"/%05X"%bid
+					ret[ident] = bdo
 					#(name, path + "/%05X" % bid, recid)
 
 				except:

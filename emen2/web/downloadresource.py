@@ -39,7 +39,8 @@ class DownloadResource(Resource, File):
 	defaultType="application/octet-stream"
 
 
-	def render_GET(self, request):
+	# ian: changed from render_GET to render to accept both GET/POST
+	def render(self, request):
 
 		host = request.getClientIP()
 		args = request.args
