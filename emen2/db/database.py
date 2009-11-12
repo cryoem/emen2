@@ -313,7 +313,7 @@ class DB(object):
 
 
 			txn = self.newtxn()
-			ctx = self.__makerootcontext(txn=txn)
+			ctx = self.__makerootcontext(txn=txn, host="localhost")
 
 			try:
 
@@ -537,7 +537,7 @@ class DB(object):
 			return ctx
 
 
-		def __makerootcontext(self, ctx=None, txn=None):
+		def __makerootcontext(self, ctx=None, host=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
 

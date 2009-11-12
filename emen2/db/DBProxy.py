@@ -87,6 +87,9 @@ class DBProxy(object):
 
 
 	def _login(self, username="anonymous", password="", host=None):
+
+		host = host or self.__ctx.host
+
 		try:
 			ctxid = self.__db._login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn) #host
 			self._setcontext(ctxid=ctxid, host=host)
@@ -249,7 +252,7 @@ def publicmethod(func):
 		try:
 			t = time.time()
 			result = func(self, *args, **kwargs)
-			print "-> %0.4f %s"%((time.time()-t)*1000, func.func_name)
+			#print "-> %0.4f %s"%((time.time()-t)*1000, func.func_name)
 
 		except Exception, e:
 			# traceback.print_exc(e)
