@@ -383,7 +383,7 @@ class DB(object):
 		txncounter = 0
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			g.log.msg("LOG_INFO","\n\nNEW TXN, PARENT --> %s"%parent)
+			#g.log.msg("LOG_INFO","\n\nNEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -411,7 +411,7 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			g.log.msg('LOG_ERROR', "TXN ABORT --> %s\n\n"%txn)
+			g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn:
@@ -424,7 +424,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
+			#g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -1099,7 +1099,7 @@ class DB(object):
 
 			# makes life simpler...
 			if not constraints:
-				ret = reduce(boolmode, subsets)
+				ret = reduce(boolmode, subsets, set())
 
 				if returnrecs:
 					return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
@@ -1145,7 +1145,7 @@ class DB(object):
 
 			subsets.extend(s)
 
-			ret = reduce(boolmode, subsets)
+			ret = reduce(boolmode, subsets, set())
 
 
 			#print "stage 3 results"
@@ -1243,7 +1243,7 @@ class DB(object):
 
 				if c[0] == "*":
 					# cache
-					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]))
+					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]), [])
 					for param in allparams:
 						try:
 							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
@@ -1717,7 +1717,7 @@ class DB(object):
 
 			if rectype or filt or flat:
 				# ian: note: use a [] initializer for reduce to prevent exceptions when values is empty
-				allr = reduce(set.union, ret_visited.values())
+				allr = reduce(set.union, ret_visited.values(), set())
 
 				if rectype:
 					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
@@ -1894,7 +1894,7 @@ class DB(object):
 			if not links:
 				return
 
-			items = set(reduce(operator.concat, links))
+			items = set(reduce(operator.concat, links, []))
 
 			# ian: circular reference detection.
 			#if mode=="pclink":
@@ -2411,7 +2411,7 @@ class DB(object):
 			groups = set(filter(lambda x:isinstance(x, basestring), groupname))				
 			gn_int = filter(lambda x:isinstance(x, int), groupname)
 			if gn_int:
-				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)])
+				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], [])
 
 			groups = self.getgroup(groups, ctx=ctx, txn=txn)
 
@@ -2648,7 +2648,7 @@ class DB(object):
 			if recs:
 				namestoget.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 				# ... need to parse comments since it's special
-				namestoget.extend(reduce(lambda x,y: x+y, [[i[0] for i in rec["comments"]] for rec in recs]))
+				namestoget.extend(reduce(operator.concat, [[i[0] for i in rec["comments"]] for rec in recs], []))
 
 			namestoget = set(namestoget)
 
@@ -4054,8 +4054,8 @@ class DB(object):
 				if updrec.get("permissions") == orec.get("permissions"):
 					continue
 
-				nperms = set(reduce(operator.concat, updrec["permissions"]))
-				operms = set(reduce(operator.concat, orec.get("permissions",[[]])))
+				nperms = set(reduce(operator.concat, updrec.get("permissions", []), []))
+				operms = set(reduce(operator.concat, orec.get("permissions",[]), []))
 
 				#g.log.msg("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 
@@ -4245,7 +4245,7 @@ class DB(object):
 				if addusers:
 					umask[addlevel] = addusers
 			
-			addusers = set(reduce(operator.concat, umask))
+			addusers = set(reduce(operator.concat, umask, []))
 			
 			checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
