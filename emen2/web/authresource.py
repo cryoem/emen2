@@ -52,7 +52,7 @@ class AuthResource(Resource):
 		if g.EMEN2EXTPORT != 80:
 			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
 		
-		#print "redir is %s"%urlparse.urlunsplit(du)
+		print "redir is %s"%urlparse.urlunsplit(du)
 		
 		return urlparse.urlunsplit(du)
 
