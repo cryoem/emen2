@@ -1109,7 +1109,7 @@ class DB(object):
 
 			# makes life simpler...
 			if not constraints:
-				ret = reduce(boolmode, subsets, set())
+				ret = reduce(boolmode, subsets)
 
 				if returnrecs:
 					return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
@@ -1155,7 +1155,7 @@ class DB(object):
 
 			subsets.extend(s)
 
-			ret = reduce(boolmode, subsets, set())
+			ret = reduce(boolmode, subsets)
 
 
 			#print "stage 3 results"
