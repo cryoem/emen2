@@ -41,12 +41,16 @@ class AuthResource(Resource):
 	def loginredir(self,redirect,request):
 		u=urlparse.urlsplit(redirect)
 		du=list(u)
-		if u.hostname == None and u.port == None and u.scheme == None:
-			du[0]="http"
-		#du[1]=request.getHeader("host").split(":")[0]
-		du[1]=g.EMEN2HOST
+
+		#if u.hostname == None and u.port == None and u.scheme == None:
+		#	du[0]="http"
+			
+		requesthost = request.getHeader("host").split(":")[0]
+
+		if g.EMEN2HOST != "localhost"
+			du[1] = requesthost
 		if g.EMEN2EXTPORT != 80:
-			du[1]="%s:%s"%(du[1],g.EMEN2EXTPORT)
+			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
 		
 		#print "redir is %s"%urlparse.urlunsplit(du)
 		
