@@ -466,7 +466,6 @@ class DB(object):
 
 		# needs txn?
 		def __del__(self):
-			print "del!"
 			self.close()
 
 
@@ -1904,7 +1903,7 @@ class DB(object):
 			if not links:
 				return
 
-			items = set(reduce(operator.concat, links, []))
+			items = set(reduce(operator.concat, links, ()))
 
 			# ian: circular reference detection.
 			#if mode=="pclink":
@@ -3578,8 +3577,6 @@ class DB(object):
 			recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
 			
-			print "recs to commit"
-			for i in recs: print i["permissions"],i["groups"]
 			
 			ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
 
@@ -3636,7 +3633,6 @@ class DB(object):
 
 
 				updrec.validate(orec=orec, warning=warning)
-				print updrec["permissions"],updrec["groups"]
 
 				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
