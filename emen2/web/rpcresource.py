@@ -237,7 +237,7 @@ class RPCResource(Resource):
 		content = request.content.read()
 		method, args, kwargs = self.handler.decode(content,request.args)
 
-		ctxid = ctxid or kwargs.pop("ctxid",None)
+		ctxid = kwargs.pop("ctxid",None) or ctxid
 		host = host or kwargs.pop("host",None)
 	
 		if kwargs.has_key("method"):
@@ -247,7 +247,6 @@ class RPCResource(Resource):
 
 
 		g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
-
 
 		db._setcontext(ctxid,host)
 		result = db._callmethod(method, args, kwargs)

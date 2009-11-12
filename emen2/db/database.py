@@ -234,18 +234,18 @@ class DB(object):
 
 			# Users
 			# active database users / groups
-			self.__users = subsystems.btrees.BTree("users", keytype="s", filename="security/users.bdb", dbenv=self.__dbenv)
+			self.__users = subsystems.btrees.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv)
 
-			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename="security/groupsbyuser", dbenv=self.__dbenv)
+			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename=self.path+"/security/groupsbyuser", dbenv=self.__dbenv)
 
-			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename="security/groups.bdb", dbenv=self.__dbenv)
+			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv)
 			#self.__updatecontexts = False
 
 			# new users pending approval
-			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename="security/newusers.bdb", dbenv=self.__dbenv)
+			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv)
 
 			# multisession persistent contexts
-			self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename="security/contexts.bdb", dbenv=self.__dbenv)
+			self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=self.path+"/security/contexts.bdb", dbenv=self.__dbenv)
 
 			# local cache dictionary of valid contexts
 			self.__contexts = {}
@@ -254,15 +254,15 @@ class DB(object):
 
 
 			# Binary data names indexed by date
-			self.__bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename="BinNames.bdb", dbenv=self.__dbenv)
+			self.__bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename=self.path+"/BinNames.bdb", dbenv=self.__dbenv)
 
 			# Defined ParamDefs
 			# ParamDef objects indexed by name
-			self.__paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename="ParamDefs.bdb", dbenv=self.__dbenv)
+			self.__paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename=self.path+"/ParamDefs.bdb", dbenv=self.__dbenv)
 
 			# Defined RecordDefs
 			# RecordDef objects indexed by name
-			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename="RecordDefs.bdb", dbenv=self.__dbenv)
+			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv)
 
 
 
@@ -272,20 +272,20 @@ class DB(object):
 			# and database information is stored with key=0
 
 			# The actual database, containing id referenced Records
-			self.__records = subsystems.btrees.RelateBTree("database", keytype="d", filename="database.bdb", dbenv=self.__dbenv)
+			self.__records = subsystems.btrees.RelateBTree("database", keytype="d", filename=self.path+"/database.bdb", dbenv=self.__dbenv)
 
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename="security/roindex.bdb", keytype="s", dbenv=self.__dbenv)
-			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename="security/groindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/groindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# index of records belonging to each RecordDef
-			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename="RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename=self.path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
 
 			# key=record id, value=last time record was changed
 			# ian: todo: to simplify, just handle this through modifytime param...
-			self.__timeindex = subsystems.btrees.BTree("TimeChangedindex", keytype="d", filename="TimeChangedindex.bdb", dbenv=self.__dbenv)
+			self.__timeindex = subsystems.btrees.BTree("TimeChangedindex", keytype="d", filename=self.path+"/TimeChangedindex.bdb", dbenv=self.__dbenv)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
@@ -297,14 +297,14 @@ class DB(object):
 				_rebuild = False
 				if not os.path.exists(self.path+"/IndexKeys.bdb"):
 					_rebuild = True
-				self.__indexkeys = subsystems.btrees.IndexKeyBTree("IndexKeys", keytype="s", filename="IndexKeys.bdb", dbenv=self.__dbenv)
+				self.__indexkeys = subsystems.btrees.IndexKeyBTree("IndexKeys", keytype="s", filename=self.path+"/IndexKeys.bdb", dbenv=self.__dbenv)
 
 
 
 
 			# Workflow database, user indexed btree of lists of things to do
 			# again, key -1 is used to store the wfid counter
-			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename="workflow.bdb", dbenv=self.__dbenv)
+			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv)
 
 
 			# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
@@ -684,7 +684,7 @@ class DB(object):
 
 
 		def __periodic_operations(self, ctx=None, txn=None):
-			t = subsystems.dbtime.gettime()
+			t = subsystems.dbtime.getctime()
 			
 			# maybe not the perfect place to do this, but it will have to do
 			if t > (self.lastctxclean + 600):
@@ -713,15 +713,16 @@ class DB(object):
 			grouplevels = {}
 
 			# Update and cache
-			if not context.user:
-
+			#if not context.user:
+			if True:
 				if context.username not in ["anonymous"]:
 					user = self.__users.get(context.username, None, txn=txn)
 					groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
 					grouplevels = {}
 					for group in [self.__groups.get(i, txn=txn) for i in groups]:
 						grouplevels[group.name] = group.getlevel(context.username)
-
+				
+				g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
 				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
 				self.__contexts[ctxid] = context
