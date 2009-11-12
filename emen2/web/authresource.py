@@ -34,7 +34,6 @@ def render_security_error(redirect, e):
 class AuthResource(Resource):
 
 	isLeaf = True
-	methods = ["login","logout","chpasswd"]
 
 
 	# switch back to non-ssl
@@ -47,7 +46,7 @@ class AuthResource(Resource):
 			
 		requesthost = request.getHeader("host").split(":")[0]
 
-		if g.EMEN2HOST != "localhost"
+		if g.EMEN2HOST != "localhost":
 			du[1] = requesthost
 		if g.EMEN2EXTPORT != 80:
 			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
@@ -60,22 +59,25 @@ class AuthResource(Resource):
 
 	# parse request for params
 	def getloginparams(self, request):
-		args=request.args
-		method = emen2.util.listops.get(request.postpath, 0, '')
+
+		args = request.args
+		
+		method = "/".join(filter(None,request.postpath))
+		
 		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid") or args.get("ctxid",[None])[0]
 		username = args.get('username', [None])[0]
 		pw = request.args.get('pw', [None])[0]
-		newpw = request.args.get('newpw',[None])[0]
+
 		redirect = request.args.get("redirect",[request.uri])[0]
 		redirect = self.loginredir(redirect,request)
+
 		if "auth/" in redirect:
 			redirect = "%s/db/home/"%(g.EMEN2WEBROOT)
 
 		return {
 			"username":username,
 			"pw":pw,
-			"newpw":newpw,
 			"ctxid":ctxid,
 			"host":host,
 			"method":method,
@@ -98,42 +100,34 @@ class AuthResource(Resource):
 	# the meat, raise exception if bad login
 	def _action(self, l, db=None):
 
+		method = l.get("method")
+		route = {
+			"login": emen2.TwistSupport_html.public.login.Login,
+			"logout": emen2.TwistSupport_html.public.login.Logout,
+			"password/reset": emen2.TwistSupport_html.public.login.PasswordReset,
+			"password/change": emen2.TwistSupport_html.public.login.PasswordChange,
+			"context": emen2.TwistSupport_html.public.login.CheckContext
+		}
 		
+		rcls = route.get(method)
 		
-		if l["method"] == "login":
-			cls = emen2.TwistSupport_html.public.login.Login
-
-		elif l["method"] == "logout":
-			cls = emen2.TwistSupport_html.public.login.Logout
-
-		elif l["method"] == "chpasswd":
-			cls = emen2.TwistSupport_html.public.login.Chpasswd
-
-		else:
-			raise Exception,"Unsupported auth method: %s"%method
-
-
-		#print "args"
-		#print l
-
-		# do work here
-		p = cls(db=db, **l)
-		ctxid = p.get_context().get("ctxid") #["ctxid"]
+		p = rcls(db=db, **l)		
 		data = unicode(p.get_data()).encode("utf-8")
 
+		ctxid = p.auth_action()		
 
 		return ctxid, data
 
 
 
 	def _cbrender(self, result, request, largs):
+		
 		ctxid = result[0]
-		data = result[1]
-				
+		data = result[1]				
 		msg = None
-		if ctxid != largs["ctxid"]:
+		
+		if ctxid != None and ctxid != largs["ctxid"]:
 			request.addCookie("ctxid", ctxid or "", path='/')
-
 			if largs["redirect"] != None:
 				request.redirect(largs["redirect"])
 				request.finish()
@@ -146,7 +140,7 @@ class AuthResource(Resource):
 
 
 	def _ebrender(self, failure, request, largs):
-
+	
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
 		

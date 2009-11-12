@@ -121,7 +121,7 @@ function admin_userstate_form(elem) {
 }
 
 
-
+// ian: unused
 function admin_chpasswd_form(elem) {
 	var form=$(elem.form);
 	var oldpass=form.find("input[name='oldpass']");

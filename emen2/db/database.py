@@ -225,9 +225,6 @@ class DB(object):
 
 			self.__dbenv = DBENV
 
-			print "cachemax"
-			print self.__dbenv.get_cachesize()
-
 			# ian: todo: is this method no longer in the bsddb3 API?
 			#if self.__dbenv.failchk(flags=0):
 			#	g.log.msg(1,"Database recovery required")
@@ -367,7 +364,7 @@ class DB(object):
 			for i in skeleton.core_groups.items:
 				self.putgroup(i, ctx=ctx, txn=txn)
 
-			self.setpassword("root", g.ROOTPW, g.ROOTPW, ctx=ctx, txn=txn)
+			self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
 
 
 
@@ -708,12 +705,12 @@ class DB(object):
 			if not context:
 				g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
 				raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
-							
+
 
 			# ian: todo: this is a kindof circular problem, think about better ways to solve it. 
 			user = self.__users.get(context.username, None, txn=txn)
 			groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
-			context.refresh(user=user, groups=groups, db=self, txn=txn)
+			context.refresh(user=user, groups=groups, host=host, db=self, txn=txn)
 
 			self.__contexts[ctxid] = context
 			
@@ -2218,30 +2215,25 @@ class DB(object):
 
 		#@txn
 		@DBProxy.publicmethod
-		def setpassword(self, username, oldpassword, newpassword, ctx=None, txn=None):
+		def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
+						
+			if (username and username != ctx.username) and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+			else:
+				username = ctx.username
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
 
-			s = hashlib.sha1(oldpassword)
-
-			if s.hexdigest() != user.password and not ctx.checkadmin():
+			try:
+				user.setpassword(oldpassword, newpassword)
+			except:
 				time.sleep(2)
-				raise subsystems.exceptions.SecurityError, "Original password incorrect"
-
-			# we disallow bad passwords here, right now we just make sure that it
-			# is at least 6 characters long
-
-			if len(newpassword) < 6:
-				raise subsystems.exceptions.SecurityError, "Passwords must be at least 6 characters long"
-
-			t = hashlib.sha1(newpassword)
-			user.password = t.hexdigest()
+				raise
 
 			g.log.msg("LOG_INFO","Changing password for %s"%user.username)
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
-			return 1
 
 
 
@@ -3569,6 +3561,9 @@ class DB(object):
 			recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
 			
+			print "recs to commit"
+			for i in recs: print i["permissions"],i["groups"]
+			
 			ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
 
 			if ol and len(ret) > 0:
@@ -3624,7 +3619,7 @@ class DB(object):
 
 
 				updrec.validate(orec=orec, warning=warning)
-
+				print updrec["permissions"],updrec["groups"]
 
 				# compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
@@ -4054,8 +4049,8 @@ class DB(object):
 				if updrec.get("permissions") == orec.get("permissions"):
 					continue
 
-				nperms = set(reduce(operator.concat, updrec.get("permissions", []), []))
-				operms = set(reduce(operator.concat, orec.get("permissions",[]), []))
+				nperms = set(reduce(operator.concat, updrec.get("permissions", ()), () ))
+				operms = set(reduce(operator.concat, orec.get("permissions",()), () ))
 
 				#g.log.msg("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 
