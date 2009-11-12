@@ -1253,7 +1253,7 @@ class DB(object):
 
 				if c[0] == "*":
 					# cache
-					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs]), [])
+					allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs], []))
 					for param in allparams:
 						try:
 							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
