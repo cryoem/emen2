@@ -460,7 +460,8 @@ class DB(object):
 		# needs txn?
 		def __str__(self):
 			"""Try to print something useful"""
-			return "Database %d records\n( %s )"%(int(self.__records.get(-1,0)), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
+			return "<Database: %s>"%hex(id(self))
+			#return "Database %d records\n( %s )"%(int(self.__records.get(-1,0)), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
 
 
 		# needs txn?
@@ -534,10 +535,6 @@ class DB(object):
 			else:
 				ctx = dataobjects.context.Context(username=username, host=host)
 
-			#def refresh(self, user=None, groups=None, db=None, txn=None):
-			#context.refresh(user=user, groups=groups, db=self, txn=txn)
-			#ctx.setdb(db=self, txn=txn)
-			#ctx.refresh(db=self, txn=txn)
 			return ctx
 
 
@@ -626,7 +623,10 @@ class DB(object):
 		# ian: change so all __setcontext calls go through same txn
 		def __cleanupcontexts(self, ctx=None, txn=None):
 			"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
-			self.lastctxclean = time.time()
+
+			g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
+
+                        self.lastctxclean = time.time()
 
 			# ian: todo: fix!!!!!!
 			return
@@ -655,6 +655,7 @@ class DB(object):
 			# this will retrieve it from disk next time it's needed			
 			if self.__contexts.get(ctxid):
 				del self.__contexts[ctxid]			
+
 
 			# set context
 			if context != None:
@@ -687,7 +688,7 @@ class DB(object):
 			t = subsystems.dbtime.gettime()
 			
 			# maybe not the perfect place to do this, but it will have to do
-			if (t > self.lastctxclean + 600):
+			if t > (self.lastctxclean + 600):
 				self.__cleanupcontexts(ctx=ctx, txn=txn)
 
 
@@ -697,7 +698,9 @@ class DB(object):
 
 			self.__periodic_operations(ctx=ctx, txn=txn)
 
+			context = None
 			if ctxid:
+				# g.log.msg("LOG_DEBUG", "local context cache: %s, cache db: %s"%(self.__contexts.get(ctxid), self.__contexts_p.get(ctxid, txn=txn)))
 				context = self.__contexts.get(ctxid) or self.__contexts_p.get(ctxid, txn=txn)
 			else:
 				context = self.__makecontext(host=host, ctx=ctx, txn=txn)
@@ -706,13 +709,23 @@ class DB(object):
 				g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
 				raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
-
 			# ian: todo: this is a kindof circular problem, think about better ways to solve it. 
-			user = self.__users.get(context.username, None, txn=txn)
-			groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
-			context.refresh(user=user, groups=groups, host=host, db=self, txn=txn)
+			user = None
+			grouplevels = {}
 
-			self.__contexts[ctxid] = context
+			# Update and cache
+			if not context.user:
+
+				if context.username not in ["anonymous"]:
+					user = self.__users.get(context.username, None, txn=txn)
+					groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
+					grouplevels = {}
+					for group in [self.__groups.get(i, txn=txn) for i in groups]:
+						grouplevels[group.name] = group.getlevel(context.username)
+
+				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
+
+				self.__contexts[ctxid] = context
 			
 			return context
 
@@ -2403,7 +2416,7 @@ class DB(object):
 			groups = set(filter(lambda x:isinstance(x, basestring), groupname))				
 			gn_int = filter(lambda x:isinstance(x, int), groupname)
 			if gn_int:
-				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], [])
+				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], set())
 
 			groups = self.getgroup(groups, ctx=ctx, txn=txn)
 
@@ -3340,6 +3353,10 @@ class DB(object):
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
 			# t = dict(filter(lambda x:x[1]!=None, self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items()))
+
+			if not ctx.checkcreate():
+				raise emen2.Database.subsystems.exceptions.SecurityError, "No permission to create new records"
+
 			t = filter(lambda x:x[1] != None, self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items())
 			rec = dataobjects.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 

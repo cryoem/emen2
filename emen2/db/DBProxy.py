@@ -99,15 +99,24 @@ class DBProxy(object):
 
 
 	def _setcontext(self, ctxid=None, host=None):
-		#print "setting context.. %s %s"%(ctxid, host)
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 			self.__ctx.setdb(db=self)
-			#self.__ctx.db = self
+			#print "\nDBProxy._setcontext results:"
+			#print "self ",hex(id(self))
+			#print "self.__ctx ", self.__ctx
+			#print "self.__ctx.db ", self.__ctx.db
+			#print "self.__ctx.ctxid ", self.__ctx.ctxid
+			#print "self.__ctx.username ", self.__ctx.username
+			#print "self.__ctx.groups ", self.__ctx.groups
+			#print "self.__ctx.grouplevels ", self.__ctx.grouplevels
+			#print "self.__db ", self.__db
+			#print "self.__txn ", self.__txn
+			#print "\n\n"
+
 
 		except:
 			self.__ctx = None
-
 			if self.__txn: self._aborttxn()
 			raise
 
@@ -233,6 +242,8 @@ def publicmethod(func):
 			txn = self.newtxn()
 			commit = True
 		kwargs['txn'] = txn
+
+		#print "Running publicmethod %s: ctx %s, txn %s"%(func.func_name, ctx, txn)
 
 
 		try:

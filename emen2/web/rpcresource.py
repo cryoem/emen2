@@ -68,6 +68,7 @@ class RPCFormatXMLRPC:
 
 		return method, args, kwargs
 
+
 	def encode(self, method, value):
 		try:
 			value = self.encode_serialize(value)
@@ -199,7 +200,8 @@ class RPCResource(Resource):
 
 	def _ebRender(self, result, request, *args, **kwargs):
 		g.log.msg("LOG_ERROR", result)
-		request.setHeader("X-Error", ' '.join(str(result).split()))
+		#request.setHeader("X-Error", ' '.join(str(result).split()))
+		request.setHeader("X-Error", result.getErrorMessage())	
 		result=unicode(result.value)
 		result=result.encode('utf-8')
 		request.setHeader("content-length", len(result))
@@ -235,6 +237,9 @@ class RPCResource(Resource):
 		content = request.content.read()
 		method, args, kwargs = self.handler.decode(content,request.args)
 
+		ctxid = ctxid or kwargs.pop("ctxid",None)
+		host = host or kwargs.pop("host",None)
+	
 		if kwargs.has_key("method"):
 			method = kwargs["method"]
 		if method==None:
@@ -244,7 +249,6 @@ class RPCResource(Resource):
 		g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
 
-		#db._starttxn()
 		db._setcontext(ctxid,host)
 		result = db._callmethod(method, args, kwargs)
 		db._clearcontext()

@@ -338,7 +338,7 @@ class PublicView(Resource):
 	
 			except (emen2.Database.subsystems.exceptions.SecurityError), e:
 
-		                request.addCookie("ctxid", '', path='/')
+		                #request.addCookie("ctxid", '', path='/')
 				response = 401
 				data = render_security_error(request.uri, e)
 

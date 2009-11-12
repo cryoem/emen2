@@ -20,6 +20,12 @@ g = emen2.globalns.GlobalNamespace('')
 
 
 
+
+def cookie_expire_time():
+	return time.strftime("%a, %d-%b-%Y %H:%M:%S PST", time.localtime(time.time()+604800))
+
+
+
 def render_security_error(redirect, e):
 	args = {'redirect': redirect, 'msg': str(e)}
 	p = emen2.TwistSupport_html.public.login.Login(**args)

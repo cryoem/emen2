@@ -1,7 +1,5 @@
 // globals
 
-
-
 paramindex={};
 paramdefs={};
 
@@ -14,6 +12,7 @@ children=[];
 recnames={};
 displaynames={};
 groupnames={};
+
 // groupnames={};
 // groupnames["-4"]="Anonymous Access";
 // groupnames["-3"]="Authenticated Users";

@@ -49,8 +49,6 @@ def inithttpd():
 	import emen2.TwistSupport_html.public.views
 	emen2.TwistSupport_html.public.views.load_views()
 	
-	print "static path is"
-	print g.STATICPATH
 	root = static.File(g.STATICPATH)
 
 	resources = dict(
