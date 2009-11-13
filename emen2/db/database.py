@@ -61,7 +61,7 @@ VERSION = 20091110
 
 VERSIONS = {
 	"API": VERSION,
-	"emen2client": 20091112
+	"emen2client": 20091113
 }
 
 

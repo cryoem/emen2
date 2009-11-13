@@ -88,7 +88,10 @@ class DBProxy(object):
 
 	def _login(self, username="anonymous", password="", host=None):
 
-		host = host or self.__ctx.host
+		try:
+			host = host or self.__ctx.host
+		except:
+			host = None
 
 		try:
 			ctxid = self.__db._login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn) #host
