@@ -753,6 +753,8 @@ commentswidget.prototype = {
 	
 	partition: function() {
 		var reccomments = getvalue(recid,"comments");
+		//var reccomments_text = getvalue(recid,"comments_text");
+
 		this.comments = [];
 		this.log = [];
 		for (var i=0;i<reccomments.length;i++) {
@@ -781,7 +783,7 @@ commentswidget.prototype = {
 		this.widget.append(this.edit, this.controls);
 		this.elem_body.append(this.widget);
 
-		var cr=this.comments.reverse();
+		var cr = this.comments.reverse();
 
 		if (cr.length == 0) {
 			//this.elem_body.append('<p>No Comments</p>');
@@ -802,6 +804,11 @@ commentswidget.prototype = {
 
 		});
 		
+		var comments_text = getvalue(recid,"comments_text");
+		if (comments_text) {
+			self.elem_body.append('<strong>Comment:</strong><p>'+comments_text+'</p>');
+		}
+
 
 	},
 	
