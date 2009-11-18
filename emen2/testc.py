@@ -1,6 +1,6 @@
-import emen2.Database.DBProxy
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.DBProxy
 
 parser = emen2.config.config.DBOptions()
 parser.parse_args()
