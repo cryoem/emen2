@@ -29,7 +29,7 @@ class GlobalNamespace(object):
 		def closestdout(self): pass
 		def msg(self, sn, *args):
 			sn = self.debugstates.get_name(self.debugstates[sn])
-			print u'%s :: %s' % (sn, self.print_list(args))
+			print u'%s :: %s :: %s' % (self, sn, self.print_list(args))
 
 	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()

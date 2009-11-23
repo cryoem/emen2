@@ -71,8 +71,8 @@ def DB_Close():
 	for i in l:
 		print i._DB__dbenv
 		i.close()
-	
-	
+
+
 
 
 def DB_syncall():
@@ -87,7 +87,7 @@ def DB_stat():
 	global DBENV
 	if not DBENV:
 		return
-		
+
 	sys.stdout.flush()
 	print >> sys.stderr, "DB has %d transactions left" % DB.txncounter
 
@@ -171,7 +171,7 @@ class DB(object):
 			else:
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
-			
+
 
 			self.path = path or g.EMEN2DBPATH
 			self.logfile = self.path + "/" + logfile
@@ -187,7 +187,7 @@ class DB(object):
 
 			self.MAXRECURSE = 50
 			self.BLOCKLENGTH = 100000
-			
+
 			if recover:
 				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
 
@@ -321,7 +321,7 @@ class DB(object):
 					maxr = self.__records.sget(-1, txn=txn)
 					# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
 				except KeyError:
-					g.log.msg('LOG_INFO', "Initializing skeleton database")
+					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
 					self.__createskeletondb(ctx=ctx, txn=txn)
 
 				#if _rebuild:
@@ -329,10 +329,12 @@ class DB(object):
 
 
 			except Exception, inst:
-				print inst					
+				g.log.msg('LOG_ERROR', inst)
 				self.txnabort(txn=txn)
-			
-			self.txncommit(txn=txn)
+				raise
+
+			else:
+				self.txncommit(txn=txn)
 
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
@@ -347,21 +349,25 @@ class DB(object):
 			# typically uses SpecialRootContext
 
 			self.__records.set(-1, 0, txn=txn)
-			
+
+			assert ctx != None
 			import skeleton
-
-			for i in skeleton.core_paramdefs.items:
-				self.putparamdef(i, ctx=ctx, txn=txn)
-
-			for i in skeleton.core_recorddefs.items:
-				self.putrecorddef(i, ctx=ctx, txn=txn)
+			assert ctx != None
 
 			for i in skeleton.core_users.items:
 				if self.__importmode:
 					i["signupinfo"] = None
 				self.adduser(i, ctx=ctx, txn=txn)
 
+			for i in skeleton.core_paramdefs.items:
+				self.putparamdef(i, ctx=ctx, txn=txn)
+
+			for i in skeleton.core_recorddefs.items:
+				g.log('putting recorddef: %r' % i) 
+				self.putrecorddef(i, ctx=ctx, txn=txn)
+
 			for i in skeleton.core_groups.items:
+				g.log('putting group: %r' % i) 
 				self.putgroup(i, ctx=ctx, txn=txn)
 
 			self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
@@ -380,7 +386,9 @@ class DB(object):
 		txncounter = 0
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			#g.log.msg("LOG_INFO","\n\nNEW TXN, PARENT --> %s"%parent)
+			g.log.msg('LOG_INFO', 'printing traceback')
+			g.log.print_traceback(steps=5)
+			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -421,7 +429,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			#g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
+			g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -429,7 +437,7 @@ class DB(object):
 				if id(txn) in self.txnlog:
 					del self.txnlog[id(txn)]
 				type(self).txncounter -= 1
-								
+
 			else:
 				raise ValueError, 'transaction not found'
 
@@ -649,11 +657,11 @@ class DB(object):
 			"""Add or delete context"""
 
 			#@begin
-			
+
 			# any time you set the context, delete the cached context
-			# this will retrieve it from disk next time it's needed			
+			# this will retrieve it from disk next time it's needed
 			if self.__contexts.get(ctxid):
-				del self.__contexts[ctxid]			
+				del self.__contexts[ctxid]
 
 
 			# set context
@@ -685,7 +693,6 @@ class DB(object):
 
 		def __periodic_operations(self, ctx=None, txn=None):
 			t = subsystems.dbtime.getctime()
-			
 			# maybe not the perfect place to do this, but it will have to do
 			if t > (self.lastctxclean + 600):
 				self.__cleanupcontexts(ctx=ctx, txn=txn)
@@ -703,12 +710,12 @@ class DB(object):
 				context = self.__contexts.get(ctxid) or self.__contexts_p.get(ctxid, txn=txn)
 			else:
 				context = self.__makecontext(host=host, ctx=ctx, txn=txn)
-			
+
 			if not context:
 				g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
 				raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
-			# ian: todo: this is a kindof circular problem, think about better ways to solve it. 
+			# ian: todo: this is a kindof circular problem, think about better ways to solve it.
 			user = None
 			grouplevels = {}
 
@@ -726,7 +733,7 @@ class DB(object):
 				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
 				self.__contexts[ctxid] = context
-			
+
 			return context
 
 
@@ -957,7 +964,7 @@ class DB(object):
 			mon = int(key[4:6])
 			day = int(key[6:8])
 			bid = int(key[8:], 16)
-			key = "%04d%02d%02d" % (year, mon, day)			
+			key = "%04d%02d%02d" % (year, mon, day)
 			return [year, mon, day, bid], key
 
 
@@ -1001,8 +1008,8 @@ class DB(object):
 				prot, _, key = ident.rpartition(":")
 				if prot == "":
 					prot = "bdo"
-					
-				# ian: todo: implement other BDO protocols, e.g. references to uris	
+
+				# ian: todo: implement other BDO protocols, e.g. references to uris
 				if prot not in ["bdo"]:
 					if filt:
 						continue
@@ -1032,8 +1039,8 @@ class DB(object):
 							continue
 						else:
 							raise KeyError, "Unknown identifier %s" % ident
-						
-						
+
+
 				# ian: finish this filtering...
 				byrec[bdo.get("recid")].add(bdo)
 
@@ -1081,14 +1088,14 @@ class DB(object):
 
 		@DBProxy.publicmethod
 		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
-			
+
 			if boolmode == "AND":
 				boolmode = set.intersection
 			elif boolmode == "OR":
 				boolmode = set.union
 			else:
 				raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
-				
+
 			if recurse:
 				recurse = self.MAXRECURSE
 
@@ -1144,7 +1151,7 @@ class DB(object):
 			# since we pass the DBProxy to validators, set it's txn
 			if not ctx.db._gettxn():
 				ctx.db._settxn(txn)
-			
+
 			#print "Query constraints:"
 			#print constraints
 
@@ -1173,7 +1180,7 @@ class DB(object):
 
 			if returnrecs:
 				return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
-				
+
 			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 
 
@@ -1227,7 +1234,7 @@ class DB(object):
 						if m:
 							subsets_by_value[(param, matchkey)] = m
 							constraint_matches |= m
-					
+
 				subsets.append(constraint_matches)
 
 			#print "stage 2 results"
@@ -1235,7 +1242,7 @@ class DB(object):
 			#print subsets_by_value
 
 			return subsets, subsets_by_value
-		
+
 
 
 		def __query_recs(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
@@ -1244,7 +1251,7 @@ class DB(object):
 			subsets = []
 			subsets_by_value = {}
 			recs = self.getrecord(subset, filt=True, ctx=ctx, txn=txn)
-			
+
 			#allp = "*" in [c[0] for c in constraints]
 
 			# this is ugly :(
@@ -1349,7 +1356,7 @@ class DB(object):
 			if isinstance(recdefname, basestring):
 				recdefname = [recdefname]
 			ret = set()
-			for i in recdefname:	
+			for i in recdefname:
 			 	ret |= self.__recorddefindex.get(i, txn=txn) or set()
 			return ret
 
@@ -1530,15 +1537,15 @@ class DB(object):
 			of the specified records"""
 			raise Exception, "Temporarily deprecated"
 			# recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
-			# 
+			#
 			# if len(rid) > 0:
 			# 	raise Exception, "Cannot access records %s" % unicode(rid)
-			# 
+			#
 			# try:
 			# 	ret = [self.__timeindex.sget(i, txn=txn) for i in recids]
 			# except:
 			# 	raise Exception, "unindexed time on one or more recids"
-			# 
+			#
 			# return ret
 
 
@@ -1710,11 +1717,11 @@ class DB(object):
 			if not hasattr(key,"__iter__"):
 				ol = 1
 				key = [key]
-			
+
 			# ian: todo: fix everything else to make recurse=1 by default..
 			if recurse == 0:
 				recurse = 1
-			
+
 			# ret is a two-level dictionary
 			# k1 = input recids
 			# k2 = recid and v2 = children of k2
@@ -1723,7 +1730,7 @@ class DB(object):
 
 			for i in key:
 				ret[i], ret_visited[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
-			
+
 
 			if rectype or filt or flat:
 				# ian: note: use a [] initializer for reduce to prevent exceptions when values is empty
@@ -1731,7 +1738,7 @@ class DB(object):
 
 				if rectype:
 					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
-		
+
 				if filt and keytype=="record":
 					allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
@@ -1753,7 +1760,7 @@ class DB(object):
 
 			if ol:
 				return ret.get(key[0],set())
-				
+
 			return ret
 
 
@@ -1798,16 +1805,16 @@ class DB(object):
 			stack = [ret]
 			result = {key: ret}
 			visited = set()
-			
+
 			for x in xrange(recurse):
-				
+
 				if not stack[x]:
 					break
 				if x > self.MAXRECURSE:
 					raise Exception, "Recurse limit reached; check for circular relationships"
-				
+
 				stack.append(set())
-				
+
 				# print "%s lookups to make this level"%(len(stack[x]-visited))
 				for k in stack[x] - visited:
 					new = rel(k, txn=txn) #or set()
@@ -2229,7 +2236,7 @@ class DB(object):
 		#@txn
 		@DBProxy.publicmethod
 		def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
-						
+
 			if (username and username != ctx.username) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 			else:
@@ -2376,17 +2383,21 @@ class DB(object):
 		#@write self.__groups, self.__groupsbyuser
 		@DBProxy.publicmethod
 		def putgroup(self, groups, ctx=None, txn=None):
+			g.log('entering putgroup')
 
 			if isinstance(groups, (dataobjects.group.Group, dict)): # or not hasattr(groups, "__iter__"):
 				groups = [groups]
 
 			groups2 = []
-			groups2.extend(filter(lambda x:isinstance(x, dataobjects.group.Group), groups))
-			groups2.extend(map(lambda x:dataobjects.group.Group(x, ctx=ctx), filter(lambda x:isinstance(x, dict), groups)))
+			groups2.extend(x for x in groups if isinstance(x, dataobjects.group.Group))
+			groups2.extend(dataobjects.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
 			for group in groups2:
+				print 'context', ctx
+				g.log.msg('LOG_DEBUG', 'context:', ctx)
 				group.setContext(ctx)
-				group.validate()
+				#TODO: remove txn to somewhere good... Ed 11/18/2009
+				group.validate(txn=txn)
 
 			self.__commit_groups(groups2, ctx=ctx, txn=txn)
 
@@ -2413,7 +2424,7 @@ class DB(object):
 				groupname = [groupname]
 				ol = 1
 
-			groups = set(filter(lambda x:isinstance(x, basestring), groupname))				
+			groups = set(filter(lambda x:isinstance(x, basestring), groupname))
 			gn_int = filter(lambda x:isinstance(x, int), groupname)
 			if gn_int:
 				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], set())
@@ -2955,7 +2966,7 @@ class DB(object):
 
 			#####################
 			# ian: todo: move this block to ParamDef.validate()
-			
+
 			if not ctx.checkcreate():
 				raise subsystems.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
@@ -3202,6 +3213,7 @@ class DB(object):
 			recdef.validate()
 
 			# commit
+			g.log('putting recorddef: %r' % recdef)
 			self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
 
 			links = []
@@ -3312,9 +3324,9 @@ class DB(object):
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
-			
+
 			ol = False
-			if not hasattr(recids, '__iter__'): 
+			if not hasattr(recids, '__iter__'):
 				ol = True
 				recids = [recids]
 
@@ -3331,11 +3343,11 @@ class DB(object):
 					raise
 					if filt: pass
 					else: raise KeyError, "No such record %s"%(i) #, e)
-		
-		
+
+
 			if ol and not ret:
 				return None
-			if ol:	
+			if ol:
 				return ret.pop()
 			return ret
 
@@ -3577,8 +3589,8 @@ class DB(object):
 			dictrecs = filter(lambda x:isinstance(x,dict), recs)
 			recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
-			
-			
+
+
 			ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
 
 			if ol and len(ret) > 0:
@@ -3648,7 +3660,7 @@ class DB(object):
 				if "comments" in cp:
 					for i in updrec["comments"]:
 						if i not in orec._Record__comments:
-							orec.addcomment(i[2])							
+							orec.addcomment(i[2])
 
 
 				for param in cp - param_special:
@@ -3663,7 +3675,7 @@ class DB(object):
 				if "groups" in cp:
 					orec.setgroups(updrec.get("groups"))
 
-				if log:				
+				if log:
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.username
 
@@ -3780,9 +3792,9 @@ class DB(object):
 			#@end
 
 			return crecs
-			
-			
-		def __commit_recorddefindex(self, rectypes, recmap=None, ctx=None, txn=None):	
+
+
+		def __commit_recorddefindex(self, rectypes, recmap=None, ctx=None, txn=None):
 			if not recmap: recmap = {}
 
 			for rectype,recs in rectypes.items():
@@ -3793,7 +3805,7 @@ class DB(object):
 					g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 					raise
 				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))			
+					g.log.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 
 
 		def __commit_timeindex(self, timeupdate, recmap=None, ctx=None, txn=None):
@@ -3810,7 +3822,7 @@ class DB(object):
 					g.log.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 					raise
 				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))		
+					g.log.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 
 
 		#@write #self.__secrindex
@@ -4106,30 +4118,30 @@ class DB(object):
 
 
 			g.log.msg("LOG_INFO","Rebuilding secrindex/secrindex_groups")
-			
+
 			g.log.msg("LOG_COMMIT_INDEX","self.__secrindex.truncate")
 			self.__secrindex.truncate(txn=txn)
 			g.log.msg("LOG_COMMIT_INDEX","self.__secrindex_groups.truncate")
 			self.__secrindex_groups.truncate(txn=txn)
-			
+
 			pos = 0
 			crecs = True
 			recmap = {}
-			
+
 			while crecs:
 				txn2 = self.newtxn(txn)
-				
+
 				crecs = self.getrecord(range(pos, pos+self.BLOCKLENGTH), filt=True, ctx=ctx, txn=txn2)
 				pos += len(crecs)
-						
-				# by omitting cache, will be treated as new recs...		
+
+				# by omitting cache, will be treated as new recs...
 				secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx, txn=txn2)
 				secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, ctx=ctx, txn=txn2)
 
 				# Security index
 				self.__commit_secrindex(secr_addrefs, secr_removerefs, ctx=ctx, txn=txn2)
 				self.__commit_secrindex_groups(secrg_addrefs, secrg_removerefs, ctx=ctx, txn=txn2)
-				
+
 				txn2.commit()
 				#self.txncommit(txn2)
 
@@ -4154,29 +4166,29 @@ class DB(object):
 
 			if len(recids) < 1000:
 				return set([x.recid for x in self.getrecord(recids, filt=True, ctx=ctx, txn=txn)])
-				
+
 			find = set(recids)
 			find -= self.__secrindex.get(ctx.username, set(), txn=txn)
-			
+
 			for group in sorted(ctx.groups):
 				if find:
 					find -= self.__secrindex_groups.get(group, set(), txn=txn)
-			
+
 			return recids - find
 
 			# this is usually the fastest; it's the same as getindexbycontext basically...
 			# method 2
 
 			# ret = []
-			# 
+			#
 			# if ctx.username != None and ctx.username != "anonymous":
 			# 	ret.extend(recids & set(self.__secrindex.get(ctx.username, [], txn=txn)))
-			# 
+			#
 			# for group in sorted(ctx.groups, reverse=True):
 			# 	ret.extend(recids & set(self.__secrindex_groups.get(group, [], txn=txn)))
-			# 
+			#
 			# return set(ret)
-			
+
 			#ret=set()
 			#ret |= recids & set(self.__secrindex[ctx.user])
 			#recids -= ret
@@ -4213,7 +4225,7 @@ class DB(object):
 		def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, ctx=None, txn=None):
 			"""Maintain compat with older versions that require effort to update"""
 			self.__putrecord_setsecurity(recid, umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, ctx=ctx, txn=txn)
-			
+
 
 		@DBProxy.publicmethod
 		def secrecordadduser(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
@@ -4253,9 +4265,9 @@ class DB(object):
 				umask = [[],[],[],[]]
 				if addusers:
 					umask[addlevel] = addusers
-			
+
 			addusers = set(reduce(operator.concat, umask, []))
-			
+
 			checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
 			if (addusers | addgroups | delusers | delgroups) - checkitems:
@@ -4267,20 +4279,20 @@ class DB(object):
 				recids |= self.getchildren(recids, recurse=recurse, filt=True, flat=True, ctx=ctx, txn=txn)
 
 
-				
+
 			recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 			if filt:
 				recs = filter(lambda x:x.isowner(), recs)
-			
+
 			# print "setting permissions"
-			
+
 			for rec in recs:
 				if addusers: rec.addumask(umask, reassign=reassign)
 				if delusers: rec.removeuser(delusers)
 				if addgroups: rec.addgroup(addgroups)
 				if delgroups: rec.removegroup(delgroups)
-				
-				
+
+
 			# Go ahead and directly commit here, since we know only permissions have changed...
 			self.__commit_records(recs, [], onlypermissions=True, ctx=ctx, txn=txn)
 

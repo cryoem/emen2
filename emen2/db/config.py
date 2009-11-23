@@ -38,7 +38,7 @@ class DBOptions(optparse.OptionParser):
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
 		if self.values.log_level == None:
-			self.values.log_level = 'LOG_INFO'
+			self.values.log_level = 'LOG_DEBUG'
 		if self.values.logfile_level == None:
 			self.values.logfile_level = 'LOG_DEBUG'
 
