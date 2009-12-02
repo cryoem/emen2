@@ -3361,6 +3361,10 @@ class DB(object):
 		def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
+			
+			# ian: todo: remove the recid option. it was a kludge to get things working in time.
+			if recid and not ctx.checkadmin():
+				raise emen2.Database.subsystems.exceptions.SecurityError, "Cannot set recid in this way"
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access

@@ -82,10 +82,10 @@ class UploadResource(Resource):
 
 		if not filedata:
 			filedata = ""
-			content.seek(0,0)
-			chunk = content.read()
+			request.content.seek(0,0)
+			chunk = request.content.read()
 			while chunk:
-				chunk = content.read()
+				chunk = request.content.read()
 				filedata += chunk
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
