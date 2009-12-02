@@ -78,15 +78,13 @@ class UploadResource(Resource):
 		param = str(args.get("param",["file_binary"])[0]) #.strip().lower()
 		redirect = args.get("redirect",[0])[0]
 
-
-
 		if not filedata:
 			filedata = ""
 			request.content.seek(0,0)
 			chunk = request.content.read()
 			while chunk:
-				chunk = request.content.read()
 				filedata += chunk
+				chunk = request.content.read()
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
 
