@@ -82,9 +82,10 @@ class UploadResource(Resource):
 			filedata = ""
 			request.content.seek(0,0)
 			chunk = request.content.read()
+			filedata += chunk
 			while chunk:
-				filedata += chunk
 				chunk = request.content.read()
+				filedata += chunk
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
 
