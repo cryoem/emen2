@@ -69,8 +69,8 @@ class UploadResource(Resource):
 
 
 		if filename==None:
-			if args.has_key("name"):
-				filename=args["name"][0].split("/")[-1].split("\\")[-1]
+			if args.has_key("filename"):
+				filename=args["filename"][0].split("/")[-1].split("\\")[-1]
 			else:
 				filename="No_Filename_Specified"
 
@@ -121,7 +121,8 @@ class UploadResource(Resource):
 		
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect
-		return bdokey
+
+		return bdokey.get('name')
 
 
 
