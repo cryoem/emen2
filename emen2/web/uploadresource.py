@@ -6,6 +6,8 @@ import time
 import random
 import atexit
 import cStringIO
+import urllib
+import demjson
 
 
 # Twisted Imports
@@ -53,10 +55,18 @@ class UploadResource(Resource):
 
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
+				
+		# Is a record included? In JSON format, urlencoded...
+		# This will call putrecord and attach the binary to the new record
+		rec = args.get('record',[None])[0]
+		if rec:
+			try: rec = demjson.decode(urllib.unquote(rec))
+			except:	pass
+		
+		
+		# Uploaded file md5 digest
+		# md5 = args.get('md5',[None])[0]
 
-		#authen = auth.Authenticator(db=db, host=host)
-		#authen.authenticate(username, pw, ctxid, host=host)
-		#ctxid, un = authen.get_auth_info()
 
 		if filename==None:
 			if args.has_key("name"):
@@ -80,23 +90,37 @@ class UploadResource(Resource):
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
 
-		d = threads.deferToThread(self._action, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
+		d = threads.deferToThread(self._action, rec=rec, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET
 
 
 
-	def _action(self, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
+	def _action(self, rec=None, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
 
-		#db._starttxn()
-		db._setcontext(ctxid,host)
-		bdokey = db.putbinary(filename, recid, filedata=filedata)
+		db._starttxn()
+
+		try:
+			db._setcontext(ctxid,host)
+
+			if rec:
+				crec = db.putrecord(rec, filt=False)
+				recid = crec.recid
+				
+			bdokey = db.putbinary(filename, recid, filedata=filedata)
+
+		except Exception, e:
+			g.log.msg("LOG_ERROR",e)
+			db._aborttxn()
+			raise
+		else:
+			db._committxn()
+
 		db._clearcontext()
-
+		
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect
-
 		return bdokey
 
 
