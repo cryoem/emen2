@@ -3746,7 +3746,7 @@ class DB(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.sget(-1, txn=txn, flags=RMWFLAGS)
+				baserecid = self.__records.sget(-1, txn=txn) #, flags=RMWFLAGS)
 				g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
 
