@@ -386,8 +386,8 @@ class DB(object):
 		txncounter = 0
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			g.log.msg('LOG_INFO', 'printing traceback')
-			g.log.print_traceback(steps=5)
+			#g.log.msg('LOG_INFO', 'printing traceback')
+			#g.log.print_traceback(steps=5)
 			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
@@ -429,7 +429,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.log.msg("LOG_INFO","TXN COMMIT --> %s\n\n"%txn)
+			g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -729,7 +729,7 @@ class DB(object):
 					for group in [self.__groups.get(i, txn=txn) for i in groups]:
 						grouplevels[group.name] = group.getlevel(context.username)
 				
-				g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
+				# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
 				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
 				self.__contexts[ctxid] = context
@@ -915,7 +915,7 @@ class DB(object):
 			basepath = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
 
 			filepath = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
-			g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
+			# g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
 
 			#for i in /BINARYPATH:
 			#	if datekey >= i[0] and datekey < i[1]:
@@ -935,7 +935,7 @@ class DB(object):
 
 
 			filename = filepath + "/%05X"%newid
-			g.log.msg("LOG_DEBUG","filename is %s"%filename)
+			# g.log.msg("LOG_DEBUG","filename is %s"%filename)
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 			if os.access(filename, os.F_OK) and not ctx.checkadmin():
@@ -1025,7 +1025,7 @@ class DB(object):
 					basepath = bp[filter(lambda x:x<=key, sorted(bp.keys()))[-1]]
 
 					path = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
-					g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
+					# g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
 
 				except:
 					raise KeyError, "No storage specified for date %s"%key
@@ -3625,6 +3625,8 @@ class DB(object):
 			updrels = self.__putrecord_getupdrels(updrecs, ctx=ctx, txn=txn)
 
 			# preprocess: copy updated record into original record (updrec -> orec)
+			# assign all changes the same time
+			t = self.gettime(ctx=ctx, txn=txn)
 
 			for updrec in updrecs:
 
@@ -3633,7 +3635,6 @@ class DB(object):
 					crecs.append(updrec)
 					continue
 
-				t = self.gettime(ctx=ctx, txn=txn)
 				recid = updrec.recid
 
 				# we need to acquire RMW lock here to prevent changes during commit

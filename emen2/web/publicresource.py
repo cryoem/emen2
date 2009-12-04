@@ -228,7 +228,7 @@ class PublicView(Resource):
 
 			if target is not None:
 				#request.redirect(target)
-				g.log.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
+				# g.log.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
 				raise emen2.subsystems.responsecodes.HTTPMovedPermanently('', target)
 				request.finish()
 
@@ -296,7 +296,7 @@ class PublicView(Resource):
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
 
-			g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
+			# g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
 			g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(

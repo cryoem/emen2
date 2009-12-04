@@ -83,12 +83,12 @@ class UploadResource(Resource):
 			request.content.seek(0,0)
 			chunk = request.content.read()
 			filedata += chunk
-			print "Read %s bytes for total %s"%(len(chunk), len(filedata))
+			# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
 
 			while chunk:
 				chunk = request.content.read()
 				filedata += chunk
-	                        print "Read %s bytes for total %s"%(len(chunk), len(filedata))
+	                        # print "Read %s bytes for total %s"%(len(chunk), len(filedata))
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
 
@@ -110,7 +110,7 @@ class UploadResource(Resource):
 				crec = db.putrecord(rec, filt=False)
 				recid = crec.recid
 				
-			bdokey = db.putbinary(filename, recid, filedata=filedata)
+			bdokey = db.putbinary(filename, recid, filedata=filedata, param=param)
 
 		except Exception, e:
 			g.log.msg("LOG_ERROR",e)
