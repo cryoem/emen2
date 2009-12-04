@@ -388,7 +388,7 @@ class DB(object):
 		def newtxn1(self, parent=None, ctx=None):
 			#g.log.msg('LOG_INFO', 'printing traceback')
 			#g.log.print_traceback(steps=5)
-			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
+			# g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent)
 			try:
 				type(self).txncounter += 1
@@ -416,7 +416,7 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			# g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn:
@@ -429,7 +429,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
