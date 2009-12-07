@@ -1,4 +1,5 @@
 import sys
+import functools
 import optparse
 import emen2.globalns
 import emen2.subsystems.debug
@@ -55,8 +56,14 @@ class DBOptions(optparse.OptionParser):
 												logfile=file(g.LOGROOT + '/log.log', 'a', 0),
 												get_state=False,
 												logfile_state=self.values.logfile_level)
+			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
+			g.log_error = functools.partial(g.log.msg, 'LOG_ERR')
+			g.warn = functools.partial(g.log.msg, 'LOG_WARNING')
+			g.log_init = functools.partial(g.log.msg, 'LOG_INIT')
+			g.log_info = functools.partial(g.log.msg, 'LOG_INFO')
+			g.debug = functools.partial(g.log.msg, 'LOG_DEBUG')
 
-			g.log.add_output(['LOG_WEB'], file(g.LOGROOT + '/access.log', 'a', 0))
+			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGROOT + '/access.log', 'a', 0))
 
 		except ImportError:
 			raise ImportError, 'Debug not loaded!!!'
