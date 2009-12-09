@@ -74,7 +74,7 @@ def inithttpd():
 	if g.EMEN2HTTPS:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
 
-	reactor.suggestThreadPoolSize(8)
+	reactor.suggestThreadPoolSize(1)
 	reactor.run()
 
 

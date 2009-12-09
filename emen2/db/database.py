@@ -214,8 +214,9 @@ class DB(object):
 
 			# g.log.msg('LOG_INIT', "Database initialization started")
 
-			global DBENV
-
+			# global DBENV
+			DBENV = None
+			
 			if DBENV == None:
 				g.log.msg("LOG_INFO","Opening Database Environment")
 				DBENV = bsddb3.db.DBEnv()
