@@ -2625,8 +2625,8 @@ class DB(object):
 				#if ctx.username == None:
 				#	user.groups = None
 
-				#if getgroups:
-				#	user.groups = self.__groupsbyuser.get(user.username, set(), txn=txn)
+				if getgroups:
+					user.groups = self.__groupsbyuser.get(user.username, set(), txn=txn)
 
 				# ian: todo: it's easier if we get record directly here....
 				#user.userrec = self.__records.sget(user.record, txn=txn)
