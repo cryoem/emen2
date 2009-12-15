@@ -988,7 +988,7 @@ RecordDefEditor.prototype = {
 		var self=this;
 		
 		$("#button_recdefviews_new",this.root).bind("click",function(e){self.event_addview(e)});
-		$("#ext_save",this.root).bind("click",function(e){self.event_save(e)});
+		$("#ext_save",this.root).one("click",function(e){self.event_save(e)});
 		
 		$('.page[data-tabgroup="recdefviews"]',this.root).each(function() {
 			var t=$(this).attr("data-tabname");

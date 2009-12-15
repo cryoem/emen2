@@ -126,22 +126,26 @@ multiwidget.prototype = {
 		if (this.controls) {
 			this.c_edit = $(".jslink",this.controlsroot);
 			
-			this.ext_save = $('<input type="submit" value="Save" />').click(function(e){e.stopPropagation();self.event_save(e)});
-			this.ext_cancel = $('<input type="button" value="Cancel" />').click(function(e){e.stopPropagation();self.event_cancel(e)});
+			this.ext_save = $('<input type="submit" value="Save" />').one("click", function(e){e.stopPropagation();self.event_save(e)});
+			this.ext_cancel = $('<input type="button" value="Cancel" />').one("click", function(e){e.stopPropagation();self.event_cancel(e)});
 
 			this.c_box = $('<span />');
 			this.c_box.append(this.ext_save,this.ext_cancel);
 			this.controlsroot.append(this.c_box);
 		}
 		
-		if (this.ext_save) {
-			var self=this;
-			this.ext_save.click(function(e){e.stopPropagation();self.event_save(e)});
-		}
+		else {
 		
-		if (this.ext_cancel) {
-			var self=this;
-			this.ext_cancel.click(function(e){e.stopPropagation();self.event_cancel(e)});
+			if (this.ext_save) {
+				var self=this;
+				this.ext_save.one("click", function(e){e.stopPropagation();self.event_save(e)});
+			}
+		
+			if (this.ext_cancel) {
+				var self=this;
+				this.ext_cancel.one("click", function(e){e.stopPropagation();self.event_cancel(e)});
+			}
+
 		}
 		
 		if (show) {this.show()}
@@ -481,8 +485,10 @@ widget.prototype = {
 
 		if (this.controls) {
 			this.c_controls=$('<div class="controls"></div>').append(
-				$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
-				$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.hide()})
+				$('<input type="submit" value="Save" />').one("click", function(e) {e.stopPropagation();self.save()}),
+				$('<input type="button" value="Cancel" />').one("click", function(e) {e.stopPropagation();self.hide()})
+				//$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
+				//$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.hide()})
 			);
 			this.w.append(this.c_controls);
 		}

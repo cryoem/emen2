@@ -549,7 +549,6 @@ class DB(object):
 		def __makerootcontext(self, ctx=None, host=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
-
 			return ctx
 
 
@@ -567,10 +566,11 @@ class DB(object):
 				newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 
 			else:
+				# ian: todo: use User.checkpassword()
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
-				if checkpass:
+				if checkpass or ctx.checkadmin():
 					newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 
 				else:
@@ -2055,14 +2055,15 @@ class DB(object):
 					g.log.msg('LOG_INFO', 'Ignored: (%s)' % e)
 
 
-			#ol=False
+			ol=False
 			if not hasattr(usernames,"__iter__"):
-				#ol=True
+				ol=True
 				usernames = [usernames]
 
 
 			delusers, addusers, records, childstore = {}, {}, {}, {}
 
+			# Need to commit users before records will validate
 			for username in usernames:
 				if not username in self.__newuserqueue.keys(txn=txn):
 					raise KeyError, "User %s is not pending approval" % username
@@ -2070,7 +2071,7 @@ class DB(object):
 				if self.__users.get(username, txn=txn):
 					delusers[username] = None
 					g.log.msg("LOG_ERROR","User %s already exists, deleted pending record" % username)
-
+					continue
 
 				# ian: create record for user.
 				user = self.__newuserqueue.sget(username, txn=txn) #[username]
@@ -2082,51 +2083,61 @@ class DB(object):
 					g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 					time.sleep(2)
 
-
 				else:
-					if user.record == None and user.signupinfo:
-
-						tmpctx = self.__makerootcontext(txn=txn)
-
-						rec = self.newrecord("person", ctx=tmpctx, txn=txn)
-						rec["username"] = username
-						name = user.signupinfo.get('name', ['', '', ''])
-						rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
-						rec["email"] = user.signupinfo.get('email')
-						rec.adduser(username, level=3)
-
-						for k,v in user.signupinfo.items():
-							rec[k] = v
-
-						#print "putting record..."
-						rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
-
-						# ian: todo: turning this off for now..
-						#print "creating child records"
-						#children = user.create_childrecords()
-						#children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
-
-						#if children != []:
-						#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
-						#	for links in children:
-						#		child, parents = links
-						#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
-
-
-						user.record = rec.recid
-
-					user.signupinfo = None
+					# OK, add user
 					addusers[username] = user
 					delusers[username] = None
+					
 
-			self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
-			self.__commit_newusers(delusers, ctx=ctx, txn=txn)
+			# Update user queue / users
+			addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
+			delusers = self.__commit_newusers(delusers, ctx=ctx, txn=txn)
+
+			print "stage 1: ", addusers
+
+			# Pass 2 to add records
+			for user in addusers:
+								
+				if user.record == None and user.signupinfo:
+
+					# ian: todo: Do we need this root ctx?
+					tmpctx = self.__makerootcontext(txn=txn)
+
+					rec = self.newrecord("person", ctx=tmpctx, txn=txn)
+					rec["username"] = username
+					name = user.signupinfo.get('name', ['', '', ''])
+					rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
+					rec["email"] = user.signupinfo.get('email')
+					rec.adduser(username, level=3)
+
+					for k,v in user.signupinfo.items():
+						rec[k] = v
+
+					#print "putting record..."
+					rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
+
+					# ian: todo: turning this off for now..
+					#print "creating child records"
+					#children = user.create_childrecords()
+					#children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
+
+					#if children != []:
+					#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
+					#	for links in children:
+					#		child, parents = links
+					#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+
+
+					user.record = rec.recid
+					user.signupinfo = None
+
+			self.__commit_users(addusers, ctx=ctx, txn=txn)
 
 			#@end
 
-			ret = addusers.keys()
-			# if ol and len(ret)==1:
-			# 	return ret[0]
+			ret = addusers
+			if ol and len(ret)==1:
+			 	return ret[0]
 			return ret
 
 
@@ -2237,11 +2248,12 @@ class DB(object):
 		#@txn
 		@DBProxy.publicmethod
 		def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
-
-			if (username and username != ctx.username) and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				
+			if username:
+				if username != ctx.username and not ctx.checkadmin():	
+					raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 			else:
-				username = ctx.username
+				username = ctx.username	
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
 
@@ -2472,10 +2484,13 @@ class DB(object):
 				raise KeyError, "User with username '%s' already pending approval" % user.username
 
 			assert hasattr(user, '_User__secret')
+			print "signupinfo:"
+			print user.signupinfo
 
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
+			print user.signupinfo
 
 			if ctx.checkadmin():
 				#print "approving %s"%user.username
@@ -2584,7 +2599,8 @@ class DB(object):
 			for i in usernames:
 
 				user = self.__users.get(i, None, txn=txn)
-
+				user.setContext(ctx)
+				
 				if user == None:
 					if filt:
 						continue
@@ -3650,7 +3666,8 @@ class DB(object):
 					raise Exception, "Cannot update non-existent record %s"%recid
 
 
-
+				print "test ctx: ",ctx
+				updrec.setContext(ctx)
 				updrec.validate(orec=orec, warning=warning)
 
 				# compare to original record
