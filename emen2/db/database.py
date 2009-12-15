@@ -214,7 +214,7 @@ class DB(object):
 
 			# g.log.msg('LOG_INIT', "Database initialization started")
 
-			# global DBENV
+			global DBENV
 			DBENV = None
 			
 			if DBENV == None:
@@ -549,6 +549,7 @@ class DB(object):
 		def __makerootcontext(self, ctx=None, host=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
+			ctx._setDBProxy(txn=txn)
 			return ctx
 
 
@@ -561,6 +562,7 @@ class DB(object):
 			newcontext = None
 			username = unicode(username)
 
+
 			# Anonymous access
 			if username == "anonymous":
 				newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
@@ -570,7 +572,7 @@ class DB(object):
 				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
 
 				# Admins can "su"
-				if checkpass or ctx.checkadmin():
+				if checkpass: # or ctx.checkadmin():
 					newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 
 				else:
@@ -603,6 +605,10 @@ class DB(object):
 
 			s = hashlib.sha1(password)
 
+			if ctx:
+				if ctx.checkadmin():
+					return True
+
 			try:
 				user = self.__users.sget(username, txn=txn)
 			except:
@@ -610,7 +616,7 @@ class DB(object):
 
 			if user.disabled:
 				raise subsystems.exceptions.DisabledUserError, subsystems.exceptions.DisabledUserError.__doc__ % username
-
+				
 			return s.hexdigest() == user.password
 
 
@@ -3666,7 +3672,6 @@ class DB(object):
 					raise Exception, "Cannot update non-existent record %s"%recid
 
 
-				print "test ctx: ",ctx
 				updrec.setContext(ctx)
 				updrec.validate(orec=orec, warning=warning)
 
@@ -4658,7 +4663,8 @@ class DB(object):
 
 
 				# ian: todo: change this to some other mechanism...
-				ctx = self.__makerootcontext()
+				# ctx = self.__makerootcontext()
+
 				user, groups = ctx.username, ctx.groups
 
 				if not ctx.checkadmin():

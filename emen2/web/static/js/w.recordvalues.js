@@ -127,7 +127,7 @@ multiwidget.prototype = {
 			this.c_edit = $(".jslink",this.controlsroot);
 			
 			this.ext_save = $('<input type="submit" value="Save" />').one("click", function(e){e.stopPropagation();self.event_save(e)});
-			this.ext_cancel = $('<input type="button" value="Cancel" />').one("click", function(e){e.stopPropagation();self.event_cancel(e)});
+			this.ext_cancel = $('<input type="button" value="Cancel" />').bind("click", function(e){e.stopPropagation();self.event_cancel(e)});
 
 			this.c_box = $('<span />');
 			this.c_box.append(this.ext_save,this.ext_cancel);
@@ -143,7 +143,7 @@ multiwidget.prototype = {
 		
 			if (this.ext_cancel) {
 				var self=this;
-				this.ext_cancel.one("click", function(e){e.stopPropagation();self.event_cancel(e)});
+				this.ext_cancel.bind("click", function(e){e.stopPropagation();self.event_cancel(e)});
 			}
 
 		}
@@ -486,7 +486,7 @@ widget.prototype = {
 		if (this.controls) {
 			this.c_controls=$('<div class="controls"></div>').append(
 				$('<input type="submit" value="Save" />').one("click", function(e) {e.stopPropagation();self.save()}),
-				$('<input type="button" value="Cancel" />').one("click", function(e) {e.stopPropagation();self.hide()})
+				$('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()})
 				//$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
 				//$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.hide()})
 			);
