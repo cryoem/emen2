@@ -313,30 +313,30 @@ class DB(object):
 			# self.__dbseq = self.__records.create_sequence()
 
 
-			txn = self.newtxn()
-			ctx = self.__makerootcontext(txn=txn, host="localhost")
-
-			try:
-
-				try:
-					maxr = self.__records.sget(-1, txn=txn)
-					# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
-				except KeyError:
-					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
-					self.__createskeletondb(ctx=ctx, txn=txn)
-
-				#if _rebuild:
-				#	self.__rebuild_indexkeys(txn=txn)
-
-
-			except Exception, inst:
-				g.log.msg('LOG_ERROR', inst)
-				self.txnabort(txn=txn)
-				raise
-
-			else:
-				self.txncommit(txn=txn)
-
+#			txn = self.newtxn()
+#			ctx = self.__makerootcontext(txn=txn, host="localhost")
+#
+#			#try:
+#
+#			#	try:
+#			#		maxr = self.__records.sget(-1, txn=txn)
+#			#		# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+#			#	except KeyError:
+#			#		g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
+#			#		self.__createskeletondb(ctx=ctx, txn=txn)
+#
+#				#if _rebuild:
+#				#	self.__rebuild_indexkeys(txn=txn)
+#
+#
+#			except Exception, inst:
+#				g.log.msg('LOG_ERROR', inst)
+#				self.txnabort(txn=txn)
+#				raise
+#
+#			else:
+#				self.txncommit(txn=txn)
+#
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
 
