@@ -10,7 +10,6 @@ def sendmailtemplate(recipient,template,ctxt=None):
 	ctxt["recipient"]=recipient
 	ctxt["MAILADMIN"]=g.MAILADMIN
 
-
 	msg = g.templates.render_template(template, ctxt)
 	sendmailraw(recipient,msg)
 
