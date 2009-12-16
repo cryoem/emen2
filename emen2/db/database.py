@@ -2099,7 +2099,6 @@ class DB(object):
 			addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
 			delusers = self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
-			print "stage 1: ", addusers
 
 			# Pass 2 to add records
 			for user in addusers:
@@ -2140,11 +2139,11 @@ class DB(object):
 			self.__commit_users(addusers, ctx=ctx, txn=txn)
 
 			#@end
-
-			ret = addusers
-			if ol and len(ret)==1:
-			 	return ret[0]
-			return ret
+			approveusernames = [user.username for user in addusers]
+			
+			if ol and len(approveusernames)==1:
+			 	return approveusernames[0]
+			return approveusernames
 
 
 
@@ -2467,16 +2466,16 @@ class DB(object):
 
 		#@txn
 		@DBProxy.publicmethod
-		def adduser(self, inuser, ctx=None, txn=None):
+		def adduser(self, user, ctx=None, txn=None):
 			"""adds a new user record. However, note that this only adds the record to the
 			new user queue, which must be processed by an administrator before the record
 			becomes active. This system prevents problems with securely assigning passwords
 			and errors with data entry. Anyone can create one of these"""
 
-			secret = hashlib.sha1(str(id(inuser)) + str(time.time()) + str(random.random()))
+			secret = hashlib.sha1(str(id(user)) + str(time.time()) + str(random.random()))
 
 			try:
-				user = dataobjects.user.User(inuser, secret=secret.hexdigest(), ctx=ctx)
+				user = dataobjects.user.User(user, secret=secret.hexdigest(), ctx=ctx)
 			except Exception, inst:
 				raise ValueError, "User instance or dict required (%s)"%inst
 
@@ -2489,20 +2488,18 @@ class DB(object):
 			if self.__newuserqueue.get(user.username, txn=txn):
 				raise KeyError, "User with username '%s' already pending approval" % user.username
 
+
 			assert hasattr(user, '_User__secret')
-			print "signupinfo:"
-			print user.signupinfo
 
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
-			print user.signupinfo
 
 			if ctx.checkadmin():
 				#print "approving %s"%user.username
 				self.approveuser(user.username, ctx=ctx, txn=txn)
 
-			return inuser
+			return user.username
 
 
 
@@ -2525,6 +2522,7 @@ class DB(object):
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
+			return user.username
 
 
 

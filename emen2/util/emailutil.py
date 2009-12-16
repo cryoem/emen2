@@ -7,8 +7,8 @@ g = emen2.globalns.GlobalNamespace('')
 
 def sendmailtemplate(recipient,template,ctxt=None):
 	if ctxt==None: ctxt={}
-	ctxt["recipient"]=recipient
-	ctxt["MAILADMIN"]=g.MAILADMIN
+	ctxt["recipient"] = recipient
+	ctxt["MAILADMIN"] = g.MAILADMIN
 
 	msg = g.templates.render_template(template, ctxt)
 	sendmailraw(recipient,msg)
@@ -33,7 +33,6 @@ def sendmail(recipient,subject,msgtxt, db=None):
 
 
 def sendmailraw(recipient,content):
-	#return
 	s = smtplib.SMTP(g.MAILHOST)
 	s.set_debuglevel(1)
 	s.sendmail(g.MAILADMIN, [recipient], content)
