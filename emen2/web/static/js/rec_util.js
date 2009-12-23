@@ -126,17 +126,33 @@ function getrecord(recid) {
 //////////////////////////////////////////
 
 
-function notify(msg,fade) {
-	//$("#alert").empty();
+function notify(msg, fade, error) {
 	var msg=$('<li>'+msg+'</li>');
-	msg.click(function(){$(this).fadeOut()});
-	$("#alert").append(msg).fadeIn();
-	if (!fade) {
-		setTimeout(function(){msg.fadeOut()},3000)
+
+	if (error) {
+		msg.addClass("error");
 	}
-	if (fade > 0) {
-		setTimeout(function(){msg.fadeOut()},fade*1000)
-	}
+
+	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/images/delete.png" />');
+	var killbutton = $('<span>X</span>');
+	killbutton.click(function() {
+		$(this).parent().fadeOut(function(){
+			//fadeoutcallback; in this context, 'this' is li
+			$(this).remove();
+			});		
+	});
+	killbutton.addClass("kill");
+	msg.append(killbutton);
+
+	// auto fade if given time value
+	//if (!fade) {
+	//	setTimeout(function(){msg.fadeOut()},3000)
+	//}
+	//if (fade > 0) {
+	//	setTimeout(function(){msg.fadeOut()},fade*1000)
+	//}
+
+	$("#alert").append(msg); //.fadeIn();
 	
 }
 

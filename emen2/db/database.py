@@ -23,6 +23,7 @@ from functools import partial, wraps
 import emen2
 import emen2.util.utils
 import emen2.util.ticker
+import emen2.util.emailutil
 
 import emen2.config.config
 import emen2.globalns
@@ -242,6 +243,13 @@ class DB(object):
 			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv)
 			#self.__updatecontexts = False
 
+			# Tokens (password reset, user self auth, etc.)
+			# self.__tokens = subsystems.btrees.BTree("tokens", keytype="s", filename=self.path+"/tokens.bdb", dbenv=self.__dbenv)
+
+			# Reverse map of email to users
+			# self.__usersbyemail = subsystems.btrees.IndexKeyBTree("usersbyemail", keytype="s", filename=self.path+"/security/usersbyemail.bdb", dbenv=self.__dbenv)
+			
+
 			# new users pending approval
 			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv)
 
@@ -264,6 +272,7 @@ class DB(object):
 			# Defined RecordDefs
 			# RecordDef objects indexed by name
 			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv)
+
 
 
 
@@ -313,30 +322,30 @@ class DB(object):
 			# self.__dbseq = self.__records.create_sequence()
 
 
-#			txn = self.newtxn()
-#			ctx = self.__makerootcontext(txn=txn, host="localhost")
-#
-#			#try:
-#
-#			#	try:
-#			#		maxr = self.__records.sget(-1, txn=txn)
-#			#		# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
-#			#	except KeyError:
-#			#		g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
-#			#		self.__createskeletondb(ctx=ctx, txn=txn)
-#
-#				#if _rebuild:
-#				#	self.__rebuild_indexkeys(txn=txn)
-#
-#
-#			except Exception, inst:
-#				g.log.msg('LOG_ERROR', inst)
-#				self.txnabort(txn=txn)
-#				raise
-#
-#			else:
-#				self.txncommit(txn=txn)
-#
+			txn = self.newtxn()
+			ctx = self.__makerootcontext(txn=txn, host="localhost")
+
+			try:
+
+				try:
+					maxr = self.__records.sget(-1, txn=txn)
+					# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+				except KeyError:
+					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
+					self.__createskeletondb(ctx=ctx, txn=txn)
+
+				if _rebuild:
+					self.__rebuild_indexkeys(txn=txn)
+
+
+			except Exception, inst:
+				g.log.msg('LOG_ERROR', inst)
+				self.txnabort(txn=txn)
+				raise
+
+			else:
+				self.txncommit(txn=txn)
+
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
 
@@ -389,8 +398,8 @@ class DB(object):
 		def newtxn1(self, parent=None, ctx=None):
 			#g.log.msg('LOG_INFO', 'printing traceback')
 			#g.log.print_traceback(steps=5)
-			# g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
-			txn = self.__dbenv.txn_begin(parent=parent)
+			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
+			txn = self.__dbenv.txn_begin(parent=parent, flags=bsddb3.db.DB_TXN_SNAPSHOT)
 			try:
 				type(self).txncounter += 1
 				self.txnlog[id(txn)] = txn
@@ -1747,7 +1756,9 @@ class DB(object):
 					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
 				if filt and keytype=="record":
+					print "before: %s"%len(allr)
 					allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
+					print "after: %s"%len(allr)
 
 				if flat:
 					return allr
@@ -1770,7 +1781,9 @@ class DB(object):
 
 			return ret
 
-
+		
+		
+		# ian: todo: move most of this to RelateBTree
 		def __getrel(self, key, keytype="record", recurse=1, rel="children", ctx=None, txn=None):
 			# indc is restricted subset (e.g. getindexbycontext)
 			"""get parent/child relationships; see: getchildren"""
@@ -2033,10 +2046,6 @@ class DB(object):
 			return [user.username for user in ret]
 
 
-		@DBProxy.publicmethod
-		@DBProxy.adminmethod
-		def getsecret(self, username, ctx=None, txn=None):
-			return self.__newuserqueue.get(username, txn=txn).get_secret()
 
 
 		#@txn
@@ -2091,6 +2100,9 @@ class DB(object):
 
 				else:
 					# OK, add user
+					# clear out the secret
+					user._User__secret = None
+					
 					addusers[username] = user
 					delusers[username] = None
 					
@@ -2248,6 +2260,7 @@ class DB(object):
 
 
 			return self.__commit_users(commitusers, ctx=ctx, txn=txn)
+			
 
 
 		#@txn
@@ -2273,9 +2286,22 @@ class DB(object):
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
 
+		@DBProxy.publicmethod
+		def setemail(self, email, username=None, ctx=None, txn=None):
 
+			if username:
+				if username != ctx.username and not ctx.checkadmin():	
+					raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's email"
+			else:
+				username = ctx.username	
 
+			user = self.getuser(username, ctx=ctx, txn=txn)
+			user.email = email
+			user.validate()
+						
+			g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
+			self.__commit_users([user], ctx=ctx, txn=txn)
 
 
 		##########################
@@ -2472,10 +2498,8 @@ class DB(object):
 			becomes active. This system prevents problems with securely assigning passwords
 			and errors with data entry. Anyone can create one of these"""
 
-			secret = hashlib.sha1(str(id(user)) + str(time.time()) + str(random.random()))
-
 			try:
-				user = dataobjects.user.User(user, secret=secret.hexdigest(), ctx=ctx)
+				user = dataobjects.user.User(user, ctx=ctx)
 			except Exception, inst:
 				raise ValueError, "User instance or dict required (%s)"%inst
 
@@ -2487,7 +2511,6 @@ class DB(object):
 			#if user.username in self.__newuserqueue:
 			if self.__newuserqueue.get(user.username, txn=txn):
 				raise KeyError, "User with username '%s' already pending approval" % user.username
-
 
 			assert hasattr(user, '_User__secret')
 
@@ -2603,7 +2626,6 @@ class DB(object):
 			for i in usernames:
 
 				user = self.__users.get(i, None, txn=txn)
-				user.setContext(ctx)
 				
 				if user == None:
 					if filt:
@@ -2611,6 +2633,7 @@ class DB(object):
 					else:
 						raise KeyError, "No such user: %s"%i
 
+				user.setContext(ctx)
 
 				# if the user has requested privacy, we return only basic info
 				#if (user.privacy and ctx.username == None) or user.privacy >= 2:
@@ -2636,7 +2659,6 @@ class DB(object):
 						user.userrec = {}
 
 					user.displayname = self.__formatusername(user.username, user.userrec, lnf=lnf, ctx=ctx, txn=txn)
-					user.email = user.userrec.get("email")
 
 				else:
 					user.userrec = {}
@@ -4153,12 +4175,16 @@ class DB(object):
 			pos = 0
 			crecs = True
 			recmap = {}
+			maxrecords = self.__records.get(-1, txn=txn)
 
 			while crecs:
 				txn2 = self.newtxn(txn)
 
-				crecs = self.getrecord(range(pos, pos+self.BLOCKLENGTH), filt=True, ctx=ctx, txn=txn2)
-				pos += len(crecs)
+				pos2 = pos + self.BLOCKLENGTH
+				if pos2 > maxrecords: pos2 = maxrecords
+					
+				crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
+				pos = pos2
 
 				# by omitting cache, will be treated as new recs...
 				secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx, txn=txn2)

@@ -101,6 +101,7 @@ td {
 }
 /***************/
 
+/*
 .home_opts {
 	position:absolute;
 	top:20px;
@@ -114,7 +115,6 @@ td {
 	position:absolute;
 	top:20px;
 	left:280px;
-	/*width:700px;*/
 	padding:20px;
 }
 .home_info .small {
@@ -125,15 +125,11 @@ td {
 	margin:4px;
 	margin-bottom:10px;
 }
-.home_userinfo_name {
-	font-size:20pt;
-	margin-bottom:10px;
-	border-bottom:dashed 1px #ccc;
-}
+*/
 
 
 
-.home_opts img {
+.home_opts img, .home_profilephoto {
 	padding:20px;
 	width:200px;
 }
@@ -846,23 +842,32 @@ html,body {
 
 /* alerts */
 #alert {	
+	/*
 	position:fixed;
 	top:0px;
 	z-index:10;
 	margin:0px;
 	margin-top:30px;
+	*/
 	list-style:none;
 	padding-left:0px;
 }
 #alert li {
-	float:left;
+	/*float:left;*/
 	clear:both;
+	width:600px;
 	padding:5px;
 	background:white;
 	margin:0px;
-	margin-left:35px;
+	margin-left:20px;
 	margin-bottom:10px;
 	border:solid 4px #FF8135;
+}
+#alert li.error {
+	border:solid 4px red;	
+}
+#alert li .kill {
+	float:right;
 }
 
 
@@ -1002,7 +1007,7 @@ PAGE / TAB
 
 .pagescontainer {
 	margin-top:20px;
-	width:800px;
+	/* width:800px; */
 }
 #pagescontainer_map {
 	margin-top:0px;
@@ -1040,6 +1045,52 @@ PAGE / TAB
 	background:white;
 	border-bottom:dashed 1px #ccc;
 }
+
+
+/* profiles */
+.profile_form_label {
+	width:120px;
+	float:left;
+	text-align:right;
+	padding-right:10px;
+}
+
+.profile_form_item {
+	padding:5px;
+}
+
+.profile_form_section {
+	padding-bottom:10px;
+}
+
+.profile_save_box {
+	width:400px;
+}
+
+.profile_save_box input {
+	float:right;
+}
+
+.profile_column0 {
+	float:left;
+	width:250px;
+	margin-right:20px;
+	border-right:solid 1px #ccc;
+	padding-top:20px;
+}
+
+.profile_column1 {
+	float:left;
+	margin-right:20px;		
+}
+
+.profile_column2 {
+	float:left;
+	width:450px;
+}
+
+	
+
 
 
 /* 
@@ -1252,13 +1303,18 @@ TEXT ELEMENTS
 =============================================================
 */
 
-.small { 
+.small {
 	line-height:120%;
 	font-size:10pt;
+	margin-top:0px;
+	margin-bottom:0px;
+	padding-top:10px;
+	border-bottom:solid 1px #ccc;
 }
 .small2 {
 	font-size:10pt;
 }
+
 
 a,.jslink {
 	cursor:pointer;
@@ -1296,12 +1352,11 @@ h1 {
 }
 
 h2 {
+	font-size:20pt;
+	margin-bottom:10px;
+	border-bottom:dashed 1px #ccc;
 	max-width:800px;
 	line-height:135%;
-	border-bottom:dotted 1px;
-	margin:0px;
-	margin-top:20px;
-	padding:0px;
 }
 
 h3 {
@@ -1322,11 +1377,6 @@ h6 {
 	display:inline;
 }
 
-p.small {
-	font-size:10pt;
-	margin-top:0px;
-	margin-bottom:0px;
-}
 
 
 .page_comments p {

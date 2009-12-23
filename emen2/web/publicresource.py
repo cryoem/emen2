@@ -6,6 +6,7 @@ import demjson
 import emen2.globalns
 import re
 import time
+import collections
 
 from twisted.internet import threads
 from twisted.web.resource import Resource
@@ -51,59 +52,79 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have
 		      sequential numbers
 		"""
-
+		
+		
 		result = {}
 		filenames = {}
-
+		sdicts = collections.defaultdict(dict)
+		
 		if content:
 			filenames = self.__parse_filenames(content)
 
 		for key in set(args.keys()) - self.special_keys:
+
 			sdict = {}
-			format=None
-			pos=None
-
-
-			p=str(key).split("___")
-			name=p[0]
+			format = None
+			pos = None
+		
+			# split item:
+			# e.g.
+			# param___01
+			# param___01___json
+			# dict___key___dict
+			
+			p = str(key).split("___")
+			name = p[0]
 
 			if key=="":
 				continue
 
 			if len(p)==3:
-				format, pos =p[1:3]
+				pos, format = p[1:3]
 
-			if len(p)==2:
+			elif len(p)==2:
 				if p[1].isdigit():
-					pos=p[1]
+					pos = p[1]
 				else:
-					format=p[1]
+					format = p[1]
 
 			sdict = {}
-			key=str(key)
+			key = str(key)
+			value = args[key][0]
 
-			value=args[key][0]
-			if format=="json":
+			if format == "json":
 				value = self.__parse_jsonargs(value)
 				if name == 'args':
 					sdict = dict((k.encode('utf-8'), v) for k,v in value.iteritems())
 					value = None
 				else:
-					result[name]=value
-			# What is the utility of this?
-			elif format=="file":
-				fn=filenames.get(key)
-				value=(fn,value)
-				result[name]=value
+					result[name] = value
 
-			if pos is not None:
+			elif format == "file":
+				fn = filenames.get(key)
+				value = (fn,value)
+				result[name] = value
+
+			elif format == "dict":
+				sdicts[name][pos] = value
+
+
+			if pos is not None and format != "dict":
+				pos = int(pos)
 				v2 = result.get(name, [])
-				v2.insert(int(pos), value)
-				result[name]=v2
+				v2.insert(pos, value)
+				result[name] = v2				
+				
+
 			elif format is None:
-				result[key]=value
+				result[key] = value
+
 
 			result.update(sdict)
+		
+		
+		for k,v in sdicts.items():
+			result[k] = v
 
 		return result
 
