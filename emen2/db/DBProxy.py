@@ -41,29 +41,35 @@ class DBProxy(object):
 	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None, ctx=None, txn=None):
 		self.__txn = None
 		self.__bound = False
-		
+
 		if not dbpath:
 			dbpath = g.EMEN2DBPATH
 
 		if not db:
 			db = database.DB(dbpath, importmode=importmode)
-			
+
 		self.__db = weakref.proxy(db)
 
 		self.__ctx = ctx
-		self.__txn = txn		
+		self.__txn = txn
 
 
 	def __enter__(self):
+		g.debug('beginning DBProxy context')
 		self.__oldtxn = self.__txn
 		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
+		g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		return self
 
 
 	def __exit__(self, type, value, traceback):
+		g.debug('ending DBProxy context')
+		g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		if self.__oldtxn is not self.__txn:
 			if type is None: self._committxn()
-			else: self._aborttxn()
+			else:
+				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
+				self._aborttxn()
 		del self.__oldtxn
 
 
@@ -127,6 +133,7 @@ class DBProxy(object):
 			raise
 
 		self.__bound = True
+		return self
 
 
 	def _clearcontext(self):
@@ -236,26 +243,29 @@ def publicmethod(func):
 	"""Decorator for public API database method"""
 	@wraps(func)
 	def _inner(self, *args, **kwargs):
+		#g.debug('entering func: %r' % func)
 
-		
+
 		result = None
 		txn = kwargs.get('txn')
 		ctx = kwargs.get('ctx')
 		commit = False
 
 
-		if txn is None:
+		if txn is False:
+			txn = None
+		elif bool(txn) is False:
 			txn = self.newtxn()
 			commit = True
 		kwargs['txn'] = txn
 
-		#print "Running publicmethod %s: ctx %s, txn %s"%(func.func_name, ctx, txn)
-
 
 		try:
 			t = time.time()
+			g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
 			result = func(self, *args, **kwargs)
-			#print "-> %0.4f %s"%((time.time()-t)*1000, func.func_name)
+			g.debug('func: %r... done result: %r' % (func,result))
+			#g.debug("-> %0.4f %s"%((time.time()-t)*1000, func.func_name))
 
 		except Exception, e:
 			# traceback.print_exc(e)
@@ -265,8 +275,10 @@ def publicmethod(func):
 
 		else:
 			if commit is True:
+				#g.log('committing, func left: %r txn: %r' % (func,txn) )
 				txn and self.txncommit(ctx=ctx, txn=txn)
 
+		g.debug('leaving func: %r' % func)
 		return result
 
 	DBProxy._register_publicmethod(func.func_name, _inner)

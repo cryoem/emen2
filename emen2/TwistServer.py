@@ -35,7 +35,7 @@ def interact():
 
 
 
-def inithttpd():	
+def inithttpd():
 	import emen2.TwistSupport_html.uploadresource
 	import emen2.TwistSupport_html.downloadresource
 	import emen2.TwistSupport_html.publicresource
@@ -48,7 +48,7 @@ def inithttpd():
 
 	import emen2.TwistSupport_html.public.views
 	emen2.TwistSupport_html.public.views.load_views()
-	
+
 	root = static.File(g.STATICPATH)
 
 	resources = dict(
@@ -62,13 +62,13 @@ def inithttpd():
 	)
 
 	prepare_web()
-	
+
 	load_resources(root, resources)
 
 
-	# Start server	
+	# Start server
 	g.log.msg(g.LOG_INIT, 'Listening ...')
-	
+
 	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
 
 	if g.EMEN2HTTPS:
@@ -84,5 +84,5 @@ if __name__ == "__main__":
 	parser = emen2.config.config.DBOptions()
 	parser.parse_args()
 	inithttpd()
-	
-	
+
+

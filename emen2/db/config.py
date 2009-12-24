@@ -45,7 +45,7 @@ class DBOptions(optparse.OptionParser):
 
 		try:
 			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL
-			g.LOG_ERR = emen2.subsystems.debug.DebugState.debugstates.LOG_ERROR
+			g.LOG_ERROR = emen2.subsystems.debug.DebugState.debugstates.LOG_ERROR
 			g.LOG_WARNING = emen2.subsystems.debug.DebugState.debugstates.LOG_WARNING
 			g.LOG_WEB = emen2.subsystems.debug.DebugState.debugstates.LOG_WEB
 			g.LOG_INIT = emen2.subsystems.debug.DebugState.debugstates.LOG_INIT
@@ -57,7 +57,7 @@ class DBOptions(optparse.OptionParser):
 												get_state=False,
 												logfile_state=self.values.logfile_level)
 			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
-			g.log_error = functools.partial(g.log.msg, 'LOG_ERR')
+			g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')
 			g.warn = functools.partial(g.log.msg, 'LOG_WARNING')
 			g.log_init = functools.partial(g.log.msg, 'LOG_INIT')
 			g.log_info = functools.partial(g.log.msg, 'LOG_INFO')

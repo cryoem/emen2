@@ -324,7 +324,7 @@ class PublicView(Resource):
 
 
 	def _ebRender(self, failure, request, t=0, ctxid=None, host=None):
-		g.log.msg(g.LOG_ERR, failure)
+		g.log.msg('LOG_ERROR', failure)
 		data = ''
 		headers = {}
 		response = 500

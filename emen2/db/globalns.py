@@ -31,7 +31,7 @@ class GlobalNamespace(object):
 			sn = self.debugstates.get_name(self.debugstates[sn])
 			print u'%s :: %s :: %s' % (self, sn, self.print_list(args))
 
-	__vardict = {'log': LoggerStub()}
+	__vardict = {}#'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__all__ = []
 	def __init__(self,_=None):pass
