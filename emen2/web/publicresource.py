@@ -279,23 +279,11 @@ class PublicView(Resource):
 		# this binds the Context to the DBProxy for the duration of the view
 		# g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
-		
-		db._starttxn()
 
-		try:
-			db._setcontext(ctxid,host)
+		with db._setcontext(ctxid,host):
 			ret, headers = callback(db=db)
 			if headers.get('content-type') != "image/jpeg":
 				ret = unicode(ret).encode('utf-8')
-		except Exception, e:
-			# ian: todo: print this?
-			g.log.msg("LOG_ERROR",e)
-			db._aborttxn()
-			raise
-		else:
-			db._committxn()
-
-		db._clearcontext()
 
 		return ret, headers
 
@@ -307,7 +295,7 @@ class PublicView(Resource):
 
 		try:
 			headers = {"content-type": "text/html; charset=utf-8",
-					 "Cache-Control":"no-cache", "Pragma":"no-cache"}
+							"Cache-Control":"no-cache", "Pragma":"no-cache"}
 
 			result, content_headers = result
 
@@ -326,7 +314,7 @@ class PublicView(Resource):
 					path = request.uri,
 					size = len(result)
 			))
-			
+
 		except BaseException, e:
 			self._ebRender(e, request, ctxid=ctxid, host=host)
 
@@ -340,23 +328,23 @@ class PublicView(Resource):
 		data = ''
 		headers = {}
 		response = 500
-		
-		
-		
+
+
+
 		try:
 
 			try:
 				if isinstance(failure, BaseException): raise; failure
 				else: failure.raiseException()
 
-			except (emen2.Database.subsystems.exceptions.AuthenticationError, 
+			except (emen2.Database.subsystems.exceptions.AuthenticationError,
 					emen2.Database.subsystems.exceptions.SessionError,
 					emen2.Database.subsystems.exceptions.DisabledUserError), e:
 
                                 request.addCookie("ctxid", '', path='/')
                                 response = 401
                                 data = render_security_error(request.uri, e)
-	
+
 			except (emen2.Database.subsystems.exceptions.SecurityError), e:
 
 		                #request.addCookie("ctxid", '', path='/')
