@@ -55,16 +55,16 @@ class DBProxy(object):
 
 
 	def __enter__(self):
-		g.debug('beginning DBProxy context')
+		#g.debug('beginning DBProxy context')
 		self.__oldtxn = self.__txn
 		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
-		g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
+		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		return self
 
 
 	def __exit__(self, type, value, traceback):
-		g.debug('ending DBProxy context')
-		g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
+		#g.debug('ending DBProxy context')
+		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		if self.__oldtxn is not self.__txn:
 			if type is None: self._committxn()
 			else:
@@ -237,7 +237,6 @@ class DBProxy(object):
 
 
 
-
 # Wrapper methods for public API and admin API methods
 def publicmethod(func):
 	"""Decorator for public API database method"""
@@ -245,12 +244,10 @@ def publicmethod(func):
 	def _inner(self, *args, **kwargs):
 		#g.debug('entering func: %r' % func)
 
-
 		result = None
 		txn = kwargs.get('txn')
 		ctx = kwargs.get('ctx')
 		commit = False
-
 
 		if txn is False:
 			txn = None
@@ -259,12 +256,11 @@ def publicmethod(func):
 			commit = True
 		kwargs['txn'] = txn
 
-
 		try:
-			t = time.time()
-			g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
+			#t = time.time()
+			#g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
 			result = func(self, *args, **kwargs)
-			g.debug('func: %r... done result: %r' % (func,result))
+			#g.debug('func: %r... done result: %r' % (func,result))
 			#g.debug("-> %0.4f %s"%((time.time()-t)*1000, func.func_name))
 
 		except Exception, e:
@@ -278,7 +274,7 @@ def publicmethod(func):
 				#g.log('committing, func left: %r txn: %r' % (func,txn) )
 				txn and self.txncommit(ctx=ctx, txn=txn)
 
-		g.debug('leaving func: %r' % func)
+		#g.debug('leaving func: %r' % func)
 		return result
 
 	DBProxy._register_publicmethod(func.func_name, _inner)

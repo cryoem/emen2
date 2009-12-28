@@ -204,11 +204,9 @@ class DB(object):
 					[fil.close() for fil in (dbci, dbco)]
 
 
-			if not os.access(self.path + "/security", os.F_OK):
-				os.makedirs(self.path + "/security")
-
-			if not os.access(self.path + "/index", os.F_OK):
-				os.makedirs(self.path + "/index")
+			for path in ["/security","/index","/index/security","/index/params","/index/records"]:
+				if not os.access(self.path + path, os.F_OK):
+					os.makedirs(self.path + path)
 
 			self.__allowclose = bool(allowclose)
 
@@ -237,27 +235,16 @@ class DB(object):
 			# Users
 			# active database users / groups
 			self.__users = subsystems.btrees.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv)
-
-			self.__groupsbyuser = subsystems.btrees.IndexKeyBTree("groupsbyuser", keytype="s", filename=self.path+"/security/groupsbyuser", dbenv=self.__dbenv)
-
 			self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv)
-			#self.__updatecontexts = False
-
-			# Tokens (password reset, user self auth, etc.)
-			# self.__tokens = subsystems.btrees.BTree("tokens", keytype="s", filename=self.path+"/tokens.bdb", dbenv=self.__dbenv)
-
-			# Reverse map of email to users
-			# self.__usersbyemail = subsystems.btrees.IndexKeyBTree("usersbyemail", keytype="s", filename=self.path+"/security/usersbyemail.bdb", dbenv=self.__dbenv)
-			
-
 			# new users pending approval
 			self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv)
-
 			# multisession persistent contexts
 			self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=self.path+"/security/contexts.bdb", dbenv=self.__dbenv)
-
 			# local cache dictionary of valid contexts
 			self.__contexts = {}
+
+
+
 
 
 
@@ -273,6 +260,9 @@ class DB(object):
 			# RecordDef objects indexed by name
 			self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv)
 
+			# Workflow database, user indexed btree of lists of things to do
+			# again, key -1 is used to store the wfid counter
+			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv)
 
 
 
@@ -282,39 +272,39 @@ class DB(object):
 			# and database information is stored with key=0
 
 			# The actual database, containing id referenced Records
-			self.__records = subsystems.btrees.RelateBTree("database", keytype="d", filename=self.path+"/database.bdb", dbenv=self.__dbenv)
+			self.__records = subsystems.btrees.RelateBTree("database", keytype="d_old", filename=self.path+"/database.bdb", dbenv=self.__dbenv)
+
+
 
 			# Indices
 
 			# index of records each user can read
-			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/roindex.bdb", keytype="s", dbenv=self.__dbenv)
-			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/security/groindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/index/security/secrindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv)
+			self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex_groups", filename=self.path+"/index/security/secrindex_groups.bdb", keytype="s", datatype="d", dbenv=self.__dbenv)
+			self.__groupsbyuser = subsystems.btrees.FieldBTree("groupsbyuser", keytype="s", datatype="s", filename=self.path+"/index/security/groupsbyuser.bdb", dbenv=self.__dbenv)
 
 			# index of records belonging to each RecordDef
-			self.__recorddefindex = subsystems.btrees.FieldBTree("RecordDefindex", filename=self.path+"/RecordDefindex.bdb", keytype="s", dbenv=self.__dbenv)
+			self.__recorddefindex = subsystems.btrees.FieldBTree("recorddef", filename=self.path+"/index/records/recorddefindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv)
 
-			# key=record id, value=last time record was changed
 			# ian: todo: to simplify, just handle this through modifytime param...
-			self.__timeindex = subsystems.btrees.BTree("TimeChangedindex", keytype="d", filename=self.path+"/TimeChangedindex.bdb", dbenv=self.__dbenv)
+			self.__timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=self.path+"/index/records/timeindex.bdb", dbenv=self.__dbenv)
 
 			# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 			self.__fieldindex = {}
 
 
 			# This should be rebuilt after restore
-			self.__indexkeys = None
-			if not self.__importmode:
-				_rebuild = False
-				if not os.path.exists(self.path+"/IndexKeys.bdb"):
-					_rebuild = True
-				self.__indexkeys = subsystems.btrees.IndexKeyBTree("IndexKeys", keytype="s", filename=self.path+"/IndexKeys.bdb", dbenv=self.__dbenv)
+			#self.__indexkeys = None
+			#if not self.__importmode:
+			#	_rebuild = False
+			#	if not os.path.exists(self.path+"/IndexKeys.bdb"):
+			#		_rebuild = True
+			#	# ian: todo: this has mixed data types, so leave as None, will just call pickle. improve this later.
+			self.__indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=self.path+"/index/indexkeys.bdb", dbenv=self.__dbenv)
 
 
 
 
-			# Workflow database, user indexed btree of lists of things to do
-			# again, key -1 is used to store the wfid counter
-			self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv)
 
 
 			# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
@@ -322,29 +312,29 @@ class DB(object):
 			# self.__dbseq = self.__records.create_sequence()
 
 
-			txn = self.newtxn()
-			ctx = self.__makerootcontext(txn=txn, host="localhost")
-
-			try:
-
-				try:
-					maxr = self.__records.sget(-1, txn=txn)
-					# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
-				except KeyError:
-					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
-					self.__createskeletondb(ctx=ctx, txn=txn)
-
-				if _rebuild:
-					self.__rebuild_indexkeys(txn=txn)
-
-
-			except Exception, inst:
-				g.log.msg('LOG_ERROR', inst)
-				self.txnabort(txn=txn)
-				raise
-
-			else:
-				self.txncommit(txn=txn)
+			# txn = self.newtxn()
+			# ctx = self.__makerootcontext(txn=txn, host="localhost")
+			# 
+			# try:
+			# 
+			# 	try:
+			# 		maxr = self.__records.sget(-1, txn=txn)
+			# 		# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+			# 	except KeyError:
+			# 		g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
+			# 		self.__createskeletondb(ctx=ctx, txn=txn)
+			# 
+			# 	if _rebuild:
+			# 		self.__rebuild_indexkeys(txn=txn)
+			# 
+			# 
+			# except Exception, inst:
+			# 	g.log.msg('LOG_ERROR', inst)
+			# 	self.txnabort(txn=txn)
+			# 	raise
+			# 
+			# else:
+			# 	self.txncommit(txn=txn)
 
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
@@ -3171,7 +3161,6 @@ class DB(object):
 				pass
 
 
-			#paramname = self.__paramdefs.typekey(paramname)
 			f = self.__paramdefs.sget(paramname, txn=txn) #[paramname]				 # Look up the definition of this field
 			paramname = f.name
 
@@ -3184,7 +3173,8 @@ class DB(object):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
-			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, indexkeys=self.__indexkeys, filename="%s/index/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
+			# datatype = d, record IDs
+			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", indexkeys=self.__indexkeys, filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
 
 			return self.__fieldindex[paramname]
 
@@ -3194,6 +3184,8 @@ class DB(object):
 		@DBProxy.adminmethod
 		def __closeparamindex(self, paramname, ctx=None, txn=None):
 			self.__fieldindex.pop(paramname).close()
+
+
 
 		def __closeparamindexes(self, ctx=None, txn=None):
 			map(lambda x: self.__closeparamindex(x, ctx=ctx, txn=txn), self.__fieldindex.keys())
@@ -3758,7 +3750,7 @@ class DB(object):
 		# commit
 		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex, self.__timeindex
 		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
-		def __commit_records(self, crecs, updrels=[], onlypermissions=False, ctx=None, txn=None):
+		def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, ctx=None, txn=None):
 
 			rectypes = collections.defaultdict(list) # {}
 			newrecs = filter(lambda x:x.recid < 0, crecs)
@@ -3768,15 +3760,17 @@ class DB(object):
 
 			cache = {}
 			for i in crecs:
-				if i.recid < 0: continue
-				try: orec = self.__records.sget(i.recid, txn=txn, flags=RMWFLAGS) # [recid]
-				except: orec = {}
+				if reindex or i.recid < 0:
+					continue
+				try:
+					orec = self.__records.sget(i.recid, txn=txn, flags=RMWFLAGS) # [recid]
+				except:
+					orec = {}
 				cache[i.recid] = orec
 
 
 			# acquire write locks on records at this point
 			# first, get index updates
-
 			indexupdates = {}
 			timeupdate = {}
 			if not onlypermissions:
@@ -3790,7 +3784,7 @@ class DB(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.__records.sget(-1, txn=txn) #, flags=RMWFLAGS)
+				baserecid = self.__records.sget(-1, txn=txn, flags=RMWFLAGS)
 				g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.__records.set(-1, baserecid + len(newrecs), txn=txn)
 
@@ -3804,10 +3798,13 @@ class DB(object):
 
 
 			# This actually stores the record in the database
-			for crec in crecs:
-				# g.log.msg("LOG_COMMIT","self.__records.set: %r"%crec.recid)
-				self.__records.set(crec.recid, crec, txn=txn)
-
+			if reindex:
+				for crec in crecs:
+					rectypes[crec.rectype].append(crec.recid)
+			else:
+				for crec in crecs:
+					g.log.msg("LOG_COMMIT","self.__records.set: %r"%crec.recid)
+					self.__records.set(crec.recid, crec, txn=txn)
 
 
 			# Security index
@@ -4158,6 +4155,57 @@ class DB(object):
 					delrefs[group].append(recid)
 
 			return addrefs, delrefs
+
+
+
+		def __rebuild_all(self, ctx=None, txn=None):
+			g.log.msg("LOG_INFO","Rebuilding ALL indexes")
+			
+			self.__secrindex.truncate(txn=txn)
+			self.__secrindex_groups.truncate(txn=txn)
+			self.__recorddefindex.truncate(txn=txn)
+			self.__timeindex.truncate(txn=txn)
+			self.__groupsbyuser.truncate(txn=txn)
+
+			allparams = self.__paramdefs.keys()
+			paramindexes = {}
+			for param in allparams:
+				paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+				if paramindex != None:
+					print paramindex
+					try:
+						paramindex.truncate(txn=txn)
+					except:
+						g.log.msg("LOG_INFO","Couldn't truncate %s"%param)
+					paramindexes[param] = paramindex
+					
+			g.log.msg("LOG_INFO","Done truncating all indexes")
+
+			self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
+
+			crecs = True
+			pos = 0
+			
+			maxrecords = self.__records.get(-1, txn=txn)
+			while crecs:
+				txn2 = self.newtxn(txn)
+				
+				pos2 = pos + self.BLOCKLENGTH
+				if pos2 > maxrecords:
+					pos2 = maxrecords
+				
+				crecs = self.getrecord(range(pos, pos2), filt=True, ctx=ctx, txn=txn2)
+				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
+				pos = pos2
+				
+				
+				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn2)
+				
+				txn2.commit()
+				
+			self.__rebuild_indexkeys(ctx=ctx, txn=txn)
+				
+			g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
 
 
