@@ -312,29 +312,29 @@ class DB(object):
 			# self.__dbseq = self.__records.create_sequence()
 
 
-			# txn = self.newtxn()
-			# ctx = self.__makerootcontext(txn=txn, host="localhost")
-			# 
-			# try:
-			# 
-			# 	try:
-			# 		maxr = self.__records.sget(-1, txn=txn)
-			# 		# g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
-			# 	except KeyError:
-			# 		g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
-			# 		self.__createskeletondb(ctx=ctx, txn=txn)
-			# 
-			# 	if _rebuild:
-			# 		self.__rebuild_indexkeys(txn=txn)
-			# 
-			# 
-			# except Exception, inst:
-			# 	g.log.msg('LOG_ERROR', inst)
-			# 	self.txnabort(txn=txn)
-			# 	raise
-			# 
-			# else:
-			# 	self.txncommit(txn=txn)
+			txn = self.newtxn()
+			ctx = self.__makerootcontext(txn=txn, host="localhost")
+			
+			try:
+			
+				try:
+					maxr = self.__records.sget(-1, txn=txn)
+					g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+				except KeyError:
+					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
+					self.__createskeletondb(ctx=ctx, txn=txn)
+			
+				#if _rebuild:
+				#	self.__rebuild_indexkeys(txn=txn)
+			
+			
+			except Exception, inst:
+				g.log.msg('LOG_ERROR', inst)
+				self.txnabort(txn=txn)
+				raise
+			
+			else:
+				self.txncommit(txn=txn)
 
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
@@ -788,6 +788,7 @@ class DB(object):
 
 
 
+		# ian: todo: clean this up some more...
 		#@txn
 		#@write #self.__bdocounter
 		@DBProxy.publicmethod
@@ -800,40 +801,40 @@ class DB(object):
 			if not filename:
 				raise ValueError, "Filename may not be 'None'"
 
-			if key and not ctx.checkadmin():
+			if (key or recid == None) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+
 
 			#if not validate and not ctx.checkadmin():
 			#	raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
 
 			# ian: todo: acquire lock?
-			rec = self.getrecord(recid, ctx=ctx, txn=txn)
-
-			if not rec.writable():
-				raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
+			if not key:
+				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
+				if not rec.writable():
+					raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
 			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
 
+			if not key:
+				if not param:
+					param = "file_binary"
 
-			if not param:
-				param = "file_binary"
+				param = self.getparamdef(param, ctx=ctx, txn=txn)
 
-			param = self.getparamdef(param, ctx=ctx, txn=txn)
+				if param.vartype == "binary":
+					v = rec.get(param.name) or []
+					v.append("bdo:"+bdoo.get("name"))
+					rec[param.name]=v
 
-			if param.vartype == "binary":
-				v = rec.get(param.name) or []
-				v.append("bdo:"+bdoo.get("name"))
-				rec[param.name]=v
+				elif param.vartype == "binaryimage":
+					rec[param.name]="bdo:"+bdoo.get("name")
 
-			elif param.vartype == "binaryimage":
-				rec[param.name]="bdo:"+bdoo.get("name")
+				else:
+					raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
 
-			else:
-				raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
-
-			self.putrecord(rec, warning=1, ctx=ctx, txn=txn)
-
+				self.putrecord(rec, ctx=ctx, txn=txn)
 
 
 			if filedata != None:
@@ -1471,21 +1472,22 @@ class DB(object):
 			This method returns a dictionary of all matching recid/value pairs
 			if subset is provided, will only return values for specified recids"""
 
-
-
 			paramindex = self.__getparamindex(paramname, ctx=ctx, txn=txn)
 			if paramindex == None:
 				return {}
 
-			if valrange == None:
-				r = dict(paramindex.items(txn=txn))
-			else:
-				r = dict(paramindex.items(valrange[0], valrange[1], txn=txn))
+			#if valrange == None:
+
+			r = dict(paramindex.items(txn=txn))
+
+			#else:
+			#	r = dict(paramindex.items(valrange[0], valrange[1], txn=txn))
 			#else:
 			#	r = {valrange:ind[valrange]}
 
 			# This takes the returned dictionary of value/list of recids
 			# and makes a dictionary of recid/value pairs
+
 			ret = {}
 			reverse = {}
 
@@ -1746,9 +1748,7 @@ class DB(object):
 					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
 				if filt and keytype=="record":
-					print "before: %s"%len(allr)
 					allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
-					print "after: %s"%len(allr)
 
 				if flat:
 					return allr
@@ -1816,7 +1816,7 @@ class DB(object):
 			result = {key: ret}
 			visited = set()
 
-			for x in xrange(recurse):
+			for x in xrange(recurse-1):
 
 				if not stack[x]:
 					break
@@ -1833,6 +1833,8 @@ class DB(object):
 						result[k] = new
 
 				visited |= stack[x]
+				
+			visited |= stack[-1]
 
 			return result, visited
 
@@ -3028,9 +3030,15 @@ class DB(object):
 			#if validate:
 			paramdef.validate()
 
+
 			#####################
 
 			self.__commit_paramdefs([paramdef], ctx=ctx, txn=txn)
+
+			# create the index for later use
+			# def __getparamindex(self, paramname, create=True, ctx=None, txn=None):
+			paramindex = self.__getparamindex(paramdef.name, create=True, ctx=ctx, txn=txn)
+
 
 			links = []
 			if parents: links.append( map(lambda x:(x, paramdef.name), parents) )
@@ -3148,12 +3156,6 @@ class DB(object):
 
 
 		def __getparamindex(self, paramname, create=True, ctx=None, txn=None):
-			"""Internal function to open the parameter indices at need.
-			Later this may implement some sort of caching mechanism.
-			If create is not set and index doesn't exist, raises
-			KeyError. Returns "link" or "child" for this type of indexing"""
-
-
 
 			try:
 				return self.__fieldindex[paramname] # [paramname]				# Try to get the index for this key
@@ -3169,12 +3171,13 @@ class DB(object):
 
 			tp = self.vtm.getvartype(f.vartype).getindextype()
 
-			if not create and not os.access("%s/index/%s.bdb" % (self.path, paramname), os.F_OK):
+			if not create and not os.access("%s/index/params/%s.bdb" % (self.path, paramname), os.F_OK):
 				raise KeyError, "No index for %s" % paramname
 
 			# create/open index
 			# datatype = d, record IDs
-			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", indexkeys=self.__indexkeys, filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
+			#indexkeys=self.__indexkeys,
+			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
 
 			return self.__fieldindex[paramname]
 
@@ -3272,7 +3275,7 @@ class DB(object):
 
 
 
-
+		# ian: todo: why doesn't this accept multiple rectypes
 		@DBProxy.publicmethod
 		def getrecorddef(self, rectypename, recid=None, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
@@ -3956,6 +3959,9 @@ class DB(object):
 			except Exception, inst:
 				g.log.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst))
 				raise
+
+			print "==============="
+			print paramindex
 
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
