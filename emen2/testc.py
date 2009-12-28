@@ -7,10 +7,9 @@ import emen2.Database.DBProxy
 import emen2.Database.database
 
 db = emen2.Database.DBProxy.DBProxy()
-print db
 ddb = db._DBProxy__db
 
-#try:
-#	print db._login("root",g.ROOTPW)
-#except Exception, e:
-#	print e
+try:
+	print db._login("root",g.ROOTPW)
+except Exception, e:
+	print e

@@ -350,9 +350,9 @@ class DB(object):
 
 			self.__records.set(-1, 0, txn=txn)
 
-			assert ctx != None
+			#assert ctx != None
 			import skeleton
-			assert ctx != None
+			#assert ctx != None
 
 			for i in skeleton.core_users.items:
 				if self.__importmode:
