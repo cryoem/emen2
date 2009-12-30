@@ -12,27 +12,27 @@ g = emen2.globalns.GlobalNamespace()
 
 class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
-		#super(DBOptions, self).__init__()		
+		#super(DBOptions, self).__init__()
 		optparse.OptionParser.__init__(self, *args, **kwargs)
-		
+
 		self.add_option('-c', '--configfile', action='append', dest='configfile')
 		self.add_option('-t', '--templatedir', action='append', dest='templatedirs')
 		self.add_option('-v', '--viewdirs', action='append', dest='viewdirs')
 		self.add_option('-p', '--port', action='store', dest='port')
 		self.add_option('-l', '--log_level', action='store', dest='log_level')
-		self.add_option('--logfile_level', action='store', dest='logfile_level')		
+		self.add_option('--logfile_level', action='store', dest='logfile_level')
 
 
 	def parse_args(self, *args, **kwargs):
 		r1, r2 = optparse.OptionParser.parse_args(self,  *args, **kwargs)
 		self.load_config()
 		return r1, r2
-		
-		
+
+
 	def load_config(self):
 
 		print "Loading config files: %s"%(self.values.configfile or [defaultconfig])
-		
+
 		map(g.from_yaml, self.values.configfile or [defaultconfig])
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])

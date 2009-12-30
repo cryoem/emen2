@@ -12,14 +12,19 @@ class DBTree(object):
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
 
-	def __init__(self, db, root=None):
+	def __init__(self, db=None, root=None):
 		if db is not None:
+			self.db = db
 			self.__db = db
-			self.__root = root or min(db.getindexbyrecorddef('folder') or [0])
-			self.db = self.__db
+
+			if 'folder' in db.getrecorddefnames() and root is None:
+				self.__root = min(db.getindexbyrecorddef('folder') or [0])
+			else:
+				self.__root = root
+
 			self.__initmethods()
-		else:
-			g.log.msg('LOG_WARNING', 'db is None...')
+
+		else: g.log.msg('LOG_WARNING', 'db is None...')
 
 	def __initmethods(self):
 		self.get_path_id = self.__db._wrapmethod(self.__get_path_id)

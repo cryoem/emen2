@@ -62,6 +62,7 @@ class DBProxy(object):
 		return self
 
 
+	@g.log.debug_func
 	def __exit__(self, type, value, traceback):
 		#g.debug('ending DBProxy context')
 		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
@@ -70,7 +71,7 @@ class DBProxy(object):
 			else:
 				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 				self._aborttxn()
-		del self.__oldtxn
+		self.__oldtxn = None
 
 
 	def _gettxn(self):
@@ -114,17 +115,17 @@ class DBProxy(object):
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 			self.__ctx.setdb(db=self)
-			#print "\nDBProxy._setcontext results:"
-			#print "self ",hex(id(self))
-			#print "self.__ctx ", self.__ctx
-			#print "self.__ctx.db ", self.__ctx.db
-			#print "self.__ctx.ctxid ", self.__ctx.ctxid
-			#print "self.__ctx.username ", self.__ctx.username
-			#print "self.__ctx.groups ", self.__ctx.groups
-			#print "self.__ctx.grouplevels ", self.__ctx.grouplevels
-			#print "self.__db ", self.__db
-			#print "self.__txn ", self.__txn
-			#print "\n\n"
+			#g.log.msg('LOG_DEBUG', "\nDBProxy._setcontext results:")
+			#g.log.msg('LOG_DEBUG', "self ",hex(id(self)))
+			#g.log.msg('LOG_DEBUG', "self.__ctx ", self.__ctx)
+			#g.log.msg('LOG_DEBUG', "self.__ctx.db ", self.__ctx.db)
+			#g.log.msg('LOG_DEBUG', "self.__ctx.ctxid ", self.__ctx.ctxid)
+			#g.log.msg('LOG_DEBUG', "self.__ctx.username ", self.__ctx.username)
+			#g.log.msg('LOG_DEBUG', "self.__ctx.groups ", self.__ctx.groups)
+			#g.log.msg('LOG_DEBUG', "self.__ctx.grouplevels ", self.__ctx.grouplevels)
+			#g.log.msg('LOG_DEBUG', "self.__db ", self.__db)
+			#g.log.msg('LOG_DEBUG', "self.__txn ", self.__txn)
+			#g.log.msg('LOG_DEBUG', "\n\n")
 
 
 		except:
