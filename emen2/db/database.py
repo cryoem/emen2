@@ -147,7 +147,8 @@ class DB(object):
 			5: 'LOG_DEBUG',
 			6: 'LOG_DEBUG',
 			7: 'LOG_COMMIT',
-			8: 'LOG_COMMIT_INDEX'
+			8: 'LOG_COMMIT_INDEX',
+			9: 'LOG_TXN'
 			}
 
 		@staticmethod
@@ -236,6 +237,7 @@ class DB(object):
 			# active database users / groups
 			txn = self.newtxn()
 			try:
+
 				self.__users = subsystems.btrees.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
 				self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
 				# new users pending approval
@@ -260,38 +262,29 @@ class DB(object):
 				self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
 
 
-
 				# The actual database, keyed by recid, a positive integer unique in this DB instance
 				# ian todo: check this statement:
 				# 2 special keys exist, the record counter is stored with key -1
 				# and database information is stored with key=0
 
 				# The actual database, containing id referenced Records
-				g.debug('opening database....')
 				self.__records = subsystems.btrees.RelateBTree("database", keytype="d_old", filename=self.path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
-				g.debug('database opened')
 
 				# Indices
 
 				self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/index/security/secrindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
 				self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex_groups", filename=self.path+"/index/security/secrindex_groups.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
 				self.__groupsbyuser = subsystems.btrees.FieldBTree("groupsbyuser", keytype="s", datatype="s", filename=self.path+"/index/security/groupsbyuser.bdb", dbenv=self.__dbenv, txn=txn)
-				g.debug('secrindex opened....')
 
 				# index of records belonging to each RecordDef
-				g.debug('opening recorddefindex....')
 				self.__recorddefindex = subsystems.btrees.FieldBTree("recorddef", filename=self.path+"/index/records/recorddefindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
-				g.debug('recorddefindex opened....')
 
 				# key=record id, value=last time record was changed
 				# ian: todo: to simplify, just handle this through modifytime param...
-				g.debug('opening timeindex....')
 				self.__timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=self.path+"/index/records/timeindex.bdb", dbenv=self.__dbenv, txn=txn)
-				g.debug('timeindex opened....')
 
 				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
 				self.__fieldindex = {}
-
 
 				# This should be rebuilt after restore
 				self.__indexkeys = None
@@ -302,24 +295,18 @@ class DB(object):
 					self.__indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=self.path+"/index/indexkeys.bdb", dbenv=self.__dbenv, txn=txn)
 
 
-
-
 			except Exception, inst:
 				self.txnabort(txn=txn)
 				raise
 			else:
 				self.txncommit(txn=txn)
+
 			txn = self.newtxn()
 			try:
-
-
 				# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
 				#db sequence
 				# self.__dbseq = self.__records.create_sequence()
-
-
 				ctx = self.__makerootcontext(txn=txn, host="localhost")
-
 
 				try:
 					maxr = self.__records.sget(-1, txn=txn)
@@ -329,8 +316,6 @@ class DB(object):
 					if raw_input('record counter not found in key -1, enter y to reinitialize: ').lower().startswith('y'):
 						self.__createskeletondb(ctx=ctx, txn=txn)
 
-
-
 			except Exception, inst:
 				g.log.msg('LOG_ERROR', inst)
 				self.txnabort(txn=txn)
@@ -339,13 +324,13 @@ class DB(object):
 			else:
 				self.txncommit(txn=txn)
 
-			txn = self.newtxn()
-			try:
-				if _rebuild: self.__rebuild_indexkeys(txn=txn)
-			except Exception, inst:
-				self.txnabort(txn=txn)
-			else:
-				self.txncommit(txn=txn)
+			#txn = self.newtxn()
+			#try:
+			#	if _rebuild: self.__rebuild_indexkeys(txn=txn)
+			#except Exception, inst:
+			#	self.txnabort(txn=txn)
+			#else:
+			#	self.txncommit(txn=txn)
 
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
@@ -374,29 +359,13 @@ class DB(object):
 				self.putparamdef(i, ctx=ctx, txn=txn)
 
 			for i in skeleton.core_recorddefs.items:
-				g.log('putting recorddef: %r' % i) 
 				self.putrecorddef(i, ctx=ctx, txn=txn)
 
 			for i in skeleton.core_groups.items:
-				g.log('putting group: %r' % i) 
 				self.putgroup(i, ctx=ctx, txn=txn)
 
-
-			rootr = self.newrecord('folder', ctx=ctx, txn=txn)
-			rootr['recname'] = '<root>'
-			self.putrecord(rootr, ctx=ctx, txn=txn)
-
-			rootu = self.getuser('root', ctx=ctx, txn=txn)
-			rootur = self.newrecord('person', ctx=ctx, txn=txn)
-			rootur['username'] = rootu.username
-			rootur['name_first'], rootur["name_middle"], rootur["name_last"] = "Admin", "I", "Strator"
-			rootur.adduser(rootu.username, level=3)
-			rootur = self.putrecord([rootur], ctx=ctx, txn=txn)[0]
-			rootu.record = rootur.recid
-			rootu['signupinfo'] = None
-			self.__commit_users([rootu], ctx=ctx, txn=txn)
-
-
+			# ian: records for these users are handled in signupinfo in core_users
+			
 			self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
 
 
@@ -415,7 +384,7 @@ class DB(object):
 		def newtxn1(self, parent=None, ctx=None):
 			#g.log.msg('LOG_INFO', 'printing traceback')
 			#g.log.print_traceback(steps=5)
-			g.log.msg("LOG_INFO","NEW TXN, PARENT --> %s"%parent)
+			g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 			try:
 				type(self).txncounter += 1
@@ -443,7 +412,7 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			# g.log.msg('LOG_ERROR', "TXN ABORT --> %s"%txn)
+			g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn:
@@ -456,7 +425,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+			g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -2446,7 +2415,6 @@ class DB(object):
 		#@write self.__groups, self.__groupsbyuser
 		@DBProxy.publicmethod
 		def putgroup(self, groups, ctx=None, txn=None):
-			g.log('entering putgroup')
 
 			if isinstance(groups, (dataobjects.group.Group, dict)): # or not hasattr(groups, "__iter__"):
 				groups = [groups]
@@ -2456,8 +2424,6 @@ class DB(object):
 			groups2.extend(dataobjects.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
 			for group in groups2:
-				g.log.msg('LOG_DEBUG', 'context', ctx)
-				g.log.msg('LOG_DEBUG', 'context:', ctx)
 				group.setContext(ctx)
 				#TODO: remove txn to somewhere good... Ed 11/18/2009
 				group.validate(txn=txn)
@@ -3278,7 +3244,6 @@ class DB(object):
 			recdef.validate()
 
 			# commit
-			g.log('putting recorddef: %r' % recdef)
 			self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
 
 			links = []
@@ -3987,8 +3952,6 @@ class DB(object):
 				g.log.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst))
 				raise
 
-			g.log.msg('LOG_DEBUG', "===============")
-			g.log.msg('LOG_DEBUG', paramindex)
 
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
