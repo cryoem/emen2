@@ -21,6 +21,7 @@ class DBOptions(optparse.OptionParser):
 		self.add_option('-p', '--port', action='store', dest='port')
 		self.add_option('-l', '--log_level', action='store', dest='log_level')
 		self.add_option('--logfile_level', action='store', dest='logfile_level')
+		self.add_option('--logprintonly', action='store_true', dest='log_print_only', default=False)
 
 
 	def parse_args(self, *args, **kwargs):
@@ -42,6 +43,8 @@ class DBOptions(optparse.OptionParser):
 			self.values.log_level = 'LOG_DEBUG'
 		if self.values.logfile_level == None:
 			self.values.logfile_level = 'LOG_DEBUG'
+		if self.values.log_print_only == None:
+			self.values.log_print_only = False
 
 		try:
 			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL
