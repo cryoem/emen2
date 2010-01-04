@@ -35,6 +35,7 @@ class PublicView(Resource):
 
 
 
+	@g.log.debug_func
 	def __init__(self):
 		Resource.__init__(self)
 

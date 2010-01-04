@@ -20,6 +20,7 @@ class DBOptions(optparse.OptionParser):
 		self.add_option('-v', '--viewdirs', action='append', dest='viewdirs')
 		self.add_option('-p', '--port', action='store', dest='port')
 		self.add_option('-l', '--log_level', action='store', dest='log_level')
+		self.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
 		self.add_option('--logfile_level', action='store', dest='logfile_level')
 		self.add_option('--logprintonly', action='store_true', dest='log_print_only', default=False)
 
@@ -45,6 +46,9 @@ class DBOptions(optparse.OptionParser):
 			self.values.logfile_level = 'LOG_DEBUG'
 		if self.values.log_print_only == None:
 			self.values.log_print_only = False
+		if self.values.quiet == True:
+			self.values.log_level = 'LOG_ERROR'
+			self.values.logfile_level = 'LOG_ERROR'
 
 		try:
 			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL
@@ -58,7 +62,9 @@ class DBOptions(optparse.OptionParser):
 			g.log = emen2.subsystems.debug.DebugState(output_level=self.values.log_level,
 												logfile=file(g.LOGROOT + '/log.log', 'a', 0),
 												get_state=False,
-												logfile_state=self.values.logfile_level)
+												logfile_state=self.values.logfile_level,
+												just_print=self.values.log_print_only,
+												quiet = self.values.quiet)
 			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
 			g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')
 			g.warn = functools.partial(g.log.msg, 'LOG_WARNING')

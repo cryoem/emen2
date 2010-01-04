@@ -28,6 +28,7 @@ import emen2.util.emailutil
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+_log = g.log
 
 
 import DBProxy
@@ -70,7 +71,7 @@ VERSIONS = {
 def DB_Close():
 	l = DB.opendbs.keys()
 	for i in l:
-		g.log.msg('LOG_DEBUG', i._DB__dbenv)
+		_log.msg('LOG_DEBUG', i._DB__dbenv)
 		i.close()
 
 
@@ -475,13 +476,13 @@ class DB(object):
 
 		# ian: todo
 		def close(self):
-			g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
+			_log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 			try:
 				for i in subsystems.btrees.BTree.alltrees.keys():
-					sys.stderr.write('closing %s\n' % unicode(i))
+					_log.msg('LOG_INFO', 'closing %s\n' % unicode(i))
 					i.close()
 			except Exception, inst:
-				g.log.msg('LOG_DEBUG', inst)
+				_log.msg('LOG_ERROR', inst)
 
 			self.__dbenv.close()
 
