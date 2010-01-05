@@ -20,14 +20,14 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
-#DB=database 
+#DB=database
 
 #def startup(path):
 #	global db
 
-	
+
 #db = emen2.Database.DBProxy.DBProxy()
-	
+
 
 class newThreadPool(threadpool.ThreadPool):
 	counter = 0
@@ -44,16 +44,16 @@ class newThreadPool(threadpool.ThreadPool):
 		# 		firstJob = self.q.get(0)
 		# except Queue.Empty:
 		# 		firstJob = None
-				
-		# print "initializing thread."		
+
+		# print "initializing thread."
 		self.counter += 1
 		newThread = threading.Thread(target=self._worker, args=(emen2.Database.DBProxy.DBProxy(),self.counter))
 		# newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
-		self.threads.append(newThread)	
-		newThread.start() 
-	
+		self.threads.append(newThread)
+		newThread.start()
+
 	def _worker(self, db, count):
-		""" 
+		"""
 		Method used as target of the created threads: retrieve task to run
 		from the threadpool, run it, and proceed to the next task until
 		threadpool is stopped.
@@ -62,7 +62,7 @@ class newThreadPool(threadpool.ThreadPool):
 		o = self.q.get()
 		while o is not threadpool.WorkerStop:
 			self.working.append(ct)
-			ctx, function, args, kwargs, onResult = o 
+			ctx, function, args, kwargs, onResult = o
 			del o
 
 			try:
@@ -98,4 +98,4 @@ class newThreadPool(threadpool.ThreadPool):
 
 #print "installing new threadpool."
 threadpool.ThreadPool = newThreadPool
-	
+
