@@ -1831,7 +1831,8 @@ class DB(object):
 
 				visited |= stack[x]
 				
-			visited |= stack[-1]
+			if len(stack) > 1:	
+				visited |= stack[-1]
 
 			return result, visited
 
@@ -4158,6 +4159,9 @@ class DB(object):
 		def __rebuild_all(self, ctx=None, txn=None):
 			g.log.msg("LOG_INFO","Rebuilding ALL indexes")
 			
+			ctx = self.__makerootcontext(txn=txn)
+			print "ctx is %s"%ctx
+			
 			self.__secrindex.truncate(txn=txn)
 			self.__secrindex_groups.truncate(txn=txn)
 			self.__recorddefindex.truncate(txn=txn)
@@ -4182,16 +4186,22 @@ class DB(object):
 
 			crecs = True
 			pos = 0
+			pos2 = 0
 			
-			maxrecords = self.__records.get(-1, txn=txn)
-			while crecs:
+			maxrecords = self.__records.get(-1, txn=txn) -1
+			
+			while pos2 <= maxrecords:
 				txn2 = self.newtxn(txn)
 				
 				pos2 = pos + self.BLOCKLENGTH
 				if pos2 > maxrecords:
 					pos2 = maxrecords
 				
-				crecs = self.getrecord(range(pos, pos2), filt=True, ctx=ctx, txn=txn2)
+				#crecs = self.getrecord(range(pos, pos2), filt=False, ctx=ctx, txn=txn2)
+				crecs = []
+				for i in range(pos, pos2):
+					crecs.append(self.__records.get(i, txn=txn2))
+				
 				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
 				pos = pos2
 				
