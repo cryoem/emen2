@@ -13,7 +13,7 @@ class HTMLTab():
 		self.js = {}
 		self.order = []
 		self.switched = 1
-		
+
 		if isinstance(d,dict):
 			self.__dict__.update(d)
 			self.check()
@@ -21,16 +21,16 @@ class HTMLTab():
 		if isinstance(d,HTMLTab):
 			self.__dict__.update(d.__dict__)
 			self.check()
-			
+
 	def addtab(self, name, content=None):
 		self.content[name]=content
 
 	def removetab(self, name):
-		try: del self.content[name]	
+		try: del self.content[name]
 		except: pass
-		
+
 	def setcontent(self, name, content=None):
-		self.content[name]=content	
+		self.content[name]=content
 
 	def setorder(self, order):
 		self.order = list(order)
@@ -44,7 +44,7 @@ class HTMLTab():
 		self.order = sorted(list(self.order))
 		if not self.order:
 			self.order = []
-		 # or [None]
+		# or [None]
 
 	def autoactive(self):
 		if not self.order:
@@ -71,7 +71,7 @@ class HTMLTab():
 
 	def getclass_buttons(self):
 		return "buttons"%self.classname
-	
+
 	def getclass_pages(self):
 		return "pages"%self.classname
 
@@ -84,14 +84,14 @@ class HTMLTab():
 		if name==self.active:
 			return "page page_active page_%s page_%s_active"%(self.classname, self.classname)
 		return "page page_%s"%self.classname
-		
-	#id="buttons_main" class="buttons buttons_main"	
+
+	#id="buttons_main" class="buttons buttons_main"
 	def getid_buttons(self):
 		return "buttons_%s"%self.classname
-		
+
 	def getid_button(self, name):
 		return "button_%s_%s"%(self.classname,name)
-		
+
 	def getid_page(self, name):
 		return "page_%s_%s"%(self.classname,name)
 
@@ -100,15 +100,15 @@ class HTMLTab():
 
 	def getclassname(self):
 		return self.classname
-		
+
 	def setclassname(self, name):
 		self.classname=name
 
 	def getcontent_button(self, name):
 		if self.href.get(name):
 			return """<a href="%s">%s</a>"""%(self.href.get(name),self.labels.get(name,name))
-		return self.labels.get(name,name)		
-		
+		return self.labels.get(name,name)
+
 	def getcontent_page(self, name):
 		# accept funcs as content; main reason is that mako caller.body() will write directly to context when it's called, so we just pass the func reference and call it here
 		c = self.content.get(name)
@@ -124,28 +124,21 @@ class HTMLTab():
 		if self.js.get(name):
 			return """ onclick="javascript:%s" """%(self.js.get(name))
 		return ""
-		
+
 	def check(self):
 		alltabs = set(self.content.keys() + self.labels.keys() + self.href.keys() + self.order + [self.active]) - set([None])
-		
+
 		if not self.classname:
 			self.classname=md5.md5.hexdigest("%s%s"%(random.random(),alltabs))
-		
+
 		if not self.order:
 			self.autoorder()
 		if not self.active:
 			self.autoactive()
-			
+
 		#print "cls: %s"%self.classname
 		#print "\talltabs: %s"%alltabs
 		#print "\tcontent: %s"%self.content
 		#print "\torder: %s"%self.order
 		#print "\tactive: %s"%self.active
-		
 
-
-
-		
-
-		
-			

@@ -44,9 +44,10 @@ class BaseJS(ExtFileLibrary):
 	def init(self):
 		self.files = [
 			'%s/js/jquery/jquery.js' % g.EMEN2WEBROOT,
-			self.dbtree.reverse('TemplateRender', '/base/settings.js'),
 			'%s/js/reverse.js' % g.EMEN2WEBROOT,
 		]
+		if self.dbtree is not None:
+			self.files.append(self.dbtree.reverse('TemplateRender', '/base/settings.js'))
 		super(BaseJS, self).init()
 
 class BaseCSS(ExtFileLibrary):

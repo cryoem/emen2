@@ -35,7 +35,6 @@ class PublicView(Resource):
 
 
 
-	@g.log.debug_func
 	def __init__(self):
 		Resource.__init__(self)
 
@@ -53,12 +52,12 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have
 		      sequential numbers
 		"""
-		
-		
+
+
 		result = {}
 		filenames = {}
 		sdicts = collections.defaultdict(dict)
-		
+
 		if content:
 			filenames = self.__parse_filenames(content)
 
@@ -67,13 +66,13 @@ class PublicView(Resource):
 			sdict = {}
 			format = None
 			pos = None
-		
+
 			# split item:
 			# e.g.
 			# param___01
 			# param___01___json
 			# dict___key___dict
-			
+
 			p = str(key).split("___")
 			name = p[0]
 
@@ -114,16 +113,16 @@ class PublicView(Resource):
 				pos = int(pos)
 				v2 = result.get(name, [])
 				v2.insert(pos, value)
-				result[name] = v2				
-				
+				result[name] = v2
+
 
 			elif format is None:
 				result[key] = value
 
 
 			result.update(sdict)
-		
-		
+
+
 		for k,v in sdicts.items():
 			result[k] = v
 
@@ -333,9 +332,8 @@ class PublicView(Resource):
 
 
 		try:
-
 			try:
-				if isinstance(failure, BaseException): raise; failure
+				if isinstance(failure, BaseException):raise
 				else: failure.raiseException()
 
 			except (emen2.Database.subsystems.exceptions.AuthenticationError,
@@ -348,13 +346,13 @@ class PublicView(Resource):
 
 			except (emen2.Database.subsystems.exceptions.SecurityError), e:
 
-		                #request.addCookie("ctxid", '', path='/')
+				#request.addCookie("ctxid", '', path='/')
 				response = 401
 				data = render_security_error(request.uri, e)
 
 			except emen2.subsystems.responsecodes.NotFoundError, e:
 				response = e.code
-				#data = self.router['TemplateRender'](db=ts.db, ctxid=None, host=None, data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
+				data = self.router['TemplateRender'](data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
 				data = unicode(data).encode('utf-8')
 
 			except emen2.subsystems.responsecodes.HTTPResponseCode, e:
