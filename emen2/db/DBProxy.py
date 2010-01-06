@@ -38,7 +38,7 @@ class DBProxy(object):
 		return set(cls.__publicmethods) | set(cls.__extmethods)
 
 
-	def __init__(self, db=None, dbpath=None, importmode=False, ctxid=None, host=None, ctx=None, txn=None):
+	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
 		self.__txn = None
 		self.__bound = False
 
@@ -46,7 +46,7 @@ class DBProxy(object):
 			dbpath = g.EMEN2DBPATH
 
 		if not db:
-			db = database.DB(dbpath, importmode=importmode)
+			db = database.DB(path=dbpath)
 
 		self.__db = weakref.proxy(db)
 

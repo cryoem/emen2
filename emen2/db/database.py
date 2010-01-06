@@ -134,7 +134,6 @@ class DB(object):
 			import datatypes.core_vartypes
 			import datatypes.core_macros
 			import datatypes.core_properties
-			self.vtm = subsystems.datatypes.VartypeManager()
 
 
 		def __init__(self, path=".", logfile="db.log"):
@@ -147,9 +146,8 @@ class DB(object):
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 
-			t = self.gettime()	
-			self.lastctxclean = t
-			self.opentime = t
+			self.lastctxclean = time.time()
+			self.opentime = self.__gettime()
 				
 			self.path = path or g.EMEN2DBPATH
 			self.logfile = self.path + "/" + logfile
@@ -158,6 +156,8 @@ class DB(object):
 			self.txnlog = {}
 
 			self.__init_vtm()
+			self.vtm = subsystems.datatypes.VartypeManager()
+
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 			
 			# ian: todo: move to config file
@@ -412,10 +412,12 @@ class DB(object):
 
 
 
-
 		@DBProxy.publicmethod
 		def gettime(self, ctx=None, txn=None):
 			return subsystems.dbtime.gettime()
+
+		def __gettime(self):
+			return subsystems.dbtime.gettime()			
 
 
 
