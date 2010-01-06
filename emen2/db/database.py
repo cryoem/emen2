@@ -52,7 +52,7 @@ from emen2.Database.DBFlags import *
 DBENV = None
 
 
-# Constants... move these to config file
+# ian: todo: constants... move these to config file
 MAXIDLE = 604800
 DEBUG = 0
 
@@ -108,12 +108,6 @@ def DB_stat():
 	g.log.msg('LOG_DEBUG', "Lock stats: ")
 	for k,v in lock_stat.items():
 		g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
-
-	#g.log.msg('LOG_DEBUG', "Mutex max: ")
-	#g.log.msg('LOG_DEBUG', DBENV.mutex_get_max())
-
-
-
 
 
 
@@ -216,8 +210,6 @@ class DB(object):
 			self.__allowclose = bool(allowclose)
 
 
-			# g.log.msg('LOG_INIT', "Database initialization started")
-
 			global DBENV
 			DBENV = None
 
@@ -230,74 +222,32 @@ class DB(object):
 
 			self.__dbenv = DBENV
 
-			# ian: todo: is this method no longer in the bsddb3 API?
-			#if self.__dbenv.failchk(flags=0):
-			#	g.log.msg(1,"Database recovery required")
-			#	sys.exit(1)
-
 			# Open Database
-
-			# Users
-			# active database users / groups
 			txn = self.newtxn()
 			try:
-
+				
+				# Security items
 				self.__users = subsystems.btrees.BTree("users", keytype="s", filename=self.path+"/security/users.bdb", dbenv=self.__dbenv, txn=txn)
 				self.__groups = subsystems.btrees.BTree("groups", keytype="s", filename=self.path+"/security/groups.bdb", dbenv=self.__dbenv, txn=txn)
-				# new users pending approval
 				self.__newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=self.path+"/security/newusers.bdb", dbenv=self.__dbenv, txn=txn)
-				# multisession persistent contexts
 				self.__contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=self.path+"/security/contexts.bdb", dbenv=self.__dbenv, txn=txn)
-				# local cache dictionary of valid contexts
 				self.__contexts = {}
 
+				# Database items
 				self.__bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename=self.path+"/BinNames.bdb", dbenv=self.__dbenv, txn=txn)
-
-				# Defined ParamDefs
-				# ParamDef objects indexed by name
 				self.__paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename=self.path+"/ParamDefs.bdb", dbenv=self.__dbenv, txn=txn)
-
-				# Defined RecordDefs
-				# RecordDef objects indexed by name
 				self.__recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=self.path+"/RecordDefs.bdb", dbenv=self.__dbenv, txn=txn)
-
-				# Workflow database, user indexed btree of lists of things to do
-				# again, key -1 is used to store the wfid counter
 				self.__workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=self.path+"/workflow.bdb", dbenv=self.__dbenv, txn=txn)
-
-
-				# The actual database, keyed by recid, a positive integer unique in this DB instance
-				# ian todo: check this statement:
-				# 2 special keys exist, the record counter is stored with key -1
-				# and database information is stored with key=0
-
-				# The actual database, containing id referenced Records
 				self.__records = subsystems.btrees.RelateBTree("database", keytype="d_old", filename=self.path+"/database.bdb", dbenv=self.__dbenv, txn=txn)
 
 				# Indices
-
 				self.__secrindex = subsystems.btrees.FieldBTree("secrindex", filename=self.path+"/index/security/secrindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
 				self.__secrindex_groups = subsystems.btrees.FieldBTree("secrindex_groups", filename=self.path+"/index/security/secrindex_groups.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
 				self.__groupsbyuser = subsystems.btrees.FieldBTree("groupsbyuser", keytype="s", datatype="s", filename=self.path+"/index/security/groupsbyuser.bdb", dbenv=self.__dbenv, txn=txn)
-
-				# index of records belonging to each RecordDef
 				self.__recorddefindex = subsystems.btrees.FieldBTree("recorddef", filename=self.path+"/index/records/recorddefindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
-
-				# key=record id, value=last time record was changed
-				# ian: todo: to simplify, just handle this through modifytime param...
-				self.__timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=self.path+"/index/records/timeindex.bdb", dbenv=self.__dbenv, txn=txn)
-
-				# dictionary of FieldBTrees, 1 per ParamDef, not opened until needed
+				self.__indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=self.path+"/index/indexkeys.bdb", dbenv=self.__dbenv, txn=txn)
+				# self.__timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=self.path+"/index/records/timeindex.bdb", dbenv=self.__dbenv, txn=txn)
 				self.__fieldindex = {}
-
-				# This should be rebuilt after restore
-				self.__indexkeys = None
-				if not self.__importmode:
-					_rebuild = False
-					if not os.path.exists(self.path+"/IndexKeys.bdb"):
-						_rebuild = True
-					self.__indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=self.path+"/index/indexkeys.bdb", dbenv=self.__dbenv, txn=txn)
-
 
 			except Exception, inst:
 				self.txnabort(txn=txn)
@@ -305,16 +255,18 @@ class DB(object):
 			else:
 				self.txncommit(txn=txn)
 
+
+
 			txn = self.newtxn()
 			try:
 				# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
-				#db sequence
 				# self.__dbseq = self.__records.create_sequence()
 				ctx = self.__makerootcontext(txn=txn, host="localhost")
 
 				try:
 					maxr = self.__records.sget(-1, txn=txn)
 					g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+
 				except KeyError:
 					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
 					if raw_input('record counter not found in key -1, enter y to reinitialize: ').lower().startswith('y'):
@@ -328,13 +280,6 @@ class DB(object):
 			else:
 				self.txncommit(txn=txn)
 
-			#txn = self.newtxn()
-			#try:
-			#	if _rebuild: self.__rebuild_indexkeys(txn=txn)
-			#except Exception, inst:
-			#	self.txnabort(txn=txn)
-			#else:
-			#	self.txncommit(txn=txn)
 
 			g.log.add_output(self.log_levels.values(), file(self.logfile, "a"))
 
@@ -1309,9 +1254,6 @@ class DB(object):
 			for k,v in inds.items():
 				g.log.msg("LOG_COMMIT_INDEX", "self.__indexkeys: rebuilding params %s"%k)
 				pd = self.__paramdefs.get(k, txn=txn)
-				print "v.items"
-				print len(v.items())
-				print "addrefs"
 				self.__indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 
 
@@ -1744,7 +1686,7 @@ class DB(object):
 			if rectype or filt or flat:
 				# ian: note: use a [] initializer for reduce to prevent exceptions when values is empty
 				allr = reduce(set.union, ret_visited.values(), set())
-
+				
 				if rectype:
 					allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
@@ -1835,8 +1777,8 @@ class DB(object):
 
 				visited |= stack[x]
 
-			if len(stack) > 1:
-				visited |= stack[-1]
+			#if len(stack) > 1:
+			visited |= stack[-1]
 
 			return result, visited
 
@@ -2339,14 +2281,11 @@ class DB(object):
 					if groups:
 						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
 						self.__groupsbyuser.addrefs(user, groups, txn=txn)
+						self.bdbs.groupsbyuser.addrefs
 
-				except bsddb3.db.DBError, inst:
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
 					raise
-
-				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
-
 
 			for user,groups in delrefs.items():
 				try:
@@ -2354,16 +2293,13 @@ class DB(object):
 						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
 						self.__groupsbyuser.removerefs(user, groups, txn=txn)
 
-				except bsddb3.db.DBError, inst:
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
 					raise
 
-				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
-
 
 			#@end
-
+	
 
 
 
@@ -3757,7 +3693,7 @@ class DB(object):
 
 
 		# commit
-		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex, self.__timeindex
+		#@write	#self.__records, self.__recorddefbyrec, self.__recorddefindex
 		# also, self.fieldindex* through __commit_paramindex(), self.__secrindex through __commit_secrindex
 		def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, ctx=None, txn=None):
 
@@ -3781,10 +3717,8 @@ class DB(object):
 			# acquire write locks on records at this point
 			# first, get index updates
 			indexupdates = {}
-			timeupdate = {}
 			if not onlypermissions:
 				indexupdates = self.__reindex_params(crecs, cache=cache, ctx=ctx, txn=txn)
-				timeupdate = self.__reindex_time(crecs, cache=cache, ctx=ctx, txn=txn)
 			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, cache=cache, ctx=ctx, txn=txn)
 			secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
 
@@ -3823,9 +3757,6 @@ class DB(object):
 			# RecordDef index
 			self.__commit_recorddefindex(rectypes, recmap=recmap, ctx=ctx, txn=txn)
 
-			# Time index
-			self.__commit_timeindex(timeupdate, recmap=recmap, ctx=ctx, txn=txn)
-
 			# Param index
 			for param, updates in indexupdates.items():
 				self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
@@ -3835,11 +3766,9 @@ class DB(object):
 			for link in updrels:
 				try:
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
-				except bsddb3.db.DBError, inst:
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 					raise
-				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
 
 
 			g.log.msg("LOG_INFO", "Committed %s records"%(len(crecs)))
@@ -3853,30 +3782,13 @@ class DB(object):
 
 			for rectype,recs in rectypes.items():
 				try:
-					g.log.msg("LOG_COMMIT_INDEX","self.__recorddefindex.addrefs: %r, %r"%(rectype,recs))
+					g.log.msg("LOG_COMMIT_INDEX","self.__recorddefindex.addrefs: %r, %r"%(rectype, recs))
 					self.__recorddefindex.addrefs(rectype, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
-					g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
+				except Exception, inst:
+					g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
 					raise
-				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype,recs,inst))
 
 
-		def __commit_timeindex(self, timeupdate, recmap=None, ctx=None, txn=None):
-			if not recmap: recmap = {}
-
-			for recid,time in timeupdate.items():
-				try:
-					recid = recmap.get(recid,recid)
-					if not isinstance(recid, basestring):
-						recid = unicode(recid).encode('utf-8')
-					g.log.msg("LOG_COMMIT_INDEX","self.__timeindex.set: %r, %r"%(recmap.get(recid,recid), time))
-					self.__timeindex.set(recid, time, txn=txn)
-				except bsddb3.db.DBError, inst:
-					g.log.msg("LOG_CRITICAL", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
-					raise
-				except ValueError, inst:
-					g.log.msg("LOG_ERROR", "Could not update time index: key %s, value %s (%s)"%(recid,time,inst))
 
 
 		#@write #self.__secrindex
@@ -3891,11 +3803,9 @@ class DB(object):
 					if recs:
 						g.log.msg("LOG_COMMIT_INDEX","self.__secrindex.addrefs: %r, len %r"%(user, len(recs)))
 						self.__secrindex.addrefs(user, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
-				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
@@ -3923,11 +3833,9 @@ class DB(object):
 					if recs:
 						g.log.msg("LOG_COMMIT_INDEX","self.__secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
 						self.__secrindex_groups.addrefs(user, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
 					raise
-				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
 
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
@@ -3935,11 +3843,8 @@ class DB(object):
 					if recs:
 						g.log.msg("LOG_COMMIT_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
 						self.__secrindex_groups.removerefs(user, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
-					g.log.msg("LOG_CRITICAL", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
-					raise
 				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
+					g.log.msg("LOG_CRITICAL", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
 					raise
 
 
@@ -3949,7 +3854,12 @@ class DB(object):
 		def __commit_paramindex(self, param, addrefs, delrefs, recmap=None, ctx=None, txn=None):
 			"""commit param updates"""
 			if not recmap: recmap = {}
+			
+			addindexkeys = []
+			delindexkeys = []
 
+			# ian: todo: 'if recs:' can be removed now, btree will just return if !items
+			
 			# addrefs = upds[0], delrefs = upds[1]
 			if not addrefs and not delrefs:
 				return
@@ -3959,11 +3869,8 @@ class DB(object):
 				paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
 				if paramindex == None:
 					raise Exception, "Index was None; unindexable?"
-			except bsddb3.db.DBError, inst:
-				g.log.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
-				raise
 			except Exception, inst:
-				g.log.msg("LOG_ERROR","Could not open param index: %s (%s)"% (param, inst))
+				g.log.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
 				raise
 
 
@@ -3972,27 +3879,25 @@ class DB(object):
 				try:
 					if recs:
 						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
-						paramindex.addrefs(newval, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
+						addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 					raise
-				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
 						g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
-						paramindex.removerefs(oldval, recs, txn=txn)
-				except bsddb3.db.DBError, inst:
+						delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
+				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 					raise
-				except Exception, inst:
-					g.log.msg("LOG_ERROR", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 
-
-
+			self.__indexkeys.addrefs(param, addindexkeys, txn=txn)
+			self.__indexkeys.removerefs(param, delindexkeys, txn=txn)
+				
+				
 
 		# index update methods
 		def __reindex_params(self, updrecs, cache=None, ctx=None, txn=None):
@@ -4034,10 +3939,6 @@ class DB(object):
 			addrefs = {}
 			delrefs = {}
 
-			# not indexable params/vartypes
-			# if pd.name in ["recid","comments","permissions"]:
-			#	return addrefs, delrefs
-
 			if pd.vartype not in self.indexablevartypes or not pd.indexed:
 				return addrefs, delrefs
 
@@ -4047,8 +3948,6 @@ class DB(object):
 			if pd.vartype == "text":
 				return self.__reindex_paramtext(key, items, ctx=ctx, txn=txn)
 
-			#addrefs = dict([[i,set()] for i in set([i[1] for i in items])])
-			#delrefs = dict([[i,set()] for i in set([i[2] for i in items])])
 			addrefs = collections.defaultdict(set)
 			delrefs = collections.defaultdict(set)
 
@@ -4100,15 +3999,6 @@ class DB(object):
 
 
 
-		def __reindex_time(self, updrecs, cache=None, ctx=None, txn=None):
-			# g.log.msg('LOG_DEBUG', "Calculating time updates...")
-
-			timeupdate = {}
-
-			for updrec in updrecs:
-				timeupdate[updrec.recid] = updrec.get("modifytime") or updrec.get("creationtime")
-
-			return timeupdate
 
 
 
@@ -4131,8 +4021,6 @@ class DB(object):
 
 				nperms = set(reduce(operator.concat, updrec.get("permissions", ()), () ))
 				operms = set(reduce(operator.concat, orec.get("permissions",()), () ))
-
-				#g.log.msg("LOG_INFO","__reindex_security: record %s, add %s, delete %s"%(updrec.recid, nperms - operms, operms - nperms))
 
 				for user in nperms - operms:
 					addrefs[user].append(recid)
@@ -4175,7 +4063,6 @@ class DB(object):
 			self.__secrindex.truncate(txn=txn)
 			self.__secrindex_groups.truncate(txn=txn)
 			self.__recorddefindex.truncate(txn=txn)
-			self.__timeindex.truncate(txn=txn)
 			self.__groupsbyuser.truncate(txn=txn)
 
 			allparams = self.__paramdefs.keys()

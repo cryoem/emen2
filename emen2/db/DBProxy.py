@@ -62,7 +62,7 @@ class DBProxy(object):
 		return self
 
 
-	@g.log.debug_func
+	#@g.log.debug_func
 	def __exit__(self, type, value, traceback):
 		#g.debug('ending DBProxy context')
 		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))

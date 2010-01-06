@@ -18,11 +18,11 @@ def _atexit():
 	except NameError,e:
 		print e
 
+
 db = emen2.Database.DBProxy.DBProxy()
 ddb = db._DBProxy__db
 
-#try:
 db._login("root",g.ROOTPW)
 db._starttxn()
-#except Exception, e:
-#	print e
+txn = db._gettxn()
+ctx = db._getctx()
