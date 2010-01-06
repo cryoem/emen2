@@ -384,7 +384,7 @@ class DB(object):
 			_log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 			try:
 				for i in subsystems.btrees.BTree.alltrees.keys():
-					_log.msg('LOG_INFO', 'closing %s\n' % unicode(i))
+					#_log.msg('LOG_INFO', 'closing %s\n' % unicode(i))
 					i.close()
 			except Exception, inst:
 				_log.msg('LOG_ERROR', inst)
@@ -1036,8 +1036,8 @@ class DB(object):
 			for count,c in enumerate(constraints):
 				if c[0] == "*":
 					#for param, pkeys in self.__indexkeys.items(txn=txn):
-					for param in self.__indexkeys.keys(txn=txn):
-						pkeys = self.__paramdefs.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
+					for param, pkeys in self.__indexkeys.items(txn=txn):
+						pd = self.__paramdefs.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 						# validate for each param for correct vartype matching
 						try:
 							cargs = vtm.validate(pd, c[2], db=ctx.db)
@@ -1045,7 +1045,7 @@ class DB(object):
 							continue
 
 						comp = partial(cmps[c[1]], cargs) #*cargs
-						results[count][param] = set(filter(comp, pkeys))
+						results[count][param] = set(filter(comp, pkeys)) or None
 
 				else:
 					param = c[0]
@@ -1053,20 +1053,17 @@ class DB(object):
 					pkeys = self.__indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 					cargs = vtm.validate(pd, c[2], db=ctx.db)
 					comp = partial(cmps[c[1]], cargs) #*cargs
-					results[count][param] = set(filter(comp, pkeys))
+					results[count][param] = set(filter(comp, pkeys)) or None
 
 
-			#g.log.msg('LOG_DEBUG', "stage 1 results")
-			#g.log.msg('LOG_DEBUG', results)
+			# g.log.msg('LOG_DEBUG', "stage 1 results")
+			# g.log.msg('LOG_DEBUG', results)
 
 			# stage 2: search individual param indexes
 			for count, r in results.items():
 				constraint_matches = set()
 
 				for param, matchkeys in filter(lambda x:x[0] and x[1] != None, r.items()):
-					#g.log.msg('LOG_DEBUG', "=======")
-					#g.log.msg('LOG_DEBUG', param)
-					#g.log.msg('LOG_DEBUG', matchkeys)
 					ind = self.__getparamindex(param, ctx=ctx, txn=txn)
 					for matchkey in matchkeys:
 						m = ind.get(matchkey, txn=txn)
@@ -1076,9 +1073,9 @@ class DB(object):
 
 				subsets.append(constraint_matches)
 
-			#g.log.msg('LOG_DEBUG', "stage 2 results")
-			#g.log.msg('LOG_DEBUG', subsets)
-			#g.log.msg('LOG_DEBUG', subsets_by_value)
+			# g.log.msg('LOG_DEBUG', "stage 2 results")
+			# g.log.msg('LOG_DEBUG', subsets)
+			# g.log.msg('LOG_DEBUG', subsets_by_value)
 
 			return subsets, subsets_by_value
 
@@ -2856,7 +2853,6 @@ class DB(object):
 			self.__commit_paramdefs([paramdef], ctx=ctx, txn=txn)
 
 			# create the index for later use
-			# def __getparamindex(self, paramname, create=True, ctx=None, txn=None):
 			paramindex = self.__getparamindex(paramdef.name, create=True, ctx=ctx, txn=txn)
 
 
@@ -2998,7 +2994,7 @@ class DB(object):
 			# datatype = d, record IDs
 			#indexkeys=self.__indexkeys,
 			txn2 = self.newtxn()
-			try:
+			try:				
 				self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn2)
 			except:
 				self.txnabort(txn=txn2)
