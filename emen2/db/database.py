@@ -3033,7 +3033,7 @@ class DB(object):
 			# create the index for later use
 			# def __getparamindex(self, paramname, create=True, ctx=None, txn=None):
 			paramindex = self.__getparamindex(paramdef.name, create=True, ctx=ctx, txn=txn)
-
+			
 
 			links = []
 			if parents: links.append( map(lambda x:(x, paramdef.name), parents) )
@@ -3172,7 +3172,14 @@ class DB(object):
 			# create/open index
 			# datatype = d, record IDs
 			#indexkeys=self.__indexkeys,
-			self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn)
+			txn2 = self.newtxn()
+			try:
+				self.__fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=tp, datatype="d", filename="%s/index/params/%s.bdb"%(self.path,paramname), dbenv=self.__dbenv, txn=txn2)
+			except:
+				self.txnabort(txn=txn2)
+				raise
+			else:
+				self.txncommit(txn=txn2)	
 
 			return self.__fieldindex[paramname]
 
@@ -3959,7 +3966,7 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+						#g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
@@ -4160,8 +4167,7 @@ class DB(object):
 			g.log.msg("LOG_INFO","Rebuilding ALL indexes")
 			
 			ctx = self.__makerootcontext(txn=txn)
-			print "ctx is %s"%ctx
-			
+						
 			self.__secrindex.truncate(txn=txn)
 			self.__secrindex_groups.truncate(txn=txn)
 			self.__recorddefindex.truncate(txn=txn)
@@ -4176,41 +4182,37 @@ class DB(object):
 					g.log.msg('LOG_DEBUG', paramindex)
 					try:
 						paramindex.truncate(txn=txn)
-					except:
-						g.log.msg("LOG_INFO","Couldn't truncate %s"%param)
+					except Exception, e:
+						g.log.msg("LOG_INFO","Couldn't truncate %s: %s"%(param, e))
 					paramindexes[param] = paramindex
 					
+			
 			g.log.msg("LOG_INFO","Done truncating all indexes")
 
 			self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
 
-			crecs = True
-			pos = 0
-			pos2 = 0
+			maxrecords = self.__records.get(-1, txn=txn)
+			print "Records in DB: %s"%(maxrecords-1)
+						
+			blocks = range(0, maxrecords, self.BLOCKLENGTH) + [maxrecords]			
+			blocks = zip(blocks, blocks[1:])
+
+			print blocks
 			
-			maxrecords = self.__records.get(-1, txn=txn) -1
-			
-			while pos2 <= maxrecords:
-				txn2 = self.newtxn(txn)
+			for pos, pos2 in blocks:
+				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
 				
-				pos2 = pos + self.BLOCKLENGTH
-				if pos2 > maxrecords:
-					pos2 = maxrecords
-				
-				#crecs = self.getrecord(range(pos, pos2), filt=False, ctx=ctx, txn=txn2)
+				#txn2 = self.newtxn(txn)
+
 				crecs = []
 				for i in range(pos, pos2):
-					crecs.append(self.__records.get(i, txn=txn2))
+					crecs.append(self.__records.sget(i, txn=txn))
 				
-				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
-				pos = pos2
+				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
+
+				#txn2.commit()
 				
-				
-				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn2)
-				
-				txn2.commit()
-				
-			self.__rebuild_indexkeys(ctx=ctx, txn=txn)
+			#self.__rebuild_indexkeys(ctx=ctx, txn=txn)
 				
 			g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
