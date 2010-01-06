@@ -387,7 +387,7 @@ class DB(object):
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
 			#g.log.msg('LOG_INFO', 'printing traceback')
-			#g.log.print_traceback(steps=5)
+			g.log.print_traceback(steps=5)
 			g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 			try:
@@ -644,6 +644,7 @@ class DB(object):
 				try:
 					c = self.__contexts.sget(ctxid, txn=txn) #[ctxid]
 					context.time = c.time
+				# ed: fix: should check for more specific exception
 				except:
 					pass
 
@@ -743,10 +744,11 @@ class DB(object):
 		def checkcontext(self, ctx=None, txn=None):
 			"""This allows a client to test the validity of a context, and
 			get basic information on the authorized user and his/her permissions"""
-			try:
-				return (ctx.username, ctx.groups)
-			except:
-				return None, None
+			result = None,None
+			try: result = ctx.username, ctx.groups
+			#ed: fix: catch correct exception
+			except: pass
+			return result
 
 
 		@DBProxy.publicmethod
@@ -930,10 +932,9 @@ class DB(object):
 
 
 			# try to make sure the directory exists
-			try:
-				os.makedirs(filepath)
-			except:
-				pass
+			try: os.makedirs(filepath)
+			#ed: fix: catch correct exception
+			except: pass
 
 
 			filename = filepath + "/%05X"%newid
@@ -1029,6 +1030,7 @@ class DB(object):
 					path = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
 					# g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
 
+				#ed: fix: catch correct exception
 				except:
 					raise KeyError, "No storage specified for date %s"%key
 
@@ -1036,11 +1038,10 @@ class DB(object):
 
 				try:
 						bdo = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
+				#ed: fix: catch correct exception
 				except:
-						if filt:
-							continue
-						else:
-							raise KeyError, "Unknown identifier %s" % ident
+						if filt: continue
+						else: raise KeyError, "Unknown identifier %s" % ident
 
 
 				# ian: finish this filtering...
@@ -1053,11 +1054,10 @@ class DB(object):
 					ret[ident] = bdo
 					#(name, path + "/%05X" % bid, recid)
 
+				#ed: fix: catch correct exception
 				except:
-					if filt:
-						continue
-					else:
-						raise subsystems.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
+					if filt: continue
+					else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
 
 
 			if len(ret)==1 and ol:
@@ -3287,6 +3287,7 @@ class DB(object):
 			private, unless the user is an owner or	 in the context of a recid the
 			user has permission to access"""
 
+			rectypename = rectypename.lower()
 			if hasattr(rectypename,"__iter__"):
 				ret = {}
 				for i in rectypename:
@@ -3295,16 +3296,16 @@ class DB(object):
 
 
 			try:
-				#ret = self.__recorddefs[rectypename]
-				ret = self.__recorddefs.sget(rectypename, txn=txn) # [rectypename]
-			except:
+				ret = self.__recorddefs.sget(rectypename, txn=txn)
+			except KeyError:
 				raise KeyError, "No such RecordDef %s" % rectypename
+			ret.setContext(ctx)
 
 			if not ret.private:
 				return ret
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if (ret.private and (ret.owner == ctx.username or ctx.checkreadadmin())): #ret.owner in ctx.groups
+			if (ret.private and ret.accessible()): #(ret.owner == ctx.username or ctx.checkreadadmin()))
 				return ret
 
 			# ian todo: make sure all calls to getrecorddef pass recid they are requesting
@@ -4090,12 +4091,11 @@ class DB(object):
 
 
 
-		# ian: todo: is re.compile expensive?
+		__reindex_getindexwords_m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
 		def __reindex_getindexwords(self, value, ctx=None, txn=None):
-			if value == None:
-				return []
-			m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
-			return set(map(lambda x:x[0] or x[1], m.findall(unicode(value).lower())))
+			if value == None: return []
+			value = unicode(value).lower()
+			return set((x[0] or x[1]) for x in self.__reindex_getindexwords_m.findall(value))
 
 
 

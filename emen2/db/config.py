@@ -79,6 +79,3 @@ class DBOptions(optparse.OptionParser):
 
 		g.refresh()
 
-
-#loader = DBOptions()
-#loader.parse_args()
