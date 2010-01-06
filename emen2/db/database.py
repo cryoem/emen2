@@ -898,7 +898,7 @@ class DB(object):
 
 
 
-		# ian: todo: reimplement properly, return actual BDI
+		# ian: todo: reimplement properly, return actual BDO names instead of just counter.. [bdo:2010010100001, bdo:2010010100002, ...]
 		# @DBProxy.publicmethod
 		# def getbinarynames(self, ctx=None, txn=None):
 		# 	"""Returns a list of tuples which can produce all binary object
