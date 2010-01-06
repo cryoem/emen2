@@ -298,7 +298,8 @@ class PublicView(Resource):
 
 			result, content_headers = result
 
-			headers['content-type'] = content_headers.get('content-type')
+			headers.update(content_headers)
+			g.debug('headers', headers)
 			headers['content-length'] = len(result)
 
 			request.setResponseCode(200)
