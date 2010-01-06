@@ -194,6 +194,9 @@ class DB(object):
 			if recover:
 				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
 
+			self.__cache_vartype_indextype = {}
+			for vt in self.vtm.getvartypes():
+				self.__cache_vartype_indextype[vt] = self.vtm.getvartype(vt).getindextype()
 
 			# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 			if not os.access(self.path + "/home", os.F_OK):
@@ -1202,11 +1205,12 @@ class DB(object):
 			# stage 1: search __indexkeys
 			for count,c in enumerate(constraints):
 				if c[0] == "*":
-					for param, pkeys in self.__indexkeys.items(txn=txn):
-
+					#for param, pkeys in self.__indexkeys.items(txn=txn):
+					for param in self.__indexkeys.keys(txn=txn):
+						pkeys = self.__paramdefs.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 						# validate for each param for correct vartype matching
 						try:
-							cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
+							cargs = vtm.validate(pd, c[2], db=ctx.db)
 						except (ValueError, KeyError):
 							continue
 
@@ -1215,8 +1219,9 @@ class DB(object):
 
 				else:
 					param = c[0]
-					pkeys = self.__indexkeys.get(param, txn=txn) or []
-					cargs = vtm.validate(self.__paramdefs.get(param, txn=txn), c[2], db=ctx.db)
+					pd = self.__paramdefs.get(param, txn=txn)
+					pkeys = self.__indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype), 
+					cargs = vtm.validate(pd, c[2], db=ctx.db)
 					comp = partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys))
 
@@ -1308,8 +1313,12 @@ class DB(object):
 
 			for k,v in inds.items():
 				g.log.msg("LOG_COMMIT_INDEX", "self.__indexkeys: rebuilding params %s"%k)
-				#self.__indexkeys.set(k, set(v.keys()), txn=txn)
-				self.__indexkeys.addrefs(k, v.keys(), txn=txn)
+				pd = self.__paramdefs.get(k, txn=txn)
+				print "v.items"
+				print len(v.items())
+				print "addrefs"
+				self.__indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype), 
+
 
 
 		@DBProxy.publicmethod
@@ -3966,7 +3975,7 @@ class DB(object):
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
 					if recs:
-						#g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 						paramindex.addrefs(newval, recs, txn=txn)
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
