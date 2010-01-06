@@ -1308,8 +1308,8 @@ class DB(object):
 
 			for k,v in inds.items():
 				g.log.msg("LOG_COMMIT_INDEX", "self.__indexkeys: rebuilding params %s"%k)
-				self.__indexkeys.set(k, set(v.keys()), txn=txn)
-
+				#self.__indexkeys.set(k, set(v.keys()), txn=txn)
+				self.__indexkeys.addrefs(k, v.keys(), txn=txn)
 
 
 		@DBProxy.publicmethod
@@ -4685,7 +4685,7 @@ class DB(object):
 						try:
 							link_func(a,b, txn=txn)
 						except Exception, e:
-							self.LOG("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
+							g.log.msg("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
 
 			simple_choices = dict(
 				pdchildren=self.__paramdefs.pclink,
@@ -4802,8 +4802,7 @@ class DB(object):
 							try:
 								r = pickle.load(fin)
 							except Exception, e:
-								#g.log.msg('LOG_DEBUG', "Pickle load error: %s"%e)
-								self.LOG("LOG_WARNING","Pickle load error (eof?) %s"%e)
+								g.log.msg('LOG_DEBUG', "Pickle load error: %s"%e)
 								raise EOFError
 
 							commitrecs = False
