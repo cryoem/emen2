@@ -150,7 +150,7 @@ class DB(object):
 			7: 'LOG_COMMIT',
 			8: 'LOG_COMMIT_INDEX',
 			9: 'LOG_TXN'
-			}
+		}
 
 		@staticmethod
 		def init_vtm():
@@ -220,7 +220,7 @@ class DB(object):
 
 			global DBENV
 			DBENV = None
-			
+
 			if DBENV == None:
 				g.log.msg("LOG_INFO","Opening Database Environment")
 				DBENV = bsddb3.db.DBEnv()
@@ -324,7 +324,7 @@ class DB(object):
 				g.log.msg('LOG_ERROR', inst)
 				self.txnabort(txn=txn)
 				raise
-			
+
 			else:
 				self.txncommit(txn=txn)
 
@@ -369,7 +369,7 @@ class DB(object):
 				self.putgroup(i, ctx=ctx, txn=txn)
 
 			# ian: records for these users are handled in signupinfo in core_users
-			
+
 			self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
 
 
@@ -553,6 +553,18 @@ class DB(object):
 
 
 
+		def __login_getuser(self, username, ctx=None, txn=None):
+			"""Check password against stored hash value"""
+			try:
+				user = self.__users.sget(username, txn=txn)
+				user.setContext(ctx=ctx)
+			except:
+				raise
+				raise subsystems.exceptions.AuthenticationError, 'no such user' #subsystems.exceptions.AuthenticationError.__doc__
+			return user
+
+
+
 		# No longer public method; only through DBProxy to force host=...
 		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
@@ -566,9 +578,11 @@ class DB(object):
 			if username == "anonymous":
 				newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 
+
 			else:
+				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 				# ian: todo: use User.checkpassword()
-				checkpass = self.__checkpassword(username, password, ctx=ctx, txn=txn)
+				checkpass = user.checkpassword(password)
 
 				# Admins can "su"
 				if checkpass: # or ctx.checkadmin():
@@ -598,25 +612,6 @@ class DB(object):
 			self.deletecontext(ctx=ctx, txn=txn)
 
 
-
-		def __checkpassword(self, username, password, ctx=None, txn=None):
-			"""Check password against stored hash value"""
-
-			s = hashlib.sha1(password)
-
-			if ctx:
-				if ctx.checkadmin():
-					return True
-
-			try:
-				user = self.__users.sget(username, txn=txn)
-			except:
-				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
-
-			if user.disabled:
-				raise subsystems.exceptions.DisabledUserError, subsystems.exceptions.DisabledUserError.__doc__ % username
-				
-			return s.hexdigest() == user.password
 
 
 
@@ -734,7 +729,7 @@ class DB(object):
 					grouplevels = {}
 					for group in [self.__groups.get(i, txn=txn) for i in groups]:
 						grouplevels[group.name] = group.getlevel(context.username)
-				
+
 				# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
 				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
@@ -1220,7 +1215,7 @@ class DB(object):
 				else:
 					param = c[0]
 					pd = self.__paramdefs.get(param, txn=txn)
-					pkeys = self.__indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype), 
+					pkeys = self.__indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 					cargs = vtm.validate(pd, c[2], db=ctx.db)
 					comp = partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys))
@@ -1317,7 +1312,7 @@ class DB(object):
 				print "v.items"
 				print len(v.items())
 				print "addrefs"
-				self.__indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype), 
+				self.__indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 
 
 
@@ -1777,8 +1772,8 @@ class DB(object):
 
 			return ret
 
-		
-		
+
+
 		# ian: todo: move most of this to RelateBTree
 		def __getrel(self, key, keytype="record", recurse=1, rel="children", ctx=None, txn=None):
 			# indc is restricted subset (e.g. getindexbycontext)
@@ -1839,8 +1834,8 @@ class DB(object):
 						result[k] = new
 
 				visited |= stack[x]
-				
-			if len(stack) > 1:	
+
+			if len(stack) > 1:
 				visited |= stack[-1]
 
 			return result, visited
@@ -2101,10 +2096,10 @@ class DB(object):
 					# OK, add user
 					# clear out the secret
 					user._User__secret = None
-					
+
 					addusers[username] = user
 					delusers[username] = None
-					
+
 
 			# Update user queue / users
 			addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
@@ -2113,7 +2108,7 @@ class DB(object):
 
 			# Pass 2 to add records
 			for user in addusers:
-								
+
 				if user.record == None and user.signupinfo:
 
 					# ian: todo: Do we need this root ctx?
@@ -2151,7 +2146,7 @@ class DB(object):
 
 			#@end
 			approveusernames = [user.username for user in addusers]
-			
+
 			if ol and len(approveusernames)==1:
 			 	return approveusernames[0]
 			return approveusernames
@@ -2259,18 +2254,18 @@ class DB(object):
 
 
 			return self.__commit_users(commitusers, ctx=ctx, txn=txn)
-			
+
 
 
 		#@txn
 		@DBProxy.publicmethod
 		def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
-				
+
 			if username:
-				if username != ctx.username and not ctx.checkadmin():	
+				if username != ctx.username and not ctx.checkadmin():
 					raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 			else:
-				username = ctx.username	
+				username = ctx.username
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
 
@@ -2289,15 +2284,15 @@ class DB(object):
 		def setemail(self, email, username=None, ctx=None, txn=None):
 
 			if username:
-				if username != ctx.username and not ctx.checkadmin():	
+				if username != ctx.username and not ctx.checkadmin():
 					raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's email"
 			else:
-				username = ctx.username	
+				username = ctx.username
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
 			user.email = email
 			user.validate()
-						
+
 			g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
@@ -2622,7 +2617,7 @@ class DB(object):
 			for i in usernames:
 
 				user = self.__users.get(i, None, txn=txn)
-				
+
 				if user == None:
 					if filt:
 						continue
@@ -3042,7 +3037,7 @@ class DB(object):
 			# create the index for later use
 			# def __getparamindex(self, paramname, create=True, ctx=None, txn=None):
 			paramindex = self.__getparamindex(paramdef.name, create=True, ctx=ctx, txn=txn)
-			
+
 
 			links = []
 			if parents: links.append( map(lambda x:(x, paramdef.name), parents) )
@@ -3188,7 +3183,7 @@ class DB(object):
 				self.txnabort(txn=txn2)
 				raise
 			else:
-				self.txncommit(txn=txn2)	
+				self.txncommit(txn=txn2)
 
 			return self.__fieldindex[paramname]
 
@@ -3409,7 +3404,7 @@ class DB(object):
 		def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
-			
+
 			# ian: todo: remove the recid option. it was a kludge to get things working in time.
 			#if recid and not ctx.checkadmin():
 			#	raise emen2.Database.subsystems.exceptions.SecurityError, "Cannot set recid in this way"
@@ -4174,9 +4169,9 @@ class DB(object):
 
 		def __rebuild_all(self, ctx=None, txn=None):
 			g.log.msg("LOG_INFO","Rebuilding ALL indexes")
-			
+
 			ctx = self.__makerootcontext(txn=txn)
-						
+
 			self.__secrindex.truncate(txn=txn)
 			self.__secrindex_groups.truncate(txn=txn)
 			self.__recorddefindex.truncate(txn=txn)
@@ -4194,35 +4189,35 @@ class DB(object):
 					except Exception, e:
 						g.log.msg("LOG_INFO","Couldn't truncate %s: %s"%(param, e))
 					paramindexes[param] = paramindex
-					
-			
+
+
 			g.log.msg("LOG_INFO","Done truncating all indexes")
 
 			self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
 
 			maxrecords = self.__records.get(-1, txn=txn)
 			print "Records in DB: %s"%(maxrecords-1)
-						
-			blocks = range(0, maxrecords, self.BLOCKLENGTH) + [maxrecords]			
+
+			blocks = range(0, maxrecords, self.BLOCKLENGTH) + [maxrecords]
 			blocks = zip(blocks, blocks[1:])
 
 			print blocks
-			
+
 			for pos, pos2 in blocks:
 				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
-				
+
 				#txn2 = self.newtxn(txn)
 
 				crecs = []
 				for i in range(pos, pos2):
 					crecs.append(self.__records.sget(i, txn=txn))
-				
+
 				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
 
 				#txn2.commit()
-				
+
 			#self.__rebuild_indexkeys(ctx=ctx, txn=txn)
-				
+
 			g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
 
@@ -4248,7 +4243,7 @@ class DB(object):
 
 				pos2 = pos + self.BLOCKLENGTH
 				if pos2 > maxrecords: pos2 = maxrecords
-					
+
 				crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
 				pos = pos2
 
