@@ -28,19 +28,14 @@ import emen2.util.emailutil
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+# ian: todo: check this still needed.
 _log = g.log
 
-
 import DBProxy
-
 import DBExt
-
 import datatypes
-
 import dataobjects
-
 import extensions
-
 import subsystems
 import subsystems.dbtime
 import subsystems.btrees
@@ -111,25 +106,13 @@ def DB_stat():
 
 
 
-# This rmakes sure the database gets closed properly at exit
-# atexit.register(DB_cleanup)
 
 
 
 
 
-
-
-
-
-#keys(), values(), items(), has_key(), get(), clear(), setdefault(), iterkeys(), itervalues(), iteritems(), pop(), popitem(), copy(), and update()
 class DB(object):
-		"""This class represents the database as a whole. There are 3 primary identifiers used in the database:
-		4650 - Database id, a unique identifier for this database server
-		recid - Record id, a unique (32 bit int) identifier for a particular record
-		ctxid - A key for a database 'context' (also called a session), allows access for pre-authenticated user
-
-		TODO : Probably should make more of the member variables private for slightly better security"""
+		"""Main database class"""
 
 		opendbs = weakref.WeakKeyDictionary()
 
@@ -147,19 +130,14 @@ class DB(object):
 		}
 
 		@staticmethod
-		def init_vtm():
+		def __init_vtm():
 			import datatypes.core_vartypes
 			import datatypes.core_macros
 			import datatypes.core_properties
+			self.vtm = subsystems.datatypes.VartypeManager()
 
 
-		def __init__(self, path=".", logfile="db.log", importmode=0, rootpw=None, recover=0, allowclose=True, more_flags=0):
-			"""path - The path to the database files, this is the root of a tree of directories for the database
-			cachesize - default is 64M, in bytes
-			logfile - defualt "db.log"
-			importmode - DANGEROUS, makes certain changes to allow bulk data import. Should be opened by only a single thread in importmode.
-			recover - Only one thread should call this. Will run recovery on the environment before opening."""
-
+		def __init__(self, path=".", logfile="db.log"):
 			global ENVOPENFLAGS, USETXN
 
 			if USETXN:
@@ -169,24 +147,23 @@ class DB(object):
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
 
-
+			t = self.gettime()	
+			self.lastctxclean = t
+			self.opentime = t
+				
 			self.path = path or g.EMEN2DBPATH
 			self.logfile = self.path + "/" + logfile
-			self.lastctxclean = time.time()
-			self.__importmode = importmode
+			
 			self.txnid = 0
 			self.txnlog = {}
 
-			self.init_vtm()
-			self.vtm = subsystems.datatypes.VartypeManager()
+			self.__init_vtm()
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
+			
+			# ian: todo: move to config file
 			self.unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
-
 			self.MAXRECURSE = 50
 			self.BLOCKLENGTH = 100000
-
-			if recover:
-				ENVOPENFLAGS |= bsddb3.db.DB_RECOVER
 
 			self.__cache_vartype_indextype = {}
 			for vt in self.vtm.getvartypes():
@@ -207,8 +184,6 @@ class DB(object):
 				if not os.access(self.path + path, os.F_OK):
 					os.makedirs(self.path + path)
 
-			self.__allowclose = bool(allowclose)
-
 
 			global DBENV
 			DBENV = None
@@ -223,6 +198,7 @@ class DB(object):
 			self.__dbenv = DBENV
 
 			# Open Database
+			
 			txn = self.newtxn()
 			try:
 				
@@ -246,6 +222,7 @@ class DB(object):
 				self.__groupsbyuser = subsystems.btrees.FieldBTree("groupsbyuser", keytype="s", datatype="s", filename=self.path+"/index/security/groupsbyuser.bdb", dbenv=self.__dbenv, txn=txn)
 				self.__recorddefindex = subsystems.btrees.FieldBTree("recorddef", filename=self.path+"/index/records/recorddefindex.bdb", keytype="s", datatype="d", dbenv=self.__dbenv, txn=txn)
 				self.__indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=self.path+"/index/indexkeys.bdb", dbenv=self.__dbenv, txn=txn)
+				# timeindex now handled by modifytime param index
 				# self.__timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=self.path+"/index/records/timeindex.bdb", dbenv=self.__dbenv, txn=txn)
 				self.__fieldindex = {}
 
@@ -256,7 +233,9 @@ class DB(object):
 				self.txncommit(txn=txn)
 
 
-
+				
+			# Check if database is initialized
+			
 			txn = self.newtxn()
 			try:
 				# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
@@ -269,6 +248,7 @@ class DB(object):
 
 				except KeyError:
 					g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
+					
 					if raw_input('record counter not found in key -1, enter y to reinitialize: ').lower().startswith('y'):
 						self.__createskeletondb(ctx=ctx, txn=txn)
 
@@ -292,16 +272,11 @@ class DB(object):
 
 		def __createskeletondb(self, ctx=None, txn=None):
 			# typically uses SpecialRootContext
+			import skeleton
 
 			self.__records.set(-1, 0, txn=txn)
 
-			#assert ctx != None
-			import skeleton
-			#assert ctx != None
-
 			for i in skeleton.core_users.items:
-				if self.__importmode:
-					i["signupinfo"] = None
 				self.adduser(i, ctx=ctx, txn=txn)
 
 			for i in skeleton.core_paramdefs.items:
@@ -312,8 +287,6 @@ class DB(object):
 
 			for i in skeleton.core_groups.items:
 				self.putgroup(i, ctx=ctx, txn=txn)
-
-			# ian: records for these users are handled in signupinfo in core_users
 
 			self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
 
@@ -327,12 +300,12 @@ class DB(object):
 		###############################
 
 
-
 		txncounter = 0
+		
 		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
 		def newtxn1(self, parent=None, ctx=None):
-			#g.log.msg('LOG_INFO', 'printing traceback')
-			g.log.print_traceback(steps=5)
+			# g.log.msg('LOG_INFO', 'printing traceback')
+			# g.log.print_traceback(steps=5)
 			g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 			try:
@@ -352,8 +325,6 @@ class DB(object):
 			return None
 
 
-
-
 		def txncheck(self, ctx=None, txn=None):
 			if not txn:
 				txn = self.newtxn(ctx=ctx)
@@ -370,7 +341,7 @@ class DB(object):
 					del self.txnlog[id(txn)]
 				type(self).txncounter -= 1
 			else:
-				raise ValueError, 'transaction not found'
+				raise ValueError, 'Transaction not found'
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
@@ -384,7 +355,7 @@ class DB(object):
 				type(self).txncounter -= 1
 
 			else:
-				raise ValueError, 'transaction not found'
+				raise ValueError, 'Transaction not found'
 
 
 
@@ -394,35 +365,21 @@ class DB(object):
 		###############################
 
 
-		@DBProxy.publicmethod
-		def raise_exception(self, ctx=None, txn=None):
-			raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
+		# @DBProxy.publicmethod
+		# def raise_exception(self, ctx=None, txn=None):
+		# 	raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
 
 
-		# def LOG(self, level, message, ctx=None, txn=None):
-		# 	txn = txn or 1
-		# 	if type(level) is int and (level < 0 or level > 7):
-		# 		level = 6
-		# 	try:
-		# 		g.log.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
-		# 	except:
-		# 		traceback.print_exc(file=sys.stdout)
-		# 		g.log.msg('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
-
-
-		# needs txn?
+		# ian: todo: print more statistics; needs a txn?
 		def __str__(self):
-			"""Try to print something useful"""
-			return "<Database: %s>"%hex(id(self))
 			#return "Database %d records\n( %s )"%(int(self.__records.get(-1,0)), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
+			return "<Database: %s>"%hex(id(self))
 
 
-		# needs txn?
 		def __del__(self):
 			self.close()
 
 
-		# ian: todo
 		def close(self):
 			_log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 			try:
@@ -434,18 +391,10 @@ class DB(object):
 
 			self.__dbenv.close()
 
-			# if self.__allowclose == True:
-			# 	for btree in self.__dict__.values():
-			# 		if getattr(btree, '__class__', object).__name__.endswith('BTree'):
-			# 			try: btree.close()
-			# 			except bsddb3.db.InvalidArgError, e: g.log.msg('LOG_ERROR', e)
-			# 		for btree in self.__fieldindex.values(): btree.close()
 
 
 
-		# ian: this can be slow; reconsider use
-		# from: http://basicproperty.sourceforge.net
-		# ian: remove this sometime... reduce(operator.concat) works better
+		# ian: todo: remove this sometime... reduce(operator.concat) works better
 		def __flatten(self, l, ltypes=(set, list, tuple)):
 			ltype = type(l)
 			l = list(l)
@@ -475,21 +424,24 @@ class DB(object):
 			return VERSIONS.get(program)
 
 
+
 		###############################
 		# section: login / passwords
 		###############################
 
 		def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
-			'''so we can simulate a context for approveuser'''
+			'''Creates correct type of context'''
 
 			if username == "anonymous":
 				ctx = dataobjects.context.AnonymousContext(host=host)
+			# elif username == "root":
 			else:
 				ctx = dataobjects.context.Context(username=username, host=host)
 
 			return ctx
 
-
+		
+		# ian: todo: move into ^^^
 		def __makerootcontext(self, ctx=None, host=None, txn=None):
 			ctx = dataobjects.context.SpecialRootContext()
 			ctx.refresh(db=self, txn=txn)
@@ -497,7 +449,7 @@ class DB(object):
 			return ctx
 
 
-
+		# ian: todo: finish
 		def __login_getuser(self, username, ctx=None, txn=None):
 			"""Check password against stored hash value"""
 			try:
@@ -511,6 +463,7 @@ class DB(object):
 
 
 		# No longer public method; only through DBProxy to force host=...
+		# ian: todo: remove _
 		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
 			subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
@@ -526,11 +479,8 @@ class DB(object):
 
 			else:
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
-				# ian: todo: use User.checkpassword()
-				checkpass = user.checkpassword(password)
 
-				# Admins can "su"
-				if checkpass: # or ctx.checkadmin():
+				if user.checkpassword(password):
 					newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 
 				else:
@@ -542,7 +492,7 @@ class DB(object):
 				g.log.msg('LOG_INFO', "Login succeeded %s (%s)" % (username, newcontext.ctxid))
 
 			except:
-				g.log.msg('LOG_ERROR', "Error writing login context, txn aborting!")
+				g.log.msg('LOG_ERROR', "Error writing login context")
 				raise
 
 
@@ -565,7 +515,6 @@ class DB(object):
 		###############################
 
 
-		#@txn
 		@DBProxy.publicmethod
 		def deletecontext(self, ctx=None, txn=None):
 			"""Delete a context/Logout user. Returns None."""
@@ -573,15 +522,13 @@ class DB(object):
 
 
 
-		# ian: change so all __setcontext calls go through same txn
+		# ian: todo: finish
 		def __cleanupcontexts(self, ctx=None, txn=None):
 			"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
 
 			g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
+			self.lastctxclean = time.time()
 
-                        self.lastctxclean = time.time()
-
-			# ian: todo: fix!!!!!!
 			return
 
 			for ctxid, context in self.__contexts_p.items():
@@ -599,7 +546,6 @@ class DB(object):
 
 
 
-		#@write #self.__contexts_p
 		def __setcontext(self, ctxid, context, ctx=None, txn=None):
 			"""Add or delete context"""
 
@@ -610,10 +556,8 @@ class DB(object):
 			if self.__contexts.get(ctxid):
 				del self.__contexts[ctxid]
 
-
 			# set context
 			if context != None:
-
 				try:
 					g.log.msg("LOG_COMMIT","self.__contexts_p.set: %r"%context.ctxid)
 					self.__contexts_p.set(ctxid, context, txn=txn)
@@ -625,7 +569,6 @@ class DB(object):
 
 			# delete context
 			else:
-
 				try:
 					g.log.msg("LOG_COMMIT","self.__contexts_p.__delitem__: %r"%ctxid)
 					self.__contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
@@ -638,11 +581,13 @@ class DB(object):
 
 
 
+		# ian: todo: flesh this out into a proper cron system, with a subscription model; right now just runs cleanupcontexts
 		def __periodic_operations(self, ctx=None, txn=None):
 			t = subsystems.dbtime.getctime()
 			# maybe not the perfect place to do this, but it will have to do
 			if t > (self.lastctxclean + 600):
 				self.__cleanupcontexts(ctx=ctx, txn=txn)
+
 
 
 		def _getcontext(self, ctxid, host, ctx=None, txn=None):
@@ -662,58 +607,58 @@ class DB(object):
 				g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
 				raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
-			# ian: todo: this is a kindof circular problem, think about better ways to solve it.
+
+			# ian: todo:
+			#		how often should we refresh this?
+			#		right now, every publicmethod will reset user/groups
+			#		timer based?
+			
 			user = None
 			grouplevels = {}
 
 			# Update and cache
-			#if not context.user:
-			if True:
-				if context.username not in ["anonymous"]:
-					user = self.__users.get(context.username, None, txn=txn)
-					groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
-					grouplevels = {}
-					for group in [self.__groups.get(i, txn=txn) for i in groups]:
-						grouplevels[group.name] = group.getlevel(context.username)
+			if context.username not in ["anonymous"]:
+				user = self.__users.get(context.username, None, txn=txn)
+				groups = self.__groupsbyuser.get(context.username, set(), txn=txn)
+				grouplevels = {}
+				for group in [self.__groups.get(i, txn=txn) for i in groups]:
+					grouplevels[group.name] = group.getlevel(context.username)
 
-				# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
-				context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
+			# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
+			context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
-				self.__contexts[ctxid] = context
+			self.__contexts[ctxid] = context
 
 			return context
 
 
 
+		# ian: should always have a valid context, even if anon...
 		@DBProxy.publicmethod
 		def checkcontext(self, ctx=None, txn=None):
 			"""This allows a client to test the validity of a context, and
 			get basic information on the authorized user and his/her permissions"""
-			result = None,None
-			try: result = ctx.username, ctx.groups
-			#ed: fix: catch correct exception
-			except: pass
-			return result
+			return ctx.username, ctx.groups
 
 
 		@DBProxy.publicmethod
 		def checkadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global write access. Returns bool."""
-			if ctx: return ctx.checkadmin()
+			return ctx.checkadmin()
 
 
 
 		@DBProxy.publicmethod
 		def checkreadadmin(self, ctx=None, txn=None):
 			"""Checks if the user has global read access. Returns bool."""
-			if ctx: return ctx.checkreadadmin()
+			return ctx.checkreadadmin()
 
 
 
 		@DBProxy.publicmethod
 		def checkcreate(self, ctx=None, txn=None):
 			"""Check for permission to create records. Returns bool."""
-			if ctx: return ctx.checkcreate()
+			return ctx.checkcreate()
 
 
 
@@ -731,35 +676,28 @@ class DB(object):
 
 
 		# ian: todo: clean this up some more...
-		#@txn
-		#@write #self.__bdocounter
+		# ian: todo: implement uri
 		@DBProxy.publicmethod
-		def putbinary(self, filename, recid, key=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
-			"""Get a storage path for a new binary object. Must have a
-			recordid that references this binary, used for permissions. Returns a tuple
-			with the identifier for later retrieval and the absolute path"""
+		def putbinary(self, filename, recid, bdokey=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
+			"""Add binary object to database and attach to record"""
 
-
+			# Filename and recid required, unless root
 			if not filename:
-				raise ValueError, "Filename may not be 'None'"
+				raise ValueError, "Filename required"
 
-			if (key or recid == None) and not ctx.checkadmin():
+			if (bdokey or recid == None) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
-
-			#if not validate and not ctx.checkadmin():
-			#	raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
-
-			# ian: todo: acquire lock?
-			if not key:
+			# ian: todo: acquire RMW lock on record?
+			if not bdokey:
 				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 				if not rec.writable():
 					raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
-			bdoo = self.__putbinary(filename, recid, key=key, uri=uri, ctx=ctx, txn=txn)
+			bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
 
-			if not key:
+			if not bdokey:
 				if not param:
 					param = "file_binary"
 
@@ -767,65 +705,90 @@ class DB(object):
 
 				if param.vartype == "binary":
 					v = rec.get(param.name) or []
-					v.append("bdo:"+bdoo.get("name"))
+					v.append(bdoo.get("name"))
 					rec[param.name]=v
 
 				elif param.vartype == "binaryimage":
-					rec[param.name]="bdo:"+bdoo.get("name")
+					rec[param.name]=bdoo.get("name")
 
 				else:
 					raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
 
 				self.putrecord(rec, ctx=ctx, txn=txn)
 
-
 			if filedata != None:
-				self.__putbinary_file(bdoo.get("name"), filedata, ctx=ctx, txn=txn)
+				self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, ctx=ctx, txn=txn)
 
 
 			return bdoo
 
 
+		# ian: todo: move to Binary?
+		def __bdokey_parse(self, bdokey=None):
 
-		def __putbinary(self, filename, recid, key=None, uri=None, ctx=None, txn=None):
+			prot = None
+			
+			if bdokey:
+				prot, _, bdokey = bdokey.rpartition(":")
+
+			if not prot:
+				prot = "bdo"
+
+			# ian: todo: implement other BDO protocols, e.g. references to uris
+			if prot not in ["bdo"]:
+				raise Exception, "Invalid binary storage protocol: %s"%prot
+				
+
+			# Now process; must be 14 chars long..
+			if bdokey:
+				year=int(bdokey[:4])
+				mon=int(bdokey[4:6])
+				day=int(bdokey[6:8])
+				newid=int(bdokey[9:13],16)
+
+			else:
+				bdokey = self.gettime(ctx=ctx, txn=txn)
+				year = int(bdokey[:4])
+				mon = int(bdokey[5:7])
+				day = int(bdokey[8:10])
+				newid = None
+
+
+			datekey = "%04d%02d%02d"%(year, mon, day)
+
+			bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
+			base = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
+			
+			basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
+			filepath = basepath + "%05X"%newid
+			name = "%s:%s/%05X"%(prot, datekey, newid)
+			#datekey + "%05X"%newid
+			
+			return {"prot":prot, "date":date, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
+			
+
+
+		# ian: todo: use duplicate key style for bdocounter..
+		# ian: todo: if any exceptions, clean up partial files?
+		def __putbinary(self, filename, recid, bdokey=None, uri=None, ctx=None, txn=None):
 			# fetch BDO day dict, add item, and commit
 
-			date = self.gettime(ctx=ctx, txn=txn)
-
-			if not key:
-				year = int(date[:4])
-				mon = int(date[5:7])
-				day = int(date[8:10])
-				newid = None
-			else:
-				date=unicode(key)
-				year=int(date[:4])
-				mon=int(date[4:6])
-				day=int(date[6:8])
-				newid=int(date[9:13],16)
-
-			datekey = "%04d%02d%02d" % (year, mon, day)
-
-
-			# uri is for files copied from an external source, similar to records, paramdefs, etc.
-
-
-			#@begin
+			dkey = self.__bdokey_parse(bdokey)
 
 			# bdo items are stored one bdo per day
 			# key is sequential item #, value is (filename, recid)
+			# uri is for files copied from an external source, similar to records, paramdefs, etc.
 
-			# ian: todo: will this lock prevent others from overwriting new items?
+			#@begin
+
 			# acquire RMW lock to prevent others from editing...
-			bdo = self.__bdocounter.get(datekey, txn=txn, flags=RMWFLAGS) or {}
+			bdo = self.__bdocounter.get(dkey["datekey"], txn=txn, flags=RMWFLAGS) or {}
 
-			if newid == None:
-				newid = max(bdo.keys() or [-1]) + 1
+			if dkey["newid"] == None:
+				dkey["newid"] = max(bdo.keys() or [-1]) + 1
 
-
-			if bdo.get(newid) and not ctx.checkadmin():
+			if bdo.get(dkey["newid"]) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
-
 
 			nb = dataobjects.binary.Binary()
 			nb["uri"] = uri
@@ -833,95 +796,47 @@ class DB(object):
 			nb["recid"] = recid
 			nb["creator"] = ctx.username
 			nb["creationtime"] = self.gettime()
-			nb["name"] = datekey + "%05X"%newid
+			nb["name"] = dkey["name"]
+			bdo[dkey["newid"]] = nb
 
-			bdo[newid] = nb #(filename, recid, uri)
-
-			g.log.msg("LOG_COMMIT","self.__bdocounter.set: %s"%datekey)
-			self.__bdocounter.set(datekey, bdo, txn=txn)
+			g.log.msg("LOG_COMMIT","self.__bdocounter.set: %s"%dkey["datekey"])
+			self.__bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
 			#@end
 
-			#return (bdo, filename)
-			#return (key + "%05X" % newid, path + "/%05X" % newid)
-
-			#return datekey + "%05X"%newid
 			return nb
 
 
 
 		def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
 
-			date = unicode(bdokey)
-			year = int(date[:4])
-			mon = int(date[4:6])
-			day = int(date[6:8])
-			newid = int(date[9:13],16)
+			dkey = self.__bdokey_parse(bdokey)
 
-			datekey = "%04d%02d%02d"% (year, mon, day)
-
-			bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
-			basepath = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
-
-			filepath = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
-			# g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
-
-			#for i in /BINARYPATH:
-			#	if datekey >= i[0] and datekey < i[1]:
-			#		# actual storage path
-			#		filepath = "%s/%04d/%02d/%02d" % (i[2], year, mon, day)
-			#		g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(bdokey, filepath))
-			#		break
-			#else:
-			#	raise KeyError, "No storage specified for date %s" % key
-
-
-			# try to make sure the directory exists
-			try: os.makedirs(filepath)
 			#ed: fix: catch correct exception
-			except: pass
-
-
-			filename = filepath + "/%05X"%newid
-			# g.log.msg("LOG_DEBUG","filename is %s"%filename)
+			os.makedirs(dkey["basepath"])
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-			if os.access(filename, os.F_OK) and not ctx.checkadmin():
+			if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
 				# should be a different exception class, this particular one seems irrevelant as it is not really a security
 				# but an integrity problem.
-				raise subsystems.exceptions.SecurityError, "Error: Binary data storage, attempt to overwrite existing file '%s'"
-				#g.log.msg('LOG_INFO', "Binary data storage: overwriting existing file '%s'" % (path + "/%05X" % newid))
+				raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
+			g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),dkey["filepath"]))
 
-			# if a filedata is supplied, write it out...
-			# todo: use only this mechanism for putting files on disk
-			g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),filename))
-			f=open(filename,"wb")
+			f = open(dkey["filepath"],"wb")
 			f.write(filedata)
 			f.close()
 
-			return True
 
 
-
-
-		def __parsebdokey(self, key):
-			# for bdo: protocol
-			# validate key
-			year = int(key[:4])
-			mon = int(key[4:6])
-			day = int(key[6:8])
-			bid = int(key[8:], 16)
-			key = "%04d%02d%02d" % (year, mon, day)
-			return [year, mon, day, bid], key
 
 
 		@DBProxy.publicmethod
-		def getbinary(self, idents, filt=True, vts=None, params=None, ctx=None, txn=None):
+		def getbinary(self, bdokeys, filt=True, vts=None, params=None, ctx=None, txn=None):
 			"""Get a storage path for an existing binary object. Returns the
 			object name and the absolute path"""
 
-			# process idents argument for bids (into list bids) and then process bids
+			# process bdokeys argument for bids (into list bids) and then process bids
 			ret = {}
 			bids = []
 			recs = []
@@ -930,99 +845,72 @@ class DB(object):
 				vts = ["binary","binaryimage"]
 
 			ol=0
-			if isinstance(idents,basestring):# or not hasattr(idents,"__iter__"):
+			if isinstance(bdokeys,basestring): # or not hasattr(bdokeys,"__iter__"):
 				ol=1
-				bids = [idents]
-				idents = bids
-			if isinstance(idents,(int,dataobjects.record.Record)):
-				idents = [idents]
+				bids = [bdokeys]
+				bdokeys = bids
+			if isinstance(bdokeys,(int,dataobjects.record.Record)):
+				bdokeys = [bdokeys]
 
 
-			bids.extend(filter(lambda x:isinstance(x,basestring), idents))
+			bids.extend(filter(lambda x:isinstance(x,basestring), bdokeys))
+			
+			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), bdokeys), filt=1, ctx=ctx, txn=txn))
+			recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), bdokeys))
 
-			recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), idents), filt=1, ctx=ctx, txn=txn))
-			recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), idents))
-
-			# ian: todo: speed this up some..
+			# ian: todo: speed this up some..?
 			if recs:
 				bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 
+			# filtered list of bdokeys
 			bids = filter(lambda x:isinstance(x, basestring), bids)
 
 			# keyed by recid
-			byrec = collections.defaultdict(set)
+			# byrec = collections.defaultdict(set)
 
-			for ident in bids:
-				prot, _, key = ident.rpartition(":")
-				if prot == "":
-					prot = "bdo"
-
-				# ian: todo: implement other BDO protocols, e.g. references to uris
-				if prot not in ["bdo"]:
-					if filt:
-						continue
-					else:
-						raise Exception, "Invalid binary storage protocol: %s"%prot
-
-				# validate key
-				(year, mon, day, bid), key = self.__parsebdokey(key)
+			for bdokey in bids:
 
 				try:
-					# ian: todo: clean this up... see also putbinary
-					bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
-					basepath = bp[filter(lambda x:x<=key, sorted(bp.keys()))[-1]]
+					dkey = self.__bdokey_parse(bdokey)
+					bdo = self.__bdocounter.sget(dkey["datekey"], txn=txn)[dkey["newid"]]
 
-					path = "%s/%04d/%02d/%02d" % (basepath, year, mon, day)
-					# g.log.msg("LOG_DEBUG","Filepath for binary bdokey %s is %s"%(key, path))
+				except Exception, inst:
+					if filt: continue
+					else: raise KeyError, "Invalid identifier: %s: %s"%(bdokey, inst)
 
-				#ed: fix: catch correct exception
-				except:
-					raise KeyError, "No storage specified for date %s"%key
-
-
-
-				try:
-						bdo = self.__bdocounter.sget(key, txn=txn)[bid] #[key][bid]
-				#ed: fix: catch correct exception
-				except:
-						if filt: continue
-						else: raise KeyError, "Unknown identifier %s" % ident
-
-
-				# ian: finish this filtering...
-				byrec[bdo.get("recid")].add(bdo)
-
+				# ian: todo: finish -- check allrecords with one getrecord?
+				# byrec[bdo.get("recid")].add(bdo)
 
 				try:
 					self.getrecord(bdo.get("recid"), filt=False, ctx=ctx, txn=txn)
-					bdo["filepath"] = path+"/%05X"%bid
-					ret[ident] = bdo
-					#(name, path + "/%05X" % bid, recid)
+					bdo["filepath"] = dkey["filepath"]
+					ret[bdo["name"]] = bdo
 
 				#ed: fix: catch correct exception
 				except:
 					if filt: continue
-					else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s(%0d)" % (ident, recid)
-
+					else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, bdo.get("recid"))
 
 			if len(ret)==1 and ol:
 				return ret.values()[0]
+				
 			return ret
 
 
 
-		@DBProxy.publicmethod
-		def getbinarynames(self, ctx=None, txn=None):
-			"""Returns a list of tuples which can produce all binary object
-			keys in the database. Each 2-tuple has the date key and the nubmer
-			of objects under that key. A somewhat slow operation."""
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
-
-			ret = self.__bdocounter.keys(txn=txn)
-			ret = [(i, len(self.__bdocounter.get(i, txn=txn))) for i in ret]
-			return ret
+		# ian: todo: reimplement properly, return actual BDI
+		# @DBProxy.publicmethod
+		# def getbinarynames(self, ctx=None, txn=None):
+		# 	"""Returns a list of tuples which can produce all binary object
+		# 	keys in the database. Each 2-tuple has the date key and the nubmer
+		# 	of objects under that key. A somewhat slow operation."""
+		# 
+		# 	if ctx.username == None:
+		# 		raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
+		# 
+		# 	ret = self.__bdocounter.keys(txn=txn)
+		# 	ret = [(i, len(self.__bdocounter.get(i, txn=txn))) for i in ret]
+		# 	return ret
 
 
 
@@ -2465,10 +2353,7 @@ class DB(object):
 			if not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 
-			if self.__importmode:
-				user.validate(warning=True)
-			else:
-				user.validate()
+			user.validate()
 
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
@@ -2858,9 +2743,7 @@ class DB(object):
 			wflist = list(wflist)								 # this will (properly) raise an exception if wflist cannot be converted to a list
 
 			for w in wflist:
-				if not self.__importmode:
-					#w=WorkFlow(w.__dict__.copy())
-					w.validate()
+				w.validate()
 
 				if not isinstance(w, WorkFlow):
 					self.txnabort(txn=txn) #txn.abort()
@@ -3611,9 +3494,9 @@ class DB(object):
 			for updrec in updrecs:
 
 
-				if self.__importmode:
-					crecs.append(updrec)
-					continue
+				# if self.__importmode:
+				# 	crecs.append(updrec)
+				# 	continue
 
 				recid = updrec.recid
 
