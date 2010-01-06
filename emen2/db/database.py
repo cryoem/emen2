@@ -454,15 +454,15 @@ class DB(object):
 			raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
 
 
-		def LOG(self, level, message, ctx=None, txn=None):
-			txn = txn or 1
-			if type(level) is int and (level < 0 or level > 7):
-				level = 6
-			try:
-				g.log.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
-			except:
-				traceback.print_exc(file=sys.stdout)
-				g.log.msg('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
+		# def LOG(self, level, message, ctx=None, txn=None):
+		# 	txn = txn or 1
+		# 	if type(level) is int and (level < 0 or level > 7):
+		# 		level = 6
+		# 	try:
+		# 		g.log.msg(self.log_levels.get(level, level), "%s: (%s) %s" % (self.gettime(ctx=ctx,txn=txn), self.log_levels.get(level, level), message))
+		# 	except:
+		# 		traceback.print_exc(file=sys.stdout)
+		# 		g.log.msg('LOG_CRITICAL', "Critical error!!! Cannot write log message to '%s'")
 
 
 		# needs txn?
