@@ -3,7 +3,7 @@ g = emen2.globalns.GlobalNamespace()
 import bsddb3
 
 USETXN = True
-RECOVER = False
+RECOVER = True
 
 # Berkeley DB Config flags
 ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL | bsddb3.db.DB_REGISTER
