@@ -778,7 +778,7 @@ class DB(object):
 			name = "%s:%s/%05X"%(prot, datekey, newid)
 			#datekey + "%05X"%newid
 
-			return {"prot":prot, "date":date, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
+			return {"prot":prot, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
 
 
 
@@ -1559,13 +1559,12 @@ class DB(object):
 
 
 		# wraps getrel / works as both getchildren/getparents
-		@DBProxy.publicmethod
 		def __getrel_wrapper(self, key, keytype="record", recurse=1, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
 			"""Add some extra features to __getrel"""
 
-			ol = 0
+			ol = False
 			if not hasattr(key,"__iter__"):
-				ol = 1
+				ol = True
 				key = [key]
 
 			# ian: todo: fix everything else to make recurse=1 by default..
@@ -1575,15 +1574,18 @@ class DB(object):
 			# ret is a two-level dictionary
 			# k1 = input recids
 			# k2 = recid and v2 = children of k2
-			ret = {}
+			ret_tree = {}
 			ret_visited = {}
 
 			for i in key:
-				ret[i], ret_visited[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
+				ret_tree[i], ret_visited[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
 
 
 			if rectype or filt or flat:
-				# ian: note: use a [] initializer for reduce to prevent exceptions when values is empty
+	
+				# flatten, then filter by rectype and permissions.
+				# if flat=True, then done, else filter the trees
+				# ian: note: use a set() initializer for reduce to prevent exceptions when values is empty
 				allr = reduce(set.union, ret_visited.values(), set())
 
 				if rectype:
@@ -1598,88 +1600,29 @@ class DB(object):
 				# perform filtering on both levels, and removing any items that become empty
 				# ret = dict(filter(lambda x:x[1], [ ( k, dict(filter(lambda x:x[1], [ (k2,v2 & allr) for k2, v2 in v.items() ] ) ) ) for k,v in ret.items() ]))
 				# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
-				if tree:
-					for k in ret:
-						for k2 in ret[k]:
-							ret[k][k2] &= allr
 
+				# if tree, we use ret_tree, 
+				if tree:
+					for k in ret_tree:
+						for k2 in ret_tree[k]:
+							ret_tree[k][k2] &= allr
+				
+				# else, ret_visited
 				else:
 					for k in ret_visited:
 						ret_visited[k] &= allr
-					ret = ret_visited
+
+			if not tree:
+				ret_tree = ret_visited
 
 			if ol:
-				return ret.get(key[0],set())
+				return ret_tree.get(key[0],set())
 
-			return ret
-
-
-
-		# ian: todo: move most of this to RelateBTree
-		def __getrel(self, key, keytype="record", recurse=1, rel="children", ctx=None, txn=None):
-			# indc is restricted subset (e.g. getindexbycontext)
-			"""get parent/child relationships; see: getchildren"""
+			return ret_tree
 
 
-			if (recurse < 0):
-				return {}, set()
-
-			if keytype == "record":
-				trg = self.bdbs.records
-				key = int(key)
-				# read permission required
-				try: self.getrecord(key, ctx=ctx, txn=txn)
-				except:	return {}, set()
-
-			elif keytype == "recorddef":
-				trg = self.bdbs.recorddefs
-				try: a = self.getrecorddef(key, ctx=ctx, txn=txn)
-				except: return {}, set()
-
-			elif keytype == "paramdef":
-				trg = self.bdbs.paramdefs
-
-			else:
-				raise Exception, "getchildren keytype must be 'record', 'recorddef' or 'paramdef'"
 
 
-			if rel=="children":
-				rel = trg.children
-			elif rel=="parents":
-				rel = trg.parents
-			else:
-				raise Exception, "Unknown relationship mode"
-
-			# base result
-			ret = rel(key, txn=txn) or set()
-
-			# ian: todo: use collections.queue
-			stack = [ret]
-			result = {key: ret}
-			visited = set()
-
-			for x in xrange(recurse-1):
-
-				if not stack[x]:
-					break
-				if x > self.MAXRECURSE:
-					raise Exception, "Recurse limit reached; check for circular relationships"
-
-				stack.append(set())
-
-				# g.log.msg('LOG_DEBUG', "%s lookups to make this level"%(len(stack[x]-visited)))
-				for k in stack[x] - visited:
-					new = rel(k, txn=txn) #or set()
-					if new:
-						stack[x+1] |= new #.extend(new)
-						result[k] = new
-
-				visited |= stack[x]
-
-			#if len(stack) > 1:
-			visited |= stack[-1]
-
-			return result, visited
 
 
 
