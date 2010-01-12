@@ -277,6 +277,7 @@ class DB(object):
 
 
 
+		def __del__(self): g.debug('cleaning up DB instance')
 
 
 
