@@ -555,7 +555,7 @@ class DB(object):
 					pass
 
 				if context.time + (context.maxidle or 0) < time.time():
-					g.log("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
+					g.debug("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
 					self.__setcontext(context.ctxid, None, ctx=ctx, txn=txn)
 
 
@@ -696,13 +696,13 @@ class DB(object):
 			"""Add binary object to database and attach to record"""
 
 			# Filename and recid required, unless root
-			if not filename:
-				raise ValueError, "Filename required"
+			if not filename: raise ValueError, "Filename required"
 
 			if (bdokey or recid == None) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
 			# ian: todo: acquire RMW lock on record?
+			# ed: probably
 			if not bdokey:
 				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 				if not rec.writable():
@@ -712,8 +712,7 @@ class DB(object):
 			bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
 
 			if not bdokey:
-				if not param:
-					param = "file_binary"
+				if not param: param = "file_binary"
 
 				param = self.getparamdef(param, ctx=ctx, txn=txn)
 
