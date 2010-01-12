@@ -51,7 +51,6 @@ DBENV = None
 
 # ian: todo: do this in a better way
 # this is used by db.checkversion
-
 VERSIONS = {
 	"API": g.VERSION,
 	"emen2client": 20091113
@@ -64,8 +63,6 @@ def DB_Close():
 	for i in l:
 		_log.msg('LOG_DEBUG', i._DB__dbenv)
 		i.close()
-
-
 
 
 def DB_syncall():
