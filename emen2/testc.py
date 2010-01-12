@@ -7,7 +7,7 @@ g = emen2.globalns.GlobalNamespace('')
 import emen2.Database.DBProxy
 import emen2.Database.database
 
-@atexit.register
+#@atexit.register
 def _atexit():
 	global db
 	try:

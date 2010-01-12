@@ -48,16 +48,12 @@ DBENV = None
 
 
 # ian: todo: constants... move these to config file
-MAXIDLE = 604800
-DEBUG = 0
-
 
 # ian: todo: do this in a better way
 # this is used by db.checkversion
-VERSION = 20091110
 
 VERSIONS = {
-	"API": VERSION,
+	"API": g.VERSION,
 	"emen2client": 20091113
 }
 
@@ -170,11 +166,9 @@ class DB(object):
 				[self.__closeparamindex(x) for x in self.fieldindex.keys()]
 
 		def __init__(self, path=".", logfile="db.log"):
-			global ENVOPENFLAGS, USETXN
 
-			if USETXN:
+			if g.USETXN:
 				self.newtxn = self.newtxn1
-				ENVOPENFLAGS |= bsddb3.db.DB_INIT_TXN
 			else:
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
 				self.newtxn = self.newtxn2
@@ -192,11 +186,6 @@ class DB(object):
 			self.vtm = subsystems.datatypes.VartypeManager()
 
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
-
-			# ian: todo: move to config file
-			self.unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
-			self.MAXRECURSE = 50
-			self.BLOCKLENGTH = 100000
 
 			self.__cache_vartype_indextype = {}
 			for vt in self.vtm.getvartypes():
@@ -319,7 +308,7 @@ class DB(object):
 		def newtxn1(self, parent=None, ctx=None):
 			# g.log.msg('LOG_INFO', 'printing traceback')
 			# g.log.print_traceback(steps=5)
-			g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
+			# g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
 			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 			try:
 				type(self).txncounter += 1
@@ -345,7 +334,7 @@ class DB(object):
 
 
 		def txnabort(self, txnid=0, ctx=None, txn=None):
-			g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+			# g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn:
@@ -358,7 +347,7 @@ class DB(object):
 
 
 		def txncommit(self, txnid=0, ctx=None, txn=None):
-			g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
+			# g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 			txn = self.txnlog.get(txnid, txn)
 
 			if txn != None:
@@ -479,10 +468,13 @@ class DB(object):
 
 		# No longer public method; only through DBProxy to force host=...
 		# ian: todo: remove _
-		def _login(self, username="anonymous", password="", host=None, maxidle=MAXIDLE, ctx=None, txn=None):
+		def _login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
 			"""Logs a given user in to the database and returns a ctxid, which can then be used for
 			subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
 
+			if maxidle == None or maxidle > g.MAXIDLE:
+				maxidle = g.MAXIDLE
+				
 			newcontext = None
 			username = unicode(username)
 
@@ -737,48 +729,48 @@ class DB(object):
 			return bdoo
 
 
-		# ian: todo: move to Binary?
-		def __bdokey_parse(self, bdokey=None):
-
-			prot = None
-
-			if bdokey:
-				prot, _, bdokey = bdokey.rpartition(":")
-
-			if not prot:
-				prot = "bdo"
-
-			# ian: todo: implement other BDO protocols, e.g. references to uris
-			if prot not in ["bdo"]:
-				raise Exception, "Invalid binary storage protocol: %s"%prot
-
-
-			# Now process; must be 14 chars long..
-			if bdokey:
-				year=int(bdokey[:4])
-				mon=int(bdokey[4:6])
-				day=int(bdokey[6:8])
-				newid=int(bdokey[9:13],16)
-
-			else:
-				bdokey = self.gettime(ctx=ctx, txn=txn)
-				year = int(bdokey[:4])
-				mon = int(bdokey[5:7])
-				day = int(bdokey[8:10])
-				newid = None
-
-
-			datekey = "%04d%02d%02d"%(year, mon, day)
-
-			bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
-			base = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
-
-			basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
-			filepath = basepath + "%05X"%newid
-			name = "%s:%s/%05X"%(prot, datekey, newid)
-			#datekey + "%05X"%newid
-
-			return {"prot":prot, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
+		# # ian: todo: move to Binary?
+		# def __bdokey_parse(self, bdokey=None):
+		# 
+		# 	prot = None
+		# 
+		# 	if bdokey:
+		# 		prot, _, bdokey = bdokey.rpartition(":")
+		# 
+		# 	if not prot:
+		# 		prot = "bdo"
+		# 
+		# 	# ian: todo: implement other BDO protocols, e.g. references to uris
+		# 	if prot not in ["bdo"]:
+		# 		raise Exception, "Invalid binary storage protocol: %s"%prot
+		# 
+		# 
+		# 	# Now process; must be 14 chars long..
+		# 	if bdokey:
+		# 		year = int(bdokey[:4])
+		# 		mon = int(bdokey[4:6])
+		# 		day = int(bdokey[6:8])
+		# 		newid = int(bdokey[9:13],16)
+		# 
+		# 	else:
+		# 		bdokey = self.__gettime()
+		# 		year = int(bdokey[:4])
+		# 		mon = int(bdokey[5:7])
+		# 		day = int(bdokey[8:10])
+		# 		newid = None
+		# 
+		# 
+		# 	datekey = "%04d%02d%02d"%(year, mon, day)
+		# 
+		# 	bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
+		# 	base = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
+		# 
+		# 	basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
+		# 	filepath = basepath + "%05X"%newid
+		# 	name = "%s:%s/%05X"%(prot, datekey, newid)
+		# 	#datekey + "%05X"%newid
+		# 
+		# 	return {"prot":prot, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
 
 
 
@@ -787,7 +779,7 @@ class DB(object):
 		def __putbinary(self, filename, recid, bdokey=None, uri=None, ctx=None, txn=None):
 			# fetch BDO day dict, add item, and commit
 
-			dkey = self.__bdokey_parse(bdokey)
+			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
 
 			# bdo items are stored one bdo per day
 			# key is sequential item #, value is (filename, recid)
@@ -796,12 +788,14 @@ class DB(object):
 			#@begin
 
 			# acquire RMW lock to prevent others from editing...
-			bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=RMWFLAGS) or {}
+			bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
 
-			if dkey["newid"] == None:
-				dkey["newid"] = max(bdo.keys() or [-1]) + 1
+			if dkey["counter"] == 0:
+				counter = max(bdo.keys() or [-1]) + 1
+				dkey = emen2.Database.dataobjects.binary.parse(bdokey, counter=counter)
 
-			if bdo.get(dkey["newid"]) and not ctx.checkadmin():
+
+			if bdo.get(dkey["counter"]) and not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 			nb = dataobjects.binary.Binary()
@@ -811,7 +805,7 @@ class DB(object):
 			nb["creator"] = ctx.username
 			nb["creationtime"] = self.gettime()
 			nb["name"] = dkey["name"]
-			bdo[dkey["newid"]] = nb
+			bdo[dkey["counter"]] = nb
 
 			g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
 			self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
@@ -824,10 +818,13 @@ class DB(object):
 
 		def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
 
-			dkey = self.__bdokey_parse(bdokey)
+			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
 
 			#ed: fix: catch correct exception
-			os.makedirs(dkey["basepath"])
+			try:
+				os.makedirs(dkey["basepath"])
+			except:
+				pass
 
 			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
 			if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
@@ -885,8 +882,8 @@ class DB(object):
 			for bdokey in bids:
 
 				try:
-					dkey = self.__bdokey_parse(bdokey)
-					bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["newid"]]
+					dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+					bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["counter"]]
 
 				except Exception, inst:
 					if filt: continue
@@ -946,7 +943,7 @@ class DB(object):
 				raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
 			if recurse:
-				recurse = self.MAXRECURSE
+				recurse = g.MAXRECURSE
 
 			constraints = constraints or []
 			if q:
@@ -1550,7 +1547,6 @@ class DB(object):
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
-
 		@DBProxy.publicmethod
 		def getparents(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 			"""see: getchildren"""
@@ -1570,16 +1566,24 @@ class DB(object):
 			# ian: todo: fix everything else to make recurse=1 by default..
 			if recurse == 0:
 				recurse = 1
+					
+			if keytype=="record":
+				reldb = self.bdbs.records
+			elif keytype=="paramdef":
+				reldb = self.bdbs.paramdefs
+			elif keytype=="recorddef":
+				reldb = self.bdbs.recorddefs
+			else:
+				raise ValueError, "Invalid keytype"
 
 			# ret is a two-level dictionary
 			# k1 = input recids
 			# k2 = recid and v2 = children of k2
 			ret_tree = {}
 			ret_visited = {}
-
 			for i in key:
-				ret_tree[i], ret_visited[i] = self.__getrel(key=i, keytype=keytype, recurse=recurse, rel=rel, ctx=ctx, txn=txn)
-
+				ret_tree[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
+				
 
 			if rectype or filt or flat:
 	
@@ -3056,13 +3060,14 @@ class DB(object):
 			private, unless the user is an owner or	 in the context of a recid the
 			user has permission to access"""
 
-			rectypename = rectypename.lower()
 			if hasattr(rectypename,"__iter__"):
 				ret = {}
 				for i in rectypename:
 					ret[i] = self.getrecorddef(i, recid=recid, ctx=ctx, txn=txn)
 				return ret
 
+			
+			rectypename = rectypename.lower()
 
 			try:
 				ret = self.bdbs.recorddefs.sget(rectypename, txn=txn)
@@ -3451,7 +3456,7 @@ class DB(object):
 				recid = updrec.recid
 
 				# we need to acquire RMW lock here to prevent changes during commit
-				if self.bdbs.records.exists(updrec.recid, txn=txn, flags=RMWFLAGS):
+				if self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
 					orec = self.bdbs.records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
 
@@ -3541,7 +3546,7 @@ class DB(object):
 				if reindex or i.recid < 0:
 					continue
 				try:
-					orec = self.bdbs.records.sget(i.recid, txn=txn, flags=RMWFLAGS) # [recid]
+					orec = self.bdbs.records.sget(i.recid, txn=txn, flags=g.RMWFLAGS) # [recid]
 				except:
 					orec = {}
 				cache[i.recid] = orec
@@ -3560,7 +3565,7 @@ class DB(object):
 
 			# this needs a lock.
 			if newrecs:
-				baserecid = self.bdbs.records.sget(-1, txn=txn, flags=RMWFLAGS)
+				baserecid = self.bdbs.records.sget(-1, txn=txn, flags=g.RMWFLAGS)
 				g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 				self.bdbs.records.set(-1, baserecid + len(newrecs), txn=txn)
 
@@ -3806,7 +3811,7 @@ class DB(object):
 				for i in self.__reindex_getindexwords(item[2], ctx=ctx, txn=txn):
 					delrefs[i].append(item[0])
 
-			allwords = set(addrefs.keys() + delrefs.keys()) - self.unindexed_words
+			allwords = set(addrefs.keys() + delrefs.keys()) - set(g.UNINDEXED_WORDS)
 
 			addrefs2 = {}
 			delrefs2 = {}
@@ -3918,7 +3923,7 @@ class DB(object):
 			maxrecords = self.bdbs.records.get(-1, txn=txn)
 			print "Records in DB: %s"%(maxrecords-1)
 
-			blocks = range(0, maxrecords, self.BLOCKLENGTH) + [maxrecords]
+			blocks = range(0, maxrecords, g.BLOCKLENGTH) + [maxrecords]
 			blocks = zip(blocks, blocks[1:])
 
 			print blocks
@@ -3961,7 +3966,7 @@ class DB(object):
 			while crecs:
 				txn2 = self.newtxn(txn)
 
-				pos2 = pos + self.BLOCKLENGTH
+				pos2 = pos + g.BLOCKLENGTH
 				if pos2 > maxrecords: pos2 = maxrecords
 
 				crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
@@ -4484,7 +4489,6 @@ class DB(object):
 
 
 				recblock, paramblock, recdefblock, userblock = [],[],[],[]
-				#blocklength = 100000
 				commitrecs = False
 				changesmade = False
 				OVERWRITE = False
@@ -4541,7 +4545,7 @@ class DB(object):
 							elif isinstance(r, dataobjects.user.User) and "user" in types and r.username not in existing_users:
 								userblock.append(r)
 
-							if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= self.BLOCKLENGTH:
+							if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= g.BLOCKLENGTH:
 								commitrecs = True
 
 							restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)

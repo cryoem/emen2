@@ -65,7 +65,9 @@ class DownloadResource(Resource, File):
 		"""thread worker to get file paths from db; hand back to resource to send """
 
 		bids = path[0].split(",")
-
+		print "bids:"
+		print bids
+		
 		db._setcontext(ctxid,host)
 		bdos = db.getbinary(bids)
 		db._clearcontext()
@@ -81,7 +83,7 @@ class DownloadResource(Resource, File):
 
 		# ian: todo: implement working archive Producer...
 		# bdos = result[0]
-
+		
 		first_bdo = result.values()[0]
 		bname = first_bdo.get("filename")
 
@@ -119,7 +121,7 @@ class DownloadResource(Resource, File):
 			errmsg = "File Not Found"
 		except Exception,e:
 			errmsg = str(e)
-
+			raise
 
 		#idata = g.templates.render_template("/errors/simple_error",context={"EMEN2WEBROOT":g.EMEN2WEBROOT, "errmsg":errmsg,"def_title":"Error: %s"%errcode}).encode('utf-8')
 		data = errmsg
