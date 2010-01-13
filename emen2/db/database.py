@@ -1211,9 +1211,10 @@ class DB(object):
 			return subsets, subsets_by_value
 
 
+
 		# ian: todo: hard: Plotting goes.. HERE. Working on it.
 		@DBProxy.publicmethod
-		def plot(self, ctx=ctx, txn=txn):
+		def plot(self, ctx=None, txn=None):
 			pass
 
 
