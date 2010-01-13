@@ -82,7 +82,14 @@ function tile_init(ibid) {
 function tile_rebuild(bid) {
 	var innerdivie=document.getElementById("innerdiv");
 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'	
-	$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/create/", tile_createtile_cb);
+	//$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/create/", tile_createtile_cb, tile_checktile_eb);
+	return jQuery.ajax({
+		type: "GET",
+		url: EMEN2WEBROOT+"/db/tiles/"+bid+"/create/",
+		success: tile_createtile_cb,
+		error: tile_checktile_eb,
+		dataType: "json"
+		});
 }
 
 

@@ -1219,6 +1219,171 @@ class DB(object):
 
 
 
+		# class findrecorddef(View):
+		# 	__metaclass__ = View.register_view
+		# 	__matcher__ = r'^/find/recorddef/$'
+		# 	def __init__(self,db=None,q=None,limit=None,timestamp=None):
+		# 		self.q=q
+		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
+		# 
+		# 	def get_data(self):
+		# 		pass
+		# 
+		# 
+		# 
+		# 
+		# class findparamdef(View):
+		# 	__metaclass__ = View.register_view
+		# 	__matcher__ = r'^/find/paramdef/$'
+		# 	def __init__(self,db=None,q=None,limit=None,timestamp=None):
+		# 		self.q=q
+		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
+		# 
+		# 	def get_data(self):
+		# 		pdn = self.db.getparamdefnames()
+		# 		pds = self.db.getparamdefs(pdn)
+		# 		ret = []
+		# 		# search: desc_long, desc_short, name
+		# 		# ian: todo: simple: search vartype, property, creator, etc. using opt args
+		# 		search_keys = ["name","desc_long","desc_short"]
+		# 
+		# 		for k, pd in pds.items():
+		# 			if any([self.q in pd.get(search_key,"") for search_key in search_keys]):
+		# 				ret.append("%s -- %s (%s)"%(pd.name, pd.desc_short, pd.vartype))
+		# 
+		# 		return "\n".join(sorted(ret))
+		# 
+		# 
+		# 
+		# 
+		# 
+		# 
+		# 
+		# class finduser(View):
+		# 	__metaclass__ = View.register_view
+		# 	__matcher__ = r'^/find/user/$'
+		# 	def __init__(self, db=None, q=None, limit=None, timestamp=None):
+		# 		self.q = q
+		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
+		# 
+		# 	def get_data(self):
+		# 
+		# 		#if len(self.q) <= 1: return demjson.encode([])
+		# 
+		# 		q = self.db.query(
+		# 			boolmode="OR",
+		# 			ignorecase=True,
+		# 			#rectype="person",
+		# 			constraints=[
+		# 				["name_first","contains",self.q], 
+		# 				["name_middle","contains",self.q],
+		# 				["name_last","contains",self.q],
+		# 				["username","contains_w_empty",self.q]
+		# 				],
+		# 			returnrecs=True
+		# 			)
+		# 
+		# 		#print q
+		# 
+		# 		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
+		# 		return "\n".join(sorted(usernames))
+		# 
+		# 		#ret = self.db.getuserdisplayname(usernames, lnf=1) or {}		
+		# 		#return demjson.encode(ret.items())
+		# 		# z = self.db.fulltextsearch(self.q,rectype="person",includeparams=["username"],params=["name_first","name_middle","name_last","username"])
+		# 		# ret=self.db.getuserdisplayname([i.get("username") for i in z.values()],lnf=1)
+		# 		# 
+		# 		# if ret: ret=ret.items()
+		# 		# else: ret=[]
+		# 		# return demjson.encode(ret)
+
+		
+		@DBProxy.publicmethod
+		def finduser(self, query, limit=100, ctx=None, txn=None):
+			q = self.query(
+				boolmode="OR",
+				ignorecase=True,
+				constraints=[
+					["name_first","contains",query], 
+					["name_middle","contains",query],
+					["name_last","contains",query],
+					["username","contains_w_empty",query]
+					],
+				returnrecs=True,
+				ctx=ctx, txn=txn	
+			)
+
+			usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
+
+			users = self.getuser(usernames, ctx=ctx, txn=txn)
+			return [(user.username, user.displayname) for user in users.values()]
+
+		
+		# ian: make this a class method, e.g. Group.match or query?		
+		@DBProxy.publicmethod
+		def findgroup(self, query, limit=100, ctx=None, txn=None):
+			built_in = set(["anon","authenticated","create","readadmin","admin"])
+			
+			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+			search_keys = ["name", "displayname"]
+			ret = []
+		
+			for k, v in groups.items():
+				if any([query in v.get(search_key,"") for search_key in search_keys]):
+					ret.append([k,v.get('displayname', k)])
+					
+			ret = sorted(ret, key=operator.itemgetter(1))
+
+			if limit:
+				ret = ret[:limit]
+			
+			return ret		
+
+			
+			
+
+		@DBProxy.publicmethod
+		def findvalue(self, param, query, flat=False, limit=100, count=True, showchoices=True, ctx=None, txn=None):
+			"""Convenience method for quick query for a single param. Sorted by number of matches.
+
+			@param count Return count of matches, otherwise return recids
+			@param limit Limit number of results
+			@param showchoices ...
+			@param flat Flatten return to just recids
+			
+			@return [[matching value, count], ...]
+					if not count: [[matching value, [recid, ...]], ...]
+					if flat and not count: [recid, recid, ...]
+					if flat and count: Number of matching records
+			"""
+			
+
+			q = self.query(ignorecase=True, constraints=[[param, "contains_w_empty", query]], byvalue=True, ctx=ctx, txn=txn)
+			# >>> db.query(ignorecase=True, constraints=[["name_last","contains_w_empty", "rees"]], byvalue=True)
+			# 			{('name_last', u'Rees'): set([271390])}
+			
+			q_sort = {}
+			for i in q:
+				q_sort[i[1]] = len(q[i])
+			q_sort = sorted(q_sort.items(), key=operator.itemgetter(1), reverse=True)
+
+			if flat and count:
+				return sum([i[1] for i in q_sort])
+
+			if flat:
+				return reduce(set.union, q.values())
+
+			if limit:
+				q_sort = q_sort[:limit]				
+
+			if count:
+				return q_sort
+				
+			return [(i, q[i]) for i in q_sort]
+			
+
+
+
 		#########################
 		# section: Index Management
 		#########################
@@ -2498,6 +2663,8 @@ class DB(object):
 			else: filt = lambda x:x.name
 			ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
 
+			# ian: todo: simple, high priority: include group display name, like user.displayname
+
 			if ol==1 and len(ret) == 1:
 				return ret.values()[0]
 
@@ -2937,7 +3104,10 @@ class DB(object):
 			paramdefs = {}
 			for i in params:
 				try:
-					paramdefs[i] = self.bdbs.paramdefs.sget(i, txn=txn) # [i]
+					pd = self.bdbs.paramdefs.sget(i, txn=txn) # [i]
+					if pd.vartype not in self.indexablevartypes:
+						pd.indexed = False
+					paramdefs[i] = pd
 				except:
 					if filt:
 						g.log.msg('LOG_WARNING', "WARNING: Invalid param: %s"%i)
@@ -2955,7 +3125,10 @@ class DB(object):
 		def getparamdef(self, key, ctx=None, txn=None):
 			"""gets an existing ParamDef object, anyone can get any field definition"""
 			try:
-				return self.bdbs.paramdefs.sget(key, txn=txn) #[key]
+				pd = self.bdbs.paramdefs.sget(key, txn=txn) #[key]
+				if pd.vartype not in self.indexablevartypes:
+					pd.indexed = False
+				return pd
 			except:
 				raise KeyError, "Unknown ParamDef: %s" % key
 
