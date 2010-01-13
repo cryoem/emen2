@@ -5,5 +5,5 @@ send "import sys\n"
 expect "> "
 send "sys.path.append('..')\n"
 expect "> "
-send "from emen2.test import *\n"
+send "from emen2.testc import *\n"
 interact

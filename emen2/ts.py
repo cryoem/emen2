@@ -20,14 +20,6 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 
-#DB=database
-
-#def startup(path):
-#	global db
-
-
-#db = emen2.Database.DBProxy.DBProxy()
-
 
 class newThreadPool(threadpool.ThreadPool):
 	counter = 0

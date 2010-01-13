@@ -1,3 +1,4 @@
+from __future__ import with_statement
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
 NOTE: access globals this way:

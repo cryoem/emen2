@@ -1,31 +1,23 @@
 from __future__ import with_statement
 
-import urlparse
 import urllib2
 import demjson
-import emen2.globalns
 import re
 import time
 import collections
 
 from twisted.internet import threads
 from twisted.web.resource import Resource
-from twisted.web.static import server, redirectTo, addSlash
-from urllib import quote
+from twisted.web.static import server
 
 # emen2 imports
 import emen2.subsystems.routing
 import emen2.subsystems.responsecodes
 import emen2.Database.subsystems.exceptions
-
-# ian: todo: get rid of ts.db... again...
-import ts
-
 from authresource import render_security_error
 
 
-
-
+import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
 class PublicView(Resource):

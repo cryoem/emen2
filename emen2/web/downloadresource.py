@@ -65,11 +65,11 @@ class DownloadResource(Resource, File):
 		"""thread worker to get file paths from db; hand back to resource to send """
 
 		bids = path[0].split(",")
-		
+
 		db._setcontext(ctxid,host)
 		bdos = db.getbinary(bids)
 		db._clearcontext()
-		
+
 		return bdos #db
 		# ian: who put db return in there?
 
@@ -81,11 +81,11 @@ class DownloadResource(Resource, File):
 
 		# ian: todo: implement working archive Producer...
 		# bdos = result[0]
-		
+
 		first_bdo = result.values()[0]
 		bname = first_bdo.get("filename")
 
-		
+
 		self.path = first_bdo.get("filepath") #first_bdo[1]
 		self.type, self.encoding = getTypeAndEncoding(bname, self.contentTypes,	self.contentEncodings, self.defaultType)
 		self.alwaysCreate = False
