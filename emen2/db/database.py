@@ -28,7 +28,7 @@ import emen2.util.emailutil
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
-# ian: todo: check this still needed.
+# ian: todo: check if this is still needed.
 _log = g.log
 
 import DBProxy
@@ -44,10 +44,9 @@ import subsystems.exceptions
 
 from emen2.Database.DBFlags import *
 
+
 DBENV = None
 
-
-# ian: todo: constants... move these to config file
 
 # ian: todo: do this in a better way
 # this is used by db.checkversion
@@ -65,10 +64,11 @@ def DB_Close():
 		i.close()
 
 
+# ian: todo: does this need to be on?
 def DB_syncall():
 	"""This 'syncs' all open databases"""
-	pass
 	#for i in subsystems.btrees.BTree.alltrees.keys(): i.sync()
+	pass
 
 
 
@@ -122,27 +122,33 @@ class DB(object):
 			9: 'LOG_TXN'
 		}
 
+
 		@staticmethod
 		def __init_vtm():
 			import datatypes.core_vartypes
 			import datatypes.core_macros
 			import datatypes.core_properties
 
+
 		inst = lambda x:x()
 		@inst
 		class bdbs(object):
 			def init(self, db, dbenv, txn):
 				old = set(self.__dict__)
+				
+				# Security items
 				self.users = subsystems.btrees.BTree("users", keytype="s", filename=db.path+"/security/users.bdb", dbenv=dbenv, txn=txn)
 				self.newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=db.path+"/security/newusers.bdb", dbenv=dbenv, txn=txn)
 				self.groups = subsystems.btrees.BTree("groups", keytype="s", filename=db.path+"/security/groups.bdb", dbenv=dbenv, txn=txn)
 				self.contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=db.path+"/security/contexts.bdb", dbenv=dbenv, txn=txn)
+
 				# Database items
 				self.paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename=db.path+"/ParamDefs.bdb", dbenv=dbenv, txn=txn)
 				self.bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename=db.path+"/BinNames.bdb", dbenv=dbenv, txn=txn)
 				self.recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=db.path+"/RecordDefs.bdb", dbenv=dbenv, txn=txn)
 				self.workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=db.path+"/workflow.bdb", dbenv=dbenv, txn=txn)
 				self.records = subsystems.btrees.RelateBTree("database", keytype="d_old", filename=db.path+"/database.bdb", dbenv=dbenv, txn=txn)
+
 				# Indices
 				self.secrindex = subsystems.btrees.FieldBTree("secrindex", filename=db.path+"/index/security/secrindex.bdb", keytype="s", datatype="d", dbenv=dbenv, txn=txn)
 				self.secrindex_groups = subsystems.btrees.FieldBTree("secrindex_groups", filename=db.path+"/index/security/secrindex_groups.bdb", keytype="s", datatype="d", dbenv=dbenv, txn=txn)
@@ -151,24 +157,32 @@ class DB(object):
 				self.indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=db.path+"/index/indexkeys.bdb", dbenv=dbenv, txn=txn)
 				# timeindex now handled by modifytime param index
 				# self.timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=db.path+"/index/records/timeindex.bdb", dbenv=dbenv, txn=txn)
+
 				self.bdbs = set(self.__dict__) - old
 				self.contexts = {}
 				self.fieldindex = {}
 
 			def openparamindex(self, paramname, filename, keytype="s", datatype="d", dbenv=None, txn=None):
 				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+
 			def closeparamindex(self, paramname):
 				self.fieldindex.pop(paramname).close()
+
 			def closeparamindexes(self):
 				[self.__closeparamindex(x) for x in self.fieldindex.keys()]
 
+
+
 		def __init__(self, path=".", logfile="db.log"):
+			"""Init DB
+			@keyparam path Path to DB (default=cwd)
+			@keyparam logfile Log file (default=db.log)
+			"""
 
 			if g.USETXN:
 				self.newtxn = self.newtxn1
 			else:
 				g.log.msg("LOG_INFO","Note: transaction support disabled")
-				self.newtxn = self.newtxn2
 
 			self.lastctxclean = time.time()
 			self.opentime = self.__gettime()
@@ -181,7 +195,6 @@ class DB(object):
 
 			self.__init_vtm()
 			self.vtm = subsystems.datatypes.VartypeManager()
-
 			self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 
 			self.__cache_vartype_indextype = {}
@@ -204,6 +217,7 @@ class DB(object):
 					os.makedirs(self.path + path)
 
 
+			# Open DB Env
 			global DBENV
 			DBENV = None
 
@@ -216,14 +230,11 @@ class DB(object):
 
 			self.__dbenv = DBENV
 
-			# Open Database
 
+			# Open Database
 			txn = self.newtxn()
 			try:
-
-				# Security items
 				self.bdbs.init(self, self.__dbenv, txn=txn)
-
 			except Exception, inst:
 				self.txnabort(txn=txn)
 				raise
@@ -233,10 +244,10 @@ class DB(object):
 
 
 			# Check if database is initialized
-
 			txn = self.newtxn()
 			try:
-				# USE OF SEQUENCES DISABLED DUE TO DATABASE LOCKUPS
+				# ian: todo: continue evaluating how we will create new recids
+				#			my best idea is to use the cursor.set(DB_LAST)...
 				# self.__dbseq = self.bdbs.records.create_sequence()
 				ctx = self.__makerootcontext(txn=txn, host="localhost")
 
@@ -263,13 +274,14 @@ class DB(object):
 
 
 
-		def __del__(self): g.debug('cleaning up DB instance')
-
-
+		def __del__(self):
+			g.debug('cleaning up DB instance')
 
 
 
 		def __createskeletondb(self, ctx=None, txn=None):
+			"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_* """
+			
 			# typically uses SpecialRootContext
 			import skeleton
 
@@ -291,82 +303,10 @@ class DB(object):
 
 
 
-
-
-
-		###############################
-		# section: txn
-		###############################
-
-
-		txncounter = 0
-
-		# one of these 2 methods (newtxn1/newtxn2) is mapped to self.newtxn()
-		def newtxn1(self, parent=None, ctx=None):
-			# g.log.msg('LOG_INFO', 'printing traceback')
-			# g.log.print_traceback(steps=5)
-			# g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
-			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
-			try:
-				type(self).txncounter += 1
-				self.txnlog[id(txn)] = txn
-			except:
-				self.txnabort(ctx=ctx, txn=txn)
-				raise
-			return txn
-
-
-		def newtxn2(self, ctx=None, txn=None):
-			return None
-
-
-		def newtxn(self, ctx=None, txn=None):
-			return None
-
-
-		def txncheck(self, ctx=None, txn=None):
-			if not txn:
-				txn = self.newtxn(ctx=ctx)
-			return txn
-
-
-		def txnabort(self, txnid=0, ctx=None, txn=None):
-			# g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
-			txn = self.txnlog.get(txnid, txn)
-
-			if txn:
-				txn.abort()
-				if id(txn) in self.txnlog:
-					del self.txnlog[id(txn)]
-				type(self).txncounter -= 1
-			else:
-				raise ValueError, 'Transaction not found'
-
-
-		def txncommit(self, txnid=0, ctx=None, txn=None):
-			# g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
-			txn = self.txnlog.get(txnid, txn)
-
-			if txn != None:
-				txn.commit()
-				if id(txn) in self.txnlog:
-					del self.txnlog[id(txn)]
-				type(self).txncounter -= 1
-
-			else:
-				raise ValueError, 'Transaction not found'
-
-
-
-
-		###############################
-		# section: utility
-		###############################
-
-
 		# @DBProxy.publicmethod
 		# def raise_exception(self, ctx=None, txn=None):
 		# 	raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
+
 
 
 		# ian: todo: print more statistics; needs a txn?
@@ -380,6 +320,7 @@ class DB(object):
 
 
 		def close(self):
+			"""Close DB"""
 			_log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 			try:
 				for i in subsystems.btrees.BTree.alltrees.keys():
@@ -392,8 +333,7 @@ class DB(object):
 
 
 
-
-		# ian: todo: remove this sometime... reduce(operator.concat) works better
+		# ian: todo: remove this sometime... it's only used one place, and reduce(operator.concat) works better. 
 		def __flatten(self, l, ltypes=(set, list, tuple)):
 			ltype = type(l)
 			l = list(l)
@@ -411,63 +351,126 @@ class DB(object):
 
 
 
-		@DBProxy.publicmethod
-		def gettime(self, ctx=None, txn=None):
-			return subsystems.dbtime.gettime()
-
-		def __gettime(self):
-			return subsystems.dbtime.gettime()
 
 
+		###############################
+		# section: Transaction Management
+		###############################
 
+
+		txncounter = 0
+
+		# one of these 2 methods (newtxn1/newtxn) is mapped to self.newtxn()
+		def newtxn1(self, parent=None, ctx=None):
+			"""New transaction (txns enabled). Accepts parent txn instance."""
+			# g.log.msg('LOG_INFO', 'printing traceback')
+			# g.log.print_traceback(steps=5)
+			# g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
+			txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
+			try:
+				type(self).txncounter += 1
+				self.txnlog[id(txn)] = txn
+			except:
+				self.txnabort(ctx=ctx, txn=txn)
+				raise
+			return txn
+
+
+
+		def newtxn(self, ctx=None, txn=None):
+			"""New transaction (txns disabled)"""
+			return None
+
+
+
+		# ian: todo: accept txnid
+		def txncheck(self, ctx=None, txn=None):
+			"""Check a txn status; accepts txn instance"""
+			if not txn:
+				txn = self.newtxn(ctx=ctx)
+			return txn
+			
+
+
+		def txnabort(self, txnid=0, ctx=None, txn=None):
+			"""Abort txn; accepts txn ID or instance"""
+			# g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+			txn = self.txnlog.get(txnid, txn)
+
+			if txn:
+				txn.abort()
+				if id(txn) in self.txnlog:
+					del self.txnlog[id(txn)]
+				type(self).txncounter -= 1
+			else:
+				raise ValueError, 'Transaction not found'
+
+
+
+		def txncommit(self, txnid=0, ctx=None, txn=None):
+			"""Commit txn; accepts txn ID or instance"""
+			# g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
+			txn = self.txnlog.get(txnid, txn)
+
+			if txn != None:
+				txn.commit()
+				if id(txn) in self.txnlog:
+					del self.txnlog[id(txn)]
+				type(self).txncounter -= 1
+
+			else:
+				raise ValueError, 'Transaction not found'
+
+
+
+
+
+
+		###############################
+		# section: Time and Version Management
+		###############################
+		
 		@DBProxy.publicmethod
 		def checkversion(self, program="API", ctx=None, txn=None):
+			"""Returns current version of API or specified program"""
 			return VERSIONS.get(program)
+			
+			
+			
+		@DBProxy.publicmethod
+		def gettime(self, ctx=None, txn=None):
+			"""DB Time
+			@return DB time date string"""
+			return subsystems.dbtime.gettime()
+
+
+
+		def __gettime(self):
+			"""(Internal) DB Time
+			@return DB time date string"""			
+			return subsystems.dbtime.gettime()
 
 
 
 		###############################
-		# section: login / passwords
+		# section: Login and Context Management
 		###############################
 
-		def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
-			'''Creates correct type of context'''
 
-			if username == "anonymous":
-				ctx = dataobjects.context.AnonymousContext(host=host)
-			# elif username == "root":
-			else:
-				ctx = dataobjects.context.Context(username=username, host=host)
-
-			return ctx
-
-
-		# ian: todo: move into ^^^
-		def __makerootcontext(self, ctx=None, host=None, txn=None):
-			ctx = dataobjects.context.SpecialRootContext()
-			ctx.refresh(db=self, txn=txn)
-			ctx._setDBProxy(txn=txn)
-			return ctx
-
-
-		# ian: todo: finish
-		def __login_getuser(self, username, ctx=None, txn=None):
-			"""Check password against stored hash value"""
-			try:
-				user = self.bdbs.users.sget(username, txn=txn)
-				user.setContext(ctx=ctx)
-			except:
-				raise
-				raise subsystems.exceptions.AuthenticationError, 'no such user' #subsystems.exceptions.AuthenticationError.__doc__
-			return user
-
-
-
-		# No longer public method; only through DBProxy to force host=...
-		# ian: todo: remove _
+		# ian: todo: Is this only to be used from DBProxy? Resolve this..
 		def _login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
-			"""Logs a given user in to the database and returns a ctxid, which can then be used for
-			subsequent access. Returns ctxid, Fails on bad input with AuthenticationError"""
+			"""(DBProxy Only) Logs a given user in to the database and returns a ctxid, which can then be used for
+			subsequent access. Returns ctxid, or fails with AuthenticationError or SessionError
+			
+			@keyparam username
+			@keyparam password
+			@keyparam host
+			@keyparam maxidle
+			
+			@return Context key (ctxid)
+			
+			@exception AuthenticationError, KeyError
+			"""
 
 			if maxidle == None or maxidle > g.MAXIDLE:
 				maxidle = g.MAXIDLE
@@ -504,54 +507,110 @@ class DB(object):
 
 
 
-
 		# Logout is the same as delete context
 		@DBProxy.publicmethod
 		def logout(self, ctx=None, txn=None):
-			self.deletecontext(ctx=ctx, txn=txn)
+			"""Logout"""
+			if ctx: self.deletecontext(ctx=ctx, txn=txn)
 
-
-
-
-
-		###############################
-		# section: contexts
-		###############################
 
 
 		@DBProxy.publicmethod
 		def deletecontext(self, ctx=None, txn=None):
-			"""Delete a context/Logout user. Returns None."""
+			"""Logout"""
 			if ctx:	self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
 
 
 
+		# ian: should always have a valid context, even if anon...
+		@DBProxy.publicmethod
+		def checkcontext(self, ctx=None, txn=None):
+			"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
+			@return (username, groups)"""
+			return ctx.username, ctx.groups
+
+
+
+		@DBProxy.publicmethod
+		def checkadmin(self, ctx=None, txn=None):
+			"""Checks if the user has global write access. 
+			@return Bool."""
+			return ctx.checkadmin()
+
+
+
+		@DBProxy.publicmethod
+		def checkreadadmin(self, ctx=None, txn=None):
+			"""Checks if the user has global read access.
+			@return Bool"""
+			
+			return ctx.checkreadadmin()
+
+
+
+		@DBProxy.publicmethod
+		def checkcreate(self, ctx=None, txn=None):
+			"""Check for permission to create records.
+			@return Bool"""
+			return ctx.checkcreate()
+
+
+
+		def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
+			"""Initializes a context; Avoid instantiating Contexts directly.
+
+			@keyparam username Username (default "anonymous")
+			@keyparam host Host
+			
+			@return Context instance
+			"""
+
+			if username == "anonymous":
+				ctx = dataobjects.context.AnonymousContext(host=host)
+			# elif username == "root":
+			else:
+				ctx = dataobjects.context.Context(username=username, host=host)
+
+			return ctx
+
+
+		# ian: todo: move into ^^^ __makecontext
+		def __makerootcontext(self, ctx=None, host=None, txn=None):
+			ctx = dataobjects.context.SpecialRootContext()
+			ctx.refresh(db=self, txn=txn)
+			ctx._setDBProxy(txn=txn)
+			return ctx
+
+
+
 		# ian: todo: finish
-		def __cleanupcontexts(self, ctx=None, txn=None):
-			"""This should be run periodically to clean up sessions that have been idle too long. Returns None."""
+		def __login_getuser(self, username, ctx=None, txn=None):
+			"""(Internal) Check password against stored hash value.
 
-			g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
-			self.lastctxclean = time.time()
+			@param username Username
+			@return User instance
 
-			return
+			@exception AuthenticationError
+			"""
 
-			for ctxid, context in self.bdbs.contexts_p.items():
-				# use the cached time if available
-				try:
-					c = self.bdbs.contexts.sget(ctxid, txn=txn) #[ctxid]
-					context.time = c.time
-				# ed: fix: should check for more specific exception
-				except:
-					pass
-
-				if context.time + (context.maxidle or 0) < time.time():
-					g.debug("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
-					self.__setcontext(context.ctxid, None, ctx=ctx, txn=txn)
+			try:
+				user = self.bdbs.users.sget(username, txn=txn)
+				user.setContext(ctx=ctx)
+			except:
+				raise
+				raise subsystems.exceptions.AuthenticationError, 'no such user' #subsystems.exceptions.AuthenticationError.__doc__
+			return user
 
 
 
 		def __setcontext(self, ctxid, context, ctx=None, txn=None):
-			"""Add or delete context"""
+			"""(Internal) Manipulate cached and stored contexts.
+
+			@param ctxid ctxid key
+			@param context Context instance
+
+			@exception KeyError, DBError
+			"""
 
 			#@begin
 
@@ -587,6 +646,8 @@ class DB(object):
 
 		# ian: todo: flesh this out into a proper cron system, with a subscription model; right now just runs cleanupcontexts
 		def __periodic_operations(self, ctx=None, txn=None):
+			"""(Internal) Maintenance task scheduler."""
+
 			t = subsystems.dbtime.getctime()
 			# maybe not the perfect place to do this, but it will have to do
 			if t > (self.lastctxclean + 600):
@@ -594,9 +655,43 @@ class DB(object):
 
 
 
+		# ian: todo: finish
+		def __cleanupcontexts(self, ctx=None, txn=None):
+			"""(Internal) This should be run periodically to clean up sessions that have been idle too long."""
+
+			g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
+			self.lastctxclean = time.time()
+
+			return
+
+			for ctxid, context in self.bdbs.contexts_p.items():
+				# use the cached time if available
+				try:
+					c = self.bdbs.contexts.sget(ctxid, txn=txn) #[ctxid]
+					context.time = c.time
+				# ed: fix: should check for more specific exception
+				except:
+					pass
+
+				if context.time + (context.maxidle or 0) < time.time():
+					g.debug("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
+					self.__setcontext(context.ctxid, None, ctx=ctx, txn=txn)
+
+
+
+		# ian: todo:
+		#		how often should we refresh groups?
+		#		right now, every publicmethod will reset user/groups
+		#		timer based?
 		def _getcontext(self, ctxid, host, ctx=None, txn=None):
-			"""Takes a ctxid key and returns a context (for internal use only)
-			Note that both key and host must match. Returns context instance."""
+			"""(Semi-internal) Takes a ctxid key and returns a context. Note that both key and host must match.
+			@param ctxid ctxid
+			@param host host
+
+			@return Context
+
+			@exception SessionError
+			"""
 
 			self.__periodic_operations(ctx=ctx, txn=txn)
 
@@ -611,12 +706,6 @@ class DB(object):
 				g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
 				raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
-
-			# ian: todo:
-			#		how often should we refresh this?
-			#		right now, every publicmethod will reset user/groups
-			#		timer based?
-
 			user = None
 			grouplevels = {}
 
@@ -628,6 +717,7 @@ class DB(object):
 				for group in [self.bdbs.groups.get(i, txn=txn) for i in groups]:
 					grouplevels[group.name] = group.getlevel(context.username)
 
+
 			# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
 			context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
@@ -637,40 +727,13 @@ class DB(object):
 
 
 
-		# ian: should always have a valid context, even if anon...
-		@DBProxy.publicmethod
-		def checkcontext(self, ctx=None, txn=None):
-			"""This allows a client to test the validity of a context, and
-			get basic information on the authorized user and his/her permissions"""
-			return ctx.username, ctx.groups
-
-
-		@DBProxy.publicmethod
-		def checkadmin(self, ctx=None, txn=None):
-			"""Checks if the user has global write access. Returns bool."""
-			return ctx.checkadmin()
-
-
-
-		@DBProxy.publicmethod
-		def checkreadadmin(self, ctx=None, txn=None):
-			"""Checks if the user has global read access. Returns bool."""
-			return ctx.checkreadadmin()
-
-
-
-		@DBProxy.publicmethod
-		def checkcreate(self, ctx=None, txn=None):
-			"""Check for permission to create records. Returns bool."""
-			return ctx.checkcreate()
-
-
-
 
 
 		###############################
 		# section: binaries
 		###############################
+
+
 
 		@DBProxy.publicmethod
 		def newbinary(self, *args, **kwargs):
@@ -678,171 +741,20 @@ class DB(object):
 
 
 
-
-		# ian: todo: clean this up some more...
-		# ian: todo: implement uri
-		@DBProxy.publicmethod
-		def putbinary(self, filename, recid, bdokey=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
-			"""Add binary object to database and attach to record"""
-
-			# Filename and recid required, unless root
-			if not filename: raise ValueError, "Filename required"
-
-			if (bdokey or recid == None) and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
-
-			# ian: todo: acquire RMW lock on record?
-			# ed: probably
-			if not bdokey:
-				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-				if not rec.writable():
-					raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
-
-
-			bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
-
-			if not bdokey:
-				if not param: param = "file_binary"
-
-				param = self.getparamdef(param, ctx=ctx, txn=txn)
-
-				if param.vartype == "binary":
-					v = rec.get(param.name) or []
-					v.append(bdoo.get("name"))
-					rec[param.name]=v
-
-				elif param.vartype == "binaryimage":
-					rec[param.name]=bdoo.get("name")
-
-				else:
-					raise Exception, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
-
-				self.putrecord(rec, ctx=ctx, txn=txn)
-
-			if filedata != None:
-				self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, ctx=ctx, txn=txn)
-
-
-			return bdoo
-
-
-		# # ian: todo: move to Binary?
-		# def __bdokey_parse(self, bdokey=None):
-		# 
-		# 	prot = None
-		# 
-		# 	if bdokey:
-		# 		prot, _, bdokey = bdokey.rpartition(":")
-		# 
-		# 	if not prot:
-		# 		prot = "bdo"
-		# 
-		# 	# ian: todo: implement other BDO protocols, e.g. references to uris
-		# 	if prot not in ["bdo"]:
-		# 		raise Exception, "Invalid binary storage protocol: %s"%prot
-		# 
-		# 
-		# 	# Now process; must be 14 chars long..
-		# 	if bdokey:
-		# 		year = int(bdokey[:4])
-		# 		mon = int(bdokey[4:6])
-		# 		day = int(bdokey[6:8])
-		# 		newid = int(bdokey[9:13],16)
-		# 
-		# 	else:
-		# 		bdokey = self.__gettime()
-		# 		year = int(bdokey[:4])
-		# 		mon = int(bdokey[5:7])
-		# 		day = int(bdokey[8:10])
-		# 		newid = None
-		# 
-		# 
-		# 	datekey = "%04d%02d%02d"%(year, mon, day)
-		# 
-		# 	bp = dict(zip(g.BINARYPATH_KEYS, g.BINARYPATH_VALUES))
-		# 	base = bp[filter(lambda x:x<=datekey, sorted(bp.keys()))[-1]]
-		# 
-		# 	basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
-		# 	filepath = basepath + "%05X"%newid
-		# 	name = "%s:%s/%05X"%(prot, datekey, newid)
-		# 	#datekey + "%05X"%newid
-		# 
-		# 	return {"prot":prot, "year":year, "mon":mon, "day":day, "newid":newid, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
-
-
-
-		# ian: todo: use duplicate key style for bdocounter..
-		# ian: todo: if any exceptions, clean up partial files?
-		def __putbinary(self, filename, recid, bdokey=None, uri=None, ctx=None, txn=None):
-			# fetch BDO day dict, add item, and commit
-
-			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
-
-			# bdo items are stored one bdo per day
-			# key is sequential item #, value is (filename, recid)
-			# uri is for files copied from an external source, similar to records, paramdefs, etc.
-
-			#@begin
-
-			# acquire RMW lock to prevent others from editing...
-			bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
-
-			if dkey["counter"] == 0:
-				counter = max(bdo.keys() or [-1]) + 1
-				dkey = emen2.Database.dataobjects.binary.parse(bdokey, counter=counter)
-
-
-			if bdo.get(dkey["counter"]) and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
-
-			nb = dataobjects.binary.Binary()
-			nb["uri"] = uri
-			nb["filename"] = filename
-			nb["recid"] = recid
-			nb["creator"] = ctx.username
-			nb["creationtime"] = self.gettime()
-			nb["name"] = dkey["name"]
-			bdo[dkey["counter"]] = nb
-
-			g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
-			self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
-
-			#@end
-
-			return nb
-
-
-
-		def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
-
-			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
-
-			#ed: fix: catch correct exception
-			try:
-				os.makedirs(dkey["basepath"])
-			except:
-				pass
-
-			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
-			if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
-				# should be a different exception class, this particular one seems irrevelant as it is not really a security
-				# but an integrity problem.
-				raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
-
-			g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),dkey["filepath"]))
-
-			f = open(dkey["filepath"],"wb")
-			f.write(filedata)
-			f.close()
-
-
-
-
-
+		# ian: todo: implement return keyed by recid
 		@DBProxy.publicmethod
 		def getbinary(self, bdokeys, filt=True, vts=None, params=None, ctx=None, txn=None):
-			"""Get a storage path for an existing binary object. Returns the
-			object name and the absolute path"""
+			"""Get a storage path for an existing binary object. 
+			
+			@param bdokeys A single BDO, an iterable of BDOs, a single record/recid, or an iterable of records/recids
+			@keyparam filt Filter out invalid BDOs
+			@keyparam vts For record search, limit to (iterable) param vartypes
+			@keyparam params For record search, limit to (iterable) params
+
+			@return A single Binary instance, or a {bdokey:Binary} dict
+
+			@exception KeyError, SecurityError
+			"""
 
 			# process bdokeys argument for bids (into list bids) and then process bids
 			ret = {}
@@ -906,7 +818,151 @@ class DB(object):
 
 
 
+		# ian: todo: clean this up some more...
+		# ian: todo: implement uri
+		@DBProxy.publicmethod
+		def putbinary(self, filename, recid, bdokey=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
+			"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
+			
+			@param filename Filename
+			@param recid Target record
+			@keyparam param Target record parameter.
+			@keyparam uri Source URI of BDO
+			@keyparam filedata Write filedata to disk
+			@keyparam bdokey Modify existing BDO (Admin only)
+			
+			@return BDO
+			
+			@exception SecurityError, ValueError
+			"""
+
+			# Filename and recid required, unless root
+			if not filename: raise ValueError, "Filename required"
+
+			if (bdokey or recid == None) and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+
+			# ian: todo: acquire RMW lock on record?
+			# ed: probably
+			if not bdokey:
+				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
+				if not rec.writable():
+					raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
+
+
+			bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
+
+			if not bdokey:
+				if not param: param = "file_binary"
+
+				param = self.getparamdef(param, ctx=ctx, txn=txn)
+
+				if param.vartype == "binary":
+					v = rec.get(param.name) or []
+					v.append(bdoo.get("name"))
+					rec[param.name]=v
+
+				elif param.vartype == "binaryimage":
+					rec[param.name]=bdoo.get("name")
+
+				else:
+					raise ValueError, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
+
+				self.putrecord(rec, ctx=ctx, txn=txn)
+
+			if filedata != None:
+				self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, ctx=ctx, txn=txn)
+
+
+			return bdoo
+
+
+
+		# ian: todo: use duplicate key style for bdocounter... delayed for now.
+		# ian: todo: if any exceptions, clean up partial files?
+		def __putbinary(self, filename, recid, bdokey=None, uri=None, ctx=None, txn=None):
+			"""(Internal) putbinary action
+
+			@param filename filename
+			@param recid recid
+			@param bdokey bdokey
+			@keyparam uri
+			
+			@return Binary instance
+			"""
+			# fetch BDO day dict, add item, and commit
+
+			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+
+			# bdo items are stored one bdo per day
+			# key is sequential item #, value is (filename, recid)
+			# uri is for files copied from an external source, similar to records, paramdefs, etc.
+
+			#@begin
+
+			# acquire RMW lock to prevent others from editing...
+			bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
+
+			if dkey["counter"] == 0:
+				counter = max(bdo.keys() or [-1]) + 1
+				dkey = emen2.Database.dataobjects.binary.parse(bdokey, counter=counter)
+
+
+			if bdo.get(dkey["counter"]) and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
+
+			nb = dataobjects.binary.Binary()
+			nb["uri"] = uri
+			nb["filename"] = filename
+			nb["recid"] = recid
+			nb["creator"] = ctx.username
+			nb["creationtime"] = self.gettime()
+			nb["name"] = dkey["name"]
+			bdo[dkey["counter"]] = nb
+
+			g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
+			self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
+
+			#@end
+
+			return nb
+
+
+
+		def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
+			"""(Internal) Write file data
+			@param bdokey BDO
+			@keyparam filedata File data
+			
+			@exception SecurityError
+			"""
+			
+			# Write file to binary storage area
+			
+			dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+
+			#ed: fix: catch correct exception
+			try:
+				os.makedirs(dkey["basepath"])
+			except:
+				pass
+
+			#todo: ian: raise exception if overwriting existing file (but this should never happen unless the file was pre-existing?)
+			if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
+				# should be a different exception class, this particular one seems irrevelant as it is not really a security
+				# but an integrity problem.
+				raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
+
+			g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),dkey["filepath"]))
+
+			f = open(dkey["filepath"],"wb")
+			f.write(filedata)
+			f.close()
+
+
+
 		# ian: todo: reimplement properly, return actual BDO names instead of just counter.. [bdo:2010010100001, bdo:2010010100002, ...]
+		# 			 ... and maybe key by recid
 		# @DBProxy.publicmethod
 		# def getbinarynames(self, ctx=None, txn=None):
 		# 	"""Returns a list of tuples which can produce all binary object
@@ -929,8 +985,31 @@ class DB(object):
 		###############################
 
 
+
 		@DBProxy.publicmethod
 		def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
+			"""Query. Specify one or more keyword arguments:
+
+			@keyparam q					quick, full text query
+			@keyparam rectype				limit records to rectype
+			@keyparam boolmode			join operation for each search operation
+			@keyparam ignorecase			case insensitive search
+			@keyparam childof/parentof	limit results to branches
+			@keyparam subset				limit to specified subset
+			@keyparam returnrecs			return record instances instead of recids
+			@keyparam byvalue				invert results; {value:[recids]}
+			
+			@keyparam constrants			Constraint format:
+									[[param, comparator, value], ...]
+								Comparators:
+								 	==, !=, contains, !contains, <, >, <=, >=
+									contains_w_empty (like contains, but also returns Nones)
+									!None (any value)
+									
+			@return Set of recids or list of Record instances
+			
+			@exception SecurityError
+			"""
 
 			if boolmode == "AND":
 				boolmode = set.intersection
@@ -1030,6 +1109,7 @@ class DB(object):
 
 
 		def __query_index(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
+			"""(Internal) index-based search. See DB.query()"""
 
 			vtm = subsystems.datatypes.VartypeManager()
 			subsets = []
@@ -1041,7 +1121,8 @@ class DB(object):
 			# stage 1: search __indexkeys
 			for count,c in enumerate(constraints):
 				if c[0] == "*":
-					#for param, pkeys in self.bdbs.indexkeys.items(txn=txn):
+					
+					# ian: todo: improve speed of FieldBTree.items
 					for param, pkeys in self.bdbs.indexkeys.items(txn=txn):
 						pd = self.bdbs.paramdefs.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 						# validate for each param for correct vartype matching
@@ -1088,7 +1169,8 @@ class DB(object):
 
 
 		def __query_recs(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
-
+			"""(Internal) record-based search. See DB.query()"""
+			
 			vtm = subsystems.datatypes.VartypeManager()
 			subsets = []
 			subsets_by_value = {}
@@ -1132,13 +1214,171 @@ class DB(object):
 			return subsets, subsets_by_value
 
 
+		# ian: todo: Plotting goes.. HERE
 
 
 
-		#@DBProxy.publicmethod
-		#def buildindexkeys(self, txn=None):
+
+		#########################
+		# section: Index Management
+		#########################
+
+
+		# ian: todo: Enforce filt=True in config?
+		@DBProxy.publicmethod
+		def getindexbyrecorddef(self, recdef, filt=False, ctx=None, txn=None):
+			"""Records by Record Def. This is currently non-secured information.
+			
+			@param recdef A single or iterable Record Def name
+			@keyparam filt Filter by permissions
+			
+			@return 
+			"""
+			# """Uses the recdefname keyed index to return all
+			# records belonging to a particular RecordDef as a set. Currently this
+			# is unsecured, but actual records cannot be retrieved, so it
+			# shouldn't pose a security threat."""
+			
+			if not hasattr(recdef, "__iter__"):
+				recdef = [recdef]
+
+			ret = set()
+			for i in recdef:
+			 	ret |= self.bdbs.recorddefindex.get(i, txn=txn)
+
+			if filt:
+				return self.filterbypermissions(ret, ctx=ctx, txn=txn)
+
+			return ret
+
+
+
+
+		# ian todo: add unit support.
+		@DBProxy.publicmethod
+		def getindexbyvalue(self, param, valrange=None, ctx=None, txn=None):
+			"""Query an indexed parameter. Return all records that contain a value, with optional value range
+			@param param parameter name
+			@keyparam valrange tuple of (min, max) values to search
+			"""
+
+			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+			if paramindex == None:
+				return None
+
+			if valrange == None:
+				ret = paramindex.values(txn=txn)
+
+			else:
+				if hasattr(valrange, '__iter__'):
+					ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
+				else:
+					ret = paramindex.values(valrange, txn=txn)
+
+			if ctx.checkreadadmin():
+				return ret
+
+			return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
+
+
+
+		# ian: todo: this is used mainly by remote clients
+		@DBProxy.publicmethod
+		def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
+			"""Query an indexed parameter. 
+
+			@param param parameter name
+			@keyparam valrange tuple of (min, max) values to search
+			@keyparam subset restrict to record subset
+
+			@return Return dict with param values as keys, matching recids as values.
+			"""
+
+			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+			if paramindex == None:
+				return {}
+
+			r = dict(paramindex.items(txn=txn))
+			
+			# ian: todo: reimplement key range with cursor.. solve slowness of comparison function.
+			#else:
+			#	r = dict(paramindex.items(valrange[0], valrange[1], txn=txn))
+			#else:
+			#	r = {valrange:ind[valrange]}
+
+			# This takes the returned dictionary of value/list of recids
+			# and makes a dictionary of recid/value pairs
+
+			ret = {}
+			reverse = {}
+
+			# flip key/value of r into reverse
+			for i,j in r.items():
+				for k in j:
+					reverse[k] = i
+
+			if subset:
+				for i in subset:
+					ret[i] = reverse.get(i)
+			else:
+				ret = reverse
+
+			if ctx.checkreadadmin():
+				return ret
+
+			secure = self.filterbypermissions(ret.keys(), ctx=ctx, txn=txn)
+
+			# remove any recids the user cannot access
+			for i in set(ret.keys()) - secure:
+				del ret[i]
+
+			return ret
+
+
+
+		# ian: todo: is this currently used anywhere? It was more or less replaced by filterpermissions. But may be useful to keep.
+		@DBProxy.publicmethod
+		def getindexbycontext(self, ctx=None, txn=None):
+			"""Return all readable recids
+			@return All readable recids"""
+
+			if ctx.checkreadadmin():
+				return set(range(self.bdbs.records.sget(-1, txn=txn))) #+1)) # Ed: Fixed an off by one error
+
+			ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
+
+			for group in sorted(ctx.groups,reverse=True):
+				ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
+
+			return ret
+
+
+
+		# ian: todo: finish; add more stats (->Ed)
+		@DBProxy.publicmethod
+		def getparamstatistics(self, param, ctx=None, txn=None):
+			"""Return statistics about an (indexable) param
+			@param param parameter
+			
+			@return (Count of keys, count of values)
+			"""
+			
+			if ctx.username == None:
+				raise subsystems.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
+
+			try:
+				paramindex = self.__getparamindex(param, create=0, ctx=ctx, txn=txn)
+				return (len(paramindex.keys(txn=txn)), len(paramindex.values(txn=txn)))
+			except:
+				return (0,0)
+
+
+
+		# ian: todo: expose as offline admin method
+		#@DBProxy.adminmethod
 		def __rebuild_indexkeys(self, ctx=None, txn=None):
-
+			"""(Internal) Rebuild index-of-indexes"""
+			
 			inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
 			g.log.msg("LOG_COMMIT_INDEX","self.bdbs.indexkeys.truncate")
@@ -1151,74 +1391,83 @@ class DB(object):
 
 
 
-		@DBProxy.publicmethod
-		def searchindexkeys(self, q=None, ignorecase=1, params=None, ctx=None, txn=None):
-			"""Deprecated; use query"""
-			if not q:
-				return {}
-
-			q = unicode(q)
-			if ignorecase:
-				q = q.lower()
-				matcher = lambda x:q in unicode(x).lower()
-			else:
-				matcher = lambda x:q in unicode(x)
-
-			matches = {}
-
-
-			for k,v in self.bdbs.indexkeys.items(txn=txn):
-				r = filter(matcher, v)
-				if r: matches[k] = r
-
-			matches2 = []
-
-			for k,v in matches.items():
-				paramindex = self.__getparamindex(k, ctx=ctx, txn=txn)
-				for i in v:
-					j = paramindex.get(i, txn=txn)
-					for x in j:
-						matches2.append((x, k, i))
+		# @DBProxy.publicmethod
+		# def getindexbyuser(self, username, ctx=None, txn=None):
+		# 	"""This will use the user keyed record read-access index to return
+		# 	a list of records the user can access. DOES NOT include that user's groups.
+		# 	Use getindexbycontext if you want to see all recs you can read."""
+		# 
+		# 	if username == None:
+		# 		username = ctx.username
+		# 
+		# 	if ctx.username != username and not ctx.checkreadadmin():
+		# 		raise subsystems.exceptions.SecurityError, "Not authorized to get record access for %s" % username
+		# 
+		# 	return self.bdbs.secrindex.get(username, set(), txn=txn)
 
 
 
+		# @DBProxy.adminmethod
+		# ian: disabled for security reasons (it returns all values with no security check...)
+		# def getindexkeys(self, paramname, valrange=None, ctx=None, txn=None):
+		# 	 """For numerical & simple string parameters, this will locate all
+		# 	 parameter values in the specified range.
+		# 	 valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
+		# 	 ind=self.__getparamindex(paramname,create=0)
+		# 	
+		# 	 if valrange==None : return ind.keys()
+		# 	 elif isinstance(valrange,tuple) or isinstance(valrange,list) : return ind.keys(valrange[0],valrange[1])
+		# 	 elif ind.has_key(valrange): return valrange
+		# 	 return None
 
 
-		#########################
-		# section: indexes
-		#########################
+		# # ian: todo: return dictionary instead of list?
+		# @DBProxy.publicmethod
+		# def getrecordschangetime(self, recids, ctx=None, txn=None):
+		# 	"""Returns a list of times for a list of recids. Times represent the last modification
+		# 	of the specified records"""
+		# 	raise Exception, "Temporarily deprecated"
+		# 	recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
+		# 	
+		# 	if len(rid) > 0:
+		# 		raise Exception, "Cannot access records %s" % unicode(rid)
+		# 	
+		# 	try:
+		# 		ret = [self.__timeindex.sget(i, txn=txn) for i in recids]
+		# 	except:
+		# 		raise Exception, "unindexed time on one or more recids"
+		# 	
+		# 	return ret
 
 
-
-		@DBProxy.publicmethod
-		def getindexbyrecorddef(self, recdefname, ctx=None, txn=None):
-			"""Uses the recdefname keyed index to return all
-			records belonging to a particular RecordDef as a set. Currently this
-			is unsecured, but actual records cannot be retrieved, so it
-			shouldn't pose a security threat."""
-			if isinstance(recdefname, basestring):
-				recdefname = [recdefname]
-			ret = set()
-			for i in recdefname:
-			 	ret |= self.bdbs.recorddefindex.get(i, txn=txn) or set()
-			return ret
-
-
-
-		@DBProxy.publicmethod
-		def getindexbyuser(self, username, ctx=None, txn=None):
-			"""This will use the user keyed record read-access index to return
-			a list of records the user can access. DOES NOT include that user's groups.
-			Use getindexbycontext if you want to see all recs you can read."""
-
-			if username == None:
-				username = ctx.username
-
-			if ctx.username != username and not ctx.checkreadadmin():
-				raise subsystems.exceptions.SecurityError, "Not authorized to get record access for %s" % username
-
-			return self.bdbs.secrindex.get(username, set(), txn=txn)
-
+		# @DBProxy.publicmethod
+		# def searchindexkeys(self, q=None, ignorecase=1, params=None, ctx=None, txn=None):
+		# 	"""Deprecated; use query"""
+		# 	if not q:
+		# 		return {}
+		# 
+		# 	q = unicode(q)
+		# 	if ignorecase:
+		# 		q = q.lower()
+		# 		matcher = lambda x:q in unicode(x).lower()
+		# 	else:
+		# 		matcher = lambda x:q in unicode(x)
+		# 
+		# 	matches = {}
+		# 
+		# 
+		# 	for k,v in self.bdbs.indexkeys.items(txn=txn):
+		# 		r = filter(matcher, v)
+		# 		if r: matches[k] = r
+		# 
+		# 	matches2 = []
+		# 
+		# 	for k,v in matches.items():
+		# 		paramindex = self.__getparamindex(k, ctx=ctx, txn=txn)
+		# 		for i in v:
+		# 			j = paramindex.get(i, txn=txn)
+		# 			for x in j:
+		# 				matches2.append((x, k, i))
 
 
 		# @DBProxy.publicmethod
@@ -1241,170 +1490,20 @@ class DB(object):
 
 
 
-		# ian: todo: finish..
-		@DBProxy.publicmethod
-		def getparamstatistics(self, paramname, ctx=None, txn=None):
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
-
-			try:
-				paramindex = self.__getparamindex(paramname, create=0, ctx=ctx, txn=txn)
-				return (len(paramindex.keys(txn=txn)), len(paramindex.values(txn=txn)))
-			except:
-				return (0,0)
-
-
-		# @DBProxy.adminmethod
-		# ian: disabled for security reasons (it returns all values with no security check...)
-		def getindexkeys(self, paramname, valrange=None, ctx=None, txn=None):
-			return None
-			#		 """For numerical & simple string parameters, this will locate all
-			#		 parameter values in the specified range.
-			#		 valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
-			#		 ind=self.__getparamindex(paramname,create=0)
-			#
-			#		 if valrange==None : return ind.keys()
-			#		 elif isinstance(valrange,tuple) or isinstance(valrange,list) : return ind.keys(valrange[0],valrange[1])
-			#		 elif ind.has_key(valrange): return valrange
-			#		 return None
-
-
-
-
-		# ian todo: add unit support.
-		@DBProxy.publicmethod
-		def getindexbyvalue(self, paramname, valrange=None, ctx=None, txn=None):
-			"""For numerical & simple string parameters, this will locate all records
-			with the specified paramdef in the specified range.
-			valrange may be a None (matches all), a single value, or a (min,max) tuple/list."""
-
-			paramindex = self.__getparamindex(paramname, ctx=ctx, txn=txn)
-			if paramindex == None:
-				return None
-
-			if valrange == None:
-				ret = paramindex.values(txn=txn)
-
-			else:
-				if hasattr(valrange, '__iter__'):
-					ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
-				else:
-					ret = paramindex.values(valrange, txn=txn)
-
-			if ctx.checkreadadmin():
-				return ret
-
-			return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
-
-
-
-
-		@DBProxy.publicmethod
-		def getindexdictbyvalue(self, paramname, valrange=None, subset=None, ctx=None, txn=None):
-			"""For numerical & simple string parameters, this will locate all records
-			with the specified paramdef in the specified range.
-			valrange may be a None (matches all), a single value, or a (min,max) tuple/list.
-			This method returns a dictionary of all matching recid/value pairs
-			if subset is provided, will only return values for specified recids"""
-
-			paramindex = self.__getparamindex(paramname, ctx=ctx, txn=txn)
-			if paramindex == None:
-				return {}
-
-			#if valrange == None:
-
-			r = dict(paramindex.items(txn=txn))
-
-			#else:
-			#	r = dict(paramindex.items(valrange[0], valrange[1], txn=txn))
-			#else:
-			#	r = {valrange:ind[valrange]}
-
-			# This takes the returned dictionary of value/list of recids
-			# and makes a dictionary of recid/value pairs
-
-			ret = {}
-			reverse = {}
-
-
-			# flip key/value of r into reverse
-			for i,j in r.items():
-				for k in j:
-					reverse[k] = i
-
-
-			if subset:
-				for i in subset:
-					ret[i] = reverse.get(i)
-
-			else:
-				ret = reverse
-
-
-			if ctx.checkreadadmin():
-				return ret
-
-			secure = self.filterbypermissions(ret.keys(), ctx=ctx, txn=txn)
-
-			# remove any recids the user cannot access
-			for i in set(ret.keys()) - secure:
-				del ret[i]
-
-			return ret
-
-
-
-
-		@DBProxy.publicmethod
-		def getindexbycontext(self, ctx=None, txn=None):
-			"""This will return the ids of all records a context has permission to access as a set. Does include groups."""
-
-
-			if ctx.checkreadadmin():
-				return set(range(self.bdbs.records.sget(-1, txn=txn))) #+1)) # Ed: Fixed an off by one error
-
-			ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
-
-			for group in sorted(ctx.groups,reverse=True):
-				ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
-
-			return ret
-
-
-
-
-		# ian: todo: return dictionary instead of list?
-		@DBProxy.publicmethod
-		def getrecordschangetime(self, recids, ctx=None, txn=None):
-			"""Returns a list of times for a list of recids. Times represent the last modification
-			of the specified records"""
-			raise Exception, "Temporarily deprecated"
-			# recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
-			#
-			# if len(rid) > 0:
-			# 	raise Exception, "Cannot access records %s" % unicode(rid)
-			#
-			# try:
-			# 	ret = [self.__timeindex.sget(i, txn=txn) for i in recids]
-			# except:
-			# 	raise Exception, "unindexed time on one or more recids"
-			#
-			# return ret
-
-
-
 
 		#########################
-		# section: groupby
+		# section: Record Grouping Mechanisms
 		#########################
 
 
-		# ian: todo: better way to decide which grouping mechanism to use
+
+		# ian: todo: benchmark for new index system(01/10/2010)
 		@DBProxy.publicmethod
-		def groupbyrecorddef(self, recids, optimize=True, ctx=None, txn=None):
+		def groupbyrecorddef(self, recids, ctx=None, txn=None):
 			"""This will take a set/list of record ids and return a dictionary of ids keyed
 			by their recorddef"""
+
+			optimize = True
 
 			if not hasattr(recids,"__iter__"):
 				recids=[recids]
@@ -1451,109 +1550,104 @@ class DB(object):
 
 
 
-
-		# ian: unused?
-		@DBProxy.publicmethod
-		def groupby(self, records, param, ctx=None, txn=None):
-			"""This will group a list of record numbers based on the value of 'param' in each record.
-			Records with no defined value will be grouped under the special key None. It would be a bad idea
-			to, for example, groupby 500,000 records by a float parameter with a different value for each
-			record. It will do it, but you may regret asking.
-
-			We really need 2 implementations here (as above), one using indices for large numbers of records and
-			another using record retrieval for small numbers of records"""
-			r = {}
-			for i in records:
-				try:
-					j = self.getrecord(i, ctx=ctx, txn=txn)
-				except:
-					continue
-				#try:
-				k = j[param]
-				#except: k=None
-				if r.has_key(k):
-					r[k].append(i)
-				else:
-					r[k] = [i]
-			return r
-
-
-
-		# ian: unused?
-		@DBProxy.publicmethod
-		def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
-			"""This will group a list of record numbers based on the recordid of any parents of
-			type 'parenttype'. within the specified recursion depth. If records have multiple parents
-			of a particular type, they may be multiply classified. Note that due to large numbers of
-			recursive calls, this function may be quite slow in some cases. There may also be a
-			None category if the record has no appropriate parents. The default recursion level is 3."""
-
-			r = {}
-			for i in records:
-				try:
-					p = self.getparents(i, recurse=recurse, ctx=ctx, txn=txn)
-				except:
-					continue
-				try:
-					k = [ii for ii in p if self.getrecord(ii, ctx=ctx, txn=txn).rectype == parenttype]
-				except:
-					k = [None]
-				if len(k) == 0:
-					k = [None]
-
-				for j in k:
-					if r.has_key(j):
-						r[j].append(i)
-					else:
-						r[j] = [i]
-
-			return r
+		# ian: todo: is this unused? Decide if it's useful.
+		# @DBProxy.publicmethod
+		# def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
+		# 	"""This will group a list of record numbers based on the recordid of any parents of
+		# 	type 'parenttype'. within the specified recursion depth. If records have multiple parents
+		# 	of a particular type, they may be multiply classified. Note that due to large numbers of
+		# 	recursive calls, this function may be quite slow in some cases. There may also be a
+		# 	None category if the record has no appropriate parents. The default recursion level is 3."""
+		# 
+		# 	r = {}
+		# 	for i in records:
+		# 		try:
+		# 			p = self.getparents(i, recurse=recurse, ctx=ctx, txn=txn)
+		# 		except:
+		# 			continue
+		# 		try:
+		# 			k = [ii for ii in p if self.getrecord(ii, ctx=ctx, txn=txn).rectype == parenttype]
+		# 		except:
+		# 			k = [None]
+		# 		if len(k) == 0:
+		# 			k = [None]
+		# 
+		# 		for j in k:
+		# 			if r.has_key(j):
+		# 				r[j].append(i)
+		# 			else:
+		# 				r[j] = [i]
+		# 
+		# 	return r
 
 
 
+		# ian: todo: this is currently not used; use getindexdictbyvalue instead
+		# @DBProxy.publicmethod
+		# def groupby(self, records, param, ctx=None, txn=None):
+		# 	"""This will group a list of record numbers based on the value of 'param' in each record.
+		# 	Records with no defined value will be grouped under the special key None. It would be a bad idea
+		# 	to, for example, groupby 500,000 records by a float parameter with a different value for each
+		# 	record. It will do it, but you may regret asking.
+		# 
+		# 	We really need 2 implementations here (as above), one using indices for large numbers of records and
+		# 	another using record retrieval for small numbers of records"""
+		# 	r = {}
+		# 	for i in records:
+		# 		try:
+		# 			j = self.getrecord(i, ctx=ctx, txn=txn)
+		# 		except:
+		# 			continue
+		# 		#try:
+		# 		k = j[param]
+		# 		#except: k=None
+		# 		if r.has_key(k):
+		# 			r[k].append(i)
+		# 		else:
+		# 			r[k] = [i]
+		# 	return r
+		
+		
 
 		###############################
 		# section: relationships
 		###############################
 
 
-		# ian: unused?
-		@DBProxy.publicmethod
-		def countchildren(self, key, recurse=1, ctx=None, txn=None):
-			"""Unlike getchildren, this works only for 'records'. Returns a count of children
-			of the specified record classified by recorddef as a dictionary. The special 'all'
-			key contains the sum of all different recorddefs"""
-
-			c = self.getchildren(key, "record", recurse=recurse, ctx=ctx, txn=txn)
-			r = self.groupbyrecorddef(c, ctx=ctx, txn=txn)
-			for k in r.keys(): r[k] = len(r[k])
-			r["all"] = len(c)
-			return r
-
-
-
+		# ian: todo: instead of variable return format, make separate methods...
 		@DBProxy.publicmethod
 		def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
-			"""Get children;
-			keytype: record, paramdef, recorddef
-			recurse: recursion depth
-			rectype: for records, return only children of type rectype
-			filt: filt by permissions
-			tree: return results in graph format; default is set format
+			"""Get child relationships. There are a number of convenience keyword arguments for speed/utility. Note flat/tree will affect return format.
+
+			@param key Single or iterable key. 
+			@keyparam keytype ["record","paramdef","recorddef"]
+			@keyparam rel ["children","parents"]
+			@keyparam recurse Recursion level
+			@keyparam tree Return full tree
+			@keyparam flat Return flattened tree
+
+			@keyparam rectype For Records, limit to a specific rectype
+			@keyparam filt For Records, filter by permissions
+
+			@return Default is to return a set of children for key.
+					If tree, return dict-based graph. Useful with recursion.
+					If key is iterable, return dict of dicts/sets as specified by tree	
+					If flat, return completely flattened set of all keys. Mutually exclusive with tree.
 			"""
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
+
 		@DBProxy.publicmethod
 		def getparents(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
-			"""see: getchildren"""
+			"""@see getchildren"""
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
 
-		# wraps getrel / works as both getchildren/getparents
+		# ian: todo: raise Exception if rectype/filt on keytype=record
 		def __getrel_wrapper(self, key, keytype="record", recurse=1, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
-			"""Add some extra features to __getrel"""
+			"""(Internal) See getchildren/getparents."""
 
 			ol = False
 			if not hasattr(key,"__iter__"):
@@ -1623,40 +1717,10 @@ class DB(object):
 
 
 
-
-
-
-
-
-
-
-		@DBProxy.publicmethod
-		def getcousins(self, key, keytype="record", ctx=None, txn=None):
-			"""This will get the keys of the cousins of the referenced object
-			keytype is 'record', 'recorddef', or 'paramdef'"""
-
-			if keytype == "record" :
-				#if not self.trygetrecord(key) : return set()
-				try:
-					self.getrecord(key, ctx=ctx, txn=txn)
-				except:
-					return set
-				return set(self.bdbs.records.cousins(key, txn=txn))
-
-			if keytype == "recorddef":
-				return set(self.bdbs.recorddefs.cousins(key, txn=txn))
-
-			if keytype == "paramdef":
-				return set(self.bdbs.paramdefs.cousins(key, txn=txn))
-
-			raise Exception, "getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
-
-
-
-
 		@DBProxy.publicmethod
 		def pclinks(self, links, keytype="record", ctx=None, txn=None):
 			return self.__link("pclink", links, keytype=keytype, ctx=ctx, txn=txn)
+
 
 
 		@DBProxy.publicmethod
@@ -1664,7 +1728,7 @@ class DB(object):
 			return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
-		#@txn
+
 		@DBProxy.publicmethod
 		def pclink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			"""Establish a parent-child relationship between two keys.
@@ -1673,22 +1737,11 @@ class DB(object):
 			return self.__link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
-		#@txn
+
 		@DBProxy.publicmethod
 		def pcunlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 			"""Remove a parent-child relationship between two keys. Returns none if link doesn't exist."""
 			return self.__link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
-
-
-		#@txn
-		@DBProxy.publicmethod
-		def link(self, pkey, ckey, keytype="record", ctx=None, txn=None):
-			return self.__link("link", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
-
-		#@txn
-		@DBProxy.publicmethod
-		def unlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
-			return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -1718,7 +1771,6 @@ class DB(object):
 			#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
 			#	if pkey in c or ckey in p or pkey == ckey:
 			#		raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
-
 
 			if keytype == "record":
 				recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
@@ -1764,14 +1816,63 @@ class DB(object):
 
 
 
+		# ian: todo: reimplement cousin relationships
+		
+		# @DBProxy.publicmethod
+		# def getcousins(self, key, keytype="record", ctx=None, txn=None):
+		# 	"""This will get the keys of the cousins of the referenced object
+		# 	keytype is 'record', 'recorddef', or 'paramdef'"""
+		# 
+		# 	if keytype == "record" :
+		# 		#if not self.trygetrecord(key) : return set()
+		# 		try:
+		# 			self.getrecord(key, ctx=ctx, txn=txn)
+		# 		except:
+		# 			return set
+		# 		return set(self.bdbs.records.cousins(key, txn=txn))
+		# 
+		# 	if keytype == "recorddef":
+		# 		return set(self.bdbs.recorddefs.cousins(key, txn=txn))
+		# 
+		# 	if keytype == "paramdef":
+		# 		return set(self.bdbs.paramdefs.cousins(key, txn=txn))
+		# 
+		# 	raise Exception, "getcousins keytype must be 'record', 'recorddef' or 'paramdef'"
+
+
+
+		# @DBProxy.publicmethod
+		# def link(self, pkey, ckey, keytype="record", ctx=None, txn=None):
+		# 	return self.__link("link", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+
+
+
+		# @DBProxy.publicmethod
+		# def unlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
+		# 	return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+
+
+		# # ian: unused?
+		# @DBProxy.publicmethod
+		# def countchildren(self, key, recurse=1, ctx=None, txn=None):
+		# 	"""Unlike getchildren, this works only for 'records'. Returns a count of children
+		# 	of the specified record classified by recorddef as a dictionary. The special 'all'
+		# 	key contains the sum of all different recorddefs"""
+		# 
+		# 	c = self.getchildren(key, "record", recurse=recurse, ctx=ctx, txn=txn)
+		# 	r = self.groupbyrecorddef(c, ctx=ctx, txn=txn)
+		# 	for k in r.keys(): r[k] = len(r[k])
+		# 	r["all"] = len(c)
+		# 	return r
+
+
 
 		###############################
-		# section: user management
+		# section: Admin User Management
 		###############################
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
 		def disableuser(self, username, ctx=None, txn=None):
@@ -1781,7 +1882,6 @@ class DB(object):
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
 		def enableuser(self, username, ctx=None, txn=None):
@@ -1826,8 +1926,6 @@ class DB(object):
 
 
 
-
-		#@txn
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
 		@emen2.util.utils.return_list_or_single(1)
@@ -1929,6 +2027,12 @@ class DB(object):
 
 			self.__commit_users(addusers, ctx=ctx, txn=txn)
 
+			# ian: todo:
+			# for group in g.GROUP_DEFAULT:
+			# 	g = self.getgroup(...)
+			#	g.adduser(user.username)
+			# self.putgroup(g)
+			
 			#@end
 			approveusernames = [user.username for user in addusers]
 
@@ -1939,14 +2043,6 @@ class DB(object):
 
 
 
-		# @DBProxy.publicmethod
-		# @DBProxy.adminmethod
-		# def getpendinguser(self, username, ctx=None, txn=None):
-		# 	return self.bdbs.newuserqueue.get(username, txn=txn)
-
-
-
-		#@txn
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
 		def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
@@ -2010,7 +2106,33 @@ class DB(object):
 			return self.bdbs.newuserqueue.sget(username, txn=txn) # [username]
 
 
-		#@txn
+
+		@DBProxy.publicmethod
+		def putuser(self, user, ctx=None, txn=None):
+
+			if not isinstance(user, dataobjects.user.User):
+				try:
+					user = dataobjects.user.User(user, ctx=ctx)
+				except:
+					raise ValueError, "User instance or dict required"
+
+			if not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
+
+			user.validate()
+
+			self.__commit_users([user], ctx=ctx, txn=txn)
+
+			return user.username
+
+
+
+		###############################
+		# section: User Management
+		###############################
+
+
+
 		@DBProxy.publicmethod
 		def setuserprivacy(self, usernames, state, ctx=None, txn=None):
 
@@ -2042,7 +2164,6 @@ class DB(object):
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
 
@@ -2065,6 +2186,7 @@ class DB(object):
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
 
+
 		@DBProxy.publicmethod
 		def setemail(self, email, username=None, ctx=None, txn=None):
 
@@ -2083,183 +2205,7 @@ class DB(object):
 			self.__commit_users([user], ctx=ctx, txn=txn)
 
 
-		##########################
-		# section: group
-		##########################
 
-
-		@DBProxy.publicmethod
-		def getgroupnames(self, ctx=None, txn=None):
-			return set(self.bdbs.groups.keys(txn=txn))
-
-
-
-		@DBProxy.publicmethod
-		def getgroup(self, groups, filt=1, ctx=None, txn=None):
-			ol=0
-			if not hasattr(groups,"__iter__"):
-				ol=1
-				groups = [groups]
-
-
-			if filt: filt = None
-			else: filt = lambda x:x.name
-			ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
-
-			if ol==1 and len(ret) == 1:
-				return ret.values()[0]
-
-			return ret
-
-
-
-
-		#@write self.bdbs.groupsbyuser
-		def __commit_groupsbyuser(self, addrefs=None, delrefs=None, ctx=None, txn=None):
-
-			#@begin
-
-			for user,groups in addrefs.items():
-				try:
-					if groups:
-						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
-						self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
-
-				except Exception, inst:
-					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
-					raise
-
-			for user,groups in delrefs.items():
-				try:
-					if groups:
-						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
-						self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
-
-				except Exception, inst:
-					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
-					raise
-
-
-			#@end
-
-
-
-
-		#@write self.bdbs.groupsbyuser
-		def __rebuild_groupsbyuser(self, ctx=None, txn=None):
-			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-			users = collections.defaultdict(set)
-
-			for k, group in groups.items():
-				for user in group.members():
-					#try:
-					users[user].add(k)
-					#except Exception, inst:
-					#	g.log("unknown user %s (%s)"%(user, inst))
-
-
-			#@begin
-
-			g.log.msg("LOG_COMMIT_INDEX","self.bdbs.groupsbyuser: rebuilding index")
-
-			self.bdbs.groupsbyuser.truncate(txn=txn)
-
-			for k,v in users.items():
-				self.bdbs.groupsbyuser.addrefs(k, v, txn=txn)
-
-			#@end
-
-
-
-
-
-		def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
-
-			addrefs = collections.defaultdict(set)
-			delrefs = collections.defaultdict(set)
-
-			for group in groups:
-
-				ngm = group.members()
-				try: ogm = self.bdbs.groups.get(group.groupname, txn=txn).members()
-				except: ogm = set()
-
-				addusers = ngm - ogm
-				delusers = ogm - ngm
-
-				for user in addusers:
-					addrefs[user].add(group.name)
-				for user in delusers:
-					delrefs[user].add(group.name)
-
-			return addrefs, delrefs
-
-
-
-		#@write self.bdbs.groups, self.bdbs.groupsbyuser
-		@DBProxy.publicmethod
-		def putgroup(self, groups, ctx=None, txn=None):
-
-			if isinstance(groups, (dataobjects.group.Group, dict)): # or not hasattr(groups, "__iter__"):
-				groups = [groups]
-
-			groups2 = []
-			groups2.extend(x for x in groups if isinstance(x, dataobjects.group.Group))
-			groups2.extend(dataobjects.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
-
-			for group in groups2:
-				group.setContext(ctx)
-				#TODO: remove txn to somewhere good... Ed 11/18/2009
-				group.validate(txn=txn)
-
-			self.__commit_groups(groups2, ctx=ctx, txn=txn)
-
-
-		def __commit_groups(self, groups, ctx=None, txn=None):
-
-			addrefs, delrefs = self.__reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
-
-			#@begin
-			for group in groups:
-				g.log.msg("LOG_COMMIT","__groups.set: %r"%(group))
-				self.bdbs.groups.set(group.name, group, txn=txn)
-
-			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
-			#@end
-
-
-
-		# merge with getuser?
-		@DBProxy.publicmethod
-		def getgroupdisplayname(self, groupname, ctx=None, txn=None):
-			ol = 0
-			if not hasattr(groupname,"__iter__"):
-				groupname = [groupname]
-				ol = 1
-
-			groups = set(filter(lambda x:isinstance(x, basestring), groupname))
-			gn_int = filter(lambda x:isinstance(x, int), groupname)
-			if gn_int:
-				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], set())
-
-			groups = self.getgroup(groups, ctx=ctx, txn=txn)
-
-			ret = {}
-
-			for i in groups.values():
-				ret[i.name]="Group: %s"%i.name
-
-			if ol and len(ret)==1: return ret.values()[0]
-			return ret
-
-
-
-		###############################
-		# users
-		###############################
-
-
-		#@txn
 		@DBProxy.publicmethod
 		def adduser(self, user, ctx=None, txn=None):
 			"""adds a new user record. However, note that this only adds the record to the
@@ -2290,26 +2236,6 @@ class DB(object):
 			if ctx.checkadmin():
 				#g.log.msg('LOG_DEBUG', "approving %s"%user.username)
 				self.approveuser(user.username, ctx=ctx, txn=txn)
-
-			return user.username
-
-
-
-		@DBProxy.publicmethod
-		def putuser(self, user, ctx=None, txn=None):
-
-			if not isinstance(user, dataobjects.user.User):
-				try:
-					user = dataobjects.user.User(user, ctx=ctx)
-				except:
-					raise ValueError, "User instance or dict required"
-
-			if not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
-
-			user.validate()
-
-			self.__commit_users([user], ctx=ctx, txn=txn)
 
 			return user.username
 
@@ -2537,40 +2463,211 @@ class DB(object):
 
 
 
+		# ian: todo: this is currently implemented in TwistSupport_html/html/find.py
+		# Move all those methods into main DB class
+		
+		# @DBProxy.publicmethod
+		# def findusername(self, name, ctx=None, txn=None):
+		# 	"""This will look for a username matching the provided name in a loose way"""
+		# 
+		# 	if ctx.username == None: return
+		# 
+		# 	if self.bdbs.users.get(name, txn=txn):
+		# 		return name
+		# 
+		# 	possible = filter(lambda x: name in x, self.bdbs.users.keys(txn=txn))
+		# 	if len(possible) == 1:
+		# 		return possible[0]
+		# 	if len(possible) > 1:
+		# 		return possible
+		# 
+		# 	possible = []
+		# 	for i in self.getusernames(ctx=ctx, txn=txn):
+		# 		try:
+		# 			u = self.getuser(name, ctx=ctx, txn=txn)
+		# 		except:
+		# 			continue
+		# 
+		# 		for j in u.__dict__:
+		# 			if isinstance(j, basestring) and name in j :
+		# 				possible.append(i)
+		# 				break
+		# 
+		# 	if len(possible) == 1:
+		# 		return possible[0]
+		# 	if len(possible) > 1:
+		# 		return possible
+		# 
+		# 	return None
+
+
+
+		##########################
+		# section: Group Management
+		##########################
+
+
 
 		@DBProxy.publicmethod
-		def findusername(self, name, ctx=None, txn=None):
-			"""This will look for a username matching the provided name in a loose way"""
+		def getgroupnames(self, ctx=None, txn=None):
+			return set(self.bdbs.groups.keys(txn=txn))
 
-			if ctx.username == None: return
 
-			if self.bdbs.users.get(name, txn=txn):
-				return name
 
-			possible = filter(lambda x: name in x, self.bdbs.users.keys(txn=txn))
-			if len(possible) == 1:
-				return possible[0]
-			if len(possible) > 1:
-				return possible
+		@DBProxy.publicmethod
+		def getgroup(self, groups, filt=1, ctx=None, txn=None):
+			ol=0
+			if not hasattr(groups,"__iter__"):
+				ol=1
+				groups = [groups]
 
-			possible = []
-			for i in self.getusernames(ctx=ctx, txn=txn):
+
+			if filt: filt = None
+			else: filt = lambda x:x.name
+			ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
+
+			if ol==1 and len(ret) == 1:
+				return ret.values()[0]
+
+			return ret
+
+
+
+		#@write self.bdbs.groupsbyuser
+		def __commit_groupsbyuser(self, addrefs=None, delrefs=None, ctx=None, txn=None):
+
+			#@begin
+
+			for user,groups in addrefs.items():
 				try:
-					u = self.getuser(name, ctx=ctx, txn=txn)
-				except:
-					continue
+					if groups:
+						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
+						self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
-				for j in u.__dict__:
-					if isinstance(j, basestring) and name in j :
-						possible.append(i)
-						break
+				except Exception, inst:
+					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
+					raise
 
-			if len(possible) == 1:
-				return possible[0]
-			if len(possible) > 1:
-				return possible
+			for user,groups in delrefs.items():
+				try:
+					if groups:
+						g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
+						self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
-			return None
+				except Exception, inst:
+					g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
+					raise
+
+
+			#@end
+
+
+
+		#@write self.bdbs.groupsbyuser
+		def __rebuild_groupsbyuser(self, ctx=None, txn=None):
+			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+			users = collections.defaultdict(set)
+
+			for k, group in groups.items():
+				for user in group.members():
+					#try:
+					users[user].add(k)
+					#except Exception, inst:
+					#	g.log("unknown user %s (%s)"%(user, inst))
+
+
+			#@begin
+
+			g.log.msg("LOG_COMMIT_INDEX","self.bdbs.groupsbyuser: rebuilding index")
+
+			self.bdbs.groupsbyuser.truncate(txn=txn)
+
+			for k,v in users.items():
+				self.bdbs.groupsbyuser.addrefs(k, v, txn=txn)
+
+			#@end
+
+
+
+		def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
+
+			addrefs = collections.defaultdict(set)
+			delrefs = collections.defaultdict(set)
+
+			for group in groups:
+
+				ngm = group.members()
+				try: ogm = self.bdbs.groups.get(group.groupname, txn=txn).members()
+				except: ogm = set()
+
+				addusers = ngm - ogm
+				delusers = ogm - ngm
+
+				for user in addusers:
+					addrefs[user].add(group.name)
+				for user in delusers:
+					delrefs[user].add(group.name)
+
+			return addrefs, delrefs
+
+
+
+		#@write self.bdbs.groups, self.bdbs.groupsbyuser
+		@DBProxy.publicmethod
+		def putgroup(self, groups, ctx=None, txn=None):
+
+			if isinstance(groups, (dataobjects.group.Group, dict)): # or not hasattr(groups, "__iter__"):
+				groups = [groups]
+
+			groups2 = []
+			groups2.extend(x for x in groups if isinstance(x, dataobjects.group.Group))
+			groups2.extend(dataobjects.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
+
+			for group in groups2:
+				group.setContext(ctx)
+				#TODO: remove txn to somewhere good... Ed 11/18/2009
+				group.validate(txn=txn)
+
+			self.__commit_groups(groups2, ctx=ctx, txn=txn)
+
+
+
+		def __commit_groups(self, groups, ctx=None, txn=None):
+
+			addrefs, delrefs = self.__reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
+
+			#@begin
+			for group in groups:
+				g.log.msg("LOG_COMMIT","__groups.set: %r"%(group))
+				self.bdbs.groups.set(group.name, group, txn=txn)
+
+			self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
+			#@end
+
+
+
+		# merge with getuser?
+		@DBProxy.publicmethod
+		def getgroupdisplayname(self, groupname, ctx=None, txn=None):
+			ol = 0
+			if not hasattr(groupname,"__iter__"):
+				groupname = [groupname]
+				ol = 1
+
+			groups = set(filter(lambda x:isinstance(x, basestring), groupname))
+			gn_int = filter(lambda x:isinstance(x, int), groupname)
+			if gn_int:
+				groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], set())
+
+			groups = self.getgroup(groups, ctx=ctx, txn=txn)
+
+			ret = {}
+
+			for i in groups.values():
+				ret[i.name]="Group: %s"%i.name
+
+			if ol and len(ret)==1: return ret.values()[0]
+			return ret
 
 
 
@@ -2579,143 +2676,145 @@ class DB(object):
 		# section: workflow
 		#########################
 
+		# ian: todo:
+		#	Workflows are currently turned off, need to be fixed.
+		#	Do this soon.		
 
-
-		@DBProxy.publicmethod
-		def getworkflow(self, ctx=None, txn=None):
-			"""This will return an (ordered) list of workflow objects for the given context (user).
-			it is an exceptionally bad idea to change a WorkFlow object's wfid."""
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
-
-			try:
-				return self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
-			except:
-				return []
-
-
-
-		@DBProxy.publicmethod
-		def getworkflowitem(self, wfid, ctx=None, txn=None):
-			"""Return a workflow from wfid."""
-
-			ret = None
-			wflist = self.getworkflow(ctx=ctx, txn=txn)
-			if len(wflist) == 0:
-				return None
-			else:
-				for thewf in wflist:
-					if thewf.wfid == wfid:
-						#ret = thewf.items_dict()
-						ret = dict(thewf)
-			return ret
-
-
-
-		@DBProxy.publicmethod
-		def newworkflow(self, vals, ctx=None, txn=None):
-			"""Return an initialized workflow instance."""
-			return WorkFlow(vals)
-
-
-
-		#@txn
-		#@write #self.bdbs.workflow
-		@DBProxy.publicmethod
-		def addworkflowitem(self, work, ctx=None, txn=None):
-			"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
-
-			if not isinstance(work, WorkFlow):
-				try:
-					work = WorkFlow(work)
-				except:
-					raise ValueError, "WorkFlow instance or dict required"
-			#work=WorkFlow(work.__dict__.copy())
-			work.validate()
-
-			#if not isinstance(work,WorkFlow):
-			#		 raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
-
-			work.wfid = self.bdbs.workflow.sget(-1, txn=txn)   #[-1]
-			self.bdbs.workflow[-1] = work.wfid + 1
-
-			if self.bdbs.workflow.has_key(ctx.username):
-				wf = self.bdbs.workflow[ctx.username]
-			else:
-				wf = []
-
-			wf.append(work)
-			self.bdbs.workflow[ctx.username] = wf
-
-
-			return work.wfid
-
-
-
-		#@txn
-		#@write #self.bdbs.workflow
-		@DBProxy.publicmethod
-		def delworkflowitem(self, wfid, ctx=None, txn=None):
-			"""This will remove a single workflow object based on wfid"""
-			#self = db
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
-
-			wf = self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
-			for i, w in enumerate(wf):
-				if w.wfid == wfid :
-					del wf[i]
-					break
-			else:
-				raise KeyError, "Unknown workflow id"
-
-			g.log.msg("LOG_COMMIT","self.bdbs.workflow.set: %r, deleting %s"%(ctx.username, wfid))
-			self.bdbs.workflow.set(ctx.username, wf, txn=txn)
-
-
-
-
-		#@txn
-		#@write #self.bdbs.workflow
-		@DBProxy.publicmethod
-		def setworkflow(self, wflist, ctx=None, txn=None):
-			"""This allows an authorized user to directly modify or clear his/her workflow. Note that
-			the external application should NEVER modify the wfid of the individual WorkFlow records.
-			Any wfid's that are None will be assigned new values in this call."""
-			#self = db
-
-			if ctx.username == None:
-				raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
-
-			if wflist == None:
-				wflist = []
-			wflist = list(wflist)								 # this will (properly) raise an exception if wflist cannot be converted to a list
-
-			for w in wflist:
-				w.validate()
-
-				if not isinstance(w, WorkFlow):
-					self.txnabort(txn=txn) #txn.abort()
-					raise TypeError, "Only WorkFlow objects may be in the user's workflow"
-				if w.wfid == None:
-					w.wfid = self.bdbs.workflow.sget(-1, txn=txn) #[-1]
-					self.bdbs.workflow.set(-1, w.wfid + 1, txn=txn)
-
-			g.log.msg("LOG_COMMIT","self.bdbs.workflow.set: %r"%ctx.username)
-			self.bdbs.workflow.set(ctx.username, wflist, txn=txn)
-
-
-
-
-		# ian: todo
-		#@write #self.bdbs.workflow
-		def __commit_workflow(self, wfs, ctx=None, txn=None):
-			pass
+		# @DBProxy.publicmethod
+		# def getworkflow(self, ctx=None, txn=None):
+		# 	"""This will return an (ordered) list of workflow objects for the given context (user).
+		# 	it is an exceptionally bad idea to change a WorkFlow object's wfid."""
+		# 
+		# 	if ctx.username == None:
+		# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+		# 
+		# 	try:
+		# 		return self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
+		# 	except:
+		# 		return []
+		# 
+		# 
+		# 
+		# @DBProxy.publicmethod
+		# def getworkflowitem(self, wfid, ctx=None, txn=None):
+		# 	"""Return a workflow from wfid."""
+		# 
+		# 	ret = None
+		# 	wflist = self.getworkflow(ctx=ctx, txn=txn)
+		# 	if len(wflist) == 0:
+		# 		return None
+		# 	else:
+		# 		for thewf in wflist:
+		# 			if thewf.wfid == wfid:
+		# 				#ret = thewf.items_dict()
+		# 				ret = dict(thewf)
+		# 	return ret
+		# 
+		# 
+		# 
+		# @DBProxy.publicmethod
+		# def newworkflow(self, vals, ctx=None, txn=None):
+		# 	"""Return an initialized workflow instance."""
+		# 	return WorkFlow(vals)
+		# 
+		# 
+		# 
+		# 
+		# #@write #self.bdbs.workflow
+		# @DBProxy.publicmethod
+		# def addworkflowitem(self, work, ctx=None, txn=None):
+		# 	"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
+		# 
+		# 	if ctx.username == None:
+		# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+		# 
+		# 	if not isinstance(work, WorkFlow):
+		# 		try:
+		# 			work = WorkFlow(work)
+		# 		except:
+		# 			raise ValueError, "WorkFlow instance or dict required"
+		# 	#work=WorkFlow(work.__dict__.copy())
+		# 	work.validate()
+		# 
+		# 	#if not isinstance(work,WorkFlow):
+		# 	#		 raise TypeError,"Only WorkFlow objects can be added to a user's workflow"
+		# 
+		# 	work.wfid = self.bdbs.workflow.sget(-1, txn=txn)   #[-1]
+		# 	self.bdbs.workflow[-1] = work.wfid + 1
+		# 
+		# 	if self.bdbs.workflow.has_key(ctx.username):
+		# 		wf = self.bdbs.workflow[ctx.username]
+		# 	else:
+		# 		wf = []
+		# 
+		# 	wf.append(work)
+		# 	self.bdbs.workflow[ctx.username] = wf
+		# 
+		# 
+		# 	return work.wfid
+		# 
+		# 
+		# 
+		# 
+		# #@write #self.bdbs.workflow
+		# @DBProxy.publicmethod
+		# def delworkflowitem(self, wfid, ctx=None, txn=None):
+		# 	"""This will remove a single workflow object based on wfid"""
+		# 	#self = db
+		# 
+		# 	if ctx.username == None:
+		# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+		# 
+		# 	wf = self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
+		# 	for i, w in enumerate(wf):
+		# 		if w.wfid == wfid :
+		# 			del wf[i]
+		# 			break
+		# 	else:
+		# 		raise KeyError, "Unknown workflow id"
+		# 
+		# 	g.log.msg("LOG_COMMIT","self.bdbs.workflow.set: %r, deleting %s"%(ctx.username, wfid))
+		# 	self.bdbs.workflow.set(ctx.username, wf, txn=txn)
+		# 
+		# 
+		# 
+		# 
+		# 
+		# #@write #self.bdbs.workflow
+		# @DBProxy.publicmethod
+		# def setworkflow(self, wflist, ctx=None, txn=None):
+		# 	"""This allows an authorized user to directly modify or clear his/her workflow. Note that
+		# 	the external application should NEVER modify the wfid of the individual WorkFlow records.
+		# 	Any wfid's that are None will be assigned new values in this call."""
+		# 	#self = db
+		# 
+		# 	if ctx.username == None:
+		# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+		# 
+		# 	if wflist == None:
+		# 		wflist = []
+		# 	wflist = list(wflist)								 # this will (properly) raise an exception if wflist cannot be converted to a list
+		# 
+		# 	for w in wflist:
+		# 		w.validate()
+		# 
+		# 		if not isinstance(w, WorkFlow):
+		# 			self.txnabort(txn=txn) #txn.abort()
+		# 			raise TypeError, "Only WorkFlow objects may be in the user's workflow"
+		# 		if w.wfid == None:
+		# 			w.wfid = self.bdbs.workflow.sget(-1, txn=txn) #[-1]
+		# 			self.bdbs.workflow.set(-1, w.wfid + 1, txn=txn)
+		# 
+		# 	g.log.msg("LOG_COMMIT","self.bdbs.workflow.set: %r"%ctx.username)
+		# 	self.bdbs.workflow.set(ctx.username, wflist, txn=txn)
+		# 
+		# 
+		# 
+		# 
+		# # ian: todo
+		# #@write #self.bdbs.workflow
+		# def __commit_workflow(self, wfs, ctx=None, txn=None):
+		# 	pass
 
 
 
@@ -2803,7 +2902,7 @@ class DB(object):
 			paramdef.validate()
 
 
-			#####################
+			######### ^^^ ############
 
 			self.__commit_paramdefs([paramdef], ctx=ctx, txn=txn)
 
@@ -2819,32 +2918,6 @@ class DB(object):
 
 
 
-
-
-		@DBProxy.publicmethod
-		def addparamchoice(self, paramdefname, choice, ctx=None, txn=None):
-			"""This will add a new choice to records of vartype=string. This is
-			the only modification permitted to a ParamDef record after creation"""
-
-			paramdefname = unicode(paramdefname).lower()
-
-			# ian: change to only allow logged in users to add param choices. silent return on failure.
-			if not ctx.checkcreate():
-				return
-
-			d = self.bdbs.paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
-			if d.vartype != "string":
-				raise subsystems.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
-
-			d.choices = d.choices + (unicode(choice).title(),)
-
-			d.setContext(ctx)
-			d.validate()
-
-			self.__commit_paramdefs([d], ctx=ctx, txn=txn)
-
-
-
 		#ian: todo
 		#@write #self.bdbs.paramdefs
 		def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
@@ -2857,8 +2930,7 @@ class DB(object):
 
 
 
-
-
+		# ian: todo: Unify getparamdef, getparamdefs into -> getparamdef
 		@DBProxy.publicmethod
 		def getparamdefs(self, recs, filt=True, ctx=None, txn=None):
 			"""Returns a list of ParamDef records.
@@ -2971,6 +3043,32 @@ class DB(object):
 
 
 
+		# ian: todo: indexing deprecates this. You would modify param in the normal way now if you NEEDED to change choices.
+		#
+		# @DBProxy.publicmethod
+		# def addparamchoice(self, paramdefname, choice, ctx=None, txn=None):
+		# 	"""This will add a new choice to records of vartype=string. This is
+		# 	the only modification permitted to a ParamDef record after creation"""
+		# 
+		# 	paramdefname = unicode(paramdefname).lower()
+		# 
+		# 	# ian: change to only allow logged in users to add param choices. silent return on failure.
+		# 	if not ctx.checkcreate():
+		# 		return
+		# 
+		# 	d = self.bdbs.paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
+		# 	if d.vartype != "string":
+		# 		raise subsystems.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
+		# 
+		# 	d.choices = d.choices + (unicode(choice).title(),)
+		# 
+		# 	d.setContext(ctx)
+		# 	d.validate()
+		# 
+		# 	self.__commit_paramdefs([d], ctx=ctx, txn=txn)
+
+
+
 		#########################
 		# section: recorddefs
 		#########################
@@ -2978,7 +3076,7 @@ class DB(object):
 
 
 
-		#@txn
+
 		@DBProxy.publicmethod
 		def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
 			"""Add or update RecordDef. The mainview should
@@ -3104,32 +3202,33 @@ class DB(object):
 
 
 
-		@DBProxy.publicmethod
-		def findrecorddefname(self, name, ctx=None, txn=None):
-			"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef,
-			or None if no match is found."""
-
-
-			#if self.bdbs.recorddefs.has_key(name):
-			if self.bdbs.recorddefs.get(name, txn=txn):
-				return name
-
-			if name[-1] == "s":
-					if self.bdbs.recorddefs.has_key(name[:-1], txn=txn):
-						return name[:-1]
-					if name[-2] == "e" and self.bdbs.recorddefs.has_key(name[:-2], txn=txn):
-						return name[:-2]
-			if name[-3:] == "ing" and self.bdbs.recorddefs.has_key(name[:-3], txn=txn):
-				return name[:-3]
-			return None
-
-
+		# ian: todo: see findusername for notes
+		#
+		# @DBProxy.publicmethod
+		# def findrecorddefname(self, name, ctx=None, txn=None):
+		# 	"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef,
+		# 	or None if no match is found."""
+		# 
+		# 
+		# 	#if self.bdbs.recorddefs.has_key(name):
+		# 	if self.bdbs.recorddefs.get(name, txn=txn):
+		# 		return name
+		# 
+		# 	if name[-1] == "s":
+		# 			if self.bdbs.recorddefs.has_key(name[:-1], txn=txn):
+		# 				return name[:-1]
+		# 			if name[-2] == "e" and self.bdbs.recorddefs.has_key(name[:-2], txn=txn):
+		# 				return name[:-2]
+		# 	if name[-3:] == "ing" and self.bdbs.recorddefs.has_key(name[:-3], txn=txn):
+		# 		return name[:-3]
+		# 	return None
 
 
 
 		#########################
 		# section: records
 		#########################
+
 
 
 		# ian: improved!
@@ -3151,13 +3250,13 @@ class DB(object):
 					rec = self.bdbs.records.sget(i, txn=txn)
 					rec.setContext(ctx)
 					ret.append(rec)
-				except emen2.Database.subsystems.exceptions.SecurityError, e:
+				except (emen2.Database.subsystems.exceptions.SecurityError, KeyError, TypeError), e:
 					if filt: pass
-					else: raise e
-				except (KeyError, TypeError), e:
-					raise
-					if filt: pass
-					else: raise KeyError, "No such record %s"%(i) #, e)
+					else: raise 
+					# KeyError, "No such record %s"%(i)
+				#except emen2.Database.subsystems.exceptions.SecurityError, e:
+				#	if filt: pass
+				#	else: raise e
 
 
 			if ol and not ret:
@@ -3168,18 +3267,16 @@ class DB(object):
 
 
 
-
-
-		# ian: todo: improve newrecord/putrecord
 		# ian: todo: allow to copy existing record
+		# ian: todo: fix init -- breaks some units
 		@DBProxy.publicmethod
 		def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 			"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 			already exist)."""
 
 			# ian: todo: remove the recid option. it was a kludge to get things working in time.
-			#if recid and not ctx.checkadmin():
-			#	raise emen2.Database.subsystems.exceptions.SecurityError, "Cannot set recid in this way"
+			# if recid and not ctx.checkadmin():
+			# 	raise emen2.Database.subsystems.exceptions.SecurityError, "Cannot set recid in this way"
 
 			# try to get the RecordDef entry, this still may fail even if it exists, if the
 			# RecordDef is private and the context doesn't permit access
@@ -3197,16 +3294,11 @@ class DB(object):
 			if inheritperms != None:
 				try:
 					prec = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
-					#for level, users in enumerate(prec["permissions"]):
-					#	rec.adduser(users, level=level)
-					#g.log.msg('LOG_DEBUG', prec["permissions"])
-					#g.log.msg('LOG_DEBUG', prec["groups"])
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
 
 				except Exception, inst:
 					g.log.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
-
 
 			return rec
 
@@ -3225,7 +3317,7 @@ class DB(object):
 
 
 		# ian: this might be helpful
-		# e.g.: __filtervartype(136, ["user","userlist"])
+		# e.g.: filtervartype(136, ["user","userlist"])
 		@DBProxy.publicmethod
 		def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 
@@ -3240,94 +3332,60 @@ class DB(object):
 				ol = 1
 				recs = [recs]
 
-
 			# get the records...
 			recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
 
-			# get the params...
-			#if params:
-			#	paramdefs = self.getparamdefs(params, ctx=ctx, txn=txn)
-			#if not paramdefs:
-			#	pds = set(reduce(lambda x,y:x+y,map(lambda x:x.keys(),recs2)))
-			#	paramdefs.update(self.getparamdefs(pds, ctx=ctx, txn=txn))
-
-			# l = set([pd.name for pd in paramdefs.values() if pd.vartype in vts]) - ignore
-			#l = set(map(lambda x:x.name, filter(lambda x:x.vartype in vts, paramdefs.values()))) - ignore
-			##l = set(filter(lambda x:x.vartype in vts, paramdefs.values())) - ignore
-
-			# if returndict or ol:
-			# 				ret = {}
-			# 				for rec in recs2:
-			# 					re = [rec.get(pd) or None for pd in l]
-			# 					if flat:
-			#TODO: replace with reduce
-			# 						re = set(self.__flatten(re))-set([None])
-			# 					ret[rec.recid]=re
-			#
-			# 				if ol: return ret.values()[0]
-			# 				return ret
-
-			# if not returndict
-
 			re = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
 			if flat:
-				#TODO: replace with reduce
+				# ian: todo: replace with reduce - this is much slower and is a common operation.
 				return set(self.__flatten(re))-set([None])
 
 			return re
+			
 
 
-
-
-
-
-
-
-
-		#@txn
 		@DBProxy.publicmethod
 		def deleterecord(self, recid, ctx=None, txn=None):
 			"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden."""
 
-			rec=self.getrecord(recid, ctx=ctx, txn=txn)
+			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 			if not rec.isowner():
-				raise Exception,"No permission to delete record"
+				raise subsystems.exceptions.SecurityError, "No permission to delete record"
 
-			parents=self.getparents(recid, ctx=ctx, txn=txn)
-			children=self.getchildren(recid, ctx=ctx, txn=txn)
+			parents = self.getparents(recid, ctx=ctx, txn=txn)
+			children = self.getchildren(recid, ctx=ctx, txn=txn)
 
 			if len(parents) > 0 and rec["deleted"] !=1 :
-				#rec["comments"]=
 				rec.addcomment("Record marked for deletion and unlinked from parents: %s"%", ".join([unicode(x) for x in parents]))
 			elif rec["deleted"] != 1:
-				#rec["comments"]="Record marked for deletion"
 				rec.addcomment("Record marked for deletion")
 
-			rec["deleted"] = 1
+			rec["deleted"] = True
+			
 			self.putrecord(rec, ctx=ctx, txn=txn)
 
 			for i in parents:
 				self.pcunlink(i,recid, ctx=ctx, txn=txn)
 
-			for i in children:
-				c2=self.getchildren(i, ctx=ctx, txn=txn)
-				#c2.remove(recid)
-				c2 -= set([recid])
+			
+			for i in children:				
+				self.pcunlink(recid, i, ctx=ctx, txn=txn)
+				# ian: todo: not sure to do this or not.
+				# c2 = self.getchildren(i, ctx=ctx, txn=txn)
+				# c2 -= set([recid])
 				# if child had more than one parent, make a note one parent was removed
-				if len(c2) > 0:
-					rec2=self.getrecord(i, ctx=ctx, txn=txn)
-					rec["comments"]="Parent record %s was deleted"%recid
-					self.putrecord(rec2, ctx=ctx, txn=txn)
-					self.pcunlink(recid, i, ctx=ctx, txn=txn)
+				# if len(c2) > 0:
+				#	rec2=self.getrecord(i, ctx=ctx, txn=txn)
+				#	rec["comments"]="Parent record %s was deleted"%recid
+				#	self.putrecord(rec2, ctx=ctx, txn=txn)
 
 
 
 		# ian: todo: should be extension
-		#@txn
 		@DBProxy.publicmethod
 		def addcomment(self, recid, comment, ctx=None, txn=None):
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
@@ -3339,15 +3397,22 @@ class DB(object):
 
 
 		#########################
-		# section: putrecord
+		# section: Put Records
 		#########################
 
 
+
 		# ian todo: redo these three methods
-		#@txn
 		@DBProxy.publicmethod
 		def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
-			"""Make a single change to a single record"""
+			"""Convenience method to update a single value in a record
+			@param recid Record ID
+			@param param Parameter
+			@param value New value
+
+			@return Record instance
+
+			"""
 			rec = self.getrecord(recid, ctx=ctx, txn=txn)
 			rec[param] = value
 			self.putrecord(rec, ctx=ctx, txn=txn)
@@ -3355,10 +3420,9 @@ class DB(object):
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		def putrecordvalues(self, recid, values, ctx=None, txn=None):
-			"""Make multiple changes to a single record"""
+			"""Dict.update()-like operation on a single record"""
 
 			try:
 				rec = self.getrecord(recid, ctx=ctx, txn=txn)
@@ -3376,10 +3440,9 @@ class DB(object):
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		def putrecordsvalues(self, d, ctx=None, txn=None):
-			"""Make multiple changes to multiple records"""
+			"""dict.update()-like operation on a number of records"""
 
 			ret = {}
 			for k, v in d.items():
@@ -3388,14 +3451,22 @@ class DB(object):
 
 
 
-		#@txn
 		@DBProxy.publicmethod
 		def putrecord(self, recs, filt=True, warning=0, log=True, ctx=None, txn=None):
-			"""commits a record"""
-			# input validation for __putrecord
+			"""Commit records
+			
+			@param recs Single or iterable records to commit
+			@keyparam filt Filter out records you cannot modify
+			@keyparam warning Admin only: Bypass validation
+			@keyparam log Admin only: Do not add to Record history
+			
+			@return Committed records
+			
+			@exception SecurityError, DBError, KeyError, ValueError, TypeError..
+			"""
 
-			if not log and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging"
+			if (warning or not log) and not ctx.checkadmin():
+				raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 			# filter input for dicts/records
 			ol = 0
@@ -3409,7 +3480,6 @@ class DB(object):
 			recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
 			recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
 
-
 			ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
 
 			if ol and len(ret) > 0:
@@ -3418,11 +3488,12 @@ class DB(object):
 			return ret
 
 
-
-
-
+		
+		# And now, a long parade of internal putrecord methods
+		
 		def __putrecord(self, updrecs, warning=0, log=True, ctx=None, txn=None):
-			# process before committing
+			"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the operation and usually the txn. 
+				If OK, then proceed to write records and all indexes. At that point, only really serious DB errors should ever occur."""				
 
 			if len(updrecs) == 0:
 				return []
@@ -3430,25 +3501,22 @@ class DB(object):
 			crecs = []
 			updrels = []
 
+			# These are built-ins that we treat specially
 			param_immutable = set(["recid","rectype","creator","creationtime","modifytime","modifyuser"])
 			param_special = param_immutable | set(["comments","permissions","groups","history"])
 
-			# assign temp recids to new records
+			# Assign temp recids to new records
 			for offset,updrec in enumerate(filter(lambda x:x.recid < 0, updrecs)):
 				updrec.recid = -1 * (offset + 100)
 
+			# Check 'parent' and 'children' special params
 			updrels = self.__putrecord_getupdrels(updrecs, ctx=ctx, txn=txn)
 
-			# preprocess: copy updated record into original record (updrec -> orec)
-			# assign all changes the same time
+			# Assign all changes the same time
 			t = self.gettime(ctx=ctx, txn=txn)
 
+			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
-
-
-				# if self.__importmode:
-				# 	crecs.append(updrec)
-				# 	continue
 
 				recid = updrec.recid
 
@@ -3461,13 +3529,14 @@ class DB(object):
 					orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
 
 				else:
-					raise Exception, "Cannot update non-existent record %s"%recid
+					raise KeyError, "Cannot update non-existent record %s"%recid
 
 
+				# Set Context and Validate
 				updrec.setContext(ctx)
 				updrec.validate(orec=orec, warning=warning)
 
-				# compare to original record
+				# Compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
 
 
@@ -3477,17 +3546,18 @@ class DB(object):
 					continue
 
 
+				# Copy values into fetched/new Record to prevent Users attempting funny things
+				
+				# ian: todo: check this, make sure it's correct
 				if "comments" in cp:
 					for i in updrec["comments"]:
 						if i not in orec._Record__comments:
 							orec.addcomment(i[2])
 
-
 				for param in cp - param_special:
 					if log and orec.recid >= 0:
 						orec.addhistory(param, orec[param])
 					orec[param] = updrec[param]
-
 
 				if "permissions" in cp:
 					orec.setpermissions(updrec.get("permissions"))
@@ -3499,14 +3569,13 @@ class DB(object):
 					orec["modifytime"] = t
 					orec["modifyuser"] = ctx.username
 
-
+				# I don't think we need to re-validate..
 				# if validate:
 				# 	orec.validate(orec=orcp, warning=warning, params=cp)
 
 				crecs.append(orec)
 
 			return self.__commit_records(crecs, updrels, ctx=ctx, txn=txn)
-
 
 
 
@@ -3526,18 +3595,17 @@ class DB(object):
 
 
 
-
 		# commit
 		#@write	#self.bdbs.records, self.bdbs.recorddefbyrec, self.bdbs.recorddefindex
 		# also, self.fieldindex* through __commit_paramindex(), self.bdbs.secrindex through __commit_secrindex
 		def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, ctx=None, txn=None):
 
-			rectypes = collections.defaultdict(list) # {}
+			rectypes = collections.defaultdict(list)
 			newrecs = filter(lambda x:x.recid < 0, crecs)
 			recmap = {}
-			timeupdate = {}
 
-
+			# Fetch the old records for calculating index updates. Set RMW flags.
+			# To force reindexing (e.g. to rebuild indexes) treat as new record
 			cache = {}
 			for i in crecs:
 				if reindex or i.recid < 0:
@@ -3549,14 +3617,15 @@ class DB(object):
 				cache[i.recid] = orec
 
 
-			# acquire write locks on records at this point
-			# first, get index updates
+			# Calculate index updates. Shortcut if we're only modifying permissions. Use with caution.
 			indexupdates = {}
 			if not onlypermissions:
 				indexupdates = self.__reindex_params(crecs, cache=cache, ctx=ctx, txn=txn)
 			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, cache=cache, ctx=ctx, txn=txn)
 			secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
 
+
+			# OK, all go to write records/indexes!
 
 			#@begin
 
@@ -3576,6 +3645,7 @@ class DB(object):
 
 
 			# This actually stores the record in the database
+			# ian: if we're just reindexing, no need to waste time writing records.
 			if reindex:
 				for crec in crecs:
 					rectypes[crec.rectype].append(crec.recid)
@@ -3596,8 +3666,7 @@ class DB(object):
 			for param, updates in indexupdates.items():
 				self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
 
-
-			# Create pc links
+			# Create parent/child links
 			for link in updrels:
 				try:
 					self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
@@ -3612,6 +3681,9 @@ class DB(object):
 			return crecs
 
 
+
+		# The following methods write to the various indexes
+		
 		def __commit_recorddefindex(self, rectypes, recmap=None, ctx=None, txn=None):
 			if not recmap: recmap = {}
 
@@ -3625,19 +3697,15 @@ class DB(object):
 
 
 
-
 		#@write #self.bdbs.secrindex
 		def __commit_secrindex(self, addrefs, removerefs, recmap=None, ctx=None, txn=None):
 			if not recmap: recmap = {}
 
-			# g.log.msg('LOG_DEBUG', "...updating secrindex")
-			# Security index
 			for user, recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
-						self.bdbs.secrindex.addrefs(user, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
+					self.bdbs.secrindex.addrefs(user, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
@@ -3645,9 +3713,8 @@ class DB(object):
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
-						self.bdbs.secrindex.removerefs(user, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
+					self.bdbs.secrindex.removerefs(user, recs, txn=txn)
 				except bsddb3.db.DBError, inst:
 					g.log.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
 					raise
@@ -3659,15 +3726,14 @@ class DB(object):
 
 		#@write #self.bdbs.secrindex
 		def __commit_secrindex_groups(self, addrefs, removerefs, recmap=None, ctx=None, txn=None):
-			# g.log.msg('LOG_DEBUG', "...updating secrindex")
+
 			if not recmap: recmap = {}
-			# Security Group index
+
 			for user, recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
-						self.bdbs.secrindex_groups.addrefs(user, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
+					self.bdbs.secrindex_groups.addrefs(user, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
 					raise
@@ -3675,13 +3741,11 @@ class DB(object):
 			for user, recs in removerefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
-						self.bdbs.secrindex_groups.removerefs(user, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
+					self.bdbs.secrindex_groups.removerefs(user, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
 					raise
-
 
 
 
@@ -3693,12 +3757,10 @@ class DB(object):
 			addindexkeys = []
 			delindexkeys = []
 
-			# ian: todo: 'if recs:' can be removed now, btree will just return if !items
-
 			# addrefs = upds[0], delrefs = upds[1]
 			if not addrefs and not delrefs:
 				return
-				#continue
+
 
 			try:
 				paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
@@ -3712,9 +3774,8 @@ class DB(object):
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
-						addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+					addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 					raise
@@ -3722,19 +3783,21 @@ class DB(object):
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					if recs:
-						g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
-						delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
+					g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+					delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 					raise
-
+					
+					
+			# Update index-index, a necessary evil..
 			self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
 			self.bdbs.indexkeys.removerefs(param, delindexkeys, txn=txn)
 
+		
+		
+		# These methods calculate what index updates to make
 
-
-		# index update methods
 		def __reindex_params(self, updrecs, cache=None, ctx=None, txn=None):
 			"""update param indices"""
 			# g.log.msg('LOG_DEBUG', "Calculating param index updates...")
@@ -3761,8 +3824,6 @@ class DB(object):
 				indexupdates[key] = self.__reindex_param(key, v, txn=txn)
 
 			return indexupdates
-
-
 
 
 
@@ -3833,10 +3894,6 @@ class DB(object):
 
 
 
-
-
-
-
 		def __reindex_security(self, updrecs, cache=None, ctx=None, txn=None):
 			# g.log.msg('LOG_DEBUG', "Calculating security updates...")
 
@@ -3890,6 +3947,9 @@ class DB(object):
 
 
 
+		# If the indexes blow up...
+		
+		# Stage 1		
 		def __rebuild_all(self, ctx=None, txn=None):
 			g.log.msg("LOG_INFO","Rebuilding ALL indexes")
 
@@ -3918,12 +3978,11 @@ class DB(object):
 			self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
 
 			maxrecords = self.bdbs.records.get(-1, txn=txn)
-			print "Records in DB: %s"%(maxrecords-1)
+			g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))
 
 			blocks = range(0, maxrecords, g.BLOCKLENGTH) + [maxrecords]
 			blocks = zip(blocks, blocks[1:])
 
-			print blocks
 
 			for pos, pos2 in blocks:
 				g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
@@ -3943,8 +4002,7 @@ class DB(object):
 			g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
 
-
-
+		# Stage 2
 		def __rebuild_secrindex(self, ctx=None, txn=None):
 
 
@@ -3981,78 +4039,48 @@ class DB(object):
 				#self.txncommit(txn2)
 
 
+
+
 		###############################
-		# section: permissions
+		# section: Record Permissions View / Modify
 		###############################
 
 
-
-
-		# ian: todo: benchmark these again
+		
+		# ian: todo: I benchmarked with new index system; lowered the threshold for checking indexes. But maybe improve? 01/10/2010.
 		@DBProxy.publicmethod
 		def filterbypermissions(self, recids, ctx=None, txn=None):
 
-			# g.log.msg('LOG_DEBUG', "filterbypermissions: %s"%(len(recids)))
 			if not isinstance(recids, set):
 				recids = set(recids)
 
 			if ctx.checkreadadmin():
 				return recids
 
-			if len(recids) < 1000:
+			# ian: indexes are now faster, generally...
+			if len(recids) < 100:
 				return set([x.recid for x in self.getrecord(recids, filt=True, ctx=ctx, txn=txn)])
 
 			find = set(recids)
 			find -= self.bdbs.secrindex.get(ctx.username, set(), txn=txn)
-
+			
 			for group in sorted(ctx.groups):
 				if find:
 					find -= self.bdbs.secrindex_groups.get(group, set(), txn=txn)
-
+			
 			return recids - find
 
 			# this is usually the fastest; it's the same as getindexbycontext basically...
-			# method 2
-
+			# method 2 (removed other methods that were obsolete)
 			# ret = []
-			#
+			# 
 			# if ctx.username != None and ctx.username != "anonymous":
 			# 	ret.extend(recids & set(self.bdbs.secrindex.get(ctx.username, [], txn=txn)))
-			#
+			# 
 			# for group in sorted(ctx.groups, reverse=True):
 			# 	ret.extend(recids & set(self.bdbs.secrindex_groups.get(group, [], txn=txn)))
-			#
+			# 
 			# return set(ret)
-
-			#ret=set()
-			#ret |= recids & set(self.bdbs.secrindex[ctx.user])
-			#recids -= ret
-
-			# for group in sorted(ctx.groups, reverse=True):
-			# 	#if recids:
-			# 	#ret |= recids & set(self.bdbs.secrindex[group])
-			# 	#recids -= ret
-			# 	ret.extend(recids & set(self.bdbs.secrindex_groups.get(group, [], txn=txn)))
-			#
-			#
-			# # method 1
-			# ret=[]
-			# for recid in recids:
-			# 	if self.bdbs.secrindex.testref(ctx.user, recid):
-			# 		ret.append(recid)
-			# 		continue
-			# 	if self.bdbs.secrindex.testref(-3, recid):
-			# 		ret.append(recid)
-			# 		continue
-			# 	if self.bdbs.secrindex.testref(-4, recid):
-			# 		ret.append(recid)
-			# 		continue
-			# 	for group in ctx.groups:
-			# 		if self.bdbs.secrindex.testref(group, recid):
-			# 			ret.append(recid)
-			# 			continue
-			# return set(ret)
-
 
 
 
@@ -4134,11 +4162,12 @@ class DB(object):
 
 
 		#############################
-		# section: record views
+		# section: Rendering Record Views
 		#############################
 
 
-		# ian: todo: deprecate
+
+		# ian: todo: deprecate: still used in a few places in the js
 		@DBProxy.publicmethod
 		def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 			"""Render the recname view for a record."""
@@ -4159,29 +4188,7 @@ class DB(object):
 			return ret
 
 
-
-
-		@DBProxy.publicmethod
-		def getrecordrenderedviews(self, recid, ctx=None, txn=None):
-			"""Render all views for a record."""
-
-			rec = self.getrecord(recid, ctx=ctx, txn=txn)
-			recdef = self.getrecorddef(rec["rectype"], ctx=ctx, txn=txn)
-			views = recdef.views
-			views["mainview"] = recdef.mainview
-			for i in views:
-				views[i] = self.renderview(rec, viewdef=views[i], ctx=ctx, txn=txn)
-			return views
-
-
-
-
-
-
-
-
-
-		# It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday.
+		# ian: todo: It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday.
 		@DBProxy.publicmethod
 		def renderview(self, *args, **kwargs):
 			"""Render views"""
@@ -4194,123 +4201,31 @@ class DB(object):
 
 
 
+		# ian: unused?
+		# @DBProxy.publicmethod
+		# def getrecordrenderedviews(self, recid, ctx=None, txn=None):
+		# 	"""Render all views for a record."""
+		# 
+		# 	rec = self.getrecord(recid, ctx=ctx, txn=txn)
+		# 	recdef = self.getrecorddef(rec["rectype"], ctx=ctx, txn=txn)
+		# 	views = recdef.views
+		# 	views["mainview"] = recdef.mainview
+		# 	for i in views:
+		# 		views[i] = self.renderview(rec, viewdef=views[i], ctx=ctx, txn=txn)
+		# 	return views
+
+
+
 		###########################
 		# section: backup / restore
 		###########################
 
 
 
-		def _backup(self, encode_func=pickle.dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
-				"""This will make a backup of all, or the selected, records, etc into a set of files
-				in the local filesystem"""
-
-				#if user!="root" :
-				if not ctx.checkadmin():
-					raise subsystems.exceptions.SecurityError, "Only root may backup the database"
-
-
-				g.log.msg('LOG_INFO', 'backup has begun')
-				#user,groups=self.checkcontext(ctx=ctx, txn=txn)
-				user = ctx.username
-				groups = ctx.groups
-
-				if users == None: users = self.bdbs.users.keys(txn=txn)
-				if paramdefs == None: paramdefs = set(self.bdbs.paramdefs.keys(txn=txn))
-				if recorddefs == None: recorddefs = set(self.bdbs.recorddefs.keys(txn=txn))
-				if records == None: records = set(range(0, self.bdbs.records.sget(-1, txn=txn)))#[ - 1]
-				if workflows == None: workflows = set(self.bdbs.workflow.keys(txn=txn))
-				if bdos == None: bdos = set(self.bdbs.bdocounter.keys(txn=txn))
-				if isinstance(records, list) or isinstance(records, tuple): records = set(records)
-
-				if outfile == None:
-						out = open(self.path + "/backup.pkl", "w")
-				else:
-						out = open(outfile, "w")
-
-				g.log.msg('LOG_INFO', 'backup file opened')
-				# dump users
-				for i in users: encode_func(self.bdbs.users.sget(i, txn=txn), out)
-				g.log.msg('LOG_INFO', 'users dumped')
-
-				# dump workflow
-				for i in workflows: encode_func(self.bdbs.workflow.sget(i, txn=txn), out)
-				g.log.msg('LOG_INFO', 'workflows dumped')
-
-				# dump binary data objects
-				encode_func("bdos", out)
-				bd = {}
-				for i in bdos: bd[i] = self.bdbs.bdocounter.sget(i, txn=txn)
-				encode_func(bd, out)
-				bd = None
-				g.log.msg('LOG_INFO', 'bdos dumped')
-
-				# dump paramdefs and tree
-				def encode_relations(recordtree, records, dump_method, outfile, txn=txn):
-					ch = []
-					for i in records:
-							c = tuple(set(dump_method(i, txn=txn)) & records)
-							ch += ((i, c),)
-					encode_func("pdchildren", out)
-					encode_func(ch, out)
-
-				for i in paramdefs: encode_func(self.bdbs.paramdefs.sget(i, txn=txn), out)
-				g.log.msg('LOG_INFO', 'paramdefs dumped')
-				encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.children, out)
-				g.log.msg('LOG_INFO', 'paramchildren dumped')
-				encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.cousins, out)
-				g.log.msg('LOG_INFO', 'paramcousins dumped')
-
-				# dump recorddefs and tree
-				for i in recorddefs: encode_func(self.bdbs.recorddefs.sget(i, txn=txn), out)
-				g.log.msg('LOG_INFO', 'recorddefs dumped')
-				encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.children, out)
-				g.log.msg('LOG_INFO', 'recdefchildren dumped')
-				encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.cousins, out)
-				g.log.msg('LOG_INFO', 'recdefcousins dumped')
-
-				# dump actual database records
-				g.log.msg('LOG_INFO', "Backing up %d/%d records" % (len(records), self.bdbs.records.sget(-1, txn=txn)))
-				for i in records: encode_func(self.bdbs.records.sget(i, txn=txn), out)
-				g.log.msg('LOG_INFO', 'records dumped')
-
-				ch = []
-				for i in records:
-						c = [x for x in self.bdbs.records.children(i, txn=txn) if x in records]
-						c = tuple(c)
-						ch += ((i, c),)
-				encode_func("recchildren", out)
-				encode_func(ch, out)
-				g.log.msg('LOG_INFO', 'rec children dumped')
-
-				ch = []
-				for i in records:
-						c = set(self.bdbs.records.cousins(i, txn=txn))
-						c &= records
-						c = tuple(c)
-						ch += ((i, c),)
-				encode_func("reccousins", out)
-				encode_func(ch, out)
-				g.log.msg('LOG_INFO', 'rec cousins dumped')
-
-				out.close()
-
-
-
-		def _backup2(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
-				"""This will make a backup of all, or the selected, records, etc into a set of files
-				in the local filesystem"""
-				def enc(value, fil):
-					if type(value) == dict:
-						for x in value.items():
-							#g.log(x)
-							demjson.encode(x)
-					value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
-					fil.write('\n')
-				self._backup(enc,users, paramdefs, recorddefs, records, workflows, bdos, outfile, ctx=ctx, txn=txn)
-
-
+		# ian: ?
 		def get_dbpath(self, tail):
 			return os.path.join(self.path, tail)
+
 
 
 		@DBProxy.publicmethod
@@ -4326,354 +4241,472 @@ class DB(object):
 				# ian: changed to copy -- safer.
 				shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
 				# os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
-
-
-
-		def __restore_rec(self, recblock,  recmap, ctx=None, txn=None):
-			def swapin(obj, key, value):
-				result = getattr(obj, key)
-				setattr(obj, key, value)
-				return result
-
-			oldids = map(lambda rec: swapin(rec, 'recid', None), recblock)
-
-			newrecs = self.putrecord(recblock, warning=1, ctx=ctx, txn=txn)
-
-			for oldid,newrec in itertools.izip(oldids,newrecs):
-				recmap[oldid] = newrec.recid
-				if oldid != newrec.recid:
-					g.log.msg("LOG_WARNING", "Warning: recid %s changed to %s"%(oldid,newrec.recid))
-			return len(newrecs)
-
-
-		def __restore_commitblocks(self, *blocks, **kwargs):
-			ctx, txn = kwargs.get('ctx'), kwargs.get('txn')
-			mp = kwargs.get('map')
-			changesmade = False
-			if any(blocks):
-
-				to_commit = filter(None, blocks)
-
-				commit_funcs = {
-					dataobjects.paramdef.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
-					dataobjects.recorddef.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
-					dataobjects.user.User: lambda r: self.putuser(r, ctx=ctx, txn=txn)
-				}
-
-				for block in to_commit:
-
-					for item in block:
-						emen2.migrate.upgrade(item, ctx=ctx, txn=txn)
-
-					if isinstance(block[0], dataobjects.record.Record):
-						self.__restore_rec(block, mp, ctx=ctx, txn=txn)
-					else:
-						map(commit_funcs[type(block[0])], block)
-
-					del block[:]
-
-				changesmade = True
-
-			return changesmade
-
-
-		def __restore_openfile(self, restorefile):
-				if type(restorefile) == file:
-					fin = restorefile
-
-				elif os.access(str(restorefile), os.R_OK):
-					if restorefile.endswith('.bz2'):
-						fin = os.popen("bzcat %s" % restorefile, "r")
-					else:
-						fin = open(restorefile, "r")
-
-				elif os.access(self.path + "/backup.pkl", os.R_OK):
-					fin = open(self.path + "/backup.pkl", "r")
-
-				elif os.access(self.path + "/backup.pkl.bz2", os.R_OK) :
-					fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
-
-				elif os.access(self.path + "/../backup.pkl.bz2", os.R_OK) :
-					fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
-
-				else:
-					raise IOError, "Restore file (e.g. backup.pkl) not present"
-				return fin
-
-
-		def __restore_relate(self, r, fin, types, recmap, txn=None):
-			rr = pickle.load(fin)
-			if r not in types: return False
-
-			def link(lis, link_func, txn=txn):
-				for a,bl in lis:
-					for b in bl:
-						try:
-							link_func(a,b, txn=txn)
-						except Exception, e:
-							g.log.msg("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
-
-			simple_choices = dict(
-				pdchildren=self.bdbs.paramdefs.pclink,
-				pdcousins=self.bdbs.paramdefs.link,
-				rdchildren=self.bdbs.recorddefs.pclink,
-				rdcousins=self.bdbs.recorddefs.link,
-				reccousins=self.bdbs.records.link
-			)
-
-			if r == "bdos":
-				g.log.msg('LOG_INFO', "bdo")
-				# read the dictionary of bdos
-				for i, d in rr.items():
-					self.bdbs.bdocounter.set(i, d, txn=txn)
-
-			elif r == "recchildren":
-				g.log.msg('LOG_INFO', "recchildren")
-
-				links = []
-				for p, cl in rr:
-					for c in cl:
-						links.append((recmap[p], recmap[c]))
-
-				self.bdbs.records.pclinks(links, txn=txn)
-
-
-			elif r in simple_choices:
-				g.log.msg('LOG_INFO', r)
-				link(rr, simple_choices[r])
-
-			else:
-				g.log.msg('LOG_ERROR', "Unknown category: ", r)
-			return True
-
-
-		@DBProxy.publicmethod
-		def restore(self, restorefile=None, types=None, restoreversion=None, ctx=None, txn=None):
-				"""This will restore the database from a backup file. It is nondestructive, in that new items are
-				added to the existing database. Naming conflicts will be reported, and the new version
-				will take precedence, except for Records, which are always appended to the end of the database
-				regardless of their original id numbers. If maintaining record id numbers is important, then a full
-				backup of the database must be performed, and the restore must be performed on an empty database."""
-
-				import emen2.migrate
-
-				if not txn: txn = None
-				g.log.msg('LOG_INFO', "Begin restore operation")
-
-				if not self.__importmode:
-					g.log.msg('LOG_WARNING', "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
-					return
-
-
-
-				# ian: todo: this will be better implemented in a flexible way when restore is moved into a standalone module
-
-
-				# ian: todo: change this to some other mechanism...
-				# ctx = self.__makerootcontext()
-
-				user, groups = ctx.username, ctx.groups
-
-				if not ctx.checkadmin():
-					raise subsystems.exceptions.SecurityError, "Database restore requires admin access"
-
-				recmap = {}
-				nrec = 0
-
-				t0 = time.time()
-				tmpindex = {}
-				nel = 0
-
-
-				recblock, paramblock, recdefblock, userblock = [],[],[],[]
-				commitrecs = False
-				changesmade = False
-				OVERWRITE = False
-
-				if not types:
-					types = set(["record", "user", "workflow",
-						"recorddef", "paramdef", "bdos",
-						"pdchildren", "pdcousins", "rdcousins",
-						"recchildren", "reccousins"])
-
-
-				iteration = 0
-				cleanup_needed = False
-
-
-				if OVERWRITE:
-					existing_users = set()
-					existing_paramdefs = set()
-					existing_recorddefs = set()
-					existing_groups = set()
-				else:
-					existing_users = self.getusernames(ctx=ctx, txn=txn)
-					existing_paramdefs = self.getparamdefnames(ctx=ctx, txn=txn)
-					existing_recorddefs = self.getrecorddefnames(ctx=ctx, txn=txn)
-					existing_groups = self.getgroupnames(ctx=ctx, txn=txn)
-
-
-				# Record = dataobjects.record.Record
-				# RecordDef = dataobjects.recorddef.RecordDef
-				# ParamDef = dataobjects.paramdef.ParamDef
-				# User = dataobjects.user.User
-
-				fin = self.__restore_openfile(restorefile)
-				running = True
-				try:
-					with emen2.util.ticker.spinning_distraction():
-						while running:
-
-							try:
-								r = pickle.load(fin)
-							except Exception, e:
-								g.log.msg('LOG_DEBUG', "Pickle load error: %s"%e)
-								raise EOFError
-
-							commitrecs = False
-
-							# insert and renumber record
-							if isinstance(r, dataobjects.record.Record) and "record" in types:
-								recblock.append(r)
-							elif isinstance(r, dataobjects.recorddef.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
-								recdefblock.append(r)
-							elif isinstance(r, dataobjects.paramdef.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
-								paramblock.append(r)
-							elif isinstance(r, dataobjects.user.User) and "user" in types and r.username not in existing_users:
-								userblock.append(r)
-
-							if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= g.BLOCKLENGTH:
-								commitrecs = True
-
-							restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)
-
-							if commitrecs:
-								txn = txn or self.newtxn()
-							elif txn is None:
-								txn = self.newtxn()
-
-							iteration += 1
-
-							try:
-								if commitrecs:
-									changesmade = restoreblocks()
-
-								# insert Workflow
-								elif isinstance(r, dataobjects.workflow.WorkFlow) and "workflow" in types:
-									self.bdbs.workflow.set(r.wfid, r, txn=txn)
-									changesmade = True
-
-								elif isinstance(r, str):
-									changesmade = restoreblocks()
-									changesmade = self.__restore_relate(r, fin, types, recmap, txn=txn)
-
-							finally:
-								if changesmade:
-									self.__closeparamindexes(ctx=ctx, txn=txn)
-									self.txncommit(txn=txn)
-									self.archivelogs(ctx=ctx, txn=txn)
-									DB_syncall()
-									txn = None
-									changesmade = False
-
-
-				except EOFError:
-					g.log.msg('LOG_DEBUG', 'EOF')
-					g.log.msg('LOG_INFO', 'Import Done')
-					running = False
-
-				g.log.msg('LOG_INFO', "Done!")
-				if txn: self.txncommit(txn=txn)
-
-				txn = self.newtxn()
-				changesmade = restoreblocks()
-
-				if txn:
-					self.txncommit(txn=txn)
-					g.log.msg('LOG_INFO', "Import Complete, checkpointing")
-					self.__dbenv.txn_checkpoint()
-
-				assert len(self.txnlog) == 0
-				g.log.msg('LOG_DEBUG', 'restore done')
-
-
-		def restoretest(self, ctx=None, txn=None):
-			pass
-			# NOT UPDATED...?
-			# """This method will check a database backup and produce some statistics without modifying the current database."""
-			#
-			# if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
-			#
-			# #user,groups=self.checkcontext(ctx=ctx, txn=txn)
-			# ctx = self.__getcontext(, ctx=ctx, txn=txn)
-			# user = ctx.user
-			# groups = ctx.groups
-			# #if user!="root" :
-			# if not ctx.checkadmin():
-			# 		raise subsystems.exceptions., "Only root may restore the database"
-			#
-			# if os.access(self.path + "/backup.pkl", R_OK) : fin = open(self.path + "/backup.pkl", "r")
-			# elif os.access(self.path + "/backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
-			# elif os.access(self.path + "/../backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
-			# else: raise IOError, "backup.pkl not present"
-			#
-			# recmap = {}
-			# nrec = 0
-			# t0 = time.time()
-			# tmpindex = {}
-			#
-			# nu, npd, nrd, nr, np = 0, 0, 0, 0, 0
-			#
-			# while (1):
-			# 		try:
-			# 				r = pickle.load(fin)
-			# 		except:
-			# 				break
-			#
-			# 		# insert User
-			# 		if isinstance(r, User) :
-			# 				nu += 1
-			#
-			# 		# insert paramdef
-			# 		elif isinstance(r, ParamDef) :
-			# 				npd += 1
-			#
-			# 		# insert recorddef
-			# 		elif isinstance(r, RecordDef) :
-			# 				nrd += 1
-			#
-			# 		# insert and renumber record
-			# 		elif isinstance(r, Record) :
-			# 				r.setContext(ctx)
-			# 				try:
-			# 						o = r._Record__owner
-			# 						a = r._Record__permissions
-			# 						r._Record__permissions = (a[0], a[1], a[2], (o,))
-			# 						del r._Record__owner
-			# 				except:
-			# 						pass
-			# 				if (nr < 20) : g.log(r["identifier"])
-			# 				nr += 1
-			#
-			# 		elif isinstance(r, str) :
-			# 				if r == "pdchildren" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				elif r == "pdcousins" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				elif r == "rdchildren" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				elif r == "rdcousins" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				elif r == "recchildren" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				elif r == "reccousins" :
-			# 						rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-			# 						np += len(rr)
-			# 				else : g.log("Unknown category ", r)
-			#
-			# g.log("Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np)
+				
+
+
+		# def _backup(self, encode_func=pickle.dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
+		# 		"""This will make a backup of all, or the selected, records, etc into a set of files
+		# 		in the local filesystem"""
+		# 
+		# 		#if user!="root" :
+		# 		if not ctx.checkadmin():
+		# 			raise subsystems.exceptions.SecurityError, "Only root may backup the database"
+		# 
+		# 
+		# 		g.log.msg('LOG_INFO', 'backup has begun')
+		# 		#user,groups=self.checkcontext(ctx=ctx, txn=txn)
+		# 		user = ctx.username
+		# 		groups = ctx.groups
+		# 
+		# 		if users == None: users = self.bdbs.users.keys(txn=txn)
+		# 		if paramdefs == None: paramdefs = set(self.bdbs.paramdefs.keys(txn=txn))
+		# 		if recorddefs == None: recorddefs = set(self.bdbs.recorddefs.keys(txn=txn))
+		# 		if records == None: records = set(range(0, self.bdbs.records.sget(-1, txn=txn)))#[ - 1]
+		# 		if workflows == None: workflows = set(self.bdbs.workflow.keys(txn=txn))
+		# 		if bdos == None: bdos = set(self.bdbs.bdocounter.keys(txn=txn))
+		# 		if isinstance(records, list) or isinstance(records, tuple): records = set(records)
+		# 
+		# 		if outfile == None:
+		# 				out = open(self.path + "/backup.pkl", "w")
+		# 		else:
+		# 				out = open(outfile, "w")
+		# 
+		# 		g.log.msg('LOG_INFO', 'backup file opened')
+		# 		# dump users
+		# 		for i in users: encode_func(self.bdbs.users.sget(i, txn=txn), out)
+		# 		g.log.msg('LOG_INFO', 'users dumped')
+		# 
+		# 		# dump workflow
+		# 		for i in workflows: encode_func(self.bdbs.workflow.sget(i, txn=txn), out)
+		# 		g.log.msg('LOG_INFO', 'workflows dumped')
+		# 
+		# 		# dump binary data objects
+		# 		encode_func("bdos", out)
+		# 		bd = {}
+		# 		for i in bdos: bd[i] = self.bdbs.bdocounter.sget(i, txn=txn)
+		# 		encode_func(bd, out)
+		# 		bd = None
+		# 		g.log.msg('LOG_INFO', 'bdos dumped')
+		# 
+		# 		# dump paramdefs and tree
+		# 		def encode_relations(recordtree, records, dump_method, outfile, txn=txn):
+		# 			ch = []
+		# 			for i in records:
+		# 					c = tuple(set(dump_method(i, txn=txn)) & records)
+		# 					ch += ((i, c),)
+		# 			encode_func("pdchildren", out)
+		# 			encode_func(ch, out)
+		# 
+		# 		for i in paramdefs: encode_func(self.bdbs.paramdefs.sget(i, txn=txn), out)
+		# 		g.log.msg('LOG_INFO', 'paramdefs dumped')
+		# 		encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.children, out)
+		# 		g.log.msg('LOG_INFO', 'paramchildren dumped')
+		# 		encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.cousins, out)
+		# 		g.log.msg('LOG_INFO', 'paramcousins dumped')
+		# 
+		# 		# dump recorddefs and tree
+		# 		for i in recorddefs: encode_func(self.bdbs.recorddefs.sget(i, txn=txn), out)
+		# 		g.log.msg('LOG_INFO', 'recorddefs dumped')
+		# 		encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.children, out)
+		# 		g.log.msg('LOG_INFO', 'recdefchildren dumped')
+		# 		encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.cousins, out)
+		# 		g.log.msg('LOG_INFO', 'recdefcousins dumped')
+		# 
+		# 		# dump actual database records
+		# 		g.log.msg('LOG_INFO', "Backing up %d/%d records" % (len(records), self.bdbs.records.sget(-1, txn=txn)))
+		# 		for i in records: encode_func(self.bdbs.records.sget(i, txn=txn), out)
+		# 		g.log.msg('LOG_INFO', 'records dumped')
+		# 
+		# 		ch = []
+		# 		for i in records:
+		# 				c = [x for x in self.bdbs.records.children(i, txn=txn) if x in records]
+		# 				c = tuple(c)
+		# 				ch += ((i, c),)
+		# 		encode_func("recchildren", out)
+		# 		encode_func(ch, out)
+		# 		g.log.msg('LOG_INFO', 'rec children dumped')
+		# 
+		# 		ch = []
+		# 		for i in records:
+		# 				c = set(self.bdbs.records.cousins(i, txn=txn))
+		# 				c &= records
+		# 				c = tuple(c)
+		# 				ch += ((i, c),)
+		# 		encode_func("reccousins", out)
+		# 		encode_func(ch, out)
+		# 		g.log.msg('LOG_INFO', 'rec cousins dumped')
+		# 
+		# 		out.close()
+
+
+
+		# def _backup2(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
+		# 		"""This will make a backup of all, or the selected, records, etc into a set of files
+		# 		in the local filesystem"""
+		# 		def enc(value, fil):
+		# 			if type(value) == dict:
+		# 				for x in value.items():
+		# 					#g.log(x)
+		# 					demjson.encode(x)
+		# 			value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
+		# 			fil.write('\n')
+		# 		self._backup(enc,users, paramdefs, recorddefs, records, workflows, bdos, outfile, ctx=ctx, txn=txn)
+
+
+
+		# 
+		# 
+		# 
+		# def __restore_rec(self, recblock,  recmap, ctx=None, txn=None):
+		# 	def swapin(obj, key, value):
+		# 		result = getattr(obj, key)
+		# 		setattr(obj, key, value)
+		# 		return result
+		# 
+		# 	oldids = map(lambda rec: swapin(rec, 'recid', None), recblock)
+		# 
+		# 	newrecs = self.putrecord(recblock, warning=1, ctx=ctx, txn=txn)
+		# 
+		# 	for oldid,newrec in itertools.izip(oldids,newrecs):
+		# 		recmap[oldid] = newrec.recid
+		# 		if oldid != newrec.recid:
+		# 			g.log.msg("LOG_WARNING", "Warning: recid %s changed to %s"%(oldid,newrec.recid))
+		# 	return len(newrecs)
+
+
+
+		# def __restore_commitblocks(self, *blocks, **kwargs):
+		# 	ctx, txn = kwargs.get('ctx'), kwargs.get('txn')
+		# 	mp = kwargs.get('map')
+		# 	changesmade = False
+		# 	if any(blocks):
+		# 
+		# 		to_commit = filter(None, blocks)
+		# 
+		# 		commit_funcs = {
+		# 			dataobjects.paramdef.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
+		# 			dataobjects.recorddef.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
+		# 			dataobjects.user.User: lambda r: self.putuser(r, ctx=ctx, txn=txn)
+		# 		}
+		# 
+		# 		for block in to_commit:
+		# 
+		# 			for item in block:
+		# 				emen2.migrate.upgrade(item, ctx=ctx, txn=txn)
+		# 
+		# 			if isinstance(block[0], dataobjects.record.Record):
+		# 				self.__restore_rec(block, mp, ctx=ctx, txn=txn)
+		# 			else:
+		# 				map(commit_funcs[type(block[0])], block)
+		# 
+		# 			del block[:]
+		# 
+		# 		changesmade = True
+		# 
+		# 	return changesmade
+
+
+
+		# def __restore_openfile(self, restorefile):
+		# 		if type(restorefile) == file:
+		# 			fin = restorefile
+		# 
+		# 		elif os.access(str(restorefile), os.R_OK):
+		# 			if restorefile.endswith('.bz2'):
+		# 				fin = os.popen("bzcat %s" % restorefile, "r")
+		# 			else:
+		# 				fin = open(restorefile, "r")
+		# 
+		# 		elif os.access(self.path + "/backup.pkl", os.R_OK):
+		# 			fin = open(self.path + "/backup.pkl", "r")
+		# 
+		# 		elif os.access(self.path + "/backup.pkl.bz2", os.R_OK) :
+		# 			fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
+		# 
+		# 		elif os.access(self.path + "/../backup.pkl.bz2", os.R_OK) :
+		# 			fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
+		# 
+		# 		else:
+		# 			raise IOError, "Restore file (e.g. backup.pkl) not present"
+		# 		return fin
+
+
+
+		# def __restore_relate(self, r, fin, types, recmap, txn=None):
+		# 	rr = pickle.load(fin)
+		# 	if r not in types: return False
+		# 
+		# 	def link(lis, link_func, txn=txn):
+		# 		for a,bl in lis:
+		# 			for b in bl:
+		# 				try:
+		# 					link_func(a,b, txn=txn)
+		# 				except Exception, e:
+		# 					g.log.msg("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
+		# 
+		# 	simple_choices = dict(
+		# 		pdchildren=self.bdbs.paramdefs.pclink,
+		# 		pdcousins=self.bdbs.paramdefs.link,
+		# 		rdchildren=self.bdbs.recorddefs.pclink,
+		# 		rdcousins=self.bdbs.recorddefs.link,
+		# 		reccousins=self.bdbs.records.link
+		# 	)
+		# 
+		# 	if r == "bdos":
+		# 		g.log.msg('LOG_INFO', "bdo")
+		# 		# read the dictionary of bdos
+		# 		for i, d in rr.items():
+		# 			self.bdbs.bdocounter.set(i, d, txn=txn)
+		# 
+		# 	elif r == "recchildren":
+		# 		g.log.msg('LOG_INFO', "recchildren")
+		# 
+		# 		links = []
+		# 		for p, cl in rr:
+		# 			for c in cl:
+		# 				links.append((recmap[p], recmap[c]))
+		# 
+		# 		self.bdbs.records.pclinks(links, txn=txn)
+		# 
+		# 
+		# 	elif r in simple_choices:
+		# 		g.log.msg('LOG_INFO', r)
+		# 		link(rr, simple_choices[r])
+		# 
+		# 	else:
+		# 		g.log.msg('LOG_ERROR', "Unknown category: ", r)
+		# 	return True
+
+
+
+		# @DBProxy.publicmethod
+		# def restore(self, restorefile=None, types=None, restoreversion=None, ctx=None, txn=None):
+		# 		"""This will restore the database from a backup file. It is nondestructive, in that new items are
+		# 		added to the existing database. Naming conflicts will be reported, and the new version
+		# 		will take precedence, except for Records, which are always appended to the end of the database
+		# 		regardless of their original id numbers. If maintaining record id numbers is important, then a full
+		# 		backup of the database must be performed, and the restore must be performed on an empty database."""
+		# 
+		# 		import emen2.migrate
+		# 
+		# 		if not txn: txn = None
+		# 		g.log.msg('LOG_INFO', "Begin restore operation")
+		# 
+		# 		if not self.__importmode:
+		# 			g.log.msg('LOG_WARNING', "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+		# 			return
+		# 
+		# 
+		# 
+		# 		# ian: todo: this will be better implemented in a flexible way when restore is moved into a standalone module
+		# 
+		# 
+		# 		# ian: todo: change this to some other mechanism...
+		# 		# ctx = self.__makerootcontext()
+		# 
+		# 		user, groups = ctx.username, ctx.groups
+		# 
+		# 		if not ctx.checkadmin():
+		# 			raise subsystems.exceptions.SecurityError, "Database restore requires admin access"
+		# 
+		# 		recmap = {}
+		# 		nrec = 0
+		# 
+		# 		t0 = time.time()
+		# 		tmpindex = {}
+		# 		nel = 0
+		# 
+		# 
+		# 		recblock, paramblock, recdefblock, userblock = [],[],[],[]
+		# 		commitrecs = False
+		# 		changesmade = False
+		# 		OVERWRITE = False
+		# 
+		# 		if not types:
+		# 			types = set(["record", "user", "workflow",
+		# 				"recorddef", "paramdef", "bdos",
+		# 				"pdchildren", "pdcousins", "rdcousins",
+		# 				"recchildren", "reccousins"])
+		# 
+		# 
+		# 		iteration = 0
+		# 		cleanup_needed = False
+		# 
+		# 
+		# 		if OVERWRITE:
+		# 			existing_users = set()
+		# 			existing_paramdefs = set()
+		# 			existing_recorddefs = set()
+		# 			existing_groups = set()
+		# 		else:
+		# 			existing_users = self.getusernames(ctx=ctx, txn=txn)
+		# 			existing_paramdefs = self.getparamdefnames(ctx=ctx, txn=txn)
+		# 			existing_recorddefs = self.getrecorddefnames(ctx=ctx, txn=txn)
+		# 			existing_groups = self.getgroupnames(ctx=ctx, txn=txn)
+		# 
+		# 
+		# 		# Record = dataobjects.record.Record
+		# 		# RecordDef = dataobjects.recorddef.RecordDef
+		# 		# ParamDef = dataobjects.paramdef.ParamDef
+		# 		# User = dataobjects.user.User
+		# 
+		# 		fin = self.__restore_openfile(restorefile)
+		# 		running = True
+		# 		try:
+		# 			with emen2.util.ticker.spinning_distraction():
+		# 				while running:
+		# 
+		# 					try:
+		# 						r = pickle.load(fin)
+		# 					except Exception, e:
+		# 						g.log.msg('LOG_DEBUG', "Pickle load error: %s"%e)
+		# 						raise EOFError
+		# 
+		# 					commitrecs = False
+		# 
+		# 					# insert and renumber record
+		# 					if isinstance(r, dataobjects.record.Record) and "record" in types:
+		# 						recblock.append(r)
+		# 					elif isinstance(r, dataobjects.recorddef.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
+		# 						recdefblock.append(r)
+		# 					elif isinstance(r, dataobjects.paramdef.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
+		# 						paramblock.append(r)
+		# 					elif isinstance(r, dataobjects.user.User) and "user" in types and r.username not in existing_users:
+		# 						userblock.append(r)
+		# 
+		# 					if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= g.BLOCKLENGTH:
+		# 						commitrecs = True
+		# 
+		# 					restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)
+		# 
+		# 					if commitrecs:
+		# 						txn = txn or self.newtxn()
+		# 					elif txn is None:
+		# 						txn = self.newtxn()
+		# 
+		# 					iteration += 1
+		# 
+		# 					try:
+		# 						if commitrecs:
+		# 							changesmade = restoreblocks()
+		# 
+		# 						# insert Workflow
+		# 						elif isinstance(r, dataobjects.workflow.WorkFlow) and "workflow" in types:
+		# 							self.bdbs.workflow.set(r.wfid, r, txn=txn)
+		# 							changesmade = True
+		# 
+		# 						elif isinstance(r, str):
+		# 							changesmade = restoreblocks()
+		# 							changesmade = self.__restore_relate(r, fin, types, recmap, txn=txn)
+		# 
+		# 					finally:
+		# 						if changesmade:
+		# 							self.__closeparamindexes(ctx=ctx, txn=txn)
+		# 							self.txncommit(txn=txn)
+		# 							self.archivelogs(ctx=ctx, txn=txn)
+		# 							DB_syncall()
+		# 							txn = None
+		# 							changesmade = False
+		# 
+		# 
+		# 		except EOFError:
+		# 			g.log.msg('LOG_DEBUG', 'EOF')
+		# 			g.log.msg('LOG_INFO', 'Import Done')
+		# 			running = False
+		# 
+		# 		g.log.msg('LOG_INFO', "Done!")
+		# 		if txn: self.txncommit(txn=txn)
+		# 
+		# 		txn = self.newtxn()
+		# 		changesmade = restoreblocks()
+		# 
+		# 		if txn:
+		# 			self.txncommit(txn=txn)
+		# 			g.log.msg('LOG_INFO', "Import Complete, checkpointing")
+		# 			self.__dbenv.txn_checkpoint()
+		# 
+		# 		assert len(self.txnlog) == 0
+		# 		g.log.msg('LOG_DEBUG', 'restore done')
+
+
+
+		# def restoretest(self, ctx=None, txn=None):
+		# 
+		# 	NOT UPDATED...?
+		# 	"""This method will check a database backup and produce some statistics without modifying the current database."""
+		# 	
+		# 	if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
+		# 	
+		# 	#user,groups=self.checkcontext(ctx=ctx, txn=txn)
+		# 	ctx = self.__getcontext(, ctx=ctx, txn=txn)
+		# 	user = ctx.user
+		# 	groups = ctx.groups
+		# 	#if user!="root" :
+		# 	if not ctx.checkadmin():
+		# 			raise subsystems.exceptions., "Only root may restore the database"
+		# 	
+		# 	if os.access(self.path + "/backup.pkl", R_OK) : fin = open(self.path + "/backup.pkl", "r")
+		# 	elif os.access(self.path + "/backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
+		# 	elif os.access(self.path + "/../backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
+		# 	else: raise IOError, "backup.pkl not present"
+		# 	
+		# 	recmap = {}
+		# 	nrec = 0
+		# 	t0 = time.time()
+		# 	tmpindex = {}
+		# 	
+		# 	nu, npd, nrd, nr, np = 0, 0, 0, 0, 0
+		# 	
+		# 	while (1):
+		# 			try:
+		# 					r = pickle.load(fin)
+		# 			except:
+		# 					break
+		# 	
+		# 			# insert User
+		# 			if isinstance(r, User) :
+		# 					nu += 1
+		# 	
+		# 			# insert paramdef
+		# 			elif isinstance(r, ParamDef) :
+		# 					npd += 1
+		# 	
+		# 			# insert recorddef
+		# 			elif isinstance(r, RecordDef) :
+		# 					nrd += 1
+		# 	
+		# 			# insert and renumber record
+		# 			elif isinstance(r, Record) :
+		# 					r.setContext(ctx)
+		# 					try:
+		# 							o = r._Record__owner
+		# 							a = r._Record__permissions
+		# 							r._Record__permissions = (a[0], a[1], a[2], (o,))
+		# 							del r._Record__owner
+		# 					except:
+		# 							pass
+		# 					if (nr < 20) : g.log(r["identifier"])
+		# 					nr += 1
+		# 	
+		# 			elif isinstance(r, str) :
+		# 					if r == "pdchildren" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					elif r == "pdcousins" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					elif r == "rdchildren" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					elif r == "rdcousins" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					elif r == "recchildren" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					elif r == "reccousins" :
+		# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
+		# 							np += len(rr)
+		# 					else : g.log("Unknown category ", r)
+		# 	
+		# 	g.log("Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np)

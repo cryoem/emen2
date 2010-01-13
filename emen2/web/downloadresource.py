@@ -65,8 +65,6 @@ class DownloadResource(Resource, File):
 		"""thread worker to get file paths from db; hand back to resource to send """
 
 		bids = path[0].split(",")
-		print "bids:"
-		print bids
 		
 		db._setcontext(ctxid,host)
 		bdos = db.getbinary(bids)

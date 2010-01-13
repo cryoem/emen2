@@ -22,8 +22,7 @@ def _atexit():
 db = emen2.Database.DBProxy.DBProxy()
 ddb = db._DBProxy__db
 
-db._login("ianrees","Nikon.51")
-#db._login("root", g.ROOTPW)
+db._login("root", g.ROOTPW)
 db._starttxn()
 txn = db._gettxn()
 ctx = db._getctx()
