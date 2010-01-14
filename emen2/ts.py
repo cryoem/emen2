@@ -1,12 +1,4 @@
 from __future__ import with_statement
-# ts.py	 Steven Ludtke	06/2004
-# This module provides the resources needed for HTTP and XMLRPC servers using Twist
-# Note that the login methods return a ctxid (context id). This id is required
-# by most of the other database calls for determining permissions. Context ids
-# have a limited lifespan
-
-#from twisted.web.resource import Resource
-
 
 from twisted.internet import defer, reactor, threads, reactor
 from twisted.python import log, runtime, context, threadpool, failure
@@ -26,7 +18,6 @@ class newThreadPool(threadpool.ThreadPool):
 	def startAWorker(self):
 		#print "started twisted thread (newThreadPool)..."
 		#print "\tworker count: %s"%self.workers
-		#self.db = database.DBProxy()
 
 		self.workers = self.workers + 1
 		g.log.msg("LOG_INIT","New twisted thread: worker count: %s"%self.workers)
@@ -37,10 +28,10 @@ class newThreadPool(threadpool.ThreadPool):
 		# except Queue.Empty:
 		# 		firstJob = None
 
-		# print "initializing thread."
 		self.counter += 1
-		newThread = threading.Thread(target=self._worker, args=(emen2.Database.DBProxy.DBProxy(),self.counter))
-		# newThread = threading.Thread(target=self._worker, args=(firstJob,DBProxy.DBProxy()))
+		db = emen2.Database.DBProxy.DBProxy()
+		newThread = threading.Thread(target=self._worker, args=(db,self.counter))
+
 		self.threads.append(newThread)
 		newThread.start()
 
@@ -88,6 +79,6 @@ class newThreadPool(threadpool.ThreadPool):
 		self.threads.remove(ct)
 
 
-#print "installing new threadpool."
+# print "installing new threadpool."
 threadpool.ThreadPool = newThreadPool
 

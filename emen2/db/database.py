@@ -29,7 +29,7 @@ import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 # ian: todo: simple: check if this is still needed.
-_log = g.log
+#_log = g.log
 
 import DBProxy
 import DBExt
@@ -60,7 +60,7 @@ VERSIONS = {
 def DB_Close():
 	l = DB.opendbs.keys()
 	for i in l:
-		_log.msg('LOG_DEBUG', i._DB__dbenv)
+		g.log.msg('LOG_DEBUG', i._DB__dbenv)
 		i.close()
 
 
@@ -321,13 +321,13 @@ class DB(object):
 
 		def close(self):
 			"""Close DB"""
-			_log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
+			g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 			try:
 				for i in subsystems.btrees.BTree.alltrees.keys():
 					#_log.msg('LOG_INFO', 'closing %s\n' % unicode(i))
 					i.close()
 			except Exception, inst:
-				_log.msg('LOG_ERROR', inst)
+				g.log.msg('LOG_ERROR', inst)
 
 			self.__dbenv.close()
 
@@ -3493,6 +3493,48 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
+		def checkorphans(self, recid, ctx=None, txn=None):
+			"""Find orphaned records that would occur if recid was deleted."""
+			
+			srecid = set([recid])
+			saved = set()
+			
+			# this is hard to calculate
+			children = self.getchildren(recid, recurse=50, tree=1, ctx=ctx, txn=txn)
+			orphaned = reduce(set.union, children.values(), set())
+			orphaned.add(recid)
+			parents = self.getparents(orphaned, ctx=ctx, txn=txn)
+		
+			# orphaned is records that will be orphaned if they are not rescued
+			# find subtrees that will be rescued by links to other places
+			for child in orphaned - srecid:
+				if parents.get(child, set()) - orphaned:
+					saved.add(child)
+							
+			children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)			
+			children_saved_set = reduce(set.union, children_saved.values()+[set(children_saved.keys())], set())
+
+			orphaned -= children_saved_set
+
+			return orphaned
+			
+			
+		
+		
+
+			# For each recurse level, see if child has a parent that hasn't been seen yet.
+			# visited = set([recid])
+			# to_visit = children.get(recid, set())
+			# while to_visit:
+			# 	child = to_visit.pop()
+			# 	if not parents.get(child set()) - orphaned:
+			# 		orphaned.add(child)
+			# 	else:
+			# 		to_visit.add(child)
+
+
+
+		@DBProxy.publicmethod
 		def deleterecord(self, recid, ctx=None, txn=None):
 			"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden."""
 
@@ -3917,8 +3959,9 @@ class DB(object):
 			for newval,recs in addrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
-					addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
+					if recs:
+						g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+						addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 					raise
@@ -3926,8 +3969,9 @@ class DB(object):
 			for oldval,recs in delrefs.items():
 				recs = map(lambda x:recmap.get(x,x), recs)
 				try:
-					g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
-					delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
+					if recs:
+						g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+						delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
 				except Exception, inst:
 					g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 					raise
@@ -4006,6 +4050,7 @@ class DB(object):
 			delrefs = collections.defaultdict(list)
 
 			for item in items:
+
 				for i in self.__reindex_getindexwords(item[1], ctx=ctx, txn=txn):
 					addrefs[i].append(item[0])
 
@@ -4016,6 +4061,7 @@ class DB(object):
 
 			addrefs2 = {}
 			delrefs2 = {}
+
 			for i in allwords:
 				# make set, remove unchanged items
 				addrefs2[i] = set(addrefs.get(i,[]))
@@ -4024,12 +4070,12 @@ class DB(object):
 				addrefs2[i] -= u
 				delrefs2[i] -= u
 
-
+			# ian: todo: critical: doesn't seem to be returning any recs... check this out.
 			return addrefs2, delrefs2
 
 
 
-		__reindex_getindexwords_m = re.compile('[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)')
+		__reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')  #'[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)'
 		def __reindex_getindexwords(self, value, ctx=None, txn=None):
 			if value == None: return []
 			value = unicode(value).lower()

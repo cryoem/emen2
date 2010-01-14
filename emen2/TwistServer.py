@@ -8,7 +8,6 @@ import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-
 # This is the main server program for EMEN2
 
 

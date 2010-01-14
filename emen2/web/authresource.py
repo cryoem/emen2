@@ -20,7 +20,6 @@ g = emen2.globalns.GlobalNamespace('')
 
 
 
-
 def cookie_expire_time():
 	return time.strftime("%a, %d-%b-%Y %H:%M:%S PST", time.localtime(time.time()+604800))
 
@@ -28,6 +27,8 @@ def cookie_expire_time():
 
 def render_security_error(redirect, e):
 	args = {'redirect': redirect, 'msg': str(e)}
+	print "sec error"
+	print emen2.TwistSupport_html.public.login
 	p = emen2.TwistSupport_html.public.login.Login(**args)
 	data = unicode(p.get_data()).encode("utf-8")
 	return data
@@ -57,7 +58,7 @@ class AuthResource(Resource):
 		if g.EMEN2EXTPORT != 80:
 			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
 		
-		print "redir is %s"%urlparse.urlunsplit(du)
+		# print "redir is %s"%urlparse.urlunsplit(du)
 		
 		return urlparse.urlunsplit(du)
 
