@@ -4180,6 +4180,7 @@ class DB(object):
 
 				crecs = []
 				for i in range(pos, pos2):
+					print i
 					crecs.append(self.bdbs.records.sget(i, txn=txn))
 
 				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
