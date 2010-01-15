@@ -2310,6 +2310,8 @@ class DB(object):
 				username = ctx.username
 
 			user = self.getuser(username, ctx=ctx, txn=txn)
+			if not user:
+				raise subsystems.exceptions.SecurityError, "Cannot change password for user '%s'"%username
 
 			try:
 				user.setpassword(oldpassword, newpassword)
@@ -4192,6 +4194,8 @@ class DB(object):
 			g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
 
+
+
 		# Stage 2
 		def __rebuild_secrindex(self, ctx=None, txn=None):
 
@@ -4213,7 +4217,8 @@ class DB(object):
 
 				pos2 = pos + g.BLOCKLENGTH
 				if pos2 > maxrecords: pos2 = maxrecords
-
+				
+				g.log.msg("LOG_INFO","%s -> %s"%(pos, pos2))
 				crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
 				pos = pos2
 
