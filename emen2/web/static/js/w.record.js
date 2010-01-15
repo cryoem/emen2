@@ -365,26 +365,25 @@ permissions.prototype = {
 
 		this.userarea.empty();
 		$.each(this.getlist(1), function(k,v) {
-
 			v=self.sortbydisplayname(v);
+			
 			var level=$('<div class="clearfix user_level"><h6>'+self.levels[k]+'</h6></div>');
 			var level_ul = $("<ul></ul>");
 
 			if (v.length == 0) {
 				//level_ul.append("<li>Emtpy</li>");
 			} else {
-		
+
 				var level_removeall=$('<span class="small">[<span class="jslink">X</span>]</span>').click(function () {
-					var q=v.slice();
+					var q = v.slice();
 					for (var i=0;i<q.length;i++) {
 						self.remove(q[i]);
 					}
 					self.build_userarea();
 				});
 				level.append(level_removeall);
-
+				
 				$.each(v, function(k2,v2) {
-
 					var userdiv=$('<li class="user clearfix"></li>');
 					var tag=self.userstatetag(v2);
 					userdiv.addClass(tag);
@@ -467,12 +466,12 @@ permissions.prototype = {
 		var sortnames=[];
 		var retnames=[];
 		for (var i=0;i<list.length;i++) {
-		    reversenames[getdisplayname(list[i])]=list[i];
-		    sortnames.push(getdisplayname(list[i]));
+		    reversenames[getdisplayname(list[i])] = list[i];
+		    sortnames.push(getdisplayname(list[i]) || list[i]);
 		}
 		sortnames.sort();
 		for (var i=0;i<sortnames.length;i++) {
-			retnames.push(reversenames[sortnames[i]]);
+			retnames.push(reversenames[sortnames[i]] || sortnames[i]);
 		}
 		return retnames
 	},

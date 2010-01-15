@@ -3707,6 +3707,8 @@ class DB(object):
 
 				recid = updrec.recid
 
+				# ian: todo: I once got a weird error here where there was no txn,
+				# 			 but after restart it was OK. weird.
 				# we need to acquire RMW lock here to prevent changes during commit
 				if self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
 					orec = self.bdbs.records.sget(updrec.recid, txn=txn)
