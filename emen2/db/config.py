@@ -33,7 +33,6 @@ class DBOptions(optparse.OptionParser):
 
 	def load_config(self):
 
-		print "Loading config files: %s"%(self.values.configfile or [defaultconfig])
 
 		map(g.from_yaml, self.values.configfile or [defaultconfig])
 
@@ -74,6 +73,7 @@ class DBOptions(optparse.OptionParser):
 
 			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGROOT + '/access.log', 'a', 0))
 
+			g.log_init("Loading config files: %s"%(self.values.configfile or [defaultconfig]))
 		except ImportError:
 			raise ImportError, 'Debug not loaded!!!'
 
