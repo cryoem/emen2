@@ -16,20 +16,22 @@ date_formats = [
 	]
 
 # ian: todo: high priority: think about this more.
-# This is a list of date formats to check, in order of priority.
+# Foramts to check [0] and return [1] in order of priority
+# (the return value will be used for the internal database value for consistency)
 # The DB will return the first format that validates.
+
 datetime_formats = [
-	'%Y %m %d %H:%M:%S',
-	'%Y %m %d %H:%M',
-	'%Y %m %d %H',
-	'%Y %m %d',
-	'%Y %m',
-	'%Y',
-	'%m %Y',
-	'%d %m %Y',
-	'%d %m %Y %H:%M:%S',
-	'%m %d %Y',
-	'%m %d %Y %H:%M:%S'
+	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
+	['%Y %m %d %H', '%Y/%m/%d %H'],
+	['%Y %m %d', '%Y/%m/%d'],
+	['%Y %m','%Y/%m'],
+	['%Y','%Y'],
+	['%m %Y','%Y/%m'],
+	['%d %m %Y','%Y/%m/%d'],
+	['%d %m %Y %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+	['%m %d %Y','%Y/%m/%d'],
+	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
 	]
 
 
@@ -45,9 +47,10 @@ def parse_datetime(string):
 		msecs = int(string.pop().ljust(6,'0'))
 	string = ".".join(string)
 
-	for format in datetime_formats:
+	for format, output in datetime_formats:
 		try:
-			return datetime.datetime.strptime(string, format)
+			string = datetime.datetime.strptime(string, format)
+			return datetime.datetime.strftime(string, output)
 		except ValueError, inst:
 			#print inst
 			pass
