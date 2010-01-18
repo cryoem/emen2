@@ -15,13 +15,21 @@ date_formats = [
 	'%Y'
 	]
 
+# ian: todo: high priority: think about this more.
+# This is a list of date formats to check, in order of priority.
+# The DB will return the first format that validates.
 datetime_formats = [
 	'%Y %m %d %H:%M:%S',
 	'%Y %m %d %H:%M',
 	'%Y %m %d %H',
 	'%Y %m %d',
 	'%Y %m',
-	'%Y'
+	'%Y',
+	'%m %Y',
+	'%d %m %Y',
+	'%d %m %Y %H:%M:%S',
+	'%m %d %Y',
+	'%m %d %Y %H:%M:%S'
 	]
 
 
