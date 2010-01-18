@@ -739,12 +739,12 @@ class DB(object):
 
 
 
-		# ian: todo: simple: implement return keyed by recid
 		@DBProxy.publicmethod
-		def getbinary(self, bdokeys, filt=True, vts=None, params=None, ctx=None, txn=None):
+		def getbinary(self, bdokeys, byrecid=False, filt=True, vts=None, params=None, ctx=None, txn=None):
 			"""Get a storage path for an existing binary object.
 
 			@param bdokeys A single BDO, an iterable of BDOs, a single record/recid, or an iterable of records/recids
+			@keyparam byrec Key result by recid
 			@keyparam filt Filter out invalid BDOs
 			@keyparam vts For record search, limit to (iterable) param vartypes
 			@keyparam params For record search, limit to (iterable) params
@@ -783,7 +783,7 @@ class DB(object):
 			bids = filter(lambda x:isinstance(x, basestring), bids)
 
 			# keyed by recid
-			# byrec = collections.defaultdict(set)
+			byrec = collections.defaultdict(list)
 
 			for bdokey in bids:
 
@@ -795,22 +795,23 @@ class DB(object):
 					if filt: continue
 					else: raise KeyError, "Invalid identifier: %s: %s"%(bdokey, inst)
 
-				# byrec[bdo.get("recid")].add(bdo)
+				recid = bdo.get('recid')
+				byrec[recid].append(bdo)
 
 				try:
-					self.getrecord(bdo.get("recid"), filt=False, ctx=ctx, txn=txn)
+					self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 					bdo["filepath"] = dkey["filepath"]
 					ret[bdo["name"]] = bdo
 
-				#ed: fix: catch correct exception
-				except:
+				#ed: fix: is this the right exception?
+				except emen2.Database.subsystems.exceptions.SecurityError:
 					if filt: continue
-					else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, bdo.get("recid"))
+					else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
 
 			if len(ret)==1 and ol:
 				return ret.values()[0]
 
-			return ret
+			return byrec if byrecid else ret
 
 
 
@@ -839,7 +840,8 @@ class DB(object):
 				raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
 			# ian: todo: medium: acquire RMW lock on record? (will need to not use self.getrecord.. hmm.)
-			# ed: probably
+			# ed: probably, we could abstract a private method (or just add a new argument to the current
+			#     one which allows extra bsddb flags to be specified)
 			if not bdokey:
 				rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 				if not rec.writable():
@@ -908,12 +910,15 @@ class DB(object):
 				raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 			nb = dataobjects.binary.Binary()
-			nb["uri"] = uri
-			nb["filename"] = filename
-			nb["recid"] = recid
-			nb["creator"] = ctx.username
-			nb["creationtime"] = self.gettime()
-			nb["name"] = dkey["name"]
+			nb.update(
+				uri=uri,
+				filename=filename,
+				recid=recid,
+				creator=ctx.username,
+				creationtime=self.gettime(),
+				name=dkey["name"]
+			)
+
 			bdo[dkey["counter"]] = nb
 
 			g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
