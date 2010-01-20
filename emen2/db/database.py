@@ -1,4 +1,6 @@
 from __future__ import with_statement
+#basestring goes away in a later python version
+basestring = (str, unicode)
 
 import copy
 import atexit
@@ -1785,10 +1787,6 @@ class DB(object):
 			"""@see getchildren"""
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
-		__keytypemap = dict(
-			record=self.bdbs.records,
-			paramdef=self.bdbs.paramdefs,
-			recorddef=self.bdbs.recorddefs )
 
 
 		# ian: todo: simple: raise Exception if rectype/filt on keytype=record
@@ -1801,6 +1799,10 @@ class DB(object):
 
 			if recurse == False: recurse = True
 
+			__keytypemap = dict(
+				record=.bdbs.records,
+				paramdef=self.bdbs.paramdefs,
+				recorddef=self.bdbs.recorddefs )
 			if keytype in self.__keytypemap:
 				reldb = self.__keytypemap[rectype]
 			else:
@@ -3293,20 +3295,18 @@ class DB(object):
 
 		# ian: todo: why doesn't this accept multiple rectypes
 		@DBProxy.publicmethod
-		def getrecorddef(self, recorddef, recid=None, ctx=None, txn=None):
+		def getrecorddef(self, rdid, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
 			private, unless the user is an owner or	 in the context of a recid the
 			user has permission to access"""
 
-			# ian: todo: simple: do inline like elsewhere. Add filt= option.
+			if hasattr(rdid,"__iter__"):
+				return dict((i,self.getrecorddef(rdid, ctx=ctx, txn=txn)) for i in rdid)
 
-			if hasattr(recorddef,"__iter__"):
-				ret = {}
-				for i in recorddef:
-					ret[i] = self.getrecorddef(i, recid=recid, ctx=ctx, txn=txn)
-				return ret
-
-			# for i in recorddefs:
+			if isinstance(rdid, int):
+				recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
+			else:
+				recorddef = str(rdid)
 
 			recorddef = recorddef.lower()
 
@@ -3318,23 +3318,8 @@ class DB(object):
 			# ian: todo: simple: move some of this into RecordDef class
 			rd.setContext(ctx)
 
-			if not rd.private:
-				return rd
-
 			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if (rd.private and rd.accessible()): #(ret.owner == ctx.username or ctx.checkreadadmin()))
-				return rd
-
-			# ian todo: make sure all calls to getrecorddef pass recid they are requesting
-
-			# ok, now we need to do a little more work.
-			if recid == None:
-				raise subsystems.exceptions.SecurityError, "User doesn't have permission to access private RecordDef '%s'"%recorddef
-
-			# try to get the record, may (and should sometimes) raise an exception
-			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-
-			if rec.rectype != recorddef:
+			if rd.private and not rd.accessible():
 				raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
 
 			# success, the user has permission
