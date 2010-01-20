@@ -3296,23 +3296,21 @@ class DB(object):
 
 		# ian: todo: why doesn't this accept multiple rectypes
 		@DBProxy.publicmethod
+		@g.log.debug_func
 		def getrecorddef(self, rdid, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
 			private, unless the user is an owner or	 in the context of a recid the
 			user has permission to access"""
 
 			if hasattr(rdid,"__iter__"):
-				return dict((i,self.getrecorddef(rdid, ctx=ctx, txn=txn)) for i in rdid)
+				return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
 
 			if isinstance(rdid, int):
 				recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
-			else:
-				recorddef = str(rdid)
-
+			else: recorddef = str(rdid)
 			recorddef = recorddef.lower()
 
-			try:
-				rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
 			except KeyError:
 				raise KeyError, "No such RecordDef '%s'"%recorddef
 
