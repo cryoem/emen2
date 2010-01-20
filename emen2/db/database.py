@@ -1785,40 +1785,36 @@ class DB(object):
 			"""@see getchildren"""
 			return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
+		__keytypemap = dict(
+			record=self.bdbs.records,
+			paramdef=self.bdbs.paramdefs,
+			recorddef=self.bdbs.recorddefs )
 
 
 		# ian: todo: simple: raise Exception if rectype/filt on keytype=record
 		def __getrel_wrapper(self, key, keytype="record", recurse=1, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
 			"""(Internal) See getchildren/getparents."""
-
 			ol = False
 			if not hasattr(key,"__iter__"):
 				ol = True
 				key = [key]
 
-			if recurse == 0:
-				recurse = 1
+			if recurse == False: recurse = True
 
-			if keytype=="record":
-				reldb = self.bdbs.records
-			elif keytype=="paramdef":
-				reldb = self.bdbs.paramdefs
-			elif keytype=="recorddef":
-				reldb = self.bdbs.recorddefs
+			if keytype in self.__keytypemap:
+				reldb = self.__keytypemap[rectype]
 			else:
 				raise ValueError, "Invalid keytype"
 
-			# ret is a two-level dictionary
+			# result is a two-level dictionary
 			# k1 = input recids
-			# k2 = recid and v2 = children of k2
-			ret_tree = {}
-			ret_visited = {}
+			# k2 = related recid and v2 = relations of k2
+			result, ret_visited = {}, {}
 			for i in key:
-				ret_tree[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
+				result[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
 
 
 			if rectype or filt or flat:
-
 				# flatten, then filter by rectype and permissions.
 				# if flat=True, then done, else filter the trees
 				# ian: note: use a set() initializer for reduce to prevent exceptions when values is empty
@@ -1830,31 +1826,33 @@ class DB(object):
 				if filt and keytype=="record":
 					allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
-				if flat:
-					return allr
-
-				# perform filtering on both levels, and removing any items that become empty
-				# ret = dict(filter(lambda x:x[1], [ ( k, dict(filter(lambda x:x[1], [ (k2,v2 & allr) for k2, v2 in v.items() ] ) ) ) for k,v in ret.items() ]))
-				# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
-
-				# if tree, we use ret_tree,
-				if tree:
-					for k in ret_tree:
-						for k2 in ret_tree[k]:
-							ret_tree[k][k2] &= allr
-
-				# else, ret_visited
+				if flat: result = allr
 				else:
-					for k in ret_visited:
-						ret_visited[k] &= allr
+					# perform filtering on both levels, and removing any items that become empty
+					# ret = dict( ( k, dict( (k2,v2 & allr) for k2, v2 in v.items() if bool(v2) is True ) ) 
+					#					for k,v in ret.items() if bool(v) is True )
+					# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
+					# ^^^ ed: I rewrote it, is it any better?
 
-			if not tree:
-				ret_tree = ret_visited
+					# if tree, we use ret_tree,
+					if tree:
+						for k, v in result.iteritems():
+							for k2 in v:
+								result[k][k2] &= allr
 
-			if ol:
-				return ret_tree.get(key[0],set())
+					# else, ret_visited
+					else:
+						for k in ret_visited:
+							ret_visited[k] &= allr
 
-			return ret_tree
+			if not flat:
+				if not tree:
+					result = ret_visited
+
+				if ol:
+					result = result.get(key[0],set())
+
+			return result
 
 
 
