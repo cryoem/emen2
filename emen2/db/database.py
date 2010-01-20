@@ -1804,8 +1804,8 @@ class DB(object):
 				paramdef=self.bdbs.paramdefs,
 				recorddef=self.bdbs.recorddefs)
 
-			if keytype in self.__keytypemap:
-				reldb = self.__keytypemap[rectype]
+			if keytype in __keytypemap:
+				reldb = __keytypemap[keytype]
 			else:
 				raise ValueError, "Invalid keytype"
 
