@@ -1800,9 +1800,10 @@ class DB(object):
 			if recurse == False: recurse = True
 
 			__keytypemap = dict(
-				record=.bdbs.records,
+				record=self.bdbs.records,
 				paramdef=self.bdbs.paramdefs,
-				recorddef=self.bdbs.recorddefs )
+				recorddef=self.bdbs.recorddefs)
+
 			if keytype in self.__keytypemap:
 				reldb = self.__keytypemap[rectype]
 			else:
