@@ -33,10 +33,16 @@ def sendmail(recipient,subject,msgtxt, db=None):
 
 
 def sendmailraw(recipient,content):
-	s = smtplib.SMTP(g.MAILHOST)
-	s.set_debuglevel(1)
-	s.sendmail(g.MAILADMIN, [recipient], content)
-	g.log('mail sent %r' %content)
+	if g.MAILHOST:
+		try:
+			s = smtplib.SMTP(g.MAILHOST)
+			s.set_debuglevel(1)
+			s.sendmail(g.MAILADMIN, [recipient], content)
+			g.log('mail sent %r' %content)
+		except Exception, e:
+			g.log('LOG_ERROR','Email sending error: %s'%e)
+	else:
+		g.log('LOG_INFO','Email subsysstem not configured')
 
 
 

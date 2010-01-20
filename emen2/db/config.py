@@ -5,7 +5,7 @@ import emen2.globalns
 import emen2.subsystems.debug
 import yaml
 
-defaultconfig = "config/config.yml"
+defaultconfig = "/Users/irees/emen2/emen2/config/config.yml"
 
 g = emen2.globalns.GlobalNamespace()
 

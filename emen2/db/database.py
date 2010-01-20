@@ -2375,7 +2375,7 @@ class DB(object):
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
-
+			
 			if ctx.checkadmin():
 				#g.log.msg('LOG_DEBUG', "approving %s"%user.username)
 				self.approveuser(user.username, ctx=ctx, txn=txn)
@@ -2422,9 +2422,9 @@ class DB(object):
 			"""write to newuserqueue; users is dict; set value to None to del"""
 
 			#@begin
-
+						
 			for username, user in users.items():
-				if user == None:
+				if user:
 					g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r"%username)
 				else:
 					g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r, deleting"%username)
@@ -4189,7 +4189,7 @@ class DB(object):
 
 				crecs = []
 				for i in range(pos, pos2):
-					print i
+					g.log.msg("LOG_INFO","... %s"%i)
 					crecs.append(self.bdbs.records.sget(i, txn=txn))
 
 				self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
