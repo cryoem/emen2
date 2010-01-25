@@ -3295,8 +3295,8 @@ class DB(object):
 
 
 		# ian: todo: why doesn't this accept multiple rectypes
+		# @g.log.debug_func
 		@DBProxy.publicmethod
-		@g.log.debug_func
 		def getrecorddef(self, rdid, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
 			private, unless the user is an owner or	 in the context of a recid the
@@ -3425,9 +3425,14 @@ class DB(object):
 
 			if inheritperms != None:
 				try:
-					prec = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
-					rec.addumask(prec["permissions"])
-					rec.addgroup(prec["groups"])
+					if not hasattr(inheritperms, "__iter__"):
+						inheritperms = [inheritperms]
+					
+					precs = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
+					
+					for prec in precs:
+						rec.addumask(prec["permissions"])
+						rec.addgroup(prec["groups"])
 
 				except Exception, inst:
 					g.log.msg("LOG_ERROR","newrecord: Error setting inherited permissions from record %s (%s)"%(inheritperms, inst))
@@ -3680,7 +3685,10 @@ class DB(object):
 			param_special = param_immutable | set(["comments","permissions","groups","history"])
 
 			# Assign temp recids to new records
-			for offset,updrec in enumerate(filter(lambda x:x.recid < 0, updrecs)):
+			# for offset,updrec in enumerate(filter(lambda x:x.recid < 0, updrecs)):
+			# ian: changed to x.recid == None to preserve trees in uncommitted records
+
+			for offset,updrec in enumerate(filter(lambda x:x.recid == None, updrecs)):
 				updrec.recid = -1 * (offset + 100)
 
 			# Check 'parent' and 'children' special params
@@ -3691,18 +3699,20 @@ class DB(object):
 
 			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
-
+								
 				recid = updrec.recid
 
 				# ian: todo: I once got a weird error here where there was no txn,
 				# 			 but after restart it was OK. weird.
 				# we need to acquire RMW lock here to prevent changes during commit
-				if self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
+				# ian: put recid<0 check first, to keep issues with recid counter
+				
+				if recid < 0:
+					orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
+
+				elif self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
 					orec = self.bdbs.records.sget(updrec.recid, txn=txn)
 					orec.setContext(ctx)
-
-				elif recid < 0:
-					orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
 
 				else:
 					raise KeyError, "Cannot update non-existent record %s"%recid
@@ -3714,7 +3724,6 @@ class DB(object):
 
 				# Compare to original record
 				cp = orec.changedparams(updrec) - param_immutable
-
 
 				# orec.recid < 0 because new records will always be committed, even if skeletal
 				if not cp and orec.recid >= 0:
@@ -3841,6 +3850,9 @@ class DB(object):
 			# Param index
 			for param, updates in indexupdates.items():
 				self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
+
+			print updrels
+			print recmap
 
 			# Create parent/child links
 			for link in updrels:
