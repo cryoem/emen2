@@ -1,3 +1,5 @@
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace()
 import cgi
 try:
 	from emen2.util.listops import adj_dict
@@ -58,15 +60,24 @@ class return_list_or_single(object):
 		self.__triggerarg = argname
 
 	def __call__(self, func):
+		func_argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
+		if isinstance(self.__triggerarg, int):
+			self.__argpos = self.__triggerarg
+			self.__triggerarg = func_argnames[self.__triggerarg]
+		else:
+			self.__argpos = func_argnames.index(self.__triggerarg)
+
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
-			if isinstance(self.__triggerarg, basestring):
-				lst = kwargs.get(self.__triggerarg)
-			else:
-				lst = args[self.__triggerarg]
-			lst = hasattr(lst, '__iter__')
+			trig = None
+			if len(args) >= self.__argpos+1:
+				trig = args[self.__argpos]
+			if self.__triggerarg in kwargs:
+				trig = kwargs[self.__triggerarg]
+			lst = hasattr(trig, '__iter__')
 			result = func(*args, **kwargs)
 			if not lst:
 				result = result[0]
+
 			return result
 		return _inner

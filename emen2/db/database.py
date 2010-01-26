@@ -2020,44 +2020,42 @@ class DB(object):
 		def disableuser(self, username, ctx=None, txn=None):
 			"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 			a complete historical record is maintained. Only an administrator can do this."""
-			return self.__setuserstate(username, 1, ctx=ctx, txn=txn)
+			return self.__setuserstate(username, True, ctx=ctx, txn=txn)
 
 
 
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
 		def enableuser(self, username, ctx=None, txn=None):
-			return self.__setuserstate(username, 0, ctx=ctx, txn=txn)
+			return self.__setuserstate(username, False, ctx=ctx, txn=txn)
 
 
 
 		def __setuserstate(self, username, state, ctx=None, txn=None):
 			"""Set user enabled/disabled. 0 is enabled. 1 is disabled."""
 
-			state = int(state)
-
-			if state not in [0,1]:
-				raise Exception, "Invalid state. Must be 0 or 1."
+			state = bool(state)
 
 			if not ctx.checkadmin():
 				raise subsystems.exceptions.SecurityError, "Only administrators can disable users"
 
-			ol = 0
+			ol = False
 			if not hasattr(username, "__iter__"):
-				ol = 1
-				username = [username]
+				ol = True
+				usernames = [username]
 
 			commitusers = []
-			for i in username:
-				if i == ctx.username:
+			for username in usernames:
+				if username == ctx.username:
+					g.warn('Warning: user %s tried to disable themself' % ctx.username)
 					continue
 					# raise subsystems.exceptions.SecurityError, "Even administrators cannot disable themselves"
-				user = self.bdbs.users.sget(i, txn=txn) #[i]
+				user = self.bdbs.users.sget(username, txn=txn) #[i]
 				if user.disabled == state:
 					continue
 
-				user.disabled = int(state)
-				commitusers.append(i)
+				user.disabled = bool(state)
+				commitusers.append(user)
 
 
 			ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
@@ -2070,7 +2068,7 @@ class DB(object):
 
 		@DBProxy.publicmethod
 		@DBProxy.adminmethod
-		@emen2.util.utils.return_list_or_single(1)
+		@emen2.util.utils.return_list_or_single('usernames')
 		def approveuser(self, usernames, secret=None, ctx=None, txn=None):
 			"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret"""
 
@@ -3297,32 +3295,39 @@ class DB(object):
 		# ian: todo: why doesn't this accept multiple rectypes
 		# @g.log.debug_func
 		@DBProxy.publicmethod
-		def getrecorddef(self, rdid, ctx=None, txn=None):
+		@emen2.util.utils.return_list_or_single('rdids')
+		def getrecorddef(self, rdids, ctx=None, txn=None):
 			"""Retrieves a RecordDef object. This will fail if the RecordDef is
 			private, unless the user is an owner or	 in the context of a recid the
 			user has permission to access"""
 
-			if hasattr(rdid,"__iter__"):
-				return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
+			if not hasattr(rdids,"__iter__"):
+				rdids = [rdids]
+				#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
+				#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior, 
+				#              I will reimplement it later
 
-			if isinstance(rdid, int):
-				recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
-			else: recorddef = str(rdid)
-			recorddef = recorddef.lower()
+			ret = []
+			for rdid in rdids:
+				if isinstance(rdid, int):
+					recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
+				else: recorddef = str(rdid)
+				recorddef = recorddef.lower()
 
-			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-			except KeyError:
-				raise KeyError, "No such RecordDef '%s'"%recorddef
+				try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+				except KeyError:
+					raise KeyError, "No such RecordDef '%s'"%recorddef
 
-			# ian: todo: simple: move some of this into RecordDef class
-			rd.setContext(ctx)
+				# ian: todo: simple: move some of this into RecordDef class
+				rd.setContext(ctx)
 
-			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if rd.private and not rd.accessible():
-				raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
+				# if the RecordDef isn't private or if the owner is asking, just return it now
+				if rd.private and not rd.accessible():
+					raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
+				ret.append(rd)
 
 			# success, the user has permission
-			return rd
+			return dict((x.name, x) for x in ret).values()
 
 
 
@@ -3365,15 +3370,13 @@ class DB(object):
 
 		# ian: improved!
 		# ed: more improvments!
-		#@emen2.util.utils.return_list_or_single(1)
 		@DBProxy.publicmethod
+		@emen2.util.utils.return_list_or_single('recids')
 		def getrecord(self, recids, filt=True, ctx=None, txn=None):
 			"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 			if dbid is 0, the current database is used."""
 
-			ol = False
 			if not hasattr(recids, '__iter__'):
-				ol = True
 				recids = [recids]
 
 			ret = []
@@ -3390,11 +3393,6 @@ class DB(object):
 				#	if filt: pass
 				#	else: raise e
 
-
-			if ol and not ret:
-				return None
-			if ol:
-				return ret.pop()
 			return ret
 
 
@@ -3648,9 +3646,9 @@ class DB(object):
 				raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 			# filter input for dicts/records
-			ol = 0
+			ol = False
 			if isinstance(recs,(dataobjects.record.Record,dict)):
-				ol = 1
+				ol = True
 				recs = [recs]
 			elif not hasattr(recs, 'extend'):
 				recs = list(recs)
