@@ -2433,7 +2433,7 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
-		@emen2.util.utils.return_many_or_single(transform=lambda d: d[d.keys()[0]])
+		@emen2.util.utils.return_many_or_single('usernames', transform=lambda d: d[d.keys()[0]])
 		def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
@@ -3264,7 +3264,6 @@ class DB(object):
 				except KeyError:
 					raise KeyError, "No such RecordDef '%s'"%recorddef
 
-				# ian: todo: simple: move some of this into RecordDef class
 				rd.setContext(ctx)
 
 				# if the RecordDef isn't private or if the owner is asking, just return it now
