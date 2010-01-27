@@ -55,9 +55,11 @@ def get_slice(str, start, end):
         start = 0
     return str[start:end]
 
-class return_list_or_single(object):
-	def __init__(self, argname=1):
+
+class return_many_or_single(object):
+	def __init__(self, argname=1, transform=lambda x: x[0]):
 		self.__triggerarg = argname
+		self.__transform = transform
 
 	def __call__(self, func):
 		func_argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
@@ -77,7 +79,13 @@ class return_list_or_single(object):
 			lst = hasattr(trig, '__iter__')
 			result = func(*args, **kwargs)
 			if not lst:
-				result = result[0]
+				try:
+					tmpresult = self.__transform(result)
+				except Exception, e: g.debug('__transform failed:',e)
+				else:
+					result = tmpresult
 
 			return result
 		return _inner
+
+return_list_or_single = return_many_or_single

@@ -2128,14 +2128,14 @@ class DB(object):
 			addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
 			delusers = self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
+			# ian: todo: Do we need this root ctx? Probably...
+			tmpctx = self.__makerootcontext(txn=txn)
 
 			# Pass 2 to add records
 			for user in addusers:
 
 				if user.record == None and user.signupinfo:
 
-					# ian: todo: Do we need this root ctx? Probably...
-					tmpctx = self.__makerootcontext(txn=txn)
 
 					rec = self.newrecord("person", ctx=tmpctx, txn=txn)
 					rec["username"] = username
@@ -2167,17 +2167,15 @@ class DB(object):
 
 			self.__commit_users(addusers, ctx=ctx, txn=txn)
 
-			# ian: todo: simple:
-			# for group in g.GROUP_DEFAULT:
-			# 	g = self.getgroup(...)
-			#	g.adduser(user.username)
-			# self.putgroup(g)
+			for group in g.GROUP_DEFAULT:
+				gr = self.getgroup(group, ctx=tmpctx, txn=txn)
+				gr.adduser(user.username)
+				self.putgroup(gr, ctx=tmpctx, txn=txn)
 
-			#@end
 			approveusernames = [user.username for user in addusers]
 
 			if ol and len(approveusernames)==1:
-			 	return approveusernames[0]
+				return approveusernames[0]
 			return approveusernames
 
 
@@ -2435,17 +2433,16 @@ class DB(object):
 
 
 		@DBProxy.publicmethod
+		@emen2.util.utils.return_many_or_single(transform=lambda d: d[d.keys()[0]])
 		def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 			"""retrieves a user's information. Information may be limited to name and id if the user
 			requested privacy. Administrators will get the full record"""
 
-			ol=0
 			if not hasattr(usernames,"__iter__"):
-				ol=1
 				usernames = [usernames]
 
-			recs = filter(lambda x:isinstance(x, dataobjects.record.Record), usernames)
-			rec_ints = filter(lambda x:isinstance(x, int), usernames)
+			recs = [x for x in usernames if isinstance(x, dataobjects.record.Record)]
+			rec_ints = [x for x in usernames if isinstance(x, int)]
 			if rec_ints:
 				recs.extend(self.getrecord(rec_ints, filt=True, ctx=ctx, txn=txn))
 
@@ -2453,17 +2450,14 @@ class DB(object):
 				un2 = self.filtervartype(recs, vts=["user","userlist","acl"], flat=True, ctx=ctx, txn=txn)
 				usernames.extend(un2)
 
-			usernames = set(filter(lambda x:isinstance(x, basestring), usernames))
+			usernames = set(x for x in usernames if isinstance(x, basestring))
 
 			ret={}
-
 			for i in usernames:
-
 				user = self.bdbs.users.get(i, None, txn=txn)
 
 				if user == None:
-					if filt:
-						continue
+					if filt: continue
 					else:
 						raise KeyError, "No such user: %s"%i
 
@@ -2484,27 +2478,11 @@ class DB(object):
 					user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
 
-				if getrecord and user.record is not None:
-					try:
-						user.userrec = self.getrecord(user.record, filt=False, ctx=ctx, txn=txn)
-					except Exception, inst:
-						#g.log.msg('LOG_ERROR', "problem getting record user %s record %s: %s"%(user.username, user.record, inst))
-						user.userrec = {}
-
-					user.displayname = self.__formatusername(user.username, user.userrec, lnf=lnf, ctx=ctx, txn=txn)
-
-				else:
-					user.userrec = {}
-					user.displayname = user.username
-					user.email = None
-
+				user.getuserrec(getrecord)
 
 				ret[i] = user
 
 
-
-			if len(ret)==1 and ol:
-				return ret[ret.keys()[0]]
 
 			return ret
 
@@ -2557,37 +2535,6 @@ class DB(object):
 
 			return ret
 
-
-
-
-		def __formatusername(self, username, u={}, lnf=True, ctx=None, txn=None):
-			nf = u.get("name_first")
-			nm = u.get("name_middle")
-			nl = u.get("name_last")
-
-			#if u["name_first"] and u["name_middle"] and u["name_last"]:
-			if nf and nm and nl:
-				if lnf:
-					uname = "%s, %s %s" % (nl, nf, nm)
-				else:
-					uname = "%s %s %s" % (nf, nm, nl)
-
-			elif nf and nl:
-				if lnf:
-					uname = "%s, %s" % (nl, nf)
-				else:
-					uname = "%s %s" % (nf, nl)
-
-			elif nl:
-				uname = nl
-
-			elif nf:
-				uname = nf
-
-			else:
-				return username
-
-			return uname
 
 
 
@@ -2668,7 +2615,6 @@ class DB(object):
 			ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
 
 			# ian: todo: simple, high priority: include group display name, like user.displayname
-
 			if ol==1 and len(ret) == 1:
 				return ret.values()[0]
 
