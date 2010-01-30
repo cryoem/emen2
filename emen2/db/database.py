@@ -1230,20 +1230,20 @@ class DB(object):
 		# 	def __init__(self,db=None,q=None,limit=None,timestamp=None):
 		# 		self.q=q
 		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
-		# 
+		#
 		# 	def get_data(self):
 		# 		pass
-		# 
-		# 
-		# 
-		# 
+		#
+		#
+		#
+		#
 		# class findparamdef(View):
 		# 	__metaclass__ = View.register_view
 		# 	__matcher__ = r'^/find/paramdef/$'
 		# 	def __init__(self,db=None,q=None,limit=None,timestamp=None):
 		# 		self.q=q
 		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
-		# 
+		#
 		# 	def get_data(self):
 		# 		pdn = self.db.getparamdefnames()
 		# 		pds = self.db.getparamdefs(pdn)
@@ -1251,71 +1251,71 @@ class DB(object):
 		# 		# search: desc_long, desc_short, name
 		# 		# ian: todo: simple: search vartype, property, creator, etc. using opt args
 		# 		search_keys = ["name","desc_long","desc_short"]
-		# 
+		#
 		# 		for k, pd in pds.items():
 		# 			if any([self.q in pd.get(search_key,"") for search_key in search_keys]):
 		# 				ret.append("%s -- %s (%s)"%(pd.name, pd.desc_short, pd.vartype))
-		# 
+		#
 		# 		return "\n".join(sorted(ret))
-		# 
-		# 
-		# 
-		# 
-		# 
-		# 
-		# 
+		#
+		#
+		#
+		#
+		#
+		#
+		#
 		# class finduser(View):
 		# 	__metaclass__ = View.register_view
 		# 	__matcher__ = r'^/find/user/$'
 		# 	def __init__(self, db=None, q=None, limit=None, timestamp=None):
 		# 		self.q = q
 		# 		View.__init__(self,db=db, js_files=emen2.TwistSupport_html.html.JSLibraries.admin.AdminJS)
-		# 
+		#
 		# 	def get_data(self):
-		# 
+		#
 		# 		#if len(self.q) <= 1: return demjson.encode([])
-		# 
+		#
 		# 		q = self.db.query(
 		# 			boolmode="OR",
 		# 			ignorecase=True,
 		# 			#rectype="person",
 		# 			constraints=[
-		# 				["name_first","contains",self.q], 
+		# 				["name_first","contains",self.q],
 		# 				["name_middle","contains",self.q],
 		# 				["name_last","contains",self.q],
 		# 				["username","contains_w_empty",self.q]
 		# 				],
 		# 			returnrecs=True
 		# 			)
-		# 
+		#
 		# 		#print q
-		# 
+		#
 		# 		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
 		# 		return "\n".join(sorted(usernames))
-		# 
-		# 		#ret = self.db.getuserdisplayname(usernames, lnf=1) or {}		
+		#
+		# 		#ret = self.db.getuserdisplayname(usernames, lnf=1) or {}
 		# 		#return demjson.encode(ret.items())
 		# 		# z = self.db.fulltextsearch(self.q,rectype="person",includeparams=["username"],params=["name_first","name_middle","name_last","username"])
 		# 		# ret=self.db.getuserdisplayname([i.get("username") for i in z.values()],lnf=1)
-		# 		# 
+		# 		#
 		# 		# if ret: ret=ret.items()
 		# 		# else: ret=[]
 		# 		# return demjson.encode(ret)
 
-		
+
 		@DBProxy.publicmethod
 		def finduser(self, query, limit=100, ctx=None, txn=None):
 			q = self.query(
 				boolmode="OR",
 				ignorecase=True,
 				constraints=[
-					["name_first","contains",query], 
+					["name_first","contains",query],
 					["name_middle","contains",query],
 					["name_last","contains",query],
 					["username","contains_w_empty",query]
 					],
 				returnrecs=True,
-				ctx=ctx, txn=txn	
+				ctx=ctx, txn=txn
 			)
 
 			usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
@@ -1323,29 +1323,29 @@ class DB(object):
 			users = self.getuser(usernames, ctx=ctx, txn=txn)
 			return [(user.username, user.displayname) for user in users.values()]
 
-		
-		# ian: make this a class method, e.g. Group.match or query?		
+
+		# ian: make this a class method, e.g. Group.match or query?
 		@DBProxy.publicmethod
 		def findgroup(self, query, limit=100, ctx=None, txn=None):
 			built_in = set(["anon","authenticated","create","readadmin","admin"])
-			
+
 			groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 			search_keys = ["name", "displayname"]
 			ret = []
-		
+
 			for k, v in groups.items():
 				if any([query in v.get(search_key,"") for search_key in search_keys]):
 					ret.append([k,v.get('displayname', k)])
-					
+
 			ret = sorted(ret, key=operator.itemgetter(1))
 
 			if limit:
 				ret = ret[:limit]
-			
-			return ret		
 
-			
-			
+			return ret
+
+
+
 
 		@DBProxy.publicmethod
 		def findvalue(self, param, query, flat=False, limit=100, count=True, showchoices=True, ctx=None, txn=None):
@@ -1355,18 +1355,18 @@ class DB(object):
 			@param limit Limit number of results
 			@param showchoices ...
 			@param flat Flatten return to just recids
-			
+
 			@return [[matching value, count], ...]
 					if not count: [[matching value, [recid, ...]], ...]
 					if flat and not count: [recid, recid, ...]
 					if flat and count: Number of matching records
 			"""
-			
+
 
 			q = self.query(ignorecase=True, constraints=[[param, "contains_w_empty", query]], byvalue=True, ctx=ctx, txn=txn)
 			# >>> db.query(ignorecase=True, constraints=[["name_last","contains_w_empty", "rees"]], byvalue=True)
 			# 			{('name_last', u'Rees'): set([271390])}
-			
+
 			q_sort = {}
 			for i in q:
 				q_sort[i[1]] = len(q[i])
@@ -1379,13 +1379,13 @@ class DB(object):
 				return reduce(set.union, q.values())
 
 			if limit:
-				q_sort = q_sort[:limit]				
+				q_sort = q_sort[:limit]
 
 			if count:
 				return q_sort
-				
+
 			return [(i, q[i]) for i in q_sort]
-			
+
 
 
 
@@ -1832,7 +1832,7 @@ class DB(object):
 				if flat: result = allr
 				else:
 					# perform filtering on both levels, and removing any items that become empty
-					# ret = dict( ( k, dict( (k2,v2 & allr) for k2, v2 in v.items() if bool(v2) is True ) ) 
+					# ret = dict( ( k, dict( (k2,v2 & allr) for k2, v2 in v.items() if bool(v2) is True ) )
 					#					for k,v in ret.items() if bool(v) is True )
 					# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
 					# ^^^ ed: I rewrote it, is it any better?
@@ -2372,7 +2372,7 @@ class DB(object):
 			user.validate()
 
 			self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
-			
+
 			if ctx.checkadmin():
 				#g.log.msg('LOG_DEBUG', "approving %s"%user.username)
 				self.approveuser(user.username, ctx=ctx, txn=txn)
@@ -2419,7 +2419,7 @@ class DB(object):
 			"""write to newuserqueue; users is dict; set value to None to del"""
 
 			#@begin
-						
+
 			for username, user in users.items():
 				if user:
 					g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r"%username)
@@ -3250,7 +3250,7 @@ class DB(object):
 			if not hasattr(rdids,"__iter__"):
 				rdids = [rdids]
 				#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
-				#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior, 
+				#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
 				#              I will reimplement it later
 
 			ret = []
@@ -3360,7 +3360,7 @@ class DB(object):
 			if not ctx.checkcreate():
 				raise emen2.Database.subsystems.exceptions.SecurityError, "No permission to create new records"
 
-			t = filter(lambda x:x[1] != None, self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items())
+			t = [ (x,y) for x,y in self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items() if y != None]
 			rec = dataobjects.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 			if init:
@@ -3370,9 +3370,9 @@ class DB(object):
 				try:
 					if not hasattr(inheritperms, "__iter__"):
 						inheritperms = [inheritperms]
-					
-					precs = self.getrecord(inheritperms, filt=0, ctx=ctx, txn=txn)
-					
+
+					precs = self.getrecord(inheritperms, filt=False, ctx=ctx, txn=txn)
+
 					for prec in precs:
 						rec.addumask(prec["permissions"])
 						rec.addgroup(prec["groups"])
@@ -3386,13 +3386,12 @@ class DB(object):
 
 		@DBProxy.publicmethod
 		def getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
-			if not hasattr(vts,"__iter__"):
-				vts = [vts]
+			if not hasattr(vts,"__iter__"): vts = [vts]
 
 			if not paramdefs:
 				paramdefs = self.getparamdefs(self.getparamdefnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 
-			return [y.name for y in filter(lambda x:x.vartype in vts, paramdefs.values())]
+			return [x.name for x in paramdefs.values() if x.vartype in vts]
 
 
 
@@ -3432,32 +3431,32 @@ class DB(object):
 		@DBProxy.publicmethod
 		def checkorphans(self, recid, ctx=None, txn=None):
 			"""Find orphaned records that would occur if recid was deleted."""
-			
+
 			srecid = set([recid])
 			saved = set()
-			
+
 			# this is hard to calculate
 			children = self.getchildren(recid, recurse=50, tree=1, ctx=ctx, txn=txn)
 			orphaned = reduce(set.union, children.values(), set())
 			orphaned.add(recid)
 			parents = self.getparents(orphaned, ctx=ctx, txn=txn)
-		
+
 			# orphaned is records that will be orphaned if they are not rescued
 			# find subtrees that will be rescued by links to other places
 			for child in orphaned - srecid:
 				if parents.get(child, set()) - orphaned:
 					saved.add(child)
-							
-			children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)			
+
+			children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)
 			children_saved_set = reduce(set.union, children_saved.values()+[set(children_saved.keys())], set())
 
 			orphaned -= children_saved_set
 
 			return orphaned
-			
-			
-		
-		
+
+
+
+
 
 			# For each recurse level, see if child has a parent that hasn't been seen yet.
 			# visited = set([recid])
@@ -3631,7 +3630,7 @@ class DB(object):
 			# for offset,updrec in enumerate(filter(lambda x:x.recid < 0, updrecs)):
 			# ian: changed to x.recid == None to preserve trees in uncommitted records
 
-			for offset,updrec in enumerate(filter(lambda x:x.recid == None, updrecs)):
+			for offset,updrec in enumerate(x for x in updrecs if x.recid == None):
 				updrec.recid = -1 * (offset + 100)
 
 			# Check 'parent' and 'children' special params
@@ -3642,14 +3641,15 @@ class DB(object):
 
 			# preprocess: copy updated record into original record (updrec -> orec)
 			for updrec in updrecs:
-								
+
 				recid = updrec.recid
 
 				# ian: todo: I once got a weird error here where there was no txn,
 				# 			 but after restart it was OK. weird.
-				# we need to acquire RMW lock here to prevent changes during commit
+				#         we need to acquire RMW lock here to prevent changes during commit
+
+
 				# ian: put recid<0 check first, to keep issues with recid counter
-				
 				if recid < 0:
 					orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
 
@@ -3676,7 +3676,6 @@ class DB(object):
 
 				# Copy values into fetched/new Record to prevent Users attempting funny things
 
-				# ian: todo: simple: check this, make sure it's correct
 				if "comments" in cp:
 					for i in updrec["comments"]:
 						if i not in orec._Record__comments:
@@ -4161,7 +4160,7 @@ class DB(object):
 
 				pos2 = pos + g.BLOCKLENGTH
 				if pos2 > maxrecords: pos2 = maxrecords
-				
+
 				g.log.msg("LOG_INFO","%s -> %s"%(pos, pos2))
 				crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
 				pos = pos2
@@ -4329,6 +4328,7 @@ class DB(object):
 
 
 		# ian: todo: hard: It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday. Consider it a convenience method.
+		# ed: ian, I think this should be moved back here.... it's not in the mission statement of the VartypeManager to do this kind of thing....
 		@DBProxy.publicmethod
 		def renderview(self, *args, **kwargs):
 			"""Render views"""
@@ -4378,9 +4378,9 @@ class DB(object):
 			if not os.access(archivepath, os.F_OK):
 				os.makedirs(archivepath)
 			for file_ in archivefiles:
-				# ian: changed to copy -- safer.
-				shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
-				# os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
+				# ian: changed to copy -- safer: it's better for it to be rename
+				#shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
+				os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
 
 
 
