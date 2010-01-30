@@ -25,7 +25,7 @@ class Enum(set):
 	'A class that maps names to numbers and allows the numbers to be referenced by name'
 	def __init__(self, dct):
 		set.__init__(self, (x.upper() for x in dct))
-		self.values = dict(( (x.upper(), int(dct[x])) for x in dct))
+		self.values = dict((x.upper(), int(y)) for (x,y) in dct.iteritems())
 
 	def __getattribute__(self, name):
 		'returns the value associated with an state name'
@@ -58,7 +58,10 @@ class Enum(set):
 
 	def get_name(self, value):
 		'get the name of a state'
-		return (x[0] for x in self.values.items() if x[1] == value).next()
+		return (x for x,y in self.values.items() if y == value).next()
+
+	def get_names(self):
+		return self.values.keys()
 
 class Tree(object, UserDict.DictMixin, caching.CacheMixin):
 	'processes and treeifies a dictionary'
