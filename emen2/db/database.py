@@ -2460,7 +2460,7 @@ class DB(object):
 
 
 	@DBProxy.publicmethod
-	def getuserdisplayname(self, username, lnf=1, perms=0, filt=True, ctx=None, txn=None):
+	def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 		"""Return the full name of a user from the user record; include permissions param if perms=1"""
 
 		namestoget = []
