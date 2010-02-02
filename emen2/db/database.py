@@ -2447,7 +2447,7 @@ class DB(object):
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
 
-			user.getuserrec(getrecord)
+			user.getuserrec(getrecord, lnf=lnf)
 
 			ret[i] = user
 
