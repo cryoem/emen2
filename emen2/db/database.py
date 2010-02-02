@@ -3207,41 +3207,71 @@ class DB(object):
 
 
 
+	# # ian: todo: why doesn't this accept multiple rectypes
+	# # @g.log.debug_func
+	# @DBProxy.publicmethod
+	# @emen2.util.utils.return_list_or_single('rdids')
+	# def getrecorddef(self, rdids, ctx=None, txn=None):
+	# 	"""Retrieves a RecordDef object. This will fail if the RecordDef is
+	# 	private, unless the user is an owner or	 in the context of a recid the
+	# 	user has permission to access"""
+	# 
+	# 	if not hasattr(rdids,"__iter__"):
+	# 		rdids = [rdids]
+	# 		#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
+	# 		#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
+	# 		#              I will reimplement it later
+	# 
+	# 	ret = []
+	# 	for rdid in rdids:
+	# 		if isinstance(rdid, int):
+	# 			recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
+	# 		else: recorddef = str(rdid)
+	# 		recorddef = recorddef.lower()
+	# 
+	# 		try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+	# 		except KeyError:
+	# 			raise KeyError, "No such RecordDef '%s'"%recorddef
+	# 
+	# 		rd.setContext(ctx)
+	# 
+	# 		# if the RecordDef isn't private or if the owner is asking, just return it now
+	# 		if rd.private and not rd.accessible():
+	# 			raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
+	# 		ret.append(rd)
+	# 
+	# 	# success, the user has permission
+	# 	return dict((x.name, x) for x in ret).values()
+
 	# ian: todo: why doesn't this accept multiple rectypes
 	# @g.log.debug_func
 	@DBProxy.publicmethod
-	@emen2.util.utils.return_list_or_single('rdids')
-	def getrecorddef(self, rdids, ctx=None, txn=None):
+	def getrecorddef(self, rdid, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access"""
 
-		if not hasattr(rdids,"__iter__"):
-			rdids = [rdids]
-			#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
-			#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
-			#              I will reimplement it later
+		if hasattr(rdid,"__iter__"):
+			return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
 
-		ret = []
-		for rdid in rdids:
-			if isinstance(rdid, int):
-				recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
-			else: recorddef = str(rdid)
-			recorddef = recorddef.lower()
+		if isinstance(rdid, int):
+			recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
+		else: recorddef = str(rdid)
+		recorddef = recorddef.lower()
 
-			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-			except KeyError:
-				raise KeyError, "No such RecordDef '%s'"%recorddef
+		try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+		except KeyError:
+			raise KeyError, "No such RecordDef '%s'"%recorddef
 
-			rd.setContext(ctx)
+		# ian: todo: simple: move some of this into RecordDef class
+		rd.setContext(ctx)
 
-			# if the RecordDef isn't private or if the owner is asking, just return it now
-			if rd.private and not rd.accessible():
-				raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
-			ret.append(rd)
+		# if the RecordDef isn't private or if the owner is asking, just return it now
+		if rd.private and not rd.accessible():
+			raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
 
 		# success, the user has permission
-		return dict((x.name, x) for x in ret).values()
+		return rd
 
 
 
