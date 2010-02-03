@@ -85,6 +85,8 @@ class PublicView(Resource):
 			key = str(key)
 			value = args[key][0]
 
+			print "key: %s, format: %s, filenames: %s, name: %s"%(key, format, filenames, name)
+
 			if format == "json":
 				value = self.__parse_jsonargs(value)
 				if name == 'args':
@@ -95,7 +97,7 @@ class PublicView(Resource):
 
 			elif format == "file":
 				fn = filenames.get(key)
-				value = (fn,value)
+				value = [fn,value]
 				result[name] = value
 
 			elif format == "dict":
