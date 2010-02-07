@@ -2136,7 +2136,7 @@ class DB(object):
 
 		self.__commit_users(addusers, ctx=ctx, txn=txn)
 
-		for group in g.GROUP_DEFAULT:
+		for group in g.GROUP_DEFAULTS:
 			gr = self.getgroup(group, ctx=tmpctx, txn=txn)
 			gr.adduser(user.username)
 			self.putgroup(gr, ctx=tmpctx, txn=txn)
@@ -4304,6 +4304,45 @@ class DB(object):
 	#############################
 
 
+	@DBProxy.publicmethod
+	def renderchildtree(self, treedef, recid=None, ctx=None, txn=None):
+		"""Convenience method used by some clients to render a bunch of records and simple relationships		
+		e.g.
+		NCMI
+		Group / Project 1
+		Group / Project 2
+		Group / Project 2 / Subproject 1
+		Group / Project 2 / Subproject 2
+		Group / Project 3
+		"""
+
+		init = set([recid])
+		stack = [init]
+		children = {}
+
+		for x, rt in enumerate(treedef):
+			print "---"
+			current = stack[x]
+			stack.append(set())
+			for i in current:
+				new = self.getchildren(i, rectype=rt, ctx=ctx, txn=txn)
+				children[i] = new
+				stack[x+1] |= new
+
+		a = reduce(set.union, stack, set())
+		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
+		rendered2 = {}
+		
+		for x, rt in enumerate(stack):
+			for i in rt:
+				tmp = rendered2.get(i, rendered.get(i, "(%s)"%i))
+				for child in children.get(i, set()):
+					rendered2[child]= "%s / %s"%(tmp, rendered.get(child, "(%s)"%child))
+		
+		return rendered2
+		
+		
+
 
 	# ian: todo: simple: deprecate: still used in a few places in the js. Convenience methods go outside core?
 	@DBProxy.publicmethod
@@ -4382,471 +4421,3 @@ class DB(object):
 			#shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
 			os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
 
-
-
-	# def _backup(self, encode_func=pickle.dump, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
-	# 		"""This will make a backup of all, or the selected, records, etc into a set of files
-	# 		in the local filesystem"""
-	#
-	# 		#if user!="root" :
-	# 		if not ctx.checkadmin():
-	# 			raise subsystems.exceptions.SecurityError, "Only root may backup the database"
-	#
-	#
-	# 		g.log.msg('LOG_INFO', 'backup has begun')
-	# 		#user,groups=self.checkcontext(ctx=ctx, txn=txn)
-	# 		user = ctx.username
-	# 		groups = ctx.groups
-	#
-	# 		if users == None: users = self.bdbs.users.keys(txn=txn)
-	# 		if paramdefs == None: paramdefs = set(self.bdbs.paramdefs.keys(txn=txn))
-	# 		if recorddefs == None: recorddefs = set(self.bdbs.recorddefs.keys(txn=txn))
-	# 		if records == None: records = set(range(0, self.bdbs.records.sget(-1, txn=txn)))#[ - 1]
-	# 		if workflows == None: workflows = set(self.bdbs.workflow.keys(txn=txn))
-	# 		if bdos == None: bdos = set(self.bdbs.bdocounter.keys(txn=txn))
-	# 		if isinstance(records, list) or isinstance(records, tuple): records = set(records)
-	#
-	# 		if outfile == None:
-	# 				out = open(self.path + "/backup.pkl", "w")
-	# 		else:
-	# 				out = open(outfile, "w")
-	#
-	# 		g.log.msg('LOG_INFO', 'backup file opened')
-	# 		# dump users
-	# 		for i in users: encode_func(self.bdbs.users.sget(i, txn=txn), out)
-	# 		g.log.msg('LOG_INFO', 'users dumped')
-	#
-	# 		# dump workflow
-	# 		for i in workflows: encode_func(self.bdbs.workflow.sget(i, txn=txn), out)
-	# 		g.log.msg('LOG_INFO', 'workflows dumped')
-	#
-	# 		# dump binary data objects
-	# 		encode_func("bdos", out)
-	# 		bd = {}
-	# 		for i in bdos: bd[i] = self.bdbs.bdocounter.sget(i, txn=txn)
-	# 		encode_func(bd, out)
-	# 		bd = None
-	# 		g.log.msg('LOG_INFO', 'bdos dumped')
-	#
-	# 		# dump paramdefs and tree
-	# 		def encode_relations(recordtree, records, dump_method, outfile, txn=txn):
-	# 			ch = []
-	# 			for i in records:
-	# 					c = tuple(set(dump_method(i, txn=txn)) & records)
-	# 					ch += ((i, c),)
-	# 			encode_func("pdchildren", out)
-	# 			encode_func(ch, out)
-	#
-	# 		for i in paramdefs: encode_func(self.bdbs.paramdefs.sget(i, txn=txn), out)
-	# 		g.log.msg('LOG_INFO', 'paramdefs dumped')
-	# 		encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.children, out)
-	# 		g.log.msg('LOG_INFO', 'paramchildren dumped')
-	# 		encode_relations(self.bdbs.paramdefs, paramdefs, self.bdbs.paramdefs.cousins, out)
-	# 		g.log.msg('LOG_INFO', 'paramcousins dumped')
-	#
-	# 		# dump recorddefs and tree
-	# 		for i in recorddefs: encode_func(self.bdbs.recorddefs.sget(i, txn=txn), out)
-	# 		g.log.msg('LOG_INFO', 'recorddefs dumped')
-	# 		encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.children, out)
-	# 		g.log.msg('LOG_INFO', 'recdefchildren dumped')
-	# 		encode_relations(self.bdbs.recorddefs, recorddefs, self.bdbs.recorddefs.cousins, out)
-	# 		g.log.msg('LOG_INFO', 'recdefcousins dumped')
-	#
-	# 		# dump actual database records
-	# 		g.log.msg('LOG_INFO', "Backing up %d/%d records" % (len(records), self.bdbs.records.sget(-1, txn=txn)))
-	# 		for i in records: encode_func(self.bdbs.records.sget(i, txn=txn), out)
-	# 		g.log.msg('LOG_INFO', 'records dumped')
-	#
-	# 		ch = []
-	# 		for i in records:
-	# 				c = [x for x in self.bdbs.records.children(i, txn=txn) if x in records]
-	# 				c = tuple(c)
-	# 				ch += ((i, c),)
-	# 		encode_func("recchildren", out)
-	# 		encode_func(ch, out)
-	# 		g.log.msg('LOG_INFO', 'rec children dumped')
-	#
-	# 		ch = []
-	# 		for i in records:
-	# 				c = set(self.bdbs.records.cousins(i, txn=txn))
-	# 				c &= records
-	# 				c = tuple(c)
-	# 				ch += ((i, c),)
-	# 		encode_func("reccousins", out)
-	# 		encode_func(ch, out)
-	# 		g.log.msg('LOG_INFO', 'rec cousins dumped')
-	#
-	# 		out.close()
-
-
-
-	# def _backup2(self, users=None, paramdefs=None, recorddefs=None, records=None, workflows=None, bdos=None, outfile=None, ctx=None, txn=None):
-	# 		"""This will make a backup of all, or the selected, records, etc into a set of files
-	# 		in the local filesystem"""
-	# 		def enc(value, fil):
-	# 			if type(value) == dict:
-	# 				for x in value.items():
-	# 					#g.log(x)
-	# 					demjson.encode(x)
-	# 			value = {'type': type(value).__name__, 'data': demjson.encode(value, encoding='utf-8')}
-	# 			fil.write('\n')
-	# 		self._backup(enc,users, paramdefs, recorddefs, records, workflows, bdos, outfile, ctx=ctx, txn=txn)
-
-
-
-	#
-	#
-	#
-	# def __restore_rec(self, recblock,  recmap, ctx=None, txn=None):
-	# 	def swapin(obj, key, value):
-	# 		result = getattr(obj, key)
-	# 		setattr(obj, key, value)
-	# 		return result
-	#
-	# 	oldids = map(lambda rec: swapin(rec, 'recid', None), recblock)
-	#
-	# 	newrecs = self.putrecord(recblock, warning=1, ctx=ctx, txn=txn)
-	#
-	# 	for oldid,newrec in itertools.izip(oldids,newrecs):
-	# 		recmap[oldid] = newrec.recid
-	# 		if oldid != newrec.recid:
-	# 			g.log.msg("LOG_WARNING", "Warning: recid %s changed to %s"%(oldid,newrec.recid))
-	# 	return len(newrecs)
-
-
-
-	# def __restore_commitblocks(self, *blocks, **kwargs):
-	# 	ctx, txn = kwargs.get('ctx'), kwargs.get('txn')
-	# 	mp = kwargs.get('map')
-	# 	changesmade = False
-	# 	if any(blocks):
-	#
-	# 		to_commit = filter(None, blocks)
-	#
-	# 		commit_funcs = {
-	# 			dataobjects.paramdef.ParamDef: lambda r: self.putparamdef(r, ctx=ctx, txn=txn),
-	# 			dataobjects.recorddef.RecordDef: lambda r: self.putrecorddef(r, ctx=ctx, txn=txn),
-	# 			dataobjects.user.User: lambda r: self.putuser(r, ctx=ctx, txn=txn)
-	# 		}
-	#
-	# 		for block in to_commit:
-	#
-	# 			for item in block:
-	# 				emen2.migrate.upgrade(item, ctx=ctx, txn=txn)
-	#
-	# 			if isinstance(block[0], dataobjects.record.Record):
-	# 				self.__restore_rec(block, mp, ctx=ctx, txn=txn)
-	# 			else:
-	# 				map(commit_funcs[type(block[0])], block)
-	#
-	# 			del block[:]
-	#
-	# 		changesmade = True
-	#
-	# 	return changesmade
-
-
-
-	# def __restore_openfile(self, restorefile):
-	# 		if type(restorefile) == file:
-	# 			fin = restorefile
-	#
-	# 		elif os.access(str(restorefile), os.R_OK):
-	# 			if restorefile.endswith('.bz2'):
-	# 				fin = os.popen("bzcat %s" % restorefile, "r")
-	# 			else:
-	# 				fin = open(restorefile, "r")
-	#
-	# 		elif os.access(self.path + "/backup.pkl", os.R_OK):
-	# 			fin = open(self.path + "/backup.pkl", "r")
-	#
-	# 		elif os.access(self.path + "/backup.pkl.bz2", os.R_OK) :
-	# 			fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
-	#
-	# 		elif os.access(self.path + "/../backup.pkl.bz2", os.R_OK) :
-	# 			fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
-	#
-	# 		else:
-	# 			raise IOError, "Restore file (e.g. backup.pkl) not present"
-	# 		return fin
-
-
-
-	# def __restore_relate(self, r, fin, types, recmap, txn=None):
-	# 	rr = pickle.load(fin)
-	# 	if r not in types: return False
-	#
-	# 	def link(lis, link_func, txn=txn):
-	# 		for a,bl in lis:
-	# 			for b in bl:
-	# 				try:
-	# 					link_func(a,b, txn=txn)
-	# 				except Exception, e:
-	# 					g.log.msg("LOG_ERROR","Error linking during restore: %s <-> %s (%s)"%(a,b,e))
-	#
-	# 	simple_choices = dict(
-	# 		pdchildren=self.bdbs.paramdefs.pclink,
-	# 		pdcousins=self.bdbs.paramdefs.link,
-	# 		rdchildren=self.bdbs.recorddefs.pclink,
-	# 		rdcousins=self.bdbs.recorddefs.link,
-	# 		reccousins=self.bdbs.records.link
-	# 	)
-	#
-	# 	if r == "bdos":
-	# 		g.log.msg('LOG_INFO', "bdo")
-	# 		# read the dictionary of bdos
-	# 		for i, d in rr.items():
-	# 			self.bdbs.bdocounter.set(i, d, txn=txn)
-	#
-	# 	elif r == "recchildren":
-	# 		g.log.msg('LOG_INFO', "recchildren")
-	#
-	# 		links = []
-	# 		for p, cl in rr:
-	# 			for c in cl:
-	# 				links.append((recmap[p], recmap[c]))
-	#
-	# 		self.bdbs.records.pclinks(links, txn=txn)
-	#
-	#
-	# 	elif r in simple_choices:
-	# 		g.log.msg('LOG_INFO', r)
-	# 		link(rr, simple_choices[r])
-	#
-	# 	else:
-	# 		g.log.msg('LOG_ERROR', "Unknown category: ", r)
-	# 	return True
-
-
-
-	# @DBProxy.publicmethod
-	# def restore(self, restorefile=None, types=None, restoreversion=None, ctx=None, txn=None):
-	# 		"""This will restore the database from a backup file. It is nondestructive, in that new items are
-	# 		added to the existing database. Naming conflicts will be reported, and the new version
-	# 		will take precedence, except for Records, which are always appended to the end of the database
-	# 		regardless of their original id numbers. If maintaining record id numbers is important, then a full
-	# 		backup of the database must be performed, and the restore must be performed on an empty database."""
-	#
-	# 		import emen2.migrate
-	#
-	# 		if not txn: txn = None
-	# 		g.log.msg('LOG_INFO', "Begin restore operation")
-	#
-	# 		if not self.__importmode:
-	# 			g.log.msg('LOG_WARNING', "WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
-	# 			return
-	#
-	#
-	#
-	# 		# ian: todo: this will be better implemented in a flexible way when restore is moved into a standalone module
-	#
-	#
-	# 		# ian: todo: change this to some other mechanism...
-	# 		# ctx = self.__makerootcontext()
-	#
-	# 		user, groups = ctx.username, ctx.groups
-	#
-	# 		if not ctx.checkadmin():
-	# 			raise subsystems.exceptions.SecurityError, "Database restore requires admin access"
-	#
-	# 		recmap = {}
-	# 		nrec = 0
-	#
-	# 		t0 = time.time()
-	# 		tmpindex = {}
-	# 		nel = 0
-	#
-	#
-	# 		recblock, paramblock, recdefblock, userblock = [],[],[],[]
-	# 		commitrecs = False
-	# 		changesmade = False
-	# 		OVERWRITE = False
-	#
-	# 		if not types:
-	# 			types = set(["record", "user", "workflow",
-	# 				"recorddef", "paramdef", "bdos",
-	# 				"pdchildren", "pdcousins", "rdcousins",
-	# 				"recchildren", "reccousins"])
-	#
-	#
-	# 		iteration = 0
-	# 		cleanup_needed = False
-	#
-	#
-	# 		if OVERWRITE:
-	# 			existing_users = set()
-	# 			existing_paramdefs = set()
-	# 			existing_recorddefs = set()
-	# 			existing_groups = set()
-	# 		else:
-	# 			existing_users = self.getusernames(ctx=ctx, txn=txn)
-	# 			existing_paramdefs = self.getparamdefnames(ctx=ctx, txn=txn)
-	# 			existing_recorddefs = self.getrecorddefnames(ctx=ctx, txn=txn)
-	# 			existing_groups = self.getgroupnames(ctx=ctx, txn=txn)
-	#
-	#
-	# 		# Record = dataobjects.record.Record
-	# 		# RecordDef = dataobjects.recorddef.RecordDef
-	# 		# ParamDef = dataobjects.paramdef.ParamDef
-	# 		# User = dataobjects.user.User
-	#
-	# 		fin = self.__restore_openfile(restorefile)
-	# 		running = True
-	# 		try:
-	# 			with emen2.util.ticker.spinning_distraction():
-	# 				while running:
-	#
-	# 					try:
-	# 						r = pickle.load(fin)
-	# 					except Exception, e:
-	# 						g.log.msg('LOG_DEBUG', "Pickle load error: %s"%e)
-	# 						raise EOFError
-	#
-	# 					commitrecs = False
-	#
-	# 					# insert and renumber record
-	# 					if isinstance(r, dataobjects.record.Record) and "record" in types:
-	# 						recblock.append(r)
-	# 					elif isinstance(r, dataobjects.recorddef.RecordDef) and "recorddef" in types and r.name not in existing_recorddefs:
-	# 						recdefblock.append(r)
-	# 					elif isinstance(r, dataobjects.paramdef.ParamDef) and "paramdef" in types and r.name not in existing_paramdefs:
-	# 						paramblock.append(r)
-	# 					elif isinstance(r, dataobjects.user.User) and "user" in types and r.username not in existing_users:
-	# 						userblock.append(r)
-	#
-	# 					if  sum(len(block) for block in [recblock, userblock, paramblock, recdefblock]) >= g.BLOCKLENGTH:
-	# 						commitrecs = True
-	#
-	# 					restoreblocks = lambda: self.__restore_commitblocks(userblock, paramblock, recdefblock, recblock, ctx=ctx, txn=txn, map=recmap)
-	#
-	# 					if commitrecs:
-	# 						txn = txn or self.newtxn()
-	# 					elif txn is None:
-	# 						txn = self.newtxn()
-	#
-	# 					iteration += 1
-	#
-	# 					try:
-	# 						if commitrecs:
-	# 							changesmade = restoreblocks()
-	#
-	# 						# insert Workflow
-	# 						elif isinstance(r, dataobjects.workflow.WorkFlow) and "workflow" in types:
-	# 							self.bdbs.workflow.set(r.wfid, r, txn=txn)
-	# 							changesmade = True
-	#
-	# 						elif isinstance(r, str):
-	# 							changesmade = restoreblocks()
-	# 							changesmade = self.__restore_relate(r, fin, types, recmap, txn=txn)
-	#
-	# 					finally:
-	# 						if changesmade:
-	# 							self.__closeparamindexes(ctx=ctx, txn=txn)
-	# 							self.txncommit(txn=txn)
-	# 							self.archivelogs(ctx=ctx, txn=txn)
-	# 							DB_syncall()
-	# 							txn = None
-	# 							changesmade = False
-	#
-	#
-	# 		except EOFError:
-	# 			g.log.msg('LOG_DEBUG', 'EOF')
-	# 			g.log.msg('LOG_INFO', 'Import Done')
-	# 			running = False
-	#
-	# 		g.log.msg('LOG_INFO', "Done!")
-	# 		if txn: self.txncommit(txn=txn)
-	#
-	# 		txn = self.newtxn()
-	# 		changesmade = restoreblocks()
-	#
-	# 		if txn:
-	# 			self.txncommit(txn=txn)
-	# 			g.log.msg('LOG_INFO', "Import Complete, checkpointing")
-	# 			self.__dbenv.txn_checkpoint()
-	#
-	# 		assert len(self.txnlog) == 0
-	# 		g.log.msg('LOG_DEBUG', 'restore done')
-
-
-
-	# def restoretest(self, ctx=None, txn=None):
-	#
-	# 	NOT UPDATED...?
-	# 	"""This method will check a database backup and produce some statistics without modifying the current database."""
-	#
-	# 	if not self.__importmode: print("WARNING: database should be opened in importmode when restoring from file, or restore will be MUCH slower. This requires sufficient ram to rebuild all indicies.")
-	#
-	# 	#user,groups=self.checkcontext(ctx=ctx, txn=txn)
-	# 	ctx = self.__getcontext(, ctx=ctx, txn=txn)
-	# 	user = ctx.user
-	# 	groups = ctx.groups
-	# 	#if user!="root" :
-	# 	if not ctx.checkadmin():
-	# 			raise subsystems.exceptions., "Only root may restore the database"
-	#
-	# 	if os.access(self.path + "/backup.pkl", R_OK) : fin = open(self.path + "/backup.pkl", "r")
-	# 	elif os.access(self.path + "/backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/backup.pkl.bz2", "r")
-	# 	elif os.access(self.path + "/../backup.pkl.bz2", R_OK) : fin = os.popen("bzcat " + self.path + "/../backup.pkl.bz2", "r")
-	# 	else: raise IOError, "backup.pkl not present"
-	#
-	# 	recmap = {}
-	# 	nrec = 0
-	# 	t0 = time.time()
-	# 	tmpindex = {}
-	#
-	# 	nu, npd, nrd, nr, np = 0, 0, 0, 0, 0
-	#
-	# 	while (1):
-	# 			try:
-	# 					r = pickle.load(fin)
-	# 			except:
-	# 					break
-	#
-	# 			# insert User
-	# 			if isinstance(r, User) :
-	# 					nu += 1
-	#
-	# 			# insert paramdef
-	# 			elif isinstance(r, ParamDef) :
-	# 					npd += 1
-	#
-	# 			# insert recorddef
-	# 			elif isinstance(r, RecordDef) :
-	# 					nrd += 1
-	#
-	# 			# insert and renumber record
-	# 			elif isinstance(r, Record) :
-	# 					r.setContext(ctx)
-	# 					try:
-	# 							o = r._Record__owner
-	# 							a = r._Record__permissions
-	# 							r._Record__permissions = (a[0], a[1], a[2], (o,))
-	# 							del r._Record__owner
-	# 					except:
-	# 							pass
-	# 					if (nr < 20) : g.log(r["identifier"])
-	# 					nr += 1
-	#
-	# 			elif isinstance(r, str) :
-	# 					if r == "pdchildren" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					elif r == "pdcousins" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					elif r == "rdchildren" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					elif r == "rdcousins" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					elif r == "recchildren" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					elif r == "reccousins" :
-	# 							rr = pickle.load(fin)						# read the dictionary of ParamDef PC links
-	# 							np += len(rr)
-	# 					else : g.log("Unknown category ", r)
-	#
-	# 	g.log("Users=", nu, "	 ParamDef=", npd, "	 RecDef=", nrd, "	 Records=", nr, "	 Links=", np)
