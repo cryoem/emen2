@@ -68,7 +68,9 @@ def inithttpd():
 	# Start server
 	g.log.msg(g.LOG_INIT, 'Listening ...')
 
-	reactor.listenTCP(g.EMEN2PORT, server.Site(root))
+	rr = server.Site(root)
+	#rr.requestFactory = g.log.debug_func(rr.requestFactory)
+	reactor.listenTCP(g.EMEN2PORT, rr)
 
 	if g.EMEN2HTTPS:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))

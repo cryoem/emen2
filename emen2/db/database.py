@@ -101,9 +101,6 @@ def DB_stat():
 
 
 
-
-
-
 class DB(object):
 	"""Main database class"""
 	opendbs = weakref.WeakKeyDictionary()
@@ -789,7 +786,7 @@ class DB(object):
 	# ian: todo: medium: clean this up some more...
 	# ian: todo: simple: implement uri kw
 	@DBProxy.publicmethod
-	def putbinary(self, filename, recid, bdokey=None, filedata=None, param=None, uri=None, ctx=None, txn=None):
+	def putbinary(self, filename, recid, bdokey=None, filedata=None, filehandle=None, param=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
 
 		@param filename Filename
@@ -839,8 +836,10 @@ class DB(object):
 
 			self.putrecord(rec, ctx=ctx, txn=txn)
 
-		if filedata != None:
-			self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, ctx=ctx, txn=txn)
+		kwargs = {}
+		if filehandle != None: kwargs['filehandle'] = filehandle
+		elif filedata != None: kwargs['filedata'] = filedata
+		self.__putbinary_file(bdokey=bdoo.get("name"), ctx=ctx, txn=txn, **kwargs)
 
 
 		return bdoo
@@ -901,7 +900,7 @@ class DB(object):
 
 
 
-	def __putbinary_file(self, bdokey, filedata="", ctx=None, txn=None):
+	def __putbinary_file(self, bdokey, filedata="", filehandle=None, ctx=None, txn=None):
 		"""(Internal) Write file data
 		@param bdokey BDO
 		@keyparam filedata File data
@@ -926,9 +925,11 @@ class DB(object):
 
 		g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),dkey["filepath"]))
 
-		f = open(dkey["filepath"],"wb")
-		f.write(filedata)
-		f.close()
+		with open(dkey["filepath"],"wb") as f:
+			if filehandle == None: f.write(filedata)
+			else:
+				for line in filehandle:
+					f.write(line)
 
 
 
@@ -2572,20 +2573,16 @@ class DB(object):
 
 
 	@DBProxy.publicmethod
+	@emen2.util.utils.return_many_or_single('groups', transform=lambda d:d.values()[0])
 	def getgroup(self, groups, filt=1, ctx=None, txn=None):
-		ol=0
 		if not hasattr(groups,"__iter__"):
-			ol=1
 			groups = [groups]
-
 
 		if filt: filt = None
 		else: filt = lambda x:x.name
 		ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
 
 		# ian: todo: simple, high priority: include group display name, like user.displayname
-		if ol==1 and len(ret) == 1:
-			return ret.values()[0]
 
 		return ret
 
@@ -3207,71 +3204,47 @@ class DB(object):
 
 
 
-	# # ian: todo: why doesn't this accept multiple rectypes
-	# # @g.log.debug_func
-	# @DBProxy.publicmethod
-	# @emen2.util.utils.return_list_or_single('rdids')
-	# def getrecorddef(self, rdids, ctx=None, txn=None):
-	# 	"""Retrieves a RecordDef object. This will fail if the RecordDef is
-	# 	private, unless the user is an owner or	 in the context of a recid the
-	# 	user has permission to access"""
-	# 
-	# 	if not hasattr(rdids,"__iter__"):
-	# 		rdids = [rdids]
-	# 		#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
-	# 		#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
-	# 		#              I will reimplement it later
-	# 
-	# 	ret = []
-	# 	for rdid in rdids:
-	# 		if isinstance(rdid, int):
-	# 			recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
-	# 		else: recorddef = str(rdid)
-	# 		recorddef = recorddef.lower()
-	# 
-	# 		try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-	# 		except KeyError:
-	# 			raise KeyError, "No such RecordDef '%s'"%recorddef
-	# 
-	# 		rd.setContext(ctx)
-	# 
-	# 		# if the RecordDef isn't private or if the owner is asking, just return it now
-	# 		if rd.private and not rd.accessible():
-	# 			raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
-	# 		ret.append(rd)
-	# 
-	# 	# success, the user has permission
-	# 	return dict((x.name, x) for x in ret).values()
-
 	# ian: todo: why doesn't this accept multiple rectypes
+	# ed: it does, what's wrong with it?
 	# @g.log.debug_func
 	@DBProxy.publicmethod
-	def getrecorddef(self, rdid, ctx=None, txn=None):
+	@emen2.util.utils.return_list_or_single('rdids')
+	def getrecorddef(self, rdids, filt=True, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access"""
 
-		if hasattr(rdid,"__iter__"):
-			return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
+		if not hasattr(rdids,"__iter__"):
+			rdids = [rdids]
+			#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
+			#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
+			#              I will reimplement it later
 
-		if isinstance(rdid, int):
-			recorddef = self.getrecord(rdid, ctx=ctx, txn=txn).rectype
-		else: recorddef = str(rdid)
-		recorddef = recorddef.lower()
+		ret = []
+		for rdid in rdids:
+			if isinstance(rdid, int):
+				try:
+					recorddef = self.getrecord(rdid, filt=False, ctx=ctx, txn=txn).rectype
+				except KeyError:
+					if filt: continue
+					else:
+						raise KeyError, "No such Record '%s'" % rdid
+			else: recorddef = str(rdid)
+			recorddef = recorddef.lower()
 
-		try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-		except KeyError:
-			raise KeyError, "No such RecordDef '%s'"%recorddef
+			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+			except KeyError:
+				raise KeyError, "No such RecordDef '%s'"%recorddef
 
-		# ian: todo: simple: move some of this into RecordDef class
-		rd.setContext(ctx)
+			rd.setContext(ctx)
 
-		# if the RecordDef isn't private or if the owner is asking, just return it now
-		if rd.private and not rd.accessible():
-			raise subsystems.exceptions.SecurityError, "Record %d doesn't belong to RecordDef '%s'" % (recid, recorddef)
+			# if the RecordDef isn't private or if the owner is asking, just return it now
+			if rd.private and not rd.accessible():
+				raise subsystems.exceptions.SecurityError, "RecordDef %d not accessible" % (recid, recorddef)
+			ret.append(rd)
 
 		# success, the user has permission
-		return rd
+		return dict((x.name, x) for x in ret).values()
 
 
 

@@ -55,15 +55,15 @@ class UploadResource(Resource):
 
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
-				
+
 		# Is a record included? In JSON format, urlencoded...
 		# This will call putrecord and attach the binary to the new record
 		rec = args.get('record',[None])[0]
 		if rec:
 			try: rec = demjson.decode(urllib.unquote(rec))
 			except:	pass
-		
-		
+
+
 		# Uploaded file md5 digest
 		# md5 = args.get('md5',[None])[0]
 
@@ -78,19 +78,22 @@ class UploadResource(Resource):
 		param = str(args.get("param",["file_binary"])[0]) #.strip().lower()
 		redirect = args.get("redirect",[0])[0]
 
-		if not filedata:
-			filedata = ""
-			request.content.seek(0,0)
-			chunk = request.content.read()
-			filedata += chunk
-			# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
+		#if not filedata:
+		#	filedata = ""
+		#	request.content.seek(0,0)
+		#	chunk = request.content.read()
+		#	filedata += chunk
+		#	# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
 
-			while chunk:
-				chunk = request.content.read()
-				filedata += chunk
-	                        # print "Read %s bytes for total %s"%(len(chunk), len(filedata))
+		#	while chunk:
+		#		chunk = request.content.read()
+		#		filedata += chunk
+		#		# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
 
-		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len(filedata), recid, param))
+		request.content.seek(0,2)
+		len_ = len(filedata) if filedata is not None else request.content.tell()
+		request.content.seek(0,0)
+		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len_, recid, param))
 
 		d = threads.deferToThread(self._action, rec=rec, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)
@@ -101,26 +104,22 @@ class UploadResource(Resource):
 
 	def _action(self, rec=None, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
 
-		db._starttxn()
-
-		try:
-			db._setcontext(ctxid,host)
+		db._setcontext(ctxid,host)
+		with db:
 
 			if rec:
 				crec = db.putrecord(rec, filt=False)
 				recid = crec.recid
-				
-			bdokey = db.putbinary(filename, recid, filedata=filedata, param=param)
 
-		except Exception, e:
-			g.log.msg("LOG_ERROR",e)
-			db._aborttxn()
-			raise
-		else:
-			db._committxn()
+			content.seek(0,0)
+
+			kwargs = {}
+			if filedata == None: kwargs['filehandle'] = content
+			else:	kwargs['filedata'] = filedata
+			bdokey = db.putbinary(filename, recid, param=param, **kwargs)
 
 		db._clearcontext()
-		
+
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect
 
