@@ -81,7 +81,7 @@ class return_many_or_single(object):
 			if not lst:
 				try:
 					tmpresult = self.__transform(result)
-				except Exception, e: g.debug('__transform failed:',e)
+				except Exception, e: pass #g.debug('__transform failed:',e)
 				else:
 					result = tmpresult
 
