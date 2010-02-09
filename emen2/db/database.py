@@ -4278,23 +4278,17 @@ class DB(object):
 
 
 	@DBProxy.publicmethod
-	def renderchildtree(self, treedef, recid=None, ctx=None, txn=None):
-		"""Convenience method used by some clients to render a bunch of records and simple relationships		
-		e.g.
-		NCMI
-		Group / Project 1
-		Group / Project 2
-		Group / Project 2 / Subproject 1
-		Group / Project 2 / Subproject 2
-		Group / Project 3
-		"""
+	def renderchildtree(self, recurse=None, recid=None, treedef=None, ctx=None, txn=None):
+		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
+		
+		if recurse:
+			treedef = [None]*recurse
 
 		init = set([recid])
 		stack = [init]
 		children = {}
 
 		for x, rt in enumerate(treedef):
-			print "---"
 			current = stack[x]
 			stack.append(set())
 			for i in current:
@@ -4304,15 +4298,15 @@ class DB(object):
 
 		a = reduce(set.union, stack, set())
 		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
-		rendered2 = {}
+		rendered_path = {}
 		
 		for x, rt in enumerate(stack):
 			for i in rt:
-				tmp = rendered2.get(i, rendered.get(i, "(%s)"%i))
+				tmp_path = rendered_path.get(i, [])
 				for child in children.get(i, set()):
-					rendered2[child]= "%s / %s"%(tmp, rendered.get(child, "(%s)"%child))
-		
-		return rendered2
+					rendered_path[child] = tmp_path + [child]
+
+		return rendered, rendered_path, len(stack)
 		
 		
 
