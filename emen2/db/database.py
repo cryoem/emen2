@@ -52,7 +52,7 @@ DBENV = None
 # this is used by db.checkversion
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": 20091113
+	"emen2client": 20100209
 }
 
 
