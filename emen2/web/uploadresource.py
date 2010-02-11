@@ -50,9 +50,7 @@ class UploadResource(Resource):
 		host = request.getClientIP()
 		args = request.args
 		request.postpath = filter(bool, request.postpath)
-
 		ctxid = request.getCookie("ctxid") or args.get('ctxid',[None])[0]
-
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
 
@@ -64,59 +62,35 @@ class UploadResource(Resource):
 			except:	pass
 
 
-		# Uploaded file md5 digest
-		# md5 = args.get('md5',[None])[0]
-
-
 		if filename==None:
 			if args.has_key("filename"):
 				filename=args["filename"][0].split("/")[-1].split("\\")[-1]
 			else:
 				filename="No_Filename_Specified"
 
+
 		recid = int(request.postpath[0])
-		param = str(args.get("param",["file_binary"])[0]) #.strip().lower()
+		param = str(args.get("param",["file_binary"])[0])
 		redirect = args.get("redirect",[0])[0]
 
-		#if not filedata:
-		#	filedata = ""
-		#	request.content.seek(0,0)
-		#	chunk = request.content.read()
-		#	filedata += chunk
-		#	# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
+		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, recid=%s, param=%s"%(username, host, filename, recid, param))
 
-		#	while chunk:
-		#		chunk = request.content.read()
-		#		filedata += chunk
-		#		# print "Read %s bytes for total %s"%(len(chunk), len(filedata))
-
-		request.content.seek(0,2)
-		len_ = len(filedata) if filedata is not None else request.content.tell()
-		request.content.seek(0,0)
-		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, len=%s, recid=%s, param=%s"%(username, host, filename, len_, recid, param))
-
-		d = threads.deferToThread(self._action, rec=rec, recid=recid, param=param, filename=filename, content=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
+		d = threads.deferToThread(self._action, rec=rec, recid=recid, param=param, filename=filename, filehandle=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET
 
 
 
-	def _action(self, rec=None, recid=None, param=None, filename=None, content=None, filedata=None, redirect=None,ctxid=None,host=None,db=None):
+	def _action(self, rec=None, recid=None, param=None, filename=None, filehandle=None, filedata=None, redirect=None, ctxid=None, host=None, db=None):
 
 		db._setcontext(ctxid,host)
 		with db:
-
 			if rec:
 				crec = db.putrecord(rec, filt=False)
 				recid = crec.recid
 
-			content.seek(0,0)
-
-			kwargs = {}
-			if filedata == None: kwargs['filehandle'] = content
-			else:	kwargs['filedata'] = filedata
-			bdokey = db.putbinary(filename, recid, param=param, **kwargs)
+			bdokey = db.putbinary(filename, recid, param=param, filedata=filedata, filehandle=filehandle)
 
 		db._clearcontext()
 

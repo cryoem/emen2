@@ -93,6 +93,8 @@ class DownloadResource(Resource, File):
 		f = self.open()
 		fsize = size = os.stat(self.path).st_size
 
+		request.setResponseCode(200)
+
 		if self.type:
 			request.setHeader('content-type', self.type)
 		if self.encoding:

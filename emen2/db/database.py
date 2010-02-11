@@ -794,6 +794,7 @@ class DB(object):
 		@keyparam param Target record parameter.
 		@keyparam uri Source URI of BDO
 		@keyparam filedata Write filedata to disk
+		@keyparam filehandle ... or a file handle to copy from
 		@keyparam bdokey Modify existing BDO (Admin only)
 
 		@return BDO
@@ -818,6 +819,7 @@ class DB(object):
 
 		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
 
+		# If this not an edit, update the record..
 		if not bdokey:
 			if not param: param = "file_binary"
 
@@ -836,10 +838,8 @@ class DB(object):
 
 			self.putrecord(rec, ctx=ctx, txn=txn)
 
-		kwargs = {}
-		if filehandle != None: kwargs['filehandle'] = filehandle
-		elif filedata != None: kwargs['filedata'] = filedata
-		self.__putbinary_file(bdokey=bdoo.get("name"), ctx=ctx, txn=txn, **kwargs)
+
+		self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
 
 		return bdoo
@@ -900,7 +900,7 @@ class DB(object):
 
 
 
-	def __putbinary_file(self, bdokey, filedata="", filehandle=None, ctx=None, txn=None):
+	def __putbinary_file(self, bdokey, filedata=None, filehandle=None, ctx=None, txn=None):
 		"""(Internal) Write file data
 		@param bdokey BDO
 		@keyparam filedata File data
@@ -923,14 +923,15 @@ class DB(object):
 			# but an integrity problem.
 			raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
-		g.log.msg('LOG_INFO', "Writing %s bytes disk: %s"%(len(filedata),dkey["filepath"]))
 
 		with open(dkey["filepath"],"wb") as f:
-			if filehandle == None: f.write(filedata)
+			if filehandle == None:
+				f.write(filedata)
 			else:
 				for line in filehandle:
 					f.write(line)
 
+ 		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
 
 
 	# ian: todo: medium: reimplement properly, return actual BDO names instead of just counter.. [bdo:2010010100001, bdo:2010010100002, ...]
