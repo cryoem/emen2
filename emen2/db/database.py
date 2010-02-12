@@ -779,7 +779,8 @@ class DB(object):
 		if len(ret)==1 and ol:
 			return ret.values()[0]
 
-		return byrec if byrecid else ret
+		return ret
+		#return byrec if byrecid else ret
 
 
 
