@@ -452,7 +452,6 @@ class DB(object):
 		newcontext = None
 		username = unicode(username)
 
-
 		# Anonymous access
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
@@ -926,11 +925,11 @@ class DB(object):
 
 
 		with open(dkey["filepath"],"wb") as f:
-			if filehandle == None:
-				f.write(filedata)
-			else:
+			if not filedata:
 				for line in filehandle:
 					f.write(line)
+			else:
+				f.write(filedata)
 
  		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
 
