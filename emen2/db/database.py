@@ -3489,6 +3489,23 @@ class DB(object):
 		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
 
 
+	@DBProxy.publicmethod
+	def getcomments(self, recids, ctx=None, txn=None):
+		recs = self.getrecord(recids, ctx=ctx, txn=txn)
+		allcomments = self.filtervartype(recs, vts=["comments"], ctx=ctx, txn=txn)
+		ret = {}
+		for recid, comments in zip(recids, allcomments):
+			# strip out old-style "LOG: " comments and validation errors from last import
+			if comments:
+				comments=comments.pop()
+			else:
+				continue
+			comments = filter(lambda x:"LOG: " not in x[2], comments)
+			comments = filter(lambda x:"Validation error: " not in x[2], comments)
+			if comments:
+				ret[recid]=comments
+		return ret
+		
 
 
 	#########################
@@ -4279,11 +4296,15 @@ class DB(object):
 
 
 	@DBProxy.publicmethod
-	def renderchildtree(self, recurse=None, recid=None, treedef=None, ctx=None, txn=None):
+	def renderchildtree(self, recurse=None, recid=None, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
 		
 		if recurse:
-			treedef = [None]*recurse
+			treedef = [rectypes]*recurse
+
+		print "TREEDEF IS"
+		print treedef
+
 
 		init = set([recid])
 		stack = [init]
