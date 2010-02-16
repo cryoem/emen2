@@ -83,7 +83,6 @@ class UploadResource(Resource):
 
 
 	def _action(self, rec=None, recid=None, param=None, filename=None, filehandle=None, filedata=None, redirect=None, ctxid=None, host=None, db=None):
-
 		db._setcontext(ctxid,host)
 		with db:
 			if rec:

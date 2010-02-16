@@ -71,6 +71,7 @@ class DBProxy(object):
 			else:
 				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 				self._aborttxn()
+			self.__txn = None
 		self.__oldtxn = None
 
 
@@ -144,11 +145,12 @@ class DBProxy(object):
 
 
 
-	@emen2.util.utils.prop.init
+	@property
 	def _bound():
-		def fget(self): return self.__bound
-		def fdel(self): self._clearcontext()
-		return dict(fget=fget, fdel=fdel)
+		return self.__bound
+	@_bound.deleter
+	def _bound():
+		self._clearcontext()
 
 
 

@@ -307,7 +307,6 @@ class DB(object):
 		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 		try:
 			for i in subsystems.btrees.BTree.alltrees.keys():
-				g.log.msg('LOG_INFO', 'closing %s\n' % unicode(i))
 				i.close()
 		except Exception, inst:
 			g.log.msg('LOG_ERROR', inst)
@@ -755,7 +754,7 @@ class DB(object):
 		for bdokey in bids:
 
 			try:
-				dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+				dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 				bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["counter"]]
 
 			except Exception, inst:
@@ -810,7 +809,8 @@ class DB(object):
 
 		# ian: todo: medium: acquire RMW lock on record? (will need to not use self.getrecord.. hmm.)
 		# ed: probably, we could abstract a private method (or just add a new argument to the current
-		#     one which allows extra bsddb flags to be specified)
+		#     one which allows extra bsddb flags to be specified)... RMW would work, as it is global
+		#     for the transaction.
 		if not bdokey:
 			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 			if not rec.writable():
@@ -860,7 +860,7 @@ class DB(object):
 		"""
 		# fetch BDO day dict, add item, and commit
 
-		dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
@@ -873,7 +873,7 @@ class DB(object):
 
 		if dkey["counter"] == 0:
 			counter = max(bdo.keys() or [-1]) + 1
-			dkey = emen2.Database.dataobjects.binary.parse(bdokey, counter=counter)
+			dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey, counter=counter)
 
 
 		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
@@ -910,13 +910,12 @@ class DB(object):
 
 		# Write file to binary storage area
 
-		dkey = emen2.Database.dataobjects.binary.parse(bdokey)
+		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 
 		#ed: fix: catch correct exception
 		try:
 			os.makedirs(dkey["basepath"])
-		except:
-			pass
+		except: pass
 
 		if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
 			# should be a different exception class, this particular one seems irrevelant as it is not really a security
@@ -934,20 +933,18 @@ class DB(object):
  		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
 
 
-	# ian: todo: medium: reimplement properly, return actual BDO names instead of just counter.. [bdo:2010010100001, bdo:2010010100002, ...]
-	# 			 ... and maybe key by recid
-	# @DBProxy.publicmethod
-	# def getbinarynames(self, ctx=None, txn=None):
-	# 	"""Returns a list of tuples which can produce all binary object
-	# 	keys in the database. Each 2-tuple has the date key and the nubmer
-	# 	of objects under that key. A somewhat slow operation."""
-	#
-	# 	if ctx.username == None:
-	# 		raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
-	#
-	# 	ret = self.bdbs.bdocounter.keys(txn=txn)
-	# 	ret = [(i, len(self.bdbs.bdocounter.get(i, txn=txn))) for i in ret]
-	# 	return ret
+	# ed: todo?: key by recid
+	@DBProxy.publicmethod
+	def getbinarynames(self, ctx=None, txn=None):
+		"""Returns a list of tuples which can produce all binary object
+		keys in the database. Each 2-tuple has the date key and the nubmer
+		of objects under that key. A somewhat slow operation."""
+		if ctx.username == None:
+			raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
+		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
+		ret = reduce(set.union, ret, set())
+		ret = list(ret)
+		return ret
 
 
 
@@ -1991,28 +1988,27 @@ class DB(object):
 	def disableuser(self, username, ctx=None, txn=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this."""
-		return self.__setuserstate(username, True, ctx=ctx, txn=txn)
+		return self.__setuserstate(username, disabled=True, ctx=ctx, txn=txn)[0].username
 
 
 
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def enableuser(self, username, ctx=None, txn=None):
-		return self.__setuserstate(username, False, ctx=ctx, txn=txn)
+		return self.__setuserstate(username, disabled=False, ctx=ctx, txn=txn)[0].username
 
 
 
-	def __setuserstate(self, username, state, ctx=None, txn=None):
+	@emen2.util.utils.return_many_or_single('username')
+	def __setuserstate(self, username, disabled, ctx=None, txn=None):
 		"""Set user enabled/disabled. 0 is enabled. 1 is disabled."""
 
-		state = bool(state)
+		state = bool(disabled)
 
-		if not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only administrators can disable users"
+		#if not ctx.checkadmin():
+		#	raise subsystems.exceptions.SecurityError, "Only administrators can disable users"
 
-		ol = False
 		if not hasattr(username, "__iter__"):
-			ol = True
 			usernames = [username]
 
 		commitusers = []
@@ -2021,6 +2017,7 @@ class DB(object):
 				g.warn('Warning: user %s tried to disable themself' % ctx.username)
 				continue
 				# raise subsystems.exceptions.SecurityError, "Even administrators cannot disable themselves"
+
 			user = self.bdbs.users.sget(username, txn=txn) #[i]
 			if user.disabled == state:
 				continue
@@ -2032,7 +2029,7 @@ class DB(object):
 		ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
 		g.log.msg('LOG_INFO', "Users %s disabled by %s"%([user.username for user in ret], ctx.username))
 
-		if len(ret)==1 and ol: return ret[0].username
+		#if len(ret)==1 and ol: return ret[0].username
 		return [user.username for user in ret]
 
 
@@ -2140,8 +2137,11 @@ class DB(object):
 
 		for group in g.GROUP_DEFAULTS:
 			gr = self.getgroup(group, ctx=tmpctx, txn=txn)
-			gr.adduser(user.username)
-			self.putgroup(gr, ctx=tmpctx, txn=txn)
+			if gr != {}:
+				gr.adduser(user.username)
+				self.putgroup(gr, ctx=tmpctx, txn=txn)
+			else:
+				g.warn('Default Group %r is non-existent' % group)
 
 		approveusernames = [user.username for user in addusers]
 
@@ -3588,9 +3588,9 @@ class DB(object):
 		elif not hasattr(recs, 'extend'):
 			recs = list(recs)
 
-		dictrecs = filter(lambda x:isinstance(x,dict), recs)
-		recs.extend(map(lambda x:dataobjects.record.Record(x, ctx=ctx), dictrecs))
-		recs = filter(lambda x:isinstance(x,dataobjects.record.Record), recs)
+		dictrecs = (x for x in recs if isinstance(x,dict))
+		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
+		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
 
 		ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
 
@@ -3602,7 +3602,6 @@ class DB(object):
 
 
 	# And now, a long parade of internal putrecord methods
-
 	def __putrecord(self, updrecs, warning=0, log=True, ctx=None, txn=None):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the operation and usually the txn.
 			If OK, then proceed to write records and all indexes. At that point, only really serious DB errors should ever occur."""
@@ -4298,7 +4297,7 @@ class DB(object):
 	@DBProxy.publicmethod
 	def renderchildtree(self, recurse=None, recid=None, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
-		
+
 		if recurse:
 			treedef = [rectypes]*recurse
 
@@ -4321,7 +4320,7 @@ class DB(object):
 		a = reduce(set.union, stack, set())
 		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
 		rendered_path = {}
-		
+
 		for x, rt in enumerate(stack):
 			for i in rt:
 				tmp_path = rendered_path.get(i, [])
@@ -4329,8 +4328,8 @@ class DB(object):
 					rendered_path[child] = tmp_path + [child]
 
 		return rendered, rendered_path, len(stack)
-		
-		
+
+
 
 
 	# ian: todo: simple: deprecate: still used in a few places in the js. Convenience methods go outside core?
