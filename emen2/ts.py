@@ -44,6 +44,7 @@ class newThreadPool(threadpool.ThreadPool):
 		ct = self.currentThread()
 		o = self.q.get()
 		while o is not threadpool.WorkerStop:
+			g.log_info('Current thread: %r ---' % ct)
 			self.working.append(ct)
 			ctx, function, args, kwargs, onResult = o
 			del o

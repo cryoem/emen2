@@ -201,7 +201,6 @@ class DB(object):
 
 		# Open DB Env
 		global DBENV
-		DBENV = None
 
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment")
@@ -1404,14 +1403,17 @@ class DB(object):
 		if paramindex == None:
 			return None
 
-		if valrange == None:
+		#if valrange == None:
 			ret = paramindex.values(txn=txn)
 
-		else:
-			if hasattr(valrange, '__iter__'):
-				ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
+		if valrange != None:
+			# ed: todo: implement bteee valrange support 
+			if hasattr(valrange, '__getitem__') and hasattr(valrange, '__iter__'):
+				ret = set(x for x in valrange if valrange[0] <= x < valrange[1])
+				#ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
 			else:
-				ret = paramindex.values(valrange, txn=txn)
+				ret = set(x for x in valrange if valrange <= x)
+				#ret = paramindex.values(valrange, txn=txn)
 
 		if ctx.checkreadadmin():
 			return ret
