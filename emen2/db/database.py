@@ -339,6 +339,9 @@ class DB(object):
 		# g.log.print_traceback(steps=5)
 		# g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
 		txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
+		#print "\n\nNEW TXN --> %s"%txn
+		#traceback.print_stack()
+
 		try:
 			type(self).txncounter += 1
 			self.txnlog[id(txn)] = txn
@@ -366,8 +369,11 @@ class DB(object):
 
 	def txnabort(self, txnid=0, ctx=None, txn=None):
 		"""Abort txn; accepts txn ID or instance"""
-		# g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+		#g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+		#g.log.print_traceback(steps=5)
 		txn = self.txnlog.get(txnid, txn)
+		#traceback.print_stack()
+		#print "TXN ABORT --> %s\n\n"%txn
 
 		if txn:
 			txn.abort()
@@ -381,8 +387,12 @@ class DB(object):
 
 	def txncommit(self, txnid=0, ctx=None, txn=None):
 		"""Commit txn; accepts txn ID or instance"""
-		# g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
+		#g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
+		#g.log.print_traceback(steps=5)
 		txn = self.txnlog.get(txnid, txn)
+		#traceback.print_stack()
+		#print "TXN COMMIT --> %s\n\n"%txn
+		
 
 		if txn != None:
 			txn.commit()
@@ -3564,9 +3574,15 @@ class DB(object):
 		return ret
 
 
+	@DBProxy.publicmethod
+	def validaterecord(self, recs, ctx=None, txn=None):
+		"""Validate a record before committing"""
+		self.putrecord(recs, commit=False, ctx=ctx, txn=txn)
+		return True
+		
 
 	@DBProxy.publicmethod
-	def putrecord(self, recs, filt=True, warning=0, log=True, ctx=None, txn=None):
+	def putrecord(self, recs, filt=True, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""Commit records
 
 		@param recs Single or iterable records to commit
@@ -3594,7 +3610,7 @@ class DB(object):
 		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
 		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
 
-		ret = self.__putrecord(recs, warning=warning, log=log, ctx=ctx, txn=txn)
+		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
 
 		if ol and len(ret) > 0:
 			return ret[0]
@@ -3604,9 +3620,10 @@ class DB(object):
 
 
 	# And now, a long parade of internal putrecord methods
-	def __putrecord(self, updrecs, warning=0, log=True, ctx=None, txn=None):
+	def __putrecord(self, updrecs, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the operation and usually the txn.
 			If OK, then proceed to write records and all indexes. At that point, only really serious DB errors should ever occur."""
+		print "Weird? what is txn: %s"%txn
 
 		if len(updrecs) == 0:
 			return []
@@ -3694,7 +3711,7 @@ class DB(object):
 
 			crecs.append(orec)
 
-		return self.__commit_records(crecs, updrels, ctx=ctx, txn=txn)
+		return self.__commit_records(crecs, updrels, commit=commit, ctx=ctx, txn=txn)
 
 
 
@@ -3717,7 +3734,7 @@ class DB(object):
 	# commit
 	#@write	#self.bdbs.records, self.bdbs.recorddefbyrec, self.bdbs.recorddefindex
 	# also, self.fieldindex* through __commit_paramindex(), self.bdbs.secrindex through __commit_secrindex
-	def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, ctx=None, txn=None):
+	def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, commit=True, ctx=None, txn=None):
 
 		rectypes = collections.defaultdict(list)
 		newrecs = filter(lambda x:x.recid < 0, crecs)
@@ -3744,13 +3761,17 @@ class DB(object):
 		secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
 
 
+		# If we're just validating, exit here..
+		if not commit:
+			return crecs
+			
 		# OK, all go to write records/indexes!
 
 		#@begin
 
 		# this needs a lock.
 		if newrecs:
-			baserecid = self.bdbs.records.sget(-1, txn=txn, flags=g.RMWFLAGS)
+			baserecid = self.bdbs.records.sget(-1, txn=txn)#, flags=g.RMWFLAGS
 			g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 			self.bdbs.records.set(-1, baserecid + len(newrecs), txn=txn)
 
@@ -4303,9 +4324,7 @@ class DB(object):
 		if recurse:
 			treedef = [rectypes]*recurse
 
-		print "TREEDEF IS"
-		print treedef
-
+		print "treedef: %s"%treedef
 
 		init = set([recid])
 		stack = [init]
@@ -4313,6 +4332,8 @@ class DB(object):
 
 		for x, rt in enumerate(treedef):
 			current = stack[x]
+			if not current:
+				break
 			stack.append(set())
 			for i in current:
 				new = self.getchildren(i, rectype=rt, ctx=ctx, txn=txn)
@@ -4363,6 +4384,11 @@ class DB(object):
 		"""Render views"""
 		# calls out to places that expect DBProxy need a DBProxy...
 		kwargs["db"] = kwargs["ctx"].db
+		#print "calling out to renderview..."
+		#print kwargs["db"]
+		#print "setting txn.. %s"%kwargs.get("txn")
+		kwargs["db"]._settxn(kwargs.get("txn"))
+		
 		kwargs.pop("ctx",None)
 		kwargs.pop("txn",None)
 		vtm = subsystems.datatypes.VartypeManager()
