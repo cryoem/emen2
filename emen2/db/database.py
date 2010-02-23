@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 from __future__ import with_statement
 #basestring goes away in a later python version
 basestring = (str, unicode)
@@ -98,6 +99,19 @@ def DB_stat():
 		g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
 
 
+class instonget(object):
+	def __init__(self, cls):
+		self.__class = cls
+	def __get__(self, instance, owner):
+		try:
+			result = object.__getattr__(instance, self.__class.__name__)
+		except AttributeError:
+			result = self.__class
+		if instance != None and result is self.__class:
+			print 'instantiating'
+			result = self.__class()
+			setattr(instance, self.__class.__name__, result)
+		return result
 
 
 
@@ -111,9 +125,7 @@ class DB(object):
 		import datatypes.core_macros
 		import datatypes.core_properties
 
-
-	inst = lambda x:x()
-	@inst
+	@instonget
 	class bdbs(object):
 		def init(self, db, dbenv, txn):
 			old = set(self.__dict__)
@@ -143,9 +155,21 @@ class DB(object):
 			self.bdbs = set(self.__dict__) - old
 			self.contexts = {}
 			self.fieldindex = {}
+			self.__db = db
 
 		def openparamindex(self, paramname, filename, keytype="s", datatype="d", dbenv=None, txn=None):
-			self.fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+			deltxn=False
+			if txn == None:
+				txn = self.__db.newtxn()
+				deltxn = True
+			try:
+				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+			except:
+				if deltxn: self.__db.txnabort(txn)
+				raise
+			else:
+				if deltxn: self.__db.txncommit(txn)
+
 
 		def closeparamindex(self, paramname):
 			self.fieldindex.pop(paramname).close()
@@ -335,9 +359,8 @@ class DB(object):
 	# one of these 2 methods (newtxn1/newtxn) is mapped to self.newtxn()
 	def newtxn1(self, parent=None, ctx=None):
 		"""New transaction (txns enabled). Accepts parent txn instance."""
-		# g.log.msg('LOG_INFO', 'printing traceback')
-		# g.log.print_traceback(steps=5)
-		# g.log.msg("LOG_TXN","NEW TXN, PARENT --> %s"%parent)
+		g.log.msg('LOG_INFO', 'printing traceback')
+		g.log.print_traceback(steps=5)
 		txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 		#print "\n\nNEW TXN --> %s"%txn
 		#traceback.print_stack()
@@ -348,6 +371,7 @@ class DB(object):
 		except:
 			self.txnabort(ctx=ctx, txn=txn)
 			raise
+		g.log.msg("LOG_TXN","NEW TXN (%r), PARENT --> %s"% (txn,parent))
 		return txn
 
 
@@ -369,11 +393,9 @@ class DB(object):
 
 	def txnabort(self, txnid=0, ctx=None, txn=None):
 		"""Abort txn; accepts txn ID or instance"""
-		#g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
-		#g.log.print_traceback(steps=5)
 		txn = self.txnlog.get(txnid, txn)
-		#traceback.print_stack()
-		#print "TXN ABORT --> %s\n\n"%txn
+		g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+		#g.log.print_traceback(steps=5)
 
 		if txn:
 			txn.abort()
@@ -387,12 +409,10 @@ class DB(object):
 
 	def txncommit(self, txnid=0, ctx=None, txn=None):
 		"""Commit txn; accepts txn ID or instance"""
+		txn = self.txnlog.get(txnid, txn)
 		#g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
-		txn = self.txnlog.get(txnid, txn)
-		#traceback.print_stack()
-		#print "TXN COMMIT --> %s\n\n"%txn
-		
+
 
 		if txn != None:
 			txn.commit()
@@ -691,7 +711,7 @@ class DB(object):
 				grouplevels[group.name] = group.getlevel(context.username)
 
 
-		# g.log.msg("LOG_DEBUG","kw host is %s, context host is %s"%(host, context.host))
+		# g.debug("kw host is %s, context host is %s"%(host, context.host))
 		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
 		self.bdbs.contexts[ctxid] = context
@@ -939,7 +959,7 @@ class DB(object):
 			else:
 				f.write(filedata)
 
- 		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
+		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
 
 
 	# ed: todo?: key by recid
@@ -952,8 +972,7 @@ class DB(object):
 			raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
 		ret = reduce(set.union, ret, set())
-		ret = list(ret)
-		return ret
+		return list(ret)
 
 
 
@@ -1417,7 +1436,7 @@ class DB(object):
 			ret = paramindex.values(txn=txn)
 
 		if valrange != None:
-			# ed: todo: implement bteee valrange support 
+			# ed: todo: implement bteee valrange support
 			if hasattr(valrange, '__getitem__') and hasattr(valrange, '__iter__'):
 				ret = set(x for x in valrange if valrange[0] <= x < valrange[1])
 				#ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
@@ -3092,12 +3111,13 @@ class DB(object):
 		# create/open index
 		# datatype = d, record IDs
 		#indexkeys=self.bdbs.indexkeys,
-		txn2 = self.newtxn()
-		try: self.bdbs.openparamindex(paramname, "%s/index/params/%s.bdb"%(self.path,paramname), keytype=tp, datatype="d", dbenv=self.__dbenv, txn=txn2)
-		except:
-			self.txnabort(txn=txn2)
-			raise
-		else: self.txncommit(txn=txn2)
+		#txn2 = self.newtxn()
+		#try:
+		self.bdbs.openparamindex(paramname, "%s/index/params/%s.bdb"%(self.path,paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
+		#except:
+		#	self.txnabort(txn=txn2)
+		#	raise
+		#else: self.txncommit(txn=txn2)
 
 		return self.bdbs.fieldindex[paramname]
 
@@ -3517,7 +3537,7 @@ class DB(object):
 			if comments:
 				ret[recid]=comments
 		return ret
-		
+
 
 
 	#########################
@@ -3579,7 +3599,7 @@ class DB(object):
 		"""Validate a record before committing"""
 		self.putrecord(recs, commit=False, ctx=ctx, txn=txn)
 		return True
-		
+
 
 	@DBProxy.publicmethod
 	def putrecord(self, recs, filt=True, warning=0, log=True, commit=True, ctx=None, txn=None):
@@ -3764,7 +3784,7 @@ class DB(object):
 		# If we're just validating, exit here..
 		if not commit:
 			return crecs
-			
+
 		# OK, all go to write records/indexes!
 
 		#@begin
@@ -4388,7 +4408,7 @@ class DB(object):
 		#print kwargs["db"]
 		#print "setting txn.. %s"%kwargs.get("txn")
 		kwargs["db"]._settxn(kwargs.get("txn"))
-		
+
 		kwargs.pop("ctx",None)
 		kwargs.pop("txn",None)
 		vtm = subsystems.datatypes.VartypeManager()
@@ -4417,7 +4437,6 @@ class DB(object):
 
 
 
-	# ian: ?
 	def get_dbpath(self, tail):
 		return os.path.join(self.path, tail)
 

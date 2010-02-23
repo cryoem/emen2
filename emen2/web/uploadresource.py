@@ -23,9 +23,6 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
 
-DEBUG = 1
-
-
 class UploadResource(Resource):
 	isLeaf = True
 
