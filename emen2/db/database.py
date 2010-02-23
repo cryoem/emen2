@@ -108,7 +108,6 @@ class instonget(object):
 		except AttributeError:
 			result = self.__class
 		if instance != None and result is self.__class:
-			print 'instantiating'
 			result = self.__class()
 			setattr(instance, self.__class.__name__, result)
 		return result
@@ -161,14 +160,18 @@ class DB(object):
 			deltxn=False
 			if txn == None:
 				txn = self.__db.newtxn()
+				g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
-			except:
-				if deltxn: self.__db.txnabort(txn)
+			except BaseException, e:
+				g.debug('openparamindex failed: %s' % e)
+				if deltxn: self.__db.txnabort(txn=txn)
 				raise
 			else:
-				if deltxn: self.__db.txncommit(txn)
+				g.debug('openparamindex succeeded')
+				if deltxn: self.__db.txncommit(txn=txn)
+			g.debug('exit')
 
 
 		def closeparamindex(self, paramname):
@@ -3643,7 +3646,6 @@ class DB(object):
 	def __putrecord(self, updrecs, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the operation and usually the txn.
 			If OK, then proceed to write records and all indexes. At that point, only really serious DB errors should ever occur."""
-		print "Weird? what is txn: %s"%txn
 
 		if len(updrecs) == 0:
 			return []
@@ -4344,7 +4346,6 @@ class DB(object):
 		if recurse:
 			treedef = [rectypes]*recurse
 
-		print "treedef: %s"%treedef
 
 		init = set([recid])
 		stack = [init]
