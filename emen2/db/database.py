@@ -3526,19 +3526,18 @@ class DB(object):
 
 	@DBProxy.publicmethod
 	def getcomments(self, recids, ctx=None, txn=None):
+		#allcomments = self.filtervartype(recs, vts=["comments"], ctx=ctx, txn=txn)
 		recs = self.getrecord(recids, ctx=ctx, txn=txn)
-		allcomments = self.filtervartype(recs, vts=["comments"], ctx=ctx, txn=txn)
 		ret = {}
-		for recid, comments in zip(recids, allcomments):
-			# strip out old-style "LOG: " comments and validation errors from last import
-			if comments:
-				comments=comments.pop()
-			else:
+		# ian: todo: order here is weird. I will just filter comments directly... >:/
+		for rec in recs:
+			cp = rec.get("comments")
+			if not cp:
 				continue
-			comments = filter(lambda x:"LOG: " not in x[2], comments)
-			comments = filter(lambda x:"Validation error: " not in x[2], comments)
-			if comments:
-				ret[recid]=comments
+			cp = filter(lambda x:"LOG: " not in x[2], cp)
+			cp = filter(lambda x:"Validation error: " not in x[2], cp)
+			if cp:
+				ret[rec.recid] = cp
 		return ret
 
 
@@ -4357,7 +4356,7 @@ class DB(object):
 				break
 			stack.append(set())
 			for i in current:
-				new = self.getchildren(i, rectype=rt, ctx=ctx, txn=txn)
+				new = self.getchildren(i, rectype=rt, filt=True, ctx=ctx, txn=txn)
 				children[i] = new
 				stack[x+1] |= new
 

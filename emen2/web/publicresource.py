@@ -324,8 +324,6 @@ class PublicView(Resource):
 		headers = {}
 		response = 500
 
-
-
 		try:
 			try:
 				if isinstance(failure, BaseException):raise

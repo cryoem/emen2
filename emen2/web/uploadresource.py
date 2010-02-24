@@ -51,13 +51,15 @@ class UploadResource(Resource):
 		username = args.get('username',[''])[0]
 		pw = args.get('pw',[''])[0]
 
+
 		# Is a record included? In JSON format, urlencoded...
 		# This will call putrecord and attach the binary to the new record
 		rec = args.get('record',[None])[0]
 		if rec:
-			try: rec = demjson.decode(urllib.unquote(rec))
-			except:	pass
-
+			try:
+				rec = demjson.decode(urllib.unquote(rec))
+			except ValueError, e:
+				raise ValueError, "Invalid JSON record: %s"%e
 
 		if filename==None:
 			if args.has_key("filename"):
@@ -65,8 +67,11 @@ class UploadResource(Resource):
 			else:
 				filename="No_Filename_Specified"
 
-
-		recid = int(request.postpath[0])
+		try:
+			recid = int(request.postpath[0])
+		except (IndexError, TypeError, ValueError):
+			recid = None
+			
 		param = str(args.get("param",["file_binary"])[0])
 		redirect = args.get("redirect",[0])[0]
 
@@ -104,8 +109,26 @@ class UploadResource(Resource):
 		request.finish()
 
 
-	def _ebRender(self,failure,request):
-		#request.write(emen2.TwistSupport_html.html.error.error(failure))
+	# def _ebRender(self,failure,request):
+	# 	#request.write(emen2.TwistSupport_html.html.error.error(failure))
+	# 	request.setResponseCode(500)
+	# 	request.finish()
+
+	def _ebRender(self, result, request, *args, **kwargs):
+		g.log.msg("LOG_ERROR", result)
+		request.setHeader("X-Error", result.getErrorMessage())	
+		result=unicode(result.value)
+		result=result.encode('utf-8')
+		request.setHeader("content-length", len(result))
+		request.setResponseCode(500)
+		# g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		# 	host = request.getClientIP(),
+		# 	time = time.ctime(),
+		# 	path = request.uri,
+		# 	response = request.code,
+		# 	size = len(result)
+		# ))
+		request.write(result)
 		request.finish()
 
 
