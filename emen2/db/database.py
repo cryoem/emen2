@@ -487,12 +487,16 @@ class DB(object):
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 		else:
-			user = self.__login_getuser(username, ctx=ctx, txn=txn)
+			try:
+				user = self.__login_getuser(username, ctx=ctx, txn=txn)
+			except:
+				g.log.msg('LOG_ERROR', "Invalid username or password")
+				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__				
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
-				g.log.msg('LOG_ERROR', "Invalid password: %s (%s)" % (username, host))
+				g.log.msg('LOG_ERROR', "Invalid username or password")
 				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
 
 		try:
@@ -3518,7 +3522,8 @@ class DB(object):
 
 	@DBProxy.publicmethod
 	def addcomment(self, recid, comment, ctx=None, txn=None):
-		rec = self.getrecord(recid, ctx=ctx, txn=txn)
+		g.log.msg("LOG_DEBUG","addcomment %s %s"%(recid, comment))
+		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec.addcomment(comment)
 		self.putrecord(rec, ctx=ctx, txn=txn)
 		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
