@@ -25,6 +25,7 @@ function multiwidget(elem, opts) {
 };
 
 multiwidget.DEFAULT_OPTS = {
+	newrecord: 0,
 	popup: 0,
 	controls: 1,
 	controlsroot: null,
@@ -95,6 +96,7 @@ multiwidget.prototype = {
 	},
 
 	event_save: function(e) {
+		this.ext_save.val("Committing...");
 		this.save();
 	},
 	
@@ -126,27 +128,30 @@ multiwidget.prototype = {
 		if (this.controls) {
 			this.c_edit = $(".jslink",this.controlsroot);
 			
-			this.ext_save = $('<input type="submit" value="Save" />').one("click", function(e){e.stopPropagation();self.event_save(e)});
-			this.ext_cancel = $('<input type="button" value="Cancel" />').bind("click", function(e){e.stopPropagation();self.event_cancel(e)});
+			this.ext_save = $('<input type="submit" value="Save" />');
+
+			this.ext_cancel = $('<input type="button" value="Cancel" />');
 
 			this.c_box = $('<span />');
 			this.c_box.append(this.ext_save,this.ext_cancel);
 			this.controlsroot.append(this.c_box);
 		}
 		
-		else {
-		
-			if (this.ext_save) {
-				var self=this;
-				this.ext_save.one("click", function(e){e.stopPropagation();self.event_save(e)});
-			}
-		
-			if (this.ext_cancel) {
-				var self=this;
-				this.ext_cancel.bind("click", function(e){e.stopPropagation();self.event_cancel(e)});
-			}
-
+	
+		if (this.ext_save) {
+			var self=this;
+			this.ext_save.one("click", function(e){
+				e.stopPropagation();self.event_save(e)
+				});
 		}
+	
+		if (this.ext_cancel) {
+			var self=this;
+			this.ext_cancel.bind("click", function(e){
+				e.stopPropagation();self.event_cancel(e)
+				});
+		}
+
 		
 		if (show) {this.show()}
 		
@@ -221,7 +226,7 @@ multiwidget.prototype = {
 			}
 		});
 		
-		this.save_callback(this,changed);
+		this.save_callback(this, changed);
 		
 	},
 	
@@ -239,7 +244,7 @@ multiwidget.prototype = {
 	},
 	
 	save_start: function() {
-		this.ext_save.val("Saving...");
+		this.ext_save.val("Committing...");
 	},
 	
 	save_end: function(text) {
@@ -581,7 +586,7 @@ widget.prototype = {
 		//console.log("w save");
 
 		var save=$(":submit",this.w);
-		save.val("Saving...");
+		save.val("Committing...");
 
 		var recid=this.recid;
 		var param=this.param;

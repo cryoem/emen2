@@ -304,7 +304,7 @@ function newrecord_getoptionsandcommit(self, values) {
 	
 }
 	
-function commit_newrecord(self, values,parents,cb,self) {
+function commit_newrecord(self, values, parents, cb, self) {
 	if (cb==null) {cb=function(){}}
 	var rec_update=getrecord(null);
 
@@ -321,7 +321,7 @@ function commit_newrecord(self, values,parents,cb,self) {
 		function(xhr){
 			//$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");
 			notify("Error: "+this.param+", "+xhr.responseText);
-			self.savebutton.val("Retry Commit");		
+			self.ext_save.val("Retry");		
 		}
 	);
 }

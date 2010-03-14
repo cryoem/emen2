@@ -51,6 +51,7 @@ DBENV = None
 
 # ian: todo: low: do this in a better way
 # this is used by db.checkversion
+# import this directly from emen2client, emdash
 VERSIONS = {
 	"API": g.VERSION,
 	"emen2client": 20100303
@@ -130,29 +131,28 @@ class DB(object):
 			old = set(self.__dict__)
 
 			# Security items
-			self.users = subsystems.btrees.BTree("users", keytype="s", filename=db.path+"/security/users.bdb", dbenv=dbenv, txn=txn)
-			self.newuserqueue = subsystems.btrees.BTree("newusers", keytype="s", filename=db.path+"/security/newusers.bdb", dbenv=dbenv, txn=txn)
-			self.groups = subsystems.btrees.BTree("groups", keytype="s", filename=db.path+"/security/groups.bdb", dbenv=dbenv, txn=txn)
-			self.contexts_p = subsystems.btrees.BTree("contexts", keytype="s", filename=db.path+"/security/contexts.bdb", dbenv=dbenv, txn=txn)
+			self.newuserqueue = subsystems.btrees.BTree(filename="security/newuserqueue", dbenv=dbenv, txn=txn)
+			self.contexts = subsystems.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
+			self.users = subsystems.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
+			self.groups = subsystems.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
 
-			# Database items
-			self.paramdefs = subsystems.btrees.RelateBTree("ParamDefs", keytype="s", filename=db.path+"/ParamDefs.bdb", dbenv=dbenv, txn=txn)
-			self.bdocounter = subsystems.btrees.BTree("BinNames", keytype="s", filename=db.path+"/BinNames.bdb", dbenv=dbenv, txn=txn)
-			self.recorddefs = subsystems.btrees.RelateBTree("RecordDefs", keytype="s", filename=db.path+"/RecordDefs.bdb", dbenv=dbenv, txn=txn)
-			self.workflow = subsystems.btrees.BTree("workflow", keytype="d", filename=db.path+"/workflow.bdb", dbenv=dbenv, txn=txn)
-			self.records = subsystems.btrees.RelateBTree("database", keytype="d_old", filename=db.path+"/database.bdb", dbenv=dbenv, txn=txn)
+			# Main database items
+			self.paramdefs = subsystems.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
+			self.bdocounter = subsystems.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
+			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
+			self.workflow = subsystems.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
+			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", dbenv=dbenv, txn=txn)
 
 			# Indices
-			self.secrindex = subsystems.btrees.FieldBTree("secrindex", filename=db.path+"/index/security/secrindex.bdb", keytype="s", datatype="d", dbenv=dbenv, txn=txn)
-			self.secrindex_groups = subsystems.btrees.FieldBTree("secrindex_groups", filename=db.path+"/index/security/secrindex_groups.bdb", keytype="s", datatype="d", dbenv=dbenv, txn=txn)
-			self.groupsbyuser = subsystems.btrees.FieldBTree("groupsbyuser", keytype="s", datatype="s", filename=db.path+"/index/security/groupsbyuser.bdb", dbenv=dbenv, txn=txn)
-			self.recorddefindex = subsystems.btrees.FieldBTree("recorddef", filename=db.path+"/index/records/recorddefindex.bdb", keytype="s", datatype="d", dbenv=dbenv, txn=txn)
-			self.indexkeys = subsystems.btrees.FieldBTree("indexkeys", keytype="s", filename=db.path+"/index/indexkeys.bdb", dbenv=dbenv, txn=txn)
-			# timeindex now handled by modifytime param index
-			# self.timeindex = subsystems.btrees.BTree("timeindex", keytype="d", datatype="s", filename=db.path+"/index/records/timeindex.bdb", dbenv=dbenv, txn=txn)
+			self.secrindex = subsystems.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.secrindex_groups = subsystems.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
+			self.groupsbyuser = subsystems.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
+			self.recorddefindex = subsystems.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.indexkeys = subsystems.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
+
 
 			self.bdbs = set(self.__dict__) - old
-			self.contexts = {}
+			self.contexts_cache = {}
 			self.fieldindex = {}
 			self.__db = db
 
@@ -163,7 +163,7 @@ class DB(object):
 				g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
-				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(paramname, keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
 			except BaseException, e:
 				g.debug('openparamindex failed: %s' % e)
 				if deltxn: self.__db.txnabort(txn=txn)
@@ -197,7 +197,7 @@ class DB(object):
 		self.opentime = self.__gettime()
 
 		self.path = path or g.EMEN2DBPATH
-		self.logfile = self.path + "/" + logfile
+		self.logfile = "%s/%s"%(self.path,logfile)
 
 		self.txnid = 0
 		self.txnlog = {}
@@ -210,30 +210,30 @@ class DB(object):
 		for vt in self.vtm.getvartypes():
 			self.__cache_vartype_indextype[vt] = self.vtm.getvartype(vt).getindextype()
 
+
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
-		if not os.access(self.path + "/home", os.F_OK):
-			os.makedirs(self.path + "/home")
+		if not os.access(self.path, os.F_OK):
+			os.makedirs(self.path)
 			dbci = file(g.EMEN2ROOT+'/config/DB_CONFIG')
-			dbco = file(self.path + '/home/DB_CONFIG', 'w')
+			dbco = file(self.path + '/DB_CONFIG', 'w')
 			try:
 				dbco.write(dbci.read())
 			finally:
 				[fil.close() for fil in (dbci, dbco)]
 
 
-		for path in ["/security","/index","/index/security","/index/params","/index/records"]:
+		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp"]:
 			if not os.access(self.path + path, os.F_OK):
 				os.makedirs(self.path + path)
 
 
-		# Open DB Env
+		# Open DB environment; check if global DBEnv has been opened yet
 		global DBENV
 
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment")
 			DBENV = bsddb3.db.DBEnv()
-			DBENV.set_data_dir(self.path)
-			DBENV.open(self.path+"/home", g.ENVOPENFLAGS)
+			DBENV.open(self.path, g.ENVOPENFLAGS)
 			DB.opendbs[self] = 1
 
 		self.__dbenv = DBENV
@@ -252,6 +252,7 @@ class DB(object):
 
 
 		# Check if database is initialized
+		# ian: moving this out again -- I will have a separate script to init new DBs
 		txn = self.newtxn()
 		try:
 			# ian: todo: hard: continue evaluating how we will create new recids
@@ -330,6 +331,7 @@ class DB(object):
 
 	def close(self):
 		"""Close DB"""
+		
 		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 		try:
 			for i in subsystems.btrees.BTree.alltrees.keys():
@@ -340,7 +342,7 @@ class DB(object):
 		self.__dbenv.close()
 
 
-
+	# ian: todo: remove this; it's only used one place
 	def __flatten(self, l):
 		ltypes=(set, list, tuple)
 		out = []
@@ -352,10 +354,10 @@ class DB(object):
 
 
 
+
 	###############################
 	# section: Transaction Management
 	###############################
-
 
 	txncounter = 0
 
@@ -384,14 +386,12 @@ class DB(object):
 		return None
 
 
-
 	def txncheck(self, txnid=0, ctx=None, txn=None):
 		"""Check a txn status; accepts txn instance"""
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
 			txn = self.newtxn(ctx=ctx)
 		return txn
-
 
 
 	def txnabort(self, txnid=0, ctx=None, txn=None):
@@ -409,13 +409,11 @@ class DB(object):
 			raise ValueError, 'Transaction not found'
 
 
-
 	def txncommit(self, txnid=0, ctx=None, txn=None):
 		"""Commit txn; accepts txn ID or instance"""
 		txn = self.txnlog.get(txnid, txn)
 		#g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
-
 
 		if txn != None:
 			txn.commit()
@@ -616,14 +614,14 @@ class DB(object):
 
 		# any time you set the context, delete the cached context
 		# this will retrieve it from disk next time it's needed
-		if self.bdbs.contexts.get(ctxid):
-			del self.bdbs.contexts[ctxid]
+		if self.bdbs.contexts_cache.get(ctxid):
+			del self.bdbs.contexts_cache[ctxid]
 
 		# set context
 		if context != None:
 			try:
-				g.log.msg("LOG_COMMIT","self.bdbs.contexts_p.set: %r"%context.ctxid)
-				self.bdbs.contexts_p.set(ctxid, context, txn=txn)
+				g.log.msg("LOG_COMMIT","self.bdbs.contexts.set: %r"%context.ctxid)
+				self.bdbs.contexts.set(ctxid, context, txn=txn)
 
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
@@ -633,8 +631,8 @@ class DB(object):
 		# delete context
 		else:
 			try:
-				g.log.msg("LOG_COMMIT","self.bdbs.contexts_p.__delitem__: %r"%ctxid)
-				self.bdbs.contexts_p.set(ctxid, None, txn=txn) #del ... [ctxid]
+				g.log.msg("LOG_COMMIT","self.bdbs.contexts.__delitem__: %r"%ctxid)
+				self.bdbs.contexts.set(ctxid, None, txn=txn) #del ... [ctxid]
 
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst))
@@ -664,10 +662,10 @@ class DB(object):
 
 		return
 
-		for ctxid, context in self.bdbs.contexts_p.items():
+		for ctxid, context in self.bdbs.contexts.items():
 			# use the cached time if available
 			try:
-				c = self.bdbs.contexts.sget(ctxid, txn=txn) #[ctxid]
+				c = self.bdbs.contexts_cached.sget(ctxid, txn=txn) #[ctxid]
 				context.time = c.time
 			# ed: fix: should check for more specific exception
 			except:
@@ -697,8 +695,8 @@ class DB(object):
 
 		context = None
 		if ctxid:
-			# g.log.msg("LOG_DEBUG", "local context cache: %s, cache db: %s"%(self.bdbs.contexts.get(ctxid), self.bdbs.contexts_p.get(ctxid, txn=txn)))
-			context = self.bdbs.contexts.get(ctxid) or self.bdbs.contexts_p.get(ctxid, txn=txn)
+			# g.log.msg("LOG_DEBUG", "local context cache: %s, cache db: %s"%(self.bdbs.contexts.get(ctxid), self.bdbs.contexts.get(ctxid, txn=txn)))
+			context = self.bdbs.contexts_cache.get(ctxid) or self.bdbs.contexts.get(ctxid, txn=txn)
 		else:
 			context = self.__makecontext(host=host, ctx=ctx, txn=txn)
 
@@ -721,7 +719,7 @@ class DB(object):
 		# g.debug("kw host is %s, context host is %s"%(host, context.host))
 		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
 
-		self.bdbs.contexts[ctxid] = context
+		self.bdbs.contexts_cache[ctxid] = context
 
 		return context
 
@@ -802,13 +800,14 @@ class DB(object):
 
 			try:
 				self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-				bdo["filepath"] = dkey["filepath"]
+				bdo["filepath"] = dkey["filepath"]								
 				ret[bdo["name"]] = bdo
 
 			#ed: fix: is this the right exception?
 			except emen2.Database.subsystems.exceptions.SecurityError:
 				if filt: continue
 				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
+				
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -3112,7 +3111,7 @@ class DB(object):
 
 		tp = self.vtm.getvartype(f.vartype).getindextype()
 
-		if not create and not os.access("%s/index/params/%s.bdb" % (self.path, paramname), os.F_OK):
+		if not create and not os.access("index/params/%s.bdb"%(paramname), os.F_OK):
 			raise KeyError, "No index for %s" % paramname
 
 		# create/open index
@@ -3120,7 +3119,7 @@ class DB(object):
 		#indexkeys=self.bdbs.indexkeys,
 		#txn2 = self.newtxn()
 		#try:
-		self.bdbs.openparamindex(paramname, "%s/index/params/%s.bdb"%(self.path,paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
+		self.bdbs.openparamindex("index/params/%s.bdb"%(paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
 		#except:
 		#	self.txnabort(txn=txn2)
 		#	raise
@@ -3345,7 +3344,8 @@ class DB(object):
 			except (emen2.Database.subsystems.exceptions.SecurityError, KeyError, TypeError), e:
 				if filt: pass
 				else: raise
-				# KeyError, "No such record %s"%(i)
+
+			#except (TypeError, KeyError):"No such record %s"%(i)
 			#except emen2.Database.subsystems.exceptions.SecurityError, e:
 			#	if filt: pass
 			#	else: raise e
@@ -3564,7 +3564,7 @@ class DB(object):
 		@return Record instance
 
 		"""
-		rec = self.getrecord(recid, ctx=ctx, txn=txn)
+		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec[param] = value
 		self.putrecord(rec, ctx=ctx, txn=txn)
 		return self.getrecord(recid, ctx=ctx, txn=txn)[param]

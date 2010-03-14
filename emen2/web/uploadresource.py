@@ -54,12 +54,15 @@ class UploadResource(Resource):
 
 		# Is a record included? In JSON format, urlencoded...
 		# This will call putrecord and attach the binary to the new record
-		rec = args.get('record',[None])[0]
-		if rec:
+		# "record" as well as "newrecord" for backwards compat... "newrecord" is semantically better
+		
+		newrecord = args.get('newrecord',[None])[0] or args.get('record',[None])[0]
+		if newrecord:
 			try:
-				rec = demjson.decode(urllib.unquote(rec))
+				newrecord = demjson.decode(urllib.unquote(newrecord))
 			except ValueError, e:
 				raise ValueError, "Invalid JSON record: %s"%e
+
 
 		if filename==None:
 			if args.has_key("filename"):
@@ -77,18 +80,18 @@ class UploadResource(Resource):
 
 		g.log.msg("LOG_INFO", "====== uploadresource action: %s, %s, filename=%s, recid=%s, param=%s"%(username, host, filename, recid, param))
 
-		d = threads.deferToThread(self._action, rec=rec, recid=recid, param=param, filename=filename, filehandle=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
+		d = threads.deferToThread(self._action, newrecord=newrecord, recid=recid, param=param, filename=filename, filehandle=request.content, filedata=filedata, redirect=redirect, ctxid=ctxid, host=host)
 		d.addCallback(self._cbRender, request)
 		d.addErrback(self._ebRender, request)
 		return server.NOT_DONE_YET
 
 
 
-	def _action(self, rec=None, recid=None, param=None, filename=None, filehandle=None, filedata=None, redirect=None, ctxid=None, host=None, db=None):
+	def _action(self, newrecord=None, recid=None, param=None, filename=None, filehandle=None, filedata=None, redirect=None, ctxid=None, host=None, db=None):
 		db._setcontext(ctxid,host)
 		with db:
-			if rec:
-				crec = db.putrecord(rec, filt=False)
+			if newrecord:
+				crec = db.putrecord(newrecord, filt=False)
 				recid = crec.recid
 
 			bdokey = db.putbinary(filename, recid, param=param, filedata=filedata, filehandle=filehandle)
@@ -98,7 +101,7 @@ class UploadResource(Resource):
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect
 
-		return bdokey.get('name')
+		return demjson.encode(bdokey).encode("utf-8")
 
 
 

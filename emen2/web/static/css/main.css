@@ -40,7 +40,7 @@
 	border-left:solid 2px #ccc;
 	height:auto;
 }
-.widget_bigbutton {
+/*.widget_bigbutton {
 	padding:10px;
 	margin:10px;
 	margin-left:0px;
@@ -49,6 +49,28 @@
 	background:orange;
 	color:white;
 }
+*/
+
+.widget_commit {
+	background:orange;
+	color:white;
+	font-weight:bold;	
+	border:solid 2px #ccc;
+}
+.widget_cancel {
+	background:white;
+	color:black;
+	font-weight:bold;		
+	border:solid 2px #ccc;
+}
+.widget_bigbutton {
+	padding:10px;
+	margin:20px;
+	display:block;
+	font-size:14pt;
+}
+
+
 
 .record_editbar .controls {
 }
@@ -1289,6 +1311,20 @@ table.groupview th:first-child {
 }
 .navtable img {
 	display:block;
+}
+
+
+
+table.files {
+}
+table.files th, table.files td {
+	padding:5px;
+	min-width:100px;
+}
+table.files th {
+	font-weight:normal;
+	text-align:left;
+	border-bottom:solid 1px #CCC;
 }
 
 /*

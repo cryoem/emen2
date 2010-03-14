@@ -983,11 +983,20 @@ RecordDefEditor.prototype = {
 		this.getvalues();
 	},
 	
+	connect_buttons: function() {
+		var self=this;
+		$("#ext_save",this.root).one("click",function(e){
+			self.event_save(e)
+			});
+	},
+	
 	bindall: function() {
 		var self=this;
+	
+		this.connect_buttons();
 		
 		$("#button_recdefviews_new",this.root).bind("click",function(e){self.event_addview(e)});
-		$("#ext_save",this.root).one("click",function(e){self.event_save(e)});
+		
 		
 		$('.page[data-tabgroup="recdefviews"]',this.root).each(function() {
 			var t=$(this).attr("data-tabname");
