@@ -141,7 +141,7 @@ class DB(object):
 			self.bdocounter = subsystems.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
 			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
 			self.workflow = subsystems.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
-			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", dbenv=dbenv, txn=txn)
+			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, dbenv=dbenv, txn=txn) #keytype="d_old"
 
 			# Indices
 			self.secrindex = subsystems.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
@@ -156,7 +156,10 @@ class DB(object):
 			self.fieldindex = {}
 			self.__db = db
 
-		def openparamindex(self, paramname, filename, keytype="s", datatype="d", dbenv=None, txn=None):
+		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
+			
+			filename = "index/params/%s"%(paramname)
+
 			deltxn=False
 			if txn == None:
 				txn = self.__db.newtxn()
@@ -3119,7 +3122,10 @@ class DB(object):
 		#indexkeys=self.bdbs.indexkeys,
 		#txn2 = self.newtxn()
 		#try:
-		self.bdbs.openparamindex("index/params/%s.bdb"%(paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
+
+		#self.bdbs.openparamindex("index/params/%s.bdb"%(paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
+		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.__dbenv)
+
 		#except:
 		#	self.txnabort(txn=txn2)
 		#	raise
