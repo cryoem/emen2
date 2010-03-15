@@ -16,7 +16,7 @@ import emen2.subsystems.responsecodes
 import emen2.Database.subsystems.exceptions
 from authresource import render_security_error
 
-import ts
+import emen2.ts
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')

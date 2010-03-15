@@ -312,7 +312,7 @@ class DB(object):
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		self.setpassword(g.ROOTPW, g.ROOTPW, username="root", ctx=ctx, txn=txn)
+		self.setpassword(g.getprivate('ROOTPW'), g.getprivate('ROOTPW'), username="root", ctx=ctx, txn=txn)
 
 
 
@@ -1442,15 +1442,18 @@ class DB(object):
 			return None
 
 		#if valrange == None:
-			ret = paramindex.values(txn=txn)
+		ret = paramindex.values(txn=txn)
 
 		if valrange != None:
 			# ed: todo: implement bteee valrange support
 			if hasattr(valrange, '__getitem__') and hasattr(valrange, '__iter__'):
-				ret = set(x for x in valrange if valrange[0] <= x < valrange[1])
+				if len(valrange) == 0:
+					ret = set(x for x in ret if valrange[0] <= self.getrecord(x, ctx=ctx, txn=txn)[param] < valrange[1])
+				else:
+					ret = set(x for x in ret if valrange[0] <= self.getrecord(x, ctx=ctx, txn=txn)[param])
 				#ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
 			else:
-				ret = set(x for x in valrange if valrange <= x)
+				ret = set(x for x in ret if valrange == self.getrecord(x, ctx=ctx, txn=txn)[param])
 				#ret = paramindex.values(valrange, txn=txn)
 
 		if ctx.checkreadadmin():
@@ -4466,4 +4469,5 @@ class DB(object):
 			# ian: changed to copy -- safer: it's better for it to be rename
 			#shutil.copy(file_, os.path.join(archivepath, os.path.basename(file_)))
 			os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
+		return archivepath
 

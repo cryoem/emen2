@@ -23,7 +23,9 @@ import emen2.util.utils
 
 g = emen2.globalns.GlobalNamespace('')
 
-
+class MethodUtil(object):
+	def doc(self, func, *args, **kwargs):
+		return func.__doc__
 
 
 
@@ -187,7 +189,14 @@ class DBProxy(object):
 
 	def _callmethod(self, method, args, kwargs):
 		args = list(args)
-		return getattr(self, method)(*args, **kwargs)
+		method = method.split('.')
+		func = getattr(self, method[0])
+		result = None
+		if len(method) > 1:
+			result = getattr(MethodUtil(), method[1])(func, args, kwargs)
+		else:
+			result = func(*args, **kwargs)
+		return result
 
 
 	def _getctx(self):

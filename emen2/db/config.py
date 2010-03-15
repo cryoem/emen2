@@ -4,15 +4,14 @@ import optparse
 import emen2.globalns
 import emen2.subsystems.debug
 import yaml
+import pkgutil
 
 defaultconfig = "config/config.yml"
-
 g = emen2.globalns.GlobalNamespace()
 
 
 class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
-		#super(DBOptions, self).__init__()
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
 		self.add_option('-c', '--configfile', action='append', dest='configfile')
@@ -25,29 +24,28 @@ class DBOptions(optparse.OptionParser):
 		self.add_option('--logprintonly', action='store_true', dest='log_print_only', default=False)
 
 
-	def parse_args(self, *args, **kwargs):
+	def parse_args(self, lc=True, *args, **kwargs):
 		r1, r2 = optparse.OptionParser.parse_args(self,  *args, **kwargs)
-		self.load_config()
+		if lc: self.load_config()
 		return r1, r2
 
 
-	def load_config(self):
-
-
-		map(g.from_yaml, self.values.configfile or [defaultconfig])
+	def load_config(self, **kw):
+		if self.values.configfile: g.from_yaml(self.values.configfile)
+		else: g.from_yaml(data=yaml.load(pkgutil.get_data('emen2', defaultconfig)))
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
 		if self.values.log_level == None:
-			self.values.log_level = 'LOG_DEBUG'
+			self.values.log_level = kw.get('log_level', 'LOG_DEBUG')
 		if self.values.logfile_level == None:
-			self.values.logfile_level = 'LOG_DEBUG'
+			self.values.logfile_level = kw.get('logfile_level', 'LOG_DEBUG')
 		if self.values.log_print_only == None:
-			self.values.log_print_only = False
+			self.values.log_print_only = kw.get('log_print_only', False)
 		if self.values.quiet == True:
-			self.values.log_level = 'LOG_ERROR'
-			self.values.logfile_level = 'LOG_ERROR'
+			self.values.log_level = kw.get('log_level', 'LOG_ERROR')
+			self.values.logfile_level = kw.get('logfile_level', 'LOG_ERROR')
 
 		try:
 			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL

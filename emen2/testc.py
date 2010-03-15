@@ -1,9 +1,10 @@
+print __file__
 import atexit
 import emen2.globalns
-import emen2.config.config
-parser = emen2.config.config.DBOptions()
+from emen2.config.config import g, DBOptions
+parser = DBOptions()
 parser.parse_args()
-g = emen2.globalns.GlobalNamespace('')
+
 import emen2.Database.DBProxy
 import emen2.Database.database
 
@@ -22,7 +23,7 @@ def _atexit():
 db = emen2.Database.DBProxy.DBProxy()
 ddb = db._DBProxy__db
 
-db._login("root", g.ROOTPW)
+db._login("root", g.getprivate('ROOTPW'))
 db._starttxn()
 txn = db._gettxn()
 ctx = db._getctx()

@@ -38,7 +38,7 @@ class AuthResource(Resource):
 
 	isLeaf = True
 
-	
+
 	# ian: todo: if not using SSL, switch back to unencrypted channel
 	def loginredir(self,redirect,request):
 
@@ -47,16 +47,16 @@ class AuthResource(Resource):
 
 		#if u.hostname == None and u.port == None and u.scheme == None:
 		#	du[0]="http"
-			
+
 		requesthost = request.getHeader("host").split(":")[0]
 
 		if g.EMEN2HOST != "localhost":
 			du[1] = requesthost
 		if g.EMEN2EXTPORT != 80:
 			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
-		
+
 		# print "redir is %s"%urlparse.urlunsplit(du)
-		
+
 		return urlparse.urlunsplit(du)
 
 
@@ -67,19 +67,19 @@ class AuthResource(Resource):
 		# username, pw, ctxid, redirect, opw, on1, on2
 
 		args = request.args
-		
+
 		method = "/".join(filter(None,request.postpath))
-		
+
 		host = request.getClientIP()
 		ctxid = request.getCookie("ctxid") or args.get("ctxid",[None])[0]
-				
+
 		username = args.get('username', [None])[0]
 		pw = request.args.get('pw', [None])[0]
 
 		opw = request.args.get('opw', [None])[0]
 		on1 = request.args.get('on1', [None])[0]
 		on2 = request.args.get('on2', [None])[0]
-		
+
 		redirect = request.args.get("redirect",[request.uri])[0]
 		redirect = self.loginredir(redirect,request)
 
@@ -129,13 +129,13 @@ class AuthResource(Resource):
 		ctxid = kwargs.get('ctxid')
 		host = kwargs.get('host')
 		success = True
-		
-		
+
+
 		with db._setcontext(ctxid, host):
 			p = rcls(db=db, **kwargs)
 
 			try:
-				ctxid = p.auth_action()		
+				ctxid = p.auth_action()
 			except Exception, e:
 				success = False
 				# print "Failed: %s"%e
@@ -153,7 +153,7 @@ class AuthResource(Resource):
 		ctxid = result[1]
 		data = result[2]
 		msg = None
-		
+
 		# If the ctxid has changed in the view, update client cookie
 		if ctxid != None and ctxid != kwargs.get('ctxid'):
 			request.addCookie("ctxid", ctxid or "", path='/')
@@ -163,7 +163,7 @@ class AuthResource(Resource):
 			request.redirect(kwargs.get('redirect'))
 			request.finish()
 			return
-		
+
 		request.write(data)
 		request.finish()
 		return
@@ -175,7 +175,7 @@ class AuthResource(Resource):
 		# In the event of an authentication failure, kill client cookie
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
-		
+
 		data = "There was a problem with your request."
 
 		try:

@@ -21,6 +21,7 @@ def prepare_web():
 
 def load_resources(root, resources):
 	for path, resource in resources.items():
+		g.log_init('LOADING RESOURCE: %s to %s' % (resource, path) )
 		root.putChild(path, resource)
 
 
@@ -40,6 +41,7 @@ def inithttpd():
 	import emen2.TwistSupport_html.publicresource
 	import emen2.TwistSupport_html.rpcresource
 	import emen2.TwistSupport_html.authresource
+	import emen2.TwistSupport_html.jsonrpcresource
 
 	import emen2.TwistSupport_html.html
 	import emen2.TwistSupport_html.public.record
@@ -58,6 +60,7 @@ def inithttpd():
 		RPC2 = emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"),
 		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json"),
 		chain = emen2.TwistSupport_html.rpcresource.RPCChain(),
+		json2 = emen2.TwistSupport_html.jsonrpcresource.jsonrpc(),
 	)
 
 	prepare_web()
