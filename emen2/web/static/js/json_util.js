@@ -64,26 +64,27 @@ $.postJSON = function(uri,data,callback,errback,dataType) {
 			}
 		}
 	$.ajax({
-    type: "POST",
-    url: uri,
-    data: {"args___json":$.toJSON(data)},
-    success: callback,
-    error: errback,
+	    type: "POST",
+	    url: uri,
+	    data: {"args___json":$.toJSON(data)},
+	    success: callback,
+	    error: errback,
 		dataType: dataType || "html"
     });
 }
+
 
 $.jsonRPC = function(method,data,callback,errback) {
 	if (errback==null) {
 		errback=function(error){notify("Error: "+error.responseText)};
 	}
-	//console.log($.toJSON(data))
+
 	$.ajax({
-    type: "POST",
-    url: EMEN2WEBROOT+"/json/"+method,
-    data: $.toJSON(data),
-    success: callback,
-    error: errback,
+	    type: "POST",
+	    url: EMEN2WEBROOT+"/json/"+method,
+	    data: $.toJSON(data),
+	    success: callback,
+	    error: errback,
 		dataType: "json"
     });
 }

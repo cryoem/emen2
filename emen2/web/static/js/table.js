@@ -23,7 +23,7 @@ function table_editcolumn(elem,key) {
 /////////////////////////////////////////////
 
 
-TableControl = (function($) { // Localise the $ function
+var TableControl = (function($) { // Localise the $ function
 
 function TableControl(elem, opts) {
   if (typeof(opts) != "object") opts = {};

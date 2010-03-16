@@ -163,7 +163,7 @@ class DB(object):
 			deltxn=False
 			if txn == None:
 				txn = self.__db.newtxn()
-				g.debug('txn: %s' %txn)
+				# g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
@@ -172,9 +172,9 @@ class DB(object):
 				if deltxn: self.__db.txnabort(txn=txn)
 				raise
 			else:
-				g.debug('openparamindex succeeded')
+				# g.debug('openparamindex succeeded')
 				if deltxn: self.__db.txncommit(txn=txn)
-			g.debug('exit')
+			# g.debug('exit')
 
 
 		def closeparamindex(self, paramname):
@@ -367,8 +367,8 @@ class DB(object):
 	# one of these 2 methods (newtxn1/newtxn) is mapped to self.newtxn()
 	def newtxn1(self, parent=None, ctx=None):
 		"""New transaction (txns enabled). Accepts parent txn instance."""
-		g.log.msg('LOG_INFO', 'printing traceback')
-		g.log.print_traceback(steps=5)
+		# g.log.msg('LOG_INFO', 'printing traceback')
+		# g.log.print_traceback(steps=5)
 		txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 		#print "\n\nNEW TXN --> %s"%txn
 		#traceback.print_stack()
@@ -379,7 +379,8 @@ class DB(object):
 		except:
 			self.txnabort(ctx=ctx, txn=txn)
 			raise
-		g.log.msg("LOG_TXN","NEW TXN (%r), PARENT --> %s"% (txn,parent))
+
+		# g.log.msg("LOG_TXN","NEW TXN (%r), PARENT --> %s"% (txn,parent))
 		return txn
 
 
@@ -855,9 +856,11 @@ class DB(object):
 				raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
-		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, ctx=ctx, txn=txn)
+		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
+		# self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
-		# If this not an edit, update the record..
+
+		# Add link to BDO in file
 		if not bdokey:
 			if not param: param = "file_binary"
 
@@ -874,19 +877,14 @@ class DB(object):
 			else:
 				raise ValueError, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
 
-			self.putrecord(rec, ctx=ctx, txn=txn)
-
-
-		self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
-
+			self.putrecord(rec, ctx=ctx, txn=txn)			
 
 		return bdoo
 
 
 
 	# ian: todo: hard: use duplicate key style for bdocounter... delayed for now.
-	# ian: todo: medium: if any exceptions, clean up partial files?
-	def __putbinary(self, filename, recid, bdokey=None, uri=None, ctx=None, txn=None):
+	def __putbinary(self, filename, recid, bdokey=None, uri=None, filedata=None, filehandle=None, ctx=None, txn=None):
 		"""(Internal) putbinary action
 
 		@param filename filename
@@ -896,8 +894,7 @@ class DB(object):
 
 		@return Binary instance
 		"""
-		# fetch BDO day dict, add item, and commit
-
+		
 		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 
 		# bdo items are stored one bdo per day
@@ -917,6 +914,10 @@ class DB(object):
 		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
 			raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
+
+		# Try and write the file before we commit..
+		filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
+
 		nb = dataobjects.binary.Binary()
 		nb.update(
 			uri=uri,
@@ -924,7 +925,9 @@ class DB(object):
 			recid=recid,
 			creator=ctx.username,
 			creationtime=self.gettime(),
-			name=dkey["name"]
+			name=dkey["name"],
+			filesize=filesize,
+			md5=md5sum
 		)
 
 		bdo[dkey["counter"]] = nb
@@ -938,7 +941,7 @@ class DB(object):
 
 
 
-	def __putbinary_file(self, bdokey, filedata=None, filehandle=None, ctx=None, txn=None):
+	def __putbinary_file(self, dkey=None, filedata=None, filehandle=None, ctx=None, txn=None):
 		"""(Internal) Write file data
 		@param bdokey BDO
 		@keyparam filedata File data
@@ -946,29 +949,43 @@ class DB(object):
 		@exception SecurityError
 		"""
 
-		# Write file to binary storage area
+		filepath = dkey["filepath"]
+		basepath = dkey["basepath"]
 
-		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 
 		#ed: fix: catch correct exception
 		try:
-			os.makedirs(dkey["basepath"])
-		except: pass
+			os.makedirs(basepath)
+		except:
+			pass
 
-		if os.access(dkey["filepath"], os.F_OK) and not ctx.checkadmin():
+
+		if os.access(filepath, os.F_OK) and not ctx.checkadmin():
 			# should be a different exception class, this particular one seems irrevelant as it is not really a security
 			# but an integrity problem.
 			raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
 
-		with open(dkey["filepath"],"wb") as f:
+		m = hashlib.md5()
+		filesize = 0
+		
+		with open(filepath, "wb") as f:
 			if not filedata:
 				for line in filehandle:
 					f.write(line)
+					m.update(line)
+					filesize += len(line)
 			else:
 				f.write(filedata)
+				m.update(filedata)
+				filesize = len(filedata)
 
-		g.log.msg('LOG_INFO', "Wrote %s bytes disk: %s"%(os.stat(dkey["filepath"]).st_size,dkey["filepath"]))
+
+		md5sum = m.hexdigest()
+		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(filepath, filesize, md5sum))
+
+		return filesize, md5sum
+
 
 
 	# ed: todo?: key by recid
@@ -3841,8 +3858,6 @@ class DB(object):
 		for param, updates in indexupdates.items():
 			self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
 
-		print updrels
-		print recmap
 
 		# Create parent/child links
 		for link in updrels:

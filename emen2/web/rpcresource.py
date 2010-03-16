@@ -246,7 +246,7 @@ class RPCResource(Resource):
 			method = request.uri.split("/")[-1]
 
 
-		g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
+		# g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
 		#db._setcontext(ctxid,host)
 		#result = db._callmethod(method, args, kwargs)

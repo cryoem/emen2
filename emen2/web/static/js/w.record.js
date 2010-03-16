@@ -206,15 +206,7 @@ permissions.prototype = {
 
 
 		this.user_search=$('<input class="value" size="20" type="text" value="" />');
-		// this.user_search.autocomplete({ 
-		// 			ajax: EMEN2WEBROOT+"/db/find/user/",
-		// 			match:      function(typed) { return true	},
-		// 			insertText: function(value)  { 
-		// 				setdisplayname(value[0],value[1]);
-		// 				return value[0] 
-		// 				},
-		// 			template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-		// 		}).bind("activate.autocomplete", function(e,d) {  });
+
 		this.user_search.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
 			minChars: 0,
 			max: 1000,
@@ -236,15 +228,7 @@ permissions.prototype = {
 
 		
 		this.group_search=$('<input class="value" size="20" type="text" value="" />');
-		// this.group_search.autocomplete({ 
-		// 			ajax: EMEN2WEBROOT+"/db/find/group/",
-		// 			match:      function(typed) { return true	},
-		// 			insertText: function(value)  { 
-		// 				groupnames[value[0]]=value[1];//(value[0],value[1]);
-		// 				return value[0] 
-		// 				},
-		// 			template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-		// 		}).bind("activate.autocomplete", function(e,d) {  });
+
 		this.group_search.autocomplete( EMEN2WEBROOT+"/db/find/group/", { 
 			minChars: 0,
 			max: 100,
@@ -924,7 +908,7 @@ logwidget.prototype = {
 			
 			//if (typeof(this[2])=="object") {
 			if (this.length == 4) {
-				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>LOG (new format): ' + this[2] + ' updated: was '+this[3]+'</p>');
+				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>LOG: ' + this[2] + ' updated: was '+this[3]+'</p>');
 			}
 			else {
 				self.elem_body.append('<strong>'+dname+' @ '+time+'</strong><p>'+this[2]+'</p>');

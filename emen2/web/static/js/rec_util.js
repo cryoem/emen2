@@ -1,23 +1,18 @@
 // globals
 
-paramindex={};
-paramdefs={};
+var paramindex={};
+var paramdefs={};
 
-recid=null;
-rec={};
-recs={};
-parents=[];
-children=[];
+var recid=null;
+var rec={};
+var recs={};
+var parents=[];
+var children=[];
 
-recnames={};
-displaynames={};
-groupnames={};
-
-// groupnames={};
-// groupnames["-4"]="Anonymous Access";
-// groupnames["-3"]="Authenticated Users";
-// groupnames["-1"]="Administrators";
-
+var recnames={};
+var displaynames={};
+var groupnames={};
+var user;
 
 
 // js is stupid at sorting.
@@ -42,8 +37,9 @@ function switchbutton(type,id) {
 }
 
 
-switchedin=new Array();
+var switchedin=new Array();
 switchedin["recordview"]="defaultview";
+
 // hide class members, show one, switch the button
 function switchin(classname, id) {
 	//console.log("Switching in "+classname+" "+id);
@@ -304,7 +300,7 @@ function newrecord_getoptionsandcommit(self, values) {
 	
 }
 	
-function commit_newrecord(self, values, parents, cb, self) {
+function commit_newrecord(self, values, parents, cb) {
 	if (cb==null) {cb=function(){}}
 	var rec_update=getrecord(null);
 
