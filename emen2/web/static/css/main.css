@@ -69,7 +69,12 @@
 	display:block;
 	font-size:14pt;
 }
-
+.widget_edit {
+	background:#BBD9EE;
+	color: #202060;
+	font-weight:bold;	
+	border:solid 2px #ccc;	
+}
 
 
 .record_editbar .controls {
