@@ -185,7 +185,7 @@ class DB(object):
 
 
 
-	def __init__(self, path=".", logfile="db.log"):
+	def __init__(self, path=None, logfile="db.log"):
 		"""Init DB
 		@keyparam path Path to DB (default=cwd)
 		@keyparam logfile Log file (default=db.log)
@@ -217,12 +217,12 @@ class DB(object):
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
-			dbci = file(g.EMEN2ROOT+'/config/DB_CONFIG')
-			dbco = file(self.path + '/DB_CONFIG', 'w')
-			try:
-				dbco.write(dbci.read())
-			finally:
-				[fil.close() for fil in (dbci, dbco)]
+			# dbci = file(g.EMEN2ROOT+'/config/DB_CONFIG')
+			# dbco = file(self.path + '/DB_CONFIG', 'w')
+			# try:
+			# 	dbco.write(dbci.read())
+			# finally:
+			# 	[fil.close() for fil in (dbci, dbco)]
 
 
 		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp"]:
@@ -297,6 +297,9 @@ class DB(object):
 
 		# typically uses SpecialRootContext
 		import skeleton
+		import getpass
+		
+		rootpw = getpass.getpass("root password for new database:")
 
 		self.bdbs.records.set(-1, 0, txn=txn)
 
@@ -312,7 +315,7 @@ class DB(object):
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		self.setpassword(g.getprivate('ROOTPW'), g.getprivate('ROOTPW'), username="root", ctx=ctx, txn=txn)
+		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
 
 
 
@@ -2007,9 +2010,7 @@ class DB(object):
 
 
 		ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
-		
-		print ret
-		
+				
 		t = "enabled"
 		if disabled:
 			t="disabled"
@@ -3783,9 +3784,6 @@ class DB(object):
 		# Param index
 		for param, updates in indexupdates.items():
 			self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
-
-		print updrels
-		print recmap
 
 		# Create parent/child links
 		for link in updrels:

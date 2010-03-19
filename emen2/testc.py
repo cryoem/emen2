@@ -1,4 +1,4 @@
-print __file__
+import getpass
 import atexit
 import emen2.globalns
 from emen2.config.config import g, DBOptions
@@ -23,7 +23,7 @@ def _atexit():
 db = emen2.Database.DBProxy.DBProxy()
 ddb = db._DBProxy__db
 
-db._login("root", g.getprivate('ROOTPW'))
+db._login("root", getpass.getpass())
 db._starttxn()
 txn = db._gettxn()
 ctx = db._getctx()

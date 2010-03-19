@@ -12,12 +12,12 @@ g = emen2.globalns.GlobalNamespace()
 # This is the main server program for EMEN2
 
 
-def prepare_web():
-	g.log.msg(g.LOG_INIT, "Adjusting EMEN2WEBROOT in static files")
-	f=open(g.EMEN2ROOT+"/tweb/index.html","w")
-	f.write("""<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-	<meta http-equiv="REFRESH" content="0; URL=%s/db/">"""%g.EMEN2WEBROOT)
-	f.close()
+# def prepare_web():
+# 	g.log.msg(g.LOG_INIT, "Adjusting EMEN2WEBROOT in static files")
+# 	f=open(g.EMEN2ROOT+"/tweb/index.html","w")
+# 	f.write("""<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+# 	<meta http-equiv="REFRESH" content="0; URL=%s/db/">"""%g.EMEN2WEBROOT)
+# 	f.close()
 
 
 def load_resources(root, resources):
@@ -51,7 +51,7 @@ def inithttpd():
 	import emen2.TwistSupport_html.public.views
 	emen2.TwistSupport_html.public.views.load_views()
 
-	root = static.File(g.STATICPATH)
+	root = static.File("tweb")
 
 	resources = dict(
 		db = emen2.TwistSupport_html.publicresource.PublicView(),
@@ -64,7 +64,7 @@ def inithttpd():
 		json2 = emen2.TwistSupport_html.jsonrpcresource.jsonrpc(),
 	)
 
-	prepare_web()
+	# prepare_web()
 
 	load_resources(root, resources)
 

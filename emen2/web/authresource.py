@@ -158,7 +158,8 @@ class AuthResource(Resource):
 		if ctxid != None and ctxid != kwargs.get('ctxid'):
 			request.addCookie("ctxid", ctxid or "", path='/')
 
-		print "success/redir: %s %s"%(success, kwargs.get('redirect'))
+		# print "success/redir: %s %s"%(success, kwargs.get('redirect'))
+
 		if success and kwargs.get('redirect'):
 			request.redirect(kwargs.get('redirect'))
 			request.finish()
