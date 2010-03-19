@@ -60,7 +60,7 @@ class GlobalNamespace(object):
 					elif hasattr(value, '__iter__'):
 						value = [pref+item for item in value]
 					elif isinstance(value, (str, unicode)):
-						value = pref+value					
+						value = pref+value
 					self.__addattr(key2, value, options)
 
 

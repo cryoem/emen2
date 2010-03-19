@@ -17,7 +17,7 @@ def get_filename(package, resource):
 
 
 default_config = get_filename('emen2', 'config/config.yml')
-default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
+#default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
 
 
 class DBOptions(optparse.OptionParser):
@@ -50,9 +50,9 @@ class DBOptions(optparse.OptionParser):
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
 		g.TEMPLATEDIRS.append(default_templatedirs)
-		
+
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
-		
+
 
 		if self.values.log_level == None:
 			self.values.log_level = kw.get('log_level', 'LOG_DEBUG')
@@ -92,7 +92,7 @@ class DBOptions(optparse.OptionParser):
 			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGROOT + '/access.log', 'a', 0))
 
 			g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
-			
+
 		except ImportError:
 			raise ImportError, 'Debug not loaded!!!'
 
