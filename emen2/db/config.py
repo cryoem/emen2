@@ -1,3 +1,4 @@
+import os
 import sys
 import functools
 import optparse
@@ -6,8 +7,17 @@ import emen2.subsystems.debug
 import yaml
 import pkgutil
 
-defaultconfig = "config/config.yml"
+
 g = emen2.globalns.GlobalNamespace()
+
+
+def get_filename(package, resource):
+	d = os.path.dirname(sys.modules[package].__file__)
+	return os.path.join(d, resource)
+
+
+default_config = get_filename('emen2', 'config/config.yml')
+default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
 
 
 class DBOptions(optparse.OptionParser):
@@ -26,23 +36,33 @@ class DBOptions(optparse.OptionParser):
 
 	def parse_args(self, lc=True, *args, **kwargs):
 		r1, r2 = optparse.OptionParser.parse_args(self,  *args, **kwargs)
-		if lc: self.load_config()
+		if lc:
+			self.load_config()
 		return r1, r2
 
 
 	def load_config(self, **kw):
-		if self.values.configfile: g.from_yaml(self.values.configfile)
-		else: g.from_yaml(data=yaml.load(pkgutil.get_data('emen2', defaultconfig)))
+		if self.values.configfile:
+			g.from_yaml(self.values.configfile)
+		else:
+			#data=yaml.load(pkgutil.get_data('emen2', defaultconfig))
+			g.from_yaml(default_config)
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
+		g.TEMPLATEDIRS.append(default_templatedirs)
+		
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
+		
 
 		if self.values.log_level == None:
 			self.values.log_level = kw.get('log_level', 'LOG_DEBUG')
+
 		if self.values.logfile_level == None:
 			self.values.logfile_level = kw.get('logfile_level', 'LOG_DEBUG')
+
 		if self.values.log_print_only == None:
 			self.values.log_print_only = kw.get('log_print_only', False)
+
 		if self.values.quiet == True:
 			self.values.log_level = kw.get('log_level', 'LOG_ERROR')
 			self.values.logfile_level = kw.get('logfile_level', 'LOG_ERROR')
@@ -71,7 +91,8 @@ class DBOptions(optparse.OptionParser):
 
 			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGROOT + '/access.log', 'a', 0))
 
-			g.log_init("Loading config files: %s"%(self.values.configfile or [defaultconfig]))
+			g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
+			
 		except ImportError:
 			raise ImportError, 'Debug not loaded!!!'
 

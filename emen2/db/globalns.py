@@ -53,12 +53,16 @@ class GlobalNamespace(object):
 				b = data[key]
 				pref = ''.join(b.pop('prefix',[]))
 				options = b.pop('options', {})
-				for key, value in b.iteritems():
-					if hasattr(value, '__iter__'):
+
+				for key2, value in b.iteritems():
+					if isinstance(value, dict):
+						pass
+					elif hasattr(value, '__iter__'):
 						value = [pref+item for item in value]
 					elif isinstance(value, (str, unicode)):
-						value = pref+value
-					self.__addattr(key,value, options)
+						value = pref+value					
+					self.__addattr(key2, value, options)
+
 
 		root = data.get('root', {})
 		if root.has_key('configfiles'):
