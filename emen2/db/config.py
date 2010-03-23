@@ -49,7 +49,7 @@ class DBOptions(optparse.OptionParser):
 			g.from_yaml(default_config)
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
-		g.TEMPLATEDIRS.append(default_templatedirs)
+		#g.TEMPLATEDIRS.append(default_templatedirs)
 
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
