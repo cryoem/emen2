@@ -9,6 +9,7 @@ g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 import collections
 import threading
+import os
 try: import yaml
 except ImportError:
 	try: import syck as yaml
@@ -33,6 +34,7 @@ class GlobalNamespace(object):
 			sn = self.debugstates.get_name(self.debugstates[sn])
 			print u'StubLogger: %s :: %s :: %s' % (self, sn, self.print_list(args))
 
+	__yaml_keys = collections.defaultdict(list)
 	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
@@ -42,34 +44,50 @@ class GlobalNamespace(object):
 
 	@classmethod
 	def from_yaml(cls, fn=None, data=None):
+		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
 		if not (fn or data): raise ValueError, 'either a filename or yaml data must be supplied'
-		self = cls()
 		if not yaml: raise NotImplementedError, 'yaml not found'
+
+		# load data
+		self = cls()
 		if fn:
-			with file(fn) as a: data = yaml.load(a)
+			with file(fn) as a: data = yaml.safe_load(a)
 
-		for key in data:
-			if key != 'root':
-				b = data[key]
-				pref = ''.join(b.pop('prefix',[]))
-				options = b.pop('options', {})
+		# process data
+		if data:
+			for key in data:
+				if key != 'root': # a toplevel dictionary named 'root' holds things which are not loaded into the new instance
+					b = data[key]
+					pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
+					options = b.pop('options', {})     # get options for the dictionary
 
-				for key2, value in b.iteritems():
-					if isinstance(value, dict):
-						pass
-					elif hasattr(value, '__iter__'):
-						value = [pref+item for item in value]
-					elif isinstance(value, (str, unicode)):
-						value = pref+value
-					self.__addattr(key2, value, options)
+					for key2, value in b.iteritems():
+						self.__yaml_keys[key].append(key2)
+						# apply the prefix to entries
+						if isinstance(value, dict): pass
+						elif hasattr(value, '__iter__'):
+							value = [pref+item for item in value]
+						elif isinstance(value, (str, unicode)):
+							value = pref+value
+						self.__addattr(key2, value, options)
 
 
-		root = data.get('root', {})
-		if root.has_key('configfiles'):
-			for fn in root['configfiles']:
-				cls.from_yaml(fn=fn)
+			# load alternate config files
+			root = data.get('root', {})
+			if root.has_key('configfiles'):
+				for fn in root['configfiles']:
+					cls.from_yaml(fn=fn)
 
 		return self
+
+	def to_yaml(self, keys=None):
+		'''store state as YAML'''
+		keys = keys or self.__yaml_keys
+		_dict = collections.defaultdict(dict)
+		for key, value in keys.iteritems():
+			for k2 in value:
+				_dict[key][k2] = self.getattr(k2)
+		return yaml.safe_dump(dict(_dict), default_flow_style=0)
 
 	def __setattr__(self, name, value):
 		self.__modlock.acquire(1)
