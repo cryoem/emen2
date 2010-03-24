@@ -42,7 +42,7 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		
+
 		if self.values.configfile:
 			g.from_yaml(self.values.configfile)
 		elif os.getenv("DB_HOME"):
@@ -67,8 +67,8 @@ class DBOptions(optparse.OptionParser):
 		if self.values.quiet == True:
 			self.values.log_level = kw.get('log_level', 'LOG_ERROR')
 			self.values.logfile_level = kw.get('logfile_level', 'LOG_ERROR')
-		
-		
+
+
 		if not os.path.exists(g.LOGROOT):
 			os.makedirs(g.LOGROOT)
 

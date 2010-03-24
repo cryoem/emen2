@@ -146,9 +146,9 @@ class DB(object):
 
 			self.paramdefs = subsystems.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
 			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
-			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn) 
-			
-			
+			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
+
+
 			# Indices
 			self.secrindex = subsystems.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
 			self.secrindex_groups = subsystems.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
@@ -164,7 +164,7 @@ class DB(object):
 
 
 		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
-			
+
 			filename = "index/params/%s"%(paramname)
 
 			deltxn=False
@@ -228,7 +228,7 @@ class DB(object):
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
-			
+
 
 		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp", "/applog"]:
 			if not os.access(self.path + path, os.F_OK):
@@ -284,7 +284,6 @@ class DB(object):
 
 		# typically uses SpecialRootContext
 		import skeleton
-		
 		ctx = self.__makerootcontext(txn=txn, host="localhost")
 		rootpw = getpass.getpass("root password for new database:")
 
@@ -294,7 +293,7 @@ class DB(object):
 		for k,v in skeleton.core_paramdefs.children.items():
 			for v2 in v:
 				self.pclink(k, v2, keytype="paramdef", ctx=ctx, txn=txn)
-		
+
 
 		for i in skeleton.core_recorddefs.items:
 			self.putrecorddef(i, ctx=ctx, txn=txn)
@@ -310,10 +309,10 @@ class DB(object):
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		
+
 		for i in skeleton.core_records.items:
 			self.putrecord(i, ctx=ctx, txn=txn)
-		
+
 
 		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
 
@@ -334,7 +333,7 @@ class DB(object):
 
 	def close(self):
 		"""Close DB"""
-		
+
 		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
 		try:
 			for i in subsystems.btrees.BTree.alltrees.keys():
@@ -347,10 +346,9 @@ class DB(object):
 
 	# ian: todo: remove this; it's only used one place
 	def __flatten(self, l):
-		ltypes=(set, list, tuple)
 		out = []
 		for item in l:
-			if isinstance(item, ltypes): out.extend(self.__flatten(item))
+			if hasattr(item, '__iter__'): out.extend(self.__flatten(item))
 			else:
 				out.append(item)
 		return out
@@ -485,7 +483,7 @@ class DB(object):
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_ERROR', "Invalid username or password")
-				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__				
+				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
@@ -763,14 +761,14 @@ class DB(object):
 			ol=1
 			bids = [bdokeys]
 			bdokeys = bids
-		if isinstance(bdokeys,(int,dataobjects.record.Record)):
+		elif isinstance(bdokeys,(int,dataobjects.record.Record)):
 			bdokeys = [bdokeys]
 
 
-		bids.extend(filter(lambda x:isinstance(x,basestring), bdokeys))
+		bids.extend(x for x in bdokeys if isinstance(x, basestring))
 
-		recs.extend(self.getrecord(filter(lambda x:isinstance(x,int), bdokeys), filt=1, ctx=ctx, txn=txn))
-		recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), bdokeys))
+		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=1, ctx=ctx, txn=txn))
+		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
 
 		if recs:
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
@@ -796,14 +794,14 @@ class DB(object):
 
 			try:
 				self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-				bdo["filepath"] = dkey["filepath"]								
+				bdo["filepath"] = dkey["filepath"]
 				ret[bdo["name"]] = bdo
 
 			#ed: fix: is this the right exception?
 			except emen2.Database.subsystems.exceptions.SecurityError:
 				if filt: continue
 				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
-				
+
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -869,7 +867,7 @@ class DB(object):
 			else:
 				raise ValueError, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
 
-			self.putrecord(rec, ctx=ctx, txn=txn)			
+			self.putrecord(rec, ctx=ctx, txn=txn)
 
 		return bdoo
 
@@ -886,7 +884,7 @@ class DB(object):
 
 		@return Binary instance
 		"""
-		
+
 		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
 
 		# bdo items are stored one bdo per day
@@ -960,7 +958,7 @@ class DB(object):
 
 		m = hashlib.md5()
 		filesize = 0
-		
+
 		with open(filepath, "wb") as f:
 			if not filedata:
 				for line in filehandle:
@@ -977,8 +975,8 @@ class DB(object):
 		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(filepath, filesize, md5sum))
 
 		return filesize, md5sum
-		
-		
+
+
 
 	# ed: todo?: key by recid
 	@DBProxy.publicmethod
@@ -1452,15 +1450,15 @@ class DB(object):
 	# def getindexbycontext(self, ctx=None, txn=None):
 	# 	"""Return all readable recids
 	# 	@return All readable recids"""
-	# 
+	#
 	# 	if ctx.checkreadadmin():
 	# 		return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
-	# 
+	#
 	# 	ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
-	# 
+	#
 	# 	for group in sorted(ctx.groups,reverse=True):
 	# 		ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
-	# 
+	#
 	# 	return ret
 
 
@@ -2001,7 +1999,7 @@ class DB(object):
 
 
 		ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
-				
+
 		t = "enabled"
 		if disabled:
 			t="disabled"
@@ -3458,7 +3456,7 @@ class DB(object):
 
 		for i in children:
 			self.pcunlink(recid, i, ctx=ctx, txn=txn)
-			
+
 			# ian: todo: not sure to do this or not.
 			# c2 = self.getchildren(i, ctx=ctx, txn=txn)
 			# c2 -= set([recid])
