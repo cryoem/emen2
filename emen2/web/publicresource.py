@@ -332,10 +332,9 @@ class PublicView(Resource):
 			except (emen2.Database.subsystems.exceptions.AuthenticationError,
 					emen2.Database.subsystems.exceptions.SessionError,
 					emen2.Database.subsystems.exceptions.DisabledUserError), e:
-
-                                request.addCookie("ctxid", '', path='/')
-                                response = 401
-                                data = render_security_error(request.uri, e)
+						request.addCookie("ctxid", '', path='/')
+						response = 401
+						data = render_security_error(request.uri, e)
 
 			except (emen2.Database.subsystems.exceptions.SecurityError), e:
 
@@ -345,7 +344,7 @@ class PublicView(Resource):
 
 			except emen2.subsystems.responsecodes.NotFoundError, e:
 				response = e.code
-				data = self.router['TemplateRender'](data='/notfound', EMEN2WEBROOT=g.EMEN2WEBROOT, msg=request.uri)
+				data = self.router['TemplateRender'](data='/errors/404', title="Page Not Found", msg=request.uri)
 				data = unicode(data).encode('utf-8')
 
 			except emen2.subsystems.responsecodes.HTTPResponseCode, e:

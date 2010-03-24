@@ -28,18 +28,18 @@ var TableControl = (function($) { // Localise the $ function
 function TableControl(elem, opts) {
   if (typeof(opts) != "object") opts = {};
   $.extend(this, TableControl.DEFAULT_OPTS, opts);
-	this.ed = elem;
+  this.ed = elem;
   this.elem = $(elem);  
   this.init();
 };
 
 TableControl.DEFAULT_OPTS = {
+	ts:null,
 };
 
 TableControl.prototype = {
 	
 	init: function() {
-		this.ts = ts;
 		this.ts.showtablestate = 0;
 		this.bindelems();
 	},
@@ -56,7 +56,7 @@ TableControl.prototype = {
 		$(".table_quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
 		$(".table_quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
 		//$(".table_properties",this.elem).TableColumnControl({tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
-		this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
+		// this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
 		//$(".table_properties",this.elem).click(function(e){self.tablecolumncontrol.event_toggleprop(e)});
 		//$(".table_editcol",this.elem).click(function(e){self.editcol(e)});
 	},
@@ -77,7 +77,7 @@ TableControl.prototype = {
 	
 	refresh: function() {
 		var self=this;
-		this.tablecontrol.hide();
+		//this.tablecontrol.hide();
 		this.ts.showtablestate=0;
 		$.postJSON(EMEN2WEBROOT+"/db/table/list/",this.ts,function(data){self.replace(data)});
 	},	
@@ -163,9 +163,6 @@ return TableControl;
 
 
 
-$(document).ready(function() {
-	$(".recordtable").TableControl({});
-});
 
 
 

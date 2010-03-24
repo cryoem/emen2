@@ -1,30 +1,43 @@
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
-import bsddb3
+
+import operator
+from bsddb3.db import *
+
+envopenflags = [
+	DB_CREATE,
+	DB_THREAD,
+	DB_INIT_MPOOL,
+	DB_INIT_TXN,
+	DB_INIT_LOCK,
+	DB_INIT_LOG,
+	DB_REGISTER,
+	DB_RECOVER,
+	]
+	
+
+# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
+	
+# these are in DB_CONFIG
+# DB_TXN_SNAPSHOT
+# DB_MULTIVERSION
+
+	
+dbopenflags = [
+	DB_CREATE,
+	DB_THREAD
+]
+
+txnflags = [
+	DB_TXN_SNAPSHOT
+]	
+	
+rmwflags = [
+	DB_RMW
+	]
 
 
-# Berkeley DB Config flags
-ENVOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD | bsddb3.db.DB_INIT_MPOOL | bsddb3.db.DB_REGISTER
-DBOPENFLAGS = bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE  | bsddb3.db.DB_MULTIVERSION
-RMWFLAGS = 0
-
-
-TXNFLAGS = bsddb3.db.DB_TXN_SNAPSHOT
-ENVTXNFLAGS = bsddb3.db.DB_INIT_TXN | bsddb3.db.DB_INIT_LOCK |  bsddb3.db.DB_INIT_LOG | bsddb3.db.DB_TXN_SNAPSHOT
-RECOVERFLAGS = bsddb3.db.DB_RECOVER
-
-
-if g.USETXN:
-	ENVOPENFLAGS |= ENVTXNFLAGS | TXNFLAGS
-	#DBOPENFLAGS |= bsddb3.db.DB_AUTO_COMMIT | TXNFLAGS
-	RMWFLAGS = bsddb3.db.DB_RMW
-
-if g.RECOVER:
-	ENVOPENFLAGS |= RECOVERFLAGS
-
-
-g.ENVOPENFLAGS = ENVOPENFLAGS
-g.DBOPENFLAGS = DBOPENFLAGS
-g.RMWFLAGS = RMWFLAGS
-g.TXNFLAGS = TXNFLAGS
-g.RECOVERFLAGS = RECOVERFLAGS
+g.ENVOPENFLAGS = reduce(operator.__or__, envopenflags)
+g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags)
+g.TXNFLAGS = reduce(operator.__or__, txnflags)
+g.RMWFLAGS = reduce(operator.__or__, rmwflags)

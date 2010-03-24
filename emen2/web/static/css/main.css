@@ -452,6 +452,9 @@ a img {
 
 }
 
+table.map {
+		float:left;
+}
 .map {
 	font-size:10pt;
 /*	background:white; */

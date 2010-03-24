@@ -84,12 +84,20 @@ multiwidget.prototype = {
 	
 	bind: function() {
 		//console.log("multiw bind");
-		
 		if (this.controls) {
 			var self=this;
 			this.elem.one("click",function(e){e.stopPropagation();self.event_click(e)});
 		}
-	},	
+	},
+	
+	bind_save: function() {
+		if (this.ext_save) {
+			var self=this;
+			this.ext_save.one("click", function(e){
+				e.stopPropagation();self.event_save(e)
+				});
+		}
+	},
 
 	event_click: function(e) {
 		this.show();
@@ -138,12 +146,7 @@ multiwidget.prototype = {
 		}
 		
 	
-		if (this.ext_save) {
-			var self=this;
-			this.ext_save.one("click", function(e){
-				e.stopPropagation();self.event_save(e)
-				});
-		}
+		this.bind_save();
 	
 		if (this.ext_cancel) {
 			var self=this;
@@ -260,6 +263,7 @@ multiwidget.prototype = {
 	commit_default_errback: function(self,r) {
 		notify(r.responseText);
 		self.save_end();
+		self.bind_save();		
 	},
 	
 	commit_default_callback: function(self,r) {
@@ -449,7 +453,7 @@ widget.prototype = {
 				if (paramdefs[this.param]["choices"] != null) {
 					l=$(paramdefs[this.param]["choices"]).map(function(n){return [[n,this]]})
 				} 
-				
+								
 				this.editw.autocomplete( EMEN2WEBROOT+"/db/find/value/"+this.param+"/", { 
 					minChars: 0,
 					max: 100,
@@ -690,7 +694,7 @@ listwidget.prototype = {
 				// 	
 				// }).bind("activate.autocomplete", function(e,d) {  })
 
-				edit.autocomplete( EMEN2WEBROOT+"/db/find/value/"+this.param+"/", { 
+				edit.autocomplete( EMEN2WEBROOT+"/db/find/value/"+self.paramdef["name"]+"/", { 
 					minChars: 0,
 					max: 100,
 					matchSubset: false,

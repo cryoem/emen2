@@ -32,14 +32,14 @@ relationshipcontrol.prototype = {
 			id=parseInt(id);
 			self.addparent(id);
 			self.build_controls();
-			self.build_map();
+			self.build_browser();
 			});
 			
 		this.elem.bind("addchild", function(e,id){
 			id=parseInt(id);
 			self.addchild(id);
 			self.build_controls();
-			self.build_map();
+			self.build_browser();
 			});
 
 		this.oparents=this.parents.slice();
@@ -54,7 +54,7 @@ relationshipcontrol.prototype = {
 		this.controlsarea=$('<div class="relationship_add" />');
 		this.elem.append(this.controlsarea,this.tablearea);
 		this.build_controls();
-		this.build_map();
+		this.build_browser();
 	},
 	
 	build_controls: function() {
@@ -77,12 +77,12 @@ relationshipcontrol.prototype = {
 
 		this.controlsarea.append($('<input type="button" value="Add Parent" />').click(function(){self.addparentpopup(this)}));
 		this.controlsarea.append($('<input type="button" value="Add Child" />').click(function(){self.addchildpopup(this)}));
-		this.controlsarea.append($('<input type="button" value="Reset" />').click(function(){self.reset();self.build_controls();self.build_map();}));
+		this.controlsarea.append($('<input type="button" value="Reset" />').click(function(){self.reset();self.build_controls();self.build_browser();}));
 		this.controlsarea.append($('<input type="button" value="Apply Changes" />').click(function(){self.save_links()}));
 		//this.controlsarea.append();
 	},
 	
-  build_map: function() {
+  build_browser: function() {
 		this.tablearea.empty();
 		
 		this.table = $('<table class="map" cellpadding="0" cellspacing="0" />');
@@ -93,12 +93,12 @@ relationshipcontrol.prototype = {
 
 		var header=$('<tr />');
 		header.append($('<td><h6>Parents</h6></td>').append(
-			$(' <span> [X]</span>').click(function(){self.removeallparents();self.build_controls();self.build_map();})
+			$(' <span> [X]</span>').click(function(){self.removeallparents();self.build_controls();self.build_browser();})
 			));
 		header.append('<td />');
 		header.append('<td><h6>This Record</h6></td><td />');
 		header.append($('<td><h6>Children</h6></td>').append(
-			$(' <span> [X]</span>').click(function(){self.removeallchildren();self.build_controls();self.build_map();})
+			$(' <span> [X]</span>').click(function(){self.removeallchildren();self.build_controls();self.build_browser();})
 			));
 		this.table.append(header);
 		
@@ -118,7 +118,7 @@ relationshipcontrol.prototype = {
 				button.data("recid",this.parents[i]);
 				button.click(function(){
 					self.removeparent($(this).data("recid"))
-					self.build_map();
+					self.build_browser();
 					self.build_controls();
 					});
 				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.parents[i]+'/">'+getrecname(this.parents[i])+'</a></span></td>');
@@ -164,7 +164,7 @@ relationshipcontrol.prototype = {
 				button.data("recid",this.children[i]);
 				button.click(function(){
 					self.removechild($(this).data("recid"))
-					self.build_map();
+					self.build_browser();
 					self.build_controls();
 					});
 				var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.children[i]+'/">'+getrecname(this.children[i])+'</a></span></td>');
@@ -365,7 +365,10 @@ relationshipbrowser.DEFAULT_OPTS = {
 		recid: null,
 		parentobj: null,
 		parentevent: null,
-		cb: null
+		cb: null,
+		keytype: "record",
+		rel: "children",
+		mode: "browse"
 };
 
 relationshipbrowser.prototype = {
@@ -433,7 +436,17 @@ relationshipbrowser.prototype = {
 
 	},
 	
-  build_map: function() {
+	build_map: function() {
+		// build a map-style browser
+		this.tablearea.empty();
+		this.statusimg.attr("src",EMEN2WEBROOT+"/images/blank.png");
+		this.tablearea.load(EMEN2WEBROOT+'/db/map/'+this.keytype+'/'+this.currentid+'/'+this.rel+'/');
+
+	},
+	
+	build_browser: function() {
+		// build a column-style browser
+		
 		this.children = this.sortbyrecname(this.children);
 		this.parents = this.sortbyrecname(this.parents);
 		
@@ -499,7 +512,7 @@ relationshipbrowser.prototype = {
 		this.container.remove();
 	},
 	
-	getchildren: function(recid,cb) {
+	getchildren: function() {
 		this.children=null;
 		var self=this;
 		$.jsonRPC("getchildren",[this.currentid, "record", 0], function(result) {
@@ -508,7 +521,7 @@ relationshipbrowser.prototype = {
 		});
 	},
 	
-	getparents: function(cb) {
+	getparents: function() {
 		this.parents=null;
 		var self=this;
 		$.jsonRPC("getparents",[this.currentid, "record", 0], function(result) {
@@ -523,17 +536,9 @@ relationshipbrowser.prototype = {
 			$.each(result, function(k,v) {
 					setrecname(k,v);
 			});
-			
-			// hack to prevent infinite loop
-			//for (var i=0;i<recids.length;i++) {
-			//	if (getrecname(recids[i])=="undefined") {
-			//		console.log();
-			//		setrecname(recids[i],"(permission denied)");
-			//	}
-			//}
-			
+		
 			self.checklocalindex();
-			self.build_map();
+			self.build_browser();
 		});		
 	},
 	
@@ -557,14 +562,14 @@ relationshipbrowser.prototype = {
 			}
 		}
 		if (getnames.length > 0) {
-			this.getrecnames(getnames, this.build_map);
+			this.getrecnames(getnames, this.build_browser);
 			
 			for (var i=0;i<getnames.length;i++) {
 				setrecname(getnames[i],"Record "+getnames[i]);
 			}
 			
 		} else {
-			this.build_map();
+			this.build_browser();
 			this.getrecord(this.currentid);
 		}
 	},
@@ -577,13 +582,21 @@ relationshipbrowser.prototype = {
 		this.close();
 	},
 	
+	get_map: function() {
+		this.build_map();
+	},
+	
 	select: function(newid) {
 		this.statusimg.attr("src",EMEN2WEBROOT+"/images/spinner2.gif");
 		this.parents=null;
 		this.children=null;
 		this.currentid=newid;
-		this.getchildren(recid);
-		this.getparents(recid);
+		if (this.mode=="map") {
+			this.get_map();
+		} else {
+			this.getchildren();
+			this.getparents();
+		}
 	},
 	
 	sortbyrecname: function(list) {
@@ -611,3 +624,4 @@ relationshipbrowser.prototype = {
 
 
 /////////////////////////////////////////////
+

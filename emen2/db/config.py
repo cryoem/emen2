@@ -16,8 +16,8 @@ def get_filename(package, resource):
 	return os.path.join(d, resource)
 
 
-default_config = get_filename('emen2', 'config/config.yml')
-#default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
+default_config = get_filename('emen2', 'config/config.base.yml')
+default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
 
 
 class DBOptions(optparse.OptionParser):
@@ -42,14 +42,15 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
+		
 		if self.values.configfile:
 			g.from_yaml(self.values.configfile)
+		elif os.getenv("DB_HOME"):
+			g.from_yaml(os.getenv("DB_HOME")+"/config.yml")
 		else:
-			#data=yaml.load(pkgutil.get_data('emen2', defaultconfig))
 			g.from_yaml(default_config)
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
-		#g.TEMPLATEDIRS.append(default_templatedirs)
 
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
@@ -66,6 +67,11 @@ class DBOptions(optparse.OptionParser):
 		if self.values.quiet == True:
 			self.values.log_level = kw.get('log_level', 'LOG_ERROR')
 			self.values.logfile_level = kw.get('logfile_level', 'LOG_ERROR')
+		
+		
+		if not os.path.exists(g.LOGROOT):
+			os.makedirs(g.LOGROOT)
+
 
 		try:
 			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL

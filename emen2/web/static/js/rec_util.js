@@ -318,6 +318,7 @@ function commit_newrecord(self, values, parents, cb) {
 			//$("#alert").append("<li>Error: "+this.param+", "+xhr.responseText+"</li>");
 			notify("Error: "+this.param+", "+xhr.responseText);
 			self.ext_save.val("Retry");		
+			self.bind_save();
 		}
 	);
 }

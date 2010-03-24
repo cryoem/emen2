@@ -23,6 +23,7 @@ class ErrorThread(threading.Thread):
 	def run(self):
 		pass
 
+
 import emen2.subsystems.debug
 class GlobalNamespace(object):
 	class LoggerStub(emen2.subsystems.debug.DebugState):

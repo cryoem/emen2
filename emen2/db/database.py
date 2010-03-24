@@ -20,6 +20,8 @@ import demjson
 import re
 import shutil
 import weakref
+import getpass
+
 
 from functools import partial, wraps
 
@@ -31,6 +33,7 @@ import emen2.util.emailutil
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+
 
 import DBProxy
 import DBExt
@@ -136,13 +139,16 @@ class DB(object):
 			self.users = subsystems.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
 			self.groups = subsystems.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
 
-			# Main database items
-			self.paramdefs = subsystems.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
-			self.bdocounter = subsystems.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
-			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
-			self.workflow = subsystems.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
-			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, dbenv=dbenv, txn=txn) #keytype="d_old"
 
+			# Main database items
+			self.bdocounter = subsystems.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
+			self.workflow = subsystems.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
+
+			self.paramdefs = subsystems.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
+			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
+			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn) 
+			
+			
 			# Indices
 			self.secrindex = subsystems.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
 			self.secrindex_groups = subsystems.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
@@ -156,6 +162,7 @@ class DB(object):
 			self.fieldindex = {}
 			self.__db = db
 
+
 		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
 			
 			filename = "index/params/%s"%(paramname)
@@ -163,18 +170,18 @@ class DB(object):
 			deltxn=False
 			if txn == None:
 				txn = self.__db.newtxn()
-				g.debug('txn: %s' %txn)
+				# g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
 			except BaseException, e:
-				g.debug('openparamindex failed: %s' % e)
+				# g.debug('openparamindex failed: %s' % e)
 				if deltxn: self.__db.txnabort(txn=txn)
 				raise
 			else:
-				g.debug('openparamindex succeeded')
+				# g.debug('openparamindex succeeded')
 				if deltxn: self.__db.txncommit(txn=txn)
-			g.debug('exit')
+			# g.debug('exit')
 
 
 		def closeparamindex(self, paramname):
@@ -185,22 +192,25 @@ class DB(object):
 
 
 
-	def __init__(self, path=None, logfile="db.log"):
+	def __init__(self, path=None):
 		"""Init DB
 		@keyparam path Path to DB (default=cwd)
-		@keyparam logfile Log file (default=db.log)
 		"""
 
-		if g.USETXN:
-			self.newtxn = self.newtxn1
-		else:
-			g.log.msg("LOG_INFO","Note: transaction support disabled")
+		# @keyparam logfile Log file (default=db.log)
+
+		#if not g.USETXN:
+		#	g.log.msg("LOG_INFO","Note: transaction support disabled")
 
 		self.lastctxclean = time.time()
 		self.opentime = self.__gettime()
 
 		self.path = path or g.EMEN2DBPATH
-		self.logfile = "%s/%s"%(self.path,logfile)
+
+		if not self.path:
+			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
+
+		# self.logfile = "%s/%s"%(self.path,logfile)
 
 		self.txnid = 0
 		self.txnlog = {}
@@ -208,6 +218,7 @@ class DB(object):
 		self.__init_vtm()
 		self.vtm = subsystems.datatypes.VartypeManager()
 		self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
+
 
 		self.__cache_vartype_indextype = {}
 		for vt in self.vtm.getvartypes():
@@ -217,15 +228,9 @@ class DB(object):
 		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
-			# dbci = file(g.EMEN2ROOT+'/config/DB_CONFIG')
-			# dbco = file(self.path + '/DB_CONFIG', 'w')
-			# try:
-			# 	dbco.write(dbci.read())
-			# finally:
-			# 	[fil.close() for fil in (dbci, dbco)]
+			
 
-
-		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp"]:
+		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp", "/applog"]:
 			if not os.access(self.path + path, os.F_OK):
 				os.makedirs(self.path + path)
 
@@ -234,7 +239,7 @@ class DB(object):
 		global DBENV
 
 		if DBENV == None:
-			g.log.msg("LOG_INFO","Opening Database Environment")
+			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 			DBENV.open(self.path, g.ENVOPENFLAGS)
 			DB.opendbs[self] = 1
@@ -253,37 +258,19 @@ class DB(object):
 			self.txncommit(txn=txn)
 
 
-
-		# Check if database is initialized
-		# ian: moving this out again -- I will have a separate script to init new DBs
 		txn = self.newtxn()
 		try:
-			# ian: todo: hard: continue evaluating how we will create new recids
-			#			my best idea is to use the cursor.set(DB_LAST)...
-			# self.__dbseq = self.bdbs.records.create_sequence()
-			ctx = self.__makerootcontext(txn=txn, host="localhost")
-
-			try:
-				maxr = self.bdbs.records.sget(-1, txn=txn)
-				g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
-
-			except KeyError:
-				g.log.msg('LOG_INFO', "Initializing skeleton database ctx: %r txn: %r" % (ctx, txn))
-
-				if raw_input('record counter not found in key -1, enter y to reinitialize: ').lower().startswith('y'):
-					self.__createskeletondb(ctx=ctx, txn=txn)
-
-		except Exception, inst:
-			g.log.msg('LOG_ERROR', inst)
+			maxr = self.bdbs.records.get_max(txn=txn)
+			g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+		except Exception, e:
+			g.log.msg('LOG_INFO',"Could not open database! %s"%e)
 			self.txnabort(txn=txn)
 			raise
-
-		else:
+		finally:
 			self.txncommit(txn=txn)
 
-
-		g.log_init('DB logfile:', self.logfile)
-		g.log.add_output('ALL', file(self.logfile, "a"), current_file=True)
+		# g.log_init('DB logfile:', self.logfile)
+		# g.log.add_output('ALL', file(self.logfile, "a"), current_file=True)
 
 
 
@@ -292,31 +279,43 @@ class DB(object):
 
 
 
-	def __createskeletondb(self, ctx=None, txn=None):
+	def create_db(self, ctx=None, txn=None):
 		"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_* """
 
 		# typically uses SpecialRootContext
 		import skeleton
-		import getpass
 		
+		ctx = self.__makerootcontext(txn=txn, host="localhost")
 		rootpw = getpass.getpass("root password for new database:")
 
-		self.bdbs.records.set(-1, 0, txn=txn)
+
+		for i in skeleton.core_paramdefs.items:
+			self.putparamdef(i, ctx=ctx, txn=txn)
+		for k,v in skeleton.core_paramdefs.children.items():
+			for v2 in v:
+				self.pclink(k, v2, keytype="paramdef", ctx=ctx, txn=txn)
+		
+
+		for i in skeleton.core_recorddefs.items:
+			self.putrecorddef(i, ctx=ctx, txn=txn)
+		for k,v in skeleton.core_recorddefs.children.items():
+			for v2 in v:
+				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
+
 
 		for i in skeleton.core_users.items:
 			self.adduser(i, ctx=ctx, txn=txn)
 
-		for i in skeleton.core_paramdefs.items:
-			self.putparamdef(i, ctx=ctx, txn=txn)
-
-		for i in skeleton.core_recorddefs.items:
-			self.putrecorddef(i, ctx=ctx, txn=txn)
 
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
+		
+		for i in skeleton.core_records.items:
+			self.putrecord(i, ctx=ctx, txn=txn)
+		
 
+		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
 
 
 	# @DBProxy.publicmethod
@@ -324,11 +323,9 @@ class DB(object):
 	# 	raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
 
 
-
 	# ian: todo: simple: print more statistics; needs a txn?
 	def __str__(self):
-		#return "Database %d records\n( %s )"%(int(self.bdbs.records.get(-1,0)), format_string_obj(self.__dict__, ["path", "logfile", "lastctxclean"]))
-		return "<Database: %s>"%hex(id(self))
+		return "<Database: %s, ~%s records>"%(hex(id(self)), self.bdbs.records.get_max())
 
 
 	def __del__(self):
@@ -367,14 +364,11 @@ class DB(object):
 
 	txncounter = 0
 
-	# one of these 2 methods (newtxn1/newtxn) is mapped to self.newtxn()
-	def newtxn1(self, parent=None, ctx=None):
+	def newtxn(self, parent=None, ctx=None):
 		"""New transaction (txns enabled). Accepts parent txn instance."""
-		# g.log.msg('LOG_INFO', 'printing traceback')
 		# g.log.print_traceback(steps=5)
 		txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 		#print "\n\nNEW TXN --> %s"%txn
-		#traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -382,14 +376,10 @@ class DB(object):
 		except:
 			self.txnabort(ctx=ctx, txn=txn)
 			raise
-		# g.log.msg("LOG_TXN","NEW TXN (%r), PARENT --> %s"% (txn,parent))
+
 		return txn
 
 
-
-	def newtxn(self, ctx=None, txn=None):
-		"""New transaction (txns disabled)"""
-		return None
 
 
 	def txncheck(self, txnid=0, ctx=None, txn=None):
@@ -1458,20 +1448,20 @@ class DB(object):
 
 
 	# ian: todo: simple: is this currently used anywhere? It was more or less replaced by filterpermissions. But may be useful to keep.
-	@DBProxy.publicmethod
-	def getindexbycontext(self, ctx=None, txn=None):
-		"""Return all readable recids
-		@return All readable recids"""
-
-		if ctx.checkreadadmin():
-			return set(range(self.bdbs.records.sget(-1, txn=txn))) #+1)) # Ed: Fixed an off by one error
-
-		ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
-
-		for group in sorted(ctx.groups,reverse=True):
-			ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
-
-		return ret
+	# @DBProxy.publicmethod
+	# def getindexbycontext(self, ctx=None, txn=None):
+	# 	"""Return all readable recids
+	# 	@return All readable recids"""
+	# 
+	# 	if ctx.checkreadadmin():
+	# 		return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
+	# 
+	# 	ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
+	# 
+	# 	for group in sorted(ctx.groups,reverse=True):
+	# 		ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
+	# 
+	# 	return ret
 
 
 
@@ -1780,7 +1770,8 @@ class DB(object):
 			if filt and keytype=="record":
 				allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
-			if flat: result = allr
+			if flat:
+				result = allr
 			else:
 				# perform filtering on both levels, and removing any items that become empty
 				# ret = dict( ( k, dict( (k2,v2 & allr) for k2, v2 in v.items() if bool(v2) is True ) )
@@ -2099,6 +2090,7 @@ class DB(object):
 				rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
 				rec["email"] = user.signupinfo.get('email')
 				rec.adduser(username, level=3)
+				rec.addgroup("authenticated")
 
 				for k,v in user.signupinfo.items():
 					rec[k] = v
@@ -3196,9 +3188,6 @@ class DB(object):
 
 
 
-	# ian: todo: why doesn't this accept multiple rectypes
-	# ed: it does, what's wrong with it?
-	# @g.log.debug_func
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_list_or_single('rdids')
 	def getrecorddef(self, rdids, filt=True, ctx=None, txn=None):
@@ -3208,31 +3197,37 @@ class DB(object):
 
 		if not hasattr(rdids,"__iter__"):
 			rdids = [rdids]
-			#return dict((x.name,x) for x in (self.getrecorddef(i, ctx=ctx, txn=txn) for i in rdid))
-			#ed: note: ^^^ old behavior, breaks with return_list_or_single.... if you really want the old behavior,
-			#              I will reimplement it later
 
 		ret = []
 		for rdid in rdids:
+
 			if isinstance(rdid, int):
+
 				try:
 					recorddef = self.getrecord(rdid, filt=False, ctx=ctx, txn=txn).rectype
+
 				except KeyError:
 					if filt: continue
-					else:
-						raise KeyError, "No such Record '%s'" % rdid
-			else: recorddef = str(rdid)
+					else: raise KeyError, "No such Record '%s'" % rdid
+
+			else:
+				recorddef = str(rdid)
+
+
 			recorddef = recorddef.lower()
 
 			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-			except KeyError:
-				raise KeyError, "No such RecordDef '%s'"%recorddef
+			except KeyError: raise KeyError, "No such RecordDef '%s'"%recorddef
 
 			rd.setContext(ctx)
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
 			if rd.private and not rd.accessible():
 				raise subsystems.exceptions.SecurityError, "RecordDef %d not accessible" % (recid, recorddef)
+
+			if not rd.views.get("defaultview"):
+				rd.views["defaultview"] = rd.mainview
+
 			ret.append(rd)
 
 		# success, the user has permission
@@ -3447,9 +3442,10 @@ class DB(object):
 		parents = self.getparents(recid, ctx=ctx, txn=txn)
 		children = self.getchildren(recid, ctx=ctx, txn=txn)
 
-		if len(parents) > 0 and rec["deleted"] !=1 :
+		if len(parents) > 0 and rec.get("deleted") != 1:
 			rec.addcomment("Record marked for deletion and unlinked from parents: %s"%", ".join([unicode(x) for x in parents]))
-		elif rec["deleted"] != 1:
+
+		elif rec.get("deleted") != 1:
 			rec.addcomment("Record marked for deletion")
 
 		rec["deleted"] = True
@@ -3462,6 +3458,7 @@ class DB(object):
 
 		for i in children:
 			self.pcunlink(recid, i, ctx=ctx, txn=txn)
+			
 			# ian: todo: not sure to do this or not.
 			# c2 = self.getchildren(i, ctx=ctx, txn=txn)
 			# c2 -= set([recid])
@@ -3520,7 +3517,7 @@ class DB(object):
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec[param] = value
 		self.putrecord(rec, ctx=ctx, txn=txn)
-		return self.getrecord(recid, ctx=ctx, txn=txn)[param]
+		return self.getrecord(recid, ctx=ctx, txn=txn).get(param)
 
 
 
@@ -3632,21 +3629,18 @@ class DB(object):
 
 			recid = updrec.recid
 
-			# ian: todo: I once got a weird error here where there was no txn,
-			# 			 but after restart it was OK. weird.
-			#         we need to acquire RMW lock here to prevent changes during commit
 
-
-			# ian: put recid<0 check first, to keep issues with recid counter
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
 
-			elif self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
-				orec = self.bdbs.records.sget(updrec.recid, txn=txn)
-				orec.setContext(ctx)
-
 			else:
-				raise KeyError, "Cannot update non-existent record %s"%recid
+				# we need to acquire RMW lock here to prevent changes during commit
+				#elif self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
+				try:
+					orec = self.bdbs.records.sget(updrec.recid, txn=txn, flags=g.RMWFLAGS)
+					orec.setContext(ctx)
+				except:
+					raise KeyError, "Cannot update non-existent record %s"%recid
 
 
 			# Set Context and Validate
@@ -3671,8 +3665,8 @@ class DB(object):
 
 			for param in cp - param_special:
 				if log and orec.recid >= 0:
-					orec.addhistory(param, orec[param])
-				orec[param] = updrec[param]
+					orec.addhistory(param, orec.get(param))
+				orec[param] = updrec.get(param)
 
 			if "permissions" in cp:
 				orec.setpermissions(updrec.get("permissions"))
@@ -3681,8 +3675,12 @@ class DB(object):
 				orec.setgroups(updrec.get("groups"))
 
 			if log:
-				orec["modifytime"] = t
-				orec["modifyuser"] = ctx.username
+				# ian: todo: high: normally ctx doesn't allow us to update these params..
+				#orec["modifytime"] = t
+				#orec["modifyuser"] = ctx.username
+				orec._Record__params["modifytime"] = t
+				orec._Record__params["modifyuser"] = ctx.username
+
 
 			# I don't think we need to re-validate..
 			# if validate:
@@ -3750,9 +3748,10 @@ class DB(object):
 
 		# this needs a lock.
 		if newrecs:
-			baserecid = self.bdbs.records.sget(-1, txn=txn)#, flags=g.RMWFLAGS
+			# baserecid = self.bdbs.records.get_max(txn=txn) #, flags=g.RMWFLAGS
+			# self.bdbs.records.set(-1, baserecid + len(newrecs), txn=txn)
+			baserecid = int(self.bdbs.records.get_sequence(delta=len(newrecs), txn=txn))
 			g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
-			self.bdbs.records.set(-1, baserecid + len(newrecs), txn=txn)
 
 
 		# add recids to new records, create map from temp recid, setup index
@@ -4100,7 +4099,7 @@ class DB(object):
 
 		self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
 
-		maxrecords = self.bdbs.records.get(-1, txn=txn)
+		maxrecords = self.bdbs.records.get_max(txn=txn) #get(-1, txn=txn)["max"]
 		g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))
 
 		blocks = range(0, maxrecords, g.BLOCKLENGTH) + [maxrecords]
@@ -4142,7 +4141,8 @@ class DB(object):
 		pos = 0
 		crecs = True
 		recmap = {}
-		maxrecords = self.bdbs.records.get(-1, txn=txn)
+		maxrecords = self.bdbs.records.get_max(txn=txn)
+
 
 		while crecs:
 			txn2 = self.newtxn(txn)
