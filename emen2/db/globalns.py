@@ -10,19 +10,12 @@ g.<varname> = <value> sets a variable in a threadsafe manner.'''
 import collections
 import threading
 import os
+import os.path
 try: import yaml
 except ImportError:
 	try: import syck as yaml
 	except ImportError:
 		yaml = False
-
-class ErrorThread(threading.Thread):
-	def __init__(self, err_list):
-		threading.Thread.__init__(self)
-		self.err_list = err_list
-	def run(self):
-		pass
-
 
 import emen2.subsystems.debug
 class GlobalNamespace(object):
@@ -77,7 +70,8 @@ class GlobalNamespace(object):
 			root = data.get('root', {})
 			if root.has_key('configfiles'):
 				for fn in root['configfiles']:
-					cls.from_yaml(fn=fn)
+					if os.path.exists(fn):
+						cls.from_yaml(fn=fn)
 
 		return self
 
