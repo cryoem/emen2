@@ -92,7 +92,6 @@ class UploadResource(Resource):
 			if newrecord:
 				crec = db.putrecord(newrecord, filt=False)
 				recid = crec.recid
-
 			bdokey = db.putbinary(filename, recid, param=param, filedata=filedata, filehandle=filehandle)
 
 		if redirect:

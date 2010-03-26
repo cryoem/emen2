@@ -764,6 +764,7 @@ class DB(object):
 		@exception KeyError, SecurityError
 		"""
 
+		
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ret = {}
 		bids = []
@@ -772,23 +773,32 @@ class DB(object):
 		if not vts:
 			vts = ["binary","binaryimage"]
 
+		# ian: todo: high: come back and find out why this crashed.. so strange.
+
 		ol=0
 		if isinstance(bdokeys,basestring): # or not hasattr(bdokeys,"__iter__"):
 			ol=1
 			bids = [bdokeys]
-			bdokeys = bids
+			# bdokeys = bids
 		elif isinstance(bdokeys,(int,dataobjects.record.Record)):
 			bdokeys = [bdokeys]
 
-
+		# print "--"
+		# print "bdokeys"
+		# print bdokeys
+		# print "bids"
+		# print bids
+		# print "--"
+		# 
+		# print "crash?"
 		bids.extend(x for x in bdokeys if isinstance(x, basestring))
-
+		
 		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=1, ctx=ctx, txn=txn))
 		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
-
+		
 		if recs:
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
-
+		
 		# filtered list of bdokeys
 		bids = filter(lambda x:isinstance(x, basestring), bids)
 
@@ -796,6 +806,7 @@ class DB(object):
 		byrec = collections.defaultdict(list)
 
 		for bdokey in bids:
+			print 4, bdokey
 
 			try:
 				dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
@@ -817,7 +828,8 @@ class DB(object):
 			except emen2.Database.subsystems.exceptions.SecurityError:
 				if filt: continue
 				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
-
+			
+			print 5
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -3761,7 +3773,7 @@ class DB(object):
 		if newrecs:
 			# baserecid = self.bdbs.records.get_max(txn=txn) #, flags=g.RMWFLAGS
 			# self.bdbs.records.set(-1, baserecid + len(newrecs), txn=txn)
-			baserecid = int(self.bdbs.records.get_sequence(delta=len(newrecs), txn=txn))
+			baserecid = self.bdbs.records.get_sequence(delta=len(newrecs), txn=txn)
 			g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 
 
