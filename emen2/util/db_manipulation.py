@@ -17,10 +17,10 @@ class DBTree(object):
 			self.db = db
 			self.__db = db
 
-			if 'folder' in db.getrecorddefnames() and root is None:
-				self.__root = min(db.getindexbyrecorddef('folder') or [0])
-			else:
-				self.__root = root
+			#if 'folder' in db.getrecorddefnames() and root is None:
+			#	self.__root = min(db.getindexbyrecorddef('folder') or [0])
+			#else:
+			self.__root = root
 
 			self.__initmethods()
 

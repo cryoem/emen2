@@ -279,6 +279,7 @@ class PublicView(Resource):
 			if headers.get('content-type') != "image/jpeg":
 				ret = unicode(ret).encode('utf-8')
 
+
 		return ret, headers
 
 

@@ -12,7 +12,7 @@ envopenflags = [
 	DB_INIT_LOCK,
 	DB_INIT_LOG,
 	DB_REGISTER,
-	DB_RECOVER,
+	DB_RECOVER
 	]
 	
 
@@ -29,7 +29,8 @@ dbopenflags = [
 ]
 
 txnflags = [
-	DB_TXN_SNAPSHOT
+	#DB_TXN_SNAPSHOT,
+	#DB_MULTIVERSION	
 ]	
 	
 rmwflags = [
@@ -37,7 +38,7 @@ rmwflags = [
 	]
 
 
-g.ENVOPENFLAGS = reduce(operator.__or__, envopenflags)
-g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags)
-g.TXNFLAGS = reduce(operator.__or__, txnflags)
-g.RMWFLAGS = reduce(operator.__or__, rmwflags)
+g.ENVOPENFLAGS = reduce(operator.__or__, envopenflags, 0)
+g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags, 0)
+g.TXNFLAGS = reduce(operator.__or__, txnflags, 0)
+g.RMWFLAGS = reduce(operator.__or__, rmwflags, 0)

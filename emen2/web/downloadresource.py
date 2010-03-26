@@ -66,12 +66,10 @@ class DownloadResource(Resource, File):
 
 		bids = path[0].split(",")
 
-		db._setcontext(ctxid,host)
-		bdos = db.getbinary(bids)
-		db._clearcontext()
+		with db._setcontext(ctxid,host):
+			bdos = db.getbinary(bids)
 
-		return bdos #db
-		# ian: who put db return in there?
+		return bdos
 
 
 

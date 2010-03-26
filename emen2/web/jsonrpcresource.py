@@ -144,6 +144,7 @@ class jsonrpc(Resource):
 			g.debug('ctxid: %r, host: %r' % (ctxid, host))
 
 			g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
+
 			with db._setcontext(ctxid,host):
 				methodresult = db._callmethod(method, args, kwargs)
 

@@ -88,15 +88,12 @@ class UploadResource(Resource):
 
 
 	def _action(self, newrecord=None, recid=None, param=None, filename=None, filehandle=None, filedata=None, redirect=None, ctxid=None, host=None, db=None):
-		db._setcontext(ctxid,host)
-		with db:
+		with db._setcontext(ctxid,host):
 			if newrecord:
 				crec = db.putrecord(newrecord, filt=False)
 				recid = crec.recid
 
 			bdokey = db.putbinary(filename, recid, param=param, filedata=filedata, filehandle=filehandle)
-
-		db._clearcontext()
 
 		if redirect:
 			return """<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta http-equiv="REFRESH" content="0; URL=%s">"""%redirect

@@ -65,7 +65,7 @@ VERSIONS = {
 def DB_Close():
 	l = DB.opendbs.keys()
 	for i in l:
-		g.log.msg('LOG_DEBUG', i._DB__dbenv)
+		g.log.msg('LOG_DEBUG', i.dbenv)
 		i.close()
 
 
@@ -115,6 +115,11 @@ class instonget(object):
 			result = self.__class()
 			setattr(instance, self.__class.__name__, result)
 		return result
+
+
+
+
+
 
 
 
@@ -192,7 +197,7 @@ class DB(object):
 
 
 
-	def __init__(self, path=None):
+	def __init__(self, path=None, bdbopen=True):
 		"""Init DB
 		@keyparam path Path to DB (default=cwd)
 		"""
@@ -237,20 +242,25 @@ class DB(object):
 
 		# Open DB environment; check if global DBEnv has been opened yet
 		global DBENV
-
+		
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 			DBENV.open(self.path, g.ENVOPENFLAGS)
 			DB.opendbs[self] = 1
 
-		self.__dbenv = DBENV
-
-
+		self.dbenv = DBENV
+		
+		
+		# If we are just doing backups or maintenance, don't open any BDB handles
+		if not bdbopen:
+			return
+			
+			
 		# Open Database
 		txn = self.newtxn()
 		try:
-			self.bdbs.init(self, self.__dbenv, txn=txn)
+			self.bdbs.init(self, self.dbenv, txn=txn)
 		except Exception, inst:
 			self.txnabort(txn=txn)
 			raise
@@ -332,7 +342,7 @@ class DB(object):
 
 	# ian: todo: simple: print more statistics; needs a txn?
 	def __str__(self):
-		return "<Database: %s, ~%s records>"%(hex(id(self)), self.bdbs.records.get_max())
+		return "<DB: %s>"%(hex(id(self))) #, ~%s records>"%(hex(id(self)), self.bdbs.records.get_max())
 
 
 	def __del__(self):
@@ -349,7 +359,7 @@ class DB(object):
 		except Exception, inst:
 			g.log.msg('LOG_ERROR', inst)
 
-		self.__dbenv.close()
+		self.dbenv.close()
 
 
 	# ian: todo: remove this; it's only used one place
@@ -373,7 +383,7 @@ class DB(object):
 	def newtxn(self, parent=None, ctx=None):
 		"""New transaction (txns enabled). Accepts parent txn instance."""
 		# g.log.print_traceback(steps=5)
-		txn = self.__dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
+		txn = self.dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
 		#print "\n\nNEW TXN --> %s"%txn
 
 		try:
@@ -3049,7 +3059,7 @@ class DB(object):
 
 		#try:
 
-		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.__dbenv)
+		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv)
 		
 		#except:
 		#	self.txnabort(txn=txn2)
@@ -3810,6 +3820,8 @@ class DB(object):
 			try:
 				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
 				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
+				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r DEBUG: DONE"%(rectype, recs))
+				
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
 				raise
@@ -4406,32 +4418,83 @@ class DB(object):
 		return os.path.join(self.path, tail)
 
 
+
 	#@rename db.admin.archivelogs
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
-	def archivelogs(self, ctx=None, txn=None):
-		g.log.msg('LOG_INFO', "Log Archive: Checkpointing")
-		self.__dbenv.txn_checkpoint()
-		archivefiles = self.__dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
+	# @DBProxy.publicmethod
+	# @DBProxy.adminmethod
+	def archivelogs(self, checkpoint=True, remove=False, ctx=None, txn=None):
+
+		if checkpoint:
+			g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
+			self.dbenv.txn_checkpoint()
+
+		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS) # |  bsddb3.db.DB_ARCH_LOG
+
 		if not os.access(g.ARCHIVEPATH, os.F_OK):
 			os.makedirs(g.ARCHIVEPATH)
+
 		for file_ in archivefiles:
 			# ian: changed to copy -- safer: it's better for it to be rename
 			outpath = os.path.join(g.ARCHIVEPATH, os.path.basename(file_))
-			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
-			os.rename(file_, outpath)
+			if remove:
+				if not os.path.exists(outpath):
+					raise ValueError, "Log Archive: %s not found in backup archive!!"%(file_)
+				g.log.msg('LOG_INFO','Log Archive: Removing %s'%(file_))
+				os.unlink(file_)
+			else:
+				g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
+				shutil.copy(file_, outpath)
 			
-		return g.ARCHIVEPATH
 
 
 
+	def coldbackup(self, ctx=None, txn=None):
+		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
+		self.dbenv.txn_checkpoint()
+		
+		if os.path.exists(g.HOTBACKUP):
+			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"
+		
+		# ian: just use shutil.copytree
+		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.HOTBACKUP, "data")))
+		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.HOTBACKUP, "data"))
 
+		for i in ["config.yml","DB_CONFIG"]:
+			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.HOTBACKUP, i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.HOTBACKUP, i))			
+		
+		
+		os.makedirs(os.path.join(g.HOTBACKUP, "log"))
+		
+		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
+		for i in archivelogs:
+			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i))					
+				
+				
+		# archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_DATA | bsddb3.db.DB_ARCH_ABS)
+		# os.makedirs(g.HOTBACKUP)
+		# for i in archivefiles:
+		# 	outpath = i.replace(g.EMEN2DBPATH,"")
+		# 	outpath = "%s/%s"%(g.HOTBACKUP, outpath)
+		# 	g.log.msg('LOG_INFO','Cold Backup: %s -> %s'%(i, outpath))
+		# 
+		# 	if not os.path.exists(os.path.dirname(outpath)):
+		# 		os.makedirs(os.path.dirname(outpath))
+		# 
+		# 	shutil.copy(i, outpath)
+									
+						
+	def hotbackup(self, ctx=None, txn=None):	
+		g.log.msg('LOG_INFO', "Hot Backup: Log archive")
+		self.archivelogs(ctx=ctx, txn=txn)
+		
+		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
+		for i in archivelogs:
+			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i))					
 
-
-
-
-
-
+		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 
 

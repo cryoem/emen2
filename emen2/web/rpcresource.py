@@ -251,6 +251,7 @@ class RPCResource(Resource):
 		#db._setcontext(ctxid,host)
 		#result = db._callmethod(method, args, kwargs)
 		#db._clearcontext()
+
 		with db._setcontext(ctxid,host):
 			result = db._callmethod(method, args, kwargs)
 

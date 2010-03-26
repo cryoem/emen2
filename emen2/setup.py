@@ -7,23 +7,17 @@ import optparse
 import sys
 
 
-# #parser = optparse.OptionParser()
-# parser = emen2.config.config.DBOptions()
-# parser.add_option("--init", action="store_true", help="Create DB_HOME directory and copy base config files")
-# parser.add_option("--create_db", action="store_true", help="After editing config file, create initial DB_HOME environment")
-# (options, args) = parser.parse_args(lc=False, args=sys.argv)
-# 
-# # 
-# # if len(args) < 2:
-# # 	raise ValueError, "Need target DB_HOME directory"
-# # 	
-# # 
-
 command = sys.argv[1]
-dbpath = sys.argv[2]
 
 
 if command == "init":
+
+	parser = optparse.OptionParser(add_help_option=False)
+	parser.add_option("-h", "--home", type="string", help="DB_Home")
+	parser.add_option('--help', action="help", help="Print help message")
+	(options, args) = parser.parse_args(sys.argv[1:])
+
+	dbpath = options.home
 	
 	if os.path.exists(dbpath):
 		raise Exception, "Existing DB Environment: %s"%dbpath
