@@ -230,7 +230,7 @@ class DB(object):
 			os.makedirs(self.path)
 
 
-		for path in ["/main", "/security", "/index", "/index/security", "/index/params", "/index/records", "/log", "/tmp", "/applog"]:
+		for path in ["/data", "/data/main", "/data/security", "/data/index", "/data/index/security", "/data/index/params", "/data/index/records", "/log", "/tmp", "/applog"]:
 			if not os.access(self.path + path, os.F_OK):
 				os.makedirs(self.path + path)
 
@@ -317,6 +317,13 @@ class DB(object):
 		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
 
 
+	# #@rename db.test.sleep
+	# @DBProxy.publicmethod
+	# def sleep(self, t=1, ctx=None, txn=None):
+	# 	time.sleep(t)
+
+
+	# #@rename db.test.exception
 	# @DBProxy.publicmethod
 	# def raise_exception(self, ctx=None, txn=None):
 	# 	raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
@@ -427,6 +434,7 @@ class DB(object):
 	# section: Time and Version Management
 	###############################
 
+	#@rename db.versions.get
 	@DBProxy.publicmethod
 	def checkversion(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program"""
@@ -434,6 +442,7 @@ class DB(object):
 
 
 
+	#@rename db.time.get
 	@DBProxy.publicmethod
 	def gettime(self, ctx=None, txn=None):
 		"""DB Time
@@ -453,7 +462,7 @@ class DB(object):
 	# section: Login and Context Management
 	###############################
 
-
+	#@rename db.auth.login
 	# ian: todo: complex: Is this only to be used from DBProxy? Resolve this..
 	def _login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
 		"""(DBProxy Only) Logs a given user in to the database and returns a ctxid, which can then be used for
@@ -504,21 +513,17 @@ class DB(object):
 
 
 	# Logout is the same as delete context
+
+	#@rename db.auth.logout
 	@DBProxy.publicmethod
 	def logout(self, ctx=None, txn=None):
-		"""Logout"""
-		if ctx: self.deletecontext(ctx=ctx, txn=txn)
-
-
-
-	@DBProxy.publicmethod
-	def deletecontext(self, ctx=None, txn=None):
 		"""Logout"""
 		if ctx:	self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
 
 
 
 	# ian: should always have a valid context, even if anon...
+	#@rename db.auth.whoami
 	@DBProxy.publicmethod
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
@@ -526,7 +531,7 @@ class DB(object):
 		return ctx.username, ctx.groups
 
 
-
+	#@rename db.auth.check.admin
 	@DBProxy.publicmethod
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
@@ -534,7 +539,7 @@ class DB(object):
 		return ctx.checkadmin()
 
 
-
+	#@rename db.auth.check.readadmin
 	@DBProxy.publicmethod
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
@@ -542,7 +547,7 @@ class DB(object):
 		return ctx.checkreadadmin()
 
 
-
+	#@rename db.auth.check.create
 	@DBProxy.publicmethod
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
@@ -727,12 +732,12 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
-	def newbinary(self, *args, **kwargs):
-		raise Exception, "Deprecated; use putbinary"
+	# @DBProxy.publicmethod
+	# def newbinary(self, *args, **kwargs):
+	# 	raise Exception, "Deprecated; use putbinary"
 
 
-
+	#@rename db.binary.get
 	@DBProxy.publicmethod
 	def getbinary(self, bdokeys, byrecid=False, filt=True, vts=None, params=None, ctx=None, txn=None):
 		"""Get a storage path for an existing binary object.
@@ -813,6 +818,7 @@ class DB(object):
 
 	# ian: todo: medium: clean this up some more...
 	# ian: todo: simple: implement uri kw
+	#@rename db.binary.put
 	@DBProxy.publicmethod
 	def putbinary(self, filename, recid, bdokey=None, filedata=None, filehandle=None, param=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
@@ -979,6 +985,7 @@ class DB(object):
 
 
 	# ed: todo?: key by recid
+	#@rename db.binary.list
 	@DBProxy.publicmethod
 	def getbinarynames(self, ctx=None, txn=None):
 		"""Returns a list of tuples which can produce all binary object
@@ -999,7 +1006,7 @@ class DB(object):
 	###############################
 
 
-
+	#@rename db.query.query
 	@DBProxy.publicmethod
 	def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
 		"""Query. Specify one or more keyword arguments:
@@ -1230,12 +1237,14 @@ class DB(object):
 
 
 	# ian: todo: hard: Plotting goes.. HERE. Working on it.
+	#@rename db.query.plot
 	@DBProxy.publicmethod
 	def plot(self, ctx=None, txn=None):
 		pass
 
 
 
+	#@rename db.query.user
 	@DBProxy.publicmethod
 	def finduser(self, query, limit=100, ctx=None, txn=None):
 		q = self.query(
@@ -1258,6 +1267,7 @@ class DB(object):
 
 
 	# ian: make this a class method, e.g. Group.match or query?
+	#@rename db.query.group
 	@DBProxy.publicmethod
 	def findgroup(self, query, limit=100, ctx=None, txn=None):
 		built_in = set(["anon","authenticated","create","readadmin","admin"])
@@ -1279,7 +1289,7 @@ class DB(object):
 
 
 
-
+	#@rename db.query.value
 	@DBProxy.publicmethod
 	def findvalue(self, param, query, flat=False, limit=100, count=True, showchoices=True, ctx=None, txn=None):
 		"""Convenience method for quick query for a single param. Sorted by number of matches.
@@ -1323,11 +1333,12 @@ class DB(object):
 
 
 	#########################
-	# section: Index Management
+	# section: Query / Index Management
 	#########################
 
 
 	# ian: todo: medium: Enforce filt=True in config?
+	#@rename db.query.recorddef
 	@DBProxy.publicmethod
 	def getindexbyrecorddef(self, recdef, filt=False, ctx=None, txn=None):
 		"""Records by Record Def. This is currently non-secured information.
@@ -1358,6 +1369,7 @@ class DB(object):
 
 
 	# ian todo: medium: add unit support.
+	#@rename db.query.param
 	@DBProxy.publicmethod
 	def getindexbyvalue(self, param, valrange=None, ctx=None, txn=None):
 		"""Query an indexed parameter. Return all records that contain a value, with optional value range
@@ -1391,7 +1403,7 @@ class DB(object):
 
 
 
-
+	#@rename db.query.paramdict
 	@DBProxy.publicmethod
 	def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
 		"""Query an indexed parameter.
@@ -1446,6 +1458,7 @@ class DB(object):
 
 
 	# ian: todo: simple: is this currently used anywhere? It was more or less replaced by filterpermissions. But may be useful to keep.
+	# #@rename db.query.context
 	# @DBProxy.publicmethod
 	# def getindexbycontext(self, ctx=None, txn=None):
 	# 	"""Return all readable recids
@@ -1464,6 +1477,7 @@ class DB(object):
 
 
 	# ian: todo: low priority: finish; add more stats (->Ed)
+	#@rename db.query.statistics
 	@DBProxy.publicmethod
 	def getparamstatistics(self, param, ctx=None, txn=None):
 		"""Return statistics about an (indexable) param
@@ -1491,16 +1505,17 @@ class DB(object):
 
 		inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
-		g.log.msg("LOG_COMMIT_INDEX","self.bdbs.indexkeys.truncate")
+		g.log.msg("LOG_INDEX","self.bdbs.indexkeys.truncate")
 		self.bdbs.indexkeys.truncate(txn=txn)
 
 		for k,v in inds.items():
-			g.log.msg("LOG_COMMIT_INDEX", "self.bdbs.indexkeys: rebuilding params %s"%k)
+			g.log.msg("LOG_INDEX", "self.bdbs.indexkeys: rebuilding params %s"%k)
 			pd = self.bdbs.paramdefs.get(k, txn=txn)
 			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
 
 
 
+	# ian: disabled, not sure if I want this method
 	# @DBProxy.publicmethod
 	# def getindexbyuser(self, username, ctx=None, txn=None):
 	# 	"""This will use the user keyed record read-access index to return
@@ -1550,53 +1565,6 @@ class DB(object):
 	# 	return ret
 
 
-	# @DBProxy.publicmethod
-	# def searchindexkeys(self, q=None, ignorecase=1, params=None, ctx=None, txn=None):
-	# 	"""Deprecated; use query"""
-	# 	if not q:
-	# 		return {}
-	#
-	# 	q = unicode(q)
-	# 	if ignorecase:
-	# 		q = q.lower()
-	# 		matcher = lambda x:q in unicode(x).lower()
-	# 	else:
-	# 		matcher = lambda x:q in unicode(x)
-	#
-	# 	matches = {}
-	#
-	#
-	# 	for k,v in self.bdbs.indexkeys.items(txn=txn):
-	# 		r = filter(matcher, v)
-	# 		if r: matches[k] = r
-	#
-	# 	matches2 = []
-	#
-	# 	for k,v in matches.items():
-	# 		paramindex = self.__getparamindex(k, ctx=ctx, txn=txn)
-	# 		for i in v:
-	# 			j = paramindex.get(i, txn=txn)
-	# 			for x in j:
-	# 				matches2.append((x, k, i))
-
-
-	# @DBProxy.publicmethod
-	# def getparamvalue(self, paramname, recid):
-	# 	paramname = str(paramname).lower()
-	# 	paramindex = self.__getparamindex(paramname)
-	#
-	# 	if hasattr(recid, '__iter__'):
-	# 		results = []
-	# 		for key in paramindex.keys():
-	# 			if set(paramindex[key]) & set(recid):
-	# 				results.insert(0, key)
-	# 		return results
-	#
-	# 	else:
-	# 		for key in paramindex.keys():
-	# 			if paramindex[key].pop() == recid:
-	# 				return key
-
 
 
 
@@ -1608,6 +1576,8 @@ class DB(object):
 
 
 	# ian: todo: medium: benchmark for new index system(01/10/2010)
+
+	#@rename db.records.group
 	@DBProxy.publicmethod
 	def groupbyrecorddef(self, recids, ctx=None, txn=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed
@@ -1661,6 +1631,8 @@ class DB(object):
 
 
 	# ian: todo: simple: is this unused? Decide if it's useful.
+
+	# #@rename db.records.groupbyparents
 	# @DBProxy.publicmethod
 	# def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
 	# 	"""This will group a list of record numbers based on the recordid of any parents of
@@ -1698,6 +1670,9 @@ class DB(object):
 
 
 	# ian: todo: low priority: instead of variable return format, make separate methods...
+	
+	# break this out by RelateBTree instead of keytype (but still keep keytype= as a wrapper)
+	#@rename db.<RelateBTree>.children
 	@DBProxy.publicmethod
 	def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 		"""Get child relationships. There are a number of convenience keyword arguments for speed/utility. Note flat/tree will affect return format.
@@ -1720,7 +1695,7 @@ class DB(object):
 		return self.__getrel_wrapper(key=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", filt=filt, flat=flat, tree=tree, ctx=ctx, txn=txn)
 
 
-
+	#@rename db.<RelateBTree>.parents
 	@DBProxy.publicmethod
 	def getparents(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 		"""@see getchildren"""
@@ -1731,6 +1706,7 @@ class DB(object):
 	# ian: todo: simple: raise Exception if rectype/filt on keytype=record
 	def __getrel_wrapper(self, key, keytype="record", recurse=1, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
 		"""(Internal) See getchildren/getparents."""
+
 		ol = False
 		if not hasattr(key,"__iter__"):
 			ol = True
@@ -1799,18 +1775,19 @@ class DB(object):
 
 
 
+	#@rename db.<RelateBTree>.pclinks
 	@DBProxy.publicmethod
 	def pclinks(self, links, keytype="record", ctx=None, txn=None):
 		return self.__link("pclink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
-
+	#@rename db.<RelateBTree>.pcunlinks
 	@DBProxy.publicmethod
 	def pcunlinks(self, links, keytype="record", ctx=None, txn=None):
 		return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
-
+	#@rename db.<RelateBTree>.pclink
 	@DBProxy.publicmethod
 	def pclink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Establish a parent-child relationship between two keys.
@@ -1819,7 +1796,7 @@ class DB(object):
 		return self.__link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
-
+	#@rename db.<RelateBTree>.pcunlink
 	@DBProxy.publicmethod
 	def pcunlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Remove a parent-child relationship between two keys. Returns none if link doesn't exist."""
@@ -1839,7 +1816,7 @@ class DB(object):
 			raise subsystems.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 		if filter(lambda x:x[0] == x[1], links):
-			#g.log.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
+			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
 			return
 
 		if not links:
@@ -1848,6 +1825,8 @@ class DB(object):
 		items = set(reduce(operator.concat, links, ()))
 
 		# ian: circular reference detection.
+		# ian: todo: high: turn this back on..
+		
 		#if mode=="pclink":
 		#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="parents")[0]
 		#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
@@ -1868,7 +1847,7 @@ class DB(object):
 
 
 
-	#@write #self.bdbs.recorddefs, self.bdbs.records, self.bdbs.paramdefs
+
 	def __commit_link(self, keytype, mode, links, ctx=None, txn=None):
 		"""controls access to record/paramdef/recorddef relationships"""
 
@@ -1900,6 +1879,7 @@ class DB(object):
 
 	# ian: todo: low priority/hard: reimplement cousin relationships
 
+	# #@rename db.<RelateBTree>.cousins
 	# @DBProxy.publicmethod
 	# def getcousins(self, key, keytype="record", ctx=None, txn=None):
 	# 	"""This will get the keys of the cousins of the referenced object
@@ -1923,12 +1903,13 @@ class DB(object):
 
 
 
+	# #@rename db.<RelateBTree>.link
 	# @DBProxy.publicmethod
 	# def link(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 	# 	return self.__link("link", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
-
+	# #@rename db.<RelateBTree>.unlink
 	# @DBProxy.publicmethod
 	# def unlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 	# 	return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
@@ -1954,7 +1935,7 @@ class DB(object):
 	###############################
 
 
-
+	#@rename db.users.disable
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def disableuser(self, username, ctx=None, txn=None):
@@ -1964,6 +1945,7 @@ class DB(object):
 
 
 
+	#@rename db.users.enable
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def enableuser(self, username, ctx=None, txn=None):
@@ -2010,7 +1992,7 @@ class DB(object):
 		# return [user.username for user in ret]
 
 
-
+	#@rename db.users.approve
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	@emen2.util.utils.return_list_or_single('usernames')
@@ -2129,7 +2111,7 @@ class DB(object):
 
 
 
-
+	#@rename db.users.reject
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
@@ -2162,7 +2144,7 @@ class DB(object):
 		return delusers
 
 
-
+	#@rename db.users.queue
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def getuserqueue(self, ctx=None, txn=None):
@@ -2174,7 +2156,7 @@ class DB(object):
 		return self.bdbs.newuserqueue.keys(txn=txn)
 
 
-
+	#@rename db.users.queue_get
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def getqueueduser(self, username, ctx=None, txn=None):
@@ -2193,7 +2175,7 @@ class DB(object):
 		return self.bdbs.newuserqueue.sget(username, txn=txn) # [username]
 
 
-
+	#@rename db.users.put
 	@DBProxy.publicmethod
 	def putuser(self, user, ctx=None, txn=None):
 
@@ -2219,7 +2201,7 @@ class DB(object):
 	###############################
 
 
-
+	#@rename db.users.setprivacy
 	@DBProxy.publicmethod
 	def setprivacy(self, state, username=None, ctx=None, txn=None):
 
@@ -2249,7 +2231,7 @@ class DB(object):
 		return self.__commit_users(commitusers, ctx=ctx, txn=txn)
 
 
-
+	#@rename db.users.setpassword
 	@DBProxy.publicmethod
 	def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
 
@@ -2274,7 +2256,7 @@ class DB(object):
 		self.__commit_users([user], ctx=ctx, txn=txn)
 
 
-
+	#@rename db.users.setemail
 	@DBProxy.publicmethod
 	def setemail(self, email, username=None, ctx=None, txn=None):
 
@@ -2293,7 +2275,7 @@ class DB(object):
 		self.__commit_users([user], ctx=ctx, txn=txn)
 
 
-
+	#@rename db.users.add
 	@DBProxy.publicmethod
 	def adduser(self, user, ctx=None, txn=None):
 		"""adds a new user record. However, note that this only adds the record to the
@@ -2379,7 +2361,7 @@ class DB(object):
 		#@end
 
 
-
+	#@rename db.users.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('usernames', transform=lambda d: d[d.keys()[0]])
 	def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
@@ -2435,9 +2417,7 @@ class DB(object):
 		return ret
 
 
-
-
-
+	#@rename db.users.displayname
 	@DBProxy.publicmethod
 	def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 		"""Return the full name of a user from the user record; include permissions param if perms=1"""
@@ -2486,7 +2466,7 @@ class DB(object):
 
 
 
-
+	#@rename db.users.list
 	@DBProxy.publicmethod
 	def getusernames(self, ctx=None, txn=None):
 		"""Not clear if this is a security risk, but anyone can get a list of usernames
@@ -2543,13 +2523,13 @@ class DB(object):
 	##########################
 
 
-
+	#@rename db.groups.list
 	@DBProxy.publicmethod
 	def getgroupnames(self, ctx=None, txn=None):
 		return set(self.bdbs.groups.keys(txn=txn))
 
 
-
+	#@rename db.groups.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('groups', transform=lambda d:d.values()[0])
 	def getgroup(self, groups, filt=1, ctx=None, txn=None):
@@ -2574,7 +2554,7 @@ class DB(object):
 		for user,groups in addrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -2584,7 +2564,7 @@ class DB(object):
 		for user,groups in delrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_COMMIT_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -2611,7 +2591,7 @@ class DB(object):
 
 		#@begin
 
-		g.log.msg("LOG_COMMIT_INDEX","self.bdbs.groupsbyuser: rebuilding index")
+		g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser: rebuilding index")
 
 		self.bdbs.groupsbyuser.truncate(txn=txn)
 
@@ -2645,7 +2625,7 @@ class DB(object):
 
 
 
-	#@write self.bdbs.groups, self.bdbs.groupsbyuser
+	#@rename db.groups.put
 	@DBProxy.publicmethod
 	def putgroup(self, groups, ctx=None, txn=None):
 
@@ -2679,6 +2659,7 @@ class DB(object):
 
 
 	# merge with getuser?
+	#@rename db.groups.displayname
 	@DBProxy.publicmethod
 	def getgroupdisplayname(self, groupname, ctx=None, txn=None):
 		ol = 0
@@ -2856,6 +2837,7 @@ class DB(object):
 	#########################
 
 
+	#@rename db.paramdefs.vartypes.list
 	@DBProxy.publicmethod
 	def getvartypenames(self, ctx=None, txn=None):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -2863,7 +2845,7 @@ class DB(object):
 		return self.vtm.getvartypes()
 
 
-
+	#@rename db.paramdefs.vartypes.get
 	@DBProxy.publicmethod
 	def getvartype(self, name, ctx=None, txn=None):
 		"""This returns a list of all valid variable types in the database. This is currently a
@@ -2872,7 +2854,7 @@ class DB(object):
 		#return valid_vartypes[thekey][1]
 
 
-
+	#@rename db.paramdefs.properties.get
 	@DBProxy.publicmethod
 	def getpropertynames(self, ctx=None, txn=None):
 		"""This returns a list of all valid property types in the database. This is currently a
@@ -2880,7 +2862,7 @@ class DB(object):
 		return self.vtm.getproperties()
 
 
-
+	#@rename db.paramdefs.properties.units
 	@DBProxy.publicmethod
 	def getpropertyunits(self, propname, ctx=None, txn=None):
 		"""Returns a list of known units for a particular property"""
@@ -2890,6 +2872,8 @@ class DB(object):
 
 
 	# ian: renamed addparamdef -> putparamdef for consistency
+
+	#@rename db.paramdefs.put
 	@DBProxy.publicmethod
 	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
 		"""adds a new ParamDef object, group 0 permission is required
@@ -2920,7 +2904,7 @@ class DB(object):
 				raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
 
 			if pd.vartype != paramdef.vartype:
-				g.log.msg("LOG_CRITICAL","WARNING! Changing paramdef %s vartype from %s to %s. This will REQUIRE database export/import and revalidation!!"%(paramdef.name, pd.vartype, paramdef.vartype))
+				g.log.msg("LOG_CRITICAL","WARNING! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, pd.vartype, paramdef.vartype))
 
 
 		except:
@@ -2950,7 +2934,11 @@ class DB(object):
 
 
 
-	#@write #self.bdbs.paramdefs
+	# @rename db.paramdefs.puts
+	# @DBProxy.publicmethod
+	# def putparamdefs(...):
+
+
 	def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
 
 		#@begin
@@ -2962,6 +2950,22 @@ class DB(object):
 
 
 	# ian: todo: medium: Unify getparamdef, getparamdefs into -> getparamdef. Will require lots of 1 letter changes in other code.
+	# ian todo: combine this and getparamdefs; alot of older places use this version. Keep the name 'singular' name, to match getrecord/getrecorddef/getuser
+
+	#@rename db.paramdefs.get
+	@DBProxy.publicmethod
+	def getparamdef(self, key, ctx=None, txn=None):
+		"""gets an existing ParamDef object, anyone can get any field definition"""
+		try:
+			pd = self.bdbs.paramdefs.sget(key, txn=txn) #[key]
+			if pd.vartype not in self.indexablevartypes:
+				pd.indexed = False
+			return pd
+		except:
+			raise KeyError, "Invalid param: %s"%i
+
+
+	#@rename db.paramdefs.gets
 	@DBProxy.publicmethod
 	def getparamdefs(self, recs, filt=True, ctx=None, txn=None):
 		"""Returns a list of ParamDef records.
@@ -2974,6 +2978,8 @@ class DB(object):
 
 		# ian: rewrote this to include recdef keys and perhaps be a bit faster.
 		params = set()
+		ol = False
+
 		if not hasattr(recs, "__iter__"):
 			recs = (recs,)
 
@@ -2998,36 +3004,22 @@ class DB(object):
 		paramdefs = {}
 		for i in params:
 			try:
-				pd = self.bdbs.paramdefs.sget(i, txn=txn) # [i]
+				pd = self.bdbs.paramdefs.sget(i, txn=txn)
 				if pd.vartype not in self.indexablevartypes:
 					pd.indexed = False
 				paramdefs[i] = pd
 			except:
 				if filt:
-					g.log.msg('LOG_WARNING', "WARNING: Invalid param: %s"%i)
+					g.log.msg('LOG_WARNING', "Warning: Invalid param: %s"%i)
 					pass
 				else:
-					raise Exception, "Invalid param: %s"%i
+					raise KeyError, "Invalid param: %s"%i
 
 		return paramdefs
 
 
 
-
-	# ian todo: combine this and getparamdefs; alot of older places use this version. Keep the name 'singular' name, to match getrecord/getrecorddef/getuser
-	@DBProxy.publicmethod
-	def getparamdef(self, key, ctx=None, txn=None):
-		"""gets an existing ParamDef object, anyone can get any field definition"""
-		try:
-			pd = self.bdbs.paramdefs.sget(key, txn=txn) #[key]
-			if pd.vartype not in self.indexablevartypes:
-				pd.indexed = False
-			return pd
-		except:
-			raise KeyError, "Unknown ParamDef: %s" % key
-
-
-
+	#@rename db.paramdefs.list
 	@DBProxy.publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
 		"""Returns a list of all ParamDef names"""
@@ -3054,15 +3046,10 @@ class DB(object):
 		if not create and not os.access("index/params/%s.bdb"%(paramname), os.F_OK):
 			raise KeyError, "No index for %s" % paramname
 
-		# create/open index
-		# datatype = d, record IDs
-		#indexkeys=self.bdbs.indexkeys,
-		#txn2 = self.newtxn()
 		#try:
 
-		#self.bdbs.openparamindex("index/params/%s.bdb"%(paramname), keytype=tp, datatype="d", dbenv=self.__dbenv)#, txn=txn2)
 		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.__dbenv)
-
+		
 		#except:
 		#	self.txnabort(txn=txn2)
 		#	raise
@@ -3072,8 +3059,8 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	# @DBProxy.publicmethod
+	# @DBProxy.adminmethod
 	def __closeparamindex(self, paramname, ctx=None, txn=None):
 		self.bdbs.closeparamindex(paramname)
 
@@ -3115,9 +3102,7 @@ class DB(object):
 	#########################
 
 
-
-
-
+	#@rename db.recorddefs.put
 	@DBProxy.publicmethod
 	def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update RecordDef. The mainview should
@@ -3174,8 +3159,12 @@ class DB(object):
 		return recdef.name
 
 
+	# @rename db.recorddefs.puts
+	# @DBProxy.publicmethod
+	# def putrecorddefs(self, recdef, parents=None, children=None, ctx=None, txn=None):
 
-	#@write #self.bdbs.recorddefs
+	
+
 	def __commit_recorddefs(self, recorddefs, ctx=None, txn=None):
 
 		#@begin
@@ -3186,6 +3175,7 @@ class DB(object):
 
 
 
+	#@rename db.recorddefs.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_list_or_single('rdids')
 	def getrecorddef(self, rdids, filt=True, ctx=None, txn=None):
@@ -3233,34 +3223,19 @@ class DB(object):
 
 
 
+	# #@rename db.recorddefs.gets
+	# @DBProxy.publicmethod
+	# def getrecorddefs(self, rdids, filt=True, ctx=None, txn=None):
+
+
+
+	#@rename db.recorddefs.list
 	@DBProxy.publicmethod
 	def getrecorddefnames(self, ctx=None, txn=None):
 		"""This will retrieve a list of all existing RecordDef names,
 		even those the user cannot access the contents of"""
 		return self.bdbs.recorddefs.keys(txn=txn)
 
-
-
-	# ian: todo: see findusername for notes
-	#
-	# @DBProxy.publicmethod
-	# def findrecorddefname(self, name, ctx=None, txn=None):
-	# 	"""Find a recorddef similar to the passed 'name'. Returns the actual RecordDef,
-	# 	or None if no match is found."""
-	#
-	#
-	# 	#if self.bdbs.recorddefs.has_key(name):
-	# 	if self.bdbs.recorddefs.get(name, txn=txn):
-	# 		return name
-	#
-	# 	if name[-1] == "s":
-	# 			if self.bdbs.recorddefs.has_key(name[:-1], txn=txn):
-	# 				return name[:-1]
-	# 			if name[-2] == "e" and self.bdbs.recorddefs.has_key(name[:-2], txn=txn):
-	# 				return name[:-2]
-	# 	if name[-3:] == "ing" and self.bdbs.recorddefs.has_key(name[:-3], txn=txn):
-	# 		return name[:-3]
-	# 	return None
 
 
 
@@ -3272,6 +3247,7 @@ class DB(object):
 
 	# ian: improved!
 	# ed: more improvments!
+	#@rename db.records.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_list_or_single('recids')
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
@@ -3279,6 +3255,7 @@ class DB(object):
 		if dbid is 0, the current database is used."""
 
 		if not hasattr(recids, '__iter__'):
+			filt = False
 			recids = [recids]
 
 		ret = []
@@ -3297,11 +3274,18 @@ class DB(object):
 			#	else: raise e
 
 		return ret
+		
+
+
+	# #@rename db.records.gets
+	# @DBProxy.publicmethod
+	# def getrecords(self, recids, filt=True, ctx=None, txn=None):
 
 
 
 	# ian: todo: medium: allow to copy existing record
 	# ian: todo: simple: fix init option -- breaks some units
+	#@rename db.records.new
 	@DBProxy.publicmethod
 	def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
@@ -3342,8 +3326,11 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
-	def getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
+
+	#@rename good question!
+	# I think this might be OK as an internal function
+	#@DBProxy.publicmethod
+	def __getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
 		if not hasattr(vts,"__iter__"): vts = [vts]
 
 		if not paramdefs:
@@ -3353,8 +3340,10 @@ class DB(object):
 
 
 
+
 	# ian: this might be helpful
 	# e.g.: filtervartype(136, ["user","userlist"])
+	#@rename db.records.filter.vartype
 	@DBProxy.publicmethod
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 
@@ -3373,12 +3362,12 @@ class DB(object):
 		recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
 		recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
-		params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
+		params = self.__getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
 
 		re = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
 		if flat:
-			# ian: todo: medium: replace with reduce - this is much slower and is a common operation.
+			# ian: todo: medium: replace this with something faster
 			# the reason flatten is used because some vartypes are nested lists, e.g. permissions.
 			re = self.__flatten(re)
 			return set(re)-set([None])
@@ -3387,6 +3376,7 @@ class DB(object):
 
 
 
+	#@rename db.records.check.orphans
 	@DBProxy.publicmethod
 	def checkorphans(self, recid, ctx=None, txn=None):
 		"""Find orphaned records that would occur if recid was deleted."""
@@ -3413,10 +3403,6 @@ class DB(object):
 
 		return orphaned
 
-
-
-
-
 		# For each recurse level, see if child has a parent that hasn't been seen yet.
 		# visited = set([recid])
 		# to_visit = children.get(recid, set())
@@ -3429,6 +3415,7 @@ class DB(object):
 
 
 
+	#@rename db.records.delete
 	@DBProxy.publicmethod
 	def deleterecord(self, recid, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden."""
@@ -3456,8 +3443,8 @@ class DB(object):
 
 		for i in children:
 			self.pcunlink(recid, i, ctx=ctx, txn=txn)
-
-			# ian: todo: not sure to do this or not.
+			
+			# ian: todo: not sure if I want to do this or not.
 			# c2 = self.getchildren(i, ctx=ctx, txn=txn)
 			# c2 -= set([recid])
 			# if child had more than one parent, make a note one parent was removed
@@ -3468,6 +3455,7 @@ class DB(object):
 
 
 
+	#@rename db.records.comments.add
 	@DBProxy.publicmethod
 	def addcomment(self, recid, comment, ctx=None, txn=None):
 		g.log.msg("LOG_DEBUG","addcomment %s %s"%(recid, comment))
@@ -3477,6 +3465,8 @@ class DB(object):
 		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
 
 
+
+	#@rename db.records.comments.get
 	@DBProxy.publicmethod
 	def getcomments(self, recids, ctx=None, txn=None):
 		#allcomments = self.filtervartype(recs, vts=["comments"], ctx=ctx, txn=txn)
@@ -3496,12 +3486,12 @@ class DB(object):
 
 
 	#########################
-	# section: Put Records
+	# section: Records / Put
 	#########################
 
 
 
-	# ian todo: simple: redo these three methods to use the multiple putrecord
+	#@rename db.records.putvalue
 	@DBProxy.publicmethod
 	def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 		"""Convenience method to update a single value in a record
@@ -3519,6 +3509,7 @@ class DB(object):
 
 
 
+	#@rename db.records.putvalues
 	@DBProxy.publicmethod
 	def putrecordvalues(self, recid, values, ctx=None, txn=None):
 		"""Dict.update()-like operation on a single record"""
@@ -3538,7 +3529,8 @@ class DB(object):
 		return self.getrecord(recid, ctx=ctx, txn=txn)
 
 
-
+	# ian: todo: merge this with putrecordvalues
+	#@rename db.records.putsvalues
 	@DBProxy.publicmethod
 	def putrecordsvalues(self, d, ctx=None, txn=None):
 		"""dict.update()-like operation on a number of records"""
@@ -3549,6 +3541,7 @@ class DB(object):
 		return ret
 
 
+	#@rename db.records.validate
 	@DBProxy.publicmethod
 	def validaterecord(self, recs, ctx=None, txn=None):
 		"""Validate a record before committing"""
@@ -3556,6 +3549,15 @@ class DB(object):
 		return True
 
 
+
+	# ian: todo: make existing putrecord -> putrecords, then have putrecord as wrapper into putrecords
+	# #@rename db.records.puts
+	# @DBProxy.publicmethod
+	# def putrecords
+
+
+
+	#@rename db.records.put
 	@DBProxy.publicmethod
 	def putrecord(self, recs, filt=True, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""Commit records
@@ -3805,7 +3807,7 @@ class DB(object):
 
 		for rectype,recs in rectypes.items():
 			try:
-				g.log.msg("LOG_COMMIT_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
+				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
 				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
@@ -3820,7 +3822,7 @@ class DB(object):
 		for user, recs in addrefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
+				g.log.msg("LOG_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex.addrefs(user, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -3829,7 +3831,7 @@ class DB(object):
 		for user, recs in removerefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_COMMIT_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
+				g.log.msg("LOG_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex.removerefs(user, recs, txn=txn)
 			except bsddb3.db.DBError, inst:
 				g.log.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -3848,7 +3850,7 @@ class DB(object):
 		for user, recs in addrefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
+				g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex_groups.addrefs(user, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
@@ -3857,7 +3859,7 @@ class DB(object):
 		for user, recs in removerefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_COMMIT_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
+				g.log.msg("LOG_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex_groups.removerefs(user, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
@@ -3891,7 +3893,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_COMMIT_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+					g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 					addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
@@ -3901,7 +3903,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_COMMIT_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+					g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
 					delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
@@ -4131,9 +4133,9 @@ class DB(object):
 
 		g.log.msg("LOG_INFO","Rebuilding secrindex/secrindex_groups")
 
-		g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex.truncate")
+		g.log.msg("LOG_INDEX","self.bdbs.secrindex.truncate")
 		self.bdbs.secrindex.truncate(txn=txn)
-		g.log.msg("LOG_COMMIT_INDEX","self.bdbs.secrindex_groups.truncate")
+		g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.truncate")
 		self.bdbs.secrindex_groups.truncate(txn=txn)
 
 		pos = 0
@@ -4173,6 +4175,7 @@ class DB(object):
 
 
 	# ian: I benchmarked with new index system; lowered the threshold for checking indexes. But maybe improve? 01/10/2010.
+	#@rename db.records.permissions.filter
 	@DBProxy.publicmethod
 	def filterbypermissions(self, recids, ctx=None, txn=None):
 
@@ -4208,28 +4211,32 @@ class DB(object):
 		# return set(ret)
 
 
-
+	#@rename db.records.permissions.compat_add
 	@DBProxy.publicmethod
 	def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, ctx=None, txn=None):
 		"""Maintain compat with older versions that require effort to update"""
 		self.__putrecord_setsecurity(recid, umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, ctx=ctx, txn=txn)
 
 
+	#@rename db.records.permissions.add
 	@DBProxy.publicmethod
 	def secrecordadduser(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
 
 
+	#@rename db.records.permissions.remove
 	@DBProxy.publicmethod
 	def secrecordremoveuser(self, recids, users, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
 
 
+	#@rename db.records.permissions.addgroup
 	@DBProxy.publicmethod
 	def secrecordaddgroup(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
+	#@rename db.records.permissions.removegroup
 	@DBProxy.publicmethod
 	def secrecordremovegroup(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
@@ -4291,6 +4298,7 @@ class DB(object):
 	#############################
 
 
+	#@rename db.records.render.childtree
 	@DBProxy.publicmethod
 	def renderchildtree(self, recurse=None, recid=None, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
@@ -4329,6 +4337,7 @@ class DB(object):
 
 
 	# ian: todo: simple: deprecate: still used in a few places in the js. Convenience methods go outside core?
+	#@rename db.records.render.recname
 	@DBProxy.publicmethod
 	def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 		"""Render the recname view for a record."""
@@ -4352,6 +4361,7 @@ class DB(object):
 
 	# ian: todo: hard: It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday. Consider it a convenience method.
 	# ed: ian, I think this should be moved back here.... it's not in the mission statement of the VartypeManager to do this kind of thing....
+	#@rename db.records.render.render
 	@DBProxy.publicmethod
 	def renderview(self, *args, **kwargs):
 		"""Render views"""
@@ -4370,6 +4380,7 @@ class DB(object):
 
 
 	# ian: unused?
+	#@rename db.records.render.renderall
 	# @DBProxy.publicmethod
 	# def getrecordrenderedviews(self, recid, ctx=None, txn=None):
 	# 	"""Render all views for a record."""
@@ -4394,17 +4405,32 @@ class DB(object):
 		return os.path.join(self.path, tail)
 
 
-
+	#@rename db.admin.archivelogs
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
 	def archivelogs(self, ctx=None, txn=None):
-		g.log.msg('LOG_INFO', "checkpointing")
+		g.log.msg('LOG_INFO', "Log Archive: Checkpointing")
 		self.__dbenv.txn_checkpoint()
 		archivefiles = self.__dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 		if not os.access(g.ARCHIVEPATH, os.F_OK):
 			os.makedirs(g.ARCHIVEPATH)
 		for file_ in archivefiles:
 			# ian: changed to copy -- safer: it's better for it to be rename
-			os.rename(file_, os.path.join(archivepath, os.path.basename(file_)))
+			outpath = os.path.join(g.ARCHIVEPATH, os.path.basename(file_))
+			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
+			os.rename(file_, outpath)
+			
 		return g.ARCHIVEPATH
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -47,6 +47,7 @@ class DBOptions(optparse.OptionParser):
 			g.from_yaml(self.values.configfile)
 		elif os.getenv("DB_HOME"):
 			g.from_yaml(os.getenv("DB_HOME")+"/config.yml")
+			g.EMEN2DBPATH = os.getenv("DB_HOME")
 		else:
 			g.from_yaml(default_config)
 
@@ -86,7 +87,7 @@ class DBOptions(optparse.OptionParser):
 												logfile=file(g.LOGROOT + '/log.log', 'a', 0),
 												get_state=False,
 												logfile_state=self.values.logfile_level,
-												just_print=self.values.log_print_only,
+												just_print=not g.DEBUG,
 												quiet = self.values.quiet)
 			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
 			g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')
