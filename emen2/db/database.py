@@ -230,7 +230,7 @@ class DB(object):
 			os.makedirs(self.path)
 
 
-		for path in ["/data", "/data/main", "/data/security", "/data/index", "/data/index/security", "/data/index/params", "/data/index/records", "/log", "/tmp", "/applog"]:
+		for path in ["/data", "/data/main", "/data/security", "/data/index", "/data/index/security", "/data/index/params", "/data/index/records", "/log", "/tmp"]:
 			if not os.access(self.path + path, os.F_OK):
 				os.makedirs(self.path + path)
 
@@ -268,6 +268,7 @@ class DB(object):
 			raise
 		finally:
 			self.txncommit(txn=txn)
+
 
 		# g.log_init('DB logfile:', self.logfile)
 		# g.log.add_output('ALL', file(self.logfile, "a"), current_file=True)
