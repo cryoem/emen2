@@ -806,7 +806,6 @@ class DB(object):
 		byrec = collections.defaultdict(list)
 
 		for bdokey in bids:
-			print 4, bdokey
 
 			try:
 				dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
@@ -829,7 +828,6 @@ class DB(object):
 				if filt: continue
 				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
 			
-			print 5
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
