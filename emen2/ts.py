@@ -29,7 +29,7 @@ class newThreadPool(threadpool.ThreadPool):
 		# 		firstJob = None
 
 		self.counter += 1
-		db = emen2.Database.DBProxy.DBProxy()
+		db = emen2.Database.DBProxy.DBProxy(dbpath=g.EMEN2DBPATH)
 		newThread = threading.Thread(target=self._worker, args=(db,self.counter))
 
 		self.threads.append(newThread)

@@ -5,16 +5,7 @@ try:
 	from emen2.util.listops import adj_dict
 except ImportError: pass
 import functools
-
-class prop(property):
-    '''apply prop.init to a function that returns a dictionary with keys
-    fget, fset, and/or fdel in order to create a property'''
-    @classmethod
-    def init(cls, func):
-        result = cls(**func())
-        return result
-
-
+import itertools
 
 class BaseDecorator(object):
     def __init__(self, func):
@@ -30,15 +21,6 @@ class BaseDecorator(object):
         result = self.func(*args, **kwargs)
         self.after_hook()
         return result
-
-class EscapedFun(BaseDecorator):
-    def __call__(self, *args, **kwargs):
-        return cgi.escape(self.func(*args, **kwargs))
-
-class ReturnWithMimeType(BaseDecorator):
-    "DO NOT USE!!! subclass and use a metaclass to declare the mime type to return as"
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs), self.mime_type
 
 class MultiDecorate(BaseDecorator):
     def __init__(self, decs=[]):
@@ -56,6 +38,7 @@ def get_slice(str, start, end):
     return str[start:end]
 
 
+
 class return_many_or_single(object):
 	def __init__(self, argname=1, transform=lambda x: x[0]):
 		self.__triggerarg = argname
@@ -71,13 +54,29 @@ class return_many_or_single(object):
 
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
+			# find value of controlling argument
 			trig = None
+			arg,kwarg = False,False
 			if len(args) >= self.__argpos+1:
 				trig = args[self.__argpos]
-			if self.__triggerarg in kwargs:
+				arg = True
+			elif self.__triggerarg in kwargs:
 				trig = kwargs[self.__triggerarg]
-			lst = hasattr(trig, '__iter__')
+				arg = False
+				kwarg = True
+			lst = not all(hasattr({}, x) for x in ['__iter__', 'keys'])
+
+			# convert argument to a list
+			if not lst:
+				if arg:
+					args = tuple(itertools.chain(args[:self.__argpos], [[trig]], args[self.__argpos+1:]))
+				elif kwarg:
+					kwargs[self.__triggerarg] = [trig]
+
+			# get result of function
 			result = func(*args, **kwargs)
+
+			# get result
 			if not lst:
 				try:
 					tmpresult = self.__transform(result)
@@ -87,5 +86,3 @@ class return_many_or_single(object):
 
 			return result
 		return _inner
-
-return_list_or_single = return_many_or_single

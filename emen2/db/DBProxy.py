@@ -44,9 +44,6 @@ class DBProxy(object):
 		self.__txn = None
 		self.__bound = False
 
-		if not dbpath:
-			dbpath = g.EMEN2DBPATH
-
 		if not db:
 			db = database.DB(path=dbpath)
 

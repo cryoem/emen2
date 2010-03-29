@@ -20,10 +20,15 @@ def _atexit():
 		print e
 
 
-db = emen2.Database.DBProxy.DBProxy()
+db = emen2.Database.DBProxy.DBProxy(dbpath=g.EMEN2DBPATH)
 ddb = db._DBProxy__db
 
-db._login("root", getpass.getpass())
+if g.getprivate('ROOTPW'):
+	rootpw = g.getprivate('ROOTPW')
+else:
+	rootpw = getpass.getpass()
+
+db._login("root", rootpw)
 db._starttxn()
 txn = db._gettxn()
 ctx = db._getctx()

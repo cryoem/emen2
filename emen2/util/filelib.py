@@ -20,14 +20,14 @@ class ExtFileLibrary(object):
 	registerjs = __register(js_registry)
 
 
-	@emen2.util.utils.prop.init
+	@property
 	def files():
-		fget = lambda self: self.__files
-		def fset(self, value):
-			if not hasattr(value, '__iter__'):
-				value = [value]
-			self.__files.extend(value)
-		return dict(fget=fget, fset=fset)
+		return self.__files
+	@files.setter
+	def files(self, value):
+		if not hasattr(value, '__iter__'):
+			value = [value]
+		self.__files.extend(value)
 
 	def __init__(self, dbtree):
 		self.__files = []

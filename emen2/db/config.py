@@ -17,14 +17,13 @@ def get_filename(package, resource):
 
 
 default_config = get_filename('emen2', 'config/config.base.yml')
-default_templatedirs = get_filename('emen2','TwistSupport_html/templates')
 
 
 class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
-		
+
 		kwargs["add_help_option"] = False
-		
+
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
 		self.add_option('--help', action="help", help="Print help message")
@@ -47,16 +46,16 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		
+
 		DB_HOME = os.getenv("DB_HOME")
-		g.EMEN2DBPATH = DB_HOME		
+		g.EMEN2DBPATH = DB_HOME
 
 		if self.values.home:
 			DB_HOME = self.values.home
-		
+
 		if self.values.configfile:
 			g.from_yaml(self.values.configfile)
-			
+
 		elif DB_HOME:
 			g.from_yaml(DB_HOME+"/config.yml")
 
@@ -69,7 +68,6 @@ class DBOptions(optparse.OptionParser):
 
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
-		g.TEMPLATEDIRS.append(default_templatedirs)
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
 		if self.values.log_level == None:

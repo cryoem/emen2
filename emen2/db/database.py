@@ -210,7 +210,7 @@ class DB(object):
 		self.lastctxclean = time.time()
 		self.opentime = self.__gettime()
 
-		self.path = path or g.EMEN2DBPATH
+		self.path = path
 
 
 		if not self.path:
@@ -321,6 +321,9 @@ class DB(object):
 			for v2 in v:
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
 
+		for i in skeleton.core_records.items:
+			self.putrecord(i, ctx=ctx, txn=txn)
+
 
 		for i in skeleton.core_users.items:
 			self.adduser(i, ctx=ctx, txn=txn)
@@ -330,8 +333,6 @@ class DB(object):
 			self.putgroup(i, ctx=ctx, txn=txn)
 
 
-		for i in skeleton.core_records.items:
-			self.putrecord(i, ctx=ctx, txn=txn)
 
 
 		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
@@ -389,10 +390,10 @@ class DB(object):
 
 	txncounter = 0
 
-	def newtxn(self, parent=None, ctx=None):
+	def newtxn(self, parent=None, ctx=None, flags=0):
 		"""New transaction (txns enabled). Accepts parent txn instance."""
 		# g.log.print_traceback(steps=5)
-		txn = self.dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS)
+		txn = self.dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS|flags)
 		#print "\n\nNEW TXN --> %s"%txn
 
 		try:
@@ -1024,7 +1025,8 @@ class DB(object):
 		if ctx.username == None:
 			raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
-		ret = reduce(set.union, ret, set())
+		#ret = reduce(set.union, ret, set())
+		ret = set().union(*ret)
 		return list(ret)
 
 
@@ -1089,7 +1091,8 @@ class DB(object):
 
 		# makes life simpler...
 		if not constraints:
-			ret = reduce(boolmode, subsets)
+			# ret = reduce(boolmode, subsets)
+			ret = boolmode(set(), *subsets)
 
 			if returnrecs:
 				return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
@@ -1135,7 +1138,7 @@ class DB(object):
 
 		subsets.extend(s)
 
-		ret = reduce(boolmode, subsets)
+		ret = boolmode(set(), *subsets)
 
 
 		#g.log.msg('LOG_DEBUG', "stage 3 results")
@@ -1349,7 +1352,7 @@ class DB(object):
 			return sum([i[1] for i in q_sort])
 
 		if flat:
-			return reduce(set.union, q.values())
+			return set().union(*q.values())
 
 		if limit:
 			q_sort = q_sort[:limit]
@@ -1766,7 +1769,7 @@ class DB(object):
 			# flatten, then filter by rectype and permissions.
 			# if flat=True, then done, else filter the trees
 			# ian: note: use a set() initializer for reduce to prevent exceptions when values is empty
-			allr = reduce(set.union, ret_visited.values(), set())
+			allr = set().union(ret_visited.values())
 
 			if rectype:
 				allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
@@ -2025,7 +2028,7 @@ class DB(object):
 	#@rename db.users.approve
 	@DBProxy.publicmethod
 	@DBProxy.adminmethod
-	@emen2.util.utils.return_list_or_single('usernames')
+	@emen2.util.utils.return_many_or_single('usernames')
 	def approveuser(self, usernames, secret=None, ctx=None, txn=None):
 		"""approveuser -- Approve an account either because an administrator has reviewed the application, or the user has an authorization secret"""
 
@@ -2691,16 +2694,15 @@ class DB(object):
 	# merge with getuser?
 	#@rename db.groups.displayname
 	@DBProxy.publicmethod
+	@emen2.util.utils.return_many_or_single('groupname', transform=lambda d: d.values()[0])
 	def getgroupdisplayname(self, groupname, ctx=None, txn=None):
-		ol = 0
 		if not hasattr(groupname,"__iter__"):
 			groupname = [groupname]
-			ol = 1
 
-		groups = set(filter(lambda x:isinstance(x, basestring), groupname))
-		gn_int = filter(lambda x:isinstance(x, int), groupname)
+		groups = set(x for x in groupname if isinstance(x, basestring))
+		gn_int = [x for x in groupname if isinstance(x, int)]
 		if gn_int:
-			groups |= reduce(set.union, [i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)], set())
+			groups |= set().union(*[i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)])
 
 		groups = self.getgroup(groups, ctx=ctx, txn=txn)
 
@@ -2709,7 +2711,6 @@ class DB(object):
 		for i in groups.values():
 			ret[i.name]="Group: %s"%i.name
 
-		if ol and len(ret)==1: return ret.values()[0]
 		return ret
 
 
@@ -3207,7 +3208,7 @@ class DB(object):
 
 	#@rename db.recorddefs.get
 	@DBProxy.publicmethod
-	@emen2.util.utils.return_list_or_single('rdids')
+	@emen2.util.utils.return_many_or_single('rdids')
 	def getrecorddef(self, rdids, filt=True, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
@@ -3279,15 +3280,10 @@ class DB(object):
 	# ed: more improvments!
 	#@rename db.records.get
 	@DBProxy.publicmethod
-	@emen2.util.utils.return_list_or_single('recids')
+	@emen2.util.utils.return_many_or_single('recids')
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used."""
-
-		if not hasattr(recids, '__iter__'):
-			filt = False
-			recids = [recids]
-
 		ret = []
 		for i in sorted(recids):
 			try:
@@ -3375,25 +3371,27 @@ class DB(object):
 	# e.g.: filtervartype(136, ["user","userlist"])
 	#@rename db.records.filter.vartype
 	@DBProxy.publicmethod
+	@emen2.util.utils.return_many_or_single('recs')
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
+		result = [None]
+		if recs:
+			recs2 = []
 
-		if not recs:
-			return [None]
+			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
+			ol = 0
+			if isinstance(recs,(int,dataobjects.record.Record)):
+				ol = 1
+				recs = [recs]
 
-		recs2 = []
+			# get the records...
+			recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
+			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
-		# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
-		ol = 0
-		if isinstance(recs,(int,dataobjects.record.Record)):
-			ol = 1
-			recs = [recs]
+			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
 
-		# get the records...
-		recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
-		recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
+			result = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
 		params = self.__getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
-
 		re = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
 		if flat:
@@ -3427,7 +3425,7 @@ class DB(object):
 				saved.add(child)
 
 		children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)
-		children_saved_set = reduce(set.union, children_saved.values()+[set(children_saved.keys())], set())
+		children_saved_set = set().union( *(children_saved.values()+[set(children_saved.keys())], set()) )
 
 		orphaned -= children_saved_set
 
@@ -3589,6 +3587,7 @@ class DB(object):
 
 	#@rename db.records.put
 	@DBProxy.publicmethod
+	@emen2.util.utils.return_many_or_single('recs')
 	def putrecord(self, recs, filt=True, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""Commit records
 
@@ -3606,11 +3605,7 @@ class DB(object):
 			raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 		# filter input for dicts/records
-		ol = False
-		if isinstance(recs,(dataobjects.record.Record,dict)):
-			ol = True
-			recs = [recs]
-		elif not hasattr(recs, 'extend'):
+		if not hasattr(recs, 'extend'):
 			recs = list(recs)
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
@@ -3619,9 +3614,7 @@ class DB(object):
 
 		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
 
-		if ol and len(ret) > 0:
-			return ret[0]
-
+		g.debug(ret)
 		return ret
 
 
@@ -4353,7 +4346,7 @@ class DB(object):
 				children[i] = new
 				stack[x+1] |= new
 
-		a = reduce(set.union, stack, set())
+		a = set().union(stack)
 		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
 		rendered_path = {}
 
