@@ -212,6 +212,7 @@ class DB(object):
 
 		self.path = path or g.EMEN2DBPATH
 
+
 		if not self.path:
 			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
 
@@ -235,13 +236,13 @@ class DB(object):
 			os.makedirs(self.path)
 
 
-		for path in ["/data", "/data/main", "/data/security", "/data/index", "/data/index/security", "/data/index/params", "/data/index/records", "/log", "/tmp"]:
-			if not os.access(os.path.join(self.path, path), os.F_OK):
+		for path in ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "tmp"]:
+			if not os.path.exists(os.path.join(self.path, path)):
 				g.log.msg("LOG_INIT","Creating directory: %s"%os.path.join(self.path, path))
 				os.makedirs(os.path.join(self.path, path))
 
 
-		if not os.access(os.path.join(self.path,"DB_CONFIG")):
+		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")): #os.F_OK
 			infile = emen2.config.config.get_filename('emen2', 'config/DB_CONFIG.sample')
 			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))	
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
@@ -2991,7 +2992,7 @@ class DB(object):
 				pd.indexed = False
 			return pd
 		except:
-			raise KeyError, "Invalid param: %s"%i
+			raise KeyError, "Invalid param: %s"%key
 
 
 	#@rename db.paramdefs.gets
