@@ -236,9 +236,17 @@ class DB(object):
 
 
 		for path in ["/data", "/data/main", "/data/security", "/data/index", "/data/index/security", "/data/index/params", "/data/index/records", "/log", "/tmp"]:
-			if not os.access(self.path + path, os.F_OK):
-				os.makedirs(self.path + path)
+			if not os.access(os.path.join(self.path, path), os.F_OK):
+				g.log.msg("LOG_INIT","Creating directory: %s"%os.path.join(self.path, path))
+				os.makedirs(os.path.join(self.path, path))
 
+
+		if not os.access(os.path.join(self.path,"DB_CONFIG")):
+			infile = emen2.config.config.get_filename('emen2', 'config/DB_CONFIG.sample')
+			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))	
+			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
+			
+			
 
 		# Open DB environment; check if global DBEnv has been opened yet
 		global DBENV
