@@ -304,7 +304,16 @@ class DB(object):
 
 		# typically uses SpecialRootContext
 		import skeleton
+
 		ctx = self.__makerootcontext(txn=txn, host="localhost")
+
+		try:
+			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
+			raise ValueError, "Found root user. This environment has already been initialized."
+		except KeyError:
+			pass
+
+
 		rootpw = getpass.getpass("root password for new database:")
 
 
@@ -2109,8 +2118,10 @@ class DB(object):
 					rec[k] = v
 
 				#g.log.msg('LOG_DEBUG', "putting record...")
+				print rec
 				rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
-
+				print rec
+				
 				# ian: todo: low priority: turning this off for now..
 				#g.log.msg('LOG_DEBUG', "creating child records")
 				#children = user.create_childrecords()
@@ -4464,32 +4475,32 @@ class DB(object):
 		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
 		self.dbenv.txn_checkpoint()
 		
-		if os.path.exists(g.HOTBACKUP):
-			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"
+		if os.path.exists(g.BACKUPPATH):
+			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.BACKUPPATH
 		
 		# ian: just use shutil.copytree
-		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.HOTBACKUP, "data")))
-		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.HOTBACKUP, "data"))
+		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data")))
+		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data"))
 
 		for i in ["config.yml","DB_CONFIG"]:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.HOTBACKUP, i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.HOTBACKUP, i))			
+			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i))			
 		
 		
-		os.makedirs(os.path.join(g.HOTBACKUP, "log"))
+		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
 		
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i))					
+			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))					
 				
 				
 		# archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_DATA | bsddb3.db.DB_ARCH_ABS)
-		# os.makedirs(g.HOTBACKUP)
+		# os.makedirs(g.BACKUPPATH)
 		# for i in archivefiles:
 		# 	outpath = i.replace(g.EMEN2DBPATH,"")
-		# 	outpath = "%s/%s"%(g.HOTBACKUP, outpath)
+		# 	outpath = "%s/%s"%(g.BACKUPPATH, outpath)
 		# 	g.log.msg('LOG_INFO','Cold Backup: %s -> %s'%(i, outpath))
 		# 
 		# 	if not os.path.exists(os.path.dirname(outpath)):
@@ -4504,8 +4515,8 @@ class DB(object):
 		
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.HOTBACKUP, "log", i))					
+			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))					
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 

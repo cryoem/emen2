@@ -40,7 +40,6 @@ import sys
 # 
 # elif command == "create":
 
-
 import emen2.globalns
 from emen2.config.config import g, DBOptions
 

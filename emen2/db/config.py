@@ -84,8 +84,8 @@ class DBOptions(optparse.OptionParser):
 			self.values.logfile_level = kw.get('logfile_level', 'LOG_ERROR')
 
 
-		if not os.path.exists(g.LOGROOT):
-			os.makedirs(g.LOGROOT)
+		if not os.path.exists(g.LOGPATH):
+			os.makedirs(g.LOGPATH)
 
 
 		try:
@@ -98,7 +98,7 @@ class DBOptions(optparse.OptionParser):
 			g.LOG_DEBUG = emen2.subsystems.debug.DebugState.debugstates.LOG_DEBUG
 
 			g.log = emen2.subsystems.debug.DebugState(output_level=self.values.log_level,
-												logfile=file(g.LOGROOT + '/log.log', 'a', 0),
+												logfile=file(g.LOGPATH + '/log.log', 'a', 0),
 												get_state=False,
 												logfile_state=self.values.logfile_level,
 												just_print=self.values.log_print_only,
@@ -110,7 +110,7 @@ class DBOptions(optparse.OptionParser):
 			g.log_info = functools.partial(g.log.msg, 'LOG_INFO')
 			g.debug = functools.partial(g.log.msg, 'LOG_DEBUG')
 
-			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGROOT + '/access.log', 'a', 0))
+			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
 
 			g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 
