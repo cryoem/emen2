@@ -101,7 +101,7 @@ class DBOptions(optparse.OptionParser):
 												logfile=file(g.LOGROOT + '/log.log', 'a', 0),
 												get_state=False,
 												logfile_state=self.values.logfile_level,
-												just_print=not g.DEBUG,
+												just_print=self.values.log_print_only,
 												quiet = self.values.quiet)
 			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
 			g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')

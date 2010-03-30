@@ -29,6 +29,7 @@ else:
 	rootpw = getpass.getpass()
 
 db._login("root", rootpw)
+
 db._starttxn()
 txn = db._gettxn()
 ctx = db._getctx()
