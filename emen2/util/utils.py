@@ -44,32 +44,40 @@ class return_many_or_single(object):
 		self.__triggerarg = argname
 		self.__transform = transform
 
+	def get_trig(self, args, kwargs):
+		'find value of controlling argument'
+		trig = None
+		arg,kwarg = False,False
+		if len(args) >= self.__argpos+1:
+			trig = args[self.__argpos]
+			arg = True
+		elif self.__triggerarg in kwargs:
+			trig = kwargs[self.__triggerarg]
+			kwarg = True
+		return trig, arg, kwarg
+
 	def __call__(self, func):
-		func_argnames = func.func_code.co_varnames[:func.func_code.co_argcount]
+		func_ = func
+		if hasattr(func, 'func'): func_ = func.func
+		func_argnames = func_.func_code.co_varnames[:func_.func_code.co_argcount]
+
 		if isinstance(self.__triggerarg, int):
 			self.__argpos = self.__triggerarg
 			self.__triggerarg = func_argnames[self.__triggerarg]
 		else:
 			self.__argpos = func_argnames.index(self.__triggerarg)
 
-		@functools.wraps(func)
+		@functools.wraps(func_)
 		def _inner(*args, **kwargs):
-			# find value of controlling argument
-			trig = None
-			arg,kwarg = False,False
-			if len(args) >= self.__argpos+1:
-				trig = args[self.__argpos]
-				arg = True
-			elif self.__triggerarg in kwargs:
-				trig = kwargs[self.__triggerarg]
-				arg = False
-				kwarg = True
-			lst = not all(hasattr({}, x) for x in ['__iter__', 'keys'])
+			trig, arg, kwarg = self.get_trig(args, kwargs)
 
 			# convert argument to a list
+			lst = hasattr(trig, '__iter__')
+			lst = lst and not hasattr(trig, 'keys')
 			if not lst:
 				if arg:
-					args = tuple(itertools.chain(args[:self.__argpos], [[trig]], args[self.__argpos+1:]))
+					args = args[:self.__argpos], [ [trig] ], args[self.__argpos+1:]
+					args = tuple(itertools.chain(*args))
 				elif kwarg:
 					kwargs[self.__triggerarg] = [trig]
 
@@ -80,7 +88,8 @@ class return_many_or_single(object):
 			if not lst:
 				try:
 					tmpresult = self.__transform(result)
-				except Exception, e: pass #g.debug('__transform failed:',e)
+				except Exception, e:
+					if g.DEBUG: g.warn('__transform failed:',e, 'on result: %r' % result)
 				else:
 					result = tmpresult
 

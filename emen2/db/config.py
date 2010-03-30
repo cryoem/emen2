@@ -103,12 +103,14 @@ class DBOptions(optparse.OptionParser):
 												logfile_state=self.values.logfile_level,
 												just_print=self.values.log_print_only,
 												quiet = self.values.quiet)
+
 			g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
 			g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')
 			g.warn = functools.partial(g.log.msg, 'LOG_WARNING')
 			g.log_init = functools.partial(g.log.msg, 'LOG_INIT')
 			g.log_info = functools.partial(g.log.msg, 'LOG_INFO')
 			g.debug = functools.partial(g.log.msg, 'LOG_DEBUG')
+			g.debug_func = g.log.debug_func
 
 			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
 

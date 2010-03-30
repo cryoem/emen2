@@ -28,7 +28,10 @@ if g.getprivate('ROOTPW'):
 else:
 	rootpw = getpass.getpass()
 
-db._login("root", rootpw)
+try:
+	db._login("root", rootpw)
+except:
+	g.log_init('login failed')
 
 db._starttxn()
 txn = db._gettxn()

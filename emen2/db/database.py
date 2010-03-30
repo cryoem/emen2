@@ -244,14 +244,14 @@ class DB(object):
 
 		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")): #os.F_OK
 			infile = emen2.config.config.get_filename('emen2', 'config/DB_CONFIG.sample')
-			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))	
+			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
-			
-			
+
+
 
 		# Open DB environment; check if global DBEnv has been opened yet
 		global DBENV
-		
+
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
@@ -259,13 +259,13 @@ class DB(object):
 			DB.opendbs[self] = 1
 
 		self.dbenv = DBENV
-		
-		
+
+
 		# If we are just doing backups or maintenance, don't open any BDB handles
 		if not bdbopen:
 			return
-			
-			
+
+
 		# Open Database
 		txn = self.newtxn()
 		try:
@@ -783,7 +783,7 @@ class DB(object):
 		@exception KeyError, SecurityError
 		"""
 
-		
+
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ret = {}
 		bids = []
@@ -808,16 +808,16 @@ class DB(object):
 		# print "bids"
 		# print bids
 		# print "--"
-		# 
+		#
 		# print "crash?"
 		bids.extend(x for x in bdokeys if isinstance(x, basestring))
-		
+
 		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=1, ctx=ctx, txn=txn))
 		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
-		
+
 		if recs:
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
-		
+
 		# filtered list of bdokeys
 		bids = filter(lambda x:isinstance(x, basestring), bids)
 
@@ -846,7 +846,7 @@ class DB(object):
 			except emen2.Database.subsystems.exceptions.SecurityError:
 				if filt: continue
 				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
-			
+
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -1712,7 +1712,7 @@ class DB(object):
 
 
 	# ian: todo: low priority: instead of variable return format, make separate methods...
-	
+
 	# break this out by RelateBTree instead of keytype (but still keep keytype= as a wrapper)
 	#@rename db.<RelateBTree>.children
 	@DBProxy.publicmethod
@@ -1868,7 +1868,7 @@ class DB(object):
 
 		# ian: circular reference detection.
 		# ian: todo: high: turn this back on..
-		
+
 		#if mode=="pclink":
 		#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="parents")[0]
 		#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
@@ -2121,7 +2121,7 @@ class DB(object):
 				print rec
 				rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
 				print rec
-				
+
 				# ian: todo: low priority: turning this off for now..
 				#g.log.msg('LOG_DEBUG', "creating child records")
 				#children = user.create_childrecords()
@@ -3091,7 +3091,7 @@ class DB(object):
 		#try:
 
 		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv)
-		
+
 		#except:
 		#	self.txnabort(txn=txn2)
 		#	raise
@@ -3205,7 +3205,7 @@ class DB(object):
 	# @DBProxy.publicmethod
 	# def putrecorddefs(self, recdef, parents=None, children=None, ctx=None, txn=None):
 
-	
+
 
 	def __commit_recorddefs(self, recorddefs, ctx=None, txn=None):
 
@@ -3225,8 +3225,6 @@ class DB(object):
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access"""
 
-		if not hasattr(rdids,"__iter__"):
-			rdids = [rdids]
 
 		ret = []
 		for rdid in rdids:
@@ -3311,7 +3309,7 @@ class DB(object):
 			#	else: raise e
 
 		return ret
-		
+
 
 
 	# #@rename db.records.gets
@@ -3482,7 +3480,7 @@ class DB(object):
 
 		for i in children:
 			self.pcunlink(recid, i, ctx=ctx, txn=txn)
-			
+
 			# ian: todo: not sure if I want to do this or not.
 			# c2 = self.getchildren(i, ctx=ctx, txn=txn)
 			# c2 -= set([recid])
@@ -3617,7 +3615,10 @@ class DB(object):
 
 		# filter input for dicts/records
 		if not hasattr(recs, 'extend'):
-			recs = list(recs)
+			if isinstance(recs, dataobjects.record.Record):
+				recs = [recs]
+			else:
+				recs = list(recs)
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
 		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
@@ -3625,7 +3626,6 @@ class DB(object):
 
 		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
 
-		g.debug(ret)
 		return ret
 
 
@@ -3748,7 +3748,7 @@ class DB(object):
 	def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, commit=True, ctx=None, txn=None):
 
 		rectypes = collections.defaultdict(list)
-		newrecs = filter(lambda x:x.recid < 0, crecs)
+		newrecs = [x for x in crecs if x.recid < 0]
 		recmap = {}
 
 		# Fetch the old records for calculating index updates. Set RMW flags.
@@ -3844,7 +3844,7 @@ class DB(object):
 				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
 				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
 				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r DEBUG: DONE"%(rectype, recs))
-				
+
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
 				raise
@@ -4467,56 +4467,54 @@ class DB(object):
 			else:
 				g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
 				shutil.copy(file_, outpath)
-			
+
 
 
 
 	def coldbackup(self, ctx=None, txn=None):
 		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
 		self.dbenv.txn_checkpoint()
-		
 		if os.path.exists(g.BACKUPPATH):
 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.BACKUPPATH
-		
 		# ian: just use shutil.copytree
 		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data")))
 		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data"))
 
 		for i in ["config.yml","DB_CONFIG"]:
 			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i))			
-		
-		
+			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i))
+
+
 		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
-		
+
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
 			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))					
-				
-				
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+
+
 		# archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_DATA | bsddb3.db.DB_ARCH_ABS)
 		# os.makedirs(g.BACKUPPATH)
 		# for i in archivefiles:
 		# 	outpath = i.replace(g.EMEN2DBPATH,"")
 		# 	outpath = "%s/%s"%(g.BACKUPPATH, outpath)
 		# 	g.log.msg('LOG_INFO','Cold Backup: %s -> %s'%(i, outpath))
-		# 
+		#
 		# 	if not os.path.exists(os.path.dirname(outpath)):
 		# 		os.makedirs(os.path.dirname(outpath))
-		# 
+		#
 		# 	shutil.copy(i, outpath)
-									
-						
-	def hotbackup(self, ctx=None, txn=None):	
+
+
+	def hotbackup(self, ctx=None, txn=None):
 		g.log.msg('LOG_INFO', "Hot Backup: Log archive")
 		self.archivelogs(ctx=ctx, txn=txn)
-		
+
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
 			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))					
+			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 
