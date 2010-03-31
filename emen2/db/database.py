@@ -3247,7 +3247,6 @@ class DB(object):
 			except KeyError:
 				raise KeyError, "No such RecordDef '%s'"%recorddef
 
-			print "Setting Context"
 			rd.setContext(ctx)
 
 
