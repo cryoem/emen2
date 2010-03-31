@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 from __future__ import with_statement
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
@@ -192,3 +193,4 @@ def test():
 
 if __name__ == '__main__':
 	test()
+__version__ = "$Revision$"
