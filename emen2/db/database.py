@@ -2596,21 +2596,21 @@ class DB(object):
 		for user,groups in addrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","__groupsbyuser key: %r, addrefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, addrefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, addrefs %s"%(user, groups))
+				g.log.msg("LOG_CRITICAL", "Could not update self.bdbs.groupsbyuser key: %s, addrefs %s"%(user, groups))
 				raise
 
 		for user,groups in delrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","__groupsbyuser key: %r, removerefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, removerefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update __groupsbyuser key: %s, removerefs %s"%(user, groups))
+				g.log.msg("LOG_CRITICAL", "Could not update self.bdbs.groupsbyuser key: %s, removerefs %s"%(user, groups))
 				raise
 
 
@@ -4313,7 +4313,6 @@ class DB(object):
 		# change child perms
 		if recurse:
 			recids |= self.getchildren(recids, recurse=recurse, filt=True, flat=True, ctx=ctx, txn=txn)
-
 
 
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
