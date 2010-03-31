@@ -1097,10 +1097,12 @@ class DB(object):
 			subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
 
 
+
 		# makes life simpler...
 		if not constraints:
 			# ret = reduce(boolmode, subsets)
-			ret = boolmode(set(), *subsets)
+			ret = boolmode(*subsets) #set()
+
 
 			if returnrecs:
 				return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
@@ -1146,7 +1148,7 @@ class DB(object):
 
 		subsets.extend(s)
 
-		ret = boolmode(set(), *subsets)
+		ret = boolmode(*subsets) #set(), 
 
 
 		#g.log.msg('LOG_DEBUG', "stage 3 results")
