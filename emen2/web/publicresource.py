@@ -278,8 +278,11 @@ class PublicView(Resource):
 		with db._setcontext(ctxid,host):
 			ret, headers = callback(db=db)
 			if headers.get('content-type') != "image/jpeg":
-				ret = unicode(ret).encode('utf-8')
-
+				try:
+					ret = unicode(ret).encode('utf-8')
+				except Exception, e:
+					g.log.msg('LOG_ERROR',"couldn't encode ret: mimetype %s, %s"%(headers.get('content-type'), e))
+	
 
 		return ret, headers
 
