@@ -18,7 +18,6 @@ def get_filename(package, resource):
 
 default_config = get_filename('emen2', 'config/config.base.yml')
 
-
 class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
 
@@ -46,7 +45,7 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-
+		
 		DB_HOME = os.getenv("DB_HOME")
 		g.EMEN2DBPATH = DB_HOME
 
@@ -57,7 +56,7 @@ class DBOptions(optparse.OptionParser):
 			g.from_yaml(self.values.configfile)
 
 		elif DB_HOME:
-			g.from_yaml(DB_HOME+"/config.yml")
+			g.from_yaml(os.path.join(DB_HOME, "config.yml"))
 
 		else:
 			g.from_yaml(default_config)
@@ -68,6 +67,10 @@ class DBOptions(optparse.OptionParser):
 
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
+		if g.TEMPLATEDIRS_DEFAULT:
+			g.TEMPLATEDIRS.append(get_filename('emen2','TwistSupport_html/templates'))
+
+
 		g.VIEWPATHS.extend(self.values.viewdirs or [])
 
 		if self.values.log_level == None:

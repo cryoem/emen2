@@ -210,8 +210,7 @@ class DB(object):
 		self.lastctxclean = time.time()
 		self.opentime = self.__gettime()
 
-		self.path = path
-
+		self.path = path or g.EMEN2DBPATH
 
 		if not self.path:
 			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
@@ -1778,7 +1777,7 @@ class DB(object):
 			# flatten, then filter by rectype and permissions.
 			# if flat=True, then done, else filter the trees
 			# ian: note: use a set() initializer for reduce to prevent exceptions when values is empty
-			allr = set().union(ret_visited.values())
+			allr = set().union(*ret_visited.values())
 
 			if rectype:
 				allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
@@ -2118,10 +2117,7 @@ class DB(object):
 					rec[k] = v
 
 				#g.log.msg('LOG_DEBUG', "putting record...")
-				print rec
-				rec = self.putrecord([rec], ctx=tmpctx, txn=txn)[0]
-				print rec
-
+				rec = self.putrecord(rec, ctx=tmpctx, txn=txn)
 				# ian: todo: low priority: turning this off for now..
 				#g.log.msg('LOG_DEBUG', "creating child records")
 				#children = user.create_childrecords()
@@ -3225,8 +3221,8 @@ class DB(object):
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access"""
 
-
 		ret = []
+		
 		for rdid in rdids:
 
 			if isinstance(rdid, int):
@@ -3244,8 +3240,10 @@ class DB(object):
 
 			recorddef = recorddef.lower()
 
-			try: rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
-			except KeyError: raise KeyError, "No such RecordDef '%s'"%recorddef
+			try:
+				rd = self.bdbs.recorddefs.sget(recorddef, txn=txn)
+			except KeyError:
+				raise KeyError, "No such RecordDef '%s'"%recorddef
 
 			rd.setContext(ctx)
 
@@ -3293,6 +3291,7 @@ class DB(object):
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 		if dbid is 0, the current database is used."""
+
 		ret = []
 		for i in sorted(recids):
 			try:
@@ -3396,7 +3395,7 @@ class DB(object):
 			recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
-			params = self.getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
+			params = self.__getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
 
 			result = [[rec.get(pd) for pd in params if rec.get(pd)] for rec in recs2]
 
@@ -3614,13 +3613,17 @@ class DB(object):
 			raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 		# filter input for dicts/records
-		if not hasattr(recs, 'extend'):
-			if isinstance(recs, dataobjects.record.Record):
-				recs = [recs]
-			else:
-				recs = list(recs)
+		# if not hasattr(recs, 'extend'):
+		#	recs = [recs] # list(recs)
+
+		# if not hasattr(recs, 'extend'):
+		# 	if isinstance(recs, dataobjects.record.Record):
+		# 		recs = [recs]
+		# 	else:
+		# 		recs = list(recs)
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
+		
 		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
 		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
 
@@ -4357,7 +4360,7 @@ class DB(object):
 				children[i] = new
 				stack[x+1] |= new
 
-		a = set().union(stack)
+		a = set().union(*stack)
 		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
 		rendered_path = {}
 
@@ -4441,41 +4444,68 @@ class DB(object):
 		return os.path.join(self.path, tail)
 
 
+	def checkpoint(self, ctx=None, txn=None):
+		return self.dbenv.txn_checkpoint()
 
 	#@rename db.admin.archivelogs
 	# @DBProxy.publicmethod
 	# @DBProxy.adminmethod
-	def archivelogs(self, checkpoint=True, remove=False, ctx=None, txn=None):
+	def archivelogs(self, remove=False, ctx=None, txn=None):
 
-		if checkpoint:
-			g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
-			self.dbenv.txn_checkpoint()
+		# if checkpoint:
+		# 	g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
+		# 	self.dbenv.txn_checkpoint()
 
 		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS) # |  bsddb3.db.DB_ARCH_LOG
 
 		if not os.access(g.ARCHIVEPATH, os.F_OK):
 			os.makedirs(g.ARCHIVEPATH)
 
+		if remove:
+			return self.__removelogs(archivefiles)
+
+		self.__archivelogs(archivefiles)
+
+
+			
+	def __archivelogs(self, files):
+		outpaths = []
 		for file_ in archivefiles:
 			# ian: changed to copy -- safer: it's better for it to be rename
 			outpath = os.path.join(g.ARCHIVEPATH, os.path.basename(file_))
-			if remove:
-				if not os.path.exists(outpath):
-					raise ValueError, "Log Archive: %s not found in backup archive!!"%(file_)
-				g.log.msg('LOG_INFO','Log Archive: Removing %s'%(file_))
-				os.unlink(file_)
-			else:
-				g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
-				shutil.copy(file_, outpath)
+			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
+			shutil.copy(file_, outpath)
+			outpaths.append(outpath)
+		return outpaths
 
 
 
+	def __removelog(self, files):
+		removefiles = []
+		
+		# ian: check if all files are in the archive before we remove any
+		for file_ in files:
+			if not os.path.exists(outpath):
+				raise ValueError, "Log Archive: %s not found in backup archive!"%(file_)
+			removefiles.append(file_)
+		
+		for file_ in removefiles:
+			g.log.msg('LOG_INFO','Log Archive: Removing %s'%(file_))
+			os.unlink(file_)
 
-	def coldbackup(self, ctx=None, txn=None):
+		return removefiles
+	
+
+
+	def coldbackup(self, force=False, ctx=None, txn=None):
 		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
-		self.dbenv.txn_checkpoint()
+		self.checkpoint(ctx=ctx, txn=txn)
 		if os.path.exists(g.BACKUPPATH):
-			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.BACKUPPATH
+			if force:
+				pass
+			else:
+				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.BACKUPPATH
+		
 		# ian: just use shutil.copytree
 		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data")))
 		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data"))
@@ -4486,7 +4516,8 @@ class DB(object):
 
 
 		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
-
+		
+		# Get the last log file
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
@@ -4505,17 +4536,23 @@ class DB(object):
 		# 		os.makedirs(os.path.dirname(outpath))
 		#
 		# 	shutil.copy(i, outpath)
+									
+									
+						
+	def hotbackup(self, ctx=None, txn=None):	
+		g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
+		self.checkpoint(ctx=ctx, txn=txn)
 
-
-	def hotbackup(self, ctx=None, txn=None):
-		g.log.msg('LOG_INFO', "Hot Backup: Log archive")
-		self.archivelogs(ctx=ctx, txn=txn)
-
+		g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
+		
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
 			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
 			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
+		
+		g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
+
 
 

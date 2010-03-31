@@ -294,7 +294,7 @@ function newrecord_getoptionsandcommit(self, values) {
 		values,
 		parents,
 		function(recid){
-			notify_post(EMEN2WEBROOT+'/db/record/'+recid.recid+'/',["Record Saved"]);
+			notify_post(EMEN2WEBROOT+'/db/record/'+recid["recid"]+'/',["Record Saved"]);
 		}
 	);
 	

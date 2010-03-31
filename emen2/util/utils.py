@@ -69,11 +69,20 @@ class return_many_or_single(object):
 
 		@functools.wraps(func_)
 		def _inner(*args, **kwargs):
+
 			trig, arg, kwarg = self.get_trig(args, kwargs)
+
+			# ian: integers, strings, dicts, and DBObjects get turned into lists.
+			#		others (sets, lists, tuples, etc.) are passed unchanged
+
+			# lst = hasattr(trig, "__iter__") # first, check if it's an iterable
+			# if lst:
+			# 	lst = not hasattr(trig, "keys") # then exclude dictionaries
 
 			# convert argument to a list
 			lst = hasattr(trig, '__iter__')
 			lst = lst and not hasattr(trig, 'keys')
+
 			if not lst:
 				if arg:
 					args = args[:self.__argpos], [ [trig] ], args[self.__argpos+1:]
@@ -83,6 +92,7 @@ class return_many_or_single(object):
 
 			# get result of function
 			result = func(*args, **kwargs)
+
 
 			# get result
 			if not lst:
@@ -95,3 +105,7 @@ class return_many_or_single(object):
 
 			return result
 		return _inner
+		
+		
+		
+		

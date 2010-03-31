@@ -21,8 +21,9 @@ class ExtFileLibrary(object):
 
 
 	@property
-	def files():
+	def files(self):
 		return self.__files
+
 	@files.setter
 	def files(self, value):
 		if not hasattr(value, '__iter__'):
