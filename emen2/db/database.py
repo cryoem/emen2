@@ -3218,7 +3218,7 @@ class DB(object):
 	#@rename db.recorddefs.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('rdids')
-	def getrecorddef(self, rdids, filt=True, ctx=None, txn=None):
+	def getrecorddef(self, rdids, filt=True, recid=None, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access"""
@@ -3247,11 +3247,18 @@ class DB(object):
 			except KeyError:
 				raise KeyError, "No such RecordDef '%s'"%recorddef
 
+			print "Setting Context"
 			rd.setContext(ctx)
+
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
 			if rd.private and not rd.accessible():
-				raise subsystems.exceptions.SecurityError, "RecordDef %d not accessible" % (recid, recorddef)
+				try:
+					rec = self.getrecord(recid, ctx=ctx, txn=txn)
+					if rec.rectype != recorddef:
+						raise
+				except:
+					raise subsystems.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
 
 			if not rd.views.get("defaultview"):
 				rd.views["defaultview"] = rd.mainview
