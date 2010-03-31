@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 import os
 import cgi
 import time
@@ -164,3 +165,4 @@ class jsonrpc(Resource):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

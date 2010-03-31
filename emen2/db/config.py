@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 import os
 import sys
 import functools
@@ -124,3 +125,4 @@ class DBOptions(optparse.OptionParser):
 
 		g.refresh()
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

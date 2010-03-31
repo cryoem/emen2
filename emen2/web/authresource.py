@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 from __future__ import with_statement
 
 import re
@@ -192,3 +193,4 @@ class AuthResource(Resource):
 		return
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 import re
 import os
 import pickle
@@ -132,3 +133,4 @@ class UploadResource(Resource):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

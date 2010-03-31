@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 import os
 import time
 import xmlrpclib
@@ -259,3 +260,4 @@ class RPCResource(Resource):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 from __future__ import with_statement
 
 import urllib2
@@ -374,3 +375,4 @@ class PublicView(Resource):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()
