@@ -193,4 +193,4 @@ def test():
 
 if __name__ == '__main__':
 	test()
-__version__ = "$Revision$".split(':')[:-1].strip()
+__version__ = "$Revision$".split(':')[1][:-1].strip()
