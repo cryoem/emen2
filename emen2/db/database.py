@@ -809,7 +809,10 @@ class DB(object):
 		# print "--"
 		#
 		# print "crash?"
-		bids.extend(x for x in bdokeys if isinstance(x, basestring))
+
+		# ian: todo: fix this in a sane way..
+		if hasattr(bdokeys, "__iter__"):
+			bids.extend(x for x in bdokeys if isinstance(x, basestring))
 
 		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=1, ctx=ctx, txn=txn))
 		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
@@ -817,12 +820,14 @@ class DB(object):
 		if recs:
 			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 
+
 		# filtered list of bdokeys
 		bids = filter(lambda x:isinstance(x, basestring), bids)
 
 		# keyed by recid
 		byrec = collections.defaultdict(list)
 
+	
 		for bdokey in bids:
 
 			try:
