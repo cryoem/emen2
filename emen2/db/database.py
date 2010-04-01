@@ -1286,27 +1286,124 @@ class DB(object):
 		pass
 
 
+	def __findqueryinstr(self, query, s, window=20):
+		if not query:
+			return False
+			
+		if query in (s or ''):
+			pos = s.index(query)
+			if pos < window: pos = window
+			return s[pos-window:pos+len(query)+window]
+		
+		return False
+
+
+
+	@DBProxy.publicmethod
+	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+		return self.__find_pd_or_rd(keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
+
+
+	@DBProxy.publicmethod
+	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
+
+	
+	def __filter_dict_none(self, d):
+		return dict(filter(lambda x:x[1]!=None, d.items()))
+	
+	
+	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=100, ctx=None, txn=None, **qp):
+		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None, 
+		# context of where query was found
+		c = {}
+
+		if keytype == "paramdef":
+			getnames = self.getparamdefnames
+			getitems = self.getparamdef
+			
+		else:
+			getnames = self.getrecorddefnames
+			getitems = self.getrecorddef
+
+		if qp.get("query"):
+			for k in qp.keys():
+				qp[k]=qp["query"]
+			del qp["query"]
+			
+		rdnames = getnames(ctx=ctx, txn=txn)
+		#p1 = []
+		#if qp['name']:
+		#	p1 = filter(lambda x:qp['name'] in x, rdnames)
+		
+		# ian: will there be a faster way to do this?	
+		rds2 = getitems(rdnames, filt=True, ctx=ctx, txn=txn) or []
+		p2 = []
+
+		qp = self.__filter_dict_none(qp)
+
+		for i in rds2:
+			qt = []
+			for k,v in qp.items():
+				qt.append(self.__findqueryinstr(v, i.get(k)))
+
+			if boolmode == "OR":
+				if any(qt):
+					p2.append(i)
+					c[i.name] = filter(None, qt).pop()
+			else:
+				if all(qt):
+					p2.append(i)
+					c[i.name] = filter(None, qt).pop()			
+
+		if childof:
+			children = self.getchildren(childof, recurse=g.MAXRECURSE, keytype=keytype, ctx=ctx, txn=txn)
+			names = set(c.keys()) & children
+			p2 = filter(lambda x:x.name in names, p2)
+			c = dict(filter(lambda x:x[0] in names, c.items()))
+				
+		if context:
+			return p2, c
+		return p2
+
+		
 
 	#@rename db.query.user
 	@DBProxy.publicmethod
-	def finduser(self, query, limit=100, ctx=None, txn=None):
+	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+		
+		if query:
+			email = query
+			name_first = query
+			name_middle = query
+			name_last = query
+			username = query
+
+		constraints = [
+			["name_first","contains", name_first],
+			["name_middle","contains", name_middle],
+			["name_last","contains", name_last],
+			["email", "contains", email],
+			["username","contains_w_empty", username]
+			]
+		
+		constraints = filter(lambda x:x[2] != None, constraints)
+			
 		q = self.query(
-			boolmode="OR",
+			boolmode=boolmode,
 			ignorecase=True,
-			constraints=[
-				["name_first","contains",query],
-				["name_middle","contains",query],
-				["name_last","contains",query],
-				["username","contains_w_empty",query]
-				],
+			constraints=constraints,
 			returnrecs=True,
 			ctx=ctx, txn=txn
 		)
 
 		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
 
-		users = self.getuser(usernames, ctx=ctx, txn=txn)
-		return [(user.username, user.displayname) for user in users.values()]
+		users = self.getuser(usernames, ctx=ctx, txn=txn).values()
+		return users
+		
+		#return [(user.username, user.displayname) for user in users.values()]
+
 
 
 	# ian: make this a class method, e.g. Group.match or query?
@@ -2974,11 +3071,6 @@ class DB(object):
 
 
 
-	# @rename db.paramdefs.puts
-	# @DBProxy.publicmethod
-	# def putparamdefs(...):
-
-
 	def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
 
 		#@begin
@@ -2989,20 +3081,15 @@ class DB(object):
 
 
 
-	# ian: todo: medium: Unify getparamdef, getparamdefs into -> getparamdef. Will require lots of 1 letter changes in other code.
-	# ian todo: combine this and getparamdefs; alot of older places use this version. Keep the name 'singular' name, to match getrecord/getrecorddef/getuser
-
+	# ian: todo: combine these two methods and rename everything that uses them
 	#@rename db.paramdefs.get
 	@DBProxy.publicmethod
-	def getparamdef(self, key, ctx=None, txn=None):
+	@emen2.util.utils.return_many_or_single('key')
+	def getparamdef(self, key, filt=True, ctx=None, txn=None):
 		"""gets an existing ParamDef object, anyone can get any field definition"""
-		try:
-			pd = self.bdbs.paramdefs.sget(key, txn=txn) #[key]
-			if pd.vartype not in self.indexablevartypes:
-				pd.indexed = False
-			return pd
-		except:
-			raise KeyError, "Invalid param: %s"%key
+		ret = self.getparamdefs(key, filt=filt, ctx=ctx, txn=txn)
+		ret = ret.values()
+		return ret
 
 
 	#@rename db.paramdefs.gets
@@ -3247,8 +3334,7 @@ class DB(object):
 			except KeyError:
 				raise KeyError, "No such RecordDef '%s'"%recorddef
 
-			rd.setContext(ctx)
-
+			rd.setContext(ctx=ctx)
 
 			# if the RecordDef isn't private or if the owner is asking, just return it now
 			if rd.private and not rd.accessible():
@@ -3441,7 +3527,10 @@ class DB(object):
 				saved.add(child)
 
 		children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)
-		children_saved_set = set().union( *(children_saved.values()+[set(children_saved.keys())], set()) )
+		children_saved_set = set()
+		for i in children_saved.values() + [set(children_saved.keys())]:
+			children_saved_set |= i
+		# .union( *(children_saved.values()+[set(children_saved.keys())], set()) )
 
 		orphaned -= children_saved_set
 
