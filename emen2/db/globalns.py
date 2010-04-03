@@ -30,6 +30,7 @@ class GlobalNamespace(object):
 			print u'StubLogger: %s :: %s :: %s' % (self, sn, self.print_list(args))
 
 	__yaml_keys = collections.defaultdict(list)
+	__yaml_files = collections.defaultdict(list)
 	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
@@ -42,6 +43,7 @@ class GlobalNamespace(object):
 		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
 		if not (fn or data): raise ValueError, 'either a filename or yaml data must be supplied'
 		if not yaml: raise NotImplementedError, 'yaml not found'
+		fn = os.path.abspath(fn)
 
 		# load data
 		self = cls()
@@ -55,6 +57,7 @@ class GlobalNamespace(object):
 					b = data[key]
 					pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
 					options = b.pop('options', {})     # get options for the dictionary
+					self.__yaml_files[fn].append(key)
 
 					for key2, value in b.iteritems():
 						self.__yaml_keys[key].append(key2)
@@ -76,21 +79,32 @@ class GlobalNamespace(object):
 
 		return self
 
-	def to_yaml(self, keys=None):
+	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
 		'''store state as YAML'''
-		keys = keys or self.__yaml_keys
+		if keys is not None:
+			keys = keys
+		elif kg is not None:
+			keys = dict( (k, self.__yaml_keys[k]) for k in kg)
+		elif file is not None:
+			keys = dict( (k, self.__yaml_keys[k]) for k in self.__yaml_files[file] )
+		else:
+			keys = self.__yaml_keys
+		# file = __builtins__['file']
+
 		_dict = collections.defaultdict(dict)
 		for key, value in keys.iteritems():
 			for k2 in value:
 				_dict[key][k2] = self.getattr(k2)
-		return yaml.safe_dump(dict(_dict), default_flow_style=0)
+		return yaml.safe_dump(dict(_dict), default_flow_style=fs)
 
-	def __setattr__(self, name, value):
+	@classmethod
+	def setattr(self, name, value):
 		self.__modlock.acquire(1)
 		try:
 			self.__addattr(name, value)
 		finally:
 			self.__modlock.release()
+	__setattr__ = setattr
 	__setitem__ = __setattr__
 
 	@classmethod
@@ -108,13 +122,13 @@ class GlobalNamespace(object):
 		cls.__all__.append('refresh')
 
 	@classmethod
-	def getattr(cls, name):
+	def getattr(cls, name, default=None):
 		if name.startswith('___'):
 			name = name.partition('___')[-1]
 		if cls.__options.has_key('private'):
 			if name in cls.__options['private']:
-				return None
-		result = cls.__vardict.get(name)
+				return default
+		result = cls.__vardict.get(name, default)
 		return result
 
 	@classmethod
