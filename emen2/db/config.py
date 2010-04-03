@@ -68,7 +68,7 @@ class DBOptions(optparse.OptionParser):
 
 
 		g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
-		if g.TEMPLATEDIRS_DEFAULT:
+		if g.getattr('TEMPLATEDIRS_DEFAULT',False):
 			g.TEMPLATEDIRS.append(get_filename('emen2','TwistSupport_html/templates'))
 
 
