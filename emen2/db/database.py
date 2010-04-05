@@ -4563,7 +4563,7 @@ class DB(object):
 			os.makedirs(g.ARCHIVEPATH)
 
 		if remove:
-			return self.__removelogs(archivefiles)
+			return self.__removelog(archivefiles)
 
 		self.__archivelogs(archivefiles)
 
