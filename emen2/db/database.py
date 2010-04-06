@@ -1955,9 +1955,6 @@ class DB(object):
 
 	def __link(self, mode, links, keytype="record", ctx=None, txn=None):
 
-		print "__link"
-		print links
-
 		if keytype not in ["record", "recorddef", "paramdef"]:
 			raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 
