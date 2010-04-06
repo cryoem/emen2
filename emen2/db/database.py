@@ -1287,8 +1287,12 @@ class DB(object):
 	# ian: todo: hard: Plotting goes.. HERE. Working on it.
 	#@rename db.query.plot
 	@DBProxy.publicmethod
-	def plot(self, ctx=None, txn=None):
+	def plot(self, subset, param1, param2, ctx=None, txn=None):
 		pass
+		
+		
+		
+		
 
 
 	def __findqueryinstr(self, query, s, window=20):
