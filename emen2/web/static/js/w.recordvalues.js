@@ -447,7 +447,8 @@ widget.prototype = {
 
 			this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
 			
-			if (paramdefs[this.param]["vartype"]=="string") {
+			//if (paramdefs[this.param]["vartype"]=="string") {
+			if (paramdefs[this.param]["vartype"]=="string" || paramdefs[this.param]["choices"]) {
 
 				var l=null;
 				if (paramdefs[this.param]["choices"] != null) {

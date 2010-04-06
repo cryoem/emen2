@@ -38,7 +38,7 @@ function switchbutton(type,id) {
 
 
 var switchedin=new Array();
-switchedin["recordview"]="defaultview";
+//switchedin["recordview"]="defaultview";
 
 // hide class members, show one, switch the button
 function switchin(classname, id) {

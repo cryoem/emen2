@@ -1951,6 +1951,9 @@ class DB(object):
 
 	def __link(self, mode, links, keytype="record", ctx=None, txn=None):
 
+		print "__link"
+		print links
+
 		if keytype not in ["record", "recorddef", "paramdef"]:
 			raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
 
@@ -3021,6 +3024,7 @@ class DB(object):
 		"""adds a new ParamDef object, group 0 permission is required
 		a p->c relationship will be added if parent is specified"""
 
+
 		if not isinstance(paramdef, dataobjects.paramdef.ParamDef):
 			try:
 				paramdef = dataobjects.paramdef.ParamDef(paramdef, ctx=ctx)
@@ -3057,8 +3061,8 @@ class DB(object):
 		#if not validate and not ctx.checkadmin():
 		#	raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
 		#if validate:
-		paramdef.validate()
 
+		paramdef.validate()
 
 		######### ^^^ ############
 
@@ -3069,8 +3073,8 @@ class DB(object):
 
 
 		links = []
-		if parents: links.append( map(lambda x:(x, paramdef.name), parents) )
-		if children: links.append( map(lambda x:(paramdef.name, x), children) )
+		if parents: links.extend( map(lambda x:(x, paramdef.name), parents) )
+		if children: links.extend( map(lambda x:(paramdef.name, x), children) )
 		if links:
 			self.pclinks(links, keytype="paramdef", ctx=ctx, txn=txn)
 
@@ -3283,8 +3287,10 @@ class DB(object):
 		self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
 
 		links = []
-		if parents: links.append( map(lambda x:(x, recdef.name), parents) )
-		if children: links.append( map(lambda x:(recdef.name, x), children) )
+		if parents:
+			links.extend( map(lambda x:(x, recdef.name), parents) )
+		if children:
+			links.extend( map(lambda x:(recdef.name, x), children) )
 		if links:
 			self.pclinks(links, keytype="recorddef", ctx=ctx, txn=txn)
 
@@ -3350,8 +3356,8 @@ class DB(object):
 				except:
 					raise subsystems.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
 
-			if not rd.views.get("defaultview"):
-				rd.views["defaultview"] = rd.mainview
+			#if not rd.views.get("defaultview"):
+			#	rd.views["defaultview"] = rd.mainview
 
 			ret.append(rd)
 
@@ -4563,7 +4569,7 @@ class DB(object):
 			os.makedirs(g.ARCHIVEPATH)
 
 		if remove:
-			return self.__removelog(archivefiles)
+			return self.__removelogs(archivefiles)
 
 		self.__archivelogs(archivefiles)
 
@@ -4581,7 +4587,7 @@ class DB(object):
 
 
 
-	def __removelog(self, files):
+	def __removelogs(self, files):
 		removefiles = []
 		
 		# ian: check if all files are in the archive before we remove any
