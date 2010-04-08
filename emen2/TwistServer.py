@@ -22,8 +22,17 @@ g = emen2.globalns.GlobalNamespace()
 
 def load_resources(root, resources):
 	for path, resource in resources.items():
-		g.log_init('LOADING RESOURCE: %s to %s' % (resource, path) )
-		root.putChild(path, resource)
+		level = 'LOG_INIT'
+		msg = ['RESOURCE', 'LOADED:', '%s to %s']
+		try:
+			root.putChild(path, resource)
+		except:
+			msg[1] = 'FAILED.'
+			level = 'LOG_CRITICAL'
+			del msg[2]
+		else:
+			msg[2] %= (path, resource)
+		g.log.msg(level,' '.join(msg))
 
 
 def interact():
@@ -70,7 +79,7 @@ def inithttpd():
 
 
 	# Start server
-	g.log.msg(g.LOG_INIT, 'Listening ...')
+	g.log_init('Starting Connection ...')
 
 	rr = server.Site(root)
 	#rr.requestFactory = g.log.debug_func(rr.requestFactory)
@@ -80,6 +89,8 @@ def inithttpd():
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
 
 	reactor.suggestThreadPoolSize(1) #g.NUMTHREADS
+
+	g.log.msg(g.LOG_INIT, 'Listening on port %d ...' % g.EMEN2PORT)
 	reactor.run()
 
 

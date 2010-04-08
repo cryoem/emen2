@@ -105,7 +105,3 @@ class return_many_or_single(object):
 
 			return result
 		return _inner
-		
-		
-		
-		

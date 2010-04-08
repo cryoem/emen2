@@ -6,7 +6,9 @@ import optparse
 import emen2.globalns
 import emen2.subsystems.debug
 import yaml
+import demjson
 import pkgutil
+import bisect
 
 
 g = emen2.globalns.GlobalNamespace()
@@ -29,6 +31,7 @@ class DBOptions(optparse.OptionParser):
 		self.add_option('--help', action="help", help="Print help message")
 		self.add_option('-h', '--home', type="string", help="DB_HOME")
 		self.add_option('-c', '--configfile', action='append', dest='configfile')
+		self.add_option('-s', '--setvalue', action='append', dest='configoverride')
 		self.add_option('-t', '--templatedir', action='append', dest='templatedirs')
 		self.add_option('-v', '--viewdirs', action='append', dest='viewdirs')
 		self.add_option('-p', '--port', action='store', dest='port')
@@ -46,7 +49,7 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		
+
 		DB_HOME = os.getenv("DB_HOME")
 		g.EMEN2DBPATH = DB_HOME
 
@@ -54,7 +57,8 @@ class DBOptions(optparse.OptionParser):
 			DB_HOME = self.values.home
 
 		if self.values.configfile:
-			g.from_yaml(self.values.configfile)
+			for fil in self.values.configfile:
+				g.from_yaml(fil)
 
 		elif DB_HOME:
 			g.from_yaml(os.path.join(DB_HOME, "config.yml"))
@@ -63,7 +67,9 @@ class DBOptions(optparse.OptionParser):
 			g.from_yaml(default_config)
 
 
-		if not g.EMEN2DBPATH:
+		if DB_HOME:
+			g.EMEN2DBPATH = DB_HOME
+		elif not g.getattr('EMEN2DBPATH', False):
 			raise ValueError, "No DB_HOME / EMEN2DBPATH specified!"
 
 
@@ -91,15 +97,20 @@ class DBOptions(optparse.OptionParser):
 		if not os.path.exists(g.LOGPATH):
 			os.makedirs(g.LOGPATH)
 
+		if self.values.configoverride:
+			for val in self.values.configoverride:
+				key, value = val.split('=')
+				g.setattr(key, demjson.decode(value))
+
 
 		try:
-			g.LOG_CRITICAL = emen2.subsystems.debug.DebugState.debugstates.LOG_CRITICAL
-			g.LOG_ERROR = emen2.subsystems.debug.DebugState.debugstates.LOG_ERROR
-			g.LOG_WARNING = emen2.subsystems.debug.DebugState.debugstates.LOG_WARNING
-			g.LOG_WEB = emen2.subsystems.debug.DebugState.debugstates.LOG_WEB
-			g.LOG_INIT = emen2.subsystems.debug.DebugState.debugstates.LOG_INIT
-			g.LOG_INFO = emen2.subsystems.debug.DebugState.debugstates.LOG_INFO
-			g.LOG_DEBUG = emen2.subsystems.debug.DebugState.debugstates.LOG_DEBUG
+			g.LOG_CRITICAL = g.log.debugstates.LOG_CRITICAL
+			g.LOG_ERROR = g.log.debugstates.LOG_ERROR
+			g.LOG_WARNING = g.log.debugstates.LOG_WARNING
+			g.LOG_WEB = g.log.debugstates.LOG_WEB
+			g.LOG_INIT = g.log.debugstates.LOG_INIT
+			g.LOG_INFO = g.log.debugstates.LOG_INFO
+			g.LOG_DEBUG = g.log.debugstates.LOG_DEBUG
 
 			g.log = emen2.subsystems.debug.DebugState(output_level=self.values.log_level,
 												logfile=file(g.LOGPATH + '/log.log', 'a', 0),

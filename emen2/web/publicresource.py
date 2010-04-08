@@ -147,9 +147,9 @@ class PublicView(Resource):
 
 
 	@classmethod
-	def __registerurl(cls, name, match, cb):
+	def __registerurl(cls, name, match, **methods):
 			'register a callback to handle a urls match is a compiled regex'
-			result = emen2.subsystems.routing.URL(name, match, cb)
+			result = emen2.subsystems.routing.URL(name, match, **methods)
 			cls.router.register(result)
 			return result
 
@@ -172,7 +172,7 @@ class PublicView(Resource):
 
 
 	@classmethod
-	def register_url(cls, name, match):
+	def register_url(cls, name, match, method='GET'):
 		"""decorator function used to register a function to handle a specified URL
 
 			arguments:
@@ -183,7 +183,8 @@ class PublicView(Resource):
 		"""
 		g.log.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
 		def _reg_inside(cb):
-			cls.__registerurl(name, re.compile(match), cb)
+			kwargs = {method:cb}
+			cls.__registerurl(name, re.compile(match), **kwargs)
 			return cb
 		return _reg_inside
 
@@ -245,14 +246,12 @@ class PublicView(Resource):
 
 			if target is not None:
 				#request.redirect(target)
-				# g.log.msg('LOG_INFO', 'redirected (%s) to (%s)' % (request.uri, target))
+				g.log.msg('LOG_INFO', 'redirected %r to %r' % (request.uri, target))
 				raise emen2.subsystems.responsecodes.HTTPMovedPermanently('', target)
-				request.finish()
 
 			else:
-
 				args = self.__parse_args(request.args, content=content)
-				callback = emen2.subsystems.routing.URLRegistry().execute(path, **args)
+				callback = emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, **args)
 
 				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
