@@ -1318,6 +1318,10 @@ class DB(object):
 		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
 	
+	def __filter_dict_zero(self, d):
+		return dict(filter(lambda x:len(x[1])>0, d.items()))
+
+
 	def __filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
 	
@@ -4444,41 +4448,67 @@ class DB(object):
 	# section: Rendering Record Views
 	#############################
 
+	def __endpoints(self, tree):
+		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 	#@rename db.records.render.childtree
 	@DBProxy.publicmethod
-	def renderchildtree(self, recurse=None, recid=None, rectypes=None, treedef=None, ctx=None, txn=None):
+	def renderchildtree(self, recid, recurse=None, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
 
-		if recurse:
-			treedef = [rectypes]*recurse
+		c_all = self.getchildren(recid, recurse=recurse, tree=True, filt=True, ctx=ctx, txn=txn)
+		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, filt=True, ctx=ctx, txn=txn)
+			
+		endpoints = self.__endpoints(c_all) - c_rectype
+		while endpoints:
+			print ".."
+			for k,v in c_all.items():
+				c_all[k] -= endpoints				
+			endpoints = self.__endpoints(c_all) - c_rectype
+		
+		rendered = self.renderview(set().union(*c_all.values()), viewtype="recname", ctx=ctx, txn=txn)
+		
+		c_all = self.__filter_dict_zero(c_all)
+				
+		return rendered, c_all		
+				
+		# invert this into parents map
+		# c_rev = collections.defaultdict(dict)
+		# for k,v in c_rectype.items():
+		# 	for v2 in v:
+		# 		c_rev[v2].add(k)
+		# 
+		
 
 
-		init = set([recid])
-		stack = [init]
-		children = {}
-
-		for x, rt in enumerate(treedef):
-			current = stack[x]
-			if not current:
-				break
-			stack.append(set())
-			for i in current:
-				new = self.getchildren(i, rectype=rt, filt=True, ctx=ctx, txn=txn)
-				children[i] = new
-				stack[x+1] |= new
-
-		a = set().union(*stack)
-		rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
-		rendered_path = {}
-
-		for x, rt in enumerate(stack):
-			for i in rt:
-				tmp_path = rendered_path.get(i, [])
-				for child in children.get(i, set()):
-					rendered_path[child] = tmp_path + [child]
-
-		return rendered, rendered_path, len(stack)
+		# if recurse:
+		# 	treedef = [rectypes] * recurse
+		# 
+		# init = set([recid])
+		# stack = [init]
+		# children = {}
+		# 
+		# for x, rt in enumerate(treedef):
+		# 	current = stack[x]
+		# 	if not current:
+		# 		break
+		# 	stack.append(set())
+		# 	for i in current:
+		# 		new = self.getchildren(i, rectype=rt, filt=True, ctx=ctx, txn=txn)
+		# 		children[i] = new
+		# 		stack[x+1] |= new
+		# 
+		# a = set().union(*stack)
+		# rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
+		# rendered_path = {}
+		# 
+		# for x, rt in enumerate(stack):
+		# 	for i in rt:
+		# 		tmp_path = rendered_path.get(i, [])
+		# 		for child in children.get(i, set()):
+		# 			rendered_path[child] = tmp_path + [child]
+		# 
+		# return rendered, rendered_path, len(stack)
 
 
 
