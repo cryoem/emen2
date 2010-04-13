@@ -827,7 +827,7 @@ class DB(object):
 		# keyed by recid
 		byrec = collections.defaultdict(list)
 
-	
+
 		for bdokey in bids:
 
 			try:
@@ -1153,7 +1153,7 @@ class DB(object):
 
 		subsets.extend(s)
 
-		ret = boolmode(*subsets) #set(), 
+		ret = boolmode(*subsets) #set(),
 
 
 		#g.log.msg('LOG_DEBUG', "stage 3 results")
@@ -1289,21 +1289,21 @@ class DB(object):
 	@DBProxy.publicmethod
 	def plot(self, subset, param1, param2, ctx=None, txn=None):
 		pass
-		
-		
-		
-		
+
+
+
+
 
 
 	def __findqueryinstr(self, query, s, window=20):
 		if not query:
 			return False
-			
+
 		if query in (s or ''):
 			pos = s.index(query)
 			if pos < window: pos = window
 			return s[pos-window:pos+len(query)+window]
-		
+
 		return False
 
 
@@ -1317,24 +1317,24 @@ class DB(object):
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
 		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
-	
+
 	def __filter_dict_zero(self, d):
 		return dict(filter(lambda x:len(x[1])>0, d.items()))
 
 
 	def __filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
-	
-	
+
+
 	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=100, ctx=None, txn=None, **qp):
-		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None, 
+		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
 		# context of where query was found
 		c = {}
 
 		if keytype == "paramdef":
 			getnames = self.getparamdefnames
 			getitems = self.getparamdef
-			
+
 		else:
 			getnames = self.getrecorddefnames
 			getitems = self.getrecorddef
@@ -1343,13 +1343,13 @@ class DB(object):
 			for k in qp.keys():
 				qp[k]=qp["query"]
 			del qp["query"]
-			
+
 		rdnames = getnames(ctx=ctx, txn=txn)
 		#p1 = []
 		#if qp['name']:
 		#	p1 = filter(lambda x:qp['name'] in x, rdnames)
-		
-		# ian: will there be a faster way to do this?	
+
+		# ian: will there be a faster way to do this?
 		rds2 = getitems(rdnames, filt=True, ctx=ctx, txn=txn) or []
 		p2 = []
 
@@ -1367,24 +1367,24 @@ class DB(object):
 			else:
 				if all(qt):
 					p2.append(i)
-					c[i.name] = filter(None, qt).pop()			
+					c[i.name] = filter(None, qt).pop()
 
 		if childof:
 			children = self.getchildren(childof, recurse=g.MAXRECURSE, keytype=keytype, ctx=ctx, txn=txn)
 			names = set(c.keys()) & children
 			p2 = filter(lambda x:x.name in names, p2)
 			c = dict(filter(lambda x:x[0] in names, c.items()))
-				
+
 		if context:
 			return p2, c
 		return p2
 
-		
+
 
 	#@rename db.query.user
 	@DBProxy.publicmethod
 	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
-		
+
 		if query:
 			email = query
 			name_first = query
@@ -1399,9 +1399,9 @@ class DB(object):
 			["email", "contains", email],
 			["username","contains_w_empty", username]
 			]
-		
+
 		constraints = filter(lambda x:x[2] != None, constraints)
-			
+
 		q = self.query(
 			boolmode=boolmode,
 			ignorecase=True,
@@ -1414,7 +1414,7 @@ class DB(object):
 
 		users = self.getuser(usernames, ctx=ctx, txn=txn).values()
 		return users
-		
+
 		#return [(user.username, user.displayname) for user in users.values()]
 
 
@@ -3327,7 +3327,7 @@ class DB(object):
 		user has permission to access"""
 
 		ret = []
-		
+
 		for rdid in rdids:
 
 			if isinstance(rdid, int):
@@ -3403,6 +3403,7 @@ class DB(object):
 		if dbid is 0, the current database is used."""
 
 		ret = []
+		g.debug(recids)
 		for i in sorted(recids):
 			try:
 				rec = self.bdbs.records.sget(i, txn=txn)
@@ -3736,7 +3737,7 @@ class DB(object):
 		# 		recs = list(recs)
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
-		
+
 		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
 		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
 
@@ -4458,36 +4459,36 @@ class DB(object):
 
 		c_all = self.getchildren(recid, recurse=recurse, tree=True, filt=True, ctx=ctx, txn=txn)
 		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, filt=True, ctx=ctx, txn=txn)
-			
+
 		endpoints = self.__endpoints(c_all) - c_rectype
 		while endpoints:
 			print ".."
 			for k,v in c_all.items():
-				c_all[k] -= endpoints				
+				c_all[k] -= endpoints
 			endpoints = self.__endpoints(c_all) - c_rectype
-		
+
 		rendered = self.renderview(set().union(*c_all.values()), viewtype="recname", ctx=ctx, txn=txn)
-		
+
 		c_all = self.__filter_dict_zero(c_all)
-				
-		return rendered, c_all		
-				
+
+		return rendered, c_all
+
 		# invert this into parents map
 		# c_rev = collections.defaultdict(dict)
 		# for k,v in c_rectype.items():
 		# 	for v2 in v:
 		# 		c_rev[v2].add(k)
-		# 
-		
+		#
+
 
 
 		# if recurse:
 		# 	treedef = [rectypes] * recurse
-		# 
+		#
 		# init = set([recid])
 		# stack = [init]
 		# children = {}
-		# 
+		#
 		# for x, rt in enumerate(treedef):
 		# 	current = stack[x]
 		# 	if not current:
@@ -4497,17 +4498,17 @@ class DB(object):
 		# 		new = self.getchildren(i, rectype=rt, filt=True, ctx=ctx, txn=txn)
 		# 		children[i] = new
 		# 		stack[x+1] |= new
-		# 
+		#
 		# a = set().union(*stack)
 		# rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
 		# rendered_path = {}
-		# 
+		#
 		# for x, rt in enumerate(stack):
 		# 	for i in rt:
 		# 		tmp_path = rendered_path.get(i, [])
 		# 		for child in children.get(i, set()):
 		# 			rendered_path[child] = tmp_path + [child]
-		# 
+		#
 		# return rendered, rendered_path, len(stack)
 
 
@@ -4605,7 +4606,7 @@ class DB(object):
 		self.__archivelogs(archivefiles)
 
 
-			
+
 	def __archivelogs(self, files):
 		outpaths = []
 		for file_ in archivefiles:
@@ -4620,19 +4621,19 @@ class DB(object):
 
 	def __removelogs(self, files):
 		removefiles = []
-		
+
 		# ian: check if all files are in the archive before we remove any
 		for file_ in files:
 			if not os.path.exists(outpath):
 				raise ValueError, "Log Archive: %s not found in backup archive!"%(file_)
 			removefiles.append(file_)
-		
+
 		for file_ in removefiles:
 			g.log.msg('LOG_INFO','Log Archive: Removing %s'%(file_))
 			os.unlink(file_)
 
 		return removefiles
-	
+
 
 
 	def coldbackup(self, force=False, ctx=None, txn=None):
@@ -4643,7 +4644,7 @@ class DB(object):
 				pass
 			else:
 				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.BACKUPPATH
-		
+
 		# ian: just use shutil.copytree
 		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data")))
 		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data"))
@@ -4654,7 +4655,7 @@ class DB(object):
 
 
 		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
-		
+
 		# Get the last log file
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
@@ -4674,22 +4675,22 @@ class DB(object):
 		# 		os.makedirs(os.path.dirname(outpath))
 		#
 		# 	shutil.copy(i, outpath)
-									
-									
-						
-	def hotbackup(self, ctx=None, txn=None):	
+
+
+
+	def hotbackup(self, ctx=None, txn=None):
 		g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
 		self.checkpoint(ctx=ctx, txn=txn)
 
 		g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
-		
+
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
 			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
 			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
-		
+
 		g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
 
 

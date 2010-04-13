@@ -44,7 +44,7 @@ class PublicView(Resource):
 		_<number> together as a list.
 
 		NOTE: we should probably make sure that the _## parameters have
-		      sequential numbers
+		sequential numbers
 		"""
 
 
@@ -178,7 +178,7 @@ class PublicView(Resource):
 			arguments:
 				name -- the name of the url to be registered
 				match -- the regular expression that applies
-								 as a string
+								as a string
 				cb -- the callback function to call
 		"""
 		g.log.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
@@ -281,7 +281,7 @@ class PublicView(Resource):
 					ret = unicode(ret).encode('utf-8')
 				except Exception, e:
 					g.log.msg('LOG_ERROR',"couldn't encode ret: mimetype %s, %s"%(headers.get('content-type'), e))
-	
+
 
 		return ret, headers
 
@@ -346,13 +346,11 @@ class PublicView(Resource):
 				response = 401
 				data = render_security_error(request.uri, e)
 
-			except emen2.subsystems.responsecodes.NotFoundError, e:
-				response = e.code
-				data = self.router['TemplateRender'](data='/errors/404', title="Page Not Found", msg=request.uri)
-				data = unicode(data).encode('utf-8')
-
 			except emen2.subsystems.responsecodes.HTTPResponseCode, e:
 				response = e.code
+				if e.msg:
+					data = self.router['TemplateRender'](data='/errors/resp', title=e.title or e.__class__.__name__, msg=e.msg)
+					data = unicode(data).encode('utf-8')
 				headers.update(e.headers)
 
 

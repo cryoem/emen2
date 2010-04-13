@@ -91,7 +91,7 @@ class return_many_or_single(object):
 					kwargs[self.__triggerarg] = [trig]
 
 			# get result of function
-			result = func(*args, **kwargs)
+			result = g.debug_func(func)(*args, **kwargs)
 
 
 			# get result
@@ -104,4 +104,5 @@ class return_many_or_single(object):
 					result = tmpresult
 
 			return result
+		_inner.func = func_
 		return _inner
