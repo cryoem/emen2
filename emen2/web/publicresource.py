@@ -250,7 +250,7 @@ class PublicView(Resource):
 
 			else:
 				args = self.__parse_args(request.args, content=content)
-				callback = emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, **args)
+				callback = g.log.note_var(emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args).func)
 
 				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
@@ -306,11 +306,12 @@ class PublicView(Resource):
 			# g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
-			g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s 200 %(size)d' % dict(
+			g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] "%(method)s %(path)s HTTP/-.-" 200 %(size)d' % dict(
 					host = request.getClientIP(),
 					time = time.ctime(),
 					path = request.uri,
-					size = len(result)
+					size = len(result),
+					method = request.method,
 			))
 
 		except BaseException, e:
@@ -362,12 +363,13 @@ class PublicView(Resource):
 		request.setResponseCode(response)
 		request.write(data)
 
-		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] %(path)s %(response)s %(size)d' % dict(
+		g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] "%(method)s %(path)s HTTP/-.-" %(response)s %(size)d' % dict(
 			host = request.getClientIP(),
 			time = time.ctime(),
 			path = request.uri,
 			response = request.code,
-			size = len(data)
+			size = len(data),
+			method = request.method,
 		))
 
 		request.finish()
