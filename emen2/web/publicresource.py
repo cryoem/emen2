@@ -224,7 +224,7 @@ class PublicView(Resource):
 
 	def render_POST(self, request):
 		request.content.seek(0)
-		content=request.content.read()
+		content = request.content.read()
 		return self.render_GET(request, content=content)
 
 
@@ -238,14 +238,13 @@ class PublicView(Resource):
 
 			request.postpath = filter(bool, request.postpath)
 			request.postpath.append('')
-			router=self.router
+			router = self.router
 			make_callback = lambda string: lambda *x, **y: [string,'text/html;charset=utf8']
 
 			path = '/%s' % str.join("/", request.postpath)
 			target = self.__getredirect(None, request, path)
 
 			if target is not None:
-				#request.redirect(target)
 				g.log.msg('LOG_INFO', 'redirected %r to %r' % (request.uri, target))
 				raise emen2.subsystems.responsecodes.HTTPMovedPermanently('', target)
 

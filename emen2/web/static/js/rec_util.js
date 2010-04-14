@@ -155,7 +155,7 @@ function notify(msg, fade, error) {
 
 function notify_post(uri,msgs) {
   var postform = document.createElement("form");
-  postform.method="post" ;
+  postform.method="POST" ;
   postform.action = uri;
 	for (var i=0;i<msgs.length;i++) {
 		var note = document.createElement("input") ;

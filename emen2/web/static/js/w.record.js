@@ -29,7 +29,7 @@ loginwidget.prototype = {
 
 		if (this.buildform) {
 			//console.log("build");
-			this.f = $('<form name="login" action="'+EMEN2WEBROOT+'/auth/login/" method="post">');
+			this.f = $('<form name="login" action="'+EMEN2WEBROOT+'/auth/login/" method="POST">');
 			this.username = $('<input name="username" type="text" />');
 			this.pw = $('<input name="pw" type="password" />');
 			this.submit = $('<input type="submit" value="Login" />');

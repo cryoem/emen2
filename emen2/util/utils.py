@@ -91,7 +91,8 @@ class return_many_or_single(object):
 					kwargs[self.__triggerarg] = [trig]
 
 			# get result of function
-			result = g.debug_func(func)(*args, **kwargs)
+			result = func(*args, **kwargs)
+			# g.debug_func(func)(*args, **kwargs)
 
 
 			# get result

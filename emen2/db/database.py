@@ -3403,7 +3403,7 @@ class DB(object):
 		if dbid is 0, the current database is used."""
 
 		ret = []
-		g.debug(recids)
+		# g.debug(recids)
 		for i in sorted(recids):
 			try:
 				rec = self.bdbs.records.sget(i, txn=txn)
