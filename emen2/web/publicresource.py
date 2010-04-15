@@ -250,7 +250,7 @@ class PublicView(Resource):
 
 			else:
 				args = self.__parse_args(request.args, content=content)
-				callback = g.log.note_var(emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args).func)
+				callback = emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
 
 				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
