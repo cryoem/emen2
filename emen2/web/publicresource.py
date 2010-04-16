@@ -146,12 +146,12 @@ class PublicView(Resource):
 
 
 
-	@classmethod
-	def __registerurl(cls, name, match, **methods):
-			'register a callback to handle a urls match is a compiled regex'
-			result = emen2.subsystems.routing.URL(name, match, **methods)
-			cls.router.register(result)
-			return result
+	# @classmethod
+	# def __registerurl(cls, name, match, **methods):
+	# 		'register a callback to handle a urls match is a compiled regex'
+	# 		result = emen2.subsystems.routing.URL(name, match, **methods)
+	# 		cls.router.register(result)
+	# 		return result
 
 
 
@@ -171,22 +171,22 @@ class PublicView(Resource):
 		cls.redirects[fro] = (to, args, kwargs)
 
 
-	@classmethod
-	def register_url(cls, name, match, method='GET'):
-		"""decorator function used to register a function to handle a specified URL
+	# @classmethod
+	# def register_url(cls, name, match, method='GET'):
+	# 	"""decorator function used to register a function to handle a specified URL
 
-			arguments:
-				name -- the name of the url to be registered
-				match -- the regular expression that applies
-								as a string
-				cb -- the callback function to call
-		"""
-		g.log.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
-		def _reg_inside(cb):
-			kwargs = {method:cb}
-			cls.__registerurl(name, re.compile(match), **kwargs)
-			return cb
-		return _reg_inside
+	# 		arguments:
+	# 			name -- the name of the url to be registered
+	# 			match -- the regular expression that applies
+	# 							as a string
+	# 			cb -- the callback function to call
+	# 	"""
+	# 	g.log.msg(g.LOG_INIT, 'REGISTERING: %r as %s' % (name, match))
+	# 	def _reg_inside(cb):
+	# 		kwargs = {method:cb}
+	# 		cls.__registerurl(name, re.compile(match), **kwargs)
+	# 		return cb
+	# 	return _reg_inside
 
 
 
@@ -252,7 +252,7 @@ class PublicView(Resource):
 				args = self.__parse_args(request.args, content=content)
 				callback = emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
 
-				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path)
+				d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path, method=request.method)
 				d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
 				d.addErrback(self._ebRender, request, t=time.time(), ctxid=ctxid, host=host)
 
@@ -266,7 +266,7 @@ class PublicView(Resource):
 
 	# wrap db with context; view never has to see ctxid/host
 	#@g.log.debug_func
-	def _action(self, callback, db=None, ctxid=None, host=None, path=None):
+	def _action(self, callback, db=None, ctxid=None, host=None, path=None, method='GET'):
 		'''set db context, call view, and get string result
 		put together to minimize amount of blocking code'''
 
@@ -274,7 +274,7 @@ class PublicView(Resource):
 		# g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 		with db._setcontext(ctxid,host):
-			ret, headers = callback(db=db)
+			ret, headers = callback(db=db, method=method)
 			if headers.get('content-type') != "image/jpeg":
 				try:
 					ret = unicode(ret).encode('utf-8')
