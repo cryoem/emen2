@@ -159,6 +159,7 @@ class DB(object):
 			self.secrindex_groups = subsystems.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
 			self.groupsbyuser = subsystems.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
 			self.recorddefindex = subsystems.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.bdosbyfilename = subsystems.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
 			self.indexkeys = subsystems.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
 
 
@@ -975,6 +976,9 @@ class DB(object):
 		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
 		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
+		self.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
+                g.log.msg("LOG_COMMIT_INDEX","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
+
 		#@end
 
 		return nb
@@ -1378,6 +1382,20 @@ class DB(object):
 		if context:
 			return p2, c
 		return p2
+
+
+
+	@DBProxy.publicmethod
+	def findbinary(self, query=None, limit=100, ctx=None, txn=None):
+		qbins = self.bdbs.bdosbyfilename.get(query, txn=txn) or []
+		if not qbins:
+			matches = filter(lambda x:query in x, self.bdbs.bdosbyfilename.keys(txn))
+			if matches:
+				for i in matches:
+					qbins.extend(self.bdbs.bdosbyfilename.get(i))
+
+		bins = self.getbinary(qbins, ctx=ctx, txn=txn) or {}
+		return bins.values()
 
 
 
