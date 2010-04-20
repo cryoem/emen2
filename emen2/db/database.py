@@ -976,8 +976,8 @@ class DB(object):
 		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
 		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
-		self.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
-                g.log.msg("LOG_COMMIT_INDEX","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
+		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
+                g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
 
 		#@end
 
@@ -1388,13 +1388,16 @@ class DB(object):
 	@DBProxy.publicmethod
 	def findbinary(self, query=None, limit=100, ctx=None, txn=None):
 		qbins = self.bdbs.bdosbyfilename.get(query, txn=txn) or []
+
 		if not qbins:
-			matches = filter(lambda x:query in x, self.bdbs.bdosbyfilename.keys(txn))
+			matches = filter(lambda x:query in x or x in query, self.bdbs.bdosbyfilename.keys(txn))
 			if matches:
 				for i in matches:
 					qbins.extend(self.bdbs.bdosbyfilename.get(i))
 
+
 		bins = self.getbinary(qbins, ctx=ctx, txn=txn) or {}
+		print bins
 		return bins.values()
 
 
