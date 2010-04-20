@@ -303,7 +303,7 @@ class PublicView(Resource):
 			request.setResponseCode(200)
 			[request.setHeader(key, headers[key]) for key in headers]
 
-			# g.log("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
+			g.debug("::: time total: %0.f ms"%(   (time.time()-t)*1000       )      )
 
 			request.write(result)
 			g.log.msg('LOG_WEB', '%(host)s - - [%(time)s] "%(method)s %(path)s HTTP/-.-" 200 %(size)d' % dict(

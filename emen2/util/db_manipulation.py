@@ -17,10 +17,11 @@ class DBTree(object):
 			self.db = db
 			self.__db = db
 
-			#if 'folder' in db.getrecorddefnames() and root is None:
-			#	self.__root = min(db.getindexbyrecorddef('folder') or [0])
-			#else:
-			self.__root = root
+			# ian: don't disable this
+			if 'folder' in db.getrecorddefnames() and root is None:
+				self.__root = min(db.getindexbyrecorddef('folder') or [0])
+			else:
+				self.__root = root
 
 			self.__initmethods()
 
@@ -63,8 +64,8 @@ class DBTree(object):
 
 
 	def __dostuff(self, name, records):
+		recnamep = self.__db.getindexbyvalue('name_folder', name)
 		for rec in records:
-			recnamep = self.__db.getindexbyvalue('recname', name)
 			if (str(rec) == name) or (rec in recnamep):
 				yield (rec)
 			elif self.render_view(rec, 'recname') == name:
@@ -92,7 +93,7 @@ class DBTree(object):
 
 	def getindex(self, recid=None, rec=None):
 		rec = self.__db.getrecord(recid, filt=False) if rec is None else rec
-		index = rec.get('recname', str(recid))
+		index = rec.get('name_folder', str(recid))
 		if index == None:
 			index = self.render_view(rec.recid, 'recname')
 		return index
