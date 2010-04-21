@@ -1,14 +1,7 @@
 
 function table_editcolumn(elem,key) {
 
-	new multiwidget(
-			elem, {
-				'commitcallback':function(self,values){commit_putrecords(self,values,table_reinit())},
-				'now':1,
-				'ext_edit_button':1,
-				'rootless':1,
-				'restrictparams':[key]
-				});	
+	// new multiwidget(...)
 
 }	
 

@@ -977,7 +977,7 @@ class DB(object):
 		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
 		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
-                g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
+		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
 
 		#@end
 
@@ -2574,8 +2574,8 @@ class DB(object):
 				user = user2
 
 			# Anonymous users cannot use this to extract email addresses
-			#if ctx.username == None:
-			#	user.groups = None
+			if ctx.username == "anonymous":
+				user.email = None
 
 			if getgroups:
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)

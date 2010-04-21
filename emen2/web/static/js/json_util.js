@@ -1,7 +1,6 @@
 ///////// get data /////////////////////
 
-function getparamdefs(recids,cb) {
-	
+function json_getparamdefs(recids,cb) {
 	$.jsonRPC(
 		"getparamdefs",
 		[recids],
@@ -12,13 +11,27 @@ function getparamdefs(recids,cb) {
 			cb();
 		}
 	);
-	
 }
 
 
-function getrecords_paramdefs(recids,cb) {
-	// get data.
-	
+
+function json_getrecords(recids,cb) {
+	$.jsonRPC(
+		"getrecord",
+		[recids],
+		function (json) {
+			$.each(json, function(i) {
+				recs[this.recid]=this;
+			});
+			cb();
+		}
+	);	
+}
+
+
+
+function json_getrecords_paramdefs(recids,cb) {
+	// get data
 	$.jsonRPC(
 		"getrecord",
 		[recids],

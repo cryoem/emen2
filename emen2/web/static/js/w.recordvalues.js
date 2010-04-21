@@ -8,19 +8,18 @@
 multiwidget = (function($) { // Localise the $ function
 
 function multiwidget(elem, opts) {
-  this.elem = $(elem);
-	var self = this.elem.data("ref");
 
 	// init
-	if (!self) {
-		this.elem.data("ref",this);		
-
+	this.elem = $(elem);
   	if (typeof(opts) != "object") opts = {};
-
   	$.extend(this, multiwidget.DEFAULT_OPTS, opts);
-		this.init();
-		self=this;
-	}
+	this.init();
+
+	// this.elem contains stores a reference to the multiwidget..
+	// var self = this.elem.data("multiwidget");
+	// if (!self) {
+	// this.elem.data("multiwidget", this);
+	// }
 
 };
 
@@ -29,19 +28,16 @@ multiwidget.DEFAULT_OPTS = {
 	popup: 0,
 	controls: 1,
 	controlsroot: null,
-	ext_save: null,
+	ext_save: null, // external save/cancel buttons
 	ext_cancel: null,
-	ext_elems: null,
-	restrictparams: null,
+	restrictparams: null, // show only these params...
 	display: 0,
-	recid: null,
 	root: null,
-	widgetopts_hide: {controls:1,popup:1,display:0,inplace:1},
-	widgetopts_show: {controls:0,popup:1,display:0,inplace:0},
 	save_callback: function(self,changed) {self.save_default_callback(self,changed)},
 	commit_callback: function(self,r) {self.commit_default_callback(r)},
 	commit_errback: function(self,r) {self.commit_default_errback(r)}
 };
+
 
 multiwidget.prototype = {
 		
@@ -49,152 +45,216 @@ multiwidget.prototype = {
 		//console.log("multiwidget init");
 
 		var self=this;
+		
+		// built status
 		this.built = 0;
-		this.trygetparamdef = 0;
-		this.paramdefs=[];
+
+		// attempted to get paramdefs
+		this.trygetparamdefs = 0;
+		this.trygetrecords = 0;
+		
+		// stored paramdefs and element references
+		this.paramdefs = {};
 		this.elems = [];
 
-		if (!this.ext_elems) {
-			this.ext_elems = $(".editable",this.root);
-		}
-		
-		this.bindeditable();
-		this.bind();
+		// cache a list of all editable elements
+		this.ext_elems = $(".editable",this.root);
+			
+		this.bind_edit();
 
-
-		if (this.display) {
-			this.build(1);
-		}
+		// build widgets if requested
+		// if (this.display) {
+		// 	this.build(1);
+		// }
 		
+		// and build control widgets if required
 		if (!this.controlsroot) {
-			this.controlsroot=this.elem;
+			this.controlsroot = this.elem;
 		}
 
 	},
 	
-	bindeditable: function() {
-		//console.log("multiw bindeditable");		
-		
+	bind_editable: function() {
+		// attach hidden widgets to all editable items
+
 		var self=this;
 		this.ext_elems.each(function(){
-			self.elems.push(new widget($(this),self.widgetopts_hide));
-			self.paramdefs.push($(this).attr("data-param"));
+			self.elems.push(new widget($(this), self.widgetopts_hide));
 		});
 	},
 	
-	bind: function() {
-		//console.log("multiw bind");
+	bind_edit: function() {
+		// if controls exist, bind single click to show edit widgets
+
+		var self=this;
 		if (this.controls) {
-			var self=this;
-			this.elem.one("click",function(e){e.stopPropagation();self.event_click(e)});
+			this.elem.bind("click",function(e){e.stopPropagation();self.event_click(e)});
 		}
 	},
 	
 	bind_save: function() {
+		// if ext_save and ext_cancel are specified, bind save/cancel events
+		
 		if (this.ext_save) {
 			var self=this;
 			this.ext_save.one("click", function(e){
 				e.stopPropagation();self.event_save(e)
 				});
 		}
-	},
-
-	event_click: function(e) {
-		this.show();
-	},
-
-	event_save: function(e) {
-		this.ext_save.val("Committing...");
-		this.save();
-	},
-	
-	event_cancel: function(e) {
-		this.hide();
-	},
-		
-	build: function(show) {
-		//console.log("multiw build");
-
-		
-		var self=this;
-		if (this.trygetparamdef==0) {
-			this.trygetparamdef = 1;
-			var getpd = [];
-			for (var i=0;i<this.paramdefs.length;i++) {
-				if (!paramdefs[this.paramdefs[i]]) { getpd.push(this.paramdefs[i]) }
-			}
-			if (getpd.length) {
-				getparamdefs(getpd,function(){self.build(show)});
-				return
-			}
-		}
-		
-		if (this.built){return}
-				
-		this.built = 1;
-		
-		if (this.controls) {
-			this.c_edit = $(".jslink",this.controlsroot);
-			
-			this.ext_save = $('<input type="submit" value="Save" />');
-
-			this.ext_cancel = $('<input type="button" value="Cancel" />');
-
-			this.c_box = $('<span />');
-			this.c_box.append(this.ext_save,this.ext_cancel);
-			this.controlsroot.append(this.c_box);
-		}
-		
-	
-		this.bind_save();
-	
 		if (this.ext_cancel) {
 			var self=this;
 			this.ext_cancel.bind("click", function(e){
 				e.stopPropagation();self.event_cancel(e)
 				});
+		}	
+			
+	},
+
+	event_click: function(e) {
+		// show widgets and controls
+		this.show();
+	},
+
+	event_save: function(e) {
+		// begin commit
+		this.ext_save.val("Committing...");
+		this.save();
+	},
+	
+	event_cancel: function(e) {
+		// hide widgets and controls
+		this.hide();
+	},
+		
+	build: function() {
+		// build all the widgets and controls
+		
+		console.log("begin build");
+		
+		var self = this;
+
+		// get all the records and paramdefs if necessary
+		var set_getpds = {};
+		var getpds = [];
+
+		var set_getrecs = {}
+		var getrecs = [];
+
+		var cb_wait = 0;
+
+		this.ext_elems.each(function(){		
+			set_getpds[$(this).attr("data-param")] = null;
+			set_getrecs[$(this).attr("data-recid")] = null;
+		});
+
+		// if we need to fetch some paramdefs...
+		$.each(set_getpds, function(index, value) { 
+			if (!paramdefs[index]) {
+				getpds.push(index);
+			} 
+		});
+		if (getpds.length && this.trygetparamdefs == 0) {
+			this.trygetparamdefs = 1;
+			json_getparamdefs(getpds,function(){self.build()});
+		}
+		
+		// get all the records if necessary
+		$.each(set_getrecs, function(index, value) {
+			index = parseInt(index);
+			if (!recs[index]) {
+				getrecs.push(index);
+			} 
+		});
+		if (getrecs.length && this.trygetrecords == 0) {
+			this.trygetrecords = 1;
+			json_getrecords(getrecs,function(){self.build()});
 		}
 
+		if (getpds.length || getrecs.length) {
+			console.log("Ok, waiting on a callback...");
+			return
+		}
 		
-		if (show) {this.show()}
+		console.log("got everything we need -- building");
+				
+		//
+		// we have all the records and paramdefs we need -- proceed
+		//
+		
+		// check if built; set built to true		
+		if (this.built) {
+			console.log("already built!");
+			return
+		}		
+		this.built = 1;
+				
+		// build the controls if requested, as child of controlsroot
+		if (this.controls) {
+			this.c_edit = $(".jslink",this.controlsroot);
+			this.ext_save = $('<input type="submit" value="Save" />');
+			this.ext_cancel = $('<input type="button" value="Cancel" />');
+			this.c_box = $('<span />');
+			this.c_box.append(this.ext_save,this.ext_cancel);
+			this.controlsroot.append(this.c_box);
+		}
+	
+		// bind control keys
+		this.bind_save();		
+		
+		console.log("creating widgets...");
+		// attach hidden widgets to all editable items
+		this.ext_elems.each(function(){
+			self.elems.push(new widget($(this)));
+		});
+		console.log("done creating widgets");
+		
+		
+		// sometimes we'll get build(True) as a callback
+		this.show()
 		
 	},
 	
 	show: function() {
-		//console.log("multiw show");
-		
+		// show the widgets we have created
+
+		console.log("showing");
+
 		if (!this.built) {
-			this.build(1)
+			this.build()
 			return
 		}
-				
-		var self=this;
-				
-		$.each(this.elems, function(){
-			this.reset_opts(self.widgetopts_show);
-			this.show();
-		});
+
+		var self = this;
 
 		if (this.controls) {
 			this.c_edit.hide();
 			this.c_box.show();
-			this.bind();
-		}
-				
+			// this.bind_();
+		}				
+
+		console.log("showing widgets");
+
+		$.each(this.elems, function(){
+			this.show();
+		});
+		
+		console.log("done");
+		
 	},
 	
 	hide: function() {
-		//console.log("multiw hide");
+		// hide the widgets and controls
 		
+		var self=this;
+
  		if (this.controls) {
 			this.c_box.hide();
  			this.c_edit.show();
  		}
-		var self=this;
 
 		$.each(this.elems,function(){
 			this.hide();
-			this.reset_opts(self.widgetopts_hide);
+			// this.reset_opts(self.widgetopts_hide);
 		});
 		
 	},
@@ -221,12 +281,12 @@ multiwidget.prototype = {
 
 		var changed={};
 		$.each(this.elems, function(){
-			if (this.changed) {
-				if (!changed[this.recid]) {changed[this.recid]={}}
-				changed[this.recid][this.param]=this.getval();
-			} else {
-				// console.log(this.param+" is unchanged; value is "+this.getval());
-			}
+			// if (this.changed) {
+			if (!changed[this.recid]) {changed[this.recid]={}}
+			changed[this.recid][this.param] = this.getval();
+			// } else {
+			//	// console.log(this.param+" is unchanged; value is "+this.getval());
+			//}
 		});
 		
 		this.save_callback(this, changed);
@@ -286,206 +346,163 @@ return multiwidget;
 
 /////////////////////////////////////////////
 /////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
 
 
 widget = (function($) { // Localise the $ function
 
 function widget(elem, opts) {
-
 	this.elem = $(elem);
 	this.opts=opts;
 	if (typeof(opts) != "object") opts = {};
-	$.extend(this, widget.DEFAULT_OPTS, opts);
+	this.controls = opts["controls"];
 	this.init();
-
-};
-
-widget.DEFAULT_OPTS = {
-	popup: 0,
-	inplace: 0,
-	controls: 0,
-	display: 0
 };
 
 widget.prototype = {
 
 	init: function() {
-		//console.log("w init");
-		
-		this.changed=0;
-		this.built=0;
-		this.trygetparamdef=0;
-		this.bind();
-		
-		var self=this;
-
-		var props=this.getprops();
-		this.param=props.param;
-		this.recid=props.recid;
-		this.value=getvalue(this.recid,this.param);
-		
-		
-		if (this.display) {
-			this.build(this.show);
-		}
-		
+		this.built = 0;
+		this.param = this.elem.attr("data-param");
+		this.recid = parseInt(this.elem.attr("data-recid"));
+		this.rec_value = getvalue(this.recid, this.param);	
+		this.bind_edit();
 	},
 	
 	event_click: function(e) {
 		this.show();
 	},
 	
-	bind: function() {
-		//console.log("w bind");
-
-		var self=this;
+	bind_edit: function() {
+		var self = this;
 		this.elem.click(function(e) {self.event_click(e)});
 	},
-	
-  build: function(show) {
-		//console.log("w build");
-
-		if (this.built){return}
-
-		this.built=1;
 		
+	build: function() {
 
-		// replace this big switch with something better
-		if (paramdefs[this.param] == null) {
+		var self = this;
+
+		if (!paramdefs[this.param]) {
+			json_getparamdefs([this.param], function(){self.build()});
 			return
 		}
 
-		if (this.value == null) {
-			this.value = "";
+
+		if (this.built){
+			return
+		}
+		
+		this.built = 1;
+		
+		
+		if (this.rec_value == null) {
+			this.rec_value = "";
 		}
 
-		var self=this;
 
 		// container
+
 		this.w = $('<span class="widget"></span>');
-		if (this.inplace) {
+		
+		if (this.controls) {
 			this.w.addClass("widget_inplace");
 		}
+		var pd = paramdefs[this.param];
 
-		if (paramdefs[this.param]["vartype"]=="html") {
-			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.value+'</textarea>');
-			this.editw.change(function(){self.changed=1;});
+		// Delegate to different edit widgets
+		
+		if (pd["vartype"]=="html") {
+			
+			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.rec_value+'</textarea>');
 			this.w.append(this.editw);				
 			
 
-		} else if (paramdefs[this.param]["vartype"]=="text") {
+		} else if (pd["vartype"]=="text") {
 
-			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.value+'</textarea>');
-			this.editw.change(function(){self.changed=1;});
+			this.editw=$('<textarea class="value" cols="80" rows="20">'+this.rec_value+'</textarea>');
 			this.w.append(this.editw);				
 			
 
-		} else if (paramdefs[this.param]["vartype"]=="choice") {
+		} else if (pd["vartype"]=="choice") {
 			
 			this.editw=$('<select></select>');
-			var pdc=paramdefs[this.param]["choices"];
+			var pdc = paramdefs[this.param]["choices"];
 			pdc.unshift("");
 			
 			for (var i=0;i<pdc.length;i++) {
 				var selected="";
-				if (this.value == pdc[i]) selected = "selected";
+				if (this.rec_value == pdc[i]) { selected = 'selected="selected"'; }
 				this.editw.append('<option val="'+pdc[i]+'" '+selected+'>'+pdc[i]+'</option>');
 			}
 
-			this.editw.change(function(){self.changed=1;});			
 			this.w.append(this.editw);				
 							
-		} else if (paramdefs[this.param]["vartype"]=="datetime") {
+		} else if (pd["vartype"]=="datetime") {
 		
-			this.editw=$('<input class="value" size="18" type="text" value="'+this.value+'" />');
-			//this.popup=new DateInput(this.editw);
-			this.editw.change(function(){self.changed=1;});
+			// this.popup=new DateInput(this.editw);
+			this.editw = $('<input class="value" size="18" type="text" value="'+this.rec_value+'" />');
 			this.w.append(this.editw);				
 
-		} else if (paramdefs[this.param]["vartype"]=="boolean") {
+		} else if (pd["vartype"]=="boolean") {
 		
-			this.editw=$("<select><option>True</option><option>False</option></select>");
-			this.editw.change(function(){self.changed=1;});
+			this.editw = $("<select><option>True</option><option>False</option></select>");
 			this.w.append(this.editw);				
 		
-		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(paramdefs[this.param]["vartype"]) > -1) {
-
-			this.editw = new listwidget(this.w,{values:this.value,paramdef:paramdefs[this.param]});
-			//needs comparison to see if changed
-			this.changed=1;
-			//this.editw.change(function(){self.changed=1;});
+		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(pd["vartype"]) > -1) {
 		
-		}  else if (paramdefs[this.param]["vartype"]=="user") {
+			this.editw = new listwidget(this.w,{values:this.rec_value, paramdef:pd});
+		
+		}  else if (pd["vartype"]=="user") {
 
-				this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
-				// this.editw.autocomplete({ 
-				// 	ajax: EMEN2WEBROOT+"/db/find/user/",
-				// 	match:      function(typed) { return true },				
-				// 	insertText: function(value)  { return value[0] },
-				// 	template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-				// }).bind("activate.autocomplete", function(e,d) {  });
-				// this.editw.change(function(){self.changed=1;});
+				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
 
-				this.editw.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
-					minChars: 0,
-					max: 1000,
-					matchSubset: false,
-					scrollHeight: 360,
-					highlight: false,
-					formatResult: function(value, pos, count)  { return value }			
-				});
-				this.editw.blur(function(e,d) {		//bind("onblur", function(e,d) {
-					self.changed = 1;
-				});
+				this.editw.autocomplete(
+					EMEN2WEBROOT+"/db/find/user/",
+					{ 
+						minChars: 0,
+						max: 1000,
+						matchSubset: false,
+						scrollHeight: 360,
+						highlight: false,
+						formatResult: function(value, pos, count)  { return value }			
+					}
+				);
 				
 				this.w.append(this.editw);			
 
 		} else {
 
-			this.editw=$('<input class="value" size="30" type="text" value="'+this.value+'" />');
+			this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
 			
-			//if (paramdefs[this.param]["vartype"]=="string") {
-			if (paramdefs[this.param]["vartype"]=="string" || paramdefs[this.param]["choices"]) {
-
-				var l=null;
-				if (paramdefs[this.param]["choices"] != null) {
-					l=$(paramdefs[this.param]["choices"]).map(function(n){return [[n,this]]})
-				} 
+			if (pd["vartype"]=="string" || pd["choices"]) {
 								
-				this.editw.autocomplete( EMEN2WEBROOT+"/db/find/value/"+this.param+"/", { 
-					minChars: 0,
-					max: 100,
-					matchSubset: false,
-					scrollHeight: 360,
-					formatResult: function(value, pos, count)  { return value }			
-				});
-				this.editw.blur(function(e,d) {		//bind("onblur", function(e,d) {
-					self.changed = 1;
-				}
-				)
-
+				this.editw.autocomplete(
+					EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
+					{ 
+						minChars: 0,
+						max: 100,
+						matchSubset: false,
+						scrollHeight: 360,
+						formatResult: function(value, pos, count)  { return value }			
+					}
+				);
+				
 			}
 
-			this.editw.change(function(){self.changed=1});			
 			this.w.append(this.editw);
 			
-			var property=paramdefs[this.param]["property"];
-			var units=paramdefs[this.param]["defaultunits"];
+			var property = pd["property"];
+			var units = pd["defaultunits"];
 
 			if (property != null) {
 
 				this.editw_units=$('<select></select>');
 
-				for (var i=0;i<valid_properties[property][1].length;i++) {
-					var sel="";
+				for (var i=0;i < valid_properties[property][1].length;i++) {
+					var sel = "";
 					if (units == valid_properties[property][1][i]) sel = "selected";
 					this.editw_units.append('<option '+sel+'>'+valid_properties[property][1][i]+'</option>');
 				}
 				
-				this.editw_units.change(function(){self.changed=1;});
 				this.w.append(this.editw_units);
 
 			}
@@ -497,37 +514,27 @@ widget.prototype = {
 			this.c_controls=$('<div class="controls"></div>').append(
 				$('<input type="submit" value="Save" />').one("click", function(e) {e.stopPropagation();self.save()}),
 				$('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()})
-				//$('<input type="submit" value="Save" />').click(function(e) {e.stopPropagation();self.save()}),
-				//$('<input type="button" value="Cancel" />').click(function(e) {e.stopPropagation();self.hide()})
 			);
 			this.w.append(this.c_controls);
 		}
 
 
 		$(this.elem).after(this.w);
-		//$(this.elem).css("color","white");
-		//$(this.elem).hide();
 
-		//if (this.popup) {
-		//	this.edit.focus();
-		//	this.edit.select();
-		//}
-		if (show){this.show()}
+		this.show();
 		
 	},
 	
 	show: function() {
-		//console.log("w show");
+		// show the widget
 
 		var self=this;
-
-		if (!paramdefs[this.param] && this.trygetparamdef==0) {
-			this.trygetparamdef=1;
-			getparamdefs([this.param],function(){self.show()});
+		
+		if (!this.built) {
+			this.build();
 			return
 		}
 		
-		if (!this.built) {this.build()}
 		this.elem.hide();
 		this.w.show();
 
@@ -547,30 +554,10 @@ widget.prototype = {
 		this.w.remove();
 		this.built=0;
 	},
-	
-	reset_opts: function(opts) {
-		//console.log("w reset_opts");
-		this.remove();
-		this.set_opts(widget.DEFAULT_OPTS);
-		this.set_opts(this.opts);
-		this.set_opts(opts);
-	},
-	
-	set_opts: function(opts) {
-		if (typeof(opts) != "object") opts = {};
-		$.extend(this, opts);
-	},
+
 
 	////////////////////////
-	getprops: function() {
-		var prop=new Object();
-		prop.recid=parseInt(this.elem.attr("data-recid"));
-		prop.param=this.elem.attr("data-param");
-		if (!prop.recid) {prop.recid=recid}
-		return prop
-	},
-
-	////////////////////////
+	
 	getval: function() {
 		//console.log("w getval");		
 		
@@ -579,9 +566,11 @@ widget.prototype = {
 		if (ret == "" || ret == []) {
 			return null;
 		}
+		
 		if (this.editw_units) {
 			ret = ret + this.editw_units.val();
-		}		
+		}
+		
 		return ret
 	},
 
@@ -602,8 +591,8 @@ widget.prototype = {
 				// ian: just reload the page instead of trying to update everything.. for now..
 				notify_post(window.location.pathname, ["Changes Saved"]);
 	 		},
-			function(xhr){
-				notify("Error: "+this.param+","+xhr.responseText);
+			function(json){
+				notify("Error: "+this.param+","+json.responseText);
 			}
 		);		
 	}	
@@ -621,10 +610,6 @@ return widget;
 
 /////////////////////////////////////////////
 /////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-
 
 
 listwidget = (function($) { // Localise the $ function
@@ -644,34 +629,26 @@ listwidget.DEFAULT_OPTS = {
 listwidget.prototype = {
 	
 	init: function() {
-		//this.w=$("<div></div>");
-		//this.elem.append(this.w);
 		this.items=$('<ul></ul>');
 		this.elem.append(this.items);
 		this.build();
 	},
 	
-  build: function() {
+	build: function() {
 
 		if (this.values.length == 0) {
 			this.values = [""];
 		}
 	
 		this.items.empty();
+		
 		var self=this;
-		//for (var i=0;i<this.values.length;i++) {
+
 		$.each(this.values, function(k,v) {
 			var item=$('<li class="widget_list"></li>');
 			var edit=$('<input type="text" value="'+v+'" />');
 						
 			if (self.paramdef["vartype"]=="userlist") {
-
-				// edit.autocomplete({ 
-				// 	ajax: EMEN2WEBROOT+"/db/find/user/",
-				// 	match:      function(typed) { return true },				
-				// 	insertText: function(value)  { return value[0] },
-				// 	template:   function(value)  { return "<li>"+value[1]+" ("+value[0]+")</li>"}
-				// }).bind("activate.autocomplete", function(e,d) {  });
 
 				edit.autocomplete( EMEN2WEBROOT+"/db/find/user/", { 
 					minChars: 0,
@@ -681,19 +658,9 @@ listwidget.prototype = {
 					highlight: false,
 					formatResult: function(value, pos, count)  { return value }			
 				});
-				edit.blur(function(e,d) {		//bind("onblur", function(e,d) {
-					//self.changed = 1;
-				});
+
 
 			} else if (self.paramdef["vartype"]=="stringlist") {
-
-				// edit.autocomplete({ 
-				// 
-				// 	ajax: EMEN2WEBROOT+"/db/find/value/"+this.param+"/",
-				// 	match:      function(typed) { return this[1].match(new RegExp(typed, "i")); },				
-				// 	insertText: function(value)  { return value[1] }
-				// 	
-				// }).bind("activate.autocomplete", function(e,d) {  })
 
 				edit.autocomplete( EMEN2WEBROOT+"/db/find/value/"+self.paramdef["name"]+"/", { 
 					minChars: 0,
@@ -702,10 +669,6 @@ listwidget.prototype = {
 					scrollHeight: 360,
 					formatResult: function(value, pos, count)  { return value }			
 				});
-				edit.blur(function(e,d) {		//bind("onblur", function(e,d) {
-					//self.changed = 1;
-				});
-
 
 			}
 			
@@ -713,31 +676,34 @@ listwidget.prototype = {
 				self.addoption(k+1);
 				self.build();
 			});
+			
 			var remove=$('<span><img src="'+EMEN2WEBROOT+'/images/remove_small.png" class="listwidget_remove" /></span>').click(function() {
 				self.removeoption(k);
 				self.build();
 			});
+
 			item.append(edit,add,remove);
 			self.items.append(item);
+
 		});
-		//this.elem.append(items);
+
 	},
 
-	// add another option to list
 	addoption: function(pos) {
+		// add another option to list
 		// save current state so rebuilding does not erase changes
 		this.values = this.val_withblank();
 		this.values.splice(pos,0,"");
 	},
 	
-	// remove an option from the list
 	removeoption: function(pos) {
+		// remove an option from the list
 		this.values = this.val_withblank();
 		this.values.splice(pos,1);
 	},
 	
-	// return the values
 	val: function() {
+		// return the values
 		var ret=[];
 		$("input:text",this.elem).each(function(){
 			if (this.value != "") ret.push(this.value);
