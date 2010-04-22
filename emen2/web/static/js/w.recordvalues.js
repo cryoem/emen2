@@ -129,7 +129,7 @@ multiwidget.prototype = {
 	build: function() {
 		// build all the widgets and controls
 		
-		console.log("begin build");
+		//console.log("begin build");
 		
 		var self = this;
 
@@ -171,11 +171,11 @@ multiwidget.prototype = {
 		}
 
 		if (getpds.length || getrecs.length) {
-			console.log("Ok, waiting on a callback...");
+			//console.log("Ok, waiting on a callback...");
 			return
 		}
 		
-		console.log("got everything we need -- building");
+		//console.log("got everything we need -- building");
 				
 		//
 		// we have all the records and paramdefs we need -- proceed
@@ -183,7 +183,7 @@ multiwidget.prototype = {
 		
 		// check if built; set built to true		
 		if (this.built) {
-			console.log("already built!");
+			//console.log("already built!");
 			return
 		}		
 		this.built = 1;
@@ -201,12 +201,12 @@ multiwidget.prototype = {
 		// bind control keys
 		this.bind_save();		
 		
-		console.log("creating widgets...");
+		//console.log("creating widgets...");
 		// attach hidden widgets to all editable items
 		this.ext_elems.each(function(){
 			self.elems.push(new widget($(this)));
 		});
-		console.log("done creating widgets");
+		//console.log("done creating widgets");
 		
 		
 		// sometimes we'll get build(True) as a callback
@@ -217,7 +217,7 @@ multiwidget.prototype = {
 	show: function() {
 		// show the widgets we have created
 
-		console.log("showing");
+		//console.log("showing");
 
 		if (!this.built) {
 			this.build()
@@ -232,13 +232,13 @@ multiwidget.prototype = {
 			// this.bind_();
 		}				
 
-		console.log("showing widgets");
+		//console.log("showing widgets");
 
 		$.each(this.elems, function(){
 			this.show();
 		});
 		
-		console.log("done");
+		//console.log("done");
 		
 	},
 	
