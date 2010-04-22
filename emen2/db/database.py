@@ -1386,11 +1386,15 @@ class DB(object):
 
 
 	@DBProxy.publicmethod
-	def findbinary(self, query=None, limit=100, ctx=None, txn=None):
+	def findbinary(self, query=None, broad=False, limit=100, ctx=None, txn=None):
 		qbins = self.bdbs.bdosbyfilename.get(query, txn=txn) or []
 
+		qfunc = lambda x:query in x
+		if broad:
+			qfunc = lambda x:query in x or x in query
+
 		if not qbins:
-			matches = filter(lambda x:query in x or x in query, self.bdbs.bdosbyfilename.keys(txn))
+			matches = filter(qfunc, self.bdbs.bdosbyfilename.keys(txn))
 			if matches:
 				for i in matches:
 					qbins.extend(self.bdbs.bdosbyfilename.get(i))
