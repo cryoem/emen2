@@ -1394,11 +1394,12 @@ class DB(object):
 			if matches:
 				for i in matches:
 					qbins.extend(self.bdbs.bdosbyfilename.get(i))
-
-
+				
 		bins = self.getbinary(qbins, ctx=ctx, txn=txn) or {}
-		print bins
-		return bins.values()
+		bins = bins.values()
+		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
+		return bins
+		#return bins.values()
 
 
 
