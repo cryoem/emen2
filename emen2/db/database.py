@@ -769,95 +769,118 @@ class DB(object):
 
 	#@rename db.binary.get
 	@DBProxy.publicmethod
-	def getbinary(self, bdokeys, byrecid=False, filt=True, vts=None, params=None, ctx=None, txn=None):
+	def getbinary(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
 		"""Get a storage path for an existing binary object.
 
 		@param bdokeys A single BDO, an iterable of BDOs, a single record/recid, or an iterable of records/recids
-		@keyparam byrec Key result by recid
 		@keyparam filt Filter out invalid BDOs
-		@keyparam vts For record search, limit to (iterable) param vartypes
 		@keyparam params For record search, limit to (iterable) params
-
 		@return A single Binary instance, or a {bdokey:Binary} dict
 
 		@exception KeyError, SecurityError
 		"""
-
 
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ret = {}
 		bids = []
 		recs = []
 
-		if not vts:
-			vts = ["binary","binaryimage"]
-
 		# ian: todo: high: come back and find out why this crashed.. so strange.
-
 		ol=0
-		if isinstance(bdokeys,basestring): # or not hasattr(bdokeys,"__iter__"):
+		if isinstance(bdokeys,basestring):
 			ol=1
 			bids = [bdokeys]
 			# bdokeys = bids
 		elif isinstance(bdokeys,(int,dataobjects.record.Record)):
 			bdokeys = [bdokeys]
 
-		# print "--"
-		# print "bdokeys"
-		# print bdokeys
-		# print "bids"
-		# print bids
-		# print "--"
-		#
-		# print "crash?"
-
 		# ian: todo: fix this in a sane way..
 		if hasattr(bdokeys, "__iter__"):
 			bids.extend(x for x in bdokeys if isinstance(x, basestring))
 
-		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=1, ctx=ctx, txn=txn))
+		# If we're doing any record lookups...
+		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=True, ctx=ctx, txn=txn))
 		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
-
+		
 		if recs:
-			bids.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
+			params = params or self.getparamdefnames(ctx=ctx, txn=txn)
+			params = self.getparamdef(params, ctx=ctx, txn=txn)
+			params_binary = filter(lambda x:x.vartype=="binary", params) or []
+			params_binaryimage = filter(lambda x:x.vartype=="binaryimage", params) or []
 
+			for i in [j.name for j in params_binary]:
+				for rec in recs:
+					bids.extend(rec.get(i,[]))
+			for i in [j.name for j in params_binaryimage]:
+				for rec in recs:
+					if rec.get(i):
+						bids.append(rec.get(i))
+		
+		# Ok, we now have a list of all the BDO items we need to lookup
 
-		# filtered list of bdokeys
-		bids = filter(lambda x:isinstance(x, basestring), bids)
-
-		# keyed by recid
+		# keyed by recid and keyed by date
 		byrec = collections.defaultdict(list)
+		bydatekey = collections.defaultdict(list)
+		
+		# ian: todo: filter bids by "bdo:"...
+		bids = filter(lambda x:x[:4]=="bdo:", bids)
 
-
-		for bdokey in bids:
-
+		parsed = [emen2.Database.dataobjects.binary.Binary.parse(bdokey) for bdokey in bids]
+		
+		for k in parsed:
+			bydatekey[k["datekey"]].append(k)
+			
+		for datekey,bydate in bydatekey.items():
 			try:
-				dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
-				bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["counter"]]
+				bdocounter = self.bdbs.bdocounter.sget(datekey, txn=txn)
+
+				for i in bydate:
+					bdo = bdocounter.get(i["counter"])
+					bdo["filepath"] = i["filepath"]
+					byrec[bdo["recid"]].append(bdo)
 
 			except Exception, inst:
-				if filt: continue
-				else: raise KeyError, "Invalid identifier: %s: %s"%(bdokey, inst)
+				if filt:
+					continue
+				else:
+					raise KeyError, "Invalid identifier: %s: %s"%(datekey, inst)
 
-			recid = bdo.get('recid')
-			byrec[recid].append(bdo)
-
-			try:
-				self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-				bdo["filepath"] = dkey["filepath"]
-				ret[bdo["name"]] = bdo
-
-			#ed: fix: is this the right exception?
-			except emen2.Database.subsystems.exceptions.SecurityError:
-				if filt: continue
-				else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
+		recstoget = set(byrec.keys()) - set([rec.recid for rec in recs])
+		recs.extend(self.getrecord(recstoget, filt=True, ctx=ctx, txn=txn))
+		
+		ret = {}
+		for rec in recs:
+			for i in byrec.get(rec.recid,[]):
+				ret[i["name"]] = i
+								
+		# for bdokey in bids:
+		# 
+		# 	try:
+		# 		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
+		# 		bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["counter"]]
+		# 
+		# 	except Exception, inst:
+		# 		if filt: continue
+		# 		else: raise KeyError, "Invalid identifier: %s: %s"%(bdokey, inst)
+		# 
+		# 	recid = bdo.get('recid')
+		# 	byrec[recid].append(bdo)
+		# 
+		# 	try:
+		# 		self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
+		# 		bdo["filepath"] = dkey["filepath"]
+		# 		ret[bdo["name"]] = bdo
+		# 
+		# 	#ed: fix: is this the right exception?
+		# 	except emen2.Database.subsystems.exceptions.SecurityError:
+		# 		if filt: continue
+		# 		else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
 
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
 
 		return ret
-		#return byrec if byrecid else ret
 
 
 
@@ -3515,6 +3538,7 @@ class DB(object):
 	# ian: this might be helpful
 	# e.g.: filtervartype(136, ["user","userlist"])
 	#@rename db.records.filter.vartype
+	# ian: todo: make this much faster, or drop it..
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('recs')
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
