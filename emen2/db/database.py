@@ -803,11 +803,13 @@ class DB(object):
 		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
 		
 		if recs:
+			# get the params we're looking for
 			params = params or self.getparamdefnames(ctx=ctx, txn=txn)
 			params = self.getparamdef(params, ctx=ctx, txn=txn)
 			params_binary = filter(lambda x:x.vartype=="binary", params) or []
 			params_binaryimage = filter(lambda x:x.vartype=="binaryimage", params) or []
 
+			# get the values in the records. vartype BINARY is a LIST, BINARYIMAGE is a STRING
 			for i in [j.name for j in params_binary]:
 				for rec in recs:
 					bids.extend(rec.get(i,[]))
