@@ -57,7 +57,7 @@ DBENV = None
 # import this directly from emen2client, emdash
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": 20100331
+	"emen2client": 20100420
 }
 
 
