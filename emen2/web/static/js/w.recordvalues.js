@@ -42,7 +42,7 @@ multiwidget.DEFAULT_OPTS = {
 multiwidget.prototype = {
 		
 	init: function() {
-		//console.log("multiwidget init");
+		console.log("multiwidget init");
 
 		var self=this;
 		
@@ -70,6 +70,10 @@ multiwidget.prototype = {
 		// and build control widgets if required
 		if (!this.controlsroot) {
 			this.controlsroot = this.elem;
+		}
+
+		if (this.newrecord) {
+			this.build(1);
 		}
 
 	},
@@ -129,7 +133,7 @@ multiwidget.prototype = {
 	build: function() {
 		// build all the widgets and controls
 		
-		//console.log("begin build");
+		console.log("begin build");
 		
 		var self = this;
 
@@ -161,7 +165,7 @@ multiwidget.prototype = {
 		// get all the records if necessary
 		$.each(set_getrecs, function(index, value) {
 			index = parseInt(index);
-			if (!recs[index]) {
+			if (!recs[index] && index >= 0) {
 				getrecs.push(index);
 			} 
 		});
@@ -171,7 +175,7 @@ multiwidget.prototype = {
 		}
 
 		if (getpds.length || getrecs.length) {
-			//console.log("Ok, waiting on a callback...");
+			// console.log("Ok, waiting on a callback...");
 			return
 		}
 		
@@ -200,7 +204,8 @@ multiwidget.prototype = {
 	
 		// bind control keys
 		this.bind_save();		
-		
+	
+	
 		//console.log("creating widgets...");
 		// attach hidden widgets to all editable items
 		this.ext_elems.each(function(){
