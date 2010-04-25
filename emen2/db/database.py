@@ -1,5 +1,7 @@
 # $Author$ $Revision$
 from __future__ import with_statement
+
+
 #basestring goes away in a later python version
 basestring = (str, unicode)
 
@@ -63,6 +65,7 @@ VERSIONS = {
 
 @atexit.register
 def DB_Close():
+	"""Close all open DBs"""
 	l = DB.opendbs.keys()
 	for i in l:
 		g.log.msg('LOG_DEBUG', i.dbenv)
@@ -71,14 +74,14 @@ def DB_Close():
 
 # ian: todo: low: does this need to be on?
 def DB_syncall():
-	"""This 'syncs' all open databases"""
+	"""This syncs all open databases"""
 	#for i in subsystems.btrees.BTree.alltrees.keys(): i.sync()
 	pass
 
 
 
 def DB_stat():
-
+	"""Print some statistics about the global DBEnv"""
 	global DBENV
 	if not DBENV:
 		return
@@ -101,6 +104,8 @@ def DB_stat():
 	g.log.msg('LOG_DEBUG', "Lock stats: ")
 	for k,v in lock_stat.items():
 		g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
+
+
 
 
 class instonget(object):
@@ -129,12 +134,17 @@ class DB(object):
 
 	@staticmethod
 	def __init_vtm():
+		"""Load vartypes, properties, and macros"""
 		import datatypes.core_vartypes
 		import datatypes.core_macros
 		import datatypes.core_properties
 
+	
+	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
 	@instonget
 	class bdbs(object):
+		"""Private class that actually stores the bdbs"""
+		
 		def init(self, db, dbenv, txn):
 			old = set(self.__dict__)
 
@@ -170,6 +180,15 @@ class DB(object):
 
 
 		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
+			"""Parameter values are indexed with 1 db file per param, stored in index/params/*.bdb. 
+			Key is param value, values are list of recids, stored using duplicate method. 
+			The opened param will be available in self.fieldindex[paramname] after open.
+
+			@param paramname Param index to open
+			@keyparam keytype Open index with this keytype (from core_vartypes.<vartype>.__indextype__)
+			@keyparam datatype Open with datatype; will always be 'd'
+			@keyparam dbenv A DBEnv instance must be passed
+			"""
 
 			filename = "index/params/%s"%(paramname)
 
@@ -191,9 +210,14 @@ class DB(object):
 
 
 		def closeparamindex(self, paramname):
+			"""Close a paramdef
+			@param paramname Param index to close
+			"""
 			self.fieldindex.pop(paramname).close()
 
+
 		def closeparamindexes(self):
+			"""Close all paramdef indexes"""
 			[self.__closeparamindex(x) for x in self.fieldindex.keys()]
 
 
@@ -201,52 +225,41 @@ class DB(object):
 	def __init__(self, path=None, bdbopen=True):
 		"""Init DB
 		@keyparam path Path to DB (default=cwd)
+		@keyparam bdbopen Open databases in addition to DBEnv (default=True)
 		"""
 
-		# @keyparam logfile Log file (default=db.log)
-
-		#if not g.USETXN:
-		#	g.log.msg("LOG_INFO","Note: transaction support disabled")
-
-		self.lastctxclean = time.time()
-		self.opentime = self.__gettime()
-
 		self.path = path or g.EMEN2DBPATH
-
 		if not self.path:
 			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
 
-		# self.logfile = "%s/%s"%(self.path,logfile)
-
+		self.lastctxclean = time.time()
+		self.opentime = self.__gettime()
 		self.txnid = 0
 		self.txnlog = {}
 
+
+		# VartypeManager handles registration of vartypes and properties, and also validation
 		self.__init_vtm()
 		self.vtm = subsystems.datatypes.VartypeManager()
 		self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
-
-
 		self.__cache_vartype_indextype = {}
 		for vt in self.vtm.getvartypes():
 			self.__cache_vartype_indextype[vt] = self.vtm.getvartype(vt).getindextype()
 
 
-		# This sets up a DB environment, which allows multithreaded access, transactions, etc.
+		# Check that all the needed directories exist
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
-
 
 		for path in ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "tmp"]:
 			if not os.path.exists(os.path.join(self.path, path)):
 				g.log.msg("LOG_INIT","Creating directory: %s"%os.path.join(self.path, path))
 				os.makedirs(os.path.join(self.path, path))
 
-
-		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")): #os.F_OK
+		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")):
 			infile = emen2.config.config.get_filename('emen2', 'config/DB_CONFIG.sample')
 			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
-
 
 
 		# Open DB environment; check if global DBEnv has been opened yet
@@ -260,11 +273,9 @@ class DB(object):
 
 		self.dbenv = DBENV
 
-
 		# If we are just doing backups or maintenance, don't open any BDB handles
 		if not bdbopen:
 			return
-
 
 		# Open Database
 		txn = self.newtxn()
@@ -276,7 +287,7 @@ class DB(object):
 		else:
 			self.txncommit(txn=txn)
 
-
+		# Check if this is a valid db..
 		txn = self.newtxn()
 		try:
 			maxr = self.bdbs.records.get_max(txn=txn)
@@ -300,7 +311,8 @@ class DB(object):
 
 
 	def create_db(self, ctx=None, txn=None):
-		"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_* """
+		"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_*
+		This is usually called from the setup.py script to create initial db env"""
 
 		# typically uses SpecialRootContext
 		import skeleton
@@ -330,19 +342,15 @@ class DB(object):
 			for v2 in v:
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
 
+
 		for i in skeleton.core_records.items:
 			self.putrecord(i, ctx=ctx, txn=txn)
-
 
 		for i in skeleton.core_users.items:
 			self.adduser(i, ctx=ctx, txn=txn)
 
-
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
-
-
-
 
 		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
 
@@ -365,6 +373,7 @@ class DB(object):
 
 
 	def __del__(self):
+		"""Close DB when deleted"""
 		self.close()
 
 
@@ -383,6 +392,8 @@ class DB(object):
 
 	# ian: todo: remove this; it's only used one place
 	def __flatten(self, l):
+		"""Flatten an iterable of iterables recursively into a single list"""
+		
 		out = []
 		for item in l:
 			if hasattr(item, '__iter__'): out.extend(self.__flatten(item))
@@ -400,8 +411,11 @@ class DB(object):
 	txncounter = 0
 
 	def newtxn(self, parent=None, ctx=None, flags=0):
-		"""New transaction (txns enabled). Accepts parent txn instance."""
-		# g.log.print_traceback(steps=5)
+		"""Start a new transaction.
+		@keyparam parent Parent txn
+		@return New txn
+		"""
+		
 		txn = self.dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS|flags)
 		#print "\n\nNEW TXN --> %s"%txn
 
@@ -416,17 +430,21 @@ class DB(object):
 
 
 
-
 	def txncheck(self, txnid=0, ctx=None, txn=None):
-		"""Check a txn status; accepts txn instance"""
+		"""Check a txn status; accepts txnid or txn instance
+		@return txn if valid
+		"""
+		
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
 			txn = self.newtxn(ctx=ctx)
 		return txn
 
 
+
 	def txnabort(self, txnid=0, ctx=None, txn=None):
-		"""Abort txn; accepts txn ID or instance"""
+		"""Abort txn; accepts txnid or txn instance"""
+		
 		txn = self.txnlog.get(txnid, txn)
 		g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
@@ -440,8 +458,10 @@ class DB(object):
 			raise ValueError, 'Transaction not found'
 
 
+
 	def txncommit(self, txnid=0, ctx=None, txn=None):
-		"""Commit txn; accepts txn ID or instance"""
+		"""Commit txn; accepts txnid or instance"""
+
 		txn = self.txnlog.get(txnid, txn)
 		#g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
@@ -467,7 +487,10 @@ class DB(object):
 	#@rename db.versions.get
 	@DBProxy.publicmethod
 	def checkversion(self, program="API", ctx=None, txn=None):
-		"""Returns current version of API or specified program"""
+		"""Returns current version of API or specified program
+		@keyparam program Check version for this program (API, emen2client, etc.)
+		"""
+		
 		return VERSIONS.get(program)
 
 
@@ -475,8 +498,9 @@ class DB(object):
 	#@rename db.time.get
 	@DBProxy.publicmethod
 	def gettime(self, ctx=None, txn=None):
-		"""DB Time
-		@return DB time date string"""
+		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
+		@return DB time date string
+		"""
 		return subsystems.dbtime.gettime()
 
 
@@ -498,10 +522,10 @@ class DB(object):
 		"""(DBProxy Only) Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access. Returns ctxid, or fails with AuthenticationError or SessionError
 
-		@keyparam username
-		@keyparam password
-		@keyparam host
-		@keyparam maxidle
+		@keyparam username Account username
+		@keyparam password Account password
+		@keyparam host Bind to this host
+		@keyparam maxidle Maximum idle time
 
 		@return Context key (ctxid)
 
@@ -565,7 +589,7 @@ class DB(object):
 	@DBProxy.publicmethod
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
-		@return Bool."""
+		@return bool"""
 		return ctx.checkadmin()
 
 
@@ -573,7 +597,7 @@ class DB(object):
 	@DBProxy.publicmethod
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
-		@return Bool"""
+		@return bool"""
 		return ctx.checkreadadmin()
 
 
@@ -581,13 +605,13 @@ class DB(object):
 	@DBProxy.publicmethod
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
-		@return Bool"""
+		@return bool"""
 		return ctx.checkcreate()
 
 
 
 	def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
-		"""Initializes a context; Avoid instantiating Contexts directly.
+		"""(Internal) Initializes a context; Avoid instantiating Contexts directly.
 
 		@keyparam username Username (default "anonymous")
 		@keyparam host Host
@@ -602,7 +626,10 @@ class DB(object):
 		return ctx
 
 
+
 	def __makerootcontext(self, ctx=None, host=None, txn=None):
+		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
+
 		ctx = dataobjects.context.SpecialRootContext()
 		ctx.refresh(db=self, txn=txn)
 		ctx._setDBProxy(txn=txn)
@@ -631,7 +658,8 @@ class DB(object):
 
 
 	def __setcontext(self, ctxid, context, ctx=None, txn=None):
-		"""(Internal) Manipulate cached and stored contexts.
+		"""(Internal) Manipulate cached and stored contexts. Use this to update or delete contexts.
+		It will update BDB if necessary. This is called frequently to set idle time.
 
 		@param ctxid ctxid key
 		@param context Context instance
@@ -671,27 +699,25 @@ class DB(object):
 
 
 
-	# ian: todo: hard: flesh this out into a proper cron system, with a subscription model; right now just runs cleanupcontexts
+	# ian: todo: hard: flesh this out into a proper cron system, with a subscription model; right now just runs cleanupcontext
+	# right now this is called during _getcontext, and calls cleanupcontexts not more than once every 10 minutes
 	def __periodic_operations(self, ctx=None, txn=None):
-		"""(Internal) Maintenance task scheduler."""
+		"""(Internal) Maintenance task scheduler. Eventually this will be replaced with a maintenance registration system, similar to @publicmethod"""
 
 		t = subsystems.dbtime.getctime()
-		# maybe not the perfect place to do this, but it will have to do
 		if t > (self.lastctxclean + 600):
+			self.lastctxclean = time.time()
 			self.__cleanupcontexts(ctx=ctx, txn=txn)
 
 
 
 	# ian: todo: hard: finish
 	def __cleanupcontexts(self, ctx=None, txn=None):
-		"""(Internal) This should be run periodically to clean up sessions that have been idle too long."""
+		"""(Internal) Clean up sessions that have been idle too long."""
 
 		g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
-		self.lastctxclean = time.time()
 
-		return
-
-		for ctxid, context in self.bdbs.contexts.items():
+		for ctxid, context in self.bdbs.contexts.items(txn=txn):
 			# use the cached time if available
 			try:
 				c = self.bdbs.contexts_cached.sget(ctxid, txn=txn) #[ctxid]
@@ -711,7 +737,7 @@ class DB(object):
 	#		right now, every publicmethod will reset user/groups
 	#		timer based?
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
-		"""(Semi-internal) Takes a ctxid key and returns a context. Note that both key and host must match.
+		"""(Internal and DBProxy) Takes a ctxid key and returns a context. Note that both key and host must match.
 		@param ctxid ctxid
 		@param host host
 

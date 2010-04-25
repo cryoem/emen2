@@ -8,18 +8,11 @@
 multiwidget = (function($) { // Localise the $ function
 
 function multiwidget(elem, opts) {
-
 	// init
 	this.elem = $(elem);
   	if (typeof(opts) != "object") opts = {};
   	$.extend(this, multiwidget.DEFAULT_OPTS, opts);
 	this.init();
-
-	// this.elem contains stores a reference to the multiwidget..
-	// var self = this.elem.data("multiwidget");
-	// if (!self) {
-	// this.elem.data("multiwidget", this);
-	// }
 
 };
 
@@ -32,17 +25,14 @@ multiwidget.DEFAULT_OPTS = {
 	ext_cancel: null,
 	restrictparams: null, // show only these params...
 	display: 0,
-	root: null,
-	save_callback: function(self,changed) {self.save_default_callback(self,changed)},
-	commit_callback: function(self,r) {self.commit_default_callback(r)},
-	commit_errback: function(self,r) {self.commit_default_errback(r)}
+	root: null
 };
 
 
 multiwidget.prototype = {
 		
 	init: function() {
-		console.log("multiwidget init");
+		// console.log("multiwidget init");
 
 		var self=this;
 		
@@ -133,7 +123,7 @@ multiwidget.prototype = {
 	build: function() {
 		// build all the widgets and controls
 		
-		console.log("begin build");
+		// console.log("begin build");
 		
 		var self = this;
 
@@ -286,16 +276,19 @@ multiwidget.prototype = {
 
 		var changed={};
 		$.each(this.elems, function(){
-			// if (this.changed) {
 			if (!changed[this.recid]) {changed[this.recid]={}}
 			changed[this.recid][this.param] = this.getval();
+			// console.log(this.recid, this.param, this.getval())			
 			// } else {
 			//	// console.log(this.param+" is unchanged; value is "+this.getval());
 			//}
 		});
 		
-		this.save_callback(this, changed);
-		
+		if (this.newrecord) {
+			this.save_newrecord_callback(this, changed);
+		} else {
+			this.save_default_callback(this, changed);			
+		}		
 	},
 	
 	compare: function(a,b) {
@@ -324,6 +317,39 @@ multiwidget.prototype = {
 		self.save_start();
 		$.jsonRPC("putrecordsvalues",[changed],function(data){self.commit_default_callback(self,data)},function(data){self.commit_default_errback(self,data)});
 	},
+	
+	save_newrecord_callback: function(self, changed) {
+		if (!changed[null]) {
+			changed[null]={}
+		}
+	
+		changed[null]["permissions"] = permissionscontrol.getpermissions();
+		changed[null]["parents"] = permissionscontrol.getparents();
+		changed[null]["groups"] = permissionscontrol.getgroups();
+	
+		// console.log(changed[null]);
+	
+		// commit
+		var rec_update = getrecord(null);
+	
+		$.each(changed[null], function(i,value) {
+			if ((value!=null) || (getvalue(recid,i)!=null)) {
+				rec_update[i]=value;
+			}
+		});
+		
+	
+		$.jsonRPC("putrecord", [rec_update, rec_update["parents"]],
+			function(rec){
+				notify_post(EMEN2WEBROOT+'/db/record/'+rec["recid"]+'/',["Record Saved"]);
+			},
+			function(xhr){
+				notify("Error: "+this.param+", "+xhr.responseText);
+				self.ext_save.val("Retry");		
+				self.bind_save();
+			}
+		);	
+	},	
 	
 	commit_default_errback: function(self,r) {
 		notify(r.responseText);
@@ -368,7 +394,7 @@ widget.prototype = {
 	init: function() {
 		this.built = 0;
 		this.param = this.elem.attr("data-param");
-		this.recid = parseInt(this.elem.attr("data-recid"));
+		this.recid = parseInt(this.elem.attr("data-recid")) || null;
 		this.rec_value = getvalue(this.recid, this.param);	
 		this.bind_edit();
 	},

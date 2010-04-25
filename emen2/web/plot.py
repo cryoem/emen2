@@ -26,7 +26,10 @@ try:
 except:
 	g.log("No matplotlib, plotting will fail")
 
-def render_plot(thequery,L,clickable=0, groupby=0):
+
+
+
+def render_plot(thequery, L, groupby=0):
 	data = L['data']
 	allx = []
 	ally = []
@@ -66,14 +69,8 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 				theaxes[0].yaxis.set_major_formatter(FormatStrFormatter('%d'))					  
 				pylab.xticks(ind, allx, rotation=45, fontsize=8)
 				#pylab.xlim(-width, len(ind))
-				if clickable == 1:
-					dataRid = ind
 			else:
 				ally = data['y']
-				if clickable == 1:
-					   dataRid = data['i']
-				else:
-					dataRid = []
 				sc = pylab.scatter(allx, ally)
 	else:
 		dotcolor = ['b', 'g', 'r', 'c', 'm', 'y','w', 'k', 'c']
@@ -150,8 +147,6 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 					datay = data['y']
 				allx.extend(datax)
 				ally.extend(datay)
-				if clickable == 1:
-					dataRid.extend(data[thekey]['i'])
 				label = str(dotcolor[i%8]) + '--' + allshape[i/8]
 				lines = pylab.plot([datax[0]], [datay[0]], label, markersize=5)
 				sc = pylab.scatter(datax, datay, c=dotcolor[i%len(dotcolor)], marker=allshape[i/8], s=20)
@@ -169,48 +164,16 @@ def render_plot(thequery,L,clickable=0, groupby=0):
 			except:
 				pass
 
+
+
+
 	pylab.xlabel(L['xlabel'])
 	pylab.ylabel(L['ylabel'])
 
 	t = str(time.time())
 	rand = str(random.randint(0,100000))
 	tempfile = "/graph/t" + t + ".r" + rand + ".png"
-
-	
 	pylab.savefig("tweb" + tempfile)				
-	wspace = hspace = 0.8
-
-	if clickable == 1:
-		if thequery.find('histogram') >= 0:
-			  trans = sc[0].get_transform()
-			  if groupby == 0:
-				  xlist = range(len(allx)+1)
-				  ylist = ally
-				  ylist.append(0)
-				  xcoords, ycoords = trans.seq_x_y(xlist, ylist)
-			  else:
-				  xlist = range(len(allx))
-				  ycoords = []
-				  for i in range(len(ally)):
-					xs, ys = trans.seq_x_y(xlist, ally[i])
-					ycoords.append(ys)
-				  xcoords, tmp = trans.seq_x_y(range(len(allx)+1), range(len(allx)+1))						
-			  fig = sc[0].get_figure()
-		else:
-			  trans = sc.get_transform()
-			  xcoords, ycoords = trans.seq_x_y(allx, ally)
-			  fig = sc.get_figure()
-			
-		dpi = fig.get_dpi() 
-		img_height = fig.get_figheight() * dpi
-		img_width = fig.get_figwidth() * dpi
-		if thequery.find('histogram') >= 0:
-			if groupby == 0:
-				  pass
-#				  page = p.plot_view_bar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
-			else:
-				  dataRid = ind
-#				  page = p.plot_view_multibar(thequery, xcoords, ycoords, dataRid, img_height, wspace, hspace)
 
 	return tempfile
 		
