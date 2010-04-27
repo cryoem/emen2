@@ -1,35 +1,112 @@
-############################################
-### PLOT: From Haili's Cheetah interface
-############################################
-
-
-
 import traceback
-from sets import Set
 import re
 import os
 import pickle 
-
-
 import time
 import random
+import optparse
+import sys
+import pylab
+import collections
+
+#
+# try:
+# 	import matplotlib
+# 	matplotlib.use('Agg')
+# 	from matplotlib import pylab, font_manager
+# 	from matplotlib.ticker import FormatStrFormatter
+# 	from matplotlib import colors
+# except:
+# 	g.log("No matplotlib, plotting will fail")
+# 
+
+
+
+def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", rectypes=None, childof=None, cutoff=100, db=None):
+
+	# Colors to use in plot..
+	allcolor = ['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
+
+	try: cutoff = int(cutoff)
+	except: cutoff = 100
+
+	# Get items
+	c1 = db.getindexdictbyvalue(xparam)
+	c2 = db.getindexdictbyvalue(yparam)
+	z = set(c1) & set(c2)
+
+	# Restrict items
+	if subset:
+		z &= subset
+
+	if childof:
+		z &= db.getchildren(childof, recurse=50)
+
+	# print "%s items before grouping"%(len(z))
+
+	# Grouping actions
+	grouped = collections.defaultdict(set)
+	groupnames = {}
+
+	if grouptype == "parent":
+		parents = db.getparents(z, recurse=10, flat=True)
+		for p in db.groupbyrecorddef(parents).get(groupby,set()):
+			grouped[p] = db.getchildren(p, recurse=50, rectype=rectypes) & z
+		groupnames = db.renderview(grouped.keys(), viewtype="recname")
+		for k in groupnames:
+			groupnames[k] = "%s %s"%(k, groupnames[k])
+
+	elif grouptype == "value":
+		c = db.getindexdictbyvalue(groupby)
+		z &= set(c)
+		for p in z:
+			grouped[c[p]].add(p)
+		for p in grouped:
+			groupnames[p] = p
+	
+	elif grouptype == "recorddef":
+		c = db.groupbyrecorddef(z)
+		for k,v in c.items():
+			grouped[k]=v
+		for p in grouped:
+			groupnames[p] = p
+	
+	
+	# Ok, actual plotting is pretty simple...
+	handles = []
+	labels = []
+
+	total = float(len(grouped))
+	for count, (k,v) in enumerate(grouped.items()):
+		if len(v) < cutoff:
+			print "Skipping %s"%k
+			continue
+		
+		handle = pylab.scatter(map(c1.get, v), map(c2.get, v), c=allcolor.pop(0))# cm.hsv(count/total)
+		handles.append(handle)
+
+		label = '%s (%s)'%(groupnames.get(k), len(v))
+		labels.append(label)
+		# pylab.axis([0, 6, 0, 500])
+	
+	
+	# pylab.legend(handles, labels,  bbox_to_anchor=(1, 1))
+	# pylab.show()
+	
+
+	# From plot_old	
+	t = str(time.time())
+	rand = str(random.randint(0,100000))
+	tempfile = "/graph/t" + t + ".r" + rand + ".png"
+	pylab.savefig("tweb" + tempfile)
+	return tempfile, z
+	
+	
 
 
 
 
-try:
-	import matplotlib
-	matplotlib.use('Agg')
-	from matplotlib import pylab, font_manager
-	from matplotlib.ticker import FormatStrFormatter
-	from matplotlib import colors
-except:
-	g.log("No matplotlib, plotting will fail")
-
-
-
-
-def render_plot(thequery, L, groupby=0):
+def plot_old(thequery, L, groupby=0):
 	data = L['data']
 	allx = []
 	ally = []
@@ -178,3 +255,31 @@ def render_plot(thequery, L, groupby=0):
 	return tempfile
 		
 	
+
+
+
+
+
+def main():
+	# def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", rectypes=None, cutoff=100):
+	parser = optparse.OptionParser()
+	parser.add_option("--grouptype",type="string", default="recorddef", help="Group Type -- use groupby for argument")
+	parser.add_option("--groupby", type="string")
+	parser.add_option("--childof", type="int", help="Child of")
+	parser.add_option("--cutoff", type="int", default=100, help="Discard groups with less than cutoff items")
+	(options, args) = parser.parse_args(sys.argv[2:])
+	
+	if len(args) < 1:
+		parser.error("X and Y parameters required")
+
+	plot(xparam=args[0], yparam=args[1], groupby=options.groupby, grouptype=options.grouptype, cutoff=options.cutoff, childof=options.childof)
+
+
+
+if __name__ == "__main__":
+	main()
+	
+
+
+
+
