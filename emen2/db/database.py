@@ -5032,26 +5032,23 @@ class DB(object):
 		if not os.access(g.ARCHIVEPATH, os.F_OK):
 			os.makedirs(g.ARCHIVEPATH)
 
-		if remove:
-			return self.__removelogs(archivefiles)
-
-		self.__archivelogs(archivefiles)
+		self.__archivelogs(archivefiles, remove=remove)
 
 
 
-	def __archivelogs(self, files):
+	def __archivelogs(self, files, remove=False):
+
 		outpaths = []
-		for file_ in archivefiles:
-			# ian: changed to copy -- safer: it's better for it to be rename
+		for file_ in files:
 			outpath = os.path.join(g.ARCHIVEPATH, os.path.basename(file_))
 			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
 			shutil.copy(file_, outpath)
 			outpaths.append(outpath)
-		return outpaths
 
 
+		if not remove:
+			return outpaths
 
-	def __removelogs(self, files):
 		removefiles = []
 
 		# ian: check if all files are in the archive before we remove any
