@@ -69,7 +69,7 @@ class DownloadResource(Resource, File):
 
 		with db._setcontext(ctxid,host):
 			bdos = db.getbinary(bids)
-
+			
 		return bdos
 
 
@@ -81,6 +81,7 @@ class DownloadResource(Resource, File):
 		# ian: todo: implement working archive Producer...
 		# bdos = result[0]
 
+		
 		first_bdo = result.values()[0]
 		bname = first_bdo.get("filename")
 

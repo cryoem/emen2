@@ -6,19 +6,20 @@ import time
 import random
 import optparse
 import sys
-import pylab
 import collections
 
-#
-# try:
-# 	import matplotlib
-# 	matplotlib.use('Agg')
-# 	from matplotlib import pylab, font_manager
-# 	from matplotlib.ticker import FormatStrFormatter
-# 	from matplotlib import colors
-# except:
-# 	g.log("No matplotlib, plotting will fail")
-# 
+
+#import pylab
+
+try:
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab, font_manager
+	from matplotlib.ticker import FormatStrFormatter
+	from matplotlib import colors
+except:
+	g.log("No matplotlib, plotting will fail")
+
 
 
 
