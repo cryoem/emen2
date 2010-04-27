@@ -23,7 +23,7 @@ except:
 
 
 
-def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", rectypes=None, childof=None, cutoff=100, db=None):
+def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", rectypes=None, childof=None, cutoff=100, pdf=False, db=None):
 
 	# Colors to use in plot..
 	allcolor = ['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
@@ -91,16 +91,27 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 		# pylab.axis([0, 6, 0, 500])
 	
 	
-	# pylab.legend(handles, labels,  bbox_to_anchor=(1, 1))
+	pylab.legend(handles, labels,  bbox_to_anchor=(1, 1))
 	# pylab.show()
+
 	
 
 	# From plot_old	
 	t = str(time.time())
 	rand = str(random.randint(0,100000))
-	tempfile = "/graph/t" + t + ".r" + rand + ".png"
-	pylab.savefig("tweb" + tempfile)
-	return tempfile, z
+	tempfile = "/graph/t" + t + ".r" + rand
+
+	pngfile = tempfile+".png"
+	pdffile = None
+
+	pylab.savefig('tweb'+pngfile)
+
+        if pdf:
+		pdffile = tempfile+".pdf"
+		pylab.savefig('tweb'+pdffile)
+
+
+	return pngfile, pdffile, z
 	
 	
 
