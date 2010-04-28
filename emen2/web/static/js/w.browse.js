@@ -625,3 +625,51 @@ relationshipbrowser.prototype = {
 
 /////////////////////////////////////////////
 
+
+
+
+mapselect = (function($) { // Localise the $ function
+
+function mapselect(elem, opts) {
+  if (typeof(opts) != "object") opts = {};
+  $.extend(this, mapselect.DEFAULT_OPTS, opts);
+  this.elem = $(elem);  
+  this.init();
+};
+
+mapselect.DEFAULT_OPTS = {
+};
+
+mapselect.prototype = {
+	
+	init: function() {
+		this.build();
+	},
+	
+	build: function() {
+		var self=this;
+		this.elems = [];
+		this.ext_elems = $("a.map", this.elem);
+
+		this.ext_elems.each(function(){
+			var target = $(this).attr('data-recid');
+			checkbox = $('<input type="checkbox" value="'+target+'" checked="checked" />');
+			self.elems.push(checkbox);
+			$(this).before(checkbox);
+		});	
+	},
+	
+	value: function() {
+		
+	}	
+}
+
+$.fn.mapselect = function(opts) {
+  return this.each(function() {
+		return new mapselect(this, opts);
+	});
+};
+
+return mapselect;
+
+})(jQuery);

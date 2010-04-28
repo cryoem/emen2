@@ -8,18 +8,23 @@ import optparse
 import sys
 import collections
 
-
+import matplotlib.pyplot
 #import pylab
 
-try:
-	import matplotlib
-	matplotlib.use('Agg')
-	from matplotlib import pylab, font_manager
-	from matplotlib.ticker import FormatStrFormatter
-	from matplotlib import colors
-except:
-	g.log("No matplotlib, plotting will fail")
+# try:
+# 	import matplotlib
+# 	matplotlib.use('Agg')
+# 	import matplotlib.pylab
+# 	import matplotlib.colors
+# 	import matplotlib.font_manager
+# 	#from matplotlib import pylab, font_manager
+# 	#from matplotlib.ticker import FormatStrFormatter
+# 	#from matplotlib import colors
+# except:
+# 	g.log("No matplotlib, plotting will fail")
 
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 
 
@@ -27,9 +32,13 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 
 	# Colors to use in plot..
 	allcolor = ['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
+	allcolorcount = len(allcolor)
 
 	try: cutoff = int(cutoff)
 	except: cutoff = 100
+
+	xpd = db.getparamdef(xparam)
+	ypd = db.getparamdef(yparam)
 
 	# Get items
 	c1 = db.getindexdictbyvalue(xparam)
@@ -45,6 +54,8 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 
 	# print "%s items before grouping"%(len(z))
 
+	print "Start groupby..."
+
 	# Grouping actions
 	grouped = collections.defaultdict(set)
 	groupnames = {}
@@ -53,9 +64,9 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 		parents = db.getparents(z, recurse=10, flat=True)
 		for p in db.groupbyrecorddef(parents).get(groupby,set()):
 			grouped[p] = db.getchildren(p, recurse=50, rectype=rectypes) & z
-		groupnames = db.renderview(grouped.keys(), viewtype="recname")
+		groupnames = db.renderview(grouped.keys(), viewtype="recname") or {}
 		for k in groupnames:
-			groupnames[k] = "%s %s"%(k, groupnames[k])
+			groupnames[k] = "%s (%s)"%(groupnames[k], k)
 
 	elif grouptype == "value":
 		c = db.getindexdictbyvalue(groupby)
@@ -72,29 +83,50 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 		for p in grouped:
 			groupnames[p] = p
 	
+
+	print "Drawing plot..."
+
+	# Generate labels
+	title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby)
+	xlabel = '%s (%s)'%(xpd.desc_short, xpd.name)
+	ylabel = '%s (%s)'%(ypd.desc_short, ypd.name)
+	if xpd.defaultunits:
+		xlabel = '%s (%s)'%(xpd.desc_short, xpd.defaultunits)	
+	if ypd.defaultunits:
+		ylabel = '%s (%s)'%(ypd.desc_short, ypd.defaultunits)
 	
+
 	# Ok, actual plotting is pretty simple...
+
+	fig = Figure(figsize=(18,18), dpi=100)
+	canvas = FigureCanvas(fig)
+	ax = fig.add_subplot(111)
+	ax.set_title(title)
+	ax.set_xlabel(xlabel)
+	ax.set_ylabel(ylabel)
+	ax.grid(True)
+
+	# lax = fig.add_subplot(212)
+	# lax.set_frame_on(False)
+	# lax.set_xticks([])
+	# lax.set_yticks([])
+
 	handles = []
 	labels = []
-
 	total = float(len(grouped))
-	for count, (k,v) in enumerate(grouped.items()):
+	nextcolor = 0
+	for k,v in grouped.items():
 		if len(v) < cutoff:
-			print "Skipping %s"%k
 			continue
-		
-		handle = pylab.scatter(map(c1.get, v), map(c2.get, v), c=allcolor.pop(0))# cm.hsv(count/total)
+		handle = ax.scatter(map(c1.get, v), map(c2.get, v), c=allcolor[nextcolor%allcolorcount])
+		# cm.hsv(count/total) #, marker='x' is buggy
 		handles.append(handle)
-
 		label = '%s (%s)'%(groupnames.get(k), len(v))
 		labels.append(label)
-		# pylab.axis([0, 6, 0, 500])
+		nextcolor += 1
 	
-	
-	pylab.legend(handles, labels,  bbox_to_anchor=(1, 1))
-	# pylab.show()
 
-	
+	fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
 
 	# From plot_old	
 	t = str(time.time())
@@ -104,12 +136,10 @@ def plot(xparam, yparam, subset=None, groupby=None, grouptype="recorddef", recty
 	pngfile = tempfile+".png"
 	pdffile = None
 
-	pylab.savefig('tweb'+pngfile)
-
-        if pdf:
+	fig.savefig('tweb'+pngfile)
+	if pdf:
 		pdffile = tempfile+".pdf"
-		pylab.savefig('tweb'+pdffile)
-
+		fig.savefig('tweb'+pdffile)
 
 	return pngfile, pdffile, z
 	

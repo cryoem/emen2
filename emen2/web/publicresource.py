@@ -271,7 +271,6 @@ class PublicView(Resource):
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-		# g.log.msg("LOG_INFO", "====== PublicView action: path %s ctxid %s host %s"%(path, ctxid, host))
 
 		with db._setcontext(ctxid,host):
 			ret, headers = callback(db=db, method=method)
@@ -280,7 +279,6 @@ class PublicView(Resource):
 					ret = unicode(ret).encode('utf-8')
 				except Exception, e:
 					g.log.msg('LOG_ERROR',"couldn't encode ret: mimetype %s, %s"%(headers.get('content-type'), e))
-
 
 		return ret, headers
 

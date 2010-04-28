@@ -1272,7 +1272,9 @@ class DB(object):
 			else:
 				param = c[0]
 				pd = self.bdbs.paramdefs.get(param, txn=txn)
-				pkeys = self.bdbs.indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
+				# pkeys = self.bdbs.indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
+				pkeys = self.__getparamindex(param, ctx=ctx, txn=txn).keys()
+				
 				cargs = vtm.validate(pd, c[2], db=ctx.db)
 				comp = partial(cmps[c[1]], cargs) #*cargs
 				results[count][param] = set(filter(comp, pkeys)) or None
@@ -1797,7 +1799,6 @@ class DB(object):
 
 
 	# ian: todo: simple: expose as offline admin method
-	# ian: todo: hard: ... and make offline maintenance mechanism
 	#@DBProxy.adminmethod
 	def __rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
@@ -1850,7 +1851,6 @@ class DB(object):
 	# def getrecordschangetime(self, recids, ctx=None, txn=None):
 	# 	"""Returns a list of times for a list of recids. Times represent the last modification
 	# 	of the specified records"""
-	# 	raise Exception, "Temporarily deprecated"
 	# 	recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
 	#
 	# 	if len(rid) > 0:
@@ -1872,9 +1872,7 @@ class DB(object):
 	# section: Record Grouping Mechanisms
 	#########################
 
-
-
-	# ian: todo: medium: benchmark for new index system(01/10/2010)
+	# ian: todo: medium: benchmark for new index system (01/10/2010)
 
 	#@rename db.records.group
 	@DBProxy.publicmethod
@@ -1896,6 +1894,10 @@ class DB(object):
 
 		if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],dataobjects.record.Record)):
 			return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
+
+		# we need to work with a copy becuase we'll be changing it;
+		# use copy.copy instead of list[:] because recids will usually be set()
+		recids = copy.copy(recids)
 
 		# also converts to set..
 		recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
@@ -4019,7 +4021,11 @@ class DB(object):
 	# section: Records / Put
 	#########################
 
-
+	@DBProxy.publicmethod
+	def publish(self, recids, ctx=None, txn=None):
+		pass
+		
+		
 
 	#@rename db.records.putvalue
 	@DBProxy.publicmethod
@@ -4580,6 +4586,7 @@ class DB(object):
 
 	def __reindex_security(self, updrecs, cache=None, ctx=None, txn=None):
 		"""(Internal) Calculate secrindex updates"""
+
 		# g.log.msg('LOG_DEBUG', "Calculating security updates...")
 
 		if not cache: cache = {}
