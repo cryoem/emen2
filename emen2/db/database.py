@@ -1,10 +1,6 @@
 # $Author$ $Revision$
 from __future__ import with_statement
 
-
-#basestring goes away in a later python version
-basestring = (str, unicode)
-
 import copy
 import atexit
 import hashlib
@@ -16,42 +12,37 @@ import traceback
 import collections
 import itertools
 import random
-import cPickle as pickle
 import bsddb3
 import demjson
 import re
 import shutil
 import weakref
 import getpass
-
-
-from functools import partial, wraps
+import functools
+import cPickle as pickle
 
 import emen2
 import emen2.util.utils
-import emen2.util.ticker
-import emen2.util.emailutil
-
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-
 import DBProxy
-import DBExt
 import datatypes
 import dataobjects
-import extensions
 import subsystems
 import subsystems.dbtime
 import subsystems.btrees
 import subsystems.datatypes
 import subsystems.exceptions
 
-from emen2.Database.DBFlags import *
+# import extensions
 
-
-DBENV = None
+try:
+	import matplotlib.backends.backend_agg
+	import matplotlib.figure
+except:
+	g.log("No matplotlib; plotting will fail")
 
 
 # ian: todo: low: do this in a better way
@@ -61,6 +52,10 @@ VERSIONS = {
 	"API": g.VERSION,
 	"emen2client": 20100420
 }
+DBENV = None
+
+#basestring goes away in a later python version
+basestring = (str, unicode)
 
 
 @atexit.register
@@ -70,13 +65,6 @@ def DB_Close():
 	for i in l:
 		g.log.msg('LOG_DEBUG', i.dbenv)
 		i.close()
-
-
-# ian: todo: low: does this need to be on?
-def DB_syncall():
-	"""This syncs all open databases"""
-	#for i in subsystems.btrees.BTree.alltrees.keys(): i.sync()
-	pass
 
 
 
@@ -104,8 +92,6 @@ def DB_stat():
 	g.log.msg('LOG_DEBUG', "Lock stats: ")
 	for k,v in lock_stat.items():
 		g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
-
-
 
 
 class instonget(object):
@@ -310,7 +296,7 @@ class DB(object):
 
 
 
-	def create_db(self, ctx=None, txn=None):
+	def create_db(self, rootpw=None, ctx=None, txn=None):
 		"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_*
 		This is usually called from the setup.py script to create initial db env"""
 
@@ -324,10 +310,6 @@ class DB(object):
 			raise ValueError, "Found root user. This environment has already been initialized."
 		except KeyError:
 			pass
-
-
-		rootpw = getpass.getpass("root password for new database:")
-
 
 		for i in skeleton.core_paramdefs.items:
 			self.putparamdef(i, ctx=ctx, txn=txn)
@@ -1167,17 +1149,14 @@ class DB(object):
 		if rectype:
 			subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
 
-
-
 		# makes life simpler...
 		if not constraints:
 			# ret = reduce(boolmode, subsets)
-			ret = boolmode(*subsets) #set()
-
-
+			if not subsets:
+				subsets=[set()]
+			ret = boolmode(*subsets)
 			if returnrecs:
 				return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
-
 			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 
 
@@ -1204,13 +1183,9 @@ class DB(object):
 		# wildcard param searching only useful with the following comparators...
 		globalsearchcmps = ["==","!=","contains","!contains"]
 
-
 		# since we pass the DBProxy to validators, set it's txn
 		if not ctx.db._gettxn():
 			ctx.db._settxn(txn)
-
-		#g.log.msg('LOG_DEBUG', "Query constraints:")
-		#g.log.msg('LOG_DEBUG', constraints)
 
 		if subset:
 			s, subsets_by_value = self.__query_recs(constraints, cmps=cmps, subset=subset, ctx=ctx, txn=txn)
@@ -1220,10 +1195,6 @@ class DB(object):
 		subsets.extend(s)
 
 		ret = boolmode(*subsets) #set(),
-
-
-		#g.log.msg('LOG_DEBUG', "stage 3 results")
-		#g.log.msg('LOG_DEBUG', ret)
 
 		# ian: i'd prefer not to make a copy, but filtering dicts by value isn't awesome
 		if byvalue:
@@ -1251,7 +1222,7 @@ class DB(object):
 		subsets_by_value = {}
 
 		# nested dictionary, results[constraint position][param]
-		results = collections.defaultdict(partial(collections.defaultdict, set))
+		results = collections.defaultdict(functools.partial(collections.defaultdict, set))
 
 		# stage 1: search __indexkeys
 		for count,c in enumerate(constraints):
@@ -1266,7 +1237,7 @@ class DB(object):
 					except (ValueError, KeyError):
 						continue
 
-					comp = partial(cmps[c[1]], cargs) #*cargs
+					comp = functools.partial(cmps[c[1]], cargs) #*cargs
 					results[count][param] = set(filter(comp, pkeys)) or None
 
 			else:
@@ -1276,7 +1247,7 @@ class DB(object):
 				pkeys = self.__getparamindex(param, ctx=ctx, txn=txn).keys()
 				
 				cargs = vtm.validate(pd, c[2], db=ctx.db)
-				comp = partial(cmps[c[1]], cargs) #*cargs
+				comp = functools.partial(cmps[c[1]], cargs) #*cargs
 				results[count][param] = set(filter(comp, pkeys)) or None
 
 
@@ -1352,14 +1323,243 @@ class DB(object):
 
 
 
-	# ian: todo: hard: Plotting goes.. HERE. Working on it.
-	#@rename db.query.plot
+
 	@DBProxy.publicmethod
-	def plot(self, subset, param1, param2, ctx=None, txn=None):
-		pass
+	def queryplot(self, ctx=None, txn=None, **kwargs):
+		"""Query + Plot"""		
+
+		qp = {}
+		for i in  ["q", "rectype", "boolmode", "ignorecase", "constraints", "childof", "parentof", "recurse", "subset", "recs", "returnrecs", "byvalue"]:
+			if kwargs.get(i) != None: qp[i] = kwargs.get(i)
+			
+		pp = {}
+		for i in ["xparam","yparam","groupby","grouptype","cutoff","formats","searchparents","searchchildren"]:
+			if kwargs.get(i) != None: pp[i] = kwargs.get(i)
+			
+		queryrecids = None
+		plotresults = {}
+		if qp:
+			print "Step1"
+			print qp
+			queryrecids = self.query(ctx=ctx, txn=txn, **qp)
+		if pp:
+			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
+		
+		qp.update(plotresults)
+		if qp.get("recids") == None:
+			qp["recids"] = queryrecids or set()
+
+		return qp
+		
+		
+		
+	@DBProxy.publicmethod
+	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", cutoff=100, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, ctx=None, txn=None):
+
+		try:
+			cutoff = int(cutoff)
+		except:
+			cutoff = 100
+
+		# formats = formats or []
+		formats = ["png"]
+
+		# Get parameters
+		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
+		ypd = self.getparamdef(yparam, ctx=ctx, txn=txn)
+
+
+		# Get indexes
+		c1 = self.getindexdictbyvalue(xparam, ctx=ctx, txn=txn)
+		c2 = self.getindexdictbyvalue(yparam, ctx=ctx, txn=txn)
+		c3 = {}
+		if grouptype == "value":
+			c3 = self.getindexdictbyvalue(groupby, ctx=ctx, txn=txn)
+					
+					
+		# If we're doing a very simple query inside plot, we won't have a subset..
+		if not subset: # == None:
+			subset = set(c1) | set(c2) | set(c3)
+
+						
+		# Process "nearby" params. Do not filter points until after these are done..
+		parents = {}
+		if searchparents or grouptype == "parent":
+			parents = self.getparents(subset, recurse=-1, ctx=ctx, txn=txn)
+		if searchparents:
+			if "xparam" in searchparents: self.__plot_searchrels(subset, c1, parents)
+			if "yparam" in searchparents: self.__plot_searchrels(subset, c2, parents)
+			if "groupby" in searchparents: self.__plot_searchrels(subset, c3, parents)
+
+		
+		children = {}
+		if searchchildren or grouptype == "children":
+			children = self.getchildren(subset, recurse=-1, ctx=ctx, txn=txn)			
+		if searchchildren:
+			if "xparam" in searchchildren: self.__plot_searchrels(subset, c1, children)
+			if "yparam" in searchchildren: self.__plot_searchrels(subset, c2, children)
+			if "groupby" in searchchildren: self.__plot_searchrels(subset, c3, children)
+
+
+		# If we're filtering, use only recids that have values for everything. If not, allow None, and union.
+		if filt_points:
+			recids = set(c1) & set(c2)
+		else:
+			recids = set(c1) | set(c2)
+			
+		#if subset != None:
+		#	recids &= subset		
+
+		# Grouping actions
+		grouped = collections.defaultdict(set)
+		groupnames = {}
+
+		if grouptype == "parent":
+			# c = {None: recids} #self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
+			# for k,v in c.items():
+			# 	grouped[k]=v
+			# for p in grouped:
+			# 	groupnames[p] = p			
+			# Get all parents, group by record def, then break into groups
+
+			parents_all = set().union(set(), *parents.values())
+			parents_group = self.groupbyrecorddef(parents_all, ctx=ctx, txn=txn).get(groupby,set())
+			for p in parents_group:
+				grouped[p] = set([i[0] for i in parents.items() if p in i[1]]) & recids
+				if not grouped[p]:
+					del grouped[p]
+			
+			groupnames = self.renderview(grouped.keys(), viewtype="recname", ctx=ctx, txn=txn) or {}
+			for k in groupnames:
+				groupnames[k] = "%s (%s)"%(groupnames[k], k)
+
+		elif grouptype == "value":
+			if filt_groupby:
+				recids &= set(c3)
+			for p in recids:
+				grouped[c3.get(p)].add(p)
+			for p in grouped:
+				groupnames[p] = p
+	
+		elif grouptype == "recorddef":
+			c = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
+			for k,v in c.items():
+				grouped[k]=v
+			for p in grouped:
+				groupnames[p] = p
+				
+		else:
+			raise ValueError, "Invalid grouptype: %s"%grouptype
+		
+		
+		
+		plots = {}
+		if formats:			
+			plots = self.__plot_plot(xpd=xpd, ypd=ypd, grouptype=grouptype, groupby=groupby, grouped=grouped, groupnames=groupnames, cutoff=cutoff, c1=c1, c2=c2, formats=formats)
 
 
 
+		recids = list(recids)
+		ret = {
+			"formats": formats,
+			"plots": plots,
+			"groupnames": groupnames,
+			"grouptype": grouptype,
+			"groupby": groupby,
+			"cutoff": cutoff,
+			"searchparents": searchparents,
+			"searchchildren": searchchildren,
+			"xparam": xparam,
+			"yparam": yparam,
+			"filt_points": filt_points,
+			"recids": recids,
+			"grouped": grouped,
+			"x": map(c1.get, recids),
+			"y": map(c2.get, recids)
+		}
+		return ret
+		
+
+
+	def __plot_searchrels(self, subset, c, rels):
+		"""(Internal) Search for parents values; Modifies index in-place"""
+		for i in subset:
+			if c.get(i) == None:
+				v = filter(None, map(c.get, rels.get(i, [])))
+				if v:
+					c[i] = v[0]
+
+	
+
+	def __plot_plot(self, xpd, ypd, grouptype, groupby, grouped, groupnames, cutoff, c1, c2, formats):
+		"""Actually draw plot..."""
+		
+		# Colors to use in plot..
+		allcolor = ['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
+		allcolorcount = len(allcolor)
+
+
+		# Generate labels
+		title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby or '')
+		xlabel = '%s (%s)'%(xpd.desc_short, xpd.name)
+		ylabel = '%s (%s)'%(ypd.desc_short, ypd.name)
+		if xpd.defaultunits:
+			xlabel = '%s (%s)'%(xpd.desc_short, xpd.defaultunits)	
+		if ypd.defaultunits:
+			ylabel = '%s (%s)'%(ypd.desc_short, ypd.defaultunits)
+	
+
+		# Ok, actual plotting is pretty simple...
+		fig = matplotlib.figure.Figure(figsize=(18,18), dpi=100)
+		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+		ax = fig.add_subplot(111)
+		ax.set_title(title)
+		ax.set_xlabel(xlabel)
+		ax.set_ylabel(ylabel)
+		ax.grid(True)
+
+		# lax = fig.add_subplot(212)
+		# lax.set_frame_on(False)
+		# lax.set_xticks([])
+		# lax.set_yticks([])
+
+		handles = []
+		labels = []
+		total = float(len(grouped))
+		nextcolor = 0
+		for k,v in grouped.items():
+			if len(v) < cutoff and len(v) > 0:
+				continue
+				
+			print "=="
+			print map(c1.get, v)
+			print map(c2.get, v)
+			handle = ax.scatter(map(c1.get, v), map(c2.get, v), c=allcolor[nextcolor%allcolorcount])
+			# cm.hsv(count/total) #, marker='x' is buggy
+			handles.append(handle)
+			label = '%s (%s)'%(groupnames.get(k), len(v))
+			labels.append(label)
+			nextcolor += 1
+
+		fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
+
+		# From plot_old	
+		t = str(time.time())
+		rand = str(random.randint(0,100000))
+		tempfile = "/graph/t" + t + ".r" + rand
+
+		fret = {}
+		if "png" in formats:
+			pngfile = tempfile+".png"
+			fig.savefig('tweb'+pngfile)
+			fret["png"] = pngfile
+
+		if "pdf" in formats:
+			pdffile = tempfile+".pdf"
+			fig.savefig('tweb'+pdffile)
+			fret["pdf"] = pdffile
+
+		return fret
 
 
 
@@ -1452,7 +1652,7 @@ class DB(object):
 					c[i.name] = filter(None, qt).pop()
 
 		if childof:
-			children = self.getchildren(childof, recurse=g.MAXRECURSE, keytype=keytype, ctx=ctx, txn=txn)
+			children = self.getchildren(childof, recurse=-1, keytype=keytype, ctx=ctx, txn=txn)
 			names = set(c.keys()) & children
 			p2 = filter(lambda x:x.name in names, p2)
 			c = dict(filter(lambda x:x[0] in names, c.items()))
@@ -2015,6 +2215,9 @@ class DB(object):
 	def __getrel_wrapper(self, key, keytype="record", recurse=1, rectype=None, rel="children", filt=False, tree=False, flat=False, ctx=None, txn=None):
 		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method."""
 
+		if recurse == -1:
+			recurse = g.MAXRECURSE
+
 		ol = False
 		if not hasattr(key,"__iter__"):
 			ol = True
@@ -2163,8 +2366,8 @@ class DB(object):
 		# ian: todo: high: turn this back on..
 
 		#if mode=="pclink":
-		#	p = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="parents")[0]
-		#	c = self.__getrel(key=pkey, keytype=keytype, recurse=self.MAXRECURSE, rel="children")[0]
+		#	p = self.__getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="parents")[0]
+		#	c = self.__getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="children")[0]
 		#	if pkey in c or ckey in p or pkey == ckey:
 		#		raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
 
@@ -3728,6 +3931,17 @@ class DB(object):
 	# section: records
 	#########################
 
+	
+	#@DBProxy.publicmethod
+	#@emen2.util.utils.return_many_or_single('recids')
+	# def getrecord2(self, recids, filt=True, ctx=None, txn=None):
+	# 	try:
+	# 		ret = [self.bdbs.records.sget(i, txn=txn) for i in recids]
+	# 		[i.setContext(ctx) for i in ret]
+	# 	except (emen2.Database.subsystems.exceptions.SecurityError, KeyError, TypeError), e:
+	# 		if filt: pass
+	# 		else: raise
+	# 	return ret
 
 
 	# ian: improved!
@@ -3737,7 +3951,6 @@ class DB(object):
 	@emen2.util.utils.return_many_or_single('recids')
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
-		if dbid is 0, the current database is used.
 		
 		@param recids Record ID or iterable of Record IDs
 		
@@ -3747,8 +3960,8 @@ class DB(object):
 		"""
 
 		ret = []
-		# g.debug(recids)
-		for i in sorted(recids):
+
+		for i in recids:
 			try:
 				rec = self.bdbs.records.sget(i, txn=txn)
 				rec.setContext(ctx)
@@ -3895,7 +4108,7 @@ class DB(object):
 		saved = set()
 
 		# this is hard to calculate
-		children = self.getchildren(recid, recurse=50, tree=1, ctx=ctx, txn=txn)
+		children = self.getchildren(recid, recurse=-1, tree=1, ctx=ctx, txn=txn)
 		orphaned = reduce(set.union, children.values(), set())
 		orphaned.add(recid)
 		parents = self.getparents(orphaned, ctx=ctx, txn=txn)
@@ -3906,7 +4119,7 @@ class DB(object):
 			if parents.get(child, set()) - orphaned:
 				saved.add(child)
 
-		children_saved = self.getchildren(saved, recurse=50, ctx=ctx, txn=txn)
+		children_saved = self.getchildren(saved, recurse=-1, ctx=ctx, txn=txn)
 		children_saved_set = set()
 		for i in children_saved.values() + [set(children_saved.keys())]:
 			children_saved_set |= i
@@ -4128,19 +4341,9 @@ class DB(object):
 		if (warning or not log) and not ctx.checkadmin():
 			raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
-		# filter input for dicts/records
-		# if not hasattr(recs, 'extend'):
-		#	recs = [recs] # list(recs)
-
-		# if not hasattr(recs, 'extend'):
-		# 	if isinstance(recs, dataobjects.record.Record):
-		# 		recs = [recs]
-		# 	else:
-		# 		recs = list(recs)
-
 		dictrecs = (x for x in recs if isinstance(x,dict))
-
 		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
+
 		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
 
 		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
@@ -4229,11 +4432,8 @@ class DB(object):
 
 			if log:
 				# ian: todo: high: normally ctx doesn't allow us to update these params..
-				#orec["modifytime"] = t
-				#orec["modifyuser"] = ctx.username
 				orec._Record__params["modifytime"] = t
 				orec._Record__params["modifyuser"] = ctx.username
-
 
 			# I don't think we need to re-validate..
 			# if validate:
@@ -4747,8 +4947,6 @@ class DB(object):
 	# section: Record Permissions View / Modify
 	###############################
 
-
-
 	# ian: I benchmarked with new index system; lowered the threshold for checking indexes. But maybe improve? 01/10/2010.
 	#@rename db.records.permissions.filter
 	@DBProxy.publicmethod
@@ -4836,6 +5034,9 @@ class DB(object):
 
 	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
+		if recurse == -1:
+			recurse = g.MAXRECURSE
+
 		if not hasattr(recids,"__iter__"): recids = [recids]
 		if not hasattr(addusers,"__iter__"): addusers = [addusers]
 		if not hasattr(addgroups,"__iter__"): addgroups = [addgroups]
@@ -4893,8 +5094,11 @@ class DB(object):
 
 	#@rename db.records.render.childtree
 	@DBProxy.publicmethod
-	def renderchildtree(self, recid, recurse=None, rectypes=None, treedef=None, ctx=None, txn=None):
+	def renderchildtree(self, recid, recurse=1, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
+
+		if recurse == -1:
+			recurse = g.MAXRECURSE
 
 		c_all = self.getchildren(recid, recurse=recurse, tree=True, filt=True, ctx=ctx, txn=txn)
 		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, filt=True, ctx=ctx, txn=txn)
@@ -4918,8 +5122,6 @@ class DB(object):
 		# 	for v2 in v:
 		# 		c_rev[v2].add(k)
 		#
-
-
 
 		# if recurse:
 		# 	treedef = [rectypes] * recurse
@@ -5098,19 +5300,6 @@ class DB(object):
 		for i in archivelogs:
 			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
 			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
-
-
-		# archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_DATA | bsddb3.db.DB_ARCH_ABS)
-		# os.makedirs(g.BACKUPPATH)
-		# for i in archivefiles:
-		# 	outpath = i.replace(g.EMEN2DBPATH,"")
-		# 	outpath = "%s/%s"%(g.BACKUPPATH, outpath)
-		# 	g.log.msg('LOG_INFO','Cold Backup: %s -> %s'%(i, outpath))
-		#
-		# 	if not os.path.exists(os.path.dirname(outpath)):
-		# 		os.makedirs(os.path.dirname(outpath))
-		#
-		# 	shutil.copy(i, outpath)
 
 
 

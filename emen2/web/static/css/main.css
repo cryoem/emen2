@@ -1,3 +1,4 @@
+
 .content_box {
 	display: inline-block
 }
@@ -181,7 +182,7 @@ td {
 }	
 
 
-.admin_userqueue_table th, .admin_userlist th {
+.admin_userqueue_table th, .admin_userlist th, .plotparams th {
 	padding:5px;
 	text-align:left;
 	font-weight:normal;

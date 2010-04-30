@@ -48,11 +48,14 @@ parser.parse_args()
 
 import emen2.Database.database
 
+rootpw = getpass.getpass("root password for new database:")
+
+
 # Open DB Env
 ddb = emen2.Database.database.DB(g.EMEN2DBPATH)
 
 txn = ddb.newtxn()
 
-ddb.create_db(txn=txn)
+ddb.create_db(rootpw=rootpw, txn=txn)
 
 txn.commit()

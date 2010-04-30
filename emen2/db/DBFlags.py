@@ -12,16 +12,12 @@ envopenflags = [
 	DB_INIT_LOCK,
 	DB_INIT_LOG,
 	DB_REGISTER,
-#	DB_RECOVER,
-# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
-# these are in DB_CONFIG
+	# DB_RECOVER,
+	# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
+	# these are in DB_CONFIG
 	DB_TXN_SNAPSHOT,
 	DB_MULTIVERSION
 ]
-
-
-
-
 
 dbopenflags = [
 	DB_CREATE,
