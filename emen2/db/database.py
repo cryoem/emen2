@@ -1333,14 +1333,12 @@ class DB(object):
 			if kwargs.get(i) != None: qp[i] = kwargs.get(i)
 			
 		pp = {}
-		for i in ["xparam","yparam","groupby","grouptype","cutoff","formats","searchparents","searchchildren"]:
+		for i in ["xparam","yparam","groupby","grouptype", "groupshow", "groupcolor", "cutoff","formats","searchparents","searchchildren", "xmin", "xmax", "ymin", "ymax", "width"]:
 			if kwargs.get(i) != None: pp[i] = kwargs.get(i)
 			
 		queryrecids = None
 		plotresults = {}
 		if qp:
-			print "Step1"
-			print qp
 			queryrecids = self.query(ctx=ctx, txn=txn, **qp)
 		if pp:
 			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
@@ -1354,15 +1352,19 @@ class DB(object):
 		
 		
 	@DBProxy.publicmethod
-	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", cutoff=100, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, ctx=None, txn=None):
+	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
 
-		try:
-			cutoff = int(cutoff)
-		except:
-			cutoff = 100
+		formats = formats or []
+		groupshow = groupshow or []
+		groupcolor = groupcolor or {}
 
-		# formats = formats or []
-		formats = ["png"]
+		# Since we often get this from a web form, some values might be str..
+		if cutoff: cutoff = int(cutoff)
+		if xmin != None: xmin = float(xmin)
+		if xmax != None: xmax = float(xmax)
+		if ymin != None: ymin = float(ymin)
+		if ymax != None: ymax = float(ymax)
+		if width != None: width = int(width)
 
 		# Get parameters
 		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
@@ -1378,7 +1380,7 @@ class DB(object):
 					
 					
 		# If we're doing a very simple query inside plot, we won't have a subset..
-		if not subset: # == None:
+		if not subset:
 			subset = set(c1) | set(c2) | set(c3)
 
 						
@@ -1390,7 +1392,6 @@ class DB(object):
 			if "xparam" in searchparents: self.__plot_searchrels(subset, c1, parents)
 			if "yparam" in searchparents: self.__plot_searchrels(subset, c2, parents)
 			if "groupby" in searchparents: self.__plot_searchrels(subset, c3, parents)
-
 		
 		children = {}
 		if searchchildren or grouptype == "children":
@@ -1407,65 +1408,97 @@ class DB(object):
 		else:
 			recids = set(c1) | set(c2)
 			
-		#if subset != None:
-		#	recids &= subset		
 
-		# Grouping actions
+		# Grouping actions.
 		grouped = collections.defaultdict(set)
 		groupnames = {}
 
 		if grouptype == "parent":
-			# c = {None: recids} #self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
-			# for k,v in c.items():
-			# 	grouped[k]=v
-			# for p in grouped:
-			# 	groupnames[p] = p			
 			# Get all parents, group by record def, then break into groups
-
 			parents_all = set().union(set(), *parents.values())
 			parents_group = self.groupbyrecorddef(parents_all, ctx=ctx, txn=txn).get(groupby,set())
 			for p in parents_group:
-				grouped[p] = set([i[0] for i in parents.items() if p in i[1]]) & recids
-				if not grouped[p]:
-					del grouped[p]
-			
-			groupnames = self.renderview(grouped.keys(), viewtype="recname", ctx=ctx, txn=txn) or {}
-			for k in groupnames:
-				groupnames[k] = "%s (%s)"%(groupnames[k], k)
+				grouped[unicode(p)] = set([i[0] for i in parents.items() if p in i[1]]) & recids
+
+			groupnames_rendered = self.renderview(grouped.keys(), viewtype="recname", ctx=ctx, txn=txn) or {}
+			for k,v in groupnames_rendered.items():
+				groupnames[unicode(k)] = "%s (recid %s)"%(v, k)
 
 		elif grouptype == "value":
-			if filt_groupby:
-				recids &= set(c3)
+			# Group by value
 			for p in recids:
-				grouped[c3.get(p)].add(p)
+				grouped[unicode(c3.get(p))].add(p)
 			for p in grouped:
-				groupnames[p] = p
+				groupnames[unicode(p)] = p
 	
 		elif grouptype == "recorddef":
+			# Simple group by recorddef
 			c = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 			for k,v in c.items():
-				grouped[k]=v
+				grouped[unicode(k)]=v
 			for p in grouped:
-				groupnames[p] = p
+				groupnames[unicode(p)] = p
 				
 		else:
 			raise ValueError, "Invalid grouptype: %s"%grouptype
+	
+
+		# Check against cutoff length so we can properly set the bounds. Also, adjust groupnames.
+		for i in grouped.keys():
+			if len(grouped[i]) < cutoff:
+				del grouped[i]
+			else:
+				groupnames[i] = '%s (%s items)'%(groupnames[i], len(grouped[i]))
 		
-		
-		
-		plots = {}
+		for i in groupcolor.keys():
+			if i not in grouped:
+				del groupcolor[i]
+				
+		# Check graph bounds. Reduce recids to only recids that will be drawn.
+		recids = set().union(set(), *grouped.values())
+		if not recids:
+			raise ValueError, "No results"
+			
+		x = map(c1.get, recids)
+		y = map(c2.get, recids)
+
+		if xmin == None: xmin = min(x)
+		if xmax == None: xmax = max(x)
+		if ymin == None: ymin = min(y)
+		if ymax == None: ymax = max(y)
+					
+					
+		# Draw plot. This returns a dictionary of output plot files that were created and the colors used for each group.
+		plotplot = {}
 		if formats:			
-			plots = self.__plot_plot(xpd=xpd, ypd=ypd, grouptype=grouptype, groupby=groupby, grouped=grouped, groupnames=groupnames, cutoff=cutoff, c1=c1, c2=c2, formats=formats)
+			plotplot = self.__plot_plot(
+				xpd=xpd, 
+				ypd=ypd,
+				grouptype=grouptype,
+				groupby=groupby,
+				grouped=grouped,
+				groupshow=groupshow,
+				groupcolor=groupcolor,
+				groupnames=groupnames,
+				cutoff=cutoff,
+				c1=c1,
+				c2=c2,
+				formats=formats,
+				xmin=xmin,
+				xmax=xmax,
+				ymin=ymin,
+				ymax=ymax,
+				width=width
+				)
 
-
-
+		# We use a dict-style output so that it's easy to modify a plot interactively, or parse out results
 		recids = list(recids)
 		ret = {
 			"formats": formats,
-			"plots": plots,
 			"groupnames": groupnames,
 			"grouptype": grouptype,
 			"groupby": groupby,
+			"groupshow": groupshow,
 			"cutoff": cutoff,
 			"searchparents": searchparents,
 			"searchchildren": searchchildren,
@@ -1474,9 +1507,17 @@ class DB(object):
 			"filt_points": filt_points,
 			"recids": recids,
 			"grouped": grouped,
-			"x": map(c1.get, recids),
-			"y": map(c2.get, recids)
+			"x": x,
+			"y": y,
+			"width": width,
+			"xmin": xmin,
+			"xmax": xmax,
+			"ymin": ymin,
+			"ymax": ymax
 		}
+
+		ret.update(plotplot)
+
 		return ret
 		
 
@@ -1491,11 +1532,11 @@ class DB(object):
 
 	
 
-	def __plot_plot(self, xpd, ypd, grouptype, groupby, grouped, groupnames, cutoff, c1, c2, formats):
+	def __plot_plot(self, xpd, ypd, grouptype, groupby, grouped, groupnames, groupshow, groupcolor, cutoff, c1, c2, xmin, xmax, ymin, ymax, formats, width):
 		"""Actually draw plot..."""
 		
 		# Colors to use in plot..
-		allcolor = ['b', 'g', 'r', 'c', 'm', 'y', '#00ff00', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
+		allcolor = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000', '#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887', '#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c', '#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00', '#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc', '#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff', '#808080']
 		allcolorcount = len(allcolor)
 
 
@@ -1510,56 +1551,68 @@ class DB(object):
 	
 
 		# Ok, actual plotting is pretty simple...
-		fig = matplotlib.figure.Figure(figsize=(18,18), dpi=100)
+		fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
 		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-		ax = fig.add_subplot(111)
-		ax.set_title(title)
-		ax.set_xlabel(xlabel)
-		ax.set_ylabel(ylabel)
-		ax.grid(True)
 
-		# lax = fig.add_subplot(212)
-		# lax.set_frame_on(False)
-		# lax.set_xticks([])
-		# lax.set_yticks([])
+		ax_size = [0.1, 0.1, 0.8, 0.8]
+		ax = fig.add_axes(ax_size)
+		ax.grid(True)
 
 		handles = []
 		labels = []
-		total = float(len(grouped))
 		nextcolor = 0
+				
+		# I filter against cutoff in the self.plot now. If it's hidden, skip drawing the scatter plot
 		for k,v in grouped.items():
-			if len(v) < cutoff and len(v) > 0:
+			x = map(c1.get, v)
+			y = map(c2.get, v)
+			
+			if groupcolor.get(k) == None:
+				groupcolor[k] = allcolor[nextcolor%allcolorcount]
+				nextcolor += 1
+			
+			if groupshow and k not in groupshow:
 				continue
 				
-			print "=="
-			print map(c1.get, v)
-			print map(c2.get, v)
-			handle = ax.scatter(map(c1.get, v), map(c2.get, v), c=allcolor[nextcolor%allcolorcount])
-			# cm.hsv(count/total) #, marker='x' is buggy
+			handle = ax.scatter(x, y, c=groupcolor[k]) # cm.hsv(count/total), marker='x'
 			handles.append(handle)
-			label = '%s (%s)'%(groupnames.get(k), len(v))
-			labels.append(label)
-			nextcolor += 1
-
-		fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
+			labels.append(groupnames[k])				
+			
+		ax.set_xlim(xmin, xmax)
+		ax.set_ylim(ymin, ymax)
 
 		# From plot_old	
 		t = str(time.time())
 		rand = str(random.randint(0,100000))
 		tempfile = "/graph/t" + t + ".r" + rand
 
-		fret = {}
+		plots = {}
 		if "png" in formats:
 			pngfile = tempfile+".png"
 			fig.savefig('tweb'+pngfile)
-			fret["png"] = pngfile
+			plots["png"] = pngfile
 
+		# We draw titles, labels, etc. in PDF graphs
 		if "pdf" in formats:
+			ax.set_title(title)
+			ax.set_xlabel(xlabel)
+			ax.set_ylabel(ylabel)
+			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
 			pdffile = tempfile+".pdf"
 			fig.savefig('tweb'+pdffile)
-			fret["pdf"] = pdffile
+			plots["pdf"] = pdffile
 
-		return fret
+
+		ret = {
+			"plots": plots,
+			"xlabel": xlabel,
+			"ylabel": ylabel,
+			"title": title,
+			"groupcolor": groupcolor
+		}
+		
+		return ret
+		#return fret, groupcolor
 
 
 
