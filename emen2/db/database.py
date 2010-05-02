@@ -1339,7 +1339,12 @@ class DB(object):
 		queryrecids = None
 		plotresults = {}
 		if qp:
+			print "Qp"
+			print qp
 			queryrecids = self.query(ctx=ctx, txn=txn, **qp)
+			print "Step 1."
+			print queryrecids
+			
 		if pp:
 			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
 		
@@ -1381,6 +1386,7 @@ class DB(object):
 					
 		# If we're doing a very simple query inside plot, we won't have a subset..
 		if not subset:
+			print "No subset specified; using union of all indexes"
 			subset = set(c1) | set(c2) | set(c3)
 
 						
@@ -1403,10 +1409,12 @@ class DB(object):
 
 
 		# If we're filtering, use only recids that have values for everything. If not, allow None, and union.
-		if filt_points:
-			recids = set(c1) & set(c2)
-		else:
-			recids = set(c1) | set(c2)
+		#if filt_points:
+		recids = set(c1) & set(c2)
+		if subset:
+			recids &= subset
+		#else:
+		#	recids = set(c1) | set(c2)
 			
 
 		# Grouping actions.
@@ -1435,7 +1443,7 @@ class DB(object):
 			# Simple group by recorddef
 			c = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 			for k,v in c.items():
-				grouped[unicode(k)]=v
+				grouped[unicode(k)] = v
 			for p in grouped:
 				groupnames[unicode(p)] = p
 				
