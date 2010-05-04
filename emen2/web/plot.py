@@ -7,6 +7,7 @@ import random
 import optparse
 import sys
 import collections
+from emen2.config.config import g
 
 try:
 	import matplotlib.backends.backend_agg

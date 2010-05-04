@@ -8,6 +8,9 @@ from twisted.web import static, server
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+parser = emen2.config.config.DBOptions()
+parser.parse_args()
+g.log.capturestdout()
 
 # This is the main server program for EMEN2
 
@@ -97,8 +100,6 @@ def inithttpd():
 
 
 if __name__ == "__main__":
-	parser = emen2.config.config.DBOptions()
-	parser.parse_args()
 	inithttpd()
 
 
