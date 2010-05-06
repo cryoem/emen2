@@ -2939,7 +2939,7 @@ class DB(object):
 		"""
 
 		try:
-			pass#user = dataobjects.user.User(user, ctx=ctx)
+			user = dataobjects.user.User(user, ctx=ctx)
 		except Exception, inst:
 			raise ValueError, "User instance or dict required (%s)"%inst
 
