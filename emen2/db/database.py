@@ -1339,11 +1339,7 @@ class DB(object):
 		queryrecids = None
 		plotresults = {}
 		if qp:
-			print "Qp"
-			print qp
 			queryrecids = self.query(ctx=ctx, txn=txn, **qp)
-			print "Step 1."
-			print queryrecids
 
 		if pp:
 			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
@@ -1456,6 +1452,11 @@ class DB(object):
 			if len(grouped[i]) < cutoff:
 				del grouped[i]
 			else:
+				print i, grouped[i]
+			#elif groupshow and i not in groupshow:
+			#	del grouped[i]
+		
+		for i in grouped:
 				groupnames[i] = '%s (%s items)'%(groupnames[i], len(grouped[i]))
 
 		for i in groupcolor.keys():
@@ -1474,7 +1475,6 @@ class DB(object):
 		if xmax == None: xmax = max(x)
 		if ymin == None: ymin = min(y)
 		if ymax == None: ymax = max(y)
-
 
 		# Draw plot. This returns a dictionary of output plot files that were created and the colors used for each group.
 		plotplot = {}
@@ -1571,7 +1571,7 @@ class DB(object):
 		nextcolor = 0
 
 		# I filter against cutoff in the self.plot now. If it's hidden, skip drawing the scatter plot
-		for k,v in grouped.items():
+		for k,v in sorted(grouped.items()):
 			x = map(c1.get, v)
 			y = map(c2.get, v)
 
@@ -5166,7 +5166,6 @@ class DB(object):
 
 		endpoints = self.__endpoints(c_all) - c_rectype
 		while endpoints:
-			print ".."
 			for k,v in c_all.items():
 				c_all[k] -= endpoints
 			endpoints = self.__endpoints(c_all) - c_rectype
