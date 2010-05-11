@@ -40,6 +40,7 @@ class ExtFileLibrary(object):
 	def __iter__(self):
 		return iter(self.__files)
 
+
 class BaseJS(ExtFileLibrary):
 	__metaclass__ = ExtFileLibrary.registerjs
 	def init(self):
@@ -50,6 +51,7 @@ class BaseJS(ExtFileLibrary):
 		if self.dbtree is not None:
 			self.files.append(self.dbtree.reverse('TemplateRender', '/base/settings.js'))
 		super(BaseJS, self).init()
+
 
 class BaseCSS(ExtFileLibrary):
 	__metaclass__ = ExtFileLibrary.registercss

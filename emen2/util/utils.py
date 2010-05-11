@@ -75,10 +75,6 @@ class return_many_or_single(object):
 			# ian: integers, strings, dicts, and DBObjects get turned into lists.
 			#		others (sets, lists, tuples, etc.) are passed unchanged
 
-			# lst = hasattr(trig, "__iter__") # first, check if it's an iterable
-			# if lst:
-			# 	lst = not hasattr(trig, "keys") # then exclude dictionaries
-
 			# convert argument to a list
 			lst = hasattr(trig, '__iter__')
 			lst = lst and not hasattr(trig, 'keys')
@@ -92,7 +88,6 @@ class return_many_or_single(object):
 
 			# get result of function
 			result = func(*args, **kwargs)
-			# g.debug_func(func)(*args, **kwargs)
 
 
 			# get result
@@ -100,7 +95,10 @@ class return_many_or_single(object):
 				try:
 					tmpresult = self.__transform(result)
 				except Exception, e:
-					if g.DEBUG: g.warn('__transform failed:',e, 'on result: %r' % result)
+					pass
+					# ian: todo: set() fails
+					#if g.DEBUG:
+					#	g.warn('__transform failed:',e, 'on result: %r' % result)
 				else:
 					result = tmpresult
 

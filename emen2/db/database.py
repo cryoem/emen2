@@ -63,7 +63,7 @@ def DB_Close():
 	"""Close all open DBs"""
 	l = DB.opendbs.keys()
 	for i in l:
-		g.log.msg('LOG_DEBUG', i.dbenv)
+		# g.log.msg('LOG_DEBUG', i.dbenv)
 		i.close()
 
 
@@ -1447,6 +1447,11 @@ class DB(object):
 			raise ValueError, "Invalid grouptype: %s"%grouptype
 
 
+		plots = {}
+		if formats:			
+			plots = self.__plot_plot(xpd=xpd, ypd=ypd, grouptype=grouptype, groupby=groupby, grouped=grouped, groupnames=groupnames, cutoff=cutoff, c1=c1, c2=c2, formats=formats, width=width)
+
+
 		# Check against cutoff length so we can properly set the bounds. Also, adjust groupnames.
 		for i in grouped.keys():
 			if len(grouped[i]) < cutoff:
@@ -1541,6 +1546,7 @@ class DB(object):
 
 
 	def __plot_plot(self, xpd, ypd, grouptype, groupby, grouped, groupnames, groupshow, groupcolor, cutoff, c1, c2, xmin, xmax, ymin, ymax, formats, width):
+
 		"""Actually draw plot..."""
 
 		# Colors to use in plot..
@@ -1564,6 +1570,7 @@ class DB(object):
 
 		ax_size = [0.1, 0.1, 0.8, 0.8]
 		ax = fig.add_axes(ax_size)
+
 		ax.grid(True)
 
 		handles = []
@@ -3075,7 +3082,6 @@ class DB(object):
 			if getgroups:
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
-
 			user.getuserrec(getrecord, lnf=lnf)
 
 			ret[i] = user
@@ -4005,8 +4011,6 @@ class DB(object):
 	# 	return ret
 
 
-	# ian: improved!
-	# ed: more improvments!
 	#@rename db.records.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('recids')

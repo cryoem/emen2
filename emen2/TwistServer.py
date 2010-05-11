@@ -35,7 +35,7 @@ def load_resources(root, resources):
 			del msg[2]
 		else:
 			msg[2] %= (path, resource)
-		g.log.msg(level,' '.join(msg))
+		# g.log.msg(level,' '.join(msg))
 
 
 def interact():
@@ -82,7 +82,7 @@ def inithttpd():
 
 
 	# Start server
-	g.log_init('Starting Connection ...')
+	# g.log_init('Starting Connection ...')
 
 	rr = server.Site(root)
 	#rr.requestFactory = g.log.debug_func(rr.requestFactory)
