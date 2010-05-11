@@ -3354,7 +3354,7 @@ class DB(object):
 
 		#@begin
 		for group in groups:
-			g.log.msg("LOG_COMMIT","__groups.set: %r"%(group))
+			g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %r"%(group))
 			self.bdbs.groups.set(group.name, group, txn=txn)
 
 		self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -4632,7 +4632,7 @@ class DB(object):
 			try:
 				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
 				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
-				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r DEBUG: DONE"%(rectype, recs))
+				# g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r DEBUG: DONE"%(rectype, recs))
 
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
