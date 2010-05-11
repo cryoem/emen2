@@ -554,11 +554,11 @@ class DB(object):
 	@DBProxy.publicmethod
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
-		if ctx:	self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
+		if ctx:
+			self.__setcontext(ctx.ctxid, None, ctx=ctx, txn=txn)
 
 
 
-	# ian: should always have a valid context, even if anon...
 	#@rename db.auth.whoami
 	@DBProxy.publicmethod
 	def checkcontext(self, ctx=None, txn=None):
@@ -796,7 +796,6 @@ class DB(object):
 		bids = []
 		recs = []
 
-		# ian: todo: high: come back and find out why this crashed.. so strange.
 		ol=0
 		if isinstance(bdokeys,basestring):
 			ol=1
@@ -838,6 +837,7 @@ class DB(object):
 		# ian: todo: filter bids by "bdo:"...
 		bids = filter(lambda x:x[:4]=="bdo:", bids)
 
+		# This resolves path references and parses out dates, id #, etc.
 		parsed = [emen2.Database.dataobjects.binary.Binary.parse(bdokey) for bdokey in bids]
 
 		for k in parsed:
@@ -865,30 +865,7 @@ class DB(object):
 		for rec in recs:
 			for i in byrec.get(rec.recid,[]):
 				ret[i["name"]] = i
-
-		# for bdokey in bids:
-		#
-		# 	try:
-		# 		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
-		# 		bdo = self.bdbs.bdocounter.sget(dkey["datekey"], txn=txn)[dkey["counter"]]
-		#
-		# 	except Exception, inst:
-		# 		if filt: continue
-		# 		else: raise KeyError, "Invalid identifier: %s: %s"%(bdokey, inst)
-		#
-		# 	recid = bdo.get('recid')
-		# 	byrec[recid].append(bdo)
-		#
-		# 	try:
-		# 		self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-		# 		bdo["filepath"] = dkey["filepath"]
-		# 		ret[bdo["name"]] = bdo
-		#
-		# 	#ed: fix: is this the right exception?
-		# 	except emen2.Database.subsystems.exceptions.SecurityError:
-		# 		if filt: continue
-		# 		else: raise subsystems.exceptions.SecurityError, "Not authorized to access %s (%s)"%(bid, recid)
-
+				
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -918,7 +895,8 @@ class DB(object):
 		"""
 
 		# Filename and recid required, unless root
-		if not filename: raise ValueError, "Filename required"
+		if not filename:
+			raise ValueError, "Filename required"
 
 		if (bdokey or recid == None) and not ctx.checkadmin():
 			raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
@@ -934,12 +912,11 @@ class DB(object):
 
 
 		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
-		# self.__putbinary_file(bdokey=bdoo.get("name"), filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
-
 
 		# Add link to BDO in file
 		if not bdokey:
-			if not param: param = "file_binary"
+			if not param:
+				param = "file_binary"
 
 			param = self.getparamdef(param, ctx=ctx, txn=txn)
 
@@ -1727,6 +1704,7 @@ class DB(object):
 
 		if context:
 			return p2, c
+			
 		return p2
 
 
@@ -1757,8 +1735,8 @@ class DB(object):
 		bins = self.getbinary(qbins, ctx=ctx, txn=txn) or {}
 		bins = bins.values()
 		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
+
 		return bins
-		#return bins.values()
 
 
 
@@ -1810,11 +1788,9 @@ class DB(object):
 		users = self.getuser(usernames, ctx=ctx, txn=txn).values()
 		return users
 
-		#return [(user.username, user.displayname) for user in users.values()]
 
 
 
-	# ian: make this a class method, e.g. Group.match or query?
 	#@rename db.query.group
 	@DBProxy.publicmethod
 	def findgroup(self, query, limit=100, ctx=None, txn=None):
@@ -1868,6 +1844,7 @@ class DB(object):
 
 
 		q = self.query(ignorecase=True, constraints=[[param, "contains_w_empty", query]], byvalue=True, ctx=ctx, txn=txn)
+
 		# >>> db.query(ignorecase=True, constraints=[["name_last","contains_w_empty", "rees"]], byvalue=True)
 		# 			{('name_last', u'Rees'): set([271390])}
 
@@ -1970,6 +1947,7 @@ class DB(object):
 
 
 
+	# ian: todo: this could use updating
 	#@rename db.query.paramdict
 	@DBProxy.publicmethod
 	def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
@@ -2114,6 +2092,7 @@ class DB(object):
 	# 	 return None
 
 
+	# ian: todo: enable this
 	# # ian: todo: return dictionary instead of list?
 	# @DBProxy.publicmethod
 	# def getrecordschangetime(self, recids, ctx=None, txn=None):
@@ -2152,15 +2131,13 @@ class DB(object):
 		@return dict, key is recorddef, value is set of recids
 		"""
 
-		optimize = True
-
 		if not hasattr(recids,"__iter__"):
 			recids=[recids]
 
 		if len(recids) == 0:
 			return {}
 
-		if (optimize and len(recids) < 1000) or (isinstance(list(recids)[0],dataobjects.record.Record)):
+		if (len(recids) < 1000) or (isinstance(list(recids)[0],dataobjects.record.Record)):
 			return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 		# we need to work with a copy becuase we'll be changing it;
@@ -2204,8 +2181,7 @@ class DB(object):
 
 
 
-	# ian: todo: simple: is this unused? Decide if it's useful.
-
+	# ian: this is implemented in query, may re-enable standalone version
 	# #@rename db.records.groupbyparents
 	# @DBProxy.publicmethod
 	# def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
@@ -2311,28 +2287,26 @@ class DB(object):
 			result[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
 
 
+		# These three options require some kind of filtering of the results
 		if rectype or filt or flat:
 			# flatten, then filter by rectype and permissions.
 			# if flat=True, then done, else filter the trees
-			# ian: note: use a set() initializer for reduce to prevent exceptions when values is empty
 			allr = set().union(*ret_visited.values())
 
+			# Restrict to a particular rectype
 			if rectype:
 				allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
+			# Filter by permissions
 			if filt and keytype=="record":
 				allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
+
 			if flat:
-				result = allr
+				result = allr # can probably just return here
+				
 			else:
 				# perform filtering on both levels, and removing any items that become empty
-				# ret = dict( ( k, dict( (k2,v2 & allr) for k2, v2 in v.items() if bool(v2) is True ) )
-				#					for k,v in ret.items() if bool(v) is True )
-				# ^^^ this is neat but too hard to maintain.. syntax expanded a bit below
-				# ^^^ ed: I rewrote it, is it any better?
-
-				# if tree, we use ret_tree,
 				if tree:
 					for k, v in result.iteritems():
 						for k2 in v:
@@ -2343,6 +2317,8 @@ class DB(object):
 					for k in ret_visited:
 						ret_visited[k] &= allr
 
+
+		# If not flattened, return the filtered results
 		if not flat:
 			if not tree:
 				result = ret_visited
@@ -2428,8 +2404,12 @@ class DB(object):
 		if not links:
 			return
 
-		items = set(reduce(operator.concat, links, ()))
 
+		# Get a list of all items in all links
+		items = set(reduce(operator.concat, links, ()))
+		# ian: todo: high: for recorddef/paramdefs, check that all items exist..
+		# self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
+		
 		# ian: circular reference detection.
 		# ian: todo: high: turn this back on..
 
@@ -2445,8 +2425,12 @@ class DB(object):
 				if not (recs[a].writable() or recs[b].writable()):
 					raise subsystems.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
-		else:
-			links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
+		elif keytype == "paramdef":
+			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
+			
+		elif keytype == "recorddef":
+			self.getrecorddefs(items, filt=False, ctx=ctx, txn=txn)
+			# links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
 
 		self.__commit_link(keytype, mode, links, ctx=ctx, txn=txn)
 
@@ -2520,7 +2504,7 @@ class DB(object):
 	# 	return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
-	# # ian: unused?
+	# ian: getchildren contains this functionality
 	# @DBProxy.publicmethod
 	# def countchildren(self, key, recurse=1, ctx=None, txn=None):
 	# 	"""Unlike getchildren, this works only for 'records'. Returns a count of children
@@ -2752,8 +2736,10 @@ class DB(object):
 		for username in usernames:
 			#if not username in self.bdbs.newuserqueue:
 			if not self.bdbs.newuserqueue.get(username, txn=txn):
-				if filt: pass
-				else: raise KeyError, "User %s is not pending approval" % username
+				if filt:
+					pass
+				else:
+					raise KeyError, "User %s is not pending approval" % username
 
 			delusers[username] = None
 
@@ -2913,7 +2899,7 @@ class DB(object):
 
 		@param email
 
-		@keyparam username Username to modify (admin only)
+		@keyparam username Username to modify (Admin only)
 		"""
 
 		if username:
@@ -2935,7 +2921,7 @@ class DB(object):
 	#@rename db.users.add
 	@DBProxy.publicmethod
 	def adduser(self, user, ctx=None, txn=None):
-		"""Adds a new user record. However, note that this only adds the record to the
+		"""Adds a new user. However, note that this only adds the record to the
 		new user queue, which must be processed by an administrator before the record
 		becomes active. This system prevents problems with securely assigning passwords
 		and errors with data entry. Anyone can create one of these.
@@ -2977,27 +2963,27 @@ class DB(object):
 	def __commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
 
-		commitusers = []
-
-		for user in users:
-
-			if not isinstance(user, dataobjects.user.User):
-				try:
-					user = dataobjects.user.User(user, ctx=ctx)
-				except:
-					raise ValueError, "User instance or dict required"
-
-			try:
-				ouser = self.bdbs.users.sget(user.username, txn=txn) #[user.username]
-			except:
-				ouser = user
-				#raise KeyError, "Putuser may only be used to update existing users"
-
-			commitusers.append(user)
+		# commitusers = []
+		#
+		# for user in users:
+		# 
+		# 	if not isinstance(user, dataobjects.user.User):
+		# 		try:
+		# 			user = dataobjects.user.User(user, ctx=ctx)
+		# 		except:
+		# 			raise ValueError, "User instance or dict required"
+		# 
+		# 	try:
+		# 		ouser = self.bdbs.users.sget(user.username, txn=txn) #[user.username]
+		# 	except:
+		# 		ouser = user
+		# 		#raise KeyError, "Putuser may only be used to update existing users"
+		# 
+		# 	commitusers.append(user)
 
 		#@begin
 
-		for user in commitusers:
+		for user in users:
 			self.bdbs.users.set(user.username, user, txn=txn)
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
 
@@ -3046,6 +3032,7 @@ class DB(object):
 		if not hasattr(usernames,"__iter__"):
 			usernames = [usernames]
 
+		# Are we looking for users referenced in records?
 		recs = [x for x in usernames if isinstance(x, dataobjects.record.Record)]
 		rec_ints = [x for x in usernames if isinstance(x, int)]
 		if rec_ints:
@@ -3055,6 +3042,7 @@ class DB(object):
 			un2 = self.filtervartype(recs, vts=["user","userlist","acl"], flat=True, ctx=ctx, txn=txn)
 			usernames.extend(un2)
 
+		# Check list of users
 		usernames = set(x for x in usernames if isinstance(x, basestring))
 
 		ret={}
@@ -3062,7 +3050,8 @@ class DB(object):
 			user = self.bdbs.users.get(i, None, txn=txn)
 
 			if user == None:
-				if filt: continue
+				if filt:
+					continue
 				else:
 					raise KeyError, "No such user: %s"%i
 
@@ -3089,6 +3078,7 @@ class DB(object):
 		return ret
 
 
+	# ian: todo: this is basically included in getuser now, might become deprecated
 	#@rename db.users.displayname
 	@DBProxy.publicmethod
 	def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
@@ -3112,12 +3102,14 @@ class DB(object):
 		if isinstance(username, (basestring, int, dataobjects.record.Record)):
 			username=[username]
 
+		# First get direct usernames
 		namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
 
 		vts=["user","userlist"]
 		if perms:
 			vts.append("acl")
 
+		# Now lookup records and add all referenced users
 		recs = []
 		recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), username))
 		rec_ints = filter(lambda x:isinstance(x,int), username)
@@ -3131,6 +3123,7 @@ class DB(object):
 
 		namestoget = set(namestoget)
 
+		# Now actually get users..
 		users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 		ret = {}
 
@@ -3150,53 +3143,16 @@ class DB(object):
 	#@rename db.users.list
 	@DBProxy.publicmethod
 	def getusernames(self, ctx=None, txn=None):
-		"""Return a set of all usernames
+		"""Return a set of all usernames. Not available to anonymous users.
 
 		@return set of all usernames
+		
 		"""
-		if ctx.username == None:
-			return
+		if ctx.username == "anonymous":
+			return set()
 
 		return set(self.bdbs.users.keys(txn=txn))
 
-
-
-	# ian: todo: simple, high priority: this is currently implemented in TwistSupport_html/html/find.py
-	# Move all those methods into main DB class
-
-	# @DBProxy.publicmethod
-	# def findusername(self, name, ctx=None, txn=None):
-	# 	"""This will look for a username matching the provided name in a loose way"""
-	#
-	# 	if ctx.username == None: return
-	#
-	# 	if self.bdbs.users.get(name, txn=txn):
-	# 		return name
-	#
-	# 	possible = filter(lambda x: name in x, self.bdbs.users.keys(txn=txn))
-	# 	if len(possible) == 1:
-	# 		return possible[0]
-	# 	if len(possible) > 1:
-	# 		return possible
-	#
-	# 	possible = []
-	# 	for i in self.getusernames(ctx=ctx, txn=txn):
-	# 		try:
-	# 			u = self.getuser(name, ctx=ctx, txn=txn)
-	# 		except:
-	# 			continue
-	#
-	# 		for j in u.__dict__:
-	# 			if isinstance(j, basestring) and name in j :
-	# 				possible.append(i)
-	# 				break
-	#
-	# 	if len(possible) == 1:
-	# 		return possible[0]
-	# 	if len(possible) > 1:
-	# 		return possible
-	#
-	# 	return None
 
 
 
@@ -3211,6 +3167,7 @@ class DB(object):
 		"""Return a set of all group names
 
 		@return set of all group names
+		
 		"""
 		return set(self.bdbs.groups.keys(txn=txn))
 
@@ -3219,7 +3176,7 @@ class DB(object):
 	#@rename db.groups.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('groups', transform=lambda d:d.values()[0])
-	def getgroup(self, groups, filt=1, ctx=None, txn=None):
+	def getgroup(self, groups, filt=True, ctx=None, txn=None):
 		"""Get a group, which includes the owners, members, etc.
 
 		@param groups
@@ -3231,8 +3188,11 @@ class DB(object):
 		if not hasattr(groups,"__iter__"):
 			groups = [groups]
 
-		if filt: filt = None
-		else: filt = lambda x:x.name
+		if filt:
+			filt = None
+		else:
+			filt = lambda x:x.name
+
 		ret = dict( [(x.name, x) for x in filter(filt, [self.bdbs.groups.get(i, txn=txn) for i in groups]) ] )
 
 		# ian: todo: simple, high priority: include group display name, like user.displayname
@@ -3281,7 +3241,6 @@ class DB(object):
 
 		for k, group in groups.items():
 			for user in group.members():
-				#try:
 				users[user].add(k)
 				#except Exception, inst:
 				#	g.log("unknown user %s (%s)"%(user, inst))
@@ -3362,7 +3321,7 @@ class DB(object):
 
 
 
-	# merge with getuser?
+	# merge with getgroup?
 	#@rename db.groups.displayname
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('groupname', transform=lambda d: d.values()[0])
@@ -3378,6 +3337,7 @@ class DB(object):
 		if not hasattr(groupname,"__iter__"):
 			groupname = [groupname]
 
+		# lookup groups, or records to comb for references
 		groups = set(x for x in groupname if isinstance(x, basestring))
 		gn_int = [x for x in groupname if isinstance(x, int)]
 		if gn_int:
@@ -3558,13 +3518,6 @@ class DB(object):
 
 
 
-	# #@rename db.paramdefs.vartypes.get
-	# @DBProxy.publicmethod
-	# def getvartype(self, name, ctx=None, txn=None):
-	# 	return self.vtm.getvartype(name)
-	# 	#return valid_vartypes[thekey][1]
-
-
 
 	#@rename db.paramdefs.properties.get
 	@DBProxy.publicmethod
@@ -3615,6 +3568,9 @@ class DB(object):
 		if not ctx.checkcreate():
 			raise subsystems.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
+		if not paramdef.name:
+			raise ValueError, "Name required"
+			
 		paramdef.name = unicode(paramdef.name).lower()
 
 		try:
@@ -3712,6 +3668,7 @@ class DB(object):
 		if len(recs) == 0:
 			return {}
 
+		# Are we looking up by record, recid, or list of names..
 		if isinstance(recs[0], int):
 			recs = self.getrecord(recs, ctx=ctx, txn=txn)
 
@@ -3725,6 +3682,7 @@ class DB(object):
 		if isinstance(recs[0], basestring):
 			params = set(recs)
 
+		# now actually get paramdefs
 		paramdefs = {}
 		for i in params:
 			try:
@@ -3743,6 +3701,7 @@ class DB(object):
 
 
 
+	# ian: todo: return set()
 	#@rename db.paramdefs.list
 	@DBProxy.publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
@@ -3776,6 +3735,7 @@ class DB(object):
 
 		#try:
 
+		# opens with autocommit, don't need to pass txn
 		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv)
 
 		#except:
@@ -3787,19 +3747,8 @@ class DB(object):
 
 
 
-	# def __closeparamindex(self, paramname, ctx=None, txn=None):
-	# 	"""(Internal) mapped to bdbs.closeparamindex"""
-	# 	self.bdbs.closeparamindex(paramname)
-	#
-	#
-	#
-	# def __closeparamindexes(self, ctx=None, txn=None):
-	# 	"""(Internal) mapped to bdbs.closeparamindexes"""
-	# 	self.bdbs.closeparamindexes()
 
-
-
-	# ian: todo: simple: indexing deprecates this. You would modify param in the normal way now if you NEEDED to change choices.
+	# ian: indexing deprecates this. You would modify param in the normal way now if you NEEDED to change choices.
 	#
 	# @DBProxy.publicmethod
 	# def addparamchoice(self, paramdefname, choice, ctx=None, txn=None):
@@ -3847,8 +3796,10 @@ class DB(object):
 		"""
 
 		if not isinstance(recdef, dataobjects.recorddef.RecordDef):
-			try: recdef = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
-			except: raise ValueError, "RecordDef instance or dict required"
+			try:
+				recdef = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
+			except:
+				raise ValueError, "RecordDef instance or dict required"
 
 		if not ctx.checkcreate():
 			raise subsystems.exceptions.SecurityError, "No permission to create new RecordDefs"
@@ -3914,6 +3865,7 @@ class DB(object):
 
 
 
+	# ian: this could use some attention
 	#@rename db.recorddefs.get
 	@DBProxy.publicmethod
 	@emen2.util.utils.return_many_or_single('rdids')
@@ -3940,8 +3892,10 @@ class DB(object):
 					recorddef = self.getrecord(rdid, filt=False, ctx=ctx, txn=txn).rectype
 
 				except KeyError:
-					if filt: continue
-					else: raise KeyError, "No such Record '%s'" % rdid
+					if filt:
+						continue
+					else:
+						raise KeyError, "No such Record '%s'" % rdid
 
 			else:
 				recorddef = str(rdid)
