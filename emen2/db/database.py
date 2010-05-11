@@ -2429,7 +2429,7 @@ class DB(object):
 			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
 			
 		elif keytype == "recorddef":
-			self.getrecorddefs(items, filt=False, ctx=ctx, txn=txn)
+			self.getrecorddef(items, filt=False, ctx=ctx, txn=txn)
 			# links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
 
 		self.__commit_link(keytype, mode, links, ctx=ctx, txn=txn)
@@ -2656,7 +2656,7 @@ class DB(object):
 
 
 		# Update user queue / users
-		addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
+		addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn) or []
 		delusers = self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		# ian: todo: Do we need this root ctx? Probably...
@@ -2989,7 +2989,7 @@ class DB(object):
 
 		#@end
 
-		return commitusers
+		#return commitusers
 
 
 
