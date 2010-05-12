@@ -111,6 +111,17 @@ class instonget(object):
 
 
 
+# ian: todo: make these express GMT, then have display interfaces localize to time zone...
+def getctime():
+	return time.time()
+
+
+
+def gettime():
+	"""Return database local time in format %s"""%g.TIMESTR
+	return time.strftime(g.TIMESTR)
+
+
 
 
 
