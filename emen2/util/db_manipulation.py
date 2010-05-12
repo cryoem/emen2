@@ -1,6 +1,6 @@
 import urllib2
 import emen2.util.datastructures
-import emen2.Database
+#import emen2.Database
 
 from emen2.subsystems.routing import URLRegistry
 

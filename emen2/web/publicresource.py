@@ -14,7 +14,7 @@ from twisted.web.static import server
 # emen2 imports
 import emen2.subsystems.routing
 import emen2.subsystems.responsecodes
-import emen2.Database.subsystems.exceptions
+import emen2.Database.exceptions
 from authresource import render_security_error
 
 # Load our custom threadpool
@@ -296,14 +296,14 @@ class PublicView(Resource):
 					raise
 				else: failure.raiseException()
 
-			except (emen2.Database.subsystems.exceptions.AuthenticationError,
-					emen2.Database.subsystems.exceptions.SessionError,
-					emen2.Database.subsystems.exceptions.DisabledUserError), e:
+			except (emen2.Database.exceptions.AuthenticationError,
+					emen2.Database.exceptions.SessionError,
+					emen2.Database.exceptions.DisabledUserError), e:
 						request.addCookie("ctxid", '', path='/')
 						response = 401
 						data = render_security_error(request.uri, e)
 
-			except (emen2.Database.subsystems.exceptions.SecurityError), e:
+			except (emen2.Database.exceptions.SecurityError), e:
 				response = 401
 				data = render_security_error(request.uri, e)
 

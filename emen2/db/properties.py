@@ -3,9 +3,9 @@ import math
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-import emen2.Database.subsystems.datatypes
+import emen2.Database.datatypes
 
-Property = emen2.Database.subsystems.datatypes.Property
+Property = emen2.Database.datatypes.Property
 
 
 

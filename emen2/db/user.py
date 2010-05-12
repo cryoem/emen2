@@ -6,11 +6,11 @@ import UserDict
 import re
 import weakref
 
-import emen2
+import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-import emen2.Database.subsystems.exceptions
-import emen2.Database.subsystems.dataobject
+import emen2.Database.exceptions
+import emen2.Database.dataobject
 
 
 # Old doc:
@@ -30,7 +30,7 @@ import emen2.Database.subsystems.dataobject
 
 # ian: todo: upgrade to BaseDBObject
 # class User(object, UserDict.DictMixin):
-class User(emen2.Database.subsystems.dataobject.BaseDBObject):
+class User(emen2.Database.dataobject.BaseDBObject):
 
 	# non-admin users can only change their privacy setting directly
 	@property
@@ -242,8 +242,8 @@ class User(emen2.Database.subsystems.dataobject.BaseDBObject):
 
 	def checkpassword(self, password):
 		if self.disabled:
-			exception = (emen2.Database.subsystems.exceptions.DisabledUserError,
-						emen2.Database.subsystems.exceptions.DisabledUserError.__doc__ % self.username)
+			exception = (emen2.Database.exceptions.DisabledUserError,
+						emen2.Database.exceptions.DisabledUserError.__doc__ % self.username)
 			raise exception[0], exception[1]
 
 		result = False

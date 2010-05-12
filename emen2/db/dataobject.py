@@ -2,6 +2,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from UserDict import DictMixin
 import copy
 
+
+
 class Validator(object):
 	_validators = []
 
@@ -27,6 +29,8 @@ class Validator(object):
 			#except Exception, e:
 			#	failures.append((e,validator))
 		return failures or True
+
+
 
 
 class BaseDBInterface(object, DictMixin):

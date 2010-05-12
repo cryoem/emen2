@@ -19,22 +19,46 @@ import shutil
 import weakref
 import getpass
 import functools
-import cPickle as pickle
 
-import emen2
 import emen2.util.utils
 import emen2.config.config
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-import DBProxy
-import datatypes
-import dataobjects
-import subsystems
-import subsystems.dbtime
-import subsystems.btrees
-import subsystems.datatypes
-import subsystems.exceptions
+import emen2.Database.proxy
+import emen2.Database.flags
+import emen2.Database.datatypes
+import emen2.Database.dataobject
+import emen2.Database.btrees
+import emen2.Database.datatypes
+import emen2.Database.exceptions
+import emen2.Database.validators
+
+import emen2.Database.vartypes
+import emen2.Database.macros
+import emen2.Database.properties
+
+import emen2.Database.record
+import emen2.Database.binary
+import emen2.Database.paramdef
+import emen2.Database.recorddef
+import emen2.Database.user
+import emen2.Database.context
+import emen2.Database.group
+import emen2.Database.workflow
+
+
+# convenience
+Record = emen2.Database.record.Record
+Binary = emen2.Database.binary.Binary
+Context = emen2.Database.context.Context
+ParamDef = emen2.Database.paramdef.ParamDef
+RecordDef = emen2.Database.recorddef.RecordDef
+User = emen2.Database.user.User
+Group = emen2.Database.group.Group
+WorkFlow = emen2.Database.workflow.WorkFlow
+proxy = emen2.Database.proxy
+
 
 # import extensions
 
@@ -56,6 +80,7 @@ DBENV = None
 
 #basestring goes away in a later python version
 basestring = (str, unicode)
+
 
 
 @atexit.register
@@ -132,10 +157,8 @@ class DB(object):
 	@staticmethod
 	def __init_vtm():
 		"""Load vartypes, properties, and macros"""
-		import datatypes.core_vartypes
-		import datatypes.core_macros
-		import datatypes.core_properties
-
+		pass
+		
 
 	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
 	@instonget
@@ -146,28 +169,28 @@ class DB(object):
 			old = set(self.__dict__)
 
 			# Security items
-			self.newuserqueue = subsystems.btrees.BTree(filename="security/newuserqueue", dbenv=dbenv, txn=txn)
-			self.contexts = subsystems.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
-			self.users = subsystems.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
-			self.groups = subsystems.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
+			self.newuserqueue = emen2.Database.btrees.BTree(filename="security/newuserqueue", dbenv=dbenv, txn=txn)
+			self.contexts = emen2.Database.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
+			self.users = emen2.Database.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
+			self.groups = emen2.Database.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
 
 
 			# Main database items
-			self.bdocounter = subsystems.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
-			self.workflow = subsystems.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
+			self.bdocounter = emen2.Database.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
+			self.workflow = emen2.Database.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
 
-			self.paramdefs = subsystems.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
-			self.recorddefs = subsystems.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
-			self.records = subsystems.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
+			self.paramdefs = emen2.Database.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
+			self.recorddefs = emen2.Database.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
+			self.records = emen2.Database.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
 
 
 			# Indices
-			self.secrindex = subsystems.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
-			self.secrindex_groups = subsystems.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
-			self.groupsbyuser = subsystems.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
-			self.recorddefindex = subsystems.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
-			self.bdosbyfilename = subsystems.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
-			self.indexkeys = subsystems.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
+			self.secrindex = emen2.Database.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.secrindex_groups = emen2.Database.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
+			self.groupsbyuser = emen2.Database.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
+			self.recorddefindex = emen2.Database.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.bdosbyfilename = emen2.Database.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
+			self.indexkeys = emen2.Database.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
 
 
 			self.bdbs = set(self.__dict__) - old
@@ -195,7 +218,7 @@ class DB(object):
 				# g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
-				self.fieldindex[paramname] = subsystems.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+				self.fieldindex[paramname] = emen2.Database.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
 			except BaseException, e:
 				# g.debug('openparamindex failed: %s' % e)
 				if deltxn: self.__db.txnabort(txn=txn)
@@ -237,7 +260,7 @@ class DB(object):
 
 		# VartypeManager handles registration of vartypes and properties, and also validation
 		self.__init_vtm()
-		self.vtm = subsystems.datatypes.VartypeManager()
+		self.vtm = emen2.Database.datatypes.VartypeManager()
 		self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 		self.__cache_vartype_indextype = {}
 		for vt in self.vtm.getvartypes():
@@ -349,13 +372,13 @@ class DB(object):
 
 
 	# #@rename db.test.sleep
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def sleep(self, t=1, ctx=None, txn=None):
 	# 	time.sleep(t)
 
 
 	# #@rename db.test.exception
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def raise_exception(self, ctx=None, txn=None):
 	# 	raise Exception, "Test! ctxid %s host %s txn %s"%(ctx.ctxid, ctx.host, txn)
 
@@ -373,9 +396,9 @@ class DB(object):
 	def close(self):
 		"""Close DB"""
 
-		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(subsystems.btrees.BTree.alltrees)))
+		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(emen2.Database.btrees.BTree.alltrees)))
 		try:
-			for i in subsystems.btrees.BTree.alltrees.keys():
+			for i in emen2.Database.btrees.BTree.alltrees.keys():
 				i.close()
 		except Exception, inst:
 			g.log.msg('LOG_ERROR', inst)
@@ -478,7 +501,7 @@ class DB(object):
 	###############################
 
 	#@rename db.versions.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkversion(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program
 		@keyparam program Check version for this program (API, emen2client, etc.)
@@ -489,19 +512,19 @@ class DB(object):
 
 
 	#@rename db.time.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def gettime(self, ctx=None, txn=None):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
 		@return DB time date string
 		"""
-		return subsystems.dbtime.gettime()
+		return gettime()
 
 
 
 	def __gettime(self):
 		"""(Internal) DB Time
 		@return DB time date string"""
-		return subsystems.dbtime.gettime()
+		return gettime()
 
 
 
@@ -539,13 +562,13 @@ class DB(object):
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_ERROR', "Invalid username or password")
-				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
+				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
 				g.log.msg('LOG_ERROR', "Invalid username or password")
-				raise subsystems.exceptions.AuthenticationError, subsystems.exceptions.AuthenticationError.__doc__
+				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
 
 		try:
 			self.__setcontext(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
@@ -562,7 +585,7 @@ class DB(object):
 	# Logout is the same as delete context
 
 	#@rename db.auth.logout
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
 		if ctx:
@@ -571,7 +594,7 @@ class DB(object):
 
 
 	#@rename db.auth.whoami
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
 		@return (username, groups)"""
@@ -579,7 +602,7 @@ class DB(object):
 
 
 	#@rename db.auth.check.admin
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
 		@return bool"""
@@ -587,7 +610,7 @@ class DB(object):
 
 
 	#@rename db.auth.check.readadmin
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
 		@return bool"""
@@ -595,7 +618,7 @@ class DB(object):
 
 
 	#@rename db.auth.check.create
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
 		@return bool"""
@@ -612,9 +635,9 @@ class DB(object):
 		@return Context instance
 		"""
 		if username == "anonymous":
-			ctx = dataobjects.context.AnonymousContext(host=host)
+			ctx = emen2.Database.context.AnonymousContext(host=host)
 		else:
-			ctx = dataobjects.context.Context(username=username, host=host)
+			ctx = emen2.Database.context.Context(username=username, host=host)
 
 		return ctx
 
@@ -623,7 +646,7 @@ class DB(object):
 	def __makerootcontext(self, ctx=None, host=None, txn=None):
 		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
 
-		ctx = dataobjects.context.SpecialRootContext()
+		ctx = emen2.Database.context.SpecialRootContext()
 		ctx.refresh(db=self, txn=txn)
 		ctx._setDBProxy(txn=txn)
 		return ctx
@@ -645,7 +668,7 @@ class DB(object):
 			user.setContext(ctx=ctx)
 		except:
 			raise
-			raise subsystems.exceptions.AuthenticationError, 'no such user' #subsystems.exceptions.AuthenticationError.__doc__
+			raise emen2.Database.exceptions.AuthenticationError, 'no such user' #emen2.Database.exceptions.AuthenticationError.__doc__
 		return user
 
 
@@ -697,7 +720,7 @@ class DB(object):
 	def __periodic_operations(self, ctx=None, txn=None):
 		"""(Internal) Maintenance task scheduler. Eventually this will be replaced with a maintenance registration system, similar to @publicmethod"""
 
-		t = subsystems.dbtime.getctime()
+		t = getctime()
 		if t > (self.lastctxclean + 600):
 			self.lastctxclean = time.time()
 			self.__cleanupcontexts(ctx=ctx, txn=txn)
@@ -750,7 +773,7 @@ class DB(object):
 
 		if not context:
 			g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
-			raise subsystems.exceptions.SessionError, "Session expired: %s"%(ctxid)
+			raise emen2.Database.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
 		user = None
 		grouplevels = {}
@@ -781,14 +804,14 @@ class DB(object):
 
 
 
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def newbinary(self, *args, **kwargs):
 	# 	raise Exception, "Deprecated; use putbinary"
 
 
 	# ian: todo: high: change to LIST return format instead of DICT return format for consistency
 	#@rename db.binary.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getbinary(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
 		"""Get Binary objects from ids or references. Binaries include file name, size, md5, associated record, etc. Each binary has an ID, aka a 'BDO'
 
@@ -812,7 +835,7 @@ class DB(object):
 			ol=1
 			bids = [bdokeys]
 			# bdokeys = bids
-		elif isinstance(bdokeys,(int,dataobjects.record.Record)):
+		elif isinstance(bdokeys,(int,emen2.Database.record.Record)):
 			bdokeys = [bdokeys]
 
 		# ian: todo: fix this in a sane way..
@@ -821,7 +844,7 @@ class DB(object):
 
 		# If we're doing any record lookups...
 		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=True, ctx=ctx, txn=txn))
-		recs.extend(x for x in bdokeys if isinstance(x,dataobjects.record.Record))
+		recs.extend(x for x in bdokeys if isinstance(x,emen2.Database.record.Record))
 
 		if recs:
 			# get the params we're looking for
@@ -849,7 +872,7 @@ class DB(object):
 		bids = filter(lambda x:x[:4]=="bdo:", bids)
 
 		# This resolves path references and parses out dates, id #, etc.
-		parsed = [emen2.Database.dataobjects.binary.Binary.parse(bdokey) for bdokey in bids]
+		parsed = [emen2.Database.binary.Binary.parse(bdokey) for bdokey in bids]
 
 		for k in parsed:
 			bydatekey[k["datekey"]].append(k)
@@ -888,7 +911,7 @@ class DB(object):
 	# ian: todo: medium: clean this up some more...
 	# ian: todo: simple: implement uri kw
 	#@rename db.binary.put
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putbinary(self, filename, recid, bdokey=None, filedata=None, filehandle=None, param=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents.
 
@@ -910,7 +933,7 @@ class DB(object):
 			raise ValueError, "Filename required"
 
 		if (bdokey or recid == None) and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+			raise emen2.Database.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
 		# ian: todo: medium: acquire RMW lock on record? (will need to not use self.getrecord.. hmm.)
 		# ed: probably, we could abstract a private method (or just add a new argument to the current
@@ -919,7 +942,7 @@ class DB(object):
 		if not bdokey:
 			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 			if not rec.writable():
-				raise subsystems.exceptions.SecurityError, "Write permission needed on referenced record."
+				raise emen2.Database.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
 		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
@@ -964,7 +987,7 @@ class DB(object):
 		@exception SecurityError
 		"""
 
-		dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey)
+		dkey = emen2.Database.binary.Binary.parse(bdokey)
 
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
@@ -977,17 +1000,17 @@ class DB(object):
 
 		if dkey["counter"] == 0:
 			counter = max(bdo.keys() or [-1]) + 1
-			dkey = emen2.Database.dataobjects.binary.Binary.parse(bdokey, counter=counter)
+			dkey = emen2.Database.binary.Binary.parse(bdokey, counter=counter)
 
 
 		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only admin may overwrite existing BDO"
+			raise emen2.Database.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 
 		# Try and write the file before we commit..
 		filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
-		nb = dataobjects.binary.Binary()
+		nb = emen2.Database.binary.Binary()
 		nb.update(
 			uri=uri,
 			filename=filename,
@@ -1040,7 +1063,7 @@ class DB(object):
 		if os.access(filepath, os.F_OK) and not ctx.checkadmin():
 			# should be a different exception class, this particular one seems irrevelant as it is not really a security
 			# but an integrity problem.
-			raise subsystems.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
+			raise emen2.Database.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
 
 		m = hashlib.md5()
@@ -1067,11 +1090,11 @@ class DB(object):
 
 	# ed: todo?: key by recid
 	#@rename db.binary.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getbinarynames(self, ctx=None, txn=None):
 		"""Get a list of all binaries."""
 		if ctx.username == None:
-			raise subsystems.exceptions.SecurityError, "getbinarynames not available to anonymous users"
+			raise emen2.Database.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
 		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
 		ret = reduce(set.union, ret, set())
@@ -1088,7 +1111,7 @@ class DB(object):
 
 
 	#@rename db.query.query
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
 		"""Query. Specify one or more keyword arguments:
 
@@ -1205,7 +1228,7 @@ class DB(object):
 	def __query_index(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
-		vtm = subsystems.datatypes.VartypeManager()
+		vtm = emen2.Database.datatypes.VartypeManager()
 		subsets = []
 		subsets_by_value = {}
 
@@ -1267,7 +1290,7 @@ class DB(object):
 	def __query_recs(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
 		"""(Internal) record-based search. See DB.query()"""
 
-		vtm = subsystems.datatypes.VartypeManager()
+		vtm = emen2.Database.datatypes.VartypeManager()
 		subsets = []
 		subsets_by_value = {}
 		recs = self.getrecord(subset, filt=True, ctx=ctx, txn=txn)
@@ -1312,7 +1335,7 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def queryplot(self, ctx=None, txn=None, **kwargs):
 		"""Query + Plot"""
 
@@ -1340,7 +1363,7 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
 
 		formats = formats or []
@@ -1634,7 +1657,7 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
 		"""Find a recorddef, by general search string, or by name/desc_short/desc_long/mainview/childof
 
@@ -1651,7 +1674,7 @@ class DB(object):
 		return self.__find_pd_or_rd(keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
 		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
@@ -1720,7 +1743,7 @@ class DB(object):
 
 
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def findbinary(self, query=None, broad=False, limit=100, ctx=None, txn=None):
 		"""Find a binary by filename
 
@@ -1752,7 +1775,7 @@ class DB(object):
 
 
 	#@rename db.query.user
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/username
 
@@ -1803,7 +1826,7 @@ class DB(object):
 
 
 	#@rename db.query.group
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def findgroup(self, query, limit=100, ctx=None, txn=None):
 		"""Find a group.
 
@@ -1835,7 +1858,7 @@ class DB(object):
 
 
 	#@rename db.query.value
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def findvalue(self, param, query, flat=False, limit=100, count=True, showchoices=True, ctx=None, txn=None):
 		"""Find values for a parameter.
 
@@ -1888,7 +1911,7 @@ class DB(object):
 
 	# ian: todo: medium: Enforce filt=True in config?
 	#@rename db.query.recorddef
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getindexbyrecorddef(self, recdef, filt=False, ctx=None, txn=None):
 		"""Records by Record Def. This is currently non-secured information.
 
@@ -1921,7 +1944,7 @@ class DB(object):
 
 	# ian todo: medium: add unit support.
 	#@rename db.query.param
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getindexbyvalue(self, param, valrange=None, ctx=None, txn=None):
 		"""Query an indexed parameter. Return all records that contain a value, with optional value range
 
@@ -1960,7 +1983,7 @@ class DB(object):
 
 	# ian: todo: this could use updating
 	#@rename db.query.paramdict
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
 		"""Query a param index, returned in a dict keyed by value.
 
@@ -2016,7 +2039,7 @@ class DB(object):
 
 	# ian: todo: simple: is this currently used anywhere? It was more or less replaced by filterpermissions. But may be useful to keep.
 	# #@rename db.query.context
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getindexbycontext(self, ctx=None, txn=None):
 	# 	"""Return all readable recids
 	# 	@return All readable recids"""
@@ -2035,7 +2058,7 @@ class DB(object):
 
 	# ian: todo: low priority: finish; add more stats (->Ed)
 	#@rename db.query.statistics
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getparamstatistics(self, param, ctx=None, txn=None):
 		"""Return statistics about an (indexable) param
 
@@ -2045,7 +2068,7 @@ class DB(object):
 		"""
 
 		if ctx.username == None:
-			raise subsystems.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
+			raise emen2.Database.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
 
 		try:
 			paramindex = self.__getparamindex(param, create=0, ctx=ctx, txn=txn)
@@ -2056,7 +2079,7 @@ class DB(object):
 
 
 	# ian: todo: simple: expose as offline admin method
-	#@DBProxy.adminmethod
+	#@proxy.adminmethod
 	def __rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
 
@@ -2073,7 +2096,7 @@ class DB(object):
 
 
 	# ian: disabled, not sure if I want this method
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getindexbyuser(self, username, ctx=None, txn=None):
 	# 	"""This will use the user keyed record read-access index to return
 	# 	a list of records the user can access. DOES NOT include that user's groups.
@@ -2083,13 +2106,13 @@ class DB(object):
 	# 		username = ctx.username
 	#
 	# 	if ctx.username != username and not ctx.checkreadadmin():
-	# 		raise subsystems.exceptions.SecurityError, "Not authorized to get record access for %s" % username
+	# 		raise emen2.Database.exceptions.SecurityError, "Not authorized to get record access for %s" % username
 	#
 	# 	return self.bdbs.secrindex.get(username, set(), txn=txn)
 
 
 
-	# @DBProxy.adminmethod
+	# @proxy.adminmethod
 	# ian: disabled for security reasons (it returns all values with no security check...)
 	# def getindexkeys(self, paramname, valrange=None, ctx=None, txn=None):
 	# 	 """For numerical & simple string parameters, this will locate all
@@ -2105,7 +2128,7 @@ class DB(object):
 
 	# ian: todo: enable this
 	# # ian: todo: return dictionary instead of list?
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getrecordschangetime(self, recids, ctx=None, txn=None):
 	# 	"""Returns a list of times for a list of recids. Times represent the last modification
 	# 	of the specified records"""
@@ -2133,7 +2156,7 @@ class DB(object):
 	# ian: todo: medium: benchmark for new index system (01/10/2010)
 
 	#@rename db.records.group
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def groupbyrecorddef(self, recids, ctx=None, txn=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed by their recorddef
 
@@ -2148,7 +2171,7 @@ class DB(object):
 		if len(recids) == 0:
 			return {}
 
-		if (len(recids) < 1000) or (isinstance(list(recids)[0],dataobjects.record.Record)):
+		if (len(recids) < 1000) or (isinstance(list(recids)[0],emen2.Database.record.Record)):
 			return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 		# we need to work with a copy becuase we'll be changing it;
@@ -2180,7 +2203,7 @@ class DB(object):
 	def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
 		"""(Internal) Sometimes it's quicker to just get the records and filter, than to check all the indexes"""
 
-		if not isinstance(list(records)[0],dataobjects.record.Record):
+		if not isinstance(list(records)[0],emen2.Database.record.Record):
 			records = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
 
 		ret={}
@@ -2194,7 +2217,7 @@ class DB(object):
 
 	# ian: this is implemented in query, may re-enable standalone version
 	# #@rename db.records.groupbyparents
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def groupbyparentoftype(self, records, parenttype, recurse=3, ctx=None, txn=None):
 	# 	"""This will group a list of record numbers based on the recordid of any parents of
 	# 	type 'parenttype'. within the specified recursion depth. If records have multiple parents
@@ -2234,7 +2257,7 @@ class DB(object):
 
 	# break this out by RelateBTree instead of keytype (but still keep keytype= as a wrapper)
 	#@rename db.<RelateBTree>.children
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 		"""Get children. There are a number of convenience keyword arguments for speed/utility. Note that flat/tree options will affect return format.
 
@@ -2258,7 +2281,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.parents
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getparents(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False, ctx=None, txn=None):
 		"""@see getchildren, which has the same options"""
 
@@ -2342,7 +2365,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pclinks
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def pclinks(self, links, keytype="record", ctx=None, txn=None):
 		"""Create parent/child relationships. See pclink/pcunlink.
 
@@ -2355,7 +2378,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pcunlinks
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def pcunlinks(self, links, keytype="record", ctx=None, txn=None):
 		"""Remove parent/child relationships. See pclink/pcunlink.
 
@@ -2368,7 +2391,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pclink
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def pclink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Establish a parent-child relationship between two keys.
 		A context is required for record links, and the user must have write permission on at least one of the two.
@@ -2383,7 +2406,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pcunlink
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def pcunlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Remove a parent-child relationship between two keys.
 
@@ -2406,7 +2429,7 @@ class DB(object):
 			raise Exception, "Invalid relationship mode %s"%mode
 
 		if not ctx.checkcreate():
-			raise subsystems.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
+			raise emen2.Database.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 		if filter(lambda x:x[0] == x[1], links):
 			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
@@ -2434,7 +2457,7 @@ class DB(object):
 			recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
 			for a,b in links:
 				if not (recs[a].writable() or recs[b].writable()):
-					raise subsystems.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
+					raise emen2.Database.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 		elif keytype == "paramdef":
 			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
@@ -2480,7 +2503,7 @@ class DB(object):
 	# ian: todo: low priority/hard: reimplement cousin relationships
 
 	# #@rename db.<RelateBTree>.cousins
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getcousins(self, key, keytype="record", ctx=None, txn=None):
 	# 	"""This will get the keys of the cousins of the referenced object
 	# 	keytype is 'record', 'recorddef', or 'paramdef'"""
@@ -2504,19 +2527,19 @@ class DB(object):
 
 
 	# #@rename db.<RelateBTree>.link
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def link(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 	# 	return self.__link("link", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 	# #@rename db.<RelateBTree>.unlink
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def unlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 	# 	return self.__link("unlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 	# ian: getchildren contains this functionality
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def countchildren(self, key, recurse=1, ctx=None, txn=None):
 	# 	"""Unlike getchildren, this works only for 'records'. Returns a count of children
 	# 	of the specified record classified by recorddef as a dictionary. The special 'all'
@@ -2536,8 +2559,8 @@ class DB(object):
 
 
 	#@rename db.users.disable
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	def disableuser(self, username, ctx=None, txn=None):
 		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
 		a complete historical record is maintained. Only an administrator can do this.
@@ -2549,8 +2572,8 @@ class DB(object):
 
 
 	#@rename db.users.enable
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	def enableuser(self, username, ctx=None, txn=None):
 		"""Enable a disabled user.
 
@@ -2567,7 +2590,7 @@ class DB(object):
 		state = bool(disabled)
 
 		#if not ctx.checkadmin():
-		#	raise subsystems.exceptions.SecurityError, "Only administrators can disable users"
+		#	raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
 
 		if not hasattr(username, "__iter__"):
 			usernames = [username]
@@ -2577,7 +2600,7 @@ class DB(object):
 			if username == ctx.username:
 				g.warn('Warning: user %s tried to disable themself' % ctx.username)
 				continue
-				# raise subsystems.exceptions.SecurityError, "Even administrators cannot disable themselves"
+				# raise emen2.Database.exceptions.SecurityError, "Even administrators cannot disable themselves"
 
 			user = self.bdbs.users.sget(username, txn=txn) #[i]
 			if user.disabled == state:
@@ -2601,8 +2624,8 @@ class DB(object):
 
 
 	#@rename db.users.approve
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	@emen2.util.utils.return_many_or_single('usernames')
 	def approveuser(self, usernames, ctx=None, txn=None):
 		"""Approve account in user queue
@@ -2617,9 +2640,9 @@ class DB(object):
 		try:
 			admin = ctx.checkadmin()
 			if (secret == None) and (not admin):
-				raise subsystems.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
+				raise emen2.Database.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
 
-		except subsystems.exceptions.SecurityError:
+		except emen2.Database.exceptions.SecurityError:
 			raise
 
 		except BaseException, e:
@@ -2726,8 +2749,8 @@ class DB(object):
 
 
 	#@rename db.users.reject
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Remove a user from the pending new user queue
 
@@ -2735,7 +2758,7 @@ class DB(object):
 		"""
 
 		if not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only administrators can approve new users"
+			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
 
 		ol = 0
 		if not hasattr(usernames,"__iter__"):
@@ -2764,8 +2787,8 @@ class DB(object):
 
 
 	#@rename db.users.queue
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	def getuserqueue(self, ctx=None, txn=None):
 		"""Returns a list of names of unapproved users
 
@@ -2773,15 +2796,15 @@ class DB(object):
 		"""
 
 		if not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only administrators can approve new users"
+			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
 
 		return self.bdbs.newuserqueue.keys(txn=txn)
 
 
 
 	#@rename db.users.queue_get
-	@DBProxy.publicmethod
-	@DBProxy.adminmethod
+	@proxy.publicmethod
+	@proxy.adminmethod
 	def getqueueduser(self, username, ctx=None, txn=None):
 		"""Get user from new user queue.
 
@@ -2791,7 +2814,7 @@ class DB(object):
 		"""
 
 		if not ctx.checkreadadmin():
-			raise subsystems.exceptions.SecurityError, "Only administrators can access pending users"
+			raise emen2.Database.exceptions.SecurityError, "Only administrators can access pending users"
 
 		if hasattr(username,"__iter__"):
 			ret={}
@@ -2803,23 +2826,32 @@ class DB(object):
 
 
 
+
+	@proxy.publicmethod
+	def newuser(self, ctx=None, txn=None):
+		user = emen2.Database.user.User()
+		user.setContext(ctx)
+		return user
+		
+
+
 	# ian: removed.
 	# #@rename db.users.put
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def putuser(self, user, ctx=None, txn=None):
 	# 	"""Update user information. Only admins may use this method; other users should use setprivacy, setpassword, setemail, etc.
 	#
 	# 	@param user Updated user instance
 	# 	"""
 	#
-	# 	if not isinstance(user, dataobjects.user.User):
+	# 	if not isinstance(user, emen2.Database.user.User):
 	# 		try:
-	# 			user = dataobjects.user.User(user, ctx=ctx)
+	# 			user = emen2.Database.user.User(user, ctx=ctx)
 	# 		except:
 	# 			raise ValueError, "User instance or dict required"
 	#
 	# 	if not ctx.checkadmin():
-	# 		raise subsystems.exceptions.SecurityError, "Only administrators may add/modify users with this method"
+	# 		raise emen2.Database.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 	#
 	# 	user.validate()
 	#
@@ -2835,7 +2867,7 @@ class DB(object):
 
 
 	#@rename db.users.setprivacy
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def setprivacy(self, state, username=None, ctx=None, txn=None):
 		"""Set privacy level for user information.
 
@@ -2846,7 +2878,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 		else:
 			username = ctx.username
 
@@ -2860,7 +2892,7 @@ class DB(object):
 		commitusers = []
 
 		if username != ctx.username and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Cannot set another user's privacy"
+			raise emen2.Database.exceptions.SecurityError, "Cannot set another user's privacy"
 
 		user = self.getuser(username, ctx=ctx, txn=txn)
 		user.privacy = state
@@ -2871,7 +2903,7 @@ class DB(object):
 
 
 	#@rename db.users.setpassword
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
 		"""Change password.
 
@@ -2883,13 +2915,13 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 		else:
 			username = ctx.username
 
 		user = self.getuser(username, ctx=ctx, txn=txn)
 		if not user:
-			raise subsystems.exceptions.SecurityError, "Cannot change password for user '%s'"%username
+			raise emen2.Database.exceptions.SecurityError, "Cannot change password for user '%s'"%username
 
 		try:
 			user.setpassword(oldpassword, newpassword)
@@ -2904,7 +2936,7 @@ class DB(object):
 
 
 	#@rename db.users.setemail
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def setemail(self, email, username=None, ctx=None, txn=None):
 		"""Change email
 
@@ -2915,7 +2947,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise subsystems.exceptions.SecurityError, "Cannot attempt to set other user's email"
+				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's email"
 		else:
 			username = ctx.username
 
@@ -2930,7 +2962,7 @@ class DB(object):
 
 
 	#@rename db.users.add
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def adduser(self, user, ctx=None, txn=None):
 		"""Adds a new user. However, note that this only adds the record to the
 		new user queue, which must be processed by an administrator before the record
@@ -2943,7 +2975,7 @@ class DB(object):
 		"""
 
 		try:
-			user = dataobjects.user.User(user, ctx=ctx)
+			user = emen2.Database.user.User(user, ctx=ctx)
 		except Exception, inst:
 			raise ValueError, "User instance or dict required (%s)"%inst
 
@@ -2978,9 +3010,9 @@ class DB(object):
 		#
 		# for user in users:
 		# 
-		# 	if not isinstance(user, dataobjects.user.User):
+		# 	if not isinstance(user, emen2.Database.user.User):
 		# 		try:
-		# 			user = dataobjects.user.User(user, ctx=ctx)
+		# 			user = emen2.Database.user.User(user, ctx=ctx)
 		# 		except:
 		# 			raise ValueError, "User instance or dict required"
 		# 
@@ -3022,7 +3054,7 @@ class DB(object):
 
 
 	#@rename db.users.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('usernames', transform=lambda d: d[d.keys()[0]])
 	def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 		"""Get user information. Information may be limited to name and id if the user
@@ -3044,7 +3076,7 @@ class DB(object):
 			usernames = [usernames]
 
 		# Are we looking for users referenced in records?
-		recs = [x for x in usernames if isinstance(x, dataobjects.record.Record)]
+		recs = [x for x in usernames if isinstance(x, emen2.Database.record.Record)]
 		rec_ints = [x for x in usernames if isinstance(x, int)]
 		if rec_ints:
 			recs.extend(self.getrecord(rec_ints, filt=True, ctx=ctx, txn=txn))
@@ -3071,7 +3103,7 @@ class DB(object):
 			# if the user has requested privacy, we return only basic info
 			#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 			if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
-				user2 = dataobjects.user.User()
+				user2 = emen2.Database.user.User()
 				user2.username = user.username
 				user = user2
 
@@ -3091,7 +3123,7 @@ class DB(object):
 
 	# ian: todo: this is basically included in getuser now, might become deprecated
 	#@rename db.users.displayname
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 		"""Get user 'display names.'
 
@@ -3110,7 +3142,7 @@ class DB(object):
 		ol = 0
 		if isinstance(username, basestring):
 			ol = 1
-		if isinstance(username, (basestring, int, dataobjects.record.Record)):
+		if isinstance(username, (basestring, int, emen2.Database.record.Record)):
 			username=[username]
 
 		# First get direct usernames
@@ -3122,7 +3154,7 @@ class DB(object):
 
 		# Now lookup records and add all referenced users
 		recs = []
-		recs.extend(filter(lambda x:isinstance(x,dataobjects.record.Record), username))
+		recs.extend(filter(lambda x:isinstance(x,emen2.Database.record.Record), username))
 		rec_ints = filter(lambda x:isinstance(x,int), username)
 		if rec_ints:
 			recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
@@ -3152,7 +3184,7 @@ class DB(object):
 
 
 	#@rename db.users.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getusernames(self, ctx=None, txn=None):
 		"""Return a set of all usernames. Not available to anonymous users.
 
@@ -3173,7 +3205,7 @@ class DB(object):
 
 
 	#@rename db.groups.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getgroupnames(self, ctx=None, txn=None):
 		"""Return a set of all group names
 
@@ -3185,7 +3217,7 @@ class DB(object):
 
 
 	#@rename db.groups.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('groups', transform=lambda d:d.values()[0])
 	def getgroup(self, groups, filt=True, ctx=None, txn=None):
 		"""Get a group, which includes the owners, members, etc.
@@ -3294,20 +3326,27 @@ class DB(object):
 
 
 
+	def newgroup(self, ctx=None, txn=None):
+		group = emen2.Database.group.Group()
+		group.setContext(ctx)
+		return group
+
+
+
 	#@rename db.groups.put
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putgroup(self, groups, ctx=None, txn=None):
 		"""Commit changes to a group or groups.
 
 		@param groups Group instance or iterable groups
 		"""
 
-		if isinstance(groups, (dataobjects.group.Group, dict)): # or not hasattr(groups, "__iter__"):
+		if isinstance(groups, (emen2.Database.group.Group, dict)): # or not hasattr(groups, "__iter__"):
 			groups = [groups]
 
 		groups2 = []
-		groups2.extend(x for x in groups if isinstance(x, dataobjects.group.Group))
-		groups2.extend(dataobjects.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
+		groups2.extend(x for x in groups if isinstance(x, emen2.Database.group.Group))
+		groups2.extend(emen2.Database.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
 		for group in groups2:
 			group.setContext(ctx)
@@ -3334,7 +3373,7 @@ class DB(object):
 
 	# merge with getgroup?
 	#@rename db.groups.displayname
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('groupname', transform=lambda d: d.values()[0])
 	def getgroupdisplayname(self, groupname, ctx=None, txn=None):
 		"""Get display name for a group
@@ -3374,13 +3413,13 @@ class DB(object):
 	#	Workflows are currently turned off, need to be fixed.
 	#	Do this soon.
 
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getworkflow(self, ctx=None, txn=None):
 	# 	"""This will return an (ordered) list of workflow objects for the given context (user).
 	# 	it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 	#
 	# 	if ctx.username == None:
-	# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	try:
 	# 		return self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
@@ -3389,7 +3428,7 @@ class DB(object):
 	#
 	#
 	#
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getworkflowitem(self, wfid, ctx=None, txn=None):
 	# 	"""Return a workflow from wfid."""
 	#
@@ -3406,7 +3445,7 @@ class DB(object):
 	#
 	#
 	#
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def newworkflow(self, vals, ctx=None, txn=None):
 	# 	"""Return an initialized workflow instance."""
 	# 	return WorkFlow(vals)
@@ -3415,12 +3454,12 @@ class DB(object):
 	#
 	#
 	# #@write #self.bdbs.workflow
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def addworkflowitem(self, work, ctx=None, txn=None):
 	# 	"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 	#
 	# 	if ctx.username == None:
-	# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	if not isinstance(work, WorkFlow):
 	# 		try:
@@ -3451,13 +3490,13 @@ class DB(object):
 	#
 	#
 	# #@write #self.bdbs.workflow
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def delworkflowitem(self, wfid, ctx=None, txn=None):
 	# 	"""This will remove a single workflow object based on wfid"""
 	# 	#self = db
 	#
 	# 	if ctx.username == None:
-	# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	wf = self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
 	# 	for i, w in enumerate(wf):
@@ -3475,7 +3514,7 @@ class DB(object):
 	#
 	#
 	# #@write #self.bdbs.workflow
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def setworkflow(self, wflist, ctx=None, txn=None):
 	# 	"""This allows an authorized user to directly modify or clear his/her workflow. Note that
 	# 	the external application should NEVER modify the wfid of the individual WorkFlow records.
@@ -3483,7 +3522,7 @@ class DB(object):
 	# 	#self = db
 	#
 	# 	if ctx.username == None:
-	# 		raise subsystems.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	if wflist == None:
 	# 		wflist = []
@@ -3519,7 +3558,7 @@ class DB(object):
 
 
 	#@rename db.paramdefs.vartypes.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getvartypenames(self, ctx=None, txn=None):
 		"""Returns a list of all valid variable types.
 
@@ -3531,7 +3570,7 @@ class DB(object):
 
 
 	#@rename db.paramdefs.properties.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getpropertynames(self, ctx=None, txn=None):
 		"""Return a list of all valid properties.
 
@@ -3542,7 +3581,7 @@ class DB(object):
 
 
 	#@rename db.paramdefs.properties.units
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getpropertyunits(self, propname, ctx=None, txn=None):
 		"""Returns a list of known units for a particular property
 
@@ -3555,9 +3594,17 @@ class DB(object):
 
 
 
+	@proxy.publicmethod
+	def newparamdef(self, ctx=None, txn=None):
+		pd = emen2.Database.paramdef.ParamDef()
+		pd.setContext(ctx)
+		return pd
+		
+		
+
 	# ian: renamed addparamdef -> putparamdef for consistency
 	#@rename db.paramdefs.put
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update a ParamDef. Updates are limited to descriptions. Only administrators may change existing paramdefs in any way that changes their meaning, and even this is strongly discouraged.
 
@@ -3567,9 +3614,9 @@ class DB(object):
 		@keyparam children Link to children
 		"""
 
-		if not isinstance(paramdef, dataobjects.paramdef.ParamDef):
+		if not isinstance(paramdef, emen2.Database.paramdef.ParamDef):
 			try:
-				paramdef = dataobjects.paramdef.ParamDef(paramdef, ctx=ctx)
+				paramdef = emen2.Database.paramdef.ParamDef(paramdef, ctx=ctx)
 			except ValueError, inst:
 				raise ValueError, "ParamDef instance or dict required"
 
@@ -3577,7 +3624,7 @@ class DB(object):
 		# ian: todo: medium: move this block to ParamDef.validate()
 
 		if not ctx.checkcreate():
-			raise subsystems.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
+			raise emen2.Database.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
 		if not paramdef.name:
 			raise ValueError, "Name required"
@@ -3603,7 +3650,7 @@ class DB(object):
 
 
 		#if not validate and not ctx.checkadmin():
-		#	raise subsystems.exceptions.SecurityError, "Only admin users may bypass validation"
+		#	raise emen2.Database.exceptions.SecurityError, "Only admin users may bypass validation"
 		#if validate:
 
 		paramdef.validate()
@@ -3640,7 +3687,7 @@ class DB(object):
 
 	# ian: todo: high: Sort out return of dicts vs. return of lists. We have decided on list return format for almost everything.
 	#@rename db.paramdefs.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('key')
 	def getparamdef(self, key, filt=True, ctx=None, txn=None):
 		"""Get ParamDef
@@ -3656,7 +3703,7 @@ class DB(object):
 
 
 	#@rename db.paramdefs.gets
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getparamdefs(self, recs, filt=True, ctx=None, txn=None):
 		"""Get ParamDefs
 
@@ -3683,7 +3730,7 @@ class DB(object):
 		if isinstance(recs[0], int):
 			recs = self.getrecord(recs, ctx=ctx, txn=txn)
 
-		if isinstance(recs[0], dataobjects.record.Record):
+		if isinstance(recs[0], emen2.Database.record.Record):
 			q = set((i.rectype for i in recs))
 			for i in q:
 				params |= set(self.getrecorddef(i, ctx=ctx, txn=txn).paramsK)
@@ -3714,7 +3761,7 @@ class DB(object):
 
 	# ian: todo: return set()
 	#@rename db.paramdefs.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
 		"""Return a list of all ParamDef names
 
@@ -3761,7 +3808,7 @@ class DB(object):
 
 	# ian: indexing deprecates this. You would modify param in the normal way now if you NEEDED to change choices.
 	#
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def addparamchoice(self, paramdefname, choice, ctx=None, txn=None):
 	# 	"""This will add a new choice to records of vartype=string. This is
 	# 	the only modification permitted to a ParamDef record after creation"""
@@ -3774,7 +3821,7 @@ class DB(object):
 	#
 	# 	d = self.bdbs.paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
 	# 	if d.vartype != "string":
-	# 		raise subsystems.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
+	# 		raise emen2.Database.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
 	#
 	# 	d.choices = d.choices + (unicode(choice).title(),)
 	#
@@ -3790,8 +3837,16 @@ class DB(object):
 	#########################
 
 
+	@proxy.publicmethod
+	def newrecorddef(self, ctx=None, txn=None):
+		rd = emen2.Database.recorddef.RecordDef()
+		rd.setContext(ctx)
+		return rd
+		
+		
+
 	#@rename db.recorddefs.put
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update RecordDef. The mainview should
 		never be changed once used, since this will change the meaning of
@@ -3806,30 +3861,30 @@ class DB(object):
 		@return Updated RecordDef
 		"""
 
-		if not isinstance(recdef, dataobjects.recorddef.RecordDef):
+		if not isinstance(recdef, emen2.Database.recorddef.RecordDef):
 			try:
-				recdef = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
+				recdef = emen2.Database.recorddef.RecordDef(recdef, ctx=ctx)
 			except:
 				raise ValueError, "RecordDef instance or dict required"
 
 		if not ctx.checkcreate():
-			raise subsystems.exceptions.SecurityError, "No permission to create new RecordDefs"
+			raise emen2.Database.exceptions.SecurityError, "No permission to create new RecordDefs"
 
 		try:
 			orec = self.bdbs.recorddefs.sget(recdef.name, txn=txn)
 			orec.setContext(ctx)
 
 		except:
-			orec = dataobjects.recorddef.RecordDef(recdef, ctx=ctx)
+			orec = emen2.Database.recorddef.RecordDef(recdef, ctx=ctx)
 
 		##################
 		# ian: todo: medium: move this block to RecordDef.validate()
 
 		if ctx.username != orec.owner and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
+			raise emen2.Database.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
 		if recdef.mainview != orec.mainview and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
+			raise emen2.Database.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 		recdef.findparams()
 		invalidparams = set(recdef.params) - set(self.getparamdefnames(ctx=ctx, txn=txn))
@@ -3860,7 +3915,7 @@ class DB(object):
 
 
 	# @rename db.recorddefs.puts
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def putrecorddefs(self, recdef, parents=None, children=None, ctx=None, txn=None):
 
 
@@ -3878,7 +3933,7 @@ class DB(object):
 
 	# ian: this could use some attention
 	#@rename db.recorddefs.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('rdids')
 	def getrecorddef(self, rdids, filt=True, recid=None, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
@@ -3928,7 +3983,7 @@ class DB(object):
 					if rec.rectype != recorddef:
 						raise
 				except:
-					raise subsystems.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
+					raise emen2.Database.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
 
 			#if not rd.views.get("defaultview"):
 			#	rd.views["defaultview"] = rd.mainview
@@ -3942,13 +3997,13 @@ class DB(object):
 
 
 	# #@rename db.recorddefs.gets
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getrecorddefs(self, rdids, filt=True, ctx=None, txn=None):
 
 
 
 	#@rename db.recorddefs.list
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getrecorddefnames(self, ctx=None, txn=None):
 		"""This will retrieve a list of all existing RecordDef names, even those the user cannot access
 
@@ -3964,20 +4019,20 @@ class DB(object):
 	#########################
 
 
-	#@DBProxy.publicmethod
+	#@proxy.publicmethod
 	#@emen2.util.utils.return_many_or_single('recids')
 	# def getrecord2(self, recids, filt=True, ctx=None, txn=None):
 	# 	try:
 	# 		ret = [self.bdbs.records.sget(i, txn=txn) for i in recids]
 	# 		[i.setContext(ctx) for i in ret]
-	# 	except (emen2.Database.subsystems.exceptions.SecurityError, KeyError, TypeError), e:
+	# 	except (emen2.Database.exceptions.SecurityError, KeyError, TypeError), e:
 	# 		if filt: pass
 	# 		else: raise
 	# 	return ret
 
 
 	#@rename db.records.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('recids')
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -3996,12 +4051,12 @@ class DB(object):
 				rec = self.bdbs.records.sget(i, txn=txn)
 				rec.setContext(ctx)
 				ret.append(rec)
-			except (emen2.Database.subsystems.exceptions.SecurityError, KeyError, TypeError), e:
+			except (emen2.Database.exceptions.SecurityError, KeyError, TypeError), e:
 				if filt: pass
 				else: raise
 
 			#except (TypeError, KeyError):"No such record %s"%(i)
-			#except emen2.Database.subsystems.exceptions.SecurityError, e:
+			#except emen2.Database.exceptions.SecurityError, e:
 			#	if filt: pass
 			#	else: raise e
 
@@ -4010,7 +4065,7 @@ class DB(object):
 
 
 	# #@rename db.records.gets
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getrecords(self, recids, filt=True, ctx=None, txn=None):
 
 
@@ -4018,7 +4073,7 @@ class DB(object):
 	# ian: todo: medium: allow to copy existing record
 	# ian: todo: simple: fix init option -- breaks some units
 	#@rename db.records.new
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def newrecord(self, rectype, recid=None, init=False, inheritperms=None, ctx=None, txn=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist).
@@ -4035,17 +4090,17 @@ class DB(object):
 
 		# ian: todo: hard: remove the recid option. it was a kludge to get things working in time.
 		# if recid and not ctx.checkadmin():
-		# 	raise emen2.Database.subsystems.exceptions.SecurityError, "Cannot set recid in this way"
+		# 	raise emen2.Database.exceptions.SecurityError, "Cannot set recid in this way"
 
 		# try to get the RecordDef entry, this still may fail even if it exists, if the
 		# RecordDef is private and the context doesn't permit access
 		# t = dict(filter(lambda x:x[1]!=None, self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items()))
 
 		if not ctx.checkcreate():
-			raise emen2.Database.subsystems.exceptions.SecurityError, "No permission to create new records"
+			raise emen2.Database.exceptions.SecurityError, "No permission to create new records"
 
 		t = [ (x,y) for x,y in self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items() if y != None]
-		rec = dataobjects.record.Record(rectype=rectype, recid=recid, ctx=ctx)
+		rec = emen2.Database.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 		if init:
 			rec.update(t)
@@ -4070,7 +4125,7 @@ class DB(object):
 
 
 	#@rename good question!
-	#@DBProxy.publicmethod
+	#@proxy.publicmethod
 	def __getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
 		"""(Internal) As implied, get paramdef names by vartype"""
 
@@ -4088,7 +4143,7 @@ class DB(object):
 	# e.g.: filtervartype(136, ["user","userlist"])
 	#@rename db.records.filter.vartype
 	# ian: todo: make this much faster, or drop it..
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('recs')
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 		"""This is somewhat deprecated. Consider it semi-internal."""
@@ -4099,12 +4154,12 @@ class DB(object):
 
 			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
 			ol = 0
-			if isinstance(recs,(int,dataobjects.record.Record)):
+			if isinstance(recs,(int,emen2.Database.record.Record)):
 				ol = 1
 				recs = [recs]
 
 			# get the records...
-			recs2.extend(filter(lambda x:isinstance(x,dataobjects.record.Record),recs))
+			recs2.extend(filter(lambda x:isinstance(x,emen2.Database.record.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.__getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
@@ -4125,7 +4180,7 @@ class DB(object):
 
 
 	#@rename db.records.check.orphans
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def checkorphans(self, recid, ctx=None, txn=None):
 		"""Find orphaned records that would occur if recid was deleted.
 
@@ -4172,7 +4227,7 @@ class DB(object):
 
 
 	#@rename db.records.delete
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def deleterecord(self, recid, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden.
 
@@ -4181,7 +4236,7 @@ class DB(object):
 
 		rec = self.getrecord(recid, ctx=ctx, txn=txn)
 		if not rec.isowner():
-			raise subsystems.exceptions.SecurityError, "No permission to delete record"
+			raise emen2.Database.exceptions.SecurityError, "No permission to delete record"
 
 		parents = self.getparents(recid, ctx=ctx, txn=txn)
 		children = self.getchildren(recid, ctx=ctx, txn=txn)
@@ -4215,7 +4270,7 @@ class DB(object):
 
 
 	#@rename db.records.comments.add
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def addcomment(self, recid, comment, ctx=None, txn=None):
 		"""Add comment to a record. Requires comment permissions on that Record.
 
@@ -4234,7 +4289,7 @@ class DB(object):
 
 
 	#@rename db.records.comments.get
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getcomments(self, recids, ctx=None, txn=None):
 		"""Get comments from Records.
 
@@ -4264,14 +4319,14 @@ class DB(object):
 	# section: Records / Put
 	#########################
 
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def publish(self, recids, ctx=None, txn=None):
 		pass
 
 
 
 	#@rename db.records.putvalue
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 		"""Convenience method to update a single value in a record
 
@@ -4290,7 +4345,7 @@ class DB(object):
 
 
 	#@rename db.records.putvalues
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putrecordvalues(self, recid, values, ctx=None, txn=None):
 		"""dict.update()-like operation on a single record
 
@@ -4317,7 +4372,7 @@ class DB(object):
 
 	# ian: todo: merge this with putrecordvalues
 	#@rename db.records.putsvalues
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def putrecordsvalues(self, d, ctx=None, txn=None):
 		"""dict.update()-like operation on a number of records
 
@@ -4333,7 +4388,7 @@ class DB(object):
 
 
 	#@rename db.records.validate
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def validaterecord(self, recs, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
 
@@ -4347,13 +4402,13 @@ class DB(object):
 
 	# ian: todo: make existing putrecord -> putrecords, then have putrecord as wrapper into putrecords
 	# #@rename db.records.puts
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def putrecords
 
 
 
 	#@rename db.records.put
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	@emen2.util.utils.return_many_or_single('recs')
 	def putrecord(self, recs, filt=True, warning=0, log=True, commit=True, ctx=None, txn=None):
 		"""Commit records
@@ -4369,12 +4424,12 @@ class DB(object):
 		"""
 
 		if (warning or not log) and not ctx.checkadmin():
-			raise subsystems.exceptions.SecurityError, "Only administrators may bypass logging or validation"
+			raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
-		recs.extend(dataobjects.record.Record(x, ctx=ctx) for x in dictrecs)
+		recs.extend(emen2.Database.record.Record(x, ctx=ctx) for x in dictrecs)
 
-		recs = list(x for x in recs if isinstance(x,dataobjects.record.Record))
+		recs = list(x for x in recs if isinstance(x,emen2.Database.record.Record))
 
 		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
 
@@ -4979,7 +5034,7 @@ class DB(object):
 
 	# ian: I benchmarked with new index system; lowered the threshold for checking indexes. But maybe improve? 01/10/2010.
 	#@rename db.records.permissions.filter
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def filterbypermissions(self, recids, ctx=None, txn=None):
 		"""Filter a list of Record IDs by read permissions.
 
@@ -5021,7 +5076,7 @@ class DB(object):
 
 
 	#@rename db.records.permissions.compat_add
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, ctx=None, txn=None):
 		"""Maintain compat with older versions that require effort to update
 
@@ -5039,25 +5094,25 @@ class DB(object):
 
 
 	#@rename db.records.permissions.add
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def secrecordadduser(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
 
 
 	#@rename db.records.permissions.remove
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def secrecordremoveuser(self, recids, users, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
 
 
 	#@rename db.records.permissions.addgroup
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def secrecordaddgroup(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
 	#@rename db.records.permissions.removegroup
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def secrecordremovegroup(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
@@ -5089,7 +5144,7 @@ class DB(object):
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
 		if (addusers | addgroups | delusers | delgroups) - checkitems:
-			raise subsystems.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
+			raise emen2.Database.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
 
 
 		# change child perms
@@ -5123,7 +5178,7 @@ class DB(object):
 		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 	#@rename db.records.render.childtree
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def renderchildtree(self, recid, recurse=1, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
 
@@ -5186,7 +5241,7 @@ class DB(object):
 
 	# ian: todo: simple: deprecate: still used in a few places in the js. Convenience methods go outside core?
 	#@rename db.records.render.recname
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 		"""Render the recname view for a record."""
 
@@ -5210,7 +5265,7 @@ class DB(object):
 	# ian: todo: hard: It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday. Consider it a convenience method.
 	# ed: ian, I think this should be moved back here.... it's not in the mission statement of the VartypeManager to do this kind of thing....
 	#@rename db.records.render.render
-	@DBProxy.publicmethod
+	@proxy.publicmethod
 	def renderview(self, *args, **kwargs):
 		"""Render views"""
 		# calls out to places that expect DBProxy need a DBProxy...
@@ -5222,14 +5277,14 @@ class DB(object):
 
 		kwargs.pop("ctx",None)
 		kwargs.pop("txn",None)
-		vtm = subsystems.datatypes.VartypeManager()
+		vtm = emen2.Database.datatypes.VartypeManager()
 		return vtm.renderview(*args, **kwargs)
 
 
 
 	# ian: unused?
 	#@rename db.records.render.renderall
-	# @DBProxy.publicmethod
+	# @proxy.publicmethod
 	# def getrecordrenderedviews(self, recid, ctx=None, txn=None):
 	# 	"""Render all views for a record."""
 	#
@@ -5257,8 +5312,8 @@ class DB(object):
 		return self.dbenv.txn_checkpoint()
 
 	#@rename db.admin.archivelogs
-	# @DBProxy.publicmethod
-	# @DBProxy.adminmethod
+	# @proxy.publicmethod
+	# @proxy.adminmethod
 	def archivelogs(self, remove=False, ctx=None, txn=None):
 
 		# if checkpoint:

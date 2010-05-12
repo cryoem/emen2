@@ -5,7 +5,7 @@ from emen2.config.config import g, DBOptions
 parser = DBOptions()
 parser.parse_args()
 
-import emen2.Database.DBProxy
+import emen2.Database.proxy
 import emen2.Database.database
 
 #@atexit.register
@@ -20,7 +20,7 @@ def _atexit():
 		print e
 
 
-db = emen2.Database.DBProxy.DBProxy(dbpath=g.EMEN2DBPATH)
+db = emen2.Database.proxy.DBProxy(dbpath=g.EMEN2DBPATH)
 ddb = db._DBProxy__db
 
 if g.getprivate('ROOTPW'):

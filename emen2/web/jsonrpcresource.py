@@ -17,7 +17,7 @@ import UserDict, collections
 collections.Mapping.register(UserDict.DictMixin)
 
 
-import emen2.Database.dataobjects
+#import emen2.Database
 import emen2.util.utils
 
 
@@ -104,10 +104,10 @@ class jsonrpc(Resource):
 
 
 	typemapping = {
-		emen2.Database.dataobjects.record.Record: 'record',
-		emen2.Database.dataobjects.recorddef.RecordDef: 'recorddef',
-		emen2.Database.dataobjects.paramdef.ParamDef: 'paramdef',
-		emen2.Database.dataobjects.user.User: 'user',
+		emen2.Database.record.Record: 'record',
+		emen2.Database.recorddef.RecordDef: 'recorddef',
+		emen2.Database.paramdef.ParamDef: 'paramdef',
+		emen2.Database.user.User: 'user',
 		set: 'set',
 		tuple: 'tuple',
 	}

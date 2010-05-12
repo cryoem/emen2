@@ -1,14 +1,15 @@
 import UserDict
 import operator
 import weakref
-import emen2.Database.subsystems.datatypes
-import emen2.Database.subsystems.exceptions
-import emen2.Database.subsystems.dbtime
-import emen2.Database.subsystems.dataobject
-from . import validators
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+
+import emen2.Database.datatypes
+import emen2.Database.dataobject
+import emen2.Database.exceptions
+import emen2.Database.validators
+
 
 #	This class encapsulates a single database record. In a sense this is an instance
 #	of a particular RecordDef, however, note that it is not required to have a value for
@@ -43,8 +44,8 @@ g = emen2.globalns.GlobalNamespace()
 #	the supplied access methods. There may be appropriate uses for this when constructing
 #	a new Record before committing changes back to the database.
 
-#class Record(object, UserDict.DictMixin):
-class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
+
+class Record(emen2.Database.dataobject.BaseDBInterface):
 	attr_user = set([])
 	attr_admin = set([])
 
@@ -58,7 +59,6 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 		return self.__ctx
 	@_ctx.setter
 	def _ctx(self,ctx):
-		print 'hello'
 		self.setContext(ctx)
 
 	cleared_fields = set(["viewcache"])
@@ -111,7 +111,7 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 		# ian: are we initializing a new record?
 		if ctx and self.recid < 0:
 			self.__creator = unicode(ctx.username)
-			self.__creationtime = emen2.Database.subsystems.dbtime.gettime()
+			self.__creationtime = emen2.Database.database.gettime()
 			if ctx.username != "root":
 				self.adduser(ctx.username, 3)
 
@@ -278,7 +278,7 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 		# special params have get/set handlers
 		if key not in self.param_special:
 			if not self.writable():
-				raise emen2.Database.subsystems.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
+				raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
 			self.__params[key] = value
 
 		elif key == 'comments':
@@ -404,14 +404,14 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 
 	def setpermissions(self, value):
 		if not self.isowner():
-			raise emen2.Database.subsystems.exceptions.SecurityError, "Insufficient permissions to change permissions"
+			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
 
 		self.__permissions = self.__checkpermissionsformat(value)
 
 
 	def setgroups(self, groups):
 		if not self.isowner():
-			raise emen2.Database.subsystems.exceptions.SecurityError, "Insufficient permissions to change permissions"
+			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
 		self.__groups = set(groups)
 
 
@@ -429,13 +429,13 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 
 	def addcomment(self, value):
 		if not self.commentable():
-			raise emen2.Database.subsystems.exceptions.SecurityError, "Insufficient permissions to add comment"
+			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to add comment"
 
 		if not isinstance(value,basestring):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 
-		d = emen2.Database.dataobjects.recorddef.parseparmvalues(value, noempty=1)[1]
+		d = emen2.Database.recorddef.parseparmvalues(value, noempty=1)[1]
 
 		if d.has_key("comments") or d.has_key("permissions"):
 			self.validationwarning("addcomment: cannot set comments/permissions inside a comment")
@@ -449,14 +449,14 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 
 		value = unicode(value)
 
-		self.__comments.append((unicode(self._ctx.username), unicode(emen2.Database.subsystems.dbtime.gettime()), value))
+		self.__comments.append((unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), value))
 		# store the comment string itself
 
 
 	def addhistory(self, param, value):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self._ctx.username), unicode(emen2.Database.subsystems.dbtime.gettime()), param, value))
+		self.__history.append((unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), param, value))
 
 
 
@@ -490,10 +490,10 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 
 
 		if not any(self.__ptest):
-			raise emen2.Database.subsystems.exceptions.SecurityError,"Permission Denied: %s"%self.recid
+			raise emen2.Database.exceptions.SecurityError,"Permission Denied: %s"%self.recid
 
 
-		# raise Database.subsystems.exceptions.SecurityError, "No ctx!"
+		# raise Database.exceptions.SecurityError, "No ctx!"
 
 		# g.log.msg('LOG_DEBUG', "setContext: ctx.groups is %s"%ctx.groups)
 
@@ -544,8 +544,8 @@ class Record(emen2.Database.subsystems.dataobject.BaseDBInterface):
 
 
 @Record.register_validator
-@emen2.Database.subsystems.dataobject.Validator.make_validator
-class RecordValidator(emen2.Database.subsystems.dataobject.Validator):
+@emen2.Database.dataobject.Validator.make_validator
+class RecordValidator(emen2.Database.dataobject.Validator):
 	def validate_recid(self, orec=None, warning=False):
 		if not orec: orec = {}
 
@@ -589,7 +589,7 @@ class RecordValidator(emen2.Database.subsystems.dataobject.Validator):
 		newcomments=[]
 
 		if isinstance(self._obj.__comments, basestring):
-			self._obj._comments = [(unicode(self._obj._ctx.username), unicode(emen2.Database.subsystems.dbtime.gettime()), self._obj.__comments)]
+			self._obj._comments = [(unicode(self._obj._ctx.username), unicode(emen2.Database.database.gettime()), self._obj.__comments)]
 
 		# ian: filter comments for empties..
 		for i in filter(None, self._obj._comments or []):
@@ -599,7 +599,7 @@ class RecordValidator(emen2.Database.subsystems.dataobject.Validator):
 				newcomments.append((unicode(i[0]),unicode(i[1]),unicode(i[2])))
 			except Exception, inst:
 				self._obj.validationwarning("invalid comment format: %s"%(i), e=inst, warning=warning)
-				newcomments.append((unicode(self._obj._ctx.username), unicode(emen2.Database.subsystems.dbtime.gettime()), "Error with comment: %s"%i))
+				newcomments.append((unicode(self._obj._ctx.username), unicode(emen2.Database.database.gettime()), "Error with comment: %s"%i))
 
 
 		if users:
@@ -679,7 +679,7 @@ class RecordValidator(emen2.Database.subsystems.dataobject.Validator):
 		if not p2:
 			return
 
-		vtm = emen2.Database.subsystems.datatypes.VartypeManager()
+		vtm = emen2.Database.datatypes.VartypeManager()
 
 		pds = self._obj._ctx.db.getparamdefs(p2)
 		newpd = {}

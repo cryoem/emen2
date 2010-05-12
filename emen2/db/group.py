@@ -6,10 +6,12 @@ import UserDict
 import re
 import weakref
 
-import emen2
+import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-import emen2.Database.subsystems.dbtime
+#import emen2.Database
+import emen2.Database.exceptions
+
 
 
 # ian: todo: upgrade to BaseDBObject
@@ -38,7 +40,7 @@ class Group(object, UserDict.DictMixin):
 		if ctx:
 			self.creator = self._ctx.username
 			self.adduser(self.creator, level=3)
-			self.creationtime = emen2.Database.subsystems.dbtime.gettime()
+			self.creationtime = emen2.Database.database.gettime()
 			#self.validate()
 
 		#self.__permissions = kwargs.get('permissions')
@@ -199,7 +201,7 @@ class Group(object, UserDict.DictMixin):
 
 	def validate(self, orec=None, warning=False, txn=None):
 		if not self.isowner():
-			raise emen2.Database.subsystems.exceptions.SecurityError, "Not authorized to change group: %s"%self.name
+			raise emen2.Database.exceptions.SecurityError, "Not authorized to change group: %s"%self.name
 
 		allusernames = self._ctx.db.getusernames(ctx=self._ctx, txn=txn)
 		if self.members() - allusernames:

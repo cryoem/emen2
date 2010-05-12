@@ -1,13 +1,14 @@
+import cgi
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-import emen2.Database.subsystems.datatypes
-Vartype = emen2.Database.subsystems.datatypes.Vartype
-
+import emen2.Database.datatypes
 import emen2.util.parse_datetime
 
+# convenience
+Vartype = emen2.Database.datatypes.Vartype
 
-import cgi
 def quote_html(func):
 	return func
 	#return lambda *args, **kwargs: cgi.escape(func(*args, **kwargs))

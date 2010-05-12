@@ -6,7 +6,7 @@ import UserDict
 import re
 import weakref
 
-import emen2
+import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
 

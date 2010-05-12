@@ -1,10 +1,12 @@
-import emen2.Database.subsystems.dataobject
 import functools
+
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-@emen2.Database.subsystems.dataobject.Validator.make_validator
-class DefinitionValidator(emen2.Database.subsystems.dataobject.Validator):
+import emen2.Database.dataobject
+
+@emen2.Database.dataobject.Validator.make_validator
+class DefinitionValidator(emen2.Database.dataobject.Validator):
 	def validate_attributes(self):
 		badattrs = set(k for k in self._obj.__dict__.keys() if not k.startswith('_'))-self._obj.attr_all
 		if badattrs:

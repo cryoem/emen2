@@ -19,9 +19,10 @@ import weakref
 from functools import partial, wraps
 
 import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+
 import emen2.util.utils
 
-g = emen2.globalns.GlobalNamespace('')
 
 class MethodUtil(object):
 	def doc(self, func, *args, **kwargs):
@@ -41,6 +42,9 @@ class DBProxy(object):
 
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
+		
+		import database
+		
 		self.__txn = None
 		self.__bound = False
 
@@ -302,12 +306,12 @@ def adminmethod(func):
 	def _inner(*args, **kwargs):
 		ctx = kwargs.get('ctx')
 		if ctx is None:
-			ctx = [x for x in args is isinstance(x, emen2.Database.dataobjects.user.User)] or None
+			ctx = [x for x in args is isinstance(x, emen2.Database.user.User)] or None
 			if ctx is not None: ctx = ctx.pop()
 		if ctx.checkadmin():
 			return func(*args, **kwargs)
 		else:
-			raise emen2.Database.subsystems.exceptions.SecurityError, 'No Admin Priviliges'
+			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
 	return _inner
 
 
@@ -330,5 +334,5 @@ class DBExt(object):
 
 
 # ian: register all public methods
-import database
+# import database
 

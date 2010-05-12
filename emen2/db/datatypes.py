@@ -1,14 +1,17 @@
 import re
 
-import emen2
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+
+import emen2.Database.record
 
 
 regex_pattern2 = u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
 								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s,]+)\))?))(?P<macrosep>[\s<]?)" \
 								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
 regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
+
+
 
 
 def if_caching(f):
@@ -194,12 +197,12 @@ class VartypeManager(object):
 
 
 		ol = 0
-		if not hasattr(recs,"__iter__") or isinstance(recs, emen2.Database.dataobjects.record.Record):
+		if not hasattr(recs,"__iter__") or isinstance(recs, emen2.Database.record.Record):
 			ol = 1
 			recs = [recs]
 
 
-		if not isinstance(list(recs)[0],emen2.Database.dataobjects.record.Record):
+		if not isinstance(list(recs)[0],emen2.Database.record.Record):
 			recs = db.getrecord(recs,filt=1)
 
 

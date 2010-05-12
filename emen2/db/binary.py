@@ -7,12 +7,11 @@ import UserDict
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-# validation
-import emen2.Database.subsystems.dataobject
-import emen2.Database.subsystems.dbtime
+# import emen2.Database
+import emen2.Database.dataobject
 
 
-class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
+class Binary(emen2.Database.dataobject.BaseDBObject):
 	"""This class defines a pointer to a binary file stored on disk. The path to the file will be built dynamically based on the storage paths specified in the config. These are not designed to be changed manually; they are only created and managed by DB public methods.
 
 	@attr name Identifier of the form: bdo:YYYYMMDDXXXXX, where YYYYMMDD is date format and XXXXX is 5-char hex ID code of file for that day
@@ -81,7 +80,7 @@ class Binary(emen2.Database.subsystems.dataobject.BaseDBObject):
 			counter = int(bdokey[9:13],16)
 
 		else:
-			bdokey = emen2.Database.subsystems.dbtime.gettime()
+			bdokey = emen2.Database.database.gettime()
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])

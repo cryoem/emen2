@@ -1,5 +1,3 @@
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
 import bsddb3
 import cPickle as pickle
 import sys
@@ -8,6 +6,8 @@ import weakref
 import collections
 import array
 
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
 
 try:
 	import emen2.indexwrapper.bulk
@@ -15,12 +15,6 @@ try:
 except:
 	bulk = None
 	g.warn("Not using bulk interface")
-
-from emen2.Database.DBFlags import *
-
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
-
 
 
 # Berkeley DB wrapper classes
@@ -158,7 +152,7 @@ class BTree(object):
 
 
 	def __str__(self):
-		return "<emen2.Database.subsystems.btrees2.BTree instance: %s>"%self.filename
+		return "<emen2.Database.btrees2.BTree instance: %s>"%self.filename
 
 
 	def __del__(self):
@@ -285,7 +279,7 @@ class RelateBTree(BTree):
 
 
 	def __str__(self):
-		return "<emen2.Database.subsystems.btrees2.RelateBTree instance: %s>"%self.filename
+		return "<emen2.Database.btrees2.RelateBTree instance: %s>"%self.filename
 
 
 	def get_max(self, txn=None):

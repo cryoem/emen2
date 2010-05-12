@@ -1,8 +1,12 @@
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
 
-import emen2.Database.subsystems.datatypes
-Macro = emen2.Database.subsystems.datatypes.Macro
+import emen2.Database.datatypes
+
+# Convenience
+Macro = emen2.Database.datatypes.Macro
+
+
 
 # ian: todo: Macros can specify a return vartype, which will go through normal rendering... 
 
