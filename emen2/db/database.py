@@ -900,7 +900,7 @@ class DB(object):
 		for rec in recs:
 			for i in byrec.get(rec.recid,[]):
 				ret[i["name"]] = i
-				
+
 
 		if len(ret)==1 and ol:
 			return ret.values()[0]
@@ -1460,7 +1460,7 @@ class DB(object):
 
 
 		plots = {}
-		if formats:			
+		if formats:
 			plots = self.__plot_plot(xpd=xpd, ypd=ypd, grouptype=grouptype, groupby=groupby, grouped=grouped, groupnames=groupnames, cutoff=cutoff, c1=c1, c2=c2, formats=formats, width=width)
 
 
@@ -1472,7 +1472,7 @@ class DB(object):
 				print i, grouped[i]
 			#elif groupshow and i not in groupshow:
 			#	del grouped[i]
-		
+
 		for i in grouped:
 				groupnames[i] = '%s (%s items)'%(groupnames[i], len(grouped[i]))
 
@@ -1739,7 +1739,7 @@ class DB(object):
 
 		if context:
 			return p2, c
-			
+
 		return p2
 
 
@@ -2339,7 +2339,7 @@ class DB(object):
 
 			if flat:
 				result = allr # can probably just return here
-				
+
 			else:
 				# perform filtering on both levels, and removing any items that become empty
 				if tree:
@@ -2422,6 +2422,9 @@ class DB(object):
 
 	def __link(self, mode, links, keytype="record", ctx=None, txn=None):
 		"""(Internal) the *link functions wrap this."""
+		#admin overrides security checks
+		admin = False
+		if ctx.checkadmin(): admin = True
 
 		if keytype not in ["record", "recorddef", "paramdef"]:
 			raise Exception, "pclink keytype must be 'record', 'recorddef' or 'paramdef'"
@@ -2444,7 +2447,7 @@ class DB(object):
 		items = set(reduce(operator.concat, links, ()))
 		# ian: todo: high: for recorddef/paramdefs, check that all items exist..
 		# self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
-		
+
 		# ian: circular reference detection.
 		# ian: todo: high: turn this back on..
 
@@ -2457,12 +2460,12 @@ class DB(object):
 		if keytype == "record":
 			recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
 			for a,b in links:
-				if not (recs[a].writable() or recs[b].writable()):
+				if not (admin or (recs[a].writable() or recs[b].writable())):
 					raise emen2.Database.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 		elif keytype == "paramdef":
 			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
-			
+
 		elif keytype == "recorddef":
 			self.getrecorddef(items, filt=False, ctx=ctx, txn=txn)
 			# links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
@@ -3016,7 +3019,7 @@ class DB(object):
 	def __commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
 
-		#@begin
+	#@begin
 
 		for user in users:
 			self.bdbs.users.set(user.username, user, txn=txn)
@@ -3181,7 +3184,7 @@ class DB(object):
 		"""Return a set of all usernames. Not available to anonymous users.
 
 		@return set of all usernames
-		
+
 		"""
 		if ctx.username == "anonymous":
 			return set()
@@ -3202,7 +3205,7 @@ class DB(object):
 		"""Return a set of all group names
 
 		@return set of all group names
-		
+
 		"""
 		return set(self.bdbs.groups.keys(txn=txn))
 
@@ -3620,7 +3623,7 @@ class DB(object):
 
 		if not paramdef.name:
 			raise ValueError, "Name required"
-			
+
 		paramdef.name = unicode(paramdef.name).lower()
 
 		try:
@@ -4222,7 +4225,7 @@ class DB(object):
 		"""
 
 		rec = self.getrecord(recid, ctx=ctx, txn=txn)
-		if not rec.isowner():
+		if not (ctx.checkadmin() or rec.isowner()):
 			raise emen2.Database.exceptions.SecurityError, "No permission to delete record"
 
 		parents = self.getparents(recid, ctx=ctx, txn=txn)

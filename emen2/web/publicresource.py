@@ -46,7 +46,7 @@ class PublicView(Resource):
 		NOTE: we should probably make sure that the _## parameters have
 		sequential numbers
 		"""
-		
+
 		result = {}
 		filenames = {}
 		sdicts = collections.defaultdict(dict)
@@ -135,6 +135,7 @@ class PublicView(Resource):
 	redirects = {}
 	@classmethod
 	def getredirect(cls, name):
+		g.debug(cls.redirects)
 		redir = cls.redirects.get(name, False)
 		result = None
 		if redir != False:
@@ -146,7 +147,8 @@ class PublicView(Resource):
 
 	@classmethod
 	def register_redirect(cls, fro, to, *args, **kwargs):
-		cls.redirects[fro] = (to, args, kwargs)
+		pass
+		#cls.redirects[fro] = (to, args, kwargs)
 
 
 
@@ -321,7 +323,7 @@ class PublicView(Resource):
 
 		[request.setHeader(key, headers[key]) for key in headers]
 		request.setResponseCode(response)
-		
+
 		# write error page to client
 		request.write(data)
 

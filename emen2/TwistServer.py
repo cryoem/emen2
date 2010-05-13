@@ -62,6 +62,7 @@ def inithttpd():
 
 	import emen2.TwistSupport_html.public.views
 	emen2.TwistSupport_html.public.views.load_views()
+	emen2.TwistSupport_html.public.views.routes_from_g()
 
 	root = static.File("tweb")
 

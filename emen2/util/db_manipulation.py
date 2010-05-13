@@ -7,7 +7,22 @@ from emen2.subsystems.routing import URLRegistry
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 
-class DBTree(object):
+class Context(object):
+	'''Partial context for views that don't need db access'''
+	def reverse(self, _name, *args, **kwargs):
+		_full = kwargs.get('_full', False)
+		prefix = '%s' % g.EMEN2WEBROOT
+		if not prefix.endswith('/'): prefix = '%s/' % prefix
+		if _full == True:
+			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
+
+		result = '%s%s%s' % (prefix, 'db', (
+			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+		if not result.endswith('/'): result = '%s/' % result
+		return result
+
+
+class DBTree(Context):
 	'''emulates a tree structure on top of the Database'''
 	root = property(lambda self: self.__root)
 	ctxid = property(lambda self: self.__ctxid)
@@ -150,18 +165,6 @@ class DBTree(object):
 	def to_path(self, recid):
 		#with self.__db:
 		return urllib2.quote('/'.join(self.__to_path(recid)))
-
-	def reverse(self, _name, *args, **kwargs):
-		_full = kwargs.get('_full', False)
-		prefix = '%s' % g.EMEN2WEBROOT
-		if not prefix.endswith('/'): prefix = '%s/' % prefix
-		if _full == True:
-			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
-
-		result = '%s%s%s' % (prefix, 'db', (
-			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
-		if not result.endswith('/'): result = '%s/' % result
-		return result
 
 	def render_template_view(self, name, *args, **kwargs):
 		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )
