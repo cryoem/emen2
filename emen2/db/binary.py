@@ -2,7 +2,6 @@ import time
 import re
 import traceback
 import math
-import UserDict
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
@@ -12,7 +11,7 @@ import emen2.Database.dataobject
 
 
 class Binary(emen2.Database.dataobject.BaseDBObject):
-	"""This class defines a pointer to a binary file stored on disk. The path to the file will be built dynamically based on the storage paths specified in the config. These are not designed to be changed manually; they are only created and managed by DB public methods.
+	"""This class defines a pointer to a binary file stored on disk. Contains the following metadata: ID, filename, associated record ID, filesize, md5 checksum, and if the file is compressed or not. The path to the file will be resolved dynamically when accessed based on the storage paths specified in the config.
 
 	@attr name Identifier of the form: bdo:YYYYMMDDXXXXX, where YYYYMMDD is date format and XXXXX is 5-char hex ID code of file for that day
 	@attr filename Filename
@@ -21,29 +20,15 @@ class Binary(emen2.Database.dataobject.BaseDBObject):
 	@attr filesize Size of file
 	@attr md5 MD5 checksum of file
 	@attr compress File is gzip compressed
-	@attr creator Creator
-	@attr creationtime Creation time
-	@attr modifyuser Last change user
-	@attr modifytime Last change time
+
+	@attr creator
+	@attr creationtime
+	@attr modifyuser
+	@attr modifytime
 
 	"""
 
-	validators = []
-
-	@property
-	def attr_user(self):
-		return set(["filename", "compress", "filepath", "uri","recid","modifyuser","modifytime", "filesize", "md5"])
-
-
-	@property
-	def attr_admin(self):
-		return set(["creator", "creationtime", "name"])
-
-
-	#@property
-	#def _ctx(self):
-	#	return self._ctx
-
+	attr_user = set(["filename", "compress", "filepath", "uri","recid","modifyuser","modifytime", "filesize", "md5","creator", "creationtime", "name"])
 
 	attr_vartypes = {
 		"recid":"int",
@@ -61,6 +46,7 @@ class Binary(emen2.Database.dataobject.BaseDBObject):
 
 	@staticmethod
 	def parse(bdokey, counter=None):
+		"""Parse a 'bdo:2010010100001' type identifier into constituent parts to load from database and resolve location in the filesystem"""
 
 		prot, _, bdokey = (bdokey or "").rpartition(":")
 

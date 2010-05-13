@@ -89,7 +89,7 @@ class RPCFormatXMLRPC:
 	def encode_serialize(self, value):
 		"""Serializes in UTF-8 DB instances for unsophisticated encoders (e.g. xmlrpc)"""
 		# convert to dict using class method
-		if isinstance(value, (emen2.Database.record.Record, emen2.Database.recorddef.RecordDef, emen2.Database.paramdef.ParamDef, emen2.Database.user.User, emen2.Database.workflow.WorkFlow)):
+		if isinstance(value, (emen2.Database.dataobject.BaseDBObject)):
 			return self.encode_serialize(dict(value))
 
 		elif hasattr(value,"items"):

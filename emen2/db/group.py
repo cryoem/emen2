@@ -2,7 +2,6 @@ import time
 import operator
 import hashlib
 import random
-import UserDict
 import re
 import weakref
 
@@ -15,51 +14,38 @@ import emen2.Database.exceptions
 
 
 # ian: todo: upgrade to BaseDBObject
-class Group(object, UserDict.DictMixin):
+class Group(emen2.Database.dataobject.BaseDBObject):
+	"""Groups of users. These can be set in individual Records to provide access to members of a group.
+	
+	@attr name
+	@attr disabled
+	@attr privacy
+	@attr permissions Group membership, similar to Record permissions
+	
+	@attr creator
+	@attr creationtime
+	@attr modifytime
+	@attr modifyuser
+	
+	"""
 
-	attr_user = set(["privacy", "modifytime","modifyuser","permissions","_ctx"])
-	attr_admin = set(["name","disabled","creator","creationtime"])
-	attr_all = attr_user | attr_admin
+	attr_user = set(["privacy", "modifytime","modifyuser","permissions", "name","disabled","creator","creationtime"])
 
+	def init(self, d=None):
+		self.name = d.pop('name', None)
+		self.disabled = d.pop('disabled',False)
+		self.privacy = d.pop('privacy',False)
+		self.creator = d.pop('creator',None)
+		self.creationtime = d.pop('creationtime',None)
+		self.modifytime = d.pop('modifytime',None)
+		self.modifyuser = d.pop('modifyuser',None)
 
-	def __init__(self, _d=None, **_k):
-		_k.update(_d or {})
-		ctx = _k.pop('ctx',None)
+		self.setpermissions(d.pop('permissions', None))
 
-		self.name = _k.pop('name', None)
-		self.disabled = _k.pop('disabled',False)
-		self.privacy = _k.pop('privacy',False)
-		self.creator = _k.pop('creator',None)
-		self.creationtime = _k.pop('creationtime',None)
-		self.modifytime = _k.pop('modifytime',None)
-		self.modifyuser = _k.pop('modifyuser',None)
-
-		self.setpermissions(_k.pop('permissions', None))
-		self.setContext(ctx)
-
-		if ctx:
+		if self._ctx:
 			self.creator = self._ctx.username
 			self.adduser(self.creator, level=3)
 			self.creationtime = emen2.Database.database.gettime()
-			#self.validate()
-
-		#self.__permissions = kwargs.get('permissions')
-
-
-	def __getstate__(self):
-		"""the context and other session-specific information should not be pickled"""
-		odict = self.__dict__.copy() # copy the dict since we change it
-		try: del odict['_ctx']
-		except:	pass
-		return odict
-
-
-	def upgrade(self):
-		pass
-
-
-	def setContext(self, ctx=None):
-		self._ctx = ctx
 
 
 	def getlevel(self, user):
@@ -179,19 +165,14 @@ class Group(object, UserDict.DictMixin):
 
 	get = __getitem__
 
+
 	def __setitem__(self,key,value):
 		if key == "permissions":
 			return self.setpermissions(value)
-		if key in self.attr_all:
+		if key in self.attr_user:
 			self.__dict__[key]=value
 		else:
 			raise KeyError,"Invalid key: %s"%key
-
-	def __delitem__(self,key):
-		raise AttributeError,"Key deletion not allowed"
-
-	def keys(self):
-		return tuple(self.attr_all)
 
 
 	################################

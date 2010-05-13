@@ -13,13 +13,18 @@ from twisted.web.resource import Resource
 # emen2 imports
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
+
+
 import UserDict, collections
 collections.Mapping.register(UserDict.DictMixin)
 
 
 #import emen2.Database
 import emen2.util.utils
-
+import emen2.Database.record
+import emen2.Database.recorddef
+import emen2.Database.paramdef
+import emen2.Database.user
 
 
 

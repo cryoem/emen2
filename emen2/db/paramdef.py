@@ -7,6 +7,8 @@ g = emen2.globalns.GlobalNamespace()
 import emen2.Database.dataobject
 import emen2.Database.validators
 
+
+
 class ParamDef(emen2.Database.dataobject.BaseDBObject):
 	"""A Parameter for a value in a Record. Each record is a key/value set, where each key must be a valid ParamDef. Each ParamDef has several attributes (below), including a data type that calls a validator to check value sanity. Most parameters are indexed for queries; this can be disabled with the index attr. Generally, only descriptions and choices may be edited after creation, although an admin may make other changes. Be aware that changing vartype may be very destructive if the validators or index types are incompatible (use this carefully, or not at all if you are unsure).
 
@@ -31,14 +33,7 @@ class ParamDef(emen2.Database.dataobject.BaseDBObject):
 	"""
 
 	# non-admin users may only update descs and choices
-	@property
-	def attr_user(self):
-		return set(["desc_long","desc_short","choices"])
-
-
-	@property
-	def attr_admin(self):
-		return set(["name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed"])
+	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed"])
 
 
 	@property
@@ -46,34 +41,29 @@ class ParamDef(emen2.Database.dataobject.BaseDBObject):
 		return self._validators
 
 
-	#@property
-	#def _ctx(self):
-	#	return self._ctx
 
-
-	def init(self, _d=None, **_k):
-		_k.update(_d or {})
+	def init(self, d=None):
 
 		# This is the name of the paramdef, also used as index
-		self.name = _k.get('name')
+		self.name = d.get('name')
 
 		# Variable data type. List of valid types in the module global 'vartypes'
-		self.vartype = _k.get('vartype')
+		self.vartype = d.get('vartype')
 
 		# This is a very short description for use in forms
-		self.desc_short = _k.get('desc_short')
+		self.desc_short = d.get('desc_short')
 
 		# A complete description of the meaning of this variable
-		self.desc_long = _k.get('desc_long')
+		self.desc_long = d.get('desc_long')
 
 		# Physical property represented by this field, List in 'properties'
-		self.property = _k.get('property')
+		self.property = d.get('property')
 
 		# Default units (optional)
-		self.defaultunits = _k.get('defaultunits')
+		self.defaultunits = d.get('defaultunits')
 
 		# choices for choice and string vartypes, a tuple
-		self.choices = _k.get('choices')
+		self.choices = d.get('choices')
 
 		# original creator of the record
 		self.creator = None

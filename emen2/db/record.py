@@ -1,4 +1,3 @@
-import UserDict
 import operator
 import weakref
 
@@ -11,112 +10,91 @@ import emen2.Database.exceptions
 import emen2.Database.validators
 
 
-#	This class encapsulates a single database record. In a sense this is an instance
-#	of a particular RecordDef, however, note that it is not required to have a value for
-#	every field described in the RecordDef, though this will usually be the case.
-#
-#	To modify the params in a record use the normal obj[key]= or update() approaches.
-#	Changes are not stored in the database until commit() is called. To examine params,
-#	use obj[key]. There are a few special keys, handled differently:
-#	creator,creationtime,permissions,comments,history,parents,children,groups
-#
-#	Record instances must ONLY be created by the Database class through retrieval or
-#	creation operations. self.__ctx will store information about security and
-#	storage for the record.
-#
-#	Mechanisms for changing existing params are a bit complicated. In a sense, as in a
-#	physical lab notebook, an original value can never be changed, only superceded.
-#	All records have a 'magic' field called 'comments', which is an extensible array
-#	of text blocks with immutable entries. 'comments' entries can contain new field
-#	definitions, which will supercede the original definition as well as any previous
-#	comments. Changing a field will result in a new comment being automatically generated
-#	describing and logging the value change.
-#
-#	From a database standpoint, this is rather odd behavior. Such tasks would generally be
-#	handled with an audit log of some sort. However, in this case, as an electronic
-#	representation of a Scientific lab notebook, it is absolutely necessary
-#	that all historical values are permanently preserved for any field, and there is no
-#	particular reason to store this information in a separate file. Generally speaking,
-#	such changes should be infrequent.
-#
-#	Naturally, as with anything in Python, anyone with code-level access to the database
-#	can override this behavior by changing 'params' directly rather than using
-#	the supplied access methods. There may be appropriate uses for this when constructing
-#	a new Record before committing changes back to the database.
+
+class Record(emen2.Database.dataobject.BaseDBObject):
+	"""
+	This class encapsulates a single database record. In a sense this is an instance
+	of a particular RecordDef, however, note that it is not required to have a value for
+	every field described in the RecordDef, though this will usually be the case.
+
+	To modify the params in a record use the normal obj[key]= or update() approaches.
+	Changes are not stored in the database until commit() is called. To examine params,
+	use obj[key]. There are a few special keys, handled differently:
+	creator,creationtime,permissions,comments,history,parents,children,groups
+
+	Record instances must ONLY be created by the Database class through retrieval or
+	creation operations. self._ctx will store information about security and
+	storage for the record.
+
+	Mechanisms for changing existing params are a bit complicated. In a sense, as in a
+	physical lab notebook, an original value can never be changed, only superceded.
+	All records have a 'magic' field called 'comments', which is an extensible array
+	of text blocks with immutable entries. 'comments' entries can contain new field
+	definitions, which will supercede the original definition as well as any previous
+	comments. Changing a field will result in a new comment being automatically generated
+	describing and logging the value change.
+
+	From a database standpoint, this is rather odd behavior. Such tasks would generally be
+	handled with an audit log of some sort. However, in this case, as an electronic
+	representation of a Scientific lab notebook, it is absolutely necessary
+	that all historical values are permanently preserved for any field, and there is no
+	particular reason to store this information in a separate file. Generally speaking,
+	such changes should be infrequent.
+
+	Naturally, as with anything in Python, anyone with code-level access to the database
+	can override this behavior by changing 'params' directly rather than using
+	the supplied access methods. There may be appropriate uses for this when constructing
+	a new Record before committing changes back to the database.
+	
+	Some of these attributes are actually stored as hidden, but can be accessed with dictionary methods.
+	
+	@attr recid Integer ID for Record
+	@attr rectype Associated RecordDef
+	@attr comments List of comments; format is [[user, time, text], ...]
+	@attr history History log; similar to comments: [[user, time, param, old value], ...]
+
+	@attr permissions 4-Tuple of permissions. [[read users], [comment users], [write users], [owners]]
+	@attr groups Set of groups
+
+	@attr creationtime
+	@attr creator
+	
+	"""
 
 
-class Record(emen2.Database.dataobject.BaseDBInterface):
 	attr_user = set([])
-	attr_admin = set([])
-
 	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])
-	@property
-	def attr_admin(self): pass
-
-	@property
-	def _ctx(self):
-		if not hasattr(self, '_Record__ctx'): self.__ctx = None
-		return self.__ctx
-	@_ctx.setter
-	def _ctx(self,ctx):
-		self.setContext(ctx)
-
 	cleared_fields = set(["viewcache"])
 
-	def init(self, _d=None, **_k):
-		"""Normally the record is created with no parameters, then setContext is called by the
-		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
-		may be done at initiailization time.
 
-		recognized keys:
-		  recid -- 32 bit integer recordid (within the current database)
-		  rectype -- name of the RecordDef represented by this Record
-		  comments -- a List of comments records
-		  creator -- original creator of the record
-		  creationtime -- creation date
-		  dbid -- dbid where this record resides (any other dbs have clones)
-		  params -- a Dictionary containing field names associated with their data
-		  permissions -- permissions for
-			  read access, comment write access, full write access,
-			  and administrative access. Each element is a tuple of
-			  user names or group id's,
-		"""
-
-		self.__ctx = None
-		_k.update(_d or {})
-		ctx = _k.pop('ctx',None)
-
-
+	def init(self, d=None):
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 		self.__ptest = [True,True,True,True]
 
-		self.recid = _k.pop('recid', None)
-		self.rectype = _k.pop('rectype', None)
+		self.recid = d.pop('recid', None)
+		self.rectype = d.pop('rectype', None)
 
-		self.__creator = _k.pop('creator', None)
-		self.__creationtime = _k.pop('creationtime', None)
+		self.__creator = d.pop('creator', None)
+		self.__creationtime = d.pop('creationtime', None)
 
-		self.__comments = _k.pop('comments',[])
-		self.__history = _k.pop('history',[])
+		self.__comments = d.pop('comments',[])
+		self.__history = d.pop('history',[])
 
 		self.__params = {}
 
-		self.__permissions = _k.pop("permissions", ((),(),(),()))
-		self.__groups = set(_k.pop('groups',[]))
+		self.__permissions = d.pop("permissions", ((),(),(),()))
+		self.__groups = set(d.pop('groups',[]))
 
-		for key in set(_k.keys()) - self.param_special:
-			self[key] = _k[key]
+		for key in set(d.keys()) - self.param_special:
+			self[key] = d[key]
 
 		# ian: are we initializing a new record?
-		if ctx and self.recid < 0:
-			self.__creator = unicode(ctx.username)
+		if self._ctx and self.recid < 0:
+			self.__creator = unicode(self._ctx.username)
 			self.__creationtime = emen2.Database.database.gettime()
-			if ctx.username != "root":
-				self.adduser(ctx.username, 3)
-
-		self._ctx = ctx
-		#self.setContext(ctx)
+			if self._ctx.username != "root":
+				self.adduser(self._ctx.username, 3)
 
 
 
@@ -125,48 +103,9 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 	#################################
 
 
-	def validationwarning(self, msg, e=None, warning=False):
-		if e == None:
-			e = ValueError
-		if warning:
-			g.log.msg("LOG_WARNING", "Validation warning: %s: %s"%(self.recid, msg))
-		elif e:
-			raise e, msg
-
-
-	def validate(self, orec=None, warning=False, params=[]):
-		if not orec: orec = {}
-
-		for field in self.cleared_fields:
-			setattr(self, field, None)
-
-		if not self._ctx:
-			self.validationwarning("No context; cannot validate", warning=True)
-			return
-		elif not self._ctx.db:
-			self.validationwarning("No context; cannot validate", warning=True)
-			return
-
-		validators = [
-			self.validate_recid,
-			self.validate_rectype,
-			self.validate_comments,
-			self.validate_history,
-			self.validate_creator,
-			self.validate_creationtime,
-			self.validate_permissions,
-			self.validate_permissions_users
-			]
-
-		for i in validators:
-			i(orec, warning=warning)
-			# self.validationwarning("%s: %s"%(i.func_name, inst), e=inst, warning=warning)
-
-		self.validate_params(orec, warning=warning, params=params)
-
-
 	def changedparams(self, orec=None):
-		"""difference between two records"""
+		"""Difference between two records"""
+		
 		if not orec: orec = {}
 		allkeys = set(self.keys() + orec.keys())
 		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
@@ -179,66 +118,34 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 	#################################
 
 	def __getstate__(self):
-		"""the context and other session-specific information should not be pickled"""
-		odict = self.__dict__.copy() # copy the dict since we change it
-		odict['_Record__ptest'] = None
-		odict['_Record__ctx'] = None
+		"""Context and other session-specific information should not be pickled"""
 
+		odict = self.__dict__.copy() # copy the dict since we change it
+		odict['_ctx'] = None
+		odict['_Record__ptest'] = None
 		# filter out values that are None
 		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None, odict["_Record__params"].items()))
-
 		return odict
-
-
-	def __setstate__(self, dict):
-		"""restore unpickled values to defaults after unpickling"""
-		self.__dict__.update(dict)
-		self.__ptest = [False, False, False, False]
-		self.__ctx = None
-		# ian: todo: temp patch, remove...
-		try: self.__history
-		except: self.__history = []
-
-
-
-	def upgrade(self):
-		pass
 
 
 	#################################
 	# repr methods
 	#################################
 
-	def __unicode__(self):
-		"A string representation of the record"
-		ret=["%s (%s)\n"%(unicode(self.recid),self.rectype)]
-		for i,j in self.items():
-			ret.append(u"%12s:	%s\n"%(unicode(i),unicode(j)))
-		return u"".join(ret)
-
-
-	def __str__(self):
-		return self.__unicode__().encode('utf-8')
-
-
-	def __repr__(self):
-		return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
-
 
 	def json_equivalent(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information. For use with demjson"""
+
 		ret={}
 		ret.update(self.__params)
 		for i in self.param_special:
-			try: ret[i]=self[i]
-			except: pass
+			ret[i]=self[i]
 		return ret
 
 
 
 	#################################
-	# mapping methods;
-	#		UserDict.DictMixin provides the remainder
+	# mapping methods
 	#################################
 
 	def __getitem__(self, key):
@@ -271,7 +178,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	def __setitem__(self, key, value):
 		"""This and 'update' are the primary mechanisms for modifying the params in a record
-		Changes are not written to the database until the commit() method is called!"""
+		Changes are not written to the database until the record is committed!"""
 
 		key = unicode(key)
 
@@ -295,9 +202,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def __delitem__(self,key):
-
 		key = unicode(key)
-
 		if key not in self.param_special:
 			self.__params[key] = None
 		else:
@@ -305,24 +210,28 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def keys(self):
-		"""All retrievable keys for this record"""
-		#return tuple(self.__params.keys())+tuple(self.param_special)
 		return self.__params.keys() + list(self.param_special)
 
 
 	def has_key(self,key):
-		if unicode(key) in self.keys(): return True
+		if unicode(key) in self.keys():
+			return True
 		return False
 
 
 	def get(self, key, default=None):
-		ret = UserDict.DictMixin.get(self, key)
+		ret = self.__getitem__(key)
 		if ret == None:
 			return default
 		return ret
-		#return UserDict.DictMixin.get(self, key, default=default)
 
 
+	def __unicode__(self):
+		"A string representation of the record"
+		ret = ["%s: %s (%s)\n"%(self.__class__.__name__, self.rectype, self.recid)]
+		for key in self.keys():
+			ret.append(u"%12s:	%s\n"%(key, self[key]))
+		return u"".join(ret)
 
 
 	#################################
@@ -331,6 +240,14 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	# these can only be used on new records before commit for now...
 	def adduser(self, users, level=0, reassign=False):
+		"""Add a user with a specified permissions level.
+		
+		@attr users Single or iterable of users to give permissions
+
+		@keyparam level Permissions level for this assignment. 0 (read) is default.
+		@keyparam reassign If a user already has a higher set of permissions, reassign to this lower level
+
+		"""
 
 		if not users: return
 
@@ -358,6 +275,14 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def addumask(self, umask, reassign=False):
+		"""Apply a mask of permissions
+		
+		@param umask 4-tuple of permissions to overlay
+		
+		@keyparam reassign If a user already has a higher set of permissions, reassign to this lower level
+		
+		"""
+
 		if not umask:
 			return
 
@@ -377,6 +302,12 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def removeuser(self, users):
+		"""Remove users from permissions
+		
+		@param users Single or iterable of users to remove from permissions
+		
+		"""
+		
 		p = [set(x) for x in self.__permissions]
 		if not hasattr(users,"__iter__"):
 			users = [users]
@@ -387,6 +318,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def __checkpermissionsformat(self, value):
+
 		if value == None:
 			value = ((),(),(),())
 
@@ -403,6 +335,12 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def setpermissions(self, value):
+		"""Set permissions to a 4-tuple. Discards existing permissions.
+		
+		@param value New permissions, in standard 4-tuple format.
+		
+		"""
+		
 		if not self.isowner():
 			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
 
@@ -410,24 +348,49 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 	def setgroups(self, groups):
+		"""Set groups. Discards existing groups.
+
+		@param groups Iterable of groups
+		
+		"""
+		
 		if not self.isowner():
 			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
 		self.__groups = set(groups)
 
 
 	def addgroup(self, groups):
+		"""Add groups
+		
+		@param groups Single or iterable groups
+		
+		"""
+		
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
 		self.__groups |= set(groups)
 
 
 	def removegroup(self, groups):
+		"""Remove groups
+		
+		@param groups Single or iterable groups
+
+		"""
+		
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
 		self.__groups -= set(groups)
 
 
 	def addcomment(self, value):
+		"""Add a comment to Record. This can be used to explain changes, make notes, or continue a dialog. Parameter values can be embedded with $$param=value format.
+		
+		@param value Comment
+		
+		"""
+		
+		
 		if not self.commentable():
 			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to add comment"
 
@@ -453,7 +416,9 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		# store the comment string itself
 
 
-	def addhistory(self, param, value):
+	def _addhistory(self, param, value):
+		"""Append to history log. This can only be used internally by the database; other attempts will be discarded when committed."""
+		
 		if not param:
 			raise Exception, "Unable to add item to history log"
 		self.__history.append((unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), param, value))
@@ -462,36 +427,27 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	def getparamkeys(self):
 		"""Returns parameter keys without special values like owner, creator, etc."""
+		
 		return self.__params.keys()
 
 
 
 	def setContext(self, ctx=None):
-		"""This method may ONLY be used directly by the Database class. Constructing your
-		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
-		"""
+		"""See base class"""
+		
+		self._ctx = ctx
 
-		if self._ctx == None:
-			return
-
-		self.__ctx = ctx #weakref.proxy(ctx)
-
-		# g.debug('setContext:: context.db type == %r' % self._ctx.db)
-		# test for owner access in this context.
 		if self._ctx.checkreadadmin():
 			self.__ptest = [True, True, True, True]
 			return
 
 		self.__ptest = [self._ctx.username in level for level in self.__permissions]
 
-
 		for group in self.__groups & self._ctx.groups:
 			self.__ptest[self._ctx.grouplevels[group]] = True
 
-
 		if not any(self.__ptest):
 			raise emen2.Database.exceptions.SecurityError,"Permission Denied: %s"%self.recid
-
 
 		# raise Database.exceptions.SecurityError, "No ctx!"
 
@@ -506,78 +462,132 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		# p4 = set(self.__permissions[3])
 		#
 		# # test for read permission in this context
-		# if (self._ctx.username in p1): self.__ptest[0] = 1
+		# if (self.__ctx.username in p1): self.__ptest[0] = 1
 		# else:
 		#
 		# # test for comment write permission in this context
-		# if (self._ctx.username in p2): self.__ptest[1] = 1
+		# if (self.__ctx.username in p2): self.__ptest[1] = 1
 		#
 		# # test for general write permission in this context
-		# if (self._ctx.username in p3): self.__ptest[2] = 1
+		# if (self.__ctx.username in p3): self.__ptest[2] = 1
 		#
 		# # test for administrative permission in this context
-		# if (self._ctx.username in p4): self.__ptest[3] = 1
+		# if (self.__ctx.username in p4): self.__ptest[3] = 1
 
 
 
 
 	def commit(self):
-		"""This will commit any changes back to permanent storage in the database, until
-		this is called, all changes are temporary. host must match the context host or the
-		putrecord will fail"""
+		"""We intend to expand this functionality; for now this just calls db.putrecord in the current Context."""
 		return self._ctx.db.putrecord(self)
 
 
 	def isowner(self):
+		"""Returns whether user has ownership level permissions in the current context"""
 		return self.__ptest[3]
 
 
 	def writable(self):
-		"""Returns whether this record can be written using the given context"""
+		"""Returns whether this record can be written using the current context"""
 		return any(self.__ptest[2:])
 
 
 	def commentable(self):
-		"""Does user have level 1 permissions? Required to comment or link."""
+		"""Returns whether the user has commenting privileges in the current context"""
 		return any(self.__ptest[1:])
 
 
+	def validationwarning(self, msg, e=None, warning=False):
+		"""Raise a warning or exception during validation
+		
+		@param msg Text
+		
+		@keyparam e Exception
+		@keyparam warning Raise the exception if False, otherwise just inform
+		
+		"""
 
-@Record.register_validator
-@emen2.Database.dataobject.Validator.make_validator
-class RecordValidator(emen2.Database.dataobject.Validator):
+		if e == None:
+			e = ValueError
+		if warning:
+			g.log.msg("LOG_WARNING", "Validation warning: %s: %s"%(self.recid, msg))
+		elif e:
+			raise e, msg
+
+
+# ian: not ready yet..
+# @Record.register_validator
+# @emen2.Database.dataobject.Validator.make_validator
+# class RecordValidator(emen2.Database.dataobject.Validator):
+	
+	def validate(self, orec=None, warning=False, params=[]):
+		"""Validate a record before committing"""
+
+		if not orec:
+			orec = {}
+
+		for field in self.cleared_fields:
+			setattr(self, field, None)
+
+		if not self._ctx:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+			
+		elif not self._ctx.db:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+
+		validators = [
+			self.validate_recid,
+			self.validate_rectype,
+			self.validate_comments,
+			self.validate_history,
+			self.validate_creator,
+			self.validate_creationtime,
+			self.validate_permissions,
+			self.validate_permissions_users
+			]
+
+		for i in validators:
+			i(orec, warning=warning)
+			# self.validationwarning("%s: %s"%(i.func_name, inst), e=inst, warning=warning)
+
+		self.validate_params(orec, warning=warning, params=params)
+			
+	
+	
 	def validate_recid(self, orec=None, warning=False):
 		if not orec: orec = {}
 
 		try:
-			if self._obj.recid != None:
-				self._obj.recid = int(self._obj.recid)
+			if self.recid != None:
+				self.recid = int(self.recid)
 				# negative recids are used as temp ids for new records
 				# ian todo: make a NewrecordRecid int class or something similar..
-				#if self._obj.recid < 0:
+				#if self.recid < 0:
 				#	raise ValueError
 
 		except (TypeError, ValueError), inst:
-			self._obj.validationwarning("recid must be positive integer")
+			self.validationwarning("recid must be positive integer")
 
 
-		if self._obj.recid != orec.get("recid") and orec.get("recid") != None:
-			self._obj.validationwarning("recid cannot be changed (%s != %s)"%(self._obj.recid,orec.get("recid")))
+		if self.recid != orec.get("recid") and orec.get("recid") != None:
+			self.validationwarning("recid cannot be changed (%s != %s)"%(self.recid,orec.get("recid")))
 
 
 	def validate_rectype(self, orec=None, warning=False):
 		if not orec: orec = {}
 
-		if not self._obj.rectype:
-			self._obj.validationwarning("rectype must not be empty")
+		if not self.rectype:
+			self.validationwarning("rectype must not be empty")
 
-		self._obj.rectype = unicode(self._obj.rectype)
+		self.rectype = unicode(self.rectype)
 
-		if self._obj.rectype not in self._obj._ctx.db.getrecorddefnames():
-			self._obj.validationwarning("invalid rectype %s"%(self._obj.rectype))
+		if self.rectype not in self._ctx.db.getrecorddefnames():
+			self.validationwarning("invalid rectype %s"%(self.rectype))
 
-		if self._obj.rectype != orec.get("rectype") and orec.get("rectype") != None:
-			self._obj.validationwarning("rectype cannot be changed (%s != %s)"%(self._obj.rectype,orec.get("rectype")))
+		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
+			self.validationwarning("rectype cannot be changed (%s != %s)"%(self.rectype,orec.get("rectype")))
 
 
 	def validate_comments(self, orec=None, warning=False):
@@ -588,30 +598,30 @@ class RecordValidator(emen2.Database.dataobject.Validator):
 		dates=[]
 		newcomments=[]
 
-		if isinstance(self._obj.__comments, basestring):
-			self._obj._comments = [(unicode(self._obj._ctx.username), unicode(emen2.Database.database.gettime()), self._obj.__comments)]
+		if isinstance(self.__comments, basestring):
+			self.__comments = [(unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), self.__comments)]
 
 		# ian: filter comments for empties..
-		for i in filter(None, self._obj._comments or []):
+		for i in filter(None, self.__comments or []):
 			try:
 				users.append(i[0])
 				dates.append(i[1])
 				newcomments.append((unicode(i[0]),unicode(i[1]),unicode(i[2])))
 			except Exception, inst:
-				self._obj.validationwarning("invalid comment format: %s"%(i), e=inst, warning=warning)
-				newcomments.append((unicode(self._obj._ctx.username), unicode(emen2.Database.database.gettime()), "Error with comment: %s"%i))
+				self.validationwarning("invalid comment format: %s"%(i), e=inst, warning=warning)
+				newcomments.append((unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), "Error with comment: %s"%i))
 
 
 		if users:
-			usernames = set(self._obj._ctx.db.getusernames())
+			usernames = set(self._ctx.db.getusernames())
 			if set(users) - usernames:
-				self._obj.validationwarning("invalid users in comments: %s"%(set(users) - usernames), warning=warning)
+				self.validationwarning("invalid users in comments: %s"%(set(users) - usernames), warning=warning)
 
 		# validate date formats
 		#for i in dates:
 		#	pass
 
-		self._obj.__comments = newcomments
+		self.__comments = newcomments
 
 
 	def validate_history(self, orec=None, warning=False):
@@ -619,93 +629,93 @@ class RecordValidator(emen2.Database.dataobject.Validator):
 		return
 
 		# ian: todo: activate
-		users=set([i[0] for i in self._obj.__history])
-		dates=set([i[1] for i in self._obj.__history])
+		users=set([i[0] for i in self.__history])
+		dates=set([i[1] for i in self.__history])
 		if users:
-			if users - set(self._obj._ctx.db.getusernames()):
-				self._obj.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
+			if users - set(self._ctx.db.getusernames()):
+				self.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
 
 
 	def validate_creator(self, orec=None, warning=False):
 		if not orec: orec = {}
 
-		self._obj.__creator = unicode(self._obj.__creator)
+		self.__creator = unicode(self.__creator)
 		return
 
 		# ian: todo: activate
-		if self._obj.__creator != orec.get("creator"):
-			self._obj.validationwarning("cannot change creator", warning=warning)
+		if self.__creator != orec.get("creator"):
+			self.validationwarning("cannot change creator", warning=warning)
 		try:
-			self._obj._ctx.db.getuser(self._obj.__creator, filt=0)
+			self._ctx.db.getuser(self.__creator, filt=0)
 		except:
-			self._obj.validationwarning("invalid creator: %s"%(self._obj.__creator))
+			self.validationwarning("invalid creator: %s"%(self.__creator))
 
 
 	def validate_creationtime(self, orec=None, warning=False):
 		if not orec: orec = {}
 
 		# validate creation time format
-		self._obj.__creationtime = unicode(self._obj.__creationtime)
-		#if self._obj.__creationtime != orec.get("creationtime"):
-		#	self._obj.validationwarning("cannot change creationtime", warning=warning)
+		self.__creationtime = unicode(self.__creationtime)
+		#if self.__creationtime != orec.get("creationtime"):
+		#	self.validationwarning("cannot change creationtime", warning=warning)
 
 
 	def validate_permissions(self, orec=None, warning=False):
 		if not orec: orec = {}
 
 		try:
-			self._obj.__permissions = self._obj.__checkpermissionsformat(self._obj.__permissions)
+			self.__permissions = self.__checkpermissionsformat(self.__permissions)
 		except Exception, inst:
-			self._obj.validationwarning("invalid permissions: %s"%self._obj.__permissions, warning=warning)
+			self.validationwarning("invalid permissions: %s"%self.__permissions, warning=warning)
 
 
 	def validate_permissions_users(self, orec=None, warning=False):
 		if not orec: orec = {}
 
-		users = set(self._obj._ctx.db.getusernames())
-		u = set(reduce(operator.concat, self._obj.__permissions))
+		users = set(self._ctx.db.getusernames())
+		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
-			self._obj.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-users)))
+			self.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-users)))
 
 
 	def validate_params(self, orec=None, warning=False, params=None):
 		if not orec: orec = {}
 
 		# restrict by params if given
-		p2 = self._obj.__params.keys()
+		p2 = self.__params.keys()
 		if params:
-			p2 = set(self._obj.__params.keys()) & set(params)
+			p2 = set(self.__params.keys()) & set(params)
 
 		if not p2:
 			return
 
 		vtm = emen2.Database.datatypes.VartypeManager()
 
-		pds = self._obj._ctx.db.getparamdefs(p2)
+		pds = self._ctx.db.getparamdefs(p2)
 		newpd = {}
 		exceptions = []
 
 		for param,pd in pds.items():
 			try:
-				newpd[param] = self._obj.validate_param(self._obj.__params.get(param), pd, vtm, warning=warning)
+				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm, warning=warning)
 
 			except Exception, inst: #(ValueError,KeyError,IndexError)
-				self._obj.addcomment("Validation error: param %s, value '%s' %s"%(param, self._obj.__params.get(param),type(self._obj.__params.get(param))))
+				self.addcomment("Validation error: param %s, value '%s' %s"%(param, self.__params.get(param),type(self.__params.get(param))))
 				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
 
 		for e in exceptions:
-			self._obj.validationwarning(e, warning=warning)
+			self.validationwarning(e, warning=warning)
 
-		self._obj.__params = newpd
+		self.__params = newpd
 
 
 
 	def validate_param(self, value, pd, vtm, warning=False):
 
-		v = vtm.validate(pd, value, db=self._obj._ctx.db)
+		v = vtm.validate(pd, value, db=self._ctx.db)
 
 		if v != value and v != None:
-			self._obj.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
+			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
 
 		return v
 

@@ -10,7 +10,7 @@ import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
 parser = emen2.config.config.DBOptions()
 parser.parse_args()
-g.log.capturestdout()
+# g.log.capturestdout()
 
 # This is the main server program for EMEN2
 
@@ -86,6 +86,7 @@ def inithttpd():
 
 	rr = server.Site(root)
 	#rr.requestFactory = g.log.debug_func(rr.requestFactory)
+
 	reactor.listenTCP(g.EMEN2PORT, rr)
 
 	if g.EMEN2HTTPS:

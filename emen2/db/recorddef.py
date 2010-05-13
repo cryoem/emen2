@@ -36,41 +36,27 @@ class RecordDef(emen2.Database.dataobject.BaseDBObject):
 
 	"""
 
-	@property
-	def attr_user(self):
-		return set(["mainview","views","private","typicalchld","desc_long","desc_short"])
+	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short","name","params", "paramsR", "paramsK","owner","creator","creationtime","uri"])
 
 
-	@property
-	def attr_admin(self):
-		return set(["name","params", "paramsR", "paramsK","owner","creator","creationtime","uri"])
-
-
-	@property
-	def _ctx(self):
-		return self._BaseDBInterface__ctx #self._ctx
-
-
-	def init(self, _d=None, **_k):
-		_k.update(_d or {})
-
+	def init(self, d=None):
 		# the name of the current RecordDef, somewhat redundant, since also stored as key for index in Database
-		self.name = _k.get("name")
+		self.name = d.get("name")
 
 		# Dictionary of additional (named) views for the record
-		self.views = _k.get("views") or {"recname":"$$rectype $$creator $$creationtime"}
+		self.views = d.get("views") or {"recname":"$$rectype $$creator $$creationtime"}
 
 		# a string defining the experiment with embedded params
 		# this is the primary definition of the contents of the record
-		self.mainview = _k.get("mainview") or "$$rectype $$creator $$creationtime"
+		self.mainview = d.get("mainview") or "$$rectype $$creator $$creationtime"
 
 		# if this is 1, this RecordDef may only be retrieved by its owner (which may be a group)
 		# or by someone with read access to a record of this type
-		self.private = _k.get("private", 0)
+		self.private = d.get("private", 0)
 
 		# A list of RecordDef names of typical child records for this RecordDef
 		# implicitly includes subclasses of the referenced types
-		self.typicalchld = _k.get("typicalchld",[])
+		self.typicalchld = d.get("typicalchld",[])
 
 		# A dictionary keyed by the names of all params used in any of the views
 		# values are the default value for the field.
@@ -86,30 +72,34 @@ class RecordDef(emen2.Database.dataobject.BaseDBObject):
 		self.paramsR = set()
 
 		# The owner of this record
-		self.owner = _k.get("owner")
+		self.owner = d.get("owner")
 
 		# original creator of the record
-		self.creator = _k.get("creator")
+		self.creator = d.get("creator")
 
 		# creation date
-		self.creationtime = _k.get("creationtime")
+		self.creationtime = d.get("creationtime")
 
 		# Source of RecordDef
-		self.uri = _k.get("uri")
+		self.uri = d.get("uri")
 
 		# Short description
-		self.desc_short = _k.get("desc_short")
+		self.desc_short = d.get("desc_short")
 
 		# Long description
-		self.desc_long = _k.get("desc_long")
+		self.desc_long = d.get("desc_long")
 
 		self.findparams()
 
 
+
 	def __setattr__(self,key,value):
 		"""If mainview is updated, update params"""
+
 		self.__dict__[key] = value
-		if key == "mainview": self.findparams()
+
+		if key == "mainview":
+			self.findparams()
 
 
 	#################################
@@ -119,6 +109,9 @@ class RecordDef(emen2.Database.dataobject.BaseDBObject):
 	def accessible(self):
 		'''Does current Context allow access to this RecordDef?'''
 
+		if not self._ctx:
+			return False
+			
 		result = False
 		if self.private is False:
 			result = True

@@ -2,7 +2,6 @@ import time
 import operator
 import hashlib
 import random
-import UserDict
 import re
 import weakref
 import traceback
@@ -15,7 +14,6 @@ import emen2.Database.exceptions
 import emen2.Database.proxy
 
 
-
 # These do not use BaseDBObject since they are completely internal to the DB
 
 class Context(object):
@@ -23,9 +21,6 @@ class Context(object):
 	a Context is created, and used for subsequent access."""
 
 	attr_user = set()
-	attr_admin = set()
-	attr_all = attr_user | attr_admin
-
 
 	# ian: todo: put current txn in ctx?
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):

@@ -78,6 +78,7 @@ VERSIONS = {
 }
 DBENV = None
 
+
 #basestring goes away in a later python version
 basestring = (str, unicode)
 
@@ -119,6 +120,7 @@ def DB_stat():
 		g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
 
 
+
 class instonget(object):
 	def __init__(self, cls):
 		self.__class = cls
@@ -131,8 +133,6 @@ class instonget(object):
 			result = self.__class()
 			setattr(instance, self.__class.__name__, result)
 		return result
-
-
 
 
 
@@ -215,7 +215,6 @@ class DB(object):
 			deltxn=False
 			if txn == None:
 				txn = self.__db.newtxn()
-				# g.debug('txn: %s' %txn)
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = emen2.Database.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
@@ -224,9 +223,8 @@ class DB(object):
 				if deltxn: self.__db.txnabort(txn=txn)
 				raise
 			else:
-				# g.debug('openparamindex succeeded')
 				if deltxn: self.__db.txncommit(txn=txn)
-			# g.debug('exit')
+
 
 
 		def closeparamindex(self, paramname):
@@ -345,6 +343,7 @@ class DB(object):
 		except KeyError:
 			pass
 
+
 		for i in skeleton.core_paramdefs.items:
 			self.putparamdef(i, ctx=ctx, txn=txn)
 		for k,v in skeleton.core_paramdefs.children.items():
@@ -354,21 +353,23 @@ class DB(object):
 
 		for i in skeleton.core_recorddefs.items:
 			self.putrecorddef(i, ctx=ctx, txn=txn)
+
 		for k,v in skeleton.core_recorddefs.children.items():
 			for v2 in v:
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
-
-
-		for i in skeleton.core_records.items:
-			self.putrecord(i, ctx=ctx, txn=txn)
+				
 
 		for i in skeleton.core_users.items:
+			if i.get("username") == "root":
+				i["password"] = rootpw
 			self.adduser(i, ctx=ctx, txn=txn)
 
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		self.setpassword(rootpw, rootpw, username="root", ctx=ctx, txn=txn)
+		for i in skeleton.core_records.items:
+			self.putrecord(i, ctx=ctx, txn=txn)
+
 
 
 	# #@rename db.test.sleep
@@ -2589,8 +2590,8 @@ class DB(object):
 
 		state = bool(disabled)
 
-		#if not ctx.checkadmin():
-		#	raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
+		if not ctx.checkadmin():
+			raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
 
 		if not hasattr(username, "__iter__"):
 			usernames = [username]
@@ -2600,7 +2601,6 @@ class DB(object):
 			if username == ctx.username:
 				g.warn('Warning: user %s tried to disable themself' % ctx.username)
 				continue
-				# raise emen2.Database.exceptions.SecurityError, "Even administrators cannot disable themselves"
 
 			user = self.bdbs.users.sget(username, txn=txn) #[i]
 			if user.disabled == state:
@@ -2610,14 +2610,18 @@ class DB(object):
 			commitusers.append(user)
 
 
-		ret = self.__commit_users(commitusers, ctx=ctx, txn=txn)
+		self.__commit_users(commitusers, ctx=ctx, txn=txn)
 
 		t = "enabled"
 		if disabled:
 			t="disabled"
 
-		g.log.msg('LOG_INFO', "Users %s %s by %s"%([user.username for user in ret], t, ctx.username))
+		ret = [user.username for user in commitusers]
 
+		g.log.msg('LOG_INFO', "Users %s %s by %s"%(ret, t, ctx.username))
+
+		return ret
+		
 		#if len(ret)==1 and ol: return ret[0].username
 		# return [user.username for user in ret]
 
@@ -2634,22 +2638,25 @@ class DB(object):
 
 		"""
 
-		# ian: I have turned this off for now until I can think about it some more..
+		# ian: I have turned secrets off for now until I can think about it some more..
 		secret = None
 
-		try:
-			admin = ctx.checkadmin()
-			if (secret == None) and (not admin):
-				raise emen2.Database.exceptions.SecurityError, "Only administrators or users with self-authorization codes can approve new users"
+		# try:
+		admin = ctx.checkadmin()
 
-		except emen2.Database.exceptions.SecurityError:
-			raise
+		# if (secret == None) and (not admin):
+		if not admin:
+			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
 
-		except BaseException, e:
-			admin = False
-			if secret is None: raise
-			else:
-				g.log.msg('LOG_INFO', 'Ignored: (%s)' % e)
+		# except emen2.Database.exceptions.SecurityError:
+		# 	raise
+		# 
+		# except BaseException, e:
+		# 	admin = False
+		# 	if secret is None:
+		# 		raise
+		# 	else:
+		# 		g.log.msg('LOG_INFO', 'Ignored: (%s)' % e)
 
 
 		ol=False
@@ -2661,6 +2668,7 @@ class DB(object):
 		delusers, addusers, records, childstore = {}, {}, {}, {}
 
 		# Need to commit users before records will validate
+		
 		for username in usernames:
 			if not username in self.bdbs.newuserqueue.keys(txn=txn):
 				raise KeyError, "User %s is not pending approval" % username
@@ -2670,77 +2678,76 @@ class DB(object):
 				g.log.msg("LOG_ERROR","User %s already exists, deleted pending record" % username)
 				continue
 
-			# ian: create record for user.
 			user = self.bdbs.newuserqueue.sget(username, txn=txn) #[username]
-
 			user.setContext(ctx)
 			user.validate()
 
-			if secret is not None and not user.validate_secret(secret):
-				g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
-				time.sleep(2)
+			# if secret is not None and not user.validate_secret(secret):
+			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
+			# 	time.sleep(2)
+			# 
+			# else:
 
-			else:
-				# OK, add user
-				# clear out the secret
-				user._User__secret = None
-
-				addusers[username] = user
-				delusers[username] = None
+			# OK, add user
+			# clear out the secret
+			user._User__secret = None
+			addusers[username] = user
+			delusers[username] = None
 
 
 		# Update user queue / users
-		addusers = self.__commit_users(addusers.values(), ctx=ctx, txn=txn) or []
-		delusers = self.__commit_newusers(delusers, ctx=ctx, txn=txn)
+		self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
+		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		# ian: todo: Do we need this root ctx? Probably...
 		tmpctx = self.__makerootcontext(txn=txn)
 
 		# Pass 2 to add records
-		for user in addusers:
+		for user in addusers.values():
+			rec = self.newrecord("person", ctx=tmpctx, txn=txn)
 
-			if user.record == None and user.signupinfo:
+			rec["username"] = username
+
+			name = user.signupinfo.get('name', ['', '', ''])
+			rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
+
+			rec["email"] = user.signupinfo.get('email')
+
+			rec.adduser(username, level=3)
+			rec.addgroup("authenticated")
+
+			for k,v in user.signupinfo.items():
+				rec[k] = v
+
+			#g.log.msg('LOG_DEBUG', "putting record...")
+			rec = self.putrecord(rec, ctx=tmpctx, txn=txn)
+
+			# ian: todo: low priority: turning this off for now..
+			# g.log.msg('LOG_DEBUG', "creating child records")
+			# children = user.create_childrecords()
+			# children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
+
+			# if children != []:
+			#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
+			#	for links in children:
+			#		child, parents = links
+			#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
+
+			user.record = rec.recid
+			user.signupinfo = None
 
 
-				rec = self.newrecord("person", ctx=tmpctx, txn=txn)
-				rec["username"] = username
-				name = user.signupinfo.get('name', ['', '', ''])
-				rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
-				rec["email"] = user.signupinfo.get('email')
-				rec.adduser(username, level=3)
-				rec.addgroup("authenticated")
-
-				for k,v in user.signupinfo.items():
-					rec[k] = v
-
-				#g.log.msg('LOG_DEBUG', "putting record...")
-				rec = self.putrecord(rec, ctx=tmpctx, txn=txn)
-				# ian: todo: low priority: turning this off for now..
-				#g.log.msg('LOG_DEBUG', "creating child records")
-				#children = user.create_childrecords()
-				#children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
-
-				#if children != []:
-				#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
-				#	for links in children:
-				#		child, parents = links
-				#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
-
-
-				user.record = rec.recid
-				user.signupinfo = None
-
-		self.__commit_users(addusers, ctx=ctx, txn=txn)
+		self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
 
 		for group in g.GROUP_DEFAULTS:
 			gr = self.getgroup(group, ctx=tmpctx, txn=txn)
-			if gr != {}:
+			if gr:
 				gr.adduser(user.username)
 				self.putgroup(gr, ctx=tmpctx, txn=txn)
 			else:
-				g.warn('Default Group %r is non-existent' % group)
+				g.warn('Default Group %r is non-existent'%group)
 
-		approveusernames = [user.username for user in addusers]
+		approveusernames = [user.username for user in addusers.values()]
 
 		if ol and len(approveusernames)==1:
 			return approveusernames[0]
@@ -2828,8 +2835,8 @@ class DB(object):
 
 
 	@proxy.publicmethod
-	def newuser(self, ctx=None, txn=None):
-		user = emen2.Database.user.User()
+	def newuser(self, username, password, email, ctx=None, txn=None):
+		user = emen2.Database.user.User(username=username, password=password, email=email)
 		user.setContext(ctx)
 		return user
 		
@@ -2919,7 +2926,11 @@ class DB(object):
 		else:
 			username = ctx.username
 
-		user = self.getuser(username, ctx=ctx, txn=txn)
+		# ian: need to read directly because getuser hides password
+		# user = self.getuser(username, ctx=ctx, txn=txn)
+		user = self.bdbs.users.sget(username, txn=txn)
+		user.setContext(ctx)
+
 		if not user:
 			raise emen2.Database.exceptions.SecurityError, "Cannot change password for user '%s'"%username
 
@@ -2995,7 +3006,6 @@ class DB(object):
 		self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
 
 		if ctx.checkadmin():
-			#g.log.msg('LOG_DEBUG', "approving %s"%user.username)
 			self.approveuser(user.username, ctx=ctx, txn=txn)
 
 		return user
@@ -3006,24 +3016,6 @@ class DB(object):
 	def __commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
 
-		# commitusers = []
-		#
-		# for user in users:
-		# 
-		# 	if not isinstance(user, emen2.Database.user.User):
-		# 		try:
-		# 			user = emen2.Database.user.User(user, ctx=ctx)
-		# 		except:
-		# 			raise ValueError, "User instance or dict required"
-		# 
-		# 	try:
-		# 		ouser = self.bdbs.users.sget(user.username, txn=txn) #[user.username]
-		# 	except:
-		# 		ouser = user
-		# 		#raise KeyError, "Putuser may only be used to update existing users"
-		# 
-		# 	commitusers.append(user)
-
 		#@begin
 
 		for user in users:
@@ -3031,8 +3023,6 @@ class DB(object):
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
 
 		#@end
-
-		#return commitusers
 
 
 
@@ -3103,10 +3093,10 @@ class DB(object):
 			# if the user has requested privacy, we return only basic info
 			#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 			if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
-				user2 = emen2.Database.user.User()
-				user2.username = user.username
-				user = user2
-
+				user = emen2.Database.user.User(username=user.username, email=user.email, password='123456') # pw is just dummy value
+				user.email = None
+				user.password = None
+				
 			# Anonymous users cannot use this to extract email addresses
 			if ctx.username == "anonymous":
 				user.email = None
@@ -3114,7 +3104,9 @@ class DB(object):
 			if getgroups:
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
-			user.getuserrec(getrecord, lnf=lnf)
+			user.getuserrec(lnf=lnf)
+
+			user.password = None
 
 			ret[i] = user
 
@@ -3791,15 +3783,9 @@ class DB(object):
 		if not create and not os.access("index/params/%s.bdb"%(paramname), os.F_OK):
 			raise KeyError, "No index for %s" % paramname
 
-		#try:
 
 		# opens with autocommit, don't need to pass txn
 		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv)
-
-		#except:
-		#	self.txnabort(txn=txn2)
-		#	raise
-		#else: self.txncommit(txn=txn2)
 
 		return self.bdbs.fieldindex[paramname]
 
@@ -4506,7 +4492,7 @@ class DB(object):
 
 			for param in cp - param_special:
 				if log and orec.recid >= 0:
-					orec.addhistory(param, orec.get(param))
+					orec._addhistory(param, orec.get(param))
 				orec[param] = updrec.get(param)
 
 			if "permissions" in cp:
