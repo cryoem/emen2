@@ -3866,6 +3866,7 @@ class DB(object):
 		##################
 		# ian: todo: medium: move this block to RecordDef.validate()
 
+		# ian: todo: broken for non-root
 		if ctx.username != orec.owner and not ctx.checkadmin():
 			raise emen2.Database.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 

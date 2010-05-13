@@ -8,7 +8,7 @@ parser.parse_args()
 import emen2.Database.proxy
 import emen2.Database.database
 
-#@atexit.register
+@atexit.register
 def _atexit():
 	global db
 	try:
