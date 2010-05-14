@@ -1,27 +1,15 @@
 from __future__ import with_statement
 
-import copy
-import atexit
-import hashlib
-import operator
 import os
 import sys
 import time
 import traceback
-import collections
-import itertools
-import random
-import cPickle as pickle
-import bsddb3
-import demjson
 import weakref
 
 from functools import partial, wraps
 
 import emen2.globalns
 g = emen2.globalns.GlobalNamespace('')
-
-import emen2.util.utils
 
 
 class MethodUtil(object):
@@ -31,7 +19,13 @@ class MethodUtil(object):
 
 
 class DBProxy(object):
-	"""Proxy container for database. Implements the public APIs. All clients use the proxy instead of the database instance directly.9"""
+	"""A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
+	
+	db = DBProxy()
+	db._login(username, password)
+	
+	"""
+	
 	__publicmethods = {}
 	__adminmethods = {}
 	__extmethods = {}
@@ -43,20 +37,22 @@ class DBProxy(object):
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
 		
+		# it can cause circular imports if this is at the top level of the module
 		import database
 		
 		self.__txn = None
 		self.__bound = False
 
 		if not db:
-			db = database.DB(path=dbpath)
-
-		self.__db = weakref.proxy(db)
+			db = database.DB(path=dbpath) # path will default to g.EMEN2DBPATH
+		self.__db = db
+		# weakref.proxy(db)
 
 		self.__ctx = ctx
 		self.__txn = txn
 
-
+	
+	# Implements "with" interface
 	def __enter__(self):
 		#g.debug('beginning DBProxy context')
 		self.__oldtxn = self.__txn
@@ -65,10 +61,7 @@ class DBProxy(object):
 		return self
 
 
-	#@g.log.debug_func
 	def __exit__(self, type, value, traceback):
-		#g.debug('ending DBProxy context')
-		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		if self.__oldtxn is not self.__txn:
 			if type is None: self._committxn()
 			else:
@@ -78,6 +71,7 @@ class DBProxy(object):
 		self.__oldtxn = None
 
 
+	# Transactions
 	def _gettxn(self):
 		return self.__txn
 
@@ -97,7 +91,8 @@ class DBProxy(object):
 		self.__txn = None
 
 
-	def _login(self, username="anonymous", password="", host=None):
+	# We need to wrap the DB login method
+	def login(self, username="anonymous", password="", host=None):
 
 		try:
 			host = host or self.__ctx.host
@@ -105,8 +100,8 @@ class DBProxy(object):
 			host = None
 
 		try:
-			ctxid = self.__db._login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn) #host
-			self._setcontext(ctxid=ctxid, host=host)
+			ctxid = self.__db.login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn)
+			self._setContext(ctxid=ctxid, host=host)
 
 		except:
 			if self.__txn: self._aborttxn()
@@ -114,23 +109,14 @@ class DBProxy(object):
 
 		return ctxid
 
+	_login = login
+	
 
-	def _setcontext(self, ctxid=None, host=None):
+	# Rebind a new Context
+	def _setContext(self, ctxid=None, host=None):
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 			self.__ctx.setdb(db=self)
-			#g.log.msg('LOG_DEBUG', "\nDBProxy._setcontext results:")
-			#g.log.msg('LOG_DEBUG', "self ",hex(id(self)))
-			#g.log.msg('LOG_DEBUG', "self.__ctx ", self.__ctx)
-			#g.log.msg('LOG_DEBUG', "self.__ctx.db ", self.__ctx.db)
-			#g.log.msg('LOG_DEBUG', "self.__ctx.ctxid ", self.__ctx.ctxid)
-			#g.log.msg('LOG_DEBUG', "self.__ctx.username ", self.__ctx.username)
-			#g.log.msg('LOG_DEBUG', "self.__ctx.groups ", self.__ctx.groups)
-			#g.log.msg('LOG_DEBUG', "self.__ctx.grouplevels ", self.__ctx.grouplevels)
-			#g.log.msg('LOG_DEBUG', "self.__db ", self.__db)
-			#g.log.msg('LOG_DEBUG', "self.__txn ", self.__txn)
-			#g.log.msg('LOG_DEBUG', "\n\n")
-
 
 		except:
 			self.__ctx = None
@@ -147,15 +133,17 @@ class DBProxy(object):
 			self.__bound = False
 
 
+	def _getctx(self):
+		return self.__ctx
+
 
 	@property
 	def _bound():
 		return self.__bound
+		
 	@_bound.deleter
 	def _bound():
 		self._clearcontext()
-
-
 
 	def _ismethod(self, name):
 		if name in self._allmethods(): return True
@@ -167,28 +155,29 @@ class DBProxy(object):
 	def _register_publicmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		#g.log.msg('LOG_INIT', "REGISTERING PUBLICMETHOD (%s)" % name)
+		# g.log.msg('LOG_REGISTER', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
 
 	@classmethod
 	def _register_adminmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		#g.log.msg('LOG_INIT', "REGISTERING ADMINMETHOD (%s)" % name)
+		# g.log.msg('LOG_REGISTER', "REGISTERING ADMINMETHOD (%s)" % name)
 		cls.__adminmethods[name] = func
-
-
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
-		#g.log.msg('LOG_INIT', "REGISTERING EXTENSION (%s)" % name)
+		# g.log.msg('LOG_REGISTER', "REGISTERING EXTENSION (%s)" % name)
 		cls.__extmethods[name] = refcl
 
 
 
+	# Wrap DB calls to set Context and txn
 	def _callmethod(self, method, args, kwargs):
+		"""Call a method by name with args and kwargs (e.g. RPC access)"""
+		
 		args = list(args)
 		method = method.split('.')
 		func = getattr(self, method[0])
@@ -200,9 +189,6 @@ class DBProxy(object):
 		return result
 
 
-	def _getctx(self):
-		return self.__ctx
-
 	def _wrapmethod(self, func):
 		@wraps(func)
 		def _inner(*args, **kwargs):
@@ -211,108 +197,79 @@ class DBProxy(object):
 			return result
 		return _inner
 
-	def __getattribute__(self, name):
-		result = None
-		#g.log('getattr -> self: %r -> name: %r' % (self, name))
-		if name.startswith('__') and name.endswith('__'):
-			try:
-				result = getattr(self.__db, name)
-			except:
-				result = object.__getattribute__(self, name)
-			return result
-		elif name.startswith('_'):
-			result = object.__getattribute__(self, name)
 
-		elif name in self._allmethods():
-			kwargs = dict(ctx=self.__ctx, txn=self.__txn)
-			if result is None:
-				result = self.__publicmethods.get(name)
-
-			if result:
-				result = partial(result, self.__db, **kwargs)
-
-			else:
-				result = self.__extmethods.get(name)()
-
-				kwargs['db'] = self.__db
-				if result:
-					result = partial(result.execute, **kwargs)
-
-
-			result = wraps(result.func)(result)
-
+	def __getattr__(self, name):
+		# print "__getattr__ %s"%name
+		
+		if name in self.__publicmethods:
+			return self._publicmethod_wrap(name)
+		
+		elif name in self.__extmethods:
+			return self._extmethod_wrap(name, ext=True)
+		
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
-
-		return result
-
-
-
-
-
-# Wrapper methods for public API and admin API methods
-def publicmethod(func):
-	"""Decorator for public API database method"""
-	@wraps(func)
-	def _inner(self, *args, **kwargs):
-		#g.debug('entering func: %r' % func)
-
-		result = None
-		txn = kwargs.get('txn')
-		ctx = kwargs.get('ctx')
-		commit = False
-
-		if txn is False:
-			txn = None
-		elif bool(txn) is False:
-			txn = self.newtxn()
-			commit = True
-		kwargs['txn'] = txn
-
-		try:
-			#t = time.time()
-			#g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
-			result = func(self, *args, **kwargs)
-			#g.debug('func: %r... done result: %r' % (func,result))
-			#g.debug("-> %0.4f %s"%((time.time()-t)*1000, func.func_name))
-
-		except Exception, e:
-			# traceback.print_exc(e)
-			if commit is True:
-				txn and self.txnabort(ctx=ctx, txn=txn)
-			raise
-
-		else:
-			if commit is True:
-				#g.log('committing, func left: %r txn: %r' % (func,txn) )
-				txn and self.txncommit(ctx=ctx, txn=txn)
-
-		#g.debug('leaving func: %r' % func)
-		return result
-
-	DBProxy._register_publicmethod(func.func_name, _inner)
-	return _inner
+	
+	
+	# ian: changed how publicmethods are created because docstrings and tracebacks were being mangled
+	# they are now wrapped when accessed, not replaced with pre-wrapped versions.
+	
+	# >>> def my_decorator(f):
+	# ...     @wraps(f)
+	# ...     def wrapper(*args, **kwds):
+	# ...         print 'Calling decorated function'
+	# ...         return f(*args, **kwds)
+	# ...     return wrapper
+	# ...
+	# >>> @my_decorator
+	# ... def example():
+	# ...     """Docstring"""
+	# ...     print 'Called example function'
+	# ...
 
 
+	def _publicmethod_wrap(self, name, ext=False):		
+		func = getattr(self.__db, name)
+		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
+	
+		@wraps(func)
+		def wrapper(*args, **kwargs):
+			result = None
+			commit = False
+		
+			ctx = self.__ctx
+			kwargs['ctx'] = ctx
+		
+			txn = self.__txn
+			if bool(txn) is False:
+				txn = self.__db.newtxn()
+				commit = True
+			kwargs['txn'] = txn
+		
+			if ext:
+				kwargs['db'] = self.__db
+		
+			try:
+				g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
+				result = func(*args, **kwargs)
+				
+			except Exception, e:
+				# traceback.print_exc(e)
+				if commit is True:
+					txn and self.__db.txnabort(ctx=ctx, txn=txn)
+				raise
+		
+			else:
+				if commit is True:
+					txn and self.__db.txncommit(ctx=ctx, txn=txn)
+		
+			return result
+		
+		return wrapper
+		
+		
 
 
-def adminmethod(func):
-	"""Decorator for public admin API database method"""
-
-	if not func.func_name.startswith('_'):
-		DBProxy._register_adminmethod(func.func_name, func)
-
-	@wraps(func)
-	def _inner(*args, **kwargs):
-		ctx = kwargs.get('ctx')
-		if ctx is None:
-			ctx = [x for x in args is isinstance(x, emen2.Database.user.User)] or None
-			if ctx is not None: ctx = ctx.pop()
-		if ctx.checkadmin():
-			return func(*args, **kwargs)
-		else:
-			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
-	return _inner
 
 
 
@@ -330,9 +287,6 @@ class DBExt(object):
 	def register(cls):
 		"""Register database extension decorator"""
 		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
-
-
-
-# ian: register all public methods
-# import database
-
+		
+		
+		

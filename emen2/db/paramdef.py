@@ -84,7 +84,7 @@ class ParamDef(emen2.Database.dataobject.BaseDBObject):
 
 
 @ParamDef.register_validator
-@emen2.Database.dataobject.Validator.make_validator
+@emen2.Database.validators.Validator.make_validator
 class ParamDefValidator(emen2.Database.validators.DefinitionValidator):
 
 	def validate_vartype(self):

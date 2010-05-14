@@ -556,6 +556,57 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		return any(self.__ptest[1:])
 
 
+	def validationwarning(self, msg, e=None, warning=False):
+		"""Raise a warning or exception during validation
+		
+		@param msg Text
+		
+		@keyparam e Exception
+		@keyparam warning Raise the exception if False, otherwise just inform
+		
+		"""
+
+		if e == None:
+			e = ValueError
+		if warning:
+			g.log.msg("LOG_WARNING", "Validation warning: %s: %s"%(self.recid, msg))
+		elif e:
+			raise e, msg
+
+
+# ian: not ready yet..
+# @Record.register_validator
+# @emen2.Database.validators.Validator.make_validator
+# class RecordValidator(emen2.Database.dataobject.Validator):
+	
+	def validate(self, orec=None, warning=False, params=[]):
+		"""Validate a record before committing"""
+
+		if not orec:
+			orec = {}
+
+		for field in self.cleared_fields:
+			setattr(self, field, None)
+
+		if not self._ctx:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+			
+		elif not self._ctx.db:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+
+		validators = [
+			self.validate_recid,
+			self.validate_rectype,
+			self.validate_comments,
+			self.validate_history,
+			self.validate_creator,
+			self.validate_creationtime,
+			self.validate_permissions,
+			self.validate_permissions_users
+			]
+
 
 	def validate_recid(self, orec=None, warning=False):
 		if not orec: orec = {}

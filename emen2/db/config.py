@@ -3,23 +3,28 @@ import os
 import sys
 import functools
 import optparse
-import emen2.globalns
-import emen2.subsystems.debug
 import yaml
 import demjson
 import pkgutil
-import bisect
 
-
+import emen2.globalns
 g = emen2.globalns.GlobalNamespace()
+
+import emen2.subsystems.debug
+
 
 
 def get_filename(package, resource):
 	d = os.path.dirname(sys.modules[package].__file__)
 	return os.path.join(d, resource)
 
-
 default_config = get_filename('emen2', 'config/config.base.yml')
+
+
+def defaults():
+	parser = DBOptions()
+	parser.parse_args()
+
 
 class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
@@ -53,6 +58,8 @@ class DBOptions(optparse.OptionParser):
 		DB_HOME = os.getenv("DB_HOME")
 		g.EMEN2DBPATH = DB_HOME
 
+		g.from_yaml(default_config)
+
 		if self.values.home:
 			DB_HOME = self.values.home
 
@@ -60,11 +67,11 @@ class DBOptions(optparse.OptionParser):
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
 
-		elif DB_HOME:
-			g.from_yaml(os.path.join(DB_HOME, "config.yml"))
-
-		else:
-			g.from_yaml(default_config)
+		if DB_HOME:
+			try:
+				g.from_yaml(os.path.join(DB_HOME, "config.yml"))	
+			except:
+				print "No config.yml in %s"%DB_HOME
 
 
 		if DB_HOME:
@@ -134,6 +141,13 @@ class DBOptions(optparse.OptionParser):
 		except ImportError:
 			raise ImportError, 'Debug not loaded!!!'
 
+
+		g.CONFIG_LOADED = True
+			
 		g.refresh()
+
+
+		print dict(g)
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

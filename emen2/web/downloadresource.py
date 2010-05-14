@@ -67,7 +67,7 @@ class DownloadResource(Resource, File):
 
 		bids = path[0].split(",")
 
-		with db._setcontext(ctxid,host):
+		with db._setContext(ctxid,host):
 			bdos = db.getbinary(bids)
 			
 		return bdos

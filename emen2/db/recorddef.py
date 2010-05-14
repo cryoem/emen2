@@ -144,7 +144,7 @@ class RecordDef(emen2.Database.dataobject.BaseDBObject):
 
 
 @RecordDef.register_validator
-@emen2.Database.dataobject.Validator.make_validator
+@emen2.Database.validators.Validator.make_validator
 class RecordDefValidator(emen2.Database.validators.DefinitionValidator):
 
 	def validate_recorddef(self):

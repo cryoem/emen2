@@ -4,49 +4,6 @@ import copy
 
 
 
-class Validator(object):
-	"""This class handles validation for a DBObject class."""
-	
-	_validators = []
-
-	@classmethod
-	def make_validator(cls, othercls):
-		"""Create and register a Validator class"""
-		othercls._validators = copy.deepcopy(othercls._validators)
-		othercls._validators.extend(v for k, v in othercls.__dict__.iteritems() if k.startswith('validate'))
-		return othercls
-
-
-	def __init__(self, obj):
-		"""Create a reference to the instance being validated"""
-		self._obj = obj
-
-
-	def __get_validators(self):
-		"""Return the validation functions"""
-		return [item for item in self._validators]
-
-
-	def validate(self, warning=False):
-		"""Perform validation
-		
-		@keyparam warning Ignore failures; currently this parameter is not used and all failures raise Exceptions
-		
-		"""
-		
-		failures = []
-		# ian: todo: fix this so that it raises all relevant exceptions, not just the first
-		# (this appears to have been working at one point...)
-		for validator in self.__get_validators():
-			#try:
-			#print validator
-			validator(self)
-			#except Exception, e:
-			#	failures.append((e,validator))
-		return failures or True
-
-
-
 
 class BaseDBInterface(object, DictMixin):
 	__metaclass__ = ABCMeta

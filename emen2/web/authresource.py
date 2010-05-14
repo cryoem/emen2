@@ -132,7 +132,7 @@ class AuthResource(Resource):
 		success = True
 
 
-		with db._setcontext(ctxid, host):
+		with db._setContext(ctxid, host):
 			p = rcls(db=db, **kwargs)
 
 			try:

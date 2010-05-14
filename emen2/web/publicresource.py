@@ -234,7 +234,7 @@ class PublicView(Resource):
 		put together to minimize amount of blocking code'''
 
 		# this binds the Context to the DBProxy for the duration of the view
-		with db._setcontext(ctxid,host):
+		with db._setContext(ctxid,host):
 			ret, headers = callback(db=db, method=method)
 			# ian: todo: fix this
 			if headers.get('content-type') != "image/jpeg":

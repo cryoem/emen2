@@ -249,11 +249,11 @@ class RPCResource(Resource):
 
 		# g.log.msg("LOG_INFO", "====== RPCResource action: method %s ctxid %s host %s"%(method, ctxid, host))
 
-		#db._setcontext(ctxid,host)
+		#db._setContext(ctxid,host)
 		#result = db._callmethod(method, args, kwargs)
 		#db._clearcontext()
 
-		with db._setcontext(ctxid,host):
+		with db._setContext(ctxid,host):
 			result = db._callmethod(method, args, kwargs)
 
 		return self.handler.encode(method, result)
