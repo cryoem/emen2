@@ -165,4 +165,4 @@ def app_factory(global_config, **local_config):
     return result
 
 #necessary in order for imports to work correctly
-from emen2.web.public import views
+# from emen2.web import view

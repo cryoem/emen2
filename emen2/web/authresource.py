@@ -28,7 +28,7 @@ def cookie_expire_time():
 
 def render_security_error(redirect, e):
 	args = {'redirect': redirect, 'msg': str(e)}
-	p = emen2.web.public.login.Login(**args)
+	p = emen2.web.views.auth.Login(**args)
 	data = unicode(p.get_data()).encode("utf-8")
 	return data
 
@@ -117,11 +117,11 @@ class AuthResource(Resource):
 
 		# just used a fixed routing table..
 		route = {
-			"login": emen2.web.public.login.Login,
-			"logout": emen2.web.public.login.Logout,
-			"password/reset": emen2.web.public.login.PasswordReset,
-			"password/change": emen2.web.public.login.PasswordChange,
-			"context": emen2.web.public.login.CheckContext
+			"login": emen2.web.views.auth.Login,
+			"logout": emen2.web.views.auth.Logout,
+			"password/reset": emen2.views.public.login.PasswordReset,
+			"password/change": emen2.views.public.login.PasswordChange,
+			"context": emen2.web.views.auth.CheckContext
 		}
 
 		method = kwargs.get("method")

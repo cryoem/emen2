@@ -57,12 +57,14 @@ def inithttpd():
 	import emen2.web.jsonrpcresource
 
 	import emen2.web.views
-	import emen2.web.public.record
-	import emen2.web.public.template_render
 
-	import emen2.web.public.views
-	emen2.web.public.views.load_views()
-	emen2.web.public.views.routes_from_g()
+	#import emen2.web.public.record
+	
+	import emen2.web.template_render
+	import emen2.web.view
+
+	emen2.web.view.load_views()
+	emen2.web.view.routes_from_g()
 
 	root = static.File("tweb")
 
