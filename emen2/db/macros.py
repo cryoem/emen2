@@ -1,7 +1,7 @@
+import emen2.Database.datatypes
 import emen2.Database.globalns
 g = emen2.Database.globalns.GlobalNamespace()
 
-import emen2.Database.datatypes
 
 # Convenience
 Macro = emen2.Database.datatypes.Macro

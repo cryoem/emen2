@@ -1,9 +1,9 @@
 import re
 
+import emen2.Database.record
 import emen2.Database.globalns
 g = emen2.Database.globalns.GlobalNamespace()
 
-import emen2.Database.record
 
 
 regex_pattern2 = u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
@@ -21,7 +21,8 @@ def if_caching(f):
 	return _inner
 
 
-# Why is this called vartype manager when it manages other things as well?
+# ian: todo: this became slightly unfocused; it might benefit from a rework.
+
 class VartypeManager(object):
 
 	__vartypes = {}
@@ -471,6 +472,8 @@ class Property(object):
 		#if value != newv:
 		#	g.log.msg('LOG_DEBUG', "Property: converted: %s -> %s"%(value,newv))
 		return newv
+
+
 
 
 

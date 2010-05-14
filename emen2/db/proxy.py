@@ -5,8 +5,7 @@ import sys
 import time
 import traceback
 import weakref
-
-from functools import partial, wraps
+import functools
 
 import emen2.Database.globalns
 g = emen2.Database.globalns.GlobalNamespace()
@@ -190,7 +189,7 @@ class DBProxy(object):
 
 
 	def _wrapmethod(self, func):
-		@wraps(func)
+		@functools.wraps(func)
 		def _inner(*args, **kwargs):
 			with self:
 				result = func(*args, **kwargs)
@@ -232,7 +231,7 @@ class DBProxy(object):
 		func = getattr(self.__db, name)
 		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
 	
-		@wraps(func)
+		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			result = None
 			commit = False
