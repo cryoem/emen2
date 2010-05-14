@@ -111,7 +111,7 @@ class UploadResource(Resource):
 
 
 	# def _ebRender(self,failure,request):
-	# 	#request.write(emen2.TwistSupport_html.html.error.error(failure))
+	# 	#request.write(emen2.web.views.error.error(failure))
 	# 	request.setResponseCode(500)
 	# 	request.finish()
 

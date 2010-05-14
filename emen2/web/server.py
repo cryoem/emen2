@@ -49,32 +49,32 @@ def interact():
 
 
 def inithttpd():
-	import emen2.TwistSupport_html.uploadresource
-	import emen2.TwistSupport_html.downloadresource
-	import emen2.TwistSupport_html.publicresource
-	import emen2.TwistSupport_html.rpcresource
-	import emen2.TwistSupport_html.authresource
-	import emen2.TwistSupport_html.jsonrpcresource
+	import emen2.web.uploadresource
+	import emen2.web.downloadresource
+	import emen2.web.publicresource
+	import emen2.web.rpcresource
+	import emen2.web.authresource
+	import emen2.web.jsonrpcresource
 
-	import emen2.TwistSupport_html.html
-	import emen2.TwistSupport_html.public.record
-	import emen2.TwistSupport_html.public.template_render
+	import emen2.web.views
+	import emen2.web.public.record
+	import emen2.web.public.template_render
 
-	import emen2.TwistSupport_html.public.views
-	emen2.TwistSupport_html.public.views.load_views()
-	emen2.TwistSupport_html.public.views.routes_from_g()
+	import emen2.web.public.views
+	emen2.web.public.views.load_views()
+	emen2.web.public.views.routes_from_g()
 
 	root = static.File("tweb")
 
 	resources = dict(
-		db = emen2.TwistSupport_html.publicresource.PublicView(),
-		auth = emen2.TwistSupport_html.authresource.AuthResource(),
-		download = emen2.TwistSupport_html.downloadresource.DownloadResource(),
-		upload = emen2.TwistSupport_html.uploadresource.UploadResource(),
-		RPC2 = emen2.TwistSupport_html.rpcresource.RPCResource(format="xmlrpc"),
-		json = emen2.TwistSupport_html.rpcresource.RPCResource(format="json"),
-		chain = emen2.TwistSupport_html.rpcresource.RPCChain(),
-		json2 = emen2.TwistSupport_html.jsonrpcresource.jsonrpc(),
+		db = emen2.web.publicresource.PublicView(),
+		auth = emen2.web.authresource.AuthResource(),
+		download = emen2.web.downloadresource.DownloadResource(),
+		upload = emen2.web.uploadresource.UploadResource(),
+		RPC2 = emen2.web.rpcresource.RPCResource(format="xmlrpc"),
+		json = emen2.web.rpcresource.RPCResource(format="json"),
+		chain = emen2.web.rpcresource.RPCChain(),
+		json2 = emen2.web.jsonrpcresource.jsonrpc(),
 	)
 
 	# prepare_web()

@@ -24,7 +24,7 @@ g = emen2.globalns.GlobalNamespace('')
 
 def load_views():
     g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-    g.TEMPLATEDIR="/Users/edwardlangley/emen2/TwistSupport_html/templates"
+    g.TEMPLATEDIR="/Users/edwardlangley/emen2/web/templates"
     g.refresh()
     print "templates: %s" % repr(g.templates)
     templating.get_templates(g.TEMPLATEDIR)
@@ -165,4 +165,4 @@ def app_factory(global_config, **local_config):
     return result
 
 #necessary in order for imports to work correctly
-from emen2.TwistSupport_html.public import views
+from emen2.web.public import views
