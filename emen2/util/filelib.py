@@ -49,7 +49,7 @@ class BaseJS(ExtFileLibrary):
 			'%s/js/reverse.js' % g.EMEN2WEBROOT,
 		]
 		if self.dbtree is not None:
-			self.files.append(self.dbtree.reverse('TemplateRender', '/base/settings.js'))
+			self.files.append(self.dbtree.reverse('TemplateRender', '/basedb/settings.js'))
 		super(BaseJS, self).init()
 
 
