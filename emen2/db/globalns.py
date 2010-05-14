@@ -18,11 +18,11 @@ except ImportError:
 	except ImportError:
 		yaml = False
 
-import emen2.subsystems.debug
+import emen2.Database.debug
 class GlobalNamespace(object):
-	class LoggerStub(emen2.subsystems.debug.DebugState):
+	class LoggerStub(emen2.Database.debug.DebugState):
 		def __init__(self, *args):
-			emen2.subsystems.debug.DebugState.__init__(self, output_level='LOG_DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
+			emen2.Database.debug.DebugState.__init__(self, output_level='LOG_DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
 		def swapstdout(self): pass
 		def closestdout(self): pass
 		def msg(self, sn, *args):

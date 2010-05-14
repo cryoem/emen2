@@ -10,7 +10,7 @@ import pkgutil
 import emen2.Database.globalns
 g = emen2.Database.globalns.GlobalNamespace()
 
-import emen2.subsystems.debug
+import emen2.Database.debug
 
 
 
@@ -119,7 +119,7 @@ class DBOptions(optparse.OptionParser):
 			g.LOG_INFO = g.log.debugstates.LOG_INFO
 			g.LOG_DEBUG = g.log.debugstates.LOG_DEBUG
 
-			g.log = emen2.subsystems.debug.DebugState(output_level=self.values.log_level,
+			g.log = emen2.Database.debug.DebugState(output_level=self.values.log_level,
 												logfile=file(g.LOGPATH + '/log.log', 'a', 0),
 												get_state=False,
 												logfile_state=self.values.logfile_level,
@@ -134,7 +134,7 @@ class DBOptions(optparse.OptionParser):
 			g.debug = functools.partial(g.log.msg, 'LOG_DEBUG')
 			g.debug_func = g.log.debug_func
 
-			g.log.add_output(['LOG_WEB'], emen2.subsystems.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
+			g.log.add_output(['LOG_WEB'], emen2.Database.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
 
 			g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 

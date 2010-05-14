@@ -2,7 +2,7 @@ import urllib2
 import emen2.util.datastructures
 #import emen2.Database
 
-from emen2.subsystems.routing import URLRegistry
+from emen2.web.routing import URLRegistry
 
 import emen2.Database.globalns
 g = emen2.Database.globalns.GlobalNamespace()

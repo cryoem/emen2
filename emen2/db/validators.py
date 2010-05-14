@@ -74,3 +74,52 @@ class DefinitionValidator(Validator):
 			self._obj.uri = unicode(self._obj.uri)
 		elif not hasattr(self._obj, 'uri'):
 			self._obj.uri = None
+
+
+
+
+# ian: moved this here from emen2.subsystems.text_validators
+class InputValidator(object):
+	'''Base class to validate input'''
+	def __init__(self):
+		self.__predicates = {}
+
+	def add_predicate(self, name, predicate='is_alnum'):
+		'''Add a condition to the validator'''
+		if isinstance(predicate, str):
+			predicate = getattr(InputValidator, predicate)
+		self.__predicates[name] = predicate
+
+	def check_field(self, name, value):
+		'''Match a specific name/value pair'''
+		result = True
+		if self.__predicates.has_key(name):
+			result = self.__predicates[name](value)
+		return result
+
+	def check_dictionary(self, fields):
+		'''Match a dictionary against the stored conditions'''
+		result = []
+		for field in fields:
+			if not self.check_field(field, fields[field]):
+				result.append(field)
+		return result
+
+	@staticmethod
+	def is_string(inp): return isinstance(inp, str)
+
+	@staticmethod
+	def _is_of_pred(self, pred, inp):
+		'''utility function for composing new predicates'''
+		return len([ch for ch in inp if not pred(ch)]) == 0
+
+	is_alnum = staticmethod(lambda inp: ''.join(inp.split()).isalnum())
+	is_alpha = staticmethod(lambda inp: ''.join(inp.split()).isalpha())
+	is_numeric = str.isdigit
+
+	@staticmethod
+	def is_of_pattern(re):
+		'''match input against a regex'''
+		def _validate(inp):
+			return bool(re.match(inp))
+		return _validate
