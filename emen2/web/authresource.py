@@ -16,8 +16,8 @@ from urllib import quote
 # emen2 imports
 import emen2.util.listops
 import emen2.Database.exceptions
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 
 

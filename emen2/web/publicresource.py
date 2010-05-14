@@ -20,8 +20,8 @@ from authresource import render_security_error
 # Load our custom threadpool
 import emen2.ts
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 
 

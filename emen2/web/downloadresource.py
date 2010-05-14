@@ -17,8 +17,8 @@ from twisted.web.resource import Resource
 from twisted.web.static import *
 
 import emen2.util.db_manipulation
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 
 ##########################################

@@ -40,7 +40,7 @@ import sys
 # 
 # elif command == "create":
 
-import emen2.globalns
+import emen2.Database.globalns
 from emen2.Database.config import g, DBOptions
 
 parser = DBOptions()

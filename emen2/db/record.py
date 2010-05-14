@@ -6,8 +6,8 @@ import emen2.Database.exceptions
 import emen2.Database.dataobject
 from . import validators
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 #	This class encapsulates a single database record. In a sense this is an instance
 #	of a particular RecordDef, however, note that it is not required to have a value for

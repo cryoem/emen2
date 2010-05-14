@@ -11,8 +11,8 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 
 # emen2 imports
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 
 import UserDict, collections

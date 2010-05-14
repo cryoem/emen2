@@ -19,9 +19,9 @@ from twisted.web.static import *
 
 
 # emen2 imports
-import emen2.globalns
+import emen2.Database.globalns
 
-g = emen2.globalns.GlobalNamespace()
+g = emen2.Database.globalns.GlobalNamespace()
 
 
 class UploadResource(Resource):

@@ -19,8 +19,8 @@ from paste import lint
 
 import re
 # TODO: investigate the need for debug in g
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 def load_views():
     g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())

@@ -1,7 +1,7 @@
 import cgi
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 import emen2.Database.datatypes
 import emen2.util.parse_datetime

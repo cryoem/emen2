@@ -4,8 +4,8 @@ import emen2.util.datastructures
 
 from emen2.subsystems.routing import URLRegistry
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 class Context(object):
 	'''Partial context for views that don't need db access'''

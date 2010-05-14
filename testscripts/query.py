@@ -2,8 +2,8 @@ from emen2.util import db_manipulation
 from itertools import chain
 import operator
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 
 class DBQuery(object):
 	def __init__(self, db):

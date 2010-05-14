@@ -6,8 +6,8 @@ from twisted.web import static, server
 
 
 import emen2.Database.config
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
+import emen2.Database.globalns
+g = emen2.Database.globalns.GlobalNamespace()
 parser = emen2.Database.config.DBOptions()
 parser.parse_args()
 # g.log.capturestdout()
