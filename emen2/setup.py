@@ -2,7 +2,7 @@ import getpass
 import shutil
 import os
 import sys
-import emen2.config.config
+import emen2.Database.config
 import optparse
 import sys
 
@@ -26,12 +26,12 @@ import sys
 # 
 # 	print "Copying base config files"
 # 
-# 	inconfig = emen2.config.config.get_filename('emen2', 'config/config.sample.yml')
+# 	inconfig = emen2.Database.config.get_filename('emen2', 'config/config.sample.yml')
 # 	outconfig = "%s/config.yml"%(dbpath)
 # 	print "%s -> %s"%(inconfig, outconfig)
 # 	shutil.copy(inconfig, outconfig)
 # 
-# 	indb = emen2.config.config.get_filename('emen2', 'config/DB_CONFIG.sample')
+# 	indb = emen2.Database.config.get_filename('emen2', 'config/DB_CONFIG.sample')
 # 	outdb = "%s/DB_CONFIG"%(dbpath)
 # 	print "%s -> %s"%(indb,outdb)
 # 	shutil.copy(indb,outdb)
@@ -41,7 +41,7 @@ import sys
 # elif command == "create":
 
 import emen2.globalns
-from emen2.config.config import g, DBOptions
+from emen2.Database.config import g, DBOptions
 
 parser = DBOptions()
 parser.parse_args()
