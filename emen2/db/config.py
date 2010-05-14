@@ -18,7 +18,7 @@ def get_filename(package, resource):
 	d = os.path.dirname(sys.modules[package].__file__)
 	return os.path.join(d, resource)
 
-default_config = get_filename('emen2', 'config/config.base.yml')
+default_config = get_filename('emen2', 'Database/config.base.yml')
 
 
 def defaults():

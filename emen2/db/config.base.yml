@@ -1,0 +1,84 @@
+paths:
+  EMEN2DBPATH:
+      /Users/irees/emen2/db
+  LOGPATH: &logpath
+      applog
+  ARCHIVEPATH:
+      log_archive
+  BACKUPPATH:
+      db_backup
+  TILEPATH:
+      emen2tiles
+  BINARYPATH:
+      0: emen2data
+      
+  configfiles:
+    - /etc/emen2config.yml 
+
+
+params:
+  VERSION: 20100325
+  NUMTHREADS: 1
+  EMEN2PORT: 8080
+  EMEN2EXTURI: ""
+  EMEN2HTTPS: ""
+  EMEN2PORT_HTTPS: 436
+
+  TIMESTR: '%Y/%m/%d %H:%M:%S'
+  MAXRECURSE: 50
+  BLOCKLENGTH: 100000
+  MAXIDLE: 604800
+
+
+customization:
+  EMEN2DBNAME: "EMEN2"
+  EMEN2LOGO: "emen2logo-small.png"
+  GREETING: 
+      <p>Welcome!</p>
+  HOME_NOAUTH: '/pages/home.noauth'
+  UNINDEXED_WORDS: ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]
+  GROUP_DEFAULTS: ["create"]
+
+
+mailsettings:
+  MAILADMIN: root@localhost
+  MAILHOST: 0
+
+
+bookmarks:
+  BOOKMARKS:
+    GROUPS: 0
+    PROJECTS: 0
+    EQUIPMENT: 0
+
+
+EMAN2:
+   E2TILEFILE: emen2/clients/e2tilefile.py --buildspec
+
+
+dbutils:
+    prefix:
+        - /usr/local/BerkeleyDB.4.8/
+    db_recover: bin/db_recover
+    db_hotbackup: bin/db_hotbackup
+    db_archive: bin/db_archive
+    db_checkpoint: bin/db_checkpoint
+ 
+ 
+viewsettings:
+  TEMPLATEDIRS_DEFAULT: True
+  TEMPLATEDIRS: 
+    - 'templates'
+  VIEWPATHS:
+    - 'views'
+
+
+logging:
+  prefix:
+    - *logpath
+  EMEN2ERRLOG: emen2errlog
+  EMEN2JOBFILE: emen2job
+  DEBUGLOG: debug.log
+  DEBUG: True
+  
+  

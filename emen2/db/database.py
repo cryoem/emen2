@@ -313,7 +313,7 @@ class DB(object):
 				os.makedirs(os.path.join(self.path, path))
 
 		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")):
-			infile = emen2.Database.config.get_filename('emen2', 'config/DB_CONFIG.sample')
+			infile = emen2.Database.config.get_filename('emen2', 'examples/DB_CONFIG.sample')
 			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
 
