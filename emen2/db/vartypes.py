@@ -57,7 +57,7 @@ class vt_choice(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 
@@ -78,7 +78,7 @@ class vt_string(Vartype):
 
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 class vt_rectype(Vartype):
@@ -98,7 +98,7 @@ class vt_text(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		return unicode(value).replace("\n","<br />")
@@ -111,7 +111,7 @@ class vt_html(Vartype):
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 	def encode(self, value):
@@ -143,7 +143,7 @@ class vt_time(Vartype):
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		emen2.util.parse_datetime.parse_time(value)
-		return unicode(value)
+		return unicode(value) or None
 
 
 class vt_date(Vartype):
@@ -153,7 +153,7 @@ class vt_date(Vartype):
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		emen2.util.parse_datetime.parse_date(value)
-		return unicode(value)
+		return unicode(value) or None
 
 
 # ian: todo: high priority: see fixes in parse_datetime, extend to other date validators
@@ -163,7 +163,7 @@ class vt_datetime(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(emen2.util.parse_datetime.parse_datetime(value))
+		return unicode(emen2.util.parse_datetime.parse_datetime(value)) or None
 
 
 class vt_intlist(Vartype):
@@ -173,7 +173,7 @@ class vt_intlist(Vartype):
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-		return [int(x) for x in value]
+		return [int(x) for x in value] or None
 
 
 class vt_floatlist(Vartype):
@@ -183,7 +183,7 @@ class vt_floatlist(Vartype):
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-		return [float(x) for x in value]
+		return [float(x) for x in value] or None
 
 
 class vt_stringlist(Vartype):
@@ -193,7 +193,7 @@ class vt_stringlist(Vartype):
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-		return [unicode(x) for x in value]
+		return [unicode(x) for x in value] or None
 		
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		return ", ".join(value or [])
@@ -206,7 +206,7 @@ class vt_url(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 
@@ -216,7 +216,7 @@ class vt_hdf(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 
@@ -226,7 +226,7 @@ class vt_image(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 
@@ -237,7 +237,7 @@ class vt_binary(Vartype):
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-		return [unicode(x) for x in value]
+		return [unicode(x) for x in value] or None
 
 
 class vt_binaryimage(Vartype):
@@ -247,7 +247,7 @@ class vt_binaryimage(Vartype):
 	__indextype__ = None #"s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(value)
+		return unicode(value) or None
 
 
 class vt_child(Vartype):
@@ -266,7 +266,7 @@ class vt_links(Vartype):
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-		return [int(x) for x in value]
+		return [int(x) for x in value] or None
 
 
 class vt_link(Vartype):
@@ -295,7 +295,7 @@ class vt_dict(Vartype):
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
 	def validate(self, engine, pd, value, db):
-		return dict(value)
+		return dict(value) or None
 
 
 class vt_user(Vartype):
@@ -311,7 +311,7 @@ class vt_user(Vartype):
 			engine.store(key, usernames)		
 
 		if value in usernames:
-			return unicode(value)
+			return unicode(value) or None
 			
 		raise ValueError	
 
@@ -347,7 +347,7 @@ class vt_userlist(Vartype):
 		if set(value) - usernames:
 			raise ValueError
 
-		return [unicode(x) for x in value]
+		return [unicode(x) for x in value] or None
 
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):

@@ -4549,7 +4549,7 @@ class DB(object):
 				orec._Record__params["modifytime"] = t
 				orec._Record__params["modifyuser"] = ctx.username
 
-			# I don't think we need to re-validate..
+			# having validation at the top lets us only eval what changes, usually
 			# if validate:
 			# 	orec.validate(orec=orcp, warning=warning, params=cp)
 
