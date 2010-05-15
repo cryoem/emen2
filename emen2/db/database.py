@@ -20,14 +20,14 @@ import weakref
 import getpass
 import functools
 
+import emen2.Database.config
+g = emen2.Database.config.g()
+
 try:
 	import matplotlib.backends.backend_agg
 	import matplotlib.figure
 except:
 	g.log("No matplotlib; plotting will fail")
-
-import emen2.Database.config
-g = emen2.Database.config.g()
 
 try:
 	g.CONFIG_LOADED
