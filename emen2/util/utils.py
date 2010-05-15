@@ -90,19 +90,19 @@ class return_many_or_single(object):
 			# get result of function
 			result = func(*args, **kwargs)
 
-
 			# get result
 			if not lst:
 				try:
 					tmpresult = self.__transform(result)
 				except Exception, e:
-					pass
 					# ian: todo: set() fails
-					#if g.DEBUG:
-					#	g.warn('__transform failed:',e, 'on result: %r' % result)
+					pass
 				else:
 					result = tmpresult
+				
+				result = result or None
 
 			return result
+			
 		_inner.func = func_
 		return _inner
