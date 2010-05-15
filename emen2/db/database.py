@@ -1712,17 +1712,21 @@ class DB(object):
 		return self.__find_pd_or_rd(keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
 
+
 	@publicmethod
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
 		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
+
 
 
 	def __filter_dict_zero(self, d):
 		return dict(filter(lambda x:len(x[1])>0, d.items()))
 
 
+
 	def __filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
+
 
 
 	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=100, ctx=None, txn=None, **qp):
@@ -2011,9 +2015,6 @@ class DB(object):
 			else:
 				ret = set(x for x in ret if valrange == self.getrecord(x, ctx=ctx, txn=txn)[param])
 				#ret = paramindex.values(valrange, txn=txn)
-
-		if ctx.checkreadadmin():
-			return ret
 
 		return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
 
@@ -3134,7 +3135,8 @@ class DB(object):
 			# if the user has requested privacy, we return only basic info
 			#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 			if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
-				user = emen2.Database.user.User(username=user.username, email=user.email, password='123456') # pw is just dummy value
+				# password is just dummy value because of how the constructor works; it's immediately set to None
+				user = emen2.Database.user.User(username=user.username, email=user.email, password='123456')
 				user.email = None
 				user.password = None
 				
