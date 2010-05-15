@@ -6,8 +6,8 @@ import re
 import weakref
 import traceback
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 import emen2.Database
 import emen2.Database.exceptions

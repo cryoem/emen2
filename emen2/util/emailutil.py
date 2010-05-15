@@ -1,8 +1,8 @@
 import smtplib
 import email.MIMEText
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 def sendmailtemplate(recipient,template,ctxt=None):

@@ -4,12 +4,13 @@ import thread
 from twisted.internet import reactor, ssl
 from twisted.web import static, server
 
-
+import emen2.web.threadpool
 import emen2.Database.config
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+g = emen2.Database.config.g()
+
 parser = emen2.Database.config.DBOptions()
 parser.parse_args()
+
 # g.log.capturestdout()
 
 # This is the main server program for EMEN2
@@ -57,16 +58,12 @@ def inithttpd():
 	import emen2.web.jsonrpcresource
 
 	import emen2.web.views
-
-	#import emen2.web.public.record
-	
-	import emen2.web.template_render
 	import emen2.web.view
 
 	emen2.web.view.load_views()
 	emen2.web.view.routes_from_g()
 
-	root = static.File("tweb")
+	root = static.File(emen2.Database.config.get_filename('emen2', 'web/static'))
 
 	resources = dict(
 		db = emen2.web.publicresource.PublicView(),
@@ -93,9 +90,9 @@ def inithttpd():
 	reactor.listenTCP(g.EMEN2PORT, rr)
 
 	if g.EMEN2HTTPS:
-		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory("ssl/server.key", "ssl/server.crt"))
+		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory(os.path.join(g.SSLPATH, "server.key"), os.path.join(g.SSLPATH, "server.crt")))
 
-	reactor.suggestThreadPoolSize(1) #g.NUMTHREADS
+	reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
 	g.log.msg(g.LOG_INIT, 'Listening on port %d ...' % g.EMEN2PORT)
 	reactor.run()

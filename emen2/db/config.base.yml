@@ -1,29 +1,66 @@
+# These paths either absolute, or relative to DB_HOME, depending on the presence of leading slash
 paths:
-  EMEN2DBPATH:
-      /Users/irees/emen2/db
+    
+  # Log directory: access.log, error.log, debug.log (see logging section)    
   LOGPATH: &logpath
-      applog
+    applog
+    
+  # Berkeley DB Log Archive directory. Backup offsite.    
   ARCHIVEPATH:
-      log_archive
+    log_archive
+    
+  # Berkeley DB Hot Backup directory, for incremental backups and failover. Backup offsite.          
   BACKUPPATH:
-      db_backup
+    db_backup
+    
+  # Cache for "map" interface for large image files    
   TILEPATH:
-      emen2tiles
+    emen2tiles
+  
+  # Path to SSL certificates    
+  SSLPATH:
+    ssl
+
+  # Temporary directory to use for graphs and other temporary files
+  TMPPATH:
+    tmp
+    
+  # Raw data storage area. You may want to place this on a large raid array.
+  # You can also set this up to split file storage by date, e.g.:
+    # 0: /raid1/
+    # 20080501: /raid2/
+    # 20100101: /raid3/
+  # Files from beginning -> May 2008 will be on /raid1, May 2008 to Jan 2010 on /raid2, and files after Jan 2010 on /raid3
+  # You will need to use an absolute path here    
   BINARYPATH:
-      0: emen2data
-      
+    0: emen2data 
+    
+  # Load additional files. Typically this will only be used by the system installed base config file.
   configfiles:
     - /etc/emen2config.yml 
 
 
-params:
-  VERSION: 20100325
+network:
+  # Number of web server threads to run
   NUMTHREADS: 1
+
+  # HTTP port
   EMEN2PORT: 8080
-  EMEN2EXTURI: ""
-  EMEN2HTTPS: ""
+  
+  # HTTPS configuration. You will need to place the SSL certificate and key files in the SSL directory
+  EMEN2HTTPS: 0
   EMEN2PORT_HTTPS: 436
 
+  # Set this if you are behind a reverse proxy
+  EMEN2EXTURI: ''
+  EMEN2EXTURI_HTTPS: ''
+
+
+params:
+  # Database version. Usually set in base config file.
+  VERSION: 20100414  
+
+  # Some database settings. You will probably want to leave these as the default.
   TIMESTR: '%Y/%m/%d %H:%M:%S'
   MAXRECURSE: 50
   BLOCKLENGTH: 100000
@@ -31,20 +68,33 @@ params:
 
 
 customization:
+  # Short string for database identification. This shows up several places in the UI    
   EMEN2DBNAME: "EMEN2"
+  
+  # Logo in emen2/web/static/images to use  
   EMEN2LOGO: "emen2logo-small.png"
+
+  # Default text to show on login screen
   GREETING: 
-      <p>Welcome!</p>
+    <p>Welcome!</p>
+
+  # Template to use for anonymous uses (e.g. before login)
   HOME_NOAUTH: '/pages/home.noauth'
+  
+  # Words to ignore in full-text indexing.
   UNINDEXED_WORDS: ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]
+
+  # Default groups for new users
   GROUP_DEFAULTS: ["create"]
 
 
+# Set mailhost to 0 to leave mail subsystem off, otherwise set to outgoing SMTP server
 mailsettings:
   MAILADMIN: root@localhost
   MAILHOST: 0
 
 
+# Record IDs to use in the top toolbar in the web UI
 bookmarks:
   BOOKMARKS:
     GROUPS: 0
@@ -53,9 +103,10 @@ bookmarks:
 
 
 EMAN2:
-   E2TILEFILE: emen2/clients/e2tilefile.py --buildspec
+  E2TILEFILE: emen2/clients/e2tilefile.py --buildspec
 
 
+# Probably don't want to touch these unless you have an unusual Berkeley DB setup
 dbutils:
     prefix:
         - /usr/local/BerkeleyDB.4.8/
@@ -65,6 +116,7 @@ dbutils:
     db_checkpoint: bin/db_checkpoint
  
  
+# Additional template and view directories to add to search paths  
 viewsettings:
   TEMPLATEDIRS_DEFAULT: True
   TEMPLATEDIRS: 
@@ -73,6 +125,7 @@ viewsettings:
     - 'views'
 
 
+# Logging files. See &logpath for base directory.
 logging:
   prefix:
     - *logpath
@@ -82,3 +135,4 @@ logging:
   DEBUG: True
   
   
+

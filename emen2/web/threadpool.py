@@ -8,8 +8,8 @@ import threading
 import time
 
 import emen2.Database.proxy
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 
@@ -29,7 +29,7 @@ class newThreadPool(threadpool.ThreadPool):
 		# 		firstJob = None
 
 		self.counter += 1
-		db = emen2.Database.proxy.DBProxy(dbpath=g.EMEN2DBPATH)
+		db = emen2.Database.proxy.DBProxy(dbpath=g.DB_HOME)
 		newThread = threading.Thread(target=self._worker, args=(db,self.counter))
 
 		self.threads.append(newThread)

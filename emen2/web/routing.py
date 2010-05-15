@@ -13,8 +13,9 @@ import sre_parse
 import cgi
 
 import emen2.web.responsecodes
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
+
 
 class doubledict(object):
 	def __init__(self, keys=None, values1=None, values2=None):

@@ -6,8 +6,8 @@ import weakref
 import collections
 import array
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 try:
 	import emen2.indexwrapper.bulk

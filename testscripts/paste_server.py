@@ -18,9 +18,9 @@ from paste.urlparser import URLParser
 from paste import lint
 
 import re
-# TODO: investigate the need for debug in g
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
+
 
 def load_views():
     g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
@@ -118,7 +118,7 @@ class PublicView(object):
             result = HTTPMovedPermanently(detail=request.script_name+redirect).response(environ)
         else:
             args = listops.combine_dicts(request.GET.mixed(), request.POST.mixed())
-            self.db = Database.Database(g.EMEN2DBPATH)
+            self.db = Database.Database(g.DB_HOME)
             try:
                 auth_cookie = self.authenticate(self.db, request, args)
                 

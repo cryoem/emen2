@@ -4,8 +4,8 @@ import weakref
 import emen2.Database.datatypes
 import emen2.Database.exceptions
 import emen2.Database.dataobject
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 from . import validators
 
@@ -73,7 +73,6 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	cleared_fields = set(["viewcache"])
 
-	@g.debug_func
 	def init(self, _d=None, **_k):
 		"""Normally the record is created with no parameters, then setContext is called by the
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
@@ -467,7 +466,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		# store the comment string itself
 
 
-	def addhistory(self, param, value):
+	def _addhistory(self, param, value):
 		if not param:
 			raise Exception, "Unable to add item to history log"
 		self.__history.append((unicode(self._ctx.username), unicode(emen2.Database.database.gettime()), param, value))
@@ -480,7 +479,6 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 
-	@g.debug_func
 	def setContext(self, ctx=None):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record

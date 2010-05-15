@@ -2,8 +2,8 @@ import cgi
 
 import emen2.Database.datatypes
 import emen2.util.parse_datetime
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 # convenience
 Vartype = emen2.Database.datatypes.Vartype

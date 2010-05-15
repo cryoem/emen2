@@ -1,6 +1,5 @@
-import emen2.Database.proxy
 import getpass
 
+import emen2
 db = emen2.db()
-rootpw = getpass.getpass()
-db.login("root", rootpw)
+db.login("root", getpass.getpass())

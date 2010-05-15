@@ -1,8 +1,8 @@
 import copy
 import functools
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 class Validator(object):

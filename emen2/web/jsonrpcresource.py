@@ -11,8 +11,8 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 
 # emen2 imports
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 import UserDict, collections
@@ -128,8 +128,8 @@ class jsonrpc(Resource):
 
 
 
-	@g.log.debug_func
-	#@emen2.util.utils.return_list_or_single('contents')
+	# @g.log.debug_func
+	# @emen2.util.utils.return_list_or_single('contents')
 	def action(self, request, contents, db=None, ctxid=None, host=None):
 		ol = True
 		if not isinstance(contents, list):

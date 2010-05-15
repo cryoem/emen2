@@ -20,15 +20,19 @@ import weakref
 import getpass
 import functools
 
+try:
+	import matplotlib.backends.backend_agg
+	import matplotlib.figure
+except:
+	g.log("No matplotlib; plotting will fail")
 
 import emen2.Database.config
+g = emen2.Database.config.g()
+
 try:
 	g.CONFIG_LOADED
 except:
-	print "Loading default config"
 	emen2.Database.config.defaults()
-	g = emen2.Database.config.g
-
 
 import emen2.util.utils
 
@@ -69,13 +73,6 @@ proxy = emen2.Database.proxy
 
 # import extensions
 
-try:
-	import matplotlib.backends.backend_agg
-	import matplotlib.figure
-except:
-	g.log("No matplotlib; plotting will fail")
-
-
 # ian: todo: low: do this in a better way
 # this is used by db.checkversion
 # import this directly from emen2client, emdash
@@ -83,6 +80,9 @@ VERSIONS = {
 	"API": g.VERSION,
 	"emen2client": 20100420
 }
+
+
+# pointer to database environment
 DBENV = None
 
 
@@ -284,7 +284,7 @@ class DB(object):
 		@keyparam bdbopen Open databases in addition to DBEnv (default=True)
 		"""
 
-		self.path = path or g.EMEN2DBPATH
+		self.path = path or g.DB_HOME
 		if not self.path:
 			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
 
@@ -1647,12 +1647,12 @@ class DB(object):
 		# From plot_old
 		t = str(time.time())
 		rand = str(random.randint(0,100000))
-		tempfile = "/graph/t" + t + ".r" + rand
+		tempfile = "graph." + t + ".r" + rand
 
 		plots = {}
 		if "png" in formats:
 			pngfile = tempfile+".png"
-			fig.savefig('tweb'+pngfile)
+			fig.savefig(os.path.join(g.TMPPATH,pngfile))
 			plots["png"] = pngfile
 
 		# We draw titles, labels, etc. in PDF graphs
@@ -1662,7 +1662,7 @@ class DB(object):
 			ax.set_ylabel(ylabel)
 			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
 			pdffile = tempfile+".pdf"
-			fig.savefig('tweb'+pdffile)
+			fig.savefig(os.path.join(g.TMPPATH,pdffile))
 			plots["pdf"] = pdffile
 
 
@@ -4532,6 +4532,7 @@ class DB(object):
 					if i not in orec._Record__comments:
 						orec.addcomment(i[2])
 
+			# ian: todo: have records be able to update themselves from another record
 			for param in cp - param_special:
 				if log and orec.recid >= 0:
 					orec._addhistory(param, orec.get(param))
@@ -5396,12 +5397,12 @@ class DB(object):
 				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.BACKUPPATH
 
 		# ian: just use shutil.copytree
-		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data")))
-		shutil.copytree(os.path.join(g.EMEN2DBPATH, "data"), os.path.join(g.BACKUPPATH, "data"))
+		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.DB_HOME, "data"), os.path.join(g.BACKUPPATH, "data")))
+		shutil.copytree(os.path.join(g.DB_HOME, "data"), os.path.join(g.BACKUPPATH, "data"))
 
 		for i in ["config.yml","DB_CONFIG"]:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, i), os.path.join(g.BACKUPPATH, i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.DB_HOME, i), os.path.join(g.BACKUPPATH, i)))
+			shutil.copy(os.path.join(g.DB_HOME, i), os.path.join(g.BACKUPPATH, i))
 
 
 		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
@@ -5410,8 +5411,8 @@ class DB(object):
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 
 
@@ -5423,8 +5424,8 @@ class DB(object):
 
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBPATH, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 

@@ -4,8 +4,8 @@ import emen2.util.datastructures
 
 from emen2.web.routing import URLRegistry
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 class Context(object):
 	'''Partial context for views that don't need db access'''
@@ -13,8 +13,10 @@ class Context(object):
 		_full = kwargs.get('_full', False)
 		prefix = '%s' % g.EMEN2WEBROOT
 		if not prefix.endswith('/'): prefix = '%s/' % prefix
+
 		if _full == True:
-			prefix = 'http://%(host)s:%(port)s%(root)s' % dict(host=g.EMEN2HOST, port=g.EMEN2PORT, root=prefix)
+			prefix = g.EMEN2EXTURI
+
 
 		result = '%s%s%s' % (prefix, 'db', (
 			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))

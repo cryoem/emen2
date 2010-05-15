@@ -7,8 +7,8 @@ import traceback
 import weakref
 import functools
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 class MethodUtil(object):
@@ -43,7 +43,7 @@ class DBProxy(object):
 		self.__bound = False
 
 		if not db:
-			db = database.DB(path=dbpath) # path will default to g.EMEN2DBPATH
+			db = database.DB(path=dbpath) # path will default to g.DB_HOME
 		self.__db = db
 		# weakref.proxy(db)
 
@@ -249,7 +249,7 @@ class DBProxy(object):
 				kwargs['db'] = self.__db
 		
 			try:
-				g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
+				# g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
 				result = func(*args, **kwargs)
 				
 			except Exception, e:

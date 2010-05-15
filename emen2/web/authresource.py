@@ -16,9 +16,10 @@ from urllib import quote
 # emen2 imports
 import emen2.util.listops
 import emen2.Database.exceptions
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
+import emen2.web.views.auth
 
 
 def cookie_expire_time():
@@ -41,24 +42,21 @@ class AuthResource(Resource):
 
 
 	# ian: todo: if not using SSL, switch back to unencrypted channel
+	# ian: todo: HIGH: fix this to get HTTPS and apache proxied behavior working again
 	def loginredir(self,redirect,request):
-
-		u=urlparse.urlsplit(redirect)
-		du=list(u)
-
-		#if u.hostname == None and u.port == None and u.scheme == None:
-		#	du[0]="http"
-
-		requesthost = request.getHeader("host").split(":")[0]
-
-		if g.EMEN2HOST != "localhost":
-			du[1] = requesthost
-		if g.EMEN2EXTPORT != 80:
-			du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
-
-		# print "redir is %s"%urlparse.urlunsplit(du)
-
-		return urlparse.urlunsplit(du)
+		return redirect
+		# u=urlparse.urlsplit(redirect)
+		# du=list(u)
+		# 
+		# requesthost = request.getHeader("host").split(":")[0]
+		# 
+		# if g.EMEN2HOST != "localhost":
+		# 	du[1] = requesthost
+		# if g.EMEN2EXTPORT != 80:
+		#	du[1]= "%s:%s"%(requesthost,g.EMEN2EXTPORT)
+		# # print "redir is %s"%urlparse.urlunsplit(du)
+		# 
+		# return urlparse.urlunsplit(du)
 
 
 
@@ -111,7 +109,6 @@ class AuthResource(Resource):
 
 
 
-
 	# the meat, raise exception if bad login
 	def _action(self, db=None, **kwargs):
 
@@ -119,10 +116,12 @@ class AuthResource(Resource):
 		route = {
 			"login": emen2.web.views.auth.Login,
 			"logout": emen2.web.views.auth.Logout,
-			"password/reset": emen2.views.public.login.PasswordReset,
-			"password/change": emen2.views.public.login.PasswordChange,
+			"password/reset": emen2.web.views.auth.PasswordReset,
+			"password/change": emen2.web.views.auth.PasswordChange,
 			"context": emen2.web.views.auth.CheckContext
 		}
+
+		print "auth act 2"
 
 		method = kwargs.get("method")
 		rcls = route.get(method)
@@ -131,6 +130,7 @@ class AuthResource(Resource):
 		host = kwargs.get('host')
 		success = True
 
+		print "auth act 3"
 
 		with db._setContext(ctxid, host):
 			p = rcls(db=db, **kwargs)
@@ -175,18 +175,19 @@ class AuthResource(Resource):
 	def _ebrender(self, failure, request, **kwargs):
 		# This should only happen in severe failure, normal errors are caught in action
 		# In the event of an authentication failure, kill client cookie
+
 		request.setResponseCode(401)
 		request.addCookie("ctxid", '', path='/')
 
-		data = "There was a problem with your request."
+		data = failure
 
-		try:
-			# ian: todo: raise;failure ?
-			if isinstance(failure, BaseException): raise; failure
-			else:
-				failure.raiseException()
-		except Exception, e:
-			data = render_security_error('/', e)
+		# try:
+		# 	# ian: todo: raise;failure ?
+		# 	if isinstance(failure, BaseException): raise; failure
+		# 	else:
+		# 		failure.raiseException()
+		# except Exception, e:
+		# 	data = render_security_error('/', e)
 
 		request.write(unicode(data).encode("utf-8"))
 		request.finish()

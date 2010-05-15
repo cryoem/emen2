@@ -1,14 +1,20 @@
+import demjson
+import functools
+
 from emen2.util.listops import adj_dict
 import emen2.web.publicresource
 import emen2.util.db_manipulation
 import emen2.util.utils
 import emen2.util.filelib
-from emen2.subsystems import routing
+import emen2.util.fileops
 
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace()
-import demjson
-import functools
+from emen2.web import routing
+
+import emen2.Database.config
+g = emen2.Database.config.g()
+
+
+import emen2.web.templating
 
 
 class View(object):
@@ -65,40 +71,40 @@ class View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
-		try:
-			self.__db = db
-			self.method = method
-			self.__headers = {'content-type': mimetype}
-			self.__dbtree = None
-			if db is not None:
-				self.__dbtree = emen2.util.db_manipulation.DBTree(db)
+		# try:
+		self.__db = db
+		self.method = method
+		self.__headers = {'content-type': mimetype}
+		self.__dbtree = None
+		if db is not None:
+			self.__dbtree = emen2.util.db_manipulation.DBTree(db)
 
-			self.__template = template or self.template
-			self.__ctxt = adj_dict({}, extra)
+		self.__template = template or self.template
+		self.__ctxt = adj_dict({}, extra)
 
-			self.__basectxt = dict(
-				ctxt=self.dbtree,
-				headers=self.__headers,
-				css_files=(css_files or self.css_files)(self.__dbtree),
-				js_files=(js_files or self.js_files)(self.__dbtree),
-				EMEN2WEBROOT=g.EMEN2WEBROOT,
-				EMEN2DBNAME=g.EMEN2DBNAME,
-				EMEN2LOGO=g.EMEN2LOGO,
-				BOOKMARKS=g.BOOKMARKS,
-				notify=[],
-				def_title='Untitled'
-			)
-			self.set_context_items(self.__basectxt)
+		self.__basectxt = dict(
+			ctxt=self.dbtree,
+			headers=self.__headers,
+			css_files=(css_files or self.css_files)(self.__dbtree),
+			js_files=(js_files or self.js_files)(self.__dbtree),
+			EMEN2WEBROOT=g.EMEN2WEBROOT,
+			EMEN2DBNAME=g.EMEN2DBNAME,
+			EMEN2LOGO=g.EMEN2LOGO,
+			BOOKMARKS=g.BOOKMARKS,
+			notify=[],
+			def_title='Untitled'
+		)
+		self.set_context_items(self.__basectxt)
 
-			# call any view specific initialization
-			self.__raw = False
-			if format is not None:
-				self.get_data = getattr(self, 'get_%s' % format)
+		# call any view specific initialization
+		self.__raw = False
+		if format is not None:
+			self.get_data = getattr(self, 'get_%s' % format)
 
-			if init is not None: init=functools.partial(init,self)
-			else: init = self.init
-			init(**extra)
-		finally: pass
+		if init is not None: init=functools.partial(init,self)
+		else: init = self.init
+		init(**extra)
+		# finally: pass
 
 	def init(self, *_, **__):
 		'''define class specific initialization here'''
@@ -337,78 +343,79 @@ def routes_from_g():
 
 def load_views(failures=None):
 	g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine()) 
-	#emen2.web.templating.MakoTemplateEngine()
 	emen2.web.templating.get_templates(g.TEMPLATEDIRS, failures=failures)
 	get_views(g.VIEWPATHS)
 
 
-def reload_views(view=None):
-	reload(emen2.web.view)
-	failures = []
-	load_views(failures=failures)
-	if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
-	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
-	for view in values:
-		try:
-			view = view._URL__callback.__module__
-			exec 'import %s;reload(%s)' % (view,view)
-		except:
-			failures.append(str(view))
-	return failures
+
+# def reload_views(view=None):
+# 	reload(emen2.web.view)
+# 	failures = []
+# 	load_views(failures=failures)
+# 	if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
+# 	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
+# 	for view in values:
+# 		try:
+# 			view = view._URL__callback.__module__
+# 			exec 'import %s;reload(%s)' % (view,view)
+# 		except:
+# 			failures.append(str(view))
+# 	return failures
 
 
 
 
-class _LaunchConsole(emen2.web.view.View):
-	import thread
-	__metaclass__ = emen2.web.view.View.register_view
-	__matcher__ = '^/__launch_console/$'
-	def __init__(self, db, **kwargs):
-		emen2.web.view.View.__init__(self, db=db, **kwargs)
-		self.set_context_item('title', 'blahb;ajb')
-		if db.checkadmin():
-			g.log.interact(globals())
-			self.page = 'done'
-		else:
-			self.page = 'fail'
-
-class _ReloadViews(emen2.web.view.View):
-	import thread
-	__metaclass__ = emen2.web.view.View.register_view
-	__matcher__ = dict(main='^/__reload_views/$',
-								one='^/__reload_views/(?P<name>\w+)',
-								templ='^/(?P<templ>__reload_templates)')
-	def __init__(self, db,  name=None, templ=None, **kwargs):
-		emen2.web.view.View.__init__(self, db=db,**kwargs)
-		self.set_context_item('title', 'Reloading Views...')
-		if db.checkadmin():
-			if templ is None:
-				fails=reload_views(name)
-			else:
-				fails = []
-				load_views(fails)
-			self.page = 'done<br/><h1>Fails:</h1><br/>%s' % '<br/>'.join(fails)
-		else:
-			self.page = 'fail miserably!!!'
-
-
-
-class TEST(emen2.web.view.View):
-	__metaclass__ = emen2.web.view.View.register_view
-	__matcher__ = '^/__db_test/$'
-	def __init__(self, db, **kwargs):
-
-		emen2.web.view.View.__init__(self, db=db, **kwargs)
-
-		self.set_context_item('title', 'testing')
-
-
-	def get_data(self):
-
-		return 'some data'
-
-	def __iter__(*args):
-
-		result = emen2.web.view.View.__iter__(*args)
-
-		return result
+# class _LaunchConsole(View):
+# 	import thread
+# 	__metaclass__ = emen2.web.view.View.register_view
+# 	__matcher__ = '^/__launch_console/$'
+# 	def __init__(self, db, **kwargs):
+# 		emen2.web.view.View.__init__(self, db=db, **kwargs)
+# 		self.set_context_item('title', 'blahb;ajb')
+# 		if db.checkadmin():
+# 			g.log.interact(globals())
+# 			self.page = 'done'
+# 		else:
+# 			self.page = 'fail'
+# 
+# 
+# class _ReloadViews(View):
+# 	import thread
+# 	__metaclass__ = emen2.web.view.View.register_view
+# 	__matcher__ = dict(main='^/__reload_views/$',
+# 								one='^/__reload_views/(?P<name>\w+)',
+# 								templ='^/(?P<templ>__reload_templates)')
+# 	def __init__(self, db,  name=None, templ=None, **kwargs):
+# 		emen2.web.view.View.__init__(self, db=db,**kwargs)
+# 		self.set_context_item('title', 'Reloading Views...')
+# 		if db.checkadmin():
+# 			if templ is None:
+# 				fails=reload_views(name)
+# 			else:
+# 				fails = []
+# 				load_views(fails)
+# 			self.page = 'done<br/><h1>Fails:</h1><br/>%s' % '<br/>'.join(fails)
+# 		else:
+# 			self.page = 'fail miserably!!!'
+# 
+# 
+# 
+# class TEST(emen2.web.view.View):
+# 	__metaclass__ = emen2.web.view.View.register_view
+# 	__matcher__ = '^/__db_test/$'
+# 	def __init__(self, db, **kwargs):
+# 
+# 		emen2.web.view.View.__init__(self, db=db, **kwargs)
+# 
+# 		self.set_context_item('title', 'testing')
+# 
+# 
+# 	def get_data(self):
+# 
+# 		return 'some data'
+# 
+# 	def __iter__(*args):
+# 
+# 		result = emen2.web.view.View.__iter__(*args)
+# 
+# 		return result

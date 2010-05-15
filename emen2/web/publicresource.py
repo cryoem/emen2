@@ -18,10 +18,10 @@ import emen2.Database.exceptions
 from authresource import render_security_error
 
 # Load our custom threadpool
-import emen2.ts
+import emen2.web.threadpool
 
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 
@@ -135,7 +135,7 @@ class PublicView(Resource):
 	redirects = {}
 	@classmethod
 	def getredirect(cls, name):
-		g.debug(cls.redirects)
+		# g.debug(cls.redirects)
 		redir = cls.redirects.get(name, False)
 		result = None
 		if redir != False:

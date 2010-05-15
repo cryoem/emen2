@@ -142,8 +142,8 @@ class MakoTemplateEngine(StandardTemplateEngine):
 
 
 #### template loading
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
 	if not hasattr(failures, 'append'): failures = []

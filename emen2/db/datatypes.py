@@ -1,8 +1,8 @@
 import re
 
 import emen2.Database.record
-import emen2.Database.globalns
-g = emen2.Database.globalns.GlobalNamespace()
+import emen2.Database.config
+g = emen2.Database.config.g()
 
 
 
