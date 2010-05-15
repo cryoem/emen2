@@ -121,7 +121,6 @@ class AuthResource(Resource):
 			"context": emen2.web.views.auth.CheckContext
 		}
 
-		print "auth act 2"
 
 		method = kwargs.get("method")
 		rcls = route.get(method)
@@ -130,7 +129,6 @@ class AuthResource(Resource):
 		host = kwargs.get('host')
 		success = True
 
-		print "auth act 3"
 
 		with db._setContext(ctxid, host):
 			p = rcls(db=db, **kwargs)

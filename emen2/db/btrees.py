@@ -271,9 +271,8 @@ class RelateBTree(BTree):
 			kt = 'd'
 			dt = 'd'
 
-
-		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=dt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
-		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=dt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
+		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
+		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
 
 
 

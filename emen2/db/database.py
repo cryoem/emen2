@@ -2623,8 +2623,8 @@ class DB(object):
 
 
 
-	@emen2.util.utils.return_many_or_single('username')
-	def __setuserstate(self, username, disabled, ctx=None, txn=None):
+	@emen2.util.utils.return_many_or_single('usernames')
+	def __setuserstate(self, usernames, disabled, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
 		state = bool(disabled)
@@ -2632,8 +2632,8 @@ class DB(object):
 		if not ctx.checkadmin():
 			raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
 
-		if not hasattr(username, "__iter__"):
-			usernames = [username]
+		if not hasattr(usernames, "__iter__"):
+			usernames = [usernames]
 
 		commitusers = []
 		for username in usernames:

@@ -72,12 +72,13 @@ class View(object):
 		'''
 
 		# try:
+		
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
 		self.__dbtree = None
-		if db is not None:
-			self.__dbtree = emen2.util.db_manipulation.DBTree(db)
+		#if db is not None:
+		self.__dbtree = emen2.util.db_manipulation.DBTree(db)
 
 		self.__template = template or self.template
 		self.__ctxt = adj_dict({}, extra)
@@ -106,11 +107,17 @@ class View(object):
 		init(**extra)
 		# finally: pass
 
+
 	def init(self, *_, **__):
 		'''define class specific initialization here'''
 
-	def is_raw(self): return self.__raw
-	def make_raw(self): self.__raw = True
+
+	def is_raw(self):
+		return self.__raw
+
+
+	def make_raw(self):
+		self.__raw = True
 
 	#### Output methods #####################################################################
 
