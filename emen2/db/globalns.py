@@ -1,3 +1,6 @@
+import emen2.Database.debug
+import collections
+import threading
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
 NOTE: access globals this way:
@@ -266,6 +269,6 @@ if __name__ == '__main__':
 
 
 
-g = GlobalNamespace
+g = GlobalNamespace()
 __version__ = "$Revision$".split(':')[1][:-1].strip()
 

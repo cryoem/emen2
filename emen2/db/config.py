@@ -148,4 +148,4 @@ class DBOptions(optparse.OptionParser):
 
 
 
-
+g = lambda: emen2.Database.globalns.g
