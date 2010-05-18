@@ -182,11 +182,11 @@ def adminmethod(func):
 			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
 
 	return _inner
-	
-	
-	
-	
-	
+
+
+
+
+
 
 class DB(object):
 	"""Main database class"""
@@ -196,7 +196,7 @@ class DB(object):
 	def __init_vtm():
 		"""Load vartypes, properties, and macros"""
 		pass
-		
+
 
 	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
 	@instonget
@@ -371,7 +371,7 @@ class DB(object):
 		This is usually called from the setup.py script to create initial db env"""
 
 		# typically uses SpecialRootContext
-		import skeleton
+		from emen2 import skeleton
 
 		ctx = self.__makerootcontext(txn=txn, host="localhost")
 
@@ -395,7 +395,7 @@ class DB(object):
 		for k,v in skeleton.core_recorddefs.children.items():
 			for v2 in v:
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
-				
+
 
 		for i in skeleton.core_users.items:
 			if i.get("username") == "root":
@@ -545,7 +545,7 @@ class DB(object):
 		"""Returns current version of API or specified program
 		@keyparam program Check version for this program (API, emen2client, etc.)
 		"""
-		
+
 		return VERSIONS.get(program)
 
 
@@ -556,7 +556,7 @@ class DB(object):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
 		@return DB time date string
 		"""
-		
+
 		return gettime()
 
 
@@ -2662,7 +2662,7 @@ class DB(object):
 		g.log.msg('LOG_INFO', "Users %s %s by %s"%(ret, t, ctx.username))
 
 		return ret
-		
+
 		#if len(ret)==1 and ol: return ret[0].username
 		# return [user.username for user in ret]
 
@@ -2691,7 +2691,7 @@ class DB(object):
 
 		# except emen2.Database.exceptions.SecurityError:
 		# 	raise
-		# 
+		#
 		# except BaseException, e:
 		# 	admin = False
 		# 	if secret is None:
@@ -2709,7 +2709,7 @@ class DB(object):
 		delusers, addusers, records, childstore = {}, {}, {}, {}
 
 		# Need to commit users before records will validate
-		
+
 		for username in usernames:
 			if not username in self.bdbs.newuserqueue.keys(txn=txn):
 				raise KeyError, "User %s is not pending approval" % username
@@ -2726,7 +2726,7 @@ class DB(object):
 			# if secret is not None and not user.validate_secret(secret):
 			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 			# 	time.sleep(2)
-			# 
+			#
 			# else:
 
 			# OK, add user
@@ -2880,7 +2880,7 @@ class DB(object):
 		user = emen2.Database.user.User(username=username, password=password, email=email)
 		user.setContext(ctx)
 		return user
-		
+
 
 
 	# ian: removed.
@@ -3109,7 +3109,7 @@ class DB(object):
 		# Are we looking for users referenced in records?
 		recs = [x for x in usernames if isinstance(x, emen2.Database.record.Record)]
 		rec_ints = [x for x in usernames if isinstance(x, int)]
-		
+
 		if rec_ints:
 			recs.extend(self.getrecord(rec_ints, filt=True, ctx=ctx, txn=txn))
 
@@ -3139,7 +3139,7 @@ class DB(object):
 				user = emen2.Database.user.User(username=user.username, email=user.email, password='123456')
 				user.email = None
 				user.password = None
-				
+
 			# Anonymous users cannot use this to extract email addresses
 			if ctx.username == "anonymous":
 				user.email = None
@@ -3634,8 +3634,8 @@ class DB(object):
 		pd = emen2.Database.paramdef.ParamDef()
 		pd.setContext(ctx)
 		return pd
-		
-		
+
+
 
 	# ian: renamed addparamdef -> putparamdef for consistency
 	#@rename db.paramdefs.put
@@ -3871,8 +3871,8 @@ class DB(object):
 		rd = emen2.Database.recorddef.RecordDef()
 		rd.setContext(ctx)
 		return rd
-		
-		
+
+
 
 	#@rename db.recorddefs.put
 	@publicmethod

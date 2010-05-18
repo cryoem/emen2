@@ -72,11 +72,19 @@ class DBOptions(optparse.OptionParser):
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
+		print g.DB_HOME
 		DB_HOME = g.DB_HOME
+		def fix_paths():
+			# Process relative/absolute path names in 'paths'
+			for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
+				print g.getattr(i)
+				if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
+					g.setattr(i, '/%s' % g.getattr(i))
 
 		# Look for any DB_HOME-specific config files and load
 		try:
 			g.from_yaml(os.path.join(DB_HOME, "config.yml"))
+			g.DB_HOME = DB_HOME
 		except:
 			pass
 
@@ -148,4 +156,5 @@ class DBOptions(optparse.OptionParser):
 
 
 
-g = lambda: emen2.Database.globalns.g
+gg = emen2.Database.globalns.GlobalNamespace()
+g = lambda: gg
