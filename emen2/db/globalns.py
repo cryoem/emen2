@@ -1,6 +1,13 @@
 import emen2.Database.debug
 import collections
 import threading
+try:
+	import yaml
+except ImportError:
+	try: import syck as yaml
+	except ImportError:
+		yaml = False
+import os
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
 NOTE: access globals this way:
