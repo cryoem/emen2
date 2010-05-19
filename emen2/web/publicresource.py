@@ -18,7 +18,7 @@ import emen2.Database.exceptions
 from authresource import render_security_error
 
 # Load our custom threadpool
-import emen2.web.threadpool
+import emen2.subsystems.threadpool
 
 import emen2.Database.config
 g = emen2.Database.config.g()
