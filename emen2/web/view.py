@@ -46,7 +46,7 @@ class _LaunchConsole(view.View):
 	__metaclass__ = view.View.register_view
 	__matcher__ = '^/__launch_console/$'
 	def __init__(self, db, **kwargs):
-		View.__init__(self, db=db, **kwargs)
+		view.View.__init__(self, db=db, **kwargs)
 		self.set_context_item('title', 'blahb;ajb')
 		if db.checkadmin():
 			g.log.interact(globals())

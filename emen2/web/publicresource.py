@@ -12,7 +12,7 @@ from twisted.web.resource import Resource
 from twisted.web.static import server
 
 # emen2 imports
-import emen2.web.routing
+import emen2.subsystems.routing
 import emen2.web.responsecodes
 import emen2.Database.exceptions
 from authresource import render_security_error
