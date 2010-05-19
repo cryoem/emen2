@@ -13,7 +13,7 @@ from twisted.web.static import server
 
 # emen2 imports
 import emen2.subsystems.routing
-import emen2.web.responsecodes
+from emen2.subsystems import responsecodes
 import emen2.Database.exceptions
 from authresource import render_security_error
 
@@ -208,7 +208,7 @@ class PublicView(Resource):
 			# Redirect if necessary
 			if target is not None:
 				g.log.msg('LOG_INFO', 'redirected %r to %r' % (request.uri, target))
-				raise emen2.web.responsecodes.HTTPMovedPermanently('', target)
+				raise responsecodes.HTTPMovedPermanently('', target)
 
 
 			# Parse args and get View class
@@ -309,7 +309,7 @@ class PublicView(Resource):
 				response = 401
 				data = render_security_error(request.uri, e)
 
-			except emen2.web.responsecodes.HTTPResponseCode, e:
+			except responsecodes.HTTPResponseCode, e:
 				response = e.code
 				if e.msg:
 					data = self.router['TemplateRender'](data='/errors/resp', title=e.title or e.__class__.__name__, msg=e.msg)
