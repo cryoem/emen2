@@ -37,6 +37,12 @@ class GlobalNamespace(object):
 	__all__ = []
 	def __init__(self,_=None):pass
 
+	def fixpath(self, v):
+		if not v: return
+		if not v.startswith("/"): return os.path.join(self.DB_HOME, v)
+		return v
+
+
 
 
 
@@ -61,10 +67,14 @@ class GlobalNamespace(object):
 			return
 
 		print "Loading config: %s"%fn
+		self.DB_HOME = self.getattr('DB_HOME', data.get('DB_HOME', ''))
+		print 'DB_HOME set', self.DB_HOME
 
-		cf = map(self.fixpath, data.get('paths',dict()).get('configfiles'))
-		if cf:
-			data['paths']['configfiles'] = cf
+		# Process relative/absolute path names in 'paths'
+		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
+			v = data.get('paths',dict()).get(i)
+			if v:
+				data['paths'][i] = self.fixpath(v)
 
 		bf = data.get('paths',dict()).get('BINARYPATH', dict())
 		if bf:
