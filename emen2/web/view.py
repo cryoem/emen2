@@ -15,7 +15,7 @@ import emen2.db.config
 g = emen2.Database.config.g()
 
 
-import emen2.web.templating
+from emen2.subsystems import templating
 
 
 class _LaunchConsole(View):

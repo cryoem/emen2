@@ -2,7 +2,7 @@ import urllib2
 import emen2.util.datastructures
 #import emen2.db
 
-from emen2.web.routing import URLRegistry
+from emen2.subsystems.routing import URLRegistry
 
 import emen2.db.config
 g = emen2.db.config.g()

@@ -12,7 +12,7 @@ from twisted.web.resource import Resource
 from twisted.web.static import server
 
 # emen2 imports
-import emen2.web.routing
+from emen2.subsystems import routing
 from emen2.web import responsecodes
 import emen2.db.exceptions
 from authresource import render_security_error
@@ -28,7 +28,7 @@ g = emen2.db.config.g()
 class PublicView(Resource):
 
 	isLeaf = True
-	router = emen2.web.routing.URLRegistry()
+	router = routing.URLRegistry()
 	special_keys = set(["db","host","user","ctxid", "username", "pw"])
 
 	def __init__(self):
@@ -140,7 +140,7 @@ class PublicView(Resource):
 		result = None
 		if redir != False:
 			to, args, kwargs = redir
-			result = emen2.web.routing.URLRegistry.reverselookup(to, *args, **kwargs)
+			result = routing.URLRegistry.reverselookup(to, *args, **kwargs)
 		return result
 
 
@@ -213,7 +213,7 @@ class PublicView(Resource):
 
 			# Parse args and get View class
 			args = self.__parse_args(request.args, content=content)
-			callback = emen2.web.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
+			callback = routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
 
 			d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path, method=request.method)
 			d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
