@@ -5,14 +5,14 @@ import random
 import re
 import weakref
 
-import emen2.Database.exceptions
-import emen2.Database.dataobject
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.exceptions
+import emen2.db.dataobject
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
-class User(emen2.Database.dataobject.BaseDBObject):
+class User(emen2.db.dataobject.BaseDBObject):
 	"""
 	User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.getuser by checking an index. If available during db.getuser, a copy of the profile record and the user's "displayname" will also be set.
 	
@@ -98,8 +98,8 @@ class User(emen2.Database.dataobject.BaseDBObject):
 
 	def checkpassword(self, password):
 		if self.disabled:
-			exception = (emen2.Database.exceptions.DisabledUserError,
-						emen2.Database.exceptions.DisabledUserError.__doc__ % self.username)
+			exception = (emen2.db.exceptions.DisabledUserError,
+						emen2.db.exceptions.DisabledUserError.__doc__ % self.username)
 			raise exception[0], exception[1]
 
 		result = False
@@ -119,7 +119,7 @@ class User(emen2.Database.dataobject.BaseDBObject):
 		if self.checkpassword(oldpassword):
 			self.__setpassword(newpassword)
 		else:
-			raise emen2.Database.exceptions.SecurityError, "Invalid password"
+			raise emen2.db.exceptions.SecurityError, "Invalid password"
 
 
 	def __setpassword(self, newpassword):

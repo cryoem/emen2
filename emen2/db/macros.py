@@ -1,10 +1,10 @@
-import emen2.Database.datatypes
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.datatypes
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 # Convenience
-Macro = emen2.Database.datatypes.Macro
+Macro = emen2.db.datatypes.Macro
 
 
 

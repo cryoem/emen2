@@ -1,10 +1,10 @@
 import math
 
-import emen2.Database.datatypes
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.datatypes
+import emen2.db.config
+g = emen2.db.config.g()
 
-Property = emen2.Database.datatypes.Property
+Property = emen2.db.datatypes.Property
 
 
 

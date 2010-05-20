@@ -6,8 +6,8 @@ import weakref
 import collections
 import array
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 try:
 	import emen2.indexwrapper.bulk
@@ -152,7 +152,7 @@ class BTree(object):
 
 
 	def __str__(self):
-		return "<emen2.Database.btrees2.BTree instance: %s>"%self.filename
+		return "<emen2.db.btrees2.BTree instance: %s>"%self.filename
 
 
 	def __del__(self):
@@ -278,7 +278,7 @@ class RelateBTree(BTree):
 
 
 	def __str__(self):
-		return "<emen2.Database.btrees2.RelateBTree instance: %s>"%self.filename
+		return "<emen2.db.btrees2.RelateBTree instance: %s>"%self.filename
 
 
 	def get_max(self, txn=None):

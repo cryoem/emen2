@@ -15,9 +15,9 @@ from urllib import quote
 
 # emen2 imports
 import emen2.util.listops
-import emen2.Database.exceptions
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.exceptions
+import emen2.db.config
+g = emen2.db.config.g()
 
 import emen2.web.views.auth
 

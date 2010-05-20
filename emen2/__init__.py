@@ -1,4 +1,4 @@
-import Database.proxy
-def db():
-	return Database.proxy.DBProxy()
+import db.proxy
+def opendb():
+	return db.proxy.DBProxy()
 

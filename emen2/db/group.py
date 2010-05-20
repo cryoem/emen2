@@ -5,15 +5,15 @@ import random
 import re
 import weakref
 
-#import emen2.Database
-import emen2.Database.exceptions
-import emen2.Database.config
-g = emen2.Database.config.g()
+#import emen2.db
+import emen2.db.exceptions
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
 # ian: todo: upgrade to BaseDBObject
-class Group(emen2.Database.dataobject.BaseDBObject):
+class Group(emen2.db.dataobject.BaseDBObject):
 	"""Groups of users. These can be set in individual Records to provide access to members of a group.
 	
 	@attr name
@@ -44,7 +44,7 @@ class Group(emen2.Database.dataobject.BaseDBObject):
 		if self._ctx:
 			self.creator = self._ctx.username
 			self.adduser(self.creator, level=3)
-			self.creationtime = emen2.Database.database.gettime()
+			self.creationtime = emen2.db.database.gettime()
 
 
 	def getlevel(self, user):
@@ -181,7 +181,7 @@ class Group(emen2.Database.dataobject.BaseDBObject):
 
 	def validate(self, orec=None, warning=False, txn=None):
 		if not self.isowner():
-			raise emen2.Database.exceptions.SecurityError, "Not authorized to change group: %s"%self.name
+			raise emen2.db.exceptions.SecurityError, "Not authorized to change group: %s"%self.name
 
 		allusernames = self._ctx.db.getusernames(ctx=self._ctx, txn=txn)
 		if self.members() - allusernames:

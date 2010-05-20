@@ -11,20 +11,20 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 
 # emen2 imports
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 import UserDict, collections
 collections.Mapping.register(UserDict.DictMixin)
 
 
-#import emen2.Database
+#import emen2.db
 import emen2.util.utils
-import emen2.Database.record
-import emen2.Database.recorddef
-import emen2.Database.paramdef
-import emen2.Database.user
+import emen2.db.record
+import emen2.db.recorddef
+import emen2.db.paramdef
+import emen2.db.user
 
 
 
@@ -109,10 +109,10 @@ class jsonrpc(Resource):
 
 
 	typemapping = {
-		emen2.Database.record.Record: 'record',
-		emen2.Database.recorddef.RecordDef: 'recorddef',
-		emen2.Database.paramdef.ParamDef: 'paramdef',
-		emen2.Database.user.User: 'user',
+		emen2.db.record.Record: 'record',
+		emen2.db.recorddef.RecordDef: 'recorddef',
+		emen2.db.paramdef.ParamDef: 'paramdef',
+		emen2.db.user.User: 'user',
 		set: 'set',
 		tuple: 'tuple',
 	}

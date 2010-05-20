@@ -12,23 +12,23 @@ from twisted.web.resource import Resource
 from twisted.web.static import server
 
 # emen2 imports
-import emen2.subsystems.routing
-from emen2.subsystems import responsecodes
-import emen2.Database.exceptions
+import emen2.web.routing
+from emen2.web import responsecodes
+import emen2.db.exceptions
 from authresource import render_security_error
 
 # Load our custom threadpool
-import emen2.subsystems.threadpool
+import emen2.web.threadpool
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
 class PublicView(Resource):
 
 	isLeaf = True
-	router = emen2.subsystems.routing.URLRegistry()
+	router = emen2.web.routing.URLRegistry()
 	special_keys = set(["db","host","user","ctxid", "username", "pw"])
 
 	def __init__(self):
@@ -140,7 +140,7 @@ class PublicView(Resource):
 		result = None
 		if redir != False:
 			to, args, kwargs = redir
-			result = emen2.subsystems.routing.URLRegistry.reverselookup(to, *args, **kwargs)
+			result = emen2.web.routing.URLRegistry.reverselookup(to, *args, **kwargs)
 		return result
 
 
@@ -213,7 +213,7 @@ class PublicView(Resource):
 
 			# Parse args and get View class
 			args = self.__parse_args(request.args, content=content)
-			callback = emen2.subsystems.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
+			callback = emen2.web.routing.URLRegistry().execute(path, method=request.method, fallback='GET', **args)
 
 			d = threads.deferToThread(self._action, callback, ctxid=ctxid, host=host, path=path, method=request.method)
 			d.addCallback(self._cbsuccess, request, t=time.time(), ctxid=ctxid, host=host)
@@ -298,14 +298,14 @@ class PublicView(Resource):
 					raise
 				else: failure.raiseException()
 
-			except (emen2.Database.exceptions.AuthenticationError,
-					emen2.Database.exceptions.SessionError,
-					emen2.Database.exceptions.DisabledUserError), e:
+			except (emen2.db.exceptions.AuthenticationError,
+					emen2.db.exceptions.SessionError,
+					emen2.db.exceptions.DisabledUserError), e:
 						request.addCookie("ctxid", '', path='/')
 						response = 401
 						data = render_security_error(request.uri, e)
 
-			except (emen2.Database.exceptions.SecurityError), e:
+			except (emen2.db.exceptions.SecurityError), e:
 				response = 401
 				data = render_security_error(request.uri, e)
 

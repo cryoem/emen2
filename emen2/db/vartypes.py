@@ -1,12 +1,12 @@
 import cgi
 
-import emen2.Database.datatypes
+import emen2.db.datatypes
 import emen2.util.parse_datetime
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 # convenience
-Vartype = emen2.Database.datatypes.Vartype
+Vartype = emen2.db.datatypes.Vartype
 
 def quote_html(func):
 	return func

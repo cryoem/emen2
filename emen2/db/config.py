@@ -9,8 +9,8 @@ import urlparse
 import demjson
 import yaml
 
-import emen2.Database.debug
-from emen2.Database.globalns import GlobalNamespace
+import emen2.db.debug
+from emen2.db.globalns import GlobalNamespace
 
 
 def get_filename(package, resource):
@@ -55,7 +55,7 @@ class DBOptions(optparse.OptionParser):
 	def load_config(self, **kw):
 
 		# Default settings
-		default_config = get_filename('emen2', 'Database/config.base.yml')
+		default_config = get_filename('emen2', 'db/config.base.yml')
 
 		# Find DB_HOME and set to g.DB_HOME
 		DB_HOME = os.getenv("DB_HOME")
@@ -133,7 +133,7 @@ class DBOptions(optparse.OptionParser):
 		g.LOG_INFO = g.log.debugstates.LOG_INFO
 		g.LOG_DEBUG = g.log.debugstates.LOG_DEBUG
 
-		g.log = emen2.Database.debug.DebugState(output_level=self.values.loglevel,
+		g.log = emen2.db.debug.DebugState(output_level=self.values.loglevel,
 											logfile=file(g.LOGPATH + '/log.log', 'a', 0),
 											get_state=False,
 											quiet = self.values.quiet)
@@ -147,7 +147,7 @@ class DBOptions(optparse.OptionParser):
 		g.debug_func = g.log.debug_func
 
 
-		g.log.add_output(['LOG_WEB'], emen2.Database.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
+		g.log.add_output(['LOG_WEB'], emen2.db.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 
 
@@ -156,5 +156,5 @@ class DBOptions(optparse.OptionParser):
 
 
 
-gg = emen2.Database.globalns.GlobalNamespace()
+gg = emen2.db.globalns.GlobalNamespace()
 g = lambda: gg

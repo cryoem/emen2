@@ -20,8 +20,8 @@ import weakref
 import getpass
 import functools
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 try:
 	import matplotlib.backends.backend_agg
@@ -32,43 +32,43 @@ except:
 try:
 	g.CONFIG_LOADED
 except:
-	emen2.Database.config.defaults()
+	emen2.db.config.defaults()
 
 import emen2.util.utils
 
-import emen2.Database.proxy
-import emen2.Database.flags
-import emen2.Database.validators
-import emen2.Database.dataobject
-import emen2.Database.datatypes
-import emen2.Database.btrees
-import emen2.Database.datatypes
-import emen2.Database.exceptions
+import emen2.db.proxy
+import emen2.db.flags
+import emen2.db.validators
+import emen2.db.dataobject
+import emen2.db.datatypes
+import emen2.db.btrees
+import emen2.db.datatypes
+import emen2.db.exceptions
 
-import emen2.Database.vartypes
-import emen2.Database.macros
-import emen2.Database.properties
+import emen2.db.vartypes
+import emen2.db.macros
+import emen2.db.properties
 
-import emen2.Database.record
-import emen2.Database.binary
-import emen2.Database.paramdef
-import emen2.Database.recorddef
-import emen2.Database.user
-import emen2.Database.context
-import emen2.Database.group
-import emen2.Database.workflow
+import emen2.db.record
+import emen2.db.binary
+import emen2.db.paramdef
+import emen2.db.recorddef
+import emen2.db.user
+import emen2.db.context
+import emen2.db.group
+import emen2.db.workflow
 
 
 # convenience
-Record = emen2.Database.record.Record
-Binary = emen2.Database.binary.Binary
-Context = emen2.Database.context.Context
-ParamDef = emen2.Database.paramdef.ParamDef
-RecordDef = emen2.Database.recorddef.RecordDef
-User = emen2.Database.user.User
-Group = emen2.Database.group.Group
-WorkFlow = emen2.Database.workflow.WorkFlow
-proxy = emen2.Database.proxy
+Record = emen2.db.record.Record
+Binary = emen2.db.binary.Binary
+Context = emen2.db.context.Context
+ParamDef = emen2.db.paramdef.ParamDef
+RecordDef = emen2.db.recorddef.RecordDef
+User = emen2.db.user.User
+Group = emen2.db.group.Group
+WorkFlow = emen2.db.workflow.WorkFlow
+proxy = emen2.db.proxy
 
 
 # import extensions
@@ -159,7 +159,7 @@ def gettime():
 # Wrapper methods for public API and admin API methods
 def publicmethod(func):
 	"""Decorator for public API database method"""
-	emen2.Database.proxy.DBProxy._register_publicmethod(func.func_name, func)
+	emen2.db.proxy.DBProxy._register_publicmethod(func.func_name, func)
 	return func
 
 
@@ -168,18 +168,18 @@ def adminmethod(func):
 	"""Decorator for public admin API database method"""
 
 	if not func.func_name.startswith('_'):
-		emen2.Database.proxy.DBProxy._register_adminmethod(func.func_name, func)
+		emen2.db.proxy.DBProxy._register_adminmethod(func.func_name, func)
 
 	@functools.wraps(func)
 	def _inner(*args, **kwargs):
 		ctx = kwargs.get('ctx')
 		if ctx is None:
-			ctx = [x for x in args is isinstance(x, emen2.Database.user.User)] or None
+			ctx = [x for x in args is isinstance(x, emen2.db.user.User)] or None
 			if ctx is not None: ctx = ctx.pop()
 		if ctx.checkadmin():
 			return func(*args, **kwargs)
 		else:
-			raise emen2.Database.exceptions.SecurityError, 'No Admin Priviliges'
+			raise emen2.db.exceptions.SecurityError, 'No Admin Priviliges'
 
 	return _inner
 
@@ -207,28 +207,28 @@ class DB(object):
 			old = set(self.__dict__)
 
 			# Security items
-			self.newuserqueue = emen2.Database.btrees.BTree(filename="security/newuserqueue", dbenv=dbenv, txn=txn)
-			self.contexts = emen2.Database.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
-			self.users = emen2.Database.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
-			self.groups = emen2.Database.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
+			self.newuserqueue = emen2.db.btrees.BTree(filename="security/newuserqueue", dbenv=dbenv, txn=txn)
+			self.contexts = emen2.db.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
+			self.users = emen2.db.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
+			self.groups = emen2.db.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
 
 
 			# Main database items
-			self.bdocounter = emen2.Database.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
-			self.workflow = emen2.Database.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
+			self.bdocounter = emen2.db.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
+			self.workflow = emen2.db.btrees.BTree(filename="main/workflow", dbenv=dbenv, txn=txn)
 
-			self.paramdefs = emen2.Database.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
-			self.recorddefs = emen2.Database.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
-			self.records = emen2.Database.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
+			self.paramdefs = emen2.db.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
+			self.recorddefs = emen2.db.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
+			self.records = emen2.db.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
 
 
 			# Indices
-			self.secrindex = emen2.Database.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
-			self.secrindex_groups = emen2.Database.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
-			self.groupsbyuser = emen2.Database.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
-			self.recorddefindex = emen2.Database.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
-			self.bdosbyfilename = emen2.Database.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
-			self.indexkeys = emen2.Database.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
+			self.secrindex = emen2.db.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.secrindex_groups = emen2.db.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
+			self.groupsbyuser = emen2.db.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
+			self.recorddefindex = emen2.db.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
+			self.bdosbyfilename = emen2.db.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
+			self.indexkeys = emen2.db.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
 
 
 			self.bdbs = set(self.__dict__) - old
@@ -255,7 +255,7 @@ class DB(object):
 				txn = self.__db.newtxn()
 				deltxn = True
 			try:
-				self.fieldindex[paramname] = emen2.Database.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
+				self.fieldindex[paramname] = emen2.db.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
 			except BaseException, e:
 				# g.debug('openparamindex failed: %s' % e)
 				if deltxn: self.__db.txnabort(txn=txn)
@@ -296,7 +296,7 @@ class DB(object):
 
 		# VartypeManager handles registration of vartypes and properties, and also validation
 		self.__init_vtm()
-		self.vtm = emen2.Database.datatypes.VartypeManager()
+		self.vtm = emen2.db.datatypes.VartypeManager()
 		self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
 		self.__cache_vartype_indextype = {}
 		for vt in self.vtm.getvartypes():
@@ -313,7 +313,7 @@ class DB(object):
 				os.makedirs(os.path.join(self.path, path))
 
 		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")):
-			infile = emen2.Database.config.get_filename('emen2', 'examples/DB_CONFIG.sample')
+			infile = emen2.db.config.get_filename('emen2', 'examples/DB_CONFIG.sample')
 			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
 
@@ -367,7 +367,7 @@ class DB(object):
 
 
 	def create_db(self, rootpw=None, ctx=None, txn=None):
-		"""Creates a skeleton database; imports users/params/protocols/etc. from Database/skeleton/core_*
+		"""Creates a skeleton database; imports users/params/protocols/etc. from emen2/skeleton/core_*
 		This is usually called from the setup.py script to create initial db env"""
 
 		# typically uses SpecialRootContext
@@ -435,9 +435,9 @@ class DB(object):
 	def close(self):
 		"""Close DB"""
 
-		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(emen2.Database.btrees.BTree.alltrees)))
+		g.log.msg('LOG_DEBUG', "Closing %d BDB databases"%(len(emen2.db.btrees.BTree.alltrees)))
 		try:
-			for i in emen2.Database.btrees.BTree.alltrees.keys():
+			for i in emen2.db.btrees.BTree.alltrees.keys():
 				i.close()
 		except Exception, inst:
 			g.log.msg('LOG_ERROR', inst)
@@ -596,13 +596,13 @@ class DB(object):
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_ERROR', "Invalid username or password")
-				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
+				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
 				g.log.msg('LOG_ERROR', "Invalid username or password")
-				raise emen2.Database.exceptions.AuthenticationError, emen2.Database.exceptions.AuthenticationError.__doc__
+				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 		try:
 			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
@@ -673,9 +673,9 @@ class DB(object):
 		@return Context instance
 		"""
 		if username == "anonymous":
-			ctx = emen2.Database.context.AnonymousContext(host=host)
+			ctx = emen2.db.context.AnonymousContext(host=host)
 		else:
-			ctx = emen2.Database.context.Context(username=username, host=host)
+			ctx = emen2.db.context.Context(username=username, host=host)
 
 		return ctx
 
@@ -684,7 +684,7 @@ class DB(object):
 	def __makerootcontext(self, ctx=None, host=None, txn=None):
 		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
 
-		ctx = emen2.Database.context.SpecialRootContext()
+		ctx = emen2.db.context.SpecialRootContext()
 		ctx.refresh(db=self, txn=txn)
 		ctx._setDBProxy(txn=txn)
 		return ctx
@@ -706,7 +706,7 @@ class DB(object):
 			user.setContext(ctx=ctx)
 		except:
 			raise
-			raise emen2.Database.exceptions.AuthenticationError, 'No such user' #emen2.Database.exceptions.AuthenticationError.__doc__
+			raise emen2.db.exceptions.AuthenticationError, 'No such user' #emen2.db.exceptions.AuthenticationError.__doc__
 		return user
 
 
@@ -811,7 +811,7 @@ class DB(object):
 
 		if not context:
 			g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
-			raise emen2.Database.exceptions.SessionError, "Session expired: %s"%(ctxid)
+			raise emen2.db.exceptions.SessionError, "Session expired: %s"%(ctxid)
 
 		user = None
 		grouplevels = {}
@@ -873,7 +873,7 @@ class DB(object):
 			ol=1
 			bids = [bdokeys]
 			# bdokeys = bids
-		elif isinstance(bdokeys,(int,emen2.Database.record.Record)):
+		elif isinstance(bdokeys,(int,emen2.db.record.Record)):
 			bdokeys = [bdokeys]
 
 		# ian: todo: fix this in a sane way..
@@ -882,7 +882,7 @@ class DB(object):
 
 		# If we're doing any record lookups...
 		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=True, ctx=ctx, txn=txn))
-		recs.extend(x for x in bdokeys if isinstance(x,emen2.Database.record.Record))
+		recs.extend(x for x in bdokeys if isinstance(x,emen2.db.record.Record))
 
 		if recs:
 			# get the params we're looking for
@@ -910,7 +910,7 @@ class DB(object):
 		bids = filter(lambda x:x[:4]=="bdo:", bids)
 
 		# This resolves path references and parses out dates, id #, etc.
-		parsed = [emen2.Database.binary.Binary.parse(bdokey) for bdokey in bids]
+		parsed = [emen2.db.binary.Binary.parse(bdokey) for bdokey in bids]
 
 		for k in parsed:
 			bydatekey[k["datekey"]].append(k)
@@ -971,7 +971,7 @@ class DB(object):
 			raise ValueError, "Filename required"
 
 		if (bdokey or recid == None) and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
+			raise emen2.db.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
 
 		# ian: todo: medium: acquire RMW lock on record? (will need to not use self.getrecord.. hmm.)
 		# ed: probably, we could abstract a private method (or just add a new argument to the current
@@ -980,7 +980,7 @@ class DB(object):
 		if not bdokey:
 			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 			if not rec.writable():
-				raise emen2.Database.exceptions.SecurityError, "Write permission needed on referenced record."
+				raise emen2.db.exceptions.SecurityError, "Write permission needed on referenced record."
 
 
 		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
@@ -1025,7 +1025,7 @@ class DB(object):
 		@exception SecurityError
 		"""
 
-		dkey = emen2.Database.binary.Binary.parse(bdokey)
+		dkey = emen2.db.binary.Binary.parse(bdokey)
 
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
@@ -1038,17 +1038,17 @@ class DB(object):
 
 		if dkey["counter"] == 0:
 			counter = max(bdo.keys() or [-1]) + 1
-			dkey = emen2.Database.binary.Binary.parse(bdokey, counter=counter)
+			dkey = emen2.db.binary.Binary.parse(bdokey, counter=counter)
 
 
 		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only admin may overwrite existing BDO"
+			raise emen2.db.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 
 		# Try and write the file before we commit..
 		filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
-		nb = emen2.Database.binary.Binary()
+		nb = emen2.db.binary.Binary()
 		nb.update(
 			uri=uri,
 			filename=filename,
@@ -1101,7 +1101,7 @@ class DB(object):
 		if os.access(filepath, os.F_OK) and not ctx.checkadmin():
 			# should be a different exception class, this particular one seems irrevelant as it is not really a security
 			# but an integrity problem.
-			raise emen2.Database.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
+			raise emen2.db.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
 
 		m = hashlib.md5()
@@ -1132,7 +1132,7 @@ class DB(object):
 	def getbinarynames(self, ctx=None, txn=None):
 		"""Get a list of all binaries."""
 		if ctx.username == None:
-			raise emen2.Database.exceptions.SecurityError, "getbinarynames not available to anonymous users"
+			raise emen2.db.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
 		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
 		ret = reduce(set.union, ret, set())
@@ -1266,7 +1266,7 @@ class DB(object):
 	def __query_index(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
-		vtm = emen2.Database.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager()
 		subsets = []
 		subsets_by_value = {}
 
@@ -1328,7 +1328,7 @@ class DB(object):
 	def __query_recs(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
 		"""(Internal) record-based search. See DB.query()"""
 
-		vtm = emen2.Database.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager()
 		subsets = []
 		subsets_by_value = {}
 		recs = self.getrecord(subset, filt=True, ctx=ctx, txn=txn)
@@ -2107,7 +2107,7 @@ class DB(object):
 		"""
 
 		if ctx.username == None:
-			raise emen2.Database.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
+			raise emen2.db.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
 
 		try:
 			paramindex = self.__getparamindex(param, create=0, ctx=ctx, txn=txn)
@@ -2145,7 +2145,7 @@ class DB(object):
 	# 		username = ctx.username
 	#
 	# 	if ctx.username != username and not ctx.checkreadadmin():
-	# 		raise emen2.Database.exceptions.SecurityError, "Not authorized to get record access for %s" % username
+	# 		raise emen2.db.exceptions.SecurityError, "Not authorized to get record access for %s" % username
 	#
 	# 	return self.bdbs.secrindex.get(username, set(), txn=txn)
 
@@ -2210,7 +2210,7 @@ class DB(object):
 		if len(recids) == 0:
 			return {}
 
-		if (len(recids) < 1000) or (isinstance(list(recids)[0],emen2.Database.record.Record)):
+		if (len(recids) < 1000) or (isinstance(list(recids)[0],emen2.db.record.Record)):
 			return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 		# we need to work with a copy becuase we'll be changing it;
@@ -2242,7 +2242,7 @@ class DB(object):
 	def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
 		"""(Internal) Sometimes it's quicker to just get the records and filter, than to check all the indexes"""
 
-		if not isinstance(list(records)[0],emen2.Database.record.Record):
+		if not isinstance(list(records)[0],emen2.db.record.Record):
 			records = self.getrecord(records, filt=1, ctx=ctx, txn=txn)
 
 		ret={}
@@ -2471,7 +2471,7 @@ class DB(object):
 			raise Exception, "Invalid relationship mode %s"%mode
 
 		if not ctx.checkcreate():
-			raise emen2.Database.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
+			raise emen2.db.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
 		if filter(lambda x:x[0] == x[1], links):
 			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
@@ -2499,7 +2499,7 @@ class DB(object):
 			recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
 			for a,b in links:
 				if not (admin or (recs[a].writable() or recs[b].writable())):
-					raise emen2.Database.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
+					raise emen2.db.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 		elif keytype == "paramdef":
 			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
@@ -2632,7 +2632,7 @@ class DB(object):
 		state = bool(disabled)
 
 		if not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only administrators can disable users"
+			raise emen2.db.exceptions.SecurityError, "Only administrators can disable users"
 
 		if not hasattr(usernames, "__iter__"):
 			usernames = [usernames]
@@ -2687,9 +2687,9 @@ class DB(object):
 
 		# if (secret == None) and (not admin):
 		if not admin:
-			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
+			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
-		# except emen2.Database.exceptions.SecurityError:
+		# except emen2.db.exceptions.SecurityError:
 		# 	raise
 		#
 		# except BaseException, e:
@@ -2806,7 +2806,7 @@ class DB(object):
 		"""
 
 		if not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
+			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
 		ol = 0
 		if not hasattr(usernames,"__iter__"):
@@ -2844,7 +2844,7 @@ class DB(object):
 		"""
 
 		if not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only administrators can approve new users"
+			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
 		return self.bdbs.newuserqueue.keys(txn=txn)
 
@@ -2862,7 +2862,7 @@ class DB(object):
 		"""
 
 		if not ctx.checkreadadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only administrators can access pending users"
+			raise emen2.db.exceptions.SecurityError, "Only administrators can access pending users"
 
 		if hasattr(username,"__iter__"):
 			ret={}
@@ -2877,7 +2877,7 @@ class DB(object):
 
 	@publicmethod
 	def newuser(self, username, password, email, ctx=None, txn=None):
-		user = emen2.Database.user.User(username=username, password=password, email=email)
+		user = emen2.db.user.User(username=username, password=password, email=email)
 		user.setContext(ctx)
 		return user
 
@@ -2892,14 +2892,14 @@ class DB(object):
 	# 	@param user Updated user instance
 	# 	"""
 	#
-	# 	if not isinstance(user, emen2.Database.user.User):
+	# 	if not isinstance(user, emen2.db.user.User):
 	# 		try:
-	# 			user = emen2.Database.user.User(user, ctx=ctx)
+	# 			user = emen2.db.user.User(user, ctx=ctx)
 	# 		except:
 	# 			raise ValueError, "User instance or dict required"
 	#
 	# 	if not ctx.checkadmin():
-	# 		raise emen2.Database.exceptions.SecurityError, "Only administrators may add/modify users with this method"
+	# 		raise emen2.db.exceptions.SecurityError, "Only administrators may add/modify users with this method"
 	#
 	# 	user.validate()
 	#
@@ -2926,7 +2926,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 		else:
 			username = ctx.username
 
@@ -2940,7 +2940,7 @@ class DB(object):
 		commitusers = []
 
 		if username != ctx.username and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Cannot set another user's privacy"
+			raise emen2.db.exceptions.SecurityError, "Cannot set another user's privacy"
 
 		user = self.getuser(username, ctx=ctx, txn=txn)
 		user.privacy = state
@@ -2963,7 +2963,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
 		else:
 			username = ctx.username
 
@@ -2973,7 +2973,7 @@ class DB(object):
 		user.setContext(ctx)
 
 		if not user:
-			raise emen2.Database.exceptions.SecurityError, "Cannot change password for user '%s'"%username
+			raise emen2.db.exceptions.SecurityError, "Cannot change password for user '%s'"%username
 
 		try:
 			user.setpassword(oldpassword, newpassword)
@@ -2999,7 +2999,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.Database.exceptions.SecurityError, "Cannot attempt to set other user's email"
+				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's email"
 		else:
 			username = ctx.username
 
@@ -3027,7 +3027,7 @@ class DB(object):
 		"""
 
 		try:
-			user = emen2.Database.user.User(user, ctx=ctx)
+			user = emen2.db.user.User(user, ctx=ctx)
 		except Exception, inst:
 			raise ValueError, "User instance or dict required (%s)"%inst
 
@@ -3107,7 +3107,7 @@ class DB(object):
 			usernames = [usernames]
 
 		# Are we looking for users referenced in records?
-		recs = [x for x in usernames if isinstance(x, emen2.Database.record.Record)]
+		recs = [x for x in usernames if isinstance(x, emen2.db.record.Record)]
 		rec_ints = [x for x in usernames if isinstance(x, int)]
 
 		if rec_ints:
@@ -3136,7 +3136,7 @@ class DB(object):
 			#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 			if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
 				# password is just dummy value because of how the constructor works; it's immediately set to None
-				user = emen2.Database.user.User(username=user.username, email=user.email, password='123456')
+				user = emen2.db.user.User(username=user.username, email=user.email, password='123456')
 				user.email = None
 				user.password = None
 
@@ -3177,7 +3177,7 @@ class DB(object):
 		ol = 0
 		if isinstance(username, basestring):
 			ol = 1
-		if isinstance(username, (basestring, int, emen2.Database.record.Record)):
+		if isinstance(username, (basestring, int, emen2.db.record.Record)):
 			username=[username]
 
 		# First get direct usernames
@@ -3189,7 +3189,7 @@ class DB(object):
 
 		# Now lookup records and add all referenced users
 		recs = []
-		recs.extend(filter(lambda x:isinstance(x,emen2.Database.record.Record), username))
+		recs.extend(filter(lambda x:isinstance(x,emen2.db.record.Record), username))
 		rec_ints = filter(lambda x:isinstance(x,int), username)
 		if rec_ints:
 			recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
@@ -3362,7 +3362,7 @@ class DB(object):
 
 
 	def newgroup(self, ctx=None, txn=None):
-		group = emen2.Database.group.Group()
+		group = emen2.db.group.Group()
 		group.setContext(ctx)
 		return group
 
@@ -3376,12 +3376,12 @@ class DB(object):
 		@param groups Group instance or iterable groups
 		"""
 
-		if isinstance(groups, (emen2.Database.group.Group, dict)): # or not hasattr(groups, "__iter__"):
+		if isinstance(groups, (emen2.db.group.Group, dict)): # or not hasattr(groups, "__iter__"):
 			groups = [groups]
 
 		groups2 = []
-		groups2.extend(x for x in groups if isinstance(x, emen2.Database.group.Group))
-		groups2.extend(emen2.Database.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
+		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
+		groups2.extend(emen2.db.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
 		for group in groups2:
 			group.setContext(ctx)
@@ -3454,7 +3454,7 @@ class DB(object):
 	# 	it is an exceptionally bad idea to change a WorkFlow object's wfid."""
 	#
 	# 	if ctx.username == None:
-	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.db.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	try:
 	# 		return self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
@@ -3494,7 +3494,7 @@ class DB(object):
 	# 	"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
 	#
 	# 	if ctx.username == None:
-	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.db.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	if not isinstance(work, WorkFlow):
 	# 		try:
@@ -3531,7 +3531,7 @@ class DB(object):
 	# 	#self = db
 	#
 	# 	if ctx.username == None:
-	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.db.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	wf = self.bdbs.workflow.sget(ctx.username, txn=txn) #[ctx.username]
 	# 	for i, w in enumerate(wf):
@@ -3557,7 +3557,7 @@ class DB(object):
 	# 	#self = db
 	#
 	# 	if ctx.username == None:
-	# 		raise emen2.Database.exceptions.SecurityError, "Anonymous users have no workflow"
+	# 		raise emen2.db.exceptions.SecurityError, "Anonymous users have no workflow"
 	#
 	# 	if wflist == None:
 	# 		wflist = []
@@ -3631,7 +3631,7 @@ class DB(object):
 
 	@publicmethod
 	def newparamdef(self, ctx=None, txn=None):
-		pd = emen2.Database.paramdef.ParamDef()
+		pd = emen2.db.paramdef.ParamDef()
 		pd.setContext(ctx)
 		return pd
 
@@ -3649,9 +3649,9 @@ class DB(object):
 		@keyparam children Link to children
 		"""
 
-		if not isinstance(paramdef, emen2.Database.paramdef.ParamDef):
+		if not isinstance(paramdef, emen2.db.paramdef.ParamDef):
 			try:
-				paramdef = emen2.Database.paramdef.ParamDef(paramdef, ctx=ctx)
+				paramdef = emen2.db.paramdef.ParamDef(paramdef, ctx=ctx)
 			except ValueError, inst:
 				raise ValueError, "ParamDef instance or dict required"
 
@@ -3659,7 +3659,7 @@ class DB(object):
 		# ian: todo: medium: move this block to ParamDef.validate()
 
 		if not ctx.checkcreate():
-			raise emen2.Database.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
+			raise emen2.db.exceptions.SecurityError, "No permission to create new paramdefs (need record creation permission)"
 
 		if not paramdef.name:
 			raise ValueError, "Name required"
@@ -3685,7 +3685,7 @@ class DB(object):
 
 
 		#if not validate and not ctx.checkadmin():
-		#	raise emen2.Database.exceptions.SecurityError, "Only admin users may bypass validation"
+		#	raise emen2.db.exceptions.SecurityError, "Only admin users may bypass validation"
 		#if validate:
 
 		paramdef.validate()
@@ -3765,7 +3765,7 @@ class DB(object):
 		if isinstance(recs[0], int):
 			recs = self.getrecord(recs, ctx=ctx, txn=txn)
 
-		if isinstance(recs[0], emen2.Database.record.Record):
+		if isinstance(recs[0], emen2.db.record.Record):
 			q = set((i.rectype for i in recs))
 			for i in q:
 				params |= set(self.getrecorddef(i, ctx=ctx, txn=txn).paramsK)
@@ -3850,7 +3850,7 @@ class DB(object):
 	#
 	# 	d = self.bdbs.paramdefs.sget(paramdefname, txn=txn)  #[paramdefname]
 	# 	if d.vartype != "string":
-	# 		raise emen2.Database.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
+	# 		raise emen2.db.exceptions.SecurityError, "choices may only be modified for 'string' parameters"
 	#
 	# 	d.choices = d.choices + (unicode(choice).title(),)
 	#
@@ -3868,7 +3868,7 @@ class DB(object):
 
 	@publicmethod
 	def newrecorddef(self, ctx=None, txn=None):
-		rd = emen2.Database.recorddef.RecordDef()
+		rd = emen2.db.recorddef.RecordDef()
 		rd.setContext(ctx)
 		return rd
 
@@ -3890,31 +3890,31 @@ class DB(object):
 		@return Updated RecordDef
 		"""
 
-		if not isinstance(recdef, emen2.Database.recorddef.RecordDef):
+		if not isinstance(recdef, emen2.db.recorddef.RecordDef):
 			try:
-				recdef = emen2.Database.recorddef.RecordDef(recdef, ctx=ctx)
+				recdef = emen2.db.recorddef.RecordDef(recdef, ctx=ctx)
 			except:
 				raise ValueError, "RecordDef instance or dict required"
 
 		if not ctx.checkcreate():
-			raise emen2.Database.exceptions.SecurityError, "No permission to create new RecordDefs"
+			raise emen2.db.exceptions.SecurityError, "No permission to create new RecordDefs"
 
 		try:
 			orec = self.bdbs.recorddefs.sget(recdef.name, txn=txn)
 			orec.setContext(ctx)
 
 		except:
-			orec = emen2.Database.recorddef.RecordDef(recdef, ctx=ctx)
+			orec = emen2.db.recorddef.RecordDef(recdef, ctx=ctx)
 
 		##################
 		# ian: todo: medium: move this block to RecordDef.validate()
 
 		# ian: todo: broken for non-root
 		if ctx.username != orec.owner and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
+			raise emen2.db.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
 		if recdef.mainview != orec.mainview and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
+			raise emen2.db.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
 		recdef.findparams()
 		invalidparams = set(recdef.params) - set(self.getparamdefnames(ctx=ctx, txn=txn))
@@ -4014,7 +4014,7 @@ class DB(object):
 					if rec.rectype != recorddef:
 						raise
 				except:
-					raise emen2.Database.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
+					raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
 
 			#if not rd.views.get("defaultview"):
 			#	rd.views["defaultview"] = rd.mainview
@@ -4056,7 +4056,7 @@ class DB(object):
 	# 	try:
 	# 		ret = [self.bdbs.records.sget(i, txn=txn) for i in recids]
 	# 		[i.setContext(ctx) for i in ret]
-	# 	except (emen2.Database.exceptions.SecurityError, KeyError, TypeError), e:
+	# 	except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
 	# 		if filt: pass
 	# 		else: raise
 	# 	return ret
@@ -4082,12 +4082,12 @@ class DB(object):
 				rec = self.bdbs.records.sget(i, txn=txn)
 				rec.setContext(ctx)
 				ret.append(rec)
-			except (emen2.Database.exceptions.SecurityError, KeyError, TypeError), e:
+			except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
 				if filt: pass
 				else: raise
 
 			#except (TypeError, KeyError):"No such record %s"%(i)
-			#except emen2.Database.exceptions.SecurityError, e:
+			#except emen2.db.exceptions.SecurityError, e:
 			#	if filt: pass
 			#	else: raise e
 
@@ -4121,17 +4121,17 @@ class DB(object):
 
 		# ian: todo: hard: remove the recid option. it was a kludge to get things working in time.
 		# if recid and not ctx.checkadmin():
-		# 	raise emen2.Database.exceptions.SecurityError, "Cannot set recid in this way"
+		# 	raise emen2.db.exceptions.SecurityError, "Cannot set recid in this way"
 
 		# try to get the RecordDef entry, this still may fail even if it exists, if the
 		# RecordDef is private and the context doesn't permit access
 		# t = dict(filter(lambda x:x[1]!=None, self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items()))
 
 		if not ctx.checkcreate():
-			raise emen2.Database.exceptions.SecurityError, "No permission to create new records"
+			raise emen2.db.exceptions.SecurityError, "No permission to create new records"
 
 		t = [ (x,y) for x,y in self.getrecorddef(rectype, ctx=ctx, txn=txn).params.items() if y != None]
-		rec = emen2.Database.record.Record(rectype=rectype, recid=recid, ctx=ctx)
+		rec = emen2.db.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 		if init:
 			rec.update(t)
@@ -4185,12 +4185,12 @@ class DB(object):
 
 			# process recs arg into recs2 records, process params by vartype, then return either a dict or list of values; ignore those specified
 			ol = 0
-			if isinstance(recs,(int,emen2.Database.record.Record)):
+			if isinstance(recs,(int,emen2.db.record.Record)):
 				ol = 1
 				recs = [recs]
 
 			# get the records...
-			recs2.extend(filter(lambda x:isinstance(x,emen2.Database.record.Record),recs))
+			recs2.extend(filter(lambda x:isinstance(x,emen2.db.record.Record),recs))
 			recs2.extend(self.getrecord(filter(lambda x:isinstance(x,int),recs), filt=filt, ctx=ctx, txn=txn))
 
 			params = self.__getparamdefnamesbyvartype(vts, ctx=ctx, txn=txn)
@@ -4267,7 +4267,7 @@ class DB(object):
 
 		rec = self.getrecord(recid, ctx=ctx, txn=txn)
 		if not (ctx.checkadmin() or rec.isowner()):
-			raise emen2.Database.exceptions.SecurityError, "No permission to delete record"
+			raise emen2.db.exceptions.SecurityError, "No permission to delete record"
 
 		parents = self.getparents(recid, ctx=ctx, txn=txn)
 		children = self.getchildren(recid, ctx=ctx, txn=txn)
@@ -4455,12 +4455,12 @@ class DB(object):
 		"""
 
 		if (warning or not log) and not ctx.checkadmin():
-			raise emen2.Database.exceptions.SecurityError, "Only administrators may bypass logging or validation"
+			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass logging or validation"
 
 		dictrecs = (x for x in recs if isinstance(x,dict))
-		recs.extend(emen2.Database.record.Record(x, ctx=ctx) for x in dictrecs)
+		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in dictrecs)
 
-		recs = list(x for x in recs if isinstance(x,emen2.Database.record.Record))
+		recs = list(x for x in recs if isinstance(x,emen2.db.record.Record))
 
 		ret = self.__putrecord(recs, warning=warning, log=log, commit=commit, ctx=ctx, txn=txn)
 
@@ -5176,7 +5176,7 @@ class DB(object):
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
 		if (addusers | addgroups | delusers | delgroups) - checkitems:
-			raise emen2.Database.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
+			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
 
 
 		# change child perms
@@ -5309,7 +5309,7 @@ class DB(object):
 
 		kwargs.pop("ctx",None)
 		kwargs.pop("txn",None)
-		vtm = emen2.Database.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager()
 		return vtm.renderview(*args, **kwargs)
 
 

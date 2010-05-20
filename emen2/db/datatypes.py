@@ -1,8 +1,8 @@
 import re
 
-import emen2.Database.record
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.record
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
@@ -198,12 +198,12 @@ class VartypeManager(object):
 
 
 		ol = 0
-		if not hasattr(recs,"__iter__") or isinstance(recs, emen2.Database.record.Record):
+		if not hasattr(recs,"__iter__") or isinstance(recs, emen2.db.record.Record):
 			ol = 1
 			recs = [recs]
 
 
-		if not isinstance(list(recs)[0],emen2.Database.record.Record):
+		if not isinstance(list(recs)[0],emen2.db.record.Record):
 			recs = db.getrecord(recs,filt=1)
 
 

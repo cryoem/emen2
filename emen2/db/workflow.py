@@ -5,13 +5,13 @@ import random
 import re
 import weakref
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 # ian: todo: currently deprecated until this is rewritten
 
-class WorkFlow(emen2.Database.dataobject.BaseDBObject):
+class WorkFlow(emen2.db.dataobject.BaseDBObject):
 	"""Defines a workflow object, ie - a task that the user must complete at
 	some point in time. These are intended to be transitory objects, so they
 	aren't implemented using the Record class.
@@ -31,7 +31,7 @@ class WorkFlow(emen2.Database.dataobject.BaseDBObject):
 		self.desc = None								# A 1-line description of the task to complete
 		self.longdesc = None						# an optional longer description of the task
 		self.appdata = None						 # application specific data used to implement the actual activity
-		self.creationtime = gettime() #emen2.Database.database.gettime()
+		self.creationtime = gettime() #emen2.db.database.gettime()
 
 
 

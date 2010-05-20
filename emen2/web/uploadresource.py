@@ -19,8 +19,8 @@ from twisted.web.static import *
 
 
 # emen2 imports
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 class UploadResource(Resource):

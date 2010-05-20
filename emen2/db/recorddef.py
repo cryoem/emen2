@@ -1,13 +1,13 @@
 import re
 
-import emen2.Database.dataobject
-import emen2.Database.validators
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.dataobject
+import emen2.db.validators
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
-class RecordDef(emen2.Database.dataobject.BaseDBObject):
+class RecordDef(emen2.db.dataobject.BaseDBObject):
 	"""RecordDefs, aka Protocols, function as templates for Records. Each Record must be an instance of a defined RecordDef.
 	The RecordDef defines the default parameters that make up a record, and a set of presentation formats ('views'). The 'mainview'
 	is parsed for parameters and becomes the default view. Other important views that are used by the web interface are:
@@ -144,8 +144,8 @@ class RecordDef(emen2.Database.dataobject.BaseDBObject):
 
 
 @RecordDef.register_validator
-@emen2.Database.validators.Validator.make_validator
-class RecordDefValidator(emen2.Database.validators.DefinitionValidator):
+@emen2.db.validators.Validator.make_validator
+class RecordDefValidator(emen2.db.validators.DefinitionValidator):
 
 	def validate_recorddef(self):
 		"""Validate RecordDef"""
@@ -186,7 +186,7 @@ class RecordDefValidator(emen2.Database.validators.DefinitionValidator):
 
 
 		if not self._obj.creationtime:
-			self._obj.creationtime = emen2.Database.database.gettime()
+			self._obj.creationtime = emen2.db.database.gettime()
 		self._obj.creationtime = unicode(self._obj.creationtime)
 
 		try:

@@ -1,11 +1,11 @@
 import UserDict
 import operator
 import weakref
-import emen2.Database.datatypes
-import emen2.Database.exceptions
-import emen2.Database.dataobject
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.datatypes
+import emen2.db.exceptions
+import emen2.db.dataobject
+import emen2.db.config
+g = emen2.db.config.g()
 
 from . import validators
 
@@ -56,7 +56,7 @@ def strip(cls):
 
 
 
-class Record(emen2.Database.dataobject.BaseDBInterface):
+class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
 	attr_admin = set([])
 
@@ -111,7 +111,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		ctx = self.__ctx
 		if self.__ctx and self.recid < 0:
 			self.__creator = unicode(ctx.username)
-			self.__creationtime = emen2.Database.database.gettime()
+			self.__creationtime = emen2.db.database.gettime()
 			if ctx.username != "root":
 				self.adduser(ctx.username, 3)
 
@@ -273,7 +273,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		# special params have get/set handlers
 		if key not in self.param_special:
 			if not self.writable():
-				raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
+				raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
 			self.__params[key] = value
 
 		elif key == 'comments':
@@ -399,14 +399,14 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	def setpermissions(self, value):
 		if not self.isowner():
-			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
 
 		self.__permissions = self.__checkpermissionsformat(value)
 
 
 	def setgroups(self, groups):
 		if not self.isowner():
-			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to change permissions"
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
 		self.__groups = set(groups)
 
 
@@ -424,13 +424,13 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 	def addcomment(self, value):
 		if not self.commentable():
-			raise emen2.Database.exceptions.SecurityError, "Insufficient permissions to add comment"
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add comment"
 
 		if not isinstance(value,basestring):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 
-		d = emen2.Database.dataobjects.recorddef.parseparmvalues(value, noempty=1)[1]
+		d = emen2.db.dataobjects.recorddef.parseparmvalues(value, noempty=1)[1]
 
 		if d.has_key("comments") or d.has_key("permissions"):
 			self.validationwarning("addcomment: cannot set comments/permissions inside a comment")
@@ -444,14 +444,14 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 		value = unicode(value)
 
-		self.__comments.append((unicode(self.__ctx.username), unicode(emen2.Database.database.gettime()), value))
+		self.__comments.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), value))
 		# store the comment string itself
 
 
 	def _addhistory(self, param, value):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self.__ctx.username), unicode(emen2.Database.database.gettime()), param, value))
+		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, value))
 
 
 
@@ -485,10 +485,10 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 
 		if not any(self.__ptest):
-			raise emen2.Database.exceptions.SecurityError,"Permission Denied: %s"%self.recid
+			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self.recid
 
 
-		# raise Database.exceptions.SecurityError, "No ctx!"
+		# raise emen2.db.exceptions.SecurityError, "No ctx!"
 
 		# g.log.msg('LOG_DEBUG', "setContext: ctx.groups is %s"%ctx.groups)
 
@@ -557,8 +557,8 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 
 # ian: not ready yet..
 # @Record.register_validator
-# @emen2.Database.validators.Validator.make_validator
-# class RecordValidator(emen2.Database.dataobject.Validator):
+# @emen2.db.validators.Validator.make_validator
+# class RecordValidator(emen2.db.dataobject.Validator):
 	
 
 
@@ -605,7 +605,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		newcomments=[]
 
 		if isinstance(self.__comments, basestring):
-			self.__comments = [(unicode(self.__ctx.username), unicode(emen2.Database.database.gettime()), self.__comments)]
+			self.__comments = [(unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), self.__comments)]
 
 		# ian: filter comments for empties..
 		for i in filter(None, self.__comments or []):
@@ -615,7 +615,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 				newcomments.append((unicode(i[0]),unicode(i[1]),unicode(i[2])))
 			except Exception, inst:
 				self.validationwarning("invalid comment format: %s"%(i), e=inst, warning=warning)
-				newcomments.append((unicode(self.__ctx.username), unicode(emen2.Database.database.gettime()), "Error with comment: %s"%i))
+				newcomments.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), "Error with comment: %s"%i))
 
 
 		if users:
@@ -696,7 +696,7 @@ class Record(emen2.Database.dataobject.BaseDBInterface):
 		if not p2:
 			return
 
-		vtm = emen2.Database.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager()
 
 		pds = self.__ctx.db.getparamdefs(p2)
 		newpd = {}

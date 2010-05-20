@@ -1,10 +1,10 @@
 import os
 import os.path
 
-from emen2.subsystems import view
-from emen2.subsystems import routing
-from emen2.subsystems import templating
-from emen2.Database.config import gg as g
+from emen2.web import view
+from emen2.web import routing
+from emen2.web import templating
+from emen2.db.config import gg as g
 
 def routes_from_g():
 	routing_table = g.getattr('ROUTING', {})

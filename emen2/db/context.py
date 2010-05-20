@@ -6,12 +6,12 @@ import re
 import weakref
 import traceback
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
-import emen2.Database
-import emen2.Database.exceptions
-import emen2.Database.proxy
+import emen2.db
+import emen2.db.exceptions
+import emen2.db.proxy
 
 
 # These do not use BaseDBObject since they are completely internal to the DB
@@ -26,7 +26,7 @@ class Context(object):
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):
 
 
-		t = emen2.Database.database.getctime()
+		t = emen2.db.database.getctime()
 
 		# Points to Database object for this context
 		self.db = None
@@ -53,7 +53,7 @@ class Context(object):
 
 
 		if requirehost and (not self.username or not self.host):
-			raise emen2.Database.exceptions.SessionError, "username and host required to init context"
+			raise emen2.db.exceptions.SessionError, "username and host required to init context"
 
 
 	def json_equivalent(self):
@@ -90,11 +90,11 @@ class Context(object):
 		# Information the context needs to be usable
 
 		if host != self.host:
-			raise emen2.Database.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+			raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
 
-		t = emen2.Database.database.getctime()
+		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
-			raise emen2.Database.exceptions.SessionError, "Session expired"
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 
 		self.time = t
@@ -122,9 +122,9 @@ class Context(object):
 
 
 	def _setDBProxy(self, txn=None):
-		if not isinstance(self.db, emen2.Database.proxy.DBProxy):
+		if not isinstance(self.db, emen2.db.proxy.DBProxy):
 			g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.ctxid)
-			self.db = emen2.Database.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
+			self.db = emen2.db.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
 
 
 
@@ -141,11 +141,11 @@ class AnonymousContext(Context):
 
 	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
 		#if host != self.host:
-		#	raise emen2.Database.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+		#	raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
 
-		t = emen2.Database.database.getctime()
+		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
-			raise emen2.Database.exceptions.SessionError, "Session expired"
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 		self.setdb(db=db, txn=txn)
 		self.time = t
@@ -168,11 +168,11 @@ class SpecialRootContext(Context):
 
 	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
 		if host != self.host:
-			raise emen2.Database.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+			raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
 
-		t = emen2.Database.database.getctime()
+		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
-			raise emen2.Database.exceptions.SessionError, "Session expired"
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 		self.setdb(db=db, txn=txn)
 		self.time = t

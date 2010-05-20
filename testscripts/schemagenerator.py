@@ -38,7 +38,7 @@ BLANK_LINE = r'^[\s]*$'
 #Token templates
 SHORT_PARAM_TEMPLATE = """
 #begin parameter: ${p_name}
-${p_name} =  Database.database.ParamDef()
+${p_name} =  db.database.ParamDef()
 ${p_name}.name = '${p_name}'
 ${p_name}.vartype = '${type}'
 ${p_name}.desc_short = '''${desc_short}'''
@@ -48,7 +48,7 @@ db.addparamdef(${p_name},ctxid)
 
 LONG_PARAM_TEMPLATE = """
 #begin parameter: ${p_name}
-${p_name} =  Database.database.ParamDef()
+${p_name} =  db.database.ParamDef()
 ${p_name}.name = '${p_name}'
 ${p_name}.vartype = '${type}'
 ${p_name}.desc_short = '''${desc_short}'''\
@@ -62,7 +62,7 @@ db.addparamdef(${p_name},ctxid)
 
 RECORD_DEF_TEMPLATE = """
 #begin record definition: ${r_name}
-${r_name} = Database.database.RecordDef()
+${r_name} = db.database.RecordDef()
 ${r_name}.name = '${r_name}'\
 """
 

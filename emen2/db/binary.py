@@ -3,14 +3,14 @@ import re
 import traceback
 import math
 
-# import emen2.Database
-import emen2.Database.dataobject
-import emen2.Database.config
-g = emen2.Database.config.g()
+# import emen2.db
+import emen2.db.dataobject
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
-class Binary(emen2.Database.dataobject.BaseDBObject):
+class Binary(emen2.db.dataobject.BaseDBObject):
 	"""This class defines a pointer to a binary file stored on disk. Contains the following metadata: ID, filename, associated record ID, filesize, md5 checksum, and if the file is compressed or not. The path to the file will be resolved dynamically when accessed based on the storage paths specified in the config.
 
 	@attr name Identifier of the form: bdo:YYYYMMDDXXXXX, where YYYYMMDD is date format and XXXXX is 5-char hex ID code of file for that day
@@ -66,7 +66,7 @@ class Binary(emen2.Database.dataobject.BaseDBObject):
 			counter = int(bdokey[9:13],16)
 
 		else:
-			bdokey = emen2.Database.database.gettime()
+			bdokey = emen2.db.database.gettime()
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])

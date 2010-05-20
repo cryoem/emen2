@@ -38,11 +38,22 @@ class GlobalNamespace(object):
 	def __init__(self,_=None):pass
 
 
+	def fixpath(self, v):
+		if not v: return
+		if not v.startswith("/"): return os.path.join(self.DB_HOME, v)
+		return v
+		
+
 	@classmethod
 	def from_yaml(cls, fn=None, data=None):
 		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
-		if not (fn or data): raise ValueError, 'either a filename or yaml data must be supplied'
-		if not yaml: raise NotImplementedError, 'yaml not found'
+		
+		if not (fn or data):
+			raise ValueError, 'Either a filename or yaml data must be supplied'
+
+		if not yaml:
+			raise NotImplementedError, "No YAML loader found"
+
 		fn = os.path.abspath(fn)
 
 		# load data
@@ -50,34 +61,99 @@ class GlobalNamespace(object):
 		if fn:
 			with file(fn) as a: data = yaml.safe_load(a)
 
+		if not data:
+			return
+		
+		print "Loading config: %s"%fn
+
+		
+		# Process relative/absolute path names in 'paths'
+		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
+			v = data.get('paths',dict()).get(i)
+			if v:
+				data['paths'][i] = self.fixpath(v)
+		
+		cf = map(self.fixpath, data.get('paths',dict()).get('configfiles'))
+		if cf:
+			data['paths']['configfiles'] = cf
+
+		bf = data.get('paths',dict()).get('BINARYPATH', dict())	
+		if bf:
+			bf = [(k,self.fixpath(v)) for k,v in bf.items()]
+			data['paths']['BINARYPATH'] = dict(bf)
+
+
+		# process URL
+		if data.get('network'):
+			data['network']['EMEN2WEBROOT'] = ''
+
+
 		# process data
-		if data:
-			for key in data:
-				if key != 'root': # a toplevel dictionary named 'root' holds things which are not loaded into the new instance
-					b = data[key]
-					pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
-					options = b.pop('options', {})     # get options for the dictionary
-					self.__yaml_files[fn].append(key)
+		for key in data:
+			b = data[key]
+			pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
+			options = b.pop('options', {})     # get options for the dictionary
+			self.__yaml_files[fn].append(key)
+	
+			for key2, value in b.iteritems():
+				self.__yaml_keys[key].append(key2)
+				# apply the prefix to entries
+				if isinstance(value, dict): pass
+				elif hasattr(value, '__iter__'):
+					value = [pref+item for item in value]
+				elif isinstance(value, (str, unicode)):
+					value = pref+value
+				self.__addattr(key2, value, options)
+		
+				
+		# load alternate config files
+		for fn in data.get('paths',dict().get('configfiles',[])):
+			if os.path.exists(fn):
+				cls.from_yaml(fn=fn)
 
-					for key2, value in b.iteritems():
-						self.__yaml_keys[key].append(key2)
-						# apply the prefix to entries
-						if isinstance(value, dict): pass
-						elif hasattr(value, '__iter__'):
-							value = [pref+item for item in value]
-						elif isinstance(value, (str, unicode)):
-							value = pref+value
-						self.__addattr(key2, value, options)
-
-
-			# load alternate config files
-			root = data.get('root', {})
-			if root.has_key('configfiles'):
-				for fn in root['configfiles']:
-					if os.path.exists(fn):
-						cls.from_yaml(fn=fn)
 
 		return self
+
+	# @classmethod
+	# def from_yaml(cls, fn=None, data=None):
+	# 	'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
+	# 	if not (fn or data): raise ValueError, 'either a filename or yaml data must be supplied'
+	# 	if not yaml: raise NotImplementedError, 'yaml not found'
+	# 	fn = os.path.abspath(fn)
+	# 
+	# 	# load data
+	# 	self = cls()
+	# 	if fn:
+	# 		with file(fn) as a: data = yaml.safe_load(a)
+	# 
+	# 	# process data
+	# 	if data:
+	# 		for key in data:
+	# 			if key != 'root': # a toplevel dictionary named 'root' holds things which are not loaded into the new instance
+	# 				b = data[key]
+	# 				pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
+	# 				options = b.pop('options', {})     # get options for the dictionary
+	# 				self.__yaml_files[fn].append(key)
+	# 
+	# 				for key2, value in b.iteritems():
+	# 					self.__yaml_keys[key].append(key2)
+	# 					# apply the prefix to entries
+	# 					if isinstance(value, dict): pass
+	# 					elif hasattr(value, '__iter__'):
+	# 						value = [pref+item for item in value]
+	# 					elif isinstance(value, (str, unicode)):
+	# 						value = pref+value
+	# 					self.__addattr(key2, value, options)
+	# 
+	# 
+	# 		# load alternate config files
+	# 		root = data.get('root', {})
+	# 		if root.has_key('configfiles'):
+	# 			for fn in root['configfiles']:
+	# 				if os.path.exists(fn):
+	# 					cls.from_yaml(fn=fn)
+	# 
+	# 	return self
 
 	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
 		'''store state as YAML'''

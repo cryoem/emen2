@@ -7,8 +7,8 @@ import traceback
 import weakref
 import functools
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 class MethodUtil(object):

@@ -1,8 +1,8 @@
 import copy
 import functools
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 class Validator(object):
@@ -78,7 +78,7 @@ class DefinitionValidator(Validator):
 
 
 
-# ian: moved this here from emen2.subsystems.text_validators
+# ian: moved this here from emen2.web.text_validators
 class InputValidator(object):
 	'''Base class to validate input'''
 	def __init__(self):

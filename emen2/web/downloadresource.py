@@ -17,8 +17,8 @@ from twisted.web.resource import Resource
 from twisted.web.static import *
 
 import emen2.util.db_manipulation
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 ##########################################

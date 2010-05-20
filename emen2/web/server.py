@@ -5,10 +5,10 @@ from twisted.internet import reactor, ssl
 from twisted.web import static, server
 
 import emen2.web.threadpool
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
-parser = emen2.Database.config.DBOptions()
+parser = emen2.db.config.DBOptions()
 parser.parse_args()
 
 # g.log.capturestdout()
@@ -63,7 +63,7 @@ def inithttpd():
 	emen2.web.view.load_views()
 	emen2.web.view.routes_from_g()
 
-	root = static.File(emen2.Database.config.get_filename('emen2', 'web/static'))
+	root = static.File(emen2.db.config.get_filename('emen2', 'web/static'))
 
 	resources = dict(
 		db = emen2.web.publicresource.PublicView(),

@@ -10,10 +10,10 @@ from twisted.internet import threads
 from twisted.web.resource import Resource
 
 # emen2 imports
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
-#import emen2.Database
+#import emen2.db
 
 Fault = xmlrpclib.Fault
 
@@ -89,7 +89,7 @@ class RPCFormatXMLRPC:
 	def encode_serialize(self, value):
 		"""Serializes in UTF-8 DB instances for unsophisticated encoders (e.g. xmlrpc)"""
 		# convert to dict using class method
-		if isinstance(value, (emen2.Database.dataobject.BaseDBObject)):
+		if isinstance(value, (emen2.db.dataobject.BaseDBObject)):
 			return self.encode_serialize(dict(value))
 
 		elif hasattr(value,"items"):

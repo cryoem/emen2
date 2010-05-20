@@ -1,8 +1,8 @@
 import smtplib
 import email.MIMEText
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 def sendmailtemplate(recipient,template,ctxt=None):

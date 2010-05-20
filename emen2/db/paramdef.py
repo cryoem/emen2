@@ -1,14 +1,14 @@
 import functools
 import time
 
-import emen2.Database.dataobject
-import emen2.Database.validators
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.dataobject
+import emen2.db.validators
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 
-class ParamDef(emen2.Database.dataobject.BaseDBObject):
+class ParamDef(emen2.db.dataobject.BaseDBObject):
 	"""A Parameter for a value in a Record. Each record is a key/value set, where each key must be a valid ParamDef. Each ParamDef has several attributes (below), including a data type that calls a validator to check value sanity. Most parameters are indexed for queries; this can be disabled with the index attr. Generally, only descriptions and choices may be edited after creation, although an admin may make other changes. Be aware that changing vartype may be very destructive if the validators or index types are incompatible (use this carefully, or not at all if you are unsure).
 
 	Parameters may have parent/child relationships, similar to Records.
@@ -68,7 +68,7 @@ class ParamDef(emen2.Database.dataobject.BaseDBObject):
 		self.creator = None
 
 		# creation date
-		self.creationtime = emen2.Database.database.gettime()
+		self.creationtime = emen2.db.database.gettime()
 
 		# dbid where paramdef originated # deprecated; use URI
 		self.creationdb = None
@@ -83,11 +83,11 @@ class ParamDef(emen2.Database.dataobject.BaseDBObject):
 
 
 @ParamDef.register_validator
-@emen2.Database.validators.Validator.make_validator
-class ParamDefValidator(emen2.Database.validators.DefinitionValidator):
+@emen2.db.validators.Validator.make_validator
+class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 
 	def validate_vartype(self):
-		vtm=emen2.Database.datatypes.VartypeManager()
+		vtm=emen2.db.datatypes.VartypeManager()
 		self._obj.vartype = unicode(self._obj.vartype)
 
 		if self._obj.vartype not in vtm.getvartypes():

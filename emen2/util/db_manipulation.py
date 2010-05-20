@@ -1,11 +1,11 @@
 import urllib2
 import emen2.util.datastructures
-#import emen2.Database
+#import emen2.db
 
-from emen2.subsystems.routing import URLRegistry
+from emen2.web.routing import URLRegistry
 
-import emen2.Database.config
-g = emen2.Database.config.g()
+import emen2.db.config
+g = emen2.db.config.g()
 
 class Context(object):
 	'''Partial context for views that don't need db access'''
