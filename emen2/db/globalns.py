@@ -206,7 +206,7 @@ class GlobalNamespace(object):
 				return default
 		result = cls.__vardict.get(name, default)
 		return result
-
+#asd
 	@classmethod
 	def keys(cls):
 		private = cls.__options['private']
