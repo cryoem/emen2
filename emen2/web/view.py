@@ -1,6 +1,7 @@
 import os
 import os.path
 
+import sys
 import emen2.util.fileops
 from emen2.subsystems import view
 from emen2.subsystems import routing
