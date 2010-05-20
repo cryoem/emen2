@@ -1,10 +1,37 @@
 import os
 import os.path
 
+import emen2.util.fileops
 from emen2.subsystems import view
 from emen2.subsystems import routing
 from emen2.subsystems import templating
 from emen2.db.config import gg as g
+
+def view_callback(pwd, pth, mtch, name, ext, failures=None):
+   if pwd[0] not in sys.path:
+      sys.path.append(pwd[0])
+   if not hasattr(failures, 'append'): 
+      failures = []
+   if ext == mtch:
+      filpath = os.path.join(pwd[0], name)
+      data = emen2.util.fileops.openreadclose(filpath+ext)
+      viewname = os.path.join(pwd[0], name).replace(pth,'')
+      level = 'LOG_INIT'
+      msg = ["VIEW", "LOADED:"]
+      try:
+         __import__(name)
+      except BaseException, e:
+         g.log(e)
+         level = 'LOG_ERROR'
+         msg[1] = "FAILED:"
+         failures.append(viewname)
+
+      msg.append(filpath+ext)
+      g.log.msg(level, ' '.join(msg))
+
+
+get_views = emen2.util.fileops.walk_paths('.py', view_callback)
+
 
 def routes_from_g():
 	routing_table = g.getattr('ROUTING', {})
@@ -20,7 +47,7 @@ def routes_from_g():
 def load_views(failures=None):
 	g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
 	templating.get_templates(g.TEMPLATEDIRS, failures=failures)
-	view.get_views(g.VIEWPATHS)
+	get_views(g.VIEWPATHS)
 
 
 
