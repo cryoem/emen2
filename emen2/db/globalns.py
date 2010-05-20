@@ -58,7 +58,7 @@ class GlobalNamespace(object):
 
 		# load data
 		self = cls()
-		if fn:
+		if fn and os.path.exists(fn):
 			with file(fn) as a: data = yaml.safe_load(a)
 
 		if not data:
