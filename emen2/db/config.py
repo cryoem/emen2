@@ -68,7 +68,18 @@ class DBOptions(optparse.OptionParser):
 		g.from_yaml(default_config)
 		g.from_yaml('/etc/emen2config.yml')
 
-		# Load any additional config files specified
+		def fixpath(v):
+			if not v: return
+			if not v.startswith("/"): return os.path.join(g.DB_HOME, v)
+			return v
+
+		# Process relative/absolute path names in 'paths'
+		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
+			v = data.get('paths',dict()).get(i)
+			if v:
+				data['paths'][i] = fixpath(v)
+
+# Load any additional config files specified
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
