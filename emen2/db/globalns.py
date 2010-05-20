@@ -169,6 +169,10 @@ class GlobalNamespace(object):
 	def reset(self):
 		self.__class__.__vardict = {}
 
+
+
+
+
 def test():
 	a = GlobalNamespace('one instance')
 	b = GlobalNamespace('two instance')
