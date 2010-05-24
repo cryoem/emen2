@@ -378,7 +378,7 @@ class DB(object):
 		ctx = self.__makerootcontext(txn=txn, host="localhost")
 
 		try:
-			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
+			testroot = self.getuser("root", ctx=ctx, txn=txn)
 			raise ValueError, "Found root user. This environment has already been initialized."
 		except KeyError:
 			pass
@@ -3445,7 +3445,7 @@ class DB(object):
 
 	#@single
 	@publicmethod
-	def putgroups(self, group, ctx=None, txn=None):
+	def putgroup(self, group, ctx=None, txn=None):
 		return self.putgroups(group=[groups], ctx=ctx, txn=txn)[0]
 
 
@@ -3722,6 +3722,7 @@ class DB(object):
 	#@rename db.paramdefs.put
 	#@single
 	@publicmethod
+	@g.debug_func
 	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update a ParamDef. Updates are limited to descriptions. Only administrators may change existing paramdefs in any way that changes their meaning, and even this is strongly discouraged.
 
@@ -3734,8 +3735,8 @@ class DB(object):
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "No permission to create new ParamDefs (need record creation permission)"
 
-		paramdef = emen2.db.recorddef.ParamDef(paramdef, ctx=ctx)
-		orec = self.bdbs.paramdefs.get(recdef.name, txn=txn) or paramdef
+		paramdef = emen2.db.paramdef.ParamDef(paramdef, ctx=ctx)
+		orec = self.bdbs.paramdefs.get(paramdef.name, txn=txn) or paramdef
 		orec.setContext(ctx)
 
 		#####################		
@@ -4007,7 +4008,7 @@ class DB(object):
 
 	#@multiple @filt
 	@publicmethod
-	def getrecorddef(self, keys, filt=True, recid=None, ctx=None, txn=None):
+	def getrecorddefs(self, keys, filt=True, recid=None, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access.
@@ -4452,7 +4453,7 @@ class DB(object):
 
 	#@multiple
 	@publicmethod
-	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
+	def putrecords(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 
 		@param recs Record or iterable Records
@@ -5314,7 +5315,7 @@ class DB(object):
 	# 	return vtm.renderview(*args, **kwargs)
 
 
-	def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=none):
+	def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
 		"""generate html table of params"""
 
 		if mode=="html":
