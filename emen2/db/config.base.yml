@@ -1,4 +1,4 @@
-# These paths either absolute, or relative to DB_HOME, depending on the presence of leading slash
+# These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
 paths:
     
   # Log directory: access.log, error.log, debug.log (see logging section)    

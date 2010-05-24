@@ -43,7 +43,7 @@ class DBProxy(object):
 		self.__bound = False
 
 		if not db:
-			db = database.DB(path=dbpath) # path will default to g.DB_HOME
+			db = database.DB(path=dbpath) # path will default to g.EMEN2DBHOME
 		self.__db = db
 		# weakref.proxy(db)
 

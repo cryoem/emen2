@@ -32,7 +32,7 @@ class DBOptions(optparse.OptionParser):
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
 		self.add_option('--help', action="help", help="Print help message")
-		self.add_option('-h', '--home', type="string", help="DB_HOME")
+		self.add_option('-h', '--home', type="string", help="EMEN2DBHOME")
 		self.add_option('-c', '--configfile', action='append', dest='configfile')
 		self.add_option('-q', '--quiet', action='store_true', dest='quiet', default=False)
 		self.add_option('-l', '--loglevel', action='store', dest='loglevel')
@@ -52,30 +52,35 @@ class DBOptions(optparse.OptionParser):
 		return r1, r2
 
 
+	def getpath(self, pathname):
+		# ian: todo: dynamically resolve pathnames for DB dirs
+		pass
+		
+
 	def load_config(self, **kw):
 
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.yml')
 
-		# Find DB_HOME and set to g.DB_HOME
-		DB_HOME = os.getenv("DB_HOME")
+		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
+		EMEN2DBHOME = os.getenv("EMEN2DBHOME")
 		if self.values.home:
-			DB_HOME = self.values.home
-		print DB_HOME
-		if DB_HOME:
-			g.DB_HOME = DB_HOME
+			EMEN2DBHOME = self.values.home
+		print EMEN2DBHOME
+		if EMEN2DBHOME:
+			g.EMEN2DBHOME = EMEN2DBHOME
 
 		# Load the default config
 		g = GlobalNamespace()
 		g.from_yaml(default_config)
-		g.from_yaml('/etc/emen2config.yml')
+		# g.from_yaml('/etc/emen2config.yml')
 
 # Load any additional config files specified
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
-		print g.DB_HOME
-		DB_HOME = g.DB_HOME
+		print g.EMEN2DBHOME
+		EMEN2DBHOME = g.EMEN2DBHOME
 		def fix_paths():
 			# Process relative/absolute path names in 'paths'
 			for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
@@ -83,10 +88,10 @@ class DBOptions(optparse.OptionParser):
 				if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
 					g.setattr(i, '/%s' % g.getattr(i))
 
-		# Look for any DB_HOME-specific config files and load
+		# Look for any EMEN2DBHOME-specific config files and load
 		try:
-			g.from_yaml(os.path.join(DB_HOME, "config.yml"))
-			g.DB_HOME = DB_HOME
+			g.from_yaml(os.path.join(EMEN2DBHOME, "config.yml"))
+			g.EMEN2DBHOME = EMEN2DBHOME
 		except:
 			pass
 
@@ -105,8 +110,8 @@ class DBOptions(optparse.OptionParser):
 				g.setattr(key, demjson.decode(value))
 
 
-		if not g.getattr('DB_HOME', False):
-			raise ValueError, "No DB_HOME / DB_HOME specified!"
+		if not g.getattr('EMEN2DBHOME', False):
+			raise ValueError, "No EMEN2DBHOME / EMEN2DBHOME specified!"
 
 
 		# Set default log levels

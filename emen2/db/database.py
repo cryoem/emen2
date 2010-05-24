@@ -287,9 +287,9 @@ class DB(object):
 		@keyparam bdbopen Open databases in addition to DBEnv (default=True)
 		"""
 
-		self.path = path or g.DB_HOME
+		self.path = path or g.EMEN2DBHOME
 		if not self.path:
-			raise ValueError, "No path specified; check $DB_HOME and config.yml files"
+			raise ValueError, "No path specified; check $EMEN2DBHOME and config.yml files"
 
 		self.lastctxclean = time.time()
 		self.opentime = gettime()
@@ -316,7 +316,7 @@ class DB(object):
 				os.makedirs(os.path.join(self.path, path))
 
 		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")):
-			infile = emen2.db.config.get_filename('emen2', 'examples/DB_CONFIG.sample')
+			infile = emen2.db.config.get_filename('emen2', 'doc/examples/DB_CONFIG.sample')
 			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
 			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
 
@@ -5551,12 +5551,12 @@ class DB(object):
 				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.BACKUPPATH
 
 		# ian: just use shutil.copytree
-		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.DB_HOME, "data"), os.path.join(g.BACKUPPATH, "data")))
-		shutil.copytree(os.path.join(g.DB_HOME, "data"), os.path.join(g.BACKUPPATH, "data"))
+		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.BACKUPPATH, "data")))
+		shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.BACKUPPATH, "data"))
 
 		for i in ["config.yml","DB_CONFIG"]:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.DB_HOME, i), os.path.join(g.BACKUPPATH, i)))
-			shutil.copy(os.path.join(g.DB_HOME, i), os.path.join(g.BACKUPPATH, i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.BACKUPPATH, i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.BACKUPPATH, i))
 
 
 		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
@@ -5565,8 +5565,8 @@ class DB(object):
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 
 
@@ -5578,8 +5578,8 @@ class DB(object):
 
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.DB_HOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 

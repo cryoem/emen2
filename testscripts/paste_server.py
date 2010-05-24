@@ -118,7 +118,7 @@ class PublicView(object):
             result = HTTPMovedPermanently(detail=request.script_name+redirect).response(environ)
         else:
             args = listops.combine_dicts(request.GET.mixed(), request.POST.mixed())
-            self.db = Database.Database(g.DB_HOME)
+            self.db = Database.Database(g.EMEN2DBHOME)
             try:
                 auth_cookie = self.authenticate(self.db, request, args)
                 

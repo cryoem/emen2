@@ -39,7 +39,7 @@ class GlobalNamespace(object):
 
 	def fixpath(self, v):
 		if not v: return
-		if not v.startswith("/"): return os.path.join(self.DB_HOME, v)
+		if not v.startswith("/"): return os.path.join(self.EMEN2DBHOME, v)
 		return v
 
 
@@ -67,8 +67,8 @@ class GlobalNamespace(object):
 			return
 
 		print "Loading config: %s"%fn
-		self.DB_HOME = self.getattr('DB_HOME', data.get('DB_HOME', ''))
-		print 'DB_HOME set', self.DB_HOME
+		self.EMEN2DBHOME = self.getattr('EMEN2DBHOME', data.get('EMEN2DBHOME', ''))
+		print 'EMEN2DBHOME set', self.EMEN2DBHOME
 
 		# Process relative/absolute path names in 'paths'
 		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
