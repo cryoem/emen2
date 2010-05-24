@@ -111,7 +111,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 		if not self._ctx:
 			return False
-			
+
 		result = False
 		if self.private is False:
 			result = True
@@ -150,13 +150,13 @@ class RecordDefValidator(emen2.db.validators.DefinitionValidator):
 	def validate_name(self):
 		if not self._obj.name:
 			raise ValueError, "No RecordDef name given"
-			
+
 		self._obj.name = unicode(self._obj.name).lower()
 
 		test = self._obj.name.replace("_","")
 		if not test.isalnum() or not self._obj.name[0].isalpha():
 			raise ValueError, "RecordDef name can only include a-z, A-Z, 0-9, underscore, and must start with a letter"
-		
+
 
 	def validate_recorddef(self):
 		"""Validate RecordDef"""
