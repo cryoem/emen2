@@ -45,8 +45,8 @@ class View(object):
 	_ctxt = property(lambda self: self.__ctxt)
 
 	template = None
-	js_files = emen2.util.filelib.BaseJS
-	css_files = emen2.util.filelib.BaseCSS
+	js_files = emen2.web.extfile.BaseJS
+	css_files = emen2.web.extfile.BaseCSS
 
 	def __set_mimetype(self, value): self.__headers['content-type'] = value
 	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
