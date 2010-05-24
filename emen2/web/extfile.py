@@ -39,6 +39,7 @@ class ExtFile(object):
 		return iter(self.__files)
 
 
+
 class BaseJS(ExtFile):
 	__metaclass__ = ExtFile.registerjs
 	def init(self):
@@ -57,4 +58,33 @@ class BaseCSS(ExtFile):
 		self.files = ['%s/css/style.css' % g.EMEN2WEBROOT]
 		super(BaseCSS, self).init()
 
+
+
+# ian: moved from emen2.web.views.JSLibraries.admin
+
+class AdminJS(BaseJS):
+	def init(self):
+		super(AdminJS, self).init()
+		self.files = [
+			'%s/js/admin.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.dimensions.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.json.min.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.ui.autocomplete.ext.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.ui.autocomplete.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.colorPicker.js' % g.EMEN2WEBROOT,
+			'%s/js/json_util.js' % g.EMEN2WEBROOT,
+			'%s/js/rec_util.js' % g.EMEN2WEBROOT,
+			'%s/js/table.js' % g.EMEN2WEBROOT,
+			'%s/js/tile.js' % g.EMEN2WEBROOT,
+			'%s/js/w.browse.js' % g.EMEN2WEBROOT,
+			'%s/js/w.record.js' % g.EMEN2WEBROOT,
+			'%s/js/w.recordvalues.js' % g.EMEN2WEBROOT,
+			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js')
+		]
+
+
+class AdminCSS(ExtFile):
+	def init(self):
+		super(AdminCSS, self).init()
+		self.files = '%s/css/main.css' % g.EMEN2WEBROOT
 

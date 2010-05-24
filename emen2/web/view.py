@@ -1,12 +1,14 @@
+import sys
 import os
 import os.path
+import demjson
+import functools
 
-import sys
-import emen2.util.fileops
+import emen2.util.db_manipulation
+import emen2.web.extfile
 
-from emen2.subsystems import routing
-from emen2.subsystems import view
-from emen2.subsystems import templating
+from emen2.util.listops import adj_dict
+from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -45,8 +47,8 @@ class View(object):
 	_ctxt = property(lambda self: self.__ctxt)
 
 	template = None
-	js_files = emen2.web.extfile.BaseJS
-	css_files = emen2.web.extfile.BaseCSS
+	js_files = emen2.web.extfile.AdminJS
+	css_files = emen2.web.extfile.AdminCSS
 
 	def __set_mimetype(self, value): self.__headers['content-type'] = value
 	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
@@ -69,7 +71,7 @@ class View(object):
 		'''
 
 		# try:
-		
+
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
@@ -188,7 +190,7 @@ class View(object):
 		return cls
 
 	@classmethod
-	def add_matcher(cls, matcher):
+	def add_matcher(cls, *match, **kwmatch):
 		'''Decorator used to add a matcher to an already existing class
 
 		Named groups in matcher get passed as keyword arguments
@@ -200,7 +202,20 @@ class View(object):
 		def _i1(func):
 			result = functools.partial(cls, init=func)
 			result = functools.wraps(func)(result)
-			func.matcherinfo = (func.__name__, matcher, result)
+			matchers = []
+			if len(match) == 1:
+				matchers.append( (func.__name__, match[0], result) )
+			else:
+				for n,matcher in enumerate(match):
+					matchers.append( ('%s/%d' % (func.__name__, n), matcher, result) )
+			for k,matcher in kwmatch.iteritems():
+				name = []
+				if func.__name__.lower() == 'init':
+					name.append(k)
+				else:
+					name.append(func.__name__, k)
+				matchers.append( ('/'.join(name), matcher, result) )
+			func.matcherinfo = matchers
 			return func
 		return _i1
 
@@ -225,29 +240,35 @@ class View(object):
 
 		'''
 		cls.__url = routing.URL(cls.__name__)
-		if hasattr(cls.__matcher__, '__iter__'):
-			if hasattr(cls.__matcher__, 'items'):
-				if not cls.__matcher__.get('main', False):
-					g.warn('Main matcher not specified for (%r) (%r)' % (cls, cls.__url))
-				for name, expression in cls.__matcher__.items():
-					name = '%s' % name
-					cb = functools.partial(cls, init=cls.init)
-					result = functools.wraps(cls)(cb)
-					cls.__url.add_matcher(name, expression, cb)
+
+		#old style matchers
+		if hasattr(cls, '__matcher__'):
+			if hasattr(cls.__matcher__, '__iter__'):
+				if hasattr(cls.__matcher__, 'items'):
+					if not cls.__matcher__.get('main', False):
+						g.warn('Main matcher not specified for (%r) (%r)' % (cls, cls.__url))
+					for name, expression in cls.__matcher__.items():
+						name = '%s' % name
+						cb = functools.partial(cls, init=cls.init)
+						result = functools.wraps(cls)(cb)
+						cls.__url.add_matcher(name, expression, cb)
+
+				else:
+					cls.__url.add_matcher('main', cls.__matcher__[0], cls)
+					for counter, expression in enumerate(cls.__matcher__):
+						cb = functools.partial(cls, init=cls.init)
+						result = functools.wraps(cls)(cb)
+						cls.__url.add_matcher('%02d' % counter, expression, cb)
 
 			else:
-				cls.__url.add_matcher('main', cls.__matcher__[0], cls)
-				for counter, expression in enumerate(cls.__matcher__):
-					cb = functools.partial(cls, init=cls.init)
-					result = functools.wraps(cls)(cb)
-					cls.__url.add_matcher('%02d' % counter, expression, cb)
+				cb = functools.partial(cls, init=cls.init)
+				result = functools.wraps(cls)(cb)
+				cls.__url.add_matcher('main', cls.__matcher__, cb)
 
-		else:
-			cb = functools.partial(cls, init=cls.init)
-			result = functools.wraps(cls)(cb)
-			cls.__url.add_matcher('main', cls.__matcher__, cb)
-
-		[cls.__url.add_matcher(*x.matcherinfo) for x in cls.__dict__.values() if hasattr(x,'matcherinfo')]
+		#matchers produced by the add_matcher decorator
+		for v in (func.matcherinfo for func in cls.__dict__.values() if hasattr(func,'matcherinfo')):
+			for matcher in v:
+				cls.__url.add_matcher(*matcher)
 
 		ur = routing.URLRegistry()
 		ur.register(cls.__url)
@@ -300,85 +321,4 @@ class Page(object):
 						ctxt['def_title'] = 'No Title'
 					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
 		return result
-
-
-
-
-
-
-
-def view_callback(pwd, pth, mtch, name, ext, failures=None):
-   if pwd[0] not in sys.path:
-      sys.path.append(pwd[0])
-   if not hasattr(failures, 'append'): 
-      failures = []
-   if ext == mtch:
-      filpath = os.path.join(pwd[0], name)
-      data = emen2.util.fileops.openreadclose(filpath+ext)
-      viewname = os.path.join(pwd[0], name).replace(pth,'')
-      level = 'LOG_INIT'
-      msg = ["VIEW", "LOADED:"]
-      try:
-         __import__(name)
-      except BaseException, e:
-         g.log(e)
-         level = 'LOG_ERROR'
-         msg[1] = "FAILED:"
-         failures.append(viewname)
-
-      msg.append(filpath+ext)
-      g.log.msg(level, ' '.join(msg))
-
-
-get_views = emen2.util.fileops.walk_paths('.py', view_callback)
-
-
-def routes_from_g():
-	routing_table = g.getattr('ROUTING', {})
-	router = routing.URLRegistry()
-	for key, value in routing_table.iteritems():
-		for name, regex in value.iteritems():
-			print key, name, regex
-			view = router.get(key)
-			if view:
-				view.add_matcher(name, regex, view.get_callback('main'))
-
-
-def load_views(failures=None):
-	g.templates = templating.TemplateFactory('mako', templating.MakoTemplateEngine())
-	templating.get_templates(g.TEMPLATEDIRS, failures=failures)
-	get_views(g.VIEWPATHS)
-
-
-
-def reload_views(view=None):
-	reload(view)
-	failures = []
-	load_views(failures=failures)
-	if view != None: values = [routing.URLRegistry.URLRegistry[view]]
-	else: values = routing.URLRegistry.URLRegistry.values()
-	for view in values:
-		try:
-			view = view._URL__callback.__module__
-			exec 'import %s;reload(%s)' % (view,view)
-		except:
-			failures.append(str(view))
-	return failures
-
-
-
-
-class _LaunchConsole(view.View):
-	import thread
-	__metaclass__ = view.View.register_view
-	__matcher__ = '^/__launch_console/$'
-	def __init__(self, db, **kwargs):
-		view.View.__init__(self, db=db, **kwargs)
-		self.set_context_item('title', 'blahb;ajb')
-		if db.checkadmin():
-			g.log.interact(globals())
-			self.page = 'done'
-		else:
-			self.page = 'fail'
-
 
