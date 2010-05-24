@@ -6,12 +6,12 @@ import emen2.util.fileops
 
 from emen2.subsystems import routing
 from emen2.subsystems import view
+from emen2.subsystems import templating
 
 import emen2.db.config
 g = emen2.db.config.g()
 
 
-import emen2.web.templating
 
 
 class View(object):

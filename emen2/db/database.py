@@ -3324,7 +3324,7 @@ class DB(object):
 
 	#@rename db.groups.get
 	#@single
-	def getgroup(self, group, ctx=ctx, txn=txn):
+	def getgroup(self, group, ctx=None, txn=None):
 		return self.getgroups(groups=[group], filt=False, ctx=ctx, txn=txn)
 
 
@@ -4450,7 +4450,7 @@ class DB(object):
 	#@rename db.records.put
 	#@single
 	@publicmethod
-	def putrecord(self, rec, commit=True, ctx=ctx, txn=txn):
+	def putrecord(self, rec, commit=True, ctx=None, txn=None):
 		return self.putrecord(recs=[rec], warning=warning, commit=commit, ctx=ctx, txn=txn)[0]
 
 
