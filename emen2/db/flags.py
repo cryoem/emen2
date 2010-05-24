@@ -5,7 +5,6 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
-
 envopenflags = [
 	DB_CREATE,
 	DB_THREAD,

@@ -13,15 +13,14 @@ regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
 
 
 
+# def if_caching(f):
+# 	def _inner(*args, **kwargs):
+# 		if args[0].caching: return f(*args, **kwargs)
+# 		else: pass
+# 	return _inner
 
-def if_caching(f):
-	def _inner(*args, **kwargs):
-		if args[0].caching: return f(*args, **kwargs)
-		else: pass
-	return _inner
 
-
-# ian: todo: this became slightly unfocused; it might benefit from a rework.
+# ian: todo: this became somewhat unfocused; it might benefit from a rework.
 
 class VartypeManager(object):
 
@@ -76,15 +75,12 @@ class VartypeManager(object):
 	def toggle_caching(self):
 		self.caching = not self.caching
 
-	#@if_caching
 	def get_cache_key(self, *args, **kwargs):
 		return (args, tuple(kwargs.items()))
 
-	#@if_caching
 	def store(self, key, result):
 		self.cache[key] = result
 
-	#@if_caching
 	def check_cache(self, key):
 		if self.cache.has_key(key):
 			return True, self.cache[key]

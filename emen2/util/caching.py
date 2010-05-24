@@ -1,3 +1,5 @@
+# ian: fold this into datastructures.py?
+
 def if_caching(f):
 	def _inner(*args, **kwargs):
 		if args[0].caching: return f(*args, **kwargs)
