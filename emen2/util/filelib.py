@@ -1,4 +1,3 @@
-import emen2.util.utils
 import emen2.db.config
 g = emen2.db.config.g()
 

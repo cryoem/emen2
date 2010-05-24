@@ -1,7 +1,7 @@
 import cgi
+import time, datetime
 
 import emen2.db.datatypes
-import emen2.util.parse_datetime
 import emen2.db.config
 g = emen2.db.config.g()
 
@@ -142,7 +142,7 @@ class vt_time(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		emen2.util.parse_datetime.parse_time(value)
+		parse_time(value)
 		return unicode(value) or None
 
 
@@ -152,7 +152,7 @@ class vt_date(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		emen2.util.parse_datetime.parse_date(value)
+		parse_date(value)
 		return unicode(value) or None
 
 
@@ -163,7 +163,7 @@ class vt_datetime(Vartype):
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
-		return unicode(emen2.util.parse_datetime.parse_datetime(value)) or None
+		return unicode(parse_datetime(value)) or None
 
 
 class vt_intlist(Vartype):
@@ -481,4 +481,99 @@ class vt_groups(Vartype):
 		return unicode(value)
 
 
+
+
+
+
+
+"""Following based on public domain code by Paul Harrison, 2006; modified by Ian"""
+
+time_formats = [
+	'%H:%M:%S',
+	'%H:%M',
+	'%H'
+	]
+
+date_formats = [
+	'%Y %m %d',
+	'%Y %m',
+	'%Y'
+	]
+
+# Foramts to check [0] and return [1] in order of priority
+# (the return value will be used for the internal database value for consistency)
+# The DB will return the first format that validates.
+
+datetime_formats = [
+	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
+	['%Y %m %d %H', '%Y/%m/%d %H'],
+	['%Y %m %d', '%Y/%m/%d'],
+	['%Y %m','%Y/%m'],
+	['%Y','%Y'],
+	['%m %Y','%Y/%m'],
+	['%d %m %Y','%Y/%m/%d'],
+	['%d %m %Y %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+	['%m %d %Y','%Y/%m/%d'],
+	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
+	]
+
+
+
+def parse_datetime(string):
+	string = string.strip()
+	if not string:
+		return None
+
+	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
+	msecs = 0
+	if len(string) > 1:
+		msecs = int(string.pop().ljust(6,'0'))
+	string = ".".join(string)
+
+	for format, output in datetime_formats:
+		try:
+			string = datetime.datetime.strptime(string, format)
+			return datetime.datetime.strftime(string, output)
+		except ValueError, inst:
+			#print inst
+			pass
+
+	raise ValueError()
+
+
+
+def parse_time(string):
+	string = string.strip()
+
+	string = string.split(".")
+	msecs = 0
+	if len(string) > 1:
+		msecs = int(string.pop().ljust(6,'0'))
+	string = ".".join(string)
+
+	for format in time_formats:
+		try:
+			return datetime.datetime.strptime(string, format).time()
+		except ValueError, inst:
+			#print inst
+			pass
+
+	raise ValueError()
+
+
+
+def parse_date(string):
+	string = string.strip()
+	if not string: return None
+
+	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
+
+	for format in date_formats:
+		try:
+			return datetime.datetime.strptime(string, format).date()
+		except ValueError:
+			pass
+
+	raise ValueError()
 

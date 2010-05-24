@@ -34,7 +34,6 @@ try:
 except:
 	emen2.db.config.defaults()
 
-import emen2.util.utils
 
 import emen2.db.proxy
 import emen2.db.flags
@@ -2681,7 +2680,6 @@ class DB(object):
 
 
 
-	@emen2.util.utils.return_many_or_single('usernames')
 	def __setuserstate(self, usernames, disabled, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
@@ -3493,7 +3491,6 @@ class DB(object):
 	# ian: deprecated
 	# @rename db.groups.displayname
 	# @publicmethod
-	# @emen2.util.utils.return_many_or_single('groupname', transform=lambda d: d.values()[0])
 	# def getgroupdisplayname(self, groupname, ctx=None, txn=None):
 	# 	"""Get display name for a group
 	# 
@@ -4083,7 +4080,6 @@ class DB(object):
 
 
 	#@publicmethod
-	#@emen2.util.utils.return_many_or_single('recids')
 	# def getrecord2(self, recids, filt=True, ctx=None, txn=None):
 	# 	try:
 	# 		ret = [self.bdbs.records.sget(i, txn=txn) for i in recids]
@@ -4199,7 +4195,6 @@ class DB(object):
 	#@rename db.records.filter.vartype
 	# ian: todo: make this much faster, or drop it..
 	@publicmethod
-	@emen2.util.utils.return_many_or_single('recs')
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 		"""This is deprecated. Consider it semi-internal."""
 
