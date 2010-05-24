@@ -274,6 +274,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if key not in self.param_special:
 			if not self.writable():
 				raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
+
+			# Log changes
+			if self.recid >= 0:
+				self._addhistory(key)
+
 			self.__params[key] = value
 
 		elif key == 'comments':
@@ -448,10 +453,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# store the comment string itself
 
 
-	def _addhistory(self, param, value):
+	def _addhistory(self, param):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, value))
+		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, self.__params[param]))
 
 
 

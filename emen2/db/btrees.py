@@ -408,6 +408,7 @@ class RelateBTree(BTree):
 
 		cursor.close()
 
+		# we return a tuple of result and visited b/c we had to calculate visited anyway
 		return result, visited
 
 

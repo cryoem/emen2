@@ -3,7 +3,6 @@ import os.path
 
 import sys
 import emen2.util.fileops
-<<<<<<< view.py
 
 from emen2.web import routing
 
