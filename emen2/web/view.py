@@ -4,7 +4,7 @@ import os.path
 import sys
 import emen2.util.fileops
 
-from emen2.web import routing
+from emen2.subsystems import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
