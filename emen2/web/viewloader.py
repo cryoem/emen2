@@ -54,33 +54,33 @@ def load_views(failures=None):
 
 
 
-# def reload_views(view=None):
-# 	reload(view)
-# 	failures = []
-# 	load_views(failures=failures)
-# 	if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
-# 	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
-# 	for view in values:
-# 		try:
-# 			view = view._URL__callback.__module__
-# 			exec 'import %s;reload(%s)' % (view,view)
-# 		except:
-# 			failures.append(str(view))
-# 	return failures
-# 
-# 
-# 
-# class _LaunchConsole(emen2.web.view.View):
-# 	import thread
-# 	__metaclass__ = emen2.web.view.View.register_view
-# 	__matcher__ = '^/__launch_console/$'
-# 	def __init__(self, db, **kwargs):
-# 		emen2.web.view.View.__init__(self, db=db, **kwargs)
-# 		self.set_context_item('title', 'blahb;ajb')
-# 		if db.checkadmin():
-# 			g.log.interact(globals())
-# 			self.page = 'done'
-# 		else:
-# 			self.page = 'fail'
-# 
+def reload_views(view=None):
+	reload(view)
+	failures = []
+	load_views(failures=failures)
+	if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
+	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
+	for view in values:
+		try:
+			view = view._URL__callback.__module__
+			exec 'import %s;reload(%s)' % (view,view)
+		except:
+			failures.append(str(view))
+	return failures
+
+
+
+class _LaunchConsole(emen2.web.view.View):
+	import thread
+	__metaclass__ = emen2.web.view.View.register_view
+	__matcher__ = '^/__launch_console/$'
+	def __init__(self, db, **kwargs):
+		emen2.web.view.View.__init__(self, db=db, **kwargs)
+		self.set_context_item('title', 'blahb;ajb')
+		if db.checkadmin():
+			g.log.interact(globals())
+			self.page = 'done'
+		else:
+			self.page = 'fail'
+
 

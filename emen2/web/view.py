@@ -204,18 +204,20 @@ class View(object):
 			result = functools.wraps(func)(result)
 			matchers = []
 			if len(match) == 1:
-				matchers.append( (func.__name__, match[0], result) )
+				name = func.__name__
+				if name.lower() == 'init': name = 'main'
+				matchers.append( (name, match[0], result) )
 			else:
 				for n,matcher in enumerate(match):
 					matchers.append( ('%s/%d' % (func.__name__, n), matcher, result) )
 			for k,matcher in kwmatch.iteritems():
 				name = []
 				if func.__name__.lower() == 'init':
-					name.append(k)
+					name.append('main')
 				else:
 					name.append(func.__name__, k)
 				matchers.append( ('/'.join(name), matcher, result) )
-			func.matcherinfo = matchers
+			func.matcherinfo = g.log.note_var(matchers)
 			return func
 		return _i1
 

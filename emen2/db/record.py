@@ -471,10 +471,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
 		"""
 
-		#if self.__ctx == None:
-		#	return
 
 		self.__ctx = ctx #weakref.proxy(ctx)
+		if self.__ctx == None:
+			return
 
 		# g.debug('setContext:: context.db type == %r' % self._ctx.db)
 		# test for owner access in this context.

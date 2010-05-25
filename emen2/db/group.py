@@ -15,17 +15,17 @@ g = emen2.db.config.g()
 # ian: todo: upgrade to BaseDBObject
 class Group(emen2.db.dataobject.BaseDBObject):
 	"""Groups of users. These can be set in individual Records to provide access to members of a group.
-	
+
 	@attr name
 	@attr disabled
 	@attr privacy
 	@attr permissions Group membership, similar to Record permissions
-	
+
 	@attr creator
 	@attr creationtime
 	@attr modifytime
 	@attr modifyuser
-	
+
 	"""
 
 	attr_user = set(["privacy", "modifytime","modifyuser","permissions", "name","disabled","creator","creationtime"])

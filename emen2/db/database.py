@@ -92,6 +92,7 @@ basestring = (str, unicode)
 # for i in data/main/records.bdb data/main/paramdefs.bdb data/main/recorddefs.bdb data/main/bdocounter.bdb data/main/workflow.bdb data/security/users.bdb data/security/contexts.bdb data/security/groups.bdb data/security/newuserqueue.bdb;do echo $i;db_dump -h . -p $i | sed s@emen2.Database.dataobjects.@db.@g  > $i.dump; db_load -f $i.dump $i;done
 
 def return_first_or_none(items):
+	items = items or []
 	result = None
 	if len(items) > 0:
 		if hasattr(items, 'keys'):
@@ -407,13 +408,18 @@ class DB(object):
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
 
 
-		for i in skeleton.core_users.items:
-			if i.get("username") == "root":
-				i["password"] = rootpw
-			self.adduser(i, ctx=ctx, txn=txn)
+		root_user = return_first_or_none([u for u in skeleton.core_users.items if u.get('username') == 'root'])
+		if root_user:
+			root_user["password"] = rootpw
+			g.debug(root_user)
+			self.adduser(root_user, ctx=ctx, txn=txn)
 
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
+
+		for i in skeleton.core_users.items:
+			if i.get('username') == 'root': continue
+			self.adduser(i, ctx=ctx, txn=txn)
 
 		for i in skeleton.core_records.items:
 			self.putrecord(i, ctx=ctx, txn=txn)
@@ -2844,13 +2850,14 @@ class DB(object):
 
 		self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
 
-		for group in g.GROUP_DEFAULTS:
-			gr = self.getgroup(group, ctx=tmpctx, txn=txn)
-			if gr:
-				gr.adduser(user.username)
-				self.putgroup(gr, ctx=tmpctx, txn=txn)
-			else:
-				g.warn('Default Group %r is non-existent'%group)
+		if user.username != 'root':
+			for group in g.GROUP_DEFAULTS:
+				gr = self.getgroup(group, ctx=tmpctx, txn=txn)
+				if gr:
+					gr.adduser(user.username)
+					self.putgroup(gr, ctx=tmpctx, txn=txn)
+				else:
+					g.warn('Default Group %r is non-existent'%group)
 
 
 		return [user.username for user in addusers.values()]
@@ -3108,7 +3115,8 @@ class DB(object):
 
 		assert hasattr(user, '_User__secret')
 
-		user.validate()
+		if user.username != 'root':
+			user.validate()
 
 		self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
 
@@ -3454,7 +3462,7 @@ class DB(object):
 	#@single
 	@publicmethod
 	def putgroup(self, group, ctx=None, txn=None):
-		return return_first_or_none(self.putgroups(group=[groups], ctx=ctx, txn=txn))
+		return return_first_or_none(self.putgroups(groups=[group], ctx=ctx, txn=txn))
 
 
 
@@ -4058,7 +4066,7 @@ class DB(object):
 			if not rd.accessible() and rd.name not in groups:
 				if filt:
 					continue
-				raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(recorddef)
+				raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(rd)
 			ret.append(rd)
 
 		return ret
@@ -4103,7 +4111,7 @@ class DB(object):
 	#@single
 	@publicmethod
 	def getrecord(self, recid, ctx=None, txn=None):
-		return return_first_or_none(self.getrecords(self, recids=[recid], filt=False, ctx=ctx, txn=txn))
+		return return_first_or_none(self.getrecords(recids=[recid], filt=False, ctx=ctx, txn=txn))
 
 
 	#@multiple @filt
@@ -4461,7 +4469,6 @@ class DB(object):
 
 	#@multiple
 	@publicmethod
-	@g.debug_func
 	def putrecords(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 
