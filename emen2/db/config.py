@@ -55,7 +55,7 @@ class DBOptions(optparse.OptionParser):
 	def getpath(self, pathname):
 		# ian: todo: dynamically resolve pathnames for DB dirs
 		pass
-		
+
 
 	def load_config(self, **kw):
 
@@ -73,7 +73,8 @@ class DBOptions(optparse.OptionParser):
 		# Load the default config
 		g = GlobalNamespace()
 		g.from_yaml(default_config)
-		# g.from_yaml('/etc/emen2config.yml')
+		if os.path.exists('/etc/emen2config.yml'):
+			g.from_yaml('/etc/emen2config.yml')
 
 # Load any additional config files specified
 		if self.values.configfile:
