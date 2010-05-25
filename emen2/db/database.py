@@ -91,6 +91,14 @@ basestring = (str, unicode)
 # ian: note: if main dataobject class names every change, something like this is helpful:
 # for i in data/main/records.bdb data/main/paramdefs.bdb data/main/recorddefs.bdb data/main/bdocounter.bdb data/main/workflow.bdb data/security/users.bdb data/security/contexts.bdb data/security/groups.bdb data/security/newuserqueue.bdb;do echo $i;db_dump -h . -p $i | sed s@emen2.Database.dataobjects.@db.@g  > $i.dump; db_load -f $i.dump $i;done
 
+def return_first_or_none(items):
+	result = None
+	if len(items) > 0:
+		if hasattr(items, 'keys'):
+			result = items.get(return_first_or_none(items.keys()))
+		else:
+			result = iter(items).next()
+	return result
 
 
 @atexit.register
@@ -464,7 +472,7 @@ class DB(object):
 		dtype = dtype or list
 		if isinstance(d, dtype):
 			return d
-		if not hasattr(d, "__iter__") or isinstance(emen2.db.dataobject.BaseDBInterface):
+		if not (hasattr(d, "__iter__") or isinstance(d, emen2.db.dataobject.BaseDBInterface)):
 			d = [d]
 		return dtype(d)
 
@@ -886,7 +894,7 @@ class DB(object):
 	@publicmethod
 	def getbinary(self, bdokey, *args, **kwargs):
 		ret = self.getbinaries([bdokey], *args, **kwargs) or [None]
-		return ret[0]
+		return return_first_or_none(ret)
 
 
 	#@multiple @filt
@@ -2558,7 +2566,7 @@ class DB(object):
 			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
 
 		elif keytype == "recorddef":
-			self.getrecorddef(items, filt=False, ctx=ctx, txn=txn)
+			self.getrecorddef(items, ctx=ctx, txn=txn)
 			# links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
 
 		self.__commit_link(keytype, mode, links, ctx=ctx, txn=txn)
@@ -3147,7 +3155,7 @@ class DB(object):
 	#@single
 	@publicmethod
 	def getuser(self, usernames, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
-		return self.getusers(usernames=[usernames], filt=False, lnf=lnf, getgroups=getgroups, getrecord=getrecord, ctx=ctx, txn=txn)[0]
+		return return_first_or_none(self.getusers(usernames=[usernames], filt=False, lnf=lnf, getgroups=getgroups, getrecord=getrecord, ctx=ctx, txn=txn))
 
 
 
@@ -3446,7 +3454,7 @@ class DB(object):
 	#@single
 	@publicmethod
 	def putgroup(self, group, ctx=None, txn=None):
-		return self.putgroups(group=[groups], ctx=ctx, txn=txn)[0]
+		return return_first_or_none(self.putgroups(group=[groups], ctx=ctx, txn=txn))
 
 
 
@@ -3793,7 +3801,7 @@ class DB(object):
 		@param key ParamDef name or list of paramdef names
 		@return List of ParamDef instances
 		"""
-		return self.getparamdefs(keys=[key], filt=False, ctx=ctx, txn=txn)[0]
+		return return_first_or_none(self.getparamdefs(keys=[key], filt=False, ctx=ctx, txn=txn))
 
 
 
@@ -3813,7 +3821,7 @@ class DB(object):
 		params = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Process records if given
-		recs = filter(lambda x:isinstance(x, (int, emen2.db.record.Record), keys))
+		recs = (x for x in keys if isinstance(x, (int, emen2.db.record.Record)))
 		recs = self.getrecords(recs, ctx=ctx, txn=txn)
 		if recs:
 			q = set((i.rectype for i in recs))
@@ -4000,8 +4008,8 @@ class DB(object):
 	#@rename db.recorddefs.get
 	#@single
 	@publicmethod
-	def getrecorddef(self, key, recid=None, ctx=None, txn=None):
-		return self.getrecorddefs(keys=[key], filt=False, recid=recid, ctx=ctx, txn=txn)[0]
+	def getrecorddef(self, key, filt=False, recid=None, ctx=None, txn=None):
+		return return_first_or_none(self.getrecorddefs(keys=[key], filt=filt, recid=recid, ctx=ctx, txn=txn))
 
 
 
@@ -4031,9 +4039,10 @@ class DB(object):
 			recids.append(recid)
 
 		recs = self.getrecords(recids, ctx=ctx, txn=txn)
-		groups = self._groupbykey('rectype', recs)
+		g.debug(recs)
+		groups = self._groupbykey(recs, 'rectype')
 		recdefs |= set(groups.keys())
-		recs = self._dictbykey('recid', recs)
+		recs = self._dictbykey(recs, 'recid')
 
 		# Prepare filter
 		if filt:
@@ -4094,7 +4103,7 @@ class DB(object):
 	#@single
 	@publicmethod
 	def getrecord(self, recid, ctx=None, txn=None):
-		return self.getrecords(self, recids=[recid], filt=False, ctx=ctx, txn=txn)[0]
+		return return_first_or_none(self.getrecords(self, recids=[recid], filt=False, ctx=ctx, txn=txn))
 
 
 	#@multiple @filt
@@ -4445,13 +4454,14 @@ class DB(object):
 	#@rename db.records.put
 	#@single
 	@publicmethod
-	def putrecord(self, rec, commit=True, ctx=None, txn=None):
-		return self.putrecord(recs=[rec], warning=warning, commit=commit, ctx=ctx, txn=txn)[0]
+	def putrecord(self, rec, warning=0, commit=True, ctx=None, txn=None):
+		return return_first_or_none(self.putrecords(recs=[rec], warning=warning, commit=commit, ctx=ctx, txn=txn))
 
 
 
 	#@multiple
 	@publicmethod
+	@g.debug_func
 	def putrecords(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 
@@ -4479,12 +4489,14 @@ class DB(object):
 
 
 	# And now, a long parade of internal putrecord methods
+	@g.debug_func
 	def __putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the
 			operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
 			really serious DB errors should ever occur."""
 
 
+		updrecs = list(updrecs)
 		crecs = []
 		updrels = []
 
@@ -4510,6 +4522,7 @@ class DB(object):
 
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
+			g.debug(updrecs)
 
 			else:
 				# we need to acquire RMW lock here to prevent changes during commit
