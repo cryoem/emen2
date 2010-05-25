@@ -10,8 +10,8 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 try:
-	import emen2.indexwrapper.bulk
-	bulk = emen2.indexwrapper.bulk
+	import emen2.db.bulk
+	bulk = emen2.db.bulk
 except:
 	bulk = None
 	g.warn("Not using bulk interface")
@@ -461,9 +461,9 @@ class FieldBTree(BTree):
 		# use acceleration module if available
 		if bulk:
 			if bulkmode=='bulk':
-				self.__get_method = emen2.indexwrapper.bulk.get_dup_bulk
+				self.__get_method = emen2.db.bulk.get_dup_bulk
 			else:
-				self.__get_method = emen2.indexwrapper.bulk.get_dup_notbulk
+				self.__get_method = emen2.db.bulk.get_dup_notbulk
 
 		else:
 			self.__get_method = self.__get_cursor
@@ -585,7 +585,7 @@ class FieldBTree(BTree):
 		pair = cursor.first()
 		while pair != None:
 			# ian: todo: sort this out....
-			# data = emen2.indexwrapper.bulk.get_dup_bulk(cursor, pair[0], self.datatype or "p")
+			# data = emen2.db.bulk.get_dup_bulk(cursor, pair[0], self.datatype or "p")
 			data = self.__get_method(cursor, pair[0], self.datatype or "p")
 			if bulk:
 				data = map(self.loaddata, data)

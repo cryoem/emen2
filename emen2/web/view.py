@@ -14,8 +14,6 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
-
-
 class View(object):
 	'''Base Class for views, sets up the instance variables for the class
 
