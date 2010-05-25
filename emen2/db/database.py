@@ -497,7 +497,7 @@ class DB(object):
 	def _typefilter(self, l, types=None):
 		if not types:
 			types=str
-		return (x for x in l if isinstance(x,types))
+		return [x for x in l if isinstance(x,types)]
 		#return filter(lambda x:isinstance(x, types), l)
 
 
@@ -4461,7 +4461,6 @@ class DB(object):
 
 	#@multiple
 	@publicmethod
-	@g.debug_func
 	def putrecords(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 
@@ -4489,14 +4488,11 @@ class DB(object):
 
 
 	# And now, a long parade of internal putrecord methods
-	@g.debug_func
 	def __putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the
 			operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
 			really serious DB errors should ever occur."""
 
-
-		updrecs = list(updrecs)
 		crecs = []
 		updrels = []
 

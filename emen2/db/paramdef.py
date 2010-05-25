@@ -31,7 +31,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	# non-admin users may only update descs and choices
 	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed"])
 
 

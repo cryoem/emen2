@@ -134,7 +134,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not self.__ctx:
 			self.validationwarning("No context; cannot validate", warning=True)
 			return
-			
+
 		elif not self.__ctx.db:
 			self.validationwarning("No context; cannot validate", warning=True)
 			return
@@ -544,27 +544,27 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 	# def validationwarning(self, msg, e=None, warning=False):
 	# 	"""Raise a warning or exception during validation
-	# 	
+	#
 	# 	@param msg Text
-	# 	
+	#
 	# 	@keyparam e Exception
 	# 	@keyparam warning Raise the exception if False, otherwise just inform
-	# 	
+	#
 	# 	"""
-	# 
+	#
 	# 	if e == None:
 	# 		e = ValueError
 	# 	if warning:
 	# 		g.log.msg("LOG_WARNING", "Validation warning: %s: %s"%(self.recid, msg))
 	# 	elif e:
 	# 		raise e, msg
-	# 
+	#
 
 # ian: not ready yet..
 # @Record.register_validator
 # @emen2.db.validators.Validator.make_validator
 # class RecordValidator(emen2.db.dataobject.Validator):
-	
+
 
 
 	def validate_recid(self, orec=None, warning=False):
@@ -707,7 +707,8 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		newpd = {}
 		exceptions = []
 
-		for param,pd in pds.items():
+		for pd in pds:
+			param = pd.name
 			try:
 				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm, warning=warning)
 
