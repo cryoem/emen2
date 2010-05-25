@@ -467,12 +467,12 @@ class DB(object):
 		if not hasattr(d, "__iter__") or isinstance(emen2.db.dataobject.BaseDBInterface):
 			d = [d]
 		return dtype(d)
-		
-		
+
+
 	def _dictbykey(self, l, key):
 		return dict([(i.get(key), i) for i in l])
-		
-		
+
+
 	# use collections.defaultdict?
 	def _groupbykey(self, l, key, dtype=None):
 		dtype = dtype or list
@@ -483,15 +483,15 @@ class DB(object):
 				d[k] = dtype()
 			d[k].append(i)
 		return d
-		
-		
-		
+
+
+
 	def _typefilter(self, l, types=None):
 		if not types:
 			types=str
 		return (x for x in l if isinstance(x,types))
 		#return filter(lambda x:isinstance(x, types), l)
-		
+
 
 	###############################
 	# section: Transaction Management
@@ -1988,14 +1988,14 @@ class DB(object):
 	def getindexbyrecorddef(self, recdef, filt=False, ctx=None, txn=None):
 		# check if user has permission for recorddef
 		self.getrecorddef(recdef, ctx=ctx, txn=txn)
-		
+
 		ret = self.bdbs.recorddefindex.get(recdef, txn=txn)
 		if filt:
 			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 
 		return ret
-		
-		
+
+
 
 	#@multiple @filt
 	@publicmethod
@@ -2354,9 +2354,9 @@ class DB(object):
 		"""
 		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
-		
+
 	# ian: todo: we're ignoring filt and always filtering fow now...
-	
+
 	#@rename db.<RelateBTree>.parents
 	#@single @filt
 	@publicmethod
@@ -2368,14 +2368,14 @@ class DB(object):
 	@publicmethod
 	def getchildtree(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
 		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
-		
-		
-	
+
+
+
 	#@single @filt
 	@publicmethod
 	def getparenttree(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
 		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
-		
+
 
 
 	#@multiple @filt
@@ -2383,17 +2383,17 @@ class DB(object):
 	def getchildtrees(self, keys, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
 
-	
+
 
 	#@multiple @filt
 	@publicmethod
 	def getparenttrees(self, keys, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
-			
+
 
 
 	# ian: todo: simple: raise Exception if rectype/filt on keytype=record
-	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None): #flat=False, 
+	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None): #flat=False,
 		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method."""
 
 		if recurse == -1:
@@ -2441,9 +2441,9 @@ class DB(object):
 				for k2 in v:
 					result[k][k2] &= allr
 					# if not result[k][k2]:	del result[k][k2]
-					
+
 			return result
-			
+
 		for k in ret_visited:
 			ret_visited[k] &= allr
 
@@ -2535,7 +2535,7 @@ class DB(object):
 
 		# Get a list of all items in all links
 		items = set(reduce(operator.concat, links, ()))
-		
+
 		# ian: todo: high: for recorddef/paramdefs, check that all items exist..
 		# self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
 
@@ -2726,7 +2726,7 @@ class DB(object):
 	@adminmethod
 	def approveuser(self, username, ctx=None, txn=None):
 		return self.approveusers(usernames=[username], ctx=ctx, txn=txn)
-		
+
 
 
 	#@rename db.users.approve
@@ -2848,7 +2848,7 @@ class DB(object):
 		return [user.username for user in addusers.values()]
 
 
-	
+
 	#@single
 	@publicmethod
 	@adminmethod
@@ -2869,7 +2869,7 @@ class DB(object):
 
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
-			
+
 		usernames = self._tolist(usernames)
 		delusers = {}
 
@@ -3230,58 +3230,58 @@ class DB(object):
 	# @publicmethod
 	# def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 	# 	"""Get user 'display names.'
-	# 
+	#
 	# 	@param username Username, iterable usernames, record, or iterable records.
-	# 
+	#
 	# 	@keyparam lnf Last Name First
 	# 	@keyparam perms In records, include users referenced by permissions
 	# 	@keyparam filt Ignore failures
-	# 
+	#
 	# 	@return Dict of display names, keyed by user. If input was a single username, then return the single value (this may change in the future)
 	# 	"""
-	# 
+	#
 	# 	namestoget = []
 	# 	ret = {}
-	# 
+	#
 	# 	ol = 0
 	# 	if isinstance(username, basestring):
 	# 		ol = 1
 	# 	if isinstance(username, (basestring, int, emen2.db.record.Record)):
 	# 		username=[username]
-	# 
+	#
 	# 	# First get direct usernames
 	# 	namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
-	# 
+	#
 	# 	vts=["user","userlist"]
 	# 	if perms:
 	# 		vts.append("acl")
-	# 
+	#
 	# 	# Now lookup records and add all referenced users
 	# 	recs = []
 	# 	recs.extend(filter(lambda x:isinstance(x,emen2.db.record.Record), username))
 	# 	rec_ints = filter(lambda x:isinstance(x,int), username)
 	# 	if rec_ints:
 	# 		recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
-	# 
+	#
 	# 	if recs:
 	# 		namestoget.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 	# 		# ... need to parse comments since it's special
 	# 		namestoget.extend(reduce(operator.concat, [[i[0] for i in rec["comments"]] for rec in recs], []))
-	# 
+	#
 	# 	namestoget = set(namestoget)
-	# 
+	#
 	# 	# Now actually get users..
 	# 	users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 	# 	ret = {}
-	# 
+	#
 	# 	for i in users.values():
 	# 		ret[i.username] = i.displayname
-	# 
+	#
 	# 	if len(ret.keys())==0:
 	# 		return {}
 	# 	if ol:
 	# 		return ret.values()[0]
-	# 
+	#
 	# 	return ret
 
 
@@ -3337,7 +3337,7 @@ class DB(object):
 
 		@return Dict of groups, keyed by group name
 		"""
-		
+
 		groups = self._tolist(groups)
 
 		if filt:
@@ -3460,7 +3460,7 @@ class DB(object):
 		"""
 
 		groups = self._tolist(groups)
-		
+
 		groups2 = []
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
 		groups2.extend(emen2.db.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
@@ -3493,29 +3493,29 @@ class DB(object):
 	# @publicmethod
 	# def getgroupdisplayname(self, groupname, ctx=None, txn=None):
 	# 	"""Get display name for a group
-	# 
+	#
 	# 	@param groupname Group name or iterable of group names
-	# 
+	#
 	# 	@return Dict of group display names, keyed by group name
 	# 	"""
-	# 
-	# 
+	#
+	#
 	# 	if not hasattr(groupname,"__iter__"):
 	# 		groupname = [groupname]
-	# 
+	#
 	# 	# lookup groups, or records to comb for references
 	# 	groups = set(x for x in groupname if isinstance(x, basestring))
 	# 	gn_int = [x for x in groupname if isinstance(x, int)]
 	# 	if gn_int:
 	# 		groups |= set().union(*[i.get("groups",set()) for i in self.getrecord(gn_int, filt=True, ctx=ctx, txn=txn)])
-	# 
+	#
 	# 	groups = self.getgroup(groups, ctx=ctx, txn=txn)
-	# 
+	#
 	# 	ret = {}
-	# 
+	#
 	# 	for i in groups.values():
 	# 		ret[i.name]="Group: %s"%i.name
-	# 
+	#
 	# 	return ret
 
 
@@ -3722,7 +3722,6 @@ class DB(object):
 	#@rename db.paramdefs.put
 	#@single
 	@publicmethod
-	@g.debug_func
 	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update a ParamDef. Updates are limited to descriptions. Only administrators may change existing paramdefs in any way that changes their meaning, and even this is strongly discouraged.
 
@@ -3739,7 +3738,7 @@ class DB(object):
 		orec = self.bdbs.paramdefs.get(paramdef.name, txn=txn) or paramdef
 		orec.setContext(ctx)
 
-		#####################		
+		#####################
 		# Root is permitted to force some changes in parameters, though they are supposed to be static
 		# This permits correcting typos, etc., but should not be used routinely
 		if orec != paramdef and not ctx.checkadmin():
@@ -3835,7 +3834,7 @@ class DB(object):
 			if pd.vartype not in self.indexablevartypes:
 				pd.indexed = False
 			# pd.setContext(ctx)
-				
+
 		return paramdefs
 
 
@@ -3855,7 +3854,7 @@ class DB(object):
 		"""(Internal) Return handle to param index"""
 
 		create = True
-		
+
 		try:
 			return self.bdbs.fieldindex[paramname] # [paramname]				# Try to get the index for this key
 		except Exception, inst:
@@ -3945,7 +3944,7 @@ class DB(object):
 
 		##################
 		# ian: todo: move to validate..
-		
+
 		# ian: todo: broken for non-root
 		if ctx.username != orec.owner and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
@@ -3956,14 +3955,14 @@ class DB(object):
 		# Check all params are valid
 		recdef.findparams()
 		self.getparamdefs(recdef.params, filt=False, ctx=ctx, txn=txn)
-		
+
 		# reset
 		recdef.creator = orec.creator
 		recdef.creationtime = orec.creationtime
 		recdef.uri = orec.uri
 
 		recdef.validate()
-		
+
 		########## ^^^ ########
 
 		# commit
@@ -4020,10 +4019,10 @@ class DB(object):
 
 		@return list of RecordDefs
 		"""
-		
+
 		keys = self._tolist(keys)
 		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
-		
+
 		# Find recorddefs record ID
 		recs = filter(lambda x:isinstance(x, (dict, emen2.db.record.Record)), keys)
 		recids = [i.get('recid') for i in recs]
@@ -4035,7 +4034,7 @@ class DB(object):
 		groups = self._groupbykey('rectype', recs)
 		recdefs |= set(groups.keys())
 		recs = self._dictbykey('recid', recs)
-		
+
 		# Prepare filter
 		if filt:
 			lfilt = self.bdbs.recorddefs.get
@@ -4096,8 +4095,8 @@ class DB(object):
 	@publicmethod
 	def getrecord(self, recid, ctx=None, txn=None):
 		return self.getrecords(self, recids=[recid], filt=False, ctx=ctx, txn=txn)[0]
-	
-	
+
+
 	#@multiple @filt
 	@publicmethod
 	def getrecords(self, recids, filt=True, ctx=None, txn=None):
@@ -4112,7 +4111,7 @@ class DB(object):
 
 		recids = self._tolist(recids)
 		ret = []
-		
+
 		# if filt: lfilt = self.bdbs.records.get....
 
 		for i in recids:
@@ -4353,7 +4352,7 @@ class DB(object):
 			cp = filter(lambda x:"Validation error: " not in x[2], cp)
 			for c in cp:
 				ret.append([rec.recid]+c)
-								
+
 		return ret
 
 
@@ -4393,13 +4392,13 @@ class DB(object):
 	# @publicmethod
 	# def putrecordvalues(self, recid, values, ctx=None, txn=None):
 	# 	"""dict.update()-like operation on a single record
-	# 
+	#
 	# 	@param recid Record ID
 	# 	@param values Dict of values to update Record
-	# 
+	#
 	# 	@return Updated Record
 	# 	"""
-	# 
+	#
 	# 	rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 	# 	for k, v in values.items():
 	# 		rec[k] = v
@@ -4424,7 +4423,7 @@ class DB(object):
 		recs = self._groupbykey('recid', recs)
 		for k, v in d.items():
 			recs[k].update(v)
-			
+
 		return self.putrecord(recs.values(), ctx=ctx, txn=txn)
 
 
@@ -4463,7 +4462,7 @@ class DB(object):
 
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
-		
+
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
@@ -4813,7 +4812,7 @@ class DB(object):
 		if not cache: cache = {}
 		ind = collections.defaultdict(list)
 		indexupdates = {}
-		
+
 		# ian: todo: this is handled gracefully by openparamindex now
 		unindexed = set(["recid","rectype","comments","permissions"])
 
@@ -5165,12 +5164,12 @@ class DB(object):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
-		
+
 		recids = self._tolist(recids, dtype=set)
 		addusers = self._tolist(addusers, dtype=set)
-	 	addgroups = self._tolist(addgroups, dtype=set)
+		addgroups = self._tolist(addgroups, dtype=set)
 		delusers = self._tolist(delusers, dtype=set)
-	 	delgroups = self._tolist(delgroups, dtype=set)
+		delgroups = self._tolist(delgroups, dtype=set)
 
 
 		if not umask:
@@ -5327,7 +5326,7 @@ class DB(object):
 			dt = []
 			for i in params:
 				dt.append("$#%s:\t$$%s\n"%(i,i))
-				
+
 		return "".join(dt)
 
 
@@ -5336,8 +5335,8 @@ class DB(object):
 	def renderview(self, rec, *args, **kwargs):
 		ret = self.renderviews([rec], *args, **kwargs) or [None]
 		return ret[0]
-		
-		
+
+
 
 	@publicmethod
 	def renderviews(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
@@ -5349,7 +5348,7 @@ class DB(object):
 		vtm = emen2.db.datatypes.VartypeManager()
 
 		paramdefcache = {}
-		
+
 		# we'll be working with a list of recs
 		recs = db.getrecords(recs, filt=filt)
 
@@ -5430,7 +5429,7 @@ class DB(object):
 				vrend = vtm.name_render(paramdefcache.get(i[2]), mode=mode, db=dbp)
 				vd = vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
 			groupviews[g1] = vd
-				
+
 
 		ret={}
 
