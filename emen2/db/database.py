@@ -497,7 +497,7 @@ class DB(object):
 	def _typefilter(self, l, types=None):
 		if not types:
 			types=str
-		return (x for x in l if isinstance(x,types))
+		return [x for x in l if isinstance(x,types)]
 		#return filter(lambda x:isinstance(x, types), l)
 
 
@@ -4493,7 +4493,6 @@ class DB(object):
 		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the
 			operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
 			really serious DB errors should ever occur."""
-
 
 		crecs = []
 		updrels = []
