@@ -4522,7 +4522,6 @@ class DB(object):
 
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
-			g.debug(updrecs)
 
 			else:
 				# we need to acquire RMW lock here to prevent changes during commit
