@@ -66,7 +66,15 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 
 def combine(*lists, **kw):
 	'''combine iterables return type is the type of the first one
-	>>>
+
+	>>> combine([1,2,3,4], [2,3,4,5])
+	[1, 2, 3, 4, 2, 3, 4, 5]
+	>>> combine([1,2,3,4], [2,3,4,5], dtype=tuple)
+	(1, 2, 3, 4, 2, 3, 4, 5)
+	>>> combine([1,2,3,4], [2,3,4,5], dtype=set)
+	set([1, 2, 3, 4, 5])
+	>>> combine(set([1,2,3,4]), [2,3,4,5])
+	set([1, 2, 3, 4, 5])
 	'''
 	dtype = kw.get('dtype', None) or type(lists[0])
 	if hasattr(lists[0], 'items'):
@@ -74,6 +82,12 @@ def combine(*lists, **kw):
 	return dtype(itertools.chain(*lists))
 
 def flatten(a):
+	'''flatten a dict with lists as items into a set
+
+	>>> a={1:[2,3],4:[5,6]}
+	>>> flatten(a)
+	set([1, 2, 3, 4, 5, 6])
+	'''
 	return combine(*([a.keys()]+a.values()), dtype=set)
 
 
