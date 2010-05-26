@@ -1,4 +1,5 @@
 from functools import partial
+import itertools
 
 def get(collection, key, default=None):
 	'''allows getting an item from a collection like dict.get does'''
@@ -72,8 +73,8 @@ def combine(*lists, **kw):
 		lists = [list_.items() for list_ in lists]
 	return dtype(itertools.chain(*lists))
 
-def flatten(d):
-	return combine([a.keys()]+a.values())
+def flatten(a):
+	return combine(*([a.keys()]+a.values()), dtype=set)
 
 
 def test_get():
