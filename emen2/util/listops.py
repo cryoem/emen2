@@ -53,16 +53,20 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 	>>> chunk([1,3,2,4,3,2,4,5,3,1,43,2,1,1], lambda x: x[0]<x[1])
 	[[1, 3], [2, 4], [3], [2, 4, 5], [3], [1, 43], [2], [1], [1]]
 	'''
-	if hasattr(list_, '__iter__') and not isinstance(list_, list): list_ = list(list_)
-   result = [[list[0]]]
-   for x in xrange(len(list)-1):
-      window = list[x:x+2]
-      if not grouper(window):
-         result.append([])
-      result[-1].append(itemgetter(window[1]))
-   return result
+	if hasattr(list_, '__iter__') and not isinstance(list_, list):
+		list_ = list(list_)
+	result = [[list[0]]]
+	for x in xrange(len(list)-1):
+		window = list[x:x+2]
+		if not grouper(window):
+			result.append([])
+		result[-1].append(itemgetter(window[1]))
+	return result
 
 def combine(*lists, **kw):
+	'''combine iterables return type is the type of the first one
+	>>>
+	'''
 	dtype = kw.get('dtype', None) or type(lists[0])
 	if hasattr(lists[0], 'items'):
 		lists = [list_.items() for list_ in lists]
