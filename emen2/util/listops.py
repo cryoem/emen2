@@ -1,13 +1,17 @@
 from functools import partial
 
 def get(collection, key, default=None):
+	'''allows getting an item from a collection like dict.get does'''
 	try: return collection[key]
 	except KeyError: return default
 	except IndexError: return default
 
 def remove(collection, keys):
+	'''remove a set of elements from a dictionary'''
 	if not hasattr(keys, '__iter__'):
-		keys = [keys]
+		keys = set([keys])
+	else:
+		keys = set(keys)
 	for key in keys:
 		try: del collection[key]
 		except KeyError: pass
@@ -20,30 +24,52 @@ def adj_dict(dict, items):
 	dict.update(items)
 	return dict
 
-def combine_dicts(*args):
-	result = dict()
-	for dct in args: result.update(dct)
-	return result
-
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
 
-def filter_dict(dict, allowed, pred):
+def filter_dict(dict, allowed, pred=lambda key, list_: key in list_):
+	'''remove items from a dictionary according to a list and a test function
+
+	>>> filter_dict(dict(a=1, b=2, c=3, d=4), ['a', 'b', 'c'])
+	{'a': 1, 'b': 2, 'c':3}
+	>>> filter_dict(dict(a=1, b=2, c=3, d=4), ['a', 'b', 'c'], lambda key, lis: key not in lis)
+	{'d': 4}
+	'''
 	result = {}
 	[ result.update([(key, dict[key])]) for key in dict if pred(key, set(allowed)) ]
 	return result
 
-pick = partial(filter_dict, pred=(lambda x,y: x in y))
+
+#pick items from a dict
+pick = filter_dict
+#drop items from a dict
 drop = partial(filter_dict, pred=(lambda x,y: x not in y))
 
-def chunk(list, grouper=lambda x: x[0]==x[1]):
+def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
+	'''groups items in list as long as the grouper function returns True
+
+	>>> chunk([1,3,2,4,3,2,4,5,3,1,43,2,1,1])
+	[[1], [3], [2], [4], [3], [2], [4], [5], [3], [1], [43], [2], [1, 1]]
+	>>> chunk([1,3,2,4,3,2,4,5,3,1,43,2,1,1], lambda x: x[0]<x[1])
+	[[1, 3], [2, 4], [3], [2, 4, 5], [3], [1, 43], [2], [1], [1]]
+	'''
+	if hasattr(list_, '__iter__') and not isinstance(list_, list): list_ = list(list_)
    result = [[list[0]]]
    for x in xrange(len(list)-1):
       window = list[x:x+2]
       if not grouper(window):
          result.append([])
-      result[-1].append(window[1])
+      result[-1].append(itemgetter(window[1]))
    return result
+
+def combine(*lists, **kw):
+	dtype = kw.get('dtype', None) or type(lists[0])
+	if hasattr(lists[0], 'items'):
+		lists = [list_.items() for list_ in lists]
+	return dtype(itertools.chain(*lists))
+
+def flatten(d):
+	return combine([a.keys()]+a.values())
 
 
 def test_get():
