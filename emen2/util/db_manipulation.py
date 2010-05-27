@@ -72,7 +72,7 @@ class DBTree(Context):
 
 	def get_child_id(self, name, cur_dir):
 		'''returns children of a record with a given recname'''
-		children = self.__db.getchildren(cur_dir, filt=True)
+		children = self.__db.getchildren(cur_dir)
 		if name == '*':
 			[(yield child) for child in children]
 		else:
@@ -182,7 +182,7 @@ class DBTree(Context):
 			return None
 
 	def get_menu(self, depth=1):
-		recs = self.db.getchildren(self.root, recurse=depth, tree=True)#, filt=True)
+		recs = self.db.getchildtree(self.root, recurse=depth)
 		folders = self.db.getindexbyrecorddef('folder')
 		recs1 = {}
 		keys = filter(lambda x: x in folders, recs)

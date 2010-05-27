@@ -58,6 +58,8 @@ import emen2.db.group
 import emen2.db.workflow
 
 
+import emen2.util.listops as listops
+
 # convenience
 Record = emen2.db.record.Record
 Binary = emen2.db.binary.Binary
@@ -476,11 +478,13 @@ class DB(object):
 
 	def _tolist(self, d, dtype=None):
 		dtype = dtype or list
+		ol = False
 		if isinstance(d, dtype):
-			return d
+			return ol, d
 		if not (hasattr(d, "__iter__") or isinstance(d, emen2.db.dataobject.BaseDBInterface)):
 			d = [d]
-		return dtype(d)
+			ol = True
+		return ol, dtype(d)
 
 
 	def _dictbykey(self, l, key):
@@ -587,24 +591,22 @@ class DB(object):
 	# section: Time and Version Management
 	###############################
 
-	#@rename db.versions.get
+	#@rename db.versions.get @ok @return int
 	@publicmethod
 	def checkversion(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program
 		@keyparam program Check version for this program (API, emen2client, etc.)
 		"""
-
 		return VERSIONS.get(program)
 
 
 
-	#@rename db.time.get
+	#@rename db.time.get @ok @return str
 	@publicmethod
 	def gettime(self, ctx=None, txn=None):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
 		@return DB time date string
 		"""
-
 		return gettime()
 
 
@@ -668,7 +670,7 @@ class DB(object):
 
 	# Logout is the same as delete context
 
-	#@rename db.auth.logout
+	#@rename db.auth.logout @ok @return None
 	@publicmethod
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
@@ -676,7 +678,7 @@ class DB(object):
 
 
 
-	#@rename db.auth.whoami
+	#@rename db.auth.whoami @ok @return tuple
 	@publicmethod
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
@@ -685,7 +687,7 @@ class DB(object):
 
 
 
-	#@rename db.auth.check.admin
+	#@rename db.auth.check.admin @ok @return bool
 	@publicmethod
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
@@ -694,7 +696,7 @@ class DB(object):
 
 
 
-	#@rename db.auth.check.readadmin
+	#@rename db.auth.check.readadmin @ok @return bool
 	@publicmethod
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
@@ -703,7 +705,7 @@ class DB(object):
 
 
 
-	#@rename db.auth.check.create
+	#@rename db.auth.check.create @ok @return bool
 	@publicmethod
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
@@ -890,22 +892,9 @@ class DB(object):
 
 
 
-	# @publicmethod
-	# def newbinary(self, *args, **kwargs):
-	# 	raise Exception, "Deprecated; use putbinary"
-
-
-	#@rename db.binary.get
-	#@single
+	#@multiple @filt @ok @return Binary or [Binaries]
 	@publicmethod
-	def getbinary(self, bdokey, *args, **kwargs):
-		ret = self.getbinaries([bdokey], *args, **kwargs) or [None]
-		return return_first_or_none(ret)
-
-
-	#@multiple @filt
-	@publicmethod
-	def getbinaries(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
+	def getbinary(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
 		"""Get Binary objects from ids or references. Binaries include file name, size, md5, associated record, etc. Each binary has an ID, aka a 'BDO'
 
 		@param bdokeys An iterable containing: records, recids, binary ids
@@ -919,7 +908,8 @@ class DB(object):
 		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
 
 		# process bdokeys argument for bids (into list bids) and then process bids
-		bdokeys = self._tolist(bdokeys)
+		ol, bdokeys = self._tolist(bdokeys)
+		
 		ret = []
 		bids = []
 		recs = []
@@ -979,20 +969,19 @@ class DB(object):
 					raise KeyError, "Invalid identifier: %s: %s"%(datekey, inst)
 
 		recstoget = set(byrec.keys()) - set([rec.recid for rec in recs])
-		recs.extend(self.getrecord(recstoget, filt=True, ctx=ctx, txn=txn))
+		recs.extend(self.getrecords(recstoget, ctx=ctx, txn=txn))
 
 		for rec in recs:
 			for i in byrec.get(rec.recid,[]):
 				ret.append(i)
 
+		if ol: return_first_or_none(ret)
 		return ret
 
 
 
-	# ian: todo: medium: clean this up some more...
-	# ian: todo: simple: implement uri kw
-	#@rename db.binary.put
-	#@single
+
+	#@rename db.binary.put @ok @single @return Binary
 	@publicmethod
 	def putbinary(self, filename, recid, bdokey=None, filedata=None, filehandle=None, param=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents.
@@ -1171,7 +1160,7 @@ class DB(object):
 
 
 	# ed: todo?: key by recid
-	#@rename db.binary.list
+	#@rename db.binary.list @ok @return set
 	@publicmethod
 	def getbinarynames(self, ctx=None, txn=None):
 		"""Get a list of all binaries."""
@@ -1180,8 +1169,8 @@ class DB(object):
 
 		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
 		ret = reduce(set.union, ret, set())
-		ret = set().union(*ret)
-		return list(ret)
+		return set().union(*ret)
+
 
 
 
@@ -1192,7 +1181,7 @@ class DB(object):
 	###############################
 
 
-	#@rename db.query.query
+	#@rename db.query.query @notok
 	@publicmethod
 	def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
 		"""Query. Specify one or more keyword arguments:
@@ -1236,9 +1225,9 @@ class DB(object):
 		if subset:
 			subsets.append(set(subset))
 		if childof:
-			subsets.append(self.getchildren(childof, recurse=recurse, filt=False, flat=True, ctx=ctx, txn=txn))
+			subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
 		if parentof:
-			subsets.append(self.getparents(parentof, recurse=recurse, filt=False, flat=True, ctx=ctx, txn=txn))
+			subsets.append(self.getparents(parentof, recurse=recurse, ctx=ctx, txn=txn))
 		if rectype:
 			subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
 
@@ -1416,7 +1405,7 @@ class DB(object):
 
 
 
-
+	#@notok
 	@publicmethod
 	def queryplot(self, ctx=None, txn=None, **kwargs):
 		"""Query + Plot"""
@@ -1444,7 +1433,7 @@ class DB(object):
 		return qp
 
 
-
+	#@notok
 	@publicmethod
 	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
 
@@ -1482,7 +1471,7 @@ class DB(object):
 		# Process "nearby" params. Do not filter points until after these are done..
 		parents = {}
 		if searchparents or grouptype == "parent":
-			parents = self.getparents(subset, recurse=-1, ctx=ctx, txn=txn)
+			parents = self.getparenttree(subset, recurse=-1, ctx=ctx, txn=txn)
 		if searchparents:
 			if "xparam" in searchparents: self.__plot_searchrels(subset, c1, parents)
 			if "yparam" in searchparents: self.__plot_searchrels(subset, c2, parents)
@@ -1490,7 +1479,7 @@ class DB(object):
 
 		children = {}
 		if searchchildren or grouptype == "children":
-			children = self.getchildren(subset, recurse=-1, ctx=ctx, txn=txn)
+			children = self.getchildtree(subset, recurse=-1, ctx=ctx, txn=txn)
 		if searchchildren:
 			if "xparam" in searchchildren: self.__plot_searchrels(subset, c1, children)
 			if "yparam" in searchchildren: self.__plot_searchrels(subset, c2, children)
@@ -1739,8 +1728,9 @@ class DB(object):
 
 
 
+	#@notok
 	@publicmethod
-	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
 		"""Find a recorddef, by general search string, or by name/desc_short/desc_long/mainview/childof
 
 		@keyparam query Contained in any item below
@@ -1757,8 +1747,9 @@ class DB(object):
 
 
 
+	#@notok
 	@publicmethod
-	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
 		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
 
@@ -1773,7 +1764,7 @@ class DB(object):
 
 
 
-	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=100, ctx=None, txn=None, **qp):
+	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
 		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
 		# context of where query was found
 		c = {}
@@ -1828,9 +1819,10 @@ class DB(object):
 		return p2
 
 
-
+	
+	#@notok
 	@publicmethod
-	def findbinary(self, query=None, broad=False, limit=100, ctx=None, txn=None):
+	def findbinary(self, query=None, broad=False, limit=None, ctx=None, txn=None):
 		"""Find a binary by filename
 
 		@keyparam query Match this filename
@@ -1838,7 +1830,7 @@ class DB(object):
 
 		@return list of matching binaries
 		"""
-
+		if limit: limit=int(limit)
 
 		qbins = self.bdbs.bdosbyfilename.get(query, txn=txn) or []
 
@@ -1852,17 +1844,18 @@ class DB(object):
 				for i in matches:
 					qbins.extend(self.bdbs.bdosbyfilename.get(i))
 
-		bins = self.getbinary(qbins, ctx=ctx, txn=txn) or {}
-		bins = bins.values()
+		bins = self.getbinary(qbins, ctx=ctx, txn=txn)
 		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
 
+		if limit: bins = bins[:int(limit)]
 		return bins
 
 
-
+	
+	#@notok
 	#@rename db.query.user
 	@publicmethod
-	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=100, ctx=None, txn=None):
+	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/username
 
 		@keyparam query Contained in any item below
@@ -1876,7 +1869,7 @@ class DB(object):
 
 		@return list of matching user instances
 		"""
-
+		
 
 		if query:
 			email = query
@@ -1904,16 +1897,17 @@ class DB(object):
 		)
 
 		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
-
 		users = self.getuser(usernames, ctx=ctx, txn=txn).values()
+
+		if limit: users = users[:int(limit)]
 		return users
 
 
 
 
-	#@rename db.query.group
+	#@rename db.query.group @notok
 	@publicmethod
-	def findgroup(self, query, limit=100, ctx=None, txn=None):
+	def findgroup(self, query, limit=None, ctx=None, txn=None):
 		"""Find a group.
 
 		@param query
@@ -1923,7 +1917,7 @@ class DB(object):
 		@return list of matching groups
 		"""
 
-
+		
 		built_in = set(["anon","authenticated","create","readadmin","admin"])
 
 		groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
@@ -1936,16 +1930,14 @@ class DB(object):
 
 		ret = sorted(ret, key=operator.itemgetter(1))
 
-		if limit:
-			ret = ret[:limit]
-
+		if limit: ret = ret[:int(limit)]
 		return ret
 
 
 
-	#@rename db.query.value
+	#@rename db.query.value @notok
 	@publicmethod
-	def findvalue(self, param, query, flat=False, limit=100, count=True, showchoices=True, ctx=None, txn=None):
+	def findvalue(self, param, query, flat=False, limit=None, count=True, showchoices=True, ctx=None, txn=None):
 		"""Find values for a parameter.
 
 		@param param Parameter to search
@@ -1995,25 +1987,10 @@ class DB(object):
 	#########################
 
 
-	# ian: todo: medium: Enforce filt=True in config?
 	#@rename db.query.recorddef
-	#@single
+	#@multiple @ok @return set of recids
 	@publicmethod
-	def getindexbyrecorddef(self, recdef, filt=False, ctx=None, txn=None):
-		# check if user has permission for recorddef
-		self.getrecorddef(recdef, ctx=ctx, txn=txn)
-
-		ret = self.bdbs.recorddefindex.get(recdef, txn=txn)
-		if filt:
-			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
-
-		return ret
-
-
-
-	#@multiple @filt
-	@publicmethod
-	def getindexbyrecorddefs(self, recdefs, filt=False, ctx=None, txn=None):
+	def getindexbyrecorddef(self, recdefs, ctx=None, txn=None):
 		"""Records by Record Def. This is currently non-secured information.
 
 		@param recdef A single or iterable Record Def name
@@ -2023,13 +2000,14 @@ class DB(object):
 		@return List of recids
 		"""
 
+		ol, recdefs = self._tolist(recdefs)
+
 		ret = set()
-		for i in self._tolist(recdefs):
+		for i in recdefs:
 			self.getrecorddef(i, ctx=ctx, txn=txn) # check for permissions
 			ret |= self.bdbs.recorddefindex.get(i, txn=txn)
 
-		if filt:
-			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
+		# return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 
 		return ret
 
@@ -2037,7 +2015,7 @@ class DB(object):
 
 
 	# ian todo: medium: add unit support.
-	#@rename db.query.param
+	#@rename db.query.param @ok @return set of recids
 	@publicmethod
 	def getindexbyvalue(self, param, valrange=None, ctx=None, txn=None):
 		"""Query an indexed parameter. Return all records that contain a value, with optional value range
@@ -2073,7 +2051,7 @@ class DB(object):
 
 
 	# ian: todo: this could use updating
-	#@rename db.query.paramdict
+	#@rename db.query.paramdict @ok @return dict, k=param value, v=recids
 	@publicmethod
 	def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
 		"""Query a param index, returned in a dict keyed by value.
@@ -2147,25 +2125,25 @@ class DB(object):
 
 
 
-	# ian: todo: low priority: finish; add more stats (->Ed)
-	#@rename db.query.statistics
-	@publicmethod
-	def getparamstatistics(self, param, ctx=None, txn=None):
-		"""Return statistics about an (indexable) param
-
-		@param param parameter
-
-		@return (Count of keys, count of values)
-		"""
-
-		if ctx.username == None:
-			raise emen2.db.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
-
-		try:
-			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
-			return (len(paramindex.keys(txn=txn)), len(paramindex.values(txn=txn)))
-		except:
-			return (0,0)
+	# ian: todo: finish this method
+	#@rename db.query.statistics @notok
+	# @publicmethod
+	# def getparamstatistics(self, param, ctx=None, txn=None):
+	# 	"""Return statistics about an (indexable) param
+	# 
+	# 	@param param parameter
+	# 
+	# 	@return (Count of keys, count of values)
+	# 	"""
+	# 
+	# 	if ctx.username == None:
+	# 		raise emen2.db.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
+	# 
+	# 	try:
+	# 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+	# 		return (len(paramindex.keys(txn=txn)), len(paramindex.values(txn=txn)))
+	# 	except:
+	# 		return (0,0)
 
 
 
@@ -2186,7 +2164,7 @@ class DB(object):
 
 
 
-	# ian: disabled, not sure if I want this method
+	# # ian: disabled, not sure if I want this method
 	# @publicmethod
 	# def getindexbyuser(self, username, ctx=None, txn=None):
 	# 	"""This will use the user keyed record read-access index to return
@@ -2202,9 +2180,9 @@ class DB(object):
 	# 	return self.bdbs.secrindex.get(username, set(), txn=txn)
 
 
-
+	# # ian: disabled for security reasons
+	# @publicmethod
 	# @adminmethod
-	# ian: disabled for security reasons (it returns all values with no security check...)
 	# def getindexkeys(self, paramname, valrange=None, ctx=None, txn=None):
 	# 	 """For numerical & simple string parameters, this will locate all
 	# 	 parameter values in the specified range.
@@ -2217,7 +2195,7 @@ class DB(object):
 	# 	 return None
 
 
-	# ian: todo: enable this
+	# # ian: todo: enable this
 	# # ian: todo: return dictionary instead of list?
 	# @publicmethod
 	# def getrecordschangetime(self, recids, ctx=None, txn=None):
@@ -2245,7 +2223,7 @@ class DB(object):
 	#########################
 
 	# ian: todo: medium: benchmark for new index system (01/10/2010)
-	#@rename db.records.group
+	#@rename db.records.group @ok @multiple @return dict, k=group, v=set(recids)
 	@publicmethod
 	def groupbyrecorddef(self, recids, ctx=None, txn=None):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed by their recorddef
@@ -2255,8 +2233,7 @@ class DB(object):
 		@return dict, key is recorddef, value is set of recids
 		"""
 
-		if not hasattr(recids,"__iter__"):
-			recids=[recids]
+		ol, recids = self._tolist(recids)
 
 		if len(recids) == 0:
 			return {}
@@ -2343,71 +2320,50 @@ class DB(object):
 	###############################
 
 
-	# ian: todo: low priority: instead of variable return format, make separate methods...
-
-	# break this out by RelateBTree instead of keytype (but still keep keytype= as a wrapper)
 	#@rename db.<RelateBTree>.children
-	#@single @filt
+	#@single @notok @return set
 	@publicmethod
-	def getchildren(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
-		"""Get children. There are a number of convenience keyword arguments for speed/utility. Note that flat/tree options will affect return format.
-
-		@param key Single or iterable key.
-
-		@keyparam keytype Children of this type: ["record","paramdef","recorddef"] (default is "record")
+	def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+		"""Get children.
+		@param keys Single or iterable key (recids, paramdef names, etc.)
+		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
-		@keyparam tree Return full tree (default=False)
-		@keyparam flat Return flattened tree (default=False)
 		@keyparam rectype For Records, limit to a specific rectype
-		@keyparam filt For Records, filter by permissions (default=False)
-
-		@return Default is to return a set of children for key.
-				If tree, return dict-based graph. Useful with recursion.
-				If key is iterable, return dict of dicts/sets as specified by tree
-				If flat, return completely flattened set of all keys. Mutually exclusive with tree.
+		@return Set of children
 		"""
 		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
 
-	# ian: todo: we're ignoring filt and always filtering fow now...
-
 	#@rename db.<RelateBTree>.parents
-	#@single @filt
+	#@notok @single
 	@publicmethod
-	def getparents(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
+	def getparents(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+		"""See getchildren"""
 		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
 
 
-	#@single @filt
+	#@multiple @notok @return dict
 	@publicmethod
-	def getchildtree(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
-		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
+	def getchildtree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+		"""Get multiple children for multiple items.
+		@param keys Single or iterable key (recids, paramdef names, etc.)
+		@keyparam keytype Children of type: record, paramdef, or recorddef
+		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
+		@keyparam rectype For Records, limit to a specific rectype
+		@return Dict, keys are record IDs or paramdef/recorddef names, values are sets of children for that key
+		"""
+		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
 
 
-
-	#@single @filt
+	#@multiple @notok
 	@publicmethod
-	def getparenttree(self, key, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
-		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
-
-
-
-	#@multiple @filt
-	@publicmethod
-	def getchildtrees(self, keys, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
+	def getparenttree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+		"""See getchildtree"""
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
 
 
 
-	#@multiple @filt
-	@publicmethod
-	def getparenttrees(self, keys, recurse=1, filt=False, rectype=None, keytype="record", ctx=None, txn=None):
-		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
-
-
-
-	# ian: todo: simple: raise Exception if rectype/filt on keytype=record
-	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None): #flat=False,
+	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None):
 		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method."""
 
 		if recurse == -1:
@@ -2415,7 +2371,7 @@ class DB(object):
 		if recurse == False:
 			recurse = True
 
-		keys = self._tolist(keys)
+		ol, keys = self._tolist(keys)
 
 		__keytypemap = dict(
 			record=self.bdbs.records,
@@ -2434,7 +2390,7 @@ class DB(object):
 		# k1 = input recids
 		# k2 = related recid and v2 = relations of k2
 		result, ret_visited = {}, {}
-		for i in key:
+		for i in keys:
 			result[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
 
 
@@ -2443,13 +2399,15 @@ class DB(object):
 
 		# Restrict to a particular rectype
 		if rectype:
-			allr &= self.getindexbyrecorddefs(rectype, ctx=ctx, txn=txn)
+			allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
 		# Filter by permissions
 		if keytype=="record":
 			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
+
 		# perform filtering on both levels, and removing any items that become empty
+		# If Tree=True, we're returning the tree...
 		if tree:
 			for k, v in result.iteritems():
 				for k2 in v:
@@ -2458,15 +2416,17 @@ class DB(object):
 
 			return result
 
+		# Else we're just ruturning the total list of all children, keyed by requested recid
 		for k in ret_visited:
 			ret_visited[k] &= allr
 
+		if ol: return return_first_or_none(ret_visited)
 		return ret_visited
 
 
 
 	#@rename db.<RelateBTree>.pclinks
-	#@multiple
+	#@multiple @ok
 	@publicmethod
 	def pclinks(self, links, keytype="record", ctx=None, txn=None):
 		"""Create parent/child relationships. See pclink/pcunlink.
@@ -2480,7 +2440,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pcunlinks
-	#@multiple
+	#@multiple @ok
 	@publicmethod
 	def pcunlinks(self, links, keytype="record", ctx=None, txn=None):
 		"""Remove parent/child relationships. See pclink/pcunlink.
@@ -2494,7 +2454,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pclink
-	#@single
+	#@single @ok
 	@publicmethod
 	def pclink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Establish a parent-child relationship between two keys.
@@ -2510,7 +2470,7 @@ class DB(object):
 
 
 	#@rename db.<RelateBTree>.pcunlink
-	#@single
+	#@single @ok
 	@publicmethod
 	def pcunlink(self, pkey, ckey, keytype="record", ctx=None, txn=None):
 		"""Remove a parent-child relationship between two keys.
@@ -2551,7 +2511,7 @@ class DB(object):
 		items = set(reduce(operator.concat, links, ()))
 
 		# ian: todo: high: for recorddef/paramdefs, check that all items exist..
-		# self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
+		# self.getparamdef(items, filt=False, ctx=ctx, txn=txn)
 
 		# ian: circular reference detection.
 		# ian: todo: high: turn this back on..
@@ -2562,18 +2522,18 @@ class DB(object):
 		#	if pkey in c or ckey in p or pkey == ckey:
 		#		raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
 
+		# Check that items exist
 		if keytype == "record":
-			recs = dict([ (x.recid,x) for x in self.getrecord(items, ctx=ctx, txn=txn) ])
+			recs = dict([(x.recid,x) for x in self.getrecord(items, filt=False, ctx=ctx, txn=txn)])
 			for a,b in links:
 				if not (admin or (recs[a].writable() or recs[b].writable())):
 					raise emen2.db.exceptions.SecurityError, "pclink requires partial write permission: %s <-> %s"%(a,b)
 
 		elif keytype == "paramdef":
-			self.getparamdefs(items, filt=False, ctx=ctx, txn=txn)
+			self.getparamdef(items, filt=False, ctx=ctx, txn=txn)
 
 		elif keytype == "recorddef":
-			self.getrecorddef(items, ctx=ctx, txn=txn)
-			# links = [(unicode(x[0]).lower(),unicode(x[1]).lower()) for x in links]
+			self.getrecorddef(items, filt=False, ctx=ctx, txn=txn)
 
 		self.__commit_link(keytype, mode, links, ctx=ctx, txn=txn)
 
@@ -2668,34 +2628,31 @@ class DB(object):
 
 
 	#@rename db.users.disable
-	#@single
+	#@multiple @ok
 	@publicmethod
 	@adminmethod
-	def disableuser(self, username, ctx=None, txn=None):
-		"""This will disable a user so they cannot login. Note that users are NEVER deleted, so
-		a complete historical record is maintained. Only an administrator can do this.
-
-		@param username
-		"""
-		return self.__setuserstate(username, disabled=True, ctx=ctx, txn=txn)
+	def disableuser(self, usernames, filt=True, ctx=None, txn=None):
+		return self.__setuserstate(usernames=usernames, disabled=True, filt=filt, ctx=ctx, txn=txn)
 
 
 
 	#@rename db.users.enable
-	#@single
+	#@multiple @ok
 	@publicmethod
 	@adminmethod
-	def enableuser(self, username, ctx=None, txn=None):
+	def enableuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Enable a disabled user.
 
 		@param username
 		"""
-		return self.__setuserstate(username, disabled=False, ctx=ctx, txn=txn)
+		return self.__setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
+		
 
 
-
-	def __setuserstate(self, usernames, disabled, ctx=None, txn=None):
+	def __setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
+
+		ol, usernames = self._tolist(usernames)
 
 		state = bool(disabled)
 
@@ -2711,7 +2668,13 @@ class DB(object):
 				g.warn('Warning: user %s tried to disable themself' % ctx.username)
 				continue
 
-			user = self.bdbs.users.sget(username, txn=txn) #[i]
+			if filt:
+				user = self.bdbs.users.get(username, txn=txn)
+				if not user:
+					continue
+			else:
+				user = self.bdbs.users.sget(username, txn=txn)
+
 			if user.disabled == state:
 				continue
 
@@ -2729,100 +2692,80 @@ class DB(object):
 
 		g.log.msg('LOG_INFO', "Users %s %s by %s"%(ret, t, ctx.username))
 
+		if ol: return return_first_or_none(ret)
 		return ret
-
-		#if len(ret)==1 and ol: return ret[0].username
-		# return [user.username for user in ret]
-
-
-	#@single
-	@publicmethod
-	@adminmethod
-	def approveuser(self, username, ctx=None, txn=None):
-		return self.approveusers(usernames=[username], ctx=ctx, txn=txn)
 
 
 
 	#@rename db.users.approve
-	#@multiple
+	#@multiple @ok
 	@publicmethod
 	@adminmethod
-	def approveusers(self, usernames, ctx=None, txn=None):
+	def approveuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Approve account in user queue
 
 		@param usernames List of accounts to approve from new user queue
 
 		"""
-
-		usernames = self._tolist(usernames)
+		
+		ol, usernames = self._tolist(usernames)
 
 		# ian: I have turned secrets off for now until I can think about it some more..
 		secret = None
-
-		# try:
 		admin = ctx.checkadmin()
 
-		# if (secret == None) and (not admin):
 		if not admin:
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
-		# except emen2.db.exceptions.SecurityError:
-		# 	raise
-		#
-		# except BaseException, e:
-		# 	admin = False
-		# 	if secret is None:
-		# 		raise
-		# 	else:
-		# 		g.log.msg('LOG_INFO', 'Ignored: (%s)' % e)
-
-		delusers, addusers, records, childstore = {}, {}, {}, {}
+		delusers, records, childstore = {}, {}, {}
+		addusers = []
 
 		# Need to commit users before records will validate
-
 		for username in usernames:
-			if not username in self.bdbs.newuserqueue.keys(txn=txn):
-				raise KeyError, "User %s is not pending approval" % username
+
+			try:
+				user = self.bdbs.newuserqueue.sget(username, txn=txn)
+				if not user:
+					raise KeyError, "User %s is not pending approval"%username
+
+				user.setContext(ctx)
+				user.validate()
+			except:
+				if filt: continue
+				else: raise
+
 
 			if self.bdbs.users.get(username, txn=txn):
 				delusers[username] = None
-				g.log.msg("LOG_ERROR","User %s already exists, deleted pending record" % username)
+				g.log.msg("LOG_ERROR", "User %s already exists, deleted pending record"%username)
 				continue
-
-			user = self.bdbs.newuserqueue.sget(username, txn=txn) #[username]
-			user.setContext(ctx)
-			user.validate()
 
 			# if secret is not None and not user.validate_secret(secret):
 			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 			# 	time.sleep(2)
-			#
-			# else:
 
-			# OK, add user
 			# clear out the secret
 			user._User__secret = None
-			addusers[username] = user
+			addusers.append(user)
 			delusers[username] = None
 
 
 		# Update user queue / users
-		self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
+		self.__commit_users(addusers, ctx=ctx, txn=txn)
 		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		# ian: todo: Do we need this root ctx? Probably...
 		tmpctx = self.__makerootcontext(txn=txn)
 
 		# Pass 2 to add records
-		for user in addusers.values():
+		for user in addusers:
 			rec = self.newrecord("person", ctx=tmpctx, txn=txn)
 
 			rec["username"] = username
+			rec["email"] = user.signupinfo.get('email')
 
 			name = user.signupinfo.get('name', ['', '', ''])
 			rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
-
-			rec["email"] = user.signupinfo.get('email')
 
 			rec.adduser(username, level=3)
 			rec.addgroup("authenticated")
@@ -2830,25 +2773,11 @@ class DB(object):
 			for k,v in user.signupinfo.items():
 				rec[k] = v
 
-			#g.log.msg('LOG_DEBUG', "putting record...")
 			rec = self.putrecord(rec, ctx=tmpctx, txn=txn)
-
-			# ian: todo: low priority: turning this off for now..
-			# g.log.msg('LOG_DEBUG', "creating child records")
-			# children = user.create_childrecords()
-			# children = [(self.__putrecord([child], ctx=tmpctx, txn=txn)[0].recid, parents) for child, parents in children]
-
-			# if children != []:
-			#	self.__link('pclink', [(rec.recid, child) for child, _ in children], ctx=tmpctx, txn=txn)
-			#	for links in children:
-			#		child, parents = links
-			#		self.__link('pclink', [(parent, child) for parent in parents], ctx=tmpctx, txn=txn)
-
 			user.record = rec.recid
 			user.signupinfo = None
 
-
-		self.__commit_users(addusers.values(), ctx=ctx, txn=txn)
+		self.__commit_users(addusers, ctx=ctx, txn=txn)
 
 		if user.username != 'root':
 			for group in g.GROUP_DEFAULTS:
@@ -2858,29 +2787,25 @@ class DB(object):
 					self.putgroup(gr, ctx=tmpctx, txn=txn)
 				else:
 					g.warn('Default Group %r is non-existent'%group)
+					
 
-
-		return [user.username for user in addusers.values()]
-
-
-
-	#@single
-	@publicmethod
-	@adminmethod
-	def rejectuser(self, usernames, ctx=None, txn=None):
-		return self.rejectusers(usernames=[username], ctx=ctx, txn=txn)
+		ret = [user.username for user in addusers]
+		if ol: return return_first_or_none(ret)
+		return ret
 
 
 
 	#@rename db.users.reject
-	#@multiple @filt
+	#@multiple @filt @ok
 	@publicmethod
 	@adminmethod
-	def rejectusers(self, usernames, filt=True, ctx=None, txn=None):
+	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Remove a user from the pending new user queue
 
 		@param usernames List of usernames to reject from new user queue
 		"""
+
+		ol, usernames = self._tolist(usernames)
 
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
@@ -2889,25 +2814,23 @@ class DB(object):
 		delusers = {}
 
 		for username in usernames:
-			#if not username in self.bdbs.newuserqueue:
-			if not self.bdbs.newuserqueue.get(username, txn=txn):
-				if filt:
-					pass
-				else:
-					raise KeyError, "User %s is not pending approval" % username
+			try:
+				self.bdbs.newuserqueue.sget(username, txn=txn)
+			except:
+				if filt: continue
+				else: raise KeyError, "User %s is not pending approval" % username
 
 			delusers[username] = None
 
+		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
-		self.__commit_newusers(delusers, ctx=ctx, txn=txn) # queue[username] = None
-
-		if ol and len(delusers) == 1:
-			return delusers.keys()[0]
-		return delusers
-
+		ret = delusers.keys()
+		if ol: return_first_or_none(ret)
+		return ret
 
 
-	#@rename db.users.queue
+
+	#@rename db.users.queue @ok
 	@publicmethod
 	@adminmethod
 	def getuserqueue(self, ctx=None, txn=None):
@@ -2919,11 +2842,12 @@ class DB(object):
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
-		return self.bdbs.newuserqueue.keys(txn=txn)
+		return set(self.bdbs.newuserqueue.keys(txn=txn))
 
 
 
 	#@rename db.users.queue_get
+	#@ok @single @return User
 	@publicmethod
 	@adminmethod
 	def getqueueduser(self, username, ctx=None, txn=None):
@@ -2937,17 +2861,14 @@ class DB(object):
 		if not ctx.checkreadadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can access pending users"
 
-		if hasattr(username,"__iter__"):
-			ret={}
-			for i in username:
-				ret[i] = self.getqueueduser(i, ctx=ctx, txn=txn)
-			return ret
-
-		return self.bdbs.newuserqueue.sget(username, txn=txn) # [username]
+		ret = self.bdbs.newuserqueue.sget(username, txn=txn)
+		ret.setContext(ctx)
+		return ret
 
 
 
 
+	#@ok @return User
 	@publicmethod
 	def newuser(self, username, password, email, ctx=None, txn=None):
 		user = emen2.db.user.User(username=username, password=password, email=email)
@@ -2987,7 +2908,7 @@ class DB(object):
 	###############################
 
 
-	#@rename db.users.setprivacy
+	#@rename db.users.setprivacy @ok @return None
 	@publicmethod
 	def setprivacy(self, state, username=None, ctx=None, txn=None):
 		"""Set privacy level for user information.
@@ -3023,7 +2944,7 @@ class DB(object):
 
 
 
-	#@rename db.users.setpassword
+	#@rename db.users.setpassword @ok @return None
 	@publicmethod
 	def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
 		"""Change password.
@@ -3060,7 +2981,7 @@ class DB(object):
 
 
 
-	#@rename db.users.setemail
+	#@rename db.users.setemail @ok @return None
 	@publicmethod
 	def setemail(self, email, username=None, ctx=None, txn=None):
 		"""Change email
@@ -3086,7 +3007,7 @@ class DB(object):
 
 
 
-	#@rename db.users.add
+	#@rename db.users.add @ok @return User
 	@publicmethod
 	def adduser(self, user, ctx=None, txn=None):
 		"""Adds a new user. However, note that this only adds the record to the
@@ -3160,17 +3081,10 @@ class DB(object):
 
 
 
-	#@single
-	@publicmethod
-	def getuser(self, usernames, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
-		return return_first_or_none(self.getusers(usernames=[usernames], filt=False, lnf=lnf, getgroups=getgroups, getrecord=getrecord, ctx=ctx, txn=txn))
-
-
-
 	#@rename db.users.get
-	#@multiple filt
+	#@multiple filt @ok @return User or [User...]
 	@publicmethod
-	def getusers(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
+	def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 		"""Get user information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record
 
@@ -3186,7 +3100,7 @@ class DB(object):
 
 		"""
 
-		usernames = self._tolist(usernames)
+		ol, usernames = self._tolist(usernames)
 
 		# Are we looking for users referenced in records?
 		recs = [x for x in usernames if isinstance(x, emen2.db.record.Record)]
@@ -3236,80 +3150,80 @@ class DB(object):
 
 			ret.append(user)
 
+		if ol: return_first_or_none(ret)
 		return ret
 
 
 
 
-	# ian: deprecated; use db.getuser
+	# ian: I would like to deprecate this, but it's used in many places
 	#@rename db.users.displayname
 	# @publicmethod
 	# def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 	# 	"""Get user 'display names.'
-	#
+	# 
 	# 	@param username Username, iterable usernames, record, or iterable records.
-	#
+	# 
 	# 	@keyparam lnf Last Name First
 	# 	@keyparam perms In records, include users referenced by permissions
 	# 	@keyparam filt Ignore failures
-	#
+	# 
 	# 	@return Dict of display names, keyed by user. If input was a single username, then return the single value (this may change in the future)
 	# 	"""
-	#
+	# 
 	# 	namestoget = []
 	# 	ret = {}
-	#
+	# 
 	# 	ol = 0
 	# 	if isinstance(username, basestring):
 	# 		ol = 1
 	# 	if isinstance(username, (basestring, int, emen2.db.record.Record)):
 	# 		username=[username]
-	#
+	# 
 	# 	# First get direct usernames
 	# 	namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
-	#
+	# 
 	# 	vts=["user","userlist"]
 	# 	if perms:
 	# 		vts.append("acl")
-	#
+	# 
 	# 	# Now lookup records and add all referenced users
 	# 	recs = []
 	# 	recs.extend(filter(lambda x:isinstance(x,emen2.db.record.Record), username))
 	# 	rec_ints = filter(lambda x:isinstance(x,int), username)
 	# 	if rec_ints:
 	# 		recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
-	#
+	# 
 	# 	if recs:
 	# 		namestoget.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 	# 		# ... need to parse comments since it's special
 	# 		namestoget.extend(reduce(operator.concat, [[i[0] for i in rec["comments"]] for rec in recs], []))
-	#
+	# 
 	# 	namestoget = set(namestoget)
-	#
+	# 
 	# 	# Now actually get users..
 	# 	users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 	# 	ret = {}
-	#
+	# 
 	# 	for i in users.values():
 	# 		ret[i.username] = i.displayname
-	#
+	# 
 	# 	if len(ret.keys())==0:
 	# 		return {}
 	# 	if ol:
 	# 		return ret.values()[0]
-	#
+	# 
 	# 	return ret
 
 
 
 
-	#@rename db.users.list
+	#@rename db.users.list @ok @return set
 	@publicmethod
 	def getusernames(self, ctx=None, txn=None):
 		"""Return a set of all usernames. Not available to anonymous users.
 
 		@return set of all usernames
-
 		"""
 		if ctx.username == "anonymous":
 			return set()
@@ -3324,27 +3238,21 @@ class DB(object):
 	##########################
 
 
-	#@rename db.groups.list
+	#@rename db.groups.list @ok @return set
 	@publicmethod
 	def getgroupnames(self, ctx=None, txn=None):
 		"""Return a set of all group names
 
 		@return set of all group names
-
 		"""
 		return set(self.bdbs.groups.keys(txn=txn))
 
 
 
 	#@rename db.groups.get
-	#@single
-	def getgroup(self, group, ctx=None, txn=None):
-		return self.getgroups(groups=[group], filt=False, ctx=ctx, txn=txn)
-
-
-	#@multiple @filt
+	#@multiple @filt @ok @return Group or [Group..]
 	@publicmethod
-	def getgroups(self, groups, filt=True, ctx=None, txn=None):
+	def getgroup(self, groups, filt=True, ctx=None, txn=None):
 		"""Get a group, which includes the owners, members, etc.
 
 		@param groups
@@ -3353,8 +3261,7 @@ class DB(object):
 
 		@return Dict of groups, keyed by group name
 		"""
-
-		groups = self._tolist(groups)
+		ol, groups = self._tolist(groups)
 
 		if filt:
 			lfilt = self.bdbs.groups.get
@@ -3366,6 +3273,7 @@ class DB(object):
 			i.setContext(ctx)
 			i.displayname = i
 
+		if ol: return_first_or_none(ret)
 		return ret
 
 
@@ -3408,9 +3316,9 @@ class DB(object):
 		groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		users = collections.defaultdict(set)
 
-		for k, group in groups.items():
+		for group in groups:
 			for user in group.members():
-				users[user].add(k)
+				users[user].add(group.name)
 				#except Exception, inst:
 				#	g.log("unknown user %s (%s)"%(user, inst))
 
@@ -3459,23 +3367,16 @@ class DB(object):
 
 
 
-	#@single
+	#@rename db.groups.put @ok
+	#@multiple @return Group or [Group..]
 	@publicmethod
-	def putgroup(self, group, ctx=None, txn=None):
-		return return_first_or_none(self.putgroups(groups=[group], ctx=ctx, txn=txn))
-
-
-
-	#@rename db.groups.put
-	#@multiple
-	@publicmethod
-	def putgroups(self, groups, ctx=None, txn=None):
+	def putgroup(self, groups, ctx=None, txn=None):
 		"""Commit changes to a group or groups.
 
 		@param groups Group instance or iterable groups
 		"""
 
-		groups = self._tolist(groups)
+		ol, groups = self._tolist(groups)
 
 		groups2 = []
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
@@ -3486,6 +3387,9 @@ class DB(object):
 			group.validate(txn=txn)
 
 		self.__commit_groups(groups2, ctx=ctx, txn=txn)
+
+		if ol: return_first_or_none(groups2)
+		return groups2
 
 
 
@@ -3689,43 +3593,40 @@ class DB(object):
 	#########################
 
 
-	#@rename db.paramdefs.vartypes.list
+	#@rename db.paramdefs.vartypes.list @ok @return set
 	@publicmethod
 	def getvartypenames(self, ctx=None, txn=None):
 		"""Returns a list of all valid variable types.
-
-		@return list of vartypes
+		@return Set of vartypes
 		"""
-		return self.vtm.getvartypes()
+		return set(self.vtm.getvartypes())
 
 
 
 
-	#@rename db.paramdefs.properties.get
+	#@rename db.paramdefs.properties.get @ok
 	@publicmethod
 	def getpropertynames(self, ctx=None, txn=None):
 		"""Return a list of all valid properties.
-
 		@return list of properties
 		"""
-		return self.vtm.getproperties()
+		return set(self.vtm.getproperties())
 
 
 
-	#@rename db.paramdefs.properties.units
+	#@rename db.paramdefs.properties.units @ok
 	@publicmethod
 	def getpropertyunits(self, propname, ctx=None, txn=None):
 		"""Returns a list of known units for a particular property
-
 		@param propname Property name
-
-		@return a list of known units for property
+		@return a set of known units for property
 		"""
 		# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
 		return set(self.vtm.getproperty(propname).units)
 
 
 
+	#@notok @return ParamDef
 	@publicmethod
 	def newparamdef(self, ctx=None, txn=None):
 		pd = emen2.db.paramdef.ParamDef()
@@ -3734,9 +3635,8 @@ class DB(object):
 
 
 
-	# ian: renamed addparamdef -> putparamdef for consistency
-	#@rename db.paramdefs.put
-	#@single
+	#@rename db.paramdefs.put @return ParamDef
+	#@single @ok
 	@publicmethod
 	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update a ParamDef. Updates are limited to descriptions. Only administrators may change existing paramdefs in any way that changes their meaning, and even this is strongly discouraged.
@@ -3789,6 +3689,7 @@ class DB(object):
 		return paramdef
 
 
+
 	def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
 		"""(Internal) Commit paramdefs"""
 
@@ -3800,39 +3701,25 @@ class DB(object):
 
 
 
-	# ian: todo: high: Sort out return of dicts vs. return of lists. We have decided on list return format for almost everything.
-	#@rename db.paramdefs.get
-	#@single
+
+	#@rename db.paramdefs.gets @notok @multiple @return ParamDef or [ParamDef..]
 	@publicmethod
-	def getparamdef(self, key, ctx=None, txn=None):
-		"""Get ParamDef
-		@param key ParamDef name or list of paramdef names
-		@return List of ParamDef instances
-		"""
-		return return_first_or_none(self.getparamdefs(keys=[key], filt=False, ctx=ctx, txn=txn))
-
-
-
-	#@rename db.paramdefs.gets
-	@publicmethod
-	def getparamdefs(self, keys, filt=True, ctx=None, txn=None):
+	def getparamdef(self, keys, filt=True, ctx=None, txn=None):
 		"""Get ParamDefs
-
 		@param recs ParamDef name, list of names, a Record, or list of Records
-
-		@keyparam filt Ignore failures
-
+		@keyparam filt Ignore failures\
 		@return Dict of ParamDefs, keyed by name
 		"""
 
-		keys = self._tolist(keys)
+		ol, keys = self._tolist(keys)
+		
 		params = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Process records if given
 		recs = (x for x in keys if isinstance(x, (int, emen2.db.record.Record)))
 		recs = self.getrecords(recs, ctx=ctx, txn=txn)
 		if recs:
-			q = set((i.rectype for i in recs))
+			q = set([i.rectype for i in recs])
 			for i in q:
 				params |= set(self.getrecorddef(i, ctx=ctx, txn=txn).paramsK)
 			for i in recs:
@@ -3851,18 +3738,19 @@ class DB(object):
 				pd.indexed = False
 			# pd.setContext(ctx)
 
+
+		if ol: return return_first_or_none(paramdefs)
 		return paramdefs
 
 
 
-	#@rename db.paramdefs.list
+	#@rename db.paramdefs.list @ok
 	@publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
 		"""Return a list of all ParamDef names
-
-		@return list of all ParamDef names
+		@return set of all ParamDef names
 		"""
-		return self.bdbs.paramdefs.keys(txn=txn)
+		return set(self.bdbs.paramdefs.keys(txn=txn))
 
 
 
@@ -3926,6 +3814,7 @@ class DB(object):
 	#########################
 
 
+	#@notok @return RecordDef
 	@publicmethod
 	def newrecorddef(self, ctx=None, txn=None):
 		rd = emen2.db.recorddef.RecordDef()
@@ -3935,7 +3824,7 @@ class DB(object):
 
 
 	#@single
-	#@rename db.recorddefs.put
+	#@rename db.recorddefs.put @ok @return RecordDef
 	@publicmethod
 	def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
 		"""Add or update RecordDef. The mainview should
@@ -3970,7 +3859,7 @@ class DB(object):
 
 		# Check all params are valid
 		recdef.findparams()
-		self.getparamdefs(recdef.params, filt=False, ctx=ctx, txn=txn)
+		self.getparamdef(recdef.params, filt=False, ctx=ctx, txn=txn)
 
 		# reset
 		recdef.creator = orec.creator
@@ -4014,16 +3903,9 @@ class DB(object):
 
 
 	#@rename db.recorddefs.get
-	#@single
+	#@multiple @filt @notok @return RecordDef or [RecordDef..]
 	@publicmethod
-	def getrecorddef(self, key, filt=False, recid=None, ctx=None, txn=None):
-		return return_first_or_none(self.getrecorddefs(keys=[key], filt=filt, recid=recid, ctx=ctx, txn=txn))
-
-
-
-	#@multiple @filt
-	@publicmethod
-	def getrecorddefs(self, keys, filt=True, recid=None, ctx=None, txn=None):
+	def getrecorddef(self, keys, filt=True, recid=None, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access.
@@ -4036,7 +3918,7 @@ class DB(object):
 		@return list of RecordDefs
 		"""
 
-		keys = self._tolist(keys)
+		ol, keys = self._tolist(keys)
 		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Find recorddefs record ID
@@ -4069,24 +3951,19 @@ class DB(object):
 				raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(rd)
 			ret.append(rd)
 
+
+		if ol: return_first_or_none(ret)
 		return ret
 
 
 
-	# #@rename db.recorddefs.gets
-	# @publicmethod
-	# def getrecorddefs(self, rdids, filt=True, ctx=None, txn=None):
-
-
-
-	#@rename db.recorddefs.list
+	#@rename db.recorddefs.list @ok @return set
 	@publicmethod
 	def getrecorddefnames(self, ctx=None, txn=None):
 		"""This will retrieve a list of all existing RecordDef names, even those the user cannot access
-
-		@return list of RecordDef names
+		@return set of RecordDef names
 		"""
-		return self.bdbs.recorddefs.keys(txn=txn)
+		return set(self.bdbs.recorddefs.keys(txn=txn))
 
 
 
@@ -4107,28 +3984,18 @@ class DB(object):
 	# 	return ret
 
 
-	#@rename db.records.get
-	#@single
+	#@rename db.records.get @return Record or [Record..]
+	#@multiple @filt @notok
 	@publicmethod
-	def getrecord(self, recid, ctx=None, txn=None):
-		return return_first_or_none(self.getrecords(recids=[recid], filt=False, ctx=ctx, txn=txn))
-
-
-	#@multiple @filt
-	@publicmethod
-	def getrecords(self, recids, filt=True, ctx=None, txn=None):
+	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
-
 		@param recids Record ID or iterable of Record IDs
-
 		@keyparam filt Ignore failures
-
-		@return list of Records
+		@return Record or list of Records
 		"""
 
-		recids = self._tolist(recids)
+		ol, recids = self._tolist(recids)
 		ret = []
-
 		# if filt: lfilt = self.bdbs.records.get....
 
 		for i in recids:
@@ -4137,30 +4004,25 @@ class DB(object):
 				rec.setContext(ctx)
 				ret.append(rec)
 			except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
-				if filt:
-					pass
-				else:
-					raise
+				if filt: pass
+				else: raise
 
+		if ol: return_first_or_none(ret)
 		return ret
 
 
 
 	# ian: todo: medium: allow to copy existing record
-	# ian: todo: simple: fix init option -- breaks some units
-	#@rename db.records.new
+	#@rename db.records.new @ok @return Record
 	@publicmethod
 	def newrecord(self, rectype, recid=None, init=True, inheritperms=None, ctx=None, txn=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist).
-
 		@param rectype RecordDef type
-
-		@keyparam recid Assign this RecordID (note: deprecated)
+		@keyparam recid Deprecated
 		@keyparam init Initialize Record with defaults from RecordDef
 		@keyparam inheritperms
-
-		@return New Record
+		@return A new Record
 		"""
 
 		if not ctx.checkcreate():
@@ -4193,24 +4055,23 @@ class DB(object):
 
 
 	#@rename good question!
-	#@publicmethod
 	def __getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
 		"""(Internal) As implied, get paramdef names by vartype"""
 
 		if not hasattr(vts,"__iter__"): vts = [vts]
 
 		if not paramdefs:
-			paramdefs = self.getparamdefs(self.getparamdefnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+			paramdefs = self.getparamdef(self.getparamdefnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 
-		return [x.name for x in paramdefs.values() if x.vartype in vts]
+		return [x.name for x in paramdefs if x.vartype in vts]
 
 
 
 
 	# ian: this might be helpful
 	# e.g.: filtervartype(136, ["user","userlist"])
-	#@rename db.records.filter.vartype
-	# ian: todo: make this much faster, or drop it..
+	# ian: todo: make this much faster, or drop it.. @ok
+	#@rename db.records.filter.vartype @return set
 	@publicmethod
 	def filtervartype(self, recs, vts, filt=True, flat=0, ctx=None, txn=None):
 		"""This is deprecated. Consider it semi-internal."""
@@ -4246,24 +4107,21 @@ class DB(object):
 
 
 
-	#@rename db.records.check.orphans
+	#@rename db.records.check.orphans @ok @return set
 	@publicmethod
 	def checkorphans(self, recid, ctx=None, txn=None):
 		"""Find orphaned records that would occur if recid was deleted.
-
 		@param recid Return orphans that would result from deletion of this Record
-
 		@return Set of orphaned Record IDs
 		"""
-
 		srecid = set([recid])
 		saved = set()
 
 		# this is hard to calculate
-		children = self.getchildren(recid, recurse=-1, tree=1, ctx=ctx, txn=txn)
+		children = self.getchildtree(recid, recurse=-1, ctx=ctx, txn=txn)
 		orphaned = reduce(set.union, children.values(), set())
 		orphaned.add(recid)
-		parents = self.getparents(orphaned, ctx=ctx, txn=txn)
+		parents = self.getparenttree(orphaned, ctx=ctx, txn=txn)
 
 		# orphaned is records that will be orphaned if they are not rescued
 		# find subtrees that will be rescued by links to other places
@@ -4271,7 +4129,7 @@ class DB(object):
 			if parents.get(child, set()) - orphaned:
 				saved.add(child)
 
-		children_saved = self.getchildren(saved, recurse=-1, ctx=ctx, txn=txn)
+		children_saved = self.getchildtree(saved, recurse=-1, ctx=ctx, txn=txn)
 		children_saved_set = set()
 		for i in children_saved.values() + [set(children_saved.keys())]:
 			children_saved_set |= i
@@ -4285,12 +4143,12 @@ class DB(object):
 
 
 	#@rename db.records.delete
-	#@single
+	#@single @ok @return Record
 	@publicmethod
 	def deleterecord(self, recid, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden.
-
 		@param recid Record ID to delete
+		@return Deleted Record 
 		"""
 
 		rec = self.getrecord(recid, ctx=ctx, txn=txn)
@@ -4325,17 +4183,16 @@ class DB(object):
 			#	rec2=self.getrecord(i, ctx=ctx, txn=txn)
 			#	rec["comments"]="Parent record %s was deleted"%recid
 			#	self.putrecord(rec2, ctx=ctx, txn=txn)
+		
+		return rec
 
 
-
-	#@rename db.records.comments.add
+	#@rename db.records.comments.add @ok @return Record
 	@publicmethod
 	def addcomment(self, recid, comment, ctx=None, txn=None):
 		"""Add comment to a record. Requires comment permissions on that Record.
-
 		@param recid
 		@param comment
-
 		@return Updated Record
 		"""
 
@@ -4343,21 +4200,22 @@ class DB(object):
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec.addcomment(comment)
 		self.putrecord(rec, ctx=ctx, txn=txn)
+		
 		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
 
 
 
 	#@rename db.records.comments.get
-	#@multiple @filt
+	#@multiple @filt @ok @return list
 	@publicmethod
 	def getcomments(self, recids, filt=True, ctx=None, txn=None):
 		"""Get comments from Records.
-
-		@param recids A Record ID or iterable of Record IDs
-
-		@return A dict of comments, keyed by Record ID
+		@param recids A Record ID or iterable Record IDs
+		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
-
+		
+		ol, recs = self._tolist(recids)
+		
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 
 		ret = []
@@ -4378,6 +4236,7 @@ class DB(object):
 	# section: Records / Put
 	#########################
 
+	#@notok
 	@publicmethod
 	def publish(self, recids, ctx=None, txn=None):
 		pass
@@ -4385,16 +4244,14 @@ class DB(object):
 
 
 	#@rename db.records.putvalue
-	#@single
+	#@single @ok
 	@publicmethod
 	def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 		"""Convenience method to update a single value in a record
-
 		@param recid Record ID
 		@param param Parameter
 		@param value New value
-
-		@return Record instance
+		@return Updated Record
 		"""
 
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
@@ -4426,16 +4283,14 @@ class DB(object):
 
 	# ian: todo: merge this with putrecordvalues
 	#@rename db.records.putsvalues
-	#@multiple
+	#@multiple @ok @return Record or [Record..]
 	@publicmethod
 	def putrecordsvalues(self, d, ctx=None, txn=None):
 		"""dict.update()-like operation on a number of records
-
 		@param d A dict (key=recid) of dicts (key=param, value=new value)
-
 		@return Updated Records
 		"""
-
+		
 		recs = self.getrecords(d.keys(), filt=False, ctx=ctx, txn=txn)
 		recs = self._groupbykey('recid', recs)
 		for k, v in d.items():
@@ -4445,31 +4300,23 @@ class DB(object):
 
 
 
-	#@rename db.records.validate
+	#@rename db.records.validate @ok
 	@publicmethod
 	def validaterecord(self, rec, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
-
 		@param recs Record or iterable of Records
-
 		@return Validated Records
 		"""
+		
 		return self.putrecord(rec, commit=False, ctx=ctx, txn=txn)
 
 
 
 
 	#@rename db.records.put
-	#@single
+	#@multiple @notok
 	@publicmethod
-	def putrecord(self, rec, warning=0, commit=True, ctx=None, txn=None):
-		return return_first_or_none(self.putrecords(recs=[rec], warning=warning, commit=commit, ctx=ctx, txn=txn))
-
-
-
-	#@multiple
-	@publicmethod
-	def putrecords(self, recs, warning=0, commit=True, ctx=None, txn=None):
+	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 
 		@param recs Record or iterable Records
@@ -4479,6 +4326,8 @@ class DB(object):
 
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
+
+		ol, recs = self._tolist(recs)
 
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
@@ -4491,6 +4340,7 @@ class DB(object):
 		# Commit
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
 
+		if ol: return_first_or_none(ret)
 		return ret
 
 
@@ -5090,13 +4940,11 @@ class DB(object):
 
 	# ian: I benchmarked with new index system; lowered the threshold for checking indexes. But maybe improve? 01/10/2010.
 	#@rename db.records.permissions.filter
-	#@multiple
+	#@multiple @ok @return set
 	@publicmethod
 	def filterbypermissions(self, recids, ctx=None, txn=None):
 		"""Filter a list of Record IDs by read permissions.
-
 		@param recids Iterable of Record IDs
-
 		@return Set of accessible Record IDs
 		"""
 
@@ -5131,14 +4979,13 @@ class DB(object):
 		# return set(ret)
 
 
-	#@rename db.records.permissions.compat_add
+
+	#@rename db.records.permissions.compat_add @ok
 	@publicmethod
 	def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, ctx=None, txn=None):
-		"""Maintain compat with older versions that require effort to update
-
+		"""Legacy permissions method.
 		@param umask Add this user mask to the specified recid, and child records to recurse level
 		@param recid Record ID to modify
-
 		@keyparam recurse
 		@keyparam reassign
 		@keyparam delusers
@@ -5149,28 +4996,28 @@ class DB(object):
 
 
 	#@multiple @filt
-	#@rename db.records.permissions.add
+	#@rename db.records.permissions.add @notok
 	@publicmethod
 	def addpermissions(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids=recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
 
 
 	#@multiple @filt
-	#@rename db.records.permissions.remove
+	#@rename db.records.permissions.remove @notok
 	@publicmethod
 	def removepermissions(self, recids, users, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids=recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
 
 
 	#@multiple @filt
-	#@rename db.records.permissions.addgroup
+	#@rename db.records.permissions.addgroup @notok
 	@publicmethod
 	def addgroups(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids=recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
 	#@multiple @filt
-	#@rename db.records.permissions.removegroup
+	#@rename db.records.permissions.removegroup @notok
 	@publicmethod
 	def removegroups(self, recids, groups, recurse=0, ctx=None, txn=None):
 		return self.__putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
@@ -5202,7 +5049,7 @@ class DB(object):
 
 		# change child perms
 		if recurse:
-			recids |= self.getchildren(recids, recurse=recurse, filt=True, flat=True, ctx=ctx, txn=txn)
+			recids |= emen2.util.listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
 
 
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
@@ -5230,7 +5077,8 @@ class DB(object):
 	def __endpoints(self, tree):
 		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
-	#@rename db.records.render.childtree
+
+	#@rename db.records.render.childtree @notok @single @return tuple
 	@publicmethod
 	def renderchildtree(self, recid, recurse=1, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
@@ -5238,8 +5086,8 @@ class DB(object):
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 
-		c_all = self.getchildren(recid, recurse=recurse, tree=True, filt=True, ctx=ctx, txn=txn)
-		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, filt=True, ctx=ctx, txn=txn)
+		c_all = self.getchildtree(recid, recurse=recurse, ctx=ctx, txn=txn)
+		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, ctx=ctx, txn=txn)
 
 		endpoints = self.__endpoints(c_all) - c_rectype
 		while endpoints:
@@ -5253,47 +5101,11 @@ class DB(object):
 
 		return rendered, c_all
 
-		# invert this into parents map
-		# c_rev = collections.defaultdict(dict)
-		# for k,v in c_rectype.items():
-		# 	for v2 in v:
-		# 		c_rev[v2].add(k)
-		#
-
-		# if recurse:
-		# 	treedef = [rectypes] * recurse
-		#
-		# init = set([recid])
-		# stack = [init]
-		# children = {}
-		#
-		# for x, rt in enumerate(treedef):
-		# 	current = stack[x]
-		# 	if not current:
-		# 		break
-		# 	stack.append(set())
-		# 	for i in current:
-		# 		new = self.getchildren(i, rectype=rt, filt=True, ctx=ctx, txn=txn)
-		# 		children[i] = new
-		# 		stack[x+1] |= new
-		#
-		# a = set().union(*stack)
-		# rendered = self.renderview(a, viewtype="recname", ctx=ctx, txn=txn)
-		# rendered_path = {}
-		#
-		# for x, rt in enumerate(stack):
-		# 	for i in rt:
-		# 		tmp_path = rendered_path.get(i, [])
-		# 		for child in children.get(i, set()):
-		# 			rendered_path[child] = tmp_path + [child]
-		#
-		# return rendered, rendered_path, len(stack)
-
 
 
 
 	# ian: todo: simple: deprecate: still used in a few places in the js. Convenience methods go outside core?
-	#@rename db.records.render.recname
+	#@rename db.records.render.recname @notok @deprecated @return dict
 	@publicmethod
 	def getrecordrecname(self, rec, returnsorted=0, showrectype=0, ctx=None, txn=None):
 		"""Render the recname view for a record."""
@@ -5347,16 +5159,13 @@ class DB(object):
 
 
 
+	#@notok
+	#@multiple
 	@publicmethod
-	def renderview(self, rec, *args, **kwargs):
-		ret = self.renderviews([rec], *args, **kwargs) or [None]
-		return ret[0]
-
-
-
-	@publicmethod
-	def renderviews(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
 		"""Render views"""
+
+		ol, recs = self._tolist(recs)
 
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
@@ -5366,7 +5175,7 @@ class DB(object):
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
-		recs = db.getrecords(recs, filt=filt)
+		recs = self.getrecords(recs, filt=filt, ctx=ctx, txn=txn)
 
 		# default params
 		builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
@@ -5375,7 +5184,7 @@ class DB(object):
 
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
-		recdefs = db.getrecorddefs(groups)
+		recdefs = self.getrecorddef(groups, ctx=ctx, txn=txn)
 
 		if not viewdef:
 
@@ -5437,7 +5246,8 @@ class DB(object):
 
 
 		if pd - set(paramdefcache.keys()):
-			paramdefcache.update(db.getparamdefs(pd))
+			for pd in self.getparamdef(pd, ctx=ctx, txn=txn):
+				paramdefcache[pd.name] = pd
 
 
 		for g1, vd in groupviews.items():
@@ -5469,8 +5279,8 @@ class DB(object):
 
 			ret[rec.recid]=a
 
-		if ol:
-			return ret.values()[0]
+
+		if ol: return ret.values()[0]
 		return ret
 
 
@@ -5506,7 +5316,7 @@ class DB(object):
 		return self.dbenv.txn_checkpoint()
 
 	#@rename db.admin.archivelogs
-	# @publicmethod
+	# @publicmethod @ok
 	# @adminmethod
 	def archivelogs(self, remove=False, ctx=None, txn=None):
 

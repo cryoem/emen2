@@ -221,17 +221,16 @@ function record_permissions_toggle(elem) {
 	
 		target.empty();
 	
-		$.jsonRPC("getuserdisplayname",[recid,1,1], function(result) {
-			$.each(result, function(k,v) {
-				setdisplayname(k,v);
-			});
+		// $.jsonRPC("getuserdisplayname",[recid,1,1], function(result) {
+		// 	$.each(result, function(k,v) {
+		// 		setdisplayname(k,v);
+		// 	});
 			permissionscontrol = new permissions(target, {
 				'list':getvalue(recid,"permissions"),
 				'groups':getvalue(recid,"groups")
 				}
 			)
-					
-		});
+		// });
 	}
 
 	return false

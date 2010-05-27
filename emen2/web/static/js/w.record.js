@@ -289,20 +289,20 @@ permissions.prototype = {
 		
 		// def getuserdisplayname(self, username, lnf=1, perms=0, filt=True, ctx=None, txn=None):
 		// get group names...
-		$.jsonRPC("getuserdisplayname",[recid, 1, 1, 1], function(names){
-			$.each(names, function(k,v) {
-				displaynames[k] = v;
-			});			
-			self.build_userarea();
-		});
+		// $.jsonRPC("getuserdisplayname",[recid, 1, 1, 1], function(names){
+		// 	$.each(names, function(k,v) {
+		// 		displaynames[k] = v;
+		// 	});			
+		// 	self.build_userarea();
+		// });
 
 		// get group names...
-		$.jsonRPC("getgroupdisplayname", [recid], function(names) {
-			$.each(names, function(k,v) {
-				groupnames[k] = v;
-			});			
-			self.build_grouparea();
-		});
+		// $.jsonRPC("getgroupdisplayname", [recid], function(names) {
+		// 	$.each(names, function(k,v) {
+		// 		groupnames[k] = v;
+		// 	});			
+		// 	self.build_grouparea();
+		// });
 		
 	},
 	

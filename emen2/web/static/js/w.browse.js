@@ -515,7 +515,7 @@ relationshipbrowser.prototype = {
 	getchildren: function() {
 		this.children=null;
 		var self=this;
-		$.jsonRPC("getchildren",[this.currentid, "record", 0], function(result) {
+		$.jsonRPC("getchildren",[this.currentid], function(result) {
 			self.children=result;
 			self.checklocalindex();
 		});
@@ -524,7 +524,7 @@ relationshipbrowser.prototype = {
 	getparents: function() {
 		this.parents=null;
 		var self=this;
-		$.jsonRPC("getparents",[this.currentid, "record", 0], function(result) {
+		$.jsonRPC("getparents",[this.currentid], function(result) {
 			self.parents=result;
 			self.checklocalindex();
 		});

@@ -5,14 +5,14 @@ function admin_approveusers_checkall(elem) {
 		$(this).attr("checked","true");
 	});
 }
-function admin_approveusers_uncheckall(elem) {
+function admin_approveuser_uncheckall(elem) {
 	$('input:radio[value=false]',$(elem.form)).each(function(){
 		$(this).attr("checked","false");
 	});
 }
 
 
-function admin_approveusers_form(elem) {
+function admin_approveuser_form(elem) {
 	var approve=[];
 	var reject=[];
 	var form=$(elem.form);
@@ -44,7 +44,7 @@ function admin_approveusers_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("wrapper_rejectuser_sendmail",[reject],
+		$.jsonRPC("wrapper_rejectusers_sendmail",[reject],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {

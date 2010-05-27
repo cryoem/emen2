@@ -13,6 +13,8 @@ import emen2.db.debug
 from emen2.db.globalns import GlobalNamespace
 
 
+
+
 def get_filename(package, resource):
 	d = os.path.dirname(sys.modules[package].__file__)
 	return os.path.join(d, resource)
@@ -59,6 +61,7 @@ class DBOptions(optparse.OptionParser):
 
 	def load_config(self, **kw):
 
+		g = GlobalNamespace()
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.yml')
 
@@ -71,7 +74,6 @@ class DBOptions(optparse.OptionParser):
 			g.EMEN2DBHOME = EMEN2DBHOME
 
 		# Load the default config
-		g = GlobalNamespace()
 		g.from_yaml(default_config)
 		if os.path.exists('/etc/emen2config.yml'):
 			g.from_yaml('/etc/emen2config.yml')

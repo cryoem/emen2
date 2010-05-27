@@ -320,10 +320,11 @@ class vt_user(Vartype):
 		if value == None:
 			return ""
 
-		key = engine.get_cache_key('getuserdisplayname', value)
+		key = engine.get_cache_key('displayname', value)
 		hit, dn = engine.check_cache(key)
 		if not hit:
-			dn = db.getuserdisplayname(value, lnf=True, filt=True) or "(%s)"%value
+			dn = db.getuser(value, lnf=True, filt=True) or {}
+			dn = dn.get('displayname')
 			engine.store(key, dn)
 
 		return dn
@@ -360,19 +361,19 @@ class vt_userlist(Vartype):
 		to_cache = []
 
 		for v in value:
-			key = engine.get_cache_key('getuserdisplayname', v)
+			key = engine.get_cache_key('displayname', v)
 			hit, dn = engine.check_cache(key)
 			if not hit:
 				to_cache.append(v)
 		
 		if to_cache:
-			for k,v in db.getuserdisplayname(to_cache, lnf=True, filt=True).items():
-				key = engine.get_cache_key('getuserdisplayname', k)
-				engine.store(key, v)
-				
+			users = db.getuser(to_cache, lnf=True, filt=True)
+			for user in users:
+				key = engine.get_cache_key('displayname', user.username)
+				engine.store(key, user.displayname)	
 				
 		for v in value:
-			key = engine.get_cache_key('getuserdisplayname', v)
+			key = engine.get_cache_key('displayname', v)
 			hit, dn = engine.check_cache(key)
 			ret.append(dn or "(%s)"%v)
 			
@@ -404,7 +405,11 @@ class vt_acl(Vartype):
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if not value: return ""
 		value=reduce(lambda x,y:x+y, value)
-		unames=db.getuserdisplayname(value, lnf=True)
+		
+		unames = {}
+		for user in db.getuser(value, lnf=True):
+			unames[user.username] = user.displayname
+		
 		levels=["Read","Comment","Write","Admin"]
 		ret=[]
 		for level,names in enumerate(value):

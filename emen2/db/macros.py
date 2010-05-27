@@ -43,7 +43,7 @@ class macro_childcount(Macro):
 		key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
 		hit, children = engine.check_cache(key)
 		if not hit:
-			children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=2, flat=True, filt=True))
+			children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=2))
 			engine.store(key, children)
 
 		return children
@@ -88,8 +88,7 @@ class macro_img(Macro):
 		ret=[]
 		for i in bdos:
 			try:
-				#fname,bname,lrecid=db.getbinary(i[4:])
-				bdoo = db.getbinary(i[4:])
+				bdoo = db.getbinary(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
 				lrecid = bdoo.get("recid")
@@ -111,7 +110,7 @@ class macro_childvalue(Macro):
 
 	def process(self, engine, macro, params, rec, db):
 		recid = rec.recid
-		children = db.getrecord(db.getchildren(recid), filt=1)
+		children = db.getrecord(db.getchildren(recid))
 		return [i.get(params) for i in children]
 
 
@@ -131,7 +130,7 @@ class macro_parentvalue(Macro):
 		recid = rec.recid
 # 		parents = db.getrecord(db.getparents(recid), filt=1)
 # 		return filter(lambda x:x, [i.get(params) for i in parents])
-		parents = db.getrecord(db.getparents(recid), filt=1)
+		parents = db.getrecord(db.getparents(recid))
 		return filter(None, [i.get(params) for i in parents])
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
@@ -161,7 +160,7 @@ class macro_renderchildren(Macro):
 	__metaclass__ = Macro.register_view
 		
 	def process(self, engine, macro, params, rec, db):
-		recs = db.getrecord(db.getchildren(params), filt=1)
+		recs = db.getrecord(db.getchildren(params))
 		return engine.renderview(recs, viewtype=params or "recname", db=db)
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
