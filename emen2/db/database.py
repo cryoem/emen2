@@ -5241,7 +5241,7 @@ class DB(object):
 	@publicmethod
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
 		"""Render views"""
-
+		
 		ol, recs = self._oltolist(recs)
 		
 		# calling out to vtm, we will need a DBProxy
@@ -5252,11 +5252,12 @@ class DB(object):
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
-		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn)
+		recs_ = self._typefilter(recs, emen2.db.record.Record)
+		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + recs_
 
 		# default params
-		builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
-		builtinparamsshow=["recid","rectype","comments","creator","creationtime"]
+		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]
+		builtinparamsshow = ["recid","rectype","comments","creator","creationtime"]
 		
 
 		groupviews={}
