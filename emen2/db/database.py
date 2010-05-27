@@ -1774,7 +1774,6 @@ class DB(object):
 
 		@return list of matching recorddefs
 		"""
-
 		return self.__find_pd_or_rd(keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
 
@@ -1859,6 +1858,7 @@ class DB(object):
 
 		@keyparam query Match this filename
 		@keyparam broad Try variations of filename (extension, partial matches, etc..)
+		
 		@return list of matching binaries
 		"""
 		if limit: limit=int(limit)
@@ -1897,6 +1897,7 @@ class DB(object):
 		@keyparam username ... contains in username
 		@keyparam boolmode 'AND' / 'OR'
 		@keyparam limit Limit number of items
+		
 		@return list of matching user instances
 		"""
 		
@@ -1941,7 +1942,9 @@ class DB(object):
 		"""Find a group.
 
 		@param query
+		
 		@keyparam limit Limit number of items
+		
 		@return list of matching groups
 		"""
 
@@ -1970,6 +1973,7 @@ class DB(object):
 
 		@param param Parameter to search
 		@param query Match this
+		
 		@keyparam limit Limit number of results
 		@keyparam showchoices Include any defined param 'choices'
 		@keyparam count Return count of matches, otherwise return recids
@@ -2352,10 +2356,13 @@ class DB(object):
 	@publicmethod
 	def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get children.
+
 		@param keys A Record ID, RecordDef name, or ParamDef name
+
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
+
 		@return Set of children
 		"""
 		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
@@ -2373,10 +2380,13 @@ class DB(object):
 	@publicmethod
 	def getchildtree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get multiple children for multiple items.
+		
 		@param keys Single or iterable key: Record IDs, RecordDef names, ParamDef names
+		
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
+		
 		@return Dict, keys are Record IDs or ParamDef/RecordDef names, values are sets of children for that key
 		"""
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
@@ -2673,6 +2683,7 @@ class DB(object):
 		"""Enable a disabled user.
 
 		@param username
+		
 		@keyparam filt Ignore failures
 		"""
 		return self.__setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
@@ -3085,12 +3096,10 @@ class DB(object):
 	def __commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
 
-	#@begin
-
+		#@begin
 		for user in users:
 			self.bdbs.users.set(user.username, user, txn=txn)
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
-
 		#@end
 
 
@@ -3100,7 +3109,6 @@ class DB(object):
 		"""(Internal) Write to newuserqueue; users is dict; set value to None to del"""
 
 		#@begin
-
 		for username, user in users.items():
 			if user:
 				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r"%username)
@@ -3108,7 +3116,6 @@ class DB(object):
 				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r, deleting"%username)
 
 			self.bdbs.newuserqueue.set(username, user, txn=txn)
-
 		#@end
 
 
@@ -5236,7 +5243,7 @@ class DB(object):
 		"""Render views"""
 
 		ol, recs = self._oltolist(recs)
-
+		
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
 		dbp._settxn(txn)
@@ -5250,18 +5257,17 @@ class DB(object):
 		# default params
 		builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
 		builtinparamsshow=["recid","rectype","comments","creator","creationtime"]
-
+		
 
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
 		recdefs = self.getrecorddef(groups, ctx=ctx, txn=txn)
 
-		if not viewdef:
 
+		if not viewdef:
 			for rd in recdefs:
 				i = rd.name
-
-
+				
 				if viewtype == "mainview":
 					groupviews[i] = rd.mainview
 
@@ -5329,7 +5335,6 @@ class DB(object):
 
 		ret={}
 
-
 		for rec in recs:
 			if groupviews.get(rec.recid):
 				key = rec.recid
@@ -5348,7 +5353,6 @@ class DB(object):
 					a=a.replace(u"$@" + i[0], v + i[1])
 
 			ret[rec.recid]=a
-
 
 		if ol: return return_first_or_none(ret)
 		return ret

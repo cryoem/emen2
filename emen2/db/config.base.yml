@@ -65,7 +65,7 @@ params:
   MAXRECURSE: 50
   BLOCKLENGTH: 100000
   MAXIDLE: 604800
-  ROOTPW: foobar
+  # ROOTPW: foobar
 
 
 customization:

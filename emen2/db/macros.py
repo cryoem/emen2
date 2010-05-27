@@ -26,7 +26,7 @@ class macro_recname(Macro):
 	__metaclass__ = Macro.register_view
 			
 	def process(self, engine, macro, params, rec, db):
-		return engine.renderview(rec, viewtype="recname", db=db)
+		return db.renderview(rec, viewtype="recname") #ian:mustfix
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "Record ID"				
@@ -160,8 +160,7 @@ class macro_renderchildren(Macro):
 	__metaclass__ = Macro.register_view
 		
 	def process(self, engine, macro, params, rec, db):
-		recs = db.getrecord(db.getchildren(params))
-		return engine.renderview(recs, viewtype=params or "recname", db=db)
+		return db.renderview(db.getchildren(params), viewtype=params or "recname") #ian:mustfix
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "renderchildren"			
