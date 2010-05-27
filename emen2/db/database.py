@@ -5252,8 +5252,7 @@ class DB(object):
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
-		recs_ = self._typefilter(recs, emen2.db.record.Record)
-		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + recs_
+		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + self._typefilter(recs, emen2.db.record.Record)
 
 		# default params
 		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]
