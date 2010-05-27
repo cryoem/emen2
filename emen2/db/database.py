@@ -3870,6 +3870,10 @@ class DB(object):
 		if ctx.username != orec.owner and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
+		# web forms might add extra spacing, causing equality to fail
+		recdef.mainview = recdef.mainview.strip()
+		orec.mainview = orec.mainview.strip()
+
 		if recdef.mainview != orec.mainview and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only the administrator can modify the mainview of a RecordDef"
 
