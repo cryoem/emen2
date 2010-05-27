@@ -27,7 +27,7 @@ function admin_approveuser_form(elem) {
 	//console.log(reject);
 
 	if (approve.length > 0) {
-		$.jsonRPC("wrapper_approveuser_sendmail",[approve],
+		$.jsonRPC("approveuser",[approve], //wrapper_approveuser_sendmail ian:mustfix
 			function(data) {
 				notify("Approved users: "+data);
 				for (var i=0;i<data.length;i++) {

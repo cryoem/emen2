@@ -72,13 +72,13 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.paramsR = set()
 
 		# The owner of this record
-		self.owner = d.get("owner")
+		self.owner = d.get("owner") or self._ctx.username
 
 		# original creator of the record
-		self.creator = d.get("creator")
+		self.creator = d.get("creator") or self._ctx.username
 
 		# creation date
-		self.creationtime = d.get("creationtime")
+		self.creationtime = d.get("creationtime") or self._ctx.db.gettime()
 
 		# Source of RecordDef
 		self.uri = d.get("uri")
@@ -108,12 +108,11 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	def accessible(self):
 		'''Does current Context allow access to this RecordDef?'''
-
 		if not self._ctx:
 			return False
 
 		result = False
-		if self.private is False:
+		if not self.private:
 			result = True
 		elif self._ctx.username == self.owner:
 			result = True

@@ -435,7 +435,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 
-		d = emen2.db.dataobjects.recorddef.parseparmvalues(value, noempty=1)[1]
+		d = emen2.db.recorddef.parseparmvalues(value, noempty=1)[1]
 
 		if d.has_key("comments") or d.has_key("permissions"):
 			self.validationwarning("addcomment: cannot set comments/permissions inside a comment")
@@ -456,7 +456,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def _addhistory(self, param):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, self.__params[param]))
+		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, self.__params.get(param)))
 
 
 
@@ -703,7 +703,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		pds = self.__ctx.db.getparamdefs(p2)
+		pds = self.__ctx.db.getparamdef(p2)
 		newpd = {}
 		exceptions = []
 

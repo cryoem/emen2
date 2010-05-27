@@ -212,7 +212,7 @@ TableColumnControl.prototype = {
 		if (this.built==0) {
 			$.jsonRPC("getrecorddef",[this.rectype],function(recdef) {
 				self.allparams = recdef.paramsK;
-				$.jsonRPC("getparamdefs",[recdef.paramsK],function(paramdefs) {
+				$.jsonRPC("getparamdef",[recdef.paramsK],function(paramdefs) {
 					self.paramdefs=paramdefs
 					self.build();
 					self.show();

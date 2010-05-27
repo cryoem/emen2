@@ -1,4 +1,5 @@
 from functools import partial
+import itertools
 
 def get(collection, key, default=None):
 	'''allows getting an item from a collection like dict.get does'''
@@ -26,6 +27,7 @@ def adj_dict(dict, items):
 
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
+
 
 def filter_dict(dict, allowed, pred=lambda key, list_: key in list_):
 	'''remove items from a dictionary according to a list and a test function
@@ -80,6 +82,7 @@ def combine(*lists, **kw):
 		lists = [list_.items() for list_ in lists]
 	return dtype(itertools.chain(*lists))
 
+
 def flatten(a):
 	'''flatten a dict with lists as items into a set
 
@@ -91,14 +94,14 @@ def flatten(a):
 
 
 def flatten(d):
-	return combine([a.keys()]+a.values())
+	return combine([d.keys()]+d.values())
 
 
-def combine(*lists, dtype=None):
-	dtype = dtype or type(lists[0])
-	if hasattr(lists[0], 'items'):
-		lists = [list_.items() for list_ in lists]
-	return dtype(itertools.chain(*lists))
+# def combine(*lists):
+# 	dtype = type(lists[0])
+# 	if hasattr(lists[0], 'items'):
+# 		lists = [list_.items() for list_ in lists]
+# 	return dtype(itertools.chain(*lists))
 
 
 

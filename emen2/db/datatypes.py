@@ -6,13 +6,6 @@ g = emen2.db.config.g()
 
 
 
-regex_pattern2 = u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
-								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s,]+)\))?))(?P<macrosep>[\s<]?)" \
-								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
-regex2 = re.compile(regex_pattern2, re.UNICODE) # re.UNICODE
-
-
-
 # def if_caching(f):
 # 	def _inner(*args, **kwargs):
 # 		if args[0].caching: return f(*args, **kwargs)

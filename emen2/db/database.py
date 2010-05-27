@@ -83,6 +83,15 @@ VERSIONS = {
 }
 
 
+
+# This is used for parsing views... do not touch!
+viewfinder_pattern = u"(\$\$(?P<var>(?P<var1>\w*)(?:=\"(?P<var2>[\w\s]+)\")?))(?P<varsep>[\s<]?)"		\
+								"|(\$\@(?P<macro>(?P<macro1>\w*)(?:\((?P<macro2>[\w\s,]+)\))?))(?P<macrosep>[\s<]?)" \
+								"|(\$\#(?P<name>(?P<name1>\w*)))(?P<namesep>[\s<:]?)"
+viewfinder = re.compile(viewfinder_pattern, re.UNICODE) # re.UNICODE
+
+
+
 # pointer to database environment
 DBENV = None
 
@@ -389,7 +398,7 @@ class DB(object):
 		ctx = self.__makerootcontext(txn=txn, host="localhost")
 
 		try:
-			testroot = self.getuser("root", ctx=ctx, txn=txn)
+			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
 			raise ValueError, "Found root user. This environment has already been initialized."
 		except KeyError:
 			pass
@@ -410,18 +419,21 @@ class DB(object):
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
 
 
-		root_user = return_first_or_none([u for u in skeleton.core_users.items if u.get('username') == 'root'])
-		if root_user:
-			root_user["password"] = rootpw
-			g.debug(root_user)
-			self.adduser(root_user, ctx=ctx, txn=txn)
+		# root_user = return_first_or_none([u for u in skeleton.core_users.items if u.get('username') == 'root'])
+		# if root_user:
+		# 	root_user["password"] = rootpw
+		# 	self.adduser(root_user, ctx=ctx, txn=txn)
 
+
+		for i in skeleton.core_users.items:
+			if i.get('username') == 'root':
+				i['password'] = rootpw
+			self.adduser(i, ctx=ctx, txn=txn)
+		
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
-		for i in skeleton.core_users.items:
-			if i.get('username') == 'root': continue
-			self.adduser(i, ctx=ctx, txn=txn)
+
 
 		for i in skeleton.core_records.items:
 			self.putrecord(i, ctx=ctx, txn=txn)
@@ -463,7 +475,7 @@ class DB(object):
 		self.dbenv.close()
 
 
-	# ian: todo: remove this; it's only used one place
+	# ian: todo: there is a better version in emen2.util.listops
 	def __flatten(self, l):
 		"""Flatten an iterable of iterables recursively into a single list"""
 
@@ -475,13 +487,16 @@ class DB(object):
 		return out
 
 
-
 	def _tolist(self, d, dtype=None):
+		return self._oltolist(d, dtype=dtype)[1]
+
+
+	def _oltolist(self, d, dtype=None):
 		dtype = dtype or list
 		ol = False
 		if isinstance(d, dtype):
 			return ol, d
-		if not (hasattr(d, "__iter__") or isinstance(d, emen2.db.dataobject.BaseDBInterface)):
+		if not hasattr(d, "__iter__") or isinstance(d, (dict,emen2.db.dataobject.BaseDBInterface)):
 			d = [d]
 			ol = True
 		return ol, dtype(d)
@@ -908,7 +923,7 @@ class DB(object):
 		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
 
 		# process bdokeys argument for bids (into list bids) and then process bids
-		ol, bdokeys = self._tolist(bdokeys)
+		ol, bdokeys = self._oltolist(bdokeys)
 		
 		ret = []
 		bids = []
@@ -969,13 +984,13 @@ class DB(object):
 					raise KeyError, "Invalid identifier: %s: %s"%(datekey, inst)
 
 		recstoget = set(byrec.keys()) - set([rec.recid for rec in recs])
-		recs.extend(self.getrecords(recstoget, ctx=ctx, txn=txn))
+		recs.extend(self.getrecord(recstoget, ctx=ctx, txn=txn))
 
 		for rec in recs:
 			for i in byrec.get(rec.recid,[]):
 				ret.append(i)
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -2000,7 +2015,7 @@ class DB(object):
 		@return List of recids
 		"""
 
-		ol, recdefs = self._tolist(recdefs)
+		ol, recdefs = self._oltolist(recdefs)
 
 		ret = set()
 		for i in recdefs:
@@ -2233,7 +2248,7 @@ class DB(object):
 		@return dict, key is recorddef, value is set of recids
 		"""
 
-		ol, recids = self._tolist(recids)
+		ol, recids = self._oltolist(recids)
 
 		if len(recids) == 0:
 			return {}
@@ -2331,7 +2346,7 @@ class DB(object):
 		@keyparam rectype For Records, limit to a specific rectype
 		@return Set of children
 		"""
-		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
+		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
 
 	#@rename db.<RelateBTree>.parents
@@ -2339,7 +2354,7 @@ class DB(object):
 	@publicmethod
 	def getparents(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""See getchildren"""
-		return self.__getrel_wrapper(keys=[key], keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
+		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
 
 
 	#@multiple @notok @return dict
@@ -2371,7 +2386,7 @@ class DB(object):
 		if recurse == False:
 			recurse = True
 
-		ol, keys = self._tolist(keys)
+		ol, keys = self._oltolist(keys)
 
 		__keytypemap = dict(
 			record=self.bdbs.records,
@@ -2409,12 +2424,14 @@ class DB(object):
 		# perform filtering on both levels, and removing any items that become empty
 		# If Tree=True, we're returning the tree...
 		if tree:
+			outret = {}
 			for k, v in result.iteritems():
 				for k2 in v:
-					result[k][k2] &= allr
+					outret[k2] = result[k][k2] & allr
+					# result[k][k2] &= allr
 					# if not result[k][k2]:	del result[k][k2]
 
-			return result
+			return outret
 
 		# Else we're just ruturning the total list of all children, keyed by requested recid
 		for k in ret_visited:
@@ -2652,7 +2669,7 @@ class DB(object):
 	def __setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
-		ol, usernames = self._tolist(usernames)
+		ol, usernames = self._oltolist(usernames)
 
 		state = bool(disabled)
 
@@ -2708,7 +2725,7 @@ class DB(object):
 
 		"""
 		
-		ol, usernames = self._tolist(usernames)
+		ol, usernames = self._oltolist(usernames)
 
 		# ian: I have turned secrets off for now until I can think about it some more..
 		secret = None
@@ -2805,12 +2822,12 @@ class DB(object):
 		@param usernames List of usernames to reject from new user queue
 		"""
 
-		ol, usernames = self._tolist(usernames)
+		ol, usernames = self._oltolist(usernames)
 
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
-		usernames = self._tolist(usernames)
+		usernames = usernames
 		delusers = {}
 
 		for username in usernames:
@@ -2825,7 +2842,7 @@ class DB(object):
 		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		ret = delusers.keys()
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -3100,7 +3117,7 @@ class DB(object):
 
 		"""
 
-		ol, usernames = self._tolist(usernames)
+		ol, usernames = self._oltolist(usernames)
 
 		# Are we looking for users referenced in records?
 		recs = [x for x in usernames if isinstance(x, emen2.db.record.Record)]
@@ -3150,7 +3167,7 @@ class DB(object):
 
 			ret.append(user)
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -3261,7 +3278,7 @@ class DB(object):
 
 		@return Dict of groups, keyed by group name
 		"""
-		ol, groups = self._tolist(groups)
+		ol, groups = self._oltolist(groups)
 
 		if filt:
 			lfilt = self.bdbs.groups.get
@@ -3273,7 +3290,7 @@ class DB(object):
 			i.setContext(ctx)
 			i.displayname = i
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -3376,7 +3393,7 @@ class DB(object):
 		@param groups Group instance or iterable groups
 		"""
 
-		ol, groups = self._tolist(groups)
+		ol, groups = self._oltolist(groups)
 
 		groups2 = []
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
@@ -3388,7 +3405,7 @@ class DB(object):
 
 		self.__commit_groups(groups2, ctx=ctx, txn=txn)
 
-		if ol: return_first_or_none(groups2)
+		if ol: return return_first_or_none(groups2)
 		return groups2
 
 
@@ -3711,13 +3728,13 @@ class DB(object):
 		@return Dict of ParamDefs, keyed by name
 		"""
 
-		ol, keys = self._tolist(keys)
+		ol, keys = self._oltolist(keys)
 		
 		params = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Process records if given
 		recs = (x for x in keys if isinstance(x, (int, emen2.db.record.Record)))
-		recs = self.getrecords(recs, ctx=ctx, txn=txn)
+		recs = self.getrecord(recs, ctx=ctx, txn=txn)
 		if recs:
 			q = set([i.rectype for i in recs])
 			for i in q:
@@ -3850,7 +3867,6 @@ class DB(object):
 		##################
 		# ian: todo: move to validate..
 
-		# ian: todo: broken for non-root
 		if ctx.username != orec.owner and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only the owner or administrator can modify RecordDefs"
 
@@ -3918,7 +3934,8 @@ class DB(object):
 		@return list of RecordDefs
 		"""
 
-		ol, keys = self._tolist(keys)
+		ol, keys = self._oltolist(keys)
+		
 		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Find recorddefs record ID
@@ -3928,8 +3945,7 @@ class DB(object):
 		if recid:
 			recids.append(recid)
 
-		recs = self.getrecords(recids, ctx=ctx, txn=txn)
-		g.debug(recs)
+		recs = self.getrecord(recids, ctx=ctx, txn=txn)
 		groups = self._groupbykey(recs, 'rectype')
 		recdefs |= set(groups.keys())
 		recs = self._dictbykey(recs, 'recid')
@@ -3946,13 +3962,12 @@ class DB(object):
 		for rd in recdefs:
 			rd.setContext(ctx)
 			if not rd.accessible() and rd.name not in groups:
-				if filt:
-					continue
-				raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(rd)
+				if filt: continue
+				raise emen2.db.exceptions.SecurityError, "RecordDef %s not accessible"%(rd.name)
 			ret.append(rd)
 
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -3994,7 +4009,7 @@ class DB(object):
 		@return Record or list of Records
 		"""
 
-		ol, recids = self._tolist(recids)
+		ol, recids = self._oltolist(recids)
 		ret = []
 		# if filt: lfilt = self.bdbs.records.get....
 
@@ -4007,7 +4022,7 @@ class DB(object):
 				if filt: pass
 				else: raise
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -4040,8 +4055,9 @@ class DB(object):
 
 		# Apply any inherited permissions
 		if inheritperms:
+			inheritperms = self._tolist(inheritperms)
 			try:
-				precs = self.getrecords(inheritperms, filt=False, ctx=ctx, txn=txn)
+				precs = self.getrecord(inheritperms, filt=False, ctx=ctx, txn=txn)
 				for prec in precs:
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
@@ -4214,7 +4230,7 @@ class DB(object):
 		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
 		
-		ol, recs = self._tolist(recids)
+		ol, recs = self._oltolist(recids)
 		
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 
@@ -4291,7 +4307,7 @@ class DB(object):
 		@return Updated Records
 		"""
 		
-		recs = self.getrecords(d.keys(), filt=False, ctx=ctx, txn=txn)
+		recs = self.getrecord(d.keys(), filt=False, ctx=ctx, txn=txn)
 		recs = self._groupbykey('recid', recs)
 		for k, v in d.items():
 			recs[k].update(v)
@@ -4318,29 +4334,27 @@ class DB(object):
 	@publicmethod
 	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
-
 		@param recs Record or iterable Records
 		@keyparam warning Bypass validation (Admin only)
 		@keyparam commit If False, do not actually commit (e.g. for valdiation)
 		@return Committed records
-
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 
-		ol, recs = self._tolist(recs)
+		ol, recs = self._oltolist(recs)
 
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
 		# Preprocess
-		recs = self._tolist(recs)
+		recs = recs
 		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in self._typefilter(recs, dict))
 		recs = self._typefilter(recs, emen2.db.record.Record)
 
 		# Commit
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
 
-		if ol: return_first_or_none(ret)
+		if ol: return return_first_or_none(ret)
 		return ret
 
 
@@ -4371,7 +4385,7 @@ class DB(object):
 
 		# preprocess: copy updated record into original record (updrec -> orec)
 		for updrec in updrecs:
-
+		
 			recid = updrec.recid
 
 			if recid < 0:
@@ -4951,7 +4965,7 @@ class DB(object):
 		if ctx.checkreadadmin():
 			return recids
 
-		recids = self._tolist(recids, dtype=set)
+		ol, recids = self._oltolist(recids)
 
 		# ian: indexes are now faster, generally...
 		if len(recids) < 100:
@@ -5165,7 +5179,7 @@ class DB(object):
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
 		"""Render views"""
 
-		ol, recs = self._tolist(recs)
+		ol, recs = self._oltolist(recs)
 
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
@@ -5175,7 +5189,7 @@ class DB(object):
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
-		recs = self.getrecords(recs, filt=filt, ctx=ctx, txn=txn)
+		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn)
 
 		# default params
 		builtinparams=["recid","rectype","comments","creator","creationtime","permissions"]
@@ -5228,7 +5242,7 @@ class DB(object):
 			m = []
 
 			vd = vd.encode('utf-8', "ignore")
-			iterator = regex2.finditer(vd)
+			iterator = viewfinder.finditer(vd)
 
 			for match in iterator:
 				if match.group("name"):
@@ -5280,9 +5294,8 @@ class DB(object):
 			ret[rec.recid]=a
 
 
-		if ol: return ret.values()[0]
+		if ol: return return_first_or_none(ret)
 		return ret
-
 
 
 

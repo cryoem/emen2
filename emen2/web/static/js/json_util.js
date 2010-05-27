@@ -2,7 +2,7 @@
 
 function json_getparamdefs(recids,cb) {
 	$.jsonRPC(
-		"getparamdefs",
+		"getparamdef",
 		[recids],
 		function (json) {
 			$.each(json, function(i) {
