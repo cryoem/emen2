@@ -610,7 +610,9 @@ class DB(object):
 	@publicmethod
 	def checkversion(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program
+
 		@keyparam program Check version for this program (API, emen2client, etc.)
+
 		"""
 		return VERSIONS.get(program)
 
@@ -620,7 +622,9 @@ class DB(object):
 	@publicmethod
 	def gettime(self, ctx=None, txn=None):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
+
 		@return DB time date string
+
 		"""
 		return gettime()
 
@@ -685,19 +689,22 @@ class DB(object):
 
 	# Logout is the same as delete context
 
-	#@rename db.auth.logout @ok @return None
+	#@rename db.auth.logout @ok @return bool
 	@publicmethod
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
 		self.__commit_context(ctx.ctxid, None, ctx=ctx, txn=txn)
-
+		return True
 
 
 	#@rename db.auth.whoami @ok @return tuple
 	@publicmethod
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
-		@return (username, groups)"""
+
+		@return Tuple: (username, groups)
+
+		"""
 		return ctx.username, ctx.groups
 
 
@@ -706,7 +713,10 @@ class DB(object):
 	@publicmethod
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
-		@return bool"""
+
+		@return bool
+
+		"""
 		return ctx.checkadmin()
 
 
@@ -715,7 +725,10 @@ class DB(object):
 	@publicmethod
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
-		@return bool"""
+
+		@return bool
+
+		"""
 		return ctx.checkreadadmin()
 
 
@@ -724,7 +737,10 @@ class DB(object):
 	@publicmethod
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
-		@return bool"""
+
+		@return bool
+
+		"""
 		return ctx.checkcreate()
 
 
@@ -912,9 +928,10 @@ class DB(object):
 	def getbinary(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
 		"""Get Binary objects from ids or references. Binaries include file name, size, md5, associated record, etc. Each binary has an ID, aka a 'BDO'
 
-		@param bdokeys An iterable containing: records, recids, binary ids
-		@keyparam filt Ignore invalid bdos
-		@keyparam params For record search, limit to (iterable) params
+		@param bdokeys A single binary ID, or an iterable containing: records, recids, binary IDs
+		@keyparam filt Ignore failures
+		@keyparam params For record search, limit to (single/iterable) params
+
 		@return A single Binary instance, or a {bdokey:Binary} dict
 
 		@exception KeyError, SecurityError
@@ -1013,7 +1030,7 @@ class DB(object):
 
 		@exception SecurityError, ValueError
 		"""
-
+		
 		# Filename and recid required, unless root
 		if not filename:
 			raise ValueError, "Filename required"
@@ -1842,7 +1859,6 @@ class DB(object):
 
 		@keyparam query Match this filename
 		@keyparam broad Try variations of filename (extension, partial matches, etc..)
-
 		@return list of matching binaries
 		"""
 		if limit: limit=int(limit)
@@ -1881,7 +1897,6 @@ class DB(object):
 		@keyparam username ... contains in username
 		@keyparam boolmode 'AND' / 'OR'
 		@keyparam limit Limit number of items
-
 		@return list of matching user instances
 		"""
 		
@@ -1926,9 +1941,7 @@ class DB(object):
 		"""Find a group.
 
 		@param query
-
 		@keyparam limit Limit number of items
-
 		@return list of matching groups
 		"""
 
@@ -1957,12 +1970,11 @@ class DB(object):
 
 		@param param Parameter to search
 		@param query Match this
-
 		@keyparam limit Limit number of results
 		@keyparam showchoices Include any defined param 'choices'
 		@keyparam count Return count of matches, otherwise return recids
 		@keyparam flat Return only recids
-
+		
 		@return [[matching value, count], ...]
 				if not count: [[matching value, [recid, ...]], ...]
 				if flat and not count: [recid, recid, ...]
@@ -2340,7 +2352,7 @@ class DB(object):
 	@publicmethod
 	def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get children.
-		@param keys Single or iterable key (recids, paramdef names, etc.)
+		@param keys A Record ID, RecordDef name, or ParamDef name
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
@@ -2361,11 +2373,11 @@ class DB(object):
 	@publicmethod
 	def getchildtree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get multiple children for multiple items.
-		@param keys Single or iterable key (recids, paramdef names, etc.)
+		@param keys Single or iterable key: Record IDs, RecordDef names, ParamDef names
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
-		@return Dict, keys are record IDs or paramdef/recorddef names, values are sets of children for that key
+		@return Dict, keys are Record IDs or ParamDef/RecordDef names, values are sets of children for that key
 		"""
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
 
@@ -2661,6 +2673,7 @@ class DB(object):
 		"""Enable a disabled user.
 
 		@param username
+		@keyparam filt Ignore failures
 		"""
 		return self.__setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
 		
@@ -2723,6 +2736,7 @@ class DB(object):
 
 		@param usernames List of accounts to approve from new user queue
 
+		@keyparam filt Ignore failures
 		"""
 		
 		ol, usernames = self._oltolist(usernames)
@@ -2820,6 +2834,8 @@ class DB(object):
 		"""Remove a user from the pending new user queue
 
 		@param usernames List of usernames to reject from new user queue
+
+		@keyparam filt Ignore failures
 		"""
 
 		ol, usernames = self._oltolist(usernames)
@@ -3108,13 +3124,11 @@ class DB(object):
 		@param usernames A username, list of usernames, record, or list of records
 
 		@keyparam filt Ignore failures
-
 		@keyparam lnf Get user 'display name' as Last Name First (default=False)
 		@keyparam getgroups Include user groups (default=False)
 		@keyparam getrecord Include user information (default=True)
 
 		@return Dict of users, keyed by username
-
 		"""
 
 		ol, usernames = self._oltolist(usernames)
@@ -3272,11 +3286,11 @@ class DB(object):
 	def getgroup(self, groups, filt=True, ctx=None, txn=None):
 		"""Get a group, which includes the owners, members, etc.
 
-		@param groups
+		@param groups A single or iterable of Group names
 
 		@keyparam filt Ignore failures
 
-		@return Dict of groups, keyed by group name
+		@return Group or list of groups
 		"""
 		ol, groups = self._oltolist(groups)
 
@@ -3390,7 +3404,9 @@ class DB(object):
 	def putgroup(self, groups, ctx=None, txn=None):
 		"""Commit changes to a group or groups.
 
-		@param groups Group instance or iterable groups
+		@param groups A single or iterable Group
+		
+		@return Modified Group or Groups
 		"""
 
 		ol, groups = self._oltolist(groups)
@@ -3614,6 +3630,7 @@ class DB(object):
 	@publicmethod
 	def getvartypenames(self, ctx=None, txn=None):
 		"""Returns a list of all valid variable types.
+
 		@return Set of vartypes
 		"""
 		return set(self.vtm.getvartypes())
@@ -3625,6 +3642,7 @@ class DB(object):
 	@publicmethod
 	def getpropertynames(self, ctx=None, txn=None):
 		"""Return a list of all valid properties.
+
 		@return list of properties
 		"""
 		return set(self.vtm.getproperties())
@@ -3635,7 +3653,9 @@ class DB(object):
 	@publicmethod
 	def getpropertyunits(self, propname, ctx=None, txn=None):
 		"""Returns a list of known units for a particular property
+
 		@param propname Property name
+
 		@return a set of known units for property
 		"""
 		# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
@@ -3662,6 +3682,8 @@ class DB(object):
 
 		@keyparam parents Link to parents
 		@keyparam children Link to children
+
+		@return Updated ParamDef
 		"""
 
 		if not ctx.checkcreate():
@@ -3723,9 +3745,12 @@ class DB(object):
 	@publicmethod
 	def getparamdef(self, keys, filt=True, ctx=None, txn=None):
 		"""Get ParamDefs
+
 		@param recs ParamDef name, list of names, a Record, or list of Records
-		@keyparam filt Ignore failures\
-		@return Dict of ParamDefs, keyed by name
+
+		@keyparam filt Ignore failures
+
+		@return A ParamDef or list of ParamDefs
 		"""
 
 		ol, keys = self._oltolist(keys)
@@ -3765,6 +3790,7 @@ class DB(object):
 	@publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
 		"""Return a list of all ParamDef names
+		
 		@return set of all ParamDef names
 		"""
 		return set(self.bdbs.paramdefs.keys(txn=txn))
@@ -3930,12 +3956,12 @@ class DB(object):
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access.
 
-		@param rdids RecordDef name, iterable of RecordDef names, a Record ID, or list of Record IDs
+		@param rdids A RecordDef name, an iterable of RecordDef names, a Record ID, or list of Record IDs
 
 		@keyparam filt Ignore failures
 		@keyparam recid For private RecordDefs, provide a readable Record ID of this type to gain access
 
-		@return list of RecordDefs
+		@return A RecordDef or list of RecordDefs
 		"""
 
 		ol, keys = self._oltolist(keys)
@@ -3980,7 +4006,9 @@ class DB(object):
 	@publicmethod
 	def getrecorddefnames(self, ctx=None, txn=None):
 		"""This will retrieve a list of all existing RecordDef names, even those the user cannot access
+
 		@return set of RecordDef names
+
 		"""
 		return set(self.bdbs.recorddefs.keys(txn=txn))
 
@@ -4008,8 +4036,11 @@ class DB(object):
 	@publicmethod
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
+
 		@param recids Record ID or iterable of Record IDs
+
 		@keyparam filt Ignore failures
+
 		@return Record or list of Records
 		"""
 
@@ -4037,10 +4068,13 @@ class DB(object):
 	def newrecord(self, rectype, recid=None, init=True, inheritperms=None, ctx=None, txn=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist).
+
 		@param rectype RecordDef type
+
 		@keyparam recid Deprecated
 		@keyparam init Initialize Record with defaults from RecordDef
 		@keyparam inheritperms
+
 		@return A new Record
 		"""
 
@@ -4131,7 +4165,9 @@ class DB(object):
 	@publicmethod
 	def checkorphans(self, recid, ctx=None, txn=None):
 		"""Find orphaned records that would occur if recid was deleted.
+		
 		@param recid Return orphans that would result from deletion of this Record
+
 		@return Set of orphaned Record IDs
 		"""
 		srecid = set([recid])
@@ -4167,7 +4203,9 @@ class DB(object):
 	@publicmethod
 	def deleterecord(self, recid, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner and root. Records are never truly deleted, just hidden.
+
 		@param recid Record ID to delete
+
 		@return Deleted Record 
 		"""
 
@@ -4211,8 +4249,10 @@ class DB(object):
 	@publicmethod
 	def addcomment(self, recid, comment, ctx=None, txn=None):
 		"""Add comment to a record. Requires comment permissions on that Record.
+
 		@param recid
 		@param comment
+
 		@return Updated Record
 		"""
 
@@ -4230,7 +4270,9 @@ class DB(object):
 	@publicmethod
 	def getcomments(self, recids, filt=True, ctx=None, txn=None):
 		"""Get comments from Records.
+
 		@param recids A Record ID or iterable Record IDs
+
 		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
 		
@@ -4268,9 +4310,11 @@ class DB(object):
 	@publicmethod
 	def putrecordvalue(self, recid, param, value, ctx=None, txn=None):
 		"""Convenience method to update a single value in a record
+
 		@param recid Record ID
 		@param param Parameter
 		@param value New value
+
 		@return Updated Record
 		"""
 
@@ -4307,7 +4351,9 @@ class DB(object):
 	@publicmethod
 	def putrecordsvalues(self, d, ctx=None, txn=None):
 		"""dict.update()-like operation on a number of records
+
 		@param d A dict (key=recid) of dicts (key=param, value=new value)
+
 		@return Updated Records
 		"""
 		
@@ -4324,7 +4370,9 @@ class DB(object):
 	@publicmethod
 	def validaterecord(self, rec, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
+
 		@param recs Record or iterable of Records
+
 		@return Validated Records
 		"""
 		
@@ -4338,10 +4386,13 @@ class DB(object):
 	@publicmethod
 	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
+
 		@param recs Record or iterable Records
 		@keyparam warning Bypass validation (Admin only)
 		@keyparam commit If False, do not actually commit (e.g. for valdiation)
+
 		@return Committed records
+
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 
@@ -4962,6 +5013,7 @@ class DB(object):
 	@publicmethod
 	def filterbypermissions(self, recids, ctx=None, txn=None):
 		"""Filter a list of Record IDs by read permissions.
+
 		@param recids Iterable of Record IDs
 		@return Set of accessible Record IDs
 		"""
