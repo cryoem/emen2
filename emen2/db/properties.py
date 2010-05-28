@@ -7,11 +7,9 @@ g = emen2.db.config.g()
 Property = emen2.db.datatypes.Property
 
 
-
 class prop_transmittance(Property):
 	__metaclass__ = Property.register_view
 	
-
 	def __init__(self):
 		self.conv = {}
 		self.defaultunits = "%T"

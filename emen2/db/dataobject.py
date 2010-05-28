@@ -3,6 +3,8 @@ from UserDict import DictMixin
 import copy
 
 
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 class BaseDBInterface(object, DictMixin):

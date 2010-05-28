@@ -35,7 +35,6 @@ try:
 except:
 	emen2.db.config.defaults()
 
-
 import emen2.db.proxy
 import emen2.db.flags
 import emen2.db.validators
@@ -44,9 +43,7 @@ import emen2.db.datatypes
 import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
-import emen2.db.vartypes
-import emen2.db.macros
-import emen2.db.properties
+
 import emen2.db.record
 import emen2.db.binary
 import emen2.db.paramdef
@@ -55,7 +52,7 @@ import emen2.db.user
 import emen2.db.context
 import emen2.db.group
 import emen2.db.workflow
-import emen2.util.listops
+import emen2.util.listops as listops
 
 # convenience
 Record = emen2.db.record.Record
@@ -507,44 +504,6 @@ class DB(object):
 		return out
 
 
-	def _tolist(self, d, dtype=None):
-		return self._oltolist(d, dtype=dtype)[1]
-
-
-	def _oltolist(self, d, dtype=None):
-		dtype = dtype or list
-		ol = False
-		if isinstance(d, dtype):
-			return ol, d
-		if not hasattr(d, "__iter__") or isinstance(d, (dict,emen2.db.dataobject.BaseDBInterface)):
-			d = [d]
-			ol = True
-		return ol, dtype(d)
-
-
-	def _dictbykey(self, l, key):
-		return dict([(i.get(key), i) for i in l])
-
-
-	# use collections.defaultdict?
-	def _groupbykey(self, l, key, dtype=None):
-		dtype = dtype or list
-		d = {}
-		for i in l:
-			k = i.get(key)
-			if not d.has_key(k):
-				d[k] = dtype()
-			d[k].append(i)
-		return d
-
-
-
-	def _typefilter(self, l, types=None):
-		if not types:
-			types=str
-		return [x for x in l if isinstance(x,types)]
-		#return filter(lambda x:isinstance(x, types), l)
-
 
 	###############################
 	# section: Transaction Management
@@ -960,7 +919,7 @@ class DB(object):
 		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
 
 		# process bdokeys argument for bids (into list bids) and then process bids
-		ol, bdokeys = self._oltolist(bdokeys)
+		ol, bdokeys = listops.oltolist(bdokeys)
 		
 		ret = []
 		bids = []
@@ -1948,7 +1907,7 @@ class DB(object):
 		)
 
 		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
-		users = self.getuser(usernames, ctx=ctx, txn=txn).values()
+		users = self.getuser(usernames, ctx=ctx, txn=txn)
 
 		if limit: users = users[:int(limit)]
 		return users
@@ -2051,7 +2010,7 @@ class DB(object):
 		@return List of recids
 		"""
 
-		ol, recdefs = self._oltolist(recdefs)
+		ol, recdefs = listops.oltolist(recdefs)
 
 		ret = set()
 		for i in recdefs:
@@ -2284,7 +2243,7 @@ class DB(object):
 		@return dict, key is recorddef, value is set of recids
 		"""
 
-		ol, recids = self._oltolist(recids)
+		ol, recids = listops.oltolist(recids)
 
 		if len(recids) == 0:
 			return {}
@@ -2298,6 +2257,7 @@ class DB(object):
 
 		# also converts to set..
 		recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
+
 
 		ret = {}
 		while recids:
@@ -2391,7 +2351,7 @@ class DB(object):
 	#@rename db.<RelateBTree>.parents
 	#@notok @single
 	@publicmethod
-	def getparents(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+	def getparents(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""See getchildren"""
 		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
 
@@ -2428,7 +2388,7 @@ class DB(object):
 		if recurse == False:
 			recurse = True
 
-		ol, keys = self._oltolist(keys)
+		ol, keys = listops.oltolist(keys)
 
 		__keytypemap = dict(
 			record=self.bdbs.records,
@@ -2446,23 +2406,22 @@ class DB(object):
 		# result is a two-level dictionary
 		# k1 = input recids
 		# k2 = related recid and v2 = relations of k2
+		t=time.time()
 		result, ret_visited = {}, {}
 		for i in keys:
 			result[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
-
-
+		
 		# Flatten the dictionary to get all touched keys
 		allr = set().union(*ret_visited.values())
-
+		
 		# Restrict to a particular rectype
 		if rectype:
 			allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
 		# Filter by permissions
 		if keytype=="record":
-			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
-
-
+			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)		
+		
 		# perform filtering on both levels, and removing any items that become empty
 		# If Tree=True, we're returning the tree...
 		if tree:
@@ -2478,6 +2437,7 @@ class DB(object):
 		# Else we're just ruturning the total list of all children, keyed by requested recid
 		for k in ret_visited:
 			ret_visited[k] &= allr
+
 
 		if ol: return return_first_or_none(ret_visited)
 		return ret_visited
@@ -2713,7 +2673,7 @@ class DB(object):
 	def __setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
-		ol, usernames = self._oltolist(usernames)
+		ol, usernames = listops.oltolist(usernames)
 
 		state = bool(disabled)
 
@@ -2770,7 +2730,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		"""
 		
-		ol, usernames = self._oltolist(usernames)
+		ol, usernames = listops.oltolist(usernames)
 
 		# ian: I have turned secrets off for now until I can think about it some more..
 		secret = None
@@ -2869,7 +2829,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		"""
 
-		ol, usernames = self._oltolist(usernames)
+		ol, usernames = listops.oltolist(usernames)
 
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
@@ -3158,7 +3118,7 @@ class DB(object):
 		@return Dict of users, keyed by username
 		"""
 
-		ol, usernames = self._oltolist(usernames)
+		ol, usernames = listops.oltolist(usernames)
 
 		# Are we looking for users referenced in records?
 		recs = [x for x in usernames if isinstance(x, emen2.db.record.Record)]
@@ -3319,7 +3279,7 @@ class DB(object):
 
 		@return Group or list of groups
 		"""
-		ol, groups = self._oltolist(groups)
+		ol, groups = listops.oltolist(groups)
 
 		if filt:
 			lfilt = self.bdbs.groups.get
@@ -3436,7 +3396,7 @@ class DB(object):
 		@return Modified Group or Groups
 		"""
 
-		ol, groups = self._oltolist(groups)
+		ol, groups = listops.oltolist(groups)
 
 		groups2 = []
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
@@ -3780,7 +3740,7 @@ class DB(object):
 		@return A ParamDef or list of ParamDefs
 		"""
 
-		ol, keys = self._oltolist(keys)
+		ol, keys = listops.oltolist(keys)
 		
 		params = set(filter(lambda x:isinstance(x, basestring), keys))
 
@@ -3991,7 +3951,7 @@ class DB(object):
 		@return A RecordDef or list of RecordDefs
 		"""
 
-		ol, keys = self._oltolist(keys)
+		ol, keys = listops.oltolist(keys)
 		
 		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
 
@@ -4003,9 +3963,9 @@ class DB(object):
 			recids.append(recid)
 
 		recs = self.getrecord(recids, ctx=ctx, txn=txn)
-		groups = self._groupbykey(recs, 'rectype')
+		groups = listops.groupbykey(recs, 'rectype')
 		recdefs |= set(groups.keys())
-		recs = self._dictbykey(recs, 'recid')
+		recs = listops.dictbykey(recs, 'recid')
 
 		# Prepare filter
 		if filt:
@@ -4071,7 +4031,7 @@ class DB(object):
 		@return Record or list of Records
 		"""
 
-		ol, recids = self._oltolist(recids)
+		ol, recids = listops.oltolist(recids)
 		ret = []
 		# if filt: lfilt = self.bdbs.records.get....
 
@@ -4120,7 +4080,7 @@ class DB(object):
 
 		# Apply any inherited permissions
 		if inheritperms:
-			inheritperms = self._tolist(inheritperms)
+			inheritperms = listops.tolist(inheritperms)
 			try:
 				precs = self.getrecord(inheritperms, filt=False, ctx=ctx, txn=txn)
 				for prec in precs:
@@ -4303,7 +4263,7 @@ class DB(object):
 		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
 		
-		ol, recs = self._oltolist(recids)
+		ol, recs = listops.oltolist(recids)
 		
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 
@@ -4385,9 +4345,9 @@ class DB(object):
 		"""
 		
 		recs = self.getrecord(d.keys(), filt=False, ctx=ctx, txn=txn)
-		recs = self._groupbykey('recid', recs)
+		recs = listops.dictbykey(recs, 'recid')
 		for k, v in d.items():
-			recs[k].update(v)
+			recs[int(k)].update(v)
 
 		return self.putrecord(recs.values(), ctx=ctx, txn=txn)
 
@@ -4423,15 +4383,15 @@ class DB(object):
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 
-		ol, recs = self._oltolist(recs)
+		ol, recs = listops.oltolist(recs)
 
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
 		# Preprocess
 		recs = recs
-		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in self._typefilter(recs, dict))
-		recs = self._typefilter(recs, emen2.db.record.Record)
+		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
+		recs = listops.typefilter(recs, emen2.db.record.Record)
 
 		# Commit
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
@@ -5046,9 +5006,9 @@ class DB(object):
 		"""
 
 		if ctx.checkreadadmin():
-			return recids
+			return set(recids)
 
-		ol, recids = self._oltolist(recids)
+		ol, recids = listops.oltolist(recids)
 
 		# ian: indexes are now faster, generally...
 		if len(recids) < 100:
@@ -5125,11 +5085,11 @@ class DB(object):
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 
-		recids = self._tolist(recids, dtype=set)
-		addusers = self._tolist(addusers, dtype=set)
-		addgroups = self._tolist(addgroups, dtype=set)
-		delusers = self._tolist(delusers, dtype=set)
-		delgroups = self._tolist(delgroups, dtype=set)
+		recids = listops.tolist(recids, dtype=set)
+		addusers = listops.tolist(addusers, dtype=set)
+		addgroups = listops.tolist(addgroups, dtype=set)
+		delusers = listops.tolist(delusers, dtype=set)
+		delgroups = listops.tolist(delgroups, dtype=set)
 
 
 		if not umask:
@@ -5146,7 +5106,7 @@ class DB(object):
 
 		# change child perms
 		if recurse:
-			recids |= emen2.util.listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
+			recids |= listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
 
 
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
@@ -5262,7 +5222,7 @@ class DB(object):
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
 		"""Render views"""
 		
-		ol, recs = self._oltolist(recs)
+		ol, recs = listops.oltolist(recs)
 		
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
@@ -5272,7 +5232,7 @@ class DB(object):
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
-		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + self._typefilter(recs, emen2.db.record.Record)
+		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
 
 		# default params
 		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]

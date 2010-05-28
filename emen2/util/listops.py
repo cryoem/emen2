@@ -1,6 +1,8 @@
 from functools import partial
 import itertools
 
+import emen2.db.dataobject
+
 def get(collection, key, default=None):
 	'''allows getting an item from a collection like dict.get does'''
 	try: return collection[key]
@@ -65,6 +67,12 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 		result[-1].append(itemgetter(window[1]))
 	return result
 
+
+
+# a={1:[2,3],4:[5,6]}
+# combine(a.values(), dtype=set) = set([2,3,5,6])
+# flatten(a, dtype=set) = set([1,2,3,4,5,6])
+
 def combine(*lists, **kw):
 	'''combine iterables return type is the type of the first one
 
@@ -93,21 +101,47 @@ def flatten(a):
 	return combine(*([a.keys()]+a.values()), dtype=set)
 
 
-def flatten(d):
-	return combine([d.keys()]+d.values())
 
 
-# def combine(*lists):
-# 	dtype = type(lists[0])
-# 	if hasattr(lists[0], 'items'):
-# 		lists = [list_.items() for list_ in lists]
-# 	return dtype(itertools.chain(*lists))
+# From database
+def tolist(d, dtype=None):
+	return oltolist(d, dtype=dtype)[1]
+
+
+def oltolist(d, dtype=None):
+	dtype = dtype or list
+	ol = False
+	if isinstance(d, dtype):
+		return ol, d
+	if not hasattr(d, "__iter__") or isinstance(d, (dict,emen2.db.dataobject.BaseDBInterface)):
+		d = [d]
+		ol = True
+	return ol, dtype(d)
+
+
+def dictbykey(l, key):
+	return dict([(i.get(key), i) for i in l])
+
+
+def groupbykey(l, key, dtype=None):
+	dtype = dtype or list
+	d = {}
+	for i in l:
+		k = i.get(key)
+		if not d.has_key(k):
+			d[k] = dtype()
+		d[k].append(i)
+	return d
+	
+
+def typefilter(l, types=None):
+	if not types:
+		types=str
+	return [x for x in l if isinstance(x,types)]
+	#return filter(lambda x:isinstance(x, types), l)
 
 
 
-# a={1:[2,3],4:[5,6]}
-# combine(a.values(), dtype=set) = set([2,3,5,6])
-# flatten(a, dtype=set) = set([1,2,3,4,5,6])
 
 
 def test_get():

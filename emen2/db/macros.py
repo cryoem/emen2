@@ -43,7 +43,7 @@ class macro_childcount(Macro):
 		key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
 		hit, children = engine.check_cache(key)
 		if not hit:
-			children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=2))
+			children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=3))
 			engine.store(key, children)
 
 		return children

@@ -11,6 +11,11 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
+import emen2.db.vartypes
+import emen2.db.macros
+import emen2.db.properties
+
+
 class MethodUtil(object):
 	def doc(self, func, *args, **kwargs):
 		return func.__doc__
@@ -233,6 +238,8 @@ class DBProxy(object):
 	
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
+			# t = time.time()
+
 			result = None
 			commit = False
 		
@@ -261,6 +268,9 @@ class DBProxy(object):
 			else:
 				if commit is True:
 					txn and self.__db.txncommit(ctx=ctx, txn=txn)
+		
+			# timer!
+			# print "--- %10d ms: %s"%((time.time()-t)*1000, func.func_name)
 		
 			return result
 		
