@@ -124,24 +124,6 @@ permissions.prototype = {
 		var self=this;
 
 		this.reinit();
-
-		// this.userstate = {};
-		// this.groupstate = {};
-		// this.inituserstate = {};
-		// this.initgroups = [];
-		// 
-		// // set up init states, so we know what to apply...
-		// for (var i=0;i<this.groups.length;i++) {
-		// 	this.initgroups.push(this.groups[i]);
-		// }
-		// for (var i=0;i<4;i++) {
-		// 	for (var j=0;j<this.list[i].length;j++) {
-		// 		this.userstate[this.list[i][j]]=i;
-		// 		this.inituserstate[this.list[i][j]]=i;
-		// 	}
-		// }
-		// 
-		
 		this.ajaxqueue={};
 		
 		this.inheritcontrols=[];
@@ -161,37 +143,6 @@ permissions.prototype = {
 				ihcul.append('<li>'+recnames[this.inherit[i]]+' ('+this.inherit[i]+')</li>');
 			}
 			this.elem.append(ihc);
-			
-			
-			// this.inheritarea_addcontrols = $('<tr></tr>');
-			// this.inheritarea_addfield = $('<input type="text" value="" />');
-			// 	
-			// // add new inherit/parent item
-			// this.inheritarea_addbutton = $('<input type="button" value="Add to Parents/Permissions" />').click(function(){
-			// 	var getrecid=parseInt(self.inheritarea_addfield.val());
-			// 	$.getFromURL({
-			// 		'name': 'getrecordwithdisplay',
-			// 		'kwargs': {'recid': getrecid}
-			// 		}, null,function(result){
-			// 			setrecord(getrecid,result["recs"][getrecid]);
-			// 			$.each(result["displaynames"], function(k,v) {
-			// 				setdisplayname(k,v);
-			// 			});
-			// 			$.each(result["recnames"], function(k,v) {
-			// 				setrecname(k,v);
-			// 			});
-			// 			self.addinherititem(getrecid,1);
-			// 			self.build();
-			// 	});
-			// });
-			// 	
-			// this.inheritarea_addcontrols.append(
-			// 	$("<td></td><td></td>"),
-			// 	$("<td></td>").append(this.inheritarea_addfield,this.inheritarea_addbutton)
-			// 	);
-			// this.inheritarea.append(this.inheritarea_addcontrols);
-			// 	
-			// this.elem.append(this.inheritarea);
 
 		}
 
@@ -293,7 +244,7 @@ permissions.prototype = {
 		// 	$.each(names, function(k,v) {
 		// 		displaynames[k] = v;
 		// 	});			
-		// 	self.build_userarea();
+		self.build_userarea();
 		// });
 
 		// get group names...
@@ -301,7 +252,7 @@ permissions.prototype = {
 		// 	$.each(names, function(k,v) {
 		// 		groupnames[k] = v;
 		// 	});			
-		// 	self.build_grouparea();
+		self.build_grouparea();
 		// });
 		
 	},

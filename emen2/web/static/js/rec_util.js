@@ -214,7 +214,6 @@ function toggle_record_menu(elem) {
 
 function record_permissions_toggle(elem) {
 	toggle_record_menu(elem);
-	//var target=$("#record_editbar_menu_permissions");	
 	var target=$(elem).siblings(".record_editbar_hidden");				
 
 	if (permissionscontrol==null) {
@@ -231,6 +230,7 @@ function record_permissions_toggle(elem) {
 				}
 			)
 		// });
+
 	}
 
 	return false
