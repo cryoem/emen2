@@ -149,7 +149,7 @@ multiwidget.prototype = {
 		});
 		if (getpds.length && this.trygetparamdefs == 0) {
 			this.trygetparamdefs = 1;
-			json_getparamdefs(getpds,function(){self.build()});
+			json_getparamdef(getpds,function(){self.build()});
 		}
 		
 		// get all the records if necessary
@@ -413,7 +413,7 @@ widget.prototype = {
 		var self = this;
 
 		if (!paramdefs[this.param]) {
-			json_getparamdefs([this.param], function(){self.build()});
+			json_getparamdef([this.param], function(){self.build()});
 			return
 		}
 

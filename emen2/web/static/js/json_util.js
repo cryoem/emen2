@@ -1,12 +1,12 @@
 ///////// get data /////////////////////
 
-function json_getparamdefs(recids,cb) {
+function json_getparamdef(recids,cb) {
 	$.jsonRPC(
 		"getparamdef",
 		[recids],
 		function (json) {
 			$.each(json, function(i) {
-				paramdefs[i]=this;
+				paramdefs[this.name]=this;
 			});
 			cb();
 		}

@@ -19,6 +19,7 @@ import shutil
 import weakref
 import getpass
 import functools
+import imp
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -43,11 +44,9 @@ import emen2.db.datatypes
 import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
-
 import emen2.db.vartypes
 import emen2.db.macros
 import emen2.db.properties
-
 import emen2.db.record
 import emen2.db.binary
 import emen2.db.paramdef
@@ -56,9 +55,7 @@ import emen2.db.user
 import emen2.db.context
 import emen2.db.group
 import emen2.db.workflow
-
-
-import emen2.util.listops as listops
+import emen2.util.listops
 
 # convenience
 Record = emen2.db.record.Record
@@ -70,6 +67,31 @@ User = emen2.db.user.User
 Group = emen2.db.group.Group
 WorkFlow = emen2.db.workflow.WorkFlow
 proxy = emen2.db.proxy
+
+
+# Magic.. this will go away soon.
+# The correct answer is something like:
+#
+# for i in data/main/records.bdb data/main/paramdefs.bdb data/main/recorddefs.bdb data/main/bdocounter.bdb data/main/workflow.bdb data/security/users.bdb data/security/contexts.bdb data/security/groups.bdb data/security/newuserqueue.bdb;do echo $i;db_dump -h . -p $i | sed s@emen2.Database.dataobjects.@emen2.db.@g  > $i.dump; db_load -f $i.dump $i;done
+#
+# ... but it takes a long time to run ...
+
+def fakemodules():
+	Database = imp.new_module("Database")
+	Database.dataobjects = imp.new_module("dataobjects")
+	sys.modules["emen2.Database"] = Database
+	sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
+	sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
+	sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
+	sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
+	sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
+	sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
+	sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
+	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
+	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
+
+fakemodules()	
+	
 
 
 # import extensions
@@ -99,8 +121,6 @@ DBENV = None
 #basestring goes away in a later python version
 basestring = (str, unicode)
 
-# ian: note: if main dataobject class names every change, something like this is helpful:
-# for i in data/main/records.bdb data/main/paramdefs.bdb data/main/recorddefs.bdb data/main/bdocounter.bdb data/main/workflow.bdb data/security/users.bdb data/security/contexts.bdb data/security/groups.bdb data/security/newuserqueue.bdb;do echo $i;db_dump -h . -p $i | sed s@emen2.Database.dataobjects.@db.@g  > $i.dump; db_load -f $i.dump $i;done
 
 def return_first_or_none(items):
 	items = items or []
