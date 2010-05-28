@@ -1336,10 +1336,11 @@ class DB(object):
 			else:
 				param = c[0]
 				pd = self.bdbs.paramdefs.get(param, txn=txn)
-				# pkeys = self.bdbs.indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
-				pkeys = self.__getparamindex(param, ctx=ctx, txn=txn).keys()
+				pkeys = self.bdbs.indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
+				# pkeys = self.__getparamindex(param, ctx=ctx, txn=txn).keys()
 
-				cargs = vtm.validate(pd, c[2], db=ctx.db)
+				try: cargs = vtm.validate(pd, c[2], db=ctx.db)
+				except: cargs = c[2]
 				comp = functools.partial(cmps[c[1]], cargs) #*cargs
 				results[count][param] = set(filter(comp, pkeys)) or None
 
@@ -1830,7 +1831,7 @@ class DB(object):
 
 
 	
-	#@notok
+	#@ok
 	@publicmethod
 	def findbinary(self, query=None, broad=False, limit=None, ctx=None, txn=None):
 		"""Find a binary by filename
@@ -1862,7 +1863,7 @@ class DB(object):
 
 
 	
-	#@notok
+	#@ok
 	#@rename db.query.user
 	@publicmethod
 	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, username=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
@@ -1915,7 +1916,7 @@ class DB(object):
 
 
 
-	#@rename db.query.group @notok
+	#@rename db.query.group @ok
 	@publicmethod
 	def findgroup(self, query, limit=None, ctx=None, txn=None):
 		"""Find a group.
@@ -1926,26 +1927,25 @@ class DB(object):
 		
 		@return list of matching groups
 		"""
-
-		
 		built_in = set(["anon","authenticated","create","readadmin","admin"])
 
 		groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		search_keys = ["name", "displayname"]
 		ret = []
 
-		for k, v in groups.items():
-			if any([query in v.get(search_key,"") for search_key in search_keys]):
-				ret.append([k,v.get('displayname', k)])
+		for v in groups:
+			if any([query in v.get(search_key, "") for search_key in search_keys]):
+				ret.append([v, v.get('displayname', v.name)])
 
 		ret = sorted(ret, key=operator.itemgetter(1))
+		ret = [i[0] for i in ret]
 
 		if limit: ret = ret[:int(limit)]
 		return ret
 
 
 
-	#@rename db.query.value @notok
+	#@rename db.query.value @ok
 	@publicmethod
 	def findvalue(self, param, query, flat=False, limit=None, count=True, showchoices=True, ctx=None, txn=None):
 		"""Find values for a parameter.
@@ -1973,6 +1973,7 @@ class DB(object):
 		q_sort = {}
 		for i in q:
 			q_sort[i[1]] = len(q[i])
+			
 		q_sort = sorted(q_sort.items(), key=operator.itemgetter(1), reverse=True)
 
 		if flat and count:
@@ -4019,7 +4020,7 @@ class DB(object):
 
 
 	#@rename db.records.get @return Record or [Record..]
-	#@multiple @filt @notok
+	#@multiple @filt @ok
 	@publicmethod
 	def getrecord(self, recids, filt=True, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
@@ -4369,7 +4370,7 @@ class DB(object):
 
 
 	#@rename db.records.put
-	#@multiple @notok
+	#@multiple @ok
 	@publicmethod
 	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
@@ -5182,21 +5183,6 @@ class DB(object):
 
 		return ret
 
-
-
-	# ian: todo: hard: It is a cold, cold, cruel world... moved to VartypeManager. This should be refactored someday. Consider it a convenience method.
-	# ed: ian, I think this should be moved back here.... it's not in the mission statement of the VartypeManager to do this kind of thing....
-	#@rename db.records.render.render
-	# @publicmethod
-	# def renderview(self, *args, **kwargs):
-	# 	"""Render views"""
-	# 	# calls out to places that expect DBProxy need a DBProxy...
-	# 	kwargs["db"] = kwargs["ctx"].db
-	# 	kwargs["db"]._settxn(kwargs.get("txn"))
-	# 	kwargs.pop("ctx",None)
-	# 	kwargs.pop("txn",None)
-	# 	vtm = emen2.db.datatypes.VartypeManager()
-	# 	return vtm.renderview(*args, **kwargs)
 
 
 	def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
