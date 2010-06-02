@@ -20,7 +20,7 @@ from . import validators
 #	creator,creationtime,permissions,comments,history,parents,children,groups
 #
 #	Record instances must ONLY be created by the Database class through retrieval or
-#	creation operations. self.__ctx will store information about security and
+#	creation operations. self._ctx will store information about security and
 #	storage for the record.
 #
 #	Mechanisms for changing existing params are a bit complicated. In a sense, as in a
@@ -43,27 +43,21 @@ from . import validators
 #	the supplied access methods. There may be appropriate uses for this when constructing
 #	a new Record before committing changes back to the database.
 
-#class Record(object, UserDict.DictMixin):
-
-def strip(cls):
-	dct = {}
-	for x,y in cls.__dict__.iteritems():
-		if '__' in x:
-			dct[x.split('__',1)[1]] = y
-		else:
-			dct[x] = y
-	return type(cls.__name__, cls.__bases__, dct)
-
 
 
 class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
-	attr_admin = set([])
-
 	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])
 	cleared_fields = set(["viewcache"])
 
 
+	def __init__(self, *args, **kwargs):
+		# these need to be defined for setContext to work..
+		self.__permissions = ((),(),(),())
+		self.__groups = set()
+		super(Record, self).__init__(*args, **kwargs)
+		
+		
 	def init(self, _d=None, **_k):
 		"""Normally the record is created with no parameters, then setContext is called by the
 		Database object. However, for initializing from a dictionary (ie - XMLRPC call, this
@@ -108,12 +102,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			self[key] = _k[key]
 
 		# ian: are we initializing a new record?
-		ctx = self.__ctx
-		if self.__ctx and self.recid < 0:
-			self.__creator = unicode(ctx.username)
+		if self._ctx and self.recid < 0:
+			self.__creator = unicode(self._ctx.username)
 			self.__creationtime = emen2.db.database.gettime()
-			if ctx.username != "root":
-				self.adduser(ctx.username, 3)
+			if self._ctx.username != "root":
+				self.adduser(self._ctx.username, 3)
 
 
 
@@ -131,11 +124,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		for field in self.cleared_fields:
 			setattr(self, field, None)
 
-		if not self.__ctx:
+		if not self._ctx:
 			self.validationwarning("No context; cannot validate", warning=True)
 			return
 
-		elif not self.__ctx.db:
+		elif not self._ctx.db:
 			self.validationwarning("No context; cannot validate", warning=True)
 			return
 
@@ -175,21 +168,19 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
 		odict['_Record__ptest'] = None
-		odict['_Record__ctx'] = None
 		# filter out values that are None
 		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None, odict["_Record__params"].items()))
 
 		return odict
 
 
-	def __setstate__(self, dict):
-		"""restore unpickled values to defaults after unpickling"""
-		self.__dict__.update(dict)
-		self.__ptest = [False, False, False, False]
-		self.__ctx = None
-		# ian: todo: temp patch, remove...
-		try: self.__history
-		except: self.__history = []
+	# def __setstate__(self, dict):
+	# 	"""restore unpickled values to defaults after unpickling"""
+	# 	self.__dict__.update(dict)
+	# 	self.__ptest = [False, False, False, False]
+	# 	# ian: todo: temp patch, remove...
+	# 	try: self.__history
+	# 	except: self.__history = []
 
 
 
@@ -449,14 +440,14 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		value = unicode(value)
 
-		self.__comments.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), value))
+		self.__comments.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), value))
 		# store the comment string itself
 
 
 	def _addhistory(self, param):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), param, self.__params.get(param)))
+		self.__history.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), param, self.__params.get(param)))
 
 
 
@@ -472,25 +463,25 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""
 
 
-		self.__ctx = ctx #weakref.proxy(ctx)
-		if self.__ctx == None:
+		self._ctx = ctx #weakref.proxy(ctx)
+		if self._ctx == None:
 			return
 
 		# g.debug('setContext:: context.db type == %r' % self._ctx.db)
 		# test for owner access in this context.
-		if self.__ctx.checkreadadmin():
+		if self._ctx.checkreadadmin():
 			self.__ptest = [True, True, True, True]
 			return
 
-		self.__ptest = [self.__ctx.username in level for level in self.__permissions]
 
+		self.__ptest = [self._ctx.username in level for level in self.__permissions]
 
-		for group in self.__groups & self.__ctx.groups:
-			self.__ptest[self.__ctx.grouplevels[group]] = True
+		for group in self.__groups & self._ctx.groups:
+			self.__ptest[self._ctx.grouplevels[group]] = True
 
 
 		if not any(self.__ptest):
-			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self.recid
+			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self['recid']
 
 
 		# raise emen2.db.exceptions.SecurityError, "No ctx!"
@@ -506,17 +497,17 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# p4 = set(self.__permissions[3])
 		#
 		# # test for read permission in this context
-		# if (self.__ctx.username in p1): self.__ptest[0] = 1
+		# if (self._ctx.username in p1): self.__ptest[0] = 1
 		# else:
 		#
 		# # test for comment write permission in this context
-		# if (self.__ctx.username in p2): self.__ptest[1] = 1
+		# if (self._ctx.username in p2): self.__ptest[1] = 1
 		#
 		# # test for general write permission in this context
-		# if (self.__ctx.username in p3): self.__ptest[2] = 1
+		# if (self._ctx.username in p3): self.__ptest[2] = 1
 		#
 		# # test for administrative permission in this context
-		# if (self.__ctx.username in p4): self.__ptest[3] = 1
+		# if (self._ctx.username in p4): self.__ptest[3] = 1
 
 
 
@@ -525,7 +516,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self.__ctx.db.putrecord(self)
+		return self._ctx.db.putrecord(self)
 
 
 	def isowner(self):
@@ -594,7 +585,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		self.rectype = unicode(self.rectype)
 
-		if self.rectype not in self.__ctx.db.getrecorddefnames():
+		if self.rectype not in self._ctx.db.getrecorddefnames():
 			self.validationwarning("invalid rectype %s"%(self.rectype))
 
 		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
@@ -610,7 +601,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		newcomments=[]
 
 		if isinstance(self.__comments, basestring):
-			self.__comments = [(unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), self.__comments)]
+			self.__comments = [(unicode(self._ctx.username), unicode(emen2.db.database.gettime()), self.__comments)]
 
 		# ian: filter comments for empties..
 		for i in filter(None, self.__comments or []):
@@ -620,11 +611,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				newcomments.append((unicode(i[0]),unicode(i[1]),unicode(i[2])))
 			except Exception, inst:
 				self.validationwarning("invalid comment format: %s"%(i), e=inst, warning=warning)
-				newcomments.append((unicode(self.__ctx.username), unicode(emen2.db.database.gettime()), "Error with comment: %s"%i))
+				newcomments.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), "Error with comment: %s"%i))
 
 
 		if users:
-			usernames = set(self.__ctx.db.getusernames())
+			usernames = set(self._ctx.db.getusernames())
 			if set(users) - usernames:
 				self.validationwarning("invalid users in comments: %s"%(set(users) - usernames), warning=warning)
 
@@ -643,7 +634,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		users=set([i[0] for i in self.__history])
 		dates=set([i[1] for i in self.__history])
 		if users:
-			if users - set(self.__ctx.db.getusernames()):
+			if users - set(self._ctx.db.getusernames()):
 				self.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
 
 
@@ -657,7 +648,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if self.__creator != orec.get("creator"):
 			self.validationwarning("cannot change creator", warning=warning)
 		try:
-			self.__ctx.db.getuser(self.__creator, filt=0)
+			self._ctx.db.getuser(self.__creator, filt=0)
 		except:
 			self.validationwarning("invalid creator: %s"%(self.__creator))
 
@@ -683,7 +674,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def validate_permissions_users(self, orec=None, warning=False):
 		if not orec: orec = {}
 
-		users = set(self.__ctx.db.getusernames())
+		users = set(self._ctx.db.getusernames())
 		u = set(reduce(operator.concat, self.__permissions))
 		if u - users:
 			self.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-users)))
@@ -703,7 +694,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		pds = self.__ctx.db.getparamdef(p2)
+		pds = self._ctx.db.getparamdef(p2)
 		newpd = {}
 		exceptions = []
 
@@ -725,7 +716,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 	def validate_param(self, value, pd, vtm, warning=False):
 
-		v = vtm.validate(pd, value, db=self.__ctx.db)
+		v = vtm.validate(pd, value, db=self._ctx.db)
 
 		if v != value and v != None:
 			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)

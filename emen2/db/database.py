@@ -98,7 +98,7 @@ fakemodules()
 # import this directly from emen2client, emdash
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": 20100420
+	"emen2client": 20100601
 }
 
 
@@ -1191,118 +1191,53 @@ class DB(object):
 	# section: query
 	###############################
 
-
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=False, subset=None, recs=None, returnrecs=False, byvalue=False, ctx=None, txn=None):
-		"""Query. Specify one or more keyword arguments:
+	def query(self, **d):
+		"""Query. New docstring coming soon."""
 
-		@keyparam q                     quick, full text query
-		@keyparam rectype               limit records to rectype
-		@keyparam boolmode              'AND' / 'OR' each operation
-		@keyparam ignorecase            case insensitive search
-		@keyparam childof/parentof      limit results to children/parents of this record
-		@keyparam subset                search this subset
-		@keyparam returnrecs            return record instances instead of recids (warning: can be slow)
-		@keyparam byvalue               invert results; {value:[recids]}
+		ctx = d.pop('ctx')
+		txn = d.pop('txn')
+		defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=[], childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False)
+		for k,v in defaults.items():
+			if d.get(k) == None: d[k] = v
 
-		@keyparam constrants            Constraint format:
-								[[param, comparator, value], ...]
-							Comparators:
-								==, !=, contains, !contains, <, >, <=, >=
-								contains_w_empty (like contains, but also returns Nones)
-								!None (any value)
+		# Setup defaults
+		if d["boolmode"] == "AND": boolop = set.intersection
+		elif d["boolmode"] == "OR": boolop = set.union
+		else: raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
-		@return Set of recids or list of Record instances
-
-		@exception SecurityError
-		"""
-
-		if boolmode == "AND":
-			boolmode = set.intersection
-		elif boolmode == "OR":
-			boolmode = set.union
-		else:
-			raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
-
-		if recurse:
-			recurse = g.MAXRECURSE
-
-		constraints = constraints or []
-		if q:
-			constraints.append(["*","contains_w_empty",unicode(q)])
+		if d["q"]: d["constraints"].append(["*","contains_w_empty",unicode(d["q"])])
 
 		subsets = []
-		if subset:
-			subsets.append(set(subset))
-		if childof:
-			subsets.append(self.getchildren(childof, recurse=recurse, ctx=ctx, txn=txn))
-		if parentof:
-			subsets.append(self.getparents(parentof, recurse=recurse, ctx=ctx, txn=txn))
-		if rectype:
-			subsets.append(self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn))
+		if d["subset"]: subsets.append(set(d["subset"]))
+		if d["childof"]: subsets.append(self.getchildren(childof, recurse=d["recurse"], ctx=ctx, txn=txn))
+		if d["parentof"]: subsets.append(self.getparents(parentof, recurse=d["recurse"], ctx=ctx, txn=txn))
+		if d["rectype"]: subsets.append(self.getindexbyrecorddef(d["rectype"], ctx=ctx, txn=txn))
 
-		# makes life simpler...
-		if not constraints:
-			# ret = reduce(boolmode, subsets)
-			if not subsets:
-				subsets=[set()]
-			ret = boolmode(*subsets)
-			if returnrecs:
-				return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
-			return self.filterbypermissions(ret, ctx=ctx, txn=txn)
+		cmps = self.__query_cmps(ignorecase=d["ignorecase"])
 
-
-		# y is argument, x is record value
-		cmps = {
-			"==": lambda y,x:x == y,
-			"!=": lambda y,x:x != y,
-			"contains": lambda y,x:unicode(y) in unicode(x),
-			"!contains": lambda y,x:unicode(y) not in unicode(x),
-			">": lambda y,x: x > y,
-			"<": lambda y,x: x < y,
-			">=": lambda y,x: x >= y,
-			"<=": lambda y,x: x <= y,
-			'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
-			'!None': lambda y,x: x != None
-			#"range": lambda x,y,z: y < x < z
-		}
-
-		if ignorecase:
-			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-			cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
-			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
-
-		# wildcard param searching only useful with the following comparators...
-		globalsearchcmps = ["==","!=","contains","!contains"]
-
-		# since we pass the DBProxy to validators, set it's txn
+		# since we pass the DBProxy to validators, make sure the txn is set..
 		if not ctx.db._gettxn():
 			ctx.db._settxn(txn)
 
-		if subset:
-			s, subsets_by_value = self.__query_recs(constraints, cmps=cmps, subset=subset, ctx=ctx, txn=txn)
+		# Note: findvalue also uses these private methods
+		if d["subset"]:
+			s, subsets_by_value = self.__query_recs(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
 		else:
-			s, subsets_by_value = self.__query_index(constraints, cmps=cmps, subset=subset, ctx=ctx, txn=txn)
+			s, subsets_by_value = self.__query_index(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
 
 		subsets.extend(s)
 
-		ret = boolmode(*subsets) #set(),
-
-		# ian: i'd prefer not to make a copy, but filtering dicts by value isn't awesome
-		if byvalue:
-			self.filterbypermissions(ret, ctx=ctx, txn=txn)
-			retdict = {}
-			for k,v in subsets_by_value.items():
-				f = v & ret
-				if f: retdict[k] = f
-			return retdict
-
-
-		if returnrecs:
-			return self.getrecord(ret, filt=True, ctx=ctx, txn=txn)
-
-		return self.filterbypermissions(ret, ctx=ctx, txn=txn)
+		ret = boolop(*subsets)
+		recids = self.filterbypermissions(ret, ctx=ctx, txn=txn)
+		
+		d["recids"] = recids
+		for k in d.keys():
+			if d.get(k) == defaults.get(k):
+				del d[k]
+		return d
+		
 
 
 
@@ -1345,9 +1280,6 @@ class DB(object):
 				results[count][param] = set(filter(comp, pkeys)) or None
 
 
-		# g.log.msg('LOG_DEBUG', "stage 1 results")
-		# g.log.msg('LOG_DEBUG', results)
-
 		# stage 2: search individual param indexes
 		for count, r in results.items():
 			constraint_matches = set()
@@ -1361,10 +1293,6 @@ class DB(object):
 						constraint_matches |= m
 
 			subsets.append(constraint_matches)
-
-		# g.log.msg('LOG_DEBUG', "stage 2 results")
-		# g.log.msg('LOG_DEBUG', subsets)
-		# g.log.msg('LOG_DEBUG', subsets_by_value)
 
 		return subsets, subsets_by_value
 
@@ -1415,6 +1343,30 @@ class DB(object):
 		#g.log(subsets)
 		return subsets, subsets_by_value
 
+
+
+	def __query_cmps(self, ignorecase=True):
+		# y is argument, x is record value
+		cmps = {
+			"==": lambda y,x:x == y,
+			"!=": lambda y,x:x != y,
+			"contains": lambda y,x:unicode(y) in unicode(x),
+			"!contains": lambda y,x:unicode(y) not in unicode(x),
+			">": lambda y,x: x > y,
+			"<": lambda y,x: x < y,
+			">=": lambda y,x: x >= y,
+			"<=": lambda y,x: x <= y,
+			'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
+			'!None': lambda y,x: x != None
+			#"range": lambda x,y,z: y < x < z
+		}
+
+		if ignorecase:
+			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
+			cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
+			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
+		
+		return cmps
 
 
 	#@notok
@@ -1907,7 +1859,9 @@ class DB(object):
 			ctx=ctx, txn=txn
 		)
 
-		usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
+		# usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
+		recs = self.getrecord(q["recids"], ctx=ctx, txn=txn)
+		usernames = listops.dictbykey(recs, 'username').keys()
 		users = self.getuser(usernames, ctx=ctx, txn=txn)
 
 		if limit: users = users[:int(limit)]
@@ -1947,7 +1901,7 @@ class DB(object):
 
 	#@rename db.query.value @ok
 	@publicmethod
-	def findvalue(self, param, query, flat=False, limit=None, count=True, showchoices=True, ctx=None, txn=None):
+	def findvalue(self, param, query, count=True, showchoices=True, limit=None, ctx=None, txn=None):
 		"""Find values for a parameter.
 
 		@param param Parameter to search
@@ -1956,39 +1910,29 @@ class DB(object):
 		@keyparam limit Limit number of results
 		@keyparam showchoices Include any defined param 'choices'
 		@keyparam count Return count of matches, otherwise return recids
-		@keyparam flat Return only recids
 		
-		@return [[matching value, count], ...]
+		@return if count: [[matching value, count], ...]
 				if not count: [[matching value, [recid, ...]], ...]
-				if flat and not count: [recid, recid, ...]
-				if flat and count: Number of matching records
 		"""
 
+		# This method was simplified, and now uses __query_index directly
+		
+		cmps = self.__query_cmps(ignorecase=True)
+		s1, s2 = self.__query_index(constraints=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
+		#{('name_last', u'Rees'): set([271390])}
 
-		q = self.query(ignorecase=True, constraints=[[param, "contains_w_empty", query]], byvalue=True, ctx=ctx, txn=txn)
+		# This works nicely, I should rewrite some of my other list sorteds
+		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
+		if limit: keys = keys[:int(limit)]
 
-		# >>> db.query(ignorecase=True, constraints=[["name_last","contains_w_empty", "rees"]], byvalue=True)
-		# 			{('name_last', u'Rees'): set([271390])}
-
-		q_sort = {}
-		for i in q:
-			q_sort[i[1]] = len(q[i])
+		ret = []
+		for key in keys:
+			if count:
+				ret.append((key[0][1],len(key[1])))
+			else:
+				ret.append((key[0][1],key[1]))
 			
-		q_sort = sorted(q_sort.items(), key=operator.itemgetter(1), reverse=True)
-
-		if flat and count:
-			return sum([i[1] for i in q_sort])
-
-		if flat:
-			return set().union(*q.values())
-
-		if limit:
-			q_sort = q_sort[:limit]
-
-		if count:
-			return q_sort
-
-		return [(i, q[i]) for i in q_sort]
+		return ret
 
 
 
@@ -2137,7 +2081,7 @@ class DB(object):
 
 
 	# ian: todo: finish this method
-	#@rename db.query.statistics @notok
+	# #@rename db.query.statistics @notok
 	# @publicmethod
 	# def getparamstatistics(self, param, ctx=None, txn=None):
 	# 	"""Return statistics about an (indexable) param
@@ -2346,6 +2290,12 @@ class DB(object):
 
 		@return Set of children
 		"""
+		# ok, some compatibility settings..
+		# def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
+		# def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False):
+		# recs = self.db.getchildren(self.recid, "record", self.options.get("recurse"), None, True, True)
+
+
 		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
 
@@ -2414,7 +2364,7 @@ class DB(object):
 		
 		# Flatten the dictionary to get all touched keys
 		allr = set().union(*ret_visited.values())
-		
+
 		# Restrict to a particular rectype
 		if rectype:
 			allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
@@ -2422,7 +2372,7 @@ class DB(object):
 		# Filter by permissions
 		if keytype=="record":
 			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)		
-		
+
 		# perform filtering on both levels, and removing any items that become empty
 		# If Tree=True, we're returning the tree...
 		if tree:
@@ -2430,8 +2380,6 @@ class DB(object):
 			for k, v in result.iteritems():
 				for k2 in v:
 					outret[k2] = result[k][k2] & allr
-					# result[k][k2] &= allr
-					# if not result[k][k2]:	del result[k][k2]
 
 			return outret
 
@@ -4053,7 +4001,7 @@ class DB(object):
 	# ian: todo: medium: allow to copy existing record
 	#@rename db.records.new @ok @return Record
 	@publicmethod
-	def newrecord(self, rectype, recid=None, init=True, inheritperms=None, ctx=None, txn=None):
+	def newrecord(self, rectype, inheritperms=None, init=True, recid=None, ctx=None, txn=None):
 		"""This will create an empty record and (optionally) initialize it for a given RecordDef (which must
 		already exist).
 
@@ -4264,8 +4212,7 @@ class DB(object):
 		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
 		
-		ol, recs = listops.oltolist(recids)
-		
+		ol, recs = listops.oltolist(recids, dtype=set)
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 
 		ret = []
@@ -4276,9 +4223,9 @@ class DB(object):
 			cp = filter(lambda x:"LOG: " not in x[2], cp)
 			cp = filter(lambda x:"Validation error: " not in x[2], cp)
 			for c in cp:
-				ret.append([rec.recid]+c)
-
-		return ret
+				ret.append([rec.recid]+list(c))
+		
+		return sorted(ret, key=operator.itemgetter(2))
 
 
 
@@ -5009,13 +4956,13 @@ class DB(object):
 		if ctx.checkreadadmin():
 			return set(recids)
 
-		ol, recids = listops.oltolist(recids)
+		ol, recids = listops.oltolist(recids, dtype=set)
 
 		# ian: indexes are now faster, generally...
 		if len(recids) < 100:
 			return set([x.recid for x in self.getrecord(recids, filt=True, ctx=ctx, txn=txn)])
 
-		find = set(recids)
+		find = copy.copy(recids)
 		find -= self.bdbs.secrindex.get(ctx.username, set(), txn=txn)
 
 		for group in sorted(ctx.groups):
@@ -5153,7 +5100,7 @@ class DB(object):
 				c_all[k] -= endpoints
 			endpoints = self.__endpoints(c_all) - c_rectype
 
-		rendered = self.renderview(set().union(*c_all.values()), viewtype="recname", ctx=ctx, txn=txn)
+		rendered = self.renderview(listops.flatten(c_all), viewtype="recname", ctx=ctx, txn=txn)
 
 		c_all = self.__filter_dict_zero(c_all)
 

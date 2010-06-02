@@ -64,10 +64,11 @@ class BaseDBInterface(object, DictMixin):
 		"""Accept either a dictionary named '_d' or keyword arguments. Remove the ctx and use it for setContext. See the Class docstring for what arguments are accepted."""
 		
 		if _d == None: _d = {}
-		ctx = _k.pop("ctx",None)
 		_d.update(_k)
-		self.setContext(ctx)
+		ctx = _d.pop('ctx',None)
+		self._ctx = ctx
 		self.init(_d)
+		self.setContext(ctx)
 
 
 	def setContext(self, ctx=None):
@@ -119,7 +120,6 @@ class BaseDBInterface(object, DictMixin):
 	
 	def __getstate__(self):
 		"""Context and other session-specific information should not be pickled"""
-
 		odict = self.__dict__.copy() # copy the dict since we change it
 		odict['_ctx'] = None
 		return odict
