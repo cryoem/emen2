@@ -70,7 +70,6 @@ class BaseDBInterface(object, DictMixin):
 		self._ctx = ctx
 		self.init(_d)
 		self.setContext(ctx)
-		print "ctx? ", ctx, self._ctx
 	
 
 	def setContext(self, ctx=None):

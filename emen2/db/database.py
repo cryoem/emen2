@@ -3797,7 +3797,7 @@ class DB(object):
 	#@notok @return RecordDef
 	@publicmethod
 	def newrecorddef(self, ctx=None, txn=None):
-		rd = emen2.db.recorddef.RecordDef()
+		rd = emen2.db.recorddef.RecordDef(ctx=ctx)
 		rd.setContext(ctx)
 		return rd
 
