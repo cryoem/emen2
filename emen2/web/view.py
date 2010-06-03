@@ -40,7 +40,7 @@ class View(object):
 
 	headers = property(lambda self: self.__headers)
 	dbtree = property(lambda self: self.__dbtree)
-	page = ''
+	page = None
 	ctxt = property(lambda self: self.get_context())
 	_ctxt = property(lambda self: self.__ctxt)
 
@@ -67,14 +67,10 @@ class View(object):
 		format governs which method is called to get the view data
 		extra catches arguments to be passed to the 'init' method
 		'''
-
-		# try:
-
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
 		self.__dbtree = None
-		#if db is not None:
 		self.__dbtree = emen2.util.db_manipulation.DBTree(db)
 
 		self.__template = template or self.template
@@ -311,7 +307,7 @@ class Page(object):
 		if view.get_header('content-type') == 'application/json' and hasattr(view, 'page'):
 			result = view.page
 		else:
-			if view.page is '':
+			if view.page is None:
 				result = cls.render_template(view.template, modifiers=ctxt)
 			else:
 				if view.is_raw():
