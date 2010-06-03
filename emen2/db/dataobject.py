@@ -64,12 +64,14 @@ class BaseDBInterface(object, DictMixin):
 		"""Accept either a dictionary named '_d' or keyword arguments. Remove the ctx and use it for setContext. See the Class docstring for what arguments are accepted."""
 		
 		if _d == None: _d = {}
+		_d = dict(_d)
+		ctx = _k.pop('ctx',None)
 		_d.update(_k)
-		ctx = _d.pop('ctx',None)
 		self._ctx = ctx
 		self.init(_d)
 		self.setContext(ctx)
-
+		print "ctx? ", ctx, self._ctx
+	
 
 	def setContext(self, ctx=None):
 		"""Set permissions and create reference to active database."""
