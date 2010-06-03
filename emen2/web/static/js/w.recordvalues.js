@@ -339,7 +339,7 @@ multiwidget.prototype = {
 		});
 		
 	
-		$.jsonRPC("putrecord", [rec_update, rec_update["parents"]],
+		$.jsonRPC("putrecord", [rec_update], //rec_update["parents"]
 			function(rec){
 				notify_post(EMEN2WEBROOT+'/db/record/'+rec["recid"]+'/',["Record Saved"]);
 			},

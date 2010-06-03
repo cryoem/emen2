@@ -172,18 +172,18 @@ function notify_post(uri,msgs) {
 /////////////////////////////////////////
 
 
-function record_action_delete(drecid) {
-	var test=confirm("Are you sure you want to delete this record?");
-	if (test) {
-		$.jsonRPC("deleterecord",[drecid], function() {
-			//$.post("/db/record/"+recid,{"notify___0":"This record has been marked for deletion and removed from hierarchy"});
-			notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
-			//window.location.reload();
-		}, function() {
-			notify("Error deleting record!");
-		});
-	}
-}
+// function record_action_delete(drecid) {
+// 	var test=confirm("Are you sure you want to delete this record?");
+// 	if (test) {
+// 		$.jsonRPC("deleterecord",[drecid], function() {
+// 			//$.post("/db/record/"+recid,{"notify___0":"This record has been marked for deletion and removed from hierarchy"});
+// 			notify_post(window.location,["This record has been marked for deletion and removed from the hierarchy"]);
+// 			//window.location.reload();
+// 		}, function() {
+// 			notify("Error deleting record!");
+// 		});
+// 	}
+// }
 
 
 

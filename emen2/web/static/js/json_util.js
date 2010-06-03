@@ -21,45 +21,13 @@ function json_getrecords(recids,cb) {
 		[recids],
 		function (json) {
 			$.each(json, function(i) {
-				recs[this.recid]=this;
+				setrecord(this["recid"],this);
 			});
 			cb();
 		}
 	);	
 }
 
-
-
-function json_getrecords_paramdefs(recids,cb) {
-	// get data
-	$.jsonRPC(
-		"getrecord",
-		[recids],
- 		function(json){
-			//console.log("got records");
-			$.each(json, function() {
-				setrecord(this["recid"],this);
-			});			
-
-			//
-			$.jsonRPC(
-				"getparamdefs",
-				[recids],
-				function (json) {
-					//console.log("got paramdefs");
-					$.each(json, function(i) {
-						//console.log(i,this);
-						paramdefs[i]=this;
-					});
-					// calling final callback
-					cb();
-				}
-			);
-			//
-
- 		}
-	);
-}
 
 
 

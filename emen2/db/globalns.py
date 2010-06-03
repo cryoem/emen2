@@ -83,8 +83,8 @@ class GlobalNamespace(object):
 
 
 		# process URL
-		if data.get('network'):
-			data['network']['EMEN2WEBROOT'] = ''
+		#if data.get('network'):
+		#	data['network']['EMEN2WEBROOT'] = ''
 
 
 		# process data

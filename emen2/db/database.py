@@ -1228,6 +1228,7 @@ class DB(object):
 			s, subsets_by_value = self.__query_index(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
 
 		subsets.extend(s)
+		if not subsets: subsets = [set()]
 
 		ret = boolop(*subsets)
 		recids = self.filterbypermissions(ret, ctx=ctx, txn=txn)
@@ -1841,6 +1842,9 @@ class DB(object):
 			name_last = query
 			username = query
 
+		if not query and not username:
+			username = ""
+
 		constraints = [
 			["name_first","contains", name_first],
 			["name_middle","contains", name_middle],
@@ -1855,11 +1859,9 @@ class DB(object):
 			boolmode=boolmode,
 			ignorecase=True,
 			constraints=constraints,
-			returnrecs=True,
 			ctx=ctx, txn=txn
 		)
 
-		# usernames = filter(None, map(lambda x:x.get("username"),filter(lambda x:x.rectype=="person", q)))
 		recs = self.getrecord(q["recids"], ctx=ctx, txn=txn)
 		usernames = listops.dictbykey(recs, 'username').keys()
 		users = self.getuser(usernames, ctx=ctx, txn=txn)
@@ -1901,7 +1903,7 @@ class DB(object):
 
 	#@rename db.query.value @ok
 	@publicmethod
-	def findvalue(self, param, query, count=True, showchoices=True, limit=None, ctx=None, txn=None):
+	def findvalue(self, param, query, count=True, showchoices=True, limit=100, ctx=None, txn=None):
 		"""Find values for a parameter.
 
 		@param param Parameter to search
@@ -1925,12 +1927,11 @@ class DB(object):
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit: keys = keys[:int(limit)]
 
-		ret = []
-		for key in keys:
-			if count:
-				ret.append((key[0][1],len(key[1])))
-			else:
-				ret.append((key[0][1],key[1]))
+		# Turn back into a dictionary
+		ret = dict([(i[0][1], i[1]) for i in keys])
+		if count:
+			for k in ret:
+				ret[k]=len(ret[k])
 			
 		return ret
 

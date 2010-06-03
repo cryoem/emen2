@@ -44,7 +44,7 @@ function admin_approveuser_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("wrapper_rejectusers_sendmail",[reject],
+		$.jsonRPC("rejectuser",[reject],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {
