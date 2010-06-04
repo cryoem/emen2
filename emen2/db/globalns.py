@@ -99,9 +99,9 @@ class GlobalNamespace(object):
 				# apply the prefix to entries
 				if isinstance(value, dict): pass
 				elif hasattr(value, '__iter__'):
-					value = [pref+item for item in value]
+					value = [os.path.join(pref,item) for item in value]
 				elif isinstance(value, (str, unicode)):
-					value = pref+value
+					value = os.path.join(pref,value)
 				self.__addattr(key2, value, options)
 
 
