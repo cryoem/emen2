@@ -1,5 +1,7 @@
 # These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
 paths:
+  prefix:
+    - /home/emen2comp
     
   # Log directory: access.log, error.log, debug.log (see logging section)    
   LOGPATH: &logpath

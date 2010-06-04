@@ -223,7 +223,7 @@ class DebugState(object):
 		self.msg('LOG_CRITICAL', 'Capturing stdoutput')
 		self.__print_to_stdout = False
 		sys.stdout = self
-		#sys.stderr = self
+		sys.stderr = self
 
 	def restorestdout(self):
 		self.__print_to_stdout = True

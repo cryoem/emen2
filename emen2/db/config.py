@@ -56,7 +56,8 @@ class DBOptions(optparse.OptionParser):
 
 	def getpath(self, pathname):
 		# ian: todo: dynamically resolve pathnames for DB dirs
-		pass
+		gg.log_info(os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname)))
+		return os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname))
 
 
 	def load_config(self, **kw):
