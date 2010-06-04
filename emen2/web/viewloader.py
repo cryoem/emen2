@@ -49,7 +49,8 @@ def routes_from_g():
 
 def load_views(failures=None):
 	g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
-	emen2.web.templating.get_templates(g.TEMPLATEDIRS, failures=failures)
+	r = reversed(g.TEMPLATEDIRS)
+	emen2.web.templating.get_templates(r, failures=failures)
 	get_views(g.VIEWPATHS)
 
 

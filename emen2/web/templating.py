@@ -146,6 +146,7 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
+	#print pwd, pth
 	if not hasattr(failures, 'append'): failures = []
 	if ext == mtch:
 		filpath = os.path.join(pwd[0], name)

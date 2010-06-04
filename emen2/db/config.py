@@ -106,6 +106,9 @@ class DBOptions(optparse.OptionParser):
 			g.TEMPLATEDIRS.append(get_filename('emen2','web/templates'))
 
 
+		# print "td ", g.TEMPLATEDIRS
+		#g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
+
 		# Set any overrides
 		if self.values.configoverride:
 			for val in self.values.configoverride:
