@@ -1,5 +1,5 @@
 import types
-import md5
+from hashlib import md5
 import random
 
 
@@ -129,7 +129,7 @@ class HTMLTab():
 		alltabs = set(self.content.keys() + self.labels.keys() + self.href.keys() + self.order + [self.active]) - set([None])
 
 		if not self.classname:
-			self.classname=md5.md5.hexdigest("%s%s"%(random.random(),alltabs))
+			self.classname=md5("%s%s"%(random.random(),alltabs)).hexdigest()
 
 		if not self.order:
 			self.autoorder()

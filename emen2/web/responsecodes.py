@@ -1,4 +1,5 @@
 '''Contains Classses which should mirror HTTP resoponse codes'''
+#NOTE: unittests in tests/responsecodes_test.py -- run after any changes
 
 class HTTPResponseCode(Exception):
 	'''Base class for setting HTTP Response codes.  If a view
