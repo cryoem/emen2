@@ -44,7 +44,6 @@ class View(object):
 	ctxt = property(lambda self: self.get_context())
 	_ctxt = property(lambda self: self.__ctxt)
 
-	template = None
 	js_files = emen2.web.extfile.AdminJS
 	css_files = emen2.web.extfile.AdminCSS
 
@@ -317,4 +316,3 @@ class Page(object):
 						ctxt['def_title'] = 'No Title'
 					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
 		return result
-

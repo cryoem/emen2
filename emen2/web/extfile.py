@@ -83,7 +83,7 @@ class AdminJS(BaseJS):
 		]
 
 
-class AdminCSS(ExtFile):
+class AdminCSS(BaseCSS):
 	def init(self):
 		super(AdminCSS, self).init()
 		self.files = '%s/css/main.css' % g.EMEN2WEBROOT
