@@ -499,7 +499,12 @@ widget.prototype = {
 				);
 				
 				this.w.append(this.editw);			
-
+		
+		} else if (pd["vartype"]=="binary" || pd["vartype"]=="binaryimage") {
+			
+				this.editw = $('<div>Use Attachments Tab To Manage Files</div>')
+				this.w.append(this.editw);
+				
 		} else {
 
 			this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');

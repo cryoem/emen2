@@ -433,8 +433,9 @@ td .editable:hover {
 	height:600px;
 }
 #record_editbar_menu_upload {
-	width:300px;
-	height:100px;
+	height:600px;
+	left:100px;
+	width:800px;
 }
 #record_editbar_menu_permissions {
 	left:100px;

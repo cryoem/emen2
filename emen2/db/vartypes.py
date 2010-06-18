@@ -239,6 +239,16 @@ class vt_binary(Vartype):
 			value=[value]
 		return [unicode(x) for x in value] or None
 
+	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
+		if not value:
+			return ""
+		if not hasattr(value,"__iter__"):
+			value=[value]
+
+		v = db.getbinary(value)
+		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename) for i in v]
+		return "<br />".join(hrefs)
+
 
 class vt_binaryimage(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
@@ -248,6 +258,17 @@ class vt_binaryimage(Vartype):
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
+
+	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
+		if not value:
+			return ""
+
+		try:
+			i = db.getbinary(value)
+		 	return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+			
+		except:
+			return ""
 
 
 class vt_child(Vartype):

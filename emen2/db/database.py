@@ -1075,8 +1075,12 @@ class DB(object):
 		# key is sequential item #, value is (filename, recid)
 		# uri is for files copied from an external source, similar to records, paramdefs, etc.
 
-		#@begin
+		# Try and write the file before we start TXN
+		filename, filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
+
+		#@begin
+		# ian: MUSTFIX
 		# acquire RMW lock to prevent others from editing...
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
 
@@ -1089,8 +1093,6 @@ class DB(object):
 			raise emen2.db.exceptions.SecurityError, "Only admin may overwrite existing BDO"
 
 
-		# Try and write the file before we commit..
-		filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
 
 		nb = emen2.db.binary.Binary()
 		nb.update(
