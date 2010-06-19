@@ -800,6 +800,8 @@ ul.jq-ui-autocomplete li.active {
 	padding-bottom:0px;
 	font-weight:normal;
 	color:#783766;
+}
+.editable_files {
 	font-size:10pt;
 }
 

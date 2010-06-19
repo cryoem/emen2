@@ -257,7 +257,7 @@ class vt_binary(Vartype):
 		v = db.getbinary(value)
 		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename) for i in v]
 
-		edit = '<span class="editable_files" data-recid="%s" data-param="%s">Manage Files</span>'%(rec.recid, pd.name)
+		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
 		
 		
@@ -284,6 +284,23 @@ class vt_binaryimage(Vartype):
 			
 		except:
 			return ""
+
+
+	def render_html(self, engine, pd, value, rec, db, render_cache=None):
+		if not value:
+			return ""
+		i = db.getbinary(value)
+		return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+
+
+	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+		href = ""
+		if value:
+			i = db.getbinary(value)
+			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
+		return "%s %s<br />"%(href, edit)
+
 
 
 class vt_child(Vartype):

@@ -1673,6 +1673,7 @@ filewidget.prototype = {
 		this.bdos = {};
 		this.recid = parseInt(this.elem.attr("data-recid"));
 		this.param = this.elem.attr("data-param");
+		this.vartype = this.elem.attr("data-vartype");
 		this.bind_edit();
 	},
 	
@@ -1681,6 +1682,8 @@ filewidget.prototype = {
 		var self = this;
 		$.jsonRPC("getbinary", [getvalue(this.recid, this.param)], 
 			function(bdos) {
+				if (bdos == null) {bdos=[]}
+				if (bdos.length == null) {bdos=[bdos]}
 				self.bdos = bdos || {};
 				self.build();
 			}
@@ -1744,9 +1747,16 @@ filewidget.prototype = {
 
 
 		var infoc = $('<div class="modalbrowser_info" style="margin-top:20px;"><h3>Upload</h3></div>');
+		//var fform = $('<form action="'+EMEN2WEBROOT+'/upload/'+this.recid+'" enctype="multipart/form-data" method="POST">');
+		var fform = $('<div />');
 
-		this.button_browser = $('<input type="file" multiple="multiple" />');
+		this.button_browser = $('<input type="file" />');
 		this.button_submit = $('<input type="submit" value="Upload"  />');
+
+		if (this.vartype == "binary") {
+			this.button_browser.attr("multiple","multiple");
+			fform.append("(multiple files allowed)");
+		}
 		
 		this.button_browser.html5_upload({
 			url: function() {
@@ -1783,8 +1793,8 @@ filewidget.prototype = {
 		var progress_report_bar_container = $('<div id="progress_report_bar_container">');
 		var progress_report_bar = $('<div id="progress_report_bar" style="background-color: blue; width: 0; height: 100%;" />');
 
-		infoc.append(this.button_browser, this.button_submit);
-		
+		fform.append(this.button_browser, this.button_submit)
+		infoc.append(fform);
 				
 		progress_report_bar_container.append(progress_report_bar);
 		progress_report.append(progress_report_name, progress_report_status, progress_report_bar_container);

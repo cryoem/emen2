@@ -912,7 +912,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		@keyparam params For record search, limit to (single/iterable) params
 
-		@return A single Binary instance, or a {bdokey:Binary} dict
+		@return A single Binary instance or a list of Binaries
 
 		@exception KeyError, SecurityError
 		"""
