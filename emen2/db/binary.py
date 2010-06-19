@@ -2,6 +2,7 @@ import time
 import re
 import traceback
 import math
+import os
 
 # import emen2.db
 import emen2.db.dataobject
@@ -79,7 +80,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		base = g.BINARYPATH[mp[-1]]
 
 		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
-		filepath = basepath + "%05X"%counter
+		filepath = os.path.join(basepath, "%05X"%counter)
 		name = "%s:%s%05X"%(prot, datekey, counter)
 
 		return {"prot":prot, "year":year, "mon":mon, "day":day, "counter":counter, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}

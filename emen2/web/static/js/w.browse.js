@@ -375,8 +375,8 @@ relationshipbrowser.prototype = {
 	
 	init: function() {
 		this.currentid=this.recid;
-		this.container = $('<div class="relationshipbrowser_container clearfix" />');
-		this.elem = $('<div class="relationshipbrowser_container_inner clearfix" />');
+		this.container = $('<div class="modalbrowser_container clearfix" />');
+		this.elem = $('<div class="modalbrowser_container_inner clearfix" />');
 		this.elem.css("left", ($(window).width()-896)/2);
 		var toph=($(window).height()-730)/2;
 		if (toph<=10) toph=10;
@@ -412,15 +412,15 @@ relationshipbrowser.prototype = {
 			bookmarks.append('<option value="'+v+'">'+k+'</option>');
 		});
 
-		var title=$('<div class="relationshipbrowser_title clearfix"><span class="floatleft">Record Chooser</span></div>').append(
+		var title=$('<div class="modalbrowser_title clearfix"><span class="floatleft">Record Chooser</span></div>').append(
 			this.statusimg, 
 			$('<span class="floatright"></span>').append(
 				this.gotorecord,
 				gotorecordbutton,
-				'<span class="relationshipbrowser_spacer"></span>',
+				'<span class="modalbrowser_spacer"></span>',
 				'Bookmarks:',
 				bookmarks,
-				'<span class="relationshipbrowser_spacer"></span>',
+				'<span class="modalbrowser_spacer"></span>',
 				//$('<input type="button" value="Select" />').click(function(){
 				//	self.ok();
 				//}), 
@@ -431,7 +431,7 @@ relationshipbrowser.prototype = {
 		);
 
 		this.elem.append(title);
-		this.tablearea=$('<div class="relationshipbrowser_tablearea clearfix" />');
+		this.tablearea=$('<div class="modalbrowser_tablearea clearfix" />');
 		this.elem.append(this.tablearea);
 
 	},
@@ -457,8 +457,8 @@ relationshipbrowser.prototype = {
 		var len=this.parents.length;
 		if (this.children.length >= len) len=this.children.length;	
 
-		var ptable = $('<table class="map relationshipbrowser_table floatleft" cellpadding="0" cellspacing="0" />');
-		var ctable = $('<table class="map relationshipbrowser_table floatleft" cellpadding="0" cellspacing="0" />');		
+		var ptable = $('<table class="map modalbrowser_table floatleft" cellpadding="0" cellspacing="0" />');
+		var ctable = $('<table class="map modalbrowser_table floatleft" cellpadding="0" cellspacing="0" />');		
 
 		for (var i=0;i<len;i++) {
 			var prow=$('<tr></tr>');
@@ -493,14 +493,14 @@ relationshipbrowser.prototype = {
 			ctable.append(crow);
 		}
 		
-		this.infoc = $('<div class="relationshipbrowser_info floatleft" />');
-		this.infoc.append('<div class="relationshipbrowser_info_name">'+getrecname(this.currentid)+'</div>');
+		this.infoc = $('<div class="modalbrowser_info floatleft" />');
+		this.infoc.append('<div class="modalbrowser_info_name">'+getrecname(this.currentid)+'</div>');
 		this.infoc.append(
 			$('<input type="button" value="Select" />').click(function(){
 					self.ok();
 				})
 			);
-		this.info_view = $('<div class="relationshipbrowser_info_view"></div>');
+		this.info_view = $('<div class="modalbrowser_info_view"></div>');
 		this.infoc.append(this.info_view);
 		
 		this.tablearea.append(ptable, this.infoc, ctable);

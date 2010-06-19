@@ -20,6 +20,7 @@ import weakref
 import getpass
 import functools
 import imp
+import tempfile
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -1068,20 +1069,38 @@ class DB(object):
 
 		@exception SecurityError
 		"""
-
-		dkey = emen2.db.binary.Binary.parse(bdokey)
-
+		
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
-		# uri is for files copied from an external source, similar to records, paramdefs, etc.
+		dkey = emen2.db.binary.Binary.parse(bdokey)
 
-		# Try and write the file before we start TXN
-		filename, filesize, md5sum = self.__putbinary_file(dkey=dkey, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
+		#ed: fix: catch correct exception
+		try: os.makedirs(dkey["basepath"])
+		except: pass
 
+		# Write out file to temporary storage
+		(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
+		m = hashlib.md5()
+		filesize = 0
+
+		with os.fdopen(fd, "w+b") as f:
+			if not filedata:
+				for line in filehandle:
+					f.write(line)
+					m.update(line)
+					filesize += len(line)
+			else:
+				f.write(filedata)
+				m.update(filedata)
+				filesize = len(filedata)
+
+		md5sum = m.hexdigest()
+		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+
+
+		# Ok, now that we have written the file out, update the BDO counter and then move the file
 
 		#@begin
-		# ian: MUSTFIX
-		# acquire RMW lock to prevent others from editing...
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
 
 		if dkey["counter"] == 0:
@@ -1091,7 +1110,6 @@ class DB(object):
 
 		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only admin may overwrite existing BDO"
-
 
 
 		nb = emen2.db.binary.Binary()
@@ -1116,6 +1134,9 @@ class DB(object):
 
 		#@end
 
+		# Now move the file to the right location
+		os.rename(tmpfilepath, dkey["filepath"])
+
 		return nb
 
 
@@ -1133,8 +1154,11 @@ class DB(object):
 		@exception SecurityError
 		"""
 
-		filepath = dkey["filepath"]
-		basepath = dkey["basepath"]
+		# filepath = dkey["filepath"]
+		# basepath = dkey["basepath"]
+
+		(fd, fname) = tempfile.mkstemp()
+		filepath = os.fdopen(fd, "w+b")
 
 
 		#ed: fix: catch correct exception
@@ -1144,10 +1168,10 @@ class DB(object):
 			pass
 
 
-		if os.access(filepath, os.F_OK) and not ctx.checkadmin():
-			# should be a different exception class, this particular one seems irrevelant as it is not really a security
-			# but an integrity problem.
-			raise emen2.db.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
+		#if os.access(filepath, os.F_OK) and not ctx.checkadmin():
+		#	# should be a different exception class, this particular one seems irrevelant as it is not really a security
+		#	# but an integrity problem.
+		#	raise emen2.db.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
 
 
 		m = hashlib.md5()
@@ -1168,7 +1192,7 @@ class DB(object):
 		md5sum = m.hexdigest()
 		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(filepath, filesize, md5sum))
 
-		return filesize, md5sum
+		return filepath, filesize, md5sum
 
 
 

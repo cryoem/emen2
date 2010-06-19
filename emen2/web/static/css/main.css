@@ -1,3 +1,10 @@
+#progress_report_bar_container {
+	width: 400px;
+	height: 20px;
+	border:solid 1px #ccc;
+}
+
+
 div.color_picker {
   height: 16px;
   width: 16px;
@@ -256,7 +263,7 @@ td {
 	border-bottom:solid 1px red;
 }
 
-.relationshipbrowser_container {
+.modalbrowser_container {
 	position:fixed;
 	z-index:200;
 	top:0px;
@@ -266,28 +273,28 @@ td {
 	height:100%;
 	background:url('/images/transbackground-15.png');
 }
-.relationshipbrowser_container_inner {
+.modalbrowser_container_inner {
 	position:absolute;
 	top:100px;
 	left:100px;
 	width:896px;
 }
 
-.relationshipbrowser_title {
+.modalbrowser_title {
 	padding:10px;
 	background:#BBD9EE;
 	width:100%;
 	border:solid 2px #BBD9EE;
 	border-bottom:none;
 }
-.relationshipbrowser_spacer {
+.modalbrowser_spacer {
 	margin:5px;
 	color:white;
 	border-right:solid 2px white;
 }
 
 
-.relationshipbrowser_tablearea {
+.modalbrowser_tablearea {
 	background:white;
 	padding:10px;
 	border:solid 2px #BBD9EE;
@@ -297,33 +304,33 @@ td {
 	max-height:800px;
 	overflow:auto;	
 }
-.relationshipbrowser_table {
+.modalbrowser_table {
 	max-height:300px;
 	overflow:auto;
 	width:300px;
 }
-.relationshipbrowser_table td {
+.modalbrowser_table td {
 }
-.relationshipbrowser_info {
+.modalbrowser_info {
 	width:250px;
 	padding-left:5px;
 	padding-right:5px;
 	padding-bottom:5px;
 }
-.relationshipbrowser_info_view {
+.modalbrowser_info_view {
 	border:solid 2px #ccc;
 	border-top:none;
 	font-size:8pt;
 	max-height:300px;
 	overflow:auto;
 }
-.relationshipbrowser_info_name {
+.modalbrowser_info_name {
 	background:#eee;
 	border:solid 2px #ccc;
 	border-bottom:none;
 	padding:5px;
 }
-.relationshipbrowser_info_view td {
+.modalbrowser_info_view td {
 	padding:2px;
 }
 
@@ -788,7 +795,7 @@ ul.jq-ui-autocomplete li.active {
 
 /* end autocomplete */
 
-.editable {
+.editable_files, .editable {
 	padding:2px;
 	padding-bottom:0px;
 	font-weight:normal;
@@ -798,11 +805,13 @@ ul.jq-ui-autocomplete li.active {
 .editable img {
 	border-bottom:dotted #783766 1px;
 }
-.editable:hover {
+.editable_files:hover, .editable:hover {
 	/*background:#783766;
 	color:white; */
 	border-bottom:dotted 1px #783766;
 }
+
+
 
 .show {
 	display:block;
@@ -1526,14 +1535,14 @@ ul.nonlist li {
 
 
 /* all */
-/* .relationshipbrowser_container, */
+/* .modalbrowser_container, */
 .capsule, .precontent .map, #alert li, .navtable, #imagepreview, .tooltip, .child, .roundwhitebox, .page, div.sidebar, .browser, .widget_bigbutton {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
 
 /* top only */
-/* .relationshipbrowser_title, .relationshipbrowser_info_name,  */
+/* .modalbrowser_title, .modalbrowser_info_name,  */
 #edit_parentmap, #sidebar ul li strong, .recordtable,.recordtable h3, .button_main, .button_param, .button_addrecord, .button {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-topleft:8px; 
@@ -1541,7 +1550,7 @@ ul.nonlist li {
 	-webkit-border-top-left-radius:8px; 	
 }
 /* bottom only */
-.relationshipbrowser_tablearea, #title {
+.modalbrowser_tablearea, #title {
 	-moz-border-radius-bottomright:8px;
 	-moz-border-radius-bottomleft:8px; 
 	-webkit-border-bottom-right-radius:8px;

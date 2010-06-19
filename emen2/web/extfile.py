@@ -66,20 +66,20 @@ class AdminJS(BaseJS):
 	def init(self):
 		super(AdminJS, self).init()
 		self.files = [
-			'%s/js/admin.js' % g.EMEN2WEBROOT,
+			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
 			'%s/js/jquery/jquery.dimensions.js' % g.EMEN2WEBROOT,
 			'%s/js/jquery/jquery.json.min.js' % g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.ui.autocomplete.ext.js' % g.EMEN2WEBROOT,
 			'%s/js/jquery/jquery.ui.autocomplete.js' % g.EMEN2WEBROOT,
 			'%s/js/jquery/jquery.colorPicker.js' % g.EMEN2WEBROOT,
-			'%s/js/json_util.js' % g.EMEN2WEBROOT,
-			'%s/js/rec_util.js' % g.EMEN2WEBROOT,
-			'%s/js/table.js' % g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.html5_upload.js' % g.EMEN2WEBROOT,
 			'%s/js/tile.js' % g.EMEN2WEBROOT,
+			'%s/js/util.json.js' % g.EMEN2WEBROOT,
+			'%s/js/util.admin.js' % g.EMEN2WEBROOT,
+			'%s/js/util.rec.js' % g.EMEN2WEBROOT,
+			'%s/js/w.table.js' % g.EMEN2WEBROOT,
 			'%s/js/w.browse.js' % g.EMEN2WEBROOT,
 			'%s/js/w.record.js' % g.EMEN2WEBROOT,
-			'%s/js/w.recordvalues.js' % g.EMEN2WEBROOT,
-			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js')
+			'%s/js/w.editdefs.js' % g.EMEN2WEBROOT
 		]
 
 

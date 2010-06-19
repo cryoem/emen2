@@ -30,9 +30,6 @@ function json_getrecords(recids,cb) {
 
 
 
-
-
-
 ////////////////  base ///////////////////
 
 
