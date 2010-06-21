@@ -3663,7 +3663,7 @@ class DB(object):
 			raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
 
 		if orec.vartype != paramdef.vartype:
-			g.log.msg("LOG_CRITICAL","WARNING! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, pd.vartype, paramdef.vartype))
+			g.log.msg("LOG_CRITICAL","WARNING! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, paramdef.vartype, paramdef.vartype))
 
 		# These are not allowed to be changed
 		paramdef.creator = orec.creator
