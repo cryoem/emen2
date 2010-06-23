@@ -193,23 +193,21 @@ class View(object):
 		The new method is called _after_ View.__init__ gets called
 		'''
 		def _i1(func):
-			result = functools.partial(cls, init=func)
-			result = functools.wraps(func)(result)
 			matchers = []
 			if len(match) == 1:
 				name = func.__name__
 				if name.lower() == 'init': name = 'main'
-				matchers.append( (name, match[0], result) )
+				matchers.append( (name, match[0], func) )
 			else:
 				for n,matcher in enumerate(match):
-					matchers.append( ('%s/%d' % (func.__name__, n), matcher, result) )
+					matchers.append( ('%s/%d' % (func.__name__, n), matcher, func) )
 			for k,matcher in kwmatch.iteritems():
 				name = []
 				if func.__name__.lower() == 'init':
 					name.append('main')
 				else:
 					name.append(func.__name__, k)
-				matchers.append( ('/'.join(name), matcher, result) )
+				matchers.append( ('/'.join(name), matcher, func) )
 			func.matcherinfo = g.log.note_var(matchers)
 			return func
 		return _i1
@@ -263,7 +261,10 @@ class View(object):
 		#matchers produced by the add_matcher decorator
 		for v in (func.matcherinfo for func in cls.__dict__.values() if hasattr(func,'matcherinfo')):
 			for matcher in v:
-				cls.__url.add_matcher(*matcher)
+				name, matcher, func = matcher
+				func = functools.partial(cls, init=func)
+				func = functools.wraps(cls)(func)
+				cls.__url.add_matcher(name, matcher, func)
 
 		ur = routing.URLRegistry()
 		ur.register(cls.__url)
