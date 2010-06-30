@@ -362,3 +362,9 @@ h2 {
 #userbox {
 	text-align: center
 }
+.collapsed * {
+   display:none;
+}
+.collapsed > div {
+   display:block;
+}

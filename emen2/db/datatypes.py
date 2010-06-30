@@ -21,7 +21,7 @@ class VartypeManager(object):
 	__properties = {}
 	__macros = {}
 	nonevalues = [None,"","N/A","n/a","None"] #set([None,"","N/A","n/a","None"])
-	
+
 
 	@classmethod
 	def _register_vartype(cls, name, refcl):
@@ -81,7 +81,7 @@ class VartypeManager(object):
 
 
 	# rendering methods
-	
+
 	def macro_process(self, macro, params, rec, db=None):
 		return self.__macros[macro]().process(self, macro, params, rec, db)
 
@@ -274,7 +274,9 @@ class Property(object):
 		if hasattr(value,"__float__"):
 			return float(value)
 
-		q=re.compile("([0-9+\-\.]+)(\s+)?(\D+)?")
+		#q=re.compile("([0-9+\-\.]+)(\s+)?(\D+)?")
+		#ed: TODO: make sure this is correct, old one didn't work for e/A^2
+		q=re.compile("([0-9+\-\.]+)(\s+)?(.+?)?\s*$")
 
 		value=unicode(value).strip()
 		try:
@@ -288,7 +290,7 @@ class Property(object):
 		if r[2] != None:
 			u = unicode(r[2]).strip()
 
-		#g.log.msg('LOG_DEBUG', "GOT VALUE AND UNITS: '%s', '%s' PARAM DU: %s, VT DU: %s"%(v,u, pd.defaultunits, self.defaultunits))
+		g.log.msg('LOG_DEBUG', "GOT VALUE AND UNITS: '%s', '%s' PARAM DU: %s, VT DU: %s"%(v,u, pd.defaultunits, self.defaultunits))
 
 		if u == pd.defaultunits or u == None:
 			#g.log.msg('LOG_DEBUG', "No units specified or defaultunits; no conversion necessary")

@@ -516,7 +516,9 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""This will commit any changes back to permanent storage in the database, until
 		this is called, all changes are temporary. host must match the context host or the
 		putrecord will fail"""
-		return self._ctx.db.putrecord(self)
+		nrec = self._ctx.db.putrecord(self)
+		self.recid = nrec
+		return nrec
 
 
 	def isowner(self):

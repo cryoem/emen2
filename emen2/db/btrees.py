@@ -16,6 +16,17 @@ except:
 	bulk = None
 	g.warn("Not using bulk interface")
 
+def n_int(inp):
+	'''wrapper for int if keys contain decimal points can be turned on by
+		uncommenting lines below
+	'''
+	try: return int(inp)
+	except:
+		if isinstance(inp, (str, unicode)) and inp.count('.') == 1:
+			return int(inp.split('.', 1)[0])
+		else:
+			raise
+	return result
 
 # Berkeley DB wrapper classes
 
@@ -71,8 +82,10 @@ class BTree(object):
 		#	self.typekey = int
 		if self.keytype == "d" or self.keytype == "d_old":
 			self.typekey = int
+			#self.typekey = n_int
 			self.dumpkey = str
 			self.loadkey = int
+			#self.loadkey = n_int
 
 		elif self.keytype == "f":
 			self.typekey = float

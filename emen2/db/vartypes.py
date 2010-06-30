@@ -194,10 +194,10 @@ class vt_stringlist(Vartype):
 		if not hasattr(value,"__iter__"):
 			value=[value]
 		return [unicode(x) for x in value] or None
-		
+
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		return ", ".join(value or [])
-	
+
 
 
 class vt_url(Vartype):
@@ -259,8 +259,8 @@ class vt_binary(Vartype):
 
 		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
-		
-		
+
+
 		return "<br />".join(hrefs)
 
 
@@ -280,8 +280,8 @@ class vt_binaryimage(Vartype):
 
 		try:
 			i = db.getbinary(value)
-		 	return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
-			
+			return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+
 		except:
 			return ""
 
@@ -361,12 +361,12 @@ class vt_user(Vartype):
 		hit, usernames = engine.check_cache(key)
 		if not hit:
 			usernames = db.getusernames()
-			engine.store(key, usernames)		
+			engine.store(key, usernames)
 
 		if value in usernames:
 			return unicode(value) or None
-			
-		raise ValueError	
+
+		raise ValueError
 
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
@@ -396,7 +396,7 @@ class vt_userlist(Vartype):
 		hit, usernames = engine.check_cache(key)
 		if not hit:
 			usernames = db.getusernames()
-			engine.store(key, usernames)		
+			engine.store(key, usernames)
 
 		if set(value) - usernames:
 			raise ValueError
@@ -418,18 +418,18 @@ class vt_userlist(Vartype):
 			hit, dn = engine.check_cache(key)
 			if not hit:
 				to_cache.append(v)
-		
+
 		if to_cache:
 			users = db.getuser(to_cache, lnf=True, filt=True)
 			for user in users:
 				key = engine.get_cache_key('displayname', user.username)
-				engine.store(key, user.displayname)	
-				
+				engine.store(key, user.displayname)
+
 		for v in value:
 			key = engine.get_cache_key('displayname', v)
 			hit, dn = engine.check_cache(key)
 			ret.append(dn or "(%s)"%v)
-			
+
 		return ", ".join(ret)
 
 
@@ -440,17 +440,17 @@ class vt_acl(Vartype):
 	__vartype__ = "acl"
 	__indextype__ = None
 	def validate(self, engine, pd, value, db):
-		
+
 		key = engine.get_cache_key('usernames')
 		hit, usernames = engine.check_cache(key)
 		if not hit:
 			usernames = db.getusernames()
-			engine.store(key, usernames)		
+			engine.store(key, usernames)
 
-		users = reduce(lambda x,y:x+y, value)		
+		users = reduce(lambda x,y:x+y, value)
 		if set(users) - usernames:
 			raise ValueError
-			
+
 		return [[unicode(y) for y in x] for x in value]
 
 
@@ -458,11 +458,11 @@ class vt_acl(Vartype):
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if not value: return ""
 		value=reduce(lambda x,y:x+y, value)
-		
+
 		unames = {}
 		for user in db.getuser(value, lnf=True):
 			unames[user.username] = user.displayname
-		
+
 		levels=["Read","Comment","Write","Admin"]
 		ret=[]
 		for level,names in enumerate(value):
@@ -480,16 +480,16 @@ class vt_comments(Vartype):
 		users=[i[0] for i in value]
 		times=[i[1] for i in value]
 		values=[i[2] for i in value]
-		
+
 		key = engine.get_cache_key('usernames')
 		hit, usernames = engine.check_cache(key)
 		if not hit:
 			usernames = db.getusernames()
-			engine.store(key, usernames)		
+			engine.store(key, usernames)
 
 		if set(users) - usernames:
 			raise ValueError
-		
+
 		return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
 
 
@@ -512,7 +512,7 @@ class vt_history(Vartype):
 		hit, usernames = engine.check_cache(key)
 		if not hit:
 			usernames = db.getusernames()
-			engine.store(key, usernames)		
+			engine.store(key, usernames)
 
 		if set(users) - usernames:
 			raise ValueError

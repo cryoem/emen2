@@ -29,6 +29,7 @@ try:
 	import matplotlib.backends.backend_agg
 	import matplotlib.figure
 except:
+	matplotlib = None
 	g.log("No matplotlib; plotting will fail")
 
 try:
@@ -88,8 +89,8 @@ def fakemodules():
 	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
 	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
 
-fakemodules()	
-	
+fakemodules()
+
 
 
 # import extensions
@@ -443,11 +444,13 @@ class DB(object):
 		# 	self.adduser(root_user, ctx=ctx, txn=txn)
 
 
+		print ctx
+		self.putrecord(self.newrecord('folder', ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		for i in skeleton.core_users.items:
 			if i.get('username') == 'root':
 				i['password'] = rootpw
 			self.adduser(i, ctx=ctx, txn=txn)
-		
+
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
 
@@ -921,7 +924,7 @@ class DB(object):
 
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ol, bdokeys = listops.oltolist(bdokeys)
-		
+
 		ret = []
 		bids = []
 		recs = []
@@ -1010,7 +1013,7 @@ class DB(object):
 
 		@exception SecurityError, ValueError
 		"""
-		
+
 		# Filename and recid required, unless root
 		if not filename:
 			raise ValueError, "Filename required"
@@ -1069,7 +1072,7 @@ class DB(object):
 
 		@exception SecurityError
 		"""
-		
+
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
 		dkey = emen2.db.binary.Binary.parse(bdokey)
@@ -1220,35 +1223,40 @@ class DB(object):
 	#@rename db.query.query @notok
 	@publicmethod
 	def query(self, **d):
-		"""Query. New docstring coming soon."""
+		"""Query. New docstring coming soon.
+
+			defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=[], childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False)
+		"""
 
 		ctx = d.pop('ctx')
 		txn = d.pop('txn')
-		defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=[], childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False)
-		for k,v in defaults.items():
-			if d.get(k) == None: d[k] = v
+		defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=[], childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False, recids=None)
+		tmp = defaults.copy()
+		tmp.update(d)
+		d = tmp
 
 		# Setup defaults
 		if d["boolmode"] == "AND": boolop = set.intersection
 		elif d["boolmode"] == "OR": boolop = set.union
 		else: raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
-		if d["q"]: d["constraints"].append(["*","contains_w_empty",unicode(d["q"])])
+		if d["q"] is not None: d["constraints"].append(["*","contains_w_empty",unicode(d["q"])])
 
 		subsets = []
-		if d["subset"]: subsets.append(set(d["subset"]))
-		if d["childof"]: subsets.append(self.getchildren(childof, recurse=d["recurse"], ctx=ctx, txn=txn))
-		if d["parentof"]: subsets.append(self.getparents(parentof, recurse=d["recurse"], ctx=ctx, txn=txn))
-		if d["rectype"]: subsets.append(self.getindexbyrecorddef(d["rectype"], ctx=ctx, txn=txn))
+		if (d["subset"] is not None) or (d["recids"] is not None):
+			if d['subset'] is not None: subsets.append(set(d["subset"]))
+			else: subsets.append(set(d["recids"]))
+		if d["childof"] is not None: subsets.append(self.getchildren(d['childof'], recurse=d["recurse"], ctx=ctx, txn=txn))
+		if d["parentof"] is not None: subsets.append(self.getparents(d['parentof'], recurse=d["recurse"], ctx=ctx, txn=txn))
+		if d["rectype"] is not None: subsets.append(self.getindexbyrecorddef(d["rectype"], ctx=ctx, txn=txn))
 
 		cmps = self.__query_cmps(ignorecase=d["ignorecase"])
 
 		# since we pass the DBProxy to validators, make sure the txn is set..
-		if not ctx.db._gettxn():
-			ctx.db._settxn(txn)
+		if not ctx.db._gettxn(): ctx.db._settxn(txn)
 
 		# Note: findvalue also uses these private methods
-		if d["subset"]:
+		if d["subset"] is not None:
 			s, subsets_by_value = self.__query_recs(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
 		else:
 			s, subsets_by_value = self.__query_index(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
@@ -1258,13 +1266,13 @@ class DB(object):
 
 		ret = boolop(*subsets)
 		recids = self.filterbypermissions(ret, ctx=ctx, txn=txn)
-		
+
 		d["recids"] = recids
 		for k in d.keys():
 			if d.get(k) == defaults.get(k):
 				del d[k]
 		return d
-		
+
 
 
 
@@ -1392,33 +1400,35 @@ class DB(object):
 			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
 			cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
 			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
-		
+
 		return cmps
 
 
 	#@notok
 	@publicmethod
+	@g.debug_func
 	def queryplot(self, ctx=None, txn=None, **kwargs):
 		"""Query + Plot"""
 
 		qp = {}
 		for i in  ["q", "rectype", "boolmode", "ignorecase", "constraints", "childof", "parentof", "recurse", "subset", "recs", "returnrecs", "byvalue"]:
-			if kwargs.get(i) != None: qp[i] = kwargs.get(i)
+			if kwargs.get(i) is not None: qp[i] = kwargs.get(i)
+		print qp
 
 		pp = {}
 		for i in ["xparam","yparam","groupby","grouptype", "groupshow", "groupcolor", "cutoff","formats","searchparents","searchchildren", "xmin", "xmax", "ymin", "ymax", "width"]:
-			if kwargs.get(i) != None: pp[i] = kwargs.get(i)
+			if kwargs.get(i) is not None: pp[i] = kwargs.get(i)
 
 		queryrecids = None
 		plotresults = {}
 		if qp:
-			queryrecids = self.query(ctx=ctx, txn=txn, **qp)
+			queryrecids = self.query(ctx=ctx, txn=txn, **qp).get('recids', set())
 
 		if pp:
 			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
 
 		qp.update(plotresults)
-		if qp.get("recids") == None:
+		if qp.get("recids") is None:
 			qp["recids"] = queryrecids or set()
 
 		return qp
@@ -1426,8 +1436,8 @@ class DB(object):
 
 	#@notok
 	@publicmethod
-	def plot(self, xparam, yparam, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
-
+	def plot(self, xparam=None, yparam=None, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
+		if not any([xparam, yparam]): return {}
 		formats = formats or []
 		groupshow = groupshow or []
 		groupcolor = groupcolor or {}
@@ -1809,7 +1819,7 @@ class DB(object):
 		return p2
 
 
-	
+
 	#@ok
 	@publicmethod
 	def findbinary(self, query=None, broad=False, limit=None, ctx=None, txn=None):
@@ -1817,7 +1827,7 @@ class DB(object):
 
 		@keyparam query Match this filename
 		@keyparam broad Try variations of filename (extension, partial matches, etc..)
-		
+
 		@return list of matching binaries
 		"""
 		if limit: limit=int(limit)
@@ -1841,7 +1851,7 @@ class DB(object):
 		return bins
 
 
-	
+
 	#@ok
 	#@rename db.query.user
 	@publicmethod
@@ -1856,10 +1866,10 @@ class DB(object):
 		@keyparam username ... contains in username
 		@keyparam boolmode 'AND' / 'OR'
 		@keyparam limit Limit number of items
-		
+
 		@return list of matching user instances
 		"""
-		
+
 
 		if query:
 			email = query
@@ -1904,9 +1914,9 @@ class DB(object):
 		"""Find a group.
 
 		@param query
-		
+
 		@keyparam limit Limit number of items
-		
+
 		@return list of matching groups
 		"""
 		built_in = set(["anon","authenticated","create","readadmin","admin"])
@@ -1934,17 +1944,17 @@ class DB(object):
 
 		@param param Parameter to search
 		@param query Match this
-		
+
 		@keyparam limit Limit number of results
 		@keyparam showchoices Include any defined param 'choices'
 		@keyparam count Return count of matches, otherwise return recids
-		
+
 		@return if count: [[matching value, count], ...]
 				if not count: [[matching value, [recid, ...]], ...]
 		"""
 
 		# This method was simplified, and now uses __query_index directly
-		
+
 		cmps = self.__query_cmps(ignorecase=True)
 		s1, s2 = self.__query_index(constraints=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
 		#{('name_last', u'Rees'): set([271390])}
@@ -1958,7 +1968,7 @@ class DB(object):
 		if count:
 			for k in ret:
 				ret[k]=len(ret[k])
-			
+
 		return ret
 
 
@@ -2112,15 +2122,15 @@ class DB(object):
 	# @publicmethod
 	# def getparamstatistics(self, param, ctx=None, txn=None):
 	# 	"""Return statistics about an (indexable) param
-	# 
+	#
 	# 	@param param parameter
-	# 
+	#
 	# 	@return (Count of keys, count of values)
 	# 	"""
-	# 
+	#
 	# 	if ctx.username == None:
 	# 		raise emen2.db.exceptions.SecurityError, "Not authorized to retrieve parameter statistics"
-	# 
+	#
 	# 	try:
 	# 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
 	# 		return (len(paramindex.keys(txn=txn)), len(paramindex.values(txn=txn)))
@@ -2338,13 +2348,13 @@ class DB(object):
 	@publicmethod
 	def getchildtree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get multiple children for multiple items.
-		
+
 		@param keys Single or iterable key: Record IDs, RecordDef names, ParamDef names
-		
+
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
-		
+
 		@return Dict, keys are Record IDs or ParamDef/RecordDef names, values are sets of children for that key
 		"""
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
@@ -2388,7 +2398,7 @@ class DB(object):
 		result, ret_visited = {}, {}
 		for i in keys:
 			result[i], ret_visited[i] = getattr(reldb, rel)(i, recurse=recurse, txn=txn)
-		
+
 		# Flatten the dictionary to get all touched keys
 		allr = set().union(*ret_visited.values())
 
@@ -2398,7 +2408,7 @@ class DB(object):
 
 		# Filter by permissions
 		if keytype=="record":
-			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)		
+			allr &= self.filterbypermissions(allr, ctx=ctx, txn=txn)
 
 		# perform filtering on both levels, and removing any items that become empty
 		# If Tree=True, we're returning the tree...
@@ -2639,11 +2649,11 @@ class DB(object):
 		"""Enable a disabled user.
 
 		@param username
-		
+
 		@keyparam filt Ignore failures
 		"""
 		return self.__setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
-		
+
 
 
 	def __setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
@@ -2705,7 +2715,7 @@ class DB(object):
 
 		@keyparam filt Ignore failures
 		"""
-		
+
 		ol, usernames = listops.oltolist(usernames)
 
 		# ian: I have turned secrets off for now until I can think about it some more..
@@ -2785,7 +2795,7 @@ class DB(object):
 					self.putgroup(gr, ctx=tmpctx, txn=txn)
 				else:
 					g.warn('Default Group %r is non-existent'%group)
-					
+
 
 		ret = [user.username for user in addusers]
 		if ol: return return_first_or_none(ret)
@@ -3155,58 +3165,58 @@ class DB(object):
 	# @publicmethod
 	# def getuserdisplayname(self, username, lnf=False, perms=0, filt=True, ctx=None, txn=None):
 	# 	"""Get user 'display names.'
-	# 
+	#
 	# 	@param username Username, iterable usernames, record, or iterable records.
-	# 
+	#
 	# 	@keyparam lnf Last Name First
 	# 	@keyparam perms In records, include users referenced by permissions
 	# 	@keyparam filt Ignore failures
-	# 
+	#
 	# 	@return Dict of display names, keyed by user. If input was a single username, then return the single value (this may change in the future)
 	# 	"""
-	# 
+	#
 	# 	namestoget = []
 	# 	ret = {}
-	# 
+	#
 	# 	ol = 0
 	# 	if isinstance(username, basestring):
 	# 		ol = 1
 	# 	if isinstance(username, (basestring, int, emen2.db.record.Record)):
 	# 		username=[username]
-	# 
+	#
 	# 	# First get direct usernames
 	# 	namestoget.extend(filter(lambda x:isinstance(x,basestring),username))
-	# 
+	#
 	# 	vts=["user","userlist"]
 	# 	if perms:
 	# 		vts.append("acl")
-	# 
+	#
 	# 	# Now lookup records and add all referenced users
 	# 	recs = []
 	# 	recs.extend(filter(lambda x:isinstance(x,emen2.db.record.Record), username))
 	# 	rec_ints = filter(lambda x:isinstance(x,int), username)
 	# 	if rec_ints:
 	# 		recs.extend(self.getrecord(rec_ints, filt=filt, ctx=ctx, txn=txn))
-	# 
+	#
 	# 	if recs:
 	# 		namestoget.extend(self.filtervartype(recs, vts, flat=1, ctx=ctx, txn=txn))
 	# 		# ... need to parse comments since it's special
 	# 		namestoget.extend(reduce(operator.concat, [[i[0] for i in rec["comments"]] for rec in recs], []))
-	# 
+	#
 	# 	namestoget = set(namestoget)
-	# 
+	#
 	# 	# Now actually get users..
 	# 	users = self.getuser(namestoget, filt=filt, lnf=lnf, ctx=ctx, txn=txn)
 	# 	ret = {}
-	# 
+	#
 	# 	for i in users.values():
 	# 		ret[i.username] = i.displayname
-	# 
+	#
 	# 	if len(ret.keys())==0:
 	# 		return {}
 	# 	if ol:
 	# 		return ret.values()[0]
-	# 
+	#
 	# 	return ret
 
 
@@ -3368,7 +3378,7 @@ class DB(object):
 		"""Commit changes to a group or groups.
 
 		@param groups A single or iterable Group
-		
+
 		@return Modified Group or Groups
 		"""
 
@@ -3717,7 +3727,7 @@ class DB(object):
 		"""
 
 		ol, keys = listops.oltolist(keys)
-		
+
 		params = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Process records if given
@@ -3753,7 +3763,7 @@ class DB(object):
 	@publicmethod
 	def getparamdefnames(self, ctx=None, txn=None):
 		"""Return a list of all ParamDef names
-		
+
 		@return set of all ParamDef names
 		"""
 		return set(self.bdbs.paramdefs.keys(txn=txn))
@@ -3928,7 +3938,7 @@ class DB(object):
 		"""
 
 		ol, keys = listops.oltolist(keys)
-		
+
 		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
 
 		# Find recorddefs record ID
@@ -4128,7 +4138,7 @@ class DB(object):
 	@publicmethod
 	def checkorphans(self, recid, ctx=None, txn=None):
 		"""Find orphaned records that would occur if recid was deleted.
-		
+
 		@param recid Return orphans that would result from deletion of this Record
 
 		@return Set of orphaned Record IDs
@@ -4169,7 +4179,7 @@ class DB(object):
 
 		@param recid Record ID to delete
 
-		@return Deleted Record 
+		@return Deleted Record
 		"""
 
 		rec = self.getrecord(recid, ctx=ctx, txn=txn)
@@ -4204,7 +4214,7 @@ class DB(object):
 			#	rec2=self.getrecord(i, ctx=ctx, txn=txn)
 			#	rec["comments"]="Parent record %s was deleted"%recid
 			#	self.putrecord(rec2, ctx=ctx, txn=txn)
-		
+
 		return rec
 
 
@@ -4223,7 +4233,7 @@ class DB(object):
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec.addcomment(comment)
 		self.putrecord(rec, ctx=ctx, txn=txn)
-		
+
 		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
 
 
@@ -4238,7 +4248,7 @@ class DB(object):
 
 		@return A list of comments; the Record ID is set to the first item in each comment
 		"""
-		
+
 		ol, recs = listops.oltolist(recids, dtype=set)
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 
@@ -4251,7 +4261,7 @@ class DB(object):
 			cp = filter(lambda x:"Validation error: " not in x[2], cp)
 			for c in cp:
 				ret.append([rec.recid]+list(c))
-		
+
 		return sorted(ret, key=operator.itemgetter(2))
 
 
@@ -4318,7 +4328,7 @@ class DB(object):
 
 		@return Updated Records
 		"""
-		
+
 		recs = self.getrecord(d.keys(), filt=False, ctx=ctx, txn=txn)
 		recs = listops.dictbykey(recs, 'recid')
 		for k, v in d.items():
@@ -4337,7 +4347,7 @@ class DB(object):
 
 		@return Validated Records
 		"""
-		
+
 		return self.putrecord(rec, commit=False, ctx=ctx, txn=txn)
 
 
@@ -4402,7 +4412,7 @@ class DB(object):
 
 		# preprocess: copy updated record into original record (updrec -> orec)
 		for updrec in updrecs:
-		
+
 			recid = updrec.recid
 
 			if recid < 0:
@@ -4755,6 +4765,7 @@ class DB(object):
 		delrefs = collections.defaultdict(set)
 
 		for i in items:
+			g.debug(i)
 			addrefs[i[1]].add(i[0])
 			delrefs[i[2]].add(i[0])
 
@@ -5181,9 +5192,9 @@ class DB(object):
 	@publicmethod
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
 		"""Render views"""
-		
+
 		ol, recs = listops.oltolist(recs)
-		
+
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
 		dbp._settxn(txn)
@@ -5197,7 +5208,7 @@ class DB(object):
 		# default params
 		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]
 		builtinparamsshow = ["recid","rectype","comments","creator","creationtime"]
-		
+
 
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
@@ -5207,7 +5218,7 @@ class DB(object):
 		if not viewdef:
 			for rd in recdefs:
 				i = rd.name
-				
+
 				if viewtype == "mainview":
 					groupviews[i] = rd.mainview
 
