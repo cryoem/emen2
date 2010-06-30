@@ -478,9 +478,6 @@ class FieldBTree(BTree):
 			else:
 				self.__get_method = emen2.db.bulk.get_dup_notbulk
 
-		else:
-			self.__get_method = self.__get_cursor
-
 
 
 	def __str__(self):
@@ -549,14 +546,14 @@ class FieldBTree(BTree):
 	def __get_cursor(self, cursor, key, flags=0):
 		#print "__get_cursor %s"%key
 		n = cursor.set(key)
-		r = []
+		r = set()#[]
 		m = cursor.next_dup
 		while n:
 			#print key, len(r)
-			r.append(n[1])
+			r.add(n[1])
 			n = m()
 		#print "done loading __get_cursor"
-		return set(map(self.loaddata, r))
+		return r
 
 
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
@@ -575,7 +572,8 @@ class FieldBTree(BTree):
 			cursor.close()
 
 		if not self.datatype:
-			r = set(map(self.loaddata, r))
+			# generator expressions will be less pain when map() goes away
+			r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
 
 		return r
 
