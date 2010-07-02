@@ -66,9 +66,8 @@ class GlobalNamespace(object):
 		if not data:
 			return
 
-		print "Loading config: %s"%fn
+		self.log.msg('LOG_INIT', "Loading config: %s"%fn)
 		self.EMEN2DBHOME = self.getattr('EMEN2DBHOME', data.get('EMEN2DBHOME', ''))
-		print 'EMEN2DBHOME set', self.EMEN2DBHOME
 
 		# Process relative/absolute path names in 'paths'
 		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:

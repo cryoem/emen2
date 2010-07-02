@@ -233,12 +233,6 @@ class DB(object):
 	"""Main database class"""
 	opendbs = weakref.WeakKeyDictionary()
 
-	@staticmethod
-	def __init_vtm():
-		"""Load vartypes, properties, and macros"""
-		pass
-
-
 	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
 	@instonget
 	class bdbs(object):
@@ -318,6 +312,48 @@ class DB(object):
 			[self.__closeparamindex(x) for x in self.fieldindex.keys()]
 
 
+	#@staticmethod
+	def __init_vtm(self):
+		"""Load vartypes, properties, and macros"""
+		vtm = emen2.db.datatypes.VartypeManager()
+
+		self.indexablevartypes = set()
+		for y in vtm.getvartypes():
+			y = vtm.getvartype(y)
+			if y.getindextype():
+				self.indexablevartypes.add(y.getvartype())
+
+		self.__cache_vartype_indextype = {}
+		for vt in vtm.getvartypes():
+			self.__cache_vartype_indextype[vt] = vtm.getvartype(vt).getindextype()
+
+		return vtm
+
+	def __init_dbenv(self):
+		global DBENV
+
+		if DBENV == None:
+			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
+			DBENV = bsddb3.db.DBEnv()
+			DBENV.open(self.path, g.ENVOPENFLAGS)
+			DB.opendbs[self] = 1
+		return DBENV
+
+
+	def __checkdirs(self):
+		if not os.access(self.path, os.F_OK):
+			os.makedirs(self.path)
+
+		paths = ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "tmp", "ssl"]
+		paths = (os.path.join(self.path, path) for path in paths)
+		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
+
+		configpath = os.path.join(self.path,"DB_CONFIG")
+		if not os.path.exists(configpath):
+			infile = emen2.db.config.get_filename('emen2', 'doc/examples/DB_CONFIG.sample')
+			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%configpath)
+			shutil.copy(infile, configpath)
+
 
 	def __init__(self, path=None, bdbopen=True):
 		"""Init DB
@@ -334,55 +370,26 @@ class DB(object):
 		self.txnid = 0
 		self.txnlog = {}
 
+		# Check that all the needed directories exist
+		self.__checkdirs()
 
 		# VartypeManager handles registration of vartypes and properties, and also validation
-		self.__init_vtm()
-		self.vtm = emen2.db.datatypes.VartypeManager()
-		self.indexablevartypes = set([i.getvartype() for i in filter(lambda x:x.getindextype(), [self.vtm.getvartype(i) for i in self.vtm.getvartypes()])])
-		self.__cache_vartype_indextype = {}
-		for vt in self.vtm.getvartypes():
-			self.__cache_vartype_indextype[vt] = self.vtm.getvartype(vt).getindextype()
-
-
-		# Check that all the needed directories exist
-		if not os.access(self.path, os.F_OK):
-			os.makedirs(self.path)
-
-		for path in ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "tmp", "ssl"]:
-			if not os.path.exists(os.path.join(self.path, path)):
-				g.log.msg("LOG_INIT","Creating directory: %s"%os.path.join(self.path, path))
-				os.makedirs(os.path.join(self.path, path))
-
-		if not os.path.exists(os.path.join(self.path,"DB_CONFIG")):
-			infile = emen2.db.config.get_filename('emen2', 'doc/examples/DB_CONFIG.sample')
-			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%os.path.join(self.path,"DB_CONFIG"))
-			shutil.copy(infile, os.path.join(self.path,"DB_CONFIG"))
+		self.vtm = self.__init_vtm()
 
 
 		# Open DB environment; check if global DBEnv has been opened yet
-		global DBENV
-
-		if DBENV == None:
-			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
-			DBENV = bsddb3.db.DBEnv()
-			DBENV.open(self.path, g.ENVOPENFLAGS)
-			DB.opendbs[self] = 1
-
-		self.dbenv = DBENV
+		self.dbenv = self.__init_dbenv()
 
 		# If we are just doing backups or maintenance, don't open any BDB handles
-		if not bdbopen:
-			return
+		if not bdbopen: return
 
 		# Open Database
 		txn = self.newtxn()
-		try:
-			self.bdbs.init(self, self.dbenv, txn=txn)
+		try: self.bdbs.init(self, self.dbenv, txn=txn)
 		except Exception, inst:
 			self.txnabort(txn=txn)
 			raise
-		else:
-			self.txncommit(txn=txn)
+		else: self.txncommit(txn=txn)
 
 		# Check if this is a valid db..
 		txn = self.newtxn()
@@ -393,17 +400,11 @@ class DB(object):
 			g.log.msg('LOG_INFO',"Could not open database! %s"%e)
 			self.txnabort(txn=txn)
 			raise
-		finally:
-			self.txncommit(txn=txn)
-
-
-		# g.log_init('DB logfile:', self.logfile)
-		# g.log.add_output('ALL', file(self.logfile, "a"), current_file=True)
+		else: self.txncommit(txn=txn)
 
 
 
-	def __del__(self):
-		g.debug('cleaning up DB instance')
+	def __del__(self): g.log_info('cleaning up DB instance')
 
 
 

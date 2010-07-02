@@ -70,7 +70,6 @@ class DBOptions(optparse.OptionParser):
 		EMEN2DBHOME = os.getenv("EMEN2DBHOME")
 		if self.values.home:
 			EMEN2DBHOME = self.values.home
-		print EMEN2DBHOME
 		if EMEN2DBHOME:
 			g.EMEN2DBHOME = EMEN2DBHOME
 
@@ -83,12 +82,11 @@ class DBOptions(optparse.OptionParser):
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
-		print g.EMEN2DBHOME
 		EMEN2DBHOME = g.EMEN2DBHOME
 		def fix_paths():
 			# Process relative/absolute path names in 'paths'
 			for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
-				print g.getattr(i)
+				#print g.getattr(i)
 				if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
 					g.setattr(i, '/%s' % g.getattr(i))
 
@@ -97,6 +95,7 @@ class DBOptions(optparse.OptionParser):
 			g.from_yaml(os.path.join(EMEN2DBHOME, "config.yml"))
 			g.EMEN2DBHOME = EMEN2DBHOME
 		except:
+			raise
 			pass
 
 
@@ -165,6 +164,7 @@ class DBOptions(optparse.OptionParser):
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 
 
+		g.log_init('EMEN2DBHOME: %r' % EMEN2DBHOME)
 		g.CONFIG_LOADED = True
 		g.refresh()
 
