@@ -268,6 +268,8 @@ class DebugState(object):
 
 	def msg(self, sn, *args, **k):
 		state = self.debugstates[sn]
+		tb = k.pop('m', False)
+		if tb: self.print_traceback()
 
 		# outputs for the sake of lazy binding, outputs_l for caching
 		outputs_l = []
@@ -373,7 +375,7 @@ class DebugState(object):
 
 	def print_traceback(self, level='LOG_DEBUG', steps=3):
 		msg =  self.__get_last_module(steps)
-		self.msg(level, msg)
+		self.msg(level, msg, tb=False)
 
 	def __get_last_module(self, num=1):
 		modname = '%s.py' % __name__.split('.')[-1]
