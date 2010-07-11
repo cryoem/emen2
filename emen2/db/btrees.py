@@ -16,6 +16,8 @@ except:
 	bulk = None
 	g.warn("Not using bulk interface")
 
+
+
 def n_int(inp):
 	'''wrapper for int if keys contain decimal points can be turned on by
 		uncommenting lines below
@@ -27,6 +29,8 @@ def n_int(inp):
 		else:
 			raise
 	return result
+
+
 
 # Berkeley DB wrapper classes
 
@@ -275,7 +279,6 @@ class RelateBTree(BTree):
 		if self.sequence:
 			self.sequencedb = bsddb3.db.DB(dbenv)
 			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS, txn=txn)
-
 
 		kt = self.keytype
 		dt = self.datatype
@@ -549,10 +552,8 @@ class FieldBTree(BTree):
 		r = set()#[]
 		m = cursor.next_dup
 		while n:
-			#print key, len(r)
 			r.add(n[1])
 			n = m()
-		#print "done loading __get_cursor"
 		return r
 
 
@@ -562,8 +563,8 @@ class FieldBTree(BTree):
 		if cursor:
 			#print "using existing cursor to get"
 			r = self.__get_method(cursor, key, self.datatype or "p")
+			
 		else:
-
 			#print "new cursor"
 			cursor = self.bdb.cursor(txn=txn)
 			#print "going to __get_method"
@@ -589,19 +590,24 @@ class FieldBTree(BTree):
 
 	# ian: todo: fix..
 	def items(self, txn=None, flags=0):
-
 		ret = []
+		dt = self.datatype or "p"
+
 
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
 			# ian: todo: sort this out....
 			# data = emen2.db.bulk.get_dup_bulk(cursor, pair[0], self.datatype or "p")
-			data = self.__get_method(cursor, pair[0], self.datatype or "p")
-			if bulk:
-				data = map(self.loaddata, data)
+			
+			data = self.__get_method(cursor, pair[0], dt)
+			if bulk and dt == "p":
+				data = set(map(self.loaddata, data))
+
 			ret.append((self.loadkey(pair[0]), data))
+
 			pair = cursor.next_nodup()
+
 		cursor.close()
 
 		return ret

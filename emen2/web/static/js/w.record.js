@@ -1679,16 +1679,46 @@ filewidget.prototype = {
 	
 	
 	event_click: function(e) {
+		this.build();
+	},
+
+	
+	event_build_tablearea: function(e) {
 		var self = this;
-		$.jsonRPC("getbinary", [getvalue(this.recid, this.param)], 
-			function(bdos) {
-				if (bdos == null) {bdos=[]}
-				if (bdos.length == null) {bdos=[bdos]}
-				self.bdos = bdos || {};
-				self.build();
+		this.tablearea.empty();
+		this.tablearea.append('<div>Loading...</div>');
+		$.jsonRPC("getrecord", [this.recid],
+			function(rec) {				
+				setrecord(rec.recid, rec);
+				$.jsonRPC("getbinary", [rec[self.param]], 
+					function(bdos) {
+						if (bdos == null) {bdos=[]}
+						if (bdos.length == null) {bdos=[bdos]}
+						self.bdos = bdos || {};
+						self.build_tablearea();
+					}
+				);
 			}
 		);
 	},
+	
+	
+	event_removebdos: function(e) {
+		var self = this;
+		var keep = [];
+		$("input:checkbox:not(:checked)", this.tablearea).each(function(){return keep.push(this.value)});
+		if (this.vartype == "binaryimage") {
+			keep = keep[0];
+		}
+		$.jsonRPC("putrecordvalue",
+			[this.recid, this.param, keep],
+			function(data) {
+				self.event_build_tablearea();
+			}
+		);
+			
+	},
+	
 	
 	bind_edit: function() {
 		var self = this;
@@ -1699,9 +1729,10 @@ filewidget.prototype = {
 	build: function() {
 		var self=this;
 		this.built = 1;
-		
+
 		this.container = $('<div class="modalbrowser_container clearfix" />');
 		this.elem = $('<div class="modalbrowser_container_inner clearfix" />');
+		
 		this.elem.css("left", ($(window).width()-896)/2);
 		var toph=($(window).height()-730)/2;
 		if (toph<=10) toph=10;
@@ -1717,25 +1748,33 @@ filewidget.prototype = {
 				})
 			)
 		);
-
 		this.elem.append(title);
-		this.tablearea=$('<div class="modalbrowser_tablearea clearfix" />');
-		this.elem.append(this.tablearea);
+
+		this.tablearea = $('<div class="modalbrowser_tablearea clearfix" />');
+		this.browserarea = $('<div class="modalbrowser_browserarea clearfix" />');
+
+		var mbody = $('<div class="modalbrowser_body" />');
+		mbody.append(this.tablearea, this.browserarea);
+		this.elem.append(mbody);
+
 		this.build_browser();
+		this.event_build_tablearea();
 
 	},
 	
-	build_browser: function() {
+	
+	build_tablearea: function() {
 		// build a column-style browser
 		this.tablearea.empty();
 		var self=this;
-
 		
 		var bdotable = $('<table id="modalbrowser_bdotable" class="files" />');
-		bdotable.append('<tr><th>Filename</th><th>Size</th><th>Creator</th><th>Created</th><th>md5</th></tr>');
-		console.log(this.bdos);
+		bdotable.append('<tr><th style="width:20px"/><th>Filename</th><th>Size</th><th>Creator</th><th>Created</th><th>md5</th></tr>');
+		//console.log(this.bdos);
 		$.each(this.bdos, function(k,v) {
 			var row = $('<tr/>');
+			var remove = $('<td><input type="checkbox" name="remove" value="'+v.name+'" /></td>');
+			row.append(remove);
 			var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
 			row.append(link);
 			row.append('<td>'+v.filesize+'</td>');
@@ -1743,15 +1782,24 @@ filewidget.prototype = {
 			row.append('<td>'+v.creationtime+'</td>');
 			row.append('<td>'+v.md5+'</td>');
 			bdotable.append(row);
-		});
+		});	
+		
+		this.tablearea.append(bdotable);
+		
+		var reset = $('<input type="button" value="Remove Selected Items" />');
+		reset.click(function(e){self.event_removebdos(e)});
+		this.tablearea.append(reset);		
 
-
+	},
+	
+	build_browser: function() {
+		var self = this;
 		var infoc = $('<div class="modalbrowser_info" style="margin-top:20px;"><h3>Upload</h3></div>');
 		//var fform = $('<form action="'+EMEN2WEBROOT+'/upload/'+this.recid+'" enctype="multipart/form-data" method="POST">');
 		var fform = $('<div />');
 
 		this.button_browser = $('<input type="file" />');
-		this.button_submit = $('<input type="submit" value="Upload"  />');
+		this.button_submit = $('<input type="submit" value="Upload" />');
 
 		if (this.vartype == "binary") {
 			this.button_browser.attr("multiple","multiple");
@@ -1778,15 +1826,18 @@ filewidget.prototype = {
 			setProgress: function(val) {
 					$("#progress_report_bar").css('width', Math.ceil(val*100)+"%");
 			},
-			onFinish: function(event, total) {
-				alert("Successfully uploaded " + total + " files");
-				window.location = window.location;
+			onFinishOne: function(event, response, name, number, total) {
+				// self.event_build_tablearea();		
+			},
+			onFinish: function(event, total) { 
+				self.event_build_tablearea();	
 			},
 			autostart: false
 		});
 		
 		this.button_submit.bind('click', function(){self.button_browser.trigger("html5_upload.start");});
 		
+		var progress_status = $('<div id="progress_report_status">Progress:</div>');
 		var progress_report = $('<div id="progress_report" />');
 		var progress_report_name = $('<div id="progress_report"/>');
 		var progress_report_status = $('<div id="progress_report"/>');
@@ -1797,9 +1848,9 @@ filewidget.prototype = {
 		infoc.append(fform);
 				
 		progress_report_bar_container.append(progress_report_bar);
-		progress_report.append(progress_report_name, progress_report_status, progress_report_bar_container);
+		progress_report.append(progress_status, progress_report_name, progress_report_status, progress_report_bar_container);
 		
-		this.tablearea.append(bdotable, infoc, progress_report);
+		this.browserarea.append(infoc, progress_report);
 
 	},
 	

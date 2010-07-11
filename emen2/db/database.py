@@ -1221,165 +1221,186 @@ class DB(object):
 	# section: query
 	###############################
 
+
+
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, **d):
-		"""Query. New docstring coming soon.
-
-			defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=[], childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False)
-		"""
-
-		ctx = d.pop('ctx')
-		txn = d.pop('txn')
-		defaults = dict(q=None, rectype=None, boolmode="AND", ignorecase=True, constraints=None, childof=None, parentof=None, recurse=-1, subset=None, returnrecs=False, recids=None)
-		tmp = defaults.copy()
-		tmp.update(d)
-		d = tmp
-		defaults['constraints'] = []
-		tmp['constraints'] = []
+	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=False, ctx=None, txn=None, **kwargs):
+		"""Query. New docstring coming soon."""
 
 		# Setup defaults
-		if d["boolmode"] == "AND": boolop = set.intersection
-		elif d["boolmode"] == "OR": boolop = set.union
-		else: raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
+		if not constraints:
+			constraints = []
 
-		if d["q"] is not None: d["constraints"].append(["*","contains_w_empty",unicode(d["q"])])
+		if q:
+			constraints.append(["root_parameter*", "contains_w_empty", q])
 
-		subsets = []
-		if (d["subset"] is not None) or (d["recids"] is not None):
-			if d['subset'] is not None: subsets.append(set(d["subset"]))
-			else: subsets.append(set(d["recids"]))
-		if d["childof"] is not None: subsets.append(self.getchildren(d['childof'], recurse=d["recurse"], ctx=ctx, txn=txn))
-		if d["parentof"] is not None: subsets.append(self.getparents(d['parentof'], recurse=d["recurse"], ctx=ctx, txn=txn))
-		if d["rectype"] is not None: subsets.append(self.getindexbyrecorddef(d["rectype"], ctx=ctx, txn=txn))
-
-		cmps = self.__query_cmps(ignorecase=d["ignorecase"])
-
-		# since we pass the DBProxy to validators, make sure the txn is set..
-		if not ctx.db._gettxn(): ctx.db._settxn(txn)
-
-		# Note: findvalue also uses these private methods
-		if d["subset"] is not None:
-			s, subsets_by_value = self.__query_recs(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
+		if boolmode == "AND":
+			boolop = "intersection_update"
+		elif boolmode == "OR":
+			boolop = "update"
 		else:
-			s, subsets_by_value = self.__query_index(d["constraints"], cmps=cmps, subset=d["subset"], ctx=ctx, txn=txn)
+			raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
 
-		subsets.extend(s)
-		if not subsets: subsets = [set()]
+		vtm = emen2.db.datatypes.VartypeManager()
+		recids = None
+		
+		# Query Step 1: Run constraints
+		groupby = {}
+		for searchparam, comp, value in constraints:
+			subset = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			if recids == None:
+				recids = subset
+			if "^" not in searchparam and subset != None: # parent-value params are only for grouping..
+				getattr(recids, boolop)(subset)
 
-		ret = boolop(*subsets)
-		recids = self.filterbypermissions(ret, ctx=ctx, txn=txn)
+		# Step 2: Filter permissions
+		recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
+		if subset:
+			recids &= subset
 
-		d["recids"] = recids
-		for k in d.keys():
-			if d.get(k) == defaults.get(k):
-				del d[k]
-		return d
+		# Step 3: Group
+		groups = collections.defaultdict(dict)
+		for groupparam, keys in groupby.items():
+			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
+			
+
+		ret = {
+			"q":q,
+			"constraints":constraints,
+			"boolmode":boolmode,
+			"ignorecase":ignorecase,
+			"recids": recids,
+			"groups": groups,
+			"subset": subset
+		}
+		return ret
 
 
 
 
+	def __query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
+		param = self.__query_paramstrip(groupparam)
 
-	def __query_index(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
+		if param == "rectype":
+			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
+			
+		elif param == "parent":
+			# keys is parent rectypes...
+			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
+			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn)
+			parentgroups = collections.defaultdict(set)
+			for k,v in parenttree.items():
+				v2 = v & parentrectype
+				for i in v2:
+					parentgroups[i].add(k)
+			if parentgroups:
+				groups["parent"] = dict(parentgroups)
+				
+
+		else:
+			if not keys:
+				return
+			ind = self.__getparamindex(self.__query_paramstrip(groupparam), ctx=ctx, txn=txn)
+			for key in keys:
+				v = ind.get(key, txn=txn)
+				if "^" in groupparam:
+					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
+					for i in v:
+						v2 = children.get(i, set()) & recids
+						if v2: groups[param][key] = v2						
+				else:
+					v2 = v & recids
+					if v2: groups[param][key] = v2
+		
+		
+
+
+	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+		param = self.__query_paramstrip(searchparam)
+		if value == "": value = None
+		subset = None
+
+		print "\n== running constraint: %s %s %s"%(searchparam, comp, value)
+
+		if param == "rectype":
+			if comp == "==" and value != None:
+				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
+			groupby["rectype"] = None
+
+		elif param == "parent":
+			if comp == "recid" and value != None:
+				subset = self.getchildren(value, recurse=-1, ctx=ctx, txn=txn)
+			if comp == "rectype":
+				groupby["parent"] = value
+				
+		elif param == "child":
+			if comp == "recid" and value != none:
+				subset = self.getparents(value, recurse=-1, ctx=ctx, txn=txn)
+
+		elif param:
+			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)				
+
+		else:
+			print "no param, skipping"
+
+		print "return was:"
+		print subset
+
+		return subset
+
+
+				
+	def __query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
-		vtm = emen2.db.datatypes.VartypeManager()
-		subsets = []
-		subsets_by_value = {}
+		cfunc = self.__query_cmps().get(comp)
 
-		# nested dictionary, results[constraint position][param]
-		results = collections.defaultdict(functools.partial(collections.defaultdict, set))
+		if groupby == None:
+			groupby = {}
 
-		# stage 1: search __indexkeys
-		for count,c in enumerate(constraints):
-			if c[0] == "*":
+		if comp != "!None" and value == None:
+			return None
 
-				# ian: todo: hard: improve speed of FieldBTree.items
-				for param, pkeys in self.bdbs.indexkeys.items(txn=txn):
-					pd = self.bdbs.paramdefs.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
-					# validate for each param for correct vartype matching
-					try:
-						cargs = vtm.validate(pd, c[2], db=ctx.db)
-					except (ValueError, KeyError):
-						continue
-
-					comp = functools.partial(cmps[c[1]], cargs) #*cargs
-					results[count][param] = set(filter(comp, pkeys)) or None
-
-			else:
-				param = c[0]
-				pd = self.bdbs.paramdefs.get(param, txn=txn)
-				pkeys = self.bdbs.indexkeys.get(param, txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
-				# pkeys = self.__getparamindex(param, ctx=ctx, txn=txn).keys()
-
-				try: cargs = vtm.validate(pd, c[2], db=ctx.db)
-				except: cargs = c[2]
-				comp = functools.partial(cmps[c[1]], cargs) #*cargs
-				results[count][param] = set(filter(comp, pkeys)) or None
-
-
-		# stage 2: search individual param indexes
-		for count, r in results.items():
-			constraint_matches = set()
-
-			for param, matchkeys in filter(lambda x:x[0] and x[1] != None, r.items()):
-				ind = self.__getparamindex(param, ctx=ctx, txn=txn)
-				for matchkey in matchkeys:
-					m = ind.get(matchkey, txn=txn)
-					if m:
-						subsets_by_value[(param, matchkey)] = m
-						constraint_matches |= m
-
-			subsets.append(constraint_matches)
-
-		return subsets, subsets_by_value
-
-
-
-	def __query_recs(self, constraints, cmps=None, subset=None, ctx=None, txn=None):
-		"""(Internal) record-based search. See DB.query()"""
+		if not cfunc:
+			return None
 
 		vtm = emen2.db.datatypes.VartypeManager()
-		subsets = []
-		subsets_by_value = {}
-		recs = self.getrecord(subset, filt=True, ctx=ctx, txn=txn)
+		results = collections.defaultdict(set)
 
-		#allp = "*" in [c[0] for c in constraints]
-
-		# this is ugly :(
-		for count, c in enumerate(constraints):
-			cresult = []
-
-			if c[0] == "*":
-				# cache
-				allparams = set(reduce(operator.concat, [rec.getparamkeys() for rec in recs], []))
-				for param in allparams:
-					try:
-						cargs = vtm.validate(self.bdbs.paramdefs.get(param, txn=txn), c[2], db=ctx.db)
-					except (ValueError, KeyError):
-						continue
-
-					cc = cmps[c[1]]
-					m = set([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
-					if m:
-						subsets_by_value[(param, cargs)] = m
-						cresult.extend(m)
-
+		# Get the list of param indexes to search
+		if searchparam == "*":
+			searchparam = "root_parameter*"
+			
+		if '*' in searchparam:
+			indparams = self.getchildren(self.__query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
+		else:
+			indparams = [self.__query_paramstrip(searchparam)]
+				
+		# First, search the index index				
+		for indparam in indparams:
+			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
+			try: cargs = vtm.validate(pd, value, db=ctx.db)
+			except: continue
+			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
+			if r:
+				results[indparam] = r
+		
+		# Now search individual param indexes
+		constraint_matches = set()
+		for pp, matchkeys in results.items():
+			
+			# Mark these for children searches later
+			if '^' in searchparam:
+				groupby[pp+"^"] = matchkeys
 			else:
-				param = c[0]
-				cc = cmps[c[1]]
-				cargs = vtm.validate(self.bdbs.paramdefs.get(param, txn=txn), c[2], db=ctx.db)
-				m = set([x.recid for x in filter(lambda rec:cc(cargs, rec.get(param)), recs)])
-				if m:
-					subsets_by_value[(param, cargs)] = m
-					cresult.extend(m)
+				groupby[pp] = matchkeys
+				
+			ind = self.__getparamindex(pp, ctx=ctx, txn=txn)
+			for matchkey in matchkeys:
+				constraint_matches |= ind.get(matchkey, txn=txn)
 
-
-			if cresult:
-				subsets.append(cresult)
-
-		#g.log(subsets)
-		return subsets, subsets_by_value
+		return constraint_matches
 
 
 
@@ -1406,232 +1427,47 @@ class DB(object):
 		return cmps
 
 
-	#@notok
+			
+	def __query_paramstrip(self, param):
+		return param.replace("*","").replace("^","")
+
+
+
+	def __query_invert(self, d):
+		invert = {}
+		for k,v in d.items():
+			for v2 in v: invert[v2] = k		
+		return invert
+
+
+
+	#@ok
 	@publicmethod
-	def queryplot(self, ctx=None, txn=None, **kwargs):
-		"""Query + Plot"""
+	def plot(self, xparam=None, yparam=None, groupby=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
 
-		qp = {}
-		for i in  ["q", "rectype", "boolmode", "ignorecase", "constraints", "childof", "parentof", "recurse", "subset", "recs", "returnrecs", "byvalue"]:
-			if kwargs.get(i) is not None: qp[i] = kwargs.get(i)
-		print qp
+		q = self.query(ctx=ctx, txn=txn, **kwargs)
 
-		pp = {}
-		for i in ["xparam","yparam","groupby","grouptype", "groupshow", "groupcolor", "cutoff","formats","searchparents","searchchildren", "xmin", "xmax", "ymin", "ymax", "width"]:
-			if kwargs.get(i) is not None: pp[i] = kwargs.get(i)
+		print xparam, yparam
 
-		queryrecids = None
-		plotresults = {}
-		if qp:
-			queryrecids = self.query(ctx=ctx, txn=txn, **qp).get('recids', set())
+		if not xparam or not yparam:
+			return q
+			
+		if not formats:
+			formats = ["png"]	
 
-		if pp:
-			plotresults = self.plot(ctx=ctx, txn=txn, subset=queryrecids, **pp)
-
-		qp.update(plotresults)
-		if qp.get("recids") is None:
-			qp["recids"] = queryrecids or set()
-
-		return qp
-
-
-	#@notok
-	@publicmethod
-	def plot(self, xparam=None, yparam=None, subset=None, groupby=None, grouptype="recorddef", groupshow=None, groupcolor=None, cutoff=1, formats=None, searchparents=False, searchchildren=False, filt_points=True, filt_groupby=False, xmin=None, xmax=None, ymin=None, ymax=None, width=600, ctx=None, txn=None):
-		if not any([xparam, yparam]): return {}
-		formats = formats or []
-		groupshow = groupshow or []
-		groupcolor = groupcolor or {}
-
-		# Since we often get this from a web form, some values might be str..
-		if cutoff: cutoff = int(cutoff)
-		if xmin != None: xmin = float(xmin)
-		if xmax != None: xmax = float(xmax)
-		if ymin != None: ymin = float(ymin)
-		if ymax != None: ymax = float(ymax)
-		if width != None: width = int(width)
-
+		width = int(width)
+		groupcolors = {}
+		
 		# Get parameters
 		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
 		ypd = self.getparamdef(yparam, ctx=ctx, txn=txn)
 
-
-		# Get indexes
-		c1 = self.getindexdictbyvalue(xparam, ctx=ctx, txn=txn)
-		c2 = self.getindexdictbyvalue(yparam, ctx=ctx, txn=txn)
-		c3 = {}
-		if grouptype == "value":
-			c3 = self.getindexdictbyvalue(groupby, ctx=ctx, txn=txn)
-
-
-		# If we're doing a very simple query inside plot, we won't have a subset..
-		if not subset:
-			print "No subset specified; using union of all indexes"
-			subset = set(c1) | set(c2) | set(c3)
-
-
-		# Process "nearby" params. Do not filter points until after these are done..
-		parents = {}
-		if searchparents or grouptype == "parent":
-			parents = self.getparenttree(subset, recurse=-1, ctx=ctx, txn=txn)
-		if searchparents:
-			if "xparam" in searchparents: self.__plot_searchrels(subset, c1, parents)
-			if "yparam" in searchparents: self.__plot_searchrels(subset, c2, parents)
-			if "groupby" in searchparents: self.__plot_searchrels(subset, c3, parents)
-
-		children = {}
-		if searchchildren or grouptype == "children":
-			children = self.getchildtree(subset, recurse=-1, ctx=ctx, txn=txn)
-		if searchchildren:
-			if "xparam" in searchchildren: self.__plot_searchrels(subset, c1, children)
-			if "yparam" in searchchildren: self.__plot_searchrels(subset, c2, children)
-			if "groupby" in searchchildren: self.__plot_searchrels(subset, c3, children)
-
-
-		# If we're filtering, use only recids that have values for everything. If not, allow None, and union.
-		#if filt_points:
-		recids = set(c1) & set(c2)
-		if subset:
-			recids &= subset
-		#else:
-		#	recids = set(c1) | set(c2)
-
-
-		# Grouping actions.
-		grouped = collections.defaultdict(set)
-		groupnames = {}
-
-		if grouptype == "parent":
-			# Get all parents, group by record def, then break into groups
-			parents_all = set().union(set(), *parents.values())
-			parents_group = self.groupbyrecorddef(parents_all, ctx=ctx, txn=txn).get(groupby,set())
-			for p in parents_group:
-				grouped[unicode(p)] = set([i[0] for i in parents.items() if p in i[1]]) & recids
-
-			groupnames_rendered = self.renderview(grouped.keys(), viewtype="recname", ctx=ctx, txn=txn) or {}
-			for k,v in groupnames_rendered.items():
-				groupnames[unicode(k)] = "%s (recid %s)"%(v, k)
-
-		elif grouptype == "value":
-			# Group by value
-			for p in recids:
-				grouped[unicode(c3.get(p))].add(p)
-			for p in grouped:
-				groupnames[unicode(p)] = p
-
-		elif grouptype == "recorddef":
-			# Simple group by recorddef
-			c = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
-			for k,v in c.items():
-				grouped[unicode(k)] = v
-			for p in grouped:
-				groupnames[unicode(p)] = p
-
-		else:
-			raise ValueError, "Invalid grouptype: %s"%grouptype
-
-
-		plots = {}
-		if formats:
-			plots = self.__plot_plot(xpd=xpd, ypd=ypd, grouptype=grouptype, groupby=groupby, grouped=grouped, groupnames=groupnames, cutoff=cutoff, c1=c1, c2=c2, formats=formats, width=width)
-
-
-		# Check against cutoff length so we can properly set the bounds. Also, adjust groupnames.
-		for i in grouped.keys():
-			if len(grouped[i]) < cutoff:
-				del grouped[i]
-			else:
-				print i, grouped[i]
-			#elif groupshow and i not in groupshow:
-			#	del grouped[i]
-
-		for i in grouped:
-				groupnames[i] = '%s (%s items)'%(groupnames[i], len(grouped[i]))
-
-		for i in groupcolor.keys():
-			if i not in grouped:
-				del groupcolor[i]
-
-		# Check graph bounds. Reduce recids to only recids that will be drawn.
-		recids = set().union(set(), *grouped.values())
-		if not recids:
-			raise ValueError, "No results"
-
-		x = map(c1.get, recids)
-		y = map(c2.get, recids)
-
-		if xmin == None: xmin = min(x)
-		if xmax == None: xmax = max(x)
-		if ymin == None: ymin = min(y)
-		if ymax == None: ymax = max(y)
-
-		# Draw plot. This returns a dictionary of output plot files that were created and the colors used for each group.
-		plotplot = {}
-		if formats:
-			plotplot = self.__plot_plot(
-				xpd=xpd,
-				ypd=ypd,
-				grouptype=grouptype,
-				groupby=groupby,
-				grouped=grouped,
-				groupshow=groupshow,
-				groupcolor=groupcolor,
-				groupnames=groupnames,
-				cutoff=cutoff,
-				c1=c1,
-				c2=c2,
-				formats=formats,
-				xmin=xmin,
-				xmax=xmax,
-				ymin=ymin,
-				ymax=ymax,
-				width=width
-				)
-
-		# We use a dict-style output so that it's easy to modify a plot interactively, or parse out results
-		recids = list(recids)
-		ret = {
-			"formats": formats,
-			"groupnames": groupnames,
-			"grouptype": grouptype,
-			"groupby": groupby,
-			"groupshow": groupshow,
-			"cutoff": cutoff,
-			"searchparents": searchparents,
-			"searchchildren": searchchildren,
-			"xparam": xparam,
-			"yparam": yparam,
-			"filt_points": filt_points,
-			"recids": recids,
-			"grouped": grouped,
-			"x": x,
-			"y": y,
-			"width": width,
-			"xmin": xmin,
-			"xmax": xmax,
-			"ymin": ymin,
-			"ymax": ymax
-		}
-
-		ret.update(plotplot)
-
-		return ret
-
-
-
-	def __plot_searchrels(self, subset, c, rels):
-		"""(Internal) Search for parents values; Modifies index in-place"""
-		for i in subset:
-			if c.get(i) == None:
-				v = filter(None, map(c.get, rels.get(i, [])))
-				if v:
-					c[i] = v[0]
-
-
-
-	def __plot_plot(self, xpd, ypd, grouptype, groupby, grouped, groupnames, groupshow, groupcolor, cutoff, c1, c2, xmin, xmax, ymin, ymax, formats, width):
-
-		"""Actually draw plot..."""
+		groups = q["groups"]
+		xinvert = self.__query_invert(groups[xparam])
+		yinvert = self.__query_invert(groups[yparam])
+		recids = set(xinvert.keys()) & set(yinvert.keys())
+		
+		### plot_plot
 
 		# Colors to use in plot..
 		allcolor = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
@@ -1643,15 +1479,15 @@ class DB(object):
 			'#808080']
 		allcolorcount = len(allcolor)
 
-
 		# Generate labels
-		title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby or '')
-		xlabel = '%s (%s)'%(xpd.desc_short, xpd.name)
-		ylabel = '%s (%s)'%(ypd.desc_short, ypd.name)
+		# title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby or '')
+		title = kwargs.get('title') or 'Test Graph'
+		xlabel = kwargs.get('xlabel') or '%s'%(xpd.desc_short)
+		ylabel = kwargs.get('ylabel') or '%s'%(ypd.desc_short)
 		if xpd.defaultunits:
-			xlabel = '%s (%s)'%(xpd.desc_short, xpd.defaultunits)
+			xlabel = '%s (%s)'%(xlabel, xpd.defaultunits)
 		if ypd.defaultunits:
-			ylabel = '%s (%s)'%(ypd.desc_short, ypd.defaultunits)
+			ylabel = '%s (%s)'%(ylabel, ypd.defaultunits)
 
 
 		# Ok, actual plotting is pretty simple...
@@ -1660,42 +1496,58 @@ class DB(object):
 
 		ax_size = [0.1, 0.1, 0.8, 0.8]
 		ax = fig.add_axes(ax_size)
-
 		ax.grid(True)
 
 		handles = []
 		labels = []
+		groupnames = {}
 		nextcolor = 0
-
-		# I filter against cutoff in the self.plot now. If it's hidden, skip drawing the scatter plot
-		for k,v in sorted(grouped.items()):
-			x = map(c1.get, v)
-			y = map(c2.get, v)
-
-			if groupcolor.get(k) == None:
-				groupcolor[k] = allcolor[nextcolor%allcolorcount]
-				nextcolor += 1
-
-			if groupshow and k not in groupshow:
+		
+		nr = [None, None, None, None]
+		def less(x,y):
+			if x < y or y == None: return x
+			return y
+		def greater(x,y):
+			if x > y or y == None: return x
+			return y
+				
+		# plot each group
+		for k,v in sorted(groups[groupby].items()):
+			v = v & recids
+			if len(v) <= cutoff or (groupshow and k not in groupshow):
 				continue
+			x = map(xinvert.get, v)
+			y = map(yinvert.get, v)
 
-			handle = ax.scatter(x, y, c=groupcolor[k]) # cm.hsv(count/total), marker='x'
+			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
+			groupcolors[k] = allcolor[nextcolor%allcolorcount]
+			nextcolor += 1
+			
+			handle = ax.scatter(x, y, c=groupcolors[k]) # cm.hsv(count/total), marker='x'
 			handles.append(handle)
-			labels.append(groupnames[k])
+			labels.append(k)
+			groupnames[k] = k
+			
+			
 
-		ax.set_xlim(xmin, xmax)
-		ax.set_ylim(ymin, ymax)
+		if xmin != None: nr[0] = float(xmin)
+		if ymin != None: nr[1] = float(ymin)
+		if xmax != None: nr[2] = float(xmax)
+		if ymax != None: nr[3] = float(ymax)
+		
+		print "ranges: %s"%nr
+		
+		ax.set_xlim(nr[0], nr[2])
+		ax.set_ylim(nr[1], nr[3])
 
-		# From plot_old
-		t = str(time.time())
-		rand = str(random.randint(0,100000))
-		tempfile = "graph." + t + ".r" + rand
+		tempfile = "graph.%s.%s"%(ctx.ctxid, time.time())
 
 		plots = {}
 		if "png" in formats:
 			pngfile = tempfile+".png"
 			fig.savefig(os.path.join(g.TMPPATH,pngfile))
 			plots["png"] = pngfile
+
 
 		# We draw titles, labels, etc. in PDF graphs
 		if "pdf" in formats:
@@ -1706,18 +1558,30 @@ class DB(object):
 			pdffile = tempfile+".pdf"
 			fig.savefig(os.path.join(g.TMPPATH,pdffile))
 			plots["pdf"] = pdffile
+			
 
-
-		ret = {
+		q.update({
 			"plots": plots,
 			"xlabel": xlabel,
 			"ylabel": ylabel,
 			"title": title,
-			"groupcolor": groupcolor
-		}
+			"groupcolors": groupcolors,
+			"groupshow": groupshow,
+			"groupnames": groupnames,
+			"formats": formats,
+			"groupby": groupby,
+			"xparam": xparam,
+			"yparam": yparam,
+			"width": width,
+			"xmin": nr[0],
+			"xmax": nr[2],
+			"ymin": nr[0],
+			"ymax": nr[3],
+			"cutoff": cutoff
+		})
+		
+		return q
 
-		return ret
-		#return fret, groupcolor
 
 
 

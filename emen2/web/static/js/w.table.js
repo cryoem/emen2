@@ -304,7 +304,7 @@ TableColumnControl.prototype = {
 		selm.append('<option value="">Add Macro</option>');
 		selm.append('<option value="">----------</option>');		
 		$.each(example_macros, function(i,j,k) {
-			console.log(i);
+			//console.log(i);
 			selm.append('<option value="'+i+'">'+i+' -- '+j+'</option>');
 		});		
 		selm.change(function(){self.build_addmacro($(this).val())});
