@@ -549,16 +549,17 @@ class FieldBTree(BTree):
 	def __get_cursor(self, cursor, key, flags=0):
 		#print "__get_cursor %s"%key
 		n = cursor.set(key)
-		r = set()#[]
+		r = set() #[]
 		m = cursor.next_dup
 		while n:
 			r.add(n[1])
 			n = m()
-		return r
+		return set(self.loaddata(x) for x in r)
 
 
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
 		key = self.dumpkey(key)
+		dt = self.datatype or "p"
 
 		if cursor:
 			#print "using existing cursor to get"
