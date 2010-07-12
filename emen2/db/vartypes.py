@@ -200,13 +200,51 @@ class vt_stringlist(Vartype):
 
 
 
-class vt_url(Vartype):
-	"""link to a generic url"""
+class vt_uri(Vartype):
+	"""link to a generic uri"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
+
+
+
+class vt_urilist(Vartype):
+	"""list of strings"""
+	__metaclass__ = Vartype.register_view
+	__indextype__ = None
+	def validate(self, engine, pd, value, db):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		return [unicode(x) for x in value] or None
+
+	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
+		return ", ".join(value or [])
+	
+		
+	def render_html(self, engine, pd, value, rec, db, render_cache=None):
+		if not value:
+			return ""
+		if not hasattr(value,"__iter__"):
+			value=[value]
+
+		v = db.getbinary(value)
+		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in v]
+		return "<br />".join(hrefs)
+		
+		
+	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+
+		v = db.getbinary(value)
+		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in v]
+
+		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
+		hrefs.append(edit)
+
+		return "<br />".join(hrefs)
 
 
 
@@ -259,7 +297,6 @@ class vt_binary(Vartype):
 
 		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
-
 
 		return "<br />".join(hrefs)
 
