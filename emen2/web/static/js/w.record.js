@@ -1360,7 +1360,7 @@ widget.prototype = {
 			this.editw = $("<select><option>True</option><option>False</option></select>");
 			this.w.append(this.editw);				
 		
-		} else if (["intlist","floatlist","stringlist","userlist"].indexOf(pd["vartype"]) > -1) {
+		} else if (["intlist","floatlist","stringlist","userlist","urlist"].indexOf(pd["vartype"]) > -1) {
 		
 			this.editw = new listwidget(this.w,{values:this.rec_value, paramdef:pd});
 		

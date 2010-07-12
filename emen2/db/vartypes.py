@@ -211,9 +211,10 @@ class vt_uri(Vartype):
 
 
 class vt_urilist(Vartype):
-	"""list of strings"""
+	"""list of uris"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -241,7 +242,6 @@ class vt_urilist(Vartype):
 
 		edit = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
-
 		return "<br />".join(hrefs)
 
 
