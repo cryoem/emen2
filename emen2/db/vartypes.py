@@ -229,8 +229,7 @@ class vt_urilist(Vartype):
 		if not hasattr(value,"__iter__"):
 			value=[value]
 
-		v = db.getbinary(value)
-		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in v]
+		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in value]
 		return "<br />".join(hrefs)
 		
 		
@@ -238,10 +237,9 @@ class vt_urilist(Vartype):
 		if not hasattr(value,"__iter__"):
 			value=[value]
 
-		v = db.getbinary(value)
-		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in v]
+		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in value]
 
-		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
+		edit = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
 
 		return "<br />".join(hrefs)
