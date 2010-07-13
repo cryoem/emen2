@@ -1,3 +1,7 @@
+#sitemap {
+	display:none;
+} 
+
 #progress_report_bar_container {
 	width: 400px;
 	height: 20px;
