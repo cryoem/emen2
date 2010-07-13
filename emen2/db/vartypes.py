@@ -124,10 +124,7 @@ class vt_text(Vartype):
 		if value == None:
 			value = ""
 		value = cgi.escape(value)
-		if markdown:
-			value = markdown.markdown(value)
-		else:
-			value = "<p>%s</p>"%(value)
+		value = markdown.markdown(value)
 		if edit:
 			value = '%s<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(value, rec.recid, pd.name, pd.vartype)
 		return value

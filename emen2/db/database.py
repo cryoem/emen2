@@ -5110,7 +5110,7 @@ class DB(object):
 				
 				else:
 					v = rd.views.get(viewtype, rd.name)
-					if markdown: v = markdown.markdown(v)
+					v = markdown.markdown(v)
 
 				groupviews[i] = v
 
