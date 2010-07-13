@@ -455,7 +455,6 @@ class DB(object):
 		# 	self.adduser(root_user, ctx=ctx, txn=txn)
 
 
-		print ctx
 		self.putrecord(self.newrecord('folder', ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		for i in skeleton.core_users.items:
 			if i.get('username') == 'root':
@@ -1331,7 +1330,7 @@ class DB(object):
 		if value == "": value = None
 		subset = None
 
-		print "\n== running constraint: %s %s %s"%(searchparam, comp, value)
+		# print "\n== running constraint: %s %s %s"%(searchparam, comp, value)
 
 		if param == "rectype":
 			if comp == "==" and value != None:
@@ -1352,10 +1351,11 @@ class DB(object):
 			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)				
 
 		else:
-			print "no param, skipping"
+			pass
+			# print "no param, skipping"
 
-		print "return was:"
-		print subset
+		#print "return was:"
+		#print subset
 
 		return subset
 
@@ -1457,7 +1457,7 @@ class DB(object):
 
 		q = self.query(ctx=ctx, txn=txn, **kwargs)
 
-		print xparam, yparam
+		# print xparam, yparam
 
 		if not xparam or not yparam:
 			return q
@@ -1545,7 +1545,7 @@ class DB(object):
 		if xmax != None: nr[2] = float(xmax)
 		if ymax != None: nr[3] = float(ymax)
 		
-		print "ranges: %s"%nr
+		# print "ranges: %s"%nr
 		
 		ax.set_xlim(nr[0], nr[2])
 		ax.set_ylim(nr[1], nr[3])
@@ -5188,8 +5188,6 @@ class DB(object):
 
 			ret[rec.recid]=a
 
-
-		print ret
 
 		if ol: return return_first_or_none(ret)
 		return ret
