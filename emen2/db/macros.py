@@ -194,9 +194,8 @@ class macro_renderchildrenoftype(Macro):
 
 		
 	def process(self, engine, macro, params, rec, db):
-		print macro, params
+		# print macro, params
 		r = db.renderview(db.getchildren(rec.recid, rectype=params), viewtype="recname")
-		print r
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
 			l = """<li><a href="%s/db/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
