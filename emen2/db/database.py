@@ -22,20 +22,30 @@ import functools
 import imp
 import tempfile
 
+import emen2.ext.mail_exts
+
 import emen2.db.config
 g = emen2.db.config.g()
 
 try:
 	import matplotlib.backends.backend_agg
 	import matplotlib.figure
-except:
+except ImportError:
 	matplotlib = None
 	g.log("No matplotlib; plotting will fail")
+
+
+try:
+	import markdown
+except ImportError:
+	markdown = None
+
 
 try:
 	g.CONFIG_LOADED
 except:
 	emen2.db.config.defaults()
+
 
 import emen2.db.proxy
 import emen2.db.flags
@@ -5044,7 +5054,7 @@ class DB(object):
 	def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
 		"""generate html table of params"""
 
-		if mode=="html":
+		if mode in ["html","htmledit"]:
 			dt = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]
 			for i in params:
 				dt.append("<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
@@ -5070,7 +5080,6 @@ class DB(object):
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
-
 		paramdefcache = {}
 
 		# we'll be working with a list of recs
@@ -5080,32 +5089,35 @@ class DB(object):
 		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]
 		builtinparamsshow = ["recid","rectype","comments","creator","creationtime"]
 
-
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
 		recdefs = self.getrecorddef(groups, ctx=ctx, txn=txn)
 
-
 		if not viewdef:
 			for rd in recdefs:
 				i = rd.name
-
-				if viewtype == "mainview":
-					groupviews[i] = rd.mainview
-
-				elif viewtype=="dicttable":
+				v = None
+				rd["views"]["mainview"] = rd.mainview
+				
+				if viewtype=="dicttable":
 					# move built in params to end of table
-					par = [p for p in rd.paramsK if p not in builtinparams]
+					par = [p for p in set(rd.paramsK) if p not in builtinparams]
 					par += builtinparamsshow
-					groupviews[i] = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
+					v = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
 
+				elif viewtype in ["tabularview","recname"]:
+					v = rd.views.get(viewtype, rd.name)
+				
 				else:
-					groupviews[i] = rd.views.get(viewtype, rd.name)
+					v = rd.views.get(viewtype, rd.name)
+					if markdown: v = markdown.markdown(v)
+
+				groupviews[i] = v
 
 		else:
 			groupviews[None] = viewdef
 
-
+		
 		if outband:
 			for rec in recs:
 				obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
@@ -5172,28 +5184,16 @@ class DB(object):
 			if showmacro:
 				for i in macros[key]:
 					v=vtm.macro_render(i[2], i[3], rec, mode=mode, db=dbp)
-					a=a.replace(u"$@" + i[0], v + i[1])
+					a=a.replace(u"$@" + i[0] + i[1], v + i[1])
 
 			ret[rec.recid]=a
+
+
+		print ret
 
 		if ol: return return_first_or_none(ret)
 		return ret
 
-
-
-	# ian: unused?
-	#@rename db.records.render.renderall
-	# @publicmethod
-	# def getrecordrenderedviews(self, recid, ctx=None, txn=None):
-	# 	"""Render all views for a record."""
-	#
-	# 	rec = self.getrecord(recid, ctx=ctx, txn=txn)
-	# 	recdef = self.getrecorddef(rec["rectype"], ctx=ctx, txn=txn)
-	# 	views = recdef.views
-	# 	views["mainview"] = recdef.mainview
-	# 	for i in views:
-	# 		views[i] = self.renderview(rec, viewdef=views[i], ctx=ctx, txn=txn)
-	# 	return views
 
 
 

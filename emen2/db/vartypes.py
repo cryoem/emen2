@@ -1,6 +1,14 @@
 import cgi
+import urllib
 import time, datetime
+import htmlentitydefs
+import re
 
+try:
+	import markdown
+except:
+	markdown = None
+	
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
@@ -17,6 +25,7 @@ class vt_int(Vartype):
 	"""32-bit integer"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "d"
+	
 	def validate(self, engine, pd, value, db):
 		return int(value)
 
@@ -25,6 +34,7 @@ class vt_longint(Vartype):
 	"""64-bit integer"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "d"
+	
 	def validate(self, engine, pd, value, db):
 		return int(value)
 
@@ -33,28 +43,33 @@ class vt_float(Vartype):
 	"""single-precision floating-point"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "f"
+	
 	def validate(self, engine, pd, value, db):
 		return float(value)
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if value == None: return ""
-		return "%s"%unicode(float(value))
-		#return "%0.2f"%value
+		return "%0.2f"%value
 
 
 class vt_longfloat(Vartype):
 	"""double-precision floating-point"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "f"
+	
 	def validate(self, engine, pd, value, db):
 		return float(value)
-		#return "%0.2f"%float(value)
 
+	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
+		if value == None: return ""
+		return "%0.2f"%value
+	
 
 class vt_choice(Vartype):
 	"""string from a fixed enumerated list, eg "yes","no","maybe"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
@@ -65,6 +80,7 @@ class vt_list(Vartype):
 	"""nested lists; e.g. permissions"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value)
@@ -96,6 +112,7 @@ class vt_text(Vartype):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
@@ -103,16 +120,26 @@ class vt_text(Vartype):
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		return unicode(value).replace("\n","<br />")
 
+	def render_html(self, engine, pd, value, rec, db, render_cache=None, edit=0):
+		if value == None:
+			value = ""
+		value = cgi.escape(value)
+		if markdown:
+			value = markdown.markdown(value)
+		else:
+			value = "<p>%s</p>"%(value)
+		if edit:
+			value = '%s<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(value, rec.recid, pd.name, pd.vartype)
+		return value
 
-import htmlentitydefs
-import re
+
 class vt_html(Vartype):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
-
 
 	def encode(self, value):
 		value = value or ""
@@ -122,7 +149,6 @@ class vt_html(Vartype):
 			if n is not None: x = '&%s;' % n
 			result.append(x)
 		return ''.join(result)
-
 
 	#def decode(self, pd, value):
 	#	expanded = [htmlentitydefs.name2codepoint.get(y,y) for y in [x[1] or x[2] for x in re.findall('(&([^;]+);|([^&]))', value)]]
@@ -140,6 +166,7 @@ class vt_time(Vartype):
 	"""time, HH:MM:SS"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		parse_time(value)
@@ -150,6 +177,7 @@ class vt_date(Vartype):
 	"""date, yyyy/mm/dd"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		parse_date(value)
@@ -161,6 +189,7 @@ class vt_datetime(Vartype):
 	"""date/time, yyyy/mm/dd HH:MM:SS"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(parse_datetime(value)) or None
@@ -223,25 +252,23 @@ class vt_urilist(Vartype):
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		return ", ".join(value or [])
 	
-		
-	def render_html(self, engine, pd, value, rec, db, render_cache=None):
+	def render_html(self, engine, pd, value, rec, db, render_cache=None, edit=0):
 		if not value:
 			return ""
 		if not hasattr(value,"__iter__"):
 			value=[value]
-
+		value = (cgi.escape(i) for i in value)
 		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in value]
 		return "<br />".join(hrefs)
 		
-		
-	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+	def render_htmledit(self, engine, pd, value, rec, db, edit=0):
 		if not value:
 			value=[]
 		if not hasattr(value,"__iter__"):
 			value=[value]
 
+		value = (cgi.escape(i) for i in value)
 		hrefs = ['<a href="%s">%s</a>'%(i,i) for i in value]
-
 		edit = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
 		return "<br />".join(hrefs)
@@ -252,6 +279,7 @@ class vt_hdf(Vartype):
 	"""url points to an HDF file"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
@@ -262,6 +290,7 @@ class vt_image(Vartype):
 	"""url points to a browser-compatible image"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
@@ -272,32 +301,28 @@ class vt_binary(Vartype):
 	"""url points to an arbitrary binary... ['bdo:....','bdo:....','bdo:....']"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
 		return [unicode(x) for x in value] or None
 
-	def render_html(self, engine, pd, value, rec, db, render_cache=None):
+	def render_html(self, engine, pd, value, rec, db, render_cache=None, edit=0):
 		if not value:
 			return ""
 		if not hasattr(value,"__iter__"):
 			value=[value]
-
 		v = db.getbinary(value)
-		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename) for i in v]
+		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 		return "<br />".join(hrefs)
 
-
-	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+	def render_htmledit(self, engine, pd, value, rec, db, edit=0):
 		if not hasattr(value,"__iter__"):
 			value=[value]
-
 		v = db.getbinary(value)
-		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename) for i in v]
-
+		hrefs = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		hrefs.append(edit)
-
 		return "<br />".join(hrefs)
 
 
@@ -307,6 +332,7 @@ class vt_binaryimage(Vartype):
 	__metaclass__ = Vartype.register_view
 	# ian: don't index this after all...
 	__indextype__ = None #"s"
+	
 	@quote_html
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
@@ -322,19 +348,17 @@ class vt_binaryimage(Vartype):
 		except:
 			return ""
 
-
-	def render_html(self, engine, pd, value, rec, db, render_cache=None):
+	def render_html(self, engine, pd, value, rec, db, render_cache=None, edit=0):
 		if not value:
 			return ""
 		i = db.getbinary(value)
-		return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+		return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
 
-
-	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+	def render_htmledit(self, engine, pd, value, rec, db, edit=0):
 		href = ""
 		if value:
 			i = db.getbinary(value)
-			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
+			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
 		edit = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">Edit</span>'%(rec.recid, pd.name, pd.vartype)
 		return "%s %s<br />"%(href, edit)
 
@@ -344,6 +368,7 @@ class vt_child(Vartype):
 	"""link to dbid/recid of a child record"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None #"child"
+	
 	def validate(self, engine, pd, value, db):
 		return int(value)
 
@@ -353,6 +378,7 @@ class vt_links(Vartype):
 	__metaclass__ = Vartype.register_view
 	__vartype__ = "links"
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -363,6 +389,7 @@ class vt_link(Vartype):
 	"""lateral link to related record dbid/recid"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None #"link"
+	
 	def validate(self, engine, pd, value, db):
 		return int(value)
 
@@ -371,6 +398,7 @@ class vt_boolean(Vartype):
 	"""boolean"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "d"
+	
 	def validate(self, engine, pd, value, db):
 		try:
 			return bool(int(value))
@@ -384,6 +412,7 @@ class vt_dict(Vartype):
 	"""dict"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		return dict(value) or None
 
@@ -392,6 +421,7 @@ class vt_user(Vartype):
 	"""user, by username"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = "s"
+
 	def validate(self, engine, pd, value, db):
 		# ian: todo: What if usernames list becomes huge? Do this on a per-username to check basis. But for now OK.
 		key = engine.get_cache_key('usernames')
@@ -404,7 +434,6 @@ class vt_user(Vartype):
 			return unicode(value) or None
 
 		raise ValueError
-
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if value == None:
@@ -425,6 +454,7 @@ class vt_userlist(Vartype):
 	"""list of usernames"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value = [value]
@@ -439,7 +469,6 @@ class vt_userlist(Vartype):
 			raise ValueError
 
 		return [unicode(x) for x in value] or None
-
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if not value:
@@ -476,6 +505,7 @@ class vt_acl(Vartype):
 	__metaclass__ = Vartype.register_view
 	__vartype__ = "acl"
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 
 		key = engine.get_cache_key('usernames')
@@ -489,8 +519,6 @@ class vt_acl(Vartype):
 			raise ValueError
 
 		return [[unicode(y) for y in x] for x in value]
-
-
 
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):
 		if not value: return ""
@@ -513,6 +541,7 @@ class vt_comments(Vartype):
 	__metaclass__ = Vartype.register_view
 	__vartype__ = "comments"
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		users=[i[0] for i in value]
 		times=[i[1] for i in value]
@@ -528,7 +557,6 @@ class vt_comments(Vartype):
 			raise ValueError
 
 		return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
-
 
 	@quote_html
 	def render_unicode(self, engine, pd, value, rec, db, render_cache=None):

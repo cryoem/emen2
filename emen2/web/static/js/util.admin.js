@@ -27,7 +27,7 @@ function admin_approveuser_form(elem) {
 	//console.log(reject);
 
 	if (approve.length > 0) {
-		$.jsonRPC("approveuser",[approve], //wrapper_approveuser_sendmail ian:mustfix
+		$.jsonRPC("approveuser_sendmail",[approve], //wrapper_approveuser_sendmail ian:mustfix
 			function(data) {
 				notify("Approved users: "+data);
 				for (var i=0;i<data.length;i++) {
@@ -44,7 +44,7 @@ function admin_approveuser_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("rejectuser",[reject],
+		$.jsonRPC("rejectuser_sendmail",[reject],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {

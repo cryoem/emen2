@@ -1,3 +1,5 @@
+import operator
+
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
@@ -196,7 +198,7 @@ class macro_renderchildrenoftype(Macro):
 		r = db.renderview(db.getchildren(rec.recid, rectype=params), viewtype="recname")
 		print r
 		hrefs = []
-		for k,v in r.items():
+		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
 			l = """<li><a href="%s/db/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
 			hrefs.append(l)
 		return "<ul>%s</ul>"%("\n".join(hrefs))

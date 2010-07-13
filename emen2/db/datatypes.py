@@ -1,4 +1,5 @@
 import re
+import cgi
 
 import emen2.db.record
 import emen2.db.config
@@ -91,7 +92,7 @@ class VartypeManager(object):
 
 
 	def name_render(self, pd, mode="unicode", db=None):
-		if mode in ["html","htmleditable", "htmledit"]:
+		if mode in ["html","htmledit"]:
 			return u"""<a href="%s/db/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
 		else:
 			return unicode(pd.desc_short)
@@ -183,7 +184,6 @@ class Vartype(object):
 		self.modes={
 			"html":self.render_html,
 			"htmledit":self.render_htmledit,
-			"htmleditable":self.render_htmleditable
 			}
 
 
@@ -214,30 +214,21 @@ class Vartype(object):
 
 
 	def render_htmledit(self, engine, pd, value, rec, db):
-		"""Show editing controls"""
-		if value==None:
-			value=""
-		else:
-			value=self.render_unicode(engine, pd, value, rec.recid, db)
-		return '<span class="editable" data-param="%s">%s</span>'%(pd.name,value)
-
-
-	def render_htmleditable(self, engine, pd, value, rec, db):
 		"""Mark field as editable, but do not show controls"""
 		return self.render_html(engine, pd, value, rec, db=db, edit=1)
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=0):
 		"""HTML output"""
-		u=""
+		u = ""
 		if pd.defaultunits and pd.defaultunits != "unitless":
-			u=" %s"%pd.defaultunits
+			u = " %s"%pd.defaultunits
 
 		if value in [None, "None", ""] and edit:
-			value='<img src="%s/images/blank.png" height="10" width="50" alt="(editable field)" />'%g.EMEN2WEBROOT
-			u=""
+			value = '<img src="%s/images/blank.png" height="10" width="50" alt="(editable field)" />'%g.EMEN2WEBROOT
+			u = ""
 		else:
-			value=self.render_unicode(engine, pd, value, rec, db)
+			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
 
 		return '<span class="%s" data-recid="%s" data-param="%s">%s%s</span>'%(["","editable"][edit],rec.recid, pd.name, value, u)
 

@@ -204,13 +204,15 @@ class DBProxy(object):
 
 	def __getattr__(self, name):
 		# print "__getattr__ %s"%name
+
+		if name in self.__extmethods:
+			func = self.__extmethods.get(name)()
+			return self._publicmethod_wrap(func.execute, ext=True)
 		
-		if name in self.__publicmethods:
-			return self._publicmethod_wrap(name)
-		
-		elif name in self.__extmethods:
-			return self._extmethod_wrap(name, ext=True)
-		
+		elif name in self.__publicmethods:
+			func = getattr(self.__db, name)
+			return self._publicmethod_wrap(func)
+				
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
 	
@@ -232,8 +234,8 @@ class DBProxy(object):
 	# ...
 
 
-	def _publicmethod_wrap(self, name, ext=False):		
-		func = getattr(self.__db, name)
+	def _publicmethod_wrap(self, func, ext=False):
+		# func = getattr(self.__db, name)
 		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
 	
 		@functools.wraps(func)
@@ -257,6 +259,7 @@ class DBProxy(object):
 		
 			try:
 				# g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
+				# result = func.execute(*args, **kwargs)
 				result = func(*args, **kwargs)
 				
 			except Exception, e:
