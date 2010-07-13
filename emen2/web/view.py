@@ -208,7 +208,7 @@ class View(object):
 				else:
 					name.append(func.__name__, k)
 				matchers.append( ('/'.join(name), matcher, func) )
-			func.matcherinfo = g.log.note_var(matchers)
+			func.matcherinfo = matchers # g.log.note_var(matchers)
 			return func
 		return _i1
 

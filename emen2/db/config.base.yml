@@ -51,7 +51,7 @@ network:
   EMEN2HTTPS: 0
   EMEN2PORT_HTTPS: 436
   EMEN2WEBROOT: ''
-  # Set this if you are behind a reverse proxy
+  # Set this if you are behind a reverse proxy -- it should be the root page; e.g. http://ncmi.bcm.edu/challenge/
   EMEN2EXTURI: 'http://ncmi.bcm.edu/'
   EMEN2EXTURI_HTTPS: ''
 
