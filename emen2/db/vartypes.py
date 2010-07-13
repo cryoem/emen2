@@ -235,6 +235,8 @@ class vt_urilist(Vartype):
 		
 		
 	def render_htmleditable(self, engine, pd, value, rec, db, edit=0):
+		if not value:
+			value=[]
 		if not hasattr(value,"__iter__"):
 			value=[value]
 

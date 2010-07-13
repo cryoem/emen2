@@ -305,7 +305,7 @@ td {
 	border-top:none;
 	width:100%;
 	height:600px;
-	max-height:800px;
+	max-height:1000px;
 	overflow:auto;	
 }
 */
@@ -358,10 +358,10 @@ td {
 	width:auto;
 }
 .page_comments, .page_attachments,  #page_query_text {
-	width:800px;
+	width:1000px;
 }
 #page_query_form {
-	width:800px;
+	width:1000px;
 }
 #form_query_params {
 	padding:10px;
@@ -441,17 +441,17 @@ td .editable:hover {
 }
 #record_editbar_menu_relationships {
 	left:100px;
-	width:800px;
+	width:1000px;
 	height:600px;
 }
 #record_editbar_menu_upload {
 	height:600px;
 	left:100px;
-	width:800px;
+	width:1000px;
 }
 #record_editbar_menu_permissions {
 	left:100px;
-	width:800px;
+	width:1000px;
 	height:600px;
 }
 #record_editbar_menu_newrecord ul {
@@ -485,7 +485,7 @@ a img {
 .users_navbar {
 	border:solid 1px #ccc;
 	text-align:center;
-	width:800px;
+	width:1000px;
 }
 .users_navbar a {
 	padding:5px;
@@ -1053,7 +1053,7 @@ PAGE / TAB
 }
 .page {
 	background:#E7F1F8;	
-/*	width:800px; */
+/*	width:1000px; */
 	padding:10px;
 	display:none;
 }
@@ -1112,7 +1112,7 @@ PAGE / TAB
 
 .pagescontainer {
 	margin-top:20px;
-	width:800px;
+	width:1000px;
 }
 #pagescontainer_map {
 	margin-top:0px;
@@ -1474,7 +1474,7 @@ h2 {
 	font-size:20pt;
 	margin-bottom:10px;
 	border-bottom:dashed 1px #ccc;
-	max-width:800px;
+	max-width:1000px;
 	line-height:135%;
 }
 
@@ -1608,6 +1608,7 @@ li.sidebar_box {
 }
 
 .page_recordview {
+	max-width:1024px;
 	background:white;
 }
 

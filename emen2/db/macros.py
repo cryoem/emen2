@@ -192,8 +192,15 @@ class macro_renderchildrenoftype(Macro):
 
 		
 	def process(self, engine, macro, params, rec, db):
-		pass
-		# rinfo = dict(,host=host)
+		print macro, params
+		r = db.renderview(db.getchildren(rec.recid, rectype=params), viewtype="recname")
+		print r
+		hrefs = []
+		for k,v in r.items():
+			l = """<li><a href="%s/db/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
+			hrefs.append(l)
+		return "<ul>%s</ul>"%("\n".join(hrefs))
+
 
 		
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
