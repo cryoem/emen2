@@ -650,21 +650,22 @@ class DB(object):
 		newcontext = None
 		username = unicode(username)
 
-		print "attempted login: %s"%username
+		# print "attempted login: %s"%username
 		# Anonymous access
+
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 		else:
 			try:
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
-				g.log.msg('LOG_ERROR', "Invalid username or password")
+				g.log.msg('LOG_ERROR', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
-				g.log.msg('LOG_ERROR', "Invalid username or password")
+				g.log.msg('LOG_ERROR', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 		try:
@@ -2613,17 +2614,16 @@ class DB(object):
 		# Need to commit users before records will validate
 		for username in usernames:
 
-			try:
-				user = self.bdbs.newuserqueue.sget(username, txn=txn)
-				if not user:
-					raise KeyError, "User %s is not pending approval"%username
+			# try:
+			user = self.bdbs.newuserqueue.sget(username, txn=txn)
+			if not user:
+				raise KeyError, "User %s is not pending approval"%username
 
-				user.setContext(ctx)
-				user.validate()
-			except:
-				if filt: continue
-				else: raise
-
+			user.setContext(ctx)
+			user.validate()
+			# except:
+			#	if filt: continue
+			#	else: raise
 
 			if self.bdbs.users.get(username, txn=txn):
 				delusers[username] = None
@@ -2917,10 +2917,8 @@ class DB(object):
 		except Exception, inst:
 			raise ValueError, "User instance or dict required (%s)"%inst
 
-
 		if self.bdbs.users.get(user.username, txn=txn):
 			raise KeyError, "User with username '%s' already exists" % user.username
-
 
 		#if user.username in self.bdbs.newuserqueue:
 		if self.bdbs.newuserqueue.get(user.username, txn=txn):

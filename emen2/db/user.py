@@ -4,6 +4,7 @@ import hashlib
 import random
 import re
 import weakref
+import traceback
 
 import emen2.db.exceptions
 import emen2.db.dataobject
@@ -93,8 +94,10 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def __hashpassword(self, password):
+		if len(password) == 40:
+			return password
 		return hashlib.sha1(unicode(password)).hexdigest()
-
+		
 
 	def checkpassword(self, password):
 		if self.disabled:
