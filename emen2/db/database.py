@@ -650,6 +650,7 @@ class DB(object):
 		newcontext = None
 		username = unicode(username)
 
+		print "attempted login: %s"%username
 		# Anonymous access
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
