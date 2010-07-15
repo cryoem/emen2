@@ -1276,7 +1276,8 @@ widget.prototype = {
 	init: function() {
 		this.built = 0;
 		this.param = this.elem.attr("data-param");
-		this.recid = parseInt(this.elem.attr("data-recid")) || null;
+		this.recid = parseInt(this.elem.attr("data-recid"));
+		if (isNaN(this.recid)) this.recid = null;
 		this.rec_value = getvalue(this.recid, this.param);	
 		this.bind_edit();
 	},
