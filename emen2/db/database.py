@@ -1255,7 +1255,7 @@ class DB(object):
 
 		vtm = emen2.db.datatypes.VartypeManager()
 		recids = None
-		
+
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in constraints:
@@ -1274,7 +1274,7 @@ class DB(object):
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
-			
+
 
 		ret = {
 			"q":q,
@@ -1295,7 +1295,7 @@ class DB(object):
 
 		if param == "rectype":
 			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
-			
+
 		elif param == "parent":
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
@@ -1307,7 +1307,7 @@ class DB(object):
 					parentgroups[i].add(k)
 			if parentgroups:
 				groups["parent"] = dict(parentgroups)
-				
+
 
 		else:
 			if not keys:
@@ -1319,12 +1319,12 @@ class DB(object):
 					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
 					for i in v:
 						v2 = children.get(i, set()) & recids
-						if v2: groups[param][key] = v2						
+						if v2: groups[param][key] = v2
 				else:
 					v2 = v & recids
 					if v2: groups[param][key] = v2
-		
-		
+
+
 
 
 	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
@@ -1344,13 +1344,13 @@ class DB(object):
 				subset = self.getchildren(value, recurse=-1, ctx=ctx, txn=txn)
 			if comp == "rectype":
 				groupby["parent"] = value
-				
+
 		elif param == "child":
 			if comp == "recid" and value != none:
 				subset = self.getparents(value, recurse=-1, ctx=ctx, txn=txn)
 
 		elif param:
-			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)				
+			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 		else:
 			pass
@@ -1362,7 +1362,7 @@ class DB(object):
 		return subset
 
 
-				
+
 	def __query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
@@ -1383,13 +1383,13 @@ class DB(object):
 		# Get the list of param indexes to search
 		if searchparam == "*":
 			searchparam = "root_parameter*"
-			
+
 		if '*' in searchparam:
 			indparams = self.getchildren(self.__query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
 			indparams = [self.__query_paramstrip(searchparam)]
-				
-		# First, search the index index				
+
+		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
 			try: cargs = vtm.validate(pd, value, db=ctx.db)
@@ -1397,17 +1397,17 @@ class DB(object):
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
 			if r:
 				results[indparam] = r
-		
+
 		# Now search individual param indexes
 		constraint_matches = set()
 		for pp, matchkeys in results.items():
-			
+
 			# Mark these for children searches later
 			if '^' in searchparam:
 				groupby[pp+"^"] = matchkeys
 			else:
 				groupby[pp] = matchkeys
-				
+
 			ind = self.__getparamindex(pp, ctx=ctx, txn=txn)
 			for matchkey in matchkeys:
 				constraint_matches |= ind.get(matchkey, txn=txn)
@@ -1439,7 +1439,7 @@ class DB(object):
 		return cmps
 
 
-			
+
 	def __query_paramstrip(self, param):
 		return param.replace("*","").replace("^","")
 
@@ -1448,7 +1448,7 @@ class DB(object):
 	def __query_invert(self, d):
 		invert = {}
 		for k,v in d.items():
-			for v2 in v: invert[v2] = k		
+			for v2 in v: invert[v2] = k
 		return invert
 
 
@@ -1463,13 +1463,13 @@ class DB(object):
 
 		if not xparam or not yparam:
 			return q
-			
+
 		if not formats:
-			formats = ["png"]	
+			formats = ["png"]
 
 		width = int(width)
 		groupcolors = {}
-		
+
 		# Get parameters
 		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
 		ypd = self.getparamdef(yparam, ctx=ctx, txn=txn)
@@ -1478,7 +1478,7 @@ class DB(object):
 		xinvert = self.__query_invert(groups[xparam])
 		yinvert = self.__query_invert(groups[yparam])
 		recids = set(xinvert.keys()) & set(yinvert.keys())
-		
+
 		### plot_plot
 
 		# Colors to use in plot..
@@ -1514,7 +1514,7 @@ class DB(object):
 		labels = []
 		groupnames = {}
 		nextcolor = 0
-		
+
 		nr = [None, None, None, None]
 		def less(x,y):
 			if x < y or y == None: return x
@@ -1522,7 +1522,7 @@ class DB(object):
 		def greater(x,y):
 			if x > y or y == None: return x
 			return y
-				
+
 		# plot each group
 		for k,v in sorted(groups[groupby].items()):
 			v = v & recids
@@ -1534,21 +1534,21 @@ class DB(object):
 			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
 			groupcolors[k] = allcolor[nextcolor%allcolorcount]
 			nextcolor += 1
-			
+
 			handle = ax.scatter(x, y, c=groupcolors[k]) # cm.hsv(count/total), marker='x'
 			handles.append(handle)
 			labels.append(k)
 			groupnames[k] = k
-			
-			
+
+
 
 		if xmin != None: nr[0] = float(xmin)
 		if ymin != None: nr[1] = float(ymin)
 		if xmax != None: nr[2] = float(xmax)
 		if ymax != None: nr[3] = float(ymax)
-		
+
 		# print "ranges: %s"%nr
-		
+
 		ax.set_xlim(nr[0], nr[2])
 		ax.set_ylim(nr[1], nr[3])
 
@@ -1570,7 +1570,7 @@ class DB(object):
 			pdffile = tempfile+".pdf"
 			fig.savefig(os.path.join(g.TMPPATH,pdffile))
 			plots["pdf"] = pdffile
-			
+
 
 		q.update({
 			"plots": plots,
@@ -1591,7 +1591,7 @@ class DB(object):
 			"ymax": nr[3],
 			"cutoff": cutoff
 		})
-		
+
 		return q
 
 
@@ -5085,8 +5085,8 @@ class DB(object):
 		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
 
 		# default params
-		builtinparams = ["recid","rectype","comments","creator","creationtime","permissions"]
-		builtinparamsshow = ["recid","rectype","comments","creator","creationtime"]
+		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions"])
+		builtinparamsshow = builtinparams - set(["permissions", "comments"])
 
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
@@ -5097,7 +5097,7 @@ class DB(object):
 				i = rd.name
 				v = None
 				rd["views"]["mainview"] = rd.mainview
-				
+
 				if viewtype=="dicttable":
 					# move built in params to end of table
 					par = [p for p in set(rd.paramsK) if p not in builtinparams]
@@ -5106,7 +5106,7 @@ class DB(object):
 
 				elif viewtype in ["tabularview","recname"]:
 					v = rd.views.get(viewtype, rd.name)
-				
+
 				else:
 					v = rd.views.get(viewtype, rd.name)
 					v = markdown.markdown(v)
@@ -5116,7 +5116,7 @@ class DB(object):
 		else:
 			groupviews[None] = viewdef
 
-		
+
 		if outband:
 			for rec in recs:
 				obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]

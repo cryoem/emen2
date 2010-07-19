@@ -137,6 +137,7 @@ class BaseDBInterface(object, DictMixin):
 		if warning:
 			g.warn("Validation warning: %s"%(msg))
 		elif e:
+			#raise
 			raise e, msg
 
 

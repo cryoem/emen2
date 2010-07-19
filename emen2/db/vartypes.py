@@ -457,8 +457,8 @@ class vt_userlist(Vartype):
 			value = [value]
 
 		key = engine.get_cache_key('usernames')
-		hit, usernames = engine.check_cache(key)
-		if not hit:
+		hit,usernames = engine.check_cache(key)
+		if (not hit):
 			usernames = db.getusernames()
 			engine.store(key, usernames)
 

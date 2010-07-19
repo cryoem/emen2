@@ -16,9 +16,9 @@ g = emen2.db.config.g()
 class User(emen2.db.dataobject.BaseDBObject):
 	"""
 	User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.getuser by checking an index. If available during db.getuser, a copy of the profile record and the user's "displayname" will also be set.
-	
+
 	These are normally created once and then manipulated using the appropriate API methods (setpassword, setemail, etc.) instead of get/modify/commit.
-	
+
 	@attr username Username for logging in, first character must be a letter, no spaces
 	@attr password SHA1 hashed password
 	@attr disabled True if user is disabled, unable to login
@@ -34,7 +34,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 	@attr creator
 	@attr modifytime
 	@attr modifyuser
-	
+
 	"""
 
 	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","childrecs"])
@@ -42,17 +42,17 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	def init(self, d=None):
 		# ian: todo: pw should be salted
-		
+
 		# these are basically required arguments...
 		self.username = d.get('username', None)
-		self.username = re.sub("\W", "", self.username)		
+		self.username = re.sub("\W", "", self.username)
 		self.password = None
 		self.__setpassword(d.get('password'))
 		self.email = d.get('email', None)
-		
+
 		if not self.username or not self.email:
 			raise ValueError, "Username, password, and email required"
-		
+
 		self.disabled = d.get('disabled',0)
 		self.privacy = d.get('privacy',0)
 		self.record = d.get('record', None)
@@ -66,7 +66,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.userrec = {}
 		self.groups = set()
 		self.displayname = None
-		
+
 		self.__setsecret()
 
 
@@ -97,7 +97,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 		if len(password) == 40:
 			return password
 		return hashlib.sha1(unicode(password)).hexdigest()
-		
+
 
 	def checkpassword(self, password):
 		if self.disabled:
@@ -111,7 +111,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 		elif self.password == None:
 			result = True
-			
+
 		elif self.password != None and self.__hashpassword(password) == self.password:
 			result = True
 
@@ -127,7 +127,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	def __setpassword(self, newpassword):
 		if newpassword == None:
-			self.validationwarning("No password specified; minimum 6 characters required", warning=False)			
+			self.validationwarning("No password specified; minimum 6 characters required", warning=False)
 		if len(newpassword) < 6:
 			self.validationwarning("Password too short; minimum 6 characters required", warning=False)
 		self.password = self.__hashpassword(newpassword)
@@ -149,7 +149,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 	#################################
 	# Secrets for account self-activation; currently not enabled
 	#################################
-	
+
 	def __setsecret(self):
 		self.__secret = hashlib.sha1(str(self.username) + str(id(self)) + str(time.time()) + str(random.random())).hexdigest()
 
@@ -262,7 +262,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 		if not re.match("(\S+@\S+)",self.email):
 			self.validationwarning("Invalid email format '%s'"%self.email, warning=warning)
 
-	
+
 	def validate_secret(self, secret):
 		if self.__secret == secret:
 			self.__secret = None
