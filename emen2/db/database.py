@@ -5072,11 +5072,8 @@ class DB(object):
 	@publicmethod
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=None, filt=True, ctx=None, txn=None):
 		"""Render views"""
-		g.debug("outband:", outband, 'viewtype', viewtype)
 		if viewtype == "dicttable" and outband == None:
 			outband = True
-			g.debug("outband:", outband)
-			g.debug('asd')
 		else: outband = bool(outband)
 
 		ol, recs = listops.oltolist(recs)
