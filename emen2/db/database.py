@@ -857,7 +857,7 @@ class DB(object):
 				pass
 
 			if context.time + (context.maxidle or 0) < time.time():
-				g.debug("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
+				g.log_info("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
 				self.__commit_context(context.ctxid, None, ctx=ctx, txn=txn)
 
 
@@ -4645,7 +4645,7 @@ class DB(object):
 		delrefs = collections.defaultdict(set)
 
 		for i in items:
-			g.debug(i)
+			#g.debug(i)
 			addrefs[i[1]].add(i[0])
 			delrefs[i[2]].add(i[0])
 
@@ -5054,24 +5054,30 @@ class DB(object):
 		"""generate html table of params"""
 
 		if mode in ["html","htmledit"]:
-			dt = ["<table><tr><td><h6>Key</h6></td><td><h6>Value</h6></td></tr>"]
+			dt = ["<table>\n\t<thead><th><h6>Key</h6></th><th><h6>Value</h6></th></thead>\n\t<tbody>"]
 			for i in params:
-				dt.append("<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-			dt.append("</table>")
+				dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+			dt.append("\t<thead>\n</table>")
 		else:
 			dt = []
 			for i in params:
 				dt.append("$#%s:\t$$%s\n"%(i,i))
 
-		return "".join(dt)
+		return "\n".join(dt)
 
 
 
 	#@notok
 	#@multiple
 	@publicmethod
-	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=0, filt=True, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=None, filt=True, ctx=None, txn=None):
 		"""Render views"""
+		g.debug("outband:", outband, 'viewtype', viewtype)
+		if viewtype == "dicttable" and outband == None:
+			outband = True
+			g.debug("outband:", outband)
+			g.debug('asd')
+		else: outband = bool(outband)
 
 		ol, recs = listops.oltolist(recs)
 
@@ -5085,15 +5091,15 @@ class DB(object):
 		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
 
 		# default params
-		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions"])
-		builtinparamsshow = builtinparams - set(["permissions", "comments"])
+		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions", "history", "groups"])
+		builtinparamsshow = builtinparams - set(["permissions", "comments", "history", "groups"])
 
 		groupviews={}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
-		recdefs = self.getrecorddef(groups, ctx=ctx, txn=txn)
+		recdefs = dict( (x['name'], x) for x in self.getrecorddef(groups, ctx=ctx, txn=txn))
 
 		if not viewdef:
-			for rd in recdefs:
+			for rd in recdefs.values():
 				i = rd.name
 				v = None
 				rd["views"]["mainview"] = rd.mainview
@@ -5169,7 +5175,7 @@ class DB(object):
 		ret={}
 
 		for rec in recs:
-			if groupviews.get(rec.recid):
+			if groupviews.get(rec.recid) is not None:
 				key = rec.recid
 			else:
 				key = rec.rectype
