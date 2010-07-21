@@ -309,7 +309,7 @@ permissions.prototype = {
 				//level_ul.append("<li>Emtpy</li>");
 			} else {
 
-				var level_removeall=$('<span class="small">[<span class="jslink">X</span>]</span>').click(function () {
+				var level_removeall=$('<span class="small_label">[<span class="jslink">X</span>]</span>').click(function () {
 					var q = v.slice();
 					for (var i=0;i<q.length;i++) {
 						self.remove(q[i]);
