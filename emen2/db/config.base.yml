@@ -34,9 +34,16 @@ paths:
   BINARYPATH:
     0: emen2data 
     
+  # Alternate views and templates to be loaded 
+  TEMPLATEDIRS: 
+    - 'templates'
+  VIEWPATHS:
+    - 'views'
+
   # Load additional files. Typically this will only be used by the system installed base config file.
   configfiles:
     - /etc/emen2config.yml 
+    - config.yml
 
 
 network:
@@ -52,7 +59,7 @@ network:
   EMEN2PORT_HTTPS: 436
   EMEN2WEBROOT: ''
   # Set this if you are behind a reverse proxy -- it should be the root page; e.g. http://ncmi.bcm.edu/challenge/
-  EMEN2EXTURI: 'http://ncmi.bcm.edu/'
+  #EMEN2EXTURI: 'http://ncmi.bcm.edu/'
   EMEN2EXTURI_HTTPS: ''
 
 
@@ -120,10 +127,6 @@ dbutils:
 # Additional template and view directories to add to search paths  
 viewsettings:
   TEMPLATEDIRS_DEFAULT: True
-  TEMPLATEDIRS: 
-    - 'templates'
-  VIEWPATHS:
-    - 'views'
 
 
 # Logging files. See &logpath for base directory.

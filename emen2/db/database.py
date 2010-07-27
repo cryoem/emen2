@@ -64,7 +64,8 @@ import emen2.db.user
 import emen2.db.context
 import emen2.db.group
 import emen2.db.workflow
-import emen2.util.listops as listops
+from emen2.util import listops
+import emen2.util.decorators
 
 # convenience
 Record = emen2.db.record.Record
@@ -179,20 +180,6 @@ def DB_stat():
 
 
 
-class instonget(object):
-	def __init__(self, cls):
-		self.__class = cls
-	def __get__(self, instance, owner):
-		try:
-			result = object.__getattr__(instance, self.__class.__name__)
-		except AttributeError:
-			result = self.__class
-		if instance != None and result is self.__class:
-			result = self.__class()
-			setattr(instance, self.__class.__name__, result)
-		return result
-
-
 
 # ian: todo: make these express GMT, then have display interfaces localize to time zone...
 def getctime():
@@ -244,7 +231,7 @@ class DB(object):
 	opendbs = weakref.WeakKeyDictionary()
 
 	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
-	@instonget
+	@emen2.util.decorators.instonget
 	class bdbs(object):
 		"""Private class that actually stores the bdbs"""
 
@@ -1557,7 +1544,7 @@ class DB(object):
 		plots = {}
 		if "png" in formats:
 			pngfile = tempfile+".png"
-			fig.savefig(os.path.join(g.TMPPATH,pngfile))
+			fig.savefig(os.path.join(g.paths.TMPPATH,pngfile))
 			plots["png"] = pngfile
 
 
@@ -1568,7 +1555,7 @@ class DB(object):
 			ax.set_ylabel(ylabel)
 			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
 			pdffile = tempfile+".pdf"
-			fig.savefig(os.path.join(g.TMPPATH,pdffile))
+			fig.savefig(os.path.join(g.paths.TMPPATH,pdffile))
 			plots["pdf"] = pdffile
 
 
@@ -1907,18 +1894,24 @@ class DB(object):
 			return None
 
 		#if valrange == None:
-		ret = paramindex.values(txn=txn)
 
+		ret = None
+		if valrange == None:
+			ret = paramindex.values(txn=txn)
 		if valrange != None:
-			# ed: todo: implement bteee valrange support
+			# ed: todo: implement btree valrange support
 			if hasattr(valrange, '__getitem__') and hasattr(valrange, '__iter__'):
-				if len(valrange) == 0:
-					ret = set(x for x in ret if valrange[0] <= self.getrecord(x, ctx=ctx, txn=txn)[param] < valrange[1])
-				else:
-					ret = set(x for x in ret if valrange[0] <= self.getrecord(x, ctx=ctx, txn=txn)[param])
+				keys = paramindex.keys(txn=txn)
+				keys = (x for x in keys if valrange[0] <= x)
+				if len(valrange) == 2:
+					keys = (x for x in keys if valrange[1] > x)
+				keys = set(keys)
+				g.debug(keys)
+				ret = reduce(set.union, (paramindex.get(k, txn=txn) for k in keys), set())
 				#ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
 			else:
-				ret = set(x for x in ret if valrange == self.getrecord(x, ctx=ctx, txn=txn)[param])
+				ret = paramindex.get(valrange, txn=txn)
+				g.debug(ret)
 				#ret = paramindex.values(valrange, txn=txn)
 
 		return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
@@ -4638,19 +4631,24 @@ class DB(object):
 		# remove oldval=newval; strip out wrong keys
 		items = filter(lambda x:x[1] != x[2], items)
 
+		result = None
 		if pd.vartype == "text":
-			return self.__reindex_paramtext(key, items, ctx=ctx, txn=txn)
+			addrefs, delrefs = self.__reindex_paramtext(key, items, ctx=ctx, txn=txn)
+		else:
 
-		addrefs = collections.defaultdict(set)
-		delrefs = collections.defaultdict(set)
+			addrefs = collections.defaultdict(set)
+			delrefs = collections.defaultdict(set)
 
-		for i in items:
-			#g.debug(i)
-			addrefs[i[1]].add(i[0])
-			delrefs[i[2]].add(i[0])
+			for recid, new, old in items:
+				if not hasattr(new, '__iter__'): new = [new]
+				for n in new:
+					addrefs[n].add(recid)
+				if not hasattr(old, '__iter__'): old = [old]
+				for o in old:
+					delrefs[o].add(recid)
 
-		if None in addrefs: del addrefs[None]
-		if None in delrefs: del delrefs[None]
+			if None in addrefs: del addrefs[None]
+			if None in delrefs: del delrefs[None]
 
 		return addrefs, delrefs
 
@@ -5221,8 +5219,8 @@ class DB(object):
 
 		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS) # |  bsddb3.db.DB_ARCH_LOG
 
-		if not os.access(g.ARCHIVEPATH, os.F_OK):
-			os.makedirs(g.ARCHIVEPATH)
+		if not os.access(g.paths.ARCHIVEPATH, os.F_OK):
+			os.makedirs(g.paths.ARCHIVEPATH)
 
 		self.__archivelogs(archivefiles, remove=remove)
 
@@ -5232,7 +5230,7 @@ class DB(object):
 
 		outpaths = []
 		for file_ in files:
-			outpath = os.path.join(g.ARCHIVEPATH, os.path.basename(file_))
+			outpath = os.path.join(g.paths.ARCHIVEPATH, os.path.basename(file_))
 			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
 			shutil.copy(file_, outpath)
 			outpaths.append(outpath)
@@ -5260,29 +5258,29 @@ class DB(object):
 	def coldbackup(self, force=False, ctx=None, txn=None):
 		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
 		self.checkpoint(ctx=ctx, txn=txn)
-		if os.path.exists(g.BACKUPPATH):
+		if os.path.exists(g.paths.BACKUPPATH):
 			if force:
 				pass
 			else:
-				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.BACKUPPATH
+				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.paths.BACKUPPATH
 
 		# ian: just use shutil.copytree
-		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.BACKUPPATH, "data")))
-		shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.BACKUPPATH, "data"))
+		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
+		shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
 
 		for i in ["config.yml","DB_CONFIG"]:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.BACKUPPATH, i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.BACKUPPATH, i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
 
 
-		os.makedirs(os.path.join(g.BACKUPPATH, "log"))
+		os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
 
 		# Get the last log file
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
 
 
 
@@ -5294,8 +5292,8 @@ class DB(object):
 
 		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
 		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.BACKUPPATH, "log", i))
+			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
+			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
 
 		self.archivelogs(remove=True, ctx=ctx, txn=txn)
 

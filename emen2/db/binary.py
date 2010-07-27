@@ -76,8 +76,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		datekey = "%04d%02d%02d"%(year, mon, day)
 
-		mp = [x for x in sorted(g.BINARYPATH.keys()) if str(x)<=datekey]
-		base = g.BINARYPATH[mp[-1]]
+		mp = [x for x in sorted(g.paths.BINARYPATH.keys()) if str(x)<=datekey]
+		base = g.paths.BINARYPATH[mp[-1]]
 
 		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
 		filepath = os.path.join(basepath, "%05X"%counter)

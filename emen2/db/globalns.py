@@ -12,6 +12,7 @@ import collections
 import threading
 import os
 import os.path
+import UserDict
 try: import yaml
 except ImportError:
 	try: import syck as yaml
@@ -19,6 +20,69 @@ except ImportError:
 		yaml = False
 
 from . import debug
+class dictWrapper(object, UserDict.DictMixin):
+	def __init__(self, dict_, prefix):
+		self.__dict = dict_
+		self.__prefix = prefix
+	def __repr__(self):
+		return '<dictWrapper dict: %r>' % self.__dict
+	def keys(self): return self.__dict.keys()
+	def __getitem__(self, name):
+		v = self.__dict[name]
+		if not v.startswith('/'):
+			v = os.path.join(self.__prefix, v)
+		return v
+	def __setitem__(self, name, value):
+		if isinstance(value, (str, unicode)):
+			if value.startswith(self.__prefix):
+				del value[len(self.__prefix):]
+		self.__dict[name] = value
+	def __delitem__(self, name):
+		del self.__dict[name]
+
+class listWrapper(object):
+	def __init__(self, list_, prefix):
+		self.__list = list_
+		self.__prefix = prefix
+	def __repr__(self):
+		return '<listWrapper list: %r>' % self.__list
+	def check_item(self, item):
+		if isinstance(item, (str, unicode)):
+			item = os.path.join(self.__prefix, item)
+		return item
+	def __iter__(self):
+		for item in self.__list:
+			yield self.check_item(item)
+	def __getitem__(self, k):
+		return self.check_item(self.__list[k])
+	def chopitem(self, item):
+		if isinstance(item, (str, unicode)):
+			if item.startswith(self.__prefix):
+				item = item[len(self.__prefix):]
+		return item
+	def __setitem__(self, key, value):
+		value = self.chopitem(value)
+		self.__list[key] = value
+	def __delitem__(self, idx):
+		del self.__list[idx]
+	def append(self, item):
+		item = self.chopitem(item)
+		self.__list.append(item)
+	def extend(self, items):
+		self.__list.extend(self.chopitem(item) for item in items)
+	def pop(self, idx):
+		res = self[idx]
+		del self[idx]
+		return res
+	def count(self, item):
+		return self.__list.count(self.chopitem(item))
+	def insert(self, idx, item):
+		self.__list.insert(idx, self.chopitem(item))
+	def __len__(self): return len(self.__list)
+
+
+
+inst = lambda x:x()
 class GlobalNamespace(object):
 	class LoggerStub(debug.DebugState):
 		def __init__(self, *args):
@@ -29,20 +93,42 @@ class GlobalNamespace(object):
 			sn = self.debugstates.get_name(self.debugstates[sn])
 			print u'StubLogger: %s :: %s :: %s' % (self, sn, self.print_list(args))
 
+	@inst
+	class paths(object):
+		__root = ['']
+		@property
+		def root(self): return self.__root[0]
+		@root.setter
+		def root(self, v):
+			self.__root.insert(0, v)
+		def update(self, path):
+			self.root = path
+		def __getattribute__(self, name):
+			value = object.__getattribute__(self, name)
+			if name != 'root' and not name.startswith('_'):
+				if isinstance(value, (str, unicode)):
+					if value.startswith('/'): pass
+					else:
+						value = os.path.join(self.root, value)
+				elif hasattr(value, '__iter__'):
+					if hasattr(value, 'items'):
+						value = dictWrapper(value, self.root)
+					else:
+						value = listWrapper(value, self.root)
+			return value
+
 	__yaml_keys = collections.defaultdict(list)
 	__yaml_files = collections.defaultdict(list)
 	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
 	__all__ = []
-	def __init__(self,_=None):pass
+	def __init__(self,_=None): pass
 
 	def fixpath(self, v):
 		if not v: return
 		if not v.startswith("/"): return os.path.join(self.EMEN2DBHOME, v)
 		return v
-
-
 
 
 
@@ -53,8 +139,7 @@ class GlobalNamespace(object):
 		if not (fn or data):
 			raise ValueError, 'Either a filename or yaml data must be supplied'
 
-		if not yaml:
-			raise NotImplementedError, "No YAML loader found"
+		if not yaml: raise NotImplementedError, "No YAML loader found"
 
 		fn = os.path.abspath(fn)
 
@@ -68,22 +153,10 @@ class GlobalNamespace(object):
 
 		self.log.msg('LOG_INIT', "Loading config: %s"%fn)
 		self.EMEN2DBHOME = self.getattr('EMEN2DBHOME', data.get('EMEN2DBHOME', ''))
+		self.paths.root = self.EMEN2DBHOME
 
-		# Process relative/absolute path names in 'paths'
-		for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
-			v = data.get('paths',dict()).get(i)
-			if v:
-				data['paths'][i] = self.fixpath(v)
-
-		bf = data.get('paths',dict()).get('BINARYPATH', dict())
-		if bf:
-			bf = [(k,self.fixpath(v)) for k,v in bf.items()]
-			data['paths']['BINARYPATH'] = dict(bf)
-
-
-		# process URL
-		#if data.get('network'):
-		#	data['network']['EMEN2WEBROOT'] = ''
+		paths = data.pop('paths', {})
+		for k,v in paths.items(): setattr(self.paths, k, v)
 
 
 		# process data
@@ -105,7 +178,7 @@ class GlobalNamespace(object):
 
 
 		# load alternate config files
-		for fn in data.get('paths',dict().get('configfiles',[])):
+		for fn in paths.get('configfiles', []):
 			if os.path.exists(fn):
 				cls.from_yaml(fn=fn)
 
@@ -173,6 +246,7 @@ class GlobalNamespace(object):
 
 	@classmethod
 	def setattr(self, name, value):
+		#if name == 'paths': raise AttributeError, 'cannot set attribute paths of %r' % self
 		self.__modlock.acquire(1)
 		try:
 			self.__addattr(name, value)

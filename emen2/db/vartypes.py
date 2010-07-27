@@ -195,7 +195,7 @@ class vt_datetime(Vartype):
 class vt_intlist(Vartype):
 	"""list of ints"""
 	__metaclass__ = Vartype.register_view
-	__indextype__ = None
+	__indextype__ = 'd'
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -205,7 +205,7 @@ class vt_intlist(Vartype):
 class vt_floatlist(Vartype):
 	"""list of floats"""
 	__metaclass__ = Vartype.register_view
-	__indextype__ = None
+	__indextype__ = 'f'
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -215,7 +215,7 @@ class vt_floatlist(Vartype):
 class vt_stringlist(Vartype):
 	"""list of strings"""
 	__metaclass__ = Vartype.register_view
-	__indextype__ = None
+	__indextype__ = 's'
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]

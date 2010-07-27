@@ -83,12 +83,12 @@ class DBOptions(optparse.OptionParser):
 			for fil in self.values.configfile:
 				g.from_yaml(fil)
 		EMEN2DBHOME = g.EMEN2DBHOME
-		def fix_paths():
+		# def fix_paths():
 			# Process relative/absolute path names in 'paths'
-			for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
-				#print g.getattr(i)
-				if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
-					g.setattr(i, '/%s' % g.getattr(i))
+			#for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
+			#	#print g.getattr(i)
+			#	if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
+			#		g.setattr(i, '/%s' % g.getattr(i))
 
 		# Look for any EMEN2DBHOME-specific config files and load
 		try:
@@ -103,7 +103,7 @@ class DBOptions(optparse.OptionParser):
 		# g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
 		# g.VIEWPATHS.extend(self.values.viewdirs or [])
 		if g.getattr('TEMPLATEDIRS_DEFAULT', False):
-			g.TEMPLATEDIRS.append(get_filename('emen2','web/templates'))
+			g.paths.TEMPLATEDIRS.append(get_filename('emen2','web/templates'))
 
 
 		# print "td ", g.TEMPLATEDIRS
@@ -134,8 +134,8 @@ class DBOptions(optparse.OptionParser):
 
 
 		# Make sure paths to log files exist
-		if not os.path.exists(g.LOGPATH):
-			os.makedirs(g.LOGPATH)
+		if not os.path.exists(g.paths.LOGPATH):
+			os.makedirs(g.paths.LOGPATH)
 
 
 		g.LOG_CRITICAL = g.log.debugstates.LOG_CRITICAL
@@ -147,7 +147,7 @@ class DBOptions(optparse.OptionParser):
 		g.LOG_DEBUG = g.log.debugstates.LOG_DEBUG
 
 		g.log = emen2.db.debug.DebugState(output_level=self.values.loglevel,
-											logfile=file(g.LOGPATH + '/log.log', 'a', 0),
+											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
 											get_state=False,
 											quiet = self.values.quiet)
 
@@ -160,7 +160,7 @@ class DBOptions(optparse.OptionParser):
 		g.debug_func = g.log.debug_func
 
 
-		g.log.add_output(['LOG_WEB'], emen2.db.debug.Filter(g.LOGPATH + '/access.log', 'a', 0))
+		g.log.add_output(['LOG_WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 
 
