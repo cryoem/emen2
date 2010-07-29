@@ -1879,7 +1879,7 @@ class DB(object):
 	# ian todo: medium: add unit support.
 	#@rename db.query.param @ok @return set of recids
 	@publicmethod
-	def getindexbyvalue(self, param, valrange=None, ctx=None, txn=None):
+	def getindexbyvalue(self, param, value, ctx=None, txn=None):
 		"""Query an indexed parameter. Return all records that contain a value, with optional value range
 
 		@param param parameter name
@@ -1888,31 +1888,29 @@ class DB(object):
 
 		@return List of matching recids
 		"""
-
 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
-		if paramindex == None:
-			return None
+		if paramindex == None: return set()
 
-		#if valrange == None:
+		ret = paramindex.get(value, txn=txn)
+		return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
+
+
+	@publicmethod
+	def getindexinrange(self, param, low=None, high=None, ctx=None, txn=None):
+		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+		if paramindex == None: return set()
 
 		ret = None
-		if valrange == None:
+		if low != None or high != None:
+			keys = paramindex.keys(txn=txn)
+			if low != None:
+				keys = (x for x in keys if low <= x)
+			if high != None:
+				keys = (x for x in keys if high > x)
+			keys = set(keys)
+			ret = reduce(set.union, (paramindex.get(k, txn=txn) for k in keys), set())
+		else:
 			ret = paramindex.values(txn=txn)
-		if valrange != None:
-			# ed: todo: implement btree valrange support
-			if hasattr(valrange, '__getitem__') and hasattr(valrange, '__iter__'):
-				keys = paramindex.keys(txn=txn)
-				keys = (x for x in keys if valrange[0] <= x)
-				if len(valrange) == 2:
-					keys = (x for x in keys if valrange[1] > x)
-				keys = set(keys)
-				g.debug(keys)
-				ret = reduce(set.union, (paramindex.get(k, txn=txn) for k in keys), set())
-				#ret = set(paramindex.values(valrange[0], valrange[1], txn=txn))
-			else:
-				ret = paramindex.get(valrange, txn=txn)
-				g.debug(ret)
-				#ret = paramindex.values(valrange, txn=txn)
 
 		return self.filterbypermissions(ret, ctx=ctx, txn=txn) #ret & secure # intersection of the two search results
 
