@@ -63,7 +63,7 @@ class AccessLogLine(dict):
 		self.line = line
 		return self
 
-	def __repr__(self): return "LogLine(%s)" % dict.__repr__(self)
+	def __repr__(self): return "AccessLogLine(%s)" % dict.__repr__(self)
 	def __str__(self):
 		d = dict(self)
 		d['rtime'] = d['rtime'].strftime(self.__tfmt)
@@ -86,8 +86,8 @@ class LogFile(object):
 		self.lines = []
 
 		for line in lines:
-			if not isinstance(line, LogLine):
-				line = LogLine.from_line(line)
+			if not isinstance(line, AccessLogLine):
+				line = AccessLogLine.from_line(line)
 			for k,v in line.items():
 				self.data[k][v].append(line)
 
@@ -96,7 +96,7 @@ class LogFile(object):
 		lines= []
 		for line in file:
 			try:
-				lines.append(LogLine.from_line(line))
+				lines.append(AccessLogLine.from_line(line))
 			except: pass
 		return cls(*lines)
 
