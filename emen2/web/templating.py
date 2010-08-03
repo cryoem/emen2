@@ -87,11 +87,13 @@ class Template(object):
 		try:
 			mtime = os.stat(self.path).st_mtime
 			if int(mtime) != int(self.mtime):
+				g.debug('updating template: %s' % self.filename)
 				with file(self.path) as f:
 					self.template = self.tempconst(f.read(), lookup, filename=self.filename)
 		except OSError, e:
 			if e.errno == 2: g.log_info('file (%r) no longer exists, not updating template %s' % (self.path, self.filename))
 			else: g.log_error('problem with template %s: %s' % (self.filename, e))
+
 
 class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
 	templates = {}
@@ -100,6 +102,7 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
 		if (not self.templates.has_key(name)) or (self[name].source != value):
 			self.templates[name] = Template(template, self, name, path)
 
+	@g.debug_func
 	def get_template(self, uri, relativeto=None):
 		try:
 			template = self[uri]
