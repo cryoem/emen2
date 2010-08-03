@@ -102,7 +102,6 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
 		if (not self.templates.has_key(name)) or (self[name].source != value):
 			self.templates[name] = Template(template, self, name, path)
 
-	@g.debug_func
 	def get_template(self, uri, relativeto=None):
 		try:
 			template = self[uri]

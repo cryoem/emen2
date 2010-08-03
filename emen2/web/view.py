@@ -88,6 +88,7 @@ class View(object):
 			EMEN2LOGO=g.EMEN2LOGO,
 			BOOKMARKS=g.BOOKMARKS,
 			def_title='Untitled',
+			reverseinfo=reverseinfo
 		)
 		self.set_context_items(self.__basectxt)
 		self.set_context_item('notify', [])
