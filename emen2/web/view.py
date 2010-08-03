@@ -13,7 +13,6 @@ from emen2.web import routing
 import emen2.db.config
 g = emen2.db.config.g()
 
-
 class View(object):
 	'''Base Class for views, sets up the instance variables for the class
 
@@ -53,8 +52,10 @@ class View(object):
 	def __set_template(self, value): self.__template = value
 	template = property(lambda self: self.__template, __set_template)
 
-	def __init__(self, db=None, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, **extra):
+	@g.debug_func
+	def __init__(self, db=None, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
 		'''\
+		subclasses should not override this method, rather they should define an 'init' method.
 		subclasses should remember to call the base classes __init__ method if they override it.
 
 		db is the Database instance for the class to use
@@ -64,6 +65,8 @@ class View(object):
 		css_files attaches a css library to the view
 		js_files attaches a javascript library to the view,
 		format governs which method is called to get the view data
+		init passes a method to be called to initialize the view
+		reverseinfo contains information necessary to reconstruct the url
 		extra catches arguments to be passed to the 'init' method
 		'''
 		self.__db = db
@@ -84,15 +87,18 @@ class View(object):
 			EMEN2DBNAME=g.EMEN2DBNAME,
 			EMEN2LOGO=g.EMEN2LOGO,
 			BOOKMARKS=g.BOOKMARKS,
-			notify=[],
-			def_title='Untitled'
+			def_title='Untitled',
 		)
 		self.set_context_items(self.__basectxt)
+		self.set_context_item('notify', [])
 
 		# call any view specific initialization
 		self.__raw = False
 		if format is not None:
 			self.get_data = getattr(self, 'get_%s' % format)
+
+		preinit = getattr(self, 'preinit', [])
+		for hook in preinit: hook(self)
 
 		if init is not None: init=functools.partial(init,self)
 		else: init = self.init
@@ -272,6 +278,15 @@ class View(object):
 		ur = routing.URLRegistry()
 		ur.register(cls.__url)
 		return cls
+
+class AdminView(View):
+	preinit = []
+
+	@preinit.append
+	def checkadmin(self):
+		context = self.db._getctx()
+		if not context.checkadmin():
+			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
 
 
 class MatcherInfo(object):
