@@ -24,12 +24,12 @@ class MethodUtil(object):
 
 class DBProxy(object):
 	"""A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
-	
+
 	db = DBProxy()
 	db._login(username, password)
-	
+
 	"""
-	
+
 	__publicmethods = {}
 	__adminmethods = {}
 	__extmethods = {}
@@ -40,10 +40,10 @@ class DBProxy(object):
 
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
-		
+
 		# it can cause circular imports if this is at the top level of the module
 		import database
-		
+
 		self.__txn = None
 		self.__bound = False
 
@@ -55,7 +55,7 @@ class DBProxy(object):
 		self.__ctx = ctx
 		self.__txn = txn
 
-	
+
 	# Implements "with" interface
 	def __enter__(self):
 		#g.debug('beginning DBProxy context')
@@ -114,7 +114,7 @@ class DBProxy(object):
 		return ctxid
 
 	_login = login
-	
+
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
@@ -144,7 +144,7 @@ class DBProxy(object):
 	@property
 	def _bound():
 		return self.__bound
-		
+
 	@_bound.deleter
 	def _bound():
 		self._clearcontext()
@@ -181,7 +181,7 @@ class DBProxy(object):
 	# Wrap DB calls to set Context and txn
 	def _callmethod(self, method, args, kwargs):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
-		
+
 		args = list(args)
 		method = method.split('.')
 		func = getattr(self, method[0])
@@ -208,18 +208,18 @@ class DBProxy(object):
 		if name in self.__extmethods:
 			func = self.__extmethods.get(name)()
 			return self._publicmethod_wrap(func.execute, ext=True)
-		
+
 		elif name in self.__publicmethods:
 			func = getattr(self.__db, name)
 			return self._publicmethod_wrap(func)
-				
+
 		else:
 			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
-	
-	
+
+
 	# ian: changed how publicmethods are created because docstrings and tracebacks were being mangled
 	# they are now wrapped when accessed, not replaced with pre-wrapped versions.
-	
+
 	# >>> def my_decorator(f):
 	# ...     @wraps(f)
 	# ...     def wrapper(*args, **kwds):
@@ -237,49 +237,49 @@ class DBProxy(object):
 	def _publicmethod_wrap(self, func, ext=False):
 		# func = getattr(self.__db, name)
 		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
-	
+
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			# t = time.time()
 
 			result = None
 			commit = False
-		
+
 			ctx = self.__ctx
 			kwargs['ctx'] = ctx
-		
+
 			txn = self.__txn
 			if bool(txn) is False:
 				txn = self.__db.newtxn()
 				commit = True
 			kwargs['txn'] = txn
-		
+
 			if ext:
 				kwargs['db'] = self.__db
-		
+
 			try:
 				# g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
 				# result = func.execute(*args, **kwargs)
 				result = func(*args, **kwargs)
-				
+
 			except Exception, e:
 				# traceback.print_exc(e)
 				if commit is True:
 					txn and self.__db.txnabort(ctx=ctx, txn=txn)
 				raise
-		
+
 			else:
 				if commit is True:
 					txn and self.__db.txncommit(ctx=ctx, txn=txn)
-		
+
 			# timer!
 			# print "--- %10d ms: %s"%((time.time()-t)*1000, func.func_name)
-		
+
 			return result
-		
+
 		return wrapper
-		
-		
+
+
 
 
 
@@ -299,6 +299,6 @@ class DBExt(object):
 	def register(cls):
 		"""Register database extension decorator"""
 		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
-		
-		
-		
+
+
+

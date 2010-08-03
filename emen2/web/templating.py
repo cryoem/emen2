@@ -14,52 +14,27 @@ import mako.lookup
 import mako.template
 from emen2.util import fileops
 import emen2.util.db_manipulation
+import emen2.db.config
+g = emen2.db.config.g()
+import time
+import os
+import stat
 
 class TemplateFactory(object):
 	def __init__(self, default_engine_name, default_engine):
-		self.__template_registry = {}
-		self.register_template_engine(default_engine_name, default_engine)
-		self.set_default_template_engine(default_engine_name)
-		self.set_current_template_engine(default_engine_name)
+		self.templates = default_engine
 
 	def render_template(self, name, context):
-		template_engine = self.get_current_template_engine()
-		return template_engine.render_template(name, context)
+		return self.templates.render_template(name, context)
 
-	def add_template(self, name, template_string):
-		self.__currentengine.add_template(name, template_string)
+	def add_template(self, name, template_string, path):
+		self.templates.add_template(name, template_string, path)
 
 	def has_template(self, name, engine=None, exc=False):
-		if not engine:
-			if exc:
-				self.__currentengine[name]
-				return True
-			else:
-				return self.__currentengine.has_template(name)
-		else:
-			self.__template_registry[engine].has_template(name)
-
-	def set_default_template_engine(self, engine_name):
-		self.__defaultengine = self.__template_registry[engine_name]
-
-	def get_default_template_engine(self):
-		return self.__defaultengine
-
-	def set_current_template_engine(self, engine_name):
-		self.__currentengine = self.__template_registry[engine_name]
-
-	def get_current_template_engine(self):
-		return self.__currentengine
-
-	def register_template_engine(self, engine_name, engine):
-		self.__template_registry[engine_name] = engine
+		return self.templates.has_template(name)
 
 	def handle_error(self, exception, context={}, errcode=500, template=None):
-		return self.__currentengine.handle_error(exception)
-
-	def template_engines(self):
-		return  self.__template_registry.keys()
-	template_registry = property(template_engines)
+		return self.templates.handle_error(exception)
 
 class TemplateNotFoundError(KeyError): pass
 class AbstractTemplateLoader(object):
@@ -83,30 +58,53 @@ class AbstractTemplateEngine(object):
 	def get_template(self, name):
 		return self.templates[name]
 	__getitem__ = get_template
-	def add_template(self, name, template_string):
-		self.templates[name] = template_string
+	def add_template(self, name, template_string, path):
+		self.templates[name] = (template_string, path)
 	def render_template(self, name, context):
-		return self.templates[name]
+		return self.get_template(name)
 	def has_template(self, name):
 		return self.templates.has_template(name)
 	def handle_error(self, exception):
 		return str(exception)
 
 
-
 class StandardTemplateEngine(AbstractTemplateEngine):
 	def render_template(self, name, context):
 		return self.templates[name].render(**context)
 
+class Template(object):
+	@staticmethod
+	def tempconst(value, lookup, filename):
+		return mako.template.Template(value, lookup=lookup, output_encoding='utf-8', encoding_errors='replace', filename=filename)
+
+	def __init__(self, value, lookup, filename, path):
+		self.path = path
+		self.filename = filename
+		self.mtime = os.stat(path).st_mtime
+		self.template = self.tempconst(value, lookup, filename=filename)
+
+	def update(self, lookup):
+		try:
+			mtime = os.stat(self.path).st_mtime
+			if int(mtime) != int(self.mtime):
+				with file(self.path) as f:
+					self.template = self.tempconst(f.read(), lookup, filename=self.filename)
+		except OSError, e:
+			if e.errno == 2: g.log_info('file (%r) no longer exists, not updating template %s' % (self.path, self.filename))
+			else: g.log_error('problem with template %s: %s' % (self.filename, e))
 
 class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader):
 	templates = {}
 	def __setitem__(self, name, value):
+		template, path = value
 		if (not self.templates.has_key(name)) or (self[name].source != value):
-			self.templates[name] = mako.template.Template(value, lookup=self, output_encoding='utf-8', encoding_errors='replace', filename=name)
+			self.templates[name] = Template(template, self, name, path)
+
 	def get_template(self, uri, relativeto=None):
 		try:
-			return self[uri]
+			template = self[uri]
+			if g.DEBUG: template.update(self)
+			return self[uri].template
 		except KeyError:
 			raise TemplateNotFoundError('No Template: %s' % uri)
 
@@ -119,7 +117,7 @@ class MakoTemplateEngine(StandardTemplateEngine):
 
 	def render_template(self, name, context):
 		try:
-			return self.templates[name].render_unicode(**context)
+			return self.templates.get_template(name).render_unicode(**context)
 		except:
 			return exceptions.html_error_template().render_unicode()
 
@@ -142,9 +140,6 @@ class MakoTemplateEngine(StandardTemplateEngine):
 
 
 #### template loading
-import emen2.db.config
-g = emen2.db.config.g()
-
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
 	#print pwd, pth
 	if not hasattr(failures, 'append'): failures = []
@@ -155,7 +150,7 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		level = 'LOG_INIT'
 		msg = ["TEMPLATE ", templatename]
 		try:
-			g.templates.add_template(templatename,data)
+			g.templates.add_template(templatename,data,filpath+ext)
 		except BaseException, e:
 			g.log(str(e))
 			level = 'LOG_ERROR'

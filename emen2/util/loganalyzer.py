@@ -5,24 +5,29 @@ import collections
 # 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /db/rec/  HTTP/-.-"     200     9714
 # 127.0.0.1 - - [Thu May 21 12:48:18 2009] /db/rec/ 200 9714
 # LOG_WEB:publicresource.py :: 127.0.0.1 - - [Thu May 21 12:43:41 2009] /db/__reload_views/ 200 3159
-HOST_NAME = 0
-SKIP = 1
-SKIP = 2
-TIME = 3,7
-METHOD = 8
-PATH = 9
-PROTOCOL = 10
-RESPONSE_CODE = 11
-SIZE = 12
+
+#default time format
 CTIME = "[%a %b %d %H:%M:%S %Y]"
+
+#constants for decoding a split log line
+HOST = 0
+CTXID = 1
+USERNAME = 2
+TIME = 3
+REQUEST = 4
+RESPONSE_CODE = 5
+SIZE = 6
+
 class LogLine(dict):
-	def __init__(self, host, rtime, request, response_code, size, extra, time_fmt=CTIME):
+	def __init__(self, host, ctxid, username, rtime, request, response_code, size, extra=(), time_fmt=CTIME):
 		self.__locked = False
 		self.__tfmt = time_fmt
-		self['host'], self['request'], self['response_code'], self['size'] = host, request, response_code, size
+		(self['host'], self['ctxid'],
+			self['username'], self['request'],
+			self['response_code'], self['size']) = host, ctxid, username, request, response_code, size
 		if not hasattr(rtime, 'strptime'): rtime = datetime.datetime.strptime(rtime, CTIME)
 		self['rtime'] = rtime
-		self['extra'] = extra
+		self['extra'] = tuple(extra)
 		self.__locked = True
 
 	@classmethod
@@ -44,24 +49,25 @@ class LogLine(dict):
 				out[-1].append(word)
 				if any( word.endswith(c) for c in eschar ): toggle()
 		line = [' '.join(item) for item in out]
-		print line
-		host = line[0]
-		rtime = line[3]
-		request = line[4]
-		response_code = int(line[5])
-		size = int(line[6])
-		extra = None#line[7:]
+		host = line[HOST]
+		ctxid = line[CTXID]
+		username = line[USERNAME]
+		rtime = line[TIME]
+		request = line[REQUEST]
+		response_code = int(line[RESPONSE_CODE])
+		size = int(line[SIZE])
+		extra = tuple(line[SIZE+1:])
 		rtime = datetime.datetime.strptime(rtime,time_fmt)
-		self = cls(host, rtime, request, response_code, size, extra, time_fmt)
+		self = cls(host, ctxid, username, rtime, request, response_code, size, extra, time_fmt)
 		self.__line = tline
 		self.line = line
 		return self
 
-	def __repr__(self): return "LogLine(%r)" % ' '.join(self.__line.split())
+	def __repr__(self): return "LogLine(%s)" % dict.__repr__(self)
 	def __str__(self):
 		d = dict(self)
 		d['rtime'] = d['rtime'].strftime(self.__tfmt)
-		return '%(host)s - - %(rtime)s %(request)s %(response_code)s %(size)s\n' % d
+		return '%(host)s %(ctxid)s %(username)s %(rtime)s %(request)s %(response_code)s %(size)s\n' % d
 
 	def __setitem__(self, key, value):
 		if self.__locked == True:

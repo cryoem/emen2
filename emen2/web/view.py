@@ -154,6 +154,9 @@ class View(object):
 		return self.__headers[name]
 
 	# template context manipulation
+	def get_context_item(self, name, default=None):
+		return self.__ctxt.get(name)
+
 	def set_context_item(self, name, value):
 		'''add a single item to the tempalte context'''
 		if name in self.__basectxt.keys():
