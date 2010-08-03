@@ -37,7 +37,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","childrecs"])
+	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","childrecs","displayname","userrec"])
 
 
 	def init(self, d=None):
@@ -57,11 +57,12 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.privacy = d.get('privacy',0)
 		self.record = d.get('record', None)
 		self.signupinfo = d.get('signupinfo', {})
-		self.childrecs = d.get('childrecs', {})
 		self.creator = d.get('creator',0)
 		self.creationtime = d.get('creationtime', None)
 		self.modifytime = d.get('modifytime', None)
 		self.modifyuser = d.get('modifyuser', None)
+
+		# self.childrecs = d.get('childrecs', {})
 
 		self.userrec = {}
 		self.groups = set()
@@ -79,7 +80,6 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	def __getstate__(self):
 		"""Context and other session-specific information should not be pickled"""
-
 		odict = self.__dict__.copy() # copy the dict since we change it
 		odict['_ctx'] = None
 		odict['userrec'] = {}

@@ -43,8 +43,8 @@ class View(object):
 	ctxt = property(lambda self: self.get_context())
 	_ctxt = property(lambda self: self.__ctxt)
 
-	js_files = emen2.web.extfile.AdminJS
-	css_files = emen2.web.extfile.AdminCSS
+	js_files = emen2.web.extfile.BaseJS
+	css_files = emen2.web.extfile.BaseCSS
 
 	def __set_mimetype(self, value): self.__headers['content-type'] = value
 	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
@@ -119,6 +119,12 @@ class View(object):
 		self.__raw = True
 
 	#### Output methods #####################################################################
+
+	def error(self, msg):
+		self.template="/errors/error"
+		self.ctxt["title"] = "Error"
+		self.ctxt["errmsg"] = msg
+		
 
 	def get_data(self):
 		'''override to change the way it gets the view data'''
@@ -306,6 +312,7 @@ class Page(object):
 
 	def __str__(self):
 		return g.templates.render_template(self.__template, self.__valuedict).encode('ascii', 'replace')
+
 
 	@classmethod
 	def render_template(cls, template, modifiers=None):

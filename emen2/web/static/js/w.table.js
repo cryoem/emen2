@@ -1,21 +1,4 @@
 
-function table_editcolumn(elem,key) {
-
-	// new multiwidget(...)
-
-}	
-
-
-
-
-
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-
-
 var TableControl = (function($) { // Localise the $ function
 
 function TableControl(elem, opts) {
@@ -41,13 +24,13 @@ TableControl.prototype = {
 		var self=this;
 		
 		// controls
-		$(".table_sortkey",this.elem).click(function(e){self.event_sortkey(e)});
-		$(".table_selectsort",this.elem).change(function(e){self.event_selectsort(e)});
-		$(".table_setpos",this.elem).click(function(e){self.event_setpos(e)});
-		$(".table_setcount",this.elem).change(function(e){self.event_setcount(e)});
-		$(".table_viewtype",this.elem).change(function(e){self.event_viewtype(e)});		
-		$(".table_quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
-		$(".table_quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
+		$(".sortkey",this.elem).click(function(e){self.event_sortkey(e)});
+		$(".selectsort",this.elem).change(function(e){self.event_selectsort(e)});
+		$(".setpos",this.elem).click(function(e){self.event_setpos(e)});
+		$(".setcount",this.elem).change(function(e){self.event_setcount(e)});
+		$(".viewtype",this.elem).change(function(e){self.event_viewtype(e)});		
+		$(".quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
+		$(".quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
 		//$(".table_properties",this.elem).TableColumnControl({tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
 		// this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
 		//$(".table_properties",this.elem).click(function(e){self.tablecolumncontrol.event_toggleprop(e)});
@@ -157,11 +140,6 @@ return TableControl;
 
 
 
-
-
-
-
-/////////////////////////////////////////////
 /////////////////////////////////////////////
 /////////////////////////////////////////////
 /////////////////////////////////////////////
@@ -187,12 +165,12 @@ TableColumnControl.prototype = {
 	init: function() {
 		var self=this;
 		var pos=this.elem.position();
-		var th=$(".table_header",this.table.elem);
+		var th=$(".header",this.table.elem);
 		
 		//console.log(this.elem.offset());
 
 		this.built=0;
-		this.p=$('<div class="table_keys_menu" />');
+		this.p=$('<div class="keys_menu" />');
 		this.p.css({position:"absolute", width:400, top:th.offset().top+th.outerHeight(),left:ts.pos.left-250});
 
 		//this.elem.css({background:"white",border:"2px solid #ccc", padding:4});
@@ -320,14 +298,14 @@ TableColumnControl.prototype = {
 	show: function() {
 		//this.p.fadeIn();
 		this.disp=1;
-		this.elem.addClass("table_properties_active");
+		this.elem.addClass("properties_active");
 		this.p.show();
 	},
 	
 	hide: function() {
 		//this.p.fadeOut();
 		this.disp=0;
-		this.elem.removeClass("table_properties_active");		
+		this.elem.removeClass("properties_active");		
 		this.p.hide();
 	},
 	

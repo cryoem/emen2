@@ -204,7 +204,6 @@ class DBProxy(object):
 
 	def __getattr__(self, name):
 		# print "__getattr__ %s"%name
-
 		if name in self.__extmethods:
 			func = self.__extmethods.get(name)()
 			return self._publicmethod_wrap(func.execute, ext=True)

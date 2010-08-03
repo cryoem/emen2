@@ -1052,7 +1052,7 @@ class DB(object):
 
 			self.putrecord(rec, ctx=ctx, txn=txn)
 
-		return bdoo
+		return self.getbinary(bdoo.name, ctx=ctx, txn=txn)
 
 
 
@@ -1765,7 +1765,8 @@ class DB(object):
 			boolmode=boolmode,
 			ignorecase=True,
 			constraints=constraints,
-			ctx=ctx, txn=txn
+			ctx=ctx,
+			txn=txn
 		)
 
 		recs = self.getrecord(q["recids"], ctx=ctx, txn=txn)
@@ -3005,7 +3006,6 @@ class DB(object):
 			user.setContext(ctx)
 
 			# if the user has requested privacy, we return only basic info
-			#if (user.privacy and ctx.username == None) or user.privacy >= 2:
 			if user.privacy and not (ctx.checkreadadmin() or ctx.username == user.username):
 				# password is just dummy value because of how the constructor works; it's immediately set to None
 				user = emen2.db.user.User(username=user.username, email=user.email, password='123456')
@@ -3020,11 +3020,9 @@ class DB(object):
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
 			user.getuserrec(lnf=lnf)
-
 			user.password = None
-
 			ret.append(user)
-
+			
 		if ol: return return_first_or_none(ret)
 		return ret
 
@@ -4105,7 +4103,7 @@ class DB(object):
 		rec.addcomment(comment)
 		self.putrecord(rec, ctx=ctx, txn=txn)
 
-		return self.getrecord(recid, ctx=ctx, txn=txn)["comments"]
+		return self.getrecord(recid, ctx=ctx, txn=txn) #["comments"]
 
 
 
@@ -4164,7 +4162,7 @@ class DB(object):
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec[param] = value
 		self.putrecord(rec, ctx=ctx, txn=txn)
-		return self.getrecord(recid, ctx=ctx, txn=txn).get(param)
+		return self.getrecord(recid, ctx=ctx, txn=txn) #.get(param)
 
 
 
@@ -4942,8 +4940,8 @@ class DB(object):
 		return self.__putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
-	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
-
+	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):		
+		
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 

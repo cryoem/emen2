@@ -14,7 +14,7 @@ paths:
     
   # Cache for "map" interface for large image files    
   TILEPATH:
-    emen2tiles
+    tiles
   
   # Path to SSL certificates    
   SSLPATH:
@@ -111,7 +111,7 @@ bookmarks:
 
 
 EMAN2:
-  E2TILEFILE: emen2/clients/e2tilefile.py --buildspec
+  EMAN2PYTHON: /usr/bin/python
 
 
 # Probably don't want to touch these unless you have an unusual Berkeley DB setup

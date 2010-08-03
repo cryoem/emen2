@@ -94,12 +94,14 @@ class InputValidator(object):
 		'''Match a specific name/value pair'''
 		result = True
 		if self.__predicates.has_key(name):
+			print name, self.__predicates[name]
 			result = self.__predicates[name](value)
 		return result
 
 	def check_dictionary(self, fields):
 		'''Match a dictionary against the stored conditions'''
 		result = []
+		if not fields: result = self.__predicates.keys()
 		for field in fields:
 			if not self.check_field(field, fields[field]):
 				result.append(field)
@@ -112,6 +114,13 @@ class InputValidator(object):
 	def _is_of_pred(self, pred, inp):
 		'''utility function for composing new predicates'''
 		return len([ch for ch in inp if not pred(ch)]) == 0
+		
+		
+	# @staticmethod
+	# def is_alnum(self, inp):
+	# 	inp = ''.join(inp.split())
+	# 	if not inp: return False
+	# 	return inp.isalnum()
 
 	is_alnum = staticmethod(lambda inp: ''.join(inp.split()).isalnum())
 	is_alpha = staticmethod(lambda inp: ''.join(inp.split()).isalpha())

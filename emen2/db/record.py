@@ -422,6 +422,9 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not self.commentable():
 			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add comment"
 
+		if value == None:
+			return
+
 		if not isinstance(value,basestring):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
@@ -533,6 +536,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def commentable(self):
 		"""Does user have level 1 permissions? Required to comment or link."""
 		return any(self.__ptest[1:])
+
+	
+	def ptest(self):
+		return self.__ptest
 
 
 	# def validationwarning(self, msg, e=None, warning=False):

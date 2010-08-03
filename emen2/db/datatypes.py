@@ -187,6 +187,14 @@ class Vartype(object):
 			}
 
 
+	def check_iterable(self, value):
+		if not value:
+			value=[]
+		if not hasattr(value,"__iter__"):
+			value=[value]	
+		return value
+
+
 	def getvartype(self):
 		return self.__vartype__
 
@@ -225,12 +233,16 @@ class Vartype(object):
 			u = " %s"%pd.defaultunits
 
 		if value in [None, "None", ""] and edit:
-			value = '<img src="%s/images/blank.png" height="10" width="50" alt="(editable field)" />'%g.EMEN2WEBROOT
+			value = '<img src="%s/images/blank.png" height="10" width="50" alt="(Editable)" />'%g.EMEN2WEBROOT
 			u = ""
 		else:
 			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
+		
+		if edit:
+			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label">Edit</span></span>'%(rec.recid, pd.name, value, u)
+		else:	
+			return '<span>%s%s</span>'%(value, u)
 
-		return '<span class="%s" data-recid="%s" data-param="%s">%s%s</span>'%(["","editable"][edit],rec.recid, pd.name, value, u)
 
 
 	def encode(self, value):

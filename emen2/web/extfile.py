@@ -39,52 +39,43 @@ class ExtFile(object):
 		return iter(self.__files)
 
 
-
+# ian: todo: optimize this some in the future; not every page needs all the files
 class BaseJS(ExtFile):
-	__metaclass__ = ExtFile.registerjs
 	def init(self):
-		self.files = [
-			'%s/js/jquery/jquery.js' % g.EMEN2WEBROOT,
-			'%s/js/reverse.js' % g.EMEN2WEBROOT,
-		]
-		if self.dbtree is not None:
-			self.files.append(self.dbtree.reverse('TemplateRender', '/basedb/settings.js'))
 		super(BaseJS, self).init()
+		self.files = [
+			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
+			self.dbtree.reverse('TemplateRender', '/basedb/settings.js'),
+			'%s/js/jquery/jquery.js'%g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
+			'%s/js/util.admin.js'%g.EMEN2WEBROOT,
+			'%s/js/util.json.js'%g.EMEN2WEBROOT,
+			'%s/js/util.query.js'%g.EMEN2WEBROOT,
+			'%s/js/util.rec.js'%g.EMEN2WEBROOT,
+			'%s/js/util.reverse.js'%g.EMEN2WEBROOT,
+			'%s/js/w.browser.js'%g.EMEN2WEBROOT,
+			'%s/js/w.comments.js'%g.EMEN2WEBROOT,
+			'%s/js/w.edit.js'%g.EMEN2WEBROOT,
+			'%s/js/w.find.js'%g.EMEN2WEBROOT,
+			'%s/js/w.mapselect.js'%g.EMEN2WEBROOT,
+			'%s/js/w.paramdef.js'%g.EMEN2WEBROOT,
+			'%s/js/w.permission.js'%g.EMEN2WEBROOT,
+			'%s/js/w.query.js'%g.EMEN2WEBROOT,
+			'%s/js/w.recorddef.js'%g.EMEN2WEBROOT,
+			'%s/js/w.relationship.js'%g.EMEN2WEBROOT,
+			'%s/js/w.table.js'%g.EMEN2WEBROOT,
+			'%s/js/w.tile.js'%g.EMEN2WEBROOT,
+			'%s/js/w.file.js'%g.EMEN2WEBROOT
+			]
 
 
 class BaseCSS(ExtFile):
-	__metaclass__ = ExtFile.registercss
 	def init(self):
-		self.files = ['%s/css/style.css' % g.EMEN2WEBROOT]
 		super(BaseCSS, self).init()
-
-
-
-# ian: moved from emen2.web.views.JSLibraries.admin
-
-class AdminJS(BaseJS):
-	def init(self):
-		super(AdminJS, self).init()
 		self.files = [
-			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
-			'%s/js/jquery/jquery.dimensions.js' % g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.json.min.js' % g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.ui.autocomplete.js' % g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.colorPicker.js' % g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.html5_upload.js' % g.EMEN2WEBROOT,
-			'%s/js/tile.js' % g.EMEN2WEBROOT,
-			'%s/js/util.json.js' % g.EMEN2WEBROOT,
-			'%s/js/util.admin.js' % g.EMEN2WEBROOT,
-			'%s/js/util.rec.js' % g.EMEN2WEBROOT,
-			'%s/js/w.table.js' % g.EMEN2WEBROOT,
-			'%s/js/w.browse.js' % g.EMEN2WEBROOT,
-			'%s/js/w.record.js' % g.EMEN2WEBROOT,
-			'%s/js/w.editdefs.js' % g.EMEN2WEBROOT
+			'%s/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT, 
+			'%s/css/main.css' % g.EMEN2WEBROOT
+			# '%s/css/style.css' % g.EMEN2WEBROOT
 		]
-
-
-class AdminCSS(BaseCSS):
-	def init(self):
-		super(AdminCSS, self).init()
-		self.files = '%s/css/main.css' % g.EMEN2WEBROOT
-
