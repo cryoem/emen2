@@ -18,7 +18,7 @@ REQUEST = 4
 RESPONSE_CODE = 5
 SIZE = 6
 
-class LogLine(dict):
+class AccessLogLine(dict):
 	def __init__(self, host, ctxid, username, rtime, request, response_code, size, extra=(), time_fmt=CTIME):
 		self.__locked = False
 		self.__tfmt = time_fmt
