@@ -19,7 +19,9 @@ class Context(object):
 
 		result = '%s%s%s' % (prefix, 'db', (
 			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
-		if not result.endswith('/'): result = '%s/' % result
+		containsqs = '?' in result
+		if not result.endswith('/') and not containsqs: result = '%s/' % result
+		elif containsqs and '/?' not in result: result = result.replace('?', '/?', 1)
 		return result
 
 

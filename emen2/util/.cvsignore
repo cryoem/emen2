@@ -8,3 +8,4 @@ shell.expect
 *.tbz
 .*project
 *.log
+*.swp

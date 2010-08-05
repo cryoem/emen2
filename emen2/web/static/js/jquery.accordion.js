@@ -103,40 +103,94 @@
          var length = this.headers.length;
          var currentIndex = this.headers.index(event.target);
          var toFocus = false;
+         var is_space = false;
+         var result = false;
 
-         console.log(keyCode);
-         console.log(event.keyCode);
          switch(event.keyCode) {
+            case keyCode.SPACE:
+               is_space = true;
+               toFocus = this.headers[(currentIndex + 1) % length];
+               break;
             case 74: // j
+            case 83: // s
             case keyCode.DOWN:
                toFocus = this.headers[(currentIndex + 1) % length];
                break;
             case keyCode.UP:
             case 75: // k
+            case 87: // w
                toFocus = this.headers[(currentIndex - 1 + length) % length];
                break;
             case keyCode.RIGHT:
+            case 76: // l
+            case 68: // l
+               this.show(event.target);
+               break;
             case keyCode.LEFT:
-            case keyCode.SPACE:
+            case 72: // h
+            case 65: // h
+               this.hide(event.target);
+               break;
             case keyCode.ENTER:
-               this._clickHandler({ target: event.target }, event.target);
+               $(event.target).stop();
+               this.toggle(event.target);
                event.preventDefault();
          }
 
          if (toFocus) {
-            toFocus.focus();
-            return false;
-         }
+            //console.log(this.active.next().offset().top + this.active.next().outerHeight());
+            //console.log($(window).height()+$(window).scrollTop());
+            console.log((this.active.next().offset().top + this.active.next().outerHeight()) > ($(window).height() + $(window).scrollTop()));
+            console.log(toFocus);
+            var windowBottom = $(window).height() + $(window).scrollTop()
+            if (is_space && ((this.active.next().offset().top + this.active.next().outerHeight()) > windowBottom)) {
+               result = true;
+               toFocus = this.active;
+            } else {
+               result = false;
+               if (!event.shiftKey) this.hide(this.active);
+            };
+            console.log(toFocus);
+            console.log(toFocus == this.active);
 
-         return true;
+            if (toFocus != this.active) {
+               this.active = $(toFocus);
+               toFocus.focus();
+               this.show(this.active);
+            }
+
+         } else { result = true; }
+
+         return result;
 
       },
 
+      show: function(target) {
+         var target = $(target);
+         target.stop();
+         target.removeClass("ui-state-default").addClass("ui-state-active").removeClass("ui-corner-all").addClass("ui-corner-top");
+         target.next().show();
+      },
+      hide: function(target) {
+         var target = $(target);
+         target.stop();
+         target.addClass("ui-state-default").removeClass("ui-state-active").addClass("ui-corner-all").removeClass("ui-corner-top");
+         target.next().hide();
+      },
+      toggle: function(target) {
+         var target = $(target);
+         target.stop();
+         target.toggleClass("ui-state-default").toggleClass("ui-state-active").toggleClass("ui-corner-all").toggleClass("ui-corner-top");
+         target.next().toggle();
+      },
 
       _clickHandler: function(event, target) {
          console.log(target);
-         $(target).toggleClass("ui-state-default").toggleClass("ui-state-active").toggleClass("ui-corner-all").toggleClass("ui-corner-top")
-         $(target).next().addClass('ui-accordion-content-active').toggle('blind', {}, 500);
+         this.active = $(target);
+         this.active.stop()
+         this.active.toggleClass("ui-state-default").toggleClass("ui-state-active").toggleClass("ui-corner-all").toggleClass("ui-corner-top");
+         this.active.next().toggle();
+         this.active.focus();
          
       },
 				

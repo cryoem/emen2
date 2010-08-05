@@ -229,8 +229,12 @@ class URLRegistry(object):
 
 	@classmethod
 	def reverse_helper(cls, __regex_, *args, **kwargs):
-		result = re.sub(r'\(([^)]+)\)', MatchChecker(args, kwargs), __regex_.pattern)
-		return result.replace('^', '').replace('$', '')
+		mc = MatchChecker(args, kwargs)
+		result = re.sub(r'\(([^)]+)\)', mc, __regex_.pattern)
+		qs = '&'.join( '%s=%s' % (k,v) for k,v in mc.get_unused_kwargs().items() )
+		result = [result.replace('^', '').replace('$', ''),qs]
+		if qs == '': result.pop()
+		return '?'.join(result)
 
 def force_unicode(string):
 	result = string
@@ -247,6 +251,7 @@ class MatchChecker(object):
 	"Class used in reverse RegexURLPattern lookup."
 	def __init__(self, args, kwargs):
 		self.args, self.kwargs = map(str, args), dict([(x, str(y)) for x, y in kwargs.items()])
+		self.used_kwargs = set([])
 		self.current_arg = 0
 
 	def get_next_posarg(self):
@@ -261,7 +266,12 @@ class MatchChecker(object):
 		result = self.kwargs.get(name)
 		if result is None:
 			result = self.get_next_posarg()
+		else:
+			self.used_kwargs.add(name)
 		return result
+
+	def get_unused_kwargs(self):
+		return dict( (k,v) for k,v in self.kwargs.iteritems() if k not in self.used_kwargs )
 
 
 	NAMED_GROUP = re.compile(r'^\?P<(\w+)>(.*?)$', re.UNICODE)
