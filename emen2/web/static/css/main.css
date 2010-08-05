@@ -429,6 +429,10 @@ td {
 	margin:0px;
 }
 
+.editbar .clickable {
+   cursor: pointer;
+}
+
 
 
 
