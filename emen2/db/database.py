@@ -2328,7 +2328,7 @@ class DB(object):
 		@param links [[parent 1,child 1],[parent 2,child 2], ...]
 
 		@keyparam keytype Link this type: ["record","paramdef","recorddef"] (default is "record")
-		"""
+		"""		
 		return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
@@ -2385,10 +2385,13 @@ class DB(object):
 
 		if not links:
 			return
-
-
+		
 		# Get a list of all items in all links
-		items = set(reduce(operator.concat, links, ()))
+		# items = set(reduce(operator.concat, links, ()))
+		items = set()
+		for i in items:
+			for j in i:
+				items.add(j)
 
 		# ian: todo: high: for recorddef/paramdefs, check that all items exist..
 		# self.getparamdef(items, filt=False, ctx=ctx, txn=txn)
@@ -3944,6 +3947,8 @@ class DB(object):
 
 			except Exception, inst:
 				g.log.msg("LOG_ERROR","Error setting inherited permissions from record %s: %s"%(inheritperms, inst))
+			
+			rec["parents"] = inheritperms
 
 		return rec
 

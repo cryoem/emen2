@@ -99,31 +99,48 @@ function notify_post(uri,msgs) {
 
 
 
+function newrecord_init(rec) {
+	rec.recid = "None";
+	var recid = rec.recid;
+	caches["recs"][recid] = rec;
 
-function record_init(recid, ptest) {
-		$('.editbar .edit').MultiEditControl({});
-		$('.editable').EditControl({});
-		$('.editable_files').FileControl({});
-
-		$('.editbar .permissions').PermissionControl({recid:recid, edit:ptest[3]});
-		$('.editbar .attachments').AttachmentViewerControl({recid:recid, edit:ptest[2]});
-		$('.editbar .newrecord').NewRecordSelect({recid:recid});
-		$(".editbar .relationships").RelationshipControl({recid:recid});
-
-		$('.selectview select').change(function(){
-			var target=$("#rendered");
-			target.attr("data-viewtype", $(this).val());
-			rebuildviews("#rendered");
-		});
-		
-		$("#page_comments_comments").CommentsControl({recid:recid, edit:ptest[1], title:"#button_comments_comments"});
-		$("#page_comments_history").HistoryControl({recid:recid, title:"#button_comments_history"});
+	$('#newrecord_save').MultiEditControl({recid: recid, show: true});
+	$('#newrecord_permissions').PermissionControl({recid:recid, edit:true, embed:true});
+	$('.editable').EditControl({recid: recid});
 
 }
 
+function record_init(rec, ptest) {
+	var recid = rec.recid;
+	caches["recs"][recid] = rec;
+
+	$('.editbar .edit').MultiEditControl({});
+	$('.editable').EditControl({});
+	$('.editable_files').FileControl({});
+
+	$('.editbar .permissions').PermissionControl({recid:recid, edit:ptest[3]});
+	$('.editbar .attachments').AttachmentViewerControl({recid:recid, edit:ptest[2]});
+	$('.editbar .newrecord').NewRecordSelect({recid:recid});
+	$(".editbar .relationships").RelationshipControl({recid:recid, edit:true});
+
+	$('.selectview select').change(function(){
+		var target=$("#rendered");
+		target.attr("data-viewtype", $(this).val());
+		rebuildviews("#rendered");
+	});
+	
+	$("#page_comments_comments").CommentsControl({recid:recid, edit:ptest[1], title:"#button_comments_comments"});
+	$("#page_comments_history").HistoryControl({recid:recid, title:"#button_comments_history"});
+}
+
 function record_update(rec) {
-	caches["recs"][rec.recid] = rec;
-	rebuildviews('.view[data-recid='+rec.recid+']');
+	if (typeof(rec)=="number") {
+		var recid = rec;
+	} else {
+		caches["recs"][rec.recid] = rec;
+		var recid = rec.recid;
+	}
+	rebuildviews('.view[data-recid='+recid+']');
 	$("#page_comments_comments").CommentsControl('rebuild');
 	$("#page_comments_history").HistoryControl('rebuild');
 	$('.editbar .attachments').AttachmentViewerControl('rebuild');	

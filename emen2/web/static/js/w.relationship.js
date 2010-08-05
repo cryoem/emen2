@@ -1,369 +1,259 @@
 (function($) {
     $.widget("ui.RelationshipControl", {
 		options: {
-			recid:null,
-			modal: false
+			recid: null,
+			cb: function(recid){},
+			keytype: "record",
+			modal: false,
+			edit: false
 		},
 				
 		_create: function() {
-			// this.elem.bind("addparent", function(e,id){
-			// 	id=parseInt(id);
-			// 	self.addparent(id);
-			// 	self.build_controls();
-			// 	self.build_browser();
-			// 	});
-			// 
-			// this.elem.bind("addchild", function(e,id){
-			// 	id=parseInt(id);
-			// 	self.addchild(id);
-			// 	self.build_controls();
-			// 	self.build_browser();
-			// 	});
-			
-			// this.oparents=this.parents.slice();
-			// this.ochildren=this.children.slice();
-			// this.linkstate={};
-			// this.build();
-			
-			var self=this;
+			var self = this;
 			this.element.click(function() {
 				self.event_click();
-			});
-			
+			});	
+			this.saved = [];
+			this.built = 0;
 		},
 	
 		event_click: function() {
 			this.build();
+			this.dialog.dialog('open');
 		},
-	
+			
 		build: function() {
+			if (this.built) {
+				return
+			}
+			this.built = 1;
+			
+			this.update_rels();			
+			
 			var self=this;
-			this.dialog = $('<div title="Relationships" />');
-			this.tablearea=$('<div/>');
-			this.controlsarea=$('<div/>');
-			this.dialog.append(this.controlsarea,this.tablearea);
-		
-			this.build_controls();
-			
-			var pos = this.element.offset();
-			
-			this.dialog.dialog({
-				width:600,
-				height:600,
-				modal: this.options.modal,
-				position: [pos.left, pos.top+this.element.outerHeight()]
-			})
-		
-			$.jsonRPC("getchildren", [this.options.recid], function(children) {
-				caches["children"][self.options.recid] = children;
-				self.build_browser();
-			});
-			$.jsonRPC("getparents", [this.options.recid], function(parents) {
-				caches["parents"][self.options.recid] = parents;
-				self.build_browser();
-			});
-		
-		},
+			this.dialog = $('<div class="browser" title="Relationships" />');
+			this.tablearea = $('<div class="clearfix"/>');
+			this.dialog.append(this.tablearea);
 
-		build_controls: function() {
+			this.dialog.dialog({
+				width:800,
+				height:600,
+				autoOpen: false,
+				modal: this.options.modal
+			});			
+			this.build_browser(this.options.recid);
+		},
+		
+		build_browser: function(r) {
+			var self = this;
+			
+			if (r == null) {
+				r = this.options.recid;
+			}
+			
+			this.saved = $(".removed", this.tablearea).map(function(){
+				return parseInt($(this).attr("data-recid"));
+			});
+			
+			this.currentid = r;
+			this.tablearea.empty();
+			this.tablearea.html("Loading...");
+			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {maxrecurse: 1}, 
+				function(response, status, xhr){
+					if (status=='error') {
+						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');
+						return
+					}
+					self.bind_table()
+				}
+			);
+		},
+		
+		bind_table: function() {
+			var self = this;
+			
+			this.header = $('<tr><th><input name="addparent" type="button" value="+" /> Parents</th><th/><th>This Record</th><th/><th><input name="addchild" type="button" value="+" /> Children</th></tr>');			
+
+			$('input[name=addchild]', this.header).click(function() {
+				self.event_addchild();
+			})
+			$('input[name=addparent]', this.header).click(function() {
+				self.event_addparent();
+			})
+
+			$("tbody", this.tablearea).prepend(this.header);
+
+			if (this.options.edit) {
+				$('a.map[data-recid!='+this.options.recid+']', this.tablearea).click(function(e){
+					e.preventDefault();
+					self.reltoggle(e);
+					//self.build_browser(parseInt($(this).attr("data-recid")));
+				});
+				$('a.map[data-recid='+this.options.recid+']', this.tablearea).click(function(e){
+					e.preventDefault();
+				});
+
+
+
+			}
+			
+			this.controlsarea = $('<div />');
+			var i = $('<input type="button" value="Removed Selected" />');
+			i.click(function() {
+				self.event_removeselected();
+			});
+			this.controlsarea.append(i);
+
+			var j = $('<input type="button" value="Copy Selected" />');
+			j.click(function() {
+				self.event_showselected();
+			});
+			this.controlsarea.append(j);
+
+			this.tablearea.append(this.controlsarea);
+			
+			this.saved.each(function(i,v) {
+				self.tablearea.find('a.map[data-recid='+v+']').addClass("removed");
+			})
+			
+					
+		},
+		
+		update_rels: function(cb) {
+			cb = cb || function() {};
+			var self = this;
+			$.jsonRPC("getparents", [self.options.recid], function(parents) {
+				caches["parents"][self.options.recid] = parents;
+
+				$.jsonRPC("getchildren", [self.options.recid], function(children) {
+					caches["children"][self.options.recid] = children;
+					cb();
+				});
+
+			});
+		},
+		
+		record_update: function(cb) {
+			cb = cb || function() {};
+			var self = this;
+
+			var t = $('.precontent table.map');
+			var root = t.attr("data-root");
+			var mode = t.attr("data-mode");
+			var keytype = t.attr("data-keytype");			
+			t.parent().load(EMEN2WEBROOT+'/db/map/'+keytype+'/'+root+'/'+mode+'/');
+
+			this.update_rels(function(){self.build_browser()});
 			
 		},
 		
-		build_browser: function() {
-			var self=this;
-			
+		event_showselected: function() {
+			var rp = $(".removed", this.tablearea).map(function(){
+				return parseInt($(this).attr("data-recid"));
+			});
+			rp = $.makeArray(rp);
+			var d = $('<div title="Copy & Paste"><textarea style="width:100%;height:100%;"/></div>');
+			$("textarea", d).val(rp.join(", "));
+			console.log(12);
+			d.dialog({
+				width:500,
+				height:200,
+				autoOpen: true
+			});
+		},
+		
+		event_removeselected: function() {
+			var self = this;
 			var p = caches["parents"][this.options.recid];
 			var c = caches["children"][this.options.recid];
-			if (p == null || c == null) {
-				this.tablearea.html("Loading...");
+
+			console.log(p);
+			console.log(c);
+
+			//if (p == null || c == null) {
+			//	update_rels(function(){self.event_removeselected()})
+			//}
+			
+			var rp = $(".removed", this.tablearea).map(function(){
+				return parseInt($(this).attr("data-recid"));
+			});
+			
+			// sort out parents/children...
+			var rlinks = [];
+			var premoved = 0;
+			$.each(rp, function(i,v) {
+				if (p.indexOf(v)>-1) {
+					rlinks.push([v, self.options.recid]);
+					premoved += 1;
+				} else if (c.indexOf(v)>-1) {
+					rlinks.push([self.options.recid, v]);					
+				}
+			});
+			
+			if (premoved > 0 && premoved >= p.length) {
+				var y = confirm("This action will orphan the record; continue?");
+				if (!y) {
+					return
+				}
+			}
+			
+			if (rlinks.length == 0) {
 				return
 			}
 			
-			this.tablearea.empty();
-			var t = $('<table style="width:100%"/>');
-			var l = p.length;
-			if (c.length > l) {l = c.length}
+			//console.log(rlinks);
+			$.jsonRPC("pcunlinks", [rlinks], function() {
+				notify("Removed relationships");
+				self.saved = [];
+				//self.build_browser();
+				self.record_update();
+				//self.record_update();				
+			});
 			
-			for (var i=0;i<l;i++) {
-				var row = $('<tr />');
-				var td_p = $('<td /');
-				var td_r = $('<td />');
-				var td_c = $('<td />');
-				
-				if (i==0) {
-					td_r.html('')
-				}
-				
-				
-				row.append(td_p, td_r, td_c);
-			}
-			this.tablearea.append(t);
-			
-			
-
-
 		},
-
-
-		// 	
-		// build_controls: function() {
-		// 	this.controlsarea.empty();
-		// 	var self=this;
-		// 	this.controlsarea.append($('<input type="button" value="Add Parent" />').click(function(){self.addparentpopup(this)}));
-		// 	this.controlsarea.append($('<input type="button" value="Add Child" />').click(function(){self.addchildpopup(this)}));
-		// 	this.controlsarea.append($('<input type="button" value="Reset" />').click(function(){self.reset();self.build_controls();self.build_browser();}));
-		// 	this.controlsarea.append($('<input type="button" value="Apply Changes" />').click(function(){self.save_links()}));
-		// },
-		// 	
-		// build_browser: function() {
-		// 	this.tablearea.empty();
-		// 
-		// 	this.table = $('<table class="map" cellpadding="0" cellspacing="0" />');
-		// 	var len=parents.length;
-		// 	if (children.length > len) len=children.length;		
-		// 
-		// 	var self=this;
-		// 
-		// 	var header=$('<tr />');
-		// 	header.append($('<td><h6>Parents</h6></td>').append(
-		// 		$(' <span> [X]</span>').click(function(){self.removeallparents();self.build_controls();self.build_browser();})
-		// 		));
-		// 	header.append('<td />');
-		// 	header.append('<td><h6>This Record</h6></td><td />');
-		// 	header.append($('<td><h6>Children</h6></td>').append(
-		// 		$(' <span> [X]</span>').click(function(){self.removeallchildren();self.build_controls();self.build_browser();})
-		// 		));
-		// 	this.table.append(header);
-		// 
-		// 
-		// 	for (var i=0;i<len;i++) {
-		// 		var row=$('<tr></tr>');
-		// 	
-		// 	
-		// 		if (this.parents[i]!=null) {
-		// 	
-		// 			var img="next";
-		// 			if (this.parents.length > 1 && i==0) {img="branch_next"}
-		// 			if (this.parents.length > 1 && i>0) {img="branch_both"}
-		// 			if (this.parents.length > 1 && i==this.parents.length-1) {img="branch_up"}				
-		// 
-		// 			var button=$('<td class="'+img+' editablelink"> </td>');
-		// 			button.data("recid",this.parents[i]);
-		// 			button.click(function(){
-		// 				self.removeparent($(this).data("recid"))
-		// 				self.build_browser();
-		// 				self.build_controls();
-		// 				});
-		// 			var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.parents[i]+'/">'+caches["recnames"][this.parents[i]]+'</a></span></td>');
-		// 			item.data("recid",this.parents[i]);
-		// 			var tag=this.getstatetag(this.parents[i])
-		// 			item.addClass(tag);		
-		// 			if (tag=="removed") {
-		// 				item.children(".action").html("U");
-		// 				item.children(".action").click(function(){
-		// 					//console.log("test");
-		// 					self.addparent($(this).parent().data("recid"));
-		// 					self.build();
-		// 				});
-		// 			} else if (tag=="changed") {
-		// 				item.children(".action").html("U");
-		// 				item.children(".action").click(function(){
-		// 					self.nullparent($(this).parent().data("recid"));
-		// 					self.build();
-		// 				});
-		// 			}
-		// 
-		// 			row.append(item, button);
-		// 
-		// 
-		// 		} else {
-		// 			row.append('<td /><td />');
-		// 		}
-		// 	
-		// 		if (i==0) {
-		// 			row.append('<td>'+caches["recnames"][this.recid]+'</td><td />'); //cache_getrecname(this.recid)
-		// 		}	else {
-		// 			row.append('<td /><td />');
-		// 		}
-		// 	
-		// 		if (this.children[i]!=null) {
-		// 
-		// 			var img="next_reverse";
-		// 			if (this.children.length > 1 && i==0) {img="branch_next_reverse"}
-		// 			if (this.children.length > 1 && i>0) {img="branch_both_reverse"}
-		// 			if (this.children.length > 1 && i==this.children.length-1) {img="branch_up_reverse"}
-		// 
-		// 			var button=$('<td class="'+img+' editablelink"> </td>');
-		// 			button.data("recid",this.children[i]);
-		// 			button.click(function(){
-		// 				self.removechild($(this).data("recid"))
-		// 				self.build_browser();
-		// 				self.build_controls();
-		// 				});
-		// 			var item=$('<td class="relationshipcontrol_pc"><span class="action"></span><span class="name"><a href="'+EMEN2WEBROOT+'/db/record/'+this.children[i]+'/">'+caches["recnames"][this.children[i]]+'</a></span></td>');//cache_getrecname(this.children[i])
-		// 			item.data("recid",this.children[i]);
-		// 			var tag=this.getstatetag(this.children[i])
-		// 			item.addClass(tag);		
-		// 			if (tag=="removed") {
-		// 				item.children(".action").html("U");
-		// 				item.children(".action").click(function(){
-		// 					//console.log("test");
-		// 					self.addchild($(this).parent().data("recid"));
-		// 					self.build();
-		// 				});
-		// 			} else if (tag=="changed") {
-		// 				item.children(".action").html("U");
-		// 				item.children(".action").click(function(){
-		// 					self.nullchild($(this).parent().data("recid"));
-		// 					self.build();
-		// 				});
-		// 			}				
-		// 			row.append(button, item);
-		// 		
-		// 		} else {
-		// 			row.append('<td /><td />');
-		// 		}
-		// 	
-		// 		this.table.append(row);
-		// 	}
-		// 
-		// 	this.tablearea.append(this.table);
-		// 
-		// },
-		// 	
-		// getstatetag: function(precid) {
-		// 	var state=this.linkstate[precid];
-		// 	if (state == "removeparent" || state == "removechild") {return "removed"};
-		// 	if (state == "addparent" || state == "addchild") {return "changed"};
-		// 	return ""
-		// },
-		// 	
-		// addparentpopup: function(el) {
-		// 	new Browser(el, {recid:recid, parentobj:this.elem, parentevent:"addparent"});
-		// },
-		// 	
-		// addchildpopup: function(el) {
-		// 	new Browser(el, {recid:recid, parentobj:this.elem, parentevent:"addchild"});		
-		// },
-		// 	
-		// reset: function() {
-		// 	this.linkstate={};
-		// 	this.children=this.ochildren.slice();
-		// 	this.parents=this.oparents.slice();
-		// },
-		// addparent: function(id) {
-		// 	if (this.parents.indexOf(id) == -1) {this.parents.push(id)};
-		// 	if (this.linkstate[id]=="removeparent") {this.linkstate[id]=""}
-		// 	else {this.linkstate[id]="addparent"}
-		// },
-		// addchild: function(id) {
-		// 	if (this.children.indexOf(id) == -1) {this.children.push(id)};
-		// 	if (this.linkstate[id]=="removechild") {this.linkstate[id]=""}
-		// 	else {this.linkstate[id]="addchild"}
-		// },
-		// removeparent: function(parentid) {
-		// 	if (this.parents.indexOf(parentid) == -1) return	
-		// 	this.linkstate[parentid]="removeparent";
-		// },
-		// removechild: function(childid) {
-		// 	if (this.children.indexOf(childid) == -1) return	
-		// 	this.linkstate[childid]="removechild";
-		// },
-		// 	
-		// nullchild: function(precid) {
-		// 	if (this.children.indexOf(precid) > -1) {this.children.splice(this.children.indexOf(precid),1)}
-		// 	this.linkstate[precid]="";
-		// },
-		// 	
-		// nullparent: function(precid) {
-		// 	if (this.parents.indexOf(precid) > -1) {this.parents.splice(this.parents.indexOf(precid),1)}
-		// 	this.linkstate[precid]="";
-		// },
-		// 	
-		// removeallparents: function() {
-		// 	for (var i=0;i<this.parents.length;i++) {
-		// 		this.linkstate[this.parents[i]]="removed";
-		// 	}
-		// 	this.parents=[];
-		// },
-		// 	
-		// removeallchildren: function() {
-		// 	for (var i=0;i<this.children.length;i++) {
-		// 		this.linkstate[this.children[i]]="removed";
-		// 	}		
-		// 	this.children=[];
-		// }, 
-		// 	
-		// save_links: function() {
-		// 	
-		// 	var self=this;
-		// 	var actions={};
-		// 	var all=this.parents.concat(this.children);
-		// 	for (var i=0;i<all.length;i++) {
-		// 		var state=this.linkstate[all[i]];
-		// 		if (actions[state]==null) {actions[state]=[]};
-		// 		actions[state].push(all[i]);
-		// 	}
-		// 	
-		// 	//console.log(actions);
-		// 	this.rpcqueue = 0;
-		// 
-		// 	if (actions["removeparent"]!=null) {
-		// 		for (var i=0;i<actions["removeparent"].length;i++) {
-		// 			this.rpc("pcunlink",[actions["removeparent"][i],this.recid]);
-		// 		}
-		// 	}
-		// 
-		// 
-		// 	if (actions["removechild"]!=null) {
-		// 		for (var i=0;i<actions["removechild"].length;i++) {
-		// 			this.rpc("pcunlink",[this.recid, actions["removechild"][i]]);				
-		// 		}
-		// 	}
-		// 
-		// 	if (actions["addparent"]!=null) {
-		// 		for (var i=0;i<actions["addparent"].length;i++) {
-		// 			this.rpc("pclink",[actions["addparent"][i], this.recid]);
-		// 		}
-		// 	}
-		// 
-		// 	if (actions["addchild"]!=null) {
-		// 		for (var i=0;i<actions["addchild"].length;i++) {
-		// 			this.rpc("pclink",[this.recid, actions["addchild"][i]]);				
-		// 		}
-		// 	}						
-		// 
-		// },
-		// 	
-		// rpc: function(method, args) {
-		// 	this.rpcqueue++;
-		// 	var self=this;
-		// 	$.jsonRPC(method,[args[0], args[1]], function(result) {
-		// 		self.checkqueue();
-		// 	});					
-		// 
-		// },
-		// 	
-		// checkqueue: function() {
-		// 	//console.log(this.rpcqueue);
-		// 	this.rpcqueue--;
-		// 	if (this.rpcqueue==0) {
-		// 		notify_post(window.location.pathname, ["Relationships Saved"]);
-		// 	}
-		// },
-		// 	
-		// postnotify: function(message) {
-		// 	var addr=window.location.pathname;
-		// 	var f=$("<form>")
-		// 	f.attr("action",addr);
-		// 	f.attr("method","POST");
-		// 	var fin=$('<input type="hidden" name="notify___json" value="" />');
-		// 	fin.val($.toJSON([message]));
-		// 	f.append(fin);
-		// 	$(document.body).append(f);
-		// 	f.submit();		
-		// },
-				
+		
+		event_addparent: function() {
+			var i = $('<div>');
+			var self = this;
+			var cb = function(r) {self.addparent(r)}
+			i.Browser({recid:this.options.recid, cb:cb, show:1});
+		},
+		
+		event_addchild: function() {
+			var i = $('<div>');
+			var self = this;
+			var cb = function(r) {self.addchild(r)}
+			i.Browser({recid:this.options.recid, cb:cb, show:1});			
+		},
+		
+		addparent: function(r) {
+			var self = this;
+			r = parseInt(r);
+			$.jsonRPC("pclink", [r, this.options.recid], function() {
+				notify("Added parent");
+				self.record_update();
+			});
+		},
+		
+		addchild: function(r) {
+			var self = this;
+			r = parseInt(r);
+			$.jsonRPC("pclink", [this.options.recid, r], function() {
+				notify("Added child");
+				self.record_update();
+			});			
+		},
+		
+		reltoggle: function(e) {
+			var t = $(e.target);
+			t.toggleClass('removed');
+		},
+		
+		select: function(val) {
+			this.options.cb();
+			this.dialog.dialog('close');
+		},
+		
 		destroy: function() {
 		},
 		
@@ -371,4 +261,5 @@
 			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
-})(jQuery);	
+	
+})(jQuery);

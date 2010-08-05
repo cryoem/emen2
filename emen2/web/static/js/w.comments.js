@@ -122,7 +122,7 @@
 		},
 		
 		build: function() {
-			var self=this;
+			var self = this;
 			this.partition();
 			this.element.empty();
 			this.rhist.reverse();
@@ -136,12 +136,12 @@
 			}
 
 			if (this.rhist == 0) {
-				this.elem_body.append('<p>No changes</p>');
+				this.element.append('<p>No changes</p>');
 			}
 
 			$.each(this.rhist, function() {
 				var dname = caches["displaynames"][this[0]] || this[0];
-				var time=this[1];
+				var time = this[1];
 
 				if (this.length == 4) {
 					self.element.append('<h4>'+dname+' @ '+time+'</h4><p>LOG: ' + this[2] + ' updated, was: '+this[3]+'</p>');

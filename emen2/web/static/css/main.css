@@ -8,6 +8,7 @@
 }
 .ui-dialog {
 	padding:0px;
+	border:solid #66a3ce 5px;
 }
 .ui-dialog-titlebar {
 	-moz-border-radius:0px;
@@ -15,10 +16,11 @@
 .ui-corner-all {
 
 }
+/*
 .ui-widget-content {
 	border:solid 2px #BBD9EE;
 }
-
+*/
 .ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
 	font-size:10pt;
 }
@@ -41,7 +43,19 @@
 }
 
 
-.page_comments h4, .ui-dialog h4 {
+.bigbutton input {
+	background:orange;
+	color:white;
+	font-weight:bold;	
+	border:solid 2px #ccc;
+	font-size:12pt;
+	padding:10px;
+	margin-left:20px;
+}
+
+
+/* .page_comments h4, .ui-dialog h4 { */
+h4 {
 	font-size:12pt;
 	border-bottom:solid 1px #ccc;
 	margin:0px;
@@ -69,6 +83,17 @@
 }
 
 
+.relationships {
+}
+
+.relationships div {
+}
+
+.browser .map .m {
+	display:block;
+	width:200px;
+}
+
 /************* USER PROFILE DISPLAY **************/
 
 .userbox {
@@ -87,12 +112,14 @@
 .userbox div {
 	margin-left:40px;
 }
-.ui-dialog .searchbox {
+/* .ui-dialog  */
+.searchbox { 
 	margin-bottom:10px;
 	padding-bottom:10px;
 	border-bottom:solid 1px #ccc;
 }
-.ui-dialog .status {
+/* .ui-dialog */
+.status {
 	float:right;
 }
 
@@ -422,11 +449,9 @@ table.map {
 .map {
 	font-size:10pt;
 }
-
 .map td {
 	margin-left:3px;
 	margin-right:3px;
-	min-width:32px;
 }
 .map td.next {
 	max-width:32px;
@@ -501,7 +526,7 @@ table.map {
 	background:#BBD9EE;
 }
 
-.permissions .removed {
+.add.removed, .removed {
 	background:red;
 	color:white;
 }
@@ -690,6 +715,7 @@ PAGE / TAB
 	background:#E7F1F8;	
 	padding:10px;
 	display:none;
+	width:720px;
 }
 .page_active {
 	display:block;
@@ -1045,14 +1071,14 @@ ul.nonlist li {
 
 /* all */
 /* .modalbrowser_container, */
-.capsule, .precontent .map, #alert li, .navtable, #imagepreview, .tooltip, .child, .page, div.sidebar, .browser, .widget_bigbutton {
+.capsule, .precontent .map, #alert li, .navtable, .tooltip, .child, .page, .bigbutton input {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
 
 /* top only */
 /* .modalbrowser_title, .modalbrowser_info_name,  */
-#edit_parentmap, #sidebar ul li strong, .recordtable,.recordtable h3, .button_main, .button_param, .button_addrecord, .button {
+.recordtable, .recordtable h3, .button_main, .button_param, .button_addrecord, .button {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-topleft:8px; 
 	-webkit-border-top-right-radius:8px;
@@ -1069,7 +1095,7 @@ ul.nonlist li {
 
 
 /* left only */
-.relationshipcontrol_pc .action, .user .action, #cousin_buttons a:first-child { 
+#cousin_buttons a:first-child { 
 	-moz-border-radius-topleft:8px;
 	-moz-border-radius-bottomleft:8px;
 	-webkit-border-top-left-radius:8px;
@@ -1077,42 +1103,18 @@ ul.nonlist li {
 }
 
 /* right only */
-.relationshipcontrol_pc .name, .user .name, #cousin_buttons a:last-child
-{
+a:last-child {
 	-moz-border-radius-topright:8px;
 	-moz-border-radius-bottomright:8px;
 	-webkit-border-top-right-radius:8px;
 	-webkit-border-bottom-right-radius:8px;
 }
 
-/* other */
-li.sidebar_box {
-	-moz-border-radius-topright:8px;
-	-moz-border-radius-bottomleft:8px;
-	-moz-border-radius-bottomright:8px;
-	-webkit-border-top-right-radius:8px;
-	-webkit-border-bottom-left-radius:8px;
-	-webkit-border-bottom-right-radius:8px;	
-}
-
-/* top left */
-.inherittable th:first-child {
-	-webkit-border-top-left-radius:8px;
-	-moz-border-radius-topleft:8px;
-}
-
-/* top right */
-.inherittable th:last-child {
-	-webkit-border-top-right-radius:8px;
-	-moz-border-radius-topright:8px;
-	border-right:none;
-}
 
 .page_recordview {
 	max-width:1024px;
 	background:white;
 }
-
 
 
 /*******/

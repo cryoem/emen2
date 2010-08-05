@@ -575,7 +575,7 @@ class FieldBTree(BTree):
 
 		#if not self.datatype:
 		# generator expressions will be less pain when map() goes away
-		r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
+		# r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
 
 		return r
 

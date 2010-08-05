@@ -54,11 +54,13 @@
 			this.bdomap = {};
 			var rec = caches["recs"][this.options.recid];
 			var self=this;
+
+			console.log(this.bdos);
 			$.each(this.bdos, function(i, bdo) {
 				// find bdo in record..
 				$.each(rec, function(k,v) {
 					if (typeof(v)=="object") {
-						if (v.indexOf(bdo.name) > 0) {
+						if (v.indexOf(bdo.name) > -1) {
 							self.bdomap_append(k, bdo);
 						}
 					} else {
@@ -118,6 +120,19 @@
 			this.dialog = $('<div title="Attachments" />');	
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
+
+			var ss = $('<select data-recid="'+this.recid+'"/>');
+			ss.append('<option value="" />');
+			$.each(['file_binary','file_binary_image'], function() {
+				ss.append('<option value="'+this+'">'+this+'</option>');
+			});
+			ss.change(function() {
+				if (!$(this).val()) {return}
+				$(this).FileControl({recid: self.options.recid, show:1, param: $(this).val()});
+			})
+			this.browserarea.append("Add File: ", ss);
+			
+			
 			this.dialog.append(this.tablearea, this.browserarea);
 
 			pos = this.element.offset();
@@ -131,6 +146,7 @@
 			});
 
 			this.event_build_tablearea();
+			
 
 		},
 		
@@ -183,7 +199,7 @@
 			this.options.vartype = this.options.vartype || this.element.attr("data-vartype");
 		
 			var self=this;
-			this.element.click(function(e) {self.event_click(e)});
+			this.element.click(function(e) {e.stopPropagation();self.event_click(e)});
 
 			if (this.options.open) {			
 				this.show();
@@ -286,10 +302,10 @@
 		
 			this.tablearea.append(bdotable);
 		
-			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){self.event_toggleall(e)})
+			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){e.stopPropagation();self.event_toggleall(e)})
 
 			var reset = $('<input type="button" value="Remove Selected Items" />');
-			reset.click(function(e){self.event_removebdos(e)});
+			reset.click(function(e){e.stopPropagation();self.event_removebdos(e)});
 			this.tablearea.append(reset);		
 
 		},

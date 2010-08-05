@@ -1,18 +1,24 @@
 (function($) {
     $.widget("ui.MultiEditControl", {
 		options: {
+			show: false,
+			recid: null
 		},
 				
 		_create: function() {
-			this.recid = parseInt(this.element.attr("data-recid"));
+			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
 			this.built = 0;
 			this.bind_edit();
-			this.selector = '.editable[data-recid='+this.recid+']';
+			this.selector = '.editable[data-recid='+this.options.recid+']';
+			this.backup = this.element.html();
+			if (this.options.show) {
+				this.event_click();
+			}
 		},
 		
 		bind_edit: function() {
 			var self = this;
-			this.element.click(function(e){self.event_click(e)});
+			$(".label", this.element).click(function(e){self.event_click(e)});
 		},
 	
 		bind_save: function() {
@@ -20,40 +26,69 @@
 
 		event_click: function(e) {
 			var self=this;
-			$.jsonRPC("getparamdef", [[this.recid]], function(paramdefs) {
+			if (this.options.recid == "None") {
+				var toget = $.makeArray($(this.selector).map(function(){return $(this).attr("data-param")}));
+			} else {
+				var toget = [this.options.recid];
+			}
+			
+			$.jsonRPC("getparamdef", [toget], function(paramdefs) {
 				$.each(paramdefs, function(k,v) {
 					caches["paramdefs"][v.name] = v;
-				})
+				});
 				self.show();
 			});
+
+
 		},
 
 		build: function() {
 			var self = this;
+			if (this.built) {
+				return
+			}
+			this.built = 1;
+			
 			this.controls = $('<div class="controls"></div>')		
-			this.controls.append(
-				$('<input type="submit" value="Save" />').one("click", function(e) {self.save()}),
-				$('<input type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
-			this.element.after(this.controls);
+			
+			var save = $('<input type="submit" name="save" value="Save" />');
+			save.click(function(e) {self.save()});
+			this.controls.append(save);
+			
+			if (this.options.recid!="None") {
+				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
+				this.controls.append(cancel);
+			}
+			this.element.append(this.controls);
+		},
+		
+		rebind_save: function() {
+			var self = this;
+			var t = $('input[name=save]', this.controls);
+			t.val("Retry...");
+			t.one(function(e) {self.save()});
 		},
 	
 		show: function() {
 			this.build();
 			$(this.selector).EditControl('hide');
 			$(this.selector).EditControl('show', 0);			
-			this.element.hide();
+			$(".label", this.element).hide();
 			this.controls.show();
 		},
 	
 		hide: function() {
 			$(this.selector).EditControl('hide');
 			this.controls.hide();
-			this.element.show();
+			$(".label", this.element).show();
 		},
 		
 		save: function() {
 			var changed = {};
 			var self = this;
+
+			var t = $('input[name=save]', this.controls);
+			t.val("Saving...");
 
 			$(this.selector).each(function() {
 				var t = $(this);
@@ -64,6 +99,10 @@
 				changed[recid][param] = value;
 			})
 
+			if (this.options.recid == "None") {
+				return this.save_newrecord(changed["None"]);
+			}
+
 			$.jsonRPC("putrecordsvalues", [changed], function(recs) {
 				$.each(recs, function() {
 					record_update(this);
@@ -71,6 +110,29 @@
 				self.hide();
 			});
 
+		},
+
+		save_newrecord: function(newrec) {
+			var self = this;
+			var updrec = caches["recs"]["None"];
+
+			$.each(newrec, function(k,v) {
+				updrec[k] = v;
+			});
+			
+			updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
+			updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
+			updrec['recid'] = null;
+
+			$.jsonRPC("putrecord", [updrec], 
+				function(rec) {
+					notify_post(EMEN2WEBROOT+'/db/record/'+rec.recid+'/', ["New record created"]);
+				},
+				function(e) {
+					default_errback(e, function(){self.rebind_save()})
+				}
+			);
+			
 		},
 	
 		compare: function(a,b) {
@@ -97,18 +159,26 @@
 (function($) {
     $.widget("ui.EditControl", {
 		options: {
+			show: false,
+			recid: null,
+			param: null
 		},
 				
 		_create: function() {
-			this.param = this.element.attr("data-param");
-			this.recid = parseInt(this.element.attr("data-recid"));
-			if (isNaN(this.recid)) this.recid = null;
+			this.options.param = this.options.param || this.element.attr("data-param");
+			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
+			if (isNaN(this.options.recid)) this.options.recid = "None";
+
 			this.built = 0;
-			this.rec_value = caches["recs"][this.recid][this.param];
+			this.rec_value = caches["recs"][this.options.recid][this.options.param];
 			this.bind_edit();
 			this.trygetparams = 0;
-			var self=this;
 			this.element.addClass("editcontrol");
+			
+			if (this.options.show) {
+				this.show();
+			}
+			
 		},
 	
 		event_click: function(e) {
@@ -133,7 +203,7 @@
 			// container
 			this.w = $('<span class="editcontrol"></span>');
 			var self = this;
-			var pd = caches["paramdefs"][this.param];
+			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
 			controls = true;
 
@@ -146,7 +216,7 @@
 			} else if (vt=="choice") {
 			
 				this.editw=$('<select></select>');
-				var pdc = caches["paramdefs"][this.param]["choices"];
+				var pdc = caches["paramdefs"][this.options.param]["choices"];
 				pdc.unshift("");
 			
 				for (var i=0;i<pdc.length;i++) {
@@ -169,7 +239,7 @@
 			} else if (["intlist","floatlist","stringlist","userlist","urilist"].indexOf(vt) > -1) {
 		
 				this.editw = $('<div />');
-				this.editw.ListControl({values:this.rec_value, param:this.param});
+				this.editw.ListControl({values:this.rec_value, param:this.options.param});
 				this.w.append(this.editw);
 				// set a different getval function..
 				this.getval = function(){return self.editw.ListControl('getval')}
@@ -177,7 +247,7 @@
 			}  else if (vt=="user") {
 
 					this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
-					this.editw.FindUserControl({recid:this.recid});
+					this.editw.FindUserControl({recid:this.options.recid});
 					this.w.append(this.editw);
 		
 			} else if (vt=="comments") {
@@ -219,9 +289,9 @@
 			if (showcontrols==null) {showcontrols=1}
 			var self = this;
 		
-			if (!caches["paramdefs"][this.param]) {
+			if (!caches["paramdefs"][this.options.param]) {
 				if (this.trygetparams) {return}
-				$.jsonRPC("getparamdef", [this.param], function(paramdef){
+				$.jsonRPC("getparamdef", [this.options.param], function(paramdef){
 					caches["paramdefs"][paramdef.name]=paramdef;
 					self.trygetparams = 1;
 					self.show(showcontrols);
@@ -248,7 +318,7 @@
 		},
 		
 		getrecid: function() {
-			return this.recid
+			return this.options.recid
 		},
 	
 		getval: function() {
@@ -267,12 +337,12 @@
 		},
 		
 		getparam: function() {
-			return this.param
+			return this.options.param
 		},
 
 		save: function() {
 			var self = this;
-			$.jsonRPC("putrecordvalue", [this.recid, this.param, this.getval()], function(rec) {
+			$.jsonRPC("putrecordvalue", [this.options.recid, this.options.param, this.getval()], function(rec) {
 				record_update(rec);
 				self.hide();
 			});

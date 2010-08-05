@@ -1,7 +1,7 @@
 ////////////////  base ///////////////////
 
 
-function default_errback(e) {
+function default_errback(e, cb) {
 	var error = $('<div class="error" title="'+e.statusText+'" />');
 	//<span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
 	error.append('<p>'+e.responseText+'</p>');
@@ -25,6 +25,11 @@ function default_errback(e) {
 			}
 		}
 	});
+	
+	if (cb) {
+		cb();
+	}
+	
 }
 
 
