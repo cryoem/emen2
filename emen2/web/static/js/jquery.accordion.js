@@ -1,11 +1,10 @@
 (function($) {
     $.widget("ui.accordion1", {
 		options: {
+         helpDialog: $('<div class="help"></div>'),
          active: 0,
          animated: 'slide',
-         autoHeight: true,
          clearStyle: false,
-         collapsible: false,
          manyOpen: true,
          event: "click",
          fillSpace: false,
@@ -26,6 +25,7 @@
          var o = this.options, self = this;
          this.running = 0;
 
+         this._initHelp(o.helpDialog);
          this.element.addClass("ui-accordion ui-widget ui-helper-reset");
 
          // in lack of child-selectors in CSS we need to mark top-LIs in a UL-accordion for some IE-fix
@@ -92,6 +92,45 @@
 
          this.active.focus();
    	},
+
+      _initHelp: function(target) {
+        var self = this;
+        $(target).prepend(
+            '<table style="margin: auto auto">\n' +
+            '   <thead><tr><th>Key</th><th>Action</th></tr></thead>\n' +
+            '   <tbody><tr><td>Movement:</td><td>Arrow keys, vi keys or wasd</tr>\n' +
+            '         <tr><td><pre>\n' +
+            '           w\n' +
+            '         a s d\n' +
+            '         </pre></td><td><pre>\n' +
+            '           k\n' +
+            '         h j l\n' +
+            '         </pre></td>\n' +
+            '   </tr><tr class="s">\n' +
+            '         <td>Shift+up or down:</td><td>Keep current pane open and switch to appropriate pane</td>\n' +
+            '      </tr><tr>\n' +
+            '         <td>Right, Enter:</td><td>Open current item</td>\n' +
+            '      </tr><tr class="s">\n' +
+            '         <td>Left, Enter:</td><td>Close current item</td>\n' +
+            '      </tr><tr class="s">\n' +
+            '         <td>Space:</td><td>Scroll down if current element not fully visible, otherwise go to next</td>\n' +
+            '      </tr><tr>\n' +
+            "         <td>'?':</td><td>Help</td>\n" +
+            '      </tr>\n' +
+            '   </tbody>\n' +
+            '</table>\n'
+         ).dialog({autoOpen: false, modal: true, title: 'Help (\'q\' or Escape to exit)', minWidth: 402, width: 402});
+
+         $('body').bind('keydown', function(event) {
+            if (event.which == 191) { // 191 == '?'
+               self.help();
+            } else if (event.which == 81 && self.options.helpDialog.dialog('isOpen')) { // 81 == 'q'
+               self.help();
+            };
+         });
+
+
+      },
 
       _keydown: function(event) {
 
@@ -199,6 +238,14 @@
 		
 		_setOption: function(option, value) {
 			$.Widget.prototype._setOption.apply( this, arguments );
-		}
+		},
+
+      help: function(target) {
+         if (!this.options.helpDialog.dialog('isOpen'))
+            this.options.helpDialog.dialog('open');
+         else
+            this.options.helpDialog.dialog('close');
+      }
+
 	});
 })(jQuery);

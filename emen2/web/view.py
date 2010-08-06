@@ -52,7 +52,6 @@ class View(object):
 	def __set_template(self, value): self.__template = value
 	template = property(lambda self: self.__template, __set_template)
 
-	@g.debug_func
 	def __init__(self, db=None, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
 		'''\
 		subclasses should not override this method, rather they should define an 'init' method.
@@ -124,7 +123,7 @@ class View(object):
 		self.template="/errors/error"
 		self.ctxt["title"] = "Error"
 		self.ctxt["errmsg"] = msg
-		
+
 
 	def get_data(self):
 		'''override to change the way it gets the view data'''

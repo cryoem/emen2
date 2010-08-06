@@ -178,7 +178,7 @@ class URLRegistry(object):
 	def onfail1(m1,m2):
 		raise responsecodes.HTTPResponseCode, 'Method mismatch: %s, %s' % (m1,m2)
 
-	def execute(self, inp, method='GET', fallback=None, **kw):
+	def execute(self, inp, fallback=None, **kw):
 		result = None
 
 		with self.match(inp) as (sub, groups, url):

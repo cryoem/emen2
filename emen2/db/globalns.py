@@ -80,7 +80,7 @@ class listWrapper(object):
 		self.__list.insert(idx, self.chopitem(item))
 	def __len__(self): return len(self.__list)
 
-
+class LockedNamespaceError(TypeError): pass
 
 inst = lambda x:x()
 class GlobalNamespace(object):
@@ -123,6 +123,32 @@ class GlobalNamespace(object):
 	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
 	__all__ = []
+
+	@classmethod
+	def check_locked(cls):
+		try:
+			cls.__locked
+			#print 'ns __locked 0', cls.__locked
+		except AttributeError: cls.__locked = False
+		#print 'ns __locked 1', cls.__locked
+
+	@property
+	def _locked(self):
+		self.check_locked()
+		return self.__locked
+	@_locked.setter
+	def _locked(self, value):
+		if not self.__locked:
+			#print 'hi'
+			self.__class__.__locked = bool(value)
+			#print 'ns __locked 2', self.__locked
+		elif bool(value) == False:
+			raise LockedNamespaceError, 'cannot unlock %s' % self.__class__.__name__
+
+	def __unlock(self):
+		'''unlock namespace (for internal/debug use only)'''
+		self.__locked = False
+
 	def __init__(self,_=None): pass
 
 	def fixpath(self, v):
@@ -152,7 +178,6 @@ class GlobalNamespace(object):
 			return
 
 		self.log.msg('LOG_INIT', "Loading config: %s"%fn)
-		print data
 		self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 		self.log.msg('LOG_INIT', 'EMEN2DBHOME %r' % self.EMEN2DBHOME)
 		self.paths.root = self.EMEN2DBHOME
@@ -254,17 +279,24 @@ class GlobalNamespace(object):
 			self.__addattr(name, value)
 		finally:
 			self.__modlock.release()
-	__setattr__ = setattr
+	def __setattr__(self, name, value):
+		if hasattr(getattr(self.__class__, name, None), '__set__'):
+			object.__setattr__(self, name, value)
+		else:
+			self.setattr(name, value)
 	__setitem__ = __setattr__
 
 	@classmethod
 	def __addattr(cls, name, value, options=None):
 		if not name in cls.__all__:
 			cls.__all__.append(name)
-		if options is not None:
-			for option in options:
-				cls.__options[option].add(name)
-		cls.__vardict[name] = value
+		cls.check_locked()
+		if name.startswith('_') or not cls.__locked:
+			if options is not None:
+				for option in options:
+					cls.__options[option].add(name)
+			cls.__vardict[name] = value
+		else: raise LockedNamespaceError, 'cannot change locked namespace'
 
 	@classmethod
 	def refresh(cls):
@@ -278,7 +310,8 @@ class GlobalNamespace(object):
 		if cls.__options.has_key('private'):
 			if name in cls.__options['private']:
 				return default
-		result = cls.__vardict.get(name, default)
+		if name.startswith('_'): result = object.__getattr__(cls, name, default)
+		else: result = cls.__vardict.get(name, default)
 		return result
 	@classmethod
 	def keys(cls):

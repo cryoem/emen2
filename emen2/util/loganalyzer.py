@@ -1,5 +1,7 @@
+import re
 import datetime
 import collections
+import itertools
 # Host Name N/A HTTP AUTH        Time Finished      ["Method Name]  Path      [Protocol"] Response  Size
 #                 USERID                                                                    Code   (bytes)
 # 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /db/rec/  HTTP/-.-"     200     9714
@@ -18,16 +20,100 @@ REQUEST = 4
 RESPONSE_CODE = 5
 SIZE = 6
 
+class LogLine(dict):
+	_timepat = re.compile('([0-9][^:]*:){2}[^:]*')
+	def __init__(self, header, message):
+		time = self._timepat.match(header)
+		if time: time = time.group()
+		data = header[len(time or '')+1:].split(':')
+		if len(data) == 1: data.append('')
+		if len(data) == 2: data.append('')
+		level, file_, line = data[:3]
+		extra = tuple(data[3:])
+
+		self.update(
+			time=time,
+			level=level,
+			file=file_,
+			line=line
+		)
+		self['message'] = message
+
+	@classmethod
+	def from_line(cls, line):
+		line = line.split(' :: ',1)
+		if len(line) == 1: line.append('')
+		return cls(*line)
+
+class LogFile1(object):
+	def __init__(self, *lines):
+		self.data = collections.defaultdict(lambda:collections.defaultdict(list))
+		self.lines = []
+
+		for line in lines:
+			if not isinstance(line, LogLine):
+				line = LogLine.from_line(line)
+			self.lines.append(line)
+			for k,v in line.items():
+				self.data[k][v].append(line)
+
+	@classmethod
+	def from_file(cls, file):
+		lines= []
+		line_cache = []
+		line = None
+		for line in file:
+			line = line.rstrip()
+			if not line: continue
+			line_cache.append(line)
+			if line_cache and not line[0].isspace():
+				new = '\n'.join(line_cache)
+				lines.append(new)
+				line_cache = []
+		if line_cache:
+			lines.append('\n'.join(line_cache))
+
+		out = []
+		for line in lines:
+			try:
+				out.append(LogLine.from_line(line))
+			except Exception, e:
+				raise
+				print 'error', e, 'line:', line
+
+		return cls(*lines)
+
+
+
 class AccessLogLine(dict):
-	def __init__(self, host, ctxid, username, rtime, request, response_code, size, extra=(), time_fmt=CTIME):
+	def timeconv(self, tm=None):
+		result = tm or None
+		if not hasattr(tm, 'strptime') and tm:
+			result = datetime.datetime.strptime(tm, CTIME)
+		return result
+
+	def __init__(self, *args, **kwargs):
 		self.__locked = False
-		self.__tfmt = time_fmt
-		(self['host'], self['ctxid'],
-			self['username'], self['request'],
-			self['response_code'], self['size']) = host, ctxid, username, request, response_code, size
-		if not hasattr(rtime, 'strptime'): rtime = datetime.datetime.strptime(rtime, CTIME)
-		self['rtime'] = rtime
-		self['extra'] = tuple(extra)
+
+		self.order = kwargs.pop('order', ( # get the field order and types
+				('host',str), ('ctxid',str),
+				('username',str), ('rtime',self.timeconv),
+				('request', str), ('response_code', long),
+				('size', long), ('resource', str)
+		))
+
+		values = ( # combine the order with the passed values, and cast the values
+			( k, typ( v or kwargs.get(k,typ()) ) ) for k,typ,v in itertools.izip_longest(*zip(*self.order) + [args], fillvalue='') if k != ''
+		)
+
+		values = dict( (k,v) for k, v in values )
+
+		self.__tfmt = kwargs.pop('time_fmt', CTIME)
+
+		self.update(values)
+		if len(args) > len(values):
+			self['extra'] = tuple(args[len(values):])
+
 		self.__locked = True
 
 	@classmethod
@@ -49,16 +135,7 @@ class AccessLogLine(dict):
 				out[-1].append(word)
 				if any( word.endswith(c) for c in eschar ): toggle()
 		line = [' '.join(item) for item in out]
-		host = line[HOST]
-		ctxid = line[CTXID]
-		username = line[USERNAME]
-		rtime = line[TIME]
-		request = line[REQUEST]
-		response_code = int(line[RESPONSE_CODE])
-		size = int(line[SIZE])
-		extra = tuple(line[SIZE+1:])
-		rtime = datetime.datetime.strptime(rtime,time_fmt)
-		self = cls(host, ctxid, username, rtime, request, response_code, size, extra, time_fmt)
+		self = cls(*line, time_fmt=time_fmt)
 		self.__line = tline
 		self.line = line
 		return self
@@ -66,8 +143,10 @@ class AccessLogLine(dict):
 	def __repr__(self): return "AccessLogLine(%s)" % dict.__repr__(self)
 	def __str__(self):
 		d = dict(self)
-		d['rtime'] = d['rtime'].strftime(self.__tfmt)
-		return '%(host)s %(ctxid)s %(username)s %(rtime)s %(request)s %(response_code)s %(size)s\n' % d
+		d['rtime'] = (d['rtime'].strftime(self.__tfmt) if d['rtime'] else '-')
+		out = []
+		for k,_ in self.order: out.append(str(d.get(k, '-') or '-'))
+		return ' '.join(out)
 
 	def __setitem__(self, key, value):
 		if self.__locked == True:
@@ -88,6 +167,7 @@ class LogFile(object):
 		for line in lines:
 			if not isinstance(line, AccessLogLine):
 				line = AccessLogLine.from_line(line)
+			self.lines.append(line)
 			for k,v in line.items():
 				self.data[k][v].append(line)
 

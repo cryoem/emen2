@@ -87,6 +87,7 @@ class Template(object):
 		try:
 			mtime = os.stat(self.path).st_mtime
 			if int(mtime) != int(self.mtime):
+				self.mtime = mtime
 				g.debug('updating template: %s' % self.filename)
 				with file(self.path) as f:
 					self.template = self.tempconst(f.read(), lookup, filename=self.filename)
