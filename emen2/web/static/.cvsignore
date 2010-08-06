@@ -8,3 +8,5 @@ shell.expect
 *.tbz
 .*project
 *.log
+*.old
+*.xcf
