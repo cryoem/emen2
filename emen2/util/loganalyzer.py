@@ -22,12 +22,20 @@ SIZE = 6
 
 class LogLine(dict):
 	_timepat = re.compile('([0-9][^:]*:){2}[^:]*')
+	_hostpat = re.compile('\d{,3}[.]\d{,3}[.]\d{,3}[.]\d{,3}')
 	def __init__(self, header, message):
-		time = self._timepat.match(header)
+		header = header.strip().lstrip('-!>')
+		#message = message.strip()
+		self.inp = (header, message)
+
+		data = header.rsplit(':', 3)
+		time = self._timepat.match(data.pop(0))
 		if time: time = time.group()
-		data = header[len(time or '')+1:].split(':')
+		else: time = '-'
+
 		if len(data) == 1: data.append('')
 		if len(data) == 2: data.append('')
+
 		level, file_, line = data[:3]
 		extra = tuple(data[3:])
 
@@ -41,8 +49,20 @@ class LogLine(dict):
 
 	@classmethod
 	def from_line(cls, line):
-		line = line.split(' :: ',1)
+		line = line.split(' ::',1)
+
+		if line[0] == '':
+			line[0] = '-:-:-:-' # make sure header parses correctly
+		elif not line[0][0].isdigit():
+			line.insert(0, '-:-:-:-') # make sure header parses correctly
+		elif cls._hostpat.match(line[0]):
+			line.insert(0, '-:-:-:-') # make sure header parses correctly
+
 		if len(line) == 1: line.append('')
+		line[1] = line[1].strip()
+
+		if any(not x for x in line):
+			print ' '.join(line)
 		return cls(*line)
 
 class LogFile1(object):
@@ -59,17 +79,25 @@ class LogFile1(object):
 
 	@classmethod
 	def from_file(cls, file):
-		lines= []
-		line_cache = []
-		line = None
+		'''
+		-> read line
+		-> store line
+		-> read next line
+		->  if line begins with space, store it
+		->  otherwise,
+		->    join cache
+		->    reset to current line
+		'''
+		lines, line_cache, line = [], [], None
 		for line in file:
 			line = line.rstrip()
 			if not line: continue
-			line_cache.append(line)
-			if line_cache and not line[0].isspace():
-				new = '\n'.join(line_cache)
-				lines.append(new)
-				line_cache = []
+
+			if line[0].isspace(): line_cache.append(line)
+			else:
+				lines.append('\n'.join(line_cache))
+				line_cache = [line]
+
 		if line_cache:
 			lines.append('\n'.join(line_cache))
 
