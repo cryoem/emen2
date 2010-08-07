@@ -81,6 +81,7 @@ class LogFile1(object):
 	def from_file(cls, file):
 		'''
 		-> read line
+		-> skip empty lines
 		-> store line
 		-> read next line
 		->  if line begins with space, store it
@@ -98,17 +99,6 @@ class LogFile1(object):
 				lines.append('\n'.join(line_cache))
 				line_cache = [line]
 
-		if line_cache:
-			lines.append('\n'.join(line_cache))
-
-		out = []
-		for line in lines:
-			try:
-				out.append(LogLine.from_line(line))
-			except Exception, e:
-				raise
-				print 'error', e, 'line:', line
-
 		return cls(*lines)
 
 
@@ -123,18 +113,29 @@ class AccessLogLine(dict):
 	def __init__(self, *args, **kwargs):
 		self.__locked = False
 
+		def safe_long(v=0):
+			try: return long(v)
+			except ValueError: return v
 		self.order = kwargs.pop('order', ( # get the field order and types
 				('host',str), ('ctxid',str),
 				('username',str), ('rtime',self.timeconv),
 				('request', str), ('response_code', long),
-				('size', long), ('resource', str)
+				('size', long), ('cputime', safe_long),
+				('resource', str)
 		))
 
 		values = ( # combine the order with the passed values, and cast the values
-			( k, typ( v or kwargs.get(k,typ()) ) ) for k,typ,v in itertools.izip_longest(*zip(*self.order) + [args], fillvalue='') if k != ''
+			( k,
+
+				(typ() if v == '-' else typ( v or kwargs.get(k,typ()) ) )
+
+			) for k,typ,v in itertools.izip_longest(*zip(*self.order) + [args], fillvalue='') if k != ''
 		)
 
 		values = dict( (k,v) for k, v in values )
+		if not isinstance(self['cputime'], long): # at one point the time the server took to process
+			self['resource'] = self['cputime']     # a request was logged, this deals with that issue
+			self['cputime'] = self['resource']
 
 		self.__tfmt = kwargs.pop('time_fmt', CTIME)
 
@@ -187,8 +188,12 @@ class AccessLogLine(dict):
 			if name in self: return self[name]
 			else: raise
 
-class LogFile(object):
-	def __init__(self, *lines):
+class AccessLogFile(object):
+	def __init__(self, *lines, **kwargs):
+		index = kwargs.pop('index')
+		#index = None
+		print index
+
 		self.data = collections.defaultdict(lambda:collections.defaultdict(list))
 		self.lines = []
 
@@ -197,7 +202,9 @@ class LogFile(object):
 				line = AccessLogLine.from_line(line)
 			self.lines.append(line)
 			for k,v in line.items():
-				self.data[k][v].append(line)
+				if (index==None) or (k in index):
+					self.data[k][v].append(line)
+		print self.data.keys()
 
 	@classmethod
 	def from_file(cls, file):

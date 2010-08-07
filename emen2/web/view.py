@@ -1,3 +1,5 @@
+import itertools
+import functools
 import sys
 import os
 import os.path
@@ -12,6 +14,26 @@ from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
+class _Null: pass
+def cast_arguments(*postypes, **kwtypes):
+	def _func(func):
+		@functools.wraps(func)
+		@g.debug_func
+		def _inner(*args, **kwargs):
+			out = []
+			for typ, arg in itertools.izip_longest(postypes, args, fillvalue=_Null):
+				if arg != _Null:
+					if typ != _Null:
+						arg = typ(arg)
+					out.append(arg)
+			for k,v in kwargs.iteritems():
+				typ = kwtypes.get(k, _Null)
+				if typ != _Null:
+					kwargs[k] = typ(kwargs[k])
+			g.debug( args, kwargs )
+			return func(*args, **kwargs)
+		return _inner
+	return _func
 
 class View(object):
 	'''Base Class for views, sets up the instance variables for the class
@@ -196,6 +218,7 @@ class View(object):
 		cls = type(name, bases, dict)
 		cls.register(cls)
 		return cls
+
 
 	@classmethod
 	def add_matcher(cls, *match, **kwmatch):

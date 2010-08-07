@@ -122,12 +122,16 @@
          ).dialog({autoOpen: false, modal: true, title: 'Help (\'q\' or Escape to exit)', minWidth: 402, width: 402});
 
          $('body').bind('keydown', function(event) {
-            if (event.which == 191) { // 191 == '?'
+            if (event.shiftKey && event.which == 191) { // 191 == '?'
                self.help();
             } else if (event.which == 81 && self.options.helpDialog.dialog('isOpen')) { // 81 == 'q'
                self.help();
             };
          });
+        if (this.options.helpTrigger)  {
+           $(this.options.helpTrigger).click( function() { self.help(); });
+        }
+
 
 
       },
