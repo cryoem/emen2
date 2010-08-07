@@ -1,72 +1,150 @@
-TileWidget = (function($) { // Localise the $ function
-
-function TileWidget(elem, opts) {
-	this.elem = $(elem);
-	if (typeof(opts) != "object") opts = {};
-	$.extend(this, TileWidget.DEFAULT_OPTS, opts);
-	this.init();
-};
-
-TileWidget.prototype = {
-	
-	init: function() {
-		this.built = 0;
-		this.boxes = [[0,0],[1023,1023],[0,1023], [2047,2047], [4095,4095]];
-		this.boxsize = 20;
-		this.imgsize = 4096;
+(function($) {
+    $.widget("ui.captionator", {
+		options: {
+			bid: null,
+			boxes: [[0,0], [512, 512], [512, 1024]]
+		},
 				
-		this.nx = 0;
-		this.ny = 0;
-		this.level = this.nx.length - 1;
-		this.recid = parseInt(this.elem.attr("data-recid"));
-		this.bid = this.elem.attr("data-bid");
-		this.build();
+		_create: function() {
+			this.scale = $('<div />');
 
-	},
-	
-	
-	build: function() {
-		var self=this;
-		this.built = 1;
+			
+		},
+
+		build: function() {
+			$("#range").slider({
+				range: true,
+				min: -10,
+				max: 10,
+				values: [64, 198],
+				slide: function(event, ui) {
+					$("#preview").attr('data-min', ui.values[0]);
+					$("#preview").attr('data-max', ui.values[1]);
+					$("#preview").trigger("refresh");	
+				}
+			});
 		
-	},
-	
-	build_boxes: function() {
+			$("#scale").slider({
+				min: 1,
+				max: 8,
+				value: 8,
+				slide: function(event, ui) {
+					$("#preview").attr('data-scale', ui.value); 
+					$("#preview").trigger("refresh");
+				}
+			});		
 		
-		var scale = this.imgsize / this.elem.width();
-		// console.log(scale);
+			$("#amount").html($("#range").slider("values", 0) + ' - ' + $("#range").slider("values", 1));
+		
+			$.ajax({
+				type: 'POST',
+				url: EMEN2WEBROOT+'/eman2/${bdo.name}/getrange',
+				dataType: 'json',
+				success: function(data) {
+					$("#range").slider('values', 0, parseInt(data[0]));
+					$("#range").slider('values', 1, parseInt(data[1]));
+					$("#amount").html($("#range").slider("values", 0) + ' - ' + $("#range").slider("values", 1));
+				}
+			});
 
-		$.each(this.boxes, function(){
+			$(".box", this.element).bind("refresh", function() {
+				var t = $(this);
+				var x = t.attr('data-x');
+				var y = t.attr('data-y');
+				var size = t.attr('data-size');
+				var scale = t.attr('data-scale');
+				var rmin = t.attr('data-min');
+				var rmax = t.attr('data-max');
+				var src = EMEN2WEBROOT+'/eman2/${bdo.name}/box?x='+x+'&amp;y='+y+'&amp;size='+size+'&amp;scale='+scale;
+				if (rmin || rmax) {
+					src = EMEN2WEBROOT+'/eman2/${bdo.name}/box?x='+x+'&amp;y='+y+'&amp;size='+size+'&amp;scale='+scale+'&amp;min='+rmin+'&amp;max='+rmax;
+				} 
+				t.attr('src', src);
+			});			
+		},
 
-			var box = $('<div>');
-			box.css("position","absolute");
-			box.css("left", (this[0]/scale)-(self.boxsize/2));
-			box.css("top", (this[1]/scale)-(self.boxsize/2));
-			box.css("width", self.boxsize);
-			box.css("height", self.boxsize)
-			box.css("border", "solid");
-			box.css("border-color", "red");
-			box.css("border-width", "1px");
-			self.elem.append(box);
-		});
+				
+		destroy: function() {
 
-	}
-
-}
-
-$.fn.TileWidget = function(opts) {
-  return this.each(function() {
-		return new TileWidget(this, opts);
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
 	});
-};
 
-return TileWidget;
 
-})(jQuery); // End localisation of the $ function
+})(jQuery);
 
 
 
 
+// TileWidget = (function($) { // Localise the $ function
+// 
+// function TileWidget(elem, opts) {
+// 	this.elem = $(elem);
+// 	if (typeof(opts) != "object") opts = {};
+// 	$.extend(this, TileWidget.DEFAULT_OPTS, opts);
+// 	this.init();
+// };
+// 
+// TileWidget.prototype = {
+// 	
+// 	init: function() {
+// 		this.built = 0;
+// 		this.boxes = [[0,0],[1023,1023],[0,1023], [2047,2047], [4095,4095]];
+// 		this.boxsize = 20;
+// 		this.imgsize = 4096;
+// 				
+// 		this.nx = 0;
+// 		this.ny = 0;
+// 		this.level = this.nx.length - 1;
+// 		this.recid = parseInt(this.elem.attr("data-recid"));
+// 		this.bid = this.elem.attr("data-bid");
+// 		this.build();
+// 
+// 	},
+// 	
+// 	
+// 	build: function() {
+// 		var self=this;
+// 		this.built = 1;
+// 		
+// 	},
+// 	
+// 	build_boxes: function() {
+// 		
+// 		var scale = this.imgsize / this.elem.width();
+// 		// console.log(scale);
+// 
+// 		$.each(this.boxes, function(){
+// 
+// 			var box = $('<div>');
+// 			box.css("position","absolute");
+// 			box.css("left", (this[0]/scale)-(self.boxsize/2));
+// 			box.css("top", (this[1]/scale)-(self.boxsize/2));
+// 			box.css("width", self.boxsize);
+// 			box.css("height", self.boxsize)
+// 			box.css("border", "solid");
+// 			box.css("border-color", "red");
+// 			box.css("border-width", "1px");
+// 			self.elem.append(box);
+// 		});
+// 
+// 	}
+// 
+// }
+// 
+// $.fn.TileWidget = function(opts) {
+//   return this.each(function() {
+// 		return new TileWidget(this, opts);
+// 	});
+// };
+// 
+// return TileWidget;
+// 
+// })(jQuery); // End localisation of the $ function
+// 
 // var isdown=false;
 // var nx=0
 // var ny=0
