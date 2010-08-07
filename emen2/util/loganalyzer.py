@@ -1,4 +1,5 @@
 import re
+import time
 import datetime
 import collections
 import itertools
@@ -101,29 +102,35 @@ class LogFile1(object):
 
 		return cls(*lines)
 
+def safe_float(v=0):
+	try:
+		if v == None: v = 0.0
+		return round(float(v), 0)
+	except ValueError: return v
+
+def timeconv(tm=None):
+	result = tm or None
+	if not hasattr(tm, 'strptime') and tm:
+		result = datetime.datetime.strptime(tm, CTIME)
+	return result
+
 
 
 class AccessLogLine(dict):
-	def timeconv(self, tm=None):
-		result = tm or None
-		if not hasattr(tm, 'strptime') and tm:
-			result = datetime.datetime.strptime(tm, CTIME)
-		return result
+	order = (
+		('host',str), ('ctxid',str),
+		('username',str), ('rtime',timeconv),
+		('request', str), ('response_code', long),
+		('size', long), ('cputime', safe_float),
+		('resource', str)
+	)
+	labels = set(x[0] for x in order)
 
 	def __init__(self, *args, **kwargs):
 		self.__locked = False
 
-		def safe_long(v=0):
-			try: return long(v)
-			except ValueError: return v
-
-		self.order = kwargs.pop('order', ( # get the field order and types
-				('host',str), ('ctxid',str),
-				('username',str), ('rtime',self.timeconv),
-				('request', str), ('response_code', long),
-				('size', long), ('cputime', safe_long),
-				('resource', str)
-		))
+		## get the field order and types
+		#self.order = kwargs.pop('order', self.order)
 
 		values = ( # combine the order with the passed values, and cast the values
 			( k,
@@ -172,7 +179,10 @@ class AccessLogLine(dict):
 		d = dict(self)
 		d['rtime'] = (d['rtime'].strftime(self.__tfmt) if d['rtime'] else '-')
 		out = []
-		for k,_ in self.order: out.append(str(d.get(k, '-') or '-'))
+		for k,_ in self.order:
+			value = d.get(k, '-')
+			if value == '': value = '-'
+			out.append(str(value))
 		return ' '.join(out)
 
 	def __setitem__(self, key, value):
@@ -190,7 +200,6 @@ class AccessLogFile(object):
 	def __init__(self, *lines, **kwargs):
 		index = kwargs.pop('index')
 		#index = None
-		print index
 
 		self.data = collections.defaultdict(lambda:collections.defaultdict(list))
 		self.lines = []
@@ -202,7 +211,6 @@ class AccessLogFile(object):
 			for k,v in line.items():
 				if (index==None) or (k in index):
 					self.data[k][v].append(line)
-		print self.data.keys()
 
 	@classmethod
 	def from_file(cls, file):
