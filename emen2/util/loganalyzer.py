@@ -116,6 +116,7 @@ class AccessLogLine(dict):
 		def safe_long(v=0):
 			try: return long(v)
 			except ValueError: return v
+
 		self.order = kwargs.pop('order', ( # get the field order and types
 				('host',str), ('ctxid',str),
 				('username',str), ('rtime',self.timeconv),
@@ -133,9 +134,6 @@ class AccessLogLine(dict):
 		)
 
 		values = dict( (k,v) for k, v in values )
-		if not isinstance(self['cputime'], long): # at one point the time the server took to process
-			self['resource'] = self['cputime']     # a request was logged, this deals with that issue
-			self['cputime'] = self['resource']
 
 		self.__tfmt = kwargs.pop('time_fmt', CTIME)
 
