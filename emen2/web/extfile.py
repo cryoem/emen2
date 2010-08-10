@@ -50,6 +50,7 @@ class BaseJS(ExtFile):
 			'%s/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
+			'%s/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
 			'%s/js/util.admin.js'%g.EMEN2WEBROOT,
 			'%s/js/util.json.js'%g.EMEN2WEBROOT,
 			'%s/js/util.query.js'%g.EMEN2WEBROOT,

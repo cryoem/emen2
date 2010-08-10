@@ -46,7 +46,7 @@ caches["recs"] = {};
 caches["recnames"] = {};
 caches["children"] = {};
 caches["parents"] = {};
-
+caches["colors"] = {};
 
 //////////////////////////////////////////
 

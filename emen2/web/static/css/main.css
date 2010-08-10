@@ -69,7 +69,9 @@ h4 {
 .controls {
 	display:none;
 }
-
+.tiles .slider {
+	width:512px;
+}
 /*.error {
 	color: red;
 }
@@ -93,6 +95,50 @@ h4 {
 	display:block;
 	width:200px;
 }
+
+
+.files img.thumbnail {
+	vertical-align:top;
+	border:0px;
+	padding:4px;
+	padding-top:0px;
+}
+
+.boximg {
+/*
+	margin:2px;
+	border:solid red 2px;
+*/
+}
+.boxbox {
+	z-index:100;
+	position:absolute;
+	top:0px;
+	left:0px;
+	border:solid red 1px;
+	width:10px;
+	height:10px;
+}
+.boxhover {
+	outline: solid #BBD9EE 5px;
+}
+.boxarea {
+	height:40px;
+}
+.boxarea .boximg {
+	border:solid #FFFFFF 2px;
+	margin:0px;
+	margin-right:2px;
+	margin-bottom:2px;
+}
+.boxarea-active {
+	background:#ccc;
+}
+.tiles .imgarea {
+	
+}
+
+
 
 /************* USER PROFILE DISPLAY **************/
 
@@ -202,11 +248,12 @@ h4 {
 
 
 div.color_picker {
+  float: right;
   height: 16px;
   width: 16px;
   padding: 0 !important;
   border: 1px solid #ccc;
-  background: url(arrow.gif) no-repeat top right;
+  background: url(/images/arrow.gif) no-repeat top right;
   cursor: pointer;
   line-height: 16px;
 }
@@ -324,84 +371,6 @@ td {
 	font-weight:normal;
 	border-bottom:solid 1px #CCC;
 }
-
-
-
-
-/************* RELATIONSHIP EDITOR  ************/
-
-
-.relationshipcontrol_pc span {
-	padding:4px;
-}
-
-.relationshipcontrol_controls_title {
-	border-bottom:solid 1px red;
-}
-
-.modalbrowser_container {
-	position:fixed;
-	z-index:200;
-	top:0px;
-	left:0px;
-	width:100%;
-	padding:0px;
-	height:100%;
-	background:url('/images/transbackground-15.png');
-}
-.modalbrowser_container_inner {
-	border:solid 2px #BBD9EE;
-	position:absolute;
-	top:100px;
-	left:100px;
-	width:896px;
-	background:white;
-}
-.modalbrowser_body {
-	padding:10px;
-	width:896px;
-	background:white;
-}
-.modalbrowser_title {
-	padding:10px;
-	background:#BBD9EE;
-	width:100%;
-}
-.modalbrowser_spacer {
-	margin:5px;
-	color:white;
-	border-right:solid 2px white;
-}
-.modalbrowser_table {
-	max-height:300px;
-	overflow:auto;
-	width:300px;
-}
-.modalbrowser_table td {
-}
-.modalbrowser_info {
-	width:250px;
-	padding-left:5px;
-	padding-right:5px;
-	padding-bottom:5px;
-}
-.modalbrowser_info_view {
-	border:solid 2px #ccc;
-	border-top:none;
-	font-size:8pt;
-	max-height:300px;
-	overflow:auto;
-}
-.modalbrowser_info_name {
-	background:#eee;
-	border:solid 2px #ccc;
-	border-bottom:none;
-	padding:5px;
-}
-.modalbrowser_info_view td {
-	padding:2px;
-}
-
 
 
 /********** RECORD EDIT BAR ***********/
@@ -611,7 +580,7 @@ html,body {
 }
 
 #container {
-	position:relative; 
+/*	position:relative;  */
 	min-height:100%;
 	background:white;
 }
@@ -624,7 +593,7 @@ html,body {
 	/*display:none;*/
 	background:#BBD9EE; 
 	font-size:10px;
-	position:absolute;
+	/*position:absolute;*/
 	margin:0px;
 	padding:0px;
 	bottom:0px;
@@ -637,7 +606,7 @@ html,body {
 
 #content {
 	display:block;
-	position: relative;
+	/*position: relative;*/
 	overflow: none;
 	padding:15px;
 	padding-bottom:60px;
@@ -870,14 +839,25 @@ PAGE / TAB
 }
 
 	
+.boxercontrols {
+	background:#E7F1F8;
+	padding:10px;
 
-
+}
+.tilemap {
+	height: 1024px;
+	width:1024px;
+	border: 1px solid black;
+	position:relative;
+	overflow:hidden;
+}
 
 /* tile browser */
 
+/*
 #outerdiv { height: 512px; width:512px; border: 1px solid black; position:relative; overflow:hidden; }
 #innerdiv { position:relative; left: 0px; right: 0px; }
-
+*/
 
 
 
@@ -1075,7 +1055,7 @@ ul.nonlist li {
 
 /* all */
 /* .modalbrowser_container, */
-.capsule, .precontent .map, #alert li, .navtable, .tooltip, .child, .page, .bigbutton input {
+.capsule, .precontent .map, #alert li, .navtable, .tooltip, .child, .page, .bigbutton input,  .boxercontrols {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }

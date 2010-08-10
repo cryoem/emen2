@@ -1099,6 +1099,8 @@ class DB(object):
 		md5sum = m.hexdigest()
 		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
+		if filesize == 0:
+			raise ValueError, "Empty file!"
 
 		# Ok, now that we have written the file out, update the BDO counter and then move the file
 

@@ -223,6 +223,18 @@ class vt_intlist(Vartype):
 
 
 
+class vt_intlistlist(Vartype):
+	"""list of int tuples: e.g. [[1,2],[3,4], ..]"""
+	__metaclass__ = Vartype.register_view
+	__indextype__ = None
+	def validate(self, engine, pd, value, db):
+		return [[int(x) for x in i] for i in value] or None
+
+
+
+
+
+
 class vt_floatlist(Vartype):
 	"""list of floats"""
 	__metaclass__ = Vartype.register_view

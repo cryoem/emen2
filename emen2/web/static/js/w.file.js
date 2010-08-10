@@ -92,7 +92,7 @@
 			
 				$.each(bdos, function(i,v) {
 					var row = $('<tr/>');
-					var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
+					var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=tiny" alt=""/>'+v.filename+'</a></td>');
 					row.append(link);
 					row.append('<td>'+v.filesize+'</td>');
 					row.append('<td>'+v.creator+'</td>');
@@ -291,7 +291,7 @@
 				var row = $('<tr/>');
 				var remove = $('<td><input type="checkbox" name="remove" value="'+v.name+'" /></td>');
 				row.append(remove);
-				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
+				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=tiny" alt=""/>'+v.filename+'</a></td>');
 				row.append(link);
 				row.append('<td>'+v.filesize+'</td>');
 				row.append('<td>'+v.creator+'</td>');
@@ -312,46 +312,49 @@
 	
 		build_browser: function() {
 			var self = this;
-		
-			var fform = $('<div class="clearfix" />');
-			var fform_buttons = $('<div style="float:left;padding-top:10px;padding-right:10px;" />');
+			var fform = $('<form method="POST" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
 
-			this.button_browser = $('<input type="file" />');
-			if (this.options.vartype == "binary") {
-				this.button_browser.attr("multiple","multiple");
-			}	
-			this.button_browser.html5_upload({
-				onFinish: function(event, total) {
-					$('#progress').progressbar("destroy");
-					$.jsonRPC("getrecord", [self.options.recid], function(rec) {
-						record_update(rec);
-						self.event_build_tablearea();
-						self.options.cb();		
-					})
-				},
-				setProgress: function(val) {
-					$('#progress').progressbar( "option", "value", val*100 );
-				},
-				url: function() {
-					return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
-				},
-				onStart: function(event, total) {
-					if (total > 1) {
-						return confirm("You are trying to upload " + total + " files. Are you sure?");
-					}
-					$('#progress').progressbar({});				
-					return true;
-				},
-				autostart: false
-			});
-
+			this.button_browser = $('<input type="file" name="filedata" />');
 			this.button_submit = $('<input  type="submit" value="Upload" />');
-			this.button_submit.bind('click', function(){self.button_browser.trigger('html5_upload.start')});
-			fform_buttons.append(this.button_browser, this.button_submit);
 
+
+			if (typeof(FileReader) != "undefined") {
+
+				if (this.options.vartype == "binary") {
+					this.button_browser.attr("multiple","multiple");
+				}	
+
+				this.button_browser.html5_upload({
+					onFinish: function(event, total) {
+						$('#progress').progressbar("destroy");
+						$.jsonRPC("getrecord", [self.options.recid], function(rec) {
+							record_update(rec);
+							self.event_build_tablearea();
+							self.options.cb();		
+						})
+					},
+					setProgress: function(val) {
+						$('#progress').progressbar( "option", "value", val*100 );
+					},
+					url: function() {
+						return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
+					},
+					onStart: function(event, total) {
+						if (total > 1) {
+							return confirm("You are trying to upload " + total + " files. Are you sure?");
+						}
+						$('#progress').progressbar({});				
+						return true;
+					},
+					autostart: false
+				});
+				this.button_submit.bind('click', function(e){e.stopPropagation();self.button_browser.trigger('html5_upload.start')});
+			}
+			
 			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
-		
-			fform.append(fform_buttons, progress);
+			var redirect = $('<input type="hidden" value="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/" name="redirect">');
+			
+			fform.append(this.button_browser, this.button_submit, progress, redirect);
 			this.browserarea.append('<br /><br /><h4>Upload</h4>', fform);
 
 			if (this.options.vartype == "binary") {
