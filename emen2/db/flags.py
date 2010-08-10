@@ -34,7 +34,8 @@ rmwflags = [
 	]
 
 
-g.ENVOPENFLAGS = reduce(operator.__or__, envopenflags, 0)
-g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags, 0)
-g.TXNFLAGS = reduce(operator.__or__, txnflags, 0)
-g.RMWFLAGS = reduce(operator.__or__, rmwflags, 0)
+with g as _g:
+	_g.ENVOPENFLAGS = reduce(operator.__or__, envopenflags, 0)
+	_g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags, 0)
+	_g.TXNFLAGS = reduce(operator.__or__, txnflags, 0)
+	_g.RMWFLAGS = reduce(operator.__or__, rmwflags, 0)

@@ -171,8 +171,9 @@ class DebugState(object):
 	debugstates = datastructures.Enum(dict(LOG_DEBUG=-1, LOG_INFO=3, LOG_TXN=2,
 											LOG_COMMIT=5, LOG_INDEX=12,
 											LOG_INIT=4, LOG_WEB=6,
-											LOG_WARNING=9, LOG_ERROR=10,
-											LOG_CRITICAL=11, ALL=0))
+											LOG_WARNING=8, LOG_SECURITY=9,
+											LOG_ERROR=10, LOG_CRITICAL=11,
+											ALL=0))
 	last_debugged = datastructures.Ring()
 	_clstate = {}
 

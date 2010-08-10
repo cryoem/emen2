@@ -13,6 +13,7 @@ import threading
 import os
 import os.path
 import UserDict
+import emen2.util.datastructures
 try: import yaml
 except ImportError:
 	try: import syck as yaml
@@ -130,33 +131,37 @@ class GlobalNamespace(object):
 			cls.__locked
 			#print 'ns __locked 0', cls.__locked
 		except AttributeError: cls.__locked = False
+		return cls.__locked
 		#print 'ns __locked 1', cls.__locked
 
 	@property
 	def _locked(self):
-		self.check_locked()
-		return self.__locked
+		return self.check_locked()
 	@_locked.setter
 	def _locked(self, value):
+		cls = self.__class__
 		if not self.__locked:
-			#print 'hi'
-			self.__class__.__locked = bool(value)
-			#print 'ns __locked 2', self.__locked
+			cls.__locked = bool(value)
 		elif bool(value) == False:
-			raise LockedNamespaceError, 'cannot unlock %s' % self.__class__.__name__
+			raise LockedNamespaceError, 'cannot unlock %s' % cls.__name__
 
-	def __unlock(self):
+	def __enter__(self):
+		self.__tmpdict = emen2.util.datastructures.AttributeDict()
+		return self.__tmpdict
+	def __exit__(self, exc_type, exc_value, tb):
+		newitems = set(self.__tmpdict) - set(self.__vardict)
+		if newitems:
+			self.__vardict.update(x for x in self.__tmpdict.iteritems() if x[0] in newitems)
+			skipped = set(self.__tmpdict) - newitems
+			if skipped: self.log.msg('LOG_WARNING', 'skipped items: %r' % skipped)
+		del self.__tmpdict
+
+	@classmethod
+	def __unlock(cls):
 		'''unlock namespace (for internal/debug use only)'''
-		self.__locked = False
+		cls.__locked = False
 
 	def __init__(self,_=None): pass
-
-	def fixpath(self, v):
-		if not v: return
-		if not v.startswith("/"): return os.path.join(self.EMEN2DBHOME, v)
-		return v
-
-
 
 	@classmethod
 	def from_yaml(cls, fn=None, data=None):
@@ -212,47 +217,6 @@ class GlobalNamespace(object):
 
 		return self
 
-	# @classmethod
-	# def from_yaml(cls, fn=None, data=None):
-	# 	'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
-	# 	if not (fn or data): raise ValueError, 'either a filename or yaml data must be supplied'
-	# 	if not yaml: raise NotImplementedError, 'yaml not found'
-	# 	fn = os.path.abspath(fn)
-	#
-	# 	# load data
-	# 	self = cls()
-	# 	if fn:
-	# 		with file(fn) as a: data = yaml.safe_load(a)
-	#
-	# 	# process data
-	# 	if data:
-	# 		for key in data:
-	# 			if key != 'root': # a toplevel dictionary named 'root' holds things which are not loaded into the new instance
-	# 				b = data[key]
-	# 				pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
-	# 				options = b.pop('options', {})     # get options for the dictionary
-	# 				self.__yaml_files[fn].append(key)
-	#
-	# 				for key2, value in b.iteritems():
-	# 					self.__yaml_keys[key].append(key2)
-	# 					# apply the prefix to entries
-	# 					if isinstance(value, dict): pass
-	# 					elif hasattr(value, '__iter__'):
-	# 						value = [pref+item for item in value]
-	# 					elif isinstance(value, (str, unicode)):
-	# 						value = pref+value
-	# 					self.__addattr(key2, value, options)
-	#
-	#
-	# 		# load alternate config files
-	# 		root = data.get('root', {})
-	# 		if root.has_key('configfiles'):
-	# 			for fn in root['configfiles']:
-	# 				if os.path.exists(fn):
-	# 					cls.from_yaml(fn=fn)
-	#
-	# 	return self
-
 	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
 		'''store state as YAML'''
 		if keys is not None:
@@ -263,7 +227,6 @@ class GlobalNamespace(object):
 			keys = dict( (k, self.__yaml_keys[k]) for k in self.__yaml_files[file] )
 		else:
 			keys = self.__yaml_keys
-		# file = __builtins__['file']
 
 		_dict = collections.defaultdict(dict)
 		for key, value in keys.iteritems():
@@ -280,7 +243,7 @@ class GlobalNamespace(object):
 		finally:
 			self.__modlock.release()
 	def __setattr__(self, name, value):
-		if hasattr(getattr(self.__class__, name, None), '__set__'):
+		if hasattr(getattr(self.__class__, name, None), '__set__') or name.startswith('_'):
 			object.__setattr__(self, name, value)
 		else:
 			self.setattr(name, value)
@@ -310,7 +273,7 @@ class GlobalNamespace(object):
 		if cls.__options.has_key('private'):
 			if name in cls.__options['private']:
 				return default
-		if name.startswith('_'): result = object.__getattr__(cls, name, default)
+		if name.startswith('_'): result = getattr(cls, name, default)
 		else: result = cls.__vardict.get(name, default)
 		return result
 	@classmethod
@@ -332,11 +295,6 @@ class GlobalNamespace(object):
 			result = object.__getattribute__(self, name)
 		except AttributeError:
 			result = object.__getattribute__(self, 'getattr')(name)
-			if result == None:
-				try:
-					result = object.__getattribute__(self, name)
-				except AttributeError:
-					pass
 
 		if result == None:
 			raise AttributeError('Attribute Not Found: %s' % name)
