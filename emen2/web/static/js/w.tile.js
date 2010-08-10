@@ -93,28 +93,22 @@
 			ct.find("tbody").append(contrast);
 
 
-
 			// Box areas
-			this.boxtable = $('<table><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th>Name <input name="newset" type="button" value="New Set" /></th><th style="width:60px">Actions</th></tr></thead><tbody></tbody></table>');
-			$('input[name=newset]', this.boxtable).click(function() {self.createboxarea()});
+			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th>Name <input name="newset" type="button" value="New Set" /></th><th>Actions</th></tr></thead><tbody></tbody></table>');
+			boxtable.find('input[name=newset]').click(function() {self.createboxarea()});
 
-
-
-			this.controls = $('<div class="boxercontrols floatright" style="width:800px" ></div>');			
-			this.controls.append(ct, this.boxtable);
+			var controls = $('<div class="boxercontrols" />');			
+			controls.append(ct, boxtable);
 
 
 			//this.element.append('<div id="wtf">WTF</div>');			
-			this.element.append(this.controls)			
-
-
 
 			this.img = $('<div class="tilemap" />');
 			this.element.append(this.img);
-			this.img.TileMap({bdo: this.options.bdo, scale: 4, width: this.emdata['nx'], height: this.emdata['ny']});
+			this.img.TileMap({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
 
-	
 
+			this.element.append(controls)			
 
 			// if there are records, do some callbacks..
 			if (this.options.boxrecords) {
@@ -133,6 +127,7 @@
 				// If there are no boxes, start a new set..
 				this.createboxarea();				
 			}
+			this.img.width(this.img.width()-controls.width());
 						
 		},
 		
@@ -289,7 +284,7 @@
 			});
 			
 			// Setup the droppable area
-			var boxarea = $('<tr data-label="'+label+'"><td /><td colspan="5" class="boxarea" data-label="'+label+'" ></tr>');
+			var boxarea = $('<tr data-label="'+label+'"><td colspan="6" class="boxarea" data-label="'+label+'" ></tr>');
 			$(".boxarea", boxarea).droppable({
 				greedy: true,
 				accept: '.boximg[data-label!='+label+']',
@@ -320,7 +315,7 @@
 			var boxheader = $('<tr data-label="'+label+'" />');
 			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
 
-			$("tbody", this.boxtable).prepend(boxheader, boxarea);
+			this.element.find(".boxtable tbody").prepend(boxheader, boxarea);
 
 			// this is down here because colorPicker is primitive.
 			$('.colorpicker[data-label='+label+']').colorPicker();
@@ -377,6 +372,8 @@
 			this.element.addClass("boxbox");
 			this.element.attr("data-boxid", this.options.boxid);
 			this.element.attr("data-label", this.options.label);
+			this.element.css("position", 'absolute');
+			
 			this.bind_draggable();
 			this.refresh();
 		},
@@ -390,7 +387,6 @@
 					self.removebox();
 				}
 			});
-
 
 			this.element.hover(function() {
 				$('[data-boxid='+self.options.boxid+']').addClass("boxhover");
@@ -413,30 +409,7 @@
 			});	
 					
 		},
-
-		build: function() {
-			$("#range").slider({
-				range: true,
-				min: -10,
-				max: 10,
-				values: [64, 198],
-				slide: function(event, ui) {
-					$("#preview").attr('data-min', ui.values[0]);
-					$("#preview").attr('data-max', ui.values[1]);
-					$("#preview").trigger("refresh");	
-				}
-			});
 		
-			$("#scale").slider({
-				min: 1,
-				max: 8,
-				value: 8,
-				slide: function(event, ui) {
-					$("#preview").attr('data-scale', ui.value); 
-					$("#preview").trigger("refresh");
-				}
-			});		
-
 		removebox: function() {
 			$('div[data-bdo='+this.options.bdo+']').Boxer('removebox', this.options.boxid);
 		},
@@ -445,7 +418,6 @@
 			var boxscale = this.options.size / this.options.scale;
 			var disp_x = (this.options.x - (this.options.size) / 2) / this.options.scale;
 			var disp_y = (this.options.y - (this.options.size) / 2) / this.options.scale;			
-
 			var color = caches["colors"][this.options.label];
 			this.element.css('border-color', color)			
 			this.element.css("left", disp_x);
@@ -456,7 +428,7 @@
 				
 		destroy: function() {
 		},
-
+		
 		_setOption: function(option, value) {
 			$.Widget.prototype._setOption.apply( this, arguments );
 		}
@@ -492,6 +464,7 @@
 		
 		bind_draggable: function() {
 			var self = this;
+
 			this.element.click(function(e) {
 				e.stopPropagation();
 				if ( e.shiftKey ) {
@@ -511,8 +484,7 @@
 				appendTo: "body",
 				helper: "clone",
 				//containment: $('#controls').length ? '#controls' : 'document', // stick to demo-frame if present
-			});			
-			
+			});	
 		},
 		
 		removebox: function() {
@@ -553,6 +525,7 @@
 		_setOption: function(option, value) {
 			$.Widget.prototype._setOption.apply( this, arguments );
 		}
+	});
 })(jQuery);
 
 
@@ -562,22 +535,32 @@
 		options: {
 			width: 4096,
 			height: 4096,
-			size: 256,
-			scale: 4,
+			size: 512,
+			scale: 'auto',
 			bdo: null
 		},
 				
 		_create: function() {
 			this.pos = null;
+
+			if (this.options.scale == 'auto') {
+				console.log(this.element.width(), this.element.height());
+				this.options.scale = 4;
+			}
+			
+
 			this.inner = $('<div style="position:relative;width:1024px;height:1024px;top:0px;left:0px" />');
 			this.element.append(this.inner);
 			var self = this;
+
+
 			this.inner.draggable({
 				helper:function(){return $('<span />')},
 				drag:function(e){self.event_drag(e)},
 				start:function(e){self.event_drag_start(e)}
 			});
 			this.inner.click(function(e) {self.event_click(e)});
+
 			this.setscale(self.options.scale);
 
 		},
@@ -713,318 +696,6 @@
 	});
 })(jQuery);
 
-// 
-// function TileWidget(elem, opts) {
-// 	this.elem = $(elem);
-// 	if (typeof(opts) != "object") opts = {};
-// 	$.extend(this, TileWidget.DEFAULT_OPTS, opts);
-// 	this.init();
-// };
-// 
-// TileWidget.prototype = {
-// 	
-// 	init: function() {
-// 		this.built = 0;
-// 		this.boxes = [[0,0],[1023,1023],[0,1023], [2047,2047], [4095,4095]];
-// 		this.boxsize = 20;
-// 		this.imgsize = 4096;
-// 				
-// 		this.nx = 0;
-// 		this.ny = 0;
-// 		this.level = this.nx.length - 1;
-// 		this.recid = parseInt(this.elem.attr("data-recid"));
-// 		this.bid = this.elem.attr("data-bid");
-// 		this.build();
-// 
-// 	},
-// 	
-// 	
-// 	build: function() {
-// 		var self=this;
-// 		this.built = 1;
-// 		
-// 	},
-// 	
-// 	build_boxes: function() {
-// 		
-// 		var scale = this.imgsize / this.elem.width();
-// 		// console.log(scale);
-// 
-// 		$.each(this.boxes, function(){
-// 
-// 			var box = $('<div>');
-// 			box.css("position","absolute");
-// 			box.css("left", (this[0]/scale)-(self.boxsize/2));
-// 			box.css("top", (this[1]/scale)-(self.boxsize/2));
-// 			box.css("width", self.boxsize);
-// 			box.css("height", self.boxsize)
-// 			box.css("border", "solid");
-// 			box.css("border-color", "red");
-// 			box.css("border-width", "1px");
-// 			self.elem.append(box);
-// 		});
-// 
-// 	}
-// 
-// }
-// 
-// $.fn.TileWidget = function(opts) {
-//   return this.each(function() {
-// 		return new TileWidget(this, opts);
-// 	});
-// };
-// 
-// return TileWidget;
-// 
-// })(jQuery); // End localisation of the $ function
-// 
-// var isdown=false;
-// var nx=0
-// var ny=0
-// var level=nx.length-1
-// var tileid = "";
-// var divdim = [512,512];
-// var imgw = 256;
-// var bid = null;
-// 
-// /*************************************************/
-// 
-// 
-// function tile_download(bid,filename) {
-// 	//alert("Download "+bid+", "+filename);
-// 	//http://ncmidb2:8080/download/200412170010B/20041208031758.dm3.gz
-// 	//window.location("/download/"+bid+"/"+filename);
-// }
-// 
-// function tile_bindresize() {   
-// 	var resizeTimer = null;
-// 	$(window).bind('resize', function() {
-// 		if (resizeTimer) clearTimeout(resizeTimer);
-// 		resizeTimer = setTimeout(tile_fitheight, 100);
-// 	});	
-// }
-// 
-// function tile_fitheight() {
-// 
-// 	var e1=$(window).height();
-// 	$("#outerdiv").height(e1-120);
-// 	tile_center();
-// 	
-// }
-// 
-// function tile_center() {
-// 	indiv=document.getElementById("innerdiv");	
-// 	indiv.style.left=($("#outerdiv").width() - (imgw*nx[level]))/2 + "px";
-// 	indiv.style.top=($("#outerdiv").height() - (imgw*ny[level]))/2 + "px";
-// }
-// 
-// function tile_larger(bid) {
-// 	window.location = EMEN2WEBROOT+"/db/tiles/"+bid+"/large/";
-// }
-// 
-// function tile_pspec(bid) {
-// 	indiv=document.getElementById("innerdiv");
-// 	indiv.style.left="0px";
-// 	indiv.style.top="0px";
-// 	var e=document.createElement("img");
-// 	e.src=EMEN2WEBROOT+'/db/tiles/'+bid+'/image/?level=-1&amp;x=0&amp;y=0';
-// 	e.width=divdim[0];
-// 	e.height=divdim[1];
-// 	$(indiv).empty().append(e);
-// }
-// function tile_1d(bid) {
-// 	indiv=document.getElementById("innerdiv");
-// 	indiv.style.left="0px";
-// 	indiv.style.top="0px";
-// 	var e=document.createElement("img");
-// 	e.src=EMEN2WEBROOT+'/db/tiles/'+bid+'/image/?level=-2&amp;x=0&amp;y=0';
-// 	e.width=divdim[0];
-// 	e.height=divdim[1];
-// 	$(indiv).empty().append(e);
-// }
-// 
-// 
-// function tile_init(ibid) {
-// 	bid = ibid;
-// 	
-// 	var outerdivie=document.getElementById("outerdiv");
-// 	var imgw = $("#outerdiv").height() / 2.0;
-// 	if (imgw > 256) {imgw = 256;}
-// 	
-// 	var innerdivie=document.getElementById("innerdiv");
-// 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Checking tiles...'
-// 
-// 	$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/check/", tile_checktile_cb);
-// 
-// }
-// 
-// 
-// function tile_rebuild(bid) {
-// 	var innerdivie=document.getElementById("innerdiv");
-// 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'	
-// 	//$.getJSON(EMEN2WEBROOT+"/db/tiles/"+bid+"/create/", tile_createtile_cb, tile_checktile_eb);
-// 	return jQuery.ajax({
-// 		type: "GET",
-// 		url: EMEN2WEBROOT+"/db/tiles/"+bid+"/create/",
-// 		success: tile_createtile_cb,
-// 		error: tile_checktile_eb,
-// 		dataType: "json"
-// 		});
-// }
-// 
-// 
-// function tile_checktile_cb(r) {
-// 	//console.log("got checktile cb");
-// 	//console.log(r);
-// 	
-// 	var innerdivie=document.getElementById("innerdiv");
-// 	if (r[0][0] > 0) {
-// 		// tile ok
-// 		tile_init2(r[0],r[1],r[2]);
-// 		tile_center();
-// 	} else {
-// 		// generate tile; init on callback
-// 		innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/spinner.gif" /><br />Generating tiles...'
-// 		tile_rebuild(r[2]);
-// 		//var createtile = new CallbackManager();
-// 		//createtile.register(tile_createtile_cb);
-// 		//createtile.req("createtile",[r[2],ctxid]);
-// 
-// 	}
-// }
-// 
-// function tile_checktile_eb(r) {
-// 	tile_error();
-// }
-// 
-// function tile_createtile_cb(r) {
-// 	if (r[0][0] > -1) {
-// 		tile_init2(r[0],r[1],r[2]);
-// 	} else {
-// 		tile_error();
-// 	}
-// }
-// 
-// function tile_error() {
-// 	var innerdivie=document.getElementById("innerdiv");	
-// 	innerdivie.innerHTML = '<img style="margin-top:60px;" src="'+EMEN2WEBROOT+'/images/error.gif" /><br />Error: Could not create or access tiles.'
-// }
-// 
-// /*************************************************/
-// 
-// 
-// 
-// function tile_init2(nxinit,nyinit,tileidinit) {
-// 	nx = nxinit;
-// 	ny = nyinit;
-// 	tileid = tileidinit;
-// 	level = nx.length-1;
-// //	alert("nx: " + nx + "\nny: " + ny + "\ntileid: " + tileid + "\nlevel: " + level);
-// 	
-// 	setsize(nx[level]*imgw,ny[level]*imgw);
-// 	var outdiv=document.getElementById("outerdiv");
-// 	outdiv.onmousedown = mdown;
-// 	outdiv.onmousemove = mmove;
-// 	outdiv.onmouseup = mup;
-// 	outdiv.ondragstart = function() { return false; }
-// 	recalc();
-// }
-// 
-// function tofloat(s) {
-// 	if (s=="") return 0.0;
-// 	return parseFloat(s.substring(0,s.length-2));
-// }
-// 
-// function zoom(lvl) {
-// 	if (lvl==level || lvl<0 || lvl>=nx.length) return;
-// 	indiv=document.getElementById("innerdiv");
-// 	x=tofloat(indiv.style.left);
-// 	y=tofloat(indiv.style.top);
-// 
-// 	outdiv=document.getElementById("outerdiv");
-// 
-// 	cx=outdiv.clientWidth / 2.0;
-// 	cy=outdiv.clientHeight / 2.0;
-// 
-// 
-// 	setsize(nx[lvl]*256,ny[lvl]*256);
-// 
-// 	scl=Math.pow(2.0,level-lvl)
-// 	indiv.style.left=cx-((cx-x)*scl) + "px";
-// 	indiv.style.top=cy-((cy-y)*scl) + "px";
-// //	//console.log([cx-((cx-x)*scl),cy-((cy-y)*scl)]);
-// 
-// 	for (i=indiv.childNodes.length-1; i>=0; i--) indiv.removeChild(indiv.childNodes[i]);
-// 	level=lvl
-// 	recalc();
-// }
-// 
-// function zoomout() {
-// 	zoom(level+1);
-// }
-// 
-// function zoomin() {
-// 	zoom(level-1);
-// }
-// 
-// function mdown(event) {
-// 	if (!event) event=window.event;		// for IE
-// 	indiv=document.getElementById("innerdiv");
-// 	isdown=true;
-// 	y0=tofloat(indiv.style.top);
-// 	x0=tofloat(indiv.style.left);
-// 	mx0=event.clientX;
-// 	my0=event.clientY;
-// 	return false;
-// }
-// 
-// function mmove(event) {
-// 	if (!isdown) return;
-// 	if (!event) event=window.event;		// for IE
-// 	indiv=document.getElementById("innerdiv");
-// 	indiv.style.left=x0+event.clientX-mx0 + "px";
-// 	indiv.style.top=y0+event.clientY-my0 + "px";
-// 
-// 	recalc();
-// }
-// 
-// function mup(event) {
-// 	if (!event) event=window.event;		// for IE
-// 	isdown=false;
-// 	recalc();
-// }
-// 
-// function recalc() {
-// //	alert("Recalc");
-// 	indiv=document.getElementById("innerdiv");
-// 	x=-Math.ceil(tofloat(indiv.style.left)/imgw);
-// 	y=-Math.ceil(tofloat(indiv.style.top)/imgw);
-// 	outdiv=document.getElementById("outerdiv");
-// 	dx=outdiv.clientWidth/imgw+1;
-// 	dy=outdiv.clientHeight/imgw+1;
-// 	for (i=x; i<x+dx; i++) {
-// 		for (j=y; j<y+dy; j++) {
-// 			if (i<0 || j<0 || i>=nx[level] || j>=ny[level]) continue;
-// 			nm="im"+i+"."+j
-// 			var im=document.getElementById(nm);
-// 			if (!im) {
-// 				im=document.createElement("img");
-// 				im.src=EMEN2WEBROOT+"/db/tiles/" + tileid + "/image/?level="+level+"&x="+i+"&y="+j;
-// 				im.style.position="absolute";
-// 				im.style.height=imgw+"px";
-// 				im.style.width=imgw+"px";
-// 				im.style.left=i*imgw+"px";
-// 				im.style.top=j*imgw+"px";
-// 				im.setAttribute("id",nm);
-// 				indiv.appendChild(im);
-// 			}
-// 		}
-// 	}
-// }
-// 
-// function setsize(w,h) {
-// 	var indiv=document.getElementById("innerdiv");
-// 	indiv.style.height=h;
-// 	indiv.style.width=w;
-// }
+
+
 
