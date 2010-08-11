@@ -100,7 +100,8 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
 	templates = {}
 	def __setitem__(self, name, value):
 		template, path = value
-		if (not self.templates.has_key(name)) or (self[name].source != value):
+		if True:
+		#if (not self.templates.has_key(name)):# or (self[name].source != value):
 			self.templates[name] = Template(template, self, name, path)
 
 	def get_template(self, uri, relativeto=None):
@@ -152,15 +153,15 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		templatename = os.path.join(pwd[0], name).replace(pth,'')
 		level = 'LOG_INIT'
 		msg = ["TEMPLATE ", templatename]
-		try:
-			g.templates.add_template(templatename,data,filpath+ext)
-		except BaseException, e:
-			g.log(str(e))
-			level = 'LOG_ERROR'
-			msg[0] += 'FAILED'
-			failures.append(templatename)
-		else:
-			msg[0] += 'LOADED'
+		#try:
+		g.templates.add_template(templatename,data,filpath+ext)
+		#except BaseException, e:
+		#	g.log(str(e))
+		#	level = 'LOG_ERROR'
+		#	msg[0] += 'FAILED'
+		#	failures.append(templatename)
+		#else:
+		#	msg[0] += 'LOADED'
 		msg.append(filpath+ext)
 		g.log.msg(level, ': '.join(msg))
 
