@@ -1,6 +1,7 @@
 (function($) {
     $.widget("ui.Boxer", {
 		options: {
+			recid: null,
 			bdo: null,
 			boxrecords: null,
 			boxes: [],
@@ -14,12 +15,98 @@
 			this.currentlabel = -1;			
 			this.pen = -1;
 			this.boxid = 0;
+
+			if (this.options.bdo == null) {
+				this.options.bdo = this.element.attr('data-bdo');
+			}
 			this.element.attr('data-bdo', this.options.bdo);
+
+			if (this.options.recid == null) {
+				this.options.recid = parseInt(this.element.attr('data-recid'));
+			}
+			this.element.attr('data-recid', this.options.recid);
+
 			if (this.options.show) {
 				this.event_click();
 			}
 		},
 		
+		build: function() {
+			var self = this;
+			this.build_controls();
+			this.build_map();
+			this.build_map_controls();
+			
+			$(window).resize(function() {self.event_resize()});			
+
+			// if there are records, do some callbacks..
+			if (this.options.recid != null) {				
+
+				$.jsonRPC("getchildren", [this.options.recid, 1, "box"], function(children) {
+
+					$.jsonRPC("getrecord", [children], function(recs) {			
+						$.each(recs, function(i) {
+							self.load_record(this);
+						});					
+					});	
+
+				});
+
+
+			} else {
+				// If there are no boxes, start a new set..
+				this.build_boxarea();				
+			}
+
+
+		},
+
+		build_map: function() {
+			var self = this;
+						
+			// Tile Map Browser
+			this.img = $('<div class="tilemap" />');
+			this.element.append(this.img);
+			this.event_resize();			
+			this.img.TileMap({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
+		},
+		
+		build_controls: function() {
+			var self = this;
+	
+			// Box areas
+			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
+			var controls = $('<div class="controls" />');
+			// controls.resizable({
+			// 	handles: 'w',
+			// 	minWidth: 450,
+			// 	resize: function(e, ui) {self.event_resize()}
+			// 	});
+			
+			controls.append(boxtable);
+			this.element.append(controls);			
+		},
+		
+		build_map_controls: function() {
+			var self = this;
+
+			var controls = $('.tilemap[data-bdo='+this.options.bdo+'] .tilemapcontrols');
+			controls.append('<div class="label">Boxes</div><input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /><input type="button" name="newset" value="New Set" /><br /><input type="button" name="saveall" value="Save All" />');
+			controls.find("input[name=bigger]").click(function() {
+				self.resize_controls(1);
+			});			
+			controls.find("input[name=smaller]").click(function() {
+				self.resize_controls(-1);
+			});
+			controls.find("input[name=newset]").click(function() {
+				self.build_boxarea();
+			});				
+			controls.find("input[name=saveall]").click(function() {
+				self.saveall();
+			});				
+		},
+					
+
 		event_click: function(e) {
 			var self = this;	
 			$.ajax({
@@ -32,112 +119,17 @@
 				}
 			});
 		},
-
-		build: function() {
-			var self = this;
-			
-			
-			var ct = $('<table><tbody></tbody></table>');
-
-			// Zoom in / zoom out
-			var zoom = $('<tr><td>Zoom</td><td><input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /></td></tr>');
-			zoom.find("input[name=zoomin]").click(function() {
-				self.img.TileMap('zoomin');
-			});
-			zoom.find("input[name=zoomout]").click(function() {
-				self.img.TileMap('zoomout');
-			});			
-			ct.find("tbody").append(zoom);
-			
-					
-			// Contrast controls
-			var contrast = $('<tr><td>Contrast</td><td><input type="button" name="autocontrast" value="Auto Contrast" /> <input type="text" value="" size="4" name="dispmin" /> <input type="text" name="dispslider" /> <input type="text" name="dispmax" value="" size="4" /></td></tr>');
-			contrast.find('input[name=autocontrast]').click(function() {
-				$.ajax({
-					type: 'POST',
-					url: EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/auto_contrast',
-					dataType: 'json',
-					success: function(d) {
-						self.emdata = d;
-						self.set_range();
-					}
-				});
-			})
-
-			contrast.find('input[name=dispmin]')
-				.val(this.emdata['render_min'])
-				.change(function() {
-					self.emdata["render_min"] = parseFloat($(this).val());
-					self.set_range();
-				});
-
-			contrast.find('input[name=dispmax]')
-				.val(this.emdata['render_max'])
-				.change(function() {
-					self.emdata["render_max"] = parseFloat($(this).val());
-					self.set_range();
-				});
-
-			contrast.find('input[name=dispslider]').slider({
-				range: true,
-				min: parseInt(this.emdata['minimum']),
-				max: parseInt(this.emdata['maximum']),
-				values: [parseInt(this.emdata['render_min']), parseInt(this.emdata['render_max'])],
-				slide: function(event, ui) {
-					self.emdata["render_min"] = parseFloat(ui.values[0]);
-					self.emdata["render_max"] = parseFloat(ui.values[1]);
-					self.set_range();
-				}
-			});
-
-			ct.find("tbody").append(contrast);
-
-
-			// Box areas
-			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th>Name <input name="newset" type="button" value="New Set" /></th><th>Actions</th></tr></thead><tbody></tbody></table>');
-			boxtable.find('input[name=newset]').click(function() {self.createboxarea()});
-
-			var controls = $('<div class="boxercontrols" />');			
-			controls.append(ct, boxtable);
-
-
-			//this.element.append('<div id="wtf">WTF</div>');			
-
-			this.img = $('<div class="tilemap" />');
-			this.element.append(this.img);
-			this.img.TileMap({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
-
-
-			this.element.append(controls)			
-
-			// if there are records, do some callbacks..
-			if (this.options.boxrecords) {
-				
-				$.jsonRPC("getrecord", [this.options.boxrecords], function(recs) {
-					
-					$.each(recs, function(i) {
-						caches["recs"][this.recid] = this;
-						self.createboxarea(this.recid);
-						self.reload_record(this);						
-					});
-					
-				});	
-			
-			} else {
-				// If there are no boxes, start a new set..
-				this.createboxarea();				
-			}
-			this.img.width(this.img.width()-controls.width());
-						
-		},
 		
-		reload_record: function(rec) {
-			var self = this;
-			$('.boximg[data-label='+rec.recid+']').remove();
-			$('.boxbox[data-label='+rec.recid+']').remove();
-			$.each(rec['box_coords'], function(i) {
-				self.addbox(this[0], this[1], rec.recid);
-			});
+		event_resize: function() {
+			// going to make an ugly, evil hack..
+			var maxh = document.height;
+			var pos = this.element.parent().offset();
+			this.element.height(parseInt(maxh-pos.top)-22);
+			var cw = $('.controls', this.element);
+			var w = cw.width();
+			if (cw.css("display") == "none") { w = 0 }
+			this.img.width(this.element.width()-w);
+			this.img.TileMap('recenter');
 		},
 
 		addbox: function(x, y, label) {
@@ -157,13 +149,42 @@
 			// create a new box image
 			var boximg = $('<img />');
 			boximg.BoxImg({bdo: this.options.bdo, x: x, y: y, size: this.options.boxsize, boxid: this.boxid, scale: 1, label: label, draggable: true});
-			$('.boxarea[data-label='+label+']').append(boximg);
+			$('.boxarea[data-label='+label+']').prepend(boximg);			
 
 			// update box count
 			this.updateboxcount(label);
 		},
 		
-		removebox: function(boxid) {
+		resize_controls: function(size) {
+			// make the controls bigger or smaller...
+			var cw = $('.controls', this.element);
+			var maxsize = this.element.width()-100;			
+			var datawidth = parseInt(cw.attr('data-width'));
+			var datamaxsize = parseInt(cw.attr('data-maxsize'));						
+			if (size == 1) {
+				if (datamaxsize) {
+
+				} else if (cw.css('display') != 'none') {
+					cw.attr('data-width', cw.width());
+					cw.attr('data-maxsize', '1');
+					cw.width(maxsize);
+				} else {
+					cw.show();
+				}
+			} else {
+				if (cw.css('display') == 'none') {
+					
+				} else if (datamaxsize) {
+					cw.attr('data-maxsize', '0');
+					cw.width(datawidth);
+				} else {
+					cw.hide();
+				}
+			}		
+			this.event_resize();
+		},
+		
+		remove_box: function(boxid) {
 			// kill a box dead
 			var label = $('.boximg[data-boxid='+boxid+']').attr('data-label');
 			$('.boximg[data-boxid='+boxid+']').remove();
@@ -177,50 +198,110 @@
 			$('.boxcount[data-label='+label+']').html(boxcount);
 		},
 		
-		relabel: function(oldlabel, newlabel) {
-			if (this.pen == oldlabel) {
-				this.pen = newlabel;
+		// relabel: function(oldlabel, newlabel) {
+		// 	if (this.pen == oldlabel) {
+		// 		this.pen = newlabel;
+		// 	}
+		// 	oldcolor = caches['colors'][oldlabel];
+		// 	caches['colors'][newlabel] = oldcolor;
+		// 	
+		// 	$('[data-label='+oldlabel+']').each(function() {
+		// 		$(this).attr("data-label", newlabel);
+		// 	});
+		// 	$('.boximg[data-label='+oldlabel+']').each(function() {
+		// 		$(this).BoxImg('option', 'label', newlabel).BoxImg('refresh');
+		// 	});
+		// 	$('.boxbox[data-label='+oldlabel+']').each(function() {
+		// 		$(this).BoxBox('option', 'label', newlabel).BoxBox('refresh');				
+		// 	});
+		// },
+		
+		unlink_label: function(label, unlink, confirm) {
+			var self = this;
+			if (unlink == true) {
+				var dialog = $('<div title="Remove Box"><p>This will unlink record '+label+' from the parent record.</p><p>It may be orphaned and difficult to find after this action.</p><p>Continue?</p></div>');
+				dialog.dialog({
+					modal: true,
+					buttons: {
+						'Remove Box': function() {
+							$(this).dialog('close');
+							self.remove_label(label, false, true);
+						},
+						Cancel: function() {
+							$(this).dialog('close');
+						}
+					}
+				});
+				return
 			}
-			oldcolor = caches['colors'][oldlabel];
-			caches['colors'][newlabel] = oldcolor;
 			
-			$('[data-label='+oldlabel+']').each(function() {
-				$(this).attr("data-label", newlabel);
-			});
-			$('.boximg[data-label='+oldlabel+']').each(function() {
-				$(this).BoxImg('option', 'label', newlabel).BoxImg('refresh');
-			});
-			$('.boxbox[data-label='+oldlabel+']').each(function() {
-				$(this).BoxBox('option', 'label', newlabel).BoxBox('refresh');				
-			});
+			if (confirm == true) {
+				$.jsonRPC("pcunlink", [this.options.recid, label], function() {
+					self.remove_label(label);
+				});
+			}		
 		},
 		
-		removelabel: function(label) {
+		remove_label: function(label) {
 			$('.boximg[data-label='+label+']').remove();
 			$('.boxbox[data-label='+label+']').remove();			
-			$('tr[data-label='+label+']').remove();
+			$('tr[data-label='+label+']').remove();			
+		},
+
+
+		clear: function() {
+			$('.boximg').remove();
+			$('.boxbox').remove();
+			$('tr[data-label]').remove();
+		},
+
+		_save: function(label) {
+			var boxes = $('.boximg[data-label='+label+']');
+			var rec = caches['recs'][label];
+			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
+			rec['box_length'] = $('.boximg[data-label='+label+']').length;
+			rec['box_label'] = $('.box_label[data-label='+label+']').val();
+			return rec
+		},
+
+		saveall: function() {
+			var self = this;
+			var recs = [];
+
+			$(".boxarea", this.element).each(function(){
+				var rec = self._save($(this).attr('data-label'));
+				recs.push(rec);
+			});
+
+			recs = recs.reverse();
+			this.clear();	
+
+			$.jsonRPC("putrecord", [recs], function(recs) {
+				$.each(recs, function() {
+					self.load_record(this);
+				});
+			});			
 		},
 
 		save: function(label) {
-			var self = this;
-			var boxes = $('.boximg[data-label='+label+']');
-			var l = $('.boximg[data-label='+label+']').length;			
-			var coords = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
-			label = parseInt(label);
-
-			var rec = caches['recs'][label];
-			rec['box_coords'] = coords;
-			rec['box_count'] = l;
+			var rec = this._save(label);
 			$.jsonRPC("putrecord", [rec], function(newrec) {
 				caches['recs'][newrec.recid] = newrec;
-				if (newrec.recid != label) {
-					self.relabel(label, newrec.recid);
-				}
-				//self.reload_record(newrec);
+				self.remove_label(label, true);
+				self.load_record(newrec);
 			});
 		},
 		
-		createboxarea: function(label) {
+		load_record: function(rec) {
+			var self = this;
+			caches["recs"][rec.recid] = rec;
+			this.build_boxarea(rec.recid);
+			$.each(rec['box_coords'] || [], function(i) {
+				self.addbox(this[0], this[1], rec.recid);
+			});
+		},		
+		
+		build_boxarea: function(label) {
 			var self = this;
 			
 			if (typeof(label) == 'undefined') {
@@ -228,20 +309,18 @@
 					rec.recid = self.currentlabel;
 					rec["parents"] = [1];
 					caches['recs'][rec.recid] = rec;
-					self.createboxarea(rec.recid);
+					self.build_boxarea(rec.recid);
 					self.currentlabel -= 1;
 				})
 				return
 			}
 
-			var color = this.options.colors.pop();
-			caches["colors"][label] = color;
+			
+			caches["colors"][label] = caches['colors'][label] || this.options.colors.pop();
 
-
+			var box_label = "";
 			if (label >= 0) {
-				box_label = caches["recs"][label]['box_label'] || "Box Set "+label;
-			} else {
-				box_label = "Unsaved Set";
+				var box_label = caches["recs"][label]['box_label'] || "Box Set "+label;
 			}
 
 			// This will toggle display of this label group
@@ -251,8 +330,7 @@
 				$('.boxarea[data-label='+label+']').toggle()
 				$('.boxbox[data-label='+label+']').toggle()
 			});	
-			
-			
+
 
 			var colorpicker = $('<input class="colorpicker" data-label="'+label+'" type="text" size="4" value="'+caches["colors"][label]+'" />');
 			colorpicker.change(function() {
@@ -262,14 +340,11 @@
 				$('.boximg[data-label='+label+']').css("border-color", newcolor);
 				$('.boxbox[data-label='+label+']').css("border-color", newcolor);
 			})
-
-			
 			
 			var pen = $('<input type="radio" name="pen" value="" data-label="'+label+'"/>');
 			pen.change(function() {
 				self.pen = $(this).attr('data-label');
 			})
-			
 
 			var save1 = $('<input data-label="'+label+'" type="button" value="Save" />');
 			save1.click(function(e){
@@ -280,7 +355,7 @@
 			var remove = $('<input data-label="'+label+'" type="button" value="Remove" />');
 			remove.click(function(e) {
 				var label = $(this).attr("data-label");
-				self.removelabel(label);				
+				self.unlink_label(label, true);				
 			});
 			
 			// Setup the droppable area
@@ -313,7 +388,7 @@
 			actions.append(save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
-			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
+			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input class="box_label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
 
 			this.element.find(".boxtable tbody").prepend(boxheader, boxarea);
 
@@ -369,6 +444,7 @@
 		},		
 				
 		_create: function() {
+			this.element.addClass("box");			
 			this.element.addClass("boxbox");
 			this.element.attr("data-boxid", this.options.boxid);
 			this.element.attr("data-label", this.options.label);
@@ -384,7 +460,7 @@
 			this.element.click(function(e) {
 				e.stopPropagation();
 				if ( e.shiftKey ) {
-					self.removebox();
+					self.remove_box();
 				}
 			});
 
@@ -410,8 +486,8 @@
 					
 		},
 		
-		removebox: function() {
-			$('div[data-bdo='+this.options.bdo+']').Boxer('removebox', this.options.boxid);
+		remove_box: function() {
+			$('div[data-bdo='+this.options.bdo+']').Boxer('remove_box', this.options.boxid);
 		},
 				
 		refresh: function() {
@@ -453,6 +529,7 @@
 		},
 				
 		_create: function() {
+			this.element.addClass("box");
 			this.element.addClass("boximg");
 			this.element.attr('data-boxid', this.options.boxid);
 			this.element.attr("data-label", this.options.label);
@@ -465,19 +542,20 @@
 		bind_draggable: function() {
 			var self = this;
 
+			this.element.hover(function() {
+				$('.box[data-boxid='+self.options.boxid+']').addClass("boxhover");
+			}, 
+			function() {
+				$('.box[data-boxid='+self.options.boxid+']').removeClass("boxhover");				
+			});
+
 			this.element.click(function(e) {
 				e.stopPropagation();
 				if ( e.shiftKey ) {
-					self.removebox();
+					self.remove_box();
+					return
 				}
-			})
-			
-			
-			this.element.hover(function() {
-				$('[data-boxid='+self.options.boxid+']').addClass("boxhover");
-			}, 
-			function() {
-				$('[data-boxid='+self.options.boxid+']').removeClass("boxhover");				
+				$('.tilemap[data-bdo='+self.options.bdo+']').TileMap('move', self.options.x, self.options.y);
 			});
 			
 			this.element.draggable({
@@ -487,8 +565,8 @@
 			});	
 		},
 		
-		removebox: function() {
-			$('div[data-bdo='+this.options.bdo+']').Boxer('removebox', this.options.boxid);
+		remove_box: function() {
+			$('div[data-bdo='+this.options.bdo+']').Boxer('remove_box', this.options.boxid);
 		},		
 		
 		getopts: function() {
@@ -511,7 +589,7 @@
 			var eman2_x = self.options.x - self.options.size / 2;
 			var eman2_y = self.options.y - self.options.size / 2;
 			
-			var src = EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/box?x='+eman2_x+'&amp;y='+eman2_y+'&amp;size='+self.options.size+'&amp;scale='+self.options.scale;
+			var src = EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/box?x='+eman2_x+'&y='+eman2_y+'&size='+self.options.size+'&scale='+self.options.scale;
 			if (self.options.rmin || self.options.rmax) {
 				src += '&amp;min='+self.options.rmin+'&amp;max='+self.options.rmax;
 			} 
@@ -533,148 +611,167 @@
 (function($) {
     $.widget("ui.TileMap", {
 		options: {
-			width: 4096,
-			height: 4096,
+			width: 0,
+			height: 0,
 			size: 512,
+			x: null,
+			y: null, 
 			scale: 'auto',
 			bdo: null
 		},
-				
+		
 		_create: function() {
-			this.pos = null;
-
-			if (this.options.scale == 'auto') {
-				console.log(this.element.width(), this.element.height());
-				this.options.scale = 4;
-			}
-			
-
-			this.inner = $('<div style="position:relative;width:1024px;height:1024px;top:0px;left:0px" />');
-			this.element.append(this.inner);
 			var self = this;
-
-
+			this.inner = $('<div style="position:relative;top:0px;left:0px" />'); //;width:1024px;height:1024px;
+			this.element.append(this.inner);
+			this.element.attr('data-bdo', this.options.bdo);
+			
+			this.options.scale = this.autoscale();
+			this.autocenter();
+			
 			this.inner.draggable({
-				helper:function(){return $('<span />')},
-				drag:function(e){self.event_drag(e)},
-				start:function(e){self.event_drag_start(e)}
+				drag:function(){
+					var offset = self.offset_to_center();
+					self.options.x = offset[0];
+					self.options.y = offset[1];
+					self.recalc();
+				},
 			});
-			this.inner.click(function(e) {self.event_click(e)});
+			
+			this.inner.click(function(e) {
+				e.stopPropagation();
+				parentpos = self.inner.position();
+				var x = (e.clientX - parentpos.left) * self.options.scale;
+				var y = (e.clientY - parentpos.top) * self.options.scale;
+				$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
+			});
 
-			this.setscale(self.options.scale);
+			this.setscale(this.options.scale);
+
+
+			// Zoom in / zoom out
+			var controls = $('<div class="tilemapcontrols"><div class="label">Map</div><input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /><input type="button" name="autocenter" value="Center" /></div>');			
+			controls.find("input[name=zoomin]").click(function() {
+				self.zoomin();
+			});
+			controls.find("input[name=zoomout]").click(function() {
+				self.zoomout();
+			});			
+			controls.find("input[name=autocenter]").click(function() {
+				self.autocenter();
+			});			
+
+			this.element.append(controls);
 
 		},
-		
-		event_click: function(e) {
-			e.stopPropagation();
-			var pos = this.offset_to_native(e);
-			// callback to the Boxer controller
-			$('div[data-bdo='+this.options.bdo+']').Boxer('addbox', pos[0], pos[1]);
+
+		offset_to_native: function(e) {
+			// var pos = this.inner.position();
+			// var parentpos = this.element.offset();			
+			// var x = (e.pageX - parentpos.left) * this.options.scale;
+			// var y = (e.pageY - parentpos.top) * this.options.scale;
+			// return [parseInt(x), parseInt(y)]
 		},
 
-		event_drag_start: function(e) {
-			this.pos = this.inner.position();
-			this.dpos = [e.clientX, e.clientY];
+		autoscale: function(refresh) {
+			var sx = this.options.width / this.element.width();
+			var sy = this.options.height / this.element.height();
+			if (sy > sx) {sx = sy}
+			return Math.ceil(sx);
 		},
 		
-		event_drag_stop: function(e) {
+		autocenter: function() {
+			this.move(this.options.width / 2, this.options.height / 2);
 		},
 		
-		event_drag: function(e) {			
-			var x_offset = e.clientX - this.dpos[0];
-			var y_offset = e.clientY - this.dpos[1];
-			this.setpos(x_offset, y_offset);		
+		recenter: function() {
+			this.move(this.options.x, this.options.y);
 		},
 		
-		setpos: function(x,y) {
-			this.inner.css('left', this.pos.left + x);
-			this.inner.css('top', this.pos.top + y);
+		move: function(x,y) {
+			this.options.x = x;
+			this.options.y = y;
+			var offset = this.center_to_offset();
+			this.inner.css('left', offset[0]);
+			this.inner.css('top', offset[1]);
 			this.recalc();
 		},
+
+		viewsize: function() {
+			return [(this.element.width() / 2) * this.options.scale, (this.element.height() / 2) * this.options.scale]
+		},
 		
-		offset_to_native: function(e) {
+		offset_to_center: function() {
 			var pos = this.inner.position();
-			var parentpos = this.element.offset();			
-			console.log(e);
-			var x = (e.pageX - parentpos.left) * this.options.scale;
-			var y = (e.pageY - parentpos.top) * this.options.scale;
-			//$("#wtf").html(x+" - "+y+" - "+this.options.scale);
-			return [parseInt(x), parseInt(y)]
-		},		
+			var v = this.viewsize();
+			return [v[0] - (pos.left * this.options.scale), v[1] - (pos.top * this.options.scale)];
+		},
+		
+		center_to_offset: function() {
+			var v = this.viewsize();
+			var left = this.options.x - v[0];
+			var top = this.options.y - v[1];
+			return [-left/this.options.scale, -top/this.options.scale]
+		},
+		
+		getbounds: function() {
+			var v = this.viewsize();			
+			var bounds = [
+				this.options.x - v[0], 
+				this.options.y - v[1],
+				this.options.x + v[0],
+				this.options.y + v[1]
+				];
+			return bounds			
+		},
 		
 		getinner: function() {
 			return this.inner
 		},		
 		
 		recalc: function() {
-			var pos = this.inner.position();						
-			var wx = this.options.width / (this.options.size * this.options.scale);
-			var wy = this.options.height / (this.options.size * this.options.scale);
+			var v = this.viewsize();
 
-			var x = Math.floor(pos.left / this.options.size);
-			var y = Math.floor(pos.top / this.options.size);
-			var end_x = -x + this.element.width() / this.options.size;
-			var end_y = -y + this.element.height() / this.options.size;
-			
-			if (x < 0) {x = 0}
-			if (y < 0) {y = 0}
-			if (end_x > wx) {end_x = wx}
-			if (end_y > wy) {end_y = wy}
+			var bounds = this.getbounds();			
+			bounds[0] = bounds[0] - bounds[0] % (this.options.size * this.options.scale);
+			bounds[1] = bounds[1] - bounds[1] % (this.options.size * this.options.scale);
+			bounds[2] = bounds[2] + bounds[2] % (this.options.size * this.options.scale);
+			bounds[3] = bounds[3] + bounds[3] % (this.options.size * this.options.scale);
+			if (bounds[0] < 0) {bounds[0] = 0}
+			if (bounds[1] < 0) {bounds[1] = 0}
+			if (bounds[2] > this.options.width) {bounds[2] = this.options.width}
+			if (bounds[3] > this.options.height) {bounds[3] = this.options.height}
 
+			for (var x = bounds[0]; x < bounds[2]; x += this.options.size * this.options.scale) {				
 
-			for (var nx=x;nx < end_x;nx++) {
-
-				for (var ny=y;ny < end_y;ny++) {					
-
-					var img = document.getElementById(nx+'-'+ny);
+				for (var y = bounds[1]; y < bounds[3] ; y += this.options.size * this.options.scale) {
+					var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
+					var img = document.getElementById(id);
 					if (!img) {
-						var x_offset = nx * this.options.size * this.options.scale;
-						var y_offset = ny * this.options.size * this.options.scale;
-						var src = EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/box?x='+x_offset+'&amp;y='+y_offset+'&amp;size='+this.options.size*this.options.scale+'&amp;scale='+this.options.scale;
-						var img = $('<img src="'+src+'" id="'+nx+'-'+ny+'" />');
-						img.css("position", "absolute");
+						var src = EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/box?x='+x+'&y='+y+'&size='+this.options.size*this.options.scale+'&fill=1&scale='+this.options.scale;
+						var img = $('<img src="'+src+'" id="'+id+'" />');
+						img.css('position', 'absolute');
 						img.css('width', this.options.size);
 						img.css('height', this.options.size);					
-						img.css('left', nx * this.options.size);
-						img.css('top', ny * this.options.size);				
+						img.css('left', x / this.options.scale);
+						img.css('top', y / this.options.scale);
 						this.inner.append(img);							
 					}
 
 				}
-
 			}
-		},
-		
-		getcenter: function() {
-			var pos = this.inner.position();			
-			return [this.element.width() / 2 * this.options.scale - pos.left * this.options.scale, this.element.height() / 2 * this.options.scale - pos.top * this.options.scale];
 		},
 		
 		setscale: function(scale) {
-			console.log(scale);
-			if (scale < 1) {
-				return
-			}
-			if (scale > 8) {
-				return
-			}
-			
-			var center = this.getcenter();
+			var autoscale = this.autoscale();
+			if (scale == 'auto' || scale > autoscale) { scale = autoscale } 
+			if (scale < 1) { scale = 1 }
+			if (scale == this.options.scale) { return }
 			this.options.scale = scale;
+			$('img', this.inner).remove();
+			$('.boxbox', this.inner).each(function(){$(this).BoxBox('option', 'scale', scale).BoxBox('refresh')});
+			this.move(this.options.x, this.options.y);
 			
-			var x_offset = (center[0] - (this.element.width() / 2) * this.options.scale) / this.options.scale;
-			var y_offset = (center[1] - (this.element.height() / 2) * this.options.scale) / this.options.scale;
-
-			// change position so we zoom in and out of the same spot
-			this.inner.css('left', -x_offset);
-			this.inner.css('top', -y_offset);
-			$("img", this.inner).remove();
-			this.recalc();
-			
-			$('.boxbox').BoxBox('option', 'scale', this.options.scale);
-			$('.boxbox').BoxBox('refresh');
-			
-
 		},
 		
 		zoomout: function() {
@@ -698,4 +795,48 @@
 
 
 
+		
+// Controls Table
+// var ct = $('<table><tbody></tbody></table>');
+// // Contrast controls
+// var contrast = $('<tr><td>Contrast</td><td><input type="button" name="autocontrast" value="Auto Contrast" /> <input type="text" value="" size="4" name="dispmin" /> <input type="text" name="dispslider" /> <input type="text" name="dispmax" value="" size="4" /></td></tr>');
+// contrast.find('input[name=autocontrast]').click(function() {
+// 	$.ajax({
+// 		type: 'POST',
+// 		url: EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/auto_contrast',
+// 		dataType: 'json',
+// 		success: function(d) {
+// 			self.emdata = d;
+// 			self.set_range();
+// 		}
+// 	});
+// })
+// 
+// contrast.find('input[name=dispmin]')
+// 	.val(this.emdata['render_min'])
+// 	.change(function() {
+// 		self.emdata["render_min"] = parseFloat($(this).val());
+// 		self.set_range();
+// 	});
+// 
+// contrast.find('input[name=dispmax]')
+// 	.val(this.emdata['render_max'])
+// 	.change(function() {
+// 		self.emdata["render_max"] = parseFloat($(this).val());
+// 		self.set_range();
+// 	});
+// 
+// contrast.find('input[name=dispslider]').slider({
+// 	range: true,
+// 	min: parseInt(this.emdata['minimum']),
+// 	max: parseInt(this.emdata['maximum']),
+// 	values: [parseInt(this.emdata['render_min']), parseInt(this.emdata['render_max'])],
+// 	slide: function(event, ui) {
+// 		self.emdata["render_min"] = parseFloat(ui.values[0]);
+// 		self.emdata["render_max"] = parseFloat(ui.values[1]);
+// 		self.set_range();
+// 	}
+// });
+// 
+// ct.find("tbody").append(contrast);
 

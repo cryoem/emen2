@@ -69,9 +69,7 @@ h4 {
 .controls {
 	display:none;
 }
-.tiles .slider {
-	width:512px;
-}
+
 /*.error {
 	color: red;
 }
@@ -104,11 +102,8 @@ h4 {
 	padding-top:0px;
 }
 
+
 .boximg {
-/*
-	margin:2px;
-	border:solid red 2px;
-*/
 }
 .boxbox {
 	z-index:100;
@@ -120,7 +115,7 @@ h4 {
 	height:10px;
 }
 .boxhover {
-	outline: solid #BBD9EE 5px;
+	outline: solid red 5px;
 }
 .boxarea {
 	height:25px;
@@ -135,28 +130,39 @@ h4 {
 .boxarea-active {
 	background:#ccc;
 }
-.tiles .imgarea {
-	
+.tilemap .tilemapcontrols {
+	display:block;
+	background:#E7F1F8;
+	position:absolute;
+	top:20px;
+	right:0px;
+	padding:5px;
+	border-right:dashed 2px #ccc;
+	z-index:100;
 }
-.boxercontrols {
+.tilemap .label {
+	border-bottom:solid 1px #ccc;
+	font-size:8pt;
+	text-align:center
+}
+.boxer .controls {
+	display:block;
 	background:#E7F1F8;
 	padding:0px;
-	width:690px;
-	z-index:100;
+	width:565px;
 	position:absolute;
 	top:0px;
 	right:0px;
+	height:100%;
+	overflow: auto;
+}
+.boxer {
 }
 .tilemap {
 	z-index:0;
-	width: 100%;
-	height: 100%;
-	border: 1px solid black;
+	height:100%;
 	position:relative;
 	overflow:hidden;
-}
-#boxer {
-	position:relative;
 }
 
 
@@ -588,20 +594,18 @@ BODY, CONTAINERS
 =============================================================
 */
 
+html,body {
+	height:100%;
+}
 body {
 	font-family: arial, Verdana, Helvetica, sans-serif;
 	margin:0px;
 	padding:0px;
-	/* background:#BBD9EE; */
 }
 
-html,body {
-	height:100%;
-}
 
 #container {
-/*	position:relative;  */
-	min-height:100%;
+	position:relative;
 	background:white;
 }
 
@@ -609,28 +613,10 @@ html,body {
 	background: #BBD9EE; /* #DCEFEE #D3C7A6; */
 }
 
-#footer {
-	/*display:none;*/
-	background:#BBD9EE; 
-	font-size:10px;
-	/*position:absolute;*/
-	margin:0px;
-	padding:0px;
-	bottom:0px;
-	width:100%;
-}
-
-#footer img {
-	float:left;
-}
-
 #content {
-	display:block;
-	/*position: relative;*/
-	overflow: none;
-	padding:15px;
-	padding-bottom:60px;
-
+	position:relative;
+	padding:10px;
+	padding-left:20px;
 }
 
 
@@ -1056,7 +1042,7 @@ ul.nonlist li {
 
 /* all */
 /* .modalbrowser_container, */
-.capsule, .precontent .map, #alert li, .navtable, .tooltip, .child, .page, .bigbutton input,  .boxercontrols {
+.capsule, .precontent .map, #alert li, .navtable, .tooltip, .child, .page, .bigbutton input {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
@@ -1080,7 +1066,7 @@ ul.nonlist li {
 
 
 /* left only */
-#cousin_buttons a:first-child { 
+.tilemapcontrols, #cousin_buttons a:first-child { 
 	-moz-border-radius-topleft:8px;
 	-moz-border-radius-bottomleft:8px;
 	-webkit-border-top-left-radius:8px;
