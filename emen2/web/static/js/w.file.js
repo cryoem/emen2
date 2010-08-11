@@ -204,7 +204,7 @@
 			this.options.vartype = this.options.vartype || this.element.attr("data-vartype");
 		
 			var self=this;
-			this.element.click(function(e) {e.stopPropagation();self.event_click(e)});
+			$('.label', this.element).click(function(e) {e.stopPropagation();self.event_click(e)});
 
 			if (this.options.show) {			
 				this.show();

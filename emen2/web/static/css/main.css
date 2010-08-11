@@ -581,6 +581,10 @@ table.map {
 
 /************* INLINE EDITBALE ITEMS  ************/
 
+.nobullet {
+	list-style:none;
+}
+
 .editable_files .label, .editable_files.label, .editable .label, .editable.label {
 	font-size:10pt;
 	padding:2px;

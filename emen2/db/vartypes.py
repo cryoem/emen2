@@ -269,7 +269,7 @@ class vt_stringlist(Vartype):
 
 		lis = ['<li>%s</li>'%cgi.escape(i) for i in value]
 		if edit:
-			lis.append('<li class="label">Edit</li>')		
+			lis.append('<li class="nobullet"><span class="label">Edit</span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -325,7 +325,7 @@ class vt_urilist(Vartype):
 
 		lis = ['<li><a href="%s">%s</a></li>'%(cgi.escape(i), cgi.escape(i)) for i in value]
 		if edit:
-			lis.append('<li class="label">Edit</li>')		
+			lis.append('<li class="nobullet"><span class="label">Edit</span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -378,7 +378,7 @@ class vt_binary(Vartype):
 		v = db.getbinary(value)
 		lis = ['<li><a href="%s/download/%s/%s">%s</a></li>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 		if edit:
-			lis.append('<li class="label">Edit</li>')		
+			lis.append('<li class="nobullet"><span class="label">Edit</span></li>')		
 			ul = '<ul class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -409,9 +409,10 @@ class vt_binaryimage(Vartype):
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if not value:
-			return ""
-		i = db.getbinary(value)
+		i = None
+		if value:
+			i = db.getbinary(value)
+
 		href = ""
 		if i:
 			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
@@ -585,7 +586,7 @@ class vt_userlist(Vartype):
 		value = (cgi.escape(i) for i in value)
 		lis = ['<li><a href="%s">%s</a></li>'%(i,i) for i in value]
 		if edit:
-			lis.append('<li class="label">Edit</li>')		
+			lis.append('<li class="nobullet"><span class="label">Edit</span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 
 		else:

@@ -504,7 +504,7 @@
 			var link = EMEN2WEBROOT + '/db/record/'+this.options.recid+'/new/'+rectype+'/';
 
 			// infuriating that there is no object.length
-			if (opts['inheritperms'] || opts['copy']) {
+			if (opts['inheritperms']!=null || opts['copy']!=null) {
 				link += "?" + $.param(opts);
 			}
 			window.location = link;
@@ -574,8 +574,9 @@
 			b.click(function() {
 				var b = s.val();
 				if (!b) {return}
-				var ns = EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+b+'/';
-				notify_post(ns,[]);
+				self.doit(b);
+				// var ns = EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+b+'/';
+				// notify_post(ns,[]);
 			});
 			this.others.append(s, b);
 			
