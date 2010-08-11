@@ -2209,9 +2209,18 @@ class DB(object):
 		# def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False):
 		# recs = self.db.getchildren(self.recid, "record", self.options.get("recurse"), None, True, True)
 
-
 		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
+
+	# This is a new method -- might need some testing.
+	@publicmethod
+	def getsiblings(self, key, rectype=None, keytype="record", ctx=None, txn=None):		
+		parents = self.getparents(key, keytype=keytype, ctx=ctx, txn=txn)
+		siblings = listops.combine(self.getchildren(parents, keytype=keytype, rectype=rectype, ctx=ctx, txn=txn).values(), dtype=list)
+		if siblings:
+			return siblings[0]
+		return []
+		
 
 	#@rename db.<RelateBTree>.parents
 	#@notok @single
