@@ -55,7 +55,6 @@
 			var rec = caches["recs"][this.options.recid];
 			var self=this;
 
-			console.log(this.bdos);
 			$.each(this.bdos, function(i, bdo) {
 				// find bdo in record..
 				$.each(rec, function(k,v) {

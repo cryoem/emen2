@@ -167,7 +167,6 @@
 			rp = $.makeArray(rp);
 			var d = $('<div title="Copy & Paste"><textarea style="width:100%;height:100%;"/></div>');
 			$("textarea", d).val(rp.join(", "));
-			console.log(12);
 			d.dialog({
 				width:500,
 				height:200,
@@ -179,9 +178,6 @@
 			var self = this;
 			var p = caches["parents"][this.options.recid];
 			var c = caches["children"][this.options.recid];
-
-			console.log(p);
-			console.log(c);
 
 			//if (p == null || c == null) {
 			//	update_rels(function(){self.event_removeselected()})

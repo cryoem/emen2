@@ -483,9 +483,6 @@
 			this.typicalchld = [];
 			this.built = 0;
 			var self=this;
-			this.element.click(function(e) {
-				self.event_click(e);
-			});
 			if (this.options.show) {
 				this.event_click();
 			}
@@ -494,20 +491,42 @@
 		event_click: function(e) {
 			this.show();
 		},
+		
+		doit: function(rectype) {		
+			// get some options..
+			var opts = {};
+			if(!$('input[name=inheritperms]', this.dialog).attr("checked")) {
+				opts["inheritperms"] = false
+			}
+			if ($('input[name=copy]', this.dialog).attr("checked")) {
+				opts["copy"] = true
+			}			
+			var link = EMEN2WEBROOT + '/db/record/'+this.options.recid+'/new/'+rectype+'/';
+
+			// infuriating that there is no object.length
+			if (opts['inheritperms'] || opts['copy']) {
+				link += "?" + $.param(opts);
+			}
+			window.location = link;
+
+		},
 	
 		build: function() {
 			if (this.built) {
 				return
 			}
 			this.built = 1;
+			
 			this.dialog = $('<div title="New Record" />');
 
 			this.typicalchld = $('<div>Loading</div>')
 			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
 			
-			this.others = $('<div>Loading</div>')
-			this.dialog.append('<br /><br /><h4>Other Protocols</h4>', this.others);
+			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" checked="checked" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			this.dialog.append(inheritperms);
 			
+			this.others = $('<div>Loading</div>')
+			this.dialog.append('<br /><h4>Other Protocols</h4>', this.others);
 
 			if (this.options.embed) {
 				this.element.append(this.dialog);
@@ -531,7 +550,12 @@
 			t.sort();
 			$.each(t, function() {
 				try {
-					self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
+					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
+					var i = $('<div><span class="jslink clickable" data-rectype="'+this+'">'+caches["recorddefs"][this].desc_short+'</span></div>');
+					$('.clickable', i).click(function() {
+						self.doit($(this).attr('data-rectype'));
+					})
+					self.typicalchld.append(i);
 				} catch(e) {
 					//self.dialog.append('<div><a href="/db/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
 				}
@@ -551,7 +575,6 @@
 				var b = s.val();
 				if (!b) {return}
 				var ns = EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+b+'/';
-				console.log(ns);
 				notify_post(ns,[]);
 			});
 			this.others.append(s, b);

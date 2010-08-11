@@ -104,9 +104,29 @@ function newrecord_init(rec) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
-	$('#newrecord_save').MultiEditControl({recid: recid, show: true});
-	$('#newrecord_permissions').PermissionControl({recid:recid, edit:true, embed:true});
-	$('.editable').EditControl({recid: recid});
+	$('#newrecord_save').MultiEditControl({
+		recid: recid,
+		show: true
+		});
+	
+	$('#newrecord_permissions').PermissionControl({
+		recid:recid,
+		edit:true,
+		embed:true
+		});
+
+	$('.editable').EditControl({
+		recid: recid
+		});
+
+	// Change the text of file upload elements..
+	$('.editable_files .label').html('(The record must be saved before files can be attached)');
+
+	$('.editbar .change select').change(function(){
+		var parent = $(this).attr('data-parent');
+		notify_post(EMEN2WEBROOT+'/db/record/'+parent+'/new/'+$(this).val()+'/', []);
+	});
+
 
 }
 
@@ -240,6 +260,7 @@ function rebuildviews(selector) {
 			var self = this;
 			this.element.addClass('popup');
 			this.element.click(function(e) {
+				e.stopPropagation();
 				self.toggle();
 			});
 		},
