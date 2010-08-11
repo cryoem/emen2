@@ -476,13 +476,20 @@
 			recid: null,
 			rectype: null,
 			modal: false,
-			embed: false
+			embed: false,
+			inheritperms: true,
+			copy: false
 		},
 				
 		_create: function() {
 			this.typicalchld = [];
 			this.built = 0;
 			var self=this;
+			
+			if (!this.options.embed) {
+				this.element.click(function(e){self.event_click(e)});
+			}
+			
 			if (this.options.show) {
 				this.event_click();
 			}
@@ -522,7 +529,16 @@
 			this.typicalchld = $('<div>Loading</div>')
 			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
 			
-			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" checked="checked" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			
+			if (this.options.inheritperms) {
+				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
+			}
+			if (this.options.copy) {
+				$("input[name=copy]", inheritperms).attr("checked", "checked");
+			}
+
+			
 			this.dialog.append(inheritperms);
 			
 			this.others = $('<div>Loading</div>')
