@@ -1,14 +1,14 @@
 (function($) {
     $.widget("ui.AttachmentViewerControl", {
 		options: {
-			open: 0,
 			recid: null,
 			edit: 0,
-			modal: false
+			modal: false,
+			embed: false,
+			show: false,
 		},
 				
 		_create: function() {
-
 			this.bdomap = {};
 			this.built = 0;
 			this.bdos = {};
@@ -16,7 +16,7 @@
 			var self=this;
 			this.element.click(function(e) {self.event_click(e)});
 
-			if (this.options.open) {			
+			if (this.options.show) {			
 				this.show();
 			}
 		},
@@ -102,7 +102,7 @@
 
 				if (self.options.edit) {
 					var h = $('<tr><td colspan="4"><span class="editable label">Edit</span></td></tr>');
-					h.FileControl({open: 0, recid:self.options.recid, param:k, cb:function(){self.event_build_tablearea()}});
+					h.FileControl({show: 0, recid:self.options.recid, param:k, cb:function(){self.event_build_tablearea()}});
 					bdotable.append(h);
 				} else {
 					bdotable.append('<tr><td>&nbsp;</td></tr>');
@@ -115,6 +115,10 @@
 		
 		build: function() {
 			var self=this;
+
+			if (this.built) {
+				return
+			}
 			this.built = 1;
 
 			this.dialog = $('<div title="Attachments" />');	
@@ -131,20 +135,22 @@
 				$(this).FileControl({recid: self.options.recid, show:1, param: $(this).val()});
 			})
 			this.browserarea.append("Add File: ", ss);
-			
-			
 			this.dialog.append(this.tablearea, this.browserarea);
 
-			pos = this.element.offset();
-		
-			this.dialog.dialog({
-				autoOpen: false,
-				width:850,
-				height:650,
-				position:[pos.left, pos.top+this.element.outerHeight()],
-				modal:this.options.modal
-			});
 
+			if (this.options.embed) {
+				this.element.append(this.dialog);
+			} else {
+				var pos = this.element.offset();
+				this.dialog.dialog({
+					autoOpen: false,
+					width:850,
+					height:650,
+					position:[pos.left, pos.top+this.element.outerHeight()],
+					modal:this.options.modal
+				});
+			}
+			
 			this.event_build_tablearea();
 			
 
@@ -156,11 +162,11 @@
 		
 		show: function() {
 			this.build();
-			this.dialog.dialog('open');
+			if (!this.options.embed) {this.dialog.dialog('open')}
 		},
 	
 		close: function() {
-			this.dialog.dialog('close');
+			if (!this.options.embed) {this.dialog.dialog('close')}
 		},
 
 		destroy: function() {
@@ -183,7 +189,7 @@
 (function($) {
     $.widget("ui.FileControl", {
 		options: {
-			open: 0,
+			show: 0,
 			recid: null,
 			vartype: null,
 			param: null,
@@ -201,7 +207,7 @@
 			var self=this;
 			this.element.click(function(e) {e.stopPropagation();self.event_click(e)});
 
-			if (this.options.open) {			
+			if (this.options.show) {			
 				this.show();
 			}
 		},

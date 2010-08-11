@@ -472,10 +472,11 @@
 (function($) {
     $.widget("ui.NewRecordSelect", {
 		options: {
-			open: 0,
+			show: false,
 			recid: null,
 			rectype: null,
-			modal: false
+			modal: false,
+			embed: false
 		},
 				
 		_create: function() {
@@ -485,7 +486,7 @@
 			this.element.click(function(e) {
 				self.event_click(e);
 			});
-			if (this.options.open) {
+			if (this.options.show) {
 				this.event_click();
 			}
 		},
@@ -508,6 +509,11 @@
 			this.dialog.append('<br /><br /><h4>Other Protocols</h4>', this.others);
 			
 
+			if (this.options.embed) {
+				this.element.append(this.dialog);
+				return
+			}
+			
 			var pos = this.element.offset();
 			this.dialog.dialog({
 				width: 300,
@@ -525,7 +531,7 @@
 			t.sort();
 			$.each(t, function() {
 				try {
-					self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+' ('+this+')</a></div>');
+					self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
 				} catch(e) {
 					//self.dialog.append('<div><a href="/db/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
 				}
@@ -554,7 +560,10 @@
 		
 		show: function() {
 			this.build();
-			this.dialog.dialog('open');
+
+			if (!this.options.embed) {this.dialog.dialog('open')}
+
+
 			var self = this;
 			$.jsonRPC("getrecorddef", [this.options.recid], function(rd) {
 				self.rectype = rd.name;
@@ -581,7 +590,7 @@
 		
 		hide: function() {
 			this.build();
-			this.dialog.dialog('close');
+			if (!this.options.embed) {this.dialog.dialog('close')}
 		},
 		
 		destroy: function() {

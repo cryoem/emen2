@@ -5,6 +5,8 @@
 			cb: function(recid){},
 			keytype: "record",
 			modal: false,
+			embed: false,
+			show: false,
 			edit: false
 		},
 				
@@ -15,11 +17,16 @@
 			});	
 			this.saved = [];
 			this.built = 0;
+			
+			if (this.options.show) {
+				this.event_click();
+			}
+			
 		},
 	
 		event_click: function() {
 			this.build();
-			this.dialog.dialog('open');
+			if (!this.options.embed) {this.dialog.dialog('open')}
 		},
 			
 		build: function() {
@@ -35,12 +42,18 @@
 			this.tablearea = $('<div class="clearfix"/>');
 			this.dialog.append(this.tablearea);
 
-			this.dialog.dialog({
-				width:800,
-				height:600,
-				autoOpen: false,
-				modal: this.options.modal
-			});			
+			if (this.options.embed) {
+				this.element.append(this.dialog);
+			} else {
+				var pos = this.element.offset();
+				this.dialog.dialog({
+					width:800,
+					height:600,
+					position:[pos.left, pos.top+this.element.outerHeight()],				
+					autoOpen: false,
+					modal: this.options.modal
+				});			
+			}
 			this.build_browser(this.options.recid);
 		},
 		
@@ -251,7 +264,7 @@
 		
 		select: function(val) {
 			this.options.cb();
-			this.dialog.dialog('close');
+			if (!this.options.embed) {this.dialog.dialog('close')}
 		},
 		
 		destroy: function() {

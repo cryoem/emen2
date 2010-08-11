@@ -411,14 +411,17 @@ td {
 	float:left;
 	font-size:10pt;
 	color: #555;
+	height:20px;
 	padding:4px;
-	border-right:solid 1px #CCC;
-	border-bottom:solid 1px #CCC;
+	border-right:solid 1px #ccc;
+	border-bottom:solid 1px #ccc;
 	z-index:6;
 }
+
 .editbar li:last-child {
 	border-right:none;
 } 
+
 .editbar img {
 	vertical-align:middle;
 	margin:0px;
@@ -426,6 +429,34 @@ td {
 
 .editbar .clickable {
    cursor: pointer;
+	-webkit-user-select:none;
+	-moz-user-select:none;
+}
+
+.editbar .hidden {
+	padding:5px;
+	background:white;
+	display:none;
+	position:absolute;
+	top:0px;
+	left:0px;
+	border:solid 2px #ccc;
+	z-index:1;
+	-moz-box-shadow: 3px 3px 6px #666;
+	-webkit-box-shadow: 3px 3px 6px #666;
+	box-shadow: 3px 3px 6px #666;
+}
+
+.editbar .active {
+	z-index:100;
+	outline-bottom:solid 1px red;
+	border-bottom:none;
+	border-top:solid 2px #ccc;
+	border-left:solid 1px #ccc;
+	border-right:solid 2px #ccc;
+	padding-right:3px;
+	padding-left:3px;
+	padding-top:2px;
 }
 
 

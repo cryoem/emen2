@@ -118,10 +118,69 @@ function record_init(rec, ptest) {
 	$('.editable').EditControl({});
 	$('.editable_files').FileControl({});
 
-	$('.editbar .permissions').PermissionControl({recid:recid, edit:ptest[3]});
-	$('.editbar .attachments').AttachmentViewerControl({recid:recid, edit:ptest[2]});
-	$('.editbar .newrecord').NewRecordSelect({recid:recid});
-	$(".editbar .relationships").RelationshipControl({recid:recid, edit:true});
+	$('.editbar .permissions').EditbarHelper({
+		width: 620,
+		height: 600,
+		cb: function(self){
+			self.popup.PermissionControl({
+				recid: recid,
+				edit: ptest[3],
+				embed: true,
+				show: true
+				});
+			}
+	});		
+
+	$('.editbar .attachments').EditbarHelper({
+		width: 620,
+		height: 600,
+		cb: function(self) {
+			self.popup.AttachmentViewerControl({
+				recid: recid,
+				edit: ptest[2],
+				embed: true,
+				show: true
+				});
+			}
+	});		
+
+	$('.editbar .newrecord').EditbarHelper({
+		width: 300,
+		height: 400,
+		cb: function(self){
+			self.popup.NewRecordSelect({
+				recid: recid,
+				embed: true,
+				show: true
+				});
+			}
+	});		
+
+	$(".editbar .relationships").EditbarHelper({		
+		width: 800,
+		height: 600,
+		cb: function(self){
+			self.popup.RelationshipControl({
+				recid: recid,
+				edit: true,
+				embed: true,
+				show: true
+				});
+			}
+	});	
+	
+	$(".editbar .tools").EditbarHelper({});	
+
+	$("#page_comments_comments").CommentsControl({
+		recid:recid,
+		edit:ptest[1],
+		title:"#button_comments_comments"
+		});
+		
+	$("#page_comments_history").HistoryControl({
+		recid:recid,
+		title:"#button_comments_history"
+		});
 
 	$('.selectview select').change(function(){
 		var target=$("#rendered");
@@ -129,9 +188,9 @@ function record_init(rec, ptest) {
 		rebuildviews("#rendered");
 	});
 	
-	$("#page_comments_comments").CommentsControl({recid:recid, edit:ptest[1], title:"#button_comments_comments"});
-	$("#page_comments_history").HistoryControl({recid:recid, title:"#button_comments_history"});
 }
+
+
 
 function record_update(rec) {
 	if (typeof(rec)=="number") {
@@ -168,7 +227,82 @@ function rebuildviews(selector) {
 
 
 
+(function($) {
+    $.widget("ui.EditbarHelper", {
+		options: {
+			cb: function() {},
+			width: 200,
+			height: 200
+		},
+				
+		_create: function() {
+			this.built = 0;
+			var self = this;
+			this.element.addClass('popup');
+			this.element.click(function(e) {
+				self.toggle();
+			});
+		},
+		
+		toggle: function() {
+			if (this.element.hasClass('active')) {
+				this.hide();
+			} else {
+				this.show();
+			}
+		},
+		
+		show: function() {
+			$('.editbar .active').EditbarHelper('hide');
+			this.build();
+			this.element.addClass('active');
+			this.options.cb(this);
+			this.popup.show();
+		},
+		
+		hide: function() {
+			if (!this.built) {return}
+			this.popup.hide();
+			this.element.removeClass('active');
+		},		
+		
+		build: function() {
+			if (this.built) {
+				return
+			}
+			this.built = 1;			
+			
+			var pos = this.element.position();
 
+			this.popup = $('.hidden', this.element);
+			if (!this.popup.length) {
+				this.popup = $('<div class="hidden" />');
+				this.element.after(this.popup);
+			}
+
+			this.popup.width(this.options.width);
+			this.popup.height(this.options.height);
+			this.popup.css('left', this.element.offset().left-1);
+			this.popup.css('top', this.element.outerHeight()+this.element.position().top-1);
+			
+			// ugly horrible hack time...
+			var uglydiv = $('<div style="position:absolute;background:white" />');
+			uglydiv.width(this.element.outerWidth()-3);
+			uglydiv.height(2);
+			uglydiv.css('left', 0);
+			uglydiv.css('top', -2);
+			this.popup.append(uglydiv)
+		
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
 
 
 
