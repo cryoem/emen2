@@ -7,7 +7,7 @@ g = emen2.db.config.g()
 
 class Validator(object):
 	"""This class handles validation for a DBObject class."""
-	
+
 	_validators = []
 
 	@classmethod
@@ -30,11 +30,11 @@ class Validator(object):
 
 	def validate(self, warning=False):
 		"""Perform validation
-		
+
 		@keyparam warning Ignore failures; currently this parameter is not used and all failures raise Exceptions
-		
+
 		"""
-		
+
 		failures = []
 		# ian: todo: fix this so that it raises all relevant exceptions, not just the first
 		# (this appears to have been working at one point...)
@@ -79,6 +79,7 @@ class DefinitionValidator(Validator):
 
 
 # ian: moved this here from emen2.web.text_validators
+# ed: this is completely irrelevant to what comes before
 class InputValidator(object):
 	'''Base class to validate input'''
 	def __init__(self):
@@ -114,8 +115,8 @@ class InputValidator(object):
 	def _is_of_pred(self, pred, inp):
 		'''utility function for composing new predicates'''
 		return len([ch for ch in inp if not pred(ch)]) == 0
-		
-		
+
+
 	# @staticmethod
 	# def is_alnum(self, inp):
 	# 	inp = ''.join(inp.split())

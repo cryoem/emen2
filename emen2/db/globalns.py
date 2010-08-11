@@ -100,22 +100,19 @@ class GlobalNamespace(object):
 		@property
 		def root(self): return self.__root[0]
 		@root.setter
-		def root(self, v):
-			self.__root.insert(0, v)
-		def update(self, path):
-			self.root = path
+		def root(self, v): self.__root.insert(0, v)
+		def get_roots(self): return self.__root[:]
+
+		def update(self, path): self.root = path
 		def __getattribute__(self, name):
 			value = object.__getattribute__(self, name)
 			if name != 'root' and not name.startswith('_'):
 				if isinstance(value, (str, unicode)):
 					if value.startswith('/'): pass
-					else:
-						value = os.path.join(self.root, value)
+					else: value = os.path.join(self.root, value)
 				elif hasattr(value, '__iter__'):
-					if hasattr(value, 'items'):
-						value = dictWrapper(value, self.root)
-					else:
-						value = listWrapper(value, self.root)
+					if hasattr(value, 'items'): value = dictWrapper(value, self.root)
+					else: value = listWrapper(value, self.root)
 			return value
 
 	__yaml_keys = collections.defaultdict(list)
@@ -303,8 +300,7 @@ class GlobalNamespace(object):
 			return result
 	__getitem__ = __getattribute__
 
-	def update(self, dict):
-		self.__vardict.update(dict)
+	def update(self, dict): self.__vardict.update(dict)
 
 	def reset(self):
 		self.__class__.__vardict = {}

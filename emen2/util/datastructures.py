@@ -1,8 +1,10 @@
 from emen2.util import caching
 import itertools
+import collections
 import operator
 import UserDict
 
+#TODO: replace with deque
 class Ring(object):
 	'A fixed length buffer which overwrites the oldest entries when full'
 	def __init__(self, length=5):
@@ -20,6 +22,17 @@ class Ring(object):
 		if len(self.__buf) > self.__length:
 			self.__buf = self.__buf[-(self.__length-1):]
 		self.__buf.append(value)
+
+class AttributeDict(dict):
+	def __getattribute__(self, name):
+		try:
+			result = dict.__getattribute__(self, name)
+		except AttributeError:
+			result = self[name]
+		return result
+	def __setattr__(self, key, value):
+		self[key] = value
+
 
 class Enum(set):
 	'A class that maps names to numbers and allows the numbers to be referenced by name'
