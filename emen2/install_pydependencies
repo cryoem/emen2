@@ -1,6 +1,0 @@
-easy_install bsddb3
-easy_install demjson
-easy_install pyyaml
-easy_install Twisted
-easy_install mako
-easy_install pyOpenSSL
