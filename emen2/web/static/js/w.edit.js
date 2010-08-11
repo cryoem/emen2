@@ -532,10 +532,10 @@
 			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
 			
 			if (this.options.inheritperms) {
-				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
+				("input[name=inheritperms]", inheritperms).attr("checked", "checked");
 			}
 			if (this.options.copy) {
-				$("input[name=copy]", inheritperms).attr("checked", "checked");
+				("input[name=copy]", inheritperms).attr("checked", "checked");
 			}
 
 			
