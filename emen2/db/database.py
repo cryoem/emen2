@@ -2398,9 +2398,8 @@ class DB(object):
 			return
 		
 		# Get a list of all items in all links
-		# items = set(reduce(operator.concat, links, ()))
 		items = set()
-		for i in items:
+		for i in links:
 			for j in i:
 				items.add(j)
 
