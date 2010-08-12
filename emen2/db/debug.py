@@ -316,7 +316,7 @@ class DebugState(object):
 		module[0] = module[0]
 		module = '%s:%s'%(module[0],module[1])
 
-		head = '%s %s' % (':'.join(str(x) for x in (datetime.datetime.now(), sn, module)), ' :: ')
+		head = '%s %s' % (':'.join(str(x) for x in (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, module)), ' :: ')
 
 		for buf in outputs:
 			buf.send(module[0], state, head, '%s\n'%(output.encode('utf-8')) )
