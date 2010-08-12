@@ -105,11 +105,19 @@ function newrecord_init(rec) {
 	caches["recs"][recid] = rec;
 
 	$(".editbar .tools").EditbarHelper({
-		width:300,
-		height:150,
+		width:400,
+		height:300,
 		show: true,
-		cb: function() {
-			$("#rendered").toggleClass('editbar_reflow_hack')
+		cb: function(self) {
+			var r = $("#rendered");
+			if (!r.hasClass('editbar-reflow')) {
+				r.addClass('editbar-reflow');
+				r.css('padding-top', self.popup.height()+10);
+			} else {
+				r.removeClass('editbar-reflow');
+				r.css('padding-top', 0);			
+
+			}
 		}
 	});	
 
@@ -323,9 +331,9 @@ function rebuildviews(selector) {
 			// ugly horrible hack time...
 			var uglydiv = $('<div style="position:absolute;background:white" />');
 			uglydiv.width(this.element.outerWidth()-3);
-			uglydiv.height(3);
+			uglydiv.height(4);
 			uglydiv.css('left', 0);
-			uglydiv.css('top', -3);
+			uglydiv.css('top', -4);
 			this.popup.append(uglydiv)
 		
 		},
