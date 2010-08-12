@@ -153,15 +153,15 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		templatename = os.path.join(pwd[0], name).replace(pth,'')
 		level = 'LOG_INIT'
 		msg = ["TEMPLATE ", templatename]
-		#try:
-		g.templates.add_template(templatename,data,filpath+ext)
-		#except BaseException, e:
-		#	g.log(str(e))
-		#	level = 'LOG_ERROR'
-		#	msg[0] += 'FAILED'
-		#	failures.append(templatename)
-		#else:
-		#	msg[0] += 'LOADED'
+		try:
+			g.templates.add_template(templatename,data,filpath+ext)
+		except BaseException, e:
+			g.log(str(e))
+			level = 'LOG_ERROR'
+			msg[0] += 'FAILED'
+			failures.append(templatename)
+		else:
+			msg[0] += 'LOADED'
 		msg.append(filpath+ext)
 		g.log.msg(level, ': '.join(msg))
 
