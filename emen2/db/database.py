@@ -646,20 +646,20 @@ class DB(object):
 			try:
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
-				g.log.msg('LOG_ERROR', "Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
-				g.log.msg('LOG_ERROR', "Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
 
 		try:
 			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
-			g.log.msg('LOG_INFO', "Login succeeded %s (%s)" % (username, newcontext.ctxid))
+			g.log.msg('LOG_SECURITY', "Login succeeded %s (%s)" % (username, newcontext.ctxid))
 		except:
-			g.log.msg('LOG_ERROR', "Error writing login context")
+			g.log.msg('LOG_SECURITY', "Error writing login context")
 			raise
 
 		return newcontext.ctxid
