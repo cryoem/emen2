@@ -110,7 +110,7 @@
 
 			}
 			
-			this.controlsarea = $('<div />');
+			this.controlsarea = $('<div class="controls" />');
 			var i = $('<input type="button" value="Removed Selected" />');
 			i.click(function() {
 				self.event_removeselected();

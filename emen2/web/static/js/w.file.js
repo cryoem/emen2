@@ -124,17 +124,28 @@
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
 
+
+			var controls = $('<div class="controls" />');
 			var ss = $('<select data-recid="'+this.recid+'"/>');
 			ss.append('<option value="" />');
+
 			$.each(['file_binary','file_binary_image'], function() {
 				ss.append('<option value="'+this+'">'+this+'</option>');
 			});
+
 			ss.change(function() {
 				if (!$(this).val()) {return}
-				$(this).FileControl({recid: self.options.recid, show:1, param: $(this).val()});
+				var i = $('<div />');
+				i.FileControl({
+					recid: self.options.recid,
+					show:1,
+					param: $(this).val()
+				});
 			})
-			this.browserarea.append("Add File: ", ss);
-			this.dialog.append(this.tablearea, this.browserarea);
+
+			controls.append("Add File: ", ss);
+			
+			this.dialog.append(this.tablearea, this.browserarea, controls);
 
 
 			if (this.options.embed) {
@@ -265,7 +276,7 @@
 			var self=this;
 			this.built = 1;
 
-			this.dialog = $('<div title="File Manager" />');	
+			this.dialog = $('<div title="Attachment Manager" />');	
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
 		
@@ -288,6 +299,13 @@
 			// build a column-style browser
 			this.tablearea.empty();
 			var self=this;
+
+			var test = 0;
+			for (i in this.bdos) {test++}
+			if (test == 0) {
+				this.tablearea.append('<p>No attachments</p>');
+				return
+			}
 		
 			var bdotable = $('<table class="files" />');
 			bdotable.append('<tr><th style="width:20px"><input type="checkbox" name="toggleall" /></th><th>Filename</th><th>Size</th><th>Creator</th><th>Created</th></tr>'); //<th>md5</th>
@@ -309,7 +327,7 @@
 		
 			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){e.stopPropagation();self.event_toggleall(e)})
 
-			var reset = $('<input type="button" value="Remove Selected Items" />');
+			var reset = $('<p><input type="button" value="Remove Selected Items" /></p>');
 			reset.click(function(e){e.stopPropagation();self.event_removebdos(e)});
 			this.tablearea.append(reset);		
 
@@ -317,7 +335,7 @@
 	
 		build_browser: function() {
 			var self = this;
-			var fform = $('<form method="POST" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
+			var fform = $('<div class="controls"><form method="POST" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'"></div>');
 
 			this.button_browser = $('<input type="file" name="filedata" />');
 			this.button_submit = $('<input  type="submit" value="Upload" />');
@@ -360,7 +378,7 @@
 			var redirect = $('<input type="hidden" value="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/" name="redirect">');
 			
 			fform.append(this.button_browser, this.button_submit, progress, redirect);
-			this.browserarea.append('<br /><br /><h4>Upload</h4>', fform);
+			this.browserarea.append(fform);
 
 			//if (this.options.vartype == "binary") {
 			//	this.browserarea.append('(you can select multiple files)');

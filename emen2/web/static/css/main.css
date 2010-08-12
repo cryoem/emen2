@@ -1,47 +1,154 @@
 /* colors
+#ccc 	 // neutral border
+#66a3ce; // stronger border
+#DCEFEE; // right border on title buttons
 
-	background: white;
-	background:#BBD9EE;
-	background:#E7F1F8;
-	background:#F0F2FF;
-	background:#ccc;
-	background:orange;
-	background:red;
+#BBD9EE; // darker highlight background
+#E7F1F8; // light background // highlight
+#F0F2FF; // shaded table
 
+#FF8135; // notification
+red;	 // strong notification
+#202060; // links
 */
 
-body, #container, #title, .notify, .editbar .hidden, table.map,   {
-	background: white;
+/* Background colors */
+
+.add.removed,
+.removed
+{
+	background: red;
+	color: white;
 }
 
 
-#precontent, .precontent, .permissions .add {
+.bigbutton input
+{
+	background: orange;
+}
+
+
+#precontent,
+.precontent,
+.permissions .add,
+.button
+{
 	background: #BBD9EE;
 }
 
-tr.s {
-	background:#F0F2FF;
-}
 
-#nav li:hover, .boxer .controls, .tilemap .tilemapcontrols {
-	background:#E7F1F8;
-}
-.bigbutton input {
-	background:orange;
+tr.s
+{
+	background: #F0F2FF;
 }
 
 
-.editcontrol.inplace, .boxarea-active {
+#nav li:hover,
+.page,
+.button_map,
+.button_main,
+.button_active,
+.boxer .controls,
+.tilemap .tilemapcontrols,
+.recordtable .header
+{
+	background: #E7F1F8;
+}
+
+
+.editcontrol.inplace,
+.boxarea-active
+{
 	background: #ccc;
 }
 
 
+body,
+table.map,
+#container,
+#title,
+#alert li,
+.notify,
+.editbar .hidden,
+.page_main,
+.button_map_active,
+.button_main_active
+{
+	background: white;
+}
 
 
 
+/* Border Colors */
+
+h1,
+h4,
+th,
+.tilemap .label,
+.searchbox,
+.bigbutton input,
+.editbar .active,
+.editbar .hidden,
+.editcontrol.inplace input,
+.userbox img,
+.clickable_box,
+.tilemap .tilemapcontrols,
+.infobuttons,
+.info,
+.editbar > li
+{
+	border-color: #ccc;
+}
+
+.boxarea .boximg {
+	border-color: #fff;
+}
+
+#alert li,
+.notify
+{
+	border-color: #FF8135;
+}
+
+#nav li
+{
+	border-color: #DCEFEE;
+}
+
+.recordtable {
+	border-color: #E7F1F8;
+}
+
+.deleted,
+.error
+{
+	border-color: red;	
+}
 
 
+/* Other side borders */
 
+.infobuttons {
+	outline:solid 2px white;
+}
+
+/* Text colors */
+
+a,
+.clickable,
+.ui-widget-content a
+{
+	color:#202060;
+}
+
+
+.editable_files .label,
+.editable_files.label,
+.editable .label,
+.editable.label
+{
+	color:#783766;
+}
 
 
 
@@ -57,19 +164,13 @@ body {
 	font-family: arial, Verdana, Helvetica, sans-serif;
 	margin:0px;
 	padding:0px;
-	background: white;
 }
 
 #container {
 	position: relative;
-	background: white;
 	min-height: 100%;
 	margin-left: auto;
 	margin-right: auto;
-}
-
-#precontent, .precontent {
-	background: #BBD9EE;
 }
 
 #content {
@@ -81,8 +182,13 @@ body {
 	width: 980px;
 	margin-left:auto;
 	margin-right:auto;
-
 }
+
+.fullwidth {
+	min-width:980px;
+	width:95% !important;
+}
+
 
 
 
@@ -113,12 +219,13 @@ ul {
 /*********** HEADERS ***********/
 
 h1 {
-	border-bottom:solid 1px #ccc;
+	border-bottom-style:solid;
+	border-bottom-width:1px;
 }
-
 h4 {
+	border-bottom-style:solid;
+	border-bottom-width:1px;	
 	font-size:12pt;
-	border-bottom:solid 1px #ccc;
 	margin:0px;
 	margin-top:10px;
 	margin-bottom:5px;
@@ -147,13 +254,10 @@ th, td {
 }
 
 th {
+	border-bottom-style:solid;
+	border-bottom-width:1px;
 	font-weight:normal;
 	text-align:left;
-	border-bottom:solid 1px #ccc;
-}
-
-tr.s {
-	background:#F0F2FF;
 }
 
 
@@ -163,7 +267,6 @@ tr.s {
 	padding-left:5px;
 	height:56px;
 	position:relative;
-	background:white;
 }
 
 #nav {
@@ -177,13 +280,11 @@ tr.s {
 
 #nav li {
 	float:left;
+	border-right-style:solid;
+	border-right-width:2px;
 	padding:4px;
-	border-right:solid 2px #DCEFEE;
 }
 
-#nav li:hover {
-	background:#E7F1F8;
-}
 
 #nav li:last-child {
 	border-right:none;
@@ -200,38 +301,12 @@ tr.s {
 
 /**** LEFT AND RIGHT BOXES *****/
 
-.leftbox {
-	float: left;
-	width: 300px;
-	border-right:solid 1px #ccc;
-}
-.rightbox {
-	float: left;
-	width: 500px;
-}
 
 
 
 
 /************* NOTIFICATION BOXES ************/
 
-.notification {
-	clear:both;
-	width:600px;
-	padding:5px;
-	background:white;
-	margin:0px;
-	margin-top:10px;
-	border:solid 3px #FF8135;
-}
-
-.error {
-	border:solid 3px red;	
-}
-
-.deleted {
-	border:solid 3px red;
-}
 
 /* alerts */
 #alert {	
@@ -243,15 +318,23 @@ tr.s {
 	float:right;
 }
 
+#alert li, .notify {
+	clear:both;
+	border-style:solid;
+	border-width:3px;
+	width:600px;
+	padding:5px;
+	margin:0px;
+	margin-top:10px;
+}
+
+
 
 
 
 
 /************* JQUERY UI OVERRIDES ************/
 
-.ui-widget-content a {
-	color:#202060;
-}
 
 .ui-widget-header {
 	border:none;
@@ -295,10 +378,9 @@ tr.s {
 
 
 .bigbutton input {
-	background:orange;
-	color:white;
+	border-style:solid;
+	border-width:2px;
 	font-weight:bold;	
-	border:solid 2px #ccc;
 	font-size:12pt;
 	padding:10px;
 	margin:20px;
@@ -306,22 +388,24 @@ tr.s {
 }
 
 .controls {
-	margin:10px;
+	float:right;
+	margin:20px;
 }
 
-.editbar .controls {
+.edit > .controls {
+	float:none;
 	margin:0px;
 }
 
 .editcontrol.inplace {
 	position:absolute;
-	background:#ccc;
 	margin:0px;
 	padding:0px;
 }
 
 .editcontrol.inplace input {
-	border:solid 1px #ccc;
+	border-style:solid;
+	border-width:1px;
 	float:left;
 	font-size:12pt;
 	display:inline;
@@ -341,6 +425,9 @@ tr.s {
 /***** RELATIONSHIP BROWSER *****/
 
 .browser {
+	width:100%;
+	height:100%;
+	overflow-y:auto;
 }
 
 .browser .map .m {
@@ -385,36 +472,34 @@ tr.s {
 }
 
 .boxarea .boximg {
-	border:solid #fff 2px;
+	border-style:solid;
+	border-width:2px;
 	margin:0px;
 	margin-right:2px;
 	margin-bottom:2px;
 }
 
 .boxarea-active {
-	background:#ccc;
 }
 
 .tilemap .tilemapcontrols {
 	display:block;
-	background:#E7F1F8;
 	position:absolute;
 	top:20px;
 	right:0px;
 	padding:5px;
-	border-right:dashed 2px #ccc;
 	z-index:100;
+	border-right-style:dashed;
+	border-right-width:2px;
 }
 
 .tilemap .label {
-	border-bottom:solid 1px #ccc;
 	font-size:8pt;
 	text-align:center
 }
 
 .boxer .controls {
 	display:block;
-	background:#E7F1F8;
 	padding:0px;
 	width:565px;
 	position:absolute;
@@ -446,9 +531,10 @@ tr.s {
 }
 .userbox img {
 	float:left;
+	border-style:solid;
+	border-width:1px;
 	width:30px;
 	height:30px;
-	border:solid 1px #ccc;
 }
 .userbox div {
 	margin-left:40px;
@@ -456,9 +542,10 @@ tr.s {
 
 /* .ui-dialog  */
 .searchbox { 
+	border-bottom-width:1px;
+	border-bottom-style:solid;
 	margin-bottom:10px;
 	padding-bottom:10px;
-	border-bottom:solid 1px #ccc;
 }
 
 
@@ -538,10 +625,10 @@ div.color_swatch {
 
 /** misc **/
 .infobuttons {
+	border-style:solid;
+	border-width:2px;
 	padding:5px;
-	border:solid 2px #ccc;
 	border-bottom:none;
-	outline:solid 2px white;
 	margin-left:20px;
 	float:left;
 }
@@ -549,7 +636,6 @@ div.color_swatch {
 	margin-left:auto;
 	margin-right:auto;
 	line-height:150%;
-	border:solid 2px #ccc;
 	padding:10px;
 }
 
@@ -564,11 +650,13 @@ div.color_swatch {
 }
 .editbar > li {
 	float:left;
+	border-right-style:solid;
+	border-right-width:1px;
+	border-bottom-style:solid;
+	border-bottom-width:1px;
 	font-size:10pt;
 	height:20px;
 	padding:4px;
-	border-right:solid 1px #ccc;
-	border-bottom:solid 1px #ccc;
 	z-index:6;
 }
 
@@ -588,13 +676,13 @@ div.color_swatch {
 
 .editbar .hidden {
 	padding:10px;
-	background:white;
 	display:none;
 	position:absolute;
 	top:0px;
 	left:0px;
-	border:solid 2px #ccc;
 	z-index:1;
+	border-style:solid;
+	border-width:2px;
 	-moz-box-shadow: 3px 3px 6px #666;
 	-webkit-box-shadow: 3px 3px 6px #666;
 	box-shadow: 3px 3px 6px #666;
@@ -602,11 +690,11 @@ div.color_swatch {
 
 .editbar .active {
 	z-index:100;
-	outline-bottom:solid 1px red;
+	border-style:solid;
+	border-width:2px;
 	border-bottom:none;
-	border-top:solid 2px #ccc;
-	border-left:solid 1px #ccc;
-	border-right:solid 2px #ccc;
+	border-left-width:1px;
+	border-right-width:2px;
 	padding-right:3px;
 	padding-left:3px;
 	padding-top:2px;
@@ -625,7 +713,6 @@ div.color_swatch {
 }
 
 table.map {
-	background:white; 
 	float:left;
 }
 
@@ -701,19 +788,6 @@ table.map {
 
 /************* PERMISSIONS EDITOR  ************/
 
-.permissions {
-
-}
-
-.permissions .add {
-	background: #BBD9EE;
-}
-
-.add.removed, .removed {
-	background:red;
-	color:white;
-}
-
 
 .permissions .addbutton {
 	font-size:8pt;
@@ -740,7 +814,6 @@ table.map {
 	padding:2px;
 	padding-bottom:0px;
 	font-weight:normal;
-	color:#783766;
 	list-style:none;
 }
 
@@ -756,7 +829,6 @@ table.map {
 }
 
 .page {
-	background:#E7F1F8;
 	padding:10px;
 	display:none;
 }
@@ -764,7 +836,6 @@ table.map {
 	display:block;
 }
 .page_main {
-	background:white;
 }
 
 
@@ -784,10 +855,8 @@ table.map {
 }	
 .button {
 	padding:10px;
-	background:#BBD9EE;
 }
 .button_active {
-	background:#E7F1F8;
 }
 
 
@@ -799,11 +868,9 @@ table.map {
 }
 
 .button_map, .button_main {
-	background:#E7F1F8;
 }
 
 .button_map_active, .button_main_active {
-	background:white;
 }
 
 
@@ -850,22 +917,23 @@ table.map {
 
 /********* RECORD TABLE ***********/
 
+
 .recordtable {
-	border:solid 2px #E7F1F8;
+	border-style:solid;
+	border-width:2px;
 }
 
 .recordtable .header {
 	padding:2px;
-	background:#E7F1F8;
 }
-
 .recordtable .header > div {
 	float:right;
 }
 
 .clickable_box {
 	padding:2px 4px;
-	border:solid 1px #ccc;	
+	border-style:solid;
+	border-width:1px;
 }
 
 .clickable_box_active {
@@ -883,7 +951,6 @@ table.map {
 a, .clickable {
 	cursor:pointer;
 	text-decoration:none;
-	color:#202060;
 }
 
 a img, .clickable img {
@@ -934,7 +1001,7 @@ ul.nonlist li {
 
 
 /* all */
-.notification, .capsule, .precontent .map, .bigbutton input {
+#alert li, .notify, .capsule, .precontent .map, .bigbutton input {
 	-moz-border-radius:8px;
 	-webkit-border-radius:8px;
 }
@@ -981,4 +1048,8 @@ ul.nonlist li {
 .collapsed > a {
       display:block;
 }
+
+
+
+
 
