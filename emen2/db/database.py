@@ -617,6 +617,7 @@ class DB(object):
 
 	#@rename db.auth.login
 	# This is intentionally not a publicmethod because DBProxy wraps it
+	LOGINERRMSG = 'Invalid username or password: %s'
 	def login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
 		"""(DBProxy Only) Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access. Returns ctxid, or fails with AuthenticationError or SessionError
@@ -657,9 +658,9 @@ class DB(object):
 
 		try:
 			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
-			g.log.msg('LOG_SECURITY', "Login succeeded %s (%s)" % (username, newcontext.ctxid))
+			g.log.msg('LOG_SECURITY', "Login succeeded: %s %s" % (username, newcontext.ctxid))
 		except:
-			g.log.msg('LOG_SECURITY', "Error writing login context")
+			g.log.msg('LOG_ERROR', "Error writing login context")
 			raise
 
 		return newcontext.ctxid
