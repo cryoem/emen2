@@ -282,7 +282,7 @@
 			}
 
 
-			console.log(inline);
+			//console.log(inline);
 			if (inline) {
 				this.w.css('display','inline');
 			}

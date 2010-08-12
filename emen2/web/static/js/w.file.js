@@ -323,8 +323,8 @@
 			this.button_submit = $('<input  type="submit" value="Upload" />');
 
 
-			if (typeof(FileReader) != "undefined") {
-
+			//if (typeof(FileReader) != "undefined") {
+			if (false) {
 				if (this.options.vartype == "binary") {
 					this.button_browser.attr("multiple","multiple");
 				}	
@@ -362,9 +362,9 @@
 			fform.append(this.button_browser, this.button_submit, progress, redirect);
 			this.browserarea.append('<br /><br /><h4>Upload</h4>', fform);
 
-			if (this.options.vartype == "binary") {
-				this.browserarea.append('(you can select multiple files)');
-			}
+			//if (this.options.vartype == "binary") {
+			//	this.browserarea.append('(you can select multiple files)');
+			//}
 
 
 		},

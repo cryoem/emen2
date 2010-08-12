@@ -174,7 +174,7 @@ function record_init(rec, ptest) {
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
 				recid: recid,
-				edit: ptest[2],
+				edit: ptest[2] || ptest[3],
 				embed: true,
 				show: true
 				});
@@ -208,9 +208,10 @@ function record_init(rec, ptest) {
 	
 	$(".editbar .tools").EditbarHelper({});	
 
+
 	$("#page_comments_comments").CommentsControl({
 		recid:recid,
-		edit:ptest[1],
+		edit:ptest[1] || ptest[2] || ptest[3],
 		title:"#button_comments_comments"
 		});
 		
