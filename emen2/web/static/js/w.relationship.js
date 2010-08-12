@@ -191,10 +191,10 @@
 			var rlinks = [];
 			var premoved = 0;
 			$.each(rp, function(i,v) {
-				if (p.indexOf(v)>-1) {
+				if ($.inArray(p, v) > -1) { //p.indexOf(v)>-1
 					rlinks.push([v, self.options.recid]);
 					premoved += 1;
-				} else if (c.indexOf(v)>-1) {
+				} else if ($.inArray(c, v) > -1) { //c.indexOf(v)>-1
 					rlinks.push([self.options.recid, v]);					
 				}
 			});

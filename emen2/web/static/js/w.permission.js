@@ -168,7 +168,7 @@
 				if (v.length == 0) {
 					//level.append('<div class="userbox"></div>');
 				} else {
-					// var level_removeall=$('<span class="small_label">[<span class="jslink">X</span>]</span>').click(function () {
+					// var level_removeall=$('<span class="small_label">[<span class="clickable">X</span>]</span>').click(function () {
 					$.each(v, function(i,username) {
 						self.drawuser(username, k);
 					});

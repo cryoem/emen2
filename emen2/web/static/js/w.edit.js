@@ -238,7 +238,7 @@
 				this.editw = $("<select><option>True</option><option>False</option></select>");
 				this.w.append(this.editw);				
 		
-			} else if (["intlist","floatlist","stringlist","userlist","urilist"].indexOf(vt) > -1) {
+			} else if ($.inArray(["intlist","floatlist","stringlist","userlist","urilist"], vt) > -1) { //.indexOf(vt) > -1
 
 				inline = false;
 				this.editw = $('<div />');
@@ -581,7 +581,7 @@
 			$.each(t, function() {
 				try {
 					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
-					var i = $('<div><span class="jslink clickable" data-rectype="'+this+'">'+caches["recorddefs"][this].desc_short+'</span></div>');
+					var i = $('<div><span class="clickable" data-rectype="'+this+'">'+caches["recorddefs"][this].desc_short+'</span></div>');
 					$('.clickable', i).click(function() {
 						self.doit($(this).attr('data-rectype'));
 					})

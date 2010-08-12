@@ -5,7 +5,7 @@
 			edit: 0,
 			modal: false,
 			embed: false,
-			show: false,
+			show: false
 		},
 				
 		_create: function() {
@@ -59,7 +59,7 @@
 				// find bdo in record..
 				$.each(rec, function(k,v) {
 					if (typeof(v)=="object") {
-						if (v.indexOf(bdo.name) > -1) {
+						if ($.inArray(v, bdo.name) > -1) { //v.indexOf(bdo.name) > -1
 							self.bdomap_append(k, bdo);
 						}
 					} else {

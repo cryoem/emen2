@@ -4,7 +4,7 @@
 			recid: null,
 			cb: function(recid){},
 			keytype: "record",
-			modal: true,
+			modal: true
 		},
 				
 		_create: function() {
