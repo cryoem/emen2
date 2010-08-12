@@ -48,7 +48,7 @@ paths:
 
 network:
   # Number of web server threads to run
-  NUMTHREADS: 1
+  NUMTHREADS: 3
 
   # HTTP port
   EMEN2PORT: 8081
