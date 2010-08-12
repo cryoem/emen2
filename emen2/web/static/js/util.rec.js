@@ -149,7 +149,7 @@ function record_init(rec, ptest) {
 
 	$('.editbar .permissions').EditbarHelper({
 		width: 620,
-		height: 600,
+		height: 400,
 		cb: function(self){
 			self.popup.PermissionControl({
 				recid: recid,
@@ -162,7 +162,7 @@ function record_init(rec, ptest) {
 
 	$('.editbar .attachments').EditbarHelper({
 		width: 620,
-		height: 600,
+		height: 400,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
 				recid: recid,
@@ -187,7 +187,7 @@ function record_init(rec, ptest) {
 
 	$(".editbar .relationships").EditbarHelper({		
 		width: 800,
-		height: 600,
+		height: 400,
 		cb: function(self){
 			self.popup.RelationshipControl({
 				recid: recid,
