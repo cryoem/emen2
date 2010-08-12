@@ -1884,14 +1884,14 @@ class DB(object):
 	#@rename db.query.param @ok @return set of recids
 	@publicmethod
 	def getindexbyvalue(self, param, value, ctx=None, txn=None):
-		"""Query an indexed parameter. Return all records that contain a value, with optional value range
-
-		@param param parameter name
-
-		@keyparam valrange tuple of (min, max) values to search
-
-		@return List of matching recids
-		"""
+		# """Query an indexed parameter. Return all records that contain a value, with optional value range
+		# 
+		# @param param parameter name
+		# 
+		# @keyparam valrange tuple of (min, max) values to search
+		# 
+		# @return List of matching recids
+		# """
 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
 		if paramindex == None: return set()
 

@@ -104,6 +104,15 @@ function newrecord_init(rec) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
+	$(".editbar .tools").EditbarHelper({
+		width:300,
+		height:150,
+		show: true,
+		cb: function() {
+			$("#rendered").toggleClass('editbar_reflow_hack')
+		}
+	});	
+
 	$('#newrecord_save').MultiEditControl({
 		recid: recid,
 		show: true
@@ -252,7 +261,8 @@ function rebuildviews(selector) {
 		options: {
 			cb: function() {},
 			width: 200,
-			height: 200
+			height: 200,
+			show: false
 		},
 				
 		_create: function() {
@@ -263,6 +273,9 @@ function rebuildviews(selector) {
 				e.stopPropagation();
 				self.toggle();
 			});
+			if (this.options.show) {
+				this.toggle();
+			}
 		},
 		
 		toggle: function() {
@@ -284,6 +297,7 @@ function rebuildviews(selector) {
 		hide: function() {
 			if (!this.built) {return}
 			this.popup.hide();
+			this.options.cb(this);
 			this.element.removeClass('active');
 		},		
 		
@@ -303,15 +317,15 @@ function rebuildviews(selector) {
 
 			this.popup.width(this.options.width);
 			this.popup.height(this.options.height);
-			this.popup.css('left', this.element.offset().left-1);
+			this.popup.css('left', this.element.position().left-1);
 			this.popup.css('top', this.element.outerHeight()+this.element.position().top-1);
 			
 			// ugly horrible hack time...
 			var uglydiv = $('<div style="position:absolute;background:white" />');
 			uglydiv.width(this.element.outerWidth()-3);
-			uglydiv.height(2);
+			uglydiv.height(3);
 			uglydiv.css('left', 0);
-			uglydiv.css('top', -2);
+			uglydiv.css('top', -3);
 			this.popup.append(uglydiv)
 		
 		},

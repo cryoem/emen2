@@ -49,7 +49,7 @@
 			}
 			this.built = 1;
 			
-			this.controls = $('<div class="controls"></div>')		
+			this.controls = $('<div class="controls" />')		
 			
 			var save = $('<input type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
@@ -106,6 +106,7 @@
 			$.jsonRPC("putrecordsvalues", [changed], function(recs) {
 				$.each(recs, function() {
 					record_update(this);
+					t.val("Save");
 				});
 				self.hide();
 			});
@@ -195,21 +196,22 @@
 				return
 			}
 			this.built = 1;
-				
+							
 			if (this.rec_value == null) {
 				this.rec_value = "";
 			}
 		
 			// container
-			this.w = $('<span class="editcontrol"></span>');
+			this.w = $('<div class="editcontrol" style="display:inline" />');
 			var self = this;
+			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
-			controls = true;
 
 			// Delegate to different edit widgets
 			if (vt=="html" || vt=="text") {
 			
+				inline = false;
 				this.editw=$('<textarea class="value" cols="80" rows="20">'+this.rec_value+'</textarea>');
 				this.w.append(this.editw);			
 
@@ -237,7 +239,8 @@
 				this.w.append(this.editw);				
 		
 			} else if (["intlist","floatlist","stringlist","userlist","urilist"].indexOf(vt) > -1) {
-		
+
+				inline = false;
 				this.editw = $('<div />');
 				this.editw.ListControl({values:this.rec_value, param:this.options.param});
 				this.w.append(this.editw);
@@ -246,13 +249,14 @@
 		
 			}  else if (vt=="user") {
 
-					this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
-					this.editw.FindUserControl({recid:this.options.recid});
-					this.w.append(this.editw);
+				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
+				this.editw.FindUserControl({recid:this.options.recid});
+				this.w.append(this.editw);
 		
 			} else if (vt=="comments") {
-				
-					this.editw = $('<input class="value" size="30" type="text" value="" />');
+
+				inline = false;
+				this.editw = $('<input class="value" size="30" type="text" value="" />');
 						
 			} else {
 
@@ -277,12 +281,21 @@
 				}
 			}
 
-			this.controls = $('<div class="controls"></div>')		
+
+			console.log(inline);
+			if (inline) {
+				this.w.css('display','inline');
+			}
+
+			this.controls = $('<span class="controls" />')		
 			this.controls.append(
 				$('<input type="submit" value="Save" />').one("click", function(e) {self.save()}),
 				$('<input type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
 			this.w.append(this.controls);
 			this.element.after(this.w);
+			
+			
+			
 		},
 	
 		show: function(showcontrols) {
@@ -301,9 +314,10 @@
 		
 			self.build();
 			this.element.hide();
-			this.w.show();
+			this.w.css('display', 'inline');
+			//this.w.show();
 			if (showcontrols) {
-				this.controls.show();
+				this.w.addClass('inplace');
 			}
 
 		},
@@ -312,7 +326,7 @@
 			if (!this.built) {
 				return
 			}
-			this.controls.hide();
+			this.w.removeClass('inplace');
 			this.w.hide();
 			this.element.show();
 		},
@@ -532,10 +546,10 @@
 			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
 			
 			if (this.options.inheritperms) {
-				("input[name=inheritperms]", inheritperms).attr("checked", "checked");
+				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
 			}
 			if (this.options.copy) {
-				("input[name=copy]", inheritperms).attr("checked", "checked");
+				$("input[name=copy]", inheritperms).attr("checked", "checked");
 			}
 
 			

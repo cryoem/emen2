@@ -67,7 +67,7 @@
 
 			// Save controls
 			if (this.options.recid!="None" && this.options.edit) {
-				this.savearea = $('<div/>');
+				this.savearea = $('<div class="controls"/>');
 				var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save()});
 				var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});
 				this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
