@@ -14,6 +14,7 @@ import mako.lookup
 import mako.template
 from emen2.util import fileops
 import emen2.util.db_manipulation
+import emen2.web.extfile
 import emen2.db.config
 g = emen2.db.config.g()
 import time
@@ -102,7 +103,11 @@ class MakoTemplateLoader(mako.lookup.TemplateCollection, AbstractTemplateLoader)
 		template, path = value
 		if True:
 		#if (not self.templates.has_key(name)):# or (self[name].source != value):
-			self.templates[name] = Template(template, self, name, path)
+			try:
+				self.templates[name] = Template(template, self, name, path)
+			except:
+				self.templates[name] = Template('', self, name, path)
+				raise
 
 	def get_template(self, uri, relativeto=None):
 		try:
@@ -132,11 +137,13 @@ class MakoTemplateEngine(StandardTemplateEngine):
 			if g.DEBUG:
 				return exceptions.html_error_template().render_unicode()
 			else:
+				ctxt = emen2.util.db_manipulation.Context()
 				ctxt = dict(
 					errmsg = '<br/><center>%s</center>' % e, def_title = 'Error',
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,
 					EMEN2LOGO = g.EMEN2LOGO, BOOKMARKS=g.BOOKMARKS,
-					js_files = [], notify = '', ctxt=emen2.util.db_manipulation.Context()
+					js_files = emen2.web.extfile.BaseJS(ctxt), notify = '', ctxt=ctxt,
+					css_files = emen2.web.extfile.BaseCSS(ctxt)
 				)
 				ctxt.update(context)
 				return self.render_template('/errors/simple_error', ctxt)
