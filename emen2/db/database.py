@@ -1885,11 +1885,11 @@ class DB(object):
 	@publicmethod
 	def getindexbyvalue(self, param, value, ctx=None, txn=None):
 		# """Query an indexed parameter. Return all records that contain a value, with optional value range
-		# 
+		#
 		# @param param parameter name
-		# 
+		#
 		# @keyparam valrange tuple of (min, max) values to search
-		# 
+		#
 		# @return List of matching recids
 		# """
 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
@@ -2215,13 +2215,13 @@ class DB(object):
 
 	# This is a new method -- might need some testing.
 	@publicmethod
-	def getsiblings(self, key, rectype=None, keytype="record", ctx=None, txn=None):		
+	def getsiblings(self, key, rectype=None, keytype="record", ctx=None, txn=None):
 		parents = self.getparents(key, keytype=keytype, ctx=ctx, txn=txn)
 		siblings = listops.combine(self.getchildren(parents, keytype=keytype, rectype=rectype, ctx=ctx, txn=txn).values(), dtype=list)
 		if siblings:
 			return siblings[0]
 		return []
-		
+
 
 	#@rename db.<RelateBTree>.parents
 	#@notok @single
@@ -2340,7 +2340,7 @@ class DB(object):
 		@param links [[parent 1,child 1],[parent 2,child 2], ...]
 
 		@keyparam keytype Link this type: ["record","paramdef","recorddef"] (default is "record")
-		"""		
+		"""
 		return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
@@ -2397,7 +2397,7 @@ class DB(object):
 
 		if not links:
 			return
-		
+
 		# Get a list of all items in all links
 		items = set()
 		for i in links:
@@ -3036,7 +3036,7 @@ class DB(object):
 			user.getuserrec(lnf=lnf)
 			user.password = None
 			ret.append(user)
-			
+
 		if ol: return return_first_or_none(ret)
 		return ret
 
@@ -3958,7 +3958,7 @@ class DB(object):
 
 			except Exception, inst:
 				g.log.msg("LOG_ERROR","Error setting inherited permissions from record %s: %s"%(inheritperms, inst))
-			
+
 			rec["parents"] = inheritperms
 
 		return rec
@@ -4956,8 +4956,8 @@ class DB(object):
 		return self.__putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
-	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):		
-		
+	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
+
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 

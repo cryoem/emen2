@@ -1,4 +1,4 @@
-class instonget(object):
+class callonget(object):
 	def __init__(self, cls):
 		self.__class = cls
 	def __get__(self, instance, owner):
@@ -10,6 +10,6 @@ class instonget(object):
 			result = self.__class()
 			setattr(instance, self.__class.__name__, result)
 		return result
-
+instonget = callonget
 
 

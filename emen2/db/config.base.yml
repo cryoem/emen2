@@ -136,6 +136,6 @@ logging:
   EMEN2ERRLOG: emen2errlog
   EMEN2JOBFILE: emen2job
   DEBUGLOG: debug.log
-  DEBUG: True
+  DEBUG: False
   
   
