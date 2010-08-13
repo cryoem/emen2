@@ -6,6 +6,7 @@ import os.path
 import demjson
 import functools
 
+import emen2.util.decorators
 import emen2.util.db_manipulation
 import emen2.web.extfile
 
@@ -35,6 +36,7 @@ def cast_arguments(*postypes, **kwtypes):
 		return _inner
 	return _func
 
+
 class View(object):
 	'''Base Class for views, sets up the instance variables for the class
 
@@ -61,6 +63,7 @@ class View(object):
 
 	headers = property(lambda self: self.__headers)
 	dbtree = property(lambda self: self.__dbtree)
+
 	page = None
 	ctxt = property(lambda self: self.get_context())
 	_ctxt = property(lambda self: self.__ctxt)
@@ -93,8 +96,7 @@ class View(object):
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
-		self.__dbtree = None
-		self.__dbtree = emen2.util.db_manipulation.DBTree(db)
+		self.__dbtree = emen2.util.db_manipulation.Context()#DBTree(db)
 
 		self.__template = template or self.template
 		self.__ctxt = adj_dict({}, extra)
@@ -114,6 +116,8 @@ class View(object):
 		self.set_context_items(self.__basectxt)
 		self.set_context_item('notify', [])
 
+		self.etag = None
+
 		# call any view specific initialization
 		self.__raw = False
 		if format is not None:
@@ -125,7 +129,6 @@ class View(object):
 		if init is not None: init=functools.partial(init,self)
 		else: init = self.init
 		init(**extra)
-		# finally: pass
 
 
 	def init(self, *_, **__):
@@ -182,6 +185,9 @@ class View(object):
 		'set a single header'
 		self.__headers[name] = value
 		return (name, value)
+
+	def get_headers(self):
+		return self.__headers
 
 	def get_header(self, name):
 		'get a HTTP header that this view will return'
