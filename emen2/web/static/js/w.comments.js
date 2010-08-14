@@ -100,7 +100,9 @@
 		},
 				
 		_create: function() {
-			this.build();
+			var self = this;
+			this.built = 0;
+			$(this.options.title).click(function(){self.build()});
 		},
 	
 		partition: function() {
@@ -117,40 +119,63 @@
 			}
 		},
 		
+		show: function() {
+			this.build();
+		},
+		
 		rebuild: function() {
+			this.built = 0;
 			this.build();
 		},
 		
 		build: function() {
+			if (this.built) {
+				return
+			}
+			this.built = 1;
+
 			var self = this;
+			var l = EMEN2WEBROOT+'/db/record/'+this.options.recid+'/history/?simple=1';
+			this.element.load(l);
+
 			this.partition();
-			this.element.empty();
-			this.rhist.reverse();
-			
 			if (self.options.title) {
-				if (this.rhist.length) {
-					$(self.options.title).html('History ('+this.rhist.length+' changes)');
-				} else {
-					$(self.options.title).html('History ('+this.rhist.length+' changes)');
-				}
+				$(self.options.title).html('History ('+this.rhist.length+' changes)');
 			}
-
-			if (this.rhist == 0) {
-				this.element.append('<p>No changes</p>');
-			}
-
-			$.each(this.rhist, function() {
-				var dname = caches["displaynames"][this[0]] || this[0];
-				var time = this[1];
-
-				if (this.length == 4) {
-					self.element.append('<h4>'+dname+' @ '+time+'</h4><p>LOG: ' + this[2] + ' updated, was: '+this[3]+'</p>');
-				}
-				else {
-					self.element.append('<h4>'+dname+' @ '+time+'</h4><p>'+this[2]+'</p>');
-				}
-
-			});		
+			// var self = this;
+			// this.element.empty();
+			// this.rhist.reverse();
+			// 
+			// var link = $('<p><a href="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/history/">Detailed Revisions Page</a></p>')
+			// this.element.append(link);
+			// 
+			// 
+			// if (this.rhist == 0) {
+			// 	this.element.append('<p>No changes</p>');
+			// }
+			// 
+			// $.each(this.rhist, function() {
+			// 	var dname = caches["displaynames"][this[0]] || this[0];
+			// 	var time = this[1];
+			// 	var rev = '<a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/history/'+time+'/">View Revision</a>';
+			// 
+			// 	// Check if old-style comment or new-style comment
+			// 	if (this.length == 4) {
+			// 		var i = escapeHTML(String(this[3]));
+			// 		if (i.length > 50) {
+			// 			i = i.slice(0,50) + '...&raquo;';
+			// 		}
+			// 		self.element.append('<h4>'+dname+' @ '+time+'<span style="float:right">'+rev+'</h4><p>LOG: ' + this[2] + ' updated, was: '+i+'</p>');
+			// 	}
+			// 	else {
+			// 		var i = escapeHTML(String(this[2]));
+			// 		if (i.length > 50) {
+			// 			i = i.slice(0,50) + '...&raquo';
+			// 		}					
+			// 		self.element.append('<h4>'+dname+' @ '+time+'<span style="float:right">'+rev+'</h4><p>' + i.slice(0,50) + '</p>');
+			// 	}
+			// 
+			// });		
 		
 		},
 

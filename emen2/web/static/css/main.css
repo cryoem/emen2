@@ -1,3 +1,16 @@
+/*.expandable .hide {
+	position:absolute;
+	width:400px;
+	height:300px;
+	top:0px;
+	right:20px;
+	padding:10px;
+	background:#BBD9EE;
+	z-index:10;
+}
+*/
+
+
 /* colors
 #ccc 	 // neutral border
 #66a3ce; // stronger border
@@ -150,8 +163,12 @@ a,
 	color:#783766;
 }
 
-
-
+.whitehide {
+	color:white;
+}
+.whitehide * {
+	color:white;
+}
 
 
 /******** BODY AND TOP LEVEL CONTAINERS ******/
@@ -174,7 +191,7 @@ body {
 }
 
 #content {
-	padding-top:10px;
+	padding-top:0px;
 	position:relative;
 }
 
@@ -200,6 +217,7 @@ input {
 
 
 textarea {
+	width:100%;
 	display:block;
 }
 
@@ -250,7 +268,7 @@ table {
 }
 
 th, td {
-	padding:2px;
+	padding:4px;
 }
 
 th {
@@ -399,6 +417,7 @@ th {
 
 .editcontrol.inplace {
 	position:absolute;
+	top:0px;
 	margin:0px;
 	padding:0px;
 }
@@ -633,6 +652,8 @@ div.color_swatch {
 	float:left;
 }
 .info {
+	border-style:solid;
+	border-width:2px;
 	margin-left:auto;
 	margin-right:auto;
 	line-height:150%;

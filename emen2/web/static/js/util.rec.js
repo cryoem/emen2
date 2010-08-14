@@ -155,6 +155,7 @@ function record_init(rec, ptest) {
 	$('.editable').EditControl({});
 	$('.editable_files').FileControl({});
 
+
 	$('.editbar .permissions').EditbarHelper({
 		width: 620,
 		height: 400,
@@ -167,6 +168,7 @@ function record_init(rec, ptest) {
 				});
 			}
 	});		
+
 
 	$('.editbar .attachments').EditbarHelper({
 		width: 620,
@@ -181,6 +183,7 @@ function record_init(rec, ptest) {
 			}
 	});		
 
+
 	$('.editbar .newrecord').EditbarHelper({
 		width: 300,
 		height: 400,
@@ -192,6 +195,7 @@ function record_init(rec, ptest) {
 				});
 			}
 	});		
+
 
 	$(".editbar .relationships").EditbarHelper({		
 		width: 800,
@@ -208,6 +212,7 @@ function record_init(rec, ptest) {
 	
 	$(".editbar .tools").EditbarHelper({});	
 
+	$(".editbar .selectview").EditbarHelper({});	
 
 	$("#page_comments_comments").CommentsControl({
 		recid:recid,
@@ -225,6 +230,9 @@ function record_init(rec, ptest) {
 		target.attr("data-viewtype", $(this).val());
 		rebuildviews("#rendered");
 	});
+
+
+
 	
 }
 
@@ -262,7 +270,6 @@ function rebuildviews(selector) {
 		);
 	})
 }
-
 
 
 (function($) {
@@ -350,3 +357,14 @@ function rebuildviews(selector) {
 
 
 
+
+
+function escapeHTML(html) {
+	var escaped = html;
+	var findReplace = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"]];
+	for (var i=0; i < findReplace.length; i++) {
+		item = findReplace[i];
+    	escaped = escaped.replace(item[0], item[1]);
+	}
+	return escaped
+}

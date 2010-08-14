@@ -313,11 +313,13 @@
 			}
 		
 			self.build();
-			this.element.hide();
 			this.w.css('display', 'inline');
-			//this.w.show();
 			if (showcontrols) {
+				this.element.addClass('whitehide');
+				this.w.css('top', this.element.position().top);
 				this.w.addClass('inplace');
+			} else {
+				this.element.hide();
 			}
 
 		},
@@ -327,8 +329,11 @@
 				return
 			}
 			this.w.removeClass('inplace');
-			this.w.hide();
+			this.element.removeClass('whitehide');
 			this.element.show();
+			this.w.hide();
+			//this.element.show();
+			
 		},
 		
 		getrecid: function() {

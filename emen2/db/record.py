@@ -1,6 +1,9 @@
 import UserDict
+import collections
 import operator
 import weakref
+import copy
+
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
@@ -542,6 +545,42 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		return self.__ptest
 
 
+	def revision(self, revision=None):
+		"""This will return information about the record's revision history"""
+
+
+		history = copy.copy(self.__history)
+		comments = copy.copy(self.__comments)
+		comments.append((self.get('creator'), self.get('creationtime'), 'Created'))
+		paramcopy = {}
+
+		bydate = collections.defaultdict(list)
+		
+		for i in filter(lambda x:x[1]>=revision, history):
+			bydate[i[1]].append([i[0], i[2], i[3]])
+
+		for i in filter(lambda x:x[1]>=revision, comments):
+			bydate[i[1]].append([i[0], None, i[2]])
+			
+		revs = sorted(bydate.keys(), reverse=True)
+
+		for rev in revs:				
+			for item in bydate.get(rev, []):
+				# user, param, oldval
+				if item[1] == None:
+					continue
+				if item[1] in paramcopy.keys():
+					newval = paramcopy.get(item[1])
+				else:
+					newval = self.get(item[1])
+	
+				paramcopy[item[1]] = copy.copy(item[2])				
+				# item[2] = newval
+
+		return bydate, paramcopy
+		
+
+
 	# def validationwarning(self, msg, e=None, warning=False):
 	# 	"""Raise a warning or exception during validation
 	#
@@ -560,12 +599,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	# 		raise e, msg
 	#
 
-# ian: not ready yet..
-# @Record.register_validator
-# @emen2.db.validators.Validator.make_validator
-# class RecordValidator(emen2.db.dataobject.Validator):
-
-
+	# ian: not ready yet..
+	# @Record.register_validator
+	# @emen2.db.validators.Validator.make_validator
+	# class RecordValidator(emen2.db.dataobject.Validator):
 
 	def validate_recid(self, orec=None, warning=False):
 		if not orec: orec = {}
