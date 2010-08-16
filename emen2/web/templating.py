@@ -11,6 +11,7 @@ except ImportError:
 	pass
 from mako import exceptions
 import mako.lookup
+import collections
 import mako.template
 from emen2.util import fileops
 import emen2.util.db_manipulation
@@ -38,7 +39,7 @@ class TemplateFactory(object):
 		return self.templates.handle_error(exception)
 
 class TemplateNotFoundError(KeyError): pass
-class AbstractTemplateLoader(object):
+class AbstractTemplateLoader(object):#collections.Mapping):
 	'''template loaders are dictionary like objects'''
 	templates = {}
 	def __getitem__(self, name):
@@ -139,11 +140,11 @@ class MakoTemplateEngine(StandardTemplateEngine):
 			else:
 				ctxt = emen2.util.db_manipulation.Context()
 				ctxt = dict(
-					errmsg = '<br/><center>%s</center>' % e, def_title = 'Error',
+					errmsg = '<br/><center>%s</center>' % e, title = 'Error',
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,
 					EMEN2LOGO = g.EMEN2LOGO, BOOKMARKS=g.BOOKMARKS,
 					js_files = emen2.web.extfile.BaseJS(ctxt), notify = '', ctxt=ctxt,
-					css_files = emen2.web.extfile.BaseCSS(ctxt)
+					css_files = emen2.web.extfile.BaseCSS(ctxt),
 				)
 				ctxt.update(context)
 				return self.render_template('/errors/simple_error', ctxt)
