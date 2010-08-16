@@ -68,6 +68,9 @@ class BaseJS(ExtFile):
 			'%s/js/w.relationship.js'%g.EMEN2WEBROOT,
 			'%s/js/w.table.js'%g.EMEN2WEBROOT,
 			'%s/js/w.tile.js'%g.EMEN2WEBROOT,
+
+			'%s/js/w.popup.js'%g.EMEN2WEBROOT,
+
 			'%s/js/w.file.js'%g.EMEN2WEBROOT
 			]
 

@@ -575,7 +575,7 @@ class vt_userlist(Vartype):
 		for v in value:
 			key = engine.get_cache_key('displayname', v)
 			hit, dn = engine.check_cache(key)
-			lis.append(hit)
+			lis.append(dn)
 		return ", ".join(lis)
 		
 		
