@@ -147,13 +147,20 @@ function newrecord_init(rec) {
 
 }
 
-function record_init(rec, ptest) {
+function record_init(rec, ptest, edit) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
 	$('.editbar .edit').MultiEditControl({});
 	$('.editable').EditControl({});
 	$('.editable_files').FileControl({});
+
+
+	$(".editbar .edit").EditbarHelper({
+		width:200,
+		height:50,
+		bind: false
+	});	
 
 
 	$('.editbar .permissions').EditbarHelper({
@@ -231,7 +238,9 @@ function record_init(rec, ptest) {
 		rebuildviews("#rendered");
 	});
 
-
+	if (edit) {
+		$('.editbar .edit').MultiEditControl('event_click');
+	}
 
 	
 }
@@ -275,7 +284,10 @@ function rebuildviews(selector) {
 (function($) {
     $.widget("ui.EditbarHelper", {
 		options: {
+			open: function() {},
+			close: function() {},
 			cb: function() {},
+			bind: true,
 			width: 200,
 			height: 200,
 			show: false
@@ -285,10 +297,12 @@ function rebuildviews(selector) {
 			this.built = 0;
 			var self = this;
 			this.element.addClass('popup');
-			this.element.click(function(e) {
-				e.stopPropagation();
-				self.toggle();
-			});
+			if (this.options.bind) {
+				this.element.click(function(e) {
+					e.stopPropagation();
+					self.toggle();
+				});
+			}
 			if (this.options.show) {
 				this.toggle();
 			}
@@ -307,6 +321,7 @@ function rebuildviews(selector) {
 			this.build();
 			this.element.addClass('active');
 			this.options.cb(this);
+			this.options.open(this);
 			this.popup.show();
 		},
 		
@@ -314,6 +329,7 @@ function rebuildviews(selector) {
 			if (!this.built) {return}
 			this.popup.hide();
 			this.options.cb(this);
+			this.options.close(this);
 			this.element.removeClass('active');
 		},		
 		

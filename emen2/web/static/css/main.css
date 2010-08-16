@@ -191,7 +191,7 @@ body {
 }
 
 #content {
-	padding-top:0px;
+	padding-top:10px;
 	position:relative;
 }
 
@@ -857,6 +857,7 @@ table.map {
 	display:block;
 }
 .page_main {
+
 }
 
 

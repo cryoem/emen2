@@ -50,15 +50,16 @@
 			this.built = 1;
 			
 			this.controls = $('<div class="controls" />')		
-			
+					
 			var save = $('<input type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 			
-			if (this.options.recid!="None") {
+			if (this.options.recid != "None") {
 				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
 			}
+			
 			this.element.append(this.controls);
 		},
 		
