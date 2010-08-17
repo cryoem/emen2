@@ -123,7 +123,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Set default log levels
 		if self.values.loglevel == None:
-			self.values.loglevel = kw.get('loglevel', 'LOG_DEBUG')
+			self.values.loglevel = kw.get('loglevel', g.getattr('LOG_LEVEL', 'LOG_INFO'))
 		# if self.values.logfile_level == None:
 		# 	self.values.logfile_level = kw.get('logfile_level', 'LOG_DEBUG')
 		# if self.values.log_print_only == None:
@@ -155,6 +155,7 @@ class DBOptions(optparse.OptionParser):
 		g.log_critical = functools.partial(g.log.msg, 'LOG_CRITICAL')
 		g.log_error = functools.partial(g.log.msg, 'LOG_ERROR')
 		g.warn = functools.partial(g.log.msg, 'LOG_WARNING')
+		g.log_security = functools.partial(g.log.msg, 'LOG_SECURITY')
 		g.log_init = functools.partial(g.log.msg, 'LOG_INIT')
 		g.log_info = functools.partial(g.log.msg, 'LOG_INFO')
 		g.debug = functools.partial(g.log.msg, 'LOG_DEBUG')
@@ -162,6 +163,7 @@ class DBOptions(optparse.OptionParser):
 
 
 		g.log.add_output(['LOG_WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
+		g.log.add_output(['LOG_SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 
 

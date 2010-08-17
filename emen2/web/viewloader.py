@@ -5,6 +5,7 @@ import sys
 import emen2.util.fileops
 import emen2.web.routing
 import emen2.web.templating
+import emen2.web.resources.publicresource
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -52,6 +53,12 @@ def load_views(failures=None):
 	r = reversed(getattr(g.paths, 'TEMPLATEDIRS', []))
 	emen2.web.templating.get_templates(r, failures=failures)
 	get_views(getattr(g.paths, 'VIEWPATHS', []))
+
+def load_redirects(dict_):
+	for fro,v in dict_.iteritems():
+		to, kwargs = v
+		emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
+
 
 
 

@@ -23,6 +23,13 @@ paths:
   # Temporary directory to use for graphs and other temporary files
   TMPPATH:
     tmp
+
+  DEBUGLOG: applog/1debug.log
+
+  EMEN2ERRLOG:
+    applog/emen2errlog
+  EMEN2JOBFILE: 
+    applog/emen2job
     
   # Raw data storage area. You may want to place this on a large raid array.
   # You can also set this up to split file storage by date, e.g.:
@@ -132,11 +139,7 @@ viewsettings:
 
 # Logging files. See &logpath for base directory.
 logging:
-  prefix:
-    - *logpath
-  EMEN2ERRLOG: emen2errlog
-  EMEN2JOBFILE: emen2job
-  DEBUGLOG: debug.log
   DEBUG: False
+  LOG_LEVEL: LOG_INFO
   
   
