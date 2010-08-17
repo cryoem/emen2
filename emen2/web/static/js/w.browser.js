@@ -78,7 +78,7 @@
 				}
 			});
 			
-			$("tbody", this.tablearea).prepend(this.header);
+			$("thead", this.tablearea).prepend(this.header);
 			$("a.map", this.tablearea).click(function(e){
 				e.preventDefault();
 				self.build_browser(parseInt($(this).attr("data-recid")));

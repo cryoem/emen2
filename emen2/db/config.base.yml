@@ -52,7 +52,7 @@ network:
   NUMTHREADS: 3
 
   # HTTP port
-  EMEN2PORT: 8081
+  EMEN2PORT: 8080
   # EMEN2WEBROOT: "/competition" 
 
   # HTTPS configuration. You will need to place the SSL certificate and key files in the SSL directory

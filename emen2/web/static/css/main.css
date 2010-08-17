@@ -754,7 +754,7 @@ table.map {
 .map td.next {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") left top no-repeat;
+	background:url("/images/next.png") center top no-repeat;
 }
 .map td.next_reverse {
 	max-width:32px;

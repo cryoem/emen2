@@ -47,8 +47,6 @@
 			} else {
 				var pos = this.element.offset();
 				this.dialog.dialog({
-					width:800,
-					height:600,
 					position:[pos.left, pos.top+this.element.outerHeight()],				
 					autoOpen: false,
 					modal: this.options.modal
@@ -94,7 +92,7 @@
 				self.event_addparent();
 			})
 
-			$("tbody", this.tablearea).prepend(this.header);
+			$("thead", this.tablearea).prepend(this.header);
 
 			if (this.options.edit) {
 				$('a.map[data-recid!='+this.options.recid+']', this.tablearea).click(function(e){

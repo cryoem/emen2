@@ -108,17 +108,7 @@ function newrecord_init(rec) {
 		width:400,
 		height:300,
 		show: true,
-		cb: function(self) {
-			var r = $("#rendered");
-			if (!r.hasClass('editbar-reflow')) {
-				r.addClass('editbar-reflow');
-				r.css('padding-top', self.popup.height()+10);
-			} else {
-				r.removeClass('editbar-reflow');
-				r.css('padding-top', 0);			
-
-			}
-		}
+		reflow: "#rendered"
 	});	
 
 	$('#newrecord_save').MultiEditControl({
@@ -155,9 +145,17 @@ function record_init(rec, ptest, edit) {
 	$('.editable').EditControl({});
 	$('.editable_files').FileControl({});
 
+	$('.editbar .edit').EditbarHelper({
+		bind: false,
+		reflow: '#rendered',
+		init: function(self) {
+			var addcomment = $('<input type="text" name="editsummary" value="Edit Summary" />');
+			self.popup.append(addcomment);
+		}
+	});
+
+
 	$('.editbar .permissions').EditbarHelper({
-		width: 620,
-		height: 400,
 		cb: function(self){
 			self.popup.PermissionControl({
 				recid: recid,
@@ -170,8 +168,6 @@ function record_init(rec, ptest, edit) {
 
 
 	$('.editbar .attachments').EditbarHelper({
-		width: 620,
-		height: 400,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
 				recid: recid,
@@ -184,8 +180,6 @@ function record_init(rec, ptest, edit) {
 
 
 	$('.editbar .newrecord').EditbarHelper({
-		width: 300,
-		height: 400,
 		cb: function(self){
 			self.popup.NewRecordSelect({
 				recid: recid,
@@ -197,8 +191,6 @@ function record_init(rec, ptest, edit) {
 
 
 	$(".editbar .relationships").EditbarHelper({		
-		width: 800,
-		height: 400,
 		cb: function(self){
 			self.popup.RelationshipControl({
 				recid: recid,
@@ -281,24 +273,27 @@ function rebuildviews(selector) {
 			cb: function(self) {},
 			init: function(self) {},
 			bind: true,
-			width: 200,
-			height: 200,
-			show: false
+			show: false,
+			reflow: false
 		},
 				
 		_create: function() {
 			this.built = 0;
 			var self = this;
+			this.cachepadding = null;
 			this.element.addClass('popup');
+			
 			if (this.options.bind) {
 				this.element.click(function(e) {
 					e.stopPropagation();
 					self.toggle();
 				});
 			}
+			
 			if (this.options.show) {
 				this.toggle();
 			}
+			
 		},
 		
 		toggle: function() {
@@ -316,6 +311,12 @@ function rebuildviews(selector) {
 			this.options.cb(this);
 			this.options.open(this);
 			this.popup.show();
+			
+			if (this.options.reflow) {
+				this.cachepadding = $(this.options.reflow).css('padding-top');
+				$(this.options.reflow).css('padding-top', this.popup.outerHeight());
+			}
+			
 		},
 		
 		hide: function() {
@@ -324,6 +325,11 @@ function rebuildviews(selector) {
 			this.options.cb(this);
 			this.options.close(this);
 			this.element.removeClass('active');
+
+			if (this.options.reflow) {
+				$(this.options.reflow).css('padding-top', this.cachepadding);
+			}
+			
 		},		
 		
 		build: function() {
@@ -340,8 +346,6 @@ function rebuildviews(selector) {
 				this.element.after(this.popup);
 			}
 
-			this.popup.width(this.options.width);
-			this.popup.height(this.options.height);
 			this.popup.css('left', this.element.position().left-1);
 			this.popup.css('top', this.element.outerHeight()+this.element.position().top-1);
 			
@@ -352,9 +356,7 @@ function rebuildviews(selector) {
 			uglydiv.css('left', 0);
 			uglydiv.css('top', -4);
 			this.popup.append(uglydiv);
-			
 			this.options.init(this);
-
 		
 		},
 				

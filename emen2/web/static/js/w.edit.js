@@ -56,17 +56,8 @@
 			this.controls.append(save);
 			
 			if (this.options.recid != "None") {
-				var addcomment = $('<h4>Edit Summary:</h4><input type="text" value="" name="editsummary" />');
 				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
-				this.element.EditbarHelper({
-					width:200,
-					height:50,
-					bind: false,
-					init: function(self) {
-						self.popup.append(addcomment);
-					}
-				});
 			}
 			
 			this.element.append(this.controls);
