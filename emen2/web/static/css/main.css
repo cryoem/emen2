@@ -443,10 +443,17 @@ th {
 
 /***** RELATIONSHIP BROWSER *****/
 
-.browser {
-	width:100%;
-	height:100%;
+.browser {	
+}
+
+.browser .map tbody {
+	height:600px;
+	overflow-x:hidden;
 	overflow-y:auto;
+}
+
+.browser.ui-dialog-content .map tbody {
+	height:500px;
 }
 
 .browser .map .m {
@@ -747,7 +754,7 @@ table.map {
 .map td.next {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") center center;
+	background:url("/images/next.png") left top no-repeat;
 }
 .map td.next_reverse {
 	max-width:32px;
