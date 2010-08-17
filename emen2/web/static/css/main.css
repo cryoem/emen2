@@ -52,8 +52,9 @@ red;	 // strong notification
 
 tr.s
 {
-	background: #F0F2FF;
+	background: #f5f5f5;
 }
+
 
 
 #nav li:hover,
@@ -69,7 +70,6 @@ tr.s
 }
 
 
-.editcontrol.inplace,
 .boxarea-active
 {
 	background: #ccc;
@@ -85,7 +85,8 @@ table.map,
 .editbar .hidden,
 .page_main,
 .button_map_active,
-.button_main_active
+.button_main_active,
+.page_comments tr.s
 {
 	background: white;
 }
@@ -196,13 +197,13 @@ body {
 }
 
 #alert, #pagescontainer_map, #buttons_main, #title, #content {
-	width: 980px;
+	width: 960px;
 	margin-left:auto;
 	margin-right:auto;
 }
 
 .fullwidth {
-	min-width:980px;
+	min-width:960px;
 	width:95% !important;
 }
 
@@ -282,9 +283,11 @@ th {
 /******* NAV MENU *******/
 
 #title {
-	padding-left:5px;
 	height:56px;
 	position:relative;
+}
+#title img {
+	padding-left:5px;
 }
 
 #nav {
@@ -416,8 +419,6 @@ th {
 }
 
 .editcontrol.inplace {
-	position:absolute;
-	top:0px;
 	margin:0px;
 	padding:0px;
 }
@@ -425,12 +426,12 @@ th {
 .editcontrol.inplace input {
 	border-style:solid;
 	border-width:1px;
-	float:left;
 	font-size:12pt;
 	display:inline;
 }
 
 .editcontrol .controls {
+	float:none;
 	display:none;
 }
 
@@ -447,7 +448,7 @@ th {
 }
 
 .browser .map tbody {
-	height:600px;
+	height:500px;
 	overflow-x:hidden;
 	overflow-y:auto;
 }
@@ -458,7 +459,7 @@ th {
 
 .browser .map .m {
 	display: block;
-	width: 200px;
+	width: 150px;
 }
 
 
@@ -759,7 +760,7 @@ table.map {
 .map td.next_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") center center;
+	background:url("/images/next.png") center center no-repeat;
 }
 .map td.branch_next {
 	max-width:32px;

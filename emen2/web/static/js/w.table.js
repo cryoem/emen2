@@ -263,7 +263,7 @@ TableColumnControl.prototype = {
 		sel.append('<option value="">----- Protocol Parameters -----</option>');
 		
 		$.each(this.allparams, function(i,j,k) {
-			if ($.inArray(self.tablekeys, j) == -1) {
+			if ($.inArray(j, self.tablekeys) == -1) {
 				sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
 			}
 		});

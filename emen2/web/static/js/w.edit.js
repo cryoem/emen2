@@ -203,7 +203,7 @@
 			if (this.rec_value == null) {
 				this.rec_value = "";
 			}
-		
+
 			// container
 			this.w = $('<div class="editcontrol" style="display:inline" />');
 			var self = this;
@@ -241,7 +241,7 @@
 				this.editw = $("<select><option>True</option><option>False</option></select>");
 				this.w.append(this.editw);				
 		
-			} else if ($.inArray(["intlist","floatlist","stringlist","userlist","urilist"], vt) > -1) { //.indexOf(vt) > -1
+			} else if ($.inArray(vt, ["intlist","floatlist","stringlist","userlist","urilist"]) > -1) { //.indexOf(vt) > -1
 
 				inline = false;
 				this.editw = $('<div />');
@@ -318,8 +318,9 @@
 			self.build();
 			this.w.css('display', 'inline');
 			if (showcontrols) {
-				this.element.addClass('whitehide');
-				this.w.css('top', this.element.position().top);
+				//this.element.addClass('whitehide');
+				//this.w.css('top', this.element.position().top);
+				this.element.hide();
 				this.w.addClass('inplace');
 			} else {
 				this.element.hide();
@@ -332,10 +333,9 @@
 				return
 			}
 			this.w.removeClass('inplace');
-			this.element.removeClass('whitehide');
+			//this.element.removeClass('whitehide');
 			this.element.show();
 			this.w.hide();
-			//this.element.show();
 			
 		},
 		

@@ -59,7 +59,7 @@
 				// find bdo in record..
 				$.each(rec, function(k,v) {
 					if (typeof(v)=="object") {
-						if ($.inArray(v, bdo.name) > -1) { //v.indexOf(bdo.name) > -1
+						if ($.inArray(bdo.name, v) > -1) { //v.indexOf(bdo.name) > -1
 							self.bdomap_append(k, bdo);
 						}
 					} else {
@@ -79,7 +79,6 @@
 		},
 	
 		build_tablearea: function() {
-			//console.log('build...');
 			var self=this;
 			this.tablearea.empty();
 
@@ -225,7 +224,6 @@
 
 		event_click: function(e) {
 			var self = this;
-			this.build();
 			this.show();
 			$.jsonRPC("getrecord", [this.options.recid],
 				function(rec) {				
