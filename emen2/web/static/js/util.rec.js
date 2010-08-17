@@ -155,14 +155,6 @@ function record_init(rec, ptest, edit) {
 	$('.editable').EditControl({});
 	$('.editable_files').FileControl({});
 
-
-	$(".editbar .edit").EditbarHelper({
-		width:200,
-		height:50,
-		bind: false
-	});	
-
-
 	$('.editbar .permissions').EditbarHelper({
 		width: 620,
 		height: 400,
@@ -284,9 +276,10 @@ function rebuildviews(selector) {
 (function($) {
     $.widget("ui.EditbarHelper", {
 		options: {
-			open: function() {},
-			close: function() {},
-			cb: function() {},
+			open: function(self) {},
+			close: function(self) {},
+			cb: function(self) {},
+			init: function(self) {},
 			bind: true,
 			width: 200,
 			height: 200,
@@ -358,7 +351,10 @@ function rebuildviews(selector) {
 			uglydiv.height(4);
 			uglydiv.css('left', 0);
 			uglydiv.css('top', -4);
-			this.popup.append(uglydiv)
+			this.popup.append(uglydiv);
+			
+			this.options.init(this);
+
 		
 		},
 				

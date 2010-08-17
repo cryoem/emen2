@@ -56,8 +56,17 @@
 			this.controls.append(save);
 			
 			if (this.options.recid != "None") {
+				var addcomment = $('<h4>Edit Summary:</h4><input type="text" value="" name="editsummary" />');
 				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
+				this.element.EditbarHelper({
+					width:200,
+					height:50,
+					bind: false,
+					init: function(self) {
+						self.popup.append(addcomment);
+					}
+				});
 			}
 			
 			this.element.append(this.controls);
@@ -73,15 +82,17 @@
 		show: function() {
 			this.build();
 			$(this.selector).EditControl('hide');
-			$(this.selector).EditControl('show', 0);			
+			$(this.selector).EditControl('show', 0);		
 			$(".label", this.element).hide();
 			this.controls.show();
+			this.element.EditbarHelper('show');
 		},
 	
 		hide: function() {
 			$(this.selector).EditControl('hide');
 			this.controls.hide();
 			$(".label", this.element).show();
+			this.element.EditbarHelper('hide');			
 		},
 		
 		save: function() {
