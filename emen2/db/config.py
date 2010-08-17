@@ -17,6 +17,7 @@ from emen2.db.globalns import GlobalNamespace
 
 def get_filename(package, resource):
 	d = os.path.dirname(sys.modules[package].__file__)
+	d = os.path.abspath(d)
 	return os.path.join(d, resource)
 
 

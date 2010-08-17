@@ -37,6 +37,7 @@ paths:
   # Alternate views and templates to be loaded 
   TEMPLATEDIRS: 
     - 'templates'
+
   VIEWPATHS:
     - 'views'
 

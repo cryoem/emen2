@@ -7,4 +7,4 @@ parser.parse_args()
 g = emen2.db.config.g()
 
 db = emen2.opendb()
-db.login("root", g.ROOTPW)
+db.login("root", getpass.getpass())
