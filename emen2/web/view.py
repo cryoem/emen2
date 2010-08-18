@@ -7,7 +7,6 @@ import emen2.util.jsonutil
 import functools
 
 import emen2.util.decorators
-import emen2.util.db_manipulation
 import emen2.web.extfile
 
 from emen2.util.listops import adj_dict
@@ -15,26 +14,23 @@ from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
-class _Null: pass
-def cast_arguments(*postypes, **kwtypes):
-	def _func(func):
-		@functools.wraps(func)
-		@g.debug_func
-		def _inner(*args, **kwargs):
-			out = []
-			for typ, arg in itertools.izip_longest(postypes, args, fillvalue=_Null):
-				if arg != _Null:
-					if typ != _Null:
-						arg = typ(arg)
-					out.append(arg)
-			for k,v in kwargs.iteritems():
-				typ = kwtypes.get(k, _Null)
-				if typ != _Null:
-					kwargs[k] = typ(kwargs[k])
-			g.debug( args, kwargs )
-			return func(*args, **kwargs)
-		return _inner
-	return _func
+class Context(object):
+	'''Partial context for views that don't need db access'''
+	def reverse(self, _name, *args, **kwargs):
+		_full = kwargs.get('_full', False)
+		prefix = '%s' % g.EMEN2WEBROOT
+		if not prefix.endswith('/'): prefix = '%s/' % prefix
+
+		#if _full == True:
+		#	prefix = g.EMEN2EXTURI
+
+		result = '%s%s%s' % (prefix, 'db', (
+			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+		containsqs = '?' in result
+		if not result.endswith('/') and not containsqs: result = '%s/' % result
+		elif containsqs and '/?' not in result: result = result.replace('?', '/?', 1)
+		return result
+
 
 
 class View(object):
@@ -96,7 +92,7 @@ class View(object):
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
-		self.__dbtree = emen2.util.db_manipulation.Context()#DBTree(db)
+		self.__dbtree = Context()#DBTree(db)
 
 		self.__template = template or self.template
 		self.__ctxt = adj_dict({}, extra)

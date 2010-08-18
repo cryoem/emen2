@@ -14,8 +14,9 @@ import mako.lookup
 import collections
 import mako.template
 from emen2.util import fileops
-import emen2.util.db_manipulation
 import emen2.web.extfile
+import emen2.web.view
+
 import emen2.db.config
 g = emen2.db.config.g()
 import time
@@ -138,7 +139,7 @@ class MakoTemplateEngine(StandardTemplateEngine):
 			if g.DEBUG:
 				return exceptions.html_error_template().render_unicode()
 			else:
-				ctxt = emen2.util.db_manipulation.Context()
+				ctxt = emen2.web.view.Context()
 				ctxt = dict(
 					errmsg = '<br/><center>%s</center>' % e, title = 'Error',
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,

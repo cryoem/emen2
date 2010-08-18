@@ -1,3 +1,5 @@
+import functools
+
 class callonget(object):
 	def __init__(self, cls):
 		self.__class = cls

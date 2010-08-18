@@ -3,14 +3,12 @@ import mock
 import sys
 import emen2.db.database
 import emen2.db.proxy
-import emen2.util.db_manipulation
 import emen2.db.config
 import emen2.web.view
 
 class TestView(unittest.TestCase):
 	@mock.patch('emen2.db.database.DB', new=mock.Mock())
 	@mock.patch('emen2.db.proxy.DBProxy', new=mock.Mock())
-	@mock.patch('emen2.util.db_manipulation.DBTree', new=mock.Mock())
 	@mock.patch('emen2.db.config.g', new=mock.Mock())
 	def setUp(self, *args):
 		self.view = emen2.web.view.View(db=mock.Mock())
@@ -39,7 +37,6 @@ class TestView(unittest.TestCase):
 	
 	@mock.patch('emen2.db.database.DB', new=mock.Mock())
 	@mock.patch('emen2.db.proxy.DBProxy', new=mock.Mock())
-	@mock.patch('emen2.util.db_manipulation.DBTree', new=mock.Mock())
 	@mock.patch('emen2.db.config.g', new=mock.Mock())
 	def testRaw(self):
 		op = self.view.page
