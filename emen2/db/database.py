@@ -1226,7 +1226,7 @@ class DB(object):
 
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=False, ctx=None, txn=None, **kwargs):
+	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=False, recurse=1, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
@@ -1249,7 +1249,7 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in constraints:
-			subset = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			subset = self.__query_constraint(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
 			if recids == None:
 				recids = subset
 			if "^" not in searchparam and subset != None: # parent-value params are only for grouping..
@@ -1263,7 +1263,7 @@ class DB(object):
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
-			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
+			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, recurse=recurse, ctx=ctx, txn=txn)
 
 
 		ret = {
@@ -1273,14 +1273,15 @@ class DB(object):
 			"ignorecase":ignorecase,
 			"recids": recids,
 			"groups": groups,
-			"subset": subset
+			"subset": subset,
+			"recurse": recurse
 		}
 		return ret
 
 
 
 
-	def __query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
+	def __query_groupby(self, groupparam, keys, groups=None, recids=None, recurse=1, ctx=None, txn=None):
 		param = self.__query_paramstrip(groupparam)
 
 		if param == "rectype":
@@ -1289,7 +1290,8 @@ class DB(object):
 		elif param == "parent":
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
-			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn)
+			# recurse=-1 for all parents
+			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn) 
 			parentgroups = collections.defaultdict(set)
 			for k,v in parenttree.items():
 				v2 = v & parentrectype
@@ -1317,7 +1319,7 @@ class DB(object):
 
 
 
-	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+	def __query_constraint(self, searchparam, comp, value, groupby=None, recurse=1, ctx=None, txn=None):
 		param = self.__query_paramstrip(searchparam)
 		if value == "": value = None
 		subset = None
@@ -1331,16 +1333,16 @@ class DB(object):
 
 		elif param == "parent":
 			if comp == "recid" and value != None:
-				subset = self.getchildren(value, recurse=-1, ctx=ctx, txn=txn)
+				subset = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
 			if comp == "rectype":
 				groupby["parent"] = value
 
 		elif param == "child":
 			if comp == "recid" and value != none:
-				subset = self.getparents(value, recurse=-1, ctx=ctx, txn=txn)
+				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
 
 		elif param:
-			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			subset = self.__query_index(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
 
 		else:
 			pass
@@ -1353,7 +1355,7 @@ class DB(object):
 
 
 
-	def __query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+	def __query_index(self, searchparam, comp, value, groupby=None, recurse=1, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
 		cfunc = self.__query_cmps().get(comp)
@@ -1604,12 +1606,67 @@ class DB(object):
 
 
 	@publicmethod
-	def sort(self, recids, param, reverse=False, macro=None, ctx=None, txn=None):
+	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
 		"""Sort recids based on a param or macro."""
+
+		reverse = bool(reverse)
+
+		if not param or param == "creationtime":
+			if pos != None and count != None:
+				return sorted(recids, reverse=reverse)[pos:pos+count]
+			return sorted(recids, reverse=reverse)
+
+
+		pd = self.getparamdef(param, ctx=ctx, txn=txn)
+		# Macro rendering not implemented..
+		if not pd:
+			return
+
+		recs = listops.typefilter(recids, emen2.db.record.Record)		
+		recids = listops.typefilter(recids, int)
+		values = collections.defaultdict(set)
+
+		index = self.__getparamindex(param, ctx=ctx, txn=txn)
 		
+		# sort/render using records directly..
+		if recs or not index:
+			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
+			for rec in recs:
+				values[rec.get(param)].add(rec.recid)
+		
+		# Use the index
+		else:
+			recids = set(recids)
+			# Not the best way to search the index..
+			for k,v in index.items():
+				if v & recids:
+					values[k] |= v & recids
+				recids -= values[k]
+			values[None] = recids
+
+		
+		# calling out to vtm, we will need a DBProxy
+		if rendered:
+			dbp = ctx.db
+			dbp._settxn(txn)
+			vtm = emen2.db.datatypes.VartypeManager()
+			newvalues = {}
+			for k in values:
+				newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
+				# rec=recs_dict.get(recid) # may fail without record..
+			values = newvalues
+		
+		ret = []
+		for k,v in sorted(values.items(), reverse=reverse):
+			ret.extend(sorted(v))
+			
+		if pos != None and count != None:	
+			return ret[pos:pos+count]
+		return ret
 
 
 
+				
 
 
 
@@ -1951,15 +2008,8 @@ class DB(object):
 
 		r = dict(paramindex.items(txn=txn))
 
-		# ian: todo: medium/hard: reimplement key range with cursor.. solve slowness of comparison function.
-		#else:
-		#	r = dict(paramindex.items(valrange[0], valrange[1], txn=txn))
-		#else:
-		#	r = {valrange:ind[valrange]}
-
 		# This takes the returned dictionary of value/list of recids
 		# and makes a dictionary of recid/value pairs
-
 		ret = {}
 		reverse = {}
 
@@ -5055,9 +5105,9 @@ class DB(object):
 		"""Render the recname view for a record."""
 
 		if not hasattr(rec, '__iter__'): rec = [rec]
-		recs=self.getrecord(rec, filt=1, ctx=ctx, txn=txn)
-		ret=self.renderview(recs,viewtype="recname", ctx=ctx, txn=txn)
-		recs=dict([(i.recid,i) for i in recs])
+		recs = self.getrecord(rec, filt=1, ctx=ctx, txn=txn)
+		ret = self.renderview(recs,viewtype="recname", ctx=ctx, txn=txn)
+		recs = dict([(i.recid,i) for i in recs])
 
 		if showrectype:
 			for k in ret.keys():
@@ -5093,6 +5143,8 @@ class DB(object):
 	@publicmethod
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", outband=None, filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
+				
+		_t = time.time()
 		
 		# This is the new, more general regex for parsing views..
 		# type = name, param, macro, or..
@@ -5100,7 +5152,7 @@ class DB(object):
 		# def = default value
 		# args = macro args
 		# sep = separating character
-		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>.+)\))?(?P<sep>[^$])?'
+		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>.+)?\))?(?P<sep>[^$])?'
 		regex = re.compile(regex)
 		
 		ol, recs = listops.oltolist(recs)
@@ -5128,8 +5180,7 @@ class DB(object):
 
 		# Get and pre-process views
 		groupviews = {}
-		groups = set([rec.rectype for rec in recs]) # quick direct grouping
-		recdefs = dict( (x['name'], x) for x in self.getrecorddef(groups, ctx=ctx, txn=txn))
+		recdefs = listops.dictbykey(self.getrecorddef(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
 		if not viewdef:
 			for rd in recdefs.values():
@@ -5147,7 +5198,7 @@ class DB(object):
 					v = rd.views.get(viewtype, rd.name)
 
 				else:
-					v = rd.views.get(viewtype, rd.name)
+					v = rd.views.get(viewtype, rd.mainview)
 					v = markdown.markdown(v)
 
 				groupviews[i] = v
@@ -5156,56 +5207,66 @@ class DB(object):
 			groupviews[None] = viewdef
 
 
-		if outband:
-			for rec in recs:
-				obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
-				if obparams:
-					groupviews[rec.recid] = groupviews[rec.rectype] + self.__dicttable_view(obparams, mode=mode, ctx=ctx, txn=txn)
+		# if outband:
+		# 	for rec in recs:
+		# 		obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
+		# 		if obparams:
+		# 			groupviews[rec.recid] = groupviews[rec.rectype] + self.__dicttable_view(obparams, mode=mode, ctx=ctx, txn=txn)
 
 
-		# Parse views
-		matches = collections.defaultdict(list)		
+		# Pre-process once to get paramdefs
 		pds = set()
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
-				matches[group].append(match)
-				if match.group('type') in ["#", "$"]: pds.add(match.group('name'))
+				if match.group('type') in ["#", "$"]:
+					pds.add(match.group('name'))
 
-		
-		if table:
-			for group, vd in groupviews.items():
-				v = ['<td>%s</td>'%match.group() for match in matches[group]]
-				v = '\n'.join(v)
-				groupviews[group] = '<tr>%s</td>'%v
-				
-				
-
-		# Get paramdefs
 		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
+
+		# Parse views
+		matches = collections.defaultdict(list)
+		headers = collections.defaultdict(list)
+		for group, vd in groupviews.items():
+			for match in regex.finditer(vd):
+				matches[group].append(match)
+				h = pds.get(match.group('name'),{}).get('desc_short') or '%s(%s)'%(match.group('name'), match.group('args') or '')
+				headers[group].append([h, match.group('name'), match.group('args')])
+				
+				
+
 
 		# Process records
 		ret = {}
 		for rec in recs:
-			if groupviews.get(rec.recid) is not None:
-				key = rec.recid
-			else:
+			if groupviews.get(rec.rectype):
 				key = rec.rectype
-			if viewdef:
+			elif viewdef:
 				key = None
 
 			a = groupviews.get(key)
-			
-			for match in matches.get(key):
-				if match.group('type') == '#':
-					v = pds[match.group('name')].desc_short
-				elif match.group('type') == '$':
-					v = vtm.param_render(pds[match.group('name')], rec.get(match.group('name')), mode=mode, rec=rec, db=dbp)
-				elif match.group('type') == '@' and showmacro:
-					v = vtm.macro_render(match.group('name'), match.group('args'), rec, mode=mode, db=dbp)
+			vs = []
 
+			for match in matches.get(key, []):
+				t = match.group('type')
+				n = match.group('name')
+				if t == '#':
+					v = pds[n].desc_short
+				elif t == '$':
+					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp)
+				elif t == '@' and showmacro:
+					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
+
+				vs.append(v)
 				a = a.replace(match.group(), v)
 
-			ret[rec.recid] = a
+			if table:
+				ret[rec.recid] = vs
+			else:
+				ret[rec.recid] = a
+
+
+		if table:
+			ret["headers"] = headers
 
 		if ol: return return_first_or_none(ret)
 		return ret

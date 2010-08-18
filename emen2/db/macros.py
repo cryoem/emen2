@@ -28,7 +28,7 @@ class macro_recname(Macro):
 	__metaclass__ = Macro.register_view
 			
 	def process(self, engine, macro, params, rec, db):
-		return db.renderview(rec, viewtype="recname") #ian:mustfix
+		return db.renderview(rec, viewtype="recname")
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "Record ID"				
