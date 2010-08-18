@@ -7,6 +7,7 @@ import emen2.util.jsonutil
 import functools
 
 import emen2.util.decorators
+import emen2.web.routing
 import emen2.web.extfile
 
 from emen2.util.listops import adj_dict
@@ -25,7 +26,7 @@ class Context(object):
 		#	prefix = g.EMEN2EXTURI
 
 		result = '%s%s%s' % (prefix, 'db', (
-			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+			emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
 		containsqs = '?' in result
 		if not result.endswith('/') and not containsqs: result = '%s/' % result
 		elif containsqs and '/?' not in result: result = result.replace('?', '/?', 1)
