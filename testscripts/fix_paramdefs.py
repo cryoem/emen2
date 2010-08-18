@@ -9,16 +9,16 @@ for k,v in vp.items():
 		rvp[i]=k
 	for i in v[2]:
 		rvp[i]=k
-		
+
 rvp[None]="none"
 rvp[""]="empty"
 #print rvp
 
-import demjson
+import emen2.util.jsonutil
 jsvp = {}
 for k,v in vp.items():
 	jsvp[k]=[v[0],v[1].keys()]
-print demjson.encode(jsvp)
+print emen2.util.jsonutil.encode(jsvp)
 
 
 
@@ -37,5 +37,5 @@ for i in db.getparamdefnames():
 
 		except:
 			print "wtf %s, %s"%(z.name, z.defaultunits)
-			
-			
+
+

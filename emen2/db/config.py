@@ -6,7 +6,7 @@ import collections
 import threading
 import urlparse
 
-import demjson
+import emen2.util.jsonutil
 import yaml
 
 import emen2.db.debug
@@ -114,7 +114,7 @@ class DBOptions(optparse.OptionParser):
 		if self.values.configoverride:
 			for val in self.values.configoverride:
 				key, value = val.split('=')
-				g.setattr(key, demjson.decode(value))
+				g.setattr(key, emen2.util.jsonutil.decode(value))
 
 
 		if not g.getattr('EMEN2DBHOME', False):

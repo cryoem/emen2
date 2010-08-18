@@ -3,7 +3,7 @@ import functools
 import sys
 import os
 import os.path
-import demjson
+import emen2.util.jsonutil
 import functools
 
 import emen2.util.decorators

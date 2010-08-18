@@ -13,7 +13,7 @@ import collections
 import itertools
 import random
 import bsddb3
-import demjson
+#import emen2.util.jsonutil
 import re
 import shutil
 import weakref
