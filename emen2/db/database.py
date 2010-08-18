@@ -1602,6 +1602,17 @@ class DB(object):
 
 
 
+
+	@publicmethod
+	def sort(self, recids, param, reverse=False, macro=None, ctx=None, txn=None):
+		"""Sort recids based on a param or macro."""
+		
+
+
+
+
+
+
 	#@notok
 	@publicmethod
 	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
@@ -5080,19 +5091,33 @@ class DB(object):
 	#@notok
 	#@multiple
 	@publicmethod
-	def renderview(self, recs, viewdef=None, viewtype="dicttable", paramdefs=None, showmacro=True, mode="unicode", outband=None, filt=True, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", outband=None, filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
+		
+		# This is the new, more general regex for parsing views..
+		# type = name, param, macro, or..
+		# name = param or macro name
+		# def = default value
+		# args = macro args
+		# sep = separating character
+		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>.+)\))?(?P<sep>[^$])?'
+		regex = re.compile(regex)
+		
+		ol, recs = listops.oltolist(recs)
+
 		if viewtype == "dicttable" and outband == None:
 			outband = True
-		else: outband = bool(outband)
+		else:
+			outband = bool(outband)
 
-		ol, recs = listops.oltolist(recs)
+		if viewtype == "tabularview":
+			table = True
+			
 
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
-		paramdefcache = {}
 
 		# we'll be working with a list of recs
 		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
@@ -5101,7 +5126,8 @@ class DB(object):
 		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions", "history", "groups"])
 		builtinparamsshow = builtinparams - set(["permissions", "comments", "history", "groups"])
 
-		groupviews={}
+		# Get and pre-process views
+		groupviews = {}
 		groups = set([rec.rectype for rec in recs]) # quick direct grouping
 		recdefs = dict( (x['name'], x) for x in self.getrecorddef(groups, ctx=ctx, txn=txn))
 
@@ -5135,71 +5161,51 @@ class DB(object):
 				obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
 				if obparams:
 					groupviews[rec.recid] = groupviews[rec.rectype] + self.__dicttable_view(obparams, mode=mode, ctx=ctx, txn=txn)
-				# switching to record-specific views; no need to parse group views
-				#del groupviews[rec.rectype]
 
 
-		names = {}
-		values = {}
-		macros = {}
-		pd = set()
+		# Parse views
+		matches = collections.defaultdict(list)		
+		pds = set()
+		for group, vd in groupviews.items():
+			for match in regex.finditer(vd):
+				matches[group].append(match)
+				if match.group('type') in ["#", "$"]: pds.add(match.group('name'))
 
-		for g1,vd in groupviews.items():
-			n = []
-			v = []
-			m = []
+		
+		if table:
+			for group, vd in groupviews.items():
+				v = ['<td>%s</td>'%match.group() for match in matches[group]]
+				v = '\n'.join(v)
+				groupviews[group] = '<tr>%s</td>'%v
+				
+				
 
-			vd = vd.encode('utf-8', "ignore")
-			iterator = viewfinder.finditer(vd)
+		# Get paramdefs
+		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
 
-			for match in iterator:
-				if match.group("name"):
-						pd.add(match.group("name1"))
-						n.append((match.group("name"),match.group("namesep"),match.group("name1")))
-				elif match.group("var"):
-						pd.add(match.group("var1"))
-						v.append((match.group("var"),match.group("varsep"),match.group("var1")))
-				elif match.group("macro"):
-						m.append((match.group("macro"),match.group("macrosep"),match.group("macro1"), match.group("macro2")))
-
-			names[g1] = n
-			values[g1] = v
-			macros[g1] = m
-
-
-		if pd - set(paramdefcache.keys()):
-			for pd in self.getparamdef(pd, ctx=ctx, txn=txn):
-				paramdefcache[pd.name] = pd
-
-
-		for g1, vd in groupviews.items():
-			for i in names.get(g1,[]):
-				vrend = vtm.name_render(paramdefcache.get(i[2]), mode=mode, db=dbp)
-				vd = vd.replace(u"$#" + i[0] + i[1], vrend + i[1])
-			groupviews[g1] = vd
-
-
-		ret={}
-
+		# Process records
+		ret = {}
 		for rec in recs:
 			if groupviews.get(rec.recid) is not None:
 				key = rec.recid
 			else:
 				key = rec.rectype
-			if viewdef: key = None
+			if viewdef:
+				key = None
+
 			a = groupviews.get(key)
+			
+			for match in matches.get(key):
+				if match.group('type') == '#':
+					v = pds[match.group('name')].desc_short
+				elif match.group('type') == '$':
+					v = vtm.param_render(pds[match.group('name')], rec.get(match.group('name')), mode=mode, rec=rec, db=dbp)
+				elif match.group('type') == '@' and showmacro:
+					v = vtm.macro_render(match.group('name'), match.group('args'), rec, mode=mode, db=dbp)
 
-			for i in values[key]:
-				v = vtm.param_render(paramdefcache[i[2]], rec.get(i[2]), mode=mode, rec=rec, db=dbp)
-				a = a.replace(u"$$" + i[0] + i[1], v + i[1])
+				a = a.replace(match.group(), v)
 
-			if showmacro:
-				for i in macros[key]:
-					v=vtm.macro_render(i[2], i[3], rec, mode=mode, db=dbp)
-					a=a.replace(u"$@" + i[0] + i[1], v + i[1])
-
-			ret[rec.recid]=a
-
+			ret[rec.recid] = a
 
 		if ol: return return_first_or_none(ret)
 		return ret
