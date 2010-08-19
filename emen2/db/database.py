@@ -1226,7 +1226,7 @@ class DB(object):
 
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=False, recurse=1, ctx=None, txn=None, **kwargs):
+	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=None, recurse=1, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
@@ -1249,11 +1249,11 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in constraints:
-			subset = self.__query_constraint(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
+			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
 			if recids == None:
-				recids = subset
-			if "^" not in searchparam and subset != None: # parent-value params are only for grouping..
-				getattr(recids, boolop)(subset)
+				recids = constraintmatches
+			if "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
+				getattr(recids, boolop)(constraintmatches)
 
 		# Step 2: Filter permissions
 		recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
@@ -1268,13 +1268,13 @@ class DB(object):
 
 		ret = {
 			"q":q,
-			"constraints":constraints,
-			"boolmode":boolmode,
-			"ignorecase":ignorecase,
+			"constraints": constraints,
+			"boolmode": boolmode,
+			"ignorecase": ignorecase,
 			"recids": recids,
 			"groups": groups,
-			"subset": subset,
-			"recurse": recurse
+			"recurse": recurse,
+			"subset": subset
 		}
 		return ret
 
