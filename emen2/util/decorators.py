@@ -37,4 +37,12 @@ def cast_arguments(*postypes, **kwtypes):
 
 
 
+def make_decorator(func):
+	def _inner1(_func):
+		@functools.wraps(_func)
+		def _inner(*a, **kw):
+			return func(_func(*a, **kw))
+		_inner.func = _func
+		return _inner
+	return _inner1
 
