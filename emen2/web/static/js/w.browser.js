@@ -2,23 +2,33 @@
     $.widget("ui.Browser", {
 		options: {
 			recid: null,
-			cb: function(recid){},
+			cb: function(self, recid) {self.element.val(recid)},
 			keytype: "record",
 			modal: true
 		},
 				
 		_create: function() {
 			var self=this;
+
 			this.element.click(function() {
 				self.show();
 			});	
+
 			this.built = 0;
+
 			if (this.options.show) {
 				self.show();
 			}
 		},
 	
 		show: function() {
+			if (this.options.recid == null) {
+				if (!this.element.val()) { 
+					this.options.recid = 1;
+				} else {
+					this.options.recid = parseInt(this.element.val())
+				}
+			}
 			this.build();
 			this.dialog.dialog('open');
 		},
@@ -86,7 +96,7 @@
 		},
 		
 		select: function(val) {
-			this.options.cb(val);
+			this.options.cb(this, val);
 			this.dialog.dialog('close');
 		},
 		

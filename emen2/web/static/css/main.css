@@ -442,6 +442,18 @@ th {
 
 
 
+
+/***** FIND CONTROL *****/
+
+.find .status {
+	float:right;
+}
+img.listicon {
+	vertical-align:middle;
+	padding:5px;
+}
+
+
 /***** RELATIONSHIP BROWSER *****/
 
 .browser {	

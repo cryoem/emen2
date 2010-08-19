@@ -131,9 +131,9 @@
 			var title = $('<h4 class="clearfix"> Groups</h4>');
 			if (this.options.edit) {
 				var button = $('<input class="addbutton" type="button" value="+" /> ');
-				button.FindUserControl({
+				button.FindControl({
 					mode: 'findgroup',
-					cb:function(groupname){self.addgroup(groupname)}
+					cb:function(test, groupname){self.addgroup(groupname)}
 				});
 				title.prepend(button);
 			}
@@ -156,8 +156,8 @@
 				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+'</h4>');
 				if (self.options.edit) {
 					var button = $('<input class="addbutton" type="button" value="+" />');
-					button.FindUserControl({
-						cb:function(username){self.add(username, k)}
+					button.FindControl({
+						cb:function(test, username){self.add(username, k)}
 					});
 					title.prepend(button);
 				}

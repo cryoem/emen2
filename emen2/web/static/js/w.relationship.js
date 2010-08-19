@@ -222,14 +222,14 @@
 		event_addparent: function() {
 			var i = $('<div>');
 			var self = this;
-			var cb = function(r) {self.addparent(r)}
+			var cb = function(test, r) {self.addparent(r)}
 			i.Browser({recid:this.options.recid, cb:cb, show:1});
 		},
 		
 		event_addchild: function() {
 			var i = $('<div>');
 			var self = this;
-			var cb = function(r) {self.addchild(r)}
+			var cb = function(test, r) {self.addchild(r)}
 			i.Browser({recid:this.options.recid, cb:cb, show:1});			
 		},
 		

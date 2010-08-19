@@ -253,7 +253,7 @@
 			}  else if (vt=="user") {
 
 				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
-				this.editw.FindUserControl({recid:this.options.recid});
+				this.editw.FindControl({recid:this.options.recid});
 				this.w.append(this.editw);
 		
 			} else if (vt=="comments") {

@@ -1275,7 +1275,7 @@ class DB(object):
 			"groups": groups,
 			"recurse": recurse,
 			"subset": subset
-		}
+		}		
 		return ret
 
 
@@ -1684,14 +1684,14 @@ class DB(object):
 
 		@return list of matching recorddefs
 		"""
-		return self.__find_pd_or_rd(keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
+		return self.__find_pd_or_rd(query=query, keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
 
 
 	#@notok
 	@publicmethod
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
-		return self.__find_pd_or_rd(keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
+		return self.__find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
 
 
@@ -1722,6 +1722,7 @@ class DB(object):
 			for k in qp.keys():
 				qp[k]=qp["query"]
 			del qp["query"]
+
 
 		rdnames = getnames(ctx=ctx, txn=txn)
 		#p1 = []
