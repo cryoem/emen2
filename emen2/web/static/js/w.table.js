@@ -8,6 +8,46 @@
 			this.build();
 		},
 		
+		build: function() {
+			var self = this;
+			
+			this.cachewidth = {};
+			
+			var length = $('<div class="length" style="float:left">Records</div>');
+
+			var q = $('<div class="control" style="float:right"><input type="text" name="q" size="8" /><input type="button" name="search" value="Search" /><img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
+			$('img', q).click(function(){$('.query').toggle()});
+			
+			
+			var count = $('<select name="count" style="float:right"></select>');
+			count.append('<option value="">Rows</option>');
+			$.each([10,50,100,500,1000], function() {
+				count.append('<option value="'+this+'">'+this+'</option>');
+			});
+			count.change(function() {
+				self.query();
+			})
+			count = $('<div class="control"  style="float:right"/>').append(count);
+						
+			var pages = $('<div class="control pages" style="float:right">Pages</div>');
+
+			$('.header', this.element).append(length, pages, count, q);
+
+			$('.header', this.element).QueryControl({
+				show: true,
+				q: this.options.q,
+				cb: function(test, newq) {self.query(newq)} 
+			});
+
+			this.update_controls();
+			this.rebuild_thead();
+			
+			$(".inner thead th").each(function() {
+				self.cachewidth[$(this).attr('data-name')] = $(this).width();
+			});			
+
+		},
+		
 		query: function(newq) {
 			newq = newq || this.options.q;
 			
@@ -80,46 +120,7 @@
 			if (current < pagecount) {pages.append(p3)}
 			if (current < pagecount - 1) {pages.append('', p4)}
 		},
-		
-		build: function() {
-			var self = this;
-			
-			this.cachewidth = {};
-			
-			var length = $('<div class="length" style="float:left">Records</div>');
-
-			var q = $('<div class="control" style="float:right"><input type="text" name="q" size="8" /><input type="button" name="search" value="Search" /><img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
-			$('img', q).click(function(){$('.query').toggle()});
-			
-			
-			var count = $('<select name="count" style="float:right"></select>');
-			count.append('<option value="">Rows</option>');
-			$.each([10,50,100,500,1000], function() {
-				count.append('<option value="'+this+'">'+this+'</option>');
-			});
-			count.change(function() {
-				self.query();
-			})
-			count = $('<div class="control"  style="float:right"/>').append(count);
-						
-			var pages = $('<div class="control pages" style="float:right">Pages</div>');
-
-			$('.header', this.element).append(length, pages, count, q);
-
-			$('.header', this.element).QueryControl({
-				show: false,
-				q: this.options.q,
-				cb: function(test, newq) {self.query(newq)} 
-			});
-
-			this.update_controls();
-			this.rebuild_thead();
-			
-			$(".inner thead th").each(function() {
-				self.cachewidth[$(this).attr('data-name')] = $(this).width();
-			});			
-
-		},
+				
 		
 		rebuild_table: function() {
 			this.rebuild_thead();
@@ -164,19 +165,33 @@
 			$('tbody', t).empty();
 			
 			var headers = this.options.q['rendered']['headers']['null'];
+			var recids = this.options.q['recids'];
 			
-			$.each(this.options.q['recids'], function(i) {
-				var recid = this;
-				var r = $('<tr/>');
-				$.each(headers, function(j) {
-					r.append('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recid+'/">'+self.options.q['rendered'][recid][j]+'</a></td>');
-				});
-				if (i%2) {
-					r.addClass('s');
+			var rows = []
+			for (var i=0;i<recids.length;i++) {
+				var row = [];
+				for (var j=0;j<headers.length;j++) {
+					//row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>'); //
+					row.push('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
 				}
-				
-				$('tbody', t).append(r);
-			});
+				row = '<tr>' + row.join('') + '</tr>';
+				rows.push(row);
+			}
+			
+			$('tbody', t)[0].innerHTML = rows.join('');
+			
+			// $.each(this.options.q['recids'], function(i) {
+			// 	var recid = this;
+			// 	var r = $('<tr/>');
+			// 	$.each(headers, function(j) {
+			// 		r.append('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recid+'/">'+self.options.q['rendered'][recid][j]+'</a></td>');
+			// 	});
+			// 	if (i%2) {
+			// 		r.addClass('s');
+			// 	}
+			// 	
+			// 	$('tbody', t).append(r);
+			// });
 
 		},
 		

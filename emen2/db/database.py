@@ -5163,8 +5163,6 @@ class DB(object):
 		if viewtype == "tabularview":
 			table = True
 
-			
-
 
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
@@ -5215,7 +5213,6 @@ class DB(object):
 
 		# print "_render 1: ", time.time()-_t
 		# _t = time.time()
-
 		# if outband:
 		# 	for rec in recs:
 		# 		obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
@@ -5243,7 +5240,7 @@ class DB(object):
 				
 
 		# print "_render 2: ", time.time()-_t
-		# _t = time.time()
+		_t = time.time()
 
 				
 		# Process records
@@ -5264,6 +5261,7 @@ class DB(object):
 				if t == '#':
 					v = pds[n].desc_short
 				elif t == '$':
+					# v = unicode(rec.get(n))
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
@@ -5277,8 +5275,8 @@ class DB(object):
 				ret[rec.recid] = a
 
 
-		# print "_render 3: ", time.time()-_t
-		# _t = time.time()
+		print "_render 3: ", time.time()-_t
+		_t = time.time()
 
 
 		if table:
