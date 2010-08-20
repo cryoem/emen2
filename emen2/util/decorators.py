@@ -1,3 +1,4 @@
+import itertools
 import functools
 
 class callonget(object):
@@ -23,14 +24,13 @@ def cast_arguments(*postypes, **kwtypes):
 			out = []
 			for typ, arg in itertools.izip_longest(postypes, args, fillvalue=_Null):
 				if arg != _Null:
-					if typ != _Null:
+					if typ != _Null and typ != None:
 						arg = typ(arg)
 					out.append(arg)
 			for k,v in kwargs.iteritems():
 				typ = kwtypes.get(k, _Null)
-				if typ != _Null:
+				if typ != _Null and typ != None:
 					kwargs[k] = typ(kwargs[k])
-			g.debug( args, kwargs )
 			return func(*args, **kwargs)
 		return _inner
 	return _func

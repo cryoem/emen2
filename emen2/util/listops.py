@@ -59,13 +59,23 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 	'''
 	if hasattr(list_, '__iter__') and not isinstance(list_, list):
 		list_ = list(list_)
-	result = [[list[0]]]
-	for x in xrange(len(list)-1):
-		window = list[x:x+2]
+	result = [[list_[0]]]
+	for x in xrange(len(list_)-1):
+		window = list_[x:x+2]
 		if not grouper(window):
 			result.append([])
 		result[-1].append(itemgetter(window[1]))
 	return result
+
+def partition(iter_, char):
+	res = chunk(iter_, lambda x: x[0] != char)
+	if res:
+		if res[0][-1] == char:
+			del res[0][-1]
+			res.insert(1, [char])
+		if len(res) > 2:
+			res = [res[0], res[1], combine(*res[2:])]
+	return res
 
 
 
