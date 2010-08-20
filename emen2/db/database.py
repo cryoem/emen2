@@ -1324,7 +1324,7 @@ class DB(object):
 		if value == "": value = None
 		subset = None
 
-		# print "\n== running constraint: %s %s %s"%(searchparam, comp, value)
+		# print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
 		if param == "rectype":
 			if comp == "==" and value != None:
@@ -1334,6 +1334,7 @@ class DB(object):
 		elif param == "parent":
 			if comp == "recid" and value != None:
 				subset = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
+
 			if comp == "rectype":
 				groupby["parent"] = value
 
@@ -5253,7 +5254,7 @@ class DB(object):
 				if t == '#':
 					v = pds[n].desc_short
 				elif t == '$':
-					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp)
+					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
 

@@ -442,6 +442,12 @@ th {
 
 
 
+/***** QUERY CONTROL *****/
+
+.query {
+	border:solid 1px #ccc;
+}
+
 
 /***** FIND CONTROL *****/
 

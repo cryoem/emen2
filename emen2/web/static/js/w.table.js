@@ -1,397 +1,553 @@
-
-var TableControl = (function($) { // Localise the $ function
-
-function TableControl(elem, opts) {
-  if (typeof(opts) != "object") opts = {};
-  $.extend(this, TableControl.DEFAULT_OPTS, opts);
-  this.ed = elem;
-  this.elem = $(elem);  
-  this.init();
-};
-
-TableControl.DEFAULT_OPTS = {
-	ts:null,
-};
-
-TableControl.prototype = {
-	
-	init: function() {
-		this.ts.showtablestate = 0;
-		this.bindelems();
-	},
-	
-	bindelems: function() {	
-		var self=this;
-		
-		// controls
-		$(".sortkey",this.elem).click(function(e){self.event_sortkey(e)});
-		$(".selectsort",this.elem).change(function(e){self.event_selectsort(e)});
-		$(".setpos",this.elem).click(function(e){self.event_setpos(e)});
-		$(".setcount",this.elem).change(function(e){self.event_setcount(e)});
-		$(".viewtype",this.elem).change(function(e){self.event_viewtype(e)});		
-		$(".quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
-		$(".quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
-		//$(".table_properties",this.elem).TableColumnControl({tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
-		// this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
-		//$(".table_properties",this.elem).click(function(e){self.tablecolumncontrol.event_toggleprop(e)});
-		//$(".table_editcol",this.elem).click(function(e){self.editcol(e)});
-	},
-	
-	replace: function(data) {
-		//this is quicker
-		this.ed.innerHTML=data;
-		this.bindelems();
-	},
-	
-	reverse: function(reverse) {
-		if (reverse==null) {
-			if (this.ts.reverse) {reverse = 0} else {reverse = 1}
-		}
-		if (reverse==0) {this.ts.reverse = 0} else {this.ts.reverse = 1}
-		this.ts.pos=0
-	},
-	
-	refresh: function() {
-		var self=this;
-		//this.tablecontrol.hide();
-		this.ts.showtablestate=0;
-		$.postJSON(EMEN2WEBROOT+"/db/table/list/",this.ts,function(data){self.replace(data)});
-	},	
-	
-	editcol: function(e) {
-		var editkey=$(e.target).attr("data-editkey");
-	},
-	
-	event_viewtype: function(e) {
-		var viewtype=$(e.target).val();
-		this.ts.viewtype=viewtype;
-		this.refresh();
-	},
-	
-	event_quickquery: function(e) {
-		var quickquery=$(e.target).prev().val();
-		this.ts.quickquery=quickquery;
-		this.refresh();
-	},
-	
-	event_clear: function(e) {
-		this.ts.quickquery=null;
-		this.refresh();
-	},
-	
-	event_setcount: function(e) {
-		var count=parseInt($(e.target).val());
-		this.setcount(count);
-	},
-	
-	event_setpos: function(e) {
-		var pos=parseInt($(e.target).attr("data-pos"));
-		this.setpos(pos);
-	},	
-	
-	event_sortkey: function(e) {
-		var key=$(e.target).attr("data-sortkey");
-		this.sortkey(key);
-	},
-	
-	event_selectsort: function(e) {
-		var key=$(e.target).val();
-		var reverse=$('option:selected',e.target).attr("data-reverse");
-		this.sortkey(key,reverse);
-	},
-	
-	setcount: function(count) {
-		this.ts.pos=0;
-		this.ts.count = count;
-		this.refresh();
-	},
-	
-	setpos: function(pos) {
-		this.ts.pos=pos;
-		this.refresh();
-	},
-	
-	sortkey: function(key, reverse) {
-		if (reverse==null) {
-			if (this.ts.sortkey==key) {this.reverse()}
-		} else {
-			this.reverse(reverse);
-		}
-		this.ts.sortkey=key;
-		this.refresh();
-	},
-
-	build: function() {
-		//console.log("table control build");
-	}
-}
-
-$.fn.TableControl = function(opts) {
-  return this.each(function() {
-		new TableControl(this, opts);
-	});
-};
-
-return TableControl;
-
-})(jQuery); // End localisation of the $ function
-
-
-
-
-
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-/////////////////////////////////////////////
-
-
-
-TableColumnControl = (function($) { // Localise the $ function
-
-function TableColumnControl(elem, opts) {
-  if (typeof(opts) != "object") opts = {};
-  $.extend(this, TableColumnControl.DEFAULT_OPTS, opts);
-  this.elem = $(elem);  
-  this.init();
-	//console.log(opts.tablekeys);
-};
-
-TableColumnControl.DEFAULT_OPTS = {
-};
-
-TableColumnControl.prototype = {
-	
-	init: function() {
-		var self=this;
-		var pos=this.elem.position();
-		var th=$(".header",this.table.elem);
-		
-		//console.log(this.elem.offset());
-
-		this.built=0;
-		this.p=$('<div class="keys_menu" />');
-		this.p.css({position:"absolute", width:400, top:th.offset().top+th.outerHeight(),left:ts.pos.left-250});
-
-		//this.elem.css({background:"white",border:"2px solid #ccc", padding:4});
-
-
-		$("body").append(this.p);
-		//console.log(this.elem);
-		this.elem.click(function(e){self.event_toggleprop(e)});
-
-	},
-	
-	event_toggleprop: function(e) {
-
-		// show the chooser, get paramdefs if necessary
-		var self=this;
+(function($) {
+    $.widget("ui.TableControl", {
+		options: {
+			q: null
+		},
 				
-		if (this.built==0) {
-			$.jsonRPC("getrecorddef",[this.rectype],function(recdef) {
-				self.allparams = recdef.paramsK;
-				$.jsonRPC("getparamdef",[recdef.paramsK],function(paramdefs) {
-					self.paramdefs=paramdefs
-					self.build();
-					self.show();
-				})
+		_create: function() {
+			this.build();
+		},
+		
+		query: function(newq) {
+			newq = newq || this.options.q;
+			
+			var self = this;
+			
+			var count = $('select[name=count]', this.header).val();
+			newq["count"] = parseInt(count);
+			
+			$.ajax({
+				type: 'POST',
+				url: EMEN2WEBROOT+'/db/table/',
+				dataType: 'json',
+			    data: {"args___json":$.toJSON(newq)},
+				success: function(q) {self.update(q)}
 			});
+		},
+		
+		unique: function(li) {
+			var o = {}, i, l = li.length, r = [];
+			for(i=0; i<l;i++) o[li[i]] = li[i];
+			for(i in o) r.push(o[i]);
+			return r;
+		},
+		
+		update: function(q) {
+			this.options.q = q;
+			$('.query', this.header).QueryControl('update', this.options.q)					
+			this.update_controls();
+			this.rebuild_table();			
+		},	
+		
+		update_controls: function() {
+			$('.length', this.header).html(this.options.q['length'] + ' Records');			
+			$('select[name=count]', this.header).val(this.options.q['count']);
 			
-		} else {
+			var current = (this.options.q['pos'] / this.options.q['count']);
+			var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count']);
+			var pages = $('.pages', this.header);
+			pages.empty();
+			var r = [0, current-2, current-1, current, current+1, current+2, pagecount-1];
+			r = this.unique(r.sort());
+			console.log(r);
 
-			if (this.disp==1) {
-				self.hide();
-			} else {
-				self.show();
-			}
-
-		}
-	},
-	
-	build: function() {
+		},
 		
-		this.built = 1;
-		this.p.empty();
-		this.viewdeftable=$('<table cellspacing="0" cellpadding="0" />');
+		build: function() {
+			var self = this;
 
-		this.viewdeftable.append("<thead><th></th><th>Name</th><th>Desc / Args</th></thead>");
+			var length = $('<div class="length" style="float:left">Records</div>');
 
-		var self=this;
-		var nonmacro=[];
+			var query = $('<div class="query control">&raquo;</div>');
+			query.QueryControl({
+				q: this.options.q,
+				cb: function(test, newq) {self.query(newq)} 
+			});
 
-		$.each(this.tablekeys, function(i,j,k){
-			if (!self.macros[j]){nonmacro.push(j)}
-		});
-		
-		for (var i=0;i<this.tablekeys.length;i++) {
+			var count = $('<select name="count"></select>');
+			$.each([10,50,100,500,1000], function() {
+				count.append('<option value="'+this+'">'+this+'</option>');
+			});
+			count.change(function() {
+				self.query();
+			})
+			count = $('<div class="control" />').append(count);
 			
-			var ismacro=0;
-			j=this.tablekeys[i];
-			//if (!this.macros[j]) {
-			if (!this.paramdefs[j]) {
-				ismacro=1;
-			};
-
-			var row=$('<tr />');
-			var x=$('<img src="'+EMEN2WEBROOT+'/images/remove_small.png" alt="remove" />').click(function(e){self.event_removetablekey(e)});
-			var up=$('<img src="'+EMEN2WEBROOT+'/images/sort_0.png" alt="up" />').click(function(e){self.event_tablekey_move(e,1)});
-			var down=$('<img src="'+EMEN2WEBROOT+'/images/sort_1.png" alt="down" />').click(function(e){self.event_tablekey_move(e,-1)});
-			var b=$("<td/>");
-			b.append(x,up,down);
-			row.append(b);
 			
-			row.attr("data-pos",i);
-			row.attr("data-macro",ismacro);
-						
-			if (!ismacro) {
-				row.attr("data-name",j);
-				row.attr("data-args","");
-				row.append('<td>'+j+'</td>');
-				row.append('<td>'+this.paramdefs[j].desc_short+'</td>');
-			} else {
-				row.attr("data-name",this.macros[j][0]);
-				row.attr("data-args",this.macros[j][1]);
-				row.append('<td><input name="name" type="text" value="'+this.macros[j][0]+'" /></td>');
-				row.append('<td><input name="args" type="text" value="'+this.macros[j][1]+'" /></td></tr>');
-			}
-			this.viewdeftable.append(row);
+			var pages = $('<div class="control pages">Pages</div>');
+			
+			$('.header', this.element).append(length, count, query, pages);
+			this.update_controls();
+		},
+		
+		
+		rebuild_table: function() {
+			// 	<table cellspacing="0" cellpadding="0"> 
+			// 		<thead>
+			// 			<tr>
+			// 			% for v in rendered['headers'].get(None, []):
+			// 				<th data-name="${v[1]}" data-args="${v[2]}">${v[0]}</th>
+			// 			% endfor
+			// 			</tr>
+			// 		</thead>
+			// 		<tbody>
+			// 			% for rowid, recid in enumerate(recids):
+			// 				% if rowid % 2:
+			// 					<tr class="s">
+			// 				% else:
+			// 					<tr>
+			// 				% endif
+			// 				
+			// 					% for v in rendered.get(recid, []):
+			// 						<td>${v}</td>
+			// 					% endfor
+			// 				</tr>
+			// 			% endfor			
+			// 		</tbody>
+			// 	</table>
+			
+			var self = this;
+			$('.table', this.element).empty();
 
+			var t = $('<table cellpadding="0" cellspacing="0"><thead><tr /></thead><tbody/></table>');
+			var headers = this.options.q['rendered']['headers']['null'];
+
+			$.each(headers, function() {
+				$('thead tr', t).append('<th>'+this[0]+'</th>');
+			});
+
+			$.each(this.options.q['recids'], function(i) {
+				var recid = this;
+				var r = $('<tr/>');
+				$.each(headers, function(j) {
+					r.append('<td>'+self.options.q['rendered'][recid][j]+'</td>');
+				});
+				if (i%2) {
+					r.addClass('s');
+				}
+				
+				$('tbody', t).append(r);
+			});
+
+			$('.table', this.element).append(t);			
+		},
+		
+		q_to_view: function() {
+			//$('.length', this.element).text(this.options.q['length'] + " Records");
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
 		}
-		
-		var sel=$("<select />");
-		sel.append('<option value="">Add Parameter</option>');
-		sel.append('<option value="">----- Protocol Parameters -----</option>');
-		
-		$.each(this.allparams, function(i,j,k) {
-			if ($.inArray(j, self.tablekeys) == -1) {
-				sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
-			}
-		});
-		
-		sel.append('<option value="">----- All Parameters -----</option>');		
-		
-		//$.each(this.allparams, function(i,j,k) {
-		//	if (self.allparamdefs.indexOf(j) == -1) {
-		//		sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
-		//	}
-		//});		
-		
-		var example_macros = {childcount:"Count Children of *arg type",parentvalue:"Values of parent records for parameter *arg",recname:"Generated record title"}
-		
-		var selm=$("<select />");
-		selm.append('<option value="">Add Macro</option>');
-		selm.append('<option value="">----------</option>');		
-		$.each(example_macros, function(i,j,k) {
-			//console.log(i);
-			selm.append('<option value="'+i+'">'+i+' -- '+j+'</option>');
-		});		
-		selm.change(function(){self.build_addmacro($(this).val())});
-
-		// submit/close
-		var s=$('<input type="button" value="Submit" />').click(function(e){self.build_viewdef();self.set_viewdef();self.table.refresh();});
-		var c=$('<input type="button" value="Close" />').click(function(e){self.hide()});
-		
-		this.p.append(this.viewdeftable,sel,selm,"<br/>",s,c);
-		
-	},
-	
-	show: function() {
-		//this.p.fadeIn();
-		this.disp=1;
-		this.elem.addClass("properties_active");
-		this.p.show();
-	},
-	
-	hide: function() {
-		//this.p.fadeOut();
-		this.disp=0;
-		this.elem.removeClass("properties_active");		
-		this.p.hide();
-	},
-	
-	event_tablekey_move: function(e,i) {
-		
-		// clone w/ events
-		var tp=$(e.target).parent().parent();//.attr("data-param");
-		var tpn=tp.clone(true);
-		var t;
-		if (i==1) {
-			t=tp.prev();
-		} else {
-			t=tp.next();
-		}
-
-		// move the element
-		if (t.length>0) {
-			tp.remove();
-			if (i==1) {
-				t.before(tpn);
-			} else {
-				t.after(tpn);
-			}
-		}
-
-	},
-	
-	event_removetablekey: function(e) {
-		$(e.target).parent().parent().remove();;
-	},
-	
-	build_addparam: function(param) {
-		if (!param){return}
-		this.tablekeys.push(param);
-		this.build();
-	},
-	
-	build_addmacro: function(macro) {
-		if (!macro){return}
-		this.tablekeys.push(macro+"()");
-		this.macros[macro+"()"]=[macro,""];
-		this.build();
-	},
-	
-	build_viewdef: function() {
-		
-		// generate viewdef from table
-		var viewdef=[];
-		var tablekeys=[];
-		var macros=[];
-
-		$("tr",this.viewdeftable).each(function(i,j,k) {
-			e=$(this)
-			if (parseInt(e.attr("data-macro"))) {
-				var name=$("input[name='name']",e).val();
-				var args=$("input[name='args']",e).val();
-				viewdef.push("$@"+name+"("+args+")");
-				tablekeys.push(name+"("+args+")");
-				macros[name+"("+args+")"]=[name,args];
-			} else {
-				viewdef.push("$$"+e.attr("data-name"));
-				tablekeys.push(e.attr("data-name"));
-			}
-		});
-		
-		this.viewdef=viewdef.join(" ");
-		this.tablekeys=tablekeys;
-		this.macros=macros;
-
-	},
-	
-	set_viewdef: function() {
-		// set the parent state before refresh
-		this.table.ts.viewdef=this.viewdef;
-		this.table.ts.tablekeys=this.tablekeys;
-		this.table.ts.macros=this.macros;
-	}
-	
-}
-
-$.fn.TableColumnControl = function(opts) {
-    return this.each(function() {
-		new TableColumnControl(this, opts);
 	});
-};
+})(jQuery);
 
-return TableColumnControl;
 
-})(jQuery); // End localisation of the $ function
+
+
+
+
+
+
+
+
+// 
+// var TableControl = (function($) { // Localise the $ function
+// 
+// function TableControl(elem, opts) {
+//   if (typeof(opts) != "object") opts = {};
+//   $.extend(this, TableControl.DEFAULT_OPTS, opts);
+//   this.ed = elem;
+//   this.elem = $(elem);  
+//   this.init();
+// };
+// 
+// TableControl.DEFAULT_OPTS = {
+// 	ts:null,
+// };
+// 
+// TableControl.prototype = {
+// 	
+// 	init: function() {
+// 		this.ts.showtablestate = 0;
+// 		this.bindelems();
+// 	},
+// 	
+// 	bindelems: function() {	
+// 		var self=this;
+// 		
+// 		// controls
+// 		$(".sortkey",this.elem).click(function(e){self.event_sortkey(e)});
+// 		$(".selectsort",this.elem).change(function(e){self.event_selectsort(e)});
+// 		$(".setpos",this.elem).click(function(e){self.event_setpos(e)});
+// 		$(".setcount",this.elem).change(function(e){self.event_setcount(e)});
+// 		$(".viewtype",this.elem).change(function(e){self.event_viewtype(e)});		
+// 		$(".quickquery_submit",this.elem).click(function(e){self.event_quickquery(e)});
+// 		$(".quickquery_clear",this.elem).click(function(e){self.event_clear(e)});
+// 		//$(".table_properties",this.elem).TableColumnControl({tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
+// 		// this.tablecontrol = new TableColumnControl($(".table_properties",this.elem),{tablekeys:this.ts.tablekeys, macros:this.ts.macros, rectype:this.ts.rectype, table:this});
+// 		//$(".table_properties",this.elem).click(function(e){self.tablecolumncontrol.event_toggleprop(e)});
+// 		//$(".table_editcol",this.elem).click(function(e){self.editcol(e)});
+// 	},
+// 	
+// 	replace: function(data) {
+// 		//this is quicker
+// 		this.ed.innerHTML=data;
+// 		this.bindelems();
+// 	},
+// 	
+// 	reverse: function(reverse) {
+// 		if (reverse==null) {
+// 			if (this.ts.reverse) {reverse = 0} else {reverse = 1}
+// 		}
+// 		if (reverse==0) {this.ts.reverse = 0} else {this.ts.reverse = 1}
+// 		this.ts.pos=0
+// 	},
+// 	
+// 	refresh: function() {
+// 		var self=this;
+// 		//this.tablecontrol.hide();
+// 		this.ts.showtablestate=0;
+// 		$.postJSON(EMEN2WEBROOT+"/db/table/list/",this.ts,function(data){self.replace(data)});
+// 	},	
+// 	
+// 	editcol: function(e) {
+// 		var editkey=$(e.target).attr("data-editkey");
+// 	},
+// 	
+// 	event_viewtype: function(e) {
+// 		var viewtype=$(e.target).val();
+// 		this.ts.viewtype=viewtype;
+// 		this.refresh();
+// 	},
+// 	
+// 	event_quickquery: function(e) {
+// 		var quickquery=$(e.target).prev().val();
+// 		this.ts.quickquery=quickquery;
+// 		this.refresh();
+// 	},
+// 	
+// 	event_clear: function(e) {
+// 		this.ts.quickquery=null;
+// 		this.refresh();
+// 	},
+// 	
+// 	event_setcount: function(e) {
+// 		var count=parseInt($(e.target).val());
+// 		this.setcount(count);
+// 	},
+// 	
+// 	event_setpos: function(e) {
+// 		var pos=parseInt($(e.target).attr("data-pos"));
+// 		this.setpos(pos);
+// 	},	
+// 	
+// 	event_sortkey: function(e) {
+// 		var key=$(e.target).attr("data-sortkey");
+// 		this.sortkey(key);
+// 	},
+// 	
+// 	event_selectsort: function(e) {
+// 		var key=$(e.target).val();
+// 		var reverse=$('option:selected',e.target).attr("data-reverse");
+// 		this.sortkey(key,reverse);
+// 	},
+// 	
+// 	setcount: function(count) {
+// 		this.ts.pos=0;
+// 		this.ts.count = count;
+// 		this.refresh();
+// 	},
+// 	
+// 	setpos: function(pos) {
+// 		this.ts.pos=pos;
+// 		this.refresh();
+// 	},
+// 	
+// 	sortkey: function(key, reverse) {
+// 		if (reverse==null) {
+// 			if (this.ts.sortkey==key) {this.reverse()}
+// 		} else {
+// 			this.reverse(reverse);
+// 		}
+// 		this.ts.sortkey=key;
+// 		this.refresh();
+// 	},
+// 
+// 	build: function() {
+// 		//console.log("table control build");
+// 	}
+// }
+// 
+// $.fn.TableControl = function(opts) {
+//   return this.each(function() {
+// 		new TableControl(this, opts);
+// 	});
+// };
+// 
+// return TableControl;
+// 
+// })(jQuery); // End localisation of the $ function
+// 
+// 
+// 
+// 
+// 
+// /////////////////////////////////////////////
+// /////////////////////////////////////////////
+// /////////////////////////////////////////////
+// /////////////////////////////////////////////
+// 
+// 
+// 
+// TableColumnControl = (function($) { // Localise the $ function
+// 
+// function TableColumnControl(elem, opts) {
+//   if (typeof(opts) != "object") opts = {};
+//   $.extend(this, TableColumnControl.DEFAULT_OPTS, opts);
+//   this.elem = $(elem);  
+//   this.init();
+// 	//console.log(opts.tablekeys);
+// };
+// 
+// TableColumnControl.DEFAULT_OPTS = {
+// };
+// 
+// TableColumnControl.prototype = {
+// 	
+// 	init: function() {
+// 		var self=this;
+// 		var pos=this.elem.position();
+// 		var th=$(".header",this.table.elem);
+// 		
+// 		//console.log(this.elem.offset());
+// 
+// 		this.built=0;
+// 		this.p=$('<div class="keys_menu" />');
+// 		this.p.css({position:"absolute", width:400, top:th.offset().top+th.outerHeight(),left:ts.pos.left-250});
+// 
+// 		//this.elem.css({background:"white",border:"2px solid #ccc", padding:4});
+// 
+// 
+// 		$("body").append(this.p);
+// 		//console.log(this.elem);
+// 		this.elem.click(function(e){self.event_toggleprop(e)});
+// 
+// 	},
+// 	
+// 	event_toggleprop: function(e) {
+// 
+// 		// show the chooser, get paramdefs if necessary
+// 		var self=this;
+// 				
+// 		if (this.built==0) {
+// 			$.jsonRPC("getrecorddef",[this.rectype],function(recdef) {
+// 				self.allparams = recdef.paramsK;
+// 				$.jsonRPC("getparamdef",[recdef.paramsK],function(paramdefs) {
+// 					self.paramdefs=paramdefs
+// 					self.build();
+// 					self.show();
+// 				})
+// 			});
+// 			
+// 		} else {
+// 
+// 			if (this.disp==1) {
+// 				self.hide();
+// 			} else {
+// 				self.show();
+// 			}
+// 
+// 		}
+// 	},
+// 	
+// 	build: function() {
+// 		
+// 		this.built = 1;
+// 		this.p.empty();
+// 		this.viewdeftable=$('<table cellspacing="0" cellpadding="0" />');
+// 
+// 		this.viewdeftable.append("<thead><th></th><th>Name</th><th>Desc / Args</th></thead>");
+// 
+// 		var self=this;
+// 		var nonmacro=[];
+// 
+// 		$.each(this.tablekeys, function(i,j,k){
+// 			if (!self.macros[j]){nonmacro.push(j)}
+// 		});
+// 		
+// 		for (var i=0;i<this.tablekeys.length;i++) {
+// 			
+// 			var ismacro=0;
+// 			j=this.tablekeys[i];
+// 			//if (!this.macros[j]) {
+// 			if (!this.paramdefs[j]) {
+// 				ismacro=1;
+// 			};
+// 
+// 			var row=$('<tr />');
+// 			var x=$('<img src="'+EMEN2WEBROOT+'/images/remove_small.png" alt="remove" />').click(function(e){self.event_removetablekey(e)});
+// 			var up=$('<img src="'+EMEN2WEBROOT+'/images/sort_0.png" alt="up" />').click(function(e){self.event_tablekey_move(e,1)});
+// 			var down=$('<img src="'+EMEN2WEBROOT+'/images/sort_1.png" alt="down" />').click(function(e){self.event_tablekey_move(e,-1)});
+// 			var b=$("<td/>");
+// 			b.append(x,up,down);
+// 			row.append(b);
+// 			
+// 			row.attr("data-pos",i);
+// 			row.attr("data-macro",ismacro);
+// 						
+// 			if (!ismacro) {
+// 				row.attr("data-name",j);
+// 				row.attr("data-args","");
+// 				row.append('<td>'+j+'</td>');
+// 				row.append('<td>'+this.paramdefs[j].desc_short+'</td>');
+// 			} else {
+// 				row.attr("data-name",this.macros[j][0]);
+// 				row.attr("data-args",this.macros[j][1]);
+// 				row.append('<td><input name="name" type="text" value="'+this.macros[j][0]+'" /></td>');
+// 				row.append('<td><input name="args" type="text" value="'+this.macros[j][1]+'" /></td></tr>');
+// 			}
+// 			this.viewdeftable.append(row);
+// 
+// 		}
+// 		
+// 		var sel=$("<select />");
+// 		sel.append('<option value="">Add Parameter</option>');
+// 		sel.append('<option value="">----- Protocol Parameters -----</option>');
+// 		
+// 		$.each(this.allparams, function(i,j,k) {
+// 			if ($.inArray(j, self.tablekeys) == -1) {
+// 				sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
+// 			}
+// 		});
+// 		
+// 		sel.append('<option value="">----- All Parameters -----</option>');		
+// 		
+// 		//$.each(this.allparams, function(i,j,k) {
+// 		//	if (self.allparamdefs.indexOf(j) == -1) {
+// 		//		sel.append('<option value="'+j+'">'+j+' -- '+self.paramdefs[j].desc_short+'</option>');
+// 		//	}
+// 		//});		
+// 		
+// 		var example_macros = {childcount:"Count Children of *arg type",parentvalue:"Values of parent records for parameter *arg",recname:"Generated record title"}
+// 		
+// 		var selm=$("<select />");
+// 		selm.append('<option value="">Add Macro</option>');
+// 		selm.append('<option value="">----------</option>');		
+// 		$.each(example_macros, function(i,j,k) {
+// 			//console.log(i);
+// 			selm.append('<option value="'+i+'">'+i+' -- '+j+'</option>');
+// 		});		
+// 		selm.change(function(){self.build_addmacro($(this).val())});
+// 
+// 		// submit/close
+// 		var s=$('<input type="button" value="Submit" />').click(function(e){self.build_viewdef();self.set_viewdef();self.table.refresh();});
+// 		var c=$('<input type="button" value="Close" />').click(function(e){self.hide()});
+// 		
+// 		this.p.append(this.viewdeftable,sel,selm,"<br/>",s,c);
+// 		
+// 	},
+// 	
+// 	show: function() {
+// 		//this.p.fadeIn();
+// 		this.disp=1;
+// 		this.elem.addClass("properties_active");
+// 		this.p.show();
+// 	},
+// 	
+// 	hide: function() {
+// 		//this.p.fadeOut();
+// 		this.disp=0;
+// 		this.elem.removeClass("properties_active");		
+// 		this.p.hide();
+// 	},
+// 	
+// 	event_tablekey_move: function(e,i) {
+// 		
+// 		// clone w/ events
+// 		var tp=$(e.target).parent().parent();//.attr("data-param");
+// 		var tpn=tp.clone(true);
+// 		var t;
+// 		if (i==1) {
+// 			t=tp.prev();
+// 		} else {
+// 			t=tp.next();
+// 		}
+// 
+// 		// move the element
+// 		if (t.length>0) {
+// 			tp.remove();
+// 			if (i==1) {
+// 				t.before(tpn);
+// 			} else {
+// 				t.after(tpn);
+// 			}
+// 		}
+// 
+// 	},
+// 	
+// 	event_removetablekey: function(e) {
+// 		$(e.target).parent().parent().remove();;
+// 	},
+// 	
+// 	build_addparam: function(param) {
+// 		if (!param){return}
+// 		this.tablekeys.push(param);
+// 		this.build();
+// 	},
+// 	
+// 	build_addmacro: function(macro) {
+// 		if (!macro){return}
+// 		this.tablekeys.push(macro+"()");
+// 		this.macros[macro+"()"]=[macro,""];
+// 		this.build();
+// 	},
+// 	
+// 	build_viewdef: function() {
+// 		
+// 		// generate viewdef from table
+// 		var viewdef=[];
+// 		var tablekeys=[];
+// 		var macros=[];
+// 
+// 		$("tr",this.viewdeftable).each(function(i,j,k) {
+// 			e=$(this)
+// 			if (parseInt(e.attr("data-macro"))) {
+// 				var name=$("input[name='name']",e).val();
+// 				var args=$("input[name='args']",e).val();
+// 				viewdef.push("$@"+name+"("+args+")");
+// 				tablekeys.push(name+"("+args+")");
+// 				macros[name+"("+args+")"]=[name,args];
+// 			} else {
+// 				viewdef.push("$$"+e.attr("data-name"));
+// 				tablekeys.push(e.attr("data-name"));
+// 			}
+// 		});
+// 		
+// 		this.viewdef=viewdef.join(" ");
+// 		this.tablekeys=tablekeys;
+// 		this.macros=macros;
+// 
+// 	},
+// 	
+// 	set_viewdef: function() {
+// 		// set the parent state before refresh
+// 		this.table.ts.viewdef=this.viewdef;
+// 		this.table.ts.tablekeys=this.tablekeys;
+// 		this.table.ts.macros=this.macros;
+// 	}
+// 	
+// }
+// 
+// $.fn.TableColumnControl = function(opts) {
+//     return this.each(function() {
+// 		new TableColumnControl(this, opts);
+// 	});
+// };
+// 
+// return TableColumnControl;
+// 
+// })(jQuery); // End localisation of the $ function

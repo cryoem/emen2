@@ -215,7 +215,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 	def json_equivalent(self):
-		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information. For use with demjson"""
+		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information. For use with JSON"""
 		ret={}
 		ret.update(self.__params)
 		for i in self.param_special:
