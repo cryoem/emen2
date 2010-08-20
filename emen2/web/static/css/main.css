@@ -129,7 +129,9 @@ th,
 	border-color: #DCEFEE;
 }
 
-.recordtable {
+.query,
+.recordtable
+{
 	border-color: #E7F1F8;
 }
 
@@ -205,6 +207,14 @@ body {
 .fullwidth {
 	min-width:960px;
 	width:95% !important;
+}
+
+
+/**** UNSELECTABLE ELEMENTS *******/
+
+.controls, .recordtable .header > div, .editbar .clickable {
+	-webkit-user-select:none;
+	-moz-user-select:none;
 }
 
 
@@ -311,7 +321,7 @@ th {
 	border-right:none;
 }	
 
-#title .query {
+#title .quickquery {
 	position:absolute;
 	padding:5px;
 	top:0px;
@@ -444,9 +454,6 @@ th {
 
 /***** QUERY CONTROL *****/
 
-.query {
-	border:solid 1px #ccc;
-}
 
 
 /***** FIND CONTROL *****/
@@ -716,12 +723,8 @@ div.color_swatch {
 	margin:0px;
 }
 
-.editbar .clickable {
-	-webkit-user-select:none;
-	-moz-user-select:none;
-}
-
-.editbar .hidden {
+ /* .editbar .hidden */
+.hidden {
 	padding:10px;
 	display:none;
 	position:absolute;
@@ -730,6 +733,7 @@ div.color_swatch {
 	z-index:1;
 	border-style:solid;
 	border-width:2px;
+	background:white;
 	-moz-box-shadow: 3px 3px 6px #666;
 	-webkit-box-shadow: 3px 3px 6px #666;
 	box-shadow: 3px 3px 6px #666;
@@ -972,22 +976,25 @@ table.map {
 }
 
 .recordtable .header {
-	padding:2px;
 }
 .recordtable .header > div {
-	float:right;
+	padding-left:10px;
+	padding-right:10px;
 }
-
 .clickable_box {
 	padding:2px 4px;
-	border-style:solid;
-	border-width:1px;
 }
-
-.clickable_box_active {
-	border:none;
+.recordtable .query {
+	padding:5px;
+	border-bottom-style:solid;
+	border-bottom-width:2px;
+	background:white;
+	float:none;
+	clear:both;
 }
+.recordtable .control {
 
+}
 
 /********** LINKS & SMALL TEXT ELEMENTS ***********/
 

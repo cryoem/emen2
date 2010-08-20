@@ -1,8 +1,3 @@
-// js is stupid at sorting.
-function sortNumber(a, b) {
-	return a - b;
-}
-
 
 /// switch.js
 function switchbutton(type,id) {
@@ -274,7 +269,8 @@ function rebuildviews(selector) {
 			init: function(self) {},
 			bind: true,
 			show: false,
-			reflow: false
+			reflow: false,
+			align: 'left'
 		},
 				
 		_create: function() {
@@ -346,8 +342,15 @@ function rebuildviews(selector) {
 				this.element.after(this.popup);
 			}
 
-			this.popup.css('left', this.element.position().left-1);
+
 			this.popup.css('top', this.element.outerHeight()+this.element.position().top-1);
+			
+			if (this.options.align == 'left') {
+				this.popup.css('left', this.element.position().left-1);
+			} else {
+				this.popup.css('right', 0);
+				return
+			}
 			
 			// ugly horrible hack time...
 			var uglydiv = $('<div style="position:absolute;background:white" />');

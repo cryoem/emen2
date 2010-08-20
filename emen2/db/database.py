@@ -1349,8 +1349,8 @@ class DB(object):
 			pass
 			# print "no param, skipping"
 
-		#print "return was:"
-		#print subset
+		# print "return was:"
+		# print subset
 
 		return subset
 
@@ -1611,17 +1611,14 @@ class DB(object):
 		"""Sort recids based on a param or macro."""
 
 		reverse = bool(reverse)
+		pd = self.getparamdef(param, ctx=ctx, txn=txn)
 
-		if not param or param == "creationtime":
+		# Macro rendering not implemented..
+		if not param or param == "creationtime" or param == "recid" or not pd:
 			if pos != None and count != None:
 				return sorted(recids, reverse=reverse)[pos:pos+count]
 			return sorted(recids, reverse=reverse)
 
-
-		pd = self.getparamdef(param, ctx=ctx, txn=txn)
-		# Macro rendering not implemented..
-		if not pd:
-			return
 
 		recs = listops.typefilter(recids, emen2.db.record.Record)		
 		recids = listops.typefilter(recids, int)
@@ -1645,7 +1642,6 @@ class DB(object):
 				recids -= values[k]
 			values[None] = recids
 
-		
 		# calling out to vtm, we will need a DBProxy
 		if rendered:
 			dbp = ctx.db
@@ -5166,15 +5162,23 @@ class DB(object):
 
 		if viewtype == "tabularview":
 			table = True
+
 			
+
 
 		# calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 
+		# print "_render setup: ", time.time()-_t
+		# _t = time.time()
+
 		# we'll be working with a list of recs
-		recs = self.getrecord(recs, filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
+		recs = self.getrecord(listops.typefilter(recs, int), filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
+
+		# print "_render getrecord: ", time.time()-_t
+		# _t = time.time()
 
 		# default params
 		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions", "history", "groups"])
@@ -5209,6 +5213,9 @@ class DB(object):
 			groupviews[None] = viewdef
 
 
+		# print "_render 1: ", time.time()-_t
+		# _t = time.time()
+
 		# if outband:
 		# 	for rec in recs:
 		# 		obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
@@ -5232,11 +5239,13 @@ class DB(object):
 			for match in regex.finditer(vd):
 				matches[group].append(match)
 				h = pds.get(match.group('name'),{}).get('desc_short') or '%s(%s)'%(match.group('name'), match.group('args') or '')
-				headers[group].append([h, match.group('name'), match.group('args')])
-				
+				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
 				
 
+		# print "_render 2: ", time.time()-_t
+		# _t = time.time()
 
+				
 		# Process records
 		ret = {}
 		for rec in recs:
@@ -5251,6 +5260,7 @@ class DB(object):
 			for match in matches.get(key, []):
 				t = match.group('type')
 				n = match.group('name')
+				s = match.group('sep') or ''
 				if t == '#':
 					v = pds[n].desc_short
 				elif t == '$':
@@ -5259,12 +5269,16 @@ class DB(object):
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
 
 				vs.append(v)
-				a = a.replace(match.group(), v)
+				a = a.replace(match.group(), v+s)
 
 			if table:
 				ret[rec.recid] = vs
 			else:
 				ret[rec.recid] = a
+
+
+		# print "_render 3: ", time.time()-_t
+		# _t = time.time()
 
 
 		if table:

@@ -16,29 +16,27 @@
 		
 		build: function() {
 			var self = this;
-			this.container = $('<div class="query" />')
+			this.container = $('<div class="query clearfix" />')
 			var m = $(' \
 				<h4>Keywords</h4> \
 				<input type="text" name="q" /> \
 				<h4>General</h4> \
-				<p>Match  \
-					<input type="radio" value="AND" name="boolmode"> all \
-					<input type="radio" value="OR" name="boolmode"> any \
-					of the following: \
-				</p> \
-				<p>Protocol: <input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></p> \
-				<p>Creator: <input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></p> \
-				<p> \
-					Child of <input type="text" name="parent" />  <img  class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/images/remove_small.png" /> \
-					Parent of <input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/images/remove_small.png" /> \
-					</p> \
+				<table><tr> \
+					<td>Protocol:</td><td><input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+				</tr><tr> \
+					<td>Child of</td><td><input type="text" name="parent" />  <img  class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+				</tr></table> \
 				<table class="constraints"> \
 					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th /></tr></thead> \
 					<tbody></tbody> \
 				</table> \
 				<h4>Options</h4> \
-				<p><input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive</p> \
-				<p><input type="checkbox" name="recurse" /> Recursive</p> \
+				<p>Match \
+					<input type="radio" value="AND" name="boolmode" checked="checked"> all <input type="radio" value="OR" name="boolmode"> any \
+					<input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive \
+					<input type="checkbox" name="recurse" /> Recursive</p> \
 				');
 			this.container.append(m);
 
@@ -58,7 +56,7 @@
 				this.container.append(plot);
 			}
 
-			this.container.append('<input type="button" value="Query" name="update" />');
+			this.container.append('<div class="controls"><input type="button" value="Query" name="update" /></div>');
 
 			$('input[name=rectype]', this.container).FindControl({mode: 'findrecorddef'});			
 			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
@@ -142,9 +140,9 @@
 			}	
 
 			var newconstraint = $('<tr class="constraint">')
-				.append('<td><input type="text" name="param" value="'+param+'" size="20" /></td>')
+				.append('<td><input type="text" name="param" value="'+param+'" size="15" /></td>')
 				.append($('<td/>').append(cmpi))
-				.append('<td><input type="text" name="value" value="'+value+'" /></td>')
+				.append('<td><input type="text" name="value" value="'+value+'" size="10"  /></td>')
 				.append('<td><input name="childparams" type="checkbox" />')
 				.append('<td><input name="parents" type="checkbox" />');
 
@@ -191,15 +189,12 @@
 		update: function(q) {
 			q = q || this.options.q;
 			this.options.q = q;
-
-			console.log('updating');
 			
 			var self = this;
 			$('.constraints tbody', this.container).empty();
 			$('input[name=q]').val(this.options.q['q']);
 
 			$.each(this.options.q['constraints'], function() {
-				console.log(this);
 				if (this[0] == 'rectype' && this[1] == '==') { $('input[name=rectype]', self.container).val(this[2]) }
 				else if (this[0] == 'creator' && this[1] == 'recid') { $('input[name=creator]', self.container).val(this[2]) }
 				else if (this[0] == 'parent' && this[1] == 'recid') { $('input[name=parent]', self.container).val(this[2]) }
