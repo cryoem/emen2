@@ -1643,15 +1643,15 @@ class DB(object):
 			values[None] = recids
 
 		# calling out to vtm, we will need a DBProxy
-		if rendered:
-			dbp = ctx.db
-			dbp._settxn(txn)
-			vtm = emen2.db.datatypes.VartypeManager()
-			newvalues = {}
-			for k in values:
-				newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
-				# rec=recs_dict.get(recid) # may fail without record..
-			values = newvalues
+		# if rendered:
+		# 	dbp = ctx.db
+		# 	dbp._settxn(txn)
+		# 	vtm = emen2.db.datatypes.VartypeManager()
+		# 	newvalues = {}
+		# 	for k in values:
+		# 		newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
+		# 		# rec=recs_dict.get(recid) # may fail without record..
+		# 	values = newvalues
 		
 		ret = []
 		for k,v in sorted(values.items(), reverse=reverse):

@@ -13,7 +13,7 @@
 			
 			var self = this;
 			var count = $('.header select[name=count]').val();
-			newq["count"] = parseInt(count);
+			if (count) {newq["count"] = parseInt(count)}
 			newq["rendered"] = {};
 			
 			$.ajax({
@@ -93,7 +93,7 @@
 			
 			
 			var count = $('<select name="count" style="float:right"></select>');
-			count.append('<option value="100">Rows</option>');
+			count.append('<option value="">Rows</option>');
 			$.each([10,50,100,500,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
 			});
@@ -148,7 +148,8 @@
 					} else {
 						i.append('<img src="'+EMEN2WEBROOT+'/images/sort_1.png" />');						
 					}
-				}				
+				}		
+						
 				i.width(self.cachewidth[this[2]]);
 				tr.append(i);
 			});
