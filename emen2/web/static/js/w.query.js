@@ -4,19 +4,32 @@
 			q: null,
 			show: true,
 			plot: false,
+			ext_save: null,
 			cb: function(self, q){}
 		},
 				
 		_create: function() {
+			this.built = 0;
 			if (this.options.show) {
-				this.build();
+				this.show();
 			}
+		},
+		
+		show: function() {
+			this.build();
+			this.container.show();
 		},
 		
 		
 		build: function() {
 			var self = this;
-			this.container = $('<div class="query clearfix" />')
+			if (this.built) {
+				return
+			}
+			this.built = 1;
+
+			this.container = $('<div class="query clearfix" />');
+			
 			var m = $(' \
 				<h4>Keywords</h4> \
 				<input type="text" name="q" /> \
@@ -56,20 +69,26 @@
 				this.container.append(plot);
 			}
 
-			this.container.append('<div class="controls"><input type="button" value="Query" name="update" /></div>');
 
 			$('input[name=rectype]', this.container).FindControl({mode: 'findrecorddef'});			
 			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
 			$('input[name=parent]', this.container).Browser({});
 			$('input[name=child]', this.container).Browser({});
-			$('input[name=update]', this.container).click(function() {self.query()});
+
+			if (this.options.ext_save) {
+				this.options.ext_save.click(function() {self.query()});
+			} else {
+				this.container.append('<div class="controls"><input type="button" value="Query" name="update" /></div>');
+				$('input[name=update]', this.container).click(function() {self.query()});				
+			}
+
 			$('.listicon', this.container).click(function() {
 				var clearselector = $(this).attr('data-clear');
 				$('input[name='+clearselector+']').val('');
 			});
 			
 			this.element.append(this.container);
-			
+						
 			this.update();
 		},
 		
@@ -184,6 +203,10 @@
 				i.append(r);
 			});
 			return i		
+		},
+		
+		test: function() {
+			console.log("test");
 		},
 		
 		update: function(q) {

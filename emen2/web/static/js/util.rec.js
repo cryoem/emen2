@@ -151,6 +151,7 @@ function record_init(rec, ptest, edit) {
 
 
 	$('.editbar .permissions').EditbarHelper({
+		width: 640,
 		cb: function(self){
 			self.popup.PermissionControl({
 				recid: recid,
@@ -186,6 +187,7 @@ function record_init(rec, ptest, edit) {
 
 
 	$(".editbar .relationships").EditbarHelper({		
+		width: 640,
 		cb: function(self){
 			self.popup.RelationshipControl({
 				recid: recid,
@@ -260,6 +262,8 @@ function rebuildviews(selector) {
 }
 
 
+
+
 (function($) {
     $.widget("ui.EditbarHelper", {
 		options: {
@@ -270,7 +274,9 @@ function rebuildviews(selector) {
 			bind: true,
 			show: false,
 			reflow: false,
-			align: 'left'
+			align: 'left',
+			width: null,
+			height: null
 		},
 				
 		_create: function() {
@@ -280,7 +286,7 @@ function rebuildviews(selector) {
 			this.element.addClass('popup');
 			
 			if (this.options.bind) {
-				this.element.click(function(e) {
+				$('.label', this.element).click(function(e) {
 					e.stopPropagation();
 					self.toggle();
 				});
@@ -339,28 +345,39 @@ function rebuildviews(selector) {
 			this.popup = $('.hidden', this.element);
 			if (!this.popup.length) {
 				this.popup = $('<div class="hidden" />');
-				this.element.after(this.popup);
+				this.element.append(this.popup);
+			}
+			
+			this.popup.css('top', this.element.outerHeight()-4);
+			
+			if (this.options.width) {
+				this.popup.width(this.options.width)
+			}
+			if (this.options.height) {
+				this.popup.height(this.options.height);
 			}
 
 
-			this.popup.css('top', this.element.outerHeight()+this.element.position().top-1);
+
+			this.options.init(this);			
+						
+			// ugly horrible hack time...
+
+			var uglydiv = $('<div style="position:absolute;background:white" />');
+			uglydiv.width(this.element.outerWidth()-5);
+			uglydiv.height(4);
+			uglydiv.css('top', -4);
 			
 			if (this.options.align == 'left') {
-				this.popup.css('left', this.element.position().left-1);
+				this.popup.css('left', -2);
+				uglydiv.css('left', 0);
+				uglydiv.width(this.element.outerWidth()-3);
 			} else {
-				this.popup.css('right', 0);
-				return
+				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-3);
+				uglydiv.css('right', 0);
 			}
-			
-			// ugly horrible hack time...
-			var uglydiv = $('<div style="position:absolute;background:white" />');
-			uglydiv.width(this.element.outerWidth()-3);
-			uglydiv.height(4);
-			uglydiv.css('left', 0);
-			uglydiv.css('top', -4);
+
 			this.popup.append(uglydiv);
-			this.options.init(this);
-		
 		},
 				
 		destroy: function() {

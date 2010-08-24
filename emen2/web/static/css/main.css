@@ -1,31 +1,47 @@
-/*.expandable .hide {
-	position:absolute;
-	width:400px;
-	height:300px;
-	top:0px;
-	right:20px;
-	padding:10px;
-	background:#BBD9EE;
-	z-index:10;
-}
-*/
-
-
-/* colors
-#ccc 	 // neutral border
-#66a3ce; // stronger border
-#DCEFEE; // right border on title buttons
-
-#BBD9EE; // darker highlight background
-#E7F1F8; // light background // highlight
-#F0F2FF; // shaded table
-
-#FF8135; // notification
-red;	 // strong notification
-#202060; // links
-*/
-
 /* Background colors */
+
+/* Main background color */
+#precontent,
+.precontent,
+.permissions .add,
+.button
+{
+	background: #BBDAEE;
+}
+
+
+/* Lighter background color */
+#nav li:hover,
+.page,
+.button_map,
+.button_main,
+.button_active,
+.boxer .controls,
+.tilemap .tilemapcontrols,
+.recordtable .header
+{
+	background: #E7F1F8; /* #E7F1F8; */
+}
+
+
+/* Darker background color */
+
+
+
+/* Light-gray row highlight color */
+tr.s
+{
+	background: #f0f0f0;
+}
+
+
+
+
+.boxarea-active
+{
+	background: #ccc;
+}
+
 
 .add.removed,
 .removed
@@ -38,41 +54,6 @@ red;	 // strong notification
 .bigbutton input
 {
 	background: orange;
-}
-
-
-#precontent,
-.precontent,
-.permissions .add,
-.button
-{
-	background: #BBD9EE;
-}
-
-
-tr.s
-{
-	background: #f5f5f5;
-}
-
-
-
-#nav li:hover,
-.page,
-.button_map,
-.button_main,
-.button_active,
-.boxer .controls,
-.tilemap .tilemapcontrols,
-.recordtable .header
-{
-	background: #E7F1F8;
-}
-
-
-.boxarea-active
-{
-	background: #ccc;
 }
 
 
@@ -109,7 +90,8 @@ th,
 .tilemap .tilemapcontrols,
 .infobuttons,
 .info,
-.editbar > li
+.editbar > li,
+.editbar
 {
 	border-color: #ccc;
 }
@@ -129,7 +111,6 @@ th,
 	border-color: #DCEFEE;
 }
 
-.query,
 .recordtable
 {
 	border-color: #E7F1F8;
@@ -199,7 +180,7 @@ body {
 }
 
 #alert, #pagescontainer_map, #buttons_main, #title, #content {
-	width: 960px;
+	width: 1200px;
 	margin-left:auto;
 	margin-right:auto;
 }
@@ -470,6 +451,7 @@ img.listicon {
 /***** RELATIONSHIP BROWSER *****/
 
 .browser {	
+	width:600px;
 }
 
 .browser .map tbody {
@@ -701,13 +683,13 @@ div.color_swatch {
 	padding:0px;
 	padding-top:0px;
 	list-style:none;
+	border-bottom-style:solid;
+	border-bottom-width:1px;
 }
 .editbar > li {
 	float:left;
 	border-right-style:solid;
 	border-right-width:1px;
-	border-bottom-style:solid;
-	border-bottom-width:1px;
 	font-size:10pt;
 	height:20px;
 	padding:4px;
@@ -737,6 +719,10 @@ div.color_swatch {
 	-moz-box-shadow: 3px 3px 6px #666;
 	-webkit-box-shadow: 3px 3px 6px #666;
 	box-shadow: 3px 3px 6px #666;
+}
+
+.active {
+	position:relative;
 }
 
 .editbar .active {
@@ -977,23 +963,38 @@ table.map {
 
 .recordtable .header {
 }
+
 .recordtable .header > div {
+	padding:10px;
 	padding-left:10px;
 	padding-right:10px;
 }
+
 .clickable_box {
 	padding:2px 4px;
 }
+
 .recordtable .query {
-	padding:5px;
-	border-bottom-style:solid;
-	border-bottom-width:2px;
-	background:white;
-	float:none;
-	clear:both;
+	width:600px;
 }
+
 .recordtable .control {
 
+}
+
+.recordtable .query {
+	padding:10px;
+}
+
+.recordtable .control.active {
+	padding:8px;
+	background:white;
+	border:solid 2px black;
+}
+
+.recordtable .table th {
+	border-right-style: solid;
+	border-right-width: 1px;
 }
 
 /********** LINKS & SMALL TEXT ELEMENTS ***********/

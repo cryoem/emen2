@@ -108,7 +108,10 @@ class VartypeManager(object):
 		vt = self.__vartypes[pd.vartype]()
 		if vt.getindextype() in ["d","f"]:
 			return value
-		return vt.render(self, pd, value, mode, rec, db=db).lower()
+		value = vt.render(self, pd, value, mode, rec, db=db)
+		if value == None:
+			return value
+		return value.lower()
 
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):

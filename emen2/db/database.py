@@ -1385,11 +1385,13 @@ class DB(object):
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
+			print indparam, value
 			try: cargs = vtm.validate(pd, value, db=ctx.db)
 			except: continue
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
 			if r:
 				results[indparam] = r
+
 
 		# Now search individual param indexes
 		constraint_matches = set()
@@ -1622,40 +1624,55 @@ class DB(object):
 
 		recs = listops.typefilter(recids, emen2.db.record.Record)		
 		recids = listops.typefilter(recids, int)
-		values = collections.defaultdict(set)
-
 		index = self.__getparamindex(param, ctx=ctx, txn=txn)
+		values = collections.defaultdict(set)
+		
 		
 		# sort/render using records directly..
-		if recs or not index:
+		if recs or not index or len(recids)<1000:
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
 			for rec in recs:
-				values[rec.get(param)].add(rec.recid)
+				try:
+					values[rec.get(param)].add(rec.recid)		
+				except TypeError:
+					values[tuple(rec.get(param))].add(rec.recid)
+					
 		
 		# Use the index
 		else:
 			recids = set(recids)
 			# Not the best way to search the index..
 			for k,v in index.items():
-				if v & recids:
-					values[k] |= v & recids
-				recids -= values[k]
+				v = v & recids
+				if v:
+					values[k] |= v
+				recids -= v
 			values[None] = recids
 
+
+
 		# calling out to vtm, we will need a DBProxy
-		# if rendered:
-		# 	dbp = ctx.db
-		# 	dbp._settxn(txn)
-		# 	vtm = emen2.db.datatypes.VartypeManager()
-		# 	newvalues = {}
-		# 	for k in values:
-		# 		newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
-		# 		# rec=recs_dict.get(recid) # may fail without record..
-		# 	values = newvalues
+		if rendered:
+			dbp = ctx.db
+			dbp._settxn(txn)
+			vtm = emen2.db.datatypes.VartypeManager()
+			newvalues = collections.defaultdict(set)
+			for k in values:
+				newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
+				# rec=recs_dict.get(recid) # may fail without record..
+			values = newvalues
+		
+		nonevalues = values[None] | values['']
+		del values[None]
+		del values['']
+		
 		
 		ret = []
 		for k,v in sorted(values.items(), reverse=reverse):
 			ret.extend(sorted(v))
+			
+		ret.extend(nonevalues)
+			
 			
 		if pos != None and count != None:	
 			return ret[pos:pos+count]
@@ -5275,7 +5292,7 @@ class DB(object):
 				ret[rec.recid] = a
 
 
-		print "_render 3: ", time.time()-_t
+		# print "_render 3: ", time.time()-_t
 		_t = time.time()
 
 

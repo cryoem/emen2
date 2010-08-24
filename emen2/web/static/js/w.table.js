@@ -13,35 +13,67 @@
 			
 			this.cachewidth = {};
 			
+			// Build control elements
+
+			// record count
 			var length = $('<div class="length" style="float:left">Records</div>');
 
-			var q = $('<div class="control" style="float:right"><input type="text" name="q" size="8" /><input type="button" name="search" value="Search" /><img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
-			$('img', q).click(function(){$('.query').toggle()});
+			// query bar
+			var q = $('<div class="control" style="float:right"> \
+				<input type="text" name="qq" size="8" /> \
+				<input type="button" name="update" value="Search" /> \
+				<img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
 			
-			
+			// row count
 			var count = $('<select name="count" style="float:right"></select>');
 			count.append('<option value="">Rows</option>');
+			
 			$.each([10,50,100,500,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
 			});
 			count.change(function() {
+				self.options.q['pos'] = 0;
 				self.query();
-			})
-			count = $('<div class="control"  style="float:right"/>').append(count);
+			})			
+			count = $('<div class="control" style="float:right"/>').append(count);
 						
+			// page controls			
 			var pages = $('<div class="control pages" style="float:right">Pages</div>');
 
+
+			// Bind to control elements
 			$('.header', this.element).append(length, pages, count, q);
 
-			$('.header', this.element).QueryControl({
-				show: true,
-				q: this.options.q,
-				cb: function(test, newq) {self.query(newq)} 
-			});
+			// Kindof hacky..
+			q.EditbarHelper({
+				bind: false,
+				align: 'right', 
+				init: function(self2) {
+					self2.popup.QueryControl({
+						q: self.options.q,
+						ext_save: $('input[name=update]', q),
+						cb: function(test, newq) {self.query(newq)} 
+					});
+				}
+			});				
 
+			
+			$('input[name=q]', q).focus(function(){
+				q.EditbarHelper('show');
+			});
+			$('img', q).click(function(){
+				q.EditbarHelper('toggle');
+			});
+						
+
+
+			// Set the control values from the current query state
 			this.update_controls();
+
+			// Rebind to table header controls
 			this.rebuild_thead();
 			
+			// Cache the column widths so they don't go crazy with every refresh
 			$(".inner thead th").each(function() {
 				self.cachewidth[$(this).attr('data-name')] = $(this).width();
 			});			
@@ -55,6 +87,12 @@
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
 			newq["rendered"] = {};
+			
+			var q = $('.header input[name=qq]').val();
+			console.log(q);
+			if (q) {
+				newq['q'] = q;
+			}
 			
 			$.ajax({
 				type: 'POST',
@@ -174,7 +212,11 @@
 					//row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>'); //
 					row.push('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
 				}
-				row = '<tr>' + row.join('') + '</tr>';
+				if (i%2) {
+					row = '<tr class="s">' + row.join('') + '</tr>';
+				} else {
+					row = '<tr>' + row.join('') + '</tr>';					
+				}
 				rows.push(row);
 			}
 			
