@@ -5191,11 +5191,6 @@ class DB(object):
 		
 		ol, recs = listops.oltolist(recs)
 
-		if viewtype == "dicttable" and outband == None:
-			outband = True
-		else:
-			outband = bool(outband)
-
 		if viewtype == "tabularview":
 			table = True
 

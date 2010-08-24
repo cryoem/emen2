@@ -95,12 +95,7 @@
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
 			newq["rendered"] = {};
-			
-			var q = $('.header input[name=qq]').val();
-			if (q) {
-				newq['q'] = q;
-			}
-			
+						
 			$.ajax({
 				type: 'POST',
 				url: EMEN2WEBROOT+'/db/table/',
@@ -208,9 +203,7 @@
 		
 		rebuild_tbody: function() {
 			var self = this;
-			var t = $('.inner', this.element);
-			$('tbody', t).empty();
-			
+			var t = $('.inner', this.element);			
 			var headers = this.options.q['rendered']['headers']['null'];
 			var recids = this.options.q['recids'];
 			
@@ -229,7 +222,9 @@
 				rows.push(row);
 			}
 			
-			$('tbody', t)[0].innerHTML = rows.join('');
+			$('tbody', t).empty();
+			//$('tbody', t)[0].innerHTML = rows.join('');
+			$('tbody', t).append(rows.join(''));
 			
 			// $.each(this.options.q['recids'], function(i) {
 			// 	var recid = this;

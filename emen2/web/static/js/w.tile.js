@@ -560,9 +560,9 @@
 			
 			this.element.draggable({
 				appendTo: "body",
-				helper: "clone",
+				helper: "clone"
 				//containment: $('#controls').length ? '#controls' : 'document', // stick to demo-frame if present
-			});	
+			});
 		},
 		
 		remove_box: function() {
@@ -635,7 +635,7 @@
 					self.options.x = offset[0];
 					self.options.y = offset[1];
 					self.recalc();
-				},
+				}
 			});
 			
 			this.inner.click(function(e) {

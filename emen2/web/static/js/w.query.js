@@ -39,7 +39,7 @@
 			
 			var keywords = $(' \
 				<h4>Keywords</h4> \
-				<input type="text" name="q" /> \
+				<input type="text" name="q" value="" /> \
 			');
 			
 			var m = $(' \
@@ -259,7 +259,10 @@
 			
 			var self = this;
 			$('.constraints tbody', this.container).empty();
-			$('input[name=q]', this.container).val(this.options.q['q']);
+
+			// if (this.options.q['q'] != null) { // ? wtf in IE
+			// 	$('input[name=q]', this.container).val(this.options.q['q']);
+			// }
 			if (this.options.ext_q) {
 				this.options.ext_q.val(this.options.q['q']);				
 			}

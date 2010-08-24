@@ -168,6 +168,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	$('.editbar .attachments').EditbarHelper({
+		width:400,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
 				recid: recid,
@@ -179,6 +180,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	$('.editbar .newrecord').EditbarHelper({
+		width:300,
 		cb: function(self){
 			self.popup.NewRecordSelect({
 				recid: recid,
@@ -375,7 +377,7 @@ function rebuildviews(selector) {
 				uglydiv.css('left', 0);
 				uglydiv.width(this.element.outerWidth()-3);
 			} else {
-				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-3);
+				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-2);
 				uglydiv.css('right', 0);
 			}
 
