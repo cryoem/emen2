@@ -24,7 +24,7 @@
 		show: function() {
 			if (this.options.recid == null) {
 				if (!this.element.val()) { 
-					this.options.recid = 1;
+					this.options.recid = 0;
 				} else {
 					this.options.recid = parseInt(this.element.val())
 				}
@@ -50,6 +50,8 @@
 				autoOpen: false,
 				modal: this.options.modal
 			});			
+
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/images/spinner.gif" /></span>');			
 			this.build_browser(this.options.recid);
 		},
 		
@@ -59,10 +61,13 @@
 				return
 			}
 			this.currentid = r;
-			this.tablearea.empty();
-			this.tablearea.html("Loading...");
+			//this.tablearea.empty();
+			//this.tablearea.html("Loading...");
+
+			$('.spinner', this.dialog.dialog('widget')).show();
 			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {maxrecurse: 1}, 
 				function(response, status, xhr){
+					$('.spinner', self.dialog.dialog('widget')).hide();
 					if (status=='error') {
 						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');
 						return

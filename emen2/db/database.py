@@ -5177,18 +5177,16 @@ class DB(object):
 	#@notok
 	#@multiple
 	@publicmethod
-	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", outband=None, filt=True, table=False, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
-				
-		_t = time.time()
-		
+						
 		# This is the new, more general regex for parsing views..
 		# type = name, param, macro, or..
 		# name = param or macro name
 		# def = default value
 		# args = macro args
 		# sep = separating character
-		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>.+)?\))?(?P<sep>[^$])?'
+		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
 		regex = re.compile(regex)
 		
 		ol, recs = listops.oltolist(recs)
@@ -5201,29 +5199,21 @@ class DB(object):
 		if viewtype == "tabularview":
 			table = True
 
-
-		# calling out to vtm, we will need a DBProxy
+		# Calling out to vtm, we will need a DBProxy
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		# print "_render setup: ", time.time()-_t
-		# _t = time.time()
-
-		# we'll be working with a list of recs
+		# We'll be working with a list of recs
 		recs = self.getrecord(listops.typefilter(recs, int), filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
 
-		# print "_render getrecord: ", time.time()-_t
-		# _t = time.time()
-
-		# default params
+		# Default params
 		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions", "history", "groups"])
 		builtinparamsshow = builtinparams - set(["permissions", "comments", "history", "groups"])
 
 		# Get and pre-process views
 		groupviews = {}
 		recdefs = listops.dictbykey(self.getrecorddef(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
-
 
 		if not viewdef:
 			for rd in recdefs.values():
@@ -5250,26 +5240,19 @@ class DB(object):
 			groupviews[None] = viewdef
 
 
-		# print "_render 1: ", time.time()-_t
-		# _t = time.time()
-		# if outband:
-		# 	for rec in recs:
-		# 		obparams = [i for i in rec.keys() if i not in recdefs[rec.rectype].paramsK and i not in builtinparams and rec.get(i) != None]
-		# 		if obparams:
-		# 			groupviews[rec.recid] = groupviews[rec.rectype] + self.__dicttable_view(obparams, mode=mode, ctx=ctx, txn=txn)
-
-
 		# Pre-process once to get paramdefs
 		pds = set()
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
 				if match.group('type') in ["#", "$"]:
 					pds.add(match.group('name'))
+				else:
+					vtm.macro_preprocess(match.group('name'), match.group('args'), recs, db=dbp)
+					
 
 		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
 
-
-		# Parse views
+		# Parse views and build header row..
 		matches = collections.defaultdict(list)
 		headers = collections.defaultdict(list)
 		for group, vd in groupviews.items():
@@ -5277,12 +5260,8 @@ class DB(object):
 				matches[group].append(match)
 				h = pds.get(match.group('name'),{}).get('desc_short') or '%s(%s)'%(match.group('name'), match.group('args') or '')
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
-				
 
-		# print "_render 2: ", time.time()-_t
-		_t = time.time()
 
-				
 		# Process records
 		ret = {}
 		for rec in recs:
@@ -5290,7 +5269,7 @@ class DB(object):
 				key = rec.rectype
 			elif viewdef:
 				key = None
-
+				
 			a = groupviews.get(key)
 			vs = []
 
@@ -5300,10 +5279,8 @@ class DB(object):
 				s = match.group('sep') or ''
 				m = mode
 				if t == '#':
-					# v = pds[n].desc_short
 					v = vtm.name_render(pds[n], mode=mode, db=dbp)
 				elif t == '$':
-					# v = unicode(rec.get(n))
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
@@ -5316,17 +5293,14 @@ class DB(object):
 			else:
 				ret[rec.recid] = a
 
-
-		# print "_render 3: ", time.time()-_t
-		_t = time.time()
-
-
 		if table:
 			ret["headers"] = headers
 
 		if ol: return return_first_or_none(ret)
 		return ret
 
+
+				
 
 
 
@@ -5342,6 +5316,8 @@ class DB(object):
 
 	def checkpoint(self, ctx=None, txn=None):
 		return self.dbenv.txn_checkpoint()
+
+
 
 	#@rename db.admin.archivelogs
 	# @publicmethod @ok

@@ -38,6 +38,14 @@ class macro_recname(Macro):
 class macro_childcount(Macro):
 	"""childcount macro"""
 	__metaclass__ = Macro.register_view
+	
+	def preprocess(self, engine, macro, params, recs, db):
+		rectypes = params.split(",")
+		children = db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=3)
+		for rec in recs:
+			key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
+			engine.store(key, len(children.get(rec.recid,[])))
+
 		
 	def process(self, engine, macro, params, rec, db):
 		"""Now even more optimized!"""
@@ -128,7 +136,6 @@ class macro_parentvalue(Macro):
 		
 	def process(self, engine, macro, params, rec, db):
 		#print db, host
-
 		recid = rec.recid
 # 		parents = db.getrecord(db.getparents(recid), filt=1)
 # 		return filter(lambda x:x, [i.get(params) for i in parents])

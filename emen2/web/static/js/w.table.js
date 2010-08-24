@@ -18,6 +18,8 @@
 			// record count
 			var length = $('<div class="length" style="float:left">Records</div>');
 
+			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/images/spinner.gif" /></div>');
+
 			// query bar
 			var q = $('<div class="control" style="float:right"> \
 				<input type="text" name="q" size="8" /> \
@@ -43,7 +45,7 @@
 
 
 			// Bind to control elements
-			$('.header', this.element).append(length, pages, count, q);
+			$('.header', this.element).append(length, pages, count, q, spinner);
 
 			// Kindof hacky..
 			q.EditbarHelper({
@@ -86,6 +88,8 @@
 		
 		query: function(newq) {
 			newq = newq || this.options.q;
+			
+			$('.header .spinner', this.element).show();
 			
 			var self = this;
 			var count = $('.header select[name=count]').val();
@@ -134,7 +138,8 @@
 			this.options.q = q;
 			$('.header .query').QueryControl('update', this.options.q)					
 			this.update_controls();
-			this.rebuild_table();			
+			this.rebuild_table();	
+			$('.header .spinner', this.element).hide();					
 		},	
 		
 		update_controls: function() {

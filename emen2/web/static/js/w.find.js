@@ -56,14 +56,14 @@
 			this.resultsarea = $('<div>Results</div>');
 		
 			this.dialog.append(searchbox, this.resultsarea);
-			$(this.dialog).dialog({
+			this.dialog.dialog({
 				modal: this.options.modal,
 				autoOpen: false,
 				width: 700,
 				height: 400
 			});
-		
-			// this.elem.click(function(){self.event_show()});
+			
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/images/spinner.gif" /></span>');		
 		},
 
 		event_click: function(e) {
@@ -143,22 +143,31 @@
 		
 		search: function(q) {
 			var self=this;
+			if (q.length < 3 && this.options.mode != "findgroup") {
+				self.resultsarea.empty();
+				self.statusmsg.text('Minimum 3 characters');
+				return
+			}
+			
+			$('.spinner', this.dialog.dialog('widget')).show();
+				
 			$.jsonRPC(this.options.mode, [q], function(items) {
+				$('.spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;
 				if (l==0) {
 					self.statusmsg.text('No results');
 					return
 				}
-				if (l>12) {
-					self.statusmsg.text(items.length + ' results; showing 1-12');
+				if (l>50) {
+					self.statusmsg.text(items.length + ' results; showing 1-50');
 				} else {
 					self.statusmsg.text(items.length + ' results');				
 				}
-				items = items.slice(0,12);
+				items = items.slice(0,50);
 				$.each(items, function() {
 					self.add(this)			
-				})
+				});
 			})
 		},
 		

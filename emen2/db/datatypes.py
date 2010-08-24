@@ -82,6 +82,9 @@ class VartypeManager(object):
 
 
 	# rendering methods
+	def macro_preprocess(self, macro, params, recs, db=None):
+		return self.__macros[macro]().preprocess(self, macro, params, recs, db)
+
 
 	def macro_process(self, macro, params, rec, db=None):
 		return self.__macros[macro]().process(self, macro, params, rec, db)
@@ -351,12 +354,19 @@ class Macro(object):
 		# typical modes: html, unicode, edit
 		self.modes={}
 
+
+	def preprocess(self, engine, macro, params, recs, db):
+		# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
+		pass
+		
+
 	def process(self, engine, macro, params, rec, db):
 		return "macro: %s"%macro
 
 	def render(self, engine, macro, params, rec, mode, db):
 		value=self.process(engine, macro, params, rec, db)
-		return self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
+		r = self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
+		return r
 
 	def render_unicode(self, engine, value, macro, params, rec, db):
 		return unicode(value)

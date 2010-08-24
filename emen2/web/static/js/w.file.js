@@ -333,7 +333,7 @@
 	
 		build_browser: function() {
 			var self = this;
-			var fform = $('<div class="controls"><form method="POST" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'"></div>');
+			var fform = $('<form method="POST" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
 
 			this.button_browser = $('<input type="file" name="filedata" />');
 			this.button_submit = $('<input  type="submit" value="Upload" />');
@@ -376,6 +376,7 @@
 			var redirect = $('<input type="hidden" value="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/" name="redirect">');
 			
 			fform.append(this.button_browser, this.button_submit, progress, redirect);
+			fform.wrap('<div class="controls"></div>');
 			this.browserarea.append(fform);
 
 			//if (this.options.vartype == "binary") {

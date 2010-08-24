@@ -50,7 +50,10 @@
 			this.built = 1;
 			
 			this.controls = $('<div class="controls" />')		
-					
+
+			var spinner = $('<img style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif" class="spinner" />');
+			this.controls.append(spinner);
+
 			var save = $('<input type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
@@ -90,8 +93,7 @@
 			var changed = {};
 			var self = this;
 
-			var t = $('input[name=save]', this.controls);
-			t.val("Saving...");
+			$('input[name=save]', this.controls).val('Saving..');
 
 			var comment = $('input[name=editsummary]').val();
 
@@ -109,12 +111,24 @@
 				return this.save_newrecord(changed["None"]);
 			}
 
+			$('input[name=save]', this.controls).val('Saving..');
+			$('.spinner', this.controls).show();
+
 			$.jsonRPC("putrecordsvalues", [changed], function(recs) {
+
+				$('input[name=save]', self.controls).val('Save');
+				$('.spinner', self.controls).hide();
+
 				$.each(recs, function() {
 					record_update(this);
-					t.val("Save");
 				});
 				self.hide();
+
+			}, function() {
+
+				$('input[name=save]', self.controls).val('Retry');
+				$('.spinner', self.controls).hide();
+				
 			});
 
 		},
