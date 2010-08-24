@@ -428,7 +428,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if value == None:
 			return
 
-		if not isinstance(value,basestring):
+		if not isinstance(value, basestring):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 

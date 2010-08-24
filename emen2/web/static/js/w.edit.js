@@ -93,6 +93,8 @@
 			var t = $('input[name=save]', this.controls);
 			t.val("Saving...");
 
+			var comment = $('input[name=editsummary]').val();
+
 			$(this.selector).each(function() {
 				var t = $(this);
 				var recid = t.EditControl('getrecid');
@@ -100,8 +102,9 @@
 				var param = t.EditControl('getparam');				
 				if (!changed[recid]) {changed[recid]={}}
 				changed[recid][param] = value;
-			})
-
+				if (comment) {changed[recid]['comments'] = comment}
+			});
+			
 			if (this.options.recid == "None") {
 				return this.save_newrecord(changed["None"]);
 			}

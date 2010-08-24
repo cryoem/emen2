@@ -1255,6 +1255,7 @@ class DB(object):
 			if "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
 				getattr(recids, boolop)(constraintmatches)
 
+
 		# Step 2: Filter permissions
 		recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
 		if subset:
@@ -1375,9 +1376,8 @@ class DB(object):
 
 		# Get the list of param indexes to search
 		if searchparam == "*":
-			searchparam = "root_parameter*"
-
-		if '*' in searchparam:
+			indparams = self.bdb.indexkeys.keys(txn=txn)
+		elif '*' in searchparam:
 			indparams = self.getchildren(self.__query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
 			indparams = [self.__query_paramstrip(searchparam)]
@@ -1385,13 +1385,14 @@ class DB(object):
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
-			print indparam, value
-			try: cargs = vtm.validate(pd, value, db=ctx.db)
-			except: continue
+			try:
+				cargs = vtm.validate(pd, value, db=ctx.db)
+			except:
+				continue
+
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
 			if r:
 				results[indparam] = r
-
 
 		# Now search individual param indexes
 		constraint_matches = set()
@@ -1910,23 +1911,36 @@ class DB(object):
 				if not count: [[matching value, [recid, ...]], ...]
 		"""
 
-		# This method was simplified, and now uses __query_index directly
-
-		cmps = self.__query_cmps(ignorecase=True)
-		s1, s2 = self.__query_index(constraints=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
-		#{('name_last', u'Rees'): set([271390])}
-
-		# This works nicely, I should rewrite some of my other list sorteds
+		ret = self.query(constraints=[[param, "contains_w_empty", query]], ignorecase=True, ctx=ctx, txn=txn)
+		s2 = ret.get('groups', {}).get(param)
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
-		if limit: keys = keys[:int(limit)]
-
-		# Turn back into a dictionary
-		ret = dict([(i[0][1], i[1]) for i in keys])
+		if limit:
+			keys = keys[:int(limit)]
+			
+		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
-			for k in ret:
-				ret[k]=len(ret[k])
-
+			for k,v in ret.items():
+				ret[k] = len(v)
+		
 		return ret
+		
+
+		# This method was simplified, and now uses __query_index directly
+		# cmps = self.__query_cmps(ignorecase=True)
+		# s1, s2 = self.__query_index(constraints=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
+		# #{('name_last', u'Rees'): set([271390])}
+		# 
+		# # This works nicely, I should rewrite some of my other list sorteds
+		# keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
+		# if limit: keys = keys[:int(limit)]
+		# 
+		# # Turn back into a dictionary
+		# ret = dict([(i[0][1], i[1]) for i in keys])
+		# if count:
+		# 	for k in ret:
+		# 		ret[k]=len(ret[k])
+		# 
+		# return ret
 
 
 
@@ -2098,6 +2112,7 @@ class DB(object):
 	def __rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
 
+		g.log.msg("LOG_INDEX", "self.bdbs.indexkeys: Starting rebuild")
 		inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
 		g.log.msg("LOG_INDEX","self.bdbs.indexkeys.truncate")
@@ -2106,7 +2121,9 @@ class DB(object):
 		for k,v in inds.items():
 			g.log.msg("LOG_INDEX", "self.bdbs.indexkeys: rebuilding params %s"%k)
 			pd = self.bdbs.paramdefs.get(k, txn=txn)
-			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn) #datatype=self.__cache_vartype_indextype.get(pd.vartype),
+			print "keys are: %s"%v.keys()
+			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn)
+			#datatype=self.__cache_vartype_indextype.get(pd.vartype),
 
 
 
@@ -5140,9 +5157,13 @@ class DB(object):
 		"""generate html table of params"""
 
 		if mode in ["html","htmledit"]:
-			dt = ["<table>\n\t<thead><th><h6>Key</h6></th><th><h6>Value</h6></th></thead>\n\t<tbody>"]
-			for i in params:
-				dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+			dt = ['<table cellspacing="0" cellpadding="0">\n\t<thead><th>Parameter</th><th>Value</th></thead>\n\t<tbody>']
+			for count, i in enumerate(params):
+				if count%2:
+					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+				else:
+					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+					
 			dt.append("\t<thead>\n</table>")
 		else:
 			dt = []
@@ -5203,6 +5224,7 @@ class DB(object):
 		groupviews = {}
 		recdefs = listops.dictbykey(self.getrecorddef(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
+
 		if not viewdef:
 			for rd in recdefs.values():
 				i = rd.name
@@ -5246,6 +5268,7 @@ class DB(object):
 
 		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
 
+
 		# Parse views
 		matches = collections.defaultdict(list)
 		headers = collections.defaultdict(list)
@@ -5275,8 +5298,10 @@ class DB(object):
 				t = match.group('type')
 				n = match.group('name')
 				s = match.group('sep') or ''
+				m = mode
 				if t == '#':
-					v = pds[n].desc_short
+					# v = pds[n].desc_short
+					v = vtm.name_render(pds[n], mode=mode, db=dbp)
 				elif t == '$':
 					# v = unicode(rec.get(n))
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''

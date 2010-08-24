@@ -533,12 +533,11 @@ class vt_user(Vartype):
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if value == None:
-			return ""
-
-		update_username_cache(engine, [value], db)
-		hit, dn = engine.check_cache(engine.get_cache_key('displayname', value))
-		dn = '<a href="%s/db/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+		dn = ''
+		if value:
+			update_username_cache(engine, [value], db)
+			hit, dn = engine.check_cache(engine.get_cache_key('displayname', value))
+			dn = '<a href="%s/db/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
 		if edit:
 			dn = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label">Edit</span></span>'%(rec.recid, pd.name, pd.vartype, dn)
 		return dn

@@ -193,11 +193,11 @@ body {
 
 /**** UNSELECTABLE ELEMENTS *******/
 
-.controls, .recordtable .header > div, .editbar .clickable {
+/*.controls, .recordtable .header > div, .editbar .clickable {
 	-webkit-user-select:none;
 	-moz-user-select:none;
 }
-
+*/
 
 
 
@@ -763,7 +763,7 @@ table.map {
 .map td.next {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") center top no-repeat;
+	background:url("/images/next.png") center center no-repeat;
 }
 .map td.next_reverse {
 	max-width:32px;
@@ -853,7 +853,9 @@ table.map {
 	font-weight:normal;
 	list-style:none;
 }
-
+td ul.editable {
+	padding-left:0px;
+}
 
 
 

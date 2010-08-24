@@ -3,12 +3,18 @@
 		options: {
 			q: null,
 			show: true,
+			keywords: true,
 			plot: false,
 			ext_save: null,
+			ext_reset: null,
+			ext_q: null,
 			cb: function(self, q){}
 		},
 				
 		_create: function() {
+			this.oq = {}
+			$.extend(this.oq, this.options.q);
+			
 			this.built = 0;
 			if (this.options.show) {
 				this.show();
@@ -23,6 +29,7 @@
 		
 		build: function() {
 			var self = this;
+			
 			if (this.built) {
 				return
 			}
@@ -30,9 +37,12 @@
 
 			this.container = $('<div class="query clearfix" />');
 			
-			var m = $(' \
+			var keywords = $(' \
 				<h4>Keywords</h4> \
 				<input type="text" name="q" /> \
+			');
+			
+			var m = $(' \
 				<h4>General</h4> \
 				<table><tr> \
 					<td>Protocol:</td><td><input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
@@ -51,7 +61,6 @@
 					<input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive \
 					<input type="checkbox" name="recurse" /> Recursive</p> \
 				');
-			this.container.append(m);
 
 			var plot = $(' \
 				<h4>Plot</h4> \
@@ -64,6 +73,14 @@
 				</table> \
 				<p>Output: <input type="checkbox" name="png" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
 			');
+
+
+			// Append
+			if (this.options.keywords) {
+				this.container.append(keywords);
+			}
+
+			this.container.append(m);
 			
 			if (this.options.plot) {
 				this.container.append(plot);
@@ -74,21 +91,42 @@
 			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
 			$('input[name=parent]', this.container).Browser({});
 			$('input[name=child]', this.container).Browser({});
+			
+			var controls = $('<div class="controls"></div>');
+
+			if (this.options.ext_reset) {
+				this.options.ext_reset.click(function() {self.reset()});
+			} else {
+				controls.append('<input type="button" value="Reset" name="reset" />');
+			}
 
 			if (this.options.ext_save) {
-				this.options.ext_save.click(function() {self.query()});
+				this.options.ext_save.click(function() {self.query()});				
 			} else {
-				this.container.append('<div class="controls"><input type="button" value="Query" name="update" /></div>');
-				$('input[name=update]', this.container).click(function() {self.query()});				
+				controls.append('<input type="button" value="Query" name="query" />');
 			}
+
+			if (!this.options.ext_save || !this.options.ext_reset) {
+				this.container.append(controls);
+			}
+
+			$('input[name=query]', controls).click(function() {self.query()});
+			$('input[name=reset]', controls).click(function() {self.reset()});
+
 
 			$('.listicon', this.container).click(function() {
 				var clearselector = $(this).attr('data-clear');
 				$('input[name='+clearselector+']').val('');
 			});
 			
-			this.element.append(this.container);
-						
+			this.element.append(this.container);						
+			this.update();
+		},
+		
+		reset: function() {
+			this.options.q = {};
+			$.extend(this.options.q, this.oq);
+			//this.query();
 			this.update();
 		},
 		
@@ -112,6 +150,11 @@
 
 			var child = $('input[name=child]', this.container).val();
 			if (child) {constraints.push(['child', 'recid', parseInt(child)])}
+
+			var q = $('input[name=q]').val();
+			if (this.options.ext_q) {
+				q = this.options.ext_q.val();
+			}
 						
 			$('.constraints .constraint', this.container).each(function() {
 				var param = $('input[name=param]', this).val();
@@ -125,9 +168,11 @@
 			});
 			
 			newq['constraints'] = constraints;
+			
 			if (ignorecase) {newq['ignorecase'] = true}
 			if (recurse) {newq['recurse'] = -1}			
 			if (boolmode) {newq['boolmode'] = boolmode}
+			if (q) {newq['q'] = q}
 			
 			// $.ajax({
 			// 	type: 'POST',
@@ -206,7 +251,6 @@
 		},
 		
 		test: function() {
-			console.log("test");
 		},
 		
 		update: function(q) {
@@ -215,7 +259,10 @@
 			
 			var self = this;
 			$('.constraints tbody', this.container).empty();
-			$('input[name=q]').val(this.options.q['q']);
+			$('input[name=q]', this.container).val(this.options.q['q']);
+			if (this.options.ext_q) {
+				this.options.ext_q.val(this.options.q['q']);				
+			}
 
 			$.each(this.options.q['constraints'], function() {
 				if (this[0] == 'rectype' && this[1] == '==') { $('input[name=rectype]', self.container).val(this[2]) }

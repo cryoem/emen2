@@ -92,7 +92,7 @@ function notify_post(uri,msgs) {
 }
 
 
-
+// New record javascript init //
 
 function newrecord_init(rec) {
 	rec.recid = "None";
@@ -132,23 +132,28 @@ function newrecord_init(rec) {
 
 }
 
+
+
+// Main record page javascript init //
+
 function record_init(rec, ptest, edit) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
 	$('.editbar .edit').MultiEditControl({});
+	
 	$('.editable').EditControl({});
+
 	$('.editable_files').FileControl({});
 
 	$('.editbar .edit').EditbarHelper({
 		bind: false,
 		reflow: '#rendered',
 		init: function(self) {
-			var addcomment = $('<input type="text" name="editsummary" value="Edit Summary" />');
+			var addcomment = $('<span>Comments: <input type="text" name="editsummary" value="" /></span>');
 			self.popup.append(addcomment);
 		}
 	});
-
 
 	$('.editbar .permissions').EditbarHelper({
 		width: 640,
@@ -162,7 +167,6 @@ function record_init(rec, ptest, edit) {
 			}
 	});		
 
-
 	$('.editbar .attachments').EditbarHelper({
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
@@ -174,7 +178,6 @@ function record_init(rec, ptest, edit) {
 			}
 	});		
 
-
 	$('.editbar .newrecord').EditbarHelper({
 		cb: function(self){
 			self.popup.NewRecordSelect({
@@ -184,7 +187,6 @@ function record_init(rec, ptest, edit) {
 				});
 			}
 	});		
-
 
 	$(".editbar .relationships").EditbarHelper({		
 		width: 640,
@@ -202,6 +204,8 @@ function record_init(rec, ptest, edit) {
 
 	$(".editbar .selectview").EditbarHelper({});	
 
+	$(".editbar .creator").EditbarHelper({});	
+
 	$("#page_comments_comments").CommentsControl({
 		recid:recid,
 		edit:ptest[1] || ptest[2] || ptest[3],
@@ -213,17 +217,15 @@ function record_init(rec, ptest, edit) {
 		title:"#button_comments_history"
 		});
 
-	$('.selectview select').change(function(){
+	$('.selectview [data-viewtype]').click(function(){
 		var target=$("#rendered");
-		target.attr("data-viewtype", $(this).val());
+		target.attr("data-viewtype", $(this).attr('data-viewtype'));
 		rebuildviews("#rendered");
 	});
 
 	if (edit) {
 		$('.editbar .edit').MultiEditControl('event_click');
-	}
-
-	
+	}	
 }
 
 

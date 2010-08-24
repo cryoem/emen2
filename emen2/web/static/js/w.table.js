@@ -20,8 +20,8 @@
 
 			// query bar
 			var q = $('<div class="control" style="float:right"> \
-				<input type="text" name="qq" size="8" /> \
-				<input type="button" name="update" value="Search" /> \
+				<input type="text" name="q" size="8" /> \
+				<input type="button" name="query" value="Query" /> \
 				<img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
 			
 			// row count
@@ -36,7 +36,8 @@
 				self.query();
 			})			
 			count = $('<div class="control" style="float:right"/>').append(count);
-						
+
+
 			// page controls			
 			var pages = $('<div class="control pages" style="float:right">Pages</div>');
 
@@ -51,16 +52,19 @@
 				init: function(self2) {
 					self2.popup.QueryControl({
 						q: self.options.q,
-						ext_save: $('input[name=update]', q),
+						plot: false,
+						keywords: false,
+						ext_save: $('input[name=query]', q),
+						ext_q: $('input[name=q]', q),
 						cb: function(test, newq) {self.query(newq)} 
 					});
 				}
 			});				
-
 			
 			$('input[name=q]', q).focus(function(){
 				q.EditbarHelper('show');
 			});
+			
 			$('img', q).click(function(){
 				q.EditbarHelper('toggle');
 			});
@@ -89,7 +93,6 @@
 			newq["rendered"] = {};
 			
 			var q = $('.header input[name=qq]').val();
-			console.log(q);
 			if (q) {
 				newq['q'] = q;
 			}
@@ -172,6 +175,7 @@
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
 			var headers = this.options.q['rendered']['headers']['null'];
+			
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {

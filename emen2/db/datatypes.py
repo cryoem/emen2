@@ -100,6 +100,8 @@ class VartypeManager(object):
 
 	def param_render(self, pd, value, mode="unicode", rec=None, db=None):
 		#g.log.msg('LOG_DEBUG', "param_render: %s %s mode=%s"%(pd.vartype, value, mode))
+		if pd.name in ["creator", "creationtime", "modifyuser", "modifytime", "recid", "rectype", "groups", "permissions", "history", "username"] and mode == "htmledit":
+			mode = "html"
 		return self.__vartypes[pd.vartype]().render(self, pd, value, mode, rec, db)
 
 
@@ -235,8 +237,8 @@ class Vartype(object):
 		if pd.defaultunits and pd.defaultunits != "unitless":
 			u = " %s"%pd.defaultunits
 
-		if value in [None, "None", ""] and edit:
-			value = '<img src="%s/images/blank.png" height="10" width="50" alt="(Editable)" />'%g.EMEN2WEBROOT
+		if value == None:
+			value = ""
 			u = ""
 		else:
 			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
