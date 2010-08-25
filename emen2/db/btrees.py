@@ -311,11 +311,12 @@ class RelateBTree(BTree):
 
 
 	def get_sequence(self, delta=1, txn=None):
+		print "Setting sequence += %s"%delta
 		val = self.sequencedb.get("sequence", txn=txn, flags=g.RMWFLAGS)
 		if val == None:
 			val = 0
 		val = int(val)
-		# print "-> %s %s %s"%(val, val+delta, txn)
+		print "-> %s %s %s"%(val, val+delta, txn)
 		self.sequencedb.put("sequence", str(val+delta), txn=txn)
 		return val
 

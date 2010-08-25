@@ -4510,7 +4510,7 @@ class DB(object):
 		# OK, all go to write records/indexes!
 
 		#@begin
-
+		
 		# Reassign new record IDs and update record counter
 		# BTree may use DBSequences at some point in the future, if it's ever stable
 		if newrecs:
