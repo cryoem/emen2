@@ -240,7 +240,8 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			t = time.time()
+
+			# t = time.time()
 
 			result = None
 			commit = False
@@ -273,7 +274,7 @@ class DBProxy(object):
 					txn and self.__db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
-			print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			# print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 
 			return result
 

@@ -853,6 +853,7 @@ table.map {
 	font-weight:normal;
 	list-style:none;
 }
+
 td ul.editable {
 	padding-left:0px;
 }
@@ -1015,7 +1016,9 @@ a img, .clickable img {
 	vertical-align: middle;
 }
 
-
+a.chevron {
+	padding:3px;
+}
 
 
 /********** UTILITY **********/

@@ -247,7 +247,7 @@ class Vartype(object):
 			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
 		
 		if edit:
-			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label">Edit</span></span>'%(rec.recid, pd.name, value, u)
+			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label"><img src="/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, value, u)
 		else:	
 			return '<span>%s%s</span>'%(value, u)
 
