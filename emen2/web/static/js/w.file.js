@@ -90,7 +90,7 @@
 			
 				$.each(bdos, function(i,v) {
 					var row = $('<tr/>');
-					var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=tiny" alt=""/>'+v.filename+'</a></td>');
+					var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt=""/>'+v.filename+'</a></td>');
 					row.append(link);
 					row.append('<td>'+v.filesize+'</td>');
 					row.append('<td>'+v.creator+'</td>');
@@ -312,7 +312,7 @@
 				var row = $('<tr/>');
 				var remove = $('<td><input type="checkbox" name="remove" value="'+v.name+'" /></td>');
 				row.append(remove);
-				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=tiny" alt=""/>'+v.filename+'</a></td>');
+				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt=""/>'+v.filename+'</a></td>');
 				row.append(link);
 				row.append('<td>'+v.filesize+'</td>');
 				row.append('<td>'+v.creator+'</td>');
