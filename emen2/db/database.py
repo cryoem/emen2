@@ -512,13 +512,18 @@ class DB(object):
 
 	txncounter = 0
 
-	def newtxn(self, parent=None, ctx=None, flags=0):
+	def newtxn(self, parent=None, ctx=None, flags=None, snapshot=True):
 		"""Start a new transaction.
 		@keyparam parent Parent txn
 		@return New txn
 		"""
+		
+		if flags == None:
+			flags = g.TXNFLAGS
 
-		txn = self.dbenv.txn_begin(parent=parent, flags=g.TXNFLAGS|flags)
+		# print "New txn flags are: %s"%flags
+
+		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		#print "\n\nNEW TXN --> %s"%txn
 
 		try:
@@ -532,14 +537,14 @@ class DB(object):
 
 
 
-	def txncheck(self, txnid=0, ctx=None, txn=None):
+	def txncheck(self, txnid=0, flags=None, ctx=None, txn=None):
 		"""Check a txn status; accepts txnid or txn instance
 		@return txn if valid
 		"""
 
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
-			txn = self.newtxn(ctx=ctx)
+			txn = self.newtxn(ctx=ctx, flags=flags)
 		return txn
 
 
@@ -548,7 +553,7 @@ class DB(object):
 		"""Abort txn; accepts txnid or txn instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+		#g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
 
 		if txn:
@@ -845,7 +850,7 @@ class DB(object):
 				pass
 
 			if context.time + (context.maxidle or 0) < time.time():
-				g.log_info("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
+				# g.log_info("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
 				self.__commit_context(context.ctxid, None, ctx=ctx, txn=txn)
 
 
@@ -997,89 +1002,103 @@ class DB(object):
 
 
 	#@rename db.binary.put @ok @single @return Binary
+	#filename, recid=None, bdokey=None, filedata=None, filehandle=None, param=None, record=None, uri=None, ctx=None, txn=None):
 	@publicmethod
-	def putbinary(self, filename, recid, bdokey=None, filedata=None, filehandle=None, param=None, uri=None, ctx=None, txn=None):
-		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents.
+	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, filedata=None, filehandle=None, uri=None, ctx=None, txn=None):
+		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents."""
 
-		@param filename Filename
-		@param recid Attach to this record
-		@keyparam param Use this param in record for BDO reference
-		@keyparam uri Source URI
-		@keyparam filedata Write filedata to disk
-		@keyparam filehandle ... or a file handle to copy from
-		@keyparam bdokey Modify existing BDO (Admin only)
+		_t = time.time()
 
-		@return BDO
+		if not ctx.checkcreate():
+			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add binaries"
 
-		@exception SecurityError, ValueError
-		"""
-
-		# Filename and recid required, unless root
-		if not filename:
-			raise ValueError, "Filename required"
-
-		if (bdokey or recid == None) and not ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only admins may manipulate binary tree directly"
-
-		# ian: todo: medium: acquire RMW lock on record? (will need to not use self.getrecord.. hmm.)
-		# ed: probably, we could abstract a private method (or just add a new argument to the current
-		#     one which allows extra bsddb flags to be specified)... RMW would work, as it is global
-		#     for the transaction.
-		if not bdokey:
-			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-			if not rec.writable():
-				raise emen2.db.exceptions.SecurityError, "Write permission needed on referenced record."
-
-
-		bdoo = self.__putbinary(filename, recid, bdokey=bdokey, uri=uri, filedata=filedata, filehandle=filehandle, ctx=ctx, txn=txn)
-
-		# Add link to BDO in file
-		if not bdokey:
-			if not param:
-				param = "file_binary"
-
-			param = self.getparamdef(param, ctx=ctx, txn=txn)
-
-			if param.vartype == "binary":
-				v = rec.get(param.name) or []
-				v.append(bdoo.get("name"))
-				rec[param.name]=v
-
-			elif param.vartype == "binaryimage":
-				rec[param.name]=bdoo.get("name")
-
-			else:
-				raise ValueError, "Error: invalid vartype for binary: parameter %s, vartype is %s"%(param.name, param.vartype)
-
-			self.putrecord(rec, ctx=ctx, txn=txn)
-
-		return self.getbinary(bdoo.name, ctx=ctx, txn=txn)
-
-
-
-	# ian: todo: hard: use duplicate key style for bdocounter... delayed for now.
-	def __putbinary(self, filename, recid, bdokey=None, uri=None, filedata=None, filehandle=None, ctx=None, txn=None):
-		"""(Internal) See putbinary.
-
-		@param filename
-		@param recid
-		@keyparam bdokey
-		@keyparam uri
-		@keyparam filedata
-		@keyparam filehandle
-
-		@return Binary
-
-		@exception SecurityError
-		"""
+		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
+		if filename != None:
+			filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
+			if filename.upper() in ['.', 'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']:
+				filename = "renamed."+filename
+			filename = unicode(filename)
 
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
 		dkey = emen2.db.binary.Binary.parse(bdokey)
+		t = self.gettime()
 
-		#ed: fix: catch correct exception
-		try: os.makedirs(dkey["basepath"])
-		except: pass
+		# First write out the file
+		newfile = None
+		if filehandle or filedata:
+			newfile, filesize, md5sum = self.__putbinary_file(filename, filehandle=filehandle, filedata=filedata, dkey=dkey, ctx=ctx, txn=txn)
+	
+		print "t1: %s"%(time.time()-_t)
+		_t = time.time()
+				
+		# Update the BDO: Start RMW cycle
+		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
+
+		if dkey["counter"] == 0:
+			counter = max(bdo.keys() or [-1]) + 1
+			dkey = emen2.db.binary.Binary.parse(bdokey, counter=counter)
+
+		nb = bdo.get(dkey["counter"])
+		if newfile:
+			if nb:
+				raise emen2.db.exceptions.SecurityError, "Files are immutable"
+			nb = emen2.db.binary.Binary()
+			nb.update(
+				uri = uri,
+				creator = ctx.username,
+				creationtime = t,
+				name = dkey["name"],
+				filesize = filesize,
+				md5 = md5sum
+			)
+
+		if nb['creator'] != ctx.username and not ctx.checkadmin():			
+			raise emen2.db.exceptions.SecurityError, "You cannot modify a binary you did not create"
+
+		if recid != None:
+			nb["recid"] = recid
+
+		if filename != None:
+			nb["filename"] = filename			
+			
+		nb["modifyuser"] = ctx.username
+		nb["modifytime"] = t
+
+
+		print "t2: %s"%(time.time()-_t)
+		_t = time.time()
+
+		bdo[dkey["counter"]] = nb
+
+		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
+		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
+
+		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
+		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
+
+
+		print "t3: %s"%(time.time()-_t)
+		_t = time.time()
+
+
+		# Now move the file to the right location
+		if newfile:
+			os.rename(newfile, dkey["filepath"])
+
+		print "t4: %s"%(time.time()-_t)
+
+
+		return nb
+
+
+	def __putbinary_file(self, filename=None, filedata=None, filehandle=None, dkey=None, ctx=None, txn=None):
+		try:
+			os.makedirs(dkey["basepath"])
+		except:
+			pass
+
+		filename = filename or "UnkownFilename"
 
 		# Write out file to temporary storage
 		(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
@@ -1097,107 +1116,13 @@ class DB(object):
 				m.update(filedata)
 				filesize = len(filedata)
 
-		md5sum = m.hexdigest()
-		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
-
 		if filesize == 0:
 			raise ValueError, "Empty file!"
 
-		# Ok, now that we have written the file out, update the BDO counter and then move the file
-
-		#@begin
-		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
-
-		if dkey["counter"] == 0:
-			counter = max(bdo.keys() or [-1]) + 1
-			dkey = emen2.db.binary.Binary.parse(bdokey, counter=counter)
-
-
-		if bdo.get(dkey["counter"]) and not ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only admin may overwrite existing BDO"
-
-
-		nb = emen2.db.binary.Binary()
-		nb.update(
-			uri=uri,
-			filename=filename,
-			recid=recid,
-			creator=ctx.username,
-			creationtime=self.gettime(),
-			name=dkey["name"],
-			filesize=filesize,
-			md5=md5sum
-		)
-
-		bdo[dkey["counter"]] = nb
-
-		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
-		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
-
-		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
-		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
-
-		#@end
-
-		# Now move the file to the right location
-		os.rename(tmpfilepath, dkey["filepath"])
-
-		return nb
-
-
-
-	def __putbinary_file(self, dkey=None, filedata=None, filehandle=None, ctx=None, txn=None):
-		"""(Internal) Write a BDO's contents. See putbinary.
-
-		@param dkey A parsed BDO (see Binary.parse)
-		@keyparam filedata File data
-		@keyparam filedata
-		@keyparam filehandle
-
-		@return file size in bytes, md5
-
-		@exception SecurityError
-		"""
-
-		# filepath = dkey["filepath"]
-		# basepath = dkey["basepath"]
-
-		(fd, fname) = tempfile.mkstemp()
-		filepath = os.fdopen(fd, "w+b")
-
-
-		#ed: fix: catch correct exception
-		try:
-			os.makedirs(basepath)
-		except:
-			pass
-
-
-		#if os.access(filepath, os.F_OK) and not ctx.checkadmin():
-		#	# should be a different exception class, this particular one seems irrevelant as it is not really a security
-		#	# but an integrity problem.
-		#	raise emen2.db.exceptions.SecurityError, "Error: Attempt to overwrite existing file: %s"%dkey["filepath"]
-
-
-		m = hashlib.md5()
-		filesize = 0
-
-		with open(filepath, "wb") as f:
-			if not filedata:
-				for line in filehandle:
-					f.write(line)
-					m.update(line)
-					filesize += len(line)
-			else:
-				f.write(filedata)
-				m.update(filedata)
-				filesize = len(filedata)
-
-
 		md5sum = m.hexdigest()
-		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(filepath, filesize, md5sum))
+		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
-		return filepath, filesize, md5sum
+		return tmpfilepath, filesize, md5sum
 
 
 
@@ -1365,7 +1290,7 @@ class DB(object):
 		if groupby == None:
 			groupby = {}
 
-		if comp != "!None" and value == None:
+		if comp not in ["!None", "contains_w_empty"] and value == None:
 			return None
 
 		if not cfunc:
@@ -1623,37 +1548,42 @@ class DB(object):
 			return sorted(recids, reverse=reverse)
 
 
+		_t=time.time()
+
 		recs = listops.typefilter(recids, emen2.db.record.Record)		
 		recids = listops.typefilter(recids, int)
 		index = self.__getparamindex(param, ctx=ctx, txn=txn)
 		values = collections.defaultdict(set)
-		
+
+
 		
 		# sort/render using records directly..
 		if recs or not index or len(recids)<1000:
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
+			recids = set([rec.recid for rec in recs])		
 			for rec in recs:
 				try:
 					values[rec.get(param)].add(rec.recid)		
 				except TypeError:
 					values[tuple(rec.get(param))].add(rec.recid)
 					
-		
+					
 		# Use the index
 		else:
 			recids = set(recids)
 			# Not the best way to search the index..
-			for k,v in index.items():
+			for k,v in index.items(txn=txn):
 				v = v & recids
 				if v:
 					values[k] |= v
-				recids -= v
-			values[None] = recids
 
 
 
 		# calling out to vtm, we will need a DBProxy
-		if rendered:
+		# I'm only turning on render sort for these vartypes for now..
+		if rendered and pd.vartype in ["user", "userlist", "binary", "binaryimage"]:
+			if len(recids) > 1000:
+				raise ValueError, "Too many items to sort by this key"
 			dbp = ctx.db
 			dbp._settxn(txn)
 			vtm = emen2.db.datatypes.VartypeManager()
@@ -1662,18 +1592,17 @@ class DB(object):
 				newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
 				# rec=recs_dict.get(recid) # may fail without record..
 			values = newvalues
-		
-		nonevalues = values[None] | values['']
-		del values[None]
-		del values['']
-		
+
+
 		
 		ret = []
-		for k,v in sorted(values.items(), reverse=reverse):
-			ret.extend(sorted(v))
-			
-		ret.extend(nonevalues)
-			
+		for k in sorted(values.keys(), reverse=reverse):
+			ret.extend(sorted(values[k]))
+		
+		seen = set(ret)
+		ret.extend(sorted(recids-seen))	
+		# ret.extend(nonevalues)
+
 			
 		if pos != None and count != None:	
 			return ret[pos:pos+count]
@@ -1911,8 +1840,12 @@ class DB(object):
 				if not count: [[matching value, [recid, ...]], ...]
 		"""
 
+		pd = self.getparamdef(param, ctx=ctx, txn=txn)
 		ret = self.query(constraints=[[param, "contains_w_empty", query]], ignorecase=True, ctx=ctx, txn=txn)
-		s2 = ret.get('groups', {}).get(param)
+		print pd
+		print ret
+
+		s2 = ret.get('groups', {}).get(param, {})
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit:
 			keys = keys[:int(limit)]
@@ -1922,7 +1855,16 @@ class DB(object):
 			for k,v in ret.items():
 				ret[k] = len(v)
 		
-		return ret
+		ri = sorted(ret.items(), key=operator.itemgetter(1))
+
+		print ri
+
+		if showchoices and pd.choices:
+			ri = [[i,0] for i in pd.choices] + ri
+			
+		print ri
+		
+		return ri
 		
 
 		# This method was simplified, and now uses __query_index directly
@@ -2112,16 +2054,15 @@ class DB(object):
 	def __rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
 
-		g.log.msg("LOG_INDEX", "self.bdbs.indexkeys: Starting rebuild")
+		# g.log.msg("LOG_INFO", "self.bdbs.indexkeys: Starting rebuild")
 		inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
-		g.log.msg("LOG_INDEX","self.bdbs.indexkeys.truncate")
+		g.log.msg("LOG_INFO","self.bdbs.indexkeys.truncate")
 		self.bdbs.indexkeys.truncate(txn=txn)
 
 		for k,v in inds.items():
-			g.log.msg("LOG_INDEX", "self.bdbs.indexkeys: rebuilding params %s"%k)
+			g.log.msg("LOG_INFO", "self.bdbs.indexkeys: rebuilding params %s"%k)
 			pd = self.bdbs.paramdefs.get(k, txn=txn)
-			print "keys are: %s"%v.keys()
 			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn)
 			#datatype=self.__cache_vartype_indextype.get(pd.vartype),
 
@@ -2679,7 +2620,7 @@ class DB(object):
 
 		ret = [user.username for user in commitusers]
 
-		g.log.msg('LOG_INFO', "Users %s %s by %s"%(ret, t, ctx.username))
+		# g.log.msg('LOG_INFO', "Users %s %s by %s"%(ret, t, ctx.username))
 
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -2966,7 +2907,7 @@ class DB(object):
 			time.sleep(2)
 			raise
 
-		g.log.msg("LOG_INFO","Changing password for %s"%user.username)
+		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
 		self.__commit_users([user], ctx=ctx, txn=txn)
 
@@ -3267,7 +3208,7 @@ class DB(object):
 		for user,groups in addrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, addrefs: %r"%(user, groups))
+					# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, addrefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -3277,7 +3218,7 @@ class DB(object):
 		for user,groups in delrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, removerefs: %r"%(user, groups))
+					# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, removerefs: %r"%(user, groups))
 					self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -3299,13 +3240,9 @@ class DB(object):
 		for group in groups:
 			for user in group.members():
 				users[user].add(group.name)
-				#except Exception, inst:
-				#	g.log("unknown user %s (%s)"%(user, inst))
-
 
 		#@begin
-
-		g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser: rebuilding index")
+		# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser: rebuilding index")
 
 		self.bdbs.groupsbyuser.truncate(txn=txn)
 
@@ -3382,7 +3319,7 @@ class DB(object):
 
 		#@begin
 		for group in groups:
-			g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %r"%(group))
+			# g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %r"%(group))
 			self.bdbs.groups.set(group.name, group, txn=txn)
 
 		self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -4207,7 +4144,7 @@ class DB(object):
 		@return Updated Record
 		"""
 
-		g.log.msg("LOG_DEBUG","addcomment %s %s"%(recid, comment))
+		# g.log.msg("LOG_DEBUG","addcomment %s %s"%(recid, comment))
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
 		rec.addcomment(comment)
 		self.putrecord(rec, ctx=ctx, txn=txn)
@@ -4345,7 +4282,7 @@ class DB(object):
 
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
-
+				
 		ol, recs = listops.oltolist(recs)
 
 		if warning and not ctx.checkadmin():
@@ -4355,9 +4292,23 @@ class DB(object):
 		recs = recs
 		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
 		recs = listops.typefilter(recs, emen2.db.record.Record)
+		
+
+		# start a new non-snapshot txn
+		# newtxn = self.newtxn(flags=0)
+		# ctx.db._DBProxy__txn = newtxn
 
 		# Commit
+		# try:
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
+		# except Exception, inst:
+		# 	print "Aborted: %s"%inst
+		# 	newtxn.abort()
+		# else:
+		# 	print "Committing putrecord txn"
+		# 	newtxn.commit()
+		# 	ctx.db._DBProxy__txn = txn
+			
 
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -4390,7 +4341,6 @@ class DB(object):
 
 		# preprocess: copy updated record into original record (updrec -> orec)
 		for updrec in updrecs:
-
 			recid = updrec.recid
 
 			if recid < 0:
@@ -4415,7 +4365,7 @@ class DB(object):
 
 			# orec.recid < 0 because new records will always be committed, even if skeletal
 			if not cp and orec.recid >= 0:
-				g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
+				g.log.msg("LOG_DEBUG","putrecord: No changes for record %s, skipping"%recid)
 				continue
 
 			# ian: todo: have records be able to update themselves from another record
@@ -4515,7 +4465,7 @@ class DB(object):
 		# BTree may use DBSequences at some point in the future, if it's ever stable
 		if newrecs:
 			baserecid = self.bdbs.records.get_sequence(delta=len(newrecs), txn=txn)
-			g.log.msg("LOG_INFO","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
+			g.log.msg("LOG_DEBUG","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 
 
 		# add recids to new records, create map from temp recid to real recid, setup index
@@ -4573,9 +4523,8 @@ class DB(object):
 
 		for rectype,recs in rectypes.items():
 			try:
-				g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
+				# g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
 				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
-				# g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r DEBUG: DONE"%(rectype, recs))
 
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
@@ -4592,7 +4541,7 @@ class DB(object):
 		for user, recs in addrefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
+				# g.log.msg("LOG_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex.addrefs(user, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -4601,7 +4550,7 @@ class DB(object):
 		for user, recs in removerefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
+				# g.log.msg("LOG_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex.removerefs(user, recs, txn=txn)
 			except bsddb3.db.DBError, inst:
 				g.log.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
@@ -4621,7 +4570,7 @@ class DB(object):
 		for user, recs in addrefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
-				g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
+				# g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
 				self.bdbs.secrindex_groups.addrefs(user, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
@@ -4664,7 +4613,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+					# g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
 					addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
@@ -4674,7 +4623,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+					# g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
 					delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
@@ -4692,6 +4641,7 @@ class DB(object):
 	# ian: todo: merge all the __reindex_params together...
 	def __reindex_params(self, updrecs, cache=None, ctx=None, txn=None):
 		"""(Internal) update param indices"""
+
 		# g.log.msg('LOG_DEBUG', "Calculating param index updates...")
 
 		if not cache: cache = {}
@@ -4878,7 +4828,7 @@ class DB(object):
 		for param in allparams:
 			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
 			if paramindex != None:
-				g.log.msg('LOG_DEBUG', paramindex)
+				# g.log.msg('LOG_DEBUG', paramindex)
 				try:
 					paramindex.truncate(txn=txn)
 				except Exception, e:
@@ -4924,9 +4874,10 @@ class DB(object):
 
 		g.log.msg("LOG_INFO","Rebuilding secrindex/secrindex_groups")
 
-		g.log.msg("LOG_INDEX","self.bdbs.secrindex.truncate")
+		g.log.msg("LOG_INFO","self.bdbs.secrindex.truncate")
 		self.bdbs.secrindex.truncate(txn=txn)
-		g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.truncate")
+
+		g.log.msg("LOG_INFO","self.bdbs.secrindex_groups.truncate")
 		self.bdbs.secrindex_groups.truncate(txn=txn)
 
 		pos = 0
@@ -5109,8 +5060,10 @@ class DB(object):
 	def renderchildtree(self, recid, recurse=1, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
 
-		if recurse == -1:
-			recurse = g.MAXRECURSE
+		#if recurse == -1:
+		#	recurse = g.MAXRECURSE
+		print "recurse is: %s"%recurse
+		recurse = 3
 
 		c_all = self.getchildtree(recid, recurse=recurse, ctx=ctx, txn=txn)
 		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, ctx=ctx, txn=txn)

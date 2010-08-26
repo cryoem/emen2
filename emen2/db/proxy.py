@@ -66,12 +66,13 @@ class DBProxy(object):
 
 
 	def __exit__(self, type, value, traceback):
-		if self.__oldtxn is not self.__txn:
-			if type is None: self._committxn()
-			else:
-				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
-				self._aborttxn()
-			self.__txn = None
+		# if self.__oldtxn is not self.__txn:
+		if type is None:
+			self._committxn()
+		else:
+			g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
+			self._aborttxn()
+		self.__txn = None
 		self.__oldtxn = None
 
 
@@ -82,8 +83,8 @@ class DBProxy(object):
 	def _settxn(self, txn=None):
 		self.__txn = txn
 
-	def _starttxn(self):
-		self.__txn = self.__db.newtxn(self.__txn)
+	def _starttxn(self, flags=None):
+		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
@@ -239,7 +240,7 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			# t = time.time()
+			t = time.time()
 
 			result = None
 			commit = False
@@ -272,7 +273,7 @@ class DBProxy(object):
 					txn and self.__db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
-			# print "--- %10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 
 			return result
 

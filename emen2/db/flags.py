@@ -25,13 +25,9 @@ dbopenflags = [
 	DB_MULTIVERSION
 ]
 
-txnflags = [
-	DB_TXN_SNAPSHOT
-]
+txnflags = [DB_TXN_SNAPSHOT]
 
-rmwflags = [
-	DB_RMW
-	]
+rmwflags = [DB_RMW]
 
 
 with g as _g:

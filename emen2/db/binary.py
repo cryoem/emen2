@@ -67,7 +67,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			counter = int(bdokey[9:13],16)
 
 		else:
-			bdokey = emen2.db.database.gettime()
+			bdokey = emen2.db.database.gettime() # "2010/10/10 01:02:03"
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])

@@ -62,7 +62,9 @@ class BTree(object):
 		if not dbenv:
 			raise ValueError, "No DBEnv specified for BTree open"
 
-		self.bdb = bsddb3.db.DB(dbenv)
+		self.dbenv = dbenv
+
+		self.bdb = bsddb3.db.DB(self.dbenv)
 		for flag in self.DBSETFLAGS:
 			self.bdb.set_flags(flag)
 
@@ -272,13 +274,12 @@ class RelateBTree(BTree):
 		BTree.__init__(self, *args, **kwargs)
 
 		txn = kwargs.get("txn")
-		dbenv = kwargs.get("dbenv")
 		self.relate = True
 		self.sequence = sequence
 
 		if self.sequence:
-			self.sequencedb = bsddb3.db.DB(dbenv)
-			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS, txn=txn)
+			self.sequencedb = bsddb3.db.DB(self.dbenv)
+			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, txn=txn) #flags=g.DBOPENFLAGS
 
 		kt = self.keytype
 		dt = self.datatype
@@ -287,8 +288,8 @@ class RelateBTree(BTree):
 			kt = 'd'
 			dt = 'd'
 
-		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
-		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=dbenv, cfunc=False, bulkmode=None, txn=txn)
+		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
+		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
 
 
 
@@ -311,23 +312,30 @@ class RelateBTree(BTree):
 
 
 	def get_sequence(self, delta=1, txn=None):
-		print "Setting sequence += %s"%delta
+		
+		# newtxn = self.dbenv.txn_begin(parent=txn, flags=0) #
+		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, g.RMWFLAGS)		
+		# try:
 		val = self.sequencedb.get("sequence", txn=txn, flags=g.RMWFLAGS)
 		if val == None:
 			val = 0
 		val = int(val)
-		print "-> %s %s %s"%(val, val+delta, txn)
 		self.sequencedb.put("sequence", str(val+delta), txn=txn)
+		# except:
+		# 	newtxn.abort()
+		# else:
+		# 	newtxn.commit()
+			
 		return val
 
-	 	#sequence = bsddb3.db.DBSequence(self.sequencedb)
-	 	#sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
-		#
-		#if not txn or delta < 1:
-		#	raise ValueError, "delta and txn requried for sequence increment"
-		#val = sequence.get(delta=delta, txn=txn)
-		#
-		#sequence.close()
+		# 	 	sequence = bsddb3.db.DBSequence(self.sequencedb)
+		# 	 	sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
+		# 
+		# if not txn or delta < 1:
+		# 	raise ValueError, "delta and txn requried for sequence increment"
+		# val = sequence.get(delta=delta, txn=txn)
+		# 
+		# sequence.close()
 
 
 	def pget(self, key, txn=None, flags=0):
@@ -592,26 +600,24 @@ class FieldBTree(BTree):
 
 	# ian: todo: fix..
 	def items(self, txn=None, flags=0):
+		# r = self.bdb.items(txn)
+		# r2 = collections.defaultdict(set)
+		# for k,v in r:
+		# 	r2[self.loadkey(k)].add(int(v))
+		# return r2.items()
+		
 		ret = []
 		dt = self.datatype or "p"
-
-
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			# ian: todo: sort this out....
-			# data = emen2.db.bulk.get_dup_bulk(cursor, pair[0], self.datatype or "p")
-			
 			data = self.__get_method(cursor, pair[0], dt)
 			if bulk and dt == "p":
 				data = set(map(self.loaddata, data))
-
 			ret.append((self.loadkey(pair[0]), data))
-
 			pair = cursor.next_nodup()
-
 		cursor.close()
-
+		
 		return ret
 
 
