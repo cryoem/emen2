@@ -95,7 +95,7 @@ class InputValidator(object):
 		'''Match a specific name/value pair'''
 		result = True
 		if self.__predicates.has_key(name):
-			print name, self.__predicates[name]
+			# print name, self.__predicates[name]
 			result = self.__predicates[name](value)
 		return result
 
