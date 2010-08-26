@@ -929,6 +929,7 @@ class DB(object):
 
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ol, bdokeys = listops.oltolist(bdokeys)
+		filt = False
 
 		ret = []
 		bids = []
@@ -958,6 +959,7 @@ class DB(object):
 					if rec.get(i):
 						bids.append(rec.get(i))
 
+
 		# Ok, we now have a list of all the BDO items we need to lookup
 
 		# keyed by recid and keyed by date
@@ -972,6 +974,7 @@ class DB(object):
 
 		for k in parsed:
 			bydatekey[k["datekey"]].append(k)
+
 
 		for datekey,bydate in bydatekey.items():
 			try:
@@ -988,12 +991,20 @@ class DB(object):
 				else:
 					raise KeyError, "Invalid identifier: %s: %s"%(datekey, inst)
 
+
 		recstoget = set(byrec.keys()) - set([rec.recid for rec in recs])
 		recs.extend(self.getrecord(recstoget, ctx=ctx, txn=txn))
 
 		for rec in recs:
 			for i in byrec.get(rec.recid,[]):
 				ret.append(i)
+
+		# We allow BDO owners to access even if not associated with a recid
+		username = ctx.username
+		admin = ctx.checkadmin()
+		for i in byrec.get(None, []):
+			if i.creator == username or admin:
+				ret.append(i)	
 
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -1006,8 +1017,6 @@ class DB(object):
 	@publicmethod
 	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, filedata=None, filehandle=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents."""
-
-		_t = time.time()
 
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add binaries"
@@ -1028,10 +1037,8 @@ class DB(object):
 		newfile = None
 		if filehandle or filedata:
 			newfile, filesize, md5sum = self.__putbinary_file(filename, filehandle=filehandle, filedata=filedata, dkey=dkey, ctx=ctx, txn=txn)
-	
-		print "t1: %s"%(time.time()-_t)
-		_t = time.time()
-				
+
+
 		# Update the BDO: Start RMW cycle
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
 
@@ -1065,10 +1072,6 @@ class DB(object):
 		nb["modifyuser"] = ctx.username
 		nb["modifytime"] = t
 
-
-		print "t2: %s"%(time.time()-_t)
-		_t = time.time()
-
 		bdo[dkey["counter"]] = nb
 
 		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
@@ -1077,19 +1080,12 @@ class DB(object):
 		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
 		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
 
-
-		print "t3: %s"%(time.time()-_t)
-		_t = time.time()
-
-
 		# Now move the file to the right location
 		if newfile:
 			os.rename(newfile, dkey["filepath"])
 
-		print "t4: %s"%(time.time()-_t)
+		return self.getbinary(nb.get('name'), ctx=ctx, txn=txn)
 
-
-		return nb
 
 
 	def __putbinary_file(self, filename=None, filedata=None, filehandle=None, dkey=None, ctx=None, txn=None):

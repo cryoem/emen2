@@ -567,11 +567,10 @@ img.listicon {
 	float:left;
 	border-style:solid;
 	border-width:1px;
-	width:30px;
-	height:30px;
+	height:40px;
 }
 .userbox div {
-	margin-left:40px;
+	margin-left:45px;
 }
 
 /* .ui-dialog  */
