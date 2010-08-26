@@ -165,9 +165,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['LOG_WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		g.log.add_output(['LOG_SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
-
-
-		g.log_init('EMEN2DBHOME: %r' % EMEN2DBHOME)
+		# g.log_init('EMEN2DBHOME: %r' % EMEN2DBHOME)
 		g.CONFIG_LOADED = True
 		g.refresh()
 
