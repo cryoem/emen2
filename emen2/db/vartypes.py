@@ -597,8 +597,11 @@ class vt_userlist(Vartype):
 
 		update_username_cache(engine, value, db)
 
-		value = (cgi.escape(i) for i in value)
-		lis = ['<li><a href="%s">%s</a></li>'%(i,i) for i in value]
+		lis = []
+		for i in value:
+			key = engine.get_cache_key('displayname', i)
+			hit, dn = engine.check_cache(key)
+			lis.append('<li><a href="%s">%s</a></li>'%(i,dn))			
 		
 		if edit:
 			lis.append('<li class="nobullet"><span class="label"><img src="/images/edit.png" alt="Edit" /></span></li>')		

@@ -168,7 +168,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	$('.editbar .attachments').EditbarHelper({
-		width:400,
+		width:600,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
 				recid: recid,
@@ -206,7 +206,38 @@ function record_init(rec, ptest, edit) {
 
 	$(".editbar .selectview").EditbarHelper({});	
 
-	$(".editbar .creator").EditbarHelper({});	
+	$(".editbar .creator").EditbarHelper({});
+
+	var showsiblings = (window.location.hash.search('showsiblings'));
+	if (showsiblings>-1){showsiblings=true}
+	
+	$(".editbar .siblings").EditbarHelper({
+		show: showsiblings,
+		width:250,
+		align: 'right',
+		init: function(self) {
+			var sibling = self.element.attr('data-sibling') || rec.recid;
+			self.popup.append('<span class="status">Loading...</span>');
+			$.jsonRPC("getsiblings", [rec.recid, rec.rectype], function(siblings) {
+				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
+					siblings = siblings.sort(function(a,b){return a-b});
+					$('.status', self.popup).remove();
+					var ul = $('<ul class="nonlist" />');
+					$.extend(caches["recnames"], recnames);
+					$.each(siblings, function(i,k) {
+						if (k != rec.recid) {
+							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/db/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
+						} else {
+							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
+						}
+					});
+
+					self.popup.append(ul);
+				});
+			});
+		}
+	});
+		
 
 	$("#page_comments_comments").CommentsControl({
 		recid:recid,
@@ -296,7 +327,7 @@ function rebuildviews(selector) {
 				});
 			}
 			
-			if (this.options.show) {
+			if (this.options.show==true) {
 				this.toggle();
 			}
 			

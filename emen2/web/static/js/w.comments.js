@@ -52,7 +52,7 @@
 
 			var comments_text = caches["recs"][this.options.recid]["comments_text"];
 			if (comments_text) {
-				self.elem_body.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
+				this.element.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
 			}
 
 			if (this.options.edit) {

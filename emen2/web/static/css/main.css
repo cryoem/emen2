@@ -131,6 +131,10 @@ th,
 
 /* Text colors */
 
+ul, p {
+	margin-top:0px;
+}
+
 a,
 .clickable,
 .ui-widget-content a
@@ -139,12 +143,13 @@ a,
 }
 
 
+.editable, 
 .editable_files .label,
 .editable_files.label,
 .editable .label,
 .editable.label
 {
-	color:#783766;
+	color:#491F6D;
 }
 
 .whitehide {
@@ -1032,13 +1037,18 @@ ul.nonlist {
 ul.nonlist li {
 
 }
-
 .show {
 	display:block;
 }
 
 .hide {
 	display:none;
+}
+
+.underline {
+	height:10px;
+	border-bottom:dotted 1px #ccc;
+	width:50px;
 }
 
 /*, #buttons_main:after, .buttons:after, .pages:after, #permissions:after, #alert:after, #nav:after, .table_header:after */
