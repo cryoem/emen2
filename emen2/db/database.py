@@ -5058,7 +5058,6 @@ class DB(object):
 
 		#if recurse == -1:
 		#	recurse = g.MAXRECURSE
-		print "recurse is: %s"%recurse
 		recurse = 3
 
 		c_all = self.getchildtree(recid, recurse=recurse, ctx=ctx, txn=txn)
