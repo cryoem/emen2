@@ -599,7 +599,7 @@ class vt_userlist(Vartype):
 
 		lis = []
 		for i in value:
-			key = engine.get_cache_key('displayname', i)
+			key = engine.get_cache_key('displayname', v)
 			hit, dn = engine.check_cache(key)
 			lis.append('<li><a href="%s">%s</a></li>'%(i,dn))			
 		
