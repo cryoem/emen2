@@ -287,10 +287,16 @@ class macro_thumbnail(Macro):
 	
 		
 	def process(self, engine, macro, params, rec, db):
-		bdos=rec.get(params)
+		format = "jpg"
+		defaults = ["file_binary_image", "thumb", "jpg"]
+		params = ",".split(params)
+		for i,v in enumerate(params):
+			defaults[i]=v
+		
+		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
-			bdos=[bdos]
-		return "".join(['<img src="%s/db/tiles/%s/thumb/" alt="thumbnail" width="128" />'%(g.EMEN2WEBROOT,bid[4:]) for bid in filter(lambda x:isinstance(x,basestring), bdos)])
+			bdos = [bdos]
+		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&format=%s" alt="thumbnail" />'%(g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos)])
 
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
