@@ -287,6 +287,7 @@ class macro_thumbnail(Macro):
 	
 		
 	def process(self, engine, macro, params, rec, db):
+		print "Processing thumbnail: %s"%params
 		format = "jpg"
 		defaults = ["file_binary_image", "thumb", "jpg"]
 		params = ",".split(params)
