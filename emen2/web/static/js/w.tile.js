@@ -620,17 +620,22 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
+				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/images/spinner2.gif" />');
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/db/tiles/'+this.options.bdo+'/check/',
 					dataType: 'json',
 					success: function(d) {
+						$('.spinner', self.element).remove();
 						//self.options.extend(d);
 						self.options.width = d['width'];
 						self.options.height = d['height'];
 						self.options.filename = d['filename'];
 						self.build();
-					}				
+					},
+					error: function(x,y,z) {
+						alert("Error! Could not access tiles!");
+					}
 				});
 			} else {
 				this.build();
