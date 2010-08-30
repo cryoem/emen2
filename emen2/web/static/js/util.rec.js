@@ -237,7 +237,6 @@ function record_init(rec, ptest, edit) {
 			});
 		}
 	});
-		
 
 	$("#page_comments_comments").CommentsControl({
 		recid:recid,

@@ -530,6 +530,7 @@ img.listicon {
 	z-index:100;
 	border-right-style:dashed;
 	border-right-width:2px;
+	text-align:center;
 }
 
 .tilemap .label {
@@ -538,6 +539,7 @@ img.listicon {
 }
 
 .boxer .controls {
+	margin:0px;
 	display:block;
 	padding:0px;
 	width:565px;
