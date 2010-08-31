@@ -287,13 +287,16 @@ class macro_thumbnail(Macro):
 	
 		
 	def process(self, engine, macro, params, rec, db):
-		print "Processing thumbnail: %s"%params
+		#print "Processing thumbnail: %s"%params
 		format = "jpg"
 		defaults = ["file_binary_image", "thumb", "jpg"]
-		params = ",".split(params)
+		params = (params or '').split(",")
 		for i,v in enumerate(params):
-			defaults[i]=v
-		
+			if v:
+				defaults[i]=v
+
+		#print defaults
+	
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
 			bdos = [bdos]
