@@ -1838,8 +1838,6 @@ class DB(object):
 
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
 		ret = self.query(constraints=[[param, "contains_w_empty", query]], ignorecase=True, ctx=ctx, txn=txn)
-		print pd
-		print ret
 
 		s2 = ret.get('groups', {}).get(param, {})
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
@@ -1853,13 +1851,9 @@ class DB(object):
 		
 		ri = sorted(ret.items(), key=operator.itemgetter(1))
 
-		print ri
-
 		if showchoices and pd.choices:
 			ri = [[i,0] for i in pd.choices] + ri
-			
-		print ri
-		
+					
 		return ri
 		
 
