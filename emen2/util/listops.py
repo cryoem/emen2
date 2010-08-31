@@ -1,3 +1,4 @@
+import collections
 from functools import partial
 import itertools
 
@@ -19,13 +20,15 @@ def remove(collection, keys):
 		try: del collection[key]
 		except KeyError: pass
 
-def adj_list(list, items):
-	list.extend(items)
-	return list
-
-def adj_dict(dict, items):
-	dict.update(items)
-	return dict
+def adjust(iter_, *items_):
+	meth = None
+	if hasattr(iter_, 'update'): meth = iter_.update
+	elif hasattr(iter_, 'extend'): meth = iter_.extend
+	if meth is not None:
+		for l in items_: meth(l)
+	else:
+		iter_ = type(iter_)(itertools.chain(iter_, *items_))
+	return iter_
 
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
@@ -68,20 +71,24 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 	return result
 
 def partition(iter_, char):
+	'''partition iterable on given element
+
+	>>> partition([1,2,3,2,3,4,5,6,':',2], ':')
+	[[1, 2, 3, 2, 3, 4, 5, 6], [':'], [2]]
+	>>> partition([1,2,3,2,3,4,5,6,':'], ':')
+	[[1, 2, 3, 2, 3, 4, 5, 6], [':'], []]
+	>>> partition([1,2,3,2,3,4,5,6], ':')
+	[[1, 2, 3, 2, 3, 4, 5, 6], [], []]'''
 	res = chunk(iter_, lambda x: x[0] != char)
 	if res:
-		if res[0][-1] == char:
+		if res[0] and res[0][-1] == char:
 			del res[0][-1]
 			res.insert(1, [char])
-		if len(res) > 2:
-			res = [res[0], res[1], combine(*res[2:])]
+		if len(res) > 2: res = [res[0], res[1], combine(*res[2:])]
+	while len(res) < 3: res.append([])
 	return res
 
 
-
-# a={1:[2,3],4:[5,6]}
-# combine(a.values(), dtype=set) = set([2,3,5,6])
-# flatten(a, dtype=set) = set([1,2,3,4,5,6])
 
 def combine(*lists, **kw):
 	'''combine iterables return type is the type of the first one
@@ -111,8 +118,6 @@ def flatten(a):
 	return combine(*([a.keys()]+a.values()), dtype=set)
 
 
-
-
 # From database
 def tolist(d, dtype=None):
 	return oltolist(d, dtype=dtype)[1]
@@ -135,23 +140,18 @@ def dictbykey(l, key):
 
 def groupbykey(l, key, dtype=None):
 	dtype = dtype or list
-	d = {}
+	d = collections.defaultdict(dtype)
 	for i in l:
 		k = i.get(key)
-		if not d.has_key(k):
-			d[k] = dtype()
-		d[k].append(i)
-	return d
-	
+		d[k] = adjust(d[k], i)
+	return dict(d)
+
 
 def typefilter(l, types=None):
 	if not types:
 		types=str
 	return [x for x in l if isinstance(x,types)]
 	#return filter(lambda x:isinstance(x, types), l)
-
-
-
 
 
 def test_get():

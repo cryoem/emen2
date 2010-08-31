@@ -183,7 +183,7 @@ class URLRegistry(object):
 
 		with self.match(inp) as (sub, groups, url):
 			if url is not None:
-				args = listops.adj_dict(groups, kw)
+				args = listops.adjust(groups, kw)
 				cb = url.get_callback(sub, fallback='main')
 				result = partial(cb, **args)
 

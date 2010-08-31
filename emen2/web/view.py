@@ -10,7 +10,7 @@ import emen2.util.decorators
 import emen2.web.routing
 import emen2.web.extfile
 
-from emen2.util.listops import adj_dict
+from emen2.util.listops import adjust
 from emen2.web import routing
 
 import emen2.db.config
@@ -96,7 +96,7 @@ class View(object):
 		self.__dbtree = Context()#DBTree(db)
 
 		self.__template = template or self.template
-		self.__ctxt = adj_dict({}, extra)
+		self.__ctxt = adjust({}, extra)
 
 		self.__basectxt = dict(
 			ctxt=self.dbtree,
@@ -330,7 +330,7 @@ class Page(object):
 	'''Abstracts template rendering'''
 	def __init__(self, template, value_dict=None, **kwargs):
 		self.__template = template
-		self.__valuedict = adj_dict(kwargs, value_dict or {})
+		self.__valuedict = adjust(kwargs, value_dict or {})
 
 	def __unicode__(self):
 		return g.templates.render_template(self.__template, self.__valuedict)
