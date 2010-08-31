@@ -1375,6 +1375,12 @@ class DB(object):
 
 
 
+	def __getplotfile(self, prefix=None, suffix=None):
+		tempfile = "%s-%s-%s.%s"%(ctx.ctxid, time.time(), prefix, suffix)
+		return os.path.join(g.paths.TMPPATH, tempfile)
+		
+		
+
 	#@ok
 	@publicmethod
 	def plot(self, xparam=None, yparam=None, groupby=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
@@ -1474,12 +1480,11 @@ class DB(object):
 		ax.set_xlim(nr[0], nr[2])
 		ax.set_ylim(nr[1], nr[3])
 
-		tempfile = "graph.%s.%s"%(ctx.ctxid, time.time())
 
 		plots = {}
 		if "png" in formats:
-			pngfile = tempfile+".png"
-			fig.savefig(os.path.join(g.paths.TMPPATH,pngfile))
+			pngfile = self.__getplotfile(format="png")
+			fig.savefig(pngfile)
 			plots["png"] = pngfile
 
 
@@ -1489,8 +1494,8 @@ class DB(object):
 			ax.set_xlabel(xlabel)
 			ax.set_ylabel(ylabel)
 			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
-			pdffile = tempfile+".pdf"
-			fig.savefig(os.path.join(g.paths.TMPPATH,pdffile))
+			pdffile = self.__getplotfile(format="pdf")
+			fig.savefig(pdffile)
 			plots["pdf"] = pdffile
 
 
