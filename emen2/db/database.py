@@ -1179,6 +1179,11 @@ class DB(object):
 
 		# Step 2: Filter permissions
 		recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
+
+		# ... these are already filtered, so insert the result of an empty query here.
+		if not constraints:
+			recids = self.getindexbycontext(ctx=ctx, txn=txn)
+
 		if subset:
 			recids &= subset
 
@@ -2000,20 +2005,20 @@ class DB(object):
 
 	# ian: todo: simple: is this currently used anywhere? It was more or less replaced by filterpermissions. But may be useful to keep.
 	# #@rename db.query.context
-	# @publicmethod
-	# def getindexbycontext(self, ctx=None, txn=None):
-	# 	"""Return all readable recids
-	# 	@return All readable recids"""
-	#
-	# 	if ctx.checkreadadmin():
-	# 		return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
-	#
-	# 	ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
-	#
-	# 	for group in sorted(ctx.groups,reverse=True):
-	# 		ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
-	#
-	# 	return ret
+	@publicmethod
+	def getindexbycontext(self, ctx=None, txn=None):
+		"""Return all readable recids
+		@return All readable recids"""
+	
+		if ctx.checkreadadmin():
+			return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
+	
+		ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
+	
+		for group in sorted(ctx.groups,reverse=True):
+			ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
+	
+		return ret
 
 
 

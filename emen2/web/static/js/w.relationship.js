@@ -38,7 +38,7 @@
 			this.update_rels();			
 			
 			var self=this;
-			this.dialog = $('<div class="browser" title="Relationships" />');
+			this.dialog = $('<div class="browser" />');
 			this.tablearea = $('<div class="clearfix"/>');
 			this.dialog.append(this.tablearea);
 
@@ -46,6 +46,7 @@
 				this.element.append(this.dialog);
 			} else {
 				var pos = this.element.offset();
+				this.dialog.attr("title", "Relationships");
 				this.dialog.dialog({
 					position:[pos.left, pos.top+this.element.outerHeight()],				
 					autoOpen: false,

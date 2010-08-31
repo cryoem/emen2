@@ -563,7 +563,7 @@
 			}
 			this.built = 1;
 			
-			this.dialog = $('<div title="New Record" />');
+			this.dialog = $('<div />');
 
 			this.typicalchld = $('<div>Loading</div>')
 			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
@@ -589,6 +589,7 @@
 			}
 			
 			var pos = this.element.offset();
+			this.dialog.attr("title", "New Record");
 			this.dialog.dialog({
 				width: 300,
 				height: 400,

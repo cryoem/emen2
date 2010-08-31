@@ -119,7 +119,7 @@
 			}
 			this.built = 1;
 
-			this.dialog = $('<div title="Attachments" />');	
+			this.dialog = $('<div />');	
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
 
@@ -151,6 +151,7 @@
 				this.element.append(this.dialog);
 			} else {
 				var pos = this.element.offset();
+				this.dialog.attr("title", "Attachments");
 				this.dialog.dialog({
 					autoOpen: false,
 					width:850,
