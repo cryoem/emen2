@@ -746,18 +746,17 @@
 			var mx = this.options.maxscale;
 			if (mx == null) {mx = 8}
 			this.options.scales = [];
-			for (var i=0;math.pow(2,i)<=this.options.maxscale;i++) {
+			for (var i=0;Math.pow(2,i)<=this.options.maxscale;i++) {
 				this.options.scales.push(Math.pow(2, i));
 			}
 
-			//console.log(this.options.scales);
 			var sx = this.options.width / this.element.width();
 			var sy = this.options.height / this.element.height();
 			if (sy > sx) {sx = sy}
 			var q = 1;
 			for (var i=0; i<this.options.scales.length; i++) {
 				if ( sx > this.options.scales[i-1] ){
-					q=a[i];
+					q = this.options.scales[i];
 				}
 			};
 			return Math.round(q);
