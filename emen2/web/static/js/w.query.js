@@ -1,7 +1,29 @@
 (function($) {
+    $.widget("ui.CommonQueries", {
+		options: {
+		},
+				
+		_create: function() {
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
+
+
+(function($) {
     $.widget("ui.PlotControl", {
 		options: {
-			q: null
+			q: null,
+			cb: function(newq) {}
 		},
 				
 		_create: function() {
@@ -15,37 +37,52 @@
 			this.options.q = q;			
 			this.element.empty();
 			var self = this;
+
 			//if (this.options.q['plots']) {
 			//	return
 			//}
 			
 			var t = $('<table> \
 				<tr><td style="width:50px"><input name="ymax" type="text" size="4"></td><td style="width:650px" class="plot_title"></td><td></td></tr> \
-				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend">Legend<ul></ul></td></tr> \
+				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend">Legend<ul></ul><input type="button" name="update" value="Update" /></td></tr> \
 				<tr><td><input name="ymin" type="text" size="4"></td><td class="plot_xlabel"><input style="float:left" name="xmin" type="text" size="4" value=""/><span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /></td><td></td></tr> \
 				</table> \
 			');
 			this.element.append(t);	
 
-			$('input[name=xmin]').val(this.options.q['xmin']);
-			$('input[name=xmax]').val(this.options.q['xmax']);
-			$('input[name=ymin]').val(this.options.q['ymin']);
-			$('input[name=ymax]').val(this.options.q['ymax']);
-			$('.plot_title').html(this.options.q['title']);
-			$('.plot_xlabel .label').html(this.options.q['xlabel']);
-			$('.plot_ylabel').html(this.options.q['ylabel']);
+			$('input[name=xmin]', this.element).val(this.options.q['xmin']);
+			$('input[name=xmax]', this.element).val(this.options.q['xmax']);
+			$('input[name=ymin]', this.element).val(this.options.q['ymin']);
+			$('input[name=ymax]', this.element).val(this.options.q['ymax']);
+			$('.plot_title', this.element).html(this.options.q['title']);
+			$('.plot_xlabel .label', this.element).html(this.options.q['xlabel']);
+			$('.plot_ylabel', this.element).html(this.options.q['ylabel']);
 
 			// $('.plot_image').empty();
 			var png = this.options.q['plots']['png'];
 			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="plot" />');
-			$('.plot_image').append(i);
+			$('.plot_image', this.element).append(i);
 		
 			$.each(this.options.q['groupnames'], function(k,v) {
-				var i = $('<li><input class="colorpicker" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" />'+v+'</li>');
-				$('.plot_legend ul').append(i);
+				var i = $('<li><input type="checkbox" name="groupshow" value="'+k+'" /><input class="colorpicker" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" />'+v+'</li>');
+				$('.plot_legend ul', this.element).append(i);
 			});					
-			$('.colorpicker').colorPicker();
 
+			$('.colorpicker', this.element).colorPicker();
+
+			$('input[name=update]', this.element).click(function(){
+				self.query();
+			});
+			
+		},
+		
+		query: function() {
+			var newq = this.options.q;
+			newq['xmin'] = $('input[name=xmin]', this.element).val();
+			newq['xmax'] = $('input[name=xmax]', this.element).val();
+			newq['ymin'] = $('input[name=ymin]', this.element).val();
+			newq['ymax'] = $('input[name=ymax]', this.element).val();
+			this.options.cb(newq);			
 		},
 				
 		destroy: function() {
@@ -127,8 +164,8 @@
 			
 			var plot = $(' \
 				<h4>Plot</h4> \
-				<p>X<input type="text" name="xparam" value="" /></p> \
-				<p>Y<input type="text" name="yparam" value="" /></p> \
+				<p>X <input type="text" name="xparam" value="" /></p> \
+				<p>Y <input type="text" name="yparam" value="" /></p> \
 			');
 
 			// var plot = $(' \
@@ -166,11 +203,11 @@
 			
 			var controls = $('<div class="controls"></div>');
 
-			if (this.options.ext_reset) {
-				this.options.ext_reset.click(function() {self.reset()});
-			} else {
-				controls.append('<input type="button" value="Reset" name="reset" />');
-			}
+			// if (this.options.ext_reset) {
+			// 	this.options.ext_reset.click(function() {self.reset()});
+			// } else {
+			// 	controls.append('<input type="button" value="Reset" name="reset" />');
+			// }
 
 			if (this.options.ext_save) {
 				this.options.ext_save.click(function() {self.query()});				
