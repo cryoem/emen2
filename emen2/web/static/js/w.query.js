@@ -23,7 +23,7 @@
     $.widget("ui.PlotControl", {
 		options: {
 			q: null,
-			cb: function(newq) {}
+			cb: function(self, newq) {}
 		},
 				
 		_create: function() {
@@ -82,7 +82,7 @@
 			newq['xmax'] = $('input[name=xmax]', this.element).val();
 			newq['ymin'] = $('input[name=ymin]', this.element).val();
 			newq['ymax'] = $('input[name=ymax]', this.element).val();
-			this.options.cb(newq);			
+			this.options.cb(this, newq);			
 		},
 				
 		destroy: function() {

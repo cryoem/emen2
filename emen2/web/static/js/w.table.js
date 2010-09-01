@@ -69,7 +69,10 @@
 			});
 						
 						
-			$('.plot', this.element).PlotControl({q:this.options.q});						
+			$('.plot', this.element).PlotControl({
+				q:this.options.q,
+				cb: function(test, newq) {self.query(newq)} 
+			});						
 
 			// Set the control values from the current query state
 			this.update_controls();
