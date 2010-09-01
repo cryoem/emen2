@@ -1395,7 +1395,7 @@ class DB(object):
 
 	
 	@publicmethod
-	def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, ctx=None, txn=None, **kwargs):
+	def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, style='b', ctx=None, txn=None, **kwargs):
 
 		if not formats:
 			formats = ["png"]
@@ -1411,7 +1411,7 @@ class DB(object):
 		ax = fig.add_axes(ax_size)
 		ax.grid(True)
 		
-		handle = ax.scatter(x, y)
+		handle = ax.plot(x, y, style)
 		
 		if xmin == None: xmin = min(x)
 		if xmax == None: xmax = max(x)
