@@ -38,9 +38,9 @@
 			this.element.empty();
 			var self = this;
 
-			//if (this.options.q['plots']) {
-			//	return
-			//}
+			if (!this.options.q['plots']) {
+				return
+			}
 			
 			var t = $('<table> \
 				<tr><td style="width:50px"><input name="ymax" type="text" size="4"></td><td style="width:650px" class="plot_title"></td><td></td></tr> \
