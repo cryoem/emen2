@@ -54,7 +54,6 @@
 				init: function(self2) {
 					self2.popup.QueryControl({
 						q: self.options.q,
-						plot: false,
 						keywords: false,
 						ext_save: $('input[name=query]', q),
 						ext_q: $('input[name=q]', q),
@@ -95,7 +94,7 @@
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
 			newq["rendered"] = {};
-						
+			
 			$.ajax({
 				type: 'POST',
 				url: EMEN2WEBROOT+'/db/table/',
@@ -103,6 +102,7 @@
 			    data: {"args___json":$.toJSON(newq)},
 				success: function(q) {self.update(q)}
 			});
+			
 		},
 		
 		unique: function(li) {

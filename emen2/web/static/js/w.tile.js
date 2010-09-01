@@ -744,6 +744,7 @@
 				this.options.scale = this.autoscale();
 				this.setscale(this.options.scale);
 				this.autocenter();
+
 			} else if (mode == "1d") {
 				var apix = $('input[name=apix]').val(); // this should include [data-bdo=..]
 				if (!apix) {
@@ -754,6 +755,7 @@
 				this.inner.append(modeimg);
 				this.inner.css('top',0);
 				this.inner.css('left',0);
+
 			} else if (mode == "pspec") {
 				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'?size=pspec&format=png" />');
 				this.inner.append(modeimg);				

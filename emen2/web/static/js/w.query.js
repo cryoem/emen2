@@ -4,7 +4,7 @@
 			q: null,
 			show: true,
 			keywords: true,
-			plot: false,
+			plot: true,
 			ext_save: null,
 			ext_reset: null,
 			ext_q: null,
@@ -67,11 +67,11 @@
 				<table cellpadding="0" cellspacing="0"> \
 					<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
 					<tbody> \
-						<tr><td>X</td><td><input type="text" name="xparam" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
-						<tr><td>Y</td><td><input type="text" name="yparam" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
+						<tr><td>X</td><td><input type="text" name="xparam" value="ctf_bfactor" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
+						<tr><td>Y</td><td><input type="text" name="yparam" value="ctf_defocus_measured" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
 					</tbody> \
 				</table> \
-				<p>Output: <input type="checkbox" name="png" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
+				<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
 			');
 
 
@@ -86,6 +86,9 @@
 				this.container.append(plot);
 			}
 
+
+			$('input[name=xparam]', this.container).FindControl({mode: 'findparamdef'});			
+			$('input[name=yparam]', this.container).FindControl({mode: 'findparamdef'});			
 
 			$('input[name=rectype]', this.container).FindControl({mode: 'findrecorddef'});			
 			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
@@ -138,6 +141,30 @@
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var recurse = $('input[name=recurse]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
+
+			var xparam = $('input[name=xparam]', this.container).val();
+			var yparam = $('input[name=yparam]', this.container).val();
+			if (xparam || yparam) {
+				newq['xparam'] = xparam;
+				newq['yparam'] = yparam;
+				
+				var xmin = $('input[name=xmin]', this.container).val();
+				if (xmin) {newq["xmin"]=xmin}
+
+				var xmax = $('input[name=xmax]', this.container).val();
+				if (xmax) {newq["xmax"]=xmax}
+
+				var ymin = $('input[name=ymin]', this.container).val();
+				if (ymin) {newq["ymin"]=ymin}
+
+				var ymax = $('input[name=ymax]', this.container).val();
+				if (ymax) {newq["ymax"]=ymax}
+
+				var width = $('input[name=width]', this.container).val();
+				if (width) {newq["width"]=width}
+
+				newq['formats'] = ['png'];
+			}
 
 			var rectype = $('input[name=rectype]', this.container).val();
 			if (rectype) {constraints.push(['rectype', '==', rectype])}

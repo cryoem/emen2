@@ -1199,6 +1199,7 @@ class DB(object):
 		if subset:
 			recids &= subset
 
+
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
@@ -1243,6 +1244,7 @@ class DB(object):
 		else:
 			if not keys:
 				return
+				
 			ind = self.__getparamindex(self.__query_paramstrip(groupparam), ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
@@ -1449,10 +1451,8 @@ class DB(object):
 
 
 	@publicmethod
-	def plot(self, xparam=None, yparam=None, groupby=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
-
-		q = self.query(ctx=ctx, txn=txn, **kwargs)
-
+	def plot(self, xparam, yparam, groupby="rectype", constraints=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
+		
 		# print xparam, yparam
 
 		if not xparam or not yparam:
@@ -1460,6 +1460,20 @@ class DB(object):
 
 		if not formats:
 			formats = ["png"]
+
+		constraints = constraints or []
+		cparams = [i[0] for i in constraints]
+		if xparam not in cparams:
+			constraints.append([xparam, "contains_w_empty", ""])
+		if yparam not in cparams:
+			constraints.append([yparam, "contains_w_empty", ""])
+		
+
+		q = self.query(constraints=constraints, ctx=ctx, txn=txn, **kwargs)
+		if not q["groups"].get(groupby):
+			groupby = "rectype"
+			q["groups"][groupby] = self.groupbyrecorddef(q["recids"], ctx=ctx, txn=txn)
+
 
 		width = int(width)
 		groupcolors = {}
@@ -1474,8 +1488,6 @@ class DB(object):
 		recids = set(xinvert.keys()) & set(yinvert.keys())
 
 		### plot_plot
-
-
 		colorcount = len(COLORS)
 
 		# Generate labels
@@ -1528,7 +1540,6 @@ class DB(object):
 			handles.append(handle)
 			labels.append(k)
 			groupnames[k] = k
-
 
 
 		if xmin != None: nr[0] = float(xmin)
