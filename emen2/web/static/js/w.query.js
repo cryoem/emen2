@@ -44,7 +44,7 @@
 			
 			var t = $('<table> \
 				<tr><td style="width:50px"><input name="ymax" type="text" size="4"></td><td style="width:650px" class="plot_title"></td><td></td></tr> \
-				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend">Legend<ul></ul><input type="button" name="update" value="Update" /></td></tr> \
+				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend"><h4>Legend</h4><ul class="nonlist"></ul><input type="button" name="update" value="Update" /></td></tr> \
 				<tr><td><input name="ymin" type="text" size="4"></td><td class="plot_xlabel"><input style="float:left" name="xmin" type="text" size="4" value=""/><span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /></td><td></td></tr> \
 				</table> \
 			');
@@ -64,11 +64,23 @@
 			$('.plot_image', this.element).append(i);
 		
 			$.each(this.options.q['groupnames'], function(k,v) {
-				var i = $('<li><input type="checkbox" name="groupshow" value="'+k+'" /><input class="colorpicker" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" />'+v+'</li>');
+				var i = $('<li> \
+					<input type="checkbox" checked="checked" name="groupshow" data-group="'+k+'" value="'+k+'" /> \
+					<input class="colorpicker" name="groupcolor" data-group="'+k+'" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" /> '+v+'</li>');
+					
 				$('.plot_legend ul', this.element).append(i);
 			});					
 
 			$('.colorpicker', this.element).colorPicker();
+
+
+			// Check the boxes for groups that are being displayed
+			if (this.options.q['groupshow']) {
+				$('input[name=groupshow]').each(function(){$(this).attr('checked',null)});
+				$.each(this.options.q['groupshow'], function() {
+					$('input[name=groupshow][data-group='+this+']', self.element).attr('checked', 'checked');
+				});
+			}
 
 			$('input[name=update]', this.element).click(function(){
 				self.query();
@@ -82,6 +94,23 @@
 			newq['xmax'] = $('input[name=xmax]', this.element).val();
 			newq['ymin'] = $('input[name=ymin]', this.element).val();
 			newq['ymax'] = $('input[name=ymax]', this.element).val();
+			
+			// groupshow
+			var el = $('input[name=groupshow]:checked', this.element);
+			var groupshow = el.map(function(){return $(this).attr('data-group')});
+			//if (groupshow.length < el.length) {
+			newq['groupshow'] = $.makeArray(groupshow);
+			//} else {
+			//	newq['groupshow'] = null;
+			//}
+			
+			// groupcolor
+			var groupcolors = {};
+			$('input[name=groupcolor]', this.element).each(function() {
+				groupcolors[$(this).attr('data-group')] = $(this).val();
+			});
+			newq['groupcolors'] = groupcolors;
+
 			this.options.cb(this, newq);			
 		},
 				
@@ -164,8 +193,8 @@
 			
 			var plot = $(' \
 				<h4>Plot</h4> \
-				<p>X <input type="text" name="xparam" value="" /></p> \
-				<p>Y <input type="text" name="yparam" value="" /></p> \
+				<p>X <input type="text" name="xparam" value="ctf_defocus_measured" /></p> \
+				<p>Y <input type="text" name="yparam" value="ctf_bfactor" /></p> \
 			');
 
 			// var plot = $(' \
@@ -215,9 +244,9 @@
 				controls.append('<input type="button" value="Query" name="query" />');
 			}
 
-			if (!this.options.ext_save || !this.options.ext_reset) {
-				this.container.append(controls);
-			}
+			// if (!this.options.ext_save || !this.options.ext_reset) {
+			// 	this.container.append(controls);
+			// }
 
 			$('input[name=query]', controls).click(function() {self.query()});
 			$('input[name=reset]', controls).click(function() {self.reset()});
@@ -300,14 +329,7 @@
 			if (ignorecase) {newq['ignorecase'] = true}
 			if (recurse) {newq['recurse'] = -1}			
 			if (boolmode) {newq['boolmode'] = boolmode}
-			if (q) {newq['q'] = q}
-			
-			// $.ajax({
-			// 	type: 'POST',
-			// 	url: EMEN2WEBROOT+'/db/table/',
-			//     data: {"args___json":$.toJSON(newq)},
-			// 	success: function(data) {$('.table').html(data)}
-			// });			
+			if (q) {newq['q'] = q}		
 			this.options.cb(this, newq);
 
 		},
