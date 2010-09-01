@@ -603,10 +603,11 @@
 			mode: "live",
 			displaymode: 'map',
 			show: true,
-			controlsinset: true
+			controlsinset: true,
+			scales: [1, 2, 4, 8, 16]
 		},
 		
-		_create: function() {			
+		_create: function() {		
 			if (this.options.bdo == null) {
 				this.options.bdo = this.element.attr('data-bdo');
 			}
@@ -631,6 +632,7 @@
 						self.options.width = d['width'];
 						self.options.height = d['height'];
 						self.options.filename = d['filename'];
+						self.options.maxscale = d['maxscale'];
 						self.build();
 					},
 					error: function(x,y,z) {
@@ -741,10 +743,24 @@
 		},
 
 		autoscale: function(refresh) {
+			var mx = this.options.maxscale;
+			if (mx == null) {mx = 8}
+			this.options.scales = [];
+			for (var i=0;math.pow(2,i)<=this.options.maxscale;i++) {
+				this.options.scales.push(Math.pow(2, i));
+			}
+
+			//console.log(this.options.scales);
 			var sx = this.options.width / this.element.width();
 			var sy = this.options.height / this.element.height();
 			if (sy > sx) {sx = sy}
-			return Math.ceil(sx);
+			var q = 1;
+			for (var i=0; i<this.options.scales.length; i++) {
+				if ( sx > this.options.scales[i-1] ){
+					q=a[i];
+				}
+			};
+			return Math.round(q);
 		},
 		
 		autocenter: function() {
@@ -841,8 +857,6 @@
 			var autoscale = this.autoscale();
 			if (scale == 'auto' || scale > autoscale) { scale = autoscale } 
 			if (scale < 1) { scale = 1 }
-			// if (scale == this.options.scale) { return }
-			// if (this.options.displaymode != "map") { return }
 			this.options.scale = scale;
 			$('img', this.inner).remove();
 			$('.boxbox', this.inner).each(function(){$(this).BoxBox('option', 'scale', scale).BoxBox('refresh')});
