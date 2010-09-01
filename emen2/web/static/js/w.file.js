@@ -110,6 +110,16 @@
 			this.tablearea.append(bdotable);
 		
 		},
+
+
+		make_filecontrol: function(param) {
+			var i = $('<div />');
+			i.FileControl({
+				recid: this.options.recid,
+				show: 1,
+				param: param
+			});
+		},
 		
 		build: function() {
 			var self=this;
@@ -128,21 +138,21 @@
 			var ss = $('<select data-recid="'+this.recid+'"/>');
 			ss.append('<option value="" />');
 
-			$.each(['file_binary','file_binary_image'], function() {
-				ss.append('<option value="'+this+'">'+this+'</option>');
-			});
+			//$.each(['file_binary','file_binary_image'], function() {
+			//	ss.append('<option value="'+this+'">'+this+'</option>');
+			//});
+			ss.append('<option value="file_binary">Regular Attachment</option>');
+			ss.append('<option value="file_binary_image">Image File (e.g. CCD)</option>');
 
-			ss.change(function() {
-				if (!$(this).val()) {return}
-				var i = $('<div />');
-				i.FileControl({
-					recid: self.options.recid,
-					show:1,
-					param: $(this).val()
-				});
+			ss.val("file_binary");
+
+			ssc = $('<input type="button" value="Add File" />');
+			ssc.click(function() {
+				var v = ss.val();
+				if (!v){return}
+				self.make_filecontrol(v);
 			})
-
-			controls.append("Add File: ", ss);
+			controls.append(ss, ssc);
 			
 			this.dialog.append(this.tablearea, this.browserarea, controls);
 
