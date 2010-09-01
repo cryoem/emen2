@@ -124,17 +124,25 @@
 					<input type="checkbox" name="recurse" /> Recursive</p> \
 				');
 
+			
 			var plot = $(' \
-				<h4>Plot</h4> \
-				<table cellpadding="0" cellspacing="0"> \
-					<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
-					<tbody> \
-						<tr><td>X</td><td><input type="text" name="xparam" value="" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
-						<tr><td>Y</td><td><input type="text" name="yparam" value="" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
-					</tbody> \
-				</table> \
-				<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
+				<h4>Plot</h4>
+				<p>X<input type="text" name="xparam" value="" /></p>
+				<p>Y<input type="text" name="yparam" value="" /></p>
 			');
+
+
+			// var plot = $(' \
+			// 	<h4>Plot</h4> \
+			// 	<table cellpadding="0" cellspacing="0"> \
+			// 		<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
+			// 		<tbody> \
+			// 			<tr><td>X</td><td><input type="text" name="xparam" value="" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
+			// 			<tr><td>Y</td><td><input type="text" name="yparam" value="" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
+			// 		</tbody> \
+			// 	</table> \
+			// 	<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
+			// ');
 
 
 			// Append
@@ -209,23 +217,18 @@
 			if (xparam || yparam) {
 				newq['xparam'] = xparam;
 				newq['yparam'] = yparam;
-				
-				var xmin = $('input[name=xmin]', this.container).val();
-				if (xmin) {newq["xmin"]=xmin}
-
-				var xmax = $('input[name=xmax]', this.container).val();
-				if (xmax) {newq["xmax"]=xmax}
-
-				var ymin = $('input[name=ymin]', this.container).val();
-				if (ymin) {newq["ymin"]=ymin}
-
-				var ymax = $('input[name=ymax]', this.container).val();
-				if (ymax) {newq["ymax"]=ymax}
-
-				var width = $('input[name=width]', this.container).val();
-				if (width) {newq["width"]=width}
-
 				newq['formats'] = ['png'];
+
+				// var xmin = $('input[name=xmin]', this.container).val();
+				// if (xmin) {newq["xmin"]=xmin}
+				// var xmax = $('input[name=xmax]', this.container).val();
+				// if (xmax) {newq["xmax"]=xmax}
+				// var ymin = $('input[name=ymin]', this.container).val();
+				// if (ymin) {newq["ymin"]=ymin}
+				// var ymax = $('input[name=ymax]', this.container).val();
+				// if (ymax) {newq["ymax"]=ymax}
+				// var width = $('input[name=width]', this.container).val();
+				// if (width) {newq["width"]=width}
 			}
 
 			var rectype = $('input[name=rectype]', this.container).val();
