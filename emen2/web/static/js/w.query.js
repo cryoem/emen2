@@ -126,11 +126,10 @@
 
 			
 			var plot = $(' \
-				<h4>Plot</h4>
-				<p>X<input type="text" name="xparam" value="" /></p>
-				<p>Y<input type="text" name="yparam" value="" /></p>
+				<h4>Plot</h4> \
+				<p>X<input type="text" name="xparam" value="" /></p> \
+				<p>Y<input type="text" name="yparam" value="" /></p> \
 			');
-
 
 			// var plot = $(' \
 			// 	<h4>Plot</h4> \
