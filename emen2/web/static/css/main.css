@@ -595,7 +595,8 @@ img.listicon {
 /************* COLOR PICKER ************/
 
 div.color_picker {
-	float: right;
+	/* float: right; */
+	display:inline;
 	height: 16px;
 	width: 16px;
 	padding: 0 !important;
@@ -640,6 +641,12 @@ div.color_swatch {
 	margin:0px;
 	padding:0px;
 }
+
+.plot_title, .plot_xlabel, .plot_ylabel {
+	text-align:center;
+	font-weight:bold;
+}
+
 
 .vertical {
 	display:block;

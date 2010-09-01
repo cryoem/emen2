@@ -1182,7 +1182,10 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in constraints:
+			t = time.time()
 			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
+			# print "== ", time.time()-t, searchparam, comp, value
+
 			if recids == None:
 				recids = constraintmatches
 			if "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
@@ -1190,21 +1193,22 @@ class DB(object):
 
 
 		# Step 2: Filter permissions
-		recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
-
-		# ... these are already filtered, so insert the result of an empty query here.
-		if not constraints:
+		if constraints:
+			recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
+		else:
+			# ... these are already filtered, so insert the result of an empty query here.
 			recids = self.getindexbycontext(ctx=ctx, txn=txn)
-
+	
 		if subset:
 			recids &= subset
-
-
+			
+			
+					
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, recurse=recurse, ctx=ctx, txn=txn)
-
+			
 
 		ret = {
 			"q":q,
@@ -1305,7 +1309,7 @@ class DB(object):
 		if groupby == None:
 			groupby = {}
 
-		if comp not in ["!None", "contains_w_empty"] and value == None:
+		if value == None and comp not in ["!None", "contains_w_empty"]:
 			return None
 
 		if not cfunc:
@@ -1451,29 +1455,84 @@ class DB(object):
 
 
 	@publicmethod
-	def plot(self, xparam, yparam, groupby="rectype", constraints=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
+	def querytable(self, recid=None, rectype=None, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
+
+		# Convenience
+		if recid != None and rectype != None:
+			q = {'constraints': [['parent', 'recid', recid], ['rectype', '==', rectype]]}
 		
-		# print xparam, yparam
+		xparam = q.get('xparam', None)
+		yparam = q.get('yparam', None)
+		count = int(count) or None
+		pos = int(pos)
+		
+		if reverse == None:
+			reverse = True
+		reverse = bool(reverse)		
 
-		if not xparam or not yparam:
-			return q
+		# Run query
+		if xparam or yparam:
+			q.update(self.plot(ctx=ctx, txn=txn, **q))
+		else:
+			q.update(self.query(ctx=ctx, txn=txn, **q))
+						
+			
+		length = len(q['recids'])		
+		rectypes = q.get('groups', {}).get('rectype', {})
+		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
 
-		if not formats:
-			formats = ["png"]
+		# Process into table
+		if len(rds) == 1 and not viewdef:
+			rds = rds.pop()
+			viewdef = rds.views['tabularview']
+		elif len(rds) > 1 or len(rds) == 0:
+			viewdef = "$@recname() $@thumbnail() $$rectype $$recid $$creator $$creationtime"
+		
+		# Sort
+		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)
+		
+		# Render
+		rendered = self.renderview(q['recids'], viewdef=viewdef, table=True, ctx=ctx, txn=txn)
 
+		q.update(dict(
+			pos = pos,
+			count = count,
+			sortkey = sortkey,
+			reverse = reverse,
+			viewdef = viewdef,
+			length = length,
+			rendered = rendered,
+			groups = {}
+		))
+
+		return q
+
+
+
+	@publicmethod
+	def plot(self, xparam, yparam, groupby="rectype", constraints=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
+
+		# Run all the arguments through query..
 		constraints = constraints or []
 		cparams = [i[0] for i in constraints]
 		if xparam not in cparams:
-			constraints.append([xparam, "contains_w_empty", ""])
+			constraints.append([xparam, "!None", ""])
 		if yparam not in cparams:
-			constraints.append([yparam, "contains_w_empty", ""])
-		
+			constraints.append([yparam, "!None", ""])
+					
+
+		# t = time.time()
 
 		q = self.query(constraints=constraints, ctx=ctx, txn=txn, **kwargs)
 		if not q["groups"].get(groupby):
 			groupby = "rectype"
 			q["groups"][groupby] = self.groupbyrecorddef(q["recids"], ctx=ctx, txn=txn)
 
+		# print "Time: %s"%(time.time()-t)
+
+
+		if not formats:
+			formats = ["png"]
 
 		width = int(width)
 		groupcolors = {}
@@ -1526,7 +1585,7 @@ class DB(object):
 
 		# plot each group
 		for k,v in sorted(groups[groupby].items()):
-			v = v & recids
+			# v = v & recids
 			if len(v) <= cutoff or (groupshow and k not in groupshow):
 				continue
 			x = map(xinvert.get, v)
@@ -1548,7 +1607,6 @@ class DB(object):
 		if ymax != None: nr[3] = float(ymax)
 
 		# print "ranges: %s"%nr
-
 		ax.set_xlim(nr[0], nr[2])
 		ax.set_ylim(nr[1], nr[3])
 
@@ -1557,7 +1615,7 @@ class DB(object):
 		if "png" in formats:
 			pngfile = self.__getplotfile(prefix="plot", suffix="png", ctx=ctx, txn=txn)
 			fig.savefig(pngfile)
-			plots["png"] = pngfile
+			plots["png"] = os.path.basename(pngfile)
 
 
 		# We draw titles, labels, etc. in PDF graphs
@@ -1568,7 +1626,7 @@ class DB(object):
 			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
 			pdffile = self.__getplotfile(prefix="plot", suffix="pdf", ctx=ctx, txn=txn)
 			fig.savefig(pdffile)
-			plots["pdf"] = pdffile
+			plots["pdf"] = os.path.basename(pdffile)
 
 
 		q.update({
@@ -1586,7 +1644,7 @@ class DB(object):
 			"width": width,
 			"xmin": nr[0],
 			"xmax": nr[2],
-			"ymin": nr[0],
+			"ymin": nr[1],
 			"ymax": nr[3],
 			"cutoff": cutoff
 		})

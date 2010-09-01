@@ -1,4 +1,66 @@
 (function($) {
+    $.widget("ui.PlotControl", {
+		options: {
+			q: null
+		},
+				
+		_create: function() {
+			if (this.options.q['plots']) {
+				this.update(this.options.q);				
+			}
+		},
+
+		update: function(q) {
+			var q = q || this.options.q;
+			this.options.q = q;			
+			this.element.empty();
+			var self = this;
+			//if (this.options.q['plots']) {
+			//	return
+			//}
+			
+			var t = $('<table> \
+				<tr><td style="width:50px"><input name="ymax" type="text" size="4"></td><td style="width:650px" class="plot_title"></td><td></td></tr> \
+				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend">Legend<ul></ul></td></tr> \
+				<tr><td><input name="ymin" type="text" size="4"></td><td class="plot_xlabel"><input style="float:left" name="xmin" type="text" size="4" value=""/><span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /></td><td></td></tr> \
+				</table> \
+			');
+			this.element.append(t);	
+
+			$('input[name=xmin]').val(this.options.q['xmin']);
+			$('input[name=xmax]').val(this.options.q['xmax']);
+			$('input[name=ymin]').val(this.options.q['ymin']);
+			$('input[name=ymax]').val(this.options.q['ymax']);
+			$('.plot_title').html(this.options.q['title']);
+			$('.plot_xlabel .label').html(this.options.q['xlabel']);
+			$('.plot_ylabel').html(this.options.q['ylabel']);
+
+			// $('.plot_image').empty();
+			var png = this.options.q['plots']['png'];
+			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="plot" />');
+			$('.plot_image').append(i);
+		
+			$.each(this.options.q['groupnames'], function(k,v) {
+				var i = $('<li><input class="colorpicker" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" />'+v+'</li>');
+				$('.plot_legend ul').append(i);
+			});					
+			$('.colorpicker').colorPicker();
+
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
+
+(function($) {
     $.widget("ui.QueryControl", {
 		options: {
 			q: null,
@@ -62,17 +124,24 @@
 					<input type="checkbox" name="recurse" /> Recursive</p> \
 				');
 
+			
 			var plot = $(' \
 				<h4>Plot</h4> \
-				<table cellpadding="0" cellspacing="0"> \
-					<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
-					<tbody> \
-						<tr><td>X</td><td><input type="text" name="xparam" value="ctf_bfactor" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
-						<tr><td>Y</td><td><input type="text" name="yparam" value="ctf_defocus_measured" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
-					</tbody> \
-				</table> \
-				<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
+				<p>X <input type="text" name="xparam" value="" /></p> \
+				<p>Y <input type="text" name="yparam" value="" /></p> \
 			');
+
+			// var plot = $(' \
+			// 	<h4>Plot</h4> \
+			// 	<table cellpadding="0" cellspacing="0"> \
+			// 		<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
+			// 		<tbody> \
+			// 			<tr><td>X</td><td><input type="text" name="xparam" value="" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
+			// 			<tr><td>Y</td><td><input type="text" name="yparam" value="" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
+			// 		</tbody> \
+			// 	</table> \
+			// 	<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
+			// ');
 
 
 			// Append
@@ -147,23 +216,18 @@
 			if (xparam || yparam) {
 				newq['xparam'] = xparam;
 				newq['yparam'] = yparam;
-				
-				var xmin = $('input[name=xmin]', this.container).val();
-				if (xmin) {newq["xmin"]=xmin}
-
-				var xmax = $('input[name=xmax]', this.container).val();
-				if (xmax) {newq["xmax"]=xmax}
-
-				var ymin = $('input[name=ymin]', this.container).val();
-				if (ymin) {newq["ymin"]=ymin}
-
-				var ymax = $('input[name=ymax]', this.container).val();
-				if (ymax) {newq["ymax"]=ymax}
-
-				var width = $('input[name=width]', this.container).val();
-				if (width) {newq["width"]=width}
-
 				newq['formats'] = ['png'];
+
+				// var xmin = $('input[name=xmin]', this.container).val();
+				// if (xmin) {newq["xmin"]=xmin}
+				// var xmax = $('input[name=xmax]', this.container).val();
+				// if (xmax) {newq["xmax"]=xmax}
+				// var ymin = $('input[name=ymin]', this.container).val();
+				// if (ymin) {newq["ymin"]=ymin}
+				// var ymax = $('input[name=ymax]', this.container).val();
+				// if (ymax) {newq["ymax"]=ymax}
+				// var width = $('input[name=width]', this.container).val();
+				// if (width) {newq["width"]=width}
 			}
 
 			var rectype = $('input[name=rectype]', this.container).val();
@@ -304,8 +368,7 @@
 			});
 			this.addconstraint();
 			if (this.options.q['ignorecase']) {$('input[name=ignorecase]', this.container).attr('checked', 'checked')}
-			if (this.options.q['recurse'] == -1) {$('input[name=recurse]', this.container).attr('checked', 'checked')}
-			
+			if (this.options.q['recurse'] == -1) {$('input[name=recurse]', this.container).attr('checked', 'checked')}			
 		},		
 				
 		destroy: function() {
