@@ -1535,7 +1535,7 @@ class DB(object):
 			formats = ["png"]
 
 		width = int(width)
-		groupcolors = {}
+		groupcolors = groupcolors or {}
 
 		# Get parameters
 		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
@@ -1554,9 +1554,9 @@ class DB(object):
 		title = kwargs.get('title') or 'Test Graph'
 		xlabel = kwargs.get('xlabel') or '%s'%(xpd.desc_short)
 		ylabel = kwargs.get('ylabel') or '%s'%(ypd.desc_short)
-		if xpd.defaultunits:
+		if xpd.defaultunits and not kwargs.get('xlabel'):
 			xlabel = '%s (%s)'%(xlabel, xpd.defaultunits)
-		if ypd.defaultunits:
+		if ypd.defaultunits and not kwargs.get('ylabel'):
 			ylabel = '%s (%s)'%(ylabel, ypd.defaultunits)
 
 
@@ -1586,19 +1586,23 @@ class DB(object):
 		# plot each group
 		for k,v in sorted(groups[groupby].items()):
 			# v = v & recids
-			if len(v) <= cutoff or (groupshow and k not in groupshow):
+			if len(v) <= cutoff:
 				continue
+				
+			groupnames[k] = "%s (%s records)"%(k, len(v))
+			groupcolors[k] = groupcolors.get(k, COLORS[nextcolor%colorcount])
+			nextcolor += 1
+
+			if  (groupshow and k not in groupshow):
+				continue
+				
 			x = map(xinvert.get, v)
 			y = map(yinvert.get, v)
 
 			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
-			groupcolors[k] = COLORS[nextcolor%colorcount]
-			nextcolor += 1
-
-			handle = ax.scatter(x, y, c=groupcolors[k]) # cm.hsv(count/total), marker='x'
+			handle = ax.scatter(x, y, c=groupcolors[k])
 			handles.append(handle)
 			labels.append(k)
-			groupnames[k] = k
 
 
 		if xmin != None: nr[0] = float(xmin)

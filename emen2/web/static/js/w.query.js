@@ -193,8 +193,8 @@
 			
 			var plot = $(' \
 				<h4>Plot</h4> \
-				<p>X <input type="text" name="xparam" value="ctf_defocus_measured" /></p> \
-				<p>Y <input type="text" name="yparam" value="ctf_bfactor" /></p> \
+				<p>X <input type="text" name="xparam" value="" /></p> \
+				<p>Y <input type="text" name="yparam" value="" /></p> \
 			');
 
 			// var plot = $(' \
@@ -244,12 +244,15 @@
 				controls.append('<input type="button" value="Query" name="query" />');
 			}
 
-			// if (!this.options.ext_save || !this.options.ext_reset) {
-			// 	this.container.append(controls);
-			// }
+			controls.append('<input type="button" value="Demo Plot" name="demo" />');
+
+			if (!this.options.ext_save || !this.options.ext_reset) {
+				this.container.append(controls);
+			}
 
 			$('input[name=query]', controls).click(function() {self.query()});
 			$('input[name=reset]', controls).click(function() {self.reset()});
+			$('input[name=demo]', controls).click(function() {self.demo()});
 
 
 			$('.listicon', this.container).click(function() {
@@ -259,6 +262,12 @@
 			
 			this.element.append(this.container);						
 			this.update();
+		},
+		
+		demo: function() {
+			$("input[name=xparam]", this.element).val('ctf_defocus_measured');
+			$("input[name=yparam]", this.element).val('ctf_bfactor');
+			
 		},
 		
 		reset: function() {

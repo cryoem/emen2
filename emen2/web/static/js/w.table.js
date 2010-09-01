@@ -93,7 +93,9 @@
 			var self = this;
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
+			newq['plots'] = null;
 			newq["rendered"] = {};
+			newq['recids'] = [];
 			$.jsonRPC("querytable", newq, function(q){self.update(q)});			
 		},
 		
