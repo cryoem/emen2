@@ -601,10 +601,11 @@
 			scale: 'auto',
 			bdo: null,
 			mode: "live",
-			displaymode: 'map',
+			displaymode: 'image',
 			show: true,
 			controlsinset: true,
-			scales: [1, 2, 4, 8, 16]
+			scales: [1, 2, 4, 8, 16],
+			recid: null
 		},
 		
 		_create: function() {		
@@ -671,6 +672,11 @@
 				$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
 			});
 
+			var apix = caches['recs'][this.options.recid]['angstroms_per_pixel'];
+			if (!apix) {
+				apix = 1.0;
+			}
+
 			if (this.options.controlsinset) {
 				var controls = $('<div class="tilemapcontrols"><div class="label">Map</div><input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /><input type="button" name="autocenter" value="Center" /></div>');
 				this.element.append(controls);			
@@ -679,9 +685,11 @@
 
 				var controls = $(' \
 					<div class="tilemapcontrols" style="text-align:center"> \
-						<input type="radio" name="displaymode" value="map" id="displaymode_map" /><label for="displaymode_map">Map</label> \
+						<input type="radio" name="displaymode" value="image" id="displaymode_image" /><label for="displaymode_image">Image</label> \
 						<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label> \
-						<input type="radio" name="displaymode" value="radial" id="displaymode_radial" /><label for="displaymode_radial">1D</label> \
+						<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> \
+						<input type="text" name="apix" value="'+apix+'" size="3" /> A/Pix \
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; \
 						<input type="button" name="zoomout" value="-" /> \
 						<input type="button" name="zoomin" value="+" /> \
 						<input type="button" name="autocenter" value="Center" /> \
@@ -717,6 +725,11 @@
 				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename;
 				window.open(loc);
 			});
+			controls.find("input[name=apix]").change(function() {
+				if (self.options.displaymode == '1d') {
+					self.setdisplaymode('1d')
+				}
+			})
 			
 			
 		},
@@ -725,13 +738,18 @@
 			$('img', this.inner).remove();
 			var mx = this.element.width();
 			var my = this.element.height();
+			this.options.displaymode = mode;
 			if (mx > my) {mx = my}
-			if (mode=="map") {
+			if (mode=="image") {
 				this.options.scale = this.autoscale();
 				this.setscale(this.options.scale);
 				this.autocenter();
-			} else if (mode == "radial") {
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'?size=radial&format=png" />');
+			} else if (mode == "1d") {
+				var apix = $('input[name=apix]').val(); // this should include [data-bdo=..]
+				if (!apix) {
+					apix = 1;
+				}
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/db/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" />');				
 				modeimg.height(mx);
 				this.inner.append(modeimg);
 				this.inner.css('top',0);

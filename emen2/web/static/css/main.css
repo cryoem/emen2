@@ -686,6 +686,7 @@ div.color_swatch {
 
 .editbar {
 	margin:0px;	
+	margin-bottom:10px;
 	padding:0px;
 	padding-top:0px;
 	list-style:none;

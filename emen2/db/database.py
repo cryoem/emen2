@@ -104,6 +104,18 @@ fakemodules()
 
 
 
+
+# Colors to use in plot..
+COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
+	'#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887',
+	'#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c',
+	'#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00',
+	'#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc',
+	'#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff',
+	'#808080']
+
+
+
 # import extensions
 
 # ian: todo: low: do this in a better way
@@ -1375,13 +1387,67 @@ class DB(object):
 
 
 
-	def __getplotfile(self, prefix=None, suffix=None):
-		tempfile = "%s-%s-%s.%s"%(ctx.ctxid, time.time(), prefix, suffix)
+	def __getplotfile(self, prefix=None, suffix=None, ctx=None, txn=None):
+		tempfile = "%s-%s-%s.%s"%(ctx.ctxid, prefix, time.strftime("%Y.%m.%d-%H.%M.%S"), suffix)
 		return os.path.join(g.paths.TMPPATH, tempfile)
 		
-		
+	
 
-	#@ok
+	
+	@publicmethod
+	def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, ctx=None, txn=None, **kwargs):
+
+		if not formats:
+			formats = ["png"]
+
+		width = int(width)
+		fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
+		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+
+		ax_size = [0, 0, 1, 1]
+		if xlabel or ylabel or buffer:
+			ax_size = [0.15, 0.15, 0.8, 0.8]
+			
+		ax = fig.add_axes(ax_size)
+		ax.grid(True)
+		
+		handle = ax.scatter(x, y)
+		
+		if xmin == None: xmin = min(x)
+		if xmax == None: xmax = max(x)
+		if ymin == None: ymin = min(y)
+		if ymax == None: ymax = max(y)
+		
+		ax.set_xlim(xmin, xmax)
+		ax.set_ylim(ymin, ymax)		
+
+		if xlabel: ax.set_xlabel(xlabel)
+		if ylabel: ax.set_ylabel(ylabel)
+
+		plots = {}
+		if "png" in formats:
+			pngfile = self.__getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
+			fig.savefig(pngfile)
+			plots["png"] = pngfile
+
+
+		q = {}
+		q.update({
+			"plots": plots,
+			"xlabel": xlabel,
+			"ylabel": ylabel,
+			"formats": formats,
+			"width": width,
+			"xmin": xmin,
+			"xmax": xmax,
+			"ymin": ymin,
+			"ymax": ymax
+		})
+
+		return q					
+
+
+
 	@publicmethod
 	def plot(self, xparam=None, yparam=None, groupby=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
 
@@ -1409,15 +1475,8 @@ class DB(object):
 
 		### plot_plot
 
-		# Colors to use in plot..
-		allcolor = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
-			'#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887',
-			'#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c',
-			'#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00',
-			'#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc',
-			'#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff',
-			'#808080']
-		allcolorcount = len(allcolor)
+
+		colorcount = len(COLORS)
 
 		# Generate labels
 		# title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby or '')
@@ -1444,12 +1503,14 @@ class DB(object):
 		nextcolor = 0
 
 		nr = [None, None, None, None]
+
 		def less(x,y):
 			if x < y or y == None: return x
 			return y
 		def greater(x,y):
 			if x > y or y == None: return x
 			return y
+
 
 		# plot each group
 		for k,v in sorted(groups[groupby].items()):
@@ -1460,7 +1521,7 @@ class DB(object):
 			y = map(yinvert.get, v)
 
 			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
-			groupcolors[k] = allcolor[nextcolor%allcolorcount]
+			groupcolors[k] = COLORS[nextcolor%colorcount]
 			nextcolor += 1
 
 			handle = ax.scatter(x, y, c=groupcolors[k]) # cm.hsv(count/total), marker='x'
@@ -1483,7 +1544,7 @@ class DB(object):
 
 		plots = {}
 		if "png" in formats:
-			pngfile = self.__getplotfile(format="png")
+			pngfile = self.__getplotfile(prefix="plot", suffix="png", ctx=ctx, txn=txn)
 			fig.savefig(pngfile)
 			plots["png"] = pngfile
 
@@ -1494,7 +1555,7 @@ class DB(object):
 			ax.set_xlabel(xlabel)
 			ax.set_ylabel(ylabel)
 			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
-			pdffile = self.__getplotfile(format="pdf")
+			pdffile = self.__getplotfile(prefix="plot", suffix="pdf", ctx=ctx, txn=txn)
 			fig.savefig(pdffile)
 			plots["pdf"] = pdffile
 
