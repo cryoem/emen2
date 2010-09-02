@@ -70,7 +70,7 @@
 			this.currentid = r;
 			this.tablearea.empty();
 			this.tablearea.html("Loading...");
-			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {maxrecurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					if (status=='error') {
 						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');
@@ -109,7 +109,7 @@
 
 			}
 			
-			this.controlsarea = $('<div class="controls" />');
+			this.controlsarea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif"></div>');
 			var i = $('<input type="button" value="Removed Selected" />');
 			i.click(function() {
 				self.event_removeselected();
@@ -178,6 +178,8 @@
 			var p = caches["parents"][this.options.recid];
 			var c = caches["children"][this.options.recid];
 
+			$('.spinner', this.element).show();
+
 			//if (p == null || c == null) {
 			//	update_rels(function(){self.event_removeselected()})
 			//}
@@ -212,6 +214,7 @@
 			//console.log(rlinks);
 			$.jsonRPC("pcunlinks", [rlinks], function() {
 				notify("Removed relationships");
+				$('.spinner', this.element).hide();				
 				self.saved = [];
 				//self.build_browser();
 				self.record_update();

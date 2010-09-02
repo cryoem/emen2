@@ -541,7 +541,8 @@
 		doit: function(rectype) {		
 			// get some options..
 			var opts = {};
-			if(!$('input[name=inheritperms]', this.dialog).attr("checked")) {
+			console.log(1);
+			if($('input[name=inheritperms]', this.dialog).attr("checked")) {
 				opts["inheritperms"] = false
 			}
 			if ($('input[name=copy]', this.dialog).attr("checked")) {
@@ -568,10 +569,10 @@
 			this.typicalchld = $('<div>Loading</div>')
 			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
 			
-			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Private Record <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
 			
 			if (this.options.inheritperms) {
-				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
+				$("input[name=inheritperms]", inheritperms).attr("checked", null);
 			}
 			if (this.options.copy) {
 				$("input[name=copy]", inheritperms).attr("checked", "checked");

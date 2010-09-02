@@ -38,7 +38,7 @@
 
 			});
 			
-			this.element.prepend('<div class="controls"><input type="button" value="Save" name="save" /></div>');
+			this.element.prepend('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
 			$('input[name=save]', this.element).click(function() {
 				self.save();
 			})
@@ -62,12 +62,15 @@
 		},
 		
 		default_cb: function(self, selected) {
+			$('.spinner', this.element).show();
 			var remove = [];
 			var add = [];
 
-			for (var i=0;i<selected.length;i++) {
-				if ($.inArray(selected[i], this.options.status)==-1) {
-					add.push(selected[i]);
+			if (this.options.status.length > 0) {
+				for (var i=0;i<selected.length;i++) {
+					if ($.inArray(selected[i], this.options.status)==-1) {
+						add.push(selected[i]);
+					}
 				}
 			}
 			
@@ -77,8 +80,13 @@
 				}
 			}
 
+			//console.log("Add: ", add.length);
+			//console.log("Remove: ", remove.length);
+			//return
+
 			$.jsonRPC("addgroups", [add, ['publish']], function(){ 
 				$.jsonRPC("removegroups", [remove, ['publish']], function() {
+					$('.spinner', self.element).hide();
 					window.location = window.location;
 				});
 			});

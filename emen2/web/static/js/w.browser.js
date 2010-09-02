@@ -63,9 +63,9 @@
 			this.currentid = r;
 			//this.tablearea.empty();
 			//this.tablearea.html("Loading...");
-
+			
 			$('.spinner', this.dialog.dialog('widget')).show();
-			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {maxrecurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					$('.spinner', self.dialog.dialog('widget')).hide();
 					if (status=='error') {
