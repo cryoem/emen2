@@ -99,13 +99,6 @@
 			$.jsonRPC("querytable", newq, function(q){self.update(q)});			
 		},
 		
-		unique: function(li) {
-			var o = {}, i, l = li.length, r = [];
-			for(i=0; i<l;i++) o[li[i]] = li[i];
-			for(i in o) r.push(o[i]);
-			return r;
-		},
-		
 		setpos: function(pos) {
 			if (pos == this.options.q['pos']) {return}
 			var self = this;
@@ -244,21 +237,3 @@
 	});
 })(jQuery);
 
-
-
-
-
-
-
-// var r = [0, current-1, current, current+1, pagecount-1];
-// var r = [0, current, pagecount-1];
-// r = this.unique(r);
-// r = r.sort(function(a,b){return a-b});
-// $.each(r, function(i,j) {
-// 	if (j >= 0 && j < pagecount) {
-// 		if (j > 0 && r[i-1]!=j-1) {pages.append('<span>...</span>')}
-// 		var page = $('<span data-pos="'+(j*self.options.q['count'])+'" class="clickable clickable_box">'+(j+1)+'</span>');
-// 		page.click(function() {self.setpos(parseInt($(this).attr('data-pos')))});
-// 		pages.append(page);
-// 	}
-// });

@@ -2146,34 +2146,30 @@ class DB(object):
 
 	@publicmethod
 	def getindexbypermissions(self, recids=None, users=None, groups=None, ctx=None, txn=None):
-		ret = {}
+		ret = set()
+		
 		if users:
 			for user in users:
-				ret[user] = self.bdbs.secrindex.get(user, set(), txn=txn)
+				ret |= self.bdbs.secrindex.get(user, set(), txn=txn)
 		elif not groups:
 			for k,v in self.bdbs.secrindex.items(txn=txn):
-				ret[k] = v
+				ret |= v
 
 		if groups:
 			for group in groups:
-				ret[group] = self.bdbs.secrindex_groups.get(group, set(), txn=txn)
+				ret |= self.bdbs.secrindex_groups.get(group, set(), txn=txn)
 		elif not users:
 			for k,v in self.bdbs.secrindex_groups.items(txn=txn):
-				ret[k] = v
+				ret |= v
 		
 		
 		if ctx.checkreadadmin() and not recids:
 			return ret
 
-		recids = emen2.listops.flatten(ret)
-
-		if not ctx.checkreadadmin():
-			recids = self.filterbypermissions(recids, ctx=ctx, txn=txn)
-
-		for k in ret:
-			ret[k] = k & recids
-
-		return ret
+		if recids:
+			ret &= recids
+			
+		return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 			
 		
 
