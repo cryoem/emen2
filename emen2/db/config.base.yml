@@ -121,6 +121,9 @@ bookmarks:
 EMAN2:
   EMAN2PYTHON: /usr/bin/python
 
+IMAGEMAGICK:
+   CONVERTPATH: /usr/bin/convert
+
 
 # Probably don't want to touch these unless you have an unusual Berkeley DB setup
 dbutils:

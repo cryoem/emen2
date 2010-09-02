@@ -16,6 +16,7 @@ classes:
 '''
 from __future__ import with_statement
 from emen2.util import datastructures
+from emen2.util import listops
 import functools
 import code
 import inspect
@@ -381,10 +382,11 @@ class DebugState(object):
 	def __get_last_module(self, num=1):
 		modname = '%s.py' % __name__.split('.')[-1]
 		try:
-			result = filter(lambda x:not x[0]=='debug.py',
-					( (name[1].split(os.path.sep)[-1], name[0].f_lineno)
-							for name in inspect.getouterframes(inspect.currentframe())
-					))[0:num]
+			result = listops.take(num, (
+				x for x in (
+					(name[1].split(os.path.sep)[-1], name[0].f_lineno) for name in inspect.getouterframes(inspect.currentframe())
+				) if not x[0]=='debug.py')
+			)
 		except:
 			result = [('Unknown Output',-1)]
 		result = [ [str(y) for y in x] for x in result]
@@ -471,12 +473,12 @@ class Filter(file):
 		str_ = str_.split(self.__splitter, self.__num)[-1]
 		file.write(self, str_)
 
-def get_last_module(debugstate):
-	try:
-		result = filter(lambda x:not x[0]=='debug.py',
-				( (name[1].split(os.path.sep)[-1], name[0].f_lineno)
-						for name in inspect.getouterframes(inspect.currentframe())
-				))[0]
-	except:
-		result = ('Unknown Output',-1)
-	return ':'.join(str(x) for x in result)
+#def _get_last_module(debugstate):
+#	try:
+#		result = filter(lambda x:not x[0]=='debug.py',
+#				( (name[1].split(os.path.sep)[-1], name[0].f_lineno)
+#						for name in inspect.getouterframes(inspect.currentframe())
+#				))[0]
+#	except:
+#		result = ('Unknown Output',-1)
+#	return ':'.join(str(x) for x in result)

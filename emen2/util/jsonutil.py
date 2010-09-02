@@ -6,10 +6,10 @@ try: import json
 except ImportError:
 	import simplejson as json
 
-import emen2.db.globalns
+#import emen2.db.globalns
 from emen2.util.decorators import make_decorator
 
-g = emen2.db.globalns.GlobalNamespace()
+#g = emen2.db.globalns.GlobalNamespace()
 
 @make_decorator(json.dumps)
 def encode(obj, *a, **kw):

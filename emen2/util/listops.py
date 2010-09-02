@@ -2,7 +2,9 @@ import collections
 from functools import partial
 import itertools
 
-import emen2.db.dataobject
+
+def take(num, iter_):
+	for _ in range(num): yield iter_.next()
 
 def get(collection, key, default=None):
 	'''allows getting an item from a collection like dict.get does'''
@@ -128,7 +130,7 @@ def oltolist(d, dtype=None):
 	ol = False
 	if isinstance(d, dtype):
 		return ol, d
-	if not hasattr(d, "__iter__") or isinstance(d, (dict,emen2.db.dataobject.BaseDBInterface)):
+	if not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
 		d = [d]
 		ol = True
 	return ol, dtype(d)
