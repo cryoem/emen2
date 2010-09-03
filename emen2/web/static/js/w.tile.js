@@ -50,14 +50,16 @@
 						});					
 					});	
 
-				});
+					if (children.length==0) {
+						self.load_record(null);
+					}
 
+				});
 
 			} else {
 				// If there are no boxes, start a new set..
 				this.build_boxarea();				
 			}
-
 
 		},
 
@@ -74,7 +76,7 @@
 			var self = this;
 	
 			// Box areas
-			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
+			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th style="width:40px">Size</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
 			var controls = $('<div class="controls" />');
 			// controls.resizable({
 			// 	handles: 'w',
@@ -90,7 +92,12 @@
 			var self = this;
 
 			var controls = $('.tilemap[data-bdo='+this.options.bdo+'] .tilemapcontrols');
-			controls.append('<div class="label">Boxes</div><input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /><input type="button" name="newset" value="New Set" /><br /><input type="button" name="saveall" value="Save All" />');
+			controls.append('<h4 class="label">Boxes</h4>\
+				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
+				<input type="button" name="newset" value="New Set" /><br /> \
+				<div style="display:none" class="spinner"><img src="'+EMEN2WEBROOT+'/images/spinner.gif" /></div> \
+				<input type="button" name="saveall" value="Save All" /> \
+				');
 			controls.find("input[name=bigger]").click(function() {
 				self.resize_controls(1);
 			});			
@@ -98,7 +105,7 @@
 				self.resize_controls(-1);
 			});
 			controls.find("input[name=newset]").click(function() {
-				self.build_boxarea();
+				self.load_record();
 			});				
 			controls.find("input[name=saveall]").click(function() {
 				self.saveall();
@@ -141,16 +148,17 @@
 			this.boxid += 1;
 
 			// create a new box overlay
+			var boxsize = caches['recs'][label]['box_size'];
+			
 			var boxbox = $('<div>&nbsp;</div>');
-			boxbox.BoxBox({bdo: this.options.bdo, x: x, y: y, size: this.options.boxsize, boxid: this.boxid, scale: scale, label: label});
+			boxbox.BoxBox({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: scale, label: label});
 			this.img.TileMap('getinner').append(boxbox);
 
 			// create a new box image
 			var boximg = $('<img />');
-			boximg.BoxImg({bdo: this.options.bdo, x: x, y: y, size: this.options.boxsize, boxid: this.boxid, scale: 1, label: label, draggable: true});
+			boximg.BoxImg({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: 1, label: label, draggable: true});
 			$('.boxarea[data-label='+label+']').prepend(boximg);			
 
-			console.log(x, y);
 			// update box count
 			this.updateboxcount(label);
 		},
@@ -198,16 +206,16 @@
 			$('.boxcount[data-label='+label+']').html(boxcount);
 		},
 
-		unlink_label: function(label, unlink, confirm) {
+		unlink_label: function(label, confirm, confirmed) {
 			var self = this;
-			if (unlink == true) {
+			if (!confirm) {
 				var dialog = $('<div title="Remove Box"><p>This will unlink record '+label+' from the parent record.</p><p>It may be orphaned and difficult to find after this action.</p><p>Continue?</p></div>');
 				dialog.dialog({
 					modal: true,
 					buttons: {
 						'Remove Box': function() {
 							$(this).dialog('close');
-							self.remove_label(label, false, true);
+							self.unlink_label(label, true);
 						},
 						Cancel: function() {
 							$(this).dialog('close');
@@ -243,12 +251,16 @@
 			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
 			rec['box_length'] = $('.boximg[data-label='+label+']').length;
 			rec['box_label'] = $('.box_label[data-label='+label+']').val();
+			rec['box_size'] = $('.box_size[data-label='+label+']').val();
+			console.log(rec);
 			return rec
 		},
 
 		saveall: function() {
 			var self = this;
 			var recs = [];
+
+			$('.spinner', this.element).show();
 
 			$(".boxarea", this.element).each(function(){
 				var rec = self._save($(this).attr('data-label'));
@@ -257,9 +269,10 @@
 
 			recs = recs.reverse();
 			this.clear();	
-
+			
 			$.jsonRPC("putrecord", [recs], function(recs) {
 				$.each(recs, function() {
+					$('.spinner', self.element).hide();
 					self.load_record(this);
 				});
 			});			
@@ -276,34 +289,36 @@
 		
 		load_record: function(rec) {
 			var self = this;
+			
+			if (rec==null) {
+				$.jsonRPC("newrecord", ["box", self.options.recid], function(rec) {
+					rec.recid = self.currentlabel;
+					self.currentlabel -= 1;
+					//rec["parents"] = [self.options.recid];
+					self.load_record(rec);
+				})
+				return				
+			}
+			
+			rec["box_size"] = rec["box_size"] || this.options.boxsize;
 			caches["recs"][rec.recid] = rec;
 			this.build_boxarea(rec.recid);
 			$.each(rec['box_coords'] || [], function(i) {
 				self.addbox(this[0], this[1], rec.recid);
 			});
+			
 		},		
 		
 		build_boxarea: function(label) {
 			var self = this;
-			
-			if (typeof(label) == 'undefined') {
-				$.jsonRPC("newrecord", ["box", 1], function(rec) {
-					rec.recid = self.currentlabel;
-					rec["parents"] = [self.options.recid];
-					caches['recs'][rec.recid] = rec;
-					self.build_boxarea(rec.recid);
-					self.currentlabel -= 1;
-				})
-				return
-			}
-
-			
+						
 			caches["colors"][label] = caches['colors'][label] || this.options.colors.pop();
 
 			var box_label = "";
 			if (label >= 0) {
 				var box_label = caches["recs"][label]['box_label'] || "Box Set "+label;
 			}
+			
 
 			// This will toggle display of this label group
 			var hide = $('<input type="checkbox" data-label="'+label+'" checked="checked" />');
@@ -321,24 +336,24 @@
 				caches["colors"][label] = newcolor;
 				$('.boximg[data-label='+label+']').css("border-color", newcolor);
 				$('.boxbox[data-label='+label+']').css("border-color", newcolor);
-			})
+			});
 			
 			var pen = $('<input type="radio" name="pen" value="" data-label="'+label+'"/>');
 			pen.change(function() {
 				self.pen = $(this).attr('data-label');
-			})
-
+			});
+			
 			var save1 = $('<input data-label="'+label+'" type="button" value="Save" />');
 			save1.click(function(e){
 				var label = $(this).attr("data-label");
 				self.save(label);
-			})
+			});
 			
 			var remove = $('<input data-label="'+label+'" type="button" value="Remove" />');
 			remove.click(function(e) {
 				var label = $(this).attr("data-label");
-				self.unlink_label(label, true);				
-			});
+				self.unlink_label(label, false);
+			});			
 			
 			// Setup the droppable area
 			var boxarea = $('<tr data-label="'+label+'"><td colspan="6" class="boxarea" data-label="'+label+'" ></tr>');
@@ -355,31 +370,41 @@
 					$(ui.draggable).remove();
 					$(ui.helper).remove();
 					var boximg = $('<img />');
-					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: self.options.boxsize, boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
+					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: caches['recs'][newlabel]['box_size'], boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
 					$('.boxarea[data-label='+newlabel+']').append(boximg);
 					self.updateboxcount(newlabel);
 					self.updateboxcount(o['label']);		
 				}
 			});
 						
+												
 			// Attach everything to the table..
 			var colorcontrols = $('<td />');
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append(save1, remove);					
+			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/images/spinner.gif" style="display:none"/>', save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
-			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input class="box_label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
+			
+			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input type="text" class="box_size" name="box_size" data-label="'+label+'" value="'+caches['recs'][label]['box_size']+'" size="2" /></td>', '<td><input class="box_label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
 
 			this.element.find(".boxtable tbody").prepend(boxheader, boxarea);
 
 			// this is down here because colorPicker is primitive.
-			$('.colorpicker[data-label='+label+']').colorPicker();
+			$('.colorpicker[data-label='+label+']', boxheader).colorPicker();
 
 			// select this as active pen
-			$('input:radio[data-label='+label+']').trigger('click');
+			$('input:radio[data-label='+label+']', boxheader).trigger('click');
 			this.pen = label;
+			
+			$('input[name=box_size]', boxheader).change(function() {
+				var label = $(this).attr("data-label");				
+				var boxsize = parseInt($(this).val());
+				caches['recs'][label]['box_size'] = boxsize;
+				$('.boximg[data-label='+label+']').BoxImg('setsize', boxsize);
+				$('.boxbox[data-label='+label+']').BoxBox('setsize', boxsize);
+			});
 			
 		},		
 
@@ -430,8 +455,7 @@
 			this.element.addClass("boxbox");
 			this.element.attr("data-boxid", this.options.boxid);
 			this.element.attr("data-label", this.options.label);
-			this.element.css("position", 'absolute');
-			
+			this.element.css("position", 'absolute');			
 			this.bind_draggable();
 			this.refresh();
 		},
@@ -482,6 +506,11 @@
 			this.element.css("top", disp_y);
 			this.element.css("width", boxscale);
 			this.element.css("height", boxscale)
+		},
+		
+		setsize: function(size) {
+			this.options.size = size;
+			this.refresh();
 		},
 				
 		destroy: function() {
@@ -576,6 +605,11 @@
 				src += '&amp;min='+self.options.rmin+'&amp;max='+self.options.rmax;
 			} 
 			self.element.attr('src', src);			
+		},
+		
+		setsize: function(size) {
+			this.options.size = size;
+			this.refresh();
 		},
 				
 		destroy: function() {
@@ -672,34 +706,25 @@
 				$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
 			});
 
-			var apix = caches['recs'][this.options.recid]['angstroms_per_pixel'];
+			var apix = null; //caches['recs'][this.options.recid]['angstroms_per_pixel'];
 			if (!apix) {
 				apix = 1.0;
 			}
 
-			if (this.options.controlsinset) {
-				var controls = $('<div class="tilemapcontrols"><div class="label">Map</div><input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /><input type="button" name="autocenter" value="Center" /></div>');
-				this.element.append(controls);			
-
-			} else {	
-
-				var controls = $(' \
-					<div class="tilemapcontrols" style="text-align:center"> \
-						<input type="radio" name="displaymode" value="image" id="displaymode_image" /><label for="displaymode_image">Image</label> \
-						<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label> \
-						<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> \
-						<input type="text" name="apix" value="'+apix+'" size="3" /> A/Pix \
-						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; \
-						<input type="button" name="zoomout" value="-" /> \
-						<input type="button" name="zoomin" value="+" /> \
-						<input type="button" name="autocenter" value="Center" /> \
-						<input type="button" name="save" value="Save" /> \
-					</div>');					
-					// <input type="button" name="rebuild" value="Rebuild" /> \
-					// <input type="button" name="larger" value="Larger" /> \
-				this.element.parent().append(controls);
-
-			}
+			var controls = $('<div class="tilemapcontrols"> \
+				<h4 class="label">Image</h4> \
+				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
+				<input type="button" name="autocenter" value="Center" />\
+				<h4 class="label">Mode</h4> \
+				<div style="text-align:left"> \
+				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
+				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label><br />\
+				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> <br />\
+				<input type="text" name="apix" value="'+apix+'" size="1" /> A/px\
+				</div> \
+			</div>');
+			
+			this.element.append(controls);			
 
 			controls.find("input[name=displaymode]").click(function() {
 				self.setdisplaymode($(this).val());
@@ -764,12 +789,11 @@
 
 		autoscale: function(refresh) {
 			var mx = this.options.maxscale;
-			if (mx == null) {mx = 8}
+			if (mx == null) {mx = 32}
 			this.options.scales = [];
-			for (var i=0;Math.pow(2,i)<=this.options.maxscale;i++) {
+			for (var i=0; Math.pow(2,i) <= mx; i++) {
 				this.options.scales.push(Math.pow(2, i));
 			}
-
 			var sx = this.options.width / this.element.width();
 			var sy = this.options.height / this.element.height();
 			if (sy > sx) {sx = sy}
@@ -779,6 +803,7 @@
 					q = this.options.scales[i];
 				}
 			};
+			// console.log("Autoscaled: ", mx, sx, q, this.options.scales, this.options.maxscale);
 			return Math.round(q);
 		},
 		

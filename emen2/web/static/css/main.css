@@ -526,14 +526,18 @@ img.listicon {
 	position:absolute;
 	top:20px;
 	right:0px;
-	padding:5px;
+	padding:2px;
 	z-index:100;
 	border-right-style:dashed;
 	border-right-width:2px;
 	text-align:center;
+	font-size:8pt;
 }
 
 .tilemap .label {
+	padding:0px;
+	margin:0px;
+	margin-top:4px;
 	font-size:8pt;
 	text-align:center
 }
@@ -595,8 +599,7 @@ img.listicon {
 /************* COLOR PICKER ************/
 
 div.color_picker {
-	/* float: right; */
-	display:inline;
+	display:inline-block;
 	height: 16px;
 	width: 16px;
 	padding: 0 !important;
