@@ -56,6 +56,15 @@ class View(object):
 			- define a method named get_json in order to return a json representation of the view
 	'''
 
+	preinit = []
+	# use preinit = View.preinit[:] to modify this in a subclass
+	# i.e.:
+	# class example(View):
+	# 	preinit = View.preinit[:]
+	# 	@preinit.append
+	# 	def _preinithook(self):
+	# 		print 'Hello World'
+
 	db = property(lambda self: self.__db)
 
 	headers = property(lambda self: self.__headers)
@@ -312,13 +321,22 @@ class View(object):
 		return cls
 
 class AdminView(View):
-	preinit = []
+	preinit = View.preinit[:]
 
 	@preinit.append
 	def checkadmin(self):
 		context = self.db._getctx()
 		if not context.checkadmin():
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
+
+class AuthView(View):
+	preinit = View.preinit[:]
+
+	@preinit.append
+	def checkadmin(self):
+		context = self.db._getctx()
+		if not 'authenticated' in context.groups:
+			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
 
 
 class MatcherInfo(object):
