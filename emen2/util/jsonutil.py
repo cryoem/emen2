@@ -25,7 +25,13 @@ def encode(obj, *a, **kw):
 			outl = []
 			for i in obj: outl.append(encode.func(i))
 			outp = outl
-	else: outp = obj
+	else:
+		try: json.dumps(obj)
+		except TypeError:
+			obj = str(obj)
+			outp = json.dumps(obj)
+		else:
+			outp = obj
 	return outp
 
 decode = json.loads
