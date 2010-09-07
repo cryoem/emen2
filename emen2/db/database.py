@@ -5381,6 +5381,8 @@ class DB(object):
 				key = rec.rectype
 			elif viewdef:
 				key = None
+			else:
+				key = None
 				
 			a = groupviews.get(key)
 			vs = []
