@@ -252,7 +252,6 @@
 			rec['box_length'] = $('.boximg[data-label='+label+']').length;
 			rec['box_label'] = $('.box_label[data-label='+label+']').val();
 			rec['box_size'] = $('.box_size[data-label='+label+']').val();
-			// console.log(rec);
 			return rec
 		},
 
