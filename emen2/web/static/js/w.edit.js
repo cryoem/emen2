@@ -541,7 +541,7 @@
 		doit: function(rectype) {		
 			// get some options..
 			var opts = {};
-			console.log(1);
+			// console.log(1);
 			if($('input[name=inheritperms]', this.dialog).attr("checked")) {
 				opts["inheritperms"] = false
 			}
