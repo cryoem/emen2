@@ -4601,6 +4601,7 @@ class DB(object):
 		# To force reindexing (e.g. to rebuild indexes) treat as new record
 		cache = {}
 		for i in crecs:
+			#print "checking %s"%i.recid
 			if reindex or i.recid < 0:
 				continue
 			try:
@@ -4609,6 +4610,7 @@ class DB(object):
 				orec = {}
 			cache[i.recid] = orec
 
+		#print "calculating index updates"
 
 		# Calculate index updates. Shortcut if we're only modifying permissions. Use with caution.
 		indexupdates = {}
@@ -4618,9 +4620,13 @@ class DB(object):
 		secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
 
 
+
 		# If we're just validating, exit here..
 		if not commit:
 			return crecs
+
+
+		# print "writing"
 
 		# OK, all go to write records/indexes!
 
@@ -5194,19 +5200,23 @@ class DB(object):
 			recids |= listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
 
 
+		print "getting records"
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 		if filt:
 			recs = filter(lambda x:x.isowner(), recs)
 
 		# g.log.msg('LOG_DEBUG', "setting permissions")
 
+		print "modifying perms"
 		for rec in recs:
+			print rec.recid
 			if addusers: rec.addumask(umask, reassign=reassign)
 			if delusers: rec.removeuser(delusers)
 			if addgroups: rec.addgroup(addgroups)
 			if delgroups: rec.removegroup(delgroups)
 
 
+		print "committing"
 		# Go ahead and directly commit here, since we know only permissions have changed...
 		self.__commit_records(recs, [], onlypermissions=True, ctx=ctx, txn=txn)
 
