@@ -5,9 +5,9 @@ import collections
 import itertools
 # Host Name N/A HTTP AUTH        Time Finished      ["Method Name]  Path      [Protocol"] Response  Size
 #                 USERID                                                                    Code   (bytes)
-# 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /db/rec/  HTTP/-.-"     200     9714
-# 127.0.0.1 - - [Thu May 21 12:48:18 2009] /db/rec/ 200 9714
-# LOG_WEB:publicresource.py :: 127.0.0.1 - - [Thu May 21 12:43:41 2009] /db/__reload_views/ 200 3159
+# 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /rec/  HTTP/-.-"     200     9714
+# 127.0.0.1 - - [Thu May 21 12:48:18 2009] /rec/ 200 9714
+# LOG_WEB:publicresource.py :: 127.0.0.1 - - [Thu May 21 12:43:41 2009] /__reload_views/ 200 3159
 
 #default time format
 CTIME = "[%a %b %d %H:%M:%S %Y]"

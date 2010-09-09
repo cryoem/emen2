@@ -135,7 +135,7 @@
 			this.built = 1;
 
 			var self = this;
-			var l = EMEN2WEBROOT+'/db/record/'+this.options.recid+'/history/?simple=1';
+			var l = EMEN2WEBROOT+'/record/'+this.options.recid+'/history/?simple=1';
 			this.element.load(l);
 
 			this.partition();
@@ -146,7 +146,7 @@
 			// this.element.empty();
 			// this.rhist.reverse();
 			// 
-			// var link = $('<p><a href="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/history/">Detailed Revisions Page</a></p>')
+			// var link = $('<p><a href="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/history/">Detailed Revisions Page</a></p>')
 			// this.element.append(link);
 			// 
 			// 
@@ -157,7 +157,7 @@
 			// $.each(this.rhist, function() {
 			// 	var dname = caches["displaynames"][this[0]] || this[0];
 			// 	var time = this[1];
-			// 	var rev = '<a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/history/'+time+'/">View Revision</a>';
+			// 	var rev = '<a href="'+EMEN2WEBROOT+'/record/'+self.options.recid+'/history/'+time+'/">View Revision</a>';
 			// 
 			// 	// Check if old-style comment or new-style comment
 			// 	if (this.length == 4) {

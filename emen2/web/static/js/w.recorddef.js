@@ -52,14 +52,14 @@ ParamDefEditor.prototype = {
 	
 	default_commit_put: function() {
 		var self=this;
-		$.jsonRPC("putparamdef",[this.pd],function(data){notify_post(EMEN2WEBROOT+'/db/paramdef/'+self.pd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putparamdef",[this.pd],function(data){notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])});
 	},
 	
 	default_commit_add: function() {
 		var self=this;
 		// console.log(this.pd);
 		// console.log(this.parents);
-		$.jsonRPC("putparamdef",[this.pd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/db/paramdef/'+self.pd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putparamdef",[this.pd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])});
 	},	
 		
 	getvalues: function() {

@@ -19,17 +19,22 @@ class Context(object):
 	'''Partial context for views that don't need db access'''
 	def reverse(self, _name, *args, **kwargs):
 		_full = kwargs.get('_full', False)
-		prefix = '%s' % g.EMEN2WEBROOT
-		if not prefix.endswith('/'): prefix = '%s/' % prefix
 
+		# prefix = g.EMEN2WEBROOT
+		# if not prefix.endswith('/'):
+		# 	prefix = '%s/' % prefix
 		#if _full == True:
 		#	prefix = g.EMEN2EXTURI
 
-		result = '%s%s%s' % (prefix, 'db', (
-			emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
+		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
+		result = result.replace('//','/')
+
 		containsqs = '?' in result
-		if not result.endswith('/') and not containsqs: result = '%s/' % result
-		elif containsqs and '/?' not in result: result = result.replace('?', '/?', 1)
+		if not result.endswith('/') and not containsqs:
+			result = '%s/' % result
+		elif containsqs and '/?' not in result:
+			result = result.replace('?', '/?', 1)
+
 		return result
 
 

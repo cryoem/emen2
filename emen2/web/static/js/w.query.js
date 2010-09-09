@@ -173,11 +173,11 @@
 			var m = $(' \
 				<h4>General</h4> \
 				<table><tr> \
-					<td>Protocol:</td><td><input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
-					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+					<td>Protocol:</td><td><input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 				</tr><tr> \
-					<td>Child of</td><td><input type="text" name="parent" />  <img  class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
-					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/images/remove_small.png" /></td> \
+					<td>Child of</td><td><input type="text" name="parent" />  <img  class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 				</tr></table> \
 				<table class="constraints"> \
 					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th /></tr></thead> \
@@ -374,10 +374,10 @@
 
 			var controls = $('<td />');
 
-			var addimg = $('<img class="listicon" src="'+EMEN2WEBROOT+'/images/add_small.png" />');
+			var addimg = $('<img class="listicon" src="'+EMEN2WEBROOT+'/static/images/add_small.png" />');
 			addimg.click(function() {self.addconstraint()});
 
-			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/images/remove_small.png" />');
+			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" />');
 			removeimg.click(function() {
 				if ($('.constraints .constraint', self.element).length > 1) {$(this).parent().parent().remove()}
 			});

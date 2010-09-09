@@ -51,7 +51,7 @@
 				modal: this.options.modal
 			});			
 
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/images/spinner.gif" /></span>');			
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/static/images/spinner.gif" /></span>');			
 			this.build_browser(this.options.recid);
 		},
 		
@@ -65,7 +65,7 @@
 			//this.tablearea.html("Loading...");
 			
 			$('.spinner', this.dialog.dialog('widget')).show();
-			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {recurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					$('.spinner', self.dialog.dialog('widget')).hide();
 					if (status=='error') {

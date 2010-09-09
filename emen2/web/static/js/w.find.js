@@ -63,7 +63,7 @@
 				height: 400
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/images/spinner.gif" /></span>');		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/static/images/spinner.gif" /></span>');		
 		},
 
 		event_click: function(e) {
@@ -100,7 +100,7 @@
 			var d = $('<div class="userbox" data-name="'+paramdef.name+'" />');
 			var self=this;
 			d.click(function(e){self.event_select(e)});
-			d.append('<img  data-name="'+paramdef.name+'" src="'+EMEN2WEBROOT+'/images/gears.png" />');	
+			d.append('<img  data-name="'+paramdef.name+'" src="'+EMEN2WEBROOT+'/static/images/gears.png" />');	
 			d.append('<div data-name="'+paramdef.name+'">'+paramdef.desc_short+' ('+paramdef.name+')<br />'+paramdef.vartype+'</div>');
 			this.resultsarea.append(d);			
 		},
@@ -110,7 +110,7 @@
 			var d = $('<div class="userbox" data-name="'+recorddef.name+'" />');
 			var self=this;
 			d.click(function(e){self.event_select(e)});
-			d.append('<img  data-name="'+recorddef.name+'" src="'+EMEN2WEBROOT+'/images/gears.png" />');	
+			d.append('<img  data-name="'+recorddef.name+'" src="'+EMEN2WEBROOT+'/static/images/gears.png" />');	
 			d.append('<div data-name="'+recorddef.name+'">'+recorddef.desc_short+'<br />'+recorddef.name+'</div>');
 			this.resultsarea.append(d);			
 		},
@@ -123,7 +123,7 @@
 			if (user.userrec["person_photo"]) {
 				d.append('<img  data-name="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" />');
 			} else {
-				d.append('<img  data-name="'+user.username+'" src="'+EMEN2WEBROOT+'/images/nophoto.png" />');			
+				d.append('<img  data-name="'+user.username+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
 			}
 			d.append('<div data-name="'+user.username+'">'+user.displayname+'<br />'+user.email+'</div>');
 			this.resultsarea.append(d);
@@ -135,7 +135,7 @@
 			var d = $('<div class="userbox" data-name="'+group.name+'" />');
 			var self=this;		
 			d.click(function(e){self.event_select(e)});
-			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/images/nophoto.png" />');			
+			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
 			d.append('<div data-name="'+group.name+'">'+group.name+'<br /></div>');
 			this.resultsarea.append(d);
 		},

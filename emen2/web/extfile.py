@@ -46,30 +46,30 @@ class BaseJS(ExtFile):
 		self.files = [
 			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
 			self.dbtree.reverse('TemplateRender', '/basedb/settings.js'),
-			'%s/js/jquery/jquery.js'%g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
-			'%s/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
-			'%s/js/util.admin.js'%g.EMEN2WEBROOT,
-			'%s/js/util.json.js'%g.EMEN2WEBROOT,
-			'%s/js/util.query.js'%g.EMEN2WEBROOT,
-			'%s/js/util.rec.js'%g.EMEN2WEBROOT,
-			'%s/js/util.reverse.js'%g.EMEN2WEBROOT,
-			'%s/js/w.browser.js'%g.EMEN2WEBROOT,
-			'%s/js/w.comments.js'%g.EMEN2WEBROOT,
-			'%s/js/w.edit.js'%g.EMEN2WEBROOT,
-			'%s/js/w.find.js'%g.EMEN2WEBROOT,
-			'%s/js/w.mapselect.js'%g.EMEN2WEBROOT,
-			'%s/js/w.paramdef.js'%g.EMEN2WEBROOT,
-			'%s/js/w.permission.js'%g.EMEN2WEBROOT,
-			'%s/js/w.query.js'%g.EMEN2WEBROOT,
-			'%s/js/w.recorddef.js'%g.EMEN2WEBROOT,
-			'%s/js/w.relationship.js'%g.EMEN2WEBROOT,
-			'%s/js/w.table.js'%g.EMEN2WEBROOT,
-			'%s/js/w.tile.js'%g.EMEN2WEBROOT,
-			'%s/js/w.popup.js'%g.EMEN2WEBROOT,
-			'%s/js/w.file.js'%g.EMEN2WEBROOT
+			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
+			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
+			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
+			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
+			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
+			'%s/static/js/util.admin.js'%g.EMEN2WEBROOT,
+			'%s/static/js/util.json.js'%g.EMEN2WEBROOT,
+			'%s/static/js/util.query.js'%g.EMEN2WEBROOT,
+			'%s/static/js/util.rec.js'%g.EMEN2WEBROOT,
+			'%s/static/js/util.reverse.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.browser.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.comments.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.edit.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.find.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.mapselect.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.paramdef.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.permission.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.query.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.recorddef.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.relationship.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.table.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.tile.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.popup.js'%g.EMEN2WEBROOT,
+			'%s/static/js/w.file.js'%g.EMEN2WEBROOT
 			]
 
 
@@ -77,7 +77,7 @@ class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		self.files = [
-			'%s/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT, 
-			'%s/css/main.css' % g.EMEN2WEBROOT
-			# '%s/css/style.css' % g.EMEN2WEBROOT
+			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT, 
+			'%s/static/css/main.css' % g.EMEN2WEBROOT
+			# '%s/static/css/style.css' % g.EMEN2WEBROOT
 		]

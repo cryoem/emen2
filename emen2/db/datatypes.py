@@ -96,7 +96,7 @@ class VartypeManager(object):
 
 	def name_render(self, pd, mode="unicode", db=None):
 		if mode in ["html","htmledit"]:
-			return u"""<a href="%s/db/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
+			return u"""<a href="%s/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
 		else:
 			return unicode(pd.desc_short)
 
@@ -247,9 +247,9 @@ class Vartype(object):
 			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
 		
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="%s/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name, g.EMEN2WEBROOT)
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="%s/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name, g.EMEN2WEBROOT)
 		elif edit:
-			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label"><img src="%s/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, value, u, g.EMEN2WEBROOT)
+			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, value, u, g.EMEN2WEBROOT)
 		else:	
 			return '<span>%s%s</span>'%(value, u)
 

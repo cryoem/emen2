@@ -70,7 +70,7 @@
 			this.currentid = r;
 			this.tablearea.empty();
 			this.tablearea.html("Loading...");
-			this.tablearea.load(EMEN2WEBROOT+'/db/map/record/'+this.currentid+'/both/', {recurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					if (status=='error') {
 						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');
@@ -109,7 +109,7 @@
 
 			}
 			
-			this.controlsarea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif"></div>');
+			this.controlsarea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"></div>');
 			var i = $('<input type="button" value="Removed Selected" />');
 			i.click(function() {
 				self.event_removeselected();
@@ -153,7 +153,7 @@
 			var root = t.attr("data-root");
 			var mode = t.attr("data-mode");
 			var keytype = t.attr("data-keytype");			
-			t.parent().load(EMEN2WEBROOT+'/db/map/'+keytype+'/'+root+'/'+mode+'/');
+			t.parent().load(EMEN2WEBROOT+'/map/'+keytype+'/'+root+'/'+mode+'/');
 
 			this.update_rels(function(){self.build_browser()});
 			

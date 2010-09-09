@@ -205,7 +205,7 @@ class macro_renderchildrenoftype(Macro):
 		r = db.renderview(db.getchildren(rec.recid, rectype=params), viewtype="recname")
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-			l = """<li><a href="%s/db/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
 			hrefs.append(l)
 		return "<ul>%s</ul>"%("\n".join(hrefs))
 

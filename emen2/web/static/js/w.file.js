@@ -384,7 +384,7 @@
 			}
 			
 			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
-			var redirect = $('<input type="hidden" value="'+EMEN2WEBROOT+'/db/record/'+this.options.recid+'/" name="redirect">');
+			var redirect = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/" name="redirect">');
 			
 			fform.append(this.button_browser, this.button_submit, progress, redirect);
 			fform.wrap('<div class="controls"></div>');

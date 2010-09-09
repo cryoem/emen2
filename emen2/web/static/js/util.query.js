@@ -35,7 +35,7 @@
 // 	form_query_setinband(nrecorddef);
 // 	inband[1]=1;
 // 
-// 	//param_text[1]='<img src="/images/branch_up.reverse.png" height="32" width="32" />';
+// 	//param_text[1]='<img src="/static/images/branch_up.reverse.png" height="32" width="32" />';
 // 	form_query_paramsredraw();
 // }
 // 
@@ -93,7 +93,7 @@
 // function form_query_paramaddmarkup(index, ptext, param, choices, compare, value) {
 // 
 // 	if (inband[index] == 1) {
-// 		ptext='<img src="'+EMEN2WEBROOT+'/images/branch_up.reverse.png" height="32" width="32" />';
+// 		ptext='<img src="'+EMEN2WEBROOT+'/static/images/branch_up.reverse.png" height="32" width="32" />';
 // 	} else {
 // 		ptext="Parameter ";
 // 	}

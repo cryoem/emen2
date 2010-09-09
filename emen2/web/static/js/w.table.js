@@ -18,13 +18,13 @@
 			// record count
 			var length = $('<div class="length" style="float:left">Records</div>');
 
-			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/images/spinner.gif" /></div>');
+			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
 
 			// query bar
 			var q = $('<div class="querycontrol control" style="float:right"> \
 				<input type="text" name="q" size="8" /> \
 				<input type="button" name="query" value="Query" /> \
-				<img src="'+EMEN2WEBROOT+'/images/caret_small.png" alt="^" /></div>');
+				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
 			
 			// row count
 			var count = $('<select name="count" style="float:right"></select>');
@@ -161,7 +161,7 @@
 		
 		rebuild_plot: function() {
 			//
-			//"plots": {"png": "/data/db/tmp/2bf6df53a73d5160ceb9b202e0977c28aa7143a8-plot-2010.09.01-15.41.19.png"}
+			//"plots": {"png": "/data/tmp/2bf6df53a73d5160ceb9b202e0977c28aa7143a8-plot-2010.09.01-15.41.19.png"}
 			// $('.plot', this.element).empty();
 			// if (this.options.q['plots']) {
 			// 	var pngfile = this.options.q['plots']['png'];
@@ -189,9 +189,9 @@
 				
 				if (self.options.q['sortkey'] == this[2]) {
 					if (self.options.q['reverse']) {
-						i.append('<img src="'+EMEN2WEBROOT+'/images/sort_0.png" />');
+						i.append('<img src="'+EMEN2WEBROOT+'/static/images/sort_0.png" />');
 					} else {
-						i.append('<img src="'+EMEN2WEBROOT+'/images/sort_1.png" />');						
+						i.append('<img src="'+EMEN2WEBROOT+'/static/images/sort_1.png" />');						
 					}
 				}		
 						
@@ -214,7 +214,7 @@
 				var row = [];
 				for (var j=0;j<headers.length;j++) {
 					//row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>'); //
-					row.push('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
+					row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
 				}
 				if (i%2) {
 					row = '<tr class="s">' + row.join('') + '</tr>';

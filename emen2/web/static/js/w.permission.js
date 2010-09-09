@@ -67,7 +67,7 @@
 
 			// Save controls
 			if (this.options.recid!="None" && this.options.edit) {
-				this.savearea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif"></div>');
+				this.savearea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"></div>');
 				var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save()});
 				var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});
 				this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
@@ -213,7 +213,7 @@
 			if (user.userrec["person_photo"]) {
 				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" />');
 			} else {
-				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/images/nophoto.png" />');			
+				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
 			}
 			userdiv.append('<div data-level="'+level+'" data-username="'+user.username+'">'+user.displayname+'<br />'+user.email+'</div>');					
 
@@ -231,7 +231,7 @@
 		drawgroup: function(groupname, add) {
 			var self = this;				
 			var groupdiv = $('<div class="userbox group" data-groupname="'+groupname+'" />');
-			groupdiv.append('<img  data-groupname="'+groupname+'" src="'+EMEN2WEBROOT+'/images/group.png" />');	
+			groupdiv.append('<img  data-groupname="'+groupname+'" src="'+EMEN2WEBROOT+'/static/images/group.png" />');	
 			groupdiv.append('<div data-groupname="'+groupname+'">'+groupname+'<br /></div>');
 		
 			if (this.options.edit) {

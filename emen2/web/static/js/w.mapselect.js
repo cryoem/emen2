@@ -38,7 +38,7 @@
 
 			});
 			
-			this.element.prepend('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
+			this.element.prepend('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
 			$('input[name=save]', this.element).click(function() {
 				self.save();
 			})

@@ -123,12 +123,12 @@ RecordDefEditor.prototype = {
 	
 	default_commit_put: function() {
 		var self=this;
-		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},
 	
 	default_commit_add: function() {
 		var self=this;
-		$.jsonRPC("putrecorddef",[this.rd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},	
 	
 	refreshall: function(e) {
@@ -150,7 +150,7 @@ RecordDefEditor.prototype = {
 		
 		var oname=$('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
 		var ocopy=$('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
-		var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/images/remove_small.png" /> Remove</li>');
+		var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /> Remove</li>');
 		ul.append(oname, ocopy, oremove);
 		
 		var ovalue=$('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');

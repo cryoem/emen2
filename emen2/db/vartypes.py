@@ -140,9 +140,9 @@ class vt_text(Vartype):
 		value = cgi.escape(value)
 		value = markdown.markdown(value)
 		if edit and not value:
-			value = '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)
+			value = '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)
 		elif edit:
-			value = '<div class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/images/edit.png" alt="Edit" /></span></div>'%(rec.recid, pd.name, pd.vartype, value)
+			value = '<div class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></div>'%(rec.recid, pd.name, pd.vartype, value)
 
 		return value
 
@@ -272,9 +272,9 @@ class vt_stringlist(Vartype):
 
 		lis = ['<li>%s</li>'%cgi.escape(i) for i in value]
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
 		elif edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/images/edit.png" alt="Edit" /></span></li>')		
+			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -301,9 +301,9 @@ class vt_uri(Vartype):
 		value = cgi.escape(value)
 		href = '<a href="%s">%s</a>'%(value,value)
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
 		elif edit:
-		 	href = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
+		 	href = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
 		return href
 		
 
@@ -332,9 +332,9 @@ class vt_urilist(Vartype):
 
 		lis = ['<li><a href="%s">%s</a></li>'%(cgi.escape(i), cgi.escape(i)) for i in value]
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)	
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)	
 		elif edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/images/edit.png" alt="Edit" /></span></li>')		
+			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -387,7 +387,7 @@ class vt_binary(Vartype):
 		v = db.getbinary(value)
 		lis = ['<li><a href="%s/download/%s/%s">%s</a></li>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 		if edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/images/edit.png" alt="Edit" /></span></li>')		
+			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
 			ul = '<ul class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 		else:
 			ul = '<ul>%s</ul>'%("\n".join(lis))
@@ -426,7 +426,7 @@ class vt_binaryimage(Vartype):
 		if i:
 			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
 		if edit:
-			href = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
+			href = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
 		return href
 
 
@@ -546,12 +546,12 @@ class vt_user(Vartype):
 		if value:
 			update_username_cache(engine, [value], db)
 			hit, dn = engine.check_cache(engine.get_cache_key('displayname', value))
-			dn = '<a href="%s/db/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+			dn = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
 
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)				
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)				
 		elif edit:
-			dn = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, dn)
+			dn = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, dn)
 		return dn
 
 
@@ -593,18 +593,18 @@ class vt_userlist(Vartype):
 	def render_html(self, engine, pd, value, rec, db, edit=0):
 		value = self.check_iterable(value)
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
 
 		update_username_cache(engine, value, db)
 
 		lis = []
 		for i in value:
-			key = engine.get_cache_key('displayname', v)
+			key = engine.get_cache_key('displayname', i)
 			hit, dn = engine.check_cache(key)
 			lis.append('<li><a href="%s">%s</a></li>'%(i,dn))			
 		
 		if edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/images/edit.png" alt="Edit" /></span></li>')		
+			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
 			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
 
 		else:
@@ -691,11 +691,11 @@ class vt_comments(Vartype):
 		for user, time, comment in value:
 			key = engine.get_cache_key('displayname', user)
 			hit, dn = engine.check_cache(key)
-			t = '<div class="comment"><h4><a href="%s/db/user/%s/">%s</a> @ %s</h4>%s</div>'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
+			t = '<div class="comment"><h4><a href="%s/user/%s/">%s</a> @ %s</h4>%s</div>'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
 			lis.append(t)
 
 		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
+			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
 
 		elif edit:
 			lis.append('<p class="label">Add Comment</p>')

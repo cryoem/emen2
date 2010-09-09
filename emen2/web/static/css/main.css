@@ -375,7 +375,7 @@ th {
 }
 
 .ui-progressbar-value {
-	background-image: url('/images/pbar-ani.gif');
+	background-image: url('/static/images/pbar-ani.gif');
 }
 
 .ui-widget-header {
@@ -604,7 +604,7 @@ div.color_picker {
 	width: 16px;
 	padding: 0 !important;
 	border: 1px solid #ccc;
-	background: url(/images/arrow.gif) no-repeat top right;
+	background: url(/static/images/arrow.gif) no-repeat top right;
 	cursor: pointer;
 	line-height: 16px;
 }
@@ -780,58 +780,58 @@ table.map {
 .map td.next {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") center center no-repeat;
+	background:url("/static/images/next.png") center center no-repeat;
 }
 .map td.next_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/next.png") center center no-repeat;
+	background:url("/static/images/next.png") center center no-repeat;
 }
 .map td.branch_next {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_next.png") center center;
+	background:url("/static/images/branch_next.png") center center;
 }
 .map td.branch_up {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_up.png") center center;
+	background:url("/static/images/branch_up.png") center center;
 }
 .map td.branch_spacer {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_spacer.png") center center;
+	background:url("/static/images/branch_spacer.png") center center;
 }
 .map td.branch_both {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_both.png") center center;
+	background:url("/static/images/branch_both.png") center center;
 }
 .map td.branch_next_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_next.reverse.png") center center;
+	background:url("/static/images/branch_next.reverse.png") center center;
 }
 .map td.branch_up_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_up.reverse.png") center center;
+	background:url("/static/images/branch_up.reverse.png") center center;
 }
 .map td.branch_spacer_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_spacer.reverse.png") center center;
+	background:url("/static/images/branch_spacer.reverse.png") center center;
 }
 .map td.branch_both_reverse {
 	max-width:32px;
 	width:32px;	
-	background:url("/images/branch_both.reverse.png") center center;
+	background:url("/static/images/branch_both.reverse.png") center center;
 }
 .map td.blank {
 	
 }
 .map td.editablelink:hover {
-	background:url("/images/remove.png") center center;
+	background:url("/static/images/remove.png") center center;
 	repeat-x: none;
 	repeat-y: none;
 }
