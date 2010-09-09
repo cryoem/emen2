@@ -28,6 +28,7 @@ paths:
 
   EMEN2ERRLOG:
     applog/emen2errlog
+
   EMEN2JOBFILE: 
     applog/emen2job
     
