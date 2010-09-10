@@ -5022,7 +5022,6 @@ class DB(object):
 		self.bdbs.secrindex_groups.truncate(txn=txn)
 		self.bdbs.recorddefindex.truncate(txn=txn)
 		self.bdbs.groupsbyuser.truncate(txn=txn)
-
 		allparams = self.bdbs.paramdefs.keys()
 		paramindexes = {}
 		for param in allparams:
@@ -5039,6 +5038,8 @@ class DB(object):
 		g.log.msg("LOG_INFO","Done truncating all indexes")
 
 		self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
+
+		self.__rebuild__usersbyemail(ctx=ctx, txn=txn)
 
 		maxrecords = self.bdbs.records.get_max(txn=txn) #get(-1, txn=txn)["max"]
 		g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))

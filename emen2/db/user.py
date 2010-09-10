@@ -45,7 +45,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 		# these are basically required arguments...
 		self.username = d.get('username', None)
-		self.username = re.sub("\W", "", self.username)
+		self.username = re.sub("\W", "", self.username).lower()
 		self.password = None
 		self.__setpassword(d.get('password'))
 		self.email = d.get('email', None)
@@ -232,6 +232,8 @@ class User(emen2.db.dataobject.BaseDBObject):
 			if not i.startswith('_'):
 				del self.__dict__[i]
 
+
+		self.username = re.sub("\W", "", self.username).lower()
 
 		try:
 			if self.record != None:
