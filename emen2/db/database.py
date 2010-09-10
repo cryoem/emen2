@@ -2996,7 +2996,7 @@ class DB(object):
 			try:
 				oldemail = ouser.email
 			except:
-				oldemail = None
+				oldemail = ''
 				
 			if oldemail != user.email:
 				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
