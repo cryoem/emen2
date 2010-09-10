@@ -106,6 +106,10 @@ class View(object):
 		self.__ctxt = adjust({}, extra)
 
 
+		try:
+			LOGINUSER = self.__db._DBProxy__ctx.username
+		except:
+			LOGINUSER = "anonymous"
 
 		self.__basectxt = dict(
 			ctxt = self.dbtree,
@@ -116,7 +120,7 @@ class View(object):
 			EMEN2DBNAME = g.EMEN2DBNAME,
 			EMEN2LOGO = g.EMEN2LOGO,
 			BOOKMARKS = g.BOOKMARKS,
-			LOGINUSER = self.__db._DBProxy__ctx.username,
+			LOGINUSER = LOGINUSER,
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo
 		)
