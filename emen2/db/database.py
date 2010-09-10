@@ -270,6 +270,7 @@ class DB(object):
 			self.secrindex = emen2.db.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
 			self.secrindex_groups = emen2.db.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
 			self.groupsbyuser = emen2.db.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
+			self.usersbyemail = emen2.db.btrees.FieldBTree(filename="index/security/usersbyemail", datatype="s", dbenv=dbenv, txn=txn)
 			self.recorddefindex = emen2.db.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
 			self.bdosbyfilename = emen2.db.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
 			self.indexkeys = emen2.db.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
@@ -658,6 +659,14 @@ class DB(object):
 		# print "attempted login: %s"%username
 		# Anonymous access
 
+		byemail = self.bdbs.usersbyemail.get(username.lower(), txn=txn)
+		if len(byemail) == 1:
+			username = byemail.pop()
+		elif len(byemail) > 1:
+			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)			
+			raise emen2.db.exceptions.AuthenticationError
+			
+
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 		else:
@@ -665,13 +674,13 @@ class DB(object):
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
-				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
+				raise emen2.db.exceptions.AuthenticationError
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
-				raise emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.AuthenticationError.__doc__
+				raise emen2.db.exceptions.AuthenticationError
 
 		try:
 			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
@@ -3090,13 +3099,17 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's email"
+				raise emen2.db.exceptions.SecurityError, "You may only change your own email address"
 		else:
 			username = ctx.username
 
 		user = self.getuser(username, ctx=ctx, txn=txn)
 		user.email = email
 		user.validate()
+
+		if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
+			time.sleep(2)
+			raise emen2.db.exceptions.SecurityError, "The email address %s is already in use"%(user.email)
 
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
@@ -3149,8 +3162,17 @@ class DB(object):
 
 		#@begin
 		for user in users:
+			
+			ouser = self.bdbs.users.get(user.username, txn=txn)
+			
 			self.bdbs.users.set(user.username, user, txn=txn)
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
+
+			if ouser.email != user.email:
+				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
+				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
+				self.bdbs.usersbyemail.removerefs(ouser.email.lower(), [user.username], txn=txn)
+
 		#@end
 
 
@@ -3416,6 +3438,16 @@ class DB(object):
 
 		#@end
 
+
+
+	def __rebuild_usersbyemail(self, ctx=None, txn=None):
+		usernames = self.getusernames(ctx=ctx, txn=txn)
+		users = self.getuser(usernames, ctx=ctx, txn=txn)
+
+		self.bdbs.usersbyemail.truncate(txn=txn)
+		for user in users:
+			self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
+			
 
 
 	def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
@@ -4618,7 +4650,6 @@ class DB(object):
 			indexupdates = self.__reindex_params(crecs, cache=cache, ctx=ctx, txn=txn)
 		secr_addrefs, secr_removerefs = self.__reindex_security(crecs, cache=cache, ctx=ctx, txn=txn)
 		secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
-
 
 
 		# If we're just validating, exit here..
