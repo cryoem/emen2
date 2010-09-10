@@ -5130,33 +5130,35 @@ class DB(object):
 
 
 
-	#@rename db.admin.archivelogs
-	# @publicmethod @ok
+	#@rename db.admin.log_archive
 	# @adminmethod
-	def archivelogs(self, remove=False, ctx=None, txn=None):
+	def log_archive(self, remove=True, checkpoint=False, outpath=None, ctx=None, txn=None):
 
-		# if checkpoint:
-		# 	g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
-		# 	self.dbenv.txn_checkpoint()
+		outpath = outpath or g.paths.LOG_ARCHIVE
 
-		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS) # |  bsddb3.db.DB_ARCH_LOG
+		if checkpoint:
+			g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
+			self.dbenv.txn_checkpoint()
 
-		if not os.access(g.paths.ARCHIVEPATH, os.F_OK):
-			os.makedirs(g.paths.ARCHIVEPATH)
+		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 
-		self.__archivelogs(archivefiles, remove=remove)
+		g.log.msg('LOG_INFO', "Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+
+		if not os.access(outpath, os.F_OK):
+			os.makedirs(outpath)
+
+		self.__log_archive(archivefiles, outpath, remove=remove)
 
 
 
-	def __archivelogs(self, files, remove=False):
+	def __log_archive(self, archivefiles, outpath, remove=False):
 
 		outpaths = []
-		for file_ in files:
-			outpath = os.path.join(g.paths.ARCHIVEPATH, os.path.basename(file_))
-			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(file_, outpath))
-			shutil.copy(file_, outpath)
-			outpaths.append(outpath)
-
+		for archivefile in archivefiles:
+			dest = os.path.join(outpath, os.path.basename(archivefile))
+			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(archivefile, dest))
+			shutil.copy(archivefile, dest)
+			outpaths.append(dest)
 
 		if not remove:
 			return outpaths
@@ -5164,62 +5166,65 @@ class DB(object):
 		removefiles = []
 
 		# ian: check if all files are in the archive before we remove any
-		for file_ in files:
+		for archivefile in archivefiles:
 			if not os.path.exists(outpath):
-				raise ValueError, "Log Archive: %s not found in backup archive!"%(file_)
-			removefiles.append(file_)
+				raise ValueError, "Log Archive: %s not found in backup archive!"%(archivefile)
+			removefiles.append(archivefile)
 
-		for file_ in removefiles:
-			g.log.msg('LOG_INFO','Log Archive: Removing %s'%(file_))
-			os.unlink(file_)
+
+		for removefile in removefiles:
+			g.log.msg('LOG_INFO','Log Archive: Removing %s'%(removefile))
+			os.unlink(removefile)
 
 		return removefiles
 
 
-
-	def coldbackup(self, force=False, ctx=None, txn=None):
-		g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
-		self.checkpoint(ctx=ctx, txn=txn)
-		if os.path.exists(g.paths.BACKUPPATH):
-			if force:
-				pass
-			else:
-				raise ValueError, "Directory %s exists -- remove before starting a new cold backup, or use force=True"%g.paths.BACKUPPATH
-
-		# ian: just use shutil.copytree
-		g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
-		shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
-
-		for i in ["config.yml","DB_CONFIG"]:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
-
-
-		os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
-
-		# Get the last log file
-		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
-
-		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
-
-
-
-	def hotbackup(self, ctx=None, txn=None):
-		g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
-		self.checkpoint(ctx=ctx, txn=txn)
-
-		g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
-
-		archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)
-		for i in archivelogs:
-			g.log.msg('LOG_INFO',"Hot Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
-			shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
-
-		self.archivelogs(remove=True, ctx=ctx, txn=txn)
-
-		g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
-
-
-
+	# ian: todo: finish
+	# def coldbackup(self, force=False, ctx=None, txn=None):
+	# 	g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
+	# 
+	# 	self.checkpoint(ctx=ctx, txn=txn)
+	# 
+	# 	if os.path.exists(g.paths.BACKUPPATH):
+	# 		if force:
+	# 			pass
+	# 		else:
+	# 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.paths.BACKUPPATH
+	# 
+	# 	# ian: just use shutil.copytree
+	# 	g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
+	# 	shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
+	# 
+	# 	for i in ["config.yml","DB_CONFIG"]:
+	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
+	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
+	# 	
+	# 	os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
+	# 
+	# 	# Get the last log file
+	# 	archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
+	# 
+	# 	for i in archivelogs:
+	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
+	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
+	# 
+	# 
+	# 
+	# def hotbackup(self, ctx=None, txn=None):
+	# 	g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
+	# 	self.checkpoint(ctx=ctx, txn=txn)
+	# 
+	# 	g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
+	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
+	# 
+	# 	g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

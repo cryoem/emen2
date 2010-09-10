@@ -5,12 +5,12 @@ paths:
     applog
     
   # Berkeley DB Log Archive directory. Backup offsite.    
-  ARCHIVEPATH:
+  LOG_ARCHIVE:
     log_archive
     
   # Berkeley DB Hot Backup directory, for incremental backups and failover. Backup offsite.          
-  BACKUPPATH:
-    db_backup
+  HOTBACKUP:
+    db_hotbackup
     
   # Cache for "map" interface for large image files    
   TILEPATH:
@@ -24,7 +24,8 @@ paths:
   TMPPATH:
     tmp
 
-  DEBUGLOG: applog/1debug.log
+  DEBUGLOG:
+      applog/debug.log
 
   EMEN2ERRLOG:
     applog/emen2errlog
@@ -61,12 +62,12 @@ network:
 
   # HTTP port
   EMEN2PORT: 8080
-  # EMEN2WEBROOT: "/competition" 
 
   # HTTPS configuration. You will need to place the SSL certificate and key files in the SSL directory
   EMEN2HTTPS: 0
   EMEN2PORT_HTTPS: 436
   EMEN2WEBROOT: ''
+
   # Set this if you are behind a reverse proxy -- it should be the root page; e.g. http://ncmi.bcm.edu/challenge/
   EMEN2EXTURI: ''
   EMEN2EXTURI_HTTPS: ''
@@ -126,15 +127,6 @@ IMAGEMAGICK:
    CONVERTPATH: /usr/bin/convert
 
 
-# Probably don't want to touch these unless you have an unusual Berkeley DB setup
-dbutils:
-    prefix:
-        - /usr/local/BerkeleyDB.4.8/
-    db_recover: bin/db_recover
-    db_hotbackup: bin/db_hotbackup
-    db_archive: bin/db_archive
-    db_checkpoint: bin/db_checkpoint
- 
  
 # Additional template and view directories to add to search paths  
 viewsettings:

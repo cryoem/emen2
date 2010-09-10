@@ -14,8 +14,8 @@ envopenflags = [
 	DB_INIT_LOG,
 	DB_REGISTER,
 	DB_TXN_SNAPSHOT,
-	DB_MULTIVERSION
-	# DB_RECOVER,
+	DB_MULTIVERSION,
+	DB_RECOVER
 	# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
 ]
 
