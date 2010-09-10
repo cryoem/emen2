@@ -21,7 +21,7 @@
 			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
 
 			// query bar
-			var q = $('<div class="control" style="float:right"> \
+			var q = $('<div class="querycontrol control" style="float:right"> \
 				<input type="text" name="q" size="8" /> \
 				<input type="button" name="query" value="Query" /> \
 				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
@@ -39,10 +39,8 @@
 			})			
 			count = $('<div class="control" style="float:right"/>').append(count);
 
-
 			// page controls			
 			var pages = $('<div class="control pages" style="float:right">Pages</div>');
-
 
 			// Bind to control elements
 			$('.header', this.element).append(length, pages, count, q, spinner);
@@ -70,7 +68,11 @@
 				q.EditbarHelper('toggle');
 			});
 						
-
+						
+			$('.plot', this.element).PlotControl({
+				q:this.options.q,
+				cb: function(test, newq) {self.query(newq)} 
+			});						
 
 			// Set the control values from the current query state
 			this.update_controls();
@@ -87,29 +89,14 @@
 		
 		query: function(newq) {
 			newq = newq || this.options.q;
-			
 			$('.header .spinner', this.element).show();
-			
 			var self = this;
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
+			newq['plots'] = null;
 			newq["rendered"] = {};
-			
-			$.ajax({
-				type: 'POST',
-				url: EMEN2WEBROOT+'/table/',
-				dataType: 'json',
-			    data: {"args___json":$.toJSON(newq)},
-				success: function(q) {self.update(q)}
-			});
-			
-		},
-		
-		unique: function(li) {
-			var o = {}, i, l = li.length, r = [];
-			for(i=0; i<l;i++) o[li[i]] = li[i];
-			for(i in o) r.push(o[i]);
-			return r;
+			newq['recids'] = [];
+			$.jsonRPC("querytable", newq, function(q){self.update(q)});			
 		},
 		
 		setpos: function(pos) {
@@ -131,7 +118,9 @@
 		
 		update: function(q) {
 			this.options.q = q;
+			$('.plot', this.element).PlotControl('update', this.options.q);
 			$('.header .query').QueryControl('update', this.options.q)					
+			$('.header .querycontrol').EditbarHelper('hide');
 			this.update_controls();
 			this.rebuild_table();	
 			$('.header .spinner', this.element).hide();					
@@ -164,8 +153,21 @@
 				
 		
 		rebuild_table: function() {
+			this.rebuild_plot();
 			this.rebuild_thead();
 			this.rebuild_tbody();
+		},
+		
+		
+		rebuild_plot: function() {
+			//
+			//"plots": {"png": "/data/tmp/2bf6df53a73d5160ceb9b202e0977c28aa7143a8-plot-2010.09.01-15.41.19.png"}
+			// $('.plot', this.element).empty();
+			// if (this.options.q['plots']) {
+			// 	var pngfile = this.options.q['plots']['png'];
+			// 	var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+pngfile+'" alt="plot" />');
+			// 	$('.plot', this.element).append(i);				
+			// }
 		},
 		
 		rebuild_thead: function() {
@@ -223,22 +225,7 @@
 			}
 			
 			$('tbody', t).empty();
-			//$('tbody', t)[0].innerHTML = rows.join('');
-			$('tbody', t).append(rows.join(''));
-			
-			// $.each(this.options.q['recids'], function(i) {
-			// 	var recid = this;
-			// 	var r = $('<tr/>');
-			// 	$.each(headers, function(j) {
-			// 		r.append('<td><a href="'+EMEN2WEBROOT+'/record/'+recid+'/">'+self.options.q['rendered'][recid][j]+'</a></td>');
-			// 	});
-			// 	if (i%2) {
-			// 		r.addClass('s');
-			// 	}
-			// 	
-			// 	$('tbody', t).append(r);
-			// });
-
+			$('tbody', t).append(rows.join(''));		
 		},
 		
 		destroy: function() {
@@ -250,21 +237,3 @@
 	});
 })(jQuery);
 
-
-
-
-
-
-
-// var r = [0, current-1, current, current+1, pagecount-1];
-// var r = [0, current, pagecount-1];
-// r = this.unique(r);
-// r = r.sort(function(a,b){return a-b});
-// $.each(r, function(i,j) {
-// 	if (j >= 0 && j < pagecount) {
-// 		if (j > 0 && r[i-1]!=j-1) {pages.append('<span>...</span>')}
-// 		var page = $('<span data-pos="'+(j*self.options.q['count'])+'" class="clickable clickable_box">'+(j+1)+'</span>');
-// 		page.click(function() {self.setpos(parseInt($(this).attr('data-pos')))});
-// 		pages.append(page);
-// 	}
-// });
