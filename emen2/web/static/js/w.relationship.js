@@ -70,7 +70,7 @@
 			this.currentid = r;
 			this.tablearea.empty();
 			this.tablearea.html("Loading...");
-			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {maxrecurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					if (status=='error') {
 						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');

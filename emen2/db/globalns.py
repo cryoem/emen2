@@ -198,9 +198,6 @@ class GlobalNamespace(object):
 		pass
 
 
-
-
-
 	@classmethod
 	def from_file(cls, fn=None, data=None):
 		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''

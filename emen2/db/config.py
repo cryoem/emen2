@@ -78,17 +78,11 @@ class DBOptions(optparse.OptionParser):
 		if os.path.exists('/etc/emen2config.json'):
 			g.from_file('/etc/emen2config.json')
 
-# Load any additional config files specified
+		# Load any additional config files specified
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_file(fil)
 		EMEN2DBHOME = g.EMEN2DBHOME
-		# def fix_paths():
-			# Process relative/absolute path names in 'paths'
-			#for i in ["LOGPATH","ARCHIVEPATH","BACKUPPATH","TILEPATH", "TMPPATH", "SSLPATH"]:
-			#	#print g.getattr(i)
-			#	if g.getattr(i, '') and not g.getattr(i, '').lower().startswith('/'):
-			#		g.setattr(i, '/%s' % g.getattr(i))
 
 		# Look for any EMEN2DBHOME-specific config files and load
 		try:
