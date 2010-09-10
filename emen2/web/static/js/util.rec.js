@@ -27,7 +27,6 @@ function switchin(classname, id) {
 
 
 
-
 //////////////////////////////////////////
 // access values from cached sources
 
@@ -127,7 +126,7 @@ function newrecord_init(rec) {
 
 	$('.editbar .change select').change(function(){
 		var parent = $(this).attr('data-parent');
-		notify_post(EMEN2WEBROOT+'/record/'+parent+'/new/'+$(this).val()+'/', []);
+		notify_post(EMEN2WEBROOT+'/db/record/'+parent+'/new/'+$(this).val()+'/', []);
 	});
 
 
@@ -227,7 +226,7 @@ function record_init(rec, ptest, edit) {
 					$.extend(caches["recnames"], recnames);
 					$.each(siblings, function(i,k) {
 						if (k != rec.recid) {
-							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
+							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/db/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
 							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
 						}

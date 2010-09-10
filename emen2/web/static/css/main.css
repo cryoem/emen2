@@ -526,18 +526,14 @@ img.listicon {
 	position:absolute;
 	top:20px;
 	right:0px;
-	padding:2px;
+	padding:5px;
 	z-index:100;
 	border-right-style:dashed;
 	border-right-width:2px;
 	text-align:center;
-	font-size:8pt;
 }
 
 .tilemap .label {
-	padding:0px;
-	margin:0px;
-	margin-top:4px;
 	font-size:8pt;
 	text-align:center
 }
@@ -599,7 +595,7 @@ img.listicon {
 /************* COLOR PICKER ************/
 
 div.color_picker {
-	display:inline-block;
+	float: right;
 	height: 16px;
 	width: 16px;
 	padding: 0 !important;
@@ -644,12 +640,6 @@ div.color_swatch {
 	margin:0px;
 	padding:0px;
 }
-
-.plot_title, .plot_xlabel, .plot_ylabel {
-	text-align:center;
-	font-weight:bold;
-}
-
 
 .vertical {
 	display:block;

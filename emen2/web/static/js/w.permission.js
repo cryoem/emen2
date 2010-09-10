@@ -67,7 +67,7 @@
 
 			// Save controls
 			if (this.options.recid!="None" && this.options.edit) {
-				this.savearea = $('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"></div>');
+				this.savearea = $('<div class="controls"/>');
 				var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save()});
 				var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});
 				this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
@@ -75,6 +75,7 @@
 			}
 
 			// this.elem.append(user_outer);
+			this.dialog.attr("title","Permissions");
 		
 			if (this.options.embed) {
 				this.element.append(this.dialog);
@@ -82,7 +83,6 @@
 			}
 
 			var pos = this.element.offset();
-			this.dialog.attr("title","Permissions");
 			this.dialog.dialog({
 				autoOpen: false,
 				width: 800,
@@ -299,10 +299,7 @@
 			return this.getaddusers(false);
 		},
 
-		save: function() {
-			
-			$('.spinner', this.element).show();
-				
+		save: function() {		
 			var self=this;		
 			var rlevels=0;
 			if (this.recurse) {
@@ -324,10 +321,10 @@
 					$.jsonRPC("getrecord",[self.options.recid],
 						function(record) {
 							// ian: changing permissions shouldn't require a full rebuild...
-							$('.spinner', self.element).hide();							
 							notify("Saved Permissions");
 							caches["recs"][self.options.recid] = record;
 							self.reinit();
+							//self.hide();
 						});
 
 				}

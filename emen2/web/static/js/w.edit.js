@@ -147,7 +147,7 @@
 
 			$.jsonRPC("putrecord", [updrec], 
 				function(rec) {
-					notify_post(EMEN2WEBROOT+'/record/'+rec.recid+'/', ["New record created"]);
+					notify_post(EMEN2WEBROOT+'/db/record/'+rec.recid+'/', ["New record created"]);
 				},
 				function(e) {
 					default_errback(e, function(){self.rebind_save()})
@@ -541,13 +541,13 @@
 		doit: function(rectype) {		
 			// get some options..
 			var opts = {};
-			if($('input[name=inheritperms]', this.dialog).attr("checked")) {
+			if(!$('input[name=inheritperms]', this.dialog).attr("checked")) {
 				opts["inheritperms"] = false
 			}
 			if ($('input[name=copy]', this.dialog).attr("checked")) {
 				opts["copy"] = true
 			}			
-			var link = EMEN2WEBROOT + '/record/'+this.options.recid+'/new/'+rectype+'/';
+			var link = EMEN2WEBROOT + '/db/record/'+this.options.recid+'/new/'+rectype+'/';
 
 			// infuriating that there is no object.length
 			if (opts['inheritperms']!=null || opts['copy']!=null) {
@@ -568,10 +568,10 @@
 			this.typicalchld = $('<div>Loading</div>')
 			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
 			
-			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Private Record <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
 			
 			if (this.options.inheritperms) {
-				$("input[name=inheritperms]", inheritperms).attr("checked", null);
+				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
 			}
 			if (this.options.copy) {
 				$("input[name=copy]", inheritperms).attr("checked", "checked");
@@ -606,14 +606,14 @@
 			t.sort();
 			$.each(t, function() {
 				try {
-					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
+					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
 					var i = $('<div><span class="clickable" data-rectype="'+this+'">'+caches["recorddefs"][this].desc_short+'</span></div>');
 					$('.clickable', i).click(function() {
 						self.doit($(this).attr('data-rectype'));
 					})
 					self.typicalchld.append(i);
 				} catch(e) {
-					//self.dialog.append('<div><a href="/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
+					//self.dialog.append('<div><a href="/db/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
 				}
 			});			
 		},
@@ -631,7 +631,7 @@
 				var b = s.val();
 				if (!b) {return}
 				self.doit(b);
-				// var ns = EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+b+'/';
+				// var ns = EMEN2WEBROOT+'/db/record/'+self.options.recid+'/new/'+b+'/';
 				// notify_post(ns,[]);
 			});
 			this.others.append(s, b);
