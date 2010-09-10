@@ -3001,7 +3001,7 @@ class DB(object):
 			if oldemail != user.email:
 				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
-				self.bdbs.usersbyemail.removerefs(ouser.email.lower(), [user.username], txn=txn)
+				self.bdbs.usersbyemail.removerefs(oldmeail.lower(), [user.username], txn=txn)
 
 		#@end
 
