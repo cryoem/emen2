@@ -209,7 +209,6 @@ class GlobalNamespace(object):
 			raise ValueError, 'Either a filename or json/yaml data must be supplied'
 						
 		if fn and os.access(fn, os.F_OK):
-			print fn
 			fn = os.path.abspath(fn)
 			ext = fn.split(".")[-1]
 			f = open(fn, "r")
@@ -220,7 +219,6 @@ class GlobalNamespace(object):
 					raise NotImplementedError, "No JSON loader found"				
 				# JSON is stupid and doesn't allow comments. Remove them.
 				data = json_strip_comments(data)
-				print data
 				data = json.loads(data)
 				
 			elif ext == "yml":
