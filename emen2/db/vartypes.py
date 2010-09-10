@@ -546,7 +546,7 @@ class vt_user(Vartype):
 		if value:
 			update_username_cache(engine, [value], db)
 			hit, dn = engine.check_cache(engine.get_cache_key('displayname', value))
-			dn = '<a href="%s/db/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+			dn = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
 
 		if edit and not value:
 			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)				
@@ -691,7 +691,7 @@ class vt_comments(Vartype):
 		for user, time, comment in value:
 			key = engine.get_cache_key('displayname', user)
 			hit, dn = engine.check_cache(key)
-			t = '<div class="comment"><h4><a href="%s/db/user/%s/">%s</a> @ %s</h4>%s</div>'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
+			t = '<div class="comment"><h4><a href="%s/user/%s/">%s</a> @ %s</h4>%s</div>'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
 			lis.append(t)
 
 		if edit and not value:

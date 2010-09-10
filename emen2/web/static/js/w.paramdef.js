@@ -123,12 +123,12 @@ RecordDefEditor.prototype = {
 	
 	default_commit_put: function() {
 		var self=this;
-		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd],function(data){notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},
 	
 	default_commit_add: function() {
 		var self=this;
-		$.jsonRPC("putrecorddef",[this.rd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/db/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
+		$.jsonRPC("putrecorddef",[this.rd,this.parents],function(data){notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])});
 	},	
 	
 	refreshall: function(e) {

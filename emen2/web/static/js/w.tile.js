@@ -658,7 +658,7 @@
 				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" />');
 				$.ajax({
 					type: 'POST',
-					url: EMEN2WEBROOT+'/db/tiles/'+this.options.bdo+'/check/',
+					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
 					dataType: 'json',
 					success: function(d) {
 						$('.spinner', self.element).remove();
@@ -774,7 +774,7 @@
 				if (!apix) {
 					apix = 1;
 				}
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/db/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" />');				
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" />');				
 				modeimg.height(mx);
 				this.inner.append(modeimg);
 				this.inner.css('top',0);
@@ -890,7 +890,7 @@
 		
 		get_tile: function(x, y) {
 			if (this.options.mode == "cached") {
-				return EMEN2WEBROOT+'/db/tiles/'+this.options.bdo+'/image/?x='+x+'&y='+y+'&level='+this.options.scale
+				return EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/image/?x='+x+'&y='+y+'&level='+this.options.scale
 			} else {
 				return EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/box?x='+x+'&y='+y+'&size='+this.options.size*this.options.scale+'&fill=1&scale='+this.options.scale
 			}

@@ -203,7 +203,7 @@
 			
 			// $.ajax({
 			// 	type: 'POST',
-			// 	url: EMEN2WEBROOT+'/db/table/',
+			// 	url: EMEN2WEBROOT+'/table/',
 			//     data: {"args___json":$.toJSON(newq)},
 			// 	success: function(data) {$('.table').html(data)}
 			// });			

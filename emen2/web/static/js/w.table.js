@@ -97,7 +97,7 @@
 			
 			$.ajax({
 				type: 'POST',
-				url: EMEN2WEBROOT+'/db/table/',
+				url: EMEN2WEBROOT+'/table/',
 				dataType: 'json',
 			    data: {"args___json":$.toJSON(newq)},
 				success: function(q) {self.update(q)}
@@ -212,7 +212,7 @@
 				var row = [];
 				for (var j=0;j<headers.length;j++) {
 					//row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>'); //
-					row.push('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
+					row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
 				}
 				if (i%2) {
 					row = '<tr class="s">' + row.join('') + '</tr>';
@@ -230,7 +230,7 @@
 			// 	var recid = this;
 			// 	var r = $('<tr/>');
 			// 	$.each(headers, function(j) {
-			// 		r.append('<td><a href="'+EMEN2WEBROOT+'/db/record/'+recid+'/">'+self.options.q['rendered'][recid][j]+'</a></td>');
+			// 		r.append('<td><a href="'+EMEN2WEBROOT+'/record/'+recid+'/">'+self.options.q['rendered'][recid][j]+'</a></td>');
 			// 	});
 			// 	if (i%2) {
 			// 		r.addClass('s');

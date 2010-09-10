@@ -96,7 +96,7 @@ class VartypeManager(object):
 
 	def name_render(self, pd, mode="unicode", db=None):
 		if mode in ["html","htmledit"]:
-			return u"""<a href="%s/db/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
+			return u"""<a href="%s/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
 		else:
 			return unicode(pd.desc_short)
 
