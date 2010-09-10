@@ -3,8 +3,8 @@ from testc import *
 
 db._starttxn()
 
-txn = db._DBProxy__txn
-ddb = db._DBProxy__db
+txn = db._txn
+ddb = db._db
 
 
 pds = {}

@@ -7,7 +7,6 @@ import threading
 import urlparse
 
 import emen2.util.jsonutil
-import yaml
 
 import emen2.db.debug
 from emen2.db.globalns import GlobalNamespace

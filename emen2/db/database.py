@@ -358,7 +358,7 @@ class DB(object):
 
 		self.path = path or g.EMEN2DBHOME
 		if not self.path:
-			raise ValueError, "No path specified; check $EMEN2DBHOME and config.yml files"
+			raise ValueError, "No path specified; check $EMEN2DBHOME and config.json files"
 
 		self.lastctxclean = time.time()
 		self.opentime = gettime()

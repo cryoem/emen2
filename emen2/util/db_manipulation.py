@@ -14,9 +14,6 @@ g = emen2.db.config.g()
 #		prefix = '%s' % g.EMEN2WEBROOT
 #		if not prefix.endswith('/'): prefix = '%s/' % prefix
 #
-#		#if _full == True:
-#		#	prefix = g.EMEN2EXTURI
-#
 #		result = '%s%s%s' % (prefix, 'db', (
 #			URLRegistry.reverselookup(_name, *args, **kwargs).replace('//','/') or ''))
 #		containsqs = '?' in result

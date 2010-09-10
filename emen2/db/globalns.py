@@ -8,17 +8,36 @@ g = emen2.globalns.GlobalNamespace('')
 g.<varname> accesses the variable
 g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
+import re
 import collections
 import threading
 import os
 import os.path
 import UserDict
 import emen2.util.datastructures
+
 try: import yaml
 except ImportError:
 	try: import syck as yaml
 	except ImportError:
 		yaml = False
+
+
+try:
+	import json
+except ImportError:
+	json = False
+
+
+
+def json_strip_comments(data):
+	r = re.compile('/\\*.*\\*/', flags=re.M|re.S)
+	data = r.sub("", data)
+	data = re.sub("//.*\n", "", data)
+	return data
+
+
+
 
 from . import debug
 class dictWrapper(object, UserDict.DictMixin):
@@ -81,10 +100,17 @@ class listWrapper(object):
 		self.__list.insert(idx, self.chopitem(item))
 	def __len__(self): return len(self.__list)
 
+
+
+
 class LockedNamespaceError(TypeError): pass
+
+
+
 
 inst = lambda x:x()
 class GlobalNamespace(object):
+
 	class LoggerStub(debug.DebugState):
 		def __init__(self, *args):
 			debug.DebugState.__init__(self, output_level='LOG_DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
@@ -93,6 +119,7 @@ class GlobalNamespace(object):
 		def msg(self, sn, *args):
 			sn = self.debugstates.get_name(self.debugstates[sn])
 			print u'StubLogger: %s :: %s :: %s' % (self, sn, self.print_list(args))
+
 
 	@inst
 	class paths(object):
@@ -115,12 +142,14 @@ class GlobalNamespace(object):
 					else: value = listWrapper(value, self.root)
 			return value
 
+
 	__yaml_keys = collections.defaultdict(list)
 	__yaml_files = collections.defaultdict(list)
 	__vardict = {'log': LoggerStub()}
 	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
 	__all__ = []
+
 
 	@classmethod
 	def check_locked(cls):
@@ -131,9 +160,12 @@ class GlobalNamespace(object):
 		return cls.__locked
 		#print 'ns __locked 1', cls.__locked
 
+
 	@property
 	def _locked(self):
 		return self.check_locked()
+
+
 	@_locked.setter
 	def _locked(self, value):
 		cls = self.__class__
@@ -145,6 +177,8 @@ class GlobalNamespace(object):
 	def __enter__(self):
 		self.__tmpdict = emen2.util.datastructures.AttributeDict()
 		return self.__tmpdict
+
+
 	def __exit__(self, exc_type, exc_value, tb):
 		newitems = set(self.__tmpdict) - set(self.__vardict)
 		if newitems:
@@ -153,28 +187,51 @@ class GlobalNamespace(object):
 			if skipped: self.log.msg('LOG_WARNING', 'skipped items: %r' % skipped)
 		del self.__tmpdict
 
+
 	@classmethod
 	def __unlock(cls):
 		'''unlock namespace (for internal/debug use only)'''
 		cls.__locked = False
 
-	def __init__(self,_=None): pass
+
+	def __init__(self,_=None):
+		pass
+
+
+
+
 
 	@classmethod
-	def from_yaml(cls, fn=None, data=None):
+	def from_file(cls, fn=None, data=None):
 		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
 
 		if not (fn or data):
-			raise ValueError, 'Either a filename or yaml data must be supplied'
+			raise ValueError, 'Either a filename or json/yaml data must be supplied'
+						
+		if fn and os.access(fn, os.F_OK):
+			fn = os.path.abspath(fn)
+			ext = fn.split(".")[-1]
+			f = open(fn, "r")
+			data = f.read()
+			f.close()
+			if ext == "json":
+				if not json:
+					raise NotImplementedError, "No JSON loader found"				
+				# JSON is stupid and doesn't allow comments. Remove them.
+				data = json_strip_comments(data)
+				data = json.loads(data)
+				
+			elif ext == "yml":
+				if not yaml:
+					raise NotImplementedError, "No YAML loader found"
+				data = yaml.safe_load(data)
+				
+			else:
+				raise NotImplementedError, "Unsupported configuration format"
 
-		if not yaml: raise NotImplementedError, "No YAML loader found"
-
-		fn = os.path.abspath(fn)
 
 		# load data
 		self = cls()
-		if fn and os.path.exists(fn):
-			with file(fn) as a: data = yaml.safe_load(a)
 
 		if not data:
 			return
@@ -207,12 +264,17 @@ class GlobalNamespace(object):
 
 
 		# load alternate config files
-		for fn in paths.get('configfiles', []):
+		for fn in paths.get('CONFIGFILES', []):
 			if os.path.exists(fn):
-				cls.from_yaml(fn=fn)
+				cls.from_file(fn=fn)
 
 
 		return self
+
+
+	def to_json(self, keys=None, kg=None, file=None, fs=0):
+		pass
+
 
 	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
 		'''store state as YAML'''
@@ -231,6 +293,7 @@ class GlobalNamespace(object):
 				_dict[key][k2] = self.getattr(k2)
 		return yaml.safe_dump(dict(_dict), default_flow_style=fs)
 
+
 	@classmethod
 	def setattr(self, name, value):
 		#if name == 'paths': raise AttributeError, 'cannot set attribute paths of %r' % self
@@ -239,12 +302,15 @@ class GlobalNamespace(object):
 			self.__addattr(name, value)
 		finally:
 			self.__modlock.release()
+
+
 	def __setattr__(self, name, value):
 		if hasattr(getattr(self.__class__, name, None), '__set__') or name.startswith('_'):
 			object.__setattr__(self, name, value)
 		else:
 			self.setattr(name, value)
 	__setitem__ = __setattr__
+
 
 	@classmethod
 	def __addattr(cls, name, value, options=None):
@@ -258,10 +324,12 @@ class GlobalNamespace(object):
 			cls.__vardict[name] = value
 		else: raise LockedNamespaceError, 'cannot change locked namespace'
 
+
 	@classmethod
 	def refresh(cls):
 		cls.__all__ = [x for x in cls.__vardict.keys() if x[0] != '_']
 		cls.__all__.append('refresh')
+
 
 	@classmethod
 	def getattr(cls, name, default=None):
@@ -273,10 +341,13 @@ class GlobalNamespace(object):
 		if name.startswith('_'): result = getattr(cls, name, default)
 		else: result = cls.__vardict.get(name, default)
 		return result
+
+
 	@classmethod
 	def keys(cls):
 		private = cls.__options['private']
 		return [k for k in cls.__vardict.keys() if k not in private]
+
 
 	@classmethod
 	def getprivate(cls, name):
@@ -300,7 +371,10 @@ class GlobalNamespace(object):
 			return result
 	__getitem__ = __getattribute__
 
-	def update(self, dict): self.__vardict.update(dict)
+
+	def update(self, dict):
+		self.__vardict.update(dict)
+
 
 	def reset(self):
 		self.__class__.__vardict = {}

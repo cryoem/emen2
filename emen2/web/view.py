@@ -18,13 +18,6 @@ g = emen2.db.config.g()
 class Context(object):
 	'''Partial context for views that don't need db access'''
 	def reverse(self, _name, *args, **kwargs):
-		_full = kwargs.get('_full', False)
-
-		# prefix = g.EMEN2WEBROOT
-		# if not prefix.endswith('/'):
-		# 	prefix = '%s/' % prefix
-		#if _full == True:
-		#	prefix = g.EMEN2EXTURI
 
 		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
 		result = result.replace('//','/')
@@ -112,18 +105,23 @@ class View(object):
 		self.__template = template or self.template
 		self.__ctxt = adjust({}, extra)
 
+
+
 		self.__basectxt = dict(
-			ctxt=self.dbtree,
-			headers=self.__headers,
-			css_files=(css_files or self.css_files)(self.__dbtree),
-			js_files=(js_files or self.js_files)(self.__dbtree),
-			EMEN2WEBROOT=g.EMEN2WEBROOT,
-			EMEN2DBNAME=g.EMEN2DBNAME,
-			EMEN2LOGO=g.EMEN2LOGO,
-			BOOKMARKS=g.BOOKMARKS,
-			def_title='Untitled',
-			reverseinfo=reverseinfo
+			ctxt = self.dbtree,
+			headers = self.__headers,
+			css_files = (css_files or self.css_files)(self.__dbtree),
+			js_files = (js_files or self.js_files)(self.__dbtree),
+			EMEN2WEBROOT = g.EMEN2WEBROOT,
+			EMEN2DBNAME = g.EMEN2DBNAME,
+			EMEN2LOGO = g.EMEN2LOGO,
+			BOOKMARKS = g.BOOKMARKS,
+			LOGINUSER = self.__db._DBProxy__ctx.username,
+			def_title = 'Untitled',
+			reverseinfo = reverseinfo
 		)
+		
+				
 		self.set_context_items(self.__basectxt)
 		self.set_context_item('notify', [])
 

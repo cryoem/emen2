@@ -180,7 +180,7 @@
 					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 				</tr></table> \
 				<table class="constraints"> \
-					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th /></tr></thead> \
+					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th style="width:30px"/></tr></thead> \
 					<tbody></tbody> \
 				</table> \
 				<h4>Options</h4> \
@@ -193,9 +193,7 @@
 			
 			var plot = $(' \
 				<h4>Plot</h4> \
-				<p>X <input type="text" name="xparam" value="" /></p> \
-				<p>Y <input type="text" name="yparam" value="" /></p> \
-			');
+				<p>X <input type="text" name="xparam" value="" /> Y <input type="text" name="yparam" value="" /></p>');
 
 			// var plot = $(' \
 			// 	<h4>Plot</h4> \
@@ -244,7 +242,7 @@
 				controls.append('<input type="button" value="Query" name="query" />');
 			}
 
-			controls.append('<input type="button" value="Demo Plot" name="demo" />');
+			// controls.append('<input type="button" value="Demo Plot" name="demo" />');
 
 			if (!this.options.ext_save || !this.options.ext_reset) {
 				this.container.append(controls);
