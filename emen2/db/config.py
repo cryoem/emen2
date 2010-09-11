@@ -75,6 +75,8 @@ class DBOptions(optparse.OptionParser):
 
 		# Load the default config
 		g.from_file(default_config)
+		if os.path.exists('/etc/emen2config.yml'):
+			g.from_file('/etc/emen2config.yml')
 		if os.path.exists('/etc/emen2config.json'):
 			g.from_file('/etc/emen2config.json')
 
@@ -87,6 +89,7 @@ class DBOptions(optparse.OptionParser):
 		# Look for any EMEN2DBHOME-specific config files and load
 		try:
 			g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
+			g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
 			g.EMEN2DBHOME = EMEN2DBHOME
 		except:
 			raise
