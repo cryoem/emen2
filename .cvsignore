@@ -1,4 +1,6 @@
 tmp
+.DS*
+log.*
 .hg
 .hgignore
 emen2config.py
