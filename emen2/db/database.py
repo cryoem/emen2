@@ -649,7 +649,7 @@ class DB(object):
 			username = byemail.pop()
 		elif len(byemail) > 1:
 			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)			
-			raise emen2.db.exceptions.AuthenticationError
+			raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 			
 
 		if username == "anonymous":
@@ -659,13 +659,13 @@ class DB(object):
 				user = self.__login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
-				raise emen2.db.exceptions.AuthenticationError
+				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 			if user.checkpassword(password):
 				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
-				raise emen2.db.exceptions.AuthenticationError
+				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 		try:
 			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
