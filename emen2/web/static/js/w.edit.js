@@ -195,7 +195,8 @@
 			this.bind_edit();
 			this.trygetparams = 0;
 			this.element.addClass("editcontrol");
-			
+			this.find_cache = {};
+
 			if (this.options.show) {
 				this.show();
 			}
@@ -212,6 +213,7 @@
 		},
 		
 		build: function() {
+			
 			if (this.built){
 				return
 			}
@@ -251,7 +253,7 @@
 			} else if (vt=="datetime") {
 		
 				this.editw = $('<input class="value" size="18" type="text" value="'+this.rec_value+'" />');
-				this.w.append(this.editw);				
+				this.w.append(this.editw);
 
 			} else if (vt=="boolean") {
 		
@@ -283,7 +285,32 @@
 				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
 			
 				if (vt=="string" || pd["choices"]) {			
-					//autocomplete
+
+					this.editw.autocomplete({
+						minLength: 0,
+						source: function(request, response) {
+							if (request.term in self.find_cache) {
+								response(self.find_cache[request.term]);
+								return;
+							}
+							$.jsonRPC("findvalue", [self.options.param, request.term], function(ret) {
+								var r = $.map(ret, function(item) {
+									return {
+										label: item[0] + " (" + item[1] + " records)",
+										value: item[0]
+									}
+								});
+								self.find_cache[request.term] = r;
+								response(r);
+								
+							});
+						}
+					});
+					
+					this.editw.click(function() {
+						$(this).autocomplete('search');
+					});
+		
 				}
 
 				this.w.append(this.editw);			

@@ -1986,11 +1986,16 @@ class DB(object):
 		if count:
 			for k,v in ret.items():
 				ret[k] = len(v)
-		
-		ri = sorted(ret.items(), key=operator.itemgetter(1))
 
-		if showchoices and pd.choices:
-			ri = [[i,0] for i in pd.choices] + ri
+		ri = []
+		choices = pd.choices or []
+		if showchoices:
+			for i in choices:
+				ri.append((i, ret.get(i, 0)))
+			
+		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
+			if i not in choices:
+				ri.append((i, ret.get(i, [])))
 					
 		return ri
 		
