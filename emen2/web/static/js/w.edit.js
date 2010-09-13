@@ -1,3 +1,56 @@
+// convenience function to bind a jquery autocompleter to an element
+function bind_autocomplete(elem, param) {
+	
+	var pd = caches['paramdefs'][param];
+	var vt = pd.vartype;
+	
+	if (vt == "string" || vt == "stringlist") {
+	
+		// jquery-ui autocompleter
+		elem.autocomplete({
+			minLength: 0,
+			source: function(request, response) {
+				// if (request.term in this._cache) {
+				// 	response(this._cache[request.term]);
+				// 	return;
+				// }
+				$.jsonRPC("findvalue", [param, request.term], function(ret) {
+					var r = $.map(ret, function(item) {
+						return {
+							label: item[0] + " (" + item[1] + " records)",
+							value: item[0]
+						}
+					});
+					// this._cache[request.term] = r;
+					response(r);			
+				});
+			}
+		});
+		elem.click(function() {
+			$(this).autocomplete('search');
+		});
+
+	} else if (vt == "user" || vt == "userlist") {
+
+		elem.FindControl({});
+		
+	} else if (vt == "datetime") {
+		
+		elem.datepicker({
+			showButtonPanel: true,
+			dateFormat: 'yy/mm/dd'
+		});
+		
+	}
+
+}
+
+
+
+
+
+
+
 (function($) {
     $.widget("ui.MultiEditControl", {
 		options: {
@@ -212,6 +265,7 @@
 			$(".label", this.element).click(function(e) {self.event_click(e)});
 		},
 		
+		// This is a BIG NASTY CASE SWITCH to build the input element... Be careful!
 		build: function() {
 			
 			if (this.built){
@@ -229,7 +283,9 @@
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
-
+			var autocomplete = true;
+					
+			
 			// Delegate to different edit widgets
 			if (vt=="html" || vt=="text") {
 			
@@ -244,7 +300,7 @@
 				pdc.unshift("");
 			
 				for (var i=0;i<pdc.length;i++) {
-					var selected="";
+					var selected = "";
 					if (this.rec_value == pdc[i]) { selected = 'selected="selected"'; }
 					this.editw.append('<option val="'+pdc[i]+'" '+selected+'>'+pdc[i]+'</option>');
 				}
@@ -266,13 +322,13 @@
 				this.editw = $('<div />');
 				this.editw.ListControl({values:this.rec_value, param:this.options.param});
 				this.w.append(this.editw);
+				var autocomplete = false;
 				// set a different getval function..
 				this.getval = function(){return self.editw.ListControl('getval')}
 		
 			}  else if (vt=="user") {
 
 				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
-				this.editw.FindControl({recid:this.options.recid});
 				this.w.append(this.editw);
 		
 			} else if (vt=="comments") {
@@ -283,36 +339,6 @@
 			} else {
 
 				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
-			
-				if (vt=="string" || pd["choices"]) {			
-
-					this.editw.autocomplete({
-						minLength: 0,
-						source: function(request, response) {
-							if (request.term in self.find_cache) {
-								response(self.find_cache[request.term]);
-								return;
-							}
-							$.jsonRPC("findvalue", [self.options.param, request.term], function(ret) {
-								var r = $.map(ret, function(item) {
-									return {
-										label: item[0] + " (" + item[1] + " records)",
-										value: item[0]
-									}
-								});
-								self.find_cache[request.term] = r;
-								response(r);
-								
-							});
-						}
-					});
-					
-					this.editw.click(function() {
-						$(this).autocomplete('search');
-					});
-		
-				}
-
 				this.w.append(this.editw);			
 				var property = pd["property"];
 				var units = pd["defaultunits"];
@@ -328,6 +354,10 @@
 				}
 			}
 
+			// Use this helper function to attach autocompleters
+			if (autocomplete) {
+				bind_autocomplete(this.editw, this.options.param);
+			}
 
 			//console.log(inline);
 			if (inline) {
@@ -340,7 +370,6 @@
 				$('<input type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
 			this.w.append(this.controls);
 			this.element.after(this.w);
-			
 			
 			
 		},
@@ -455,14 +484,7 @@
 				var item = $('<li></li>');
 				var edit = $('<input type="text" value="'+v+'" />');
 						
-				// if (self.paramdef["vartype"]=="userlist") {
-				// 
-				// 	// autocomplete
-				// 
-				// } else if (self.paramdef["vartype"]=="stringlist") {
-				//  // autocomplete
-				//  
-				// }
+				bind_autocomplete(edit, self.options.param);
 			
 				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" class="listcontrol_add" /></span>').click(function() {
 					self.addoption(k+1);
