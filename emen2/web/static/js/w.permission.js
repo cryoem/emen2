@@ -2,6 +2,7 @@
     $.widget("ui.PermissionControl", {
 		options: {
 			recid: null,
+			groupname: null,
 			levels: ["Read-only","Comment","Write","Admin"],
 			edit: 0,
 			show: 0,
@@ -12,7 +13,7 @@
 		_create: function() {
 			var self=this;
 			this.built = 0;
-			this.copy_from_rec(caches["recs"][this.options.recid]);
+			this.reset_from_cache();
 
 			if (!this.options.embed) {
 				this.element.click(function(e){e.stopPropagation();self.event_click(e);})
@@ -25,20 +26,35 @@
 	
 	
 		reinit: function() {
-			this.copy_from_rec(caches["recs"][this.options.recid]);
+			this.reset_from_cache();
 			this.build_userarea();
 			this.build_grouparea();
 		},
 	
 
-		copy_from_rec: function(rec) {
+		copy_from_cache: function(rec) {
+			if (this.options.recid) {
+				var plist = caches['recs'][this.options.recid]['permissions'];
+				var glist = caches['recs'][this.options.recid]['groups'];
+			} else if (this.options.groupname) {
+				var plist = caches['groups'][this.options.groupname]['permissions'];				
+				var glist = [];
+			}
+	
+			return [plist, glist]
+		},
+		
+		reset_from_cache: function() {
+			var f = this.copy_from_cache();
+			
 			this.permissions = [[],[],[],[]];
 			this.groups = [];
+
 			var self=this;
-			$.each(rec["permissions"], function(i) {
+			$.each(f[0], function(i) {
 				self.permissions[i]=this;
-			});
-			$.each(rec["groups"], function(i) {
+			});			
+			$.each(f[1], function(i) {
 				self.groups.push(this);
 			});
 		},
@@ -66,12 +82,18 @@
 			this.dialog.append(this.userarea);
 
 			// Save controls
-			if (this.options.recid!="None" && this.options.edit) {
+			if (this.options.edit) {
 				this.savearea = $('<div class="controls"/>');
-				var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save()});
-				var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});
-				this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
-				this.dialog.append(this.savearea);
+				if (this.options.recid != "None" && this.options.recid != null) {
+					var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
+					var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});					
+					this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
+					this.dialog.append(this.savearea);
+				} else if (this.options.groupname != "None" && this.options.groupname != null) {
+					// var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_group()});
+					// this.savearea.append(savearea_apply);
+					// this.dialog.append(this.savearea);					
+				}
 			}
 
 			// this.elem.append(user_outer);
@@ -105,8 +127,17 @@
 		},
 	
 		getdisplaynames: function() {	
-			var self=this;
-			$.jsonRPC("getuser", [[this.options.recid]], function(users){ 
+			var self = this;
+			var f = this.copy_from_cache();
+
+			var f2 = [];
+			for (var i=0;i<f[0].length;i++) {
+				for (var j=0;j<f[0][i].length;j++) {
+					f2.push(f[0][i][j]);
+				}
+			}
+
+			$.jsonRPC("getuser", [f2], function(users){ 
 				$.each(users, function() {
 					caches["users"][this.username] = this;
 				});
@@ -117,6 +148,9 @@
 	
 	
 		build_grouparea: function() {
+
+			if (this.options.groupname) {return}
+
 			var self=this;
 			this.grouparea.empty();
 
@@ -299,8 +333,18 @@
 			return this.getaddusers(false);
 		},
 
-		save: function() {		
-			var self=this;		
+
+		save_group: function() {
+			var group = caches['groups'][this.options.groupname];
+			group["permissions"] = this.getusers();
+			$.jsonRPC("putgroup", [group], function(){
+				alert("Saved Group");
+				window.location = window.location;
+			});
+		},
+
+		save_record: function() {		
+			var self = this;		
 			var rlevels=0;
 			if (this.recurse) {
 				rlevels=-1;

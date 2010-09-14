@@ -11,4 +11,4 @@ db.login("root", getpass.getpass())
 
 # db._starttxn()
 # txn = db._gettxn()
-ddb = db._db
+# ddb = db._db

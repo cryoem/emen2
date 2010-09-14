@@ -3153,7 +3153,8 @@ class DB(object):
 		ret = filter(None, [lfilt(i, txn=txn) for i in groups])
 		for i in ret:
 			i.setContext(ctx)
-			i.displayname = i
+			if not i.get('displayname'):
+				i.displayname = i.name
 
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -3247,9 +3248,10 @@ class DB(object):
 		return addrefs, delrefs
 
 
-
+	@publicmethod
 	def newgroup(self, ctx=None, txn=None):
 		group = emen2.db.group.Group()
+		group.adduser(ctx.username, level=3)
 		group.setContext(ctx)
 		return group
 
@@ -3267,6 +3269,7 @@ class DB(object):
 		"""
 
 		ol, groups = listops.oltolist(groups)
+		admin = ctx.checkcreate()
 
 		groups2 = []
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
@@ -3275,6 +3278,13 @@ class DB(object):
 		for group in groups2:
 			group.setContext(ctx)
 			group.validate(txn=txn)
+
+			try:
+				og = self.getgroup(group.name, ctx=ctx, txn=txn, filt=False)
+			except KeyError:
+				if not admin:
+					raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create a group"
+
 
 		self.__commit_groups(groups2, ctx=ctx, txn=txn)
 

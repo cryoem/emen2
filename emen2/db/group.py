@@ -28,11 +28,12 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["privacy", "modifytime","modifyuser","permissions", "name","disabled","creator","creationtime"])
+	attr_user = set(["privacy", "modifytime", "modifyuser", "permissions", "name", "disabled", "creator", "creationtime", "displayname"])
 
 	def init(self, d=None):
 		self.name = d.pop('name', None)
 		self.disabled = d.pop('disabled',False)
+		self.displayname = d.pop('displayname', None)
 		self.privacy = d.pop('privacy',False)
 		self.creator = d.pop('creator',None)
 		self.creationtime = d.pop('creationtime',None)
@@ -169,7 +170,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 		if key == "permissions":
 			return self.setpermissions(value)
 		if key in self.attr_user:
-			self.__dict__[key]=value
+			self.__dict__[key] = value
 		else:
 			raise KeyError,"Invalid key: %s"%key
 
@@ -180,6 +181,12 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 
 	def validate(self, orec=None, warning=False, txn=None):
+		
+		if not self.name :
+			raise ValueError, "No name given"
+
+		self.name = re.sub("\W", "", self.name).lower()
+		
 		if not self.isowner():
 			raise emen2.db.exceptions.SecurityError, "Not authorized to change group: %s"%self.name
 
