@@ -124,10 +124,12 @@ class View(object):
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo
 		)
-		
-				
+
+
 		self.set_context_items(self.__basectxt)
-		self.set_context_item('notify', [])
+		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
+		if not hasattr(notify, '__iter__'): notify = [notify]
+		self.set_context_item('notify', notify)
 
 		self.etag = None
 
