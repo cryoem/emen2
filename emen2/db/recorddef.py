@@ -67,7 +67,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 		# ordered keys from params()
 		self.paramsK = []
-
+		
 		# required parameters (will throw exception on commit if empty)
 		self.paramsR = set()
 
@@ -124,7 +124,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	def findparams(self):
 		"""This will update the list of params by parsing the views"""
 
-		t, d = parseparmvalues(self.mainview)
+		t, d, r = parseparmvalues(self.mainview)
 
 		for i in self.views.values():
 			t2, d2 = parseparmvalues(i)
@@ -135,7 +135,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 					d[j] = d2.get(j)
 
 		self.params = d
-		self.paramsK = tuple(t)
+		self.paramsK = t
+		self.paramsR = r
 
 
 
@@ -208,20 +209,57 @@ class RecordDefValidator(emen2.db.validators.DefinitionValidator):
 
 # ian: todo: make this a classmethod of RecordDef ?
 
-def parseparmvalues(text,noempty=0):
-	"""This will extract parameter names $param or $param=value """
+def parseparmvalues(text):
+	regex = re.compile(emen2.db.database.VIEW_REGEX)
 
-	srch=re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
-	params, vals = ret=[[],{}]
+	params = set()
+	required = set()
+	defaults = {}
+	
+	for match in regex.finditer(text):
+		print match.groups()
+		n = match.group('name')
+		t = match.group('type')
 
-	for name, a, b in (x.groups() for x in srch):
-		if name is '': continue
-		else:
-			params.append(name)
-			if a is None: val=b
-			else: val=a
-			if val != None: vals[name] = val
+		if not n:
+			continue
+		if t == '$' or t == '*':
+			params.add(match.group('name'))
+			if match.group('def'):
+				defaults[n] = match.group('def')
+		if t == '*':
+			required.add(n)
+			
+	return params, defaults, required
+			
+			
 
-	return ret
+
+# def parseparmvalues_old(text,noempty=0):
+# 	"""This will extract parameter names $param or $param=value """
+# 
+# 	srch = re.finditer('\$\$([a-zA-Z0-9_\-]*)(?:(?:=)(?:(?:"([^"]*)")|([^ <>"]*)))?',text)
+# 	params, vals = ret = [[],{}]
+# 
+# 	for name, a, b in (x.groups() for x in srch):
+# 		if name is '':
+# 			continue
+# 		else:
+# 			params.append(name)
+# 			if a is None:
+# 				val=b
+# 			else:
+# 				val=a
+# 			if val != None:
+# 				vals[name] = val
+# 
+# 	return ret
+
+
+
+
+
+
+
 
 

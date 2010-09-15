@@ -433,9 +433,8 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			return
 
 		d = emen2.db.recorddef.parseparmvalues(value, noempty=1)[1]
-
-		if d.has_key("comments") or d.has_key("permissions"):
-			self.validationwarning("addcomment: cannot set comments/permissions inside a comment")
+		if d.has_key("comments"):
+			self.validationwarning("addcomment: cannot set comments inside a comment")
 			return
 
 		# now update the values of any embedded params

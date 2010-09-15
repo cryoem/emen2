@@ -121,6 +121,9 @@ VERSIONS = {
 }
 
 
+VIEW_REGEX = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
+
+
 # pointer to database environment
 DBENV = None
 
@@ -5020,8 +5023,7 @@ class DB(object):
 		# def = default value
 		# args = macro args
 		# sep = separating character
-		regex = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
-		regex = re.compile(regex)
+		regex = re.compile(VIEW_REGEX)
 		
 		ol, recs = listops.oltolist(recs)
 
@@ -5073,7 +5075,7 @@ class DB(object):
 		pds = set()
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
-				if match.group('type') in ["#", "$"]:
+				if match.group('type') in ["#", "$", '*']:
 					pds.add(match.group('name'))
 				else:
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs, db=dbp)
@@ -5111,10 +5113,12 @@ class DB(object):
 				m = mode
 				if t == '#':
 					v = vtm.name_render(pds[n], mode=mode, db=dbp)
-				elif t == '$':
+				elif t == '$' or t == '*':
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
+				else:
+					continue
 
 				vs.append(v)
 				a = a.replace(match.group(), v+s)
