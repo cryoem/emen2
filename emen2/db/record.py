@@ -47,6 +47,13 @@ from . import validators
 #	a new Record before committing changes back to the database.
 
 
+def make_orec():
+	return {}
+
+def make_cache():
+	return {'usernames':None, 'recdefs':{}, 'paramdefs':{}}
+
+
 
 class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
@@ -113,52 +120,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 
-
-	#################################
-	# validation methods
-	#################################
-
-
-	def validate(self, orec=None, warning=False, params=[]):
-
-		if not orec:
-			orec = {}
-
-		for field in self.cleared_fields:
-			setattr(self, field, None)
-
-		if not self._ctx:
-			self.validationwarning("No context; cannot validate", warning=True)
-			return
-
-		elif not self._ctx.db:
-			self.validationwarning("No context; cannot validate", warning=True)
-			return
-
-		#self.validate_auto()
-		validators = [
-			self.validate_recid,
-			self.validate_rectype,
-			self.validate_comments,
-			self.validate_history,
-			self.validate_creator,
-			self.validate_creationtime,
-			self.validate_permissions,
-			self.validate_permissions_users
-		]
-
-		for i in validators:
-			i(orec, warning=warning)
-			# self.validationwarning("%s: %s"%(i.func_name, inst), e=inst, warning=warning)
-
-		self.validate_params(orec, warning=warning, params=params)
-
-
-	def changedparams(self, orec=None):
-		"""difference between two records"""
-		if not orec: orec = {}
-		allkeys = set(self.keys() + orec.keys())
-		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
 
 
 
@@ -432,7 +393,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 
-		d = emen2.db.recorddef.parseparmvalues(value, noempty=1)[1]
+		d = emen2.db.recorddef.parseparmvalues(value)[1]
 		if d.has_key("comments"):
 			self.validationwarning("addcomment: cannot set comments inside a comment")
 			return
@@ -472,7 +433,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if self._ctx == None:
 			return
 
-		# g.debug('setContext:: context.db type == %r' % self._ctx.db)
 		# test for owner access in this context.
 		if self._ctx.checkreadadmin():
 			self.__ptest = [True, True, True, True]
@@ -487,33 +447,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		if not any(self.__ptest):
 			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self['recid']
-
-
-		# raise emen2.db.exceptions.SecurityError, "No ctx!"
-
-		# g.log.msg('LOG_DEBUG', "setContext: ctx.groups is %s"%ctx.groups)
-
-		# # we use the sets module to do intersections in group membership
-		# # note that an empty set tests false, so u1&p1 will be false if
-		# # there is no intersection between the 2 sets
-		# p1 = set(self.__permissions[0]+self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-		# p2 = set(self.__permissions[1]+self.__permissions[2]+self.__permissions[3])
-		# p3 = set(self.__permissions[2]+self.__permissions[3])
-		# p4 = set(self.__permissions[3])
-		#
-		# # test for read permission in this context
-		# if (self._ctx.username in p1): self.__ptest[0] = 1
-		# else:
-		#
-		# # test for comment write permission in this context
-		# if (self._ctx.username in p2): self.__ptest[1] = 1
-		#
-		# # test for general write permission in this context
-		# if (self._ctx.username in p3): self.__ptest[2] = 1
-		#
-		# # test for administrative permission in this context
-		# if (self._ctx.username in p4): self.__ptest[3] = 1
-
 
 
 
@@ -580,32 +513,61 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		
 
 
-	# def validationwarning(self, msg, e=None, warning=False):
-	# 	"""Raise a warning or exception during validation
-	#
-	# 	@param msg Text
-	#
-	# 	@keyparam e Exception
-	# 	@keyparam warning Raise the exception if False, otherwise just inform
-	#
-	# 	"""
-	#
-	# 	if e == None:
-	# 		e = ValueError
-	# 	if warning:
-	# 		g.log.msg("LOG_WARNING", "Validation warning: %s: %s"%(self.recid, msg))
-	# 	elif e:
-	# 		raise e, msg
-	#
-
 	# ian: not ready yet..
 	# @Record.register_validator
 	# @emen2.db.validators.Validator.make_validator
 	# class RecordValidator(emen2.db.dataobject.Validator):
 
-	def validate_recid(self, orec=None, warning=False):
-		if not orec: orec = {}
+	#################################
+	# validation methods
+	#################################
 
+
+	def validate(self, orec=None, warning=False, params=[], cache=None):
+
+		# Setup the two caching dicts
+		orec = orec or make_orec()
+		cache = cache or make_cache()
+
+		for field in self.cleared_fields:
+			setattr(self, field, None)
+
+		if not self._ctx:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+
+		elif not self._ctx.db:
+			self.validationwarning("No context; cannot validate", warning=True)
+			return
+
+		#self.validate_auto()
+		validators = [
+			self.validate_recid,
+			self.validate_rectype,
+			self.validate_comments,
+			self.validate_history,
+			self.validate_creator,
+			self.validate_creationtime,
+			self.validate_permissions,
+			self.validate_permissions_users
+		]
+
+		for i in validators:
+			i(orec=orec, warning=warning, cache=cache)
+			# self.validationwarning("%s: %s"%(i.func_name, inst), e=inst, warning=warning)
+
+		self.validate_params(orec, warning=warning, params=params)
+
+
+
+	def changedparams(self, orec=None, cache=None):
+		"""difference between two records"""
+		allkeys = set(self.keys() + orec.keys())
+		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
+
+
+
+	def validate_recid(self, orec=None, warning=False, cache=None):
 		try:
 			if self.recid != None:
 				self.recid = int(self.recid)
@@ -617,28 +579,31 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		except (TypeError, ValueError), inst:
 			self.validationwarning("recid must be positive integer")
 
-
 		if self.recid != orec.get("recid") and orec.get("recid") != None:
 			self.validationwarning("recid cannot be changed (%s != %s)"%(self.recid,orec.get("recid")))
 
 
-	def validate_rectype(self, orec=None, warning=False):
-		if not orec: orec = {}
+	def validate_rectype(self, orec=None, warning=False, cache=None):
+		orec = orec or make_orec()
+		cache = cache or make_cache()
 
 		if not self.rectype:
 			self.validationwarning("rectype must not be empty")
 
 		self.rectype = unicode(self.rectype)
-
-		if self.rectype not in self._ctx.db.getrecorddefnames():
-			self.validationwarning("invalid rectype %s"%(self.rectype))
+		
+		rd = cache['recdefs'].get(self.rectype)
+		if not rd:
+			rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+			cache['recdefs'][self.rectype] = rd
 
 		if self.rectype != orec.get("rectype") and orec.get("rectype") != None:
 			self.validationwarning("rectype cannot be changed (%s != %s)"%(self.rectype,orec.get("rectype")))
 
 
-	def validate_comments(self, orec=None, warning=False):
-		if not orec: orec = {}
+	def validate_comments(self, orec=None, warning=False, cache=None):
+		orec = orec or make_orec()
+		cache = cache or make_cache()
 
 		# validate comments
 		users=[]
@@ -659,10 +624,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				newcomments.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), "Error with comment: %s"%i))
 
 
-		if users:
-			usernames = set(self._ctx.db.getusernames())
-			if set(users) - usernames:
-				self.validationwarning("invalid users in comments: %s"%(set(users) - usernames), warning=warning)
+		# ian: comment users are never set manually, so probably safe to skip this
+		# if users:
+		# 	usernames = set(self._ctx.db.getusernames())
+		# 	if set(users) - usernames:
+		# 		self.validationwarning("invalid users in comments: %s"%(set(users) - usernames), warning=warning)
 
 		# validate date formats
 		#for i in dates:
@@ -671,63 +637,68 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		self.__comments = newcomments
 
 
-	def validate_history(self, orec=None, warning=False):
-		if not orec: orec = {}
+	def validate_history(self, orec=None, warning=False, cache=None):
 		return
 
-		# ian: todo: activate
-		users=set([i[0] for i in self.__history])
-		dates=set([i[1] for i in self.__history])
-		if users:
-			if users - set(self._ctx.db.getusernames()):
-				self.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
+		# orec = orec or make_orec()
+		# cache = cache or make_cache()
+		# ian: skipping; see comments for validate_comments
+		# users=set([i[0] for i in self.__history])
+		# dates=set([i[1] for i in self.__history])
+		# if users:
+		# 	if users - set(self._ctx.db.getusernames()):
+		# 		self.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
 
 
-	def validate_creator(self, orec=None, warning=False):
-		if not orec: orec = {}
-
+	def validate_creator(self, orec=None, warning=False, cache=None):
 		self.__creator = unicode(self.__creator)
 		return
 
-		# ian: todo: activate
-		if self.__creator != orec.get("creator"):
-			self.validationwarning("cannot change creator", warning=warning)
-		try:
-			self._ctx.db.getuser(self.__creator, filt=0)
-		except:
-			self.validationwarning("invalid creator: %s"%(self.__creator))
+		# orec = orec or make_orec()
+		# cache = cache or make_cache()
+		# ian: skipping; see comments for validate_comments
+		# if self.__creator != orec.get("creator"):
+		# 	self.validationwarning("cannot change creator", warning=warning)
+		# try:
+		# 	self._ctx.db.getuser(self.__creator, filt=0)
+		# except:
+		# 	self.validationwarning("invalid creator: %s"%(self.__creator))
 
 
-	def validate_creationtime(self, orec=None, warning=False):
-		if not orec: orec = {}
-
+	def validate_creationtime(self, orec=None, warning=False, cache=None):
 		# validate creation time format
 		self.__creationtime = unicode(self.__creationtime)
+		
+		# orec = orec or make_orec()
+		# cache = cache or make_cache()		
 		#if self.__creationtime != orec.get("creationtime"):
 		#	self.validationwarning("cannot change creationtime", warning=warning)
 
 
-	def validate_permissions(self, orec=None, warning=False):
-		if not orec: orec = {}
-
+	def validate_permissions(self, orec=None, warning=False, cache=None):
 		try:
 			self.__permissions = self.__checkpermissionsformat(self.__permissions)
 		except Exception, inst:
 			self.validationwarning("invalid permissions: %s"%self.__permissions, warning=warning)
 
 
-	def validate_permissions_users(self, orec=None, warning=False):
-		if not orec: orec = {}
+	def validate_permissions_users(self, orec=None, warning=False, cache=None):
+		orec = orec or make_orec()
+		cache = cache or make_cache()
 
-		users = set(self._ctx.db.getusernames())
+		usernames = cache.get('usernames')
+		if usernames == None:
+			usernames = self._ctx.db.getusernames()
+			cache['usernames'] = usernames
+		
 		u = set(reduce(operator.concat, self.__permissions))
-		if u - users:
-			self.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-users)))
+		if u - usernames:
+			self.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-usernames)))
 
 
-	def validate_params(self, orec=None, warning=False, params=None):
-		if not orec:
-			orec = {}
+	def validate_params(self, orec=None, warning=False, params=None, cache=None):
+		orec = orec or make_orec()
+		cache = cache or make_cache()
 
 		# restrict by params if given
 		p2 = self.__params.keys()
@@ -739,32 +710,41 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		pds = self._ctx.db.getparamdef(p2)
+		# ian: todo: find a way to cache these
+		# pds = self._ctx.db.getparamdef(p2)		
+		
 		newpd = {}
 		exceptions = []
+		for param in p2:
 
-		for pd in pds:
-			param = pd.name
+			pd = cache['paramdefs'].get(param)
+			if not pd:
+				pd = self._ctx.db.getparamdef(param, filt=False)
+				cache['paramdefs'][param] = pd
+
 			try:
-				newpd[param] = self.validate_param(self.__params.get(param), pd, vtm, warning=warning)
+				value = self.__params.get(param)
+				v = vtm.validate(pd, value, db=self._ctx.db)
+				if v != value and v != None:
+					self.validationwarning("parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
+				newpd[pd.name] = v
 
 			except Exception, inst: #(ValueError,KeyError,IndexError)
 				self.addcomment("Validation error: param %s, value '%s' %s"%(param, self.__params.get(param),type(self.__params.get(param))))
 				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
+				
 
 		for e in exceptions:
 			self.validationwarning(e, warning=warning)
 
+		rd = cache['recdefs'].get(self.rectype)
+		if not rd:
+			rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+			cache['recdefs'][self.rectype] = rd
+		
+		for param in rd.paramsR:
+			if newpd.get(param) == None:
+				self.validationwarning("%s is a required parameter"%(param), warning=warning)
+
 		self.__params = newpd
-
-
-
-	def validate_param(self, value, pd, vtm, warning=False):
-
-		v = vtm.validate(pd, value, db=self._ctx.db)
-
-		if v != value and v != None:
-			self.validationwarning("parameter: %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
-
-		return v
 

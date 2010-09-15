@@ -177,11 +177,11 @@ function bind_autocomplete(elem, param) {
 				});
 				self.hide();
 
-			}, function() {
+			}, function(e) {
 
 				$('input[name=save]', self.controls).val('Retry');
 				$('.spinner', self.controls).hide();
-				
+				default_errback(e, function(){})
 			});
 
 		},

@@ -127,12 +127,15 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		t, d, r = parseparmvalues(self.mainview)
 
 		for i in self.views.values():
-			t2, d2 = parseparmvalues(i)
+			t2, d2, r2 = parseparmvalues(i)
+			t |= t2
+			r |= r2
 			for j in t2:
 				# ian: fix for: empty default value in a view unsets default value specified in mainview
 				if not d.has_key(j):
-					t.append(j)
 					d[j] = d2.get(j)
+				
+
 
 		self.params = d
 		self.paramsK = t
@@ -217,7 +220,6 @@ def parseparmvalues(text):
 	defaults = {}
 	
 	for match in regex.finditer(text):
-		print match.groups()
 		n = match.group('name')
 		t = match.group('type')
 

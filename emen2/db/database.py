@@ -4220,6 +4220,9 @@ class DB(object):
 		# Assign all changes the same time
 		t = self.gettime(ctx=ctx, txn=txn)
 
+		
+		validation_cache = emen2.db.record.make_cache()
+		
 		# preprocess: copy updated record into original record (updrec -> orec)
 		for updrec in updrecs:
 			recid = updrec.recid
@@ -4239,7 +4242,7 @@ class DB(object):
 
 			# Set Context and validate; warning=True ignores validation errors (Admin only)
 			updrec.setContext(ctx)
-			updrec.validate(orec=orec, warning=warning)
+			updrec.validate(orec=orec, warning=warning, cache=validation_cache)
 
 			# Compare to original record
 			cp = orec.changedparams(updrec) - param_immutable
