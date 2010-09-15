@@ -128,12 +128,18 @@ def tolist(d, dtype=None):
 def oltolist(d, dtype=None):
 	dtype = dtype or list
 	ol = False
+
+	result = None
 	if isinstance(d, dtype):
-		return ol, d
-	if not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
+		print '+++'
+	elif not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
+		print '---'
 		d = [d]
 		ol = True
-	return ol, dtype(d)
+	result = ol, d
+	print ol,d
+
+	return result
 
 
 def dictbykey(l, key):

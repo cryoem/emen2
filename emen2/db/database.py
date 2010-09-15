@@ -3275,15 +3275,14 @@ class DB(object):
 		admin = ctx.checkcreate()
 
 		groups2 = []
+
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
 		groups2.extend(emen2.db.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
 		for group in groups2:
 			group.setContext(ctx)
 			group.validate(txn=txn)
-
-			try:
-				og = self.getgroup(group.name, ctx=ctx, txn=txn, filt=False)
+			try: og = self.getgroup(group.name, ctx=ctx, txn=txn, filt=False)
 			except KeyError:
 				if not admin:
 					raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create a group"

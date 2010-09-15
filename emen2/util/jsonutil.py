@@ -12,7 +12,7 @@ from emen2.util.decorators import make_decorator
 #g = emen2.db.globalns.GlobalNamespace()
 
 @make_decorator(json.dumps)
-def encode(obj, *a, **kw):
+def encode_(obj, *a, **kw):
 	if hasattr(obj, 'json_equivalent'): obj = obj.json_equivalent()
 	outp = None
 	if hasattr(obj, '__iter__'):
@@ -34,5 +34,12 @@ def encode(obj, *a, **kw):
 			outp = obj
 	return outp
 
-decode = json.loads
+decode_ = json.loads
+
+try:
+	from demjson import encode, decode
+	print 'demjson encoder/decoder'
+except ImportError:
+	encode, decode = encode_, decode_
+	print 'simplejson encoder/decoder'
 

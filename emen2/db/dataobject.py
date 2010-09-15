@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from UserDict import DictMixin
+import collections
 import copy
 
 
@@ -154,3 +155,4 @@ class BaseDBObject(BaseDBInterface):
 		return self.attr_user
 
 
+collections.Mapping.register(BaseDBObject)
