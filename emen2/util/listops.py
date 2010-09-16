@@ -130,15 +130,12 @@ def oltolist(d, dtype=None):
 	ol = False
 
 	result = None
-	if isinstance(d, dtype):
-		print '+++'
+	if isinstance(d, dtype): pass
 	elif not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
-		print '---'
-		d = [d]
+		d = dtype([d])
 		ol = True
-	result = ol, d
-	print ol,d
 
+	result = ol, d
 	return result
 
 
