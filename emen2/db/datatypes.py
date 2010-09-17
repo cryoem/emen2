@@ -243,6 +243,7 @@ class Vartype(object):
 
 
 	# after pre-processing values into markup
+	# the LT flag is used for table format, to link to the row's recid
 	def _render_html_list(self, engine, pd, value, rec, db, edit=0, showlabel=True, elem_class='editable', lt=False):
 		if not value:
 			if edit and showlabel:

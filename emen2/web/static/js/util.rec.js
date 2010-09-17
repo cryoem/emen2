@@ -139,7 +139,7 @@ function record_init(rec, ptest, edit) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
-	$('.editbar .edit').MultiEditControl({});
+	$('.editbar .edit .label').MultiEditControl({});
 	
 	$('.editable').EditControl({});
 
