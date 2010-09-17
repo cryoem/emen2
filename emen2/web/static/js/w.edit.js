@@ -56,7 +56,8 @@ function bind_autocomplete(elem, param) {
 		options: {
 			show: false,
 			recid: null,
-			selector: null
+			selector: null,
+			cb_save: function(self){}
 		},
 				
 		_create: function() {
@@ -146,10 +147,18 @@ function bind_autocomplete(elem, param) {
 	
 		show: function() {
 			this.build();
-			var t = $(this.options.selector);
-			t.EditControl({});
-			t.EditControl('hide');
-			t.EditControl('show', 0);		
+
+			$(this.options.selector).each(function() {
+				var t = $(this);
+				try {
+					t.EditControl({});
+					t.EditControl('hide');
+					t.EditControl('show', 0);
+				} catch(e) {
+					//console.log(e);
+				}
+			});
+
 			this.element.hide();
 			this.controls.show();
 			this.element.EditbarHelper('show');
@@ -172,12 +181,16 @@ function bind_autocomplete(elem, param) {
 
 			$(this.options.selector).each(function() {
 				var t = $(this);
-				var recid = t.EditControl('getrecid');
-				var value = t.EditControl('getval');
-				var param = t.EditControl('getparam');				
-				if (!changed[recid]) {changed[recid]={}}
-				changed[recid][param] = value;
-				if (comment) {changed[recid]['comments'] = comment}
+				try {
+					var recid = t.EditControl('getrecid');
+					var value = t.EditControl('getval');
+					var param = t.EditControl('getparam');				
+					if (!changed[recid]) {changed[recid]={}}
+					changed[recid][param] = value;
+					if (comment) {changed[recid]['comments'] = comment}
+				} catch(e) {
+					//console.log(e);
+				}
 			});
 			
 			if (this.options.recid == "None") {
@@ -196,6 +209,7 @@ function bind_autocomplete(elem, param) {
 					record_update(this);
 				});
 				self.hide();
+				self.options.cb_save(self);
 
 			}, function(e) {
 				
@@ -426,16 +440,14 @@ function bind_autocomplete(elem, param) {
 			this.w.removeClass('inplace');
 			//this.element.removeClass('whitehide');
 			this.element.show();
-			this.w.hide();
-			
+			this.w.hide();			
 		},
 		
 		getrecid: function() {
 			return this.options.recid
 		},
 	
-		getval: function() {
-			
+		getval: function() {			
 			var ret = this.editw.val();
 
 			if (ret == "" || ret == []) {

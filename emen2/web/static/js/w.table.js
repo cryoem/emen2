@@ -233,13 +233,15 @@
 			$('tbody', t).append(rows.join(''));		
 		},
 		
-		event_edit: function(e) {			
+		event_edit: function(e) {
+			var self = this;
 			e.stopPropagation();
 			var t = $(e.target);
 			var key = t.parent().attr('data-name');
 			t.MultiEditControl({
 				show: true,
-				selector: '.editable[data-param='+key+']'
+				selector: '.editable[data-param='+key+']',
+				cb_save: function(caller){self.query()}
 			});
 		},
 		
