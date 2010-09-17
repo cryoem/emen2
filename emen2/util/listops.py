@@ -128,14 +128,17 @@ def tolist(d, dtype=None):
 def oltolist(d, dtype=None):
 	dtype = dtype or list
 	ol = False
-
 	result = None
-	if isinstance(d, dtype): pass
+	if isinstance(d, dtype):
+		pass
 	elif not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
-		d = dtype([d])
+		d = [d]
 		ol = True
+	if not isinstance(d, dtype):
+		d = dtype(d)
 
 	result = ol, d
+
 	return result
 
 

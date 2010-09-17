@@ -4895,17 +4895,16 @@ class DB(object):
 		return self.__putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
-	def __putrecord_setsecurity(self, recids=[], addusers=[], addlevel=0, addgroups=[], delusers=[], delgroups=[], umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
+	def __putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 
-		recids = listops.tolist(recids, dtype=set)
-		addusers = listops.tolist(addusers, dtype=set)
-		addgroups = listops.tolist(addgroups, dtype=set)
-		delusers = listops.tolist(delusers, dtype=set)
-		delgroups = listops.tolist(delgroups, dtype=set)
-
+		recids = listops.tolist(recids or set(), dtype=set)
+		addusers = listops.tolist(addusers or set(), dtype=set)
+		addgroups = listops.tolist(addgroups or set(), dtype=set)
+		delusers = listops.tolist(delusers or set(), dtype=set)
+		delgroups = listops.tolist(delgroups or set(), dtype=set)
 
 		if not umask:
 			umask = [[],[],[],[]]
@@ -4916,6 +4915,7 @@ class DB(object):
 
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
+		# print addusers, addgroups, delusers, delgroups, checkitems
 		if (addusers | addgroups | delusers | delgroups) - checkitems:
 			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
 
