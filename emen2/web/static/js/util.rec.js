@@ -101,7 +101,6 @@ function newrecord_init(rec) {
 
 	$(".editbar .tools").EditbarHelper({
 		width:400,
-		height:300,
 		show: true,
 		reflow: "#rendered"
 	});	
@@ -256,7 +255,7 @@ function record_init(rec, ptest, edit) {
 	});
 
 	if (edit) {
-		$('.editbar .edit').MultiEditControl('event_click');
+		$('.editbar .edit .label').MultiEditControl('event_click');
 	}	
 }
 

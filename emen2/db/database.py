@@ -1489,7 +1489,7 @@ class DB(object):
 		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)
 		
 		# Render
-		rendered = self.renderview(q['recids'], viewdef=viewdef, table=True, ctx=ctx, txn=txn)
+		rendered = self.renderview(q['recids'], viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
 
 		q.update(dict(
 			pos = pos,
@@ -3833,7 +3833,7 @@ class DB(object):
 	#@rename db.records.get @return Record or [Record..]
 	#@multiple @filt @ok
 	@publicmethod
-	def getrecord(self, recids, filt=True, ctx=None, txn=None):
+	def getrecord(self, recids, filt=True, writable=None, owner=None, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 
 		@param recids Record ID or iterable of Record IDs
@@ -3856,7 +3856,15 @@ class DB(object):
 				if filt: pass
 				else: raise
 
-		if ol: return return_first_or_none(ret)
+		
+		if writable:
+			ret = filter(lambda x:x.writable(), ret)
+
+		if owner:
+			ret = filter(lambda x:x.isowner(), ret)				
+
+		if ol:
+			return return_first_or_none(ret)
 		return ret
 
 
@@ -5116,7 +5124,9 @@ class DB(object):
 				if t == '#':
 					v = vtm.name_render(pds[n], mode=mode, db=dbp)
 				elif t == '$' or t == '*':
+					# _t = time.time()
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
+					# print "-> %s, %s"%(n, time.time()-_t)
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
 				else:

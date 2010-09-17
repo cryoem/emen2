@@ -55,14 +55,15 @@ function bind_autocomplete(elem, param) {
     $.widget("ui.MultiEditControl", {
 		options: {
 			show: false,
-			recid: null
+			recid: null,
+			selector: null
 		},
 				
 		_create: function() {
 			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
 			this.built = 0;
 			this.bind_edit();
-			this.selector = '.editable[data-recid='+this.options.recid+']';
+			this.options.selector = this.options.selector || '.editable[data-recid='+this.options.recid+']';
 			this.backup = this.element.html();
 			if (this.options.show) {
 				this.event_click();
@@ -71,7 +72,7 @@ function bind_autocomplete(elem, param) {
 		
 		bind_edit: function() {
 			var self = this;
-			$(".label", this.element).click(function(e){self.event_click(e)});
+			this.element.click(function(e){self.event_click(e)});
 		},
 	
 		bind_save: function() {
@@ -79,19 +80,37 @@ function bind_autocomplete(elem, param) {
 
 		event_click: function(e) {
 			var self=this;
-			if (this.options.recid == "None") {
-				var toget = $.makeArray($(this.selector).map(function(){return $(this).attr("data-param")}));
-			} else {
-				var toget = [this.options.recid];
+			var recids = [];
+			var recids_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-recid")}));
+			for (var i=0;i < recids_toget.length;i++) {
+				if (caches['recs'][recids_toget[i]] == null) {
+					recids.push(recids_toget[i]);
+				}
 			}
-			
-			$.jsonRPC("getparamdef", [toget], function(paramdefs) {
-				$.each(paramdefs, function(k,v) {
-					caches["paramdefs"][v.name] = v;
-				});
-				self.show();
-			});
 
+			var params = [];
+			var params_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-param")}));			
+			for (var i=0;i < params_toget.length;i++) {
+				if (caches['paramdefs'][params_toget[i]] == null) {
+					params.push(params_toget[i]);
+				}
+			}
+
+			// get records that we can edit
+			$.jsonRPC("getrecord", [recids, 1, 1], function(recs) {
+
+				$.each(recs, function(k,v) {
+					caches["recs"][v.recid] = v;
+				});
+
+				$.jsonRPC("getparamdef", [params], function(paramdefs) {
+					$.each(paramdefs, function(k,v) {
+						caches["paramdefs"][v.name] = v;
+					});
+					self.show();
+				});
+
+			});
 
 		},
 
@@ -114,9 +133,8 @@ function bind_autocomplete(elem, param) {
 			if (this.options.recid != "None") {
 				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
-			}
-			
-			this.element.append(this.controls);
+			}			
+			this.element.after(this.controls);
 		},
 		
 		rebind_save: function() {
@@ -128,17 +146,19 @@ function bind_autocomplete(elem, param) {
 	
 		show: function() {
 			this.build();
-			$(this.selector).EditControl('hide');
-			$(this.selector).EditControl('show', 0);		
-			$(".label", this.element).hide();
+			var t = $(this.options.selector);
+			t.EditControl({});
+			t.EditControl('hide');
+			t.EditControl('show', 0);		
+			this.element.hide();
 			this.controls.show();
 			this.element.EditbarHelper('show');
 		},
 	
 		hide: function() {
-			$(this.selector).EditControl('hide');
+			$(this.options.selector).EditControl('hide');
 			this.controls.hide();
-			$(".label", this.element).show();
+			this.element.show();
 			this.element.EditbarHelper('hide');			
 		},
 		
@@ -150,7 +170,7 @@ function bind_autocomplete(elem, param) {
 
 			var comment = $('input[name=editsummary]').val();
 
-			$(this.selector).each(function() {
+			$(this.options.selector).each(function() {
 				var t = $(this);
 				var recid = t.EditControl('getrecid');
 				var value = t.EditControl('getval');
@@ -178,10 +198,11 @@ function bind_autocomplete(elem, param) {
 				self.hide();
 
 			}, function(e) {
-
+				
 				$('input[name=save]', self.controls).val('Retry');
 				$('.spinner', self.controls).hide();
 				default_errback(e, function(){})
+
 			});
 
 		},
@@ -206,7 +227,6 @@ function bind_autocomplete(elem, param) {
 					default_errback(e, function(){self.rebind_save()})
 				}
 			);
-			
 		},
 	
 		compare: function(a,b) {
@@ -238,7 +258,7 @@ function bind_autocomplete(elem, param) {
 			param: null
 		},
 				
-		_create: function() {
+		_create: function() {			
 			this.options.param = this.options.param || this.element.attr("data-param");
 			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
 			if (isNaN(this.options.recid)) this.options.recid = "None";
@@ -253,7 +273,6 @@ function bind_autocomplete(elem, param) {
 			if (this.options.show) {
 				this.show();
 			}
-			
 		},
 	
 		event_click: function(e) {
@@ -398,7 +417,6 @@ function bind_autocomplete(elem, param) {
 			} else {
 				this.element.hide();
 			}
-
 		},
 	
 		hide: function() {

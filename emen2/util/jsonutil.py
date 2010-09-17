@@ -2,7 +2,8 @@
 primary purpose is to allow more types to be serialized by simplejson
 """
 
-try: import json
+try:
+	import json
 except ImportError:
 	import simplejson as json
 
@@ -36,10 +37,13 @@ def encode_(obj, *a, **kw):
 
 decode_ = json.loads
 
-try:
-	from demjson import encode, decode
-	print 'demjson encoder/decoder'
-except ImportError:
-	encode, decode = encode_, decode_
-	print 'simplejson encoder/decoder'
+# ian: no longer supporting demjson -- simplejson is fine
+# try:
+# 	from demjson import encode, decode
+# 	print 'demjson encoder/decoder'
+# except ImportError:
+
+encode, decode = encode_, decode_
+
+# print 'simplejson encoder/decoder'
 

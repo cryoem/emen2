@@ -25,7 +25,7 @@
 				<input type="text" name="q" size="8" /> \
 				<input type="button" name="query" value="Query" /> \
 				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
-			
+						
 			// row count
 			var count = $('<select name="count" style="float:right"></select>');
 			count.append('<option value="">Rows</option>');
@@ -176,25 +176,29 @@
 			var self = this;
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
-			var headers = this.options.q['rendered']['headers']['null'];
-			
+			var headers = this.options.q['rendered']['headers']['null'];			
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {
-				var i = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
+				var i = $('<th style="position:relative" data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
 
-				if (this[1] != "@") {
-					i.click(function(){self.resort($(this).attr('data-name'), $(this).attr('data-args'))});
+				// An editable, sortable field..
+				if (this[1] == "$") {
+					var editable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/edit.png" />');
+					editable.click(function(e){self.event_edit(e)});
+					i.append(editable);
+				}
+
+				var direction = 'able';
+				if (self.options.q['sortkey'] == this[2]) {
+					var direction = 1;
+					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				if (self.options.q['sortkey'] == this[2]) {
-					if (self.options.q['reverse']) {
-						i.append('<img src="'+EMEN2WEBROOT+'/static/images/sort_0.png" />');
-					} else {
-						i.append('<img src="'+EMEN2WEBROOT+'/static/images/sort_1.png" />');						
-					}
-				}		
-						
+				var sortable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" />');
+				sortable.click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+				i.append(sortable);
+				
 				i.width(self.cachewidth[this[2]]);
 				tr.append(i);
 			});
@@ -214,7 +218,8 @@
 				var row = [];
 				for (var j=0;j<headers.length;j++) {
 					//row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>'); //
-					row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
+					//row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+recids[i]+'/">'+self.options.q['rendered'][recids[i]][j]+'</a></td>');
+					row.push('<td>'+self.options.q['rendered'][recids[i]][j]+'</td>');
 				}
 				if (i%2) {
 					row = '<tr class="s">' + row.join('') + '</tr>';
@@ -226,6 +231,16 @@
 			
 			$('tbody', t).empty();
 			$('tbody', t).append(rows.join(''));		
+		},
+		
+		event_edit: function(e) {			
+			e.stopPropagation();
+			var t = $(e.target);
+			var key = t.parent().attr('data-name');
+			t.MultiEditControl({
+				show: true,
+				selector: '.editable[data-param='+key+']'
+			});
 		},
 		
 		destroy: function() {

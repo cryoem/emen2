@@ -130,21 +130,11 @@ class vt_text(Vartype):
 		return unicode(value) or None
 
 
-	def render_unicode(self, engine, pd, value, rec, db):
-		return unicode(value).replace("\n","<br />")
-
-
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if value == None:
-			value = ""
-		value = cgi.escape(value)
-		value = markdown.markdown(value)
-		if edit and not value:
-			value = '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)
-		elif edit:
-			value = '<div class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></div>'%(rec.recid, pd.name, pd.vartype, value)
-
-		return value
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		if value != None:
+			value = cgi.escape(unicode(value))
+			value = markdown.markdown(value)
+		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, elem='div', lt=lt)
 
 
 
@@ -157,15 +147,15 @@ class vt_html(Vartype):
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
 
-	def encode(self, value):
-		value = value or ""
-		result = []
-		for x in value:
-			n = htmlentitydefs.codepoint2name.get(ord(x))
-			if n is not None: x = '&%s;' % n
-			result.append(x)
-		return ''.join(result)
-
+	# def encode(self, value):
+	# 	value = value or ""
+	# 	result = []
+	# 	for x in value:
+	# 		n = htmlentitydefs.codepoint2name.get(ord(x))
+	# 		if n is not None: x = '&%s;' % n
+	# 		result.append(x)
+	# 	return ''.join(result)
+	#
 	#def decode(self, pd, value):
 	#	expanded = [htmlentitydefs.name2codepoint.get(y,y) for y in [x[1] or x[2] for x in re.findall('(&([^;]+);|([^&]))', value)]]
 	#	result = []
@@ -218,6 +208,7 @@ class vt_intlist(Vartype):
 	"""list of ints"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = 'd'
+	
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -230,6 +221,7 @@ class vt_intlistlist(Vartype):
 	"""list of int tuples: e.g. [[1,2],[3,4], ..]"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = None
+	
 	def validate(self, engine, pd, value, db):
 		return [[int(x) for x in i] for i in value] or None
 
@@ -242,6 +234,7 @@ class vt_floatlist(Vartype):
 	"""list of floats"""
 	__metaclass__ = Vartype.register_view
 	__indextype__ = 'f'
+	
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value=[value]
@@ -264,22 +257,12 @@ class vt_stringlist(Vartype):
 		return ", ".join(value or [])
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if not value:
-			value=[]
-		if not hasattr(value,"__iter__"):
-			value=[value]
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = self.check_iterable(value)
+		value = [cgi.escape(i) for i in value]			
+		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, lt=lt)
 
-		lis = ['<li>%s</li>'%cgi.escape(i) for i in value]
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
-		elif edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
-			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
-		else:
-			ul = '<ul>%s</ul>'%("\n".join(lis))
 
-		return ul
 
 
 
@@ -292,20 +275,13 @@ class vt_uri(Vartype):
 	def validate(self, engine, pd, value, db):
 		return unicode(value) or None
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if not value:
-			value=[]
-		if not hasattr(value,"__iter__"):
-			value=[value]
 
-		value = cgi.escape(value)
-		href = '<a href="%s">%s</a>'%(value,value)
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
-		elif edit:
-		 	href = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
-		return href
-		
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		if value != None:
+			value = cgi.escape(unicode(value))
+			value = '<a href="%s">%s</a>'%(value,value)
+		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel)
+
 
 
 
@@ -323,24 +299,13 @@ class vt_urilist(Vartype):
 	def render_unicode(self, engine, pd, value, rec, db):
 		return ", ".join(value or [])
 
-			
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if not value:
-			value=[]
-		if not hasattr(value,"__iter__"):
-			value=[value]
 
-		lis = ['<li><a href="%s">%s</a></li>'%(cgi.escape(i), cgi.escape(i)) for i in value]
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)	
-		elif edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
-			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
-		else:
-			ul = '<ul>%s</ul>'%("\n".join(lis))
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = self.check_iterable(value)
+		value = [cgi.escape(i) for i in value]
+		value = ['<a href="%s">%s</a>'%(i,i) for i in value]
+		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel)
 
-		return ul		
-		
 
 
 
@@ -378,21 +343,13 @@ class vt_binary(Vartype):
 		return [unicode(x) for x in value] or None
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		if not value:
-			value = []
-		if not hasattr(value,"__iter__"):
-			value = [value]
-
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = self.check_iterable(value)
 		v = db.getbinary(value)
-		lis = ['<li><a href="%s/download/%s/%s">%s</a></li>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
-		if edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
-			ul = '<ul class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
-		else:
-			ul = '<ul>%s</ul>'%("\n".join(lis))
+		value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]	
+		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, elem_class="editable_files")
 
-		return ul
+
 
 
 		
@@ -407,27 +364,13 @@ class vt_binaryimage(Vartype):
 		return unicode(value) or None
 
 
-	def render_unicode(self, engine, pd, value, rec, db):
-		if not value:
-			return ""
-		try:
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		if value != None:
 			i = db.getbinary(value)
-			return '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, i.filename, i.filename)
-		except:
-			return ""
+			value = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
+		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, elem_class="editable_files")
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		i = None
-		if value:
-			i = db.getbinary(value)
-
-		href = ""
-		if i:
-			href = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
-		if edit:
-			href = '<span class="editable_files" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, href)
-		return href
 
 
 
@@ -541,18 +484,15 @@ class vt_user(Vartype):
 		return dn
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		dn = ''
+	# ian: todo: make these nice .userboxes ?
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value:
 			update_username_cache(engine, [value], db)
 			hit, dn = engine.check_cache(engine.get_cache_key('displayname', value))
-			dn = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+			value = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel)
 
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)				
-		elif edit:
-			dn = '<span class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s<span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, pd.vartype, dn)
-		return dn
+
 
 
 
@@ -589,28 +529,18 @@ class vt_userlist(Vartype):
 			lis.append(dn)
 		return ", ".join(lis)
 		
-		
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		value = self.check_iterable(value)
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
 
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = self.check_iterable(value)
 		update_username_cache(engine, value, db)
 
 		lis = []
 		for i in value:
 			key = engine.get_cache_key('displayname', i)
 			hit, dn = engine.check_cache(key)
-			lis.append('<li><a href="%s">%s</a></li>'%(i,dn))			
-		
-		if edit:
-			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')		
-			ul = '<ul class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
+			lis.append('<a href="%s/user/%s">%s</a>'%(g.EMEN2WEBROOT, i,dn))			
 
-		else:
-			ul = '<ul>%s</ul>'%("\n".join(lis))
-
-		return ul		
+		return self._render_html_list(engine, pd, lis, rec, db, edit, showlabel)
 
 
 
@@ -623,7 +553,6 @@ class vt_acl(Vartype):
 	__indextype__ = None
 	
 	def validate(self, engine, pd, value, db):
-
 		key = engine.get_cache_key('usernames')
 		hit, usernames = engine.check_cache(key)
 		if not hit:
@@ -683,27 +612,20 @@ class vt_comments(Vartype):
 		return unicode(value)
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		value = self.check_iterable(value)		
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = self.check_iterable(value)
 		users=[i[0] for i in value]
 		update_username_cache(engine, users, db)
+
 		lis = []
 		for user, time, comment in value:
 			key = engine.get_cache_key('displayname', user)
 			hit, dn = engine.check_cache(key)
-			t = '<div class="comment"><h4><a href="%s/user/%s/">%s</a> @ %s</h4>%s</div>'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
+			t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(g.EMEN2WEBROOT, user, cgi.escape(dn), time, cgi.escape(comment))
 			lis.append(t)
 
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name)			
+		return self._render_html_list(engine, pd, lis, rec, db, edit, showlabel, elem_class='comment')
 
-		elif edit:
-			lis.append('<p class="label">Add Comment</p>')
-			lis = '<div class="editable" data-recid="%s" data-param="%s" data-vartype="%s">%s</div>'%(rec.recid, pd.name, pd.vartype, "\n".join(lis))
-		else:
-			lis = "\n".join(lis)
-
-		return lis
 
 
 

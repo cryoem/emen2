@@ -164,6 +164,11 @@ a,
 	color:#491F6D;
 }
 
+.table .editable {
+	color:#000;
+}
+
+
 .whitehide {
 	color:white;
 }

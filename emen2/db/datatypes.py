@@ -192,6 +192,7 @@ class Vartype(object):
 		self.modes={
 			"html":self.render_html,
 			"htmledit":self.render_htmledit,
+			"htmledit_table":self.render_htmledit_table
 			}
 
 
@@ -216,43 +217,72 @@ class Vartype(object):
 
 	def render(self, engine, pd, value, mode, rec, db):
 		return self.modes.get(mode, self.render_unicode)(engine, pd, value, rec, db)
-		# except Exception, e:
-		# 	g.log.msg('LOG_DEBUG', "render error: %s"%e)
-		# 	try:
-		# 		return unicode(value)
-		# 	except:
-		# 		return "(Error)"
 
 
 	def render_unicode(self, engine, pd, value, rec, db):
-		if value == None: return ""
+		if value == None:
+			return ""
 		return unicode(value)
 
+
+	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		if value != None:
+			value = cgi.escape(unicode(value))
+		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, lt=lt)
+		
 
 	def render_htmledit(self, engine, pd, value, rec, db):
 		"""Mark field as editable, but do not show controls"""
 		return self.render_html(engine, pd, value, rec, db=db, edit=1)
 
 
-	def render_html(self, engine, pd, value, rec, db, edit=0):
-		"""HTML output"""
-		u = ""
-		if pd.defaultunits and pd.defaultunits != "unitless":
-			u = " %s"%pd.defaultunits
+	def render_htmledit_table(self, engine, pd, value, rec, db):
+		"""Mark field as editable, but do not show controls"""
+		return self.render_html(engine, pd, value, rec, db=db, edit=1, showlabel='', lt=True)
 
-		if value == None:
-			value = ""
-			u = ""
+
+	# after pre-processing values into markup
+	def _render_html_list(self, engine, pd, value, rec, db, edit=0, showlabel=True, elem_class='editable', lt=False):
+		if not value:
+			if edit and showlabel:
+				showlabel = '<img src="%s/static/images/blank.png" class="label underline" />'%g.EMEN2WEBROOT
+			if edit:
+				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(elem_class, rec.recid, pd.name, showlabel)				
+			return '<span></span>'
+
+		if lt:
+			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, rec.recid, i) for i in value]
 		else:
-			value = cgi.escape(self.render_unicode(engine, pd, value, rec, db))
-		
-		if edit and not value:
-			return '<span class="editable" data-recid="%s" data-param="%s"><img src="%s/static/images/blank.png" class="label underline" /></span>'%(rec.recid, pd.name, g.EMEN2WEBROOT)
-		elif edit:
-			return '<span class="editable" data-recid="%s" data-param="%s">%s%s <span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span></span>'%(rec.recid, pd.name, value, u, g.EMEN2WEBROOT)
-		else:	
-			return '<span>%s%s</span>'%(value, u)
+			lis = ['<li>%s</li>'%i for i in value]
+			
 
+		if not edit:
+			return '<ul>%s</ul>'%("\n".join(lis))
+
+		if showlabel:
+			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')						
+		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(elem_class, rec.recid, pd.name, pd.vartype, "\n".join(lis))
+
+
+	# after pre-processing values into markup
+	def _render_html_single(self, engine, pd, value, rec, db, edit=0, showlabel=True, elem='span', elem_class='editable', lt=False):
+		if not value:
+			if edit and showlabel:
+				showlabel = '<img src="%s/static/images/blank.png" class="label underline" />'%g.EMEN2WEBROOT
+			if edit:
+				return '<%s class="%s" data-recid="%s" data-param="%s">%s</%s>'%(elem, elem_class, rec.recid, pd.name, showlabel, elem)
+			return '<%s></%s>'%(elem, elem)
+
+		if lt:
+			value = '<a href="%s/record/%s">%s</a>'%(g.EMEN2WEBROOT, rec.recid, value)
+
+		if not edit:
+			return value
+			
+		if showlabel:
+			showlabel = '<span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
+		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(elem, elem_class, rec.recid, pd.name, pd.vartype, value, showlabel, elem)
 
 
 	def encode(self, value):
