@@ -2720,13 +2720,13 @@ class DB(object):
 		for user in addusers:
 			rec = self.newrecord("person", ctx=tmpctx, txn=txn)
 
-			rec["username"] = username
+			rec["username"] = user.username
 			rec["email"] = user.signupinfo.get('email')
 
 			name = user.signupinfo.get('name', ['', '', ''])
 			rec["name_first"], rec["name_middle"], rec["name_last"] = name[0], ' '.join(name[1:-1]) or None, name[1]
 
-			rec.adduser(username, level=3)
+			rec.adduser(user.username, level=3)
 			rec.addgroup("authenticated")
 
 			for k,v in user.signupinfo.items():

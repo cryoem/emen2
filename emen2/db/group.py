@@ -28,7 +28,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["privacy", "modifytime", "modifyuser", "permissions", "name", "disabled", "creator", "creationtime", "displayname"])
+	attr_user = set(["privacy", "modifytime", "modifyuser", "permissions", "name", "disabled", "creator", "creationtime"])
 
 	def init(self, d=None):
 		self.name = d.pop('name', None)
@@ -161,7 +161,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 	def __getitem__(self, key, default=None):
 		if key == "permissions":
 			return self.getpermissions()
-		return self.__dict__.get(key,default)
+		return self.__dict__.get(key, default)
 
 	get = __getitem__
 
