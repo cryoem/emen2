@@ -126,10 +126,11 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def __setpassword(self, newpassword):
-		if newpassword == None:
-			self.validationwarning("No password specified; minimum 6 characters required", warning=False)
-		if len(newpassword) < 6:
-			self.validationwarning("Password too short; minimum 6 characters required", warning=False)
+		if self.username != "root":
+			if newpassword == None:
+				self.validationwarning("No password specified; minimum 6 characters required", warning=False)
+			if len(newpassword) < 6:
+				self.validationwarning("Password too short; minimum 6 characters required", warning=False)
 		self.password = self.__hashpassword(newpassword)
 
 

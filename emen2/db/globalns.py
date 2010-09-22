@@ -235,7 +235,7 @@ class GlobalNamespace(object):
 
 		self.log.msg('LOG_INIT', "Loading config: %s"%fn)
 		self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
-		self.log.msg('LOG_INIT', 'EMEN2DBHOME %r' % self.EMEN2DBHOME)
+		# self.log.msg('LOG_INIT', 'EMEN2DBHOME %r' % self.EMEN2DBHOME)
 		self.paths.root = self.EMEN2DBHOME
 
 		paths = data.pop('paths', {})

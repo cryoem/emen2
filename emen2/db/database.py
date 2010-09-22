@@ -342,9 +342,16 @@ class DB(object):
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
 
-		paths = ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "tmp", "ssl"]
+		paths = ["data", "data/main", "data/security", "data/index", "data/index/security", "data/index/params", "data/index/records", "log", "overlay", "overlay/views", "overlay/templates"]
 		paths = (os.path.join(self.path, path) for path in paths)
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
+
+		paths = []
+		for i in ['LOGPATH', 'HOTBACKUP', 'LOG_ARCHIVE', 'TILEPATH', 'TMPPATH', 'SSLPATH']:
+			try: paths.append(getattr(g.paths, i))
+			except: pass
+		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]		
+
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
 		if not os.path.exists(configpath):
@@ -436,28 +443,24 @@ class DB(object):
 			for v2 in v:
 				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
 
+		rootrec = self.newrecord('folder', ctx=ctx, txn=txn)
+		rootrec["name_folder"] = "Root Record"
+		self.putrecord(rootrec, ctx=ctx, txn=txn)
 
-		# root_user = return_first_or_none([u for u in skeleton.core_users.items if u.get('username') == 'root'])
-		# if root_user:
-		# 	root_user["password"] = rootpw
-		# 	self.adduser(root_user, ctx=ctx, txn=txn)
-
-
-		self.putrecord(self.newrecord('folder', ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		for i in skeleton.core_users.items:
 			if i.get('username') == 'root':
 				i['password'] = rootpw
 			self.adduser(i, ctx=ctx, txn=txn)
 
+
 		for i in skeleton.core_groups.items:
 			self.putgroup(i, ctx=ctx, txn=txn)
-
 
 
 		for i in skeleton.core_records.items:
 			self.putrecord(i, ctx=ctx, txn=txn)
 
-
+		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
 
 	# #@rename db.test.sleep
 	# @publicmethod
@@ -642,7 +645,7 @@ class DB(object):
 			maxidle = g.MAXIDLE
 
 		newcontext = None
-		username = unicode(username)
+		username = unicode(username).strip()
 
 		# print "attempted login: %s"%username
 		# Anonymous access
@@ -3899,7 +3902,7 @@ class DB(object):
 			rec.update(t)
 
 		# Apply any inherited permissions
-		if inheritperms:
+		if inheritperms != None:
 			inheritperms = listops.tolist(inheritperms)
 			try:
 				precs = self.getrecord(inheritperms, filt=False, ctx=ctx, txn=txn)
@@ -4185,16 +4188,16 @@ class DB(object):
 
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
-				
+		
 		ol, recs = listops.oltolist(recs)
-
+		
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
 		# Preprocess
-		recs = recs
 		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
 		recs = listops.typefilter(recs, emen2.db.record.Record)
+		
 		
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
 

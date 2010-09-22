@@ -136,7 +136,7 @@
 			var self=this;		
 			d.click(function(e){self.event_select(e)});
 			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
-			d.append('<div data-name="'+group.name+'">'+group.name+'<br /></div>');
+			d.append('<div data-name="'+group.name+'">'+group.displayname+'<br />'+group.name+'</div>');
 			this.resultsarea.append(d);
 		},
 	

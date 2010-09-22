@@ -28,7 +28,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["privacy", "modifytime", "modifyuser", "permissions", "name", "disabled", "creator", "creationtime"])
+	attr_user = set(["privacy", "modifytime", "modifyuser", "permissions", "name", "disabled", "creator", "creationtime", "displayname"])
 
 	def init(self, d=None):
 		self.name = d.pop('name', None)

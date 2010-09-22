@@ -35,7 +35,7 @@
 
 		// Alternate views and templates to be loaded 
 		"TEMPLATEDIRS": ["templates"],
-		"VIEWPATHS" :["views"],
+		"VIEWPATHS": ["views"],
 
 		// Load additional files. Typically this will only be used by the system installed base config file.
 		"CONFIGFILES" :[

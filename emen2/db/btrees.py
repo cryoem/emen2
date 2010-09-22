@@ -279,7 +279,7 @@ class RelateBTree(BTree):
 
 		if self.sequence:
 			self.sequencedb = bsddb3.db.DB(self.dbenv)
-			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, txn=txn) #flags=g.DBOPENFLAGS
+			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, txn=txn, flags=g.DBOPENFLAGS) #
 
 		kt = self.keytype
 		dt = self.datatype

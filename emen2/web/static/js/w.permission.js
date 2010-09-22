@@ -33,14 +33,13 @@
 	
 
 		copy_from_cache: function(rec) {
-			if (this.options.recid) {
+			if (this.options.recid != null) {
 				var plist = caches['recs'][this.options.recid]['permissions'];
 				var glist = caches['recs'][this.options.recid]['groups'];
 			} else if (this.options.groupname) {
 				var plist = caches['groups'][this.options.groupname]['permissions'];				
 				var glist = [];
 			}
-	
 			return [plist, glist]
 		},
 		

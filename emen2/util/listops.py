@@ -1,6 +1,8 @@
 import collections
-from functools import partial
 import itertools
+
+from UserDict import DictMixin
+from functools import partial
 
 
 def take(num, iter_):
@@ -129,17 +131,18 @@ def oltolist(d, dtype=None):
 	dtype = dtype or list
 	ol = False
 	result = None
+
 	if isinstance(d, dtype):
 		pass
-	elif not hasattr(d, "__iter__") or isinstance(d, collections.Mapping):
+		
+	elif isinstance(d, (dict, DictMixin)) or not hasattr(d, "__iter__"):
 		d = [d]
 		ol = True
+	
 	if not isinstance(d, dtype):
 		d = dtype(d)
 
-	result = ol, d
-
-	return result
+	return ol, d
 
 
 def dictbykey(l, key):
