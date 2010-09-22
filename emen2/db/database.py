@@ -991,7 +991,6 @@ class DB(object):
 		for datekey,bydate in bydatekey.items():
 			try:
 				bdocounter = self.bdbs.bdocounter.sget(datekey, txn=txn)
-
 				for i in bydate:
 					bdo = bdocounter.get(i["counter"])
 					bdo["filepath"] = i["filepath"]
@@ -1001,7 +1000,7 @@ class DB(object):
 				if filt:
 					continue
 				else:
-					raise KeyError, "Invalid identifier: %s: %s"%(datekey, inst)
+					raise KeyError, "Unknown BDO identifier: %s"%(datekey)
 
 
 		recstoget = set(byrec.keys()) - set([rec.recid for rec in recs])
@@ -1027,11 +1026,15 @@ class DB(object):
 	#@rename db.binary.put @ok @single @return Binary
 	#filename, recid=None, bdokey=None, filedata=None, filehandle=None, param=None, record=None, uri=None, ctx=None, txn=None):
 	@publicmethod
-	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, filedata=None, filehandle=None, uri=None, ctx=None, txn=None):
+	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, filedata=None, filehandle=None, uri=None, clone=False, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents."""
 
+		if clone and not ctx.checkadmin():
+			raise emen2.db.exceptions.SecurityError, "Only admins can update BDOs using the cloning tool"
+
 		if not ctx.checkcreate():
-			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add binaries"
+			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add BDOs"
+
 
 		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
 		if filename != None:
@@ -1040,10 +1043,12 @@ class DB(object):
 				filename = "renamed."+filename
 			filename = unicode(filename)
 
+
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
 		dkey = emen2.db.binary.Binary.parse(bdokey)
 		t = self.gettime()
+
 
 		# First write out the file
 		newfile = None
@@ -1058,10 +1063,15 @@ class DB(object):
 			counter = max(bdo.keys() or [-1]) + 1
 			dkey = emen2.db.binary.Binary.parse(bdokey, counter=counter)
 
+
 		nb = bdo.get(dkey["counter"])
-		if newfile:
+		if newfile or bdokey:
 			if nb:
-				raise emen2.db.exceptions.SecurityError, "Files are immutable"
+				if not ctx.checkadmin():
+					raise emen2.db.exceptions.SecurityError, "BDOs are immutable"
+				else:
+					g.log.msg("LOG_WARNING","Modifying bdo %s"%bdokey)
+
 			nb = emen2.db.binary.Binary()
 			nb.update(
 				uri = uri,
@@ -1070,10 +1080,10 @@ class DB(object):
 				name = dkey["name"],
 				filesize = filesize,
 				md5 = md5sum
-			)
+			)	
 
 		if nb['creator'] != ctx.username and not ctx.checkadmin():			
-			raise emen2.db.exceptions.SecurityError, "You cannot modify a binary you did not create"
+			raise emen2.db.exceptions.SecurityError, "You cannot modify a BDO you did not create"
 
 		if recid != None:
 			nb["recid"] = recid
@@ -1124,7 +1134,7 @@ class DB(object):
 				m.update(filedata)
 				filesize = len(filedata)
 
-		if filesize == 0:
+		if filesize == 0 and not ctx.checkadmin():
 			raise ValueError, "Empty file!"
 
 		md5sum = m.hexdigest()

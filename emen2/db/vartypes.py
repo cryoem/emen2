@@ -345,8 +345,11 @@ class vt_binary(Vartype):
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		value = self.check_iterable(value)
-		v = db.getbinary(value)
-		value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]	
+		try:
+			v = db.getbinary(value)
+			value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]	
+		except:
+			value = ['Error getting binary %s'%i for i in value]
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, elem_class="editable_files")
 
 
@@ -366,8 +369,11 @@ class vt_binaryimage(Vartype):
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value != None:
-			i = db.getbinary(value)
-			value = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
+			try:
+				i = db.getbinary(value)
+				value = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
+			except:
+				value = "Error getting binary %s"%value
 		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, elem_class="editable_files")
 
 
