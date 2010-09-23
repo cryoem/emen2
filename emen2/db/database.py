@@ -1052,9 +1052,10 @@ class DB(object):
 
 		# First write out the file
 		newfile = None
+		filesize = 0
+		md5sum = ''
 		if filehandle or filedata:
 			newfile, filesize, md5sum = self.__putbinary_file(filename, filehandle=filehandle, filedata=filedata, dkey=dkey, ctx=ctx, txn=txn)
-
 
 		# Update the BDO: Start RMW cycle
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
@@ -1065,13 +1066,9 @@ class DB(object):
 
 
 		nb = bdo.get(dkey["counter"])
-		if newfile or bdokey:
+		if newfile:
 			if nb:
-				if not ctx.checkadmin():
-					raise emen2.db.exceptions.SecurityError, "BDOs are immutable"
-				else:
-					g.log.msg("LOG_WARNING","Modifying bdo %s"%bdokey)
-
+				raise emen2.db.exceptions.SecurityError, "BDOs are immutable"
 			nb = emen2.db.binary.Binary()
 			nb.update(
 				uri = uri,
@@ -1081,6 +1078,9 @@ class DB(object):
 				filesize = filesize,
 				md5 = md5sum
 			)	
+		
+		if not nb:
+			raise KeyError, "No such BDO: %s"%bdokey
 
 		if nb['creator'] != ctx.username and not ctx.checkadmin():			
 			raise emen2.db.exceptions.SecurityError, "You cannot modify a BDO you did not create"
