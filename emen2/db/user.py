@@ -94,6 +94,8 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def __hashpassword(self, password):
+		if password == None:
+			password = ''
 		if len(password) == 40:
 			return password
 		return hashlib.sha1(unicode(password)).hexdigest()
