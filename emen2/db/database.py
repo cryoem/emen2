@@ -13,7 +13,6 @@ import collections
 import itertools
 import random
 import bsddb3
-#import emen2.util.jsonutil
 import re
 import shutil
 import weakref
@@ -1169,7 +1168,7 @@ class DB(object):
 
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=None, recurse=1, ctx=None, txn=None, **kwargs):
+	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=None, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
@@ -1193,7 +1192,7 @@ class DB(object):
 		groupby = {}
 		for searchparam, comp, value in constraints:
 			t = time.time()
-			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
+			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 			# print "== ", time.time()-t, searchparam, comp, value
 
 			if recids == None:
@@ -1212,12 +1211,11 @@ class DB(object):
 		if subset:
 			recids &= subset
 			
-			
 					
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
-			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, recurse=recurse, ctx=ctx, txn=txn)
+			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 			
 
 		ret = {
@@ -1227,7 +1225,6 @@ class DB(object):
 			"ignorecase": ignorecase,
 			"recids": recids,
 			"groups": groups,
-			"recurse": recurse,
 			"subset": subset
 		}		
 		return ret
@@ -1235,7 +1232,7 @@ class DB(object):
 
 
 
-	def __query_groupby(self, groupparam, keys, groups=None, recids=None, recurse=1, ctx=None, txn=None):
+	def __query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
 		param = self.__query_paramstrip(groupparam)
 
 		if param == "rectype":
@@ -1253,7 +1250,6 @@ class DB(object):
 					parentgroups[i].add(k)
 			if parentgroups:
 				groups["parent"] = dict(parentgroups)
-
 
 		else:
 			if not keys:
@@ -1274,17 +1270,28 @@ class DB(object):
 
 
 
-	def __query_constraint(self, searchparam, comp, value, groupby=None, recurse=1, ctx=None, txn=None):
+	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		param = self.__query_paramstrip(searchparam)
-		if value == "": value = None
+		value = unicode(value)
+
+		recurse = 1
+		if '*' in value:
+			value = value.replace('*', '')
+			recurse = -1
+
+		if value == "":
+			value = None
+			
 		subset = None
 
 		# print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
 		if param == "rectype":
 			if comp == "==" and value != None:
+				value = self.getchildren(value, recurse=recurse, keytype="recorddef", ctx=ctx, txn=txn)
 				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
 			groupby["rectype"] = None
+
 
 		elif param == "parent":
 			if comp == "recid" and value != None:
@@ -1294,11 +1301,11 @@ class DB(object):
 				groupby["parent"] = value
 
 		elif param == "child":
-			if comp == "recid" and value != none:
+			if comp == "recid" and value != None:
 				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
 
 		elif param:
-			subset = self.__query_index(searchparam, comp, value, groupby=groupby, recurse=recurse, ctx=ctx, txn=txn)
+			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 		else:
 			pass
@@ -1311,7 +1318,7 @@ class DB(object):
 
 
 
-	def __query_index(self, searchparam, comp, value, groupby=None, recurse=1, ctx=None, txn=None):
+	def __query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
 		cfunc = self.__query_cmps().get(comp)

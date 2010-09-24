@@ -173,10 +173,10 @@
 			var m = $(' \
 				<h4>General</h4> \
 				<table><tr> \
-					<td>Protocol:</td><td><input type="text" name="rectype" /> <img  class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Protocol:</td><td><input type="text" name="rectype" /><input type="checkbox" name="rectype_recurse" /><img class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 				</tr><tr> \
-					<td>Child of</td><td><input type="text" name="parent" />  <img  class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Child of</td><td><input type="text" name="parent" /><input type="checkbox" name="parent_recurse" /><img class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
 				</tr></table> \
 				<table class="constraints"> \
@@ -186,8 +186,7 @@
 				<h4>Options</h4> \
 				<p>Match \
 					<input type="radio" value="AND" name="boolmode" checked="checked"> all <input type="radio" value="OR" name="boolmode"> any \
-					<input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive \
-					<input type="checkbox" name="recurse" /> Recursive</p> \
+					<input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive</p> \
 				');
 
 			
@@ -222,7 +221,6 @@
 
 			$('input[name=xparam]', this.container).FindControl({mode: 'findparamdef'});			
 			$('input[name=yparam]', this.container).FindControl({mode: 'findparamdef'});			
-
 			$('input[name=rectype]', this.container).FindControl({mode: 'findrecorddef'});			
 			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
 			$('input[name=parent]', this.container).Browser({});
@@ -281,7 +279,6 @@
 			var constraints = [];
 
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
-			var recurse = $('input[name=recurse]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
 
 			var xparam = $('input[name=xparam]', this.container).val();
@@ -303,17 +300,27 @@
 				// if (width) {newq["width"]=width}
 			}
 
-			var rectype = $('input[name=rectype]', this.container).val();
+			var rectype = $('input[name=rectype]', this.container).val();			
+			var rectype_recurse = $('input[name=rectype_recurse]', this.container).attr('checked');
+			if (rectype_recurse && rectype) {
+				rectype = rectype + '*';
+			}
+			
 			if (rectype) {constraints.push(['rectype', '==', rectype])}
 
 			var creator = $('input[name=creator]', this.container).val();
 			if (creator) {constraints.push(['creator', '==', creator])}
 
+
 			var parent = $('input[name=parent]', this.container).val();
-			if (parent) {constraints.push(['parent', 'recid', parseInt(parent)])}
+			var parent_recurse = $('input[name=parent_recurse]', this.container).attr('checked');
+			if (parent_recurse && parent) {
+				parent = parent + '*';
+			}
+			if (parent) {constraints.push(['parent', 'recid', parent])}
 
 			var child = $('input[name=child]', this.container).val();
-			if (child) {constraints.push(['child', 'recid', parseInt(child)])}
+			if (child) {constraints.push(['child', 'recid', child])}
 
 			var q = $('input[name=q]').val();
 			if (this.options.ext_q) {
@@ -334,7 +341,6 @@
 			newq['constraints'] = constraints;
 			
 			if (ignorecase) {newq['ignorecase'] = true}
-			if (recurse) {newq['recurse'] = -1}			
 			if (boolmode) {newq['boolmode'] = boolmode}
 			if (q) {newq['q'] = q}		
 			this.options.cb(this, newq);
@@ -425,16 +431,39 @@
 			}
 
 			$.each(this.options.q['constraints'], function() {
-				if (this[0] == 'rectype' && this[1] == '==') { $('input[name=rectype]', self.container).val(this[2]) }
-				else if (this[0] == 'creator' && this[1] == 'recid') { $('input[name=creator]', self.container).val(this[2]) }
-				else if (this[0] == 'parent' && this[1] == 'recid') { $('input[name=parent]', self.container).val(this[2]) }
-				else {
+
+				if (this[0] == 'rectype' && this[1] == '==') {
+
+					if (this[2].indexOf('*') > -1) {
+						this[2] = this[2].replace('*', '');
+						$('input[name=rectype_recurse]', this.container).attr('checked', 'checked')
+					}
+					$('input[name=rectype]', self.container).val(this[2])
+
+				} else if (this[0] == 'creator' && this[1] == 'recid') {
+
+					$('input[name=creator]', self.container).val(this[2])
+
+				} else if (this[0] == 'parent' && this[1] == 'recid') {
+					this[2] = String(this[2]);
+					if (this[2].indexOf('*') > -1) {
+						this[2] = this[2].replace('*', '');
+						$('input[name=parent_recurse]', this.container).attr('checked', 'checked');
+					}					
+					$('input[name=parent]', self.container).val(this[2]);
+
+				} else {
+
 					self.addconstraint(this[0], this[1], this[2]);
+
 				}
 			});
+			
 			this.addconstraint();
-			if (this.options.q['ignorecase']) {$('input[name=ignorecase]', this.container).attr('checked', 'checked')}
-			if (this.options.q['recurse'] == -1) {$('input[name=recurse]', this.container).attr('checked', 'checked')}			
+			if (this.options.q['ignorecase']) {
+				$('input[name=ignorecase]', this.container).attr('checked', 'checked')
+			}
+
 		},		
 				
 		destroy: function() {

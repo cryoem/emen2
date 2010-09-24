@@ -249,7 +249,7 @@
 			var boxes = $('.boximg[data-label='+label+']');
 			var rec = caches['recs'][label];
 			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
-			rec['box_length'] = $('.boximg[data-label='+label+']').length;
+			//rec['box_length'] = $('.boximg[data-label='+label+']').length;
 			rec['box_label'] = $('.box_label[data-label='+label+']').val();
 			rec['box_size'] = $('.box_size[data-label='+label+']').val();
 			return rec
@@ -713,13 +713,14 @@
 			var controls = $('<div class="tilemapcontrols"> \
 				<h4 class="label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
-				<input type="button" name="autocenter" value="Center" />\
+				<input type="button" name="autocenter" value="Center" /> <br />\
+				<input type="button" name="save" value="Save" /> \
 				<h4 class="label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
 				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label><br />\
 				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> <br />\
-				<input type="text" name="apix" value="'+apix+'" size="1" /> A/px\
+				<input type="text" name="apix" value="'+apix+'" size="1" /><span class="small">A/px</a><br />\
 				</div> \
 			</div>');
 			
@@ -746,8 +747,13 @@
 				self.autocenter();
 			});			
 			controls.find("input[name=save]").click(function() {
-				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename;
+				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '?saveas=1';
 				window.open(loc);
+				// $('<iframe />', {
+				//     name:'myFrame',
+				//     id: 'myFrame',
+				// 	   src: loc
+				// }).appendTo('body');
 			});
 			controls.find("input[name=apix]").change(function() {
 				if (self.options.displaymode == '1d') {
