@@ -1274,7 +1274,7 @@ class DB(object):
 		param = self.__query_paramstrip(searchparam)
 		value = unicode(value)
 
-		recurse = 1
+		recurse = 0
 		if '*' in value:
 			value = value.replace('*', '')
 			recurse = -1
@@ -1288,7 +1288,10 @@ class DB(object):
 
 		if param == "rectype":
 			if comp == "==" and value != None:
-				value = self.getchildren(value, recurse=recurse, keytype="recorddef", ctx=ctx, txn=txn)
+				if recurse == -1:
+					ovalue = value
+					value = self.getchildren(value, recurse=recurse, keytype="recorddef", ctx=ctx, txn=txn)
+					value.add(ovalue)
 				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
 			groupby["rectype"] = None
 
