@@ -311,15 +311,12 @@ th {
 	font-size:10pt;
 	list-style:none;
 }
-
 #nav li {
 	float:left;
 	border-right-style:solid;
 	border-right-width:2px;
 	padding:4px;
 }
-
-
 #nav li:last-child {
 	border-right:none;
 }	
@@ -335,6 +332,13 @@ th {
 
 /**** LEFT AND RIGHT BOXES *****/
 
+.floatlist {
+	list-style:none;
+}
+.floatlist li {
+	float:left;
+	padding:10px;
+}
 
 
 

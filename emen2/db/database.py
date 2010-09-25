@@ -1485,7 +1485,7 @@ class DB(object):
 
 
 	@publicmethod
-	def querytable(self, pos=0, count=10, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
+	def querytable(self, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
