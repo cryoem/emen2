@@ -43,6 +43,8 @@
 			// query bar
 			this.attach_querycontrol();
 
+			this.attach_tools();
+
 			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
 			$('.header', this.element).append(spinner);
 						
@@ -61,6 +63,24 @@
 			$(".inner thead th").each(function() {
 				self.cachewidth[$(this).attr('data-name')] = $(this).width();
 			});			
+
+		},
+		
+		attach_tools: function() {
+			var self = this;
+			var q = $('<div class="tools control" style="float:right"><span class="clickable label">\
+				Tools <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
+
+			var hidden = $('<div class="hidden">Test!</div>');
+			q.append(hidden);
+
+			q.EditbarHelper({
+				align: 'right', 
+				init: function(self2) {
+				}
+			});				
+
+			$('.header', this.element).append(q);			
 
 		},
 		

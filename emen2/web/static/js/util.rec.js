@@ -201,9 +201,7 @@ function record_init(rec, ptest, edit) {
 			}
 	});	
 	
-	$(".editbar .tools").EditbarHelper({});	
-
-	$(".editbar .query").EditbarHelper({width:300});	
+	$(".editbar .tools").EditbarHelper({width:300});	
 
 	$(".editbar .selectview").EditbarHelper({});	
 
