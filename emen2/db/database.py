@@ -1168,15 +1168,17 @@ class DB(object):
 
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, q=None, constraints=None, boolmode="AND", ignorecase=True, subset=None, ctx=None, txn=None, **kwargs):
+	def query(self, c=None, q=None, boolmode="AND", ignorecase=1, subset=None, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
-		if not constraints:
-			constraints = []
+		if not c:
+			c = []
 
 		if q:
-			constraints.append(["root_parameter*", "contains_w_empty", q])
+			c.append(["root_parameter*", "contains_w_empty", q])
+
+		ignorecase = int(ignorecase)
 
 		if boolmode == "AND":
 			boolop = "intersection_update"
@@ -1190,7 +1192,7 @@ class DB(object):
 
 		# Query Step 1: Run constraints
 		groupby = {}
-		for searchparam, comp, value in constraints:
+		for searchparam, comp, value in c:
 			t = time.time()
 			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 			# print "== ", time.time()-t, searchparam, comp, value
@@ -1202,7 +1204,7 @@ class DB(object):
 
 
 		# Step 2: Filter permissions
-		if constraints:
+		if c:
 			recids = self.filterbypermissions(recids or set(), ctx=ctx, txn=txn)
 		else:
 			# ... these are already filtered, so insert the result of an empty query here.
@@ -1220,7 +1222,7 @@ class DB(object):
 
 		ret = {
 			"q":q,
-			"constraints": constraints,
+			"c": c,
 			"boolmode": boolmode,
 			"ignorecase": ignorecase,
 			"recids": recids,
@@ -1376,7 +1378,7 @@ class DB(object):
 
 
 
-	def __query_cmps(self, ignorecase=True):
+	def __query_cmps(self, ignorecase=1):
 		# y is argument, x is record value
 		cmps = {
 			"==": lambda y,x:x == y,
@@ -1440,10 +1442,17 @@ class DB(object):
 		handle = ax.plot(x, y, style)
 		
 		if xmin == None: xmin = min(x)
+		else: xmax = float(xmax)
+
 		if xmax == None: xmax = max(x)
+		else: xmax = float(xmax)
+
 		if ymin == None: ymin = min(y)
+		else: ymin = float(ymin)
+
 		if ymax == None: ymax = max(y)
-		
+		else: ymax = float(ymax)
+			
 		ax.set_xlim(xmin, xmax)
 		ax.set_ylim(ymin, ymax)		
 
@@ -1475,11 +1484,7 @@ class DB(object):
 
 
 	@publicmethod
-	def querytable(self, recid=None, rectype=None, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
-
-		# Convenience
-		if recid != None and rectype != None:
-			q = {'constraints': [['parent', 'recid', recid], ['rectype', '==', rectype]]}
+	def querytable(self, pos=0, count=10, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
@@ -1487,8 +1492,8 @@ class DB(object):
 		pos = int(pos)
 		
 		if reverse == None:
-			reverse = True
-		reverse = bool(reverse)		
+			reverse = 1
+		reverse = int(reverse)		
 
 		# Run query
 		if xparam or yparam:
@@ -1530,20 +1535,20 @@ class DB(object):
 
 
 	@publicmethod
-	def plot(self, xparam, yparam, groupby="rectype", constraints=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
+	def plot(self, xparam, yparam, groupby="rectype", c=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
 
 		# Run all the arguments through query..
-		constraints = constraints or []
-		cparams = [i[0] for i in constraints]
+		c = c or []
+		cparams = [i[0] for i in c]
 		if xparam not in cparams:
-			constraints.append([xparam, "!None", ""])
+			c.append([xparam, "!None", ""])
 		if yparam not in cparams:
-			constraints.append([yparam, "!None", ""])
+			c.append([yparam, "!None", ""])
 					
 
 		# t = time.time()
 
-		q = self.query(constraints=constraints, ctx=ctx, txn=txn, **kwargs)
+		q = self.query(c=c, ctx=ctx, txn=txn, **kwargs)
 		if not q["groups"].get(groupby):
 			groupby = "rectype"
 			q["groups"][groupby] = self.groupbyrecorddef(q["recids"], ctx=ctx, txn=txn)
@@ -1927,7 +1932,7 @@ class DB(object):
 		if not query and not username:
 			username = ""
 
-		constraints = [
+		c = [
 			["name_first","contains", name_first],
 			["name_middle","contains", name_middle],
 			["name_last","contains", name_last],
@@ -1935,12 +1940,12 @@ class DB(object):
 			["username","contains_w_empty", username]
 			]
 
-		constraints = filter(lambda x:x[2] != None, constraints)
+		c = filter(lambda x:x[2] != None, c)
 
 		q = self.query(
 			boolmode=boolmode,
-			ignorecase=True,
-			constraints=constraints,
+			ignorecase=1,
+			c=c,
 			ctx=ctx,
 			txn=txn
 		)
@@ -2001,7 +2006,7 @@ class DB(object):
 		"""
 
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
-		ret = self.query(constraints=[[param, "contains_w_empty", query]], ignorecase=True, ctx=ctx, txn=txn)
+		ret = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, ctx=ctx, txn=txn)
 
 		s2 = ret.get('groups', {}).get(param, {})
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
@@ -2028,7 +2033,7 @@ class DB(object):
 
 		# This method was simplified, and now uses __query_index directly
 		# cmps = self.__query_cmps(ignorecase=True)
-		# s1, s2 = self.__query_index(constraints=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
+		# s1, s2 = self.__query_index(c=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
 		# #{('name_last', u'Rees'): set([271390])}
 		# 
 		# # This works nicely, I should rewrite some of my other list sorteds
@@ -2706,22 +2711,40 @@ class DB(object):
 		# Need to commit users before records will validate
 		for username in usernames:
 
-			# try:
-			user = self.bdbs.newuserqueue.sget(username, txn=txn)
-			if not user:
-				raise KeyError, "User %s is not pending approval"%username
+			try:
+				user = self.bdbs.newuserqueue.sget(username, txn=txn)
+				if not user:
+					raise KeyError, "User %s is not pending approval"%username
 
-			user.setContext(ctx)
-			user.validate()
-			# except:
-			#	if filt: continue
-			#	else: raise
+				user.setContext(ctx)
+				user.validate()
+			except Exception, inst:
+				if filt:
+					g.log.msg("LOG_ERROR", msg)
+					continue
+				else:
+					raise
 
-			if self.bdbs.users.get(username, txn=txn):
+
+			if self.bdbs.users.get(user.username, txn=txn):
 				delusers[username] = None
-				g.log.msg("LOG_ERROR", "User %s already exists, deleted pending record"%username)
-				continue
+				msg = "User %s already exists, deleted pending record"%user.username
+				if filt:
+					g.log.msg("LOG_ERROR", msg)
+					continue
+				else:
+					raise KeyError, msg
+				
 
+			if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
+				delusers[username] = None
+				msg = "The email address %s is already in use"%(user.email)
+				if filt:
+					g.log.msg("LOG_ERROR", msg)
+					continue
+				else:
+					raise KeyError, msg
+				
 			# if secret is not None and not user.validate_secret(secret):
 			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 			# 	time.sleep(2)
@@ -2991,8 +3014,8 @@ class DB(object):
 		except Exception, inst:
 			raise ValueError, "User instance or dict required (%s)"%inst
 
-		if self.bdbs.users.get(user.username, txn=txn):
-			raise KeyError, "User with username '%s' already exists" % user.username
+		if self.bdbs.users.get(user.username, txn=txn) or self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
+			raise KeyError, "An account already exists with this username or email address"%user.username
 
 		#if user.username in self.bdbs.newuserqueue:
 		if self.bdbs.newuserqueue.get(user.username, txn=txn):

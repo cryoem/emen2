@@ -1,7 +1,8 @@
 (function($) {
     $.widget("ui.TableControl", {
 		options: {
-			q: null
+			q: null,
+			qc: true
 		},
 				
 		_create: function() {
@@ -17,14 +18,6 @@
 
 			// record count
 			var length = $('<div class="length" style="float:left">Records</div>');
-
-			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
-
-			// query bar
-			var q = $('<div class="querycontrol control" style="float:right"> \
-				<input type="text" name="q" size="8" /> \
-				<input type="button" name="query" value="Query" /> \
-				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
 						
 			// row count
 			var count = $('<select name="count" style="float:right"></select>');
@@ -43,31 +36,15 @@
 			var pages = $('<div class="control pages" style="float:right">Pages</div>');
 
 			// Bind to control elements
-			$('.header', this.element).append(length, pages, count, q, spinner);
+			$('.header', this.element).append(length, pages, count);
+
 
 			// Kindof hacky..
-			q.EditbarHelper({
-				bind: false,
-				align: 'right', 
-				init: function(self2) {
-					self2.popup.QueryControl({
-						q: self.options.q,
-						keywords: false,
-						ext_save: $('input[name=query]', q),
-						ext_q: $('input[name=q]', q),
-						cb: function(test, newq) {self.query(newq)} 
-					});
-				}
-			});				
-			
-			$('input[name=q]', q).focus(function(){
-				q.EditbarHelper('show');
-			});
-			
-			$('img', q).click(function(){
-				q.EditbarHelper('toggle');
-			});
-						
+			// query bar
+			this.attach_querycontrol();
+
+			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
+			$('.header', this.element).append(spinner);
 						
 			$('.plot', this.element).PlotControl({
 				q:this.options.q,
@@ -85,6 +62,51 @@
 				self.cachewidth[$(this).attr('data-name')] = $(this).width();
 			});			
 
+		},
+		
+		attach_querycontrol: function() {
+			if (!this.options.qc) {return}
+			
+			var self = this;
+			
+			// if (this.options.qc) {
+			// 	$(this.options.qc).QueryControl({
+			// 		q: self.options.q,
+			// 		keywords: false,
+			// 		cb: function(test, newq) {self.query(newq)} 
+			// 	});
+			// 	return
+			// }
+
+			var q = $('<div class="querycontrol control" style="float:right"> \
+				<input type="text" name="q" size="8" /> \
+				<input type="button" name="query" value="Query" /> \
+				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
+
+			q.EditbarHelper({
+				bind: false,
+				align: 'right', 
+				init: function(self2) {
+					self2.popup.QueryControl({
+						q: self.options.q,
+						keywords: false,
+						ext_save: $('input[name=query]', q),
+						ext_q: $('input[name=q]', q),
+						cb: function(test, newq) {self.query(newq)} 
+					});
+				}
+			});				
+
+			$('input[name=q]', q).focus(function(){
+				q.EditbarHelper('show');
+			});
+		
+			$('img', q).click(function(){
+				q.EditbarHelper('toggle');
+			});
+			
+			$('.header', this.element).append(q);
+			
 		},
 		
 		query: function(newq) {
@@ -234,6 +256,10 @@
 		},
 		
 		event_edit: function(e) {
+			if (this.options.q['count'] > 100) {
+				var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
+				if (check==false) {return}
+			}
 			var self = this;
 			e.stopPropagation();
 			var t = $(e.target);

@@ -136,7 +136,7 @@
 			ext_save: null,
 			ext_reset: null,
 			ext_q: null,
-			cb: function(self, q){}
+			cb: function(self, q){self.query_bookmark(self, q)}
 		},
 				
 		_create: function() {
@@ -273,10 +273,39 @@
 			this.update();
 		},
 		
+		query_bookmark: function(self, q) {
+			//cmp_order = ["==", "!=", ".!contains.", ".contains.", ">=", "<=", ">", "<", ".!None.", '.recid.']
+			var lut = {
+				'!contains': '.!contains.',
+				'contains': '.contains.',
+				'!None': '.!None.',
+				'recid': '.recid.'
+			}
+
+			var output = [];
+			$.each(q['c'], function() {
+				if (lut[this[1]] != null) {this[1]=lut[this[1]]}
+				output.push(this[0]+this[1]+this[2]);
+			});
+			delete q['c'];
+			
+			// remove some default arguments..
+			if (q['ignorecase'] == 1){
+				delete q['ignorecase'];
+			}
+			if (q['boolmode'] == 'AND') {
+				delete q['boolmode'];
+			}
+
+			qs = '?' + $.param(q);
+			window.location = EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
+			
+		},
+		
 		query: function() {
 			var self = this;
 			var newq = {};
-			var constraints = [];
+			var c = [];
 
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
@@ -306,10 +335,10 @@
 				rectype = rectype + '*';
 			}
 			
-			if (rectype) {constraints.push(['rectype', '==', rectype])}
+			if (rectype) {c.push(['rectype', '==', rectype])}
 
 			var creator = $('input[name=creator]', this.container).val();
-			if (creator) {constraints.push(['creator', '==', creator])}
+			if (creator) {c.push(['creator', '==', creator])}
 
 
 			var parent = $('input[name=parent]', this.container).val();
@@ -317,10 +346,10 @@
 			if (parent_recurse && parent) {
 				parent = parent + '*';
 			}
-			if (parent) {constraints.push(['parent', 'recid', parent])}
+			if (parent) {c.push(['parent', 'recid', parent])}
 
 			var child = $('input[name=child]', this.container).val();
-			if (child) {constraints.push(['child', 'recid', child])}
+			if (child) {c.push(['child', 'recid', child])}
 
 			var q = $('input[name=q]').val();
 			if (this.options.ext_q) {
@@ -335,12 +364,12 @@
 				var parents = $('input[name=parents]', this).attr('checked');
 				if (param && childparams) {param = param+'*'}
 				if (param && parents) {param = param+'^'}
-				if (param && cmp) { constraints.push([param, cmp, value]) }
+				if (param && cmp) { c.push([param, cmp, value]) }
 			});
 			
-			newq['constraints'] = constraints;
+			newq['c'] = c;
 			
-			if (ignorecase) {newq['ignorecase'] = true}
+			if (ignorecase) {newq['ignorecase'] = 1}
 			if (boolmode) {newq['boolmode'] = boolmode}
 			if (q) {newq['q'] = q}		
 			this.options.cb(this, newq);
@@ -430,7 +459,7 @@
 				this.options.ext_q.val(this.options.q['q']);				
 			}
 
-			$.each(this.options.q['constraints'], function() {
+			$.each(this.options.q['c'], function() {
 
 				if (this[0] == 'rectype' && this[1] == '==') {
 
