@@ -408,7 +408,8 @@ class DB(object):
 
 
 
-	def __del__(self): g.log_info('cleaning up DB instance')
+	def __del__(self):
+		g.log_info('cleaning up DB instance')
 
 
 
