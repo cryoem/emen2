@@ -83,7 +83,7 @@ function notify_post(uri,msgs) {
 	postform.action = uri;
 	// for (var i=0;i<msgs.length;i++) {
 	// 	var note = document.createElement("input") ;
-	// 	note.setAttribute("name", "notify___"+i) ;
+	// 	note.setAttribute("name", "notify"+i) ;
 	// 	note.setAttribute("value", msgs[i]);
 	// 	postform.appendChild(note) ;
 	// }

@@ -105,11 +105,13 @@ class View(object):
 		self.__template = template or self.template
 		self.__ctxt = adjust({}, extra)
 
-
 		try:
 			LOGINUSER = self.__db._DBProxy__ctx.username
+			HOST = self.__db._DBProxy__ctx.host
 		except:
-			LOGINUSER = "anonymous"
+			LOGINUSER = None
+			HOST = None
+			
 
 		self.__basectxt = dict(
 			ctxt = self.dbtree,
@@ -121,6 +123,7 @@ class View(object):
 			EMEN2LOGO = g.EMEN2LOGO,
 			BOOKMARKS = g.BOOKMARKS,
 			LOGINUSER = LOGINUSER,
+			HOST = HOST,
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo
 		)

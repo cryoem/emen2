@@ -925,7 +925,7 @@ class DB(object):
 
 	#@multiple @filt @ok @return Binary or [Binaries]
 	@publicmethod
-	def getbinary(self, bdokeys, filt=True, params=None, ctx=None, txn=None):
+	def getbinary(self, bdokeys=None, q=None, filt=True, params=None, ctx=None, txn=None):
 		"""Get Binary objects from ids or references. Binaries include file name, size, md5, associated record, etc. Each binary has an ID, aka a 'BDO'
 
 		@param bdokeys A single binary ID, or an iterable containing: records, recids, binary IDs
@@ -947,6 +947,13 @@ class DB(object):
 		bids = []
 		recs = []
 
+		# Use a query for BDO search
+		if q:
+			# grumble -- json keys are unicode, need to convert to str
+			qr = self.query(c=q.get('c'), boolmode=q.get('boolmode'), ignorecase=q.get('ignorecase'), ctx=ctx, txn=txn)
+			recs.extend(self.getrecord(qr.get('recids', []), ctx=ctx, txn=txn))
+			ol = False
+			
 		# ian: todo: fix this in a sane way..
 		if hasattr(bdokeys, "__iter__"):
 			bids.extend(x for x in bdokeys if isinstance(x, basestring))
@@ -970,7 +977,6 @@ class DB(object):
 				for rec in recs:
 					if rec.get(i):
 						bids.append(rec.get(i))
-
 
 		# Ok, we now have a list of all the BDO items we need to lookup
 
@@ -1016,6 +1022,7 @@ class DB(object):
 		for i in byrec.get(None, []):
 			if i.creator == username or admin:
 				ret.append(i)	
+
 
 		if ol: return return_first_or_none(ret)
 		return ret

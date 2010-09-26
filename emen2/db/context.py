@@ -51,7 +51,6 @@ class Context(object):
 
 		self.maxidle = maxidle
 
-
 		if requirehost and (not self.username or not self.host):
 			raise emen2.db.exceptions.SessionError, "username and host required to init context"
 

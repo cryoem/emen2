@@ -71,10 +71,13 @@
 			var q = $('<div class="tools control" style="float:right"><span class="clickable label">\
 				Tools <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
-			var hidden = $('<div class="hidden">Test!</div>');
+			var hidden = $('<div class="hidden"><input type="button" name="download" value="Download all files in this table" /></div>');
+			$('input[name=download]', hidden).click(function() {self.query_download()});
+
 			q.append(hidden);
 
 			q.EditbarHelper({
+				width: 200,
 				align: 'right', 
 				init: function(self2) {
 				}
@@ -126,6 +129,16 @@
 			});
 			
 			$('.header', this.element).append(q);
+			
+		},
+		
+		query_download: function() {
+			// Get all the binaries in this table, and prepare a download link.
+			var newq = {};
+			newq['c'] = this.options.q['c'];
+			newq['q'] = this.options.q['q'];
+			newq['boolmode'] = this.options.q['boolmode'];
+			newq['ignorecase'] = this.options.q['ignorecase'];
 			
 		},
 		

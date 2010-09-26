@@ -302,7 +302,7 @@
 			
 		},
 		
-		query: function() {
+		getquery: function() {
 			var self = this;
 			var newq = {};
 			var c = [];
@@ -372,8 +372,12 @@
 			if (ignorecase) {newq['ignorecase'] = 1}
 			if (boolmode) {newq['boolmode'] = boolmode}
 			if (q) {newq['q'] = q}		
+			return newq
+		},
+		
+		query: function() {
+			var newq = this.getquery();
 			this.options.cb(this, newq);
-
 		},
 		
 		addconstraint: function(param, cmp, value) {

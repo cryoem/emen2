@@ -32,21 +32,10 @@ function default_errback(e, cb) {
 	
 }
 
-
-$.postJSON = function(uri,data,callback,errback,dataType) {
-	if (!errback) {
-		errback = default_errback;
-	}
-	$.ajax({
-	    type: "POST",
-	    url: uri,
-	    data: {"args___json":$.toJSON(data)},
-	    success: callback,
-	    error: errback,
-		dataType: dataType || "html"
-    });
+$.postJSON = function(url, data, callback ) {
+	return 1;
+	//return jQuery.post(url, data, callback, "json")
 }
-
 
 
 $.jsonRPC = function(method,data,callback,errback) {
