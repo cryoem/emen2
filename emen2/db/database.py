@@ -1406,6 +1406,7 @@ class DB(object):
 			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
 			cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
 			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
+
 		return cmps
 
 
