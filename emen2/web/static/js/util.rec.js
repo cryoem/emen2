@@ -33,9 +33,6 @@ function default_errback(e, cb) {
 	}	
 }
 
-// $.postJSON = function(url, data, callback) {
-// 	return jQuery.post(url, data, callback, "json")
-// }
 
 
 ////////////////  Context Utility ///////////////////
@@ -59,6 +56,10 @@ function default_errback(e, cb) {
 	    });
 	}
 
+
+	$.postJSON = function(url, data, callback, errback) {
+		return jQuery.post(url, $.toJSON(data), callback, "json");
+	}
 
 	$.get_url = function(name, args, kwargs) {
 		if (args === undefined) {args = []};

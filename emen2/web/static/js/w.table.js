@@ -139,7 +139,7 @@
 			newq['q'] = this.options.q['q'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
-			
+			$.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
 		},
 		
 		query: function(newq) {
