@@ -53,7 +53,6 @@ class BaseJS(ExtFile):
 			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
 			'%s/static/js/util.admin.js'%g.EMEN2WEBROOT,
 			'%s/static/js/util.json.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.query.js'%g.EMEN2WEBROOT,
 			'%s/static/js/util.rec.js'%g.EMEN2WEBROOT,
 			'%s/static/js/util.reverse.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.browser.js'%g.EMEN2WEBROOT,
