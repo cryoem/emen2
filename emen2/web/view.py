@@ -1,3 +1,4 @@
+# $Author$ $Revision$
 import itertools
 import functools
 import sys
@@ -262,6 +263,7 @@ class View(object):
 				matchers.append( (name, match[0], func) )
 			else:
 				for n,matcher in enumerate(match):
+					if n == 0: matchers.append( ('%s/main' % (func.__name__), matcher, func) )
 					matchers.append( ('%s/%d' % (func.__name__, n), matcher, func) )
 			for k,matcher in kwmatch.iteritems():
 				name = []
@@ -398,3 +400,5 @@ class Page(object):
 						ctxt['def_title'] = 'No Title'
 					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
 		return result
+
+__version__ = "$Revision$".split(":")[1][:-1].strip()

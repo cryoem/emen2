@@ -283,14 +283,13 @@ class DebugState(object):
 		# 								important for now	we just make sure we avoid checking twice
 		elif not any(outputs): return # make sure at least one output is open for writing
 
-		join_char = k.get('join', u':')
+		join_char = k.get('join', u' ')
 		output = self.print_list(args, join=join_char)
 		sn = self.get_state_name(state)()
 
 		# choose code path
 		func = self.__old_msg
-		if self.just_print:
-			func = self.__just_print_msg
+		if self.just_print: func = self.__just_print_msg
 
 		# pass outputs and outputs_l because outputs might need to be iterated through in order
 		# to populate outputs_l completely
@@ -300,6 +299,8 @@ class DebugState(object):
 
 	#def __just_print_msg(self, state, sn, output, *args, **k):
 	def __just_print_msg(self, state, sn, output, outputs, output_gen, *args, **k):
+		# finish the generator to make sure we get all the values in outputs there should be
+		for x in output_gen: pass
 		head = '%s %s '%(datetime.datetime.now(), sn)
 
 		for buf in outputs:
@@ -308,8 +309,6 @@ class DebugState(object):
 
 
 	def __old_msg(self, state, sn, output, outputs, output_gen, *args, **k):
-		'''general purpose logging function logs to disk all messages whose state is
-		greater than -1'''
 		# finish the generator to make sure we get all the values in outputs there should be
 		for x in output_gen: pass
 
@@ -462,7 +461,6 @@ class debugDict(dict):
 		return result
 
 
-### deprecated/unused
 class Filter(file):
 	def __init__(self, *args, **kwargs):
 		self.__splitter = kwargs.pop('sep', '::')
