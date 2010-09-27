@@ -482,7 +482,8 @@ function bind_autocomplete(elem, param) {
 				record_update(rec);
 				self.hide();
 			}, function(e) {
-				default_errback(e, function(){self.rebind_save()})
+				error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
+				self.rebind_save();
 			});
 
 		},	

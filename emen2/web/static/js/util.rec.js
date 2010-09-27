@@ -1,15 +1,13 @@
 ////////////////  JSON Utilities ///////////////////
 
 
-function default_errback(e, cb) {
-	var error = $('<div class="error" title="'+e.statusText+'" />');
-	// <span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
-	var errortxt = e.getResponseHeader('X-Error')
-	error.append('<p>'+errortxt+'</p>');
+function error_dialog(title, text, method, data) {
+	var error = $('<div class="error" title="'+title+'" />');
+	error.append('<p>'+text+'</p>');
 		
 	var debug = $('<div class="debug shadow_top hide"/>');
-	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+this.jsonRPCMethod+'</p>');
-	debug.append('<p><strong>Data:</strong></p><p>'+this.data+'</p>');
+	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
+	debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
 	error.append(debug);
 
 	error.dialog({
@@ -25,12 +23,6 @@ function default_errback(e, cb) {
 			}
 		}
 	});
-	
-	try {
-		cb();
-	} catch(e) {
-	
-	}	
 }
 
 
@@ -41,16 +33,31 @@ function default_errback(e, cb) {
 (function($){
 
 	$.jsonRPC = function(method, data, callback, errback) {
-		if (errback == null) {
-			errback = function(e) {default_errback(e)}
+		
+		
+		// Wrap these methods
+		var eb = function(xhr, textStatus, errorThrown) {
+			error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
+			try {errback(xhr, textStatus, xhr)} catch(e) {}
 		}
+		if (errback == null) {errback = eb}
+
+		
+		var cb = function(data, status, xhr) {
+			if (xhr.status == 0) {
+				error_dialog('Connection refused', 'The server may not be responding, or your internet connection may be down.', this.jsonRPCMethod, this.data);
+				return
+			}
+			callback(data, status, xhr);
+		}
+				
 
 		$.ajax({
 			jsonRPCMethod:method,
 		    type: "POST",
 		    url: EMEN2WEBROOT+"/json/"+method,
 		    data: $.toJSON(data),
-		    success: callback,
+		    success: cb,
 		    error: errback,
 			dataType: "json"
 	    });
