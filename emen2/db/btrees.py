@@ -479,7 +479,6 @@ class FieldBTree(BTree):
 
 
 	def __init__(self, *args, **kwargs):
-		self.__get_method = self.__get_cursor
 		bulkmode = kwargs.pop('bulkmode','bulk')
 		BTree.__init__(self, *args, **kwargs)
 
@@ -555,14 +554,14 @@ class FieldBTree(BTree):
 
 
 
-	def __get_cursor(self, cursor, key, flags=0):
-		#print "__get_cursor %s"%key
+	def __get_method(self, cursor, key, dt, flags=0):
 		n = cursor.set(key)
 		r = set() #[]
 		m = cursor.next_dup
 		while n:
 			r.add(n[1])
 			n = m()
+		
 		return set(self.loaddata(x) for x in r)
 
 
@@ -571,20 +570,16 @@ class FieldBTree(BTree):
 		dt = self.datatype or "p"
 
 		if cursor:
-			#print "using existing cursor to get"
-			r = self.__get_method(cursor, key, self.datatype or "p")
+			r = self.__get_method(cursor, key, dt)
 			
 		else:
-			#print "new cursor"
 			cursor = self.bdb.cursor(txn=txn)
-			#print "going to __get_method"
-			r = self.__get_method(cursor, key, self.datatype or "p")
-			#print "cursor close"
+			r = self.__get_method(cursor, key, dt)
 			cursor.close()
 
 		# generator expressions will be less pain when map() goes away
-		#if self.datatype == None:
-		#	r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
+		if bulk and dt == 'p':
+			r = set(self.loaddata(x) for x in r)
 
 		return r
 
