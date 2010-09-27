@@ -139,7 +139,14 @@
 			newq['q'] = this.options.q['q'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
-			$.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
+			// this doesn't work, because it won't trigger a Save-As
+			// $.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
+			var f = $('<form action="'+EMEN2WEBROOT+'/download/archive.tar" method="post"></form>')
+			var i = $('<input type="text" name="q___json" />');
+			i.val($.toJSON(newq));
+			f.append(i);
+			f.appendTo('body').submit().remove();
+
 		},
 		
 		query: function(newq) {
