@@ -51,10 +51,7 @@ class BaseJS(ExtFile):
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.admin.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.json.js'%g.EMEN2WEBROOT,
 			'%s/static/js/util.rec.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.reverse.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.browser.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.comments.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.edit.js'%g.EMEN2WEBROOT,
@@ -67,7 +64,6 @@ class BaseJS(ExtFile):
 			'%s/static/js/w.relationship.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.table.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.tile.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.popup.js'%g.EMEN2WEBROOT,
 			'%s/static/js/w.file.js'%g.EMEN2WEBROOT
 			]
 

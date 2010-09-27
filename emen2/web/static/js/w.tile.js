@@ -670,7 +670,9 @@
 						self.build();
 					},
 					error: function(x,y,z) {
-						alert("Error! Could not access tiles!");
+						//alert("Error! Could not access tiles!");
+						$('.spinner', self.element).remove();
+						self.element.append('Could not access tiles!');
 					}
 				});
 			} else {

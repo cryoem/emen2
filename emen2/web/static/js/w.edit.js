@@ -1,3 +1,5 @@
+
+
 // convenience function to bind a jquery autocompleter to an element
 function bind_autocomplete(elem, param) {
 	
@@ -277,6 +279,8 @@ function bind_autocomplete(elem, param) {
 			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
 			if (isNaN(this.options.recid)) this.options.recid = "None";
 
+			//if ($.inArray(this.options.param, ["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])) {return}
+
 			this.built = 0;
 			this.rec_value = caches["recs"][this.options.recid][this.options.param];
 			this.bind_edit();
@@ -399,7 +403,7 @@ function bind_autocomplete(elem, param) {
 
 			this.controls = $('<span class="controls" />')		
 			this.controls.append(
-				$('<input type="submit" value="Save" />').one("click", function(e) {self.save()}),
+				$('<input type="submit" value="Save" name="save" />').one("click", function(e) {self.save()}),
 				$('<input type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
 			this.w.append(this.controls);
 			this.element.after(this.w);
@@ -465,11 +469,20 @@ function bind_autocomplete(elem, param) {
 			return this.options.param
 		},
 
+		rebind_save: function() {
+			var self = this;
+			var t = $('input[name=save]', this.controls);
+			t.val("Retry...");
+			t.one("click", function() {self.save()});
+		},
+
 		save: function() {
 			var self = this;
 			$.jsonRPC("putrecordvalue", [this.options.recid, this.options.param, this.getval()], function(rec) {
 				record_update(rec);
 				self.hide();
+			}, function(e) {
+				default_errback(e, function(){self.rebind_save()})
 			});
 
 		},	
@@ -500,7 +513,7 @@ function bind_autocomplete(elem, param) {
 			this.items = $('<ul></ul>');
 			this.element.append(this.items);
 			this.build();
-		},
+		},	
 	
 		build: function() {
 			var self = this;

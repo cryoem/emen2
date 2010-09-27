@@ -132,8 +132,10 @@ class MakoTemplateEngine(StandardTemplateEngine):
 		except:
 			return exceptions.html_error_template().render_unicode()
 
+	# ian: this is just handled inside emen2resource for now..
 	def handle_error(self, exception, context={}, errcode=500, template=None):
-		try: raise
+		try:
+			raise
 		except Exception, e:
 			g.log.msg("LOG_ERROR", "Error loader: %r" % e)
 			if g.DEBUG:
@@ -144,6 +146,8 @@ class MakoTemplateEngine(StandardTemplateEngine):
 					errmsg = '<br/><center>%s</center>' % e, title = 'Error',
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,
 					EMEN2LOGO = g.EMEN2LOGO, BOOKMARKS=g.BOOKMARKS,
+					LOGINUSER = None,
+					HOST = None,
 					js_files = emen2.web.extfile.BaseJS(ctxt), notify = '', ctxt=ctxt,
 					css_files = emen2.web.extfile.BaseCSS(ctxt),
 				)

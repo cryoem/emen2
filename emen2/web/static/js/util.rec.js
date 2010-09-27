@@ -1,5 +1,97 @@
+////////////////  JSON Utilities ///////////////////
 
-/// switch.js
+
+function default_errback(e, cb) {
+	var error = $('<div class="error" title="'+e.statusText+'" />');
+	// <span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+	var errortxt = e.getResponseHeader('X-Error')
+	error.append('<p>'+errortxt+'</p>');
+		
+	var debug = $('<div class="debug shadow_top hide"/>');
+	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+this.jsonRPCMethod+'</p>');
+	debug.append('<p><strong>Data:</strong></p><p>'+this.data+'</p>');
+	error.append(debug);
+
+	error.dialog({
+		width:400,
+		height:300,
+		modal:true,
+		buttons: {
+			'OK':function() {
+				$(this).dialog('close')
+			},
+			'More Info': function() {
+				$('.debug', this).toggle();
+			}
+		}
+	});
+	
+	try {
+		cb();
+	} catch(e) {
+	
+	}	
+}
+
+// $.postJSON = function(url, data, callback) {
+// 	return jQuery.post(url, data, callback, "json")
+// }
+
+
+////////////////  Context Utility ///////////////////
+
+
+(function($){
+
+	$.jsonRPC = function(method, data, callback, errback) {
+		if (errback == null) {
+			errback = function(e) {default_errback(e)}
+		}
+
+		$.ajax({
+			jsonRPCMethod:method,
+		    type: "POST",
+		    url: EMEN2WEBROOT+"/json/"+method,
+		    data: $.toJSON(data),
+		    success: callback,
+		    error: errback,
+			dataType: "json"
+	    });
+	}
+
+
+	$.get_url = function(name, args, kwargs) {
+		if (args === undefined) {args = []};
+		if (kwargs === undefined) {kwargs = {}};
+		return function(cb) {
+			$.post(reverse_url+name+'/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
+		}
+	}
+
+	$.getFromURL = function(args, data, callback, errback, dataType){
+		$.get_url(args.name, args.args, args.kwargs)(function(url) {
+			$.getJSON(EMEN2WEBROOT+url, data, callback, errback, dataType)
+		})
+	}
+
+	$.get_urls = function(args) {
+		return function(cb) {
+			$.post(reverse_url, {'arg___json':$.toJSON(args)}, cb, 'json');
+		}
+	}
+
+	$.execute_url = function(name, args, kwargs) {
+		return function(cb) {
+			$.post(reverse_url+name+'/execute/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
+		}
+	}
+})(jQuery)
+
+
+
+////////////////  Button Switching ///////////////////
+
+
 function switchbutton(type,id) {
 	$(".button_"+type).each(function() {
 		var elem=$(this);
@@ -27,8 +119,9 @@ function switchin(classname, id) {
 
 
 
-//////////////////////////////////////////
-// access values from cached sources
+
+////////////////  Global Cache ///////////////////
+
 
 var caches = {};
 caches["paramdefs"] = {};
@@ -43,7 +136,9 @@ caches["children"] = {};
 caches["parents"] = {};
 caches["colors"] = {};
 
-//////////////////////////////////////////
+
+
+////////////////  Notifications ///////////////////
 
 
 function notify(msg, fade, error) {
@@ -92,7 +187,9 @@ function notify_post(uri,msgs) {
 }
 
 
-// New record javascript init //
+
+
+////////////////  New Record page init ///////////////////
 
 function newrecord_init(rec) {
 	rec.recid = "None";
@@ -133,7 +230,7 @@ function newrecord_init(rec) {
 
 
 
-// Main record page javascript init //
+////////////////  Record page init ///////////////////
 
 function record_init(rec, ptest, edit) {
 	var recid = rec.recid;
@@ -261,6 +358,10 @@ function record_init(rec, ptest, edit) {
 
 
 
+
+////////////////  Record Update callbacks ///////////////////
+
+
 function record_update(rec) {
 	if (typeof(rec)=="number") {
 		var recid = rec;
@@ -295,6 +396,114 @@ function rebuildviews(selector) {
 }
 
 
+
+
+////////////////  Approve / Reject Users ///////////////////
+
+function admin_approveuser_form(elem) {
+	var approve=[];
+	var reject=[];
+	var form=$(elem.form);
+	$('input:checked', form).each(function() {
+		if ($(this).val() == "true") {
+			approve.push($(this).attr("name"));
+		} else {
+			reject.push($(this).attr("name"));
+		}
+	});
+	//console.log(approve);
+	//console.log(reject);
+
+	if (approve.length > 0) {
+		$.jsonRPC("approveuser_sendmail",[approve], //wrapper_approveuser_sendmail ian:mustfix
+			function(data) {
+				notify("Approved users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$(".userqueue_"+data[i]).remove();
+				}
+				var count=parseInt($("#admin_userqueue_count").html());
+				count -= data.length;
+				$("#admin_userqueue_count").html(String(count))
+			},
+			function(data) {
+				
+			}
+		);
+	};
+
+	if (reject.length > 0) {
+		$.jsonRPC("rejectuser_sendmail",[reject],
+			function(data) {
+				notify("Rejected users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$(".userqueue_"+data[i]).remove();
+				}
+				var count=parseInt($("#admin_userqueue_count").html());
+				count -= data.length;
+				$("#admin_userqueue_count").html(String(count));							
+			},
+			function(data) {
+				
+			}
+		);
+	};
+}
+
+
+
+
+function admin_userstate_form(elem) {
+	var enable=[];
+	var disable=[];
+	var form=$(elem.form);
+	$('input:checked', form).each(function() {
+		//console.log(this);
+		var un=$(this).attr("name");
+		var unv=parseInt($(this).val());
+		if (unv == 0 &&  admin_userstate_cache[un] != unv) {
+			enable.push(un);
+		}
+		if (unv == 1 &&  admin_userstate_cache[un] != unv) {
+			disable.push(un);
+		}
+	});
+	
+	if (enable.length > 0) {
+		$.jsonRPC("enableuser",[enable],
+			function(data) {
+				if (data) {
+					notify("Enabled users: "+data);
+					for (var i=0;i<data.length;i++) {
+						admin_userstate_cache[data[i]]=0;
+						//console.log(admin_userstate_cache[data[i]]);
+					}
+				}
+			}
+		)
+	}
+
+	if (disable.length > 0) {
+		$.jsonRPC("disableuser",[disable],
+			function(data) {
+				if (data) {
+					notify("Disabled users: "+data);
+					for (var i=0;i<data.length;i++) {
+						admin_userstate_cache[data[i]]=1;
+						//console.log(admin_userstate_cache[data[i]]);						
+					}					
+				}
+			}
+		);
+	}
+	
+}
+
+
+
+
+
+
+////////////////  "Drop-down Menu" ///////////////////
 
 
 (function($) {

@@ -583,8 +583,8 @@ class FieldBTree(BTree):
 			cursor.close()
 
 		# generator expressions will be less pain when map() goes away
-		if self.datatype == None:
-			r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
+		#if self.datatype == None:
+		#	r = set(self.loaddata(x) for x in r) #set(map(self.loaddata, r))
 
 		return r
 
