@@ -272,7 +272,12 @@ h4 {
 	padding:10px;
 	font-weight:normal;
 }
-
+h1 .label {
+	padding:10px;
+	padding-top:10px;
+	font-size:12pt;
+	float:right
+}
 
 /************* TABLES ************/
 
@@ -701,7 +706,9 @@ div.color_swatch {
 	line-height:150%;
 	padding:10px;
 }
-
+.info a {
+	padding:5px;
+}
 
 /********** RECORD EDIT BAR ***********/
 
