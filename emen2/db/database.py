@@ -3024,7 +3024,7 @@ class DB(object):
 			raise ValueError, "User instance or dict required (%s)"%inst
 
 		if self.bdbs.users.get(user.username, txn=txn) or self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
-			raise KeyError, "An account already exists with this username or email address"%user.username
+			raise KeyError, "An account already exists with this username or email address"
 
 		#if user.username in self.bdbs.newuserqueue:
 		if self.bdbs.newuserqueue.get(user.username, txn=txn):
