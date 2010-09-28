@@ -116,7 +116,7 @@ COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
 # import this directly from emen2client, emdash
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": 20100908
+	"emen2client": 20100928
 }
 
 
