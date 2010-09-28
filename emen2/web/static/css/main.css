@@ -15,7 +15,7 @@
 /* Main background color */
 #precontent,
 .precontent,
-.permissions .add,
+.permissions .add, .add,
 .button
 {
 	background: #BBDAEE;

@@ -125,6 +125,8 @@
 				var t=$(this).attr("data-tabname");
 				self.bindview(t,$(this));
 			});
+			
+			$('input[name=typicalchld]', this.element).FindControl({mode: 'findrecorddef'});			
 		
 		},
 	

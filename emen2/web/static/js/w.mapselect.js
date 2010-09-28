@@ -22,6 +22,7 @@
 				var i = $('<input type="checkbox" name="recordselect" />');
 				if ($.inArray(recid, self.options.status) > -1) {
 					i.attr('checked', 'checked');
+					t.addClass('add');
 				} else {
 					i.attr('checked', null);
 				}
@@ -38,7 +39,7 @@
 
 			});
 			
-			this.element.prepend('<div class="controls"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
+			this.element.prepend('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
 			$('input[name=save]', this.element).click(function() {
 				self.save();
 			})
@@ -66,23 +67,24 @@
 			var remove = [];
 			var add = [];
 
-			if (this.options.status.length > 0) {
-				for (var i=0;i<selected.length;i++) {
-					if ($.inArray(selected[i], this.options.status)==-1) {
-						add.push(selected[i]);
-					}
+			for (var i=0;i<selected.length;i++) {
+				if ($.inArray(selected[i], this.options.status)==-1) {
+					add.push(selected[i]);
 				}
 			}
 			
-			for (var i=0;i<this.options.status.length;i++) {
-				if ($.inArray(this.options.status[i], selected)==-1) {
-					remove.push(this.options.status[i]);
+			if (this.options.status.length > 0) {			
+				for (var i=0;i<this.options.status.length;i++) {
+					if ($.inArray(this.options.status[i], selected)==-1) {
+						remove.push(this.options.status[i]);
+					}
 				}
 			}
-
 			//console.log("Add: ", add.length);
 			//console.log("Remove: ", remove.length);
 			//return
+
+			
 
 			$.jsonRPC("addgroups", [add, ['publish']], function(){ 
 				$.jsonRPC("removegroups", [remove, ['publish']], function() {
