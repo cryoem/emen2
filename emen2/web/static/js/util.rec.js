@@ -33,14 +33,13 @@ function error_dialog(title, text, method, data) {
 (function($){
 
 	$.jsonRPC = function(method, data, callback, errback) {
-		
-		
+				
 		// Wrap these methods
+		if (errback == null) {errback = function(){}}
 		var eb = function(xhr, textStatus, errorThrown) {
-			error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
+			error_dialog(xhr.statusText, xhr.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
 			try {errback(xhr, textStatus, xhr)} catch(e) {}
 		}
-		if (errback == null) {errback = eb}
 
 		
 		var cb = function(data, status, xhr) {
@@ -58,7 +57,7 @@ function error_dialog(title, text, method, data) {
 		    url: EMEN2WEBROOT+"/json/"+method,
 		    data: $.toJSON(data),
 		    success: cb,
-		    error: errback,
+		    error: eb,
 			dataType: "json"
 	    });
 	}

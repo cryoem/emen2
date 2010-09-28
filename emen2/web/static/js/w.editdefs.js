@@ -41,7 +41,7 @@
 			
 			var args = [this.pd];
 			if (this.options.new) {
-				args = [this.pd, this.parents];
+				args = [this.pd, this.options.parents];
 			}
 
 			$.jsonRPC("putparamdef", args, function(data){
@@ -195,7 +195,7 @@
 			var self=this;
 			var args = [this.rd];
 			if (this.options.new) {
-				args = [this.rd, this.parents];
+				args = [this.rd, this.options.parents];
 			}
 
 			$('.spinner').show();
