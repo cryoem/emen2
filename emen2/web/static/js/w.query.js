@@ -134,8 +134,8 @@
 			keywords: true,
 			plot: true,
 			ext_save: null,
-			ext_reset: null,
 			ext_q: null,
+			//ext_reset: null,
 			cb: function(self, q){self.query_bookmark(self, q)}
 		},
 				
@@ -226,29 +226,27 @@
 			$('input[name=parent]', this.container).Browser({});
 			$('input[name=child]', this.container).Browser({});
 			
-			var controls = $('<div class="controls"></div>');
-
+			// var controls = $('<div class="controls"></div>');
 			// if (this.options.ext_reset) {
 			// 	this.options.ext_reset.click(function() {self.reset()});
 			// } else {
 			// 	controls.append('<input type="button" value="Reset" name="reset" />');
 			// }
 
-			if (this.options.ext_save) {
-				this.options.ext_save.click(function() {self.query()});				
-			} else {
-				controls.append('<input type="button" value="Query" name="query" />');
+			if (!this.options.ext_save) {
+				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Query" name="save" /></div>');
 			}
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});
+			
 
 			// controls.append('<input type="button" value="Demo Plot" name="demo" />');
+			// if (!this.options.ext_save || !this.options.ext_reset) {
+			// 	this.container.append(controls);
+			// }
 
-			if (!this.options.ext_save || !this.options.ext_reset) {
-				this.container.append(controls);
-			}
-
-			$('input[name=query]', controls).click(function() {self.query()});
-			$('input[name=reset]', controls).click(function() {self.reset()});
-			$('input[name=demo]', controls).click(function() {self.demo()});
+			// $('input[name=query]', controls).click(function() {self.query()});
+			// $('input[name=reset]', controls).click(function() {self.reset()});
+			// $('input[name=demo]', controls).click(function() {self.demo()});
 
 
 			$('.listicon', this.container).click(function() {
@@ -353,7 +351,7 @@
 
 			var q = $('input[name=q]').val();
 			if (this.options.ext_q) {
-				q = this.options.ext_q.val();
+				q = $('input[name=q]', this.options.ext_q).val();
 			}
 						
 			$('.constraints .constraint', this.container).each(function() {
@@ -460,7 +458,7 @@
 			// 	$('input[name=q]', this.container).val(this.options.q['q']);
 			// }
 			if (this.options.ext_q) {
-				this.options.ext_q.val(this.options.q['q']);				
+				$('input[name=q]', this.options.ext_q).val(this.options.q['q']);				
 			}
 
 			$.each(this.options.q['c'], function() {

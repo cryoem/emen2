@@ -152,7 +152,7 @@ class MakoTemplateEngine(StandardTemplateEngine):
 					css_files = emen2.web.extfile.BaseCSS(ctxt),
 				)
 				ctxt.update(context)
-				return self.render_template('/errors/simple_error', ctxt)
+				return self.render_template('/errors/error', ctxt)
 
 
 

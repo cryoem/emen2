@@ -82,7 +82,7 @@ class HTMLTab():
 
 	def getclass_page(self, name):
 		if name==self.active:
-			return "page page_active page_%s page_%s_active"%(self.classname, self.classname)
+			return "clearfix page page_active page_%s page_%s_active"%(self.classname, self.classname)
 		return "page page_%s"%self.classname
 
 	#id="buttons_main" class="buttons buttons_main"

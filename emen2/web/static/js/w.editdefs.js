@@ -20,9 +20,7 @@
 
 		connect_buttons: function() {
 			var self=this;
-			$(this.options.ext_save).bind("click",function(e){
-				self.event_save(e)
-			});
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
 		},
 
 		bindall: function() {
@@ -37,7 +35,7 @@
 		save: function() {
 			var self = this;
 			this.pd = this.getvalues();
-			$('.spinner').show();
+			$('.spinner', this.options.ext_save).show();
 			
 			var args = [this.pd];
 			if (this.options.new) {
@@ -45,7 +43,7 @@
 			}
 
 			$.jsonRPC("putparamdef", args, function(data){
-				$('.spinner').hide();
+				$('.spinner', self.options.ext_save).hide();
 				notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
 			});
 
@@ -109,9 +107,7 @@
 	
 		connect_buttons: function() {
 			var self=this;
-			$(this.options.ext_save).bind("click",function(e){
-				self.event_save(e)
-			});
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
 		},
 	
 		bindall: function() {

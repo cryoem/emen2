@@ -4,6 +4,7 @@
 			show: true,
 			recid: null,
 			status: null,
+			ext_save: null,
 			cb: function(self, selected){}
 		},
 				
@@ -39,10 +40,12 @@
 
 			});
 			
-			this.element.prepend('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
-			$('input[name=save]', this.element).click(function() {
-				self.save();
-			})
+			if (!this.options.ext_save) {
+				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Save" name="save" /></div>');
+				this.element.prepend(this.options.ext_save);				
+			}
+			$('input[name=save]', this.options.ext_save).click(function() {self.save()});
+			
 
 		},
 		
@@ -63,7 +66,7 @@
 		},
 		
 		default_cb: function(self, selected) {
-			$('.spinner', this.element).show();
+			$('.spinner', this.options.ext_save).show();
 			var remove = [];
 			var add = [];
 
@@ -80,15 +83,14 @@
 					}
 				}
 			}
+			
 			//console.log("Add: ", add.length);
 			//console.log("Remove: ", remove.length);
 			//return
 
-			
-
 			$.jsonRPC("addgroups", [add, ['publish']], function(){ 
 				$.jsonRPC("removegroups", [remove, ['publish']], function() {
-					$('.spinner', self.element).hide();
+					$('.spinner', self.options.ext_save).hide();
 					window.location = window.location;
 				});
 			});

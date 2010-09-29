@@ -103,7 +103,7 @@
 
 			var q = $('<div class="querycontrol control" style="float:right"> \
 				<input type="text" name="q" size="8" /> \
-				<input type="button" name="query" value="Query" /> \
+				<input type="button" name="save" value="Query" /> \
 				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
 
 			q.EditbarHelper({
@@ -113,8 +113,8 @@
 					self2.popup.QueryControl({
 						q: self.options.q,
 						keywords: false,
-						ext_save: $('input[name=query]', q),
-						ext_q: $('input[name=q]', q),
+						ext_save: q,
+						ext_q: q,
 						cb: function(test, newq) {self.query(newq)} 
 					});
 				}
