@@ -69,7 +69,7 @@
 	// You probably don't want to change any of these.
 	"params":{
 		"BLOCKLENGTH": 100000,
-		"VERSION": 20100911,
+		"VERSION": 20100929,
 		"TIMESTR": "%Y/%m/%d %H:%M:%S",
 		"MAXRECURSE": 50,
 		"MAXIDLE": 604800

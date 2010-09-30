@@ -44,6 +44,19 @@ class BaseJS(ExtFile):
 	def init(self):
 		super(BaseJS, self).init()
 
+		addfiles = ["util.js",
+			"browser.js",
+			"comments.js",
+			"edit.js",
+			"editdefs.js",
+			"file.js",
+			"find.js",
+			"mapselect.js",
+			"permission.js",
+			"query.js",
+			"relationship.js",
+			"table.js",
+			"tile.js"]
 
 		self.files = [
 			self.dbtree.reverse('TemplateRender', '/js/settings.js'),
@@ -51,21 +64,10 @@ class BaseJS(ExtFile):
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.rec.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.browser.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.comments.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.edit.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.editdefs.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.file.js?v=%s'%g.EMEN2WEBROOT
-			'%s/static/js/w.find.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.mapselect.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.permission.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.query.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.relationship.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.table.js?v=%s'%g.EMEN2WEBROOT,
-			'%s/static/js/w.tile.js?v=%s'%g.EMEN2WEBROOT,
-			]
+			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT]
+
+		for i in addfiles:
+			self.files.append('%s/static/js/%s'%(g.EMEN2WEBROOT, i)) #, g.VERSION
 
 
 class BaseCSS(ExtFile):
