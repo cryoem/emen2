@@ -51,7 +51,7 @@
 				modal: this.options.modal
 			});			
 
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="/static/images/spinner.gif" /></span>');			
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');			
 			this.build_browser(this.options.recid);
 		},
 		

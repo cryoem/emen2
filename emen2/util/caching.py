@@ -44,9 +44,9 @@ class CacheMixin:
 
 	@if_caching
 	def check_cache(self, key):
-		print key
+		#print key
 		result = False, None
 		if self.cache.has_key(key):
-			print 'hit'
+			#print 'hit'
 			result = True, self.cache[key]
 		return result

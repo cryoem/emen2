@@ -46,8 +46,8 @@ class BaseJS(ExtFile):
 
 
 		self.files = [
-			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
-			self.dbtree.reverse('TemplateRender', '/basedb/settings.js'),
+			self.dbtree.reverse('TemplateRender', '/js/datatypes.js'),
+			self.dbtree.reverse('TemplateRender', '/js/settings.js'),
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
@@ -73,6 +73,6 @@ class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		self.files = [
-			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css?v=%s'%(g.EMEN2WEBROOT, T), 
-			'%s/static/css/main.css?v=%s' % g.EMEN2WEBROOT
+			self.dbtree.reverse('TemplateRender', '/css/main.css'),
+			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT
 		]

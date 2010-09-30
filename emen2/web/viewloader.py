@@ -42,7 +42,7 @@ def routes_from_g():
 	router = emen2.web.routing.URLRegistry()
 	for key, value in routing_table.iteritems():
 		for name, regex in value.iteritems():
-			print key, name, regex
+			# print key, name, regex
 			view = router.get(key)
 			if view:
 				view.add_matcher(name, regex, view.get_callback('main'))

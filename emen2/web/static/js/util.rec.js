@@ -155,7 +155,7 @@ function notify(msg, fade, error) {
 		msg.addClass("error");
 	}
 
-	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/static/images/delete.png" />');
+	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Delete" />');
 	var killbutton = $('<span>X</span>');
 	killbutton.click(function() {
 		$(this).parent().fadeOut(function(){
@@ -181,7 +181,7 @@ function notify(msg, fade, error) {
 
 function notify_post(uri,msgs) {
 	var postform = document.createElement("form");
-	postform.method="POST" ;
+	postform.method="post" ;
 	postform.action = uri;
 	// for (var i=0;i<msgs.length;i++) {
 	// 	var note = document.createElement("input") ;

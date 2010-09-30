@@ -60,7 +60,7 @@
 
 			// $('.plot_image').empty();
 			var png = this.options.q['plots']['png'];
-			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="plot" />');
+			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="Plot" />');
 			$('.plot_image', this.element).append(i);
 		
 			$.each(this.options.q['groupnames'], function(k,v) {
@@ -173,11 +173,11 @@
 			var m = $(' \
 				<h4>General</h4> \
 				<table><tr> \
-					<td>Protocol:</td><td><input type="text" name="rectype" /><input type="checkbox" name="rectype_recurse" /><img class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
-					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Protocol:</td><td><input type="text" name="rectype" /><input type="checkbox" name="rectype_recurse" /><img class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 				</tr><tr> \
-					<td>Child of</td><td><input type="text" name="parent" /><input type="checkbox" name="parent_recurse" /><img class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
-					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /></td> \
+					<td>Child of</td><td><input type="text" name="parent" /><input type="checkbox" name="parent_recurse" /><img class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 				</tr></table> \
 				<table class="constraints"> \
 					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th style="width:30px"/></tr></thead> \
@@ -234,7 +234,7 @@
 			// }
 
 			if (!this.options.ext_save) {
-				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif"><input type="button" value="Query" name="save" /></div>');
+				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Query" name="save" /></div>');
 			}
 			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});
 			
@@ -409,10 +409,10 @@
 
 			var controls = $('<td />');
 
-			var addimg = $('<img class="listicon" src="'+EMEN2WEBROOT+'/static/images/add_small.png" />');
+			var addimg = $('<img class="listicon" src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" />');
 			addimg.click(function() {self.addconstraint()});
 
-			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" />');
+			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" />');
 			removeimg.click(function() {
 				if ($('.constraints .constraint', self.element).length > 1) {$(this).parent().parent().remove()}
 			});

@@ -126,7 +126,7 @@ function bind_autocomplete(elem, param) {
 			
 			this.controls = $('<div class="controls" />')		
 
-			var spinner = $('<img style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" />');
+			var spinner = $('<img style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
 			this.controls.append(spinner);
 
 			var save = $('<input type="submit" name="save" value="Save" />');
@@ -530,12 +530,12 @@ function bind_autocomplete(elem, param) {
 						
 				bind_autocomplete(edit, self.options.param);
 			
-				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" class="listcontrol_add" /></span>').click(function() {
+				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" class="listcontrol_add" alt="Add" /></span>').click(function() {
 					self.addoption(k+1);
 					self.build();
 				});
 			
-				var remove=$('<span><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" class="listcontrol_remove" /></span>').click(function() {
+				var remove=$('<span><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" class="listcontrol_remove" alt="Remove" /></span>').click(function() {
 					self.removeoption(k);
 					self.build();
 				});

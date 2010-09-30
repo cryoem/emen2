@@ -95,7 +95,7 @@
 			controls.append('<h4 class="label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				<div style="display:none" class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div> \
+				<div style="display:none" class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
 				<input type="button" name="saveall" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
@@ -155,7 +155,7 @@
 			this.img.TileMap('getinner').append(boxbox);
 
 			// create a new box image
-			var boximg = $('<img />');
+			var boximg = $('<img alt="Box" />');
 			boximg.BoxImg({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: 1, label: label, draggable: true});
 			$('.boxarea[data-label='+label+']').prepend(boximg);			
 
@@ -368,7 +368,7 @@
 					$('.boxbox[data-boxid='+o['boxid']+']').BoxBox('refresh');
 					$(ui.draggable).remove();
 					$(ui.helper).remove();
-					var boximg = $('<img />');
+					var boximg = $('<img alt="Box" />');
 					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: caches['recs'][newlabel]['box_size'], boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
 					$('.boxarea[data-label='+newlabel+']').append(boximg);
 					self.updateboxcount(newlabel);
@@ -382,7 +382,7 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" style="display:none"/>', save1, remove);					
+			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" style="display:none" alt="Loading" />', save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
@@ -655,7 +655,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" />');
+				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
@@ -782,14 +782,14 @@
 				if (!apix) {
 					apix = 1;
 				}
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" />');				
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" alt="apix" />');				
 				modeimg.height(mx);
 				this.inner.append(modeimg);
 				this.inner.css('top',0);
 				this.inner.css('left',0);
 
 			} else if (mode == "pspec") {
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'?size=pspec&format=png" />');
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'?size=pspec&format=png" alt="pspec" />');
 				this.inner.append(modeimg);				
 			}
 		},
@@ -883,7 +883,7 @@
 					if (!img) {
 						//var src = EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/box?x='+x+'&y='+y+'&size='+this.options.size*this.options.scale+'&fill=1&scale='+this.options.scale;
 						var src = this.get_tile(x,y);
-						var img = $('<img src="'+src+'" id="'+id+'" />');
+						var img = $('<img src="'+src+'" id="'+id+'" alt="Tile '+x+' '+y+'" />');
 						img.css('position', 'absolute');
 						img.css('width', this.options.size);
 						img.css('height', this.options.size);					

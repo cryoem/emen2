@@ -244,7 +244,7 @@
 
 			var userdiv = $('<div class="userbox user" data-username="'+user.username+'" data-level="'+level+'"/>');
 			if (user.userrec["person_photo"]) {
-				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" />');
+				userdiv.append('<img data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" alt="Profile" />');
 			} else {
 				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
 			}

@@ -45,7 +45,7 @@
 
 			this.attach_tools();
 
-			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" /></div>');
+			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$('.header', this.element).append(spinner);
 						
 			$('.plot', this.element).PlotControl({
@@ -227,7 +227,7 @@
 			// $('.plot', this.element).empty();
 			// if (this.options.q['plots']) {
 			// 	var pngfile = this.options.q['plots']['png'];
-			// 	var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+pngfile+'" alt="plot" />');
+			// 	var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+pngfile+'" alt="Plot" />');
 			// 	$('.plot', this.element).append(i);				
 			// }
 		},
@@ -246,7 +246,7 @@
 
 				// An editable, sortable field..
 				if (this[1] == "$") {
-					var editable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/edit.png" />');
+					var editable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" />');
 					editable.click(function(e){self.event_edit(e)});
 					i.append(editable);
 				}
@@ -257,7 +257,7 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" />');
+				var sortable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" />');
 				sortable.click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
 				i.append(sortable);
 				

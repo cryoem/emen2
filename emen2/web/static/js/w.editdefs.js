@@ -223,7 +223,7 @@
 		
 			var oname=$('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
 			var ocopy=$('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
-			var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" /> Remove</li>');
+			var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');
 			ul.append(oname, ocopy, oremove);
 		
 			var ovalue=$('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');

@@ -247,7 +247,7 @@ class Vartype(object):
 	def _render_html_list(self, engine, pd, value, rec, db, edit=0, showlabel=True, elem_class='editable', lt=False):
 		if not value:
 			if edit and showlabel:
-				showlabel = '<img src="%s/static/images/blank.png" class="label underline" />'%g.EMEN2WEBROOT
+				showlabel = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if edit:
 				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(elem_class, rec.recid, pd.name, showlabel)				
 			return '<span></span>'
@@ -262,7 +262,7 @@ class Vartype(object):
 			return '<ul>%s</ul>'%("\n".join(lis))
 
 		if showlabel:
-			lis.append('<li class="nobullet"><span class="label"><img src="/static/images/edit.png" alt="Edit" /></span></li>')						
+			lis.append('<li class="nobullet"><span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>', g.EMEN2WEBROOT)		
 		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(elem_class, rec.recid, pd.name, pd.vartype, "\n".join(lis))
 
 
@@ -270,7 +270,7 @@ class Vartype(object):
 	def _render_html_single(self, engine, pd, value, rec, db, edit=0, showlabel=True, elem='span', elem_class='editable', lt=False):
 		if not value:
 			if edit and showlabel:
-				showlabel = '<img src="%s/static/images/blank.png" class="label underline" />'%g.EMEN2WEBROOT
+				showlabel = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if edit:
 				return '<%s class="%s" data-recid="%s" data-param="%s">%s</%s>'%(elem, elem_class, rec.recid, pd.name, showlabel, elem)
 			return '<%s></%s>'%(elem, elem)
