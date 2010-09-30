@@ -4788,7 +4788,7 @@ class DB(object):
 
 		self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
 
-		self.__rebuild__usersbyemail(ctx=ctx, txn=txn)
+		self.__rebuild_usersbyemail(ctx=ctx, txn=txn)
 
 		maxrecords = self.bdbs.records.get_max(txn=txn) #get(-1, txn=txn)["max"]
 		g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))
