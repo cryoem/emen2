@@ -1,6 +1,6 @@
 import emen2.db.config
 g = emen2.db.config.g()
-
+import random
 
 class ExtFile(object):
 	def __register(registry):
@@ -43,6 +43,8 @@ class ExtFile(object):
 class BaseJS(ExtFile):
 	def init(self):
 		super(BaseJS, self).init()
+
+
 		self.files = [
 			self.dbtree.reverse('TemplateRender', '/basedb/datatypes.js'),
 			self.dbtree.reverse('TemplateRender', '/basedb/settings.js'),
@@ -51,19 +53,19 @@ class BaseJS(ExtFile):
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
-			'%s/static/js/util.rec.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.browser.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.comments.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.edit.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.editdefs.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.find.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.mapselect.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.permission.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.query.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.relationship.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.table.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.tile.js'%g.EMEN2WEBROOT,
-			'%s/static/js/w.file.js'%g.EMEN2WEBROOT
+			'%s/static/js/util.rec.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.browser.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.comments.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.edit.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.editdefs.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.file.js?v=%s'%g.EMEN2WEBROOT
+			'%s/static/js/w.find.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.mapselect.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.permission.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.query.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.relationship.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.table.js?v=%s'%g.EMEN2WEBROOT,
+			'%s/static/js/w.tile.js?v=%s'%g.EMEN2WEBROOT,
 			]
 
 
@@ -71,7 +73,6 @@ class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		self.files = [
-			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT, 
-			'%s/static/css/main.css' % g.EMEN2WEBROOT
-			# '%s/static/css/style.css' % g.EMEN2WEBROOT
+			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css?v=%s'%(g.EMEN2WEBROOT, T), 
+			'%s/static/css/main.css?v=%s' % g.EMEN2WEBROOT
 		]
