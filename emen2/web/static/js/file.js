@@ -155,13 +155,19 @@
 			}
 			this.built = 1;
 
-			this.dialog = $('<div />');	
+			this.dialog = $('<div></div>');	
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
+			this.queryarea = $('<div></div>')
 
 
 			var controls = $('<div class="controls" />');
-			var ss = $('<select data-recid="'+this.recid+'"/>');
+
+			controls.append('<ul class="nonlist"><li><a href="'+EMEN2WEBROOT+'/query/recid=='+this.options.recid+'/files/">View / Download all in this record</a></li><li><a href="'+EMEN2WEBROOT+'/query/parent.recid.'+this.options.recid+'*/files/">View / Download all files in children</a></li></ul>');
+
+			console.log(this.recid);
+
+			var ss = $('<select data-recid="'+this.options.recid+'"/>');
 			ss.append('<option value="" />');
 
 			//$.each(['file_binary','file_binary_image'], function() {
@@ -180,7 +186,7 @@
 			})
 			controls.append(ss, ssc);
 			
-			this.dialog.append(this.tablearea, this.browserarea, controls);
+			this.dialog.append(this.tablearea, this.browserarea, this.queryarea, controls);
 
 
 			if (this.options.embed) {
