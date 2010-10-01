@@ -749,7 +749,7 @@
 				self.autocenter();
 			});			
 			controls.find("input[name=save]").click(function() {
-				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '?saveas=1';
+				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '/save/';
 				window.open(loc);
 				// $('<iframe />', {
 				//     name:'myFrame',

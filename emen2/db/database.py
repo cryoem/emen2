@@ -1309,6 +1309,8 @@ class DB(object):
 				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
 			groupby["rectype"] = None
 
+		elif param == "recid":
+			subset = set([int(value)])
 
 		elif param == "parent":
 			if comp == "recid" and value != None:
@@ -1320,6 +1322,7 @@ class DB(object):
 		elif param == "child":
 			if comp == "recid" and value != None:
 				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
+			
 
 		elif param:
 			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
