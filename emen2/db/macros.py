@@ -102,7 +102,7 @@ class macro_img(Macro):
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
 				lrecid = bdoo.get("recid")
-				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="Thumbnail" />'%(g.EMEN2WEBROOT,i[4:],fname,height,width))
+				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:],fname,height,width))
 			except:
 				ret.append("(Error: %s)"%i)
 
@@ -300,7 +300,7 @@ class macro_thumbnail(Macro):
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
 			bdos = [bdos]
-		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="Thumbnail" />'%(g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos)])
+		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos)])
 
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):

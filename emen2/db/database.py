@@ -1176,7 +1176,7 @@ class DB(object):
 
 	#@rename db.query.query @notok
 	@publicmethod
-	def query(self, c=None, q=None, boolmode="AND", ignorecase=1, subset=None, ctx=None, txn=None, **kwargs):
+	def query(self, c=None, q=None, boolmode=None, ignorecase=None, subset=None, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
@@ -1186,8 +1186,12 @@ class DB(object):
 		if q:
 			c.append(["root_parameter*", "contains_w_empty", q])
 
+		if ignorecase == None:
+			ignorecase = 1
 		ignorecase = int(ignorecase)
 
+		if boolmode == None:
+			boolmode = "AND"
 		if boolmode == "AND":
 			boolop = "intersection_update"
 		elif boolmode == "OR":

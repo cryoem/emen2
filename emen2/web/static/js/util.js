@@ -28,9 +28,46 @@ function error_dialog(title, text, method, data) {
 
 
 ////////////////  Context Utility ///////////////////
+// def convert_bytes(bytes):
+// 	bytes = float(bytes)
+// 	if bytes >= 1099511627776:
+// 		terabytes = bytes / 1099511627776
+// 		size = '%.2f TB' % terabytes
+// 	elif bytes >= 1073741824:
+// 		gigabytes = bytes / 1073741824
+// 		size = '%.2f GB' % gigabytes
+// 	elif bytes >= 1048576:
+// 		megabytes = bytes / 1048576
+// 		size = '%.2f MB' % megabytes
+// 	elif bytes >= 1024:
+// 		kilobytes = bytes / 1024
+// 		size = '%.2f KB' % kilobytes
+// 	else:
+// 		size = '%.2f bytes' % bytes
+// 	return size
 
 
 (function($){
+
+	$.convert_bytes = function(bytes) {
+		var b = 0;
+		if (bytes >= 1099511627776) {
+			b = bytes / 1099511627776;
+			return b.toFixed(2) + " TB"
+		} else if (bytes >= 1073741824) {
+			b = bytes / 1073741824;
+			return b.toFixed(2) + " GB"
+		} else if (bytes >= 1048576) {
+			b = bytes / 1048576;
+			return b.toFixed(2) + " MB"
+		} else if (bytes >= 1024) {
+			b = bytes / 1024;
+			return b.toFixed(2) + " KB"
+		} else {
+			return bytes + " bytes"
+		}
+	}
+
 
 	$.jsonRPC = function(method, data, callback, errback) {
 				
