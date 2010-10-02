@@ -45,7 +45,7 @@
 
 			this.attach_tools();
 
-			var spinner = $('<div class="spinner" style="float:right;display:none;"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			var spinner = $('<div style="float:right"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$('.header', this.element).append(spinner);
 						
 			$('.plot', this.element).PlotControl({
@@ -141,7 +141,7 @@
 			newq['ignorecase'] = this.options.q['ignorecase'];
 			// this doesn't work, because it won't trigger a Save-As
 			// $.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
-			var f = $('<form action="'+EMEN2WEBROOT+'/download/archive.tar" method="post"></form>')
+			var f = $('<form action="'+EMEN2WEBROOT+'/query/files/" method="post"></form>')
 			var i = $('<input type="text" name="q___json" />');
 			i.val($.toJSON(newq));
 			f.append(i);

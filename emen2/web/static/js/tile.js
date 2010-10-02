@@ -382,7 +382,7 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" style="display:none" alt="Loading" />', save1, remove);					
+			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			

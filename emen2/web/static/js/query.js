@@ -206,7 +206,6 @@
 			// 	<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
 			// ');
 
-
 			// Append
 			if (this.options.keywords) {
 				this.container.append(keywords);
@@ -233,12 +232,6 @@
 			// 	controls.append('<input type="button" value="Reset" name="reset" />');
 			// }
 
-			if (!this.options.ext_save) {
-				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" style="display:none" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Query" name="save" /></div>');
-			}
-			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});
-			
-
 			// controls.append('<input type="button" value="Demo Plot" name="demo" />');
 			// if (!this.options.ext_save || !this.options.ext_reset) {
 			// 	this.container.append(controls);
@@ -247,7 +240,12 @@
 			// $('input[name=query]', controls).click(function() {self.query()});
 			// $('input[name=reset]', controls).click(function() {self.reset()});
 			// $('input[name=demo]', controls).click(function() {self.demo()});
-
+			if (!this.options.ext_save) {
+				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Query" name="save" /></div>');
+				this.container.append(this.options.ext_save);
+			}
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});
+			
 
 			$('.listicon', this.container).click(function() {
 				var clearselector = $(this).attr('data-clear');

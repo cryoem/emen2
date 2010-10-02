@@ -1,7 +1,7 @@
 import types
 from hashlib import md5
 import random
-
+import urllib
 
 class HTMLTab():
 	def __init__(self,d=None):
@@ -90,9 +90,11 @@ class HTMLTab():
 		return "buttons_%s"%self.classname
 
 	def getid_button(self, name):
+		name = urllib.quote_plus(name).lower().replace("+","_")
 		return "button_%s_%s"%(self.classname,name)
 
 	def getid_page(self, name):
+		name = urllib.quote_plus(name).lower().replace("+","_")
 		return "page_%s_%s"%(self.classname,name)
 
 	def getid_pages(self):
@@ -120,7 +122,7 @@ class HTMLTab():
 		if self.href.get(name):
 			return ""
 		if self.switched:
-			return """ onclick="javascript:switchin('%s','%s');" """%(self.classname, name)
+			return """ onclick="javascript:switchin('%s','%s');" """%(self.classname, urllib.quote_plus(name).lower().replace("+","_"))
 		if self.js.get(name):
 			return """ onclick="javascript:%s" """%(self.js.get(name))
 		return ""
@@ -135,6 +137,8 @@ class HTMLTab():
 			self.autoorder()
 		if not self.active:
 			self.autoactive()
+
+		self.classname = urllib.quote_plus(self.classname).lower().replace("+","_")
 
 		#print "cls: %s"%self.classname
 		#print "\talltabs: %s"%alltabs

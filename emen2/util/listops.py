@@ -5,6 +5,18 @@ from UserDict import DictMixin
 from functools import partial
 
 
+def invert(d):
+	"""Invert a dictionary"""
+	ret = {}
+	for k,v in d.items():
+		for v2 in v:
+			ret[v2]=k
+	return ret
+
+
+	
+
+
 def take(num, iter_):
 	for _ in range(num): yield iter_.next()
 

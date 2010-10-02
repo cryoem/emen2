@@ -63,7 +63,7 @@
 				height: 400
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner" style="display:none"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
 		},
 
 		event_click: function(e) {

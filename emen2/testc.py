@@ -1,14 +1,14 @@
-import getpass
+# Some imports that are frequently useful..
+import os
+import sys
+import collections
+import operator
+import time
+import urllib
+import subprocess
 
-import emen2
-import emen2.db.config
-parser = emen2.db.config.DBOptions()
-parser.parse_args()
-g = emen2.db.config.g()
+import emen2.util.listops
 
-db = emen2.opendb()
-db.login("root", getpass.getpass())
+import emen2.db.admin
+db = emen2.db.admin.opendb()
 
-# db._starttxn()
-# txn = db._gettxn()
-# ddb = db._db
