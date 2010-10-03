@@ -282,7 +282,6 @@ function bind_autocomplete(elem, param) {
 			//if ($.inArray(this.options.param, ["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])) {return}
 
 			this.built = 0;
-			this.rec_value = caches["recs"][this.options.recid][this.options.param];
 			this.bind_edit();
 			this.trygetparams = 0;
 			this.element.addClass("editcontrol");
@@ -304,6 +303,8 @@ function bind_autocomplete(elem, param) {
 		
 		// This is a BIG NASTY CASE SWITCH to build the input element... Be careful!
 		build: function() {
+			var self = this;
+			this.rec_value = caches["recs"][this.options.recid][this.options.param];
 			
 			if (this.built){
 				return
@@ -316,7 +317,6 @@ function bind_autocomplete(elem, param) {
 
 			// container
 			this.w = $('<div class="editcontrol" style="display:inline" />');
-			var self = this;
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
@@ -414,6 +414,15 @@ function bind_autocomplete(elem, param) {
 		show: function(showcontrols) {
 			if (showcontrols==null) {showcontrols=1}
 			var self = this;
+
+			if (caches['recs'][this.options.recid] == null) {
+				$.jsonRPC("getrecord", [this.options.recid], function(rec) {
+					caches["recs"][rec.recid] = rec;
+					self.show();
+				});
+				return
+			}
+			
 		
 			if (!caches["paramdefs"][this.options.param]) {
 				if (this.trygetparams) {return}
@@ -425,7 +434,8 @@ function bind_autocomplete(elem, param) {
 				return
 			}
 		
-			self.build();
+			this.build();
+
 			this.w.css('display', 'inline');
 			if (showcontrols) {
 				//this.element.addClass('whitehide');
