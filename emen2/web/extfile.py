@@ -1,6 +1,5 @@
 import emen2.db.config
 g = emen2.db.config.g()
-import random
 
 class ExtFile(object):
 	def __register(registry):

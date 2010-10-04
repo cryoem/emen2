@@ -1,4 +1,16 @@
 # $Author$ $Revision$
+'''
+Module contents:
+I. Views
+	-> class Context
+	-> class View
+II. View Plugins
+	-> class ViewPlugin
+	-> class AdminView
+	-> class AuthView
+III. Template Rendering
+	-> class Page
+'''
 import itertools
 import functools
 import sys
@@ -16,6 +28,10 @@ from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
+############ ############ ############
+# I. Views                           #
+############ ############ ############
+
 class Context(object):
 	'''Partial context for views that don't need db access'''
 	def reverse(self, _name, *args, **kwargs):
@@ -112,7 +128,7 @@ class View(object):
 		except:
 			LOGINUSER = None
 			HOST = None
-			
+
 
 		self.__basectxt = dict(
 			ctxt = self.dbtree,
@@ -255,40 +271,42 @@ class View(object):
 
 		The new method is called _after_ View.__init__ gets called
 		'''
+		if not match: raise ValueError, 'A view must have at least one non-keyword matcher'
+		def check_name(name): return 'main' if name.lower() == 'init' else name
 		def _i1(func):
 			matchers = []
-			if len(match) == 1:
-				name = func.__name__
-				if name.lower() == 'init': name = 'main'
-				matchers.append( (name, match[0], func) )
-			else:
-				for n,matcher in enumerate(match):
-					if n == 0: matchers.append( ('%s/main' % (func.__name__), matcher, func) )
-					matchers.append( ('%s/%d' % (func.__name__, n), matcher, func) )
-			for k,matcher in kwmatch.iteritems():
-				name = []
-				if func.__name__.lower() == 'init':
-					name.append('main')
-				else:
-					name.append(func.__name__, k)
-				matchers.append( ('/'.join(name), matcher, func) )
-			func.matcherinfo = matchers # g.log.note_var(matchers)
+			name = check_name(func.__name__)
+
+			# get the main matcher
+			matcher, match_ = match[0], match[1:]
+			matchers.append( ('%s' % name, matcher, func) )
+
+			# get alternate matchers
+			for k,matcher in itertools.chain(	enumerate(match_, 1),
+															kwmatch.iteritems()	):
+				name = '%s/%s' % (name, k)
+				matchers.append( (name, matcher, func) )
+
+			# save all matchers to the function
+			func.matcherinfo = matchers
+
+			#g.debug('matchers', matchers)
 			return func
 		return _i1
 
 	@staticmethod
 	def register(cls):
 		'''Register a view and give it a URL
-		N.B. this used to call a classmethod of publicresource, this no longer happens
 
-		-> classes can specify more than one matcher in a dictionary, if that is the case, reverse lookup
-		     can be done by self.dbtree.reverse (in a subclass of View) or ctxt.reverse in a template
-			       it defaults to the one named 'main', if others exist they can be accessed by '<Classname>/<subname>'
 		-> this also registers urls defined by the add_matcher decorator
+		-> DEPRECATED: classes can specify more than one matcher in a dictionary, if that is the case, reverse lookup
+				can be done by self.dbtree.reverse (in a subclass of View) or ctxt.reverse in a template
+				it defaults to the one named 'main', if others exist they can be accessed by '<Classname>/<subname>'
+
 		acceptable __matcher__ values:
 			-> __matcher__ = dict(
-				  main = r'^/some/url/(?P<param1>\d+)/$',
-				  alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
+					main = r'^/some/url/(?P<param1>\d+)/$',
+					alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
 				)
 			--> these can be reversed with self.dbtree.reverse('ClassName/alt1', param1='asd') and such
 			-> __matcher__ = [r'^/some/url/(?P<param1>\d+)/$', r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$']
@@ -298,7 +316,8 @@ class View(object):
 		'''
 		cls.__url = routing.URL(cls.__name__)
 
-		#old style matchers
+		# old style matchers
+		# these should die, but not yet
 		if hasattr(cls, '__matcher__'):
 			if hasattr(cls.__matcher__, '__iter__'):
 				if hasattr(cls.__matcher__, 'items'):
@@ -334,8 +353,19 @@ class View(object):
 		ur.register(cls.__url)
 		return cls
 
-class AdminView(View):
-	preinit = View.preinit[:]
+############-############-############
+# II. View plugins                   #
+############-############-############
+
+class ViewPlugin(object):
+	@classmethod
+	def attach(cls, view):
+		view.preinit = view.preinit[:]
+		view.preinit.extend(cls.preinit)
+		return view
+
+class AdminView(ViewPlugin):
+	preinit = []
 
 	@preinit.append
 	def checkadmin(self):
@@ -343,8 +373,8 @@ class AdminView(View):
 		if not context.checkadmin():
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
 
-class AuthView(View):
-	preinit = View.preinit[:]
+class AuthView(ViewPlugin):
+	preinit = []
 
 	@preinit.append
 	def checkadmin(self):
@@ -352,11 +382,9 @@ class AuthView(View):
 		if not 'authenticated' in context.groups:
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
 
-
-class MatcherInfo(object):
-	def __init__(self, args, kwargs):
-		self.args, self.kwargs = args, kwargs
-
+############ ############ ############
+# III. template rendering            #
+############ ############ ############
 
 class Page(object):
 	'''Abstracts template rendering'''
