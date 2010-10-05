@@ -115,8 +115,6 @@ COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
 # this is used by db.checkversion
 # import this directly from emen2client, emdash
 import emen2.clients.emen2client
-print "Checking version!"
-print emen2.clients.emen2client.VERSION
 VERSIONS = {
 	"API": g.VERSION,
 	"emen2client": emen2.clients.emen2client.VERSION
