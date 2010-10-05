@@ -1034,8 +1034,8 @@ class DB(object):
 	#@rename db.binary.put @ok @single @return Binary
 	#filename, recid=None, bdokey=None, filedata=None, filehandle=None, param=None, record=None, uri=None, ctx=None, txn=None):
 	@publicmethod
-	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, filedata=None, filehandle=None, uri=None, clone=False, ctx=None, txn=None):
-		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries. Optional filedata/filehandle to specify file contents."""
+	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, infile=None, uri=None, clone=False, ctx=None, txn=None):
+		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries."""
 
 		if clone and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only admins can update BDOs using the cloning tool"
@@ -1062,8 +1062,8 @@ class DB(object):
 		newfile = None
 		filesize = 0
 		md5sum = ''
-		if filehandle or filedata:
-			newfile, filesize, md5sum = self.__putbinary_file(filename, filehandle=filehandle, filedata=filedata, dkey=dkey, ctx=ctx, txn=txn)
+		if infile:
+			newfile, filesize, md5sum = self.__putbinary_file(filename, infile=infile, dkey=dkey, ctx=ctx, txn=txn)
 
 		# Update the BDO: Start RMW cycle
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
@@ -1118,13 +1118,26 @@ class DB(object):
 
 
 
-	def __putbinary_file(self, filename=None, filedata=None, filehandle=None, dkey=None, ctx=None, txn=None):
+	def __putbinary_file(self, filename=None, infile=None, dkey=None, ctx=None, txn=None):
+
+		closefd = True
+		if hasattr(infile, "read"):
+			# infile is a file-like object; do not close
+			closefd = False
+		elif os.access(infile, os.F_OK):
+			# infile is a reference to a file on disk; open for binary reading
+			infile = open(infile, "rb")
+		else:
+			# string data..
+			infile = cStringIO.StringIO(infile)
+		
 		try:
 			os.makedirs(dkey["basepath"])
 		except:
 			pass
 
-		filename = filename or "UnkownFilename"
+
+		filename = os.path.basename(filename or "UnkownFilename")
 
 		# Write out file to temporary storage
 		(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
@@ -1132,18 +1145,16 @@ class DB(object):
 		filesize = 0
 
 		with os.fdopen(fd, "w+b") as f:
-			if not filedata:
-				for line in filehandle:
-					f.write(line)
-					m.update(line)
-					filesize += len(line)
-			else:
-				f.write(filedata)
-				m.update(filedata)
-				filesize = len(filedata)
+			for line in infile:
+				f.write(line)
+				m.update(line)
+				filesize += len(line)
 
 		if filesize == 0 and not ctx.checkadmin():
 			raise ValueError, "Empty file!"
+
+		if closefd:
+			infile.close()
 
 		md5sum = m.hexdigest()
 		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
