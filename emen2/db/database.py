@@ -1072,6 +1072,7 @@ class DB(object):
 		if infile:
 			newfile, filesize, md5sum = self.__putbinary_file(filename, infile=infile, dkey=dkey, ctx=ctx, txn=txn)
 
+
 		# Update the BDO: Start RMW cycle
 		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
 
