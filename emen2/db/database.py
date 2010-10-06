@@ -96,8 +96,6 @@ def fakemodules():
 fakemodules()
 
 
-
-
 # Colors to use in plot..
 COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
 	'#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887',
@@ -130,6 +128,17 @@ DBENV = None
 
 #basestring goes away in a later python version
 basestring = (str, unicode)
+
+
+
+def check_output(args, **kwds):
+	kwds.setdefault("stdout", subprocess.PIPE)
+	kwds.setdefault("stderr", subprocess.STDOUT)
+	p = subprocess.Popen(args, **kwds)
+	return p.communicate()[0]
+
+
+
 
 
 def return_first_or_none(items):
@@ -1171,7 +1180,7 @@ class DB(object):
 		if ctx.username == None:
 			raise emen2.db.exceptions.SecurityError, "getbinarynames not available to anonymous users"
 
-		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values())
+		ret = (set(y.name for y in x.values()) for x in self.bdbs.bdocounter.values(txn))
 		ret = reduce(set.union, ret, set())
 		return set().union(*ret)
 
