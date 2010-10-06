@@ -3892,16 +3892,19 @@ class DB(object):
 
 		recs = self.getrecord(recids, ctx=ctx, txn=txn)
 		groups = listops.groupbykey(recs, 'rectype')
-		recdefs |= set(groups.keys())
+		recdefs |= set(groups.keys()) # ian todo: process weird names.. [i.lower() for i in groups.keys()].. __process_keys(groups.keys())
 		# recs = listops.dictbykey(recs, 'recid')
 
-		# Expand * searches:
+		# Expand * searches: (todo: implement ^ for parents as well)
 		replaced = {}
 		for rd in recdefs:
 			if '*' in rd:
 				rd = rd.replace('*', '')
+				# Probably not the fastest way to do this
 				replaced[rd] = self.getchildren(rd, recurse=-1, keytype="recorddef", ctx=ctx, txn=txn)
+
 		for k,v in replaced.items():
+			# Update the list of items to get with found children
 			recdefs.discard(k+'*')
 			recdefs.add(k)
 			recdefs |= v
