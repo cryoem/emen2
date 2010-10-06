@@ -655,7 +655,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
+				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" style="display:block" />');
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',

@@ -20,6 +20,7 @@ import getpass
 import functools
 import imp
 import tempfile
+import cStringIO
 
 import emen2.ext.mail_exts
 
@@ -1134,9 +1135,6 @@ class DB(object):
 		if hasattr(infile, "read"):
 			# infile is a file-like object; do not close
 			closefd = False
-		elif os.access(infile, os.F_OK):
-			# infile is a reference to a file on disk; open for binary reading
-			infile = open(infile, "rb")
 		else:
 			# string data..
 			infile = cStringIO.StringIO(infile)

@@ -681,7 +681,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		try:
 			self.__permissions = self.__checkpermissionsformat(self.__permissions)
 		except Exception, inst:
-			self.validationwarning("invalid permissions: %s"%self.__permissions, warning=warning)
+			self.validationwarning("Invalid permissions: %s"%self.__permissions, warning=warning)
 
 
 	def validate_permissions_users(self, orec=None, warning=False, cache=None):
@@ -695,7 +695,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		
 		u = set(reduce(operator.concat, self.__permissions))
 		if u - usernames:
-			self.validationwarning("undefined users in permissions: %s"%",".join(map(unicode, u-usernames)))
+			self.validationwarning("Undefined users in permissions: %s"%",".join(map(unicode, u-usernames)))
 
 
 	def validate_params(self, orec=None, warning=False, params=None, cache=None):
@@ -710,11 +710,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not p2:
 			return
 
-		vtm = emen2.db.datatypes.VartypeManager()
-
-		# ian: todo: find a way to cache these
-		# pds = self._ctx.db.getparamdef(p2)		
-		
+		vtm = emen2.db.datatypes.VartypeManager()		
 		newpd = {}
 		exceptions = []
 		for param in p2:
@@ -728,12 +724,12 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				value = self.__params.get(param)
 				v = vtm.validate(pd, value, db=self._ctx.db)
 				if v != value and v != None:
-					self.validationwarning("parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
+					self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
 				newpd[pd.name] = v
 
 			except Exception, inst: #(ValueError,KeyError,IndexError)
 				self.addcomment("Validation error: param %s, value '%s' %s"%(param, self.__params.get(param),type(self.__params.get(param))))
-				exceptions.append("parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
+				exceptions.append("Parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
 				
 
 		for e in exceptions:
@@ -743,10 +739,16 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not rd:
 			rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
 			cache['recdefs'][self.rectype] = rd
+
+		# for param in rd.paramsA:
+		#	if self.recid >= 0 and not ctx.checkadmin():
+		# 		only admins can set this..
 		
 		for param in rd.paramsR:
 			if newpd.get(param) == None:
 				self.validationwarning("%s is a required parameter"%(param), warning=warning)
 
 		self.__params = newpd
+
+
 
