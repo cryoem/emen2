@@ -401,8 +401,9 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# now update the values of any embedded params
 		# if setting value fails, comment won't be added; record can still be committed, perhaps with partial changes,
 		# 	but validation would catch anything the user could not normally set otherwise
-		for i,j in d.items():
-			self[i] = j
+		if self.recid > -1:
+			for i,j in d.items():
+				self[i] = j
 
 		value = unicode(value)
 

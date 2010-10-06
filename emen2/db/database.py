@@ -1043,11 +1043,8 @@ class DB(object):
 	#@rename db.binary.put @ok @single @return Binary
 	#filename, recid=None, bdokey=None, filedata=None, filehandle=None, param=None, record=None, uri=None, ctx=None, txn=None):
 	@publicmethod
-	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, infile=None, uri=None, clone=False, ctx=None, txn=None):
+	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, infile=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries."""
-
-		if clone and not ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only admins can update BDOs using the cloning tool"
 
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add BDOs"
@@ -1086,6 +1083,10 @@ class DB(object):
 		if newfile:
 			if nb:
 				raise emen2.db.exceptions.SecurityError, "BDOs are immutable"
+
+			if not filesize:
+				raise ValueError, "Cannot create a BDO without a file"
+
 			nb = emen2.db.binary.Binary()
 			nb.update(
 				uri = uri,
