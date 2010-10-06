@@ -5113,12 +5113,6 @@ class DB(object):
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
 						
-		# This is the new, more general regex for parsing views..
-		# type = name, param, macro, or..
-		# name = param or macro name
-		# def = default value
-		# args = macro args
-		# sep = separating character
 		regex = re.compile(VIEW_REGEX)
 		
 		ol, recs = listops.oltolist(recs)
@@ -5142,20 +5136,21 @@ class DB(object):
 		groupviews = {}
 		recdefs = listops.dictbykey(self.getrecorddef(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
-		if viewtype == "dicttable":
+		if viewdef:
+			groupviews[None] = viewdef
+
+
+		elif viewtype == "dicttable":
 			for rec in recs:
 				# move built in params to end of table					
-				par = [p for p in set(rd.paramsK) if p not in builtinparams]
+				par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 				par += builtinparamsshow
 				par += [p for p in rec.getparamkeys() if p not in par]
-				v = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
-				groupviews[rec.recid] = v
+				groupviews[rec.recid] = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
 
 
-		elif not viewdef:
+		else:
 			for rd in recdefs.values():
-				i = rd.name
-				v = None
 				rd["views"]["mainview"] = rd.mainview
 
 				if viewtype in ["tabularview","recname"]:
@@ -5165,10 +5160,9 @@ class DB(object):
 					v = rd.views.get(viewtype, rd.mainview)
 					v = markdown.markdown(v)
 
-				groupviews[i] = v
+				groupviews[rd.name] = v
 
-		else:
-			groupviews[None] = viewdef
+
 
 
 		# Pre-process once to get paramdefs
@@ -5196,14 +5190,13 @@ class DB(object):
 		# Process records
 		ret = {}
 		for rec in recs:
-			if groupviews.get(rec.rectype):
-				key = rec.rectype
-			elif viewdef:
+			key = rec.rectype
+			if viewdef:
 				key = None
-			else:
+			elif viewtype == "dicttable":
 				key = rec.recid
-				
-			a = groupviews.get(key, "Error generating view!")
+
+			a = groupviews.get(key)
 			vs = []
 
 			for match in matches.get(key, []):

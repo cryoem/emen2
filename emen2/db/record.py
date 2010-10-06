@@ -393,7 +393,9 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			self.validationwarning("addcomment: invalid comment: %s"%value)
 			return
 
-		d = emen2.db.recorddef.parseparmvalues(value)[1]
+		d = {}
+		if not value.startswith("LOG"): # legacy fix..
+			d = emen2.db.recorddef.parseparmvalues(value)[1]
 		if d.has_key("comments"):
 			self.validationwarning("addcomment: cannot set comments inside a comment")
 			return
@@ -401,9 +403,8 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# now update the values of any embedded params
 		# if setting value fails, comment won't be added; record can still be committed, perhaps with partial changes,
 		# 	but validation would catch anything the user could not normally set otherwise
-		if self.recid > -1:
-			for i,j in d.items():
-				self[i] = j
+		for i,j in d.items():
+			self[i] = j
 
 		value = unicode(value)
 
