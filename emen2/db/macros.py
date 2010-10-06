@@ -169,7 +169,13 @@ class macro_renderchildren(Macro):
 	__metaclass__ = Macro.register_view
 		
 	def process(self, engine, macro, params, rec, db):
-		return db.renderview(db.getchildren(params), viewtype=params or "recname") #ian:mustfix
+		r = db.renderview(db.getchildren(rec.recid), viewtype=params or "recname") #ian:mustfix
+		hrefs = []
+		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
+			hrefs.append(l)
+		return "<ul>%s</ul>"%("\n".join(hrefs))
+
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "renderchildren"			
