@@ -169,6 +169,9 @@
 		},
 		
 		resort: function(sortkey, args) {
+			if (args) {
+				sortkey = '$@' + sortkey + "(" + args + ")"
+			}
 			if (this.options.q['sortkey'] == sortkey) {
 				this.options.q['reverse'] = (this.options.q['reverse']) ? false : true;
 			} else {
@@ -242,6 +245,7 @@
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {
+				
 				var i = $('<th style="position:relative" data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
 
 				// An editable, sortable field..
@@ -252,7 +256,7 @@
 				}
 
 				var direction = 'able';
-				if (self.options.q['sortkey'] == this[2]) {
+				if (self.options.q['sortkey'] == this[2] || self.options.q['sortkey'] == '$@'+this[2]+'('+this[3]+')') {
 					var direction = 1;
 					if (self.options.q['reverse']) {direction = 0}
 				}

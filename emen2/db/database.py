@@ -1741,27 +1741,48 @@ class DB(object):
 	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
 		"""Sort recids based on a param or macro."""
 
+		print "sorting by: %s"%param
+
+		param = param or "recid"
 		reverse = bool(reverse)
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
 
-		# Macro rendering not implemented..
-		if not param or param == "creationtime" or param == "recid" or not pd:
+		# If it's creationtime or recid, return based on recid..
+		if param == "creationtime" or param == "recid":
 			if pos != None and count != None:
 				return sorted(recids, reverse=reverse)[pos:pos+count]
 			return sorted(recids, reverse=reverse)
 
 
-		_t=time.time()
-
 		recs = listops.typefilter(recids, emen2.db.record.Record)		
 		recids = listops.typefilter(recids, int)
-		index = self.__getparamindex(param, ctx=ctx, txn=txn)
 		values = collections.defaultdict(set)
 
+		index = False
+		if pd:
+			index = self.__getparamindex(param, ctx=ctx, txn=txn)
 
-		
-		# sort/render using records directly..
-		if recs or not index or len(recids)<1000:
+		dbp = ctx.db
+		dbp._settxn(txn)
+		vtm = emen2.db.datatypes.VartypeManager()
+
+		if len(recids) < 1000:
+			index = False
+
+		# sort/render using records directly... required for macros.
+		if param.startswith("$@"):
+			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
+			recids = set([rec.recid for rec in recs])		
+			regex = re.compile(VIEW_REGEX)
+			k = regex.match(param)
+			vtm.macro_preprocess(k.group('name'), k.group('args'), recs, db=dbp)
+			for rec in recs:
+				v = vtm.macro_process(k.group('name'), k.group('args'), rec, db=dbp)
+				values[v].add(rec.recid)
+				
+			
+		# or if we have the records, or there is no index..
+		elif recs or not index:
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
 			recids = set([rec.recid for rec in recs])		
 			for rec in recs:
@@ -1771,7 +1792,7 @@ class DB(object):
 					values[tuple(rec.get(param))].add(rec.recid)
 					
 					
-		# Use the index
+		# Lastly, try the index
 		else:
 			recids = set(recids)
 			# Not the best way to search the index..
@@ -1781,31 +1802,30 @@ class DB(object):
 					values[k] |= v
 
 
-
 		# calling out to vtm, we will need a DBProxy
 		# I'm only turning on render sort for these vartypes for now..
-		if rendered and pd.vartype in ["user", "userlist", "binary", "binaryimage"]:
-			if len(recids) > 1000:
-				raise ValueError, "Too many items to sort by this key"
-			dbp = ctx.db
-			dbp._settxn(txn)
-			vtm = emen2.db.datatypes.VartypeManager()
-			newvalues = collections.defaultdict(set)
-			for k in values:
-				newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
-				# rec=recs_dict.get(recid) # may fail without record..
-			values = newvalues
+		if rendered and pd:
+			if pd.vartype in ["user", "userlist", "binary", "binaryimage"]:				
+				if len(recids) > 1000:
+					raise ValueError, "Too many items to sort by this key"
 
+				newvalues = collections.defaultdict(set)
+				for k in values:
+					newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
+					# rec=recs_dict.get(recid) # may fail without record..
+				values = newvalues
+
+
+		print values
 
 		
+		# This makes sure that empty items are placed at the end; simple sort breaks sometimes
 		ret = []
 		for k in sorted(values.keys(), reverse=reverse):
 			ret.extend(sorted(values[k]))
 		
 		seen = set(ret)
-		ret.extend(sorted(recids-seen))	
-		# ret.extend(nonevalues)
-
+		ret.extend(sorted(recids-seen))
 			
 		if pos != None and count != None:	
 			return ret[pos:pos+count]
@@ -2109,10 +2129,13 @@ class DB(object):
 
 		ol, recdefs = listops.oltolist(recdefs)
 
+		# expand *'s
+		recdefs = self.getrecorddef(recdefs, ctx=ctx, txn=txn)
+
 		ret = set()
 		for i in recdefs:
-			self.getrecorddef(i, ctx=ctx, txn=txn) # check for permissions
-			ret |= self.bdbs.recorddefindex.get(i, txn=txn)
+			# self.getrecorddef(i, ctx=ctx, txn=txn) # check for permissions
+			ret |= self.bdbs.recorddefindex.get(i.name, txn=txn)
 
 		# return self.filterbypermissions(ret, ctx=ctx, txn=txn)
 
@@ -3872,7 +3895,20 @@ class DB(object):
 		recs = self.getrecord(recids, ctx=ctx, txn=txn)
 		groups = listops.groupbykey(recs, 'rectype')
 		recdefs |= set(groups.keys())
-		recs = listops.dictbykey(recs, 'recid')
+		# recs = listops.dictbykey(recs, 'recid')
+
+		# Expand * searches:
+		replaced = {}
+		for rd in recdefs:
+			if '*' in rd:
+				rd = rd.replace('*', '')
+				replaced[rd] = self.getchildren(rd, recurse=-1, keytype="recorddef", ctx=ctx, txn=txn)
+		for k,v in replaced.items():
+			recdefs.discard(k+'*')
+			recdefs.add(k)
+			recdefs |= v
+
+			
 
 		# Prepare filter
 		if filt:

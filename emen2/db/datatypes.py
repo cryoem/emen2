@@ -397,7 +397,7 @@ class Macro(object):
 		return "macro: %s"%macro
 
 	def render(self, engine, macro, params, rec, mode, db):
-		value=self.process(engine, macro, params, rec, db)
+		value = self.process(engine, macro, params, rec, db)
 		r = self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
 		return r
 
