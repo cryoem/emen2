@@ -5088,6 +5088,7 @@ class DB(object):
 		"""generate html table of params"""
 
 		if mode in ["html","htmledit"]:
+
 			dt = ['<table cellspacing="0" cellpadding="0">\n\t<thead><th>Parameter</th><th>Value</th></thead>\n\t<tbody>']
 			for count, i in enumerate(params):
 				if count%2:
@@ -5096,6 +5097,7 @@ class DB(object):
 					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
 					
 			dt.append("\t<thead>\n</table>")
+
 		else:
 			dt = []
 			for i in params:
@@ -5140,19 +5142,23 @@ class DB(object):
 		groupviews = {}
 		recdefs = listops.dictbykey(self.getrecorddef(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
-		if not viewdef:
+		if viewtype == "dicttable":
+			for rec in recs:
+				# move built in params to end of table					
+				par = [p for p in set(rd.paramsK) if p not in builtinparams]
+				par += builtinparamsshow
+				par += [p for p in rec.getparamkeys() if p not in par]
+				v = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
+				groupviews[rec.recid] = v
+
+
+		elif not viewdef:
 			for rd in recdefs.values():
 				i = rd.name
 				v = None
 				rd["views"]["mainview"] = rd.mainview
 
-				if viewtype=="dicttable":
-					# move built in params to end of table
-					par = [p for p in set(rd.paramsK) if p not in builtinparams]
-					par += builtinparamsshow
-					v = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
-
-				elif viewtype in ["tabularview","recname"]:
+				if viewtype in ["tabularview","recname"]:
 					v = rd.views.get(viewtype, rd.name)
 
 				else:
@@ -5195,9 +5201,9 @@ class DB(object):
 			elif viewdef:
 				key = None
 			else:
-				key = None
+				key = rec.recid
 				
-			a = groupviews.get(key)
+			a = groupviews.get(key, "Error generating view!")
 			vs = []
 
 			for match in matches.get(key, []):
