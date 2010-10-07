@@ -76,24 +76,37 @@ class DBProxy(object):
 		self.__oldtxn = None
 
 
+	def _debug(self):
+		self._starttxn()
+		return self.__db, self.__ctx, self.__txn
+
+
 	# Transactions
 	def _gettxn(self):
 		return self.__txn
 
+
 	def _settxn(self, txn=None):
 		self.__txn = txn
+		return self.__txn
+		
 
 	def _starttxn(self, flags=None):
 		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
+		return self.__txn
+
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
 		self.__txn = None
+		return self.__txn
+
 
 	def _aborttxn(self):
 		if self.__txn:
 			self.__db.txnabort(txn=self.__txn)
 		self.__txn = None
+		return self.__txn
 
 
 	# We need to wrap the DB login method
