@@ -21,18 +21,10 @@ import functools
 import imp
 import tempfile
 import cStringIO
-
 import emen2.ext.mail_exts
 
 import emen2.db.config
 g = emen2.db.config.g()
-
-try:
-	import matplotlib.backends.backend_agg
-	import matplotlib.figure
-except ImportError:
-	matplotlib = None
-	g.log("No matplotlib; plotting will fail")
 
 
 try:
@@ -55,6 +47,7 @@ import emen2.db.datatypes
 import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
+import emen2.db.plot
 
 import emen2.db.record
 import emen2.db.binary
@@ -95,16 +88,6 @@ def fakemodules():
 	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
 
 fakemodules()
-
-
-# Colors to use in plot..
-COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
-	'#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887',
-	'#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c',
-	'#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00',
-	'#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc',
-	'#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff',
-	'#808080']
 
 
 
@@ -1321,6 +1304,7 @@ class DB(object):
 
 		# print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
+		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
 		if param == "rectype":
 			if comp == "==" and value != None:
 				if recurse == -1:
@@ -1344,6 +1328,14 @@ class DB(object):
 			if comp == "recid" and value != None:
 				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
 			
+		# these will get filtered for permissions at the end..
+		elif param == "groups":
+			if comp == "contains" and value != None:
+				subset = self.bdbs.secrindex_groups.get(value, txn=txn)
+			
+		elif param == "permissions":
+			if comp == "contains" and value != None:
+				subset = self.bdbs.secrindex.get(value, txn=txn)		
 
 		elif param:
 			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
@@ -1444,79 +1436,20 @@ class DB(object):
 
 
 
-	def __query_invert(self, d):
-		invert = {}
-		for k,v in d.items():
-			for v2 in v: invert[v2] = k
-		return invert
-
-
-
-	def __getplotfile(self, prefix=None, suffix=None, ctx=None, txn=None):
-		tempfile = "%s-%s-%s.%s"%(ctx.ctxid, prefix, time.strftime("%Y.%m.%d-%H.%M.%S"), suffix)
-		return os.path.join(g.paths.TMPPATH, tempfile)
-		
-	
-
-	
+	# This is just a start -- clean up the idea here..
 	@publicmethod
-	def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, style='b', ctx=None, txn=None, **kwargs):
-
-		if not formats:
-			formats = ["png"]
-
-		width = int(width)
-		fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
-		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-
-		ax_size = [0, 0, 1, 1]
-		if xlabel or ylabel or buffer:
-			ax_size = [0.15, 0.15, 0.8, 0.8]
-			
-		ax = fig.add_axes(ax_size)
-		ax.grid(True)
+	def plot(self, *args, **kwargs):
 		
-		handle = ax.plot(x, y, style)
+		mode = kwargs.get('mode', 'date')
 		
-		if xmin == None: xmin = min(x)
-		else: xmax = float(xmax)
-
-		if xmax == None: xmax = max(x)
-		else: xmax = float(xmax)
-
-		if ymin == None: ymin = min(y)
-		else: ymin = float(ymin)
-
-		if ymax == None: ymax = max(y)
-		else: ymax = float(ymax)
-			
-		ax.set_xlim(xmin, xmax)
-		ax.set_ylim(ymin, ymax)		
-
-		if xlabel: ax.set_xlabel(xlabel)
-		if ylabel: ax.set_ylabel(ylabel)
-
-		plots = {}
-		if "png" in formats:
-			pngfile = self.__getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
-			fig.savefig(pngfile)
-			plots["png"] = pngfile
-
-
-		q = {}
-		q.update({
-			"plots": plots,
-			"xlabel": xlabel,
-			"ylabel": ylabel,
-			"formats": formats,
-			"width": width,
-			"xmin": xmin,
-			"xmax": xmax,
-			"ymin": ymin,
-			"ymax": ymax
-		})
-
-		return q					
+		if mode == 'scatter':
+			plotter = emen2.db.plot.ScatterPlot
+		elif mode == 'hist':
+			plotter = emen2.db.plot.HistPlot	
+		elif mode == 'date':
+			plotter = emen2.db.plot.DatePlot
+		
+		return plotter(*args, db=self, **kwargs).q
 
 
 
@@ -1570,152 +1503,6 @@ class DB(object):
 		return q
 
 
-
-	@publicmethod
-	def plot(self, xparam, yparam, groupby="rectype", c=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, cutoff=1, ctx=None, txn=None, **kwargs):
-
-		# Run all the arguments through query..
-		c = c or []
-		cparams = [i[0] for i in c]
-		if xparam not in cparams:
-			c.append([xparam, "!None", ""])
-		if yparam not in cparams:
-			c.append([yparam, "!None", ""])
-					
-
-		# t = time.time()
-
-		q = self.query(c=c, ctx=ctx, txn=txn, **kwargs)
-		if not q["groups"].get(groupby):
-			groupby = "rectype"
-			q["groups"][groupby] = self.groupbyrecorddef(q["recids"], ctx=ctx, txn=txn)
-
-		# print "Time: %s"%(time.time()-t)
-
-
-		if not formats:
-			formats = ["png"]
-
-		width = int(width)
-		groupcolors = groupcolors or {}
-
-		# Get parameters
-		xpd = self.getparamdef(xparam, ctx=ctx, txn=txn)
-		ypd = self.getparamdef(yparam, ctx=ctx, txn=txn)
-
-		groups = q["groups"]
-		xinvert = self.__query_invert(groups[xparam])
-		yinvert = self.__query_invert(groups[yparam])
-		recids = set(xinvert.keys()) & set(yinvert.keys())
-
-		### plot_plot
-		colorcount = len(COLORS)
-
-		# Generate labels
-		# title = '%s vs %s, grouped by %s %s'%(xpd.desc_short, ypd.desc_short, grouptype, groupby or '')
-		title = kwargs.get('title') or 'Test Graph'
-		xlabel = kwargs.get('xlabel') or '%s'%(xpd.desc_short)
-		ylabel = kwargs.get('ylabel') or '%s'%(ypd.desc_short)
-		if xpd.defaultunits and not kwargs.get('xlabel'):
-			xlabel = '%s (%s)'%(xlabel, xpd.defaultunits)
-		if ypd.defaultunits and not kwargs.get('ylabel'):
-			ylabel = '%s (%s)'%(ylabel, ypd.defaultunits)
-
-
-		# Ok, actual plotting is pretty simple...
-		fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
-		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-
-		ax_size = [0.1, 0.1, 0.8, 0.8]
-		ax = fig.add_axes(ax_size)
-		ax.grid(True)
-
-		handles = []
-		labels = []
-		groupnames = {}
-		nextcolor = 0
-
-		nr = [None, None, None, None]
-
-		def less(x,y):
-			if x < y or y == None: return x
-			return y
-		def greater(x,y):
-			if x > y or y == None: return x
-			return y
-
-
-		# plot each group
-		for k,v in sorted(groups[groupby].items()):
-			# v = v & recids
-			if len(v) <= cutoff:
-				continue
-				
-			groupnames[k] = "%s (%s records)"%(k, len(v))
-			groupcolors[k] = groupcolors.get(k, COLORS[nextcolor%colorcount])
-			nextcolor += 1
-
-			if  (groupshow and k not in groupshow):
-				continue
-				
-			x = map(xinvert.get, v)
-			y = map(yinvert.get, v)
-
-			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
-			handle = ax.scatter(x, y, c=groupcolors[k])
-			handles.append(handle)
-			labels.append(k)
-
-
-		if xmin != None: nr[0] = float(xmin)
-		if ymin != None: nr[1] = float(ymin)
-		if xmax != None: nr[2] = float(xmax)
-		if ymax != None: nr[3] = float(ymax)
-
-		# print "ranges: %s"%nr
-		ax.set_xlim(nr[0], nr[2])
-		ax.set_ylim(nr[1], nr[3])
-
-
-		plots = {}
-		if "png" in formats:
-			pngfile = self.__getplotfile(prefix="plot", suffix="png", ctx=ctx, txn=txn)
-			fig.savefig(pngfile)
-			plots["png"] = os.path.basename(pngfile)
-
-
-		# We draw titles, labels, etc. in PDF graphs
-		if "pdf" in formats:
-			ax.set_title(title)
-			ax.set_xlabel(xlabel)
-			ax.set_ylabel(ylabel)
-			fig.legend(handles, labels) #borderaxespad=0.0,  #bbox_to_anchor=(0.8, 0.8)
-			pdffile = self.__getplotfile(prefix="plot", suffix="pdf", ctx=ctx, txn=txn)
-			fig.savefig(pdffile)
-			plots["pdf"] = os.path.basename(pdffile)
-
-
-		q.update({
-			"plots": plots,
-			"xlabel": xlabel,
-			"ylabel": ylabel,
-			"title": title,
-			"groupcolors": groupcolors,
-			"groupshow": groupshow,
-			"groupnames": groupnames,
-			"formats": formats,
-			"groupby": groupby,
-			"xparam": xparam,
-			"yparam": yparam,
-			"width": width,
-			"xmin": nr[0],
-			"xmax": nr[2],
-			"ymin": nr[1],
-			"ymax": nr[3],
-			"cutoff": cutoff
-		})
-
-		return q
 
 
 

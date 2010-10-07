@@ -46,8 +46,13 @@
 			this.searchinput = $('<input type="text" />');
 			this.searchinput.val(this.options.value);
 
-			this.searchinput.keyup(function() {
-				self.search(self.searchinput.val());
+			this.searchinput.keyup(function(e) {
+				var v = self.searchinput.val();
+				if (e.keyCode == '13') { 
+					e.preventDefault();
+					self.select(v);
+					}
+				self.search(v);
 			});
 
 			this.statusmsg = $('<span class="status">No Results</span>');

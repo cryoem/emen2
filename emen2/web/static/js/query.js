@@ -131,8 +131,6 @@
 		options: {
 			q: null,
 			show: true,
-			keywords: true,
-			plot: true,
 			ext_save: null,
 			ext_q: null,
 			//ext_reset: null,
@@ -164,111 +162,125 @@
 			this.built = 1;
 
 			this.container = $('<div class="query clearfix" />');
-			
-			var keywords = $(' \
-				<h4>Keywords</h4> \
-				<input type="text" name="q" value="" /> \
-			');
-			
+						
 			var m = $(' \
-				<h4>General</h4> \
-				<table><tr> \
-					<td>Protocol:</td><td><input type="text" name="rectype" /><input type="checkbox" name="rectype_recurse" /><img class="listicon" data-clear="rectype" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-					<td>Creator:</td><td><input type="text" name="creator" /> <img  class="listicon" data-clear="creator" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-				</tr><tr> \
-					<td>Child of</td><td><input type="text" name="parent" /><input type="checkbox" name="parent_recurse" /><img class="listicon" data-clear="parent" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-					<td>Parent of</td><td><input type="text" name="child" /> <img  class="listicon" data-clear="child" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-				</tr></table> \
-				<table class="constraints"> \
-					<thead><tr><th>Parameter</th><th>Operator</th><th>Value</th><th>Child Params</th><th>Search Parents</th><th style="width:30px"/></tr></thead> \
-					<tbody></tbody> \
+				<table cellpadding="0" cellspacing="0" > \
+					<thead> \
+						<tr> \
+							<th>Parameter</th> \
+							<th></th> \
+							<th>Value</th> \
+							<th></th> \
+							<th><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Reset</th> \
+						</tr> \
+					</thead> \
+					<tbody class="base constraints"> \
+						<tr> \
+							<td><input type="hidden" name="param" value="*" />Keywords</td> \
+							<td><input type="hidden" name="cmp" value="contains" /></td> \
+							<td><input type="text" name="value"/></td> \
+							<td></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr><tr class="s"> \
+							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
+							<td><input type="hidden" name="cmp" value="==" /></td> \
+							<td><input type="text" name="value" class="findrecorddef" /></td> \
+							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr><tr> \
+							<td><input type="hidden" name="param" value="creator" />Creator</td> \
+							<td><input type="hidden" name="cmp" value="==" /></td> \
+							<td><input type="text" name="value" class="finduser" /></td> \
+							<td></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr><tr class="s"> \
+							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
+							<td><input type="hidden" name="cmp" value="contains" /></td> \
+							<td><input type="text" name="value" class="finduser" /></td> \
+							<td></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr><tr> \
+							<td><input type="hidden" name="param" value="groups" />Groups</td> \
+							<td><input type="hidden" name="cmp" value="contains" /></td> \
+							<td><input type="text" name="value" class="findgroup" /></td> \
+							<td></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr><tr class="s"> \
+							<td><input type="hidden" name="param" value="parent" />Child Of</td> \
+							<td><input type="hidden" name="cmp" value="recid" /></td> \
+							<td><input type="text" name="value" class="findrecord" /></td> \
+							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
+							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+						</tr> \
+					</tbody> \
+					<tbody class="param constraints"></tbody> \
 				</table> \
-				<h4>Options</h4> \
-				<p>Match \
-					<input type="radio" value="AND" name="boolmode" checked="checked"> all <input type="radio" value="OR" name="boolmode"> any \
-					<input type="checkbox" checked="checked" name="ignorecase" /> Case Insensitive</p> \
+				<table> \
+					<thead> \
+						<tr> \
+							<th colspan="4">Plot</th> \
+						</tr> \
+					</thead> \
+					<tbody> \
+						<tr> \
+							<td>X <input type="text" name="xparam" value="" class="findparamdef" /></td> \
+							<td>Y <input type="text" name="yparam" value="" class="findparamdef"/></td> \
+							<td>Group By <input type="text" name="groupby" value="" class="findparamdef" /></td> \
+							<td><select><option value="xy">X-Y Scatter</option><option value="histogram">Histogram</option></select></td> \
+						</tr> \
+					</tbody> \
+				</table> \
 				');
 
-			
-			var plot = $(' \
-				<h4>Plot</h4> \
-				<p>X <input type="text" name="xparam" value="" /> Y <input type="text" name="yparam" value="" /></p>');
-
-			// var plot = $(' \
-			// 	<h4>Plot</h4> \
-			// 	<table cellpadding="0" cellspacing="0"> \
-			// 		<thead><th /><th>Param</th><th>Min</th><th>Max</th></tr></thead> \
-			// 		<tbody> \
-			// 			<tr><td>X</td><td><input type="text" name="xparam" value="" /></td><td><input type="text" name="xmin" /></td><td><input type="text" name="xmax" /></td></tr> \
-			// 			<tr><td>Y</td><td><input type="text" name="yparam" value="" /></td><td><input type="text" name="ymin" /></td><td><input type="text" name="ymax" /></td></tr> \
-			// 		</tbody> \
-			// 	</table> \
-			// 	<p>Output: <input type="checkbox" name="png" checked="checked" /> PNG <input type="checkbox" name="pdf" /> PDF <input type="text" name="width" value="800" /> Pixels </p> \
-			// ');
-
-			// Append
-			if (this.options.keywords) {
-				this.container.append(keywords);
-			}
-
 			this.container.append(m);
-			
-			if (this.options.plot) {
-				this.container.append(plot);
-			}
+			$('.findrecord', this.container).Browser({});
+			$('.finduser', this.container).FindControl({mode: 'finduser'});
+			$('.findgroup', this.container).FindControl({mode: 'findgroup'});
+			$('.findrecorddef', this.container).FindControl({mode: 'findrecorddef'});
+			$('.findparamdef', this.container).FindControl({mode: 'findparamdef'});
 
-
-			$('input[name=xparam]', this.container).FindControl({mode: 'findparamdef'});			
-			$('input[name=yparam]', this.container).FindControl({mode: 'findparamdef'});			
-			$('input[name=rectype]', this.container).FindControl({mode: 'findrecorddef'});			
-			$('input[name=creator]', this.container).FindControl({mode: 'finduser'});
-			$('input[name=parent]', this.container).Browser({});
-			$('input[name=child]', this.container).Browser({});
-			
-			// var controls = $('<div class="controls"></div>');
-			// if (this.options.ext_reset) {
-			// 	this.options.ext_reset.click(function() {self.reset()});
-			// } else {
-			// 	controls.append('<input type="button" value="Reset" name="reset" />');
-			// }
-
-			// controls.append('<input type="button" value="Demo Plot" name="demo" />');
-			// if (!this.options.ext_save || !this.options.ext_reset) {
-			// 	this.container.append(controls);
-			// }
-
-			// $('input[name=query]', controls).click(function() {self.query()});
-			// $('input[name=reset]', controls).click(function() {self.reset()});
-			// $('input[name=demo]', controls).click(function() {self.demo()});
 			if (!this.options.ext_save) {
 				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Query" name="save" /></div>');
 				this.container.append(this.options.ext_save);
 			}
-			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});
 			
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});			
 
-			$('.listicon', this.container).click(function() {
-				var clearselector = $(this).attr('data-clear');
-				$('input[name='+clearselector+']').val('');
+			$('thead .listicon', this.container).click(function(e) {
+				$('.constraints tr').each(function(){self.clear($(this))});
+			});
+
+			$('.constraints .listicon', this.container).click(function(e) {
+				self.event_clear(e, true);
 			});
 			
 			this.element.append(this.container);						
 			this.update();
 		},
 		
+		event_clear: function(e, base) {
+			var t = $(e.target).parent().parent();
+			this.clear(t);
+		},
+		
+		clear: function(t) {
+			var base = t.parent().hasClass('base');
+			$('input[name=value]', t).val('')
+			$('input[name=recurse_p]', t).attr('checked', null);
+			$('input[name=parents_p]', t).attr('checked', null);
+			$('input[name=recurse_v]', t).attr('checked', null);
+			$('input[name=parents_v]', t).attr('checked', null);
+			if (!base) {
+				$('input[name=param]', t).val('');
+				$('select[name=cmp]', t).val('==');
+			}			
+		},
+		
 		demo: function() {
 			$("input[name=xparam]", this.element).val('ctf_defocus_measured');
-			$("input[name=yparam]", this.element).val('ctf_bfactor');
-			
+			$("input[name=yparam]", this.element).val('ctf_bfactor');			
 		},
-		
-		reset: function() {
-			this.options.q = {};
-			$.extend(this.options.q, this.oq);
-			//this.query();
-			this.update();
-		},
-		
+				
 		query_bookmark: function(self, q) {
 			//cmp_order = ["==", "!=", ".!contains.", ".contains.", ">=", "<=", ">", "<", ".!None.", '.recid.']
 			var lut = {
@@ -305,69 +317,38 @@
 
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
-
 			var xparam = $('input[name=xparam]', this.container).val();
 			var yparam = $('input[name=yparam]', this.container).val();
+			var groupby = $('input[name=groupby]', this.container).val();
 			if (xparam || yparam) {
 				newq['xparam'] = xparam;
 				newq['yparam'] = yparam;
-				newq['formats'] = ['png'];
-
-				// var xmin = $('input[name=xmin]', this.container).val();
-				// if (xmin) {newq["xmin"]=xmin}
-				// var xmax = $('input[name=xmax]', this.container).val();
-				// if (xmax) {newq["xmax"]=xmax}
-				// var ymin = $('input[name=ymin]', this.container).val();
-				// if (ymin) {newq["ymin"]=ymin}
-				// var ymax = $('input[name=ymax]', this.container).val();
-				// if (ymax) {newq["ymax"]=ymax}
-				// var width = $('input[name=width]', this.container).val();
-				// if (width) {newq["width"]=width}
-			}
-
-			var rectype = $('input[name=rectype]', this.container).val();			
-			var rectype_recurse = $('input[name=rectype_recurse]', this.container).attr('checked');
-			if (rectype_recurse && rectype) {
-				rectype = rectype + '*';
-			}
-			
-			if (rectype) {c.push(['rectype', '==', rectype])}
-
-			var creator = $('input[name=creator]', this.container).val();
-			if (creator) {c.push(['creator', '==', creator])}
-
-
-			var parent = $('input[name=parent]', this.container).val();
-			var parent_recurse = $('input[name=parent_recurse]', this.container).attr('checked');
-			if (parent_recurse && parent) {
-				parent = parent + '*';
-			}
-			if (parent) {c.push(['parent', 'recid', parent])}
-
-			var child = $('input[name=child]', this.container).val();
-			if (child) {c.push(['child', 'recid', child])}
-
-			var q = $('input[name=q]').val();
-			if (this.options.ext_q) {
-				q = $('input[name=q]', this.options.ext_q).val();
+				newq['groupby'] = groupby;
+				//newq['formats'] = ['png'];
 			}
 						
-			$('.constraints .constraint', this.container).each(function() {
+			$('.constraints tr', this.container).each(function() {
 				var param = $('input[name=param]', this).val();
-				var cmp = $('select[name=cmp]', this).val();
+				var cmp = $('[name=cmp]', this).val();
 				var value = $('input[name=value]', this).val();
-				var childparams = $('input[name=childparams]', this).attr('checked');
-				var parents = $('input[name=parents]', this).attr('checked');
-				if (param && childparams) {param = param+'*'}
-				if (param && parents) {param = param+'^'}
-				if (param && cmp) { c.push([param, cmp, value]) }
+
+				// These two recurse/parent checks are kindof ugly..
+				var recurse_v = $('input[name=recurse_v]', this).attr('checked');
+				var parents_v = $('input[name=parents_v]', this).attr('checked');
+				if (value && recurse_v) {value = value+'*'}
+				if (value && parents_v) {value = value+'^'}
+
+				var recurse_p = $('input[name=recurse_p]', this).attr('checked');
+				var parents_p = $('input[name=parents_p]', this).attr('checked');
+				if (param && recurse_p) {param = param+'*'}
+				if (param && parents_p) {param = param+'^'}
+
+				if (param && cmp && value) { c.push([param, cmp, value]) }
 			});
-			
 			newq['c'] = c;
 			
 			if (ignorecase) {newq['ignorecase'] = 1}
 			if (boolmode) {newq['boolmode'] = boolmode}
-			if (q) {newq['q'] = q}		
 			return newq
 		},
 		
@@ -380,30 +361,29 @@
 			param = param || '';
 			cmp = cmp || '';
 			value = value || '';
-			var childparams = false;
+			var recurse = false;
 			var parents = false;
 			var self = this;
 			var cmpi = this.build_cmp(cmp);
 
-			if (param.indexOf('*') != -1) {
+			if (param.search('\\*') > -1) {
 				param = param.replace('*', '');
-				childparams = true;
+				recurse = true;
 			}	
 			
-			if (param.indexOf('^') != -1) {
+			if (param.search('\\^') > -1) {
 				param = param.replace('^', '');
 				parents = true;
 			}	
 
-			var newconstraint = $('<tr class="constraint">')
-				.append('<td><input type="text" name="param" value="'+param+'" size="15" /></td>')
+			var newconstraint = $('<tr>')
+				.append('<td><input type="text" name="param" value="'+param+'" /></td>')
 				.append($('<td/>').append(cmpi))
-				.append('<td><input type="text" name="value" value="'+value+'" size="10"  /></td>')
-				.append('<td><input name="childparams" type="checkbox" />')
-				.append('<td><input name="parents" type="checkbox" />');
+				.append('<td><input type="text" name="value" value="'+value+'" /></td>')
+				.append('<td><input name="recurse_p" type="checkbox" /><label>Child Parameters &nbsp;&nbsp; <input name="parents_p" type="checkbox" /><label>Also search parents</td>');
 
-			if (childparams) {$('input[name=childparams]', newconstraint).attr('checked', 'checked')}
-			if (parents) {$('input[name=parents]', newconstraint).attr('checked', 'checked')}
+			if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
+			if (parents) {$('input[name=parents_p]', newconstraint).attr('checked', 'checked')}
 
 			var controls = $('<td />');
 
@@ -411,14 +391,14 @@
 			addimg.click(function() {self.addconstraint()});
 
 			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" />');
-			removeimg.click(function() {
-				if ($('.constraints .constraint', self.element).length > 1) {$(this).parent().parent().remove()}
+			removeimg.click(function(e) {
+				self.event_clear(e, false);
 			});
 
 			controls.append(addimg, removeimg);
 			newconstraint.append(controls);
 			$('input[name=param]', newconstraint).FindControl({mode: 'findparamdef'});
-			$('.constraints', this.container).append(newconstraint);
+			$('.param.constraints', this.container).append(newconstraint);
 		},
 		
 		build_cmp: function(cmp) {
@@ -447,51 +427,63 @@
 		
 		update: function(q) {
 			q = q || this.options.q;
-			this.options.q = q;
-			
+			this.options.q = q;			
 			var self = this;
-			$('.constraints tbody', this.container).empty();
+			$('.constraints tbody.base input[name=value]', this.container).val('');
+			$('.constraints tbody.param', this.container).empty();
 
-			// if (this.options.q['q'] != null) { // ? wtf in IE
-			// 	$('input[name=q]', this.container).val(this.options.q['q']);
-			// }
-			if (this.options.ext_q) {
-				$('input[name=q]', this.options.ext_q).val(this.options.q['q']);				
-			}
+			// var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
+			// var boolmode = $('input[name=boolmode]:checked', this.container).val();
+			// var xparam = $('input[name=xparam]', this.container).val();
+			// var yparam = $('input[name=yparam]', this.container).val();
+			// var groupby = $('input[name=groupby]', this.container).val();
+			if (this.options.q['xparam']!=null) {$('input[name=xparam]', this.container).val(this.options.q['xparam'])}
+			if (this.options.q['yparam']!=null) {$('input[name=yparam]', this.container).val(this.options.q['yparam'])}
+			if (this.options.q['groupby']!=null) {$('input[name=groupby]', this.container).val(this.options.q['groupby'])}
 
 			$.each(this.options.q['c'], function() {
-
-				if (this[0] == 'rectype' && this[1] == '==') {
-
-					if (this[2].indexOf('*') > -1) {
-						this[2] = this[2].replace('*', '');
-						$('input[name=rectype_recurse]', this.container).attr('checked', 'checked')
-					}
-					$('input[name=rectype]', self.container).val(this[2])
-
-				} else if (this[0] == 'creator' && this[1] == 'recid') {
-
-					$('input[name=creator]', self.container).val(this[2])
-
-				} else if (this[0] == 'parent' && this[1] == 'recid') {
-					this[2] = String(this[2]);
-					if (this[2].indexOf('*') > -1) {
-						this[2] = this[2].replace('*', '');
-						$('input[name=parent_recurse]', this.container).attr('checked', 'checked');
-					}					
-					$('input[name=parent]', self.container).val(this[2]);
+				// Another ugly block to deal with these items..
+				var param = this[0];
+				var cmpi = this[1];
+				var value = this[2];
+				var recurse_p = false;
+				var parents_p = false;
+				var recurse_v = false;
+				var parents_v = false;
+				if (param.search('\\*') > -1) { 
+					recurse_p = true;
+					param = param.replace('*', '');
+				}
+				if (param.search('\\^') > -1) {
+					parents_p = true;
+					param = param.replace('^', '');
+				}
+				if (value.search('\\*') > -1) { 
+					recurse_v = true;
+					value = value.replace('*', '');
+				}
+				if (value.search('\\^') > -1) {
+					parents_v = true;
+					value = value.replace('^', '');
+				}
+				var finditem = $('.base.constraints input[name=param][value='+param+']', this.element);
+				if (finditem.length > 0) {
+					var tr = finditem.parent().parent();
+					// console.log('found tr', tr, this);
+					$('input[name=cmp]', tr).val(cmpi);
+					$('input[name=value]', tr).val(value);
+					if (recurse_p) {$('input[name=recurse_p]', tr).attr('checked', 'checked')} else {$('input[name=recurse_p]', tr).attr('checked', null)}
+					if (parents_p) {$('input[name=parents_p]', tr).attr('checked', 'checked')} else {$('input[name=parents_p]', tr).attr('checked', null)}
+					if (recurse_v) {$('input[name=recurse_v]', tr).attr('checked', 'checked')} else {$('input[name=recurse_v]', tr).attr('checked', null)}
+					if (parents_v) {$('input[name=parents_v]', tr).attr('checked', 'checked')} else {$('input[name=parents_V]', tr).attr('checked', null)}
 
 				} else {
-
-					self.addconstraint(this[0], this[1], this[2]);
-
+					self.addconstraint(this[0], this[1], this[2]);					
 				}
+
 			});
-			
+
 			this.addconstraint();
-			if (this.options.q['ignorecase']) {
-				$('input[name=ignorecase]', this.container).attr('checked', 'checked')
-			}
 
 		},		
 				
