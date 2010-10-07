@@ -522,7 +522,7 @@ class DB(object):
 		# print "New txn flags are: %s"%flags
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		#print "\n\nNEW TXN --> %s"%txn
+		g.log.msg('LOG_TXN', "NEW TXN --> %s"%txn)
 
 		try:
 			type(self).txncounter += 1
@@ -551,7 +551,7 @@ class DB(object):
 		"""Abort txn; accepts txnid or txn instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		#g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
+		g.log.msg('LOG_TXN', "TXN ABORT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
 
 		if txn:
@@ -568,7 +568,7 @@ class DB(object):
 		"""Commit txn; accepts txnid or instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		#g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
+		g.log.msg("LOG_TXN","TXN COMMIT --> %s"%txn)
 		#g.log.print_traceback(steps=5)
 
 		if txn != None:
