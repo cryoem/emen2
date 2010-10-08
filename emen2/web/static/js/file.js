@@ -301,8 +301,8 @@
 			if (this.options.vartype == "binaryimage") {
 				keep = keep[0];
 			}
-			$.jsonRPC("putrecordvalue",
-				[this.options.recid, this.options.param, keep],
+			$.jsonRPC("putrecordvalues",
+				[this.options.recid, {this.options.param:keep}],
 				function(rec) {
 					record_update(rec);
 					self.event_build_tablearea();
