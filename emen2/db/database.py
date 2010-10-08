@@ -231,7 +231,7 @@ class DB(object):
 
 		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
 			"""Parameter values are indexed with 1 db file per param, stored in index/params/*.bdb.
-			Key is param value, values are list of recids, stored using duplicate method.
+			Key is param value, values are list of recids, stored using BDB duplicate keys method.
 			The opened param will be available in self.fieldindex[paramname] after open.
 
 			@param paramname Param index to open
@@ -269,9 +269,12 @@ class DB(object):
 			[self.__closeparamindex(x) for x in self.fieldindex.keys()]
 
 
+
+
 	#@staticmethod
 	def __init_vtm(self):
 		"""Load vartypes, properties, and macros"""
+		
 		vtm = emen2.db.datatypes.VartypeManager()
 
 		self.indexablevartypes = set()
@@ -286,9 +289,12 @@ class DB(object):
 
 		return vtm
 
-	def __init_dbenv(self):
-		global DBENV
 
+
+	def __init_dbenv(self):
+		"""Setup DBEnv"""
+
+		global DBENV
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
@@ -297,7 +303,11 @@ class DB(object):
 		return DBENV
 
 
+
+
 	def __checkdirs(self):
+		"Check that all necessary directories referenced from config file exist"
+		
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
 
@@ -319,10 +329,12 @@ class DB(object):
 			shutil.copy(infile, configpath)
 
 
-	def __init__(self, path=None, bdbopen=True):
-		"""Init DB
-		@keyparam path Path to DB (default=cwd)
-		@keyparam bdbopen Open databases in addition to DBEnv (default=True)
+
+	def __init__(self, path=None, maint=False):
+		"""Initialize DB
+		
+		@keyparam path Path to DB (default is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments; see db.config)
+		@keyparam maint Open in maintenance mode; only the environment will be created; no bdbs will be opened.
 		"""
 
 		self.path = path or g.EMEN2DBHOME
@@ -345,7 +357,8 @@ class DB(object):
 		self.dbenv = self.__init_dbenv()
 
 		# If we are just doing backups or maintenance, don't open any BDB handles
-		if not bdbopen: return
+		if maint:
+			return
 
 		# Open Database
 		txn = self.newtxn()
@@ -364,7 +377,8 @@ class DB(object):
 			g.log.msg('LOG_INFO',"Could not open database! %s"%e)
 			self.txnabort(txn=txn)
 			raise
-		else: self.txncommit(txn=txn)
+		else:
+			self.txncommit(txn=txn)
 
 
 
@@ -375,7 +389,10 @@ class DB(object):
 
 	def create_db(self, rootpw=None, ctx=None, txn=None):
 		"""Creates a skeleton database; imports users/params/protocols/etc. from emen2/skeleton/core_*
-		This is usually called from the setup.py script to create initial db env"""
+		This is usually called from the setup.py script to create initial db env
+
+		@keyparam rootpw Root password for new database
+		"""
 
 		# typically uses SpecialRootContext
 		from emen2 import skeleton
@@ -430,6 +447,7 @@ class DB(object):
 
 	def __del__(self):
 		"""Close DB when deleted"""
+		
 		self.close()
 
 
@@ -446,6 +464,8 @@ class DB(object):
 		self.dbenv.close()
 
 
+
+	# @remove
 	# ian: todo: there is a better version in emen2.util.listops
 	def __flatten(self, l):
 		"""Flatten an iterable of iterables recursively into a single list"""
@@ -467,7 +487,8 @@ class DB(object):
 
 	def newtxn(self, parent=None, ctx=None, flags=None):
 		"""Start a new transaction.
-		@keyparam parent Parent txn
+		
+		@keyparam parent Open new txn as a child of this parent txn
 		@return New txn
 		"""
 		
@@ -490,6 +511,7 @@ class DB(object):
 
 	def txncheck(self, txnid=0, flags=None, ctx=None, txn=None):
 		"""Check a txn status; accepts txnid or txn instance
+		
 		@return txn if valid
 		"""
 		txn = self.txnlog.get(txnid, txn)
@@ -544,7 +566,7 @@ class DB(object):
 		"""Returns current version of API or specified program
 
 		@keyparam program Check version for this program (API, emen2client, etc.)
-
+		@return Version string
 		"""
 		return VERSIONS.get(program)
 
@@ -555,8 +577,7 @@ class DB(object):
 	def gettime(self, ctx=None, txn=None):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
 
-		@return DB time date string
-
+		@return Date string of current DB time
 		"""
 		return gettime()
 
@@ -577,15 +598,11 @@ class DB(object):
 
 		@keyparam username Account username
 		@keyparam password Account password
-		@keyparam host Bind to this host
-		@keyparam maxidle Maximum idle time
-
+		@keyparam host Bind to this host (usually set by proxy access method)
 		@return Context key (ctxid)
-
 		@exception AuthenticationError, KeyError
 		"""
-
-		
+	
 		if maxidle == None or maxidle > g.MAXIDLE:
 			maxidle = g.MAXIDLE
 
@@ -624,9 +641,9 @@ class DB(object):
 
 		return newcontext.ctxid
 
+
 	# backwards compat
 	_login = login
-
 
 
 
@@ -634,6 +651,7 @@ class DB(object):
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
+
 		self.__commit_context(ctx.ctxid, None, ctx=ctx, txn=txn)
 		return True
 
@@ -643,8 +661,10 @@ class DB(object):
 	@publicmethod("auth.whoami")
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
-		@return Tuple: (username, groups)
+
+		@return (context username, context groups)
 		"""
+		
 		return ctx.username, ctx.groups
 
 
@@ -653,7 +673,8 @@ class DB(object):
 	@publicmethod("auth.check.admin")
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
-		@return bool
+		
+		@return Bool; True if user is an admin
 		"""
 		return ctx.checkadmin()
 
@@ -663,7 +684,8 @@ class DB(object):
 	@publicmethod("auth.check.readadmin")
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
-		@return bool
+		
+		@return Bool; True if user is a read admin
 		"""
 		return ctx.checkreadadmin()
 
@@ -673,7 +695,8 @@ class DB(object):
 	@publicmethod("auth.check.create")
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
-		@return bool
+
+		@return Bool; True if the user can create records
 		"""
 		return ctx.checkcreate()
 
@@ -684,7 +707,6 @@ class DB(object):
 
 		@keyparam username Username (default "anonymous")
 		@keyparam host Host
-
 		@return Context instance
 		"""
 				
@@ -699,6 +721,7 @@ class DB(object):
 
 	def __makerootcontext(self, ctx=None, host=None, txn=None):
 		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
+
 		ctx = emen2.db.context.SpecialRootContext()
 		ctx.refresh(db=self)
 		ctx._setDBProxy(txn=txn)
@@ -712,7 +735,6 @@ class DB(object):
 
 		@param username Username
 		@return User instance
-
 		@exception AuthenticationError
 		"""
 
@@ -732,7 +754,6 @@ class DB(object):
 
 		@param ctxid ctxid key
 		@param context Context instance
-
 		@exception KeyError, DBError
 		"""
 
@@ -797,17 +818,13 @@ class DB(object):
 
 
 
-	# ian: todo: hard:
-	#		how often should we refresh groups?
-	#		right now, every publicmethod will reset user/groups
-	#		timer based?
+	# how often should we refresh groups? right now, every publicmethod will reset user/groups. timer based?
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
 		"""(Internal and DBProxy) Takes a ctxid key and returns a context. Note that both key and host must match.
+
 		@param ctxid ctxid
 		@param host host
-
 		@return Context
-
 		@exception SessionError
 		"""
 		
@@ -855,18 +872,19 @@ class DB(object):
 
 
 	@publicmethod("binaries.get")
-	def getbinary(self, bdokeys=None, q=None, filt=True, params=None, ctx=None, txn=None):
+	def getbinary(self, bdokeys=None, q=None, filt=True, ctx=None, txn=None):
 		"""Get Binary objects from ids or references. Binaries include file name, size, md5, associated record, etc. Each binary has an ID, aka a 'BDO'
 
 		@param bdokeys A single binary ID, or an iterable containing: records, recids, binary IDs
+		@keyparam q Return binaries found in the result of this Query
 		@keyparam filt Ignore failures
-		@keyparam params For record search, limit to (single/iterable) params
-
 		@return A single Binary instance or a list of Binaries
-
 		@exception KeyError, SecurityError
 		"""
-
+		
+		# params=None, 
+		# @keyparam params For record search, limit to (single/iterable) params
+		
 		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
 
 		# process bdokeys argument for bids (into list bids) and then process bids
@@ -893,8 +911,9 @@ class DB(object):
 		recs.extend(x for x in bdokeys if isinstance(x,emen2.db.record.Record))
 
 		if recs:
+			# ian: todo: this needs more speed. Maybe I should index params by vartype?
 			# get the params we're looking for
-			params = params or self.getparamdefnames(ctx=ctx, txn=txn)
+			params = self.getparamdefnames(ctx=ctx, txn=txn)
 			params = self.getparamdef(params, ctx=ctx, txn=txn)
 			params_binary = filter(lambda x:x.vartype=="binary", params) or []
 			params_binaryimage = filter(lambda x:x.vartype=="binaryimage", params) or []
@@ -961,8 +980,16 @@ class DB(object):
 
 
 	@publicmethod("binaries.put", write=True)
-	def putbinary(self, bdokey=None, recid=None, param=None, filename=None, infile=None, uri=None, ctx=None, txn=None):
-		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries."""
+	def putbinary(self, bdokey=None, recid=None, filename=None, infile=None, uri=None, ctx=None, txn=None):
+		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
+		
+		@keyparam bdokey Update an existing BDO. Only the filename and record ID can be updated.
+		@keypram recid Link Binary to this Record
+		@keyparam filename Filename
+		@keyparam infile A file-like object (hasattr read) or a string
+		@keyparam uri Binary source
+		@return Binary instance
+		"""
 
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add BDOs"
@@ -1048,6 +1075,14 @@ class DB(object):
 
 
 	def __putbinary_file(self, filename=None, infile=None, dkey=None, ctx=None, txn=None):
+		"""(Internal) Behind the scenes -- read infile out to a temporary file. The temporary file will be renamed to the final destination when everything else is cleared.
+
+		@keyparam filename
+		@keyparam infile
+		@keyparam dkey Binary Key -- see staticmethod Binary.parse
+
+		@return Temporary file path, the file size, and an md5 digest.
+		"""
 
 		closefd = True
 		if hasattr(infile, "read"):
@@ -1167,6 +1202,9 @@ class DB(object):
 
 
 	def __query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
+		"""(Internal) Group query constraints"""
+
+
 		param = self.__query_paramstrip(groupparam)
 
 		if param == "rectype":
@@ -1320,6 +1358,12 @@ class DB(object):
 
 
 	def __query_cmps(self, ignorecase=1):
+		"""(Internal) Return the list of query constraint operators.
+
+		@keyparam ignorecase Use case-insensitive query operators
+		@return dict of query operators
+		"""
+
 		# y is argument, x is record value
 		cmps = {
 			"==": lambda y,x:x == y,
@@ -1345,6 +1389,7 @@ class DB(object):
 
 
 	def __query_paramstrip(self, param):
+		"""(Internal) Return basename of param"""
 		return param.replace("*","").replace("^","")
 
 
@@ -1352,6 +1397,7 @@ class DB(object):
 	# This is just a start -- clean up the idea here..
 	@publicmethod("records.find.plot")
 	def plot(self, *args, **kwargs):
+		"""docstring coming soon"""
 		
 		mode = kwargs.get('mode', 'date')
 		
@@ -1368,6 +1414,7 @@ class DB(object):
 
 	@publicmethod("records.find.table")
 	def querytable(self, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
+		"""doctstring coming soon"""
 		
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
@@ -1438,7 +1485,16 @@ class DB(object):
 
 	@publicmethod("records.sort")
 	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
-		"""Sort recids based on a param or macro."""
+		"""Sort recids based on a param or macro.
+		
+		@param recids Sort these recids
+		@keyparam param Sort parameter. Can also be a macro in macro view format, e.g.: $@childcount(image_capture*)
+		@keyparam reverse Reverse results
+		@keyparam rendered Sort the values based on "rendered" representation
+		@keyparam pos Slice results: result[pos:pos+count]
+		@keyparam count Slice results: result[pos:pos+count]
+		@return Sorted list of records
+		"""
 
 		param = param or "recid"
 		reverse = bool(reverse)
@@ -1532,7 +1588,7 @@ class DB(object):
 
 	@publicmethod("recorddefs.find")
 	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
-		"""Find a recorddef, by general search string, or by name/desc_short/desc_long/mainview/childof
+		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview/childof
 
 		@keyparam query Contained in any item below
 		@keyparam name ... contains in name
@@ -1540,8 +1596,8 @@ class DB(object):
 		@keyparam desc_long ... contains in long description
 		@keyparam mainview ... contains in mainview
 		@keyparam childof ... is child of
-
-		@return list of matching recorddefs
+		@keyparam limit Limit number of results
+		@return list of matching RecordDefs
 		"""
 		return self.__find_pd_or_rd(query=query, keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
@@ -1551,6 +1607,7 @@ class DB(object):
 
 	@publicmethod("paramdefs.find")
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
+		"""@see findrecorddef"""
 		return self.__find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
 
@@ -1560,15 +1617,13 @@ class DB(object):
 		return dict(filter(lambda x:len(x[1])>0, d.items()))
 
 
-
-
 	def __filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
 
 
-
-
 	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
+		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
+		
 		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
 		# context of where query was found
 		c = {}
@@ -1633,7 +1688,7 @@ class DB(object):
 
 		@keyparam query Match this filename
 		@keyparam broad Try variations of filename (extension, partial matches, etc..)
-
+		@keyparam limit Limit number of results
 		@return list of matching binaries
 		"""
 		if limit: limit=int(limit)
@@ -1670,8 +1725,7 @@ class DB(object):
 		@keyparam name_last ... contains in last name
 		@keyparam username ... contains in username
 		@keyparam boolmode 'AND' / 'OR'
-		@keyparam limit Limit number of items
-
+		@keyparam limit Limit number of results
 		@return list of matching user instances
 		"""
 
@@ -1719,9 +1773,7 @@ class DB(object):
 		"""Find a group.
 
 		@param query
-
 		@keyparam limit Limit number of items
-
 		@return list of matching groups
 		"""
 		built_in = set(["anon","authenticated","create","readadmin","admin"])
@@ -1745,15 +1797,14 @@ class DB(object):
 	# query should replace this...
 	@publicmethod("records.find.byvalue")
 	def findvalue(self, param, query, count=True, showchoices=True, limit=100, ctx=None, txn=None):
-		"""Find values for a parameter.
+		"""Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
+		More detailed results can be performed using db.query.
 
 		@param param Parameter to search
-		@param query Match this
-
+		@param query Value to match
 		@keyparam limit Limit number of results
 		@keyparam showchoices Include any defined param 'choices'
 		@keyparam count Return count of matches, otherwise return recids
-
 		@return if count: [[matching value, count], ...]
 				if not count: [[matching value, [recid, ...]], ...]
 		"""
@@ -1811,12 +1862,9 @@ class DB(object):
 	@publicmethod("records.find.byrecorddef")
 	def getindexbyrecorddef(self, recdefs, ctx=None, txn=None):
 		"""Records by Record Def. This is currently non-secured information.
-
-		@param recdef A single or iterable Record Def name
-
-		@keyparam filt Filter by permissions
-
-		@return List of recids
+		
+		@param recdef Single or iterable RecordDef names
+		@return Set of recids
 		"""
 
 		ol, recdefs = listops.oltolist(recdefs)
@@ -1840,11 +1888,9 @@ class DB(object):
 		"""Query a param index, returned in a dict keyed by value.
 
 		@param param parameter name
-
 		@keyparam valrange tuple of (min, max) values to search
-		@keyparam subset restrict to record subset
-
-		@return Return dict with recids as key, param value as values
+		@keyparam subset Restrict to this subset of Record IDs
+		@return Dict, key=recids, param value as values
 		"""
 
 		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
@@ -1884,7 +1930,14 @@ class DB(object):
 
 
 	@publicmethod("records.find.bypermissions")
-	def getindexbypermissions(self, recids=None, users=None, groups=None, ctx=None, txn=None):
+	def getindexbypermissions(self, uers=None, groups=None, subset=None, ctx=None, txn=None):
+		"""Search permission indexes. Useful for seeing where permissions have been set.
+		
+		@keyparam users Single or iterable list of users
+		@keyparam groups Single or iterable list of groups
+		@keyparam subset Restrict to this subset of Record IDs
+		@return Filtered set of records matching users/groups specified
+		"""
 		ret = set()
 		
 		if users:
@@ -1902,20 +1955,23 @@ class DB(object):
 				ret |= v
 		
 		
-		if ctx.checkreadadmin() and not recids:
+		if ctx.checkreadadmin() and not subset:
 			return ret
 
-		if recids:
-			ret &= recids
+		if subset:
+			ret &= subset
 			
 		return self.__filterbypermissions(ret, ctx=ctx, txn=txn)
 			
 		
 
+
 	@publicmethod("records.list")
 	def getindexbycontext(self, ctx=None, txn=None):
 		"""Return all readable recids
-		@return All readable recids"""
+
+		@return Set of all readable recids
+		"""
 
 		if ctx.checkreadadmin():
 			return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
@@ -1965,7 +2021,6 @@ class DB(object):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed by their recorddef
 
 		@param recids
-
 		@return dict, key is recorddef, value is set of recids
 		"""
 
@@ -3747,9 +3802,7 @@ class DB(object):
 	@publicmethod("records.updates", write=True)
 	def putrecordsvalues(self, d, ctx=None, txn=None):
 		"""dict.update()-like operation on a number of records
-
 		@param d A dict (key=recid) of dicts (key=param, value=new value)
-
 		@return Updated Records
 		"""
 
@@ -3767,9 +3820,7 @@ class DB(object):
 	@publicmethod("records.validate")
 	def validaterecord(self, rec, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
-
 		@param recs Record or iterable of Records
-
 		@return Validated Records
 		"""
 
@@ -3781,13 +3832,10 @@ class DB(object):
 	@publicmethod("records.put", write=True)
 	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
-
 		@param recs Record or iterable Records
 		@keyparam warning Bypass validation (Admin only)
 		@keyparam commit If False, do not actually commit (e.g. for valdiation)
-
 		@return Committed records
-
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 		
@@ -3810,7 +3858,7 @@ class DB(object):
 
 	# And now, a long parade of internal putrecord methods
 	def __putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
-		"""(Internal) Proess records for committing. If anything is wrong, raise an Exception, which will cancel the
+		"""(Internal) Process records for committing. If anything is wrong, raise an Exception, which will cancel the
 			operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
 			really serious DB errors should ever occur."""
 
@@ -4165,6 +4213,7 @@ class DB(object):
 
 
 
+
 	def __reindex_param(self, key, items, ctx=None, txn=None):
 		"""(Internal) calculate param index updates"""
 
@@ -4412,7 +4461,6 @@ class DB(object):
 	# this has gone internal, since it is almost always enforced
 	def __filterbypermissions(self, recids, ctx=None, txn=None):
 		"""Filter a list of Record IDs by read permissions.
-
 		@param recids Iterable of Record IDs
 		@return Set of accessible Record IDs
 		"""
