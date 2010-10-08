@@ -111,9 +111,7 @@ class DBProxy(object):
 
 	# Implements "with" interface
 	def __enter__(self):
-		if self.__txn:
-			self.__oldtxn = self.__txn
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
+		self._starttxn()
 		return self
 
 
@@ -138,7 +136,7 @@ class DBProxy(object):
 
 
 	def _starttxn(self, flags=None):
-		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
+		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, flags=flags)
 		return self
 
 
@@ -155,13 +153,13 @@ class DBProxy(object):
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
-		#with self:
-		try:
-			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.setdb(db=self)
-		except:
-			self.__ctx = None
-			raise
+		with self:
+			try:
+				self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
+				self.__ctx.setdb(db=self)
+			except:
+				self.__ctx = None
+				raise
 
 		self.__bound = True
 		return self
