@@ -155,13 +155,13 @@ class DBProxy(object):
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
-		with self:
-			try:
-				self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-				self.__ctx.setdb(db=self)
-			except:
-				self.__ctx = None
-				raise
+		#with self:
+		try:
+			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
+			self.__ctx.setdb(db=self)
+		except:
+			self.__ctx = None
+			raise
 
 		self.__bound = True
 		return self
