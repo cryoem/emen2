@@ -2021,7 +2021,7 @@ class DB(object):
 		"""This will take a set/list of record ids and return a dictionary of ids keyed by their recorddef
 
 		@param recids
-		@return dict, key is recorddef, value is set of recids
+		@return Dict, keys are RecordDef names, values are set of recids
 		"""
 
 		ol, recids = listops.oltolist(recids)
@@ -2085,13 +2085,11 @@ class DB(object):
 	def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get children.
 
-		@param keys A Record ID, RecordDef name, or ParamDef name
-
+		@param keys A (single or iterable) Record ID, RecordDef name, or ParamDef name
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
-
-		@return Set of children
+		@return Set of children. If request was an iterable, return a dict, with input keys for keys, and children for values
 		"""
 		# ok, some compatibility settings..
 		# def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
@@ -2105,6 +2103,8 @@ class DB(object):
 	# This is a new method -- might need some testing.
 	@publicmethod("rels.siblings")
 	def getsiblings(self, key, rectype=None, keytype="record", ctx=None, txn=None):
+		"""Get siblings of an item. @see getchildren."""
+
 		parents = self.getparents(key, keytype=keytype, ctx=ctx, txn=txn)
 		siblings = listops.combine(self.getchildren(parents, keytype=keytype, rectype=rectype, ctx=ctx, txn=txn).values(), dtype=list)
 		if siblings:
@@ -2116,7 +2116,7 @@ class DB(object):
 	#@rename db.<RelateBTree>.parents
 	@publicmethod("rels.parents")
 	def getparents(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
-		"""See getchildren"""
+		"""Get parents of an item. @see getchildren."""
 		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
 
 
@@ -2125,12 +2125,10 @@ class DB(object):
 	def getchildtree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get multiple children for multiple items.
 
-		@param keys Single or iterable key: Record IDs, RecordDef names, ParamDef names
-
+		@param keys A (single or iterable) Record ID, RecordDef name, or ParamDef name
 		@keyparam keytype Children of type: record, paramdef, or recorddef
 		@keyparam recurse Recursion level (default is 1, e.g. just immediate children)
 		@keyparam rectype For Records, limit to a specific rectype
-
 		@return Dict, keys are Record IDs or ParamDef/RecordDef names, values are sets of children for that key
 		"""
 		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
@@ -2145,7 +2143,7 @@ class DB(object):
 
 
 	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None):
-		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method."""
+		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method. This abstracts out rel=children/parents."""
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
@@ -2213,10 +2211,10 @@ class DB(object):
 		"""Remove parent/child relationships. See pclink/pcunlink.
 
 		@param links [[parent 1,child 1],[parent 2,child 2], ...]
-
 		@keyparam keytype Link this type: ["record","paramdef","recorddef"] (default is "record")
+		@return 
 		"""
-		return self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
+		self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -2228,10 +2226,9 @@ class DB(object):
 
 		@param pkey Parent
 		@param ckey Child
-
 		@keyparam Link this type: ["record","paramdef","recorddef"] (default is "record")
 		"""
-		return self.__link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+		self.__link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -2241,10 +2238,9 @@ class DB(object):
 
 		@param pkey Parent
 		@param ckey Child
-
 		@keyparam Link this type: ["record","paramdef","recorddef"] (default is "record")
 		"""
-		return self.__link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+		self.__link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -2338,6 +2334,12 @@ class DB(object):
 
 	@publicmethod("users.disable", write=True, admin=True)
 	def disableuser(self, usernames, filt=True, ctx=None, txn=None):
+		"""Disable a user. Admins-only.
+		
+		@param usernames Single or iterable list of usernames to disable
+		@keyparam filt Ignore failures
+		@return List of usernames disabled
+		"""
 		return self.__setuserstate(usernames=usernames, disabled=True, filt=filt, ctx=ctx, txn=txn)
 
 
@@ -2406,9 +2408,9 @@ class DB(object):
 	def approveuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Approve account in user queue
 
-		@param usernames List of accounts to approve from new user queue
-
+		@param usernames Single or iterabe list of accounts to approve from new user queue
 		@keyparam filt Ignore failures
+		@return List of usernames approved
 		"""
 
 		ol, usernames = listops.oltolist(usernames)
@@ -2519,9 +2521,9 @@ class DB(object):
 	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Remove a user from the pending new user queue
 
-		@param usernames List of usernames to reject from new user queue
-
+		@param usernames Single or iterable list of usernames to reject from new user queue
 		@keyparam filt Ignore failures
+		@return List of rejected users
 		"""
 
 		ol, usernames = listops.oltolist(usernames)
@@ -2554,7 +2556,7 @@ class DB(object):
 	def getuserqueue(self, ctx=None, txn=None):
 		"""Returns a list of names of unapproved users
 
-		@return list of names of approve users
+		@return Set of users in approval queue
 		"""
 		
 		if not ctx.checkadmin():
@@ -2569,7 +2571,6 @@ class DB(object):
 		"""Get user from new user queue.
 
 		@param username Username ot get from new user queue
-
 		@return User from user queue
 		"""
 
@@ -2585,6 +2586,13 @@ class DB(object):
 
 	@publicmethod("users.new")
 	def newuser(self, username, password, email, ctx=None, txn=None):
+		"""Construct a new User instance.
+		
+		@param username Required user field
+		@param password Required user field. See restrictionsin user.py.
+		@param email Required user field
+		@return New User
+		"""
 		user = emen2.db.user.User(username=username, password=password, email=email)
 		user.setContext(ctx)
 		return user
@@ -2602,7 +2610,6 @@ class DB(object):
 		"""Set privacy level for user information.
 
 		@state 0, 1, or 2, in increasing level of privacy.
-
 		@keyparam username Username to modify (admin only)
 		"""
 
@@ -2641,8 +2648,7 @@ class DB(object):
 
 		@param oldpassword
 		@param newpassword
-
-		@keyparam username Username to modify (admin only)
+		@keyparam username Username to modify (Admin only)
 		"""
 
 		if username:
@@ -2677,7 +2683,6 @@ class DB(object):
 		"""Change email
 
 		@param email
-
 		@keyparam username Username to modify (Admin only)
 		"""
 
@@ -2710,7 +2715,6 @@ class DB(object):
 		and errors with data entry. Anyone can create one of these.
 
 		@param user New user instance/dict
-
 		@return New user instance
 		"""
 
@@ -2740,6 +2744,8 @@ class DB(object):
 
 
 
+
+
 	#@write #self.bdbs.users
 	def __commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
@@ -2760,6 +2766,7 @@ class DB(object):
 				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
 				self.bdbs.usersbyemail.removerefs(oldemail.lower(), [user.username], txn=txn)
+
 
 
 
@@ -2786,14 +2793,12 @@ class DB(object):
 		"""Get user information. Information may be limited to name and id if the user
 		requested privacy. Administrators will get the full record
 
-		@param usernames A username, list of usernames, record, or list of records
-
+		@param usernames Single or iterable list of usernames or Record IDs
 		@keyparam filt Ignore failures
 		@keyparam lnf Get user 'display name' as Last Name First (default=False)
 		@keyparam getgroups Include user groups (default=False)
 		@keyparam getrecord Include user information (default=True)
-
-		@return Dict of users, keyed by username
+		@return List of users
 		"""
 
 		ol, usernames = listops.oltolist(usernames)
@@ -2875,9 +2880,9 @@ class DB(object):
 	#@rename db.groups.list
 	@publicmethod("groups.list")
 	def getgroupnames(self, ctx=None, txn=None):
-		"""Return a set of all group names
+		"""Return a set of all Group names
 
-		@return set of all group names
+		@return Set of all Group names
 		"""
 		return set(self.bdbs.groups.keys(txn=txn))
 
@@ -2889,9 +2894,7 @@ class DB(object):
 		"""Get a group, which includes the owners, members, etc.
 
 		@param groups A single or iterable of Group names
-
 		@keyparam filt Ignore failures
-
 		@return Group or list of groups
 		"""
 		ol, groups = listops.oltolist(groups)
