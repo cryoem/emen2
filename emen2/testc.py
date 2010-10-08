@@ -12,5 +12,5 @@ import emen2.util.listops
 import emen2.db.admin
 db = emen2.db.admin.opendb()
 
-print db.query(c=[['rectype','==','project'], ['creator','==','ianrees'], ['name_project','contains','Test']])
-print db.query(c=[['rectype','==','publication*'], ['creator', '==', 'ianrees']])
+# print db.query(c=[['rectype','==','project'], ['creator','==','ianrees'], ['name_project','contains','Test']])
+# print db.query(c=[['rectype','==','publication*'], ['creator', '==', 'ianrees']])

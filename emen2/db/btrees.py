@@ -235,6 +235,11 @@ class BTree(object):
 		return d
 
 
+	def gets(self, keys, txn=None, flags=0):
+		return map(self.loaddata, [self.bdb.get(self.dumpkey(i), txn=txn, flags=flags) for i in keys])
+		
+		
+
 	def get(self, key, default=None, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))

@@ -425,7 +425,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 
-	def setContext(self, ctx=None):
+	def setContext(self, ctx=None, filt=True):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
 		"""
@@ -438,7 +438,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# test for owner access in this context.
 		if self._ctx.checkreadadmin():
 			self.__ptest = [True, True, True, True]
-			return
+			return True
 
 
 		self.__ptest = [self._ctx.username in level for level in self.__permissions]
@@ -446,10 +446,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		for group in self.__groups & self._ctx.groups:
 			self.__ptest[self._ctx.grouplevels[group]] = True
 
-
-		if not any(self.__ptest):
+		if not filt and not any(self.__ptest):
 			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self['recid']
 
+		return self.__ptest[0]
 
 
 	def commit(self):

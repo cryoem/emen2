@@ -3745,18 +3745,7 @@ class DB(object):
 		"""
 
 		ol, recids = listops.oltolist(recids)
-		ret = []
-		# if filt: lfilt = self.bdbs.records.get....
-
-		for i in recids:
-			try:
-				rec = self.bdbs.records.sget(i, txn=txn)
-				rec.setContext(ctx)
-				ret.append(rec)
-			except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
-				if filt: pass
-				else: raise
-
+		ret = filter(lambda rec:rec.setContext(ctx), self.bdbs.records.gets(recids, txn=txn))
 		
 		if writable:
 			ret = filter(lambda x:x.writable(), ret)
