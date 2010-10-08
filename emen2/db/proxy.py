@@ -24,7 +24,7 @@ def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""
 	def _inner(func):
 		emen2.db.proxy.DBProxy._register_publicmethod(func, *args, **kwargs)
-		return func		
+		return func
 	return _inner
 
 
@@ -32,29 +32,30 @@ def publicmethod(*args, **kwargs):
 
 
 class MethodUtil(object):
-	def doc(self, func, *args, **kwargs):
+	allmethods = set(['doc'])
+	def help(self, func, *args, **kwargs):
 		return func.__doc__
 
 
 
 # def __request(self, methodname, params):
 #     # call a method on the remote server
-# 
+#
 #     request = dumps(params, methodname, encoding=self.__encoding,
 #                     allow_none=self.__allow_none)
-# 
+#
 #     response = self.__transport.request(
 #         self.__host,
 #         self.__handler,
 #         request,
 #         verbose=self.__verbose
 #         )
-# 
+#
 #     if len(response) == 1:
 #         response = response[0]
-# 
+#
 #     return response
-# 
+#
 
 
 class _Method(object):
@@ -72,7 +73,7 @@ class _Method(object):
 
 	def __call__(self, *args):
 		raise AttributeError, "No public method %s"%self._name
-		
+
 
 
 class DBProxy(object):
@@ -135,7 +136,7 @@ class DBProxy(object):
 
 	def _starttxn(self, flags=None):
 		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
-		
+
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
@@ -202,23 +203,27 @@ class DBProxy(object):
 		setattr(func, 'write', write)
 		setattr(func, 'admin', admin)
 		setattr(func, 'ext', ext)
-		
+
 		cls._publicmethods[func.apiname] = func
 		cls._publicmethods[func.func_name] = func
 
 
 
-	# Wrap DB calls to set Context and txn
 	def _callmethod(self, method, args, kwargs):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
 		args = list(args)
-		method = method.split('.')
+		method = method.rsplit('.',1)
+		if len(method) > 1 and method[1] not in MethodUtil.allmethods:
+			method[0] = '%s.%s' % (method[0], method.pop())
+			method.append('')
+
 		func = getattr(self, method[0])
 		result = None
-		if len(method) > 1:
+		if method[1]:
 			result = getattr(MethodUtil(), method[1])(func, args, kwargs)
 		else:
 			result = func(*args, **kwargs)
+
 		return result
 
 
