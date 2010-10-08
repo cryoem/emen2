@@ -143,25 +143,31 @@ class DBProxy(object):
 
 
 	@classmethod
-	def _register_publicmethod(cls, name, func):
-		if name in cls._allmethods():
+	def _register_publicmethod(cls, func):
+		if set([func.apiname, func.func_name]) & cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
+
 		# g.log.msg('LOG_REGISTER', "REGISTERING PUBLICMETHOD (%s)" % name)
-		cls.__publicmethods[name] = func
+		# For now, we're registering both the old ane new names
+		cls.__publicmethods[func.apiname] = func
+		cls.__publicmethods[func.func_name] = func
 
 
-	@classmethod
-	def _register_adminmethod(cls, name, func):
-		if name in cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
-		# g.log.msg('LOG_REGISTER', "REGISTERING ADMINMETHOD (%s)" % name)
-		cls.__adminmethods[name] = func
+
+	# @classmethod
+	# def _register_adminmethod(cls, name, func):
+	# 	if name in cls._allmethods():
+	# 		raise ValueError('''method %s already registered''' % name)
+	# 
+	# 	# g.log.msg('LOG_REGISTER', "REGISTERING ADMINMETHOD (%s)" % name)
+	# 	cls.__adminmethods[name] = func
 
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
+
 		# g.log.msg('LOG_REGISTER', "REGISTERING EXTENSION (%s)" % name)
 		cls.__extmethods[name] = refcl
 
@@ -190,7 +196,7 @@ class DBProxy(object):
 
 
 	def __getattr__(self, name):
-		# print "__getattr__ %s"%name
+		print "__getattr__ %s"%name
 		if name in self.__extmethods:
 			func = self.__extmethods.get(name)()
 			return self._publicmethod_wrap(func.execute, ext=True)
@@ -242,6 +248,8 @@ class DBProxy(object):
 				kwargs['db'] = self.__db
 
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
+
+			print "_publicmethod_wrap: ", func
 
 			try:
 				# result = func.execute(*args, **kwargs)

@@ -314,7 +314,6 @@ class DatePlot(Plotter):
 
 		
 
-# @publicmethod
 # def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, style='b', ctx=None, txn=None, **kwargs):
 # 
 # 	if not formats:
