@@ -572,7 +572,6 @@ class DB(object):
 
 
 
-	#@rename db.time.get
 	@publicmethod("time")
 	def gettime(self, ctx=None, txn=None):
 		"""Get current DB time. The time string format is in the config file; default is YYYY/MM/DD HH:MM:SS.
@@ -2787,7 +2786,6 @@ class DB(object):
 
 
 
-	#@rename db.users.get
 	@publicmethod("users.get")
 	def getuser(self, usernames, filt=True, lnf=False, getgroups=False, getrecord=True, ctx=None, txn=None):
 		"""Get user information. Information may be limited to name and id if the user
@@ -2857,7 +2855,6 @@ class DB(object):
 
 
 
-	#@rename db.users.list
 	@publicmethod("users.list")
 	def getusernames(self, ctx=None, txn=None):
 		"""Return a set of all usernames. Not available to anonymous users.
@@ -2877,7 +2874,6 @@ class DB(object):
 	##########################
 
 
-	#@rename db.groups.list
 	@publicmethod("groups.list")
 	def getgroupnames(self, ctx=None, txn=None):
 		"""Return a set of all Group names
@@ -2888,7 +2884,6 @@ class DB(object):
 
 
 
-	#@rename db.groups.get
 	@publicmethod("groups.get")
 	def getgroup(self, groups, filt=True, ctx=None, txn=None):
 		"""Get a group, which includes the owners, members, etc.
@@ -3242,7 +3237,7 @@ class DB(object):
 
 
 
-	#@rename db.paramdefs.new
+
 	@publicmethod("paramdefs.new")
 	def newparamdef(self, ctx=None, txn=None):
 		pd = emen2.db.paramdef.ParamDef()
