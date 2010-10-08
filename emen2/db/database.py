@@ -4731,9 +4731,11 @@ class DB(object):
 				matches[group].append(match)
 				
 				# ian: temp fix.
+				n = match.group('name')
 				h = pds.get(match.group('name'),dict()).get('desc_short')
 				if match.group('type') == '@':
-					h = '%s %s'%("#", match.group('args'))
+					if n == "childcount": n = "#"
+					h = '%s %s'%(n, match.group('args') or '')
 				
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
 
