@@ -246,6 +246,9 @@
 			var tr = $('<tr />');
 			$.each(headers, function() {
 				
+				if (this[3] == null) {
+					this[3]=''
+				}
 				var i = $('<th style="position:relative" data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
 
 				// An editable, sortable field..

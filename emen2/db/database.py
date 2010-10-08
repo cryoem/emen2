@@ -510,7 +510,7 @@ class DB(object):
 
 	txncounter = 0
 
-	def newtxn(self, parent=None, ctx=None, flags=None, snapshot=True):
+	def newtxn(self, parent=None, ctx=None, flags=None):
 		"""Start a new transaction.
 		@keyparam parent Parent txn
 		@return New txn
@@ -519,10 +519,8 @@ class DB(object):
 		if flags == None:
 			flags = g.TXNFLAGS
 
-		# print "New txn flags are: %s"%flags
-
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		g.log.msg('LOG_INFO', "NEW TXN --> %s"%txn)
+		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		try:
 			type(self).txncounter += 1
@@ -539,7 +537,6 @@ class DB(object):
 		"""Check a txn status; accepts txnid or txn instance
 		@return txn if valid
 		"""
-
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
 			txn = self.newtxn(ctx=ctx, flags=flags)
@@ -551,8 +548,8 @@ class DB(object):
 		"""Abort txn; accepts txnid or txn instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
-		#g.log.print_traceback(steps=5)
+		# g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
+		# g.log.print_traceback(steps=5)
 
 		if txn:
 			txn.abort()
@@ -568,8 +565,8 @@ class DB(object):
 		"""Commit txn; accepts txnid or instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
-		#g.log.print_traceback(steps=5)
+		# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+		# g.log.print_traceback(steps=5)
 
 		if txn != None:
 			txn.commit()
@@ -621,8 +618,9 @@ class DB(object):
 	#@rename db.auth.login
 	# This is intentionally not a publicmethod because DBProxy wraps it
 	LOGINERRMSG = 'Invalid username or password: %s'
+	@publicmethod
 	def login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
-		"""(DBProxy Only) Logs a given user in to the database and returns a ctxid, which can then be used for
+		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access. Returns ctxid, or fails with AuthenticationError or SessionError
 
 		@keyparam username Account username
@@ -635,14 +633,12 @@ class DB(object):
 		@exception AuthenticationError, KeyError
 		"""
 
+		
 		if maxidle == None or maxidle > g.MAXIDLE:
 			maxidle = g.MAXIDLE
 
 		newcontext = None
 		username = unicode(username).strip()
-
-		# print "attempted login: %s"%username
-		# Anonymous access
 
 		byemail = self.bdbs.usersbyemail.get(username.lower(), txn=txn)
 		if len(byemail) == 1:
@@ -651,7 +647,7 @@ class DB(object):
 			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)			
 			raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 			
-
+		
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 		else:
@@ -675,7 +671,6 @@ class DB(object):
 			raise
 
 		return newcontext.ctxid
-
 
 	# backwards compat
 	_login = login
@@ -747,6 +742,7 @@ class DB(object):
 
 		@return Context instance
 		"""
+				
 		if username == "anonymous":
 			ctx = emen2.db.context.AnonymousContext(host=host)
 		else:
@@ -758,9 +754,8 @@ class DB(object):
 
 	def __makerootcontext(self, ctx=None, host=None, txn=None):
 		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
-
 		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=self, txn=txn)
+		ctx.refresh(db=self)
 		ctx._setDBProxy(txn=txn)
 		return ctx
 
@@ -812,7 +807,6 @@ class DB(object):
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
 				raise
-
 
 		# delete context
 		else:
@@ -874,12 +868,14 @@ class DB(object):
 
 		@exception SessionError
 		"""
-
+		
+		if txn == None:
+			raise ValueError, "No txn"
+		
 		self.__periodic_operations(ctx=ctx, txn=txn)
 
 		context = None
 		if ctxid:
-			# g.log.msg("LOG_DEBUG", "local context cache: %s, cache db: %s"%(self.bdbs.contexts.get(ctxid), self.bdbs.contexts.get(ctxid, txn=txn)))
 			context = self.bdbs.contexts_cache.get(ctxid) or self.bdbs.contexts.get(ctxid, txn=txn)
 		else:
 			context = self.__makecontext(host=host, ctx=ctx, txn=txn)
@@ -901,7 +897,7 @@ class DB(object):
 
 
 		# g.debug("kw host is %s, context host is %s"%(host, context.host))
-		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self, txn=txn)
+		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self)
 
 		self.bdbs.contexts_cache[ctxid] = context
 
@@ -1527,8 +1523,6 @@ class DB(object):
 	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
 		"""Sort recids based on a param or macro."""
 
-		print "sorting by: %s"%param
-
 		param = param or "recid"
 		reverse = bool(reverse)
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
@@ -1601,8 +1595,6 @@ class DB(object):
 					# rec=recs_dict.get(recid) # may fail without record..
 				values = newvalues
 
-
-		print values
 
 		
 		# This makes sure that empty items are placed at the end; simple sort breaks sometimes
@@ -4104,7 +4096,6 @@ class DB(object):
 		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
 		recs = listops.typefilter(recs, emen2.db.record.Record)
 		
-		
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
 
 		if ol: return return_first_or_none(ret)
@@ -4136,7 +4127,6 @@ class DB(object):
 		# Assign all changes the same time
 		t = self.gettime(ctx=ctx, txn=txn)
 
-		
 		validation_cache = emen2.db.record.make_cache()
 		
 		# preprocess: copy updated record into original record (updrec -> orec)

@@ -40,7 +40,6 @@ class DBProxy(object):
 
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
-
 		# it can cause circular imports if this is at the top level of the module
 		import database
 
@@ -49,6 +48,7 @@ class DBProxy(object):
 
 		if not db:
 			db = database.DB(path=dbpath) # path will default to g.EMEN2DBHOME
+
 		self.__db = db
 		# weakref.proxy(db)
 
@@ -58,10 +58,7 @@ class DBProxy(object):
 
 	# Implements "with" interface
 	def __enter__(self):
-		#g.debug('beginning DBProxy context')
-		self.__oldtxn = self.__txn
 		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
-		#g.debug('self.__oldtxn: %r :: self.__txn: %r' % (self.__oldtxn, self.__txn))
 		return self
 
 
@@ -76,11 +73,6 @@ class DBProxy(object):
 		self.__oldtxn = None
 
 
-	def _debug(self):
-		self._starttxn()
-		return self.__db, self.__ctx, self.__txn
-
-
 	# Transactions
 	def _gettxn(self):
 		return self.__txn
@@ -88,57 +80,37 @@ class DBProxy(object):
 
 	def _settxn(self, txn=None):
 		self.__txn = txn
-		return self.__txn
-		
+
 
 	def _starttxn(self, flags=None):
 		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
-		return self.__txn
-
+		
 
 	def _committxn(self):
 		self.__db.txncommit(txn=self.__txn)
 		self.__txn = None
-		return self.__txn
 
 
 	def _aborttxn(self):
 		if self.__txn:
 			self.__db.txnabort(txn=self.__txn)
 		self.__txn = None
-		return self.__txn
-
-
-	# We need to wrap the DB login method
-	def login(self, username="anonymous", password="", host=None):
-
-		try:
-			host = host or self.__ctx.host
-		except:
-			host = None
-
-		try:
-			ctxid = self.__db.login(username=username, password=password, host=host, ctx=self.__ctx, txn=self.__txn)
-			self._setContext(ctxid=ctxid, host=host)
-
-		except:
-			if self.__txn: self._aborttxn()
-			raise
-
-		return ctxid
-
-	_login = login
 
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
+
+		if not self.__txn:
+			self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
+
 		try:
 			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
 			self.__ctx.setdb(db=self)
 
 		except:
 			self.__ctx = None
-			if self.__txn: self._aborttxn()
+			if self.__txn:
+				self._aborttxn()
 			raise
 
 		self.__bound = True
@@ -159,14 +131,15 @@ class DBProxy(object):
 	def _bound():
 		return self.__bound
 
+
 	@_bound.deleter
 	def _bound():
 		self._clearcontext()
 
+
 	def _ismethod(self, name):
 		if name in self._allmethods(): return True
 		return False
-
 
 
 	@classmethod
@@ -176,12 +149,14 @@ class DBProxy(object):
 		# g.log.msg('LOG_REGISTER', "REGISTERING PUBLICMETHOD (%s)" % name)
 		cls.__publicmethods[name] = func
 
+
 	@classmethod
 	def _register_adminmethod(cls, name, func):
 		if name in cls._allmethods():
 			raise ValueError('''method %s already registered''' % name)
 		# g.log.msg('LOG_REGISTER', "REGISTERING ADMINMETHOD (%s)" % name)
 		cls.__adminmethods[name] = func
+
 
 	@classmethod
 	def _register_extmethod(cls, name, refcl):
@@ -191,11 +166,9 @@ class DBProxy(object):
 		cls.__extmethods[name] = refcl
 
 
-
 	# Wrap DB calls to set Context and txn
 	def _callmethod(self, method, args, kwargs):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
-
 		args = list(args)
 		method = method.split('.')
 		func = getattr(self, method[0])
@@ -253,12 +226,9 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-
 			# t = time.time()
-
 			result = None
 			commit = False
-
 			ctx = self.__ctx
 			kwargs['ctx'] = ctx
 
@@ -271,8 +241,9 @@ class DBProxy(object):
 			if ext:
 				kwargs['db'] = self.__db
 
+			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
+
 			try:
-				# g.debug('func: %r, args: %r, kwargs: %r' % (func, args, kwargs))
 				# result = func.execute(*args, **kwargs)
 				result = func(*args, **kwargs)
 

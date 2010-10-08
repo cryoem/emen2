@@ -245,7 +245,7 @@ class BTree(object):
 
 	# ian: todo: Why isn't this put?
 	def set(self, key, data, txn=None, flags=0):
-		"""Set key/value, with txn. In some cases you may use RMWFLAGS to begin read-modify-write cycle."""
+		"""Set key/value, with txn."""
 		if data == None:
 			if self.bdb.exists(self.dumpkey(key), txn=txn):
 				return self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)

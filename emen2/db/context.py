@@ -24,8 +24,6 @@ class Context(object):
 
 	# ian: todo: put current txn in ctx?
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):
-
-
 		t = emen2.db.database.getctime()
 
 		# Points to Database object for this context
@@ -36,10 +34,9 @@ class Context(object):
 
 		# validated user instance, w/ user record, displayname, groups
 		self.user = user
-
 		self.groups = groups or set()
-
 		self.grouplevels = {}
+		
 		# login name, fall back if user.username does not exist
 		self.username = username
 
@@ -69,25 +66,21 @@ class Context(object):
 
 
 	def __getstate__(self):
-		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		odict['db'] = None #_Context__db
-		odict['user'] = None
-		odict['groups'] = None
-		odict['grouplevels'] = None
+		for i in ['db', 'user', 'groups', 'grouplevels']:
+			odict.pop(i, None)
 		return odict
 
 
-	def setdb(self, db=None, dbproxy=False, txn=None):
+	def setdb(self, db=None, dbproxy=False):
 		if not db: return
 		self.__dbproxy = dbproxy
 		self.db = db
 
 
-
-	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
+	def refresh(self, user=None, grouplevels=None, host=None, db=None):
 		# Information the context needs to be usable
-
+		
 		if host != self.host:
 			raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
 
@@ -95,10 +88,9 @@ class Context(object):
 		if t > (self.time + self.maxidle):
 			raise emen2.db.exceptions.SessionError, "Session expired"
 
-
 		self.time = t
 		self.grouplevels = grouplevels or {}
-		self.setdb(db=db, txn=txn)
+		self.setdb(db=db)
 
 		# userrec not used for now...
 		self.user = user
@@ -128,6 +120,50 @@ class Context(object):
 
 
 
+class TestContext(Context):
+	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):	
+		t = emen2.db.database.getctime()
+
+		# Points to Database object for this context
+		self.db = None
+		# self.setdb(db)
+
+		username = "root"
+		host = "127.0.0.1"
+		# self.ctxid = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
+		# self.ctxid = username+host+unicode(random.random())
+		self.ctxid = unicode(random.random())
+		self.username = username
+		
+		# validated user instance, w/ user record, displayname, groups
+		self.user = user
+		self.groups = groups or set()
+		self.grouplevels = {}
+		
+		# login name, fall back if user.username does not exist
+
+		# ip of validated host for this context
+		self.host = host
+
+		# last access time for this context
+		self.time = t
+
+		self.maxidle = maxidle
+
+		if requirehost and (not self.username or not self.host):
+			raise emen2.db.exceptions.SessionError, "username and host required to init context"
+
+
+	def refresh(self, *args, **kwargs):
+		pass
+
+	def setdb(self, *args, **kwargs):
+		pass
+		
+		
+
+
+
 class AnonymousContext(Context):
 	def __init__(self, *args, **kwargs):
 		Context.__init__(self, *args, username="anonymous", requirehost=False, **kwargs)
@@ -146,9 +182,11 @@ class AnonymousContext(Context):
 		if t > (self.time + self.maxidle):
 			raise emen2.db.exceptions.SessionError, "Session expired"
 
-		self.setdb(db=db, txn=txn)
+		self.setdb(db=db)
 		self.time = t
 		self.__init_refresh()
+
+
 
 
 
@@ -173,7 +211,7 @@ class SpecialRootContext(Context):
 		if t > (self.time + self.maxidle):
 			raise emen2.db.exceptions.SessionError, "Session expired"
 
-		self.setdb(db=db, txn=txn)
+		self.setdb(db=db)
 		self.time = t
 		self.__init_refresh()
 

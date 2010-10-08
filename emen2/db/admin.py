@@ -17,4 +17,4 @@ def opendb():
 	db = emen2.opendb()
 	ctx = db._DBProxy__db._DB__makerootcontext(host="localhost")
 	db._DBProxy__ctx = ctx
-	return db
+	return db	
