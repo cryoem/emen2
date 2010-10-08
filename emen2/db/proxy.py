@@ -106,23 +106,26 @@ class DBProxy(object):
 
 		self.__ctx = ctx
 		self.__txn = txn
+		self.__oldtxn = None
 
 
 	# Implements "with" interface
 	def __enter__(self):
+		if self.__txn:
+			self.__oldtxn = self.__txn
 		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
 		return self
 
 
 	def __exit__(self, type, value, traceback):
-		# if self.__oldtxn is not self.__txn:
-		if type is None:
-			self._committxn()
-		else:
-			g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
-			self._aborttxn()
-		self.__txn = None
-		self.__oldtxn = None
+		if self.__oldtxn is not self.__txn:
+			if type is None:
+				self._committxn()
+			else:
+				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
+				self._aborttxn()
+			self.__txn = None
+			self.__oldtxn = None
 
 
 	# Transactions
@@ -136,6 +139,7 @@ class DBProxy(object):
 
 	def _starttxn(self, flags=None):
 		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
+		return self
 
 
 	def _committxn(self):
@@ -151,19 +155,13 @@ class DBProxy(object):
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
-
-		if not self.__txn:
-			self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx)
-
-		try:
-			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.setdb(db=self)
-
-		except:
-			self.__ctx = None
-			if self.__txn:
-				self._aborttxn()
-			raise
+		with self:
+			try:
+				self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
+				self.__ctx.setdb(db=self)
+			except:
+				self.__ctx = None
+				raise
 
 		self.__bound = True
 		return self
