@@ -303,8 +303,7 @@
 			}
 			var p = {};
 			p[this.options.param]=keep
-			$.jsonRPC("putrecordvalues",
-				[this.options.recid, p],
+			$.jsonRPC("putrecordvalues", [this.options.recid, p],
 				function(rec) {
 					record_update(rec);
 					self.event_build_tablearea();

@@ -3780,7 +3780,7 @@ class DB(object):
 
 
 	@publicmethod("records.update", write=True)
-	def putrecordvalues(self, recid, d, value, ctx=None, txn=None):
+	def putrecordvalues(self, recid, d, ctx=None, txn=None):
 		"""Convenience method to update a record
 
 		@param recid Record ID
