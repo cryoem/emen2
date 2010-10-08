@@ -488,7 +488,7 @@ function bind_autocomplete(elem, param) {
 
 		save: function() {
 			var self = this;
-			$.jsonRPC("putrecordvalue", [this.options.recid, this.options.param, this.getval()], function(rec) {
+			$.jsonRPC("putrecordvalues", [this.options.recid, {this.options.param:this.getval()}], function(rec) {
 				record_update(rec);
 				self.hide();
 			}, function(e) {
