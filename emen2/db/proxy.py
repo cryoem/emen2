@@ -16,10 +16,63 @@ import emen2.db.macros
 import emen2.db.properties
 
 
+
+
+
+
+def publicmethod(*args, **kwargs):
+	"""Decorator for public admin API database method"""
+	def _inner(func):
+		emen2.db.proxy.DBProxy._register_publicmethod(func, *args, **kwargs)
+		return func		
+	return _inner
+
+
+
+
+
 class MethodUtil(object):
 	def doc(self, func, *args, **kwargs):
 		return func.__doc__
 
+
+
+# def __request(self, methodname, params):
+#     # call a method on the remote server
+# 
+#     request = dumps(params, methodname, encoding=self.__encoding,
+#                     allow_none=self.__allow_none)
+# 
+#     response = self.__transport.request(
+#         self.__host,
+#         self.__handler,
+#         request,
+#         verbose=self.__verbose
+#         )
+# 
+#     if len(response) == 1:
+#         response = response[0]
+# 
+#     return response
+# 
+
+
+class _Method(object):
+	# Taken from XML-RPC lib to support nested methods
+	def __init__(self, proxy, name):
+		self._proxy = proxy
+		self._name = name
+
+	def __getattr__(self, name):
+		func = self._proxy._publicmethods.get("%s.%s"%(self._name, name))
+		if func:
+			return self._proxy._wrap(func)
+		return _Method(self._proxy, "%s.%s" % (self._name, name))
+
+
+	def __call__(self, *args):
+		raise AttributeError, "No public method %s"%self._name
+		
 
 
 class DBProxy(object):
@@ -30,13 +83,11 @@ class DBProxy(object):
 
 	"""
 
-	__publicmethods = {}
-	__adminmethods = {}
-	__extmethods = {}
+	_publicmethods = {}
 
 	@classmethod
 	def _allmethods(cls):
-		return set(cls.__publicmethods) | set(cls.__extmethods)
+		return set(cls._publicmethods)
 
 
 	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
@@ -143,33 +194,18 @@ class DBProxy(object):
 
 
 	@classmethod
-	def _register_publicmethod(cls, func):
-		if set([func.apiname, func.func_name]) & cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
+	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
+		# print "Registering func: %s"%apiname
+		# if set([func.apiname, func.func_name]) & cls._allmethods():
+		# 	raise ValueError('''method %s already registered''' % name)
+		setattr(func, 'apiname', apiname)
+		setattr(func, 'write', write)
+		setattr(func, 'admin', admin)
+		setattr(func, 'ext', ext)
+		
+		cls._publicmethods[func.apiname] = func
+		cls._publicmethods[func.func_name] = func
 
-		# g.log.msg('LOG_REGISTER', "REGISTERING PUBLICMETHOD (%s)" % name)
-		# For now, we're registering both the old ane new names
-		cls.__publicmethods[func.apiname] = func
-		cls.__publicmethods[func.func_name] = func
-
-
-
-	# @classmethod
-	# def _register_adminmethod(cls, name, func):
-	# 	if name in cls._allmethods():
-	# 		raise ValueError('''method %s already registered''' % name)
-	# 
-	# 	# g.log.msg('LOG_REGISTER', "REGISTERING ADMINMETHOD (%s)" % name)
-	# 	cls.__adminmethods[name] = func
-
-
-	@classmethod
-	def _register_extmethod(cls, name, refcl):
-		if name in cls._allmethods():
-			raise ValueError('''method %s already registered''' % name)
-
-		# g.log.msg('LOG_REGISTER', "REGISTERING EXTENSION (%s)" % name)
-		cls.__extmethods[name] = refcl
 
 
 	# Wrap DB calls to set Context and txn
@@ -186,27 +222,11 @@ class DBProxy(object):
 		return result
 
 
-	def _wrapmethod(self, func):
-		@functools.wraps(func)
-		def _inner(*args, **kwargs):
-			with self:
-				result = func(*args, **kwargs)
-			return result
-		return _inner
-
 
 	def __getattr__(self, name):
-		print "__getattr__ %s"%name
-		if name in self.__extmethods:
-			func = self.__extmethods.get(name)()
-			return self._publicmethod_wrap(func.execute, ext=True)
-
-		elif name in self.__publicmethods:
-			func = getattr(self.__db, name)
-			return self._publicmethod_wrap(func)
-
-		else:
-			raise AttributeError('No such attribute %s of %r' % (name, self.__db))
+		func = self._publicmethods.get(name)
+		if func: return self._wrap(func)
+		return _Method(self, name)
 
 
 	# ian: changed how publicmethods are created because docstrings and tracebacks were being mangled
@@ -226,8 +246,8 @@ class DBProxy(object):
 	# ...
 
 
-	def _publicmethod_wrap(self, func, ext=False):
-		# func = getattr(self.__db, name)
+	def _wrap(self, func):
+		# print "going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
 		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
 
 		@functools.wraps(func)
@@ -238,22 +258,23 @@ class DBProxy(object):
 			ctx = self.__ctx
 			kwargs['ctx'] = ctx
 
+			if func.admin and not ctx.checkadmin():
+				raise Exception, "This method requires administrator level access."
+
 			txn = self.__txn
 			if bool(txn) is False:
 				txn = self.__db.newtxn()
 				commit = True
 			kwargs['txn'] = txn
 
-			if ext:
+			if func.ext:
 				kwargs['db'] = self.__db
 
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
 
-			print "_publicmethod_wrap: ", func
-
 			try:
 				# result = func.execute(*args, **kwargs)
-				result = func(*args, **kwargs)
+				result = func(self.__db, *args, **kwargs)
 
 			except Exception, e:
 				# traceback.print_exc(e)
@@ -267,31 +288,8 @@ class DBProxy(object):
 
 			# timer!
 			# print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
-
 			return result
 
 		return wrapper
-
-
-
-
-
-
-
-
-class DBExt(object):
-	"""Database extension"""
-
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-
-	@classmethod
-	def register(cls):
-		"""Register database extension decorator"""
-		DBProxy._register_extmethod(cls.__methodname__, cls) #cls.__name__, cls.__methodname__, cls
-
 
 

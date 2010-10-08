@@ -110,12 +110,11 @@ class User(emen2.db.dataobject.BaseDBObject):
 		result = False
 		if self._ctx and self._ctx.checkadmin():
 			result = True
-
-		elif self.password == None:
-			result = True
-
 		elif self.password != None and self.__hashpassword(password) == self.password:
 			result = True
+
+		if result == False:
+			time.sleep(2)
 
 		return result
 

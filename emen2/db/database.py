@@ -63,7 +63,7 @@ User = emen2.db.user.User
 Group = emen2.db.group.Group
 WorkFlow = emen2.db.workflow.WorkFlow
 proxy = emen2.db.proxy
-
+publicmethod = emen2.db.proxy.publicmethod
 
 
 try:
@@ -143,13 +143,12 @@ def DB_Close():
 
 
 def DB_stat():
-	"""Print some statistics about the global DBEnv"""
+	"""List some statistics about the global DBEnv"""
 	global DBENV
 	if not DBENV:
 		return
 
 	sys.stdout.flush()
-	print >> sys.stderr, "DB has %d transactions left" % DB.txncounter
 
 	tx_max = DBENV.get_tx_max()
 	g.log.msg('LOG_DEBUG', "Open transactions: %s"%tx_max)
@@ -181,18 +180,6 @@ def gettime():
 	"""Return database local time in format %s"""%g.TIMESTR
 	return time.strftime(g.TIMESTR)
 
-
-
-
-def publicmethod(apiname, write=False, admin=False):
-	"""Decorator for public admin API database method"""
-	def _inner(func):
-		setattr(func, 'apiname', apiname)
-		setattr(func, 'write', write)
-		setattr(func, 'admin', admin)
-		emen2.db.proxy.DBProxy._register_publicmethod(func)
-		return func		
-	return _inner
 
 
 
@@ -436,7 +423,7 @@ class DB(object):
 		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
 
 
-	# ian: todo: simple: print more statistics; needs a txn?
+	# ian: todo: simple: more statistics; needs a txn?
 	def __str__(self):
 		return "<DB: %s>"%(hex(id(self))) #, ~%s records>"%(hex(id(self)), self.bdbs.records.get_max())
 
@@ -488,7 +475,7 @@ class DB(object):
 			flags = g.TXNFLAGS
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		# g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		try:
 			type(self).txncounter += 1
@@ -517,7 +504,6 @@ class DB(object):
 
 		txn = self.txnlog.get(txnid, txn)
 		# g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
-		# g.log.print_traceback(steps=5)
 
 		if txn:
 			txn.abort()
@@ -534,7 +520,6 @@ class DB(object):
 
 		txn = self.txnlog.get(txnid, txn)
 		# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
-		# g.log.print_traceback(steps=5)
 
 		if txn != None:
 			txn.commit()
@@ -585,7 +570,7 @@ class DB(object):
 	# This is intentionally not a publicmethod because DBProxy wraps it
 	LOGINERRMSG = 'Invalid username or password: %s'
 
-	@publicmethod("db.auth.login", write=True)
+	@publicmethod("auth.login", write=True)
 	def login(self, username="anonymous", password="", host=None, maxidle=None, ctx=None, txn=None):
 		"""Logs a given user in to the database and returns a ctxid, which can then be used for
 		subsequent access. Returns ctxid, or fails with AuthenticationError or SessionError
@@ -655,7 +640,7 @@ class DB(object):
 
 
 
-	@publicmethod("auth.check.whoami")
+	@publicmethod("auth.whoami")
 	def checkcontext(self, ctx=None, txn=None):
 		"""This allows a client to test the validity of a context, and get basic information on the authorized user and his/her permissions.
 		@return Tuple: (username, groups)
@@ -1143,7 +1128,6 @@ class DB(object):
 		for searchparam, comp, value in c:
 			t = time.time()
 			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
-			# print "== ", time.time()-t, searchparam, comp, value
 
 			if recids == None:
 				recids = constraintmatches
@@ -1274,10 +1258,7 @@ class DB(object):
 
 		else:
 			pass
-			# print "no param, skipping"
 
-		# print "return was:"
-		# print subset
 
 		return subset
 
@@ -1931,10 +1912,30 @@ class DB(object):
 			
 		
 
+	@publicmethod("records.list")
+	def getindexbycontext(self, ctx=None, txn=None):
+		"""Return all readable recids
+		@return All readable recids"""
+
+		if ctx.checkreadadmin():
+			return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
+
+		ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
+
+		for group in sorted(ctx.groups,reverse=True):
+			ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
+
+		return ret
+
+
+
 
 	# ian: todo: finish this method
 	# def getparamstatistics(self, param, ctx=None, txn=None):
 	#	pass
+
+
+
 
 
 	def __rebuild_indexkeys(self, ctx=None, txn=None):
@@ -2346,7 +2347,7 @@ class DB(object):
 
 
 
-	@publicmethod("users.approve", write=True, admin=True)
+	@publicmethod("users.queue.approve", write=True, admin=True)
 	def approveuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Approve account in user queue
 
@@ -2459,7 +2460,7 @@ class DB(object):
 
 
 
-	@publicmethod("users.reject", write=True, admin=True)
+	@publicmethod("users.queue.reject", write=True, admin=True)
 	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Remove a user from the pending new user queue
 
@@ -3534,7 +3535,16 @@ class DB(object):
 		"""
 
 		ol, recids = listops.oltolist(recids)
-		ret = (rec for rec in self.bdbs.records.gets(recids, txn=txn) if rec.setContext(ctx, filt=filt))			
+		# ret = (rec for rec in self.bdbs.records.gets(recids, txn=txn) if rec.setContext(ctx, filt=filt))			
+		ret = []
+		for i in recids:
+			try:
+				rec = self.bdbs.records.sget(i, txn=txn)
+				rec.setContext(ctx)
+				ret.append(rec)
+			except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
+				if filt: pass
+				else: raise
 		
 		if writable:
 			ret = filter(lambda x:x.writable(), ret)
@@ -3921,7 +3931,6 @@ class DB(object):
 		# To force reindexing (e.g. to rebuild indexes) treat as new record
 		cache = {}
 		for i in crecs:
-			#print "checking %s"%i.recid
 			if reindex or i.recid < 0:
 				continue
 			try:
