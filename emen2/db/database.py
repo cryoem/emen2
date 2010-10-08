@@ -4729,7 +4729,12 @@ class DB(object):
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
 				matches[group].append(match)
-				h = pds.get(match.group('name'),{}).get('desc_short') or '%s(%s)'%(match.group('name'), match.group('args') or '')
+				
+				# ian: temp fix.
+				h = pds.get(match.group('name'),dict()).get('desc_short')
+				if match.group('type') == '@':
+					h = '%s %s'%("#", match.group('args'))
+				
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
 
 
