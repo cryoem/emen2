@@ -425,7 +425,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 
-	def setContext(self, ctx=None, filt=True):
+	def setContext(self, ctx=None, filt=False):
 		"""This method may ONLY be used directly by the Database class. Constructing your
 		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
 		"""
