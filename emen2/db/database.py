@@ -1558,8 +1558,8 @@ class DB(object):
 		# I'm only turning on render sort for these vartypes for now..
 		if rendered and pd:
 			if pd.vartype in ["user", "userlist", "binary", "binaryimage"]:				
-				if len(recids) > 1000:
-					raise ValueError, "Too many items to sort by this key"
+				#if len(recids) > 1000:
+				#	raise ValueError, "Too many items to sort by this key"
 
 				newvalues = collections.defaultdict(set)
 				for k in values:
