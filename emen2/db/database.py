@@ -4557,7 +4557,11 @@ class DB(object):
 			if addusers:
 				umask[addlevel] = addusers
 
-		addusers = set(reduce(operator.concat, umask, []))
+		#addusers = set(reduce(operator.concat, umask, []))
+		addusers = set()
+		for i in umask:
+			addusers |= set(i)
+
 
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
