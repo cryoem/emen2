@@ -3009,6 +3009,7 @@ class DB(object):
 
 
 
+	# ian: checked to here.
 	@publicmethod("groups.put", write=True)
 	def putgroup(self, groups, ctx=None, txn=None):
 		"""Commit changes to a group or groups.
