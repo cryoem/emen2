@@ -1160,8 +1160,8 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in c:
-			t = time.time()
-			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			print "constraint: %s"%searchparam
+			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, recids=recids, ctx=ctx, txn=txn)
 
 			if recids == None:
 				recids = constraintmatches
@@ -1182,7 +1182,9 @@ class DB(object):
 					
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
+		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
+			print "groupby: %s"%groupparam
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 			
 
@@ -1206,10 +1208,11 @@ class DB(object):
 
 		param = self.__query_paramstrip(groupparam)
 
+		# This is always performed..
 		if param == "rectype":
 			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 
-		elif param == "parent":
+		if param == "parent":
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
 			# recurse=-1 for all parents
@@ -1241,7 +1244,7 @@ class DB(object):
 
 
 
-	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+	def __query_constraint(self, searchparam, comp, value, groupby=None, recids=None, ctx=None, txn=None):
 		param = self.__query_paramstrip(searchparam)
 		value = unicode(value)
 
@@ -1398,15 +1401,16 @@ class DB(object):
 	def plot(self, *args, **kwargs):
 		"""docstring coming soon"""
 		
-		mode = kwargs.get('mode', 'date')
+		mode = kwargs.get('mode', 'bin')
 		
 		if mode == 'scatter':
 			plotter = emen2.db.plot.ScatterPlot
 		elif mode == 'hist':
 			plotter = emen2.db.plot.HistPlot	
-		elif mode == 'date':
-			plotter = emen2.db.plot.DatePlot
+		elif mode == 'bin':
+			plotter = emen2.db.plot.BinPlot
 		
+
 		return plotter(*args, db=self, **kwargs).q
 
 
