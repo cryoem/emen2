@@ -382,52 +382,64 @@ class BinPlot(Plotter):
 		group = self.q['groups'].get(self.xparam)
 		
 		
+		continuous = False
+		
 		_start = start
 		_step = step
 		_set_xticklabels = set_xticklabels
 
 		# Switch to date mode
-		if self.db.getparamdef(self.xparam, ctx=self.ctx, txn=self.txn).vartype in ['date', 'datetime', 'time']:
+		xpd = self.db.getparamdef(self.xparam, ctx=self.ctx, txn=self.txn)
+		if xpd.vartype in ['date', 'datetime', 'time']:
+			continuous = True
 			_start = datestart
 			_step = datestep
 			_set_xticklabels = date_set_xticklabels
-
 			todt = {}
 			for k,v in group.items():
 				todt[parse_datetime(k)[0]] = v
 			group = todt
 
+		elif xpd.vartype in ["float", "int"]:
+			continuous = True
 
+
+		print self.q
 		xk = sorted(group.keys())
 		self.xmin = xk[0]
 		self.xmax = xk[-1]
 
 		cur = _start(self.xmin, self.binw)
-		steps = [cur]
-		while cur < self.xmax:
-			cur = _step(cur, self.binw)		
-			steps.append(cur)
+		
+		if continuous:
+			steps = [cur]
+			while cur < self.xmax:
+				cur = _step(cur, self.binw)		
+				steps.append(cur)
 
+			hist = {}
+			cur = xk.pop(0)
+			for i in range(len(steps)-1):
+				hist[steps[i]] = set()
+				while cur != None and steps[i] < cur <= steps[i+1]:
+					# print steps[i], steps[i+1], cur
+					hist[steps[i]] |= group[cur]
+					if xk:
+						cur = xk.pop(0)
+					else:
+						cur = None
 
-		hist = {}
-		cur = xk.pop(0)
-		for i in range(len(steps)-1):
-			hist[steps[i]] = set()
-			while cur != None and steps[i] < cur <= steps[i+1]:
-				# print steps[i], steps[i+1], cur
-				hist[steps[i]] |= group[cur]
-				if xk:
-					cur = xk.pop(0)
-				else:
-					cur = None
+		else:
+			steps = sorted(group.keys())
+			hist = group
 
 
 		# Take our timeline and break out by group
 		groupedlines = collections.defaultdict(dict)
 		for k,v in hist.items():
 			for kg, vg in self.q['groups'].get(self.groupby).items():
-				print "Breaking out", kg
 				u = v & vg
+				print "Breaking out", kg, v, v
 				if u:
 					groupedlines[kg][k] = u
 
