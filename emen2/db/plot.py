@@ -56,14 +56,22 @@ def datestep(cur, binw):
 
 
 
+
+
 def set_xticklabels(ax, steps):
-        ax.set_xticks(range(len(steps)))
+	ax.set_xticks(range(len(steps)))
+	ax.set_xticklabels(steps, size="x-small", rotation=45)
+
+
+def continuous_set_xticklabels(ax, steps):
+	ax.set_xticks(range(len(steps)))
 	ax.set_xticklabels(steps)
 
 
 def date_set_xticklabels(ax, steps):
 	ax.set_xticks(range(len(steps)-1))
 	ax.set_xticklabels([str(i.date()) for i in steps[:-1]], size="x-small", rotation=45)
+
 
 
 
@@ -402,6 +410,7 @@ class BinPlot(Plotter):
 
 		elif xpd.vartype in ["float", "int"]:
 			continuous = True
+			_set_xticklabels = _continuous_set_xticklabels
 
 
 		print self.q

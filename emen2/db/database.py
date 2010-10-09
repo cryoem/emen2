@@ -1178,15 +1178,15 @@ class DB(object):
 	
 		if subset:
 			recids &= subset
-			
-					
+								
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
 			print "groupby: %s"%groupparam
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
-			
+			print groups['groupby']
+
 
 		ret = {
 			"q":q,
@@ -1212,7 +1212,18 @@ class DB(object):
 		if param == "rectype":
 			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 
-		if param == "parent":
+		elif param == "project_block":
+			# ian: HORRIBLE UGLY HACK FOR DEMO!!!!
+			guess = self.getindexbyrecorddef(['project','subproject'], ctx=ctx, txn=txn)
+			guess_recs = self.getrecord(guess, ctx=ctx, txn=txn)
+			groups['project_block'] = collections.defaultdict(set)
+			for i in guess_recs:
+				for k in i.get('project_block', []):
+					groups['project_block'][k].add(i.recid)
+			print "hacked project_block:"
+			print groups['project_block']
+
+		elif param == "parent":
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
 			# recurse=-1 for all parents
@@ -1229,14 +1240,16 @@ class DB(object):
 			if not keys:
 				return
 				
-			ind = self.__getparamindex(self.__query_paramstrip(groupparam), ctx=ctx, txn=txn)
+			ind = self.__getparamindex(param, ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
 				if "^" in groupparam:
 					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
+					print "checking children:", key, v, len(children), len(recids)
 					for i in v:
 						v2 = children.get(i, set()) & recids
 						if v2: groups[param][key] = v2
+					print "found: %s"%v2
 				else:
 					v2 = v & recids
 					if v2: groups[param][key] = v2
@@ -1258,7 +1271,7 @@ class DB(object):
 			
 		subset = None
 
-		# print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
+		print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
 		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
 		if param == "rectype":
@@ -1270,6 +1283,7 @@ class DB(object):
 				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
 			groupby["rectype"] = None
 
+			
 		elif param == "recid":
 			subset = set([int(value)])
 
@@ -1293,6 +1307,10 @@ class DB(object):
 			if comp == "contains" and value != None:
 				subset = self.bdbs.secrindex.get(value, txn=txn)		
 
+		elif param == "project_block":
+			subset = self.getindexbyrecorddef(["project","subproject"], ctx=ctx, txn=txn)
+			groupby["project_block"] = {}
+			
 		elif param:
 			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
