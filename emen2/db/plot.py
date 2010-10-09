@@ -415,7 +415,7 @@ class BinPlot(Plotter):
 			_set_xticklabels = _continuous_set_xticklabels
 
 
-		print self.q
+		#print self.q
 		xk = sorted(group.keys())
 		self.xmin = xk[0]
 		self.xmax = xk[-1]
@@ -450,7 +450,7 @@ class BinPlot(Plotter):
 		for k,v in hist.items():
 			for kg, vg in self.q['groups'].get(self.groupby).items():
 				u = v & vg
-				print "Breaking out", kg, u
+				#print "Breaking out", kg, u
 				if u:
 					groupedlines[kg][k] = u
 

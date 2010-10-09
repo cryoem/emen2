@@ -1160,7 +1160,7 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in c:
-			print "constraint: %s"%searchparam
+			#print "constraint: %s"%searchparam
 			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 			if recids == None:
@@ -1183,9 +1183,9 @@ class DB(object):
 		groups = collections.defaultdict(dict)
 		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
-			print "groupby: %s"%groupparam
+			#print "groupby: %s"%groupparam
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
-			print groups['groupby']
+			#print groups['groupby']
 
 
 		ret = {
@@ -1250,11 +1250,11 @@ class DB(object):
 				v = ind.get(key, txn=txn)
 				if "^" in groupparam:
 					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
-					print "checking children:", key, v, len(children), len(recids)
+					#print "checking children:", key, v, len(children), len(recids)
 					for i in v:
 						v2 = children.get(i, set()) & recids
 						if v2: groups[param][key] = v2
-					print "found: %s"%v2
+					#print "found: %s"%v2
 				else:
 					v2 = v & recids
 					if v2: groups[param][key] = v2
