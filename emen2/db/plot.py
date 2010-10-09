@@ -59,8 +59,10 @@ def datestep(cur, binw):
 
 
 def set_xticklabels(ax, steps):
-	ax.set_xticks(range(len(steps)))
-	ax.set_xticklabels(steps, size="x-small", rotation=45)
+        ax.set_xticks(range(len(steps)))
+        ax.set_xticklabels(steps, size="x-small", rotation=90)
+
+
 
 
 def continuous_set_xticklabels(ax, steps):
@@ -448,7 +450,7 @@ class BinPlot(Plotter):
 		for k,v in hist.items():
 			for kg, vg in self.q['groups'].get(self.groupby).items():
 				u = v & vg
-				print "Breaking out", kg, v, v
+				print "Breaking out", kg, u
 				if u:
 					groupedlines[kg][k] = u
 

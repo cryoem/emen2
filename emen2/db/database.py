@@ -1216,12 +1216,17 @@ class DB(object):
 			# ian: HORRIBLE UGLY HACK FOR DEMO!!!!
 			guess = self.getindexbyrecorddef(['project','subproject'], ctx=ctx, txn=txn)
 			guess_recs = self.getrecord(guess, ctx=ctx, txn=txn)
-			groups['project_block'] = collections.defaultdict(set)
+			c = collections.defaultdict(set)
 			for i in guess_recs:
 				for k in i.get('project_block', []):
-					groups['project_block'][k].add(i.recid)
-			print "hacked project_block:"
-			print groups['project_block']
+					c[k].add(i.recid)
+
+			c2 = {}
+			for k,v in c.items():
+				if v:
+					c2[k]=v
+			groups['project_block']=c2
+
 
 		elif param == "parent":
 			# keys is parent rectypes...
