@@ -21,6 +21,49 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
+from emen2.db.vartypes import parse_datetime
+
+
+def start(xmin, binw):
+	return xmin
+	
+
+def step(cur, binw):
+	return cur + binw
+
+
+def datestart(xmin, binw):
+	# Generate a continuous, binned date range
+	if binw == 'day':
+		cur = xmin.replace(hour=0, minute=0, second=0, microsecond=0)	
+	elif binw == 'month':
+		cur = xmin.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+	elif binw == 'year':
+		cur = xmin.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+	return cur
+
+
+def datestep(cur, binw):
+	if binw == 'day':
+		cur += datetime.timedelta(days=1)
+	elif binw == 'month':
+		try: cur = cur.replace(month=cur.month+1)
+		except ValueError: cur = cur.replace(year=cur.year+1, month=1)
+	elif binw == 'year':
+		cur = cur.replace(year=cur.year+1)
+	return cur
+
+
+
+def set_xticklabels(ax, steps):
+	ax.set_xticklabels(steps)
+
+
+def date_set_xticklabels(ax, steps):
+	ax.set_xticklabels([i.date() for i in steps], rotation=90, size="small")
+
+
+
 
 # Colors to use in plot..
 COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
@@ -126,7 +169,6 @@ class Plotter(object):
 		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
 		ax_size = [0.1, 0.1, 0.8, 0.8]
 		self.ax = fig.add_axes(ax_size)
-		
 
 
 		self.plot()
@@ -252,6 +294,8 @@ class ScatterPlot(Plotter):
 
 
 
+
+
 class HistPlot(Plotter):
 	def labels(self):
 		# Generate labels
@@ -283,32 +327,116 @@ class HistPlot(Plotter):
 
 
 
-class DatePlot(Plotter):
+class BinPlot(Plotter):
 	def plot(self):
+		# Bar Options
+		binw = 'month'
+		bins = 0
+		colorcount = len(COLORS)
 		handles = []
 		labels = []
+		nextcolor = 0
+		nr = [None, None, None, None]
 
-		hist = collections.defaultdict(set)		
-		for k,v in self.xinvert.items():
-			hist[v[:7]].add(k)
-		
-		x = []
-		y = []
-		for k,v in sorted(hist.items()):
-			x.append(k)
-			y.append(len(v))
-			
-		years = matplotlib.dates.YearLocator() # every year
-		months = matplotlib.dates.MonthLocator() # every month
-		yearsFmt = matplotlib.dates.DateFormatter('%Y/%m')
 
-		self.ax.plot(x, y)
-		self.ax.xaxis.set_major_locator(years)
-		self.ax.xaxis.set_major_formatter(yearsFmt)
-		self.ax.xaxis.set_minor_locator(months)
-		self.ax.format_xdata = matplotlib.dates.DateFormatter('%Y/%m')
+		# Start
+		# q = db.query(c=[['rectype', '==', 'image_capture*'], ['creationtime','>=','2008']])
+		group = self.q['groups'].get(self.xparam)
 		
-		return labels, handles
+		
+		_start = start
+		_step = step
+		_set_xticklabels = set_xticklabels
+
+		# Switch to date mode
+		if self.db.getparamdef(self.xparam, ctx=self.ctx, txn=self.txn).vartype in ['date', 'datetime', 'time']:
+			_start = datestart
+			_step = datestep
+			_set_xticklabels = date_set_xticklabels
+
+			todt = {}
+			for k,v in group.items():
+				todt[parse_datetime(k)[0]] = v
+			group = todt
+
+
+		xk = sorted(group.keys())
+		self.xmin = xk[0]
+		self.xmax = xk[-1]
+
+		cur = _start(self.xmin, binw)
+		steps = [cur]
+		while cur < self.xmax:
+			cur = _step(cur, binw)		
+			steps.append(cur)
+
+
+		hist = {}
+		cur = xk.pop(0)
+		for i in range(len(steps)-1):
+			hist[steps[i]] = set()
+			while cur != None and steps[i] < cur <= steps[i+1]:
+				# print steps[i], steps[i+1], cur
+				hist[steps[i]] |= group[cur]
+				if xk:
+					cur = xk.pop(0)
+				else:
+					cur = None
+
+
+		# Take our timeline and break out by group
+		groupedlines = collections.defaultdict(dict)
+		for k,v in hist.items():
+			for kg, vg in self.q['groups'].get(self.groupby).items():
+				print "Breaking out", kg
+				u = v & vg
+				if u:
+					groupedlines[kg][k] = u
+
+
+
+		# print groupedlines
+		x = range(len(steps))
+		xh = [0 for i in x]
+		handles = []
+		labels = []
+		width = 1
+		nextcolor = 0
+		nr = [None, None, None, None]
+
+		for k,v in groupedlines.items():
+
+			self.groupnames[k] = k
+			self.groupcolors[k] = self.groupcolors.get(k, COLORS[nextcolor%colorcount])
+			nextcolor += 1
+
+			if  (self.groupshow and k not in self.groupshow):
+				continue
+
+			nextcolor += 1
+			y = [len(v.get(i, [])) for i in steps]
+			handle = self.ax.bar(x, y, width, bottom=xh, color=self.groupcolors[k])
+			handles.append(handle)
+			labels.append(k)
+
+			xh = map(sum, zip(xh, y))
+
+
+		# self.ax.xticks([i+(width/2) for i in x], [i.date() for i in steps], rotation=90)
+		# self.ax.set_xticklabels([i.date() for i in steps], rotation=90, size=small)
+		_set_xticklabels(self.ax, steps)
+		
+		
+		return handles, labels
+
+
+
+
+
+
+
+
+
 	
 
 

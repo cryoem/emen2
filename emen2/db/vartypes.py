@@ -199,7 +199,7 @@ class vt_datetime(Vartype):
 	__indextype__ = "s"
 	
 	def validate(self, engine, pd, value, db):
-		return unicode(parse_datetime(value)) or None
+		return unicode(parse_datetime(value)[1]) or None
 
 
 
@@ -714,9 +714,10 @@ datetime_formats = [
 
 
 def parse_datetime(string):
+	"""Return a tuple: datetime instance, and validated output"""
 	string = string.strip()
 	if not string:
-		return None
+		return None, None
 
 	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
 	msecs = 0
@@ -727,7 +728,7 @@ def parse_datetime(string):
 	for format, output in datetime_formats:
 		try:
 			string = datetime.datetime.strptime(string, format)
-			return datetime.datetime.strftime(string, output)
+			return string, datetime.datetime.strftime(string, output)
 		except ValueError, inst:
 			#print inst
 			pass
@@ -747,7 +748,7 @@ def parse_time(string):
 
 	for format in time_formats:
 		try:
-			return datetime.datetime.strptime(string, format).time()
+			return string, datetime.datetime.strptime(string, format).time()
 		except ValueError, inst:
 			#print inst
 			pass
@@ -758,13 +759,13 @@ def parse_time(string):
 
 def parse_date(string):
 	string = string.strip()
-	if not string: return None
+	if not string: return None, None
 
 	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
 
 	for format in date_formats:
 		try:
-			return datetime.datetime.strptime(string, format).date()
+			return string, datetime.datetime.strptime(string, format).date()
 		except ValueError:
 			pass
 

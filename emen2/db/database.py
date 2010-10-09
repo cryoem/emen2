@@ -1161,7 +1161,7 @@ class DB(object):
 		groupby = {}
 		for searchparam, comp, value in c:
 			print "constraint: %s"%searchparam
-			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, recids=recids, ctx=ctx, txn=txn)
+			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 			if recids == None:
 				recids = constraintmatches
@@ -1244,7 +1244,7 @@ class DB(object):
 
 
 
-	def __query_constraint(self, searchparam, comp, value, groupby=None, recids=None, ctx=None, txn=None):
+	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		param = self.__query_paramstrip(searchparam)
 		value = unicode(value)
 
