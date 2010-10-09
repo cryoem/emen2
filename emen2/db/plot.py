@@ -248,10 +248,8 @@ class ScatterPlot(Plotter):
 
 	def plot(self):
 		# Ok, actual plotting is pretty simple...		
-
-                xinvert = query_invert(self.q['groups'][self.xparam])
-                yinvert = query_invert(self.q['groups'][self.yparam])
-
+		xinvert = query_invert(self.q['groups'][self.xparam])
+		yinvert = query_invert(self.q['groups'][self.yparam])
 
 		self.ax.grid(True)
 		
@@ -273,8 +271,8 @@ class ScatterPlot(Plotter):
 			if  (self.groupshow and k not in self.groupshow):
 				continue
 				
-			x = map(self.xinvert.get, v)
-			y = map(self.yinvert.get, v)
+			x = map(xinvert.get, v)
+			y = map(yinvert.get, v)
 
 			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
 			handle = self.ax.scatter(x, y, c=self.groupcolors[k])
@@ -322,8 +320,8 @@ class HistPlot(Plotter):
 	
 	def plot(self):
 		# For the histogram, we only care about the X value!!
-                xinvert = query_invert(self.q['groups'][self.xparam])
-
+		xinvert = query_invert(self.q['groups'][self.xparam])
+		print "xinvert: %s"%xinvert
 		handles = []
 		labels = []
 		self.ax.hist(xinvert.values(), 15, normed=1, facecolor='green', alpha=0.75)
