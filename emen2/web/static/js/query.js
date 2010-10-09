@@ -226,7 +226,10 @@
 							<td>X <input type="text" name="xparam" value="" class="findparamdef" /></td> \
 							<td>Y <input type="text" name="yparam" value="" class="findparamdef"/></td> \
 							<td>Group By <input type="text" name="groupby" value="" class="findparamdef" /></td> \
-							<td><select><option value="xy">X-Y Scatter</option><option value="histogram">Histogram</option></select></td> \
+							<td> \
+								<select name="plotmode"><option value="scatter">X-Y Scatter</option><option value="hist">Histogram</option><option value="bin">Bins</option></select> \
+								<input type="text" name="binw" value="" size="4" /> Bin Width \
+							</td> \
 						</tr> \
 					</tbody> \
 				</table> \
@@ -319,11 +322,15 @@
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
 			var xparam = $('input[name=xparam]', this.container).val();
 			var yparam = $('input[name=yparam]', this.container).val();
+			var plotmode = $('select[name=plotmode]', this.container).val();
+			var binw = $('input[name=binw]', this.container).val();
 			var groupby = $('input[name=groupby]', this.container).val();
-			if (xparam || yparam) {
+			if (xparam) {
 				newq['xparam'] = xparam;
 				newq['yparam'] = yparam;
 				newq['groupby'] = groupby;
+				newq['plotmode'] = plotmode;
+				newq['binw'] = binw;
 				//newq['formats'] = ['png'];
 			}
 						
@@ -440,6 +447,10 @@
 			if (this.options.q['xparam']!=null) {$('input[name=xparam]', this.container).val(this.options.q['xparam'])}
 			if (this.options.q['yparam']!=null) {$('input[name=yparam]', this.container).val(this.options.q['yparam'])}
 			if (this.options.q['groupby']!=null) {$('input[name=groupby]', this.container).val(this.options.q['groupby'])}
+			if (this.options.q['plotmode']!=null) {$('select[name=plotmode]', this.container).val(this.options.q['plotmode'])}
+			if (this.options.q['binw']!=null) {$('input[name=binw]', this.container).val(this.options.q['binw'])}
+			if (this.options.q['binc']!=null) {$('input[name=binc]', this.container).val(this.options.q['binw'])}
+
 
 			$.each(this.options.q['c'], function() {
 				// Another ugly block to deal with these items..

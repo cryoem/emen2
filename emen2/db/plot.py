@@ -6,6 +6,7 @@ import time
 import collections
 import itertools
 import random
+import datetime
 
 try:
 	import matplotlib.backends.backend_agg
@@ -56,11 +57,13 @@ def datestep(cur, binw):
 
 
 def set_xticklabels(ax, steps):
+        ax.set_xticks(range(len(steps)))
 	ax.set_xticklabels(steps)
 
 
 def date_set_xticklabels(ax, steps):
-	ax.set_xticklabels([i.date() for i in steps], rotation=90, size="small")
+	ax.set_xticks(range(len(steps)-1))
+	ax.set_xticklabels([str(i.date()) for i in steps[:-1]], size="x-small", rotation=45)
 
 
 
@@ -106,14 +109,14 @@ def getplotfile(prefix=None, suffix=None, ctx=None, txn=None):
 
 class Plotter(object):
 
-	def __init__(self, xparam, yparam, groupby="rectype", c=None, groupshow=None, groupcolors=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, mode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
+	def __init__(self, xparam=None, yparam=None, groupby="rectype", c=None, groupshow=None, groupcolors=None, binw=None, binc=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, plotmode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
 		
 		# Run all the arguments through query..
 		c = c or []
 		cparams = [i[0] for i in c]
 		if xparam not in cparams:
 			c.append([xparam, "!None", ""])
-		if yparam not in cparams:
+		if yparam != None and yparam not in cparams:
 			c.append([yparam, "!None", ""])
 		if groupby not in cparams:
 			c.append([groupby, "!None", ""])
@@ -130,9 +133,6 @@ class Plotter(object):
 		width = int(width)
 		groupcolors = groupcolors or {}
 
-		xinvert = query_invert(self.q['groups'][xparam])
-		yinvert = query_invert(self.q['groups'][yparam])
-		recids = set(xinvert.keys()) & set(yinvert.keys())
 
 		#
 		self.c = c
@@ -147,16 +147,17 @@ class Plotter(object):
 		self.xmax = xmax
 		self.ymax = ymax
 		self.width = width
-		self.mode = mode
+		self.plotmode = plotmode
 		self.title = ''
 		self.xlabel = ''
 		self.ylabel = ''
 		self.cutoff = cutoff
+		self.binw = binw
+		self.binc = binc
 		
+
 		#
 		self.groupnames = {}
-		self.xinvert = xinvert
-		self.yinvert = yinvert
 		
 		#
 		self.ctx = ctx
@@ -247,6 +248,11 @@ class ScatterPlot(Plotter):
 
 	def plot(self):
 		# Ok, actual plotting is pretty simple...		
+
+                xinvert = query_invert(self.q['groups'][self.xparam])
+                yinvert = query_invert(self.q['groups'][self.yparam])
+
+
 		self.ax.grid(True)
 		
 		colorcount = len(COLORS)
@@ -316,9 +322,11 @@ class HistPlot(Plotter):
 	
 	def plot(self):
 		# For the histogram, we only care about the X value!!
+                xinvert = query_invert(self.q['groups'][self.xparam])
+
 		handles = []
 		labels = []
-		self.ax.hist(self.xinvert.values(), 15, normed=1, facecolor='green', alpha=0.75)
+		self.ax.hist(xinvert.values(), 15, normed=1, facecolor='green', alpha=0.75)
 		return labels, handles
 		
 
@@ -328,10 +336,18 @@ class HistPlot(Plotter):
 
 
 class BinPlot(Plotter):
+
+	def labels(self):
+		xpd = self.db.getparamdef(self.xparam, ctx=self.ctx, txn=self.txn)
+		self.title = "Test Graph"
+		self.xlabel = xpd.desc_short
+		self.ylabel = "Count"
+
+
+
 	def plot(self):
 		# Bar Options
-		binw = 'month'
-		bins = 0
+		self.binw = self.binw or 'month'
 		colorcount = len(COLORS)
 		handles = []
 		labels = []
@@ -364,10 +380,10 @@ class BinPlot(Plotter):
 		self.xmin = xk[0]
 		self.xmax = xk[-1]
 
-		cur = _start(self.xmin, binw)
+		cur = _start(self.xmin, self.binw)
 		steps = [cur]
 		while cur < self.xmax:
-			cur = _step(cur, binw)		
+			cur = _step(cur, self.binw)		
 			steps.append(cur)
 
 

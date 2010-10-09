@@ -1401,13 +1401,13 @@ class DB(object):
 	def plot(self, *args, **kwargs):
 		"""docstring coming soon"""
 		
-		mode = kwargs.get('mode', 'bin')
-		
-		if mode == 'scatter':
+		plotmode = kwargs.get('plotmode', 'scatter')
+
+		if plotmode == 'scatter':
 			plotter = emen2.db.plot.ScatterPlot
-		elif mode == 'hist':
+		elif plotmode == 'hist':
 			plotter = emen2.db.plot.HistPlot	
-		elif mode == 'bin':
+		elif plotmode == 'bin':
 			plotter = emen2.db.plot.BinPlot
 		
 
