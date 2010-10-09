@@ -321,12 +321,36 @@ class HistPlot(Plotter):
 	def plot(self):
 		# For the histogram, we only care about the X value!!
 		xinvert = query_invert(self.q['groups'][self.xparam])
-		print "xinvert: %s"%xinvert
+
+		colorcount = len(COLORS)
 		handles = []
 		labels = []
-		self.ax.hist(xinvert.values(), 15, normed=1, facecolor='green', alpha=0.75)
+		nextcolor = 0
+		nr = [None, None, None, None]
+
+		# ian: can't do stacked histogram yet...
+		handle = self.ax.hist(xinvert.values(), 15, normed=1, facecolor='green', alpha=0.75)
+
+		# for k,v in sorted(self.q['groups'][self.groupby].items()):
+		# 	if len(v) <= self.cutoff:
+		# 		continue
+		# 		
+		# 	self.groupnames[k] = k
+		# 	self.groupcolors[k] = self.groupcolors.get(k, COLORS[nextcolor%colorcount])
+		# 	nextcolor += 1
+		# 
+		# 	if  (self.groupshow and k not in self.groupshow):
+		# 		continue
+		# 		
+		# 	x = map(xinvert.get, v)
+		# 
+		# 	# handle = self.ax.scatter(x, y, c=self.groupcolors[k])
+		# 	handle = self.ax.hist(x, 15, normed=1, facecolor='green', alpha=0.75)
+		# 	handles.append(handle)
+		# 	labels.append(k)
+
+
 		return labels, handles
-		
 
 
 
