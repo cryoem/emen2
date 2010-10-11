@@ -642,8 +642,10 @@ class DB(object):
 
 
 	# backwards compat
-	_login = login
-
+	# _login = login
+	@publicmethod("auth.login2", write=True)
+	def _login(self, *args, **kwargs):
+		return self.login(*args, **kwargs)	
 
 
 	# Logout is the same as delete context
