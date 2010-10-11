@@ -6,6 +6,7 @@ import time
 import traceback
 import weakref
 import functools
+import collections
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -32,7 +33,7 @@ def publicmethod(*args, **kwargs):
 
 
 class MethodUtil(object):
-	allmethods = set(['doc'])
+	allmethods = set(['help'])
 	def help(self, func, *args, **kwargs):
 		return func.__doc__
 
@@ -74,6 +75,32 @@ class _Method(object):
 	def __call__(self, *args):
 		raise AttributeError, "No public method %s"%self._name
 
+class MethodTree(collections.MutableMapping):
+	def __init__(self, **kwargs):
+		self.__storage = {}
+		self.__value = None
+	def __setitem__(self, name, value):
+		key, div, cont = name.partition('.')
+		if key not in self.__storage:
+			self.__storage[key] = MethodTree()
+		if not cont:
+			self.__storage[key].__value = value
+		else:
+			self.__storage[key][cont] = value
+	def __getitem__(self, name):
+		result = self.__storage
+		while name:
+			key, _, name = name.partition('.')
+			result = result[key]
+		return result
+	def __delitem__(self, name):
+		raise NotImplementedError, 'not implemented yet'
+	def __iter__(self):
+		return iter(self.__storage)
+	def __len__(self):
+		return len(self.__storage)
+	def get_value(self):
+		return self.__value
 
 
 class DBProxy(object):
@@ -106,24 +133,52 @@ class DBProxy(object):
 
 		self.__ctx = ctx
 		self.__txn = txn
+
+		#"with" interface state
+		self.__txnflags = None
 		self.__oldtxn = None
+		self.__contextvars = None
+		self.__oldctx = ctx
 
 
 	# Implements "with" interface
+	def _settxnflags(self, flags):
+		self.__txnflags = flags
+		return self
+
+	def _setctxflags(self, ctxid, host):
+		self.__contextvars = (ctxid, host)
+		return self
+
+
+
 	def __enter__(self):
-		self._starttxn()
+		self.__oldctx = self.__ctx
+		self.__oldtxn = self.__txn
+		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, flags=self.__txnflags)
+		if self.__contextvars:
+			self.__setContext(*self.__contextvars)
+		#g.debug('txn', self.__txn, self.__oldtxn)
+		#g.debug('ctx', self.__ctx, self.__oldctx)
 		return self
 
 
 	def __exit__(self, type, value, traceback):
 		if self.__oldtxn is not self.__txn:
 			if type is None:
+				g.log_info('DBProxy.__exit__: committing Transaction')
 				self._committxn()
 			else:
 				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 				self._aborttxn()
 			self.__txn = None
 			self.__oldtxn = None
+			self.__txnflags = None
+		self._clearcontext()
+		self.__ctx = self.__oldctx
+		if self.__ctx != None: self.__bound = True
+		self.__contextvars = None
+		self.__oldctx = None
 
 
 	# Transactions
@@ -136,7 +191,7 @@ class DBProxy(object):
 
 
 	def _starttxn(self, flags=None):
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, flags=flags)
+		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
 		return self
 
 
@@ -154,12 +209,15 @@ class DBProxy(object):
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
 		with self:
-			try:
-				self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-				self.__ctx.setdb(db=self)
-			except:
-				self.__ctx = None
-				raise
+			self.__setContext(ctxid, host)
+	def __setContext(self, ctxid, host):
+		g.debug('txn:', self.__txn)
+		try:
+			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
+			self.__ctx.setdb(db=self)
+		except:
+			self.__ctx = None
+			raise
 
 		self.__bound = True
 		return self
@@ -207,7 +265,20 @@ class DBProxy(object):
 
 	def _callmethod(self, method, args, kwargs):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
-		return getattr(self, method)(*args, **kwargs)
+		args = list(args)
+		method = method.rsplit('.',1)
+		if len(method) > 1 and method[1] not in MethodUtil.allmethods:
+			method[0] = '%s.%s' % (method[0], method.pop())
+		if len(method) == 1: method.append('')
+
+		func = getattr(self, method[0])
+		result = None
+		if method[1]:
+			result = getattr(MethodUtil(), method[1])(func, args, kwargs)
+		else:
+			result = func(*args, **kwargs)
+
+		return result
 
 
 

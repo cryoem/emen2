@@ -274,7 +274,7 @@ class DB(object):
 	#@staticmethod
 	def __init_vtm(self):
 		"""Load vartypes, properties, and macros"""
-		
+
 		vtm = emen2.db.datatypes.VartypeManager()
 
 		self.indexablevartypes = set()
@@ -307,7 +307,7 @@ class DB(object):
 
 	def __checkdirs(self):
 		"Check that all necessary directories referenced from config file exist"
-		
+
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
 
@@ -319,7 +319,7 @@ class DB(object):
 		for i in ['LOGPATH', 'HOTBACKUP', 'LOG_ARCHIVE', 'TILEPATH', 'TMPPATH', 'SSLPATH']:
 			try: paths.append(getattr(g.paths, i))
 			except: pass
-		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]		
+		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
@@ -332,7 +332,7 @@ class DB(object):
 
 	def __init__(self, path=None, maint=False):
 		"""Initialize DB
-		
+
 		@keyparam path Path to DB (default is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments; see db.config)
 		@keyparam maint Open in maintenance mode; only the environment will be created; no bdbs will be opened.
 		"""
@@ -447,7 +447,7 @@ class DB(object):
 
 	def __del__(self):
 		"""Close DB when deleted"""
-		
+
 		self.close()
 
 
@@ -487,11 +487,11 @@ class DB(object):
 
 	def newtxn(self, parent=None, ctx=None, flags=None):
 		"""Start a new transaction.
-		
+
 		@keyparam parent Open new txn as a child of this parent txn
 		@return New txn
 		"""
-		
+
 		if flags == None:
 			flags = g.TXNFLAGS
 
@@ -511,7 +511,7 @@ class DB(object):
 
 	def txncheck(self, txnid=0, flags=None, ctx=None, txn=None):
 		"""Check a txn status; accepts txnid or txn instance
-		
+
 		@return txn if valid
 		"""
 		txn = self.txnlog.get(txnid, txn)
@@ -601,7 +601,7 @@ class DB(object):
 		@return Context key (ctxid)
 		@exception AuthenticationError, KeyError
 		"""
-	
+
 		if maxidle == None or maxidle > g.MAXIDLE:
 			maxidle = g.MAXIDLE
 
@@ -612,10 +612,10 @@ class DB(object):
 		if len(byemail) == 1:
 			username = byemail.pop()
 		elif len(byemail) > 1:
-			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)			
+			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)
 			raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
-			
-		
+
+
 		if username == "anonymous":
 			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
 		else:
@@ -665,7 +665,7 @@ class DB(object):
 
 		@return (context username, context groups)
 		"""
-		
+
 		return ctx.username, ctx.groups
 
 
@@ -674,7 +674,7 @@ class DB(object):
 	@publicmethod("auth.check.admin")
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
-		
+
 		@return Bool; True if user is an admin
 		"""
 		return ctx.checkadmin()
@@ -685,7 +685,7 @@ class DB(object):
 	@publicmethod("auth.check.readadmin")
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
-		
+
 		@return Bool; True if user is a read admin
 		"""
 		return ctx.checkreadadmin()
@@ -710,7 +710,7 @@ class DB(object):
 		@keyparam host Host
 		@return Context instance
 		"""
-				
+
 		if username == "anonymous":
 			ctx = emen2.db.context.AnonymousContext(host=host)
 		else:
@@ -828,10 +828,10 @@ class DB(object):
 		@return Context
 		@exception SessionError
 		"""
-		
+
 		if txn == None:
 			raise ValueError, "No txn"
-		
+
 		self.__periodic_operations(ctx=ctx, txn=txn)
 
 		context = None
@@ -882,10 +882,10 @@ class DB(object):
 		@return A single Binary instance or a list of Binaries
 		@exception KeyError, SecurityError
 		"""
-		
-		# params=None, 
+
+		# params=None,
 		# @keyparam params For record search, limit to (single/iterable) params
-		
+
 		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
 
 		# process bdokeys argument for bids (into list bids) and then process bids
@@ -902,7 +902,7 @@ class DB(object):
 			qr = self.query(c=q.get('c'), boolmode=q.get('boolmode'), ignorecase=q.get('ignorecase'), ctx=ctx, txn=txn)
 			recs.extend(self.getrecord(qr.get('recids', []), ctx=ctx, txn=txn))
 			ol = False
-			
+
 		# ian: todo: fix this in a sane way..
 		if hasattr(bdokeys, "__iter__"):
 			bids.extend(x for x in bdokeys if isinstance(x, basestring))
@@ -971,7 +971,7 @@ class DB(object):
 		admin = ctx.checkadmin()
 		for i in byrec.get(None, []):
 			if i.creator == username or admin:
-				ret.append(i)	
+				ret.append(i)
 
 
 		if ol: return return_first_or_none(ret)
@@ -983,7 +983,7 @@ class DB(object):
 	@publicmethod("binaries.put", write=True)
 	def putbinary(self, bdokey=None, recid=None, filename=None, infile=None, uri=None, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
-		
+
 		@keyparam bdokey Update an existing BDO. Only the filename and record ID can be updated.
 		@keypram recid Link Binary to this Record
 		@keyparam filename Filename
@@ -1019,7 +1019,7 @@ class DB(object):
 
 
 		# Update the BDO: Start RMW cycle
-		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}		
+		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
 
 		if dkey["counter"] == 0:
 			counter = max(bdo.keys() or [-1]) + 1
@@ -1042,20 +1042,20 @@ class DB(object):
 				name = dkey["name"],
 				filesize = filesize,
 				md5 = md5sum
-			)	
-		
+			)
+
 		if not nb:
 			raise KeyError, "No such BDO: %s"%bdokey
 
-		if nb['creator'] != ctx.username and not ctx.checkadmin():			
+		if nb['creator'] != ctx.username and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "You cannot modify a BDO you did not create"
 
 		if recid != None:
 			nb["recid"] = recid
 
 		if filename != None:
-			nb["filename"] = filename			
-			
+			nb["filename"] = filename
+
 		nb["modifyuser"] = ctx.username
 		nb["modifytime"] = t
 
@@ -1092,7 +1092,7 @@ class DB(object):
 		else:
 			# string data..
 			infile = cStringIO.StringIO(infile)
-		
+
 		try:
 			os.makedirs(dkey["basepath"])
 		except:
@@ -1177,17 +1177,17 @@ class DB(object):
 		else:
 			# ... these are already filtered, so insert the result of an empty query here.
 			recids = self.getindexbycontext(ctx=ctx, txn=txn)
-	
+
 		if subset:
 			recids &= subset
-								
+
+
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
 			#print "groupby: %s"%groupparam
 			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
-			#print groups['groupby']
 
 
 		ret = {
@@ -1198,7 +1198,7 @@ class DB(object):
 			"recids": recids,
 			"groups": groups,
 			"subset": subset
-		}		
+		}
 		return ret
 
 
@@ -1234,7 +1234,7 @@ class DB(object):
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
 			# recurse=-1 for all parents
-			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn) 
+			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn)
 			parentgroups = collections.defaultdict(set)
 			for k,v in parenttree.items():
 				v2 = v & parentrectype
@@ -1246,7 +1246,7 @@ class DB(object):
 		else:
 			if not keys:
 				return
-				
+
 			ind = self.__getparamindex(param, ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
@@ -1275,7 +1275,7 @@ class DB(object):
 
 		if value == "":
 			value = None
-			
+
 		subset = None
 
 		print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
@@ -1304,15 +1304,15 @@ class DB(object):
 		elif param == "child":
 			if comp == "recid" and value != None:
 				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
-			
+
 		# these will get filtered for permissions at the end..
 		elif param == "groups":
 			if comp == "contains" and value != None:
 				subset = self.bdbs.secrindex_groups.get(value, txn=txn)
-			
+
 		elif param == "permissions":
 			if comp == "contains" and value != None:
-				subset = self.bdbs.secrindex.get(value, txn=txn)		
+				subset = self.bdbs.secrindex.get(value, txn=txn)
 
 		elif param == "project_block":
 			subset = self.getindexbyrecorddef(["project","subproject"], ctx=ctx, txn=txn)
@@ -1425,7 +1425,7 @@ class DB(object):
 	@publicmethod("records.find.plot")
 	def plot(self, *args, **kwargs):
 		"""docstring coming soon"""
-		
+
 		plotmode = kwargs.get('plotmode', 'scatter')
 
 		if plotmode == 'scatter':
@@ -1434,7 +1434,6 @@ class DB(object):
 			plotter = emen2.db.plot.HistPlot	
 		elif plotmode == 'bin':
 			plotter = emen2.db.plot.BinPlot
-		
 
 		return plotter(*args, db=self, **kwargs).q
 
@@ -1443,24 +1442,24 @@ class DB(object):
 	@publicmethod("records.find.table")
 	def querytable(self, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		"""doctstring coming soon"""
-		
+
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
 		count = int(count) or None
 		pos = int(pos)
-		
+
 		if reverse == None:
 			reverse = 1
-		reverse = int(reverse)		
+		reverse = int(reverse)
 
 		# Run query
 		if xparam or yparam:
 			q.update(self.plot(ctx=ctx, txn=txn, **q))
 		else:
 			q.update(self.query(ctx=ctx, txn=txn, **q))
-						
-			
-		length = len(q['recids'])		
+
+
+		length = len(q['recids'])
 		rectypes = q.get('groups', {}).get('rectype', {})
 		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
 
@@ -1470,10 +1469,10 @@ class DB(object):
 			viewdef = rds.views['tabularview']
 		elif len(rds) > 1 or len(rds) == 0:
 			viewdef = "$@recname() $@thumbnail() $$rectype $$recid $$creator $$creationtime"
-		
+
 		# Sort
 		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)
-		
+
 		# Render
 		rendered = self.renderview(q['recids'], viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
 
@@ -1514,7 +1513,7 @@ class DB(object):
 	@publicmethod("records.sort")
 	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
 		"""Sort recids based on a param or macro.
-		
+
 		@param recids Sort these recids
 		@keyparam param Sort parameter. Can also be a macro in macro view format, e.g.: $@childcount(image_capture*)
 		@keyparam reverse Reverse results
@@ -1535,7 +1534,7 @@ class DB(object):
 			return sorted(recids, reverse=reverse)
 
 
-		recs = listops.typefilter(recids, emen2.db.record.Record)		
+		recs = listops.typefilter(recids, emen2.db.record.Record)
 		recids = listops.typefilter(recids, int)
 		values = collections.defaultdict(set)
 
@@ -1553,26 +1552,26 @@ class DB(object):
 		# sort/render using records directly... required for macros.
 		if param.startswith("$@"):
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
-			recids = set([rec.recid for rec in recs])		
+			recids = set([rec.recid for rec in recs])
 			regex = re.compile(VIEW_REGEX)
 			k = regex.match(param)
 			vtm.macro_preprocess(k.group('name'), k.group('args'), recs, db=dbp)
 			for rec in recs:
 				v = vtm.macro_process(k.group('name'), k.group('args'), rec, db=dbp)
 				values[v].add(rec.recid)
-				
-			
+
+
 		# or if we have the records, or there is no index..
 		elif recs or not index:
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
-			recids = set([rec.recid for rec in recs])		
+			recids = set([rec.recid for rec in recs])
 			for rec in recs:
 				try:
-					values[rec.get(param)].add(rec.recid)		
+					values[rec.get(param)].add(rec.recid)
 				except TypeError:
 					values[tuple(rec.get(param))].add(rec.recid)
-					
-					
+
+
 		# Lastly, try the index
 		else:
 			recids = set(recids)
@@ -1597,22 +1596,22 @@ class DB(object):
 				values = newvalues
 
 
-		
+
 		# This makes sure that empty items are placed at the end; simple sort breaks sometimes
 		ret = []
 		for k in sorted(values.keys(), reverse=reverse):
 			ret.extend(sorted(values[k]))
-		
+
 		seen = set(ret)
 		ret.extend(sorted(recids-seen))
-			
-		if pos != None and count != None:	
+
+		if pos != None and count != None:
 			return ret[pos:pos+count]
 		return ret
 
 
 
-				
+
 
 	@publicmethod("recorddefs.find")
 	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
@@ -1651,7 +1650,7 @@ class DB(object):
 
 	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
-		
+
 		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
 		# context of where query was found
 		c = {}
@@ -1844,7 +1843,7 @@ class DB(object):
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit:
 			keys = keys[:int(limit)]
-			
+
 		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
 			for k,v in ret.items():
@@ -1855,29 +1854,29 @@ class DB(object):
 		if showchoices:
 			for i in choices:
 				ri.append((i, ret.get(i, 0)))
-			
+
 		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
 			if i not in choices:
 				ri.append((i, ret.get(i, [])))
-					
+
 		return ri
-		
+
 
 		# This method was simplified, and now uses __query_index directly
 		# cmps = self.__query_cmps(ignorecase=True)
 		# s1, s2 = self.__query_index(c=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
 		# #{('name_last', u'Rees'): set([271390])}
-		# 
+		#
 		# # This works nicely, I should rewrite some of my other list sorteds
 		# keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
 		# if limit: keys = keys[:int(limit)]
-		# 
+		#
 		# # Turn back into a dictionary
 		# ret = dict([(i[0][1], i[1]) for i in keys])
 		# if count:
 		# 	for k in ret:
 		# 		ret[k]=len(ret[k])
-		# 
+		#
 		# return ret
 
 
@@ -1890,7 +1889,7 @@ class DB(object):
 	@publicmethod("records.find.byrecorddef")
 	def getindexbyrecorddef(self, recdefs, ctx=None, txn=None):
 		"""Records by Record Def. This is currently non-secured information.
-		
+
 		@param recdef Single or iterable RecordDef names
 		@return Set of recids
 		"""
@@ -1960,14 +1959,14 @@ class DB(object):
 	@publicmethod("records.find.bypermissions")
 	def getindexbypermissions(self, uers=None, groups=None, subset=None, ctx=None, txn=None):
 		"""Search permission indexes. Useful for seeing where permissions have been set.
-		
+
 		@keyparam users Single or iterable list of users
 		@keyparam groups Single or iterable list of groups
 		@keyparam subset Restrict to this subset of Record IDs
 		@return Filtered set of records matching users/groups specified
 		"""
 		ret = set()
-		
+
 		if users:
 			for user in users:
 				ret |= self.bdbs.secrindex.get(user, set(), txn=txn)
@@ -1981,17 +1980,17 @@ class DB(object):
 		elif not users:
 			for k,v in self.bdbs.secrindex_groups.items(txn=txn):
 				ret |= v
-		
-		
+
+
 		if ctx.checkreadadmin() and not subset:
 			return ret
 
 		if subset:
 			ret &= subset
-			
+
 		return self.__filterbypermissions(ret, ctx=ctx, txn=txn)
-			
-		
+
+
 
 
 	@publicmethod("records.list")
@@ -2240,7 +2239,7 @@ class DB(object):
 
 		@param links [[parent 1,child 1],[parent 2,child 2], ...]
 		@keyparam keytype Link this type: ["record","paramdef","recorddef"] (default is "record")
-		@return 
+		@return
 		"""
 		self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
@@ -2363,7 +2362,7 @@ class DB(object):
 	@publicmethod("users.disable", write=True, admin=True)
 	def disableuser(self, usernames, filt=True, ctx=None, txn=None):
 		"""Disable a user. Admins-only.
-		
+
 		@param usernames Single or iterable list of usernames to disable
 		@keyparam filt Ignore failures
 		@return List of usernames disabled
@@ -2479,7 +2478,7 @@ class DB(object):
 					continue
 				else:
 					raise KeyError, msg
-				
+
 
 			if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
 				delusers[username] = None
@@ -2489,7 +2488,7 @@ class DB(object):
 					continue
 				else:
 					raise KeyError, msg
-				
+
 			# if secret is not None and not user.validate_secret(secret):
 			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
 			# 	time.sleep(2)
@@ -2586,7 +2585,7 @@ class DB(object):
 
 		@return Set of users in approval queue
 		"""
-		
+
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
@@ -2615,7 +2614,7 @@ class DB(object):
 	@publicmethod("users.new")
 	def newuser(self, username, password, email, ctx=None, txn=None):
 		"""Construct a new User instance.
-		
+
 		@param username Required user field
 		@param password Required user field. See restrictionsin user.py.
 		@param email Required user field
@@ -2666,7 +2665,7 @@ class DB(object):
 		self.__commit_users(commitusers, ctx=ctx, txn=txn)
 
 
-	
+
 
 
 
@@ -2779,9 +2778,9 @@ class DB(object):
 		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
 
 		for user in users:
-			
+
 			ouser = self.bdbs.users.get(user.username, txn=txn)
-			
+
 			self.bdbs.users.set(user.username, user, txn=txn)
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
 
@@ -2789,7 +2788,7 @@ class DB(object):
 				oldemail = ouser.email
 			except:
 				oldemail = ''
-				
+
 			if oldemail != user.email:
 				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
@@ -2996,7 +2995,7 @@ class DB(object):
 		self.bdbs.usersbyemail.truncate(txn=txn)
 		for user in users:
 			self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
-			
+
 
 
 	def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
@@ -3562,7 +3561,7 @@ class DB(object):
 			recdefs.add(k)
 			recdefs |= v
 
-			
+
 
 		# Prepare filter
 		if filt:
@@ -3618,7 +3617,7 @@ class DB(object):
 		"""
 
 		ol, recids = listops.oltolist(recids)
-		# ret = (rec for rec in self.bdbs.records.gets(recids, txn=txn) if rec.setContext(ctx, filt=filt))			
+		# ret = (rec for rec in self.bdbs.records.gets(recids, txn=txn) if rec.setContext(ctx, filt=filt))
 		ret = []
 		for i in recids:
 			try:
@@ -3628,12 +3627,12 @@ class DB(object):
 			except (emen2.db.exceptions.SecurityError, KeyError, TypeError), e:
 				if filt: pass
 				else: raise
-		
+
 		if writable:
 			ret = filter(lambda x:x.writable(), ret)
 
 		if owner:
-			ret = filter(lambda x:x.isowner(), ret)				
+			ret = filter(lambda x:x.isowner(), ret)
 
 		if ol:
 			return return_first_or_none(list(ret))
@@ -3866,16 +3865,16 @@ class DB(object):
 		@return Committed records
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
-		
+
 		ol, recs = listops.oltolist(recs)
-		
+
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
 		# Preprocess
 		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
 		recs = listops.typefilter(recs, emen2.db.record.Record)
-		
+
 		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
 
 		if ol: return return_first_or_none(ret)
@@ -3909,7 +3908,7 @@ class DB(object):
 		t = self.gettime(ctx=ctx, txn=txn)
 
 		validation_cache = emen2.db.record.make_cache()
-		
+
 		# preprocess: copy updated record into original record (updrec -> orec)
 		for updrec in updrecs:
 			recid = updrec.recid
@@ -4031,7 +4030,7 @@ class DB(object):
 
 
 		# OK, all go to write records/indexes!
-		
+
 		# Reassign new record IDs and update record counter
 		# BTree may use DBSequences at some point in the future, if it's ever stable
 		if newrecs:
@@ -4670,7 +4669,7 @@ class DB(object):
 					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
 				else:
 					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-					
+
 			dt.append("\t<thead>\n</table>")
 
 		else:
@@ -4687,9 +4686,9 @@ class DB(object):
 	@publicmethod("records.render")
 	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
-						
+
 		regex = re.compile(VIEW_REGEX)
-		
+
 		ol, recs = listops.oltolist(recs)
 
 		if viewtype == "tabularview":
@@ -4717,7 +4716,7 @@ class DB(object):
 
 		elif viewtype == "dicttable":
 			for rec in recs:
-				# move built in params to end of table					
+				# move built in params to end of table
 				par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 				par += builtinparamsshow
 				par += [p for p in rec.getparamkeys() if p not in par]
@@ -4748,7 +4747,7 @@ class DB(object):
 					pds.add(match.group('name'))
 				else:
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs, db=dbp)
-					
+
 
 		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
 
@@ -4812,7 +4811,7 @@ class DB(object):
 		return ret
 
 
-				
+
 
 
 
@@ -4882,40 +4881,40 @@ class DB(object):
 	# ian: todo: finish
 	# def coldbackup(self, force=False, ctx=None, txn=None):
 	# 	g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
-	# 
+	#
 	# 	self.checkpoint(ctx=ctx, txn=txn)
-	# 
+	#
 	# 	if os.path.exists(g.paths.BACKUPPATH):
 	# 		if force:
 	# 			pass
 	# 		else:
 	# 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.paths.BACKUPPATH
-	# 
+	#
 	# 	# ian: just use shutil.copytree
 	# 	g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
 	# 	shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
-	# 
+	#
 	# 	for i in ["config.yml","DB_CONFIG"]:
 	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
-	# 	
+	#
 	# 	os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
-	# 
+	#
 	# 	# Get the last log file
 	# 	archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
-	# 
+	#
 	# 	for i in archivelogs:
 	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
-	# 
-	# 
-	# 
+	#
+	#
+	#
 	# def hotbackup(self, ctx=None, txn=None):
 	# 	g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
 	# 	self.checkpoint(ctx=ctx, txn=txn)
-	# 
+	#
 	# 	g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
 	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
-	# 
+	#
 	# 	g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
-	
+
