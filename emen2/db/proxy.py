@@ -166,7 +166,7 @@ class DBProxy(object):
 	def __exit__(self, type, value, traceback):
 		if self.__oldtxn is not self.__txn:
 			if type is None:
-				g.log_info('DBProxy.__exit__: committing Transaction')
+				#g.log_info('DBProxy.__exit__: committing Transaction')
 				self._committxn()
 			else:
 				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
