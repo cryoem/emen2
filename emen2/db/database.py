@@ -2685,18 +2685,13 @@ class DB(object):
 			username = ctx.username
 
 		# ian: need to read directly because getuser hides password
-		# user = self.getuser(username, ctx=ctx, txn=txn)
 		user = self.bdbs.users.sget(username, txn=txn)
 		user.setContext(ctx)
 
 		if not user:
 			raise emen2.db.exceptions.SecurityError, "Cannot change password for user '%s'"%username
 
-		try:
-			user.setpassword(oldpassword, newpassword)
-		except:
-			time.sleep(2)
-			raise
+		user.setpassword(oldpassword, newpassword)
 
 		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
@@ -2775,7 +2770,7 @@ class DB(object):
 
 	#@write #self.bdbs.users
 	def __commit_users(self, users, ctx=None, txn=None):
-		"""(Internal) Updates user. Takes validated User. Deprecated for non-administrators."""
+		"""(Internal) Updates user. Takes validated User."""
 
 		for user in users:
 

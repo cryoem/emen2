@@ -103,9 +103,14 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	def checkpassword(self, password):
 		if self.disabled:
-			exception = (emen2.db.exceptions.DisabledUserError,
-						emen2.db.exceptions.DisabledUserError.__doc__ % self.username)
+			exception = (emen2.db.exceptions.DisabledUserError, emen2.db.exceptions.DisabledUserError.__doc__%self.username)
 			raise exception[0], exception[1]
+
+
+		if self._ctx:
+			if self._ctx.checkadmin():
+				return True
+
 
 		result = False
 		if self.password != None and self.__hashpassword(password) == self.password:
