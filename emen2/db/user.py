@@ -108,9 +108,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 			raise exception[0], exception[1]
 
 		result = False
-		if self._ctx and self._ctx.checkadmin():
-			result = True
-		elif self.password != None and self.__hashpassword(password) == self.password:
+		if self.password != None and self.__hashpassword(password) == self.password:
 			result = True
 
 		if result == False:
@@ -127,11 +125,10 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def __setpassword(self, newpassword):
-		if self.username != "root":
-			if newpassword == None:
-				self.validationwarning("No password specified; minimum 6 characters required", warning=False)
-			if len(newpassword) < 6:
-				self.validationwarning("Password too short; minimum 6 characters required", warning=False)
+		if newpassword == None and self.username != "root":
+			self.validationwarning("No password specified; minimum 6 characters required", warning=False)
+		if len(newpassword) < 6:
+			self.validationwarning("Password too short; minimum 6 characters required", warning=False)
 		self.password = self.__hashpassword(newpassword)
 
 
