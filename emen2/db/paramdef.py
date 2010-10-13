@@ -97,7 +97,7 @@ class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 
 
 	def validate_vartype(self):
-		vtm=emen2.db.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager()
 		self._obj.vartype = unicode(self._obj.vartype)
 
 		if self._obj.vartype not in vtm.getvartypes():

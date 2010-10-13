@@ -5,8 +5,46 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
-# Convenience
-Macro = emen2.db.datatypes.Macro
+
+class Macro(object):
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+
+	@classmethod
+	def register(cls):
+		name = cls.__name__
+		if name.startswith('macro_'): name = name.split('_',1)[1]
+		emen2.db.datatypes.VartypeManager._register_macro(name, cls)
+
+	def __init__(self):
+		# typical modes: html, unicode, edit
+		self.modes={}
+
+
+	def preprocess(self, engine, macro, params, recs, db):
+		# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
+		pass
+		
+
+	def process(self, engine, macro, params, rec, db):
+		return "macro: %s"%macro
+
+	def render(self, engine, macro, params, rec, mode, db):
+		value = self.process(engine, macro, params, rec, db)
+		r = self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
+		return r
+
+	def render_unicode(self, engine, value, macro, params, rec, db):
+		return unicode(value)
+
+	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+		return unicode("Maco: %s(%s)"%(macro,params))
+
+
+
 
 
 

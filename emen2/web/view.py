@@ -123,8 +123,8 @@ class View(object):
 		self.__ctxt = adjust({}, extra)
 
 		try:
-			LOGINUSER = self.__db._DBProxy__ctx.username
-			HOST = self.__db._DBProxy__ctx.host
+			LOGINUSER = self.__db._ctx.username
+			HOST = self.__db._ctx.host
 		except:
 			LOGINUSER = None
 			HOST = None

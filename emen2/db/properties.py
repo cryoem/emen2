@@ -4,7 +4,78 @@ import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
 
-Property = emen2.db.datatypes.Property
+
+
+
+class Property(object):
+	@staticmethod
+	def register_view(name, bases, dict):
+		cls = type(name, bases, dict)
+		cls.register()
+		return cls
+
+	@classmethod
+	def register(cls):
+		name = cls.__name__
+		if name.startswith('prop_'): name = name.split('_',1)[1]
+		emen2.db.datatypes.VartypeManager._register_property(name, cls)
+
+
+	def validate(self, engine, pd, value, db):
+		if hasattr(value,"__float__"):
+			return float(value)
+
+		#q=re.compile("([0-9+\-\.]+)(\s+)?(\D+)?")
+		#ed: TODO: make sure this is correct, old one didn't work for e/A^2
+		q=re.compile("([0-9+\-\.]+)(\s+)?(.+?)?\s*$")
+
+		value=unicode(value).strip()
+		try:
+			r=q.match(value).groups()
+		except:
+			raise ValueError,"Unable to parse '%s' for units"%(value)
+
+		v = float(r[0])
+		u = None
+
+		if r[2] != None:
+			u = unicode(r[2]).strip()
+
+		g.log.msg('LOG_DEBUG', "GOT VALUE AND UNITS: '%s', '%s' PARAM DU: %s, VT DU: %s"%(v,u, pd.defaultunits, self.defaultunits))
+
+		if u == pd.defaultunits or u == None:
+			#g.log.msg('LOG_DEBUG', "No units specified or defaultunits; no conversion necessary")
+			return v
+
+		du=pd.defaultunits
+		if pd.defaultunits == None:
+			#g.log.msg('LOG_DEBUG', "No paramdef defaultunits, using vartype defaultunits of %s"%self.defaultunits)
+			du=self.defaultunits
+
+		return self.convert(v, u, du, db)
+
+
+	def convert(self, value, u, target, db):
+
+		if self.conv.get((u,target)):
+			return self.conv.get((u,target))(value,db)
+
+		equiv = self.units.get(u) or self.units.get(self.equiv.get(u))
+		du = self.units.get(target) or self.units.get(self.equiv.get(target))
+
+		if equiv == None:
+			raise ValueError, "Unknown units '%s' (value is '%s'). Valid units: %s"%(u, value, set([self.defaultunits]) | set(self.units.keys()) | set(self.equiv.keys()))
+
+		#g.log.msg('LOG_DEBUG', "Using units %s, target is %s, conversion factor %s, %s"%(u, target, equiv, du))
+		#value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
+		newv = value * ( equiv / du )
+		#if value != newv:
+		#	g.log.msg('LOG_DEBUG', "Property: converted: %s -> %s"%(value,newv))
+		return newv
+
+
+
+
 
 
 class prop_transmittance(Property):

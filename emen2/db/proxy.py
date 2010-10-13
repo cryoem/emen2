@@ -75,6 +75,8 @@ class _Method(object):
 	def __call__(self, *args):
 		raise AttributeError, "No public method %s"%self._name
 
+
+
 class MethodTree(collections.MutableMapping):
 	def __init__(self, **kwargs):
 		self.__storage = {}
@@ -103,11 +105,13 @@ class MethodTree(collections.MutableMapping):
 		return self.__value
 
 
+
+
 class DBProxy(object):
 	"""A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
 
 	db = DBProxy()
-	db._login(username, password)
+	db.login(username, password)
 
 	"""
 
@@ -122,17 +126,17 @@ class DBProxy(object):
 		# it can cause circular imports if this is at the top level of the module
 		import database
 
-		self.__txn = None
+		self._txn = None
 		self.__bound = False
 
 		if not db:
 			db = database.DB(path=dbpath) # path will default to g.EMEN2DBHOME
 
-		self.__db = db
+		self._db = db
 		# weakref.proxy(db)
 
-		self.__ctx = ctx
-		self.__txn = txn
+		self._ctx = ctx
+		self._txn = txn
 
 		#"with" interface state
 		self.__txnflags = None
@@ -153,57 +157,57 @@ class DBProxy(object):
 
 
 	def __enter__(self):
-		self.__oldctx = self.__ctx
-		self.__oldtxn = self.__txn
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, flags=self.__txnflags)
+		self.__oldctx = self._ctx
+		self.__oldtxn = self._txn
+		self._txn = self._db.txncheck(txn=self._txn, ctx=self._ctx, flags=self.__txnflags)
 		if self.__contextvars:
 			self.__setContext(*self.__contextvars)
-		#g.debug('txn', self.__txn, self.__oldtxn)
-		#g.debug('ctx', self.__ctx, self.__oldctx)
+		#g.debug('txn', self._txn, self.__oldtxn)
+		#g.debug('ctx', self._ctx, self.__oldctx)
 		return self
 
 
 	def __exit__(self, type, value, traceback):
-		if self.__oldtxn is not self.__txn:
+		if self.__oldtxn is not self._txn:
 			if type is None:
 				#g.log_info('DBProxy.__exit__: committing Transaction')
 				self._committxn()
 			else:
 				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 				self._aborttxn()
-			self.__txn = None
+			self._txn = None
 			self.__oldtxn = None
 			self.__txnflags = None
 		self._clearcontext()
-		self.__ctx = self.__oldctx
-		if self.__ctx != None: self.__bound = True
+		self._ctx = self.__oldctx
+		if self._ctx != None: self.__bound = True
 		self.__contextvars = None
 		self.__oldctx = None
 
 
 	# Transactions
 	def _gettxn(self):
-		return self.__txn
+		return self._txn
 
 
 	def _settxn(self, txn=None):
-		self.__txn = txn
+		self._txn = txn
 
 
 	def _starttxn(self, flags=None):
-		self.__txn = self.__db.newtxn(self.__txn, flags=flags)
+		self._txn = self._db.newtxn(self._txn, flags=flags)
 		return self
 
 
 	def _committxn(self):
-		self.__db.txncommit(txn=self.__txn)
-		self.__txn = None
+		self._db.txncommit(txn=self._txn)
+		self._txn = None
 
 
 	def _aborttxn(self):
-		if self.__txn:
-			self.__db.txnabort(txn=self.__txn)
-		self.__txn = None
+		if self._txn:
+			self._db.txnabort(txn=self._txn)
+		self._txn = None
 
 
 	# Rebind a new Context
@@ -211,12 +215,12 @@ class DBProxy(object):
 		with self:
 			self.__setContext(ctxid, host)
 	def __setContext(self, ctxid, host):
-		g.debug('txn:', self.__txn)
+		g.debug('txn:', self._txn)
 		try:
-			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.setdb(db=self)
+			self._ctx = self._db._getcontext(ctxid=ctxid, host=host, txn=self._txn)
+			self._ctx.setdb(db=self)
 		except:
-			self.__ctx = None
+			self._ctx = None
 			raise
 
 		self.__bound = True
@@ -225,12 +229,12 @@ class DBProxy(object):
 
 	def _clearcontext(self):
 		if self.__bound:
-			self.__ctx = None
+			self._ctx = None
 			self.__bound = False
 
 
 	def _getctx(self):
-		return self.__ctx
+		return self._ctx
 
 
 	@property
@@ -307,43 +311,43 @@ class DBProxy(object):
 
 	def _wrap(self, func):
 		# print "going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
-		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
+		kwargs = dict(ctx=self._ctx, txn=self._txn)
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			# t = time.time()
 			result = None
 			commit = False
-			ctx = self.__ctx
+			ctx = self._ctx
 			kwargs['ctx'] = ctx
 
 			if func.admin and not ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
-			txn = self.__txn
+			txn = self._txn
 			if bool(txn) is False:
-				txn = self.__db.newtxn()
+				txn = self._db.newtxn()
 				commit = True
 			kwargs['txn'] = txn
 
 			if func.ext:
-				kwargs['db'] = self.__db
+				kwargs['db'] = self._db
 
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
 
 			try:
 				# result = func.execute(*args, **kwargs)
-				result = func(self.__db, *args, **kwargs)
+				result = func(self._db, *args, **kwargs)
 
 			except Exception, e:
 				# traceback.print_exc(e)
 				if commit is True:
-					txn and self.__db.txnabort(ctx=ctx, txn=txn)
+					txn and self._db.txnabort(ctx=ctx, txn=txn)
 				raise
 
 			else:
 				if commit is True:
-					txn and self.__db.txncommit(ctx=ctx, txn=txn)
+					txn and self._db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
 			# print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)

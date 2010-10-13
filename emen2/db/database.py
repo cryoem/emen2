@@ -212,21 +212,19 @@ class DB(object):
 			self.recorddefs = emen2.db.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
 			self.records = emen2.db.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
 
+			# This is an index of indices
+			self.indexkeys = emen2.db.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
 
-			# Indices
-			self.secrindex = emen2.db.btrees.FieldBTree(filename="index/security/secrindex", datatype="d", dbenv=dbenv, txn=txn)
-			self.secrindex_groups = emen2.db.btrees.FieldBTree(filename="index/security/secrindex_groups", datatype="d", dbenv=dbenv, txn=txn)
+			# These index things outside of Records
 			self.groupsbyuser = emen2.db.btrees.FieldBTree(filename="index/security/groupsbyuser", datatype="s", dbenv=dbenv, txn=txn)
 			self.usersbyemail = emen2.db.btrees.FieldBTree(filename="index/security/usersbyemail", datatype="s", dbenv=dbenv, txn=txn)
-			self.recorddefindex = emen2.db.btrees.FieldBTree(filename="index/records/recorddefindex", datatype="d", dbenv=dbenv, txn=txn)
 			self.bdosbyfilename = emen2.db.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
-			self.indexkeys = emen2.db.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
 
 
 			self.bdbs = set(self.__dict__) - old
 			self.contexts_cache = {}
 			self.fieldindex = {}
-			self.__db = db
+			self._db = db
 
 
 		def openparamindex(self, paramname, keytype="s", datatype="d", dbenv=None, txn=None):
@@ -235,7 +233,7 @@ class DB(object):
 			The opened param will be available in self.fieldindex[paramname] after open.
 
 			@param paramname Param index to open
-			@keyparam keytype Open index with this keytype (from core_vartypes.<vartype>.__indextype__)
+			@keyparam keytype Open index with this keytype (from core_vartypes.<vartype>.keytype)
 			@keyparam datatype Open with datatype; will always be 'd'
 			@keyparam dbenv A DBEnv instance must be passed
 			"""
@@ -244,16 +242,16 @@ class DB(object):
 
 			deltxn=False
 			if txn == None:
-				txn = self.__db.newtxn()
+				txn = self._db.newtxn()
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = emen2.db.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
 			except BaseException, e:
-				# g.debug('openparamindex failed: %s' % e)
-				if deltxn: self.__db.txnabort(txn=txn)
+				if deltxn:
+					self._db.txnabort(txn=txn)
 				raise
 			else:
-				if deltxn: self.__db.txncommit(txn=txn)
+				if deltxn: self._db.txncommit(txn=txn)
 
 
 
@@ -266,13 +264,13 @@ class DB(object):
 
 		def closeparamindexes(self):
 			"""Close all paramdef indexes"""
-			[self.__closeparamindex(x) for x in self.fieldindex.keys()]
+			[self._closeparamindex(x) for x in self.fieldindex.keys()]
 
 
 
 
 	#@staticmethod
-	def __init_vtm(self):
+	def _init_vtm(self):
 		"""Load vartypes, properties, and macros"""
 
 		vtm = emen2.db.datatypes.VartypeManager()
@@ -280,18 +278,14 @@ class DB(object):
 		self.indexablevartypes = set()
 		for y in vtm.getvartypes():
 			y = vtm.getvartype(y)
-			if y.getindextype():
+			if y.keytype:
 				self.indexablevartypes.add(y.getvartype())
-
-		self.__cache_vartype_indextype = {}
-		for vt in vtm.getvartypes():
-			self.__cache_vartype_indextype[vt] = vtm.getvartype(vt).getindextype()
 
 		return vtm
 
 
 
-	def __init_dbenv(self):
+	def _init_dbenv(self):
 		"""Setup DBEnv"""
 
 		global DBENV
@@ -305,7 +299,7 @@ class DB(object):
 
 
 
-	def __checkdirs(self):
+	def _checkdirs(self):
 		"Check that all necessary directories referenced from config file exist"
 
 		if not os.access(self.path, os.F_OK):
@@ -347,14 +341,14 @@ class DB(object):
 		self.txnlog = {}
 
 		# Check that all the needed directories exist
-		self.__checkdirs()
+		self._checkdirs()
 
 		# VartypeManager handles registration of vartypes and properties, and also validation
-		self.vtm = self.__init_vtm()
+		self.vtm = self._init_vtm()
 
 
 		# Open DB environment; check if global DBEnv has been opened yet
-		self.dbenv = self.__init_dbenv()
+		self.dbenv = self._init_dbenv()
 
 		# If we are just doing backups or maintenance, don't open any BDB handles
 		if maint:
@@ -397,7 +391,7 @@ class DB(object):
 		# typically uses SpecialRootContext
 		from emen2 import skeleton
 
-		ctx = self.__makerootcontext(txn=txn, host="localhost")
+		ctx = self._makerootcontext(txn=txn, host="localhost")
 
 		try:
 			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
@@ -467,12 +461,12 @@ class DB(object):
 
 	# @remove
 	# ian: todo: there is a better version in emen2.util.listops
-	def __flatten(self, l):
+	def _flatten(self, l):
 		"""Flatten an iterable of iterables recursively into a single list"""
 
 		out = []
 		for item in l:
-			if hasattr(item, '__iter__'): out.extend(self.__flatten(item))
+			if hasattr(item, '__iter__'): out.extend(self._flatten(item))
 			else:
 				out.append(item)
 		return out
@@ -617,22 +611,22 @@ class DB(object):
 
 
 		if username == "anonymous":
-			newcontext = self.__makecontext(host=host, ctx=ctx, txn=txn)
+			newcontext = self._makecontext(host=host, ctx=ctx, txn=txn)
 		else:
 			try:
-				user = self.__login_getuser(username, ctx=ctx, txn=txn)
+				user = self._login_getuser(username, ctx=ctx, txn=txn)
 			except:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 			if user.checkpassword(password):
-				newcontext = self.__makecontext(username=username, host=host, ctx=ctx, txn=txn)
+				newcontext = self._makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
 				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 		try:
-			self.__commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
+			self._commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
 			g.log.msg('LOG_SECURITY', "Login succeeded: %s %s" % (username, newcontext.ctxid))
 		except:
 			g.log.msg('LOG_ERROR', "Error writing login context")
@@ -653,7 +647,7 @@ class DB(object):
 	def logout(self, ctx=None, txn=None):
 		"""Logout"""
 
-		self.__commit_context(ctx.ctxid, None, ctx=ctx, txn=txn)
+		self._commit_context(ctx.ctxid, None, ctx=ctx, txn=txn)
 		return True
 
 
@@ -703,7 +697,7 @@ class DB(object):
 
 
 
-	def __makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
+	def _makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
 		"""(Internal) Initializes a context; Avoid instantiating Contexts directly.
 
 		@keyparam username Username (default "anonymous")
@@ -720,7 +714,7 @@ class DB(object):
 
 
 
-	def __makerootcontext(self, ctx=None, host=None, txn=None):
+	def _makerootcontext(self, ctx=None, host=None, txn=None):
 		"""(Internal) Create a root context. Can use this internally when some admin tasks that require ctx's are necessary."""
 
 		ctx = emen2.db.context.SpecialRootContext()
@@ -731,7 +725,7 @@ class DB(object):
 
 
 	# ian: todo: simple: finish
-	def __login_getuser(self, username, ctx=None, txn=None):
+	def _login_getuser(self, username, ctx=None, txn=None):
 		"""(Internal) Check password against stored hash value.
 
 		@param username Username
@@ -749,7 +743,7 @@ class DB(object):
 
 
 
-	def __commit_context(self, ctxid, context, ctx=None, txn=None):
+	def _commit_context(self, ctxid, context, ctx=None, txn=None):
 		"""(Internal) Manipulate cached and stored contexts. Use this to update or delete contexts.
 		It will update BDB if necessary. This is called frequently to set idle time.
 
@@ -788,18 +782,18 @@ class DB(object):
 
 	# ian: todo: hard: flesh this out into a proper cron system, with a subscription model; right now just runs cleanupcontext
 	# right now this is called during _getcontext, and calls cleanupcontexts not more than once every 10 minutes
-	def __periodic_operations(self, ctx=None, txn=None):
+	def _periodic_operations(self, ctx=None, txn=None):
 		"""(Internal) Maintenance task scheduler. Eventually this will be replaced with a maintenance registration system"""
 
 		t = getctime()
 		if t > (self.lastctxclean + 600):
 			self.lastctxclean = time.time()
-			self.__cleanupcontexts(ctx=ctx, txn=txn)
+			self._cleanupcontexts(ctx=ctx, txn=txn)
 
 
 
 	# ian: todo: hard: finish
-	def __cleanupcontexts(self, ctx=None, txn=None):
+	def _cleanupcontexts(self, ctx=None, txn=None):
 		"""(Internal) Clean up sessions that have been idle too long."""
 
 		g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
@@ -815,7 +809,7 @@ class DB(object):
 
 			if context.time + (context.maxidle or 0) < time.time():
 				# g.log_info("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
-				self.__commit_context(context.ctxid, None, ctx=ctx, txn=txn)
+				self._commit_context(context.ctxid, None, ctx=ctx, txn=txn)
 
 
 
@@ -832,13 +826,13 @@ class DB(object):
 		if txn == None:
 			raise ValueError, "No txn"
 
-		self.__periodic_operations(ctx=ctx, txn=txn)
+		self._periodic_operations(ctx=ctx, txn=txn)
 
 		context = None
 		if ctxid:
 			context = self.bdbs.contexts_cache.get(ctxid) or self.bdbs.contexts.get(ctxid, txn=txn)
 		else:
-			context = self.__makecontext(host=host, ctx=ctx, txn=txn)
+			context = self._makecontext(host=host, ctx=ctx, txn=txn)
 
 		if not context:
 			g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
@@ -1015,7 +1009,7 @@ class DB(object):
 		filesize = 0
 		md5sum = ''
 		if infile:
-			newfile, filesize, md5sum = self.__putbinary_file(filename, infile=infile, dkey=dkey, ctx=ctx, txn=txn)
+			newfile, filesize, md5sum = self._putbinary_file(filename, infile=infile, dkey=dkey, ctx=ctx, txn=txn)
 
 
 		# Update the BDO: Start RMW cycle
@@ -1075,7 +1069,7 @@ class DB(object):
 
 
 
-	def __putbinary_file(self, filename=None, infile=None, dkey=None, ctx=None, txn=None):
+	def _putbinary_file(self, filename=None, infile=None, dkey=None, ctx=None, txn=None):
 		"""(Internal) Behind the scenes -- read infile out to a temporary file. The temporary file will be renamed to the final destination when everything else is cleared.
 
 		@keyparam filename
@@ -1163,7 +1157,7 @@ class DB(object):
 		groupby = {}
 		for searchparam, comp, value in c:
 			#print "constraint: %s"%searchparam
-			constraintmatches = self.__query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			constraintmatches = self._query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 			if recids == None:
 				recids = constraintmatches
@@ -1173,7 +1167,7 @@ class DB(object):
 
 		# Step 2: Filter permissions
 		if c:
-			recids = self.__filterbypermissions(recids or set(), ctx=ctx, txn=txn)
+			recids = self._filterbypermissions(recids or set(), ctx=ctx, txn=txn)
 		else:
 			# ... these are already filtered, so insert the result of an empty query here.
 			recids = self.getindexbycontext(ctx=ctx, txn=txn)
@@ -1187,7 +1181,7 @@ class DB(object):
 		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
 			#print "groupby: %s"%groupparam
-			self.__query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
+			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 
 
 		ret = {
@@ -1204,11 +1198,11 @@ class DB(object):
 
 
 
-	def __query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
+	def _query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
 		"""(Internal) Group query constraints"""
 
 
-		param = self.__query_paramstrip(groupparam)
+		param = self._query_paramstrip(groupparam)
 
 		# This is always performed..
 		if param == "rectype":
@@ -1247,7 +1241,7 @@ class DB(object):
 			if not keys:
 				return
 
-			ind = self.__getparamindex(param, ctx=ctx, txn=txn)
+			ind = self._getindex(param, ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
 				if "^" in groupparam:
@@ -1264,8 +1258,8 @@ class DB(object):
 
 
 
-	def __query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
-		param = self.__query_paramstrip(searchparam)
+	def _query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+		param = self._query_paramstrip(searchparam)
 		value = unicode(value)
 
 		recurse = 0
@@ -1308,18 +1302,20 @@ class DB(object):
 		# these will get filtered for permissions at the end..
 		elif param == "groups":
 			if comp == "contains" and value != None:
-				subset = self.bdbs.secrindex_groups.get(value, txn=txn)
+				ind = self._getindex("groups", ctx=ctx, txn=txn)
+				subset = ind.get(value, txn=txn)
 
 		elif param == "permissions":
 			if comp == "contains" and value != None:
-				subset = self.bdbs.secrindex.get(value, txn=txn)
+				ind = self._getindex("permissions", ctx=ctx, txn=txn)
+				subset = ind.get(value, txn=txn)
 
 		elif param == "project_block":
 			subset = self.getindexbyrecorddef(["project","subproject"], ctx=ctx, txn=txn)
 			groupby["project_block"] = {}
 			
 		elif param:
-			subset = self.__query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 		else:
 			pass
@@ -1329,10 +1325,10 @@ class DB(object):
 
 
 
-	def __query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+	def _query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
-		cfunc = self.__query_cmps().get(comp)
+		cfunc = self._query_cmps().get(comp)
 
 		if groupby == None:
 			groupby = {}
@@ -1350,9 +1346,9 @@ class DB(object):
 		if searchparam == "*":
 			indparams = self.bdb.indexkeys.keys(txn=txn)
 		elif '*' in searchparam:
-			indparams = self.getchildren(self.__query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
+			indparams = self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
-			indparams = [self.__query_paramstrip(searchparam)]
+			indparams = [self._query_paramstrip(searchparam)]
 
 		# First, search the index index
 		for indparam in indparams:
@@ -1376,7 +1372,7 @@ class DB(object):
 			else:
 				groupby[pp] = matchkeys
 
-			ind = self.__getparamindex(pp, ctx=ctx, txn=txn)
+			ind = self._getindex(pp, ctx=ctx, txn=txn)
 			for matchkey in matchkeys:
 				constraint_matches |= ind.get(matchkey, txn=txn)
 
@@ -1384,7 +1380,7 @@ class DB(object):
 
 
 
-	def __query_cmps(self, ignorecase=1):
+	def _query_cmps(self, ignorecase=1):
 		"""(Internal) Return the list of query constraint operators.
 
 		@keyparam ignorecase Use case-insensitive query operators
@@ -1415,7 +1411,7 @@ class DB(object):
 
 
 
-	def __query_paramstrip(self, param):
+	def _query_paramstrip(self, param):
 		"""(Internal) Return basename of param"""
 		return param.replace("*","").replace("^","")
 
@@ -1494,7 +1490,7 @@ class DB(object):
 
 
 
-	def __findqueryinstr(self, query, s, window=20):
+	def _findqueryinstr(self, query, s, window=20):
 		"""(Internal) Give a window of context around a substring match"""
 
 		if not query:
@@ -1538,16 +1534,16 @@ class DB(object):
 		recids = listops.typefilter(recids, int)
 		values = collections.defaultdict(set)
 
-		index = False
+		ind = False
 		if pd:
-			index = self.__getparamindex(param, ctx=ctx, txn=txn)
+			ind = self._getindex(param, ctx=ctx, txn=txn)
 
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 
 		if len(recids) < 1000:
-			index = False
+			ind = False
 
 		# sort/render using records directly... required for macros.
 		if param.startswith("$@"):
@@ -1562,7 +1558,7 @@ class DB(object):
 
 
 		# or if we have the records, or there is no index..
-		elif recs or not index:
+		elif recs or not ind:
 			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
 			recids = set([rec.recid for rec in recs])
 			for rec in recs:
@@ -1572,11 +1568,11 @@ class DB(object):
 					values[tuple(rec.get(param))].add(rec.recid)
 
 
-		# Lastly, try the index
+		# Lastly, try the ind
 		else:
 			recids = set(recids)
 			# Not the best way to search the index..
-			for k,v in index.items(txn=txn):
+			for k,v in ind.items(txn=txn):
 				v = v & recids
 				if v:
 					values[k] |= v
@@ -1626,7 +1622,7 @@ class DB(object):
 		@keyparam limit Limit number of results
 		@return list of matching RecordDefs
 		"""
-		return self.__find_pd_or_rd(query=query, keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
+		return self._find_pd_or_rd(query=query, keytype='recorddef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview, boolmode=boolmode, childof=childof)
 
 
 
@@ -1635,20 +1631,20 @@ class DB(object):
 	@publicmethod("paramdefs.find")
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, childof=None, boolmode="OR", context=False, limit=None, ctx=None, txn=None):
 		"""@see findrecorddef"""
-		return self.__find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
+		return self._find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
 
 
 
 
-	def __filter_dict_zero(self, d):
+	def _filter_dict_zero(self, d):
 		return dict(filter(lambda x:len(x[1])>0, d.items()))
 
 
-	def __filter_dict_none(self, d):
+	def _filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
 
 
-	def __find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
+	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
 		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
@@ -1678,12 +1674,12 @@ class DB(object):
 		rds2 = getitems(rdnames, filt=True, ctx=ctx, txn=txn) or []
 		p2 = []
 
-		qp = self.__filter_dict_none(qp)
+		qp = self._filter_dict_none(qp)
 
 		for i in rds2:
 			qt = []
 			for k,v in qp.items():
-				qt.append(self.__findqueryinstr(v, i.get(k)))
+				qt.append(self._findqueryinstr(v, i.get(k)))
 
 			if boolmode == "OR":
 				if any(qt):
@@ -1863,8 +1859,8 @@ class DB(object):
 
 
 		# This method was simplified, and now uses __query_index directly
-		# cmps = self.__query_cmps(ignorecase=True)
-		# s1, s2 = self.__query_index(c=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
+		# cmps = self._query_cmps(ignorecase=True)
+		# s1, s2 = self._query_index(c=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
 		# #{('name_last', u'Rees'): set([271390])}
 		#
 		# # This works nicely, I should rewrite some of my other list sorteds
@@ -1900,18 +1896,20 @@ class DB(object):
 		recdefs = self.getrecorddef(recdefs, ctx=ctx, txn=txn)
 
 		ret = set()
+		ind = self._getindex("permissions")
 		for i in recdefs:
-			ret |= self.bdbs.recorddefindex.get(i.name, txn=txn)
+			ret |= ind.get(i.name, txn=txn)
 
-		# return self.__filterbypermissions(ret, ctx=ctx, txn=txn)
+		# return self._filterbypermissions(ret, ctx=ctx, txn=txn)
 
 		return ret
 
 
 
+	# ian: todo: This is going to need work to handle the improvements to indexes
 	# query really replaces this -- but it's useful.
 	@publicmethod("records.find.dictbyvalue")
-	def getindexdictbyvalue(self, param, valrange=None, subset=None, ctx=None, txn=None):
+	def getindexdictbyvalue(self, param, subset=None, ctx=None, txn=None):
 		"""Query a param index, returned in a dict keyed by value.
 
 		@param param parameter name
@@ -1920,11 +1918,11 @@ class DB(object):
 		@return Dict, key=recids, param value as values
 		"""
 
-		paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
-		if paramindex == None:
+		ind = self._getindex(param, ctx=ctx, txn=txn)
+		if ind == None:
 			return {}
 
-		r = dict(paramindex.items(txn=txn))
+		r = dict(ind.items(txn=txn))
 
 		# This takes the returned dictionary of value/list of recids
 		# and makes a dictionary of recid/value pairs
@@ -1945,7 +1943,7 @@ class DB(object):
 		if ctx.checkreadadmin():
 			return ret
 
-		secure = self.__filterbypermissions(ret.keys(), ctx=ctx, txn=txn)
+		secure = self._filterbypermissions(ret.keys(), ctx=ctx, txn=txn)
 
 		# remove any recids the user cannot access
 		for i in set(ret.keys()) - secure:
@@ -1967,18 +1965,21 @@ class DB(object):
 		"""
 		ret = set()
 
+		ind = self._getindex("permissions", ctx=ctx, txn=txn)
+		indg = self._getindex("groups", ctx=ctx, txn=txn)
+
 		if users:
 			for user in users:
-				ret |= self.bdbs.secrindex.get(user, set(), txn=txn)
+				ret |= ind.get(user, set(), txn=txn)
 		elif not groups:
-			for k,v in self.bdbs.secrindex.items(txn=txn):
+			for k,v in ind.items(txn=txn):
 				ret |= v
 
 		if groups:
 			for group in groups:
-				ret |= self.bdbs.secrindex_groups.get(group, set(), txn=txn)
+				ret |= indg.get(group, set(), txn=txn)
 		elif not users:
-			for k,v in self.bdbs.secrindex_groups.items(txn=txn):
+			for k,v in indg.items(txn=txn):
 				ret |= v
 
 
@@ -1988,7 +1989,7 @@ class DB(object):
 		if subset:
 			ret &= subset
 
-		return self.__filterbypermissions(ret, ctx=ctx, txn=txn)
+		return self._filterbypermissions(ret, ctx=ctx, txn=txn)
 
 
 
@@ -2003,10 +2004,13 @@ class DB(object):
 		if ctx.checkreadadmin():
 			return set(range(self.bdbs.records.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
 
-		ret = set(self.bdbs.secrindex.get(ctx.username, set(), txn=txn)) #[ctx.username]
+		ind = self._getindex("permissions", ctx=ctx, txn=txn)
+		indg = self._getindex("groups", ctx=ctx, txn=txn)
+
+		ret = set(ind.get(ctx.username, set(), txn=txn)) #[ctx.username]
 
 		for group in sorted(ctx.groups,reverse=True):
-			ret |= set(self.bdbs.secrindex_groups.get(group, set(), txn=txn))#[group]
+			ret |= set(indg.get(group, set(), txn=txn))#[group]
 
 		return ret
 
@@ -2018,14 +2022,11 @@ class DB(object):
 	#	pass
 
 
-
-
-
-	def __rebuild_indexkeys(self, ctx=None, txn=None):
+	def _rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
 
 		# g.log.msg("LOG_INFO", "self.bdbs.indexkeys: Starting rebuild")
-		inds = dict(filter(lambda x:x[1]!=None, [(i,self.__getparamindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
+		inds = dict(filter(lambda x:x[1]!=None, [(i,self._getindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
 		g.log.msg("LOG_INFO","self.bdbs.indexkeys.truncate")
 		self.bdbs.indexkeys.truncate(txn=txn)
@@ -2034,7 +2035,7 @@ class DB(object):
 			g.log.msg("LOG_INFO", "self.bdbs.indexkeys: rebuilding params %s"%k)
 			pd = self.bdbs.paramdefs.get(k, txn=txn)
 			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn)
-			#datatype=self.__cache_vartype_indextype.get(pd.vartype),
+
 
 
 
@@ -2057,14 +2058,14 @@ class DB(object):
 			return {}
 
 		if (len(recids) < 1000) or (isinstance(list(recids)[0],emen2.db.record.Record)):
-			return self.__groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
+			return self._groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
 
 		# we need to work with a copy becuase we'll be changing it;
 		# use copy.copy instead of list[:] because recids will usually be set()
 		recids = copy.copy(recids)
 
 		# also converts to set..
-		recids = self.__filterbypermissions(recids, ctx=ctx, txn=txn)
+		recids = self._filterbypermissions(recids, ctx=ctx, txn=txn)
 
 
 		ret = {}
@@ -2086,7 +2087,7 @@ class DB(object):
 
 
 	# this one gets records directly
-	def __groupbyrecorddeffast(self, records, ctx=None, txn=None):
+	def _groupbyrecorddeffast(self, records, ctx=None, txn=None):
 		"""(Internal) Sometimes it's quicker to just get the records and filter, than to check all the indexes"""
 
 		if not isinstance(list(records)[0],emen2.db.record.Record):
@@ -2123,7 +2124,7 @@ class DB(object):
 		# def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False):
 		# recs = self.db.getchildren(self.recid, "record", self.options.get("recurse"), None, True, True)
 
-		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
+		return self._getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
 
 
@@ -2144,7 +2145,7 @@ class DB(object):
 	@publicmethod("rels.parents")
 	def getparents(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get parents of an item. @see getchildren."""
-		return self.__getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
+		return self._getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=False, ctx=ctx, txn=txn)
 
 
 
@@ -2158,18 +2159,18 @@ class DB(object):
 		@keyparam rectype For Records, limit to a specific rectype
 		@return Dict, keys are Record IDs or ParamDef/RecordDef names, values are sets of children for that key
 		"""
-		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
+		return self._getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=True, ctx=ctx, txn=txn)
 
 
 
 	@publicmethod("rels.parenttree")
 	def getparenttree(self, keys, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
 		"""See getchildtree"""
-		return self.__getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
+		return self._getrel_wrapper(keys=keys, keytype=keytype, recurse=recurse, rectype=rectype, rel="parents", tree=True, ctx=ctx, txn=txn)
 
 
 
-	def __getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None):
+	def _getrel_wrapper(self, keys, keytype="record", recurse=1, rectype=None, rel="children", tree=False, ctx=None, txn=None):
 		"""(Internal) See getchildren/getparents, which are the wrappers/entry points for this method. This abstracts out rel=children/parents."""
 
 		if recurse == -1:
@@ -2209,7 +2210,7 @@ class DB(object):
 
 		# Filter by permissions
 		if keytype=="record":
-			allr &= self.__filterbypermissions(allr, ctx=ctx, txn=txn)
+			allr &= self._filterbypermissions(allr, ctx=ctx, txn=txn)
 
 		# perform filtering on both levels, and removing any items that become empty
 		# If Tree=True, we're returning the tree...
@@ -2241,7 +2242,7 @@ class DB(object):
 		@keyparam keytype Link this type: ["record","paramdef","recorddef"] (default is "record")
 		@return
 		"""
-		self.__link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
+		self._link("pcunlink", links, keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -2255,7 +2256,7 @@ class DB(object):
 		@param ckey Child
 		@keyparam Link this type: ["record","paramdef","recorddef"] (default is "record")
 		"""
-		self.__link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+		self._link("pclink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 
@@ -2267,11 +2268,11 @@ class DB(object):
 		@param ckey Child
 		@keyparam Link this type: ["record","paramdef","recorddef"] (default is "record")
 		"""
-		self.__link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+		self._link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
 
 
 
-	def __link(self, mode, links, keytype="record", ctx=None, txn=None):
+	def _link(self, mode, links, keytype="record", ctx=None, txn=None):
 		"""(Internal) the *link functions wrap this."""
 		#admin overrides security checks
 		admin = False
@@ -2306,8 +2307,8 @@ class DB(object):
 		# ian: todo: high: turn this back on..
 
 		#if mode=="pclink":
-		#	p = self.__getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="parents")[0]
-		#	c = self.__getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="children")[0]
+		#	p = self._getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="parents")[0]
+		#	c = self._getrel(key=pkey, keytype=keytype, recurse=g.MAXRECURSE, rel="children")[0]
 		#	if pkey in c or ckey in p or pkey == ckey:
 		#		raise Exception, "Circular references are not allowed: parent %s, child %s"%(pkey,ckey)
 
@@ -2324,12 +2325,12 @@ class DB(object):
 		elif keytype == "recorddef":
 			self.getrecorddef(items, filt=False, ctx=ctx, txn=txn)
 
-		self.__commit_link(keytype, mode, links, ctx=ctx, txn=txn)
+		self._commit_link(keytype, mode, links, ctx=ctx, txn=txn)
 
 
 
 
-	def __commit_link(self, keytype, mode, links, ctx=None, txn=None):
+	def _commit_link(self, keytype, mode, links, ctx=None, txn=None):
 		"""(Internal) Write links"""
 
 		if mode not in ["pclink","pcunlink","link","unlink"]:
@@ -2367,7 +2368,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		@return List of usernames disabled
 		"""
-		return self.__setuserstate(usernames=usernames, disabled=True, filt=filt, ctx=ctx, txn=txn)
+		return self._setuserstate(usernames=usernames, disabled=True, filt=filt, ctx=ctx, txn=txn)
 
 
 
@@ -2379,11 +2380,11 @@ class DB(object):
 
 		@keyparam filt Ignore failures
 		"""
-		return self.__setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
+		return self._setuserstate(usernames=usernames, disabled=False, filt=filt, ctx=ctx, txn=txn)
 
 
 
-	def __setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
+	def _setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
 		ol, usernames = listops.oltolist(usernames)
@@ -2416,7 +2417,7 @@ class DB(object):
 			commitusers.append(user)
 
 
-		self.__commit_users(commitusers, ctx=ctx, txn=txn)
+		self._commit_users(commitusers, ctx=ctx, txn=txn)
 
 		t = "enabled"
 		if disabled:
@@ -2500,11 +2501,11 @@ class DB(object):
 
 
 		# Update user queue / users
-		self.__commit_users(addusers, ctx=ctx, txn=txn)
-		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
+		self._commit_users(addusers, ctx=ctx, txn=txn)
+		self._commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		# ian: todo: Do we need this root ctx? Probably...
-		tmpctx = self.__makerootcontext(txn=txn)
+		tmpctx = self._makerootcontext(txn=txn)
 
 		# Pass 2 to add records
 		for user in addusers:
@@ -2526,7 +2527,7 @@ class DB(object):
 			user.record = rec.recid
 			user.signupinfo = None
 
-		self.__commit_users(addusers, ctx=ctx, txn=txn)
+		self._commit_users(addusers, ctx=ctx, txn=txn)
 
 		if user.username != 'root':
 			for group in g.GROUP_DEFAULTS:
@@ -2570,7 +2571,7 @@ class DB(object):
 
 			delusers[username] = None
 
-		self.__commit_newusers(delusers, ctx=ctx, txn=txn)
+		self._commit_newusers(delusers, ctx=ctx, txn=txn)
 
 		ret = delusers.keys()
 		if ol: return return_first_or_none(ret)
@@ -2662,7 +2663,7 @@ class DB(object):
 		user.privacy = state
 		commitusers.append(user)
 
-		self.__commit_users(commitusers, ctx=ctx, txn=txn)
+		self._commit_users(commitusers, ctx=ctx, txn=txn)
 
 
 
@@ -2695,7 +2696,7 @@ class DB(object):
 
 		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
-		self.__commit_users([user], ctx=ctx, txn=txn)
+		self._commit_users([user], ctx=ctx, txn=txn)
 
 
 
@@ -2724,7 +2725,7 @@ class DB(object):
 
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
-		self.__commit_users([user], ctx=ctx, txn=txn)
+		self._commit_users([user], ctx=ctx, txn=txn)
 
 
 
@@ -2757,7 +2758,7 @@ class DB(object):
 		if user.username != 'root':
 			user.validate()
 
-		self.__commit_newusers({user.username:user}, ctx=None, txn=txn)
+		self._commit_newusers({user.username:user}, ctx=None, txn=txn)
 
 		if ctx.checkadmin():
 			self.approveuser(user.username, ctx=ctx, txn=txn)
@@ -2769,7 +2770,7 @@ class DB(object):
 
 
 	#@write #self.bdbs.users
-	def __commit_users(self, users, ctx=None, txn=None):
+	def _commit_users(self, users, ctx=None, txn=None):
 		"""(Internal) Updates user. Takes validated User."""
 
 		for user in users:
@@ -2794,7 +2795,7 @@ class DB(object):
 
 
 	#@write #self.bdbs.newuserqueue
-	def __commit_newusers(self, users, ctx=None, txn=None):
+	def _commit_newusers(self, users, ctx=None, txn=None):
 		"""(Internal) Write to newuserqueue; users is dict; set value to None to del"""
 
 		for username, user in users.items():
@@ -2934,7 +2935,7 @@ class DB(object):
 
 
 	#@write self.bdbs.groupsbyuser
-	def __commit_groupsbyuser(self, addrefs=None, delrefs=None, ctx=None, txn=None):
+	def _commit_groupsbyuser(self, addrefs=None, delrefs=None, ctx=None, txn=None):
 		"""(Internal) Update groupbyuser index"""
 
 		for user,groups in addrefs.items():
@@ -2961,8 +2962,7 @@ class DB(object):
 
 
 
-	#@write self.bdbs.groupsbyuser
-	def __rebuild_groupsbyuser(self, ctx=None, txn=None):
+	def _rebuild_groupsbyuser(self, ctx=None, txn=None):
 		"""(Internal) Rebuild groupbyuser index"""
 
 		groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
@@ -2983,7 +2983,7 @@ class DB(object):
 
 
 
-	def __rebuild_usersbyemail(self, ctx=None, txn=None):
+	def _rebuild_usersbyemail(self, ctx=None, txn=None):
 		usernames = self.getusernames(ctx=ctx, txn=txn)
 		users = self.getuser(usernames, ctx=ctx, txn=txn)
 
@@ -2993,7 +2993,7 @@ class DB(object):
 
 
 
-	def __reindex_groupsbyuser(self, groups, ctx=None, txn=None):
+	def _reindex_groupsbyuser(self, groups, ctx=None, txn=None):
 		"""(Internal) Reindex a group's members for the groupsbyuser index"""
 
 		addrefs = collections.defaultdict(set)
@@ -3054,23 +3054,23 @@ class DB(object):
 					raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create a group"
 
 
-		self.__commit_groups(groups2, ctx=ctx, txn=txn)
+		self._commit_groups(groups2, ctx=ctx, txn=txn)
 
 		if ol: return return_first_or_none(groups2)
 		return groups2
 
 
 
-	def __commit_groups(self, groups, ctx=None, txn=None):
+	def _commit_groups(self, groups, ctx=None, txn=None):
 		"""(Internal) see putgroup """
 
-		addrefs, delrefs = self.__reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
+		addrefs, delrefs = self._reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
 
 		for group in groups:
 			# g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %r"%(group))
 			self.bdbs.groups.set(group.name, group, txn=txn)
 
-		self.__commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
+		self._commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
 
 
 
@@ -3213,7 +3213,7 @@ class DB(object):
 	#
 	# # ian: todo
 	# #@write #self.bdbs.workflow
-	# def __commit_workflow(self, wfs, ctx=None, txn=None):
+	# def _commit_workflow(self, wfs, ctx=None, txn=None):
 	# 	pass
 
 
@@ -3308,10 +3308,10 @@ class DB(object):
 
 		######### ^^^ ############
 
-		self.__commit_paramdefs([paramdef], ctx=ctx, txn=txn)
+		self._commit_paramdefs([paramdef], ctx=ctx, txn=txn)
 
 		# create the index for later use
-		# paramindex = self.__getparamindex(paramdef.name, create=True, ctx=ctx, txn=txn)
+		# paramindex = self._getindex(paramdef.name, create=True, ctx=ctx, txn=txn)
 
 		# If parents or children are specified, add these relationships
 		links = []
@@ -3326,7 +3326,7 @@ class DB(object):
 
 
 
-	def __commit_paramdefs(self, paramdefs, ctx=None, txn=None):
+	def _commit_paramdefs(self, paramdefs, ctx=None, txn=None):
 		"""(Internal) Commit paramdefs"""
 
 		for paramdef in paramdefs:
@@ -3394,25 +3394,23 @@ class DB(object):
 
 
 
-	def __getparamindex(self, paramname, ctx=None, txn=None):
+
+	def _getindex(self, paramname, ctx=None, txn=None):
 		"""(Internal) Return handle to param index"""
 
 		create = True
-
-		try:
-			return self.bdbs.fieldindex[paramname] # [paramname]				# Try to get the index for this key
-		except Exception, inst:
-			pass
-
-		f = self.bdbs.paramdefs.sget(paramname, txn=txn) #[paramname]				 # Look up the definition of this field
-		paramname = f.name
-
-		if f.vartype not in self.indexablevartypes or not f.indexed:
+		ind = self.bdbs.fieldindex.get(paramname)
+		if ind:
+			return ind
+		
+		pd = self.bdbs.paramdefs.sget(paramname, txn=txn) # Look up the definition of this field
+		paramname = pd.name
+		if pd.vartype not in self.indexablevartypes or not pd.indexed:
 			return None
 
-		tp = self.vtm.getvartype(f.vartype).getindextype()
+		tp = self.vtm.getvartype(pd.vartype).keytype
 
-		if not create and not os.access("index/params/%s.bdb"%(paramname), os.F_OK):
+		if not create and not os.access("%s/index/params/%s.bdb"%(self.path, paramname), os.F_OK):
 			raise KeyError, "No index for %s" % paramname
 
 		# opens with autocommit, don't need to pass txn
@@ -3486,7 +3484,7 @@ class DB(object):
 		########## ^^^ ########
 
 		# commit
-		self.__commit_recorddefs([recdef], ctx=ctx, txn=txn)
+		self._commit_recorddefs([recdef], ctx=ctx, txn=txn)
 
 		links = []
 		if parents:
@@ -3501,7 +3499,7 @@ class DB(object):
 
 
 
-	def __commit_recorddefs(self, recorddefs, ctx=None, txn=None):
+	def _commit_recorddefs(self, recorddefs, ctx=None, txn=None):
 		"""(Internal) Commit RecordDefs"""
 
 		for recorddef in recorddefs:
@@ -3685,7 +3683,7 @@ class DB(object):
 
 
 	#@rename good question!
-	def __getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
+	def _getparamdefnamesbyvartype(self, vts, paramdefs=None, ctx=None, txn=None):
 		"""(Internal) As implied, get paramdef names by vartype"""
 
 		if not hasattr(vts,"__iter__"): vts = [vts]
@@ -3852,7 +3850,7 @@ class DB(object):
 
 
 	@publicmethod("records.put", write=True)
-	def putrecord(self, recs, warning=0, commit=True, ctx=None, txn=None):
+	def putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
 		"""Commit records
 		@param recs Record or iterable Records
 		@keyparam warning Bypass validation (Admin only)
@@ -3861,216 +3859,166 @@ class DB(object):
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 
-		ol, recs = listops.oltolist(recs)
+		ol, updrecs = listops.oltolist(updrecs)
 
 		if warning and not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
 
-		# Preprocess
-		recs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(recs, dict))
-		recs = listops.typefilter(recs, emen2.db.record.Record)
-
-		ret = self.__putrecord(recs, warning=warning, commit=commit, ctx=ctx, txn=txn)
-
-		if ol: return return_first_or_none(ret)
-		return ret
-
-
-
-
-	# And now, a long parade of internal putrecord methods
-	def __putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
-		"""(Internal) Process records for committing. If anything is wrong, raise an Exception, which will cancel the
-			operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
-			really serious DB errors should ever occur."""
-
-		crecs = []
-		updrels = []
-
-		# These are built-ins that we treat specially
-		param_immutable = set(["recid","rectype","creator","creationtime","modifytime","modifyuser"])
-		param_special = param_immutable | set(["comments","permissions","groups","history"])
-
-		# Assign temp recids to new records
-		# ian: changed to x.recid == None to preserve trees in uncommitted records
-		for offset,updrec in enumerate(x for x in updrecs if x.recid == None):
-			updrec.recid = -1 * (offset + 100)
-
-		# Check 'parent' and 'children' special params
-		updrels = self.__putrecord_getupdrels(updrecs, ctx=ctx, txn=txn)
-
 		# Assign all changes the same time
 		t = self.gettime(ctx=ctx, txn=txn)
 
+		# Process inputs (records, dicts..) into Records
+		updrecs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(updrecs, dict))
+		updrecs = listops.typefilter(updrecs, emen2.db.record.Record)
+
+		# Process records for committing. If anything is wrong, raise an Exception, which will cancel the
+		#	operation and usually the txn. If OK, then proceed to write records and all indexes. At that point, only
+		#	really serious DB errors should ever occur.
+		crecs = []
+		cps = {}
+		
+		# Check 'parent' and 'children' special params
+		updrels = []
+
+		# These are built-ins that we treat specially
+		param_immutable = set(["recid", "rectype", "creator", "creationtime", "modifytime", "modifyuser", "history"])
+		param_new = set(["rectype", "creator", "creationtime", "permissions", "groups"]) # Index these for new records
+
+		# Limit the # of duplicate db calls
 		validation_cache = emen2.db.record.make_cache()
 
-		# preprocess: copy updated record into original record (updrec -> orec)
+		# Assign temp recids to new records (note: you can assign your own negative pre-commit IDs)
+		for offset,updrec in enumerate(x for x in updrecs if x.recid == None):
+			updrec.recid = -1 * (offset + 100)
+
+		# Preprocess: copy updated record into original record (updrec -> orec) and validate
 		for updrec in updrecs:
 			recid = updrec.recid
+			cp = set()
+
+			if updrec.get("parents"):
+				updrels.extend([(i, updrec.recid) for i in updrec.get("parents", [])])
+				del updrec["parents"]
+			if updrec.get("children"):
+				updrels.extend([(updrec.recid, i) for i in updrec.get("children", [])])
+				del updrec["children"]
 
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
-
+				cp |= param_new
 			else:
 				# we need to acquire RMW lock here to prevent changes during commit
-				#elif self.bdbs.records.exists(updrec.recid, txn=txn, flags=g.RMWFLAGS):
 				try:
 					orec = self.bdbs.records.sget(updrec.recid, txn=txn, flags=g.RMWFLAGS)
 					orec.setContext(ctx)
 				except:
 					raise KeyError, "Cannot update non-existent record %s"%recid
 
-
 			# Set Context and validate; warning=True ignores validation errors (Admin only)
 			updrec.setContext(ctx)
 			updrec.validate(orec=orec, warning=warning, cache=validation_cache)
 
-			# Compare to original record
-			cp = orec.changedparams(updrec) - param_immutable
-
-			# orec.recid < 0 because new records will always be committed, even if skeletal
-			if not cp and orec.recid >= 0:
+			# Compare to original record.
+			cp |= orec.changedparams(updrec)
+			cpc = cp - param_immutable
+			
+			if not cpc and orec.recid >= 0:
 				g.log.msg("LOG_DEBUG","putrecord: No changes for record %s, skipping"%recid)
 				continue
 
-			# ian: todo: have records be able to update themselves from another record
+			g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cp))
 
-			# This adds text of comment as new to prevent tampering
+			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
 			if "comments" in cp:
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
 						orec.addcomment(i[2])
+				cp.remove("comments")
 
-			# Update params
-			for param in cp - param_special:
-				# Logging handled inside Record now
+			# Update params.
+			for param in cpc:
 				orec[param] = updrec.get(param)
-
-			# Update permissions / groups
-			if "permissions" in cp:
-				orec.setpermissions(updrec.get("permissions"))
-			if "groups" in cp:
-				orec.setgroups(updrec.get("groups"))
 
 			# ian: we have to set these manually for now...
 			orec._Record__params["modifytime"] = t
 			orec._Record__params["modifyuser"] = ctx.username
+			cp.add("modifytime")
 
-			# having validation at the top lets us only eval what changes, usually
-			# if validate:
-			# 	orec.validate(orec=orcp, warning=warning, params=cp)
-
+			# print "cp: ", cp
+			cps[orec.recid] = cp
 			crecs.append(orec)
 
-		return self.__commit_records(crecs, updrels, commit=commit, ctx=ctx, txn=txn)
 
+		ret = self._commit_records(crecs, cps=cps, updrels=updrels, commit=commit, ctx=ctx, txn=txn)
+		if ol: return return_first_or_none(ret)
+		return ret
 
-
-	def __putrecord_getupdrels(self, updrecs, ctx=None, txn=None):
-		"""(Internal) Get relationships from parents/children params of Records"""
-
-		# get parents/children to update relationships
-		r = []
-		for updrec in updrecs:
-			_p = updrec.get("parents") or []
-			_c = updrec.get("children") or []
-			if _p:
-				r.extend([(i, updrec.recid) for i in _p])
-				del updrec["parents"]
-			if _c:
-				r.extend([(updrec.recid,i) for i in _c])
-				del updrec["children"]
-		return r
 
 
 
 	# commit
-	#@write	#self.bdbs.records, self.bdbs.recorddefbyrec, self.bdbs.recorddefindex
-	# also, self.fieldindex* through __commit_paramindex(), self.bdbs.secrindex through __commit_secrindex
-	def __commit_records(self, crecs, updrels=[], onlypermissions=False, reindex=False, commit=True, ctx=None, txn=None):
+	def _commit_records(self, crecs, cps=None, updrels=[], reindex=False, commit=True, ctx=None, txn=None):
 		"""(Internal) Actually commit Records... This is the last step of several in the process.
-		onlypermissions and reindex are used for some internal record updates, e.g. permissions, and save some work. USE CAREFULLY.
-		commit=False aborts before writing begins but after all updates are calculated
-		"""
+		commit=False aborts before writing begins but after all updates are calculated"""
 
-		rectypes = collections.defaultdict(list)
-		newrecs = [x for x in crecs if x.recid < 0]
+		cps = cps or {}
 		recmap = {}
+		newrecs = [x for x in crecs if x.recid < 0]
 
 		# Fetch the old records for calculating index updates. Set RMW flags.
-		# To force reindexing (e.g. to rebuild indexes) treat as new record
+		# If reindex==True, force reindexing (e.g. to rebuild indexes) by treating as new record
 		cache = {}
 		for i in crecs:
 			if reindex or i.recid < 0:
-				continue
-			try:
-				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=g.RMWFLAGS) # [recid]
-			except:
 				orec = {}
+			else:	
+				# Cannot update non-existent record
+				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=g.RMWFLAGS)
 			cache[i.recid] = orec
 
-		#print "calculating index updates"
+		# Calculate index updates.
+		indexupdates = self._reindex_params(crecs, cps=cps, cache=cache, ctx=ctx, txn=txn)
 
-		# Calculate index updates. Shortcut if we're only modifying permissions. Use with caution.
-		indexupdates = {}
-		if not onlypermissions:
-			indexupdates = self.__reindex_params(crecs, cache=cache, ctx=ctx, txn=txn)
-		secr_addrefs, secr_removerefs = self.__reindex_security(crecs, cache=cache, ctx=ctx, txn=txn)
-		secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, cache=cache, ctx=ctx, txn=txn)
-
-
-		# If we're just validating, exit here..
+		# If we're just validating, exit here, before any changes are written..
 		if not commit:
 			return crecs
-
 
 		# OK, all go to write records/indexes!
 
 		# Reassign new record IDs and update record counter
-		# BTree may use DBSequences at some point in the future, if it's ever stable
 		if newrecs:
 			baserecid = self.bdbs.records.get_sequence(delta=len(newrecs), txn=txn)
 			g.log.msg("LOG_DEBUG","Setting recid counter: %s -> %s"%(baserecid, baserecid + len(newrecs)))
 
 
-		# add recids to new records, create map from temp recid to real recid, setup index
+		# Add recids to new records, create map from temp recid to real recid
 		for offset, newrec in enumerate(newrecs):
 			oldid = newrec.recid
 			newrec.recid = offset + baserecid
 			recmap[oldid] = newrec.recid
-			rectypes[newrec.rectype].append(newrec.recid)
 
 
 		# This actually stores the record in the database
-		# ian: if we're just reindexing, no need to waste time writing records.
-		if reindex:
-			for crec in crecs:
-				rectypes[crec.rectype].append(crec.recid)
-		else:
+		# If we're just reindexing, no need to waste time/log space writing records.
+		if not reindex:
 			for crec in crecs:
 				g.log.msg("LOG_COMMIT","self.bdbs.records.set: %r"%crec.recid)
 				self.bdbs.records.set(crec.recid, crec, txn=txn)
 
 
-		# Security index
-		self.__commit_secrindex(secr_addrefs, secr_removerefs, recmap=recmap, ctx=ctx, txn=txn)
-		self.__commit_secrindex_groups(secrg_addrefs, secrg_removerefs, recmap=recmap, ctx=ctx, txn=txn)
+		# Write param index updates
+		for param, (addrefs, delrefs) in indexupdates.items():
+			self._commit_paramindex(param, addrefs, delrefs, recmap=recmap, ctx=ctx, txn=txn)
 
-		# RecordDef index
-		self.__commit_recorddefindex(rectypes, recmap=recmap, ctx=ctx, txn=txn)
-
-		# Param index
-		for param, updates in indexupdates.items():
-			self.__commit_paramindex(param, updates[0], updates[1], recmap=recmap, ctx=ctx, txn=txn)
 
 		# Create parent/child links
-		for link in updrels:
+		for parent,child in updrels:
 			try:
-				self.pclink( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), ctx=ctx, txn=txn)
+				self.pclink(recmap.get(parent,parent), recmap.get(child,child), ctx=ctx, txn=txn)
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not link %s to %s (%s)"%( recmap.get(link[0],link[0]), recmap.get(link[1],link[1]), inst))
-				raise
-
+				msg = "Could not link %s to %s: %s"%( recmap.get(parent,parent), recmap.get(child,child), inst)
+				g.log.msg("LOG_CRITICAL", msg)
+				raise ValueError, msg
 
 		g.log.msg("LOG_INFO", "Committed %s records"%(len(crecs)))
 
@@ -4078,319 +4026,104 @@ class DB(object):
 
 
 
+	# These methods calculate what index updates to make
+
+	# ian: todo: merge all the __reindex_params together...
+	def _reindex_params(self, updrecs, cps=None, cache=None, ctx=None, txn=None):
+		"""(Internal) update param indices"""
+		
+		# g.log.msg('LOG_DEBUG', "Calculating param index updates...")
+		cps = cps or {} # cached list of recid:changed parameters
+		cache = cache or {} # cached records
+		ind = collections.defaultdict(list)
+		indexupdates = {}
+
+		# Rearrange to param:(values)
+		for updrec in updrecs:
+			orec = cache.get(updrec.recid, {})
+			for param in cps.get(updrec.recid, updrec.changedparams(orec)):
+				ind[param].append((updrec.recid, updrec.get(param), orec.get(param)))
+
+		# Now update indices; filter because most param indexes have no changes
+		for key, v in ind.items():
+			if not v:
+				continue
+			pd = self.bdbs.paramdefs.sget(key, txn=txn)
+			vt = self.vtm.getvartype(pd.vartype)
+			if not vt.keytype or not pd.indexed:
+				continue
+				
+			indexupdates[key] = vt.reindex(v)
+
+		return indexupdates
+
+
+
 	# The following methods write to the various indexes
-
-	def __commit_recorddefindex(self, rectypes, recmap=None, ctx=None, txn=None):
-		"""(Internal) Update self.bdbs.recorddefindex"""
-
-		if not recmap: recmap = {}
-
-		for rectype,recs in rectypes.items():
-			try:
-				# g.log.msg("LOG_INDEX","self.bdbs.recorddefindex.addrefs: %r, %r"%(rectype, recs))
-				self.bdbs.recorddefindex.addrefs(rectype, recs, txn=txn)
-
-			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update recorddef index: rectype %s, records: %s (%s)"%(rectype, recs, inst))
-				raise
-
-
-
-	#@write #self.bdbs.secrindex
-	def __commit_secrindex(self, addrefs, removerefs, recmap=None, ctx=None, txn=None):
-		"""(Internal) Update self.bdbs.secrindex"""
-
-		if not recmap: recmap = {}
-
-		for user, recs in addrefs.items():
-			recs = map(lambda x:recmap.get(x,x), recs)
-			try:
-				# g.log.msg("LOG_INDEX","self.bdbs.secrindex.addrefs: %r, len %r"%(user, len(recs)))
-				self.bdbs.secrindex.addrefs(user, recs, txn=txn)
-			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not add security index for user %s, records %s (%s)"%(user, recs, inst))
-				raise
-
-		for user, recs in removerefs.items():
-			recs = map(lambda x:recmap.get(x,x), recs)
-			try:
-				# g.log.msg("LOG_INDEX","secrindex.removerefs: user %r, len %r"%(user, len(recs)))
-				self.bdbs.secrindex.removerefs(user, recs, txn=txn)
-			except bsddb3.db.DBError, inst:
-				g.log.msg("LOG_CRITICAL", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
-				raise
-			except Exception, inst:
-				g.log.msg("LOG_ERROR", "Could not remove security index for user %s, records %s (%s)"%(user, recs, inst))
-				raise
-
-
-
-	#@write #self.bdbs.secrindex
-	def __commit_secrindex_groups(self, addrefs, removerefs, recmap=None, ctx=None, txn=None):
-		"""(Internal) Update self.bdbs.secrindex_groups"""
-
-		if not recmap: recmap = {}
-
-		for user, recs in addrefs.items():
-			recs = map(lambda x:recmap.get(x,x), recs)
-			try:
-				# g.log.msg("LOG_INDEX","self.bdbs.secrindex_groups.addrefs: %r, len %r"%(user, len(recs)))
-				self.bdbs.secrindex_groups.addrefs(user, recs, txn=txn)
-			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not add security index for group %s, records %s (%s)"%(user, recs, inst))
-				raise
-
-		for user, recs in removerefs.items():
-			recs = map(lambda x:recmap.get(x,x), recs)
-			try:
-				g.log.msg("LOG_INDEX","secrindex_groups.removerefs: user %r, len %r"%(user, len(recs)))
-				self.bdbs.secrindex_groups.removerefs(user, recs, txn=txn)
-			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not remove security index for group %s, records %s (%s)"%(user, recs, inst))
-				raise
-
-
-
-	#@write #self.bdbs.fieldindex*
-	def __commit_paramindex(self, param, addrefs, delrefs, recmap=None, ctx=None, txn=None):
+	def _commit_paramindex(self, param, addrefs, delrefs, recmap=None, ctx=None, txn=None):
 		"""(Internal) commit param updates"""
-
-		if not recmap: recmap = {}
-
+		
+		recmap = recmap or {}
 		addindexkeys = []
-		delindexkeys = []
+		delindexkeys = [] 
 
 		if not addrefs and not delrefs:
 			return
 
-
 		try:
-			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
-			if paramindex == None:
+			ind = self._getindex(param, ctx=ctx, txn=txn)
+			if ind == None:
 				raise Exception, "Index was None; unindexable?"
 		except Exception, inst:
 			g.log.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
 			raise
 
 
-		for newval,recs in addrefs.items():
-			recs = map(lambda x:recmap.get(x,x), recs)
-			try:
-				if recs:
-					# g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
-					addindexkeys = paramindex.addrefs(newval, recs, txn=txn)
-			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
-				raise
-
+		# delrefs comes first, so I don't have to check for common items
 		for oldval,recs in delrefs.items():
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					# g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
-					delindexkeys = paramindex.removerefs(oldval, recs, txn=txn)
+					g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+					delindexkeys = ind.removerefs(oldval, recs, txn=txn)
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 				raise
 
 
+		for newval,recs in addrefs.items():
+			recs = map(lambda x:recmap.get(x,x), recs)
+			try:
+				if recs:
+					g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+					addindexkeys = ind.addrefs(newval, recs, txn=txn)
+			except Exception, inst:
+				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
+				raise
+
+
 		# Update index-index, a necessary evil..
-		self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
 		self.bdbs.indexkeys.removerefs(param, delindexkeys, txn=txn)
+		self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
 
 
-
-	# These methods calculate what index updates to make
-
-	# ian: todo: merge all the __reindex_params together...
-	def __reindex_params(self, updrecs, cache=None, ctx=None, txn=None):
-		"""(Internal) update param indices"""
-
-		# g.log.msg('LOG_DEBUG', "Calculating param index updates...")
-
-		if not cache: cache = {}
-		ind = collections.defaultdict(list)
-		indexupdates = {}
-
-		# ian: todo: this is handled gracefully by openparamindex now
-		unindexed = set(["recid","rectype","comments","permissions"])
-
-		for updrec in updrecs:
-			recid = updrec.recid
-			orec = cache.get(recid, {})
-
-			cp = updrec.changedparams(orec)
-
-			if not cp:
-				continue
-
-			for param in set(cp) - unindexed:
-				ind[param].append((recid,updrec.get(param),orec.get(param)))
-
-		# Now update indices; filter because most param indexes have no changes
-		for key,v in filter(lambda x:x[1],ind.items()):
-			indexupdates[key] = self.__reindex_param(key, v, txn=txn)
-
-		return indexupdates
-
-
-
-
-	def __reindex_param(self, key, items, ctx=None, txn=None):
-		"""(Internal) calculate param index updates"""
-
-		# items format:
-		# [recid, newval, oldval]
-		pd = self.bdbs.paramdefs.sget(key, txn=txn) # [key]
-		addrefs = {}
-		delrefs = {}
-
-		if pd.vartype not in self.indexablevartypes or not pd.indexed:
-			return addrefs, delrefs
-
-		# remove oldval=newval; strip out wrong keys
-		items = filter(lambda x:x[1] != x[2], items)
-
-		result = None
-		if pd.vartype == "text":
-			addrefs, delrefs = self.__reindex_paramtext(key, items, ctx=ctx, txn=txn)
-		else:
-
-			addrefs = collections.defaultdict(set)
-			delrefs = collections.defaultdict(set)
-
-			for recid, new, old in items:
-				if not hasattr(new, '__iter__'): new = [new]
-				for n in new:
-					addrefs[n].add(recid)
-				if not hasattr(old, '__iter__'): old = [old]
-				for o in old:
-					delrefs[o].add(recid)
-
-			if None in addrefs: del addrefs[None]
-			if None in delrefs: del delrefs[None]
-
-		return addrefs, delrefs
-
-
-
-	def __reindex_paramtext(self, key, items, ctx=None, txn=None):
-		"""(Internal) calculate param index updates for vartype == text"""
-
-		addrefs = collections.defaultdict(list)
-		delrefs = collections.defaultdict(list)
-
-		for item in items:
-
-			for i in self.__reindex_getindexwords(item[1], ctx=ctx, txn=txn):
-				addrefs[i].append(item[0])
-
-			for i in self.__reindex_getindexwords(item[2], ctx=ctx, txn=txn):
-				delrefs[i].append(item[0])
-
-		allwords = set(addrefs.keys() + delrefs.keys()) - set(g.UNINDEXED_WORDS)
-
-		addrefs2 = {}
-		delrefs2 = {}
-
-		for i in allwords:
-			# make set, remove unchanged items
-			addrefs2[i] = set(addrefs.get(i,[]))
-			delrefs2[i] = set(delrefs.get(i,[]))
-			u = addrefs2[i] & delrefs2[i]
-			addrefs2[i] -= u
-			delrefs2[i] -= u
-
-		# ian: todo: critical: doesn't seem to be returning any recs... check this out.
-		return addrefs2, delrefs2
-
-
-
-	__reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')  #'[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)'
-	def __reindex_getindexwords(self, value, ctx=None, txn=None):
-		"""(Internal) Split up a text param into components"""
-		if value == None: return []
-		value = unicode(value).lower()
-		return set((x[0] or x[1]) for x in self.__reindex_getindexwords_m.findall(value))
-
-
-
-	def __reindex_security(self, updrecs, cache=None, ctx=None, txn=None):
-		"""(Internal) Calculate secrindex updates"""
-
-		# g.log.msg('LOG_DEBUG', "Calculating security updates...")
-
-		if not cache: cache = {}
-		addrefs = collections.defaultdict(list)
-		delrefs = collections.defaultdict(list)
-
-		for updrec in updrecs:
-			recid = updrec.recid
-
-			# this is a fix for proper indexing of new records...
-			# write lock acquire at beginning of txn
-			orec = cache.get(recid, {})
-
-			if updrec.get("permissions") == orec.get("permissions"):
-				continue
-
-			nperms = set(reduce(operator.concat, updrec.get("permissions", ()), () ))
-			operms = set(reduce(operator.concat, orec.get("permissions",()), () ))
-
-			for user in nperms - operms:
-				addrefs[user].append(recid)
-			for user in operms - nperms:
-				delrefs[user].append(recid)
-
-		return addrefs, delrefs
-
-
-
-	def __reindex_security_groups(self, updrecs, cache=None, ctx=None, txn=None):
-		"""(Internal) Calculate secrindex_groups updates"""
-
-		# g.log.msg('LOG_DEBUG', "Calculating security updates...")
-
-		if not cache: cache = {}
-		addrefs = collections.defaultdict(list)
-		delrefs = collections.defaultdict(list)
-
-		for updrec in updrecs:
-			recid = updrec.recid
-
-			orec = cache.get(recid, {})
-
-			if updrec.get("groups") == orec.get("groups"):
-				continue
-
-			for group in updrec.get("groups", set()) - orec.get("groups", set()):
-				addrefs[group].append(recid)
-			for group in orec.get("groups", set()) - updrec.get("groups", set()):
-				delrefs[group].append(recid)
-
-		return addrefs, delrefs
 
 
 
 	# If the indexes blow up...
 
 	# Stage 1
-	def __rebuild_all(self, ctx=None, txn=None):
+	def _rebuild_all(self, ctx=None, txn=None):
 		"""(Internal) Rebuild all indexes. This should only be used if you blow something up, change a paramdef vartype, etc.
 		It might test the limits of your Berkeley DB configuration and fail if the resources are too low."""
 
 		g.log.msg("LOG_INFO","Rebuilding ALL indexes")
 
-		ctx = self.__makerootcontext(txn=txn)
-
-		self.bdbs.secrindex.truncate(txn=txn)
-		self.bdbs.secrindex_groups.truncate(txn=txn)
-		self.bdbs.recorddefindex.truncate(txn=txn)
 		self.bdbs.groupsbyuser.truncate(txn=txn)
 		allparams = self.bdbs.paramdefs.keys()
 		paramindexes = {}
 		for param in allparams:
-			paramindex = self.__getparamindex(param, ctx=ctx, txn=txn)
+			paramindex = self._getindex(param, ctx=ctx, txn=txn)
 			if paramindex != None:
 				# g.log.msg('LOG_DEBUG', paramindex)
 				try:
@@ -4402,9 +4135,8 @@ class DB(object):
 
 		g.log.msg("LOG_INFO","Done truncating all indexes")
 
-		self.__rebuild_groupsbyuser(ctx=ctx, txn=txn)
-
-		self.__rebuild_usersbyemail(ctx=ctx, txn=txn)
+		self._rebuild_groupsbyuser(ctx=ctx, txn=txn)
+		self._rebuild_usersbyemail(ctx=ctx, txn=txn)
 
 		maxrecords = self.bdbs.records.get_max(txn=txn) #get(-1, txn=txn)["max"]
 		g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))
@@ -4423,55 +4155,12 @@ class DB(object):
 				g.log.msg("LOG_INFO","... %s"%i)
 				crecs.append(self.bdbs.records.sget(i, txn=txn))
 
-			self.__commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
+			self._commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
 
 			#txn2.commit()
 
-		#self.__rebuild_indexkeys(ctx=ctx, txn=txn)
-
 		g.log.msg("LOG_INFO","Done rebuilding all indexes")
 
-
-
-
-	# Stage 2
-	def __rebuild_secrindex(self, ctx=None, txn=None):
-		"""(Internal) Rebuild self.bdbs.secrindex and self.bdbs.secrindex_groups"""
-
-		g.log.msg("LOG_INFO","Rebuilding secrindex/secrindex_groups")
-
-		g.log.msg("LOG_INFO","self.bdbs.secrindex.truncate")
-		self.bdbs.secrindex.truncate(txn=txn)
-
-		g.log.msg("LOG_INFO","self.bdbs.secrindex_groups.truncate")
-		self.bdbs.secrindex_groups.truncate(txn=txn)
-
-		pos = 0
-		crecs = True
-		recmap = {}
-		maxrecords = self.bdbs.records.get_max(txn=txn)
-
-
-		while crecs:
-			txn2 = self.newtxn(txn)
-
-			pos2 = pos + g.BLOCKLENGTH
-			if pos2 > maxrecords: pos2 = maxrecords
-
-			g.log.msg("LOG_INFO","%s -> %s"%(pos, pos2))
-			crecs = self.getrecord(range(pos, pos2), ctx=ctx, txn=txn2)
-			pos = pos2
-
-			# by omitting cache, will be treated as new recs...
-			secr_addrefs, secr_removerefs = self.__reindex_security(crecs, ctx=ctx, txn=txn2)
-			secrg_addrefs, secrg_removerefs = self.__reindex_security_groups(crecs, ctx=ctx, txn=txn2)
-
-			# Security index
-			self.__commit_secrindex(secr_addrefs, secr_removerefs, ctx=ctx, txn=txn2)
-			self.__commit_secrindex_groups(secrg_addrefs, secrg_removerefs, ctx=ctx, txn=txn2)
-
-			txn2.commit()
-			#self.txncommit(txn2)
 
 
 
@@ -4481,7 +4170,7 @@ class DB(object):
 	###############################
 
 	# this has gone internal, since it is almost always enforced
-	def __filterbypermissions(self, recids, ctx=None, txn=None):
+	def _filterbypermissions(self, recids, ctx=None, txn=None):
 		"""Filter a list of Record IDs by read permissions.
 		@param recids Iterable of Record IDs
 		@return Set of accessible Record IDs
@@ -4496,12 +4185,15 @@ class DB(object):
 		if len(recids) < 100:
 			return set([x.recid for x in self.getrecord(recids, filt=True, ctx=ctx, txn=txn)])
 
+		ind = self._getindex("permissions", ctx=ctx, txn=txn)
+		indg = self._getindex("groups", ctx=ctx, txn=txn)
+
 		find = copy.copy(recids)
-		find -= self.bdbs.secrindex.get(ctx.username, set(), txn=txn)
+		find -= ind.get(ctx.username, set(), txn=txn)
 
 		for group in sorted(ctx.groups):
 			if find:
-				find -= self.bdbs.secrindex_groups.get(group, set(), txn=txn)
+				find -= indg.get(group, set(), txn=txn)
 
 		return recids - find
 
@@ -4530,41 +4222,41 @@ class DB(object):
 		@keyparam addgroups
 		@keyparam delgroups
 		"""
-		return self.__putrecord_setsecurity(recids=[recid], umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=[recid], umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, ctx=ctx, txn=txn)
 
 
 
 
 	@publicmethod("records.permissions.addusers", write=True)
 	def addpermissions(self, recids, users, level=0, recurse=0, reassign=False, ctx=None, txn=None):
-		return self.__putrecord_setsecurity(recids=recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=recids, addusers=users, addlevel=level, recurse=recurse, reassign=reassign, ctx=ctx, txn=txn)
 
 
 
 
 	@publicmethod("records.permissions.removeusers", write=True)
 	def removepermissions(self, recids, users, recurse=0, ctx=None, txn=None):
-		return self.__putrecord_setsecurity(recids=recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=recids, delusers=users, recurse=recurse, ctx=ctx, txn=txn)
 
 
 
 
 	@publicmethod("records.permissions.addgroups", write=True)
 	def addgroups(self, recids, groups, recurse=0, ctx=None, txn=None):
-		return self.__putrecord_setsecurity(recids=recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=recids, addgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
 
 
 	@publicmethod("records.permissions.removegroups", write=True)
 	def removegroups(self, recids, groups, recurse=0, ctx=None, txn=None):
-		return self.__putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=recids, delgroups=groups, recurse=recurse, ctx=ctx, txn=txn)
 
 
 
 
 
-	def __putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
+	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
@@ -4584,7 +4276,7 @@ class DB(object):
 		addusers = set()
 		for i in umask:
 			addusers |= set(i)
-
+			
 
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
@@ -4603,15 +4295,20 @@ class DB(object):
 
 		# g.log.msg('LOG_DEBUG', "setting permissions")
 
+		cps = {}
 		for rec in recs:
 			if addusers: rec.addumask(umask, reassign=reassign)
 			if delusers: rec.removeuser(delusers)
 			if addgroups: rec.addgroup(addgroups)
 			if delgroups: rec.removegroup(delgroups)
-
+			cps[rec.recid] = set(["permissions", "groups"])
+			
+			
+		ret = self._commit_records(recs, cps=cps, ctx=ctx, txn=txn)
 
 		# Go ahead and directly commit here, since we know only permissions have changed...
-		self.__commit_records(recs, [], onlypermissions=True, ctx=ctx, txn=txn)
+		# self._commit_records(recs, ctx=ctx, txn=txn)
+		
 
 
 
@@ -4620,7 +4317,7 @@ class DB(object):
 	#############################
 
 
-	def __endpoints(self, tree):
+	def _endpoints(self, tree):
 		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 
@@ -4638,22 +4335,22 @@ class DB(object):
 		c_all = self.getchildtree(recid, recurse=recurse, ctx=ctx, txn=txn)
 		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, ctx=ctx, txn=txn)
 
-		endpoints = self.__endpoints(c_all) - c_rectype
+		endpoints = self._endpoints(c_all) - c_rectype
 		while endpoints:
 			for k,v in c_all.items():
 				c_all[k] -= endpoints
-			endpoints = self.__endpoints(c_all) - c_rectype
+			endpoints = self._endpoints(c_all) - c_rectype
 
 		rendered = self.renderview(listops.flatten(c_all), viewtype="recname", ctx=ctx, txn=txn)
 
-		c_all = self.__filter_dict_zero(c_all)
+		c_all = self._filter_dict_zero(c_all)
 
 		return rendered, c_all
 
 
 
 
-	def __dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
+	def _dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
 		"""generate html table of params"""
 
 		if mode in ["html","htmledit"]:
@@ -4715,7 +4412,7 @@ class DB(object):
 				par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 				par += builtinparamsshow
 				par += [p for p in rec.getparamkeys() if p not in par]
-				groupviews[rec.recid] = self.__dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
+				groupviews[rec.recid] = self._dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
 
 
 		else:
@@ -4841,11 +4538,11 @@ class DB(object):
 		if not os.access(outpath, os.F_OK):
 			os.makedirs(outpath)
 
-		self.__log_archive(archivefiles, outpath, remove=remove)
+		self._log_archive(archivefiles, outpath, remove=remove)
 
 
 
-	def __log_archive(self, archivefiles, outpath, remove=False):
+	def _log_archive(self, archivefiles, outpath, remove=False):
 
 		outpaths = []
 		for archivefile in archivefiles:
