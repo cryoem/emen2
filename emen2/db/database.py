@@ -1955,7 +1955,7 @@ class DB(object):
 
 
 	@publicmethod("records.find.bypermissions")
-	def getindexbypermissions(self, uers=None, groups=None, subset=None, ctx=None, txn=None):
+	def getindexbypermissions(self, users=None, groups=None, subset=None, ctx=None, txn=None):
 		"""Search permission indexes. Useful for seeing where permissions have been set.
 
 		@keyparam users Single or iterable list of users
