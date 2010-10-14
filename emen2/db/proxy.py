@@ -73,7 +73,7 @@ class DBProxy(object):
 		return set(cls._publicmethods)
 
 
-	def __init__(self, db=None, dbpath=None, ctxid=None, host=None, ctx=None, txn=None):
+	def __init__(self, db=None, ctxid=None, host=None, ctx=None, txn=None):
 		# it can cause circular imports if this is at the top level of the module
 		import database
 
@@ -81,7 +81,7 @@ class DBProxy(object):
 		self.__bound = False
 
 		if not db:
-			db = database.DB(path=dbpath) # path will default to g.EMEN2DBHOME
+			db = database.DB()
 
 		self.__db = db
 		self.__ctx = ctx
@@ -118,14 +118,11 @@ class DBProxy(object):
 
 
 	def _committxn(self):
-		self.__db.txncommit(txn=self.__txn)
-		self.__txn = None
+		self.__txn = self.__db.txncommit(txn=self.__txn)
 
 
 	def _aborttxn(self):
-		if self.__txn:
-			self.__db.txnabort(txn=self.__txn)
-		self.__txn = None
+		self.__txn = self.__db.txnabort(txn=self.__txn)
 
 
 	# Rebind a new Context

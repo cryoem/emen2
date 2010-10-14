@@ -490,10 +490,10 @@ class vt_binary(vt_iter, Vartype):
 
 		
 
-class vt_binaryimage(vt_binary):
+class vt_binaryimage(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
 	__metaclass__ = Vartype.register_view
-	keytype = None
+        keytype = None
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value != None:

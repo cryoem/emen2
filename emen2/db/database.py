@@ -491,7 +491,7 @@ class DB(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
-		traceback.print_stack()
+		#traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -758,9 +758,6 @@ class DB(object):
 		if self.bdbs.contexts_cache.get(ctxid):
 			del self.bdbs.contexts_cache[ctxid]
 
-
-		print context
-		print context.host
 
 		# set context
 		if context != None:
