@@ -491,6 +491,7 @@ class DB(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -3857,6 +3858,11 @@ class DB(object):
 		@return Committed records
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
+
+		print "ENTERING TXN"
+		print ctx
+		print txn
+		print ctx.db._DBProxy__txn
 
 		ol, updrecs = listops.oltolist(updrecs)
 

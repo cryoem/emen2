@@ -90,6 +90,14 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		_k.update(_d or {})
 
 
+		print "@CTX IS"
+		print self._ctx
+		print "@DB IS"
+		print self._ctx.db
+		print "@TXN IS"
+		print self._ctx.db._DBProxy__txn
+
+
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 		self.__ptest = [True,True,True,True]
@@ -111,7 +119,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		for key in set(_k.keys()) - self.param_special:
 			self[key] = _k[key]
 
-		# ian: are we initializing a new record?
 		if self._ctx and self.recid < 0:
 			self.__creator = unicode(self._ctx.username)
 			self.__creationtime = emen2.db.database.gettime()
@@ -431,6 +438,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""
 
 
+
 		self._ctx = ctx #weakref.proxy(ctx)
 		if self._ctx == None:
 			return
@@ -722,6 +730,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 			try:
 				value = self.__params.get(param)
+				print "ctx.db!"
+				print self._ctx.db
+				print self._ctx.db._DBProxy__txn
+
 				v = vtm.validate(pd, value, db=self._ctx.db)
 				if v != value and v != None:
 					self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
