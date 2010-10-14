@@ -1213,21 +1213,6 @@ class DB(object):
 		if param == "rectype":
 			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 
-		elif param == "project_block":
-			# ian: HORRIBLE UGLY HACK FOR DEMO!!!!
-			guess = self.getindexbyrecorddef(['project','subproject'], ctx=ctx, txn=txn)
-			guess_recs = self.getrecord(guess, ctx=ctx, txn=txn)
-			c = collections.defaultdict(set)
-			for i in guess_recs:
-				for k in i.get('project_block', []):
-					c[k].add(i.recid)
-
-			c2 = {}
-			for k,v in c.items():
-				if v:
-					c2[k]=v
-			groups['project_block']=c2
-
 
 		elif param == "parent":
 			# keys is parent rectypes...
@@ -1315,10 +1300,6 @@ class DB(object):
 				ind = self._getindex("permissions", ctx=ctx, txn=txn)
 				subset = ind.get(value, txn=txn)
 
-		elif param == "project_block":
-			subset = self.getindexbyrecorddef(["project","subproject"], ctx=ctx, txn=txn)
-			groupby["project_block"] = {}
-			
 		elif param:
 			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
@@ -1355,6 +1336,7 @@ class DB(object):
 		else:
 			indparams = [self._query_paramstrip(searchparam)]
 
+
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
@@ -1366,6 +1348,7 @@ class DB(object):
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
 			if r:
 				results[indparam] = r
+
 
 		# Now search individual param indexes
 		constraint_matches = set()
