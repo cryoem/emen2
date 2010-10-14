@@ -52,6 +52,7 @@ class Context(object):
 			raise emen2.db.exceptions.SessionError, "username and host required to init context"
 
 
+
 	def json_equivalent(self):
 		return dict(
 			ctxid=self.ctxid,
@@ -66,15 +67,18 @@ class Context(object):
 
 
 	def __getstate__(self):
-		odict = self.__dict__.copy() # copy the dict since we change it
+		# copy the dict since we change it
+		# return self.json_equivalent()
+		odict = self.__dict__.copy() 
+		print odict
+
 		for i in ['db', 'user', 'groups', 'grouplevels']:
 			odict.pop(i, None)
 		return odict
 
 
-	def setdb(self, db=None, dbproxy=False):
+	def setdb(self, db=None):
 		if not db: return
-		self.__dbproxy = dbproxy
 		self.db = db
 
 
@@ -120,47 +124,6 @@ class Context(object):
 
 
 
-class TestContext(Context):
-	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):	
-		t = emen2.db.database.getctime()
-
-		# Points to Database object for this context
-		self.db = None
-		# self.setdb(db)
-
-		username = "root"
-		host = "127.0.0.1"
-		# self.ctxid = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
-		# self.ctxid = username+host+unicode(random.random())
-		self.ctxid = unicode(random.random())
-		self.username = username
-		
-		# validated user instance, w/ user record, displayname, groups
-		self.user = user
-		self.groups = groups or set()
-		self.grouplevels = {}
-		
-		# login name, fall back if user.username does not exist
-
-		# ip of validated host for this context
-		self.host = host
-
-		# last access time for this context
-		self.time = t
-
-		self.maxidle = maxidle
-
-		if requirehost and (not self.username or not self.host):
-			raise emen2.db.exceptions.SessionError, "username and host required to init context"
-
-
-	def refresh(self, *args, **kwargs):
-		pass
-
-	def setdb(self, *args, **kwargs):
-		pass
-		
-		
 
 
 

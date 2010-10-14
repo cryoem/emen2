@@ -90,14 +90,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		_k.update(_d or {})
 
 
-		print "@CTX IS"
-		print self._ctx
-		print "@DB IS"
-		print self._ctx.db
-		print "@TXN IS"
-		print self._ctx.db._DBProxy__txn
-
-
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 		self.__ptest = [True,True,True,True]
@@ -730,10 +722,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 			try:
 				value = self.__params.get(param)
-				print "ctx.db!"
-				print self._ctx.db
-				print self._ctx.db._DBProxy__txn
-
 				v = vtm.validate(pd, value, db=self._ctx.db)
 				if v != value and v != None:
 					self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)

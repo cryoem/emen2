@@ -391,7 +391,7 @@ class DB(object):
 		# typically uses SpecialRootContext
 		from emen2 import skeleton
 
-		ctx = self._makerootcontext(txn=txn, host="localhost")
+		ctx = self._makerootcontext(txn=txn)
 
 		try:
 			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
@@ -491,7 +491,7 @@ class DB(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
-		traceback.print_stack()
+		# traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -758,6 +758,10 @@ class DB(object):
 		if self.bdbs.contexts_cache.get(ctxid):
 			del self.bdbs.contexts_cache[ctxid]
 
+
+		print context
+		print context.host
+
 		# set context
 		if context != None:
 			try:
@@ -823,7 +827,7 @@ class DB(object):
 		@return Context
 		@exception SessionError
 		"""
-
+		
 		if txn == None:
 			raise ValueError, "No txn"
 
@@ -3859,11 +3863,6 @@ class DB(object):
 		@exception SecurityError, DBError, KeyError, ValueError, TypeError..
 		"""
 
-		print "ENTERING TXN"
-		print ctx
-		print txn
-		print ctx.db._DBProxy__txn
-
 		ol, updrecs = listops.oltolist(updrecs)
 
 		if warning and not ctx.checkadmin():
@@ -3949,7 +3948,6 @@ class DB(object):
 			orec._Record__params["modifyuser"] = ctx.username
 			cp.add("modifytime")
 
-			# print "cp: ", cp
 			cps[orec.recid] = cp
 			crecs.append(orec)
 
