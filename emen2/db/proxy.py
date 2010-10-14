@@ -150,6 +150,7 @@ class DBProxy(object):
 		self.__txnflags = flags
 		return self
 
+
 	def _setctxflags(self, ctxid, host):
 		self.__contextvars = (ctxid, host)
 		return self
@@ -162,8 +163,8 @@ class DBProxy(object):
 		self._txn = self._db.txncheck(txn=self._txn, ctx=self._ctx, flags=self.__txnflags)
 		if self.__contextvars:
 			self.__setContext(*self.__contextvars)
-		#g.debug('txn', self._txn, self.__oldtxn)
-		#g.debug('ctx', self._ctx, self.__oldctx)
+		g.debug('txn', self._txn, self.__oldtxn)
+		g.debug('ctx', self._ctx, self.__oldctx)
 		return self
 
 
@@ -216,6 +217,8 @@ class DBProxy(object):
 	def _setContext(self, ctxid=None, host=None):
 		with self:
 			self.__setContext(ctxid, host)
+
+
 	def __setContext(self, ctxid, host):
 		g.debug('txn:', self._txn)
 		try:

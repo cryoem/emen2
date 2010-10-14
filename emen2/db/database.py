@@ -3922,17 +3922,17 @@ class DB(object):
 			cpc = cp - param_immutable
 			
 			if not cpc and orec.recid >= 0:
-				g.log.msg("LOG_DEBUG","putrecord: No changes for record %s, skipping"%recid)
+				g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 				continue
 
 			g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cp))
 
 			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
-			if "comments" in cp:
+			if "comments" in cpc:
 				for i in updrec["comments"]:
 					if i not in orec._Record__comments:
 						orec.addcomment(i[2])
-				cp.remove("comments")
+				cpc.remove("comments")
 
 			# Update params.
 			for param in cpc:
