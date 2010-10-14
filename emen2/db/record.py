@@ -3,7 +3,7 @@ import collections
 import operator
 import weakref
 import copy
-
+import re
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
@@ -131,6 +131,8 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
 		odict['_Record__ptest'] = None
+		odict['_Record__ctx'] = None
+		odict['_ctx'] = None	
 		# filter out values that are None
 		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None, odict["_Record__params"].items()))
 

@@ -1,5 +1,6 @@
 import copy
 import functools
+import re
 
 import emen2.db.config
 g = emen2.db.config.g()

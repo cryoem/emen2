@@ -491,7 +491,7 @@ class DB(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
-		# traceback.print_stack()
+		traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -3401,7 +3401,7 @@ class DB(object):
 			raise KeyError, "No index for %s" % paramname
 
 		# opens with autocommit, don't need to pass txn
-		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv)
+		self.bdbs.openparamindex(paramname, keytype=tp, dbenv=self.dbenv, txn=txn)
 
 		return self.bdbs.fieldindex[paramname]
 
