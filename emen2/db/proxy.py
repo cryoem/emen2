@@ -140,9 +140,9 @@ class DBProxy(object):
 
 		#"with" interface state
 		self.__txnflags = None
-		self.__oldtxn = None
+		#self.__oldtxn = None
 		self.__contextvars = None
-		self.__oldctx = ctx
+		#self.__oldctx = ctx
 
 
 	# Implements "with" interface
@@ -157,8 +157,8 @@ class DBProxy(object):
 
 
 	def __enter__(self):
-		self.__oldctx = self._ctx
-		self.__oldtxn = self._txn
+		#self.__oldctx = self._ctx
+		#self.__oldtxn = self._txn
 		self._txn = self._db.txncheck(txn=self._txn, ctx=self._ctx, flags=self.__txnflags)
 		if self.__contextvars:
 			self.__setContext(*self.__contextvars)
@@ -168,21 +168,23 @@ class DBProxy(object):
 
 
 	def __exit__(self, type, value, traceback):
-		if self.__oldtxn is not self._txn:
-			if type is None:
-				#g.log_info('DBProxy.__exit__: committing Transaction')
-				self._committxn()
-			else:
-				g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
-				self._aborttxn()
-			self._txn = None
-			self.__oldtxn = None
-			self.__txnflags = None
+		#if self.__oldtxn is not self._txn:
+
+		if type is None:
+			#g.log_info('DBProxy.__exit__: committing Transaction')
+			self._committxn()
+		else:
+			g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
+			self._aborttxn()
+		self._txn = None
+		#self.__oldtxn = None
+		self.__txnflags = None
+
 		self._clearcontext()
-		self._ctx = self.__oldctx
+		#self._ctx = self.__oldctx
 		if self._ctx != None: self.__bound = True
 		self.__contextvars = None
-		self.__oldctx = None
+		#self.__oldctx = None
 
 
 	# Transactions

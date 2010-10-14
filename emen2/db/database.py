@@ -19,7 +19,7 @@ import functools
 import imp
 import tempfile
 import cStringIO
-import emen2.ext.mail_exts
+#import emen2.ext.mail_exts
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -490,7 +490,7 @@ class DB(object):
 			flags = g.TXNFLAGS
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		# g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		try:
 			type(self).txncounter += 1
@@ -519,7 +519,7 @@ class DB(object):
 		"""Abort txn; accepts txnid or txn instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
+		g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
 
 		if txn:
 			txn.abort()
@@ -535,7 +535,7 @@ class DB(object):
 		"""Commit txn; accepts txnid or instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+		g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 
 		if txn != None:
 			txn.commit()
@@ -1896,7 +1896,7 @@ class DB(object):
 		recdefs = self.getrecorddef(recdefs, ctx=ctx, txn=txn)
 
 		ret = set()
-		ind = self._getindex("permissions")
+		ind = self._getindex("rectype")
 		for i in recdefs:
 			ret |= ind.get(i.name, txn=txn)
 
@@ -2006,11 +2006,10 @@ class DB(object):
 
 		ind = self._getindex("permissions", ctx=ctx, txn=txn)
 		indg = self._getindex("groups", ctx=ctx, txn=txn)
+		ret = ind.get(ctx.username, set(), txn=txn)
 
-		ret = set(ind.get(ctx.username, set(), txn=txn)) #[ctx.username]
-
-		for group in sorted(ctx.groups,reverse=True):
-			ret |= set(indg.get(group, set(), txn=txn))#[group]
+		for group in sorted(ctx.groups, reverse=True):
+			ret |= indg.get(group, set(), txn=txn)
 
 		return ret
 
@@ -4175,7 +4174,7 @@ class DB(object):
 		@param recids Iterable of Record IDs
 		@return Set of accessible Record IDs
 		"""
-
+		
 		if ctx.checkreadadmin():
 			return set(recids)
 
