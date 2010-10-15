@@ -1,3 +1,4 @@
+# $Id$
 import collections
 import emen2.db.config
 g = emen2.db.config.g()
@@ -28,3 +29,4 @@ class MessageQueue(object):
 		if message in cls.__callbacks and mode in cls.__callbacks[message]:
 			result = cls.__callbacks[message][mode](Message(message, mode, *data, **kwdata))
 		return result
+__version__ = "$Revision$".split(":")[1][:-1].strip()

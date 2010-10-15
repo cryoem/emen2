@@ -1,3 +1,4 @@
+# $Id$
 import time
 import re
 import traceback
@@ -85,3 +86,4 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		return {"prot":prot, "year":year, "mon":mon, "day":day, "counter":counter, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

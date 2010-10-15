@@ -1,3 +1,4 @@
+# $Id$
 import time
 import operator
 import hashlib
@@ -193,3 +194,4 @@ class Group(emen2.db.dataobject.BaseDBObject):
 		allusernames = self._ctx.db.getusernames(ctx=self._ctx, txn=txn)
 		if self.members() - allusernames:
 			raise Exception, "Invalid user names: %s"%(self.members() - allusernames)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

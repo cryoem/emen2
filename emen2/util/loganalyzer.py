@@ -1,3 +1,4 @@
+# $Id$
 import re
 import time
 import datetime
@@ -224,3 +225,4 @@ class AccessLogFile(object):
 
 if __name__ == '__main__':
 	rcodes = collections.defaultdict(int)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

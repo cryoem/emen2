@@ -1,5 +1,4 @@
 # $Id$
-# $Author$ $Revision$
 '''
 Module contents:
 I. Views
@@ -430,5 +429,4 @@ class Page(object):
 					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
 		return result
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()
 __version__ = "$Revision$".split(":")[1][:-1].strip()

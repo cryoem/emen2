@@ -1,3 +1,4 @@
+# $Id$
 from test import *
 
 z=db.getindexdictbyvalue("date_occurred",None,ctxid)
@@ -72,3 +73,4 @@ for year in range(2004,2008+1):
 
 		#print "======================"
 		print ",".join(row)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

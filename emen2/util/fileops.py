@@ -1,3 +1,4 @@
+# $Id$
 import fnmatch
 import os
 import os.path
@@ -33,3 +34,4 @@ def locate(pattern, root=os.curdir):
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

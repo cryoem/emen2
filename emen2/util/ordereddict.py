@@ -1,3 +1,4 @@
+# $Id$
 # from collections import MutableMapping
 # import collections
 # class OrderedDict(dict, MutableMapping):
@@ -148,3 +149,4 @@
 #         self.clear()                # eliminate cyclical references
 # 
 # collections.OrderedDict = OrderedDict
+__version__ = "$Revision$".split(":")[1][:-1].strip()

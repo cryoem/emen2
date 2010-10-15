@@ -1,3 +1,4 @@
+# $Id$
 import bsddb3
 import cPickle as pickle
 import sys
@@ -654,3 +655,4 @@ class FieldBTree(BTree):
 	#  		all of the individual keys in the mink to maxk range"""
 	# 		if mink == None and maxk == None: return BTree.values(self)
 	# 		return reduce(set.union, (set(x[1] or []) for x in self.items(mink, maxk, txn=txn)), set())
+__version__ = "$Revision$".split(":")[1][:-1].strip()

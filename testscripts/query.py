@@ -1,3 +1,4 @@
+# $Id$
 from emen2.util import db_manipulation
 from itertools import chain
 import operator
@@ -232,3 +233,4 @@ class TryGet(object):
 	def act(self, data, db):
 		for rec in data:
 			yield db.trygetrecord(rec)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

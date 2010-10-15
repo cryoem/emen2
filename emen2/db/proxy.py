@@ -1,3 +1,4 @@
+# $Id$
 from __future__ import with_statement
 
 import os
@@ -236,3 +237,4 @@ class DBProxy(object):
 		return wrapper
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

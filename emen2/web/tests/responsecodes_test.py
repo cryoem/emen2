@@ -1,3 +1,4 @@
+# $Id$
 import unittest
 import mock
 from emen2.web import responsecodes
@@ -81,3 +82,4 @@ class TestResponseCodes(unittest.TestCase):
 if __name__ == '__main__':
 	unittest.main()
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

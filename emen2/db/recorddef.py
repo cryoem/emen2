@@ -1,3 +1,4 @@
+# $Id$
 import re
 
 import emen2.db.dataobject
@@ -265,3 +266,4 @@ def parseparmvalues(text):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

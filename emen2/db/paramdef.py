@@ -1,3 +1,4 @@
+# $Id$
 import functools
 import time
 
@@ -159,3 +160,4 @@ class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 		if not self._obj.creationtime or not self._obj.creator:
 			g.log.msg("LOG_WARNING", "Invalid creation info: %s %s"%(self._obj.creationtime, self._obj.creator))
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

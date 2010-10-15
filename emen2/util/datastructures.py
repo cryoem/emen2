@@ -1,3 +1,4 @@
+# $Id$
 from emen2.util import caching
 import itertools
 import collections
@@ -62,3 +63,4 @@ class Enum(set):
 
 	def get_names(self):
 		return self.values.keys()
+__version__ = "$Revision$".split(":")[1][:-1].strip()

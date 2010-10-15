@@ -1,3 +1,4 @@
+# $Id$
 from __future__ import with_statement
 import sys, time
 import contextlib
@@ -76,3 +77,4 @@ def main():
 if __name__ == '__main__':
     main()
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 #!/bin/env python
 # This is an XMLRPC test script which can be customized for a variety of simple tasks
 # call it as sample.py <username>
@@ -16,3 +17,4 @@ def subprojbydate(db):
 
 def histogram
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

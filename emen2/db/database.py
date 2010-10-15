@@ -1,5 +1,4 @@
 # $Id$
-# $Author$ $Revision$
 import copy
 import atexit
 import hashlib

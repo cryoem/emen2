@@ -1,3 +1,4 @@
+# $Id$
 import operator
 from bsddb3.db import *
 
@@ -35,3 +36,4 @@ with g as _g:
 	_g.DBOPENFLAGS = reduce(operator.__or__, dbopenflags, 0)
 	_g.TXNFLAGS = reduce(operator.__or__, txnflags, 0)
 	_g.RMWFLAGS = reduce(operator.__or__, rmwflags, 0)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

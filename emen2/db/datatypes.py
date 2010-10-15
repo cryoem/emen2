@@ -1,3 +1,4 @@
+# $Id$
 import re
 import cgi
 
@@ -159,3 +160,4 @@ class VartypeManager(object):
 		
 		
 		
+__version__ = "$Revision$".split(":")[1][:-1].strip()

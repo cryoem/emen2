@@ -1,3 +1,4 @@
+# $Id$
 from random import random
 import time
 from test import *
@@ -30,3 +31,4 @@ for i in range(10000):
 t1=time.time()
 
 print "10000 sequential reads from 10000",t1-t0, (t1-t0)/10000, 10000/(t1-t0)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 import operator
 
 import emen2.db.datatypes
@@ -352,3 +353,4 @@ class macro_thumbnail(Macro):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

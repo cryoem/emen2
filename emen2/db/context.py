@@ -1,3 +1,4 @@
+# $Id$
 import time
 import operator
 import hashlib
@@ -178,3 +179,4 @@ class SpecialRootContext(Context):
 		self.time = t
 		self.__init_refresh()
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

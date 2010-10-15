@@ -1,3 +1,4 @@
+# $Id$
 import collections
 import itertools
 
@@ -187,3 +188,4 @@ def run_tests():
 
 if __name__ == '__main__':
 	run_tests()
+__version__ = "$Revision$".split(":")[1][:-1].strip()

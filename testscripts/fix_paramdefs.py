@@ -1,3 +1,4 @@
+# $Id$
 raise Exception, "Needs to be updated"
 
 from test import *
@@ -39,3 +40,4 @@ for i in db.getparamdefnames():
 			print "wtf %s, %s"%(z.name, z.defaultunits)
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

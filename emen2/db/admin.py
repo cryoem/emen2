@@ -1,3 +1,4 @@
+# $Id$
 import pickle
 import imp
 import sys
@@ -18,3 +19,4 @@ def opendb():
 	ctx = db._DBProxy__db._makerootcontext()
 	db._DBProxy__ctx = ctx
 	return db
+__version__ = "$Revision$".split(":")[1][:-1].strip()

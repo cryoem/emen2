@@ -1,3 +1,4 @@
+# $Id$
 import types
 from hashlib import md5
 import random
@@ -146,3 +147,4 @@ class HTMLTab():
 		#print "\torder: %s"%self.order
 		#print "\tactive: %s"%self.active
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

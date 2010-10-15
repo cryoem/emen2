@@ -1,3 +1,4 @@
+# $Id$
 #!/bin/env python
 # This is designed to (eventually) import (some) XML schema and produce 
 # a set of RecordDef and ParamDef entries
@@ -47,3 +48,4 @@ class myhandler(ContentHandler):
 			
 handler=myhandler()
 xml.sax.parse(sys.argv[1],handler)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

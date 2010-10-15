@@ -1,3 +1,4 @@
+# $Id$
 import urllib2
 import emen2.util.datastructures
 #import emen2.db
@@ -200,3 +201,4 @@ g = emen2.db.config.g()
 #
 #
 #
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 '''Contains Classses which should mirror HTTP resoponse codes'''
 #NOTE: unittests in tests/responsecodes_test.py -- run after any changes
 
@@ -57,3 +58,4 @@ class MethodNotAllowedError(HTTP400Response):
 class GoneError(HTTP400Response): code = 410
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

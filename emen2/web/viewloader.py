@@ -1,3 +1,4 @@
+# $Id$
 import os
 import os.path
 import sys
@@ -92,3 +93,4 @@ class _LaunchConsole(emen2.web.view.View):
 			self.page = 'fail'
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

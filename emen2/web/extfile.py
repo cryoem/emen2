@@ -1,3 +1,4 @@
+# $Id$
 import emen2.db.config
 g = emen2.db.config.g()
 
@@ -79,3 +80,4 @@ class BaseCSS(ExtFile):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

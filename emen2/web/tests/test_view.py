@@ -1,3 +1,4 @@
+# $Id$
 import unittest
 import mock
 import sys
@@ -51,3 +52,4 @@ class TestView(unittest.TestCase):
 
 if __name__ == '__main__':
 	unittest.main()
+__version__ = "$Revision$".split(":")[1][:-1].strip()

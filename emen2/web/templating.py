@@ -1,3 +1,4 @@
+# $Id$
 '''\
 It is possible to use templating engines other than Mako,
 but none have been defined
@@ -179,3 +180,4 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		# g.log.msg(level, ': '.join(msg))
 
 get_templates = fileops.walk_paths('.mako', template_callback)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

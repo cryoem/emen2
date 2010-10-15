@@ -1,3 +1,4 @@
+# $Id$
 import time
 import operator
 import hashlib
@@ -275,3 +276,4 @@ class User(emen2.db.dataobject.BaseDBObject):
 			return True
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

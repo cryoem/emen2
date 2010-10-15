@@ -1,3 +1,4 @@
+# $Id$
 '''\
 Implements namespaces for method grouping
 example use:
@@ -60,3 +61,4 @@ class Namespace(object):
         if callable(result) and not name.startswith('_'):
             result = functools.partial(result, self.__inst)
         return result
+__version__ = "$Revision$".split(":")[1][:-1].strip()

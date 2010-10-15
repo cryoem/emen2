@@ -1,3 +1,4 @@
+# $Id$
 import re
 from abc import ABCMeta, abstractmethod, abstractproperty
 from UserDict import DictMixin
@@ -157,3 +158,4 @@ class BaseDBObject(BaseDBInterface):
 
 
 collections.Mapping.register(BaseDBObject)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

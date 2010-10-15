@@ -1,3 +1,4 @@
+# $Id$
 from __future__ import with_statement
 
 ### Unit-tested in emen2.tests.test_routing.py
@@ -296,3 +297,4 @@ if __name__ == '__main__':
 	a = URL('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
 	print a.match('asdasd')[1].groupdict()
 	ur = URLRegistry();ur.register(a)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

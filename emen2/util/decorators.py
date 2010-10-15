@@ -1,3 +1,4 @@
+# $Id$
 import itertools
 import functools
 
@@ -46,3 +47,4 @@ def make_decorator(func):
 		return _inner
 	return _inner1
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 import time
 import operator
 import hashlib
@@ -43,3 +44,4 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 	#################################
 	# Validation methods
 	#################################
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 # ian: fold this into datastructures.py?
 
 def if_caching(f):
@@ -50,3 +51,4 @@ class CacheMixin:
 			#print 'hit'
 			result = True, self.cache[key]
 		return result
+__version__ = "$Revision$".split(":")[1][:-1].strip()

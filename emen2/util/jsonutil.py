@@ -1,3 +1,4 @@
+# $Id$
 """
 primary purpose is to allow more types to be serialized by simplejson
 """
@@ -47,3 +48,4 @@ encode, decode = encode_, decode_
 
 # print 'simplejson encoder/decoder'
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

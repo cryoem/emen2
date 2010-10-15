@@ -1,3 +1,4 @@
+# $Id$
 import math
 import re
 import emen2.db.datatypes
@@ -492,3 +493,4 @@ class prop_resolution(Property):
 		self.defaultunits = "A/pix"
 		self.units = {'A/pix': 1.0}
 		self.equiv = {}
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 class SecurityError(Exception):
     "Exception for a security violation"
 
@@ -15,3 +16,4 @@ class FieldError(Exception):
 
 class ValidationError(ValueError):
 	"""Validation Error"""
+__version__ = "$Revision$".split(":")[1][:-1].strip()

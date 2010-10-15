@@ -1,3 +1,4 @@
+# $Id$
 #!/usr/bin/python
 # Edward Langley
 # Processes a Schema definition and generates
@@ -412,3 +413,4 @@ if __name__ == '__main__':
     res = generate_all(b)
 
     file(sys.argv[2],'w').write(res)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 import UserDict
 import collections
 import operator
@@ -754,3 +755,4 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()

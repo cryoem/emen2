@@ -1,3 +1,4 @@
+# $Id$
 '''
 classes:
 	Output: represents an individual output stream which logs certain specified states
@@ -480,3 +481,4 @@ class Filter(file):
 #	except:
 #		result = ('Unknown Output',-1)
 #	return ':'.join(str(x) for x in result)
+__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,3 +1,4 @@
+# $Id$
 import emen2.test
 
 class Block(object):
@@ -133,3 +134,4 @@ while txt:
 	except ValueError, e:
 		print 'E', e
 	txt = raw_input('> ')
+__version__ = "$Revision$".split(":")[1][:-1].strip()
