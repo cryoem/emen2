@@ -1,3 +1,4 @@
+# $Id$
 # $Author$ $Revision$
 import copy
 import atexit
@@ -4593,3 +4594,4 @@ class DB(object):
 	#
 	# 	g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
 
+__version__ = "$Revision$".split(":")[1][:-1].strip()
