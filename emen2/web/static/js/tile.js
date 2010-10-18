@@ -697,6 +697,14 @@
 					self.options.y = offset[1];
 					self.recalc();
 				}
+			}).touch({
+			    animate: false,
+			    sticky: false,
+			    dragx: true,
+			    dragy: true,
+			    rotate: false,
+			    resort: true,
+			    scale: false
 			});
 			
 			this.inner.click(function(e) {
