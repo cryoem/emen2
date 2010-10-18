@@ -131,9 +131,6 @@
 		options: {
 			q: null,
 			show: true,
-			ext_save: null,
-			ext_q: null,
-			//ext_reset: null,
 			cb: function(self, q){self.query_bookmark(self, q)}
 		},
 				
@@ -159,9 +156,10 @@
 			if (this.built) {
 				return
 			}
+			
 			this.built = 1;
-
-			this.container = $('<div class="query clearfix" />');
+			this.element.addClass("query");
+			this.container = $('<div class="clearfix" />');
 						
 			var m = $(' \
 				<table cellpadding="0" cellspacing="0" > \
@@ -176,10 +174,10 @@
 					</thead> \
 					<tbody class="base constraints"> \
 						<tr> \
-							<td><input type="hidden" name="param" value="*" />Keywords</td> \
+							<td><input type="hidden" name="param" value="root_parameter" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" name="value"/></td> \
-							<td></td> \
+							<td><input type="text" name="value" /></td> \
+							<td><input type="checkbox" name="recurse_p" checked="checked" style="display:none" /></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
@@ -242,12 +240,11 @@
 			$('.findrecorddef', this.container).FindControl({mode: 'findrecorddef'});
 			$('.findparamdef', this.container).FindControl({mode: 'findparamdef'});
 
-			if (!this.options.ext_save) {
-				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Query" name="save" /></div>');
-				this.container.append(this.options.ext_save);
-			}
-			
-			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.query()});			
+			var save = $('<div class="controls bigbutton"> \
+				<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
+				<input type="button" value="Query" name="save" /></div>');
+			this.container.append(save);
+			$('input[name=save]', this.container).bind("click",function(e){self.query()});			
 
 			$('thead .listicon', this.container).click(function(e) {
 				$('.constraints tr').each(function(){self.clear($(this))});
@@ -331,7 +328,6 @@
 				newq['groupby'] = groupby;
 				newq['plotmode'] = plotmode;
 				newq['binw'] = binw;
-				//newq['formats'] = ['png'];
 			}
 						
 			$('.constraints tr', this.container).each(function() {
@@ -353,7 +349,7 @@
 				if (param && cmp && value) { c.push([param, cmp, value]) }
 			});
 			newq['c'] = c;
-			
+
 			if (ignorecase) {newq['ignorecase'] = 1}
 			if (boolmode) {newq['boolmode'] = boolmode}
 			return newq
@@ -439,18 +435,12 @@
 			$('.constraints tbody.base input[name=value]', this.container).val('');
 			$('.constraints tbody.param', this.container).empty();
 
-			// var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
-			// var boolmode = $('input[name=boolmode]:checked', this.container).val();
-			// var xparam = $('input[name=xparam]', this.container).val();
-			// var yparam = $('input[name=yparam]', this.container).val();
-			// var groupby = $('input[name=groupby]', this.container).val();
 			if (this.options.q['xparam']!=null) {$('input[name=xparam]', this.container).val(this.options.q['xparam'])}
 			if (this.options.q['yparam']!=null) {$('input[name=yparam]', this.container).val(this.options.q['yparam'])}
 			if (this.options.q['groupby']!=null) {$('input[name=groupby]', this.container).val(this.options.q['groupby'])}
 			if (this.options.q['plotmode']!=null) {$('select[name=plotmode]', this.container).val(this.options.q['plotmode'])}
 			if (this.options.q['binw']!=null) {$('input[name=binw]', this.container).val(this.options.q['binw'])}
 			if (this.options.q['binc']!=null) {$('input[name=binc]', this.container).val(this.options.q['binw'])}
-
 
 			$.each(this.options.q['c'], function() {
 				// Another ugly block to deal with these items..
