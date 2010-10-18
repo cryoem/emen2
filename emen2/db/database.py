@@ -1321,9 +1321,9 @@ class DB(object):
 		results = collections.defaultdict(set)
 
 		# Get the list of param indexes to search
-		if searchparam == "*" or searchparam == "root_parameter*":
-			indparams = self.bdb.indexkeys.keys(txn=txn)
-		elif '*' in searchparam:
+		#if searchparam == "*" or searchparam == "root_parameter*":
+		#	indparams = self.bdbs.indexkeys.keys(txn=txn)
+		if '*' in searchparam:
 			indparams = self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
 			indparams = [self._query_paramstrip(searchparam)]
