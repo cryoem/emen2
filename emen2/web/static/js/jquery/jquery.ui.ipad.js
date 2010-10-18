@@ -8,46 +8,24 @@
 * http://code.google.com/p/jquery-ui-for-ipad-and-iphone/
 */
 
-// 
-// $(function() {
-// 	//
-// 	// Extend jQuery feature detection
-// 	//
-// 	$.extend($.support, {
-// 		touch: typeof Touch == "object"
-// 	});
-// 	
-// 	//
-// 	// Hook up touch events
-// 	//
-// 	if ($.support.touch) {
-// 		document.addEventListener("touchstart", iPadTouchHandler, false);
-// 		document.addEventListener("touchmove", iPadTouchHandler, false);
-// 		document.addEventListener("touchend", iPadTouchHandler, false);
-// 		document.addEventListener("touchcancel", iPadTouchHandler, false);
-// 	}
-// });
 
-
-$.extend($.support, {
-        touch: typeof Touch == "object"
-});
-
-$.fn.addTouch = function()
-{
-        this.each(function(i,el){
-                        
-                //
-                // Hook up touch events
-                //
-
-                if ($.support.touch) {
-                        el.addEventListener("touchstart", iPadTouchHandler, false);
-                        el.addEventListener("touchmove", iPadTouchHandler, false);
-                        el.addEventListener("touchend", iPadTouchHandler, false);
-                        el.addEventListener("touchcancel", iPadTouchHandler, false);
-                }
-        });
+$(function() {
+	//
+	// Extend jQuery feature detection
+	//
+	$.extend($.support, {
+		touch: typeof Touch == "object"
+	});
+	
+	//
+	// Hook up touch events
+	//
+	if ($.support.touch) {
+		document.addEventListener("touchstart", iPadTouchHandler, false);
+		document.addEventListener("touchmove", iPadTouchHandler, false);
+		document.addEventListener("touchend", iPadTouchHandler, false);
+		document.addEventListener("touchcancel", iPadTouchHandler, false);
+	}
 });
 
 
