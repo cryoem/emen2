@@ -1451,6 +1451,13 @@ class DB(object):
 		elif len(rds) > 1 or len(rds) == 0:
 			viewdef = "$@recname() $@thumbnail() $$rectype $$recid $$creator $$creationtime"
 
+		# We need to add columns for anything that was specified in a query..
+		qparams = [i[0] for i in q['c']]
+		for qparam in qparams:
+			if qparam not in viewdef:
+				viewdef = "$$%s "%(qparam) + viewdef
+		
+
 		# Sort
 		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)
 
@@ -4068,7 +4075,7 @@ class DB(object):
 			try:
 				if recs:
 					g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
-					delindexkeys = ind.removerefs(oldval, recs, txn=txn)
+					delindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
 				raise
@@ -4079,7 +4086,7 @@ class DB(object):
 			try:
 				if recs:
 					g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
-					addindexkeys = ind.addrefs(newval, recs, txn=txn)
+					addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
 				raise

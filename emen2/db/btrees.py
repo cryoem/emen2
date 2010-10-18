@@ -75,7 +75,7 @@ class BTree(object):
 		self.__setweakrefopen()
 
 		# g.log.msg("LOG_DEBUG","Opening %s.bdb"%self.filename)
-		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS, txn=txn)
+		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS)
 
 
 	def __setkeytype(self, keytype):
@@ -285,7 +285,7 @@ class RelateBTree(BTree):
 
 		if self.sequence:
 			self.sequencedb = bsddb3.db.DB(self.dbenv)
-			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, txn=txn, flags=g.DBOPENFLAGS) #
+			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS) #
 
 		kt = self.keytype
 		dt = self.datatype
@@ -532,7 +532,6 @@ class FieldBTree(BTree):
 		if not items: return []
 
 		addindexitems = []
-
 
 		key = self.typekey(key)
 		items = map(self.typedata, items)

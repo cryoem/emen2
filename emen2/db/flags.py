@@ -23,6 +23,7 @@ envopenflags = [
 dbopenflags = [
 	DB_CREATE,
 	DB_THREAD,
+	DB_AUTO_COMMIT,
 	DB_MULTIVERSION
 ]
 
