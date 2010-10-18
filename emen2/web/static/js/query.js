@@ -287,6 +287,7 @@
 				'!contains': '.!contains.',
 				'contains': '.contains.',
 				'!None': '.!None.',
+				'None': '.None.',
 				'recid': '.recid.'
 			}
 
@@ -414,7 +415,8 @@
 				"<":"is less than",
 				">=":"is greater or equal than",
 				"<=":"is less or equal than",
-				"!None":"is any value"
+				"!None":"is any value",
+				'None':"is empty"
 			}
 			var i = $('<select name="cmp" />');
 			$.each(comparators, function(k,v) {

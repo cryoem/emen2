@@ -1160,7 +1160,11 @@ class DB(object):
 
 			if recids == None:
 				recids = constraintmatches
-			if "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
+
+			# ian: temp support for value == None:
+			if comp == "None":
+				recids -= constraintmatches
+			elif "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
 				getattr(recids, boolop)(constraintmatches)
 
 
@@ -1311,7 +1315,7 @@ class DB(object):
 		if groupby == None:
 			groupby = {}
 
-		if value == None and comp not in ["!None", "contains_w_empty"]:
+		if value == None and comp not in ["!None", "None", "contains_w_empty"]:
 			return None
 
 		if not cfunc:
@@ -1338,9 +1342,9 @@ class DB(object):
 				continue
 
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
+			
 			if r:
 				results[indparam] = r
-
 
 		# Now search individual param indexes
 		constraint_matches = set()
@@ -1378,7 +1382,8 @@ class DB(object):
 			">=": lambda y,x: x >= y,
 			"<=": lambda y,x: x <= y,
 			'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
-			'!None': lambda y,x: x != None
+			'!None': lambda y,x: x != None,
+			'None': lambda y,x: x != None
 			#"range": lambda x,y,z: y < x < z
 		}
 
