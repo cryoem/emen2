@@ -84,10 +84,6 @@
 				}
 			}
 			
-			//console.log("Add: ", add.length);
-			//console.log("Remove: ", remove.length);
-			//return
-
 			$.jsonRPC("addgroups", [add, ['publish']], function(){ 
 				$.jsonRPC("removegroups", [remove, ['publish']], function() {
 					$('.spinner', self.options.ext_save).hide();

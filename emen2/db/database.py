@@ -19,7 +19,7 @@ import functools
 import imp
 import tempfile
 import cStringIO
-#import emen2.ext.mail_exts
+import emen2.ext.mail_exts
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -1129,15 +1129,12 @@ class DB(object):
 
 
 	@publicmethod("records.find.query")
-	def query(self, c=None, q=None, boolmode=None, ignorecase=None, subset=None, ctx=None, txn=None, **kwargs):
+	def query(self, c=None, boolmode=None, ignorecase=None, subset=None, ctx=None, txn=None, **kwargs):
 		"""Query. New docstring coming soon."""
 
 		# Setup defaults
 		if not c:
 			c = []
-
-		if q:
-			c.append(["root_parameter*", "contains_w_empty", q])
 
 		if ignorecase == None:
 			ignorecase = 1
@@ -1180,14 +1177,12 @@ class DB(object):
 
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
-		# groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 		for groupparam, keys in groupby.items():
 			#print "groupby: %s"%groupparam
 			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 
 
 		ret = {
-			"q":q,
 			"c": c,
 			"boolmode": boolmode,
 			"ignorecase": ignorecase,
@@ -1326,7 +1321,7 @@ class DB(object):
 		results = collections.defaultdict(set)
 
 		# Get the list of param indexes to search
-		if searchparam == "*":
+		if searchparam == "*" or searchparam == "root_parameter*":
 			indparams = self.bdb.indexkeys.keys(txn=txn)
 		elif '*' in searchparam:
 			indparams = self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
@@ -1446,17 +1441,21 @@ class DB(object):
 
 		# Process into table
 		if len(rds) == 1 and not viewdef:
-			rds = rds.pop()
-			viewdef = rds.views['tabularview']
-		elif len(rds) > 1 or len(rds) == 0:
-			viewdef = "$@recname() $@thumbnail() $$rectype $$recid $$creator $$creationtime"
+			viewdef = rds[0].views['tabularview']
 
-		# We need to add columns for anything that was specified in a query..
-		qparams = [i[0] for i in q['c']]
-		for qparam in qparams:
-			if qparam not in viewdef:
-				viewdef = "$$%s "%(qparam) + viewdef
+		elif len(rds) > 1 or len(rds) == 0:
+			viewdef = "$@recname() $@thumbnail() $$rectype $$recid"
+			
 		
+		for i in q['groups'].keys() + ['creator', 'creationtime']:
+			if i == "rectype" and len(rds) == 1:
+				continue
+				
+			i = '$$%s'%i
+			if i not in viewdef:
+				viewdef = "%s %s"%(viewdef, i)
+					
+
 
 		# Sort
 		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)

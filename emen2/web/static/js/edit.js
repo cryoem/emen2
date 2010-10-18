@@ -157,7 +157,6 @@ function bind_autocomplete(elem, param) {
 					t.EditControl('hide');
 					t.EditControl('show', 0);
 				} catch(e) {
-					//console.log(e);
 				}
 			});
 
@@ -191,7 +190,6 @@ function bind_autocomplete(elem, param) {
 					changed[recid][param] = value;
 					if (comment) {changed[recid]['comments'] = comment}
 				} catch(e) {
-					//console.log(e);
 				}
 			});
 			
@@ -396,7 +394,6 @@ function bind_autocomplete(elem, param) {
 				bind_autocomplete(this.editw, this.options.param);
 			}
 
-			//console.log(inline);
 			if (inline) {
 				this.w.css('display','inline');
 			}
@@ -753,7 +750,6 @@ function bind_autocomplete(elem, param) {
 			$.jsonRPC("getrecorddef", [this.options.recid], function(rd) {
 				self.rectype = rd.name;
 				caches["recorddefs"][rd.name] = rd;
-				// console.log();
 
 				$.jsonRPC("getrecorddef", [rd.typicalchld], function(rd2) {
 					$.each(rd2, function() {

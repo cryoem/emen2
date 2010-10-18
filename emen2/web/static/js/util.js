@@ -455,8 +455,6 @@ function admin_approveuser_form(elem) {
 			reject.push($(this).attr("name"));
 		}
 	});
-	//console.log(approve);
-	//console.log(reject);
 
 	if (approve.length > 0) {
 		$.jsonRPC("approveuser_sendmail",[approve], //wrapper_approveuser_sendmail ian:mustfix
@@ -501,7 +499,6 @@ function admin_userstate_form(elem) {
 	var disable=[];
 	var form=$(elem.form);
 	$('input:checked', form).each(function() {
-		//console.log(this);
 		var un=$(this).attr("name");
 		var unv=parseInt($(this).val());
 		if (unv == 0 &&  admin_userstate_cache[un] != unv) {
@@ -519,7 +516,6 @@ function admin_userstate_form(elem) {
 					notify("Enabled users: "+data);
 					for (var i=0;i<data.length;i++) {
 						admin_userstate_cache[data[i]]=0;
-						//console.log(admin_userstate_cache[data[i]]);
 					}
 				}
 			}
@@ -533,7 +529,6 @@ function admin_userstate_form(elem) {
 					notify("Disabled users: "+data);
 					for (var i=0;i<data.length;i++) {
 						admin_userstate_cache[data[i]]=1;
-						//console.log(admin_userstate_cache[data[i]]);						
 					}					
 				}
 			}

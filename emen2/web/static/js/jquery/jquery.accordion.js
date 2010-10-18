@@ -181,10 +181,6 @@
          }
 
          if (toFocus) {
-            //console.log(this.active.next().offset().top + this.active.next().outerHeight());
-            //console.log($(window).height()+$(window).scrollTop());
-            console.log((this.active.next().offset().top + this.active.next().outerHeight()) > ($(window).height() + $(window).scrollTop()));
-            console.log(toFocus);
             var windowBottom = $(window).height() + $(window).scrollTop()
             if (is_space && ((this.active.next().offset().top + this.active.next().outerHeight()) > windowBottom)) {
                result = true;
@@ -193,8 +189,6 @@
                result = false;
                if (!event.shiftKey) this.hide(this.active);
             };
-            console.log(toFocus);
-            console.log(toFocus == this.active);
 
             if (toFocus != this.active) {
                this.active = $(toFocus);
@@ -228,7 +222,6 @@
       },
 
       _clickHandler: function(event, target) {
-         console.log(target);
          this.active = $(target);
          this.active.stop()
          this.active.toggleClass("ui-state-default").toggleClass("ui-state-active").toggleClass("ui-corner-all").toggleClass("ui-corner-top");

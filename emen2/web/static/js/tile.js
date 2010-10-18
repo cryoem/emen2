@@ -810,7 +810,6 @@
 					q = this.options.scales[i];
 				}
 			};
-			// console.log("Autoscaled: ", mx, sx, q, this.options.scales, this.options.maxscale);
 			return Math.round(q);
 		},
 		

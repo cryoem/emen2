@@ -209,7 +209,6 @@
 				return
 			}
 			
-			//console.log(rlinks);
 			$.jsonRPC("pcunlinks", [rlinks], function() {
 				notify("Removed relationships");
 				self.saved = [];

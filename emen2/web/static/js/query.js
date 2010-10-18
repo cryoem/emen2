@@ -470,7 +470,6 @@
 				var finditem = $('.base.constraints input[name=param][value='+param+']', this.element);
 				if (finditem.length > 0) {
 					var tr = finditem.parent().parent();
-					// console.log('found tr', tr, this);
 					$('input[name=cmp]', tr).val(cmpi);
 					$('input[name=value]', tr).val(value);
 					if (recurse_p) {$('input[name=recurse_p]', tr).attr('checked', 'checked')} else {$('input[name=recurse_p]', tr).attr('checked', null)}

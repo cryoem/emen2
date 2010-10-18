@@ -92,41 +92,28 @@
 			
 			var self = this;
 			
-			// if (this.options.qc) {
-			// 	$(this.options.qc).QueryControl({
-			// 		q: self.options.q,
-			// 		keywords: false,
-			// 		cb: function(test, newq) {self.query(newq)} 
-			// 	});
-			// 	return
-			// }
-
-			var q = $('<div class="querycontrol control" style="float:right"> \
-				<input type="text" name="q" size="8" /> \
-				<input type="button" name="save" value="Query" /> \
-				<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></div>');
+			var q = $('<div class="querycontrol control" style="float:right"><span class="clickable label"> \
+				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
 			q.EditbarHelper({
-				bind: false,
 				align: 'right', 
+				width: 700,
 				init: function(self2) {
 					self2.popup.QueryControl({
 						q: self.options.q,
 						keywords: false,
-						ext_save: q,
-						ext_q: q,
 						cb: function(test, newq) {self.query(newq)} 
 					});
 				}
 			});				
 
-			$('input[name=q]', q).focus(function(){
-				q.EditbarHelper('show');
-			});
-		
-			$('img', q).click(function(){
-				q.EditbarHelper('toggle');
-			});
+			// $('input[name=q]', q).focus(function(){
+			// 	q.EditbarHelper('show');
+			// });
+			// 		
+			// $('img', q).click(function(){
+			// 	q.EditbarHelper('toggle');
+			// });
 			
 			$('.header', this.element).append(q);
 			

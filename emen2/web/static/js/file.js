@@ -165,8 +165,6 @@
 
 			controls.append('<ul class="nonlist" style="padding:10px"><li><a href="'+EMEN2WEBROOT+'/query/recid=='+this.options.recid+'/files/">View / Download all in this record</a></li><li><a href="'+EMEN2WEBROOT+'/query/parent.recid.'+this.options.recid+'*/files/">View / Download all files in children</a></li></ul>');
 
-			//console.log(this.recid);
-
 			var ss = $('<select data-recid="'+this.options.recid+'"/>');
 			ss.append('<option value="" />');
 
