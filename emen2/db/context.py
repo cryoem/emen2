@@ -71,7 +71,6 @@ class Context(object):
 		# copy the dict since we change it
 		# return self.json_equivalent()
 		odict = self.__dict__.copy() 
-		print odict
 
 		for i in ['db', 'user', 'groups', 'grouplevels']:
 			odict.pop(i, None)

@@ -237,7 +237,6 @@ class User(emen2.db.dataobject.BaseDBObject):
 			if not i.startswith('_'):
 				del self.__dict__[i]
 
-
 		self.username = re.sub("\W", "", self.username).lower()
 
 		try:
@@ -251,9 +250,11 @@ class User(emen2.db.dataobject.BaseDBObject):
 			self.validationwarning("User privacy setting may be 0, 1, or 2.", warning=warning)
 
 
+		if self.password == None:
+			self.validationwarning("No password set!", warning=warning)
+
 		if self.password != None and len(self.password) != 40:
 			self.validationwarning("Invalid password hash; use setpassword to update", warning=warning)
-
 
 		try:
 			self.disabled = bool(self.disabled)

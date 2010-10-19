@@ -2859,7 +2859,8 @@ class DB(object):
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
 			user.getuserrec(lnf=lnf)
-			user.password = None
+			# ian: todo: complicated -- users need to get their own hash pw's to change their emails..
+			# user.password = None
 			ret.append(user)
 
 		if ol: return return_first_or_none(ret)
