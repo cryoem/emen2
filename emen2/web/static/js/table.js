@@ -290,7 +290,7 @@
 		},
 		
 		event_edit: function(e) {
-			if (this.options.q['count'] > 100) {
+			if (this.options.q['count'] > 500) {
 				var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
 				if (check==false) {return}
 			}

@@ -1421,7 +1421,7 @@ class DB(object):
 
 
 	@publicmethod("records.find.table")
-	def querytable(self, pos=0, count=100, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
+	def querytable(self, pos=0, count=500, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		"""doctstring coming soon"""
 
 		xparam = q.get('xparam', None)
@@ -2282,8 +2282,9 @@ class DB(object):
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
+		# ian: todo: fix error message
 		if filter(lambda x:x[0] == x[1], links):
-			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s, key %s <-> %s"%(keytype, pkey, ckey))
+			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s"%(keytype))
 			return
 
 		if not links:

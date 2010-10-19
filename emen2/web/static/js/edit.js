@@ -348,7 +348,12 @@ function bind_autocomplete(elem, param) {
 
 			} else if (vt=="boolean") {
 		
-				this.editw = $("<select><option>True</option><option>False</option></select>");
+				this.editw = $("<select><option></option><option>True</option><option>False</option></select>");
+				if (this.rec_value == true) {
+					this.editw.val("True");
+				} else if (this.rec_value == false) {
+					this.editw.val("False");
+				}
 				this.w.append(this.editw);				
 		
 			} else if ($.inArray(vt, ["intlist","floatlist","stringlist","userlist","urilist"]) > -1) { //.indexOf(vt) > -1

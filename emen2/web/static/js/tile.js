@@ -697,7 +697,7 @@
 					self.options.y = offset[1];
 					self.recalc();
 				}
-			}).addTouch();
+			}); //.addTouch();
 			
 			this.inner.click(function(e) {
 				e.stopPropagation();
