@@ -240,7 +240,7 @@
 			$('.findrecorddef', this.container).FindControl({mode: 'findrecorddef'});
 			$('.findparamdef', this.container).FindControl({mode: 'findparamdef'});
 
-			var save = $('<div class="controls bigbutton"> \
+			var save = $('<div class="controls"> \
 				<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
 				<input type="button" value="Query" name="save" /></div>');
 			this.container.append(save);

@@ -84,7 +84,7 @@
 		bind_table: function() {
 			var self = this;
 			
-			this.header = $('<tr><th><input name="addparent" type="button" value="+" /> Parents</th><th/><th>This Record</th><th/><th><input name="addchild" type="button" value="+" /> Children</th></tr>');			
+			this.header = $('<tr><th><input class="save" name="addparent" type="button" value="+" /> Parents</th><th/><th>This Record</th><th/><th><input class="save" name="addchild" type="button" value="+" /> Children</th></tr>');			
 
 			$('input[name=addchild]', this.header).click(function() {
 				self.event_addchild();
@@ -110,7 +110,7 @@
 			}
 			
 			this.controlsarea = $('<div class="controls" />');
-			var i = $('<input type="button" value="Removed Selected" />');
+			var i = $('<input class="save" type="button" value="Removed Selected" />');
 			i.click(function() {
 				self.event_removeselected();
 			});

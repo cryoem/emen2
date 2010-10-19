@@ -367,7 +367,7 @@
 		
 			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){e.stopPropagation();self.event_toggleall(e)})
 
-			var reset = $('<p><input type="button" value="Remove Selected Items" /></p>');
+			var reset = $('<p><input class="save" type="button" value="Remove Selected Items" /></p>');
 			reset.click(function(e){e.stopPropagation();self.event_removebdos(e)});
 			this.tablearea.append(reset);		
 
@@ -378,7 +378,7 @@
 			var fform = $('<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
 
 			this.button_browser = $('<input type="file" name="filedata" />');
-			this.button_submit = $('<input  type="submit" value="Upload" />');
+			this.button_submit = $('<input class="save" type="submit" value="Upload" />');
 
 
 			//if (typeof(FileReader) != "undefined") {

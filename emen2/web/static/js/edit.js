@@ -129,12 +129,12 @@ function bind_autocomplete(elem, param) {
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
 			this.controls.append(spinner);
 
-			var save = $('<input type="submit" name="save" value="Save" />');
+			var save = $('<input class="save" type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 			
 			if (this.options.recid != "None") {
-				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
+				var cancel = $('<input class="cancel" type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
 			}			
 			this.element.after(this.controls);
@@ -405,8 +405,8 @@ function bind_autocomplete(elem, param) {
 
 			this.controls = $('<span class="controls" />')		
 			this.controls.append(
-				$('<input type="submit" value="Save" name="save" />').one("click", function(e) {self.save()}),
-				$('<input type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
+				$('<input class="save" type="submit" value="Save" name="save" />').one("click", function(e) {self.save()}),
+				$('<input class="cancel" type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
 			this.w.append(this.controls);
 			this.element.after(this.w);
 			

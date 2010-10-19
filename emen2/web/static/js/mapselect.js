@@ -41,7 +41,7 @@
 			});
 			
 			if (!this.options.ext_save) {
-				this.options.ext_save = $('<div class="controls bigbutton"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Save" name="save" /></div>');
+				this.options.ext_save = $('<div class="controls save"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Save" name="save" /></div>');
 				this.element.prepend(this.options.ext_save);				
 			}
 			$('input[name=save]', this.options.ext_save).click(function() {self.save()});

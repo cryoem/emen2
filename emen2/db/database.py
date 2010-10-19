@@ -1440,12 +1440,14 @@ class DB(object):
 		rectypes = q.get('groups', {}).get('rectype', {})
 		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
 
+		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
+
 		# Process into table
 		if len(rds) == 1 and not viewdef:
-			viewdef = rds[0].views['tabularview']
+			viewdef = rds[0].views.get('tabularview', defaultviewdef)
 
 		elif len(rds) > 1 or len(rds) == 0:
-			viewdef = "$@recname() $@thumbnail() $$rectype $$recid"
+			viewdef = defaultviewdef
 			
 		
 		for i in q['groups'].keys() + ['creator', 'creationtime']:
