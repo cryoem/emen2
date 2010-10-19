@@ -491,7 +491,6 @@ class DB(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
-		#traceback.print_stack()
 
 		try:
 			type(self).txncounter += 1
@@ -1155,7 +1154,6 @@ class DB(object):
 		# Query Step 1: Run constraints
 		groupby = {}
 		for searchparam, comp, value in c:
-			#print "constraint: %s"%searchparam
 			constraintmatches = self._query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 			if recids == None:
@@ -1182,7 +1180,6 @@ class DB(object):
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
 		for groupparam, keys in groupby.items():
-			#print "groupby: %s"%groupparam
 			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 
 
@@ -1232,11 +1229,9 @@ class DB(object):
 				v = ind.get(key, txn=txn)
 				if "^" in groupparam:
 					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
-					#print "checking children:", key, v, len(children), len(recids)
 					for i in v:
 						v2 = children.get(i, set()) & recids
 						if v2: groups[param][key] = v2
-					#print "found: %s"%v2
 				else:
 					v2 = v & recids
 					if v2: groups[param][key] = v2
@@ -4275,7 +4270,6 @@ class DB(object):
 
 		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 
-		# print addusers, addgroups, delusers, delgroups, checkitems
 		if (addusers | addgroups | delusers | delgroups) - checkitems:
 			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
 
@@ -4477,7 +4471,6 @@ class DB(object):
 				elif t == '$' or t == '*':
 					# _t = time.time()
 					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
-					# print "-> %s, %s"%(n, time.time()-_t)
 				elif t == '@' and showmacro:
 					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
 				else:

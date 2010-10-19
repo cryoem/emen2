@@ -229,6 +229,7 @@
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
 			var headers = this.options.q['rendered']['headers']['null'];			
+			var immutable = ["creator","creationtime","modifyuser","modifytime","history","recid","rectype"];
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {
@@ -239,7 +240,7 @@
 				var i = $('<th style="position:relative" data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
 
 				// An editable, sortable field..
-				if (this[1] == "$") {
+				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
 					var editable = $('<button class="buttonicon" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
 					editable.click(function(e){self.event_edit(e)});
 					i.append(editable);

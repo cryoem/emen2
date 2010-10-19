@@ -4,7 +4,7 @@
 (function($) {
     $.widget("ui.ParamDefEditor", {
 		options: {
-			new: null,
+			newdef: null,
 			parents: null,
 			ext_save: null,
 		},
@@ -38,7 +38,7 @@
 			$('.spinner', this.options.ext_save).show();
 			
 			var args = [this.pd];
-			if (this.options.new) {
+			if (this.options.newdef) {
 				args = [this.pd, this.options.parents];
 			}
 
@@ -87,7 +87,7 @@
 (function($) {
     $.widget("ui.RecordDefEditor", {
 		options: {
-			new: null,
+			newdef: null,
 			parents: null,
 			ext_save: null
 		},
@@ -192,7 +192,7 @@
 
 			var self=this;
 			var args = [this.rd];
-			if (this.options.new) {
+			if (this.options.newdef) {
 				args = [this.rd, this.options.parents];
 			}
 
