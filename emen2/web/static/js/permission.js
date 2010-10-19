@@ -82,7 +82,8 @@
 
 			// Save controls
 			if (this.options.edit) {
-				this.savearea = $('<div class="controls"/>');
+				// this.savearea = $('<div class="controls"/>');
+				this.savearea = $('<div class="controls bigbutton"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 				if (this.options.recid != "None" && this.options.recid != null) {
 					var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
 					var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});					
@@ -358,11 +359,13 @@
 			sec_commit["reassign"] = 1;
 			sec_commit["recurse"] = rlevels;
 		
+			$('.spinner', this.savearea).show();
 			$.jsonRPC("secrecordadduser_compat", sec_commit, 
 				function() {
 				
 					$.jsonRPC("getrecord",[self.options.recid],
 						function(record) {
+							$('.spinner', self.savearea).hide();
 							// ian: changing permissions shouldn't require a full rebuild...
 							notify("Saved Permissions");
 							caches["recs"][self.options.recid] = record;

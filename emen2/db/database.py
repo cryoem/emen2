@@ -2823,14 +2823,13 @@ class DB(object):
 		if rec_ints:
 			recs.extend(self.getrecord(rec_ints, filt=True, ctx=ctx, txn=txn))
 
-
 		# ian: todo: urgent! replace this.
 		#if recs:
 		#	un2 = self.filtervartype(recs, vts=["user","userlist","acl"], flat=True, ctx=ctx, txn=txn)
 		#	usernames.extend(un2)
 
 		# Check list of users
-		usernames = set(x for x in usernames if isinstance(x, basestring))
+		usernames = set(x.strip().lower() for x in usernames if isinstance(x, basestring))
 
 		ret = []
 
@@ -3342,7 +3341,8 @@ class DB(object):
 
 		ol, keys = listops.oltolist(keys)
 
-		params = set(filter(lambda x:isinstance(x, basestring), keys))
+		params = filter(lambda x:isinstance(x, basestring), keys)
+		params = set([i.strip().lower() for i in params])
 
 		# Process records if given
 		recs = (x for x in keys if isinstance(x, (int, emen2.db.record.Record)))
@@ -3361,12 +3361,12 @@ class DB(object):
 		else:
 			lfilt = self.bdbs.paramdefs.sget
 
+
 		paramdefs = filter(None, [lfilt(i, txn=txn) for i in params])
 		for pd in paramdefs:
 			if pd.vartype not in self.indexablevartypes:
 				pd.indexed = False
 			# pd.setContext(ctx)
-
 
 		if ol: return return_first_or_none(paramdefs)
 		return paramdefs
@@ -3517,7 +3517,8 @@ class DB(object):
 
 		ol, keys = listops.oltolist(keys)
 
-		recdefs = set(filter(lambda x:isinstance(x, basestring), keys))
+		recdefs = filter(lambda x:isinstance(x, basestring), keys)
+		recdefs = set([i.strip().lower() for i in recdefs])
 
 		# Find recorddefs record ID
 		recs = filter(lambda x:isinstance(x, (dict, emen2.db.record.Record)), keys)
