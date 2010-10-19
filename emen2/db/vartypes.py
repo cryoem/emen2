@@ -106,7 +106,7 @@ class Vartype(object):
 			return '<ul>%s</ul>'%("\n".join(lis))
 
 		if showlabel:
-			lis.append('<li class="nobullet"><span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)		
+			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)		
 		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(elem_class, rec.recid, pd.name, pd.vartype, "\n".join(lis))
 
 
@@ -126,7 +126,7 @@ class Vartype(object):
 			return value
 			
 		if showlabel:
-			showlabel = '<span class="label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
+			showlabel = '<span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
 		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(elem, elem_class, rec.recid, pd.name, pd.vartype, value, showlabel, elem)
 
 

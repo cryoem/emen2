@@ -240,7 +240,7 @@
 
 				// An editable, sortable field..
 				if (this[1] == "$") {
-					var editable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" />');
+					var editable = $('<button class="buttonicon" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
 					editable.click(function(e){self.event_edit(e)});
 					i.append(editable);
 				}
@@ -251,7 +251,7 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<img style="float:right" src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" />');
+				var sortable = $('<button class="buttonicon" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" /></button>');
 				sortable.click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
 				i.append(sortable);
 				
