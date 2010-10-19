@@ -62,7 +62,6 @@ class BaseJS(ExtFile):
 			self.dbtree.reverse('TemplateRender', '/js/settings.js'),
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.ui.ipad.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT]
