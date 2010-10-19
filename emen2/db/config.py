@@ -1,4 +1,5 @@
 # $Id$
+
 import os
 import sys
 import functools
@@ -170,4 +171,6 @@ class DBOptions(optparse.OptionParser):
 
 gg = emen2.db.globalns.GlobalNamespace()
 g = lambda: gg
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,5 @@
 # $Id$
+
 import re
 import cgi
 
@@ -155,8 +156,6 @@ class VartypeManager(object):
 
 	def getmacros(self):
 		return self.__macros.keys()
-		
-		
 		
 		
 		

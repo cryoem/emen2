@@ -12,9 +12,9 @@ db = emen2.clients.emen2client.opendb(username=sys.argv[1])
 
 # Example 1 - query new subprojects by date
 def subprojbydate(db):
-	
+	pass
 
-
-def histogram
+def histogram():
+	pass
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

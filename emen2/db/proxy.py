@@ -1,4 +1,5 @@
 # $Id$
+
 from __future__ import with_statement
 
 import os
@@ -11,14 +12,12 @@ import functools
 import emen2.db.config
 g = emen2.db.config.g()
 
-
 import emen2.db.vartypes
 import emen2.db.macros
 import emen2.db.properties
 
 
-
-
+# Warning: This module is very sensitive to changes. Please test thoroughly before committing!!
 
 
 def publicmethod(*args, **kwargs):

@@ -1,4 +1,5 @@
 # $Id$
+
 # This was getting too difficult to maintain in database.py; it is still experimental and will likely change quickly
 import operator
 import os
@@ -560,5 +561,6 @@ class BinPlot(Plotter):
 # 		"ymax": ymax
 # 	})
 # 
-# 	return q					
+# 	return q
+					
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,5 @@
 # $Id$
+
 import operator
 
 import emen2.db.datatypes

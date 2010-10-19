@@ -1,4 +1,5 @@
 # $Id$
+
 '''
 classes:
 	Output: represents an individual output stream which logs certain specified states
@@ -472,6 +473,7 @@ class Filter(file):
 		str_ = str_.split(self.__splitter, self.__num)[-1]
 		file.write(self, str_)
 
+
 #def _get_last_module(debugstate):
 #	try:
 #		result = filter(lambda x:not x[0]=='debug.py',
@@ -481,4 +483,6 @@ class Filter(file):
 #	except:
 #		result = ('Unknown Output',-1)
 #	return ':'.join(str(x) for x in result)
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()

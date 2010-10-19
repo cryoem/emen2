@@ -1,4 +1,5 @@
 # $Id$
+
 import copy
 import atexit
 import hashlib
@@ -93,7 +94,7 @@ fakemodules()
 
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": emen2.clients.emen2client.VERSION
+	"emen2client": emen2.clients.emen2client.__version__
 }
 
 
@@ -4599,5 +4600,6 @@ class DB(object):
 	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
 	#
 	# 	g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
