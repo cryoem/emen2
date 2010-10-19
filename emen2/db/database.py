@@ -491,7 +491,7 @@ class DB(object):
 			flags = g.TXNFLAGS
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		# g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		try:
 			type(self).txncounter += 1
@@ -520,7 +520,7 @@ class DB(object):
 		"""Abort txn; accepts txnid or txn instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
+		# g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
 
 		if txn:
 			txn.abort()
@@ -536,7 +536,7 @@ class DB(object):
 		"""Commit txn; accepts txnid or instance"""
 
 		txn = self.txnlog.get(txnid, txn)
-		g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+		# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
 
 		if txn != None:
 			txn.commit()
