@@ -22,6 +22,7 @@ import tempfile
 import cStringIO
 import emen2.ext.mail_exts
 
+
 import emen2.db.config
 g = emen2.db.config.g()
 try:
@@ -1813,7 +1814,7 @@ class DB(object):
 
 	# query should replace this...
 	@publicmethod("records.find.byvalue")
-	def findvalue(self, param, query, count=True, showchoices=True, limit=100, ctx=None, txn=None):
+	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
 		"""Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
 		More detailed results can be performed using db.query.
 
