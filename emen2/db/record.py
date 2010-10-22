@@ -235,7 +235,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
 
 			# Log changes
-			if self.recid >= 0:
+			if self.recid >= 0 and self._ctx:
 				self._addhistory(key)
 
 			self.__params[key] = value
