@@ -20,13 +20,21 @@
 				self.show();
 			}
 		},
+		
+		checkkeytype: function(key) {
+			if (this.options.keytype == "record") {
+				return parseInt(key)
+			} else {
+				return key
+			}
+		},		
 	
 		show: function() {
 			if (this.options.recid == null) {
 				if (!this.element.val()) { 
 					this.options.recid = 0;
 				} else {
-					this.options.recid = parseInt(this.element.val())
+					this.options.recid = self.checkkeytype(this.element.val());
 				}
 			}
 			this.build();
@@ -65,7 +73,7 @@
 			//this.tablearea.html("Loading...");
 
 			$('.spinner', this.dialog.dialog('widget')).show();
-			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {recurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/map/'+this.options.keytype+'/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					$('.spinner', self.dialog.dialog('widget')).hide();
 					if (status=='error') {
@@ -96,7 +104,7 @@
 			$("thead", this.tablearea).prepend(this.header);
 			$("a.map", this.tablearea).click(function(e){
 				e.preventDefault();
-				self.build_browser(parseInt($(this).attr("data-recid")));
+				self.build_browser($(this).attr("data-recid"));
 			})
 		},
 		

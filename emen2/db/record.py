@@ -487,7 +487,6 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def revision(self, revision=None):
 		"""This will return information about the record's revision history"""
 
-
 		history = copy.copy(self.__history)
 		comments = copy.copy(self.__comments)
 		comments.append((self.get('creator'), self.get('creationtime'), 'Created'))

@@ -23,6 +23,14 @@
 			}
 			
 		},
+		
+		checkkeytype: function(key) {
+			if (this.options.keytype == "record") {
+				return parseInt(key)
+			} else {
+				return key
+			}
+		},
 	
 		event_click: function() {
 			this.build();
@@ -64,13 +72,13 @@
 			}
 			
 			this.saved = $(".removed", this.tablearea).map(function(){
-				return parseInt($(this).attr("data-recid"));
+				return self.checkkeytype($(this).attr("data-recid"))
 			});
 			
 			this.currentid = r;
 			this.tablearea.empty();
 			this.tablearea.html("Loading...");
-			this.tablearea.load(EMEN2WEBROOT+'/map/record/'+this.currentid+'/both/', {recurse: 1}, 
+			this.tablearea.load(EMEN2WEBROOT+'/map/'+this.options.keytype+'/'+this.currentid+'/both/', {recurse: 1}, 
 				function(response, status, xhr){
 					if (status=='error') {
 						self.tablearea.append('<p>Error!</p><p>'+xhr.statusText+'</p>');
@@ -99,7 +107,6 @@
 				$('a.map[data-recid!='+this.options.recid+']', this.tablearea).click(function(e){
 					e.preventDefault();
 					self.reltoggle(e);
-					//self.build_browser(parseInt($(this).attr("data-recid")));
 				});
 				$('a.map[data-recid='+this.options.recid+']', this.tablearea).click(function(e){
 					e.preventDefault();
@@ -134,10 +141,10 @@
 		update_rels: function(cb) {
 			cb = cb || function() {};
 			var self = this;
-			$.jsonRPC("getparents", [self.options.recid], function(parents) {
+			$.jsonRPC("getparents", [self.options.recid, 1, null, self.options.keytype], function(parents) {
 				caches["parents"][self.options.recid] = parents;
 
-				$.jsonRPC("getchildren", [self.options.recid], function(children) {
+				$.jsonRPC("getchildren", [self.options.recid, 1, null, self.options.keytype], function(children) {
 					caches["children"][self.options.recid] = children;
 					cb();
 				});
@@ -161,7 +168,7 @@
 		
 		event_showselected: function() {
 			var rp = $(".removed", this.tablearea).map(function(){
-				return parseInt($(this).attr("data-recid"));
+				return self.checkkeytype($(this).attr("data-recid"));
 			});
 			rp = $.makeArray(rp);
 			var d = $('<div title="Copy & Paste"><textarea style="width:100%;height:100%;"/></div>');
@@ -178,14 +185,10 @@
 			var p = caches["parents"][this.options.recid];
 			var c = caches["children"][this.options.recid];
 
-			//if (p == null || c == null) {
-			//	update_rels(function(){self.event_removeselected()})
-			//}
-			
 			var rp = $(".removed", this.tablearea).map(function(){
-				return parseInt($(this).attr("data-recid"));
+				return self.checkkeytype($(this).attr("data-recid"));
 			});
-			
+
 			// sort out parents/children...
 			var rlinks = [];
 			var premoved = 0;
@@ -197,24 +200,22 @@
 					rlinks.push([self.options.recid, v]);					
 				}
 			});
-			
+					
 			if (premoved > 0 && premoved >= p.length) {
-				var y = confirm("This action will orphan the record; continue?");
+				var y = confirm("This action will orphan the item; continue?");
 				if (!y) {
 					return
 				}
 			}
-			
+						
 			if (rlinks.length == 0) {
 				return
 			}
 			
-			$.jsonRPC("pcunlinks", [rlinks], function() {
+			$.jsonRPC("pcunlinks", [rlinks, this.options.keytype], function() {
 				notify("Removed relationships");
 				self.saved = [];
-				//self.build_browser();
 				self.record_update();
-				//self.record_update();				
 			});
 			
 		},
@@ -223,20 +224,19 @@
 			var i = $('<div>');
 			var self = this;
 			var cb = function(test, r) {self.addparent(r)}
-			i.Browser({recid:this.options.recid, cb:cb, show:1});
+			i.Browser({recid:this.options.recid, cb:cb, show:1, keytype:this.options.keytype});
 		},
 		
 		event_addchild: function() {
 			var i = $('<div>');
 			var self = this;
 			var cb = function(test, r) {self.addchild(r)}
-			i.Browser({recid:this.options.recid, cb:cb, show:1});			
+			i.Browser({recid:this.options.recid, cb:cb, show:1, keytype:this.options.keytype});			
 		},
 		
 		addparent: function(r) {
 			var self = this;
-			r = parseInt(r);
-			$.jsonRPC("pclink", [r, this.options.recid], function() {
+			$.jsonRPC("pclink", [r, this.options.recid, this.options.keytype], function() {
 				notify("Added parent");
 				self.record_update();
 			});
@@ -244,8 +244,7 @@
 		
 		addchild: function(r) {
 			var self = this;
-			r = parseInt(r);
-			$.jsonRPC("pclink", [this.options.recid, r], function() {
+			$.jsonRPC("pclink", [this.options.recid, r, this.options.keytype], function() {
 				notify("Added child");
 				self.record_update();
 			});			
@@ -270,3 +269,11 @@
 	});
 	
 })(jQuery);
+
+
+
+
+
+
+
+

@@ -241,8 +241,7 @@
 
 				// An editable, sortable field..
 				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-					var editable = $('<button class="buttonicon" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
-					editable.click(function(e){self.event_edit(e)});
+					var editable = $('<button class="buttonicon edit" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
 					i.append(editable);
 				}
 
@@ -252,14 +251,15 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<button class="buttonicon" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" /></button>');
-				sortable.click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+				var sortable = $('<button class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" /></button>');
 				i.append(sortable);
 				
 				i.width(self.cachewidth[this[2]]);
 				tr.append(i);
 			});
-						
+
+			$('.sort', tr).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+			$('.edit', tr).click(function(e){self.event_edit(e)});						
 			$('thead', t).append(tr);
 		},
 		
@@ -296,8 +296,9 @@
 				if (check==false) {return}
 			}
 			var self = this;
-			e.stopPropagation();
+			//e.stopPropagation();
 			var t = $(e.target);
+			//console.log(t);
 			var key = t.parent().attr('data-name');
 			t.MultiEditControl({
 				show: true,

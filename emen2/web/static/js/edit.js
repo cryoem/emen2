@@ -648,7 +648,7 @@ function bind_autocomplete(elem, param) {
 		doit: function(rectype) {		
 			// get some options..
 			var opts = {};
-			if(!$('input[name=inheritperms]', this.dialog).attr("checked")) {
+			if($('input[name=private]', this.dialog).attr("checked")) {
 				opts["inheritperms"] = false
 			}
 			if ($('input[name=copy]', this.dialog).attr("checked")) {
@@ -669,26 +669,44 @@ function bind_autocomplete(elem, param) {
 				return
 			}
 			this.built = 1;
+			var self = this;
 			
 			this.dialog = $('<div />');
 
 			this.typicalchld = $('<div>Loading</div>')
-			this.dialog.append('<h4>Suggested Protocols</h4>', this.typicalchld);
-			
-			var inheritperms = $('<br /><h4>Options</h4><div><input type="checkbox" name="inheritperms" value="" /> Inherit Permissions <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
-			
-			if (this.options.inheritperms) {
-				$("input[name=inheritperms]", inheritperms).attr("checked", "checked");
-			}
-			if (this.options.copy) {
-				$("input[name=copy]", inheritperms).attr("checked", "checked");
-			}
-
-			
-			this.dialog.append(inheritperms);
+			this.dialog.append('<h4>New Record Protocol</h4>', this.typicalchld);
 			
 			this.others = $('<div>Loading</div>')
-			this.dialog.append('<br /><h4>Other Protocols</h4>', this.others);
+			this.dialog.append(this.others);
+
+			var p = $('<br /><h4>Options</h4><div><input type="checkbox" name="private" /> Private <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
+			
+			
+			if (!this.options.inheritperms) {
+				$("input[name=private]", p).attr("checked", "checked");
+			}
+			if (this.options.copy) {
+				$("input[name=copy]", p).attr("checked", "checked");
+			}
+
+			var b = $('<input type="button" value="New record" />');
+			
+			b.click(function() {
+				var b = $('input[name=newrecordselect]:checked', this.dialog);
+				if (b.attr('data-other')) {
+					b = $('input[name=newrecordselectother]').val();
+				} else {
+					b = b.val();
+				}
+				// console.log(b);
+				if (!b) {return}
+				self.doit(b);
+			});
+			
+			ob = $('<div class="controls"><br /><br /></div>');
+			ob.append(b);
+						
+			this.dialog.append(p, ob);
 
 			if (this.options.embed) {
 				this.element.append(this.dialog);
@@ -714,34 +732,31 @@ function bind_autocomplete(elem, param) {
 			$.each(t, function() {
 				try {
 					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
-					var i = $('<div><span class="clickable" data-rectype="'+this+'">'+caches["recorddefs"][this].desc_short+'</span></div>');
-					$('.clickable', i).click(function() {
-						self.doit($(this).attr('data-rectype'));
-					})
+					var i = $('<div><input type="radio" name="newrecordselect" value="'+this+'" id="newrecordselect_'+this+'"  /> <label class="clickable" for="newrecordselect_'+this+'">'+caches["recorddefs"][this].desc_short+'</label></div>');
 					self.typicalchld.append(i);
 				} catch(e) {
 					//self.dialog.append('<div><a href="/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
 				}
-			});			
+			});
+			var a = $('input[name=newrecordselect]:first', this.typicalchld).attr('checked', 'checked');
 		},
 		
 		build_others: function() {
 			this.others.empty();
+			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
 			var self = this;
-			var s = $('<select />');
-			s.append('<option>');
-			$.each(caches["recorddefnames"], function() {
-				s.append('<option value="'+this+'">'+this+'</option>');
-			});
-			var b = $('<input type="button" value="New record" />');
-			b.click(function() {
-				var b = s.val();
-				if (!b) {return}
-				self.doit(b);
-				// var ns = EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+b+'/';
-				// notify_post(ns,[]);
-			});
-			this.others.append(s, b);
+			// var s = $('<select name="newrecordselectother" />');
+			// s.append('<option>');
+			// $.each(caches["recorddefnames"], function() {
+			// 	s.append('<option value="'+this+'">'+this+'</option>');
+			// });
+			var s = $('<input type="text" name="newrecordselectother" value="" style="font-size:10pt" size="8" />');
+			s.FindControl({'mode':'findrecorddef'});
+			s.click(function() {
+				$("#newrecordselectother").attr('checked', 'checked');
+			})
+			o.append(s)
+			this.others.append(o);
 			
 		},
 		
@@ -788,7 +803,4 @@ function bind_autocomplete(elem, param) {
 	});
 	
 })(jQuery);
-
-
-
 
