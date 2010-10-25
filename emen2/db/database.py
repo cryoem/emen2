@@ -996,7 +996,11 @@ class DB(object):
 		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
 		if filename != None:
 			filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
-			if filename.upper() in ['.', 'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']:
+			if filename.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
+											'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
+											'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
+											'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
+											'LPT7', 'LPT8', 'LPT9']:
 				filename = "renamed."+filename
 			filename = unicode(filename)
 
