@@ -2189,6 +2189,8 @@ class DB(object):
 		else:
 			raise ValueError, "Invalid keytype"
 
+		# if keytype == "record":
+		# 	keys = [i.recid for i in keys]
 
 		# This calls the relationship getting method in the appropriate RelateBTree
 		# result is a two-level dictionary
