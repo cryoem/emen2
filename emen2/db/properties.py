@@ -3,6 +3,7 @@
 import math
 import re
 
+
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()

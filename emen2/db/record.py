@@ -1,17 +1,18 @@
 # $Id$
 
-
 import UserDict
 import collections
 import operator
 import weakref
 import copy
 import re
+
+
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
-g = emen2.db.config.g()
+
 
 from . import validators
 
@@ -62,6 +63,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
 	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])
 	cleared_fields = set(["viewcache"])
+	name = property(lambda s:s.recid)
 
 
 	def __init__(self, *args, **kwargs):

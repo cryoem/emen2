@@ -8,6 +8,7 @@ import re
 import weakref
 import traceback
 
+
 import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
@@ -40,7 +41,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 	"""
 
 	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","childrecs","displayname","userrec"])
-
+	name = property(lambda s:s.username)
 
 	def init(self, d=None):
 		# ian: todo: pw should be salted

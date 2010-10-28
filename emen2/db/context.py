@@ -11,6 +11,7 @@ import traceback
 import emen2.db.config
 g = emen2.db.config.g()
 
+
 import emen2.db
 import emen2.db.exceptions
 import emen2.db.proxy
@@ -23,6 +24,7 @@ class Context(object):
 	a Context is created, and used for subsequent access."""
 
 	attr_user = set()
+	name = property(lambda s:s.ctxid)
 
 	# ian: todo: put current txn in ctx?
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):

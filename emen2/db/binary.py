@@ -6,7 +6,7 @@ import traceback
 import math
 import os
 
-# import emen2.db
+
 import emen2.db.dataobject
 import emen2.db.config
 g = emen2.db.config.g()

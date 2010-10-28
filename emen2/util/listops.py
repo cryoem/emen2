@@ -1,9 +1,9 @@
 # $Id$
 import collections
 import itertools
-
 from UserDict import DictMixin
 from functools import partial
+import emen2.db.datatypes
 
 
 def invert(d):
@@ -18,14 +18,16 @@ def invert(d):
 	
 
 
-def take(num, iter_):
-	for _ in range(num): yield iter_.next()
+
+
 
 def get(collection, key, default=None):
 	'''allows getting an item from a collection like dict.get does'''
 	try: return collection[key]
 	except KeyError: return default
 	except IndexError: return default
+
+
 
 def remove(collection, keys):
 	'''remove a set of elements from a dictionary'''
@@ -37,6 +39,8 @@ def remove(collection, keys):
 		try: del collection[key]
 		except KeyError: pass
 
+
+
 def adjust(iter_, *items_):
 	meth = None
 	if hasattr(iter_, 'update'): meth = iter_.update
@@ -47,8 +51,11 @@ def adjust(iter_, *items_):
 		iter_ = type(iter_)(itertools.chain(iter_, *items_))
 	return iter_
 
+
+
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
+
 
 
 def filter_dict(dict, allowed, pred=lambda key, list_: key in list_):
@@ -69,6 +76,8 @@ pick = filter_dict
 #drop items from a dict
 drop = partial(filter_dict, pred=(lambda x,y: x not in y))
 
+
+
 def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 	'''groups items in list as long as the grouper function returns True
 
@@ -87,6 +96,8 @@ def chunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 		result[-1].append(itemgetter(window[1]))
 	return result
 
+
+
 def partition(iter_, char):
 	'''partition iterable on given element
 
@@ -104,6 +115,18 @@ def partition(iter_, char):
 		if len(res) > 2: res = [res[0], res[1], combine(*res[2:])]
 	while len(res) < 3: res.append([])
 	return res
+
+
+
+def partition_dbobjects(iter_):
+	ret1 = []
+	ret2 = []
+	for i in iter_:
+		if isinstance(i, emen2.db.dataobject.BaseDBInterface):
+			ret2.append(i)
+		else:
+			ret1.append(i)
+	return ret1, ret2
 
 
 
@@ -135,9 +158,13 @@ def flatten(a):
 	return combine(*([a.keys()]+a.values()), dtype=set)
 
 
+
+
 # From database
 def tolist(d, dtype=None):
 	return oltolist(d, dtype=dtype)[1]
+
+
 
 
 def oltolist(d, dtype=None):
@@ -162,6 +189,8 @@ def dictbykey(l, key):
 	return dict([(i.get(key), i) for i in l])
 
 
+
+
 def groupbykey(l, key, dtype=None):
 	dtype = dtype or list
 	d = collections.defaultdict(dtype)
@@ -171,11 +200,15 @@ def groupbykey(l, key, dtype=None):
 	return dict(d)
 
 
+
+
 def typefilter(l, types=None):
 	if not types:
 		types=str
 	return [x for x in l if isinstance(x,types)]
 	#return filter(lambda x:isinstance(x, types), l)
+
+
 
 
 def test_get():

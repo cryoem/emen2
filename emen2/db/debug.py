@@ -17,8 +17,7 @@ classes:
 	Filter: subclass of file, used to be use to strip headers off of access.log, unused
 '''
 from __future__ import with_statement
-from emen2.util import datastructures
-from emen2.util import listops
+
 import functools
 import code
 import inspect
@@ -27,7 +26,16 @@ import time
 import datetime
 import sys
 
+
+import emen2.util.datastructures
+
+
 __all__ = ['DebugState']
+
+
+def take(num, iter_):
+	for _ in range(num): yield iter_.next()
+
 
 ################
 # class Output #
@@ -171,13 +179,13 @@ class stderr(Min):
 
 class DebugState(object):
 	'''Handles logging etc..'''
-	debugstates = datastructures.Enum(dict(LOG_DEBUG=-1, LOG_INFO=3, LOG_TXN=2,
+	debugstates = emen2.util.datastructures.Enum(dict(LOG_DEBUG=-1, LOG_INFO=3, LOG_TXN=2,
 											LOG_COMMIT=5, LOG_INDEX=12,
 											LOG_INIT=4, LOG_WEB=6,
 											LOG_WARNING=8, LOG_SECURITY=9,
 											LOG_ERROR=10, LOG_CRITICAL=11,
 											ALL=0))
-	last_debugged = datastructures.Ring()
+	last_debugged = emen2.util.datastructures.Ring()
 	_clstate = {}
 
 	@property
@@ -383,7 +391,7 @@ class DebugState(object):
 	def __get_last_module(self, num=1):
 		modname = '%s.py' % __name__.split('.')[-1]
 		try:
-			result = listops.take(num, (
+			result = take(num, (
 				x for x in (
 					(name[1].split(os.path.sep)[-1], name[0].f_lineno) for name in inspect.getouterframes(inspect.currentframe())
 				) if not x[0]=='debug.py')

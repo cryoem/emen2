@@ -7,6 +7,7 @@ import random
 import re
 import weakref
 
+
 import emen2.db.config
 g = emen2.db.config.g()
 

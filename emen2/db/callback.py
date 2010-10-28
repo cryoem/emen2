@@ -1,6 +1,8 @@
 # $Id$
 
 import collections
+
+
 import emen2.db.config
 g = emen2.db.config.g()
 

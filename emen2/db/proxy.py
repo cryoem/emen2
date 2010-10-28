@@ -9,6 +9,7 @@ import traceback
 import weakref
 import functools
 
+
 import emen2.db.config
 g = emen2.db.config.g()
 

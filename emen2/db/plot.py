@@ -23,7 +23,6 @@ except ImportError:
 import emen2.db.config
 g = emen2.db.config.g()
 
-
 from emen2.db.vartypes import parse_datetime
 
 

@@ -12,6 +12,7 @@ try:
 	import markdown
 except:
 	markdown = None
+
 	
 import emen2.db.datatypes
 import emen2.db.config

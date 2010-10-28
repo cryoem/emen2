@@ -1,6 +1,5 @@
 # $Id$
 
-
 from __future__ import with_statement
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
@@ -16,7 +15,6 @@ import threading
 import os
 import os.path
 import UserDict
-import emen2.util.datastructures
 
 try: import yaml
 except ImportError:
@@ -24,11 +22,12 @@ except ImportError:
 	except ImportError:
 		yaml = False
 
-
 try:
 	import json
 except ImportError:
 	json = False
+
+import emen2.util.datastructures
 
 
 

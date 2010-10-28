@@ -1,13 +1,13 @@
 # $Id$
 
-
-import bsddb3
 import cPickle as pickle
 import sys
 import time
 import weakref
 import collections
 import array
+import bsddb3
+
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -87,14 +87,10 @@ class BTree(object):
 		self.keytype = keytype
 
 		# ian: todo: convert records bdb to use new d format for keys
-		# if self.keytype == "d_old":
-		#	self.typekey = int
-		if self.keytype == "d" or self.keytype == "d_old":
+		if self.keytype == "d":
 			self.typekey = int
-			#self.typekey = n_int
 			self.dumpkey = str
 			self.loadkey = int
-			#self.loadkey = n_int
 
 		elif self.keytype == "f":
 			self.typekey = float
@@ -116,15 +112,6 @@ class BTree(object):
 			self.dumpdata = lambda x:x.encode("utf-8")
 			self.loaddata = lambda x:x.decode("utf-8")
 
-
-	# it is beyond my comprehension why these don't function identically, since in 'd_old', loadkey is bound to pickle.loads
-	def __num_compare_old(self, k1, k2):
-		if not k1: k1 = 0
-		else: k1 = pickle.loads(k1)
-
-		if not k2: k2 = 0
-		else: k2 = pickle.loads(k2)
-		return cmp(k1, k2)
 
 	def __num_compare(self, k1, k2):
 		if not k1: k1 = 0
@@ -292,10 +279,6 @@ class RelateBTree(BTree):
 		kt = self.keytype
 		dt = self.datatype
 
-		if kt == "d_old":
-			kt = 'd'
-			dt = 'd'
-
 		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
 		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
 
@@ -449,6 +432,9 @@ class RelateBTree(BTree):
 		pc = collections.defaultdict(set)
 		cp = collections.defaultdict(set)
 		for link in links:
+			link = self.typekey(link[0]), self.typekey(link[1])
+			if link[0] == link[1]:
+				continue
 			pc[link[0]].add(link[1])
 			cp[link[1]].add(link[0])
 

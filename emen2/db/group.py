@@ -7,6 +7,7 @@ import random
 import re
 import weakref
 
+
 #import emen2.db
 import emen2.db.exceptions
 import emen2.db.config

@@ -212,7 +212,7 @@ class DB(object):
 
 			self.paramdefs = emen2.db.btrees.RelateBTree(filename="main/paramdefs", dbenv=dbenv, txn=txn)
 			self.recorddefs = emen2.db.btrees.RelateBTree(filename="main/recorddefs", dbenv=dbenv, txn=txn)
-			self.records = emen2.db.btrees.RelateBTree(filename="main/records", keytype="d_old", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
+			self.records = emen2.db.btrees.RelateBTree(filename="main/records", keytype="d", cfunc=False, sequence=True, dbenv=dbenv, txn=txn)
 
 			# This is an index of indices
 			self.indexkeys = emen2.db.btrees.FieldBTree(filename="index/indexkeys", dbenv=dbenv, txn=txn)
@@ -1764,8 +1764,8 @@ class DB(object):
 
 		c = [
 			["name_first","contains", name_first],
-			["name_middle","contains", name_middle],
 			["name_last","contains", name_last],
+			["name_middle","contains", name_middle],
 			["email", "contains", email],
 			["username","contains_w_empty", username]
 			]
@@ -2189,8 +2189,9 @@ class DB(object):
 		else:
 			raise ValueError, "Invalid keytype"
 
-		# if keytype == "record":
-		# 	keys = [i.recid for i in keys]
+		# For convenience, allow dbobjects to be passed directly
+		keys, dbokeys = emen2.util.listops.partition_dbobjects(keys)
+		keys.extend([i.name for i in dbokeys])
 
 		# This calls the relationship getting method in the appropriate RelateBTree
 		# result is a two-level dictionary
@@ -2287,10 +2288,10 @@ class DB(object):
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "linking mode %s requires record creation priveleges"%mode
 
-		# ian: todo: fix error message
-		if filter(lambda x:x[0] == x[1], links):
-			g.log.msg("LOG_ERROR","Cannot link to self: keytype %s"%(keytype))
-			return
+		# ian: these are just silently filtered out now..
+		#if filter(lambda x:x[0] == x[1], links):
+		#	g.log.msg("LOG_ERROR","Cannot link to self: keytype %s"%(keytype))
+		#	return
 
 		if not links:
 			return
@@ -3942,10 +3943,11 @@ class DB(object):
 			for param in cpc:
 				orec[param] = updrec.get(param)
 
-			# ian: we have to set these manually for now...
-			orec._Record__params["modifytime"] = t
-			orec._Record__params["modifyuser"] = ctx.username
-			cp.add("modifytime")
+			# Update to anything but groups/permissions triggers modify time
+			if cpc - set(["permissions","groups"]):
+				orec._Record__params["modifytime"] = t
+				orec._Record__params["modifyuser"] = ctx.username
+				cp.add("modifytime", "modifyuser")
 
 			cps[orec.recid] = cp
 			crecs.append(orec)
@@ -4258,57 +4260,87 @@ class DB(object):
 
 
 
-	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
+	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, resetusers=None, resetgroups=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 
+		# make iterables
 		recids = listops.tolist(recids or set(), dtype=set)
 		addusers = listops.tolist(addusers or set(), dtype=set)
 		addgroups = listops.tolist(addgroups or set(), dtype=set)
 		delusers = listops.tolist(delusers or set(), dtype=set)
 		delgroups = listops.tolist(delgroups or set(), dtype=set)
+		resetusers = resetusers or set()
+		resetgroups = set(resetgroups or [])
 
 		if not umask:
 			umask = [[],[],[],[]]
 			if addusers:
 				umask[addlevel] = addusers
-
-		#addusers = set(reduce(operator.concat, umask, []))
+		
+		# Check that all specified users/groups exist
 		addusers = set()
 		for i in umask:
 			addusers |= set(i)
-			
 
-		checkitems = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
+		checkitems = addusers | addgroups
 
-		if (addusers | addgroups | delusers | delgroups) - checkitems:
-			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%((addusers | addgroups | delusers | delgroups) - checkitems)
+		for i in resetusers:
+			checkitems |= set(i)
 
-		# change child perms
+		found = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
+		if checkitems - found:
+			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%(checkitems - found)
+
+
+		# if (resetusers or resetgroups) and (addusers or addgroups or delusers or delgroups or umask):
+		# 	raise emen2.db.exceptions.SecurityError, "Cannot use addusers/addgroups/delusers/delgroups if specifying resetusers/resetgroups"
+
+
+		# Change child perms
 		if recurse:
 			recids |= listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
-
 
 		recs = self.getrecord(recids, filt=filt, ctx=ctx, txn=txn)
 		if filt:
 			recs = filter(lambda x:x.isowner(), recs)
 
+
 		# g.log.msg('LOG_DEBUG', "setting permissions")
-
+		# This is becoming slightly more complicated to avoid unnecessary writes.
 		cps = {}
-		for rec in recs:
-			if addusers: rec.addumask(umask, reassign=reassign)
-			if delusers: rec.removeuser(delusers)
-			if addgroups: rec.addgroup(addgroups)
-			if delgroups: rec.removegroup(delgroups)
-			cps[rec.recid] = set(["permissions", "groups"])
+		crecs = []
+		for crec in recs:
+			cps[rec.recid] = set()
+			op = copy.copy(crec['permissions'])
+			og = copy.copy(crec['groups'])
 			
-			
-		ret = self._commit_records(recs, cps=cps, ctx=ctx, txn=txn)
+			if addusers:
+				crec.addumask(umask, reassign=reassign)
+			if delusers:
+				crec.removeuser(delusers)
+			if addgroups:
+				crec.addgroup(addgroups)
+			if delgroups:
+				crec.removegroup(delgroups)
 
+			# Manually reset the permissions
+			if resetusers:
+				crec['permissions'] = resetusers
+			if resetgroups:
+				crec['groups'] = groups
+
+			if crec['permissions'] != op:
+				cps[rec.recid].add('permissions')
+			if crec['groups'] != og:
+				cps[rec.recid].add('groups')
+				
+			if cps[rec.recid]:
+				crecs.append(crec)	
+			
 		# Go ahead and directly commit here, since we know only permissions have changed...
-		# self._commit_records(recs, ctx=ctx, txn=txn)
+		ret = self._commit_records(crecs, cps=cps, ctx=ctx, txn=txn)
 		
 
 
