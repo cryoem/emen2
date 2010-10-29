@@ -176,37 +176,37 @@
 						<tr> \
 							<td><input type="hidden" name="param" value="root_parameter" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" name="value" /></td> \
+							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" style="display:none" /></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
 							<td><input type="hidden" name="cmp" value="==" /></td> \
-							<td><input type="text" name="value" class="findrecorddef" /></td> \
+							<td><input type="text" size="12" name="value" class="findrecorddef" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="creator" />Creator</td> \
 							<td><input type="hidden" name="cmp" value="==" /></td> \
-							<td><input type="text" name="value" class="finduser" /></td> \
+							<td><input type="text" size="12" name="value" class="finduser" /></td> \
 							<td></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" name="value" class="finduser" /></td> \
+							<td><input type="text" size="12" name="value" class="finduser" /></td> \
 							<td></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="groups" />Groups</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" name="value" class="findgroup" /></td> \
+							<td><input type="text" size="12" name="value" class="findgroup" /></td> \
 							<td></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="parent" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="recid" /></td> \
-							<td><input type="text" name="value" class="findrecord" /></td> \
+							<td><input type="text" size="12" name="value" class="findrecord" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr> \
@@ -221,9 +221,9 @@
 					</thead> \
 					<tbody> \
 						<tr> \
-							<td>X <input type="text" name="xparam" value="" class="findparamdef" /></td> \
-							<td>Y <input type="text" name="yparam" value="" class="findparamdef"/></td> \
-							<td>Group By <input type="text" name="groupby" value="" class="findparamdef" /></td> \
+							<td>X <input type="text" name="xparam" size="12" value="" class="findparamdef" /></td> \
+							<td>Y <input type="text" name="yparam" size="12" value="" class="findparamdef"/></td> \
+							<td>Group By <input type="text" name="groupby" size="12" value="" class="findparamdef" /></td> \
 							<td> \
 								<select name="plotmode"><option value="scatter">X-Y Scatter</option><option value="hist">Histogram</option><option value="bin">Bins</option></select> \
 								<input type="text" name="binw" value="" size="4" /> Bin Width \
@@ -381,9 +381,9 @@
 			}	
 
 			var newconstraint = $('<tr>')
-				.append('<td><input type="text" name="param" value="'+param+'" /></td>')
+				.append('<td><input type="text" name="param" size="12" value="'+param+'" /></td>')
 				.append($('<td/>').append(cmpi))
-				.append('<td><input type="text" name="value" value="'+value+'" /></td>')
+				.append('<td><input type="text" name="value" size="12" value="'+value+'" /></td>')
 				.append('<td><input name="recurse_p" type="checkbox" /><label>Child Parameters &nbsp;&nbsp; <input name="parents_p" type="checkbox" /><label>Also search parents</td>');
 
 			if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
@@ -418,7 +418,7 @@
 				"!None":"is any value",
 				'None':"is empty"
 			}
-			var i = $('<select name="cmp" />');
+			var i = $('<select name="cmp" style="width:150px" />');
 			$.each(comparators, function(k,v) {
 				var r = $('<option value="'+k+'">'+v+'</option>');
 				if (cmp==k) {r.attr("selected", "selected")}
