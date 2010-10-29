@@ -699,7 +699,6 @@ function bind_autocomplete(elem, param) {
 				} else {
 					b = b.val();
 				}
-				// console.log(b);
 				if (!b) {return}
 				self.doit(b);
 			});

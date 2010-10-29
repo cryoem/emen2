@@ -298,7 +298,6 @@
 			var self = this;
 			//e.stopPropagation();
 			var t = $(e.target);
-			//console.log(t);
 			var key = t.parent().attr('data-name');
 			t.MultiEditControl({
 				show: true,

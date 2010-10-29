@@ -294,7 +294,7 @@ function record_init(rec, ptest, edit) {
 	
 	$('.editable').EditControl({});
 
-	$('.editable_files').FileControl({});
+	//$('.editable_files').FileControl({});
 
 	$('.editbar .edit').EditbarHelper({
 		bind: false,
@@ -317,6 +317,10 @@ function record_init(rec, ptest, edit) {
 			}
 	});		
 
+
+	var showattachments = (window.location.hash.search('showattachments'));
+	if (showattachments>-1){showattachments=true}
+
 	$('.editbar .attachments').EditbarHelper({
 		width:600,
 		cb: function(self) {
@@ -326,7 +330,8 @@ function record_init(rec, ptest, edit) {
 				embed: true,
 				show: true
 				});
-			}
+			},
+		show: showattachments
 	});		
 
 	$('.editbar .newrecord').EditbarHelper({
@@ -442,7 +447,7 @@ function rebuildviews(selector) {
 		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'mode':mode}, function(view) {
 			elem.html(view);
 			$('.editable', elem).EditControl({});
-			$('.editable_files', elem).FileControl({});
+			//$('.editable_files', elem).FileControl({});
 		},
 		function(view){}
 		);
