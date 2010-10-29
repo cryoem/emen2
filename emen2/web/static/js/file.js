@@ -108,7 +108,10 @@
 		build_tablearea: function() {
 			var self=this;
 			this.tablearea.empty();
-
+			if (this.bdos.length == 0) {
+				this.tablearea.append('<h4>There are currently no attachments.</h4>');
+				return
+			}
 			var bdotable = $('<table class="files" cellpadding="0" cellspacing="0" />');
 			$.each(this.bdomap, function(k,bdos) {
 
@@ -183,7 +186,7 @@
 						<input class="save" name="remove" type="button" value="Remove Selected Files" /> \
 					</div> \
 					<div style="float:right"> \
-						<input type="file" name="filedata" size="4" /> \
+						<input type="file" name="filedata" style="width:230px" /> \
 						<input class="save" name="save" type="submit" value="Add File" /> \
 					</div> \
 				</div>');
