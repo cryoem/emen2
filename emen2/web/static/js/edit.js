@@ -678,15 +678,16 @@ function bind_autocomplete(elem, param) {
 			
 			this.others = $('<div>Loading</div>')
 			this.dialog.append(this.others);
-
-			var p = $('<br /><h4>Options</h4><div><input type="checkbox" name="private" /> Private <br /><input type="checkbox" name="copy" /> Copy values from this record</div>');
-			
+			ob = $('<div class="controls"><ul class="options nonlist"> \
+				<li><input type="checkbox" name="private" id="private" /> <label for="private">Private</label></li> \
+				<li><input type="checkbox" name="copy" id="copy" /> <label for="private">Copy values</label></li>  \
+				</ul></div>');
 			
 			if (!this.options.inheritperms) {
-				$("input[name=private]", p).attr("checked", "checked");
+				$("input[name=private]", ob).attr("checked", "checked");
 			}
 			if (this.options.copy) {
-				$("input[name=copy]", p).attr("checked", "checked");
+				$("input[name=copy]", ob).attr("checked", "checked");
 			}
 
 			var b = $('<input type="button" value="New record" />');
@@ -703,10 +704,8 @@ function bind_autocomplete(elem, param) {
 				self.doit(b);
 			});
 			
-			ob = $('<div class="controls"><br /><br /></div>');
-			ob.append(b);
-						
-			this.dialog.append(p, ob);
+			ob.append(b);			
+			this.dialog.append(ob);
 
 			if (this.options.embed) {
 				this.element.append(this.dialog);
@@ -745,17 +744,12 @@ function bind_autocomplete(elem, param) {
 			this.others.empty();
 			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
 			var self = this;
-			// var s = $('<select name="newrecordselectother" />');
-			// s.append('<option>');
-			// $.each(caches["recorddefnames"], function() {
-			// 	s.append('<option value="'+this+'">'+this+'</option>');
-			// });
 			var s = $('<input type="text" name="newrecordselectother" value="" style="font-size:10pt" size="8" />');
 			s.FindControl({'mode':'findrecorddef'});
 			s.click(function() {
 				$("#newrecordselectother").attr('checked', 'checked');
-			})
-			o.append(s)
+			});
+			o.append(s);
 			this.others.append(o);
 			
 		},

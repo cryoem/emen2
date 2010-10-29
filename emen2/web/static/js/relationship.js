@@ -116,19 +116,22 @@
 
 			}
 			
-			this.controlsarea = $('<div class="controls" />');
-			var i = $('<input class="save" type="button" value="Removed Selected" />');
-			i.click(function() {
+			this.controlsarea = $(' \
+				<div class="controls"> \
+					<ul class="options nonlist"> \
+						<li class="copyselected clickable"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Copy Selected</li> \
+					</ul> \
+					<input name="save" class="save" type="button" value="Removed Selected" /> \
+				</div>');
+
+			$('input[name=save]', this.controlsarea).click(function() {
 				self.event_removeselected();
 			});
-			this.controlsarea.append(i);
 
-			var j = $('<input type="button" value="Copy Selected" />');
-			j.click(function() {
+			$('.copyselected', this.controlsarea).click(function() {
 				self.event_showselected();
 			});
-			this.controlsarea.append(j);
-
+			
 			this.tablearea.append(this.controlsarea);
 			
 			this.saved.each(function(i,v) {
@@ -171,11 +174,11 @@
 				return self.checkkeytype($(this).attr("data-recid"));
 			});
 			rp = $.makeArray(rp);
-			var d = $('<div title="Copy & Paste"><textarea style="width:100%;height:100%;"/></div>');
+			var d = $('<div title="Copy & Paste"><textarea style="width:100%;height:90%;"/></div>');
 			$("textarea", d).val(rp.join(", "));
 			d.dialog({
 				width:500,
-				height:200,
+				height:220,
 				autoOpen: true
 			});
 		},

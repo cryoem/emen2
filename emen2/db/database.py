@@ -3947,7 +3947,8 @@ class DB(object):
 			if cpc - set(["permissions","groups"]):
 				orec._Record__params["modifytime"] = t
 				orec._Record__params["modifyuser"] = ctx.username
-				cp.add("modifytime", "modifyuser")
+				cp.add("modifytime")
+				cp.add("modifyuser")
 
 			cps[orec.recid] = cp
 			crecs.append(orec)
@@ -4216,7 +4217,7 @@ class DB(object):
 
 
 	@publicmethod("records.permissions.compat", write=True)
-	def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, ctx=None, txn=None):
+	def secrecordadduser_compat(self, umask, recid, recurse=0, reassign=False, delusers=None, addgroups=None, delgroups=None, overwrite_users=None, overwrite_groups=None, ctx=None, txn=None):
 		"""Legacy permissions method.
 		@param umask Add this user mask to the specified recid, and child records to recurse level
 		@param recid Record ID to modify
@@ -4226,7 +4227,7 @@ class DB(object):
 		@keyparam addgroups
 		@keyparam delgroups
 		"""
-		return self._putrecord_setsecurity(recids=[recid], umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, ctx=ctx, txn=txn)
+		return self._putrecord_setsecurity(recids=[recid], umask=umask, addgroups=addgroups, recurse=recurse, reassign=reassign, delusers=delusers, delgroups=delgroups, overwrite_users=overwrite_users, overwrite_groups=overwrite_groups, ctx=ctx, txn=txn)
 
 
 
@@ -4260,7 +4261,7 @@ class DB(object):
 
 
 
-	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, resetusers=None, resetgroups=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
+	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, overwrite_users=None, overwrite_groups=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
@@ -4271,8 +4272,6 @@ class DB(object):
 		addgroups = listops.tolist(addgroups or set(), dtype=set)
 		delusers = listops.tolist(delusers or set(), dtype=set)
 		delgroups = listops.tolist(delgroups or set(), dtype=set)
-		resetusers = resetusers or set()
-		resetgroups = set(resetgroups or [])
 
 		if not umask:
 			umask = [[],[],[],[]]
@@ -4284,20 +4283,15 @@ class DB(object):
 		for i in umask:
 			addusers |= set(i)
 
-		checkitems = addusers | addgroups
-
-		for i in resetusers:
-			checkitems |= set(i)
+		checkitems = set()
+		checkitems |= addusers
+		checkitems |= addgroups
 
 		found = self.getusernames(ctx=ctx, txn=txn) | self.getgroupnames(ctx=ctx, txn=txn)
 		if checkitems - found:
 			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%(checkitems - found)
 
-
-		# if (resetusers or resetgroups) and (addusers or addgroups or delusers or delgroups or umask):
-		# 	raise emen2.db.exceptions.SecurityError, "Cannot use addusers/addgroups/delusers/delgroups if specifying resetusers/resetgroups"
-
-
+ 
 		# Change child perms
 		if recurse:
 			recids |= listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
@@ -4307,36 +4301,36 @@ class DB(object):
 			recs = filter(lambda x:x.isowner(), recs)
 
 
-		# g.log.msg('LOG_DEBUG', "setting permissions")
-		# This is becoming slightly more complicated to avoid unnecessary writes.
+		# This is becoming slightly more complicated to avoid unnecessary writes and allow overwriting.
 		cps = {}
 		crecs = []
 		for crec in recs:
-			cps[rec.recid] = set()
+			cps[crec.recid] = set()
 			op = copy.copy(crec['permissions'])
 			og = copy.copy(crec['groups'])
 			
-			if addusers:
-				crec.addumask(umask, reassign=reassign)
-			if delusers:
-				crec.removeuser(delusers)
-			if addgroups:
-				crec.addgroup(addgroups)
-			if delgroups:
-				crec.removegroup(delgroups)
+			# If we are overwriting users or groups, replace
+			if overwrite_users or overwrite_groups:
+				if overwrite_users: crec['permissions'] = umask
+				if overwrite_groups: crec['groups'] = addgroups
 
-			# Manually reset the permissions
-			if resetusers:
-				crec['permissions'] = resetusers
-			if resetgroups:
-				crec['groups'] = groups
+			# ... or update.
+			else:
+				if addusers:
+					crec.addumask(umask, reassign=reassign)
+				if delusers:
+					crec.removeuser(delusers)
+				if addgroups:
+					crec.addgroup(addgroups)
+				if delgroups:
+					crec.removegroup(delgroups)
 
 			if crec['permissions'] != op:
-				cps[rec.recid].add('permissions')
+				cps[crec.recid].add('permissions')
 			if crec['groups'] != og:
-				cps[rec.recid].add('groups')
+				cps[crec.recid].add('groups')
 				
-			if cps[rec.recid]:
+			if cps[crec.recid]:
 				crecs.append(crec)	
 			
 		# Go ahead and directly commit here, since we know only permissions have changed...

@@ -160,31 +160,46 @@
 			this.browserarea = $('<div />');
 			this.queryarea = $('<div></div>')
 
+			// 	<a href="'+EMEN2WEBROOT+'/query/recid=='+this.options.recid+'/files/"> \
+			// 	<img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> \
+			// 	View / Download all in this record</a> \
+			// </li><li> \
+			// 	<a href="'+EMEN2WEBROOT+'/query/parent.recid.'+this.options.recid+'*/files/"> \
+			// 	<img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> \
+			// 	View / Download all files in children</a> \
+			// </li><li> \
+			var controls = $(' \
+				<div class="controls"> \
+					<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.recid+'"> \
+					<ul class="options nonlist"> \
+						<li> \
+							<input checked="checked" type="radio" name="param" value="file_binary" id="param_file_binary" /> \
+							<label for="param_file_binary">Regular Attachment</label> \
+						</li><li> \
+							<input type="radio" name="param" value="file_binary_image" id="param_file_binary_image" /> \
+							<label for="param_file_binary_image">Image File</label> \
+						</li><li> \
+							<input type="radio" name="param" value="" id="param_other" /> \
+							Other: <input type="text" name="param_other" size="6" /> \
+						</li> \
+					<input type="file" name="filedata" size="4" /> \
+					<input class="save" type="submit" value="Add File" /> \
+					</form> \
+				</div>');
 
-			var controls = $('<div class="controls" />');
-
-			controls.append('<ul class="nonlist" style="padding:10px"><li><a href="'+EMEN2WEBROOT+'/query/recid=='+this.options.recid+'/files/">View / Download all in this record</a></li><li><a href="'+EMEN2WEBROOT+'/query/parent.recid.'+this.options.recid+'*/files/">View / Download all files in children</a></li></ul>');
-
-			var ss = $('<select data-recid="'+this.options.recid+'"/>');
-			ss.append('<option value="" />');
-
-			//$.each(['file_binary','file_binary_image'], function() {
-			//	ss.append('<option value="'+this+'">'+this+'</option>');
-			//});
-			ss.append('<option value="file_binary">Regular Attachment</option>');
-			ss.append('<option value="file_binary_image">Image File (e.g. CCD)</option>');
-
-			ss.val("file_binary");
-
-			ssc = $('<input type="button" value="Add File" />');
-			ssc.click(function() {
-				var v = ss.val();
-				if (!v){return}
-				self.make_filecontrol(v);
-			})
-			controls.append(ss, ssc);
-			
 			this.dialog.append(this.tablearea, this.browserarea, this.queryarea, controls);
+
+			$('input[name=param_other]', controls).FindControl({
+				'mode':'findparamdef',
+				'cb': function(self, value) {
+					$('#param_other').attr('value', value);
+					self.element.val(value);
+				}
+			});
+			$('input[name=param_other]', controls).click(function() {
+				$("#param_other").attr('checked', 'checked');
+			});
+
 
 
 			if (this.options.embed) {

@@ -83,16 +83,39 @@
 			// Save controls
 			if (this.options.edit) {
 				// this.savearea = $('<div class="controls"/>');
-				this.savearea = $('<div class="controls save"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 				if (this.options.recid != "None" && this.options.recid != null) {
-					var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
-					var savearea_applyrec = $('<input type="checkbox" id="recurse" />').click(function(){self.recurse=$(this).attr("checked")});					
-					this.savearea.append(savearea_apply,savearea_applyrec,'<label for="recurse">Recursive</label>');
+					
+					var opt_recurse = $(' \
+						<li><input type="checkbox" id="recurse" name="recurse"> <label for="recurse">Recursive</label></li> \
+						<li> \
+							<input type="checkbox" disabled="disabled" name="overwrite_users" id="overwrite_users" class="overwrite disabled"> \
+							<label class="overwrite disabled" for="overwrite_users">Overwrite Users</label> \
+						</li><li> \
+							<input type="checkbox" disabled="disabled" name="overwrite_groups" id="overwrite_groups" class="overwrite disabled"> \
+							<label class="overwrite disabled" for="overwrite_groups">Overwrite Groups</label> \
+						</li>');
+
+
+					$('input[name=recurse]', opt_recurse).click(function(){
+						var state = $(this).attr('checked');
+						if (state) {
+							$('.overwrite', self.dialog).removeAttr("disabled");
+							$('.overwrite', self.dialog).removeClass("disabled");
+						} else {
+							$('.overwrite', self.dialog).attr('disabled', 1);
+							$('.overwrite', self.dialog).addClass("disabled");
+						}
+						});
+
+					var apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
+					
+					$('.options', this.savearea).append(opt_recurse);
+					this.savearea.append(apply);
 					this.dialog.append(this.savearea);
+					
+
 				} else if (this.options.groupname != "None" && this.options.groupname != null) {
-					// var savearea_apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_group()});
-					// this.savearea.append(savearea_apply);
-					// this.dialog.append(this.savearea);					
 				}
 			}
 
@@ -291,8 +314,13 @@
 			});
 		},	
 	
-		getaddgroups: function() {
-			var r = $('.userbox.group.add:not(.removed)').map(function(){return $(this).attr('data-groupname')});	
+		getaddgroups: function(all) {
+			if (all) {
+				var baseselector = '.userbox.group:not(.removed)'				
+			} else {
+				var baseselector = '.userbox.group.add:not(.removed)'
+			}						
+			var r = $(baseselector).map(function(){return $(this).attr('data-groupname')});	
 			return $.makeArray(r);
 		},
 	
@@ -306,11 +334,11 @@
 			return $.makeArray(r);
 		},
 	
-		getaddusers: function(onlyadded) {
-			if (onlyadded) {
-				var baseselector = '.userbox.user.add:not(.removed)'
-			} else {
+		getaddusers: function(all) {
+			if (all) {
 				var baseselector = '.userbox.user:not(.removed)'				
+			} else {
+				var baseselector = '.userbox.user.add:not(.removed)'
 			}
 
 			var ret = [];
@@ -344,22 +372,41 @@
 		},
 
 		save_record: function() {		
-			var self = this;		
+			var self = this;
 			var rlevels=0;
-			if (this.recurse) {
-				rlevels=-1;
+			if ($('input[name=recurse]', this.dialog).attr('checked')) {
+				rlevels = -1;
 			}
-
+						
 			var sec_commit = {};
 			sec_commit["recid"] = this.options.recid;
-			sec_commit["umask"] = this.getaddusers(true);
 			sec_commit["delusers"] = this.getdelusers();
-			sec_commit["addgroups"] = this.getaddgroups();
 			sec_commit["delgroups"] = this.getdelgroups();
 			sec_commit["reassign"] = 1;
 			sec_commit["recurse"] = rlevels;
-		
-			$('.spinner', this.savearea).show();
+			
+			var overwrite_users = $('input[name=overwrite_users]', this.dialog).attr('checked');
+			var overwrite_groups = $('input[name=overwrite_groups]', this.dialog).attr('checked');
+			
+			if (overwrite_users) {
+				sec_commit['overwrite_users'] = overwrite_users;
+				sec_commit['delusers'] = null;
+			}
+			if (overwrite_groups) {
+				sec_commit['overwrite_groups'] = overwrite_groups;
+				sec_commit['delgroups'] = null;
+			}
+			
+			sec_commit["umask"] = this.getaddusers(overwrite_users);
+			sec_commit["addgroups"] = this.getaddgroups(overwrite_groups);
+
+			if (overwrite_users || overwrite_groups) {
+				var c = confirm("This action will overwrite the permissions of all child records to be the same as this record. Are you sure you want to continue?")
+				if (!c) {return}
+			}			
+
+
+			$('.spinner', this.savearea).show();			
 			$.jsonRPC("secrecordadduser_compat", sec_commit, 
 				function() {
 				
