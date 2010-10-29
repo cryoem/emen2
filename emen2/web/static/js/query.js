@@ -16,6 +16,37 @@
 })(jQuery);
 
 
+function query_build_path(q, postpend) {
+	//cmp_order = ["==", "!=", ".!contains.", ".contains.", ">=", "<=", ">", "<", ".!None.", '.recid.']
+	var lut = {
+		'!contains': '.!contains.',
+		'contains': '.contains.',
+		'!None': '.!None.',
+		'None': '.None.',
+		'recid': '.recid.'
+	}
+
+	var output = [];
+	$.each(q['c'], function() {
+		if (lut[this[1]] != null) {this[1]=lut[this[1]]}
+		output.push(this[0]+this[1]+this[2]);
+	});
+	delete q['c'];
+	
+	if (postpend) {
+		output.push(postpend);
+	}
+	
+	// remove some default arguments..
+	if (q['ignorecase'] == 1){
+		delete q['ignorecase'];
+	}
+	if (q['boolmode'] == 'AND') {
+		delete q['boolmode'];
+	}
+	qs = '?' + $.param(q);
+	return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
+}
 
 
 
@@ -282,33 +313,7 @@
 		},
 				
 		query_bookmark: function(self, q) {
-			//cmp_order = ["==", "!=", ".!contains.", ".contains.", ">=", "<=", ">", "<", ".!None.", '.recid.']
-			var lut = {
-				'!contains': '.!contains.',
-				'contains': '.contains.',
-				'!None': '.!None.',
-				'None': '.None.',
-				'recid': '.recid.'
-			}
-
-			var output = [];
-			$.each(q['c'], function() {
-				if (lut[this[1]] != null) {this[1]=lut[this[1]]}
-				output.push(this[0]+this[1]+this[2]);
-			});
-			delete q['c'];
-			
-			// remove some default arguments..
-			if (q['ignorecase'] == 1){
-				delete q['ignorecase'];
-			}
-			if (q['boolmode'] == 'AND') {
-				delete q['boolmode'];
-			}
-
-			qs = '?' + $.param(q);
-			window.location = EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
-			
+			window.location = query_build_path(q);
 		},
 		
 		getquery: function() {

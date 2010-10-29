@@ -71,13 +71,21 @@
 			var q = $('<div class="tools control" style="float:right"><span class="clickable label">\
 				Tools <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
-			var hidden = $('<div class="hidden"><input type="button" name="download" value="Download all files in this table" /></div>');
-			$('input[name=download]', hidden).click(function() {self.query_download()});
+			var hidden = $(' \
+				<div class="hidden"> \
+					<ul class="options nonlist""> \
+						<li class="clickable download_files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
+						<li class="clickable batch_edit"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Batch-edit this table</li> \
+					</ul> \
+				</div>');
+
+			$('.download_files', hidden).click(function() {self.query_download()});
+			$('.batch_edit', hidden).click(function() {self.query_batch_edit()});
 
 			q.append(hidden);
 
 			q.EditbarHelper({
-				width: 200,
+				width: 300,
 				align: 'right', 
 				init: function(self2) {
 				}
@@ -123,17 +131,21 @@
 			// Get all the binaries in this table, and prepare a download link.
 			var newq = {};
 			newq['c'] = this.options.q['c'];
-			newq['q'] = this.options.q['q'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
+			window.location = query_build_path(newq, 'files');
 			// this doesn't work, because it won't trigger a Save-As
 			// $.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
-			var f = $('<form action="'+EMEN2WEBROOT+'/query/files/" method="post"></form>')
-			var i = $('<input type="text" name="q___json" />');
-			i.val($.toJSON(newq));
-			f.append(i);
-			f.appendTo('body').submit().remove();
-
+			// var f = $('<form action="'+EMEN2WEBROOT+'/query/files/" method="post"></form>')
+			// var i = $('<input type="text" name="q___json" />');
+			// i.val($.toJSON(newq));
+			// f.append(i);
+			// f.appendTo('body').submit().remove();
+		},
+		
+		query_batch_edit: function() {
+			alert("Still being implemented..");
+			return			
 		},
 		
 		query: function(newq) {
