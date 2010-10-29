@@ -299,6 +299,12 @@
 			//e.stopPropagation();
 			var t = $(e.target);
 			var key = t.parent().attr('data-name');
+			// ugly hack..
+			if (key==null) {
+				t = $(e.target).parent();
+				var key = t.parent().attr('data-name');				
+			}
+
 			t.MultiEditControl({
 				show: true,
 				selector: '.editable[data-param='+key+']',

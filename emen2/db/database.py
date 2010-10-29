@@ -3603,18 +3603,24 @@ class DB(object):
 
 
 	@publicmethod("records.get")
-	def getrecord(self, recids, filt=True, writable=None, owner=None, ctx=None, txn=None):
+	def getrecord(self, recids, filt=True, writable=None, owner=None, q=None, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 
 		@param recids Record ID or iterable of Record IDs
-
 		@keyparam filt Ignore failures
+		@keyparam writable
+		@keyparam owner
+		@keyparam q
 
 		@return Record or list of Records
 		"""
 
 		ol, recids = listops.oltolist(recids)
-		# ret = (rec for rec in self.bdbs.records.gets(recids, txn=txn) if rec.setContext(ctx, filt=filt))
+		if q:
+			qr = self.query(c=q.get('c'), boolmode=q.get('boolmode'), ignorecase=q.get('ignorecase'), ctx=ctx, txn=txn)
+			recids = qr['recids']
+			ol = False
+
 		ret = []
 		for i in recids:
 			try:
@@ -3805,21 +3811,27 @@ class DB(object):
 
 
 	@publicmethod("records.update", write=True)
-	def putrecordvalues(self, recid, d, ctx=None, txn=None):
+	def putrecordvalues(self, recids, d, q=None, ctx=None, txn=None):
 		"""Convenience method to update a record
 
-		@param recid Record ID
-		@param param Parameter
-		@param value New value
-
+		@param recids Single or iterable Record IDs
+		@param d Update with this dictionary
+		@keyparam q A query to use instead of recids
 		@return Updated Record
 		"""
 
-		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-		rec.update(d)
-		self.putrecord(rec, ctx=ctx, txn=txn)
-		return self.getrecord(recid, ctx=ctx, txn=txn) #.get(param)
+		ol, recids = listops.oltolist(recids)
+		
+		recs = self.getrecord(recids, filt=False, q=q, ctx=ctx, txn=txn)
+		for rec in recs:
+			rec.update(d)
+		self.putrecord(recs, ctx=ctx, txn=txn)
 
+		ret = self.getrecord(recids, ctx=ctx, txn=txn) #.get(param)
+
+		if ol: return return_first_or_none(ret)
+		return ret
+		
 
 
 
@@ -3930,7 +3942,7 @@ class DB(object):
 				g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 				continue
 
-			g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cp))
+			g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cpc))
 
 			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
 			if "comments" in cpc:
