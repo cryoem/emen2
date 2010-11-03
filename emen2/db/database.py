@@ -3669,8 +3669,8 @@ class DB(object):
 		rec = emen2.db.record.Record(rectype=rectype, recid=recid, ctx=ctx)
 
 		# Apply any default values
-		if init:
-			rec.update(t)
+		#if init:
+		#	rec.update(t)
 
 		# Apply any inherited permissions
 		if inheritperms != None:
