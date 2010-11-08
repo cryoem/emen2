@@ -227,17 +227,18 @@ function notify(msg, fade, error) {
 
 
 function notify_post(uri,msgs) {
-	var postform = document.createElement("form");
-	postform.method="post" ;
-	postform.action = uri;
+	// var postform = document.createElement("form");
+	// postform.method="post" ;
+	// postform.action = uri;
 	// for (var i=0;i<msgs.length;i++) {
 	// 	var note = document.createElement("input") ;
 	// 	note.setAttribute("name", "notify"+i) ;
 	// 	note.setAttribute("value", msgs[i]);
 	// 	postform.appendChild(note) ;
 	// }
-	document.body.appendChild(postform);
-	postform.submit();	
+	// document.body.appendChild(postform);
+	// postform.submit();
+	window.location = uri;
 }
 
 

@@ -176,12 +176,11 @@ class macro_parentvalue(Macro):
 	
 		
 	def process(self, engine, macro, params, rec, db):
-		#print db, host
+		param, _, recurse = params.partition(",")
+		recurse = int(recurse or 1)
 		recid = rec.recid
-# 		parents = db.getrecord(db.getparents(recid), filt=1)
-# 		return filter(lambda x:x, [i.get(params) for i in parents])
-		parents = db.getrecord(db.getparents(recid))
-		return filter(None, [i.get(params) for i in parents])
+		parents = db.getrecord(db.getparents(recid, recurse=recurse))
+		return filter(None, [i.get(param) for i in parents])
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "Parent Value: %s"%params
