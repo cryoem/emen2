@@ -196,7 +196,7 @@ class macro_or(Macro):
 			
 	def process(self, engine, macro, params, rec, db):
 		params = params.split(",")
-		return [rec.get(i) for i in params if rec.get(i) != None]
+		return [rec.get(i) for i in params if rec.get(i)]
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return " or ".join(params.split(","))
