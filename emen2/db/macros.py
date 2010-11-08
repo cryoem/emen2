@@ -187,7 +187,25 @@ class macro_parentvalue(Macro):
 
 	def render_unicode(self, engine, value, macro, params, rec, db):
 		return ",".join([unicode(j) for j in value])
-		#return ",".join(value)
+
+
+
+class macro_or(Macro):
+	"""parentvalue macro"""
+	__metaclass__ = Macro.register_view
+			
+	def process(self, engine, macro, params, rec, db):
+		params = params.split(",")
+		return [rec.get(i) for i in params if rec.get(i) != None]
+
+	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+		return " or ".join(params.split(","))
+
+	def render_unicode(self, engine, value, macro, params, rec, db):
+		if len(value) > 0:
+			return unicode(value[0])
+		return ""
+
 
 
 
