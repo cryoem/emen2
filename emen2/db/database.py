@@ -4360,16 +4360,12 @@ class DB(object):
 		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 
-
-
 	#@remove?
 	@publicmethod("records.renderchildtree")
-	def renderchildtree(self, recid, recurse=1, rectypes=None, treedef=None, ctx=None, txn=None):
+	def renderchildtree(self, recid, recurse=3, rectypes=None, treedef=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of records and simple relationships"""
 
-		#if recurse == -1:
-		#	recurse = g.MAXRECURSE
-		recurse = 3
+		# There is a definite issue here with performance and recurse > 3...
 
 		c_all = self.getchildtree(recid, recurse=recurse, ctx=ctx, txn=txn)
 		c_rectype = self.getchildren(recid, recurse=recurse, rectype=rectypes, ctx=ctx, txn=txn)
