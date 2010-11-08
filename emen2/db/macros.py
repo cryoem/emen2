@@ -196,13 +196,12 @@ class macro_or(Macro):
 			
 	def process(self, engine, macro, params, rec, db):
 		params = params.split(",")
-		return filter(None, [rec.get(i) for i])
+		return filter(None, [rec.get(i.strip()) for i in params])
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return " or ".join(params.split(","))
 
 	def render_unicode(self, engine, value, macro, params, rec, db):
-		print value
 		if len(value) > 0:
 			return unicode(value[0])
 		return ""

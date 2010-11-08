@@ -376,7 +376,7 @@ class DB(object):
 		else:
 			self.txncommit(txn=txn)
 
-
+		print "done"
 
 	def __del__(self):
 		g.log_info('cleaning up DB instance')
