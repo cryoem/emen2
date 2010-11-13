@@ -20,7 +20,11 @@ import functools
 import imp
 import tempfile
 import cStringIO
-import emen2.ext.mail_exts
+import smtplib
+# import email.MIMEText
+
+
+# import emen2.ext.mail_exts
 
 
 import emen2.db.config
@@ -376,8 +380,6 @@ class DB(object):
 		else:
 			self.txncommit(txn=txn)
 
-		print "done"
-
 	def __del__(self):
 		g.log_info('cleaning up DB instance')
 
@@ -474,6 +476,44 @@ class DB(object):
 		return out
 
 
+
+	###############################
+	# section: Email and utilities
+	###############################
+
+	def sendmail(self, recipient, template, ctxt=None, ctx=None, txn=None):
+		"""(Internal) Send an email based on a template. If the template subsystem is not available, or email is not configured, this will fail without an exception."""
+		
+		ctxt = ctxt or {}
+		ctxt["recipient"] = recipient
+		ctxt["MAILADMIN"] = g.MAILADMIN
+		ctxt["EMEN2DBNAME"] = g.EMEN2DBNAME
+		ctxt["EMEN2EXTURI"] = g.EMEN2EXTURI
+
+		if not recipient:
+			return
+
+		if not g.MAILADMIN or not g.MAILHOST:
+			g.log('LOG_INFO','Email subsysstem not configured')
+			return 			
+		try:
+			msg = g.templates.render_template(template, ctxt)
+		except:
+			g.log('LOG_INFO','Could not render template %s'%template)
+			return
+		
+		try:
+			s = smtplib.SMTP(g.MAILHOST)
+			# s.set_debuglevel(1)
+			s.sendmail(g.MAILADMIN, [recipient], msg)
+			g.log('LOG_INFO', 'Mail sent: %r'%msg)
+		except Exception, e:
+			g.log('LOG_ERROR', 'Email sending error: %s'%e)
+			raise e
+			
+		return recipient
+			
+			
 
 	###############################
 	# section: Transaction Management
@@ -604,13 +644,8 @@ class DB(object):
 		newcontext = None
 		username = unicode(username).strip()
 
-		byemail = self.bdbs.usersbyemail.get(username.lower(), txn=txn)
-		if len(byemail) == 1:
-			username = byemail.pop()
-		elif len(byemail) > 1:
-			g.log.msg('LOG_SECURITY', "Multiple accounts associated with email %s"%username)
-			raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
-
+		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		# byemail = self.bdbs.usersbyemail.get(username.lower(), txn=txn)
 
 		if username == "anonymous":
 			newcontext = self._makecontext(host=host, ctx=ctx, txn=txn)
@@ -618,18 +653,18 @@ class DB(object):
 			try:
 				user = self._login_getuser(username, ctx=ctx, txn=txn)
 			except:
-				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "login: Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 			if user.checkpassword(password):
 				newcontext = self._makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
-				g.log.msg('LOG_SECURITY', "Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "login: Invalid username or password: %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 		try:
 			self._commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
-			g.log.msg('LOG_SECURITY', "Login succeeded: %s %s" % (username, newcontext.ctxid))
+			g.log.msg('LOG_SECURITY', "login: Login succeeded: %s %s" % (username, newcontext.ctxid))
 		except:
 			g.log.msg('LOG_ERROR', "Error writing login context")
 			raise
@@ -2117,11 +2152,6 @@ class DB(object):
 		@keyparam rectype For Records, limit to a specific rectype
 		@return Set of children. If request was an iterable, return a dict, with input keys for keys, and children for values
 		"""
-		# ok, some compatibility settings..
-		# def getchildren(self, key, recurse=1, rectype=None, keytype="record", ctx=None, txn=None):
-		# def getchildren(self, key, keytype="record", recurse=1, rectype=None, filt=False, flat=False, tree=False):
-		# recs = self.db.getchildren(self.recid, "record", self.options.get("recurse"), None, True, True)
-
 		return self._getrel_wrapper(keys=key, keytype=keytype, recurse=recurse, rectype=rectype, rel="children", tree=False, ctx=ctx, txn=txn)
 
 
@@ -2363,7 +2393,7 @@ class DB(object):
 
 
 	@publicmethod("users.disable", write=True, admin=True)
-	def disableuser(self, usernames, filt=True, ctx=None, txn=None):
+	def disableuser(self, usernames, filt=False, ctx=None, txn=None):
 		"""Disable a user. Admins-only.
 
 		@param usernames Single or iterable list of usernames to disable
@@ -2375,7 +2405,7 @@ class DB(object):
 
 
 	@publicmethod("users.enable", write=True, admin=True)
-	def enableuser(self, usernames, filt=True, ctx=None, txn=None):
+	def enableuser(self, usernames, filt=False, ctx=None, txn=None):
 		"""Enable a disabled user.
 
 		@param username
@@ -2386,7 +2416,7 @@ class DB(object):
 
 
 
-	def _setuserstate(self, usernames, disabled, filt=True, ctx=None, txn=None):
+	def _setuserstate(self, usernames, disabled, filt=False, ctx=None, txn=None):
 		"""(Internal) Set username as enabled/disabled. 0 is enabled. 1 is disabled."""
 
 		ol, usernames = listops.oltolist(usernames)
@@ -2435,7 +2465,7 @@ class DB(object):
 
 
 	@publicmethod("users.queue.approve", write=True, admin=True)
-	def approveuser(self, usernames, filt=True, ctx=None, txn=None):
+	def approveuser(self, usernames, secret=None, filt=False, ctx=None, txn=None):
 		"""Approve account in user queue
 
 		@param usernames Single or iterabe list of accounts to approve from new user queue
@@ -2444,9 +2474,6 @@ class DB(object):
 		"""
 
 		ol, usernames = listops.oltolist(usernames)
-
-		# ian: I have turned secrets off for now until I can think about it some more..
-		secret = None
 		admin = ctx.checkadmin()
 
 		if not admin:
@@ -2458,6 +2485,7 @@ class DB(object):
 		# Need to commit users before records will validate
 		for username in usernames:
 
+			# Get the user from the queue
 			try:
 				user = self.bdbs.newuserqueue.sget(username, txn=txn)
 				if not user:
@@ -2472,7 +2500,7 @@ class DB(object):
 				else:
 					raise
 
-
+			# Check that this user does not already exist
 			if self.bdbs.users.get(user.username, txn=txn):
 				delusers[username] = None
 				msg = "User %s already exists, deleted pending record"%user.username
@@ -2483,6 +2511,7 @@ class DB(object):
 					raise KeyError, msg
 
 
+			# Check that there is no other user with the same email address
 			if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
 				delusers[username] = None
 				msg = "The email address %s is already in use"%(user.email)
@@ -2492,12 +2521,8 @@ class DB(object):
 				else:
 					raise KeyError, msg
 
-			# if secret is not None and not user.validate_secret(secret):
-			# 	g.log.msg("LOG_ERROR","Incorrect secret for user %s; skipping"%username)
-			# 	time.sleep(2)
 
 			# clear out the secret
-			user._User__secret = None
 			addusers.append(user)
 			delusers[username] = None
 
@@ -2531,6 +2556,7 @@ class DB(object):
 
 		self._commit_users(addusers, ctx=ctx, txn=txn)
 
+
 		if user.username != 'root':
 			for group in g.GROUP_DEFAULTS:
 				gr = self.getgroup(group, ctx=tmpctx, txn=txn)
@@ -2541,6 +2567,12 @@ class DB(object):
 					g.warn('Default Group %r is non-existent'%group)
 
 
+		# Send the emails
+		for user in addusers:
+			ctxt = {'username':user.username}
+			self.sendmail(user.email, '/email/adduser.approved', ctxt=ctxt, ctx=ctx, txn=txn)
+			
+			
 		ret = [user.username for user in addusers]
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -2548,7 +2580,7 @@ class DB(object):
 
 
 	@publicmethod("users.queue.reject", write=True, admin=True)
-	def rejectuser(self, usernames, filt=True, ctx=None, txn=None):
+	def rejectuser(self, usernames, filt=False, ctx=None, txn=None):
 		"""Remove a user from the pending new user queue
 
 		@param usernames Single or iterable list of usernames to reject from new user queue
@@ -2561,19 +2593,27 @@ class DB(object):
 		if not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Only administrators can approve new users"
 
-		usernames = usernames
 		delusers = {}
-
+		emails = {}
+		
 		for username in usernames:
 			try:
-				self.bdbs.newuserqueue.sget(username, txn=txn)
+				user = self.bdbs.newuserqueue.sget(username, txn=txn)
 			except:
 				if filt: continue
 				else: raise KeyError, "User %s is not pending approval" % username
 
-			delusers[username] = None
+			emails[user.username] = user.email
+			delusers[user.username] = None
 
 		self._commit_newusers(delusers, ctx=ctx, txn=txn)
+
+		# Send the emails
+		for username in delusers.keys():
+			email = emails.get(username)
+			ctxt = {'username':username}
+			self.sendmail(email, '/email/adduser.rejected', ctxt=ctxt, ctx=ctx, txn=txn)
+
 
 		ret = delusers.keys()
 		if ol: return return_first_or_none(ret)
@@ -2645,7 +2685,7 @@ class DB(object):
 
 		if username:
 			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
+				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's privacy levels"
 		else:
 			username = ctx.username
 
@@ -2667,13 +2707,47 @@ class DB(object):
 
 		self._commit_users(commitusers, ctx=ctx, txn=txn)
 
+	
+	
+	def __userbyemail(self, email, ctx=None, txn=None):
+		byemail = self.bdbs.usersbyemail.get(email.lower(), txn=txn)
+		username = None
+		if len(byemail) == 1:
+			username = byemail.pop()
+		return username
 
+	
 
+	@publicmethod("auth.resetpassword", write=True)
+	def resetpassword(self, email, newpassword=None, secret=None, ctx=None, txn=None):
 
+		errmsg = "Could not reset password"
+		username = self.__userbyemail(email, ctx=ctx, txn=txn) or username		
+		
+		if not username:
+			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: no user for email %s"%(username, email))
+			raise emen2.db.exceptions.AuthenticationError, "No account associated with email %s"%email
+			
+			
+		try:
+			user = self.bdbs.users.sget(username, txn=txn)
+			user.setContext(ctx)
+			# Absolutely never reveal the secret via any mechanism but email to registered address
+			user.resetpassword()
+			ctxt = {'secret': user._User__secret[2]}
+			self.sendmail(user.email, '/email/password.reset', ctxt, ctx=ctx, txn=txn)
+			
+		except Exception, e:
+			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
+			raise emen2.db.exceptions.AuthenticationError, errmsg			
+		
+		g.log.msg("LOG_SECURITY","resetpassword: Setting resetpassword secret for %s"%user.username)
+		self._commit_users([user], ctx=ctx, txn=txn)
+		
 
 
 	@publicmethod("auth.setpassword", write=True)
-	def setpassword(self, oldpassword, newpassword, username=None, ctx=None, txn=None):
+	def setpassword(self, oldpassword, newpassword, secret=None, username=None, ctx=None, txn=None):
 		"""Change password.
 
 		@param oldpassword
@@ -2681,34 +2755,34 @@ class DB(object):
 		@keyparam username Username to modify (Admin only)
 		"""
 
-		if username:
-			if username != ctx.username and not ctx.checkadmin():
-				raise emen2.db.exceptions.SecurityError, "Cannot attempt to set other user's passwords"
-		else:
-			username = ctx.username
+		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		msg = "Could not change password"
 
 		# ian: need to read directly because getuser hides password
 		user = self.bdbs.users.sget(username, txn=txn)
 		user.setContext(ctx)
+		
+		# Existing password / auth token is checked before password is reset.. Or user is admin.
+		#try:
+		user.setpassword(oldpassword, newpassword, secret=secret)
+		# except:
+		# 	raise emen2.db.exceptions.SecurityError, msg
 
-		if not user:
-			raise emen2.db.exceptions.SecurityError, "Cannot change password for user '%s'"%username
-
-		user.setpassword(oldpassword, newpassword)
-
-		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
+		g.log.msg("LOG_SECURITY","setpassword: Changing password for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
+		
+		self.sendmail(user.email, '/email/password.changed')
 
+		return username
 
 
 
 	@publicmethod("users.setemail", write=True)
-	def setemail(self, email, username=None, ctx=None, txn=None):
+	def setemail(self, email, secret=None, username=None, ctx=None, txn=None):
 		"""Change email
-
 		@param email
-		@keyparam username Username to modify (Admin only)
+		@keyparam username Username to modify
 		"""
 
 		if username:
@@ -2717,14 +2791,28 @@ class DB(object):
 		else:
 			username = ctx.username
 
-		user = self.getuser(username, ctx=ctx, txn=txn)
-		user.email = email
-		user.validate()
+		if not username or username == "anonymous":
+			raise emen2.db.exceptions.SecurityError, "You must login before completing this action"
 
-		if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
+		if self.bdbs.usersbyemail.get(email.lower(), txn=txn):
 			time.sleep(2)
 			raise emen2.db.exceptions.SecurityError, "The email address %s is already in use"%(user.email)
 
+
+		user = self.bdbs.users.sget(username, txn=txn)
+		user.setContext(ctx)
+		if secret or ctx.checkadmin():
+			# If an auth token is provided, or user is admin, set the email
+			user.setemail(email, secret=secret)
+			self.sendmail(user.email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
+		else:
+			# Otherwise, send an auth token to the specified email address
+			user.resetemail(email)
+			ctxt = {'secret': user._User__secret[2]}
+			self.sendmail(user.email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
+			
+		
+		user.validate()
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
@@ -2755,12 +2843,13 @@ class DB(object):
 		if self.bdbs.newuserqueue.get(user.username, txn=txn):
 			raise KeyError, "User with username '%s' already pending approval" % user.username
 
-		assert hasattr(user, '_User__secret')
-
 		if user.username != 'root':
 			user.validate()
 
 		self._commit_newusers({user.username:user}, ctx=None, txn=txn)
+
+		# Send account request email
+		self.sendmail(user.email, '/email/adduser.signup')
 
 		if ctx.checkadmin():
 			self.approveuser(user.username, ctx=ctx, txn=txn)

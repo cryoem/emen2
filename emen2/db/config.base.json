@@ -46,8 +46,8 @@
 
 	// Mail settings. If both of these are set, EMEN2 will send emails during certain events.
 	"mailsettings":{
-		"MAILADMIN": false,
-		"MAILHOST": false
+		"MAILADMIN": "root@localhost",
+		"MAILHOST": "localhost"
 	},
 
 	// Web-server related settings

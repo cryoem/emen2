@@ -70,8 +70,10 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.userrec = {}
 		self.groups = set()
 		self.displayname = None
-
-		self.__setsecret()
+		
+		# Secret takes the format:
+		# action type, args, ctime for when the token is set, and secret
+		self.__secret = None
 
 
 
@@ -109,11 +111,9 @@ class User(emen2.db.dataobject.BaseDBObject):
 			exception = (emen2.db.exceptions.DisabledUserError, emen2.db.exceptions.DisabledUserError.__doc__%self.username)
 			raise exception[0], exception[1]
 
-
 		if self._ctx:
 			if self._ctx.checkadmin():
 				return True
-
 
 		result = False
 		if self.password != None and self.__hashpassword(password) == self.password:
@@ -125,11 +125,14 @@ class User(emen2.db.dataobject.BaseDBObject):
 		return result
 
 
-	def setpassword(self, oldpassword, newpassword):
+	def setpassword(self, oldpassword, newpassword, secret=None):
 		if self.checkpassword(oldpassword):
 			self.__setpassword(newpassword)
+		elif self.__checksecret('resetpassword', None, secret):
+			self.__setpassword(newpassword)
 		else:
-			raise emen2.db.exceptions.SecurityError, "Invalid password"
+			raise emen2.db.exceptions.SecurityError, "Invalid password or authentication token"
+		self.__delsecret()	
 
 
 	def __setpassword(self, newpassword):
@@ -140,13 +143,28 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.password = self.__hashpassword(newpassword)
 
 
+
+	def resetpassword(self):
+		"""Reset the user password. This creates an internal 'secret' token that can be used to reset a password. The secret should never be accessible via public methods."""
+		self.__setsecret('resetpassword', None)
+		
+
+	def resetemail(self, email):
+		"""Set the secret to allow for a password reset"""
+		self.__setsecret('setemail', email)
+
+
 	#################################
 	# email setting/validation
 	#################################
 
 
-	def setemail(self, value):
-		self.email = value
+	def setemail(self, email, secret=None):
+		if self.__checksecret('setemail', email, secret):
+			self.email = email
+		else:
+			raise emen2.db.exceptions.SecurityError, "Invalid password or authentication token"					
+		self.__delsecret()
 
 
 	def getemail(self, value):
@@ -154,33 +172,37 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	#################################
-	# Secrets for account self-activation; currently not enabled
+	# Secrets for account password resets
 	#################################
 
-	def __setsecret(self):
-		self.__secret = hashlib.sha1(str(self.username) + str(id(self)) + str(time.time()) + str(random.random())).hexdigest()
+
+	def __checksecret(self, action, args, secret):
+		print "Checking secret:"
+		print action, args, secret
+		print self.__secret
+		
+		if self._ctx.checkadmin():
+			return True
+			
+		# This should check expiration time...
+		if action and secret and self.__secret:
+			if action == self.__secret[0] and args == self.__secret[1] and secret == self.__secret[2]:
+				return True
+
+		return False
 
 
-	# def get_secret(self):
-	# 		return self.__secret
-	#
-	#
-	# def kill_secret(self):
-	#	self.__secret = None
+	def __setsecret(self, action, args):
+		if self.__secret:
+			if action == self.__secret[0] and args == self.__secret[1]:
+				return
+				
+		secret = hashlib.sha1(str(self.username) + str(id(self)) + str(time.time()) + str(random.random())).hexdigest()
+		self.__secret = (action, args, secret, time.time())
 
-	# def create_childrecords(self):
-	# 	'''create records to be chldren of person record.
-	# 			childrecs format:
-	# 				{ rectype : { 'data': {},
-	# 									'parents': []
-	# 				}}
-	# 	'''
-	# 	def _step(rectype, recdata):
-	# 		data = recdata.get('data', recdata)
-	# 		rec = self._ctx.db.newrecord(rectype)
-	# 		rec.update(data)
-	# 		return rec, recdata.get('parents', [])
-	# 	return [_step(rectype, recdata) for rectype, recdata in self.childrecs.iteritems()]
+
+	def __delsecret(self):
+		self.__secret = None
 
 
 
@@ -272,11 +294,6 @@ class User(emen2.db.dataobject.BaseDBObject):
 		if not re.match("(\S+@\S+)",self.email):
 			self.validationwarning("Invalid email format '%s'"%self.email, warning=warning)
 
-
-	def validate_secret(self, secret):
-		if self.__secret == secret:
-			self.__secret = None
-			return True
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
