@@ -294,7 +294,8 @@ class User(emen2.db.dataobject.BaseDBObject):
 		# simple email checking...
 		# if not self.email:
 		#	self.validationwarning("No email specified: '%s'"%self.email, warning=warning)
-
+		if self.email = 'None':
+			self.email = None
 		self.email = unicode(self.email or '') or None
 		if self.email:
 			if not re.match("(\S+@\S+)",self.email):
