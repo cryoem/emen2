@@ -2732,6 +2732,7 @@ class DB(object):
 			user.setContext(ctx)
 		except Exception, e:
 			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
+			time.sleep(2)
 			raise emen2.db.exceptions.AuthenticationError, "No account associated with %s"%username
 			
 			
