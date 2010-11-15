@@ -2816,10 +2816,10 @@ class DB(object):
 		
 		ctxt = {}
 		if ret:
-			self.sendmail(user.email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
+			self.sendmail(email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
 		else:
 			ctxt['secret'] = user._User__secret[2]
-			self.sendmail(user.email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
+			self.sendmail(email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
 						
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
