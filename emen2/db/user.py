@@ -149,22 +149,27 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.__setsecret('resetpassword', None)
 		
 
-	def resetemail(self, email):
-		"""Set the secret to allow for a password reset"""
-		self.__setsecret('setemail', email)
-
-
 	#################################
 	# email setting/validation
 	#################################
 
 
-	def setemail(self, email, secret=None):
+	def setemail(self, email, password=None, secret=None):
+		msg = "Invalid password or authentication token"
+		ret = None
+		
 		if self.__checksecret('setemail', email, secret):
 			self.email = email
+			ret = self.email
+			self.__delsecret()
+
+		elif self.checkpassword(password):
+			self.__setsecret('setemail', email)				
+		
 		else:
-			raise emen2.db.exceptions.SecurityError, "Invalid password or authentication token"					
-		self.__delsecret()
+			raise emen2.db.exceptions.SecurityError, msg
+
+		return ret
 
 
 	def getemail(self, value):

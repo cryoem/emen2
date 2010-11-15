@@ -473,7 +473,7 @@ function admin_approveuser_form(elem) {
 	});
 
 	if (approve.length > 0) {
-		$.jsonRPC("approveuser_sendmail",[approve], //wrapper_approveuser_sendmail ian:mustfix
+		$.jsonRPC("approveuser",[approve],
 			function(data) {
 				notify("Approved users: "+data);
 				for (var i=0;i<data.length;i++) {
@@ -490,7 +490,7 @@ function admin_approveuser_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("rejectuser_sendmail",[reject],
+		$.jsonRPC("rejectuser",[reject],
 			function(data) {
 				notify("Rejected users: "+data);
 				for (var i=0;i<data.length;i++) {

@@ -81,17 +81,18 @@ class View(object):
 	# 		print 'Hello World'
 
 	db = property(lambda self: self.__db)
-
 	headers = property(lambda self: self.__headers)
 	dbtree = property(lambda self: self.__dbtree)
-
-	page = None
 	ctxt = property(lambda self: self.get_context())
-	_ctxt = property(lambda self: self.__ctxt)
-
 	js_files = emen2.web.extfile.BaseJS
 	css_files = emen2.web.extfile.BaseCSS
+	page = None
 
+	def __settitle(self, t):
+		self.__ctxt['title'] = t
+		
+	title = property(lambda self: self.__ctxt.get('title'), __settitle)
+	
 	def __set_mimetype(self, value): self.__headers['content-type'] = value
 	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
 
@@ -181,7 +182,7 @@ class View(object):
 
 	def error(self, msg):
 		self.template="/errors/error"
-		self.ctxt["title"] = "Error"
+		self.title = "Error"
 		self.ctxt["errmsg"] = msg
 
 
@@ -364,6 +365,7 @@ class ViewPlugin(object):
 		view.preinit.extend(cls.preinit)
 		return view
 
+
 class AdminView(ViewPlugin):
 	preinit = []
 
@@ -373,6 +375,7 @@ class AdminView(ViewPlugin):
 		if not context.checkadmin():
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
 
+
 class AuthView(ViewPlugin):
 	preinit = []
 
@@ -381,6 +384,7 @@ class AuthView(ViewPlugin):
 		context = self.db._getctx()
 		if not 'authenticated' in context.groups:
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
+
 
 ############ ############ ############
 # III. template rendering            #

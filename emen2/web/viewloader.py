@@ -85,7 +85,7 @@ class _LaunchConsole(emen2.web.view.View):
 	__matcher__ = '^/__launch_console/$'
 	def __init__(self, db, **kwargs):
 		emen2.web.view.View.__init__(self, db=db, **kwargs)
-		self.set_context_item('title', 'blahb;ajb')
+		self.set_context_item('title', '')
 		if db.checkadmin():
 			g.log.interact(globals())
 			self.page = 'done'

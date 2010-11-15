@@ -496,6 +496,7 @@ class DB(object):
 		if not g.MAILADMIN or not g.MAILHOST:
 			g.log('LOG_INFO','Email subsysstem not configured')
 			return 			
+
 		try:
 			msg = g.templates.render_template(template, ctxt)
 		except:
@@ -504,7 +505,7 @@ class DB(object):
 		
 		try:
 			s = smtplib.SMTP(g.MAILHOST)
-			# s.set_debuglevel(1)
+			s.set_debuglevel(1)
 			s.sendmail(g.MAILADMIN, [recipient], msg)
 			g.log('LOG_INFO', 'Mail sent: %r'%msg)
 		except Exception, e:
@@ -2719,19 +2720,22 @@ class DB(object):
 	
 
 	@publicmethod("auth.resetpassword", write=True)
-	def resetpassword(self, email, newpassword=None, secret=None, ctx=None, txn=None):
+	def resetpassword(self, username, newpassword=None, secret=None, ctx=None, txn=None):
 
 		errmsg = "Could not reset password"
-		username = self.__userbyemail(email, ctx=ctx, txn=txn) or username		
+		print username
+		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		print username
 		
-		if not username:
-			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: no user for email %s"%(username, email))
-			raise emen2.db.exceptions.AuthenticationError, "No account associated with email %s"%email
-			
-			
 		try:
 			user = self.bdbs.users.sget(username, txn=txn)
 			user.setContext(ctx)
+		except Exception, e:
+			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
+			raise emen2.db.exceptions.AuthenticationError, "No account associated with %s"%username
+			
+			
+		try:
 			# Absolutely never reveal the secret via any mechanism but email to registered address
 			user.resetpassword()
 			ctxt = {'secret': user._User__secret[2]}
@@ -2740,6 +2744,7 @@ class DB(object):
 		except Exception, e:
 			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
 			raise emen2.db.exceptions.AuthenticationError, errmsg			
+		
 		
 		g.log.msg("LOG_SECURITY","resetpassword: Setting resetpassword secret for %s"%user.username)
 		self._commit_users([user], ctx=ctx, txn=txn)
@@ -2779,10 +2784,12 @@ class DB(object):
 
 
 	@publicmethod("users.setemail", write=True)
-	def setemail(self, email, secret=None, username=None, ctx=None, txn=None):
+	def setemail(self, email, secret=None, username=None, password=None, ctx=None, txn=None):
 		"""Change email
 		@param email
 		@keyparam username Username to modify
+		@keyparam secret Auth token
+		@keyparam password Current account password is required
 		"""
 
 		if username:
@@ -2796,26 +2803,26 @@ class DB(object):
 
 		if self.bdbs.usersbyemail.get(email.lower(), txn=txn):
 			time.sleep(2)
-			raise emen2.db.exceptions.SecurityError, "The email address %s is already in use"%(user.email)
+			raise emen2.db.exceptions.SecurityError, "The email address %s is already in use"%(email)
 
-
+		# user.setemail will check the password and secret, and raise an exception if something is wrong.
+		# if password and no secret, set auth token
+		# if secret, check the secret and set email and return the new email		
 		user = self.bdbs.users.sget(username, txn=txn)
-		user.setContext(ctx)
-		if secret or ctx.checkadmin():
-			# If an auth token is provided, or user is admin, set the email
-			user.setemail(email, secret=secret)
+		user.setContext(ctx)		
+		ret = user.setemail(email, secret=secret, password=password)
+		user.validate()
+		
+		ctxt = {}
+		if ret:
 			self.sendmail(user.email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
 		else:
-			# Otherwise, send an auth token to the specified email address
-			user.resetemail(email)
-			ctxt = {'secret': user._User__secret[2]}
 			self.sendmail(user.email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
-			
-		
-		user.validate()
+						
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
+		return ret
 
 
 
