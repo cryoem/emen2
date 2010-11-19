@@ -677,7 +677,7 @@ class DB(object):
 	# _login = login
 	@publicmethod("auth.login2", write=True)
 	def _login(self, *args, **kwargs):
-		return self.login(*args, **kwargs)	
+		return self.login(*args, **kwargs)
 
 
 	# Logout is the same as delete context
@@ -861,7 +861,7 @@ class DB(object):
 		@return Context
 		@exception SessionError
 		"""
-		
+
 		if txn == None:
 			raise ValueError, "No txn"
 
@@ -1263,8 +1263,7 @@ class DB(object):
 				groups["parent"] = dict(parentgroups)
 
 		else:
-			if not keys:
-				return
+			if not keys: return
 
 			ind = self._getindex(param, ctx=ctx, txn=txn)
 			for key in keys:
@@ -1307,7 +1306,7 @@ class DB(object):
 				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
 			groupby["rectype"] = None
 
-			
+
 		elif param == "recid":
 			subset = set([int(value)])
 
@@ -1379,7 +1378,7 @@ class DB(object):
 				continue
 
 			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
-			
+
 			if r:
 				results[indparam] = r
 
@@ -1449,7 +1448,7 @@ class DB(object):
 		if plotmode == 'scatter':
 			plotter = emen2.db.plot.ScatterPlot
 		elif plotmode == 'hist':
-			plotter = emen2.db.plot.HistPlot	
+			plotter = emen2.db.plot.HistPlot
 		elif plotmode == 'bin':
 			plotter = emen2.db.plot.BinPlot
 
@@ -1489,16 +1488,16 @@ class DB(object):
 
 		elif len(rds) > 1 or len(rds) == 0:
 			viewdef = defaultviewdef
-			
-		
+
+
 		for i in q['groups'].keys() + ['creator', 'creationtime']:
 			if i == "rectype" and len(rds) == 1:
 				continue
-				
+
 			i = '$$%s'%i
 			if i not in viewdef:
 				viewdef = "%s %s"%(viewdef, i)
-					
+
 
 
 		# Sort
@@ -1616,7 +1615,7 @@ class DB(object):
 		# calling out to vtm, we will need a DBProxy
 		# I'm only turning on render sort for these vartypes for now..
 		if rendered and pd:
-			if pd.vartype in ["user", "userlist", "binary", "binaryimage"]:				
+			if pd.vartype in ["user", "userlist", "binary", "binaryimage"]:
 				#if len(recids) > 1000:
 				#	raise ValueError, "Too many items to sort by this key"
 
@@ -3503,7 +3502,7 @@ class DB(object):
 		ind = self.bdbs.fieldindex.get(paramname)
 		if ind:
 			return ind
-		
+
 		pd = self.bdbs.paramdefs.sget(paramname, txn=txn) # Look up the definition of this field
 		paramname = pd.name
 		if pd.vartype not in self.indexablevartypes or not pd.indexed:
@@ -3919,7 +3918,7 @@ class DB(object):
 		"""
 
 		ol, recids = listops.oltolist(recids)
-		
+
 		recs = self.getrecord(recids, filt=False, q=q, ctx=ctx, txn=txn)
 		for rec in recs:
 			rec.update(d)
@@ -3929,7 +3928,7 @@ class DB(object):
 
 		if ol: return return_first_or_none(ret)
 		return ret
-		
+
 
 
 
@@ -3990,7 +3989,7 @@ class DB(object):
 		#	really serious DB errors should ever occur.
 		crecs = []
 		cps = {}
-		
+
 		# Check 'parent' and 'children' special params
 		updrels = []
 
@@ -4035,7 +4034,7 @@ class DB(object):
 			# Compare to original record.
 			cp |= orec.changedparams(updrec)
 			cpc = cp - param_immutable
-			
+
 			if not cpc and orec.recid >= 0:
 				g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
 				continue
@@ -4086,7 +4085,7 @@ class DB(object):
 		for i in crecs:
 			if reindex or i.recid < 0:
 				orec = {}
-			else:	
+			else:
 				# Cannot update non-existent record
 				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=g.RMWFLAGS)
 			cache[i.recid] = orec
@@ -4146,7 +4145,7 @@ class DB(object):
 	# ian: todo: merge all the __reindex_params together...
 	def _reindex_params(self, updrecs, cps=None, cache=None, ctx=None, txn=None):
 		"""(Internal) update param indices"""
-		
+
 		# g.log.msg('LOG_DEBUG', "Calculating param index updates...")
 		cps = cps or {} # cached list of recid:changed parameters
 		cache = cache or {} # cached records
@@ -4167,7 +4166,7 @@ class DB(object):
 			vt = self.vtm.getvartype(pd.vartype)
 			if not vt.keytype or not pd.indexed:
 				continue
-				
+
 			indexupdates[key] = vt.reindex(v)
 
 		return indexupdates
@@ -4177,10 +4176,10 @@ class DB(object):
 	# The following methods write to the various indexes
 	def _commit_paramindex(self, param, addrefs, delrefs, recmap=None, ctx=None, txn=None):
 		"""(Internal) commit param updates"""
-		
+
 		recmap = recmap or {}
 		addindexkeys = []
-		delindexkeys = [] 
+		delindexkeys = []
 
 		if not addrefs and not delrefs:
 			return
@@ -4290,7 +4289,7 @@ class DB(object):
 		@param recids Iterable of Record IDs
 		@return Set of accessible Record IDs
 		"""
-		
+
 		if ctx.checkreadadmin():
 			return set(recids)
 
@@ -4387,7 +4386,7 @@ class DB(object):
 			umask = [[],[],[],[]]
 			if addusers:
 				umask[addlevel] = addusers
-		
+
 		# Check that all specified users/groups exist
 		addusers = set()
 		for i in umask:
@@ -4401,7 +4400,7 @@ class DB(object):
 		if checkitems - found:
 			raise emen2.db.exceptions.SecurityError, "Invalid users/groups: %s"%(checkitems - found)
 
- 
+
 		# Change child perms
 		if recurse:
 			recids |= listops.flatten(self.getchildtree(recids, recurse=recurse, ctx=ctx, txn=txn))
@@ -4418,7 +4417,7 @@ class DB(object):
 			cps[crec.recid] = set()
 			op = copy.copy(crec['permissions'])
 			og = copy.copy(crec['groups'])
-			
+
 			# If we are overwriting users or groups, replace
 			if overwrite_users or overwrite_groups:
 				if overwrite_users: crec['permissions'] = umask
@@ -4439,13 +4438,13 @@ class DB(object):
 				cps[crec.recid].add('permissions')
 			if crec['groups'] != og:
 				cps[crec.recid].add('groups')
-				
+
 			if cps[crec.recid]:
-				crecs.append(crec)	
-			
+				crecs.append(crec)
+
 		# Go ahead and directly commit here, since we know only permissions have changed...
 		ret = self._commit_records(crecs, cps=cps, ctx=ctx, txn=txn)
-		
+
 
 
 
@@ -4582,14 +4581,14 @@ class DB(object):
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
 				matches[group].append(match)
-				
+
 				# ian: temp fix.
 				n = match.group('name')
 				h = pds.get(match.group('name'),dict()).get('desc_short')
 				if match.group('type') == '@':
 					if n == "childcount": n = "#"
 					h = '%s %s'%(n, match.group('args') or '')
-				
+
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
 
 

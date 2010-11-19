@@ -59,7 +59,7 @@ class BaseJS(ExtFile):
 			"tile.js"]
 
 		self.files = [
-			self.dbtree.reverse('TemplateRender', '/js/settings.js'),
+			self.dbtree.reverse('TemplateRender', t='/js/settings.js'),
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
@@ -74,7 +74,7 @@ class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		self.files = [
-			self.dbtree.reverse('TemplateRender', '/css/main.css'),
+			self.dbtree.reverse('TemplateRender', t='/css/main.css'),
 			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT
 		]
 

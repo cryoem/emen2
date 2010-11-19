@@ -5,6 +5,7 @@ from __future__ import with_statement
 import os
 import sys
 import time
+import collections
 import traceback
 import weakref
 import functools
@@ -72,6 +73,17 @@ class DBProxy(object):
 	@classmethod
 	def _allmethods(cls):
 		return set(cls._publicmethods)
+
+	def _get_publicmethods(self):
+		result = {}
+		for x in self._publicmethods:
+			cur = result
+			for y in x.split('.'):
+				ncur = cur.get(y, {})
+				if ncur is not cur: cur[y] = ncur
+				cur = ncur
+		return result
+
 
 
 	def __init__(self, db=None, ctxid=None, host=None, ctx=None, txn=None):
@@ -207,13 +219,13 @@ class DBProxy(object):
 			if func.admin and not ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
-			self._starttxn()	
+			self._starttxn()
 			kwargs['txn'] = self.__txn
 			ctx.setdb(self)
-			
+
 			if func.ext:
 				kwargs['db'] = self.__db
-			
+
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
 
 			try:
