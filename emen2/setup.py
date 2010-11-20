@@ -3,7 +3,6 @@ setup(
 	name='emen2',
 	version='2.0',
 	py_modules=[
-		'emen2',
 		'emen2.db',
 		'emen2.web',
 		'emen2.web.resources',
