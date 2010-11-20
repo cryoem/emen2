@@ -1,7 +1,7 @@
 # $Id$
 
 import emen2.clients.emen2client
-db = emen2.clients.emen2client.opendb(username=None)
+db = emen2.clients.opendb(username=None)
 
 print db.getrecord(0)
 

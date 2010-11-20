@@ -6,7 +6,7 @@
 import sys
 import emen2.clients.emen2client
 
-db = emen2.clients.emen2client.opendb(username=sys.argv[1])
+db = emen2.clients.opendb(username=sys.argv[1])
 
 #print db.getrecord(0)
 
