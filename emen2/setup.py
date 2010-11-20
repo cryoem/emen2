@@ -49,10 +49,9 @@ setup(
 		'emen2.clients.emdash': ['emdash-start.bat'],
 		'emen2.web': static_files
 		},
-	# scripts=[
-	# 	'emen2control.py', 
-	# 	'clients/e2tilefile.py', 
-	# 	'clients/emen2client.py', 
-	# 	'clients/emdash/emdash.py', 
-	# 	]
+	scripts=[
+		'emen2control.py', 
+		'emen2client.py', 
+		'clients/emdash/emdash.py', 
+		]
 	)
