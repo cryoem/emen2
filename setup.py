@@ -23,7 +23,7 @@ def filterwalk(path, filetypes=None):
 	
 	
 static_files =  filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) + filterwalk('emen2/templates', filetypes=['.mako'])
-print static_files
+# print static_files
 
 setup(
 	name='emen2',
@@ -53,7 +53,6 @@ setup(
 	scripts=[
 		'scripts/emen2control.py', 
 		'scripts/emen2client.py', 
-		'scripts/e2tilefile.py',
 		'scripts/emdash.py', 
 		]
 	)

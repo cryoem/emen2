@@ -4578,7 +4578,8 @@ class DB(object):
 
 				else:
 					v = rd.views.get(viewtype, rd.mainview)
-					v = markdown.markdown(v)
+					if markdown:
+						v = markdown.markdown(v)
 
 				groupviews[rd.name] = v
 

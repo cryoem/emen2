@@ -339,7 +339,8 @@ class vt_text(vt_string):
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value != None:
 			value = cgi.escape(unicode(value))
-			value = markdown.markdown(value)
+			if markdown:
+				value = markdown.markdown(value)
 		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, elem='div', lt=lt)
 
 
