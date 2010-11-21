@@ -84,9 +84,9 @@ def inithttpd():
 	root = emen2.web.resources.publicresource.PublicView()
 
 	resources = {
-		'favicon.ico': static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')),
-		'robots.txt': static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')),
-		'static': static.File(emen2.db.config.get_filename('emen2', 'web/static')),
+		'favicon.ico': static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')),
+		'robots.txt': static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')),
+		'static': static.File(emen2.db.config.get_filename('emen2', 'static')),
 		'download': emen2.web.resources.downloadresource.DownloadResource(),
 		'upload': emen2.web.resources.uploadresource.UploadResource(),
 		'RPC2': emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),

@@ -1,0 +1,3 @@
+include config.base.json
+graft emen2/templates
+graft emen2/static
