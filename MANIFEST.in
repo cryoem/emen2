@@ -1,3 +1,5 @@
-include config.base.json
+include emen2/db/config.base.json
 graft emen2/templates
 graft emen2/static
+graft doc
+graft examples

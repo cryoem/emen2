@@ -55,7 +55,8 @@ import emen2.db.group
 import emen2.db.workflow
 
 import emen2.util.decorators
-import emen2.clients.emen2client
+import emen2.clients
+
 from emen2.util import listops
 
 
@@ -99,7 +100,7 @@ fakemodules()
 
 VERSIONS = {
 	"API": g.VERSION,
-	"emen2client": emen2.clients.emen2client.__version__
+	"emen2client": emen2.clients.__version__
 }
 
 

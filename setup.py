@@ -27,11 +27,11 @@ print static_files
 
 setup(
 	name='emen2',
-	version='2.0',
+	version='2.0rc1',
 	description='EMEN2 Object-Oriented Scientific Database',
 	author='Ian Rees',
 	author_email='ian.rees@bcm.edu',
-	url='http://ncmi.bcm.edu/',	
+	url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',	
 	packages=[
 		'emen2',
 		'emen2.db',
@@ -53,6 +53,7 @@ setup(
 	scripts=[
 		'scripts/emen2control.py', 
 		'scripts/emen2client.py', 
+		'scripts/e2tilefile.py',
 		'scripts/emdash.py', 
 		]
 	)

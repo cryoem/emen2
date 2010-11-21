@@ -4,7 +4,7 @@
 # call it as sample.py <username>
 
 import sys
-import emen2.clients.emen2client
+import emen2.clients
 
 db = emen2.clients.opendb(username=sys.argv[1])
 

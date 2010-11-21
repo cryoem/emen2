@@ -1,6 +1,6 @@
 # $Id$
 
-import emen2.clients.emen2client
+import emen2.clients
 db = emen2.clients.opendb(username=None)
 
 print db.getrecord(0)
