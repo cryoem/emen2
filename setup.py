@@ -32,25 +32,24 @@ setup(
 	url='http://ncmi.bcm.edu/',	
 	packages=[
 		'emen2',
-		'emen2.db',
-		'emen2.web',
-		'emen2.web.resources',
-		'emen2.web.views',
-		'emen2.skeleton',
-		'emen2.util',
-		'emen2.clients',
-		'emen2.clients.emdash',
-		'emen2.clients.emdash.models',
-		'emen2.clients.emdash.threads',
-		'emen2.clients.emdash.ui'
+		'emen2/db',
+		'emen2/web',
+		'emen2/web/resources',
+		'emen2/web/views',
+		'emen2/skeleton',
+		'emen2/util',
+		'emen2/clients',
+		'emen2/clients/emdash',
+		'emen2/clients/emdash/models',
+		'emen2/clients/emdash/threads',
+		'emen2/clients/emdash/ui'
 		],
 	package_data={
-		'emen2.db': ['config.base.json'], 
-		'emen2.clients.emdash': ['emdash-start.bat']
+		'emen2/db': ['config.base.json']
 		},
 	scripts=[
-		'emen2control.py', 
-		'emen2client.py', 
-		'clients/emdash/emdash.py', 
+		'scripts/emen2control.py', 
+		'scripts/emen2client.py', 
+		'scripts/emdash.py', 
 		]
 	)
