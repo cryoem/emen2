@@ -30,7 +30,6 @@ setup(
 	author='Ian Rees',
 	author_email='ian.rees@bcm.edu',
 	url='http://ncmi.bcm.edu/',	
-	package_dir={'':'..'},
 	packages=[
 		'emen2',
 		'emen2.db',
@@ -38,6 +37,7 @@ setup(
 		'emen2.web.resources',
 		'emen2.web.views',
 		'emen2.skeleton',
+		'emen2.util',
 		'emen2.clients',
 		'emen2.clients.emdash',
 		'emen2.clients.emdash.models',
@@ -46,8 +46,7 @@ setup(
 		],
 	package_data={
 		'emen2.db': ['config.base.json'], 
-		'emen2.clients.emdash': ['emdash-start.bat'],
-		'emen2.web': static_files
+		'emen2.clients.emdash': ['emdash-start.bat']
 		},
 	scripts=[
 		'emen2control.py', 
