@@ -32,7 +32,7 @@ setup(
 	author='Ian Rees',
 	author_email='ian.rees@bcm.edu',
 	url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',	
-	download_url="http://ncmi.bcm.edu/ncmi/software/EMEN2/software_105/emen2-2.0rc1.tar.gz"
+	download_url="http://ncmi.bcm.edu/ncmi/software/EMEN2/software_105/emen2-2.0rc1.tar.gz",
 	# download_url="http://ncmi.bcm.edu/ncmi/software/EMEN2/software_94/emen2-daily.tar.gz",
 	packages=[
 		'emen2',
