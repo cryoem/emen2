@@ -1,0 +1,16 @@
+build
+dist
+MANIFEST
+tmp
+.DS*
+log.*
+.hg
+.hgignore
+emen2config.py
+_darcs
+shell.expect
+*.pyc
+*.tbz
+.*project
+*.log
+*.swp
