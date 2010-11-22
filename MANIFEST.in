@@ -1,4 +1,4 @@
 include emen2/db/config.base.json
 recursive-include emen2/templates *.mako
-recursive-exclude emen2/templates .*
+recursive-exclude emen2/templates \.*
 graft emen2/static
