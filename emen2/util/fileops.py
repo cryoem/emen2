@@ -6,10 +6,11 @@ import codecs
 import listops
 
 def openreadclose(path):
-    tmp = codecs.open(path, 'r', 'utf-8')
-    try: result = tmp.read()
-    finally: tmp.close()
-    return result
+	print path
+	tmp = codecs.open(path, 'r', 'utf-8')
+	try: result = tmp.read()
+	finally: tmp.close()
+	return result
 
 def walk_path(extension, cb):
     def res(pathname, *args, **kwargs):
