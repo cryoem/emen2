@@ -27,11 +27,12 @@ static_files =  filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.
 
 setup(
 	name='emen2',
-	version='2.0rc1',
+	version='daily',
 	description='EMEN2 Object-Oriented Scientific Database',
 	author='Ian Rees',
 	author_email='ian.rees@bcm.edu',
 	url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',	
+	download_url="http://ncmi.bcm.edu/ncmi/software/EMEN2/software_94/emen2-daily.tar.gz",
 	packages=[
 		'emen2',
 		'emen2.db',
