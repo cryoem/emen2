@@ -118,17 +118,12 @@ basestring = (str, unicode)
 DB_CONFIG = """\
 set_lg_dir log
 set_data_dir data
-
 set_cachesize 0 67108864 3
 set_tx_max 1000
-
-# mutex_set_max 131072
-
 set_lk_detect DB_LOCK_YOUNGEST
 set_lk_max_locks 100000
 set_lk_max_lockers 100000
 set_lk_max_objects 100000
-
 set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
