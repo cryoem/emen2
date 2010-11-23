@@ -6,8 +6,8 @@ from emen2.testc import *
 
 import emen2.util.jsonutil
 
-recorddefs = set(['core'])
-paramdefs = set(['core'])
+recorddefs = set(['root_protocol', 'core'])
+paramdefs = set(['root_parameter', 'core'])
 
 
 recorddefs |= db.getchildren('core', keytype='recorddef')
@@ -25,12 +25,10 @@ paramdefs |= db.getchildren('core', keytype='paramdef')
 pds = []
 for pd in db.getparamdef(paramdefs):
 	children = db.getchildren(pd.name, keytype='paramdef') & paramdefs
-	if pd.name == "core": children |= (paramdefs-set(['core']))
+	if pd.name == "core": children |= (paramdefs-set(['root_parameter', 'core']))
 	pd = dict(pd)
 	pd['children'] = children
 	pds.append(pd)
-
-
 
 
 
