@@ -11,7 +11,6 @@ import traceback
 import collections
 import itertools
 import random
-import bsddb3
 import re
 import shutil
 import weakref
@@ -21,10 +20,9 @@ import imp
 import tempfile
 import cStringIO
 import smtplib
-# import email.MIMEText
 
 
-# import emen2.ext.mail_exts
+import bsddb3
 
 
 import emen2.db.config

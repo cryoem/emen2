@@ -5,7 +5,7 @@ import sys
 import time
 import weakref
 import collections
-import array
+
 import bsddb3
 
 
