@@ -11,18 +11,26 @@ paramdefs = set(['core'])
 
 
 recorddefs |= db.getchildren('core', keytype='recorddef')
-rds = db.getrecorddef(recorddefs)
-for rd in rds:
-	rd.children = db.getchildren(rd.name, keytype='recorddef') & recorddefs
+rds = []
+for rd in db.getrecorddef(recorddefs):
+	children = db.getchildren(rd.name, keytype='recorddef') & recorddefs
 	paramdefs |= rd.paramsK
+	rd = dict(rd)
+	rd['children'] = children
+	rds.append(rd)
 
 
 
 paramdefs |= db.getchildren('core', keytype='paramdef')
-pds = db.getparamdef(paramdefs)
-for pd in pds:
-	pd.children = db.getchildren(pd.name, keytype='paramdef') & paramdefs
-	if pd.name == "core": pd.children |= (paramdefs-set(['core']))
+pds = []
+for pd in db.getparamdef(paramdefs):
+	children = db.getchildren(pd.name, keytype='paramdef') & paramdefs
+	if pd.name == "core": children |= (paramdefs-set(['core']))
+	pd = dict(pd)
+	pd['children'] = children
+	pds.append(rd)
+
+
 
 
 
