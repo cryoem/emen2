@@ -410,9 +410,18 @@ class DB(object):
 		"""Initialize a new DB"""
 		
 		if not rootpw or not rootemail:
-			print "\n= Administrator Account (root) ="
-			rootemail = rootemail or raw_input("email: ")
-			rootpw = rootpw or getpass.getpass("password: ")
+			import pwd
+			import platform
+			
+			host = platform.node() or 'localhost'
+			try:
+				defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+			except:
+				defaultemail = "root@localhost"
+				
+			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+			rootpw = rootpw or getpass.getpass("Admin (root) password: ")
+
 			if len(rootpw) < 6:
 				raise emen2.db.exceptions.SecurityError, "Password must be at least 6-characters long"
 
@@ -428,7 +437,7 @@ class DB(object):
 		# Create a fake root context
 		ctx = self._makerootcontext(txn=txn)
 		
-		g.log.msg("LOG_INFO","Initializing new database; root email is %s"%rootemail)		
+		g.log.msg("LOG_INFO","Initializing new database; root email: %s"%rootemail)		
 		
 		# Load skeletons -- use utils/export.py to create these JSON files
 		paramdefs = load_skeleton('paramdefs')
@@ -446,10 +455,6 @@ class DB(object):
 		for rd in recorddefs:
 			rdc[rd.get('name')] = rd.pop('children', set())
 			self.putrecorddef(rd, ctx=ctx, txn=txn)
-
-		print "pdc/rdc"
-		print pdc
-		print rdc
 
 		for k, v in pdc.items():
 			for v2 in v: self.pclink(k, v2, keytype='paramdef', ctx=ctx, txn=txn)
@@ -522,19 +527,26 @@ class DB(object):
 
 	def sendmail(self, recipient, template, ctxt=None, ctx=None, txn=None):
 		"""(Internal) Send an email based on a template. If the template subsystem is not available, or email is not configured, this will fail without an exception."""
-		
+
+		# get MAILADMIN from the root record...
+		try:
+			mailadmin = self.bdbs.users.sget('root', txn=txn).email
+			if not mailadmin:
+				raise ValueError, "No email set for root"
+			if not g.MAILHOST:
+				raise ValueError, "No SMTP server"
+		except Exception, inst:
+			g.log('LOG_INFO','Email not configured: %s'%inst)
+			return
+								
 		ctxt = ctxt or {}
 		ctxt["recipient"] = recipient
-		ctxt["MAILADMIN"] = g.MAILADMIN
+		ctxt["MAILADMIN"] = mailadmin
 		ctxt["EMEN2DBNAME"] = g.EMEN2DBNAME
 		ctxt["EMEN2EXTURI"] = g.EMEN2EXTURI
 
 		if not recipient:
 			return
-
-		if not g.MAILADMIN or not g.MAILHOST:
-			g.log('LOG_INFO','Email subsysstem not configured')
-			return 			
 
 		try:
 			msg = g.templates.render_template(template, ctxt)
@@ -545,7 +557,7 @@ class DB(object):
 		try:
 			s = smtplib.SMTP(g.MAILHOST)
 			s.set_debuglevel(1)
-			s.sendmail(g.MAILADMIN, [recipient], msg)
+			s.sendmail(mailadmin, [recipient], msg)
 			g.log('LOG_INFO', 'Mail sent: %r'%msg)
 		except Exception, e:
 			g.log('LOG_ERROR', 'Email sending error: %s'%e)
@@ -685,7 +697,6 @@ class DB(object):
 		username = unicode(username).strip()
 
 		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
-		# byemail = self.bdbs.usersbyemail.get(username.lower(), txn=txn)
 
 		if username == "anonymous":
 			newcontext = self._makecontext(host=host, ctx=ctx, txn=txn)
@@ -2923,7 +2934,9 @@ class DB(object):
 			except:
 				oldemail = ''
 
-			if oldemail != user.email:
+			# root's email is not indexed 
+			#	-- the email for root will often also be used for a user acct
+			if oldemail != user.email and user.username != "root":
 				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
 				self.bdbs.usersbyemail.removerefs(oldemail.lower(), [user.username], txn=txn)
@@ -4408,14 +4421,15 @@ class DB(object):
 
 
 
-
 	def _putrecord_setsecurity(self, recids=None, addusers=None, addlevel=0, addgroups=None, delusers=None, delgroups=None, umask=None, overwrite_users=None, overwrite_groups=None, recurse=0, reassign=False, filt=True, ctx=None, txn=None):
 
 		if recurse == -1:
 			recurse = g.MAXRECURSE
 
 		# make iterables
-		recids = listops.tolist(recids or set(), dtype=set)
+		if recids == None:
+			recids = set()
+		recids = listops.tolist(recids, dtype=set)
 		addusers = listops.tolist(addusers or set(), dtype=set)
 		addgroups = listops.tolist(addgroups or set(), dtype=set)
 		delusers = listops.tolist(delusers or set(), dtype=set)

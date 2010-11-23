@@ -41,8 +41,13 @@ def filterwalk(path, filetypes=None):
 	return ret
 	
 	
+static_files = \
+	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
+	filterwalk('emen2/templates', filetypes=['.mako']) + \
+	filterwalk('emen2/skeleton', filetypes=['.json'])
+	# filterwalk('emen2/clients/emdash/ui', filetypes=['.ui'])
 
-static_files =  filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) + filterwalk('emen2/templates', filetypes=['.mako'])
+
 
 if __name__ == "__main__":
 	setup(
@@ -59,7 +64,6 @@ if __name__ == "__main__":
 			'emen2.web',
 			'emen2.web.resources',
 			'emen2.web.views',
-			'emen2.skeleton',
 			'emen2.util',
 			'emen2.clients',
 			'emen2.clients.emdash',
@@ -68,7 +72,6 @@ if __name__ == "__main__":
 			'emen2.clients.emdash.ui'
 			],
 		package_data={
-			'emen2.db': ['config.base.json'],
 			'emen2': static_files
 			},
 		scripts=[
