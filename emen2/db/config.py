@@ -22,9 +22,11 @@ def get_filename(package, resource):
 	return os.path.join(d, resource)
 
 
+
 def defaults():
 	parser = DBOptions()
 	parser.parse_args()
+
 
 
 
@@ -66,7 +68,7 @@ class DBOptions(optparse.OptionParser):
 
 		g = GlobalNamespace()
 		# Default settings
-		default_config = get_filename('emen2', 'db/config.base.json')
+		default_config = get_filename('emen2', 'skeleton/config.base.json')
 
 		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
 		EMEN2DBHOME = os.getenv("EMEN2DBHOME")

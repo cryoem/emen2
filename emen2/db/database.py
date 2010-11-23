@@ -56,7 +56,7 @@ import emen2.util.decorators
 import emen2.clients
 
 from emen2.util import listops
-
+import emen2.util.jsonutil
 
 # convenience
 Record = emen2.db.record.Record
@@ -212,7 +212,7 @@ class DB(object):
 	# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
 	@emen2.util.decorators.instonget
 	class bdbs(object):
-		"""Private class that actually stores the bdbs"""
+		"""A private class -- the actual core of the DB. The DB files are accessible as attributes, and indexes are loaded in fieldindex."""
 
 		def init(self, db, dbenv, txn):
 			old = set(self.__dict__)
@@ -222,7 +222,6 @@ class DB(object):
 			self.contexts = emen2.db.btrees.BTree(filename="security/contexts", dbenv=dbenv, txn=txn)
 			self.users = emen2.db.btrees.BTree(filename="security/users", dbenv=dbenv, txn=txn)
 			self.groups = emen2.db.btrees.BTree(filename="security/groups", dbenv=dbenv, txn=txn)
-
 
 			# Main database items
 			self.bdocounter = emen2.db.btrees.BTree(filename="main/bdocounter", dbenv=dbenv, txn=txn)
@@ -240,7 +239,7 @@ class DB(object):
 			self.usersbyemail = emen2.db.btrees.FieldBTree(filename="index/security/usersbyemail", datatype="s", dbenv=dbenv, txn=txn)
 			self.bdosbyfilename = emen2.db.btrees.FieldBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=dbenv, txn=txn)
 
-
+			# Some attributes
 			self.bdbs = set(self.__dict__) - old
 			self.contexts_cache = {}
 			self.fieldindex = {}
@@ -345,11 +344,11 @@ class DB(object):
 
 
 
-	def __init__(self, path=None, maint=False):
+	def __init__(self, path=None, maintenance=False):
 		"""Initialize DB
 
 		@keyparam path Path to DB (default is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments; see db.config)
-		@keyparam maint Open in maintenance mode; only the environment will be created; no bdbs will be opened.
+		@keyparam maintenance Open in maintenance mode; only the environment will be created; no bdbs will be opened.
 		"""
 
 		self.path = path or g.EMEN2DBHOME
@@ -372,8 +371,9 @@ class DB(object):
 		self.dbenv = self._init_dbenv()
 
 		# If we are just doing backups or maintenance, don't open any BDB handles
-		if maint:
+		if maintenance:
 			return
+			
 
 		# Open Database
 		txn = self.newtxn()
@@ -383,11 +383,15 @@ class DB(object):
 			raise
 		else: self.txncommit(txn=txn)
 
+
 		# Check if this is a valid db..
 		txn = self.newtxn()
 		try:
 			maxr = self.bdbs.records.get_max(txn=txn)
 			g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+			if not self.bdbs.users.get('root', txn=txn):
+				self.setup(txn=txn)
+
 		except Exception, e:
 			g.log.msg('LOG_INFO',"Could not open database! %s"%e)
 			self.txnabort(txn=txn)
@@ -395,62 +399,82 @@ class DB(object):
 		else:
 			self.txncommit(txn=txn)
 
+
+
 	def __del__(self):
 		g.log_info('cleaning up DB instance')
 
 
 
-	def create_db(self, rootpw=None, ctx=None, txn=None):
-		"""Creates a skeleton database; imports users/params/protocols/etc. from emen2/skeleton/core_*
-		This is usually called from the setup.py script to create initial db env
+	def setup(self, rootpw=None, rootemail=None, resetup=False, ctx=None, txn=None):
+		"""Initialize a new DB"""
+		
+		if not rootpw or not rootemail:
+			print "\n= Administrator Account (root) ="
+			rootemail = rootemail or raw_input("email: ")
+			rootpw = rootpw or getpass.getpass("password: ")
+			if len(rootpw) < 6:
+				raise emen2.db.exceptions.SecurityError, "Password must be at least 6-characters long"
 
-		@keyparam rootpw Root password for new database
-		"""
 
-		# typically uses SpecialRootContext
-		from emen2 import skeleton
+		# Private method to load config
+		def load_skeleton(t):
+			infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)	
+			f = open(infile)
+			ret = emen2.util.jsonutil.decode(f.read())
+			f.close()
+			return ret
 
+		# Create a fake root context
 		ctx = self._makerootcontext(txn=txn)
+		
+		g.log.msg("LOG_INFO","Initializing new database; root email is %s"%rootemail)		
+		
+		# Load skeletons -- use utils/export.py to create these JSON files
+		paramdefs = load_skeleton('paramdefs')
+		recorddefs = load_skeleton('recorddefs')
+		users = load_skeleton('users')
+		groups = load_skeleton('groups')
 
-		try:
-			testroot = self.getuser("root", filt=False, ctx=ctx, txn=txn)
-			raise ValueError, "Found root user. This environment has already been initialized."
-		except KeyError:
-			pass
+		# We're going to have to strip off children and save for later -- put*def needs support for this..
+		pdc = {}
+		rdc = {}
+		for pd in paramdefs:
+			pdc[pd.get('name')] = pd.pop('children', set())
+			self.putparamdef(pd, ctx=ctx, txn=txn)
 
+		for rd in recorddefs:
+			rdc[rd.get('name')] = rd.pop('children', set())
+			self.putrecorddef(rd, ctx=ctx, txn=txn)
 
-		for i in skeleton.core_paramdefs.items:
-			self.putparamdef(i, ctx=ctx, txn=txn)
-		for k,v in skeleton.core_paramdefs.children.items():
-			for v2 in v:
-				self.pclink(k, v2, keytype="paramdef", ctx=ctx, txn=txn)
+		print "pdc/rdc"
+		print pdc
+		print rdc
 
+		for k, v in pdc.items():
+			for v2 in v: self.pclink(k, v2, keytype='paramdef', ctx=ctx, txn=txn)
 
-		for i in skeleton.core_recorddefs.items:
-			self.putrecorddef(i, ctx=ctx, txn=txn)
+		for k, v in rdc.items():
+			for v2 in v: self.pclink(k, v2, keytype='recorddef', ctx=ctx, txn=txn)
 
-		for k,v in skeleton.core_recorddefs.children.items():
-			for v2 in v:
-				self.pclink(k, v2, keytype="recorddef", ctx=ctx, txn=txn)
-
+		# Put the 'Root' record first, so it will have recid 0
 		rootrec = self.newrecord('folder', ctx=ctx, txn=txn)
 		rootrec["name_folder"] = "Root Record"
 		self.putrecord(rootrec, ctx=ctx, txn=txn)
 
-		for i in skeleton.core_users.items:
-			if i.get('username') == 'root':
-				i['password'] = rootpw
-			self.adduser(i, ctx=ctx, txn=txn)
+		for user in users:
+			if user.get('username') == 'root':
+				user['password'] = rootpw				
+				user['email'] = rootemail
+			self.adduser(user, ctx=ctx, txn=txn)
 
+		for group in groups:
+			self.putgroup(group, ctx=ctx, txn=txn)
 
-		for i in skeleton.core_groups.items:
-			self.putgroup(i, ctx=ctx, txn=txn)
-
-
-		for i in skeleton.core_records.items:
-			self.putrecord(i, ctx=ctx, txn=txn)
-
-		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
+		# Wait for the groups are committed -- then go back and add authenticated to recid 0
+		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)		
+		
+		
 
 
 	# ian: todo: simple: more statistics; needs a txn?
