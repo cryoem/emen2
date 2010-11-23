@@ -27,7 +27,7 @@ static_files =  filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.
 
 setup(
 	name='emen2',
-	version='daily',
+	version='2.0rc1',
 	description='EMEN2 Object-Oriented Scientific Database',
 	author='Ian Rees',
 	author_email='ian.rees@bcm.edu',
