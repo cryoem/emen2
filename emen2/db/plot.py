@@ -126,14 +126,21 @@ class Plotter(object):
 		c = c or []
 		cparams = [i[0] for i in c]
 		if xparam not in cparams:
-			c.append([xparam, "!None", ""])
+			c.append([xparam, "any", ""])
 		if yparam != None and yparam not in cparams:
-			c.append([yparam, "!None", ""])
+			c.append([yparam, "any", ""])
 		if groupby not in cparams:
-			c.append([groupby, "!None", ""])
+			c.append([groupby, "any", ""])
 
 
 		self.q = db.query(c=c, ctx=ctx, txn=txn, **kwargs)
+		print "Plotter: looking for %s in groups, %s"%(groupby, self.q['groups'].keys())
+		
+		print "Got groups"
+		for k, v in self.q['groups'].items():
+			print k
+			print v
+		
 		if not self.q["groups"].get(groupby):
 			groupby = "rectype"
 			self.q["groups"][groupby] = db.groupbyrecorddef(self.q["recids"], ctx=ctx, txn=txn)

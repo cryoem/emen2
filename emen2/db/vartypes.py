@@ -16,6 +16,7 @@ except:
 	
 import emen2.db.datatypes
 import emen2.db.config
+import emen2.util.listops
 g = emen2.db.config.g()
 
 
@@ -43,14 +44,6 @@ class Vartype(object):
 			"htmledit":self.render_htmledit,
 			"htmledit_table":self.render_htmledit_table
 			}
-
-
-	def check_iterable(self, value):
-		if not value:
-			value=[]
-		if not hasattr(value,"__iter__"):
-			value=[value]	
-		return value
 
 
 	def getvartype(self):
@@ -280,6 +273,7 @@ class vt_boolean(vt_int):
 class vt_recid(Vartype):
 	__metaclass__ = Vartype.register_view
 	keytype = None
+
 	def validate(self, engine, pd, value, db):
 		return int(value)
 	
@@ -325,7 +319,7 @@ class vt_stringlist(vt_iter, vt_string):
 		return ", ".join(value or [])
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		value = [cgi.escape(i) for i in value]			
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, lt=lt)
 
@@ -460,7 +454,7 @@ class vt_urilist(vt_iter, vt_ref):
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		value = [cgi.escape(i) for i in value]
 		value = ['<a href="%s">%s</a>'%(i,i) for i in value]
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel)
@@ -484,7 +478,7 @@ class vt_binary(vt_iter, Vartype):
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		try:
 			v = db.getbinary(value)
 			value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]	
@@ -618,7 +612,7 @@ class vt_userlist(vt_iter, Vartype):
 
 
 	def render_unicode(self, engine, pd, value, rec, db):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		update_username_cache(engine, value, db)
 		
 		# Read values from cache and build list
@@ -631,7 +625,7 @@ class vt_userlist(vt_iter, Vartype):
 		
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		update_username_cache(engine, value, db)
 
 		lis = []
@@ -654,6 +648,11 @@ class vt_acl(Vartype):
 
 	
 	def validate(self, engine, pd, value, db):
+		# print "acl validating: ", value
+		# value = emen2.util.listops.check_iterable(value)
+		if not hasattr(value, '__iter__'):
+			value = ((value,),(),(),())
+		
 		key = engine.get_cache_key('usernames')
 		hit, usernames = engine.check_cache(key)
 		if not hit:
@@ -732,7 +731,7 @@ class vt_comments(Vartype):
 
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
-		value = self.check_iterable(value)
+		value = emen2.util.listops.check_iterable(value)
 		users=[i[0] for i in value]
 		update_username_cache(engine, users, db)
 
@@ -781,6 +780,7 @@ class vt_groups(vt_iter, Vartype):
 	keytype = "s"
 
 	def validate(self, engine, pd, value, db):
+		value = emen2.util.listops.check_iterable(value)
 		return set([unicode(i) for i in value])
 
 	def render_unicode(self, engine, pd, value, rec, db):

@@ -1231,8 +1231,7 @@ class DB(object):
 			ignorecase = 1
 		ignorecase = int(ignorecase)
 
-		if boolmode == None:
-			boolmode = "AND"
+		boolmode = boolmode or "AND"
 		if boolmode == "AND":
 			boolop = "intersection_update"
 		elif boolmode == "OR":
@@ -1249,12 +1248,13 @@ class DB(object):
 			constraintmatches = self._query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 			if recids == None:
+				# For the first constraint..
 				recids = constraintmatches
-
-			# ian: temp support for value == None:
-			if comp == "None":
+			elif comp == "None":
+				# ian: temp support for value == None:
 				recids -= constraintmatches
-			elif "^" not in searchparam and constraintmatches != None: # parent-value params are only for grouping..
+			elif constraintmatches != None:
+				# query_constraint returns None is a no-op
 				getattr(recids, boolop)(constraintmatches)
 
 
@@ -1271,6 +1271,7 @@ class DB(object):
 
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
+		print "Running groups:", groupby.keys()
 		for groupparam, keys in groupby.items():
 			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 
@@ -1291,15 +1292,20 @@ class DB(object):
 	def _query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
 		"""(Internal) Group query constraints"""
 
+		print "\n== running groupby: %s"%(groupparam)
 
 		param = self._query_paramstrip(groupparam)
 
-		# This is always performed..
-		if param == "rectype":
+		if param.startswith('$@'):
+			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing
+			groups[param] = set()
+
+
+		elif param == "rectype":
 			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
 
 
-		elif param == "parent":
+		elif param == "children":
 			# keys is parent rectypes...
 			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
 			# recurse=-1 for all parents
@@ -1312,22 +1318,23 @@ class DB(object):
 			if parentgroups:
 				groups["parent"] = dict(parentgroups)
 
+
 		else:
 			if not keys: return
 
 			ind = self._getindex(param, ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
-				if "^" in groupparam:
-					children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
-					for i in v:
-						v2 = children.get(i, set()) & recids
-						if v2: groups[param][key] = v2
-				else:
-					v2 = v & recids
-					if v2: groups[param][key] = v2
+				v2 = v & recids
+				if v2: groups[param][key] = v2
+				# dropped support for this..use $@parentvalue
+				# if "^" in groupparam:
+				# 	children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
+				# 	for i in v:
+				# 		v2 = children.get(i, set()) & recids
+				# 		if v2: groups[param][key] = v2
 
-
+		
 
 
 	def _query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
@@ -1347,7 +1354,13 @@ class DB(object):
 		print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
 		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
-		if param == "rectype":
+		if param.startswith('$@'):
+			print "macro constraint..."
+			groupby[param] = set()
+			pass
+			
+
+		elif param == "rectype":
 			if comp == "==" and value != None:
 				if recurse == -1:
 					ovalue = value
@@ -1360,34 +1373,34 @@ class DB(object):
 		elif param == "recid":
 			subset = set([int(value)])
 
-		elif param == "parent":
+		elif param == "children":
 			if comp == "recid" and value != None:
 				subset = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
 
 			if comp == "rectype":
 				groupby["parent"] = value
 
-		elif param == "child":
+		elif param == "parents":
 			if comp == "recid" and value != None:
 				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
 
-		# these will get filtered for permissions at the end..
-		elif param == "groups":
-			if comp == "contains" and value != None:
-				ind = self._getindex("groups", ctx=ctx, txn=txn)
-				subset = ind.get(value, txn=txn)
-
-		elif param == "permissions":
-			if comp == "contains" and value != None:
-				ind = self._getindex("permissions", ctx=ctx, txn=txn)
-				subset = ind.get(value, txn=txn)
+		# these are no longer special indexes
+		# elif param == "groups":
+		# 	if comp == "contains" and value != None:
+		# 		ind = self._getindex("groups", ctx=ctx, txn=txn)
+		# 		subset = ind.get(value, txn=txn)
+		# 
+		# elif param == "permissions":
+		# 	if comp == "contains" and value != None:
+		# 		ind = self._getindex("permissions", ctx=ctx, txn=txn)
+		# 		subset = ind.get(value, txn=txn)
 
 		elif param:
 			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
 
 		else:
 			pass
-
+	
 
 		return subset
 
@@ -1401,7 +1414,7 @@ class DB(object):
 		if groupby == None:
 			groupby = {}
 
-		if value == None and comp not in ["!None", "None", "contains_w_empty"]:
+		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
 
 		if not cfunc:
@@ -1411,8 +1424,6 @@ class DB(object):
 		results = collections.defaultdict(set)
 
 		# Get the list of param indexes to search
-		#if searchparam == "*" or searchparam == "root_parameter*":
-		#	indparams = self.bdbs.indexkeys.keys(txn=txn)
 		if '*' in searchparam:
 			indparams = self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
@@ -1422,25 +1433,38 @@ class DB(object):
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
-			try:
-				cargs = vtm.validate(pd, value, db=ctx.db)
-			except:
+			ik = self.bdbs.indexkeys.get(indparam, txn=txn)
+			if not pd.indexed or not ik:
 				continue
 
-			r = set(filter(functools.partial(cfunc, cargs), self.bdbs.indexkeys.get(indparam, txn=txn)))
+			try:
+				cargs = vtm.validate(pd, value, db=ctx.db)
+				# print "Validated cargs:", cargs
+			except Exception, inst:
+				# print "Validation Error:", inst
+				continue
+
+			# Get the index-index
+			r = set()
+
+			# Special case for two-level iterables (e.g. permissions) --
+			if pd.name == 'permissions':
+				cargs = emen2.util.listops.combine(*cargs)
+			
+			# Support for iterable vartypes
+			for v in emen2.util.listops.check_iterable(cargs):
+				r |= set(filter(functools.partial(cfunc, v), ik))
 
 			if r:
 				results[indparam] = r
+
 
 		# Now search individual param indexes
 		constraint_matches = set()
 		for pp, matchkeys in results.items():
 
 			# Mark these for children searches later
-			if '^' in searchparam:
-				groupby[pp+"^"] = matchkeys
-			else:
-				groupby[pp] = matchkeys
+			groupby[pp] = matchkeys
 
 			ind = self._getindex(pp, ctx=ctx, txn=txn)
 			for matchkey in matchkeys:
@@ -1461,21 +1485,22 @@ class DB(object):
 		cmps = {
 			"==": lambda y,x:x == y,
 			"!=": lambda y,x:x != y,
-			"contains": lambda y,x:unicode(y) in unicode(x),
-			"!contains": lambda y,x:unicode(y) not in unicode(x),
 			">": lambda y,x: x > y,
 			"<": lambda y,x: x < y,
 			">=": lambda y,x: x >= y,
 			"<=": lambda y,x: x <= y,
+			'any': lambda y,x: x != None,
+			'none': lambda y,x: x != None,
+			"contains": lambda y,x:unicode(y) in unicode(x),
 			'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
-			'!None': lambda y,x: x != None,
-			'None': lambda y,x: x != None
-			#"range": lambda x,y,z: y < x < z
+			'recid': lambda y,x: x,
+			'rectype': lambda y,x: x
+			# "!contains": lambda y,x:unicode(y) not in unicode(x),
+			# "range": lambda x,y,z: y < x < z
 		}
 
 		if ignorecase:
 			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-			cmps["!contains"] = lambda y,x:unicode(y).lower() not in unicode(x).lower()
 			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
 
 		return cmps
@@ -1484,14 +1509,14 @@ class DB(object):
 
 	def _query_paramstrip(self, param):
 		"""(Internal) Return basename of param"""
-		return param.replace("*","").replace("^","")
+		return param.replace('*','').replace('$$','')
 
 
 
 	# This is just a start -- clean up the idea here..
 	@publicmethod("records.find.plot")
 	def plot(self, *args, **kwargs):
-		"""docstring coming soon"""
+		"""See emen2.db.plot module"""
 
 		plotmode = kwargs.get('plotmode', 'scatter')
 

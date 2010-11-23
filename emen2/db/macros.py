@@ -64,6 +64,22 @@ class macro_recid(Macro):
 
 
 
+
+class macro_parents(Macro):
+	__metaclass__ = Macro.register_view
+			
+	def process(self, engine, macro, params, rec, db):
+		rectype, _, recurse = params.partition(",")
+		recurse = int(recurse or 1)
+		return db.getparents(rec.recid, rectypes=rectype, recurse=recurse)
+		
+
+	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+		return "Parents: %s"%params				
+				
+
+
+
 class macro_recname(Macro):
 	"""recname macro"""
 	__metaclass__ = Macro.register_view

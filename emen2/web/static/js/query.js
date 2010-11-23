@@ -17,13 +17,14 @@
 
 
 function query_build_path(q, postpend) {
-	//cmp_order = ["==", "!=", ".!contains.", ".contains.", ">=", "<=", ">", "<", ".!None.", '.recid.']
+	//cmp_order = ["==", "!=", ".contains.", ">=", "<=", ">", "<", ".any.", '.recid.']
+	// '!contains': '.!contains.',
 	var lut = {
-		'!contains': '.!contains.',
 		'contains': '.contains.',
-		'!None': '.!None.',
-		'None': '.None.',
-		'recid': '.recid.'
+		'any': '.any.',
+		'none': '.none.',
+		'recid': '.recid.',
+		'rectype': '.rectype.',
 	}
 
 	var output = [];
@@ -235,7 +236,7 @@ function query_build_path(q, postpend) {
 							<td></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
-							<td><input type="hidden" name="param" value="parent" />Child Of</td> \
+							<td><input type="hidden" name="param" value="children" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="recid" /></td> \
 							<td><input type="text" size="12" name="value" class="findrecord" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
@@ -298,9 +299,7 @@ function query_build_path(q, postpend) {
 			var base = t.parent().hasClass('base');
 			$('input[name=value]', t).val('')
 			$('input[name=recurse_p]', t).attr('checked', null);
-			$('input[name=parents_p]', t).attr('checked', null);
 			$('input[name=recurse_v]', t).attr('checked', null);
-			$('input[name=parents_v]', t).attr('checked', null);
 			if (!base) {
 				$('input[name=param]', t).val('');
 				$('select[name=cmp]', t).val('==');
@@ -343,14 +342,10 @@ function query_build_path(q, postpend) {
 
 				// These two recurse/parent checks are kindof ugly..
 				var recurse_v = $('input[name=recurse_v]', this).attr('checked');
-				var parents_v = $('input[name=parents_v]', this).attr('checked');
 				if (value && recurse_v) {value = value+'*'}
-				if (value && parents_v) {value = value+'^'}
 
 				var recurse_p = $('input[name=recurse_p]', this).attr('checked');
-				var parents_p = $('input[name=parents_p]', this).attr('checked');
 				if (param && recurse_p) {param = param+'*'}
-				if (param && parents_p) {param = param+'^'}
 
 				if (param && cmp && value) { c.push([param, cmp, value]) }
 			});
@@ -371,7 +366,6 @@ function query_build_path(q, postpend) {
 			cmp = cmp || '';
 			value = value || '';
 			var recurse = false;
-			var parents = false;
 			var self = this;
 			var cmpi = this.build_cmp(cmp);
 
@@ -380,19 +374,13 @@ function query_build_path(q, postpend) {
 				recurse = true;
 			}	
 			
-			if (param.search('\\^') > -1) {
-				param = param.replace('^', '');
-				parents = true;
-			}	
-
 			var newconstraint = $('<tr>')
 				.append('<td><input type="text" name="param" size="12" value="'+param+'" /></td>')
 				.append($('<td/>').append(cmpi))
 				.append('<td><input type="text" name="value" size="12" value="'+value+'" /></td>')
-				.append('<td><input name="recurse_p" type="checkbox" /><label>Child Parameters &nbsp;&nbsp; <input name="parents_p" type="checkbox" /><label>Also search parents</td>');
+				.append('<td><input name="recurse_p" type="checkbox" /><label>Child Parameters</td>');
 
 			if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
-			if (parents) {$('input[name=parents_p]', newconstraint).attr('checked', 'checked')}
 
 			var controls = $('<td />');
 
@@ -411,17 +399,19 @@ function query_build_path(q, postpend) {
 		},
 		
 		build_cmp: function(cmp) {
+			//"!contains":"does not contain",
 			var comparators = {
 				"==":"is",
 				"!=":"is not",
 				"contains":"contains",
-				"!contains":"does not contain",
 				">":"is greater than",
 				"<":"is less than",
 				">=":"is greater or equal than",
 				"<=":"is less or equal than",
-				"!None":"is any value",
-				'None':"is empty"
+				"any":"is any value",
+				'none':"is empty",
+				'recid': 'recod id',
+				'rectype': 'protocol'
 			}
 			var i = $('<select name="cmp" style="width:150px" />');
 			$.each(comparators, function(k,v) {
@@ -455,24 +445,15 @@ function query_build_path(q, postpend) {
 				var cmpi = this[1];
 				var value = this[2];
 				var recurse_p = false;
-				var parents_p = false;
 				var recurse_v = false;
-				var parents_v = false;
+
 				if (param.search('\\*') > -1) { 
 					recurse_p = true;
 					param = param.replace('*', '');
 				}
-				if (param.search('\\^') > -1) {
-					parents_p = true;
-					param = param.replace('^', '');
-				}
 				if (value.search('\\*') > -1) { 
 					recurse_v = true;
 					value = value.replace('*', '');
-				}
-				if (value.search('\\^') > -1) {
-					parents_v = true;
-					value = value.replace('^', '');
 				}
 				var finditem = $('.base.constraints input[name=param][value='+param+']', this.element);
 				if (finditem.length > 0) {
@@ -480,9 +461,7 @@ function query_build_path(q, postpend) {
 					$('input[name=cmp]', tr).val(cmpi);
 					$('input[name=value]', tr).val(value);
 					if (recurse_p) {$('input[name=recurse_p]', tr).attr('checked', 'checked')} else {$('input[name=recurse_p]', tr).attr('checked', null)}
-					if (parents_p) {$('input[name=parents_p]', tr).attr('checked', 'checked')} else {$('input[name=parents_p]', tr).attr('checked', null)}
 					if (recurse_v) {$('input[name=recurse_v]', tr).attr('checked', 'checked')} else {$('input[name=recurse_v]', tr).attr('checked', null)}
-					if (parents_v) {$('input[name=parents_v]', tr).attr('checked', 'checked')} else {$('input[name=parents_V]', tr).attr('checked', null)}
 
 				} else {
 					self.addconstraint(this[0], this[1], this[2]);					

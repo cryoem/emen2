@@ -17,6 +17,12 @@ def invert(d):
 
 	
 
+def check_iterable(value):
+	if not value:
+		value=[]
+	if not hasattr(value,"__iter__"):
+		value=[value]	
+	return value
 
 
 
