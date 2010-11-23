@@ -116,7 +116,7 @@ class DBOptions(optparse.OptionParser):
 
 
 		if not g.getattr('EMEN2DBHOME', False):
-			raise ValueError, "No EMEN2DBHOME / EMEN2DBHOME specified!"
+			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
 
 		# Set default log levels
