@@ -726,7 +726,8 @@ function bind_autocomplete(elem, param) {
 			this.typicalchld.empty();
 			var self = this;
 			var t = caches["recorddefs"][this.rectype].typicalchld;
-			t.sort();
+			// ian: leave the typicalchld list unsorted -- higher items might have preference!!
+			// t.sort();
 			$.each(t, function() {
 				try {
 					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
