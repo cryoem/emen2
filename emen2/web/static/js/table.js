@@ -23,8 +23,10 @@
 			var count = $('<select name="count" style="float:right"></select>');
 			count.append('<option value="">Rows</option>');
 			
-			$.each([10,50,100,500,1000], function() {
-				count.append('<option value="'+this+'">'+this+'</option>');
+			$.each([10,50,100,500,1000,0], function() {
+				var desc=this;
+				if (this==0) {desc='View All'}
+				count.append('<option value="'+this+'">'+desc+'</option>');
 			});
 			count.change(function() {
 				self.options.q['pos'] = 0;
@@ -217,23 +219,10 @@
 				
 		
 		rebuild_table: function() {
-			this.rebuild_plot();
 			this.rebuild_thead();
 			this.rebuild_tbody();
 		},
-		
-		
-		rebuild_plot: function() {
-			//
-			//"plots": {"png": "/data/tmp/2bf6df53a73d5160ceb9b202e0977c28aa7143a8-plot-2010.09.01-15.41.19.png"}
-			// $('.plot', this.element).empty();
-			// if (this.options.q['plots']) {
-			// 	var pngfile = this.options.q['plots']['png'];
-			// 	var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+pngfile+'" alt="Plot" />');
-			// 	$('.plot', this.element).append(i);				
-			// }
-		},
-		
+				
 		rebuild_thead: function() {
 			//<th data-name="${v[1]}" data-args="${v[2]}">${v[0]}</th>
 			
@@ -277,6 +266,7 @@
 		
 		
 		rebuild_tbody: function() {
+			console.log('rebuild_tbody');
 			var self = this;
 			var t = $('.inner', this.element);			
 			var headers = this.options.q['rendered']['headers']['null'];

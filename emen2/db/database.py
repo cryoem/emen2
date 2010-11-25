@@ -1271,7 +1271,6 @@ class DB(object):
 
 		# Step 3: Group
 		groups = collections.defaultdict(dict)
-		print "Running groups:", groupby.keys()
 		for groupparam, keys in groupby.items():
 			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
 
@@ -1288,6 +1287,33 @@ class DB(object):
 
 
 
+	# query test...
+	def _parse_macro(self, macro, ctx=None, txn=None):
+		r = re.compile(VIEW_REGEX).search(macro)
+		return r.group('name'), r.group('args')
+		
+		
+	
+	def _process_macro(self, macro, recs=None, recids=None, ctx=None, txn=None):
+		name, args = self._parse_macro(macro)
+		# print "Process macro: ", name, args
+		# Calling out to vtm, we will need a DBProxy
+		dbp = ctx.db
+		dbp._settxn(txn)
+		vtm = emen2.db.datatypes.VartypeManager()
+
+		vtm.macro_preprocess(name, args, recs, db=dbp)
+		ret = collections.defaultdict(set)
+		recs = recs or self.getrecord(recids, ctx=ctx, txn=txn)
+		# print "processing..."
+		# print recs
+		rmap = {}
+		for rec in recs:
+			ret[vtm.macro_render(name, args, rec, db=dbp)].add(rec.recid)
+			# print rec.recid, ret[rec.recid]
+		return ret
+
+
 
 	def _query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
 		"""(Internal) Group query constraints"""
@@ -1297,8 +1323,8 @@ class DB(object):
 		param = self._query_paramstrip(groupparam)
 
 		if param.startswith('$@'):
-			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing
-			groups[param] = set()
+			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing			
+			groups[param] = self._process_macro(param, recids=recids, ctx=ctx, txn=txn)
 
 
 		elif param == "rectype":
@@ -1355,8 +1381,7 @@ class DB(object):
 
 		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
 		if param.startswith('$@'):
-			print "macro constraint..."
-			groupby[param] = set()
+			groupby[param] = {}
 			pass
 			
 
@@ -1373,12 +1398,14 @@ class DB(object):
 		elif param == "recid":
 			subset = set([int(value)])
 
+
 		elif param == "children":
 			if comp == "recid" and value != None:
 				subset = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
 
 			if comp == "rectype":
 				groupby["parent"] = value
+
 
 		elif param == "parents":
 			if comp == "recid" and value != None:
@@ -1397,7 +1424,7 @@ class DB(object):
 
 		elif param:
 			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
-
+			
 		else:
 			pass
 	
@@ -1416,7 +1443,7 @@ class DB(object):
 
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
-
+		
 		if not cfunc:
 			return None
 
@@ -1429,7 +1456,7 @@ class DB(object):
 		else:
 			indparams = [self._query_paramstrip(searchparam)]
 
-
+		
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
@@ -1452,9 +1479,12 @@ class DB(object):
 				cargs = emen2.util.listops.combine(*cargs)
 			
 			# Support for iterable vartypes
+			if cargs == None:
+				cargs = [None]
 			for v in emen2.util.listops.check_iterable(cargs):
 				r |= set(filter(functools.partial(cfunc, v), ik))
-
+				# print "->", v, len(r)
+			
 			if r:
 				results[indparam] = r
 
@@ -1532,13 +1562,24 @@ class DB(object):
 
 
 	@publicmethod("records.find.table")
-	def querytable(self, pos=0, count=500, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
+	def querytable(self, pos=0, count=1000, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		"""doctstring coming soon"""
-
+		
+		# print "count is", count
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
-		count = int(count) or None
-		pos = int(pos)
+		
+		print "Count?"
+		print count
+		if count:
+			count = int(count) or None
+		else:
+			count = None
+		
+		if pos:	
+			pos = int(pos) or 0
+		else:
+			pos = 0
 
 		if reverse == None:
 			reverse = 1
@@ -2797,9 +2838,7 @@ class DB(object):
 	def resetpassword(self, username, newpassword=None, secret=None, ctx=None, txn=None):
 
 		errmsg = "Could not reset password"
-		print username
 		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
-		print username
 		
 		try:
 			user = self.bdbs.users.sget(username, txn=txn)

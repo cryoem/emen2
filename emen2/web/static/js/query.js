@@ -22,7 +22,7 @@ function query_build_path(q, postpend) {
 	var lut = {
 		'contains': '.contains.',
 		'any': '.any.',
-		'none': '.none.',
+	'none': '.none.',
 		'recid': '.recid.',
 		'rectype': '.rectype.',
 	}
@@ -74,12 +74,39 @@ function query_build_path(q, postpend) {
 				return
 			}
 			
-			var t = $('<table> \
-				<tr><td style="width:50px"><input name="ymax" type="text" size="4"></td><td style="width:650px" class="plot_title"></td><td></td></tr> \
-				<tr><td class="vertical plot_ylabel"></td><td class="plot_image"></td><td class="plot_legend"><h4>Legend</h4><ul class="nonlist"></ul><input type="button" name="update" value="Update" /></td></tr> \
-				<tr><td><input name="ymin" type="text" size="4"></td><td class="plot_xlabel"><input style="float:left" name="xmin" type="text" size="4" value=""/><span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /></td><td></td></tr> \
-				</table> \
-			');
+			// Trust me -- I hate tables, especially table-embedded-tables, but this is the easiest way..
+			var t = $(' \
+				<table> \
+					<tr> \
+						<td style="width:50px"><input name="ymax" type="text" size="4"></td> \
+						<td style="width:650px" class="plot_title"></td> \
+						<td></td> \
+					</tr><tr> \
+						<td class="vertical plot_ylabel"></td><td class="plot_image"></td> \
+						<td> \
+							<table>\
+								<thead> \
+									<tr> \
+										<th><input type="checkbox" name="checkall"></th> \
+										<th></th> \
+										<th>Group</th> \
+										<th>Count</th> \
+									</tr> \
+								</thead> \
+								<tbody class="plot_legend"></tbody> \
+							</table> \
+							<input type="button" name="update" value="Update" /> \
+						</td> \
+						<td></td> \
+					</tr><tr> \
+						<td><input name="ymin" type="text" size="4"></td> \
+						<td class="plot_xlabel"> \
+							<input style="float:left" name="xmin" type="text" size="4" value=""/> \
+							<span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /> \
+						</td> \
+						<td></td> \
+					</tr> \
+				</table>');
 			this.element.append(t);	
 
 			$('input[name=xmin]', this.element).val(this.options.q['xmin']);
@@ -94,14 +121,25 @@ function query_build_path(q, postpend) {
 			var png = this.options.q['plots']['png'];
 			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="Plot" />');
 			$('.plot_image', this.element).append(i);
-		
-			$.each(this.options.q['groupnames'], function(k,v) {
-				var i = $('<li> \
-					<input type="checkbox" checked="checked" name="groupshow" data-group="'+k+'" value="'+k+'" /> \
-					<input class="colorpicker" name="groupcolor" data-group="'+k+'" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" /> '+v+'</li>');
-					
-				$('.plot_legend ul', this.element).append(i);
+			
+			//console.log(this.options.q['grouporder']);
+			$.each(this.options.q['grouporder'], function(i,k) {
+				var row = $('\
+					<tr> \
+						<td><input type="checkbox" checked="checked" name="groupshow" data-group="'+k+'" value="'+k+'" /></td> \
+						<td><input class="colorpicker" name="groupcolor" data-group="'+k+'" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" /></td> \
+						<td>'+self.options.q['groupnames'][k]+'</td> \
+						<td>'+self.options.q['groupcount'][k]+'</td> \
+					</tr>');					
+				$('.plot_legend', this.element).append(row);
 			});					
+
+			// bind checkall / uncheckall
+			$('input[name=checkall]').click(function() {
+				var state = $(this).attr('checked');
+				console.log("checking all", state);
+				$('input[name=groupshow]').each(function(){$(this).attr('checked', state)});
+			})
 
 			$('.colorpicker', this.element).colorPicker();
 
@@ -142,7 +180,6 @@ function query_build_path(q, postpend) {
 				groupcolors[$(this).attr('data-group')] = $(this).val();
 			});
 			newq['groupcolors'] = groupcolors;
-
 			this.options.cb(this, newq);			
 		},
 				

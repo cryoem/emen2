@@ -49,6 +49,15 @@ static_files = \
 
 
 
+# import distutils.command.build_ext
+# class build_test(distutils.command.build_ext.build_ext):
+# 	description = "Build against Berkeley DB and bsddb3"
+# 	def run(self):
+# 		# this method will need to liberally copy and paste from the parent class, and insert one or two changes...
+		
+
+	
+
 if __name__ == "__main__":
 	setup(
 		name='emen2',

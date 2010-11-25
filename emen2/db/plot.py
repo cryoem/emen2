@@ -26,12 +26,35 @@ g = emen2.db.config.g()
 from emen2.db.vartypes import parse_datetime
 
 
+
+# Colors to use in plot..
+# based on a set from http://http://colorbrewer2.org
+COLORS = [
+	'#1F78B4', # light blue
+	'#FB9A99', # light red
+	'#B2DF8A', # light green
+	'#FDBF6F', # light orange
+	'#CAB2D6', # light purple
+	'#A6CEE3', # dark blue
+	'#E31A1C', # dark red
+	'#33A02C', # dark green
+	'#FF7F00', # dark orange
+	'#6A3D9A' # dark purple
+]
+
+# Alt scheme:
+# 0x8DD3C7; 0xFFFFB3; 0xBEBADA; 0xFB8072; 0x80B1D3; 0xFDB462; 0xB3DE69; 0xFCCDE5; 0xD9D9D9; 0xBC80BD; 
+
+
+
 def start(xmin, binw):
 	return xmin
+	
 	
 
 def step(cur, binw):
 	return cur + binw
+
 
 
 def datestart(xmin, binw):
@@ -43,6 +66,7 @@ def datestart(xmin, binw):
 	elif binw == 'year':
 		cur = xmin.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 	return cur
+
 
 
 def datestep(cur, binw):
@@ -57,12 +81,9 @@ def datestep(cur, binw):
 
 
 
-
-
 def set_xticklabels(ax, steps):
         ax.set_xticks(range(len(steps)))
         ax.set_xticklabels(steps, size="x-small", rotation=90)
-
 
 
 
@@ -71,28 +92,17 @@ def continuous_set_xticklabels(ax, steps):
 	ax.set_xticklabels(steps)
 
 
+
 def date_set_xticklabels(ax, steps):
 	ax.set_xticks(range(len(steps)-1))
 	ax.set_xticklabels([str(i.date()) for i in steps[:-1]], size="x-small", rotation=45)
 
 
 
-
-
-# Colors to use in plot..
-COLORS = ['#0000ff', '#00ff00', '#ff0000', '#800000', '#000080', '#808000',
-	'#800080', '#c0c0c0', '#008080', '#7cfc00', '#cd5c5c', '#ff69b4', '#deb887',
-	'#a52a2a', '#5f9ea0', '#6495ed', '#b8890b', '#8b008b', '#f08080', '#f0e68c',
-	'#add8e6', '#ffe4c4', '#deb887', '#d08b8b', '#bdb76b', '#556b2f', '#ff8c00',
-	'#8b0000', '#8fbc8f', '#ff1493', '#696969', '#b22222', '#daa520', '#9932cc',
-	'#e9967a', '#00bfff', '#1e90ff', '#ffd700', '#adff2f', '#00ffff', '#ff00ff',
-	'#808080']
-
-
-
 def less(x,y):
 	if x < y or y == None: return x
 	return y
+
 
 
 def greater(x,y):
@@ -120,8 +130,8 @@ def getplotfile(prefix=None, suffix=None, ctx=None, txn=None):
 
 class Plotter(object):
 
-	def __init__(self, xparam=None, yparam=None, groupby="rectype", c=None, groupshow=None, groupcolors=None, binw=None, binc=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=600, plotmode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
-		
+	def __init__(self, xparam=None, yparam=None, groupby="rectype", c=None, groupshow=None, groupcolors=None, binw=None, binc=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=1000, plotmode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
+				
 		# Run all the arguments through query..
 		c = c or []
 		cparams = [i[0] for i in c]
@@ -134,13 +144,6 @@ class Plotter(object):
 
 
 		self.q = db.query(c=c, ctx=ctx, txn=txn, **kwargs)
-		print "Plotter: looking for %s in groups, %s"%(groupby, self.q['groups'].keys())
-		
-		print "Got groups"
-		for k, v in self.q['groups'].items():
-			print k
-			print v
-		
 		if not self.q["groups"].get(groupby):
 			groupby = "rectype"
 			self.q["groups"][groupby] = db.groupbyrecorddef(self.q["recids"], ctx=ctx, txn=txn)
@@ -149,16 +152,18 @@ class Plotter(object):
 			formats = ["png"]
 
 		width = int(width)
-		groupcolors = groupcolors or {}
 
-
-		#
+		# Args from DB -- this is not called from a proxy, so pass ctx/txn to any new DB calls
+		self.ctx = ctx
+		self.txn = txn
+		self.db = db
+		self.kwargs = kwargs
+		
+		# Basic plot controls
 		self.c = c
 		self.xparam = xparam
 		self.yparam = yparam
 		self.groupby = groupby
-		self.groupshow = groupshow
-		self.groupcolors = groupcolors
 		self.formats = formats
 		self.xmin = xmin
 		self.ymin = ymin
@@ -169,19 +174,27 @@ class Plotter(object):
 		self.title = ''
 		self.xlabel = ''
 		self.ylabel = ''
-		self.cutoff = cutoff
 		self.binw = binw
-		self.binc = binc
-		
+		self.binc = binc		
 
-		#
-		self.groupnames = {}
+		# Set group names and colors
+		self.cutoff = cutoff
 		
-		#
-		self.ctx = ctx
-		self.txn = txn
-		self.db = db
-		self.kwargs = kwargs
+		self.grouporder = [i[0] for i in sorted(self.q['groups'][groupby].items(), reverse=True, key=lambda x:len(x[1]))]
+		self.groupshow = groupshow or self.grouporder
+		self.groupcolors = groupcolors or {}
+		self.groupnames = {}
+		self.groupcount = {}
+		
+		# Process groupshow, and restrict recids to this set
+		newrecids = set()
+		for nextcolor, group in enumerate(self.grouporder):
+			v = self.q['groups'][groupby][group]
+			self.groupnames[group] = group
+			self.groupcolors[group] = self.groupcolors.get(group, COLORS[nextcolor%len(COLORS)])
+			self.groupcount[group] = len(v)
+			if group in self.groupshow:
+				newrecids |= v
 
 
 		fig = matplotlib.figure.Figure(figsize=(self.width/100.0, self.width/100.0), dpi=100)
@@ -214,11 +227,14 @@ class Plotter(object):
 
 		
 		self.q.update({
+			"recids": newrecids,
 			"plots": plots,
 			"xlabel": self.xlabel,
 			"ylabel": self.ylabel,
 			"title": self.title,
 			"groupcolors": self.groupcolors,
+			"groupcount": self.groupcount,
+			"grouporder": self.grouporder,
 			"groupshow": self.groupshow,
 			"groupnames": self.groupnames,
 			"formats": self.formats,
@@ -271,24 +287,14 @@ class ScatterPlot(Plotter):
 
 		self.ax.grid(True)
 		
-		colorcount = len(COLORS)
 		handles = []
 		labels = []
 		nextcolor = 0
 		nr = [None, None, None, None]
 
-		# plot each group
-		for k,v in sorted(self.q['groups'][self.groupby].items()):
-			if len(v) <= self.cutoff:
-				continue
-				
-			self.groupnames[k] = "%s (%s records)"%(k, len(v))
-			self.groupcolors[k] = self.groupcolors.get(k, COLORS[nextcolor%colorcount])
-			nextcolor += 1
-
-			if  (self.groupshow and k not in self.groupshow):
-				continue
-				
+		# plot each group		
+		for k in self.groupshow:
+			v = self.q['groups'][self.groupby][k]
 			x = map(xinvert.get, v)
 			y = map(yinvert.get, v)
 
