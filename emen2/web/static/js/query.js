@@ -87,15 +87,25 @@ function query_build_path(q, postpend) {
 							<table>\
 								<thead> \
 									<tr> \
-										<th><input type="checkbox" name="checkall"></th> \
-										<th></th> \
-										<th>Group</th> \
-										<th>Count</th> \
+										<th>Show<button data-sort="show" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
+										<th>Color</th> \
+										<th>Group<button data-sort="group" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
+										<th>Count<button data-sort="count" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
 									</tr> \
 								</thead> \
 								<tbody class="plot_legend"></tbody> \
+								<thead> \
+									<tr> \
+										<td colspan="3"> \
+											<input name="checkall" type="button" value="All" /> \
+											<input name="checknone" type="button" value="None" /> \
+											<input name="checkinvert" type="button" value="Invert" /> \
+											<input name="partcolors" type="button" value="Group Colors" /> \
+										</td> \
+										<td><input type="button" name="update" value="Update" /></td> \
+									</tr> \
+								</thead> \
 							</table> \
-							<input type="button" name="update" value="Update" /> \
 						</td> \
 						<td></td> \
 					</tr><tr> \
@@ -122,40 +132,97 @@ function query_build_path(q, postpend) {
 			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="Plot" />');
 			$('.plot_image', this.element).append(i);
 			
-			//console.log(this.options.q['grouporder']);
+			// init group order
+			this.setgrouporder();
+
+			// bind checkall / uncheckall
+			$('input[name=checkall]').click(function() {
+				$('input[name=groupshow]').each(function() {
+					$(this).attr('checked', true);
+				});
+			});
+			$('input[name=checknone]').click(function() {
+				$('input[name=groupshow]').each(function() {
+					$(this).attr('checked', false);
+				});
+			});
+			$('input[name=checkinvert]').click(function() {
+				$('input[name=groupshow]').each(function() {
+					var state = $(this).attr('checked');
+					$(this).attr('checked', !state);
+				});
+			});
+			$('input[name=partcolors]').click(function() {
+				$('input[name=groupshow]', this.element).each(function(){
+					var group = $(this).attr('data-group');
+					var state = $(this).attr('checked');
+					var color = '#000000';
+					if (!state) {
+						color = '#FFFFFF';
+					}
+					$('input[name=groupcolor][data-group='+group+']').val(color).change();
+				});
+			});
+
+			$('input[name=update]', this.element).click(function(){
+				self.query();
+			});
+			
+			
+			$('button[data-sort=show]', this.element).click(function() {
+				var s1=[];
+				var s2=[];
+				$('input[name=groupshow]').each(function() {
+					var group = $(this).attr('data-group');
+					var state = $(this).attr('checked');
+					if (state) {s1.push(group)} else {s2.push(group)}
+				});
+				self.setgrouporder(s1.concat(s2));
+			});
+			$('button[data-sort=group]', this.element).click(function() {
+				var neworder = self.options.q['grouporder'].slice();
+				neworder.sort();
+				self.setgrouporder(neworder);
+			});
+			$('button[data-sort=count]', this.element).click(function() {
+				var sortable = [];
+				for (var group in self.options.q['groupcount']) sortable.push([group, self.options.q['groupcount'][group]])
+				sortable.sort(function(a, b) {return a[1] - b[1]});
+				var neworder = [];
+				$.each(sortable, function(i,k){neworder.push(k[0])});
+				self.setgrouporder(neworder);
+			});
+			
+		},
+		
+		
+		setgrouporder: function(neworder) {
+			var self = this;
+			neworder = neworder || this.options.q['grouporder'];
+			// console.log("Setting order", neworder);
+			// console.log(this.options.q['grouporder']);
+
+			$('.plot_legend', this.element).empty();
 			$.each(this.options.q['grouporder'], function(i,k) {
 				var row = $('\
 					<tr> \
 						<td><input type="checkbox" checked="checked" name="groupshow" data-group="'+k+'" value="'+k+'" /></td> \
 						<td><input class="colorpicker" name="groupcolor" data-group="'+k+'" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" /></td> \
-						<td>'+self.options.q['groupnames'][k]+'</td> \
+						<td>'+k+'</td> \
 						<td>'+self.options.q['groupcount'][k]+'</td> \
 					</tr>');					
 				$('.plot_legend', this.element).append(row);
 			});					
-
-			// bind checkall / uncheckall
-			$('input[name=checkall]').click(function() {
-				var state = $(this).attr('checked');
-				console.log("checking all", state);
-				$('input[name=groupshow]').each(function(){$(this).attr('checked', state)});
-			})
-
 			$('.colorpicker', this.element).colorPicker();
-
-
+			
 			// Check the boxes for groups that are being displayed
 			if (this.options.q['groupshow']) {
 				$('input[name=groupshow]').each(function(){$(this).attr('checked',null)});
 				$.each(this.options.q['groupshow'], function() {
 					$('input[name=groupshow][data-group='+this+']', self.element).attr('checked', 'checked');
 				});
-			}
-
-			$('input[name=update]', this.element).click(function(){
-				self.query();
-			});
-			
+			}			
+			this.options.q['grouporder'] = neworder;
 		},
 		
 		query: function() {

@@ -266,7 +266,6 @@
 		
 		
 		rebuild_tbody: function() {
-			console.log('rebuild_tbody');
 			var self = this;
 			var t = $('.inner', this.element);			
 			var headers = this.options.q['rendered']['headers']['null'];

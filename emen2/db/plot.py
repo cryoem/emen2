@@ -130,7 +130,7 @@ def getplotfile(prefix=None, suffix=None, ctx=None, txn=None):
 
 class Plotter(object):
 
-	def __init__(self, xparam=None, yparam=None, groupby="rectype", c=None, groupshow=None, groupcolors=None, binw=None, binc=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=1000, plotmode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
+	def __init__(self, xparam=None, yparam=None, groupby="rectype", c=None, groupshow=None, grouporder=None, groupcolors=None, binw=None, binc=None, formats=None, xmin=None, xmax=None, ymin=None, ymax=None, width=1000, plotmode='scatter', cutoff=1, title=None, xlabel=None, ylabel=None, ctx=None, txn=None, db=None, **kwargs):
 				
 		# Run all the arguments through query..
 		c = c or []
@@ -180,22 +180,27 @@ class Plotter(object):
 		# Set group names and colors
 		self.cutoff = cutoff
 		
-		self.grouporder = [i[0] for i in sorted(self.q['groups'][groupby].items(), reverse=True, key=lambda x:len(x[1]))]
+		# These will all need to be str-based due to JavaScript
+		self.grouporder = grouporder or [i[0] for i in sorted(self.q['groups'][groupby].items(), reverse=True, key=lambda x:len(x[1]))]
 		self.groupshow = groupshow or self.grouporder
+		self.grouporder = map(str, self.grouporder)
+		self.groupshow = map(str, self.groupshow)
 		self.groupcolors = groupcolors or {}
 		self.groupnames = {}
 		self.groupcount = {}
 		
 		# Process groupshow, and restrict recids to this set
 		newrecids = set()
-		for nextcolor, group in enumerate(self.grouporder):
-			v = self.q['groups'][groupby][group]
+		# This is less elegant than it could be due to JavaScript limitations (dict keys are strings)
+		for nextcolor, (group, v) in enumerate(self.q['groups'][groupby].items()):
+			# group here is the native datatype -- convert to string to check for groupshow memberships
+			group = str(group)
 			self.groupnames[group] = group
 			self.groupcolors[group] = self.groupcolors.get(group, COLORS[nextcolor%len(COLORS)])
 			self.groupcount[group] = len(v)
 			if group in self.groupshow:
 				newrecids |= v
-
+		
 
 		fig = matplotlib.figure.Figure(figsize=(self.width/100.0, self.width/100.0), dpi=100)
 		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
@@ -223,7 +228,6 @@ class Plotter(object):
 			pdffile = getplotfile(prefix="plot", suffix="pdf", ctx=ctx, txn=txn)
 			fig.savefig(pdffile)
 			plots["pdf"] = os.path.basename(pdffile)
-
 
 		
 		self.q.update({
@@ -293,15 +297,15 @@ class ScatterPlot(Plotter):
 		nr = [None, None, None, None]
 
 		# plot each group		
-		for k in self.groupshow:
-			v = self.q['groups'][self.groupby][k]
+		for k,v in self.q['groups'][self.groupby].items():
+			if not str(k) in self.groupshow:
+				continue
 			x = map(xinvert.get, v)
 			y = map(yinvert.get, v)
-
 			nr = [less(min(x), nr[0]), less(min(y), nr[1]), greater(max(x), nr[2]), greater(max(y), nr[3])]
-			handle = self.ax.scatter(x, y, c=self.groupcolors[k])
+			handle = self.ax.scatter(x, y, c=self.groupcolors[str(k)])
 			handles.append(handle)
-			labels.append(k)
+			labels.append(str(k))
 						
 		if self.xmin != None: nr[0] = float(self.xmin)
 		if self.ymin != None: nr[1] = float(self.ymin)
