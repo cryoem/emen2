@@ -10,6 +10,10 @@ import itertools
 import random
 import datetime
 
+import emen2.db.config
+g = emen2.db.config.g()
+
+
 try:
 	import matplotlib.backends.backend_agg
 	import matplotlib.dates
@@ -20,8 +24,6 @@ except ImportError:
 
 
 
-import emen2.db.config
-g = emen2.db.config.g()
 
 from emen2.db.vartypes import parse_datetime
 
