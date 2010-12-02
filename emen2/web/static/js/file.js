@@ -186,10 +186,12 @@
 						<input class="save" name="remove" type="button" value="Remove Selected Files" /> \
 					</div> \
 					<div style="float:right"> \
-						<input type="file" name="filedata" style="width:230px" /> \
+						<input type="file" name="filedata" /> \
 						<input class="save" name="save" type="submit" value="Add File" /> \
 					</div> \
 				</div>');
+			
+			//style="width:230px" 
 			
 			if (this.options.edit) {
 				$('form', this.dialog).append(controls);
