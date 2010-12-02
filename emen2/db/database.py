@@ -1569,8 +1569,6 @@ class DB(object):
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
 		
-		print "Count?"
-		print count
 		if count:
 			count = int(count) or None
 		else:

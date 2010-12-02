@@ -295,7 +295,7 @@ function record_init(rec, ptest, edit) {
 	
 	$('.editable').EditControl({});
 
-	//$('.editable_files').FileControl({});
+	$('.editable_files').FileControl({});
 
 	$('.editbar .edit').EditbarHelper({
 		bind: false,
@@ -418,6 +418,133 @@ function record_init(rec, ptest, edit) {
 
 
 
+////////////////  "Drop-down Menu" ///////////////////
+
+
+(function($) {
+    $.widget("ui.EditbarHelper", {
+		options: {
+			open: function(self) {},
+			close: function(self) {},
+			cb: function(self) {},
+			init: function(self) {},
+			bind: true,
+			show: false,
+			reflow: false,
+			align: 'left',
+			width: null,
+			height: null
+		},
+				
+		_create: function() {
+			this.built = 0;
+			var self = this;
+			this.cachepadding = null;
+			this.element.addClass('popup');
+			
+			if (this.options.bind) {
+				$('.label', this.element).click(function(e) {
+					e.stopPropagation();
+					self.toggle();
+				});
+			}
+			
+			if (this.options.show==true) {
+				this.toggle();
+			}
+			
+		},
+		
+		toggle: function() {
+			if (this.element.hasClass('active')) {
+				this.hide();
+			} else {
+				this.show();
+			}
+		},
+		
+		show: function() {
+			$('.editbar .active').EditbarHelper('hide');
+			this.build();
+			this.element.addClass('active');
+			this.options.cb(this);
+			this.options.open(this);
+			this.popup.show();
+			
+			if (this.options.reflow) {
+				this.cachepadding = $(this.options.reflow).css('padding-top');
+				$(this.options.reflow).css('padding-top', this.popup.outerHeight());
+			}
+			
+		},
+		
+		hide: function() {
+			if (!this.built) {return}
+			this.popup.hide();
+			this.options.cb(this);
+			this.options.close(this);
+			this.element.removeClass('active');
+
+			if (this.options.reflow) {
+				$(this.options.reflow).css('padding-top', this.cachepadding);
+			}
+			
+		},		
+		
+		build: function() {
+			if (this.built) {
+				return
+			}
+			this.built = 1;			
+			
+			var pos = this.element.position();
+
+			this.popup = $('.hidden', this.element);
+			if (!this.popup.length) {
+				this.popup = $('<div class="hidden" />');
+				this.element.append(this.popup);
+			}
+			
+			this.popup.css('top', this.element.outerHeight()-4);
+			
+			if (this.options.width) {
+				this.popup.width(this.options.width)
+			}
+			if (this.options.height) {
+				this.popup.height(this.options.height);
+			}
+
+
+
+			this.options.init(this);			
+						
+			// ugly horrible hack time...
+
+			var uglydiv = $('<div style="position:absolute;background:white" />');
+			uglydiv.width(this.element.outerWidth()-5);
+			uglydiv.height(4);
+			uglydiv.css('top', -4);
+			
+			if (this.options.align == 'left') {
+				this.popup.css('left', -2);
+				uglydiv.css('left', 0);
+				uglydiv.width(this.element.outerWidth()-3);
+			} else {
+				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-2);
+				uglydiv.css('right', 0);
+			}
+
+			this.popup.append(uglydiv);
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
 
 ////////////////  Record Update callbacks ///////////////////
 
@@ -558,133 +685,6 @@ function admin_userstate_form(elem) {
 
 
 
-////////////////  "Drop-down Menu" ///////////////////
-
-
-(function($) {
-    $.widget("ui.EditbarHelper", {
-		options: {
-			open: function(self) {},
-			close: function(self) {},
-			cb: function(self) {},
-			init: function(self) {},
-			bind: true,
-			show: false,
-			reflow: false,
-			align: 'left',
-			width: null,
-			height: null
-		},
-				
-		_create: function() {
-			this.built = 0;
-			var self = this;
-			this.cachepadding = null;
-			this.element.addClass('popup');
-			
-			if (this.options.bind) {
-				$('.label', this.element).click(function(e) {
-					e.stopPropagation();
-					self.toggle();
-				});
-			}
-			
-			if (this.options.show==true) {
-				this.toggle();
-			}
-			
-		},
-		
-		toggle: function() {
-			if (this.element.hasClass('active')) {
-				this.hide();
-			} else {
-				this.show();
-			}
-		},
-		
-		show: function() {
-			$('.editbar .active').EditbarHelper('hide');
-			this.build();
-			this.element.addClass('active');
-			this.options.cb(this);
-			this.options.open(this);
-			this.popup.show();
-			
-			if (this.options.reflow) {
-				this.cachepadding = $(this.options.reflow).css('padding-top');
-				$(this.options.reflow).css('padding-top', this.popup.outerHeight());
-			}
-			
-		},
-		
-		hide: function() {
-			if (!this.built) {return}
-			this.popup.hide();
-			this.options.cb(this);
-			this.options.close(this);
-			this.element.removeClass('active');
-
-			if (this.options.reflow) {
-				$(this.options.reflow).css('padding-top', this.cachepadding);
-			}
-			
-		},		
-		
-		build: function() {
-			if (this.built) {
-				return
-			}
-			this.built = 1;			
-			
-			var pos = this.element.position();
-
-			this.popup = $('.hidden', this.element);
-			if (!this.popup.length) {
-				this.popup = $('<div class="hidden" />');
-				this.element.append(this.popup);
-			}
-			
-			this.popup.css('top', this.element.outerHeight()-4);
-			
-			if (this.options.width) {
-				this.popup.width(this.options.width)
-			}
-			if (this.options.height) {
-				this.popup.height(this.options.height);
-			}
-
-
-
-			this.options.init(this);			
-						
-			// ugly horrible hack time...
-
-			var uglydiv = $('<div style="position:absolute;background:white" />');
-			uglydiv.width(this.element.outerWidth()-5);
-			uglydiv.height(4);
-			uglydiv.css('top', -4);
-			
-			if (this.options.align == 'left') {
-				this.popup.css('left', -2);
-				uglydiv.css('left', 0);
-				uglydiv.width(this.element.outerWidth()-3);
-			} else {
-				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-2);
-				uglydiv.css('right', 0);
-			}
-
-			this.popup.append(uglydiv);
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
 
 
 
