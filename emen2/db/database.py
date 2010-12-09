@@ -892,7 +892,7 @@ class DB(object):
 		newtime = time.time()
 		new_strftime = time.strftime(g.TIMESTR, time.gmtime(newtime))
 
-		g.log.msg("LOG_DEBUG","Cleaning up expired contexts: %s -> %s"%(old_strftime, new_strftime)
+		g.log.msg("LOG_DEBUG","Cleaning up expired contexts: %s -> %s"%(old_strftime, new_strftime))
 
 		for ctxid, context in self.bdbs.contexts.items(txn=txn):
 			# use the cached time if available
@@ -4330,7 +4330,7 @@ class DB(object):
 					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
 					delindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].removerefs %s failed: %s"%(param, oldval, inst)
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].removerefs %s failed: %s"%(param, oldval, inst))
 				raise
 
 
@@ -4341,7 +4341,7 @@ class DB(object):
 					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
 					addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].addrefs %s failed: %s"%(param, newval, inst)
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].addrefs %s failed: %s"%(param, newval, inst))
 				raise
 
 
