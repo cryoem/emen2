@@ -3229,8 +3229,10 @@ class DB(object):
 		for group in groups:
 
 			ngm = group.members()
-			try: ogm = self.bdbs.groups.get(group.groupname, txn=txn).members()
-			except: ogm = set()
+			#try:
+			ogm = self.bdbs.groups.get(group.name, txn=txn).members()
+			#except:
+			#	ogm = set()
 
 			addusers = ngm - ogm
 			delusers = ogm - ngm
@@ -3294,7 +3296,7 @@ class DB(object):
 		addrefs, delrefs = self._reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
 
 		for group in groups:
-			g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %s"%(group))
+			g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %s"%(group.name))
 			self.bdbs.groups.set(group.name, group, txn=txn)
 
 		self._commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
