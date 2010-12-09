@@ -8,6 +8,7 @@ g = emen2.db.config.g()
 
 
 envopenflags = [
+	# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
 	DB_CREATE,
 	DB_THREAD,
 	DB_INIT_MPOOL,
@@ -16,9 +17,8 @@ envopenflags = [
 	DB_INIT_LOG,
 	DB_REGISTER,
 	DB_TXN_SNAPSHOT,
-	DB_MULTIVERSION
-	#DB_RECOVER
-	# DB_FAILCHK # ian: todo: doesn't seem to be in bsddb3
+	DB_MULTIVERSION,
+	DB_RECOVER
 ]
 
 dbopenflags = [
