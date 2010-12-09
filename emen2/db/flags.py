@@ -20,6 +20,10 @@ envopenflags = [
 	DB_MULTIVERSION,
 	DB_RECOVER
 ]
+#Ed: this exists in a newer version of the bsddb3 module, but it raises an exception
+#try:
+#	envopenflags.append(DB_FAILCHK) # added in bsddb3 5.1
+#except AttributeError: pass
 
 dbopenflags = [
 	DB_CREATE,
