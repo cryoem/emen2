@@ -1310,9 +1310,9 @@ class DB(object):
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		vtm.macro_preprocess(name, args, recs, db=dbp)
 		ret = collections.defaultdict(set)
 		recs = recs or self.getrecord(recids, ctx=ctx, txn=txn)
+		vtm.macro_preprocess(name, args, recs, db=dbp)
 		# print "processing..."
 		# print recs
 		rmap = {}
