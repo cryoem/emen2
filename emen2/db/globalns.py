@@ -15,6 +15,7 @@ import threading
 import os
 import os.path
 import UserDict
+import time
 
 try: import yaml
 except ImportError:
@@ -119,7 +120,7 @@ class GlobalNamespace(object):
 		def closestdout(self): pass
 		def msg(self, sn, *args):
 			sn = self.debugstates.get_name(self.debugstates[sn])
-			print u'StubLogger: %s :: %s :: %s' % (self, sn, self.print_list(args))
+			print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
 
 	@inst

@@ -121,7 +121,7 @@ class Context(object):
 
 	def _setDBProxy(self, txn=None):
 		if not isinstance(self.db, emen2.db.proxy.DBProxy):
-			g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.ctxid)
+			# g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.ctxid)
 			self.db = emen2.db.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
 
 

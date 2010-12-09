@@ -396,13 +396,14 @@ class DB(object):
 			g.log.msg('LOG_INFO',"Could not open database! %s"%e)
 			self.txnabort(txn=txn)
 			raise
+
 		else:
 			self.txncommit(txn=txn)
 
 
 
 	def __del__(self):
-		g.log_info('cleaning up DB instance')
+		g.log_info('Cleaning up DB instance')
 
 
 
@@ -418,12 +419,14 @@ class DB(object):
 				defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
 			except:
 				defaultemail = "root@localhost"
-				
+			
+			print "\n=== New Database Setup ==="	
 			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
 			rootpw = rootpw or getpass.getpass("Admin (root) password: ")
 
-			if len(rootpw) < 6:
-				raise emen2.db.exceptions.SecurityError, "Password must be at least 6-characters long"
+			while len(rootpw) < 6:
+				print "Password must be at least 6-characters long"
+				rootpw = getpass.getpass("Admin (root) password: ")
 
 
 		# Private method to load config
@@ -536,7 +539,7 @@ class DB(object):
 			if not g.MAILHOST:
 				raise ValueError, "No SMTP server"
 		except Exception, inst:
-			g.log('LOG_INFO','Email not configured: %s'%inst)
+			g.log('LOG_INFO','Could not send email: %s'%inst)
 			return
 								
 		ctxt = ctxt or {}
@@ -550,17 +553,17 @@ class DB(object):
 
 		try:
 			msg = g.templates.render_template(template, ctxt)
-		except:
-			g.log('LOG_INFO','Could not render template %s'%template)
+		except Exception, e:
+			g.log('LOG_INFO','Could not render template %s: %s'%(template, e))
 			return
 		
 		try:
 			s = smtplib.SMTP(g.MAILHOST)
 			s.set_debuglevel(1)
 			s.sendmail(mailadmin, [recipient], msg)
-			g.log('LOG_INFO', 'Mail sent: %r'%msg)
+			g.log('LOG_INFO', 'Mail sent: %s -> %s'%(mailadmin, recipient))
 		except Exception, e:
-			g.log('LOG_ERROR', 'Email sending error: %s'%e)
+			g.log('LOG_ERROR', 'Could not send email: %s'%e)
 			raise e
 			
 		return recipient
@@ -704,20 +707,20 @@ class DB(object):
 			try:
 				user = self._login_getuser(username, ctx=ctx, txn=txn)
 			except:
-				g.log.msg('LOG_SECURITY', "login: Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "Invalid username or password for %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 			if user.checkpassword(password):
 				newcontext = self._makecontext(username=username, host=host, ctx=ctx, txn=txn)
 			else:
-				g.log.msg('LOG_SECURITY', "login: Invalid username or password: %s"%username)
+				g.log.msg('LOG_SECURITY', "Invalid username or password for %s"%username)
 				raise emen2.db.exceptions.AuthenticationError, "Invalid username or password"
 
 		try:
 			self._commit_context(newcontext.ctxid, newcontext, ctx=ctx, txn=txn)
-			g.log.msg('LOG_SECURITY', "login: Login succeeded: %s %s" % (username, newcontext.ctxid))
-		except:
-			g.log.msg('LOG_ERROR', "Error writing login context")
+			g.log.msg('LOG_SECURITY', "Login succeeded: %s -> %s" % (username, newcontext.ctxid))
+		except Exception, e:
+			g.log.msg('LOG_CRITICAL', "Critical! Error writing login context: %s"%e)
 			raise
 
 		return newcontext.ctxid
@@ -849,21 +852,21 @@ class DB(object):
 		# set context
 		if context != None:
 			try:
-				g.log.msg("LOG_COMMIT","self.bdbs.contexts.set: %r"%context.ctxid)
+				g.log.msg("LOG_COMMIT","self.bdbs.contexts.set: %s"%context.ctxid)
 				self.bdbs.contexts.set(ctxid, context, txn=txn)
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL","Unable to add persistent context %s (%s)"%(ctxid, inst))
+				g.log.msg("LOG_CRITICAL","Critical! self.bdbs.contexts.set %s: %s"%(ctxid, inst))
 				raise
 
 		# delete context
 		else:
 			try:
-				g.log.msg("LOG_COMMIT","self.bdbs.contexts.__delitem__: %r"%ctxid)
+				g.log.msg("LOG_COMMIT","self.bdbs.contexts.__delitem__: %s"%ctxid)
 				self.bdbs.contexts.set(ctxid, None, txn=txn) #del ... [ctxid]
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL","Unable to delete persistent context %s (%s)"%(ctxid, inst))
+				g.log.msg("LOG_CRITICAL","Critical! self.bdbs.context.set %s: %s"%(ctxid, inst))
 				raise
 
 
@@ -885,7 +888,11 @@ class DB(object):
 	def _cleanupcontexts(self, ctx=None, txn=None):
 		"""(Internal) Clean up sessions that have been idle too long."""
 
-		g.log.msg("LOG_DEBUG","Clean up expired contexts: time %s -> %s"%(self.lastctxclean, time.time()))
+		old_strftime = time.strftime(g.TIMESTR, time.gmtime(self.lastctxclean))
+		newtime = time.time()
+		new_strftime = time.strftime(g.TIMESTR, time.gmtime(newtime))
+
+		g.log.msg("LOG_DEBUG","Cleaning up expired contexts: %s -> %s"%(old_strftime, new_strftime)
 
 		for ctxid, context in self.bdbs.contexts.items(txn=txn):
 			# use the cached time if available
@@ -896,7 +903,8 @@ class DB(object):
 			except:
 				pass
 
-			if context.time + (context.maxidle or 0) < time.time():
+
+			if context.time + (context.maxidle or 0) < newtime:
 				# g.log_info("Expire context (%s) %d" % (context.ctxid, time.time() - context.time))
 				self._commit_context(context.ctxid, None, ctx=ctx, txn=txn)
 
@@ -924,8 +932,8 @@ class DB(object):
 			context = self._makecontext(host=host, ctx=ctx, txn=txn)
 
 		if not context:
-			g.log.msg('LOG_ERROR', "Session expired: %s"%ctxid)
-			raise emen2.db.exceptions.SessionError, "Session expired: %s"%(ctxid)
+			g.log.msg('LOG_ERROR', "Session expired for %s"%ctxid)
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 		user = None
 		grouplevels = {}
@@ -1151,8 +1159,8 @@ class DB(object):
 		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
 		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
+		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename.addrefs: %s -> %s"%(filename, dkey["name"]))
 		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
-		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename: %s %s"%(filename, dkey["name"]))
 
 		# Now move the file to the right location
 		if newfile:
@@ -1206,7 +1214,7 @@ class DB(object):
 			infile.close()
 
 		md5sum = m.hexdigest()
-		g.log.msg('LOG_INFO', "Wrote: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+		g.log.msg('LOG_INFO', "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 		return tmpfilepath, filesize, md5sum
 
@@ -2172,15 +2180,15 @@ class DB(object):
 	def _rebuild_indexkeys(self, ctx=None, txn=None):
 		"""(Internal) Rebuild index-of-indexes"""
 
-		# g.log.msg("LOG_INFO", "self.bdbs.indexkeys: Starting rebuild")
+		g.log.msg("LOG_INFO", "self.bdbs.indexkeys: Starting rebuild")
 		inds = dict(filter(lambda x:x[1]!=None, [(i,self._getindex(i, ctx=ctx, txn=txn)) for i in self.getparamdefnames(ctx=ctx, txn=txn)]))
 
-		g.log.msg("LOG_INFO","self.bdbs.indexkeys.truncate")
+		g.log.msg("LOG_INDEX","self.bdbs.indexkeys.truncate")
 		self.bdbs.indexkeys.truncate(txn=txn)
 
 		for k,v in inds.items():
-			g.log.msg("LOG_INFO", "self.bdbs.indexkeys: rebuilding params %s"%k)
 			pd = self.bdbs.paramdefs.get(k, txn=txn)
+			g.log.msg("LOG_INDEX", "self.bdbs.indexkeys.addrefs: %s -> ...%s items"%(k, len(v)))
 			self.bdbs.indexkeys.addrefs(k, v.keys(), txn=txn)
 
 
@@ -2494,7 +2502,7 @@ class DB(object):
 
 
 		for pkey,ckey in links:
-			g.log.msg("LOG_COMMIT","link: keytype %s, mode %s, pkey %s, ckey %s"%(keytype, mode, pkey, ckey))
+			g.log.msg("LOG_COMMIT", "self.bdbs.%s.%s: %s -> %s"%(keytype, mode, pkey, ckey))
 			linker(pkey, ckey, txn=txn)
 
 
@@ -2607,7 +2615,7 @@ class DB(object):
 
 				user.setContext(ctx)
 				user.validate()
-			except Exception, inst:
+			except Exception, msg:
 				if filt:
 					g.log.msg("LOG_ERROR", msg)
 					continue
@@ -2617,7 +2625,7 @@ class DB(object):
 			# Check that this user does not already exist
 			if self.bdbs.users.get(user.username, txn=txn):
 				delusers[username] = None
-				msg = "User %s already exists, deleted pending record"%user.username
+				msg = "User %s already exists, removing from queue"%user.username
 				if filt:
 					g.log.msg("LOG_ERROR", msg)
 					continue
@@ -2628,7 +2636,7 @@ class DB(object):
 			# Check that there is no other user with the same email address
 			if self.bdbs.usersbyemail.get(user.email.lower(), txn=txn):
 				delusers[username] = None
-				msg = "The email address %s is already in use"%(user.email)
+				msg = "The email address %s is already in use, removing from queue"%(user.email)
 				if filt:
 					g.log.msg("LOG_ERROR", msg)
 					continue
@@ -2842,7 +2850,7 @@ class DB(object):
 			user = self.bdbs.users.sget(username, txn=txn)
 			user.setContext(ctx)
 		except Exception, e:
-			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
+			g.log.msg('LOG_SECURITY', "Password reset failed for %s: %s"%(username, e))
 			time.sleep(2)
 			raise emen2.db.exceptions.AuthenticationError, "No account associated with %s"%username
 			
@@ -2854,11 +2862,11 @@ class DB(object):
 			self.sendmail(user.email, '/email/password.reset', ctxt, ctx=ctx, txn=txn)
 			
 		except Exception, e:
-			g.log.msg('LOG_SECURITY', "resetpassword: Password reset failed for %s: %s"%(username, e))
+			g.log.msg('LOG_SECURITY', "Password reset failed for %s: %s"%(username, e))
 			raise emen2.db.exceptions.AuthenticationError, errmsg			
 		
 		
-		g.log.msg("LOG_SECURITY","resetpassword: Setting resetpassword secret for %s"%user.username)
+		g.log.msg("LOG_SECURITY","Setting resetpassword secret for %s"%user.username)
 		self._commit_users([user], ctx=ctx, txn=txn)
 		
 
@@ -2885,7 +2893,7 @@ class DB(object):
 		# except:
 		# 	raise emen2.db.exceptions.SecurityError, msg
 
-		g.log.msg("LOG_SECURITY","setpassword: Changing password for %s"%user.username)
+		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
 		
@@ -2988,8 +2996,8 @@ class DB(object):
 
 			ouser = self.bdbs.users.get(user.username, txn=txn)
 
+			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %s"%user.username)
 			self.bdbs.users.set(user.username, user, txn=txn)
-			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %r"%user.username)
 
 			try:
 				oldemail = ouser.email
@@ -2999,8 +3007,9 @@ class DB(object):
 			# root's email is not indexed 
 			#	-- the email for root will often also be used for a user acct
 			if oldemail != user.email and user.username != "root":
-				# g.log.msg("LOG_COMMIT_INDEX","self.bdbs.usersbyemail: %r"%user.username)
+				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
+				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.removerefs: %s -> %s"%(oldemail.lower(), user.username))
 				self.bdbs.usersbyemail.removerefs(oldemail.lower(), [user.username], txn=txn)
 
 
@@ -3013,9 +3022,9 @@ class DB(object):
 
 		for username, user in users.items():
 			if user:
-				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r"%username)
+				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %s"%username)
 			else:
-				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.set: %r, deleting"%username)
+				g.log.msg("LOG_COMMIT","self.bdbs.newuserqueue.__delitem__: %s"%username)
 
 			self.bdbs.newuserqueue.set(username, user, txn=txn)
 
@@ -3154,21 +3163,21 @@ class DB(object):
 		for user,groups in addrefs.items():
 			try:
 				if groups:
-					# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, addrefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.addrefs: %s -> %s"%(user, groups))
 					self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update self.bdbs.groupsbyuser key: %s, addrefs %s"%(user, groups))
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.groupsbyuser.addrefs %s failed: %s"%(user, inst))
 				raise
 
 		for user,groups in delrefs.items():
 			try:
 				if groups:
-					# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser key: %r, removerefs: %r"%(user, groups))
+					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.removerefs: %s -> %s"%(user, groups))
 					self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update self.bdbs.groupsbyuser key: %s, removerefs %s"%(user, groups))
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.groupsbyuser.removerefs %s failed: %s"%(user, inst))
 				raise
 
 
@@ -3178,6 +3187,8 @@ class DB(object):
 	def _rebuild_groupsbyuser(self, ctx=None, txn=None):
 		"""(Internal) Rebuild groupbyuser index"""
 
+		g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser: Rebuilding index")
+
 		groups = self.getgroup(self.getgroupnames(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		users = collections.defaultdict(set)
 
@@ -3185,11 +3196,11 @@ class DB(object):
 			for user in group.members():
 				users[user].add(group.name)
 
-		# g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser: rebuilding index")
-
+		g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.truncate")
 		self.bdbs.groupsbyuser.truncate(txn=txn)
 
 		for k,v in users.items():
+			g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.addrefs: %s -> %s"%(k,v))
 			self.bdbs.groupsbyuser.addrefs(k, v, txn=txn)
 
 
@@ -3200,8 +3211,11 @@ class DB(object):
 		usernames = self.getusernames(ctx=ctx, txn=txn)
 		users = self.getuser(usernames, ctx=ctx, txn=txn)
 
+		g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.truncate")
 		self.bdbs.usersbyemail.truncate(txn=txn)
+
 		for user in users:
+			g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
 			self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
 
 
@@ -3280,7 +3294,7 @@ class DB(object):
 		addrefs, delrefs = self._reindex_groupsbyuser(groups, ctx=ctx, txn=txn)
 
 		for group in groups:
-			# g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %r"%(group))
+			g.log.msg("LOG_COMMIT","self.bdbs.groups.set: %s"%(group))
 			self.bdbs.groups.set(group.name, group, txn=txn)
 
 		self._commit_groupsbyuser(addrefs=addrefs, delrefs=delrefs, ctx=ctx, txn=txn)
@@ -3510,7 +3524,7 @@ class DB(object):
 			raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
 
 		if orec.vartype != paramdef.vartype:
-			g.log.msg("LOG_CRITICAL","WARNING! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, paramdef.vartype, paramdef.vartype))
+			g.log.msg("LOG_CRITICAL","Warning! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, paramdef.vartype, paramdef.vartype))
 
 		# These are not allowed to be changed
 		paramdef.creator = orec.creator
@@ -3543,7 +3557,7 @@ class DB(object):
 		"""(Internal) Commit paramdefs"""
 
 		for paramdef in paramdefs:
-			g.log.msg("LOG_COMMIT","self.bdbs.paramdefs.set: %r"%paramdef.name)
+			g.log.msg("LOG_COMMIT","self.bdbs.paramdefs.set: %s"%paramdef.name)
 			self.bdbs.paramdefs.set(paramdef.name, paramdef, txn=txn)
 
 
@@ -3717,7 +3731,7 @@ class DB(object):
 		"""(Internal) Commit RecordDefs"""
 
 		for recorddef in recorddefs:
-			g.log.msg("LOG_COMMIT","self.bdbs.recorddefs.set: %r"%recorddef.name)
+			g.log.msg("LOG_COMMIT","self.bdbs.recorddefs.set: %s"%recorddef.name)
 			self.bdbs.recorddefs.set(recorddef.name, recorddef, txn=txn)
 
 
@@ -4150,10 +4164,10 @@ class DB(object):
 			cpc = cp - param_immutable
 
 			if not cpc and orec.recid >= 0:
-				g.log.msg("LOG_INFO","putrecord: No changes for record %s, skipping"%recid)
+				g.log.msg("LOG_INFO","No changes for record %s, skipping"%recid)
 				continue
 
-			g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cpc))
+			# g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cpc))
 
 			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
 			if "comments" in cpc:
@@ -4230,7 +4244,7 @@ class DB(object):
 		# If we're just reindexing, no need to waste time/log space writing records.
 		if not reindex:
 			for crec in crecs:
-				g.log.msg("LOG_COMMIT","self.bdbs.records.set: %r"%crec.recid)
+				g.log.msg("LOG_COMMIT","self.bdbs.records.set: %s"%crec.recid)
 				self.bdbs.records.set(crec.recid, crec, txn=txn)
 
 
@@ -4244,7 +4258,8 @@ class DB(object):
 			try:
 				self.pclink(recmap.get(parent,parent), recmap.get(child,child), ctx=ctx, txn=txn)
 			except Exception, inst:
-				msg = "Could not link %s to %s: %s"%( recmap.get(parent,parent), recmap.get(child,child), inst)
+				# msg = "Could not link %s to %s: %s"%( recmap.get(parent,parent), recmap.get(child,child), inst)
+				msg = "Critical! self.bdbs.records.pclink %s -> %s failed: %s"%(recmap.get(parent,parent), recmap.get(child,child), inst)
 				g.log.msg("LOG_CRITICAL", msg)
 				raise ValueError, msg
 
@@ -4303,7 +4318,7 @@ class DB(object):
 			if ind == None:
 				raise Exception, "Index was None; unindexable?"
 		except Exception, inst:
-			g.log.msg("LOG_CRITICAL","Could not open param index: %s (%s)"% (param, inst))
+			g.log.msg("LOG_CRITICAL","Critical! Could not open self.bdbs.fieldindex[%s]: %s"% (param, inst))
 			raise
 
 
@@ -4312,10 +4327,10 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","param index %r.removerefs: %r '%r', %r"%(param, type(oldval), oldval, len(recs)))
+					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
 					delindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update param index %s: removerefs %s '%s', records %s (%s)"%(param,type(oldval), oldval, len(recs), inst))
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].removerefs %s failed: %s"%(param, oldval, inst)
 				raise
 
 
@@ -4323,16 +4338,20 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","param index %r.addrefs: %r '%r', %r"%(param, type(newval), newval, len(recs)))
+					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
 					addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 			except Exception, inst:
-				g.log.msg("LOG_CRITICAL", "Could not update param index %s: addrefs %s '%s', records %s (%s)"%(param,type(newval), newval, len(recs), inst))
+				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].addrefs %s failed: %s"%(param, newval, inst)
 				raise
 
 
 		# Update index-index, a necessary evil..
-		self.bdbs.indexkeys.removerefs(param, delindexkeys, txn=txn)
-		self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
+		if delindexkeys:
+			g.log.msg("LOG_INDEX","self.bdbs.indexkeys.removerefs: %s -> %s"%(param, delindexkeys))
+			self.bdbs.indexkeys.removerefs(param, delindexkeys, txn=txn)
+		if addindexkeys:
+			g.log.msg("LOG_INDEX","self.bdbs.indexkeys.addrefs: %s -> %s"%(param, addindexkeys))
+			self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
 
 
 
@@ -4345,9 +4364,8 @@ class DB(object):
 		"""(Internal) Rebuild all indexes. This should only be used if you blow something up, change a paramdef vartype, etc.
 		It might test the limits of your Berkeley DB configuration and fail if the resources are too low."""
 
-		g.log.msg("LOG_INFO","Rebuilding ALL indexes")
+		g.log.msg("LOG_INFO","Rebuilding ALL indexes!")
 
-		self.bdbs.groupsbyuser.truncate(txn=txn)
 		allparams = self.bdbs.paramdefs.keys()
 		paramindexes = {}
 		for param in allparams:
@@ -4355,9 +4373,10 @@ class DB(object):
 			if paramindex != None:
 				# g.log.msg('LOG_DEBUG', paramindex)
 				try:
+					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].truncate"%param)
 					paramindex.truncate(txn=txn)
 				except Exception, e:
-					g.log.msg("LOG_INFO","Couldn't truncate %s: %s"%(param, e))
+					g.log.msg("LOG_INFO","Critical! self.bdbs.fieldindex[%s].truncate failed: %s"%(param, e))
 				paramindexes[param] = paramindex
 
 
@@ -4367,7 +4386,7 @@ class DB(object):
 		self._rebuild_usersbyemail(ctx=ctx, txn=txn)
 
 		maxrecords = self.bdbs.records.get_max(txn=txn) #get(-1, txn=txn)["max"]
-		g.log.msg('LOG_INFO',"Records in DB: %s"%(maxrecords-1))
+		g.log.msg('LOG_INFO',"Rebuilding indexes for %s records..."%(maxrecords-1))
 
 		blocks = range(0, maxrecords, g.BLOCKLENGTH) + [maxrecords]
 		blocks = zip(blocks, blocks[1:])
@@ -4387,7 +4406,7 @@ class DB(object):
 
 			#txn2.commit()
 
-		g.log.msg("LOG_INFO","Done rebuilding all indexes")
+		g.log.msg("LOG_INFO","Done rebuilding all indexes!")
 
 
 

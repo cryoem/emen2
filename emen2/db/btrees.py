@@ -15,9 +15,9 @@ g = emen2.db.config.g()
 try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
+	g.warn("Note: using BerkeleyDB bulk interface module")
 except:
 	bulk = None
-	g.warn("Not using bulk interface")
 
 
 
