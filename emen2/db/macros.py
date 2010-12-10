@@ -395,4 +395,41 @@ class macro_thumbnail(Macro):
 
 
 
+
+
+
+
+
+
+class macro_test(Macro):
+	"""childcount macro"""
+	__metaclass__ = Macro.register_view
+
+
+
+	def process(self, engine, macro, params, rec, db):
+		"""Now even more optimized!"""
+		return '02%d'%int((rec.get('ctf_defocus_measured', 0) / rec.get('stack_pixel_mean', 1))*1000)
+		# return '%02d'%int(rec.get(params, 0) / 100.0)
+		# rectypes = params.split(",")
+		# key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
+		# hit, children = engine.check_cache(key)
+		# if not hit:
+		# 	children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=3))
+		# 	engine.store(key, children)
+		# 
+		# return children
+
+
+	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+		return "Childcount: %s"%(params)
+
+
+
+
+
+
+
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
