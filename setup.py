@@ -3,11 +3,12 @@ import subprocess
 
 from distutils.core import setup
 
-VERSION = "2.0rc1"
+VERSION = "2.0rc2"
 URLBASE = "http://ncmi.bcm.edu/ncmi/software/EMEN2"
 URLMAP = {
 	"daily": "software_94",
-	"2.0rc1": "software_105"
+	"2.0rc1": "software_105",
+	"2.0rc2": "software_107"
 }
 
 SCPBASE="10.10.9.104:/homes/www/Zope-2.7.0/var/extdata/reposit/ncmi/software/EMEN2"
