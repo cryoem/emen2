@@ -137,8 +137,9 @@ function dayid(d) {
 				e.css('left', self.indent*20+"%");
 				e.css('width', 100-(self.indent*20)+"%")
 				e.css('top', y_offset*40);
-				e.css('height', height*40);			
+				e.css('height', height*40);	
 				p.append(e);
+				self.makedraggable(e);		
 			});
 			
 		},
@@ -175,6 +176,16 @@ function dayid(d) {
 			return t1 <= d2 && t2 >= d1;
 		},
 		
+		makedraggable: function(box) {
+			console.log(box.parent());
+			box.draggable({
+				'appendTo':'body',
+				'grid':[box.parent().width(), 40],
+				'containment':'.calendar_body',
+				'stop': function(event, ui) {console.log(event, ui)}
+			});
+		},
+		
 		collisions: function() {
 			var self = this;
 			this.indent = 0;
@@ -193,7 +204,7 @@ function dayid(d) {
 					}
 				}
 			});
-			console.log("Collions: ", this.eventid, " with ", cs, " ... indent is", this.indent);
+			console.log("Collisions: ", this.eventid, " with ", cs, " ... indent is", this.indent);
 		},
 				
 		destroy: function() {
