@@ -177,11 +177,23 @@ function dayid(d) {
 		},
 		
 		makedraggable: function(box) {
-			console.log(box.parent());
+			var self = this;
+			this.dragwidth = 0;
 			box.draggable({
-				'appendTo':'body',
+				'helper': function(){return '<div>Test</div>'},
 				'grid':[box.parent().width(), 40],
 				'containment':'.calendar_body',
+				'start': function(event, ui) {
+					self.opageX = event.pageX;
+					self.opageY = event.pageY;
+					self.dragwidth = $(event.target).parent().width();
+					self.dragheight = $(event.target).parent().height() / 24.0;
+					},
+				'drag': function(event, ui) {
+					var xo = Math.floor((self.opageX - event.pageX) / self.dragwidth);
+					var yo = Math.floor((self.opageY - event.pageY) / self.dragheight);
+					console.log(xo, yo);
+					},
 				'stop': function(event, ui) {console.log(event, ui)}
 			});
 		},
