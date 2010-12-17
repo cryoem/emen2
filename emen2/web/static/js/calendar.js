@@ -23,7 +23,6 @@ function dayid(d) {
 			this.date_end = parsedate(this.element.attr('data-end'));
 			this.maketable();
 			this.makedays(this.date_start, this.date_end);
-			
 			$('.event', this.element).CalendarEvent();
 			$('.event', this.element).CalendarEvent('draw');
 		},
@@ -35,8 +34,25 @@ function dayid(d) {
 		// </thead> \
 				
 		maketable: function() {
+			
+			// var header = $(' \
+			// 	<table cellpadding="0" cellspacing="0"> \
+			// 		<tbody> \
+			// 			<tr class="calendar_header"> \
+			// 				<th style="width:40px;padding:0px;margin:0px;"></th> \
+			// 			</tr> \
+			// 		</tbody> \
+			// 	</table> \
+			// ');
+			// this.element.append(header);
+						
 			var table = $(' \
 				<table cellpadding="0" cellspacing="0"> \
+					<thead> \
+					<tr class="calendar_header"> \
+						<th style="width:50px"></th> \
+					</tr> \
+					</thead> \
 					<tbody> \
 						<tr class="calendar_body"> \
 							<td class="calendar_hours" style="width:40px;padding:0px;margin:0px;"></td> \
@@ -45,19 +61,34 @@ function dayid(d) {
 				</table> \
 			');
 			for (var i=0;i<24;i++) {
-				$('.calendar_hours', table).append('<div style="height:39px;border-right:solid 1px #ccc;border-bottom:solid 1px #ccc">'+i+'</div>');
+				var text = i+"am";
+				if (i==0){
+					text = "12am";
+				} else if (i==12) {
+					text = "12pm";
+				} else if (i>12) {
+					text = i%12 + "pm"
+				}
+				$('.calendar_hours', table).append('<div style="text-align:right;font-size:8pt;color:#666;padding:2px;height:35px;border-right:solid 1px #ccc;border-bottom:solid 1px #ccc">'+text+' </div>');
 			}
 			this.element.append(table);
 		},
 		
 		makedays: function(start, end) {
 			var day = new Date(start);
-			while (day <= end) {
-				// $('.calendar_header', this.element).append('<th>'+day.getUTCDate()+'/'+(day.getUTCMonth()+1)+'</th>');
+			while (day < end) {
+				$('.calendar_header', this.element).append('<th style="text-align:center">'+day.getUTCDate()+'/'+(day.getUTCMonth()+1)+'</th>');
 				var newday = new Date(day.getTime() + 24*60*60*1000);
 				var daydiv = $('<div style="padding:0px;margin:0px;position:relative;" class="day" data-dayid="'+dayid(day)+'" data-start="'+day+'" data-end="'+newday+'" />');
-				for (var i=0;i<24;i++) {
-					daydiv.append('<div style="height:39px;border-right:solid 1px #ccc;border-bottom:solid 1px #ccc"></div>')
+				var datediff = new Date()-day
+				if (datediff <= (24*60*60*1000) && datediff > 0) {
+					// is today..
+					daydiv.addClass('today');
+				}
+				for (var i=0;i<48;i++) {
+					var color = "#eee";
+					if (i%2) {color="#ccc"}
+					daydiv.append('<div style="height:19px;border-right:solid 1px #ccc;border-bottom:solid 1px '+color+';"></div>')
 				}	
 				var daytd = $('<td style="padding:0px;margin:0px"></td>');
 				daytd.append(daydiv);
@@ -92,9 +123,11 @@ function dayid(d) {
 		_create: function() {
 			var self = this;
 			this.element.hide();
-			this.eventid = this.element.attr('data-eventid');
+			this.recid = this.element.attr('data-recid');
 			this.date_start = parsedate(this.element.attr('data-start'));
 			this.date_end = parsedate(this.element.attr('data-end'));
+			this.original_date_start = parsedate(this.element.attr('data-start'));
+			this.original_date_end = parsedate(this.element.attr('data-end'));
 			this.days = [];
 		},
 		
@@ -102,12 +135,13 @@ function dayid(d) {
 			this.checkdays();
 			this.collisions();			
 			var self = this;
+			$('.event_box[data-recid='+this.recid+']').remove();			
 			$.each(this.days, function() {
 				var p = $('.day[data-dayid='+this+']');
 				var thisday = new Date(p.attr('data-start'));
 				var y_offset = (self.date_start - thisday) / (3600 * 1000);				
 				var duration = (self.date_end - self.date_start) / (3600 * 1000);
-				height = duration;
+				height = duration;		
 
 				// offset + height exceeds max column height
 				if (duration+y_offset>24) {
@@ -131,7 +165,10 @@ function dayid(d) {
 					height = 24;
 				}
 
-				var e = $('<div style="position:absolute;top:0px;width:100%;opacity:0.5">'+self.eventid+'</div>');
+
+				var e = $('<div style="position:absolute;top:0px;width:100%;opacity:0.5">'+self.recid+'</div>');
+				e.addClass('event_box');
+				e.attr('data-recid', self.recid);
 				e.css('background', 'red');
 				// e.css('border', 'solid blue 1px');
 				e.css('left', self.indent*20+"%");
@@ -140,11 +177,7 @@ function dayid(d) {
 				e.css('height', height*40);	
 				p.append(e);
 				self.makedraggable(e);		
-			});
-			
-		},
-		
-		move: function() {
+			});			
 		},
 		
 		checkdays: function() {
@@ -157,8 +190,8 @@ function dayid(d) {
 			}
 		},
 		
-		geteventid: function() {
-			return this.eventid;
+		getrecid: function() {
+			return this.recid;
 		},
 		
 		getstart: function() {
@@ -170,32 +203,98 @@ function dayid(d) {
 		},
 		
 		timewindow: function(d1, d2, t1, t2) {
-			// console.log("---");
-			// console.log(t1, "<=", d2, t1 <= d2);
-			// console.log(t2, ">=", d1, t2 >= d1);
 			return t1 <= d2 && t2 >= d1;
 		},
 		
 		makedraggable: function(box) {
 			var self = this;
-			this.dragwidth = 0;
+
 			box.draggable({
-				'helper': function(){return '<div>Test</div>'},
-				'grid':[box.parent().width(), 40],
-				'containment':'.calendar_body',
+				'helper': function(){return '<div></div>'},
 				'start': function(event, ui) {
-					self.opageX = event.pageX;
-					self.opageY = event.pageY;
-					self.dragwidth = $(event.target).parent().width();
-					self.dragheight = $(event.target).parent().height() / 24.0;
+					var offset = $('.day').offset();
+					self._width = $('.day').width();
+					self._height = $('.day').height() / 24;
+					self._ox = event.pageX;
+					self._oy = event.pageY;
+					self._cellx = (event.pageX - offset.left) % self._width;
+					self._celly = (event.pageY - offset.top) % self._height;
+					self._day = 0;
+					self._hour = 0;
+					self.original_date_start = self.date_start;
+					self.original_date_end = self.date_end;
 					},
 				'drag': function(event, ui) {
-					var xo = Math.floor((self.opageX - event.pageX) / self.dragwidth);
-					var yo = Math.floor((self.opageY - event.pageY) / self.dragheight);
-					console.log(xo, yo);
+					// transform to calendar origin
+					var hour = Math.floor((self._celly - (self._oy - event.pageY)) / self._height);
+					var day = Math.floor((self._cellx - (self._ox - event.pageX)) / self._width);
+					if (day != self._day || hour != self._hour) {
+						self.settime_offset(hour,day);
+					}
+					self._hour = hour;
+					self._day = day;
 					},
-				'stop': function(event, ui) {console.log(event, ui)}
+				'stop': function(event, ui) {}
 			});
+
+			box.resizable({
+				'handles': 's',
+				'containment': 'parent',
+				'start': function(event, ui) {
+					self._d_ox = event.pageY;
+					self._height = $('.day').height() / 24;	
+					console.log("height?", self._height)				
+				},
+			    'resize': function(event, ui) {
+			        ui.size.width = ui.originalSize.width;
+			    },
+				'stop': function(event) {
+					var hour = Math.floor(4*((event.pageY - self._d_ox)/self._height))/4;
+					self.setduration_offset(hour);
+				}
+			})
+			
+			var helper = $('<div style="text-align:center;position:absolute;bottom:0px;width:100%;font-size:8pt;color:#fff">=</div>');
+			box.append(helper);			
+			// helper.draggable({
+			// 	'helper': function(){return '<div></div>'},
+			// 	'start': function(event, ui){
+			// 		self._d_ox = event.pageY;
+			// 		self._duration = 0;
+			// 		self._height = $('.day').height() / 24;
+			// 	},
+			// 	'drag': function(event, ui){
+			// 		var duration = Math.floor(4 * (event.pageY - self._d_ox) / self._height) / 4;
+			// 		if (self._duration != duration) {
+			// 			self.setduration_offset(duration);
+			// 		}
+			// 		self._duration = duration;
+			// 	},
+			// 	'stop': function(event, ui) {}
+			// });
+		},
+		
+		setduration_offset: function(hour) {
+			console.log("adding time", hour)
+			var self = this;
+			var duration = 3600 * 1000 * hour;
+			var newend = new Date(this.date_end.getTime() + duration);
+			if (newend <= this.date_start) {
+				return
+			}
+			this.date_end = newend;
+			this.draw();
+		},
+		
+		settime_offset: function(hour, day) {
+			var self = this;
+			var duration = this.date_end - this.date_start;
+			var offset = (24*3600*1000*day) + (3600*1000*hour);
+			var newstart = new Date(self.original_date_start.getTime() + offset);
+			var newend = new Date(newstart.getTime() + duration);
+			this.date_start = newstart;
+			this.date_end = newend;
+			this.draw();
 		},
 		
 		collisions: function() {
@@ -203,8 +302,8 @@ function dayid(d) {
 			this.indent = 0;
 			var cs = [];
 			$('.event').each(function() {
-				var eid = $(this).CalendarEvent('geteventid');
-				if (eid == self.eventid) {return}
+				var eid = $(this).CalendarEvent('getrecid');
+				if (eid == self.recid) {return}
 				var ds = $(this).CalendarEvent('getstart');
 				var de = $(this).CalendarEvent('getend');
 				if (self.timewindow(ds, de, self.date_start, self.date_end)) {
@@ -216,7 +315,7 @@ function dayid(d) {
 					}
 				}
 			});
-			console.log("Collisions: ", this.eventid, " with ", cs, " ... indent is", this.indent);
+			//console.log("Collisions: ", this.recid, " with ", cs, " ... indent is", this.indent);
 		},
 				
 		destroy: function() {
