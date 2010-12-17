@@ -18,6 +18,9 @@ class ExtFile(object):
 	registerjs = __register(js_registry)
 
 
+	def addfile(self, f):
+		self.files.append('%s/%s'%(g.EMEN2WEBROOT, f)) #, g.VERSION
+
 	@property
 	def files(self):
 		return self.__files
@@ -39,6 +42,7 @@ class ExtFile(object):
 		return iter(self.__files)
 
 
+
 # ian: todo: optimize this some in the future; not every page needs all the files
 class BaseJS(ExtFile):
 	def init(self):
@@ -56,7 +60,8 @@ class BaseJS(ExtFile):
 			"query.js",
 			"relationship.js",
 			"table.js",
-			"tile.js"]
+			"tile.js",
+			"calendar.js"]
 
 		self.files = [
 			self.dbtree.reverse('TemplateRender', t='/js/settings.js'),

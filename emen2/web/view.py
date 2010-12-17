@@ -115,6 +115,7 @@ class View(object):
 		reverseinfo contains information necessary to reconstruct the url
 		extra catches arguments to be passed to the 'init' method
 		'''
+		
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
@@ -177,6 +178,12 @@ class View(object):
 
 	def make_raw(self):
 		self.__raw = True
+
+
+
+	#### ian: add JS/CSS include
+	def add_js(self, f):
+		self.__basectxt['js_files']
 
 	#### Output methods #####################################################################
 
