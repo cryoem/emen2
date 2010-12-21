@@ -18,13 +18,13 @@ def upload(v):
 	dest = "%s/%s"%(SCPBASE, URLMAP[v])
 	p = subprocess.Popen(["scp", infile, dest])
 	sts = os.waitpid(p.pid, 0)
-	
-	
-	
+
+
+
 def filterwalk(path, filetypes=None):
 	filetypes = filetypes or []
 	ret = []
-	for i in os.walk(path):		
+	for i in os.walk(path):
 
 		base = i[0]
 		base = i[0].split(os.sep)[1:]
@@ -32,7 +32,7 @@ def filterwalk(path, filetypes=None):
 			base = os.path.join(*base)
 		else:
 			base = ''
-		
+
 		for j in i[2]:
 			ext = os.path.splitext(j)[-1]
 			if filetypes and ext not in filetypes:
@@ -40,8 +40,8 @@ def filterwalk(path, filetypes=None):
 			ret.append(os.path.join(base, j))
 
 	return ret
-	
-	
+
+
 static_files = \
 	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
 	filterwalk('emen2/templates', filetypes=['.mako']) + \
@@ -55,9 +55,9 @@ static_files = \
 # 	description = "Build against Berkeley DB and bsddb3"
 # 	def run(self):
 # 		# this method will need to liberally copy and paste from the parent class, and insert one or two changes...
-		
 
-	
+
+
 
 if __name__ == "__main__":
 	setup(
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 		description='EMEN2 Object-Oriented Scientific Database',
 		author='Ian Rees',
 		author_email='ian.rees@bcm.edu',
-		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',	
+		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		download_url="%s/%s/emen2-%s.tar.gz"%(URLBASE, URLMAP[VERSION], VERSION),
 		packages=[
 			'emen2',
@@ -79,15 +79,16 @@ if __name__ == "__main__":
 			'emen2.clients.emdash',
 			'emen2.clients.emdash.models',
 			'emen2.clients.emdash.threads',
-			'emen2.clients.emdash.ui'
+			'emen2.clients.emdash.ui',
+			'jsonrpc'
 			],
 		package_data={
 			'emen2': static_files
 			},
 		scripts=[
-			'scripts/emen2control.py', 
-			'scripts/emen2client.py', 
-			'scripts/emdash.py', 
+			'scripts/emen2control.py',
+			'scripts/emen2client.py',
+			'scripts/emdash.py',
 			]
 		)
 
