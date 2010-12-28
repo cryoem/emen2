@@ -165,8 +165,8 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		filpath = os.path.join(pwd[0], name)
 		data = fileops.openreadclose(filpath+ext)
 		templatename = os.path.join(pwd[0], name).replace(pth,'')
-		level = 'LOG_INIT'
 		msg = ["TEMPLATE ", templatename]
+		level = 'LOG_DEBUG'
 		try:
 			g.templates.add_template(templatename,data,filpath+ext)
 		except BaseException, e:
@@ -177,7 +177,7 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		else:
 			msg[0] += 'LOADED'
 		msg.append(filpath+ext)
-		# g.log.msg(level, ': '.join(msg))
+		g.log.msg(level, ': '.join(msg))
 
 get_templates = fileops.walk_paths('.mako', template_callback)
 __version__ = "$Revision$".split(":")[1][:-1].strip()

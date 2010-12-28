@@ -56,6 +56,7 @@ def load_views(failures=None):
 	r = reversed(getattr(g.paths, 'TEMPLATEDIRS', []))
 	emen2.web.templating.get_templates(r, failures=failures)
 	get_views(getattr(g.paths, 'VIEWPATHS', []))
+	g.debug(getattr(g.paths, 'VIEWPATHS', []))
 
 def load_redirects(dict_):
 	for fro,v in dict_.iteritems():

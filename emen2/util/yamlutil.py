@@ -4,6 +4,7 @@ from __future__ import with_statement, print_function
 import yaml
 import emen2.util.jsonutil
 from emen2.db.config import g, DBOptions
+g = g()
 import getpass
 
 #g.log.set_state('LOG_CRITICAL')
@@ -13,6 +14,7 @@ parser.add_option('-f', '--file', dest='file', action='store')
 parser.add_option('-k', '--key', dest='keys', action='append')
 parser.add_option('-w', '--write', dest='ofile', action='store')
 parser.add_option('-g', '--get', dest='get', action='store', help='get value')
+parser.add_option('-S', '--set', dest='set', action='store', help='set value')
 parser.add_option('-i', '--inline', dest='inline', action='store_true', help='change inline', default=False)
 parser.add_option('-j', '--json', dest='json', action='store_true', help='return value as json (only for -g)', default=False)
 parser.add_option('', '--interactive', dest='json', action='store_true', help='return value as json (only for -g)', default=False)
