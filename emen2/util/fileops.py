@@ -19,13 +19,14 @@ def walk_path(extension, cb):
 			for fil in pwd[2]:
 				name, ext = os.path.splitext(os.path.basename(fil))
 				# ian: .... ugh
-				if not name.startswith("."):
+				if not name.startswith(".") and ext == extension:
 					cb(pwd, pathname, extension, name, ext, *args, **kwargs)
 	return res
 
 def walk_paths(__extension_, __cb_):
 	walker = walk_path(__extension_, __cb_)
 	def res(__plist_, *args, **kwargs):
+		if not hasattr(__plist_, '__iter__'): __plist_ = [__plist_]
 		for path in __plist_:
 			walker(path, *args, **kwargs)
 	return res
