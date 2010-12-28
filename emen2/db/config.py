@@ -101,14 +101,19 @@ class DBOptions(optparse.OptionParser):
 
 
 		# Load view and template dirs
-		# g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
-		# g.VIEWPATHS.extend(self.values.viewdirs or [])
-		if g.getattr('TEMPLATEDIRS_DEFAULT', False):
-			g.paths.TEMPLATEDIRS.append(get_filename('emen2','templates'))
+		# g.paths.TEMPLATEPATHS.extend(self.values.templatedirs or [])
+		# g.paths.VIEWPATHS.extend(self.values.viewdirs or [])
+		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
+			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
+
+		if getattr(g.paths, 'PYTHONPATH', []):
+			pp = g.paths.PYTHONPATH
+			if not hasattr(pp, '__iter__'): pp = [pp]
+			sys.path.extend(pp)
 
 
-		# print "td ", g.TEMPLATEDIRS
-		#g.TEMPLATEDIRS.extend(self.values.templatedirs or [])
+		# print "td ", g.paths.TEMPLATEPATHS
+		#g.paths.TEMPLATEPATHS.extend(self.values.templatedirs or [])
 
 		# Set any overrides
 		if self.values.configoverride:
@@ -166,6 +171,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['LOG_SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
 		# g.log_init("Loading config files: %s"%(self.values.configfile or [default_config]))
 		# g.log_init('EMEN2DBHOME: %r' % EMEN2DBHOME)
+
 		g.CONFIG_LOADED = True
 		g.refresh()
 

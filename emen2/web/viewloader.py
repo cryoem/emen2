@@ -13,7 +13,6 @@ g = emen2.db.config.g()
 
 
 def view_callback(pwd, pth, mtch, name, ext, failures=None):
-	print 'asdasd'
 	if pwd[0] not in sys.path:
 		sys.path.append(pwd[0])
 	if not hasattr(failures, 'append'): 
@@ -22,7 +21,7 @@ def view_callback(pwd, pth, mtch, name, ext, failures=None):
 		filpath = os.path.join(pwd[0], name)
 		data = emen2.util.fileops.openreadclose(filpath+ext)
 		viewname = os.path.join(pwd[0], name).replace(pth,'')
-		level = 'LOG_INIT'
+		level = 'LOG_DEBUG'
 		msg = ["VIEW", "LOADED:"]
 		try:
 			__import__(name)
@@ -34,7 +33,6 @@ def view_callback(pwd, pth, mtch, name, ext, failures=None):
 
 		msg.append(filpath+ext)
 		g.log.msg(level, ' '.join(msg))
-		g.log_critical('asdasdasd')
 
 
 get_views = emen2.util.fileops.walk_paths('.py', view_callback)
@@ -53,7 +51,11 @@ def routes_from_g():
 
 def load_views(failures=None):
 	g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
+	#ed: deprecated -- use TEMPLATEPATHS
 	r = reversed(getattr(g.paths, 'TEMPLATEDIRS', []))
+	emen2.web.templating.get_templates(r, failures=failures)
+	#new name
+	r = reversed(getattr(g.paths, 'TEMPLATEPATHS', []))
 	emen2.web.templating.get_templates(r, failures=failures)
 	get_views(getattr(g.paths, 'VIEWPATHS', []))
 	g.debug(getattr(g.paths, 'VIEWPATHS', []))
