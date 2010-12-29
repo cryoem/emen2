@@ -107,7 +107,7 @@ def inithttpd():
 		for path, mod in extraresources.items():
 			if path in resources: raise ValueError, "Cannot override standard resources"
 			mod = __import__(mod)
-			resources[path] = mod.resource
+			resources[path] = getattr(mod, path)
 	except ImportError: pass
 
 
