@@ -17,22 +17,22 @@ def view_callback(pwd, pth, mtch, name, ext, failures=None):
 		sys.path.append(pwd[0])
 	if not hasattr(failures, 'append'): 
 		failures = []
-	if ext == mtch:
-		filpath = os.path.join(pwd[0], name)
-		data = emen2.util.fileops.openreadclose(filpath+ext)
-		viewname = os.path.join(pwd[0], name).replace(pth,'')
-		level = 'LOG_DEBUG'
-		msg = ["VIEW", "LOADED:"]
-		try:
-			__import__(name)
-		except BaseException, e:
-			g.log(e)
-			level = 'LOG_ERROR'
-			msg[1] = "FAILED:"
-			failures.append(viewname)
+	assert ext == mtch#:
+	filpath = os.path.join(pwd[0], name)
+	data = emen2.util.fileops.openreadclose(filpath+ext)
+	viewname = os.path.join(pwd[0], name).replace(pth,'')
+	level = 'LOG_DEBUG'
+	msg = ["VIEW", "LOADED:"]
+	try:
+		__import__(name)
+	except BaseException, e:
+		g.log(e)
+		level = 'LOG_ERROR'
+		msg[1] = "FAILED:"
+		failures.append(viewname)
 
-		msg.append(filpath+ext)
-		g.log.msg(level, ' '.join(msg))
+	msg.append(filpath+ext)
+	g.log.msg(level, ' '.join(msg))
 
 
 get_views = emen2.util.fileops.walk_paths('.py', view_callback)

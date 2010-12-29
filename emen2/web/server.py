@@ -97,11 +97,18 @@ def inithttpd():
 	# load EMEN2 resource
 	try:
 		import EMAN2
-	except:
-		EMAN2 = False
-	if EMAN2:
 		import emen2.web.resources.eman2resource
 		resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
+	except: pass
+	#	EMAN2 = False
+
+	try:
+		extraresources = g.getattr('RESOURCESPECS', {})
+		for path, mod in extraresources.items():
+			if path in resources: raise ValueError, "Cannot override standard resources"
+			mod = __import__(mod)
+			resources[path] = mod.resource
+	except ImportError: pass
 
 
 	load_resources(root, resources)

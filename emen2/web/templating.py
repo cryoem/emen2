@@ -161,23 +161,23 @@ class MakoTemplateEngine(StandardTemplateEngine):
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
 	#print pwd, pth
 	if not hasattr(failures, 'append'): failures = []
-	if ext == mtch:
-		filpath = os.path.join(pwd[0], name)
-		data = fileops.openreadclose(filpath+ext)
-		templatename = os.path.join(pwd[0], name).replace(pth,'')
-		msg = ["TEMPLATE ", templatename]
-		level = 'LOG_DEBUG'
-		try:
-			g.templates.add_template(templatename,data,filpath+ext)
-		except BaseException, e:
-			g.log(str(e))
-			level = 'LOG_ERROR'
-			msg[0] += 'FAILED'
-			failures.append(templatename)
-		else:
-			msg[0] += 'LOADED'
-		msg.append(filpath+ext)
-		g.log.msg(level, ': '.join(msg))
+	assert ext == mtch#:
+	filpath = os.path.join(pwd[0], name)
+	data = fileops.openreadclose(filpath+ext)
+	templatename = os.path.join(pwd[0], name).replace(pth,'')
+	msg = ["TEMPLATE ", templatename]
+	level = 'LOG_DEBUG'
+	try:
+		g.templates.add_template(templatename,data,filpath+ext)
+	except BaseException, e:
+		g.log(str(e))
+		level = 'LOG_ERROR'
+		msg[0] += 'FAILED'
+		failures.append(templatename)
+	else:
+		msg[0] += 'LOADED'
+	msg.append(filpath+ext)
+	g.log.msg(level, ': '.join(msg))
 
 get_templates = fileops.walk_paths('.mako', template_callback)
 __version__ = "$Revision$".split(":")[1][:-1].strip()
