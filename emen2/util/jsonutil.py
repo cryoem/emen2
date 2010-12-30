@@ -8,44 +8,32 @@ try:
 except ImportError:
 	import simplejson as json
 
-#import emen2.db.globalns
 from emen2.util.decorators import make_decorator
 
-#g = emen2.db.globalns.GlobalNamespace()
+def dict_encode(obj):
+	return dict( (encode.func(k),encode.func(v)) for k,v in obj.iteritems() )
+
+def list_encode(obj):
+	return list(encode.func(i) for i in obj)
+
+def safe_encode(obj):
+	'''Always return something, even if it is useless for serialization'''
+	try: json.dumps(obj)
+	except TypeError: obj = str(obj)
+	return obj
+
 
 @make_decorator(json.dumps)
 def encode_(obj, *a, **kw):
-	if hasattr(obj, 'json_equivalent'): obj = obj.json_equivalent()
-	outp = None
-	if hasattr(obj, '__iter__'):
-		if hasattr(obj, 'items'):
-			outd = {}
-			for k,v in obj.items():
-				outd[encode.func(k)] = encode.func(v)
-			outp = outd
-		else:
-			outl = []
-			for i in obj: outl.append(encode.func(i))
-			outp = outl
-	else:
-		try: json.dumps(obj)
-		except TypeError:
-			obj = str(obj)
-			outp = json.dumps(obj)
-		else:
-			outp = obj
-	return outp
+	obj = getattr(obj, 'json_equivalent', lambda: obj)()
+	func = lambda x: x
+	if hasattr(obj, 'items'): func = dict_encode
+	elif hasattr(obj, '__iter__'): func = list_encode
+	else: func = safe_encode
+	return func(obj)
 
 decode_ = json.loads
 
-# ian: no longer supporting demjson -- simplejson is fine
-# try:
-# 	from demjson import encode, decode
-# 	print 'demjson encoder/decoder'
-# except ImportError:
-
 encode, decode = encode_, decode_
-
-# print 'simplejson encoder/decoder'
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

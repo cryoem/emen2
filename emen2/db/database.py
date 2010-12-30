@@ -3740,12 +3740,12 @@ class DB(object):
 
 
 	@publicmethod("recorddefs.get")
-	def getrecorddef(self, keys, filt=True, recid=None, ctx=None, txn=None):
+	def getrecorddef(self, keys=None, filt=True, recid=None, ctx=None, txn=None):
 		"""Retrieves a RecordDef object. This will fail if the RecordDef is
 		private, unless the user is an owner or	 in the context of a recid the
 		user has permission to access.
 
-		@param rdids A RecordDef name, an iterable of RecordDef names, a Record ID, or list of Record IDs
+		@param keys A RecordDef name, an iterable of RecordDef names, a Record ID, or list of Record IDs
 
 		@keyparam filt Ignore failures
 		@keyparam recid For private RecordDefs, provide a readable Record ID of this type to gain access
@@ -3762,7 +3762,7 @@ class DB(object):
 		recs = filter(lambda x:isinstance(x, (dict, emen2.db.record.Record)), keys)
 		recids = [i.get('recid') for i in recs]
 		recids.extend(filter(lambda x:isinstance(x, int), keys))
-		if recid:
+		if recid != None:
 			recids.append(recid)
 
 		recs = self.getrecord(recids, ctx=ctx, txn=txn)

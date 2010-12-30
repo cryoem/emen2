@@ -15,13 +15,13 @@ def invert(d):
 	return ret
 
 
-	
+
 
 def check_iterable(value):
 	if not value and not isinstance(value,(float,int)):
 		value = []
 	if not hasattr(value,"__iter__"):
-		value=[value]	
+		value=[value]
 	return value
 
 
@@ -178,13 +178,12 @@ def oltolist(d, dtype=None):
 	ol = False
 	result = None
 
-	if isinstance(d, dtype):
-		pass
-		
+	if isinstance(d, dtype): pass
+
 	elif isinstance(d, (dict, DictMixin)) or not hasattr(d, "__iter__"):
 		d = [d]
 		ol = True
-	
+
 	if not isinstance(d, dtype):
 		d = dtype(d)
 
