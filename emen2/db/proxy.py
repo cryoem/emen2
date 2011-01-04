@@ -40,6 +40,74 @@ class MethodUtil(object):
 
 
 
+strht = lambda s, c: s.partition(c)[::2]
+def fb(): return 'hi'
+def help(mt):
+	def _inner(*a, **b):
+		return dict(
+			doc = getattr(mt, 'doc', None),
+			methods = mt.children.keys()
+		)
+	return _inner
+
+class MethodTree(object):
+	class __cursor(object):
+		def __init__(self, mt, path = None):
+			self.path = path or []
+			self.mt = mt
+		def __call__(self, *a, **kw):
+			meth = self.mt.get_method('.'.join(self.path))
+			self.path = []
+			return meth(*a, **kw)
+		def __getattr__(self, name):
+			return type(self)(self.mt, self.path + [name])
+
+	def __init__(self, func=None):
+		self.func = func
+		if func: self.doc = func.__doc__ or ''
+		else: self.doc = ''
+		self.children = {}
+		self.aliases = {}
+
+	def alias(self, orig, new):
+		self.aliases[orig] = new
+	def get_alias(self, txt):
+		return self.aliases.get(txt,txt)
+
+	def __enter__(self, *a):
+		return self.__cursor(self)
+	def __exit__(self, *a, **kw): pass
+
+	def __call__(self, *a, **kw):
+		return self.func(*a, **kw)
+
+	def __getattr__(self, name):
+		name = name.replace('_', '.')
+		return self.get_method(name)
+
+	def add_method(self, name, func):
+		head, tail = strht(name, '.')
+		#print head, tail
+		if head in self.children:
+			self.children[head].add_method(tail, func)
+		else:
+			if tail != '':
+				self.children[head] = MethodTree()
+				self.children[head].add_method(tail, func)
+			else:
+				self.children[name] = MethodTree(func)
+
+	def get_method(self, name):
+		name = self.get_alias(name)
+		head, tail = strht(name, '.')
+		child = self.children.get(head, self)
+		if tail == 'help' or head == 'help': child = MethodTree(help(child))
+		elif tail != '' and child is not self: child = child.get_method(tail)
+		return child
+
+
+
+
 
 
 class _Method(object):
@@ -47,6 +115,7 @@ class _Method(object):
 	def __init__(self, proxy, name):
 		self._proxy = proxy
 		self._name = name
+
 
 	def __getattr__(self, name):
 		func = self._proxy._publicmethods.get("%s.%s"%(self._name, name))
@@ -69,6 +138,7 @@ class DBProxy(object):
 	"""
 
 	_publicmethods = {}
+	mt = MethodTree()
 
 	@classmethod
 	def _allmethods(cls):
@@ -186,14 +256,19 @@ class DBProxy(object):
 		setattr(func, 'admin', admin)
 		setattr(func, 'ext', ext)
 
+
 		cls._publicmethods[func.apiname] = func
 		cls._publicmethods[func.func_name] = func
+
+		cls.mt.add_method(apiname, func)
+		cls.mt.alias(func.func_name, apiname)
 
 
 
 	def _callmethod(self, method, args, kwargs):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
-		return getattr(self, method)(*args, **kwargs)
+		#return getattr(self, method)(*args, **kwargs)
+		return self._wrap(self.mt.get_method(method).func)(*args, **kwargs)
 
 
 
@@ -216,14 +291,14 @@ class DBProxy(object):
 			ctx = self.__ctx
 			kwargs['ctx'] = ctx
 
-			if func.admin and not ctx.checkadmin():
+			if getattr(func, 'admin', False) and not ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
 			self._starttxn()
 			kwargs['txn'] = self.__txn
 			ctx.setdb(self)
 
-			if func.ext:
+			if getattr(func, 'ext', False):
 				kwargs['db'] = self.__db
 
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
