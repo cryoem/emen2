@@ -3,48 +3,48 @@ $(document).ready(function() {
 });	
 
 function parsedate(d) {
-	var dt = new Date(Date.parse(d));
-	return dt
+	var pd = Date.parse(d);
+	if (!isNaN(pd)) {
+	 	return new Date(pd);
+	}
+}
+
+function writedate(d) {
+	return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds();
 }
 
 
 function dayid(d) {
-	return d.getUTCFullYear() + '-' + (d.getUTCMonth()+1) + '-' + d.getUTCDate();
+	return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
 }
 
 (function($) {
     $.widget("ui.Calendar", {
 		options: {
+			'recid': null,
+			'start': null,
+			'end': null
 		},
 				
 		_create: function() {
 			this.element.css('position','relative');
-			this.date_start = parsedate(this.element.attr('data-start'));
-			this.date_end = parsedate(this.element.attr('data-end'));
-			this.maketable();
-			this.makedays(this.date_start, this.date_end);
-			$('.event', this.element).CalendarEvent();
-			$('.event', this.element).CalendarEvent('draw');
+			this.options.recid = this.options.recid || parseInt(this.element.attr('data-recid'));
+			this.options.start = parsedate(this.element.attr('data-start'));
+			this.options.end = parsedate(this.element.attr('data-end'));
+			this.counter = -1;
+			this.built = 0;
+			this.build();
 		},
-
-		// <thead> \
-		// 	<tr class="calendar_header"> \
-		// 		<th style="width:50px"></th> \
-		// 	</tr> \
-		// </thead> \
 				
-		maketable: function() {
+		build: function() {
+				
+			if (this.built) {return}
+			this.build = 1;
 			
-			// var header = $(' \
-			// 	<table cellpadding="0" cellspacing="0"> \
-			// 		<tbody> \
-			// 			<tr class="calendar_header"> \
-			// 				<th style="width:40px;padding:0px;margin:0px;"></th> \
-			// 			</tr> \
-			// 		</tbody> \
-			// 	</table> \
-			// ');
-			// this.element.append(header);
+			var self = this;
+			var newevent = $('<button>Add Event</button>');
+			newevent.click(function(){self.addevent()})
+			this.element.append(newevent);
 						
 			var table = $(' \
 				<table cellpadding="0" cellspacing="0"> \
@@ -72,12 +72,18 @@ function dayid(d) {
 				$('.calendar_hours', table).append('<div style="text-align:right;font-size:8pt;color:#666;padding:2px;height:35px;border-right:solid 1px #ccc;border-bottom:solid 1px #ccc">'+text+' </div>');
 			}
 			this.element.append(table);
+			
+			this.makedays(this.options.start, this.options.end);			
+			
+			$('.event', this.element).CalendarEvent();
+			$('.event', this.element).CalendarEvent('draw');
+			
 		},
 		
 		makedays: function(start, end) {
 			var day = new Date(start);
 			while (day < end) {
-				$('.calendar_header', this.element).append('<th style="text-align:center">'+day.getUTCDate()+'/'+(day.getUTCMonth()+1)+'</th>');
+				$('.calendar_header', this.element).append('<th style="text-align:center">'+(day.getMonth()+1)+'/'+day.getDate()+'</th>');
 				var newday = new Date(day.getTime() + 24*60*60*1000);
 				var daydiv = $('<div style="padding:0px;margin:0px;position:relative;" class="day" data-dayid="'+dayid(day)+'" data-start="'+day+'" data-end="'+newday+'" />');
 				var datediff = new Date()-day
@@ -98,7 +104,16 @@ function dayid(d) {
 		},
 				
 		addevent: function(event) {
-			
+			var e = $('<div class="event" data-recid="'+this.counter+'">Test!</div>');
+			e.CalendarEvent({
+				'recid': this.counter,
+				'parent': this.options.recid,
+				'start': this.options.start,
+				'end': new Date(this.options.start.getTime() + 60*60*1000)
+			});
+			this.counter -= 1;
+			e.CalendarEvent('draw');
+			this.element.append(e);
 		},			
 				
 		destroy: function() {
@@ -118,28 +133,83 @@ function dayid(d) {
 (function($) {
     $.widget("ui.CalendarEvent", {
 		options: {
+			'start': null,
+			'end': null,
+			'recid': null,
+			'parent': null
 		},
 				
 		_create: function() {
 			var self = this;
 			this.indent = 0;
+			this.opacity = 1.0;
+			this.view = '';
 			this.element.hide();
-			this.recid = this.element.attr('data-recid');
-			this.date_start = parsedate(this.element.attr('data-start'));
-			this.date_end = parsedate(this.element.attr('data-end'));
-			this.original_date_start = parsedate(this.element.attr('data-start'));
-			this.original_date_end = parsedate(this.element.attr('data-end'));
+			this.options.recid = parseInt(this.options.recid || this.element.attr('data-recid'));
+			this.built = 0;
+			if (this.options.recid >= 0) {
+				$.jsonRPC("getrecord", [this.options.recid], function(rec) {
+					self.rec = rec;
+					self.build();
+					self.renderview();
+				})
+			} else {
+				$.jsonRPC("newrecord", ["folder", this.options.parent], function(rec) {
+					rec['recid'] = self.options.recid;
+					self.rec = rec;
+					self.build();
+				})
+			}
+
+		},
+		
+		formathour: function(d) {
+			var h = d.getHours();
+			var s = '';
+			var m = d.getMinutes();
+			var p = '';
+			if (m==0) {m = ''} else {m = ':'+m}
+			if (h==0) {
+				s = '12';				
+			} else if (h < 12) {
+				s = h;
+			} else if (h == 12) {
+				s = '12';
+				p = 'p'
+			} else {
+				s = h%12
+				p = 'p';
+			}
+			return s+m+p
+		},
+		
+		build: function() {
+			var self = this;
+			if (this.built) {
+				return
+			}
+			this.built = 1;			
+			this.options.start = parsedate(this.rec['date_start']) || this.options.start;
+			this.options.end = parsedate(this.rec['date_end']) || this.options.end;
+			this.original_start = this.options.start;
+			this.original_end = this.options.end;
+			this.collisions();
+			this.draw();
 		},
 		
 		draw: function() {
-			this.collisions();
 			var self = this;
-			$('.event_box[data-recid='+this.recid+']').remove();			
+
+			// hide any boxes with important events bound to preserve start/drag/stop -- and remove others
+			$('.event_bound[data-recid='+this.options.recid+']').hide();			
+			$('.event_box[data-recid='+this.options.recid+']:not(.event_bound)').remove();			
+
 			$('.day').each(function() {
 				var endstoday = false;
 				var thisday = new Date($(this).attr('data-start'));
-				var y_offset = (self.date_start - thisday) / (3600 * 1000);				
-				var duration = (self.date_end - self.date_start) / (3600 * 1000);
+				var width = $(this).width();
+				var y_offset = (self.options.start - thisday) / (3600 * 1000);				
+				var duration = (self.options.end - self.options.start) / (3600 * 1000);
 				height = duration;
 
 				// offset + height exceeds max column height
@@ -152,10 +222,10 @@ function dayid(d) {
 					height = duration + y_offset;
 					y_offset = 0;
 					endstoday = true;
-				}
-				if (duration <= 24) {
+				}			
+				if (duration + y_offset <= 24) {
 					endstoday = true;
-				}				
+				}
 								
 				// began before this day
 				if (y_offset < 0) {
@@ -171,41 +241,23 @@ function dayid(d) {
 				if (height <= 0) {
 					return
 				}
-
-				var e = $('<div style="position:absolute;top:0px;width:100%;opacity:0.5">'+self.recid+'</div>');
+			
+				var e = $('<div style="position:absolute;top:0px;"><div class="label">'+self.formathour(self.options.start)+' - '+self.formathour(self.options.end)+'</div><div class="indent">'+self.indent+'</div></div>');
+				var view = $('<div class="view" data-recid="'+self.options.recid+'" data-viewtype="recname">'+self.view+'</div>');
+				e.append(view);
+				
 				e.addClass('event_box');
 				if (endstoday) {
 					e.addClass('endstoday');
 				}
-				e.attr('data-recid', self.recid);
-				e.css('background', 'red');
+				e.attr('data-recid', self.options.recid);
 				e.css('top', y_offset*40);
-				e.css('height', height*40);	
+				e.css('height', height*40-4);
+				e.css('width', width-4);
+				e.css('opacity', self.opacity);
 				$(this).append(e);
-				self.makedraggable(e);		
+				self.makedraggable(e);
 			});
-		},
-		
-		// checkdays: function() {
-		// 	this.days = [];
-		// 	var day = new Date(this.date_start);
-		// 	while (day <= this.date_end) {
-		// 		var p = $('.day[data-dayid='+dayid(day)+']');
-		// 		if (p.length) {this.days.push(dayid(day))}
-		// 		day = new Date(day.getTime() + 24*60*60*1000); // add 24 hours
-		// 	}
-		// },
-		
-		getrecid: function() {
-			return this.recid;
-		},
-		
-		getstart: function() {
-			return this.date_start
-		},
-		
-		getend: function() {
-			return this.date_end
 		},
 		
 		timewindow: function(d1, d2, t1, t2) {
@@ -219,7 +271,7 @@ function dayid(d) {
 				'helper': function(){return '<div></div>'},
 				'start': function(event, ui) {
 					var offset = $('.day').offset();
-					self._sub = 2
+					self._sub = 4
 					self._width = $('.day').width();
 					self._height = $('.day').height() / 24;
 					self._ox = event.pageX;
@@ -228,8 +280,16 @@ function dayid(d) {
 					self._celly = (event.pageY - offset.top) % self._height;
 					self._day = 0;
 					self._hour = 0;
-					self.original_date_start = self.date_start;
-					self.original_date_end = self.date_end;
+					self.original_start = self.options.start;
+					self.original_end = self.options.end;
+					$(event.target).addClass('event_bound');
+					self.indent = 0;
+					self.opacity = 0.5;			
+					},
+				'stop': function(event, ui) {
+					// we hide the event target to keep the 'stop' handler alive, but now we can kill it..
+					$(event.target).remove();
+					self.save();
 					},
 				'drag': function(event, ui) {
 					// transform to calendar origin
@@ -240,8 +300,7 @@ function dayid(d) {
 					}
 					self._hour = hour;
 					self._day = day;
-					},
-				'stop': function(event, ui) {}
+					}
 			});
 
 			if (!box.hasClass("endstoday")) {
@@ -254,57 +313,40 @@ function dayid(d) {
 				'start': function(event, ui) {
 					self._d_ox = event.pageY;
 					self._height = $('.day').height() / 24;	
-					console.log("height?", self._height)				
 				},
 			    'resize': function(event, ui) {
 			        ui.size.width = ui.originalSize.width;
 			    },
-				'stop': function(event) {
+				'stop': function(event, ui) {
 					var hour = Math.floor(4*((event.pageY - self._d_ox)/self._height))/4;
 					self.setduration_offset(hour);
+					self.save();
 				}
-			})
-			
-			var helper = $('<div style="text-align:center;position:absolute;bottom:0px;width:100%;font-size:8pt;color:#fff">=</div>');
+			});
+			var helper = $('<div style="text-align:center;position:absolute;bottom:0px;width:100%;font-size:8pt;color:#ccc">=</div>');
 			box.append(helper);			
-			// helper.draggable({
-			// 	'helper': function(){return '<div></div>'},
-			// 	'start': function(event, ui){
-			// 		self._d_ox = event.pageY;
-			// 		self._duration = 0;
-			// 		self._height = $('.day').height() / 24;
-			// 	},
-			// 	'drag': function(event, ui){
-			// 		var duration = Math.floor(4 * (event.pageY - self._d_ox) / self._height) / 4;
-			// 		if (self._duration != duration) {
-			// 			self.setduration_offset(duration);
-			// 		}
-			// 		self._duration = duration;
-			// 	},
-			// 	'stop': function(event, ui) {}
-			// });
+
 		},
 		
 		setduration_offset: function(hour) {
-			console.log("adding time", hour)
 			var self = this;
 			var duration = 3600 * 1000 * hour;
-			var newend = new Date(this.date_end.getTime() + duration);
-			if (newend <= this.date_start) {
+			var newend = new Date(this.options.end.getTime() + duration);
+			if (newend <= this.options.start) {
 				return
 			}
-			this.date_end = newend;
+			this.options.end = newend;
 			this.draw();
 		},
 		
 		settime_offset: function(hour, day) {
 			var self = this;
-			var duration = this.date_end - this.date_start;
+			var duration = this.options.end - this.options.start;
 			var offset = (24*3600*1000*day) + (3600*1000*hour);
-			var newstart = new Date(self.original_date_start.getTime() + offset);
+			var newstart = new Date(self.original_start.getTime() + offset);
 			var newend = new Date(newstart.getTime() + duration);
-			this.date_start = newstart;
-			this.date_end = newend;
+			this.options.start = newstart;
+			this.options.end = newend;
 			this.draw();
 		},
 		
@@ -314,33 +356,110 @@ function dayid(d) {
 			}
 			this.indent = level;
 			var self = this;
-			$('.event_box[data-recid='+this.recid+']').each(function() {
+			$('.event_box[data-recid='+this.options.recid+']').each(function() {
 				var e = $(this)
 				e.css('left', self.indent*20+"%");
-				e.css('width', 100-(self.indent*20)+"%")				
-			});	
-		},		
+				e.css('width', 100-(self.indent*20)+"%");
+				e.css('z-index', self.indent*10);
+			});
+		},
 		
-		collisions: function() {
+		checkcollisions: function() {
 			var self = this;
 			var cs = [];
-			var levels = {};
 			$('.event').each(function() {
-				var eid = $(this).CalendarEvent('getrecid');
-				if (eid == self.recid) {return}
-				var ds = $(this).CalendarEvent('getstart');
-				var de = $(this).CalendarEvent('getend');
-				if (self.timewindow(ds, de, self.date_start, self.date_end)) {
+				var e = $(this);
+				var eid = e.CalendarEvent('option', 'recid');
+				var ds = e.CalendarEvent('option', 'start');
+				var de = e.CalendarEvent('option', 'end');
+				if (eid == self.options.recid) {return}			
+				if (self.timewindow(ds, de, self.options.start, self.options.end)) {
 					cs.push(eid);
-					var l1 = self.date_end - self.date_start;
-					var l2 = de - ds;
-					if (l2 > l1) {
-						self.indent += 1;
-					}
 				}
 			});
-			//console.log("Collisions: ", this.recid, " with ", cs, " ... indent is", this.indent);
-		},		
+			return cs
+		},
+		
+		collisions: function() {
+			// find all overlapping items
+			var current = this.options.recid;
+			var result = [this.options.recid];
+			var stack = [];
+			while (current != null) {
+				var cs = this.checkcollisions();
+				for (var i=0; i<cs.length; i++) {
+					if ($.inArray(cs[i], result) < 0) {
+						result.push(cs[i]);
+						stack.push(cs[i]);
+					}
+				}
+				if (stack.length > 0) {
+					current = stack.pop(); 
+				} else {
+					current = null;
+				}
+			}
+			//console.log("Total overlaps: ", result);			
+			// sort by length, then indent appropriately
+			lengths = {}
+			for (var i=0; i<result.length; i++) {
+				var e = $('.event[data-recid='+result[i]+']');
+				var ds = e.CalendarEvent('option', 'start');
+				var de = e.CalendarEvent('option', 'end');
+				lengths[result[i]] = de-ds;
+			}
+			var sorted = $.sortdict(lengths);
+			for (var i=0; i<sorted.length; i++) {
+				var e = $('.event[data-recid='+sorted[i]+']');
+				e.CalendarEvent('reindent', i);
+			}
+		},
+		
+		setrecid: function(recid) {
+			//console.log("updating recid..", this.options.recid, recid);
+			$('[data-recid='+this.options.recid+']').each(function() {
+				$(this).attr('data-recid', recid);
+			});
+			this.options.recid = recid;
+		},
+		
+		save: function() {
+			this.opacity = 1.0;
+			this.draw();
+			this.collisions();			
+			return
+			var self = this;
+			if (this.rec['recid'] >= 0) {
+				var rec = {};
+				rec['date_start'] = writedate(this.options.start);
+				rec['date_end'] = writedate(this.options.end);
+				$.jsonRPC('putrecordvalues', [this.options.recid, rec], function(updrec) {
+					//console.log("saved!");
+					self.rec = updrec;
+					self.renderview();
+				});
+			} else {
+				this.rec['date_start'] = writedate(this.options.start);
+				this.rec['date_end'] = writedate(this.options.end);
+				$.jsonRPC('putrecord', [this.rec], function(updrec) {
+					//console.log("saved new record!");
+					self.rec = updrec;
+					self.setrecid(updrec['recid']);
+					self.renderview();
+				});				
+			}
+		},
+		
+		renderview: function() {
+			var self = this;
+			$.jsonRPC('renderview', [this.options.recid, null, 'recname'], function(view) {
+				self.view = view;
+				if (view==null) {
+					view = "Record "+self.options.recid;
+				}
+				self.draw();
+			});
+		},
 				
 		destroy: function() {
 		},
