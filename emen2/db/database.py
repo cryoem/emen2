@@ -372,7 +372,7 @@ class DB(object):
 		# If we are just doing backups or maintenance, don't open any BDB handles
 		if maintenance:
 			return
-			
+
 
 		# Open Database
 		txn = self.newtxn()
@@ -408,18 +408,18 @@ class DB(object):
 
 	def setup(self, rootpw=None, rootemail=None, resetup=False, ctx=None, txn=None):
 		"""Initialize a new DB"""
-		
+
 		if not rootpw or not rootemail:
 			import pwd
 			import platform
-			
+
 			host = platform.node() or 'localhost'
 			try:
 				defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
 			except:
 				defaultemail = "root@localhost"
-			
-			print "\n=== New Database Setup ==="	
+
+			print "\n=== New Database Setup ==="
 			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
 			rootpw = rootpw or getpass.getpass("Admin (root) password: ")
 
@@ -430,7 +430,7 @@ class DB(object):
 
 		# Private method to load config
 		def load_skeleton(t):
-			infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)	
+			infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
 			f = open(infile)
 			ret = emen2.util.jsonutil.decode(f.read())
 			f.close()
@@ -438,9 +438,9 @@ class DB(object):
 
 		# Create a fake root context
 		ctx = self._makerootcontext(txn=txn)
-		
-		g.log.msg("LOG_INFO","Initializing new database; root email: %s"%rootemail)		
-		
+
+		g.log.msg("LOG_INFO","Initializing new database; root email: %s"%rootemail)
+
 		# Load skeletons -- use utils/export.py to create these JSON files
 		paramdefs = load_skeleton('paramdefs')
 		recorddefs = load_skeleton('recorddefs')
@@ -471,7 +471,7 @@ class DB(object):
 
 		for user in users:
 			if user.get('username') == 'root':
-				user['password'] = rootpw				
+				user['password'] = rootpw
 				user['email'] = rootemail
 			self.adduser(user, ctx=ctx, txn=txn)
 
@@ -479,9 +479,9 @@ class DB(object):
 			self.putgroup(group, ctx=ctx, txn=txn)
 
 		# Wait for the groups are committed -- then go back and add authenticated to recid 0
-		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)		
-		
-		
+		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
+
+
 
 
 	# ian: todo: simple: more statistics; needs a txn?
@@ -540,7 +540,7 @@ class DB(object):
 		except Exception, inst:
 			g.log('LOG_INFO','Could not send email: %s'%inst)
 			return
-								
+
 		ctxt = ctxt or {}
 		ctxt["recipient"] = recipient
 		ctxt["MAILADMIN"] = mailadmin
@@ -555,7 +555,7 @@ class DB(object):
 		except Exception, e:
 			g.log('LOG_INFO','Could not render template %s: %s'%(template, e))
 			return
-		
+
 		try:
 			s = smtplib.SMTP(g.MAILHOST)
 			s.set_debuglevel(1)
@@ -564,10 +564,10 @@ class DB(object):
 		except Exception, e:
 			g.log('LOG_ERROR', 'Could not send email: %s'%e)
 			raise e
-			
+
 		return recipient
-			
-			
+
+
 
 	###############################
 	# section: Transaction Management
@@ -1298,9 +1298,9 @@ class DB(object):
 	def _parse_macro(self, macro, ctx=None, txn=None):
 		r = re.compile(VIEW_REGEX).search(macro)
 		return r.group('name'), r.group('args')
-		
-		
-	
+
+
+
 	def _process_macro(self, macro, recs=None, recids=None, ctx=None, txn=None):
 		name, args = self._parse_macro(macro)
 		# print "Process macro: ", name, args
@@ -1330,7 +1330,7 @@ class DB(object):
 		param = self._query_paramstrip(groupparam)
 
 		if param.startswith('$@'):
-			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing			
+			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing
 			groups[param] = self._process_macro(param, recids=recids, ctx=ctx, txn=txn)
 
 
@@ -1367,7 +1367,7 @@ class DB(object):
 				# 		v2 = children.get(i, set()) & recids
 				# 		if v2: groups[param][key] = v2
 
-		
+
 
 
 	def _query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
@@ -1390,7 +1390,7 @@ class DB(object):
 		if param.startswith('$@'):
 			groupby[param] = {}
 			pass
-			
+
 
 		elif param == "rectype":
 			if comp == "==" and value != None:
@@ -1423,7 +1423,7 @@ class DB(object):
 		# 	if comp == "contains" and value != None:
 		# 		ind = self._getindex("groups", ctx=ctx, txn=txn)
 		# 		subset = ind.get(value, txn=txn)
-		# 
+		#
 		# elif param == "permissions":
 		# 	if comp == "contains" and value != None:
 		# 		ind = self._getindex("permissions", ctx=ctx, txn=txn)
@@ -1431,10 +1431,10 @@ class DB(object):
 
 		elif param:
 			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
-			
+
 		else:
 			pass
-	
+
 
 		return subset
 
@@ -1450,7 +1450,7 @@ class DB(object):
 
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
-		
+
 		if not cfunc:
 			return None
 
@@ -1463,7 +1463,7 @@ class DB(object):
 		else:
 			indparams = [self._query_paramstrip(searchparam)]
 
-		
+
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
@@ -1484,14 +1484,14 @@ class DB(object):
 			# Special case for two-level iterables (e.g. permissions) --
 			if pd.name == 'permissions':
 				cargs = emen2.util.listops.combine(*cargs)
-			
+
 			# Support for iterable vartypes
 			if cargs == None:
 				cargs = [None]
 			for v in emen2.util.listops.check_iterable(cargs):
 				r |= set(filter(functools.partial(cfunc, v), ik))
 				# print "->", v, len(r)
-			
+
 			if r:
 				results[indparam] = r
 
@@ -1571,17 +1571,17 @@ class DB(object):
 	@publicmethod("records.find.table")
 	def querytable(self, pos=0, count=1000, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
 		"""doctstring coming soon"""
-		
+
 		# print "count is", count
 		xparam = q.get('xparam', None)
 		yparam = q.get('yparam', None)
-		
+
 		if count:
 			count = int(count) or None
 		else:
 			count = None
-		
-		if pos:	
+
+		if pos:
 			pos = int(pos) or 0
 		else:
 			pos = 0
@@ -2692,8 +2692,8 @@ class DB(object):
 		for user in addusers:
 			ctxt = {'username':user.username}
 			self.sendmail(user.email, '/email/adduser.approved', ctxt=ctxt, ctx=ctx, txn=txn)
-			
-			
+
+
 		ret = [user.username for user in addusers]
 		if ol: return return_first_or_none(ret)
 		return ret
@@ -2716,7 +2716,7 @@ class DB(object):
 
 		delusers = {}
 		emails = {}
-		
+
 		for username in usernames:
 			try:
 				user = self.bdbs.newuserqueue.sget(username, txn=txn)
@@ -2828,8 +2828,8 @@ class DB(object):
 
 		self._commit_users(commitusers, ctx=ctx, txn=txn)
 
-	
-	
+
+
 	def __userbyemail(self, email, ctx=None, txn=None):
 		byemail = self.bdbs.usersbyemail.get(email.lower(), txn=txn)
 		username = None
@@ -2837,14 +2837,14 @@ class DB(object):
 			username = byemail.pop()
 		return username
 
-	
+
 
 	@publicmethod("auth.resetpassword", write=True)
 	def resetpassword(self, username, newpassword=None, secret=None, ctx=None, txn=None):
 
 		errmsg = "Could not reset password"
 		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
-		
+
 		try:
 			user = self.bdbs.users.sget(username, txn=txn)
 			user.setContext(ctx)
@@ -2852,22 +2852,22 @@ class DB(object):
 			g.log.msg('LOG_SECURITY', "Password reset failed for %s: %s"%(username, e))
 			time.sleep(2)
 			raise emen2.db.exceptions.AuthenticationError, "No account associated with %s"%username
-			
-			
+
+
 		try:
 			# Absolutely never reveal the secret via any mechanism but email to registered address
 			user.resetpassword()
 			ctxt = {'secret': user._User__secret[2]}
 			self.sendmail(user.email, '/email/password.reset', ctxt, ctx=ctx, txn=txn)
-			
+
 		except Exception, e:
 			g.log.msg('LOG_SECURITY', "Password reset failed for %s: %s"%(username, e))
-			raise emen2.db.exceptions.AuthenticationError, errmsg			
-		
-		
+			raise emen2.db.exceptions.AuthenticationError, errmsg
+
+
 		g.log.msg("LOG_SECURITY","Setting resetpassword secret for %s"%user.username)
 		self._commit_users([user], ctx=ctx, txn=txn)
-		
+
 
 
 	@publicmethod("auth.setpassword", write=True)
@@ -2885,7 +2885,7 @@ class DB(object):
 		# ian: need to read directly because getuser hides password
 		user = self.bdbs.users.sget(username, txn=txn)
 		user.setContext(ctx)
-		
+
 		# Existing password / auth token is checked before password is reset.. Or user is admin.
 		#try:
 		user.setpassword(oldpassword, newpassword, secret=secret)
@@ -2895,7 +2895,7 @@ class DB(object):
 		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
-		
+
 		self.sendmail(user.email, '/email/password.changed')
 
 		return username
@@ -2926,19 +2926,19 @@ class DB(object):
 
 		# user.setemail will check the password and secret, and raise an exception if something is wrong.
 		# if password and no secret, set auth token
-		# if secret, check the secret and set email and return the new email		
+		# if secret, check the secret and set email and return the new email
 		user = self.bdbs.users.sget(username, txn=txn)
-		user.setContext(ctx)		
+		user.setContext(ctx)
 		ret = user.setemail(email, secret=secret, password=password)
 		user.validate()
-		
+
 		ctxt = {}
 		if ret:
 			self.sendmail(email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
 		else:
 			ctxt['secret'] = user._User__secret[2]
 			self.sendmail(email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
-						
+
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
@@ -3003,7 +3003,7 @@ class DB(object):
 			except:
 				oldemail = ''
 
-			# root's email is not indexed 
+			# root's email is not indexed
 			#	-- the email for root will often also be used for a user acct
 			if oldemail != user.email and user.username != "root":
 				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))

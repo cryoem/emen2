@@ -1,11 +1,6 @@
 # $Id$
 from __future__ import with_statement
 
-### Unit-tested in emen2.tests.test_routing.py
-### If you change anything run (from emen2 directory):
-###	 PYTHONPATH=.. python tests/test_routing.py
-### Also, make sure the tests reflect the current code
-
 from functools import partial
 from itertools import izip
 from emen2.util import listops
@@ -81,7 +76,6 @@ class URL(object):
 
 	def add_matcher(self, method, matcher, cb):
 		if not hasattr(matcher, 'match'): matcher = re.compile(matcher)
-		# g.debug('method:', method, 'matcher:', matcher.pattern, 'cb:', cb.__name__, join=' ')
 		self.__matchers.add(method, matcher, cb)
 
 
@@ -248,12 +242,38 @@ def force_unicode(string):
 
 # modified code from Django
 class NoReverseMatch(Exception): pass
+
+class IndexedListIterator(object):
+	def __init__(self, lis):
+		self.lis = tuple(lis)
+
+		# public
+		self.pos = 0
+
+	def next(self, delta = 1):
+		try:
+			result = self.lis[self.pos]
+			self.pos += delta
+			self.pos %= len(self.lis)
+		except IndexError:
+			result = None
+		return result
+
+	def prev(self, delta = 1):
+		self.pos -= delta
+		return self.lis[self.pos]
+
+	def __getitem__(self, arg):
+		return self.lis[arg]
+
 class MatchChecker(object):
 	"Class used in reverse RegexURLPattern lookup."
 	def __init__(self, args, kwargs):
-		self.args, self.kwargs = map(str, args), dict([(x, str(y)) for x, y in kwargs.items()])
-		self.used_kwargs = set([])
+		self.args = IndexedListIterator( (str(x) for x in args) )
 		self.current_arg = 0
+
+		self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
+		self.used_kwargs = set([])
 
 	def get_next_posarg(self):
 		try:
@@ -266,7 +286,7 @@ class MatchChecker(object):
 	def get_kwarg(self, name):
 		result = self.kwargs.get(name)
 		if result is None:
-			result = self.get_next_posarg()
+			result = self.args.next() #get_next_posarg()
 		else:
 			self.used_kwargs.add(name)
 		return result
@@ -284,7 +304,7 @@ class MatchChecker(object):
 		if m:
 			value, test_regex = self.get_kwarg(m.group(1)), m.group(2)
 		else:
-			value, test_regex = self.get_next_posarg(), grouped
+			value, test_regex = self.lis.next(), grouped # get_next_posarg(), grouped
 		if value is None:
 			raise NoReverseMatch('Not enough arguments passed in')
 
