@@ -181,7 +181,7 @@ class DBProxy(object):
 		if type is None:
 			self._committxn()
 		else:
-			g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
+			# g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 			self._aborttxn()
 		self.__txn = None
 

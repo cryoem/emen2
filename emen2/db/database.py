@@ -1601,6 +1601,8 @@ class DB(object):
 		rectypes = q.get('groups', {}).get('rectype', {})
 		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
 
+
+		# New - try to base the default view on the tabular view for root_protocol
 		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
 
 		# Process into table
@@ -1608,7 +1610,7 @@ class DB(object):
 			viewdef = rds[0].views.get('tabularview', defaultviewdef)
 
 		elif len(rds) > 1 or len(rds) == 0:
-			viewdef = defaultviewdef
+			viewdef = self.getrecorddef("root_protocol", ctx=ctx, txn=txn).views.get('tabularview', defaultviewdef)
 
 
 		for i in q['groups'].keys() + ['creator', 'creationtime']:
@@ -3228,10 +3230,10 @@ class DB(object):
 		for group in groups:
 
 			ngm = group.members()
-			#try:
-			ogm = self.bdbs.groups.get(group.name, txn=txn).members()
-			#except:
-			#	ogm = set()
+			try:
+				ogm = self.bdbs.groups.get(group.name, txn=txn).members()
+			except:
+				ogm = set()
 
 			addusers = ngm - ogm
 			delusers = ogm - ngm
