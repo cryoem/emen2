@@ -137,6 +137,6 @@ class InputValidator(object):
 		def _validate(inp):
 			return bool(re.match(inp))
 		return _validate
-		
-		
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()

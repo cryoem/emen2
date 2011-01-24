@@ -270,25 +270,13 @@ class MatchChecker(object):
 	"Class used in reverse RegexURLPattern lookup."
 	def __init__(self, args, kwargs):
 		self.args = IndexedListIterator( (str(x) for x in args) )
-		self.current_arg = 0
-
 		self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
 		self.used_kwargs = set([])
 
-	def get_next_posarg(self):
-		try:
-			result = self.args[self.current_arg]
-			self.current_arg += 1
-		except IndexError:
-			result = None
-		return result
-
 	def get_kwarg(self, name):
 		result = self.kwargs.get(name)
-		if result is None:
-			result = self.args.next() #get_next_posarg()
-		else:
-			self.used_kwargs.add(name)
+		if result is None: result = self.args.next()
+		else: self.used_kwargs.add(name)
 		return result
 
 	def get_unused_kwargs(self):
@@ -298,7 +286,6 @@ class MatchChecker(object):
 	NAMED_GROUP = re.compile(r'^\?P<(\w+)>(.*?)$', re.UNICODE)
 	def __call__(self, match_obj):
 		grouped = match_obj.group(1)
-		#m = re.search(r'^\?P<(\w+)>(.*?)$', grouped, re.UNICODE)
 		m = self.NAMED_GROUP.search(grouped)
 
 		if m:
