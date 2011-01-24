@@ -4,6 +4,7 @@ from __future__ import with_statement
 from functools import partial
 from itertools import izip
 from emen2.util import listops
+import emen2.util.datastructures
 import re
 import sre_parse
 import cgi
@@ -13,64 +14,11 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
-class doubledict(object):
-	def __init__(self, keys=None, values1=None, values2=None):
-		if None in (keys, values1, values2):
-			keys, values1, values2 = [],[],[]
-		self.__dict_l = dict(zip(keys, values1))
-		self.__dict_r = dict(zip(keys, values2))
-	@classmethod
-	def from_dict(cls, dct):
-		self = cls.__new__(cls)
-		self.__dict_l, self.__dict_r, self.__vl_vr = {}, {}, {}
-		for k, (v_l, v_r) in dct.iteritems():
-			self.__dict_l[k] = v_l
-			self.__dict_r[k] = v_r
-		return self
-	def get(self, name, default=None):
-		return self.get_left(name, default), self.get_right(name, default)
-	__getitem__ = get
-	def get_left(self, name, default=None):
-		return self.__dict_l.get(name, default)
-	def get_right(self, name, default=None):
-		return self.__dict_r.get(name, default)
-	def set(self, name, value, right=True):
-		if right:
-			self.__dict_r[name] = value
-		else:
-			self.__dict_l[name] = value
-	__setitem__ = set
-	def add(self, k, v_l, v_r):
-		self.__dict_l[k] = v_l
-		self.__dict_r[k] = v_r
-	def keys(self):
-		assert set(self.__dict_l) == set(self.__dict_r)
-		return self.__dict_l.keys()
-	def values(self):
-		assert set(self.__dict_l) == set(self.__dict_r)
-		return zip(self.__dict_l.values(), self.__dict_r.values())
-	def items(self):
-		assert set(self.__dict_l) == set(self.__dict_r)
-		return zip(self.__dict_l.iterkeys(), self.__dict_l.itervalues(), self.__dict_r.itervalues())
-	def iteritems(self):
-		assert set(self.__dict_l) == set(self.__dict_r)
-		return izip(self.__dict_l.iterkeys(), self.__dict_l.itervalues(), self.__dict_r.itervalues())
-	def iteritems_l(self):
-		return self.__dict_l.iteritems()
-	def iteritems_r(self):
-		return self.__dict_r.iteritems()
-	def itervalues_l(self):
-		return self.__dict_l.itervalues()
-	def itervalues_r(self):
-		return self.__dict_r.itervalues()
-
-
-
 
 class URL(object):
 	def __init__(self, name, **matchers):
 		self.__name = name
-		self.__matchers = doubledict()
+		self.__matchers = emen2.util.datastructures.doubledict()
 		for nm, (matcher, callback) in matchers.iteritems():
 			self.add_matcher(nm, matcher, callback)
 
