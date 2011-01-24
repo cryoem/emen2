@@ -116,6 +116,29 @@ class doubledict(object):
 	def itervalues_r(self):
 		return self.__dict_r.itervalues()
 
+class IndexedListIterator(object):
+	def __init__(self, lis):
+		self.lis = tuple(lis)
+
+		# public
+		self.pos = 0
+
+	def next(self, delta = 1):
+		try:
+			result = self.lis[self.pos]
+			self.pos += delta
+			self.pos %= len(self.lis)
+		except IndexError:
+			result = None
+		return result
+
+	def prev(self, delta = 1):
+		self.pos -= delta
+		return self.lis[self.pos]
+
+	def __getitem__(self, arg):
+		return self.lis[arg]
+
 
 
 

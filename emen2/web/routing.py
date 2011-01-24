@@ -50,6 +50,7 @@ class URL(object):
 
 	def merge(self, other):
 		g.debug('merging, before:',self.__callbacks)
+		raise NotImplementedError
 		# self.__callbacks.update((k,v) for k,v in other.__callbacks.iteritems() if k not in self.__callbacks)
 		g.debug('merged, after:',self.__callbacks)
 
@@ -191,33 +192,10 @@ def force_unicode(string):
 # modified code from Django
 class NoReverseMatch(Exception): pass
 
-class IndexedListIterator(object):
-	def __init__(self, lis):
-		self.lis = tuple(lis)
-
-		# public
-		self.pos = 0
-
-	def next(self, delta = 1):
-		try:
-			result = self.lis[self.pos]
-			self.pos += delta
-			self.pos %= len(self.lis)
-		except IndexError:
-			result = None
-		return result
-
-	def prev(self, delta = 1):
-		self.pos -= delta
-		return self.lis[self.pos]
-
-	def __getitem__(self, arg):
-		return self.lis[arg]
-
 class MatchChecker(object):
 	"Class used in reverse RegexURLPattern lookup."
 	def __init__(self, args, kwargs):
-		self.args = IndexedListIterator( (str(x) for x in args) )
+		self.args = emen2.util.datastructures.IndexedListIterator( (str(x) for x in args) )
 		self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
 		self.used_kwargs = set([])
 
