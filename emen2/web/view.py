@@ -90,9 +90,9 @@ class View(object):
 
 	def __settitle(self, t):
 		self.__ctxt['title'] = t
-		
+
 	title = property(lambda self: self.__ctxt.get('title'), __settitle)
-	
+
 	def __set_mimetype(self, value): self.__headers['content-type'] = value
 	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
 
@@ -115,7 +115,7 @@ class View(object):
 		reverseinfo contains information necessary to reconstruct the url
 		extra catches arguments to be passed to the 'init' method
 		'''
-		
+
 		self.__db = db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
