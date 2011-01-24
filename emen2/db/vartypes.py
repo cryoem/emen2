@@ -325,6 +325,25 @@ class vt_stringlist(vt_iter, vt_string):
 
 
 
+class vt_choicelist(vt_iter, vt_string):
+	"""list of choice strings"""
+	__metaclass__ = Vartype.register_view
+
+	def validate(self, engine, pd, value, db):
+		if not hasattr(value,"__iter__"):
+			value=[value]
+		return [unicode(x) for x in value] or None
+
+	def render_unicode(self, engine, pd, value, rec, db):
+		return ", ".join(value or [])
+
+	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
+		value = emen2.util.listops.check_iterable(value)
+		value = [cgi.escape(i) for i in value]			
+		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, lt=lt)
+	
+
+
 
 class vt_text(vt_string):
 	"""freeform text, fulltext (word) indexing, str or unicode"""

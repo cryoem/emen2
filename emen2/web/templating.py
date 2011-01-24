@@ -159,7 +159,7 @@ class MakoTemplateEngine(StandardTemplateEngine):
 
 #### template loading
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
-	#print pwd, pth
+	# print pwd, pth
 	if not hasattr(failures, 'append'): failures = []
 	assert ext == mtch#:
 	filpath = os.path.join(pwd[0], name)

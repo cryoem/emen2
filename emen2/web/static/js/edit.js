@@ -356,7 +356,7 @@ function bind_autocomplete(elem, param) {
 				}
 				this.w.append(this.editw);				
 		
-			} else if ($.inArray(vt, ["intlist","floatlist","stringlist","userlist","urilist"]) > -1) { //.indexOf(vt) > -1
+			} else if ($.inArray(vt, ["intlist","floatlist","stringlist","userlist","urilist","choicelist"]) > -1) { //.indexOf(vt) > -1
 
 				inline = false;
 				this.editw = $('<div />');
@@ -538,12 +538,25 @@ function bind_autocomplete(elem, param) {
 			}
 			this.items.empty();
 
+			var pd = caches['paramdefs'][self.options.param];
+			var vt = pd.vartype;
+
+
 			$.each(this.options.values, function(k,v) {
 				var item = $('<li></li>');
-				var edit = $('<input type="text" value="'+v+'" />');
-						
-				bind_autocomplete(edit, self.options.param);
-			
+				
+				if (vt == "choicelist") {
+					var edit = $('<select>');
+					
+					for (var i=0;i<pd.choices.length;i++) {
+						edit.append('<option>'+pd.choices[i]+'</option>');
+					}
+					
+				} else {					
+					var edit = $('<input type="text" value="'+v+'" />');
+					bind_autocomplete(edit, self.options.param);
+				}
+									
 				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" class="listcontrol_add" alt="Add" /></span>').click(function() {
 					self.addoption(k+1);
 					self.build();
@@ -575,7 +588,7 @@ function bind_autocomplete(elem, param) {
 		getval: function() {
 			// return the values
 			var ret=[];
-			$("input:text",this.element).each(function(){
+			$("input:text, select",this.element).each(function(){
 				if (this.value != "") ret.push(this.value);
 			});
 			return ret
@@ -583,7 +596,7 @@ function bind_autocomplete(elem, param) {
 	
 		val_withblank: function() {
 			var ret=[];
-			$("input:text",this.element).each(function(){
+			$("input:text, select",this.element).each(function(){
 				ret.push(this.value);
 			});
 			return ret		
