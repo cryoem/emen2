@@ -69,8 +69,6 @@ def inithttpd():
 	import emen2.web.resources.publicresource
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
-	# ed: added later
-	# import emen2.web.resources.eman2resource
 
 	import emen2.web.views
 	import emen2.web.view
@@ -100,7 +98,6 @@ def inithttpd():
 		import emen2.web.resources.eman2resource
 		resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
 	except: pass
-	#	EMAN2 = False
 
 	try:
 		extraresources = g.getattr('RESOURCESPECS', {})
