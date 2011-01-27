@@ -1,5 +1,7 @@
+error.*
 build
 dist
+MANIFEST
 tmp
 .DS*
 log.*
