@@ -9,11 +9,14 @@ import htmlentitydefs
 import re
 
 try:
-	import markdown
-except:
-	markdown = None
+	import markdown2 as markdown
+except ImportError:
+	try:
+		import markdown
+	except ImportError:
+		markdown = None
 
-	
+
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.util.listops
@@ -69,7 +72,7 @@ class Vartype(object):
 		if value != None:
 			value = cgi.escape(unicode(value))
 		return self._render_html_single(engine, pd, value, rec, db, edit, showlabel, lt=lt)
-		
+
 
 	def render_htmledit(self, engine, pd, value, rec, db):
 		"""Mark field as editable, but do not show controls"""
@@ -88,20 +91,20 @@ class Vartype(object):
 			if edit and showlabel:
 				showlabel = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if edit:
-				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(elem_class, rec.recid, pd.name, showlabel)				
+				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(elem_class, rec.recid, pd.name, showlabel)
 			return '<span></span>'
 
 		if lt:
 			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, rec.recid, i) for i in value]
 		else:
 			lis = ['<li>%s</li>'%i for i in value]
-			
+
 
 		if not edit:
 			return '<ul>%s</ul>'%("\n".join(lis))
 
 		if showlabel:
-			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)		
+			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
 		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(elem_class, rec.recid, pd.name, pd.vartype, "\n".join(lis))
 
 
@@ -119,7 +122,7 @@ class Vartype(object):
 
 		if not edit:
 			return value
-			
+
 		if showlabel:
 			showlabel = '<span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
 		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(elem, elem_class, rec.recid, pd.name, pd.vartype, value, showlabel, elem)
@@ -164,7 +167,7 @@ class vt_iter(object):
 		for recid, new, old in items:
 			if new == old:
 				continue
-			
+
 			new = set(new or [])
 			old = set(old or [])
 			for n in new-old:
@@ -182,7 +185,7 @@ class vt_iter(object):
 
 
 # Float vartypes
-	
+
 class vt_float(Vartype):
 	"""single-precision floating-point"""
 	__metaclass__ = Vartype.register_view
@@ -200,7 +203,7 @@ class vt_float(Vartype):
 class vt_longfloat(vt_float):
 	"""double-precision floating-point"""
 	__metaclass__ = Vartype.register_view
-	
+
 
 
 
@@ -218,14 +221,14 @@ class vt_floatlist(vt_iter, vt_float):
 
 
 # Integer vartypes
-	
+
 class vt_int(Vartype):
 	"""32-bit integer"""
 	__metaclass__ = Vartype.register_view
 	keytype = "d"
 	def validate(self, engine, pd, value, db):
 		return int(value)
-	
+
 
 class vt_longint(vt_int):
 	"""64-bit integer"""
@@ -276,9 +279,9 @@ class vt_recid(Vartype):
 
 	def validate(self, engine, pd, value, db):
 		return int(value)
-	
-	
-	
+
+
+
 
 
 # String vartypes
@@ -297,8 +300,8 @@ class vt_choice(vt_string):
 	"""string from a fixed enumerated list, eg "yes","no","maybe"""
 	__metaclass__ = Vartype.register_view
 
-	
-	
+
+
 class vt_rectype(vt_string):
 	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
 	__metaclass__ = Vartype.register_view
@@ -320,7 +323,7 @@ class vt_stringlist(vt_iter, vt_string):
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		value = emen2.util.listops.check_iterable(value)
-		value = [cgi.escape(i) for i in value]			
+		value = [cgi.escape(i) for i in value]
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, lt=lt)
 
 
@@ -339,9 +342,9 @@ class vt_choicelist(vt_iter, vt_string):
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		value = emen2.util.listops.check_iterable(value)
-		value = [cgi.escape(i) for i in value]			
+		value = [cgi.escape(i) for i in value]
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, lt=lt)
-	
+
 
 
 
@@ -365,7 +368,7 @@ class vt_text(vt_string):
 		for item in items:
 			if item[1]==item[2]:
 				continue
-				
+
 			for i in self.__reindex_getindexwords(item[1]):
 				addrefs[i].append(item[0])
 
@@ -408,11 +411,11 @@ class vt_datetime(vt_string):
 	"""date/time, yyyy/mm/dd HH:MM:SS"""
 	__metaclass__ = Vartype.register_view
 	keytype = "s"
-	
+
 	def validate(self, engine, pd, value, db):
 		return unicode(parse_datetime(value)[1]) or None
-		
-		
+
+
 
 class vt_time(vt_datetime):
 	"""time, HH:MM:SS"""
@@ -489,7 +492,7 @@ class vt_binary(vt_iter, Vartype):
 	"""BDO reference"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
-	
+
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value = [value]
@@ -500,12 +503,12 @@ class vt_binary(vt_iter, Vartype):
 		value = emen2.util.listops.check_iterable(value)
 		try:
 			v = db.getbinary(value)
-			value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]	
+			value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 		except:
 			value = ['Error getting binary %s'%i for i in value]
 		return self._render_html_list(engine, pd, value, rec, db, edit, showlabel, elem_class="editable_files")
 
-		
+
 
 class vt_binaryimage(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
@@ -563,7 +566,7 @@ class vt_links(vt_iter, Vartype):
 # 	"""dict"""
 # 	__metaclass__ = Vartype.register_view
 # 	keytype = None
-# 	
+#
 # 	def validate(self, engine, pd, value, db):
 # 		return dict(value) or None
 
@@ -613,7 +616,7 @@ class vt_userlist(vt_iter, Vartype):
 	"""list of usernames"""
 	__metaclass__ = Vartype.register_view
 	keytype = "s"
-	
+
 	def validate(self, engine, pd, value, db):
 		if not hasattr(value,"__iter__"):
 			value = [value]
@@ -633,7 +636,7 @@ class vt_userlist(vt_iter, Vartype):
 	def render_unicode(self, engine, pd, value, rec, db):
 		value = emen2.util.listops.check_iterable(value)
 		update_username_cache(engine, value, db)
-		
+
 		# Read values from cache and build list
 		lis = []
 		for v in value:
@@ -641,7 +644,7 @@ class vt_userlist(vt_iter, Vartype):
 			hit, dn = engine.check_cache(key)
 			lis.append(dn)
 		return ", ".join(lis)
-		
+
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		value = emen2.util.listops.check_iterable(value)
@@ -651,7 +654,7 @@ class vt_userlist(vt_iter, Vartype):
 		for i in value:
 			key = engine.get_cache_key('displayname', i)
 			hit, dn = engine.check_cache(key)
-			lis.append('<a href="%s/user/%s">%s</a>'%(g.EMEN2WEBROOT, i,dn))			
+			lis.append('<a href="%s/user/%s">%s</a>'%(g.EMEN2WEBROOT, i,dn))
 
 		return self._render_html_list(engine, pd, lis, rec, db, edit, showlabel)
 
@@ -665,13 +668,13 @@ class vt_acl(Vartype):
 	__vartype__ = "acl"
 	keytype = "s"
 
-	
+
 	def validate(self, engine, pd, value, db):
 		# print "acl validating: ", value
 		# value = emen2.util.listops.check_iterable(value)
 		if not hasattr(value, '__iter__'):
 			value = ((value,),(),(),())
-		
+
 		key = engine.get_cache_key('usernames')
 		hit, usernames = engine.check_cache(key)
 		if not hit:
@@ -714,7 +717,7 @@ class vt_acl(Vartype):
 
 			for user in nperms - operms:
 				addrefs[user].append(recid)
-				
+
 			for user in operms - nperms:
 				delrefs[user].append(recid)
 
@@ -726,7 +729,7 @@ class vt_comments(Vartype):
 	"""comments"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
-	
+
 	def validate(self, engine, pd, value, db):
 		users=[i[0] for i in value]
 		times=[i[1] for i in value]
