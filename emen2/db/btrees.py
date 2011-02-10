@@ -35,6 +35,11 @@ def n_int(inp):
 
 
 
+
+DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_MULTIVERSION
+
+
+
 # Berkeley DB wrapper classes
 
 class BTree(object):
@@ -77,7 +82,7 @@ class BTree(object):
 		self.__setweakrefopen()
 
 		# g.log.msg("LOG_DEBUG","Opening %s.bdb"%self.filename)
-		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS)
+		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=DBOPENFLAGS)
 
 
 	def __setkeytype(self, keytype):
@@ -274,14 +279,13 @@ class RelateBTree(BTree):
 
 		if self.sequence:
 			self.sequencedb = bsddb3.db.DB(self.dbenv)
-			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=g.DBOPENFLAGS) #
+			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=DBOPENFLAGS) #
 
 		kt = self.keytype
 		dt = self.datatype
 
 		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
 		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
-
 
 
 
@@ -305,9 +309,9 @@ class RelateBTree(BTree):
 	def get_sequence(self, delta=1, txn=None):
 		
 		# newtxn = self.dbenv.txn_begin(parent=txn, flags=0) #
-		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, g.RMWFLAGS)		
+		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, bsddb3.db.DB_RMW)		
 		# try:
-		val = self.sequencedb.get("sequence", txn=txn, flags=g.RMWFLAGS)
+		val = self.sequencedb.get("sequence", txn=txn, flags=bsddb3.db.DB_RMW)
 		if val == None:
 			val = 0
 		val = int(val)

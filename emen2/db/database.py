@@ -104,7 +104,7 @@ VERSIONS = {
 VIEW_REGEX = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
 
 
-# pointer to database environment
+# Pointer to database environment
 DBENV = None
 
 
@@ -113,14 +113,17 @@ basestring = (str, unicode)
 
 
 DB_CONFIG = """\
+# Environment layout
 set_lg_dir log
 set_data_dir data
-set_cachesize 0 67108864 3
-set_tx_max 1000
-set_lk_detect DB_LOCK_YOUNGEST
+# These can be tuned somewhat, depending on circumstances
+set_cachesize 0 134217728 1
+set_tx_max 65536
 set_lk_max_locks 100000
 set_lk_max_lockers 100000
 set_lk_max_objects 100000
+# Don't touch these
+set_lk_detect DB_LOCK_YOUNGEST
 set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
@@ -260,7 +263,7 @@ class DB(object):
 
 			deltxn=False
 			if txn == None:
-				txn = self._db.newtxn()
+				txn = self._db.newtxn(write=True)
 				deltxn = True
 			try:
 				self.fieldindex[paramname] = emen2.db.btrees.FieldBTree(keytype=keytype, datatype=datatype, filename=filename, dbenv=dbenv, txn=txn)
@@ -307,11 +310,25 @@ class DB(object):
 		"""Setup DBEnv"""
 
 		global DBENV
+		
+		ENVOPENFLAGS = \
+			bsddb3.db.DB_CREATE | \
+			bsddb3.db.DB_INIT_MPOOL | \
+			bsddb3.db.DB_INIT_TXN | \
+			bsddb3.db.DB_INIT_LOCK | \
+			bsddb3.db.DB_INIT_LOG | \
+			bsddb3.db.DB_THREAD  | \
+			bsddb3.db.DB_REGISTER |	\
+			bsddb3.db.DB_RECOVER
+
+
 		if DBENV == None:
 			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
-			DBENV.open(self.path, g.ENVOPENFLAGS)
+			DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+			DBENV.open(self.path, ENVOPENFLAGS)
 			DB.opendbs[self] = 1
+
 		return DBENV
 
 
@@ -375,7 +392,7 @@ class DB(object):
 
 
 		# Open Database
-		txn = self.newtxn()
+		txn = self.newtxn(write=True)
 		try: self.bdbs.init(self, self.dbenv, txn=txn)
 		except Exception, inst:
 			self.txnabort(txn=txn)
@@ -384,7 +401,7 @@ class DB(object):
 
 
 		# Check if this is a valid db..
-		txn = self.newtxn()
+		txn = self.newtxn(write=True)
 		try:
 			maxr = self.bdbs.records.get_max(txn=txn)
 			g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
@@ -575,16 +592,17 @@ class DB(object):
 
 	txncounter = 0
 
-	def newtxn(self, parent=None, ctx=None, flags=None):
+	def newtxn(self, parent=None, ctx=None, write=False):
 		"""Start a new transaction.
 
 		@keyparam parent Open new txn as a child of this parent txn
 		@return New txn
 		"""
 
-		if flags == None:
-			flags = g.TXNFLAGS
-
+		flags = bsddb3.db.DB_TXN_SNAPSHOT
+		if write:
+			flags = 0
+			
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		# g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
@@ -599,14 +617,14 @@ class DB(object):
 
 
 
-	def txncheck(self, txnid=0, flags=None, ctx=None, txn=None):
+	def txncheck(self, txnid=0, write=False, ctx=None, txn=None):
 		"""Check a txn status; accepts txnid or txn instance
 
 		@return txn if valid
 		"""
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
-			txn = self.newtxn(ctx=ctx, flags=flags)
+			txn = self.newtxn(ctx=ctx, write=write)
 		return txn
 
 
@@ -1113,7 +1131,7 @@ class DB(object):
 
 
 		# Update the BDO: Start RMW cycle
-		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=g.RMWFLAGS) or {}
+		bdo = self.bdbs.bdocounter.get(dkey["datekey"], txn=txn, flags=bsddb3.db.DB_RMW) or {}
 
 		if dkey["counter"] == 0:
 			counter = max(bdo.keys() or [-1]) + 1
@@ -1325,7 +1343,7 @@ class DB(object):
 	def _query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
 		"""(Internal) Group query constraints"""
 
-		print "\n== running groupby: %s"%(groupparam)
+		#print "\n== running groupby: %s"%(groupparam)
 
 		param = self._query_paramstrip(groupparam)
 
@@ -1384,7 +1402,7 @@ class DB(object):
 
 		subset = None
 
-		print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
+		#print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
 
 		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
 		if param.startswith('$@'):
@@ -4153,7 +4171,7 @@ class DB(object):
 			else:
 				# we need to acquire RMW lock here to prevent changes during commit
 				try:
-					orec = self.bdbs.records.sget(updrec.recid, txn=txn, flags=g.RMWFLAGS)
+					orec = self.bdbs.records.sget(updrec.recid, txn=txn, flags=bsddb3.db.DB_RMW)
 					orec.setContext(ctx)
 				except:
 					raise KeyError, "Cannot update non-existent record %s"%recid
@@ -4218,7 +4236,7 @@ class DB(object):
 				orec = {}
 			else:
 				# Cannot update non-existent record
-				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=g.RMWFLAGS)
+				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=bsddb3.db.DB_RMW)
 			cache[i.recid] = orec
 
 		# Calculate index updates.
@@ -4397,9 +4415,7 @@ class DB(object):
 
 		for pos, pos2 in blocks:
 			g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
-
 			#txn2 = self.newtxn(txn)
-
 			crecs = []
 			for i in range(pos, pos2):
 				g.log.msg("LOG_INFO","... %s"%i)

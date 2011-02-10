@@ -195,8 +195,8 @@ class DBProxy(object):
 		self.__txn = txn
 
 
-	def _starttxn(self, flags=None):
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, flags=flags)
+	def _starttxn(self, write=False):
+		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, write=write)
 		return self
 
 
@@ -263,6 +263,9 @@ class DBProxy(object):
 		cls.mt.add_method(apiname, func)
 		cls.mt.alias(func.func_name, apiname)
 
+
+	def _checkwrite(self, method):
+		return getattr(self.mt.get_method(method).func, "write")
 
 
 	def _callmethod(self, method, args, kwargs):
