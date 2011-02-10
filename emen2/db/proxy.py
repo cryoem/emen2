@@ -102,6 +102,12 @@ class MethodTree(object):
 		head, tail = strht(name, '.')
 		child = self.children.get(head, self)
 		if tail == 'help' or head == 'help': child = MethodTree(help(child))
+		elif tail == 'writep': child = MethodTree(
+			(lambda child: ( # make closure to localize child
+					lambda *a, **kw: child.func.write
+				)
+			)(child)
+		)
 		elif tail != '' and child is not self: child = child.get_method(tail)
 		return child
 
@@ -265,10 +271,10 @@ class DBProxy(object):
 
 
 	def _checkwrite(self, method):
-		return getattr(self.mt.get_method(method).func, "write")
+		return getattr(self.mt.get_method(method).func, "write", False)
 
 
-	def _callmethod(self, method, args, kwargs):
+	def _callmethod(self, method, args=(), kwargs={}):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
 		#return getattr(self, method)(*args, **kwargs)
 		return self._wrap(self.mt.get_method(method).func)(*args, **kwargs)
