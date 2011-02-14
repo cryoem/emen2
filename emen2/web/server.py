@@ -109,8 +109,23 @@ def inithttpd():
 
 
 	load_resources(root, resources)
-	rr = server.Site(root)
-	reactor.listenTCP(g.EMEN2PORT, rr)
+	site = server.Site(root)
+
+	ahr = site.protocol.allHeadersReceived
+
+	def allHeadersReceived(self, *a, **kw):
+		'''hack for allowing 100-Continue to work.......
+			not sure if this is the right method to override....'''
+		req = self.requests[-1]
+		req.parseCookies()
+		if req.requestHeaders.getRawHeaders('Expect') == ['100-continue']:
+			self.transport.write('HTTP/1.1 100-Continue\n\n')
+		self.persistent = self.checkPersistence(req, self._version)
+		req.gotLength(self.length)
+
+	site.protocol.allHeadersReceived = allHeadersReceived
+
+	reactor.listenTCP(g.EMEN2PORT, site)
 
 	if g.EMEN2HTTPS and ssl:
 		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory(os.path.join(g.SSLPATH, "server.key"), os.path.join(g.SSLPATH, "server.crt")))
