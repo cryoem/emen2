@@ -127,3 +127,112 @@
 		}
 	});
 })(jQuery);
+
+
+
+
+
+////////////////////
+
+
+(function($) {
+    $.widget("ui.MapDrag", {
+		options: {
+			collapse: ["scan", "ccd", "ccd_jadas", "micrograph", "grid", "stackimage"]
+		},
+				
+		_create: function() {
+			this.build_header();
+			this.bind_table();
+		},
+		
+		bind_table: function() {
+			$(".m", this.element).draggable({
+				addClasses: false,
+				hoverClass: "mapdrag",
+				helper: "clone"
+			});
+
+			$(".m", this.element).droppable({
+				hoverClass: "mapdrop",
+				tolerance: 'pointer',
+				addClasses: false,
+				//activeClass: "mapdropactive",
+				drop: function( event, ui ) {
+					var p = $(this).attr('data-recid');
+					var c = ui.draggable.attr('data-recid');
+					alert('dropped: '+p+' -> '+c);
+				}
+			});			
+		},
+		
+		build_header: function() {
+			this.controls = $('<div>Recurse: <input type="text" name="recurse" value="1" /> Collapse: <ul class="nonlist options"></ul><input type="button" name="update" value="Update" /></div>');
+			var self = this;
+			
+			$.each(this.options.collapse, function() {
+				$('ul.options', self.controls).append('<li data-rectype="'+this+'">'+this+'</li>');
+			});
+			
+			$('.options li', self.controls).click(function (){
+				$(this).remove();
+			});
+			
+			
+			$('input[name=update]', self.controls).click(function() {
+				self.reload();
+			})
+			this.element.before(this.controls);
+			
+		},
+		
+		reload: function() {
+			var q = {}
+			var collapse = [];
+			var self = this;
+			q['recurse'] = $('input[name=recurse]', this.controls).val();
+			$('ul.options li', this.controls).each(function() {
+				collapse.push($(this).attr('data-rectype'));
+			});
+			q['collapsedrectypes'] = collapse;
+			
+			$.postJSON('http://localhost:8080/map/record/26878/both/', q, function(data) {
+				self.element.html(data);
+				self.bind_table();
+				});
+			
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
+
+$(document).ready(function() {
+	$('table.map').MapDrag();
+});	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

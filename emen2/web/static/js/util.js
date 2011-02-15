@@ -129,7 +129,14 @@ function error_dialog(title, text, method, data) {
 	}
 
 	$.postJSON = function(url, data, callback, errback) {
-		return jQuery.post(url, $.toJSON(data), callback, "json");
+		return $.ajax({
+			url: url,
+			data: $.toJSON(data), 
+			type: "POST",
+			success: callback
+			//error: function(jqXHR, textStatus, errorThrown) {console.log(errorThrown)}
+			//dataType: "json"
+			});
 	}
 
 	$.get_url = function(name, args, kwargs) {
