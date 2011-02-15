@@ -213,15 +213,15 @@
 })(jQuery);
 
 
-
-
-$(document).ready(function() {
-	$('table.map').MapDrag();
-});	
-
-
-
-
+// 
+// 
+// $(document).ready(function() {
+// 	$('table.map').MapDrag();
+// });	
+// 
+// 
+// 
+// 
 
 
 
