@@ -101,9 +101,8 @@ class Context(object):
 
 		# userrec not used for now...
 		self.user = user
-
 		self.grouplevels["anon"] = 0
-		self.grouplevels["authenticated"] = 0
+		self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
 		self.groups = set(self.grouplevels.keys())
 
 

@@ -963,7 +963,6 @@ class DB(object):
 			for group in [self.bdbs.groups.get(i, txn=txn) for i in groups]:
 				grouplevels[group.name] = group.getlevel(context.username)
 
-
 		# g.debug("kw host is %s, context host is %s"%(host, context.host))
 		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self)
 
