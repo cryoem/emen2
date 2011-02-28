@@ -2,6 +2,7 @@
 
 import copy
 import atexit
+import signal
 import hashlib
 import operator
 import os
@@ -153,15 +154,20 @@ def return_first_or_none(items):
 
 
 
-
 @atexit.register
-def DB_Close():
+def DB_Close(*args, **kwargs):
 	"""Close all open DBs"""
+	print "DB_Close...."
 	l = DB.opendbs.keys()
 	for i in l:
 		# g.log.msg('LOG_DEBUG', i.dbenv)
 		i.close()
+		
+def noop(*args, **kwargs): pass		
 
+# We need to steal these handlers from EMAN2...
+signal.signal(2, signal.SIG_DFL)
+signal.signal(15, signal.SIG_DFL)
 
 
 def DB_stat():
@@ -2440,6 +2446,25 @@ class DB(object):
 		@keyparam Link this type: ["record","paramdef","recorddef"] (default is "record")
 		"""
 		self._link("pcunlink", [(pkey, ckey)], keytype=keytype, ctx=ctx, txn=txn)
+
+
+
+	@publicmethod("rels.pc.relink", write=True)
+	def pcrelink(self, remove, add, keytype="record", ctx=None, txn=None):
+		def conv(link):
+			pkey, ckey = link
+			if keytype=="record":
+				return int(pkey), int(ckey)
+			return unicode(pkey), unicode(ckey)
+
+		remove = set(map(conv, remove))
+		add = set(map(conv, add))		
+		common = remove & add
+		remove -= common
+		add -= common
+		
+		self._link("pcunlink", remove, keytype=keytype, ctx=ctx, txn=txn)
+		self._link("pclink", add, keytype=keytype, ctx=ctx, txn=txn)
 
 
 

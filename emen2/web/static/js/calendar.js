@@ -243,7 +243,7 @@ function dayid(d) {
 				}
 			
 				var e = $('<div style="position:absolute;top:0px;"><div class="label">'+self.formathour(self.options.start)+' - '+self.formathour(self.options.end)+'</div><div class="indent">'+self.indent+'</div></div>');
-				var view = $('<div class="view" data-recid="'+self.options.recid+'" data-viewtype="recname">'+self.view+'</div>');
+				var view = $('<div class="view" data-recid="'+self.options.recid+'">'+self.view+'</div>');
 				e.append(view);
 				
 				e.addClass('event_box');
