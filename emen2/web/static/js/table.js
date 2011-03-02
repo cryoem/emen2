@@ -40,7 +40,6 @@
 			// Bind to control elements
 			$('.header', this.element).append(length, pages, count);
 
-
 			// Kindof hacky..
 			// query bar
 			this.attach_querycontrol();

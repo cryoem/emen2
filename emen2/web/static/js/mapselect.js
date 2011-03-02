@@ -1,142 +1,5 @@
 (function($) {
     $.widget("ui.MapSelect", {
-		options: {
-			show: true,
-			recid: null,
-			status: null,
-			ext_save: null,
-			cb: function(self, selected){}
-		},
-				
-		_create: function() {
-			if (this.options.show) {
-				this.build();
-			}
-		},
-
-		build: function() {
-			var self = this;
-		
-			$('a.map', this.element).each(function() {
-				var t = $(this);
-				var recid = parseInt(t.attr('data-recid'));
-				var i = $('<input type="checkbox" name="recordselect" />');
-				if ($.inArray(recid, self.options.status) > -1) {
-					i.attr('checked', 'checked');
-					t.addClass('add');
-				} else {
-					i.attr('checked', null);
-				}
-				i.attr('data-recid', recid);
-				t.before(i);
-			});
-		
-			$('input[name=recordselect]', this.element).click(function() {
-				var c = self.bfs($(this).attr('data-recid'), caches['children']);
-				var state = $(this).attr('checked');
-				$.each(c, function() {
-					$('input[data-recid='+this+']').attr('checked', state);
-				});
-
-			});
-			
-			if (!this.options.ext_save) {
-				this.options.ext_save = $('<div class="controls save"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /><input type="button" value="Save" name="save" /></div>');
-				this.element.prepend(this.options.ext_save);				
-			}
-			$('input[name=save]', this.options.ext_save).click(function() {self.save()});
-			
-
-		},
-		
-		save: function() {
-			var self = this;
-			var recids = $.makeArray($('input[name=recordselect]:checked').map(function(){return parseInt($(this).attr('data-recid'))}));
-			var collapsed = [];
-			$.each(recids, function() {
-				var c = caches['collapsed'][this] || [];
-				for (var i=0;i<c.length;i++) {
-					collapsed.push(c[i]);
-				}				
-			});
-			
-			var selected = this.unique(recids.concat(collapsed));
-			this.default_cb(this, selected);
-			//this.options.cb(this, selected);
-		},
-		
-		default_cb: function(self, selected) {
-			$('.spinner', this.options.ext_save).show();
-			var remove = [];
-			var add = [];
-
-			for (var i=0;i<selected.length;i++) {
-				if ($.inArray(selected[i], this.options.status)==-1) {
-					add.push(selected[i]);
-				}
-			}
-			
-			if (this.options.status.length > 0) {			
-				for (var i=0;i<this.options.status.length;i++) {
-					if ($.inArray(this.options.status[i], selected)==-1) {
-						remove.push(this.options.status[i]);
-					}
-				}
-			}
-			
-			$.jsonRPC("addgroups", [add, ['publish']], function(){ 
-				$.jsonRPC("removegroups", [remove, ['publish']], function() {
-					$('.spinner', self.options.ext_save).hide();
-					window.location = window.location;
-				});
-			});
-		},
-			
-		// JS has no sets
-		unique: function(li) {
-			var o = {}, i, l = li.length, r = [];
-			for(i=0; i<l;i++) o[li[i]] = li[i];
-			for(i in o) r.push(o[i]);
-			return r;
-		},
-		
-	
-		bfs: function(root, tree) {
-			root = parseInt(root);
-			var stack = tree[root] || [];
-			stack = stack.slice();
-			var seen = stack.slice();
-			seen.push(root);
-			while (stack.length) {
-				var cur = stack.pop();
-				var c = tree[cur] || [];
-				for (var i=0; i < c.length; i++) {
-		                        stack.push(c[i]);
-					seen.push(c[i]);
-				}
-			}
-			return seen
-		},
-
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
-
-
-
-
-
-////////////////////
-
-
-(function($) {
-    $.widget("ui.MapDrag", {
 
 		_create: function() {
 			this.root = $(this.element).attr('data-root');
@@ -198,11 +61,10 @@
 		
 			if (elem.hasClass('expanded')) {
 				elem.removeClass('expanded');
-				elem.siblings('ul').hide();
+				elem.siblings('ul').remove();
 				elem.attr('src', EMEN2WEBROOT+'/static/images/bg-open.'+this.mode+'.png');
 			} else {
-				elem.addClass('expanded');
-				elem.attr('src', EMEN2WEBROOT+'/static/images/bg-close.'+this.mode+'.png');				
+				elem.attr('src', EMEN2WEBROOT+'/static/images/spinner.gif'); 
 				this.expand(elem.parent());
 			}
 			
@@ -216,12 +78,6 @@
 			// remove current ul..
 			elem.find('ul').remove();
 
-			// build loading... don't forget to adjust top!
-			var loading = $('<ul><li><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" style="display:inline" alt="Loading" /></li></ul>')
-			elem.append(loading);
-			// var height = p.find('a.draggable').height();
-			// loading.css('top', -height);
-						
 			var method = "getchildtree";
 			if (this.mode == "parents") {
 				method = "getparenttree";
@@ -253,6 +109,10 @@
 			var self = this;
 			var newl = $('<ul></ul>');
 			var key = elem.find('a.draggable').attr('data-key');
+			var img = elem.find('img');
+			
+			img.addClass('expanded');
+			img.attr('src', EMEN2WEBROOT+'/static/images/bg-close.'+this.mode+'.png');
 			
 			// lower-case alpha sort...
 			var sortby = {};
@@ -266,7 +126,6 @@
 				var line = $('<li><a class="draggable" data-key="'+this+'" data-parent="'+key+'" href="'+EMEN2WEBROOT+'/'+self.keytype+'/'+this+'/">'+self.getname(this)+'</a></li>');
 				if (tree[this]) {
 					var expand = $('<img class="expand" alt="'+tree[this].length+' children" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+self.mode+'.png" />');
-					//expand.click(function() {self.toggle(this)});
 					line.append(expand);
 				}
 				newl.append(line);
@@ -274,31 +133,23 @@
 			elem.find('ul').remove();
 			
 			// don't forget to adjust top
-			var h = elem.find('a.draggable').height();
 			elem.append(newl);
-			newl.css('top', -h);
-			// var h2 = newl.height();
-			// var h3 = elem.parent().height();
-			// elem.parent().css('height', h3-h2);
-			
+			var h = newl.siblings('a.draggable').height();
+			newl.css('margin-top', -h);
+			newl.css('min-height', h);
 			this.bind_ul(newl);
 		},
 	
 		bind_ul: function(root) {
 			var self = this;
 			
+			// height adjustment
 			$('ul', root).each(function() {
 				var elem = $(this);
 				var h = elem.siblings('a.draggable').height();
-				elem.css('top', -h);
-				if (self.mode=="parents") {
-					// var h2 = elem.height();
-					// var h3 = elem.parent().height();
-					// console.log(elem, h, h2, h3);
-					//elem.parent().css('height', h3-16);
-				}
-			});
-
+				elem.css('margin-top', -h);
+				elem.css('min-height', h);
+			})
 			
 			$('img.expand', root).click(function() {self.toggle(this)});
 
@@ -366,10 +217,8 @@
 })(jQuery);
 
 
-
-
 $(document).ready(function() {
-	$('.ulm').MapDrag();
+	$('.ulm').MapSelect();
 });	
 
 

@@ -932,8 +932,6 @@
 	});
 })(jQuery);
 
-
-
 		
 // Controls Table
 // var ct = $('<table><tbody></tbody></table>');

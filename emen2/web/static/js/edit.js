@@ -1,5 +1,3 @@
-
-
 // convenience function to bind a jquery autocompleter to an element
 function bind_autocomplete(elem, param) {
 	

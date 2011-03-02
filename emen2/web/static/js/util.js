@@ -1,4 +1,27 @@
-// usage: log('inside coolFunc',this,arguments);
+// Note: any global methods or variables should be in this file //
+
+////////////////  Global Cache ///////////////////
+
+// cache for items of interest
+// the usage pattern is:
+//		If I need an item, check the cache. If not found, send an RPC request
+//		with a callback that will add it to the cache, then re-enter the method, which will now succeed.
+var caches = {};
+caches["paramdefs"] = {};
+caches["recorddefs"] = {};
+caches["displaynames"] = {};
+caches["groupnames"] = {};
+caches["users"] = {};
+caches["groups"] = {};
+caches["recs"] = {};
+caches["recnames"] = {};
+caches["children"] = {};
+caches["parents"] = {};
+caches["colors"] = {};
+
+
+// Log wrapper to keep everything from crashing horribly
+//		if I forget to comment out a Firebug console.log()
 // http://paulirish.com/2009/log-a-lightweight-wrapper-for-consolelog/
 window.log = function(){
   log.history = log.history || [];   // store logs to an array for reference
@@ -8,9 +31,12 @@ window.log = function(){
   }
 };
 
+
 ////////////////  JSON Utilities ///////////////////
 
 
+// Default error message dialog.
+// This gives the user some feedback if an RPC request fails.
 function error_dialog(title, text, method, data) {
 	var error = $('<div class="error" title="'+title+'" />');
 	error.append('<p>'+text+'</p>');
@@ -21,9 +47,9 @@ function error_dialog(title, text, method, data) {
 	error.append(debug);
 
 	error.dialog({
-		width:400,
-		height:300,
-		modal:true,
+		width: 400,
+		height: 300,
+		modal: true,
 		buttons: {
 			'OK':function() {
 				$(this).dialog('close')
@@ -37,28 +63,9 @@ function error_dialog(title, text, method, data) {
 
 
 
-////////////////  Context Utility ///////////////////
-// def convert_bytes(bytes):
-// 	bytes = float(bytes)
-// 	if bytes >= 1099511627776:
-// 		terabytes = bytes / 1099511627776
-// 		size = '%.2f TB' % terabytes
-// 	elif bytes >= 1073741824:
-// 		gigabytes = bytes / 1073741824
-// 		size = '%.2f GB' % gigabytes
-// 	elif bytes >= 1048576:
-// 		megabytes = bytes / 1048576
-// 		size = '%.2f MB' % megabytes
-// 	elif bytes >= 1024:
-// 		kilobytes = bytes / 1024
-// 		size = '%.2f KB' % kilobytes
-// 	else:
-// 		size = '%.2f bytes' % bytes
-// 	return size
-
-
 (function($){
 
+	// Convert a byte count to human friendly
 	$.convert_bytes = function(bytes) {
 		var b = 0;
 		if (bytes >= 1099511627776) {
@@ -78,7 +85,7 @@ function error_dialog(title, text, method, data) {
 		}
 	}
 
-
+	// RPC request. Important!
 	$.jsonRPC = function(method, data, callback, errback) {
 				
 		// Wrap these methods
@@ -87,7 +94,6 @@ function error_dialog(title, text, method, data) {
 			error_dialog(xhr.statusText, xhr.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
 			try {errback(xhr, textStatus, xhr)} catch(e) {}
 		}
-
 		
 		var cb = function(data, status, xhr) {
 			if (xhr.status == 0) {
@@ -109,38 +115,7 @@ function error_dialog(title, text, method, data) {
 	    });
 	}
 
-	// >>> var sortable = [];
-	// >>> for (var vehicle in maxSpeed)
-	//       sortable.push([vehicle, maxSpeed[vehicle]])
-	// >>> sortable.sort(function(a, b) {return a[1] - b[1]})
-	// [["bike", 60], ["motorbike", 200], ["car", 300],
-	// ["helicopter", 400], ["airplane", 1000], ["rocket", 28800]]
-	$.sortdict = function(o) {
-		var sortable = [];
-		for (var i in o) {
-			sortable.push([i, o[i]])
-		}
-		var s = sortable.sort(function(a, b) {return b[1] - a[1]})
-		result = [];
-		for (var i=0;i<s.length;i++) {
-			result.push(s[i][0]);
-		}
-		return result
-	}
-
-	$.sortstrdict = function(o) {
-		var sortable = [];
-		for (var i in o) {
-			sortable.push([i, o[i]])
-		}
-		var s = sortable.sort(function(a, b) {return b[1].toLowerCase() > a[1].toLowerCase()})
-		result = [];
-		for (var i=0;i<s.length;i++) {
-			result.push(s[i][0]);
-		}
-		return result
-	}
-
+	// Similar to RPC, but POST to a view.
 	$.postJSON = function(url, data, callback, errback) {
 		return $.ajax({
 			url: url,
@@ -177,12 +152,48 @@ function error_dialog(title, text, method, data) {
 			$.post(reverse_url+name+'/execute/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
 		}
 	}
+	
+
+	// Sort a dict's keys based on integer values
+	// >>> var sortable = [];
+	// >>> for (var vehicle in maxSpeed)
+	//       sortable.push([vehicle, maxSpeed[vehicle]])
+	// >>> sortable.sort(function(a, b) {return a[1] - b[1]})
+	// [["bike", 60], ["motorbike", 200], ["car", 300],
+	// ["helicopter", 400], ["airplane", 1000], ["rocket", 28800]]
+	$.sortdict = function(o) {
+		var sortable = [];
+		for (var i in o) {
+			sortable.push([i, o[i]])
+		}
+		var s = sortable.sort(function(a, b) {return b[1] - a[1]})
+		result = [];
+		for (var i=0;i<s.length;i++) {
+			result.push(s[i][0]);
+		}
+		return result
+	}
+
+	// Sort a dict's keys based on lower-case string values
+	$.sortstrdict = function(o) {
+		var sortable = [];
+		for (var i in o) {
+			sortable.push([i, o[i]])
+		}
+		var s = sortable.sort(function(a, b) {return b[1].toLowerCase() > a[1].toLowerCase()})
+		result = [];
+		for (var i=0;i<s.length;i++) {
+			result.push(s[i][0]);
+		}
+		return result
+	}
+	
 })(jQuery)
 
 
 
 ////////////////  Button Switching ///////////////////
-
+// This is pretty old, and a simple top level function, but works well... 
 
 function switchbutton(type,id) {
 	$(".button_"+type).each(function() {
@@ -209,24 +220,6 @@ function switchin(classname, id) {
 	$("#page_"+classname+"_"+id).addClass("page_"+classname+"_active");
 }
 
-
-
-
-////////////////  Global Cache ///////////////////
-
-
-var caches = {};
-caches["paramdefs"] = {};
-caches["recorddefs"] = {};
-caches["displaynames"] = {};
-caches["groupnames"] = {};
-caches["users"] = {};
-caches["groups"] = {};
-caches["recs"] = {};
-caches["recnames"] = {};
-caches["children"] = {};
-caches["parents"] = {};
-caches["colors"] = {};
 
 
 
@@ -263,7 +256,7 @@ function notify(msg, fade, error) {
 	
 }
 
-
+// ian: todo: fix this sometime...
 function notify_post(uri,msgs) {
 	// var postform = document.createElement("form");
 	// postform.method="post" ;
@@ -329,10 +322,9 @@ function record_init(rec, ptest, edit) {
 	var recid = rec.recid;
 	caches["recs"][recid] = rec;
 
+	// Bind editable widgets
 	$('.editbar .edit .label').MultiEditControl({});
-	
 	$('.editable').EditControl({});
-
 	$('.editable_files').FileControl({});
 
 	$('.editbar .edit').EditbarHelper({
@@ -343,7 +335,12 @@ function record_init(rec, ptest, edit) {
 			self.popup.append(addcomment);
 		}
 	});
+	
+	if (edit) {
+		$('.editbar .edit .label').MultiEditControl('event_click');
+	}	
 
+	// Permissions editor
 	$('.editbar .permissions').EditbarHelper({
 		width: 640,
 		cb: function(self){
@@ -357,6 +354,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 
+	// Attachments editor
 	var showattachments = (window.location.hash.search('showattachments'));
 	if (showattachments>-1){showattachments=true}
 
@@ -373,6 +371,7 @@ function record_init(rec, ptest, edit) {
 		show: showattachments
 	});		
 
+	// New record editor
 	$('.editbar .newrecord').EditbarHelper({
 		width:300,
 		cb: function(self){
@@ -384,6 +383,7 @@ function record_init(rec, ptest, edit) {
 			}
 	});		
 
+	// Relationship editor
 	$(".editbar .relationships").EditbarHelper({		
 		width: 640,
 		cb: function(self){
@@ -396,12 +396,36 @@ function record_init(rec, ptest, edit) {
 			}
 	});	
 	
+	// Tools menu: e.q. common queries
 	$(".editbar .tools").EditbarHelper({width:300});	
 
+	// Change rendered view
 	$(".editbar .selectview").EditbarHelper({});	
 
+	$('.selectview [data-viewtype]').click(function(){
+		var target=$("#rendered");
+		var viewtype=$(this).attr('data-viewtype') || 'recname';
+		target.attr("data-viewtype", viewtype);
+		rebuildviews("#rendered");
+	});
+
+	// Additional detailed information
 	$(".editbar .creator").EditbarHelper({});
 
+	// Comments and history
+	$("#page_comments_comments").CommentsControl({
+		recid:recid,
+		edit:ptest[1] || ptest[2] || ptest[3],
+		title:"#button_comments_comments"
+		});
+		
+	$("#page_comments_history").HistoryControl({
+		recid:recid,
+		title:"#button_comments_history"
+		});
+
+
+	// Simple handler for browsing siblings...
 	var showsiblings = (window.location.hash.search('showsiblings'));
 	if (showsiblings>-1){showsiblings=true}
 	
@@ -430,32 +454,154 @@ function record_init(rec, ptest, edit) {
 				});
 			});
 		}
+	});	
+}
+
+
+
+
+
+
+////////////////  Record Update callbacks ///////////////////
+
+
+function record_update(rec) {
+	if (typeof(rec)=="number") {
+		var recid = rec;
+	} else {
+		caches["recs"][rec.recid] = rec;
+		var recid = rec.recid;
+	}
+	rebuildviews('.view[data-recid='+recid+']');
+	$("#page_comments_comments").CommentsControl('rebuild');
+	$("#page_comments_history").HistoryControl('rebuild');
+	$('.editbar .attachments').AttachmentViewerControl('rebuild');	
+}
+
+
+
+function rebuildviews(selector) {
+	selector = selector || '.view';
+	var self = this;
+	$(selector).each(function() {
+		var elem = $(this);
+		var recid = parseInt(elem.attr('data-recid'));
+		var viewtype = elem.attr('data-viewtype');
+		var mode = elem.attr('data-mode') || 'html';
+		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'mode':mode}, function(view) {
+			elem.html(view);
+			$('.editable', elem).EditControl({});
+			//$('.editable_files', elem).FileControl({});
+		},
+		function(view){}
+		);
+	})
+}
+
+
+
+
+////////////////  Approve / Reject Users ///////////////////
+// These should be replaced eventually
+
+function admin_approveuser_form(elem) {
+	var approve=[];
+	var reject=[];
+	var form=$(elem.form);
+	$('input:checked', form).each(function() {
+		if ($(this).val() == "true") {
+			approve.push($(this).attr("name"));
+		} else {
+			reject.push($(this).attr("name"));
+		}
 	});
 
-	$("#page_comments_comments").CommentsControl({
-		recid:recid,
-		edit:ptest[1] || ptest[2] || ptest[3],
-		title:"#button_comments_comments"
-		});
-		
-	$("#page_comments_history").HistoryControl({
-		recid:recid,
-		title:"#button_comments_history"
-		});
+	if (approve.length > 0) {
+		$.jsonRPC("approveuser",[approve],
+			function(data) {
+				notify("Approved users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$(".userqueue_"+data[i]).remove();
+				}
+				var count=parseInt($("#admin_userqueue_count").html());
+				count -= data.length;
+				$("#admin_userqueue_count").html(String(count))
+			},
+			function(data) {
+				
+			}
+		);
+	};
 
-	$('.selectview [data-viewtype]').click(function(){
-		var target=$("#rendered");
-		var viewtype=$(this).attr('data-viewtype') || 'recname';
-		target.attr("data-viewtype", viewtype);
-		rebuildviews("#rendered");
+	if (reject.length > 0) {
+		$.jsonRPC("rejectuser",[reject],
+			function(data) {
+				notify("Rejected users: "+data);
+				for (var i=0;i<data.length;i++) {
+					$(".userqueue_"+data[i]).remove();
+				}
+				var count=parseInt($("#admin_userqueue_count").html());
+				count -= data.length;
+				$("#admin_userqueue_count").html(String(count));							
+			},
+			function(data) {
+				
+			}
+		);
+	};
+}
+
+
+
+
+function admin_userstate_form(elem) {
+	var enable=[];
+	var disable=[];
+	var form=$(elem.form);
+	$('input:checked', form).each(function() {
+		var un=$(this).attr("name");
+		var unv=parseInt($(this).val());
+		if (unv == 0 &&  admin_userstate_cache[un] != unv) {
+			enable.push(un);
+		}
+		if (unv == 1 &&  admin_userstate_cache[un] != unv) {
+			disable.push(un);
+		}
 	});
+	
+	if (enable.length > 0) {
+		$.jsonRPC("enableuser",[enable],
+			function(data) {
+				if (data) {
+					notify("Enabled users: "+data);
+					for (var i=0;i<data.length;i++) {
+						admin_userstate_cache[data[i]]=0;
+					}
+				}
+			}
+		)
+	}
 
-	if (edit) {
-		$('.editbar .edit .label').MultiEditControl('event_click');
+	if (disable.length > 0) {
+		$.jsonRPC("disableuser",[disable],
+			function(data) {
+				if (data) {
+					notify("Disabled users: "+data);
+					for (var i=0;i<data.length;i++) {
+						admin_userstate_cache[data[i]]=1;
+					}					
+				}
+			}
+		);
 	}	
 }
 
 
+
+///////////////////////////////////////////////////
+// Some simple jquery UI widgets that don't really
+//  fit in any other files..
+///////////////////////////////////////////////////
 
 ////////////////  "Drop-down Menu" ///////////////////
 
@@ -553,12 +699,9 @@ function record_init(rec, ptest, edit) {
 				this.popup.height(this.options.height);
 			}
 
-
-
 			this.options.init(this);			
 						
 			// ugly horrible hack time...
-
 			var uglydiv = $('<div style="position:absolute;background:white" />');
 			uglydiv.width(this.element.outerWidth()-5);
 			uglydiv.height(4);
@@ -585,150 +728,12 @@ function record_init(rec, ptest, edit) {
 	});
 })(jQuery);
 
-////////////////  Record Update callbacks ///////////////////
 
-
-function record_update(rec) {
-	if (typeof(rec)=="number") {
-		var recid = rec;
-	} else {
-		caches["recs"][rec.recid] = rec;
-		var recid = rec.recid;
-	}
-	rebuildviews('.view[data-recid='+recid+']');
-	$("#page_comments_comments").CommentsControl('rebuild');
-	$("#page_comments_history").HistoryControl('rebuild');
-	$('.editbar .attachments').AttachmentViewerControl('rebuild');	
-}
+///////////////////////////////////////////////////
 
 
 
-function rebuildviews(selector) {
-	selector = selector || '.view';
-	var self = this;
-	$(selector).each(function() {
-		var elem = $(this);
-		var recid = parseInt(elem.attr('data-recid'));
-		var viewtype = elem.attr('data-viewtype');
-		var mode = elem.attr('data-mode') || 'html';
-		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'mode':mode}, function(view) {
-			elem.html(view);
-			$('.editable', elem).EditControl({});
-			//$('.editable_files', elem).FileControl({});
-		},
-		function(view){}
-		);
-	})
-}
-
-
-
-
-////////////////  Approve / Reject Users ///////////////////
-
-function admin_approveuser_form(elem) {
-	var approve=[];
-	var reject=[];
-	var form=$(elem.form);
-	$('input:checked', form).each(function() {
-		if ($(this).val() == "true") {
-			approve.push($(this).attr("name"));
-		} else {
-			reject.push($(this).attr("name"));
-		}
-	});
-
-	if (approve.length > 0) {
-		$.jsonRPC("approveuser",[approve],
-			function(data) {
-				notify("Approved users: "+data);
-				for (var i=0;i<data.length;i++) {
-					$(".userqueue_"+data[i]).remove();
-				}
-				var count=parseInt($("#admin_userqueue_count").html());
-				count -= data.length;
-				$("#admin_userqueue_count").html(String(count))
-			},
-			function(data) {
-				
-			}
-		);
-	};
-
-	if (reject.length > 0) {
-		$.jsonRPC("rejectuser",[reject],
-			function(data) {
-				notify("Rejected users: "+data);
-				for (var i=0;i<data.length;i++) {
-					$(".userqueue_"+data[i]).remove();
-				}
-				var count=parseInt($("#admin_userqueue_count").html());
-				count -= data.length;
-				$("#admin_userqueue_count").html(String(count));							
-			},
-			function(data) {
-				
-			}
-		);
-	};
-}
-
-
-
-
-function admin_userstate_form(elem) {
-	var enable=[];
-	var disable=[];
-	var form=$(elem.form);
-	$('input:checked', form).each(function() {
-		var un=$(this).attr("name");
-		var unv=parseInt($(this).val());
-		if (unv == 0 &&  admin_userstate_cache[un] != unv) {
-			enable.push(un);
-		}
-		if (unv == 1 &&  admin_userstate_cache[un] != unv) {
-			disable.push(un);
-		}
-	});
-	
-	if (enable.length > 0) {
-		$.jsonRPC("enableuser",[enable],
-			function(data) {
-				if (data) {
-					notify("Enabled users: "+data);
-					for (var i=0;i<data.length;i++) {
-						admin_userstate_cache[data[i]]=0;
-					}
-				}
-			}
-		)
-	}
-
-	if (disable.length > 0) {
-		$.jsonRPC("disableuser",[disable],
-			function(data) {
-				if (data) {
-					notify("Disabled users: "+data);
-					for (var i=0;i<data.length;i++) {
-						admin_userstate_cache[data[i]]=1;
-					}					
-				}
-			}
-		);
-	}
-	
-}
-
-
-
-
-
-
-
-
-
-
-
+// This is at the bottom because my editor's syntax highlighting cracks on it..
 function escapeHTML(html) {
 	var escaped = html;
 	var findReplace = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"]];
