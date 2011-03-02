@@ -163,11 +163,7 @@ def DB_Close(*args, **kwargs):
 		# g.log.msg('LOG_DEBUG', i.dbenv)
 		i.close()
 		
-def noop(*args, **kwargs): pass		
 
-# We need to steal these handlers from EMAN2...
-signal.signal(2, signal.SIG_DFL)
-signal.signal(15, signal.SIG_DFL)
 
 
 def DB_stat():

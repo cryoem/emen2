@@ -4,6 +4,8 @@
 
 import sys
 import thread
+import atexit
+import signal
 
 from twisted.internet import reactor
 from twisted.web import static, server
@@ -28,6 +30,21 @@ if not g.getattr('CONFIG_LOADED', False):
 	except:
 		raise
 		pass
+
+
+
+
+# Try to import EMAN2..
+try:
+	import EMAN2
+	# We need to steal these handlers from EMAN2...
+	signal.signal(2, signal.SIG_DFL)
+	signal.signal(15, signal.SIG_DFL)
+	atexit.register(emen2.db.database.DB_Close)
+except:
+	pass
+
+
 
 
 def load_resources(root, resources):
@@ -94,7 +111,6 @@ def inithttpd():
 
 	# load EMEN2 resource
 	try:
-		import EMAN2
 		import emen2.web.resources.eman2resource
 		resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
 	except: pass
