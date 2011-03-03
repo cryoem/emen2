@@ -4681,7 +4681,7 @@ class DB(object):
 
 
 	@publicmethod("records.render")
-	def renderview(self, recs, viewdef=None, viewtype="dicttable", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="recname", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
 		"""Render views"""
 
 		regex = re.compile(VIEW_REGEX)
