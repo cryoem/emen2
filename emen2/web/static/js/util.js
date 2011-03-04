@@ -385,7 +385,7 @@ function record_init(rec, ptest, edit) {
 
 	// Relationship editor
 	$(".editbar .relationships").EditbarHelper({		
-		width: 724,
+		width: 786,
 		cb: function(self){
 			self.popup.RelationshipControl({
 				root: recid,
