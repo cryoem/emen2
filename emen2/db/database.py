@@ -21,7 +21,7 @@ import imp
 import tempfile
 import cStringIO
 import smtplib
-
+from __future__ import with_statement
 
 import bsddb3
 

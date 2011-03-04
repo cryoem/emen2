@@ -4,12 +4,15 @@ It is possible to use templating engines other than Mako,
 but none have been defined
 '''
 
+from __future__ import with_statement
 import os.path
-try:
-	import pkg_resources
-	pkg_resources.require('Mako')
-except ImportError:
-	pass
+
+#try:
+#	import pkg_resources
+#	pkg_resources.require('Mako')
+#except ImportError:
+#	pass
+
 from mako import exceptions
 import mako.lookup
 import collections
