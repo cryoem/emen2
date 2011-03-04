@@ -1,5 +1,6 @@
 # $Id$
 from __future__ import with_statement
+
 import sys, time
 import contextlib
 import threading

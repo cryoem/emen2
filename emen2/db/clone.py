@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-
 # $Id$
+from __future__ import with_statement
+
 import sys
 import getpass
 import os
-from __future__ import with_statement
 
 import emen2.db.admin
 

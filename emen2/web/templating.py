@@ -5,6 +5,7 @@ but none have been defined
 '''
 
 from __future__ import with_statement
+
 import os.path
 
 #try:

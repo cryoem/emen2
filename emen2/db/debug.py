@@ -1,4 +1,18 @@
 # $Id$
+from __future__ import with_statement
+
+import functools
+import code
+import inspect
+import os.path
+import time
+import datetime
+import sys
+
+import emen2.util.datastructures
+
+__all__ = ['DebugState']
+
 
 '''
 classes:
@@ -16,21 +30,7 @@ classes:
 
 	Filter: subclass of file, used to be use to strip headers off of access.log, unused
 '''
-from __future__ import with_statement
 
-import functools
-import code
-import inspect
-import os.path
-import time
-import datetime
-import sys
-
-
-import emen2.util.datastructures
-
-
-__all__ = ['DebugState']
 
 
 def take(num, iter_):
