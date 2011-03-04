@@ -84,8 +84,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 
 
-@ParamDef.register_validator
-@emen2.db.validators.Validator.make_validator
+
 class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 
 	def validate_name(self):
@@ -162,5 +161,8 @@ class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 		if not self._obj.creationtime or not self._obj.creator:
 			g.log.msg("LOG_WARNING", "Invalid creation info: %s %s"%(self._obj.creationtime, self._obj.creator))
 
+
+ParamDefValidator = emen2.db.validators.Validator.make_validator(ParamDefValidator)
+ParamDefValidator = ParamDef.register_validator(ParamDefValidator)
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

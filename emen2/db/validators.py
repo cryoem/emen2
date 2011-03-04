@@ -55,7 +55,6 @@ class Validator(object):
 
 
 
-@Validator.make_validator
 class DefinitionValidator(Validator):
 	def validate_attributes(self):
 		badattrs = set(k for k in self._obj.__dict__.keys() if not k.startswith('_'))-self._obj.attr_user
@@ -78,6 +77,8 @@ class DefinitionValidator(Validator):
 			self._obj.uri = unicode(self._obj.uri)
 		elif not hasattr(self._obj, 'uri'):
 			self._obj.uri = None
+
+DefinitionValidator = Validator.make_validator(DefinitionValidator)
 
 
 

@@ -149,8 +149,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 
 
-@RecordDef.register_validator
-@emen2.db.validators.Validator.make_validator
+
 class RecordDefValidator(emen2.db.validators.DefinitionValidator):
 
 	def validate_name(self):
@@ -212,6 +211,9 @@ class RecordDefValidator(emen2.db.validators.DefinitionValidator):
 			raise ValueError,"Invalid value for private; must be 0 or 1"
 
 
+
+RecordDefValidator = emen2.db.validators.Validator.make_validator(RecordDefValidator)
+RecordDefValidator = RecordDef.register_validator(RecordDefValidator)
 
 # ian: todo: make this a classmethod of RecordDef ?
 
