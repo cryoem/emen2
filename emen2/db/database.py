@@ -157,7 +157,6 @@ def return_first_or_none(items):
 @atexit.register
 def DB_Close(*args, **kwargs):
 	"""Close all open DBs"""
-	print "DB_Close...."
 	l = DB.opendbs.keys()
 	for i in l:
 		# g.log.msg('LOG_DEBUG', i.dbenv)

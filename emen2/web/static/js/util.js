@@ -388,7 +388,7 @@ function record_init(rec, ptest, edit) {
 		width: 724,
 		cb: function(self){
 			self.popup.RelationshipControl({
-				recid: recid,
+				root: recid,
 				edit: true,
 				embed: true,
 				show: true
