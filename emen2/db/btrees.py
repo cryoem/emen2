@@ -284,8 +284,8 @@ class RelateBTree(BTree):
 		kt = self.keytype
 		dt = self.datatype
 
-		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
-		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, cfunc=False, bulkmode=None, txn=txn)
+		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, bulkmode=False, cfunc=False, txn=txn)
+		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, bulkmode=False, cfunc=False, txn=txn)
 
 
 
@@ -337,13 +337,13 @@ class RelateBTree(BTree):
 		d = self.sget(key, txn=txn, flags=flags)
 
 		cursor = self.pcdb2.bdb.cursor(txn=txn)
-		d["children"] = self.pcdb2.get(key, cursor=cursor)
+		children = self.pcdb2.get(key, cursor=cursor)
 		cursor.close()
 
 		cursor = self.cpdb2.bdb.cursor(txn=txn)
-		d["parents"] = self.cpdb2.get(key, cursor=cursor)
+		parents = self.cpdb2.get(key, cursor=cursor)
 		cursor.close()
-
+		
 		return d
 
 
@@ -474,7 +474,6 @@ class RelateBTree(BTree):
 class FieldBTree(BTree):
 
 	DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
-
 
 	def __init__(self, *args, **kwargs):
 		bulkmode = kwargs.pop('bulkmode','bulk')

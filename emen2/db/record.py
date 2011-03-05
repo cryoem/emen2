@@ -111,7 +111,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		self.__params = {}
 
 		self.__permissions = _k.pop("permissions", ((),(),(),()))
-		self.__groups = set(_k.pop('groups',[]))
+		self.__groups = set(_k.pop('groups',[]))		
 
 		for key in set(_k.keys()) - self.param_special:
 			self[key] = _k[key]
@@ -289,6 +289,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	#################################
 	# record methods
 	#################################
+
 
 	# these can only be used on new records before commit for now...
 	def adduser(self, users, level=0, reassign=False):

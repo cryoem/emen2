@@ -34,7 +34,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed"])
+	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed","parents","children"])
 
 
 	@property
@@ -81,6 +81,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		# turn indexing on/off, if vartype allows for it
 		self.indexed = True
 
+		self.parents = set()
+		self.children = set()
 
 
 

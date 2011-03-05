@@ -39,7 +39,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short","name","params", "paramsR", "paramsK","owner","creator","creationtime","uri"])
+	attr_user = set(["mainview","views","private","typicalchld","desc_long","desc_short","name","params", "paramsR", "paramsK","owner","creator","creationtime","uri","children","parents"])
 
 
 	def init(self, d=None):
@@ -68,8 +68,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		# is NOT REQUIRED to have a valid Record
 		self.params = {}
 
-		# ordered keys from params()
-		self.paramsK = []
+		# keys from params()
+		self.paramsK = set()
 		
 		# required parameters (will throw exception on commit if empty)
 		self.paramsR = set()
@@ -91,6 +91,9 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 		# Long description
 		self.desc_long = d.get("desc_long")
+		
+		self.children = set()
+		self.parents = set()
 
 		self.findparams()
 
@@ -137,8 +140,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 				# ian: fix for: empty default value in a view unsets default value specified in mainview
 				if not d.has_key(j):
 					d[j] = d2.get(j)
-				
-
 
 		self.params = d
 		self.paramsK = t

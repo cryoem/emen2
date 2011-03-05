@@ -2381,7 +2381,7 @@ class DB(object):
 			allr &= self.getindexbyrecorddef(rectype, ctx=ctx, txn=txn)
 
 		# Filter by permissions
-		if keytype=="record":
+		if keytype == "record":
 			allr &= self._filterbypermissions(allr, ctx=ctx, txn=txn)
 
 		# perform filtering on both levels, and removing any items that become empty
@@ -3902,8 +3902,22 @@ class DB(object):
 		if owner:
 			ret = filter(lambda x:x.isowner(), ret)
 
+		# getrels = False
+		# if getrels:
+		# 	cursor = self.bdbs.records.pcdb2.bdb.cursor(txn=txn)
+		# 	for rec in ret:
+		# 		p = self.bdbs.records.pcdb2.get(rec.recid, cursor=cursor)
+		# 	cursor.close()
+		# 
+		# 	cursor = self.bdbs.records.cpdb2.bdb.cursor(txn=txn)
+		# 	for rec in ret:
+		# 		c = self.bdbs.records.cpdb2.get(rec.recid, cursor=cursor)
+		# 	cursor.close()
+
+
 		if ol:
-			return return_first_or_none(list(ret))
+			return return_first_or_none(list(ret))	
+			
 		return list(ret)
 
 
