@@ -1,6 +1,6 @@
 # $Id$
-from __future__ import with_statement, print_function
 
+from __future__ import with_statement, print_function
 import yaml
 import emen2.util.jsonutil
 from emen2.db.config import g, DBOptions

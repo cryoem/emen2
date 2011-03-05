@@ -1,5 +1,13 @@
 # $Id$
+
 from __future__ import with_statement
+'''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
+
+NOTE: access globals this way:
+import emen2.globalns
+g = emen2.globalns.GlobalNamespace('')
+g.<varname> accesses the variable
+g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 import re
 import collections
@@ -21,15 +29,6 @@ except ImportError:
 	json = False
 
 import emen2.util.datastructures
-
-
-'''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
-
-NOTE: access globals this way:
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
-g.<varname> accesses the variable
-g.<varname> = <value> sets a variable in a threadsafe manner.'''
 
 
 

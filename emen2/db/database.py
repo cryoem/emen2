@@ -1,5 +1,4 @@
 # $Id$
-from __future__ import with_statement
 
 import copy
 import atexit
@@ -22,6 +21,7 @@ import imp
 import tempfile
 import cStringIO
 import smtplib
+
 
 import bsddb3
 

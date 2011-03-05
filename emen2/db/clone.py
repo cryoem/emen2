@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# $Id$
-from __future__ import with_statement
 
+# $Id$
 import sys
 import getpass
 import os

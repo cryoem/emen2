@@ -1,18 +1,4 @@
 # $Id$
-from __future__ import with_statement
-
-import functools
-import code
-import inspect
-import os.path
-import time
-import datetime
-import sys
-
-import emen2.util.datastructures
-
-__all__ = ['DebugState']
-
 
 '''
 classes:
@@ -30,7 +16,21 @@ classes:
 
 	Filter: subclass of file, used to be use to strip headers off of access.log, unused
 '''
+from __future__ import with_statement
 
+import functools
+import code
+import inspect
+import os.path
+import time
+import datetime
+import sys
+
+
+import emen2.util.datastructures
+
+
+__all__ = ['DebugState']
 
 
 def take(num, iter_):
@@ -128,7 +128,7 @@ class Output(object):
 	def _init(self, **kwargs): pass
 	def _preprocess(self, state, header, msg): return state, header, msg
 
-
+@Output.register_subclass
 class Min(Output):
 	'''prints any messages in a state higher than the one given'''
 	def checkstate(self, state):
@@ -138,7 +138,6 @@ class Min(Output):
 			self._state_checked = result
 		return result
 
-Min = Output.register_subclass(Min)
 
 class Bounded(Output):
 	'''prints any messages in a given range of states'''
@@ -151,12 +150,11 @@ class Bounded(Output):
 			self._state_checked = result
 		return result
 
+@Output.register_subclass
 class Headless(Output):
 	'''drops the header from messages'''
 	def _preprocess(self, state, header, msg):
 		return state, '', msg
-Headless = Output.register_subclass(Headless)
-
 
 def stdouts_handler(prefix,suffix):
 	def _preprocess(self, state, header, msg):
@@ -169,16 +167,14 @@ def stdouts_handler(prefix,suffix):
 		# return state, ' '.join([prefix, header]), msg
 	return _preprocess
 
-
+@Output.register_subclass
 class stdout(Bounded):
 	_preprocess = stdouts_handler('   ','')
-stdout = Output.register_subclass(stdout)
 
-
+@Output.register_subclass
 class stderr(Min):
 	_preprocess = stdouts_handler('!! ', '') # not sure why you need pre and postpend
 	#_preprocess = stdouts_handler('!! ', ' *******')
-stderr = Output.register_subclass(stderr)
 
 
 class DebugState(object):
