@@ -5,11 +5,12 @@ but none have been defined
 '''
 
 import os.path
-try:
-	import pkg_resources
-	pkg_resources.require('Mako')
-except ImportError:
-	pass
+# try:
+# 	import pkg_resources
+# 	pkg_resources.require('Mako')
+# except ImportError:
+# 	pass
+import mako
 from mako import exceptions
 import mako.lookup
 import collections
