@@ -1,27 +1,52 @@
+import os
 import time
+import tarfile
+import tempfile
 
 import emen2.db.admin
 import emen2.util.jsonutil
 import emen2.util.listops
 
 
+
+
+
 class Dumper(object):
 
-	def __init__(self, db, outfile="out.json"):
+	def __init__(self, db, outfile=None, recids=None, allrecords=True, allgroups=True, allusers=True, allparamdefs=True, allrecorddefs=True):
+		mtime = time.time()
+		
+		
+		self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H:%M:%S"))
 		self.db = db
+
+		# Initial items
 		self.recids = set()
 		self.recorddefnames = set()
 		self.paramdefnames = set()
 		self.usernames = set()
 		self.groupnames = set()
 
+		# We need these to find additional users and groups
 		self.paramdefs_user = set()
 		self.paramdefs_userlist = set()
 
-		# This will start with a set of recids, then recurse to find all referenced items
-		recids = self.db.getchildren(0, recurse=4)
-		print "Starting with %s records"%len(recids)
-		self.checkrecords(recids)
+		# Initial items..
+		recids = recids or self.db.getchildren(0, recurse=2)
+		if allrecords:
+			recids |= self.db.getchildren(0, recurse=-1)
+		
+		if allgroups:
+			allgroups = self.db.getgroupnames()
+		if allusers:
+			allusers = self.db.getgroupnames()
+		if allparamdefs:
+			allparamdefs = self.db.getparamdefnames()
+		if allrecorddefs:
+			allrecorddefs = self.db.getrecorddefnames()		
+
+		print "Starting with %s records"%len(recids)		
+		self.checkrecords(recids, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs)
 
 		remove = set([None])
 		self.usernames -= remove
@@ -37,18 +62,34 @@ class Dumper(object):
 		print "\tgroups: %s"%len(self.groupnames)		
 		print ""
 
-		self.outfile = open(outfile, "w")
-		self.dumpparamdefs()
-		self.dumprecorddefs()
-		self.dumpusers()
-		self.dumpgroups()
-		self.dumprecords()
-		self.outfile.close()
 
+		outfile = tarfile.open(self.outfile, "w:gz")
+		self.taradd(outfile, "paramdefs.json", self.writetmp(self.dumpparamdefs))
+		self.taradd(outfile, "recorddefs.json", self.writetmp(self.dumprecorddefs))
+		self.taradd(outfile, "users.json", self.writetmp(self.dumpusers))
+		self.taradd(outfile, "groups.json", self.writetmp(self.dumpgroups))
+		self.taradd(outfile, "records.json", self.writetmp(self.dumprecords))
+		outfile.close()
+
+
+
+	def taradd(self, tar, arcname, filename):
+		tar.add(arcname=arcname, name=filename)
+		os.unlink(filename)
+
+
+
+	def writetmp(self, method):
+		fd, filename = tempfile.mkstemp() 
+		with open(filename, "w") as f:
+			for item in method():
+				f.write(emen2.util.jsonutil.encode(item))
+				f.write("\n")
+		return filename
 		
 		
 
-	def checkrecords(self, recids):
+	def checkrecords(self, recids, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None):
 		if not recids:
 			return
 			
@@ -80,14 +121,22 @@ class Dumper(object):
 					users |= set(rec.get(key, []))
 			
 				groups |= rec['groups']	
+
+
+		# Add in additional items
+		if addgroups: groups |= addgroups
+		if addusers: addusers |= addusers
+		if addparamdefs: pds |= addparamdefs
+		if addrecorddefs: rds |= addrecorddefs	
 				
 		print "Next round..."
 		print "\tusers: ", len(users-self.usernames)
 		print "\tgroups: ", len(groups-self.groupnames)
 		print "\trecorddefs: ", len(rds-self.recorddefnames)
 		print "\tparamdefs: ", len(pds-self.paramdefnames)
-		
+		# 		
 		# start recursing..
+		
 		self.checkusers(users)
 		self.checkgroups(groups)
 		self.checkrecorddefs(rds)
@@ -171,7 +220,7 @@ class Dumper(object):
 		self.checkusers(newusers)
 				
 		
-
+	# The dump* methods are generators that spit out JSON-encoded DBO's
 	def dumprecords(self, cur=0):
 		found = set()
 		for chunk in emen2.util.listops.chunk(self.recids):
@@ -183,8 +232,7 @@ class Dumper(object):
 			for rec in recs:
 				rec["parents"] = parents.get(rec.recid, set()) & self.recids
 				rec["children"] = children.get(rec.recid, set()) & self.recids
-				self.outfile.write(emen2.util.jsonutil.encode(rec))
-				self.outfile.write("\n");
+				yield rec
 
 			cur += len(recs)
 			self.printchunk(len(recs), cur=cur, total=len(self.recids), t=t, keytype="records")
@@ -203,11 +251,10 @@ class Dumper(object):
 			children = self.db.getparents(chunk, keytype="paramdef")
 		
 			for pd in pds:
-				pd["parents"] = parents.get(pd.name, set()) & self.paramdefnames
-				pd["children"] = children.get(pd.name, set()) & self.paramdefnames
-				self.outfile.write(emen2.util.jsonutil.encode(pd))
-				self.outfile.write("\n");
-
+				pd.parents = parents.get(pd.name, set()) & self.paramdefnames
+				pd.children = children.get(pd.name, set()) & self.paramdefnames
+				yield pd
+				
 			cur += len(pds)
 			self.printchunk(len(pds), cur=cur, total=len(self.paramdefnames), t=t, keytype="paramdefs")
 
@@ -225,10 +272,9 @@ class Dumper(object):
 			children = self.db.getparents(chunk, keytype="recorddef")
 		
 			for rd in rds:
-				rd["parents"] = parents.get(rd.name, set()) & self.recorddefnames
-				rd["children"] = children.get(rd.name, set()) & self.recorddefnames
-				self.outfile.write(emen2.util.jsonutil.encode(rd))
-				self.outfile.write("\n");
+				rd.parents = parents.get(rd.name, set()) & self.recorddefnames
+				rd.children = children.get(rd.name, set()) & self.recorddefnames
+				yield rd
 
 			cur += len(rds)
 			self.printchunk(len(rds), cur=cur, total=len(self.recorddefnames), t=t, keytype="recorddefs")
@@ -246,8 +292,7 @@ class Dumper(object):
 			found |= set([user.username for user in users])
 		
 			for user in users:
-				self.outfile.write(emen2.util.jsonutil.encode(user))
-				self.outfile.write("\n");
+				yield user
 
 			cur += len(users)
 			self.printchunk(len(users), cur=cur, total=len(self.usernames), t=t, keytype="users")
@@ -264,8 +309,7 @@ class Dumper(object):
 			found |= set([group.name for group in groups])
 		
 			for group in groups:
-				self.outfile.write(emen2.util.jsonutil.encode(group))
-				self.outfile.write("\n");
+				yield group
 
 			cur += len(groups)
 			self.printchunk(len(groups), cur=cur, total=len(self.groupnames), t=t, keytype="groups")

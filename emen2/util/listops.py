@@ -87,7 +87,8 @@ drop = partial(filter_dict, pred=(lambda x,y: x not in y))
 def chunk(l, count=1000):
 	'''chunk a list into segments of length count'''
 	ll = list(l)
-	return (ll[i:i+count] for i in range(0, len(ll), count))
+	return (ll[i:i+count] for i in xrange(0, len(ll), count))
+
 
 
 def groupchunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
