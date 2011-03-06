@@ -81,8 +81,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		# turn indexing on/off, if vartype allows for it
 		self.indexed = True
 
-		self.parents = set()
-		self.children = set()
+		self.parents = set(d.pop('parents',[]))		
+		self.children = set(d.pop('parents',[]))
 
 
 

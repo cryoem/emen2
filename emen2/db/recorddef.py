@@ -92,8 +92,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		# Long description
 		self.desc_long = d.get("desc_long")
 		
-		self.children = set()
-		self.parents = set()
+		self.parents = set(d.pop('parents',[]))		
+		self.children = set(d.pop('parents',[]))
 
 		self.findparams()
 

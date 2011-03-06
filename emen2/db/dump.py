@@ -9,6 +9,14 @@ import emen2.util.listops
 
 
 
+class Loader(object):
+	def __init__(self, db, infile=None):
+		with open(infile) as f:
+			for item in f:
+				item = emen2.util.jsonutil.decode(item)
+				print item
+			
+
 
 
 class Dumper(object):
@@ -17,7 +25,7 @@ class Dumper(object):
 		mtime = time.time()
 		
 		
-		self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H:%M:%S"))
+		self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
 		self.db = db
 
 		# Initial items
@@ -62,7 +70,8 @@ class Dumper(object):
 		print "\tgroups: %s"%len(self.groupnames)		
 		print ""
 
-
+		
+		print "Writing output to %s"%self.outfile
 		outfile = tarfile.open(self.outfile, "w:gz")
 		self.taradd(outfile, "paramdefs.json", self.writetmp(self.dumpparamdefs))
 		self.taradd(outfile, "recorddefs.json", self.writetmp(self.dumprecorddefs))
@@ -332,4 +341,5 @@ class Dumper(object):
 	
 
 db = emen2.db.admin.opendb()
-d = Dumper(db=db)
+# d = Dumper(db=db)
+d = Loader(db=db, infile="records.json")

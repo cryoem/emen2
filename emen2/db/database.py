@@ -3824,7 +3824,6 @@ class DB(object):
 			recdefs |= v
 
 
-
 		# Prepare filter
 		if filt:
 			lfilt = self.bdbs.recorddefs.get
@@ -3868,7 +3867,7 @@ class DB(object):
 
 
 	@publicmethod("records.get")
-	def getrecord(self, recids, filt=True, writable=None, owner=None, q=None, ctx=None, txn=None):
+	def getrecord(self, recids, filt=True, writable=None, q=None, getrels=False, ctx=None, txn=None):
 		"""Primary method for retrieving records. ctxid is mandatory. recid may be a list.
 
 		@param recids Record ID or iterable of Record IDs
@@ -3899,10 +3898,19 @@ class DB(object):
 		if writable:
 			ret = filter(lambda x:x.writable(), ret)
 
-		if owner:
-			ret = filter(lambda x:x.isowner(), ret)
+		# if owner:
+		# 	ret = filter(lambda x:x.isowner(), ret)
 
-		# getrels = False
+
+		if getrels:
+			recs = [rec.recid for rec in ret]
+			# this will normally filter for permissions
+			parents = self.getparents(recs, ctx=ctx, txn=txn)
+			children = self.getchildren(recs, ctx=ctx, txn=txn)
+			for rec in ret:
+				rec.parents = parents.get(rec.recid, set())
+				rec.children = children.get(rec.recid, set())
+
 		# if getrels:
 		# 	cursor = self.bdbs.records.pcdb2.bdb.cursor(txn=txn)
 		# 	for rec in ret:
@@ -4482,7 +4490,7 @@ class DB(object):
 
 		# ian: indexes are now faster, generally...
 		if len(recids) < 100:
-			return set([x.recid for x in self.getrecord(recids, filt=True, ctx=ctx, txn=txn)])
+			return set([x.recid for x in self.getrecord(recids, filt=True, getrels=False, ctx=ctx, txn=txn)])
 
 		ind = self._getindex("permissions", ctx=ctx, txn=txn)
 		indg = self._getindex("groups", ctx=ctx, txn=txn)

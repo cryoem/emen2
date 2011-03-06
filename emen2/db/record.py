@@ -61,7 +61,7 @@ def make_cache():
 
 class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
-	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])
+	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups", "children", "parents"])
 	cleared_fields = set(["viewcache"])
 	name = property(lambda s:s.recid)
 
@@ -113,6 +113,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		self.__permissions = _k.pop("permissions", ((),(),(),()))
 		self.__groups = set(_k.pop('groups',[]))		
 
+		# moving to new style..
+		self.parents = set(_k.pop('parents',[]))		
+		self.children = set(_k.pop('children',[]))		
+
 		for key in set(_k.keys()) - self.param_special:
 			self[key] = _k[key]
 
@@ -137,7 +141,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		odict = self.__dict__.copy() # copy the dict since we change it
 		odict['_Record__ptest'] = None
 		odict['_Record__ctx'] = None
-		odict['_ctx'] = None	
+		odict['_ctx'] = None
 		# filter out values that are None
 		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None, odict["_Record__params"].items()))
 
@@ -221,7 +225,13 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			result = self.__groups
 		elif key == "history":
 			result = self.__history
-
+		elif key == "parents":
+			try: result = self.parents
+			except: result = set()
+		elif key == "children":
+			try: result = self.children
+			except: result = set()
+			
 		return result
 
 
@@ -250,6 +260,12 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		elif key == 'groups':
 			self.setgroups(value)
+			
+		elif key == 'parents':
+			self.parents = parents
+		
+		elif key == 'children':
+			self.children = children
 
 		else:
 			self.validationwarning("Cannot set item %s in this way"%key, warning=True)
