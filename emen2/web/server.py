@@ -84,6 +84,7 @@ def inithttpd():
 	import emen2.web.resources.uploadresource
 	import emen2.web.resources.downloadresource
 	import emen2.web.resources.publicresource
+	import emen2.web.resources.publicresource_test
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
 
@@ -106,7 +107,7 @@ def inithttpd():
 		'upload': emen2.web.resources.uploadresource.UploadResource(),
 		'RPC2': emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
 		'json': emen2.web.resources.rpcresource.RPCResource(format="json"),
-		'jsonrpc': emen2.web.resources.jsonrpcresource.e2jsonrpc()
+		'jsonrpc': emen2.web.resources.jsonrpcresource.e2jsonrpc(),
 	}
 
 	# load EMEN2 resource
