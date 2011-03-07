@@ -69,12 +69,12 @@ class Output(object):
 	def __init__(self, states=0, filename=None, file=None, modulename=None, **kwargs):
 		'''Constructor: don't override this method, override _init'''
 		self._states = states
-		self.__file = file or open(filename, 'a')
+		self._file = file or open(filename, 'a')
 		self._state_checked = False
-		self.__modulename = modulename
+		self._modulename = modulename
 		self._init(**kwargs)
 
-	def __not_if_closed(func):
+	def _not_if_closed(func):
 		'''decorator: turns methods on or off based on whether the underlying stream is closed'''
 		@functools.wraps(func)
 		def _inner(self, *args, **kwargs):
@@ -84,34 +84,34 @@ class Output(object):
 			return result
 		return _inner
 
-	@__not_if_closed
+	@_not_if_closed
 	def send(self, module, state, header, msg):
 		state, header, msg = self._preprocess(state, header, msg)
 
-		if self.__modulename is not None and self.__modulename != module:
+		if self._modulename is not None and self._modulename != module:
 			pass
 
 		elif self._state_checked or self.checkstate(state):
-			self.__file.write(header)
-			self.__file.write(msg.rstrip())
-			self.__file.write('\n')
+			self._file.write(header)
+			self._file.write(msg.rstrip())
+			self._file.write('\n')
 			self.flush()
 			self._state_checked = False
 
-	@__not_if_closed
+	@_not_if_closed
 	def flush(self):
-		if not self.__file.closed:
-			self.__file.flush()
+		if not self._file.closed:
+			self._file.flush()
 
-	@__not_if_closed
+	@_not_if_closed
 	def close(self):
-		if not self.__file.closed:
-			self.__file.close()
+		if not self._file.closed:
+			self._file.close()
 
 	# subclass behavior modification hooks
 	@property
 	def closed(self):
-		return self.__file.closed
+		return self._file.closed
 
 	def checkstate(self, state):
 		result = False
@@ -189,38 +189,38 @@ class DebugState(object):
 	_clstate = {}
 
 	@property
-	def __state(self):
-		return self.__stdout._states
-	@__state.setter
-	def __state(self, value):
-		self.__stdout._states = value
+	def _state(self):
+		return self._stdout._states
+	@_state.setter
+	def _state(self, value):
+		self._stdout._states = value
 
 	@property
-	def __log_state(self):
-		return self.__output._states
-	@__state.setter
-	def __log_state(self, value):
-		self.__output._states = value
+	def _log_state(self):
+		return self._output._states
+	@_state.setter
+	def _log_state(self, value):
+		self._output._states = value
 
 
 	def __init__(self, output_level='LOG_INIT', logfile=None, get_state=True, logfile_state=None, just_print=False, quiet=False):
-		self.__maxlength = max(map(len, self.debugstates))
+		self._maxlength = max(map(len, self.debugstates))
 		self.__dict__ = self._clstate
 		if (not get_state) or (not self._clstate):
-			self.__timers = {}
+			self._timers = {}
 			self.just_print = just_print
 			self.quiet = quiet
-			self.__stdout = Output.factory('stdout', file=sys.stdout, max=self.debugstates.LOG_WARNING)
-			self.__stderr = Output.factory('stderr', file=sys.stderr, states=self.debugstates.LOG_WARNING)
-			self.__state = self.debugstates[output_level]
-			self.__state_stack = [self.__state]
+			self._stdout = Output.factory('stdout', file=sys.stdout, max=self.debugstates.LOG_WARNING)
+			self._stderr = Output.factory('stderr', file=sys.stderr, states=self.debugstates.LOG_WARNING)
+			self._state = self.debugstates[output_level]
+			self._state_stack = [self._state]
 			if logfile is not None:
-				self.__output = Output.factory('min', file=logfile)
+				self._output = Output.factory('min', file=logfile)
 			else:
-				self.__output = self.__stdout
-			self.__log_state = self.debugstates[logfile_state or self.__state]
-			self.__outputs = [self.__stdout, self.__stderr, self.__output]
-			self.__print_to_stdout = True
+				self._output = self._stdout
+			self._log_state = self.debugstates[logfile_state or self._state]
+			self._outputs = [self._stdout, self._stderr, self._output]
+			self._print_to_stdout = True
 			self.stdout = sys.stdout
 			self.stderr = sys.stderr
 
@@ -233,26 +233,26 @@ class DebugState(object):
 
 	def capturestdout(self):
 		self.msg('LOG_CRITICAL', 'Capturing stdoutput')
-		self.__print_to_stdout = False
+		self._print_to_stdout = False
 		sys.stdout = self
 		sys.stderr = self
 
 	def restorestdout(self):
-		self.__print_to_stdout = True
+		self._print_to_stdout = True
 		sys.stdout = self.stdout
 		sys.stderr = self.stderr
 
 	def swapstdout(self):
 		self.msg('LOG_CRITICAL', 'Switching Outputs...')
-		self.__print_to_stdout = not self.__print_to_stdout
+		self._print_to_stdout = not self._print_to_stdout
 		sys.stderr, self.stderr = self.stderr, sys.stderr
 		sys.stdout, self.stdout = self.stdout, sys.stdout
 		self.msg('LOG_INFO', '...Done')
 
 	def closestdout(self):
 		self.msg('LOG_CRITICAL', 'Closing old stdout/stderr')
-		self.__stdout.close()
-		self.__stderr.close()
+		self._stdout.close()
+		self._stderr.close()
 		sys.stdin.close()
 
 	def __call__(self, *args, **k):
@@ -261,11 +261,11 @@ class DebugState(object):
 
 	def start_timer(self, key=''):
 		self.msg('LOG_DEBUG', 'timer %s started' % key)
-		self.__timers[key] = time.time()
+		self._timers[key] = time.time()
 
 	def stop_timer(self, key=''):
 		stime = time.time()
-		stime = (stime-self.__timers.get(key, 0)) * 1000
+		stime = (stime-self._timers.get(key, 0)) * 1000
 		self.msg('LOG_DEBUG', 'timer %s stopped: %s milliseconds' % (key, stime))
 		return stime
 
@@ -285,9 +285,9 @@ class DebugState(object):
 
 		# outputs for the sake of lazy binding, outputs_l for caching
 		outputs_l = []
-		outputs = ( (outputs_l.append(output), True)[1] for output in self.__outputs if output.checkstate(state) )
+		outputs = ( (outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state) )
 
-		if state < self.__log_state and state < self.__state: return
+		if state < self._log_state and state < self._state: return
 		# NOTE: ed 1/4/2009:: the big slowdown is not having a quick way to locate which output to
 		# 								print to, we could fix this with a bloom filter--but it is not super
 		# 								important for now	we just make sure we avoid checking twice
@@ -298,8 +298,8 @@ class DebugState(object):
 		sn = self.get_state_name(state)()
 
 		# choose code path
-		func = self.__old_msg
-		if self.just_print: func = self.__just_print_msg
+		func = self._old_msg
+		if self.just_print: func = self._just_print_msg
 
 		# pass outputs and outputs_l because outputs might need to be iterated through in order
 		# to populate outputs_l completely
@@ -307,8 +307,8 @@ class DebugState(object):
 
 		return result
 
-	#def __just_print_msg(self, state, sn, output, *args, **k):
-	def __just_print_msg(self, state, sn, output, outputs, output_gen, *args, **k):
+	#def _just_print_msg(self, state, sn, output, *args, **k):
+	def _just_print_msg(self, state, sn, output, outputs, output_gen, *args, **k):
 		# finish the generator to make sure we get all the values in outputs there should be
 		for x in output_gen: pass
 		head = '%s %s '%(datetime.datetime.now(), sn)
@@ -318,11 +318,11 @@ class DebugState(object):
 			buf.flush()
 
 
-	def __old_msg(self, state, sn, output, outputs, output_gen, *args, **k):
+	def _old_msg(self, state, sn, output, outputs, output_gen, *args, **k):
 		# finish the generator to make sure we get all the values in outputs there should be
 		for x in output_gen: pass
 
-		module = self.__get_last_module()
+		module = self._get_last_module()
 		module[0] = module[0]
 		module = '%s:%s'%(module[0],module[1])
 
@@ -360,7 +360,7 @@ class DebugState(object):
 		'''
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
-			self.msg('LOG_INFO', 'debugging state -> %r, %r' % (self.__state, self.__log_state) )
+			self.msg('LOG_INFO', 'debugging state -> %r, %r' % (self._state, self._log_state) )
 			self.msg('LOG_DEBUG', 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
 			result = None
 			try:
@@ -385,10 +385,10 @@ class DebugState(object):
 		return clss
 
 	def print_traceback(self, level='LOG_DEBUG', steps=3):
-		msg =  self.__get_last_module(steps)
+		msg =  self._get_last_module(steps)
 		self.msg(level, msg, tb=False)
 
-	def __get_last_module(self, num=1):
+	def _get_last_module(self, num=1):
 		modname = '%s.py' % __name__.split('.')[-1]
 		try:
 			result = take(num, (
@@ -422,28 +422,28 @@ class DebugState(object):
 		return join.join(self.indent(get_right(i)) for i in lis)
 
 	#state changing methods
-	def get_state(self): return self.__state
+	def get_state(self): return self._state
 	def set_state(self, state):
 		newstate = self.debugstates[state]
-		self.__state = newstate
+		self._state = newstate
 	state = property(get_state, set_state)
 
 
 	#manipulate the state stack
 	def push_state(self, state):
-		self.__state_stack.append(self.debugstates[state])
+		self._state_stack.append(self.debugstates[state])
 		if self.quiet:
-			self.__log_state = state
+			self._log_state = state
 		else:
 			self.state = state
 
 	def pop_state(self):
-		if len(self.__state_stack) > 1:
-			self.__state_stack.pop()
-			self.state = self.__state_stack[-1]
+		if len(self._state_stack) > 1:
+			self._state_stack.pop()
+			self.state = self._state_stack[-1]
 
 	#output buffer
-	def get_buffer(self): return self.__buffer
+	def get_buffer(self): return self._buffer
 	buffer = property(get_buffer)
 
 	def add_output(self, states, file, version='', current_file=False, **kwargs):
@@ -452,10 +452,10 @@ class DebugState(object):
 		else:
 			states = self.debugstates[states]
 		if current_file:
-			kwargs['modulename'] = self.__get_last_module()[0]
+			kwargs['modulename'] = self._get_last_module()[0]
 		output = Output.factory(version, states=states, file=file, **kwargs)
-		self.__outputs.append(output)
-		return len(self.__outputs)
+		self._outputs.append(output)
+		return len(self._outputs)
 
 
 class debugDict(dict):
@@ -473,12 +473,12 @@ class debugDict(dict):
 
 class Filter(file):
 	def __init__(self, *args, **kwargs):
-		self.__splitter = kwargs.pop('sep', '::')
-		self.__num = kwargs.pop('items', 1)
+		self._splitter = kwargs.pop('sep', '::')
+		self._num = kwargs.pop('items', 1)
 		file.__init__(self, *args, **kwargs)
 
 	def write(self, str_):
-		str_ = str_.split(self.__splitter, self.__num)[-1]
+		str_ = str_.split(self._splitter, self._num)[-1]
 		file.write(self, str_)
 
 

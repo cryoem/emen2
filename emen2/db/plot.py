@@ -561,7 +561,7 @@ class BinPlot(Plotter):
 # 
 # 	plots = {}
 # 	if "png" in formats:
-# 		pngfile = self.__getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
+# 		pngfile = self._getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
 # 		fig.savefig(pngfile)
 # 		plots["png"] = pngfile
 # 

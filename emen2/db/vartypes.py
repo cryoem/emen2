@@ -37,7 +37,7 @@ class Vartype(object):
 	def register(cls):
 		name = cls.__name__
 		if name.startswith('vt_'): name = name.split('_',1)[1]
-		cls.__vartype__ = property(lambda *_: name)
+		cls.vartype = property(lambda *_: name)
 		emen2.db.datatypes.VartypeManager._register_vartype(name, cls)
 
 	def __init__(self):
@@ -50,7 +50,7 @@ class Vartype(object):
 
 
 	def getvartype(self):
-		return self.__vartype__
+		return self.vartype
 
 
 	def getkeytype(self):
@@ -369,10 +369,10 @@ class vt_text(vt_string):
 			if item[1]==item[2]:
 				continue
 
-			for i in self.__reindex_getindexwords(item[1]):
+			for i in self._reindex_getindexwords(item[1]):
 				addrefs[i].append(item[0])
 
-			for i in self.__reindex_getindexwords(item[2]):
+			for i in self._reindex_getindexwords(item[2]):
 				delrefs[i].append(item[0])
 
 		allwords = set(addrefs.keys() + delrefs.keys()) - set(g.UNINDEXED_WORDS)
@@ -391,12 +391,12 @@ class vt_text(vt_string):
 
 
 
-	__reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')  #'[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)'
-	def __reindex_getindexwords(self, value, ctx=None, txn=None):
+	_reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')  #'[\s]([a-zA-Z]+)[\s]|([0-9][.0-9]+)'
+	def _reindex_getindexwords(self, value, ctx=None, txn=None):
 		"""(Internal) Split up a text param into components"""
 		if value == None: return []
 		value = unicode(value).lower()
-		return set((x[0] or x[1]) for x in self.__reindex_getindexwords_m.findall(value))
+		return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
 
 
 

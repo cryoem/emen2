@@ -128,7 +128,7 @@ class AccessLogLine(dict):
 	labels = set(x[0] for x in order)
 
 	def __init__(self, *args, **kwargs):
-		self.__locked = False
+		self._locked = False
 
 		## get the field order and types
 		#self.order = kwargs.pop('order', self.order)
@@ -143,13 +143,13 @@ class AccessLogLine(dict):
 
 		values = dict( (k,v) for k, v in values )
 
-		self.__tfmt = kwargs.pop('time_fmt', CTIME)
+		self._tfmt = kwargs.pop('time_fmt', CTIME)
 
 		self.update(values)
 		if len(args) > len(values):
 			self['extra'] = tuple(args[len(values):])
 
-		self.__locked = True
+		self._locked = True
 
 	@classmethod
 	def from_line(cls, line, time_fmt=CTIME):
@@ -158,12 +158,12 @@ class AccessLogLine(dict):
 		tline = line
 		line = (x.strip() for x in line.split())
 		out = []
-		cls.__JOIN = False
-		def toggle(): cls.__JOIN = not cls.__JOIN
+		cls._JOIN = False
+		def toggle(): cls._JOIN = not cls._JOIN
 		sschar = set(['"', '['])
 		eschar = set(['"', ']'])
 		for word in line:
-			if not cls.__JOIN:
+			if not cls._JOIN:
 				if any( word.startswith(c) for c in sschar ): toggle()
 				out.append([word])
 			else:
@@ -171,14 +171,14 @@ class AccessLogLine(dict):
 				if any( word.endswith(c) for c in eschar ): toggle()
 		line = [' '.join(item) for item in out]
 		self = cls(*line, time_fmt=time_fmt)
-		self.__line = tline
+		self._line = tline
 		self.line = line
 		return self
 
 	def __repr__(self): return "AccessLogLine(%s)" % dict.__repr__(self)
 	def __str__(self):
 		d = dict(self)
-		d['rtime'] = (d['rtime'].strftime(self.__tfmt) if d['rtime'] else '-')
+		d['rtime'] = (d['rtime'].strftime(self._tfmt) if d['rtime'] else '-')
 		out = []
 		for k,_ in self.order:
 			value = d.get(k, '-')
@@ -187,7 +187,7 @@ class AccessLogLine(dict):
 		return ' '.join(out)
 
 	def __setitem__(self, key, value):
-		if self.__locked == True:
+		if self._locked == True:
 			raise NotImplementedError, 'read only'
 		else:
 			dict.__setitem__(self, key, value)

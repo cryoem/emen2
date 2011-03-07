@@ -3,8 +3,8 @@ import emen2.test
 
 class Block(object):
 	def __init__(self, block, tail=None):
-		self.__block = block.split()
-		self.__tail = tail
+		self._block = block.split()
+		self._tail = tail
 
 	@staticmethod
 	def split(string, delimiter='.'):
@@ -16,26 +16,26 @@ class Block(object):
 
 	def get_next_block(self, delimiter='.'):
 		cls = self.__class__
-		if self.__tail:
-			print self.__tail
-			return cls.make_block(self.__tail, delimiter)
+		if self._tail:
+			print self._tail
+			return cls.make_block(self._tail, delimiter)
 
-	def get_block(self): return self.__block
+	def get_block(self): return self._block
 
 class Processor(object):
-	__verbs = {}
-	verbs = property(lambda self: set(self.__verbs))
-	__default_command = '__default'
+	_verbs = {}
+	verbs = property(lambda self: set(self._verbs))
+	_default_command = '_default'
 
 	def __init__(self):
-		self.__line = []
-		self.__words = set()
+		self._line = []
+		self._words = set()
 
 	@classmethod
 	def add_command(cls, name, processor, default=False):
-		cls.__verbs[name] = processor
+		cls._verbs[name] = processor
 		if default:
-			cls.__verbs[cls.__default_command] = processor
+			cls._verbs[cls._default_command] = processor
 
 
 	def process_input(self, txt, data):
@@ -46,14 +46,14 @@ class Processor(object):
 		return data
 
 	def process_block(self, block, data):
-		self.__line = block.get_block()
-		self.__words = set(self.__line)
-		commands = (self.verbs & self.__words) or [self.__default_command]
+		self._line = block.get_block()
+		self._words = set(self._line)
+		commands = (self.verbs & self._words) or [self._default_command]
 		command = commands.pop()
-		if (command != self.__default_command and self.__line.count(command) != 1) or len(commands) != 0:
+		if (command != self._default_command and self._line.count(command) != 1) or len(commands) != 0:
 			raise ValueError, 'only one command per block'
-		processor = self.__verbs[command]
-		return processor.execute((x for x in self.__line if x != command), data), block.get_next_block()
+		processor = self._verbs[command]
+		return processor.execute((x for x in self._line if x != command), data), block.get_next_block()
 
 def iconc(iterlist):
 	for iter in iterlist:
@@ -63,9 +63,9 @@ def iconc(iterlist):
 class Find(object):
 	RECORDDEF, PARAMDEF = 1, 2
 
-	def __init__(self): self.__state = 0
+	def __init__(self): self._state = 0
 
-	def __checkname1(self, name):
+	def _checkname1(self, name):
 		exclude = False
 		if name.startswith('!'):
 			exclude, name = True, name[1:]
@@ -95,16 +95,16 @@ class Find(object):
 			else:
 				output &= tmpset
 		output -= removeset
-		self.__state = 0
+		self._state = 0
 		return output & data
 
 	def set_state(self, word, error=False):
 		result = False
 		if word.lower() in set(['recorddef','rectype','protocol']):
-			self.__state  = self.RECORDDEF
+			self._state  = self.RECORDDEF
 		elif word.lower() in set(['paramdef', 'param']):
-			self.__state = self.PARAMDEF
-		elif self.__state == 0:
+			self._state = self.PARAMDEF
+		elif self._state == 0:
 			raise ValueError, 'Unrecognized symbol: %s' % word
 		else:
 			result = True
@@ -115,11 +115,11 @@ class Find(object):
 
 		for word in line:
 			if self.set_state(word):
-				if self.__state == self.RECORDDEF:
-					recorddefs.add(self.__checkname1(word))
-				elif self.__state == self.PARAMDEF:
+				if self._state == self.RECORDDEF:
+					recorddefs.add(self._checkname1(word))
+				elif self._state == self.PARAMDEF:
 					item = list(word.partition('=')[::2])
-					item[0:1] = self.__checkname1(item[0])
+					item[0:1] = self._checkname1(item[0])
 					paramdefs.add(tuple(item))
 		return paramdefs, recorddefs
 

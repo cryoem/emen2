@@ -76,7 +76,7 @@ def reload_views(view=None):
 	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
 	for view in values:
 		try:
-			view = view._URL__callback.__module__
+			view = view._callback.__module__
 			exec 'import %s;reload(%s)' % (view,view)
 		except:
 			failures.append(str(view))

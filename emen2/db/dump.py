@@ -2,6 +2,8 @@ import os
 import time
 import tarfile
 import tempfile
+import string
+import random
 
 import emen2.db.admin
 import emen2.util.jsonutil
@@ -9,19 +11,9 @@ import emen2.util.listops
 
 
 
-class Loader(object):
-	def __init__(self, db, infile=None):
-		with open(infile) as f:
-			for item in f:
-				item = emen2.util.jsonutil.decode(item)
-				print item
-			
-
-
-
 class Dumper(object):
 
-	def __init__(self, db, outfile=None, recids=None, allrecords=True, allgroups=True, allusers=True, allparamdefs=True, allrecorddefs=True):
+	def __init__(self, db, outfile=None, recids=None, allrecords=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True):
 		mtime = time.time()
 		
 		
@@ -40,7 +32,7 @@ class Dumper(object):
 		self.paramdefs_userlist = set()
 
 		# Initial items..
-		recids = recids or self.db.getchildren(0, recurse=2)
+		recids = recids or self.db.getchildren(268336, recurse=-1)
 		if allrecords:
 			recids |= self.db.getchildren(0, recurse=-1)
 		
@@ -70,6 +62,8 @@ class Dumper(object):
 		print "\tgroups: %s"%len(self.groupnames)		
 		print ""
 
+		# tmp fix..
+		self.usernames.add("bendubin-thaler")
 		
 		print "Writing output to %s"%self.outfile
 		outfile = tarfile.open(self.outfile, "w:gz")
@@ -124,6 +118,7 @@ class Dumper(object):
 						self.paramdefs_userlist.add(pd)
 			
 				users |= emen2.util.listops.combine(*rec['permissions'], dtype=set)				
+				
 				for key in keys&self.paramdefs_user:
 					users.add(rec.get(key))
 				for key in keys&self.paramdefs_userlist:
@@ -340,6 +335,14 @@ class Dumper(object):
 			
 	
 
-db = emen2.db.admin.opendb()
-# d = Dumper(db=db)
-d = Loader(db=db, infile="records.json")
+
+
+
+
+if __name__ == "__main__":
+	import emen2.db.admin
+	db = emen2.db.admin.opendb()
+	d = Dumper(db=db)
+
+
+

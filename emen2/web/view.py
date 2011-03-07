@@ -80,24 +80,24 @@ class View(object):
 	# 	def _preinithook(self):
 	# 		print 'Hello World'
 
-	db = property(lambda self: self.__db)
-	headers = property(lambda self: self.__headers)
-	dbtree = property(lambda self: self.__dbtree)
+	db = property(lambda self: self._db)
+	headers = property(lambda self: self._headers)
+	dbtree = property(lambda self: self._dbtree)
 	ctxt = property(lambda self: self.get_context())
 	js_files = emen2.web.extfile.BaseJS
 	css_files = emen2.web.extfile.BaseCSS
 	page = None
 
-	def __settitle(self, t):
-		self.__ctxt['title'] = t
+	def _settitle(self, t):
+		self._ctxt['title'] = t
 
-	title = property(lambda self: self.__ctxt.get('title'), __settitle)
+	title = property(lambda self: self._ctxt.get('title'), _settitle)
 
-	def __set_mimetype(self, value): self.__headers['content-type'] = value
-	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
+	def _set_mimetype(self, value): self._headers['content-type'] = value
+	mimetype = property(lambda self: self._headers['content-type'], _set_mimetype)
 
-	def __set_template(self, value): self.__template = value
-	template = property(lambda self: self.__template, __set_template)
+	def _set_template(self, value): self._template = value
+	template = property(lambda self: self._template, _set_template)
 
 	def __init__(self, db=None, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
 		'''\
@@ -116,27 +116,27 @@ class View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
-		self.__db = db
+		self._db = db
 		self.method = method
-		self.__headers = {'content-type': mimetype}
-		self.__dbtree = Context()#DBTree(db)
+		self._headers = {'content-type': mimetype}
+		self._dbtree = Context()#DBTree(db)
 
-		self.__template = template or self.template
-		self.__ctxt = adjust({}, extra)
+		self._template = template or self.template
+		self._ctxt = adjust({}, extra)
 
 		try:
-			LOGINUSER = self.__db._DBProxy__ctx.username
-			HOST = self.__db._DBProxy__ctx.host
+			LOGINUSER = self._db._ctx.username
+			HOST = self._db._ctx.host
 		except:
 			LOGINUSER = None
 			HOST = None
 
 
-		self.__basectxt = dict(
+		self._basectxt = dict(
 			ctxt = self.dbtree,
-			headers = self.__headers,
-			css_files = (css_files or self.css_files)(self.__dbtree),
-			js_files = (js_files or self.js_files)(self.__dbtree),
+			headers = self._headers,
+			css_files = (css_files or self.css_files)(self._dbtree),
+			js_files = (js_files or self.js_files)(self._dbtree),
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
 			EMEN2DBNAME = g.EMEN2DBNAME,
 			EMEN2LOGO = g.EMEN2LOGO,
@@ -148,7 +148,7 @@ class View(object):
 		)
 
 
-		self.set_context_items(self.__basectxt)
+		self.set_context_items(self._basectxt)
 		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
 		if not hasattr(notify, '__iter__'): notify = [notify]
 		self.set_context_item('notify', notify)
@@ -156,7 +156,7 @@ class View(object):
 		self.etag = None
 
 		# call any view specific initialization
-		self.__raw = False
+		self._raw = False
 		if format is not None:
 			self.get_data = getattr(self, 'get_%s' % format)
 
@@ -173,17 +173,17 @@ class View(object):
 
 
 	def is_raw(self):
-		return self.__raw
+		return self._raw
 
 
 	def make_raw(self):
-		self.__raw = True
+		self._raw = True
 
 
 
 	#### ian: add JS/CSS include
 	def add_js(self, f):
-		self.__basectxt['js_files']
+		self._basectxt['js_files']
 
 	#### Output methods #####################################################################
 
@@ -203,7 +203,7 @@ class View(object):
 
 	def __iter__(self):
 		'''returns (result, mimetype)'''
-		return iter((self.get_data(), self.__headers))
+		return iter((self.get_data(), self._headers))
 
 	def __unicode__(self):
 		'''returns the data'''
@@ -218,46 +218,46 @@ class View(object):
 	#### Metadata manipulation ###############################################################
 
 	# HTTP header manipulation
-	def set_headers(self, __headers_=None, **hs):
+	def set_headers(self, headers=None, **hs):
 		'add a dictionary containing several headers to the HTTP headers'
-		headers = __headers_ or {}
+		headers = headers or {}
 		headers.update(hs)
-		self.__headers.update(headers)
+		self._headers.update(headers)
 
 	def set_header(self, name, value):
 		'set a single header'
-		self.__headers[name] = value
+		self._headers[name] = value
 		return (name, value)
 
 	def get_headers(self):
-		return self.__headers
+		return self._headers
 
 	def get_header(self, name):
 		'get a HTTP header that this view will return'
-		return self.__headers[name]
+		return self._headers[name]
 
 	# template context manipulation
 	def get_context_item(self, name, default=None):
-		return self.__ctxt.get(name)
+		return self._ctxt.get(name)
 
 	def set_context_item(self, name, value):
 		'''add a single item to the tempalte context'''
-		if name in self.__basectxt.keys():
+		if name in self._basectxt.keys():
 			raise ValueError, "%s is a reserved context item" % name
-		self.__ctxt[name] = value
+		self._ctxt[name] = value
 
-	def set_context_items(self, __dict_=None, **kwargs):
+	def set_context_items(self, _dict=None, **kwargs):
 		'''add a number of items to the template context'''
-		self.__ctxt.update(kwargs)
-		self.__ctxt.update(__dict_ or {})
-		self.__ctxt.update(self.__basectxt)
+		self._ctxt.update(kwargs)
+		self._ctxt.update(_dict or {})
+		self._ctxt.update(self._basectxt)
 
 	# alias update_context to set_context_items ###TODO: remove this alias
 	update_context = set_context_items
 
 	def get_context(self, extra_dict=None):
 		'''get the view's context'''
-		return self.__ctxt
+		return self._ctxt
 
 	#### View registration methods ###########################################################
 
@@ -322,7 +322,7 @@ class View(object):
 			-> or any object that has an attribute named 'match', and 'groupdict' (if one doesn't want to use regular expressions)
 
 		'''
-		cls.__url = routing.URL(cls.__name__)
+		cls._url = routing.URL(cls.__name__)
 
 		# old style matchers
 		# these should die, but not yet
@@ -330,24 +330,24 @@ class View(object):
 			if hasattr(cls.__matcher__, '__iter__'):
 				if hasattr(cls.__matcher__, 'items'):
 					if not cls.__matcher__.get('main', False):
-						g.warn('Main matcher not specified for (%r) (%r)' % (cls, cls.__url))
+						g.warn('Main matcher not specified for (%r) (%r)' % (cls, cls._url))
 					for name, expression in cls.__matcher__.items():
 						name = '%s' % name
 						cb = functools.partial(cls, init=cls.init)
 						result = functools.wraps(cls)(cb)
-						cls.__url.add_matcher(name, expression, cb)
+						cls._url.add_matcher(name, expression, cb)
 
 				else:
-					cls.__url.add_matcher('main', cls.__matcher__[0], cls)
+					cls._url.add_matcher('main', cls.__matcher__[0], cls)
 					for counter, expression in enumerate(cls.__matcher__):
 						cb = functools.partial(cls, init=cls.init)
 						result = functools.wraps(cls)(cb)
-						cls.__url.add_matcher('%02d' % counter, expression, cb)
+						cls._url.add_matcher('%02d' % counter, expression, cb)
 
 			else:
 				cb = functools.partial(cls, init=cls.init)
 				result = functools.wraps(cls)(cb)
-				cls.__url.add_matcher('main', cls.__matcher__, cb)
+				cls._url.add_matcher('main', cls.__matcher__, cb)
 
 		#matchers produced by the add_matcher decorator
 		for v in (func.matcherinfo for func in cls.__dict__.values() if hasattr(func,'matcherinfo')):
@@ -355,10 +355,10 @@ class View(object):
 				name, matcher, func = matcher
 				func = functools.partial(cls, init=func)
 				func = functools.wraps(cls)(func)
-				cls.__url.add_matcher(name, matcher, func)
+				cls._url.add_matcher(name, matcher, func)
 
 		ur = routing.URLRegistry()
-		ur.register(cls.__url)
+		ur.register(cls._url)
 		return cls
 
 ############-############-############
@@ -400,14 +400,14 @@ class AuthView(ViewPlugin):
 class Page(object):
 	'''Abstracts template rendering'''
 	def __init__(self, template, value_dict=None, **kwargs):
-		self.__template = template
-		self.__valuedict = adjust(kwargs, value_dict or {})
+		self._template = template
+		self._valuedict = adjust(kwargs, value_dict or {})
 
 	def __unicode__(self):
-		return g.templates.render_template(self.__template, self.__valuedict)
+		return g.templates.render_template(self._template, self._valuedict)
 
 	def __str__(self):
-		return g.templates.render_template(self.__template, self.__valuedict).encode('ascii', 'replace')
+		return g.templates.render_template(self._template, self._valuedict).encode('ascii', 'replace')
 
 
 	@classmethod

@@ -19,8 +19,8 @@ def opendb(args=None):
 		parser = emen2.db.config.DBOptions()
 		(options, args) = parser.parse_args()
 	db = emen2.opendb()
-	ctx = db._DBProxy__db._makerootcontext()
-	db._DBProxy__ctx = ctx
+	ctx = db._db._makerootcontext()
+	db._ctx = ctx
 	return db
 	
 	

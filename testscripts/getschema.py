@@ -54,10 +54,10 @@ def puttree(keytype, root):
 	for elem, child in tree: db.pclink(elem, child, keytype=keytype)
 
 g.log_info('setting paramdef tree')
-puttree('paramdef', 'root_parameter')
+puttree('paramdef', 'root')
 
 g.log_info('setting recorddef tree')
-puttree('recorddef', 'root_protocol')
+puttree('recorddef', 'root')
 
 g.log_info('done')
 __version__ = "$Revision$".split(":")[1][:-1].strip()

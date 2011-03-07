@@ -51,7 +51,7 @@ def help(mt):
 	return _inner
 
 class MethodTree(object):
-	class __cursor(object):
+	class _cursor(object):
 		def __init__(self, mt, path = None):
 			self.path = path or []
 			self.mt = mt
@@ -166,15 +166,15 @@ class DBProxy(object):
 		# it can cause circular imports if this is at the top level of the module
 		import database
 
-		self.__txn = None
-		self.__bound = False
+		self._txn = None
+		self._is_bound = False
 
 		if not db:
 			db = database.DB()
 
-		self.__db = db
-		self.__ctx = ctx
-		self.__txn = txn
+		self._db = db
+		self._ctx = ctx
+		self._txn = txn
 
 
 	# Implements "with" interface
@@ -189,57 +189,57 @@ class DBProxy(object):
 		else:
 			# g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 			self._aborttxn()
-		self.__txn = None
+		self._txn = None
 
 
 	# Transactions
 	def _gettxn(self):
-		return self.__txn
+		return self._txn
 
 
 	def _settxn(self, txn=None):
-		self.__txn = txn
+		self._txn = txn
 
 
 	def _starttxn(self, write=False):
-		self.__txn = self.__db.txncheck(txn=self.__txn, ctx=self.__ctx, write=write)
+		self._txn = self._db.txncheck(txn=self._txn, ctx=self._ctx, write=write)
 		return self
 
 
 	def _committxn(self):
-		self.__txn = self.__db.txncommit(txn=self.__txn)
+		self._txn = self._db.txncommit(txn=self._txn)
 
 
 	def _aborttxn(self):
-		self.__txn = self.__db.txnabort(txn=self.__txn)
+		self._txn = self._db.txnabort(txn=self._txn)
 
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
 		try:
-			self.__ctx = self.__db._getcontext(ctxid=ctxid, host=host, txn=self.__txn)
-			self.__ctx.setdb(db=self)
+			self._ctx = self._db._getcontext(ctxid=ctxid, host=host, txn=self._txn)
+			self._ctx.setdb(db=self)
 		except:
-			self.__ctx = None
+			self._ctx = None
 			raise
 
-		self.__bound = True
+		self._is_bound = True
 		return self
 
 
 	def _clearcontext(self):
-		if self.__bound:
-			self.__ctx = None
-			self.__bound = False
+		if self._is_bound:
+			self._ctx = None
+			self._bound = False
 
 
 	def _getctx(self):
-		return self.__ctx
+		return self._ctx
 
 
 	@property
 	def _bound():
-		return self.__bound
+		return self._is_bound
 
 
 	@_bound.deleter
@@ -290,41 +290,44 @@ class DBProxy(object):
 
 	def _wrap(self, func):
 		# print "going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
-		kwargs = dict(ctx=self.__ctx, txn=self.__txn)
+		kwargs = dict(ctx=self._ctx, txn=self._txn)
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			# t = time.time()
 			result = None
 			commit = False
-			ctx = self.__ctx
+			ctx = self._ctx
 			kwargs['ctx'] = ctx
 
 			if getattr(func, 'admin', False) and not ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
 			self._starttxn()
-			kwargs['txn'] = self.__txn
-			ctx.setdb(self)
+			kwargs['txn'] = self._txn
+			try:
+				ctx.setdb(self)
+			except:
+				pass
 
 			if getattr(func, 'ext', False):
-				kwargs['db'] = self.__db
+				kwargs['db'] = self._db
 
 			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
 
 			try:
 				# result = func.execute(*args, **kwargs)
-				result = func(self.__db, *args, **kwargs)
+				result = func(self._db, *args, **kwargs)
 
 			except Exception, e:
 				# traceback.print_exc(e)
 				if commit is True:
-					txn and self.__db.txnabort(ctx=ctx, txn=txn)
+					txn and self._db.txnabort(ctx=ctx, txn=txn)
 				raise
 
 			else:
 				if commit is True:
-					txn and self.__db.txncommit(ctx=ctx, txn=txn)
+					txn and self._db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
 			# print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)

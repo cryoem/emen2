@@ -8,7 +8,7 @@
 #     # The remaining methods are order-aware.
 #     # Big-O running times for all methods are the same as for regular dictionaries.
 # 
-#     # The internal self.__map dictionary maps keys to links in a doubly linked list.
+#     # The internal self._map dictionary maps keys to links in a doubly linked list.
 #     # The circular doubly linked list starts and ends with a sentinel element.
 #     # The sentinel element never gets deleted (this simplifies the algorithm).
 #     # Each link is stored as a list of length three:  [PREV, NEXT, KEY].
@@ -22,13 +22,13 @@
 #         if len(args) > 1:
 #             raise TypeError('expected at most 1 arguments, got %d' % len(args))
 #         try:
-#             self.__root
+#             self._root
 #         except AttributeError:
-#             self.__root = root = [None, None, None]     # sentinel node
+#             self._root = root = [None, None, None]     # sentinel node
 #             PREV = 0
 #             NEXT = 1
 #             root[PREV] = root[NEXT] = root
-#             self.__map = {}
+#             self._map = {}
 #         self.update(*args, **kwds)
 # 
 #     def __setitem__(self, key, value, PREV=0, NEXT=1, dict_setitem=dict.__setitem__):
@@ -36,17 +36,17 @@
 #         # Setting a new item creates a new link which goes at the end of the linked
 #         # list, and the inherited dictionary is updated with the new key/value pair.
 #         if key not in self:
-#             root = self.__root
+#             root = self._root
 #             last = root[PREV]
-#             last[NEXT] = root[PREV] = self.__map[key] = [last, root, key]
+#             last[NEXT] = root[PREV] = self._map[key] = [last, root, key]
 #         dict_setitem(self, key, value)
 # 
 #     def __delitem__(self, key, PREV=0, NEXT=1, dict_delitem=dict.__delitem__):
 #         'od.__delitem__(y) <==> del od[y]'
-#         # Deleting an existing item uses self.__map to find the link which is
+#         # Deleting an existing item uses self._map to find the link which is
 #         # then removed by updating the links in the predecessor and successor nodes.
 #         dict_delitem(self, key)
-#         link = self.__map.pop(key)
+#         link = self._map.pop(key)
 #         link_prev = link[PREV]
 #         link_next = link[NEXT]
 #         link_prev[NEXT] = link_next
@@ -55,7 +55,7 @@
 #     def __iter__(self, NEXT=1, KEY=2):
 #         'od.__iter__() <==> iter(od)'
 #         # Traverse the linked list in order.
-#         root = self.__root
+#         root = self._root
 #         curr = root[NEXT]
 #         while curr is not root:
 #             yield curr[KEY]
@@ -64,7 +64,7 @@
 #     def __reversed__(self, PREV=0, KEY=2):
 #         'od.__reversed__() <==> reversed(od)'
 #         # Traverse the linked list in reverse order.
-#         root = self.__root
+#         root = self._root
 #         curr = root[PREV]
 #         while curr is not root:
 #             yield curr[KEY]
@@ -73,10 +73,10 @@
 #     def __reduce__(self):
 #         'Return state information for pickling'
 #         items = [[k, self[k]] for k in self]
-#         tmp = self.__map, self.__root
-#         del self.__map, self.__root
+#         tmp = self._map, self._root
+#         del self._map, self._root
 #         inst_dict = vars(self).copy()
-#         self.__map, self.__root = tmp
+#         self._map, self._root = tmp
 #         if inst_dict:
 #             return (self.__class__, (items,), inst_dict)
 #         return self.__class__, (items,)
@@ -84,10 +84,10 @@
 #     def clear(self):
 #         'od.clear() -> None.  Remove all items from od.'
 #         try:
-#             for node in self.__map.itervalues():
+#             for node in self._map.itervalues():
 #                 del node[:]
-#             self.__root[:] = [self.__root, self.__root, None]
-#             self.__map.clear()
+#             self._root[:] = [self._root, self._root, None]
+#             self._map.clear()
 #         except AttributeError:
 #             pass
 #         dict.clear(self)

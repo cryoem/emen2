@@ -40,17 +40,16 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","childrecs","displayname","userrec"])
+	attr_user = set(["privacy", "modifytime", "password", "modifyuser", "signupinfo","email","groups","username","disabled","creator","creationtime","record","displayname","userrec"])
 	name = property(lambda s:s.username)
 
 	def init(self, d=None):
 		# ian: todo: pw should be salted
-
 		# these are basically required arguments...
-		self.username = d.get('username', None)
-		self.username = re.sub("\W", "", self.username).lower()
+		self.username = d.get('username')
+		# re.sub("\W", "", d.get('username', None)).lower()
 		self.password = None
-		self.__setpassword(d.get('password'))
+		self._setpassword(d.get('password'))
 		self.email = d.get('email', None)
 
 		if not self.username or not self.email:
@@ -59,21 +58,19 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self.disabled = d.get('disabled',0)
 		self.privacy = d.get('privacy',0)
 		self.record = d.get('record', None)
-		self.signupinfo = d.get('signupinfo', {})
 		self.creator = d.get('creator',0)
 		self.creationtime = d.get('creationtime', None)
 		self.modifytime = d.get('modifytime', None)
 		self.modifyuser = d.get('modifyuser', None)
-
-		# self.childrecs = d.get('childrecs', {})
-
+		
 		self.userrec = {}
 		self.groups = set()
-		self.displayname = None
-		
+		self.displayname = None		
+		self.signupinfo = d.get('signupinfo', {})
+
 		# Secret takes the format:
 		# action type, args, ctime for when the token is set, and secret
-		self.__secret = None
+		self._secret = None
 
 
 
@@ -98,7 +95,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 	#################################
 
 
-	def __hashpassword(self, password):
+	def _hashpassword(self, password):
 		if password == None:
 			password = ''
 		if len(password) == 40:
@@ -116,7 +113,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 				return True
 
 		result = False
-		if self.password != None and self.__hashpassword(password) == self.password:
+		if self.password != None and self._hashpassword(password) == self.password:
 			result = True
 
 		if result == False:
@@ -127,26 +124,26 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 	def setpassword(self, oldpassword, newpassword, secret=None):
 		if self.checkpassword(oldpassword):
-			self.__setpassword(newpassword)
-		elif self.__checksecret('resetpassword', None, secret):
-			self.__setpassword(newpassword)
+			self._setpassword(newpassword)
+		elif self._checksecret('resetpassword', None, secret):
+			self._setpassword(newpassword)
 		else:
 			raise emen2.db.exceptions.SecurityError, "Invalid password or authentication token"
-		self.__delsecret()	
+		self._delsecret()	
 
 
-	def __setpassword(self, newpassword):
+	def _setpassword(self, newpassword):
 		if newpassword == None and self.username != "root":
 			self.validationwarning("No password specified; minimum 6 characters required", warning=False)
 		if len(newpassword) < 6:
 			self.validationwarning("Password too short; minimum 6 characters required", warning=False)
-		self.password = self.__hashpassword(newpassword)
+		self.password = self._hashpassword(newpassword)
 
 
 
 	def resetpassword(self):
 		"""Reset the user password. This creates an internal 'secret' token that can be used to reset a password. The secret should never be accessible via public methods."""
-		self.__setsecret('resetpassword', None)
+		self._setsecret('resetpassword', None)
 		
 
 	#################################
@@ -158,13 +155,13 @@ class User(emen2.db.dataobject.BaseDBObject):
 		msg = "Invalid password or authentication token"
 		ret = None
 		
-		if self.__checksecret('setemail', email, secret):
+		if self._checksecret('setemail', email, secret):
 			self.email = email
 			ret = self.email
-			self.__delsecret()
+			self._delsecret()
 
 		elif self.checkpassword(password):
-			self.__setsecret('setemail', email)				
+			self._setsecret('setemail', email)				
 		
 		else:
 			raise emen2.db.exceptions.SecurityError, msg
@@ -181,33 +178,33 @@ class User(emen2.db.dataobject.BaseDBObject):
 	#################################
 
 
-	def __checksecret(self, action, args, secret):
+	def _checksecret(self, action, args, secret):
 		print "Checking secret:"
 		print action, args, secret
-		print self.__secret
+		print self._secret
 		
 		if self._ctx.checkadmin():
 			return True
 			
 		# This should check expiration time...
-		if action and secret and self.__secret:
-			if action == self.__secret[0] and args == self.__secret[1] and secret == self.__secret[2]:
+		if action and secret and self._secret:
+			if action == self._secret[0] and args == self._secret[1] and secret == self._secret[2]:
 				return True
 
 		return False
 
 
-	def __setsecret(self, action, args):
-		if self.__secret:
-			if action == self.__secret[0] and args == self.__secret[1]:
+	def _setsecret(self, action, args):
+		if self._secret:
+			if action == self._secret[0] and args == self._secret[1]:
 				return
 				
 		secret = hashlib.sha1(str(self.username) + str(id(self)) + str(time.time()) + str(random.random())).hexdigest()
-		self.__secret = (action, args, secret, time.time())
+		self._secret = (action, args, secret, time.time())
 
 
-	def __delsecret(self):
-		self.__secret = None
+	def _delsecret(self):
+		self._secret = None
 
 
 
@@ -219,10 +216,10 @@ class User(emen2.db.dataobject.BaseDBObject):
 		"""Get the user profile record from the current Context"""
 		if self.record is not None:
 			self.userrec = self._ctx.db.getrecord(self.record, filt=True) or {}
-			self.displayname = self.__formatusername(lnf=lnf)
+			self.displayname = self._formatusername(lnf=lnf)
 
 
-	def __formatusername(self, lnf=False):
+	def _formatusername(self, lnf=False):
 		if not self.userrec:
 			return self.username
 
@@ -266,6 +263,8 @@ class User(emen2.db.dataobject.BaseDBObject):
 			if not i.startswith('_'):
 				del self.__dict__[i]
 
+		# grumble..
+		# ian: todo: fix this..
 		self.username = re.sub("\W", "", self.username).lower()
 
 		try:
@@ -296,6 +295,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 		#	self.validationwarning("No email specified: '%s'"%self.email, warning=warning)
 		if not self.email or self.email == 'None':
 			self.email = ''
+
 		self.email = unicode(self.email or '')
 		if self.email:
 			if not re.match("(\S+@\S+)",self.email):

@@ -55,11 +55,11 @@ class BaseDBInterface(object, DictMixin):
 
 	@classmethod
 	def register_validator(cls, validatortype):
-		cls.__validator = validatortype
+		cls._validator = validatortype
 		return validatortype
 
 	def validate_auto(self, **kwargs):
-		return self.__validator(self).validate(**kwargs)
+		return self._validator(self).validate(**kwargs)
 
 	validate = validate_auto
 

@@ -51,26 +51,32 @@ class Group(emen2.db.dataobject.BaseDBObject):
 			self.creationtime = emen2.db.database.gettime()
 
 
+	def __setstate__(self, d):
+		# Backwards compatibility..
+		d["permissions"] = d.pop("_Group__permissions", None)
+		return self.__dict__.update(d)
+
+
 	def getlevel(self, user):
 		for level in range(3, -1, -1):
-			if user in self.__permissions[level]:
+			if user in self.permissions[level]:
 				return level
 
 
 
 	def members(self):
-		return set(reduce(operator.concat, self.__permissions))
+		return set(reduce(operator.concat, self.permissions))
 
 
 	def owners(self):
-		return self.__permissions[3]
+		return self.permissions[3]
 
 
 	def adduser(self, users, level=0, reassign=1):
 
 		level=int(level)
 
-		p = [set(x) for x in self.__permissions]
+		p = [set(x) for x in self.permissions]
 		if not -1 < level < 4:
 			raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
 
@@ -101,17 +107,17 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 	def removeuser(self, users):
 
-		p = [set(x) for x in self.__permissions]
+		p = [set(x) for x in self.permissions]
 		if not hasattr(users,"__iter__"):
 			users = [users]
 		users = set(users)
 		p = [i-users for i in p]
 
 		self.setpermissions(p)
-		#self.__permissions = tuple([tuple(i) for i in p])
+		#self.permissions = tuple([tuple(i) for i in p])
 
 
-	def __partitionints(self, i):
+	def _partitionints(self, i):
 		ints = []
 		strs = []
 		for j in i:
@@ -122,7 +128,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 		return ints + strs
 
 
-	def __checkpermissionsformat(self, value):
+	def _checkpermissionsformat(self, value):
 		if value == None:
 			value = ((),(),(),())
 
@@ -136,7 +142,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 			#self.validationwarning("invalid permissions format: %s"%value)
 			raise
 
-		r = [self.__partitionints(i) for i in value]
+		r = [self._partitionints(i) for i in value]
 
 		return tuple(tuple(x) for x in r)
 
@@ -144,15 +150,15 @@ class Group(emen2.db.dataobject.BaseDBObject):
 	def setpermissions(self, value):
 		#if not self.isowner():
 		#	raise SecurityError, "Insufficient permissions to change permissions"
-		self.__permissions = self.__checkpermissionsformat(value)
+		self.permissions = self._checkpermissionsformat(value)
 
 
 	def getpermissions(self):
-		return self.__permissions
+		return self.permissions
 
 
 	def isowner(self):
-		return self._ctx.checkadmin() or self._ctx.username in self.__permissions[3]
+		return self._ctx.checkadmin() or self._ctx.username in self.permissions[3]
 
 
 

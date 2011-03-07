@@ -310,7 +310,7 @@ function query_build_path(q, postpend) {
 					</thead> \
 					<tbody class="base constraints"> \
 						<tr> \
-							<td><input type="hidden" name="param" value="root_parameter" />Keywords</td> \
+							<td><input type="hidden" name="param" value="root" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" style="display:none" /></td> \

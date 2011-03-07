@@ -34,7 +34,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","creationdb", "indexed","parents","children"])
+	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","indexed","parents","children"])
 
 
 	@property
@@ -71,9 +71,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 		# creation date
 		self.creationtime = emen2.db.database.gettime()
-
-		# dbid where paramdef originated # deprecated; use URI
-		self.creationdb = None
 
 		# source of parameter
 		self.uri = None

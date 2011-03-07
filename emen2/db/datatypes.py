@@ -11,34 +11,34 @@ g = emen2.db.config.g()
 
 class VartypeManager(object):
 
-	__vartypes = {}
-	__properties = {}
-	__macros = {}
+	_vartypes = {}
+	_properties = {}
+	_macros = {}
 	nonevalues = [None,"","N/A","n/a","None"] #set([None,"","N/A","n/a","None"])
 
 
 	@classmethod
 	def _register_vartype(cls, name, refcl):
-		if name in cls.__vartypes.keys():
+		if name in cls._vartypes.keys():
 			raise ValueError('''vartype %s already registered''' % name)
 		# g.log.msg('LOG_INIT', "REGISTERING VARTYPE (%s)"% name)
-		cls.__vartypes[name]=refcl
+		cls._vartypes[name]=refcl
 
 
 	@classmethod
 	def _register_property(cls, name, refcl):
-		if name in cls.__properties.keys():
+		if name in cls._properties.keys():
 			raise ValueError('''property %s already registered''' % name)
 		# g.log.msg('LOG_INIT', "REGISTERING PROPERTY (%s)"% name)
-		cls.__properties[name]=refcl
+		cls._properties[name]=refcl
 
 
 	@classmethod
 	def _register_macro(cls, name, refcl):
-		if name in cls.__macros.keys():
+		if name in cls._macros.keys():
 			raise ValueError('''macro %s already registered''' % name)
 		# g.log.msg('LOG_INIT', "REGISTERING MACRO (%s)"% name)
-		cls.__macros[name]=refcl
+		cls._macros[name]=refcl
 
 
 	# rolled in MacroEngine
@@ -76,15 +76,15 @@ class VartypeManager(object):
 
 	# rendering methods
 	def macro_preprocess(self, macro, params, recs, db=None):
-		return self.__macros[macro]().preprocess(self, macro, params, recs, db)
+		return self._macros[macro]().preprocess(self, macro, params, recs, db)
 
 
 	def macro_process(self, macro, params, rec, db=None):
-		return self.__macros[macro]().process(self, macro, params, rec, db)
+		return self._macros[macro]().process(self, macro, params, rec, db)
 
 
 	def macro_render(self, macro, params, rec, mode="unicode", db=None):
-		return self.__macros[macro]().render(self, macro, params, rec, mode, db)
+		return self._macros[macro]().render(self, macro, params, rec, mode, db)
 
 
 	def name_render(self, pd, mode="unicode", db=None):
@@ -99,12 +99,12 @@ class VartypeManager(object):
 		#g.log.msg('LOG_DEBUG', "param_render: %s %s mode=%s"%(pd.vartype, value, mode))
 		if pd.name in ["creator", "creationtime", "modifyuser", "modifytime", "recid", "rectype", "groups", "permissions", "history", "username"] and mode == "htmledit":
 			mode = "html"
-		return self.__vartypes[pd.vartype]().render(self, pd, value, mode, rec, db)
+		return self._vartypes[pd.vartype]().render(self, pd, value, mode, rec, db)
 
 
 	def param_render_sort(self, pd, value, mode="unicode", rec=None, db=None):
 		"""Render for native sorting, e.g. lexicographical vs. numerical"""
-		vt = self.__vartypes[pd.vartype]()
+		vt = self._vartypes[pd.vartype]()
 		if vt.getkeytype() in ["d","f"]:
 			return value
 		value = vt.render(self, pd, value, mode, rec, db=db)
@@ -114,50 +114,50 @@ class VartypeManager(object):
 
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
-		return self.__macros[macro]().macroname_render(macro, params, rec, mode, db)
+		return self._macros[macro]().macroname_render(macro, params, rec, mode, db)
 
 	# validate, etc.
 
 	def encode(self, pd, value):
-		return self.__vartypes[pd.vartype]().encode(value)
+		return self._vartypes[pd.vartype]().encode(value)
 
 	def decode(self, pd, value):
-		return self.__vartypes[pd.vartype]().decode(pd, value)
+		return self._vartypes[pd.vartype]().decode(pd, value)
 
 	def validate(self, pd, value, db=None):
 		if value in self.nonevalues:
 			return None
 
 		if pd.property:
-			value = self.__properties[pd.property]().validate(self, pd, value, db)
+			value = self._properties[pd.property]().validate(self, pd, value, db)
 
 		if value == None:
 			return None
 
-		ret = self.__vartypes[pd.vartype]().validate(self, pd, value, db)
+		ret = self._vartypes[pd.vartype]().validate(self, pd, value, db)
 		return ret
 
 
 	def getvartype(self,name):
-		return self.__vartypes[name]()
+		return self._vartypes[name]()
 
 	def getproperty(self,name):
-		return self.__properties[name]()
+		return self._properties[name]()
 
 	def getmacro(self,name):
-		return self.__macros[name]()
+		return self._macros[name]()
 
 
 	def getvartypes(self):
-		return self.__vartypes.keys()
+		return self._vartypes.keys()
 
 
 	def getproperties(self):
-		return self.__properties.keys()
+		return self._properties.keys()
 
 
 	def getmacros(self):
-		return self.__macros.keys()
+		return self._macros.keys()
 		
 		
 		

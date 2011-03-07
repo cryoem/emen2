@@ -56,13 +56,13 @@ class BTree(object):
 		# we keep a running list of all trees so we can close everything properly
 		BTree.alltrees[self] = 1
 
-		self.__setkeytype(keytype)
-		self.__setdatatype(datatype)
+		self._setkeytype(keytype)
+		self._setdatatype(datatype)
 
 		# Set a BTree sort method
 		_cfunc = None
 		if self.keytype in ("d", "f"):
-			_cfunc = self.__num_compare
+			_cfunc = self._num_compare
 
 
 		self.filename = filename
@@ -79,13 +79,13 @@ class BTree(object):
 		if cfunc and _cfunc:
 			self.bdb.set_bt_compare(_cfunc)
 
-		self.__setweakrefopen()
+		self._setweakrefopen()
 
 		# g.log.msg("LOG_DEBUG","Opening %s.bdb"%self.filename)
 		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=DBOPENFLAGS)
 
 
-	def __setkeytype(self, keytype):
+	def _setkeytype(self, keytype):
 		if not keytype:
 			keytype = "s"
 
@@ -106,7 +106,7 @@ class BTree(object):
 			self.loadkey = lambda x:x.decode("utf-8")
 
 
-	def __setdatatype(self, datatype):
+	def _setdatatype(self, datatype):
 		self.datatype = datatype
 
 		if self.datatype == "d":
@@ -118,7 +118,7 @@ class BTree(object):
 			self.loaddata = lambda x:x.decode("utf-8")
 
 
-	def __num_compare(self, k1, k2):
+	def _num_compare(self, k1, k2):
 		if not k1: k1 = 0
 		else: k1 = self.loadkey(k1)
 
@@ -129,7 +129,7 @@ class BTree(object):
 
 
 	# pickle chokes on None; tested 'if data' vs 'if data!=None', simpler is faster
-	def __loadpickle(self, data):
+	def _loadpickle(self, data):
 		if data: return pickle.loads(data)
 
 
@@ -161,7 +161,7 @@ class BTree(object):
 
 
 	# keep track of open BDB's
-	def __setweakrefopen(self):
+	def _setweakrefopen(self):
 		BTree.alltrees[self] = 1
 
 
@@ -377,14 +377,14 @@ class RelateBTree(BTree):
 	# Relate methods
 
 	def children(self, key, recurse=1, txn=None):
-		return self.__getrel(self.pcdb2, key, recurse=recurse, txn=txn)
+		return self._getrel(self.pcdb2, key, recurse=recurse, txn=txn)
 
 
 	def parents(self, key, recurse=1, txn=None):
-		return self.__getrel(self.cpdb2, key, recurse=recurse, txn=txn)
+		return self._getrel(self.cpdb2, key, recurse=recurse, txn=txn)
 
 
-	def __getrel(self, rel, key, recurse=1, txn=None):
+	def _getrel(self, rel, key, recurse=1, txn=None):
 		"""get parent/child relationships; see: getchildren"""
 
 		#g.log.msg('LOG_DEBUG','getrel: key %s, method %s, recurse %s'%(key, method, recurse))
@@ -432,7 +432,7 @@ class RelateBTree(BTree):
 		return result, visited
 
 
-	def __putrel(self, links, mode='addrefs', txn=None):
+	def _putrel(self, links, mode='addrefs', txn=None):
 		pc = collections.defaultdict(set)
 		cp = collections.defaultdict(set)
 		for link in links:
@@ -450,22 +450,22 @@ class RelateBTree(BTree):
 
 	def pclinks(self, links, txn=None):
 		"""Create parent-child relationships"""
-		self.__putrel(links, mode='addrefs', txn=txn)
+		self._putrel(links, mode='addrefs', txn=txn)
 
 
 	def pcunlinks(self, links, txn=None):
 		"""Remove parent-child relationships"""
-		self.__putrel(links, mode='removerefs', txn=txn)
+		self._putrel(links, mode='removerefs', txn=txn)
 
 
 	def pclink(self, tag1, tag2, txn=None):
 		"""Create parent-child relationship"""
-		self.__putrel([[tag1, tag2]], mode='addrefs', txn=txn)
+		self._putrel([[tag1, tag2]], mode='addrefs', txn=txn)
 
 
 	def pcunlink(self, tag1, tag2, txn=None):
 		"""Remove parent-child relationship"""
-		self.__putrel([[tag1, tag2]], mode='removerefs', txn=txn)
+		self._putrel([[tag1, tag2]], mode='removerefs', txn=txn)
 
 
 
@@ -482,9 +482,9 @@ class FieldBTree(BTree):
 		# use acceleration module if available
 		if bulk:
 			if bulkmode=='bulk':
-				self.__get_method = emen2.db.bulk.get_dup_bulk
+				self._get_method = emen2.db.bulk.get_dup_bulk
 			else:
-				self.__get_method = emen2.db.bulk.get_dup_notbulk
+				self._get_method = emen2.db.bulk.get_dup_notbulk
 
 
 
@@ -550,7 +550,7 @@ class FieldBTree(BTree):
 
 
 
-	def __get_method(self, cursor, key, dt, flags=0):
+	def _get_method(self, cursor, key, dt, flags=0):
 		n = cursor.set(key)
 		r = set() #[]
 		m = cursor.next_dup
@@ -566,11 +566,11 @@ class FieldBTree(BTree):
 		dt = self.datatype or "p"
 
 		if cursor:
-			r = self.__get_method(cursor, key, dt)
+			r = self._get_method(cursor, key, dt)
 			
 		else:
 			cursor = self.bdb.cursor(txn=txn)
-			r = self.__get_method(cursor, key, dt)
+			r = self._get_method(cursor, key, dt)
 			cursor.close()
 
 		# generator expressions will be less pain when map() goes away
@@ -602,7 +602,7 @@ class FieldBTree(BTree):
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			data = self.__get_method(cursor, pair[0], dt)
+			data = self._get_method(cursor, pair[0], dt)
 			if bulk and dt == "p":
 				data = set(map(self.loaddata, data))
 			ret.append((self.loadkey(pair[0]), data))

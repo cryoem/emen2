@@ -132,9 +132,9 @@ class Context(object):
 class AnonymousContext(Context):
 	def __init__(self, *args, **kwargs):
 		Context.__init__(self, *args, username="anonymous", requirehost=False, **kwargs)
-		self.__init_refresh()
+		self._init_refresh()
 
-	def __init_refresh(self):
+	def _init_refresh(self):
 		self.groups = set(["anon"])
 		self.grouplevels = {"anon":0}
 
@@ -149,7 +149,7 @@ class AnonymousContext(Context):
 
 		self.setdb(db=db)
 		self.time = t
-		self.__init_refresh()
+		self._init_refresh()
 
 
 
@@ -161,9 +161,9 @@ class SpecialRootContext(Context):
 		self.ctxid = None
 		self.host = None
 		self.username = u"root"
-		self.__init_refresh()
+		self._init_refresh()
 
-	def __init_refresh(self):
+	def _init_refresh(self):
 		self.groups = set(["admin"])
 		self.grouplevels = {"admin":3}
 
@@ -178,7 +178,7 @@ class SpecialRootContext(Context):
 
 		self.setdb(db=db)
 		self.time = t
-		self.__init_refresh()
+		self._init_refresh()
 
 
 

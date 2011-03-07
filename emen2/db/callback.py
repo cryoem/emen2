@@ -17,21 +17,21 @@ class Message(object):
 
 
 class MessageQueue(object):
-	g.__callbacks = collections.defaultdict(lambda: collections.defaultdict(list))
-	__callbacks = g.__callbacks
+	g._callbacks = collections.defaultdict(lambda: collections.defaultdict(list))
+	_callbacks = g._callbacks
 
 	@classmethod
 	def register(cls, message, mode):
 		def _inner(func):
-			cls.__callbacks[message][mode] = func
+			cls._callbacks[message][mode] = func
 			return func
 		return _inner
 
 	@classmethod
 	def send(cls, message, mode, *data, **kwdata):
 		result = None
-		if message in cls.__callbacks and mode in cls.__callbacks[message]:
-			result = cls.__callbacks[message][mode](Message(message, mode, *data, **kwdata))
+		if message in cls._callbacks and mode in cls._callbacks[message]:
+			result = cls._callbacks[message][mode](Message(message, mode, *data, **kwdata))
 		return result
 
 

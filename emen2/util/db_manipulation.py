@@ -25,28 +25,28 @@ g = emen2.db.config.g()
 
 #class DBTree(Context):
 #	'''emulates a tree structure on top of the Database'''
-#	root = property(lambda self: self.__root)
-#	ctxid = property(lambda self: self.__ctxid)
+#	root = property(lambda self: self._root)
+#	ctxid = property(lambda self: self._ctxid)
 #
 #	def __init__(self, db=None, root=None):
 #		if db is not None:
 #			self.db = db
-#			self.__db = db
+#			self._db = db
 #
 #			# ian: don't disable this
 #			if 'folder' in db.getrecorddefnames() and root is None:
-#				self.__root = min(db.getindexbyrecorddef('folder') or [0])
+#				self._root = min(db.getindexbyrecorddef('folder') or [0])
 #			else:
-#				self.__root = root
+#				self._root = root
 #
-#			self.__initmethods()
+#			self._initmethods()
 #
 #		else: g.log.msg('LOG_WARNING', 'db is None...')
 #
-#	def __initmethods(self):
-#		self.get_path_id = self.__db._wrapmethod(self.__get_path_id)
+#	def _initmethods(self):
+#		self.get_path_id = self._db._wrapmethod(self._get_path_id)
 #
-#	def __get_path_id(self, path, cur_dir=None):
+#	def _get_path_id(self, path, cur_dir=None):
 #		'''
 #		takes a list iterates through it and follows parent-child relationships in the db
 #		selecting children with a recname parameter equal to the current list item
@@ -60,27 +60,27 @@ g = emen2.db.config.g()
 #			result = set([cur_dir])
 #		else: # recurse if we are not at the end of the path list
 #			children = self.get_child_id(path[0], cur_dir=cur_dir)
-#			result = reduce(set.union, self.__gpi_helper_1(path[1:], children), set())
+#			result = reduce(set.union, self._gpi_helper_1(path[1:], children), set())
 #		return result
 #
 #
-#	def __gpi_helper_1(self, path, children):
+#	def _gpi_helper_1(self, path, children):
 #		for recid in children:
-#			yield self.__get_path_id(path, recid)
+#			yield self._get_path_id(path, recid)
 #
 #
 #	def get_child_id(self, name, cur_dir):
 #		'''returns children of a record with a given recname'''
-#		children = self.__db.getchildren(cur_dir)
+#		children = self._db.getchildren(cur_dir)
 #		if name == '*':
 #			[(yield child) for child in children]
 #		else:
-#			for rec in self.__dostuff(name, children):
+#			for rec in self._dostuff(name, children):
 #				yield rec
 #
 #
-#	def __dostuff(self, name, records):
-#		recnamep = self.__db.getindexbyvalue('name_folder', name)
+#	def _dostuff(self, name, records):
+#		recnamep = self._db.getindexbyvalue('name_folder', name)
 #		for rec in records:
 #			if (str(rec) == name) or (rec in recnamep):
 #				yield (rec)
@@ -88,27 +88,27 @@ g = emen2.db.config.g()
 #				yield (rec)
 #
 #
-#	def __select(self, data, **kwargs):
+#	def _select(self, data, **kwargs):
 #		for param, value in kwargs.iteritems():
-#			data &= self.__db.getindexbyvalue(param, value)
+#			data &= self._db.getindexbyvalue(param, value)
 #		# no return since sets are weakly referenced
 #
 #
-#	def __getpath(self, path=None):
+#	def _getpath(self, path=None):
 #		if path != None: path = self.get_path_id(path)
 #		else: path = [self.root]
 #		return path
 #
-#	def __to_path(self, recid, path=None):
+#	def _to_path(self, recid, path=None):
 #		path = path or []
-#		parents = self.__db.getparents(recid)
+#		parents = self._db.getparents(recid)
 #		if self.root not in parents:
-#			path.extend(self.__to_path(parents.pop(), path))
+#			path.extend(self._to_path(parents.pop(), path))
 #		path.append(self.getindex(recid))
 #		return path
 #
 #	def getindex(self, recid=None, rec=None):
-#		rec = self.__db.getrecord(recid, filt=False) if rec is None else rec
+#		rec = self._db.getrecord(recid, filt=False) if rec is None else rec
 #		index = rec.get('name_folder', str(recid))
 #		if index == None:
 #			index = self.render_view(rec.recid, 'recname')
@@ -118,17 +118,17 @@ g = emen2.db.config.g()
 #		return self.render_view(recid, 'recname').rpartition(':')[0::2]
 #
 #	def chroot(self, recid):
-#		self.__root = recid
+#		self._root = recid
 #
 #
 #
 #
 #	def get_parents(self, path=None, **kwargs):
-#		path = self.__getpath(path)
+#		path = self._getpath(path)
 #		result = set()
 #		for rec in path:
-#			result.update(self.__db.getparents(rec))
-#		self.__select(result, **kwargs)
+#			result.update(self._db.getparents(rec))
+#		self._select(result, **kwargs)
 #		return result
 #
 #	def get_children(self, path=None, **kwargs):
@@ -136,22 +136,22 @@ g = emen2.db.config.g()
 #		if path is None:
 #			result = self.db.getchildren(self.root)
 #		else:
-#			path = self.__getpath(path)
+#			path = self._getpath(path)
 #			for rec in path:
 #				new = [ elem for elem in self.get_child_id('*', rec) ]
 #				if len(result) == 0:
 #					result.update(new)
 #				else:
 #					result.intersection_update(new)
-#		if kwargs != {}: self.__select(result, **kwargs)
+#		if kwargs != {}: self._select(result, **kwargs)
 #		return result
 #
 #	def get_siblings(self, path=None, **kwargs):
 #		parents = self.get_parents(path)
 #		result = set()
 #		for parent in parents:
-#			result.update(self.__db.getchildren(parent))
-#		self.__select(result, **kwargs)
+#			result.update(self._db.getchildren(parent))
+#		self._select(result, **kwargs)
 #		return result
 #
 #	def get_sibling(self, name, **kwargs):
@@ -159,24 +159,24 @@ g = emen2.db.config.g()
 #		if name == '*':
 #			result = siblings
 #		else:
-#			result = [elem[1] for elem in self.__dostuff(name, siblings)]
-#		self.__select(result, **kwargs)
+#			result = [elem[1] for elem in self._dostuff(name, siblings)]
+#		self._select(result, **kwargs)
 #		return result
 #
 #	def to_path(self, recid):
-#		#with self.__db:
-#		return urllib2.quote('/'.join(self.__to_path(recid)))
+#		#with self._db:
+#		return urllib2.quote('/'.join(self._to_path(recid)))
 #
 #	def render_template_view(self, name, *args, **kwargs):
-#		return URLRegistry.call_view(name, db=self.__db, *args, **kwargs )
+#		return URLRegistry.call_view(name, db=self._db, *args, **kwargs )
 #
 #	def render_view(self, recid, view):
 #		return self.db.renderview(recid, viewtype=view)
 #
 #	def get_user(self):
-#		un = self.__db.checkcontext()[0]
+#		un = self._db.checkcontext()[0]
 #		if un is not None:
-#			return self.__db.getuser(un)
+#			return self._db.getuser(un)
 #		else:
 #			return None
 #
@@ -194,7 +194,7 @@ g = emen2.db.config.g()
 #
 #		return recs
 #
-#	def __unfold_dict(self, dict):
+#	def _unfold_dict(self, dict):
 #		result = []
 #		[ [ result.append((key, item)) for item in items ] for key, items in dict.iteritems()]
 #		return result

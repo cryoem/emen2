@@ -27,7 +27,7 @@ class Validator(object):
 		self._obj = obj
 
 
-	def __get_validators(self):
+	def _get_validators(self):
 		"""Return the validation functions"""
 		return [item for item in self._validators]
 
@@ -42,7 +42,7 @@ class Validator(object):
 		failures = []
 		# ian: todo: fix this so that it raises all relevant exceptions, not just the first
 		# (this appears to have been working at one point...)
-		for validator in self.__get_validators():
+		for validator in self._get_validators():
 			#try:
 			#print validator
 			validator(self)
@@ -87,26 +87,26 @@ class DefinitionValidator(Validator):
 class InputValidator(object):
 	'''Base class to validate input'''
 	def __init__(self):
-		self.__predicates = {}
+		self._predicates = {}
 
 	def add_predicate(self, name, predicate='is_alnum'):
 		'''Add a condition to the validator'''
 		if isinstance(predicate, str):
 			predicate = getattr(InputValidator, predicate)
-		self.__predicates[name] = predicate
+		self._predicates[name] = predicate
 
 	def check_field(self, name, value):
 		'''Match a specific name/value pair'''
 		result = True
-		if self.__predicates.has_key(name):
-			# print name, self.__predicates[name]
-			result = self.__predicates[name](value)
+		if self._predicates.has_key(name):
+			# print name, self._predicates[name]
+			result = self._predicates[name](value)
 		return result
 
 	def check_dictionary(self, fields):
 		'''Match a dictionary against the stored conditions'''
 		result = []
-		if not fields: result = self.__predicates.keys()
+		if not fields: result = self._predicates.keys()
 		for field in fields:
 			if not self.check_field(field, fields[field]):
 				result.append(field)

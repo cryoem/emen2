@@ -426,7 +426,7 @@ class DB(object):
 
 	def setup(self, rootpw=None, rootemail=None, resetup=False, ctx=None, txn=None):
 		"""Initialize a new DB"""
-
+		
 		if not rootpw or not rootemail:
 			import pwd
 			import platform
@@ -454,50 +454,18 @@ class DB(object):
 			f.close()
 			return ret
 
+
 		# Create a fake root context
 		ctx = self._makerootcontext(txn=txn)
+		dbp = ctx.db
+		dbp._settxn(txn)
 
 		g.log.msg("LOG_INFO","Initializing new database; root email: %s"%rootemail)
 
-		# Load skeletons -- use utils/export.py to create these JSON files
-		paramdefs = load_skeleton('paramdefs')
-		recorddefs = load_skeleton('recorddefs')
-		users = load_skeleton('users')
-		groups = load_skeleton('groups')
-
-		# We're going to have to strip off children and save for later -- put*def needs support for this..
-		pdc = {}
-		rdc = {}
-		for pd in paramdefs:
-			pdc[pd.get('name')] = pd.pop('children', set())
-			self.putparamdef(pd, ctx=ctx, txn=txn)
-
-		for rd in recorddefs:
-			rdc[rd.get('name')] = rd.pop('children', set())
-			self.putrecorddef(rd, ctx=ctx, txn=txn)
-
-		for k, v in pdc.items():
-			for v2 in v: self.pclink(k, v2, keytype='paramdef', ctx=ctx, txn=txn)
-
-		for k, v in rdc.items():
-			for v2 in v: self.pclink(k, v2, keytype='recorddef', ctx=ctx, txn=txn)
-
-		# Put the 'Root' record first, so it will have recid 0
-		rootrec = self.newrecord('folder', ctx=ctx, txn=txn)
-		rootrec["name_folder"] = "Root Record"
-		self.putrecord(rootrec, ctx=ctx, txn=txn)
-
-		for user in users:
-			if user.get('username') == 'root':
-				user['password'] = rootpw
-				user['email'] = rootemail
-			self.adduser(user, ctx=ctx, txn=txn)
-
-		for group in groups:
-			self.putgroup(group, ctx=ctx, txn=txn)
-
-		# Wait for the groups are committed -- then go back and add authenticated to recid 0
-		self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
+		import emen2.db.load
+		path = emen2.db.config.get_filename('emen2', 'skeleton')
+		loader = emen2.db.load.Loader(path=path, db=dbp)
+		loader.load(rootemail=rootemail, rootpw=rootpw)
 
 
 
@@ -717,7 +685,7 @@ class DB(object):
 		newcontext = None
 		username = unicode(username).strip()
 
-		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		username = self._userbyemail(username, ctx=ctx, txn=txn) or username
 
 		if username == "anonymous":
 			newcontext = self._makecontext(host=host, ctx=ctx, txn=txn)
@@ -1620,7 +1588,7 @@ class DB(object):
 		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
 
 
-		# New - try to base the default view on the tabular view for root_protocol
+		# New - try to base the default view on the tabular view for root
 		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
 
 		# Process into table
@@ -1628,7 +1596,7 @@ class DB(object):
 			viewdef = rds[0].views.get('tabularview', defaultviewdef)
 
 		elif len(rds) > 1 or len(rds) == 0:
-			viewdef = self.getrecorddef("root_protocol", ctx=ctx, txn=txn).views.get('tabularview', defaultviewdef)
+			viewdef = self.getrecorddef("root", ctx=ctx, txn=txn).views.get('tabularview', defaultviewdef)
 
 
 		for i in q['groups'].keys() + ['creator', 'creationtime']:
@@ -2349,14 +2317,14 @@ class DB(object):
 
 		ol, keys = listops.oltolist(keys)
 
-		__keytypemap = dict(
+		_keytypemap = dict(
 			record=self.bdbs.records,
 			paramdef=self.bdbs.paramdefs,
 			recorddef=self.bdbs.recorddefs
 			)
 
-		if keytype in __keytypemap:
-			reldb = __keytypemap[keytype]
+		if keytype in _keytypemap:
+			reldb = _keytypemap[keytype]
 		else:
 			raise ValueError, "Invalid keytype"
 
@@ -2624,6 +2592,23 @@ class DB(object):
 
 
 
+	@publicmethod("users.put", write=True, admin=True)
+	def putuser(self, users, warning=False, ctx=None, txn=None):
+		"""Admin-only method to directly modify a User. Generally used during import/clone."""
+		ol, users = listops.oltolist(users)
+		users = [emen2.db.user.User(user, ctx=ctx) for user in users]
+		for user in users:
+			user.setContext(ctx)
+			user.validate(warning=warning)
+
+		self._commit_users(users, ctx=ctx, txn=txn)
+
+		if ol: return return_first_or_none(users)
+		return users
+		
+
+
+
 	@publicmethod("users.queue.approve", write=True, admin=True)
 	def approveuser(self, usernames, secret=None, filt=False, ctx=None, txn=None):
 		"""Approve account in user queue
@@ -2869,7 +2854,7 @@ class DB(object):
 
 
 
-	def __userbyemail(self, email, ctx=None, txn=None):
+	def _userbyemail(self, email, ctx=None, txn=None):
 		byemail = self.bdbs.usersbyemail.get(email.lower(), txn=txn)
 		username = None
 		if len(byemail) == 1:
@@ -2882,7 +2867,7 @@ class DB(object):
 	def resetpassword(self, username, newpassword=None, secret=None, ctx=None, txn=None):
 
 		errmsg = "Could not reset password"
-		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		username = self._userbyemail(username, ctx=ctx, txn=txn) or username
 
 		try:
 			user = self.bdbs.users.sget(username, txn=txn)
@@ -2896,7 +2881,7 @@ class DB(object):
 		try:
 			# Absolutely never reveal the secret via any mechanism but email to registered address
 			user.resetpassword()
-			ctxt = {'secret': user._User__secret[2]}
+			ctxt = {'secret': user._secret[2]}
 			self.sendmail(user.email, '/email/password.reset', ctxt, ctx=ctx, txn=txn)
 
 		except Exception, e:
@@ -2918,7 +2903,7 @@ class DB(object):
 		@keyparam username Username to modify (Admin only)
 		"""
 
-		username = self.__userbyemail(username, ctx=ctx, txn=txn) or username
+		username = self._userbyemail(username, ctx=ctx, txn=txn) or username
 		msg = "Could not change password"
 
 		# ian: need to read directly because getuser hides password
@@ -2934,8 +2919,8 @@ class DB(object):
 		g.log.msg("LOG_SECURITY","Changing password for %s"%user.username)
 
 		self._commit_users([user], ctx=ctx, txn=txn)
-
-		self.sendmail(user.email, '/email/password.changed')
+		
+		self.sendmail(user.email, '/email/password.changed', ctx=ctx, txn=txn)
 
 		return username
 
@@ -2975,7 +2960,7 @@ class DB(object):
 		if ret:
 			self.sendmail(email, '/email/email.verified', ctxt, ctx=ctx, txn=txn)
 		else:
-			ctxt['secret'] = user._User__secret[2]
+			ctxt['secret'] = user._secret[2]
 			self.sendmail(email, '/email/email.verify', ctxt, ctx=ctx, txn=txn)
 
 		g.log.msg("LOG_INFO","Changing email for %s"%user.username)
@@ -3031,7 +3016,6 @@ class DB(object):
 		"""(Internal) Updates user. Takes validated User."""
 
 		for user in users:
-
 			ouser = self.bdbs.users.get(user.username, txn=txn)
 
 			g.log.msg("LOG_COMMIT","self.bdbs.users.set: %s"%user.username)
@@ -3042,14 +3026,13 @@ class DB(object):
 			except:
 				oldemail = ''
 
-			# root's email is not indexed
-			#	-- the email for root will often also be used for a user acct
+			# root's email is not indexed because
+			#	 the email for root will often also be used for a user acct
 			if oldemail != user.email and user.username != "root":
 				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
 				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.removerefs: %s -> %s"%(oldemail.lower(), user.username))
 				self.bdbs.usersbyemail.removerefs(oldemail.lower(), [user.username], txn=txn)
-
 
 
 
@@ -3127,7 +3110,8 @@ class DB(object):
 			if getgroups:
 				user.groups = self.bdbs.groupsbyuser.get(user.username, set(), txn=txn)
 
-			user.getuserrec(lnf=lnf)
+			if getrecord:
+				user.getuserrec(lnf=lnf)
 			# ian: todo: complicated -- users need to get their own hash pw's to change their emails..
 			# user.password = None
 			ret.append(user)
@@ -3539,7 +3523,7 @@ class DB(object):
 
 
 	@publicmethod("paramdefs.put", write=True)
-	def putparamdef(self, paramdef, parents=None, children=None, ctx=None, txn=None):
+	def putparamdef(self, paramdef, parents=None, children=None, warning=False, ctx=None, txn=None):
 		"""Add or update a ParamDef. Updates are limited to descriptions. Only administrators may change existing paramdefs in any way that changes their meaning, and even this is strongly discouraged.
 
 		@param paramdef A paramdef instance
@@ -3704,7 +3688,7 @@ class DB(object):
 
 
 	@publicmethod("recorddefs.put", write=True)
-	def putrecorddef(self, recdef, parents=None, children=None, ctx=None, txn=None):
+	def putrecorddef(self, recdef, parents=None, children=None, warning=False, ctx=None, txn=None):
 		"""Add or update RecordDef. The mainview should
 		never be changed once used, since this will change the meaning of
 		data already in the database, but sometimes changes of appearance
@@ -4153,7 +4137,7 @@ class DB(object):
 
 
 	@publicmethod("records.put", write=True)
-	def putrecord(self, updrecs, warning=0, commit=True, ctx=None, txn=None):
+	def putrecord(self, updrecs, warning=0, commit=True, clone=False, ctx=None, txn=None):
 		"""Commit records
 		@param recs Record or iterable Records
 		@keyparam warning Bypass validation (Admin only)
@@ -4164,8 +4148,8 @@ class DB(object):
 
 		ol, updrecs = listops.oltolist(updrecs)
 
-		if warning and not ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation"
+		if (warning or clone) and not ctx.checkadmin():
+			raise emen2.db.exceptions.SecurityError, "Only administrators may bypass validation or clone/import records"
 
 		# Assign all changes the same time
 		t = self.gettime(ctx=ctx, txn=txn)
@@ -4199,12 +4183,10 @@ class DB(object):
 			recid = updrec.recid
 			cp = set()
 
-			if updrec.get("parents"):
+			if updrec.parents:
 				updrels.extend([(i, updrec.recid) for i in updrec.get("parents", [])])
-				del updrec["parents"]
-			if updrec.get("children"):
+			if updrec.children:
 				updrels.extend([(updrec.recid, i) for i in updrec.get("children", [])])
-				del updrec["children"]
 
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
@@ -4216,6 +4198,7 @@ class DB(object):
 					orec.setContext(ctx)
 				except:
 					raise KeyError, "Cannot update non-existent record %s"%recid
+
 
 			# Set Context and validate; warning=True ignores validation errors (Admin only)
 			updrec.setContext(ctx)
@@ -4234,27 +4217,40 @@ class DB(object):
 			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
 			if "comments" in cpc:
 				for i in updrec["comments"]:
-					if i not in orec._Record__comments:
+					if i not in orec.comments:
 						orec.addcomment(i[2])
 				cpc.remove("comments")
 
-			# Update params.
+			# Update params and log changes..
 			for param in cpc:
+				if orec.recid >= 0:
+					orec._addhistory(param)
 				orec[param] = updrec.get(param)
 
 			# Update to anything but groups/permissions triggers modify time
 			if cpc - set(["permissions","groups"]):
-				orec._Record__params["modifytime"] = t
-				orec._Record__params["modifyuser"] = ctx.username
+				orec._params["modifytime"] = t
+				orec._params["modifyuser"] = ctx.username
 				cp.add("modifytime")
 				cp.add("modifyuser")
+
+			# If a record is being cloned, it forces history/comments/create/modify
+			if clone:
+				orec.__dict__["comments"] = updrec.comments
+				orec.__dict__["history"] = updrec.history
+				orec.__dict__["creator"] = updrec.creator
+				orec.__dict__["creationtime"] = updrec.creationtime
+				orec.__dict__["modifyuser"] = updrec.modifyuser
+				orec.__dict__["modifytime"] = updrec.modifytime
+				
 
 			cps[orec.recid] = cp
 			crecs.append(orec)
 
 
 		ret = self._commit_records(crecs, cps=cps, updrels=updrels, commit=commit, ctx=ctx, txn=txn)
-		if ol: return return_first_or_none(ret)
+		if ol:
+			return return_first_or_none(ret)
 		return ret
 
 

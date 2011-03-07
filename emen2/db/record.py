@@ -61,15 +61,15 @@ def make_cache():
 
 class Record(emen2.db.dataobject.BaseDBInterface):
 	attr_user = set([])
-	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups", "children", "parents"])
+	param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "modifyuser", "modifytime", "permissions", "history", "groups", "children", "parents"])
 	cleared_fields = set(["viewcache"])
 	name = property(lambda s:s.recid)
 
 
 	def __init__(self, *args, **kwargs):
 		# these need to be defined for setContext to work..
-		self.__permissions = ((),(),(),())
-		self.__groups = set()
+		self.permissions = ((),(),(),())
+		self.groups = set()
 		super(Record, self).__init__(*args, **kwargs)
 		
 		
@@ -97,37 +97,38 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
-		self.__ptest = [True,True,True,True]
+		self._ptest = [True,True,True,True]
 
 		self.recid = _k.pop('recid', None)
 		self.rectype = _k.pop('rectype', None)
 
-		self.__creator = _k.pop('creator', None)
-		self.__creationtime = _k.pop('creationtime', None)
+		self.creator = _k.pop('creator', None)
+		self.creationtime = _k.pop('creationtime', None)
+		self.modifyuser = _k.pop('modifyuser', None)
+		self.modifytime = _k.pop('modifytime', None)
 
-		self.__comments = _k.pop('comments',[])
-		self.__history = _k.pop('history',[])
+		self.comments = _k.pop('comments',[])
+		self.history = _k.pop('history',[])
 
-		self.__params = {}
+		self._params = {}
 
-		self.__permissions = _k.pop("permissions", ((),(),(),()))
-		self.__groups = set(_k.pop('groups',[]))		
+		self.permissions = _k.pop("permissions", ((),(),(),()))
+		self.groups = set(_k.pop('groups',[]))		
 
 		# moving to new style..
 		self.parents = set(_k.pop('parents',[]))		
-		self.children = set(_k.pop('children',[]))		
+		self.children = set(_k.pop('children',[]))
+
+		self.uri = set(_k.pop('uri',[]))
 
 		for key in set(_k.keys()) - self.param_special:
 			self[key] = _k[key]
 
 		if self._ctx and self.recid < 0:
-			self.__creator = unicode(self._ctx.username)
-			self.__creationtime = emen2.db.database.gettime()
+			self.creator = unicode(self._ctx.username)
+			self.creationtime = emen2.db.database.gettime()
 			if self._ctx.username != "root":
 				self.adduser(self._ctx.username, 3)
-
-
-
 
 
 
@@ -139,22 +140,55 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def __getstate__(self):
 		"""the context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		odict['_Record__ptest'] = None
-		odict['_Record__ctx'] = None
+		odict['_ptest'] = None
 		odict['_ctx'] = None
 		# filter out values that are None
-		odict["_Record__params"] = dict(filter(lambda x:x[1]!=None, odict["_Record__params"].items()))
+		# odict["_params"] = dict(filter(lambda x:x[1]!=None, odict["_params"].items()))
 
 		return odict
 
 
-	# def __setstate__(self, dict):
-	# 	"""restore unpickled values to defaults after unpickling"""
-	# 	self.__dict__.update(dict)
-	# 	self.__ptest = [False, False, False, False]
-	# 	# ian: todo: temp patch, remove...
-	# 	try: self.__history
-	# 	except: self.__history = []
+	def __setstate__(self, d):
+		# Backwards compatibility..
+		if not d.has_key('_params'):			
+			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
+			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
+			d["uri"] = d["_Record__params"].pop("uri", None)
+
+			d["_params"] = d["_Record__params"]
+			d["history"] = d["_Record__history"]
+			d["comments"] = d["_Record__comments"]
+			d["permissions"] = d["_Record__permissions"]
+			d["groups"] = d["_Record__groups"]
+
+			d["creator"] = d["_Record__creator"]
+			d["creationtime"] = d["_Record__creationtime"]
+			d["parents"] = set()
+			d["children"] = set()
+
+			for i in ["_Record__ptest", 
+				"_Record__ptest", 
+				"_Record__params", 
+				"_Record__history", 
+				"_Record__comments", 
+				"_Record__permissions", 
+				"_Record__groups", 
+				"_Record__creator", 
+				"_Record__creationtime"]:
+				try:
+					del d[i]
+				except:
+					pass		
+
+		return self.__dict__.update(d)
+		
+		
+
+		# self.__dict__.update(dict)
+		# self._ptest = [False, False, False, False]
+		# # ian: todo: temp patch, remove...
+		# try: self._history
+		# except: self._history = []
 
 
 
@@ -188,7 +222,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	def json_equivalent(self):
 		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information. For use with JSON"""
 		ret={}
-		ret.update(self.__params)
+		ret.update(self._params)
 		for i in self.param_special:
 			try: ret[i]=self[i]
 			except: pass
@@ -207,32 +241,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		treated identically"""
 
 		key = unicode(key)
+		if key in self.param_special:
+			return getattr(self, key, None)
+		else:		
+			return self._params.get(key)
 
-		result = self.__params.get(key)
-		if   key == "comments":
-			result = self.__comments
-		elif key == "recid":
-			result = self.recid
-		elif key == "rectype":
-			result = self.rectype
-		elif key == "creator":
-			result = self.__creator
-		elif key == "creationtime":
-			result = self.__creationtime
-		elif key == "permissions":
-			result = self.__permissions
-		elif key == "groups":
-			result = self.__groups
-		elif key == "history":
-			result = self.__history
-		elif key == "parents":
-			try: result = self.parents
-			except: result = set()
-		elif key == "children":
-			try: result = self.children
-			except: result = set()
-			
-		return result
 
 
 	def __setitem__(self, key, value):
@@ -241,19 +254,15 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		key = unicode(key)
 
+		if key == "comments":
+			return self.addcomment(value)
+
+		if not self.writable():
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
+
 		# special params have get/set handlers
 		if key not in self.param_special:
-			if not self.writable():
-				raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
-
-			# Log changes
-			if self.recid >= 0 and self._ctx:
-				self._addhistory(key)
-
-			self.__params[key] = value
-
-		elif key == 'comments':
-			self.addcomment(value)
+			self._params[key] = value
 
 		elif key == 'permissions':
 			self.setpermissions(value)
@@ -262,10 +271,10 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			self.setgroups(value)
 			
 		elif key == 'parents':
-			self.parents = parents
+			self.parents = value
 		
 		elif key == 'children':
-			self.children = children
+			self.children = value
 
 		else:
 			self.validationwarning("Cannot set item %s in this way"%key, warning=True)
@@ -276,15 +285,15 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		key = unicode(key)
 
 		if key not in self.param_special:
-			self.__params[key] = None
+			self.params[key] = None
 		else:
 			raise KeyError,"Cannot delete key %s"%key
 
 
 	def keys(self):
 		"""All retrievable keys for this record"""
-		#return tuple(self.__params.keys())+tuple(self.param_special)
-		return self.__params.keys() + list(self.param_special)
+		#return tuple(self._params.keys())+tuple(self.param_special)
+		return self._params.keys() + list(self.param_special)
 
 
 	def has_key(self,key):
@@ -317,7 +326,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		level=int(level)
 
-		p = [set(x) for x in self.__permissions]
+		p = [set(x) for x in self.permissions]
 		#if not -1 < level < 4:
 		#	raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
 
@@ -339,7 +348,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not umask:
 			return
 
-		p = [set(x) for x in self.__permissions]
+		p = [set(x) for x in self.permissions]
 		umask = [set(x) for x in umask]
 		users = reduce(set.union, umask)
 
@@ -355,7 +364,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 	def removeuser(self, users):
-		p = [set(x) for x in self.__permissions]
+		p = [set(x) for x in self.permissions]
 		if not hasattr(users,"__iter__"):
 			users = [users]
 		users = set(users)
@@ -364,7 +373,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		self.setpermissions(p)
 
 
-	def __checkpermissionsformat(self, value):
+	def _checkpermissionsformat(self, value):
 		if value == None:
 			value = ((),(),(),())
 
@@ -384,25 +393,25 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not self.isowner():
 			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
 
-		self.__permissions = self.__checkpermissionsformat(value)
+		self.permissions = self._checkpermissionsformat(value)
 
 
 	def setgroups(self, groups):
 		if not self.isowner():
 			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
-		self.__groups = set(groups)
+		self.groups = set(groups)
 
 
 	def addgroup(self, groups):
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
-		self.__groups |= set(groups)
+		self.groups |= set(groups)
 
 
 	def removegroup(self, groups):
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
-		self.__groups -= set(groups)
+		self.groups -= set(groups)
 
 
 	def addcomment(self, value):
@@ -431,20 +440,20 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		value = unicode(value)
 
-		self.__comments.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), value))
+		self.comments.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), value))
 		# store the comment string itself
 
 
 	def _addhistory(self, param):
 		if not param:
 			raise Exception, "Unable to add item to history log"
-		self.__history.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), param, self.__params.get(param)))
+		self.history.append((unicode(self._ctx.username), unicode(emen2.db.database.gettime()), param, self._params.get(param)))
 
 
 
 	def getparamkeys(self):
 		"""Returns parameter keys without special values like owner, creator, etc."""
-		return self.__params.keys()
+		return self._params.keys()
 
 
 
@@ -461,19 +470,19 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 		# test for owner access in this context.
 		if self._ctx.checkreadadmin():
-			self.__ptest = [True, True, True, True]
+			self._ptest = [True, True, True, True]
 			return True
 
 
-		self.__ptest = [self._ctx.username in level for level in self.__permissions]
+		self._ptest = [self._ctx.username in level for level in self.permissions]
 
-		for group in self.__groups & self._ctx.groups:
-			self.__ptest[self._ctx.grouplevels[group]] = True
+		for group in self.groups & self._ctx.groups:
+			self._ptest[self._ctx.grouplevels[group]] = True
 
-		if not filt and not any(self.__ptest):
+		if not filt and not any(self._ptest):
 			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self['recid']
 
-		return self.__ptest[0]
+		return self._ptest[0]
 
 
 	def commit(self):
@@ -486,28 +495,28 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 	def isowner(self):
-		return self.__ptest[3]
+		return self._ptest[3]
 
 
 	def writable(self):
 		"""Returns whether this record can be written using the given context"""
-		return any(self.__ptest[2:])
+		return any(self._ptest[2:])
 
 
 	def commentable(self):
 		"""Does user have level 1 permissions? Required to comment or link."""
-		return any(self.__ptest[1:])
+		return any(self._ptest[1:])
 
 	
 	def ptest(self):
-		return self.__ptest
+		return self._ptest
 
 
 	def revision(self, revision=None):
 		"""This will return information about the record's revision history"""
 
-		history = copy.copy(self.__history)
-		comments = copy.copy(self.__comments)
+		history = copy.copy(self.history)
+		comments = copy.copy(self.comments)
 		comments.append((self.get('creator'), self.get('creationtime'), 'Created'))
 		paramcopy = {}
 
@@ -558,11 +567,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			setattr(self, field, None)
 
 		if not self._ctx:
-			self.validationwarning("No context; cannot validate", warning=True)
+			self.validationwarning("No context; cannot validate")
 			return
 
 		elif not self._ctx.db:
-			self.validationwarning("No context; cannot validate", warning=True)
+			self.validationwarning("No context; cannot validate")
 			return
 
 		#self.validate_auto()
@@ -635,11 +644,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		dates=[]
 		newcomments=[]
 
-		if isinstance(self.__comments, basestring):
-			self.__comments = [(unicode(self._ctx.username), unicode(emen2.db.database.gettime()), self.__comments)]
+		if isinstance(self.comments, basestring):
+			self.comments = [(unicode(self._ctx.username), unicode(emen2.db.database.gettime()), self.comments)]
 
 		# ian: filter comments for empties..
-		for i in filter(None, self.__comments or []):
+		for i in filter(None, self.comments or []):
 			try:
 				users.append(i[0])
 				dates.append(i[1])
@@ -659,7 +668,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		#for i in dates:
 		#	pass
 
-		self.__comments = newcomments
+		self.comments = newcomments
 
 
 	def validate_history(self, orec=None, warning=False, cache=None):
@@ -668,43 +677,43 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		# orec = orec or make_orec()
 		# cache = cache or make_cache()
 		# ian: skipping; see comments for validate_comments
-		# users=set([i[0] for i in self.__history])
-		# dates=set([i[1] for i in self.__history])
+		# users=set([i[0] for i in self._history])
+		# dates=set([i[1] for i in self._history])
 		# if users:
 		# 	if users - set(self._ctx.db.getusernames()):
 		# 		self.validationwarning("invalid users in history: %s"%(set(users) - usernames), warning=warning)
 
 
 	def validate_creator(self, orec=None, warning=False, cache=None):
-		self.__creator = unicode(self.__creator)
+		self.creator = unicode(self.creator)
 		return
 
 		# orec = orec or make_orec()
 		# cache = cache or make_cache()
 		# ian: skipping; see comments for validate_comments
-		# if self.__creator != orec.get("creator"):
+		# if self.creator != orec.get("creator"):
 		# 	self.validationwarning("cannot change creator", warning=warning)
 		# try:
-		# 	self._ctx.db.getuser(self.__creator, filt=0)
+		# 	self._ctx.db.getuser(self.creator, filt=0)
 		# except:
-		# 	self.validationwarning("invalid creator: %s"%(self.__creator))
+		# 	self.validationwarning("invalid creator: %s"%(self.creator))
 
 
 	def validate_creationtime(self, orec=None, warning=False, cache=None):
 		# validate creation time format
-		self.__creationtime = unicode(self.__creationtime)
+		self.creationtime = unicode(self.creationtime)
 		
 		# orec = orec or make_orec()
 		# cache = cache or make_cache()		
-		#if self.__creationtime != orec.get("creationtime"):
+		#if self.creationtime != orec.get("creationtime"):
 		#	self.validationwarning("cannot change creationtime", warning=warning)
 
 
 	def validate_permissions(self, orec=None, warning=False, cache=None):
 		try:
-			self.__permissions = self.__checkpermissionsformat(self.__permissions)
+			self.permissions = self._checkpermissionsformat(self.permissions)
 		except Exception, inst:
-			self.validationwarning("Invalid permissions: %s"%self.__permissions, warning=warning)
+			self.validationwarning("Invalid permissions: %s"%self.permissions, warning=warning)
 
 
 	def validate_permissions_users(self, orec=None, warning=False, cache=None):
@@ -716,9 +725,11 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			usernames = self._ctx.db.getusernames()
 			cache['usernames'] = usernames
 		
-		u = set(reduce(operator.concat, self.__permissions))
+		u = set(reduce(operator.concat, self.permissions))
 		if u - usernames:
-			self.validationwarning("Undefined users in permissions: %s"%",".join(map(unicode, u-usernames)))
+			print "warning??"
+			print warning
+			self.validationwarning("Undefined users in permissions: %s"%",".join(map(unicode, u-usernames)), warning=warning)
 
 
 	def validate_params(self, orec=None, warning=False, params=None, cache=None):
@@ -726,9 +737,9 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		cache = cache or make_cache()
 
 		# restrict by params if given
-		p2 = self.__params.keys()
+		p2 = self._params.keys()
 		if params:
-			p2 = set(self.__params.keys()) & set(params)
+			p2 = set(self._params.keys()) & set(params)
 
 		if not p2:
 			return
@@ -744,14 +755,14 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				cache['paramdefs'][param] = pd
 
 			try:
-				value = self.__params.get(param)
+				value = self._params.get(param)
 				v = vtm.validate(pd, value, db=self._ctx.db)
 				if v != value and v != None:
 					self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
 				newpd[pd.name] = v
 
 			except Exception, inst: #(ValueError,KeyError,IndexError)
-				self.addcomment("Validation error: param %s, value '%s' %s"%(param, self.__params.get(param),type(self.__params.get(param))))
+				self.addcomment("Validation error: param %s, value '%s' %s"%(param, self._params.get(param),type(self._params.get(param))))
 				exceptions.append("Parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
 				
 
@@ -771,7 +782,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 			if newpd.get(param) == None:
 				self.validationwarning("%s is a required parameter"%(param), warning=warning)
 
-		self.__params = newpd
+		self._params = newpd
 
 
 

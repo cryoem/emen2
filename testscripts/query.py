@@ -10,51 +10,51 @@ g = emen2.db.config.g()
 class DBQuery(object):
 	def __init__(self, db):
 		self.db = db
-		self.__data = None
-		self.__ops = []
-		self.__dirty = False
+		self._data = None
+		self._ops = []
+		self._dirty = False
 
 	def __lshift__(self, other):
 		if hasattr(other, '__iter__'):
-			self.__ops.append(iter(other))
+			self._ops.append(iter(other))
 		else:
-			self.__ops.append(other.act)
-		self.__dirty = True
+			self._ops.append(other.act)
+		self._dirty = True
 		return self
 
 	def __repr__(self):
-		return "DBQuery(%s, cache_dirty=%s)" % (self.__data, self.__dirty)
+		return "DBQuery(%s, cache_dirty=%s)" % (self._data, self._dirty)
 
 	def get_result(self):
-		if self.__dirty or self.__data == None:
-			data = self.__data or set()
-			for op in self.__ops:
+		if self._dirty or self._data == None:
+			data = self._data or set()
+			for op in self._ops:
 				if hasattr(op, '__iter__'):
 					data = chain(data, op)
 				else:
 					data = op(data, self.db)
-			self.__ops = []
-			self.__data = data
-			self.__dirty = False
-		return list(self.__data)
+			self._ops = []
+			self._data = data
+			self._dirty = False
+		return list(self._data)
 	result = property(get_result)
 
 	def reset(self):
-		self.__ops = []
-		self.__data = None
-		self.__dirty = False
+		self._ops = []
+		self._data = None
+		self._dirty = False
 
 class BoolOp(object):
 	def __init__(self, op, *args):
-		self.__ops = args
-		self.__op = op
+		self._ops = args
+		self._op = op
 	def act(self, data, db):
 		results = set()
 		q = DBQuery(db)
-		for item in self.__ops:
+		for item in self._ops:
 			for pred in item:
 				q << pred
-			results = self.__op(results, set(q.result))
+			results = self._op(results, set(q.result))
 			q.reset()
 		for item in results:
 			yield item
@@ -189,10 +189,10 @@ class Map(object):
 
 class Select(object):
 	def __init__(self, **kwargs):
-		self.__args = kwargs
+		self._args = kwargs
 	def act(self, data, db):
 		data = set(data or [])
-		for paramdef, value in self.__args.items():
+		for paramdef, value in self._args.items():
 			data = FilterByValue(paramdef, value).act(data, db)
 		for x in data:
 			yield x
@@ -204,11 +204,11 @@ class EditRecord(object):
 
 		@param changes: A dictionary of paramdef:value pairs
 		'''
-		self.__changes = changes
+		self._changes = changes
 	def act(self, data, db):
 		'''data should be a sequence of records'''
 		for rec in data:
-			rec.update(self.__changes)
+			rec.update(self._changes)
 			yield rec
 
 class Commit(object):
@@ -219,14 +219,14 @@ class Commit(object):
 
 class Unlink(object):
 	def __init__(self, parent):
-		self.__pid = parent
+		self._pid = parent
 	def act(self, data, db):
 		for rec in data:
 			if hasattr(rec, 'recid'):
 				id = rec.recid
 			else:
 				id = int(rec)
-			db.pcunlink(self.__pid, id)
+			db.pcunlink(self._pid, id)
 			yield rec
 
 class TryGet(object):
