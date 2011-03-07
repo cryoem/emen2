@@ -439,11 +439,17 @@ class DB(object):
 
 			print "\n=== New Database Setup ==="
 			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-			rootpw = rootpw or getpass.getpass("Admin (root) password: ")
+			rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
 
 			while len(rootpw) < 6:
-				print "Password must be at least 6-characters long"
-				rootpw = getpass.getpass("Admin (root) password: ")
+				if len(rootpw) == 0:
+					print "Warning! No root password!"
+					rootpw = ''
+					break
+				elif len(rootpw) < 6:
+					print "Warning! If you set a password, it needs to be more than 6 characters."
+					rootpw = getpass.getpass("Admin (root) password (default: none): ")
+
 
 
 		# Private method to load config
@@ -3029,9 +3035,9 @@ class DB(object):
 			# root's email is not indexed because
 			#	 the email for root will often also be used for a user acct
 			if oldemail != user.email and user.username != "root":
-				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
+				#g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
 				self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
-				g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.removerefs: %s -> %s"%(oldemail.lower(), user.username))
+				#g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.removerefs: %s -> %s"%(oldemail.lower(), user.username))
 				self.bdbs.usersbyemail.removerefs(oldemail.lower(), [user.username], txn=txn)
 
 
@@ -3185,7 +3191,7 @@ class DB(object):
 		for user,groups in addrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.addrefs: %s -> %s"%(user, groups))
+					#g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.addrefs: %s -> %s"%(user, groups))
 					self.bdbs.groupsbyuser.addrefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -3195,7 +3201,7 @@ class DB(object):
 		for user,groups in delrefs.items():
 			try:
 				if groups:
-					g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.removerefs: %s -> %s"%(user, groups))
+					#g.log.msg("LOG_INDEX","self.bdbs.groupsbyuser.removerefs: %s -> %s"%(user, groups))
 					self.bdbs.groupsbyuser.removerefs(user, groups, txn=txn)
 
 			except Exception, inst:
@@ -3237,7 +3243,7 @@ class DB(object):
 		self.bdbs.usersbyemail.truncate(txn=txn)
 
 		for user in users:
-			g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
+			#g.log.msg("LOG_INDEX","self.bdbs.usersbyemail.addrefs: %s -> %s"%(user.email.lower(), user.username))
 			self.bdbs.usersbyemail.addrefs(user.email.lower(), [user.username], txn=txn)
 
 
@@ -3278,9 +3284,9 @@ class DB(object):
 
 
 
-	# ian: checked to here.
-	@publicmethod("groups.put", write=True)
-	def putgroup(self, groups, ctx=None, txn=None):
+	# ian: fix non-admin group editing
+	@publicmethod("groups.put", write=True, admin=True)
+	def putgroup(self, groups, warning=False, ctx=None, txn=None):
 		"""Commit changes to a group or groups.
 
 		@param groups A single or iterable Group
@@ -3290,24 +3296,37 @@ class DB(object):
 
 		ol, groups = listops.oltolist(groups)
 		admin = ctx.checkcreate()
-
+		if not admin:
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create or edit a group"
+			
 		groups2 = []
 
 		groups2.extend(x for x in groups if isinstance(x, emen2.db.group.Group))
 		groups2.extend(emen2.db.group.Group(x, ctx=ctx) for x in groups if isinstance(x, dict))
 
+		commitgroups = []
+
 		for group in groups2:
-			group.setContext(ctx)
-			group.validate(txn=txn)
-			try: og = self.getgroup(group.name, ctx=ctx, txn=txn, filt=False)
+			try:
+				og = self.getgroup(group.name, ctx=ctx, txn=txn, filt=False)
 			except KeyError:
 				if not admin:
-					raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create a group"
+					raise emen2.db.exceptions.SecurityError, "Insufficient permissions to create or edit a group"
+				else:
+					og = group
+
+			og.setContext(ctx)
+			og.validate(txn=txn)			
+			og.setpermissions(group.permissions)
+			og.displayname = group.displayname		
+					
+			commitgroups.append(og)
 
 
-		self._commit_groups(groups2, ctx=ctx, txn=txn)
 
-		if ol: return return_first_or_none(groups2)
+		self._commit_groups(commitgroups, ctx=ctx, txn=txn)
+
+		if ol: return return_first_or_none(commitgroups)
 		return groups2
 
 
@@ -4385,7 +4404,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
+					#g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
 					delindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].removerefs %s failed: %s"%(param, oldval, inst))
@@ -4396,7 +4415,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
+					#g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
 					addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].addrefs %s failed: %s"%(param, newval, inst))
@@ -4405,10 +4424,10 @@ class DB(object):
 
 		# Update index-index, a necessary evil..
 		if delindexkeys:
-			g.log.msg("LOG_INDEX","self.bdbs.indexkeys.removerefs: %s -> %s"%(param, delindexkeys))
+			#g.log.msg("LOG_INDEX","self.bdbs.indexkeys.removerefs: %s -> %s"%(param, delindexkeys))
 			self.bdbs.indexkeys.removerefs(param, delindexkeys, txn=txn)
 		if addindexkeys:
-			g.log.msg("LOG_INDEX","self.bdbs.indexkeys.addrefs: %s -> %s"%(param, addindexkeys))
+			#g.log.msg("LOG_INDEX","self.bdbs.indexkeys.addrefs: %s -> %s"%(param, addindexkeys))
 			self.bdbs.indexkeys.addrefs(param, addindexkeys, txn=txn)
 
 

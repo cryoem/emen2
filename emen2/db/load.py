@@ -1,9 +1,11 @@
 import os
+import sys
 import time
 import tarfile
 import tempfile
 import string
 import random
+import collections
 
 import emen2.util.jsonutil
 import emen2.util.listops
@@ -20,19 +22,28 @@ class Loader(object):
 		self.db = db
 	
 	
-	def load(self, rootemail=None, rootpw=None, warning=True):
+	def load(self, rootemail=None, rootpw=None, overwrite=False, warning=True):
 
 		# Changed recids
 		userrelmap = {}
 		recidmap = {}
 
 		# We're going to have to strip off children and save for later -- put* needs support for this..
-		childmap = {}
-		pdc = {}
-		rdc = {}
+		childmap = collections.defaultdict(set)
+		pdc = collections.defaultdict(set)
+		rdc = collections.defaultdict(set)
+		
+		# Current items...
+		existing_usernames = self.db.getusernames()
+		existing_groupnames = self.db.getgroupnames()
+		existing_paramdefs = self.db.getparamdefnames()
+		existing_recorddefs = self.db.getrecorddefnames()
 
-
+		# USERS
 		for user in self.loadfile("users.json"):
+			if user.get('username') in existing_usernames and not overwrite:
+				continue
+				
 			origname = user.get("username")
 
 			userrelmap[user.get('username')] = user.get('record')
@@ -40,11 +51,11 @@ class Loader(object):
 				del user["record"]
 
 			if user.get("username") == "root":
-				if rootemail: user['email'] = rootemail
-				if rootpw: user['password'] = rootpw
+				if rootemail != None: user['email'] = rootemail
+				if rootpw != None: user['password'] = rootpw
 
 			# hmm..
-			if user.get("password") == None:
+			if user.get('username') != 'root' and user.get("password") == None:
 				print "User %s has no password! Generating random pass.."%user.get('username')
 				user["password"] = random_password(8)
 
@@ -53,27 +64,44 @@ class Loader(object):
 			# 	print "USERNAME CHANGED!", origname, u.username
 
 
+		# GROUPS
+		for group in self.loadfile("groups.json"):
+			if group.get('name') in existing_groupnames and not overwrite:
+				continue
+
+			self.db.putgroup(group, warning=warning)
+
+
+		# PARAMDEFS
 		for pd in self.loadfile("paramdefs.json"):
-			pdc[pd.get('name')] = pd.pop('children', set())
-			pd.pop('parents', set())			
+			if pd.get('name') in existing_paramdefs and not overwrite:
+				continue
+
+			pdc[pd.get('name')] |= set(pd.pop('children', []))
+			pd.pop('parents', set())
 			self.db.putparamdef(pd, warning=warning)
-
-
-		for rd in self.loadfile("recorddefs.json"):
-			rdc[rd.get('name')] = rd.pop('children', set())
-			rd.pop('parents', set())			
-			self.db.putrecorddef(rd, warning=warning)
-
 
 		# Put the saved relationships back in..
 		for k, v in pdc.items():
 			for v2 in v: self.db.pclink(k, v2, keytype='paramdef')
+
+
+
+		# RECORDDEFS
+		for rd in self.loadfile("recorddefs.json"):
+			if rd.get('name') in existing_recorddefs and not overwrite:
+				continue
+
+			rdc[rd.get('name')] |= set(rd.pop('children', []))
+			rd.pop('parents', set())			
+			self.db.putrecorddef(rd, warning=warning)
 		
 		for k, v in rdc.items():
 			for v2 in v: self.db.pclink(k, v2, keytype='recorddef')
 
 
-
+		# RECORDS
+		# loaded in chunks of 1000
 		chunk = []
 		for rec in self.loadfile("records.json"):
 			chunk.append(rec)
@@ -81,23 +109,26 @@ class Loader(object):
 				self._commit_record_chunk(chunk, recidmap=recidmap, childmap=childmap)
 				chunk = []
 
-
 		if chunk:
 			self._commit_record_chunk(chunk, recidmap=recidmap, childmap=childmap)
 
-
+		for k, v in childmap.items():
+			for v2 in v:
+				self.db.pclink(recidmap[k], recidmap[v2])
+		
 
 
 	def _commit_record_chunk(self, chunk, recidmap=None, childmap=None):
 		t = time.time()
-		childmap = childmap or {}
-		recidmap = recidmap or {}
+		#childmap = childmap or {}
+		# recidmap = recidmap or {}
 		recids = []
 		
 		for rec in chunk:
 			if rec.get('children'):
-				childmap[rec.get('recid')] = rec.get('children')
+				childmap[rec.get('recid')] |= set(rec.get('children', []))
 				del rec['children']
+			if rec.get('parents'):
 				del rec['parents']
 
 			recids.append(rec.get('recid'))
@@ -125,60 +156,16 @@ class Loader(object):
 
 
 if __name__ == "__main__":
-	pass
+	try:
+		path = sys.argv[1]
+	except:
+		path = "."
 
+	import emen2.db.admin
+	db = emen2.db.admin.opendb()
+	with db:
+		l = Loader(path=path, db=db)
+		l.load()	
 
-
-
-
-		
-# for user in users:
-# 	if user.get('username') == 'root':
-# 		user['password'] = rootpw
-# 		user['email'] = rootemail
-# 	self.adduser(user, ctx=ctx, txn=txn)
-# 
-# for group in groups:
-# 	self.putgroup(group, ctx=ctx, txn=txn)
-# 
-# # Load skeletons -- use utils/export.py to create these JSON files
-# paramdefs = load_skeleton('paramdefs')
-# recorddefs = load_skeleton('recorddefs')
-# users = load_skeleton('users')
-# groups = load_skeleton('groups')
-# 
-# # We're going to have to strip off children and save for later -- put*def needs support for this..
-# pdc = {}
-# rdc = {}
-# for pd in paramdefs:
-# 	pdc[pd.get('name')] = pd.pop('children', set())
-# 	self.putparamdef(pd, ctx=ctx, txn=txn)
-# 
-# for rd in recorddefs:
-# 	rdc[rd.get('name')] = rd.pop('children', set())
-# 	self.putrecorddef(rd, ctx=ctx, txn=txn)
-# 
-# for k, v in pdc.items():
-# 	for v2 in v: self.pclink(k, v2, keytype='paramdef', ctx=ctx, txn=txn)
-# 
-# for k, v in rdc.items():
-# 	for v2 in v: self.pclink(k, v2, keytype='recorddef', ctx=ctx, txn=txn)
-# 
-# # Put the 'Root' record first, so it will have recid 0
-# # rootrec = self.newrecord('folder', ctx=ctx, txn=txn)
-# # rootrec["name_folder"] = "Root Record"
-# # self.putrecord(rootrec, ctx=ctx, txn=txn)
-# 
-# for user in users:
-# 	if user.get('username') == 'root':
-# 		user['password'] = rootpw
-# 		user['email'] = rootemail
-# 	self.putuser(user, ctx=ctx, txn=txn)
-# 
-# for group in groups:
-# 	self.putgroup(group, ctx=ctx, txn=txn)
-# 
-# # Wait for the groups are committed -- then go back and add authenticated to recid 0
-# # self.addgroups(0, ['authenticated'], ctx=ctx, txn=txn)
 
 

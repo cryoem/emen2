@@ -8,22 +8,34 @@
 
 		options: {
 			action: "reroot",
+			attach: false,
 			cb: function(){},
 			expandable: true,
 			build: false,
 			root: null,
 			keytype: "record",
-			embed: false,
+			embed: true,
 			mode: "children"
 		},
 
 		_create: function() {
 			var self = this;
 			this.built = 0;
-			this.element.click(function() {
-				self.event_click();
-			});	
-			this.event_click();
+			
+			this.options.mode = this.element.attr('data-mode') || this.options.mode;
+			this.options.root = this.element.attr('data-root') || this.options.root;
+			this.options.keytype = this.element.attr('data-keytype') || this.options.keytype;	
+				
+			console.log(this.options);	
+				
+			if (this.options.attach) {
+				this.bind_ul(this.element);
+			} else {			
+				this.element.click(function() {
+					self.event_click();
+				});	
+				this.event_click();
+			}
 		},
 	
 		event_click: function() {
@@ -198,7 +210,7 @@
 				buttons: {
 					"OK": function() {
 						$(this).dialog( "close" );
-						console.log(rels, newrels);
+						// console.log(rels, newrels);
 						// $.jsonRPC("pcrelink", [rels, newrels], function() {
 						// 	$.each(refresh, function() {
 						// 		self.refresh(this);
@@ -275,7 +287,7 @@
 		// more type-specific handling..
 		getname: function(item) {
 			if (this.options.keytype == 'record') {
-				return caches['recnames'][item] || item
+				return caches['recnames'][item] || String(item)
 			} else if (this.options.keytype == 'paramdef') {
 				return caches['paramdefs'][item].desc_short || item
 			} else if (this.options.keytype == 'recorddef') {
@@ -374,7 +386,7 @@
 			newl.css('min-height', h);
 			this.bind_ul(newl);
 		},
-	
+
 		// add the event handlers to a UL and its LI children
 		bind_ul: function(root) {
 			var self = this;
@@ -388,6 +400,10 @@
 			})
 			
 			$('img.expand', root).click(function() {self.toggle(this)});
+
+			if (this.options.attach) {
+				return
+			}
 
 			// this should be made simpler...
 			$("a[data-key]", root).droppable({
@@ -417,9 +433,11 @@
 })(jQuery);
 
 
-// $(document).ready(function() {
-// 	$('.ulm').MapSelect();
-// });	
+$(document).ready(function() {
+	$('.ulm').RelationshipControl({
+		"attach":true
+	});
+});	
 
 
 

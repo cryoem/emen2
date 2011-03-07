@@ -32,7 +32,10 @@ class Dumper(object):
 		self.paramdefs_userlist = set()
 
 		# Initial items..
-		recids = recids or self.db.getchildren(268336, recurse=-1)
+		root = 382351		
+		recids = self.db.getchildren(root, recurse=-1)
+		recids.add(root)
+
 		if allrecords:
 			recids |= self.db.getchildren(0, recurse=-1)
 		
@@ -232,7 +235,7 @@ class Dumper(object):
 			recs = self.db.getrecord(chunk)
 			found |= set([i.recid for i in recs])
 			parents = self.db.getparents(chunk)
-			children = self.db.getparents(chunk)
+			children = self.db.getchildren(chunk)
 			for rec in recs:
 				rec["parents"] = parents.get(rec.recid, set()) & self.recids
 				rec["children"] = children.get(rec.recid, set()) & self.recids
@@ -252,7 +255,7 @@ class Dumper(object):
 			pds = self.db.getparamdef(chunk)
 			found |= set([pd.name for pd in pds])
 			parents = self.db.getparents(chunk, keytype="paramdef")
-			children = self.db.getparents(chunk, keytype="paramdef")
+			children = self.db.getchildren(chunk, keytype="paramdef")
 		
 			for pd in pds:
 				pd.parents = parents.get(pd.name, set()) & self.paramdefnames
@@ -273,7 +276,7 @@ class Dumper(object):
 			rds = self.db.getrecorddef(chunk)
 			found |= set([rd.name for rd in rds])
 			parents = self.db.getparents(chunk, keytype="recorddef")
-			children = self.db.getparents(chunk, keytype="recorddef")
+			children = self.db.getchildren(chunk, keytype="recorddef")
 		
 			for rd in rds:
 				rd.parents = parents.get(rd.name, set()) & self.recorddefnames

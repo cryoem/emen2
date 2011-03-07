@@ -180,7 +180,9 @@ function error_dialog(title, text, method, data) {
 		for (var i in o) {
 			sortable.push([i, o[i]])
 		}
-		var s = sortable.sort(function(a, b) {return b[1].toLowerCase() > a[1].toLowerCase()})
+		var s = sortable.sort(function(a, b) {
+			return b[1].toLowerCase() > a[1].toLowerCase()
+			});
 		result = [];
 		for (var i=0;i<s.length;i++) {
 			result.push(s[i][0]);

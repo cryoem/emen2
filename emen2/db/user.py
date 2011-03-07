@@ -122,6 +122,7 @@ class User(emen2.db.dataobject.BaseDBObject):
 		return result
 
 
+
 	def setpassword(self, oldpassword, newpassword, secret=None):
 		if self.checkpassword(oldpassword):
 			self._setpassword(newpassword)
@@ -132,10 +133,12 @@ class User(emen2.db.dataobject.BaseDBObject):
 		self._delsecret()	
 
 
+
 	def _setpassword(self, newpassword):
+		# Only root is allowed to have no password. All user accounts must have a password.
 		if newpassword == None and self.username != "root":
 			self.validationwarning("No password specified; minimum 6 characters required", warning=False)
-		if len(newpassword) < 6:
+		if len(newpassword) < 6 and self.username != 'root':
 			self.validationwarning("Password too short; minimum 6 characters required", warning=False)
 		self.password = self._hashpassword(newpassword)
 

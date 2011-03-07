@@ -53,7 +53,8 @@ class Group(emen2.db.dataobject.BaseDBObject):
 
 	def __setstate__(self, d):
 		# Backwards compatibility..
-		d["permissions"] = d.pop("_Group__permissions", None)
+		if d.has_key('_Group__permissions'):
+			d["permissions"] = d.pop("_Group__permissions", None)
 		return self.__dict__.update(d)
 
 
@@ -143,13 +144,12 @@ class Group(emen2.db.dataobject.BaseDBObject):
 			raise
 
 		r = [self._partitionints(i) for i in value]
-
 		return tuple(tuple(x) for x in r)
 
 
 	def setpermissions(self, value):
-		#if not self.isowner():
-		#	raise SecurityError, "Insufficient permissions to change permissions"
+		# if not self.isowner():
+		# 	raise SecurityError, "Insufficient permissions to change permissions"
 		self.permissions = self._checkpermissionsformat(value)
 
 
@@ -203,5 +203,7 @@ class Group(emen2.db.dataobject.BaseDBObject):
 		if self.members() - allusernames:
 			raise Exception, "Invalid user names: %s"%(self.members() - allusernames)
 			
+
+
 			
 __version__ = "$Revision$".split(":")[1][:-1].strip()
