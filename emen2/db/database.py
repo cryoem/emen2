@@ -1605,7 +1605,9 @@ class DB(object):
 			viewdef = rds[0].views.get('tabularview', defaultviewdef)
 
 		elif len(rds) > 1 or len(rds) == 0:
-			viewdef = self.getrecorddef("root", ctx=ctx, txn=txn).views.get('tabularview', defaultviewdef)
+			# grumble.. I changed the root element from "root_protocol" to "root". Check for both, use the first one you get..
+			viewdef = self.getrecorddef(["root", "root_protocol"], ctx=ctx, txn=txn).pop().views.get('tabularview', defaultviewdef)
+				
 
 
 		for i in q['groups'].keys() + ['creator', 'creationtime']:
