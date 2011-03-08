@@ -4,6 +4,7 @@ import tarfile
 import tempfile
 import string
 import random
+import shutil
 
 import emen2.db.admin
 import emen2.util.jsonutil
@@ -13,9 +14,9 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, outfile=None, recids=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
+	def __init__(self, db, root=None, outfile=None, recids=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
 		mtime = time.time()
-		
+		self.root = root		
 		
 		self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
 		self.db = db
@@ -35,9 +36,9 @@ class Dumper(object):
 		self.paramdefs_binaryimage = set()
 
 		# Initial items..
-		root = 382351		
-		recids = self.db.getchildren(root, recurse=-1)
-		recids.add(root)
+		# root = 382351
+		recids = self.db.getchildren(self.root, recurse=-1)
+		recids.add(self.root)
 
 		if allrecords:
 			recids |= self.db.getchildren(0, recurse=-1)
@@ -76,54 +77,49 @@ class Dumper(object):
 		# tmp fix..
 		self.usernames.add("bendubin-thaler")
 		
-		print "Writing output to %s"%self.outfile
-		outfile = tarfile.open(self.outfile, "w:gz")
-		self.taradd(outfile, "paramdefs.json", self.writetmp(self.dumpparamdefs))
-		self.taradd(outfile, "recorddefs.json", self.writetmp(self.dumprecorddefs))
-		self.taradd(outfile, "users.json", self.writetmp(self.dumpusers))
-		self.taradd(outfile, "groups.json", self.writetmp(self.dumpgroups))
-		self.taradd(outfile, "records.json", self.writetmp(self.dumprecords))
-		self.taradd(outfile, "bdos.json", self.writetmp(self.dumpbdos))		
+		#print "Writing output to %s"%self.outfile
+		#outfile = tarfile.open(self.outfile, "w:gz")
+		
+		self.addfile(self.writetmp(self.dumpparamdefs), "paramdefs.json")
+		self.addfile(self.writetmp(self.dumprecorddefs), "recorddefs.json")
+		self.addfile(self.writetmp(self.dumpusers), "users.json")
+		self.addfile(self.writetmp(self.dumpgroups), "groups.json")
+		self.addfile(self.writetmp(self.dumprecords), "records.json")
+		self.addfile(self.writetmp(self.dumpbdos), "bdos.json")
 
 		if addfiles:
 			for bdo in self.bdos:
-				self.taraddfile(outfile, bdo)
+				self.addbdo(bdo)
 
-		outfile.close()
-		
 	
-	# def addfile(self, filename, filepath=None, tar=None, gen=None):
-	# 	if tar:
-	# 		if gen:
-	# 			tmpfile = self.writetmp(self.dumpparamdefs)
-		
-	
-	def taraddfile(self, tar, bdo):
+
+	def addfile(self, filepath, filename):
+		print "Adding %s to backup as %s"%(filepath, filename)
+		if not os.path.exists(filename):
+			shutil.copyfile(filepath, filename)
+		else:
+			print "WARNING!! File exists %s exists, skipping!"%filename
+
+
+
+	def addbdo(self, bdo):
 		b = self.db.getbinary(bdo)
 		try:
-			name = b.name.replace(":", ".")
+			filename = b.name.replace(":", ".")
 			filepath = b.filepath
-			tar.add(arcname=name, name=filepath)
-			print "Added %s to tarfile as %s"%(filepath, name)
+			self.addfile(filepath, filename)
 		except Exception, inst:
 			print "Could not add %s: %s"%(bdo, inst)
 		
 	
 	
-	def taradd(self, tar=None, arcname=None, filename=None):
-		if tar:
-			tar.add(arcname=arcname, name=filename)
-			os.unlink(filename)
-	
-		
 	def writetmp(self, method):
-		fd, filename = tempfile.mkstemp() 
+		fd, filename = tempfile.mkstemp()
 		with open(filename, "w") as f:
 			for item in method():
 				f.write(emen2.util.jsonutil.encode(item))
 				f.write("\n")
 		return filename
-		
 		
 
 	def checkrecords(self, recids, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
@@ -284,7 +280,13 @@ class Dumper(object):
 	# The dump* methods are generators that spit out JSON-encoded DBO's
 	def dumprecords(self, cur=0):
 		found = set()
-		for chunk in emen2.util.listops.chunk(self.recids):
+		# reorganize the recids slightly...
+		ordered_recids = sorted(self.recids)
+		if self.root != None and self.root in self.recids:
+			ordered_recids.remove(self.root)
+			ordered_recids.insert(0, self.root)
+
+		for chunk in emen2.util.listops.chunk(ordered_recids):
 			t = time.time()
 			recs = self.db.getrecord(chunk)
 			found |= set([i.recid for i in recs])
@@ -415,7 +417,7 @@ class Dumper(object):
 if __name__ == "__main__":
 	import emen2.db.admin
 	db = emen2.db.admin.opendb()
-	d = Dumper(db=db)
+	d = Dumper(root=382351, db=db)
 
 
 
