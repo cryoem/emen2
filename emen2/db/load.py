@@ -75,11 +75,11 @@ class Loader(object):
 
 		# PARAMDEFS
 		for pd in self.loadfile("paramdefs.json"):
-			if pd.get('name') in existing_paramdefs and not overwrite:
-				continue
-
 			pdc[pd.get('name')] |= set(pd.pop('children', []))
 			pd.pop('parents', set())
+			if pd.get('name') in existing_paramdefs and not overwrite:
+				continue			
+
 			self.db.putparamdef(pd, warning=warning)
 
 		# Put the saved relationships back in..
@@ -90,11 +90,11 @@ class Loader(object):
 
 		# RECORDDEFS
 		for rd in self.loadfile("recorddefs.json"):
-			if rd.get('name') in existing_recorddefs and not overwrite:
-				continue
-
 			rdc[rd.get('name')] |= set(rd.pop('children', []))
 			rd.pop('parents', set())			
+			if rd.get('name') in existing_recorddefs and not overwrite:
+				continue
+			
 			self.db.putrecorddef(rd, warning=warning)
 		
 		for k, v in rdc.items():

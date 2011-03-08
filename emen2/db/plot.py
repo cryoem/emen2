@@ -514,71 +514,64 @@ class BinPlot(Plotter):
 
 
 
+class XYPlot(object):	
 
-
-
-
+	def __init__(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, style='b', ctx=None, txn=None, **kwargs):
 	
-
-
-		
-
-# def plot_xy(self, x, y, xmin=None, xmax=None, ymin=None, ymax=None, width=600, xlabel=None, ylabel=None, formats=None, buffer=False, style='b', ctx=None, txn=None, **kwargs):
-# 
-# 	if not formats:
-# 		formats = ["png"]
-# 
-# 	width = int(width)
-# 	fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
-# 	canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-# 
-# 	ax_size = [0, 0, 1, 1]
-# 	if xlabel or ylabel or buffer:
-# 		ax_size = [0.15, 0.15, 0.8, 0.8]
-# 
-# 	ax = fig.add_axes(ax_size)
-# 	ax.grid(True)
-# 
-# 	handle = ax.plot(x, y, style)
-# 
-# 	if xmin == None: xmin = min(x)
-# 	else: xmax = float(xmax)
-# 
-# 	if xmax == None: xmax = max(x)
-# 	else: xmax = float(xmax)
-# 
-# 	if ymin == None: ymin = min(y)
-# 	else: ymin = float(ymin)
-# 
-# 	if ymax == None: ymax = max(y)
-# 	else: ymax = float(ymax)
-# 
-# 	ax.set_xlim(xmin, xmax)
-# 	ax.set_ylim(ymin, ymax)		
-# 
-# 	if xlabel: ax.set_xlabel(xlabel)
-# 	if ylabel: ax.set_ylabel(ylabel)
-# 
-# 	plots = {}
-# 	if "png" in formats:
-# 		pngfile = self._getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
-# 		fig.savefig(pngfile)
-# 		plots["png"] = pngfile
-# 
-# 
-# 	q = {}
-# 	q.update({
-# 		"plots": plots,
-# 		"xlabel": xlabel,
-# 		"ylabel": ylabel,
-# 		"formats": formats,
-# 		"width": width,
-# 		"xmin": xmin,
-# 		"xmax": xmax,
-# 		"ymin": ymin,
-# 		"ymax": ymax
-# 	})
-# 
-# 	return q
+		if not formats:
+			formats = ["png"]
+	
+		width = int(width)
+		fig = matplotlib.figure.Figure(figsize=(width/100.0, width/100.0), dpi=100)
+		canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
+	
+		ax_size = [0, 0, 1, 1]
+		if xlabel or ylabel or buffer:
+			ax_size = [0.15, 0.15, 0.8, 0.8]
+	
+		ax = fig.add_axes(ax_size)
+		ax.grid(True)
+	
+		handle = ax.plot(x, y, style)
+	
+		if xmin == None: xmin = min(x)
+		else: xmax = float(xmax)
+	
+		if xmax == None: xmax = max(x)
+		else: xmax = float(xmax)
+	
+		if ymin == None: ymin = min(y)
+		else: ymin = float(ymin)
+	
+		if ymax == None: ymax = max(y)
+		else: ymax = float(ymax)
+	
+		ax.set_xlim(xmin, xmax)
+		ax.set_ylim(ymin, ymax)		
+	
+		if xlabel: ax.set_xlabel(xlabel)
+		if ylabel: ax.set_ylabel(ylabel)
+	
+		plots = {}
+		if "png" in formats:
+			pngfile = getplotfile(prefix="plot_xy", suffix="png", ctx=ctx, txn=txn)
+			fig.savefig(pngfile)
+			plots["png"] = pngfile
+	
+	
+		q = {}
+		q.update({
+			"plots": plots,
+			"xlabel": xlabel,
+			"ylabel": ylabel,
+			"formats": formats,
+			"width": width,
+			"xmin": xmin,
+			"xmax": xmax,
+			"ymin": ymin,
+			"ymax": ymax
+		})
+		self.q = q
+		# return q
 					
 __version__ = "$Revision$".split(":")[1][:-1].strip()

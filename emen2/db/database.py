@@ -1555,6 +1555,8 @@ class DB(object):
 			plotter = emen2.db.plot.HistPlot
 		elif plotmode == 'bin':
 			plotter = emen2.db.plot.BinPlot
+		elif plotmode == "xy":
+			plotter = emen2.db.plot.XYPlot
 
 		return plotter(*args, db=self, **kwargs).q
 

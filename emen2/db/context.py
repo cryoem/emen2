@@ -89,7 +89,7 @@ class Context(object):
 		# Information the context needs to be usable
 		
 		if host != self.host:
-			raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
@@ -141,7 +141,7 @@ class AnonymousContext(Context):
 
 	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
 		#if host != self.host:
-		#	raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+		#	raise emen2.db.exceptions.SessionError, "Session expired"
 
 		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
@@ -171,7 +171,7 @@ class SpecialRootContext(Context):
 
 	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
 		if host != self.host:
-			raise emen2.db.exceptions.SessionError, "Session host mismatch (%s != %s)"%(host, self.host)
+			raise emen2.db.exceptions.SessionError, "Session expired"
 
 		t = emen2.db.database.getctime()
 		if t > (self.time + self.maxidle):
