@@ -126,6 +126,12 @@ def inithttpd():
 
 
 	load_resources(root, resources)
+
+	try:
+		import srequest
+		server.Site.requestFactory = srequest.Request
+	except ImportError: g.debug('--- srequest not loaded ***')
+
 	site = server.Site(root)
 
 	ahr = site.protocol.allHeadersReceived
