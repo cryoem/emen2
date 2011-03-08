@@ -841,9 +841,6 @@ class DB(object):
 			del self.bdbs.contexts_cache[ctxid]
 
 
-		print "committing context"
-		print context.__dict__
-
 		# set context
 		if context != None:
 			try:

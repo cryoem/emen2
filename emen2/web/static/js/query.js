@@ -370,7 +370,7 @@ function query_build_path(q, postpend) {
 				');
 
 			this.container.append(m);
-			$('.findrecord', this.container).Browser({});
+			//$('.findrecord', this.container).Browser({});
 			$('.finduser', this.container).FindControl({mode: 'finduser'});
 			$('.findgroup', this.container).FindControl({mode: 'findgroup'});
 			$('.findrecorddef', this.container).FindControl({mode: 'findrecorddef'});
