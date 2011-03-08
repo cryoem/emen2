@@ -436,39 +436,38 @@
 			this.button_browser = $('<input type="file" name="filedata" />');
 			this.button_submit = $('<input class="save" type="submit" value="Upload" />');
 
-
 			//if (typeof(FileReader) != "undefined") {
-			if (false) {
-				if (this.options.vartype == "binary") {
-					this.button_browser.attr("multiple","multiple");
-				}	
-
-				this.button_browser.html5_upload({
-					onFinish: function(event, total) {
-						$('#progress').progressbar("destroy");
-						$.jsonRPC("getrecord", [self.options.recid], function(rec) {
-							record_update(rec);
-							self.event_build_tablearea();
-							self.options.cb();		
-						})
-					},
-					setProgress: function(val) {
-						$('#progress').progressbar( "option", "value", val*100 );
-					},
-					url: function() {
-						return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
-					},
-					onStart: function(event, total) {
-						if (total > 1) {
-							return confirm("You are trying to upload " + total + " files. Are you sure?");
-						}
-						$('#progress').progressbar({});				
-						return true;
-					},
-					autostart: false
-				});
-				this.button_submit.bind('click', function(e){e.stopPropagation();self.button_browser.trigger('html5_upload.start')});
-			}
+			// if (false) {
+			// 	if (this.options.vartype == "binary") {
+			// 		this.button_browser.attr("multiple","multiple");
+			// 	}	
+			// 
+			// 	this.button_browser.html5_upload({
+			// 		onFinish: function(event, total) {
+			// 			$('#progress').progressbar("destroy");
+			// 			$.jsonRPC("getrecord", [self.options.recid], function(rec) {
+			// 				record_update(rec);
+			// 				self.event_build_tablearea();
+			// 				self.options.cb();		
+			// 			})
+			// 		},
+			// 		setProgress: function(val) {
+			// 			$('#progress').progressbar( "option", "value", val*100 );
+			// 		},
+			// 		url: function() {
+			// 			return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
+			// 		},
+			// 		onStart: function(event, total) {
+			// 			if (total > 1) {
+			// 				return confirm("You are trying to upload " + total + " files. Are you sure?");
+			// 			}
+			// 			$('#progress').progressbar({});				
+			// 			return true;
+			// 		},
+			// 		autostart: false
+			// 	});
+			// 	this.button_submit.bind('click', function(e){e.stopPropagation();self.button_browser.trigger('html5_upload.start')});
+			// }
 			
 			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
 			var location = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/" name="Location">');

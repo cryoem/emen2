@@ -1,0 +1,1022 @@
+/*****************************************************
+			* Background colors 
+*****************************************************/
+
+/* Main background color */
+#precontent,
+.precontent,
+.permissions .add, .add,
+.button
+{
+	background: #BBDAEE;
+}
+
+
+/* Lighter background color */
+#nav li:hover,
+.page,
+.button_map,
+.button_main,
+.button_active,
+.boxer .controls,
+.tilemap .tilemapcontrols,
+.recordtable .header,
+.mapactive
+{
+	background: #E7F1F8; /* #E7F1F8; */
+}
+
+
+/* Darker background color */
+
+
+
+/* Light-gray row highlight color */
+tr.s
+{
+	background: #f0f0f0;
+}
+
+
+.boxarea-active
+{
+	background: #ccc;
+}
+
+
+.add.removed,
+.removed,
+{
+	background: red;
+	color: white;
+}
+
+.disabled {
+	color: #ccc;
+}
+
+.spinner {
+	display:none;
+}
+
+body,
+table.map,
+#container,
+#title,
+#alert li,
+.notify,
+.editbar .hidden,
+.page_main,
+.button_map_active,
+.button_main_active,
+.page_comments tr.s
+{
+	background: white;
+}
+
+
+
+/* Border Colors */
+
+h1,
+h4,
+th,
+.tilemap .label,
+.searchbox,
+.editbar .active,
+.editbar .hidden,
+.userbox img,
+.clickable_box,
+.tilemap .tilemapcontrols,
+.infobuttons,
+.info,
+.editbar > li,
+.editbar
+{
+	border-color: #ccc;
+}
+
+.boxarea .boximg {
+	border-color: #fff;
+}
+
+#alert li,
+.notify,
+.maphover
+{
+	border-color: #FF8135;
+}
+
+#nav li
+{
+	border-color: #DCEFEE;
+}
+
+.recordtable
+{
+	border-color: #E7F1F8;
+}
+
+.deleted,
+.error
+{
+	border-color: red;	
+}
+
+
+/* Other side borders */
+
+.infobuttons {
+	outline: solid 2px white;
+}
+
+/* Text colors */
+
+ul, p {
+	margin-top: 0px;
+}
+
+a,
+.clickable,
+.ui-widget-content a
+{
+	color: #202060;
+}
+
+
+.editable, 
+.editable_files .label,
+.editable_files.label,
+.editable .label,
+.editable.label
+{
+	color: #491F6D;
+}
+
+.table .editable {
+	color: #000;
+}
+
+
+
+/******** BODY AND TOP LEVEL CONTAINERS ******/
+
+html,body {
+	height: 100%;
+}
+
+body {
+	font-family: arial, Verdana, Helvetica, sans-serif;
+	margin: 0px;
+	padding: 0px;
+}
+
+#container {
+	position: relative;
+	min-height: 100%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+#content {
+	padding-top: 10px;
+	position: relative;
+}
+
+#alert, #pagescontainer_map, #buttons_main, #title, #content {
+	width: 1000px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/*.fullwidth {
+	min-width: 960px;
+	width: 95% !important;
+}
+*/
+
+/**** UNSELECTABLE ELEMENTS *******/
+
+/*.controls, .recordtable .header > div, .editbar .clickable {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+*/
+
+
+
+/******* TOP LEVEL ELEMENTS *******/
+
+
+
+textarea {
+	width: 100%;
+	display: block;
+}
+
+img {
+	border: none;
+}
+
+
+td {
+	vertical-align: top;
+}
+
+ul {
+}
+
+
+/*********** HEADERS ***********/
+
+h1 {
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
+}
+h4 {
+	border-bottom-style: solid;
+	border-bottom-width: 1px;	
+	font-size: 12pt;
+	margin: 0px;
+	margin-top: 10px;
+	margin-bottom: 5px;
+	padding: 0px;
+	width: auto;
+}
+
+#title h1 {
+	border-bottom: none;
+	font-size: 14pt;
+	margin: 0px;
+	padding: 10px;
+	font-weight: normal;
+}
+h1 .label {
+	padding: 10px;
+	padding-top: 10px;
+	font-size: 12pt;
+	float: right
+}
+
+/************* TABLES ************/
+
+
+table {
+	width: 100%;
+}
+
+th, td {
+	padding: 4px;
+}
+
+th {
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
+	font-weight: normal;
+	text-align: left;
+}
+
+
+/******* NAV MENU *******/
+
+#title {
+	height: 56px;
+	position: relative;
+}
+#title img {
+	padding-left: 5px;
+}
+
+#nav {
+	position: absolute;
+	bottom: 0px;
+	right: 0px;
+	margin: 0px;
+	font-size: 10pt;
+	list-style: none;
+}
+#nav li {
+	float: left;
+	border-right-style: solid;
+	border-right-width: 1px;
+	padding: 4px;
+}
+#nav li:last-child {
+	border-right: none;
+}	
+
+#title .quickquery {
+	position: absolute;
+	padding: 5px;
+	top: 0px;
+	right: 0px;
+}
+
+
+
+/**** LEFT AND RIGHT BOXES *****/
+
+.floatlist {
+/*	list-style: none; */
+	margin: 10px;
+	padding: 0px;
+}
+.floatlist li {
+	float: left; 
+	text-indent: 0px;
+	margin: 10px;
+	padding-left: 0px;
+}
+
+.floatleft {
+	float:left;
+}
+.floatright {
+	float:right;
+}
+
+
+
+/************* NOTIFICATION BOXES ************/
+
+
+/* alerts */
+#alert {	
+	list-style: none;
+	padding-left: 0px;
+}
+
+#alert li .kill {
+	float: right;
+}
+
+#alert li, .notify {
+	clear: both;
+	border-style: solid;
+	border-width: 1px;
+	padding: 5px;
+	margin: 0px;
+	margin-top:10px;
+	margin-bottom:10px;
+}
+
+
+
+
+/************* JQUERY UI OVERRIDES ************/
+
+
+.ui-widget-header {
+	border: none;
+}
+
+.ui-dialog {
+	padding: 0px;
+	border: solid #66a3ce 5px;
+}
+
+.ui-dialog-titlebar {
+	-moz-border-radius: 0px;
+}
+
+.ui-corner-all {
+
+}
+
+.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
+	font-size: 10pt;
+}
+
+.ui-widget-header {
+	border: none;
+}
+
+.ui-progressbar {
+	height: 1em;
+}
+.ui-progressbar .ui-progressbar-value  {
+	margin: 0px;
+}
+
+
+
+/***** Form Elements ******/
+
+button, select, input, textarea {
+	border-width:1px;
+	font-size:12pt;
+	margin-right:2px;
+}
+
+button, input[type=button], input[type=submit], input[type=file] {
+	outline:medium none;	
+	display:inline-block
+}
+
+.save input, 
+input.save,
+.mapselect
+{
+	color: white;
+	border-color: #ccc;
+	background: #5B74A8;
+}
+.cancel input, input.cancel {
+	background-color: #eee;
+	color: #666;
+}
+
+.options {
+	padding:5px;
+}
+
+.buttonicon {
+	margin:0px;
+	padding:0px;
+}
+
+.ui-autocomplete {
+	max-height: 300px;
+	overflow-y: auto;
+}
+/* IE 6 doesn't support max-height
+ * we use height instead, but this forces the menu to always be this tall
+ */
+* html .ui-autocomplete {
+	height: 300px;
+}
+
+
+/***** CONTROLS *****/
+
+
+h1 > .controls {
+	margin: 0px;
+	margin-top: -10px;
+}
+.controls {
+	float: right;
+}
+.edit > .controls {
+	float: none;
+	margin: 0px;
+}
+
+.editcontrol.inplace {
+	margin: 0px;
+	padding: 0px;
+}
+
+/* .editcontrol.inplace input {
+	border-style: solid;
+	border-width: 1px;
+	font-size: 12pt;
+	display: inline;
+} */
+
+.editcontrol .controls {
+	float: none;
+	display: none;
+}
+
+.inplace .controls {
+	margin: 0px;
+	display: inline;
+}
+
+
+
+
+/***** FIND CONTROL *****/
+
+.find .status {
+	float: right;
+}
+img.listicon {
+	vertical-align: middle;
+	padding: 5px;
+}
+
+
+
+
+/****** FILE EDITOR *****/
+
+
+.files img.thumbnail {
+	vertical-align: top;
+	border: 0px;
+	padding: 4px;
+	padding-top: 0px;
+}
+
+
+
+
+/************* USER PROFILE DISPLAY **************/
+
+.userbox {
+	padding: 0px;
+	padding-right: 10px;
+	padding-bottom: 10px;
+	width: 300px;
+	float: left;
+}
+.userbox img {
+	float: left;
+	border-style: solid;
+	border-width: 1px;
+	height: 40px;
+}
+.userbox div {
+	margin-left: 45px;
+}
+
+/* .ui-dialog  */
+.searchbox { 
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	margin-bottom: 10px;
+	padding-bottom: 10px;
+}
+
+
+/** misc **/
+.infobuttons {
+	border-style: solid;
+	border-width: 2px;
+	padding: 5px;
+	border-bottom: none;
+	margin-left: 20px;
+	float: left;
+}
+.info {
+	border-style: solid;
+	border-width: 2px;
+	margin-left: auto;
+	margin-right: auto;
+	line-height: 150%;
+	padding: 10px;
+}
+.info a {
+	padding: 5px;
+}
+
+/********** RECORD EDIT BAR ***********/
+
+.editbar {
+	margin: 0px;	
+	margin-bottom: 10px;
+	padding: 0px;
+	padding-top: 0px;
+	list-style: none;
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
+}
+.editbar > li {
+	float: left;
+	border-right-style: solid;
+	border-right-width: 1px;
+	font-size: 10pt;
+	height: 20px;
+	padding: 4px;
+	z-index: 6;
+}
+
+.editbar > li:last-child {
+	border-right: none;
+} 
+
+.editbar img {
+	vertical-align: middle;
+	margin: 0px;
+}
+
+ /* .editbar .hidden */
+.hidden {
+	padding: 10px;
+	display: none;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 1;
+	border-style: solid;
+	border-width: 2px;
+	background: white;
+	-moz-box-shadow: 3px 3px 6px #666;
+	-webkit-box-shadow: 3px 3px 6px #666;
+	/* box-shadow: 3px 3px 6px #666; */
+}
+
+.active {
+	position: relative;
+}
+
+.editbar .active {
+	z-index: 100;
+	border-style: solid;
+	border-width: 2px;
+	border-bottom: none;
+	border-left-width: 1px;
+	border-right-width: 2px;
+	padding-right: 3px;
+	padding-left: 3px;
+	padding-top: 2px;
+}
+
+.editbar_reflow_hack {
+	margin-top: 200px;
+}
+
+
+
+/********** Relationship Map ***********/
+
+/* total width per item should be 249px */
+
+/* Nested lists */
+.ulm {
+	font-size:10pt;
+}
+.ulm.children ul {
+	padding-left:0px;
+	margin-left:249px;	
+}
+.ulm.parents ul {
+	padding-left:0px;
+	margin-left:-249px;	
+}
+
+/* List items */
+.ulm li {
+	list-style:none;
+	padding-bottom:4px;
+	position:relative;	
+	width:249px;
+}
+
+/* The backgrounds are listed in live.css.mako, because they need ${EMEN2WEBROOT} */
+
+
+.ulm ul li a {
+	top:0px;
+	z-index:1001;
+	display:block;
+	margin-left:16px;
+	margin-right:16px;
+}
+.ulm.parents ul li a.draggable {
+	text-align:right;
+}
+
+.ulm img.expand {
+	z-index:1002;
+	position:absolute;
+	top:0px;
+}
+.ulm.children img.expand {
+	right:0px;	
+}
+.ulm.parents img.expand {
+	left:0px;	
+}
+
+/* root element */
+
+.ulm ul:first-child {
+	margin-left:0px;
+}
+
+.ulm.parents ul:first-child {
+	float:right;
+}
+/*
+.ulm.parents ul:first-child {
+	background:none;
+}
+*/
+
+
+.maphover {
+	background:orange;
+	padding:0px;
+}
+
+
+/************* PERMISSIONS EDITOR  ************/
+
+
+.permissions .addbutton {
+	font-size: 8pt;
+}
+
+/************* COMMENTS  ************/
+
+.comment {
+	margin-bottom: 10px;
+}
+
+.permissions .level {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+
+
+/************* INLINE EDITBALE ITEMS  ************/
+
+
+.editable_files .label, .editable_files.label, .editable .label, .editable.label {
+	font-size: 10pt;
+	padding: 2px;
+	padding-bottom: 0px;
+	font-weight: normal;
+	list-style: none;
+}
+
+.edit.label:hover {
+	background:#5B74A8;
+}
+
+td ul.editable {
+	padding-left: 0px;
+}
+
+
+
+/********* PAGES AND TABS **********/
+
+.pagescontainer {
+}
+
+.page {
+	padding: 10px;
+	display: none;
+}
+.page_active {
+	display: block;
+}
+.page_main {
+
+}
+
+
+/******* BUTTON DEFAULTS *******/
+
+.buttons {
+	padding-top: 10px;
+}
+.buttons ul {
+	margin: 0px;
+	padding-left: 20px;
+	list-style: none;
+}
+.buttons ul li {
+	float: left;
+	margin-right: 10px;
+}	
+.button {
+	padding: 10px;
+}
+.button_active {
+}
+
+
+
+/******** MAIN PAGE BUTTONS AND PAGES *********/
+
+#buttons_main ul {
+	padding-left: 0px;
+}
+
+.button_map, .button_main {
+}
+
+.button_map_active, .button_main_active {
+}
+
+
+/******* MAP BUTTONS AND PAGES ********/
+
+.precontent .map {
+	padding: 5px;
+}
+
+.page_map {
+	background:white;
+	padding:2px;
+}
+
+.button_map {
+	padding-top: 0px;
+	padding-bottom: 0px;
+	border-bottom: solid 1px white;
+}
+
+.button_map_active {
+	border-bottom: dashed 1px #ccc;
+}
+
+
+
+/******* PROFILE BOXES ********/
+
+.profile_form_label {
+	width: 180px;
+	float: left;
+	text-align: right;
+	padding-right: 10px;
+}
+
+.profile_save_box {
+	width: 400px;
+}
+
+.profile_save_box input {
+	float: right;
+}
+
+
+
+/********* RECORD TABLE ***********/
+
+
+.recordtable {
+	border-style: solid;
+	border-width: 1px;
+}
+
+.recordtable .header {
+}
+
+.recordtable .header > div {
+	padding: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+.clickable_box {
+	padding: 2px 4px;
+}
+
+.recordtable .query {
+	width: 600px;
+}
+
+.recordtable .control {
+
+}
+
+.recordtable .query {
+	padding: 10px;
+}
+
+.recordtable .control.active {
+	padding: 8px;
+	background: white;
+	border: solid 2px black;
+}
+
+.recordtable .table th {
+	border-right-style: solid;
+	border-right-width: 1px;
+}
+
+.recordtable li {
+	list-style:none;
+}
+
+.query {
+	margin-bottom:10px;
+}
+
+/********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
+
+
+.small {
+	font-size: 10pt;
+}
+
+a, .clickable {
+	cursor: pointer;
+	text-decoration: none;
+}
+
+
+a:hover, .clickable:hover {
+	text-decoration:underline;
+}
+
+a img, .clickable img {
+	vertical-align: middle;
+}
+
+a.chevron {
+	padding: 3px;
+}
+
+
+/********** UTILITY **********/
+
+
+ul.nonlist {
+	list-style: none;
+	text-indent: 0px;
+/* 	padding: 0px; */
+}
+
+ul.nonlist li {
+
+}
+.show {
+	display: block;
+}
+
+.hide {
+	display: none;
+}
+
+.underline {
+	height: 10px;
+	border-bottom: dotted 1px #ccc;
+	width: 50px;
+}
+
+/*, #buttons_main:after, .buttons:after, .pages:after, #permissions:after, #alert:after, #nav:after, .table_header:after */
+.clearfix:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;	
+}
+
+.nobullet {
+	list-style: none;
+}
+
+
+
+
+/********* ROUNDED CORNERS ************/
+
+
+/* all */
+#alert li, .notify, .capsule, .page_map {
+	-moz-border-radius: 8px;
+	-webkit-border-radius: 8px;
+}
+/* small */
+.event_box {
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
+}
+
+
+/* top only */
+.recordtable, .button {
+	-moz-border-radius-topright: 8px;
+	-moz-border-radius-topleft: 8px; 
+	-webkit-border-top-right-radius: 8px;
+	-webkit-border-top-left-radius: 8px; 	
+}
+
+/* bottom only */
+.hidden, #title {
+	-moz-border-radius-bottomright: 8px;
+	-moz-border-radius-bottomleft: 8px; 
+	-webkit-border-bottom-right-radius: 8px;
+	-webkit-border-bottom-left-radius: 8px; 	
+}
+
+
+/* left only */
+.cousin_buttons a:first-child { 
+	-moz-border-radius-topleft: 8px;
+	-moz-border-radius-bottomleft: 8px;
+	-webkit-border-top-left-radius: 8px;
+	-webkit-border-bottom-left-radius: 8px;	
+}
+
+/* right only */
+.cousin_buttons a:last-child {
+	-moz-border-radius-topright: 8px;
+	-moz-border-radius-bottomright: 8px;
+	-webkit-border-top-right-radius: 8px;
+	-webkit-border-bottom-right-radius: 8px;
+}
+
+
+/*******/
+
+.collapsed * { 
+      display: none;
+}
+.collapsed > a {
+      display: block;
+}
+
+
+
+
+

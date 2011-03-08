@@ -13,7 +13,7 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, outfile=None, recids=None, allrecords=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True):
+	def __init__(self, db, outfile=None, recids=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
 		mtime = time.time()
 		
 		
@@ -26,10 +26,13 @@ class Dumper(object):
 		self.paramdefnames = set()
 		self.usernames = set()
 		self.groupnames = set()
+		self.bdos = set()
 
-		# We need these to find additional users and groups
+		# We need these to find additional users and groups and bdos
 		self.paramdefs_user = set()
 		self.paramdefs_userlist = set()
+		self.paramdefs_binary = set()
+		self.paramdefs_binaryimage = set()
 
 		# Initial items..
 		root = 382351		
@@ -47,15 +50,19 @@ class Dumper(object):
 			allparamdefs = self.db.getparamdefnames()
 		if allrecorddefs:
 			allrecorddefs = self.db.getrecorddefnames()		
+		# if allbdos:
+		# 	...
+		
 
 		print "Starting with %s records"%len(recids)		
-		self.checkrecords(recids, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs)
+		self.checkrecords(recids, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs, addbdos=allbdos)
 
 		remove = set([None])
 		self.usernames -= remove
 		self.groupnames -= remove
 		self.recorddefnames -= remove
 		self.paramdefnames -= remove
+		self.bdos -= remove
 
 		print "\n=====================\nStatistics:"
 		print "\trecords: %s"%len(self.recids)
@@ -63,6 +70,7 @@ class Dumper(object):
 		print "\tparamdefs: %s"%len(self.paramdefnames)
 		print "\tusers: %s"%len(self.usernames)
 		print "\tgroups: %s"%len(self.groupnames)		
+		print "\tbdos: %s"%len(self.bdos)		
 		print ""
 
 		# tmp fix..
@@ -75,16 +83,39 @@ class Dumper(object):
 		self.taradd(outfile, "users.json", self.writetmp(self.dumpusers))
 		self.taradd(outfile, "groups.json", self.writetmp(self.dumpgroups))
 		self.taradd(outfile, "records.json", self.writetmp(self.dumprecords))
+		self.taradd(outfile, "bdos.json", self.writetmp(self.dumpbdos))		
+
+		if addfiles:
+			for bdo in self.bdos:
+				self.taraddfile(outfile, bdo)
+
 		outfile.close()
-
-
-
-	def taradd(self, tar, arcname, filename):
-		tar.add(arcname=arcname, name=filename)
-		os.unlink(filename)
-
-
-
+		
+	
+	# def addfile(self, filename, filepath=None, tar=None, gen=None):
+	# 	if tar:
+	# 		if gen:
+	# 			tmpfile = self.writetmp(self.dumpparamdefs)
+		
+	
+	def taraddfile(self, tar, bdo):
+		b = self.db.getbinary(bdo)
+		try:
+			name = b.name.replace(":", ".")
+			filepath = b.filepath
+			tar.add(arcname=name, name=filepath)
+			print "Added %s to tarfile as %s"%(filepath, name)
+		except Exception, inst:
+			print "Could not add %s: %s"%(bdo, inst)
+		
+	
+	
+	def taradd(self, tar=None, arcname=None, filename=None):
+		if tar:
+			tar.add(arcname=arcname, name=filename)
+			os.unlink(filename)
+	
+		
 	def writetmp(self, method):
 		fd, filename = tempfile.mkstemp() 
 		with open(filename, "w") as f:
@@ -95,7 +126,7 @@ class Dumper(object):
 		
 		
 
-	def checkrecords(self, recids, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None):
+	def checkrecords(self, recids, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
 		if not recids:
 			return
 			
@@ -103,6 +134,7 @@ class Dumper(object):
 		groups = set()
 		pds = set()
 		rds = set()
+		bdos = set()
 		
 		for chunk in emen2.util.listops.chunk(recids-self.recids):
 			self.recids |= set(chunk)
@@ -119,6 +151,10 @@ class Dumper(object):
 						self.paramdefs_user.add(pd)
 					elif p.vartype == "userlist":
 						self.paramdefs_userlist.add(pd)
+					elif p.vartype == "binary":
+						self.paramdefs_binary.add(pd)
+					elif p.vartype == "binaryimage":
+						self.paramdefs_binaryimage.add(pd)
 			
 				users |= emen2.util.listops.combine(*rec['permissions'], dtype=set)				
 				
@@ -126,6 +162,11 @@ class Dumper(object):
 					users.add(rec.get(key))
 				for key in keys&self.paramdefs_userlist:
 					users |= set(rec.get(key, []))
+			
+				for key in keys&self.paramdefs_binary:
+					bdos |= set(rec.get(key, []))
+				for key in keys&self.paramdefs_binaryimage:
+					bdos.add(rec.get(key))
 			
 				groups |= rec['groups']	
 
@@ -135,12 +176,14 @@ class Dumper(object):
 		if addusers: addusers |= addusers
 		if addparamdefs: pds |= addparamdefs
 		if addrecorddefs: rds |= addrecorddefs	
+		if addbdos: bdos |= addbdos
 				
 		print "Next round..."
 		print "\tusers: ", len(users-self.usernames)
 		print "\tgroups: ", len(groups-self.groupnames)
 		print "\trecorddefs: ", len(rds-self.recorddefnames)
 		print "\tparamdefs: ", len(pds-self.paramdefnames)
+		print "\tbdos: ", len(bdos-self.bdos)
 		# 		
 		# start recursing..
 		
@@ -148,7 +191,7 @@ class Dumper(object):
 		self.checkgroups(groups)
 		self.checkrecorddefs(rds)
 		self.checkparamdefs(pds)
-
+		self.checkbdos(bdos)
 
 
 	def checkusers(self, usernames):
@@ -225,6 +268,17 @@ class Dumper(object):
 				#newusers.add(pd.modifyuser)
 				
 		self.checkusers(newusers)
+				
+	
+	def checkbdos(self, bdos):
+		bdos -= self.bdos
+		if not bdos:
+			return
+			
+		newbdos = set()
+		for chunk in emen2.util.listops.chunk(bdos):
+			self.bdos |= set(chunk)
+						
 				
 		
 	# The dump* methods are generators that spit out JSON-encoded DBO's
@@ -322,6 +376,22 @@ class Dumper(object):
 			self.printchunk(len(groups), cur=cur, total=len(self.groupnames), t=t, keytype="groups")
 
 		self.notfound(found, self.groupnames)
+
+
+	def dumpbdos(self, cur=0):
+		found = set()
+		for chunk in emen2.util.listops.chunk(self.bdos):
+			t = time.time()
+			bdos = self.db.getbinary(chunk)
+			found |= set([bdo.name for bdo in bdos])
+			
+			for bdo in bdos:
+				yield bdo
+				
+			cur += len(bdos)
+			self.printchunk(len(bdos), cur=cur, total=len(self.bdos), t=t, keytype="bdos")
+
+		self.notfound(found, self.bdos)
 			
 
 	

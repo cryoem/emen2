@@ -9,9 +9,9 @@
 		options: {
 			action: "reroot",
 			attach: false,
+			controls: true,
 			cb: function(){},
 			expandable: true,
-			build: false,
 			root: null,
 			keytype: "record",
 			embed: true,
@@ -61,19 +61,26 @@
 			// Append the table area to the dialog, then the dialog to the element..
 			this.element.append(this.dialog);
 			
+			if (!this.options.controls) {
+				var ul = $('<div class="ulm '+this.options.mode+'"></div>');
+				this.dialog.append(ul);
+				this.build_ul(ul, this.options.root);
+				return
+			}
+			
 			// build the ul.ulm elements, one for parents, and children
 			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;padding-bottom:6px;margin-bottom:6px;"> \
-						<div class="floatleft" style="width:262px;">Parents</div> \
-						<div class="floatleft action" style="width:262px;">&nbsp;</div> \
-						<div class="floatleft" style="width:262px;">Children</div> \
+						<div class="floatleft" style="width:249px;">Parents</div> \
+						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
+						<div class="floatleft" style="width:249px;">Children</div> \
 					</div>');				
 						
-			var parents = $('<div class="ulm parents" style="float:left;width:262px"></div>');
-			var children = $('<div class="ulm children"style="float:left"></div>');
-
+			var parents = $('<div class="ulm parents floatleft" style="width:245px"></div>');
+			var children = $('<div class="ulm children floatleft" ></div>');
 			this.dialog.append(p, parents, children);
-			this.build_root(this.options.root);
+
 			this.setaction(this.options.action);
+			this.build_root(this.options.root);
 
 			if (!this.options.embed) {
 				this.dialog.attr("title", "Relationships");
@@ -84,6 +91,27 @@
 					modal: true
 				});
 			}
+		},
+		
+		build_ul: function(elem, key) {
+			elem.empty();
+			
+			// Rebuild the root element
+			var root_img = $('<img class="expand" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+this.options.mode+'.png" />');
+			var root_a = $('<a data-key="'+key+'">'+this.getname(key)+'</a>');
+			var root_li = $('<li style="background:none"></li>');
+
+			root_li.append(root_a, root_img);
+			var root_ul = $('<ul></ul>');
+			root_ul.append(root_li);
+
+			elem.append(root_ul);
+
+			// bind the children ul
+			this.bind_ul(elem);
+
+			// build the root node and first level of children
+			this.expand(elem.find('li'));			
 		},
 		
 		// Send the RPC request to get info to build (or rebuild) the root element..
@@ -99,23 +127,9 @@
 
 			parents_ul.empty();			
 			parents_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
-			children_ul.empty();
 
-			// Rebuild the root element
-			var root_img = $('<img class="expand" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+self.options.mode+'.png" />');
-			var root_a = $('<a data-key="'+key+'">'+this.getname(key)+'</a>');
-			var root_li = $('<li></li>');
-			root_li.append(root_a, root_img);
-			var root_ul = $('<ul></ul>');
-			root_ul.append(root_li);
-			children_ul.append(root_ul);
+			this.build_ul(children_ul, key);
 
-			// bind the children ul
-			this.bind_ul(children_ul);
-
-			// build the root node and first level of children
-			this.expand(children_ul.find('li'));
-			
 			// get the parents through an RPC call
 			$.jsonRPC("getparents", [key, 1, null, this.options.keytype], function(parents) {
 				caches['parents'][key] = parents;
@@ -164,15 +178,16 @@
 			
 			// Record selector
 			var selector1 = $('<input name="root" type="text" size="6" value="'+this.options.root+'" />');
-			var selector2 = $('<input name="select" type="button" value="'+this.options.selecttext+'" />');
+			var selector2 = $('<input name="select" type="button" class="save" value="'+this.options.selecttext+'" />');
 			selector1.keypress(function() {
-				$('input[name=select]', self.dialog).val("Go To").data("reroot", true);
+				$('input[name=select]', self.dialog).val("Go To").data("reroot", true).removeClass("save");
 			})
 			selector2.click(function() {
 				var reroot = $(this).data("reroot");
 				var key = $("input[name=root]", self.dialog).val();
 				if (reroot) {
 					$(this).data("reroot", false);
+					$(this).addClass("save");
 					$(this).val(self.options.selecttext);
 					self.build_root(key);
 				} else {
@@ -453,6 +468,11 @@
 			});
 			var sortkeys = $.sortstrdict(sortby);
 			sortkeys.reverse();			
+
+			if (sortkeys.length == 0) {
+				//img.attr('src', EMEN2WEBROOT+'/static/images/bg-close.'+this.options.mode+'.png');
+				img.remove();
+			}
 						
 			$.each(sortkeys, function() {
 				var line = $('<li> \

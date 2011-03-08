@@ -75,7 +75,7 @@ class MethodTree(object):
 		return self.aliases.get(txt,txt)
 
 	def __enter__(self, *a):
-		return self.__cursor(self)
+		return self._cursor(self)
 	def __exit__(self, *a, **kw): pass
 
 	def __call__(self, *a, **kw):

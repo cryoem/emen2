@@ -14,6 +14,7 @@ import emen2.util.listops
 def random_password(N):
 	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
 
+	
 
 
 class Loader(object):
@@ -116,12 +117,24 @@ class Loader(object):
 			for v2 in v:
 				self.db.pclink(recidmap[k], recidmap[v2])
 		
+		
+		# BDOS
+		for bdo in self.loadfile("bdos.json"):
+			# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
+			infile = bdo['name'].replace(":",".")			
+			try:
+				with open(infile) as f:
+					# use subscript instead of .get to make sure the record was mapped
+					self.db.putbinary(bdokey=bdo.get('name'), recid=recidmap[bdo.get('recid')], filename=bdo.get('filename'), infile=f)
+			except Exception, inst:
+				print "Could not import %s: %s"%(bdo.get('name'), inst)
+
+		
+			
 
 
 	def _commit_record_chunk(self, chunk, recidmap=None, childmap=None):
 		t = time.time()
-		#childmap = childmap or {}
-		# recidmap = recidmap or {}
 		recids = []
 		
 		for rec in chunk:
@@ -141,14 +154,19 @@ class Loader(object):
 
 		print "Commited %s recs in %s: %0.1f keys/s"%(len(recs), time.time()-t, len(recs)/(time.time()-t))
 		
+
 				
 
 	def loadfile(self, infile):
-		with open(os.path.join(self.path, infile)) as f:
-			for item in f:
-				if item:
-					item = emen2.util.jsonutil.decode(item)
-					yield item
+		try:
+			with open(os.path.join(self.path, infile)) as f:
+				for item in f:
+					if item:
+						item = emen2.util.jsonutil.decode(item)
+						yield item
+		except Exception, inst:
+			print "Could not read %s: %s"%(infile, inst)
+			
 
 
 
@@ -166,6 +184,7 @@ if __name__ == "__main__":
 	with db:
 		l = Loader(path=path, db=db)
 		l.load()	
+
 
 
 

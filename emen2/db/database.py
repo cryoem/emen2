@@ -684,7 +684,7 @@ class DB(object):
 		@return Context key (ctxid)
 		@exception AuthenticationError, KeyError
 		"""
-
+		
 		if maxidle == None or maxidle > g.MAXIDLE:
 			maxidle = g.MAXIDLE
 
@@ -841,6 +841,9 @@ class DB(object):
 			del self.bdbs.contexts_cache[ctxid]
 
 
+		print "committing context"
+		print context.__dict__
+
 		# set context
 		if context != None:
 			try:
@@ -972,7 +975,7 @@ class DB(object):
 
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ol, bdokeys = listops.oltolist(bdokeys)
-		filt = False
+		# filt = False
 
 		ret = []
 		bids = []

@@ -163,6 +163,7 @@ class SpecialRootContext(Context):
 		self.username = u"root"
 		self._init_refresh()
 
+
 	def _init_refresh(self):
 		self.groups = set(["admin"])
 		self.grouplevels = {"admin":3}

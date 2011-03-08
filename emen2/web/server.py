@@ -84,7 +84,7 @@ def inithttpd():
 	import emen2.web.resources.uploadresource
 	import emen2.web.resources.downloadresource
 	import emen2.web.resources.publicresource
-	import emen2.web.resources.publicresource_test
+	#import emen2.web.resources.publicresource_test
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
 

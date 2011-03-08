@@ -48,28 +48,28 @@ class BaseJS(ExtFile):
 	def init(self):
 		super(BaseJS, self).init()
 
-		addfiles = ["util.js",
-			"browser.js",
+		addfiles = [
+			"calendar.js",
 			"comments.js",
 			"edit.js",
 			"editdefs.js",
 			"file.js",
 			"find.js",
-			"mapselect.js",
 			"permission.js",
 			"query.js",
 			"relationship.js",
 			"table.js",
 			"tile.js",
-			"calendar.js"]
+			"util.js"
+			]
 
 		self.files = [
 			self.dbtree.reverse('TemplateRender', t='/js/settings.js'),
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.html5_upload.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT]
+			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT
+			]
 
 		for i in addfiles:
 			self.files.append('%s/static/js/%s'%(g.EMEN2WEBROOT, i)) #, g.VERSION
@@ -79,8 +79,12 @@ class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		self.files = [
-			self.dbtree.reverse('TemplateRender', t='/css/main.css'),
-			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT
+			'%s/static/css/main.css' % g.EMEN2WEBROOT,
+			'%s/static/css/query.css' % g.EMEN2WEBROOT,
+			'%s/static/css/boxer.css' % g.EMEN2WEBROOT,
+			'%s/static/css/calendar.css' % g.EMEN2WEBROOT,
+			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT,
+			self.dbtree.reverse('TemplateRender', t='/css/main.css')
 		]
 
 
