@@ -15,7 +15,9 @@
 			root: null,
 			keytype: "record",
 			embed: true,
-			mode: "children"
+			mode: "children",
+			selecttext: "Select",
+			cb: function(key){console.log(key)}
 		},
 
 		_create: function() {
@@ -25,9 +27,7 @@
 			this.options.mode = this.element.attr('data-mode') || this.options.mode;
 			this.options.root = this.element.attr('data-root') || this.options.root;
 			this.options.keytype = this.element.attr('data-keytype') || this.options.keytype;	
-				
-			console.log(this.options);	
-				
+										
 			if (this.options.attach) {
 				this.bind_ul(this.element);
 			} else {			
@@ -43,7 +43,11 @@
 			this.build();
 		},
 			
+	
+		/////////////////////////////////
 		// Build the container..	
+		/////////////////////////////////
+	
 		build: function() {
 			if (this.built) {
 				return
@@ -51,76 +55,56 @@
 			this.built = 1;			
 			
 			var self = this;
-			this.dialog = $('<div class="browser" />');
-			this.tablearea = $('<div class="clearfix"/>');
-			this.dialog.append(this.tablearea);
-			
-			if (this.options.embed) {
-				this.element.append(this.dialog);
-			} else {
-				var pos = this.element.offset();
-				this.dialog.attr("title", "Relationships");
-				this.dialog.dialog({
-					position:[pos.left, pos.top+this.element.outerHeight()],				
-					autoOpen: false
-					//modal: this.options.modal
-				});			
-			}
+
+			this.dialog = $('<div class="browser clearfix"></div>');
+
+			// Append the table area to the dialog, then the dialog to the element..
+			this.element.append(this.dialog);
 			
 			// build the ul.ulm elements, one for parents, and children
-			// header
 			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;padding-bottom:6px;margin-bottom:6px;"> \
 						<div class="floatleft" style="width:262px;">Parents</div> \
-						<div class="floatleft" style="width:262px;"> \
-							<input name="root" type="text" size="6" class="floatleft" style="font-size:10pt" /> \
-							<div class="action floatleft" style="font-size:10pt"></div> \
-							</div> \
+						<div class="floatleft action" style="width:262px;">&nbsp;</div> \
 						<div class="floatleft" style="width:262px;">Children</div> \
-					</div>');
-				
-			var action = $('<select> \
-				<option value="reroot">Navigate</option> \
-				<option value="select">Select</option> \
-				<option value="move">Move</option> \
-				<option value="copy">Copy</option> \
-				<option value="delete">Delete</option> \
-				<option value="addparent">Add Parent</option> \
-				<option value="addchild">Add Child</option> \
-				</select>');
-			action.val(this.options.action);
-			action.change(function() {
-				self.setaction($(this).val());
-			});
-			
-			$('.action', p).append(action);
-
+					</div>');				
+						
 			var parents = $('<div class="ulm parents" style="float:left;width:262px"></div>');
 			var children = $('<div class="ulm children"style="float:left"></div>');
 
-			this.tablearea.append(p, parents, children);
+			this.dialog.append(p, parents, children);
 			this.build_root(this.options.root);
+			this.setaction(this.options.action);
 
+			if (!this.options.embed) {
+				this.dialog.attr("title", "Relationships");
+				this.dialog.dialog({
+					width: 840,
+					height: 600, 
+					autoOpen: true,
+					modal: true
+				});
+			}
 		},
 		
 		// Send the RPC request to get info to build (or rebuild) the root element..
 		build_root: function(key) {
 			var self = this;
-
+			this.options.root = key;
+			
 			// Set the root..
-			$('input[name=root]', this.element).val(key);
+			$('input[name=root]', this.dialog).val(key);
 
+			var children_ul = $('.ulm.children', this.dialog);
+			var parents_ul = $('.ulm.parents', this.dialog);
 
-			var children_ul = $('.ulm.children', this.element);
-			var parents_ul = $('.ulm.parents', this.element);
 			parents_ul.empty();			
 			parents_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
 			children_ul.empty();
-			//children_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
 
 			// Rebuild the root element
 			var root_img = $('<img class="expand" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+self.options.mode+'.png" />');
 			var root_a = $('<a data-key="'+key+'">'+this.getname(key)+'</a>');
-			var root_li = $('<li></ul>');
+			var root_li = $('<li></li>');
 			root_li.append(root_a, root_img);
 			var root_ul = $('<ul></ul>');
 			root_ul.append(root_li);
@@ -141,7 +125,7 @@
 					parents_ul.empty();				
 					var ul = $('<ul></ul>');
 					$.each(parents, function() {
-						var i = $('<li><a href="'+EMEN2WEBROOT+'/'+self.options.keytype+'/'+this+'" data-key="'+this+'">'+self.getname(this)+'</a></li>');
+						var i = $('<li><a href="'+EMEN2WEBROOT+'/'+self.options.keytype+'/'+this+'" data-key="'+this+'" data-child="'+self.options.root+'">'+self.getname(this)+'</a></li>');
 						ul.append(i);
 					});
 					parents_ul.append(ul);
@@ -154,43 +138,148 @@
 
 				});
 			})
-
 		},
 
 		setaction: function(action) {
-			//var oldaction = this.options.action;
-			//if (oldaction == this.options.action) {return}
-			// var select_actions = ['move', 'copy', 'delete'];
-			// var add_actions = ['addparent', 'addchild']
-			// if ($.inArray(oldaction, select_actions) == $.inArray(action, add_actions)) {
-			// 	console.log("changing tool from", oldaction, newaction);
-			// }
+			
 			this.options.action = action;
-			$(".mapselect", this.element).each(function(){$(this).removeClass('mapselect')})
+			var self = this;
+			
+			// Empty action tool box, and unselect any selected records
+			$('.action', this.dialog).empty();
+			$(".mapselect", this.dialog).each(function(){$(this).removeClass('mapselect')})
+
+			// Tool selector
+			var action = $('<select style="font-size:10pt"> \
+				<option value="reroot">Navigate</option> \
+				<option value="move">Move</option> \
+				<option value="delete">Delete</option> \
+				<option value="addparent">Add Parent</option> \
+				<option value="addchild">Add Child</option> \
+				</select>');				
+			action.val(this.options.action);
+			action.change(function() {
+				self.setaction($(this).val());
+			});
+			
+			// Record selector
+			var selector1 = $('<input name="root" type="text" size="6" value="'+this.options.root+'" />');
+			var selector2 = $('<input name="select" type="button" value="'+this.options.selecttext+'" />');
+			selector1.keypress(function() {
+				$('input[name=select]', self.dialog).val("Go To").data("reroot", true);
+			})
+			selector2.click(function() {
+				var reroot = $(this).data("reroot");
+				var key = $("input[name=root]", self.dialog).val();
+				if (reroot) {
+					$(this).data("reroot", false);
+					$(this).val(self.options.selecttext);
+					self.build_root(key);
+				} else {
+					self.dialog.dialog('close');
+					self.options.cb(key);
+				}
+			});
+
+			if (this.options.action == 'select') {
+				$('.action', this.dialog).append(selector1, selector2);			
+			} else {
+				$('.action', this.dialog).append('<span>Current Tool: </span>', action);				
+			}
+
 		},
+		
+		/////////////////////////////////////////
+		// Actions
+		/////////////////////////////////////////
 		
 		action: function(e) {
 			var self = this;
 			var target = $(e.target);
-			var key = target.attr('data-key')
+			var key = target.attr('data-key');
 			if (this.options.action == null) {return}				
 			e.preventDefault();
 
 			// some tool specific behaviors..
-			var parent = target.attr('data-parent');
-			if (this.options.action == "move" || this.options.action == "copy" || this.options.action == "delete" || this.options.action == "select") {
-				if (parent != null) {							
+
+			if (this.options.action == "move" || this.options.action == "copy") {
+
+				if (target.attr('data-parent') != null) {							
 					target.toggleClass("mapselect");
 				}
-			} else if (this.options.action == "addparent" || this.options.action == "addchild") {
+				
+			} else if (this.options.action == "delete") {
 
-			} else if (this.options.action == "reroot") {
+				var parent = target.attr('data-parent');
+				var child = target.attr('data-child');
+				self._action_delete(key, parent, child);
+				
+			} else if (this.options.action == "addparent") {
+
+				var cb = function(parent) {self._action_addrel(parent, key)}
+				var i = $('<div></div>');
+				i.RelationshipControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});				
+
+			} else if (this.options.action == "addchild") {
+
+				var cb = function(child) {self._action_addrel(key, child)}
+				var i = $('<div></div>');
+				i.RelationshipControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
+
+			} else if (this.options.action == "reroot" || this.options.action == "select") {
+
 				// rebuild the root..
 				this.build_root(key);
+
 			}
 		},
 		
+		_action_delete: function(key, parent, child) {
+			var self = this;
+			
+			if (child != null) {
+				var rmlink = [key, child];
+			} else if (parent != null) {
+				var rmlink = [parent, key];
+			} else {
+				return
+			}
+			
+			var d = $('<div title="Confirm"> \
+				Do you want to remove this link? \
+				<h3>Parent:</h3><a href="'+EMEN2WEBROOT+'/'+this.options.keytype+'/'+rmlink[0]+'/">'+self.getname(rmlink[0])+'</a> \
+				<h3>Child:</h3><a href="'+EMEN2WEBROOT+'/'+this.options.keytype+'/'+rmlink[1]+'/">'+self.getname(rmlink[1])+'</a></div>');
+				
+			d.dialog({
+				//height: 350,
+				modal: true,
+				buttons: {
+					"OK": function() {
+						$(this).dialog("close");
+						$.jsonRPC("pcunlink", [rmlink[0], rmlink[1], self.options.keytype], function() {
+							self.build_root(self.options.root);			
+						});
+					},
+					Cancel: function() {$(this).dialog("close")}
+				}});			
+
+		},
+		
+		_action_addrel: function(parent, child) {
+			//console.log("Adding rel", parent, child);
+			var self = this;
+			$.jsonRPC("pclink", [parent, child, this.options.keytype], function() {
+				self.refresh(parent);
+			});
+		},	
+		
 		dropaction: function(e, ui) {
+			if (this.options.action == "move") {
+				this._drop_move(e, ui);
+			}
+		},
+		
+		_drop_move: function(e, ui) {
 			var self = this;
 			var target = $(e.target);
 			var rels = $(ui.helper).data('keys');
@@ -210,13 +299,13 @@
 				buttons: {
 					"OK": function() {
 						$(this).dialog( "close" );
-						// console.log(rels, newrels);
-						// $.jsonRPC("pcrelink", [rels, newrels], function() {
-						// 	$.each(refresh, function() {
-						// 		self.refresh(this);
-						// 		// needs a fade-out effect......
-						// 	})
-						// });
+						console.log(rels, newrels);
+						$.jsonRPC("pcrelink", [rels, newrels], function() {
+							self.build_root(self.options.root);
+							// $.each(refresh, function() {
+							// 	self.refresh(this);
+							// })
+						});
 					},
 					Cancel: function() {
 						$(this).dialog( "close" );
@@ -224,6 +313,7 @@
 				}
 			});			
 		},
+				
 	
 		///////////////////
 		// Map Select...
@@ -232,7 +322,7 @@
 		getselected: function(target) {
 			var keys = [];
 
-			$('a.mapselect', this.element).each(function() {
+			$('a.mapselect', this.dialog).each(function() {
 				var parent = $(this).attr('data-parent');
 				var key = $(this).attr('data-key');
 				keys.push([parent,key]);
@@ -298,7 +388,7 @@
 		// rebuild all branches for key
 		refresh: function(key) {
 			var self = this;
-			$('a[data-key='+key+']').each(function() {
+			$('a[data-key='+key+']', this.dialog).each(function() {
 				self.expand($(this).parent());
 			});
 		},
@@ -322,7 +412,7 @@
 		
 		// rebuild a branch
 		expand: function(elem) {
-			// elem is the LI			
+			// elem is the LI
 			var self = this;
 			var key = elem.children('a').attr('data-key');
 			var img = elem.children('img');
@@ -335,7 +425,7 @@
 			if (this.options.mode == "parents") {
 				method = "getparenttree";
 			}
-		
+			
 			$.jsonRPC(method, [key, 2, null, this.options.keytype], function(tree){
 				// put these in the cache..
 				$.each(tree, function(k,v) {
