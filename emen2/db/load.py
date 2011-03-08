@@ -174,13 +174,21 @@ class Loader(object):
 
 
 if __name__ == "__main__":
-	try:
-		path = sys.argv[1]
-	except:
-		path = "."
+	# try:
+	# 	path = sys.argv[1]
+	# except:
+	# 	path = "."
+		
+	parser = emen2.db.config.DBOptions()
+	(options, args) = parser.parse_args()
+
+	path = "."
+	if len(args) > 0:
+		path=args[0]
 
 	import emen2.db.admin
 	db = emen2.db.admin.opendb()
+
 	with db:
 		l = Loader(path=path, db=db)
 		l.load()	
