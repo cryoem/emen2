@@ -182,12 +182,11 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def _checksecret(self, action, args, secret):
-		print "Checking secret:"
-		print action, args, secret
-		print self._secret
-		
 		if self._ctx.checkadmin():
 			return True
+			
+		if not hasattr(self, "_secret"):
+			self._secret = None			
 			
 		# This should check expiration time...
 		if action and secret and self._secret:
@@ -198,6 +197,9 @@ class User(emen2.db.dataobject.BaseDBObject):
 
 
 	def _setsecret(self, action, args):
+		if not hasattr(self, "_secret"):
+			self._secret = None
+
 		if self._secret:
 			if action == self._secret[0] and args == self._secret[1]:
 				return
