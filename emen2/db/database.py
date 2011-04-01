@@ -1245,17 +1245,16 @@ class DB(object):
 		_c = []
 		default = [None, 'any', None]
 		for i in c:
+			# A simple constraint is [param, "any", None]
 			if not hasattr(i, "__iter__"):
 				i = [i]
 			i = i[:len(i)]+default[len(i):3]
 			_c.append(i)
-		_cm, _cc = emen2.util.listops.filter_partition(lambda x:x[0].startswith('$@'), _c)		
+		_cm, _cc = emen2.util.listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)		
 		
-		# sortkey = self._query_paramstrip(sortkey)
 		recs = collections.defaultdict(dict)
 
 		# Step 1: Run constraints
-		# print "step 1"
 		for searchparam, comp, value in _cc:
 			# Matching recids for each step
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
@@ -1265,18 +1264,16 @@ class DB(object):
 				getattr(recids, boolops[boolmode])(constraintmatches)
 				
 		
-		# Step 2: Filter permissions. If no constraint, return all records.
-		# print "step 2"
+		# Step 2: Filter permissions. If no constraint, use all records..
+		if recids == None:
+			recids = self.getindexbycontext(ctx=ctx, txn=txn)
 		if subset:
 			recids &= subset
-		if c: # and recids != None
+		if c:
 			recids = self._filterbypermissions(recids or set(), ctx=ctx, txn=txn)
-		else:
-			recids = self.getindexbycontext(ctx=ctx, txn=txn)
-
-		
-		# Step 3: Run constraints that include macros
-		# print "step 3"
+			
+			
+		# Step 3: Run constraints that include macros or "value is empty"
 		for searchparam, comp, value in _cm:
 			constraintmatches = self._query(searchparam, comp, value, recids=recids, recs=recs, ctx=ctx, txn=txn)
 			if constraintmatches != None:
@@ -1284,10 +1281,9 @@ class DB(object):
 
 
 		# Step 4: Sort and slice to the right range
-		# print "step 4"
 
 		# This processes the values for sorting: running any macros, rendering any usernames, checking indexes, etc.
-		keytype, sortvalues = self._run_sortrender(sortkey, recids, recs=recs, c=c, ctx=ctx, txn=txn)
+		keytype, sortvalues = self._query_sort(sortkey, recids, recs=recs, c=c, ctx=ctx, txn=txn)
 
 		key = sortvalues.get
 		if sortkey == 'creationtime' or sortkey == 'recid':
@@ -1311,16 +1307,45 @@ class DB(object):
 			recids = recids[pos:pos+count]
 		
 				
-		# Step 5: Fix for output
-		# print "step 5"
-		
+			
+		# Step 5: Rendered....
+		# This is purely a convenience to save a callback
+		def add_to_viewdef(viewdef, param):
+			if not param.startswith('$'):
+				param = '$$%s'%i
+			if param in ['$$children','$$rectype', '$$parents']:
+				pass
+			elif param not in viewdef:
+				viewdef.append(i)
+
+		if table:			
+			defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
+
+			# If we're looking at a particular recorddef...
+			rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
+			if len(rds) == 1:
+				rd = self.getrecorddef(rds.pop(), ctx=ctx, txn=txn)
+				viewdef = rd.views.get('tabularview', defaultviewdef)
+			else:
+				viewdef = self.getrecorddef(["root", "root_protocol"], ctx=ctx, txn=txn).pop().views.get('tabularview', defaultviewdef)
+
+			viewdef = viewdef.split()
+			if "$$creator" in viewdef:
+				viewdef.remove("$$creator")
+			if "$$creationtime" in viewdef:
+				viewdef.remove("$$creationtime")
+			for i in [i[0] for i in c] + ["$$creator","$$creationtime"]:
+				add_to_viewdef(viewdef, i)
+			viewdef = " ".join(viewdef)
+			table = self.renderview(recids, viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
+
+
+
+		# Step 6: Fix for output
 		for recid in recids:
 			recs[recid]['recid'] = recid
 		recs = [recs[i] for i in recids]
 
-
-		# Step 6: Rendered....
-		# ian: todo		
 		ret = {
 			"c": c,
 			"boolmode": boolmode,
@@ -1335,20 +1360,16 @@ class DB(object):
 		}
 		if returnrecs:
 			ret['recs'] = recs
-
-
-		# This is purely a convenience to save a callback
 		if table:
-			viewdef = "$@recname() $@thumbnail() $$rectype $$recid"
-			ret['table'] = self.renderview(recids, viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
-
+			ret['table'] = table
+		
 
 		return ret
 
 
 
 
-	def _run_sortrender(self, sortkey, recids, recs=None, rendered=False, c=None, ctx=None, txn=None):
+	def _query_sort(self, sortkey, recids, recs=None, rendered=False, c=None, ctx=None, txn=None):
 
 		# No work necessary if sortkey is creationtime
 		if sortkey == 'creationtime' or sortkey == 'recid':
@@ -1364,13 +1385,16 @@ class DB(object):
 		sortvalues = {}
 		vartype = None
 		keytype = None
+		iterable = False
 		ind = False
 		
 		# Check the paramdef
 		try:
 			pd = self.bdbs.paramdefs.get(sortkey, txn=txn)
 			vartype = pd.vartype
-			keytype = vtm.getvartype(vartype).keytype
+			vt = vtm.getvartype(vartype)
+			keytype = vt.keytype
+			iterable = vt.iterable
 			ind = self._getindex(pd.name)
 		except:
 			pass
@@ -1381,9 +1405,9 @@ class DB(object):
 			rendered = True				
 
 
-		if sortkey in [i[0] for i in c]:
+		# Ian: todo: if the vartype is iterable, then we can't trust the index to get the search order right!
+		if sortkey in [i[0] for i in c] and not iterable:
 			# Do we already have these values?
-			# sortvalues = dict((k, v.get(sortkey)) for k,v in recs.items())
 			for recid in recids:
 				sortvalues[recid] = recs[recid].get(sortkey)
 
@@ -1393,7 +1417,7 @@ class DB(object):
 			for k,v in sortvalues.items():
 				recs[k][sortkey] = v
 
-		elif not ind or len(recids) < 1000:
+		elif not ind or len(recids) < 1000 or iterable:
 			# We don't have the value, no index.. 
 			# Can be very slow! Chunk to limit damage.
 			for chunk in emen2.util.listops.chunk(recids):
@@ -1422,9 +1446,10 @@ class DB(object):
 			if not inverted:
 				for k,v in sortvalues.items():
 					try:
-						inverted[rec.get(sortkey)].add(rec['recid'])
-					except TypeError:
-						inverted[tuple(rec.get(sortkey))].add(rec['recid'])
+						inverted[v].add(k)
+					except TypeError: 
+						# Handle iterable vartypes, e.g. userlist
+						inverted[tuple(v)].add(k)
 
 			sortvalues = {}
 			for k,v in inverted.items():
@@ -1443,18 +1468,16 @@ class DB(object):
 
 		if recs == None:
 			recs = {}
-		if recids == None:
-			recids = set()
-			
+
 		cfunc = self._query_cmps()[comp]
 			
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
 			
-			
+						
 		# Sadly, will need to run macro on everything.. :( Run these as the last constraints.
 		if searchparam.startswith('$@'):
-			keytype, ret = self._run_macro(searchparam, recids, ctx=ctx, txn=txn)
+			keytype, ret = self._run_macro(searchparam, recids or set(), ctx=ctx, txn=txn)
 			# *minimal* validation of input..
 			if keytype == 'd':
 				value = int(value)
@@ -1475,7 +1498,7 @@ class DB(object):
 		vtm = emen2.db.datatypes.VartypeManager()
 		matchkeys = collections.defaultdict(set)
 		indparams = set()
-		recids = set()		
+		searchrecids = set()		
 		
 		if searchparam == 'rectype' and value:
 			# Get child protocols, skip the index-index search
@@ -1492,7 +1515,7 @@ class DB(object):
 				value = int(unicode(value).replace('*', ''))
 				recurse = -1
 			recs[value]['children'] = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
-			recids = recs[value]['children']
+			searchrecids = recs[value]['children']
 
 		else:
 			# Get the list of indexes to search
@@ -1505,27 +1528,30 @@ class DB(object):
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
 			ik = self.bdbs.indexkeys.get(indparam, txn=txn)
+
+			# Don't need to validate these
+			if comp in ['any', 'none', 'noop']:
+				matchkeys[indparam] = ik
+				continue
+				
+			# Validate for comparisons (vartype, units..)	
 			try:
 				cargs = vtm.validate(pd, value, db=ctx.db)
 			except Exception, inst:
-				# print "Validation Error:", inst
 				continue
-
-			# Get the index-index
-			r = set()
 
 			# Special case for nested iterables (e.g. permissions) --
 			# 		they validate as list of lists
 			if pd.name == 'permissions':
 				cargs = emen2.util.listops.combine(*cargs)
 
-			# Support for iterable vartypes
+			# None will never be indexed; should this just continue?
 			if cargs == None:
 				cargs = [None]
 				
+			r = set()
 			for v in emen2.util.listops.check_iterable(cargs):
 				r |= set(filter(functools.partial(cfunc, v), ik))
-				# print "->", v, len(r)
 
 			if r:
 				matchkeys[indparam] = r
@@ -1536,11 +1562,18 @@ class DB(object):
 			ind = self._getindex(pp, ctx=ctx, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
-				recids |= v 
+				searchrecids |= v 
 				for v2 in v:
 					recs[v2][pp] = key
 
-		return recids
+		# If the comparison is "value is empty", then we return only values we didn't find anything for
+		# 'No constraint' doesn't affect search results -- just store the values.
+		if comp == 'noop':
+			return None
+		elif comp == 'none':
+			return (recids or set()) - searchrecids
+			
+		return searchrecids
 
 
 
@@ -1563,8 +1596,9 @@ class DB(object):
 			'none': lambda y,x: x != None,
 			"contains": lambda y,x:unicode(y) in unicode(x),
 			'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
+			'noop': lambda y,x: True,
 			'recid': lambda y,x: x,
-			'rectype': lambda y,x: x
+			#'rectype': lambda y,x: x,
 			# "!contains": lambda y,x:unicode(y) not in unicode(x),
 			# "range": lambda x,y,z: y < x < z
 		}

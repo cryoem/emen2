@@ -49,11 +49,6 @@
 			var spinner = $('<div style="float:right"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$('.header', this.element).append(spinner);
 						
-			$('.plot', this.element).PlotControl({
-				q:this.options.q,
-				cb: function(test, newq) {self.query(newq)} 
-			});						
-
 			// Set the control values from the current query state
 			this.update_controls();
 
@@ -183,7 +178,6 @@
 		
 		update: function(q) {
 			this.options.q = q;
-			$('.plot', this.element).PlotControl('update', this.options.q);
 			$('.header .query').QueryControl('update', this.options.q)					
 			$('.header .querycontrol').EditbarHelper('hide');
 			this.update_controls();
@@ -193,17 +187,21 @@
 		
 		update_controls: function() {
 			var self = this;
-			
-			$('.header .length').html(this.options.q['length'] + ' Records');			
-			// $('.header select[name=count]').val(this.options.q['count']);
+			$('.header .length').html(this.options.q['length'] + ' Records');
+
+			var pages = $('.header .pages');
+			pages.empty();
+			var count = this.options.q['count'];
+			var l = this.options.q['length'];
+			if (count == -1 || count > l || l == 0) {
+				//pages.append("All Records");
+				return
+			}
 			
 			var current = (this.options.q['pos'] / this.options.q['count']);
 			var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
-			var pages = $('.header .pages');
-			pages.empty();
 			
 			var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
-			
 			var p1 = $('<span data-pos="0" class="clickable clickable_box">&laquo;</span>').click(setpos);
 			var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable clickable_box">&lsaquo;</span>').click(setpos);
 			var pc = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');

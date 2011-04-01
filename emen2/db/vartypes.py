@@ -26,6 +26,7 @@ g = emen2.db.config.g()
 class Vartype(object):
 
 	keytype = None
+	iterable = False
 
 	@staticmethod
 	def register_view(name, bases, dict):
@@ -160,6 +161,9 @@ class Vartype(object):
 
 
 class vt_iter(object):
+
+	iterable = True
+
 	def reindex(self, items):
 		# items format: [recid, newval, oldval]
 		addrefs = collections.defaultdict(set)
@@ -250,6 +254,8 @@ class vt_intlist(vt_iter, vt_int):
 class vt_intlistlist(vt_int):
 	"""list of int tuples: e.g. [[1,2],[3,4], ..]"""
 	__metaclass__ = Vartype.register_view
+
+	iterable = True
 	keytype = None
 
 	def validate(self, engine, pd, value, db):
@@ -351,6 +357,8 @@ class vt_choicelist(vt_iter, vt_string):
 class vt_text(vt_string):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
 	__metaclass__ = Vartype.register_view
+	
+	iterable = True
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value != None:
@@ -513,7 +521,7 @@ class vt_binary(vt_iter, Vartype):
 class vt_binaryimage(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
 	__metaclass__ = Vartype.register_view
-        keytype = None
+	keytype = None
 
 	def render_html(self, engine, pd, value, rec, db, edit=False, showlabel=True, lt=False):
 		if value != None:
@@ -667,7 +675,7 @@ class vt_acl(Vartype):
 	__metaclass__ = Vartype.register_view
 	__vartype__ = "acl"
 	keytype = "s"
-
+	iterable = True
 
 	def validate(self, engine, pd, value, db):
 		# print "acl validating: ", value
