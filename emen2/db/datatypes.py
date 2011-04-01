@@ -138,13 +138,16 @@ class VartypeManager(object):
 		return ret
 
 
-	def getvartype(self,name):
+	def getkeytype(self, name):
+		pass
+
+	def getvartype(self, name):
 		return self._vartypes[name]()
 
-	def getproperty(self,name):
+	def getproperty(self, name):
 		return self._properties[name]()
 
-	def getmacro(self,name):
+	def getmacro(self, name):
 		return self._macros[name]()
 
 

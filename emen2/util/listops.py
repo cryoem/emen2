@@ -111,6 +111,19 @@ def groupchunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 
 
 
+
+def filter_partition(func, iter_):
+	t = []
+	f = []
+	for i in iter_:
+		if func(i) == True:
+			t.append(i)
+		else:
+			f.append(i)
+	return t, f
+	
+
+
 def partition(iter_, char):
 	'''partition iterable on given element
 

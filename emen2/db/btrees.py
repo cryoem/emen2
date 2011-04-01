@@ -5,7 +5,7 @@ import sys
 import time
 import weakref
 import collections
-
+import copy
 import bsddb3
 
 
@@ -589,14 +589,8 @@ class FieldBTree(BTree):
 		return list(keys)
 
 
-	# ian: todo: fix..
+
 	def items(self, txn=None, flags=0):
-		# r = self.bdb.items(txn)
-		# r2 = collections.defaultdict(set)
-		# for k,v in r:
-		# 	r2[self.loadkey(k)].add(int(v))
-		# return r2.items()
-		
 		ret = []
 		dt = self.datatype or "p"
 		cursor = self.bdb.cursor(txn=txn)
@@ -610,6 +604,60 @@ class FieldBTree(BTree):
 		cursor.close()
 		
 		return ret
+
+
+
+	def iteritems(self, minkey=None, txn=None, flags=0):
+		ret = []
+		dt = self.datatype or "p"
+		cursor = self.bdb.cursor(txn=txn)
+		pair = cursor.first()
+		while pair != None:
+			data = self._get_method(cursor, pair[0], dt)
+			if bulk and dt == "p":
+				data = set(map(self.loaddata, data))
+			yield (self.loadkey(pair[0]), data)
+			pair = cursor.next_nodup()
+
+		cursor.close()
+
+
+
+	def iterfind(self, items, minkey=None, maxkey=None, txn=None, flags=0):
+		"""Searches the index until it finds all specified items"""
+		itemscopy = copy.copy(items)
+		lenitems = len(itemscopy)
+
+		processed = 0
+		found = 0
+		ret = {}
+		
+		dt = self.datatype or "p"
+		cursor = self.bdb.cursor(txn=txn)
+		pair = cursor.first()
+		while pair != None:
+			processed += 1
+			data = self._get_method(cursor, pair[0], dt)
+			if bulk and dt == "p":
+				data = set(map(self.loaddata, data))
+
+			c = data & itemscopy
+			if c:
+				itemscopy -= c
+				found += len(c)				
+				# print "processed %s keys, %s items left to go"%(processed, lenitems-found)
+				# ret[self.loadkey(pair[0])] = c
+				yield (self.loadkey(pair[0]), c)
+
+			if found >= lenitems:
+				break
+			else:
+				pair = cursor.next_nodup()
+		
+		# print "Done; processed %s keys"%processed
+		cursor.close()		
+		# return ret
+			
 
 
 	#def values(self, txn=None, flags=0):

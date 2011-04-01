@@ -1219,253 +1219,294 @@ class DB(object):
 
 
 	@publicmethod("records.find.query")
-	def query(self, c=None, boolmode=None, ignorecase=None, subset=None, ctx=None, txn=None, **kwargs):
-		"""Query. New docstring coming soon."""
+	def query(self, 
+			c=None, 
+			boolmode="AND", 
+			ignorecase=True, 
+			subset=None, 
+			pos=0, 
+			count=-1, 
+			sortkey="creationtime", 
+			reverse=False,
+			recs=False,
+			table=False,
+			ctx=None,
+			txn=None,
+			**kwargs):
+		"""Query"""
 
-		# Setup defaults
-		if not c:
-			c = []
-
-		if ignorecase == None:
-			ignorecase = 1
-		ignorecase = int(ignorecase)
-
-		boolmode = boolmode or "AND"
-		if boolmode == "AND":
-			boolop = "intersection_update"
-		elif boolmode == "OR":
-			boolop = "update"
-		else:
-			raise Exception, "Invalid boolean mode: %s. Must be AND, OR"%boolmode
-
-		vtm = emen2.db.datatypes.VartypeManager()
+		# Setup
+		returnrecs = bool(recs)
+		boolops = {"AND":"intersection_update", "OR":"update"}
 		recids = None
 
-		# Query Step 1: Run constraints
-		groupby = {}
-		for searchparam, comp, value in c:
-			constraintmatches = self._query_constraint(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+		# Process the query constraints..
+		c = c or []
+		_c = []
+		default = [None, 'any', None]
+		for i in c:
+			if not hasattr(i, "__iter__"):
+				i = [i]
+			i = i[:len(i)]+default[len(i):3]
+			_c.append(i)
+		_cm, _cc = emen2.util.listops.filter_partition(lambda x:x[0].startswith('$@'), _c)		
+		
+		# sortkey = self._query_paramstrip(sortkey)
+		recs = collections.defaultdict(dict)
 
-			if recids == None:
-				# For the first constraint..
+		# Step 1: Run constraints
+		# print "step 1"
+		for searchparam, comp, value in _cc:
+			# Matching recids for each step
+			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
+			if recids == None: # For the first constraint..
 				recids = constraintmatches
-			elif comp == "None":
-				# ian: temp support for value == None:
-				recids -= constraintmatches
-			elif constraintmatches != None:
-				# query_constraint returns None is a no-op
-				getattr(recids, boolop)(constraintmatches)
-
-
-		# Step 2: Filter permissions
-		if c:
-			recids = self._filterbypermissions(recids or set(), ctx=ctx, txn=txn)
-		else:
-			# ... these are already filtered, so insert the result of an empty query here.
-			recids = self.getindexbycontext(ctx=ctx, txn=txn)
-
+			elif constraintmatches != None: # Apply AND/OR
+				getattr(recids, boolops[boolmode])(constraintmatches)
+				
+		
+		# Step 2: Filter permissions. If no constraint, return all records.
+		# print "step 2"
 		if subset:
 			recids &= subset
+		if c: # and recids != None
+			recids = self._filterbypermissions(recids or set(), ctx=ctx, txn=txn)
+		else:
+			recids = self.getindexbycontext(ctx=ctx, txn=txn)
+
+		
+		# Step 3: Run constraints that include macros
+		# print "step 3"
+		for searchparam, comp, value in _cm:
+			constraintmatches = self._query(searchparam, comp, value, recids=recids, recs=recs, ctx=ctx, txn=txn)
+			if constraintmatches != None:
+				getattr(recids, boolops[boolmode])(constraintmatches)
 
 
-		# Step 3: Group
-		groups = collections.defaultdict(dict)
-		for groupparam, keys in groupby.items():
-			self._query_groupby(groupparam, keys, groups=groups, recids=recids, ctx=ctx, txn=txn)
+		# Step 4: Sort and slice to the right range
+		# print "step 4"
+
+		# This processes the values for sorting: running any macros, rendering any usernames, checking indexes, etc.
+		keytype, sortvalues = self._run_sortrender(sortkey, recids, recs=recs, c=c, ctx=ctx, txn=txn)
+
+		key = sortvalues.get
+		if sortkey == 'creationtime' or sortkey == 'recid':
+			key = None
+		elif keytype == 's':
+			key = lambda recid:(sortvalues.get(recid) or '').lower()
+		
+		# We want to put empty values at the end..
+		nonerecids = set(filter(lambda x:not (sortvalues.get(x) or sortvalues.get(x)==0), recids))
+		recids -= nonerecids
+
+		# not using reverse=reverse so we can add nonerecids at the end
+		recids = sorted(recids, key=key) 
+		recids.extend(sorted(nonerecids))
+		if reverse:
+			recids.reverse()
+		
+		# Truncate results.
+		length = len(recids)
+		if count > 0:
+			recids = recids[pos:pos+count]
+		
+				
+		# Step 5: Fix for output
+		# print "step 5"
+		
+		for recid in recids:
+			recs[recid]['recid'] = recid
+		recs = [recs[i] for i in recids]
 
 
+		# Step 6: Rendered....
+		# ian: todo		
 		ret = {
 			"c": c,
 			"boolmode": boolmode,
 			"ignorecase": ignorecase,
 			"recids": recids,
-			"groups": groups,
-			"subset": subset
+			"subset": subset,
+			"pos": pos,
+			"count": count,
+			"length": length,
+			"sortkey": sortkey,
+			"reverse": reverse
 		}
+		if returnrecs:
+			ret['recs'] = recs
+
+
+		# This is purely a convenience to save a callback
+		if table:
+			viewdef = "$@recname() $@thumbnail() $$rectype $$recid"
+			ret['table'] = self.renderview(recids, viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
+
+
 		return ret
 
 
 
-	# query test...
-	def _parse_macro(self, macro, ctx=None, txn=None):
-		r = re.compile(VIEW_REGEX).search(macro)
-		return r.group('name'), r.group('args')
 
+	def _run_sortrender(self, sortkey, recids, recs=None, rendered=False, c=None, ctx=None, txn=None):
 
+		# No work necessary if sortkey is creationtime
+		if sortkey == 'creationtime' or sortkey == 'recid':
+			return 's', {}
 
-	def _process_macro(self, macro, recs=None, recids=None, ctx=None, txn=None):
-		name, args = self._parse_macro(macro)
-		# print "Process macro: ", name, args
-		# Calling out to vtm, we will need a DBProxy
+		# Setup
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 
-		ret = collections.defaultdict(set)
-		recs = recs or self.getrecord(recids, ctx=ctx, txn=txn)
-		vtm.macro_preprocess(name, args, recs, db=dbp)
-		# print "processing..."
-		# print recs
-		rmap = {}
-		for rec in recs:
-			ret[vtm.macro_render(name, args, rec, db=dbp)].add(rec.recid)
-			# print rec.recid, ret[rec.recid]
-		return ret
-
-
-
-	def _query_groupby(self, groupparam, keys, groups=None, recids=None, ctx=None, txn=None):
-		"""(Internal) Group query constraints"""
-
-		#print "\n== running groupby: %s"%(groupparam)
-
-		param = self._query_paramstrip(groupparam)
-
-		if param.startswith('$@'):
-			# Macro constraints are passed, and processed at the end, after other constraints, to minimize processing
-			groups[param] = self._process_macro(param, recids=recids, ctx=ctx, txn=txn)
-
-
-		elif param == "rectype":
-			groups["rectype"] = self.groupbyrecorddef(recids, ctx=ctx, txn=txn)
-
-
-		elif param == "children":
-			# keys is parent rectypes...
-			parentrectype = self.getindexbyrecorddef(keys, ctx=ctx, txn=txn)
-			# recurse=-1 for all parents
-			parenttree = self.getparents(recids, recurse=-1, ctx=ctx, txn=txn)
-			parentgroups = collections.defaultdict(set)
-			for k,v in parenttree.items():
-				v2 = v & parentrectype
-				for i in v2:
-					parentgroups[i].add(k)
-			if parentgroups:
-				groups["parent"] = dict(parentgroups)
-
-
-		else:
-			if not keys: return
-
-			ind = self._getindex(param, ctx=ctx, txn=txn)
-			for key in keys:
-				v = ind.get(key, txn=txn)
-				v2 = v & recids
-				if v2: groups[param][key] = v2
-				# dropped support for this..use $@parentvalue
-				# if "^" in groupparam:
-				# 	children = self.getchildren(v, recurse=-1, ctx=ctx, txn=txn)
-				# 	for i in v:
-				# 		v2 = children.get(i, set()) & recids
-				# 		if v2: groups[param][key] = v2
-
-
-
-
-	def _query_constraint(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
-		param = self._query_paramstrip(searchparam)
-		value = unicode(value)
-
-		recurse = 0
-		if '*' in value:
-			value = value.replace('*', '')
-			recurse = -1
-
-		if value == "":
-			value = None
-
-		subset = None
-
-		#print "\n== running constraint: %s/%s %s %s"%(searchparam, param, comp, value)
-
-		# A case selector of different search operations to perform. Some of these index searches could be inlined to avoid checking permissions multiple times.
-		if param.startswith('$@'):
-			groupby[param] = {}
+		inverted = collections.defaultdict(set)
+		c = c or []
+		sortvalues = {}
+		vartype = None
+		keytype = None
+		ind = False
+		
+		# Check the paramdef
+		try:
+			pd = self.bdbs.paramdefs.get(sortkey, txn=txn)
+			vartype = pd.vartype
+			keytype = vtm.getvartype(vartype).keytype
+			ind = self._getindex(pd.name)
+		except:
 			pass
 
 
-		elif param == "rectype":
-			if comp == "==" and value != None:
-				if recurse == -1:
-					ovalue = value
-					value = self.getchildren(value, recurse=recurse, keytype="recorddef", ctx=ctx, txn=txn)
-					value.add(ovalue)
-				subset = self.getindexbyrecorddef(value, ctx=ctx, txn=txn)
-			groupby["rectype"] = None
+		# These will always sort using the rendered value
+		if vartype in ["user", "userlist", "binary", "binaryimage"]:
+			rendered = True				
 
 
-		elif param == "recid":
-			subset = set([int(value)])
+		if sortkey in [i[0] for i in c]:
+			# Do we already have these values?
+			# sortvalues = dict((k, v.get(sortkey)) for k,v in recs.items())
+			for recid in recids:
+				sortvalues[recid] = recs[recid].get(sortkey)
 
+		elif sortkey.startswith('$@'):
+			# Sort using a macro, and get the right sort function
+			keytype, sortvalues = self._run_macro(sortkey, recids, ctx=ctx, txn=txn)
+			for k,v in sortvalues.items():
+				recs[k][sortkey] = v
 
-		elif param == "children":
-			if comp == "recid" and value != None:
-				subset = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
+		elif not ind or len(recids) < 1000:
+			# We don't have the value, no index.. 
+			# Can be very slow! Chunk to limit damage.
+			for chunk in emen2.util.listops.chunk(recids):
+				for rec in self.getrecord(chunk, ctx=ctx, txn=txn):
+					sortvalues[rec.recid] = rec.get(sortkey)
+			for k,v in sortvalues.items():
+				recs[k][sortkey] = v
 
-			if comp == "rectype":
-				groupby["parent"] = value
-
-
-		elif param == "parents":
-			if comp == "recid" and value != None:
-				subset = self.getparents(value, recurse=recurse, ctx=ctx, txn=txn)
-
-		# these are no longer special indexes
-		# elif param == "groups":
-		# 	if comp == "contains" and value != None:
-		# 		ind = self._getindex("groups", ctx=ctx, txn=txn)
-		# 		subset = ind.get(value, txn=txn)
-		#
-		# elif param == "permissions":
-		# 	if comp == "contains" and value != None:
-		# 		ind = self._getindex("permissions", ctx=ctx, txn=txn)
-		# 		subset = ind.get(value, txn=txn)
-
-		elif param:
-			subset = self._query_index(searchparam, comp, value, groupby=groupby, ctx=ctx, txn=txn)
+		elif ind:
+			# We don't have the value, but there is an index..
+			# modifytime is kindof a pathological index.. need to find a better way
+			for k,v in ind.iterfind(recids, txn=txn):
+				inverted[k] = v
+			sortvalues = emen2.util.listops.invert(inverted)
+			for k,v in sortvalues.items():
+				recs[k][sortkey] = v
 
 		else:
+			# raise ValueError, "Don't know how to sort by %s"%sortkey
 			pass
+		
 
+		# Use a "rendered" representation of the value, e.g. usernames to sort by user's current last name
+		if rendered:
+			# Invert again.. then render. This will save time on users.
+			if not inverted:
+				for k,v in sortvalues.items():
+					try:
+						inverted[rec.get(sortkey)].add(rec['recid'])
+					except TypeError:
+						inverted[tuple(rec.get(sortkey))].add(rec['recid'])
 
-		return subset
+			sortvalues = {}
+			for k,v in inverted.items():
+				r = vtm.param_render_sort(pd, k, db=dbp)
+				for v2 in v:
+					sortvalues[v2] = r
+			
 
+		return keytype, sortvalues
+		
+						
+				
 
-
-	def _query_index(self, searchparam, comp, value, groupby=None, ctx=None, txn=None):
+	def _query(self, searchparam, comp, value, recids=None, recs=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()"""
 
-		cfunc = self._query_cmps().get(comp)
-
-		if groupby == None:
-			groupby = {}
-
+		if recs == None:
+			recs = {}
+		if recids == None:
+			recids = set()
+			
+		cfunc = self._query_cmps()[comp]
+			
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
-
-		if not cfunc:
-			return None
-
+			
+			
+		# Sadly, will need to run macro on everything.. :( Run these as the last constraints.
+		if searchparam.startswith('$@'):
+			keytype, ret = self._run_macro(searchparam, recids, ctx=ctx, txn=txn)
+			# *minimal* validation of input..
+			if keytype == 'd':
+				value = int(value)
+			elif keytype == 'f':
+				value = float(value)
+			else:
+				value = unicode(value)
+			# Filter by comp/value
+			r = set()
+			for k, v in ret.items():
+				if cfunc(value, v): # cfunc(value, v):
+					recs[k][searchparam] = v # Update the record cache
+					r.add(k)
+			return r
+			
+			
+		# Additional setup..
 		vtm = emen2.db.datatypes.VartypeManager()
-		results = collections.defaultdict(set)
+		matchkeys = collections.defaultdict(set)
+		indparams = set()
+		recids = set()		
+		
+		if searchparam == 'rectype' and value:
+			# Get child protocols, skip the index-index search
+			matchkeys['rectype'] = set()
+			if unicode(value).endswith('*'):
+				value = unicode(value).replace('*', '')
+				matchkeys['rectype'] |= self.getchildren(value, recurse=-1, keytype="recorddef", ctx=ctx, txn=txn)
+			matchkeys['rectype'].add(value)
+			
+		elif searchparam == 'children':
+			# Get children, skip the other steps
+			recurse = 0
+			if unicode(value).endswith('*'):
+				value = int(unicode(value).replace('*', ''))
+				recurse = -1
+			recs[value]['children'] = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
+			recids = recs[value]['children']
 
-		# Get the list of param indexes to search
-		if '*' in searchparam:
-			indparams = self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
 		else:
-			indparams = [self._query_paramstrip(searchparam)]
-
+			# Get the list of indexes to search
+			if searchparam.endswith('*'):
+				indparams |= self.getchildren(self._query_paramstrip(searchparam), recurse=-1, keytype="paramdef", ctx=ctx, txn=txn)
+			indparams.add(self._query_paramstrip(searchparam))
+				
 
 		# First, search the index index
 		for indparam in indparams:
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
 			ik = self.bdbs.indexkeys.get(indparam, txn=txn)
-			if not pd.indexed or not ik:
-				continue
-
 			try:
 				cargs = vtm.validate(pd, value, db=ctx.db)
-				# print "Validated cargs:", cargs
 			except Exception, inst:
 				# print "Validation Error:", inst
 				continue
@@ -1473,33 +1514,33 @@ class DB(object):
 			# Get the index-index
 			r = set()
 
-			# Special case for two-level iterables (e.g. permissions) --
+			# Special case for nested iterables (e.g. permissions) --
+			# 		they validate as list of lists
 			if pd.name == 'permissions':
 				cargs = emen2.util.listops.combine(*cargs)
 
 			# Support for iterable vartypes
 			if cargs == None:
 				cargs = [None]
+				
 			for v in emen2.util.listops.check_iterable(cargs):
 				r |= set(filter(functools.partial(cfunc, v), ik))
 				# print "->", v, len(r)
 
 			if r:
-				results[indparam] = r
+				matchkeys[indparam] = r
 
 
 		# Now search individual param indexes
-		constraint_matches = set()
-		for pp, matchkeys in results.items():
-
-			# Mark these for children searches later
-			groupby[pp] = matchkeys
-
+		for pp, keys in matchkeys.items():
 			ind = self._getindex(pp, ctx=ctx, txn=txn)
-			for matchkey in matchkeys:
-				constraint_matches |= ind.get(matchkey, txn=txn)
+			for key in keys:
+				v = ind.get(key, txn=txn)
+				recids |= v 
+				for v2 in v:
+					recs[v2][pp] = key
 
-		return constraint_matches
+		return recids
 
 
 
@@ -1542,106 +1583,6 @@ class DB(object):
 
 
 
-	# This is just a start -- clean up the idea here..
-	@publicmethod("records.find.plot")
-	def plot(self, *args, **kwargs):
-		"""See emen2.db.plot module"""
-
-		plotmode = kwargs.get('plotmode', 'scatter')
-
-		if plotmode == 'scatter':
-			plotter = emen2.db.plot.ScatterPlot
-		elif plotmode == 'hist':
-			plotter = emen2.db.plot.HistPlot
-		elif plotmode == 'bin':
-			plotter = emen2.db.plot.BinPlot
-		elif plotmode == "xy":
-			plotter = emen2.db.plot.XYPlot
-
-		return plotter(*args, db=self, **kwargs).q
-
-
-
-	@publicmethod("records.find.table")
-	def querytable(self, pos=0, count=1000, sortkey="creationtime", reverse=None, viewdef=None, ctx=None, txn=None, **q):
-		"""doctstring coming soon"""
-
-		# print "count is", count
-		xparam = q.get('xparam', None)
-		yparam = q.get('yparam', None)
-
-		if count:
-			count = int(count) or None
-		else:
-			count = None
-
-		if pos:
-			pos = int(pos) or 0
-		else:
-			pos = 0
-
-		if reverse == None:
-			reverse = 1
-		reverse = int(reverse)
-
-		# Run query
-		if xparam or yparam:
-			q.update(self.plot(ctx=ctx, txn=txn, **q))
-		else:
-			q.update(self.query(ctx=ctx, txn=txn, **q))
-
-
-		length = len(q['recids'])
-		rectypes = q.get('groups', {}).get('rectype', {})
-		rds = self.getrecorddef(rectypes.keys(), ctx=ctx, txn=txn)
-
-
-		# New - try to base the default view on the tabular view for root
-		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
-
-		# Process into table
-		if len(rds) == 1 and not viewdef:
-			viewdef = rds[0].views.get('tabularview', defaultviewdef)
-
-		elif len(rds) > 1 or len(rds) == 0:
-			# grumble.. I changed the root element from "root_protocol" to "root". Check for both, use the first one you get..
-			viewdef = self.getrecorddef(["root", "root_protocol"], ctx=ctx, txn=txn).pop().views.get('tabularview', defaultviewdef)
-				
-
-
-		for i in q['groups'].keys() + ['creator', 'creationtime']:
-			if i == "rectype" and len(rds) == 1:
-				continue
-
-			i = '$$%s'%i
-			if i not in viewdef:
-				viewdef = "%s %s"%(viewdef, i)
-
-
-
-		# Sort
-		q['recids'] = self.sort(q['recids'], param=sortkey, reverse=reverse, pos=pos, count=count, rendered=True, ctx=ctx, txn=txn)
-
-		# Render
-		rendered = self.renderview(q['recids'], viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
-
-		q.update(dict(
-			pos = pos,
-			count = count,
-			sortkey = sortkey,
-			reverse = reverse,
-			viewdef = viewdef,
-			length = length,
-			rendered = rendered,
-			groups = {}
-		))
-
-		return q
-
-
-
-
-
 
 	def _findqueryinstr(self, query, s, window=20):
 		"""(Internal) Give a window of context around a substring match"""
@@ -1655,111 +1596,28 @@ class DB(object):
 			return s[pos-window:pos+len(query)+window]
 
 		return False
+		
 
 
-
-
-	@publicmethod("records.sort")
-	def sort(self, recids, param="creationtime", reverse=False, rendered=False, pos=0, count=None, ctx=None, txn=None):
-		"""Sort recids based on a param or macro.
-
-		@param recids Sort these recids
-		@keyparam param Sort parameter. Can also be a macro in macro view format, e.g.: $@childcount(image_capture*)
-		@keyparam reverse Reverse results
-		@keyparam rendered Sort the values based on "rendered" representation
-		@keyparam pos Slice results: result[pos:pos+count]
-		@keyparam count Slice results: result[pos:pos+count]
-		@return Sorted list of records
-		"""
-
-		param = param or "recid"
-		reverse = bool(reverse)
-		pd = self.getparamdef(param, ctx=ctx, txn=txn)
-
-		# If it's creationtime or recid, return based on recid..
-		if param == "creationtime" or param == "recid":
-			if pos != None and count != None:
-				return sorted(recids, reverse=reverse)[pos:pos+count]
-			return sorted(recids, reverse=reverse)
-
-
-		recs = listops.typefilter(recids, emen2.db.record.Record)
-		recids = listops.typefilter(recids, int)
-		values = collections.defaultdict(set)
-
-		ind = False
-		if pd:
-			ind = self._getindex(param, ctx=ctx, txn=txn)
+	def _run_macro(self, macro, recids, ctx=None, txn=None):
+		recs = {}
+		mrecs = self.getrecord(recids, ctx=ctx, txn=txn)
 
 		dbp = ctx.db
 		dbp._settxn(txn)
 		vtm = emen2.db.datatypes.VartypeManager()
+		
+		regex = re.compile(VIEW_REGEX)
+		k = regex.match(macro)
+		
+		keytype = vtm.getmacro(k.group('name')).getkeytype()
+		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs, db=dbp)
 
-		if len(recids) < 1000:
-			ind = False
+		for rec in mrecs:
+			recs[rec.recid] = vtm.macro_process(k.group('name'), k.group('args'), rec, db=dbp)
 
-		# sort/render using records directly... required for macros.
-		if param.startswith("$@"):
-			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
-			recids = set([rec.recid for rec in recs])
-			regex = re.compile(VIEW_REGEX)
-			k = regex.match(param)
-			vtm.macro_preprocess(k.group('name'), k.group('args'), recs, db=dbp)
-			for rec in recs:
-				v = vtm.macro_process(k.group('name'), k.group('args'), rec, db=dbp)
-				values[v].add(rec.recid)
-
-
-		# or if we have the records, or there is no index..
-		elif recs or not ind:
-			recs.extend(self.getrecord(recids, ctx=ctx, txn=txn))
-			recids = set([rec.recid for rec in recs])
-			for rec in recs:
-				try:
-					values[rec.get(param)].add(rec.recid)
-				except TypeError:
-					values[tuple(rec.get(param))].add(rec.recid)
-
-
-		# Lastly, try the ind
-		else:
-			recids = set(recids)
-			# Not the best way to search the index..
-			for k,v in ind.items(txn=txn):
-				v = v & recids
-				if v:
-					values[k] |= v
-
-
-		# calling out to vtm, we will need a DBProxy
-		# I'm only turning on render sort for these vartypes for now..
-		if rendered and pd:
-			if pd.vartype in ["user", "userlist", "binary", "binaryimage"]:
-				#if len(recids) > 1000:
-				#	raise ValueError, "Too many items to sort by this key"
-
-				newvalues = collections.defaultdict(set)
-				for k in values:
-					newvalues[vtm.param_render_sort(pd, k, db=dbp)] = values[k]
-					# rec=recs_dict.get(recid) # may fail without record..
-				values = newvalues
-
-
-
-		# This makes sure that empty items are placed at the end; simple sort breaks sometimes
-		ret = []
-		for k in sorted(values.keys(), reverse=reverse):
-			ret.extend(sorted(values[k]))
-
-		seen = set(ret)
-		ret.extend(sorted(recids-seen))
-
-		if pos != None and count != None:
-			return ret[pos:pos+count]
-		return ret
-
-
-
+		return keytype, recs
+			
 
 
 	@publicmethod("recorddefs.find")
@@ -1793,8 +1651,10 @@ class DB(object):
 		return dict(filter(lambda x:len(x[1])>0, d.items()))
 
 
+
 	def _filter_dict_none(self, d):
 		return dict(filter(lambda x:x[1]!=None, d.items()))
+
 
 
 	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
@@ -1917,11 +1777,11 @@ class DB(object):
 			username = ""
 
 		c = [
-			["name_first","contains", name_first],
-			["name_last","contains", name_last],
-			["name_middle","contains", name_middle],
+			["name_first", "contains", name_first],
+			["name_last", "contains", name_last],
+			["name_middle", "contains", name_middle],
 			["email", "contains", email],
-			["username","contains_w_empty", username]
+			["username", "contains_w_empty", username]
 			]
 
 		c = filter(lambda x:x[2] != None, c)
@@ -1987,6 +1847,8 @@ class DB(object):
 
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
 		ret = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, ctx=ctx, txn=txn)
+
+		raise Exception, "Fix this!"
 
 		s2 = ret.get('groups', {}).get(param, {})
 		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)

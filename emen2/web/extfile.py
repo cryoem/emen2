@@ -60,11 +60,13 @@ class BaseJS(ExtFile):
 			"relationship.js",
 			"table.js",
 			"tile.js",
-			"util.js"
+			"util.js",
+			"test.js"
 			]
 
 		self.files = [
 			self.dbtree.reverse('TemplateRender', t='/js/settings.js'),
+			'%s/static/js/protovis/protovis-r3.2.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,

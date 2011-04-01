@@ -10,6 +10,9 @@ g = emen2.db.config.g()
 
 
 class Macro(object):
+
+	keytype = 's'
+
 	@staticmethod
 	def register_view(name, bases, dict):
 		cls = type(name, bases, dict)
@@ -35,18 +38,23 @@ class Macro(object):
 	def process(self, engine, macro, params, rec, db):
 		return "macro: %s"%macro
 
+
 	def render(self, engine, macro, params, rec, mode, db):
 		value = self.process(engine, macro, params, rec, db)
 		r = self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
 		return r
 
+
 	def render_unicode(self, engine, value, macro, params, rec, db):
 		return unicode(value)
+
 
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return unicode("Maco: %s(%s)"%(macro,params))
 
 
+	def getkeytype(self):
+		return self.keytype
 
 
 
@@ -55,6 +63,8 @@ class Macro(object):
 
 class macro_recid(Macro):
 	"""recid macro"""
+	
+	keytype = 'd'
 	__metaclass__ = Macro.register_view
 	def process(self, engine, macro, params, rec, db):
 		return rec.recid
@@ -94,6 +104,7 @@ class macro_recname(Macro):
 
 class macro_childcount(Macro):
 	"""childcount macro"""
+	keytype = 'd'
 	__metaclass__ = Macro.register_view
 	
 	def preprocess(self, engine, macro, params, recs, db):
@@ -184,6 +195,11 @@ class macro_childvalue(Macro):
 	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
 		return "Child Value: %s"%params
 
+	
+	# This should check the paramdef keytype..
+	# def getkeytype(self):
+	#	pass
+		
 
 
 class macro_parentvalue(Macro):
