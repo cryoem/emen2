@@ -129,7 +129,7 @@ def inithttpd():
 
 	try:
 		import srequest
-		server.Site.requestFactory = srequest.Request
+		#server.Site.requestFactory = srequest.Request
 	except ImportError: g.debug('--- srequest not loaded ***')
 
 	site = server.Site(root)

@@ -124,7 +124,7 @@ class View(object):
 		self.__template = template or self.template
 		self.__ctxt = adjust({}, extra)
 
-		ctx = getattr(self.__db, '_ctx', None)
+		ctx = getattr(self.__db, '_getctx', lambda:None)()
 		LOGINUSER = getattr(ctx, 'username', None)
 		HOST = getattr(ctx, 'host', None)
 
