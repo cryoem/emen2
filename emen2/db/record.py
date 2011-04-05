@@ -744,7 +744,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		if not p2:
 			return
 
-		vtm = emen2.db.datatypes.VartypeManager()		
+		vtm = emen2.db.datatypes.VartypeManager(db=self._ctx.db)		
 		newpd = {}
 		exceptions = []
 		for param in p2:
@@ -756,7 +756,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 			try:
 				value = self._params.get(param)
-				v = vtm.validate(pd, value, db=self._ctx.db)
+				v = vtm.validate(pd, value)
 				if v != value and v != None:
 					self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
 				newpd[pd.name] = v

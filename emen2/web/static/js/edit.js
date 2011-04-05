@@ -222,11 +222,14 @@ function bind_autocomplete(elem, param) {
 		save_newrecord: function(newrec) {
 			var self = this;
 			var updrec = caches["recs"]["None"];
-
+			if (!newrec) {
+				newrec = {};
+			}
 			$.each(newrec, function(k,v) {
 				updrec[k] = v;
 			});
-			
+
+
 			updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
 			updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
 			updrec['recid'] = null;

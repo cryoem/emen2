@@ -132,6 +132,18 @@ set_lg_bsize 2097152
 
 
 
+def clock(times, key=0, t=0, limit=60):
+	t2 = time.time()
+	if not times.get(key):
+		times[key] = 0
+	times[key] += t2-t
+	if sum(times.values()) >= limit:
+		raise Exception, "Operation timed out (max %s seconds)"%(limit)
+	return t2
+
+
+
+
 def check_output(args, **kwds):
 	kwds.setdefault("stdout", subprocess.PIPE)
 	kwds.setdefault("stderr", subprocess.STDOUT)
@@ -965,15 +977,8 @@ class DB(object):
 		@exception KeyError, SecurityError
 		"""
 
-		# params=None,
-		# @keyparam params For record search, limit to (single/iterable) params
-
-		# ian: recently rewrote this for substantial speed improvements when getting 1000+ binaries
-
 		# process bdokeys argument for bids (into list bids) and then process bids
 		ol, bdokeys = listops.oltolist(bdokeys)
-		# filt = False
-
 		ret = []
 		bids = []
 		recs = []
@@ -990,8 +995,8 @@ class DB(object):
 			bids.extend(x for x in bdokeys if isinstance(x, basestring))
 
 		# If we're doing any record lookups...
-		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x,int)), filt=True, ctx=ctx, txn=txn))
-		recs.extend(x for x in bdokeys if isinstance(x,emen2.db.record.Record))
+		recs.extend(self.getrecord((x for x in bdokeys if isinstance(x, int)), filt=True, ctx=ctx, txn=txn))
+		recs.extend(x for x in bdokeys if isinstance(x, emen2.db.record.Record))
 
 		if recs:
 			# ian: todo: this needs more speed. Maybe I should index params by vartype?
@@ -1009,6 +1014,7 @@ class DB(object):
 				for rec in recs:
 					if rec.get(i):
 						bids.append(rec.get(i))
+
 
 		# Ok, we now have a list of all the BDO items we need to lookup
 
@@ -1225,17 +1231,23 @@ class DB(object):
 			ignorecase=True, 
 			subset=None, 
 			pos=0, 
-			count=-1, 
+			count=0, 
 			sortkey="creationtime", 
 			reverse=False,
 			recs=False,
 			table=False,
+			stats=False,
 			ctx=None,
 			txn=None,
 			**kwargs):
 		"""Query"""
 
+
+		############################
 		# Setup
+		times = {}
+		t0 = time.time()
+		t = time.time()
 		returnrecs = bool(recs)
 		boolops = {"AND":"intersection_update", "OR":"update"}
 		recids = None
@@ -1253,8 +1265,11 @@ class DB(object):
 		_cm, _cc = emen2.util.listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)		
 		
 		recs = collections.defaultdict(dict)
-
+				
+		############################				
 		# Step 1: Run constraints
+		t = clock(times, 0, t0)
+
 		for searchparam, comp, value in _cc:
 			# Matching recids for each step
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
@@ -1262,9 +1277,12 @@ class DB(object):
 				recids = constraintmatches
 			elif constraintmatches != None: # Apply AND/OR
 				getattr(recids, boolops[boolmode])(constraintmatches)
-				
+
 		
+		############################				
 		# Step 2: Filter permissions. If no constraint, use all records..
+		t = clock(times, 1, t)
+
 		if recids == None:
 			recids = self.getindexbycontext(ctx=ctx, txn=txn)
 		if subset:
@@ -1273,16 +1291,40 @@ class DB(object):
 			recids = self._filterbypermissions(recids or set(), ctx=ctx, txn=txn)
 			
 			
+		############################				
 		# Step 3: Run constraints that include macros or "value is empty"
+		t = clock(times, 2, t)
+
 		for searchparam, comp, value in _cm:
 			constraintmatches = self._query(searchparam, comp, value, recids=recids, recs=recs, ctx=ctx, txn=txn)
 			if constraintmatches != None:
 				getattr(recids, boolops[boolmode])(constraintmatches)
 
 
-		# Step 4: Sort and slice to the right range
 
+		############################				
+		# Step 4: Generate stats on rectypes (do this before other sorting..)
+		t = clock(times, 3, t)
+
+		rectypes = collections.defaultdict(int)
+		rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
+		if len(rds) == 0:
+			if stats: # don't do this unless we want these.
+				r = self._groupbyrecorddef_index(recids, ctx=ctx, txn=txn)
+				for k,v in r.items():
+					rectypes[k] = len(v)
+		elif len(rds) == 1:
+			rectypes[rds.pop()] = len(recids)
+		elif len(rds) > 1:
+			for recid, rec in recs.iteritems():
+				rectypes[rec.get('rectype')] += 1
+
+
+		############################					
+		# Step 5: Sort and slice to the right range
 		# This processes the values for sorting: running any macros, rendering any usernames, checking indexes, etc.
+		t = clock(times, 4, t)
+
 		keytype, sortvalues = self._query_sort(sortkey, recids, recs=recs, c=c, ctx=ctx, txn=txn)
 
 		key = sortvalues.get
@@ -1305,11 +1347,14 @@ class DB(object):
 		length = len(recids)
 		if count > 0:
 			recids = recids[pos:pos+count]
-		
-				
-			
-		# Step 5: Rendered....
+
+
+
+		############################					
+		# Step 6: Rendered....
 		# This is purely a convenience to save a callback
+		t = clock(times, 5, t)
+
 		def add_to_viewdef(viewdef, param):
 			if not param.startswith('$'):
 				param = '$$%s'%i
@@ -1320,28 +1365,45 @@ class DB(object):
 
 		if table:			
 			defaultviewdef = "$@recname() $@thumbnail() $$rectype $$recid"
-
-			# If we're looking at a particular recorddef...
-			rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
-			if len(rds) == 1:
-				rd = self.getrecorddef(rds.pop(), ctx=ctx, txn=txn)
+			addparamdefs = ["creator","creationtime"]
+			
+			# Get the viewdef
+			if len(rectypes) == 1:
+				rd = self.getrecorddef(rectypes.keys()[0], ctx=ctx, txn=txn)
 				viewdef = rd.views.get('tabularview', defaultviewdef)
 			else:
 				viewdef = self.getrecorddef(["root", "root_protocol"], ctx=ctx, txn=txn).pop().views.get('tabularview', defaultviewdef)
 
-			viewdef = viewdef.split()
-			if "$$creator" in viewdef:
-				viewdef.remove("$$creator")
-			if "$$creationtime" in viewdef:
-				viewdef.remove("$$creationtime")
-			for i in [i[0] for i in c] + ["$$creator","$$creationtime"]:
+			viewdef = [i.strip() for i in viewdef.split()]
+
+			for i in addparamdefs:
+				if not i.startswith('$'):
+					i = '$$%s'%i
+				if i in viewdef:
+					viewdef.remove(i)
+
+			for i in [i[0] for i in c] + addparamdefs:
+				if not i.startswith('$'):
+					i = '$$%s'%i
 				add_to_viewdef(viewdef, i)
+
 			viewdef = " ".join(viewdef)
-			table = self.renderview(recids, viewdef=viewdef, mode="htmledit_table", table=True, ctx=ctx, txn=txn)
+			table = self.renderview(recids, viewdef=viewdef, table=True, ctx=ctx, txn=txn)
 
+		
+		t = clock(times, 6, t)
 
+		stats = {}
+		stats['time'] = time.time()-t0
+		stats['rectypes'] = rectypes
 
-		# Step 6: Fix for output
+		# stats['times'] = times
+		# for k,v in times.items():
+		# 	print k, '%5.3f'%(v)
+				
+		
+		############################							
+		# Step 7: Fix for output
 		for recid in recids:
 			recs[recid]['recid'] = recid
 		recs = [recs[i] for i in recids]
@@ -1358,6 +1420,8 @@ class DB(object):
 			"sortkey": sortkey,
 			"reverse": reverse
 		}
+		if stats:
+			ret['stats'] = stats
 		if returnrecs:
 			ret['recs'] = recs
 		if table:
@@ -1376,9 +1440,7 @@ class DB(object):
 			return 's', {}
 
 		# Setup
-		dbp = ctx.db
-		dbp._settxn(txn)
-		vtm = emen2.db.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		inverted = collections.defaultdict(set)
 		c = c or []
@@ -1453,7 +1515,7 @@ class DB(object):
 
 			sortvalues = {}
 			for k,v in inverted.items():
-				r = vtm.param_render_sort(pd, k, db=dbp)
+				r = vtm.param_render_sort(pd, v)
 				for v2 in v:
 					sortvalues[v2] = r
 			
@@ -1495,7 +1557,7 @@ class DB(object):
 			
 			
 		# Additional setup..
-		vtm = emen2.db.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		matchkeys = collections.defaultdict(set)
 		indparams = set()
 		searchrecids = set()		
@@ -1517,6 +1579,10 @@ class DB(object):
 			recs[value]['children'] = self.getchildren(value, recurse=recurse, ctx=ctx, txn=txn)
 			searchrecids = recs[value]['children']
 
+		elif searchparam == 'recid':
+			# This is useful in a few places
+			searchrecids.add(int(value))
+
 		else:
 			# Get the list of indexes to search
 			if searchparam.endswith('*'):
@@ -1529,6 +1595,9 @@ class DB(object):
 			pd = self.bdbs.paramdefs.get(indparam, txn=txn)
 			ik = self.bdbs.indexkeys.get(indparam, txn=txn)
 
+			if not pd:
+				continue
+
 			# Don't need to validate these
 			if comp in ['any', 'none', 'noop']:
 				matchkeys[indparam] = ik
@@ -1536,7 +1605,7 @@ class DB(object):
 				
 			# Validate for comparisons (vartype, units..)	
 			try:
-				cargs = vtm.validate(pd, value, db=ctx.db)
+				cargs = vtm.validate(pd, value)
 			except Exception, inst:
 				continue
 
@@ -1620,11 +1689,13 @@ class DB(object):
 
 	def _findqueryinstr(self, query, s, window=20):
 		"""(Internal) Give a window of context around a substring match"""
-
-		if not query:
-			return False
-
-		if query in (s or ''):
+		
+		if query == '':
+			return True
+		
+		query = query.lower()
+		s = (s or '').lower()
+		if query in s:
 			pos = s.index(query)
 			if pos < window: pos = window
 			return s[pos-window:pos+len(query)+window]
@@ -1637,18 +1708,16 @@ class DB(object):
 		recs = {}
 		mrecs = self.getrecord(recids, ctx=ctx, txn=txn)
 
-		dbp = ctx.db
-		dbp._settxn(txn)
-		vtm = emen2.db.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		
 		regex = re.compile(VIEW_REGEX)
 		k = regex.match(macro)
 		
 		keytype = vtm.getmacro(k.group('name')).getkeytype()
-		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs, db=dbp)
+		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
 
 		for rec in mrecs:
-			recs[rec.recid] = vtm.macro_process(k.group('name'), k.group('args'), rec, db=dbp)
+			recs[rec.recid] = vtm.macro_process(k.group('name'), k.group('args'), rec)
 
 		return keytype, recs
 			
@@ -1691,10 +1760,11 @@ class DB(object):
 
 
 
-	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, ctx=None, txn=None, **qp):
+	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
-		# query=None, name=None, desc_short=None, desc_long=None, vartype=None, views=None,
+		print qp
+		
 		# context of where query was found
 		c = {}
 
@@ -1713,16 +1783,13 @@ class DB(object):
 
 
 		rdnames = getnames(ctx=ctx, txn=txn)
-		#p1 = []
-		#if qp['name']:
-		#	p1 = filter(lambda x:qp['name'] in x, rdnames)
 
 		# ian: will there be a faster way to do this?
 		rds2 = getitems(rdnames, filt=True, ctx=ctx, txn=txn) or []
 		p2 = []
 
 		qp = self._filter_dict_none(qp)
-
+		
 		for i in rds2:
 			qt = []
 			for k,v in qp.items():
@@ -1742,6 +1809,12 @@ class DB(object):
 			names = set(c.keys()) & children
 			p2 = filter(lambda x:x.name in names, p2)
 			c = dict(filter(lambda x:x[0] in names, c.items()))
+			
+
+		if vartype:
+			vartype = emen2.util.listops.check_iterable(vartype)
+			p2 = filter(lambda x:x.vartype in vartype, p2)	
+
 
 		if context:
 			return p2, c
@@ -1880,49 +1953,32 @@ class DB(object):
 		"""
 
 		pd = self.getparamdef(param, ctx=ctx, txn=txn)
-		ret = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, ctx=ctx, txn=txn)
+		q = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, recs=True, ctx=ctx, txn=txn)
+		inverted = collections.defaultdict(set)
+		for rec in q['recs']:
+			inverted[rec.get(param)].add(rec.get('recid'))		
 
-		raise Exception, "Fix this!"
-
-		s2 = ret.get('groups', {}).get(param, {})
-		keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
+		keys = sorted(inverted.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit:
 			keys = keys[:int(limit)]
-
+		
 		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
 			for k,v in ret.items():
 				ret[k] = len(v)
-
+		
 		ri = []
 		choices = pd.choices or []
 		if showchoices:
 			for i in choices:
 				ri.append((i, ret.get(i, 0)))
-
+		
 		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
 			if i not in choices:
 				ri.append((i, ret.get(i, [])))
-
+		
 		return ri
 
-
-		# This method was simplified, and now uses __query_index directly
-		# cmps = self._query_cmps(ignorecase=True)
-		# s1, s2 = self._query_index(c=[[param, "contains_w_empty", query]], cmps=cmps, ctx=ctx, txn=txn)
-		# #{('name_last', u'Rees'): set([271390])}
-		#
-		# # This works nicely, I should rewrite some of my other list sorteds
-		# keys = sorted(s2.items(), key=lambda x:len(x[1]), reverse=True)
-		# if limit: keys = keys[:int(limit)]
-		#
-		# # Turn back into a dictionary
-		# ret = dict([(i[0][1], i[1]) for i in keys])
-		# if count:
-		# 	for k in ret:
-		# 		ret[k]=len(ret[k])
-		#
-		# return ret
 
 
 
@@ -2106,36 +2162,17 @@ class DB(object):
 			return {}
 
 		if (len(recids) < 1000) or (isinstance(list(recids)[0],emen2.db.record.Record)):
-			return self._groupbyrecorddeffast(recids, ctx=ctx, txn=txn)
-
-		# we need to work with a copy becuase we'll be changing it;
-		# use copy.copy instead of list[:] because recids will usually be set()
-		recids = copy.copy(recids)
+			return self._groupbyrecorddef_fast(recids, ctx=ctx, txn=txn)
 
 		# also converts to set..
 		recids = self._filterbypermissions(recids, ctx=ctx, txn=txn)
 
-
-		ret = {}
-		while recids:
-			rid = recids.pop()	# get a random record id
-
-			try:
-				r = self.getrecord(rid, ctx=ctx, txn=txn)	# get the record
-			except:
-				continue # if we can't, just skip it, pop already removed it
-
-			ind = self.getindexbyrecorddef(r.rectype, ctx=ctx, txn=txn) # get the set of all records with this recorddef
-			ret[r.rectype] = recids & ind # intersect our list with this recdef
-			recids -= ret[r.rectype] # remove the results from our list since we have now classified them
-			ret[r.rectype].add(rid) # add back the initial record to the set
-
-		return ret
+		return self._groupbyrecorddef_index(recids, ctx=ctx, txn=txn)
 
 
 
 	# this one gets records directly
-	def _groupbyrecorddeffast(self, records, ctx=None, txn=None):
+	def _groupbyrecorddef_fast(self, records, ctx=None, txn=None):
 		"""(Internal) Sometimes it's quicker to just get the records and filter, than to check all the indexes"""
 
 		if not isinstance(list(records)[0],emen2.db.record.Record):
@@ -2148,6 +2185,22 @@ class DB(object):
 
 		return ret
 
+	
+	
+	def _groupbyrecorddef_index(self, recids, ctx=None, txn=None):
+		ret = {}
+		# we need to work with a copy becuase we'll be changing it
+		recids = copy.copy(recids)
+		ind = self._getindex("rectype", ctx=ctx, txn=txn)
+
+		while recids:
+			rid = recids.pop()	# get a random record id
+			rec = self.bdbs.records.get(rid, txn=txn) # get the set of all records with this recorddef
+			ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & recids # intersect our list with this recdef
+			recids -= ret[rec.rectype] # remove the results from our list since we have now classified them
+			ret[rec.rectype].add(rid) # add back the initial record to the set
+
+		return ret
 
 
 
@@ -3423,7 +3476,7 @@ class DB(object):
 		@param propname Property name
 		@return a set of known units for property
 		"""
-		# set(vtm.getproperty(propname).units) | set(vtm.getproperty(propname).equiv)
+
 		return set(self.vtm.getproperty(propname).units)
 
 
@@ -4582,7 +4635,7 @@ class DB(object):
 				c_all[k] -= endpoints
 			endpoints = self._endpoints(c_all) - c_rectype
 
-		rendered = self.renderview(listops.flatten(c_all), viewtype="recname", ctx=ctx, txn=txn)
+		rendered = self.renderview(listops.flatten(c_all), ctx=ctx, txn=txn)
 
 		c_all = self._filter_dict_zero(c_all)
 
@@ -4591,11 +4644,10 @@ class DB(object):
 
 
 
-	def _dicttable_view(self, params, paramdefs={}, mode="unicode", ctx=None, txn=None):
+	def _dicttable_view(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
 		"""generate html table of params"""
 
-		if mode in ["html","htmledit"]:
-
+		if markup:
 			dt = ['<table cellspacing="0" cellpadding="0">\n\t<thead><th>Parameter</th><th>Value</th></thead>\n\t<tbody>']
 			for count, i in enumerate(params):
 				if count%2:
@@ -4617,23 +4669,20 @@ class DB(object):
 
 
 	@publicmethod("records.render")
-	def renderview(self, recs, viewdef=None, viewtype="recname", showmacro=True, mode="unicode", filt=True, table=False, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype="recname", edit=None, markup=True, table=False, mode=None, ctx=None, txn=None):
 		"""Render views"""
 
 		regex = re.compile(VIEW_REGEX)
-
 		ol, recs = listops.oltolist(recs)
 
 		if viewtype == "tabularview":
 			table = True
 
 		# Calling out to vtm, we will need a DBProxy
-		dbp = ctx.db
-		dbp._settxn(txn)
-		vtm = emen2.db.datatypes.VartypeManager()
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# We'll be working with a list of recs
-		recs = self.getrecord(listops.typefilter(recs, int), filt=filt, ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
+		recs = self.getrecord(listops.typefilter(recs, int), ctx=ctx, txn=txn) + listops.typefilter(recs, emen2.db.record.Record)
 
 		# Default params
 		builtinparams = set(["recid","rectype","comments","creator","creationtime","permissions", "history", "groups"])
@@ -4653,7 +4702,7 @@ class DB(object):
 				par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 				par += builtinparamsshow
 				par += [p for p in rec.getparamkeys() if p not in par]
-				groupviews[rec.recid] = self._dicttable_view(par, mode=mode, ctx=ctx, txn=txn)
+				groupviews[rec.recid] = self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
 
 
 		else:
@@ -4671,16 +4720,15 @@ class DB(object):
 				groupviews[rd.name] = v
 
 
-
-
 		# Pre-process once to get paramdefs
 		pds = set()
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
 				if match.group('type') in ["#", "$", '*']:
 					pds.add(match.group('name'))
-				else:
-					vtm.macro_preprocess(match.group('name'), match.group('args'), recs, db=dbp)
+
+				elif match.group('type') == '@':
+					vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
 
 
 		pds = listops.dictbykey(self.getparamdef(pds, ctx=ctx, txn=txn), 'name')
@@ -4696,7 +4744,8 @@ class DB(object):
 				n = match.group('name')
 				h = pds.get(match.group('name'),dict()).get('desc_short')
 				if match.group('type') == '@':
-					if n == "childcount": n = "#"
+					if n == "childcount":
+						n = "#"
 					h = '%s %s'%(n, match.group('args') or '')
 
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
@@ -4704,6 +4753,9 @@ class DB(object):
 
 		# Process records
 		ret = {}
+		pt = collections.defaultdict(list)
+		mt = collections.defaultdict(list)
+		
 		for rec in recs:
 			key = rec.rectype
 			if viewdef:
@@ -4711,6 +4763,10 @@ class DB(object):
 			elif viewtype == "dicttable":
 				key = rec.recid
 
+			# _edit = edit
+			# if edit == None:
+			# 	_edit = rec.writable()
+			
 			a = groupviews.get(key)
 			vs = []
 
@@ -4718,25 +4774,25 @@ class DB(object):
 				t = match.group('type')
 				n = match.group('name')
 				s = match.group('sep') or ''
-				m = mode
 				if t == '#':
-					v = vtm.name_render(pds[n], mode=mode, db=dbp)
+					v = vtm.name_render(pds[n], markup=markup)
 				elif t == '$' or t == '*':
-					# _t = time.time()
-					v = vtm.param_render(pds[n], rec.get(n), mode=mode, rec=rec, db=dbp) or ''
-				elif t == '@' and showmacro:
-					v = vtm.macro_render(n, match.group('args'), rec, mode=mode, db=dbp)
+					v = vtm.param_render(pds[n], rec.get(n), recid=rec.recid, edit=edit, markup=markup, table=table)
+				elif t == '@':
+					v = vtm.macro_render(n, match.group('args'), rec, markup=markup)
 				else:
 					continue
 
-				vs.append(v)
-				a = a.replace(match.group(), v+s)
+				if table:
+					vs.append(v)
+				else:
+					a = a.replace(match.group(), v+s)
 
 			if table:
 				ret[rec.recid] = vs
 			else:
 				ret[rec.recid] = a
-
+	
 		if table:
 			ret["headers"] = headers
 

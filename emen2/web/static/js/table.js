@@ -23,9 +23,9 @@
 			var count = $('<select name="count" style="float:right"></select>');
 			count.append('<option value="">Rows</option>');
 			
-			$.each([10,50,100,500,1000,0], function() {
+			$.each([10,50,100,500,1000], function() {
 				var desc=this;
-				if (this==0) {desc='View All'}
+				//if (this==0) {desc='View All'}
 				count.append('<option value="'+this+'">'+desc+'</option>');
 			});
 			count.change(function() {
@@ -63,9 +63,11 @@
 		},
 		
 		attach_tools: function() {
+			// Build the Tools & Statistics menu
+			
 			var self = this;
 			var q = $('<div class="tools control" style="float:right"><span class="clickable label">\
-				Tools <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
+				Tools &amp; Statistics <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
 			var hidden = $(' \
 				<div class="hidden"> \
@@ -73,6 +75,7 @@
 						<li class="clickable download_files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
 						<li class="clickable batch_edit"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Batch-edit this table</li> \
 					</ul> \
+					<div class="query_stats"></div> \
 				</div>');
 
 			$('.download_files', hidden).click(function() {self.query_download()});
@@ -92,6 +95,8 @@
 		},
 		
 		attach_querycontrol: function() {
+			// Build the Query control
+			
 			if (!this.options.qc) {return}
 			
 			var self = this;
@@ -125,18 +130,12 @@
 		
 		query_download: function() {
 			// Get all the binaries in this table, and prepare a download link.
+
 			var newq = {};
 			newq['c'] = this.options.q['c'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
 			window.location = query_build_path(newq, 'files');
-			// this doesn't work, because it won't trigger a Save-As
-			// $.postJSON(EMEN2WEBROOT+'/download/archive.tar', {'q':newq});
-			// var f = $('<form action="'+EMEN2WEBROOT+'/query/files/" method="post"></form>')
-			// var i = $('<input type="text" name="q___json" />');
-			// i.val($.toJSON(newq));
-			// f.append(i);
-			// f.appendTo('body').submit().remove();
 		},
 		
 		query_batch_edit: function() {
@@ -145,6 +144,8 @@
 		},
 		
 		query: function(newq) {
+			// Update the query from the current settings
+			
 			newq = newq || this.options.q;
 			$('.header .spinner', this.element).show();
 			var self = this;
@@ -157,6 +158,8 @@
 		},
 		
 		setpos: function(pos) {
+			// Change the page
+			
 			if (pos == this.options.q['pos']) {return}
 			var self = this;
 			this.options.q['pos'] = pos;
@@ -164,6 +167,8 @@
 		},
 		
 		resort: function(sortkey, args) {
+			// Sort by a column key
+			
 			if (args) {
 				sortkey = '$@' + sortkey + "(" + args + ")"
 			}
@@ -177,52 +182,100 @@
 		},
 		
 		update: function(q) {
+			// Callback from a query; Update the table and all controls
+			
 			this.options.q = q;
 			$('.header .query').QueryControl('update', this.options.q)					
 			$('.header .querycontrol').EditbarHelper('hide');
 			this.update_controls();
-			this.rebuild_table();	
+			this.rebuild_table();
+			this.options.q['stats'] = true;
 			$('.header .spinner', this.element).hide();					
 		},	
 		
 		update_controls: function() {
+			// Update the table controls
+			
 			var self = this;
-			$('.header .length').html(this.options.q['length'] + ' Records');
 
+			// Update the title bar information
+			var title = '';
+			var rtkeys = [];
+			for (i in this.options.q['stats']['rectypes']) {
+				rtkeys.push(i);
+			}
+			rtkeys.sort();
+			
+			title = this.options.q['length'] + ' records, ' + rtkeys.length + ' protocols';
+			if (rtkeys.length == 0) {
+				title = this.options.q['length'] + ' records';				
+			} else if (rtkeys.length == 1) {
+				title = this.options.q['length'] + ' ' + rtkeys[0] + ' records';
+			} else if (rtkeys.length <= 5) {				
+				title = title + ": ";
+				for (var i=0;i<rtkeys.length;i++) {
+					title = title + self.options.q['stats']['rectypes'][rtkeys[i]] + ' ' + rtkeys[i];
+					if (i+1<rtkeys.length) {
+						title = title + ', ';
+					}
+				}
+			}			
+
+			if (this.options.q['stats']['time']) {
+				title = title + ' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
+			}
+
+			$('.header .length').html(title);
+			
+			
+			// Update the record type statistics
+			var qstats = $(".query_stats", this.element);
+			if (qstats) {
+				qstats.empty();
+				var t = $('<table><thead><tr><th>Protocol</th><th>Count</th></tr></thead><tbody></tbody></table>');
+				for (var i=0;i<rtkeys.length;i++) {
+					var tr = $('<tr><td>'+rtkeys[i]+'</td><td>'+self.options.q['stats']['rectypes'][rtkeys[i]]+'</td></td>');
+					$('tbody', t).append(tr);
+				}
+				qstats.append(t);
+			}
+			
+			// Update the page count
 			var pages = $('.header .pages');
 			pages.empty();
 			var count = this.options.q['count'];
 			var l = this.options.q['length'];
-			if (count == -1 || count > l || l == 0) {
+			if (count == 0 || count > l || l == 0) {
 				//pages.append("All Records");
-				return
+			} else {			
+				var current = (this.options.q['pos'] / this.options.q['count']);
+				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
+			
+				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
+				var p1 = $('<span data-pos="0" class="clickable clickable_box">&laquo;</span>').click(setpos);
+				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable clickable_box">&lsaquo;</span>').click(setpos);
+				var pc = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable clickable_box">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable clickable_box">&raquo;</span>').click(setpos);
+				if (current > 0) {pages.prepend(p2)}
+				if (current > 1) {pages.prepend(p1, '')}
+				pages.append(pc);
+				if (current < pagecount) {pages.append(p3)}
+				if (current < pagecount - 1) {pages.append('', p4)}
 			}
-			
-			var current = (this.options.q['pos'] / this.options.q['count']);
-			var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
-			
-			var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
-			var p1 = $('<span data-pos="0" class="clickable clickable_box">&laquo;</span>').click(setpos);
-			var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable clickable_box">&lsaquo;</span>').click(setpos);
-			var pc = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
-			var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable clickable_box">&rsaquo;</span>').click(setpos);
-			var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable clickable_box">&raquo;</span>').click(setpos);
-			if (current > 0) {pages.prepend(p2)}
-			if (current > 1) {pages.prepend(p1, '')}
-			pages.append(pc);
-			if (current < pagecount) {pages.append(p3)}
-			if (current < pagecount - 1) {pages.append('', p4)}
 		},
 				
 		
 		rebuild_table: function() {
+			// Rebuild everything
+			
 			this.rebuild_thead();
 			this.rebuild_tbody();
 		},
 				
 		rebuild_thead: function() {
-			//<th data-name="${v[1]}" data-args="${v[2]}">${v[0]}</th>
-			
+			// Rebuild the table header after each update			
+
 			var self = this;
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
@@ -262,6 +315,8 @@
 		
 		
 		rebuild_tbody: function() {
+			// Rebuild the table body
+			
 			var self = this;
 			var t = $('.inner', this.element);			
 			var headers = this.options.q['table']['headers']['null'];
@@ -288,7 +343,9 @@
 		},
 		
 		event_edit: function(e) {
-			if (this.options.q['count'] > 500) {
+			// Event handler for "Edit" column
+			
+			if (this.options.q['count'] > 100) {
 				var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
 				if (check==false) {return}
 			}

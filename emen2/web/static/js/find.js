@@ -6,6 +6,8 @@
 			mode: 'finduser',
 			value: '',
 			modal: true,
+			vartype: null,
+			minimum: 3,
 			cb: function(self, value){self.element.val(value)}
 		},
 				
@@ -148,15 +150,21 @@
 		
 		search: function(q) {
 			var self=this;
-			if (q.length < 3 && this.options.mode != "findgroup") {
+			if (q.length < this.options.minimum) {
 				self.resultsarea.empty();
 				self.statusmsg.text('Minimum 3 characters');
 				return
 			}
 			
 			$('.spinner', this.dialog.dialog('widget')).show();
+			
+			var query = {}
+			query['query'] = q;
+			if (this.options.vartype) {
+				query['vartype'] = this.options.vartype;
+			}
 				
-			$.jsonRPC(this.options.mode, [q], function(items) {
+			$.jsonRPC(this.options.mode, query, function(items) {
 				$('.spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;

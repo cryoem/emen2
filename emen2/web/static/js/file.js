@@ -85,8 +85,8 @@
 			$.each(this.bdos, function(i, bdo) {
 				// find bdo in record..
 				$.each(rec, function(k,v) {
-					if (typeof(v)=="object") {
-						if ($.inArray(bdo.name, v) > -1) { //v.indexOf(bdo.name) > -1
+					if (typeof(v)=="object" && v != null) {
+						if ($.inArray(bdo.name, v) > -1) {
 							self.bdomap_append(k, bdo);
 						}
 					} else {
@@ -173,24 +173,21 @@
 								<input checked="checked" type="radio" name="param" value="file_binary" id="param_file_binary" /> \
 								<label for="param_file_binary">Regular Attachment</label> \
 							</li><li> \
-								<input type="radio" name="param" value="file_binary_image" id="param_file_binary_image" /> \
-								<label for="param_file_binary">Image File (e.g. CCD)</label> \
-							</li><li> \
 								<input type="radio" name="param" value="" id="param_other" /> \
 								<label for="param_other">Other: <input name="param_other" type="text" size="4" /></label> \
 							</li> \
 						</ul> \
+						<input type="file" name="filedata" size="6" /><br /> \
 				</div> \
 				<div class="controls" style="width:100%"> \
-					<div style="float:left"> \
-						<input class="save" name="remove" type="button" value="Remove Selected Files" /> \
-					</div> \
-					<div style="float:right"> \
-						<input type="file" name="filedata" /> \
-						<input class="save" name="save" type="submit" value="Add File" /> \
-					</div> \
+					<input class="floatleft save" name="remove" type="button" value="Remove Selected" /> \
+					<input class="floatright save" name="save" type="submit" value="Upload Attachment" /> \
 				</div>');
 			
+			// <li> \
+			// 	<input type="radio" name="param" value="file_binary_image" id="param_file_binary_image" /> \
+			// 	<label for="param_file_binary">Image File (e.g. CCD)</label> \
+			// </li>			
 			//style="width:230px" 
 			
 			if (this.options.edit) {
@@ -202,8 +199,10 @@
 			});
 
 			$('input[name=param_other]', controls).FindControl({
-				'mode':'findparamdef',
-				'cb': function(self, value) {
+				mode: 'findparamdef',
+				vartype: ['binary', 'binaryimage'],
+				minimum: 0,
+				cb: function(self, value) {
 					$('#param_other').attr('value', value);
 					self.element.val(value);
 				}
@@ -292,216 +291,216 @@
 
 // ian: Deprecated.
 
-(function($) {
-    $.widget("ui.FileControl", {
-		options: {
-			show: 0,
-			recid: null,
-			vartype: null,
-			param: null,
-			modal: true,
-			cb: function(){}			
-		},
-				
-		_create: function() {
-			this.built = 0;
-			this.bdos = {};
-			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
-			this.options.param = this.options.param || this.element.attr("data-param");
-			this.options.vartype = this.options.vartype || this.element.attr("data-vartype");
-		
-			var self=this;
-			$('.label', this.element).click(function(e) {e.stopPropagation();self.event_click(e)});
-
-			if (this.options.show) {			
-				this.show();
-			}
-		},
-	
-
-		event_click: function(e) {
-			var self = this;
-			this.show();
-			$.jsonRPC("getrecord", [this.options.recid],
-				function(rec) {				
-					caches["recs"][rec.recid] = rec;
-					self.event_build_tablearea();
-				}
-			);
-		},
-	
-	
-		event_build_tablearea: function(e) {
-			var self = this;
-			this.tablearea.empty();
-			this.tablearea.append('<div>Loading...</div>');
-			$.jsonRPC("getbinary", [caches["recs"][this.options.recid][this.options.param]], 
-				function(bdos) {
-					if (bdos == null) {bdos=[]}
-					if (bdos.length == null) {bdos=[bdos]}
-					self.bdos = bdos || {};
-					self.build_tablearea();
-				}
-			);
-		},
-	
-	
-		event_removebdos: function(e) {
-			var self = this;
-			var keep = [];
-			var q = $("input:checkbox:checked", this.tablearea).length;
-			if (q == 0) {return}
-			$("input:checkbox:not(:checked)", this.tablearea).each(function(){return keep.push(this.value)});
-			if (this.options.vartype == "binaryimage") {
-				keep = keep[0];
-			}
-			var p = {};
-			p[this.options.param]=keep
-			$.jsonRPC("putrecordvalues", [this.options.recid, p],
-				function(rec) {
-					record_update(rec);
-					self.event_build_tablearea();
-					self.options.cb();
-				}
-			);
-			
-		},
-	
-		
-		build: function() {
-			var self=this;
-			this.built = 1;
-
-			this.dialog = $('<div title="Attachment Manager" />');	
-			this.tablearea = $('<div />');
-			this.browserarea = $('<div />');
-		
-			this.dialog.append(this.tablearea, this.browserarea);
-		
-			this.build_browser();
-			this.event_build_tablearea();
-
-			this.dialog.dialog({
-				autoOpen: false,
-				width:800,
-				height:600,
-				modal:this.options.modal
-			});
-
-		},
-	
-	
-		build_tablearea: function() {
-			// build a column-style browser
-			this.tablearea.empty();
-			var self=this;
-
-			var test = 0;
-			for (i in this.bdos) {test++}
-			if (test == 0) {
-				this.tablearea.append('<p>No attachments</p>');
-				return
-			}
-		
-			var bdotable = $('<table class="files" />');
-			bdotable.append('<tr><th style="width:20px"><input type="checkbox" name="toggleall" /></th><th>Filename</th><th>Size</th><th>Creator</th><th>Created</th></tr>'); //<th>md5</th>
-
-			$.each(this.bdos, function(k,v) {
-				var row = $('<tr/>');
-				var remove = $('<td><input type="checkbox" name="remove" value="'+v.name+'" /></td>');
-				row.append(remove);
-				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="" />'+v.filename+'</a></td>');
-				row.append(link);
-				row.append('<td>'+v.filesize+'</td>');
-				row.append('<td>'+v.creator+'</td>');
-				row.append('<td>'+v.creationtime+'</td>');
-				//row.append('<td>'+v.md5+'</td>');
-				bdotable.append(row);
-			});	
-		
-			this.tablearea.append(bdotable);
-		
-			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){e.stopPropagation();self.event_toggleall(e)})
-
-			var reset = $('<p><input class="save" type="button" value="Remove Selected Items" /></p>');
-			reset.click(function(e){e.stopPropagation();self.event_removebdos(e)});
-			this.tablearea.append(reset);		
-
-		},
-	
-		build_browser: function() {
-			var self = this;
-			var fform = $('<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
-
-			this.button_browser = $('<input type="file" name="filedata" />');
-			this.button_submit = $('<input class="save" type="submit" value="Upload" />');
-
-			//if (typeof(FileReader) != "undefined") {
-			// if (false) {
-			// 	if (this.options.vartype == "binary") {
-			// 		this.button_browser.attr("multiple","multiple");
-			// 	}	
-			// 
-			// 	this.button_browser.html5_upload({
-			// 		onFinish: function(event, total) {
-			// 			$('#progress').progressbar("destroy");
-			// 			$.jsonRPC("getrecord", [self.options.recid], function(rec) {
-			// 				record_update(rec);
-			// 				self.event_build_tablearea();
-			// 				self.options.cb();		
-			// 			})
-			// 		},
-			// 		setProgress: function(val) {
-			// 			$('#progress').progressbar( "option", "value", val*100 );
-			// 		},
-			// 		url: function() {
-			// 			return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
-			// 		},
-			// 		onStart: function(event, total) {
-			// 			if (total > 1) {
-			// 				return confirm("You are trying to upload " + total + " files. Are you sure?");
-			// 			}
-			// 			$('#progress').progressbar({});				
-			// 			return true;
-			// 		},
-			// 		autostart: false
-			// 	});
-			// 	this.button_submit.bind('click', function(e){e.stopPropagation();self.button_browser.trigger('html5_upload.start')});
-			// }
-			
-			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
-			var location = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/" name="Location">');
-			
-			fform.append(this.button_browser, this.button_submit, progress, location);
-			fform.wrap('<div class="controls"></div>');
-			this.browserarea.append(fform);
-
-			//if (this.options.vartype == "binary") {
-			//	this.browserarea.append('(you can select multiple files)');
-			//}
-
-
-		},
-	
-		event_toggleall: function(e) {
-			var c = $(e.target).attr("checked");
-			$("input:checkbox", this.dialog).each(function(){$(this).attr("checked",c)});
-		},
-	
-		show: function() {
-			this.build();
-			this.dialog.dialog('open');
-		},
-	
-		close: function() {
-			this.dialog.dialog('close');
-		},		
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
+// (function($) {
+//     $.widget("ui.FileControl", {
+// 		options: {
+// 			show: 0,
+// 			recid: null,
+// 			vartype: null,
+// 			param: null,
+// 			modal: true,
+// 			cb: function(){}			
+// 		},
+// 				
+// 		_create: function() {
+// 			this.built = 0;
+// 			this.bdos = {};
+// 			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
+// 			this.options.param = this.options.param || this.element.attr("data-param");
+// 			this.options.vartype = this.options.vartype || this.element.attr("data-vartype");
+// 		
+// 			var self=this;
+// 			$('.label', this.element).click(function(e) {e.stopPropagation();self.event_click(e)});
+// 
+// 			if (this.options.show) {			
+// 				this.show();
+// 			}
+// 		},
+// 	
+// 
+// 		event_click: function(e) {
+// 			var self = this;
+// 			this.show();
+// 			$.jsonRPC("getrecord", [this.options.recid],
+// 				function(rec) {				
+// 					caches["recs"][rec.recid] = rec;
+// 					self.event_build_tablearea();
+// 				}
+// 			);
+// 		},
+// 	
+// 	
+// 		event_build_tablearea: function(e) {
+// 			var self = this;
+// 			this.tablearea.empty();
+// 			this.tablearea.append('<div>Loading...</div>');
+// 			$.jsonRPC("getbinary", [caches["recs"][this.options.recid][this.options.param]], 
+// 				function(bdos) {
+// 					if (bdos == null) {bdos=[]}
+// 					if (bdos.length == null) {bdos=[bdos]}
+// 					self.bdos = bdos || {};
+// 					self.build_tablearea();
+// 				}
+// 			);
+// 		},
+// 	
+// 	
+// 		event_removebdos: function(e) {
+// 			var self = this;
+// 			var keep = [];
+// 			var q = $("input:checkbox:checked", this.tablearea).length;
+// 			if (q == 0) {return}
+// 			$("input:checkbox:not(:checked)", this.tablearea).each(function(){return keep.push(this.value)});
+// 			if (this.options.vartype == "binaryimage") {
+// 				keep = keep[0];
+// 			}
+// 			var p = {};
+// 			p[this.options.param]=keep
+// 			$.jsonRPC("putrecordvalues", [this.options.recid, p],
+// 				function(rec) {
+// 					record_update(rec);
+// 					self.event_build_tablearea();
+// 					self.options.cb();
+// 				}
+// 			);
+// 			
+// 		},
+// 	
+// 		
+// 		build: function() {
+// 			var self=this;
+// 			this.built = 1;
+// 
+// 			this.dialog = $('<div title="Attachment Manager" />');	
+// 			this.tablearea = $('<div />');
+// 			this.browserarea = $('<div />');
+// 		
+// 			this.dialog.append(this.tablearea, this.browserarea);
+// 		
+// 			this.build_browser();
+// 			this.event_build_tablearea();
+// 
+// 			this.dialog.dialog({
+// 				autoOpen: false,
+// 				width:800,
+// 				height:600,
+// 				modal:this.options.modal
+// 			});
+// 
+// 		},
+// 	
+// 	
+// 		build_tablearea: function() {
+// 			// build a column-style browser
+// 			this.tablearea.empty();
+// 			var self=this;
+// 
+// 			var test = 0;
+// 			for (i in this.bdos) {test++}
+// 			if (test == 0) {
+// 				this.tablearea.append('<p>No attachments</p>');
+// 				return
+// 			}
+// 		
+// 			var bdotable = $('<table class="files" />');
+// 			bdotable.append('<tr><th style="width:20px"><input type="checkbox" name="toggleall" /></th><th>Filename</th><th>Size</th><th>Creator</th><th>Created</th></tr>'); //<th>md5</th>
+// 
+// 			$.each(this.bdos, function(k,v) {
+// 				var row = $('<tr/>');
+// 				var remove = $('<td><input type="checkbox" name="remove" value="'+v.name+'" /></td>');
+// 				row.append(remove);
+// 				var link = $('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="" />'+v.filename+'</a></td>');
+// 				row.append(link);
+// 				row.append('<td>'+v.filesize+'</td>');
+// 				row.append('<td>'+v.creator+'</td>');
+// 				row.append('<td>'+v.creationtime+'</td>');
+// 				//row.append('<td>'+v.md5+'</td>');
+// 				bdotable.append(row);
+// 			});	
+// 		
+// 			this.tablearea.append(bdotable);
+// 		
+// 			$("input:checkbox[name=toggleall]", this.dialog).click(function(e){e.stopPropagation();self.event_toggleall(e)})
+// 
+// 			var reset = $('<p><input class="save" type="button" value="Remove Selected Items" /></p>');
+// 			reset.click(function(e){e.stopPropagation();self.event_removebdos(e)});
+// 			this.tablearea.append(reset);		
+// 
+// 		},
+// 	
+// 		build_browser: function() {
+// 			var self = this;
+// 			var fform = $('<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
+// 
+// 			this.button_browser = $('<input type="file" name="filedata" />');
+// 			this.button_submit = $('<input class="save" type="submit" value="Upload" />');
+// 
+// 			//if (typeof(FileReader) != "undefined") {
+// 			// if (false) {
+// 			// 	if (this.options.vartype == "binary") {
+// 			// 		this.button_browser.attr("multiple","multiple");
+// 			// 	}	
+// 			// 
+// 			// 	this.button_browser.html5_upload({
+// 			// 		onFinish: function(event, total) {
+// 			// 			$('#progress').progressbar("destroy");
+// 			// 			$.jsonRPC("getrecord", [self.options.recid], function(rec) {
+// 			// 				record_update(rec);
+// 			// 				self.event_build_tablearea();
+// 			// 				self.options.cb();		
+// 			// 			})
+// 			// 		},
+// 			// 		setProgress: function(val) {
+// 			// 			$('#progress').progressbar( "option", "value", val*100 );
+// 			// 		},
+// 			// 		url: function() {
+// 			// 			return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
+// 			// 		},
+// 			// 		onStart: function(event, total) {
+// 			// 			if (total > 1) {
+// 			// 				return confirm("You are trying to upload " + total + " files. Are you sure?");
+// 			// 			}
+// 			// 			$('#progress').progressbar({});				
+// 			// 			return true;
+// 			// 		},
+// 			// 		autostart: false
+// 			// 	});
+// 			// 	this.button_submit.bind('click', function(e){e.stopPropagation();self.button_browser.trigger('html5_upload.start')});
+// 			// }
+// 			
+// 			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
+// 			var location = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/" name="Location">');
+// 			
+// 			fform.append(this.button_browser, this.button_submit, progress, location);
+// 			fform.wrap('<div class="controls"></div>');
+// 			this.browserarea.append(fform);
+// 
+// 			//if (this.options.vartype == "binary") {
+// 			//	this.browserarea.append('(you can select multiple files)');
+// 			//}
+// 
+// 
+// 		},
+// 	
+// 		event_toggleall: function(e) {
+// 			var c = $(e.target).attr("checked");
+// 			$("input:checkbox", this.dialog).each(function(){$(this).attr("checked",c)});
+// 		},
+// 	
+// 		show: function() {
+// 			this.build();
+// 			this.dialog.dialog('open');
+// 		},
+// 	
+// 		close: function() {
+// 			this.dialog.dialog('close');
+// 		},		
+// 				
+// 		destroy: function() {
+// 		},
+// 		
+// 		_setOption: function(option, value) {
+// 			$.Widget.prototype._setOption.apply( this, arguments );
+// 		}
+// 	});
+// })(jQuery);

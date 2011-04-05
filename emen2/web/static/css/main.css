@@ -45,7 +45,7 @@ tr.s
 
 
 .add.removed,
-.removed,
+.removed
 {
 	background: red;
 	color: white;
@@ -184,7 +184,7 @@ body {
 }
 
 #alert, #pagescontainer_map, #buttons_main, #title, #content {
-	width: 1200px;
+	width: 1250px;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -645,6 +645,7 @@ img.listicon {
 .ulm.parents ul {
 	padding-left:0px;
 	margin-left:-249px;	
+	/* text-align:right; */
 }
 
 /* List items */

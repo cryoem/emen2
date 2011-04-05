@@ -19,42 +19,48 @@ class Macro(object):
 		cls.register()
 		return cls
 
+
 	@classmethod
 	def register(cls):
 		name = cls.__name__
 		if name.startswith('macro_'): name = name.split('_',1)[1]
 		emen2.db.datatypes.VartypeManager._register_macro(name, cls)
 
-	def __init__(self):
-		# typical modes: html, unicode, edit
-		self.modes={}
 
-
-	def preprocess(self, engine, macro, params, recs, db):
-		# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
-		pass
-		
-
-	def process(self, engine, macro, params, rec, db):
-		return "macro: %s"%macro
-
-
-	def render(self, engine, macro, params, rec, mode, db):
-		value = self.process(engine, macro, params, rec, db)
-		r = self.modes.get(mode, self.render_unicode)(engine, value, macro, params, rec, db)
-		return r
-
-
-	def render_unicode(self, engine, value, macro, params, rec, db):
-		return unicode(value)
-
-
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
-		return unicode("Maco: %s(%s)"%(macro,params))
+	def __init__(self, engine=None):
+		self.engine = engine
 
 
 	def getkeytype(self):
 		return self.keytype
+		
+		
+	# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
+	def preprocess(self, macro, params, recs):
+		pass
+		
+
+	# Run the macro
+	def process(self, macro, params, rec):
+		return "Macro: %s"%macro
+
+
+	# Render the macro
+	def render(self, macro, params, rec, markup=False):
+		self.markup = markup
+		value = self.process(macro, params, rec)
+		return self._render(value)
+
+
+	# Post-rendering
+	def _render(self, value):
+		return unicode(value)
+
+
+	# Get some info about the macro
+	def macro_name(self, macro, params):
+		return unicode("Maco: %s(%s)"%(macro,params))
+
 
 
 
@@ -63,13 +69,14 @@ class Macro(object):
 
 class macro_recid(Macro):
 	"""recid macro"""
-	
 	keytype = 'd'
 	__metaclass__ = Macro.register_view
-	def process(self, engine, macro, params, rec, db):
-		return rec.recid
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def process(self, macro, params, rec):
+		return rec.recid
+		
+
+	def macro_name(self, macro, params):
 		return "Record ID"
 
 
@@ -78,13 +85,13 @@ class macro_recid(Macro):
 class macro_parents(Macro):
 	__metaclass__ = Macro.register_view
 			
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		rectype, _, recurse = params.partition(",")
 		recurse = int(recurse or 1)
-		return db.getparents(rec.recid, rectype=rectype, recurse=recurse)
+		return self.engine.db.getparents(rec.recid, rectype=rectype, recurse=recurse)
 		
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "Parents: %s"%params				
 				
 
@@ -94,10 +101,11 @@ class macro_recname(Macro):
 	"""recname macro"""
 	__metaclass__ = Macro.register_view
 			
-	def process(self, engine, macro, params, rec, db):
-		return db.renderview(rec, viewtype="recname")
+	def process(self, macro, params, rec):
+		return self.engine.db.renderview(rec)
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+
+	def macro_name(self, macro, params):
 		return "Record ID"				
 				
 
@@ -107,27 +115,28 @@ class macro_childcount(Macro):
 	keytype = 'd'
 	__metaclass__ = Macro.register_view
 	
-	def preprocess(self, engine, macro, params, recs, db):
+	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
-		children = db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=3)
+		# ian: todo: recurse = -1..
+		children = self.engine.db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=-1)
 		for rec in recs:
-			key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
-			engine.store(key, len(children.get(rec.recid,[])))
+			key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
+			self.engine.store(key, len(children.get(rec.recid,[])))
 
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		"""Now even more optimized!"""
 		rectypes = params.split(",")
-		key = engine.get_cache_key('getchildren', rec.recid, *rectypes)
-		hit, children = engine.check_cache(key)
+		key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
+		hit, children = self.engine.check_cache(key)
 		if not hit:
-			children = len(db.getchildren(rec.recid, rectype=rectypes, recurse=3))
-			engine.store(key, children)
+			children = len(self.engine.db.getchildren(rec.recid, rectype=rectypes, recurse=-1))
+			self.engine.store(key, children)
 
 		return children
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "Childcount: %s"%(params)
 
 
@@ -137,47 +146,48 @@ class macro_img(Macro):
 	"""image macro"""
 	__metaclass__ = Macro.register_view
 
-	def process(self, engine, macro, params, rec, db):
-		default=["file_binary_image","640","640"]
+	def process(self, macro, params, rec):
+		default = ["file_binary_image","640","640"]
 		try:
-			ps=params.split(" ")
+			ps = params.split(" ")
 		except:
 			return "(Image Error)"
 		for i,v in list(enumerate(ps))[:3]:
-			default[i]=v
-		param,width,height=default
+			default[i] = v
+			
+		param, width, height = default
 
 		try:	
-			pd=db.getparamdef(param)
+			pd = self.engine.db.getparamdef(param)
 		except:
 			return "(Unknown parameter)"
 
 		if pd.vartype=="binary":
-			bdos=rec[param]
+			bdos = rec[param]
 		elif pd.vartype=="binaryimage":
-			bdos=[rec[param]]
+			bdos = [rec[param]]
 		else:
 			return "(Invalid parameter)"
 
 		#print bdos
-		if bdos==None:
+		if bdos == None:
 			return "(No Image)"
 
-		ret=[]
+		ret = []
 		for i in bdos:
 			try:
-				bdoo = db.getbinary(i, filt=False)
+				bdoo = self.engine.db.getbinary(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
 				lrecid = bdoo.get("recid")
-				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:],fname,height,width))
+				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:], fname, height, width))
 			except:
 				ret.append("(Error: %s)"%i)
 
 		return "".join(ret)
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "Image Macro"
 
 
@@ -186,31 +196,25 @@ class macro_childvalue(Macro):
 	"""childvalue macro"""
 	__metaclass__ = Macro.register_view
 
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		recid = rec.recid
-		children = db.getrecord(db.getchildren(recid))
+		children = self.engine.db.getrecord(self.engine.db.getchildren(recid))
 		return [i.get(params) for i in children]
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "Child Value: %s"%params
 
-	
-	# This should check the paramdef keytype..
-	# def getkeytype(self):
-	#	pass
-		
 
 
 class macro_parentvalue(Macro):
 	"""parentvalue macro"""
 	__metaclass__ = Macro.register_view
-	
 		
-	def process(self, engine, macro, params, rec, db):
-		# param, _, recurse = params.partition(",")
+	def process(self, macro, params, rec):
 		p = params.split(",")
 		param, recurse, rectype = p[0], 1, None
+
 		if len(p) == 3:
 			param, recurse, rectype = p
 		elif len(p) == 2:
@@ -218,14 +222,12 @@ class macro_parentvalue(Macro):
 			
 		recurse = int(recurse or 1)
 		recid = rec.recid
-		parents = db.getrecord(db.getparents(recid, recurse=recurse, rectype=rectype))
+		parents = self.engine.db.getrecord(self.engine.db.getparents(recid, recurse=recurse, rectype=rectype))
 		return filter(None, [i.get(param) for i in parents])
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
-		return "Parent Value: %s"%params
 
-	def render_unicode(self, engine, value, macro, params, rec, db):
-		return ",".join([unicode(j) for j in value])
+	def macro_name(self, macro, params):
+		return "Parent Value: %s"%params
 
 
 
@@ -233,17 +235,14 @@ class macro_or(Macro):
 	"""parentvalue macro"""
 	__metaclass__ = Macro.register_view
 			
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		params = params.split(",")
 		return filter(None, [rec.get(i.strip()) for i in params])
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+
+	def macro_name(self, macro, params):
 		return " or ".join(params.split(","))
 
-	def render_unicode(self, engine, value, macro, params, rec, db):
-		if len(value) > 0:
-			return unicode(value[0])
-		return ""
 
 
 
@@ -253,10 +252,11 @@ class macro_escape_paramdef_val(Macro):
 	"""escape_paramdef_val macro"""
 	__metaclass__ = Macro.register_view
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		return cgi.escape(rec.get(params, ''))
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+
+	def macro_name(self, macro, params):
 		return "Escaped Value: %s"%params
 
 
@@ -265,16 +265,18 @@ class macro_renderchildren(Macro):
 	"""renderchildren macro"""
 	__metaclass__ = Macro.register_view
 		
-	def process(self, engine, macro, params, rec, db):
-		r = db.renderview(db.getchildren(rec.recid), viewtype=params or "recname") #ian:mustfix
+	def process(self, macro, params, rec):
+		r = self.engine.db.renderview(self.engine.db.getchildren(rec.recid), viewtype=params or "recname") #ian:mustfix
+
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
 			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
 			hrefs.append(l)
+
 		return "<ul>%s</ul>"%("\n".join(hrefs))
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "renderchildren"			
 
 
@@ -284,7 +286,7 @@ class macro_renderchild(Macro):
 	__metaclass__ = Macro.register_view
 	
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		#rinfo = dict(,host=host)
 		#view, key, value = args.split(' ')
 		#def get_records(recid):
@@ -293,7 +295,7 @@ class macro_renderchild(Macro):
 		return ""
 
 		
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "renderchild"		
 
 
@@ -303,18 +305,19 @@ class macro_renderchildrenoftype(Macro):
 	__metaclass__ = Macro.register_view
 
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		# print macro, params
-		r = db.renderview(db.getchildren(rec.recid, rectype=params), viewtype="recname")
+		r = self.engine.db.renderview(self.engine.db.getchildren(rec.recid, rectype=params))
+
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
 			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
 			hrefs.append(l)
+
 		return "<ul>%s</ul>"%("\n".join(hrefs))
 
-
 		
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "renderchildrenoftype"	
 
 
@@ -325,7 +328,7 @@ class macro_getfilenames(Macro):
 	__metaclass__ = Macro.register_view
 
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		# files = {}
 		# if rec["file_binary"] or rec["file_binary_image"]:
 		# 	bids = []
@@ -346,7 +349,7 @@ class macro_getfilenames(Macro):
 		return ""
 
 		
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "getfilenames"	
 
 
@@ -355,10 +358,8 @@ class macro_getfilenames(Macro):
 class macro_getrectypesiblings(Macro):
 	"""getrectypesiblings macro"""
 	__metaclass__ = Macro.register_view
-
-	
 		
-	def process(self, engine, macro, params, rec, db):
+	def process(self, macro, params, rec):
 		pass
 		# """returns siblings and cousins of same rectype"""
 		# ret = {}
@@ -375,7 +376,7 @@ class macro_getrectypesiblings(Macro):
 		# 	ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?
 		#
 		
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "getrectypesiblings"	
 		
 		
@@ -389,11 +390,12 @@ class macro_thumbnail(Macro):
 	__metaclass__ = Macro.register_view
 	
 		
-	def process(self, engine, macro, params, rec, db):
-		#print "Processing thumbnail: %s"%params
+	def process(self, macro, params, rec):
+
 		format = "jpg"
 		defaults = ["file_binary_image", "thumb", "jpg"]
 		params = (params or '').split(",")
+
 		for i,v in enumerate(params):
 			if v:
 				defaults[i]=v
@@ -403,10 +405,13 @@ class macro_thumbnail(Macro):
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
 			bdos = [bdos]
-		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos)])
+
+		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
+				g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
+				)])
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
+	def macro_name(self, macro, params):
 		return "Thumbnail Image"
 
 

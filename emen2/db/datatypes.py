@@ -14,7 +14,7 @@ class VartypeManager(object):
 	_vartypes = {}
 	_properties = {}
 	_macros = {}
-	nonevalues = [None,"","N/A","n/a","None"] #set([None,"","N/A","n/a","None"])
+	nonevalues = [None,"","N/A","n/a","None"]
 
 
 	@classmethod
@@ -41,11 +41,16 @@ class VartypeManager(object):
 		cls._macros[name]=refcl
 
 
-	# rolled in MacroEngine
-	def __init__(self):
+	def __init__(self, db=None):
 		object.__init__(self)
+		self.db = db
 		self.caching = False
 		self.reset_cache()
+
+
+	###################################
+	# Caching
+	###################################
 
 	def reset_cache(self):
 		self.paramdefcache = {}
@@ -72,80 +77,105 @@ class VartypeManager(object):
 		if self.cache.has_key(key):
 			return True, self.cache[key]
 		return False, None
+		
+
+	###################################
+	# Macro Rendering
+	###################################
+
+	def macro_preprocess(self, macro, params, recs):
+		return self._macros[macro](engine=self).preprocess(macro, params, recs)
 
 
-	# rendering methods
-	def macro_preprocess(self, macro, params, recs, db=None):
-		return self._macros[macro]().preprocess(self, macro, params, recs, db)
+	def macro_process(self, macro, params, rec):
+		return self._macros[macro](engine=self).process(macro, params, rec)
 
 
-	def macro_process(self, macro, params, rec, db=None):
-		return self._macros[macro]().process(self, macro, params, rec, db)
+	def macro_render(self, macro, params, rec, markup=False):
+		return self._macros[macro](engine=self).render(macro, params, rec)
 
 
-	def macro_render(self, macro, params, rec, mode="unicode", db=None):
-		return self._macros[macro]().render(self, macro, params, rec, mode, db)
+	def macro_name(self, macro, params):
+		return self._macros[macro](engine=self).macro_name(macro, params, rec)
 
 
-	def name_render(self, pd, mode="unicode", db=None):
-		if mode in ["html","htmledit"]:
-			return u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
-			# return u"""<a href="%s/paramdef/%s/">%s</a>"""%(g.EMEN2WEBROOT,pd.name, pd.desc_short)
-		else:
-			return unicode(pd.desc_short)
+	###################################
+	# ParamDef Rendering
+	###################################
+
+	def name_render(self, pd, markup=False):
+		return u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
+
+		# if mode in ["html","htmledit"]:
+		# else:
+		# return unicode(pd.desc_short)
 
 
-	def param_render(self, pd, value, mode="unicode", rec=None, db=None):
-		#g.log.msg('LOG_DEBUG', "param_render: %s %s mode=%s"%(pd.vartype, value, mode))
-		if pd.name in ["creator", "creationtime", "modifyuser", "modifytime", "recid", "rectype", "groups", "permissions", "history", "username"] and mode == "htmledit":
-			mode = "html"
-		return self._vartypes[pd.vartype]().render(self, pd, value, mode, rec, db)
+	###################################
+	# Param Rendering
+	###################################
+	
+	def param_render(self, pd, value, **kwargs):
+		return self._vartypes[pd.vartype](engine=self).render(pd=pd, value=value, **kwargs)
 
 
-	def param_render_sort(self, pd, value, mode="unicode", rec=None, db=None):
+	def param_render_sort(self, pd, value, **kwargs):
 		"""Render for native sorting, e.g. lexicographical vs. numerical"""
-		vt = self._vartypes[pd.vartype]()
+
+		vt = self._vartypes[pd.vartype](engine=self)
+		
 		if vt.getkeytype() in ["d","f"]:
-			return value
-		value = vt.render(self, pd, value, mode, rec, db=db)
+			return rec.get(pd.name)
+			
+		value = vt.render(pd=pd, value=value)
+
 		if value == None:
 			return value
+
 		return value.lower()
 
 
-	def macroname_render(self, macro, params, rec, mode="unicode", db=None):
-		return self._macros[macro]().macroname_render(macro, params, rec, mode, db)
-
-	# validate, etc.
+	###################################
+	# Validation
+	###################################
 
 	def encode(self, pd, value):
 		return self._vartypes[pd.vartype]().encode(value)
 
+
 	def decode(self, pd, value):
 		return self._vartypes[pd.vartype]().decode(pd, value)
 
-	def validate(self, pd, value, db=None):
+
+	def validate(self, pd, value):
 		if value in self.nonevalues:
 			return None
 
 		if pd.property:
-			value = self._properties[pd.property]().validate(self, pd, value, db)
+			value = self._properties[pd.property]().validate(self, pd, value, self.db)
 
 		if value == None:
 			return None
 
-		ret = self._vartypes[pd.vartype]().validate(self, pd, value, db)
+		ret = self._vartypes[pd.vartype](engine=self, db=self.db).validate(value)
 		return ret
 
+
+	###################################
+	# Misc
+	###################################
 
 	def getkeytype(self, name):
 		pass
 
+
 	def getvartype(self, name):
 		return self._vartypes[name]()
 
+
 	def getproperty(self, name):
 		return self._properties[name]()
+
 
 	def getmacro(self, name):
 		return self._macros[name]()

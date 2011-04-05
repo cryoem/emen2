@@ -327,7 +327,7 @@ function record_init(rec, ptest, edit) {
 	// Bind editable widgets
 	$('.editbar .edit .label').MultiEditControl({});
 	$('.editable').EditControl({});
-	$('.editable_files').FileControl({});
+	// $('.editable_files').FileControl({});
 
 	$('.editbar .edit').EditbarHelper({
 		bind: false,
@@ -489,8 +489,8 @@ function rebuildviews(selector) {
 		var elem = $(this);
 		var recid = parseInt(elem.attr('data-recid'));
 		var viewtype = elem.attr('data-viewtype');
-		var mode = elem.attr('data-mode') || 'html';
-		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'mode':mode}, function(view) {
+		var edit = elem.attr('data-edit');
+		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'edit': edit}, function(view) {
 			elem.html(view);
 			$('.editable', elem).EditControl({});
 			//$('.editable_files', elem).FileControl({});

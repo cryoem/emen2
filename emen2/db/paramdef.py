@@ -124,7 +124,7 @@ class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 				g.log.msg("LOG_WARNING", "Units requires property")
 
 			else:
-				prop=vtm.getproperty(self._obj.property)
+				prop = vtm.getproperty(self._obj.property)
 
 				if prop.equiv.get(self._obj.defaultunits):
 					self._obj.defaultunits=prop.equiv.get(self._obj.defaultunits)

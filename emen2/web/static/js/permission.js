@@ -190,6 +190,7 @@
 				var button = $('<input class="addbutton" type="button" value="+" /> ');
 				button.FindControl({
 					mode: 'findgroup',
+					minimum: 0,
 					cb:function(test, groupname){self.addgroup(groupname)}
 				});
 				title.prepend(button);
@@ -358,9 +359,8 @@
 		},
 	
 		getusers: function() {
-			return this.getaddusers(false);
+			return this.getaddusers(true);
 		},
-
 
 		save_group: function() {
 			var group = caches['groups'][this.options.groupname];

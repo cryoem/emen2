@@ -17,21 +17,9 @@
 
 
 function query_build_path(q, postpend) {
-	//cmp_order = ["==", "!=", ".contains.", ">=", "<=", ">", "<", ".any.", '.recid.']
-	// '!contains': '.!contains.',
-	var lut = {
-		'contains': '.contains.',
-		'any': '.any.',
-		'none': '.none.',
-		'recid': '.recid.',
-		'rectype': '.rectype.',
-		'noop': '.noop.'
-	}
-
 	var output = [];
 	$.each(q['c'], function() {
-		if (lut[this[1]] != null) {this[1]=lut[this[1]]}
-		output.push(this[0]+this[1]+this[2]);
+		output.push(encodeURIComponent(this[0])+'.'+encodeURIComponent(this[1])+'.'+encodeURIComponent(this[2]));
 	});
 	delete q['c'];
 	
@@ -49,216 +37,6 @@ function query_build_path(q, postpend) {
 	qs = '?' + $.param(q);
 	return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
 }
-
-
-
-// (function($) {
-//     $.widget("ui.PlotControl", {
-// 		options: {
-// 			q: null,
-// 			cb: function(self, newq) {}
-// 		},
-// 				
-// 		_create: function() {
-// 			if (this.options.q['plots']) {
-// 				this.update(this.options.q);				
-// 			}
-// 		},
-// 
-// 		update: function(q) {
-// 			var q = q || this.options.q;
-// 			this.options.q = q;			
-// 			this.element.empty();
-// 			var self = this;
-// 
-// 			if (!this.options.q['plots']) {
-// 				return
-// 			}
-// 			
-// 			// Trust me -- I hate tables, especially table-embedded-tables, but this is the easiest way..
-// 			var t = $(' \
-// 				<table> \
-// 					<tr> \
-// 						<td style="width:50px"><input name="ymax" type="text" size="4"></td> \
-// 						<td style="width:650px" class="plot_title"></td> \
-// 						<td></td> \
-// 					</tr><tr> \
-// 						<td class="vertical plot_ylabel"></td><td class="plot_image"></td> \
-// 						<td> \
-// 							<table>\
-// 								<thead> \
-// 									<tr> \
-// 										<th>Show<button data-sort="show" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
-// 										<th>Color</th> \
-// 										<th>Group<button data-sort="group" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
-// 										<th>Count<button data-sort="count" class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_able.png" alt="Sort" /></button></th> \
-// 									</tr> \
-// 								</thead> \
-// 								<tbody class="plot_legend"></tbody> \
-// 								<thead> \
-// 									<tr> \
-// 										<td colspan="3"> \
-// 											<input name="checkall" type="button" value="All" /> \
-// 											<input name="checknone" type="button" value="None" /> \
-// 											<input name="checkinvert" type="button" value="Invert" /> \
-// 											<input name="partcolors" type="button" value="Group Colors" /> \
-// 										</td> \
-// 										<td><input type="button" name="update" value="Update" /></td> \
-// 									</tr> \
-// 								</thead> \
-// 							</table> \
-// 						</td> \
-// 						<td></td> \
-// 					</tr><tr> \
-// 						<td><input name="ymin" type="text" size="4"></td> \
-// 						<td class="plot_xlabel"> \
-// 							<input style="float:left" name="xmin" type="text" size="4" value=""/> \
-// 							<span class="label"></span><input style="float:right" type="text" size="4" value="" name="xmax" /> \
-// 						</td> \
-// 						<td></td> \
-// 					</tr> \
-// 				</table>');
-// 			this.element.append(t);	
-// 
-// 			$('input[name=xmin]', this.element).val(this.options.q['xmin']);
-// 			$('input[name=xmax]', this.element).val(this.options.q['xmax']);
-// 			$('input[name=ymin]', this.element).val(this.options.q['ymin']);
-// 			$('input[name=ymax]', this.element).val(this.options.q['ymax']);
-// 			$('.plot_title', this.element).html(this.options.q['title']);
-// 			$('.plot_xlabel .label', this.element).html(this.options.q['xlabel']);
-// 			$('.plot_ylabel', this.element).html(this.options.q['ylabel']);
-// 
-// 			// $('.plot_image').empty();
-// 			var png = this.options.q['plots']['png'];
-// 			var i = $('<img src="'+EMEN2WEBROOT+'/download/tmp/'+png+'" alt="Plot" />');
-// 			$('.plot_image', this.element).append(i);
-// 			
-// 			// init group order
-// 			this.setgrouporder();
-// 
-// 			// bind checkall / uncheckall
-// 			$('input[name=checkall]').click(function() {
-// 				$('input[name=groupshow]').each(function() {
-// 					$(this).attr('checked', true);
-// 				});
-// 			});
-// 			$('input[name=checknone]').click(function() {
-// 				$('input[name=groupshow]').each(function() {
-// 					$(this).attr('checked', false);
-// 				});
-// 			});
-// 			$('input[name=checkinvert]').click(function() {
-// 				$('input[name=groupshow]').each(function() {
-// 					var state = $(this).attr('checked');
-// 					$(this).attr('checked', !state);
-// 				});
-// 			});
-// 			$('input[name=partcolors]').click(function() {
-// 				$('input[name=groupshow]', this.element).each(function(){
-// 					var group = $(this).attr('data-group');
-// 					var state = $(this).attr('checked');
-// 					var color = '#000000';
-// 					if (!state) {
-// 						color = '#FFFFFF';
-// 					}
-// 					$('input[name=groupcolor][data-group='+group+']').val(color).change();
-// 				});
-// 			});
-// 
-// 			$('input[name=update]', this.element).click(function(){
-// 				self.query();
-// 			});
-// 			
-// 			
-// 			$('button[data-sort=show]', this.element).click(function() {
-// 				var s1=[];
-// 				var s2=[];
-// 				$('input[name=groupshow]').each(function() {
-// 					var group = $(this).attr('data-group');
-// 					var state = $(this).attr('checked');
-// 					if (state) {s1.push(group)} else {s2.push(group)}
-// 				});
-// 				self.setgrouporder(s1.concat(s2));
-// 			});
-// 			$('button[data-sort=group]', this.element).click(function() {
-// 				var neworder = self.options.q['grouporder'].slice();
-// 				neworder.sort();
-// 				self.setgrouporder(neworder);
-// 			});
-// 			$('button[data-sort=count]', this.element).click(function() {
-// 				var sortable = [];
-// 				for (var group in self.options.q['groupcount']) sortable.push([group, self.options.q['groupcount'][group]])
-// 				sortable.sort(function(a, b) {return a[1] - b[1]});
-// 				var neworder = [];
-// 				$.each(sortable, function(i,k){neworder.push(k[0])});
-// 				self.setgrouporder(neworder);
-// 			});
-// 			
-// 		},
-// 		
-// 		
-// 		setgrouporder: function(neworder) {
-// 			var self = this;
-// 			neworder = neworder || this.options.q['grouporder'];
-// 			// console.log("Setting order", neworder);
-// 			// console.log(this.options.q['grouporder']);
-// 
-// 			$('.plot_legend', this.element).empty();
-// 			$.each(this.options.q['grouporder'], function(i,k) {
-// 				var row = $('\
-// 					<tr> \
-// 						<td><input type="checkbox" checked="checked" name="groupshow" data-group="'+k+'" value="'+k+'" /></td> \
-// 						<td><input class="colorpicker" name="groupcolor" data-group="'+k+'" type="text" size="4" value="'+self.options.q['groupcolors'][k]+'" /></td> \
-// 						<td>'+k+'</td> \
-// 						<td>'+self.options.q['groupcount'][k]+'</td> \
-// 					</tr>');					
-// 				$('.plot_legend', this.element).append(row);
-// 			});					
-// 			$('.colorpicker', this.element).colorPicker();
-// 			
-// 			// Check the boxes for groups that are being displayed
-// 			if (this.options.q['groupshow']) {
-// 				$('input[name=groupshow]').each(function(){$(this).attr('checked',null)});
-// 				$.each(this.options.q['groupshow'], function() {
-// 					$('input[name=groupshow][data-group='+this+']', self.element).attr('checked', 'checked');
-// 				});
-// 			}			
-// 			this.options.q['grouporder'] = neworder;
-// 		},
-// 		
-// 		query: function() {
-// 			var newq = this.options.q;
-// 			newq['xmin'] = $('input[name=xmin]', this.element).val();
-// 			newq['xmax'] = $('input[name=xmax]', this.element).val();
-// 			newq['ymin'] = $('input[name=ymin]', this.element).val();
-// 			newq['ymax'] = $('input[name=ymax]', this.element).val();
-// 			
-// 			// groupshow
-// 			var el = $('input[name=groupshow]:checked', this.element);
-// 			var groupshow = el.map(function(){return $(this).attr('data-group')});
-// 			//if (groupshow.length < el.length) {
-// 			newq['groupshow'] = $.makeArray(groupshow);
-// 			//} else {
-// 			//	newq['groupshow'] = null;
-// 			//}
-// 			
-// 			// groupcolor
-// 			var groupcolors = {};
-// 			$('input[name=groupcolor]', this.element).each(function() {
-// 				groupcolors[$(this).attr('data-group')] = $(this).val();
-// 			});
-// 			newq['groupcolors'] = groupcolors;
-// 			this.options.cb(this, newq);			
-// 		},
-// 				
-// 		destroy: function() {
-// 		},
-// 		
-// 		_setOption: function(option, value) {
-// 			$.Widget.prototype._setOption.apply( this, arguments );
-// 		}
-// 	});
-// })(jQuery);
 
 
 
@@ -353,6 +131,8 @@ function query_build_path(q, postpend) {
 				');
 
 			this.container.append(m);
+			
+			// ian: todo
 			//$('.findrecord', this.container).Browser({});
 			$('.finduser', this.container).FindControl({mode: 'finduser'});
 			$('.findgroup', this.container).FindControl({mode: 'findgroup'});
@@ -389,17 +169,26 @@ function query_build_path(q, postpend) {
 			$('input[name=recurse_v]', t).attr('checked', null);
 			if (!base) {
 				$('input[name=param]', t).val('');
-				$('select[name=cmp]', t).val('==');
+				$('select[name=cmp]', t).val('any');
 			}			
-		},
-		
-		demo: function() {
-			$("input[name=xparam]", this.element).val('ctf_defocus_measured');
-			$("input[name=yparam]", this.element).val('ctf_bfactor');			
 		},
 				
 		query_bookmark: function(self, q) {
 			window.location = query_build_path(q);
+		},
+		
+		_getconstraint: function(elem) {
+			var param = $('input[name=param]', elem).val();
+			var cmp = $('[name=cmp]', elem).val();
+			var value = $('input[name=value]', elem).val();
+
+			// These two recurse/parent checks are kindof ugly..
+			var recurse_v = $('input[name=recurse_v]', elem).attr('checked');
+			if (value && recurse_v) {value = value+'*'}
+
+			var recurse_p = $('input[name=recurse_p]', elem).attr('checked');
+			if (param && recurse_p) {param = param+'*'}
+			return [param, cmp, value];
 		},
 		
 		getquery: function() {
@@ -410,22 +199,18 @@ function query_build_path(q, postpend) {
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
 									
-			$('.constraints tr', this.container).each(function() {
-				var param = $('input[name=param]', this).val();
-				var cmp = $('[name=cmp]', this).val();
-				var value = $('input[name=value]', this).val();
-
-				// These two recurse/parent checks are kindof ugly..
-				var recurse_v = $('input[name=recurse_v]', this).attr('checked');
-				if (value && recurse_v) {value = value+'*'}
-
-				var recurse_p = $('input[name=recurse_p]', this).attr('checked');
-				if (param && recurse_p) {param = param+'*'}
-
-				if (param) { c.push([param, cmp, value]) }
+			$('.base.constraints tr', this.container).each(function() {
+				var p = self._getconstraint(this);
+				if (p[0] && p[1] && p[2]) {c.push(p)}
 			});
-			newq['c'] = c;
+			$('.param.constraints tr', this.container).each(function() {
+				var p = self._getconstraint(this);
+				if (p[0]) {c.push(p)}
+			});
 
+			newq['c'] = c;
+			//newq['stats'] = true;
+			
 			if (ignorecase) {newq['ignorecase'] = 1}
 			if (boolmode) {newq['boolmode'] = boolmode}
 			return newq
@@ -438,7 +223,7 @@ function query_build_path(q, postpend) {
 		
 		addconstraint: function(param, cmp, value) {
 			param = param || '';
-			cmp = cmp || '';
+			cmp = cmp || 'any';
 			value = value || '';
 			var recurse = false;
 			var self = this;
@@ -476,20 +261,30 @@ function query_build_path(q, postpend) {
 		build_cmp: function(cmp) {
 			//"!contains":"does not contain",
 			var comparators = {
-				"==":"is",
-				"!=":"is not",
-				"contains":"contains",
-				"contains_w_empty":"contains, or is empty",
-				">":"is greater than",
-				"<":"is less than",
-				">=":"is greater or equal than",
-				"<=":"is less or equal than",
-				"any":"is any value",
-				'none':"is empty",
-				'noop': 'no constraint'
-				//'recid': 'recod id',
-				//'rectype': 'protocol',
+				"is": "is",
+				"not": "is not",
+				"contains": "contains",
+				"contains_w_empty": "contains, or is empty",
+				"gt": "is greater than",
+				"lt": "is less than",
+				"gte": "is greater or equal than",
+				"lte": "is less or equal than",
+				"any": "is any value",
+				'none': "is empty",
+				'noop': "no constraint"
 			}
+			var lookup = {
+				">": "gt",
+				"<": "lt",
+				">=": "gte",
+				"<=": "lte",
+				"==": "is",
+				"!=": "not"				
+			}
+
+			// Check the transforms..
+			cmp = lookup[cmp] || cmp;
+			
 			var i = $('<select name="cmp" style="width:150px" />');
 			$.each(comparators, function(k,v) {
 				var r = $('<option value="'+k+'">'+v+'</option>');
@@ -499,47 +294,97 @@ function query_build_path(q, postpend) {
 			return i		
 		},
 		
-		test: function() {
+		_compare_constraint: function(elem, c, base) {
+			// Another ugly block to deal with these items..
+
+			var param = c[0] || '';
+			var cmpi = c[1] || 'any';
+			var value = c[2] || '';
+			var recurse_p = false;
+			var recurse_v = false;
+			if (param.search('\\*') > -1) { 
+				recurse_p = true;
+				param = param.replace('*', '');
+			}
+			if (value.search('\\*') > -1) { 
+				recurse_v = true;
+				value = value.replace('*', '');
+			}
+
+			// Get the constraint elements.
+			var _param = $('input[name=param]', elem);
+			var _cmpi = $('input[name=cmp]', elem);
+			var _value = $('input[name=value]', elem);
+			var _recurse_p = $('input[name=recurse_p]', elem);
+			var _recurse_v = $('input[name=recurse_v]', elem);
+			
+			// Get the values
+			var _param2 = _param.val();
+			var _cmpi2 = _cmpi.val();
+			var _value2 = _value.val();
+			var _recurse_p2 = _recurse_p.attr('checked');
+			var _recurse_v2 = _recurse_v.attr('checked');
+
+			base = true;
+			if (base) {
+				_value2 = value;
+				_recurse_p2 = recurse_p;
+				_recurse_v2 = recurse_v;
+			}
+			
+			// If this constraint matches, update the element and return True
+			if (
+				param == _param2
+				&& cmpi == _cmpi2
+				&& value == _value2
+				&& recurse_p == _recurse_p2
+				&& recurse_v == _recurse_v2
+			) {
+				_value.val(value);
+				_recurse_p.attr('checked', recurse_p);
+				_recurse_v.attr('checked', recurse_v);
+				return true
+			}
+			return false
+		},
+		
+		_find_constraints: function(c, base) {
+			var self = this;
+			var selector = '.param.constraints tr';
+			var param_constraints = [];
+			if (base) {
+				var selector = '.base.constraints tr';
+			}
+			$.each(c, function() {
+				var constraint = this;
+				var found = false;
+				$.each($(selector), function() {
+					if (found == false) {
+						found = self._compare_constraint(this, constraint, base);
+					}
+				});
+				if (found == false) {
+					param_constraints.push(constraint);
+				}
+			});
+			return param_constraints
 		},
 		
 		update: function(q) {
 			q = q || this.options.q;
 			this.options.q = q;			
 			var self = this;
-			$('.constraints tbody.base input[name=value]', this.container).val('');
-			$('.constraints tbody.param', this.container).empty();
 
-			$.each(this.options.q['c'], function() {
-				// Another ugly block to deal with these items..
-				var param = this[0] || '';
-				var cmpi = this[1] || 'any';
-				var value = this[2] || '';
-				var recurse_p = false;
-				var recurse_v = false;
-
-				if (param.search('\\*') > -1) { 
-					recurse_p = true;
-					param = param.replace('*', '');
-				}
-				if (value.search('\\*') > -1) { 
-					recurse_v = true;
-					value = value.replace('*', '');
-				}
-				var finditem = $('.base.constraints input[name=param][value='+param+']', this.element);
-				if (finditem.length > 0) {
-					var tr = finditem.parent().parent();
-					$('input[name=cmp]', tr).val(cmpi);
-					$('input[name=value]', tr).val(value);
-					if (recurse_p) {$('input[name=recurse_p]', tr).attr('checked', 'checked')} else {$('input[name=recurse_p]', tr).attr('checked', null)}
-					if (recurse_v) {$('input[name=recurse_v]', tr).attr('checked', 'checked')} else {$('input[name=recurse_v]', tr).attr('checked', null)}
-				} else {
-					self.addconstraint(this[0], this[1], this[2]);					
-				}
-
-			});
-
-			this.addconstraint();
-
+			// Check all base constraints, w/o recurse
+			// Check remaining param constraints..
+			var param_constraints = this._find_constraints(this.options.q['c'], true);
+			var new_constraints = this._find_constraints(param_constraints, false);
+			$.each(new_constraints, function() {
+				self.addconstraint(this[0], this[1], this[2]);
+			});	
+			if (new_constraints.length == 0) {
+				self.addconstraint();
+			}
 		},		
 				
 		destroy: function() {
