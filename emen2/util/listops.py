@@ -17,11 +17,13 @@ def invert(d):
 
 
 
-def check_iterable(value):
+def check_iterable(value, filt=True):
 	if not value and not isinstance(value,(float,int)):
 		value = []
 	if not hasattr(value,"__iter__"):
 		value=[value]
+	if filt:
+		value = filter(filter_none, value)
 	return value
 
 
@@ -61,6 +63,11 @@ def adjust(iter_, *items_):
 
 def combine_lists(sep=' ', *args):
 	return (sep.join(x) for x in zip(*args))
+
+
+
+
+filter_none = lambda x:x or x==0
 
 
 

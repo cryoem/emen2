@@ -70,10 +70,11 @@
 			
 			// build the ul.ulm elements, one for parents, and children
 			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;padding-bottom:6px;margin-bottom:6px;"> \
-						<div class="floatleft" style="width:249px;">Parents</div> \
+						<div class="addparents floatleft" style="width:249px;">Parents</div> \
 						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
-						<div class="floatleft" style="width:249px;">Children</div> \
+						<div class="addchildren floatleft" style="width:249px;">Children</div> \
 					</div>');				
+
 						
 			var parents = $('<div class="ulm parents floatleft" style="width:245px"></div>');
 			var children = $('<div class="ulm children floatleft" ></div>');
@@ -91,6 +92,39 @@
 					modal: true
 				});
 			}
+			
+			if (this.options.embed) {
+				this.build_addsimple();
+			}
+		},
+		
+		build_addsimple: function() {
+			var self = this;
+			var cb = function(parent,key){
+				console.log(parent,key);
+			}
+
+			// Adding this back to help users..
+			var addparents = $('<input type="button" name="addparents" class="save" value="+" /> ').click(function() {
+				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
+				var i = $('<div></div>');
+				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
+			});
+			var addchildren = $('<input type="button" name="addchildren" class="save" value="+" /> ').click(function() {
+				var cb = function(child) {self._action_addrel(self.options.root, child)}
+				var i = $('<div></div>');
+				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
+			});
+			
+			$('.addparents', this.dialog).prepend(addparents);
+			$('.addchildren', this.dialog).prepend(addchildren);
+
+			// $('input[name=addparents]', p).click(function() {
+			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
+			// });
+			// $('input[name=addchildren]', p).click(function() {
+			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
+			// });			
 		},
 		
 		build_ul: function(elem, key) {

@@ -277,7 +277,9 @@ class DBProxy(object):
 	def _callmethod(self, method, args=(), kwargs={}):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
 		#return getattr(self, method)(*args, **kwargs)
-		return self._wrap(self.mt.get_method(method).func)(*args, **kwargs)
+		m = self.mt.get_method(method).func
+		if m:
+			return self._wrap(m)(*args, **kwargs)
 
 
 

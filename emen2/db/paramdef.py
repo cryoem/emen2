@@ -66,12 +66,15 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		# choices for choice and string vartypes, a tuple
 		self.choices = d.get('choices')
 
+		# immutable
+		self.immutable = d.get('immutable')
+
 		# original creator of the record
 		self.creator = None
 
 		# creation date
 		self.creationtime = emen2.db.database.gettime()
-
+		
 		# source of parameter
 		self.uri = None
 

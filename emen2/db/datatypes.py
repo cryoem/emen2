@@ -91,13 +91,13 @@ class VartypeManager(object):
 		return self._macros[macro](engine=self).process(macro, params, rec)
 
 
-	def macro_render(self, macro, params, rec, markup=False):
-		return self._macros[macro](engine=self).render(macro, params, rec)
+	def macro_render(self, macro, params, rec, **kwargs):
+		return self._macros[macro](engine=self).render(macro, params, rec, **kwargs)
 
 
 	def macro_name(self, macro, params):
 		return self._macros[macro](engine=self).macro_name(macro, params, rec)
-
+		
 
 	###################################
 	# ParamDef Rendering
@@ -116,18 +116,18 @@ class VartypeManager(object):
 	###################################
 	
 	def param_render(self, pd, value, **kwargs):
-		return self._vartypes[pd.vartype](engine=self).render(pd=pd, value=value, **kwargs)
+		return self._vartypes[pd.vartype](engine=self, pd=pd).render(value, **kwargs)
 
 
 	def param_render_sort(self, pd, value, **kwargs):
 		"""Render for native sorting, e.g. lexicographical vs. numerical"""
 
-		vt = self._vartypes[pd.vartype](engine=self)
+		vt = self._vartypes[pd.vartype](engine=self, pd=pd)
 		
 		if vt.getkeytype() in ["d","f"]:
 			return rec.get(pd.name)
 			
-		value = vt.render(pd=pd, value=value)
+		value = vt.render(value=value)
 
 		if value == None:
 			return value
@@ -140,11 +140,11 @@ class VartypeManager(object):
 	###################################
 
 	def encode(self, pd, value):
-		return self._vartypes[pd.vartype]().encode(value)
+		return self._vartypes[pd.vartype](engine=self, pd=pd).encode(value)
 
 
 	def decode(self, pd, value):
-		return self._vartypes[pd.vartype]().decode(pd, value)
+		return self._vartypes[pd.vartype](engine=self, pd=pd).decode(value)
 
 
 	def validate(self, pd, value):
@@ -154,10 +154,7 @@ class VartypeManager(object):
 		if pd.property:
 			value = self._properties[pd.property]().validate(self, pd, value, self.db)
 
-		if value == None:
-			return None
-
-		ret = self._vartypes[pd.vartype](engine=self, db=self.db).validate(value)
+		ret = self._vartypes[pd.vartype](engine=self, pd=pd).validate(value)
 		return ret
 
 

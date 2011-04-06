@@ -395,7 +395,6 @@ class DB(object):
 		# VartypeManager handles registration of vartypes and properties, and also validation
 		self.vtm = self._init_vtm()
 
-
 		# Open DB environment; check if global DBEnv has been opened yet
 		self.dbenv = self._init_dbenv()
 
@@ -406,7 +405,8 @@ class DB(object):
 
 		# Open Database
 		txn = self.newtxn(write=True)
-		try: self.bdbs.init(self, self.dbenv, txn=txn)
+		try:
+			self.bdbs.init(self, self.dbenv, txn=txn)
 		except Exception, inst:
 			self.txnabort(txn=txn)
 			raise
@@ -1026,10 +1026,16 @@ class DB(object):
 		bids = filter(lambda x:x[:4]=="bdo:", bids)
 
 		# This resolves path references and parses out dates, id #, etc.
-		parsed = [emen2.db.binary.Binary.parse(bdokey) for bdokey in bids]
-
-		for k in parsed:
-			bydatekey[k["datekey"]].append(k)
+		for bdokey in bids:
+			try:
+				parsed = emen2.db.binary.Binary.parse(bdokey)
+			except ValueError:
+				if filt:
+					continue
+				else:
+					raise KeyError, "Bad BDO format: %s"%(bdokey)
+				
+			bydatekey[parsed["datekey"]].append(parsed)
 
 
 		for datekey,bydate in bydatekey.items():
@@ -1478,6 +1484,11 @@ class DB(object):
 			keytype, sortvalues = self._run_macro(sortkey, recids, ctx=ctx, txn=txn)
 			for k,v in sortvalues.items():
 				recs[k][sortkey] = v
+				# Unghhgh... ian: todo: make a macro_render_sort
+				if hasattr(v, '__iter__'):
+					v = ", ".join(map(unicode, v))
+					sortvalues[k] = v
+				
 
 		elif not ind or len(recids) < 1000 or iterable:
 			# We don't have the value, no index.. 
@@ -1515,7 +1526,7 @@ class DB(object):
 
 			sortvalues = {}
 			for k,v in inverted.items():
-				r = vtm.param_render_sort(pd, v)
+				r = vtm.param_render_sort(pd, k)
 				for v2 in v:
 					sortvalues[v2] = r
 			
@@ -1614,10 +1625,6 @@ class DB(object):
 			if pd.name == 'permissions':
 				cargs = emen2.util.listops.combine(*cargs)
 
-			# None will never be indexed; should this just continue?
-			if cargs == None:
-				cargs = [None]
-				
 			r = set()
 			for v in emen2.util.listops.check_iterable(cargs):
 				r |= set(filter(functools.partial(cfunc, v), ik))
@@ -1763,8 +1770,6 @@ class DB(object):
 	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
-		print qp
-		
 		# context of where query was found
 		c = {}
 
@@ -3968,10 +3973,10 @@ class DB(object):
 		children = self.getchildren(recid, ctx=ctx, txn=txn)
 
 		if len(parents) > 0 and rec.get("deleted") != 1:
-			rec.addcomment("Record marked for deletion and unlinked from parents: %s"%", ".join([unicode(x) for x in parents]))
+			rec["comments"] = "Record marked for deletion and unlinked from parents: %s"%", ".join([unicode(x) for x in parents])
 
 		elif rec.get("deleted") != 1:
-			rec.addcomment("Record marked for deletion")
+			rec["comments"] = "Record marked for deletion"
 
 		rec["deleted"] = True
 
@@ -4011,7 +4016,7 @@ class DB(object):
 
 		# g.log.msg("LOG_DEBUG","addcomment %s %s"%(recid, comment))
 		rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
-		rec.addcomment(comment)
+		rec["comments"] = comment
 		self.putrecord(rec, ctx=ctx, txn=txn)
 
 		return self.getrecord(recid, ctx=ctx, txn=txn) #["comments"]
@@ -4125,6 +4130,7 @@ class DB(object):
 
 		# Assign all changes the same time
 		t = self.gettime(ctx=ctx, txn=txn)
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# Process inputs (records, dicts..) into Records
 		updrecs.extend(emen2.db.record.Record(x, ctx=ctx) for x in listops.typefilter(updrecs, dict))
@@ -4135,26 +4141,16 @@ class DB(object):
 		#	really serious DB errors should ever occur.
 		crecs = []
 		cps = {}
-
-		# Check 'parent' and 'children' special params
 		updrels = []
-
-		# These are built-ins that we treat specially
-		param_immutable = set(["recid", "rectype", "creator", "creationtime", "modifytime", "modifyuser", "history"])
-		param_new = set(["rectype", "creator", "creationtime", "permissions", "groups"]) # Index these for new records
-
-		# Limit the # of duplicate db calls
-		validation_cache = emen2.db.record.make_cache()
 
 		# Assign temp recids to new records (note: you can assign your own negative pre-commit IDs)
 		for offset,updrec in enumerate(x for x in updrecs if x.recid == None):
 			updrec.recid = -1 * (offset + 100)
 
+
 		# Preprocess: copy updated record into original record (updrec -> orec) and validate
 		for updrec in updrecs:
-			recid = updrec.recid
-			cp = set()
-
+			recid = updrec.recid			
 			if updrec.parents:
 				updrels.extend([(i, updrec.recid) for i in updrec.get("parents", [])])
 			if updrec.children:
@@ -4162,7 +4158,6 @@ class DB(object):
 
 			if recid < 0:
 				orec = self.newrecord(updrec.rectype, recid=updrec.recid, ctx=ctx, txn=txn)
-				cp |= param_new
 			else:
 				# we need to acquire RMW lock here to prevent changes during commit
 				try:
@@ -4171,58 +4166,17 @@ class DB(object):
 				except:
 					raise KeyError, "Cannot update non-existent record %s"%recid
 
-
-			# Set Context and validate; warning=True ignores validation errors (Admin only)
-			updrec.setContext(ctx)
-			updrec.validate(orec=orec, warning=warning, cache=validation_cache)
-
-			# Compare to original record.
-			cp |= orec.changedparams(updrec)
-			cpc = cp - param_immutable
-
-			if not cpc and orec.recid >= 0:
-				g.log.msg("LOG_INFO","No changes for record %s, skipping"%recid)
-				continue
-
-			# g.log.msg("LOG_INFO","putrecord: recid %s, changes: %s"%(recid, cpc))
-
-			# This adds text of comment as new to prevent tampering. I would like to roll this into Record.
-			if "comments" in cpc:
-				for i in updrec["comments"]:
-					if i not in orec.comments:
-						orec.addcomment(i[2])
-				cpc.remove("comments")
-
-			# Update params and log changes..
-			for param in cpc:
-				if orec.recid >= 0:
-					orec._addhistory(param)
-				orec[param] = updrec.get(param)
-
-			# Update to anything but groups/permissions triggers modify time
-			if cpc - set(["permissions","groups"]):
-				orec._params["modifytime"] = t
-				orec._params["modifyuser"] = ctx.username
-				cp.add("modifytime")
-				cp.add("modifyuser")
-
-			# If a record is being cloned, it forces history/comments/create/modify
-			if clone:
-				orec.__dict__["comments"] = updrec.comments
-				orec.__dict__["history"] = updrec.history
-				orec.__dict__["creator"] = updrec.creator
-				orec.__dict__["creationtime"] = updrec.creationtime
-				orec.__dict__["modifyuser"] = updrec.modifyuser
-				orec.__dict__["modifytime"] = updrec.modifytime
-				
-
-			cps[orec.recid] = cp
-			crecs.append(orec)
+			# Update and validate.
+			cp = orec.validate(updrec, warning=warning, clone=clone, vtm=vtm, t=t)
+			if cp:
+				cps[orec.recid] = cp
+				crecs.append(orec)				
 
 
 		ret = self._commit_records(crecs, cps=cps, updrels=updrels, commit=commit, ctx=ctx, txn=txn)
 		if ol:
 			return return_first_or_none(ret)
+			
 		return ret
 
 
@@ -4247,6 +4201,7 @@ class DB(object):
 				# Cannot update non-existent record
 				orec = self.bdbs.records.sget(i.recid, txn=txn, flags=bsddb3.db.DB_RMW)
 			cache[i.recid] = orec
+
 
 		# Calculate index updates.
 		indexupdates = self._reindex_params(crecs, cps=cps, cache=cache, ctx=ctx, txn=txn)
@@ -4357,7 +4312,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					#g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
+					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].removerefs: %r -> ... %s items"%(param, oldval, len(recs)))
 					delindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].removerefs %s failed: %s"%(param, oldval, inst))
@@ -4368,7 +4323,7 @@ class DB(object):
 			recs = map(lambda x:recmap.get(x,x), recs)
 			try:
 				if recs:
-					#g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
+					g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].addrefs: %r -> ... %s items"%(param, newval, len(recs)))
 					addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 			except Exception, inst:
 				g.log.msg("LOG_CRITICAL", "Critical! self.bdbs.fieldindex[%s].addrefs %s failed: %s"%(param, newval, inst))
@@ -4669,14 +4624,21 @@ class DB(object):
 
 
 	@publicmethod("records.render")
-	def renderview(self, recs, viewdef=None, viewtype="recname", edit=None, markup=True, table=False, mode=None, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype='recname', edit=False, markup=False, table=False, mode=None, ctx=None, txn=None):
 		"""Render views"""
-
+		
 		regex = re.compile(VIEW_REGEX)
 		ol, recs = listops.oltolist(recs)
 
 		if viewtype == "tabularview":
 			table = True
+
+		if table:
+			edit = "auto"
+		
+		if table or edit:
+			markup = True
+
 
 		# Calling out to vtm, we will need a DBProxy
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
@@ -4728,6 +4690,7 @@ class DB(object):
 					pds.add(match.group('name'))
 
 				elif match.group('type') == '@':
+					t = time.time()
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
 
 
@@ -4763,9 +4726,9 @@ class DB(object):
 			elif viewtype == "dicttable":
 				key = rec.recid
 
-			# _edit = edit
-			# if edit == None:
-			# 	_edit = rec.writable()
+			_edit = edit
+			if edit == "auto":
+				_edit = rec.writable()
 			
 			a = groupviews.get(key)
 			vs = []
@@ -4775,11 +4738,15 @@ class DB(object):
 				n = match.group('name')
 				s = match.group('sep') or ''
 				if t == '#':
-					v = vtm.name_render(pds[n], markup=markup)
+					v = vtm.name_render(pds[n])
 				elif t == '$' or t == '*':
-					v = vtm.param_render(pds[n], rec.get(n), recid=rec.recid, edit=edit, markup=markup, table=table)
+					t = time.time()
+					v = vtm.param_render(pds[n], rec.get(n), recid=rec.recid, edit=_edit, markup=markup, table=table)
+					pt[n].append(time.time()-t)
 				elif t == '@':
-					v = vtm.macro_render(n, match.group('args'), rec, markup=markup)
+					t = time.time()
+					v = vtm.macro_render(n, match.group('args'), rec, markup=markup, table=table)
+					mt[n].append(time.time()-t)
 				else:
 					continue
 
@@ -4792,7 +4759,19 @@ class DB(object):
 				ret[rec.recid] = vs
 			else:
 				ret[rec.recid] = a
-	
+
+
+		def pp(t, times):
+			for k,v in times.items():
+				p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
+				p = [t[:5].ljust(5), k[:20].ljust(20)] + [("%2.2f"%i).rjust(5) for i in p] + [str(len(v)).rjust(5)]
+				print "   ".join(p)
+		# header = ["Type ", "Name".ljust(20), "Total", "  Avg", "  Min", "  Max", "Count"]
+		# print "   ".join(header)
+		# pp("param", pt)
+		# pp("macro", mt)
+		
+		
 		if table:
 			ret["headers"] = headers
 

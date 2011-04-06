@@ -56,15 +56,12 @@ class Macro(object):
 
 	# Post-rendering
 	def _render(self, value):
-		if not self.markup:
-			return unicode(value)		
-
 		if hasattr(value, '__iter__'):
 			value = ", ".join(map(unicode, value))
-
+		if not self.markup:
+			return unicode(value)		
 		if self.table:
 			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.rec.recid, value)
-			
 		return unicode(value)
 
 

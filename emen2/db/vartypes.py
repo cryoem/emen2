@@ -18,7 +18,6 @@ except ImportError:
 
 
 
-
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.util.listops
@@ -30,6 +29,7 @@ class Vartype(object):
 	keytype = None
 	iterable = False
 	elem_class = 'editable'
+	elem = 'span'
 
 	@staticmethod
 	def register_view(name, bases, dict):
@@ -46,7 +46,8 @@ class Vartype(object):
 		emen2.db.datatypes.VartypeManager._register_vartype(name, cls)
 
 
-	def __init__(self, engine=None, db=None):
+	def __init__(self, engine=None, pd=None):
+		self.pd = pd
 		self.engine = engine
 
 
@@ -59,19 +60,16 @@ class Vartype(object):
 
 	
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
-	def render(self, pd, value, recid=0, edit=False, showlabel=False, markup=False, table=False):
-		#g.log.msg('LOG_DEBUG', "param_render: %s %s mode=%s"%(pd.vartype, value, mode))
-		# if pd.name in ["creator", "creationtime", "modifyuser", "modifytime", "recid", 
-		#	"rectype", "groups", "permissions", "history", "username"] and mode == "htmledit":
-		# 	mode = "html"
-		# return self._vartypes[pd.vartype](engine=self, pd=pd, rec=rec, db=db).render(rec=rec)
-		
+	def render(self, value, recid=0, edit=False, showlabel=False, markup=False, table=False):
+		# Store these for convenience
 		self.recid = recid
-		self.pd = pd
 		self.edit = edit
 		self.showlabel = showlabel
 		self.markup = markup
 		self.table = table
+
+		if self.pd.get('immutable'):
+			self.edit = false
 
 		# Process the value
 		value = self.process(value)
@@ -84,6 +82,8 @@ class Vartype(object):
 
 		
 	def process(self, value, *args, **kwargs):
+		if value == None:
+			return ''
 		return cgi.escape(unicode(value))
 		
 		
@@ -93,62 +93,77 @@ class Vartype(object):
 		# Note: value should already be escaped!
 
 		label = ''
-
+		
 		# Plain text rendering
 		if not self.markup:
-			return ", ".join(map(unicode, value))
-		
+			return ", ".join(value)		
+				
 		# Empty
 		if not value:
 			if self.edit and self.showlabel:
 				label = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if self.edit:
-				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(self.elem_class, self.recid, self.param, label)
+				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(self.elem_class, self.recid, self.pd.name, label)
 			return '<span></span>'
 
-		# Basic
-		lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, self.recid, i) for i in value]
 
+		# Basic
+		if self.table:
+			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, self.recid, i) for i in value]
+		else:
+			lis = ['<li>%s</li>'%(i) for i in value]
+			
 		if not self.edit:
 			return '<ul>%s</ul>'%("\n".join(lis))
 
-		# Add controls
+		# Editable..
+		# Are we showing the edit label?
 		if self.showlabel:
 			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
 
+		# Put the editing widget together
 		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(self.elem_class, self.recid, self.pd.name, self.pd.vartype, "\n".join(lis))
 
 
 	def _render(self, value):
 		# Note: value should already be escaped!
 		
-		elem = 'span'
-		label = ''
-		
+		label = ''		
+		if value == None:
+			value = ''
+			
 		# Plain text
 		if not self.markup:
+			if value and self.pd.defaultunits:
+				return '%s %s'%(value, self.pd.defaultunits)
 			return unicode(value)
-
 
 		# Empty
 		if not value:
 			if self.edit and self.showlabel:
 				label = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if self.edit:
-				return '<%s class="%s" data-recid="%s" data-param="%s">%s</%s>'%(elem, self.elem_class, self.recid, self.pd.name, label, elem)
-			return '<%s></%s>'%(elem, elem)
+				return '<%s class="%s" data-recid="%s" data-param="%s">%s</%s>'%(self.elem, self.elem_class, self.recid, self.pd.name, label, self.elem)
+			return '<%s></%s>'%(self.elem, self.elem)
 
 
-		# if self.markup:
-		# 	value = '<a href="%s/record/%s">%s</a>'%(g.EMEN2WEBROOT, self.recid, value)
+		if self.pd.defaultunits:
+			value = '%s %s'%(value, self.pd.defaultunits)
+
+		if self.table:
+			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.recid, value)
 
 		if not self.edit:
 			return value
 
+		# Editable..
+		# Are we showing the edit label?
 		if self.showlabel:
 			label = '<span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
 
-		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(elem, self.elem_class, self.recid, self.pd.name, self.pd.vartype, value, label, elem)
+		# Put the editing widget together
+		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(self.elem, self.elem_class, self.recid, self.pd.name, self.pd.vartype, value, label, self.elem)
+
 
 
 	def encode(self, value):
@@ -225,7 +240,7 @@ class vt_float(Vartype):
 
 	def process(self, value):
 		if value == None:
-			return ""
+			return ''
 		return "%0.2f"%value
 
 
@@ -309,8 +324,13 @@ class vt_recid(Vartype):
 	keytype = None
 
 	def validate(self, value):
-		return int(value)
-		
+		try:
+			value = int(value)
+			if value < 0:
+				raise ValueError
+		except:
+			raise ValueError, "Invalid recid: %s"%value
+			
 
 
 ###################################
@@ -326,16 +346,28 @@ class vt_string(Vartype):
 		return unicode(value) or None
 
 
-
+# ian: todo: validate choices!
 class vt_choice(vt_string):
 	"""string from a fixed enumerated list, eg "yes","no","maybe"""
 	__metaclass__ = Vartype.register_view
+	
+	def validate(self, value):
+		value = unicode(value)
+		if value not in self.pd.choices:
+			raise ValueError, "Choice not in defined options: %s"%value
+		return value or None
 
 
 
+# ian: todo: validate rectype
 class vt_rectype(vt_string):
 	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
 	__metaclass__ = Vartype.register_view
+
+	def validate(self, value):
+		value = unicode(value)
+		check_rectypes(self.engine, [value])
+		return value or None
 
 
 
@@ -361,8 +393,12 @@ class vt_choicelist(vt_iter, vt_string):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
-		return [unicode(x) for x in value] or None
+		value = emen2.util.listops.check_iterable(value)
+		value = map(unicode, value)
+		for v in value:
+			if v not in self.pd.choices:
+				raise ValueError, "Choice not in defined options: %s"%v
+		return value or None
 
 
 	def process(self, value):
@@ -375,8 +411,9 @@ class vt_choicelist(vt_iter, vt_string):
 
 class vt_text(vt_string):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
+	
 	__metaclass__ = Vartype.register_view
-	iterable = True
+	elem = 'div'
 
 	def reindex(self, items):
 		"""(Internal) calculate param index updates for vartype == text"""
@@ -418,9 +455,9 @@ class vt_text(vt_string):
 
 	def process(self, value):
 		if value == None:
-			return ""
+			return ''
 		if self.markup:
-			value = cgi.escape(unicode(value))
+			value = cgi.escape(value)
 			if markdown:
 				value = markdown.markdown(value)
 		return value
@@ -477,9 +514,16 @@ class vt_uri(vt_ref):
 	"""link to a generic uri"""
 	__metaclass__ = Vartype.register_view
 
+	def validate(self, value):
+		value = unicode(value)
+		if not value.startswith("http://"):
+			raise ValueError, "Invalid URI: %s"%value
+		return value
+		
+
 	def process(self, value):
 		if value == None:
-			value = ''
+			return ''
 		if self.markup:
 			value = cgi.escape(unicode(value))
 			if not self.table:
@@ -494,7 +538,12 @@ class vt_urilist(vt_iter, vt_ref):
 
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)		
-		return [unicode(x) for x in value] or None
+		value = map(unicode, value)
+		for v in value:
+			if not v.startswith("http://"):
+				raise ValueError, "Invalid URI: %s"%value
+		return value
+		# return [unicode(x) for x in value if x.startswith('http://')] or None
 
 
 	def process(self, value):
@@ -521,12 +570,11 @@ class vt_binary(vt_iter, Vartype):
 	elem_class = "editable_files"
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
-		value = [unicode(x) for x in value if unicode(x).startswith("bdo:")] or None
-		if value:
-			# validate here...
-			pass
-		return value	
+		# This can silently filter out items that don't begin with bdo:.. 
+		# but it will only return valid BDO references..
+		value = emen2.util.listops.check_iterable(value)	
+		value = [i.name for i in self.engine.db.getbinary(value, filt=False)]
+		return value or None
 
 
 	def process(self, value):
@@ -555,18 +603,13 @@ class vt_binaryimage(Vartype):
 	elem_class = "editable_files"
 
 	def validate(self, value):
-		if not value:
-			return None
-		value = unicode(value)
-		if not value.startswith("bdo:"):
-			raise ValueError, "Invalid BDO reference: %s"%value
-
-		# try:
-		# self.engine.db.getbinary
+		value = self.engine.db.getbinary(value, filt=False)
+		if value:
+			return value.name
+		return None
 		
 
-	def process(self, value):
-		
+	def process(self, value):		
 		if not self.markup:
 			return value
 			
@@ -645,29 +688,26 @@ class vt_user(Vartype):
 	keytype = "s"
 
 	def validate(self, value):
-		key = self.engine.get_cache_key('usernames')
-		hit, usernames = self.engine.check_cache(key)
-
-		if not hit:
-			usernames = self.engine.db.getusernames()
-			self.engine.store(key, usernames)
-
-		if value in usernames:
-			return unicode(value) or None
-
-		raise ValueError, "Unknown user: %s"%value
+		value = unicode(value)
+		check_usernames(self.engine, [value])
+		return value or None
 
 
 	# ian: todo: make these nice .userboxes ?
 	def process(self, value):
-		if value:
-			update_username_cache(self.engine, [value], self.engine.db)
-			hit, dn = self.engine.check_cache(self.engine.get_cache_key('displayname', value))
-			dn = cgi.escape(dn)
-			if self.table or not self.markup:
-				value = dn
-			else:
-				value = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
+		if value == None:
+			return ''
+
+		update_username_cache(self.engine, [value])
+		hit, dn = self.engine.check_cache(self.engine.get_cache_key('displayname', value))
+		if not hit:
+			return ''
+			
+		dn = cgi.escape(dn)
+		if self.table or not self.markup:
+			value = dn
+		else:
+			value = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
 				
 		return value
 
@@ -680,24 +720,14 @@ class vt_userlist(vt_iter, Vartype):
 
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)		
-		key = self.engine.get_cache_key('usernames')
-		hit, usernames = self.engine.check_cache(key)
-
-		if not hit:
-			usernames = self.engine.db.getusernames()
-			self.engine.store(key, usernames)
-
-		if set(value) - usernames:
-			raise ValueError, "Unknown users: %s"%(", ".join(set(value) - usernames))
-
+		check_usernames(self.engine, value)
 		return [unicode(x) for x in value] or None
 
 
 
 	def process(self, value):
-
 		value = emen2.util.listops.check_iterable(value)
-		update_username_cache(self.engine, value, self.engine.db)
+		update_username_cache(self.engine, value)
 
 		lis = []
 		for i in value:
@@ -723,30 +753,27 @@ class vt_acl(Vartype):
 	iterable = True
 
 	def validate(self, value):
-				
-		# print "acl validating: ", value
-		# value = emen2.util.listops.check_iterable(value)
 		if not hasattr(value, '__iter__'):
-			value = ((value,),(),(),())
+			value = [[value],[],[],[]]
 
-		key = self.engine.get_cache_key('usernames')
-		hit, usernames = self.engine.check_cache(key)
-		if not hit:
-			usernames = self.engine.db.getusernames()
-			self.engine.store(key, usernames)
+		for i in value:
+			if not hasattr(i, '__iter__'):
+				raise ValueError, "Invalid permissions format: ", value
+				
+		value = [[unicode(y) for y in x] for x in value]
+		if len(value) != 4:
+			raise ValueError, "Invalid permissions format: ", value
 
 		users = reduce(lambda x,y:x+y, value)
-		if set(users) - usernames:
-			raise ValueError, "Unknown users: %s"%(", ".join(set(users)-usernames))
-
-		return [[unicode(y) for y in x] for x in value]
+		check_usernames(self.engine, users)
+		return value
 
 
 	def process(self, value):
 		if not value:
-			return ""
+			return []
 
-		value=reduce(lambda x,y:x+y, value)
+		value = reduce(lambda x,y:x+y, value)
 		unames = {}
 		
 		for user in self.engine.db.getuser(value, lnf=True):
@@ -771,8 +798,8 @@ class vt_acl(Vartype):
 		delrefs = collections.defaultdict(list)
 		for recid, new, old in items:
 
-			nperms = set(reduce(operator.concat, new or (), ()))
-			operms = set(reduce(operator.concat, old or (), ()))
+			nperms = set(reduce(operator.concat, new or [], []))
+			operms = set(reduce(operator.concat, old or [], []))
 
 			for user in nperms - operms:
 				addrefs[user].append(recid)
@@ -789,31 +816,24 @@ class vt_comments(Vartype):
 	__metaclass__ = Vartype.register_view
 	keytype = None
 
+	# ian: todo... sort this out.
 	def validate(self, value):
-		users = [i[0] for i in value]
-		times = [i[1] for i in value]
-		values = [i[2] for i in value]
-
-		key = self.engine.get_cache_key('usernames')
-		hit, usernames = self.engine.check_cache(key)
-		if not hit:
-			usernames = self.engine.db.getusernames()
-			self.engine.store(key, usernames)
-
-		if set(users) - usernames:
-			raise ValueError, "Unknown users: %s"%(", ".join(set(users)-usernames))
-
-		# ian: todo: validate times...
-
-		return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
+		return value
+		# print "validating comments"
+		# print value
+		# if value:
+		# 	users = [i[0] for i in value]
+		# 	times = [i[1] for i in value]
+		# 	values = [i[2] for i in value]
+		# 	check_usernames(self.engine, users)
+		# 	return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
 
 
 
 	def process(self, value):
-
 		value = emen2.util.listops.check_iterable(value)
 		users = [i[0] for i in value]
-		update_username_cache(self.engine, users, self.engine.db)
+		update_username_cache(self.engine, users)
 
 		lis = []
 		for user, time, comment in value:
@@ -842,16 +862,7 @@ class vt_history(Vartype):
 	def validate(self, value):
 		users = [i[0] for i in value]
 		times = [i[1] for i in value]
-
-		key = self.engine.get_cache_key('usernames')
-		hit, usernames = self.engine.check_cache(key)
-		if not hit:
-			usernames = self.engine.db.getusernames()
-			self.engine.store(key, usernames)
-
-		if set(users) - usernames:
-			raise ValueError, "Unknown users: %s"%(", ".join(set(users)-usernames))
-
+		check_usernames(self.engine, users)
 		return [(unicode(i[0]), unicode(i[1]), unicode(i[2]), i[3]) for i in value]
 
 
@@ -868,9 +879,9 @@ class vt_groups(vt_iter, Vartype):
 	keytype = "s"
 
 	def validate(self, value):
-		# ian: todo: validate groups!!
 		value = emen2.util.listops.check_iterable(value)
-		return set([unicode(i) for i in value])
+		check_groupnames(self.engine, value)
+		return set([unicode(i) for i in value]) or None
 
 
 	def process(self, engine, pd, value, rec, db):
@@ -884,7 +895,55 @@ class vt_groups(vt_iter, Vartype):
 ###########################
 # Helper methods
 
-def update_username_cache(engine, values, db):
+def check_rectypes(engine, values):
+	key = engine.get_cache_key('paramdefnames')
+	hit, paramdefs = engine.check_cache(key)
+	if not hit:
+		paramdefs = engine.db.getparamdefnames()
+		engine.store(key, paramdefs)
+
+	if set(values) - paramdefs:
+		raise ValueError, "Unknown ParamDefs: %s"%(", ".join(set(values)-paramdefs))
+
+
+
+def check_rectypes(engine, values):
+	key = engine.get_cache_key('recorddefnames')
+	hit, rectypes = engine.check_cache(key)
+	if not hit:
+		rectypes = engine.db.getrecorddefnames()
+		engine.store(key, rectypes)
+
+	if set(values) - rectypes:
+		raise ValueError, "Unknown RecordDefs: %s"%(", ".join(set(values)-rectypes))	
+
+	
+
+def check_usernames(engine, values):
+	key = engine.get_cache_key('usernames')
+	hit, usernames = engine.check_cache(key)
+	if not hit:
+		usernames = engine.db.getusernames()
+		engine.store(key, usernames)
+
+	if set(values) - usernames:
+		raise ValueError, "Unknown users: %s"%(", ".join(set(values)-usernames))	
+
+
+
+def check_groupnames(engine, values):
+	key = engine.get_cache_key('groupnames')
+	hit, groupnames = engine.check_cache(key)
+	if not hit:
+		groupnames = engine.db.getgroupnames()
+		engine.store(key, groupnames)
+
+	if set(values) - groupnames:
+		raise ValueError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
+	
+
+
+def update_username_cache(engine, values):
 	# Check cache
 	to_cache = []
 	for v in values:
@@ -894,7 +953,7 @@ def update_username_cache(engine, values, db):
 			to_cache.append(v)
 
 	if to_cache:
-		users = db.getuser(to_cache, lnf=True, filt=True)
+		users = engine.db.getuser(to_cache, lnf=True, filt=True)
 		for user in users:
 			key = engine.get_cache_key('displayname', user.username)
 			engine.store(key, user.displayname)
