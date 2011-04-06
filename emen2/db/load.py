@@ -121,13 +121,12 @@ class Loader(object):
 		# BDOS
 		for bdo in self.loadfile("bdos.json"):
 			# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
-			infile = bdo['name'].replace(":",".")			
-			try:
-				with open(infile) as f:
-					# use subscript instead of .get to make sure the record was mapped
-					self.db.putbinary(bdokey=bdo.get('name'), recid=recidmap[bdo.get('recid')], filename=bdo.get('filename'), infile=f)
-			except Exception, inst:
-				print "Could not import %s: %s"%(bdo.get('name'), inst)
+			infile = bdo['name'].replace(":",".")
+			if not os.path.exists(infile):
+				infile = None
+
+			# use subscript instead of .get to make sure the record was mapped
+			self.db.putbinary(bdokey=bdo.get('name'), recid=recidmap[bdo.get('recid')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
 		
 			

@@ -1075,20 +1075,23 @@ class DB(object):
 
 
 	@publicmethod("binaries.put", write=True)
-	def putbinary(self, bdokey=None, recid=None, filename=None, infile=None, uri=None, ctx=None, txn=None):
+	def putbinary(self, bdokey=None, recid=None, filename=None, infile=None, clone=False, ctx=None, txn=None):
 		"""Add binary object to database and attach to record. May specify record param to use and file data to write to storage area. Admins may modify existing binaries.
 
 		@keyparam bdokey Update an existing BDO. Only the filename and record ID can be updated.
 		@keypram recid Link Binary to this Record
 		@keyparam filename Filename
 		@keyparam infile A file-like object (hasattr read) or a string
-		@keyparam uri Binary source
 		@return Binary instance
 		"""
 
+		admin = ctx.checkadmin()
+		if clone and not admin:
+			raise emen2.db.exceptions.SecurityError, "Admin rights needed to import BDOs"
+
 		if not ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "Record creation permissions required to add BDOs"
-
+						
 
 		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
 		if filename != None:
@@ -1104,16 +1107,16 @@ class DB(object):
 
 		# bdo items are stored one bdo per day
 		# key is sequential item #, value is (filename, recid)
+		oldfilename = None
 		dkey = emen2.db.binary.Binary.parse(bdokey)
 		t = self.gettime()
 
-
 		# First write out the file
 		newfile = None
-		filesize = 0
-		md5sum = ''
+		filesize = None
+		md5sum = None
 		if infile:
-			newfile, filesize, md5sum = self._putbinary_file(filename, infile=infile, dkey=dkey, ctx=ctx, txn=txn)
+			newfile, filesize, md5sum = self._putbinary_file(infile=infile, dkey=dkey, ctx=ctx, txn=txn)
 
 
 		# Update the BDO: Start RMW cycle
@@ -1125,6 +1128,8 @@ class DB(object):
 
 
 		nb = bdo.get(dkey["counter"])
+
+		# Import a BDO
 		if newfile:
 			if nb:
 				raise emen2.db.exceptions.SecurityError, "BDOs are immutable"
@@ -1132,51 +1137,69 @@ class DB(object):
 			if not filesize:
 				raise ValueError, "Cannot create a BDO without a file"
 
+			# Create the new binary. If importing, use that as the base info, and update the filesize and checksum.
 			nb = emen2.db.binary.Binary()
-			nb.update(
-				uri = uri,
-				creator = ctx.username,
-				creationtime = t,
-				name = dkey["name"],
-				filesize = filesize,
-				md5 = md5sum
-			)
+			if clone:
+				nb.update(clone)
+			else:
+				nb.update(creator = ctx.username, creationtime = t)
+			nb.update(filesize = filesize, md5 = md5sum, name = dkey["name"])
+				
+		elif clone:
+			# If not a new file, then imported..
+			nb = emen2.db.binary.Binary()
+			nb.update(clone)
+			
 
 		if not nb:
+			# Cannot modify a BDO that doesn't exist.	
 			raise KeyError, "No such BDO: %s"%bdokey
 
-		if nb['creator'] != ctx.username and not ctx.checkadmin():
+		# Check permissions
+		if nb['creator'] != ctx.username and not admin:
 			raise emen2.db.exceptions.SecurityError, "You cannot modify a BDO you did not create"
 
-		if recid != None:
-			nb["recid"] = recid
 
+		# Apply the updates
+		if recid != None:
+			rec = self.getrecord(recid, filt=False, ctx=ctx, txn=txn)
+			nb["recid"] = recid
+			
 		if filename != None:
+			oldfilename = nb["filename"]
 			nb["filename"] = filename
 
 		nb["modifyuser"] = ctx.username
 		nb["modifytime"] = t
+				
 
+		# Write the BDO and the filename index
 		bdo[dkey["counter"]] = nb
 
 		g.log.msg("LOG_COMMIT","self.bdbs.bdocounter.set: %s"%dkey["datekey"])
 		self.bdbs.bdocounter.set(dkey["datekey"], bdo, txn=txn)
 
+		if oldfilename:
+			g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename.removerefs: %s -> %s"%(oldfilename, dkey["name"]))
+			self.bdbs.bdosbyfilename.removerefs(oldfilename, [dkey["name"]], txn=txn)
+
 		g.log.msg("LOG_COMMIT","self.bdbs.bdosbyfilename.addrefs: %s -> %s"%(filename, dkey["name"]))
 		self.bdbs.bdosbyfilename.addrefs(filename, [dkey["name"]], txn=txn)
 
-		# Now move the file to the right location
+		# Now move the file to the right location. 
 		if newfile:
+			if os.path.exists(dkey["filepath"]):
+				raise ValueError, "File %s already exists"%dkey["filepath"]			
 			os.rename(newfile, dkey["filepath"])
 
 		return self.getbinary(nb.get('name'), ctx=ctx, txn=txn)
 
 
 
-	def _putbinary_file(self, filename=None, infile=None, dkey=None, ctx=None, txn=None):
+	# ian: todo: better job at cleaning up broken files..
+	def _putbinary_file(self, infile=None, dkey=None, ctx=None, txn=None):
 		"""(Internal) Behind the scenes -- read infile out to a temporary file. The temporary file will be renamed to the final destination when everything else is cleared.
 
-		@keyparam filename
 		@keyparam infile
 		@keyparam dkey Binary Key -- see staticmethod Binary.parse
 
@@ -1187,6 +1210,8 @@ class DB(object):
 		if hasattr(infile, "read"):
 			# infile is a file-like object; do not close
 			closefd = False
+		elif os.access(infile):
+			infile = open(infile)
 		else:
 			# string data..
 			infile = cStringIO.StringIO(infile)
@@ -1197,7 +1222,6 @@ class DB(object):
 			pass
 
 
-		filename = os.path.basename(filename or "UnkownFilename")
 
 		# Write out file to temporary storage
 		(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
