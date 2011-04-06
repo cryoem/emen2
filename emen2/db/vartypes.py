@@ -798,8 +798,14 @@ class vt_acl(Vartype):
 		delrefs = collections.defaultdict(list)
 		for recid, new, old in items:
 
-			nperms = set(reduce(operator.concat, new or [], []))
-			operms = set(reduce(operator.concat, old or [], []))
+			#nperms = set(reduce(operator.concat, new or [], []))
+			#operms = set(reduce(operator.concat, old or [], []))
+			nperms = set()
+			for i in new:
+				nperms |= set(i)
+			operms = set()
+			for i in old:
+				operms |= set(i)
 
 			for user in nperms - operms:
 				addrefs[user].append(recid)
