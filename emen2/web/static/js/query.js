@@ -283,7 +283,7 @@ function query_build_path(q, postpend) {
 			}
 
 			// Check the transforms..
-			cmp = lookup[cmp] || cmp;
+			cmp = cmp || lookup[cmp];
 			
 			var i = $('<select name="cmp" style="width:150px" />');
 			$.each(comparators, function(k,v) {

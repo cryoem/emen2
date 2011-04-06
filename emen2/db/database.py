@@ -4624,7 +4624,7 @@ class DB(object):
 
 
 	@publicmethod("records.render")
-	def renderview(self, recs, viewdef=None, viewtype='recname', edit=False, markup=False, table=False, mode=None, ctx=None, txn=None):
+	def renderview(self, recs, viewdef=None, viewtype='recname', edit=False, markup=True, table=False, mode=None, ctx=None, txn=None):
 		"""Render views"""
 		
 		regex = re.compile(VIEW_REGEX)
@@ -4633,12 +4633,14 @@ class DB(object):
 		if viewtype == "tabularview":
 			table = True
 
+		if viewtype == 'recname' and not viewdef:
+			markup = False
+
 		if table:
 			edit = "auto"
 		
 		if table or edit:
 			markup = True
-
 
 		# Calling out to vtm, we will need a DBProxy
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
