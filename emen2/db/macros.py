@@ -46,7 +46,9 @@ class Macro(object):
 
 
 	# Render the macro
-	def render(self, macro, params, rec, markup=False):
+	def render(self, macro, params, rec, markup=False, table=False):
+		self.rec = rec
+		self.table = table
 		self.markup = markup
 		value = self.process(macro, params, rec)
 		return self._render(value)
@@ -54,6 +56,15 @@ class Macro(object):
 
 	# Post-rendering
 	def _render(self, value):
+		if not self.markup:
+			return unicode(value)		
+
+		if hasattr(value, '__iter__'):
+			value = ", ".join(map(unicode, value))
+
+		if self.table:
+			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.rec.recid, value)
+			
 		return unicode(value)
 
 
@@ -118,7 +129,7 @@ class macro_childcount(Macro):
 	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
 		# ian: todo: recurse = -1..
-		children = self.engine.db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=-1)
+		children = self.engine.db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=3)
 		for rec in recs:
 			key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
 			self.engine.store(key, len(children.get(rec.recid,[])))
@@ -130,7 +141,7 @@ class macro_childcount(Macro):
 		key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
 		hit, children = self.engine.check_cache(key)
 		if not hit:
-			children = len(self.engine.db.getchildren(rec.recid, rectype=rectypes, recurse=-1))
+			children = len(self.engine.db.getchildren(rec.recid, rectype=rectypes, recurse=3))
 			self.engine.store(key, children)
 
 		return children
