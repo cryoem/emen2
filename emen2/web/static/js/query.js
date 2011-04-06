@@ -16,6 +16,32 @@
 })(jQuery);
 
 
+var comparators = {
+	"is": "is",
+	"not": "is not",
+	"contains": "contains",
+	"contains_w_empty": "contains, or is empty",
+	"gt": "is greater than",
+	"lt": "is less than",
+	"gte": "is greater or equal than",
+	"lte": "is less or equal than",
+	"any": "is any value",
+	'none': "is empty",
+	'noop': "no constraint"
+}
+
+
+var comparators_lookup = {
+	">": "gt",
+	"<": "lt",
+	">=": "gte",
+	"<=": "lte",
+	"==": "is",
+	"!=": "not"				
+}
+
+
+
 function query_build_path(q, postpend) {
 	var output = [];
 	$.each(q['c'], function() {
@@ -260,35 +286,13 @@ function query_build_path(q, postpend) {
 		
 		build_cmp: function(cmp) {
 			//"!contains":"does not contain",
-			var comparators = {
-				"is": "is",
-				"not": "is not",
-				"contains": "contains",
-				"contains_w_empty": "contains, or is empty",
-				"gt": "is greater than",
-				"lt": "is less than",
-				"gte": "is greater or equal than",
-				"lte": "is less or equal than",
-				"any": "is any value",
-				'none': "is empty",
-				'noop': "no constraint"
-			}
-			var lookup = {
-				">": "gt",
-				"<": "lt",
-				">=": "gte",
-				"<=": "lte",
-				"==": "is",
-				"!=": "not"				
-			}
-
 			// Check the transforms..
-			cmp = lookup[cmp] || cmp;
+			var cmp2 = comparators_lookup[cmp] || cmp;
 			
 			var i = $('<select name="cmp" style="width:150px" />');
 			$.each(comparators, function(k,v) {
 				var r = $('<option value="'+k+'">'+v+'</option>');
-				if (cmp==k) {r.attr("selected", "selected")}
+				if (cmp2==k) {r.attr("selected", "selected")}
 				i.append(r);
 			});
 			return i		
@@ -311,6 +315,9 @@ function query_build_path(q, postpend) {
 				value = value.replace('*', '');
 			}
 
+
+			cmpi = comparators_lookup[cmpi] || cmpi;
+			
 			// Get the constraint elements.
 			var _param = $('input[name=param]', elem);
 			var _cmpi = $('input[name=cmp]', elem);
