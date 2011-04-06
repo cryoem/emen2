@@ -34,7 +34,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	"""
 
-	attr_user = set(["desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","indexed","parents","children"])
+	attr_user = set(["immutable","desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","indexed","parents","children"])
 
 
 	@property

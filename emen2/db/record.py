@@ -546,8 +546,16 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 				continue
 
 			# Validate
-			v = vtm.validate(pd, value)
-
+			try:
+				v = vtm.validate(pd, value)
+			except Exception, inst:
+				if warning or clone:
+					v = value
+					print "Warning: ignored validation error: %s"%inst	
+				else:
+					raise
+					
+				
 			if self.get(param) == v:
 				continue
 
