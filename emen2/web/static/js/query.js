@@ -96,13 +96,13 @@ function query_build_path(q, postpend) {
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
-							<td><input type="hidden" name="cmp" value="==" /></td> \
+							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="findrecorddef" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="creator" />Creator</td> \
-							<td><input type="hidden" name="cmp" value="==" /></td> \
+							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="finduser" /></td> \
 							<td></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
