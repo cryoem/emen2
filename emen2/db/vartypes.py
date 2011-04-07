@@ -801,10 +801,10 @@ class vt_acl(Vartype):
 			#nperms = set(reduce(operator.concat, new or [], []))
 			#operms = set(reduce(operator.concat, old or [], []))
 			nperms = set()
-			for i in new:
+			for i in new or []:
 				nperms |= set(i)
 			operms = set()
-			for i in old:
+			for i in old or []:
 				operms |= set(i)
 
 			for user in nperms - operms:
