@@ -49,7 +49,9 @@ class Context(object):
 
 
 
-class View(object):
+###NOTE: This class should not access the db in anyway, such activity is carried out by
+###		the View class below.
+class _View(object):
 	'''Base Class for views, sets up the instance variables for the class
 
 	Subclasses are required to do four things:
@@ -80,10 +82,9 @@ class View(object):
 	# 	def _preinithook(self):
 	# 		print 'Hello World'
 
-	db = property(lambda self: self.__db)
+	ctxt = property(lambda self: self.get_context())
 	headers = property(lambda self: self.__headers)
 	dbtree = property(lambda self: self.__dbtree)
-	ctxt = property(lambda self: self.get_context())
 	js_files = emen2.web.extfile.BaseJS
 	css_files = emen2.web.extfile.BaseCSS
 	page = None
@@ -99,7 +100,7 @@ class View(object):
 	def __set_template(self, value): self.__template = value
 	template = property(lambda self: self.__template, __set_template)
 
-	def __init__(self, db=None, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
+	def __init__(self, template='/pages/page_noinherit', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
 		'''\
 		subclasses should not override this method, rather they should define an 'init' method.
 		subclasses should remember to call the base classes __init__ method if they override it.
@@ -116,7 +117,7 @@ class View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
-		self.__db = db
+		print self.db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
 		self.__dbtree = Context()
@@ -124,28 +125,19 @@ class View(object):
 		self.__template = template or self.template
 		self.__ctxt = adjust({}, extra)
 
-		ctx = getattr(self.__db, '_getctx', lambda:None)()
-		LOGINUSER = getattr(ctx, 'username', None)
-		HOST = getattr(ctx, 'host', None)
 
 
-		self.__basectxt = dict(
+		self._basectxt = extra.pop('_basectxt', {})
+		self._basectxt.update(
 			ctxt = self.dbtree,
 			headers = self.__headers,
 			css_files = (css_files or self.css_files)(self.__dbtree),
 			js_files = (js_files or self.js_files)(self.__dbtree),
-			EMEN2WEBROOT = g.EMEN2WEBROOT,
-			EMEN2DBNAME = g.EMEN2DBNAME,
-			EMEN2LOGO = g.EMEN2LOGO,
-			BOOKMARKS = g.BOOKMARKS,
-			LOGINUSER = LOGINUSER,
-			HOST = HOST,
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo
 		)
 
-
-		self.set_context_items(self.__basectxt)
+		self.set_context_items(self._basectxt)
 
 		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
 		if not hasattr(notify, '__iter__'): notify = [notify]
@@ -181,8 +173,9 @@ class View(object):
 
 
 	#### ian: add JS/CSS include
+	#### ed: this looks either unfinished or corrupted
 	def add_js(self, f):
-		self.__basectxt['js_files']
+		self._basectxt['js_files']
 
 	#### Output methods #####################################################################
 
@@ -241,7 +234,7 @@ class View(object):
 
 	def set_context_item(self, name, value):
 		'''add a single item to the tempalte context'''
-		if name in self.__basectxt.keys():
+		if name in self._basectxt.keys():
 			raise ValueError, "%s is a reserved context item" % name
 		self.__ctxt[name] = value
 
@@ -249,7 +242,7 @@ class View(object):
 		'''add a number of items to the template context'''
 		self.__ctxt.update(kwargs)
 		self.__ctxt.update(__dict_ or {})
-		self.__ctxt.update(self.__basectxt)
+		self.__ctxt.update(self._basectxt)
 
 	# alias update_context to set_context_items
 	update_context = set_context_items
@@ -370,6 +363,32 @@ class View(object):
 		ur = routing.URLRegistry()
 		ur.register(cls.__url)
 		return cls
+
+class View(_View):
+	'''Contains DB specific view code'''
+
+	db = property(lambda self: self.__db)
+	def __init__(self, db=None, **extra):
+		self.__db = db
+		ctx = getattr(self.__db, '_getctx', lambda:None)()
+		LOGINUSER = getattr(ctx, 'username', None)
+		HOST = getattr(ctx, 'host', None)
+
+		basectxt = dict(
+			EMEN2WEBROOT = g.EMEN2WEBROOT,
+			EMEN2DBNAME = g.EMEN2DBNAME,
+			EMEN2LOGO = g.EMEN2LOGO,
+			BOOKMARKS = g.BOOKMARKS,
+			LOGINUSER = LOGINUSER,
+			HOST = HOST,
+		)
+
+		_View.__init__(self, _basectxt=basectxt, **extra)
+
+
+
+		print self._basectxt
+
 
 ############-############-############
 # II. View plugins                   #
