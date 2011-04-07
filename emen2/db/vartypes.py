@@ -821,6 +821,7 @@ class vt_comments(Vartype):
 	"""Comments"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
+	iterable = True
 
 	# ian: todo... sort this out.
 	def validate(self, value):
@@ -845,8 +846,7 @@ class vt_comments(Vartype):
 		for user, time, comment in value:
 			key = self.engine.get_cache_key('displayname', user)
 			hit, dn = self.engine.check_cache(key)
-
-			dn = cgi.escape(lt)
+			dn = cgi.escape(dn)
 			comment = cgi.escape(comment)
 			if self.table or not self.markup:
 				t = '%s @ %s: %s'%(user, time, comment)
