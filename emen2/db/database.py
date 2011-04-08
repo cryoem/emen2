@@ -102,7 +102,8 @@ VERSIONS = {
 }
 
 
-VIEW_REGEX = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
+VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
+#VIEW_REGEX = '\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?'
 
 
 # Pointer to database environment
@@ -3539,14 +3540,18 @@ class DB(object):
 			raise emen2.db.exceptions.SecurityError, "No permission to create new ParamDefs (need record creation permission)"
 
 		paramdef = emen2.db.paramdef.ParamDef(paramdef, ctx=ctx)
-		orec = self.bdbs.paramdefs.get(paramdef.name, txn=txn) or paramdef
-		orec.setContext(ctx)
-
+		orec = self.bdbs.paramdefs.get(paramdef.name, txn=txn)
+		
 		#####################
 		# Root is permitted to force some changes in parameters, though they are supposed to be static
 		# This permits correcting typos, etc., but should not be used routinely
-		if orec != paramdef and not ctx.checkadmin():
+		if orec and not ctx.checkadmin():
 			raise KeyError, "Only administrators can modify paramdefs: %s"%paramdef.name
+		
+		if not orec:
+			orec = paramdef
+			
+		orec.setContext(ctx)
 
 		if orec.vartype != paramdef.vartype:
 			g.log.msg("LOG_CRITICAL","Warning! Changing paramdef %s vartype from %s to %s. This MAY REQUIRE database revalidation and reindexing!!"%(paramdef.name, paramdef.vartype, paramdef.vartype))

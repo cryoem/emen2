@@ -130,7 +130,7 @@ class ParamDefValidator(emen2.db.validators.DefinitionValidator):
 				prop = vtm.getproperty(self._obj.property)
 
 				if prop.equiv.get(self._obj.defaultunits):
-					self._obj.defaultunits=prop.equiv.get(self._obj.defaultunits)
+					self._obj.defaultunits = prop.equiv.get(self._obj.defaultunits)
 
 				if self._obj.defaultunits not in set(prop.units):
 					g.log.msg("LOG_WARNING", "Invalid default units %s for property %s"%(self._obj.defaultunits,self._obj.property))
