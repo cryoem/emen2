@@ -1,4 +1,5 @@
 # $Id$
+# This Python file is encoding:UTF-8 Encoded
 
 import sys
 import math
@@ -29,9 +30,10 @@ equivs = {
 
 	'Torr': 'torr',
 
-	# It's just a PITA to use the Unicode Angstrom symbol... :(
-	'Angstrom': 'Angstrom',
-	'Angstroms': 'Angstroms',
+	'Ångstrom': 'Å',
+	'Ångstroms': 'Å',
+	'Angstrom': 'Å',
+	'Angstroms': 'Å',
 
 	'nL': 'nl',
 	'uL': 'ul',
@@ -225,48 +227,6 @@ mg.new_mag('pfu', mg.Magnitude(1))
 
 
 
-def convert(value, units, target):
-	print "CONVERTING: ", value, units, target
-
-	units = equivs.get(units, units)
-	target = equivs.get(target, target)	
-	special = ['degC', 'K', 'degF', 'degree']
-	
-	if not units or units == target or units == 'unitless':
-		return value
-
-	if units not in special and target not in special:
-		return mg.mg(value, units, ounit=target)
-						
-	# Degrees / Radians
-	if units == 'degree' and target == 'rad':
-		return value * (math.pi / 180.0)
-	elif units == 'rad' and target == 'degree':
-		return value * (180.0 / math.pi)
-		
-	# C / K
-	if units == 'degC' and target == 'K':
-		return value + 273.15
-	elif units == 'K' and target == 'degC':
-		return value - 273.15
-
-	# F / K
-	if units == 'degF' and target == 'K':
-		return (value + 459.67) * (5.0 / 9.0)
-	elif units == 'K' and target == 'degF':
-		return (value * (9.0 / 5.0)) - 459.67
-
-	# C / F
-	if units == 'degC' and target == 'degF':
-		return value * (9.0 / 5.0) + 32
-	elif units == 'degF' and target == 'degC':
-		return (value - 32) * (5.0 / 9.0)
-
-
-	raise ValueError, "Cannot convert from %s to %s"%(units, target)
-
-
-
 
 
 class Property(object):
@@ -290,46 +250,53 @@ class Property(object):
 
 		#q=re.compile("([0-9+\-\.]+)(\s+)?(\D+)?")
 		#ed: TODO: make sure this is correct, old one didn't work for e/A^2
-		q=re.compile("([0-9+\-\.]+)(\s+)?(.+?)?\s*$")
+		q = re.compile("([0-9+\-\.]+)(.*)")
+		value = unicode(value).strip()
 
-		value=unicode(value).strip()
 		try:
 			r = q.match(value).groups()
 		except:
 			raise ValueError,"Unable to parse '%s' for units"%(value)
 
 		value = float(r[0])
-		units = None
-		if r[2] != None:
-			units = unicode(r[2]).strip()
-
+		
 		target = pd.defaultunits
 		if not target:
 			target = self.defaultunits
 
-		return convert(value, units, target)
+		units = None
+		if r[2] != None:
+			units = unicode(r[2]).strip()
+		if units == None:
+			units = target
+
+		return self.convert(value, units, target)
 
 
-	# def convert(self, value, u, target, db):
-	# 	# value is value to convert
-	# 	# u = parameter's default units
-	# 	# target = target units
-	# 	# db = database handle
-	# 	if self.conv.get((u,target)):
-	# 		return self.conv.get((u,target))(value,db)
-	# 
-	# 	equiv = self.units.get(u) or self.units.get(self.equiv.get(u)) or self.units.get(self.equiv.get(u.lower()))
-	# 	du = self.units.get(target) or self.units.get(self.equiv.get(target))
-	# 
-	# 	if equiv == None:
-	# 		raise ValueError, "Unknown units '%s' (value is '%s'). Valid units: %s"%(u, value, set(self.units.keys()))
-	# 
-	# 	#g.log.msg('LOG_DEBUG', "Using units %s, target is %s, conversion factor %s, %s"%(u, target, equiv, du))
-	# 	#value = value * ( valid_properties[pd.property][1][units] / valid_properties[pd.property][1][defaultunits] )
-	# 	newv = value * ( equiv / du )
-	# 	#if value != newv:
-	# 	#	g.log.msg('LOG_DEBUG', "Property: converted: %s -> %s"%(value,newv))
-	# 	return newv
+	def check_bounds(self, value, target):
+		return value
+
+
+	def restrict(self, units, allowed):
+		pass
+		# if units not in allowed:
+		# 	raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(", ".join(allowed))
+			
+
+	def convert(self, value, units, target):
+		units = equivs.get(units, units)
+		target = equivs.get(target, target)	
+		if not units or units == target:
+			return value
+
+		self.restrict(units, self.units)
+		value = self._convert(value, units, target)
+		self.check_bounds(value, target)
+		return value
+
+
+	def _convert(self, value, units, target):
+		return mg.mg(value, units, ounit=target)
 
 
 
@@ -401,6 +368,12 @@ class prop_pH(Property):
 	defaultunits = 'pH'
 	units = ['pH']
 
+	def check_bounds(self, value, target):
+		self.restrict(target, self.units)
+		if (target == 'pH' and not 0 <- value <- 14):
+			raise ValueError, "pH must be between 0 and 14"
+
+
 		
 
 
@@ -417,7 +390,21 @@ class prop_angle(Property):
 	defaultunits = 'rad'
 	units = ['mrad', 'rad', 'degree']
 
-
+	def convert(self, value, units, target):
+		# if we get one of the rad variants, convert to rads
+		if units != 'degree' and target == 'degree':
+			value = mg.mg(value, units, ounit='rad')
+			value = float(value) * (180.0 / math.pi)
+			return value
+			
+		elif units == 'degree' and target != 'degree':
+			value = value * (math.pi / 180.0)
+			return mg.mg(value, 'rad', target)
+	
+		elif units != 'degree' and target != 'degree':
+			return mg.mg(value, units, ounit=target)
+			
+		raise ValueError, "Don't know how to convert %s to %s"%(units, target)
 		
 
 
@@ -425,6 +412,33 @@ class prop_temperature(Property):
 	__metaclass__ = Property.register_view
 	defaultunits = 'K'
 	units = ['degC', 'K', 'degF']
+	
+	def check_bounds(self, value, target):
+		# Check absolute zero
+		if (target == 'degC' and value < -273.15) or (target == 'K' and value < 0) or (target == 'degF' and value < -459.67):
+			raise ValueError, "Cannot set a temperature below absolute zero"
+
+	
+	def convert_temp(self, value, units, target):
+		# C / K
+		if units == 'degC' and target == 'K':
+			value = value + 273.15
+		elif units == 'K' and target == 'degC':
+			value = value - 273.15
+
+		# F / K
+		elif units == 'degF' and target == 'K':
+			value = (value + 459.67) * (5.0 / 9.0)
+		elif units == 'K' and target == 'degF':
+			value = (value * (9.0 / 5.0)) - 459.67
+
+		# C / F
+		elif units == 'degC' and target == 'degF':
+			value = value * (9.0 / 5.0) + 32
+		elif units == 'degF' and target == 'degC':
+			value = (value - 32) * (5.0 / 9.0)
+
+		return value
 	
 		
 
@@ -591,6 +605,19 @@ class prop_resolution(Property):
 	__metaclass__ = Property.register_view
 	defaultunits = 'Angstrom/pixel'
 	units = ['Angstrom/pixel', 'dpi', 'lpi']
+		
+		
+		
+		
+		
+		
+		
+		
+if __name__ == '__main__':
+	# print convert(-460, 'degF', 'K')
+	a = prop_temperature()
+	print a.convert(100, 'degC', 'K')
+		
 		
 		
 		
