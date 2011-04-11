@@ -83,7 +83,6 @@ class _View(object):
 	# 		print 'Hello World'
 
 	ctxt = property(lambda self: self.get_context())
-	headers = property(lambda self: self.__headers)
 	dbtree = property(lambda self: self.__dbtree)
 	js_files = emen2.web.extfile.BaseJS
 	css_files = emen2.web.extfile.BaseCSS
@@ -117,7 +116,6 @@ class _View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
-		print self.db
 		self.method = method
 		self.__headers = {'content-type': mimetype}
 		self.__dbtree = Context()
@@ -210,19 +208,16 @@ class _View(object):
 	#### Metadata manipulation ###############################################################
 
 	# HTTP header manipulation
-	def set_headers(self, __headers_=None, **hs):
+	headers = property(fget=lambda self: self.__headers, fdel=lambda self: self.__headers.clear())
+	@headers.setter
+	def headers(self, value):
 		'add a dictionary containing several headers to the HTTP headers'
-		headers = __headers_ or {}
-		headers.update(hs)
-		self.__headers.update(headers)
+		self.__headers.update(value)
 
 	def set_header(self, name, value):
 		'set a single header'
 		self.__headers[name] = value
 		return (name, value)
-
-	def get_headers(self):
-		return self.__headers
 
 	def get_header(self, name):
 		'get a HTTP header that this view will return'
@@ -387,7 +382,6 @@ class View(_View):
 
 
 
-		print self._basectxt
 
 
 ############-############-############
