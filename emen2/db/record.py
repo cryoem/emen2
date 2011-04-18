@@ -198,7 +198,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 	def __repr__(self):
 		try:
-			return "<Record id: %s recdef: %s at %x>" % (self.recid, self.rectype, id(self))
+			return "<Record id: %s recdef: %s at %x keys: %r>" % (self.recid, self.rectype, id(self), self.keys())
 		except:
 			return object.__repr__(self)
 

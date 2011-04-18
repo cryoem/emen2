@@ -18,6 +18,7 @@ import os
 import os.path
 import emen2.util.jsonutil
 import functools
+import collections
 
 import emen2.util.decorators
 import emen2.web.routing
@@ -32,7 +33,7 @@ g = emen2.db.config.g()
 # I. Views                           #
 ############ ############ ############
 
-class Context(object):
+class TemplateContext(object):
 	'''Partial context for views that don't need db access'''
 	def reverse(self, _name, *args, **kwargs):
 
@@ -46,6 +47,31 @@ class Context(object):
 			result = result.replace('?', '/?', 1)
 
 		return result
+
+
+class ViewContext(collections.MutableMapping):
+	def __init__(self, base):
+		self.__base = base
+		self.__dict = base.copy()
+	def __getitem__(self, n):
+		return self.__dict[n]
+	def __setitem__(self, n, v):
+		self.__dict[n] = v
+		self.__dict.update(self.__base)
+	def __delitem__(self, n):
+		del self.__dict[n]
+		self.__dict.update(self.__base)
+	def __len__(self): return len(self.__dict)
+	def __iter__(self): return iter(self.__dict)
+	def __repr__(self): return '<ViewContext: %r>' % self.__dict
+
+	def copy(self):
+		new = ViewContext(self.__base)
+		new.__dict.update(self.__dict)
+		return new
+
+	def set(self, name, value=None):
+		self[name] = value
 
 
 
@@ -116,32 +142,33 @@ class _View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
-		self.method = method
 		self.__headers = {'content-type': mimetype}
-		self.__dbtree = Context()
+		self.__dbtree = TemplateContext()
 
 		self.__template = template or self.template
-		self.__ctxt = adjust({}, extra)
 
-
-
-		self._basectxt = extra.pop('_basectxt', {})
-		self._basectxt.update(
+		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
+		basectxt = extra.pop('_basectxt', {})
+		basectxt.update(
 			ctxt = self.dbtree,
 			headers = self.__headers,
 			css_files = (css_files or self.css_files)(self.__dbtree),
 			js_files = (js_files or self.js_files)(self.__dbtree),
+			notify = notify,
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo
 		)
 
-		self.set_context_items(self._basectxt)
+		self.__ctxt = ViewContext(basectxt)
+		self.__ctxt.update(extra)
+		print self.__ctxt
 
-		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
+		#self.set_context_items(self._basectxt)
+
 		if not hasattr(notify, '__iter__'): notify = [notify]
 
-		self.set_context_item('notify', notify)
 
+		self.method = method
 		self.etag = None
 
 		# call any view specific initialization
@@ -225,24 +252,22 @@ class _View(object):
 
 	# template context manipulation
 	def get_context_item(self, name, default=None):
-		return self.__ctxt.get(name)
+		return self.__ctxt.get(name, default)
 
 	def set_context_item(self, name, value):
 		'''add a single item to the tempalte context'''
-		if name in self._basectxt.keys():
-			raise ValueError, "%s is a reserved context item" % name
 		self.__ctxt[name] = value
 
 	def set_context_items(self, __dict_=None, **kwargs):
 		'''add a number of items to the template context'''
 		self.__ctxt.update(kwargs)
 		self.__ctxt.update(__dict_ or {})
-		self.__ctxt.update(self._basectxt)
+		g.log.print_traceback()
 
 	# alias update_context to set_context_items
 	update_context = set_context_items
 
-	def get_context(self, extra_dict=None):
+	def get_context(self):
 		'''get the view's context'''
 		return self.__ctxt
 
@@ -363,7 +388,7 @@ class View(_View):
 	'''Contains DB specific view code'''
 
 	db = property(lambda self: self.__db)
-	def __init__(self, db=None, **extra):
+	def __init__(self, db=None, notify='', **extra):
 		self.__db = db
 		ctx = getattr(self.__db, '_getctx', lambda:None)()
 		LOGINUSER = getattr(ctx, 'username', None)
@@ -379,6 +404,8 @@ class View(_View):
 		)
 
 		_View.__init__(self, _basectxt=basectxt, **extra)
+
+		self.set_context_item('notify', notify)
 
 
 

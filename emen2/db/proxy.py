@@ -284,11 +284,16 @@ class DBProxy(object):
 
 
 	def __getattr__(self, name):
-		func = self._publicmethods.get(name)
+		if not name.startswith('_'):
+			func = self._publicmethods.get(name)
+		else: func = self.__getattribute__(name)
 		if func: return self._wrap(func)
 		return _Method(self, name)
 
 
+	def _login(self, username, passwd, host=None):
+		ctxid = self.login(username, passwd)
+		self._setContext(ctxid, host)
 
 	def _wrap(self, func):
 		# print "going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
