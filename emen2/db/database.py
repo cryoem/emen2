@@ -325,7 +325,7 @@ class DB(object):
 
 		global DBENV
 		
-		ENVOPENFLAGS = \
+		g.ENVOPENFLAGS = \
 			bsddb3.db.DB_CREATE | \
 			bsddb3.db.DB_INIT_MPOOL | \
 			bsddb3.db.DB_INIT_TXN | \
@@ -340,7 +340,7 @@ class DB(object):
 			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 			DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
-			DBENV.open(self.path, ENVOPENFLAGS)
+			DBENV.open(self.path, g.ENVOPENFLAGS)
 			DB.opendbs[self] = 1
 
 		return DBENV
