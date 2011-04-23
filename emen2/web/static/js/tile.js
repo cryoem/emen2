@@ -1,7 +1,7 @@
 (function($) {
     $.widget("ui.Boxer", {
 		options: {
-			recid: null,
+			name: null,
 			bdo: null,
 			boxrecords: null,
 			boxes: [],
@@ -21,10 +21,10 @@
 			}
 			this.element.attr('data-bdo', this.options.bdo);
 
-			if (this.options.recid == null) {
-				this.options.recid = parseInt(this.element.attr('data-recid'));
+			if (this.options.name == null) {
+				this.options.name = parseInt(this.element.attr('data-name'));
 			}
-			this.element.attr('data-recid', this.options.recid);
+			this.element.attr('data-name', this.options.name);
 
 			if (this.options.show) {
 				this.event_click();
@@ -40,9 +40,9 @@
 			$(window).resize(function() {self.event_resize()});			
 
 			// if there are records, do some callbacks..
-			if (this.options.recid != null) {				
+			if (this.options.name != null) {				
 
-				$.jsonRPC("getchildren", [this.options.recid, 1, "box"], function(children) {
+				$.jsonRPC("getchildren", [this.options.name, 1, "box"], function(children) {
 
 					$.jsonRPC("getrecord", [children], function(recs) {			
 						$.each(recs, function(i) {
@@ -226,7 +226,7 @@
 			}
 			
 			if (confirm == true) {
-				$.jsonRPC("pcunlink", [this.options.recid, label], function() {
+				$.jsonRPC("pcunlink", [this.options.name, label], function() {
 					self.remove_label(label);
 				});
 			}		
@@ -280,7 +280,7 @@
 		save: function(label) {
 			var rec = this._save(label);
 			$.jsonRPC("putrecord", [rec], function(newrec) {
-				caches['recs'][newrec.recid] = newrec;
+				caches['recs'][newrec.name] = newrec;
 				self.remove_label(label, true);
 				self.load_record(newrec);
 			});
@@ -290,20 +290,20 @@
 			var self = this;
 			
 			if (rec==null) {
-				$.jsonRPC("newrecord", ["box", self.options.recid], function(rec) {
-					rec.recid = self.currentlabel;
+				$.jsonRPC("newrecord", ["box", self.options.name], function(rec) {
+					rec.name = self.currentlabel;
 					self.currentlabel -= 1;
-					//rec["parents"] = [self.options.recid];
+					//rec["parents"] = [self.options.name];
 					self.load_record(rec);
 				})
 				return				
 			}
 			
 			rec["box_size"] = rec["box_size"] || this.options.boxsize;
-			caches["recs"][rec.recid] = rec;
-			this.build_boxarea(rec.recid);
+			caches["recs"][rec.name] = rec;
+			this.build_boxarea(rec.name);
 			$.each(rec['box_coords'] || [], function(i) {
-				self.addbox(this[0], this[1], rec.recid);
+				self.addbox(this[0], this[1], rec.name);
 			});
 			
 		},		
@@ -638,7 +638,7 @@
 			show: true,
 			controlsinset: true,
 			scales: [1, 2, 4, 8, 16],
-			recid: null
+			name: null
 		},
 		
 		_create: function() {		
@@ -707,7 +707,7 @@
 				$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
 			});
 
-			var apix = null; //caches['recs'][this.options.recid]['angstroms_per_pixel'];
+			var apix = null; //caches['recs'][this.options.name]['angstroms_per_pixel'];
 			if (!apix) {
 				apix = 1.0;
 			}

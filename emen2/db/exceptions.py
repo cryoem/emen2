@@ -1,7 +1,13 @@
 # $Id$
 
+# class EMEN2Error(Exception):
+# 	def __init__(self, value):
+# 		self.value = value
+# 	def __str__(self):
+# 		return repr(self.value)
+
 class SecurityError(Exception):
-    "Exception for a security violation"
+    "Security Error"
 
 class SessionError(KeyError):
     "Session Expired"
@@ -10,12 +16,11 @@ class AuthenticationError(ValueError):
     "Invalid Username or Password"
     
 class DisabledUserError(ValueError):
-    "User %s disabled"
-
-class FieldError(Exception):
-    "Exception for problems with Field definitions"
+    "Disabled User"
 
 class ValidationError(ValueError):
 	"""Validation Error"""
+
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

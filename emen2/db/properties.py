@@ -20,7 +20,8 @@ equivs = {
 	'km^2': 'km km',
 	'square feet': 'ft ft',
 	'square meters': 'm m',
-	'square kilometers': 'km km',	
+	'square kilometers': 'km km',
+	'square miles': 'mile mile',
 
 	'gallons': 'gallon',
 
@@ -30,10 +31,10 @@ equivs = {
 
 	'Torr': 'torr',
 
-	'Ångstrom': 'Å',
-	'Ångstroms': 'Å',
-	'Angstrom': 'Å',
-	'Angstroms': 'Å',
+	u'Ångstrom': u'Å',
+	u'Ångstroms': u'Å',
+	'Angstrom': u'Å',
+	'Angstroms': u'Å',
 
 	'nL': 'nl',
 	'uL': 'ul',
@@ -50,6 +51,8 @@ equivs = {
 	'Celcius': 'degC',
 	'centigrade': 'degC',
 	'degrees Celcius': 'degC',
+	
+	'degrees': 'degree',
 	
 	'moles': 'mol',
 	
@@ -119,7 +122,7 @@ si_equivs = {
 	'Volt': 'V',
 	'Volts': 'V',
 	
-	'rad': 'rad',
+	'rads': 'rad',
 	'radians': 'rad',
 		
 	'Hertz': 'Hz',
@@ -205,11 +208,12 @@ for name, abbr in equivs.items():
 
 
 # Some additional units
-mg.new_mag('Angstrom', mg.Magnitude(1e-10, m=1))
+mg.new_mag(u'Å', mg.Magnitude(1e-10, m=1))
 mg.new_mag('pixel', mg.Magnitude(1.0))
 mg.new_mag('count', mg.Magnitude(1.0))
 mg.new_mag('degF', mg.Magnitude(1.0))
 
+mg.new_mag('mile', mg.mg(160934.4, 'cm'))
 mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
 
 mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
@@ -228,8 +232,11 @@ mg.new_mag('pfu', mg.Magnitude(1))
 
 
 
-
 class Property(object):
+	
+	restricted = False
+	defaultunits = None
+	units = []
 
 	@staticmethod
 	def register_view(name, bases, dict):
@@ -248,8 +255,6 @@ class Property(object):
 		if hasattr(value,"__float__"):
 			return float(value)
 
-		#q=re.compile("([0-9+\-\.]+)(\s+)?(\D+)?")
-		#ed: TODO: make sure this is correct, old one didn't work for e/A^2
 		q = re.compile("([0-9+\-\.]+)(.*)")
 		value = unicode(value).strip()
 
@@ -265,9 +270,9 @@ class Property(object):
 			target = self.defaultunits
 
 		units = None
-		if r[2] != None:
-			units = unicode(r[2]).strip()
-		if units == None:
+		if r[1] != None:
+			units = unicode(r[1]).strip()
+		if not units:
 			units = target
 
 		return self.convert(value, units, target)
@@ -277,26 +282,42 @@ class Property(object):
 		return value
 
 
-	def restrict(self, units, allowed):
-		pass
+	def check_restrict(self, units, allowed):
+		return
+		# allowed = [equivs.get(i,i) for i in allowed]
 		# if units not in allowed:
-		# 	raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(", ".join(allowed))
+		# 	raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
 			
 
 	def convert(self, value, units, target):
 		units = equivs.get(units, units)
 		target = equivs.get(target, target)	
+		print "units/target:", units, target
 		if not units or units == target:
+			self.check_bounds(value, target)
 			return value
 
-		self.restrict(units, self.units)
+		# self.check_restrict(units, self.units)
 		value = self._convert(value, units, target)
 		self.check_bounds(value, target)
 		return value
 
 
 	def _convert(self, value, units, target):
-		return mg.mg(value, units, ounit=target)
+		print "value/units/target", value, units, target
+		v = mg.mg(value, units, ounit=target)
+		# Check for dimensionless conversions...
+		if v.dimensionless:
+			self.error(units, target, msg='dimensionless property')		
+		return v.toval()
+
+
+	def error(self, units, target, msg=None):
+		raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')
+		
+
+	def unknown(self, units, target):
+		raise ValueError, "Don't know how to convert %s to %s"%(units, target)
 
 
 
@@ -369,7 +390,6 @@ class prop_pH(Property):
 	units = ['pH']
 
 	def check_bounds(self, value, target):
-		self.restrict(target, self.units)
 		if (target == 'pH' and not 0 <- value <- 14):
 			raise ValueError, "pH must be between 0 and 14"
 
@@ -390,22 +410,26 @@ class prop_angle(Property):
 	defaultunits = 'rad'
 	units = ['mrad', 'rad', 'degree']
 
-	def convert(self, value, units, target):
+	def _convert(self, value, units, target):
 		# if we get one of the rad variants, convert to rads
 		if units != 'degree' and target == 'degree':
 			value = mg.mg(value, units, ounit='rad')
 			value = float(value) * (180.0 / math.pi)
-			return value
 			
 		elif units == 'degree' and target != 'degree':
 			value = value * (math.pi / 180.0)
-			return mg.mg(value, 'rad', target)
+			value = mg.mg(value, 'rad', target)
 	
 		elif units != 'degree' and target != 'degree':
-			return mg.mg(value, units, ounit=target)
-			
-		raise ValueError, "Don't know how to convert %s to %s"%(units, target)
-		
+			value = mg.mg(value, units, ounit=target)
+
+		else:
+			self.unknown(units, target)
+
+		return value
+
+
+
 
 
 class prop_temperature(Property):
@@ -419,7 +443,7 @@ class prop_temperature(Property):
 			raise ValueError, "Cannot set a temperature below absolute zero"
 
 	
-	def convert_temp(self, value, units, target):
+	def _convert(self, value, units, target):
 		# C / K
 		if units == 'degC' and target == 'K':
 			value = value + 273.15
@@ -437,6 +461,9 @@ class prop_temperature(Property):
 			value = value * (9.0 / 5.0) + 32
 		elif units == 'degF' and target == 'degC':
 			value = (value - 32) * (5.0 / 9.0)
+
+		else:
+			raise ValueError, "Don't know how to convert %s to %s"%(units, target)
 
 		return value
 	
@@ -564,7 +591,7 @@ class prop_relative_humidity(Property):
 class prop_length(Property):
 	__metaclass__ = Property.register_view
 	defaultunits = 'm'
-	units = ['Angstrom', 'nm', 'um', 'mm', 'm', 'km']
+	units = [u'Å', 'nm', 'um', 'mm', 'm', 'km']
 
 
 		
@@ -603,11 +630,8 @@ class prop_acceleration(Property):
 
 class prop_resolution(Property):
 	__metaclass__ = Property.register_view
-	defaultunits = 'Angstrom/pixel'
-	units = ['Angstrom/pixel', 'dpi', 'lpi']
-		
-		
-		
+	defaultunits = u'Å/pixel'
+	units = [u'Å/pixel', 'dpi', 'lpi']
 		
 		
 		
@@ -615,9 +639,17 @@ class prop_resolution(Property):
 		
 if __name__ == '__main__':
 	# print convert(-460, 'degF', 'K')
-	a = prop_temperature()
-	print a.convert(100, 'degC', 'K')
+	# a = prop_temperature()
+	# print a.convert(100, 'K', 'degC')
+	
+	# a = prop_angle()
+	# print a.convert(360, 'degree', 'rad')	
 		
+	# a = prop_mass()
+	# print a.convert(1, 'kDa', 'MDa')	
+		
+	a = prop_angle()
+	print a.convert(1, 'degree', 'rads')	
 		
 		
 		

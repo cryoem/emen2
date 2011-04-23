@@ -8,13 +8,14 @@ import re
 import weakref
 import traceback
 
-import emen2.db.config
-g = emen2.db.config.g()
-
-
+import emen2
 import emen2.db
+import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.proxy
+
+import emen2.db.config
+g = emen2.db.config.g()
 
 
 # These do not use BaseDBObject since they are completely internal to the DB
@@ -24,7 +25,7 @@ class Context(object):
 	a Context is created, and used for subsequent access."""
 
 	attr_user = set()
-	name = property(lambda s:s.ctxid)
+	ctxid = property(lambda x:x.name)
 
 	# ian: todo: put current txn in ctx?
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):
@@ -34,7 +35,7 @@ class Context(object):
 		self.db = None
 		self.setdb(db)
 
-		self.ctxid = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
+		self.name = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
 
 		# validated user instance, w/ user record, displayname, groups
 		self.user = user
@@ -59,7 +60,7 @@ class Context(object):
 
 	def json_equivalent(self):
 		return dict(
-			ctxid=self.ctxid,
+			name=self.name,
 			user=self.user,
 			groups=self.groups,
 			grouplevels=self.grouplevels,
@@ -78,6 +79,14 @@ class Context(object):
 		for i in ['db', 'user', 'groups', 'grouplevels']:
 			odict.pop(i, None)
 		return odict
+
+
+	def __setstate__(self, d):
+		# Backwards compatibility..
+		if d.get('ctxid'):
+			d['name'] = d.pop('ctxid', None)
+		return self.__dict__.update(d)
+
 
 
 	def setdb(self, db=None):
@@ -120,7 +129,7 @@ class Context(object):
 
 	def _setDBProxy(self, txn=None):
 		if not isinstance(self.db, emen2.db.proxy.DBProxy):
-			# g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.ctxid)
+			# g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.name)
 			self.db = emen2.db.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
 
 
@@ -158,7 +167,7 @@ class AnonymousContext(Context):
 class SpecialRootContext(Context):
 	def __init__(self, *args, **kwargs):
 		Context.__init__(self, *args, requirehost=False, **kwargs)
-		self.ctxid = None
+		self.name = None
 		self.host = None
 		self.username = u"root"
 		self._init_refresh()
@@ -180,6 +189,16 @@ class SpecialRootContext(Context):
 		self.setdb(db=db)
 		self.time = t
 		self._init_refresh()
+
+
+
+
+
+class ContextBTree(emen2.db.btrees.DBOBTree):
+	def init(self):
+		self.setdatatype('p')
+		super(ContextBTree, self).init()
+
 
 
 

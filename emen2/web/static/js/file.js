@@ -27,7 +27,7 @@
 (function($) {
     $.widget("ui.AttachmentViewerControl", {
 		options: {
-			recid: null,
+			name: null,
 			edit: 0,
 			modal: false,
 			embed: false,
@@ -56,13 +56,13 @@
 			var self = this;
 			this.tablearea.empty();
 			this.tablearea.append('<div>Loading...</div>');
-			$.jsonRPC("getparamdef", [[this.options.recid]], function(paramdefs) {
+			$.jsonRPC("getparamdef", [[this.options.name]], function(paramdefs) {
 			
 				$.each(paramdefs, function() {
 					caches["paramdefs"][this.name] = this;
 				});
 			
-				$.jsonRPC("getbinary", [[self.options.recid]], 
+				$.jsonRPC("getbinary", [[self.options.name]], 
 					function(bdos) {
 						if (bdos == null) {bdos=[]}
 						if (bdos.length == null) {bdos=[bdos]}
@@ -79,7 +79,7 @@
 		makebdomap: function() {
 			// This is to avoid an extra RPC call, and sort BDOs by param name
 			this.bdomap = {};
-			var rec = caches["recs"][this.options.recid];
+			var rec = caches["recs"][this.options.name];
 			var self = this;
 
 			$.each(this.bdos, function(i, bdo) {
@@ -157,7 +157,7 @@
 			}
 			this.built = 1;
 
-			this.dialog = $('<div><form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.recid+'"></form></div>');	
+			this.dialog = $('<div><form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"></form></div>');	
 			this.tablearea = $('<div />');
 			this.browserarea = $('<div />');
 			this.queryarea = $('<div></div>')
@@ -167,7 +167,7 @@
 
 			var controls = $(' \
 				<div class="controls"> \
-						<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'#showattachments=1" /> \
+						<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#showattachments=1" /> \
 						<ul class="options nonlist"> \
 							<li> \
 								<input checked="checked" type="radio" name="param" value="file_binary" id="param_file_binary" /> \
@@ -199,7 +199,7 @@
 			});
 
 			$('input[name=param_other]', controls).FindControl({
-				mode: 'findparamdef',
+				keytype: 'paramdef',
 				vartype: ['binary', 'binaryimage'],
 				minimum: 0,
 				cb: function(self, value) {
@@ -265,7 +265,7 @@
 				p[k]=v;
 			});
 			
-			$.jsonRPC("putrecordvalues", [this.options.recid, p],
+			$.jsonRPC("putrecordvalues", [this.options.name, p],
 				function(rec) {
 					record_update(rec);
 					self.event_build_tablearea();
@@ -295,7 +295,7 @@
 //     $.widget("ui.FileControl", {
 // 		options: {
 // 			show: 0,
-// 			recid: null,
+// 			name: null,
 // 			vartype: null,
 // 			param: null,
 // 			modal: true,
@@ -305,7 +305,7 @@
 // 		_create: function() {
 // 			this.built = 0;
 // 			this.bdos = {};
-// 			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
+// 			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
 // 			this.options.param = this.options.param || this.element.attr("data-param");
 // 			this.options.vartype = this.options.vartype || this.element.attr("data-vartype");
 // 		
@@ -321,9 +321,9 @@
 // 		event_click: function(e) {
 // 			var self = this;
 // 			this.show();
-// 			$.jsonRPC("getrecord", [this.options.recid],
+// 			$.jsonRPC("getrecord", [this.options.name],
 // 				function(rec) {				
-// 					caches["recs"][rec.recid] = rec;
+// 					caches["recs"][rec.name] = rec;
 // 					self.event_build_tablearea();
 // 				}
 // 			);
@@ -334,7 +334,7 @@
 // 			var self = this;
 // 			this.tablearea.empty();
 // 			this.tablearea.append('<div>Loading...</div>');
-// 			$.jsonRPC("getbinary", [caches["recs"][this.options.recid][this.options.param]], 
+// 			$.jsonRPC("getbinary", [caches["recs"][this.options.name][this.options.param]], 
 // 				function(bdos) {
 // 					if (bdos == null) {bdos=[]}
 // 					if (bdos.length == null) {bdos=[bdos]}
@@ -356,7 +356,7 @@
 // 			}
 // 			var p = {};
 // 			p[this.options.param]=keep
-// 			$.jsonRPC("putrecordvalues", [this.options.recid, p],
+// 			$.jsonRPC("putrecordvalues", [this.options.name, p],
 // 				function(rec) {
 // 					record_update(rec);
 // 					self.event_build_tablearea();
@@ -430,7 +430,7 @@
 // 	
 // 		build_browser: function() {
 // 			var self = this;
-// 			var fform = $('<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param+'">');
+// 			var fform = $('<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+self.options.name+'?param='+self.options.param+'">');
 // 
 // 			this.button_browser = $('<input type="file" name="filedata" />');
 // 			this.button_submit = $('<input class="save" type="submit" value="Upload" />');
@@ -444,7 +444,7 @@
 // 			// 	this.button_browser.html5_upload({
 // 			// 		onFinish: function(event, total) {
 // 			// 			$('#progress').progressbar("destroy");
-// 			// 			$.jsonRPC("getrecord", [self.options.recid], function(rec) {
+// 			// 			$.jsonRPC("getrecord", [self.options.name], function(rec) {
 // 			// 				record_update(rec);
 // 			// 				self.event_build_tablearea();
 // 			// 				self.options.cb();		
@@ -454,7 +454,7 @@
 // 			// 			$('#progress').progressbar( "option", "value", val*100 );
 // 			// 		},
 // 			// 		url: function() {
-// 			// 			return EMEN2WEBROOT+'/upload/'+self.options.recid+'?param='+self.options.param;				
+// 			// 			return EMEN2WEBROOT+'/upload/'+self.options.name+'?param='+self.options.param;				
 // 			// 		},
 // 			// 		onStart: function(event, total) {
 // 			// 			if (total > 1) {
@@ -469,7 +469,7 @@
 // 			// }
 // 			
 // 			var progress = $('<div style="float:left;width:200px;margin:10px;" id="progress" />');
-// 			var location = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.recid+'/" name="Location">');
+// 			var location = $('<input type="hidden" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'/" name="Location">');
 // 			
 // 			fform.append(this.button_browser, this.button_submit, progress, location);
 // 			fform.wrap('<div class="controls"></div>');

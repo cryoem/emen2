@@ -60,9 +60,9 @@ class Vartype(object):
 
 	
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
-	def render(self, value, recid=0, edit=False, showlabel=False, markup=False, table=False):
+	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False):
 		# Store these for convenience
-		self.recid = recid
+		self.name = name
 		self.edit = edit
 		self.showlabel = showlabel
 		self.markup = markup
@@ -88,7 +88,7 @@ class Vartype(object):
 		
 		
 	# After pre-processing values into markup
-	# The lt flag is used for table format, to link to the row's recid
+	# The lt flag is used for table format, to link to the row's name
 	def _render_list(self, value):
 		# Note: value should already be escaped!
 
@@ -103,13 +103,13 @@ class Vartype(object):
 			if self.edit and self.showlabel:
 				label = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if self.edit:
-				return '<span class="%s" data-recid="%s" data-param="%s">%s</span>'%(self.elem_class, self.recid, self.pd.name, label)
+				return '<span class="%s" data-name="%s" data-param="%s">%s</span>'%(self.elem_class, self.name, self.pd.name, label)
 			return '<span></span>'
 
 
 		# Basic
 		if self.table:
-			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, self.recid, i) for i in value]
+			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, self.name, i) for i in value]
 		else:
 			lis = ['<li>%s</li>'%(i) for i in value]
 			
@@ -122,7 +122,7 @@ class Vartype(object):
 			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
 
 		# Put the editing widget together
-		return '<ul class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s</ul>'%(self.elem_class, self.recid, self.pd.name, self.pd.vartype, "\n".join(lis))
+		return '<ul class="%s" data-name="%s" data-param="%s" data-vartype="%s">%s</ul>'%(self.elem_class, self.name, self.pd.name, self.pd.vartype, "\n".join(lis))
 
 
 	def _render(self, value):
@@ -143,7 +143,7 @@ class Vartype(object):
 			if self.edit and self.showlabel:
 				label = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
 			if self.edit:
-				return '<%s class="%s" data-recid="%s" data-param="%s">%s</%s>'%(self.elem, self.elem_class, self.recid, self.pd.name, label, self.elem)
+				return '<%s class="%s" data-name="%s" data-param="%s">%s</%s>'%(self.elem, self.elem_class, self.name, self.pd.name, label, self.elem)
 			return '<%s></%s>'%(self.elem, self.elem)
 
 
@@ -151,7 +151,7 @@ class Vartype(object):
 			value = '%s %s'%(value, self.pd.defaultunits)
 
 		if self.table:
-			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.recid, value)
+			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.name, value)
 
 		if not self.edit:
 			return value
@@ -162,7 +162,7 @@ class Vartype(object):
 			label = '<span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
 
 		# Put the editing widget together
-		return '<%s class="%s" data-recid="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(self.elem, self.elem_class, self.recid, self.pd.name, self.pd.vartype, value, label, self.elem)
+		return '<%s class="%s" data-name="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(self.elem, self.elem_class, self.name, self.pd.name, self.pd.vartype, value, label, self.elem)
 
 
 
@@ -182,11 +182,11 @@ class Vartype(object):
 	def reindex(self, items):
 		addrefs = collections.defaultdict(set)
 		delrefs = collections.defaultdict(set)
-		for recid, new, old in items:
+		for name, new, old in items:
 			if new == old:
 				continue
-			delrefs[old].add(recid)
-			addrefs[new].add(recid)
+			delrefs[old].add(name)
+			addrefs[new].add(name)
 
 		if None in addrefs: del addrefs[None]
 		if None in delrefs: del delrefs[None]
@@ -203,20 +203,20 @@ class vt_iter(object):
 	iterable = True
 
 	def reindex(self, items):
-		# items format: [recid, newval, oldval]
+		# items format: [name, newval, oldval]
 		addrefs = collections.defaultdict(set)
 		delrefs = collections.defaultdict(set)
-		for recid, new, old in items:
+		for name, new, old in items:
 			if new == old:
 				continue
 
 			new = set(new or [])
 			old = set(old or [])
 			for n in new-old:
-				addrefs[n].add(recid)
+				addrefs[n].add(name)
 
 			for o in old-new:
-				delrefs[o].add(recid)
+				delrefs[o].add(name)
 
 		if None in addrefs: del addrefs[None]
 		if None in delrefs: del delrefs[None]
@@ -319,17 +319,29 @@ class vt_boolean(vt_int):
 
 
 
+# ian: todo: rename to vt_name
 class vt_recid(Vartype):
 	__metaclass__ = Vartype.register_view
 	keytype = None
-
 	def validate(self, value):
 		try:
 			value = int(value)
 			if value < 0:
 				raise ValueError
 		except:
-			raise ValueError, "Invalid recid: %s"%value
+			raise ValueError, "Invalid name: %s"%value
+		return value
+		
+		
+class vt_name(Vartype):
+	__metaclass__ = Vartype.register_view
+	keytype = None
+	def validate(self, value):
+		try:
+			value = int(value)
+		except ValueError:
+			value = unicode(value or '')
+		return value
 			
 
 
@@ -558,6 +570,79 @@ class vt_urilist(vt_iter, vt_ref):
 
 
 ###################################
+# Mapping types
+###################################
+
+
+# all = set(['displayname', 'groups', 'views', 'mainview', 'creationtime', 'typicalchld', 'compress', 'private', 'disabled', 'rectype', 'signupinfo', 'vartype', 'userrec', 'modifytime', 'filename', 'children', 'desc_short', 'name', 'modifyuser', 'desc_long', 'privacy', 'filepath', 'uri', 'comments', 'choices', 'defaultunits', 'record', 'name', 'filesize', 'indexed', 'parents', 'permissions', 'property', 'creator', 'immutable', 'md5', 'history'])
+
+# displayname: string
+# groups: groups
+# views: dict
+# mainview: string
+# creationtime: datetime
+# typicalchld: rectypelist
+# compress: bool
+# private: bool
+# disabled: int
+# rectype: rectype
+# signupinfo: paramdict
+# vartype: vartype
+# userrec: None
+# modifytime: datetime
+# filename: filename
+# children: links
+# desc_short: string
+# name: None, but immutable..
+# modifyuser: user
+# desc_long: text
+# privacy: int
+# filepath: None, immutable
+# uri: uri
+# comments: comments
+# choices: stringlist
+# defaultunits: string... check property for choices?
+# record: name
+# filesize: int
+# indexed: bool
+# parents: links
+# property: string... check properties?
+# creator: user
+# immutable: bool
+# md5: md5
+# history: history
+
+# So, new vartypes: dict, rectypelist, paramdict, unvalidated, filename, units (check Magnitude and property), md5 (length == 40, or maybe unvalidated)
+
+class vt_paramdict(vt_iter, Vartype):
+	"""Dictionary with valid param keys"""
+	__metaclass__ = Vartype.register_view
+	def validate(self, value):
+		ret = {}
+		for k,v in value.items():
+			pd = check_rectype(self.engine, k)
+			# will this work?
+			v = self.engine.validate(pd, v)
+			ret[pd.name] = v
+		return ret
+
+
+
+class vt_dict(vt_iter, Vartype):
+	"""Dictionary with valid param keys"""
+	__metaclass__ = Vartype.register_view
+	def validate(self, value):
+		ret = {}
+		for k,v in value.items():
+			ret[unicode(k)] = v
+		return ret
+
+
+
+
+
+
+###################################
 # Binary vartypes
 ###################################
 
@@ -777,7 +862,7 @@ class vt_acl(Vartype):
 		unames = {}
 		
 		for user in self.engine.db.getuser(value, lnf=True):
-			unames[user.username] = user.displayname
+			unames[user.name] = user.displayname
 
 		levels=["Read","Comment","Write","Admin"]
 		ret=[]
@@ -796,7 +881,7 @@ class vt_acl(Vartype):
 		# g.log.msg('LOG_DEBUG', "Calculating security updates...")
 		addrefs = collections.defaultdict(list)
 		delrefs = collections.defaultdict(list)
-		for recid, new, old in items:
+		for name, new, old in items:
 
 			#nperms = set(reduce(operator.concat, new or [], []))
 			#operms = set(reduce(operator.concat, old or [], []))
@@ -808,10 +893,10 @@ class vt_acl(Vartype):
 				operms |= set(i)
 
 			for user in nperms - operms:
-				addrefs[user].append(recid)
+				addrefs[user].append(name)
 
 			for user in operms - nperms:
-				delrefs[user].append(recid)
+				delrefs[user].append(name)
 
 		return addrefs, delrefs
 
@@ -898,8 +983,21 @@ class vt_groups(vt_iter, Vartype):
 
 
 
+
+
 ###########################
 # Helper methods
+
+def check_rectype(engine, value):
+	key = engine.get_cache_key('paramdef', value)
+	hit, paramdef = engine.check_cache(key)
+	if not hit:
+		paramdef = engine.db.getparamdef(value, filt=False)
+		engine.store(key, paramdef)
+		
+	return paramdef
+
+
 
 def check_rectypes(engine, values):
 	key = engine.get_cache_key('paramdefnames')
@@ -961,7 +1059,7 @@ def update_username_cache(engine, values):
 	if to_cache:
 		users = engine.db.getuser(to_cache, lnf=True, filt=True)
 		for user in users:
-			key = engine.get_cache_key('displayname', user.username)
+			key = engine.get_cache_key('displayname', user.name)
 			engine.store(key, user.displayname)
 
 

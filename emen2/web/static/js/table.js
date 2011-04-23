@@ -151,7 +151,7 @@
 			var self = this;
 			var count = $('.header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
-			newq['recids'] = [];
+			newq['names'] = [];
 			newq['recs'] = true;
 			newq['table'] = true;
 			$.jsonRPC("query", newq, function(q){self.update(q)});			
@@ -280,7 +280,7 @@
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
 			var headers = this.options.q['table']['headers']['null'];			
-			var immutable = ["creator","creationtime","modifyuser","modifytime","history","recid","rectype"];
+			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype"];
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {
@@ -320,15 +320,15 @@
 			var self = this;
 			var t = $('.inner', this.element);			
 			var headers = this.options.q['table']['headers']['null'];
-			var recids = this.options.q['recids'];
-			
+			var names = this.options.q['names'];
 			var rows = []
-			for (var i=0;i<recids.length;i++) {
+			
+			for (var i=0;i<names.length;i++) {
 				var row = [];
 				for (var j=0;j<headers.length;j++) {
-					//row.push('<td>'+self.options.q['table'][recids[i]][j]+'</td>'); //
-					//row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+recids[i]+'/">'+self.options.q['table'][recids[i]][j]+'</a></td>');
-					row.push('<td>'+self.options.q['table'][recids[i]][j]+'</td>');
+					//row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>'); //
+					//row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+names[i]+'/">'+self.options.q['table'][names[i]][j]+'</a></td>');
+					row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
 				}
 				if (i%2) {
 					row = '<tr class="s">' + row.join('') + '</tr>';

@@ -3,7 +3,7 @@
 
 		options: {
 			show: 0,
-			mode: 'finduser',
+			keytype: 'user',
 			value: '',
 			modal: true,
 			vartype: null,
@@ -12,8 +12,6 @@
 		},
 				
 		_create: function() {
-
-
 			this.built = 0;
 			var self=this;
 			this.element.click(function(e){self.event_click(e);})
@@ -31,16 +29,16 @@
 			this.built = 1;
 
 			this.dialog = $('<div class="find" />');
-			if (this.options.mode == 'finduser'){
+			if (this.options.keytype == 'user'){
 				this.dialog.attr('title', 'Find User');
 				this.add = this.adduser;
-			} else if (this.options.mode == 'findgroup') {
+			} else if (this.options.keytype == 'group') {
 				this.dialog.attr('title', 'Find Group');			
 				this.add = this.addgroup;
-			} else if (this.options.mode == 'findparamdef') {
+			} else if (this.options.keytype == 'aramdef') {
 				this.dialog.attr('title', 'Find Parameter');
 				this.add = this.addparamdef;
-			} else if (this.options.mode == 'findrecorddef') {
+			} else if (this.options.keytype == 'recorddef') {
 				this.dialog.attr('title', 'Find Protocol');
 				this.add = this.addrecorddef;
 			}
@@ -123,16 +121,16 @@
 		},
 		
 		adduser: function(user) {
-			caches["users"][user.username] = user;
-			var d = $('<div class="userbox" data-name="'+user.username+'" />');
+			caches["users"][user.name] = user;
+			var d = $('<div class="userbox" data-name="'+user.name+'" />');
 			var self=this;		
 			d.click(function(e){self.event_select(e)});
 			if (user.userrec["person_photo"]) {
-				d.append('<img data-name="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" alt="Profile Photo" />');
+				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Profile Photo" />');
 			} else {
-				d.append('<img data-name="'+user.username+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="No Photo" />');			
+				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="No Photo" />');			
 			}
-			d.append('<div data-name="'+user.username+'">'+user.displayname+'<br />'+user.email+'</div>');
+			d.append('<div data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');
 			this.resultsarea.append(d);
 		},
 	
@@ -164,7 +162,7 @@
 				query['vartype'] = this.options.vartype;
 			}
 				
-			$.jsonRPC(this.options.mode, query, function(items) {
+			$.jsonRPC('find'+this.options.keytype, query, function(items) {
 				$('.spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;

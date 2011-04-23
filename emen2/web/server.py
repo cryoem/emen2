@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # $Id$
 
 import sys
@@ -23,6 +22,7 @@ import emen2.web.resources.threadpool
 import emen2.db.config
 g = emen2.db.config.g()
 
+
 if not g.getattr('CONFIG_LOADED', False):
 	try:
 		parser = emen2.db.config.DBOptions()
@@ -32,19 +32,15 @@ if not g.getattr('CONFIG_LOADED', False):
 		pass
 
 
-
-
 # Try to import EMAN2..
-try:
-	import EMAN2
-	# We need to steal these handlers from EMAN2...
-	signal.signal(2, signal.SIG_DFL)
-	signal.signal(15, signal.SIG_DFL)
-	atexit.register(emen2.db.database.DB_Close)
-except:
-	pass
-
-
+# try:
+# 	import EMAN2
+# 	# We need to steal these handlers from EMAN2...
+# 	signal.signal(2, signal.SIG_DFL)
+# 	signal.signal(15, signal.SIG_DFL)
+# 	atexit.register(emen2.db.database.DB_Close)
+# except:
+# 	pass
 
 
 def load_resources(root, resources):
@@ -109,11 +105,14 @@ def inithttpd():
 		'jsonrpc': emen2.web.resources.jsonrpcresource.e2jsonrpc(),
 	}
 
-	# load EMEN2 resource
-	try:
-		import emen2.web.resources.eman2resource
-		resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
-	except: pass
+
+	# load EMAN2 resource
+	# try:
+	# 	import emen2.web.resources.eman2resource
+	# 	resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
+	# except:
+	# 	pass
+
 
 	try:
 		extraresources = g.getattr('RESOURCESPECS', {})
@@ -121,15 +120,17 @@ def inithttpd():
 			if path in resources: raise ValueError, "Cannot override standard resources"
 			mod = __import__(mod)
 			resources[path] = getattr(mod, path)
-	except ImportError: pass
+	except ImportError:
+		pass
 
 
 	load_resources(root, resources)
 
 	try:
 		import srequest
-		#server.Site.requestFactory = srequest.Request
-	except ImportError: g.debug('--- srequest not loaded ***')
+	except ImportError:
+		g.debug('--- srequest not loaded ***')
+
 
 	site = server.Site(root)
 
@@ -162,6 +163,8 @@ def inithttpd():
 
 if __name__ == "__main__":
 	inithttpd()
+
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

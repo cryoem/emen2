@@ -33,7 +33,7 @@ for pd in db.getparamdef(paramdefs):
 
 
 users = [
-	{'username':'root', 'signupinfo':{'name_first':'Admin'}}
+	{'name':'root', 'signupinfo':{'name_first':'Admin'}}
 	]
 
 

@@ -7,7 +7,7 @@ import random
 import re
 import weakref
 
-
+import emen2.db.btrees
 import emen2.db.config
 g = emen2.db.config.g()
 
@@ -46,6 +46,19 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 	#################################
 	# Validation methods
 	#################################
+
+
+
+
+
+
+
+
+class WorkFlowBTree(emen2.db.btrees.DBOBTree):
+	def init(self):
+		self.setdatatype('p', emen2.db.workflow.WorkFlow)	
+		super(WorkFlowBTree, self).init()
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

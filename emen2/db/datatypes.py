@@ -4,7 +4,6 @@ import re
 import cgi
 
 
-import emen2.db.record
 import emen2.db.config
 g = emen2.db.config.g()
 
@@ -154,8 +153,7 @@ class VartypeManager(object):
 		if pd.property:
 			value = self._properties[pd.property]().validate(self, pd, value, self.db)
 
-		ret = self._vartypes[pd.vartype](engine=self, pd=pd).validate(value)
-		return ret
+		return self._vartypes[pd.vartype](engine=self, pd=pd).validate(value)
 
 
 	###################################

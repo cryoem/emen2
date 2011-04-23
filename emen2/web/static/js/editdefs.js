@@ -122,7 +122,7 @@
 				self.bindview(t,$(this));
 			});
 			
-			$('input[name=typicalchld]', this.element).FindControl({mode: 'findrecorddef'});			
+			$('input[name=typicalchld]', this.element).FindControl({keytype: 'recorddef'});			
 		
 		},
 	
@@ -191,13 +191,9 @@
 			this.rd=this.getvalues();
 
 			var self=this;
-			var args = [this.rd];
-			if (this.options.newdef) {
-				args = [this.rd, this.options.parents];
-			}
 
 			$('.spinner').show();
-			$.jsonRPC("putrecorddef", args,function(data){
+			$.jsonRPC("putrecorddef", [this.rd], function(data){
 				$('.spinner').hide();
 				notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])
 			});

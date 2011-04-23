@@ -21,14 +21,14 @@ function dayid(d) {
 (function($) {
     $.widget("ui.Calendar", {
 		options: {
-			'recid': null,
+			'name': null,
 			'start': null,
 			'end': null
 		},
 				
 		_create: function() {
 			this.element.css('position','relative');
-			this.options.recid = this.options.recid || parseInt(this.element.attr('data-recid'));
+			this.options.name = this.options.name || parseInt(this.element.attr('data-name'));
 			this.options.start = parsedate(this.element.attr('data-start'));
 			this.options.end = parsedate(this.element.attr('data-end'));
 			this.counter = -1;
@@ -104,10 +104,10 @@ function dayid(d) {
 		},
 				
 		addevent: function(event) {
-			var e = $('<div class="event" data-recid="'+this.counter+'">Test!</div>');
+			var e = $('<div class="event" data-name="'+this.counter+'">Test!</div>');
 			e.CalendarEvent({
-				'recid': this.counter,
-				'parent': this.options.recid,
+				'name': this.counter,
+				'parent': this.options.name,
 				'start': this.options.start,
 				'end': new Date(this.options.start.getTime() + 60*60*1000)
 			});
@@ -135,7 +135,7 @@ function dayid(d) {
 		options: {
 			'start': null,
 			'end': null,
-			'recid': null,
+			'name': null,
 			'parent': null
 		},
 				
@@ -145,17 +145,17 @@ function dayid(d) {
 			this.opacity = 1.0;
 			this.view = '';
 			this.element.hide();
-			this.options.recid = parseInt(this.options.recid || this.element.attr('data-recid'));
+			this.options.name = parseInt(this.options.name || this.element.attr('data-name'));
 			this.built = 0;
-			if (this.options.recid >= 0) {
-				$.jsonRPC("getrecord", [this.options.recid], function(rec) {
+			if (this.options.name >= 0) {
+				$.jsonRPC("getrecord", [this.options.name], function(rec) {
 					self.rec = rec;
 					self.build();
 					self.renderview();
 				})
 			} else {
 				$.jsonRPC("newrecord", ["folder", this.options.parent], function(rec) {
-					rec['recid'] = self.options.recid;
+					rec['name'] = self.options.name;
 					self.rec = rec;
 					self.build();
 				})
@@ -201,8 +201,8 @@ function dayid(d) {
 			var self = this;
 
 			// hide any boxes with important events bound to preserve start/drag/stop -- and remove others
-			$('.event_bound[data-recid='+this.options.recid+']').hide();			
-			$('.event_box[data-recid='+this.options.recid+']:not(.event_bound)').remove();			
+			$('.event_bound[data-name='+this.options.name+']').hide();			
+			$('.event_box[data-name='+this.options.name+']:not(.event_bound)').remove();			
 
 			$('.day').each(function() {
 				var endstoday = false;
@@ -243,14 +243,14 @@ function dayid(d) {
 				}
 			
 				var e = $('<div style="position:absolute;top:0px;"><div class="label">'+self.formathour(self.options.start)+' - '+self.formathour(self.options.end)+'</div><div class="indent">'+self.indent+'</div></div>');
-				var view = $('<div class="view" data-recid="'+self.options.recid+'">'+self.view+'</div>');
+				var view = $('<div class="view" data-name="'+self.options.name+'">'+self.view+'</div>');
 				e.append(view);
 				
 				e.addClass('event_box');
 				if (endstoday) {
 					e.addClass('endstoday');
 				}
-				e.attr('data-recid', self.options.recid);
+				e.attr('data-name', self.options.name);
 				e.css('top', y_offset*40);
 				e.css('height', height*40-4);
 				e.css('width', width-4);
@@ -356,7 +356,7 @@ function dayid(d) {
 			}
 			this.indent = level;
 			var self = this;
-			$('.event_box[data-recid='+this.options.recid+']').each(function() {
+			$('.event_box[data-name='+this.options.name+']').each(function() {
 				var e = $(this)
 				e.css('left', self.indent*20+"%");
 				e.css('width', 100-(self.indent*20)+"%");
@@ -369,10 +369,10 @@ function dayid(d) {
 			var cs = [];
 			$('.event').each(function() {
 				var e = $(this);
-				var eid = e.CalendarEvent('option', 'recid');
+				var eid = e.CalendarEvent('option', 'name');
 				var ds = e.CalendarEvent('option', 'start');
 				var de = e.CalendarEvent('option', 'end');
-				if (eid == self.options.recid) {return}			
+				if (eid == self.options.name) {return}			
 				if (self.timewindow(ds, de, self.options.start, self.options.end)) {
 					cs.push(eid);
 				}
@@ -382,8 +382,8 @@ function dayid(d) {
 		
 		collisions: function() {
 			// find all overlapping items
-			var current = this.options.recid;
-			var result = [this.options.recid];
+			var current = this.options.name;
+			var result = [this.options.name];
 			var stack = [];
 			while (current != null) {
 				var cs = this.checkcollisions();
@@ -403,24 +403,24 @@ function dayid(d) {
 			// sort by length, then indent appropriately
 			lengths = {}
 			for (var i=0; i<result.length; i++) {
-				var e = $('.event[data-recid='+result[i]+']');
+				var e = $('.event[data-name='+result[i]+']');
 				var ds = e.CalendarEvent('option', 'start');
 				var de = e.CalendarEvent('option', 'end');
 				lengths[result[i]] = de-ds;
 			}
 			var sorted = $.sortdict(lengths);
 			for (var i=0; i<sorted.length; i++) {
-				var e = $('.event[data-recid='+sorted[i]+']');
+				var e = $('.event[data-name='+sorted[i]+']');
 				e.CalendarEvent('reindent', i);
 			}
 		},
 		
-		setrecid: function(recid) {
-			//console.log("updating recid..", this.options.recid, recid);
-			$('[data-recid='+this.options.recid+']').each(function() {
-				$(this).attr('data-recid', recid);
+		setname: function(name) {
+			//console.log("updating name..", this.options.name, name);
+			$('[data-name='+this.options.name+']').each(function() {
+				$(this).attr('data-name', name);
 			});
-			this.options.recid = recid;
+			this.options.name = name;
 		},
 		
 		save: function() {
@@ -429,11 +429,11 @@ function dayid(d) {
 			this.collisions();			
 			return
 			var self = this;
-			if (this.rec['recid'] >= 0) {
+			if (this.rec['name'] >= 0) {
 				var rec = {};
 				rec['date_start'] = writedate(this.options.start);
 				rec['date_end'] = writedate(this.options.end);
-				$.jsonRPC('putrecordvalues', [this.options.recid, rec], function(updrec) {
+				$.jsonRPC('putrecordvalues', [this.options.name, rec], function(updrec) {
 					//console.log("saved!");
 					self.rec = updrec;
 					self.renderview();
@@ -444,7 +444,7 @@ function dayid(d) {
 				$.jsonRPC('putrecord', [this.rec], function(updrec) {
 					//console.log("saved new record!");
 					self.rec = updrec;
-					self.setrecid(updrec['recid']);
+					self.setname(updrec['name']);
 					self.renderview();
 				});				
 			}
@@ -452,10 +452,10 @@ function dayid(d) {
 		
 		renderview: function() {
 			var self = this;
-			$.jsonRPC('renderview', [this.options.recid, null, 'recname'], function(view) {
+			$.jsonRPC('renderview', [this.options.name, null, 'recname'], function(view) {
 				self.view = view;
 				if (view==null) {
-					view = "Record "+self.options.recid;
+					view = "Record "+self.options.name;
 				}
 				self.draw();
 			});

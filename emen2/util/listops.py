@@ -6,6 +6,33 @@ from functools import partial
 import emen2.db.datatypes
 
 
+
+def filter_dict_zero(d):
+	"""@return Filter dict for items with values > 0"""
+	return dict(filter(lambda x:len(x[1])>0, d.items()))
+
+
+
+def filter_dict_none(d):
+	"""@return Filter dict for items with values != None"""
+	return dict(filter(lambda x:x[1]!=None, d.items()))
+
+
+
+
+# Return the first item from a list, or None.
+def first_or_none(items):
+	items = items or []
+	result = None
+	if len(items) > 0:
+		if hasattr(items, 'keys'):
+			result = items.get(first_or_none(items.keys()))
+		else:
+			result = iter(items).next()
+	return result
+
+
+
 def invert(d):
 	"""Invert a dictionary"""
 	ret = {}
@@ -118,6 +145,13 @@ def groupchunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 
 
 
+def typepartition(names, *types):
+	ret = []
+	for t in types:
+		t2 = [i for i in names if isinstance(i, t)]
+		ret.append(t2)
+	return ret
+		
 
 def filter_partition(func, iter_):
 	t = []
@@ -155,7 +189,7 @@ def partition_dbobjects(iter_):
 	ret1 = []
 	ret2 = []
 	for i in iter_:
-		if isinstance(i, emen2.db.dataobject.BaseDBInterface):
+		if isinstance(i, emen2.db.dataobject.BaseDBObject):
 			ret2.append(i)
 		else:
 			ret1.append(i)

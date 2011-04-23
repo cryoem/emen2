@@ -14,7 +14,7 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, root=None, outfile=None, recids=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
+	def __init__(self, db, root=None, outfile=None, names=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
 		mtime = time.time()
 		self.root = root		
 		
@@ -22,7 +22,7 @@ class Dumper(object):
 		self.db = db
 
 		# Initial items
-		self.recids = set()
+		self.names = set()
 		self.recorddefnames = set()
 		self.paramdefnames = set()
 		self.usernames = set()
@@ -37,11 +37,11 @@ class Dumper(object):
 
 		# Initial items..
 		# root = 382351
-		recids = self.db.getchildren(self.root, recurse=-1)
-		recids.add(self.root)
+		names = self.db.getchildren(self.root, recurse=-1)
+		names.add(self.root)
 
 		if allrecords:
-			recids |= self.db.getchildren(0, recurse=-1)
+			names |= self.db.getchildren(0, recurse=-1)
 		
 		if allgroups:
 			allgroups = self.db.getgroupnames()
@@ -55,8 +55,8 @@ class Dumper(object):
 		# 	...
 		
 
-		print "Starting with %s records"%len(recids)		
-		self.checkrecords(recids, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs, addbdos=allbdos)
+		print "Starting with %s records"%len(names)		
+		self.checkrecords(names, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs, addbdos=allbdos)
 
 		remove = set([None])
 		self.usernames -= remove
@@ -66,7 +66,7 @@ class Dumper(object):
 		self.bdos -= remove
 
 		print "\n=====================\nStatistics:"
-		print "\trecords: %s"%len(self.recids)
+		print "\trecords: %s"%len(self.names)
 		print "\trecorddefs: %s"%len(self.recorddefnames)
 		print "\tparamdefs: %s"%len(self.paramdefnames)
 		print "\tusers: %s"%len(self.usernames)
@@ -122,8 +122,8 @@ class Dumper(object):
 		return filename
 		
 
-	def checkrecords(self, recids, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
-		if not recids:
+	def checkrecords(self, names, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
+		if not names:
 			return
 			
 		users = set()
@@ -132,8 +132,8 @@ class Dumper(object):
 		rds = set()
 		bdos = set()
 		
-		for chunk in emen2.util.listops.chunk(recids-self.recids):
-			self.recids |= set(chunk)
+		for chunk in emen2.util.listops.chunk(names-self.names):
+			self.names |= set(chunk)
 			recs = self.db.getrecord(chunk)
 			rds |= set([rec.rectype for rec in recs])					
 
@@ -196,17 +196,17 @@ class Dumper(object):
 			return
 			
 		# print "Checking users: ", len(usernames)
-		newrecids = set()
+		newnames = set()
 		newgroups = set()
 		for chunk in emen2.util.listops.chunk(usernames):
 			self.usernames |= set(chunk)
 			users = self.db.getuser(chunk)
 
 			for user in users:
-				newrecids.add(user.record)
+				newnames.add(user.record)
 		
 		# This will generate new users and groups to check..	
-		self.checkrecords(newrecids)
+		self.checkrecords(newnames)
 		
 
 
@@ -280,27 +280,27 @@ class Dumper(object):
 	# The dump* methods are generators that spit out JSON-encoded DBO's
 	def dumprecords(self, cur=0):
 		found = set()
-		# reorganize the recids slightly...
-		ordered_recids = sorted(self.recids)
-		if self.root != None and self.root in self.recids:
-			ordered_recids.remove(self.root)
-			ordered_recids.insert(0, self.root)
+		# reorganize the names slightly...
+		ordered_names = sorted(self.names)
+		if self.root != None and self.root in self.names:
+			ordered_names.remove(self.root)
+			ordered_names.insert(0, self.root)
 
-		for chunk in emen2.util.listops.chunk(ordered_recids):
+		for chunk in emen2.util.listops.chunk(ordered_names):
 			t = time.time()
 			recs = self.db.getrecord(chunk)
-			found |= set([i.recid for i in recs])
+			found |= set([i.name for i in recs])
 			parents = self.db.getparents(chunk)
 			children = self.db.getchildren(chunk)
 			for rec in recs:
-				rec["parents"] = parents.get(rec.recid, set()) & self.recids
-				rec["children"] = children.get(rec.recid, set()) & self.recids
+				rec["parents"] = parents.get(rec.name, set()) & self.names
+				rec["children"] = children.get(rec.name, set()) & self.names
 				yield rec
 
 			cur += len(recs)
-			self.printchunk(len(recs), cur=cur, total=len(self.recids), t=t, keytype="records")
+			self.printchunk(len(recs), cur=cur, total=len(self.names), t=t, keytype="records")
 
-		self.notfound(found, self.recids)
+		self.notfound(found, self.names)
 		
 
 
@@ -352,7 +352,7 @@ class Dumper(object):
 		for chunk in emen2.util.listops.chunk(self.usernames):
 			t = time.time()
 			users = db.getuser(chunk)
-			found |= set([user.username for user in users])
+			found |= set([user.name for user in users])
 		
 			for user in users:
 				yield user

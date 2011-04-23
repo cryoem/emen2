@@ -199,7 +199,7 @@ class EMAN2Build(Builder):
 	def checkformat(self):
 		import matplotlib.backends.backend_agg
 		import matplotlib.figure
-		import EMAN2
+		# import EMAN2
 		#	raise ImportError, "EMAN2 needed to build thumbnails for this image type"
 		self.EMAN2 = EMAN2
 		self.matplotlib = matplotlib

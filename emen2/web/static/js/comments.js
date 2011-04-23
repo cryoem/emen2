@@ -1,7 +1,7 @@
 (function($) {
     $.widget("ui.CommentsControl", {
 		options: {
-			recid: null,
+			name: null,
 			edit: false,
 			title: null
 		},
@@ -12,7 +12,7 @@
 		},
 	
 		partition: function() {
-			var reccomments = caches["recs"][this.options.recid]["comments"];
+			var reccomments = caches["recs"][this.options.name]["comments"] || []; 
 			this.comments = [];
 			this.log = [];
 			for (var i=0;i<reccomments.length;i++) {
@@ -50,7 +50,7 @@
 				self.element.append('<h4>'+dname+' @ '+time+'</h4><p>'+this[2]+'</p>');
 			});
 
-			var comments_text = caches["recs"][this.options.recid]["comments_text"];
+			var comments_text = caches["recs"][this.options.name]["comments_text"];
 			if (comments_text) {
 				this.element.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
 			}
@@ -69,7 +69,7 @@
 		save: function() {
 			var self = this;
 
-			$.jsonRPC("addcomment",[this.options.recid, $("textarea", this.element).val()],
+			$.jsonRPC("addcomment",[this.options.name, $("textarea", this.element).val()],
 
 		 		function(rec){
 					//will trigger this rebuild... hopefully.. :)
@@ -95,7 +95,7 @@
 (function($) {
     $.widget("ui.HistoryControl", {
 		options: {
-			recid: null,
+			name: null,
 			title: null
 		},
 				
@@ -106,8 +106,8 @@
 		},
 	
 		partition: function() {
-			this.reccomments = caches["recs"][this.options.recid]["comments"];
-			this.rechistory = caches["recs"][this.options.recid]["history"];
+			this.reccomments = caches["recs"][this.options.name]["comments"];
+			this.rechistory = caches["recs"][this.options.name]["history"];
 			this.rhist = [];		
 			for (var i=0;i<this.reccomments.length;i++) {
 				if (this.reccomments[i][2].indexOf("LOG") > -1) {
@@ -136,7 +136,7 @@
 
 			// This used to build the table itself, but now just calls the history page
 			var self = this;
-			var l = EMEN2WEBROOT+'/record/'+this.options.recid+'/history/?simple=1';
+			var l = EMEN2WEBROOT+'/record/'+this.options.name+'/history/?simple=1';
 			this.element.load(l);
 
 			this.partition();

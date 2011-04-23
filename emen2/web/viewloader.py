@@ -49,6 +49,7 @@ def routes_from_g():
 				view.add_matcher(name, regex, view.get_callback('main'))
 
 
+
 def load_views(failures=None):
 	g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
 	#ed: deprecated -- use TEMPLATEPATHS
@@ -60,11 +61,12 @@ def load_views(failures=None):
 	get_views(getattr(g.paths, 'VIEWPATHS', []))
 	g.debug(getattr(g.paths, 'VIEWPATHS', []))
 
+
+
 def load_redirects(dict_):
 	for fro,v in dict_.iteritems():
 		to, kwargs = v
 		emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
-
 
 
 
@@ -96,6 +98,8 @@ class _LaunchConsole(emen2.web.view.View):
 			self.page = 'done'
 		else:
 			self.page = 'fail'
+
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

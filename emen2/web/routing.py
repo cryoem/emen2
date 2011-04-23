@@ -1,13 +1,15 @@
 # $Id$
 from __future__ import with_statement
 
-from functools import partial
-from itertools import izip
-from emen2.util import listops
-import emen2.util.datastructures
 import re
 import sre_parse
 import cgi
+
+from functools import partial
+from itertools import izip
+from emen2.util import listops
+
+import emen2.util.datastructures
 
 from emen2.web import responsecodes
 import emen2.db.config

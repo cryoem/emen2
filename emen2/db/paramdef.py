@@ -3,22 +3,21 @@
 import functools
 import time
 
+import emen2.util.listops
 
+import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.validators
+import emen2.db.magnitude
+
 import emen2.db.config
 g = emen2.db.config.g()
 
 
 
 class ParamDef(emen2.db.dataobject.BaseDBObject):
-	"""A Parameter for a value in a Record. Each record is a key/value set, where each key must be a valid ParamDef. Each ParamDef has several attributes (below), including a data type that calls a validator to check value sanity. Most parameters are indexed for queries; this can be disabled with the index attr. Generally, only descriptions and choices may be edited after creation, although an admin may make other changes. Be aware that changing vartype may be very destructive if the validators or index types are incompatible (use this carefully, or not at all if you are unsure).
+	"""A Parameter for a value in a Record. Each record is a key/value set, where each key must be a valid ParamDef. Each ParamDef has several attributes (below), including a data type that calls a validator to check value sanity. Most parameters are indexed for queries; this can be disabled with the indexed attr. Generally, only descriptions and choices may be edited after creation, although an admin may make other changes. Be aware that changing vartype may be very destructive if the validators or index types are incompatible (use this carefully, or not at all if you are unsure).
 
-	Parameters may have parent/child relationships, similar to Records.
-
-	Validators are defined in core_vartypes. Properties in core_properties.
-
-	@attr name Parameter name. Can be unicode; spaces will be removed.
 	@attr desc_short Short description. Shown in many places in the interface as the label for this ParamDef.
 	@attr desc_long Long description. Contains details about proper use of ParamDef.
 	@attr vartype Data type. This is used for validation, bounds checking, etc. Choice vartypes are limited to attr choices.
@@ -26,143 +25,147 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	@attr defaultunits Default units. If units are specified, property must also be specified.
 	@attr property A physical property, e.g. length, mass. Defines acceptable units and conversions.
 	@attr indexed If the vartype allows it, turn indexing on/off. Default is on.
-	@attr creator Creator
-	@attr creationtime Creation time
-	@attr modifyuser Last change user
-	@attr modifytime Last change time
-	@attr uri Source URI
-
 	"""
 
-	attr_user = set(["immutable","desc_long","desc_short","choices","name","vartype","defaultunits","property","creator","creationtime","uri","indexed","parents","children"])
+	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(["immutable", "desc_long", "desc_short", "choices", "vartype", "defaultunits", "property", "indexed"])
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
+	param_required = set(['vartype'])
 
 
-	@property
-	def validators(self):
-		return self._validators
-
-
-
-	def init(self, d=None):
-
-		# This is the name of the paramdef, also used as index
-		self.name = d.get('name')
+	def init(self, d):
 
 		# Variable data type. List of valid types in the module global 'vartypes'
-		self.vartype = d.get('vartype')
+		self.__dict__['vartype'] = d.pop('vartype')
 
 		# This is a very short description for use in forms
-		self.desc_short = d.get('desc_short')
+		self.__dict__['desc_short'] = self.name
 
 		# A complete description of the meaning of this variable
-		self.desc_long = d.get('desc_long')
+		self.__dict__['desc_long'] = ''
 
 		# Physical property represented by this field, List in 'properties'
-		self.property = d.get('property')
+		self.__dict__['property'] = None
 
 		# Default units (optional)
-		self.defaultunits = d.get('defaultunits')
+		self.__dict__['defaultunits'] = None
 
 		# choices for choice and string vartypes, a tuple
-		self.choices = d.get('choices')
+		self.__dict__['choices'] = []
 
-		# immutable
-		self.immutable = d.get('immutable')
-
-		# original creator of the record
-		self.creator = None
-
-		# creation date
-		self.creationtime = emen2.db.database.gettime()
-		
-		# source of parameter
-		self.uri = None
+		# Immutable
+		self.__dict__['immutable'] = False
 
 		# turn indexing on/off, if vartype allows for it
-		self.indexed = True
-
-		self.parents = set(d.pop('parents',[]))		
-		self.children = set(d.pop('parents',[]))
+		self.__dict__['indexed'] = True
 
 
+	#################################
+	# Setters
+	#################################
 
-@ParamDef.register_validator
-@emen2.db.validators.Validator.make_validator
-class ParamDefValidator(emen2.db.validators.DefinitionValidator):
+	# ParamDef does so much validation for other items, so everything is checked.... 
+	# Several values can only be changed by administrators.
+	# param_user = set(["immutable", "desc_long", "desc_short", "choices", "vartype", "defaultunits", "property", "indexed"])
 
-	def validate_name(self):
-		if not self._obj.name:
-			raise ValueError, "No ParamDef name given"
+	# These 3 methods are borrowed from RecordDef
+	def _set_desc_short(self, key, value, warning=False, vtm=None, t=None):
+		return self._set('desc_short', unicode(value or self.name), self.isowner())
+		
 
-		self._obj.name = unicode(self._obj.name).lower()
+	def _set_desc_long(self, key, value, warning=False, vtm=None, t=None):
+		return self._set('desc_long', unicode(value or ''), self.isowner())
+		
 
-		test = self._obj.name.replace("_","")
-		if not (test.isalnum() or self._obj.name[0].isalpha()):
-			raise ValueError, "ParamDef name can only include a-z, A-Z, 0-9, underscore, and must start with a letter"
-
-
-	def validate_vartype(self):
-		vtm = emen2.db.datatypes.VartypeManager()
-		self._obj.vartype = unicode(self._obj.vartype)
-
-		if self._obj.vartype not in vtm.getvartypes():
-			raise ValueError,"Invalid vartype %s; not in valid_vartypes"%self._obj.vartype
-
-		if self._obj.property == "":
-			self._obj.property=None
-
-		if self._obj.property != None:
-			self._obj.property = unicode(self._obj.property)
-
-			if self._obj.property not in vtm.getproperties():
-				g.log.msg("LOG_WARNING", "Invalid property %s"%self._obj.property)
-
-		if self._obj.defaultunits == "" or self._obj.defaultunits == "unitless":
-			self._obj.defaultunits = None
-
-		if self._obj.defaultunits != None:
-			self._obj.defaultunits=unicode(self._obj.defaultunits)
-
-			if self._obj.property == None:
-				g.log.msg("LOG_WARNING", "Units requires property")
-
-			else:
-				prop = vtm.getproperty(self._obj.property)
-
-				if prop.equiv.get(self._obj.defaultunits):
-					self._obj.defaultunits = prop.equiv.get(self._obj.defaultunits)
-
-				if self._obj.defaultunits not in set(prop.units):
-					g.log.msg("LOG_WARNING", "Invalid default units %s for property %s"%(self._obj.defaultunits,self._obj.property))
+	def _set_typicalchld(self, key, value, warning=False, vtm=None, t=None):
+		value = emen2.util.listops.check_iterable(value)
+		value = filter(None, [unicode(i) for i in value]) or None
+		return self._set('typicalchld', value, self.isowner())
+		
+		
+	# Only admin can change defaultunits/immutable/indexed/vartype.
+	# This should still generate lots of warnings.
+	def _set_immutable(self, key, value, warning=False, vtm=None, t=None):
+		return self._set('immutable', bool(value), self._ctx.checkadmin())
 
 
-	def validate_indexed(self):
-		self._obj.indexed = bool(self._obj.indexed)
+	def _set_indexed(self, key, value, warning=False, vtm=None, t=None):
+		return self._set('indexed', bool(value), self._ctx.checkadmin())
 
 
-	def validate_shortdesc(self):
-		if not self._obj.desc_short:
-			raise ValueError,"Short description (desc_short) required"
-		self._obj.desc_short = unicode(self._obj.desc_short)
+	def _set_vartype(self, key, value, warning=False, vtm=None, t=None):
+		vtm, t = self._vtmtime(vtm, t)
+		value = unicode(value or '') or None
+
+		if value not in vtm.getvartypes():
+			self.error("Invalid vartype: %s"%value)
+
+		if self.vartype != value:
+			g.log.msg("LOG_CRITICAL","Warning! Vartype for %s changed from %s to %s. You may need to reindex!"%(self.name, self.vartype, value))
+
+		return self._set('vartype', value, self._ctx.checkadmin())
 
 
-	def validate_choices(self):
-		if self._obj.choices:
+	def _set_property(self, key, value, warning=False, vtm=None, t=None):
+		vtm, t = self._vtmtime(vtm, t)
+		value = unicode(value or '') or None
+
+		# Allow for unsetting
+		if value != None and value not in vtm.getproperties():
+			self.error("Invalid property: %s"%value)
+
+		if self.property != value:
+			g.log.msg("LOG_CRITICAL","Warning! Property for %s changed from %s to %s. You may need to reindex!"%(self.name, self.property, value))		
+
+		return self._set('property', value, self._ctx.checkadmin())
+
+		
+	def _set_defaultunits(self, key, value, warning=False, vtm=None, t=None):
+		vtm, t = self._vtmtime(vtm, t)		
+		value = unicode(value or '') or None
+		
+		# Allow unsetting of defaultunits (skip this check)
+		# Check that these are valid units..
+		if value:		
 			try:
-				self._obj.choices = filter(None, (unicode(x) for x in self._obj.choices))
-			except Exception, inst:
-				raise ValueError, "Invalid choices (%s)"%(inst)
+				value = emen2.db.magnitude.equivs.get(value, value)
+				m = emen2.db.magnitude.mg(0, value)
+			except:
+				self.error("Invalid units: %s"%value)
+
+			try:
+				prop = vtm.getproperty(self.property)	
+			except:
+				self.error("Cannot set defaultunits without a property!")
+			
+			# Allow this to pass if warning=True
+			if value not in prop.units:
+				self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
+
+		if self.defaultunits != value:
+			g.log.msg("LOG_CRITICAL","Warning! Defaultunits for %s changed from %s to %s. You may need to reindex!"%(self.name, self.defaultunits, value))		
+
+		return self._set('defaultunits', value, self._ctx.checkadmin())
+
+				
 
 
-	def validate_creator(self):
-		if not self._obj.creator:
-			self._obj.creator = u"root"
 
-		self._obj.creationtime = unicode(self._obj.creationtime)
-		self._obj.creator = unicode(self._obj.creator)
 
-		if not self._obj.creationtime or not self._obj.creator:
-			g.log.msg("LOG_WARNING", "Invalid creation info: %s %s"%(self._obj.creationtime, self._obj.creator))
+
+
+
+
+
+
+
+class ParamDefBTree(emen2.db.btrees.RelateBTree):
+	def init(self):
+		self.setdatatype('p', emen2.db.paramdef.ParamDef)
+		super(ParamDefBTree, self).init()
+
+
+
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

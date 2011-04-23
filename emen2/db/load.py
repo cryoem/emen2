@@ -25,9 +25,9 @@ class Loader(object):
 	
 	def load(self, rootemail=None, rootpw=None, overwrite=False, warning=True):
 
-		# Changed recids
+		# Changed names
 		userrelmap = {}
-		recidmap = {}
+		namemap = {}
 
 		# We're going to have to strip off children and save for later -- put* needs support for this..
 		childmap = collections.defaultdict(set)
@@ -42,22 +42,22 @@ class Loader(object):
 
 		# USERS
 		for user in self.loadfile("users.json"):
-			if user.get('username') in existing_usernames and not overwrite:
+			if user.get('name') in existing_usernames and not overwrite:
 				continue
 				
-			origname = user.get("username")
+			origname = user.get('name')
 
-			userrelmap[user.get('username')] = user.get('record')
+			userrelmap[user.get('name')] = user.get('record')
 			if user.get("record") != None:
 				del user["record"]
 
-			if user.get("username") == "root":
+			if user.get('name') == "root":
 				if rootemail != None: user['email'] = rootemail
 				if rootpw != None: user['password'] = rootpw
 
 			# hmm..
-			if user.get('username') != 'root' and user.get("password") == None:
-				print "User %s has no password! Generating random pass.."%user.get('username')
+			if user.get('name') != 'root' and user.get("password") == None:
+				print "User %s has no password! Generating random pass.."%user.get('name')
 				user["password"] = random_password(8)
 
 			u = self.db.putuser(user, warning=warning)
@@ -107,15 +107,15 @@ class Loader(object):
 		for rec in self.loadfile("records.json"):
 			chunk.append(rec)
 			if len(chunk) == 1000:
-				self._commit_record_chunk(chunk, recidmap=recidmap, childmap=childmap)
+				self._commit_record_chunk(chunk, namemap=namemap, childmap=childmap)
 				chunk = []
 
 		if chunk:
-			self._commit_record_chunk(chunk, recidmap=recidmap, childmap=childmap)
+			self._commit_record_chunk(chunk, namemap=namemap, childmap=childmap)
 
 		for k, v in childmap.items():
 			for v2 in v:
-				self.db.pclink(recidmap[k], recidmap[v2])
+				self.db.pclink(namemap[k], namemap[v2])
 		
 		
 		# BDOS
@@ -126,30 +126,30 @@ class Loader(object):
 				infile = None
 
 			# use subscript instead of .get to make sure the record was mapped
-			self.db.putbinary(bdokey=bdo.get('name'), recid=recidmap[bdo.get('recid')], filename=bdo.get('filename'), infile=infile, clone=bdo)
+			self.db.putbinary(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
 		
 			
 
 
-	def _commit_record_chunk(self, chunk, recidmap=None, childmap=None):
+	def _commit_record_chunk(self, chunk, namemap=None, childmap=None):
 		t = time.time()
-		recids = []
+		names = []
 		
 		for rec in chunk:
 			if rec.get('children'):
-				childmap[rec.get('recid')] |= set(rec.get('children', []))
+				childmap[rec.get('name')] |= set(rec.get('children', []))
 				del rec['children']
 			if rec.get('parents'):
 				del rec['parents']
 
-			recids.append(rec.get('recid'))
-			rec['recid'] = None
+			names.append(rec.get('name'))
+			rec['name'] = None
 
 		recs = self.db.putrecord(chunk, clone=True)
 
-		for oldrecid, newrecid in zip(recids, [rec.recid for rec in recs]):
-			recidmap[oldrecid] = newrecid
+		for oldname, newname in zip(names, [rec.name for rec in recs]):
+			namemap[oldname] = newname
 
 		print "Commited %s recs in %s: %0.1f keys/s"%(len(recs), time.time()-t, len(recs)/(time.time()-t))
 		

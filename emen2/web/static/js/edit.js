@@ -55,16 +55,16 @@ function bind_autocomplete(elem, param) {
     $.widget("ui.MultiEditControl", {
 		options: {
 			show: false,
-			recid: null,
+			name: null,
 			selector: null,
 			cb_save: function(self){}
 		},
 				
 		_create: function() {
-			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
+			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
 			this.built = 0;
 			this.bind_edit();
-			this.options.selector = this.options.selector || '.editable[data-recid='+this.options.recid+']';
+			this.options.selector = this.options.selector || '.editable[data-name='+this.options.name+']';
 			this.backup = this.element.html();
 			if (this.options.show) {
 				this.event_click();
@@ -81,11 +81,11 @@ function bind_autocomplete(elem, param) {
 
 		event_click: function(e) {
 			var self=this;
-			var recids = [];
-			var recids_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-recid")}));
-			for (var i=0;i < recids_toget.length;i++) {
-				if (caches['recs'][recids_toget[i]] == null) {
-					recids.push(recids_toget[i]);
+			var names = [];
+			var names_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-name")}));
+			for (var i=0;i < names_toget.length;i++) {
+				if (caches['recs'][names_toget[i]] == null) {
+					names.push(names_toget[i]);
 				}
 			}
 
@@ -98,10 +98,10 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// get records that we can edit
-			$.jsonRPC("getrecord", [recids, 1, 1], function(recs) {
+			$.jsonRPC("getrecord", [names, 1, 1], function(recs) {
 
 				$.each(recs, function(k,v) {
-					caches["recs"][v.recid] = v;
+					caches["recs"][v.name] = v;
 				});
 
 				$.jsonRPC("getparamdef", [params], function(paramdefs) {
@@ -131,7 +131,7 @@ function bind_autocomplete(elem, param) {
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 			
-			if (this.options.recid != "None") {
+			if (this.options.name != "None") {
 				var cancel = $('<input class="cancel" type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
 			}			
@@ -181,24 +181,31 @@ function bind_autocomplete(elem, param) {
 			$(this.options.selector).each(function() {
 				var t = $(this);
 				try {
-					var recid = t.EditControl('getrecid');
+					var name = t.EditControl('getname');
 					var value = t.EditControl('getval');
 					var param = t.EditControl('getparam');				
-					if (!changed[recid]) {changed[recid]={}}
-					changed[recid][param] = value;
-					if (comment) {changed[recid]['comments'] = comment}
+					if (!changed[name]) {changed[name]={}}
+					changed[name][param] = value;
+					if (comment) {changed[name]['comments'] = comment}
 				} catch(e) {
 				}
 			});
 			
-			if (this.options.recid == "None") {
+			if (this.options.name == "None") {
 				return this.save_newrecord(changed["None"]);
 			}
 
 			$('input[name=save]', this.controls).val('Saving..');
 			$('.spinner', this.controls).show();
 
-			$.jsonRPC("putrecordsvalues", [changed], function(recs) {
+			// process changed
+			var updated = [];
+			$.each(changed, function(k,v) {
+				v['name'] = k;
+				updated.push(v);
+			})
+
+			$.jsonRPC("putrecord", [updated], function(recs) {
 
 				$('input[name=save]', self.controls).val('Save');
 				$('.spinner', self.controls).hide();
@@ -232,11 +239,11 @@ function bind_autocomplete(elem, param) {
 
 			updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
 			updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
-			updrec['recid'] = null;
+			// updrec['name'] = null;
 
 			$.jsonRPC("putrecord", [updrec], 
 				function(rec) {
-					notify_post(EMEN2WEBROOT+'/record/'+rec.recid+'/', ["New record created"]);
+					notify_post(EMEN2WEBROOT+'/record/'+rec.name+'/', ["New record created"]);
 				},
 				function(e) {
 					default_errback(e, function(){self.rebind_save()})
@@ -269,16 +276,16 @@ function bind_autocomplete(elem, param) {
     $.widget("ui.EditControl", {
 		options: {
 			show: false,
-			recid: null,
+			name: null,
 			param: null
 		},
 				
 		_create: function() {			
 			this.options.param = this.options.param || this.element.attr("data-param");
-			this.options.recid = this.options.recid || parseInt(this.element.attr("data-recid"));
-			if (isNaN(this.options.recid)) this.options.recid = "None";
+			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
+			if (isNaN(this.options.name)) this.options.name = "None";
 
-			//if ($.inArray(this.options.param, ["recid", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])) {return}
+			//if ($.inArray(this.options.param, ["name", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])) {return}
 
 			this.built = 0;
 			this.bind_edit();
@@ -303,7 +310,7 @@ function bind_autocomplete(elem, param) {
 		// This is a BIG NASTY CASE SWITCH to build the input element... Be careful!
 		build: function() {
 			var self = this;
-			this.rec_value = caches["recs"][this.options.recid][this.options.param];
+			this.rec_value = caches["recs"][this.options.name][this.options.param];
 			
 			if (this.built){
 				return
@@ -418,9 +425,9 @@ function bind_autocomplete(elem, param) {
 			if (showcontrols==null) {showcontrols=1}
 			var self = this;
 
-			if (caches['recs'][this.options.recid] == null) {
-				$.jsonRPC("getrecord", [this.options.recid], function(rec) {
-					caches["recs"][rec.recid] = rec;
+			if (caches['recs'][this.options.name] == null) {
+				$.jsonRPC("getrecord", [this.options.name], function(rec) {
+					caches["recs"][rec.name] = rec;
 					self.show();
 				});
 				return
@@ -460,8 +467,8 @@ function bind_autocomplete(elem, param) {
 			this.w.hide();			
 		},
 		
-		getrecid: function() {
-			return this.options.recid
+		getname: function() {
+			return this.options.name
 		},
 	
 		getval: function() {			
@@ -493,7 +500,7 @@ function bind_autocomplete(elem, param) {
 			var self = this;
 			var p = {}
 			p[this.options.param]=this.getval();
-			$.jsonRPC("putrecordvalues", [this.options.recid, p], function(rec) {
+			$.jsonRPC("putrecordvalues", [this.options.name, p], function(rec) {
 				record_update(rec);
 				self.hide();
 			}, function(e) {
@@ -633,11 +640,11 @@ function bind_autocomplete(elem, param) {
     $.widget("ui.NewRecordSelect", {
 		options: {
 			show: false,
-			recid: null,
+			name: null,
 			rectype: null,
 			modal: false,
 			embed: false,
-			inheritperms: true,
+			inherit: true,
 			copy: false
 		},
 				
@@ -663,15 +670,15 @@ function bind_autocomplete(elem, param) {
 			// get some options..
 			var opts = {};
 			if($('input[name=private]', this.dialog).attr("checked")) {
-				opts["inheritperms"] = false
+				opts["inherit"] = false
 			}
 			if ($('input[name=copy]', this.dialog).attr("checked")) {
 				opts["copy"] = true
 			}			
-			var link = EMEN2WEBROOT + '/record/'+this.options.recid+'/new/'+rectype+'/';
+			var link = EMEN2WEBROOT + '/record/'+this.options.name+'/new/'+rectype+'/';
 
 			// infuriating that there is no object.length
-			if (opts['inheritperms']!=null || opts['copy']!=null) {
+			if (opts['inherit']!=null || opts['copy']!=null) {
 				link += "?" + $.param(opts);
 			}
 			window.location = link;
@@ -697,7 +704,7 @@ function bind_autocomplete(elem, param) {
 				<li><input type="checkbox" name="copy" id="copy" /> <label for="private">Copy values</label></li>  \
 				</ul></div>');
 			
-			if (!this.options.inheritperms) {
+			if (!this.options.inherit) {
 				$("input[name=private]", ob).attr("checked", "checked");
 			}
 			if (this.options.copy) {
@@ -744,11 +751,11 @@ function bind_autocomplete(elem, param) {
 			// t.sort();
 			$.each(t, function() {
 				try {
-					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.recid+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
+					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.name+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
 					var i = $('<div><input type="radio" name="newrecordselect" value="'+this+'" id="newrecordselect_'+this+'"  /> <label class="clickable" for="newrecordselect_'+this+'">'+caches["recorddefs"][this].desc_short+'</label></div>');
 					self.typicalchld.append(i);
 				} catch(e) {
-					//self.dialog.append('<div><a href="/record/'+self.options.recid+'/new/'+this+'/">('+this+')</a></div>');
+					//self.dialog.append('<div><a href="/record/'+self.options.name+'/new/'+this+'/">('+this+')</a></div>');
 				}
 			});
 			var a = $('input[name=newrecordselect]:first', this.typicalchld).attr('checked', 'checked');
@@ -759,7 +766,7 @@ function bind_autocomplete(elem, param) {
 			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
 			var self = this;
 			var s = $('<input type="text" name="newrecordselectother" value="" style="font-size:10pt" size="8" />');
-			s.FindControl({'mode':'findrecorddef'});
+			s.FindControl({'keytype':'recorddef'});
 			s.click(function() {
 				$("#newrecordselectother").attr('checked', 'checked');
 			});
@@ -775,7 +782,7 @@ function bind_autocomplete(elem, param) {
 
 
 			var self = this;
-			$.jsonRPC("getrecorddef", [this.options.recid], function(rd) {
+			$.jsonRPC("getrecorddef", [this.options.name], function(rd) {
 				self.rectype = rd.name;
 				caches["recorddefs"][rd.name] = rd;
 

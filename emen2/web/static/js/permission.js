@@ -1,8 +1,8 @@
 (function($) {
     $.widget("ui.PermissionControl", {
 		options: {
-			recid: null,
-			groupname: null,
+			keytype: 'record',
+			name: null,
 			levels: ["Read-only","Comment","Write","Admin"],
 			edit: 0,
 			show: 0,
@@ -33,11 +33,11 @@
 	
 
 		copy_from_cache: function(rec) {
-			if (this.options.recid != null) {
-				var plist = caches['recs'][this.options.recid]['permissions'];
-				var glist = caches['recs'][this.options.recid]['groups'];
-			} else if (this.options.groupname) {
-				var plist = caches['groups'][this.options.groupname]['permissions'];				
+			if (this.options.keytype=='record') {
+				var plist = caches['recs'][this.options.name]['permissions'];
+				var glist = caches['recs'][this.options.name]['groups'];
+			} else if (this.options.keytype=='group') {
+				var plist = caches['groups'][this.options.name]['permissions'];				
 				var glist = [];
 			}
 			return [plist, glist]
@@ -84,7 +84,7 @@
 			if (this.options.edit) {
 				// this.savearea = $('<div class="controls"/>');
 				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
-				if (this.options.recid != "None" && this.options.recid != null) {
+				if (this.options.keytype == 'record' && this.options.name != "None" && this.options.name != name) {
 					
 					var opt_recurse = $(' \
 						<li><input type="checkbox" id="recurse" name="recurse"> <label for="recurse">Recursive</label></li> \
@@ -115,7 +115,6 @@
 					this.dialog.append(this.savearea);
 					
 
-				} else if (this.options.groupname != "None" && this.options.groupname != null) {
 				}
 			}
 
@@ -162,7 +161,7 @@
 
 			$.jsonRPC("getuser", [f2], function(users){ 
 				$.each(users, function() {
-					caches["users"][this.username] = this;
+					caches["users"][this.name] = this;
 				});
 				self.build_userarea();			
 			});
@@ -172,7 +171,7 @@
 	
 		build_grouparea: function() {
 
-			if (this.options.groupname) {return}
+			if (this.options.keytype=='group') {return}
 
 			var self=this;
 			this.grouparea.empty();
@@ -189,7 +188,7 @@
 			if (this.options.edit) {
 				var button = $('<input class="addbutton" type="button" value="+" /> ');
 				button.FindControl({
-					mode: 'findgroup',
+					keytype: 'group',
 					minimum: 0,
 					cb:function(test, groupname){self.addgroup(groupname)}
 				});
@@ -215,7 +214,7 @@
 				if (self.options.edit) {
 					var button = $('<input class="addbutton" type="button" value="+" />');
 					button.FindControl({
-						cb:function(test, username){self.add(username, k)}
+						cb:function(test, name){self.add(name, k)}
 					});
 					title.prepend(button);
 				}
@@ -227,8 +226,8 @@
 					//level.append('<div class="userbox"></div>');
 				} else {
 					// var level_removeall=$('<span class="small_label">[<span class="clickable">X</span>]</span>').click(function () {
-					$.each(v, function(i,username) {
-						self.drawuser(username, k);
+					$.each(v, function(i,name) {
+						self.drawuser(name, k);
 					});
 				}
 
@@ -244,39 +243,39 @@
 		},
 	
 	
-		add: function(username, level) {
+		add: function(name, level) {
 			level = parseInt(level);
 			var self=this;
-			$('.userbox[data-username='+username+']', this.dialog).each(function(){
+			$('.userbox[data-name='+name+']', this.dialog).each(function(){
 				$(this).remove();
 			});
-			self.drawuser(username, level, true);
+			self.drawuser(name, level, true);
 		},
 	
 	
-		drawuser: function(username, level, add) {
+		drawuser: function(name, level, add) {
 			level = parseInt(level);
 			var self = this;				
-			var user = caches["users"][username];
+			var user = caches["users"][name];
 
 			if (!user) {
 				user = {};
-				user.username = username;
-				user.displayname = username;
+				user.name = name;
+				user.displayname = name;
 				user.userrec = {};
 				user.email = '';
 			}
 
-			var userdiv = $('<div class="userbox user" data-username="'+user.username+'" data-level="'+level+'"/>');
+			var userdiv = $('<div class="userbox user" data-name="'+user.name+'" data-level="'+level+'"/>');
 			if (user.userrec["person_photo"]) {
-				userdiv.append('<img data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.username+'.jpg?size=thumb" alt="Profile" />');
+				userdiv.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Profile" />');
 			} else {
-				userdiv.append('<img  data-username="'+user.username+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
+				userdiv.append('<img  data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
 			}
-			userdiv.append('<div data-level="'+level+'" data-username="'+user.username+'">'+user.displayname+'<br />'+user.email+'</div>');					
+			userdiv.append('<div data-level="'+level+'" data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');					
 
 			if (this.options.edit) {
-				userdiv.click(function(e) {e.stopPropagation();self.toggleuser(userdiv.attr("data-username"), userdiv.attr("data-level"))});
+				userdiv.click(function(e) {e.stopPropagation();self.toggleuser(userdiv.attr("data-name"), userdiv.attr("data-level"))});
 			}
 			if (add) {
 				userdiv.addClass('add');
@@ -303,8 +302,8 @@
 		},
 
 
-		toggleuser: function(username, level) {
-			$('.userbox[data-username='+username+']', this.dialog).each(function(){
+		toggleuser: function(name, level) {
+			$('.userbox[data-name='+name+']', this.dialog).each(function(){
 				$(this).toggleClass('removed');
 			});
 		},
@@ -331,7 +330,7 @@
 		},
 	
 		getdelusers: function() {
-			var r = $('.userbox.user.removed').map(function(){return $(this).attr('data-username')});	
+			var r = $('.userbox.user.removed').map(function(){return $(this).attr('data-name')});	
 			return $.makeArray(r);
 		},
 	
@@ -346,7 +345,7 @@
 			var self = this;
 			for (var i=0;i<4;i++) {
 				var r = $(baseselector+'[data-level='+i+']').map(function(){
-					return $(this).attr('data-username')
+					return $(this).attr('data-name')
 				});
 				ret.push($.makeArray(r));
 			}
@@ -363,7 +362,7 @@
 		},
 
 		save_group: function() {
-			var group = caches['groups'][this.options.groupname];
+			var group = caches['groups'][this.options.name];
 			group["permissions"] = this.getusers();
 			$.jsonRPC("putgroup", [group], function(){
 				alert("Saved Group");
@@ -379,7 +378,7 @@
 			}
 						
 			var sec_commit = {};
-			sec_commit["recid"] = this.options.recid;
+			sec_commit["names"] = this.options.name;
 			sec_commit["delusers"] = this.getdelusers();
 			sec_commit["delgroups"] = this.getdelgroups();
 			sec_commit["reassign"] = 1;
@@ -407,15 +406,14 @@
 
 
 			$('.spinner', this.savearea).show();			
-			$.jsonRPC("secrecordadduser_compat", sec_commit, 
-				function() {
-				
-					$.jsonRPC("getrecord",[self.options.recid],
+			$.jsonRPC("permissions_compat", sec_commit, 
+				function() {				
+					$.jsonRPC("getrecord",[self.options.name],
 						function(record) {
 							$('.spinner', self.savearea).hide();
 							// ian: changing permissions shouldn't require a full rebuild...
 							notify("Saved Permissions");
-							caches["recs"][self.options.recid] = record;
+							caches["recs"][self.options.name] = record;
 							self.reinit();
 							//self.hide();
 						});

@@ -280,9 +280,9 @@ function notify_post(uri,msgs) {
 ////////////////  New Record page init ///////////////////
 
 function newrecord_init(rec) {
-	rec.recid = "None";
-	var recid = rec.recid;
-	caches["recs"][recid] = rec;
+	rec.name = "None";
+	var name = rec.name;
+	caches["recs"][name] = rec;
 
 	$(".editbar .tools").EditbarHelper({
 		width:400,
@@ -291,18 +291,18 @@ function newrecord_init(rec) {
 	});	
 
 	$('#newrecord_save').MultiEditControl({
-		recid: recid,
+		name: name,
 		show: true
 		});
 	
 	$('#newrecord_permissions').PermissionControl({
-		recid:recid,
+		name:name,
 		edit:true,
 		embed:true
 		});
 
 	$('.editable').EditControl({
-		recid: recid
+		name: name
 		});
 
 	// Change the text of file upload elements..
@@ -321,8 +321,8 @@ function newrecord_init(rec) {
 ////////////////  Record page init ///////////////////
 
 function record_init(rec, ptest, edit) {
-	var recid = rec.recid;
-	caches["recs"][recid] = rec;
+	var name = rec.name;
+	caches["recs"][name] = rec;
 
 	// Bind editable widgets
 	$('.editbar .edit .label').MultiEditControl({});
@@ -347,7 +347,7 @@ function record_init(rec, ptest, edit) {
 		width: 640,
 		cb: function(self){
 			self.popup.PermissionControl({
-				recid: recid,
+				name: name,
 				edit: ptest[3],
 				embed: true,
 				show: true
@@ -364,7 +364,7 @@ function record_init(rec, ptest, edit) {
 		width:600,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
-				recid: recid,
+				name: name,
 				edit: ptest[2] || ptest[3],
 				embed: true,
 				show: true
@@ -378,7 +378,7 @@ function record_init(rec, ptest, edit) {
 		width:300,
 		cb: function(self){
 			self.popup.NewRecordSelect({
-				recid: recid,
+				name: name,
 				embed: true,
 				show: true
 				});
@@ -390,7 +390,7 @@ function record_init(rec, ptest, edit) {
 		width: 750,
 		cb: function(self){
 			self.popup.RelationshipControl({
-				root: recid,
+				root: name,
 				edit: true,
 				embed: true,
 				show: true
@@ -416,13 +416,13 @@ function record_init(rec, ptest, edit) {
 
 	// Comments and history
 	$("#page_comments_comments").CommentsControl({
-		recid:recid,
+		name:name,
 		edit:ptest[1] || ptest[2] || ptest[3],
 		title:"#button_comments_comments"
 		});
 		
 	$("#page_comments_history").HistoryControl({
-		recid:recid,
+		name:name,
 		title:"#button_comments_history"
 		});
 
@@ -436,16 +436,16 @@ function record_init(rec, ptest, edit) {
 		width:250,
 		align: 'right',
 		init: function(self) {
-			var sibling = self.element.attr('data-sibling') || rec.recid;
+			var sibling = self.element.attr('data-sibling') || rec.name;
 			self.popup.append('<span class="status">Loading...</span>');
-			$.jsonRPC("getsiblings", [rec.recid, rec.rectype], function(siblings) {
+			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
 				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
 					siblings = siblings.sort(function(a,b){return a-b});
 					$('.status', self.popup).remove();
 					var ul = $('<ul class="nonlist" />');
 					$.extend(caches["recnames"], recnames);
 					$.each(siblings, function(i,k) {
-						if (k != rec.recid) {
+						if (k != rec.name) {
 							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
 							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
@@ -469,12 +469,12 @@ function record_init(rec, ptest, edit) {
 
 function record_update(rec) {
 	if (typeof(rec)=="number") {
-		var recid = rec;
+		var name = rec;
 	} else {
-		caches["recs"][rec.recid] = rec;
-		var recid = rec.recid;
+		caches["recs"][rec.name] = rec;
+		var name = rec.name;
 	}
-	rebuildviews('.view[data-recid='+recid+']');
+	rebuildviews('.view[data-name='+name+']');
 	$("#page_comments_comments").CommentsControl('rebuild');
 	$("#page_comments_history").HistoryControl('rebuild');
 	$('.editbar .attachments').AttachmentViewerControl('rebuild');	
@@ -487,10 +487,10 @@ function rebuildviews(selector) {
 	var self = this;
 	$(selector).each(function() {
 		var elem = $(this);
-		var recid = parseInt(elem.attr('data-recid'));
+		var name = parseInt(elem.attr('data-name'));
 		var viewtype = elem.attr('data-viewtype');
 		var edit = elem.attr('data-edit');
-		$.jsonRPC("renderview", {'recs':recid, 'viewtype': viewtype, 'edit': edit}, function(view) {
+		$.jsonRPC("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
 			elem.html(view);
 			$('.editable', elem).EditControl({});
 			//$('.editable_files', elem).FileControl({});
@@ -521,12 +521,14 @@ function admin_approveuser_form(elem) {
 	if (approve.length > 0) {
 		$.jsonRPC("approveuser",[approve],
 			function(data) {
-				notify("Approved users: "+data);
+				var names = [];
+				$.each(data, function(){names.push(this.name)});
+				notify("Approved users: "+names);
 				for (var i=0;i<data.length;i++) {
-					$(".userqueue_"+data[i]).remove();
+					$(".userqueue_"+names[i]).remove();
 				}
 				var count=parseInt($("#admin_userqueue_count").html());
-				count -= data.length;
+				count -= names.length;
 				$("#admin_userqueue_count").html(String(count))
 			},
 			function(data) {
@@ -538,12 +540,15 @@ function admin_approveuser_form(elem) {
 	if (reject.length > 0) {
 		$.jsonRPC("rejectuser",[reject],
 			function(data) {
-				notify("Rejected users: "+data);
-				for (var i=0;i<data.length;i++) {
-					$(".userqueue_"+data[i]).remove();
+				var names = [];
+				$.each(data, function(){names.push(this.name)});
+				
+				notify("Rejected users: "+names);
+				for (var i=0;i<names.length;i++) {
+					$(".userqueue_"+names[i]).remove();
 				}
 				var count=parseInt($("#admin_userqueue_count").html());
-				count -= data.length;
+				count -= names.length;
 				$("#admin_userqueue_count").html(String(count));							
 			},
 			function(data) {

@@ -146,7 +146,7 @@ function query_build_path(q, postpend) {
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="children" />Child Of</td> \
-							<td><input type="hidden" name="cmp" value="recid" /></td> \
+							<td><input type="hidden" name="cmp" value="name" /></td> \
 							<td><input type="text" size="12" name="value" class="findrecord" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
@@ -160,10 +160,10 @@ function query_build_path(q, postpend) {
 			
 			// ian: todo
 			//$('.findrecord', this.container).Browser({});
-			$('.finduser', this.container).FindControl({mode: 'finduser'});
-			$('.findgroup', this.container).FindControl({mode: 'findgroup'});
-			$('.findrecorddef', this.container).FindControl({mode: 'findrecorddef'});
-			$('.findparamdef', this.container).FindControl({mode: 'findparamdef'});
+			$('.finduser', this.container).FindControl({keytype: 'user'});
+			$('.findgroup', this.container).FindControl({keytype: 'group'});
+			$('.findrecorddef', this.container).FindControl({keytype: 'recorddef'});
+			$('.findparamdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="controls"> \
 				<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
@@ -280,7 +280,7 @@ function query_build_path(q, postpend) {
 
 			controls.append(addimg, removeimg);
 			newconstraint.append(controls);
-			$('input[name=param]', newconstraint).FindControl({mode: 'findparamdef'});
+			$('input[name=param]', newconstraint).FindControl({keytype: 'paramdef'});
 			$('.param.constraints', this.container).append(newconstraint);
 		},
 		

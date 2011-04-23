@@ -1,5 +1,5 @@
 # $Id$
-
+import time
 import UserDict
 import collections
 import operator
@@ -7,15 +7,15 @@ import weakref
 import copy
 import re
 
-
+import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
-import emen2.db.config
 
+import emen2.db.config
+g = emen2.db.config.g()
 
 from . import validators
-
 
 #	This class encapsulates a single database record. In a sense this is an instance
 #	of a particular RecordDef, however, note that it is not required to have a value for
@@ -51,133 +51,35 @@ from . import validators
 #	a new Record before committing changes back to the database.
 
 
+class Record(emen2.db.dataobject.PermissionsDBObject):
 
-# These are built-ins that we treat specially, and changes aren't logged.
-param_special = set(["recid", "rectype", "comments", "creator", "creationtime", "modifyuser", "modifytime", "permissions", "history", "groups", "children", "parents"])
+	# recid goes by 'name' now for common behavior
+	recid = property(lambda s:s.name)
 
-# These cannot be changed after they are set, or are set by the system
-param_immutable = set(["recid", "rectype", "creator", "creationtime", "modifytime", "modifyuser", "history"])
-
-# These are params to index for new records
-param_new = set(["rectype", "creator", "creationtime", "permissions", "groups"])
-
-
-
-def make_orec():
-	return {}
+	# history, rectype can't be set by user. recid is for backwards compatbility, but can't be set.
+	# rectype is required RecordDef
+	# comments goes through addcomment
+	# remaining items, if there is a valid ParamDef for that key, go through _setoob.
+	param_user = emen2.db.dataobject.PermissionsDBObject.param_user | set(['comments'])
+	param_all = emen2.db.dataobject.PermissionsDBObject.param_all | param_user | set(['history', 'rectype', 'name'])
+	param_required = set(['rectype'])
 
 
-def make_cache():
-	return {'usernames':None, 'recdefs':{}, 'paramdefs':{}}
-
-
-
-class Record(emen2.db.dataobject.BaseDBInterface):
-	attr_user = set([])
-	name = property(lambda s:s.recid)
-
-	def __init__(self, *args, **kwargs):
-		# these need to be defined for setContext to work..
-		self.permissions = [[],[],[],[]]
-		self.groups = set()
-		super(Record, self).__init__(*args, **kwargs)
+	def init(self, d):			
+		super(Record, self).init(d)
 		
-		
-	def init(self, _d=None, **_k):
-		_k.update(_d or {})
+		# Required initialization params
+		self.__dict__['rectype'] = d.pop('rectype')
 
-		# Results of security test performed when the context is set
-		# correspond to, read,comment,write and owner permissions, return from setContext
-		self._ptest = [True,True,True,True]
+		# Other built-ins. These might get moved to the base class.
+		self.__dict__['comments'] = []
+		self.__dict__['history'] = []		
+		self.__dict__['_params'] = {}
 
-		self.recid = _k.pop('recid', None)
-		self.rectype = _k.pop('rectype', None)
+		# Check if we can access RecordDef
+		# rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+		# t = dict([ (x,y) for x,y in rd.params.items() if y != None])
 
-		self.creator = _k.pop('creator', None)
-		self.creationtime = _k.pop('creationtime', None)
-		self.modifyuser = _k.pop('modifyuser', None)
-		self.modifytime = _k.pop('modifytime', None)
-
-		self.comments = _k.pop('comments',[])
-		self.history = _k.pop('history',[])
-
-		self.permissions = _k.pop("permissions",[[],[],[],[]])
-		self.groups = set(_k.pop('groups',[]))		
-
-		# (slowly) moving to new style..
-		self.parents = set(_k.pop('parents',[]))		
-		self.children = set(_k.pop('children',[]))
-
-		self.uri = set(_k.pop('uri',[]))
-
-		self._params = {}
-
-		for key in set(_k.keys()) - param_special:
-			self[key] = _k[key]
-
-		if self._ctx and self.recid < 0:
-			self.creator = unicode(self._ctx.username)
-			self.creationtime = emen2.db.database.gettime()
-			if self._ctx.username != "root":
-				self.adduser(self._ctx.username, 3)
-
-
-
-
-	#################################
-	# pickle methods
-	#################################
-
-	def __getstate__(self):
-		"""the context and other session-specific information should not be pickled"""
-		odict = self.__dict__.copy() # copy the dict since we change it
-		odict['_ptest'] = None
-		odict['_ctx'] = None
-		# filter out values that are None
-		# odict["_params"] = dict(filter(lambda x:x[1]!=None, odict["_params"].items()))
-
-		return odict
-
-
-	def __setstate__(self, d):
-		# Backwards compatibility..
-		if not d.has_key('_params'):			
-			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
-			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
-			d["uri"] = d["_Record__params"].pop("uri", None)
-
-			d["_params"] = d["_Record__params"]
-			d["history"] = d["_Record__history"]
-			d["comments"] = d["_Record__comments"]
-			d["permissions"] = d["_Record__permissions"]
-			d["groups"] = d["_Record__groups"]
-
-			d["creator"] = d["_Record__creator"]
-			d["creationtime"] = d["_Record__creationtime"]
-			d["parents"] = set()
-			d["children"] = set()
-
-			for i in ["_Record__ptest", 
-				"_Record__ptest", 
-				"_Record__params", 
-				"_Record__history", 
-				"_Record__comments", 
-				"_Record__permissions", 
-				"_Record__groups", 
-				"_Record__creator", 
-				"_Record__creationtime"]:
-				try:
-					del d[i]
-				except:
-					pass		
-
-		return self.__dict__.update(d)
-
-
-
-
-	def upgrade(self):
-		pass
 
 
 	#################################
@@ -185,8 +87,7 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	#################################
 
 	def __unicode__(self):
-		"A string representation of the record"
-		ret = ["%s (%s)\n"%(unicode(self.recid),self.rectype)]
+		ret = ["%s (%s)\n"%(unicode(self.name), self.rectype)]
 		for i,j in self.items():
 			ret.append(u"%12s:	%s\n"%(unicode(i),unicode(j)))
 		return u"".join(ret)
@@ -197,21 +98,38 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 
 
 	def __repr__(self):
-		try:
-			return "<Record id: %s recdef: %s at %x keys: %r>" % (self.recid, self.rectype, id(self), self.keys())
-		except:
-			return object.__repr__(self)
+		return "<Record id: %s rectype: %s at %x>" % (self.name, self.rectype, id(self))
 
 
 	def json_equivalent(self):
-		"""Returns a dictionary of current values, __dict__ wouldn't return the correct information. For use with JSON"""
+		"""Returns a dictionary of current values"""
 		ret = {}
 		ret.update(self._params)
-		for i in param_special:
-			try: ret[i]=self[i]
-			except: pass
+		for i in self.param_all:
+			ret[i] = getattr(self, i, None)
 		return ret
 
+
+
+	#################################
+	# Setters
+	#################################
+
+	def _set_comments(self, key, value, warning=False, vtm=None, t=None):
+		return self.addcomment(value, t=t)
+
+
+	# in Record, params not in self.param_user are put in self._params{}.
+	def _setoob(self, key, value, warning=False, vtm=None, t=None):		
+		# This has already been validated through __setitem__
+		if self._params.get(key) == value:
+			# print ":: No change: ", key, value
+			return set()
+		self.vw(key) # Check permissions
+		self._addhistory(key, t=t)
+		# print ":: Setting param key/value", key, value
+		self._params[key] = value
+		return set([key])
 
 
 	#################################
@@ -219,174 +137,56 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	#		UserDict.DictMixin provides the remainder
 	#################################
 
-	def __getitem__(self, key):
-		"""Behavior is to return None for undefined params, None is also
-		the default value for existant, but undefined params, which will be
-		treated identically"""
-
-		if key in param_special:
-			return getattr(self, key, None)
+	def __getitem__(self, key, default=None):
+		"""Default behavior is similar to .get: return None as default"""
+		if key in self.param_all:
+			return getattr(self, key, default)
 		else:		
-			return self._params.get(key)
+			return self._params.get(key, default)
 
 
-	def __setitem__(self, key, value):
-		"""This and 'update' are the primary mechanisms for modifying the params in a record
-		Changes are not written to the database until the commit() method is called!"""
-
-		if key == "comments":
-			print "setitem comments"
-			return self._addcomment(value)
-
-		if not self.writable():
-			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change param %s"%key
-
-		# Special params have get/set handlers
-		if key not in param_special:
-			self._params[key] = value
-
-		elif key == 'permissions':
-			self.setpermissions(value)
-
-		elif key == 'groups':
-			self.setgroups(value)
-			
-		elif key == 'parents':
-			self.parents = value
-		
-		elif key == 'children':
-			self.children = value
-
-		else:
-			self.validationwarning("Cannot set item %s in this way"%key, warning=True)
-
-
-	def __delitem__(self,key):
-
-		if key not in param_special:
-			self.params[key] = None
-		else:
-			raise KeyError,"Cannot delete key %s"%key
+	# def __delitem__(self,key):
+	# 	"""Only params can be deleted, not attributes"""
+	# 	try:
+	# 		del self._params[key]
+	# 	except:
+	# 		raise KeyError,"Cannot delete key %s"%key
 
 
 	def keys(self):
 		"""All retrievable keys for this record"""
-		#return tuple(self._params.keys())+tuple(param_special)
-		return self._params.keys() + list(param_special)
+		return self._params.keys() + list(self.param_all)
 
 
-	def has_key(self,key):
-		if unicode(key) in self.keys(): return True
-		return False
-
-
-	def get(self, key, default=None):
-		ret = UserDict.DictMixin.get(self, key)
-		if ret == None:
-			return default
-		return ret
-		#return UserDict.DictMixin.get(self, key, default=default)
+	def getparamkeys(self):
+		"""Returns parameter keys without special values like owner, creator, etc."""
+		return self._params.keys()
 
 
 
+	##########################
+	# Comments and history
+	##########################
 
-	#################################
-	# record methods
-	#################################
-
-
-	# these can only be used on new records before commit for now...
-	def adduser(self, users, level=0, reassign=False):
-
-		if not users:
+	def _addhistory(self, param, t=None):
+		# Changes aren't logged on uncommitted records
+		if self.name < 0:
 			return
 
-		if not hasattr(users,"__iter__"):
-			users=[users]
+		if not param:
+			raise Exception, "Unable to add item to history log"
 
-		level=int(level)
-
-		p = [set(x) for x in self.permissions]
-		#if not -1 < level < 4:
-		#	raise Exception, "Invalid permissions level; 0 = read, 1 = comment, 2 = write, 3 = owner"
-
-		users = set(users) - set(['root'])
-
-		if reassign:
-			p = [i-users for i in p ]
-
-		p[level] |= users
-
-		p[0] -= p[1] | p[2] | p[3]
-		p[1] -= p[2] | p[3]
-		p[2] -= p[3]
-
-		self.setpermissions(p)
+		vtm, t = self._vtmtime(t=t)			
+		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self._params.get(param)))
 
 
-	def addumask(self, umask, reassign=False):
-		if not umask:
-			return
+	def addcomment(self, value, vtm=False, t=None):
+		self.vw('comments', self.commentable(), 'Insufficient permissions to add comment')
 
-		p = [set(x) for x in self.permissions]
-		umask = [set(x) for x in umask]
-		users = reduce(set.union, umask)
-
-		if reassign:
-			p = [i-users for i in p ]
-
-		p = [j|k for j,k in zip(p,umask)]
-		p[0] -= p[1] | p[2] | p[3]
-		p[1] -= p[2] | p[3]
-		p[2] -= p[3]
-
-		self.setpermissions(p)
-
-
-	def removeuser(self, users):
-		p = [set(x) for x in self.permissions]
-		if not hasattr(users,"__iter__"):
-			users = [users]
-		users = set(users)
-		p = [i-users for i in p]
-
-		self.setpermissions(p)
-
-
-	def setpermissions(self, value):
-		if not self.isowner():
-			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
-
-		value = [[unicode(y) for y in x] for x in value]
-		if len(value) != 4:
-			raise ValueError, "Invalid permissions format: %s"%value
-			
-		self.permissions = value
-
-
-	def setgroups(self, groups):
-		if not self.isowner():
-			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to change permissions"
-		self.groups = set(groups)
-
-
-	def addgroup(self, groups):
-		if not hasattr(groups, "__iter__"):
-			groups = [groups]
-		self.groups |= set(groups)
-
-
-	def removegroup(self, groups):
-		if not hasattr(groups, "__iter__"):
-			groups = [groups]
-		self.groups -= set(groups)
-
-
-	def _addcomment(self, value, t=None):
-		t = t or emen2.db.database.gettime()
-	
+		vtm, t = self._vtmtime(vtm, t)
+		cp = set()
 		if value == None:
-			return
+			return set()
 		
 		newcomments = []	
 		if hasattr(value, "__iter__"):
@@ -398,92 +198,26 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 		else:
 			newcomments.append(unicode(value))
 
+		# newcomments2 = []
+		# updvalues = {}		
 		for value in newcomments:
 			d = {}
 			if not value.startswith("LOG"): # legacy fix..
 				d = emen2.db.recorddef.parseparmvalues(value)[1]
 
 			if d.has_key("comments"):
-				self.validationwarning("Cannot set comments inside a comment")
-				return
+				# Always abort
+				self.error("Cannot set comments inside a comment", warning=False)
 						
-			if not self.commentable():
-				raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add comment"
-
-			# now update the values of any embedded params
-			# if setting value fails, comment won't be added; record can still be committed, perhaps with partial changes,
-			# 	but validation would catch anything the user could not normally set otherwise
+			# Now update the values of any embedded params
 			for i,j in d.items():
-				self[i] = j
+				cp |= self.__setitem__(i, j, vtm=vtm, t=t)
 
-			# store the comment string itself
+			# Store the comment string itself
 			self.comments.append((unicode(self._ctx.username), unicode(t), unicode(value)))
-
-
-	def _addhistory(self, param, t=None):
-		t = t or emen2.db.database.gettime()
-		if not param:
-			raise Exception, "Unable to add item to history log"
-		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self._params.get(param)))
-
-
-
-	def getparamkeys(self):
-		"""Returns parameter keys without special values like owner, creator, etc."""
-		return self._params.keys()
-
-
-
-	def setContext(self, ctx=None, filt=False):
-		"""This method may ONLY be used directly by the Database class. Constructing your
-		own context will not work to see if a ctx(a user context) has the permission to access/write to this record
-		"""
+			cp.add('comments')
 		
-		self._ctx = ctx #weakref.proxy(ctx)
-		if self._ctx == None:
-			return
-
-		# test for owner access in this context.
-		if self._ctx.checkreadadmin():
-			self._ptest = [True, True, True, True]
-			return True
-
-		self._ptest = [self._ctx.username in level for level in self.permissions]
-
-		for group in self.groups & self._ctx.groups:
-			self._ptest[self._ctx.grouplevels[group]] = True
-
-		if not filt and not any(self._ptest):
-			raise emen2.db.exceptions.SecurityError,"Permission Denied: %s"%self['recid']
-
-		return self._ptest[0]
-
-
-	def commit(self):
-		"""This will commit any changes back to permanent storage in the database, until
-		this is called, all changes are temporary. host must match the context host or the
-		putrecord will fail"""
-		nrec = self._ctx.db.putrecord(self)
-		self.recid = nrec
-		return nrec
-
-
-	def isowner(self):
-		return self._ptest[3]
-
-
-	def writable(self):
-		"""Returns whether this record can be written using the given context"""
-		return any(self._ptest[2:])
-
-
-	def commentable(self):
-		"""Does user have level 1 permissions? Required to comment or link."""
-		return any(self._ptest[1:])
-
-	
-	def ptest(self):
-		return self._ptest
+		return cp
 
 
 	def revision(self, revision=None):
@@ -525,158 +259,226 @@ class Record(emen2.db.dataobject.BaseDBInterface):
 	# validation methods
 	#################################
 
-	def validate(self, d, warning=False, clone=False, vtm=False, t=None):
-		vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db)
-		t = t or emen2.db.database.gettime()
-		cp = set()		
-
-		for param, value in d.items():
-			if self.get(param) == d.get(param):
-				# print "Unchanged param %s, skipping"%param
-				continue
-
-			cachekey = vtm.get_cache_key('paramdef', param)
-			hit, pd = vtm.check_cache(cachekey)
-			if not hit:
-				pd = self._ctx.db.getparamdef(param, filt=False)
-				vtm.store(cachekey, pd)
-
-			if pd.get('immutable') or pd.name in param_immutable:
-				# print "Skipping immutable param: ", pd.name
-				continue
-
-			# Validate
-			try:
-				v = vtm.validate(pd, value)
-			except Exception, inst:
-				if warning or clone:
-					v = value
-					print "Warning: ignored validation error: %s"%inst	
-				else:
-					raise
-					
-				
-			if self.get(param) == v:
-				continue
-
-			if v != value:
-				self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
-			
-			# Log
-			if pd.name not in param_special:
-				self._addhistory(pd.name, t=t)
-
-			# print "Setting %s, %s %s -> %s %s"%(pd.name, self.get(param), type(self.get(param)), v, type(v))
-			
-			# check to keep times in sync..
-			if pd.name == "comments":
-				self._addcomment(v, t=t)
-			else:
-				self[pd.name] = v
-
-			# print "new value -> ", self[pd.name]
-			cp.add(pd.name)
-			
-			
-		# param_immutable is checked above, so don't need to add it back.
-		if self.recid < 0:
-			cp |= param_new	
-			
-		# Update to anything but groups/permissions triggers modify time
-		if cp - set(["permissions","groups"]):
-			self.__dict__["modifytime"] = unicode(t)
-			self.__dict__["modifyuser"] = unicode(self._ctx.username)
-			cp.add("modifytime")
-			cp.add("modifyuser")
+	
+	def validate_name(self, name):
+		"""Validate the name of this object"""		
+		if name in ['None', None]:
+			return
+		try:
+			name = int(name)			
+		except:
+			self.error("Name must be an integer")
+		return name
 
 
-		# If a record is being cloned, it forces history/comments/create/modify
-		if clone:
-			cp |= param_new
-			self.__dict__["comments"] = d.comments
-			self.__dict__["history"] = d.history
-			self.__dict__["creator"] = d.creator
-			self.__dict__["creationtime"] = d.creationtime
-			self.__dict__["modifyuser"] = d.modifyuser
-			self.__dict__["modifytime"] = d.modifytime				
 
-
-		# Check for required parameters
+	def validate(self, warning=False, vtm=None, t=None):
+		# Check the rectype and any required parameters
+		vtm, t = self._vtmtime(vtm=vtm, t=t)
 		cachekey = vtm.get_cache_key('recorddef', self.rectype)
 		hit, rd = vtm.check_cache(cachekey)
 		if not hit:
 			rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
 			vtm.store(cachekey, rd)
-
+	
 		for param in rd.paramsR:
 			if self.get(param) == None:
-				self.validationwarning("%s is a required parameter"%(param), warning=warning)
-												
-		return cp
-			
+				self.error("%s is a required parameter"%(param), warning=warning)
 	
+		self.__dict__['rectype'] = unicode(rd.name)
+		
+	
+	#################################
+	# pickle methods
+	#################################
 
-			
-	def changedparams(self, orec=None, cache=None):
-		"""difference between two records"""
-		allkeys = set(self.keys() + orec.keys())
-		return set(filter(lambda k:self.get(k) != orec.get(k), allkeys))
+	def __setstate__(self, d):
+		# Backwards compatibility..
+		if not d.has_key('_params'):			
+			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
+			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
+			d["uri"] = d["_Record__params"].pop("uri", None)
 
+			d["_params"] = d["_Record__params"]
+			d["history"] = d["_Record__history"]
+			d["comments"] = d["_Record__comments"]
+			d["permissions"] = d["_Record__permissions"]
+			d["groups"] = d["_Record__groups"]
+
+			d["creator"] = d["_Record__creator"]
+			d["creationtime"] = d["_Record__creationtime"]
+			d["parents"] = set()
+			d["children"] = set()
+
+			for i in ["_Record__ptest", 
+				"_Record__ptest", 
+				"_Record__params", 
+				"_Record__history", 
+				"_Record__comments", 
+				"_Record__permissions", 
+				"_Record__groups", 
+				"_Record__creator", 
+				"_Record__creationtime"]:
+				try:
+					del d[i]
+				except:
+					pass		
+		
+		# recid/username -> 'name'.
+		if d.has_key('name'):
+			d['name'] = d.pop('name')
+
+		return self.__dict__.update(d)
+
+
+
+
+
+class RecordBTree(emen2.db.btrees.RelateBTree):
+
+	def init(self):
+		self.setkeytype('d', False)
+		self.setdatatype('p', emen2.db.record.Record)
+		self.sequence = True
+		super(RecordBTree, self).init()
+
+
+	# ian: todo: add a Context Manager for handling Transactions in EMEN2DBEnv.. Merge with DBProxy..
+
+	def openindex(self, param, create=False):
+		# print "Attempting to open index %s"%param
+		# RecordBTree maintains an index-of-indexes for faster querying
+		if param == 'indexkeys':
+			return emen2.db.btrees.IndexBTree(filename="index/indexkeys", dbenv=self.dbenv)
+
+		create = True # disable this check, and always create index.
+
+		# Check the paramdef to see if it's indexed
+		pd = self.bdbs.paramdef.get(param)
+		if not pd or pd.vartype not in self.bdbs.indexablevartypes or not pd.indexed:
+			return None
+
+		vtm = emen2.db.datatypes.VartypeManager()
+		tp = vtm.getvartype(pd.vartype).keytype
+
+		filename = "index/params/%s"%(pd.name)
+		if not create and not os.access(filename, os.F_OK):
+			raise KeyError, "No index for %s"%pd.name
+
+		return emen2.db.btrees.IndexBTree(keytype=tp, datatype='d', filename=filename, dbenv=self.dbenv)
+
+
+
+	# Update the database sequence.. Probably move this to the parent class.
+	def update_sequence(self, items, txn=None):
+		# Which recs are new?
+		newrecs = [i for i in items if i.name < 0]
+		namemap = {}
+
+		# Reassign new record IDs and update record counter
+		if newrecs:
+			basename = self.get_sequence(delta=len(newrecs), txn=txn)
+			g.log.msg("LOG_DEBUG","Setting counter: %s -> %s"%(basename, basename + len(newrecs)))
+
+		# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
+		for offset, newrec in enumerate(newrecs):
+			oldname = newrec.name
+			newrec.__dict__['name'] = offset + basename
+			namemap[oldname] = newrec.name		
+
+		return namemap
+	
+	
+	
+	def delete(self, names, ctx=None, txn=None):
+		recs = self.cgets(names, ctx=ctx, txn=txn)
+		crecs = []
+		for rec in recs:
+			rec.setpermissions([[],[],[],[rec.creator]])
+			if rec.parents and rec.children:
+				rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
+			elif rec.parents:
+				rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in rec.parents])
+			elif rec.children:
+				rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
+			else:
+				rec["comments"] = "Record hidden"
 			
+			rec['deleted'] = True
+			rec['children'] = set()
+			rec['parents'] = set()
+			crecs.append(rec)
+		
+		return self.cputs(crecs, ctx=ctx, txn=txn)	
+
+
+	def _filter_rectype(self, rectype, ctx=None, txn=None):
+		ret = set()
+		if not rectype:
+			return None
+		rectype = self.filter_names(rectype, ctx=ctx, txn=txn)
+		ind = self.getindex('rectype')
+		for key in rectype:
+			ret |= ind.get(key, txn=txn)
+		return ret
+		
+	
+	# This builds UP instead of prunes DOWN; filter does the opposite..
+	def names(self, ctx=None, txn=None):
+		if ctx.checkreadadmin():
+			return set(range(self.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
+
+		ind = self.getindex("permissions")
+		indg = self.getindex("groups")
+		ret = ind.get(ctx.username, set(), txn=txn)
+
+		for group in sorted(ctx.groups, reverse=True):
+			ret |= indg.get(group, set(), txn=txn)
+
+		return ret
+		
 		
 
-	# def validate_params(self, orec=None, warning=False, params=None, cache=None):
-	# 	orec = orec or make_orec()
-	# 	cache = cache or make_cache()
-	# 
-	# 	# restrict by params if given
-	# 	p2 = self._params.keys()
-	# 	if params:
-	# 		p2 = set(self._params.keys()) & set(params)
-	# 
-	# 	if not p2:
-	# 		return
-	# 
-	# 	vtm = emen2.db.datatypes.VartypeManager(db=self._ctx.db)		
-	# 	newpd = {}
-	# 	exceptions = []
-	# 	for param in p2:
-	# 
-	# 		pd = cache['paramdefs'].get(param)
-	# 		if not pd:
-	# 			pd = self._ctx.db.getparamdef(param, filt=False)
-	# 			cache['paramdefs'][param] = pd
-	# 
-	# 		try:
-	# 			value = self._params.get(param)
-	# 			v = vtm.validate(pd, value)
-	# 			if v != value and v != None:
-	# 				self.validationwarning("Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%(pd.name,pd.vartype,type(value),value,type(v),v), warning=True)
-	# 			newpd[pd.name] = v
-	# 
-	# 		except Exception, inst: #(ValueError,KeyError,IndexError)
-	# 			self.addcomment("Validation error: param %s, value '%s' %s"%(param, self._params.get(param),type(self._params.get(param))))
-	# 			exceptions.append("Parameter: %s (%s): %s"%(param,pd.vartype,unicode(inst)))
-	# 			
-	# 
-	# 	for e in exceptions:
-	# 		self.validationwarning(e, warning=warning)
-	# 
-	# 	rd = cache['recdefs'].get(self.rectype)
-	# 	if not rd:
-	# 		rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
-	# 		cache['recdefs'][self.rectype] = rd
-	# 
-	# 	# for param in rd.paramsA:
-	# 	#	if self.recid >= 0 and not ctx.checkadmin():
-	# 	# 		only admins can set this..
-	# 	
-	# 	for param in rd.paramsR:
-	# 		if newpd.get(param) == None:
-	# 			self.validationwarning("%s is a required parameter"%(param), warning=warning)
-	# 
-	# 	self._params = newpd
+	def filter(self, names, ctx=None, txn=None, **kwargs):
+		"""Filter"""	
+		
+		t = time.time()
+		rf = self._filter_rectype(kwargs.get('rectype', None), ctx=ctx, txn=txn)
+
+		if ctx.checkreadadmin():
+			if rf != None:
+				return set(names) & rf
+			return set(names)
+			
+
+		# ian: indexes are now faster, generally...
+		if len(names) < 1000:
+			crecs = self.cgets(names, ctx=ctx, txn=txn)
+			if rf:
+				return set([i.name for i in crecs if i.rectype in rf])
+			return set([i.name for i in crecs])
 
 
+		# Make a copy
+		find = copy.copy(names)
+		if rf:
+			find &= rf
+
+		# Use the permissions/groups index
+		ind = self.getindex('permissions')
+		indg = self.getindex('groups')
+
+		find -= ind.get(ctx.username, set(), txn=txn)
+		for group in sorted(ctx.groups):
+			if find:
+				find -= indg.get(group, set(), txn=txn)
+
+
+		print time.time()-t
+		return names - find
+
+
+		
+	
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

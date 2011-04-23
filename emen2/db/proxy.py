@@ -9,14 +9,12 @@ import collections
 import traceback
 import weakref
 import functools
+import inspect
 
-
+from emen2.util import listops
 import emen2.db.config
 g = emen2.db.config.g()
 
-import emen2.db.vartypes
-import emen2.db.macros
-import emen2.db.properties
 
 
 # Warning: This module is very sensitive to changes. Please test thoroughly before committing!!
@@ -25,6 +23,7 @@ import emen2.db.properties
 def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""
 	def _inner(func):
+		# print "Registering ", func.func_name
 		emen2.db.proxy.DBProxy._register_publicmethod(func, *args, **kwargs)
 		return func
 	return _inner
@@ -49,6 +48,7 @@ def help(mt):
 			methods = mt.children.keys()
 		)
 	return _inner
+
 
 class MethodTree(object):
 	class _cursor(object):
@@ -139,7 +139,7 @@ class DBProxy(object):
 	"""A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
 
 	db = DBProxy()
-	db._login(username, password)
+	db._login(name, password)
 
 	"""
 
@@ -202,16 +202,16 @@ class DBProxy(object):
 
 
 	def _starttxn(self, write=False):
-		self._txn = self._db.txncheck(txn=self._txn, ctx=self._ctx, write=write)
+		self._txn = self._db.bdbs.txncheck(txn=self._txn, write=write)
 		return self
 
 
 	def _committxn(self):
-		self._txn = self._db.txncommit(txn=self._txn)
+		self._txn = self._db.bdbs.txncommit(txn=self._txn)
 
 
 	def _aborttxn(self):
-		self._txn = self._db.txnabort(txn=self._txn)
+		self._txn = self._db.bdbs.txnabort(txn=self._txn)
 
 
 	# Rebind a new Context
@@ -253,15 +253,15 @@ class DBProxy(object):
 
 
 	@classmethod
-	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
+	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False, ol=None):
 		# print "Registering func: %s"%apiname
 		# if set([func.apiname, func.func_name]) & cls._allmethods():
 		# 	raise ValueError('''method %s already registered''' % name)
+		setattr(func, 'ol', ol)
 		setattr(func, 'apiname', apiname)
 		setattr(func, 'write', write)
 		setattr(func, 'admin', admin)
 		setattr(func, 'ext', ext)
-
 
 		cls._publicmethods[func.apiname] = func
 		cls._publicmethods[func.func_name] = func
@@ -282,7 +282,6 @@ class DBProxy(object):
 			return self._wrap(m)(*args, **kwargs)
 
 
-
 	def __getattr__(self, name):
 		if not name.startswith('_'):
 			func = self._publicmethods.get(name)
@@ -301,15 +300,23 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			# t = time.time()
+			t = time.time()
 			result = None
 			commit = False
+			
+			# Remove these from the keyword arguments
+			kwargs.pop('ctx', None)
+			kwargs.pop('txn', None)
+
+			# Pass the current bound Context
 			ctx = self._ctx
 			kwargs['ctx'] = ctx
 
+			# If admin=True..
 			if getattr(func, 'admin', False) and not ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
+			# Check there is an open transaction, and pass to method
 			self._starttxn()
 			kwargs['txn'] = self._txn
 			try:
@@ -317,11 +324,13 @@ class DBProxy(object):
 			except:
 				pass
 
+			# Pass the DB
 			if getattr(func, 'ext', False):
 				kwargs['db'] = self._db
 
-			# print 'func: %r, args: %r, kwargs: %r'%(func, args, kwargs)
-
+			print "--------------->", func.func_name
+			# print args
+			# print kwargs
 			try:
 				# result = func.execute(*args, **kwargs)
 				result = func(self._db, *args, **kwargs)
@@ -337,7 +346,7 @@ class DBProxy(object):
 					txn and self._db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
-			# print "---\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+		 	print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 			return result
 
 		return wrapper

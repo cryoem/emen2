@@ -898,6 +898,16 @@ td ul.editable {
 	font-size: 10pt;
 }
 
+.big {
+	font-size: 18pt;
+}
+
+.deleted,
+.error {
+	border-width:2px;
+	border-style:solid;
+}
+
 a, .clickable {
 	cursor: pointer;
 	text-decoration: none;

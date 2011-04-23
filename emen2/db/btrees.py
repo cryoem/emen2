@@ -7,25 +7,27 @@ import weakref
 import collections
 import copy
 import bsddb3
+import traceback
 
 
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.util.listops
+
 
 try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
-	g.warn("Note: using BerkeleyDB bulk interface module")
+	g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
 except:
 	bulk = None
 
 
 
 def n_int(inp):
-	'''wrapper for int if keys contain decimal points can be turned on by
-		uncommenting lines below
-	'''
-	try: return int(inp)
+	'''wrapper for int if keys contain decimal points can be turned on by uncommenting lines below'''
+	try:
+		return int(inp)
 	except:
 		if isinstance(inp, (str, unicode)) and inp.count('.') == 1:
 			return int(inp.split('.', 1)[0])
@@ -36,10 +38,6 @@ def n_int(inp):
 
 
 
-DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_MULTIVERSION
-
-
-
 # Berkeley DB wrapper classes
 
 class BTree(object):
@@ -47,158 +45,239 @@ class BTree(object):
 	Key may be and data may be any pickle-able Python type, but unicode/int/float key and data
 	types are also supported with some bonuses."""
 
-	alltrees = weakref.WeakKeyDictionary()
-	DBSETFLAGS = []
+	# Each BTree may maintain a set of builtin values
+	# You might want to use this to load default paramdefs, or as a way
+	# to import an XML schema, etc.
+	builtins = {}	
 
-	def __init__(self, filename=None, dbenv=None, nelem=0, keytype=None, datatype=None, cfunc=True, txn=None):
+	def __init__(self, filename, dbenv, keytype=None, datatype=None, cfunc=True, bdbs=None, autoopen=True):
 		"""Main BDB BTree wrapper"""
+		
+		# Base filename; the actual BDBs will be filename.bdb, filename/index.bdb, etc.
+		self.filename = filename 
 
-		# we keep a running list of all trees so we can close everything properly
-		BTree.alltrees[self] = 1
+		# Berkeley DB Environment
+		self.dbenv = dbenv 
+		
+		# EMEN2DBEnv
+		self.bdbs = bdbs 
 
-		self._setkeytype(keytype)
-		self._setdatatype(datatype)
+		# BDB Handle
+		self.bdb = None
+		
+		# What are we storing?
+		self.setkeytype(keytype, cfunc=cfunc)
+		self.setdatatype(datatype)
+		
+		# Sequence database
+		self.sequence = False
+		
+		# Child databases
+		self.index = {}		
 
-		# Set a BTree sort method
-		_cfunc = None
-		if self.keytype in ("d", "f"):
-			_cfunc = self._num_compare
-
-
-		self.filename = filename
-
-		if not dbenv:
-			raise ValueError, "No DBEnv specified for BTree open"
-
-		self.dbenv = dbenv
-
-		self.bdb = bsddb3.db.DB(self.dbenv)
-		for flag in self.DBSETFLAGS:
-			self.bdb.set_flags(flag)
-
-		if cfunc and _cfunc:
-			self.bdb.set_bt_compare(_cfunc)
-
-		self._setweakrefopen()
-
-		# g.log.msg("LOG_DEBUG","Opening %s.bdb"%self.filename)
-		self.bdb.open(self.filename+".bdb", dbtype=bsddb3.db.DB_BTREE, flags=DBOPENFLAGS)
-
-
-	def _setkeytype(self, keytype):
-		if not keytype:
-			keytype = "s"
-
-		self.keytype = keytype
-
-		# ian: todo: convert records bdb to use new d format for keys
-		if self.keytype == "d":
-			self.typekey = int
-			self.dumpkey = str
-			self.loadkey = int
-
-		elif self.keytype == "f":
-			self.typekey = float
-
-		elif self.keytype == "s":
-			self.typekey = unicode
-			self.dumpkey = lambda x:x.encode("utf-8")
-			self.loadkey = lambda x:x.decode("utf-8")
+		# Flags to set on opened DB's
+		self.DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD
+		self.DBSETFLAGS = []
+		
+		# Subclass init
+		self.init()
+		
+		# Open the database
+		if autoopen:
+			self.open()
 
 
-	def _setdatatype(self, datatype):
-		self.datatype = datatype
-
-		if self.datatype == "d":
-			self.dumpdata = str #lambda x:str(int(x))
-			self.loaddata = int
-
-		elif self.datatype == "s":
-			self.dumpdata = lambda x:x.encode("utf-8")
-			self.loaddata = lambda x:x.decode("utf-8")
-
-
-	def _num_compare(self, k1, k2):
-		if not k1: k1 = 0
-		else: k1 = self.loadkey(k1)
-
-		if not k2: k2 = 0
-		else:k2 = self.loadkey(k2)
-
-		return cmp(k1, k2)
-
-
-	# pickle chokes on None; tested 'if data' vs 'if data!=None', simpler is faster
-	def _loadpickle(self, data):
-		if data: return pickle.loads(data)
-
-
-	# default key types
-	def typekey(self, key):
-		"""Convert key to self.keytype"""
-		return key
-
-	def dumpkey(self, key):
-		"""Convert key to BDB string key"""
-		return pickle.dumps(self.typekey(key))
-
-	def loadkey(self, key):
-		"""Convert BDB key to self.keytype"""
-		return pickle.loads(key)
-
-	# default datatypes
-	def typedata(self, data):
-		"""Convert data to self.datatype"""
-		return data
-
-	def dumpdata(self, data):
-		"""Convert data to BDB string data"""
-		return pickle.dumps(data)
-
-	def loaddata(self, data):
-		"""Convert BDB data to self.datatype"""
-		if data != None: return pickle.loads(data)
-
-
-	# keep track of open BDB's
-	def _setweakrefopen(self):
-		BTree.alltrees[self] = 1
-
-
+	def init(self):
+		pass
+		
+		
 	def __str__(self):
 		return "<emen2.db.btrees2.BTree instance: %s>"%self.filename
 
 
 	def __del__(self):
 		self.close()
+			
+
+
+	#########################################
+	# load/dump methods for keys and data
+	#########################################
+
+	# Don't touch this!!!
+	def cfunc_numeric(self, k1, k2):
+		if not k1:
+			k1 = 0
+		else:
+			k1 = self.loadkey(k1)
+
+		if not k2:
+			k2 = 0
+		else: 
+			k2 = self.loadkey(k2)
+
+		return cmp(k1, k2)
+
+
+	def _pickledump(self, data):
+		return pickle.dumps(data)
+		
+		
+	def _pickleload(self, data):
+		if data != None: return pickle.loads(data)
+
+
+	def setkeytype(self, keytype, cfunc=True):	
+		if self.bdb:
+			raise Exception, "Cannot set keytype after DB has been opened"
+
+		keytype = keytype or 's'
+
+		if keytype not in ('s', 'd', 'f'):
+			raise ValueError, "Invalid keytype: %s. Supported: s(tring), d(ecimal), f(loat)"%keytype
+
+		self.keytype = keytype
+
+		self.cfunc = None
+		if cfunc and self.keytype in ('d', 'f'):
+			self.cfunc = self.cfunc_numeric
+
+		# Default
+		self.typekey = unicode
+		self.dumpkey = lambda x:x.encode('utf-8')
+		self.loadkey = lambda x:x.decode('utf-8')
+		
+		# ian: todo: convert records bdb to use new d format for keys
+		if self.keytype == 'd':
+			self.typekey = int
+			self.dumpkey = str
+			self.loadkey = int
+
+		elif self.keytype == 'f':
+			self.typekey = float
+			self.dumpkey = self._pickledump
+			self.loadkey = self._pickleload
+			
+				
+
+	def setdatatype(self, datatype, dataclass=None):
+		if self.bdb:
+			raise Exception, "Cannot set datatype after DB has been opened"
+		
+		datatype = datatype or 'p'
+		
+		if datatype not in ('s', 'd', 'f', 'p'):
+			raise ValueError, "Invalid datatype: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%datatype
+		
+		self.datatype = datatype
+
+		# Default
+		self.typedata = lambda x:x
+		self.dumpdata = self._pickledump
+		self.loaddata = self._pickleload
+
+		if self.datatype == 'd':
+			self.typedata = int
+			self.dumpdata = str
+			self.loaddata = int
+			
+		elif self.datatype == 'f':
+			self.typedata = float
+		
+		elif self.datatype == 's':
+			self.typedata = unicode
+			self.dumpdata = lambda x:x.encode('utf-8')
+			self.loaddata = lambda x:x.decode('utf-8')			
+						
+		elif self.datatype == 'p':
+			# This record stores a class
+			self.typedata = dataclass
+			
+			
+			
+			
+	#########################################
+	# Indexes.
+	# You must provide an openindex method.
+	#########################################
+
+	def openindex(self, param):
+		# raise KeyError, "No index available for %s"%param
+		return
+
+
+	def getindex(self, param):
+		ind = self.index.get(param)
+		if ind:
+			return ind
+
+		ind = self.openindex(param)
+		self.index[param] = ind
+		return ind
+
+
+	def closeindex(self, param):
+		ind = self.index.get(param)
+		if ind:
+			ind.close()
+			self.index[param] = None
+
+
+
+	#################
+	# DB methods
+	#################
+
+	def open(self):	
+		if self.bdb:
+			raise Exception, "DB already open"
+
+		# Create the DB handle and set flags
+		self.bdb = bsddb3.db.DB(self.dbenv)
+		for flag in self.DBSETFLAGS:
+			self.bdb.set_flags(flag)
+
+		# Set a BTree sort method
+		if self.cfunc:
+			self.bdb.set_bt_compare(self.cfunc)
+
+		# Open DB
+		self.bdb.open(self.filename+'.bdb', dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+
+		# If this DB supports sequence assignment..
+		if self.sequence:
+			self.sequencedb = bsddb3.db.DB(self.dbenv)
+			self.sequencedb.open(self.filename+'.sequence.bdb', dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
 
 	def close(self):
-		"""Close BDB and cleanup"""
+		"""Close BDBs and cleanup"""
+		if self.bdb is None:
+			return			
+		for k in self.index:
+			self.closeindex(k)
+		if self.sequence:
+			self.sequencedb.close()	
+			
+		self.bdb.close()
+		self.bdb = None
+		
 
+	def sync(self, flags=0):
+		"""Flush BDB cache to disk"""
 		if self.bdb is None:
 			return
-
-		del self.alltrees[self]
-
-		# g.log.msg("LOG_DEBUG","Closing %s"%self.filename)
-		self.bdb.close()
-
-		self.bdb=None
-
-
-	def truncate(self, txn=None, flags=0):
-		"""Truncate BDB (e.g. 'drop table')"""
-
-		self.bdb.truncate(txn=txn)
+		for k,v in self.index.items():
+			v.sync()
+		if self.sequence:
+			self.sequencedb.sync()
+			
+		self.bdb.sync()
 
 
-	def sync(self, txn=None, flags=0):
-		"""Flush BDB cache to disk"""
-
-		if self.bdb is not None:
-			self.bdb.sync()
-
+	############################
+	# Mapping methods. Should be generators?
+	############################
 
 	def keys(self, txn=None):
 		return map(self.loadkey, self.bdb.keys(txn))
@@ -212,6 +291,16 @@ class BTree(object):
 		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) #txn=txn
 
 
+	def iteritems(self, txn=None, flags=0):
+		ret = []
+		cursor = self.bdb.cursor(txn=txn)
+		pair = cursor.first()
+		while pair != None:
+			yield (self.loadkey(pair[0]), self.loaddata(pair[1]))
+			pair = cursor.next_nodup()
+		cursor.close()
+
+
 	def has_key(self, key, txn=None):
 		return self.bdb.has_key(self.dumpkey(key), txn=txn) #, txn=txn
 
@@ -221,84 +310,64 @@ class BTree(object):
 		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags)
 
 
-	# DB_subscript with txn; passes exception instead of default
-	def sget(self, key, txn=None, flags=0):
-		"""Raises exception if key does not exists. Used because subscript (e.g. dict["key"]) type access does not accept arguments (e.g. txn)"""
-		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
-		if d == None:
-			raise KeyError, "No such key %s"%(key)
-		return d
 
+	############################
+	# Read
+	############################
 
-	def gets(self, keys, txn=None, flags=0):
-		return map(self.loaddata, [self.bdb.get(self.dumpkey(i), txn=txn, flags=flags) for i in keys])
-		
-		
-
-	def get(self, key, default=None, txn=None, flags=0):
+	def get(self, key, default=None, filt=True, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
+		# Check builtins
+		# if key in self.builtins:
+		# 	return self.builtins[key]
+		print "%s.get:"%self.filename, key
+		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
-		if d == None:
-			return default
-		return d
+		if d:
+			return d
+		if not filt:
+			raise KeyError, "No such key %s"%(key)				
+		return default
 
 
-	# ian: todo: Why isn't this put?
-	def set(self, key, data, txn=None, flags=0):
-		"""Set key/value, with txn."""
-		if data == None:
-			if self.bdb.exists(self.dumpkey(key), txn=txn):
-				return self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
-			return
-		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
+	############################
+	# Write
+	############################
+
+	def put(self, key, data, txn=None, flags=0):
+		"""Write key/value, with txn."""		
+		g.log.msg("LOG_COMMIT","%s.put: %s"%(self.filename, key))
+		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)			
 
 
-	# ian: todo: use cursor for speed?
-	def update(self, d, txn=None, flags=0):
-		"""Same as dict.update, with txn"""
-		d = dict(map(lambda x:self.typekey(x[0]), self.typedata(x[1]), d.items()))
-		for i,j in dict.items():
-			self.bdb.put(self.dumpkey(i), self.dumpdata(j), txn=txn, flags=flags)
+	# Dangerous!
+	def truncate(self, txn=None, flags=0):
+		"""Truncate BDB (e.g. 'drop table')"""
+		self.bdb.truncate(txn=txn)
+		g.log.msg("LOG_COMMIT","%s.truncate"%self.filename)
 
 
-
-
-
-
-class RelateBTree(BTree):
-	"""BTree with parent/child/cousin relationships between keys"""
-
-	def __init__(self, *args, **kwargs):
-		sequence = kwargs.pop("sequence", False)
-
-		BTree.__init__(self, *args, **kwargs)
-
-		txn = kwargs.get("txn")
-		self.relate = True
-		self.sequence = sequence
-
-		if self.sequence:
-			self.sequencedb = bsddb3.db.DB(self.dbenv)
-			self.sequencedb.open(self.filename+".sequence.bdb", dbtype=bsddb3.db.DB_BTREE, flags=DBOPENFLAGS) #
-
-		kt = self.keytype
-		dt = self.datatype
-
-		self.pcdb2 = FieldBTree(filename=self.filename+".pc2", keytype=kt, datatype=kt, dbenv=self.dbenv, bulkmode=False, cfunc=False, txn=txn)
-		self.cpdb2 = FieldBTree(filename=self.filename+".cp2", keytype=kt, datatype=kt, dbenv=self.dbenv, bulkmode=False, cfunc=False, txn=txn)
+	# Also dangerous!	
+	def delete(self, key, txn=None, flags=0):
+		if self.bdb.exists(self.dumpkey(key), txn=txn):
+			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
+			g.log.msg("LOG_COMMIT","%s.delete: %s"%(self.filename, key))
+			return ret
 
 
 
-	def __str__(self):
-		return "<emen2.db.btrees2.RelateBTree instance: %s>"%self.filename
-
+	###############################
+	# Sequence (this is just used by Record for now)
+	###############################
 
 	def get_max(self, txn=None):
+		if not self.sequence:
+			return
+
 		sequence = self.sequencedb.get("sequence", txn=txn)
 		if sequence == None: sequence = 0
 		val = int(sequence)
 		return val
-
 		# sequence = bsddb3.db.DBSequence(self.sequencedb)
 		# sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
 		# val = sequence.stat()['current']
@@ -306,191 +375,69 @@ class RelateBTree(BTree):
 		#get_range()[1]
 
 
-	def get_sequence(self, delta=1, txn=None):
-		
-		# newtxn = self.dbenv.txn_begin(parent=txn, flags=0) #
-		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, bsddb3.db.DB_RMW)		
-		# try:
-		val = self.sequencedb.get("sequence", txn=txn, flags=bsddb3.db.DB_RMW)
+	def get_sequence(self, delta=1, key='sequence', txn=None):
+		if not self.sequence:
+			return
+
+		# This can handle any number of sequences -- e.g. for binary dates.
+		# 'sequence' is the default key.
+		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, bsddb3.db.DB_RMW)
+		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
 		if val == None:
 			val = 0
 		val = int(val)
-		self.sequencedb.put("sequence", str(val+delta), txn=txn)
-		# except:
-		# 	newtxn.abort()
-		# else:
-		# 	newtxn.commit()
-			
+		self.sequencedb.put(key, str(val+delta), txn=txn)
+		g.log.msg("LOG_COMMIT","%s.sequencedb.put: %s"%(self.filename, val+delta))
 		return val
 
-		# 	 	sequence = bsddb3.db.DBSequence(self.sequencedb)
-		# 	 	sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
-		# 
+		# BDB DBSequence was never very stable.
+		# sequence = bsddb3.db.DBSequence(self.sequencedb)
+		# sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
 		# if not txn or delta < 1:
 		# 	raise ValueError, "delta and txn requried for sequence increment"
 		# val = sequence.get(delta=delta, txn=txn)
-		# 
 		# sequence.close()
 
 
-	def pget(self, key, txn=None, flags=0):
-		d = self.sget(key, txn=txn, flags=flags)
-
-		cursor = self.pcdb2.bdb.cursor(txn=txn)
-		children = self.pcdb2.get(key, cursor=cursor)
-		cursor.close()
-
-		cursor = self.cpdb2.bdb.cursor(txn=txn)
-		parents = self.cpdb2.get(key, cursor=cursor)
-		cursor.close()
-		
-		return d
+	def update_sequence(self, items, txn=None):
+		return {}
 
 
-	def close(self):
-		if self.bdb is None:
-			return
 
-		if self.sequence:
-			# self.sequence.close()
-			self.sequencedb.close()
-
-		if self.relate:
-			self.pcdb2.close()
-			self.cpdb2.close()
-
-		self.bdb.close()
-		self.bdb = None
-
-
-	def sync(self):
-		self.bdb.sync()
-
-		if self.sequence:
-			self.sequencedb.sync()
-
-		if self.relate:
-			self.pcdb2.sync()
-			self.cpdb2.sync()
-
-
-	# Relate methods
-
-	def children(self, key, recurse=1, txn=None):
-		return self._getrel(self.pcdb2, key, recurse=recurse, txn=txn)
-
-
-	def parents(self, key, recurse=1, txn=None):
-		return self._getrel(self.cpdb2, key, recurse=recurse, txn=txn)
-
-
-	def _getrel(self, rel, key, recurse=1, txn=None):
-		"""get parent/child relationships; see: getchildren"""
-
-		#g.log.msg('LOG_DEBUG','getrel: key %s, method %s, recurse %s'%(key, method, recurse))
-
-		if (recurse < 1):
-			return {}, set()
-
-		cursor = rel.bdb.cursor(txn=txn)
-
-		new = rel.get(key, cursor=cursor)
-
-		# ian: todo: use collections.queue
-		stack = [new]
-		result = {key: new}
-		visited = set()
-
-		lookups = []
-
-		for x in xrange(recurse-1):
-
-			if not stack[x]:
-				break
-
-			stack.append(set())
-
-			# lcount = len(stack[x]-visited)
-			# g.log.msg('LOG_DEBUG', "recurse level %s, %s lookups to make this level"%(x, lcount))
-			# t = time.time()
-
-			for key in stack[x] - visited:
-				new = rel.get(key, cursor=cursor)
-				if new:
-					stack[x+1] |= new #.extend(new)
-					result[key] = new
-
-			# g.log.msg('LOG_DEBUG', "%s lookups per second"%(int(lcount/(time.time()-t))))
-
-			visited |= stack[x]
-
-		visited |= stack[-1]
-
-		cursor.close()
-
-		# we return a tuple of result and visited b/c we had to calculate visited anyway
-		return result, visited
-
-
-	def _putrel(self, links, mode='addrefs', txn=None):
-		pc = collections.defaultdict(set)
-		cp = collections.defaultdict(set)
-		for link in links:
-			link = self.typekey(link[0]), self.typekey(link[1])
-			if link[0] == link[1]:
-				continue
-			pc[link[0]].add(link[1])
-			cp[link[1]].add(link[0])
-
-		for k,v in pc.items():
-			getattr(self.pcdb2, mode)(k, v, txn=txn)
-		for k,v in cp.items():
-			getattr(self.cpdb2, mode)(k, v, txn=txn)
-
-
-	def pclinks(self, links, txn=None):
-		"""Create parent-child relationships"""
-		self._putrel(links, mode='addrefs', txn=txn)
-
-
-	def pcunlinks(self, links, txn=None):
-		"""Remove parent-child relationships"""
-		self._putrel(links, mode='removerefs', txn=txn)
-
-
-	def pclink(self, tag1, tag2, txn=None):
-		"""Create parent-child relationship"""
-		self._putrel([[tag1, tag2]], mode='addrefs', txn=txn)
-
-
-	def pcunlink(self, tag1, tag2, txn=None):
-		"""Remove parent-child relationship"""
-		self._putrel([[tag1, tag2]], mode='removerefs', txn=txn)
+	##############################
+	# Load built-in items
+	##############################
+	
+	# Private method to load config
+	def load_builtins(self, t):
+		infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
+		f = open(infile)
+		ret = emen2.util.jsonutil.decode(f.read())
+		f.close()
+		for k in ret:
+			k = self.datatype(k)
+			self.builtins[k.get('name')] = k
 
 
 
 
 
-class FieldBTree(BTree):
+class IndexBTree(BTree):
 
-	DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
+	def init(self):
+		self.DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
+		self.setbulkmode(True)
+		super(IndexBTree, self).init()
 
-	def __init__(self, *args, **kwargs):
-		bulkmode = kwargs.pop('bulkmode','bulk')
-		BTree.__init__(self, *args, **kwargs)
 
+	def setbulkmode(self, bulkmode):
 		# use acceleration module if available
+		self._get_method = self._get_method_nonbulk
 		if bulk:
-			if bulkmode=='bulk':
+			if bulkmode:
 				self._get_method = emen2.db.bulk.get_dup_bulk
 			else:
 				self._get_method = emen2.db.bulk.get_dup_notbulk
-
-
-
-	def __str__(self):
-		return "<FieldBTree instance: %s>"%self.filename
-
 
 
 	def removerefs(self, key, items, txn=None):
@@ -515,8 +462,8 @@ class FieldBTree(BTree):
 
 		cursor.close()
 
+		g.log.msg("LOG_COMMIT","%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
-
 
 
 	def addrefs(self, key, items, txn=None):
@@ -546,42 +493,46 @@ class FieldBTree(BTree):
 
 		cursor.close()
 
+		g.log.msg("LOG_COMMIT","%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
-
-	def _get_method(self, cursor, key, dt, flags=0):
+	def _get_method_nonbulk(self, cursor, key, dt, flags=0):
 		n = cursor.set(key)
 		r = set() #[]
 		m = cursor.next_dup
 		while n:
 			r.add(n[1])
 			n = m()
-		
+
 		return set(self.loaddata(x) for x in r)
 
 
+	_get_method = _get_method_nonbulk
+
+
+
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
+		# print "%s.get index/datatype:"%self.filename, key, self.datatype
 		key = self.dumpkey(key)
-		dt = self.datatype or "p"
 
 		if cursor:
-			r = self._get_method(cursor, key, dt)
-			
+			r = self._get_method(cursor, key, self.datatype)
+
 		else:
 			cursor = self.bdb.cursor(txn=txn)
-			r = self._get_method(cursor, key, dt)
+			r = self._get_method(cursor, key, self.datatype)
 			cursor.close()
 
 		# generator expressions will be less pain when map() goes away
-		if bulk and dt == 'p':
+		if bulk and self.datatype == 'p':
 			r = set(self.loaddata(x) for x in r)
 
 		return r
 
 
 	def put(self, *args, **kwargs):
-		raise Exception, "put not supported on FieldBTree; use addrefs, removerefs"
+		raise Exception, "put not supported; use addrefs, removerefs"
 
 
 	def keys(self, txn=None, flags=0):
@@ -589,38 +540,33 @@ class FieldBTree(BTree):
 		return list(keys)
 
 
-
 	def items(self, txn=None, flags=0):
 		ret = []
-		dt = self.datatype or "p"
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			data = self._get_method(cursor, pair[0], dt)
+			data = self._get_method(cursor, pair[0], self.datatype)
 			if bulk and dt == "p":
 				data = set(map(self.loaddata, data))
 			ret.append((self.loadkey(pair[0]), data))
 			pair = cursor.next_nodup()
 		cursor.close()
-		
-		return ret
 
+		return ret
 
 
 	def iteritems(self, minkey=None, txn=None, flags=0):
 		ret = []
-		dt = self.datatype or "p"
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			data = self._get_method(cursor, pair[0], dt)
+			data = self._get_method(cursor, pair[0], self.datatype)
 			if bulk and dt == "p":
 				data = set(map(self.loaddata, data))
 			yield (self.loadkey(pair[0]), data)
 			pair = cursor.next_nodup()
 
 		cursor.close()
-
 
 
 	def iterfind(self, items, minkey=None, maxkey=None, txn=None, flags=0):
@@ -631,7 +577,7 @@ class FieldBTree(BTree):
 		processed = 0
 		found = 0
 		ret = {}
-		
+
 		dt = self.datatype or "p"
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
@@ -653,31 +599,10 @@ class FieldBTree(BTree):
 				break
 			else:
 				pair = cursor.next_nodup()
-		
+
 		# print "Done; processed %s keys"%processed
 		cursor.close()		
 		# return ret
-			
-
-
-	#def values(self, txn=None, flags=0):
-	#	pass
-
-
-	# def keys(self, txn=None):
-	# 	return map(self.loadkey, self.bdb.keys(txn))
-	# 	#return map(lambda x: (g.log('-> key: %r' % x), self.loadkey(x))[1], self.bdb.keys(txn))
-	#
-	#
-	# def values(self, txn=None):
-	# 	#return reduce(set.union, map(self.loaddata, self.bdb.values())) #(self.loaddata(x) for x in self.bdb.values())) #txn=txn
-	# 	# set() needed if empty
-	# 	# return reduce(set.union, (self.loaddata(x) for x in self.bdb.values(txn)), set()) #txn=txn
-	# 	return [self.loaddata(x) for x in self.bdb.values(txn)]
-	#
-	#
-	# def items(self, txn=None):
-	# 	return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) #txn=txn
 
 
 	# 	def keys(self, mink=None, maxk=None, txn=None):
@@ -693,6 +618,552 @@ class FieldBTree(BTree):
 	#  		all of the individual keys in the mink to maxk range"""
 	# 		if mink == None and maxk == None: return BTree.values(self)
 	# 		return reduce(set.union, (set(x[1] or []) for x in self.items(mink, maxk, txn=txn)), set())
+
+
+
+
+
+# Context-aware BTree for DBO's
+
+class DBOBTree(BTree):
+
+	#################
+	# New items..
+	#################
+
+	# Return a new instance of this BTree's datatype.
+	# All arguments will be passed to the constructor.
+	def new(self, *args, **kwargs):
+		"""Return a new instance of the type of item this BTree stores.."""
+		txn = kwargs.pop('txn', None) # don't pass the txn..
+		name = kwargs.get('name')
+		if name: 
+			if self.exists(name, txn=txn):
+				raise KeyError, "%s already exists"%name
+		return self.typedata(*args, **kwargs)	
+
+
+	##############################
+	# Filtered context gets..
+	##############################
+	
+	# Get an item and set Context
+	def cget(self, key, txn=None, ctx=None, filt=True, flags=0):
+		"""Same as dict.get, with txn"""
+		d = None
+		try:
+			d = self.get(key, filt=False, txn=txn, flags=flags)
+			d.setContext(ctx)
+		except (emen2.db.exceptions.SecurityError, AttributeError, KeyError), e: # TypeError?
+			if filt:
+				pass
+			else:
+				raise
+		return d
+		
+		
+	# Takes an iterable..
+	def cgets(self, keys, txn=None, ctx=None, filt=True, flags=0):
+		# print "%s.cgets: %s"%(self.filename, keys)
+		# if not keys:
+		# 	print "....... empty cgets!"
+		# 	print traceback.print_stack()
+
+		ret = []
+		for key in keys:
+			try:
+				d = self.get(key, filt=False, txn=txn, flags=flags)
+				d.setContext(ctx)
+				ret.append(d)
+			except (emen2.db.exceptions.SecurityError, AttributeError, KeyError), e: # TypeError?
+				if filt:
+					pass
+				else:
+					raise
+
+		return ret
+
+
+	# An alternative to .keys(), designed to be overridden, and check Context
+	def names(self, ctx=None, txn=None):
+		return set(map(self.loadkey, self.bdb.keys(txn)))
+
+		
+	# Filter by permissions
+	def filter(self, names, ctx=None, txn=None, **kwargs):
+		"""Filter by read-access
+		@param names Names
+		@return Set of readable items
+		"""
+		if ctx.checkreadadmin():
+			return set(names)
+
+		items = self.cgets(names, ctx=ctx, txn=txn)
+		return set([i.name for i in items])
+				
+		
+	def validate(self, items, ctx=None, txn=None):
+		return self.puts(items, commit=False, ctx=ctx, txn=txn)
+		
+
+
+	############################
+	# Write
+	############################		
+	
+	def cput(self, item, *args, **kwargs):
+		ret = self.cputs([item], *args, **kwargs)
+		return ret[0]
+		
+	
+	def cputs(self, items, clone=False, commit=True, indexonly=False, ctx=None, txn=None):
+		t = emen2.db.database.gettime()
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+
+		# Return values
+		crecs = []
+
+		# Note: children/parents used to be handled specially,
+		#	but now they are considered "more or less" regular params, with slightly tweaked indexes
+		
+		# Process the items
+		for name, updrec in enumerate(items, start=1):
+			# Get the name; use recid as a backup for compatibility for now..
+			name = updrec.get('name') # or (name * -1)
+			cp = set()
+			
+			# Get the existing item or create a new one. Security error will be raised.
+			try:
+				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
+				orec = self.cget(name, filt=False, ctx=ctx, txn=txn, flags=bsddb3.db.DB_RMW)
+			except: # AttributeError, KeyError: 
+				#AttributeError might have been raised if the key was the wrong type
+				p = dict((k,updrec.get(k)) for k in self.typedata.param_required)
+				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
+				cp.add('name')
+
+			# Update the item.
+			cp |= orec.update(updrec, clone=clone, vtm=vtm, t=t)			
+			orec.validate() 
+
+			# If values changed, cache those, and add to the commit list
+			if cp:
+				crecs.append(orec)
+
+
+		# If we just wanted to validate the changes.
+		if not commit:
+			return crecs
+		
+		# Assign new names based on the DB sequence.
+		namemap = self.update_sequence(crecs, txn=txn) # ctx=ctx may be added in the future
+
+		# Calculate all changed indexes
+		self.reindex(crecs, indexonly=indexonly, namemap=namemap, ctx=ctx, txn=txn)
+
+		if indexonly:
+			return
+
+		# Commit "for real"
+		for crec in crecs:
+			self.put(crec.name, crec, txn=txn)
+
+		g.log.msg("LOG_INFO", "Committed %s items"%(len(crecs)))
+		
+		return crecs	
+		
+
+	# Calculate and write index changes
+	# if indexonly, assume items are new, to rebuild all params.
+	def reindex(self, items, indexonly=False, namemap=None, ctx=None, txn=None):
+		"""Update indexes"""
+		ind = collections.defaultdict(list)
+				
+		# Get changes as param:([name, newvalue, oldvalue], ...)
+		for crec in items:
+			# Get the current record for comparison of updated values.
+			# Use an empty dict for new records so all keys will seen as new (or if reindexing)
+			orec = self.cget(crec.name, ctx=ctx, txn=txn, flags=bsddb3.db.DB_RMW) or {}
+			if indexonly:
+				orec = {}
+			for param in crec.changedparams(orec):
+				ind[param].append((crec.name, crec.get(param), orec.get(param)))
+
+		
+		# These are complex changes, so pass them off to different reindex method
+		# _reindex_relink does nothing for base DBOBTree; see RelateBTree
+		parents = ind.pop('parents', None)
+		children = ind.pop('children', None)
+		self._reindex_relink(parents, children, namemap=namemap, indexonly=indexonly, ctx=ctx, txn=txn)
+
+		for k,v in ind.items():
+			self._reindex_param(k, v, ctx=ctx, txn=txn)
+
+
+	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
+		"""See RelateBTree"""
+		return
+
+
+	# reindex a single parameter
+	def _reindex_param(self, param, changes, ctx=None, txn=None):
+		# If nothing changed, skip.
+		if not changes:
+			return
+
+		# If we can't access the index, skip. (Raise Exception?)
+		ind = self.getindex(param)
+		if ind == None:
+			# print "No index for %s, skipping"%param
+			return
+
+		# Check that this key is currently marked as indexed
+		pd = self.bdbs.paramdef.get(param, txn=txn)
+		vtm = emen2.db.datatypes.VartypeManager()
+		vt = vtm.getvartype(pd.vartype)
+
+		# Process the changes into index addrefs / removerefs
+		addindexkeys = []
+		removeindexkeys = []
+		addrefs, removerefs = vt.reindex(changes)
+		# print "reindexing", pd.name
+		# print "changes:", changes
+		# print "addrefs:", addrefs
+		# print "remove:", removerefs
+
+		# Write!
+		for oldval, recs in removerefs.items():
+			# Not necessary to map temp names to final names, 
+			# as reindexing is now done after assigning names
+			removeindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
+
+		for newval,recs in addrefs.items():
+			addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
+				
+		
+		# Update the index-index
+		indk = self.index.get('indexkeys')
+		if not indk or pd.name in ['parents', 'children']:
+			return
+		
+		# Update index-index, a necessary evil..
+		if removeindexkeys:
+			indk.removerefs(pd.name, removeindexkeys, txn=txn)
+		
+		if addindexkeys:
+			indk.addrefs(pd.name, addindexkeys, txn=txn)
 	
 	
+	##############################
+	# Delete and rename
+	##############################
+	
+	# def delete(self, name, ctx=None, txn=None):
+	# 	raise emen2.db.exceptions.SecurityError, "No permission to delete."
+
+
+	# def rename(self, name, ctx=None, txn=None):
+	# 	raise emen2.db.exceptions.SecurityError, "No permission to rename."
+
+
+
+
+
+
+
+
+class RelateBTree(DBOBTree):
+	"""BTree with parent/child/cousin relationships between keys"""
+
+	def init(self):				
+		c = IndexBTree(filename=self.filename+".pc2", keytype=self.keytype, datatype=self.keytype, cfunc=False, dbenv=self.dbenv, autoopen=False)
+		c.setbulkmode(False)
+		c.open()
+		self.index['children'] = c
+				
+		p = IndexBTree(filename=self.filename+".cp2", keytype=self.keytype, datatype=self.keytype, cfunc=False, dbenv=self.dbenv, autoopen=False)
+		p.setbulkmode(False)
+		p.open()
+		self.index['parents'] = p
+
+		super(RelateBTree, self).init()
+
+
+	###############################
+	# Relationship methods
+	###############################
+	
+	# Use "name*" syntax as self.children(name, recurse=-1)
+	def filter_names(self, names, ctx=None, txn=None):
+		ret = set()
+		if not hasattr(names, '__iter__'):
+			names = set([names])
+		for key in names:
+			skey = unicode(key)
+			if skey.endswith('*'):
+				newkey = skey.replace('*', '')
+				ret |= self.children(newkey, recurse=-1, ctx=ctx, txn=txn)[newkey]
+				ret.add(newkey)
+			else:
+				ret.add(key)
+		return ret
+
+
+	# Commonly used rel() variants
+	def parenttree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+		return self.rel(names, recurse=recurse, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
+	
+
+	def childtree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+		return self.rel(names, recurse=recurse, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
+
+
+	def parents(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+		return self.rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn, **kwargs)
+
+
+	def children(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+		return self.rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn, **kwargs)
+		
+	
+	# Siblings
+	def siblings(self, name, ctx=None, txn=None, **kwargs):
+		parents = self.rel([name], rel='parents', ctx=ctx, txn=txn)
+		allparents = set()
+		for k,v in parents.items():
+			allparents |= v
+		siblings = set()
+		children = self.rel(allparents, ctx=ctx, txn=txn, **kwargs)
+		for k,v in children.items():
+			siblings |= v
+		return siblings
+
+
+	# Nice wrapper around the basic self.dfs. Checks permissions, return formats, etc..
+	def rel(self, names, recurse=1, rel='children', tree=False, ctx=None, txn=None, **kwargs):
+		# kwargs gets passed to the self.filter
+		names = self.filter_names(names)
+		result = {}
+		visited = {}
+
+		for i in names:
+			result[i], visited[i] = self.dfs(i, rel=rel, recurse=recurse)
+		
+		# Flatten the dictionary to get all touched names
+		allr = set()
+		for v in visited.values():
+			allr |= v
+		
+		# Filter by permissions (pass rectype= for optional Record filtering)
+		allr = self.filter(allr, ctx=ctx, txn=txn, **kwargs)
+
+		# If Tree=True, we're returning the tree... Filter for permissions.
+		if tree:
+			outret = {}
+			for k, v in result.iteritems():
+				for k2 in v:
+					outret[k2] = result[k][k2] & allr		
+			return outret
+		
+		# Else we're just ruturning the total list of all children, keyed by requested record name
+		for k in visited:
+			visited[k] &= allr
+		
+		return visited
+
+
+	def relink(self, parent, child, ctx=None, txn=None):
+		pass
+
+	# def pcrelink(self, remove, add, keytype="record", ctx=None, txn=None):
+	# 	def conv(link):
+	# 		pkey, ckey = link
+	# 		if keytype=="record":
+	# 			return int(pkey), int(ckey)
+	# 		return unicode(pkey), unicode(ckey)
+	# 
+	# 	remove = set(map(conv, remove))
+	# 	add = set(map(conv, add))		
+	# 	common = remove & add
+	# 	remove -= common
+	# 	add -= common
+	# 	self._link("pcunlink", remove, keytype=keytype, ctx=ctx, txn=txn)
+	# 	self._link("pclink", add, keytype=keytype, ctx=ctx, txn=txn)
+
+
+	def pclink(self, parent, child, ctx=None, txn=None):
+		"""Create parent-child relationship"""
+		self._putrel(parent, child, mode='addrefs', ctx=ctx, txn=txn)
+
+
+	def pcunlink(self, parent, child, ctx=None, txn=None):
+		"""Remove parent-child relationship"""
+		self._putrel(parent, child, mode='removerefs', ctx=ctx, txn=txn)
+
+	
+	def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
+		# Check that we have enough permissions to write to one item
+		# Use raw get; manually setContext. Allow KeyErrors to raise.
+		p = self.get(parent, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
+		c = self.get(child, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
+		perm = []
+		try:
+			p.setContext(ctx)
+			perm.append(p.writable())
+		except:
+			pass
+		try:
+			c.setContext(ctx)
+			perm.append(c.writable())
+		except:
+			pass
+		
+		if not any(perm):
+			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add/remove relationship"
+		
+		# Transform into the right format for _reindex_relink..
+		newvalue = set() | p.children # copy
+		if mode == 'addrefs':
+			newvalue |= set([c.name])
+		elif mode == 'removerefs':
+			newvalue -= set([c.name])
+		
+		self._reindex_relink([], [[p.name, newvalue, p.children]], ctx=ctx, txn=txn)
+
+
+	# Handle the reindexing...
+	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
+		""""This is a preprocessor for updating relationships using the regular commit/cput method.
+		It takes a change set as created by self.reindex."""
+
+		namemap = namemap or {}
+		indc = self.getindex('children')
+		indp = self.getindex('parents')
+		if not indc or not indp:
+			raise KeyError, "Relationships not supported"
+			
+		# print "parent changeset:", parents
+		# print "children changeset:", children
+
+		# Process change sets into new and removed links
+		add = []
+		remove = []		
+		for name, new, old in (parents or []):
+			old = set(old or [])
+			new = set(new or [])
+			for i in new - old:
+				add.append((i, name))
+			for i in old - new:
+				remove.append((i, name))
+		
+		for name, new, old in (children or []):
+			old = old or set()
+			new = new or set()
+			for i in new - old:
+				add.append((name, i))
+			for i in old - new:
+				remove.append((name, i))
+		
+		nmi = set()
+		for v in namemap.values():
+			nmi.add(v)
+
+		# print "Add links:", add
+		# print "Remove links:", remove
+
+		p_add = collections.defaultdict(set)
+		p_remove = collections.defaultdict(set)
+		c_add = collections.defaultdict(set)
+		c_remove = collections.defaultdict(set)
+
+		for p,c in add:
+			p_add[c].add(p)
+			c_add[p].add(c)
+		for p,c in remove:
+			p_remove[c].add(p)
+			c_remove[p].add(c)
+
+		# print "p_add:", p_add
+		# print "p_remove:", p_remove
+		# print "c_add:", c_add
+		# print "c_remove:", c_remove
+		
+		if not indexonly:
+			# Go and fetch other items that we need to update
+			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
+			# print "All affected items:", names
+			# print "New items:", nmi
+			for name in names-nmi:
+				# Get and modify the item directly w/o Context:
+				#	Linking only requires write permissions on ONE of the items
+				# This might be changed in the future.
+				rec = self.get(name, filt=False, txn=txn)
+				print "relinking..."
+				print rec.__dict__				
+				rec.__dict__['parents'] -= p_remove[rec.name]
+				rec.__dict__['parents'] |= p_add[rec.name]
+				rec.__dict__['children'] -= c_remove[rec.name]
+				rec.__dict__['children'] |= c_add[rec.name]
+				self.put(rec.name, rec, txn=txn)
+	
+		for k,v in p_remove.items():
+			if v:
+				indp.removerefs(k, v, txn=txn)
+		for k,v in p_add.items():
+			if v:
+				indp.addrefs(k, v, txn=txn)
+		for k,v in c_remove.items():
+			if v:
+				indc.removerefs(k, v, txn=txn)
+		for k,v in c_add.items():
+			if v:
+				indc.addrefs(k, v, txn=txn)
+	
+		return
+
+
+	##############################
+	# Search tree-like indexes (e.g. parents/children)
+	##############################
+
+	def dfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
+		# Return a dict of results as well as the nodes visited (saves time)
+		if recurse == -1:
+			recurse = g.MAXRECURSE
+
+		# Get the index, and create a cursor (slightly faster)
+		rel = self.index[rel]
+		cursor = rel.bdb.cursor(txn=txn)
+
+		# Starting items
+		new = rel.get(key, cursor=cursor)
+		stack = [new]
+		result = {key: new}
+		visited = set()
+		lookups = []
+
+		for x in xrange(recurse-1):
+			if not stack[x]:
+				break
+
+			stack.append(set())
+			for key in stack[x] - visited:
+				new = rel.get(key, cursor=cursor)
+				if new:
+					stack[x+1] |= new #.extend(new)
+					result[key] = new
+			visited |= stack[x]
+
+		visited |= stack[-1]
+		cursor.close()
+		return result, visited
+
+
+
+
+
+
+
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()

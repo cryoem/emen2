@@ -61,7 +61,7 @@ class Macro(object):
 		if not self.markup:
 			return unicode(value)		
 		if self.table:
-			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.rec.recid, value)
+			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.rec.name, value)
 		return unicode(value)
 
 
@@ -75,17 +75,32 @@ class Macro(object):
 
 # ian: todo: Macros can specify a return vartype, which will go through normal rendering... 
 
-class macro_recid(Macro):
-	"""recid macro"""
+class macro_name(Macro):
+	"""name macro"""
 	keytype = 'd'
 	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
-		return rec.recid
+		return rec.name
 		
 
 	def macro_name(self, macro, params):
-		return "Record ID"
+		return "Record Name"
+
+
+# legacy..
+class macro_recid(Macro):
+	"""name macro"""
+	keytype = 'd'
+	__metaclass__ = Macro.register_view
+
+	def process(self, macro, params, rec):
+		return rec.name
+
+
+	def macro_name(self, macro, params):
+		return "Record Name"
+
 
 
 
@@ -96,7 +111,7 @@ class macro_parents(Macro):
 	def process(self, macro, params, rec):
 		rectype, _, recurse = params.partition(",")
 		recurse = int(recurse or 1)
-		return self.engine.db.getparents(rec.recid, rectype=rectype, recurse=recurse)
+		return self.engine.db.getparents(rec.name, rectype=rectype, recurse=recurse)
 		
 
 	def macro_name(self, macro, params):
@@ -110,7 +125,7 @@ class macro_recname(Macro):
 	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
-		return self.engine.db.renderview(rec)
+		return self.engine.db.renderview(rec) #vtm=self.engine
 
 
 	def macro_name(self, macro, params):
@@ -126,19 +141,19 @@ class macro_childcount(Macro):
 	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
 		# ian: todo: recurse = -1..
-		children = self.engine.db.getchildren([rec.recid for rec in recs], rectype=rectypes, recurse=3)
+		children = self.engine.db.getchildren([rec.name for rec in recs], rectype=rectypes, recurse=3)
 		for rec in recs:
-			key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
-			self.engine.store(key, len(children.get(rec.recid,[])))
+			key = self.engine.get_cache_key('getchildren', rec.name, *rectypes)
+			self.engine.store(key, len(children.get(rec.name,[])))
 
 		
 	def process(self, macro, params, rec):
 		"""Now even more optimized!"""
 		rectypes = params.split(",")
-		key = self.engine.get_cache_key('getchildren', rec.recid, *rectypes)
+		key = self.engine.get_cache_key('getchildren', rec.name, *rectypes)
 		hit, children = self.engine.check_cache(key)
 		if not hit:
-			children = len(self.engine.db.getchildren(rec.recid, rectype=rectypes, recurse=3))
+			children = len(self.engine.db.getchildren(rec.name, rectype=rectypes, recurse=3))
 			self.engine.store(key, children)
 
 		return children
@@ -187,7 +202,6 @@ class macro_img(Macro):
 				bdoo = self.engine.db.getbinary(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
-				lrecid = bdoo.get("recid")
 				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:], fname, height, width))
 			except:
 				ret.append("(Error: %s)"%i)
@@ -205,8 +219,8 @@ class macro_childvalue(Macro):
 	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
-		recid = rec.recid
-		children = self.engine.db.getrecord(self.engine.db.getchildren(recid))
+		name = rec.name
+		children = self.engine.db.getrecord(self.engine.db.getchildren(name))
 		return [i.get(params) for i in children]
 
 
@@ -229,8 +243,8 @@ class macro_parentvalue(Macro):
 			param, recurse = p
 			
 		recurse = int(recurse or 1)
-		recid = rec.recid
-		parents = self.engine.db.getrecord(self.engine.db.getparents(recid, recurse=recurse, rectype=rectype))
+		name = rec.name
+		parents = self.engine.db.getrecord(self.engine.db.getparents(name, recurse=recurse, rectype=rectype))
 		return filter(None, [i.get(param) for i in parents])
 
 
@@ -239,17 +253,40 @@ class macro_parentvalue(Macro):
 
 
 
+
+
 class macro_or(Macro):
 	"""parentvalue macro"""
 	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
-		params = params.split(",")
-		return filter(None, [rec.get(i.strip()) for i in params])
+		ret = None
+		for param in params.split(","):
+			ret = rec.get(params.strip())
+			if ret != None:
+				return ret
+		# params = params.split(",")
+		# return filter(None, [rec.get(i.strip()) for i in params])
 
 
 	def macro_name(self, macro, params):
 		return " or ".join(params.split(","))
+
+
+
+
+
+# class macro_or(Macro):
+# 	"""parentvalue macro"""
+# 	__metaclass__ = Macro.register_view
+# 			
+# 	def process(self, macro, params, rec):
+# 		params = params.split(",")
+# 		return filter(None, [rec.get(i.strip()) for i in params])
+# 
+# 
+# 	def macro_name(self, macro, params):
+# 		return " or ".join(params.split(","))
 
 
 
@@ -274,7 +311,7 @@ class macro_renderchildren(Macro):
 	__metaclass__ = Macro.register_view
 		
 	def process(self, macro, params, rec):
-		r = self.engine.db.renderview(self.engine.db.getchildren(rec.recid), viewtype=params or "recname") #ian:mustfix
+		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewtype=params or "recname") #ian:mustfix
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
@@ -297,8 +334,8 @@ class macro_renderchild(Macro):
 	def process(self, macro, params, rec):
 		#rinfo = dict(,host=host)
 		#view, key, value = args.split(' ')
-		#def get_records(recid):
-		#	return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.getchildren(recid, **rinfo))
+		#def get_records(name):
+		#	return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.getchildren(name, **rinfo))
 		#return render_records(db, rec, view, get_records,rinfo, html_join_func)
 		return ""
 
@@ -315,7 +352,7 @@ class macro_renderchildrenoftype(Macro):
 		
 	def process(self, macro, params, rec):
 		# print macro, params
-		r = self.engine.db.renderview(self.engine.db.getchildren(rec.recid, rectype=params))
+		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name, rectype=params))
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
@@ -371,7 +408,7 @@ class macro_getrectypesiblings(Macro):
 		pass
 		# """returns siblings and cousins of same rectype"""
 		# ret = {}
-		# parents = db.getparents(rec.recid,,host=host)
+		# parents = db.getparents(rec.name,,host=host)
 		# siblings = set()
 		#
 		# for i in parents:

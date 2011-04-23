@@ -1,8 +1,8 @@
 (function($) {
     $.widget("ui.Browser", {
 		options: {
-			recid: null,
-			cb: function(self, recid) {self.element.val(recid)},
+			name: null,
+			cb: function(self, name) {self.element.val(name)},
 			keytype: "record",
 			modal: true
 		},
@@ -30,11 +30,11 @@
 		},		
 	
 		show: function() {
-			if (this.options.recid == null) {
+			if (this.options.name == null) {
 				if (!this.element.val()) { 
-					this.options.recid = 0;
+					this.options.name = 0;
 				} else {
-					this.options.recid = self.checkkeytype(this.element.val());
+					this.options.name = self.checkkeytype(this.element.val());
 				}
 			}
 			this.build();
@@ -60,7 +60,7 @@
 			});			
 
 			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');			
-			this.build_browser(this.options.recid);
+			this.build_browser(this.options.name);
 		},
 		
 		build_browser: function(r) {
@@ -104,7 +104,7 @@
 			$("thead", this.tablearea).prepend(this.header);
 			$("a.map", this.tablearea).click(function(e){
 				e.preventDefault();
-				self.build_browser($(this).attr("data-recid"));
+				self.build_browser($(this).attr("data-name"));
 			})
 		},
 		

@@ -65,8 +65,8 @@ g = emen2.db.config.g()
 #
 #
 #	def _gpi_helper_1(self, path, children):
-#		for recid in children:
-#			yield self._get_path_id(path, recid)
+#		for name in children:
+#			yield self._get_path_id(path, name)
 #
 #
 #	def get_child_id(self, name, cur_dir):
@@ -99,26 +99,26 @@ g = emen2.db.config.g()
 #		else: path = [self.root]
 #		return path
 #
-#	def _to_path(self, recid, path=None):
+#	def _to_path(self, name, path=None):
 #		path = path or []
-#		parents = self._db.getparents(recid)
+#		parents = self._db.getparents(name)
 #		if self.root not in parents:
 #			path.extend(self._to_path(parents.pop(), path))
-#		path.append(self.getindex(recid))
+#		path.append(self.getindex(name))
 #		return path
 #
-#	def getindex(self, recid=None, rec=None):
-#		rec = self._db.getrecord(recid, filt=False) if rec is None else rec
-#		index = rec.get('name_folder', str(recid))
+#	def getindex(self, name=None, rec=None):
+#		rec = self._db.getrecord(name, filt=False) if rec is None else rec
+#		index = rec.get('name_folder', str(name))
 #		if index == None:
-#			index = self.render_view(rec.recid, 'recname')
+#			index = self.render_view(rec.name, 'recname')
 #		return index
 #
-#	def get_title(self, recid):
-#		return self.render_view(recid, 'recname').rpartition(':')[0::2]
+#	def get_title(self, name):
+#		return self.render_view(name, 'recname').rpartition(':')[0::2]
 #
-#	def chroot(self, recid):
-#		self._root = recid
+#	def chroot(self, name):
+#		self._root = name
 #
 #
 #
@@ -163,15 +163,15 @@ g = emen2.db.config.g()
 #		self._select(result, **kwargs)
 #		return result
 #
-#	def to_path(self, recid):
+#	def to_path(self, name):
 #		#with self._db:
-#		return urllib2.quote('/'.join(self._to_path(recid)))
+#		return urllib2.quote('/'.join(self._to_path(name)))
 #
 #	def render_template_view(self, name, *args, **kwargs):
 #		return URLRegistry.call_view(name, db=self._db, *args, **kwargs )
 #
-#	def render_view(self, recid, view):
-#		return self.db.renderview(recid, viewtype=view)
+#	def render_view(self, name, view):
+#		return self.db.renderview(name, viewtype=view)
 #
 #	def get_user(self):
 #		un = self._db.checkcontext()[0]
