@@ -1599,7 +1599,7 @@ class DB(object):
 	@publicmethod("paramdef.find")
 	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, limit=None, ctx=None, txn=None):
 		"""@see findrecorddef"""
-		return self._find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, boolmode=boolmode, childof=childof)
+		return self._find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, childof=childof)
 
 
 	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, vartype=None, ctx=None, txn=None, **qp):
@@ -1725,15 +1725,15 @@ class DB(object):
 		c = filter(lambda x:x[2] != None, c)
 
 		q = self.query(
-			boolmode=boolmode,
-			ignorecase=1,
+			boolmode='OR',
+			ignorecase=True,
 			c=c,
 			ctx=ctx,
 			txn=txn
 		)
-
+		
 		recs = self.getrecord(q["names"], ctx=ctx, txn=txn)
-		usernames = listops.dictbykey(recs, 'name').keys()
+		usernames = listops.dictbykey(recs, 'username').keys()
 		users = self.getuser(usernames, ctx=ctx, txn=txn)
 
 		if limit: users = users[:int(limit)]
@@ -1952,8 +1952,6 @@ class DB(object):
 		"""
 		
 		regex = re.compile(VIEW_REGEX)
-
-		print "RENDERVIEW NAMES:", names
 
 		if viewtype == "tabularview":
 			table = True
@@ -3096,7 +3094,6 @@ class DB(object):
 		# Update the record.
 		if bdo.name != item.name:
 			pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
-			print pd.vartype
 			rec = self.getrecord(bdo.record, filt=None, ctx=ctx, txn=txn)
 			if pd.vartype == 'binary':
 				v = rec.get(pd.name, [])

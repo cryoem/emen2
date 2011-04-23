@@ -476,6 +476,7 @@ class User(BaseUser):
 
 
 class UserBTree(emen2.db.btrees.DBOBTree):
+	
 	def init(self):
 		self.setdatatype('p', emen2.db.user.User)	
 		super(UserBTree, self).init()
@@ -500,25 +501,41 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 			return emen2.db.btrees.IndexBTree(filename="index/security/usersbyemail", keytype='s', datatype="s", dbenv=self.dbenv)
 
 
+	def names(self, ctx=None, txn=None):
+		# You need to be logged in to view this.
+		if not ctx or ctx.username == 'anonymous':
+			return set()
+		return super(UserBTree, self).names(ctx=ctx, txn=txn)
+
+
 
 
 class NewUserBTree(emen2.db.btrees.DBOBTree):
+
 	def init(self):
 		self.setdatatype('p', emen2.db.user.NewUser)
 		super(NewUserBTree, self).init()
 
+
+	def new(self, *args, **kwargs):
+		txn = kwargs.get('txn', None)
+
+		# BTree.new. This will check the main bdb for an existing name.
+		user = super(NewUserBTree, self).new(*args, **kwargs)		
+
+		# Check  if this email already exists
+		indemail = self.bdbs.user.getindex('email')
+		if self.bdbs.user.exists(user.name, txn=txn) or indemail.get(user.email, txn=txn):
+			raise KeyError, "An account already exists with this user name or email address"
+
+		return user
 		
+
 	def names(self, ctx=None, txn=None):
 		# This requires admin access
 		if not ctx or not ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
-			
+			raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"			
 		return super(NewUserBTree, self).names(ctx=ctx, txn=txn)
-
-
-
-
-
 
 
 

@@ -320,7 +320,7 @@ class BTree(object):
 		# Check builtins
 		# if key in self.builtins:
 		# 	return self.builtins[key]
-		print "%s.get:"%self.filename, key
+		g.log.msg("LOG_COMMIT","%s.get: %s"%(self.filename, key))
 		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
 		if d:

@@ -161,7 +161,7 @@ class _View(object):
 
 		self.__ctxt = ViewContext(basectxt)
 		self.__ctxt.update(extra)
-		print self.__ctxt
+		# print self.__ctxt
 
 		#self.set_context_items(self._basectxt)
 
