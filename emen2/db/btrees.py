@@ -158,7 +158,6 @@ class BTree(object):
 			self.dumpkey = self._pickledump
 			self.loadkey = self._pickleload
 			
-				
 
 	def setdatatype(self, datatype, dataclass=None):
 		if self.bdb:
@@ -194,8 +193,7 @@ class BTree(object):
 			self.typedata = dataclass
 			
 			
-			
-			
+		
 	#########################################
 	# Indexes.
 	# You must provide an openindex method.
@@ -275,6 +273,7 @@ class BTree(object):
 		self.bdb.sync()
 
 
+
 	############################
 	# Mapping methods. Should be generators?
 	############################
@@ -307,6 +306,8 @@ class BTree(object):
 
 	def exists(self, key, txn=None, flags=0):
 		"""Checks to see if key exists in BDB"""
+		if key == None:
+			return False
 		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags)
 
 
@@ -320,7 +321,7 @@ class BTree(object):
 		# Check builtins
 		# if key in self.builtins:
 		# 	return self.builtins[key]
-		g.log.msg("LOG_COMMIT","%s.get: %s"%(self.filename, key))
+		# g.log.msg("LOG_COMMIT","%s.get: %s"%(self.filename, key))
 		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
 		if d:
@@ -643,34 +644,24 @@ class DBOBTree(BTree):
 		return self.typedata(*args, **kwargs)	
 
 
+
 	##############################
 	# Filtered context gets..
 	##############################
 	
 	# Get an item and set Context
-	def cget(self, key, txn=None, ctx=None, filt=True, flags=0):
+	def cget(self, key, filt=True, ctx=None, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
-		d = None
-		try:
-			d = self.get(key, filt=False, txn=txn, flags=flags)
-			d.setContext(ctx)
-		except (emen2.db.exceptions.SecurityError, AttributeError, KeyError), e: # TypeError?
-			if filt:
-				pass
-			else:
-				raise
-		return d
+		r = self.cgets([key], txn=txn, ctx=ctx, filt=filt, flags=flags)
+		if not r:
+			return None
+		return r[0]
 		
 		
 	# Takes an iterable..
-	def cgets(self, keys, txn=None, ctx=None, filt=True, flags=0):
-		# print "%s.cgets: %s"%(self.filename, keys)
-		# if not keys:
-		# 	print "....... empty cgets!"
-		# 	print traceback.print_stack()
-
+	def cgets(self, keys, filt=True, ctx=None, txn=None, flags=0):
 		ret = []
-		for key in keys:
+		for key in self.expand(keys, ctx=ctx, txn=txn):
 			try:
 				d = self.get(key, filt=False, txn=txn, flags=flags)
 				d.setContext(ctx)
@@ -680,27 +671,24 @@ class DBOBTree(BTree):
 					pass
 				else:
 					raise
-
 		return ret
+		
+			
+	def expand(self, names, ctx=None, txn=None):
+		"""See RelateBTree"""
+		return names
+		
 
-
-	# An alternative to .keys(), designed to be overridden, and check Context
-	def names(self, ctx=None, txn=None):
+	# An alternative to .keys()
+	def names(self, names=None, ctx=None, txn=None, **kwargs):
+		if names is not None:
+			if ctx.checkadmin():
+				return names
+			items = self.cgets(names, ctx=ctx, txn=txn)
+			return set([i.name for i in items])
+			
 		return set(map(self.loadkey, self.bdb.keys(txn)))
 
-		
-	# Filter by permissions
-	def filter(self, names, ctx=None, txn=None, **kwargs):
-		"""Filter by read-access
-		@param names Names
-		@return Set of readable items
-		"""
-		if ctx.checkreadadmin():
-			return set(names)
-
-		items = self.cgets(names, ctx=ctx, txn=txn)
-		return set([i.name for i in items])
-				
 		
 	def validate(self, items, ctx=None, txn=None):
 		return self.puts(items, commit=False, ctx=ctx, txn=txn)
@@ -713,6 +701,8 @@ class DBOBTree(BTree):
 	
 	def cput(self, item, *args, **kwargs):
 		ret = self.cputs([item], *args, **kwargs)
+		if not ret:
+			return None
 		return ret[0]
 		
 	
@@ -735,12 +725,16 @@ class DBOBTree(BTree):
 			# Get the existing item or create a new one. Security error will be raised.
 			try:
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
-				orec = self.cget(name, filt=False, ctx=ctx, txn=txn, flags=bsddb3.db.DB_RMW)
-			except: # AttributeError, KeyError: 
+				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
+				orec.setContext(ctx)
+			except Exception, inst: # AttributeError, KeyError: 
+				print inst
 				#AttributeError might have been raised if the key was the wrong type
 				p = dict((k,updrec.get(k)) for k in self.typedata.param_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
+
+			print orec
 
 			# Update the item.
 			cp |= orec.update(updrec, clone=clone, vtm=vtm, t=t)			
@@ -783,7 +777,7 @@ class DBOBTree(BTree):
 		for crec in items:
 			# Get the current record for comparison of updated values.
 			# Use an empty dict for new records so all keys will seen as new (or if reindexing)
-			orec = self.cget(crec.name, ctx=ctx, txn=txn, flags=bsddb3.db.DB_RMW) or {}
+			orec = self.cget(crec.name, ctx=ctx, txn=txn) or {}
 			if indexonly:
 				orec = {}
 			for param in crec.changedparams(orec):
@@ -858,9 +852,6 @@ class DBOBTree(BTree):
 	# Delete and rename
 	##############################
 	
-	# def delete(self, name, ctx=None, txn=None):
-	# 	raise emen2.db.exceptions.SecurityError, "No permission to delete."
-
 
 	# def rename(self, name, ctx=None, txn=None):
 	# 	raise emen2.db.exceptions.SecurityError, "No permission to rename."
@@ -892,23 +883,27 @@ class RelateBTree(DBOBTree):
 	###############################
 	# Relationship methods
 	###############################
+
+	def expand(self, names, ctx=None, txn=None):
+		"""Expand names, e.g. expanding * into children, or using an email address for a user"""
+		if not isinstance(names, set):
+			names = set(names)
+
+		# Expand *'s
+		remove = set()
+		add = set()
+		for key in (i for i in names if isinstance(i, basestring)):
+			newkey = self.typekey(key.replace('*', ''))
+			if key.endswith('*'):
+				add |= self.children([newkey], recurse=-1, ctx=ctx, txn=txn).get(newkey, set())
+			remove.add(key)
+			add.add(newkey)
+
+		names -= remove
+		names |= add
+		return names
+
 	
-	# Use "name*" syntax as self.children(name, recurse=-1)
-	def filter_names(self, names, ctx=None, txn=None):
-		ret = set()
-		if not hasattr(names, '__iter__'):
-			names = set([names])
-		for key in names:
-			skey = unicode(key)
-			if skey.endswith('*'):
-				newkey = skey.replace('*', '')
-				ret |= self.children(newkey, recurse=-1, ctx=ctx, txn=txn)[newkey]
-				ret.add(newkey)
-			else:
-				ret.add(key)
-		return ret
-
-
 	# Commonly used rel() variants
 	def parenttree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
 		return self.rel(names, recurse=recurse, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
@@ -941,8 +936,6 @@ class RelateBTree(DBOBTree):
 
 	# Nice wrapper around the basic self.dfs. Checks permissions, return formats, etc..
 	def rel(self, names, recurse=1, rel='children', tree=False, ctx=None, txn=None, **kwargs):
-		# kwargs gets passed to the self.filter
-		names = self.filter_names(names)
 		result = {}
 		visited = {}
 
@@ -955,7 +948,7 @@ class RelateBTree(DBOBTree):
 			allr |= v
 		
 		# Filter by permissions (pass rectype= for optional Record filtering)
-		allr = self.filter(allr, ctx=ctx, txn=txn, **kwargs)
+		allr = self.names(allr, ctx=ctx, txn=txn, **kwargs)
 
 		# If Tree=True, we're returning the tree... Filter for permissions.
 		if tree:
@@ -975,13 +968,13 @@ class RelateBTree(DBOBTree):
 	def relink(self, parent, child, ctx=None, txn=None):
 		pass
 
+
 	# def pcrelink(self, remove, add, keytype="record", ctx=None, txn=None):
 	# 	def conv(link):
 	# 		pkey, ckey = link
 	# 		if keytype=="record":
 	# 			return int(pkey), int(ckey)
 	# 		return unicode(pkey), unicode(ckey)
-	# 
 	# 	remove = set(map(conv, remove))
 	# 	add = set(map(conv, add))		
 	# 	common = remove & add
@@ -1098,8 +1091,6 @@ class RelateBTree(DBOBTree):
 				#	Linking only requires write permissions on ONE of the items
 				# This might be changed in the future.
 				rec = self.get(name, filt=False, txn=txn)
-				print "relinking..."
-				print rec.__dict__				
 				rec.__dict__['parents'] -= p_remove[rec.name]
 				rec.__dict__['parents'] |= p_add[rec.name]
 				rec.__dict__['children'] -= c_remove[rec.name]

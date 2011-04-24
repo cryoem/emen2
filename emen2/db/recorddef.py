@@ -202,18 +202,12 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.__dict__.update(p)
 
 
-
 	def validate(self, warning=False, vtm=None, t=None):
 		# Run findparams one last time before we commit...
 		self.findparams()
 	
 
 
-
-	
-	
-	
-	
 	
 	
 	
@@ -221,11 +215,6 @@ class RecordDefBTree(emen2.db.btrees.RelateBTree):
 	def init(self):
 		self.setdatatype('p', emen2.db.recorddef.RecordDef)
 		super(RecordDefBTree, self).init()
-
-
-	
-			
-			
 
 
 

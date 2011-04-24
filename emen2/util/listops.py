@@ -146,11 +146,18 @@ def groupchunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
 
 
 def typepartition(names, *types):
-	ret = []
-	for t in types:
-		t2 = [i for i in names if isinstance(i, t)]
-		ret.append(t2)
-	return ret
+	ret = collections.defaultdict(list)
+	other = list()
+	for name in names:
+		found = False
+		for t in types:
+			if isinstance(name, t):
+				found = True
+				ret[t].append(name)
+		if not found:			
+			other.append(name)
+	
+	return [ret.get(t, []) for t in types]+[other]
 		
 
 def filter_partition(func, iter_):

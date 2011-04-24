@@ -98,7 +98,7 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// get records that we can edit
-			$.jsonRPC("getrecord", [names, 1, 1], function(recs) {
+			$.jsonRPC("getrecord", [names], function(recs) {
 
 				$.each(recs, function(k,v) {
 					caches["recs"][v.name] = v;

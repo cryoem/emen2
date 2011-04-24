@@ -24,15 +24,17 @@ g = emen2.db.config.g()
 
 
 # ian: todo: better job at cleaning up broken files..
-def write_file(infile, ctx=None, txn=None):
+def write_binary(infile, ctx=None, txn=None):
 	"""(Internal) Behind the scenes -- read infile out to a temporary file.
 	The temporary file will be renamed to the final destination when everything else is cleared.
 	@keyparam infile
 	@keyparam dkey Binary Key -- see Binary.parse
 	@return Temporary file path, the file size, and an md5 digest.
 	"""
-	
 	# ian: todo: allow import by using a filename.
+
+	# Get the basepath for the current storage area
+	dkey = emen2.db.binary.Binary.parse('')
 
 	closefd = True
 	if hasattr(infile, "read"):
@@ -47,10 +49,6 @@ def write_file(infile, ctx=None, txn=None):
 		os.makedirs(dkey["basepath"])
 	except:
 		pass
-
-
-	# Get the basepath for the current storage area
-	dkey = emen2.db.binary.Binary.parse('')
 
 	# Write out file to temporary storage in the day's basepath
 	(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
@@ -71,7 +69,7 @@ def write_file(infile, ctx=None, txn=None):
 
 	md5sum = m.hexdigest()
 	print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	# g.log.msg('LOG_INFO', "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+	g.log.msg('LOG_INFO', "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
 
@@ -106,7 +104,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	def setContext(self, ctx=None):
 		super(Binary, self).setContext(ctx=ctx)
-
 		self.filepath = self.parse(self.name).get('filepath')
 
 		if self.isowner():
@@ -229,12 +226,10 @@ class BinaryBTree(emen2.db.btrees.DBOBTree):
 			basename = self.get_sequence(delta=len(newrecs), key=datekey, txn=txn)
 
 		for offset, newrec in enumerate(newrecs):
-			print offset, basename
 			dkey = emen2.db.binary.Binary.parse(name, counter=offset+basename)
-			print dkey
-			print "updating: %s -> %s"%(newrec.name, dkey['name'])
-			newrec.__dict__['name'] = dkey['name']
-		
+			newrec.__dict__['name'] = dkey['name']			
+			newrec.__dict__['filepath'] = dkey['filepath']
+
 		return {}
 			
 

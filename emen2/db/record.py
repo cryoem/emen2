@@ -11,6 +11,7 @@ import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
+import emen2.util.listops as listops
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -273,6 +274,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 	def validate(self, warning=False, vtm=None, t=None):
+		# Cut out any None's
+		pitems = self._params.items()
+		for k,v in pitems:
+			if not v and v != 0 and v != False:
+				del self._params[k]
+		
 		# Check the rectype and any required parameters
 		vtm, t = self._vtmtime(vtm=vtm, t=t)
 		cachekey = vtm.get_cache_key('recorddef', self.rectype)
@@ -394,7 +401,7 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 		recs = self.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
 		for rec in recs:
-			rec.setpermissions([[],[],[],[rec.creator]])
+			rec.setpermissions([[],[],[],[]])
 			if rec.parents and rec.children:
 				rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
 			elif rec.parents:
@@ -412,57 +419,45 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 		return self.cputs(crecs, ctx=ctx, txn=txn)	
 
 
-	def _filter_rectype(self, rectype, ctx=None, txn=None):
-		ret = set()
-		if not rectype:
-			return None
-		rectype = self.filter_names(rectype, ctx=ctx, txn=txn)
-		ind = self.getindex('rectype')
-		for key in rectype:
-			ret |= ind.get(key, txn=txn)
-		return ret
-		
-	
 	# This builds UP instead of prunes DOWN; filter does the opposite..
-	def names(self, ctx=None, txn=None):
+	def names(self, names=None, ctx=None, txn=None, **kwargs):
+		if names is not None:
+			return self._filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
+
 		if ctx.checkreadadmin():
-			return set(range(self.get_max(txn=txn))) #+1)) # Ed: Fixed an off by one error
+			return set(xrange(self.get_max(txn=txn)))
 
 		ind = self.getindex("permissions")
 		indg = self.getindex("groups")
 		ret = ind.get(ctx.username, set(), txn=txn)
-
 		for group in sorted(ctx.groups, reverse=True):
 			ret |= indg.get(group, set(), txn=txn)
 
 		return ret
 		
 		
+	def _filter(self, names, rectype=None, ctx=None, txn=None):
+		names = self.expand(names, ctx=ctx, txn=txn)
 
-	def filter(self, names, ctx=None, txn=None, **kwargs):
-		"""Filter"""	
-		
-		t = time.time()
-		rf = self._filter_rectype(kwargs.get('rectype', None), ctx=ctx, txn=txn)
+		if rectype:
+			ind = self.getindex('rectype')
+			# rdnames = self.bdbs.recorddef.expand(kwargs.get('rectype'), ctx=ctx, txn=txn)
+			rdnames = self.bdbs.recorddef.cgets(listops.check_iterable(rectype), ctx=ctx, txn=txn)
+			rd = set()
+			for i in rdnames:
+				rd |= ind.get(i.name, txn=txn)
+			names &= rd
 
 		if ctx.checkreadadmin():
-			if rf != None:
-				return set(names) & rf
-			return set(names)
-			
+			return names
 
 		# ian: indexes are now faster, generally...
 		if len(names) < 1000:
 			crecs = self.cgets(names, ctx=ctx, txn=txn)
-			if rf:
-				return set([i.name for i in crecs if i.rectype in rf])
 			return set([i.name for i in crecs])
-
 
 		# Make a copy
 		find = copy.copy(names)
-		if rf:
-			find &= rf
 
 		# Use the permissions/groups index
 		ind = self.getindex('permissions')
@@ -473,8 +468,6 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 			if find:
 				find -= indg.get(group, set(), txn=txn)
 
-
-		print time.time()-t
 		return names - find
 
 

@@ -13,7 +13,7 @@ class SessionError(KeyError):
     "Session Expired"
 
 class AuthenticationError(ValueError):
-    "Invalid Username or Password"
+    "Invalid Account Name or Password"
     
 class DisabledUserError(ValueError):
     "Disabled User"
@@ -21,6 +21,7 @@ class DisabledUserError(ValueError):
 class ValidationError(ValueError):
 	"""Validation Error"""
 
-
+class TimeError(Exception):
+	"""Operation timed out"""
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
