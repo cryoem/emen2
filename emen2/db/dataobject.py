@@ -6,6 +6,7 @@ import collections
 import copy
 import re
 import traceback
+import operator
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -396,10 +397,10 @@ class BaseDBObject(object, DictMixin):
 			return value
 
 		# Perform the actual validation
-		try:
-			v = vtm.validate(pd, value)
-		except Exception, inst:
-			self.error(inst, warning=warning)
+		#try:
+		v = vtm.validate(pd, value)
+		#except Exception, inst:
+		#	self.error(inst, warning=warning)
 
 		# Issue a warning if param changed during validation
 		if v != value:

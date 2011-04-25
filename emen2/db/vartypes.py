@@ -67,9 +67,8 @@ class Vartype(object):
 		self.showlabel = showlabel
 		self.markup = markup
 		self.table = table
-
 		if self.pd.get('immutable'):
-			self.edit = false
+			self.edit = False
 
 		# Process the value
 		value = self.process(value)
@@ -241,13 +240,13 @@ class vt_float(Vartype):
 	def process(self, value):
 		if value == None:
 			return ''
-		return "%0.2f"%value
+		return "%g"%value
 
 
 
-class vt_longfloat(vt_float):
-	"""double-precision floating-point"""
-	__metaclass__ = Vartype.register_view
+# class vt_longfloat(vt_float):
+# 	"""double-precision floating-point"""
+# 	__metaclass__ = Vartype.register_view
 
 
 
@@ -275,9 +274,9 @@ class vt_int(Vartype):
 
 
 
-class vt_longint(vt_int):
-	"""64-bit integer"""
-	__metaclass__ = Vartype.register_view
+# class vt_longint(vt_int):
+# 	"""64-bit integer"""
+# 	__metaclass__ = Vartype.register_view
 
 
 
@@ -818,8 +817,7 @@ class vt_userlist(vt_iter, Vartype):
 		for i in value:
 			key = self.engine.get_cache_key('displayname', i)
 			hit, dn = self.engine.check_cache(key)
-			dn = cgi.escape(dn)
-			
+			dn = cgi.escape(dn)			
 			if self.table or not self.markup:
 				lis.append(dn)
 			else:
@@ -861,7 +859,8 @@ class vt_acl(Vartype):
 		value = reduce(lambda x,y:x+y, value)
 		unames = {}
 		
-		for user in self.engine.db.getuser(value, lnf=True):
+		for user in self.engine.db.getuser(value):
+			user.getdisplayname(lnf=True)
 			unames[user.name] = user.displayname
 
 		levels=["Read","Comment","Write","Admin"]
@@ -1057,8 +1056,9 @@ def update_username_cache(engine, values):
 			to_cache.append(v)
 
 	if to_cache:
-		users = engine.db.getuser(to_cache, lnf=True, filt=True)
+		users = engine.db.getuser(to_cache, filt=True)
 		for user in users:
+			user.getdisplayname(lnf=True)
 			key = engine.get_cache_key('displayname', user.name)
 			engine.store(key, user.displayname)
 

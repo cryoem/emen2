@@ -70,3 +70,30 @@ def convert_bdorecid(db):
 				print "Failed:", i
 			
 			
+
+
+# vtm = emen2.db.datatypes.VartypeManager()
+# 
+# propfix = {
+# }
+# import collections
+# ret = collections.defaultdict(set)
+# 
+# with db:
+# 	for pd in db.getparamdef(db.getparamdefnames()):
+# 
+# 		if pd.property and pd.property != 'None':
+# 			prop = vtm.getproperty(pd.property)
+# 			if pd.defaultunits and pd.defaultunits not in prop.units:
+# 				print pd.name, pd.defaultunits, prop.units
+# 				ret[pd.property].add(pd.defaultunits)
+# 
+# 		# if pd.defaultunits:
+# 		# 	print pd.name, pd.defaultunits, pd.property			
+# 		#if pd.property or pd.defaultunits:
+# 		#	print pd.name, pd.property, pd.defaultunits
+# 
+# 
+# print "------"
+# for k,v in ret.items():
+# 	print k, v

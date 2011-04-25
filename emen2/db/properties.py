@@ -292,7 +292,6 @@ class Property(object):
 	def convert(self, value, units, target):
 		units = equivs.get(units, units)
 		target = equivs.get(target, target)	
-		print "units/target:", units, target
 		if not units or units == target:
 			self.check_bounds(value, target)
 			return value
@@ -307,7 +306,7 @@ class Property(object):
 		print "value/units/target", value, units, target
 		v = mg.mg(value, units, ounit=target)
 		# Check for dimensionless conversions...
-		if v.dimensionless:
+		if v.dimensionless():
 			self.error(units, target, msg='dimensionless property')		
 		return v.toval()
 
@@ -493,7 +492,7 @@ class prop_current(Property):
 class prop_filesize(Property):
 	__metaclass__ = Property.register_view
 	defaultunits = 'B'
-	units = ['bytes', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
+	units = ['B', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
 
 
 		
@@ -568,7 +567,6 @@ class prop_count(Property):
 	units = ['count', 'pixel']
 
 
-		
 
 
 class prop_bfactor(Property):

@@ -77,12 +77,17 @@ class RootResource(Resource):
 
 
 def inithttpd():
+	# Load EMEN2 Twisted Resources
 	import emen2.web.resources.uploadresource
 	import emen2.web.resources.downloadresource
 	import emen2.web.resources.publicresource
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
 
+	# This has to go first for metaclasses to register before the templates are cached.
+	import emen2.db.database
+
+	# Load views and templates
 	import emen2.web.views
 	import emen2.web.view
 	import emen2.web.viewloader

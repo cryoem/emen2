@@ -327,7 +327,7 @@ class BTree(object):
 		if d:
 			return d
 		if not filt:
-			raise KeyError, "No such key %s"%(key)				
+			raise KeyError, "No such key %s"%(key)
 		return default
 
 
@@ -401,7 +401,11 @@ class BTree(object):
 
 
 	def update_sequence(self, items, txn=None):
-		return {}
+		namemap = {}
+		for i in items:
+			if not self.exists(i.name, txn=txn):
+				namemap[i.name] = i.name
+		return namemap
 
 
 
@@ -708,8 +712,7 @@ class DBOBTree(BTree):
 	
 	def cputs(self, items, clone=False, commit=True, indexonly=False, ctx=None, txn=None):
 		t = emen2.db.database.gettime()
-		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)		
 		# Return values
 		crecs = []
 
@@ -727,14 +730,12 @@ class DBOBTree(BTree):
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
-			except Exception, inst: # AttributeError, KeyError: 
-				print inst
-				#AttributeError might have been raised if the key was the wrong type
+			except Exception, inst: 
+				# AttributeError, KeyError
+				# AttributeError might have been raised if the key was the wrong type
 				p = dict((k,updrec.get(k)) for k in self.typedata.param_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
-
-			print orec
 
 			# Update the item.
 			cp |= orec.update(updrec, clone=clone, vtm=vtm, t=t)			
@@ -750,7 +751,7 @@ class DBOBTree(BTree):
 			return crecs
 		
 		# Assign new names based on the DB sequence.
-		namemap = self.update_sequence(crecs, txn=txn) # ctx=ctx may be added in the future
+		namemap = self.update_sequence(crecs, txn=txn)
 
 		# Calculate all changed indexes
 		self.reindex(crecs, indexonly=indexonly, namemap=namemap, ctx=ctx, txn=txn)

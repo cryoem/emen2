@@ -18,14 +18,29 @@
 			this.bindall();
 		},
 
-		connect_buttons: function() {
-			var self=this;
-			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
-		},
-
 		bindall: function() {
 			var self=this;
-			this.connect_buttons();		
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
+			
+			$('select[name=property]', this.element).change(function() {
+				var val = $(this).val();
+				var sel = $('select[name=defaultunits]', this.element);
+				sel.empty();
+				if (!val) {
+					return
+				}
+
+				var defaultunits = valid_properties[val][0];
+				
+
+				var units = valid_properties[val][1];
+				$.each(units, function() {
+					var opt = $('<option value="'+this+'">'+this+'</option>');
+					sel.append(opt);
+				});
+				sel.val(defaultunits);				
+			});
+			
 		},
 
 		event_save: function(e) {
@@ -37,17 +52,14 @@
 			this.pd = this.getvalues();
 			$('.spinner', this.options.ext_save).show();
 			
-			var args = [this.pd];
 			if (this.options.newdef) {
-				args = [this.pd, this.options.parents];
+				this.pd['parents'] = this.options.parents;
+				// args = [this.pd, this.options.parents];
 			}
-
-			$.jsonRPC("putparamdef", args, function(data){
+			$.jsonRPC("putparamdef", [this.pd], function(data){
 				$('.spinner', self.options.ext_save).hide();
 				notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
 			});
-
-
 		},
 
 		getvalues: function() {
@@ -55,16 +67,28 @@
 			pd["name"] = $("input[name='name']", this.element).val();
 			pd["desc_short"] = $("input[name='desc_short']",this.element).val();
 			pd["desc_long"] = $("textarea[name='desc_long']",this.element).val();
-			pd["vartype"] = $("select[name='vartype']",this.element).val();
-			pd["property"] = $("select[name='property']",this.element).val();
-			pd["defaultunits"] = $("select[name='defaultunits']",this.element).val();
 			pd["choices"] = [];
-
 			$("input[name=choices]",this.element).each(function(){
 				if ($(this).val()) {
 					pd["choices"].push($(this).val());
 				}
 			});
+			
+			var vartype = $("select[name='vartype']",this.element);
+			if (vartype) {pd["vartype"] = vartype.val()} 
+
+			var property = $("select[name='property']",this.element);
+			if (property) {pd["property"] = property.val()}
+			
+			var defaultunits = $("select[name='defaultunits']",this.element);
+			if (defaultunits) {pd["defaultunits"] = defaultunits.val()}
+			
+			var indexed = $("input[name='indexed']",this.element);
+			if (indexed) {pd["indexed"] = indexed.attr('checked')}
+			
+			var immutable = $("input[name='immutable']",this.element);
+			if (immutable) {pd['immutable'] = immutable.attr('checked')}
+			
 			return pd
 		},
 							
@@ -105,15 +129,10 @@
 			this.getvalues();
 		},
 	
-		connect_buttons: function() {
-			var self=this;
-			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
-		},
-	
 		bindall: function() {
 			var self=this;
 	
-			this.connect_buttons();
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
 		
 			$("#button_recdefviews_new", this.element).bind("click",function(e){self.event_addview(e)});
 		

@@ -150,12 +150,12 @@ function bind_autocomplete(elem, param) {
 
 			$(this.options.selector).each(function() {
 				var t = $(this);
-				try {
-					t.EditControl({});
-					t.EditControl('hide');
-					t.EditControl('show', 0);
-				} catch(e) {
-				}
+				//try {
+				t.EditControl({});
+				t.EditControl('hide');
+				t.EditControl('show', 0);
+				// } catch(e) {
+				// }
 			});
 
 			this.element.hide();

@@ -40,14 +40,14 @@ except:
 
 
 # EMEN2 Imports
-import emen2.db.proxy
-import emen2.db.validators
-import emen2.db.dataobject
-import emen2.db.datatypes
 import emen2.db.datatypes
 import emen2.db.vartypes
 import emen2.db.properties
 import emen2.db.macros
+
+import emen2.db.proxy
+import emen2.db.validators
+import emen2.db.dataobject
 
 # DBObjects
 import emen2.db.record
@@ -758,6 +758,7 @@ class DB(object):
 				params |= set(rd.paramsK)
 			for i in recs:
 				params |= set(i.keys())
+		print "found paramdef names:", params
 		return params
 		
 		
@@ -1649,7 +1650,6 @@ class DB(object):
 			
 	###############################
 	# Other query methods
-	# ian: todo: move these to the BTree.find methods
 	###############################			
 
 	def _boolmode_collapse(self, rets, boolmode):
@@ -2083,7 +2083,7 @@ class DB(object):
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
 		
 		# Default params
-		builtinparams = set(["name","rectype","comments","creator","creationtime","modifyuser", "modifytime", "permissions", "history", "groups"])
+		builtinparams = set() | emen2.db.record.Record.param_all
 		builtinparamsshow = builtinparams - set(["permissions", "comments", "history", "groups"])
 
 		# Get and pre-process views
@@ -2315,26 +2315,14 @@ class DB(object):
 
 	@publicmethod("user.get")
 	@ol('names')
-	def getuser(self, names, filt=True, lnf=False, ctx=None, txn=None):
+	def getuser(self, names, filt=True, ctx=None, txn=None):
 		"""Get user information. Information may be limited to name and id if the user
 		requested privacy.
 		@param names User name(s), Record(s), or Record name(s)
 		@keyparam filt Ignore failures
-		@keyparam lnf Get user 'display name' as Last Name First (default=False)
 		@return User(s)
 		"""		
-
-		#@action (includes by email)
-		users = self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
-
-		#@postprocess
-		ind = self.bdbs.group.getindex('permissions')
-		for user in users:
-			groups = ind.get(user.name, set(), txn=txn)
-			user._set('groups', groups, True)
-			rec = self.bdbs.record.cget(user.record, ctx=ctx, txn=txn)
-			user.getdisplayname(lnf=lnf, record=rec)
-		return users
+		return self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
 		
 
 	@publicmethod("user.names")
@@ -2972,10 +2960,7 @@ class DB(object):
 	# This method is for compatibility with the web interface widget..
 	@publicmethod("record.setpermissions_compat", write=True)
 	@ol('names')
-	def setpermissions(self, names, permissions, groups,
-			recurse=None, overwrite_users=None, overwrite_groups=None,
-			reassign=False, addusers=None, addgroups=None, delusers=None, delgroups=None,
-			ctx=None, txn=None):
+	def setpermissions(self, names, permissions, groups, recurse=None, overwrite_users=False, overwrite_groups=False, ctx=None, txn=None):
 
 		"""Legacy permissions method.
 		@param names Record(s)
@@ -2987,11 +2972,28 @@ class DB(object):
 		@keyparam delgroups
 		"""
 
-		recs = self.bdbs.getrecord(names, ctx=ctx, txn=txn)
-
 		allusers = set()
 		for i in permissions:
 			allusers |= set(i)
+
+		groups = set(groups or [])
+		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+		for rec in recs:
+			current = rec.members()
+			addusers = allusers - current
+			delusers = current - allusers
+			addgroups = groups - rec.groups
+			delgroups = rec.groups - groups
+			
+			print "record %s:"%rec.name
+			print "current:", current
+			print "allusers:", allusers
+			print "addusers:", addusers
+			print "delusers:", delusers
+			print "addgroups:", addgroups
+			print "delgroups:", delgroups
+		
+		
 		
 
 

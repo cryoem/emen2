@@ -27,9 +27,9 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	@attr indexed If the vartype allows it, turn indexing on/off. Default is on.
 	"""
 
-	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(["immutable", "desc_long", "desc_short", "choices", "vartype", "defaultunits", "property", "indexed"])
+	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(['immutable', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed'])
 	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
-	param_required = set(['vartype'])
+	param_required = set(['vartype', 'property'])
 
 
 	def init(self, d):
@@ -92,6 +92,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		return self._set('indexed', bool(value), self._ctx.checkadmin())
 
 
+	# These can't be changed, it would disrupt the meaning of existing Records.	
 	def _set_vartype(self, key, value, warning=False, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
@@ -99,10 +100,10 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		if value not in vtm.getvartypes():
 			self.error("Invalid vartype: %s"%value)
 
-		if self.vartype != value:
-			g.log.msg("LOG_CRITICAL","Warning! Vartype for %s changed from %s to %s. You may need to reindex!"%(self.name, self.vartype, value))
+		if self.vartype and self.vartype != value:
+			self.error("Cannot change vartype from %s to %s. You will need to use import/export tools."%(self.vartype, value))
 
-		return self._set('vartype', value, self._ctx.checkadmin())
+		return self._set('vartype', value)
 
 
 	def _set_property(self, key, value, warning=False, vtm=None, t=None):
@@ -113,36 +114,37 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		if value != None and value not in vtm.getproperties():
 			self.error("Invalid property: %s"%value)
 
-		if self.property != value:
-			g.log.msg("LOG_CRITICAL","Warning! Property for %s changed from %s to %s. You may need to reindex!"%(self.name, self.property, value))		
+		if self.property and self.property != value:
+			self.error("Cannot change property from %s to %s. You will need to use import/export tools."%(self.property, value))	
 
-		return self._set('property', value, self._ctx.checkadmin())
+		return self._set('property', value)
 
 		
 	def _set_defaultunits(self, key, value, warning=False, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)		
 		value = unicode(value or '') or None
-		
+
 		# Allow unsetting of defaultunits (skip this check)
 		# Check that these are valid units..
 		if value:		
 			try:
-				value = emen2.db.magnitude.equivs.get(value, value)
-				m = emen2.db.magnitude.mg(0, value)
-			except:
-				self.error("Invalid units: %s"%value)
-
-			try:
 				prop = vtm.getproperty(self.property)	
 			except:
 				self.error("Cannot set defaultunits without a property!")
+
+			#try:
+			value = emen2.db.properties.equivs.get(value, value)
+			m = emen2.db.magnitude.mg(0, value)
+			#except:
+			#	self.error("Invalid units: %s"%value)
+
 			
 			# Allow this to pass if warning=True
 			if value not in prop.units:
 				self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
-		if self.defaultunits != value:
-			g.log.msg("LOG_CRITICAL","Warning! Defaultunits for %s changed from %s to %s. You may need to reindex!"%(self.name, self.defaultunits, value))		
+		if self.defaultunits and self.defaultunits != value:
+			self.error("Cannot change defaultunits from %s to %s. You will need to use import/export tools."%(self.defaultunits, value))
 
 		return self._set('defaultunits', value, self._ctx.checkadmin())
 
