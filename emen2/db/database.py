@@ -1675,7 +1675,7 @@ class DB(object):
 		@keyparam boolmode AND / OR for each search constraint
 		@return RecordDefs
 		"""
-		return self._find_pdrd(*args, **kwargs)
+		return self._find_pdrd(keytype='recorddef', *args, **kwargs)
 
 
 	@publicmethod("paramdef.find")
@@ -1691,14 +1691,13 @@ class DB(object):
 		@keyparam boolmode AND / OR for each search constraint
 		@return RecordDefs
 		"""
-		return self._find_pdrd(*args, **kwargs)
+		return self._find_pdrd(keytype='paramdef', *args, **kwargs)
 
 
-	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, vartype=None, ctx=None, txn=None, **qp):
+	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
-		rets = []
-		
+		rets = []		
 		# This can still be done much better
 		names = self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
 		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
@@ -1721,6 +1720,13 @@ class DB(object):
 				if item.vartype in vartype:
 					ret.add(item.name)
 			rets.append(ret)			
+
+		if record:
+			if keytype == 'recorddef':
+				rets.append(self._findrecorddefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
+			elif keytype == 'paramdef':
+				rets.append(self._findparamdefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
+					
 			
 		allret = self._boolmode_collapse(rets, boolmode)
 		ret = map(ditems.get, allret)

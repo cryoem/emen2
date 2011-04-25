@@ -782,14 +782,15 @@ function bind_autocomplete(elem, param) {
 
 
 			var self = this;
-			$.jsonRPC("findrecorddef", [this.options.name], function(rd) {
-
+			$.jsonRPC("findrecorddef", {'record':[this.options.name]}, function(rd) {
+				var typicalchld = [];
 				$.each(rd, function() {
 					self.rectype = this.name;
 					caches["recorddefs"][this.name] = this;
+					typicalchld = this.typicalchld;					
 				});
 				
-				$.jsonRPC("getrecorddef", [rd.typicalchld], function(rd2) {
+				$.jsonRPC("getrecorddef", [typicalchld], function(rd2) {
 					$.each(rd2, function() {
 						caches["recorddefs"][this.name] = this;
 					})
