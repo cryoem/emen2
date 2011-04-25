@@ -2961,15 +2961,13 @@ class DB(object):
 	@publicmethod("record.setpermissions_compat", write=True)
 	@ol('names')
 	def setpermissions(self, names, permissions, groups, recurse=None, overwrite_users=False, overwrite_groups=False, ctx=None, txn=None):
-
-		"""Legacy permissions method.
-		@param names Record(s)
-		@param umask Add permissions mask
+		"""Update a Record's permissions.
+		@param names Record name(s)
+		@param permissions
+		@param groups
 		@keyparam recurse
-		@keyparam reassign
-		@keyparam delusers
-		@keyparam addgroups
-		@keyparam delgroups
+		@keyparam overwrite_users
+		@keyparam overwrite_groups
 		"""
 
 		allusers = set()
@@ -3023,8 +3021,15 @@ class DB(object):
 
 	# def putbinary(self, name=None, record=None, filename=None, infile=None, clone=False, ctx=None, txn=None):
 	@publicmethod("binary.put", write=True)
-	def putbinary(self, item, filename=None, infile=None, clone=False, record=None, param='file_binary', ctx=None, txn=None):
-		"""Note: This currently only takes a single item."""
+	def putbinary(self, item, infile=None, filename=None, clone=False, record=None, param='file_binary', ctx=None, txn=None):
+		"""Add or update a Binary (file attachment).		
+		Note: This currently only takes a single item.
+		@param item Binary or dictionary
+		@keyparam infile File-like object or string containing the data for a new Binary
+		@keyparam filename ... the filename to use
+		@keyparam record ... the Record name, or new Record, to use
+		@keyparam param ... Record param to use for the reference to the Binary name
+		"""
 
 		# Preprocess
 		if not item:

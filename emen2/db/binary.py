@@ -10,7 +10,6 @@ import os
 import shutil
 import hashlib
 import cStringIO
-import md5
 import tempfile
 
 import emen2.db.btrees

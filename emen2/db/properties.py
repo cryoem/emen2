@@ -207,27 +207,31 @@ for name, abbr in equivs.items():
 #	print k,v
 
 
-# Some additional units
+# Structural biology units: Angstrom and Dalton
 mg.new_mag(u'Å', mg.Magnitude(1e-10, m=1))
-mg.new_mag('pixel', mg.Magnitude(1.0))
-mg.new_mag('count', mg.Magnitude(1.0))
-mg.new_mag('degF', mg.Magnitude(1.0))
-
-mg.new_mag('mile', mg.mg(160934.4, 'cm'))
-mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
-
-mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
-
 mg.new_mag('Da', mg.Magnitude(1.6605402e-27, kg=1))
 
+
+# Unitless
+mg.new_mag('pixel', mg.Magnitude(1.0))
+mg.new_mag('count', mg.Magnitude(1.0))
 mg.new_mag('unitless', mg.Magnitude(1))
 mg.new_mag('%RH', mg.Magnitude(1))
 mg.new_mag('%RH', mg.Magnitude(1))
 mg.new_mag('%T', mg.Magnitude(1))
 mg.new_mag('%', mg.Magnitude(1))
-
-mg.new_mag('degree', mg.Magnitude(1))
 mg.new_mag('pfu', mg.Magnitude(1))
+
+
+# Non-SI Units
+mg.new_mag('degF', mg.Magnitude(1.0))
+mg.new_mag('mile', mg.mg(160934.4, 'cm'))
+mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
+mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
+mg.new_mag('degree', mg.Magnitude(1))
+
+
+
 
 
 
