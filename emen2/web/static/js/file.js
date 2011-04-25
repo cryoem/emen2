@@ -56,13 +56,13 @@
 			var self = this;
 			this.tablearea.empty();
 			this.tablearea.append('<div>Loading...</div>');
-			$.jsonRPC("getparamdef", [[this.options.name]], function(paramdefs) {
+			$.jsonRPC("findparamdef", {'record':this.options.name}, function(paramdefs) {
 			
 				$.each(paramdefs, function() {
 					caches["paramdefs"][this.name] = this;
 				});
 			
-				$.jsonRPC("getbinary", [[self.options.name]], 
+				$.jsonRPC("findbinary", {'record':self.options.name}, 
 					function(bdos) {
 						if (bdos == null) {bdos=[]}
 						if (bdos.length == null) {bdos=[bdos]}

@@ -126,7 +126,7 @@
 			var self=this;		
 			d.click(function(e){self.event_select(e)});
 			if (user.userrec["person_photo"]) {
-				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Profile Photo" />');
+				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Photo" />');
 			} else {
 				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="No Photo" />');			
 			}

@@ -547,7 +547,7 @@ class IndexBTree(BTree):
 		pair = cursor.first()
 		while pair != None:
 			data = self._get_method(cursor, pair[0], self.datatype)
-			if bulk and dt == "p":
+			if bulk and self.datatype == "p":
 				data = set(map(self.loaddata, data))
 			ret.append((self.loadkey(pair[0]), data))
 			pair = cursor.next_nodup()

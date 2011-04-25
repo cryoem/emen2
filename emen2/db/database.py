@@ -1652,35 +1652,49 @@ class DB(object):
 	# ian: todo: move these to the BTree.find methods
 	###############################			
 
+	def _boolmode_collapse(self, rets, boolmode):
+		if not rets:
+			rets = [set()]
+		if boolmode == 'AND':
+			allret = reduce(set.intersection, rets)
+		elif boolmode == 'OR':
+			allret = reduce(set.union, rets)
+		return allret
+		
+
 	@publicmethod("recorddef.find")
-	def findrecorddef(self, query, *args, **kwargs):
+	def findrecorddef(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
 		@param query Contained in any item below
 		@keyparam name ... contains in name
 		@keyparam desc_short ... contains in short description
 		@keyparam desc_long ... contains in long description
 		@keyparam mainview ... contains in mainview
+		@keyparam record Referenced in Record name(s)
 		@keyparam limit Limit number of results
+		@keyparam boolmode AND / OR for each search constraint
 		@return RecordDefs
 		"""
 		return self._find_pdrd(*args, **kwargs)
 
 
 	@publicmethod("paramdef.find")
-	def findparamdef(self, query, *args, **kwargs):
+	def findparamdef(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
 		@param query Contained in any item below
 		@keyparam name ... contains in name
 		@keyparam desc_short ... contains in short description
 		@keyparam desc_long ... contains in long description
-		@keyparam vartype Vartype(s)
+		@keyparam vartype ... is of vartype(s)
+		@keyparam record Referenced in Record name(s)
 		@keyparam limit Limit number of results
+		@keyparam boolmode AND / OR for each search constraint
 		@return RecordDefs
 		"""
-		return self._find_pdrd(query, *args, **kwargs)
+		return self._find_pdrd(*args, **kwargs)
 
 
-	def _find_pdrd(self, query, childof=None, boolmode="AND", keytype="paramdef", limit=None, vartype=None, ctx=None, txn=None, **qp):
+	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
 		rets = []
@@ -1707,14 +1721,8 @@ class DB(object):
 				if item.vartype in vartype:
 					ret.add(item.name)
 			rets.append(ret)			
-
-		if not rets:
-			rets = [set()]
-		if boolmode == 'AND':
-			allret = reduce(set.intersection, rets)
-		elif boolmode == 'OR':
-			allret = reduce(set.union, rets)
-
+			
+		allret = self._boolmode_collapse(rets, boolmode)
 		ret = map(ditems.get, allret)
 
 		if limit:
@@ -1723,15 +1731,17 @@ class DB(object):
 
 
 	@publicmethod("user.find")
-	def finduser(self, query, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
+	def finduser(self, query=None, record=None, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
-		@param query Contained in any item below
+		@keyparam query Contained in any item below
 		@keyparam email ... contains in email
 		@keyparam name_first ... contains in first name
 		@keyparam name_middle ... contains in middle name
 		@keyparam name_last ... contains in last name
 		@keyparam name ... contains in user name
+		@keyparam record Referenced in Record name(s)
 		@keyparam limit Limit number of results
+		@keyparam boolmode AND / OR for each search constraint
 		@return Users
 		"""
 		rets = []
@@ -1764,68 +1774,106 @@ class DB(object):
 					ret.add(i)
 			rets.append(ret)
 		
-		if not rets:
-			rets = [set()]
-		if boolmode == 'AND':
-			allret = reduce(set.intersection, rets)
-		elif boolmode == 'OR':
-			allret = reduce(set.union, rets)
+		if record:
+			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'userlist'], ctx=ctx, txn=txn)
+			rets.append(ret)
 		
-		return self.bdbs.user.cgets(allret, ctx=ctx, txn=txn)
+		allret = self._boolmode_collapse(rets, boolmode)
+		return self.getuser(allret, ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.find")
-	def findgroup(self, query, limit=None, ctx=None, txn=None):
+	def findgroup(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None):
 		"""Find a group.
-		@param query
-		@keyparam limit Limit number of items
+		@keyparam query Find in Group's name or displayname
+		@keyparam record Referenced in Record name(s)
+		@keyparam limit Limit number of results
+		@keyparam boolmode AND / OR for each search constraint
 		@return Groups
 		"""
-		built_in = set(["anon","authenticated","create","readadmin","admin"])
+		rets = []
 
-		groups = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-		search_keys = ["name", "displayname"]
-		ret = []
+		# No real indexes yet (small). Just get everything and sort directly.
+		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+		ditems = listops.dictbykey(items, 'name')
 
-		for v in groups:
-			if any([query in v.get(search_key, "") for search_key in search_keys]):
-				ret.append([v, v.get('displayname', v.name)])
+		query = unicode(query or '').split()
+		# empty set.. do this only for groups, for now.
+		if not query:
+			query = ['']
+			
+		for q in query:
+			ret = set()
+			for item in items:
+				# Search these params
+				for param in ['name', 'displayname']:
+					if q in item.get(param, ''):
+						ret.add(item.name)
+			rets.append(ret)
+			
+		if record:
+			ret = self._findbyvartype(listops.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
+			rets.append(set(ret))
 
-		ret = sorted(ret, key=operator.itemgetter(1))
-		ret = [i[0] for i in ret]
+		allret = self._boolmode_collapse(rets, boolmode)
+		ret = map(ditems.get, allret)
 
-		if limit: ret = ret[:int(limit)]
+		if limit:
+			return ret[:int(limit)]
 		return ret
 
 
+	# Warning: This can be SLOW! It needs an index-index.
 	@publicmethod("binary.find")
-	def findbinary(self, query=None, limit=None, ctx=None, txn=None):
+	def findbinary(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None, **kwargs):
 		"""Find a binary by filename.
-		@param query Match any field
+		@keyparam query Contained in any item below
+		@keyparam name ... Binary name
+		@keyparam filename ... filename
+		@keyparam record Referenced in Record name(s)
 		@keyparam limit Limit number of results
+		@keyparam boolmode AND / OR for each search constraint (default: AND)
 		@return Binaries
 		"""
-		if limit: limit=int(limit)
+		
+		# @keyparam min_filesize
+		# @keyparam max_filesize
 
-		ind = self.bdbs.binary.getindex('filename')
-		qbins = ind.get(query, txn=txn) or []
+		def searchfilenames(filename, txn):
+			ind = self.bdbs.binary.getindex('filename')
+			ret = set()
+			keys = (f for f in ind.keys(txn=txn) if filename in f)
+			for key in keys:
+				ret |= ind.get(key, txn=txn)
+			return ret			
 
-		qfunc = lambda x:query in x
-		if broad:
-			qfunc = lambda x:query in x or x in query
+		rets = []		
+		# This would probably work better if we used the sequencedb keys as a first step
+		if query or kwargs.get('name'):
+			names = self.bdbs.binary.names(ctx=ctx, txn=txn)
 
-		if not qbins:
-			matches = filter(qfunc, ind.keys(txn))
-			if matches:
-				for i in matches:
-					qbins.extend(ind.get(i))
+		query = unicode(query or '').split()
+		for q in query:
+			ret = set()
+			ret |= set(name for name in names if q in name)
+			ret |= searchfilenames(q, txn=txn)
+		
+		if kwargs.get('filename'):
+			rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
+		
+		if kwargs.get('name'):
+			rets.append(set(name for name in names if q in name))
 
-		bins = self.bdbs.binary.cgets(qbins, ctx=ctx, txn=txn)
-		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
+		if record:
+			ret = self._findbyvartype(listops.check_iterable(record), ['binary', 'binaryimage'], ctx=ctx, txn=txn)
+			rets.append(ret)
+
+		allret = self._boolmode_collapse(rets, boolmode)
+		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
 
 		if limit:
-			return bins[:int(limit)]
-		return bins
+			return ret[:int(limit)]
+		return ret
 			
 			
 	# query should replace this... also, make two methods instead of changing return format
@@ -2270,9 +2318,6 @@ class DB(object):
 		@return User(s)
 		"""		
 
-		#@preprocess
-		names = self._findbyvartype(names, ['user', 'userlist'], ctx=ctx, txn=txn)
-
 		#@action (includes by email)
 		users = self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
@@ -2694,9 +2739,6 @@ class DB(object):
 	@publicmethod("paramdef.names")
 	def getparamdefnames(self, names=None, ctx=None, txn=None):
 		"""@return Set of all ParamDef names."""
-		#@preprocess
-		names = self._findparamdefnames(names, ctx=ctx, txn=txn)
-		#@action		
 		return self.bdbs.paramdef.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2737,9 +2779,6 @@ class DB(object):
 		@keyparam filt Ignore failures
 		@return RecordDef(s)
 		"""
-		#@preprocess
-		names = self._findrecorddefnames(names, ctx=ctx, txn=txn)
-		#@action
 		return self.bdbs.recorddef.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
@@ -2963,11 +3002,6 @@ class DB(object):
 		@return Binary(s)
 		@exception KeyError if Binary not found, SecurityError if insufficient permissions
 		"""
-
-		#@preprocess
-		names = self._findbyvartype(names, ['binary', 'binaryimage'], ctx=None, txn=None)
-
-		#@action
 		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
