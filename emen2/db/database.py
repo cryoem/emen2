@@ -1140,7 +1140,6 @@ class DB(object):
 			**kwargs):
 		"""Query"""
 
-
 		############################
 		# Setup
 		times = {}
@@ -1201,7 +1200,6 @@ class DB(object):
 			constraintmatches = self._query(searchparam, comp, value, names=names, recs=recs, ctx=ctx, txn=txn)
 			if constraintmatches != None:
 				getattr(names, boolops[boolmode])(constraintmatches)
-
 
 
 		############################				
@@ -1507,12 +1505,14 @@ class DB(object):
 
 		# Ian: todo: if the vartype is iterable,
 		#	then we can't trust the index to get the search order right!
-		if sortkey in [i[0] for i in c] and not iterable:
-			# Do we already have these values?
-			for name in names:
-				sortvalues[name] = recs[name].get(sortkey)
 
-		elif sortkey.startswith('$@'):
+		# ian: this can't be trustedif boolmode is 'OR'
+		#if sortkey in [i[0] for i in c] and not iterable:
+		#	# Do we already have these values?
+		#	for name in names:
+		#		sortvalues[name] = recs[name].get(sortkey)
+
+		if sortkey.startswith('$@'):
 			# Sort using a macro, and get the right sort function
 			keytype, sortvalues = self._run_macro(sortkey, names, ctx=ctx, txn=txn)
 			for k,v in sortvalues.items():
@@ -1653,114 +1653,79 @@ class DB(object):
 	###############################			
 
 	@publicmethod("recorddef.find")
-	def findrecorddef(self, query=None, name=None, desc_short=None, desc_long=None, mainview=None, limit=None, ctx=None, txn=None):
-		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview/childof.
-		@keyparam query Contained in any item below
+	def findrecorddef(self, query, *args, **kwargs):
+		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
+		@param query Contained in any item below
 		@keyparam name ... contains in name
 		@keyparam desc_short ... contains in short description
 		@keyparam desc_long ... contains in long description
 		@keyparam mainview ... contains in mainview
-		@keyparam childof ... is child of
 		@keyparam limit Limit number of results
 		@return RecordDefs
 		"""
-		return self._find_pd_or_rd(query=query, keytype='recorddef', limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, mainview=mainview)
+		return self._find_pdrd(*args, **kwargs)
 
 
 	@publicmethod("paramdef.find")
-	def findparamdef(self, query=None, name=None, desc_short=None, desc_long=None, vartype=None, limit=None, ctx=None, txn=None):
-		"""@see findrecorddef"""
-		return self._find_pd_or_rd(query=query, keytype='paramdef', context=context, limit=limit, ctx=ctx, txn=txn, name=name, desc_short=desc_short, desc_long=desc_long, vartype=vartype, childof=childof)
+	def findparamdef(self, query, *args, **kwargs):
+		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
+		@param query Contained in any item below
+		@keyparam name ... contains in name
+		@keyparam desc_short ... contains in short description
+		@keyparam desc_long ... contains in long description
+		@keyparam vartype Vartype(s)
+		@keyparam limit Limit number of results
+		@return RecordDefs
+		"""
+		return self._find_pdrd(query, *args, **kwargs)
 
 
-	def _find_pd_or_rd(self, childof=None, boolmode="OR", keytype="paramdef", context=False, limit=None, vartype=None, ctx=None, txn=None, **qp):
+	def _find_pdrd(self, query, childof=None, boolmode="AND", keytype="paramdef", limit=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 
-		# context of where query was found
-		c = {}
-
-		getnames = self.bdbs.keytypes[keytype].names
-		getitems = self.bdbs.keytypes[keytype].cgets
-
-		if qp.get("query"):
-			for k in qp.keys():
-				qp[k]=qp["query"]
-			del qp["query"]
-
-
-		rdnames = getnames(ctx=ctx, txn=txn)
-
-		# ian: will there be a faster way to do this?
-		rds2 = getitems(rdnames, filt=True, ctx=ctx, txn=txn) or []
-		p2 = []
-
-		qp = listops.filter_dict_none(qp)
+		rets = []
 		
-		for i in rds2:
-			qt = []
-			for k,v in qp.items():
-				qt.append(self._findqueryinstr(v, i.get(k)))
+		# This can still be done much better
+		names = self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
+		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		ditems = listops.dictbykey(items, 'name')
 
-			if boolmode == "OR":
-				if any(qt):
-					p2.append(i)
-					c[i.name] = filter(None, qt).pop()
-			else:
-				if all(qt):
-					p2.append(i)
-					c[i.name] = filter(None, qt).pop()
-
-		if childof:
-			children = self.bdbs.keytypes[keytype].rel([childof], recurse=-1, ctx=ctx, txn=txn).get('childof', set())
-			names = set(c.keys()) & children
-			p2 = filter(lambda x:x.name in names, p2)
-			c = dict(filter(lambda x:x[0] in names, c.items()))
-			
+		query = unicode(query or '').split()
+		for q in query:
+			ret = set()
+			# Search some text-y fields
+			for param in ['name', 'desc_short', 'desc_long', 'mainview']:
+				for item in items:
+					if q in unicode(item.get(param) or ''):
+						ret.add(item.name)
+			rets.append(ret)
 
 		if vartype:
+			ret = set()
 			vartype = listops.check_iterable(vartype)
-			p2 = filter(lambda x:x.vartype in vartype, p2)	
+			for item in items:
+				if item.vartype in vartype:
+					ret.add(item.name)
+			rets.append(ret)			
 
+		if not rets:
+			rets = [set()]
+		if boolmode == 'AND':
+			allret = reduce(set.intersection, rets)
+		elif boolmode == 'OR':
+			allret = reduce(set.union, rets)
 
-		if context:
-			return p2, c
+		ret = map(ditems.get, allret)
 
-		return p2
-
-
-	@publicmethod("binary.find")
-	def findbinary(self, query=None, limit=None, ctx=None, txn=None):
-		"""Find a binary by filename.
-		@keyparam query Match any field
-		@keyparam limit Limit number of results
-		@return Binaries
-		"""
-		if limit: limit=int(limit)
-
-		ind = self.bdbs.binary.getindex('filename')
-		qbins = ind.get(query, txn=txn) or []
-
-		qfunc = lambda x:query in x
-		if broad:
-			qfunc = lambda x:query in x or x in query
-
-		if not qbins:
-			matches = filter(qfunc, ind.keys(txn))
-			if matches:
-				for i in matches:
-					qbins.extend(ind.get(i))
-
-		bins = self.bdbs.binary.cgets(qbins, ctx=ctx, txn=txn)
-		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
-
-		if limit: bins = bins[:int(limit)]
-		return bins
+		if limit:
+			return ret[:int(limit)]
+		return ret
 
 
 	@publicmethod("user.find")
-	def finduser(self, query=None, email=None, name_first=None, name_middle=None, name_last=None, name=None, limit=None, ctx=None, txn=None):
+	def finduser(self, query, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
-		@keyparam query Contained in any item below
+		@param query Contained in any item below
 		@keyparam email ... contains in email
 		@keyparam name_first ... contains in first name
 		@keyparam name_middle ... contains in middle name
@@ -1769,41 +1734,44 @@ class DB(object):
 		@keyparam limit Limit number of results
 		@return Users
 		"""
+		rets = []
+		query = unicode(query or '').split()
+		for q in query:
+			q = q.strip()
+			c = [
+				["name_first", "contains", q],
+				["name_last", "contains", q],
+				["name_middle", "contains", q],
+				["email", "contains", q],
+				["username", "contains", q]
+				]
+			qr = self.query(boolmode='OR', c=c, sortkey='username', ctx=ctx, txn=txn)
+			un = filter(None, [i.get('username') for i in qr['recs']])
+			rets.append(set(un))
+				
+		# email=None, name_first=None, name_middle=None, name_last=None, name=None, 
+		for param in ['email', 'name_first', 'name_middle', 'name_last']:
+			if kwargs.get(param):
+				q = self.query(c=[[param,'contains', kwargs.get(param)]], sortkey='username', ctx=ctx, txn=txn)
+				un = filter(None, [i.get('username') for i in q['recs']])
+				rets.append(set(un))
 
-		if query:
-			email = query
-			name_first = query
-			name_middle = query
-			name_last = query
-			name = query
-
-		if not query and not name:
-			name = ""
-
-		c = [
-			["name_first", "contains", name_first],
-			["name_last", "contains", name_last],
-			["name_middle", "contains", name_middle],
-			["email", "contains", email],
-			["username", "contains_w_empty", name]
-			]
-
-		c = filter(lambda x:x[2] != None, c)
-
-		q = self.query(
-			boolmode='OR',
-			ignorecase=True,
-			c=c,
-			ctx=ctx,
-			txn=txn
-		)
+		name = kwargs.get('name') or kwargs.get('username')
+		if name:
+			ret = set()
+			for i in self.bdbs.user.names(ctx=ctx, txn=txn):
+				if name in i:
+					ret.add(i)
+			rets.append(ret)
 		
-		recs = self.bdbs.record.cgets(q["names"], ctx=ctx, txn=txn)
-		usernames = listops.dictbykey(recs, 'username').keys()
-		users = self.bdbs.user.cgets(usernames, ctx=ctx, txn=txn)
-
-		if limit: users = users[:int(limit)]
-		return users
+		if not rets:
+			rets = [set()]
+		if boolmode == 'AND':
+			allret = reduce(set.intersection, rets)
+		elif boolmode == 'OR':
+			allret = reduce(set.union, rets)
+		
+		return self.bdbs.user.cgets(allret, ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.find")
@@ -1830,6 +1798,36 @@ class DB(object):
 		return ret
 
 
+	@publicmethod("binary.find")
+	def findbinary(self, query=None, limit=None, ctx=None, txn=None):
+		"""Find a binary by filename.
+		@param query Match any field
+		@keyparam limit Limit number of results
+		@return Binaries
+		"""
+		if limit: limit=int(limit)
+
+		ind = self.bdbs.binary.getindex('filename')
+		qbins = ind.get(query, txn=txn) or []
+
+		qfunc = lambda x:query in x
+		if broad:
+			qfunc = lambda x:query in x or x in query
+
+		if not qbins:
+			matches = filter(qfunc, ind.keys(txn))
+			if matches:
+				for i in matches:
+					qbins.extend(ind.get(i))
+
+		bins = self.bdbs.binary.cgets(qbins, ctx=ctx, txn=txn)
+		bins = [j[1] for j in sorted([(len(i["filename"]), i) for i in bins])]
+
+		if limit:
+			return bins[:int(limit)]
+		return bins
+			
+			
 	# query should replace this... also, make two methods instead of changing return format
 	@publicmethod("record.find.byvalue")
 	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
@@ -2263,13 +2261,12 @@ class DB(object):
 
 	@publicmethod("user.get")
 	@ol('names')
-	def getuser(self, names, filt=True, lnf=False, getgroups=False, ctx=None, txn=None):
+	def getuser(self, names, filt=True, lnf=False, ctx=None, txn=None):
 		"""Get user information. Information may be limited to name and id if the user
 		requested privacy.
 		@param names User name(s), Record(s), or Record name(s)
 		@keyparam filt Ignore failures
 		@keyparam lnf Get user 'display name' as Last Name First (default=False)
-		@keyparam getgroups Include user groups (default=False)
 		@return User(s)
 		"""		
 
@@ -2280,12 +2277,12 @@ class DB(object):
 		users = self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 		#@postprocess
+		ind = self.bdbs.group.getindex('permissions')
 		for user in users:
-			if getgroups:
-				ind = self.bdbs.group.getindex('permissions')
-				groups = ind.get(user.name, set(), txn=txn)
-				user._set('groups', groups, True)
-			user.getdisplayname(lnf=lnf)
+			groups = ind.get(user.name, set(), txn=txn)
+			user._set('groups', groups, True)
+			rec = self.bdbs.record.cget(user.record, ctx=ctx, txn=txn)
+			user.getdisplayname(lnf=lnf, record=rec)
 		return users
 		
 

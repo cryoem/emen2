@@ -87,19 +87,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	# repr methods
 	#################################
 
-	def __unicode__(self):
-		ret = ["%s (%s)\n"%(unicode(self.name), self.rectype)]
-		for i,j in self.items():
-			ret.append(u"%12s:	%s\n"%(unicode(i),unicode(j)))
-		return u"".join(ret)
-
-
-	def __str__(self):
-		return self.__unicode__().encode('utf-8')
-
-
 	def __repr__(self):
-		return "<Record id: %s rectype: %s at %x>" % (self.name, self.rectype, id(self))
+		return "<%s name: %s at %x>" % (self.__class__.name, self.name, id(self))
 
 
 	def json_equivalent(self):
@@ -110,6 +99,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			ret[i] = getattr(self, i, None)
 		return ret
 
+
+	def __repr__(self):
+		return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
 
 
 	#################################

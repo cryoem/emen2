@@ -19,7 +19,6 @@ g = emen2.db.config.g()
 
 # Warning: This module is very sensitive to changes. Please test thoroughly before committing!!
 
-
 def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""
 	def _inner(func):

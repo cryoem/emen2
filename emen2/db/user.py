@@ -397,12 +397,13 @@ class User(BaseUser):
 	# Displayname and profile Record
 	#################################
 
-	def getdisplayname(self, lnf=False):
+	def getdisplayname(self, lnf=False, record=None):
 		"""Get the user profile record from the current Context"""
 		if self.record is not None:
 			# Just have these skip validation/permissions, since it doesn't matter
-			u = self._ctx.db.getrecord(self.record, filt=True) or {}
-			self._set('userrec', u, True)
+			if not record:
+				record = self._ctx.db.getrecord(self.record, filt=True) or {}
+			self._set('userrec', record, True)
 			d = self._formatusername(lnf=lnf)
 			self._set('displayname', d, True)
 

@@ -35,7 +35,7 @@
 			} else if (this.options.keytype == 'group') {
 				this.dialog.attr('title', 'Find Group');			
 				this.add = this.addgroup;
-			} else if (this.options.keytype == 'aramdef') {
+			} else if (this.options.keytype == 'paramdef') {
 				this.dialog.attr('title', 'Find Parameter');
 				this.add = this.addparamdef;
 			} else if (this.options.keytype == 'recorddef') {
@@ -96,8 +96,8 @@
 			this.dialog.dialog('close');		
 		},
 	
-		add: function() {
-			alert("unbound");
+		add: function(item) {
+			//console.log(item);
 		},
 
 		addparamdef: function(paramdef) {

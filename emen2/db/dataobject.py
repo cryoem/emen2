@@ -117,6 +117,10 @@ class BaseDBObject(object, DictMixin):
 	 	return self.__unicode__().encode('utf-8')
 
 		
+	def __repr__(self):
+		return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
+
+
 
 	#################################
 	# Mapping methods. These may be changed if you want to implement special behavior,
