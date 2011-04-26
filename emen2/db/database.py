@@ -224,7 +224,7 @@ def ol(name, output=True):
 
 
 
-def error(e=None, msg=''):
+def error(e=None, msg='', warning=False):
 	"""Error handler.
 	@keyparam msg Error message; default is Excpetion's docstring
 	@keyparam e Exception class; default is ValidationError
@@ -233,9 +233,10 @@ def error(e=None, msg=''):
 		e = SecurityError
 	if not msg:
 		msg = e.__doc__
-	# if warning:
-	# 	g.warn(msg)
-	raise e(msg)
+	if warning:
+		g.warn(msg)
+	else:
+		raise e(msg)
 
 
 
@@ -729,7 +730,7 @@ class DB(object):
 		@param name User name or Email
 		@return User name
 		"""
-		ind = self.bdbs.user.getindex('email')
+		ind = self.bdbs.user.getindex('email', txn=txn)
  		name = (ind.get(name, txn=txn) or [name])
 		# If we got a hit, return the first one.
 		return name.pop()
@@ -1101,7 +1102,7 @@ class DB(object):
 			# This should probably be sget.
 			user = self.bdbs.user.get(context.username, filt=False, txn=txn) 
 			# ian: critical todo: check this index!!!
-			groups = self.bdbs.group.getindex('permissions').get(context.username, set(), txn=txn)
+			groups = self.bdbs.group.getindex('permissions', txn=txn).get(context.username, set(), txn=txn)
 
 			grouplevels = {}
 			for group in self.bdbs.group.cgets(groups, ctx=ctx, txn=txn):
@@ -1409,7 +1410,7 @@ class DB(object):
 				
 				
 		# First, search the index index
-		indk = self.bdbs.record.getindex('indexkeys')
+		indk = self.bdbs.record.getindex('indexkeys', txn=txn)
 
 		for indparam in indparams:
 			pd = self.bdbs.paramdef.cget(indparam, ctx=ctx, txn=txn)
@@ -1444,7 +1445,7 @@ class DB(object):
 
 		# Now search individual param indexes
 		for pp, keys in matchkeys.items():
-			ind = self.bdbs.record.getindex(pp)
+			ind = self.bdbs.record.getindex(pp, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
 				searchnames |= v 
@@ -1494,7 +1495,7 @@ class DB(object):
 			vt = vtm.getvartype(vartype)
 			keytype = vt.keytype
 			iterable = vt.iterable
-			ind = self.bdbs.record.getindex(pd.name)
+			ind = self.bdbs.record.getindex(pd.name, txn=txn)
 		except:
 			pass
 
@@ -1846,7 +1847,7 @@ class DB(object):
 		# @keyparam max_filesize
 
 		def searchfilenames(filename, txn):
-			ind = self.bdbs.binary.getindex('filename')
+			ind = self.bdbs.binary.getindex('filename', txn=txn)
 			ret = set()
 			keys = (f for f in ind.keys(txn=txn) if filename in f)
 			for key in keys:
@@ -1936,7 +1937,7 @@ class DB(object):
 		@return Set of Record names
 		"""
 		rds = self.bdbs.recorddef.cgets(names, ctx=ctx, txn=txn)
-		ind = self.bdbs.record.getindex("rectype")
+		ind = self.bdbs.record.getindex("rectype", txn=txn)
 		ret = set()
 		for i in rds:
 			ret |= ind.get(i.name, txn=txn)			
@@ -1975,7 +1976,7 @@ class DB(object):
 		ret = {}
 		# Work with a copy becuase we'll be changing it
 		names = copy.copy(names)
-		ind = self.bdbs.record.getindex("rectype")
+		ind = self.bdbs.record.getindex("rectype", txn=txn)
 
 		while names:
 			# get a random record id
@@ -2084,7 +2085,7 @@ class DB(object):
 		
 		# Default params
 		builtinparams = set() | emen2.db.record.Record.param_all
-		builtinparamsshow = builtinparams - set(["permissions", "comments", "history", "groups"])
+		builtinparamsshow = builtinparams - set(['permissions', 'comments', 'history', 'groups', 'parents', 'children'])
 
 		# Get and pre-process views
 		groupviews = {}
@@ -2250,6 +2251,16 @@ class DB(object):
 	#* 	DBOBTree methods.
 	#************************************************************************
 	#########################################################################
+
+
+	@publicmethod("get", write=True, admin=True)
+	def get(self, names, keytype='record', ctx=None, txn=None):
+		return self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+	
+	
+	@publicmethod("put", write=True, admin=True)
+	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
+		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
 	
 	
 	###############################
@@ -2408,7 +2419,7 @@ class DB(object):
 
 		#@postprocess
 		# Check that no other user is currently using this email.
-		ind = self.bdbs.user.getindex('email')
+		ind = self.bdbs.user.getindex('email', txn=txn)
 		if ind.get(email, txn=txn) - set([user.name]):
 			time.sleep(2)
 			raise SecurityError, "The email address %s is already in use"%(email)
@@ -2976,22 +2987,45 @@ class DB(object):
 
 		groups = set(groups or [])
 		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+		crecs = []
 		for rec in recs:
 			current = rec.members()
+			
+			# Calculate changes
 			addusers = allusers - current
 			delusers = current - allusers
 			addgroups = groups - rec.groups
-			delgroups = rec.groups - groups
+			delgroups = rec.groups - groups						
+			added = []
+			for old,new in zip(rec.permissions, permissions):
+				added.append(set(new)-set(old))
+
+			# Apply the changes
+			rec.setpermissions(permissions)
+			rec.setgroups(groups)
+			crecs.append(rec)
 			
-			print "record %s:"%rec.name
-			print "current:", current
-			print "allusers:", allusers
-			print "addusers:", addusers
-			print "delusers:", delusers
-			print "addgroups:", addgroups
-			print "delgroups:", delgroups
-		
-		
+			# Apply the changes to the children
+			if recurse:
+				children = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
+				childrecs = self.bdbs.record.cgets(children, ctx=ctx, txn=txn)
+				for child in childrecs:
+					if overwrite_users:
+						child.setpermissions(permissions)
+					else:
+						child.removeuser(delusers)
+						child.addumask(added)
+						
+					if overwrite_groups:
+						child.setgroups(groups)
+					else:
+						child.removegroup(delgroups)
+						child.addgroup(addgroups)
+					
+					crecs.append(child)
+			
+		return self.bdbs.record.cputs(crecs, ctx=ctx, txn=txn)
+			
 		
 
 
@@ -3019,9 +3053,9 @@ class DB(object):
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
 
 
-	# def putbinary(self, name=None, record=None, filename=None, infile=None, clone=False, ctx=None, txn=None):
+	# def putbinary(self, name=None, record=None, filename=None, infile=None, ctx=None, txn=None):
 	@publicmethod("binary.put", write=True)
-	def putbinary(self, item, infile=None, filename=None, clone=False, record=None, param='file_binary', ctx=None, txn=None):
+	def putbinary(self, item, infile=None, filename=None, record=None, param='file_binary', ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).		
 		Note: This currently only takes a single item.
 		@param item Binary or dictionary
@@ -3153,7 +3187,7 @@ class DB(object):
 	# 	allparams = self.bdbs.paramdef.keys()
 	# 	paramindexes = {}
 	# 	for param in allparams:
-	# 		paramindex = self.bdbs.getindex(param)
+	# 		paramindex = self.bdbs.getindex(param, txn=txn)
 	# 		if paramindex != None:
 	# 			# g.log.msg('LOG_DEBUG', paramindex)
 	# 			try:
