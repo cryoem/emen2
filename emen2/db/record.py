@@ -282,12 +282,15 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	def __setstate__(self, d):
 		# Backwards compatibility..
+		if d.has_key('_params'):
+			d['params'] = d.pop('_params')
+		
 		if d.has_key('_Record__params'):			
 			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
 			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
 			d["uri"] = d["_Record__params"].pop("uri", None)
 
-			d["_params"] = d["_Record__params"]
+			d["params"] = d["_Record__params"]
 			d["history"] = d["_Record__history"]
 			d["comments"] = d["_Record__comments"]
 			d["permissions"] = d["_Record__permissions"]
@@ -311,9 +314,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 					del d[i]
 				except:
 					pass		
-		
-		if d.has_key('_params'):
-			d['params'] = d.pop('_params')
 		
 		# recid -> 'name'.
 		if d.has_key('recid'):
