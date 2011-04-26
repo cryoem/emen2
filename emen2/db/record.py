@@ -282,7 +282,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	def __setstate__(self, d):
 		# Backwards compatibility..
-		if not d.has_key('_params'):			
+		if d.has_key('_Record__params'):			
 			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
 			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
 			d["uri"] = d["_Record__params"].pop("uri", None)
