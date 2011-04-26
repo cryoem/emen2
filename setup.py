@@ -3,14 +3,15 @@ import subprocess
 
 from distutils.core import setup
 
-VERSION = "2.0rc4"
+from emen2 import VERSION
 URLBASE = "http://ncmi.bcm.edu/ncmi/software/EMEN2"
 URLMAP = {
 	"daily": "software_94",
 	"2.0rc1": "software_105",
 	"2.0rc2": "software_107",
 	"2.0rc3": "software_108",
-	"2.0rc4": "software_110"	
+	"2.0rc4": "software_110",	
+	"2.0rc5": "software_110"
 }
 
 SCPBASE="10.10.9.104:/homes/www/Zope-2.7.0/var/extdata/reposit/ncmi/software/EMEN2"
@@ -79,8 +80,6 @@ if __name__ == "__main__":
 			'emen2.util',
 			'emen2.clients',
 			'emen2.clients.emdash',
-			'emen2.clients.emdash.models',
-			'emen2.clients.emdash.threads',
 			'emen2.clients.emdash.ui',
 			'jsonrpc'
 			],

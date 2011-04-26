@@ -20,8 +20,6 @@ g = emen2.db.config.g()
 
 
 
-
-
 # ian: todo: better job at cleaning up broken files..
 def write_binary(infile, ctx=None, txn=None):
 	"""(Internal) Behind the scenes -- read infile out to a temporary file.
@@ -67,7 +65,7 @@ def write_binary(infile, ctx=None, txn=None):
 		infile.close()
 
 	md5sum = m.hexdigest()
-	print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
+	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
 	g.log.msg('LOG_INFO', "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
@@ -83,14 +81,12 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	@attr filepath Path to file on disk (built from config file when retrieved from db)
 	@attr record Record ID associated with file
 	@attr filesize Size of file
+	@attr filepath Path to the file on disk; set by setContext
 	@attr md5 MD5 checksum of file
 	@attr compress File is gzip compressed
 	"""
 
-	# These can all be set.. need to write validators.
-	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(["filename", "record", "compress", "filepath", "filesize", "md5"])	
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
-	
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["filename", "record", "compress", "filepath", "filesize", "md5"])	
 
 	def init(self, d):
 		self.__dict__['filename'] = None
@@ -98,6 +94,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['md5'] = None
 		self.__dict__['filesize'] = None
 		self.__dict__['compress'] = False
+		self.__dict__['filepath'] = None
 		# ian: todo: handle filepath.
 		
 
@@ -119,25 +116,32 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		return self.parse(name)['name']
 
 
-	def _set_md5(self, key, value, warning=False, vtm=None, t=None):
+	# filepath is set during setContext, and discarded during commit (todo)
+	def _set_filepath(self, key, value, vtm=None, t=None):
+		return set()
+
+
+	# These can only ever be set for new Binary, before commit	
+	def _set_md5(self, key, value, vtm=None, t=None):
 		if self.name != None:
 			raise KeyError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
 
 
-	def _set_compress(self, key, value, warning=False, vtm=None, t=None):
+	def _set_compress(self, key, value, vtm=None, t=None):
 		if self.name != None:
 			raise KeyError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
 
 
-	def _set_filesize(self, key, value, warning=False, vtm=None, t=None):
+	def _set_filesize(self, key, value, vtm=None, t=None):
 		if self.name != None:
 			raise KeyError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
 		
 
-	def _set_filename(self, key, value, warning=False, vtm=None, t=None):
+	# These can be changed normally
+	def _set_filename(self, key, value, vtm=None, t=None):
 		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
 		filename = value
 		filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
@@ -151,12 +155,16 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		return self._set(key, value, self.isowner())
 	
 	
-	def validate(self, warning=False, vtm=None, t=None):
+	def _set_record(self, key, value, vtm=None, t=None):
+		return self._set(key, int(value), self.isowner())
+
+
+	# Validate
+	def validate(self, vtm=None, t=None):
 		if not self.filename or not self.md5 or not self.filesize >= 0:
 			raise ValueError, "Binary needs filename, md5, and filesize."
 		if self.record is None:
 			raise ValueError, "Binary needs to reference a Record."
-			
 		
 
 	@staticmethod
@@ -232,7 +240,7 @@ class BinaryBTree(emen2.db.btrees.DBOBTree):
 		return {}
 			
 
-	def openindex(self, param, create=False):
+	def openindex(self, param, txn=None):
 		if param == 'filename':
 			return emen2.db.btrees.IndexBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=self.dbenv)
 

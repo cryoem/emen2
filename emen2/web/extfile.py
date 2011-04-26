@@ -2,8 +2,6 @@
 import emen2.db.config
 g = emen2.db.config.g()
 
-
-
 class ExtFile(object):
 	def _register(registry):
 		@staticmethod
@@ -76,20 +74,25 @@ class BaseJS(ExtFile):
 			]
 
 		for i in addfiles:
-			self.files.append('%s/static/js/%s'%(g.EMEN2WEBROOT, i)) #, g.VERSION
+			self.files.append('%s/static/js/%s?version=%s'%(g.EMEN2WEBROOT, i, emen2.VERSION))
 
 
 class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
-		self.files = [
-			'%s/static/css/main.css' % g.EMEN2WEBROOT,
-			'%s/static/css/query.css' % g.EMEN2WEBROOT,
-			'%s/static/css/boxer.css' % g.EMEN2WEBROOT,
-			'%s/static/css/calendar.css' % g.EMEN2WEBROOT,
-			'%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT,
-			self.dbtree.reverse('TemplateRender', t='/css/main.css')
+		addfiles = [
+			'main.css',
+			'query.css',
+			'boxer.css',
+			'calendar.css'
 		]
+
+		self.files = []
+		for i in addfiles:
+			self.files.append('%s/static/css/%s?version=%s'%(g.EMEN2WEBROOT, i, emen2.VERSION))
+
+		self.files.append('%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT)
+		self.files.append(self.dbtree.reverse('TemplateRender', t='/css/main.css'))
 
 
 

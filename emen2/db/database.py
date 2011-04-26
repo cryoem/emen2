@@ -103,7 +103,7 @@ fakemodules()
 # Version control
 from emen2.clients import __version__
 VERSIONS = {
-	"API": g.VERSION,
+	"API": emen2.VERSION,
 	"emen2client": emen2.clients.__version__
 }
 

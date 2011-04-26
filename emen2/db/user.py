@@ -19,11 +19,8 @@ g = emen2.db.config.g()
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
 	
-	# username is now name
-	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(['email', 'password'])
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
-	param_required = set(['email', 'password'])
-		
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['email', 'password'])
+	param_required = set(['email', 'password'])		
 	username = property(lambda s:s.name)
 	
 	def init(self, d):
@@ -38,12 +35,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['_secret'] = None
 
 
-	def _set_password(self, key, value, warning=False, vtm=None, t=None):
+	# Setters
+	def _set_password(self, key, value, vtm=None, t=None):
 		self.setpassword(None, value)
 		return set(['password'])
 
 
-	def _set_email(self, key, value, warning=False, vtm=None, t=None):
+	def _set_email(self, key, value, vtm=None, t=None):
 		# This will always fail unless you're an admin --
 		#	setemail requires either a password or auth token as arguments.
 		self.setemail(value) 
@@ -79,8 +77,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 		# The Context might not always be set for this method..
 		# An admin is allowed to login as another user.
-		if self._ctx and self._ctx.checkadmin():
-			return True
+		# if self._ctx and self._ctx.checkadmin():
+		# 	return True
 
 		# No password will always fail!
 		if self.password and self._hashpassword(password) == self.password:
@@ -197,8 +195,7 @@ signupinfo = set([
 
 class NewUser(BaseUser):
 	# displayname, userrec, and groups are unset when committing, so they can skip validation.
-	param_user = BaseUser.param_user | set(['signupinfo'])
-	param_all = BaseUser.param_all | param_user
+	param_all = BaseUser.param_all | set(['signupinfo'])
 	
 	def validate_create(self):
 		# Anyone can create a NewUSer
@@ -212,14 +209,20 @@ class NewUser(BaseUser):
 		self.__dict__['signupinfo'] = {}
 
 
+	# Setters
+	def _set_signupinfo(self, key, value, vtm=None, t=None):
+		self.setsignupinfo(value)
+		return set(['signupinfo'])
+
+
 	def setsignupinfo(self, update):
 		self._set('signupinfo', update)
 		self.validate()
 	
 		
 	
-	def validate(self, warning=False, vtm=None, t=None):
-		super(NewUser, self).validate(warning=warning, vtm=vtm, t=t)
+	def validate(self, vtm=None, t=None):
+		super(NewUser, self).validate(vtm=vtm, t=t)
 
 		# Check signupinfo
 		required = set(["name_first","name_last"])
@@ -231,7 +234,7 @@ class NewUser(BaseUser):
 				continue
 			# These will be transferred to a Record
 			try:
-				value = self.validate_param(param, value, warning=warning, vtm=vtm)
+				value = self.validate_param(param, value, vtm=vtm)
 			except:
 				# print "Couldn't validate new user signup field %s: %s"%(param, value)
 				continue
@@ -251,10 +254,7 @@ class NewUser(BaseUser):
 
 
 class User(BaseUser):
-	"""
-	User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.getuser by checking an index. If available during db.getuser, a copy of the profile record and the user's "displayname" will also be set.
-
-	These are normally created once and then manipulated using the appropriate API methods (setpassword, setemail, etc.) instead of get/modify/commit.
+	"""User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.getuser by checking an index. If available during db.getuser, a copy of the profile record and the user's "displayname" will also be set.
 
 	@attr name Username for logging in, first character must be a letter, no spaces
 	@attr password SHA1 hashed password
@@ -262,29 +262,27 @@ class User(BaseUser):
 	@attr privacy Privacy level; 1 conceals personal information from anonymous users, 2 conceals personal information from all users
 	@attr record Record ID containing additional profile information
 	@attr email Semi-validated email address
-
-	@attr groups Set by database when accessed
-	@attr userrec Copy of profile record; set by database when accessed
-	@attr displayname User "display name"; set by database when accessed
+	@property groups Set by database when accessed
+	@property userrec Copy of profile record; set by database when accessed
+	@property displayname User "display name"; set by database when accessed
 	"""
 
 	# displayname, userrec, and groups are unset when committing, so they can skip validation.
-	param_user = BaseUser.param_user | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
-	param_all = BaseUser.param_all | param_user
+	param_all = BaseUser.param_all | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
+
+	# These get set during setContext and cleared before commit
+	userrec = property(lambda s:s._userrec)
+	displayname = property(lambda s:s._displayname)
+	groups = property(lambda s:s._groups)
+
 
 	def init(self, d):
 		super(User, self).init(d)
-		
 		# Enabled/disabled, privacy level, and record ID pointer
 		self.__dict__['disabled'] = False
 		self.__dict__['privacy'] = 0
 		self.__dict__['record'] = None
 		
-		# These cache values from other tables.
-		self.__dict__['userrec'] = {}
-		self.__dict__['groups'] = set()
-		self.__dict__['displayname'] = None
-						
 
 
 	#################################
@@ -294,22 +292,21 @@ class User(BaseUser):
 	# These are unvalidated parameters because they cleared when committing
 	# They return an empty set because they don't really modify the User.
 	
-	def _set_groups(self, key, value, warning=False, vtm=None, t=None):
-		self._set(key, value, True)
+	def _set_groups(self, key, value, vtm=None, t=None):
+		self._set('_groups', value, True)
 		return set()
 
-	def _set_displayname(self, key, value, warning=False, vtm=None, t=None):
-		self._set(key, value, True)
+	def _set_displayname(self, key, value, vtm=None, t=None):
+		self._set('_displayname', value, True)
 		return set()
 
-	def _set_userrec(self, key, value, warning=False, vtm=None, t=None):
-		self._set(key, value, True)
+	def _set_userrec(self, key, value, vtm=None, t=None):
+		self._set('_userrec', value, True)
 		return set()
 
 
 	# Users can set their own privacy level
-
-	def _set_privacy(self, key, value, warning=False, vtm=None, t=None):
+	def _set_privacy(self, key, value, vtm=None, t=None):
 		value = int(value)
 		if value not in [0,1,2]:
 			self.error("User privacy setting may be 0, 1, or 2.")
@@ -318,13 +315,13 @@ class User(BaseUser):
 		
 	# Only admin can change enabled/disabled or record reference
 	
-	def _set_disabled(self, key, value, warning=False, vtm=None, t=None):
+	def _set_disabled(self, key, value, vtm=None, t=None):
 		if self.name == self._ctx.username and value:
 			self.error("Cannot disable self!")
 		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-	def _set_record(self, key, value, warning=False, vtm=None, t=None):
+	def _set_record(self, key, value, vtm=None, t=None):
 		if value != None:
 			value = int(value)
 		return self._set(key, value, self._ctx.checkadmin())
@@ -373,22 +370,12 @@ class User(BaseUser):
 	# Pickle..
 	#################################
 
-	def __getstate__(self):
-		"""Context and other session-specific information should not be pickled"""
-		odict = self.__dict__.copy() # copy the dict since we change it
-		odict['_ctx'] = None
-		odict['userrec'] = {}
-		odict['displayname'] = self.name
-		odict['groups'] = set()
-		return odict
-
-
 	def __setstate__(self, d):
 		if d.has_key('username'):
 			d['name'] = d.pop('username')
-		d['userrec'] = {}
-		d['displayname'] = d['name']
-		d['groups'] = set()
+		d['_userrec'] = {}
+		d['_displayname'] = d['name']
+		d['_groups'] = set()
 		return self.__dict__.update(d)
 
 
@@ -402,23 +389,23 @@ class User(BaseUser):
 		if self.record is None:
 			return
 			
-		if not self.userrec:	
+		if not self._userrec:	
 			if not record:
 				record = self._ctx.db.getrecord(self.record, filt=True) or {}
-			self._set('userrec', record, True)
+			self._set('_userrec', record, True)
 
 		d = self._formatusername(lnf=lnf)
-		self._set('displayname', d, True)
+		self._set('_displayname', d, True)
 
 
 
 	def _formatusername(self, lnf=False):
-		if not self.userrec:
+		if not self._userrec:
 			return self.name
 
-		nf = self.userrec.get('name_first')
-		nm = self.userrec.get('name_middle')
-		nl = self.userrec.get('name_last')
+		nf = self._userrec.get('name_first')
+		nm = self._userrec.get('name_middle')
+		nl = self._userrec.get('name_last')
 
 		#if u["name_first"] and u["name_middle"] and u["name_last"]:
 		if nf and nm and nl:
@@ -496,7 +483,7 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 		names -= set([None])
 
 		# ian: todo: need to benchmark this...
-		ind = self.getindex('email')
+		ind = self.getindex('email', txn=txn)
 		add = set()
 		remove = set()
 		for i in names:
@@ -517,14 +504,14 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 		user = super(UserBTree, self).new(*args, **kwargs)		
 
 		# Check  if this email already exists
-		indemail = self.getindex('email')
+		indemail = self.getindex('email', txn=txn)
 		if self.exists(user.name, txn=txn) or indemail.get(user.email, txn=txn):
 			raise KeyError, "An account already exists with this user name or email address"
 
 		return user
 
 
-	def openindex(self, param, create=False):
+	def openindex(self, param, txn=None):
 		if param == 'email':
 			return emen2.db.btrees.IndexBTree(filename="index/security/usersbyemail", keytype='s', datatype="s", dbenv=self.dbenv)
 
@@ -552,7 +539,7 @@ class NewUserBTree(emen2.db.btrees.DBOBTree):
 		user = super(NewUserBTree, self).new(*args, **kwargs)		
 
 		# Check  if this email already exists
-		indemail = self.bdbs.user.getindex('email')
+		indemail = self.bdbs.user.getindex('email', txn=txn)
 		if self.bdbs.user.exists(user.name, txn=txn) or indemail.get(user.email, txn=txn):
 			raise KeyError, "An account already exists with this user name or email address"
 

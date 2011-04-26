@@ -279,8 +279,10 @@
 			var self = this;
 			var t = $('.inner', this.element);
 			$('thead', t).empty();
-			var headers = this.options.q['table']['headers']['null'];			
-			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype"];
+			var headers = this.options.q['table']['headers']['null'];
+			
+			// ian: todo: critical: Properly get immutable parameters.
+			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
 			var tr = $('<tr />');
 			$.each(headers, function() {

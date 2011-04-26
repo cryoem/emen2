@@ -383,18 +383,19 @@
 			// sec_commit["reassign"] = 1;
 			// sec_commit["delusers"] = this.getdelusers();
 			// sec_commit["delgroups"] = this.getdelgroups();			
-			// var overwrite_users = $('input[name=overwrite_users]', this.dialog).attr('checked');
-			// var overwrite_groups = $('input[name=overwrite_groups]', this.dialog).attr('checked');			
-			// if (overwrite_users) {
-			// 	sec_commit['overwrite_users'] = overwrite_users;
-			// }
-			// if (overwrite_groups) {
-			// 	sec_commit['overwrite_groups'] = overwrite_groups;
-			// }
-			// if (overwrite_users || overwrite_groups) {
-			// 	var c = confirm("This action will overwrite the permissions of all child records to be the same as this record. Are you sure you want to continue?")
-			// 	if (!c) {return}
-			// }			
+
+			var overwrite_users = $('input[name=overwrite_users]', this.dialog).attr('checked');
+			var overwrite_groups = $('input[name=overwrite_groups]', this.dialog).attr('checked');			
+			if (overwrite_users) {
+				sec_commit['overwrite_users'] = overwrite_users;
+			}
+			if (overwrite_groups) {
+				sec_commit['overwrite_groups'] = overwrite_groups;
+			}
+			if (overwrite_users || overwrite_groups) {
+				var c = confirm("This action will overwrite the permissions of all child records to be the same as this record. Are you sure you want to continue?")
+				if (!c) {return}
+			}			
 			
 			sec_commit["permissions"] = this.getaddusers(1);
 			sec_commit["groups"] = this.getaddgroups(1);

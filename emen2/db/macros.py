@@ -254,6 +254,20 @@ class macro_parentvalue(Macro):
 
 
 
+class macro_first(Macro):
+	"""Return the first value found from a list of params"""
+	__metaclass__ = Macro.register_view
+			
+	def process(self, macro, params, rec):
+		ret = None
+		for param in params.split(","):
+			ret = rec.get(params.strip())
+			if ret != None:
+				return ret
+
+	def macro_name(self, macro, params):
+		return " or ".join(params.split(","))
+
 
 class macro_or(Macro):
 	"""parentvalue macro"""
@@ -265,9 +279,6 @@ class macro_or(Macro):
 			ret = rec.get(params.strip())
 			if ret != None:
 				return ret
-		# params = params.split(",")
-		# return filter(None, [rec.get(i.strip()) for i in params])
-
 
 	def macro_name(self, macro, params):
 		return " or ".join(params.split(","))

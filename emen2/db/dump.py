@@ -18,7 +18,7 @@ class Dumper(object):
 		mtime = time.time()
 		self.root = root		
 		
-		self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
+		# self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
 		self.db = db
 
 		# Initial items
@@ -168,11 +168,16 @@ class Dumper(object):
 
 
 		# Add in additional items
-		if addgroups: groups |= addgroups
-		if addusers: addusers |= addusers
-		if addparamdefs: pds |= addparamdefs
-		if addrecorddefs: rds |= addrecorddefs	
-		if addbdos: bdos |= addbdos
+		if addgroups:
+			groups |= addgroups
+		if addusers:
+			addusers |= addusers
+		if addparamdefs:
+			pds |= addparamdefs
+		if addrecorddefs:
+			rds |= addrecorddefs	
+		if addbdos:
+			bdos |= addbdos
 				
 		print "Next round..."
 		print "\tusers: ", len(users-self.usernames)

@@ -654,8 +654,7 @@ class vt_binary(vt_iter, Vartype):
 	elem_class = "editable_files"
 
 	def validate(self, value):
-		# This can silently filter out items that don't begin with bdo:.. 
-		# but it will only return valid BDO references..
+		return value
 		value = emen2.util.listops.check_iterable(value)	
 		value = [i.name for i in self.engine.db.getbinary(value, filt=False)]
 		return value or None
@@ -687,6 +686,7 @@ class vt_binaryimage(Vartype):
 	elem_class = "editable_files"
 
 	def validate(self, value):
+		return value
 		value = self.engine.db.getbinary(value, filt=False)
 		if value:
 			return value.name

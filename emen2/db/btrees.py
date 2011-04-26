@@ -45,11 +45,6 @@ class BTree(object):
 	Key may be and data may be any pickle-able Python type, but unicode/int/float key and data
 	types are also supported with some bonuses."""
 
-	# Each BTree may maintain a set of builtin values
-	# You might want to use this to load default paramdefs, or as a way
-	# to import an XML schema, etc.
-	builtins = {}	
-
 	def __init__(self, filename, dbenv, keytype=None, datatype=None, cfunc=True, bdbs=None, autoopen=True):
 		"""Main BDB BTree wrapper"""
 		
@@ -199,17 +194,17 @@ class BTree(object):
 	# You must provide an openindex method.
 	#########################################
 
-	def openindex(self, param):
+	def openindex(self, param, txn=None):
 		# raise KeyError, "No index available for %s"%param
 		return
 
 
-	def getindex(self, param):
+	def getindex(self, param, txn=None):
 		ind = self.index.get(param)
 		if ind:
 			return ind
 
-		ind = self.openindex(param)
+		ind = self.openindex(param, txn=txn)
 		self.index[param] = ind
 		return ind
 
@@ -318,9 +313,6 @@ class BTree(object):
 
 	def get(self, key, default=None, filt=True, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
-		# Check builtins
-		# if key in self.builtins:
-		# 	return self.builtins[key]
 		# g.log.msg("LOG_COMMIT","%s.get: %s"%(self.filename, key))
 		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
@@ -414,14 +406,14 @@ class BTree(object):
 	##############################
 	
 	# Private method to load config
-	def load_builtins(self, t):
-		infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
-		f = open(infile)
-		ret = emen2.util.jsonutil.decode(f.read())
-		f.close()
-		for k in ret:
-			k = self.datatype(k)
-			self.builtins[k.get('name')] = k
+	# def load_builtins(self, t):
+	# 	infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
+	# 	f = open(infile)
+	# 	ret = emen2.util.jsonutil.decode(f.read())
+	# 	f.close()
+	# 	for k in ret:
+	# 		k = self.datatype(k)
+	# 		self.builtins[k.get('name')] = k
 
 
 
@@ -730,32 +722,37 @@ class DBOBTree(BTree):
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
-			except Exception, inst: 
-				# AttributeError, KeyError
+				if orec.get('uri'):
+					raise emen2.db.exceptions.SecurityError, "This is a read-only object"
+
+			except (TypeError, AttributeError, KeyError), inst: 
 				# AttributeError might have been raised if the key was the wrong type
 				p = dict((k,updrec.get(k)) for k in self.typedata.param_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
-
+			
 			# Update the item.
-			cp |= orec.update(updrec, clone=clone, vtm=vtm, t=t)			
+			if clone:
+				cp |= orec.clone(updrec, vtm=vtm, t=t)
+			else:
+				cp |= orec.update(updrec, vtm=vtm, t=t)			
 			orec.validate() 
 
 			# If values changed, cache those, and add to the commit list
 			if cp:
 				crecs.append(orec)
 
-
 		# If we just wanted to validate the changes.
 		if not commit:
 			return crecs
+
 		
 		# Assign new names based on the DB sequence.
 		namemap = self.update_sequence(crecs, txn=txn)
-
+		
 		# Calculate all changed indexes
 		self.reindex(crecs, indexonly=indexonly, namemap=namemap, ctx=ctx, txn=txn)
-
+		
 		if indexonly:
 			return
 
@@ -783,7 +780,6 @@ class DBOBTree(BTree):
 				orec = {}
 			for param in crec.changedparams(orec):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
-
 		
 		# These are complex changes, so pass them off to different reindex method
 		# _reindex_relink does nothing for base DBOBTree; see RelateBTree
@@ -805,9 +801,9 @@ class DBOBTree(BTree):
 		# If nothing changed, skip.
 		if not changes:
 			return
-
+		
 		# If we can't access the index, skip. (Raise Exception?)
-		ind = self.getindex(param)
+		ind = self.getindex(param, txn=txn)
 		if ind == None:
 			# print "No index for %s, skipping"%param
 			return
@@ -825,7 +821,7 @@ class DBOBTree(BTree):
 		# print "changes:", changes
 		# print "addrefs:", addrefs
 		# print "remove:", removerefs
-
+		
 		# Write!
 		for oldval, recs in removerefs.items():
 			# Not necessary to map temp names to final names, 
@@ -835,7 +831,6 @@ class DBOBTree(BTree):
 		for newval,recs in addrefs.items():
 			addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 				
-		
 		# Update the index-index
 		indk = self.index.get('indexkeys')
 		if not indk or pd.name in ['parents', 'children']:
@@ -1027,12 +1022,11 @@ class RelateBTree(DBOBTree):
 
 	# Handle the reindexing...
 	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
-		""""This is a preprocessor for updating relationships using the regular commit/cput method.
-		It takes a change set as created by self.reindex."""
+		""""Update relationships using the regular commit/cput method."""
 
 		namemap = namemap or {}
-		indc = self.getindex('children')
-		indp = self.getindex('parents')
+		indc = self.getindex('children', txn=txn)
+		indp = self.getindex('parents', txn=txn)
 		if not indc or not indp:
 			raise KeyError, "Relationships not supported"
 			

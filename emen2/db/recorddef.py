@@ -60,8 +60,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	@attr owner Current owner of RecordDef. May be different than creator. Gives permission to edit views.
 	"""
 
-	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
 	param_required = set(['mainview'])
 
 
@@ -112,9 +111,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	# Setters..
 	#################################
 
-	# param_user = set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
-
-	def _set_mainview(self, key, value, warning=False, vtm=None, t=None):
+	def _set_mainview(self, key, value, vtm=None, t=None):
 		"""Only an admin may change the mainview"""
 		value = unicode(value)		
 		if self.mainview and not self._ctx.checkadmin():
@@ -126,7 +123,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		
 	
 	# These require normal record ownership	
-	def _set_views(self, key, value, warning=False, vtm=None, t=None):
+	def _set_views(self, key, value, vtm=None, t=None):
 		views = {}
 		for k,v in value.items():
 			views[k] = unicode(v)
@@ -136,26 +133,26 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		return ret
 		
 		
-	def _set_private(self, key, value, warning=False, vtm=None, t=None):
+	def _set_private(self, key, value, vtm=None, t=None):
 		return self._set('private', int(value), self.isowner())
 
 	
 	# ian: todo: Validate that these are actually valid RecordDefs
-	def _set_typicalchld(self, key, value, warning=False, vtm=None, t=None):
+	def _set_typicalchld(self, key, value, vtm=None, t=None):
 		value = emen2.util.listops.check_iterable(value)
 		value = filter(None, [unicode(i) for i in value]) or None
 		return self._set('typicalchld', value, self.isowner())
 			
 			
-	def _set_desc_short(self, key, value, warning=False, vtm=None, t=None):
+	def _set_desc_short(self, key, value, vtm=None, t=None):
 		return self._set('desc_short', unicode(value or self.name), self.isowner())
 
 
-	def _set_desc_long(self, key, value, warning=False, vtm=None, t=None):
+	def _set_desc_long(self, key, value, vtm=None, t=None):
 		return self._set('desc_long', unicode(value or ''), self.isowner())
 
 
-	def _set_owner(self, key, value, warning=False, vtm=None, t=None):
+	def _set_owner(self, key, value, vtm=None, t=None):
 		return self._set('owner', unicode(value), self.isowner())
 
 
@@ -202,7 +199,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.__dict__.update(p)
 
 
-	def validate(self, warning=False, vtm=None, t=None):
+	def validate(self, vtm=None, t=None):
 		# Run findparams one last time before we commit...
 		self.findparams()
 	

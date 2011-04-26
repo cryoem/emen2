@@ -14,7 +14,6 @@ import emen2.util.listops
 def random_password(N):
 	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
 
-	
 
 
 class Loader(object):
@@ -23,13 +22,13 @@ class Loader(object):
 		self.db = db
 	
 	
-	def load(self, rootemail=None, rootpw=None, overwrite=False, warning=True):
+	def load(self, rootemail=None, rootpw=None, overwrite=False):
 
 		# Changed names
 		userrelmap = {}
 		namemap = {}
 
-		# We're going to have to strip off children and save for later -- put* needs support for this..
+		# We're going to have to strip off children and save for later
 		childmap = collections.defaultdict(set)
 		pdc = collections.defaultdict(set)
 		rdc = collections.defaultdict(set)
@@ -40,7 +39,26 @@ class Loader(object):
 		existing_paramdefs = self.db.getparamdefnames()
 		existing_recorddefs = self.db.getrecorddefnames()
 
+		##########################
+		# PARAMDEFS
+		pds = []
+		for pd in self.loadfile("paramdefs.json"):
+			pdc[pd.get('name')] |= set(pd.pop('children', []))
+			pd.pop('parents', set())
+			if pd.get('name') in existing_paramdefs and not overwrite:
+				continue			
+			pds.append(pd)
+			
+		self.db.put(pds, keytype='paramdef', clone=True)
+
+		# Put the saved relationships back in..
+		for k, v in pdc.items():
+			for v2 in v: self.db.pclink(k, v2, keytype='paramdef')
+
+
+		##########################
 		# USERS
+		users = []
 		for user in self.loadfile("users.json"):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
@@ -55,54 +73,49 @@ class Loader(object):
 				if rootemail != None: user['email'] = rootemail
 				if rootpw != None: user['password'] = rootpw
 
+			if not user.get('email') or user.get('email')=='None':
+				user['email'] = '%s@localhost'%(user['name'])
+			
 			# hmm..
 			if user.get('name') != 'root' and user.get("password") == None:
 				print "User %s has no password! Generating random pass.."%user.get('name')
 				user["password"] = random_password(8)
+			
+			users.append(user)
+			
+		self.db.put(users, keytype='user', clone=True)
 
-			u = self.db.putuser(user, warning=warning)
-			# if u.username != origname:
-			# 	print "USERNAME CHANGED!", origname, u.username
 
-
+		##########################
 		# GROUPS
+		groups = []
 		for group in self.loadfile("groups.json"):
 			if group.get('name') in existing_groupnames and not overwrite:
 				continue
-
-			self.db.putgroup(group, warning=warning)
-
-
-		# PARAMDEFS
-		for pd in self.loadfile("paramdefs.json"):
-			pdc[pd.get('name')] |= set(pd.pop('children', []))
-			pd.pop('parents', set())
-			if pd.get('name') in existing_paramdefs and not overwrite:
-				continue			
-
-			self.db.putparamdef(pd, warning=warning)
-
-		# Put the saved relationships back in..
-		for k, v in pdc.items():
-			for v2 in v: self.db.pclink(k, v2, keytype='paramdef')
+			groups.append(group)
+			
+		self.db.put(groups, keytype='group', clone=True)
 
 
-
+		##########################
 		# RECORDDEFS
+		rds = []
 		for rd in self.loadfile("recorddefs.json"):
 			rdc[rd.get('name')] |= set(rd.pop('children', []))
 			rd.pop('parents', set())			
 			if rd.get('name') in existing_recorddefs and not overwrite:
 				continue
-			
-			self.db.putrecorddef(rd, warning=warning)
+			rds.append(rd)
+
+		self.db.put(rds, keytype='recorddef', clone=True)
 		
 		for k, v in rdc.items():
 			for v2 in v: self.db.pclink(k, v2, keytype='recorddef')
 
 
+		##########################
 		# RECORDS
-		# loaded in chunks of 1000
+		# loaded in chunks of 100
 		chunk = []
 		for rec in self.loadfile("records.json"):
 			chunk.append(rec)
@@ -118,6 +131,7 @@ class Loader(object):
 				self.db.pclink(namemap[k], namemap[v2])
 		
 		
+		##########################
 		# BDOS
 		for bdo in self.loadfile("bdos.json"):
 			# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
@@ -126,7 +140,7 @@ class Loader(object):
 				infile = None
 
 			# use subscript instead of .get to make sure the record was mapped
-			self.db.putbinary(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
+			# self.db.put(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
 		
 			
@@ -146,7 +160,7 @@ class Loader(object):
 			names.append(rec.get('name'))
 			rec['name'] = None
 
-		recs = self.db.putrecord(chunk, clone=True)
+		recs = self.db.put(chunk, keytype='record', clone=True)
 
 		for oldname, newname in zip(names, [rec.name for rec in recs]):
 			namemap[oldname] = newname

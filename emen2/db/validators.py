@@ -32,12 +32,8 @@ class Validator(object):
 		return [item for item in self._validators]
 
 
-	def validate(self, warning=False):
-		"""Perform validation
-
-		@keyparam warning Ignore failures; currently this parameter is not used and all failures raise Exceptions
-
-		"""
+	def validate(self):
+		"""Perform a validation check before committing."""
 
 		failures = []
 		# ian: todo: fix this so that it raises all relevant exceptions, not just the first

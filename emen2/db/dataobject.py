@@ -15,36 +15,23 @@ g = emen2.db.config.g()
 class BaseDBObject(object, DictMixin):
 	__metaclass__ = ABCMeta
 
-	# All attributes. These get copied/exported/cloned.
-	# These cannot be modified except by the system
-	# Note: children/parents aren't necessary (or used) for DBOs not stored in a RelateBTree 
-	#			and this probably adds some small amount of overhead, but it's just easier for now..
-
-	# Attributes that are allowed to be set
-	param_user = set(['children', 'parents'])
-
-	# All params
-	param_all = param_user | set(['keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
-
-	# Params that have to be set for init... Also used to copy keys to create a new item.
+	# Protected params are keytype, creator, creationtime, modifytime, modifyuser, uri, and name
+	# name is required during init; uri can also be provided during init, but can't be changed afterwards
+	param_all = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 	param_required = set()
 		
 	#######################################
 	# Interface definition
 
 	def init(self, d):
-		"""Hook to init subclasses"""
+		"""Hook for subclass init"""
 		pass
 		
 
-	def validate(self, warning=False, vtm=None, t=None):
+	def validate(self, vtm=None, t=None):
 		pass
 		
 	
-	def getkeytype(self):
-		return self.__class__.__name__.lower()
-		
-		
 	# End interface definition
 	########################################
 		
@@ -76,14 +63,10 @@ class BaseDBObject(object, DictMixin):
 		
 		# Other parameters
 		# ian: todo: critical: _set_children, _set_parents
-		p['uri'] = _d.pop('uri', None)
+		p['uri'] = unicode(_d.pop('uri', None))
 		p['keytype'] = self.getkeytype()
 		p['children'] = set()
-		p['parents'] = set()	
-		
-		# This marks an item as read-only, even to an admin.
-		# This is not in param_all, so is not editable (like _ctx/_ptest)
-		p['readonly'] = False
+		p['parents'] = set()
 		
 		# Directly update these base params
 		self.__dict__.update(p)
@@ -101,13 +84,17 @@ class BaseDBObject(object, DictMixin):
 		self.update(_d)		
 	
 	
+	def getkeytype(self):
+		return self.__class__.__name__.lower()
+		
+		
 	def setContext(self, ctx=None):
 		"""Set permissions and create reference to active database."""
 		self.__dict__['_ctx'] = ctx
 
 
 	def __unicode__(self):
-		"A string representation of the record"
+		"""A string representation of the record"""
 		ret = ["%s\n"%(self.__class__.__name__)]
 		for i,j in self.items():
 			ret.append(u"%12s:	%s\n"%(unicode(i),unicode(j)))
@@ -122,36 +109,40 @@ class BaseDBObject(object, DictMixin):
 		return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
 
 
-
-	#################################
-	# Mapping methods. These may be changed if you want to implement special behavior,
-	#	e.g. records["permissions"] = [...]
-	#################################
-
 	def clone(self, update, vtm=None, t=None):
-		self.vw(msg='Warning! Only an admin may clone items!', check=self._ctx.checkadmin())
-			
+		self.vw(msg='Warning! Only an admin may clone items!', check=self._ctx.checkadmin())			
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 
-		# Update these without any validation..
-		for k in self.param_all:
-			v = update.pop(k, None)
-			if v != None:
-				self._set(k, v, True)
-			cp.add(k)
+		# Make a copy of the protected items
+		# Usually: creator, creationtime, modifyuser, modifytime, uri, name, keytype 
+		protected = {}
+		skip = self.param_required | set(['name', 'keytype', 'uri'])
 
-		# Any remaining items are updated in the normal fashion, but with warning=True
 		for k,v in update.items():
-			cp |= self.__setitem__(k, v, warning=True, vtm=vtm, t=t)
-		
+			if k not in self.param_all or k in skip:
+				continue
+			elif k == 'comments':
+				# Comments has a _set_comments, but it works differently
+				pass
+			elif getattr(self, '_set_%s'%k, None):
+				continue
+			if v:
+				protected[k] = v
+
+		# Set items in the normal way
+		for k,v in update.items():
+			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
+
+		print "Updating %s with protected:"%self.name
+		print protected
+		self.__dict__.update(protected)
+		cp |= set(protected.keys())
+			
 		return cp
 
 
-	def update(self, update, clone=False, vtm=None, t=None):			
-		if clone:
-			return self.clone(update, vtm=vtm, t=t)
-
+	def update(self, update, vtm=None, t=None):			
 		vtm, t = self._vtmtime(vtm, t)	
 		cp = set()
 
@@ -163,7 +154,9 @@ class BaseDBObject(object, DictMixin):
 
 
 	#################################
-	# Other mapping methods
+	# Mapping methods. These may be changed if you want to implement special behavior,
+	#	e.g. records["permissions"] = [...]
+	#		-> self._set_permissions(key, value)
 	#################################
 
 	# Behave like dict.get(key) instead of db[key]
@@ -203,32 +196,30 @@ class BaseDBObject(object, DictMixin):
 		return self.__setitem__(key, value)
 
 
-	def __setitem__(self, key, value, warning=False, vtm=None, t=None):
+	def __setitem__(self, key, value, vtm=None, t=None):
 		"""Validate and set an attribute or key."""
-
-		# print "__setitem__:",key,value
 		cp = set()
 		if self.get(key) == value:
 			return cp
-		
-		# Find a setter method
-		if key in self.param_user:
-			setter = getattr(self, '_set_%s'%key, self._set)
+
+		# Find a setter method		
+		setter = getattr(self, '_set_%s'%key, None)
+		if setter:
+			pass
 		elif key in self.param_all:
 			# These cannot be directly modified (not even by admin, unless cloning)
-			# print ":: No setter for %s"%key
-			# setter = self._seterror
 			return cp
 		else:
+			# Setter for unknown params
 			setter = self._setoob		
 
 		# Validate
 		vtm, t = self._vtmtime(vtm, t)
-		value = self.validate_param(key, value, warning=warning, vtm=vtm)
+		value = self.validate_param(key, value, vtm=vtm)
 		
 		# The setter might return multiple items that were updated
 		# For instance, comments can update other params
-		cp |= setter(key, value, warning=warning, vtm=vtm, t=t)
+		cp |= setter(key, value, vtm=vtm, t=t)
 
 		# Only permissions, groups, and links do not trigger a modifytime update
 		if cp - set(['permissions', 'groups', 'parents', 'children']):
@@ -242,19 +233,19 @@ class BaseDBObject(object, DictMixin):
 		
 
 	def _seterror(self, key, *args, **kwargs):
-		"""Immutable params: in self.param_all but not in self.param_user"""
+		"""Immutable params"""
 		self.error("Cannot set param %s in this way"%key, warning=True)
 		return set()
 
 
 	# Record will override this
-	def _setoob(self, key, value, warning=False, vtm=None, t=None):
+	def _setoob(self, key, value, vtm=None, t=None):
 		"""Handle params not found in self.param_all"""
 		return self._seterror(key, value)
 
 
-	def _set(self, key, value, check=None, warning=None, vtm=None, t=None):
-		"""Default setter for attrs in self.param_user. See self.vw() for check argument"""
+	def _set(self, key, value, check=None, vtm=None, t=None):
+		"""Actually set a value. See self.vw() for check argument"""
 		self.vw(key, check)
 		self.__dict__[key] = value
 		return set([key])
@@ -263,18 +254,19 @@ class BaseDBObject(object, DictMixin):
 	##########################
 	# Set parents / children
 	##########################
-
-	def _set_children(self, key, value, warning=False, vtm=None, t=None):
-		return self._set(key, set(value))
+	
+	def _set_children(self, key, value, vtm=None, t=None):
+		return self._set(key, set(value or []))
 
 	
-	def _set_parents(self, key, value, warning=False, vtm=None, t=None):
-		return self._set(key, set(value))
+	def _set_parents(self, key, value, vtm=None, t=None):
+		return self._set(key, set(value or []))
 
 
 	##########################
 	# Permissions
 	#	Two basic permissions are defined: owner and writable
+	#	PermissiionsDBObject has a more complete permissions model
 	##########################
 
 	def isowner(self):
@@ -312,15 +304,17 @@ class BaseDBObject(object, DictMixin):
 	def __getstate__(self):
 		"""Context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		odict.pop('_ctx', None)
-		odict.pop('_ptest', None)
+		# for i in (key for key in odict if key.startswith('_')):
+		for i in ['_ctx', '_ptest', '_userrec', '_groups', 'displayname', '_vtm', '_t']:
+				odict.pop(i, None)
 		return odict
 
 
 	# # Backwards compatibility..
-	# # Process the dict to make any changes or upgrades
+	# # 	Modify the dict to handle any changes in the class
 	# def __setstate__(self, d):
 	# 	return self.__dict__.update(d)
+
 
 
 	##########################
@@ -346,10 +340,7 @@ class BaseDBObject(object, DictMixin):
 		@keyword key Param to use error message
 		@keyword check None: Perform a basic .writable() check. False: Raise SecurityError. True: OK
 		@keyword msg Alternative error message
-		"""
-		
-		if self.get('readonly'):
-			self.error("This is a read-only object", e=emen2.db.exceptions.SecurityError)
+		"""		
 		if check == None:
 			check = self.writable()
 		if not check:
@@ -370,21 +361,17 @@ class BaseDBObject(object, DictMixin):
 				
 	
 	# This is the main mechanism for validation.
-	def validate_param(self, key, value, vtm=None, warning=False):
+	def validate_param(self, key, value, vtm=None):
 		"""Validate a single param value"""
-		# print ":: Validating %s: %s"%(key, value)
 
 		# Check the cache for the param
 		vtm, t = self._vtmtime(vtm=vtm)
-		
-		# Should I pass if missing paramdef??
 		cachekey = vtm.get_cache_key('paramdef', key)
 		hit, pd = vtm.check_cache(cachekey)
 				
-		# ian: todo: critical: This is only a TEMPORARY bypass until I add paramdefs for all the missing items
-		# only allowed for keys in self.param_all!
+		# ian: todo: critical: no validation for params that do not have
+		#	a ParamDef if they are listed in self.param_all
 		if not hit and key in self.param_all:
-			# Return an unvalidated result....
 			return value
 				
 		# ... otherwise, raise an Exception if the param isn't found.		
@@ -394,13 +381,10 @@ class BaseDBObject(object, DictMixin):
 		
 		# Is it an immutable param?
 		if pd.get('immutable'):
-			return value
+			self.error('Cannot change immutable param %s'%pd.name)
 
-		# Perform the actual validation
-		#try:
+		# Validate
 		v = vtm.validate(pd, value)
-		#except Exception, inst:
-		#	self.error(inst, warning=warning)
 
 		# Issue a warning if param changed during validation
 		if v != value:
@@ -412,13 +396,16 @@ class BaseDBObject(object, DictMixin):
 
 
 	def validate_name(self, name):
-		"""Validate the name of this object"""		
+		"""Validate the name of this object"""	
 		if not name:
 			self.error("No name specified")
-		# Everything but records and BDOs follow these rules
-		name = unicode(re.sub("\W", "", name).lower())
-		if not name.isalnum() or not name[0].isalpha():
-			self.error("Name can only include a-z, A-Z, 0-9, underscore, and must start with a letter")
+
+		# have to compile since flags= is a Python 2.7+ keyword
+		r = re.compile('[\w-]', re.UNICODE)
+
+		newname = "".join(r.findall(name))
+		if name != newname or not name[0].isalpha():
+			self.error("Name '%s' can only include a-z, A-Z, 0-9, underscore, and must start with a letter"%name)
 		return name
 
 
@@ -444,10 +431,8 @@ class BaseDBObject(object, DictMixin):
 
 class PermissionsDBObject(BaseDBObject):
 
-	# These are built-ins that we treat specially, and changes aren't logged.
-	param_user = BaseDBObject.param_user | set(['permissions', 'groups'])
-	param_all = BaseDBObject.param_all | param_user
-
+	# Changes to permissions and groups, along with parents/children, aren't logged.
+	param_all = BaseDBObject.param_all | set(['permissions', 'groups'])
 
 	def init(self, d):		
 		super(PermissionsDBObject, self).init(d)
@@ -471,12 +456,12 @@ class PermissionsDBObject(BaseDBObject):
 	# Setters
 	##########################
 	
-	def _set_permissions(self, key, value, warning=False, vtm=None, t=None):
+	def _set_permissions(self, key, value, vtm=None, t=None):
 		self.setpermissions(value)
 		return set(['permissions'])
 
 
-	def _set_groups(self, key, value, warning=False, vtm=None, t=None):
+	def _set_groups(self, key, value, vtm=None, t=None):
 		self.setgroups(value)
 		return set(['groups'])
 		

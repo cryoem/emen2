@@ -27,9 +27,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	@attr indexed If the vartype allows it, turn indexing on/off. Default is on.
 	"""
 
-	param_user = emen2.db.dataobject.BaseDBObject.param_user | set(['immutable', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed'])
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | param_user
-	param_required = set(['vartype', 'property'])
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed'])
+	param_required = set(['vartype'])
 
 
 	def init(self, d):
@@ -65,35 +64,40 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	# ParamDef does so much validation for other items, so everything is checked.... 
 	# Several values can only be changed by administrators.
-	# param_user = set(["immutable", "desc_long", "desc_short", "choices", "vartype", "defaultunits", "property", "indexed"])
 
-	# These 3 methods are borrowed from RecordDef
-	def _set_desc_short(self, key, value, warning=False, vtm=None, t=None):
-		return self._set('desc_short', unicode(value or self.name), self.isowner())
-		
-
-	def _set_desc_long(self, key, value, warning=False, vtm=None, t=None):
-		return self._set('desc_long', unicode(value or ''), self.isowner())
-		
-
-	def _set_typicalchld(self, key, value, warning=False, vtm=None, t=None):
+	def _set_choices(self, key, value, vtm=None, t=None):
 		value = emen2.util.listops.check_iterable(value)
 		value = filter(None, [unicode(i) for i in value]) or None
-		return self._set('typicalchld', value, self.isowner())
+		return self._set(key, value, self.isowner())
+
+
+	# These 3 methods are borrowed from RecordDef
+	def _set_desc_short(self, key, value, vtm=None, t=None):
+		return self._set(key, unicode(value or self.name), self.isowner())
+		
+
+	def _set_desc_long(self, key, value, vtm=None, t=None):
+		return self._set(key, unicode(value or ''), self.isowner())
+		
+
+	def _set_typicalchld(self, key, value, vtm=None, t=None):
+		value = emen2.util.listops.check_iterable(value)
+		value = filter(None, [unicode(i) for i in value]) or None
+		return self._set(key, value, self.isowner())
 		
 		
 	# Only admin can change defaultunits/immutable/indexed/vartype.
 	# This should still generate lots of warnings.
-	def _set_immutable(self, key, value, warning=False, vtm=None, t=None):
-		return self._set('immutable', bool(value), self._ctx.checkadmin())
+	def _set_immutable(self, key, value, vtm=None, t=None):
+		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-	def _set_indexed(self, key, value, warning=False, vtm=None, t=None):
-		return self._set('indexed', bool(value), self._ctx.checkadmin())
+	def _set_indexed(self, key, value, vtm=None, t=None):
+		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
 	# These can't be changed, it would disrupt the meaning of existing Records.	
-	def _set_vartype(self, key, value, warning=False, vtm=None, t=None):
+	def _set_vartype(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
 
@@ -101,12 +105,12 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 			self.error("Invalid vartype: %s"%value)
 
 		if self.vartype and self.vartype != value:
-			self.error("Cannot change vartype from %s to %s. You will need to use import/export tools."%(self.vartype, value))
+			self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
 
-		return self._set('vartype', value)
+		return self._set(key, value)
 
 
-	def _set_property(self, key, value, warning=False, vtm=None, t=None):
+	def _set_property(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
 
@@ -115,47 +119,35 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 			self.error("Invalid property: %s"%value)
 
 		if self.property and self.property != value:
-			self.error("Cannot change property from %s to %s. You will need to use import/export tools."%(self.property, value))	
+			self.error("Cannot change property from %s to %s."%(self.property, value))	
 
 		return self._set('property', value)
 
 		
-	def _set_defaultunits(self, key, value, warning=False, vtm=None, t=None):
+	def _set_defaultunits(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)		
-		value = unicode(value or '') or None
-
-		# Allow unsetting of defaultunits (skip this check)
-		# Check that these are valid units..
-		if value:		
-			try:
-				prop = vtm.getproperty(self.property)	
-			except:
-				self.error("Cannot set defaultunits without a property!")
-
-			#try:
-			value = emen2.db.properties.equivs.get(value, value)
-			m = emen2.db.magnitude.mg(0, value)
-			#except:
-			#	self.error("Invalid units: %s"%value)
-
-			
-			# Allow this to pass if warning=True
-			if value not in prop.units:
-				self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
+		value = unicode(value or '') or None			
+		value = emen2.db.properties.equivs.get(value, value)
 
 		if self.defaultunits and self.defaultunits != value:
-			self.error("Cannot change defaultunits from %s to %s. You will need to use import/export tools."%(self.defaultunits, value))
+			self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
 
-		return self._set('defaultunits', value, self._ctx.checkadmin())
+		return self._set('defaultunits', value)
+
+	
+	# def validate(self):
+	# 	try:
+	# 		prop = vtm.getproperty(self.property)	
+	# 	except:
+	# 		self.error("Cannot set defaultunits without a property!")
+	#	try:
+	#		m = emen2.db.magnitude.mg(0, value)
+	# 	except:
+	#		self.error("Invalid units: %s"%value)
+	# 	if value not in prop.units:
+	# 		self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
 				
-
-
-
-
-
-
-
 
 
 
