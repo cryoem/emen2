@@ -275,52 +275,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	
 		self.__dict__['rectype'] = unicode(rd.name)
 		
-	
-	#################################
-	# pickle methods
-	#################################
-
-	def __setstate__(self, d):
-		# Backwards compatibility..
-		if d.has_key('_params'):
-			d['params'] = d.pop('_params')
-		
-		if d.has_key('_Record__params'):			
-			d["modifyuser"] = d["_Record__params"].pop("modifyuser", None)
-			d["modifytime"] = d["_Record__params"].pop("modifytime", None)
-			d["uri"] = d["_Record__params"].pop("uri", None)
-
-			d["params"] = d["_Record__params"]
-			d["history"] = d["_Record__history"]
-			d["comments"] = d["_Record__comments"]
-			d["permissions"] = d["_Record__permissions"]
-			d["groups"] = d["_Record__groups"]
-
-			d["creator"] = d["_Record__creator"]
-			d["creationtime"] = d["_Record__creationtime"]
-			d["parents"] = set()
-			d["children"] = set()
-
-			for i in ["_Record__ptest", 
-				"_Record__ptest", 
-				"_Record__params", 
-				"_Record__history", 
-				"_Record__comments", 
-				"_Record__permissions", 
-				"_Record__groups", 
-				"_Record__creator", 
-				"_Record__creationtime"]:
-				try:
-					del d[i]
-				except:
-					pass		
-		
-		# recid -> 'name'.
-		if d.has_key('recid'):
-			d['name'] = d.pop('recid')
-
-		return self.__dict__.update(d)
-
 
 
 

@@ -80,14 +80,6 @@ class Context(object):
 		return odict
 
 
-	def __setstate__(self, d):
-		# Backwards compatibility..
-		if d.get('ctxid'):
-			d['name'] = d.pop('ctxid', None)
-		return self.__dict__.update(d)
-
-
-
 	def setdb(self, db=None):
 		if not db: return
 		self.db = db

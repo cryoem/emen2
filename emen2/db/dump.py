@@ -298,8 +298,8 @@ class Dumper(object):
 			parents = self.db.getparents(chunk)
 			children = self.db.getchildren(chunk)
 			for rec in recs:
-				rec["parents"] = parents.get(rec.name, set()) & self.names
-				rec["children"] = children.get(rec.name, set()) & self.names
+				rec.parents &= self.names
+				rec.children &= self.names
 				yield rec
 
 			cur += len(recs)
@@ -319,8 +319,8 @@ class Dumper(object):
 			children = self.db.getchildren(chunk, keytype="paramdef")
 		
 			for pd in pds:
-				pd.parents = parents.get(pd.name, set()) & self.paramdefnames
-				pd.children = children.get(pd.name, set()) & self.paramdefnames
+				pd.parents &= self.paramdefnames
+				pd.children &= self.paramdefnames
 				yield pd
 				
 			cur += len(pds)
@@ -340,8 +340,8 @@ class Dumper(object):
 			children = self.db.getchildren(chunk, keytype="recorddef")
 		
 			for rd in rds:
-				rd.parents = parents.get(rd.name, set()) & self.recorddefnames
-				rd.children = children.get(rd.name, set()) & self.recorddefnames
+				rd.parents &= self.recorddefnames
+				rd.children &= self.recorddefnames
 				yield rd
 
 			cur += len(rds)

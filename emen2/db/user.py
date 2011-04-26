@@ -366,19 +366,6 @@ class User(BaseUser):
 
 
 
-	#################################
-	# Pickle..
-	#################################
-
-	def __setstate__(self, d):
-		if d.has_key('username'):
-			d['name'] = d.pop('username')
-		d['_userrec'] = {}
-		d['_displayname'] = d['name']
-		d['_groups'] = set()
-		return self.__dict__.update(d)
-
-
 
 	#################################
 	# Displayname and profile Record

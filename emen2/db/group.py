@@ -55,24 +55,6 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 			raise emen2.db.exceptions.SecurityError, "Only admins may create groups"
 
 
-	def __setstate__(self, d):
-		# Backwards compatibility..
-		# This became a regular attribute, instead of self.__permissions
-		if d.has_key('_Group__permissions'):
-			d['permissions'] = d.pop('_Group__permissions', None)
-
-		# I added some additional attributes..
-		if not 'groups' in d:
-			d['groups'] = set(['anonymous'])
-		if not 'disabled' in d:
-			d['disabled'] = False
-		if not 'privacy' in d:
-			d['privacy'] = 0
-
-		return self.__dict__.update(d)
-
-
-
 
 
 

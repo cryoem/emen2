@@ -19,6 +19,7 @@ class BaseDBObject(object, DictMixin):
 	# name is required during init; uri can also be provided during init, but can't be changed afterwards
 	param_all = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 	param_required = set()
+	keytype = property(lambda s:s.getkeytype())
 		
 	#######################################
 	# Interface definition
@@ -64,7 +65,6 @@ class BaseDBObject(object, DictMixin):
 		# Other parameters
 		# ian: todo: critical: _set_children, _set_parents
 		p['uri'] = unicode(_d.pop('uri', None))
-		p['keytype'] = self.getkeytype()
 		p['children'] = set()
 		p['parents'] = set()
 		
@@ -308,12 +308,6 @@ class BaseDBObject(object, DictMixin):
 		for i in ['_ctx', '_ptest', '_userrec', '_groups', 'displayname', '_vtm', '_t']:
 				odict.pop(i, None)
 		return odict
-
-
-	# # Backwards compatibility..
-	# # 	Modify the dict to handle any changes in the class
-	# def __setstate__(self, d):
-	# 	return self.__dict__.update(d)
 
 
 
