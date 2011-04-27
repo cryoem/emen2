@@ -126,14 +126,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			return self.params.get(key, default)
 
 
-	# def __delitem__(self,key):
-	# 	"""Only params can be deleted, not attributes"""
-	# 	try:
-	# 		del self.params[key]
-	# 	except:
-	# 		raise KeyError,"Cannot delete key %s"%key
-
-
 	def keys(self):
 		"""All retrievable keys for this record"""
 		return self.params.keys() + list(self.param_all)
@@ -247,7 +239,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			return
 		try:
 			name = int(name)			
-		except:
+		except ValueError:
 			self.error("Name must be an integer")
 		return name
 
@@ -447,6 +439,7 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 			if find:
 				find -= indg.get(group, set(), txn=txn)
 
+			
 		return names - find
 
 

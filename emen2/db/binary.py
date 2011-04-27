@@ -44,7 +44,7 @@ def write_binary(infile, ctx=None, txn=None):
 	# Make the directory
 	try:
 		os.makedirs(dkey["basepath"])
-	except:
+	except OSError:
 		pass
 
 	# Write out file to temporary storage in the day's basepath

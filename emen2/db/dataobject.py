@@ -275,7 +275,7 @@ class BaseDBObject(object, DictMixin):
 			return True
 		try:
 			return self._ctx.username == self.owner
-		except:
+		except AttributeError:
 			return False
 		
 

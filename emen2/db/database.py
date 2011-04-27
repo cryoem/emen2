@@ -35,7 +35,7 @@ g = emen2.db.config.g()
 # If no configuration has been loaded, load the default configuration.
 try:
 	g.CONFIG_LOADED
-except:
+except AttributeError:
 	emen2.db.config.defaults()
 
 # EMEN2 Core
@@ -354,8 +354,10 @@ class EMEN2DBEnv(object):
 
 		paths = []
 		for i in ['LOGPATH', 'HOTBACKUP', 'LOG_ARCHIVE', 'TILEPATH', 'TMPPATH', 'SSLPATH']:
-			try: paths.append(getattr(g.paths, i))
-			except: pass
+			try:
+				paths.append(getattr(g.paths, i))
+			except AttributeError:
+				pass
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
@@ -408,12 +410,12 @@ class EMEN2DBEnv(object):
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
 		# g.log("NEW TXN, flags: %s --> %s"%(flags, txn), 'TXN')
 
-		try:
-			type(self).txncounter += 1
-			self.txnlog[id(txn)] = txn
-		except:
-			self.txnabort(txn=txn)
-			raise
+		#try:
+		type(self).txncounter += 1
+		self.txnlog[id(txn)] = txn
+		#except KeyError:
+		#	self.txnabort(txn=txn)
+		#	raise
 
 		return txn
 
@@ -782,10 +784,7 @@ class DB(object):
 			import platform
 
 			host = platform.node() or 'localhost'
-			try:
-				defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
-			except:
-				defaultemail = "root@localhost"
+			defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
 
 			print "\n=== New Database Setup ==="
 			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
@@ -964,7 +963,7 @@ class DB(object):
 			try:
 				user = self.bdbs.user.getbyemail(name, txn=txn)
 				user.checkpassword(password)
-			except:
+			except (KeyError, emen2.db.exceptions.SecurityError):
 				raise AuthenticationError
 			
 			# Create the Context for this user/host
@@ -1218,7 +1217,7 @@ class DB(object):
 				try:
 					rd = self.bdbs.recorddef.cget("root_protocol", ctx=ctx, txn=txn)
 					viewdef = rd.views.get('tabularview', defaultviewdef)
-				except:
+				except emen2.db.exceptions.SecurityError:
 					viewdef = defaultviewdef
 
 
@@ -1414,22 +1413,20 @@ class DB(object):
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		inverted = collections.defaultdict(set)
 		c = c or []
+
+		# Check the paramdef
+		pd = self.bdbs.paramdef.cget(sortkey, ctx=ctx, txn=txn)
 		sortvalues = {}
 		vartype = None
 		keytype = None
 		iterable = False
 		ind = False
-
-		# Check the paramdef
-		try:
-			pd = self.bdbs.paramdef.cget(sortkey, ctx=ctx, txn=txn)
+		if pd:
 			vartype = pd.vartype
 			vt = vtm.getvartype(vartype)
 			keytype = vt.keytype
 			iterable = vt.iterable
 			ind = self.bdbs.record.getindex(pd.name, txn=txn)
-		except:
-			pass
 
 		if sortkey.startswith('$@'):
 			# Sort using a macro, and get the right sort function
@@ -1838,17 +1835,17 @@ class DB(object):
 		@keyparam rectype Restrict to these rectypes ('*' notation allowed)
 		@return (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
 		"""
-		def endpoints(tree):
+		def find_endpoints(tree):
 			return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 		c_all = self.bdbs.record.rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
 		c_rectype = self.bdbs.record.rel([name], recurse=recurse, rectype=rectype, ctx=ctx, txn=txn).get(name, set())
 
-		endpoints = endpoints(c_all) - c_rectype
+		endpoints = find_endpoints(c_all) - c_rectype
 		while endpoints:
 			for k,v in c_all.items():
 				c_all[k] -= endpoints
-			endpoints = endpoints(c_all) - c_rectype
+			endpoints = find_endpoints(c_all) - c_rectype
 
 		rendered = self.renderview(listops.flatten(c_all), ctx=ctx, txn=txn)
 
@@ -2249,11 +2246,8 @@ class DB(object):
 		#@action
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
-		try:
-			user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
-			user.setpassword(oldpassword, newpassword, secret=secret)
-		except:
-			pass
+		user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
 		g.log("Changing password for %s"%user.name, 'SECURITY')
@@ -2271,11 +2265,8 @@ class DB(object):
 		@keyparam secret
 		"""
 		#@action
-		try:
-			user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
-			user.resetpassword()			
-		except:
-			raise SecurityError
+		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
+		user.resetpassword()			
 
 		# Use direct put to preserve the secret
 		self.bdbs.user.put(user.name, user, txn=txn)

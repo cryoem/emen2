@@ -96,13 +96,9 @@ class DBOptions(optparse.OptionParser):
 			g.from_file('/etc/emen2config.json')
 
 		# Look for any EMEN2DBHOME-specific config files and load
-		try:
-			g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
-			g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
-			g.EMEN2DBHOME = EMEN2DBHOME
-		except:
-			raise
-			pass
+		g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
+		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
+		g.EMEN2DBHOME = EMEN2DBHOME
 
 
 		# Load view and template dirs

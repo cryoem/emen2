@@ -214,12 +214,12 @@ class DBProxy(object):
 
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
-		try:
-			self._ctx = self._db._getcontext(ctxid=ctxid, host=host, txn=self._txn)
-			self._ctx.setdb(db=self)
-		except:
-			self._ctx = None
-			raise
+		# try:
+		self._ctx = self._db._getcontext(ctxid=ctxid, host=host, txn=self._txn)
+		self._ctx.setdb(db=self)
+		# except:
+		# 	self._ctx = None
+		# 	raise
 
 		self._is_bound = True
 		return self
@@ -317,10 +317,10 @@ class DBProxy(object):
 			# Check there is an open transaction, and pass to method
 			self._starttxn()
 			kwargs['txn'] = self._txn
-			try:
-				ctx.setdb(self)
-			except:
-				pass
+			# try:
+			ctx.setdb(self)
+			# except:
+			# 	pass
 
 			# Pass the DB
 			if getattr(func, 'ext', False):

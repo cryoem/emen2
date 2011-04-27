@@ -22,7 +22,7 @@ try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
 	g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
-except:
+except ImportError:
 	bulk = None
 
 
@@ -710,7 +710,6 @@ class DBOBTree(BTree):
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
-				print type(orec.get('uri')), orec.get('uri')
 				if orec.get('uri'):
 					raise emen2.db.exceptions.SecurityError, "This is a read-only object"
 
@@ -988,12 +987,12 @@ class RelateBTree(DBOBTree):
 		try:
 			p.setContext(ctx)
 			perm.append(p.writable())
-		except:
+		except (KeyError, emen2.db.exceptions.SecurityError):
 			pass
 		try:
 			c.setContext(ctx)
 			perm.append(c.writable())
-		except:
+		except (KeyError, emen2.db.exceptions.SecurityError):
 			pass
 		
 		if not any(perm):

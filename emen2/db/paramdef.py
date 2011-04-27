@@ -139,12 +139,10 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	# def validate(self):
 	# 	try:
 	# 		prop = vtm.getproperty(self.property)	
-	# 	except:
+	# 	except KeyError:
 	# 		self.error("Cannot set defaultunits without a property!")
-	#	try:
-	#		m = emen2.db.magnitude.mg(0, value)
-	# 	except:
-	#		self.error("Invalid units: %s"%value)
+	#	m = emen2.db.magnitude.mg(0, value)
+	#	# self.error("Invalid units: %s"%value)
 	# 	if value not in prop.units:
 	# 		self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 

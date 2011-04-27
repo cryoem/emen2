@@ -171,19 +171,13 @@ class macro_img(Macro):
 
 	def process(self, macro, params, rec):
 		default = ["file_binary_image","640","640"]
-		try:
-			ps = params.split(" ")
-		except:
-			return "(Image Error)"
+		ps = params.split(",")
 		for i,v in list(enumerate(ps))[:3]:
 			default[i] = v
 			
 		param, width, height = default
 
-		try:	
-			pd = self.engine.db.getparamdef(param)
-		except:
-			return "(Unknown parameter)"
+		pd = self.engine.db.getparamdef(param)
 
 		if pd.vartype=="binary":
 			bdos = rec[param]
@@ -203,7 +197,7 @@ class macro_img(Macro):
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
 				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:], fname, height, width))
-			except:
+			except (KeyError, AttributeError, emen2.db.exceptions.SecurityError):
 				ret.append("(Error: %s)"%i)
 
 		return "".join(ret)

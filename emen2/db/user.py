@@ -235,7 +235,7 @@ class NewUser(BaseUser):
 			# These will be transferred to a Record
 			try:
 				value = self.validate_param(param, value, vtm=vtm)
-			except:
+			except ValueError:
 				# print "Couldn't validate new user signup field %s: %s"%(param, value)
 				continue
 				

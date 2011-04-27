@@ -264,7 +264,8 @@ class Property(object):
 
 		try:
 			r = q.match(value).groups()
-		except:
+		except Exception, e:
+			print e
 			raise ValueError,"Unable to parse '%s' for units"%(value)
 
 		value = float(r[0])
@@ -307,8 +308,12 @@ class Property(object):
 
 
 	def _convert(self, value, units, target):
-		print "value/units/target", value, units, target
-		v = mg.mg(value, units, ounit=target)
+		# print "value/units/target", value, units, target
+		try:
+			v = mg.mg(value, units, ounit=target)
+		except emen2.db.magnitude.MagnitudeError:
+			raise
+			
 		# Check for dimensionless conversions...
 		if v.dimensionless():
 			self.error(units, target, msg='dimensionless property')		

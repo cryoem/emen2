@@ -308,7 +308,7 @@ class vt_boolean(vt_int):
 	def validate(self, value):
 		try:
 			return bool(int(value))
-		except:
+		except ValueError:
 			if unicode(value).lower() in ("t","y","true"):
 				return True
 			if unicode(value).lower() in ("f","n","false"):
@@ -326,7 +326,7 @@ class vt_recid(Vartype):
 			value = int(value)
 			if value < 0:
 				raise ValueError
-		except:
+		except ValueError:
 			raise ValueError, "Invalid name: %s"%value
 		return value
 		
@@ -671,7 +671,7 @@ class vt_binary(vt_iter, Vartype):
 			else:
 				value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 
-		except:
+		except (ValueError, TypeError):
 			value = ['Error getting binary %s'%i for i in value]
 
 		return value
@@ -706,7 +706,7 @@ class vt_binaryimage(Vartype):
 			else:
 				value = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
 				
-		except:
+		except (ValueError, TypeError):
 			value = "Error getting binary %s"%value
 		
 		return value
