@@ -831,12 +831,14 @@ class DB(object):
 		# get MAILADMIN from the root record...
 		try:
 			mailadmin = self.bdbs.user.get('root', txn=txn).email
-			if not mailadmin:
-				raise ValueError, "No email set for root"
-			if not g.MAILHOST:
-				raise ValueError, "No SMTP server"
-		except Exception, inst:
-			g.warn("Couldn't get mail config: %s"%inst)
+		except KeyError:
+			g.warn("Couldn't get mail config: No root user!")
+			return
+		if not mailadmin:
+			g.warn("Couldn't get mail config: No email set for root")
+			return
+		if not g.MAILHOST:
+			g.warn("Couldn't get mail config: No SMTP Server%s"%inst)			
 			return
 
 		ctxt = ctxt or {}
@@ -865,14 +867,12 @@ class DB(object):
 			raise ValueError, "No message to send!"
 
 		# Actually send the message
-		try:
-			s = smtplib.SMTP(g.MAILHOST)
-			s.set_debuglevel(1)
-			s.sendmail(mailadmin, [mailadmin, recipient], msg)
-			g.log('Mail sent: %s -> %s'%(mailadmin, recipient))
-		except Exception, e:
-			g.error('Could not send email: %s'%e, e=e)
-			raise e
+		s = smtplib.SMTP(g.MAILHOST)
+		s.set_debuglevel(1)
+		s.sendmail(mailadmin, [mailadmin, recipient], msg)
+		g.log('Mail sent: %s -> %s'%(mailadmin, recipient))
+		# g.error('Could not send email: %s'%e, e=e)
+		# raise e
 
 		return recipient
 
@@ -1361,7 +1361,7 @@ class DB(object):
 			# Validate for comparisons (vartype, units..)	
 			try:
 				cargs = vtm.validate(pd, value)
-			except Exception, inst:
+			except ValueError:
 				continue
 
 			# Special case for nested iterables (e.g. permissions) --
@@ -2606,7 +2606,7 @@ class DB(object):
 				for prec in precs:
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
-			except Exception, inst:
+			except (KeyError, emen2.db.exceptions.SecurityError), inst:
 				g.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
 	
 			rec["parents"] |= inherit	
@@ -2899,10 +2899,8 @@ class DB(object):
 			os.rename(newfile, bdo.filepath)
 	
 		# Create the tiles/previews, in a background process
-		try:
-			emen2.web.thumbs.run_from_bdo(bdo)
-		except Exception, inst:
-			pass
+		#try:
+		emen2.web.thumbs.run_from_bdo(bdo)
 
 		return bdo
 			

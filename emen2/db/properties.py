@@ -265,7 +265,6 @@ class Property(object):
 		try:
 			r = q.match(value).groups()
 		except Exception, e:
-			print e
 			raise ValueError,"Unable to parse '%s' for units"%(value)
 
 		value = float(r[0])

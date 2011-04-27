@@ -317,10 +317,10 @@ class DBProxy(object):
 			# Check there is an open transaction, and pass to method
 			self._starttxn()
 			kwargs['txn'] = self._txn
-			# try:
-			ctx.setdb(self)
-			# except:
-			# 	pass
+			try:
+				ctx.setdb(self)
+			except (AttributeError, NameError):
+				pass
 
 			# Pass the DB
 			if getattr(func, 'ext', False):
