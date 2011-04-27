@@ -956,7 +956,7 @@ class DB(object):
 		
 		# Make an anonymous Context
 		if name == "anonymous":
-			newcontext = emen2.db.context.AnonymousContext(host=host, ctx=ctx, txn=txn)
+			newcontext = emen2.db.context.AnonymousContext(host=host)
 
 		# Try to find the user by account name, or by email
 		else:
@@ -968,7 +968,7 @@ class DB(object):
 				raise AuthenticationError
 			
 			# Create the Context for this user/host
-			newcontext = emen2.db.context.Context(username=user.name, host=host, ctx=ctx, txn=txn)
+			newcontext = emen2.db.context.Context(username=user.name, host=host)
 		
 		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
 		g.log("Login succeeded: %s -> %s" % (name, newcontext.name), 'SECURITY')
@@ -1033,7 +1033,7 @@ class DB(object):
 		if ctxid:
 			context = self.contexts_cache.get(ctxid) or self.bdbs.context.get(ctxid, txn=txn)
 		else:
-			context = emen2.db.context.AnonymousContext(host=host, ctx=ctx, txn=txn))
+			context = emen2.db.context.AnonymousContext(host=host)
 
 		# If no ctxid was found, it's an expired context and has already been cleaned out.
 		if not context:
