@@ -262,6 +262,10 @@ class BaseDBObject(object, DictMixin):
 		return self._set(key, set(value or []))
 
 
+	def _set_uri(self, key, value, vtm=None, t=None):
+		return self._set(key, value)
+		
+
 	##########################
 	# Permissions
 	#	Two basic permissions are defined: owner and writable

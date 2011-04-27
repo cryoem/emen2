@@ -15,9 +15,10 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, root=None, outfile=None, names=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True):
+	def __init__(self, db, root=None, outfile=None, names=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True, uri=None):
 		mtime = time.time()
 		self.root = root		
+		self.uri = uri
 		
 		# self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
 		self.db = db
@@ -273,8 +274,13 @@ class Dumper(object):
 		for chunk in emen2.util.listops.chunk(ordered_names):
 			t = time.time()
 			recs = self.db.getrecord(chunk)
+			print "-----"
+			print chunk
+			print recs
 			found |= set([i.name for i in recs])
 			for rec in recs:
+				if self.uri:
+					rec.uri = '%s/record/%s'%(self.uri, rec.name)
 				rec.parents &= self.names
 				rec.children &= self.names
 				yield rec
@@ -291,8 +297,11 @@ class Dumper(object):
 		for chunk in emen2.util.listops.chunk(self.paramdefnames):
 			t = time.time()
 			pds = self.db.getparamdef(chunk)
-			found |= set([pd.name for pd in pds])	
+			found |= set([pd.name for pd in pds])
 			for pd in pds:
+				print self.uri
+				if self.uri:
+					pd.uri = '%s/paramdef/%s'%(self.uri, pd.name)
 				pd.parents &= self.paramdefnames
 				pd.children &= self.paramdefnames
 				yield pd
@@ -311,6 +320,8 @@ class Dumper(object):
 			rds = self.db.getrecorddef(chunk)
 			found |= set([rd.name for rd in rds])
 			for rd in rds:
+				if self.uri:
+					rd.uri = '%s/recorddef/%s'%(self.uri, rd.name)				
 				rd.parents &= self.recorddefnames
 				rd.children &= self.recorddefnames
 				yield rd
@@ -327,10 +338,13 @@ class Dumper(object):
 		found = set()
 		for chunk in emen2.util.listops.chunk(self.usernames):
 			t = time.time()
-			users = db.getuser(chunk)
+			users = self.db.getuser(chunk)
 			found |= set([user.name for user in users])
 		
 			for user in users:
+				if self.uri:
+					user.uri = '%s/user/%s'%(self.uri, user.name)
+				
 				yield user
 
 			cur += len(users)
@@ -348,6 +362,8 @@ class Dumper(object):
 			found |= set([group.name for group in groups])
 		
 			for group in groups:
+				if self.uri:
+					group.uri = '%s/group/%s'%(self.uri, group.name)
 				yield group
 
 			cur += len(groups)
@@ -364,6 +380,8 @@ class Dumper(object):
 			found |= set([bdo.name for bdo in bdos])
 			
 			for bdo in bdos:
+				if self.uri:
+					bdo.uri = '%s/binary/%s'%(self.uri,bdo.name)				
 				yield bdo
 				
 			cur += len(bdos)
@@ -389,15 +407,11 @@ class Dumper(object):
 
 def main():
 	dbo = emen2.db.config.DBOptions()
+	dbo.add_option('--root', type="int", help="Root Record", default=382351)
 	dbo.add_option('--uri', type="string", help="Export with base URI")
 	(options, args) = dbo.parse_args()
-	db = dbo.opendb()
-	print db.checkcontext()
-	print db.getrecord(0)
-	
-	# import emen2.db.admin
-	# db = emen2.db.admin.opendb()
-	# d = Dumper(root=382351, db=db)
+	db = dbo.admindb()
+	d = Dumper(root=options.root, uri=options.uri, db=db)
 	
 
 
