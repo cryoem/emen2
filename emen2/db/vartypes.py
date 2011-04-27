@@ -17,7 +17,6 @@ except ImportError:
 		markdown = None
 
 
-
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.util.listops
@@ -877,7 +876,7 @@ class vt_acl(Vartype):
 	def reindex(self, items):
 		"""(Internal) Calculate secrindex updates"""
 
-		# g.log.msg('LOG_DEBUG', "Calculating security updates...")
+		# Calculating security updates...
 		addrefs = collections.defaultdict(list)
 		delrefs = collections.defaultdict(list)
 		for name, new, old in items:

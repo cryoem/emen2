@@ -51,10 +51,8 @@ class URL(object):
 	callback = property(get_callback)
 
 	def merge(self, other):
-		g.debug('merging, before:',self._callbacks)
 		raise NotImplementedError
 		# self._callbacks.update((k,v) for k,v in other._callbacks.iteritems() if k not in self._callbacks)
-		g.debug('merged, after:',self._callbacks)
 
 	def match(self, string):
 		match = False

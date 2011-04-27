@@ -111,7 +111,7 @@ class FilterByRecordDef(object):
 	def act(self, data, db):
 		result = set([])
 		for name in self.recorddefs:
-			result.update(db.getindexbyrecorddef(name))
+			result.update(db.getindexbyrectype(name))
 		if data:
 			result = ( set(result) & set(data) ) or result
 
@@ -156,7 +156,7 @@ class FilterByParentType(object):
 	def act(self, data, db):
 		queryset = [ (x, db.getparents(x)) for x in data ]
 		for rec, parents in queryset:
-			parents = db.groupbyrecorddef(parents)
+			parents = db.groupbyrectype(parents)
 			if parents.get(self.recorddef, False) != False:
 				yield rec
 

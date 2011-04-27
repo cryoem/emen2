@@ -66,15 +66,16 @@ def write_binary(infile, ctx=None, txn=None):
 
 	md5sum = m.hexdigest()
 	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	g.log.msg('LOG_INFO', "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+	g.log("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
 
 
 
-
 class Binary(emen2.db.dataobject.BaseDBObject):
-	"""This class defines a pointer to a binary file stored on disk. Contains the following metadata: ID, filename, associated record ID, filesize, md5 checksum, and if the file is compressed or not. The path to the file will be resolved dynamically when accessed based on the storage paths specified in the config.
+	"""This class defines a pointer to a binary file stored on disk. 
+	Contains the following metadata: ID, filename, associated record ID, filesize, md5 checksum, and if the file is compressed or not. 
+	The path to the file will be resolved dynamically when accessed based on the storage paths specified in the config.
 
 	@attr name Identifier of the form: bdo:YYYYMMDDXXXXX, where YYYYMMDD is date format and XXXXX is 5-char hex ID code of file for that day
 	@attr filename Filename
@@ -100,7 +101,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	def setContext(self, ctx=None):
 		super(Binary, self).setContext(ctx=ctx)
-		self.filepath = self.parse(self.name).get('filepath')
+		self.__dict__['filepath'] = self.parse(self.name).get('filepath')
 
 		if self.isowner():
 			return True
@@ -142,7 +143,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	# These can be changed normally
 	def _set_filename(self, key, value, vtm=None, t=None):
-		# Sanitize filename.. This will allow unicode characters, and check for reserved filenames on linux/windows
+		# Sanitize filename.. This will allow unicode characters, 
+		#	and check for reserved filenames on linux/windows
 		filename = value
 		filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
 		if filename.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
@@ -169,17 +171,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	@staticmethod
 	def parse(bdokey, counter=None):
-		"""Parse a 'bdo:2010010100001' type identifier into constituent parts to load from database and resolve location in the filesystem"""
+		"""Parse a 'bdo:2010010100001' type identifier into constituent parts
+		to load from database and resolve location in the filesystem
+		"""
 
 		prot, _, bdokey = (bdokey or "").rpartition(":")
-
 		if not prot:
 			prot = "bdo"
 
 		# ian: todo: implement other BDO protocols, e.g. references to uris
 		if prot not in ["bdo"]:
 			raise Exception, "Invalid binary storage protocol: %s"%prot
-
 
 		# Now process; must be 14 chars long..
 		if bdokey:
@@ -188,14 +190,12 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			day = int(bdokey[6:8])
 			if counter == None:
 				counter = int(bdokey[9:13],16)
-
 		else:
 			bdokey = emen2.db.database.gettime() # "2010/10/10 01:02:03"
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])
 			counter = counter or 0
-
 
 		datekey = "%04d%02d%02d"%(year, mon, day)
 
@@ -206,9 +206,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		filepath = os.path.join(basepath, "%05X"%counter)
 		name = "%s:%s%05X"%(prot, datekey, counter)
 
-		return {"prot":prot, "year":year, "mon":mon, "day":day, "counter":counter, "datekey":datekey, "basepath":basepath, "filepath":filepath, "name":name}
-
-
+		return {
+			"prot":prot,
+			"year":year,
+			"mon":mon,
+			"day":day,
+			"counter":counter,
+			"datekey":datekey,
+			"basepath":basepath,
+			"filepath":filepath,
+			"name":name
+			}
 
 
 
@@ -243,11 +251,6 @@ class BinaryBTree(emen2.db.btrees.DBOBTree):
 	def openindex(self, param, txn=None):
 		if param == 'filename':
 			return emen2.db.btrees.IndexBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=self.dbenv)
-
-
-
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

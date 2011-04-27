@@ -21,18 +21,18 @@ y=db.getindexdictbyvalue("creationtime",None,ctxid)
 #print "len(ct)"
 #print len(ct)
 #c=db.getchildren(136,ctxid=ctxid)# & ct
-#projects=db.groupbyrecorddef(c,ctxid)["project"]
+#projects=db.groupbyrectype(c,ctxid)["project"]
 
 type="gis"
 typename="count"
 
 # gis = grid imaging sessions
 if type=="gis":
-	gi=db.getindexbyrecorddef("grid_imaging",ctxid)
+	gi=db.getindexbyrectype("grid_imaging",ctxid)
 	typename="Grid Imaging Sessions"
 # gi = all image types
 elif type=="gi":
-	gi=db.getindexbyrecorddef("ccd",ctxid) | db.getindexbyrecorddef("micrograph",ctxid) 
+	gi=db.getindexbyrectype("ccd",ctxid) | db.getindexbyrectype("micrograph",ctxid) 
 	typename="Images (CCD+Micrograph)"
 elif type=="all":
 	gi=db.getrecordnames(ctxid)

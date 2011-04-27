@@ -446,8 +446,11 @@ class User(BaseUser):
 			p['email'] = None
 			p['record'] = None
 		
-		self.__dict__.update(p)
+		p['_userrec'] = {}
+		p['_displayname'] = self.name
+		p['_groups'] = set()
 
+		self.__dict__.update(p)
 		self.getdisplayname()
 
 
@@ -460,6 +463,18 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 		self.setdatatype('p', emen2.db.user.User)	
 		super(UserBTree, self).init()
 
+
+	def getbyemail(self, name, filt=True, ctx=None, txn=None):
+		"""Lookup a user by name or email address. This is not a setContext lookup;
+		cgets will also expand email addresses to usernames.
+		"""
+		name = unicode(name or '').strip()
+		if not self.exists(name, txn=txn):
+			found = getindex('email', txn=txn).get(name, txn=txn)
+			if found:
+				name = found.pop()
+		return self.get(name, filt=filt, txn=txn)
+		
 
 	def expand(self, names, ctx=None, txn=None):
 		"""Expand names, e.g. expanding * into children, or using an email address for a user"""

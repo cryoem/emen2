@@ -11,10 +11,10 @@ for k,v in z.items():
 #print len(ct)
 
 c=db.getchildren(136,ctxid=ctxid)# & ct
-projects=db.groupbyrecorddef(c,ctxid)["project"]
+projects=db.groupbyrectype(c,ctxid)["project"]
 count={}
-#gi=db.getindexbyrecorddef("grid_imaging",ctxid)
-gi=db.getindexbyrecorddef("ccd",ctxid) | db.getindexbyrecorddef("micrograph",ctxid) 
+#gi=db.getindexbyrectype("grid_imaging",ctxid)
+gi=db.getindexbyrectype("ccd",ctxid) | db.getindexbyrectype("micrograph",ctxid) 
 
 results={}
 hists={}

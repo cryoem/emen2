@@ -35,13 +35,13 @@ g = emen2.db.config.g()
 #
 #			# ian: don't disable this
 #			if 'folder' in db.getrecorddefnames() and root is None:
-#				self._root = min(db.getindexbyrecorddef('folder') or [0])
+#				self._root = min(db.getindexbyrectype('folder') or [0])
 #			else:
 #				self._root = root
 #
 #			self._initmethods()
 #
-#		else: g.log.msg('LOG_WARNING', 'db is None...')
+#		else: g.log('db is None...', 'WARNING')
 #
 #	def _initmethods(self):
 #		self.get_path_id = self._db._wrapmethod(self._get_path_id)
@@ -182,7 +182,7 @@ g = emen2.db.config.g()
 #
 #	def get_menu(self, depth=1):
 #		recs = self.db.getchildtree(self.root, recurse=depth)
-#		folders = self.db.getindexbyrecorddef('folder')
+#		folders = self.db.getindexbyrectype('folder')
 #		recs1 = {}
 #		keys = filter(lambda x: x in folders, recs)
 #		for key in keys:

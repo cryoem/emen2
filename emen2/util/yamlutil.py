@@ -7,7 +7,7 @@ from emen2.db.config import g, DBOptions
 g = g()
 import getpass
 
-#g.log.set_state('LOG_CRITICAL')
+#g.logger.set_state('CRITICAL')
 parser = DBOptions()
 parser.add_option('--flowstyle', dest='flowstyle', action='store', default='full', help='yaml flowstyle to use: ')
 parser.add_option('-f', '--file', dest='file', action='store')
@@ -19,7 +19,7 @@ parser.add_option('-i', '--inline', dest='inline', action='store_true', help='ch
 parser.add_option('-j', '--json', dest='json', action='store_true', help='return value as json (only for -g)', default=False)
 parser.add_option('', '--interactive', dest='json', action='store_true', help='return value as json (only for -g)', default=False)
 v, args = parser.parse_args(lc=False)
-parser.load_config(loglevel='LOG_CRITICAL')
+parser.load_config(loglevel='CRITICAL')
 
 kwargs = {}
 if v.flowstyle.isdigit(): v.flowstyle = int(v.flowstyle)

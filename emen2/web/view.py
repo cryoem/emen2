@@ -262,7 +262,7 @@ class _View(object):
 		'''add a number of items to the template context'''
 		self.__ctxt.update(kwargs)
 		self.__ctxt.update(__dict_ or {})
-		g.log.print_traceback()
+		g.logger.print_traceback()
 
 	# alias update_context to set_context_items
 	update_context = set_context_items
@@ -309,8 +309,6 @@ class _View(object):
 
 			# save all matchers to the function
 			func.matcherinfo = matchers
-
-			#g.debug('matchers', matchers)
 			return func
 		return _i1
 

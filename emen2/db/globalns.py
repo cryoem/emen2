@@ -115,7 +115,7 @@ class GlobalNamespace(object):
 
 	class LoggerStub(debug.DebugState):
 		def __init__(self, *args):
-			debug.DebugState.__init__(self, output_level='LOG_DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
+			debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
 		def swapstdout(self): pass
 		def closestdout(self): pass
 		def msg(self, sn, *args):
@@ -186,7 +186,7 @@ class GlobalNamespace(object):
 		if newitems:
 			self.__vardict.update(x for x in self.__tmpdict.iteritems() if x[0] in newitems)
 			skipped = set(self.__tmpdict) - newitems
-			if skipped: self.log.msg('LOG_WARNING', 'skipped items: %r' % skipped)
+			if skipped: self.log.msg('WARNING', 'skipped items: %r' % skipped)
 		del self.__tmpdict
 
 
@@ -235,9 +235,8 @@ class GlobalNamespace(object):
 		if not data:
 			return
 
-		self.log.msg('LOG_INIT', "Loading config: %s"%fn)
+		self.log("Loading config: %s"%fn)
 		self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
-		# self.log.msg('LOG_INIT', 'EMEN2DBHOME %r' % self.EMEN2DBHOME)
 		self.paths.root = self.EMEN2DBHOME
 
 		paths = data.pop('paths', {})

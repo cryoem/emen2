@@ -74,9 +74,9 @@ class Find(object):
 	def execute(self, line, data):
 		paramdefs, recorddefs = self.process_line(line)
 		print recorddefs
-		output = set(iconc(emen2.test.db.getindexbyrecorddef(name) for exclude,name in recorddefs if not exclude))
+		output = set(iconc(emen2.test.db.getindexbyrectype(name) for exclude,name in recorddefs if not exclude))
 		print output
-		output -= set(iconc(emen2.test.db.getindexbyrecorddef(name) for exclude,name in recorddefs if exclude))
+		output -= set(iconc(emen2.test.db.getindexbyrectype(name) for exclude,name in recorddefs if exclude))
 		print output
 
 		tmpset = set()

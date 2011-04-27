@@ -169,22 +169,30 @@ def stdouts_handler(prefix,suffix):
 
 @Output.register_subclass
 class stdout(Bounded):
-	_preprocess = stdouts_handler('   ','')
+	_preprocess = stdouts_handler('  ','')
 
 @Output.register_subclass
 class stderr(Min):
-	_preprocess = stdouts_handler('!! ', '') # not sure why you need pre and postpend
+	_preprocess = stdouts_handler('!!', '') # not sure why you need pre and postpend
 	#_preprocess = stdouts_handler('!! ', ' *******')
 
 
 class DebugState(object):
 	'''Handles logging etc..'''
-	debugstates = emen2.util.datastructures.Enum(dict(LOG_DEBUG=-1, LOG_INFO=3, LOG_TXN=2,
-											LOG_COMMIT=5, LOG_INDEX=12,
-											LOG_INIT=4, LOG_WEB=6,
-											LOG_WARNING=8, LOG_SECURITY=9,
-											LOG_ERROR=10, LOG_CRITICAL=11,
-											ALL=0))
+	debugstates = emen2.util.datastructures.Enum(dict(
+		DEBUG=-1,
+		TXN=1,
+		INIT=2,
+		INFO=3,
+		INDEX=4,
+		COMMIT=5,
+		WEB=6,
+		WARNING=8,
+		SECURITY=9,
+		ERROR=10,
+		CRITICAL=11,
+		ALL=0
+		))
 	last_debugged = emen2.util.datastructures.Ring()
 	_clstate = {}
 
@@ -203,15 +211,15 @@ class DebugState(object):
 		self._output._states = value
 
 
-	def __init__(self, output_level='LOG_INIT', logfile=None, get_state=True, logfile_state=None, just_print=False, quiet=False):
+	def __init__(self, output_level='INFO', logfile=None, get_state=True, logfile_state=None, just_print=False, quiet=False):
 		self._maxlength = max(map(len, self.debugstates))
 		self.__dict__ = self._clstate
 		if (not get_state) or (not self._clstate):
 			self._timers = {}
 			self.just_print = just_print
 			self.quiet = quiet
-			self._stdout = Output.factory('stdout', file=sys.stdout, max=self.debugstates.LOG_WARNING)
-			self._stderr = Output.factory('stderr', file=sys.stderr, states=self.debugstates.LOG_WARNING)
+			self._stdout = Output.factory('stdout', file=sys.stdout, max=self.debugstates.WARNING)
+			self._stderr = Output.factory('stderr', file=sys.stderr, states=self.debugstates.WARNING)
 			self._state = self.debugstates[output_level]
 			self._state_stack = [self._state]
 			if logfile is not None:
@@ -228,11 +236,11 @@ class DebugState(object):
 	def write(self, *args, **kwargs):
 		args = [x.rstrip() for x in args if x.rstrip()]
 		if args:
-			self.msg('LOG_INFO', 'captured', *(x for x in args), join=': ')
+			self.msg('INFO', 'captured', *(x for x in args), join=': ')
 
 
 	def capturestdout(self):
-		self.msg('LOG_CRITICAL', 'Capturing stdoutput')
+		self.msg('CRITICAL', 'Capturing stdoutput')
 		self._print_to_stdout = False
 		sys.stdout = self
 		sys.stderr = self
@@ -243,14 +251,14 @@ class DebugState(object):
 		sys.stderr = self.stderr
 
 	def swapstdout(self):
-		self.msg('LOG_CRITICAL', 'Switching Outputs...')
+		self.msg('CRITICAL', 'Switching Outputs...')
 		self._print_to_stdout = not self._print_to_stdout
 		sys.stderr, self.stderr = self.stderr, sys.stderr
 		sys.stdout, self.stdout = self.stdout, sys.stdout
-		self.msg('LOG_INFO', '...Done')
+		self.msg('INFO', '...Done')
 
 	def closestdout(self):
-		self.msg('LOG_CRITICAL', 'Closing old stdout/stderr')
+		self.msg('CRITICAL', 'Closing old stdout/stderr')
 		self._stdout.close()
 		self._stderr.close()
 		sys.stdin.close()
@@ -260,23 +268,49 @@ class DebugState(object):
 		self.msg(-1, *args, **k)
 
 	def start_timer(self, key=''):
-		self.msg('LOG_DEBUG', 'timer %s started' % key)
+		self.msg('DEBUG', 'timer %s started' % key)
 		self._timers[key] = time.time()
 
 	def stop_timer(self, key=''):
 		stime = time.time()
 		stime = (stime-self._timers.get(key, 0)) * 1000
-		self.msg('LOG_DEBUG', 'timer %s stopped: %s milliseconds' % (key, stime))
+		self.msg('DEBUG', 'timer %s stopped: %s milliseconds' % (key, stime))
 		return stime
 
 	def note_var(self, var):
 		'''log the value of a variable and return the variable'''
-		self.msg('LOG_INFO', 'NOTED VAR:::', var)
+		self.msg('INFO', 'NOTED VAR:::', var)
 		return var
 
 	def get_state_name(self, state):
 		sn = self.debugstates.get_name(state)
 		return lambda: sn
+
+	
+	
+	# ian: simplified..
+	def newmsg(self, msg='', level='INFO', tb=False, e=None):
+		level = level.upper()
+		state = self.debugstates[level]
+		if tb:
+			self.print_traceback()
+
+		# outputs for the sake of lazy binding, outputs_l for caching
+		outputs_l = []
+		outputs = ((outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state))
+		
+		if state < self._log_state and state < self._state: 
+			return
+		elif not any(outputs):
+			return
+
+		# return func(state, sn, output, outputs_l, outputs, *args, **k)
+		head = '%s:%s: '%(time.strftime('[%Y-%m-%d %H:%M:%S]'), level.ljust(8))
+		for buf in outputs_l:
+			buf.send(None, state, head, '%s\n'%(msg.encode('utf-8')))
+			buf.flush()
+		
+
 
 	def msg(self, sn, *args, **k):
 		state = self.debugstates[sn]
@@ -299,7 +333,8 @@ class DebugState(object):
 
 		# choose code path
 		func = self._old_msg
-		if self.just_print: func = self._just_print_msg
+		if self.just_print:
+			func = self._just_print_msg
 
 		# pass outputs and outputs_l because outputs might need to be iterated through in order
 		# to populate outputs_l completely
@@ -335,7 +370,7 @@ class DebugState(object):
 
 	def loud_notify(self, *msgs):
 		'Notifies and forces attention'
-		self.msg('LOG_CRITICAL', *msgs)
+		self.msg('CRITICAL', *msgs)
 		raw_input('hit enter to continue...')
 
 	def interact(self, locals, *args):
@@ -346,11 +381,11 @@ class DebugState(object):
 		interp.interact('Debugging')
 
 	def __enter__(self):
-		self.push_state(self.debugstates['LOG_DEBUG'])
-		self.msg('LOG_DEBUG', 'entering debugging context')
+		self.push_state(self.debugstates['DEBUG'])
+		self.msg('DEBUG', 'entering debugging context')
 
 	def __exit__(self, exc_type, exc_value, tb):
-		self.msg('LOG_DEBUG', 'leaving debugging context')
+		self.msg('DEBUG', 'leaving debugging context')
 		self.pop_state()
 
 
@@ -360,16 +395,16 @@ class DebugState(object):
 		'''
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
-			self.msg('LOG_INFO', 'debugging state -> %r, %r' % (self._state, self._log_state) )
-			self.msg('LOG_DEBUG', 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
+			self.msg('INFO', 'debugging state -> %r, %r' % (self._state, self._log_state) )
+			self.msg('DEBUG', 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
 			result = None
 			try:
 				result = func(*args, **kwargs)
 			except BaseException, e:
-				self.msg('LOG_DEBUG', 'the callable %(func)r failed with: (%(exc)r) - %(exc)s' % dict(func=func, exc=e))
+				self.msg('DEBUG', 'the callable %(func)r failed with: (%(exc)r) - %(exc)s' % dict(func=func, exc=e))
 				raise
 			else:
-				self.msg('LOG_DEBUG', 'the callable %r returned: %r\n---' % (func, result))
+				self.msg('DEBUG', 'the callable %r returned: %r\n---' % (func, result))
 			finally:
 				self.pop_state()
 				self.last_debugged = (func, args, kwargs)
@@ -379,12 +414,12 @@ class DebugState(object):
 
 	def instrument_class(self, name, bases, dict):
 		for nm,meth in [ (nm,meth) for nm,meth in dict.items() if hasattr(meth, '__call__')]:
-			self.msg(self.debugstates.LOG_INFO, 'Instrumenting class (%s) method (%s)' % (name, nm))
+			self.msg(self.debugstates.INFO, 'Instrumenting class (%s) method (%s)' % (name, nm))
 			dict[nm] = self.debug_func(meth)
 		clss = type(name, bases, dict)
 		return clss
 
-	def print_traceback(self, level='LOG_DEBUG', steps=3):
+	def print_traceback(self, level='DEBUG', steps=3):
 		msg =  self._get_last_module(steps)
 		self.msg(level, msg, tb=False)
 

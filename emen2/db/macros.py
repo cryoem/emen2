@@ -425,7 +425,7 @@ class macro_getrectypesiblings(Macro):
 		# for i in parents:
 		# 	siblings = siblings.union(db.getchildren(i))
 		#
-		# groups = db.groupbyrecorddef(siblings)
+		# groups = db.groupbyrectype(siblings)
 		#
 		# if groups.has_key(rec.rectype):
 		# 	q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime")

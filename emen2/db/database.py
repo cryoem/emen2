@@ -38,18 +38,15 @@ try:
 except:
 	emen2.db.config.defaults()
 
-
-# EMEN2 Imports
+# EMEN2 Core
 import emen2.db.datatypes
 import emen2.db.vartypes
 import emen2.db.properties
 import emen2.db.macros
-
 import emen2.db.proxy
-import emen2.db.validators
-import emen2.db.dataobject
 
 # DBObjects
+import emen2.db.dataobject
 import emen2.db.record
 import emen2.db.binary
 import emen2.db.paramdef
@@ -66,20 +63,8 @@ import emen2.util.jsonutil
 # Exceptions
 from emen2.db.exceptions import *
 
-
 # Conveniences
-Record = emen2.db.record.Record
-Binary = emen2.db.binary.Binary
-Context = emen2.db.context.Context
-ParamDef = emen2.db.paramdef.ParamDef
-RecordDef = emen2.db.recorddef.RecordDef
-User = emen2.db.user.User
-Group = emen2.db.group.Group
-WorkFlow = emen2.db.workflow.WorkFlow
-proxy = emen2.db.proxy
 publicmethod = emen2.db.proxy.publicmethod
-
-
 
 def fakemodules():
 	"""Fixes some problems with backwards compatibility by manipulating module names"""
@@ -100,7 +85,7 @@ def fakemodules():
 fakemodules()
 
 
-# Version control
+# Version names
 from emen2.clients import __version__
 VERSIONS = {
 	"API": emen2.VERSION,
@@ -110,15 +95,13 @@ VERSIONS = {
 # Regular expression to parse Protocol views. Perhaps this should go in recorddefs.py?
 VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
 
-
 # Global pointer to database environment
 DBENV = None
 
-
-# basestring goes away in a later python version
+# basestring goes away in Python 3
 basestring = (str, unicode)
 
-
+# ian: todo: move this to EMEN2DBEnv
 DB_CONFIG = """\
 # These can be tuned somewhat, depending on circumstances
 set_cachesize 0 134217728 1
@@ -145,7 +128,6 @@ def clock(times, key=0, t=0, limit=60):
 	@keyparam limit Maximum amount of time allowed in this timing dict
 	@return Time elapsed since start of operation (float)
 	"""
-	
 	t2 = time.time()
 	if not times.get(key):
 		times[key] = 0
@@ -155,17 +137,15 @@ def clock(times, key=0, t=0, limit=60):
 	return t2
 
 
+
 def check_output(args, **kwds):
 	"""Run a command using Popen and return the stdout.
 	@return stdout from the program after exit (str)
 	"""
-	
 	kwds.setdefault("stdout", subprocess.PIPE)
 	kwds.setdefault("stderr", subprocess.STDOUT)
 	p = subprocess.Popen(args, **kwds)
 	return p.communicate()[0]
-
-
 
 
 
@@ -189,7 +169,6 @@ def getctime():
 def gettime():
 	"""@return Current database time, as string in format %s"""%g.TIMESTR
 	return time.strftime(g.TIMESTR)
-
 
 
 
@@ -251,7 +230,6 @@ class EMEN2DBEnv(object):
 		@keyparam path Directory containing EMEN2 Database Environment.
 		@keyparam snapshot Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
-		
 		self.keytypes = {}
 		self.path = path or g.EMEN2DBHOME
 		if not self.path:
@@ -267,7 +245,7 @@ class EMEN2DBEnv(object):
 		self.txnlog = {}
 
 		#########################
-		# VartypeManager handles registration of vartypes and properties, and also validation
+		# Cache the vartypes that are indexable
 		vtm = emen2.db.datatypes.VartypeManager()
 		self.indexablevartypes = set()
 		for y in vtm.getvartypes():
@@ -277,9 +255,6 @@ class EMEN2DBEnv(object):
 			
 		#########################
 		# Open DB environment; check if global DBEnv has been opened yet
-		# self.dbenv = self._init_dbenv()
-		global DBENV
-
 		ENVOPENFLAGS = \
 			bsddb3.db.DB_CREATE | \
 			bsddb3.db.DB_INIT_MPOOL | \
@@ -290,8 +265,10 @@ class EMEN2DBEnv(object):
 			bsddb3.db.DB_REGISTER |	\
 			bsddb3.db.DB_RECOVER
 
+		global DBENV
+
 		if DBENV == None:
-			g.log.msg("LOG_INFO","Opening Database Environment: %s"%self.path)
+			g.log("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 			if snapshot:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
@@ -301,22 +278,9 @@ class EMEN2DBEnv(object):
 		self.dbenv = DBENV
 
 		#########################
-		# If we are just doing backups or maintenance, don't open any BDB handles
-		# if maintenance:
-		# 	return
-
-		#########################
-		# Open Database
+		# Open Databases
 		self.init()
 
-		# txn = self.newtxn(write=True)
-		# try:
-		# 	self.init(txn=txn)
-		# except Exception, inst:
-		# 	self.txnabort(txn=txn)
-		# 	raise
-		# else:
-		# 	self.txncommit(txn=txn)
 
 
 	def init(self):
@@ -349,7 +313,6 @@ class EMEN2DBEnv(object):
 			'newuser': self.newuser,
 			'workflow': self.workflow,
 		}
-
 
 
 	# ian: todo: make this nicer.
@@ -397,7 +360,7 @@ class EMEN2DBEnv(object):
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
 		if not os.path.exists(configpath):
-			g.log.msg("LOG_INIT","Installing default DB_CONFIG file: %s"%configpath)
+			g.log("Installing default DB_CONFIG file: %s"%configpath)
 			f = open(configpath, "w")
 			f.write(DB_CONFIG)
 			f.close()
@@ -409,20 +372,20 @@ class EMEN2DBEnv(object):
 		sys.stdout.flush()
 
 		tx_max = self.dbenv.get_tx_max()
-		g.log.msg('LOG_DEBUG', "Open transactions: %s"%tx_max)
+		g.log("Open transactions: %s"%tx_max)
 
 		txn_stat = self.dbenv.txn_stat()
-		g.log.msg('LOG_DEBUG', "Transaction stats: ")
+		g.log("Transaction stats: ")
 		for k,v in txn_stat.items():
-			g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
+			g.log("\t%s: %s"%(k,v))
 
 		log_archive = self.dbenv.log_archive()
-		g.log.msg('LOG_DEBUG', "Archive: %s"%log_archive)
+		g.log("Archive: %s"%log_archive)
 
 		lock_stat = self.dbenv.lock_stat()
-		g.log.msg('LOG_DEBUG', "Lock stats: ")
+		g.log("Lock stats: ")
 		for k,v in lock_stat.items():
-			g.log.msg('LOG_DEBUG', "\t%s: %s"%(k,v))
+			g.log("\t%s: %s"%(k,v))
 
 
 	####################################
@@ -443,7 +406,7 @@ class EMEN2DBEnv(object):
 			flags = 0
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
-		# g.log.msg('LOG_INFO', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		# g.log("NEW TXN, flags: %s --> %s"%(flags, txn), 'TXN')
 
 		try:
 			type(self).txncounter += 1
@@ -453,7 +416,6 @@ class EMEN2DBEnv(object):
 			raise
 
 		return txn
-
 
 
 	def txncheck(self, txnid=0, write=False, txn=None):
@@ -470,7 +432,6 @@ class EMEN2DBEnv(object):
 		return txn
 
 
-
 	def txnabort(self, txnid=0, txn=None):
 		"""Abort transaction.
 		@keyparam txnid Transaction ID
@@ -479,7 +440,7 @@ class EMEN2DBEnv(object):
 		"""
 		
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg('LOG_INFO', "TXN ABORT --> %s"%txn)
+		# g.log("TXN ABORT --> %s"%txn, 'TXN')
 
 		if txn:
 			txn.abort()
@@ -490,7 +451,6 @@ class EMEN2DBEnv(object):
 			raise KeyError, 'Transaction not found'
 
 
-
 	def txncommit(self, txnid=0, txn=None):
 		"""Commit a transaction.
 		@keyparam txnid Transaction ID
@@ -499,7 +459,7 @@ class EMEN2DBEnv(object):
 		"""
 		
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg("LOG_INFO","TXN COMMIT --> %s"%txn)
+		# g.log("TXN COMMIT --> %s"%txn)
 
 		if txn != None:
 			txn.commit()
@@ -529,12 +489,12 @@ class EMEN2DBEnv(object):
 		outpath = g.paths.LOG_ARCHIVE
 
 		if checkpoint:
-			g.log.msg('LOG_INFO', "Log Archive: Checkpoint")
+			g.log("Log Archive: Checkpoint")
 			self.dbenv.txn_checkpoint()
 
 		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 
-		g.log.msg('LOG_INFO', "Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+		g.log("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
 		if not os.access(outpath, os.F_OK):
 			os.makedirs(outpath)
@@ -548,7 +508,7 @@ class EMEN2DBEnv(object):
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
-			g.log.msg('LOG_INFO','Log Archive: %s -> %s'%(archivefile, dest))
+			g.log('Log Archive: %s -> %s'%(archivefile, dest))
 			shutil.copy(archivefile, dest)
 			outpaths.append(dest)
 
@@ -565,7 +525,7 @@ class EMEN2DBEnv(object):
 
 
 		for removefile in removefiles:
-			g.log.msg('LOG_INFO','Log Archive: Removing %s'%(removefile))
+			g.log('Log Archive: Removing %s'%(removefile))
 			os.unlink(removefile)
 
 		return removefiles
@@ -573,7 +533,7 @@ class EMEN2DBEnv(object):
 
 	# ian: todo: finish
 	# def coldbackup(self, force=False, ctx=None, txn=None):
-	# 	g.log.msg('LOG_INFO', "Cold Backup: Checkpoint")
+	# 	g.log("Cold Backup: Checkpoint")
 	#
 	# 	self.checkpoint(ctx=ctx, txn=txn)
 	#
@@ -584,11 +544,11 @@ class EMEN2DBEnv(object):
 	# 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.paths.BACKUPPATH
 	#
 	# 	# ian: just use shutil.copytree
-	# 	g.log.msg('LOG_INFO',"Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
+	# 	g.log("Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
 	# 	shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
 	#
 	# 	for i in ["config.yml","DB_CONFIG"]:
-	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
+	# 		g.log("Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
 	#
 	# 	os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
@@ -597,22 +557,18 @@ class EMEN2DBEnv(object):
 	# 	archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 	#
 	# 	for i in archivelogs:
-	# 		g.log.msg('LOG_INFO',"Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
+	# 		g.log("Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
 	#
 	#
-	#
 	# def hotbackup(self, ctx=None, txn=None):
-	# 	g.log.msg('LOG_INFO', "Hot Backup: Checkpoint")
+	# 	g.log("Hot Backup: Checkpoint")
 	# 	self.checkpoint(ctx=ctx, txn=txn)
 	#
-	# 	g.log.msg('LOG_INFO', "Hot Backup: Log Archive")
+	# 	g.log("Hot Backup: Log Archive")
 	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
 	#
-	# 	g.log.msg('LOG_INFO', "Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
-
-
-
+	# 	g.log("Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
 
 
 
@@ -636,28 +592,24 @@ class DB(object):
 		# Cache contexts
 		self.contexts_cache = {}
 
-		# if maintenance:
-		# 	return
 		# Check if this is a valid db.. 
 		# Probably move this into EMEN2DBEnv, but keep the setup in DB
 		# txn = self.bdbs.newtxn(write=True)
 		# try:
 		# 	maxr = self.bdbs.bdbs.record.get_max(txn=txn)
-		# 	g.log.msg("LOG_INFO","Opened database with %s records"%maxr)
+		# 	g.log("Opened database with %s records"%maxr)
 		# 	if not self.bdbs.user.get('root', txn=txn):
 		# 		self.setup(txn=txn)
-		# 
 		# except Exception, e:
-		# 	g.log.msg('LOG_INFO',"Could not open database! %s"%e)
+		# 	g.log("Could not open database! %s"%e)
 		# 	self.bdbs.txnabort(txn=txn)
 		# 	raise
-		# 
 		# else:
 		# 	self.bdbs.txncommit(txn=txn)
 
 
 	def __del__(self):
-		g.log_info('Cleaning up DB instance')
+		pass
 
 
 	def __str__(self):
@@ -674,12 +626,157 @@ class DB(object):
 	# Utility methods
 	###############################
 
+	def _findrecorddefnames(self, names, ctx=None, txn=None):
+		"""(Internal) Find referenced recorddefs."""
+
+		recnames, recs, rds = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		rds = set(rds)
+		rds |= set([i.rectype for i in recs])
+		if recnames:
+			grouped = self.groupbyrectype(names, ctx=ctx, txn=txn)
+			rds |= set(grouped.keys())
+		return rds
+
+
+	def _findparamdefnames(self, names, ctx=None, txn=None):
+		"""(Internal) Find referenced paramdefs."""
+
+		recnames, recs, params = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		params = set(params)
+		if recnames:
+			recs.extend(self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn))
+		for i in recs:
+			params |= set(i.keys())
+			#rds = set([i.rectype for i in recs])
+			#for rd in self.bdbs.recorddef.cgets(rds, ctx=ctx, txn=txn):
+			#	params |= set(rd.paramsK)
+		return params
+		
+		
+	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
+		"""(Internal) Find referenced users/binaries."""
+		
+		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		values = set(values)
+		# print "getting recs"
+		if recnames:
+			recs.extend(self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn))
+
+		if not recs:
+			return values
+		
+		# print "getting params"	
+		# get the params we're looking for
+		vtm = emen2.db.datatypes.VartypeManager()			
+		vt = set()
+		vt_iterable = set()
+		vt_firstitem = set()
+		vt_reduce = set()
+		pds = set()
+		for rec in recs:
+			pds |= set(rec.keys())
+		for pd in self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn):
+			if pd.vartype not in vartypes:
+				continue
+			vartype = vtm.getvartype(pd.vartype)
+			if pd.vartype in ['comments', 'history']:
+				vt_firstitem.add(pd.name)
+			elif pd.vartype in ['acl']:
+				vt_reduce.add(pd.name)
+			elif vartype.iterable:
+				vt_iterable.add(pd.name)
+			else:
+				vt.add(pd.name)
+
+
+		for rec in recs:
+			# print "filtering"
+			for param in vt_reduce:
+				for j in rec.get(param, []):
+					values |= set(j)
+
+			for param in vt_firstitem:
+				values |= set([i[0] for i in rec.get(param,[])])
+		
+			for param in vt_iterable:
+				values |= set(rec.get(param, []))
+
+			for param in vt:
+				if rec.get(param):
+					values.add(rec.get(param))
+
+		return values
+
+
+	def _map_commit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
+		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
+		@param keytype DBO keytype
+		@param names DBO names
+		@param method DBO method
+		@*args method args
+		@*kwargs method kwargs
+		@return Results of commit/puts
+		"""
+
+		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		for item in items:
+			getattr(item, method)(*args, **kwargs)
+		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
+
+
+	def _map_commit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
+		if names is None:
+			names = default
+		ol, names = listops.oltolist(names)
+		ret = self._map_commit(keytype, names, method, ctx, txn, *args, **kwargs)
+		if ol: return listops.first_or_none(ret)
+		return ret
+
+
+	def _makerootcontext(self, ctx=None, host=None, txn=None):
+		"""(Internal) Create a special root context.
+		Can use this internally when some admin tasks that require ctx's are necessary.
+		@return SpecialRootContext
+		"""		
+		ctx = emen2.db.context.SpecialRootContext()
+		ctx.refresh(db=self)
+		ctx._setDBProxy(txn=txn)
+		return ctx
+		
+
+	def run_macro(self, macro, names, ctx=None, txn=None):
+		"""(Internal) Run a macro over a set of Records.
+		@param macro Macro in view format: $@macro(args)
+		@param names Record names
+		@return Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
+		"""
+		recs = {}
+		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+
+		regex = re.compile(VIEW_REGEX)
+		k = regex.match(macro)
+
+		keytype = vtm.getmacro(k.group('name')).getkeytype()
+		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
+
+		for rec in mrecs:
+			recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
+
+		return keytype, recs
+
+
+
+	###############################
+	# Setup
+	###############################
+
 	def setup(self, rootpw=None, rootemail=None, ctx=None, txn=None):
-		"""Initialize a new DB.
+		"""(Internal) Initialize a new DB.
 		@keyparam rootpw Root Account Password
 		@keyparam rootemail Root Account email
 		"""
-		
 		if not rootpw or not rootemail:
 			import pwd
 			import platform
@@ -711,136 +808,11 @@ class DB(object):
 			f.close()
 			return ret
 
-		# Create a fake root context for importing
-		ctx = self._makerootcontext(txn=txn)
-		dbp = ctx.db
-		dbp._settxn(txn)
-
-		g.log.msg("LOG_INFO","Initializing new database; root email: %s"%rootemail)
-
-		import emen2.db.load
-		path = emen2.db.config.get_filename('emen2', 'skeleton')
-		loader = emen2.db.load.Loader(path=path, db=dbp)
-		loader.load(rootemail=rootemail, rootpw=rootpw)
-
-
-	# ian: todo: move this to UserBTree
-	def _userbyemail(self, name, ctx=None, txn=None):
-		"""(Internal) Attempt to lookup a username by email.
-		@param name User name or Email
-		@return User name
-		"""
-		ind = self.bdbs.user.getindex('email', txn=txn)
- 		name = (ind.get(name, txn=txn) or [name])
-		# If we got a hit, return the first one.
-		return name.pop()
-
-
-	# Find referenced recorddefs
-	def _findrecorddefnames(self, names, ctx=None, txn=None):
-		# Preprocess
-		rds, recnames = listops.filter_partition(lambda x:isinstance(x, basestring), names)
-		rds = set(rds)
-		if recnames:
-			grouped = self.groupbyrecorddef(names, ctx=ctx, txn=txn)
-			rds |= set(grouped.keys())
-		return rds
-
-
-	# Find referenced paramdefs
-	def _findparamdefnames(self, names, ctx=None, txn=None):
-		# Preprocess
-		params, recnames = listops.filter_partition(lambda x:isinstance(x, basestring), names)
-		params = set(params)
-		if recnames:
-			recs = self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn)
-			rds = set([i.rectype for i in recs])
-			for rd in self.bdbs.recorddef.cgets(rds, ctx=ctx, txn=txn):
-				params |= set(rd.paramsK)
-			for i in recs:
-				params |= set(i.keys())
-		print "found paramdef names:", params
-		return params
-		
-		
-	# Find referenced users/binaries
-	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
-
-		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
-		
-		# print "getting recs"
-		if recnames:
-			recs.extend(self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn))
-
-		if not recs:
-			return values
-		
-		# print "getting params"	
-		# get the params we're looking for
-		vtm = emen2.db.datatypes.VartypeManager()			
-		vt = set()
-		vt_iterable = set()
-		pds = set()
-		for rec in recs:
-			pds |= set(rec.keys())
-		for pd in self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn):
-			if pd.vartype not in vartypes:
-				continue
-			vartype = vtm.getvartype(pd.vartype)
-			if vartype.iterable:
-				vt_iterable.add(pd.name)
-			else:
-				vt.add(pd.name)
-
-		# print "filtering"
-		for param in vt_iterable:
-			for rec in recs:
-				values.extend(rec.get(param) or [])
-		for param in vt:
-			for rec in recs:
-				if rec.get(param):
-					values.append(rec.get(param))
-
-		return values
-
-
-	def _map_commit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
-		@param keytype DBO keytype
-		@param names DBO names
-		@param method DBO method
-		@*args method args
-		@*kwargs method kwargs
-		@return Results of commit/puts
-		"""
-
-		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
-		for item in items:
-			getattr(item, method)(*args, **kwargs)
-		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
-
-
-	def _map_commit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
-		if names is None:
-			names = default
-		ol, names = listops.oltolist(names)
-		ret = self._map_commit(keytype, names, method, ctx, txn, *args, **kwargs)
-		if ol: return listops.first_or_none(ret)
-		return ret
-		
-
-	# ian: todo: hard: flesh this out into a proper cron system, 
-	# with a subscription model; right now just runs cleanupcontext
-	# right now this is called during _getcontext, and calls
-	# cleanupcontexts not more than once every 10 minutes
-	def periodic_operations(self, ctx=None, txn=None):
-		"""(Internal) Maintenance task scheduler.
-		Eventually this will be replaced with a maintenance registration system."""
-
-		t = getctime()
-		if t > (self.lastctxclean + 600):
-			self._cleanupcontexts(ctx=ctx, txn=txn)
-			self.lastctxclean = t
+		g.log("Initializing new database; root email: %s"%rootemail)
+		# import emen2.db.load
+		# path = emen2.db.config.get_filename('emen2', 'skeleton')
+		# loader = emen2.db.load.Loader(path=path, db=dbp)
+		# loader.load(rootemail=rootemail, rootpw=rootpw)
 
 
 
@@ -848,16 +820,12 @@ class DB(object):
 	# Email
 	###############################
 	
-	def testmail(self, recipient, ctx=None, txn=None):
-		self.sendmail(recipient, msg="Test!", subject="Test!", ctx=ctx, txn=txn)
-		
-		
 	def sendmail(self, recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
-		"""Send an email based on a template. Both the template system and mail system must be configured.
+		"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 		@param recipient Email recipient
-		@keyparam msg Message text, or..
-		@keyparam template Template name
-		@keyparam ctxt Dictionary to pass to template
+		@keyparam msg Message text, or
+		@keyparam template ... Template name
+		@keyparam ctxt ... Dictionary to pass to template
 		@return Email recipient, or None if no message was sent
 		"""
 		
@@ -869,7 +837,7 @@ class DB(object):
 			if not g.MAILHOST:
 				raise ValueError, "No SMTP server"
 		except Exception, inst:
-			g.log('LOG_INFO',"Couldn't get mail config: %s"%inst)
+			g.warn("Couldn't get mail config: %s"%inst)
 			return
 
 		ctxt = ctxt or {}
@@ -892,19 +860,19 @@ class DB(object):
 			try:
 				msg = g.templates.render_template(template, ctxt)
 			except Exception, e:
-				g.log('LOG_INFO','Could not render template %s: %s'%(template, e))
+				g.warn('Could not render template %s: %s'%(template, e))
 				return
 		else:
 			raise ValueError, "No message to send!"
 
-
+		# Actually send the message
 		try:
 			s = smtplib.SMTP(g.MAILHOST)
 			s.set_debuglevel(1)
 			s.sendmail(mailadmin, [mailadmin, recipient], msg)
-			g.log('LOG_INFO', 'Mail sent: %s -> %s'%(mailadmin, recipient))
+			g.log('Mail sent: %s -> %s'%(mailadmin, recipient))
 		except Exception, e:
-			g.log('LOG_ERROR', 'Could not send email: %s'%e)
+			g.error('Could not send email: %s'%e, e=e)
 			raise e
 
 		return recipient
@@ -934,43 +902,77 @@ class DB(object):
 
 
 	###############################
+	# Events
+	###############################
+
+	# ian: todo: hard: flesh this out into a proper cron system, 
+	# with a registration model; right now just runs cleanupcontext
+	# Currently, this is called during _getcontext, and calls
+	# cleanupcontexts not more than once every 10 minutes
+	def periodic_operations(self, ctx=None, txn=None):
+		"""(Internal) Maintenance task scheduler.
+		Eventually this will be replaced with a maintenance registration system."""
+
+		t = getctime()
+		if t > (self.lastctxclean + 600):
+			self.cleanupcontexts(ctx=ctx, txn=txn)
+			self.lastctxclean = t
+
+
+	# ian: todo: hard: finish
+	def cleanupcontexts(self, ctx=None, txn=None):
+		"""(Internal) Clean up sessions that have been idle too long."""
+
+		newtime = getctime()
+		old_strftime = time.strftime(g.TIMESTR, time.gmtime(self.lastctxclean))
+		new_strftime = time.strftime(g.TIMESTR, time.gmtime(newtime))
+
+		for ctxid, context in self.bdbs.context.items(txn=txn):
+			# If the item is in the cache, use the current last-access time..
+			c = self.contexts_cache.get(ctxid)
+			if c:
+				context.time = c.time
+
+			# Delete any expired contexts
+			if context.time + (context.maxidle or 0) < newtime:
+				g.log("Expire context (%s) %d" % (context.name, time.time() - context.time))
+				self.bdbs.context.delete(context.name, txn=txn)
+
+
+
+	###############################
 	# Login and Context Management
 	###############################
 
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
-		"""Logs a given user in to the database. 
-		Returns ctxid (auth token), or fails with AuthenticationError or SessionError.
+		"""Login. Returns auth token (ctxid), or fails with AuthenticationError, SessionError, or KeyError.
 		@keyparam name Account name
 		@keyparam password Account password
-		@keyparam host Bind to this host (usually set by the proxy)
-		@return Auth token string (ctxid)
+		@keyparam host Bind auth token to this host (usually set by the proxy)
+		@return Auth token (ctxid)
 		@exception AuthenticationError, SessionError, KeyError
 		"""
-	
-		# Check the account name, or lookup account name by email
-		name = unicode(name).strip()
-
+		
+		# Make an anonymous Context
 		if name == "anonymous":
-			# Make an anonymous Context
-			newcontext = self._makecontext(host=host, ctx=ctx, txn=txn)
-		else:
-			# Try to find the user by account name, or by email
-			name = self._userbyemail(name, txn=txn)
+			newcontext = emen2.db.context.AnonymousContext(host=host, ctx=ctx, txn=txn)
 
+		# Try to find the user by account name, or by email
+		else:
 			# Check the password; user.checkpassword will raise Exception if wrong
 			try:
-				user = self.bdbs.user.get(name, txn=txn)
+				user = self.bdbs.user.getbyemail(name, txn=txn)
 				user.checkpassword(password)
 			except:
 				raise AuthenticationError
 			
 			# Create the Context for this user/host
-			newcontext = self._makecontext(username=name, host=host, ctx=ctx, txn=txn)
+			newcontext = emen2.db.context.Context(username=user.name, host=host, ctx=ctx, txn=txn)
 		
-		self.bdbs.context.put(newcontext.ctxid, newcontext, txn=txn)
-		g.log.msg('LOG_SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
-
+		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
+		g.log("Login succeeded: %s -> %s" % (name, newcontext.name), 'SECURITY')
+		
 		return newcontext.name
 
 
@@ -1013,58 +1015,6 @@ class DB(object):
 		return ctx.checkcreate()
 
 
-	def _makecontext(self, username="anonymous", host=None, ctx=None, txn=None):
-		"""(Internal) Initializes a context.
-		@keyparam username Account name (default "anonymous")
-		@keyparam host Host
-		@return Context
-		"""
-		# Anonymous users can "login" to create a written Context;
-		# Anonymous access without login uses an AnonymousContext which isn't written
-		# I may use this distinction to create a "anonymous with email address" Context
-		if username == "anonymous":
-			ctx = emen2.db.context.AnonymousContext(host=host)
-		else:
-			ctx = emen2.db.context.Context(username=username, host=host)
-		return ctx
-
-
-	def _makerootcontext(self, ctx=None, host=None, txn=None):
-		"""(Internal) Create a special root context.
-		Can use this internally when some admin tasks that require ctx's are necessary.
-		@return SpecialRootContext
-		"""
-		
-		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=self)
-		ctx._setDBProxy(txn=txn)
-		return ctx
-
-
-	# ian: todo: hard: finish
-	def _cleanupcontexts(self, ctx=None, txn=None):
-		"""(Internal) Clean up sessions that have been idle too long."""
-		
-		newtime = getctime()
-		old_strftime = time.strftime(g.TIMESTR, time.gmtime(self.lastctxclean))
-		new_strftime = time.strftime(g.TIMESTR, time.gmtime(newtime))
-
-		g.log.msg("LOG_DEBUG","Removing expired contexts: %s -> %s"%(old_strftime, new_strftime))
-
-		for ctxid, context in self.bdbs.context.items(txn=txn):
-			# If the item is in the cache, use the current last-access time..
-			c = self.contexts_cache.get(ctxid)
-			if c:
-				context.time = c.time
-			
-			# Delete any expired contexts
-			if context.time + (context.maxidle or 0) < newtime:
-				g.log_info("Expire context (%s) %d" % (context.name, time.time() - context.time))
-				self.bdbs.context.delete(context.name, txn=txn)
-
-
-	# how often should we refresh groups? right now, every publicmethod will reset user/groups.
-	# timer based?
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
 		"""(Internal and DBProxy) Takes a ctxid key and returns a context.
 		Note: The host provided must match the host in the Context
@@ -1074,41 +1024,35 @@ class DB(object):
 		@exception SessionError
 		"""
 
-		if txn == None:
-			raise ValueError, "No txn"
-
+		# Check for any scheduled actions
 		self.periodic_operations(ctx=ctx, txn=txn)
 
 		# Find the context; check the cache first, then the bdb.
-		# If no ctxid was provided, make an anonymous context.
+		# If no ctxid was provided, make an Anonymous Context.
 		context = None
 		if ctxid:
 			context = self.contexts_cache.get(ctxid) or self.bdbs.context.get(ctxid, txn=txn)
 		else:
-			context = self._makecontext(host=host, ctx=ctx, txn=txn)
+			context = emen2.db.context.AnonymousContext(host=host, ctx=ctx, txn=txn))
 
 		# If no ctxid was found, it's an expired context and has already been cleaned out.
 		if not context:
-			g.log.msg('LOG_ERROR', "Session expired for %s"%ctxid)
+			g.error("Session expired for %s"%ctxid)
 			raise SessionError, "Session expired"
-
 
 		# ian: todo: check referenced groups, referenced records... (complicated.): #groups
 		user = None
 		grouplevels = {}
 
 		# Fetch the user record and group memberships
-		if context.username not in ["anonymous"]:
-			# This should probably be sget.
+		if context.username != 'anonymous':
 			user = self.bdbs.user.get(context.username, filt=False, txn=txn) 
-			# ian: critical todo: check this index!!!
-			groups = self.bdbs.group.getindex('permissions', txn=txn).get(context.username, set(), txn=txn)
-
+			indg = self.bdbs.group.getindex('permissions', txn=txn)
+			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
 			for group in self.bdbs.group.cgets(groups, ctx=ctx, txn=txn):
 				grouplevels[group.name] = group.getlevel(context.username)
 
-		# g.debug("kw host is %s, context host is %s"%(host, context.host))
 		# Sets the database reference, user record, display name, groups, and updates
 		#	context access time.
 		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self)
@@ -1151,7 +1095,7 @@ class DB(object):
 		boolops = {"AND":"intersection_update", "OR":"update"}
 		names = None
 
-		# Process the query constraints..
+		# Pre-process the query constraints..
 		c = c or []
 		_c = []
 		default = [None, 'any', None]
@@ -1193,7 +1137,6 @@ class DB(object):
 			# Filter
 			names = self.bdbs.record.names(names or set(), ctx=ctx, txn=txn)
 			
-			
 		############################				
 		# Step 3: Run constraints that include macros or "value is empty"
 		t = clock(times, 2, t)
@@ -1203,7 +1146,6 @@ class DB(object):
 			if constraintmatches != None:
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-
 		############################				
 		# Step 4: Generate stats on rectypes (do this before other sorting..)
 		t = clock(times, 3, t)
@@ -1211,8 +1153,8 @@ class DB(object):
 		rectypes = collections.defaultdict(int)
 		rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
 		if len(rds) == 0:
-			if stats: # don't do this unless we want these.
-				r = self._groupbyrecorddef_index(names, ctx=ctx, txn=txn)
+			if stats: # don't do this unless we need the records grouped.
+				r = self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
 				for k,v in r.items():
 					rectypes[k] = len(v)
 		elif len(rds) == 1:
@@ -1220,7 +1162,6 @@ class DB(object):
 		elif len(rds) > 1:
 			for name, rec in recs.iteritems():
 				rectypes[rec.get('rectype')] += 1
-
 
 		############################					
 		# Step 5: Sort and slice to the right range
@@ -1297,20 +1238,18 @@ class DB(object):
 			viewdef = " ".join(viewdef)
 			table = self.renderview(names, viewdef=viewdef, table=True, ctx=ctx, txn=txn)
 
-		
+
+		############################							
+		# Step 7: Fix for output
 		t = clock(times, 6, t)
 
 		stats = {}
 		stats['time'] = time.time()-t0
 		stats['rectypes'] = rectypes
-
 		# stats['times'] = times
 		# for k,v in times.items():
 		# 	print k, '%5.3f'%(v)
-				
-		
-		############################							
-		# Step 7: Fix for output
+
 		for name in names:
 			recs[name]['name'] = name
 		recs = [recs[i] for i in names]
@@ -1333,8 +1272,6 @@ class DB(object):
 			ret['recs'] = recs
 		if table:
 			ret['table'] = table
-		
-
 		return ret
 
 
@@ -1355,12 +1292,11 @@ class DB(object):
 			
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
-			
-						
+					
 		# Sadly, will need to run macro on everything.. :(
 		# Run these as the last constraints.
 		if searchparam.startswith('$@'):
-			keytype, ret = self._run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
+			keytype, ret = self.run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
 			# *minimal* validation of input..
 			if keytype == 'd':
 				value = int(value)
@@ -1375,7 +1311,6 @@ class DB(object):
 					recs[k][searchparam] = v # Update the record cache
 					r.add(k)
 			return r
-			
 			
 		# Additional setup..
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
@@ -1403,10 +1338,10 @@ class DB(object):
 
 		else:
 			# Get the list of indexes to search
+			param_stripped = searchparam.replace('*','').replace('$$','')
 			if searchparam.endswith('*'):
-				sp = self._query_paramstrip(searchparam)
-				indparams |= self.bdbs.paramdef.rel([sp], recurse=recurse, ctx=ctx, txn=txn)[sp]
-			indparams.add(self._query_paramstrip(searchparam))
+				indparams |= self.bdbs.paramdef.rel([param_stripped], recurse=recurse, ctx=ctx, txn=txn)[sp]
+			indparams.add(param_stripped)
 				
 				
 		# First, search the index index
@@ -1442,7 +1377,6 @@ class DB(object):
 			if r:
 				matchkeys[indparam] = r
 
-
 		# Now search individual param indexes
 		for pp, keys in matchkeys.items():
 			ind = self.bdbs.record.getindex(pp, txn=txn)
@@ -1472,14 +1406,12 @@ class DB(object):
 		@c Query constraints; used for checking items in cache
 		@return Sortkey keytype ('s'/'d'/'f'/None), and {name:value} of values that can be sorted
 		"""
-
 		# No work necessary if sortkey is creationtime
 		if sortkey in ['creationtime', 'name', 'recid']:
 			return 's', {}
-
+			
 		# Setup
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-
 		inverted = collections.defaultdict(set)
 		c = c or []
 		sortvalues = {}
@@ -1499,24 +1431,9 @@ class DB(object):
 		except:
 			pass
 
-
-		# These will always sort using the rendered value
-		if vartype in ["user", "userlist", "binary", "binaryimage"]:
-			rendered = True				
-
-
-		# Ian: todo: if the vartype is iterable,
-		#	then we can't trust the index to get the search order right!
-
-		# ian: this can't be trustedif boolmode is 'OR'
-		#if sortkey in [i[0] for i in c] and not iterable:
-		#	# Do we already have these values?
-		#	for name in names:
-		#		sortvalues[name] = recs[name].get(sortkey)
-
 		if sortkey.startswith('$@'):
 			# Sort using a macro, and get the right sort function
-			keytype, sortvalues = self._run_macro(sortkey, names, ctx=ctx, txn=txn)
+			keytype, sortvalues = self.run_macro(sortkey, names, ctx=ctx, txn=txn)
 			for k,v in sortvalues.items():
 				recs[k][sortkey] = v
 				# Unghhgh... ian: todo: make a macro_render_sort
@@ -1524,10 +1441,10 @@ class DB(object):
 					v = ", ".join(map(unicode, v))
 					sortvalues[k] = v
 
-
 		elif not ind or len(names) < 1000 or iterable:
-			# We don't have the value, no index.. 
-			# Can be very slow! Chunk to limit damage.
+			# Iterable params are indexed, but the order is not preserved, 
+			# 	so we must check directly.
+			# No index can be very slow! Chunk the record gets to help.
 			for chunk in listops.chunk(names):
 				for rec in self.bdbs.record.cgets(chunk, ctx=ctx, txn=txn):
 					sortvalues[rec.name] = rec.get(sortkey)
@@ -1544,12 +1461,15 @@ class DB(object):
 				recs[k][sortkey] = v
 
 		else:
-			# raise ValueError, "Don't know how to sort by %s"%sortkey
-			pass
-
-
+			raise ValueError, "Don't know how to sort by %s"%sortkey
+		
+		
 		# Use a "rendered" representation of the value,
 		#	e.g. user names to sort by user's current last name
+		# These will always sort using the rendered value
+		if vartype in ["user", "userlist", "binary", "binaryimage"]:
+			rendered = True				
+
 		if rendered:
 			# Invert again.. then render. This will save time on users.
 			if not inverted:
@@ -1566,16 +1486,15 @@ class DB(object):
 				for v2 in v:
 					sortvalues[v2] = r
 
-
 		return keytype, sortvalues
+
 
 	def _query_cmps(self, ignorecase=1):
 		"""(Internal) Return the list of query constraint operators.
 		@keyparam ignorecase Use case-insensitive comparison methods
 		@return Dict of query methods
 		"""
-
-		# y is argument, x is record value
+		# y is search argument, x is the record's value
 		cmps = {
 			"==": lambda y,x:x == y,
 			"!=": lambda y,x:x != y,
@@ -1600,54 +1519,7 @@ class DB(object):
 
 		return cmps
 
-
-	def _query_paramstrip(self, param):
-		"""(Internal) Remove decorations ($$, *, etc.) from a param name.
-		@return Un-decorated ParamDef name
-		"""
-		return param.replace('*','').replace('$$','')
-
-
-	def _findqueryinstr(self, query, s, window=20):
-		"""(Internal) Give a window of context around a substring match"""
-		
-		if query == '':
-			return True
-		
-		query = query.lower()
-		s = (s or '').lower()
-		if query in s:
-			pos = s.index(query)
-			if pos < window: pos = window
-			return s[pos-window:pos+len(query)+window]
-
-		return False
-		
-
-	def _run_macro(self, macro, names, ctx=None, txn=None):
-		"""(Internal) Run a macro over a set of Records.
-		@param macro Macro in view format: $@macro(args)
-		@param names Record names
-		@return Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
-		"""
-		
-		recs = {}
-		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
-
-		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-		
-		regex = re.compile(VIEW_REGEX)
-		k = regex.match(macro)
-		
-		keytype = vtm.getmacro(k.group('name')).getkeytype()
-		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
-
-		for rec in mrecs:
-			recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
-
-		return keytype, recs
-			
-			
+	
 			
 	###############################
 	# Other query methods
@@ -1697,7 +1569,6 @@ class DB(object):
 
 	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
-
 		rets = []		
 		# This can still be done much better
 		names = self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
@@ -1782,11 +1653,11 @@ class DB(object):
 			rets.append(ret)
 		
 		if record:
-			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'userlist'], ctx=ctx, txn=txn)
+			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'userlist', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
 			rets.append(ret)
-		
+
 		allret = self._boolmode_collapse(rets, boolmode)
-		return self.getuser(allret, ctx=ctx, txn=txn)
+		return self.getuser(allret, ctx=ctx, txn=txn, filt=False)
 
 
 	@publicmethod("group.find")
@@ -1798,14 +1669,14 @@ class DB(object):
 		@keyparam boolmode AND / OR for each search constraint
 		@return Groups
 		"""
-		rets = []
-
 		# No real indexes yet (small). Just get everything and sort directly.
 		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
 
+		rets = []
 		query = unicode(query or '').split()
-		# empty set.. do this only for groups, for now.
+
+		# If query is empty, match everything. Do this only for findgroups, for now.
 		if not query:
 			query = ['']
 			
@@ -1842,10 +1713,8 @@ class DB(object):
 		@keyparam boolmode AND / OR for each search constraint (default: AND)
 		@return Binaries
 		"""
-		
 		# @keyparam min_filesize
 		# @keyparam max_filesize
-
 		def searchfilenames(filename, txn):
 			ind = self.bdbs.binary.getindex('filename', txn=txn)
 			ret = set()
@@ -1896,7 +1765,6 @@ class DB(object):
 		@return if count: [[matching value, count], ...]
 				if not count: [[matching value, [name, ...]], ...]
 		"""
-
 		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 		q = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, recs=True, ctx=ctx, txn=txn)
 		inverted = collections.defaultdict(set)
@@ -1927,11 +1795,12 @@ class DB(object):
 
 
 	#########################
-	# Note: both of these methods might go away..
+	# Grouping
+	#########################
 
-	@publicmethod("record.find.byrecorddef")
+	@publicmethod("record.find.byrectype")
 	@ol('names', output=False)
-	def getindexbyrecorddef(self, names, ctx=None, txn=None):
+	def getindexbyrectype(self, names, ctx=None, txn=None):
 		"""Get Record names by RecordDef.
 		@param names RecordDef name(s)
 		@return Set of Record names
@@ -1944,71 +1813,14 @@ class DB(object):
 		return ret
 
 
-
-	#########################
-	# Grouping
-	#########################
-
-	# ian: I intend to add more records.group.* methods.
-	@publicmethod("record.group.byrecorddef")
+	@publicmethod("record.group.byrectype")
 	@ol('names')
-	def groupbyrecorddef(self, names, ctx=None, txn=None):
+	def groupbyrectype(self, names, ctx=None, txn=None):
 		"""Group Records by RecordDef.
-		@param names Record name(s)
+		@param names Record name(s) or Record(s)
 		@return Dictionary of Record names by RecordDef
 		"""
-		if len(names) == 0:
-			return {}
-
-		if (len(names) < 1000) or (isinstance(list(names)[0],emen2.db.record.Record)):
-			return self._groupbyrecorddef_fast(names, ctx=ctx, txn=txn)
-
-		names = self.bdbs.record.filter(names, ctx=ctx, txn=txn)
-		return self._groupbyrecorddef_index(names, ctx=ctx, txn=txn)
-
-
-	def _groupbyrecorddef_index(self, names, ctx=None, txn=None):
-		"""(Internal) Group Records by RecordDef using the indexes.
-		@param names Record names
-		@return Dictionary of Record names by RecordDef
-		"""
-		
-		ret = {}
-		# Work with a copy becuase we'll be changing it
-		names = copy.copy(names)
-		ind = self.bdbs.record.getindex("rectype", txn=txn)
-
-		while names:
-			# get a random record id
-			rid = names.pop() 
-			# get the set of all records with this recorddef
-			rec = self.bdbs.record.get(rid, txn=txn) 
-			# intersect our list with this recdef
-			ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names 
-			# remove the results from our list since we have now classified them
-			names -= ret[rec.rectype] 
-			# add back the initial record to the set
-			ret[rec.rectype].add(rid) 
-
-		return ret
-
-
-	def _groupbyrecorddef_fast(self, names, ctx=None, txn=None):
-		"""(Internal) Sometimes it's quicker to just get the records and filter directly.
-		@param names Records or Record names
-		@return Dictionary of Record names by RecordDef
-		"""
-
-		# ian: todo: better input checking and error handling
-		if not isinstance(list(names)[0],emen2.db.record.Record):
-			names = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
-
-		ret={}
-		for i in names:
-			if not ret.has_key(i.rectype): ret[i.rectype]=set([i.name])
-			else: ret[i.rectype].add(i.name)
-
-		return ret
+		return self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
 
 
 
@@ -2026,25 +1838,23 @@ class DB(object):
 		@keyparam rectype Restrict to these rectypes ('*' notation allowed)
 		@return (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
 		"""
+		def endpoints(tree):
+			return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 		c_all = self.bdbs.record.rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
 		c_rectype = self.bdbs.record.rel([name], recurse=recurse, rectype=rectype, ctx=ctx, txn=txn).get(name, set())
 
-		endpoints = self._endpoints(c_all) - c_rectype
+		endpoints = endpoints(c_all) - c_rectype
 		while endpoints:
 			for k,v in c_all.items():
 				c_all[k] -= endpoints
-			endpoints = self._endpoints(c_all) - c_rectype
+			endpoints = endpoints(c_all) - c_rectype
 
 		rendered = self.renderview(listops.flatten(c_all), ctx=ctx, txn=txn)
 
 		c_all = listops.filter_dict_zero(c_all)
 
 		return rendered, c_all
-
-
-	def _endpoints(self, tree):
-		return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
 
 	@publicmethod("record.render")
@@ -2061,9 +1871,6 @@ class DB(object):
 		@keyparam mode Deprecated, no effect.
 		@return Dictionary of {Record.name: rendered view}
 		"""
-		
-		regex = re.compile(VIEW_REGEX)
-
 		if viewtype == "tabularview":
 			table = True
 
@@ -2076,7 +1883,10 @@ class DB(object):
 		if table or edit:
 			markup = True
 
-		# Calling out to vtm, we will need a DBProxy
+		# Regular expression for parsing views
+		regex = re.compile(VIEW_REGEX)
+
+		# VartypeManager manages the rendering methods
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# We'll be working with a list of names
@@ -2093,8 +1903,6 @@ class DB(object):
 
 		if viewdef:
 			groupviews[None] = viewdef
-
-
 		elif viewtype == "dicttable":
 			for rec in recs:
 				# move built in params to end of table
@@ -2102,8 +1910,6 @@ class DB(object):
 				par += builtinparamsshow
 				par += [p for p in rec.getparamkeys() if p not in par]
 				groupviews[rec.name] = self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
-
-
 		else:
 			for rd in recdefs.values():
 				rd["views"]["mainview"] = rd.mainview
@@ -2118,7 +1924,6 @@ class DB(object):
 
 				groupviews[rd.name] = v
 
-
 		# Pre-process once to get paramdefs
 		pds = set()
 		for group, vd in groupviews.items():
@@ -2129,7 +1934,6 @@ class DB(object):
 				elif match.group('type') == '@':
 					t = time.time()
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
-
 
 		pds = listops.dictbykey(self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn), 'name')
 
@@ -2149,7 +1953,6 @@ class DB(object):
 					h = '%s %s'%(n, match.group('args') or '')
 
 				headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
-
 
 		# Process records
 		ret = {}
@@ -2197,7 +2000,6 @@ class DB(object):
 			else:
 				ret[rec.name] = a
 
-
 		def pp(t, times):
 			for k,v in times.items():
 				p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
@@ -2207,7 +2009,6 @@ class DB(object):
 		# print "   ".join(header)
 		# pp("param", pt)
 		# pp("macro", mt)
-		
 		
 		if table:
 			ret["headers"] = headers
@@ -2222,7 +2023,6 @@ class DB(object):
 		@keyparam markup Use HTML Markup (default=False)
 		@return HTML table of params
 		"""
-
 		if markup:
 			dt = ['<table cellspacing="0" cellpadding="0">\n\t<thead><th>Parameter</th><th>Value</th></thead>\n\t<tbody>']
 			for count, i in enumerate(params):
@@ -2239,8 +2039,6 @@ class DB(object):
 				dt.append("$#%s:\t$$%s\n"%(i,i))
 
 		return "\n".join(dt)
-
-
 
 
 
@@ -2303,7 +2101,6 @@ class DB(object):
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=tree, ctx=ctx, txn=txn, **kwargs)
 
 
-	# Change relationships
 	@publicmethod('rel.pclink', write=True)
 	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].pclink(parent, child, ctx=ctx, txn=txn)
@@ -2401,7 +2198,6 @@ class DB(object):
 		@keyparam name User name (default is current Context user)
 		@exception SecurityError if the password and/or auth token are wrong
 		"""
-
 		#@action		
 		# Get the record, and keep the existing email address to see if it changes.
 		name = name or ctx.username
@@ -2435,7 +2231,7 @@ class DB(object):
 
 		else:
 			# Email changed.
-			g.log.msg("LOG_INFO","Changing email for %s"%user.name)	
+			g.log("Changing email for %s"%user.name, 'SECURITY')
 			self.bdbs.user.cputs([user], txn=txn)			
 
 			# Send the user an email to acknowledge the change
@@ -2450,20 +2246,18 @@ class DB(object):
 		@param newpassword
 		@keyparam name User name (default is current Context user)
 		"""
-		
-		#@preprocess
-		name = self._userbyemail(name, ctx=ctx, txn=txn)
-
 		#@action
 		# Try to authenticate using either the password OR the secret!
-		# ian: need to read directly because setContext hides password
-		user = self.bdbs.user.cget(name, filt=False, ctx=ctx, txn=txn)
-		user.setpassword(oldpassword, newpassword, secret=secret)
+		# Note: The password will be hidden if ctx.username != user.name
+		try:
+			user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+			user.setpassword(oldpassword, newpassword, secret=secret)
+		except:
+			pass
 
 		# ian: todo: evaluate to use put/cput..
-		g.log.msg("LOG_SECURITY","Changing password for %s"%user.name)
+		g.log("Changing password for %s"%user.name, 'SECURITY')
 		self.bdbs.user.put(user.name, user, txn=txn)
-		# self.bdbs.user.cputs([user], ctx=ctx, txn=txn)
 
 		#@postprocess
 		self.sendmail(user.email, template='/email/password.changed', ctx=ctx, txn=txn)
@@ -2476,14 +2270,13 @@ class DB(object):
 		@keyparam name User name, or User Email
 		@keyparam secret
 		"""
-
-		#@preprocess
-		name = self._userbyemail(name, txn=txn)
-
 		#@action
-		# Set the password reset secret..
-		user = self.bdbs.user.get(name, filt=False, txn=txn)
-		user.resetpassword()			
+		try:
+			user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
+			user.resetpassword()			
+		except:
+			raise SecurityError
+
 		# Use direct put to preserve the secret
 		self.bdbs.user.put(user.name, user, txn=txn)
 
@@ -2492,7 +2285,7 @@ class DB(object):
 		ctxt = {'secret': user._secret[2]}
 		self.sendmail(user.email, template='/email/password.reset', ctxt=ctxt, ctx=ctx, txn=txn)
 
-		g.log.msg("LOG_SECURITY","Setting resetpassword secret for %s"%user.name)
+		g.log("Setting resetpassword secret for %s"%user.name, 'SECURITY')
 		
 
 
@@ -2559,7 +2352,6 @@ class DB(object):
 		@param names New user approval queue name(s)
 		@return Approved User name(s)
 		"""
-
 		# Get users from the new user approval queue
 		newusers = self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
 		cusers = []
@@ -2614,10 +2406,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		@return Rejected user name(s)
 		"""
-				
 		#@action
-		# ian: move this to UserBTree.new()? Probably make it explicit..
-		# This is an admin only method
 		emails = {}
 		users = self.bdbs.newuser.cgets(names, filt=False, ctx=ctx, txn=txn)
 		for user in users:
@@ -2815,7 +2604,6 @@ class DB(object):
 		@param rectype RecordDef
 		@keyparam inherit Inherit permissions from an existing Record
 		"""
-		
 		rec = self.bdbs.record.new(rectype=rectype, ctx=ctx, txn=txn)
 		
 		#@postprocess
@@ -2828,7 +2616,7 @@ class DB(object):
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
 			except Exception, inst:
-				g.log.msg("LOG_ERROR","Error setting inherited permissions from record %s: %s"%(inherit, inst))
+				g.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
 	
 			rec["parents"] |= inherit	
 		return rec
@@ -2980,7 +2768,6 @@ class DB(object):
 		@keyparam overwrite_users
 		@keyparam overwrite_groups
 		"""
-
 		allusers = set()
 		for i in permissions:
 			allusers |= set(i)
@@ -3053,7 +2840,6 @@ class DB(object):
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
 
 
-	# def putbinary(self, name=None, record=None, filename=None, infile=None, ctx=None, txn=None):
 	@publicmethod("binary.put", write=True)
 	def putbinary(self, item, infile=None, filename=None, record=None, param='file_binary', ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).		
@@ -3064,7 +2850,6 @@ class DB(object):
 		@keyparam record ... the Record name, or new Record, to use
 		@keyparam param ... Record param to use for the reference to the Binary name
 		"""
-
 		# Preprocess
 		if not item:
 			item = self.bdbs.binary.new(ctx=ctx, txn=txn)
@@ -3171,110 +2956,6 @@ class DB(object):
 	# def delworkflowitem(self, names, ctx=None, txn=None):
 	# 	"""This will remove a single workflow object based on wfid"""
 	#	return self.bdbs.workflow.get(name).delete(names, ctx=ctx, txn=txn)
-
-
-
-	#############################
-	# Rebuild Indexes
-	#############################
-
-	# def _rebuild_all(self, ctx=None, txn=None):
-	# 	"""(Internal) Rebuild all indexes. This should only be used if you blow something up, change a paramdef vartype, etc.
-	# 	It might test the limits of your Berkeley DB configuration and fail if the resources are too low."""
-	# 
-	# 	g.log.msg("LOG_INFO","Rebuilding ALL indexes!")
-	# 
-	# 	allparams = self.bdbs.paramdef.keys()
-	# 	paramindexes = {}
-	# 	for param in allparams:
-	# 		paramindex = self.bdbs.getindex(param, txn=txn)
-	# 		if paramindex != None:
-	# 			# g.log.msg('LOG_DEBUG', paramindex)
-	# 			try:
-	# 				g.log.msg("LOG_INDEX","self.bdbs.fieldindex[%s].truncate"%param)
-	# 				paramindex.truncate(txn=txn)
-	# 			except Exception, e:
-	# 				g.log.msg("LOG_INFO","Critical! self.bdbs.fieldindex[%s].truncate failed: %s"%(param, e))
-	# 			paramindexes[param] = paramindex
-	# 
-	# 
-	# 	g.log.msg("LOG_INFO","Done truncating all indexes")
-	# 
-	# 	self._rebuild_groupsbyuser(ctx=ctx, txn=txn)
-	# 	self._rebuild_usersbyemail(ctx=ctx, txn=txn)
-	# 
-	# 	maxrecords = self.bdbs.record.get_max(txn=txn) #get(-1, txn=txn)["max"]
-	# 	g.log.msg('LOG_INFO',"Rebuilding indexes for %s records..."%(maxrecords-1))
-	# 
-	# 	blocks = range(0, maxrecords, g.BLOCKLENGTH) + [maxrecords]
-	# 	blocks = zip(blocks, blocks[1:])
-	# 
-	# 
-	# 	for pos, pos2 in blocks:
-	# 		g.log.msg("LOG_INFO","Reindexing records %s -> %s"%(pos, pos2))
-	# 		crecs = []
-	# 		for i in range(pos, pos2):
-	# 			g.log.msg("LOG_INFO","... %s"%i)
-	# 			crecs.append(self.bdbs.record.get(i, filt=False, txn=txn))
-	# 
-	# 		self._commit_records(crecs, reindex=True, ctx=ctx, txn=txn)
-	# 
-	# 	g.log.msg("LOG_INFO","Done rebuilding all indexes!")
-	# def _rebuild_groupsbyuser(self, ctx=None, txn=None):
-	# 	"""(Internal) Rebuild groupbyuser index"""
-	# 
-	# 	g.log.msg("LOG_INDEX","self.bdbs.groupbyuser: Rebuilding index")
-	# 
-	# 	groups = self.bdbs.group.get(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-	# 	users = collections.defaultdict(set)
-	# 
-	# 	for group in groups:
-	# 		for user in group.members():
-	# 			users[user].add(group.name)
-	# 
-	# 	g.log.msg("LOG_INDEX","self.bdbs.groupbyuser.truncate")
-	# 	self.bdbs.groupbyuser.truncate(txn=txn)
-	# 
-	# 	for k,v in users.items():
-	# 		g.log.msg("LOG_INDEX","self.bdbs.groupbyuser.addrefs: %s -> %s"%(k,v))
-	# 		self.bdbs.groupbyuser.addrefs(k, v, txn=txn)
-	# 
-	# 
-	# def _rebuild_usersbyemail(self, ctx=None, txn=None):
-	# 	names = self.getusernames(ctx=ctx, txn=txn)
-	# 	users = self.bdbs.user.cgets(names, ctx=ctx, txn=txn)
-	# 
-	# 	g.log.msg("LOG_INDEX","self.bdbs.userbyemail.truncate")
-	# 	self.bdbs.userbyemail.truncate(txn=txn)
-	# 
-	# 	for user in users:
-	# 		#g.log.msg("LOG_INDEX","self.bdbs.userbyemail.addrefs: %s -> %s"%(user.email.lower(), user.name))
-	# 		self.bdbs.userbyemail.addrefs(user.email.lower(), [user.name], txn=txn)
-	# 
-	# 
-	# def _reindex_groupsbyuser(self, groups, ctx=None, txn=None):
-	# 	"""(Internal) Reindex a group's members for the groupsbyuser index"""
-	# 
-	# 	addrefs = collections.defaultdict(set)
-	# 	delrefs = collections.defaultdict(set)
-	# 
-	# 	for group in groups:
-	# 
-	# 		ngm = group.members()
-	# 		try:
-	# 			ogm = self.bdbs.group.get(group.name, txn=txn).members()
-	# 		except:
-	# 			ogm = set()
-	# 
-	# 		addusers = ngm - ogm
-	# 		delusers = ogm - ngm
-	# 
-	# 		for user in addusers:
-	# 			addrefs[user].add(group.name)
-	# 		for user in delusers:
-	# 			delrefs[user].add(group.name)
-	# 
-	# 	return addrefs, delrefs
 
 
 

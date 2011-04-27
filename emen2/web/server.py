@@ -45,17 +45,15 @@ if not g.getattr('CONFIG_LOADED', False):
 
 def load_resources(root, resources):
 	for path, resource in resources.items():
-		level = 'LOG_INIT'
 		msg = ['RESOURCE', 'LOADED:', '%s to %s']
 		try:
 			root.putChild(path, resource)
 		except:
 			msg[1] = 'FAILED.'
-			level = 'LOG_CRITICAL'
+			level = 'CRITICAL'
 			del msg[2]
 		else:
 			msg[2] %= (path, resource)
-		# g.log.msg(level,' '.join(msg))
 
 
 def interact():
@@ -160,7 +158,7 @@ def inithttpd():
 
 	reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
-	g.log.msg(g.LOG_INIT, 'Listening on port %d ...' % g.EMEN2PORT)
+	g.log('Listening on port %d ...' % g.EMEN2PORT)
 	g._locked = True
 	reactor.run()
 

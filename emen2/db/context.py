@@ -57,7 +57,6 @@ class Context(object):
 			raise emen2.db.exceptions.SessionError, "username and host required to init context"
 
 
-
 	def json_equivalent(self):
 		return dict(
 			name=self.name,
@@ -68,7 +67,6 @@ class Context(object):
 			time=self.time,
 			maxidle=self.maxidle
 		)
-
 
 
 	def __getstate__(self):
@@ -120,12 +118,8 @@ class Context(object):
 
 	def _setDBProxy(self, txn=None):
 		if not isinstance(self.db, emen2.db.proxy.DBProxy):
-			# g.log.msg("LOG_WARNING","DBProxy created in Context %s"%self.name)
+			# g.warn("DBProxy created in Context %s"%self.name)
 			self.db = emen2.db.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
-
-
-
-
 
 
 
@@ -150,8 +144,6 @@ class AnonymousContext(Context):
 		self.setdb(db=db)
 		self.time = t
 		self._init_refresh()
-
-
 
 
 
@@ -183,13 +175,10 @@ class SpecialRootContext(Context):
 
 
 
-
-
 class ContextBTree(emen2.db.btrees.DBOBTree):
 	def init(self):
 		self.setdatatype('p')
 		super(ContextBTree, self).init()
-
 
 
 

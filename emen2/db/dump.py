@@ -7,6 +7,7 @@ import random
 import shutil
 
 import emen2.db.admin
+import emen2.db.config
 import emen2.util.jsonutil
 import emen2.util.listops
 
@@ -130,42 +131,20 @@ class Dumper(object):
 		groups = set()
 		pds = set()
 		rds = set()
-		bdos = set()
-		
+		bdos = set()		
 		for chunk in emen2.util.listops.chunk(names-self.names):
 			self.names |= set(chunk)
-			recs = self.db.getrecord(chunk)
-			rds |= set([rec.rectype for rec in recs])					
-
-			for rec in recs:
-				keys = set(rec.keys())	
-			
-				for pd in keys-self.paramdefnames-pds:
-					pds.add(pd)
-					p = self.db.getparamdef(pd)
-					if p.vartype == "user":
-						self.paramdefs_user.add(pd)
-					elif p.vartype == "userlist":
-						self.paramdefs_userlist.add(pd)
-					elif p.vartype == "binary":
-						self.paramdefs_binary.add(pd)
-					elif p.vartype == "binaryimage":
-						self.paramdefs_binaryimage.add(pd)
-			
-				users |= emen2.util.listops.combine(*rec['permissions'], dtype=set)				
-				
-				for key in keys&self.paramdefs_user:
-					users.add(rec.get(key))
-				for key in keys&self.paramdefs_userlist:
-					users |= set(rec.get(key, []))
-			
-				for key in keys&self.paramdefs_binary:
-					bdos |= set(rec.get(key, []))
-				for key in keys&self.paramdefs_binaryimage:
-					bdos.add(rec.get(key))
-			
-				groups |= rec['groups']	
-
+			record = self.db.getrecord(chunk)
+			for i in self.db.findrecorddef(record=record):
+				rds.add(i.name)
+			for i in self.db.findparamdef(record=record):
+				pds.add(i.name)
+			for i in self.db.finduser(record=record):
+				users.add(i.name)
+			for i in self.db.findgroup(record=record):
+				groups.add(i.name)
+			for i in self.db.findbinary(record=record):
+				bdos.add(i.name)
 
 		# Add in additional items
 		if addgroups:
@@ -295,8 +274,6 @@ class Dumper(object):
 			t = time.time()
 			recs = self.db.getrecord(chunk)
 			found |= set([i.name for i in recs])
-			parents = self.db.getparents(chunk)
-			children = self.db.getchildren(chunk)
 			for rec in recs:
 				rec.parents &= self.names
 				rec.children &= self.names
@@ -314,10 +291,7 @@ class Dumper(object):
 		for chunk in emen2.util.listops.chunk(self.paramdefnames):
 			t = time.time()
 			pds = self.db.getparamdef(chunk)
-			found |= set([pd.name for pd in pds])
-			parents = self.db.getparents(chunk, keytype="paramdef")
-			children = self.db.getchildren(chunk, keytype="paramdef")
-		
+			found |= set([pd.name for pd in pds])	
 			for pd in pds:
 				pd.parents &= self.paramdefnames
 				pd.children &= self.paramdefnames
@@ -336,9 +310,6 @@ class Dumper(object):
 			t = time.time()
 			rds = self.db.getrecorddef(chunk)
 			found |= set([rd.name for rd in rds])
-			parents = self.db.getparents(chunk, keytype="recorddef")
-			children = self.db.getchildren(chunk, keytype="recorddef")
-		
 			for rd in rds:
 				rd.parents &= self.recorddefnames
 				rd.children &= self.recorddefnames
@@ -416,13 +387,34 @@ class Dumper(object):
 	
 
 
-
+def main():
+	dbo = emen2.db.config.DBOptions()
+	dbo.add_option('--uri', type="string", help="Export with base URI")
+	(options, args) = dbo.parse_args()
+	db = dbo.opendb()
+	print db.checkcontext()
+	print db.getrecord(0)
+	
+	# import emen2.db.admin
+	# db = emen2.db.admin.opendb()
+	# d = Dumper(root=382351, db=db)
+	
 
 
 if __name__ == "__main__":
-	import emen2.db.admin
-	db = emen2.db.admin.opendb()
-	d = Dumper(root=382351, db=db)
+	main()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

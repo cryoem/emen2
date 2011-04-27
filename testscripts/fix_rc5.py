@@ -6,10 +6,31 @@ import emen2.db.record
 import emen2.db.user
 import emen2.db.group
 
+import emen2.db.paramdef
+import emen2.db.recorddef
+import emen2.db.binary
+
+
 
 #################################
 # Pickle..
 #################################
+
+def other_setstate(self, d):
+	if not d.has_key('modifyuser'):
+		d['modifyuser'] = d['creator']
+	if not d.has_key('modifytime'):
+		d['modifytime'] = d['creationtime']
+	
+	return self.__dict__.update(d)
+
+
+emen2.db.paramdef.ParamDef.__setstate__ = other_setstate
+emen2.db.recorddef.RecordDef.__setstate__ = other_setstate
+emen2.db.binary.Binary.__setstate__ = other_setstate
+
+
+
 
 def user_setstate(self, d):
 	print "Updating user"
@@ -19,6 +40,12 @@ def user_setstate(self, d):
 	d['_userrec'] = {}
 	d['_displayname'] = d['name']
 	d['_groups'] = set()
+	
+	if not d.has_key('modifyuser'):
+		d['modifyuser'] = d['creator']
+	if not d.has_key('modifytime'):
+		d['modifytime'] = d['creationtime']
+	
 	return self.__dict__.update(d)
 
 
@@ -41,6 +68,12 @@ def group_setstate(self, d):
 		d['disabled'] = False
 	if not 'privacy' in d:
 		d['privacy'] = 0
+
+	if not d.has_key('modifyuser'):
+		d['modifyuser'] = d['creator']
+	if not d.has_key('modifytime'):
+		d['modifytime'] = d['creationtime']
+
 
 	return self.__dict__.update(d)
 
@@ -91,6 +124,11 @@ def record_setstate(self, d):
 	# recid -> 'name'.
 	if d.has_key('recid'):
 		d['name'] = d.pop('recid')
+
+	if not d.has_key('modifyuser'):
+		d['modifyuser'] = d['creator']
+	if not d.has_key('modifytime'):
+		d['modifytime'] = d['creationtime']
 
 	return self.__dict__.update(d)
 

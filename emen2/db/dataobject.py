@@ -63,8 +63,7 @@ class BaseDBObject(object, DictMixin):
 		p['modifytime'] = t
 		
 		# Other parameters
-		# ian: todo: critical: _set_children, _set_parents
-		p['uri'] = unicode(_d.pop('uri', None))
+		p['uri'] = unicode(_d.pop('uri', '')) or None
 		p['children'] = set()
 		p['parents'] = set()
 		
@@ -134,8 +133,7 @@ class BaseDBObject(object, DictMixin):
 		for k,v in update.items():
 			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
 
-		print "Updating %s with protected:"%self.name
-		print protected
+		# print "Updating %s with protected:"%self.name, protected.keys()
 		self.__dict__.update(protected)
 		cp |= set(protected.keys())
 			
@@ -161,7 +159,8 @@ class BaseDBObject(object, DictMixin):
 
 	# Behave like dict.get(key) instead of db[key]
 	def __getitem__(self, key, default=None):
-		return self.__dict__.get(key, default)
+		if key in self.param_all:
+			return getattr(self, key, default)
 
 
 	def get(self, key, default=None):
@@ -611,8 +610,6 @@ class PermissionsDBObject(BaseDBObject):
 	def setgroups(self, groups):
 		return self._set('groups', set(groups), self.isowner())
 
-
-	
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

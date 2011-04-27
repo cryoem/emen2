@@ -7,7 +7,6 @@ import emen2.util.listops
 
 import emen2.db.btrees
 import emen2.db.dataobject
-import emen2.db.validators
 import emen2.db.magnitude
 
 import emen2.db.config
@@ -112,8 +111,10 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 	def _set_property(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)
-		value = unicode(value or '') or None
-
+		value = unicode(value or '')
+		if value in ['None', None, '']:
+			value = None
+			
 		# Allow for unsetting
 		if value != None and value not in vtm.getproperties():
 			self.error("Invalid property: %s"%value)

@@ -4,7 +4,6 @@ import re
 
 import emen2.db.btrees
 import emen2.db.dataobject
-import emen2.db.validators
 
 import emen2.db.config
 g = emen2.db.config.g()

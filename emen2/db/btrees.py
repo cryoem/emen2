@@ -1,4 +1,8 @@
 # $Id$
+"""
+Core Database classes
+These serve as wrappers around Berkeley DB / bsddb3 BTrees. 
+"""
 
 import cPickle as pickle
 import sys
@@ -8,7 +12,6 @@ import collections
 import copy
 import bsddb3
 import traceback
-
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -23,27 +26,11 @@ except:
 	bulk = None
 
 
-
-def n_int(inp):
-	'''wrapper for int if keys contain decimal points can be turned on by uncommenting lines below'''
-	try:
-		return int(inp)
-	except:
-		if isinstance(inp, (str, unicode)) and inp.count('.') == 1:
-			return int(inp.split('.', 1)[0])
-		else:
-			raise
-	return result
-
-
-
-
 # Berkeley DB wrapper classes
-
 class BTree(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary.
 	Key may be and data may be any pickle-able Python type, but unicode/int/float key and data
-	types are also supported with some bonuses."""
+	types are also supported with some acceleration."""
 
 	def __init__(self, filename, dbenv, keytype=None, datatype=None, cfunc=True, bdbs=None, autoopen=True):
 		"""Main BDB BTree wrapper"""
@@ -313,7 +300,6 @@ class BTree(object):
 
 	def get(self, key, default=None, filt=True, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
-		# g.log.msg("LOG_COMMIT","%s.get: %s"%(self.filename, key))
 		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
 		if d:
@@ -329,7 +315,7 @@ class BTree(object):
 
 	def put(self, key, data, txn=None, flags=0):
 		"""Write key/value, with txn."""		
-		g.log.msg("LOG_COMMIT","%s.put: %s"%(self.filename, key))
+		g.log("%s.put: %s"%(self.filename, key), 'COMMIT')
 		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)			
 
 
@@ -337,14 +323,14 @@ class BTree(object):
 	def truncate(self, txn=None, flags=0):
 		"""Truncate BDB (e.g. 'drop table')"""
 		self.bdb.truncate(txn=txn)
-		g.log.msg("LOG_COMMIT","%s.truncate"%self.filename)
+		g.log("%s.truncate"%self.filename, 'COMMIT')
 
 
 	# Also dangerous!	
 	def delete(self, key, txn=None, flags=0):
 		if self.bdb.exists(self.dumpkey(key), txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
-			g.log.msg("LOG_COMMIT","%s.delete: %s"%(self.filename, key))
+			g.log("%s.delete: %s"%(self.filename, key), 'COMMIT')
 			return ret
 
 
@@ -380,7 +366,7 @@ class BTree(object):
 			val = 0
 		val = int(val)
 		self.sequencedb.put(key, str(val+delta), txn=txn)
-		g.log.msg("LOG_COMMIT","%s.sequencedb.put: %s"%(self.filename, val+delta))
+		g.log("%s.sequencedb.put: %s"%(self.filename, val+delta), 'COMMIT')
 		return val
 
 		# BDB DBSequence was never very stable.
@@ -459,7 +445,7 @@ class IndexBTree(BTree):
 
 		cursor.close()
 
-		g.log.msg("LOG_COMMIT","%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
+		g.log("%s.removerefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
 		return delindexitems
 
 
@@ -490,7 +476,7 @@ class IndexBTree(BTree):
 
 		cursor.close()
 
-		g.log.msg("LOG_COMMIT","%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
+		g.log("%s.addrefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
 		return addindexitems
 
 
@@ -672,8 +658,10 @@ class DBOBTree(BTree):
 			
 	def expand(self, names, ctx=None, txn=None):
 		"""See RelateBTree"""
+		if not isinstance(names, set):
+			names = set(names)
 		return names
-		
+
 
 	# An alternative to .keys()
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
@@ -722,6 +710,7 @@ class DBOBTree(BTree):
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
+				print type(orec.get('uri')), orec.get('uri')
 				if orec.get('uri'):
 					raise emen2.db.exceptions.SecurityError, "This is a read-only object"
 
@@ -760,7 +749,7 @@ class DBOBTree(BTree):
 		for crec in crecs:
 			self.put(crec.name, crec, txn=txn)
 
-		g.log.msg("LOG_INFO", "Committed %s items"%(len(crecs)))
+		g.log("Committed %s items"%(len(crecs)))
 		
 		return crecs	
 		

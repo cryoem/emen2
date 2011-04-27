@@ -20,7 +20,7 @@ class VartypeManager(object):
 	def _register_vartype(cls, name, refcl):
 		if name in cls._vartypes.keys():
 			raise ValueError('''vartype %s already registered''' % name)
-		# g.log.msg('LOG_INIT', "REGISTERING VARTYPE (%s)"% name)
+		# g.log("REGISTERING VARTYPE (%s)"% name)
 		cls._vartypes[name]=refcl
 
 
@@ -28,7 +28,7 @@ class VartypeManager(object):
 	def _register_property(cls, name, refcl):
 		if name in cls._properties.keys():
 			raise ValueError('''property %s already registered''' % name)
-		# g.log.msg('LOG_INIT', "REGISTERING PROPERTY (%s)"% name)
+		# g.log("REGISTERING PROPERTY (%s)"% name)
 		cls._properties[name]=refcl
 
 
@@ -36,7 +36,7 @@ class VartypeManager(object):
 	def _register_macro(cls, name, refcl):
 		if name in cls._macros.keys():
 			raise ValueError('''macro %s already registered''' % name)
-		# g.log.msg('LOG_INIT', "REGISTERING MACRO (%s)"% name)
+		# g.log("REGISTERING MACRO (%s)"% name)
 		cls._macros[name]=refcl
 
 

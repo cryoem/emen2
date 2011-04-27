@@ -21,18 +21,18 @@ def view_callback(pwd, pth, mtch, name, ext, failures=None):
 	filpath = os.path.join(pwd[0], name)
 	data = emen2.util.fileops.openreadclose(filpath+ext)
 	viewname = os.path.join(pwd[0], name).replace(pth,'')
-	level = 'LOG_DEBUG'
+	level = 'DEBUG'
 	msg = ["VIEW", "LOADED:"]
 	try:
 		__import__(name)
 	except BaseException, e:
 		g.log(e)
-		level = 'LOG_ERROR'
+		level = 'ERROR'
 		msg[1] = "FAILED:"
 		failures.append(viewname)
 
 	msg.append(filpath+ext)
-	g.log.msg(level, ' '.join(msg))
+	g.log(' '.join(msg), level)
 
 
 get_views = emen2.util.fileops.walk_paths('.py', view_callback)
@@ -59,7 +59,6 @@ def load_views(failures=None):
 	r = reversed(getattr(g.paths, 'TEMPLATEPATHS', []))
 	emen2.web.templating.get_templates(r, failures=failures)
 	get_views(getattr(g.paths, 'VIEWPATHS', []))
-	g.debug(getattr(g.paths, 'VIEWPATHS', []))
 
 
 
@@ -94,7 +93,7 @@ class _LaunchConsole(emen2.web.view.View):
 		emen2.web.view.View.__init__(self, db=db, **kwargs)
 		self.set_context_item('title', '')
 		if db.checkadmin():
-			g.log.interact(globals())
+			g.logger.interact(globals())
 			self.page = 'done'
 		else:
 			self.page = 'fail'

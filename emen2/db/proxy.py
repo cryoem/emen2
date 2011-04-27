@@ -186,7 +186,6 @@ class DBProxy(object):
 		if type is None:
 			self._committxn()
 		else:
-			# g.log_error('DBProxy.__exit__: type=%s, value=%s, traceback=%s' % (type, value, traceback))
 			self._aborttxn()
 		self._txn = None
 
@@ -345,7 +344,7 @@ class DBProxy(object):
 					txn and self._db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
-		 	print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+		 	# print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 			return result
 
 		return wrapper

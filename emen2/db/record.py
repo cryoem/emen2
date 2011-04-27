@@ -16,7 +16,6 @@ import emen2.util.listops as listops
 import emen2.db.config
 g = emen2.db.config.g()
 
-from . import validators
 
 class Record(emen2.db.dataobject.PermissionsDBObject):
 	"""This class encapsulates a single database record. In a sense this is an instance
@@ -323,7 +322,6 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 		# Reassign new record IDs and update record counter
 		if newrecs:
 			basename = self.get_sequence(delta=len(newrecs), txn=txn)
-			g.log.msg("LOG_DEBUG","Setting counter: %s -> %s"%(basename, basename + len(newrecs)))
 
 		# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
 		for offset, newrec in enumerate(newrecs):
@@ -357,10 +355,48 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 		return self.cputs(crecs, ctx=ctx, txn=txn)	
 
 
+
+	def groupbyrectype(self, names, ctx=None, txn=None):
+		"""Group Records by Rectype. Filters for permissions.	
+		@param names Record(s) or Record name(s)
+		@return {rectype:set(record names)}
+		"""
+		if not names:
+			return {}
+
+		# Allow either Record(s) or Record name(s) as input
+		ret = collections.defaultdict(set)
+		recnames, recs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+
+		if len(recnames) < 1000:
+			# Just get the rest of the records directly
+			recs.extend(self.cgets(recnames, ctx=ctx, txn=txn))
+		else:
+			# Use the index for large numbers of records
+			ind = self.bdbs.record.getindex("rectype", txn=txn)
+			# Filter permissions
+			names = self.bdbs.record.filter(recnames, ctx=ctx, txn=txn)
+			while names:
+				# get a random record's rectype
+				rid = names.pop() 
+				rec = self.bdbs.record.get(rid, txn=txn) 
+				# get the set of all records with this recorddef
+				ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names 
+				# remove the results from our list since we have now classified them
+				names -= ret[rec.rectype] 
+				# add back the initial record to the set
+				ret[rec.rectype].add(rid)
+
+		for i in recs:
+			ret[i.rectype].add(i.name)
+		
+		return ret
+		
+	
 	# This builds UP instead of prunes DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 		if names is not None:
-			return self._filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
+			return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 
 		if ctx.checkreadadmin():
 			return set(xrange(self.get_max(txn=txn)))
@@ -374,7 +410,12 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 		return ret
 		
 		
-	def _filter(self, names, rectype=None, ctx=None, txn=None):
+	def filter(self, names, rectype=None, ctx=None, txn=None):
+		"""Filter for permissions.
+		@param names Record name(s).		
+		@return Readable Record names.
+		"""
+		
 		names = self.expand(names, ctx=ctx, txn=txn)
 
 		if rectype:
@@ -390,7 +431,7 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 			return names
 
 		# ian: indexes are now faster, generally...
-		if len(names) < 1000:
+		if len(names) <= 1000:
 			crecs = self.cgets(names, ctx=ctx, txn=txn)
 			return set([i.name for i in crecs])
 
