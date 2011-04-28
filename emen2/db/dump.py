@@ -274,9 +274,6 @@ class Dumper(object):
 		for chunk in emen2.util.listops.chunk(ordered_names):
 			t = time.time()
 			recs = self.db.getrecord(chunk)
-			print "-----"
-			print chunk
-			print recs
 			found |= set([i.name for i in recs])
 			for rec in recs:
 				if self.uri:
@@ -299,7 +296,6 @@ class Dumper(object):
 			pds = self.db.getparamdef(chunk)
 			found |= set([pd.name for pd in pds])
 			for pd in pds:
-				print self.uri
 				if self.uri:
 					pd.uri = '%s/paramdef/%s'%(self.uri, pd.name)
 				pd.parents &= self.paramdefnames
@@ -411,7 +407,8 @@ def main():
 	dbo.add_option('--uri', type="string", help="Export with base URI")
 	(options, args) = dbo.parse_args()
 	db = dbo.admindb()
-	d = Dumper(root=options.root, uri=options.uri, db=db)
+	with db:
+		d = Dumper(root=options.root, uri=options.uri, db=db)
 	
 
 

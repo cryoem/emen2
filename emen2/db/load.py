@@ -16,6 +16,46 @@ def random_password(N):
 
 
 
+
+def setup(rootpw=None, rootemail=None, ctx=None, txn=None):
+	"""Initialize a new DB.
+	@keyparam rootpw Root Account Password
+	@keyparam rootemail Root Account email
+	"""
+	if not rootpw or not rootemail:
+		import pwd
+		import platform
+		host = platform.node() or 'localhost'
+		defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+
+		print "\n=== New Database Setup ==="
+		rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+		rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
+
+		while len(rootpw) < 6:
+			if len(rootpw) == 0:
+				print "Warning! No root password!"
+				rootpw = ''
+				break
+			elif len(rootpw) < 6:
+				print "Warning! If you set a password, it needs to be more than 6 characters."
+				rootpw = getpass.getpass("Admin (root) password (default: none): ")
+
+
+
+	dbo = emen2.db.config.DBOptions()
+	dbo.add_option('--uri', type="string", help="Export with base URI")
+	(options, args) = dbo.parse_args()
+	db = dbo.admindb()
+
+	g.log("Initializing new database; root email: %s"%rootemail)
+	import emen2.db.load
+	loadfile = emen2.db.config.get_filename('emen2', 'skeleton')
+	loader = emen2.db.load.Loader(loadfile=loadfile)
+	loader.load(rootemail=rootemail, rootpw=rootpw)
+
+
+
 class Loader(object):
 	def __init__(self, db, path=None):
 		self.path = path
@@ -185,21 +225,18 @@ class Loader(object):
 
 
 
+def main():
+        dbo = emen2.db.config.DBOptions()
+        dbo.add_option('--path', type="string", help="Path to dumped JSON files", default=".")
+        (options, args) = dbo.parse_args()
+        db = dbo.admindb()
+        with db:
+                l = Loader(path=options.path, db=db)
+		l.load()
+
 
 if __name__ == "__main__":
-	parser = emen2.db.config.DBOptions()
-	(options, args) = parser.parse_args()
-
-	path = "."
-	if len(args) > 0:
-		path=args[0]
-
-	import emen2.db.admin
-	db = emen2.db.admin.opendb()
-
-	with db:
-		l = Loader(path=path, db=db)
-		l.load()	
+        main()
 
 
 

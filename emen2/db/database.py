@@ -21,7 +21,7 @@ import email.mime.text
 import bsddb3
 
 # Markdown (HTML) Processing
-# At some point, I may provide "extremely simple" markdown processor if markdown isn't available
+# At some point, I may provide "extremely simple" markdown processor fallback
 try:
 	import markdown
 except ImportError:
@@ -67,7 +67,7 @@ from emen2.db.exceptions import *
 publicmethod = emen2.db.proxy.publicmethod
 
 def fakemodules():
-	"""Fixes some problems with backwards compatibility by manipulating module names"""
+	"""Fixes backwards compatibility by manipulating module names"""
 	import imp
 	Database = imp.new_module("Database")
 	Database.dataobjects = imp.new_module("dataobjects")
@@ -92,7 +92,7 @@ VERSIONS = {
 	"emen2client": emen2.clients.__version__
 }
 
-# Regular expression to parse Protocol views. Perhaps this should go in recorddefs.py?
+# Regular expression to parse Protocol views.
 VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
 
 # Global pointer to database environment
@@ -159,7 +159,7 @@ def DB_Close(*args, **kwargs):
 		
 
 
-# ian: todo: make these express GMT, then have display interfaces localize to time zone...
+# ian: todo: make these express GMT, then localize using a user preference
 def getctime():
 	"""@return Current database time, as float in seconds since the epoch"""
 	return time.time()
@@ -219,7 +219,78 @@ def error(e=None, msg='', warning=False):
 
 
 
-# ian: todo: have DBEnv and all BDBs in here -- DB should just be methods for dealing with this dbenv "core"
+###############################
+# Setup
+###############################
+
+# VERSION = "2.0rc5"
+
+def opendb():
+	import db.proxy
+	return db.proxy.DBProxy()
+
+
+###############################
+# Email
+###############################
+
+def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
+	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
+	@param recipient Email recipient
+	@keyparam msg Message text, or
+	@keyparam template ... Template name
+	@keyparam ctxt ... Dictionary to pass to template
+	@return Email recipient, or None if no message was sent
+	"""
+	
+	if not g.MAILADMIN:
+		g.warn("Couldn't get mail config: No email set for root")
+		return
+	if not g.MAILHOST:
+		g.warn("Couldn't get mail config: No SMTP Server")			
+		return
+
+	ctxt = ctxt or {}
+	ctxt["recipient"] = recipient
+	ctxt["MAILADMIN"] = g.MAILADMIN
+	ctxt["EMEN2DBNAME"] = g.EMEN2DBNAME
+	ctxt["EMEN2EXTURI"] = g.EMEN2EXTURI
+
+	if not recipient:
+		return
+
+	if msg:
+		msg = email.mime.text.MIMEText(msg)
+		msg['Subject'] = subject
+		msg['From'] = g.MAILADMIN
+		msg['To'] = recipient
+		msg = msg.as_string()
+
+	elif template:
+		try:
+			msg = g.templates.render_template(template, ctxt)
+		except Exception, e:
+			g.warn('Could not render template %s: %s'%(template, e))
+			return
+	else:
+		raise ValueError, "No message to send!"
+
+	# Actually send the message
+	s = smtplib.SMTP(g.MAILHOST)
+	s.set_debuglevel(1)
+	s.sendmail(g.MAILADMIN, [g.MAILADMIN, recipient], msg)
+	g.log('Mail sent: %s -> %s'%(g.MAILADMIN, recipient))
+	# g.error('Could not send email: %s'%e, e=e)
+	# raise e
+
+	return recipient
+
+
+
+
+
+# ian: todo: have DBEnv and all BDBs in here -- 
+#	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
 
 	opendbs = weakref.WeakKeyDictionary()
@@ -280,7 +351,6 @@ class EMEN2DBEnv(object):
 		#########################
 		# Open Databases
 		self.init()
-
 
 
 	def init(self):
@@ -575,43 +645,18 @@ class EMEN2DBEnv(object):
 
 
 class DB(object):
-	"""Main database class"""
 
-	# Regular stuff...
 	def __init__(self, path=None):
 		"""Initialize DB.
 		Default path is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
 		@keyparam path Directory containing EMEN2 Database Environment.
 		"""
-		
 		# Open the database
-		self.bdbs = EMEN2DBEnv(path=path)
-		
+		self.bdbs = EMEN2DBEnv(path=path)		
 		# Periodic operations..
 		self.lastctxclean = time.time()
-		self.opentime = gettime()
-
 		# Cache contexts
 		self.contexts_cache = {}
-
-		# Check if this is a valid db.. 
-		# Probably move this into EMEN2DBEnv, but keep the setup in DB
-		# txn = self.bdbs.newtxn(write=True)
-		# try:
-		# 	maxr = self.bdbs.bdbs.record.get_max(txn=txn)
-		# 	g.log("Opened database with %s records"%maxr)
-		# 	if not self.bdbs.user.get('root', txn=txn):
-		# 		self.setup(txn=txn)
-		# except Exception, e:
-		# 	g.log("Could not open database! %s"%e)
-		# 	self.bdbs.txnabort(txn=txn)
-		# 	raise
-		# else:
-		# 	self.bdbs.txncommit(txn=txn)
-
-
-	def __del__(self):
-		pass
 
 
 	def __str__(self):
@@ -690,7 +735,6 @@ class DB(object):
 			else:
 				vt.add(pd.name)
 
-
 		for rec in recs:
 			# print "filtering"
 			for param in vt_reduce:
@@ -710,7 +754,7 @@ class DB(object):
 		return values
 
 
-	def _map_commit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
+	def _mapcommit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
 		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
 		@param keytype DBO keytype
 		@param names DBO names
@@ -726,27 +770,17 @@ class DB(object):
 		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
 
 
-	def _map_commit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
+	def _mapcommit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
 		if names is None:
 			names = default
 		ol, names = listops.oltolist(names)
-		ret = self._map_commit(keytype, names, method, ctx, txn, *args, **kwargs)
+		ret = self._mapcommit(keytype, names, method, ctx, txn, *args, **kwargs)
 		if ol: return listops.first_or_none(ret)
 		return ret
 
 
-	def _makerootcontext(self, ctx=None, host=None, txn=None):
-		"""(Internal) Create a special root context.
-		Can use this internally when some admin tasks that require ctx's are necessary.
-		@return SpecialRootContext
-		"""		
-		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=self)
-		ctx._setDBProxy(txn=txn)
-		return ctx
-		
 
-	def run_macro(self, macro, names, ctx=None, txn=None):
+	def _run_macro(self, macro, names, ctx=None, txn=None):
 		"""(Internal) Run a macro over a set of Records.
 		@param macro Macro in view format: $@macro(args)
 		@param names Record names
@@ -771,110 +805,36 @@ class DB(object):
 
 
 	###############################
-	# Setup
+	# Events
 	###############################
 
-	def setup(self, rootpw=None, rootemail=None, ctx=None, txn=None):
-		"""(Internal) Initialize a new DB.
-		@keyparam rootpw Root Account Password
-		@keyparam rootemail Root Account email
-		"""
-		if not rootpw or not rootemail:
-			import pwd
-			import platform
-
-			host = platform.node() or 'localhost'
-			defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
-
-			print "\n=== New Database Setup ==="
-			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-			rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
-
-			while len(rootpw) < 6:
-				if len(rootpw) == 0:
-					print "Warning! No root password!"
-					rootpw = ''
-					break
-				elif len(rootpw) < 6:
-					print "Warning! If you set a password, it needs to be more than 6 characters."
-					rootpw = getpass.getpass("Admin (root) password (default: none): ")
-
-		# Private method to load config
-		def load_skeleton(t):
-			infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
-			f = open(infile)
-			ret = emen2.util.jsonutil.decode(f.read())
-			f.close()
-			return ret
-
-		g.log("Initializing new database; root email: %s"%rootemail)
-		# import emen2.db.load
-		# path = emen2.db.config.get_filename('emen2', 'skeleton')
-		# loader = emen2.db.load.Loader(path=path, db=dbp)
-		# loader.load(rootemail=rootemail, rootpw=rootpw)
+	# ian: todo: hard: flesh this out into a proper cron system, 
+	# with a registration model; right now just runs cleanupcontext
+	# Currently, this is called during _getcontext, and calls
+	# cleanupcontexts not more than once every 10 minutes
+	def periodic_operations(self, ctx=None, txn=None):
+		"""(Internal) Maintenance task scheduler.
+		Eventually this will be replaced with a more complete system."""
+		t = getctime()
+		if t > (self.lastctxclean + 600):
+			self.cleanupcontexts(ctx=ctx, txn=txn)
+			self.lastctxclean = t
 
 
+	# ian: todo: hard: finish
+	def cleanupcontexts(self, ctx=None, txn=None):
+		"""(Internal) Clean up sessions that have been idle too long."""
+		newtime = getctime()
+		for ctxid, context in self.bdbs.context.items(txn=txn):
+			# If the item is in the cache, use the current last-access time..
+			c = self.contexts_cache.get(ctxid)
+			if c:
+				context.time = c.time
 
-	###############################
-	# Email
-	###############################
-	
-	def sendmail(self, recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
-		"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
-		@param recipient Email recipient
-		@keyparam msg Message text, or
-		@keyparam template ... Template name
-		@keyparam ctxt ... Dictionary to pass to template
-		@return Email recipient, or None if no message was sent
-		"""
-		
-		# get MAILADMIN from the root record...
-		try:
-			mailadmin = self.bdbs.user.get('root', txn=txn).email
-		except KeyError:
-			g.warn("Couldn't get mail config: No root user!")
-			return
-		if not mailadmin:
-			g.warn("Couldn't get mail config: No email set for root")
-			return
-		if not g.MAILHOST:
-			g.warn("Couldn't get mail config: No SMTP Server%s"%inst)			
-			return
-
-		ctxt = ctxt or {}
-		ctxt["recipient"] = recipient
-		ctxt["MAILADMIN"] = mailadmin
-		ctxt["EMEN2DBNAME"] = g.EMEN2DBNAME
-		ctxt["EMEN2EXTURI"] = g.EMEN2EXTURI
-
-		if not recipient:
-			return
-
-		if msg:
-			msg = email.mime.text.MIMEText(msg)
-			msg['Subject'] = subject
-			msg['From'] = mailadmin
-			msg['To'] = recipient
-			msg = msg.as_string()
-
-		elif template:
-			try:
-				msg = g.templates.render_template(template, ctxt)
-			except Exception, e:
-				g.warn('Could not render template %s: %s'%(template, e))
-				return
-		else:
-			raise ValueError, "No message to send!"
-
-		# Actually send the message
-		s = smtplib.SMTP(g.MAILHOST)
-		s.set_debuglevel(1)
-		s.sendmail(mailadmin, [mailadmin, recipient], msg)
-		g.log('Mail sent: %s -> %s'%(mailadmin, recipient))
-		# g.error('Could not send email: %s'%e, e=e)
-		# raise e
-
-		return recipient
+			# Delete any expired contexts
+			if context.time + (context.maxidle or 0) < newtime:
+				g.log("Expire context (%s) %d" % (context.name, time.time() - context.time))
+				self.bdbs.context.delete(context.name, txn=txn)
 
 
 
@@ -897,45 +857,6 @@ class DB(object):
 		@return Current time string, YYYY/MM/DD HH:MM:SS
 		"""
 		return gettime()
-
-
-
-	###############################
-	# Events
-	###############################
-
-	# ian: todo: hard: flesh this out into a proper cron system, 
-	# with a registration model; right now just runs cleanupcontext
-	# Currently, this is called during _getcontext, and calls
-	# cleanupcontexts not more than once every 10 minutes
-	def periodic_operations(self, ctx=None, txn=None):
-		"""(Internal) Maintenance task scheduler.
-		Eventually this will be replaced with a maintenance registration system."""
-
-		t = getctime()
-		if t > (self.lastctxclean + 600):
-			self.cleanupcontexts(ctx=ctx, txn=txn)
-			self.lastctxclean = t
-
-
-	# ian: todo: hard: finish
-	def cleanupcontexts(self, ctx=None, txn=None):
-		"""(Internal) Clean up sessions that have been idle too long."""
-
-		newtime = getctime()
-		old_strftime = time.strftime(g.TIMESTR, time.gmtime(self.lastctxclean))
-		new_strftime = time.strftime(g.TIMESTR, time.gmtime(newtime))
-
-		for ctxid, context in self.bdbs.context.items(txn=txn):
-			# If the item is in the cache, use the current last-access time..
-			c = self.contexts_cache.get(ctxid)
-			if c:
-				context.time = c.time
-
-			# Delete any expired contexts
-			if context.time + (context.maxidle or 0) < newtime:
-				g.log("Expire context (%s) %d" % (context.name, time.time() - context.time))
-				self.bdbs.context.delete(context.name, txn=txn)
 
 
 
@@ -1295,7 +1216,7 @@ class DB(object):
 		# Sadly, will need to run macro on everything.. :(
 		# Run these as the last constraints.
 		if searchparam.startswith('$@'):
-			keytype, ret = self.run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
+			keytype, ret = self._run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
 			# *minimal* validation of input..
 			if keytype == 'd':
 				value = int(value)
@@ -1430,7 +1351,7 @@ class DB(object):
 
 		if sortkey.startswith('$@'):
 			# Sort using a macro, and get the right sort function
-			keytype, sortvalues = self.run_macro(sortkey, names, ctx=ctx, txn=txn)
+			keytype, sortvalues = self._run_macro(sortkey, names, ctx=ctx, txn=txn)
 			for k,v in sortvalues.items():
 				recs[k][sortkey] = v
 				# Unghhgh... ian: todo: make a macro_render_sort
@@ -1698,7 +1619,7 @@ class DB(object):
 		return ret
 
 
-	# Warning: This can be SLOW! It needs an index-index.
+	# Warning: This can be SLOW!
 	@publicmethod("binary.find")
 	def findbinary(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None, **kwargs):
 		"""Find a binary by filename.
@@ -2021,7 +1942,9 @@ class DB(object):
 		@return HTML table of params
 		"""
 		if markup:
-			dt = ['<table cellspacing="0" cellpadding="0">\n\t<thead><th>Parameter</th><th>Value</th></thead>\n\t<tbody>']
+			dt = ['''<table cellspacing="0" cellpadding="0">
+					<thead><th>Parameter</th><th>Value</th></thead>
+					<tbody>''']
 			for count, i in enumerate(params):
 				if count%2:
 					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
@@ -2121,8 +2044,9 @@ class DB(object):
 	@publicmethod("user.get")
 	@ol('names')
 	def getuser(self, names, filt=True, ctx=None, txn=None):
-		"""Get user information. Information may be limited to name and id if the user
-		requested privacy.
+		"""Get user information. 
+		Information may be limited to name and id if the user
+		requested additional privacy.
 		@param names User name(s), Record(s), or Record name(s)
 		@keyparam filt Ignore failures
 		@return User(s)
@@ -2153,7 +2077,7 @@ class DB(object):
 		@keyparam filt Ignore failures
 		@return List of names disabled
 		"""
-		return self._map_commit('user', names, 'disable', ctx=ctx, txn=txn)
+		return self._mapcommit('user', names, 'disable', ctx=ctx, txn=txn)
 	
 	
 	@publicmethod("user.enable", write=True, admin=True)
@@ -2162,7 +2086,7 @@ class DB(object):
 		@param names User name(s)
 		@keyparam filt Ignore failures
 		"""
-		return self._map_commit('user', names, 'enable', ctx=ctx, txn=txn)
+		return self._mapcommit('user', names, 'enable', ctx=ctx, txn=txn)
 
 	
 	@publicmethod("user.setprivacy", write=True)
@@ -2171,9 +2095,9 @@ class DB(object):
 		@state 0, 1, or 2, in increasing level of privacy.
 		@keyparam names User names to modify (admin only)
 		"""
-		# This is a modification of _map_commit to allow if names=None
+		# This is a modification of _mapcommit to allow if names=None
 		# ctx.username will be used as the default.
-		return self._map_commit_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
+		return self._mapcommit_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
 		
 		
 		
@@ -2185,10 +2109,12 @@ class DB(object):
 	
 	@publicmethod("user.setemail", write=True)
 	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
-		"""Change a User's email address. This will require you to verify that you
-		own the account by responding with an auth token sent to that address.
+		"""Change a User's email address. 
+		This will require you to verify that you own the account by 
+		responding with an auth token sent to that address.
 		Note: This method only takes a single User name.
-		Note: An Admin will always succeed in changing email, with or without password/token.
+		Note: An Admin will always succeed in changing email,
+		 	with or without password/token.
 		@param email New email address
 		@keyparam secret Auth token, or...
 		@keyparam password Current User password
@@ -2196,15 +2122,18 @@ class DB(object):
 		@exception SecurityError if the password and/or auth token are wrong
 		"""
 		#@action		
-		# Get the record, and keep the existing email address to see if it changes.
+		# Get the record. 
+		# Keep the existing email address to see if it changes.
 		name = name or ctx.username
 		ctxt = {}
 
-		# Verify the email address is owned by the person requesting the change.
-		# 1 -> User authenticates they *really* own the account by providing the acct password
-		# 2 -> An email will be sent to the new account specified, containing an auth token
-		# 3 -> The user comes back and calls the method with this token
-		# 4 -> Email address is updated, and reindexed
+		# Verify the email address is owned by the user requesting change.
+		# 1. User authenticates they *really* own the account 
+		# 	by providing the acct password
+		# 2. An email will be sent to the new account specified, 
+		# 	containing an auth token
+		# 3. The user comes back and calls the method with this token
+		# 4. Email address is updated, and reindexed
 
 		user = self.bdbs.user.cget(name, filt=False, ctx=ctx, txn=txn)
 		oldemail = user.email
@@ -2224,7 +2153,7 @@ class DB(object):
 
 			# Send the verify email containing the auth token
 			ctxt['secret'] = user._secret[2]
-			self.sendmail(email, template='/email/email.verify', ctxt=ctxt, ctx=ctx, txn=txn)
+			sendmail(email, template='/email/email.verify', ctxt=ctxt, ctx=ctx, txn=txn)
 
 		else:
 			# Email changed.
@@ -2232,7 +2161,7 @@ class DB(object):
 			self.bdbs.user.cputs([user], txn=txn)			
 
 			# Send the user an email to acknowledge the change
-			self.sendmail(user.email, template='/email/email.verified', ctxt=ctxt, ctx=ctx, txn=txn)
+			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
 
 	
 	@publicmethod("auth.setpassword", write=True)
@@ -2254,12 +2183,14 @@ class DB(object):
 		self.bdbs.user.put(user.name, user, txn=txn)
 
 		#@postprocess
-		self.sendmail(user.email, template='/email/password.changed', ctx=ctx, txn=txn)
+		sendmail(user.email, template='/email/password.changed')
 
 
 	@publicmethod("auth.resetpassword", write=True)
 	def resetpassword(self, name, ctx=None, txn=None):
-		"""Send a password reset token to the User's currently registered email address.
+		"""Reset User password. 
+		This is accomplished by sending a password reset token to the 
+		User's currently registered email address.
 		Note: This method only takes a single User name.
 		@keyparam name User name, or User Email
 		@keyparam secret
@@ -2272,9 +2203,10 @@ class DB(object):
 		self.bdbs.user.put(user.name, user, txn=txn)
 
 		#@postprocess
-		# Absolutely never reveal the secret via any mechanism but email to registered address
+		# Absolutely never reveal the secret via any mechanism 
+		# but email to registered address
 		ctxt = {'secret': user._secret[2]}
-		self.sendmail(user.email, template='/email/password.reset', ctxt=ctxt, ctx=ctx, txn=txn)
+		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
 		g.log("Setting resetpassword secret for %s"%user.name, 'SECURITY')
 		
@@ -2308,7 +2240,8 @@ class DB(object):
 		@param password Password
 		@param email Email Address
 		@return New User
-		@exception KeyError if there is already a user or pending user with this name
+		@exception KeyError if there is already a user 
+			or pending user with this name
 		"""
 		# This will check existing new users, users, and emails
 		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
@@ -2331,7 +2264,7 @@ class DB(object):
 		#@postprocess
 		# Send account request email
 		for user in users:
-			self.sendmail(user.email, template='/email/adduser.signup', ctx=ctx, txn=txn)
+			sendmail(user.email, template='/email/adduser.signup')
 
 		return users
 
@@ -2384,7 +2317,7 @@ class DB(object):
 		# Send the 'account approved' emails
 		for user in cusers:
 			ctxt = {'name':user.name}
-			self.sendmail(user.email, template='/email/adduser.approved', ctxt=ctxt, ctx=ctx, txn=txn)
+			sendmail(user.email, template='/email/adduser.approved', ctxt=ctxt)
 
 		return cusers
 			
@@ -2410,7 +2343,7 @@ class DB(object):
 		# Send the emails
 		for name, email in emails.items():
 			ctxt = {'name':name}
-			self.sendmail(email, template='/email/adduser.rejected', ctxt=ctxt, ctx=ctx, txn=txn)
+			sendmail(email, template='/email/adduser.rejected', ctxt=ctxt)
 
 		return set(emails.keys())
 
@@ -2478,7 +2411,8 @@ class DB(object):
 	@publicmethod("paramdef.units")
 	def getpropertyunits(self, name, ctx=None, txn=None):
 		"""Returns a list of recommended units for a particular property.
-		Other units may be used if they can be converted to the property's default units.
+		Other units may be used if they can be converted to the property's
+		default units.
 		@param name Property name
 		@return Set of recommended units for property.
 		"""
@@ -2616,7 +2550,8 @@ class DB(object):
 	@publicmethod("record.delete", write=True)
 	@ol('names')
 	def deleterecord(self, names, ctx=None, txn=None):
-		"""Unlink and hide a record; it is still accessible to owner. Records are never truly deleted, just hidden.	
+		"""Unlink and hide a record; it is still accessible to owner. 
+		Records are never truly deleted, just hidden.	
 		@param name Record name(s) to delete
 		@return Deleted Record(s)
 		"""	
@@ -2626,12 +2561,13 @@ class DB(object):
 	@publicmethod("record.addcomment", write=True)
 	@ol('names')
 	def addcomment(self, names, comment, ctx=None, txn=None):
-		"""Add comment to a record. Requires comment permissions on that Record.
+		"""Add comment to a record. 
+		Requires comment permissions on that Record.
 		@param name Record name(s)
 		@param comment Comment text
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'addcomment', ctx, txn, comment)
+		return self._mapcommit('record', names, 'addcomment', ctx, txn, comment)
 
 
 	@publicmethod("record.find.comments")
@@ -2639,7 +2575,7 @@ class DB(object):
 	def getcomments(self, names, filt=True, ctx=None, txn=None):
 		"""Get comments from Records.
 		@param names Record name(s)
-		@return A list of comments, with the Record ID as the first item in each comment:
+		@return A list of comments, with the Record ID as the first item:
 			[[recid, username, time, comment], ...]
 		"""
 		recs = self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
@@ -2672,7 +2608,7 @@ class DB(object):
 		@param update Update Records with this dictionary
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'update', ctx, txn, update)
+		return self._mapcommit('record', names, 'update', ctx, txn, update)
 
 
 	@publicmethod("record.validate")
@@ -2703,15 +2639,14 @@ class DB(object):
 	# These map to the normal Record methods
 	@publicmethod("record.adduser", write=True)
 	@ol('names')
-	def addpermission(self, names, users, level=0, reassign=False, ctx=None, txn=None):
+	def addpermission(self, names, users, level=0, ctx=None, txn=None):
 		"""Add users to a Record's permissions.
 		@param names Record name(s)
 		@param users User name(s) to add
 		@keyparam level Permissions level; 0=read, 1=comment, 2=write, 3=owner
-		@keyparam reassign Allow a decrease in permissions level (default=False)
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'adduser', ctx, txn, users)
+		return self._mapcommit('record', names, 'adduser', ctx, txn, users)
 	
 	
 	@publicmethod("record.removeuser", write=True)
@@ -2722,7 +2657,7 @@ class DB(object):
 		@param users User name(s) to remove
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'removeuser', ctx, txn, users)
+		return self._mapcommit('record', names, 'removeuser', ctx, txn, users)
 	
 		
 	@publicmethod("record.addgroup", write=True)
@@ -2733,7 +2668,7 @@ class DB(object):
 		@param groups Group name(s) to add
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'addgroup', ctx, txn, groups)
+		return self._mapcommit('record', names, 'addgroup', ctx, txn, groups)
 
 
 	@publicmethod("record.removegroup", write=True)
@@ -2744,7 +2679,7 @@ class DB(object):
 		@param groups Group name(s)
 		@return Updated Record(s)
 		"""
-		return self._map_commit('record', names, 'removegroup', ctx, txn, groups)
+		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
 
 
 	# This method is for compatibility with the web interface widget..
@@ -2818,14 +2753,16 @@ class DB(object):
 		@param names Record name(s), Binary name(s)
 		@keyparam filt Ignore failures
 		@return Binary(s)
-		@exception KeyError if Binary not found, SecurityError if insufficient permissions
+		@exception KeyError if Binary not found, 
+			SecurityError if insufficient permissions
 		"""
 		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("binary.new")
 	def newbinary(self, ctx=None, txn=None):
-		"""Construct a new Binary. This doesn't do anything until committed with a file data source.
+		"""Construct a new Binary. 
+		This doesn't do anything until committed with a file data source.
 		@return New Binary
 		"""
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
@@ -2836,10 +2773,12 @@ class DB(object):
 		"""Add or update a Binary (file attachment).		
 		Note: This currently only takes a single item.
 		@param item Binary or dictionary
-		@keyparam infile File-like object or string containing the data for a new Binary
+		@keyparam infile File-like object 
+			or string containing the data for a new Binary
 		@keyparam filename ... the filename to use
 		@keyparam record ... the Record name, or new Record, to use
-		@keyparam param ... Record param to use for the reference to the Binary name
+		@keyparam param ... Record param to use 
+			for the reference to the Binary name
 		"""
 		# Preprocess
 		if not item:
@@ -2887,7 +2826,7 @@ class DB(object):
 				if bdo.name != rec.get(pd.name):
 					rec[pd.name] = bdo.name
 			else:
-				raise KeyError, "ParamDef %s does not accept attachments"%pd.name
+				raise KeyError, "ParamDef %s does not accept files"%pd.name
 				
 			self.bdbs.record.cputs([rec], ctx=ctx, txn=txn)
 
@@ -2914,9 +2853,8 @@ class DB(object):
 
 	# @publicmethod
 	# def getworkflownames(self, name=None, ctx=None, txn=None):
-	# 	"""This will return an (ordered) list of workflow objects for the given context (user).
-	# 	it is an exceptionally bad idea to change a WorkFlow object's wfid."""
-	#	name = name or ctx.username
+	# 	"""This will return an (ordered) list of workflow objects 
+	# 	for the given context (user)."""
 	#	return self.bdbs.workflow.get(name).names(ctx=ctx, txn=txn)
 	#
 	#
@@ -2936,7 +2874,8 @@ class DB(object):
 	# @publicmethod
 	# @ol('items')
 	# def putworkflow(self, items, ctx=None, txn=None):
-	# 	"""This appends a new workflow object to the user's list. wfid will be assigned by this function and returned"""
+	# 	"""This appends a new workflow object to the user's list. 
+	# wfid will be assigned by this function and returned"""
 	#	return self.bdbs.workflow.get(name).cputs(items, ctx=ctx, txn=txn)
 	# 
 	#

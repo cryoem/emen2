@@ -16,6 +16,8 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
+# ian: The main DB class was cleaned up alot. I am going to merge the
+# DBProxy functionality into it to remove one layer of abstraction.
 
 # Warning: This module is very sensitive to changes. Please test thoroughly before committing!!
 
@@ -251,11 +253,10 @@ class DBProxy(object):
 
 
 	@classmethod
-	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False, ol=None):
+	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
 		# print "Registering func: %s"%apiname
 		# if set([func.apiname, func.func_name]) & cls._allmethods():
 		# 	raise ValueError('''method %s already registered''' % name)
-		setattr(func, 'ol', ol)
 		setattr(func, 'apiname', apiname)
 		setattr(func, 'write', write)
 		setattr(func, 'admin', admin)

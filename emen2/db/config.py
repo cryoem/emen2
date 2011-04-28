@@ -55,7 +55,8 @@ class DBOptions(optparse.OptionParser):
 
 	def admindb(self):
 		db = self.opendb()
-		ctx = db._db._makerootcontext()
+		ctx = emen2.db.context.SpecialRootContext()
+		ctx.refresh(db=db)
 		db._ctx = ctx
 		return db
 

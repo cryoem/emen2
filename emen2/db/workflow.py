@@ -21,7 +21,7 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 	Implementation of workflow behavior is largely up to the
 	external application. This simply acts as a repository for tasks"""
 
-	attr_user = set(["desc","wftype","longdesc","appdata", "wfid","creationtime"])
+	# attr_user = set(["desc","wftype","longdesc","appdata", "wfid","creationtime"])
 
 	def init(self, d=None):
 

@@ -307,7 +307,7 @@ class DebugState(object):
 		# return func(state, sn, output, outputs_l, outputs, *args, **k)
 		head = '%s:%s: '%(time.strftime('[%Y-%m-%d %H:%M:%S]'), level.ljust(8))
 		for buf in outputs_l:
-			buf.send(None, state, head, '%s\n'%(str(msg).encode('utf-8')))
+			buf.send(None, state, head, '%s\n'%(unicode(msg).encode('utf-8')))
 			buf.flush()
 		
 

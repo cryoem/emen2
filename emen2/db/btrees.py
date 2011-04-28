@@ -182,7 +182,6 @@ class BTree(object):
 	#########################################
 
 	def openindex(self, param, txn=None):
-		# raise KeyError, "No index available for %s"%param
 		return
 
 
@@ -648,7 +647,8 @@ class DBOBTree(BTree):
 				d = self.get(key, filt=False, txn=txn, flags=flags)
 				d.setContext(ctx)
 				ret.append(d)
-			except (emen2.db.exceptions.SecurityError, AttributeError, KeyError), e: # TypeError?
+			except (emen2.db.exceptions.SecurityError, KeyError), e:
+				# KeyError if item doesn't exist; SecurityError if no access
 				if filt:
 					pass
 				else:
@@ -711,7 +711,7 @@ class DBOBTree(BTree):
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
 				if orec.get('uri'):
-					raise emen2.db.exceptions.SecurityError, "This is a read-only object"
+					raise emen2.db.exceptions.SecurityError, "Imported items are read-only: %s"%(orec.get('uri'))
 
 			except (TypeError, AttributeError, KeyError), inst: 
 				# AttributeError might have been raised if the key was the wrong type
@@ -832,16 +832,6 @@ class DBOBTree(BTree):
 			indk.addrefs(pd.name, addindexkeys, txn=txn)
 	
 	
-	##############################
-	# Delete and rename
-	##############################
-	
-
-	# def rename(self, name, ctx=None, txn=None):
-	# 	raise emen2.db.exceptions.SecurityError, "No permission to rename."
-
-
-
 
 
 
@@ -984,15 +974,18 @@ class RelateBTree(DBOBTree):
 		p = self.get(parent, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
 		c = self.get(child, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
 		perm = []
+
+		# Both items must exist, and we need to be able to write to one
 		try:
 			p.setContext(ctx)
 			perm.append(p.writable())
-		except (KeyError, emen2.db.exceptions.SecurityError):
+		except emen2.db.exceptions.SecurityError:
 			pass
+			
 		try:
 			c.setContext(ctx)
 			perm.append(c.writable())
-		except (KeyError, emen2.db.exceptions.SecurityError):
+		except emen2.db.exceptions.SecurityError:
 			pass
 		
 		if not any(perm):
