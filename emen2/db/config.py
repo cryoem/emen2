@@ -34,7 +34,7 @@ class DBOptions(optparse.OptionParser):
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
 		self.loaded = False
-		dbhomehelp = """EMEN2 Database Environment                                     
+		dbhomehelp = """EMEN2 Database Environment
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
@@ -69,7 +69,7 @@ class DBOptions(optparse.OptionParser):
 		# if name and password:
 		# 	db._login(name, password)
 		return db
-		
+
 
 	def getpath(self, pathname):
 		# ian: todo: dynamically resolve pathnames for DB dirs
@@ -78,7 +78,7 @@ class DBOptions(optparse.OptionParser):
 
 	def load_config(self, **kw):
 		g = GlobalNamespace()
-		
+
 		# Default settings
 		default_config = get_filename('emen2', 'skeleton/config.base.json')
 
@@ -138,7 +138,7 @@ class DBOptions(optparse.OptionParser):
 
 		g.logger.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		g.logger.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
-		
+
 		g.CONFIG_LOADED = True
 		g.refresh()
 
