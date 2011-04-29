@@ -16,7 +16,7 @@ if not g.getattr('CONFIG_LOADED', False):
 
 import emen2
 import getpass
-db = emen2.opendb()
+db = emen2.db.opendb()
 ruser = user = g.getprivate('USERNAME') or 'root'
 rpasswd = passwd = g.getprivate('ROOTPW')
 if not passwd:

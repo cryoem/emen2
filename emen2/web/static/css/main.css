@@ -353,7 +353,7 @@ th {
 #alert li, .notify {
 	clear: both;
 	border-style: solid;
-	border-width: 1px;
+	border-width: 2px;
 	padding: 5px;
 	margin: 0px;
 	margin-top:10px;

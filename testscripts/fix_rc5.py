@@ -1,5 +1,5 @@
 import emen2.db.admin
-db = emen2.db.admin.opendb()
+db = emen2.db.config.opendb()
 
 
 import emen2.db.record

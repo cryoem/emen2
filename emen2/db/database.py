@@ -27,16 +27,16 @@ try:
 except ImportError:
 	markdown = None
 
-
 # EMEN2 Config
 import emen2.db.config
 g = emen2.db.config.g()
 
-# If no configuration has been loaded, load the default configuration.
-try:
-	g.CONFIG_LOADED
-except AttributeError:
-	emen2.db.config.defaults()
+# # If no configuration has been loaded, load the default configuration.
+# try:
+# 	g.CONFIG_LOADED
+# except AttributeError:
+# 	print "Loading defaults"
+# 	emen2.db.config.defaults()
 
 # EMEN2 Core
 import emen2.db.datatypes
@@ -66,25 +66,6 @@ from emen2.db.exceptions import *
 # Conveniences
 publicmethod = emen2.db.proxy.publicmethod
 
-def fakemodules():
-	"""Fixes backwards compatibility by manipulating module names"""
-	import imp
-	Database = imp.new_module("Database")
-	Database.dataobjects = imp.new_module("dataobjects")
-	sys.modules["emen2.Database"] = Database
-	sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
-	sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
-	sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
-	sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
-	sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
-	sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
-	sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
-	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
-	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
-
-fakemodules()
-
-
 # Version names
 from emen2.clients import __version__
 VERSIONS = {
@@ -103,12 +84,6 @@ basestring = (str, unicode)
 
 # ian: todo: move this to EMEN2DBEnv
 DB_CONFIG = """\
-# These can be tuned somewhat, depending on circumstances
-set_cachesize 0 134217728 1
-set_tx_max 65536
-set_lk_max_locks 300000
-set_lk_max_lockers 300000
-set_lk_max_objects 300000
 # Don't touch these
 set_lg_dir log
 set_data_dir data
@@ -118,6 +93,9 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+
+
+# Utility methods
 
 def clock(times, key=0, t=0, limit=60):
 	"""A timing method for controlling timeouts to prevent hanging.
@@ -217,17 +195,6 @@ def error(e=None, msg='', warning=False):
 	else:
 		raise e(msg)
 
-
-
-###############################
-# Setup
-###############################
-
-# VERSION = "2.0rc5"
-
-def opendb():
-	import db.proxy
-	return db.proxy.DBProxy()
 
 
 ###############################
@@ -343,6 +310,18 @@ class EMEN2DBEnv(object):
 			DBENV = bsddb3.db.DBEnv()
 			if snapshot:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+
+			cachesize = g.CACHESIZE * 1024 * 1024
+			txncount = (cachesize / 4096) * 2
+			if txncount > 1024*128:
+				txncount = 1024*128
+
+			DBENV.set_cachesize(0, cachesize)
+			DBENV.set_tx_max(txncount)
+			DBENV.set_lk_max_locks(300000)
+			DBENV.set_lk_max_lockers(300000)
+			DBENV.set_lk_max_objects(300000)
+
 			DBENV.open(self.path, ENVOPENFLAGS)
 			self.opendbs[self] = 1
 
@@ -970,7 +949,8 @@ class DB(object):
 			indg = self.bdbs.group.getindex('permissions', txn=txn)
 			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
-			for group in self.bdbs.group.cgets(groups, ctx=ctx, txn=txn):
+			for group in groups:
+				group = self.bdbs.group.get(group, txn=txn)
 				grouplevels[group.name] = group.getlevel(context.username)
 
 		# Sets the database reference, user record, display name, groups, and updates
@@ -1033,7 +1013,7 @@ class DB(object):
 		############################				
 		# Step 1: Run constraints
 		t = clock(times, 0, t0)
-
+		
 		for searchparam, comp, value in _cc:
 			# Matching names for each step
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
@@ -1136,11 +1116,12 @@ class DB(object):
 				viewdef = rd.views.get('tabularview', defaultviewdef)
 			else:
 				try:
-					rd = self.bdbs.recorddef.cget("root_protocol", ctx=ctx, txn=txn)
-					viewdef = rd.views.get('tabularview', defaultviewdef)
+					rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
 				except emen2.db.exceptions.SecurityError:
 					viewdef = defaultviewdef
-
+				else:
+					viewdef = rd.views.get('tabularview', defaultviewdef)
+					
 
 			viewdef = [i.strip() for i in viewdef.split()]
 
@@ -1260,17 +1241,15 @@ class DB(object):
 			# Get the list of indexes to search
 			param_stripped = searchparam.replace('*','').replace('$$','')
 			if searchparam.endswith('*'):
-				indparams |= self.bdbs.paramdef.rel([param_stripped], recurse=recurse, ctx=ctx, txn=txn)[sp]
+				indparams |= self.bdbs.paramdef.rel([param_stripped], recurse=-1, ctx=ctx, txn=txn)[param_stripped]
 			indparams.add(param_stripped)
-				
-				
+		
 		# First, search the index index
 		indk = self.bdbs.record.getindex('indexkeys', txn=txn)
-
+		
 		for indparam in indparams:
 			pd = self.bdbs.paramdef.cget(indparam, ctx=ctx, txn=txn)
 			ik = indk.get(indparam, txn=txn)
-
 			if not pd:
 				continue
 
@@ -1820,6 +1799,8 @@ class DB(object):
 		recdefs = listops.dictbykey(self.bdbs.recorddef.cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
 		if viewdef:
+			if markup and markdown:
+				viewdef = markdown.markdown(viewdef)
 			groupviews[None] = viewdef
 		elif viewtype == "dicttable":
 			for rec in recs:
@@ -2288,7 +2269,6 @@ class DB(object):
 			self.bdbs.newuser.delete(name, txn=txn)
 
 			user = self.bdbs.user.new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
-			print user
 			# Put the new user
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
 			
@@ -2303,6 +2283,7 @@ class DB(object):
 			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)
 
 			# This gets updated with the user's signup info
+			rec['username'] = name
 			rec.update(newuser.signupinfo)
 			rec.adduser(name, level=2)
 			rec.addgroup("authenticated")
@@ -2884,7 +2865,6 @@ class DB(object):
 	# def delworkflowitem(self, names, ctx=None, txn=None):
 	# 	"""This will remove a single workflow object based on wfid"""
 	#	return self.bdbs.workflow.get(name).delete(names, ctx=ctx, txn=txn)
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

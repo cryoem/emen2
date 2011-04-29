@@ -10,26 +10,15 @@ from twisted.internet import reactor
 from twisted.web import static, server
 from twisted.web.resource import Resource
 
-
 try:
 	from twisted.internet import ssl
 except:
 	print "No SSL support"
 	ssl = None
 
-
 import emen2.web.resources.threadpool
 import emen2.db.config
 g = emen2.db.config.g()
-
-
-if not g.getattr('CONFIG_LOADED', False):
-	try:
-		parser = emen2.db.config.DBOptions()
-		parser.parse_args()
-	except:
-		raise
-		pass
 
 
 # Try to import EMAN2..
@@ -82,7 +71,8 @@ def inithttpd():
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
 
-	# This has to go first for metaclasses to register before the templates are cached.
+	# This has to go first for metaclasses 
+	# to register before the templates are cached.
 	import emen2.db.database
 
 	# Load views and templates
@@ -149,25 +139,47 @@ def inithttpd():
 		self.persistent = self.checkPersistence(req, self._version)
 		req.gotLength(self.length)
 
-	site.protocol.allHeadersReceived = allHeadersReceived
 
+	site.protocol.allHeadersReceived = allHeadersReceived
 	reactor.listenTCP(g.EMEN2PORT, site)
 
 	if g.EMEN2HTTPS and ssl:
-		reactor.listenSSL(g.EMEN2PORT_HTTPS, server.Site(root), ssl.DefaultOpenSSLContextFactory(os.path.join(g.SSLPATH, "server.key"), os.path.join(g.SSLPATH, "server.crt")))
+		reactor.listenSSL(
+			g.EMEN2PORT_HTTPS, 
+			server.Site(root), 
+			ssl.DefaultOpenSSLContextFactory(
+				os.path.join(g.SSLPATH, "server.key"), 
+				os.path.join(g.SSLPATH, "server.crt")
+				)
+			)
+
 
 	reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
-	g.log('Listening on port %d ...' % g.EMEN2PORT)
+	g.log('Listening on port %d ...'%g.EMEN2PORT)
 	g._locked = True
 	reactor.run()
 
 
 
 if __name__ == "__main__":
+	# Options
+	dbo = emen2.db.config.DBOptions()
+	dbo.add_option('--port', type="int", help="Web server port")
+	dbo.add_option('--https', action="store_true", help="Use HTTPS")
+	dbo.add_option('--httpsport', type="int", help="HTTPS Port")
+	(options, args) = dbo.parse_args()
+	
+	# Update the configuration
+	g.EMEN2PORT = options.port or g.EMEN2PORT
+	# g.EMEN2HTTPS = options.https or g.EMEN2HTTPS
+	# g.EMEN2PORT_HTTPS = options.httpsport or g.EMEN2PORT_HTTPS
+	
+	# Start the web server
 	inithttpd()
 
 
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
+

@@ -13,7 +13,6 @@ import emen2.db.debug
 from emen2.db.globalns import GlobalNamespace
 
 
-
 def get_filename(package, resource):
 	d = os.path.dirname(sys.modules[package].__file__)
 	d = os.path.abspath(d)
@@ -24,7 +23,7 @@ def get_filename(package, resource):
 def defaults():
 	parser = DBOptions()
 	parser.parse_args()
-
+	return parser
 
 
 class DBOptions(optparse.OptionParser):
@@ -33,8 +32,7 @@ class DBOptions(optparse.OptionParser):
 		kwargs["add_help_option"] = False
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
-		self.loaded = False
-		dbhomehelp = """EMEN2 Database Environment
+		dbhomehelp = """EMEN2 Database Environment                                     
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
@@ -53,21 +51,19 @@ class DBOptions(optparse.OptionParser):
 		return r1, r2
 
 
-	def admindb(self):
-		db = self.opendb()
-		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=db)
-		db._ctx = ctx
-		return db
-
-
-	def opendb(self, name=None, password=None):
-		if not self.loaded:
-			print "Loading with default options.."
+	def opendb(self, name=None, password=None, admin=False):
+		import emen2.db.proxy
+		g = GlobalNamespace()
+		
+		if not g.CONFIG_LOADED:
 			self.load_config()
-		db = emen2.opendb()
+		db = emen2.db.proxy.DBProxy()
 		# if name and password:
 		# 	db._login(name, password)
+		if admin:
+			ctx = emen2.db.context.SpecialRootContext()
+			ctx.refresh(db=db)
+			db._ctx = ctx			
 		return db
 
 
@@ -100,7 +96,6 @@ class DBOptions(optparse.OptionParser):
 		g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
 		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
 		g.EMEN2DBHOME = EMEN2DBHOME
-
 
 		# Load view and template dirs
 		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
@@ -142,11 +137,10 @@ class DBOptions(optparse.OptionParser):
 		g.CONFIG_LOADED = True
 		g.refresh()
 
-		self.loaded = True
 
 
 
-gg = emen2.db.globalns.GlobalNamespace()
+gg = GlobalNamespace()
 g = lambda: gg
 
 

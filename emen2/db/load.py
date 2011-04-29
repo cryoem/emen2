@@ -6,10 +6,10 @@ import tempfile
 import string
 import random
 import collections
+import getpass
 
 import emen2.util.jsonutil
 import emen2.util.listops
-
 
 def random_password(N):
 	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
@@ -17,7 +17,7 @@ def random_password(N):
 
 
 
-def setup(rootpw=None, rootemail=None, ctx=None, txn=None):
+def setup(rootpw=None, rootemail=None, db=None):
 	"""Initialize a new DB.
 	@keyparam rootpw Root Account Password
 	@keyparam rootemail Root Account email
@@ -41,29 +41,20 @@ def setup(rootpw=None, rootemail=None, ctx=None, txn=None):
 				print "Warning! If you set a password, it needs to be more than 6 characters."
 				rootpw = getpass.getpass("Admin (root) password (default: none): ")
 
-
-
-	dbo = emen2.db.config.DBOptions()
-	dbo.add_option('--uri', type="string", help="Export with base URI")
-	(options, args) = dbo.parse_args()
-	db = dbo.admindb()
-
-	g.log("Initializing new database; root email: %s"%rootemail)
-	import emen2.db.load
-	loadfile = emen2.db.config.get_filename('emen2', 'skeleton')
-	loader = emen2.db.load.Loader(loadfile=loadfile)
+ 	infile = emen2.db.config.get_filename('emen2', 'skeleton/skeleton.json')
+	loader = Loader(infile=infile, db=db)
 	loader.load(rootemail=rootemail, rootpw=rootpw)
 
 
 
 class Loader(object):
-	def __init__(self, db, path=None):
+	def __init__(self, db, infile=None, path=None):
+		self.infile = infile
 		self.path = path
 		self.db = db
 	
 	
 	def load(self, rootemail=None, rootpw=None, overwrite=False):
-
 		# Changed names
 		userrelmap = {}
 		namemap = {}
@@ -82,9 +73,9 @@ class Loader(object):
 		##########################
 		# PARAMDEFS
 		pds = []
-		for pd in self.loadfile("paramdefs.json"):
-			pdc[pd.get('name')] |= set(pd.pop('children', []))
-			pd.pop('parents', set())
+		for pd in self.loadfile(self.infile, keytype='paramdef'):
+			pdc[pd.get('name')] |= set(pd.pop('parents', []))
+			pd.pop('children', set())
 			if pd.get('name') in existing_paramdefs and not overwrite:
 				continue			
 			pds.append(pd)
@@ -93,13 +84,13 @@ class Loader(object):
 
 		# Put the saved relationships back in..
 		for k, v in pdc.items():
-			for v2 in v: self.db.pclink(k, v2, keytype='paramdef')
+			for v2 in v: self.db.pclink(v2, k, keytype='paramdef')
 
 
 		##########################
 		# USERS
 		users = []
-		for user in self.loadfile("users.json"):
+		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
 				
@@ -129,7 +120,7 @@ class Loader(object):
 		##########################
 		# GROUPS
 		groups = []
-		for group in self.loadfile("groups.json"):
+		for group in self.loadfile(self.infile, keytype='group'):
 			if group.get('name') in existing_groupnames and not overwrite:
 				continue
 			groups.append(group)
@@ -140,9 +131,9 @@ class Loader(object):
 		##########################
 		# RECORDDEFS
 		rds = []
-		for rd in self.loadfile("recorddefs.json"):
-			rdc[rd.get('name')] |= set(rd.pop('children', []))
-			rd.pop('parents', set())			
+		for rd in self.loadfile(self.infile, keytype='recorddef'):
+			rdc[rd.get('name')] |= set(rd.pop('parents', []))
+			rd.pop('children', set())			
 			if rd.get('name') in existing_recorddefs and not overwrite:
 				continue
 			rds.append(rd)
@@ -150,14 +141,14 @@ class Loader(object):
 		self.db.put(rds, keytype='recorddef', clone=True)
 		
 		for k, v in rdc.items():
-			for v2 in v: self.db.pclink(k, v2, keytype='recorddef')
+			for v2 in v: self.db.pclink(v2, k, keytype='recorddef')
 
 
 		##########################
 		# RECORDS
 		# loaded in chunks of 100
 		chunk = []
-		for rec in self.loadfile("records.json"):
+		for rec in self.loadfile(self.infile, keytype='record'):
 			chunk.append(rec)
 			if len(chunk) == 1000:
 				self._commit_record_chunk(chunk, namemap=namemap, childmap=childmap)
@@ -173,14 +164,14 @@ class Loader(object):
 		
 		##########################
 		# BDOS
-		for bdo in self.loadfile("bdos.json"):
-			# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
-			infile = bdo['name'].replace(":",".")
-			if not os.path.exists(infile):
-				infile = None
-
-			# use subscript instead of .get to make sure the record was mapped
-			# self.db.put(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
+		# for bdo in self.loadfile(self.infile, keytype='binary'):
+		# 	# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
+		# 	infile = bdo['name'].replace(":",".")
+		# 	if not os.path.exists(infile):
+		# 		infile = None
+		# 
+		#	 use subscript instead of .get to make sure the record was mapped
+		#	 self.db.put(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
 		
 			
@@ -210,13 +201,19 @@ class Loader(object):
 
 				
 
-	def loadfile(self, infile):
+	def loadfile(self, infile, keytype=None):
 		try:
 			with open(os.path.join(self.path, infile)) as f:
 				for item in f:
-					if item:
+					item = item.strip()
+					if item and not item.startswith('/'):
 						item = emen2.util.jsonutil.decode(item)
-						yield item
+						if keytype:
+							if keytype == item.get('keytype'):
+								# print item
+								yield item
+						else:
+							yield item
 		except Exception, inst:
 			print "Could not read %s: %s"%(infile, inst)
 			
@@ -226,13 +223,24 @@ class Loader(object):
 
 
 def main():
-        dbo = emen2.db.config.DBOptions()
-        dbo.add_option('--path', type="string", help="Path to dumped JSON files", default=".")
-        (options, args) = dbo.parse_args()
-        db = dbo.admindb()
-        with db:
-                l = Loader(path=options.path, db=db)
-		l.load()
+	dbo = emen2.db.config.DBOptions()
+	dbo.add_option('--new', action="store_true", help="Initialize a new DB with default items.")	
+	dbo.add_option('--path', type="string", help="Directory containing JSON files", default='.')
+	dbo.add_option('--file', type="string", help="JSON file containing all keytypes")
+	dbo.add_option('--nopassword', action="store_true", help="Do not prompt for root email or password")
+	(options, args) = dbo.parse_args()
+	db = dbo.opendb(admin=True)
+
+	with db:
+		if options.new:
+			if options.nopassword:
+				setup(db=db, rootemail='root@localhost', rootpw='123456')
+			else:
+				setup(db=db)				
+
+		if options.path or options.file:
+			l = Loader(path=options.path, infile=options.file, db=db)
+			l.load()
 
 
 if __name__ == "__main__":

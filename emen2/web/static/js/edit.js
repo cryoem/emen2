@@ -333,7 +333,7 @@ function bind_autocomplete(elem, param) {
 			if (vt=="html" || vt=="text") {
 			
 				inline = false;
-				this.editw=$('<textarea class="value" cols="80" rows="20">'+this.rec_value+'</textarea>');
+				this.editw=$('<textarea class="value" cols="80" rows="10">'+this.rec_value+'</textarea>');
 				this.w.append(this.editw);			
 
 			} else if (vt=="choice") {

@@ -84,7 +84,7 @@
 			if (this.options.edit) {
 				// this.savearea = $('<div class="controls"/>');
 				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
-				if (this.options.keytype == 'record' && this.options.name != "None" && this.options.name != name) {
+				if (this.options.keytype == 'record' && this.options.name != "None") {
 					
 					var opt_recurse = $(' \
 						<li><input type="checkbox" id="recurse" name="recurse"> <label for="recurse">Recursive</label></li> \

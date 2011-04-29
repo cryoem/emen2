@@ -710,8 +710,8 @@ class DBOBTree(BTree):
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
 				orec.setContext(ctx)
-				if orec.get('uri'):
-					raise emen2.db.exceptions.SecurityError, "Imported items are read-only: %s"%(orec.get('uri'))
+				# if orec.get('uri'):
+				# 	raise emen2.db.exceptions.SecurityError, "Imported items are read-only: %s"%(orec.get('uri'))
 
 			except (TypeError, AttributeError, KeyError), inst: 
 				# AttributeError might have been raised if the key was the wrong type
@@ -820,7 +820,7 @@ class DBOBTree(BTree):
 			addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
 				
 		# Update the index-index
-		indk = self.index.get('indexkeys')
+		indk = self.getindex('indexkeys', txn=txn)
 		if not indk or pd.name in ['parents', 'children']:
 			return
 		

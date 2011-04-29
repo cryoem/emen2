@@ -161,12 +161,9 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	#################################
 
 	# ian: todo: critical!! setContext for RecordDef
-	# def setContext(self, ctx=None):
+	# def setContext(self, ctx):
 		# def accessible(self):
 		# 	'''Does current Context allow access to this RecordDef?'''
-		# 	if not self._ctx:
-		# 		return False
-		# 
 		# 	result = False
 		# 	if not self.private:
 		# 		result = True

@@ -223,6 +223,28 @@ class vt_iter(object):
 
 
 
+
+
+
+###################################
+# None
+###################################
+
+class vt_none(Vartype):
+	"""Organizational vartype that cannot be used"""
+	__metaclass__ = Vartype.register_view
+
+	def validate(self, value):
+		raise ValueError, "This is an organizational parameter not designed for use."
+
+
+	def process(self, value):
+		if value == None:
+			return ''
+		return "%g"%value
+
+
+
 ###################################
 # Float vartypes
 ###################################
@@ -246,6 +268,21 @@ class vt_float(Vartype):
 # class vt_longfloat(vt_float):
 # 	"""double-precision floating-point"""
 # 	__metaclass__ = Vartype.register_view
+
+class vt_percent(Vartype):
+	"""Percentage; floating point 0 <= x <= 1"""
+	__metaclass__ = Vartype.register_view
+	keytype = "f"
+	def validate(self, value):
+		value = float(value)
+		if not 0 <= value <= 1.0:
+			raise ValueError, "Percentage stored as 0 <= value <= 1.0"
+		return value
+
+	def process(self, value):
+		if value == None:
+			return ''
+		return "%0.0f"%(value*100.0)
 
 
 
@@ -507,6 +544,32 @@ class vt_date(vt_datetime):
 	def validate(self, value):
 		parse_date(value)
 		return unicode(value) or None
+
+
+### New
+
+class vt_duration(vt_datetime):
+	"""TimeStart, OR, TimeStart-TimeStop"""
+	__metaclass__ = Vartype.register_view
+
+	def validate(self, value):
+		parse_date(value)
+		return unicode(value) or None
+
+
+class vt_frequency(vt_datetime):
+	"""date, yyyy/mm/dd"""
+	__metaclass__ = Vartype.register_view
+
+	def validate(self, value):
+		basevalue = {
+			'daily': None,
+			'weekly': [None, None, None, None, None, None, None],
+			'weekly_monthly': [None, None, None, None, None, None, None] * 4,
+			'monthly': [None] * 12
+			}
+			
+		return value
 
 
 

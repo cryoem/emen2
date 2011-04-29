@@ -87,7 +87,7 @@ class BaseDBObject(object, DictMixin):
 		return self.__class__.__name__.lower()
 		
 		
-	def setContext(self, ctx=None):
+	def setContext(self, ctx):
 		"""Set permissions and create reference to active database."""
 		self.__dict__['_ctx'] = ctx
 
@@ -308,7 +308,7 @@ class BaseDBObject(object, DictMixin):
 		"""Context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
 		# for i in (key for key in odict if key.startswith('_')):
-		for i in ['_ctx', '_ptest', '_userrec', '_groups', 'displayname', '_vtm', '_t']:
+		for i in ['_ctx', '_ptest', '_userrec', '_groups', '_displayname', '_vtm', '_t']:
 				odict.pop(i, None)
 		return odict
 
@@ -377,7 +377,7 @@ class BaseDBObject(object, DictMixin):
 			vtm.store(cachekey, pd)
 		
 		# Is it an immutable param?
-		if pd.get('immutable'):
+		if self.name and pd.get('immutable'):
 			self.error('Cannot change immutable param %s'%pd.name)
 
 		# Validate
@@ -467,11 +467,9 @@ class PermissionsDBObject(BaseDBObject):
 	# Permissions checking
 	#################################
 
-	def setContext(self, ctx=None):
+	def setContext(self, ctx):
 		# Check if we can access this item..
 		self.__dict__['_ctx'] = ctx
-		if self._ctx == None:
-			return
 
 		# test for owner access in this context.
 		if self._ctx.checkreadadmin():

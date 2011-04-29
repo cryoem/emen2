@@ -176,21 +176,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 
 
-signupinfo = set([
-	"name_first",
-	"name_middle",
-	"name_last",
-	"comments",			
-	"institution",
-	"department",
-	"address_street",
-	"address_city",
-	"address_state",
-	"address_zipcode",
-	"country",
-	"website",
-	"phone_voice",
-	"phone_fax"])
+signupinfo = set(["name_first", "name_middle", "name_last", "comments",	"institution",
+	"department", "address_street", "address_city", "address_state", "address_zipcode",
+	"country", "uri", "phone_voice", "phone_fax"])
 
 
 class NewUser(BaseUser):
@@ -424,7 +412,7 @@ class User(BaseUser):
 	# Access methods
 	#################################
 							
-	def setContext(self, ctx=None, hide=True):
+	def setContext(self, ctx, hide=True):
 		super(User, self).setContext(ctx)
 
 		# If the user has requested privacy, we return only basic info
