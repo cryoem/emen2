@@ -286,8 +286,8 @@ class DebugState(object):
 		sn = self.debugstates.get_name(state)
 		return lambda: sn
 
-	
-	
+
+
 	# ian: simplified..
 	def newmsg(self, msg='', level='INFO', tb=False, e=None):
 		level = level.upper()
@@ -298,8 +298,8 @@ class DebugState(object):
 		# outputs for the sake of lazy binding, outputs_l for caching
 		outputs_l = []
 		outputs = ((outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state))
-		
-		if state < self._log_state and state < self._state: 
+
+		if state < self._log_state and state < self._state:
 			return
 		elif not any(outputs):
 			return
@@ -309,12 +309,12 @@ class DebugState(object):
 		for buf in outputs_l:
 			buf.send(None, state, head, '%s\n'%(unicode(msg).encode('utf-8')))
 			buf.flush()
-		
+
 
 
 	def msg(self, sn, *args, **k):
 		state = self.debugstates[sn]
-		tb = k.pop('m', False)
+		tb = k.pop('tb', False)
 		if tb: self.print_traceback()
 
 		# outputs for the sake of lazy binding, outputs_l for caching

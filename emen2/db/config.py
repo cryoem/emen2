@@ -32,11 +32,13 @@ class DBOptions(optparse.OptionParser):
 		kwargs["add_help_option"] = False
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
-		dbhomehelp = """EMEN2 Database Environment                                     
+		dbhomehelp = """EMEN2 Database Environment
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
+		group.add_option('-c', '--configfile', action='append', dest='configfile')
+		self.add_option('-l', '--loglevel', action='store', dest='loglevel')
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
@@ -54,7 +56,7 @@ class DBOptions(optparse.OptionParser):
 	def opendb(self, name=None, password=None, admin=False):
 		import emen2.db.proxy
 		g = GlobalNamespace()
-		
+
 		if not g.CONFIG_LOADED:
 			self.load_config()
 		db = emen2.db.proxy.DBProxy()
@@ -63,7 +65,7 @@ class DBOptions(optparse.OptionParser):
 		if admin:
 			ctx = emen2.db.context.SpecialRootContext()
 			ctx.refresh(db=db)
-			db._ctx = ctx			
+			db._ctx = ctx
 		return db
 
 
@@ -91,6 +93,9 @@ class DBOptions(optparse.OptionParser):
 			g.from_file('/etc/emen2config.yml')
 		if os.path.exists('/etc/emen2config.json'):
 			g.from_file('/etc/emen2config.json')
+		if self.values.configfile:
+			for fil in self.values.configfile:
+				g.from_file(fil)
 
 		# Look for any EMEN2DBHOME-specific config files and load
 		g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
@@ -112,6 +117,8 @@ class DBOptions(optparse.OptionParser):
 			loglevel = 'ERROR'
 		elif self.values.debug:
 			loglevel = 'DEBUG'
+		elif self.values.loglevel:
+			leglevel = self.values.loglevel
 
 
 		if not g.getattr('EMEN2DBHOME', False):

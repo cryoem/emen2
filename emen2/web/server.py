@@ -56,13 +56,6 @@ def interact():
 
 
 
-class RootResource(Resource):
-	def getChild(self, path, request):
-		print "->", path
-		return self.children.get(request.path.split("/")[0], self)
-
-
-
 def inithttpd():
 	# Load EMEN2 Twisted Resources
 	import emen2.web.resources.uploadresource
@@ -71,7 +64,7 @@ def inithttpd():
 	import emen2.web.resources.rpcresource
 	import emen2.web.resources.jsonrpcresource
 
-	# This has to go first for metaclasses 
+	# This has to go first for metaclasses
 	# to register before the templates are cached.
 	import emen2.db.database
 
@@ -119,12 +112,6 @@ def inithttpd():
 
 	load_resources(root, resources)
 
-	try:
-		import srequest
-	except ImportError:
-		g.debug('--- srequest not loaded ***')
-
-
 	site = server.Site(root)
 
 	ahr = site.protocol.allHeadersReceived
@@ -145,10 +132,10 @@ def inithttpd():
 
 	if g.EMEN2HTTPS and ssl:
 		reactor.listenSSL(
-			g.EMEN2PORT_HTTPS, 
-			server.Site(root), 
+			g.EMEN2PORT_HTTPS,
+			server.Site(root),
 			ssl.DefaultOpenSSLContextFactory(
-				os.path.join(g.SSLPATH, "server.key"), 
+				os.path.join(g.SSLPATH, "server.key"),
 				os.path.join(g.SSLPATH, "server.crt")
 				)
 			)
@@ -169,12 +156,12 @@ if __name__ == "__main__":
 	dbo.add_option('--https', action="store_true", help="Use HTTPS")
 	dbo.add_option('--httpsport', type="int", help="HTTPS Port")
 	(options, args) = dbo.parse_args()
-	
+
 	# Update the configuration
 	g.EMEN2PORT = options.port or g.EMEN2PORT
 	# g.EMEN2HTTPS = options.https or g.EMEN2HTTPS
 	# g.EMEN2PORT_HTTPS = options.httpsport or g.EMEN2PORT_HTTPS
-	
+
 	# Start the web server
 	inithttpd()
 
