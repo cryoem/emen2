@@ -256,7 +256,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	s = smtplib.SMTP(g.MAILHOST)
 	s.set_debuglevel(1)
 	s.sendmail(g.MAILADMIN, [g.MAILADMIN, recipient], msg)
-	g.log('Mail sent: %s -> %s'%(g.MAILADMIN, recipient))
+	g.info('Mail sent: %s -> %s'%(g.MAILADMIN, recipient))
 	# g.error('Could not send email: %s'%e, e=e)
 	# raise e
 
@@ -316,7 +316,7 @@ class EMEN2DBEnv(object):
 		global DBENV
 
 		if DBENV == None:
-			g.log("Opening Database Environment: %s"%self.path)
+			g.info("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 			if snapshot or g.SNAPSHOT:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
@@ -424,7 +424,7 @@ class EMEN2DBEnv(object):
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
 		if not os.path.exists(configpath):
-			g.log("Installing default DB_CONFIG file: %s"%configpath)
+			g.info("Installing default DB_CONFIG file: %s"%configpath)
 			f = open(configpath, "w")
 			f.write(DB_CONFIG)
 			f.close()
@@ -436,20 +436,20 @@ class EMEN2DBEnv(object):
 		sys.stdout.flush()
 
 		tx_max = self.dbenv.get_tx_max()
-		g.log("Open transactions: %s"%tx_max)
+		g.info("Open transactions: %s"%tx_max)
 
 		txn_stat = self.dbenv.txn_stat()
-		g.log("Transaction stats: ")
+		g.info("Transaction stats: ")
 		for k,v in txn_stat.items():
-			g.log("\t%s: %s"%(k,v))
+			g.info("\t%s: %s"%(k,v))
 
 		log_archive = self.dbenv.log_archive()
-		g.log("Archive: %s"%log_archive)
+		g.info("Archive: %s"%log_archive)
 
 		lock_stat = self.dbenv.lock_stat()
-		g.log("Lock stats: ")
+		g.info("Lock stats: ")
 		for k,v in lock_stat.items():
-			g.log("\t%s: %s"%(k,v))
+			g.info("\t%s: %s"%(k,v))
 
 
 	####################################
@@ -470,7 +470,7 @@ class EMEN2DBEnv(object):
 			flags = 0
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
-		# g.log("NEW TXN, flags: %s --> %s"%(flags, txn), 'TXN')
+		# g.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		#try:
 		type(self).txncounter += 1
@@ -504,7 +504,7 @@ class EMEN2DBEnv(object):
 		"""
 		
 		txn = self.txnlog.get(txnid, txn)
-		# g.log("TXN ABORT --> %s"%txn, 'TXN')
+		# g.log.msg('TXN', "TXN ABORT --> %s"%txn)
 
 		if txn:
 			txn.abort()
@@ -523,7 +523,7 @@ class EMEN2DBEnv(object):
 		"""
 		
 		txn = self.txnlog.get(txnid, txn)
-		# g.log("TXN COMMIT --> %s"%txn)
+		# g.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 
 		if txn != None:
 			txn.commit()
@@ -553,12 +553,12 @@ class EMEN2DBEnv(object):
 		outpath = g.paths.LOG_ARCHIVE
 
 		if checkpoint:
-			g.log("Log Archive: Checkpoint")
+			g.info("Log Archive: Checkpoint")
 			self.dbenv.txn_checkpoint()
 
 		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 
-		g.log("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+		g.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
 		if not os.access(outpath, os.F_OK):
 			os.makedirs(outpath)
@@ -572,7 +572,7 @@ class EMEN2DBEnv(object):
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
-			g.log('Log Archive: %s -> %s'%(archivefile, dest))
+			g.info('Log Archive: %s -> %s'%(archivefile, dest))
 			shutil.copy(archivefile, dest)
 			outpaths.append(dest)
 
@@ -589,7 +589,7 @@ class EMEN2DBEnv(object):
 
 
 		for removefile in removefiles:
-			g.log('Log Archive: Removing %s'%(removefile))
+			g.info('Log Archive: Removing %s'%(removefile))
 			os.unlink(removefile)
 
 		return removefiles
@@ -597,7 +597,7 @@ class EMEN2DBEnv(object):
 
 	# ian: todo: finish
 	# def coldbackup(self, force=False, ctx=None, txn=None):
-	# 	g.log("Cold Backup: Checkpoint")
+	# 	g.info("Cold Backup: Checkpoint")
 	#
 	# 	self.checkpoint(ctx=ctx, txn=txn)
 	#
@@ -608,11 +608,11 @@ class EMEN2DBEnv(object):
 	# 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.paths.BACKUPPATH
 	#
 	# 	# ian: just use shutil.copytree
-	# 	g.log("Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
+	# 	g.info("Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
 	# 	shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
 	#
 	# 	for i in ["config.yml","DB_CONFIG"]:
-	# 		g.log("Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
+	# 		g.info("Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
 	#
 	# 	os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
@@ -621,18 +621,18 @@ class EMEN2DBEnv(object):
 	# 	archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
 	#
 	# 	for i in archivelogs:
-	# 		g.log("Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
+	# 		g.info("Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
 	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
 	#
 	#
 	# def hotbackup(self, ctx=None, txn=None):
-	# 	g.log("Hot Backup: Checkpoint")
+	# 	g.info("Hot Backup: Checkpoint")
 	# 	self.checkpoint(ctx=ctx, txn=txn)
 	#
-	# 	g.log("Hot Backup: Log Archive")
+	# 	g.info("Hot Backup: Log Archive")
 	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
 	#
-	# 	g.log("Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
+	# 	g.info("Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
 
 
 
@@ -825,7 +825,7 @@ class DB(object):
 
 			# Delete any expired contexts
 			if context.time + (context.maxidle or 0) < newtime:
-				g.log("Expire context (%s) %d" % (context.name, time.time() - context.time))
+				g.info("Expire context (%s) %d" % (context.name, time.time() - context.time))
 				self.bdbs.context.delete(context.name, txn=txn)
 
 
@@ -883,7 +883,7 @@ class DB(object):
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
 		
 		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
-		g.log("Login succeeded: %s -> %s" % (name, newcontext.name), 'SECURITY')
+		g.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
 		
 		return newcontext.name
 
@@ -2159,7 +2159,7 @@ class DB(object):
 
 		else:
 			# Email changed.
-			g.log("Changing email for %s"%user.name, 'SECURITY')
+			g.log.msg("SECURITY","Changing email for %s"%user.name)
 			self.bdbs.user.cputs([user], txn=txn)			
 
 			# Send the user an email to acknowledge the change
@@ -2181,7 +2181,7 @@ class DB(object):
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
-		g.log("Changing password for %s"%user.name, 'SECURITY')
+		g.log.msg("SECURITY", "Changing password for %s"%user.name)
 		self.bdbs.user.put(user.name, user, txn=txn)
 
 		#@postprocess
@@ -2210,7 +2210,7 @@ class DB(object):
 		ctxt = {'secret': user._secret[2]}
 		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
-		g.log("Setting resetpassword secret for %s"%user.name, 'SECURITY')
+		g.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
 		
 
 

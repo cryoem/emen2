@@ -41,7 +41,7 @@ g = emen2.db.config.g()
 #
 #			self._initmethods()
 #
-#		else: g.log('db is None...', 'WARNING')
+#		else: g.info('db is None...', 'WARNING')
 #
 #	def _initmethods(self):
 #		self.get_path_id = self._db._wrapmethod(self._get_path_id)

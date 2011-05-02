@@ -113,7 +113,7 @@ class Template(object):
 				with file(self.path) as f:
 					self.template = self.tempconst(f.read(), lookup, filename=self.filename)
 		except OSError, e:
-			if e.errno == 2: g.log('file (%r) no longer exists, not updating template %s' % (self.path, self.filename))
+			if e.errno == 2: g.error('file (%r) no longer exists, not updating template %s' % (self.path, self.filename))
 			else: g.error('problem with template %s: %s' % (self.filename, e))
 
 
@@ -155,7 +155,7 @@ class MakoTemplateEngine(StandardTemplateEngine):
 		try:
 			raise
 		except Exception, e:
-			g.log("Error loader: %r" % e, 'ERROR')
+			g.error("Error loader: %r" % e)
 			if g.DEBUG:
 				return exceptions.html_error_template().render_unicode()
 			else:
@@ -191,7 +191,7 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 	try:
 		g.templates.add_template(templatename,data,filpath+ext)
 	except BaseException, e:
-		g.log(str(e))
+		g.info(str(e))
 		level = 'ERROR'
 		msg[0] += 'FAILED'
 		failures.append(templatename)
@@ -199,7 +199,7 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 		msg[0] += 'LOADED'
 
 	msg.append(filpath+ext)
-	g.log(': '.join(msg), level)
+	g.log.msg(level, ': '.join(msg))
 
 
 

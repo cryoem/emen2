@@ -262,7 +262,7 @@ class _View(object):
 		'''add a number of items to the template context'''
 		self.__ctxt.update(kwargs)
 		self.__ctxt.update(__dict_ or {})
-		g.logger.print_traceback()
+		g.log.print_traceback()
 
 	# alias update_context to set_context_items
 	update_context = set_context_items

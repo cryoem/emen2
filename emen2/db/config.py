@@ -132,7 +132,7 @@ class DBOptions(optparse.OptionParser):
 		elif self.values.debug:
 			loglevel = 'DEBUG'
 		elif self.values.loglevel:
-			leglevel = self.values.loglevel
+			loglevel = self.values.loglevel
 
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
@@ -145,18 +145,18 @@ class DBOptions(optparse.OptionParser):
 		if not os.path.exists(g.paths.LOGPATH):
 			os.makedirs(g.paths.LOGPATH)
 
-		g.logger = emen2.db.debug.DebugState(output_level=loglevel,
+		g.log = emen2.db.debug.DebugState(output_level=loglevel,
 											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
 											get_state=False,
 											quiet = self.values.quiet)
 
-		g.log = g.logger.newmsg
-		g.error = functools.partial(g.logger.newmsg, level='ERROR')
-		g.warn = functools.partial(g.logger.newmsg, level='WARNING')
-		g.debug = functools.partial(g.logger.newmsg, level='DEBUG')
+		g.info = functools.partial(g.log.msg, 'INFO')
+		g.error = functools.partial(g.log.msg, 'ERROR')
+		g.warn = functools.partial(g.log.msg, 'WARNING')
+		g.debug = functools.partial(g.log.msg, 'DEBUG')
 
-		g.logger.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
-		g.logger.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
+		g.log.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
+		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
 
 		g.CONFIG_LOADED = True
 		g.refresh()

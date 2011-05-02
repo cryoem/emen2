@@ -235,7 +235,7 @@ class EMEN2DB(object):
 
 	def put(self, key, data, txn=None, flags=0):
 		"""Write key/value, with txn."""		
-		g.log("%s.put: %s"%(self.filename, key), 'COMMIT')
+		g.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
 		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)			
 
 
@@ -243,14 +243,14 @@ class EMEN2DB(object):
 	def truncate(self, txn=None, flags=0):
 		"""Truncate BDB (e.g. 'drop table')"""
 		self.bdb.truncate(txn=txn)
-		g.log("%s.truncate"%self.filename, 'COMMIT')
+		g.log.msg('COMMIT', "%s.truncate"%self.filename)
 
 
 	# Also dangerous!	
 	def delete(self, key, txn=None, flags=0):
 		if self.bdb.exists(self.dumpkey(key), txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
-			g.log("%s.delete: %s"%(self.filename, key), 'COMMIT')
+			g.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
 			return ret
 
 
@@ -412,7 +412,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		g.log("%s.removerefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
+		g.log.msg('INDEX', "%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
 
 
@@ -443,7 +443,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		g.log("%s.addrefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
+		g.log.msg('INDEX', "%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
@@ -540,7 +540,7 @@ class DBODB(EMEN2DB):
 			val = 0
 		val = int(val)
 		self.sequencedb.put(key, str(val+delta), txn=txn)
-		g.log("%s.sequence: %s"%(self.filename, val+delta), 'COMMIT')
+		g.log.msg('COMMIT', "%s.sequence: %s"%(self.filename, val+delta))
 		return val
 
 
@@ -683,7 +683,7 @@ class DBODB(EMEN2DB):
 		for crec in crecs:
 			self.put(crec.name, crec, txn=txn)
 
-		g.log("Committed %s items"%(len(crecs)))
+		g.info("Committed %s items"%(len(crecs)))
 		
 		return crecs	
 		

@@ -289,26 +289,27 @@ class DebugState(object):
 
 
 	# ian: simplified..
-	def newmsg(self, msg='', level='INFO', tb=False, e=None):
-		level = level.upper()
-		state = self.debugstates[level]
-		if tb:
-			self.print_traceback()
+	# ed: not thanks....
+	# def newmsg(self, msg='', level='INFO', tb=False, e=None):
+	#	level = level.upper()
+	#	state = self.debugstates[level]
+	#	if tb:
+	#		self.print_traceback()
 
-		# outputs for the sake of lazy binding, outputs_l for caching
-		outputs_l = []
-		outputs = ((outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state))
+	#	# outputs for the sake of lazy binding, outputs_l for caching
+	#	outputs_l = []
+	#	outputs = ((outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state))
 
-		if state < self._log_state and state < self._state:
-			return
-		elif not any(outputs):
-			return
+	#	if state < self._log_state and state < self._state:
+	#		return
+	#	elif not any(outputs):
+	#		return
 
-		# return func(state, sn, output, outputs_l, outputs, *args, **k)
-		head = '%s:%s: '%(time.strftime('[%Y-%m-%d %H:%M:%S]'), level.ljust(8))
-		for buf in outputs_l:
-			buf.send(None, state, head, '%s\n'%(unicode(msg).encode('utf-8')))
-			buf.flush()
+	#	# return func(state, sn, output, outputs_l, outputs, *args, **k)
+	#	head = '%s:%s: '%(time.strftime('[%Y-%m-%d %H:%M:%S]'), level.ljust(8))
+	#	for buf in outputs_l:
+	#		buf.send(None, state, head, '%s\n'%(unicode(msg).encode('utf-8')))
+	#		buf.flush()
 
 
 
@@ -341,6 +342,7 @@ class DebugState(object):
 		return func(state, sn, output, outputs_l, outputs, *args, **k)
 
 		return result
+	newmsg = msg
 
 	#def _just_print_msg(self, state, sn, output, *args, **k):
 	def _just_print_msg(self, state, sn, output, outputs, output_gen, *args, **k):

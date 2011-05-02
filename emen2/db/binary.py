@@ -66,7 +66,7 @@ def write_binary(infile, ctx=None, txn=None):
 
 	md5sum = m.hexdigest()
 	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	g.log("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+	g.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
 

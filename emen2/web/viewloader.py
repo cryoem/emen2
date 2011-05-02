@@ -26,13 +26,13 @@ def view_callback(pwd, pth, mtch, name, ext, failures=None):
 	try:
 		__import__(name)
 	except BaseException, e:
-		g.log(e)
+		g.info(e)
 		level = 'ERROR'
 		msg[1] = "FAILED:"
 		failures.append(viewname)
 
 	msg.append(filpath+ext)
-	g.log(' '.join(msg), level)
+	g.log.msg(level, ' '.join(msg))
 
 
 get_views = emen2.util.fileops.walk_paths('.py', view_callback)
