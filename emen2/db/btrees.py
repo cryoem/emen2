@@ -27,7 +27,6 @@ except ImportError:
 	bulk = None
 
 
-
 # Berkeley DB wrapper classes
 class EMEN2DB(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary.
@@ -54,7 +53,7 @@ class EMEN2DB(object):
 
 		# BDB Handle
 		self.bdb = None
- 		self.DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD
+ 		self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
 		self.DBSETFLAGS = []
 		
 		# What are we storing?
@@ -296,7 +295,6 @@ class IndexDB(EMEN2DB):
 
 
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
-		# print "%s.get index/datatype:"%self.filename, key, self.datatype
 		key = self.dumpkey(key)
 
 		if cursor:
@@ -307,6 +305,7 @@ class IndexDB(EMEN2DB):
 			r = self._get_method(cursor, key, self.datatype)
 			cursor.close()
 
+		
 		# generator expressions will be less pain when map() goes away
 		if bulk and self.datatype == 'p':
 			r = set(self.loaddata(x) for x in r)
@@ -804,14 +803,10 @@ class RelateDB(DBODB):
 	"""DB with parent/child/cousin relationships between keys"""
 
 	def openindex(self, param, txn=None):			
-		if param == 'children':
+		if param in ['children', 'parents']:
 			filename = os.path.join(self.path, 'index', param)	
 			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
-			ind._setbulkmode(False)
-			ind.open()
-		elif param == 'parents':
-			filename = os.path.join(self.path, 'index', param)
-			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
+			ind.cfunc = False # Historical
 			ind._setbulkmode(False)
 			ind.open()
 		else:

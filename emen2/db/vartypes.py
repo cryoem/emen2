@@ -390,7 +390,7 @@ class vt_string(Vartype):
 	keytype = "s"
 
 	def validate(self, value):
-		return unicode(value) or None
+		return unicode(value).strip() or None
 
 
 # ian: todo: validate choices!
@@ -399,7 +399,7 @@ class vt_choice(vt_string):
 	__metaclass__ = Vartype.register_view
 	
 	def validate(self, value):
-		value = unicode(value)
+		value = unicode(value).strip()
 		if value not in self.pd.choices:
 			raise ValueError, "Choice not in defined options: %s"%value
 		return value or None
@@ -412,7 +412,7 @@ class vt_rectype(vt_string):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = unicode(value)
+		value = unicode(value).strip()
 		check_rectypes(self.engine, [value])
 		return value or None
 
@@ -424,7 +424,7 @@ class vt_stringlist(vt_iter, vt_string):
 
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)		
-		return [unicode(x) for x in value] or None
+		return [unicode(x).strip() for x in value] or None
 
 
 	def process(self, value):
@@ -441,7 +441,7 @@ class vt_choicelist(vt_iter, vt_string):
 
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)
-		value = map(unicode, value)
+		value = [unicode(i).strip() for i in value]
 		for v in value:
 			if v not in self.pd.choices:
 				raise ValueError, "Choice not in defined options: %s"%v
@@ -523,7 +523,7 @@ class vt_datetime(vt_string):
 	keytype = "s"
 
 	def validate(self, value):
-		return unicode(parse_datetime(value)[1]) or None
+		return unicode(parse_datetime(value)[1]).strip() or None
 
 
 
@@ -533,7 +533,7 @@ class vt_time(vt_datetime):
 
 	def validate(self, value):
 		parse_time(value)
-		return unicode(value) or None
+		return unicode(value).strip() or None
 
 
 
@@ -543,7 +543,7 @@ class vt_date(vt_datetime):
 
 	def validate(self, value):
 		parse_date(value)
-		return unicode(value) or None
+		return unicode(value).strip() or None
 
 
 ### New
@@ -554,7 +554,7 @@ class vt_duration(vt_datetime):
 
 	def validate(self, value):
 		parse_date(value)
-		return unicode(value) or None
+		return unicode(value).strip() or None
 
 
 class vt_frequency(vt_datetime):
@@ -588,7 +588,7 @@ class vt_uri(vt_ref):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = unicode(value)
+		value = unicode(value).strip()
 		if not value.startswith("http://"):
 			raise ValueError, "Invalid URI: %s"%value
 		return value
@@ -611,7 +611,7 @@ class vt_urilist(vt_iter, vt_ref):
 
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)		
-		value = map(unicode, value)
+		value = [unicode(i).strip() for i in value]
 		for v in value:
 			if not v.startswith("http://"):
 				raise ValueError, "Invalid URI: %s"%value
@@ -834,7 +834,7 @@ class vt_user(Vartype):
 	keytype = "s"
 
 	def validate(self, value):
-		value = unicode(value)
+		value = unicode(value).strip()
 		check_usernames(self.engine, [value])
 		return value or None
 
@@ -867,7 +867,7 @@ class vt_userlist(vt_iter, Vartype):
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)		
 		check_usernames(self.engine, value)
-		return [unicode(x) for x in value] or None
+		return [unicode(x).strip() for x in value] or None
 
 
 
@@ -1033,7 +1033,7 @@ class vt_groups(vt_iter, Vartype):
 	def validate(self, value):
 		value = emen2.util.listops.check_iterable(value)
 		check_groupnames(self.engine, value)
-		return set([unicode(i) for i in value]) or None
+		return set([unicode(i).strip() for i in value]) or None
 
 
 	def process(self, engine, pd, value, rec, db):

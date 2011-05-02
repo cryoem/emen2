@@ -5,11 +5,12 @@ import os
 #################################
 
 def other_setstate(self, d):
+	print "Updating.."
 	if not d.has_key('modifyuser'):
-		d['modifyuser'] = d['creator']
+		d['modifyuser'] = d.get('creator')
 	if not d.has_key('modifytime'):
-		d['modifytime'] = d['creationtime']
-	
+		d['modifytime'] = d.get('creationtime')
+	print d	
 	return self.__dict__.update(d)
 
 
@@ -109,6 +110,7 @@ def record_setstate(self, d):
 
 
 def monkeypatch():
+	print "Applying setstate patches"
 	import emen2.db.record
 	import emen2.db.user
 	import emen2.db.group
@@ -130,17 +132,18 @@ def convert_rels(db):
 	"""Rels are now regular indexes; parents/children primarily stored inside record
 	Convert an existing db to this format
 	"""
+	print "Converting relationships"
 	txn = db._gettxn()
 	for keytype in ['paramdef', 'recorddef', 'record']:
 		bdb = db._db.bdbs.keytypes[keytype]
-		pc = bdb.getindex('parents', txn=txn)
-		cp = bdb.getindex('children', txn=txn)
+		parents = bdb.getindex('parents', txn=txn)
+		children = bdb.getindex('children', txn=txn)
 		#for name, rec in bdb.iteritems(txn=txn):
 		for name in bdb.keys(txn=txn):
 			rec = bdb.get(name, txn=txn)
-			rec.__dict__['parents'] = pc.get(name, set(), txn=txn)
-			rec.__dict__['children'] = cp.get(name, set(), txn=txn)
-			# print name, rec['parents'], rec['children']
+			rec.__dict__['parents'] = parents.get(rec.name, set(), txn=txn)
+			rec.__dict__['children'] = children.get(rec.name, set(), txn=txn)
+			print name, rec['parents'], rec['children']
 			bdb.put(name, rec, txn=txn)
 		print "Done with", keytype
 	print "Done with everything"
@@ -148,6 +151,7 @@ def convert_rels(db):
 
 
 def convert_pickle_other(db):
+	print "Converting other items"
 	ctx = db._getctx()
 	txn = db._gettxn()
 	for keytype in ['group', 'user']:
@@ -215,9 +219,6 @@ def rename():
 	import bsddb3
 	import emen2.db.config
 	import emen2.db.database
-
-	dbo = emen2.db.config.DBOptions()
-	(options, args) = dbo.parse_args()
 	
 	# manually open the database for renaming
 	# this does not open the db files
@@ -237,22 +238,22 @@ def rename():
 		"main/workflow.bdb": "workflow/workflow.bdb",
 		
 		"main/bdocounter.bdb": "binary/binary.bdb",
-		#"main/bdocounter.sequence.bdb": "binary/binary.sequence.bdb",
 		"index/bdosbyfilename.bdb": "binary/index/filename.index",
+		#"main/bdocounter.sequence.bdb": "binary/binary.sequence.bdb",
 		
 		"main/records.bdb": "record/record.bdb",
 		"main/records.sequence.bdb": "record/record.sequence.bdb",
-		"main/records.cp2.bdb": "record/index/children.index",
-		"main/records.pc2.bdb": "record/index/parents.index",
+		"main/records.cp2.bdb": "record/index/parents.index",
+		"main/records.pc2.bdb": "record/index/children.index",
 		"index/indexkeys.bdb": "record/index/indexkeys.bdb",
 		
 		"main/paramdefs.bdb": "paramdef/paramdef.bdb",
-		"main/paramdefs.cp2.bdb": "paramdef/index/children.index",
-		"main/paramdefs.pc2.bdb": "paramdef/index/parents.index",
+		"main/paramdefs.cp2.bdb": "paramdef/index/parents.index",
+		"main/paramdefs.pc2.bdb": "paramdef/index/children.index",
 
 		"main/recorddefs.bdb": "recorddef/recorddef.bdb",
-		"main/recorddefs.cp2.bdb": "recorddef/index/children.index",
-		"main/recorddefs.pc2.bdb": "recorddef/index/parents.index",
+		"main/recorddefs.cp2.bdb": "recorddef/index/parents.index",
+		"main/recorddefs.pc2.bdb": "recorddef/index/children.index",
 	}
 	
 	parampath = os.path.join(dbenv.path, "data/index/params")
@@ -269,7 +270,8 @@ def rename():
 		except:
 			pass
 			# print "couldn't make %s"%newdir
-
+		
+		print "Renaming:", k, v
 		dbenv.dbenv.dbrename(file=k, database=None, newname=v, txn=txn)
 		# print k,v
 
@@ -280,12 +282,14 @@ def rename():
 if __name__ == "__main__":
 	import emen2.db.config
 	dbo = emen2.db.config.DBOptions()
-	(options, args) = dbo.parse_args()	
-	db = dbo.opendb(admin=True)
-	with db:
-		main(db)
-	
-	
+	dbo.add_option('--rename', action="store_true", help="Rename files")
+	(options, args) = dbo.parse_args()
+	if options.rename:
+		rename()
+	else:
+		db = dbo.opendb(admin=True)
+		with db:
+			main(db)
 	
 	
 	

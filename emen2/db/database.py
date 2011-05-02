@@ -31,13 +31,6 @@ except ImportError:
 import emen2.db.config
 g = emen2.db.config.g()
 
-# # If no configuration has been loaded, load the default configuration.
-# try:
-# 	g.CONFIG_LOADED
-# except AttributeError:
-# 	print "Loading defaults"
-# 	emen2.db.config.defaults()
-
 # EMEN2 Core
 import emen2.db.datatypes
 import emen2.db.vartypes
@@ -87,11 +80,28 @@ DB_CONFIG = """\
 # Don't touch these
 set_lg_dir log
 set_data_dir data
-set_lk_detect DB_LOCK_YOUNGEST
 set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
 """
+
+
+def fakemodules():
+	import imp
+	Database = imp.new_module("Database")
+	Database.dataobjects = imp.new_module("dataobjects")
+	sys.modules["emen2.Database"] = Database
+	sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
+	sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
+	sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
+	sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
+	sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
+	sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
+	sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
+	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
+	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
+
+fakemodules()
 
 
 
@@ -311,11 +321,11 @@ class EMEN2DBEnv(object):
 			if snapshot or g.SNAPSHOT:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
 
-			cachesize = g.CACHESIZE * 1024 * 1024
+			cachesize = g.CACHESIZE * 1024 * 1024l
 			txncount = (cachesize / 4096) * 2
 			if txncount > 1024*128:
 				txncount = 1024*128
-
+			
 			DBENV.set_cachesize(0, cachesize)
 			DBENV.set_tx_max(txncount)
 			DBENV.set_lk_max_locks(300000)
@@ -1120,7 +1130,7 @@ class DB(object):
 			else:
 				try:
 					rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
-				except emen2.db.exceptions.SecurityError:
+				except (KeyError, emen2.db.exceptions.SecurityError):
 					viewdef = defaultviewdef
 				else:
 					viewdef = rd.views.get('tabularview', defaultviewdef)
