@@ -46,7 +46,7 @@ class DBOptions(optparse.OptionParser):
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
-		group.add_option('--loglevel', action='store', dest='loglevel')
+		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
