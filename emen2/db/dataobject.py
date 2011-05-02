@@ -400,9 +400,10 @@ class BaseDBObject(object, DictMixin):
 		# have to compile since flags= is a Python 2.7+ keyword
 		r = re.compile('[\w-]', re.UNICODE)
 
-		newname = "".join(r.findall(name))
+		newname = "".join(r.findall(name)).lower()
 		if name != newname or not name[0].isalpha():
-			self.error("Name '%s' can only include a-z, A-Z, 0-9, underscore, and must start with a letter"%name)
+			self.error("Name '%s' can only include a-z, A-Z, 0-9, underscore, must be lowercase, and must start with a letter"%name)
+
 		return name
 
 
@@ -481,7 +482,8 @@ class PermissionsDBObject(BaseDBObject):
 		for group in self.groups & self._ctx.groups:
 			self._ptest[self._ctx.grouplevels[group]] = True
 
-		if not any(self._ptest):
+		# Allow us to override readable; normally just checks "any(self._ptest)"
+		if not self.readable():
 			raise emen2.db.exceptions.SecurityError, "Permission Denied: %s"%self.name
 
 		return self._ptest[0]
@@ -506,6 +508,10 @@ class PermissionsDBObject(BaseDBObject):
 		"""Does user have level 1 permissions? Required to comment or link."""
 		return any(self._ptest[1:])
 
+
+	def readable(self):
+		return any(self._ptest)
+		
 
 	def members(self):
 		return set(reduce(operator.concat, self.permissions))

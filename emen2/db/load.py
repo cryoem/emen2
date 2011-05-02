@@ -202,20 +202,21 @@ class Loader(object):
 				
 
 	def loadfile(self, infile, keytype=None):
-		try:
-			with open(os.path.join(self.path, infile)) as f:
-				for item in f:
-					item = item.strip()
-					if item and not item.startswith('/'):
-						item = emen2.util.jsonutil.decode(item)
-						if keytype:
-							if keytype == item.get('keytype'):
-								# print item
-								yield item
-						else:
+		filename = os.path.join(self.path, infile)
+		if not os.path.exists(filename):
+			return
+
+		with open(os.path.join(self.path, infile)) as f:
+			for item in f:
+				item = item.strip()
+				if item and not item.startswith('/'):
+					item = emen2.util.jsonutil.decode(item)
+					if keytype:
+						if keytype == item.get('keytype'):
+							# print item
 							yield item
-		except Exception, inst:
-			print "Could not read %s: %s"%(infile, inst)
+					else:
+						yield item
 			
 
 
@@ -225,7 +226,7 @@ class Loader(object):
 def main():
 	dbo = emen2.db.config.DBOptions()
 	dbo.add_option('--new', action="store_true", help="Initialize a new DB with default items.")	
-	dbo.add_option('--path', type="string", help="Directory containing JSON files", default='.')
+	dbo.add_option('--path', type="string", help="Directory containing JSON files")
 	dbo.add_option('--file', type="string", help="JSON file containing all keytypes")
 	dbo.add_option('--nopassword', action="store_true", help="Do not prompt for root email or password")
 	(options, args) = dbo.parse_args()
@@ -238,8 +239,11 @@ def main():
 			else:
 				setup(db=db)				
 
-		if options.path or options.file:
-			l = Loader(path=options.path, infile=options.file, db=db)
+		if options.file:
+			l = Loader(infile=options.file, db=db)			
+			l.load()
+		elif options.path:
+			l = Loader(path=options.path, db=db)			
 			l.load()
 
 

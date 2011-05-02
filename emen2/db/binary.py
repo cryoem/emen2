@@ -220,13 +220,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 
 
-class BinaryBTree(emen2.db.btrees.DBOBTree):
-	def init(self):
-		self.setkeytype('s', False)
-		self.setdatatype('p', Binary)
-		self.sequence = True
-		super(BinaryBTree, self).init()		
-
+class BinaryDB(emen2.db.btrees.DBODB):
+	sequence = True
+	dataclass = Binary
 
 	# Update the database sequence.. Probably move this to the parent class.
 	def update_sequence(self, items, txn=None):
@@ -238,7 +234,7 @@ class BinaryBTree(emen2.db.btrees.DBOBTree):
 
 		# Get a blank bdo key
 		if newrecs:
-			basename = self.get_sequence(delta=len(newrecs), key=datekey, txn=txn)
+			basename = self._set_sequence(delta=len(newrecs), key=datekey, txn=txn)
 
 		for offset, newrec in enumerate(newrecs):
 			dkey = emen2.db.binary.Binary.parse(name, counter=offset+basename)
@@ -250,7 +246,11 @@ class BinaryBTree(emen2.db.btrees.DBOBTree):
 
 	def openindex(self, param, txn=None):
 		if param == 'filename':
-			return emen2.db.btrees.IndexBTree(filename="index/bdosbyfilename", keytype="s", datatype="s", dbenv=self.dbenv)
-
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+		else:
+		 	ind = super(BinaryDB, self).openindex(param, txn=txn)
+		return ind
+		
+		
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

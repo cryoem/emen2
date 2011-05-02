@@ -31,7 +31,13 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 		self.__dict__['disabled'] = False
 		self.__dict__['displayname'] = self.name
 		self.__dict__['privacy'] = False
-		
+	
+	
+	# Special groups are readable by anyone.
+	def readable(self):
+		if any(self._ptest) or self.name in ['authenticated', 'anon']:
+			return True	
+
 
 	# Setters
 	def _set_privacy(self, key, value, vtm=None, t=None):
@@ -59,16 +65,15 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
 
 
-class GroupBTree(emen2.db.btrees.DBOBTree):
-	def init(self):
-		self.setdatatype('p', emen2.db.group.Group)	
-		super(GroupBTree, self).init()
+class GroupDB(emen2.db.btrees.DBODB):
+	dataclass = Group
 
 	def openindex(self, param, txn=None):
 		if param == 'permissions':
-			return emen2.db.btrees.IndexBTree(filename="index/security/groupsbyuser", keytype='s', datatype="s", dbenv=self.dbenv)
-
-
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+		else:
+			ind = super(GroupDB, self).openindex(param, txn=txn)
+		return ind
 
 
 			

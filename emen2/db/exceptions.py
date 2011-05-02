@@ -14,6 +14,9 @@ class SessionError(KeyError):
 
 class AuthenticationError(ValueError):
     "Invalid Account Name or Password"
+
+class ExistingAccount(ValueError):
+	"This Account Name or Email is already in use"
     
 class DisabledUserError(ValueError):
     "Disabled User"

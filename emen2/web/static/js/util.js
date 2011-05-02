@@ -520,11 +520,11 @@ function admin_approveuser_form(elem) {
 
 	if (approve.length > 0) {
 		$.jsonRPC("approveuser",[approve],
-			function(data) {
-				var names = [];
-				$.each(data, function(){names.push(this.name)});
+			function(names) {
+				//var names = [];
+				//$.each(data, function(){names.push(this.name)});
 				notify("Approved users: "+names);
-				for (var i=0;i<data.length;i++) {
+				for (var i=0;i<names.length;i++) {
 					$(".userqueue_"+names[i]).remove();
 				}
 				var count=parseInt($("#admin_userqueue_count").html());
@@ -539,9 +539,9 @@ function admin_approveuser_form(elem) {
 
 	if (reject.length > 0) {
 		$.jsonRPC("rejectuser",[reject],
-			function(data) {
-				var names = [];
-				$.each(data, function(){names.push(this.name)});
+			function(names) {
+				//var names = [];
+				//$.each(data, function(){names.push(this.name)});
 				
 				notify("Rejected users: "+names);
 				for (var i=0;i<names.length;i++) {

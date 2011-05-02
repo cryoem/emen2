@@ -175,10 +175,8 @@ class SpecialRootContext(Context):
 
 
 
-class ContextBTree(emen2.db.btrees.DBOBTree):
-	def init(self):
-		self.setdatatype('p')
-		super(ContextBTree, self).init()
+class ContextDB(emen2.db.btrees.DBODB):
+	dataclass = Context
 
 
 

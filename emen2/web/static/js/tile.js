@@ -672,12 +672,21 @@
 					error: function(x,y,z) {
 						//alert("Error! Could not access tiles!");
 						$('.spinner', self.element).remove();
-						self.element.append('Could not access tiles!');
+						this.build_static();
+						//self.element.append('Could not access tiles!');
 					}
 				});
+			} else if (this.options.mode == "static") {
+				this.build_static();
 			} else {
 				this.build();
 			}
+		},
+		
+		build_static: function() {
+			var img = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'/" />');
+			this.element.empty();
+			this.element.append(img);
 		},
 		
 		build: function() {

@@ -10,7 +10,8 @@ import urlparse
 
 import emen2.util.jsonutil
 import emen2.db.debug
-from emen2.db.globalns import GlobalNamespace
+import emen2.db.globalns
+# from emen2.db.globalns import GlobalNamespace
 
 
 def get_filename(package, resource):
@@ -30,10 +31,18 @@ class DBOptions(optparse.OptionParser):
 
 	def __init__(self, *args, **kwargs):
 		kwargs["add_help_option"] = False
+		loginopts = kwargs.pop('loginopts', False)
 		optparse.OptionParser.__init__(self, *args, **kwargs)
 
 		dbhomehelp = """EMEN2 Database Environment
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
+
+		if loginopts:
+			logingroup = optparse.OptionGroup(self, "Login Options")
+			logingroup.add_option('--username', type="string", help="Login with Account Name")
+			logingroup.add_option('--password', type="string", help="... and this password")
+			logingroup.add_option('--admin', action="store_true", help="Open DB with an Admin (root) Context")
+			self.add_option_group(logingroup)
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
@@ -42,6 +51,8 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
+		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
+		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--help', action="help", help="Print help message")
 		self.add_option_group(group)
 
@@ -55,17 +66,22 @@ class DBOptions(optparse.OptionParser):
 
 	def opendb(self, name=None, password=None, admin=False):
 		import emen2.db.proxy
-		g = GlobalNamespace()
-
+		g = emen2.db.globalns.GlobalNamespace()
+		
+		name = name or getattr(self.values, 'name', None)
+		password = password or getattr(self.values, 'password', None)
+		admin = admin or getattr(self.values, 'admin', None)
+				
 		if not g.CONFIG_LOADED:
 			self.load_config()
+
 		db = emen2.db.proxy.DBProxy()
-		# if name and password:
-		# 	db._login(name, password)
 		if admin:
 			ctx = emen2.db.context.SpecialRootContext()
 			ctx.refresh(db=db)
-			db._ctx = ctx
+			db._ctx = ctx			
+		if name:
+			db._login(name, password)
 		return db
 
 
@@ -75,7 +91,7 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		g = GlobalNamespace()
+		g = emen2.db.globalns.GlobalNamespace()
 
 		# Default settings
 		default_config = get_filename('emen2', 'skeleton/config.base.json')
@@ -120,6 +136,9 @@ class DBOptions(optparse.OptionParser):
 		elif self.values.loglevel:
 			leglevel = self.values.loglevel
 
+		# Enable/disable snapshot
+		g.SNAPSHOT = self.values.snapshot
+
 
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
@@ -147,7 +166,7 @@ class DBOptions(optparse.OptionParser):
 
 
 
-gg = GlobalNamespace()
+gg = emen2.db.globalns.GlobalNamespace()
 g = lambda: gg
 
 

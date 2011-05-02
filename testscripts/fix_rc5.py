@@ -1,16 +1,4 @@
-import emen2.db.admin
-db = emen2.db.config.opendb()
-
-
-import emen2.db.record
-import emen2.db.user
-import emen2.db.group
-
-import emen2.db.paramdef
-import emen2.db.recorddef
-import emen2.db.binary
-
-
+import os
 
 #################################
 # Pickle..
@@ -23,12 +11,6 @@ def other_setstate(self, d):
 		d['modifytime'] = d['creationtime']
 	
 	return self.__dict__.update(d)
-
-
-emen2.db.paramdef.ParamDef.__setstate__ = other_setstate
-emen2.db.recorddef.RecordDef.__setstate__ = other_setstate
-emen2.db.binary.Binary.__setstate__ = other_setstate
-
 
 
 
@@ -47,9 +29,6 @@ def user_setstate(self, d):
 		d['modifytime'] = d['creationtime']
 	
 	return self.__dict__.update(d)
-
-
-emen2.db.user.User.__setstate__ = user_setstate
 
 
 
@@ -76,11 +55,6 @@ def group_setstate(self, d):
 
 
 	return self.__dict__.update(d)
-
-
-
-emen2.db.group.Group.__setstate__ = group_setstate
-
 
 
 
@@ -133,8 +107,22 @@ def record_setstate(self, d):
 	return self.__dict__.update(d)
 
 
-emen2.db.record.Record.__setstate__ = record_setstate
 
+def monkeypatch():
+	import emen2.db.record
+	import emen2.db.user
+	import emen2.db.group
+	import emen2.db.paramdef
+	import emen2.db.recorddef
+	import emen2.db.binary
+	
+	emen2.db.paramdef.ParamDef.__setstate__ = other_setstate
+	emen2.db.recorddef.RecordDef.__setstate__ = other_setstate
+	emen2.db.binary.Binary.__setstate__ = other_setstate
+
+	emen2.db.user.User.__setstate__ = user_setstate
+	emen2.db.record.Record.__setstate__ = record_setstate
+	emen2.db.group.Group.__setstate__ = group_setstate
 
 
 
@@ -213,8 +201,97 @@ def add_paramdefs(db):
 
 
 
-with db:
+
+
+def main(db):
+	monkeypatch()
 	add_paramdefs(db)
 	convert_pickle_other(db)
 	convert_rels(db)
 	convert_bdocounter(db)
+
+
+def rename():
+	import bsddb3
+	import emen2.db.config
+	import emen2.db.database
+
+	dbo = emen2.db.config.DBOptions()
+	(options, args) = dbo.parse_args()
+	
+	# manually open the database for renaming
+	# this does not open the db files
+	dbenv = emen2.db.database.EMEN2DBEnv(maintenance=True)
+
+	rename = {
+		"security/contexts.bdb": "context/context.bdb",
+		
+		"security/newuserqueue.bdb": "newuser/newuser.bdb",
+		
+		"security/users.bdb": "user/user.bdb",
+		"index/security/usersbyemail.bdb": "user/index/email.index",
+
+		"security/groups.bdb": "group/group.bdb",
+		"index/security/groupsbyuser.bdb": "group/index/permissions.index",
+		
+		"main/workflow.bdb": "workflow/workflow.bdb",
+		
+		"main/bdocounter.bdb": "binary/binary.bdb",
+		#"main/bdocounter.sequence.bdb": "binary/binary.sequence.bdb",
+		"index/bdosbyfilename.bdb": "binary/index/filename.index",
+		
+		"main/records.bdb": "record/record.bdb",
+		"main/records.sequence.bdb": "record/record.sequence.bdb",
+		"main/records.cp2.bdb": "record/index/children.index",
+		"main/records.pc2.bdb": "record/index/parents.index",
+		"index/indexkeys.bdb": "record/index/indexkeys.bdb",
+		
+		"main/paramdefs.bdb": "paramdef/paramdef.bdb",
+		"main/paramdefs.cp2.bdb": "paramdef/index/children.index",
+		"main/paramdefs.pc2.bdb": "paramdef/index/parents.index",
+
+		"main/recorddefs.bdb": "recorddef/recorddef.bdb",
+		"main/recorddefs.cp2.bdb": "recorddef/index/children.index",
+		"main/recorddefs.pc2.bdb": "recorddef/index/parents.index",
+	}
+	
+	parampath = os.path.join(dbenv.path, "data/index/params")
+	for i in os.listdir(parampath):
+		b = os.path.splitext(i)[0]
+		rename['index/params/%s'%i] = 'record/index/%s.index'%b
+	
+
+	txn = dbenv.newtxn()
+	for k,v in rename.items():
+		newdir = os.path.dirname(os.path.join(dbenv.path, "data", v))
+		try:
+			os.makedirs(newdir)
+		except:
+			pass
+			# print "couldn't make %s"%newdir
+
+		dbenv.dbenv.dbrename(file=k, database=None, newname=v, txn=txn)
+		# print k,v
+
+	txn.commit()
+		
+
+
+if __name__ == "__main__":
+	import emen2.db.config
+	dbo = emen2.db.config.DBOptions()
+	(options, args) = dbo.parse_args()	
+	db = dbo.opendb(admin=True)
+	with db:
+		main(db)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

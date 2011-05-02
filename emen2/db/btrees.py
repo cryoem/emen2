@@ -1,7 +1,7 @@
 # $Id$
 """
 Core Database classes
-These serve as wrappers around Berkeley DB / bsddb3 BTrees. 
+These serve as wrappers around Berkeley DB / bsddb3 DB's. 
 """
 
 import cPickle as pickle
@@ -12,6 +12,7 @@ import collections
 import copy
 import bsddb3
 import traceback
+import os
 
 import emen2.db.config
 g = emen2.db.config.g()
@@ -21,64 +22,57 @@ import emen2.util.listops
 try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
-	g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
+	# g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
 except ImportError:
 	bulk = None
 
 
+
 # Berkeley DB wrapper classes
-class BTree(object):
+class EMEN2DB(object):
 	"""This class uses BerkeleyDB to create an object much like a persistent Python Dictionary.
 	Key may be and data may be any pickle-able Python type, but unicode/int/float key and data
 	types are also supported with some acceleration."""
 
-	def __init__(self, filename, dbenv, keytype=None, datatype=None, cfunc=True, bdbs=None, autoopen=True):
-		"""Main BDB BTree wrapper"""
-		
-		# Base filename; the actual BDBs will be filename.bdb, filename/index.bdb, etc.
-		self.filename = filename 
-
-		# Berkeley DB Environment
-		self.dbenv = dbenv 
+	# Key and data types. s(tring), d(ecimal), f(loat), p(pickle)
+	keytype = 's'
+	datatype = 's'
+	dataclass = None
+	
+	# Sort keys numerically, if possible (keytype is d/f)
+	cfunc = True
+	extension = 'bdb'
+	
+	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
+		"""Main BDB DB wrapper"""
+				
+		# Filename
+		self.filename = filename
 		
 		# EMEN2DBEnv
-		self.bdbs = bdbs 
+		self.dbenv = dbenv
 
 		# BDB Handle
 		self.bdb = None
-		
-		# What are we storing?
-		self.setkeytype(keytype, cfunc=cfunc)
-		self.setdatatype(datatype)
-		
-		# Sequence database
-		self.sequence = False
-		
-		# Child databases
-		self.index = {}		
-
-		# Flags to set on opened DB's
-		self.DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD
+ 		self.DBOPENFLAGS = bsddb3.db.DB_CREATE | bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD
 		self.DBSETFLAGS = []
 		
-		# Subclass init
+		# What are we storing?
+		self._setkeytype(keytype or self.keytype)
+		self._setdatatype(datatype or self.datatype, dataclass=dataclass or self.dataclass)
+
 		self.init()
-		
-		# Open the database
 		if autoopen:
 			self.open()
 
 
 	def init(self):
+		"""Subclass hook"""
 		pass
 		
 		
 	def __str__(self):
-		return "<emen2.db.btrees2.BTree instance: %s>"%self.filename
-
-
-	def __del__(self):
-		self.close()
+		return "<emen2.db.btrees2.EMEN2DB instance: %s>"%self.filename
 			
 
 
@@ -87,7 +81,7 @@ class BTree(object):
 	#########################################
 
 	# Don't touch this!!!
-	def cfunc_numeric(self, k1, k2):
+	def _cfunc_numeric(self, k1, k2):
 		if not k1:
 			k1 = 0
 		else:
@@ -109,100 +103,52 @@ class BTree(object):
 		if data != None: return pickle.loads(data)
 
 
-	def setkeytype(self, keytype, cfunc=True):	
-		if self.bdb:
-			raise Exception, "Cannot set keytype after DB has been opened"
-
-		keytype = keytype or 's'
-
-		if keytype not in ('s', 'd', 'f'):
-			raise ValueError, "Invalid keytype: %s. Supported: s(tring), d(ecimal), f(loat)"%keytype
-
-		self.keytype = keytype
-
-		self.cfunc = None
-		if cfunc and self.keytype in ('d', 'f'):
-			self.cfunc = self.cfunc_numeric
-
-		# Default
-		self.typekey = unicode
-		self.dumpkey = lambda x:x.encode('utf-8')
-		self.loadkey = lambda x:x.decode('utf-8')
-		
-		# ian: todo: convert records bdb to use new d format for keys
-		if self.keytype == 'd':
+	def _setkeytype(self, keytype):
+		if keytype == 's':
+			self.typekey = unicode
+			self.dumpkey = lambda x:x.encode('utf-8')
+			self.loadkey = lambda x:x.decode('utf-8')			
+		elif keytype == 'd':
 			self.typekey = int
 			self.dumpkey = str
 			self.loadkey = int
-
-		elif self.keytype == 'f':
+		elif keytype == 'f':
 			self.typekey = float
 			self.dumpkey = self._pickledump
 			self.loadkey = self._pickleload
+		else:
+			raise ValueError, "Invalid keytype: %s. Supported: s(tring), d(ecimal), f(loat)"%keytype
+
+		self.keytype = keytype
 			
 
-	def setdatatype(self, datatype, dataclass=None):
-		if self.bdb:
-			raise Exception, "Cannot set datatype after DB has been opened"
-		
-		datatype = datatype or 'p'
-		
-		if datatype not in ('s', 'd', 'f', 'p'):
-			raise ValueError, "Invalid datatype: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%datatype
-		
-		self.datatype = datatype
-
-		# Default
-		self.typedata = lambda x:x
-		self.dumpdata = self._pickledump
-		self.loaddata = self._pickleload
-
-		if self.datatype == 'd':
-			self.typedata = int
-			self.dumpdata = str
-			self.loaddata = int
-			
-		elif self.datatype == 'f':
-			self.typedata = float
-		
-		elif self.datatype == 's':
-			self.typedata = unicode
+	def _setdatatype(self, datatype, dataclass=None):
+		if datatype == 's':
+			self.dataclass = unicode
 			self.dumpdata = lambda x:x.encode('utf-8')
-			self.loaddata = lambda x:x.decode('utf-8')			
-						
-		elif self.datatype == 'p':
-			# This record stores a class
-			self.typedata = dataclass
+			self.loaddata = lambda x:x.decode('utf-8')
+		elif datatype == 'd':
+			self.dataclass = int
+			self.dumpdata = str
+			self.loaddata = int			
+		elif datatype == 'f':
+			self.dataclass = float
+			self.dumpdata = self._pickledump
+			self.loaddata = self._pickleload
+		elif datatype == 'p':
+			# This DB stores a class
+			if dataclass:
+				self.dataclass = dataclass
+			else:
+				self.dataclass = lambda x:x
+			self.dumpdata = self._pickledump
+			self.loaddata = self._pickleload
+		else:
+			raise ValueError, "Invalid datatype: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%datatype
 			
+		self.datatype = datatype	
 			
 		
-	#########################################
-	# Indexes.
-	# You must provide an openindex method.
-	#########################################
-
-	def openindex(self, param, txn=None):
-		return
-
-
-	def getindex(self, param, txn=None):
-		ind = self.index.get(param)
-		if ind:
-			return ind
-
-		ind = self.openindex(param, txn=txn)
-		self.index[param] = ind
-		return ind
-
-
-	def closeindex(self, param):
-		ind = self.index.get(param)
-		if ind:
-			ind.close()
-			self.index[param] = None
-
-
-
 	#################
 	# DB methods
 	#################
@@ -210,49 +156,25 @@ class BTree(object):
 	def open(self):	
 		if self.bdb:
 			raise Exception, "DB already open"
-
+			
 		# Create the DB handle and set flags
-		self.bdb = bsddb3.db.DB(self.dbenv)
+		self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+
+		# Set DB flags, e.g. duplicate keys allowed
 		for flag in self.DBSETFLAGS:
 			self.bdb.set_flags(flag)
 
-		# Set a BTree sort method
-		if self.cfunc:
-			self.bdb.set_bt_compare(self.cfunc)
+		# Set a sort method
+		if self.cfunc and self.keytype in ['d', 'f']:
+			self.bdb.set_bt_compare(self._cfunc_numeric)
 
-		# Open DB
-		self.bdb.open(self.filename+'.bdb', dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-
-		# If this DB supports sequence assignment..
-		if self.sequence:
-			self.sequencedb = bsddb3.db.DB(self.dbenv)
-			self.sequencedb.open(self.filename+'.sequence.bdb', dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+		self.bdb.open('%s.%s'%(self.filename, self.extension), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
 
 	def close(self):
-		"""Close BDBs and cleanup"""
-		if self.bdb is None:
-			return			
-		for k in self.index:
-			self.closeindex(k)
-		if self.sequence:
-			self.sequencedb.close()	
-			
 		self.bdb.close()
 		self.bdb = None
 		
-
-	def sync(self, flags=0):
-		"""Flush BDB cache to disk"""
-		if self.bdb is None:
-			return
-		for k,v in self.index.items():
-			v.sync()
-		if self.sequence:
-			self.sequencedb.sync()
-			
-		self.bdb.sync()
-
 
 
 	############################
@@ -334,85 +256,21 @@ class BTree(object):
 
 
 
-	###############################
-	# Sequence (this is just used by Record for now)
-	###############################
-
-	def get_max(self, txn=None):
-		if not self.sequence:
-			return
-
-		sequence = self.sequencedb.get("sequence", txn=txn)
-		if sequence == None: sequence = 0
-		val = int(sequence)
-		return val
-		# sequence = bsddb3.db.DBSequence(self.sequencedb)
-		# sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
-		# val = sequence.stat()['current']
-		# sequence.close()
-		#get_range()[1]
-
-
-	def get_sequence(self, delta=1, key='sequence', txn=None):
-		if not self.sequence:
-			return
-
-		# This can handle any number of sequences -- e.g. for binary dates.
-		# 'sequence' is the default key.
-		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, bsddb3.db.DB_RMW)
-		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
-		if val == None:
-			val = 0
-		val = int(val)
-		self.sequencedb.put(key, str(val+delta), txn=txn)
-		g.log("%s.sequencedb.put: %s"%(self.filename, val+delta), 'COMMIT')
-		return val
-
-		# BDB DBSequence was never very stable.
-		# sequence = bsddb3.db.DBSequence(self.sequencedb)
-		# sequence.open("sequence", flags=bsddb3.db.DB_CREATE | bsddb3.db.DB_THREAD, txn=txn)
-		# if not txn or delta < 1:
-		# 	raise ValueError, "delta and txn requried for sequence increment"
-		# val = sequence.get(delta=delta, txn=txn)
-		# sequence.close()
-
-
-	def update_sequence(self, items, txn=None):
-		namemap = {}
-		for i in items:
-			if not self.exists(i.name, txn=txn):
-				namemap[i.name] = i.name
-		return namemap
 
 
 
-	##############################
-	# Load built-in items
-	##############################
+
+class IndexDB(EMEN2DB):
 	
-	# Private method to load config
-	# def load_builtins(self, t):
-	# 	infile = emen2.db.config.get_filename('emen2', 'skeleton/%s.json'%t)
-	# 	f = open(infile)
-	# 	ret = emen2.util.jsonutil.decode(f.read())
-	# 	f.close()
-	# 	for k in ret:
-	# 		k = self.datatype(k)
-	# 		self.builtins[k.get('name')] = k
-
-
-
-
-
-class IndexBTree(BTree):
-
+	extension = 'index'
+	
 	def init(self):
 		self.DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
-		self.setbulkmode(True)
-		super(IndexBTree, self).init()
+		self._setbulkmode(True)
+		super(IndexDB, self).init()
 
 
-	def setbulkmode(self, bulkmode):
+	def _setbulkmode(self, bulkmode):
 		# use acceleration module if available
 		self._get_method = self._get_method_nonbulk
 		if bulk:
@@ -420,63 +278,6 @@ class IndexBTree(BTree):
 				self._get_method = emen2.db.bulk.get_dup_bulk
 			else:
 				self._get_method = emen2.db.bulk.get_dup_notbulk
-
-
-	def removerefs(self, key, items, txn=None):
-		if not items: return []
-
-		delindexitems = []
-
-		cursor = self.bdb.cursor(txn=txn)
-
-		key = self.typekey(key)
-		items = map(self.typedata, items)
-
-		dkey = self.dumpkey(key)
-		ditems = map(self.dumpdata, items)
-
-		for ditem in ditems:
-			if cursor.set_both(dkey, ditem):
-				cursor.delete()
-
-		if not cursor.set(dkey):
-			delindexitems.append(key)
-
-		cursor.close()
-
-		g.log("%s.removerefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
-		return delindexitems
-
-
-	def addrefs(self, key, items, txn=None):
-		if not items: return []
-
-		addindexitems = []
-
-		key = self.typekey(key)
-		items = map(self.typedata, items)
-
-		dkey = self.dumpkey(key)
-		ditems = map(self.dumpdata, items)
-
-		#print "new cursor"
-		cursor = self.bdb.cursor(txn=txn)
-
-		#print "cursor checking"
-		if not cursor.set(dkey):
-			addindexitems.append(key)
-
-		for ditem in ditems:
-			#print "cursor put %s %s"%(dkey, ditem)
-			try:
-				cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
-			except bsddb3.db.DBKeyExistError, e:
-				pass
-
-		cursor.close()
-
-		g.log("%s.addrefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
-		return addindexitems
 
 
 	def _get_method_nonbulk(self, cursor, key, dt, flags=0):
@@ -517,11 +318,13 @@ class IndexBTree(BTree):
 		raise Exception, "put not supported; use addrefs, removerefs"
 
 
+	# ian: todo: allow min/max
 	def keys(self, txn=None, flags=0):
 		keys = set(map(self.loadkey, self.bdb.keys(txn)))
 		return list(keys)
 
 
+	# ian: todo: allow min/max
 	def items(self, txn=None, flags=0):
 		ret = []
 		cursor = self.bdb.cursor(txn=txn)
@@ -543,7 +346,7 @@ class IndexBTree(BTree):
 		pair = cursor.first()
 		while pair != None:
 			data = self._get_method(cursor, pair[0], self.datatype)
-			if bulk and dt == "p":
+			if bulk and self.datatype == "p":
 				data = set(map(self.loaddata, data))
 			yield (self.loadkey(pair[0]), data)
 			pair = cursor.next_nodup()
@@ -560,13 +363,12 @@ class IndexBTree(BTree):
 		found = 0
 		ret = {}
 
-		dt = self.datatype or "p"
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
 			processed += 1
 			data = self._get_method(cursor, pair[0], dt)
-			if bulk and dt == "p":
+			if bulk and self.datatype == "p":
 				data = set(map(self.loaddata, data))
 
 			c = data & itemscopy
@@ -584,45 +386,179 @@ class IndexBTree(BTree):
 
 		# print "Done; processed %s keys"%processed
 		cursor.close()		
-		# return ret
+
+	############################
+	# Write Methods
+	############################
+
+	def removerefs(self, key, items, txn=None):
+		if not items: return []
+
+		delindexitems = []
+
+		cursor = self.bdb.cursor(txn=txn)
+
+		key = self.typekey(key)
+		items = map(self.dataclass, items)
+
+		dkey = self.dumpkey(key)
+		ditems = map(self.dumpdata, items)
+
+		for ditem in ditems:
+			if cursor.set_both(dkey, ditem):
+				cursor.delete()
+
+		if not cursor.set(dkey):
+			delindexitems.append(key)
+
+		cursor.close()
+
+		g.log("%s.removerefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
+		return delindexitems
 
 
-	# 	def keys(self, mink=None, maxk=None, txn=None):
-	# 		"""Returns a list of valid keys, mink and maxk allow specification of
-	#  		minimum and maximum key values to retrieve"""
-	# 		if mink == None and maxk == None:
-	# 			return BTree.keys(self, txn)
-	# 		return set(x[0] for x in self.items(mink, maxk, txn=txn))
-	#
-	#
-	# 	def values(self, mink=None, maxk=None, txn=None):
-	# 		"""Returns a single list containing the concatenation of the lists of,
-	#  		all of the individual keys in the mink to maxk range"""
-	# 		if mink == None and maxk == None: return BTree.values(self)
-	# 		return reduce(set.union, (set(x[1] or []) for x in self.items(mink, maxk, txn=txn)), set())
+	def addrefs(self, key, items, txn=None):
+		if not items: return []
+
+		addindexitems = []
+
+		key = self.typekey(key)
+		items = map(self.dataclass, items)
+
+		dkey = self.dumpkey(key)
+		ditems = map(self.dumpdata, items)
+
+		#print "new cursor"
+		cursor = self.bdb.cursor(txn=txn)
+
+		#print "cursor checking"
+		if not cursor.set(dkey):
+			addindexitems.append(key)
+
+		for ditem in ditems:
+			#print "cursor put %s %s"%(dkey, ditem)
+			try:
+				cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
+			except bsddb3.db.DBKeyExistError, e:
+				pass
+
+		cursor.close()
+
+		g.log("%s.addrefs: %s -> %s"%(self.filename, key, len(items)), 'INDEX')
+		return addindexitems
 
 
 
 
+class IndexKeysDB(IndexDB):
+	extension = 'bdb'
 
-# Context-aware BTree for DBO's
 
-class DBOBTree(BTree):
+
+
+# Context-aware DB for DBO's. 
+# These support a single DB and a single data class.
+# Supports sequenced items.
+
+class DBODB(EMEN2DB):
+
+	datatype = 'p'
+	sequence = False
+	dataclass = None
+
+	# Change the filename slightly
+	def __init__(self, path='', *args, **kwargs):
+		self.path = path
+		name = self.dataclass.__name__
+		filename = os.path.join(self.path, name).lower()
+		super(DBODB, self).__init__(filename, *args, **kwargs)
+	
+	
+	# Open/close the sequencedb with the main db
+	def init(self):
+		self.index = {}	
+		self.sequence = self.sequence
+		self.sequencedb = None
+		super(DBODB, self).init()
+		
+	
+	def open(self):
+		super(DBODB, self).open()
+		self.opensequence()
+		
+	
+	def close(self):
+		super(DBODB, self).close()
+		self.closesequence()
+		for k in self.index:
+			self.closeindex(k)
+
+
+	###############################
+	# Sequence
+	###############################
+
+	def opensequence(self):
+		if not self.sequence:
+			return
+		self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
+		self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+	
+	
+	def closesequence(self):
+		if not self.sequence:
+			return
+		if self.sequencedb:
+			self.sequencedb.close()
+			self.sequencedb = None
+	
+
+	def get_max(self, txn=None):
+		if not self.sequence:
+			raise ValueError, "Sequences not supported"
+		sequence = self.sequencedb.get("sequence", txn=txn)
+		if sequence == None: sequence = 0
+		val = int(sequence)
+		return val
+
+
+	def update_sequence(self, items, txn=None):
+		namemap = {}
+		for i in items:
+			if not self.exists(i.name, txn=txn):
+				namemap[i.name] = i.name
+		return namemap
+
+
+	def _set_sequence(self, delta=1, key='sequence', txn=None):
+		if not self.sequence:
+			raise ValueError, "Sequences not supported"
+		# This can handle any number of sequences -- e.g. for binary dates.
+		# 'sequence' is the default key.
+		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%(delta, txn, newtxn, bsddb3.db.DB_RMW)
+		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
+		if val == None:
+			val = 0
+		val = int(val)
+		self.sequencedb.put(key, str(val+delta), txn=txn)
+		g.log("%s.sequence: %s"%(self.filename, val+delta), 'COMMIT')
+		return val
+
 
 	#################
 	# New items..
 	#################
 
-	# Return a new instance of this BTree's datatype.
+	# Return a new instance of this DB's datatype.
 	# All arguments will be passed to the constructor.
 	def new(self, *args, **kwargs):
-		"""Return a new instance of the type of item this BTree stores.."""
+		"""Return a new instance of the type of item this DB stores.."""
 		txn = kwargs.pop('txn', None) # don't pass the txn..
 		name = kwargs.get('name')
 		if name: 
 			if self.exists(name, txn=txn):
 				raise KeyError, "%s already exists"%name
-		return self.typedata(*args, **kwargs)	
+		return self.dataclass(*args, **kwargs)	
 
 
 
@@ -657,7 +593,7 @@ class DBOBTree(BTree):
 		
 			
 	def expand(self, names, ctx=None, txn=None):
-		"""See RelateBTree"""
+		"""See RelateDB"""
 		if not isinstance(names, set):
 			names = set(names)
 		return names
@@ -715,7 +651,7 @@ class DBOBTree(BTree):
 
 			except (TypeError, AttributeError, KeyError), inst: 
 				# AttributeError might have been raised if the key was the wrong type
-				p = dict((k,updrec.get(k)) for k in self.typedata.param_required)
+				p = dict((k,updrec.get(k)) for k in self.dataclass.param_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
 			
@@ -770,7 +706,7 @@ class DBOBTree(BTree):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
 		
 		# These are complex changes, so pass them off to different reindex method
-		# _reindex_relink does nothing for base DBOBTree; see RelateBTree
+		# _reindex_relink does nothing for base DBODB; see RelateDB
 		parents = ind.pop('parents', None)
 		children = ind.pop('children', None)
 		self._reindex_relink(parents, children, namemap=namemap, indexonly=indexonly, ctx=ctx, txn=txn)
@@ -780,7 +716,7 @@ class DBOBTree(BTree):
 
 
 	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
-		"""See RelateBTree"""
+		"""See RelateDB"""
 		return
 
 
@@ -797,7 +733,8 @@ class DBOBTree(BTree):
 			return
 
 		# Check that this key is currently marked as indexed
-		pd = self.bdbs.paramdef.get(param, txn=txn)
+		# ian: use the context.
+		pd = ctx.db.getparamdef(param, filt=False)
 		vtm = emen2.db.datatypes.VartypeManager()
 		vt = vtm.getvartype(pd.vartype)
 
@@ -832,27 +769,55 @@ class DBOBTree(BTree):
 			indk.addrefs(pd.name, addindexkeys, txn=txn)
 	
 	
+	#########################################
+	# Indexes.
+	# You must provide an openindex method.
+	#########################################
+	
+	def _indname(self, param):
+		return os.path.join(self.path, 'index', param)
+	
+	def openindex(self, param, txn=None):
+		return
+
+
+	def getindex(self, param, txn=None):
+		ind = self.index.get(param)
+		if ind:
+			return ind
+
+		ind = self.openindex(param, txn=txn)
+		self.index[param] = ind
+		return ind
+
+
+	def closeindex(self, param):
+		ind = self.index.get(param)
+		if ind:
+			ind.close()
+			self.index[param] = None
 
 
 
 
+class RelateDB(DBODB):
+	"""DB with parent/child/cousin relationships between keys"""
 
-class RelateBTree(DBOBTree):
-	"""BTree with parent/child/cousin relationships between keys"""
-
-	def init(self):				
-		c = IndexBTree(filename=self.filename+".pc2", keytype=self.keytype, datatype=self.keytype, cfunc=False, dbenv=self.dbenv, autoopen=False)
-		c.setbulkmode(False)
-		c.open()
-		self.index['children'] = c
-				
-		p = IndexBTree(filename=self.filename+".cp2", keytype=self.keytype, datatype=self.keytype, cfunc=False, dbenv=self.dbenv, autoopen=False)
-		p.setbulkmode(False)
-		p.open()
-		self.index['parents'] = p
-
-		super(RelateBTree, self).init()
-
+	def openindex(self, param, txn=None):			
+		if param == 'children':
+			filename = os.path.join(self.path, 'index', param)	
+			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
+			ind._setbulkmode(False)
+			ind.open()
+		elif param == 'parents':
+			filename = os.path.join(self.path, 'index', param)
+			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
+			ind._setbulkmode(False)
+			ind.open()
+		else:
+			ind = super(RelateDB, self).openindex(param, txn)
+		return ind
+		
 
 	###############################
 	# Relationship methods
@@ -998,12 +963,13 @@ class RelateBTree(DBOBTree):
 		elif mode == 'removerefs':
 			newvalue -= set([c.name])
 		
+		# Slip into the regular commit methods
 		self._reindex_relink([], [[p.name, newvalue, p.children]], ctx=ctx, txn=txn)
 
 
 	# Handle the reindexing...
 	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
-		""""Update relationships using the regular commit/cput method."""
+		""""Update relationships."""
 
 		namemap = namemap or {}
 		indc = self.getindex('children', txn=txn)
@@ -1036,7 +1002,7 @@ class RelateBTree(DBOBTree):
 		nmi = set()
 		for v in namemap.values():
 			nmi.add(v)
-
+			
 		# print "Add links:", add
 		# print "Remove links:", remove
 
@@ -1056,7 +1022,7 @@ class RelateBTree(DBOBTree):
 		# print "p_remove:", p_remove
 		# print "c_add:", c_add
 		# print "c_remove:", c_remove
-		
+				
 		if not indexonly:
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
@@ -1099,7 +1065,7 @@ class RelateBTree(DBOBTree):
 			recurse = g.MAXRECURSE
 
 		# Get the index, and create a cursor (slightly faster)
-		rel = self.index[rel]
+		rel = self.getindex(rel, txn=txn)
 		cursor = rel.bdb.cursor(txn=txn)
 
 		# Starting items

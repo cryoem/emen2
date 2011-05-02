@@ -262,7 +262,7 @@ class EMEN2DBEnv(object):
 
 	opendbs = weakref.WeakKeyDictionary()
 
-	def __init__(self, path=None, snapshot=False):
+	def __init__(self, path=None, maintenance=False, snapshot=False):
 		"""EMEN2 Database Environment.
 		The DB files are accessible as attributes, and indexes are loaded in self.index.
 		@keyparam path Directory containing EMEN2 Database Environment.
@@ -308,7 +308,7 @@ class EMEN2DBEnv(object):
 		if DBENV == None:
 			g.log("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
-			if snapshot:
+			if snapshot or g.SNAPSHOT:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
 
 			cachesize = g.CACHESIZE * 1024 * 1024
@@ -329,28 +329,35 @@ class EMEN2DBEnv(object):
 
 		#########################
 		# Open Databases
-		self.init()
+		if not maintenance:
+			self.init()
+	
+	
+	def getdbenv(self):
+		return self.dbenv
+		
 
+	def __getitem__(self, key, default):
+		return self.keytypes.get(key, default)
+		
 
 	def init(self):
 		"""Open the databases"""
 		
 		# Authentication
-		self.context = emen2.db.context.ContextBTree(filename="security/contexts", dbenv=self.dbenv, bdbs=self)
+		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
 		
 		# Security items
-		self.newuser = emen2.db.user.NewUserBTree(filename="security/newuserqueue", dbenv=self.dbenv, bdbs=self)
-		self.user = emen2.db.user.UserBTree(filename="security/users", dbenv=self.dbenv, bdbs=self)
-		self.group = emen2.db.group.GroupBTree(filename="security/groups", dbenv=self.dbenv, bdbs=self)
+		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
+		self.user = emen2.db.user.UserDB(path="user", dbenv=self)
+		self.group = emen2.db.group.GroupDB(path="group", dbenv=self)
 
 		# Main database items
-		self.workflow = emen2.db.workflow.WorkFlowBTree(filename="main/workflow", dbenv=self.dbenv, bdbs=self)
-		self.binary = emen2.db.binary.BinaryBTree(filename="main/bdocounter", dbenv=self.dbenv, bdbs=self)
-
-		#  ... relationship items
-		self.record = emen2.db.record.RecordBTree(filename="main/records", dbenv=self.dbenv, bdbs=self)
-		self.paramdef = emen2.db.paramdef.ParamDefBTree(filename="main/paramdefs", dbenv=self.dbenv, bdbs=self)
-		self.recorddef = emen2.db.recorddef.RecordDefBTree(filename="main/recorddefs", dbenv=self.dbenv, bdbs=self)
+		self.workflow = emen2.db.workflow.WorkFlowDB(path="workflow", dbenv=self)
+		self.binary = emen2.db.binary.BinaryDB(path="binary", dbenv=self)
+		self.record = emen2.db.record.RecordDB(path="record", dbenv=self)
+		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
+		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
 
 		# access by keytype..
 		self.keytypes = {
@@ -359,8 +366,6 @@ class EMEN2DBEnv(object):
 			'recorddef': self.recorddef,
 			'user': self.user,
 			'group': self.group,
-			'newuser': self.newuser,
-			'workflow': self.workflow,
 		}
 
 
@@ -386,17 +391,15 @@ class EMEN2DBEnv(object):
 		# ian: todo: create the necessary subdirectories when creating a database
 		paths = [
 			"data", 
-			"data/main",
-			"data/security",
-			"data/index",
-			"data/index/security",
-			"data/index/params",
-			"data/index/records",
 			"log",
 			"overlay",
 			"overlay/views",
 			"overlay/templates"
 			]
+			
+		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary']:
+			for j in ['', '/index']:
+				paths.append('data/%s%s'%(i,j))
 			
 		paths = (os.path.join(self.path, path) for path in paths)
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
@@ -642,9 +645,9 @@ class DB(object):
 		return "<DB: %s>"%(hex(id(self)))
 
 
-	def __del__(self):
-		"""Close DB when deleted"""
-		self.bdbs.close()
+	# def __del__(self):
+	# 	"""Close DB when deleted"""
+	# 	self.bdbs.close()
 
 
 
@@ -861,7 +864,7 @@ class DB(object):
 		else:
 			# Check the password; user.checkpassword will raise Exception if wrong
 			try:
-				user = self.bdbs.user.getbyemail(name, txn=txn)
+				user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 				user.checkpassword(password)
 			except (KeyError, emen2.db.exceptions.SecurityError):
 				raise AuthenticationError
@@ -1259,10 +1262,15 @@ class DB(object):
 				continue
 				
 			# Validate for comparisons (vartype, units..)	
+			# ian: todo: When validating for a user, needs
+			# to return value if not validated?
 			try:
 				cargs = vtm.validate(pd, value)
 			except ValueError:
-				continue
+				if pd.vartype == 'user':
+					cargs = value
+				else:	
+					continue
 
 			# Special case for nested iterables (e.g. permissions) --
 			# 		they validate as list of lists
@@ -1521,6 +1529,8 @@ class DB(object):
 		"""
 		rets = []
 		query = unicode(query or '').split()
+		# allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
+
 		for q in query:
 			q = q.strip()
 			c = [
@@ -1531,7 +1541,8 @@ class DB(object):
 				["username", "contains", q]
 				]
 			qr = self.query(boolmode='OR', c=c, sortkey='username', ctx=ctx, txn=txn)
-			un = filter(None, [i.get('username') for i in qr['recs']])
+			recs = self.bdbs.record.cgets(qr['names'], ctx=ctx, txn=txn)
+			un = filter(None, [i.get('username') for i in recs])
 			rets.append(set(un))
 				
 		# email=None, name_first=None, name_middle=None, name_last=None, name=None, 
@@ -1947,7 +1958,7 @@ class DB(object):
 	#************************************************************************
 	#*	Start: BDB Methods
 	#*	Most of these methods are just wrappers for the various 
-	#* 	DBOBTree methods.
+	#* 	DBODB methods.
 	#************************************************************************
 	#########################################################################
 
@@ -1998,7 +2009,7 @@ class DB(object):
 	@publicmethod("rel.rel")
 	@ol('names')
 	def rel(self, names, keytype="record", recurse=1, rel="children", tree=False, ctx=None, txn=None, **kwargs):
-		"""Get relationships. See the RelateBTree.rel()"""
+		"""Get relationships. See the RelateDB.rel()"""
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=tree, ctx=ctx, txn=txn, **kwargs)
 
 
@@ -2224,7 +2235,6 @@ class DB(object):
 		@exception KeyError if there is already a user 
 			or pending user with this name
 		"""
-		# This will check existing new users, users, and emails
 		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
 
 
@@ -2237,16 +2247,12 @@ class DB(object):
 		becomes active.
 		@param users New User(s)
 		@return New User(s)
-		"""
-		#@action
-		# NewUserBTree.new will check against existing username/emails
-		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
-		
-		#@postprocess
+		"""		
+		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)		
+
 		# Send account request email
 		for user in users:
 			sendmail(user.email, template='/email/adduser.signup')
-
 		return users
 
 
@@ -2300,7 +2306,7 @@ class DB(object):
 			ctxt = {'name':user.name}
 			sendmail(user.email, template='/email/adduser.approved', ctxt=ctxt)
 
-		return cusers
+		return set([user.name for user in cusers])
 			
 	
 	@publicmethod("user.queue.reject", write=True, admin=True)
@@ -2815,12 +2821,9 @@ class DB(object):
 		if newfile:
 			if os.path.exists(bdo.filepath):
 				raise SecurityError, "Cannot overwrite existing file!"
-			print "Renaming file %s -> %s"%(newfile, bdo.filepath)
+			# print "Renaming file %s -> %s"%(newfile, bdo.filepath)
 			os.rename(newfile, bdo.filepath)
 	
-		# Create the tiles/previews, in a background process
-		#try:
-		emen2.web.thumbs.run_from_bdo(bdo)
 
 		return bdo
 			

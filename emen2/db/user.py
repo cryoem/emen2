@@ -272,6 +272,11 @@ class User(BaseUser):
 		self.__dict__['record'] = None
 		
 
+	# Validate	
+	def validate_create(self):
+		if not self._ctx.checkadmin():
+			raise emen2.db.exceptions.SecurityError, "Only admins may create new Users"
+
 
 	#################################
 	# Setters
@@ -445,12 +450,8 @@ class User(BaseUser):
 
 
 
-class UserBTree(emen2.db.btrees.DBOBTree):
-	
-	def init(self):
-		self.setdatatype('p', emen2.db.user.User)	
-		super(UserBTree, self).init()
-
+class UserDB(emen2.db.btrees.DBODB):
+	dataclass = User
 
 	def getbyemail(self, name, filt=True, ctx=None, txn=None):
 		"""Lookup a user by name or email address. This is not a setContext lookup;
@@ -458,7 +459,7 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 		"""
 		name = unicode(name or '').strip()
 		if not self.exists(name, txn=txn):
-			found = getindex('email', txn=txn).get(name, txn=txn)
+			found = self.getindex('email', txn=txn).get(name, txn=txn)
 			if found:
 				name = found.pop()
 		return self.get(name, filt=filt, txn=txn)
@@ -485,62 +486,58 @@ class UserBTree(emen2.db.btrees.DBOBTree):
 		names |= add
 		return names
 				
-
-
+				
 	def new(self, *args, **kwargs):
 		txn = kwargs.get('txn', None)
 		
-		# BTree.new. This will check the main bdb for an existing name.
-		user = super(UserBTree, self).new(*args, **kwargs)		
+		# DB.new. This will check the main bdb for an existing name.
+		user = super(UserDB, self).new(*args, **kwargs)		
 
 		# Check  if this email already exists
 		indemail = self.getindex('email', txn=txn)
-		if self.exists(user.name, txn=txn) or indemail.get(user.email, txn=txn):
-			raise KeyError, "An account already exists with this user name or email address"
+		if indemail.get(user.email, txn=txn):
+			raise emen2.db.exceptions.ExistingAccount
 
 		return user
 
 
 	def openindex(self, param, txn=None):
 		if param == 'email':
-			return emen2.db.btrees.IndexBTree(filename="index/security/usersbyemail", keytype='s', datatype="s", dbenv=self.dbenv)
-
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype='s', datatype='s', dbenv=self.dbenv)
+		else:
+			ind = super(UserDB, self).openindex(param, txn=txn)
+		return ind
+		
 
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 		# You need to be logged in to view this.
 		if not ctx or ctx.username == 'anonymous':
 			return set()
-		return super(UserBTree, self).names(names=names, ctx=ctx, txn=txn)
+		return super(UserDB, self).names(names=names, ctx=ctx, txn=txn)
 
 
 
 
-class NewUserBTree(emen2.db.btrees.DBOBTree):
-
-	def init(self):
-		self.setdatatype('p', emen2.db.user.NewUser)
-		super(NewUserBTree, self).init()
-
-
+class NewUserDB(emen2.db.btrees.DBODB):
+	dataclass = NewUser
+	
 	def new(self, *args, **kwargs):
 		txn = kwargs.get('txn', None)
+		newuser = super(NewUserDB, self).new(*args, **kwargs)		
 
-		# BTree.new. This will check the main bdb for an existing name.
-		user = super(NewUserBTree, self).new(*args, **kwargs)		
-
-		# Check  if this email already exists
-		indemail = self.bdbs.user.getindex('email', txn=txn)
-		if self.bdbs.user.exists(user.name, txn=txn) or indemail.get(user.email, txn=txn):
-			raise KeyError, "An account already exists with this user name or email address"
-
-		return user
+		# Check if this email already exists
+		indemail = self.dbenv.user.getindex('email', txn=txn)
+		if self.dbenv.user.exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
+			raise emen2.db.exceptions.ExistingAccount, emen2.db.exceptions.ExistingAccount.__doc__
+		
+		return newuser
 		
 
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 		# This requires admin access
 		if not ctx or not ctx.checkadmin():
 			raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"			
-		return super(NewUserBTree, self).names(names=names, ctx=ctx, txn=txn)
+		return super(NewUserDB, self).names(names=names, ctx=ctx, txn=txn)
 
 
 

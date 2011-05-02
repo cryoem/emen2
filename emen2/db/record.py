@@ -270,39 +270,37 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 
-class RecordBTree(emen2.db.btrees.RelateBTree):
-
-	def init(self):
-		self.setkeytype('d', False)
-		self.setdatatype('p', emen2.db.record.Record)
-		self.sequence = True
-		super(RecordBTree, self).init()
-
-
-	# ian: todo: add a Context Manager for handling Transactions in EMEN2DBEnv.. Merge with DBProxy..
+class RecordDB(emen2.db.btrees.RelateDB):
+	sequence = True
+	cfunc = False
+	keytype = 'd'
+	dataclass = Record
 
 	def openindex(self, param, txn=None):
-		# print "Attempting to open index %s"%param
-		# RecordBTree maintains an index-of-indexes for faster querying
-		if param == 'indexkeys':
-			return emen2.db.btrees.IndexBTree(filename="index/indexkeys", dbenv=self.dbenv)
+		# Parents / children
+		ind = super(RecordDB, self).openindex(param, txn=txn)
+		if ind:
+			return ind
 
-		create = True # disable this check, and always create index.
-		
+		# print "Attempting to open index %s"%param
+		# RecordDB maintains an index-of-indexes for faster querying
+		if param == 'indexkeys':
+			ind = emen2.db.btrees.IndexKeysDB(filename=self._indname(param), keytype='s', datatype='p', dbenv=self.dbenv)
+			return ind
+			
 		# Check the paramdef to see if it's indexed
-		pd = self.bdbs.paramdef.get(param, txn=txn)
-		if not pd or pd.vartype not in self.bdbs.indexablevartypes or not pd.indexed:
+		# ian: todo: use the context
+		# pd = ctx.getparamdef(param, filt=False)
+		pd = self.dbenv.paramdef.get(param, filt=False, txn=txn)
+		if not pd or pd.vartype not in self.dbenv.indexablevartypes or not pd.indexed:
 			return None
 
+		# disable this check, and always create index.			
 		vtm = emen2.db.datatypes.VartypeManager()
 		tp = vtm.getvartype(pd.vartype).keytype
 
-		filename = "index/params/%s"%(pd.name)
-		if not create and not os.access(filename, os.F_OK):
-			raise KeyError, "No index for %s"%pd.name
-
-		return emen2.db.btrees.IndexBTree(keytype=tp, datatype='d', filename=filename, dbenv=self.dbenv)
-
+		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
+		return ind
 
 
 	# Update the database sequence.. Probably move this to the parent class.
@@ -313,13 +311,18 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 
 		# Reassign new record IDs and update record counter
 		if newrecs:
-			basename = self.get_sequence(delta=len(newrecs), txn=txn)
+			basename = self._set_sequence(delta=len(newrecs), txn=txn)
 
 		# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
 		for offset, newrec in enumerate(newrecs):
 			oldname = newrec.name
 			newrec.__dict__['name'] = offset + basename
 			namemap[oldname] = newrec.name		
+
+		# Update all the record's links
+		for item in items:
+			item.parents = set([namemap.get(i,i) for i in item.parents])
+			item.children = set([namemap.get(i,i) for i in item.children])
 
 		return namemap
 	
@@ -365,13 +368,13 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 			recs.extend(self.cgets(recnames, ctx=ctx, txn=txn))
 		else:
 			# Use the index for large numbers of records
-			ind = self.bdbs.record.getindex("rectype", txn=txn)
+			ind = self.getindex("rectype", txn=txn)
 			# Filter permissions
-			names = self.bdbs.record.filter(recnames, ctx=ctx, txn=txn)
+			names = self.filter(recnames, ctx=ctx, txn=txn)
 			while names:
 				# get a random record's rectype
 				rid = names.pop() 
-				rec = self.bdbs.record.get(rid, txn=txn) 
+				rec = self.get(rid, txn=txn) 
 				# get the set of all records with this recorddef
 				ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names 
 				# remove the results from our list since we have now classified them
@@ -412,10 +415,9 @@ class RecordBTree(emen2.db.btrees.RelateBTree):
 
 		if rectype:
 			ind = self.getindex('rectype', txn=txn)
-			# rdnames = self.bdbs.recorddef.expand(kwargs.get('rectype'), ctx=ctx, txn=txn)
-			rdnames = self.bdbs.recorddef.cgets(listops.check_iterable(rectype), ctx=ctx, txn=txn)
+			# ian: use the context.
 			rd = set()
-			for i in rdnames:
+			for i in ctx.db.getrecorddef(listops.check_iterable(rectype)):
 				rd |= ind.get(i.name, txn=txn)
 			names &= rd
 

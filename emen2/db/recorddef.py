@@ -204,11 +204,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	
 	
 	
-class RecordDefBTree(emen2.db.btrees.RelateBTree):
-	def init(self):
-		self.setdatatype('p', emen2.db.recorddef.RecordDef)
-		super(RecordDefBTree, self).init()
-
+class RecordDefDB(emen2.db.btrees.RelateDB):
+	dataclass = RecordDef
 
 
 

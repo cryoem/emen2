@@ -54,10 +54,9 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 
 
 
-class WorkFlowBTree(emen2.db.btrees.DBOBTree):
-	def init(self):
-		self.setdatatype('p', emen2.db.workflow.WorkFlow)	
-		super(WorkFlowBTree, self).init()
+class WorkFlowDB(emen2.db.btrees.DBODB):
+	dataclass = WorkFlow
+
 
 
 

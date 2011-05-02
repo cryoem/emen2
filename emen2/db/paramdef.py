@@ -151,13 +151,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 
 
-class ParamDefBTree(emen2.db.btrees.RelateBTree):
-	def init(self):
-		self.setdatatype('p', emen2.db.paramdef.ParamDef)
-		super(ParamDefBTree, self).init()
-
-
-
+class ParamDefDB(emen2.db.btrees.RelateDB):
+	dataclass = ParamDef
 
 
 
