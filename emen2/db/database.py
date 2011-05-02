@@ -823,6 +823,12 @@ class DB(object):
 			if c:
 				context.time = c.time
 
+			# Patch.
+			try:
+				name = context.name
+			except AttributeError:
+				context.name = context.ctxid
+
 			# Delete any expired contexts
 			if context.time + (context.maxidle or 0) < newtime:
 				g.info("Expire context (%s) %d" % (context.name, time.time() - context.time))
@@ -1863,8 +1869,9 @@ class DB(object):
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
 				matches[group].append(match)
-
-				# ian: temp fix.
+				# ian: temp fix. I added support for text blocks.
+				if not match.group('name'):
+					continue
 				n = match.group('name')
 				h = pds.get(match.group('name'),dict()).get('desc_short')
 				if match.group('type') == '@':

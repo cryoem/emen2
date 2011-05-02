@@ -342,6 +342,7 @@ class DebugState(object):
 		return func(state, sn, output, outputs_l, outputs, *args, **k)
 
 		return result
+		
 	newmsg = msg
 
 	#def _just_print_msg(self, state, sn, output, *args, **k):
