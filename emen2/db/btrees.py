@@ -610,7 +610,7 @@ class DBODB(EMEN2DB):
 
 		
 	def validate(self, items, ctx=None, txn=None):
-		return self.puts(items, commit=False, ctx=ctx, txn=txn)
+		return self.cputs(items, commit=False, ctx=ctx, txn=txn)
 		
 
 

@@ -31,14 +31,14 @@ import emen2.web.resources.jsonrpcresource
 
 
 # Try to import EMAN2..
-# try:
-# 	import EMAN2
-# 	# We need to steal these handlers from EMAN2...
-# 	signal.signal(2, signal.SIG_DFL)
-# 	signal.signal(15, signal.SIG_DFL)
-# 	atexit.register(emen2.db.database.DB_Close)
-# except:
-# 	pass
+try:
+	import EMAN2
+	# We need to steal these handlers from EMAN2...
+	signal.signal(2, signal.SIG_DFL)
+	signal.signal(15, signal.SIG_DFL)
+	atexit.register(emen2.db.database.DB_Close)
+except:
+	pass
 
 
 class EMEN2Server(object):
@@ -128,14 +128,12 @@ class EMEN2Server(object):
 		emen2.web.viewloader.load_redirects(redirects)
 		emen2.web.viewloader.routes_from_g()
 
-
-
 		# load EMAN2 resource
-		# try:
-		# 	import emen2.web.resources.eman2resource
-		# 	resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
-		# except:
-		# 	pass
+		try:
+			import emen2.web.resources.eman2resource
+			resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
+		except:
+			pass
 
 
 		try:

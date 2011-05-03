@@ -823,16 +823,10 @@ class DB(object):
 			if c:
 				context.time = c.time
 
-			# Patch.
-			try:
-				name = context.name
-			except AttributeError:
-				context.name = context.ctxid
-
 			# Delete any expired contexts
 			if context.time + (context.maxidle or 0) < newtime:
-				g.info("Expire context (%s) %d" % (context.name, time.time() - context.time))
-				self.bdbs.context.delete(context.name, txn=txn)
+				g.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
+				self.bdbs.context.delete(ctxid, txn=txn)
 
 
 
@@ -1094,6 +1088,10 @@ class DB(object):
 		if sortkey in ['creationtime', 'recid', 'name']:
 			key = None
 			reverse = not reverse
+			# print "reverse/not reverse"
+			# print reverse
+			# print (not reverse)
+			# reverse = True # not reverse
 		elif keytype == 's':
 			key = lambda name:(sortvalues.get(name) or '').lower()
 		
@@ -1208,7 +1206,7 @@ class DB(object):
 		if recs == None:
 			recs = {}
 
-		cfunc = self._query_cmps()[comp]
+		cfunc = self._query_cmps(comp)
 			
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
@@ -1287,6 +1285,8 @@ class DB(object):
 					cargs = value
 				else:	
 					continue
+			except:
+				continue
 
 			# Special case for nested iterables (e.g. permissions) --
 			# 		they validate as list of lists
@@ -1410,7 +1410,7 @@ class DB(object):
 		return keytype, sortvalues
 
 
-	def _query_cmps(self, ignorecase=1):
+	def _query_cmps(self, comp, ignorecase=1):
 		"""(Internal) Return the list of query constraint operators.
 		@keyparam ignorecase Use case-insensitive comparison methods
 		@return Dict of query methods
@@ -1433,12 +1433,23 @@ class DB(object):
 			# "!contains": lambda y,x:unicode(y) not in unicode(x),
 			# "range": lambda x,y,z: y < x < z
 		}
+		
+		# Synonyms
+		synonyms = {
+			"is": "==",
+			"not": "!=",
+			"gte": ">=",
+			"lte": "<=",
+			"gt": ">",
+			"lt": "<"
+		}
 
 		if ignorecase:
 			cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
 			cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
 
-		return cmps
+		comp = synonyms.get(comp, comp)
+		return cmps[comp]
 
 	
 			

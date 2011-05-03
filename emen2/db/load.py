@@ -48,7 +48,7 @@ def setup(rootpw=None, rootemail=None, db=None):
 
 
 class Loader(object):
-	def __init__(self, db, infile=None, path=None):
+	def __init__(self, db, infile=None, path=''):
 		self.infile = infile
 		self.path = path
 		self.db = db
@@ -230,7 +230,7 @@ def main():
 	dbo.add_option('--file', type="string", help="JSON file containing all keytypes")
 	dbo.add_option('--nopassword', action="store_true", help="Do not prompt for root email or password")
 	(options, args) = dbo.parse_args()
-	db = dbo.opendb(admin=True)
+	db = dbo.opendb()
 
 	with db:
 		if options.new:

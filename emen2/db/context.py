@@ -25,7 +25,7 @@ class Context(object):
 	a Context is created, and used for subsequent access."""
 
 	attr_user = set()
-	ctxid = property(lambda x:x.name)
+	# ctxid = property(lambda x:x.name)
 
 	# ian: todo: put current txn in ctx?
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):

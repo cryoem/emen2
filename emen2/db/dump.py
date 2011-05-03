@@ -6,7 +6,6 @@ import string
 import random
 import shutil
 
-import emen2.db.admin
 import emen2.db.config
 import emen2.util.jsonutil
 import emen2.util.listops
@@ -15,7 +14,7 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, root=None, outfile=None, names=None, allrecords=False, allbdos=False, allusers=False, allgroups=True, allparamdefs=True, allrecorddefs=True, addfiles=True, uri=None):
+	def __init__(self, db, root=None, outfile=None, names=None, addfiles=True, uri=None, **kwargs):
 		mtime = time.time()
 		self.root = root		
 		self.uri = uri
@@ -38,27 +37,33 @@ class Dumper(object):
 		self.paramdefs_binaryimage = set()
 
 		# Initial items..
-		# root = 382351
-		names = self.db.getchildren(self.root, recurse=-1)
-		names.add(self.root)
-
-		if allrecords:
+		if self.root != None:
+			names = self.db.getchildren(self.root, recurse=-1)
+			names.add(self.root)
+		else:
+			names = set()
+		
+		allgroup = set()
+		alluser = set()
+		allparamdef = set()
+		allrecorddef = set()
+		allbdos = set()
+		
+		if kwargs.get('all') or kwargs.get('allrecord'):
 			names |= self.db.getchildren(0, recurse=-1)
-		
-		if allgroups:
-			allgroups = self.db.getgroupnames()
-		if allusers:
-			allusers = self.db.getgroupnames()
-		if allparamdefs:
-			allparamdefs = self.db.getparamdefnames()
-		if allrecorddefs:
-			allrecorddefs = self.db.getrecorddefnames()		
-		# if allbdos:
-		# 	...
-		
-
+		if kwargs.get('all') or kwargs.get('allgroup'):
+			allgroup = self.db.getgroupnames()
+		if kwargs.get('all') or kwargs.get('alluser'):
+			alluser = self.db.getusernames()
+		if kwargs.get('all') or kwargs.get('allparamdef'):
+			allparamdef = self.db.getparamdefnames()
+		if kwargs.get('all') or kwargs.get('allrecorddef'):
+			allrecorddef = self.db.getrecorddefnames()		
+		if kwargs.get('all') or kwargs.get('allbinary'):
+			pass
+			
 		print "Starting with %s records"%len(names)		
-		self.checkrecords(names, addgroups=allgroups, addusers=allusers, addparamdefs=allparamdefs, addrecorddefs=allrecorddefs, addbdos=allbdos)
+		self.checkrecords(names, addgroups=allgroup, addusers=alluser, addparamdefs=allparamdef, addrecorddefs=allrecorddef, addbdos=allbdos)
 
 		remove = set([None])
 		self.usernames -= remove
@@ -82,12 +87,23 @@ class Dumper(object):
 		#print "Writing output to %s"%self.outfile
 		#outfile = tarfile.open(self.outfile, "w:gz")
 		
-		self.addfile(self.writetmp(self.dumpparamdefs), "paramdefs.json")
-		self.addfile(self.writetmp(self.dumprecorddefs), "recorddefs.json")
-		self.addfile(self.writetmp(self.dumpusers), "users.json")
-		self.addfile(self.writetmp(self.dumpgroups), "groups.json")
-		self.addfile(self.writetmp(self.dumprecords), "records.json")
-		self.addfile(self.writetmp(self.dumpbdos), "bdos.json")
+		if kwargs.get('all') or kwargs.get('paramdef') or kwargs.get('allparamdef'):
+			self.addfile(self.writetmp(self.dumpparamdefs), "paramdefs.json")
+
+		if kwargs.get('all') or kwargs.get('recorddef') or kwargs.get('allrecorddef'):
+			self.addfile(self.writetmp(self.dumprecorddefs), "recorddefs.json")
+
+		if kwargs.get('all') or kwargs.get('user') or kwargs.get('alluser'):
+			self.addfile(self.writetmp(self.dumpusers), "users.json")
+
+		if kwargs.get('all') or kwargs.get('group') or kwargs.get('allgroup'):
+			self.addfile(self.writetmp(self.dumpgroups), "groups.json")
+
+		if kwargs.get('all') or kwargs.get('record') or kwargs.get('allrecord'):		
+			self.addfile(self.writetmp(self.dumprecords), "records.json")
+
+		if kwargs.get('all') or kwargs.get('binary') or kwargs.get('allbinary'):
+			self.addfile(self.writetmp(self.dumpbdos), "bdos.json")
 
 		if addfiles:
 			for bdo in self.bdos:
@@ -125,8 +141,6 @@ class Dumper(object):
 		
 
 	def checkrecords(self, names, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
-		if not names:
-			return
 			
 		users = set()
 		groups = set()
@@ -403,12 +417,35 @@ class Dumper(object):
 
 def main():
 	dbo = emen2.db.config.DBOptions()
-	dbo.add_option('--root', type="int", help="Root Record", default=382351)
+	dbo.add_option('--all', action='store_true', help='Export Everything')
+	
+	dbo.add_option('--paramdef', action='store_true', help='Export Found ParamDefs')
+	dbo.add_option('--recorddef', action='store_true', help='Export Found RecordDefs')
+	dbo.add_option('--record', action='store_true', help='Export Found Records')
+	dbo.add_option('--user', action='store_true', help='Export Found Users')
+	dbo.add_option('--group', action='store_true', help='Export Found Groups')
+	dbo.add_option('--binary', action='store_true', help='Export Found Binaries')
+	
+	dbo.add_option('--allparamdef', action='store_true', help='Export All ParamDefs')
+	dbo.add_option('--allrecorddef', action='store_true', help='Export All RecordDefs')
+	dbo.add_option('--allrecord', action='store_true', help='Export All Records')
+	dbo.add_option('--alluser', action='store_true', help='Export All Users')
+	dbo.add_option('--allgroup', action='store_true', help='Export All Groups')
+	dbo.add_option('--allbinary', action='store_true', help='Export All Binaries')
+
+	dbo.add_option('--root', type="int", help="Root Record")
 	dbo.add_option('--uri', type="string", help="Export with base URI")
 	(options, args) = dbo.parse_args()
-	db = dbo.admindb()
+
+	copy_to_kw = {}
+	for key in ['all','paramdef','recorddef','user','group','binary','allparamdef','allrecorddef','allrecord','alluser','allgroup','allbinary']:
+		v = getattr(options, key, None)
+		if v != None:
+			copy_to_kw[key] = v
+
+	db = dbo.opendb()
 	with db:
-		d = Dumper(root=options.root, uri=options.uri, db=db)
+		d = Dumper(db=db, root=options.root, uri=options.uri, **copy_to_kw)
 	
 
 

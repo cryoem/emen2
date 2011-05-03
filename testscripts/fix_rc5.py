@@ -1,3 +1,5 @@
+# This Python file is encoding:UTF-8 Encoded
+
 import os
 
 #################################
@@ -204,15 +206,79 @@ def add_paramdefs(db):
 	db.putparamdef(pd)
 
 
+def defs_rename(db):
+	ctx = db._getctx()
+	txn = db._gettxn()
+	root_parameter = db.getparamdef("root_parameter")
+	root = db.newparamdef(name='root', vartype='none')
+	root.desc_short = "Root Parameter"
+	root.children |= root_parameter.children
+	root_parameter.children = set()
+	db.putparamdef(root)
+	db.putparamdef(root_parameter)
+	db._db.bdbs.paramdef.delete('root_parameter', txn=txn)
 
+	
+	root_protocol = db.getrecorddef('root_protocol')
+	root = db.newrecorddef(name='root', mainview='Root Protocol')
+	root.desc_short = 'Root Protocol'
+	root.children |= root_protocol.children
+	root_protocol.children = set()
+	db.putrecorddef(root)
+	db.putrecorddef(root_protocol)
+	db._db.bdbs.recorddef.delete('root_protocol', txn=txn)
+
+
+
+def paramdefs_props(db):
+	import emen2.db.datatypes
+	paramdefs = db.getparamdef(db.getparamdefnames())
+	crecs = []
+	fixmap = {
+		'pixels':'pixel',
+		'p/ml':'pfu',
+		'kv':'kV',
+		'mv':'mV',
+		'e/A2':'e/A^2',
+		'amp':'A',
+		'ul':'uL',
+		'A':u'Å',
+		'K':'count',
+		'C':'degC',
+		'A/pix':u'Å/pixel',
+		'KDa':'kDa'
+	}
+
+	txn = db._gettxn()
+
+	for pd in paramdefs:
+		vt = emen2.db.datatypes.VartypeManager(db=db)
+		if pd.property:
+			try:
+				prop = vt.getproperty(pd.property)
+			except:
+				print pd.name, pd.property
+				pd.__dict__['property'] = None
+
+
+			if pd.name == 'temperature_specimen':
+				pd.__dict__['property'] = 'temperature'	
+
+			pd.__dict__['defaultunits'] = fixmap.get(pd.defaultunits, pd.defaultunits)	
+			# if pd.defaultunits and pd.defaultunits not in prop.units:
+			# 	print pd.name, pd.property, pd.defaultunits, prop.units		
+			db._db.bdbs.paramdef.put(pd.name, pd, txn=txn)
+	
 
 
 def main(db):
-	monkeypatch()
-	add_paramdefs(db)
-	convert_pickle_other(db)
-	convert_rels(db)
-	convert_bdocounter(db)
+	# monkeypatch()
+	# add_paramdefs(db)
+	# convert_pickle_other(db)
+	# convert_rels(db)
+	# convert_bdocounter(db)
+	#defs_rename(db)
+	paramdefs_props(db)
 
 
 def rename():

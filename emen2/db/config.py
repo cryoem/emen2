@@ -40,7 +40,7 @@ class DBOptions(optparse.OptionParser):
 			logingroup = optparse.OptionGroup(self, "Login Options")
 			logingroup.add_option('--username', type="string", help="Login with Account Name")
 			logingroup.add_option('--password', type="string", help="... and this password")
-			logingroup.add_option('--admin', action="store_true", help="Open DB with an Admin (root) Context")
+			# logingroup.add_option('--admin', action="store_true", help="Open DB with an Admin (root) Context")
 			self.add_option_group(logingroup)
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
@@ -62,22 +62,21 @@ class DBOptions(optparse.OptionParser):
 		return r1, r2
 
 
-	def opendb(self, name=None, password=None, admin=False):
+	def opendb(self, name=None, password=None):
 		import emen2.db.proxy
 		g = emen2.db.globalns.GlobalNamespace()
 		
 		name = name or getattr(self.values, 'name', None)
 		password = password or getattr(self.values, 'password', None)
-		admin = admin or getattr(self.values, 'admin', None)
+		# admin = admin or getattr(self.values, 'admin', None)
 				
 		if not g.CONFIG_LOADED:
 			self.load_config()
 
 		db = emen2.db.proxy.DBProxy()
-		if admin:
-			ctx = emen2.db.context.SpecialRootContext()
-			ctx.refresh(db=db)
-			db._ctx = ctx			
+		ctx = emen2.db.context.SpecialRootContext()
+		ctx.refresh(db=db)
+		db._ctx = ctx			
 		if name:
 			db._login(name, password)
 		return db
