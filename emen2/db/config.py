@@ -38,8 +38,8 @@ class DBOptions(optparse.OptionParser):
 
 		if loginopts:
 			logingroup = optparse.OptionGroup(self, "Login Options")
-			logingroup.add_option('--username', type="string", help="Login with Account Name")
-			logingroup.add_option('--password', type="string", help="... and this password")
+			logingroup.add_option('--username', '-U', type="string", help="Login with Account Name")
+			logingroup.add_option('--password', '-P', type="string", help="... and this password")
 			# logingroup.add_option('--admin', action="store_true", help="Open DB with an Admin (root) Context")
 			self.add_option_group(logingroup)
 
