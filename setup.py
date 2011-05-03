@@ -78,10 +78,9 @@ if __name__ == "__main__":
 			'emen2.web.resources',
 			'emen2.web.views',
 			'emen2.util',
-			'emen2.clients',
-			'emen2.clients.emdash',
-			'emen2.clients.emdash.ui',
-			'jsonrpc'
+			'jsonrpc',
+			'emdash',
+			'emdash.ui'
 			],
 		package_data={
 			'emen2': static_files
