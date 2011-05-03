@@ -361,10 +361,11 @@ class DebugState(object):
 		for x in output_gen: pass
 
 		module = self._get_last_module()
-		module[0] = module[0]
-		module = '%s:%s'%(module[0],module[1])
+		headerfields = [time.strftime('[%Y-%m-%d %H:%M:%S]'), sn]
 
-		head = '%s %s' % (':'.join(str(x) for x in (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, module)), ' :: ')
+		if sn == 'DEBUG': headerfields.append('%s:%s'%(module[0],module[1]))
+
+		head = '%s %s' % (':'.join(str(x) for x in headerfields), ' :: ')
 
 		for buf in outputs:
 			buf.send(module[0], state, head, '%s\n'%(output.encode('utf-8')) )
