@@ -260,9 +260,9 @@ def paramdefs_props(db):
 				print pd.name, pd.property
 				pd.__dict__['property'] = None
 
-
 			if pd.name == 'temperature_specimen':
-				pd.__dict__['property'] = 'temperature'	
+				pd.__dict__['property'] = 'temperature'
+				pd.__dict__['defaultunits'] = 'K'
 
 			pd.__dict__['defaultunits'] = fixmap.get(pd.defaultunits, pd.defaultunits)	
 			# if pd.defaultunits and pd.defaultunits not in prop.units:

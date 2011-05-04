@@ -60,10 +60,9 @@ from emen2.db.exceptions import *
 publicmethod = emen2.db.proxy.publicmethod
 
 # Version names
-from emen2.clients import __version__
+# from emen2.clients import __version__
 VERSIONS = {
-	"API": emen2.VERSION,
-	"emen2client": emen2.clients.__version__
+	"API": emen2.VERSION
 }
 
 # Regular expression to parse Protocol views.
