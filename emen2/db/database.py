@@ -330,7 +330,7 @@ class EMEN2DBEnv(object):
 			DBENV.set_lk_max_locks(300000)
 			DBENV.set_lk_max_lockers(300000)
 			DBENV.set_lk_max_objects(300000)
-
+			
 			DBENV.open(self.path, ENVOPENFLAGS)
 			self.opendbs[self] = 1
 

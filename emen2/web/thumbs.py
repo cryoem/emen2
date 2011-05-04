@@ -14,6 +14,14 @@ import subprocess
 import json
 from math import *
 
+
+# Import EMAN2
+try:
+	import EMAN2
+except:
+	EMAN2 = None
+	
+
 EXTS = set(["dm3", "tiff", "tif", "mrc", "jpg", "jpeg", "png", "gif"])
 COMPRESS = set(["gz","bz2"])
 
@@ -196,14 +204,6 @@ class ImageBuild(Builder):
 
 
 class EMAN2Build(Builder):
-	def checkformat(self):
-		import matplotlib.backends.backend_agg
-		import matplotlib.figure
-		# import EMAN2
-		#	raise ImportError, "EMAN2 needed to build thumbnails for this image type"
-		self.EMAN2 = EMAN2
-		self.matplotlib = matplotlib
-
 
 	def tile_list(self, tilefile):
 		"""tile_list(tilefile)
@@ -279,7 +279,7 @@ class EMAN2Build(Builder):
 
 	def _build_tiles(self, workfile):
 		# read the target and probe
-		img = self.EMAN2.EMData()
+		img = EMAN2.EMData()
 		img.read_image(workfile)
 
 		try:
@@ -305,7 +305,7 @@ class EMAN2Build(Builder):
 			for x in range(0, img2.get_xsize(), tilesize):
 				for y in range(0, img2.get_ysize(), tilesize):
 					# print x,y
-					i = img2.get_clip(self.EMAN2.Region(x, y, tilesize, tilesize), fill=rmax)
+					i = img2.get_clip(EMAN2.Region(x, y, tilesize, tilesize), fill=rmax)
 					i.set_attr("render_min", rmin)
 					i.set_attr("render_max", rmax)
 					i.set_attr("jpeg_quality", 80)
@@ -323,13 +323,13 @@ class EMAN2Build(Builder):
 		if self.options.get('pspec'):
 			print "Building pspec"
 			nx, ny = img.get_xsize() / 512, img.get_ysize() / 512
-			a = self.EMAN2.EMData()
+			a = EMAN2.EMData()
 			a.set_size(512,512)
 
 			if (ny>2 and nx>2):
 				for y in range(1,ny-1):
 					for x in range(1,nx-1):
-						c = img.get_clip(self.EMAN2.Region(x*512,y*512,512,512))
+						c = img.get_clip(EMAN2.Region(x*512,y*512,512,512))
 						try:
 							c.process_inplace("normalize")
 						except:

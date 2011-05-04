@@ -38,7 +38,7 @@ try:
 	signal.signal(15, signal.SIG_DFL)
 	atexit.register(emen2.db.database.DB_Close)
 except:
-	pass
+	EMAN2 = None
 
 
 class EMEN2Server(object):

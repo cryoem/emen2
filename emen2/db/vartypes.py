@@ -294,6 +294,11 @@ class vt_floatlist(vt_iter, vt_float):
 		value = emen2.util.listops.check_iterable(value)		
 		return [float(x) for x in value] or None
 
+	def process(self, value):
+		if value == None:
+			return ''
+		return ["%g"%i for i in value]
+
 
 
 ###################################
