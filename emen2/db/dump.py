@@ -62,6 +62,19 @@ class Dumper(object):
 		if kwargs.get('all') or kwargs.get('allbinary'):
 			pass
 			
+		if kwargs.get('core'):
+			addfiles = False
+			kwargs['user'] = False
+			kwargs['group'] = False
+			kwargs['binary'] = False
+			kwargs['paramdef'] = True
+			kwargs['recorddef'] = True
+			allparamdef = self.db.getchildren('core', keytype='paramdef')
+			allparamdef |= set(['root','core'])
+			allrecorddef = self.db.getchildren('core', keytype='recorddef')
+			allrecorddef |= set(['root','core'])
+	
+
 		print "Starting with %s records"%len(names)		
 		self.checkrecords(names, addgroups=allgroup, addusers=alluser, addparamdefs=allparamdef, addrecorddefs=allrecorddef, addbdos=allbdos)
 
@@ -435,10 +448,12 @@ def main():
 
 	dbo.add_option('--root', type="int", help="Root Record")
 	dbo.add_option('--uri', type="string", help="Export with base URI")
+	dbo.add_option('--core', action="store_true", help="Just dump core parameters and protocols")
+
 	(options, args) = dbo.parse_args()
 
 	copy_to_kw = {}
-	for key in ['all','paramdef','recorddef','user','group','binary','allparamdef','allrecorddef','allrecord','alluser','allgroup','allbinary']:
+	for key in ['core', 'all','paramdef','recorddef','user','group','binary','allparamdef','allrecorddef','allrecord','alluser','allgroup','allbinary']:
 		v = getattr(options, key, None)
 		if v != None:
 			copy_to_kw[key] = v

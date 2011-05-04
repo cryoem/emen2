@@ -23,7 +23,7 @@ try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
 	# g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
-except ImportError:
+except ImportError, inst:
 	bulk = None
 
 

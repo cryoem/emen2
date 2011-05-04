@@ -74,7 +74,7 @@ class BaseJS(ExtFile):
 			]
 
 		for i in addfiles:
-			self.files.append('%s/static/js/%s?version=%s'%(g.EMEN2WEBROOT, i, emen2.VERSION))
+			self.files.append('%s/static/js/%s'%(g.EMEN2WEBROOT, i))
 
 
 class BaseCSS(ExtFile):
@@ -89,7 +89,7 @@ class BaseCSS(ExtFile):
 
 		self.files = []
 		for i in addfiles:
-			self.files.append('%s/static/css/%s?version=%s'%(g.EMEN2WEBROOT, i, emen2.VERSION))
+			self.files.append('%s/static/css/%s'%(g.EMEN2WEBROOT, i))
 
 		self.files.append('%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT)
 		self.files.append(self.dbtree.reverse('TemplateRender', t='/css/main.css'))

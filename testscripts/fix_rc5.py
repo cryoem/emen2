@@ -272,12 +272,12 @@ def paramdefs_props(db):
 
 
 def main(db):
-	# monkeypatch()
-	# add_paramdefs(db)
-	# convert_pickle_other(db)
-	# convert_rels(db)
-	# convert_bdocounter(db)
-	#defs_rename(db)
+	monkeypatch()
+	add_paramdefs(db)
+	convert_pickle_other(db)
+	convert_rels(db)
+	convert_bdocounter(db)
+	defs_rename(db)
 	paramdefs_props(db)
 
 
@@ -353,7 +353,7 @@ if __name__ == "__main__":
 	if options.rename:
 		rename()
 	else:
-		db = dbo.opendb(admin=True)
+		db = dbo.opendb()
 		with db:
 			main(db)
 	
