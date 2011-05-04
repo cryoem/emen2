@@ -11,7 +11,7 @@ URLMAP = {
 	"2.0rc2": "software_107",
 	"2.0rc3": "software_108",
 	"2.0rc4": "software_110",	
-	"2.0rc5": "software_110"
+	"2.0rc5": "software_113"
 }
 
 SCPBASE="10.10.9.104:/homes/www/Zope-2.7.0/var/extdata/reposit/ncmi/software/EMEN2"
@@ -49,7 +49,6 @@ static_files = \
 	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
 	filterwalk('emen2/templates', filetypes=['.mako']) + \
 	filterwalk('emen2/skeleton', filetypes=['.json'])
-	# filterwalk('emen2/clients/emdash/ui', filetypes=['.ui'])
 
 
 
