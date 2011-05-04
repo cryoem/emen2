@@ -366,7 +366,7 @@ class IndexDB(EMEN2DB):
 		pair = cursor.first()
 		while pair != None:
 			processed += 1
-			data = self._get_method(cursor, pair[0], dt)
+			data = self._get_method(cursor, pair[0], self.datatype)
 			if bulk and self.datatype == "p":
 				data = set(map(self.loaddata, data))
 
