@@ -87,8 +87,7 @@ if __name__ == "__main__":
 			},
 		scripts=[
 			'scripts/emen2control.py',
-			'scripts/emen2client.py',
-			'scripts/emdash.py',
+			'scripts/emen2client.py'
 			]
 		)
 
