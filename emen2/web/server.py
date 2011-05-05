@@ -3,8 +3,7 @@
 
 import sys
 import thread
-import atexit
-import signal
+import os.path
 
 from twisted.internet import reactor
 from twisted.web import static, server
@@ -33,13 +32,43 @@ import emen2.web.resources.jsonrpcresource
 # Try to import EMAN2..
 try:
 	import EMAN2
+	import atexit
+	import signal
 	# We need to steal these handlers from EMAN2...
 	signal.signal(2, signal.SIG_DFL)
 	signal.signal(15, signal.SIG_DFL)
 	atexit.register(emen2.db.database.DB_Close)
-except:
-	EMAN2 = None
+except ImportError: EMAN2 = None
 
+class ResourceLoader(object):
+	def __init__(self, root, **resources):
+		self.root = root
+		self.add_resources(**resources)
+
+	def add_resource(self, path, resource):
+		level, msg = 'DEBUG', ['RESOURCE', 'LOADED:', '%s to %s']
+		try: self.root.putChild(path, resource)
+		except:
+			msg[1], level = 'FAILED.', 'CRITICAL'
+			del msg[2]
+		else:
+			msg[2] %= (path, resource)
+		g.log.msg(level, ' '.join(msg))
+
+	def add_resources(self, **resources):
+		for k,v in resources.items():
+			self.add_resource(k,v)
+
+
+def allHeadersReceived(self, *a, **kw):
+	'''hack for allowing 100-Continue to work.......
+		not sure if this is the right method to override....'''
+	req = self.requests[-1]
+	req.parseCookies()
+	if req.requestHeaders.getRawHeaders('Expect') == ['100-continue']:
+		self.transport.write('HTTP/1.1 100-Continue\n\n')
+	self.persistent = self.checkPersistence(req, self._version)
+	req.gotLength(self.length)
 
 class EMEN2Server(object):
 
@@ -57,63 +86,14 @@ class EMEN2Server(object):
 		g.EMEN2HTTPS = self.options.https or g.EMEN2HTTPS
 		g.EMEN2PORT_HTTPS = self.options.httpsport or g.getattr('EMEN2PORT_HTTPS',443)
 
+		self.resource_loader = ResourceLoader( emen2.web.resources.publicresource.PublicView() )
 
-		self.root = emen2.web.resources.publicresource.PublicView()
-		self.resources = {
-			'favicon.ico': static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')),
-			'robots.txt': static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')),
-			'static': static.File(emen2.db.config.get_filename('emen2', 'static')),
-			'download': emen2.web.resources.downloadresource.DownloadResource(),
-			'upload': emen2.web.resources.uploadresource.UploadResource(),
-			'RPC2': emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
-			'json': emen2.web.resources.rpcresource.RPCResource(format="json"),
-			'jsonrpc': emen2.web.resources.jsonrpcresource.e2jsonrpc(),
-		}
-
-
-		self.site = server.Site(self.root)
-		def allHeadersReceived(self, *a, **kw):
-			'''hack for allowing 100-Continue to work.......
-				not sure if this is the right method to override....'''
-			req = self.requests[-1]
-			req.parseCookies()
-			if req.requestHeaders.getRawHeaders('Expect') == ['100-continue']:
-				self.transport.write('HTTP/1.1 100-Continue\n\n')
-			self.persistent = self.checkPersistence(req, self._version)
-			req.gotLength(self.length)
-		self.site.protocol.allHeadersReceived = allHeadersReceived
-
-
-		# Start the web server
-		self.inithttpd()
+		self.load_views()
+		self.load_resources()
 
 
 
-
-	def load_resources(self):
-		for path, resource in self.resources.items():
-			level, msg = 'DEBUG', ['RESOURCE', 'LOADED:', '%s to %s']
-			try: self.root.putChild(path, resource)
-			except:
-				msg[1], level = 'FAILED.', 'CRITICAL'
-				del msg[2]
-			else:
-				msg[2] %= (path, resource)
-			g.log.msg(level, ' '.join(msg))
-
-
-	def interact(self):
-		while True:
-			a.interact()
-			exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
-			if exit[0] == 'n':
-					thread.interrupt_main()
-					return
-
-
-
-
-	def inithttpd(self):
+	def load_views(self):
 		# This has to go first for metaclasses
 		# to register before the templates are cached.
 		import emen2.db.database
@@ -128,35 +108,60 @@ class EMEN2Server(object):
 		emen2.web.viewloader.load_redirects(redirects)
 		emen2.web.viewloader.routes_from_g()
 
-		# load EMAN2 resource
-		try:
-			import emen2.web.resources.eman2resource
-			resources.update(eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource())
-		except:
-			pass
 
 
+	def load_resources(self):
 		try:
 			extraresources = g.getattr('RESOURCESPECS', {})
 			for path, mod in extraresources.items():
-				if path in self.resources: raise ValueError, "Cannot override standard resources"
 				mod = __import__(mod)
-				self.resources[path] = getattr(mod, path)
+				self.resource_loader.add_resource(path, getattr(mod, path))
+		except ImportError: pass
+
+		# load EMAN2 resource
+		try:
+			import emen2.web.resources.eman2resource
+			self.resource_loader.add_resource('eman2', emen2.web.resources.eman2resource.EMAN2BoxResource())
 		except ImportError: pass
 
 
-		self.load_resources()
+		self.resource_loader.add_resources(
+			static = static.File(emen2.db.config.get_filename('emen2', 'static')),
+			download = emen2.web.resources.downloadresource.DownloadResource(),
+			upload = emen2.web.resources.uploadresource.UploadResource(),
+			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
+			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
+			jsonrpc = emen2.web.resources.jsonrpcresource.e2jsonrpc(),
+		)
+		self.resource_loader.add_resource('favicon.ico', static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
+		self.resource_loader.add_resource('robots.txt', static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))
 
 
-		reactor.listenTCP(g.EMEN2PORT, self.site)
+	def interact(self):
+		while True:
+			a.interact()
+			exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
+			if exit[0] == 'n':
+					thread.interrupt_main()
+					return
+
+
+
+
+	def start(self):
+		'''run the main loop'''
+		site = server.Site(self.resource_loader.root)
+		site.protocol.allHeadersReceived = allHeadersReceived
+
+		reactor.listenTCP(g.EMEN2PORT, site)
 
 		if g.EMEN2HTTPS and ssl:
 			reactor.listenSSL(
 				g.EMEN2PORT_HTTPS,
-				server.Site(self.root),
+				site,
 				ssl.DefaultOpenSSLContextFactory(
-					os.path.join(g.SSLPATH, "server.key"),
-					os.path.join(g.SSLPATH, "server.crt")
+					os.path.join(g.paths.SSLPATH, "server.key"),
+					os.path.join(g.paths.SSLPATH, "server.crt")
 					)
 				)
 
@@ -168,7 +173,7 @@ class EMEN2Server(object):
 		reactor.run()
 
 if __name__ == "__main__":
-	EMEN2Server()
+	EMEN2Server().start()
 
 
 

@@ -342,7 +342,7 @@ class DebugState(object):
 		return func(state, sn, output, outputs_l, outputs, *args, **k)
 
 		return result
-		
+
 	newmsg = msg
 
 	#def _just_print_msg(self, state, sn, output, *args, **k):
@@ -363,7 +363,7 @@ class DebugState(object):
 		module = self._get_last_module()
 		headerfields = [time.strftime('[%Y-%m-%d %H:%M:%S]'), sn]
 
-		if sn == 'DEBUG': headerfields.append('%s:%s'%(module[0],module[1]))
+		if self._state == -1: headerfields.append('%s:%s'%(module[0],module[1]))
 
 		head = '%s %s' % (':'.join(str(x) for x in headerfields), ' :: ')
 
