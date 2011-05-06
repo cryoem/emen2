@@ -37,7 +37,7 @@ try:
 	# We need to steal these handlers from EMAN2...
 	signal.signal(2, signal.SIG_DFL)
 	signal.signal(15, signal.SIG_DFL)
-	atexit.register(emen2.db.database.DB_Close)
+	# atexit.register(emen2.db.database.DB_Close)
 except ImportError: EMAN2 = None
 
 class ResourceLoader(object):
