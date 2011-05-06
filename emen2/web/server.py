@@ -78,6 +78,9 @@ class EMEN2Server(object):
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
 		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")
+		
+		
+		
 		(self.options, self.args) = self.dbo.parse_args()
 
 		# Update the configuration
