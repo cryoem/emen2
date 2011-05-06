@@ -14,6 +14,7 @@ import sys
 import time
 import traceback
 import weakref
+import shutil
 import email
 import email.mime.text
 
