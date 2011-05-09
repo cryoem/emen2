@@ -342,6 +342,12 @@ function record_init(rec, ptest, edit) {
 		$('.editbar .edit .label').MultiEditControl('event_click');
 	}	
 
+
+	// New Record buttons
+	$('.newrecord').NewRecord({
+		
+	});
+
 	// Permissions editor
 	$('.editbar .permissions').EditbarHelper({
 		width: 640,
@@ -374,7 +380,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	// New record editor
-	$('.editbar .newrecord').EditbarHelper({
+	$('.editbar .newrecordselect').EditbarHelper({
 		width:300,
 		cb: function(self){
 			self.popup.NewRecordSelect({

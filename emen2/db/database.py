@@ -1825,8 +1825,14 @@ class DB(object):
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# We'll be working with a list of names
-		names, recs = listops.partition_dbobjects(names)
+		# listops.partition_dbobjects(names)
+		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
+
+		for newrec in newrecs:
+			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+			rec.update(newrec)
+			recs.append(rec)
 		
 		# Default params
 		builtinparams = set() | emen2.db.record.Record.param_all

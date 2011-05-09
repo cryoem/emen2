@@ -48,6 +48,77 @@ function bind_autocomplete(elem, param) {
 
 
 
+(function($) {
+    $.widget("ui.NewRecord", {
+		options: {
+			rectype: null,
+			parent: null,
+			private: null,
+			embed: false
+		},
+				
+		_create: function() {
+			var self = this;
+			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;
+			this.options.parent = this.element.attr('data-parent') || this.options.parent;
+			this.options.private = this.element.attr('data-private') || this.options.private;
+			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
+			//this.element.click(function(){self.build()});
+			this.build();
+		},
+				
+		build: function() {
+			var self = this;
+			this.dialog = $('<div>Loading...</div>');
+
+			var name = 'None'
+			var rec = {'rectype':this.options.rectype, 'name_first':'Ian'}
+			caches["recs"][name] = rec;
+			
+			$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
+				self.dialog.empty();
+
+				var content = $('<div></div>');
+				content.append(data);
+				self.dialog.append(content);
+
+				var controls = $('<div><input id="newrecord_save" class="controls save" value="Save" /></div>');
+				self.dialog.append(controls);
+				
+				$('.editable', content).EditControl({
+					name:'None'
+				});
+				$('#newrecord_save', controls).MultiEditControl({
+					name:'None',
+					show:true
+				});
+				
+			});
+
+					
+			this.element.append(this.dialog);
+			this.dialog.attr("title", "New Record");			
+			if (!this.options.embed) {
+				this.dialog.dialog({
+					width: 800,
+					height: 800,
+					modal: true,
+					autoOpen: true
+				});
+			}
+		},	
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
 
 
 
@@ -236,10 +307,15 @@ function bind_autocomplete(elem, param) {
 				updrec[k] = v;
 			});
 
-
-			updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
-			updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
-			// updrec['name'] = null;
+			
+			if ($('#newrecord_permissions').length) {
+				//console.log("Applying users");
+				updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
+			}
+			if ($('#newrecord_permissions').length) {
+				//console.log("Applying groups");
+				updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
+			}
 
 			$.jsonRPC("putrecord", [updrec], 
 				function(rec) {
