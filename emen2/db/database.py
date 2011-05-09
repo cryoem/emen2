@@ -139,11 +139,11 @@ def check_output(args, **kwds):
 
 # Close all database handles.
 # Make this a static method of EMEN2DBEnv?
-@atexit.register
-def DB_Close(*args, **kwargs):
-	"""Close all open DBs"""
-	for i in EMEN2DBEnv.opendbs.keys():
-		i.close()
+# @atexit.register
+# def DB_Close(*args, **kwargs):
+# 	"""Close all open DBs"""
+# 	for i in EMEN2DBEnv.opendbs.keys():
+# 		i.close()
 		
 
 
