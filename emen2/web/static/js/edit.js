@@ -63,36 +63,40 @@ function bind_autocomplete(elem, param) {
 			this.options.parent = this.element.attr('data-parent') || this.options.parent;
 			this.options.private = this.element.attr('data-private') || this.options.private;
 			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
-			//this.element.click(function(){self.build()});
-			this.build();
+			this.element.click(function(){self.build()});
+			//this.build();
 		},
 				
 		build: function() {
 			var self = this;
 			this.dialog = $('<div>Loading...</div>');
+		
+			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
+				rec.name = 'None';
+				caches['recs'][rec.name] = rec;
+				console.log(rec);
+					
+				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
+					self.dialog.empty();
 
-			var name = 'None'
-			var rec = {'rectype':this.options.rectype, 'name_first':'Ian'}
-			caches["recs"][name] = rec;
-			
-			$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
-				self.dialog.empty();
+					var content = $('<div></div>');
+					content.append(data);
+					self.dialog.append(content);
 
-				var content = $('<div></div>');
-				content.append(data);
-				self.dialog.append(content);
-
-				var controls = $('<div><input id="newrecord_save" class="controls save" value="Save" /></div>');
-				self.dialog.append(controls);
+					var controls = $('<div><input id="newrecord_save" class="controls save" value="Save" /></div>');
+					self.dialog.append(controls);
 				
-				$('.editable', content).EditControl({
-					name:'None'
+					$('.editable', content).EditControl({
+						name:'None'
+					});
+					$('#newrecord_save', controls).MultiEditControl({
+						name:'None',
+						show:true,
+						cb_save: function(caller){
+							self.dialog.dialog('close');
+						}
+					});	
 				});
-				$('#newrecord_save', controls).MultiEditControl({
-					name:'None',
-					show:true
-				});
-				
 			});
 
 					
@@ -158,8 +162,7 @@ function bind_autocomplete(elem, param) {
 				if (caches['recs'][names_toget[i]] == null) {
 					names.push(names_toget[i]);
 				}
-			}
-
+			}			
 			var params = [];
 			var params_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-param")}));			
 			for (var i=0;i < params_toget.length;i++) {
@@ -262,9 +265,9 @@ function bind_autocomplete(elem, param) {
 				}
 			});
 			
-			if (this.options.name == "None") {
-				return this.save_newrecord(changed["None"]);
-			}
+			//if (this.options.name == "None") {
+			//	return this.save_newrecord(changed["None"]);
+			//}
 
 			$('input[name=save]', this.controls).val('Saving..');
 			$('.spinner', this.controls).show();
@@ -272,59 +275,41 @@ function bind_autocomplete(elem, param) {
 			// process changed
 			var updated = [];
 			$.each(changed, function(k,v) {
+				if (k == 'None') {
+					v = self.applynew(v);
+				}
 				v['name'] = k;
 				updated.push(v);
-			})
+			});
 
 			$.jsonRPC("putrecord", [updated], function(recs) {
-
-				$('input[name=save]', self.controls).val('Save');
 				$('.spinner', self.controls).hide();
-
+				$('input[name=save]', self.controls).val('Save');
 				$.each(recs, function() {
 					record_update(this);
 				});
 				self.hide();
 				self.options.cb_save(self);
-
 			}, function(e) {
-				
 				$('input[name=save]', self.controls).val('Retry');
 				$('.spinner', self.controls).hide();
 				default_errback(e, function(){})
-
 			});
-
 		},
 
-		save_newrecord: function(newrec) {
-			var self = this;
-			var updrec = caches["recs"]["None"];
-			if (!newrec) {
-				newrec = {};
-			}
-			$.each(newrec, function(k,v) {
-				updrec[k] = v;
-			});
+		applynew: function(newrec) {
+			var rec = caches['recs']['None'];
+			var newrec2 = {};
+			$.each(rec, function(k,v) {newrec2[k] = v});
+			$.each(newrec, function(k,v) {newrec2[k] = v});
 
-			
 			if ($('#newrecord_permissions').length) {
-				//console.log("Applying users");
-				updrec['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
+				newrec2['permissions'] = $('#newrecord_permissions').PermissionControl('getusers');
 			}
 			if ($('#newrecord_permissions').length) {
-				//console.log("Applying groups");
-				updrec['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
+				newrec2['groups'] = $('#newrecord_permissions').PermissionControl('getgroups');
 			}
-
-			$.jsonRPC("putrecord", [updrec], 
-				function(rec) {
-					notify_post(EMEN2WEBROOT+'/record/'+rec.name+'/', ["New record created"]);
-				},
-				function(e) {
-					default_errback(e, function(){self.rebind_save()})
-				}
-			);
+			return newrec2
 		},
 	
 		compare: function(a,b) {
