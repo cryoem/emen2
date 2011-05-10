@@ -66,7 +66,7 @@ function bind_autocomplete(elem, param) {
 			this.element.click(function(){self.build()});
 			//this.build();
 		},
-				
+
 		build: function() {
 			var self = this;
 			this.dialog = $('<div>Loading...</div>');
@@ -74,38 +74,38 @@ function bind_autocomplete(elem, param) {
 			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';
 				caches['recs'][rec.name] = rec;
-				console.log(rec);
 					
 				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
 					self.dialog.empty();
 
-					var content = $('<div></div>');
+					var content = $('<div style="overflow-y:auto;height:600px"></div>');
 					content.append(data);
 					self.dialog.append(content);
-
-					var controls = $('<div><input id="newrecord_save" class="controls save" value="Save" /></div>');
+					
+					var controls = $('<div id="newrecord_save"></div>');
 					self.dialog.append(controls);
 				
 					$('.editable', content).EditControl({
 						name:'None'
 					});
-					$('#newrecord_save', controls).MultiEditControl({
+					$('#newrecord_save').MultiEditControl({
 						name:'None',
 						show:true,
 						cb_save: function(caller){
 							self.dialog.dialog('close');
 						}
-					});	
+					});
+					
+					
 				});
 			});
-
 					
 			this.element.append(this.dialog);
 			this.dialog.attr("title", "New Record");			
 			if (!this.options.embed) {
 				this.dialog.dialog({
 					width: 800,
-					height: 800,
+					height: 700,
 					modal: true,
 					autoOpen: true
 				});
