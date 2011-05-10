@@ -88,10 +88,11 @@ class BaseCSS(ExtFile):
 		]
 
 		self.files = []
+		self.files.append('%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT)
+
 		for i in addfiles:
 			self.files.append('%s/static/css/%s'%(g.EMEN2WEBROOT, i))
-
-		self.files.append('%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT)
+			
 		self.files.append(self.dbtree.reverse('TemplateRender', t='/css/main.css'))
 
 

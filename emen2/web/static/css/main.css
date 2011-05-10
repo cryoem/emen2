@@ -241,7 +241,6 @@ h1 {
 h4 {
 	border-bottom-style: solid;
 	border-bottom-width: 1px;	
-	font-size: 12pt;
 	margin: 0px;
 	margin-top: 10px;
 	margin-bottom: 5px;
@@ -251,7 +250,6 @@ h4 {
 
 #title h1 {
 	border-bottom: none;
-	font-size: 14pt;
 	margin: 0px;
 	padding: 10px;
 	font-weight: normal;
@@ -297,7 +295,6 @@ th {
 	bottom: 0px;
 	right: 0px;
 	margin: 0px;
-	font-size: 10pt;
 	list-style: none;
 }
 #nav li {
@@ -388,10 +385,6 @@ th {
 
 }
 
-.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
-	font-size: 10pt;
-}
-
 .ui-widget-header {
 	border: none;
 }
@@ -409,7 +402,6 @@ th {
 
 button, select, input, textarea {
 	border-width:1px;
-	font-size:12pt;
 	margin-right:2px;
 }
 
@@ -475,7 +467,6 @@ h1 > .controls {
 /* .editcontrol.inplace input {
 	border-style: solid;
 	border-width: 1px;
-	font-size: 12pt;
 	display: inline;
 } */
 
@@ -582,7 +573,6 @@ img.listicon {
 	float: left;
 	border-right-style: solid;
 	border-right-width: 1px;
-	font-size: 10pt;
 	height: 20px;
 	padding: 4px;
 	z-index: 6;
@@ -640,9 +630,6 @@ img.listicon {
 /* total width per item should be 249px */
 
 /* Nested lists */
-.ulm {
-	font-size:10pt;
-}
 .ulm.children ul {
 	padding-left:0px;
 	margin-left:249px;	
@@ -712,10 +699,6 @@ img.listicon {
 /************* PERMISSIONS EDITOR  ************/
 
 
-.permissions .addbutton {
-	font-size: 8pt;
-}
-
 /************* COMMENTS  ************/
 
 .comment {
@@ -733,7 +716,6 @@ img.listicon {
 
 
 .editable_files .label, .editable_files.label, .editable .label, .editable.label {
-	font-size: 10pt;
 	padding: 2px;
 	padding-bottom: 0px;
 	font-weight: normal;
@@ -899,7 +881,11 @@ td ul.editable {
 /********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
 
 
-.small {
+.label, 
+.small, 
+.ulm, 
+.editbar < li
+{
 	font-size: 10pt;
 }
 

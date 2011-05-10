@@ -78,7 +78,7 @@ function bind_autocomplete(elem, param) {
 				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
 					self.dialog.empty();
 
-					var content = $('<div style="overflow-y:auto;height:600px"></div>');
+					var content = $('<div style="overflow-y:auto;height:400px"></div>');
 					content.append(data);
 					self.dialog.append(content);
 					
@@ -105,7 +105,7 @@ function bind_autocomplete(elem, param) {
 			if (!this.options.embed) {
 				this.dialog.dialog({
 					width: 800,
-					height: 700,
+					height: 500,
 					modal: true,
 					autoOpen: true
 				});
@@ -201,7 +201,7 @@ function bind_autocomplete(elem, param) {
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
 			this.controls.append(spinner);
 
-			var save = $('<input class="save" type="submit" name="save" value="Save" />');
+			var save = $('<input class="save big" type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 			
