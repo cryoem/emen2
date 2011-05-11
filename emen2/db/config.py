@@ -127,7 +127,7 @@ class DBOptions(optparse.OptionParser):
 
 
 		# Load web extensions
-		for p in self.values.ext:
+		for p in self.values.ext or []:
 			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
 			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
 			
