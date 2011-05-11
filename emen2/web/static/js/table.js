@@ -17,10 +17,10 @@
 			// Build control elements
 
 			// record count
-			var length = $('<div class="length" style="float:left">Records</div>');
+			var length = $('<div class="length floatleft">Records</div>');
 						
 			// row count
-			var count = $('<select name="count" style="float:right"></select>');
+			var count = $('<select name="count floatright"></select>');
 			count.append('<option value="">Rows</option>');
 			
 			$.each([10,50,100,500,1000], function() {
@@ -32,10 +32,10 @@
 				self.options.q['pos'] = 0;
 				self.query();
 			})			
-			count = $('<div class="control" style="float:right"/>').append(count);
+			count = $('<div class="control floatright"/>').append(count);
 
 			// page controls			
-			var pages = $('<div class="control pages" style="float:right">Pages</div>');
+			var pages = $('<div class="control pages floatright">Pages</div>');
 
 			// Bind to control elements
 			$('.header', this.element).append(length, pages, count);
@@ -46,7 +46,7 @@
 
 			this.attach_tools();
 
-			var spinner = $('<div style="float:right"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			var spinner = $('<div class="floatright"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$('.header', this.element).append(spinner);
 						
 			// Set the control values from the current query state
@@ -66,7 +66,7 @@
 			// Build the Tools & Statistics menu
 			
 			var self = this;
-			var q = $('<div class="tools control" style="float:right"><span class="clickable label">\
+			var q = $('<div class="tools control floatright"><span class="clickable label">\
 				Tools &amp; Statistics <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
 			var hidden = $(' \
@@ -101,7 +101,7 @@
 			
 			var self = this;
 			
-			var q = $('<div class="querycontrol control" style="float:right"><span class="clickable label"> \
+			var q = $('<div class="querycontrol control floatright"><span class="clickable label"> \
 				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
 
 			q.EditbarHelper({
@@ -252,11 +252,11 @@
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
 			
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
-				var p1 = $('<span data-pos="0" class="clickable clickable_box">&laquo;</span>').click(setpos);
-				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable clickable_box">&lsaquo;</span>').click(setpos);
+				var p1 = $('<span data-pos="0" class="clickable chevron">&laquo;</span>').click(setpos);
+				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable chevron">&lsaquo;</span>').click(setpos);
 				var pc = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
-				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable clickable_box">&rsaquo;</span>').click(setpos);
-				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable clickable_box">&raquo;</span>').click(setpos);
+				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable chevron">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable chevron">&raquo;</span>').click(setpos);
 				if (current > 0) {pages.prepend(p2)}
 				if (current > 1) {pages.prepend(p1, '')}
 				pages.append(pc);
@@ -285,16 +285,18 @@
 			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
 			var tr = $('<tr />');
+			var tr2 = $('<tr />');
 			$.each(headers, function() {
 				if (this[3] == null) {
 					this[3]=''
 				}
-				var i = $('<th style="position:relative" data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
+				var iw = $('<th style="border-bottom:none">'+this[0]+'</th>');
+				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
 
 				// An editable, sortable field..
 				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-					var editable = $('<button class="buttonicon edit" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
-					i.append(editable);
+					var editable = $('<button class="buttonicon floatright edit"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
+					bw.append(editable);
 				}
 
 				var direction = 'able';
@@ -303,16 +305,16 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<button class="buttonicon sort" style="float:right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="Sort: '+direction+'" /></button>');
-				i.append(sortable);
-				
-				i.width(self.cachewidth[this[2]]);
-				tr.append(i);
+				var sortable = $('<button class="buttonicon floatright sort"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
+				bw.append(sortable);				
+
+				tr.append(iw);
+				tr2.append(bw);
 			});
 
-			$('.sort', tr).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
-			$('.edit', tr).click(function(e){self.event_edit(e)});						
-			$('thead', t).append(tr);
+			$('.sort', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+			$('.edit', tr2).click(function(e){self.event_edit(e)});						
+			$('thead', t).append(tr, tr2);
 		},
 		
 		

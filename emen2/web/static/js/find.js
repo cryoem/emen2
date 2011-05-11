@@ -1,4 +1,110 @@
 (function($) {
+    $.widget("ui.SelectQuery", {
+		options: {
+			rectype: null,
+			children: null,
+			show: false,
+			cb_select: function(name) {}
+		},
+		
+		_create: function() {
+			var self = this;
+			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;			
+			if (this.options.show) {
+				this.build();				
+			} else {
+				this.element.click(function(){self.build()});
+			}
+		},
+
+		build: function() {
+			var self = this;
+			this.dialog = $('<div>Loading...</div>');
+			this.element.append(this.dialog);
+			this.dialog.attr("title", "Select Record");
+			
+			var c = [];
+			if (this.options.rectype) {
+				c.push(['rectype','==',this.options.rectype]);
+			}
+			if (this.options.children) {
+				c.push(['children','==',this.options.children]);
+			}
+			var query = {
+				'c':c,
+			}
+
+			$.jsonRPC("query", query, function(data) {
+				var recs = data['names'];
+				var rq = {
+					'names':recs,
+					'viewdef': '$@recname() $$creator $$creationtime',
+					'table': true,
+					'markup': false
+				}
+				
+				$.jsonRPC('renderview', rq, function(rendered) {
+					self.dialog.empty();
+					var table = $('<table cellspacing="0" cellpadding="0"><thead></thead><tbody></tbody></table>');
+					var trh = $('<tr/>');
+					$.each(rendered['headers'][null], function() {
+						trh.append('<th>'+this[0]+'</th>');
+					});
+
+					for (var i=0;i<recs.length;i++) {
+						var row = rendered[recs[i]];
+						var tr = $('<tr/>');
+						if (i%2) {
+							tr.addClass('s');
+						}
+						
+						for (var j=0;j<row.length;j++) {
+							var td = $('<td data-name="'+recs[i]+'" class="clickable">'+row[j]+'</td>');
+							tr.append(td);
+						}
+						$('tbody', table).append(tr);
+					}
+
+					$('thead', table).append(trh)
+					self.dialog.append(table);
+					
+					$('.clickable', table).click(function() {
+						var name = $(this).attr('data-name');
+						self.options.cb_select(name);
+						self.dialog.dialog('close');
+					});
+
+				});
+			});
+
+			if (!this.options.embed) {
+				this.dialog.dialog({
+					width: 800,
+					height: $(window).height()*0.8,
+					modal: true,
+					autoOpen: true
+				});
+			}
+		},	
+		
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
+
+
+
+
+
+
+(function($) {
     $.widget("ui.FindControl", {
 
 		options: {
@@ -7,7 +113,7 @@
 			value: '',
 			modal: true,
 			vartype: null,
-			minimum: 3,
+			minimum: 0,
 			cb: function(self, value){self.element.val(value)}
 		},
 				
@@ -150,7 +256,7 @@
 			var self=this;
 			if (q.length < this.options.minimum) {
 				self.resultsarea.empty();
-				self.statusmsg.text('Minimum 3 characters');
+				self.statusmsg.text('Minimum '+this.options.minimum+' characters');
 				return
 			}
 			

@@ -118,7 +118,7 @@ function query_build_path(q, postpend) {
 							<td><input type="hidden" name="param" value="root" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
-							<td><input type="checkbox" name="recurse_p" checked="checked" style="display:none" /></td> \
+							<td><input type="checkbox" name="recurse_p" checked="checked" class="hide" /></td> \
 							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \

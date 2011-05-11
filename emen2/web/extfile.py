@@ -70,7 +70,8 @@ class BaseJS(ExtFile):
 			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
 			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT
+			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
+			'%s/static/js/jquery/jquery.timeago.js'%g.EMEN2WEBROOT
 			]
 
 		for i in addfiles:

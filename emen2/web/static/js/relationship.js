@@ -56,7 +56,7 @@
 			
 			var self = this;
 
-			this.dialog = $('<div class="browser clearfix"></div>');
+			this.dialog = $('<div class="browser clearfix scrolly"></div>');
 
 			// Append the table area to the dialog, then the dialog to the element..
 			this.element.append(this.dialog);
@@ -73,11 +73,13 @@
 						<div class="addparents floatleft" style="width:249px;">Parents</div> \
 						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
 						<div class="addchildren floatleft" style="width:249px;">Children</div> \
-					</div>');				
+					</div>');
 
 						
 			var parents = $('<div class="ulm parents floatleft" style="width:245px"></div>');
 			var children = $('<div class="ulm children floatleft" ></div>');
+			// var cont = $('<div class="scrolly"></div>');
+			// cont.append(parents, children);
 			this.dialog.append(p, parents, children);
 
 			this.setaction(this.options.action);
@@ -86,8 +88,8 @@
 			if (!this.options.embed) {
 				this.dialog.attr("title", "Relationships");
 				this.dialog.dialog({
-					width: 840,
-					height: 600, 
+					width: 820,
+					height: 700, 
 					autoOpen: true,
 					modal: true
 				});
@@ -198,7 +200,7 @@
 			$(".mapselect", this.dialog).each(function(){$(this).removeClass('mapselect')})
 
 			// Tool selector
-			var action = $('<select style="font-size:10pt"> \
+			var action = $('<select> \
 				<option value="reroot">Navigate</option> \
 				<option value="move">Move</option> \
 				<option value="delete">Delete</option> \
@@ -553,8 +555,8 @@
 			$("a[data-key]", root).droppable({
 				tolerance: 'pointer',
 				addClasses: false,
-				hoverClass: "maphover",
-				activeClass: "mapactive",
+				hoverClass: "ulmhover",
+				activeClass: "ulmactive",
 				drop: function(e, ui) {self.dropaction(e, ui)}
 			});	
 

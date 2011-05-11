@@ -1,48 +1,4 @@
-/* ie hacks */
-
-
-
-
-/* specific buttons  
-.button_main {
-	margin-top:10px;
-}
-#button_main_mainview {
-	margin-top:0px;
-	padding:15px;
-}
-
-.button_tab, .button_newrecord {
-	background:#BBD9EE;
-}
-.button_tab_active, .button_newrecord_active {
-	background:#E7F1F8;
-}  */
-
-
 #bottom {
 	margin-top:100px;
 	clear:both;
-} 
-
-/*
-
-#sidebar {
-	width:300px;
 }
-
-#container {
-	min-height:100%;
-	height:100%;
-} 
-
-
-.pages {margin-bottom:10px;}
-.pages, .table_header, #alert, #nav, .buttons  {height: 1%}
-
-.combobox_items {
-	position:absolute;
-	height:400px;
-}
-
-*/

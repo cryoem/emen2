@@ -15,13 +15,6 @@ import json
 from math import *
 
 
-# Import EMAN2
-try:
-	import EMAN2
-except:
-	EMAN2 = None
-	
-
 EXTS = set(["dm3", "tiff", "tif", "mrc", "jpg", "jpeg", "png", "gif"])
 COMPRESS = set(["gz","bz2"])
 
@@ -279,6 +272,7 @@ class EMAN2Build(Builder):
 
 	def _build_tiles(self, workfile):
 		# read the target and probe
+		import EMAN2
 		img = EMAN2.EMData()
 		img.read_image(workfile)
 
@@ -321,7 +315,8 @@ class EMAN2Build(Builder):
 
 		# This will produce 2 power spectrum images in the tile file
 		if self.options.get('pspec'):
-			print "Building pspec"
+			import EMAN2
+
 			nx, ny = img.get_xsize() / 512, img.get_ysize() / 512
 			a = EMAN2.EMData()
 			a.set_size(512,512)

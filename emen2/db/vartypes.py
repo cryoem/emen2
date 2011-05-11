@@ -117,7 +117,7 @@ class Vartype(object):
 		# Editable..
 		# Are we showing the edit label?
 		if self.showlabel:
-			lis.append('<li class="nobullet"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
+			lis.append('<li class="nonlist"><span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
 
 		# Put the editing widget together
 		return '<ul class="%s" data-name="%s" data-param="%s" data-vartype="%s">%s</ul>'%(self.elem_class, self.name, self.pd.name, self.pd.vartype, "\n".join(lis))

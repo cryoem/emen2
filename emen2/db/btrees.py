@@ -508,6 +508,7 @@ class DBODB(EMEN2DB):
 		if not self.sequence:
 			return
 		if self.sequencedb:
+			print "Close sequence"
 			self.sequencedb.close()
 			self.sequencedb = None
 	
@@ -793,6 +794,7 @@ class DBODB(EMEN2DB):
 	def closeindex(self, param):
 		ind = self.index.get(param)
 		if ind:
+			print "Close index", param
 			ind.close()
 			self.index[param] = None
 

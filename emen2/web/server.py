@@ -4,17 +4,20 @@
 import sys
 import thread
 import os.path
+import atexit
 
-from twisted.internet import reactor
-from twisted.web import static, server
-from twisted.web.resource import Resource
+# from twisted.internet import reactor
+# from twisted.web import static, server
+# from twisted.web.resource import Resource
+import twisted.internet
+import twisted.web
 
 
 try:
 	from twisted.internet import ssl
 except:
-	print "No SSL support"
 	ssl = None
+
 
 import emen2.web.resources.threadpool
 import emen2.db.config
@@ -26,19 +29,8 @@ import emen2.web.resources.downloadresource
 import emen2.web.resources.publicresource
 import emen2.web.resources.rpcresource
 import emen2.web.resources.jsonrpcresource
+import emen2.web.resources.eman2resource
 
-
-
-# Try to import EMAN2..
-try:
-	import EMAN2
-	import atexit
-	import signal
-	# We need to steal these handlers from EMAN2...
-	signal.signal(2, signal.SIG_DFL)
-	signal.signal(15, signal.SIG_DFL)
-	# atexit.register(emen2.db.database.DB_Close)
-except ImportError: EMAN2 = None
 
 class ResourceLoader(object):
 	def __init__(self, root, **resources):
@@ -70,6 +62,7 @@ def allHeadersReceived(self, *a, **kw):
 	self.persistent = self.checkPersistence(req, self._version)
 	req.gotLength(self.length)
 
+
 class EMEN2Server(object):
 
 	def __init__(self, port=None):
@@ -77,9 +70,7 @@ class EMEN2Server(object):
 		self.dbo = emen2.db.config.DBOptions()
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
-		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")
-		
-		
+		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")	
 		
 		(self.options, self.args) = self.dbo.parse_args()
 
@@ -89,8 +80,7 @@ class EMEN2Server(object):
 		g.EMEN2HTTPS = self.options.https or g.EMEN2HTTPS
 		g.EMEN2PORT_HTTPS = self.options.httpsport or g.getattr('EMEN2PORT_HTTPS',443)
 
-		self.resource_loader = ResourceLoader( emen2.web.resources.publicresource.PublicView() )
-
+		self.resource_loader = ResourceLoader(emen2.web.resources.publicresource.PublicView())
 		self.load_views()
 		self.load_resources()
 
@@ -121,23 +111,17 @@ class EMEN2Server(object):
 				self.resource_loader.add_resource(path, getattr(mod, path))
 		except ImportError: pass
 
-		# load EMAN2 resource
-		try:
-			import emen2.web.resources.eman2resource
-			self.resource_loader.add_resource('eman2', emen2.web.resources.eman2resource.EMAN2BoxResource())
-		except ImportError: pass
-
-
 		self.resource_loader.add_resources(
-			static = static.File(emen2.db.config.get_filename('emen2', 'static')),
+			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')),
 			download = emen2.web.resources.downloadresource.DownloadResource(),
 			upload = emen2.web.resources.uploadresource.UploadResource(),
 			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
 			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
 			jsonrpc = emen2.web.resources.jsonrpcresource.e2jsonrpc(),
+			eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource()
 		)
-		self.resource_loader.add_resource('favicon.ico', static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
-		self.resource_loader.add_resource('robots.txt', static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))
+		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
+		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))
 
 
 	def interact(self):
@@ -149,31 +133,29 @@ class EMEN2Server(object):
 					return
 
 
-
-
 	def start(self):
 		'''run the main loop'''
-		site = server.Site(self.resource_loader.root)
+		site = twisted.web.server.Site(self.resource_loader.root)
 		site.protocol.allHeadersReceived = allHeadersReceived
 
-		reactor.listenTCP(g.EMEN2PORT, site)
-
-		if g.EMEN2HTTPS and ssl:
-			reactor.listenSSL(
-				g.EMEN2PORT_HTTPS,
-				site,
-				ssl.DefaultOpenSSLContextFactory(
-					os.path.join(g.paths.SSLPATH, "server.key"),
-					os.path.join(g.paths.SSLPATH, "server.crt")
-					)
-				)
-
-
-		reactor.suggestThreadPoolSize(g.NUMTHREADS)
-
+		twisted.internet.reactor.listenTCP(g.EMEN2PORT, site)
 		g.info('Listening on port %d ...'%g.EMEN2PORT)
+		
+		# if g.EMEN2HTTPS and ssl:
+		# 	reactor.listenSSL(
+		# 		g.EMEN2PORT_HTTPS,
+		# 		site,
+		# 		ssl.DefaultOpenSSLContextFactory(
+		# 			os.path.join(g.paths.SSLPATH, "server.key"),
+		# 			os.path.join(g.paths.SSLPATH, "server.crt")
+		# 			)
+		# 		)
+		# reactor.suggestThreadPoolSize(g.NUMTHREADS)
+
 		g._locked = True
-		reactor.run()
+		twisted.internet.reactor.run()
+		
+
 
 if __name__ == "__main__":
 	EMEN2Server().start()

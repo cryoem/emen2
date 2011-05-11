@@ -1,5 +1,5 @@
 /*****************************************************
-			* Background colors 
+			* Colors *
 *****************************************************/
 
 /* Main background color */
@@ -21,7 +21,9 @@
 .boxer .controls,
 .tilemap .tilemapcontrols,
 .recordtable .header,
-.mapactive
+.ulmactive,
+.info,
+.infobuttons
 {
 	background: #E7F1F8; /* #E7F1F8; */
 }
@@ -30,19 +32,12 @@
 /* Darker background color */
 
 
-
 /* Light-gray row highlight color */
-tr.s
+tr.s,
+td.s
 {
 	background: #f0f0f0;
 }
-
-
-.boxarea-active
-{
-	background: #ccc;
-}
-
 
 .add.removed,
 .removed
@@ -88,8 +83,6 @@ th,
 .userbox img,
 .clickable_box,
 .tilemap .tilemapcontrols,
-.infobuttons,
-.info,
 .editbar > li,
 .editbar
 {
@@ -102,7 +95,7 @@ th,
 
 #alert li,
 .notify,
-.maphover
+.ulmhover
 {
 	border-color: #FF8135;
 }
@@ -129,17 +122,7 @@ th,
 }
 
 
-/* Other side borders */
-
-.infobuttons {
-	outline: solid 2px white;
-}
-
 /* Text colors */
-
-ul, p {
-	margin-top: 0px;
-}
 
 a,
 .clickable,
@@ -147,7 +130,6 @@ a,
 {
 	color: #202060;
 }
-
 
 .editable, 
 .editable_files .label,
@@ -162,11 +144,11 @@ a,
 	color: #000;
 }
 
-
-
 /******** BODY AND TOP LEVEL CONTAINERS ******/
 
-html,body {
+html,
+body
+{
 	height: 100%;
 }
 
@@ -188,56 +170,36 @@ body {
 	position: relative;
 }
 
-#alert, #pagescontainer_map, #buttons_main, #title, #content {
-	width: 1250px;
+/* This controls the width of the page */
+#alert, 
+#pagescontainer_map,
+#buttons_main,
+#title,
+#content
+{
+	width: 1000px;
 	margin-left: auto;
 	margin-right: auto;
 }
 
-/*.fullwidth {
-	min-width: 960px;
-	width: 95% !important;
-}
-*/
-
-/**** UNSELECTABLE ELEMENTS *******/
-
-/*.controls, .recordtable .header > div, .editbar .clickable {
-	-webkit-user-select: none;
-	-moz-user-select: none;
-}
-*/
-
-
-
 /******* TOP LEVEL ELEMENTS *******/
 
-
-
-textarea {
-	width: 100%;
-	display: block;
+ul, p {
+	margin-top: 0px;
 }
 
 img {
 	border: none;
 }
-
-
-td {
-	vertical-align: top;
+img.thumbnail {
+	height:64px;
 }
-
-ul {
-}
-
-
-/*********** HEADERS ***********/
 
 h1 {
 	border-bottom-style: solid;
 	border-bottom-width: 1px;
 }
+
 h4 {
 	border-bottom-style: solid;
 	border-bottom-width: 1px;	
@@ -248,28 +210,19 @@ h4 {
 	width: auto;
 }
 
-#title h1 {
-	border-bottom: none;
-	margin: 0px;
-	padding: 10px;
-	font-weight: normal;
-}
 h1 .label {
 	padding: 10px;
 	padding-top: 10px;
-	font-size: 12pt;
 	float: right
 }
 
-/************* TABLES ************/
-
-
 table {
-	width: 100%;
+	width:100%;
 }
 
 th, td {
 	padding: 4px;
+	vertical-align: top;	
 }
 
 th {
@@ -279,6 +232,31 @@ th {
 	text-align: left;
 }
 
+/**** UNSELECTABLE ELEMENTS *******/
+
+.controls, 
+.recordtable .header > div,
+.editbar .clickable
+{
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+
+/************* NOTIFICATION BOXES ************/
+
+#alert li,
+.notify
+{
+	border-style: solid;
+	border-width: 2px;
+	padding: 5px;
+	margin-top:10px;
+	margin-bottom:10px;
+}
+
+#alert li .kill {
+	float: right;
+}
 
 /******* NAV MENU *******/
 
@@ -286,6 +264,14 @@ th {
 	height: 56px;
 	position: relative;
 }
+
+#title h1 {
+	border-bottom: none;
+	margin: 0px;
+	padding: 10px;
+	font-weight: normal;
+}
+
 #title img {
 	padding-left: 5px;
 }
@@ -297,12 +283,14 @@ th {
 	margin: 0px;
 	list-style: none;
 }
+
 #nav li {
 	float: left;
 	border-right-style: solid;
 	border-right-width: 1px;
 	padding: 4px;
 }
+
 #nav li:last-child {
 	border-right: none;
 }	
@@ -314,100 +302,44 @@ th {
 	right: 0px;
 }
 
+/***** LOGIN ********/
 
-
-/**** LEFT AND RIGHT BOXES *****/
-
-.floatlist {
-/*	list-style: none; */
-	margin: 10px;
-	padding: 0px;
+table.login {
+	width:auto;
 }
-.floatlist li {
-	float: left; 
-	text-indent: 0px;
-	margin: 10px;
-	padding-left: 0px;
+table.login td:first-child {
+	padding-right:10px;
 }
-
-.floatleft {
-	float:left;
+table.login td {
+	padding:8px;
+	padding-right:25px;
 }
-.floatright {
-	float:right;
+table.login td:last-child {
+	padding-left:25px;
+	padding-right:10px;
+	border-left:solid 1px #ccc;
 }
 
+/***** CONTROLS *****/
 
-
-/************* NOTIFICATION BOXES ************/
-
-
-/* alerts */
-#alert {	
-	list-style: none;
-	padding-left: 0px;
+textarea {
+	width: 90%;
+	display: block;
 }
-
-#alert li .kill {
-	float: right;
-}
-
-#alert li, .notify {
-	clear: both;
-	border-style: solid;
-	border-width: 2px;
-	padding: 5px;
-	margin: 0px;
-	margin-top:10px;
-	margin-bottom:10px;
-}
-
-
-
-
-/************* JQUERY UI OVERRIDES ************/
-
-
-.ui-widget-header {
-	border: none;
-}
-
-.ui-dialog {
-	padding: 0px;
-	border: solid #66a3ce 5px;
-}
-
-.ui-dialog-titlebar {
-	-moz-border-radius: 0px;
-}
-
-.ui-corner-all {
-
-}
-
-.ui-widget-header {
-	border: none;
-}
-
-.ui-progressbar {
-	height: 1em;
-}
-.ui-progressbar .ui-progressbar-value  {
-	margin: 0px;
-}
-
-
-
-/***** Form Elements ******/
 
 button, select, input, textarea {
 	border-width:1px;
-	margin-right:2px;
+	padding:2px;
 }
 
-button, input[type=button], input[type=submit], input[type=file] {
+button, input[type=button], input[type=submit], input[type=file], input[type=password] {
 	outline:medium none;	
-	display:inline-block
+	display:inline-block;
+}
+
+textarea, input[type=text], input[type=password] {
+	border:solid 1px #aaa;
+	margin-top:2px;
 }
 
 .save input, 
@@ -418,57 +350,24 @@ input.save,
 	border-color: #ccc;
 	background: #5B74A8;
 }
-.cancel input, input.cancel {
+
+.cancel input,
+input.cancel
+{
 	background-color: #eee;
 	color: #666;
 }
 
-.options {
-	padding:5px;
-}
+/* Widget containers */
 
 .buttonicon {
-	margin:0px;
 	padding:0px;
+	margin:0px;
 }
 
-.ui-autocomplete {
-	max-height: 300px;
-	overflow-y: auto;
-}
-/* IE 6 doesn't support max-height
- * we use height instead, but this forces the menu to always be this tall
- */
-* html .ui-autocomplete {
-	height: 300px;
-}
-
-
-/***** CONTROLS *****/
-
-
-h1 > .controls {
-	margin: 0px;
-	margin-top: -10px;
-}
 .controls {
 	float: right;
 }
-.edit > .controls {
-	float: none;
-	margin: 0px;
-}
-
-.editcontrol.inplace {
-	margin: 0px;
-	padding: 0px;
-}
-
-/* .editcontrol.inplace input {
-	border-style: solid;
-	border-width: 1px;
-	display: inline;
-} */
 
 .editcontrol .controls {
 	float: none;
@@ -476,37 +375,26 @@ h1 > .controls {
 }
 
 .inplace .controls {
-	margin: 0px;
 	display: inline;
 }
-
-
-
-
-/***** FIND CONTROL *****/
 
 .find .status {
 	float: right;
 }
-img.listicon {
-	vertical-align: middle;
-	padding: 5px;
+
+.searchbox { 
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	margin-bottom: 10px;
+	padding-bottom: 10px;
 }
 
-
-
-
-/****** FILE EDITOR *****/
-
-
-.files img.thumbnail {
-	vertical-align: top;
-	border: 0px;
-	padding: 4px;
-	padding-top: 0px;
+.profile_form_label {
+	width: 180px;
+	float: left;
+	text-align: right;
+	padding-right: 10px;
 }
-
-
 
 
 /************* USER PROFILE DISPLAY **************/
@@ -518,44 +406,39 @@ img.listicon {
 	width: 300px;
 	float: left;
 }
+
 .userbox img {
 	float: left;
 	border-style: solid;
 	border-width: 1px;
 	height: 40px;
 }
+
 .userbox div {
 	margin-left: 45px;
 }
 
-/* .ui-dialog  */
-.searchbox { 
-	border-bottom-width: 1px;
-	border-bottom-style: solid;
-	margin-bottom: 10px;
-	padding-bottom: 10px;
-}
 
+/********** In-line popups ***********/
 
-/** misc **/
-.infobuttons {
-	border-style: solid;
-	border-width: 2px;
-	padding: 5px;
-	border-bottom: none;
-	margin-left: 20px;
-	float: left;
-}
-.info {
-	border-style: solid;
-	border-width: 2px;
-	margin-left: auto;
-	margin-right: auto;
-	line-height: 150%;
+.hidden {
 	padding: 10px;
+	padding-right:0px;
+	display: none;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 1;
+	border-style: solid;
+	border-width: 2px;
+	background: white;
+	-moz-box-shadow: 3px 3px 6px #666;
+	-webkit-box-shadow: 3px 3px 6px #666;
+	/* box-shadow: 3px 3px 6px #666; */
 }
-.info a {
-	padding: 5px;
+
+.active {
+	position: relative;
 }
 
 /********** RECORD EDIT BAR ***********/
@@ -577,6 +460,9 @@ img.listicon {
 	padding: 4px;
 	z-index: 6;
 }
+.editbar .siblings {
+	float: right;
+}
 
 .editbar > li:last-child {
 	border-right: none;
@@ -585,26 +471,6 @@ img.listicon {
 .editbar img {
 	vertical-align: middle;
 	margin: 0px;
-}
-
- /* .editbar .hidden */
-.hidden {
-	padding: 10px;
-	display: none;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	z-index: 1;
-	border-style: solid;
-	border-width: 2px;
-	background: white;
-	-moz-box-shadow: 3px 3px 6px #666;
-	-webkit-box-shadow: 3px 3px 6px #666;
-	/* box-shadow: 3px 3px 6px #666; */
-}
-
-.active {
-	position: relative;
 }
 
 .editbar .active {
@@ -624,98 +490,13 @@ img.listicon {
 }
 
 
-
-/********** Relationship Map ***********/
-
-/* total width per item should be 249px */
-
-/* Nested lists */
-.ulm.children ul {
-	padding-left:0px;
-	margin-left:249px;	
-}
-.ulm.parents ul {
-	padding-left:0px;
-	margin-left:-249px;	
-	/* text-align:right; */
-}
-
-/* List items */
-.ulm li {
-	list-style:none;
-	padding-bottom:4px;
-	position:relative;	
-	width:249px;
-}
-
-/* The backgrounds are listed in live.css.mako, because they need ${EMEN2WEBROOT} */
-
-
-.ulm ul li a {
-	top:0px;
-	z-index:1001;
-	display:block;
-	margin-left:16px;
-	margin-right:16px;
-}
-.ulm.parents ul li a.draggable {
-	text-align:right;
-}
-
-.ulm img.expand {
-	z-index:1002;
-	position:absolute;
-	top:0px;
-}
-.ulm.children img.expand {
-	right:0px;	
-}
-.ulm.parents img.expand {
-	left:0px;	
-}
-
-/* root element */
-
-.ulm ul:first-child {
-	margin-left:0px;
-}
-
-.ulm.parents ul:first-child {
-	float:right;
-}
-/*
-.ulm.parents ul:first-child {
-	background:none;
-}
-*/
-
-
-.maphover {
-	background:orange;
-	padding:0px;
-}
-
-
-/************* PERMISSIONS EDITOR  ************/
-
-
-/************* COMMENTS  ************/
-
-.comment {
-	margin-bottom: 10px;
-}
-
-.permissions .level {
-	margin-top: 10px;
-	margin-bottom: 10px;
-}
-
-
-
 /************* INLINE EDITBALE ITEMS  ************/
 
-
-.editable_files .label, .editable_files.label, .editable .label, .editable.label {
+.editable_files .label,
+.editable_files.label,
+.editable .label,
+.editable.label
+{
 	padding: 2px;
 	padding-bottom: 0px;
 	font-weight: normal;
@@ -726,13 +507,22 @@ img.listicon {
 	background:#5B74A8;
 }
 
-td ul.editable {
-	padding-left: 0px;
-}
-
-
 
 /********* PAGES AND TABS **********/
+
+.infobuttons {
+	padding: 10px;
+	margin-left: 20px;
+	float: left;
+}
+
+.info {
+	padding: 10px;
+}
+
+.info a {
+	padding: 5px;
+}
 
 .pagescontainer {
 }
@@ -741,15 +531,10 @@ td ul.editable {
 	padding: 10px;
 	display: none;
 }
+
 .page_active {
 	display: block;
 }
-.page_main {
-
-}
-
-
-/******* BUTTON DEFAULTS *******/
 
 .buttons {
 	padding-top: 10px;
@@ -770,29 +555,15 @@ td ul.editable {
 }
 
 
-
 /******** MAIN PAGE BUTTONS AND PAGES *********/
 
 #buttons_main ul {
 	padding-left: 0px;
 }
 
-.button_map, .button_main {
-}
-
-.button_map_active, .button_main_active {
-}
-
-
-/******* MAP BUTTONS AND PAGES ********/
-
-.precontent .map {
-	padding: 5px;
-}
-
 .page_map {
 	background:white;
-	padding:2px;
+	padding:0px;
 }
 
 .button_map {
@@ -806,35 +577,11 @@ td ul.editable {
 }
 
 
-
-/******* PROFILE BOXES ********/
-
-.profile_form_label {
-	width: 180px;
-	float: left;
-	text-align: right;
-	padding-right: 10px;
-}
-
-.profile_save_box {
-	width: 400px;
-}
-
-.profile_save_box input {
-	float: right;
-}
-
-
-
 /********* RECORD TABLE ***********/
-
 
 .recordtable {
 	border-style: solid;
 	border-width: 1px;
-}
-
-.recordtable .header {
 }
 
 .recordtable .header > div {
@@ -843,93 +590,98 @@ td ul.editable {
 	padding-right: 10px;
 }
 
-.clickable_box {
-	padding: 2px 4px;
-}
-
-.recordtable .query {
-	width: 600px;
-}
-
-.recordtable .control {
-
-}
-
-.recordtable .query {
-	padding: 10px;
-}
-
 .recordtable .control.active {
 	padding: 8px;
 	background: white;
 	border: solid 2px black;
 }
+.recordtable .inner {
+	table-layout: fixed;
+	word-wrap: break-word
+}
 
-.recordtable .table th {
+.recordtable .inner th {
+	position:relative;
 	border-right-style: solid;
 	border-right-width: 1px;
+}
+
+.recordtable ul {
+	padding-left:0px;
 }
 
 .recordtable li {
 	list-style:none;
 }
 
-.query {
-	margin-bottom:10px;
-}
 
 /********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
 
+.tiny {
+	font-size: 8pt;
+}
 
-.label, 
+.normal, 
+h1 .label
+{
+	font-size: 12pt;
+}
+
 .small, 
 .ulm, 
-.editbar < li
+.editbar,
+.button_map
 {
 	font-size: 10pt;
 }
 
-.big {
+.big
+{
 	font-size: 18pt;
 }
 
-.deleted,
-.error {
-	border-width:2px;
-	border-style:solid;
-}
-
-a, .clickable {
+a,
+.clickable
+{
 	cursor: pointer;
 	text-decoration: none;
 }
 
-
-a:hover, .clickable:hover {
+a:hover,
+.clickable:hover
+{
 	text-decoration:underline;
 }
 
-a img, .clickable img {
-	vertical-align: middle;
-}
-
-a.chevron {
+.chevron {
 	padding: 3px;
 }
 
 
 /********** UTILITY **********/
 
+.floatleft {
+	float:left;
+}
+.floatright {
+	float:right;
+}
 
-ul.nonlist {
+.scrolly {
+	height:400px;
+	overflow-y:auto;
+}
+.scrollx {
+	overflow-x:auto;
+}
+
+#alert,
+ul.nonlist
+{
 	list-style: none;
 	text-indent: 0px;
-/* 	padding: 0px; */
 }
 
-ul.nonlist li {
-
-}
 .show {
 	display: block;
 }
@@ -944,7 +696,9 @@ ul.nonlist li {
 	width: 50px;
 }
 
-/*, #buttons_main:after, .buttons:after, .pages:after, #permissions:after, #alert:after, #nav:after, .table_header:after */
+.clearfix {
+	clear:both;
+}
 .clearfix:after {
     content: "."; 
     display: block; 
@@ -953,30 +707,19 @@ ul.nonlist li {
     visibility: hidden;	
 }
 
-.nobullet {
-	list-style: none;
-}
-
-
 
 
 /********* ROUNDED CORNERS ************/
 
 
 /* all */
-#alert li, .notify, .capsule, .page_map {
+#alert li, .notify, .page_map, .info {
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;
 }
-/* small */
-.event_box {
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
-}
-
 
 /* top only */
-.recordtable, .button {
+.recordtable, .button, .infobuttons {
 	-moz-border-radius-topright: 8px;
 	-moz-border-radius-topleft: 8px; 
 	-webkit-border-top-right-radius: 8px;
@@ -992,23 +735,6 @@ ul.nonlist li {
 }
 
 
-/* left only */
-.cousin_buttons a:first-child { 
-	-moz-border-radius-topleft: 8px;
-	-moz-border-radius-bottomleft: 8px;
-	-webkit-border-top-left-radius: 8px;
-	-webkit-border-bottom-left-radius: 8px;	
-}
-
-/* right only */
-.cousin_buttons a:last-child {
-	-moz-border-radius-topright: 8px;
-	-moz-border-radius-bottomright: 8px;
-	-webkit-border-top-right-radius: 8px;
-	-webkit-border-bottom-right-radius: 8px;
-}
-
-
 /*******/
 
 .collapsed * { 
@@ -1019,6 +745,54 @@ ul.nonlist li {
 }
 
 
+
+
+/************* JQUERY UI OVERRIDES ************/
+
+.ui-widget-header {
+	border: none;
+}
+
+.ui-dialog {
+	padding: 0px;
+	border: solid #66a3ce 5px;
+}
+
+/*.ui-dialog .help {
+	width:110%;
+	-moz-box-shadow: 0px 3px 6px #666;
+	-webkit-box-shadow: 0px 3px 6px #666;
+}
+*/
+.ui-dialog-titlebar {
+	-moz-border-radius: 0px;
+}
+
+.ui-corner-all {
+
+}
+
+.ui-widget-header {
+	border: none;
+}
+
+.ui-progressbar {
+	height: 1em;
+}
+.ui-progressbar .ui-progressbar-value  {
+	margin: 0px;
+}
+
+.ui-autocomplete {
+	max-height: 300px;
+	overflow-y: auto;
+}
+/* IE 6 doesn't support max-height
+ * we use height instead, but this forces the menu to always be this tall
+ */
+* html .ui-autocomplete {
+	height: 300px;
+}
 
 
 

@@ -672,7 +672,7 @@
 					error: function(x,y,z) {
 						//alert("Error! Could not access tiles!");
 						$('.spinner', self.element).remove();
-						this.build_static();
+						self.build_static();
 						//self.element.append('Could not access tiles!');
 					}
 				});

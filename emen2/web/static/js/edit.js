@@ -54,7 +54,14 @@ function bind_autocomplete(elem, param) {
 			rectype: null,
 			parent: null,
 			private: null,
-			embed: false
+			embed: false,
+			show: false,
+			cb_save: function(recs) {
+				window.location = EMEN2WEBROOT + '/record/' + recs[0].name;
+			},
+			cb_reload: function(recs) {
+				window.location = window.location;
+			}
 		},
 				
 		_create: function() {
@@ -63,49 +70,63 @@ function bind_autocomplete(elem, param) {
 			this.options.parent = this.element.attr('data-parent') || this.options.parent;
 			this.options.private = this.element.attr('data-private') || this.options.private;
 			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
-			this.element.click(function(){self.build()});
-			//this.build();
+
+			if (this.element.attr('data-action') == 'reload') {
+				this.options.cb_save = this.options.cb_reload;
+			}
+
+			if (this.options.show) {
+				this.build();				
+			} else {
+				this.element.click(function(){self.build()});
+			}
 		},
 
 		build: function() {
 			var self = this;
-			this.dialog = $('<div>Loading...</div>');
+			this.dialog = $('<div><div class="form">Loading...</div><div class="controls" /></div>');
+
+			// $.jsonRPC("getrecorddef", [this.options.rectype], function(rd) {
+			// 	caches['recorddefs'][rd.name] = rd;
+			// 	$('.help', self.dialog).empty();
+			// 	$('.help', self.dialog).html(rd.desc_short);
+			// });
 		
 			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';
 				caches['recs'][rec.name] = rec;
 					
 				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
-					self.dialog.empty();
+					$('.form', self.dialog).empty();
+					$('.controls', self.dialog).empty();
 
-					var content = $('<div style="overflow-y:auto;height:400px"></div>');
+					var content = $('<div></div>');
 					content.append(data);
-					self.dialog.append(content);
+					$('.form', self.dialog).append(content);
 					
-					var controls = $('<div id="newrecord_save"></div>');
-					self.dialog.append(controls);
+					var controls = $('<div class="editcontrol"></div>');
+					$('.controls', self.dialog).append(controls);
 				
 					$('.editable', content).EditControl({
 						name:'None'
 					});
-					$('#newrecord_save').MultiEditControl({
+					controls.MultiEditControl({
 						name:'None',
 						show:true,
-						cb_save: function(caller){
+						cb_save: function(recs){
 							self.dialog.dialog('close');
+							self.options.cb_save(recs);
 						}
 					});
-					
-					
 				});
 			});
 					
 			this.element.append(this.dialog);
-			this.dialog.attr("title", "New Record");			
+			this.dialog.attr("title", "New "+this.options.rectype+", child of "+caches['recnames'][this.options.parent]);
 			if (!this.options.embed) {
 				this.dialog.dialog({
 					width: 800,
-					height: 500,
+					height: $(window).height()*0.8,
 					modal: true,
 					autoOpen: true
 				});
@@ -132,7 +153,7 @@ function bind_autocomplete(elem, param) {
 			show: false,
 			name: null,
 			selector: null,
-			cb_save: function(self){}
+			cb_save: function(recs){}
 		},
 				
 		_create: function() {
@@ -201,7 +222,7 @@ function bind_autocomplete(elem, param) {
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
 			this.controls.append(spinner);
 
-			var save = $('<input class="save big" type="submit" name="save" value="Save" />');
+			var save = $('<input class="save" type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 			
@@ -289,7 +310,7 @@ function bind_autocomplete(elem, param) {
 					record_update(this);
 				});
 				self.hide();
-				self.options.cb_save(self);
+				self.options.cb_save(recs);
 			}, function(e) {
 				$('input[name=save]', self.controls).val('Retry');
 				$('.spinner', self.controls).hide();
@@ -344,6 +365,7 @@ function bind_autocomplete(elem, param) {
 		_create: function() {			
 			this.options.param = this.options.param || this.element.attr("data-param");
 			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
+
 			if (isNaN(this.options.name)) this.options.name = "None";
 
 			//if ($.inArray(this.options.param, ["name", "rectype", "comments", "creator", "creationtime", "permissions", "history", "groups"])) {return}
@@ -383,7 +405,7 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// container
-			this.w = $('<div class="editcontrol" style="display:inline" />');
+			this.w = $('<div class="editcontrol" />');
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
@@ -416,11 +438,10 @@ function bind_autocomplete(elem, param) {
 				this.w.append(this.editw);
 
 			} else if (vt=="boolean") {
-		
-				this.editw = $("<select><option></option><option>True</option><option>False</option></select>");
-				if (this.rec_value == true) {
+				this.editw = $('<select><option selected="selected"></option><option>True</option><option>False</option></select>');
+				if (this.rec_value === true) {
 					this.editw.val("True");
-				} else if (this.rec_value == false) {
+				} else if (this.rec_value === false) {
 					this.editw.val("False");
 				}
 				this.w.append(this.editw);				
@@ -437,17 +458,17 @@ function bind_autocomplete(elem, param) {
 		
 			}  else if (vt=="user") {
 
-				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
+				this.editw = $('<input class="value" size="20" type="text" value="'+this.rec_value+'" />');
 				this.w.append(this.editw);
 		
 			} else if (vt=="comments") {
 
 				inline = false;
-				this.editw = $('<input class="value" size="30" type="text" value="" />');
+				this.editw = $('<input class="value" size="20" type="text" value="" />');
 						
 			} else {
 
-				this.editw = $('<input class="value" size="30" type="text" value="'+this.rec_value+'" />');
+				this.editw = $('<input class="value" size="20" type="text" value="'+this.rec_value+'" />');
 				this.w.append(this.editw);			
 				var property = pd["property"];
 				var units = pd["defaultunits"];
@@ -684,19 +705,6 @@ function bind_autocomplete(elem, param) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 (function($) {
     $.widget("ui.NewRecordSelect", {
 		options: {
@@ -727,23 +735,25 @@ function bind_autocomplete(elem, param) {
 			this.show();
 		},
 		
-		doit: function(rectype) {		
+		action: function(rectype) {		
 			// get some options..
-			var opts = {};
+			var copy = false;
+			var private = false;
 			if($('input[name=private]', this.dialog).attr("checked")) {
-				opts["inherit"] = false
+				private = true;
 			}
 			if ($('input[name=copy]', this.dialog).attr("checked")) {
-				opts["copy"] = true
-			}			
-			var link = EMEN2WEBROOT + '/record/'+this.options.name+'/new/'+rectype+'/';
-
-			// infuriating that there is no object.length
-			if (opts['inherit']!=null || opts['copy']!=null) {
-				link += "?" + $.param(opts);
+				copy = true;
 			}
-			window.location = link;
-
+			var e = $('<div></div>');
+			$('body').append(e);			
+			e.NewRecord({
+				'parent':this.options.name,
+				'rectype':rectype,
+				'copy': copy,
+				'private': private,
+				'show': true
+			});
 		},
 	
 		build: function() {
@@ -782,7 +792,7 @@ function bind_autocomplete(elem, param) {
 					b = b.val();
 				}
 				if (!b) {return}
-				self.doit(b);
+				self.action(b);
 			});
 			
 			ob.append(b);			
@@ -796,8 +806,6 @@ function bind_autocomplete(elem, param) {
 			var pos = this.element.offset();
 			this.dialog.attr("title", "New Record");
 			this.dialog.dialog({
-				width: 300,
-				height: 400,
 				position: [pos.left, pos.top+this.element.outerHeight()],
 				autoOpen: true
 			});
@@ -826,7 +834,7 @@ function bind_autocomplete(elem, param) {
 			this.others.empty();
 			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
 			var self = this;
-			var s = $('<input type="text" name="newrecordselectother" value="" style="font-size:10pt" size="8" />');
+			var s = $('<input type="text" name="newrecordselectother" value="" size="8" />');
 			s.FindControl({'keytype':'recorddef'});
 			s.click(function() {
 				$("#newrecordselectother").attr('checked', 'checked');

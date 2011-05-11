@@ -136,15 +136,12 @@ def check_output(args, **kwds):
 	return p.communicate()[0]
 
 
-
-# Close all database handles.
-# Make this a static method of EMEN2DBEnv?
 # @atexit.register
-# def DB_Close(*args, **kwargs):
-# 	"""Close all open DBs"""
-# 	for i in EMEN2DBEnv.opendbs.keys():
-# 		i.close()
-		
+def DB_Close(*args, **kwargs):
+	"""Close all open DBs"""
+	for i in EMEN2DBEnv.opendbs.keys():
+		i.close()
+
 
 
 # ian: todo: make these express GMT, then localize using a user preference
@@ -383,9 +380,11 @@ class EMEN2DBEnv(object):
 	def close(self):
 		"""Close the Database Environment"""		
 		for k,v in self.keytypes.items():
+			print "Closing", v
 			v.close()
+		print "Closing dbenv"
 		self.dbenv.close()
-
+		print "Done closing dbenv"
 
 
 	####################################
@@ -1554,10 +1553,12 @@ class DB(object):
 		@keyparam boolmode AND / OR for each search constraint
 		@return Users
 		"""
-		rets = []
+		rets = []		
+		if query == '':
+			allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
+			rets.append(allnames)
+		
 		query = unicode(query or '').split()
-		# allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
-
 		for q in query:
 			q = q.strip()
 			c = [
@@ -1571,7 +1572,7 @@ class DB(object):
 			recs = self.bdbs.record.cgets(qr['names'], ctx=ctx, txn=txn)
 			un = filter(None, [i.get('username') for i in recs])
 			rets.append(set(un))
-				
+
 		# email=None, name_first=None, name_middle=None, name_last=None, name=None, 
 		for param in ['email', 'name_first', 'name_middle', 'name_last']:
 			if kwargs.get(param):
@@ -1812,12 +1813,12 @@ class DB(object):
 		if viewtype == 'recname' and not viewdef:
 			markup = False
 
-		if table:
-			edit = "auto"
-		
-		if table or edit:
+		if edit:
 			markup = True
 
+		# if table:
+		# 	edit = "auto"
+		
 		# Regular expression for parsing views
 		regex = re.compile(VIEW_REGEX)
 
@@ -2565,6 +2566,11 @@ class DB(object):
 				g.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
 	
 			rec["parents"] |= inherit	
+
+		# Let's try this and see how it works out...
+		rec['date_occurred'] = gettime()
+		rec['performed_by'] = ctx.username		
+
 		return rec
 
 

@@ -1,6 +1,6 @@
-$(document).ready(function() {
-	$("#calendar").Calendar();
-});	
+// $(document).ready(function() {
+// 	$("#calendar").Calendar();
+// });	
 
 function parsedate(d) {
 	var pd = Date.parse(d);

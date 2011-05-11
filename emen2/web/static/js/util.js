@@ -323,7 +323,9 @@ function newrecord_init(rec) {
 function record_init(rec, ptest, edit) {
 	var name = rec.name;
 	caches["recs"][name] = rec;
-
+	
+	$('.newrecord').NewRecord({});
+	
 	// Bind editable widgets
 	$('.editbar .edit .label').MultiEditControl({});
 	$('.editable').EditControl({});
@@ -342,11 +344,6 @@ function record_init(rec, ptest, edit) {
 		$('.editbar .edit .label').MultiEditControl('event_click');
 	}	
 
-
-	// New Record buttons
-	$('.newrecord').NewRecord({
-		
-	});
 
 	// Permissions editor
 	$('.editbar .permissions').EditbarHelper({
@@ -393,7 +390,7 @@ function record_init(rec, ptest, edit) {
 
 	// Relationship editor
 	$(".editbar .relationships").EditbarHelper({		
-		width: 750,
+		width: 780,
 		cb: function(self){
 			self.popup.RelationshipControl({
 				root: name,
@@ -452,6 +449,7 @@ function record_init(rec, ptest, edit) {
 					$.extend(caches["recnames"], recnames);
 					$.each(siblings, function(i,k) {
 						if (k != rec.name) {
+							// color:white here is a hack to have them line up
 							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
 							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
