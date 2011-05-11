@@ -71,7 +71,6 @@ class EMEN2Server(object):
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
 		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")	
-		
 		(self.options, self.args) = self.dbo.parse_args()
 
 		# Update the configuration
@@ -109,7 +108,8 @@ class EMEN2Server(object):
 			for path, mod in extraresources.items():
 				mod = __import__(mod)
 				self.resource_loader.add_resource(path, getattr(mod, path))
-		except ImportError: pass
+		except ImportError:
+			pass
 
 		self.resource_loader.add_resources(
 			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')),

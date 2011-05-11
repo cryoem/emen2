@@ -47,6 +47,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
+		group.add_option('--ext', action="append", dest='ext', help="Add Extension")	
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
@@ -124,6 +125,12 @@ class DBOptions(optparse.OptionParser):
 			if not hasattr(pp, '__iter__'): pp = [pp]
 			sys.path.extend(pp)
 
+
+		# Load web extensions
+		for p in self.values.ext:
+			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
+			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
+			
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:
@@ -135,7 +142,6 @@ class DBOptions(optparse.OptionParser):
 
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
-
 
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
