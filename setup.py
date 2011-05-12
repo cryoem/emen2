@@ -48,7 +48,7 @@ def filterwalk(path, filetypes=None):
 static_files = \
 	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
 	filterwalk('emen2/templates', filetypes=['.mako']) + \
-	filterwalk('emen2/skeleton', filetypes=['.json'])
+	filterwalk('emen2/db', filetypes=['.json'])
 
 
 

@@ -6,6 +6,7 @@
 
 /* Main background color */
 .permissions .add, .add,
+#alert,
 .button,
 .precontent,
 body
@@ -31,13 +32,18 @@ body
 
 /* Light-gray row highlight color */
 tr.s,
-td.s,
-#nav li:hover,
-#nav li ul li,
-.editbar .active,
-.hidden
+td.s
 {
 	background: #f0f0f0;
+}
+
+.editbar .active, 
+.editbar_uglydiv,
+.hidden,
+#nav li:hover,
+#nav li ul li
+{
+	background:#f4f4f4;
 }
 
 .add.removed,
@@ -55,7 +61,6 @@ body,
 #alert li,
 .notify,
 .page_map_active,
-.editbar .hidden,
 .button_map_active,
 .button_main_active,
 .page_comments tr.s,
@@ -73,13 +78,9 @@ h4,
 th,
 .tilemap .label,
 .searchbox,
-.editbar .active,
-.editbar .hidden,
 .userbox img,
 .clickable_box,
-.tilemap .tilemapcontrols,
-.editbar > li,
-.editbar
+.tilemap .tilemapcontrols
 {
 	border-color: #ccc;
 }

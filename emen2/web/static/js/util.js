@@ -253,7 +253,6 @@ function notify(msg, fade, error) {
 	//if (fade > 0) {
 	//	setTimeout(function(){msg.fadeOut()},fade*1000)
 	//}
-
 	$("#alert").append(msg); //.fadeIn();
 	
 }
@@ -407,7 +406,7 @@ function record_init(rec, ptest, edit) {
 	// Change rendered view
 	$(".editbar .selectview").EditbarHelper({});	
 
-	$('.selectview [data-viewtype]').click(function(){
+	$('.editbar [data-viewtype]').click(function(){
 		var target=$("#rendered");
 		var viewtype=$(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);
@@ -415,7 +414,9 @@ function record_init(rec, ptest, edit) {
 	});
 
 	// Additional detailed information
-	$(".editbar .creator").EditbarHelper({});
+	$(".editbar .creator").EditbarHelper({
+		width:200
+	});
 
 	// Comments and history
 	$("#page_comments_comments").CommentsControl({
@@ -440,11 +441,15 @@ function record_init(rec, ptest, edit) {
 		align: 'right',
 		cb: function(self) {
 			var sibling = self.element.attr('data-sibling') || rec.name;
-			self.popup.append('<span class="status">Loading...</span>');
+			if ($('.sibs', self.popup).length) {
+				return
+			}
+			var sibs = $('<div class="sibs">Loading...</div>');
+			self.popup.append(sibs);
 			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
 				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
 					siblings = siblings.sort(function(a,b){return a-b});
-					$('.status', self.popup).remove();
+					sibs.empty();
 					var ul = $('<ul class="nonlist" />');
 					$.extend(caches["recnames"], recnames);
 					$.each(siblings, function(i,k) {
@@ -455,7 +460,6 @@ function record_init(rec, ptest, edit) {
 							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
 						}
 					});
-
 					self.popup.append(ul);
 				});
 			});
@@ -694,13 +698,26 @@ function admin_userstate_form(elem) {
 				this.element.append(this.popup);
 			}
 			
-			// this.popup.css('top', this.element.outerHeight()-4);
 			if (this.options.width) {
 				this.popup.width(this.options.width)
 			}
 			if (this.options.height) {
 				this.popup.height(this.options.height);
 			}
+			
+			var uglydiv = $('<div class="editbar_uglydiv"></div>');
+			uglydiv.width(this.element.outerWidth()-1);
+			uglydiv.height(5);
+			uglydiv.css('top', -5);
+			
+			if (this.options.align == 'left') {
+				this.popup.css('left', -1);
+				uglydiv.css('left', 0);
+			} else {
+				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()+1);
+				uglydiv.css('right', 0);
+			}			
+			this.popup.append(uglydiv);
 		},
 				
 		destroy: function() {
