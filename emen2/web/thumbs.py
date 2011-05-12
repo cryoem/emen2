@@ -19,7 +19,6 @@ EXTS = set(["dm3", "tiff", "tif", "mrc", "jpg", "jpeg", "png", "gif"])
 COMPRESS = set(["gz","bz2"])
 
 
-
 def run_from_bdo(bdoo, wait=False):
 	# Get config info to setup command
 	import emen2.db.config

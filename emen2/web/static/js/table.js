@@ -20,7 +20,7 @@
 			var length = $('<div class="length floatleft">Records</div>');
 						
 			// row count
-			var count = $('<select name="count floatright"></select>');
+			var count = $('<select name="count" class="floatright"></select>');
 			count.append('<option value="">Rows</option>');
 			
 			$.each([10,50,100,500,1000], function() {
@@ -85,9 +85,7 @@
 
 			q.EditbarHelper({
 				width: 300,
-				align: 'right', 
-				init: function(self2) {
-				}
+				align: 'right'
 			});				
 
 			$('.header', this.element).append(q);			
@@ -107,7 +105,7 @@
 			q.EditbarHelper({
 				align: 'right', 
 				width: 700,
-				init: function(self2) {
+				cb: function(self2) {
 					self2.popup.QueryControl({
 						q: self.options.q,
 						keywords: false,
@@ -115,15 +113,7 @@
 					});
 				}
 			});				
-
-			// $('input[name=q]', q).focus(function(){
-			// 	q.EditbarHelper('show');
-			// });
-			// 		
-			// $('img', q).click(function(){
-			// 	q.EditbarHelper('toggle');
-			// });
-			
+		
 			$('.header', this.element).append(q);
 			
 		},

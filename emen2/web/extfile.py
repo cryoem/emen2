@@ -83,6 +83,7 @@ class BaseCSS(ExtFile):
 		super(BaseCSS, self).init()
 		addfiles = [
 			'main.css',
+			'colors.css',
 			'query.css',
 			'boxer.css',
 			'calendar.css'

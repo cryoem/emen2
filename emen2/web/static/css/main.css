@@ -1,188 +1,38 @@
-/*****************************************************
-			* Colors *
-*****************************************************/
-
-/* Main background color */
-#precontent,
-.precontent,
-.permissions .add, .add,
-.button
-{
-	background: #BBDAEE;
-}
-
-
-/* Lighter background color */
-#nav li:hover,
-.page,
-.button_map,
-.button_main,
-.button_active,
-.boxer .controls,
-.tilemap .tilemapcontrols,
-.recordtable .header,
-.ulmactive,
-.info,
-.infobuttons
-{
-	background: #E7F1F8; /* #E7F1F8; */
-}
-
-
-/* Darker background color */
-
-
-/* Light-gray row highlight color */
-tr.s,
-td.s
-{
-	background: #f0f0f0;
-}
-
-.add.removed,
-.removed
-{
-	background: red;
-	color: white;
-}
-
-.disabled {
-	color: #ccc;
-}
-
-.spinner {
-	display:none;
-}
-
-body,
-table.map,
-#container,
-#title,
-#alert li,
-.notify,
-.editbar .hidden,
-.page_main,
-.button_map_active,
-.button_main_active,
-.page_comments tr.s
-{
-	background: white;
-}
-
-
-
-/* Border Colors */
-
-h1,
-h4,
-th,
-.tilemap .label,
-.searchbox,
-.editbar .active,
-.editbar .hidden,
-.userbox img,
-.clickable_box,
-.tilemap .tilemapcontrols,
-.editbar > li,
-.editbar
-{
-	border-color: #ccc;
-}
-
-.boxarea .boximg {
-	border-color: #fff;
-}
-
-#alert li,
-.notify,
-.ulmhover
-{
-	border-color: #FF8135;
-}
-
-#nav li
-{
-	border-color: #DCEFEE;
-}
-
-.recordtable
-{
-	border-color: #E7F1F8;
-}
-
-.cleared
-{
-	border-color: blue;
-}
-
-.deleted,
-.error
-{
-	border-color: red;	
-}
-
-
-/* Text colors */
-
-a,
-.clickable,
-.ui-widget-content a
-{
-	color: #202060;
-}
-
-.editable, 
-.editable_files .label,
-.editable_files.label,
-.editable .label,
-.editable.label
-{
-	color: #491F6D;
-}
-
-.table .editable {
-	color: #000;
-}
-
 /******** BODY AND TOP LEVEL CONTAINERS ******/
 
 html,
 body
 {
-	height: 100%;
-}
-
-body {
 	font-family: arial, Verdana, Helvetica, sans-serif;
-	margin: 0px;
-	padding: 0px;
+	margin:0px;
+	padding:0px;
+	height:100%;
 }
 
-#container {
-	position: relative;
+#container
+{
 	min-height: 100%;
-	margin-left: auto;
-	margin-right: auto;
-	width: 1000px;
+	height: 100%;
+	margin-left:auto;
+	margin-right:auto;
 }
 
-#content {
-	padding-top: 10px;
-	position: relative;
-}
-
-/* This controls the width of the page */
-/*#alert, 
 #pagescontainer_map,
 #buttons_main,
-#title,
 #content
 {
-	width: 1000px;
-	margin-left: auto;
-	margin-right: auto;
+	padding-top:10px;
 }
-*/
+
+#nav,
+#buttons_main,
+#pagescontainer_map,
+#content
+{
+	width:1000px;
+	margin-left:auto;
+	margin-right:auto;
+}
 
 /******* TOP LEVEL ELEMENTS *******/
 
@@ -198,6 +48,7 @@ img.thumbnail {
 }
 
 h1 {
+	margin-top:10px;
 	border-bottom-style: solid;
 	border-bottom-width: 1px;
 }
@@ -261,48 +112,96 @@ th {
 }
 
 /******* NAV MENU *******/
-
+/* This is a little complicated. Be careful. */
 #title {
-	height: 56px;
-	position: relative;
+	border-bottom:solid 2px #ccc;
 }
-
-#title h1 {
-	border-bottom: none;
-	margin: 0px;
-	padding: 10px;
-	font-weight: normal;
-}
-
-#title img {
-	padding-left: 5px;
-}
-
 #nav {
-	position: absolute;
-	bottom: 0px;
-	right: 0px;
-	margin: 0px;
-	list-style: none;
+	margin:0px;
+	margin-left:auto;
+	margin-right:auto;
+	padding:0px;
+    list-style: none;
+	z-index:1000;
+}
+#nav a,
+#nav .clickable
+ {
+	display:block;
+	text-decoration:none;
+	padding:10px;
+}
+#nav img {
+	vertical-align:middle;
 }
 
+/* List tricks */
 #nav li {
-	float: left;
-	border-right-style: solid;
-	border-right-width: 1px;
-	padding: 4px;
+    float: left;
+    position: relative;
+	background: white;
+}
+/* Force this to be the right height */
+#nav li.logo {
+	height:30px;
+}
+#nav li.logo a {
+	padding:0px;
+}
+#nav li.logo img {
+	height:40px;
+}
+#nav li.quicksearch {
+	padding-top:7px;
+}
+#nav li ul {
+	background:white;
+    display: none;
+    position: absolute;
+	padding:0px;
+	list-style:none;
+	z-index:1000;
+	-moz-box-shadow: 3px 3px 3px #ccc;
+}
+#nav li ul li {
+	width:250px;
+}
+#nav li.divider {
+	border-top:solid 1px #ccc;
+}
+#nav li:hover ul,
+#nav li.over ul
+{
+    display: block;
+}
+#nav li:last-child ul {
+	right:0px;
 }
 
-#nav li:last-child {
-	border-right: none;
-}	
 
-#title .quickquery {
+/********** In-line popups ***********/
+
+.hidden, 
+#nav ul
+{
+	border-color: #ccc;
+	border-style: solid;
+	border-width: 1px;
+	background: white;
+	border-top: none;
+	-moz-box-shadow: 3px 3px 6px #666;
+	-webkit-box-shadow: 3px 3px 6px #666;
+	/* box-shadow: 3px 3px 6px #666; */
+}
+
+.hidden {
+	padding: 10px;
+	display: none;
 	position: absolute;
-	padding: 5px;
-	top: 0px;
-	right: 0px;
+	left: -1px;
+	margin-top:4px;
 }
+
 
 /***** LOGIN ********/
 
@@ -384,6 +283,10 @@ input.cancel
 	float: right;
 }
 
+.spinner {
+	display:none;
+}
+
 .searchbox { 
 	border-bottom-width: 1px;
 	border-bottom-style: solid;
@@ -421,76 +324,36 @@ input.cancel
 }
 
 
-/********** In-line popups ***********/
-
-.hidden {
-	padding: 10px;
-	padding-right:0px;
-	display: none;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	z-index: 1;
-	border-style: solid;
-	border-width: 2px;
-	background: white;
-	-moz-box-shadow: 3px 3px 6px #666;
-	-webkit-box-shadow: 3px 3px 6px #666;
-	/* box-shadow: 3px 3px 6px #666; */
-}
-
-.active {
-	position: relative;
-}
 
 /********** RECORD EDIT BAR ***********/
 
 .editbar {
-	margin: 0px;	
-	margin-bottom: 10px;
-	padding: 0px;
-	padding-top: 0px;
 	list-style: none;
 	border-bottom-style: solid;
 	border-bottom-width: 1px;
+	padding:0px;
 }
 .editbar > li {
+	position:relative;
+	padding:4px;
 	float: left;
 	border-right-style: solid;
 	border-right-width: 1px;
-	height: 20px;
-	padding: 4px;
-	z-index: 6;
+	background:white;
 }
 .editbar .siblings {
 	float: right;
 }
-
 .editbar > li:last-child {
 	border-right: none;
 } 
-
 .editbar img {
 	vertical-align: middle;
 	margin: 0px;
 }
-
-.editbar .active {
-	z-index: 100;
-	border-style: solid;
-	border-width: 2px;
-	border-bottom: none;
-	border-left-width: 1px;
-	border-right-width: 2px;
-	padding-right: 3px;
-	padding-left: 3px;
-	padding-top: 2px;
-}
-
 .editbar_reflow_hack {
 	margin-top: 200px;
 }
-
 
 /************* INLINE EDITBALE ITEMS  ************/
 
@@ -539,11 +402,10 @@ input.cancel
 }
 
 .buttons {
-	padding-top: 10px;
 }
 .buttons ul {
 	margin: 0px;
-	padding-left: 20px;
+	padding-left: 00px;
 	list-style: none;
 }
 .buttons ul li {
@@ -582,6 +444,7 @@ input.cancel
 /********* RECORD TABLE ***********/
 
 .recordtable {
+	margin:10px;
 	border-style: solid;
 	border-width: 1px;
 }
@@ -669,6 +532,13 @@ a:hover,
 	float:right;
 }
 
+.floatlist {
+	list-style:none;
+}
+.floatlist li {
+	float:left;
+}
+
 .scrolly {
 	height:400px;
 	overflow-y:auto;
@@ -701,7 +571,9 @@ ul.nonlist
 .clearfix {
 	clear:both;
 }
-.clearfix:after {
+
+.clearfix:after
+{
     content: "."; 
     display: block; 
     height: 0; 
@@ -717,7 +589,6 @@ ul.nonlist
 /* all */
 #alert li,
 .notify,
-.page_map,
 .info
 {
 	-moz-border-radius: 8px;
@@ -735,16 +606,32 @@ ul.nonlist
 	-webkit-border-top-left-radius: 8px; 	
 }
 
+#content {
+	-moz-border-radius-topright: 8px;
+	-webkit-border-top-right-radius: 8px;
+}
+
+/* all but top left */
+.page
+{
+	-moz-border-radius-topright: 8px; 
+	-moz-border-radius-bottomright: 8px;
+	-moz-border-radius-bottomleft: 8px; 
+	-webkit-border-top-right-radius: 8px; 	
+	-webkit-border-bottom-right-radius: 8px;
+	-webkit-border-bottom-left-radius: 8px; 	
+}
+
+
 /* bottom only */
-.hidden, 
-#title
+/*.hidden,
 {
 	-moz-border-radius-bottomright: 8px;
 	-moz-border-radius-bottomleft: 8px; 
 	-webkit-border-bottom-right-radius: 8px;
 	-webkit-border-bottom-left-radius: 8px; 	
 }
-
+*/
 /* left only */
 .roundleft {
 	-moz-border-radius-bottomleft: 8px;

@@ -334,7 +334,7 @@ function record_init(rec, ptest, edit) {
 	$('.editbar .edit').EditbarHelper({
 		bind: false,
 		reflow: '#rendered',
-		init: function(self) {
+		cb: function(self) {
 			var addcomment = $('<span>Comments: <input type="text" name="editsummary" value="" /></span>');
 			self.popup.append(addcomment);
 		}
@@ -438,7 +438,7 @@ function record_init(rec, ptest, edit) {
 		show: showsiblings,
 		width:250,
 		align: 'right',
-		init: function(self) {
+		cb: function(self) {
 			var sibling = self.element.attr('data-sibling') || rec.name;
 			self.popup.append('<span class="status">Loading...</span>');
 			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
@@ -620,10 +620,7 @@ function admin_userstate_form(elem) {
 (function($) {
     $.widget("ui.EditbarHelper", {
 		options: {
-			open: function(self) {},
-			close: function(self) {},
 			cb: function(self) {},
-			init: function(self) {},
 			bind: true,
 			show: false,
 			reflow: false,
@@ -664,9 +661,7 @@ function admin_userstate_form(elem) {
 			this.build();
 			this.element.addClass('active');
 			this.options.cb(this);
-			this.options.open(this);
 			this.popup.show();
-			
 			if (this.options.reflow) {
 				this.cachepadding = $(this.options.reflow).css('padding-top');
 				$(this.options.reflow).css('padding-top', this.popup.outerHeight());
@@ -678,9 +673,7 @@ function admin_userstate_form(elem) {
 			if (!this.built) {return}
 			this.popup.hide();
 			this.options.cb(this);
-			this.options.close(this);
 			this.element.removeClass('active');
-
 			if (this.options.reflow) {
 				$(this.options.reflow).css('padding-top', this.cachepadding);
 			}
@@ -701,33 +694,13 @@ function admin_userstate_form(elem) {
 				this.element.append(this.popup);
 			}
 			
-			this.popup.css('top', this.element.outerHeight()-4);
-			
+			// this.popup.css('top', this.element.outerHeight()-4);
 			if (this.options.width) {
 				this.popup.width(this.options.width)
 			}
 			if (this.options.height) {
 				this.popup.height(this.options.height);
 			}
-
-			this.options.init(this);			
-						
-			// ugly horrible hack time...
-			var uglydiv = $('<div style="position:absolute;background:white" />');
-			uglydiv.width(this.element.outerWidth()-5);
-			uglydiv.height(4);
-			uglydiv.css('top', -4);
-			
-			if (this.options.align == 'left') {
-				this.popup.css('left', -2);
-				uglydiv.css('left', 0);
-				uglydiv.width(this.element.outerWidth()-3);
-			} else {
-				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()-2);
-				uglydiv.css('right', 0);
-			}
-
-			this.popup.append(uglydiv);
 		},
 				
 		destroy: function() {

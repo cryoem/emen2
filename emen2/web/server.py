@@ -29,7 +29,6 @@ import emen2.web.resources.downloadresource
 import emen2.web.resources.publicresource
 import emen2.web.resources.rpcresource
 import emen2.web.resources.jsonrpcresource
-import emen2.web.resources.eman2resource
 
 
 class ResourceLoader(object):
@@ -118,7 +117,6 @@ class EMEN2Server(object):
 			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
 			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
 			jsonrpc = emen2.web.resources.jsonrpcresource.e2jsonrpc(),
-			eman2 = emen2.web.resources.eman2resource.EMAN2BoxResource()
 		)
 		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
 		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))

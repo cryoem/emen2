@@ -22,7 +22,7 @@ import emen2.util.listops
 try:
 	import emen2.db.bulk
 	bulk = emen2.db.bulk
-	# g.warn("Note: using EMEN2-BerkeleyDB bulk access module")
+	print "Note: using EMEN2-BerkeleyDB bulk access module"
 except ImportError, inst:
 	bulk = None
 

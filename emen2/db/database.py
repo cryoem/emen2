@@ -1086,11 +1086,6 @@ class DB(object):
 		key = sortvalues.get
 		if sortkey in ['creationtime', 'recid', 'name']:
 			key = None
-			reverse = not reverse
-			# print "reverse/not reverse"
-			# print reverse
-			# print (not reverse)
-			# reverse = True # not reverse
 		elif keytype == 's':
 			key = lambda name:(sortvalues.get(name) or '').lower()
 		
@@ -1153,7 +1148,7 @@ class DB(object):
 				add_to_viewdef(viewdef, i)
 
 			viewdef = " ".join(viewdef)
-			table = self.renderview(names, viewdef=viewdef, table=True, ctx=ctx, txn=txn)
+			table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
 
 		############################							
