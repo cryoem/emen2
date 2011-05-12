@@ -116,6 +116,11 @@ class DBOptions(optparse.OptionParser):
 		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
 		g.EMEN2DBHOME = EMEN2DBHOME
 
+		# Load web extensions
+		for p in self.values.ext or []:
+			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
+			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
+			
 		# Load view and template dirs
 		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
 			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
@@ -125,12 +130,6 @@ class DBOptions(optparse.OptionParser):
 			if not hasattr(pp, '__iter__'): pp = [pp]
 			sys.path.extend(pp)
 
-
-		# Load web extensions
-		for p in self.values.ext or []:
-			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
-			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
-			
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:

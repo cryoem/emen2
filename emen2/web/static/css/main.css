@@ -163,6 +163,7 @@ body {
 	min-height: 100%;
 	margin-left: auto;
 	margin-right: auto;
+	width: 1000px;
 }
 
 #content {
@@ -171,7 +172,7 @@ body {
 }
 
 /* This controls the width of the page */
-#alert, 
+/*#alert, 
 #pagescontainer_map,
 #buttons_main,
 #title,
@@ -181,6 +182,7 @@ body {
 	margin-left: auto;
 	margin-right: auto;
 }
+*/
 
 /******* TOP LEVEL ELEMENTS *******/
 
@@ -713,13 +715,20 @@ ul.nonlist
 
 
 /* all */
-#alert li, .notify, .page_map, .info {
+#alert li,
+.notify,
+.page_map,
+.info
+{
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;
 }
 
 /* top only */
-.recordtable, .button, .infobuttons {
+.recordtable,
+.button,
+.infobuttons
+{
 	-moz-border-radius-topright: 8px;
 	-moz-border-radius-topleft: 8px; 
 	-webkit-border-top-right-radius: 8px;
@@ -727,11 +736,21 @@ ul.nonlist
 }
 
 /* bottom only */
-.hidden, #title {
+.hidden, 
+#title
+{
 	-moz-border-radius-bottomright: 8px;
 	-moz-border-radius-bottomleft: 8px; 
 	-webkit-border-bottom-right-radius: 8px;
 	-webkit-border-bottom-left-radius: 8px; 	
+}
+
+/* left only */
+.roundleft {
+	-moz-border-radius-bottomleft: 8px;
+	-moz-border-radius-topleft: 8px; 
+	-webkit-border-bottom-left-radius: 8px;
+	-webkit-border-top-left-radius: 8px; 	
 }
 
 
