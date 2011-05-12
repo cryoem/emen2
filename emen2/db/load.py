@@ -41,7 +41,7 @@ def setup(rootpw=None, rootemail=None, db=None):
 				print "Warning! If you set a password, it needs to be more than 6 characters."
 				rootpw = getpass.getpass("Admin (root) password (default: none): ")
 
- 	infile = emen2.db.config.get_filename('emen2', 'skeleton/skeleton.json')
+ 	infile = emen2.db.config.get_filename('emen2', 'db/skeleton.json')
 	loader = Loader(infile=infile, db=db)
 	loader.load(rootemail=rootemail, rootpw=rootpw)
 

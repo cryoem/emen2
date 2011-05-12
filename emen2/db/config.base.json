@@ -1,0 +1,131 @@
+{
+	// These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
+	"paths":{
+
+		// Log directory: access.log, error.log, debug.log (see logging section) 
+		"LOGPATH": "applog",
+		"EMEN2JOBFILE": "applog/emen2job",
+		"EMEN2ERRLOG":"applog/emen2errlog",
+		"DEBUGLOG":"applog/debug.log",
+
+		// Berkeley DB Hot Backup directory, for incremental backups and failover. Backup offsite.
+		"HOTBACKUP": "db_hotbackup",
+
+		// Berkeley DB Log Archive directory. You will want to carefully back these up.
+		"LOG_ARCHIVE": "log_archive",
+
+		// Thumbnails and other files derived from primary data
+		"TILEPATH": "tiles",
+		
+		// Temporary directory to use for graphs and other temporary files
+		"TMPPATH": "tmp",
+		
+		/* Raw data storage area. You may want to place this on a large raid array.
+		You can also set this up to split file storage by date, e.g.:
+			'0': '/raid1/', 
+			'20080501': '/raid2/',
+			'20100101': '/raid3/'
+		Files from beginning -> May 2008 will be on /raid1, May 2008 to Jan 2010 on /raid2, and files after Jan 2010 on /raid3 */		
+		"BINARYPATH":{
+			"0": "emen2data"
+		},
+
+		// Path to SSL certificates
+		"SSLPATH": "ssl",
+
+		// Alternate views and templates to be loaded 
+		"TEMPLATEPATHS": ["templates"],
+		"VIEWPATHS": ["views"],
+
+		// Load additional files. Typically this will only be used by the system installed base config file.
+		"CONFIGFILES" :[
+			"/etc/emen2config.json",
+			"config.json"
+		]
+	},
+
+	// Mail settings. If both of these are set, EMEN2 will send emails during certain events.
+	"mailsettings":{
+		"MAILADMIN": "",
+		"MAILHOST": ""
+	},
+
+	// Web-server related settings
+	"network":{
+		
+		// Number of web server threads to run
+		"EMEN2EXTURI": "",
+
+		"NUMTHREADS": 5,
+		"EMEN2PORT": 8080,
+
+		// HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
+		"EMEN2HTTPS": 0,
+
+		// The EMEN2 URI root -- e.g., "/testserver" or "http://ncmidb.bcm.edu/challenge". Useful for running behind a reverse proxy.
+		"EMEN2WEBROOT": ""
+	},
+
+	// You probably don't want to change any of these.
+	"params":{
+		"BLOCKLENGTH": 100000,
+		"VERSION": 20100929,
+		"TIMESTR": "%Y/%m/%d %H:%M:%S",
+		"MAXRECURSE": 50,
+		"MAXIDLE": 604800,
+		"SNAPSHOT": 1
+	},
+	
+	// Berkeley DB cachesize (in megabytes), max transactions, and locks
+	"BDB": {
+		"CACHESIZE": 512
+	},
+
+	// Some basic settings and interface strings
+	"customization":{
+
+		// Short string for database identification. This shows up several places in the UI
+		"EMEN2DBNAME": "EMEN2",
+
+		// New users will be added to these groups
+		"GROUP_DEFAULTS": ["create"],
+		
+		// Logo in emen2/web/static/images to use
+		"EMEN2LOGO": "emen2logo-small.png",
+		
+		// These words will not be indexed
+		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]
+	},
+
+	// Bookmarks to some key records.
+	"bookmarks":{
+		"BOOKMARKS":{
+			"EQUIPMENT":0,
+			"GROUPS":0,
+			"PROJECTS":0
+		}
+	},
+
+	// Load the default templates.
+	"viewsettings":{
+		"TEMPLATEPATHS_DEFAULT":true
+	},
+
+	// Verbose logging
+	"logging":{
+		"DEBUG":false,
+		"LOG_LEVEL":"INFO"
+	},
+
+	// Path to EMAN2 python; if you are using an EMAN2 binary you will want to set this.
+	"EMAN2":{
+		"EMAN2PYTHON":"python"
+	},
+
+	// Path to ImageMagick programs. Used for generating thumbnails.
+	"IMAGEMAGICK":{
+		"CONVERTPATH":"convert"
+	}
+}
+
+
