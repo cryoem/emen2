@@ -2200,7 +2200,8 @@ class DB(object):
 		#@action
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
-		user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+		# user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
@@ -2222,7 +2223,7 @@ class DB(object):
 		"""
 		#@action
 		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
-		user.resetpassword()			
+		user.resetpassword()
 
 		# Use direct put to preserve the secret
 		self.bdbs.user.put(user.name, user, txn=txn)

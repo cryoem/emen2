@@ -75,11 +75,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		if self.disabled:
 			self.error(e=emen2.db.exceptions.DisabledUserError)
 
-		# The Context might not always be set for this method..
-		# An admin is allowed to login as another user.
-		# if self._ctx and self._ctx.checkadmin():
-		#	return True
-
 		# No password will always fail!
 		if self.password and self._hashpassword(password) == self.password:
 			return True
@@ -94,10 +89,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# checkpassword will sleep 2 seconds for each failed attempt
 		if not (self._checksecret('resetpassword', None, secret) or self.checkpassword(oldpassword)):
 			self.error(e=emen2.db.exceptions.AuthenticationError)
-
 		# You must be logged in as this user (or admin) AND know the old password. 
 		newpassword = self._hashpassword(self.validate_password(newpassword))	
-		self._set('password', newpassword, self.isowner())
+		self._set('password', newpassword, True)
 		self._delsecret()	
 
 
@@ -327,8 +321,8 @@ class User(BaseUser):
 
 	# I only have this method available on User, and not BaseUser.
 	def _checksecret(self, action, args, secret):
-		if self._ctx.checkadmin():
-			return True
+		#if and self._ctx.checkadmin():
+		#	return True
 		
 		if not hasattr(self, '_secret'):
 			self.__dict__['_secret'] = None			

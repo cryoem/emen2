@@ -306,9 +306,8 @@ class BaseDBObject(object, DictMixin):
 	def __getstate__(self):
 		"""Context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
-		# for i in (key for key in odict if key.startswith('_')):
 		for i in ['_ctx', '_ptest', '_userrec', '_groups', '_displayname', '_vtm', '_t']:
-				odict.pop(i, None)
+			odict.pop(i, None)
 		return odict
 
 
