@@ -118,6 +118,7 @@ class EMEN2Server(object):
 			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
 			jsonrpc = emen2.web.resources.jsonrpcresource.e2jsonrpc(),
 		)
+		self.resource_loader.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')))
 		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
 		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))
 
@@ -138,17 +139,18 @@ class EMEN2Server(object):
 
 		twisted.internet.reactor.listenTCP(g.EMEN2PORT, site)
 		g.info('Listening on port %d ...'%g.EMEN2PORT)
+				
+		if g.EMEN2HTTPS and ssl:
+			reactor.listenSSL(
+				g.EMEN2PORT_HTTPS,
+				site,
+				ssl.DefaultOpenSSLContextFactory(
+					os.path.join(g.paths.SSLPATH, "server.key"),
+					os.path.join(g.paths.SSLPATH, "server.crt")
+					)
+				)
 		
-		# if g.EMEN2HTTPS and ssl:
-		# 	reactor.listenSSL(
-		# 		g.EMEN2PORT_HTTPS,
-		# 		site,
-		# 		ssl.DefaultOpenSSLContextFactory(
-		# 			os.path.join(g.paths.SSLPATH, "server.key"),
-		# 			os.path.join(g.paths.SSLPATH, "server.crt")
-		# 			)
-		# 		)
-		# reactor.suggestThreadPoolSize(g.NUMTHREADS)
+		reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
 		g._locked = True
 		twisted.internet.reactor.run()
