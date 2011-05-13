@@ -66,8 +66,13 @@ h4 {
 
 h1 .label {
 	padding: 10px;
-	padding-top: 10px;
-	float: right
+	float: right;
+	display: block;
+}
+
+.search {
+	padding-top:6px !important;
+	font-size:10pt !important;
 }
 
 table {
@@ -160,7 +165,7 @@ th {
 #nav li.logo img {
 	height:38px;
 }
-#nav li.quicksearch {
+#nav li.search {
 	padding-top:7px;
 }
 #nav li ul {
@@ -204,7 +209,7 @@ th {
 }
 
 .hidden {
-	z-index:2000;
+	z-index:103;
 	font-size:12pt;
 	padding: 10px;
 	display: none;
@@ -244,10 +249,6 @@ button, select, input, textarea {
 	padding:4px;
 	font-size:12pt;
 }
-#nav input, #nav button {
-	font-size:10pt;
-}
-
 button, input[type=button], input[type=submit], input[type=file], input[type=password] {
 	outline:medium none;	
 	display:inline-block;
@@ -531,6 +532,14 @@ h1 .label
 {
 	font-size: 12pt;
 }
+
+#editbar li.edit input,
+.search input,
+.search button
+{
+	font-size:10pt;
+}
+
 
 #editbar > li {
 	font-size:10pt;

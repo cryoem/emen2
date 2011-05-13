@@ -7,9 +7,10 @@
     $.widget("ui.RelationshipControl", {
 
 		options: {
-			action: "reroot",
+			action: "view",
 			attach: false,
 			controls: true,
+			sitemap: false,
 			cb: function(){},
 			expandable: true,
 			root: null,
@@ -30,7 +31,10 @@
 										
 			if (this.options.attach) {
 				this.bind_ul(this.element);
-			} else {			
+				if (this.options.sitemap) {
+					this.build_sitemap()
+				}
+			} else {		 	
 				this.element.click(function() {
 					self.event_click();
 				});	
@@ -42,7 +46,6 @@
 			var self = this;
 			this.build();
 		},
-			
 	
 		/////////////////////////////////
 		// Build the container..	
@@ -60,7 +63,7 @@
 
 			// Append the table area to the dialog, then the dialog to the element..
 			this.element.append(this.dialog);
-			
+					
 			if (!this.options.controls) {
 				var ul = $('<div class="ulm '+this.options.mode+'"></div>');
 				this.dialog.append(ul);
@@ -74,12 +77,9 @@
 						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
 						<div class="addchildren floatleft" style="width:249px;"> Children </div> \
 					</div>');
-
 						
 			var parents = $('<div class="ulm parents floatleft" style="width:245px"></div>');
 			var children = $('<div class="ulm children floatleft" ></div>');
-			// var cont = $('<div class="scrolly"></div>');
-			// cont.append(parents, children);
 			this.dialog.append(p, parents, children);
 
 			this.setaction(this.options.action);
@@ -100,11 +100,22 @@
 			}
 		},
 		
+		build_sitemap: function() {
+			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
+						<div class="addchildren floatleft" style="width:249px;"> Children </div> \
+					</div>');						
+			this.element.prepend(p);
+			if (this.options.embed) {
+				this.build_addsimple();
+			}
+			this.setaction(this.options.action);
+		},
+		
 		build_addsimple: function() {
 			var self = this;
 			var cb = function(parent,key){
 			}
-
 			// Adding this back to help users..
 			var addparents = $('<input type="button" name="addparents" class="save" value="+" />').click(function() {
 				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
@@ -119,7 +130,6 @@
 			
 			$('.addparents', this.dialog).prepend(addparents);
 			$('.addchildren', this.dialog).prepend(addchildren);
-
 			// $('input[name=addparents]', p).click(function() {
 			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			// });
@@ -162,14 +172,12 @@
 
 			parents_ul.empty();			
 			parents_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
-
 			this.build_ul(children_ul, key);
 
 			// get the parents through an RPC call
 			$.jsonRPC("getparents", [key, 1, null, this.options.keytype], function(parents) {
 				caches['parents'][key] = parents;
 				self.getviews(parents, function(){
-
 					// build the parents..
 					parents_ul.empty();				
 					var ul = $('<ul></ul>');
@@ -184,13 +192,11 @@
 					
 					// rebind!
 					self.bind_ul(parents_ul);
-
 				});
 			})
 		},
 
 		setaction: function(action) {
-			
 			this.options.action = action;
 			var self = this;
 			
@@ -200,6 +206,7 @@
 
 			// Tool selector
 			var action = $('<select> \
+				<option value="view">View</option> \
 				<option value="reroot">Navigate</option> \
 				<option value="move">Move</option> \
 				<option value="delete">Delete</option> \
@@ -248,6 +255,10 @@
 			var target = $(e.target);
 			var key = target.attr('data-key');
 			if (this.options.action == null) {return}				
+
+			if (this.options.action == 'view') {
+				return
+			}
 			e.preventDefault();
 
 			// some tool specific behaviors..
@@ -546,7 +557,8 @@
 			
 			$('img.expand', root).click(function() {self.toggle(this)});
 
-			if (this.options.attach) {
+			// If this is a simple, non-editable map..
+			if (!this.options.controls) {
 				return
 			}
 
@@ -578,11 +590,6 @@
 })(jQuery);
 
 
-$(document).ready(function() {
-	$('.ulm').RelationshipControl({
-		"attach":true
-	});
-});	
 
 
 

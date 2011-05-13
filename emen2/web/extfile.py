@@ -84,7 +84,6 @@ class BaseCSS(ExtFile):
 		addfiles = [
 			'main.css',
 			'colors.css',
-			'query.css',
 			'boxer.css',
 			'calendar.css'
 		]
