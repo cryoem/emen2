@@ -98,7 +98,7 @@
 					if (self.options.edit) {
 						row.append('<td><input type="checkbox" name="remove"/></td>');
 					}
-					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="" /></a></td>');
+					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="Thumb" /></a></td>');
 					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
 					row.append('<td>'+$.convert_bytes(v.filesize)+'</td>');
 					row.append('<td>'+v.creator+'</td>');

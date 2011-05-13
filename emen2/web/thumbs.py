@@ -58,7 +58,7 @@ def run_from_bdo(bdoo, wait=False):
 	args.append("--convert=%s" % g.CONVERTPATH)
 	args.append(filepath)
 
-	print "running: %s"%args
+	print "Thumbnails: %s"%args
 	a = subprocess.Popen(args)
 	if wait:
 		a.wait()
@@ -82,6 +82,7 @@ interactive web browsing."""
 	parser.add_option("--thumb", action="store_true", default=True, help="Build 128x128")
 	parser.add_option("--pspec",action="store_true", default=False, help="If set, then builds 1D and 2D power spectra for the images when building")
 	parser.add_option("--tilesize", type="int", default=256, help="Build a new tile file from this image")
+	parser.add_option("--force", action="store_true", help="Force rebuild, ignore locks")
 
 	(parsedoptions, args) = parser.parse_args()
 	if len(args)<1:
@@ -115,6 +116,9 @@ interactive web browsing."""
 			options['compress'] = 'bz2'
 
 
+	# print "outpath:", options['outpath']
+	
+
 	if options['type'] in ['dm3', 'mrc', 'tiff', 'tif']:
 		processor = EMAN2Build(filepath, options=options)
 
@@ -123,7 +127,6 @@ interactive web browsing."""
 
 	else:
 		parser.error("Unsupported file format")
-
 
 	processor.build(convertutil=parsedoptions.convert)
 
@@ -175,7 +178,7 @@ class ImageBuild(Builder):
 
 		args.append(self.filepath)
 		args.append(outfile)
-		print "running: %s"%args
+		# print "running: %s"%args
 		# join to a string, not sure why it doesn't work without it..
 		a = subprocess.Popen(" ".join(args), shell=True)
 		a.wait()
@@ -225,8 +228,7 @@ class EMAN2Build(Builder):
 
 
 	def build(self, convertutil=None):
-		print "Building: %s"%(self.filepath)
-
+		# print "Building: %s"%(self.filepath)
 		if not os.access(self.filepath, os.F_OK):
 			return
 
@@ -245,7 +247,7 @@ class EMAN2Build(Builder):
 			bn = os.path.basename(self.filepath)
 			workfile = "%s.%s"%(bn, self.options.get('type'))
 			workfile = os.path.join(self.tmpdir, workfile)
-			print "Decompressing to %s"%workfile
+			# print "Decompressing to %s"%workfile
 			os.system("%s -d -c %s > %s"%(compress, self.filepath, workfile))
 
 		
@@ -255,7 +257,7 @@ class EMAN2Build(Builder):
 
 
 	def _build_scale(self, img, size, outfile):
-		print "Building scaled image: %s %s"%(size, outfile)
+		# print "Building scaled image: %s %s"%(size, outfile)
 		img2 = img.copy()
 		thumb_scale = img2.get_xsize()/float(size), img2.get_ysize()/float(size)
 		sc = ceil(max(thumb_scale))
@@ -337,7 +339,7 @@ class EMAN2Build(Builder):
 				a.process_inplace("math.log")
 				a.set_attr("render_min", a.get_attr("minimum") - a.get_attr("sigma") * .1)
 				a.set_attr("render_max", a.get_attr("mean") + a.get_attr("sigma") * 4.0)
-				print "Writing ", self.getoutfile("pspec.png")
+				# print "Writing ", self.getoutfile("pspec.png")
 				a.write_image(self.getoutfile("pspec.png"))
 
 				x = range(0,255) # numpy.arange(0,255,1.0)
@@ -357,7 +359,7 @@ class EMAN2Build(Builder):
 
 
 
-		print "Saving to %s"%self.getoutfile("tile")
+		# print "Saving to %s"%self.getoutfile("tile")
 		tf = file(self.getoutfile("tile"),"w")
 		pickle.dump(tile_dict, tf)
 
