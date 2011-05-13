@@ -113,7 +113,7 @@
 			value: '',
 			modal: true,
 			vartype: null,
-			minimum: 0,
+			minimum: 2,
 			cb: function(self, value){self.element.val(value)}
 		},
 				
