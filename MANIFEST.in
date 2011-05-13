@@ -1,4 +1,4 @@
 recursive-include emen2/templates *.mako
 recursive-exclude emen2/templates \.*
-recursive-include emen2/skeleton *.json
+recursive-include emen2/db *.json
 graft emen2/static
