@@ -283,7 +283,7 @@ function newrecord_init(rec) {
 	var name = rec.name;
 	caches["recs"][name] = rec;
 
-	$(".editbar .tools").EditbarHelper({
+	$("#editbar .tools").EditbarHelper({
 		width:400,
 		show: true,
 		reflow: "#rendered"
@@ -291,7 +291,8 @@ function newrecord_init(rec) {
 
 	$('#newrecord_save').MultiEditControl({
 		name: name,
-		show: true
+		show: true,
+		newrecordpage: true
 		});
 	
 	$('#newrecord_permissions').PermissionControl({
@@ -307,7 +308,7 @@ function newrecord_init(rec) {
 	// Change the text of file upload elements..
 	$('.editable_files .label').html('(The record must be saved before files can be attached)');
 
-	$('.editbar .change select').change(function(){
+	$('#editbar .change select').change(function(){
 		var parent = $(this).attr('data-parent');
 		notify_post(EMEN2WEBROOT+'/record/'+parent+'/new/'+$(this).val()+'/', []);
 	});
@@ -326,11 +327,11 @@ function record_init(rec, ptest, edit) {
 	$('.newrecord').NewRecord({});
 	
 	// Bind editable widgets
-	$('.editbar .edit .label').MultiEditControl({});
+	$('#editbar .edit .label').MultiEditControl({});
 	$('.editable').EditControl({});
 	// $('.editable_files').FileControl({});
 
-	$('.editbar .edit').EditbarHelper({
+	$('#editbar .edit').EditbarHelper({
 		bind: false,
 		reflow: '#rendered',
 		cb: function(self) {
@@ -340,12 +341,12 @@ function record_init(rec, ptest, edit) {
 	});
 	
 	if (edit) {
-		$('.editbar .edit .label').MultiEditControl('event_click');
+		$('#editbar .edit .label').MultiEditControl('event_click');
 	}	
 
 
 	// Permissions editor
-	$('.editbar .permissions').EditbarHelper({
+	$('#editbar .permissions').EditbarHelper({
 		width: 640,
 		cb: function(self){
 			self.popup.PermissionControl({
@@ -362,7 +363,7 @@ function record_init(rec, ptest, edit) {
 	var showattachments = (window.location.hash.search('showattachments'));
 	if (showattachments>-1){showattachments=true}
 
-	$('.editbar .attachments').EditbarHelper({
+	$('#editbar .attachments').EditbarHelper({
 		width:600,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
@@ -376,19 +377,19 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	// New record editor
-	$('.editbar .newrecordselect').EditbarHelper({
+	$('#editbar .newrecordselect').EditbarHelper({
 		width:300,
 		cb: function(self){
-			self.popup.NewRecordSelect({
-				name: name,
-				embed: true,
-				show: true
+			self.popup.NewRecord({
+				embedselector: true,
+				showselector: true,
+				parent: name 
 				});
 			}
 	});		
 
 	// Relationship editor
-	$(".editbar .relationships").EditbarHelper({		
+	$("#editbar .relationships").EditbarHelper({		
 		width: 780,
 		cb: function(self){
 			self.popup.RelationshipControl({
@@ -401,12 +402,12 @@ function record_init(rec, ptest, edit) {
 	});	
 	
 	// Tools menu: e.q. common queries
-	$(".editbar .tools").EditbarHelper({width:300});	
+	$("#editbar .tools").EditbarHelper({width:400});	
 
 	// Change rendered view
-	$(".editbar .selectview").EditbarHelper({});	
+	$("#editbar .selectview").EditbarHelper({});	
 
-	$('.editbar [data-viewtype]').click(function(){
+	$('#editbar [data-viewtype]').click(function(){
 		var target=$("#rendered");
 		var viewtype=$(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);
@@ -414,7 +415,7 @@ function record_init(rec, ptest, edit) {
 	});
 
 	// Additional detailed information
-	$(".editbar .creator").EditbarHelper({
+	$("#editbar .creator").EditbarHelper({
 		width:200
 	});
 
@@ -435,7 +436,7 @@ function record_init(rec, ptest, edit) {
 	var showsiblings = (window.location.hash.search('showsiblings'));
 	if (showsiblings>-1){showsiblings=true}
 	
-	$(".editbar .siblings").EditbarHelper({
+	$("#editbar .siblings").EditbarHelper({
 		show: showsiblings,
 		width:250,
 		align: 'right',
@@ -485,7 +486,7 @@ function record_update(rec) {
 	rebuildviews('.view[data-name='+name+']');
 	$("#page_comments_comments").CommentsControl('rebuild');
 	$("#page_comments_history").HistoryControl('rebuild');
-	$('.editbar .attachments').AttachmentViewerControl('rebuild');	
+	$('#editbar .attachments').AttachmentViewerControl('rebuild');	
 }
 
 
@@ -661,7 +662,7 @@ function admin_userstate_form(elem) {
 		},
 		
 		show: function() {
-			$('.editbar .active').EditbarHelper('hide');
+			$('#editbar .active').EditbarHelper('hide');
 			this.build();
 			this.element.addClass('active');
 			this.options.cb(this);

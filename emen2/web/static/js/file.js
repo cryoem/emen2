@@ -153,7 +153,7 @@
 						</ul> \
 						<input type="file" name="filedata" size="6" /><br /> \
 				</div> \
-				<div class="controls"> \
+				<div style="clear:both;float:none" class="controls"> \
 					<input class="floatleft save" name="remove" type="button" value="Remove Selected" /> \
 					<input class="floatright save" name="save" type="submit" value="Upload Attachment" /> \
 				</div>');

@@ -77,6 +77,8 @@ def record_setstate(self, d):
 		d["history"] = d["_Record__history"]
 		d["comments"] = d["_Record__comments"]
 		d["permissions"] = d["_Record__permissions"]
+		print "OLD PERMISSIONS:"
+		print d['recid'], d['permissions']
 		d["groups"] = d["_Record__groups"]
 
 		d["creator"] = d["_Record__creator"]
@@ -145,7 +147,9 @@ def convert_rels(db):
 			rec = bdb.get(name, txn=txn)
 			rec.__dict__['parents'] = parents.get(rec.name, set(), txn=txn)
 			rec.__dict__['children'] = children.get(rec.name, set(), txn=txn)
-			print name, rec['parents'], rec['children']
+			# print name, rec['parents'], rec['children']
+			print "NEW PERMISSIONS"
+			print name, rec['permissions']
 			bdb.put(name, rec, txn=txn)
 		print "Done with", keytype
 	print "Done with everything"

@@ -77,8 +77,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 		# The Context might not always be set for this method..
 		# An admin is allowed to login as another user.
-		# if self._ctx and self._ctx.checkadmin():
-		# 	return True
+		if self._ctx and self._ctx.checkadmin():
+			return True
 
 		# No password will always fail!
 		if self.password and self._hashpassword(password) == self.password:

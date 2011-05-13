@@ -47,112 +47,14 @@ function bind_autocomplete(elem, param) {
 
 
 
-
-(function($) {
-    $.widget("ui.NewRecord", {
-		options: {
-			rectype: null,
-			parent: null,
-			private: null,
-			embed: false,
-			show: false,
-			cb_save: function(recs) {
-				window.location = EMEN2WEBROOT + '/record/' + recs[0].name;
-			},
-			cb_reload: function(recs) {
-				window.location = window.location;
-			}
-		},
-				
-		_create: function() {
-			var self = this;
-			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;
-			this.options.parent = this.element.attr('data-parent') || this.options.parent;
-			this.options.private = this.element.attr('data-private') || this.options.private;
-			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
-
-			if (this.element.attr('data-action') == 'reload') {
-				this.options.cb_save = this.options.cb_reload;
-			}
-
-			if (this.options.show) {
-				this.build();				
-			} else {
-				this.element.click(function(){self.build()});
-			}
-		},
-
-		build: function() {
-			var self = this;
-			this.dialog = $('<div><div class="form">Loading...</div><div class="controls" /></div>');
-
-			// $.jsonRPC("getrecorddef", [this.options.rectype], function(rd) {
-			// 	caches['recorddefs'][rd.name] = rd;
-			// 	$('.help', self.dialog).empty();
-			// 	$('.help', self.dialog).html(rd.desc_short);
-			// });
-		
-			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
-				rec.name = 'None';
-				caches['recs'][rec.name] = rec;
-					
-				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
-					$('.form', self.dialog).empty();
-					$('.controls', self.dialog).empty();
-
-					var content = $('<div></div>');
-					content.append(data);
-					$('.form', self.dialog).append(content);
-					
-					var controls = $('<div class="editcontrol"></div>');
-					$('.controls', self.dialog).append(controls);
-				
-					$('.editable', content).EditControl({
-						name:'None'
-					});
-					controls.MultiEditControl({
-						name:'None',
-						show:true,
-						cb_save: function(recs){
-							self.dialog.dialog('close');
-							self.options.cb_save(recs);
-						}
-					});
-				});
-			});
-					
-			this.element.append(this.dialog);
-			this.dialog.attr("title", "New "+this.options.rectype+", child of "+caches['recnames'][this.options.parent]);
-			if (!this.options.embed) {
-				this.dialog.dialog({
-					width: 800,
-					height: $(window).height()*0.8,
-					modal: true,
-					autoOpen: true
-				});
-			}
-		},	
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
-
-
-
-
-
-
 (function($) {
     $.widget("ui.MultiEditControl", {
 		options: {
 			show: false,
 			name: null,
 			selector: null,
+			reload: false,
+			newrecordpage: false,
 			cb_save: function(recs){}
 		},
 				
@@ -304,6 +206,13 @@ function bind_autocomplete(elem, param) {
 			});
 
 			$.jsonRPC("putrecord", [updated], function(recs) {
+				if (self.options.reload) {
+					window.location = window.location
+					return
+				} else if (self.options.newrecordpage) {
+					window.location = EMEN2WEBROOT + '/record/' + recs[0].name + '/';
+					return
+				}
 				$('.spinner', self.controls).hide();
 				$('input[name=save]', self.controls).val('Save');
 				$.each(recs, function() {
@@ -706,28 +615,46 @@ function bind_autocomplete(elem, param) {
 
 
 (function($) {
-    $.widget("ui.NewRecordSelect", {
+    $.widget("ui.NewRecord", {
 		options: {
+			// go to new record page instead of popup
+			newrecordpage: true,						
+			// show selector, show newrecord
+			embedselector: true,
+			showselector: false,
 			show: false,
-			name: null,
-			rectype: null,
-			modal: false,
 			embed: false,
-			inherit: true,
-			copy: false
+			// new record options
+			rectype: null,
+			parent: null,
+			private: false,
+			copy: false,
+			// callbacks
+			cb_save: function(recs) {
+				window.location = EMEN2WEBROOT + '/record/' + recs[0].name;
+			},
+			cb_reload: function(recs) {
+				window.location = window.location;
+			}
+			
 		},
 				
 		_create: function() {
 			this.typicalchld = [];
-			this.built = 0;
-			var self=this;
+			this.built = 0;			
+			this.built_selector = false;
+			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;
+			this.options.parent = this.element.attr('data-parent') || this.options.parent;
+			this.options.private = this.element.attr('data-private') || this.options.private;
+			this.options.copy = this.element.attr('data-copy') || this.options.copy;
+			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
 			
+			var self=this;
 			if (!this.options.embed) {
 				this.element.click(function(e){self.event_click(e)});
-			}
-			
-			if (this.options.show) {
-				this.event_click();
+			}			
+			if (this.options.show || this.options.showselector) {
+				this.show();
 			}
 		},
 		
@@ -735,92 +662,127 @@ function bind_autocomplete(elem, param) {
 			this.show();
 		},
 		
-		action: function(rectype) {		
-			// get some options..
-			var copy = false;
-			var private = false;
-			if($('input[name=private]', this.dialog).attr("checked")) {
-				private = true;
-			}
-			if ($('input[name=copy]', this.dialog).attr("checked")) {
-				copy = true;
-			}
-			var e = $('<div></div>');
-			$('body').append(e);			
-			e.NewRecord({
-				'parent':this.options.name,
-				'rectype':rectype,
-				'copy': copy,
-				'private': private,
-				'show': true
-			});
+		show: function() {
+			if (this.options.showselector) {
+				this.build_selector();
+			} else {
+				if (this.options.newrecordpage) {
+					this.action();
+				} else {
+					this.build_newrecord();
+				}
+			}	
 		},
-	
-		build: function() {
-			if (this.built) {
+		
+		action: function() {
+			var self = this;
+			if (this.options.newrecordpage) {
+				var link = EMEN2WEBROOT + '/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+				if (this.options.copy && this.options.private) {
+					link = link + '?private=1&amp;copy=1';
+				} else if (this.options.copy) {
+					link = link + '?copy=1';
+				} else if (this.options.private) {
+					link = link + '?private=1';
+				}
+				window.location = link;
+			} else {
+				this.build_newrecord();
+			}
+		},
+		
+		build_selector: function() {
+			var self = this;
+			if (this.built_selector) {
 				return
 			}
-			this.built = 1;
-			var self = this;
-			
-			this.dialog = $('<div />');
-
+			this.built_selector = true;
+			this.selectdialog = $('<div />');
 			this.typicalchld = $('<div>Loading</div>')
-			this.dialog.append('<h4>New Record Protocol</h4>', this.typicalchld);
-			
-			this.others = $('<div>Loading</div>')
-			this.dialog.append(this.others);
+			this.selectdialog.append('<h4>New Record Protocol</h4>', this.typicalchld);
+
+			// new record rectype
+			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
+			var s = $('<input type="text" name="newrecordselectother" value="" size="8" />');
+			s.FindControl({'keytype':'recorddef'});
+			s.click(function() {
+				$("#newrecordselectother").attr('checked', 'checked');
+			});
+			o.append(s);
+			this.selectdialog.append(o);
+
+			// options
 			ob = $('<div class="controls"><ul class="options nonlist"> \
 				<li><input type="checkbox" name="private" id="private" /> <label for="private">Private</label></li> \
 				<li><input type="checkbox" name="copy" id="copy" /> <label for="private">Copy values</label></li>  \
 				</ul></div>');
-			
-			if (!this.options.inherit) {
+			if (this.options.private) {
 				$("input[name=private]", ob).attr("checked", "checked");
 			}
 			if (this.options.copy) {
 				$("input[name=copy]", ob).attr("checked", "checked");
 			}
+			$('input[name=private]', ob).click(function() {
+				var value = $(this).attr('checked');
+				self.options.private = value;
+			});
+			$('input[name=copy]', ob).click(function() {
+				var value = $(this).attr('checked');
+				self.options.copy = value;
+			});
 
-			var b = $('<input type="button" value="New record" />');
-			
+			// action button
+			var b = $('<input type="button" value="New record" />');			
 			b.click(function() {
-				var b = $('input[name=newrecordselect]:checked', this.dialog);
+				var b = $('input[name=newrecordselect]:checked', this.selectdialog);
 				if (b.attr('data-other')) {
 					b = $('input[name=newrecordselectother]').val();
 				} else {
 					b = b.val();
 				}
 				if (!b) {return}
-				self.action(b);
+				self.options.rectype = b;
+				self.action();
 			});
-			
 			ob.append(b);			
-			this.dialog.append(ob);
+			this.selectdialog.append(ob);
 
-			if (this.options.embed) {
-				this.element.append(this.dialog);
-				return
+			// embed or popup selector dialog
+			if (this.options.embedselector) {
+				this.element.append(this.selectdialog);
+			} else {			
+				var pos = this.element.offset();
+				this.selectdialog.attr("title", "New Record");
+				this.selectdialog.dialog({
+					position: [pos.left, pos.top+this.element.outerHeight()],
+					autoOpen: true
+				});
 			}
 			
-			var pos = this.element.offset();
-			this.dialog.attr("title", "New Record");
-			this.dialog.dialog({
-				position: [pos.left, pos.top+this.element.outerHeight()],
-				autoOpen: true
+			// run a request to get the recorddef display names
+			$.jsonRPC("findrecorddef", {'record':[this.options.parent]}, function(rd) {
+				var typicalchld = [];
+				$.each(rd, function() {
+					self.rectype = this.name;
+					caches["recorddefs"][this.name] = this;
+					typicalchld = this.typicalchld;					
+				});
+				$.jsonRPC("getrecorddef", [typicalchld], function(rd2) {
+					$.each(rd2, function() {
+						caches["recorddefs"][this.name] = this;
+					})
+					self.build_typicalchld();
+				})
 			});
-			
 		},
 		
 		build_typicalchld: function() {
+			// callback for setting list of typical children
 			this.typicalchld.empty();
 			var self = this;
 			var t = caches["recorddefs"][this.rectype].typicalchld;
-			// ian: leave the typicalchld list unsorted -- higher items might have preference!!
-			// t.sort();
 			$.each(t, function() {
 				try {
-					//self.typicalchld.append('<div><a href="'+EMEN2WEBROOT+'/record/'+self.options.name+'/new/'+this+'/">'+caches["recorddefs"][this].desc_short+'</a></div>'); // ('+this+')
 					var i = $('<div><input type="radio" name="newrecordselect" value="'+this+'" id="newrecordselect_'+this+'"  /> <label class="clickable" for="newrecordselect_'+this+'">'+caches["recorddefs"][this].desc_short+'</label></div>');
 					self.typicalchld.append(i);
 				} catch(e) {
@@ -830,57 +792,56 @@ function bind_autocomplete(elem, param) {
 			var a = $('input[name=newrecordselect]:first', this.typicalchld).attr('checked', 'checked');
 		},
 		
-		build_others: function() {
-			this.others.empty();
-			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
-			var self = this;
-			var s = $('<input type="text" name="newrecordselectother" value="" size="8" />');
-			s.FindControl({'keytype':'recorddef'});
-			s.click(function() {
-				$("#newrecordselectother").attr('checked', 'checked');
-			});
-			o.append(s);
-			this.others.append(o);
-			
-		},
+		build_newrecord: function() {
+			this.newdialog = $('<div><div class="form">Loading...</div><div class="controls" /></div>');
+			// $.jsonRPC("getrecorddef", [this.options.rectype], function(rd) {
+			// 	caches['recorddefs'][rd.name] = rd;
+			// 	$('.help', self.newdialog).empty();
+			// 	$('.help', self.newdialog).html(rd.desc_short);
+			// });
 		
-		show: function() {
-			this.build();
+			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
+				rec.name = 'None';
+				caches['recs'][rec.name] = rec;
+					
+				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
+					$('.form', self.newdialog).empty();
+					$('.controls', self.newdialog).empty();
 
-			if (!this.options.embed) {this.dialog.dialog('open')}
-
-
-			var self = this;
-			$.jsonRPC("findrecorddef", {'record':[this.options.name]}, function(rd) {
-				var typicalchld = [];
-				$.each(rd, function() {
-					self.rectype = this.name;
-					caches["recorddefs"][this.name] = this;
-					typicalchld = this.typicalchld;					
+					var content = $('<div></div>');
+					content.append(data);
+					$('.form', self.newdialog).append(content);
+					
+					var controls = $('<div class="editcontrol"></div>');
+					$('.controls', self.newdialog).append(controls);
+				
+					$('.editable', content).EditControl({
+						name:'None'
+					});
+					controls.MultiEditControl({
+						name: 'None',
+						show: true,
+						cb_save: function(recs){
+							self.newdialog.dialog('close');
+							self.options.cb_save(recs);
+						}
+					});
 				});
-				
-				$.jsonRPC("getrecorddef", [typicalchld], function(rd2) {
-					$.each(rd2, function() {
-						caches["recorddefs"][this.name] = this;
-					})
-					self.build_typicalchld();
-				})
-				
-				$.jsonRPC("getrecorddefnames", [], function(names) {
-					names.sort();
-					caches["recorddefnames"] = names;
-					self.build_others();
-				})
-				
-				
-			})
+			});
+					
+			this.element.append(this.newdialog);
+			this.newdialog.attr("title", "New "+this.options.rectype+", child of "+caches['recnames'][this.options.parent]);
 
-		},
-		
-		hide: function() {
-			this.build();
-			if (!this.options.embed) {this.dialog.dialog('close')}
-		},
+			// popup or embed
+			if (!this.options.embed) {
+				this.newdialog.dialog({
+					width: 800,
+					height: $(window).height()*0.8,
+					modal: true,
+					autoOpen: true
+				});
+			}
+		},		
 		
 		destroy: function() {
 		},

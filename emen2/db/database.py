@@ -989,7 +989,7 @@ class DB(object):
 			pos=0, 
 			count=0, 
 			sortkey="creationtime", 
-			reverse=False,
+			reverse=None,
 			names=False,
 			table=False,
 			stats=False,
@@ -1086,6 +1086,9 @@ class DB(object):
 		key = sortvalues.get
 		if sortkey in ['creationtime', 'recid', 'name']:
 			key = None
+			if reverse == None:
+				reverse = True
+			
 		elif keytype == 's':
 			key = lambda name:(sortvalues.get(name) or '').lower()
 		

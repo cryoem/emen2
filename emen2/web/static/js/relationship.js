@@ -69,10 +69,10 @@
 			}
 			
 			// build the ul.ulm elements, one for parents, and children
-			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;padding-bottom:6px;margin-bottom:6px;"> \
-						<div class="addparents floatleft" style="width:249px;">Parents</div> \
+			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="addparents floatleft" style="width:249px;"> Parents </div> \
 						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
-						<div class="addchildren floatleft" style="width:249px;">Children</div> \
+						<div class="addchildren floatleft" style="width:249px;"> Children </div> \
 					</div>');
 
 						
@@ -103,16 +103,15 @@
 		build_addsimple: function() {
 			var self = this;
 			var cb = function(parent,key){
-				console.log(parent,key);
 			}
 
 			// Adding this back to help users..
-			var addparents = $('<input type="button" name="addparents" class="save" value="+" /> ').click(function() {
+			var addparents = $('<input type="button" name="addparents" class="save" value="+" />').click(function() {
 				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			});
-			var addchildren = $('<input type="button" name="addchildren" class="save" value="+" /> ').click(function() {
+			var addchildren = $('<input type="button" name="addchildren" class="save" value="+" />').click(function() {
 				var cb = function(child) {self._action_addrel(self.options.root, child)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});

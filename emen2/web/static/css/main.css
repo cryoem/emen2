@@ -18,10 +18,10 @@ body
 }
 
 #pagescontainer_map,
-#buttons_main,
 #content
 {
 	padding-top:10px;
+	padding-bottom:10px;
 }
 
 #alert li,
@@ -90,7 +90,7 @@ th {
 
 .controls, 
 .recordtable .header > div,
-.editbar .clickable
+#editbar .clickable
 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
@@ -204,6 +204,8 @@ th {
 }
 
 .hidden {
+	z-index:2000;
+	font-size:12pt;
 	padding: 10px;
 	display: none;
 	position: absolute;
@@ -239,7 +241,11 @@ textarea {
 
 button, select, input, textarea {
 	border-width:1px;
-	padding:2px;
+	padding:4px;
+	font-size:12pt;
+}
+#nav input, #nav button {
+	font-size:10pt;
 }
 
 button, input[type=button], input[type=submit], input[type=file], input[type=password] {
@@ -249,7 +255,6 @@ button, input[type=button], input[type=submit], input[type=file], input[type=pas
 
 textarea, input[type=text], input[type=password] {
 	border:solid 1px #aaa;
-	margin-top:2px;
 }
 
 .save input, 
@@ -336,27 +341,27 @@ input.cancel
 
 /********** RECORD EDIT BAR ***********/
 
-.editbar_bottom {
+#editbar_bottom {
 	border-top:solid 1px #ccc;
 	margin:0px;
 	padding:0px;
 	margin-bottom:10px;
 }
 
-.editbar {
+#editbar {
 	list-style: none;
 	padding:0px;
 	margin:0px;
 }
 
-.editbar .clickable,
-.editbar .clickable:hover,
-.editbar a:hover
+#editbar .clickable,
+#editbar .clickable:hover,
+#editbar a:hover
 {
 	text-decoration:none;
 }
 
-.editbar > li {
+#editbar > li {
 	border-right:solid 1px #ccc;
 	border-top:solid 1px #fff;
 	border-top-color:#fff;
@@ -365,27 +370,27 @@ input.cancel
 	float: left;
 }
 
-.editbar .siblings {
+#editbar .siblings {
 	float: right;
 }
-.editbar > li:last-child {
+#editbar > li:last-child {
 	border-right: none;
 } 
-.editbar img {
+#editbar img {
 	vertical-align: middle;
 	margin: 0px;
 }
-.editbar_reflow_hack {
+#editbar_reflow_hack {
 	margin-top: 200px;
 }
 .editbar_uglydiv {
 	position:absolute;
 }
-.editbar .active {
+#editbar .active {
 	border-top:solid 1px #ccc;
 	border-right:solid 1px #ccc !important;
 }
-.editbar .siblings.active {
+#editbar .siblings.active {
 	border-left:solid 1px #ccc;
 }
 
@@ -424,6 +429,7 @@ input.cancel
 }
 
 .pagescontainer {
+	padding-top:20px;
 }
 
 .page {
@@ -526,9 +532,12 @@ h1 .label
 	font-size: 12pt;
 }
 
+#editbar > li {
+	font-size:10pt;
+}
+
 .small, 
 .ulm, 
-.editbar,
 .button_map
 {
 	font-size: 10pt;
@@ -586,6 +595,7 @@ ul.nonlist
 {
 	list-style: none;
 	text-indent: 0px;
+	padding-left: 0px;
 }
 
 .show {
