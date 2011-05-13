@@ -275,12 +275,11 @@ class BaseDBObject(object, DictMixin):
 	def isowner(self):
 		if self._ctx.checkadmin():
 			return True
-		if self._ctx.username == self.creator:
+
+		if self._ctx.username == getattr(self, 'creator', None):
 			return True
-		try:
-			return self._ctx.username == self.owner
-		except AttributeError:
-			return False
+
+		return self._ctx.username == getattr(self, 'owner', None)
 		
 
 	def writable(self, key=None):
