@@ -141,7 +141,7 @@ class EMEN2Server(object):
 		g.info('Listening on port %d ...'%g.EMEN2PORT)
 				
 		if g.EMEN2HTTPS and ssl:
-			reactor.listenSSL(
+			twisted.internet.reactor.listenSSL(
 				g.EMEN2PORT_HTTPS,
 				site,
 				ssl.DefaultOpenSSLContextFactory(
@@ -150,7 +150,7 @@ class EMEN2Server(object):
 					)
 				)
 		
-		reactor.suggestThreadPoolSize(g.NUMTHREADS)
+		twisted.internet.reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
 		g._locked = True
 		twisted.internet.reactor.run()

@@ -49,6 +49,10 @@ class BaseJS(ExtFile):
 		super(BaseJS, self).init()
 
 		addfiles = [
+			'jquery/jquery.js',
+			'jquery/jquery-ui.js',
+			'jquery/jquery.json.js',
+			'jquery/jquery.timeago.js',
 			"calendar.js",
 			"comments.js",
 			"edit.js",
@@ -61,27 +65,19 @@ class BaseJS(ExtFile):
 			"table.js",
 			"tile.js",
 			"util.js",
-			"test.js"
+			"test.js",
 			]
 
-		self.files = [
-			self.dbtree.reverse('TemplateRender', t='/js/settings.js'),
-			# '%s/static/js/protovis/protovis-r3.2.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery-ui.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.json.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.colorPicker.js'%g.EMEN2WEBROOT,
-			'%s/static/js/jquery/jquery.timeago.js'%g.EMEN2WEBROOT
-			]
-
+		self.files = [self.dbtree.reverse('TemplateRender', t='/js/settings.js')]
 		for i in addfiles:
-			self.files.append('%s/static/js/%s'%(g.EMEN2WEBROOT, i))
+			self.files.append('%s/static-%s/js/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
 
 
 class BaseCSS(ExtFile):
 	def init(self):
 		super(BaseCSS, self).init()
 		addfiles = [
+			'custom-theme/jquery-ui-1.8.2.custom.css',
 			'main.css',
 			'colors.css',
 			'boxer.css',
@@ -89,10 +85,8 @@ class BaseCSS(ExtFile):
 		]
 
 		self.files = []
-		self.files.append('%s/static/css/custom-theme/jquery-ui-1.8.2.custom.css' % g.EMEN2WEBROOT)
-
 		for i in addfiles:
-			self.files.append('%s/static/css/%s'%(g.EMEN2WEBROOT, i))
+			self.files.append('%s/static-%s/css/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
 			
 		self.files.append(self.dbtree.reverse('TemplateRender', t='/css/main.css'))
 
