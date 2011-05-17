@@ -693,13 +693,11 @@ class DB(object):
 		
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
 		"""(Internal) Find referenced users/binaries."""
-		
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
 		# print "getting recs"
 		if recnames:
-			recs.extend(self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn))
-
+			recs.extend(self.bdbs.record.cgets(recnames, filt=False, ctx=ctx, txn=txn))
 		if not recs:
 			return values
 		
@@ -886,7 +884,12 @@ class DB(object):
 		
 		return newcontext.name
 
-
+	
+	@publicmethod("auth.login_compat", write=True)
+	def _login(self, *args, **kwargs):
+		return self.login(*args, **kwargs)
+			
+			
 	# Logout is the same as delete context
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
@@ -2782,6 +2785,11 @@ class DB(object):
 		@exception KeyError if Binary not found, 
 			SecurityError if insufficient permissions
 		"""
+		# This call to findbinary is a deprecated feature
+		# that remains for backwards compat
+		bdos, recnames, other = listops.typepartition(names, str, int)
+		if recnames:
+			return self.findbinary(record=recnames, ctx=ctx, txn=txn)
 		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
