@@ -394,6 +394,9 @@ input.cancel
 #editbar .siblings.active {
 	border-left:solid 1px #ccc;
 }
+#editbar .bookmarks {
+	width:16px;
+}
 
 /************* INLINE EDITBALE ITEMS  ************/
 

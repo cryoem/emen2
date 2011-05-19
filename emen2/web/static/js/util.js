@@ -619,9 +619,145 @@ function admin_userstate_form(elem) {
 //  fit in any other files..
 ///////////////////////////////////////////////////
 
+(function($) {
+    $.widget("ui.Bookmarks", {
+		options: {
+			mode: null,
+			parent: 271390
+		},
+				
+		_create: function() {
+			this.options.parent = this.element.attr('data-parent') || this.options.parent;
+			this.options.mode = this.element.attr('data-mode') || this.options.mode;
+			this.options.name = this.element.attr('data-name') || this.options.name;			
+			this.built_bookmarks = 0;
+			var self = this;
+			if (this.options.mode) {
+				this.element.click(function() {self._action(self.options.mode, self.options.name)})
+			}			
+		},
+		
+		showbookmarks: function() {
+			if (this.built_bookmarks) {
+				return
+			}
+			//this.built_bookmarks = 1;
+			
+			var self = this;
+			var bookmarks = [];
+			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
+				$.jsonRPC('getrecord', [children], function(recs) {
+					$.each(recs, function() {
+						$.extend(bookmarks, this['bookmarks'] || []);
+					});
+					$.jsonRPC('renderview', [bookmarks], function(recnames) {
+						$.each(recnames, function(k,v) {
+							caches['recnames'][k] = v;
+						});
+						self._build_bookmarks(bookmarks);
+					});					
+				});
+			});
+		},
+				
+		_build_bookmarks: function(bookmarks) {
+			$('ul.bookmarks', this.element).remove();
+			var ul = $('<ul class="bookmarks"></ul>');
+			bookmarks.reverse();
+			$.each(bookmarks, function() {
+				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+caches['recnames'][this]+'</a></li>');
+				ul.append(li);
+			});
+			ul.append('<li class="divider"><a href="">Bookmark Manager</a></li>');
+			
+			this.element.append(ul);
+		},
+		
+		add_bookmark: function(name) {
+			this._action('add', name);
+		},
+		
+		remove_bookmark: function(name) {
+			this._action('remove', name);			
+		},
+		
+		toggle_bookmark: function(name) {
+			this._action('toggle', name);
+		},
+		
+		_action: function(action, name) {
+			var self = this;
+			
+			//$('img.star', this.element).
+			this.element.empty();
+			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
+			this.element.append(spinner);
+			
+			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
+				$.jsonRPC('getrecord', [children], function(recs) {
+					if (recs.length == 0) {
+						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parent': self.options.parent};
+					} else {
+						var rec = recs[0];
+					}
+					var bookmarks = rec['bookmarks'] || [];
+					name = parseInt(name);
+					var pos = $.inArray(name, bookmarks);
+
+					if (action == 'remove') {
+						if (pos > -1) {
+							bookmarks.splice(pos, 1);
+						}
+					} else if (action == 'add') {
+						if (pos == -1) {
+							bookmarks.push(name);
+						}
+					} else if (action == 'toggle') {
+						if (pos == -1) {
+							bookmarks.push(name);
+						} else {
+							bookmarks.splice(pos, 1);
+						}
+					}
+
+					var pos = $.inArray(name, bookmarks);
+					rec['bookmarks'] = bookmarks;
+
+					$.jsonRPC('putrecord', [rec], function(updrec) {
+						if (pos == -1) {
+							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-open.png" alt="Add Bookmark" />');
+						} else {
+							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-closed.png" alt="Bookmarked" />');							
+						}
+						self.element.empty();
+						self.element.append(star);
+					});
+
+					// // console.log(rec);
+					// console.log('updated bookmarks:', rec['bookmarks']);
+				});
+			});			
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+$(document).ready(function() {
+	$('#bookmarks').Bookmarks();
+	$('#bookmarks').hover(function() {$(this).Bookmarks('showbookmarks')}, function(){});
+	$('.setbookmark').Bookmarks({'mode':'toggle'});
+});
+
+
+
 ////////////////  "Drop-down Menu" ///////////////////
-
-
 (function($) {
     $.widget("ui.EditbarHelper", {
 		options: {

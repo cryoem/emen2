@@ -393,16 +393,12 @@ class View(_View):
 		HOST = getattr(ctx, 'host', None)
 
 		# ian: this is temp
-		user = ctx.db.getuser(ctx.username)
-		try:
-			displayname = user.displayname
-		except:
-			pass
-
-		try:
-			bookmarks = user.userrec.get('bookmarks', [])
-		except:
-			bookmarks = None
+		# user = ctx.db.getuser(ctx.username)
+		# try:
+		# 	displayname = user.displayname
+		# except:
+		# 	displayname = None
+		displayname = ctx.username
 
 		basectxt = dict(
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
@@ -411,8 +407,7 @@ class View(_View):
 			BOOKMARKS = g.BOOKMARKS,
 			LOGINUSER = LOGINUSER,
 			DISPLAYNAME = displayname,
-			USERBOOKMARKS = bookmarks,
-			HOST = HOST,
+			HOST = HOST
 		)
 
 		_View.__init__(self, _basectxt=basectxt, **extra)
