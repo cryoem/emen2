@@ -79,11 +79,17 @@ class Context(object):
 
 
 	def setdb(self, db=None):
-		if not db: return
+		if not db:
+			return
+
+		if not isinstance(db, emen2.db.proxy.DBProxy):
+			# g.warn("DBProxy created in Context %s"%self.name)
+			db = emen2.db.proxy.DBProxy(db=db, ctx=self)
+			
 		self.db = db
 
 
-	def refresh(self, user=None, grouplevels=None, host=None, db=None):
+	def refresh(self, grouplevels=None, host=None, db=None):
 		# Information the context needs to be usable
 		
 		if host != self.host:
@@ -97,8 +103,7 @@ class Context(object):
 		self.grouplevels = grouplevels or {}
 		self.setdb(db=db)
 
-		# userrec not used for now...
-		self.user = user
+		self.user = {} # self.db.getuser(self.username)
 		self.grouplevels["anon"] = 0
 		self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
 		self.groups = set(self.grouplevels.keys())
@@ -116,10 +121,6 @@ class Context(object):
 		return set(["admin","create"]) & self.groups or False
 
 
-	def _setDBProxy(self, txn=None):
-		if not isinstance(self.db, emen2.db.proxy.DBProxy):
-			# g.warn("DBProxy created in Context %s"%self.name)
-			self.db = emen2.db.proxy.DBProxy(db=self.db, ctx=self, txn=txn)
 
 
 

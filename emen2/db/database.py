@@ -941,11 +941,15 @@ class DB(object):
 		# Check for any scheduled actions
 		self.periodic_operations(ctx=ctx, txn=txn)
 
+
 		# Find the context; check the cache first, then the bdb.
 		# If no ctxid was provided, make an Anonymous Context.
-		context = None
+		context = self.contexts_cache.get(ctxid)
+		if context:
+			return context
+
 		if ctxid:
-			context = self.contexts_cache.get(ctxid) or self.bdbs.context.get(ctxid, txn=txn)
+			context = self.bdbs.context.get(ctxid, txn=txn)
 		else:
 			context = emen2.db.context.AnonymousContext(host=host)
 
@@ -960,7 +964,7 @@ class DB(object):
 
 		# Fetch the user record and group memberships
 		if context.username != 'anonymous':
-			user = self.bdbs.user.get(context.username, filt=False, txn=txn) 
+			# user = self.bdbs.user.get(context.username, filt=False, txn=txn)			
 			indg = self.bdbs.group.getindex('permissions', txn=txn)
 			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
@@ -970,7 +974,7 @@ class DB(object):
 
 		# Sets the database reference, user record, display name, groups, and updates
 		#	context access time.
-		context.refresh(user=user, grouplevels=grouplevels, host=host, db=self)
+		context.refresh(grouplevels=grouplevels, host=host, db=self)
 
 		# Keep contexts cached.
 		self.contexts_cache[ctxid] = context
