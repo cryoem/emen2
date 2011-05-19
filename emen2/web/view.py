@@ -382,6 +382,7 @@ class _View(object):
 		ur.register(cls.__url)
 		return cls
 
+
 class View(_View):
 	'''Contains DB specific view code'''
 
@@ -389,25 +390,21 @@ class View(_View):
 	def __init__(self, db=None, notify='', **extra):
 		self.__db = db
 		ctx = getattr(self.__db, '_getctx', lambda:None)()
-		LOGINUSER = getattr(ctx, 'username', None)
 		HOST = getattr(ctx, 'host', None)
 
-		# ian: this is temp
-		# user = ctx.db.getuser(ctx.username)
-		# try:
-		# 	displayname = user.displayname
-		# except:
-		# 	displayname = None
-		displayname = ctx.username
-
+		user = None
+		try:
+			user = ctx.db.getuser(ctx.username)
+		except:
+			pass
+			
 		basectxt = dict(
+			HOST = HOST,
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
 			EMEN2DBNAME = g.EMEN2DBNAME,
 			EMEN2LOGO = g.EMEN2LOGO,
 			BOOKMARKS = g.BOOKMARKS,
-			LOGINUSER = LOGINUSER,
-			DISPLAYNAME = displayname,
-			HOST = HOST
+			USER = user
 		)
 
 		_View.__init__(self, _basectxt=basectxt, **extra)

@@ -164,7 +164,6 @@ class MakoTemplateEngine(StandardTemplateEngine):
 					errmsg = '<br/><center>%s</center>' % e, title = 'Error',
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,
 					EMEN2LOGO = g.EMEN2LOGO, BOOKMARKS=g.BOOKMARKS,
-					LOGINUSER = None,
 					HOST = None,
 					js_files = emen2.web.extfile.BaseJS(ctxt), notify = '', ctxt=ctxt,
 					css_files = emen2.web.extfile.BaseCSS(ctxt),

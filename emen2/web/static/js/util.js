@@ -623,7 +623,7 @@ function admin_userstate_form(elem) {
     $.widget("ui.Bookmarks", {
 		options: {
 			mode: null,
-			parent: 271390
+			parent: null
 		},
 				
 		_create: function() {
@@ -646,16 +646,22 @@ function admin_userstate_form(elem) {
 			var self = this;
 			var bookmarks = [];
 			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
-				$.jsonRPC('getrecord', [children], function(recs) {
-					$.each(recs, function() {
-						$.extend(bookmarks, this['bookmarks'] || []);
-					});
-					$.jsonRPC('renderview', [bookmarks], function(recnames) {
+				children.sort();
+				var brec = null;
+				if (children.length > 0) {
+					brec = children[children.length-1];
+				}
+				$.jsonRPC('getrecord', [brec], function(rec) {
+					var brecs = [];
+					if (rec != null) {
+						var brecs = rec['bookmarks'] || [];
+					}
+					$.jsonRPC('renderview', [brecs], function(recnames) {
 						$.each(recnames, function(k,v) {
 							caches['recnames'][k] = v;
 						});
-						self._build_bookmarks(bookmarks);
-					});					
+						self._build_bookmarks(brecs);
+					});	
 				});
 			});
 		},
@@ -663,13 +669,15 @@ function admin_userstate_form(elem) {
 		_build_bookmarks: function(bookmarks) {
 			$('ul.bookmarks', this.element).remove();
 			var ul = $('<ul class="bookmarks"></ul>');
-			bookmarks.reverse();
+			bookmarks.reverse();			
+			if (bookmarks.length == 0) {
+				ul.append('<li><a href="">No bookmarks</a></li>');
+			}
 			$.each(bookmarks, function() {
 				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+caches['recnames'][this]+'</a></li>');
 				ul.append(li);
-			});
-			ul.append('<li class="divider"><a href="">Bookmark Manager</a></li>');
-			
+			});			
+			// ul.append('<li class="divider"><a href="">Bookmark Manager</a></li>');			
 			this.element.append(ul);
 		},
 		
@@ -688,6 +696,11 @@ function admin_userstate_form(elem) {
 		_action: function(action, name) {
 			var self = this;
 			
+			if (this.options.parent == null) {
+				alert("Can't add bookmark without user preferences record");
+				return
+			}
+			
 			//$('img.star', this.element).
 			this.element.empty();
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
@@ -696,7 +709,7 @@ function admin_userstate_form(elem) {
 			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
 				$.jsonRPC('getrecord', [children], function(recs) {
 					if (recs.length == 0) {
-						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parent': self.options.parent};
+						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parents': [self.options.parent]};
 					} else {
 						var rec = recs[0];
 					}
@@ -720,9 +733,9 @@ function admin_userstate_form(elem) {
 						}
 					}
 
-					var pos = $.inArray(name, bookmarks);
+					//var pos = $.inArray(name, bookmarks);
 					rec['bookmarks'] = bookmarks;
-
+					var pos = $.inArray(name, bookmarks);
 					$.jsonRPC('putrecord', [rec], function(updrec) {
 						if (pos == -1) {
 							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-open.png" alt="Add Bookmark" />');
