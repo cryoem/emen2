@@ -945,8 +945,8 @@ class DB(object):
 		# Find the context; check the cache first, then the bdb.
 		# If no ctxid was provided, make an Anonymous Context.
 		context = self.contexts_cache.get(ctxid)
-		if context:
-			return context
+		#if context:
+		#	return context
 
 		if ctxid:
 			context = self.bdbs.context.get(ctxid, txn=txn)
