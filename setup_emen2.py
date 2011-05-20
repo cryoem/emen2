@@ -51,7 +51,6 @@ static_files = \
 	filterwalk('emen2/', filetypes=['.json'])
 
 
-
 if __name__ == "__main__":
 	setup(
 		name='emen2',
@@ -62,7 +61,6 @@ if __name__ == "__main__":
 		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		download_url="%s/%s/emen2-%s.tar.gz"%(URLBASE, URLMAP.get(VERSION,'daily'), VERSION),
 		packages=[
-			'emen2',
 			'emen2.db',
 			'emen2.web',
 			'emen2.web.resources',
