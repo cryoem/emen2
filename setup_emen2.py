@@ -52,15 +52,6 @@ static_files = \
 
 
 
-# import distutils.command.build_ext
-# class build_test(distutils.command.build_ext.build_ext):
-# 	description = "Build against Berkeley DB and bsddb3"
-# 	def run(self):
-# 		# this method will need to liberally copy and paste from the parent class, and insert one or two changes...
-
-
-
-
 if __name__ == "__main__":
 	setup(
 		name='emen2',
@@ -77,17 +68,10 @@ if __name__ == "__main__":
 			'emen2.web.resources',
 			'emen2.web.views',
 			'emen2.util',
-			'jsonrpc',
-			'emdash',
-			'emdash.ui'
+			'jsonrpc'
 			],
-		package_data={
-			'emen2': static_files
-			},
-		scripts=[
-			'scripts/emen2control.py',
-			'scripts/emen2client.py'
-			]
+		package_data={'emen2': static_files},
+		scripts=['scripts/emen2control.py']
 		)
 
 

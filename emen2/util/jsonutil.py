@@ -22,14 +22,16 @@ def safe_encode(obj):
 	except TypeError: obj = str(obj)
 	return obj
 
-
 @make_decorator(json.dumps)
 def encode_(obj, *a, **kw):
 	obj = getattr(obj, 'json_equivalent', lambda: obj)()
 	func = lambda x: x
-	if hasattr(obj, 'items'): func = dict_encode
-	elif hasattr(obj, '__iter__'): func = list_encode
-	else: func = safe_encode
+	if hasattr(obj, 'items'):
+		func = dict_encode
+	elif hasattr(obj, '__iter__'):
+		func = list_encode
+	else:
+		func = safe_encode
 	return func(obj)
 
 decode_ = json.loads
