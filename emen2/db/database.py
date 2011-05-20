@@ -874,7 +874,7 @@ class DB(object):
 				user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 				user.checkpassword(password)
 			except (KeyError, emen2.db.exceptions.SecurityError):
-				raise AuthenticationError
+				raise AuthenticationError, AuthenticationError.__doc__
 			
 			# Create the Context for this user/host
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
