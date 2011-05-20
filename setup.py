@@ -22,33 +22,30 @@ def upload(v):
 	p = subprocess.Popen(["scp", infile, dest])
 	sts = os.waitpid(p.pid, 0)
 
-
-
-def filterwalk(path, filetypes=None):
-	filetypes = filetypes or []
-	ret = []
-	for i in os.walk(path):
-
-		base = i[0]
-		base = i[0].split(os.sep)[1:]
-		if base:
-			base = os.path.join(*base)
-		else:
-			base = ''
-
-		for j in i[2]:
-			ext = os.path.splitext(j)[-1]
-			if filetypes and ext not in filetypes:
-				continue
-			ret.append(os.path.join(base, j))
-
-	return ret
-
-
-static_files = \
-	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
-	filterwalk('emen2/templates', filetypes=['.mako']) + \
-	filterwalk('emen2/', filetypes=['.json'])
+# def filterwalk(path, filetypes=None):
+# 	filetypes = filetypes or []
+# 	ret = []
+# 	for i in os.walk(path):
+# 
+# 		base = i[0]
+# 		base = i[0].split(os.sep)[1:]
+# 		if base:
+# 			base = os.path.join(*base)
+# 		else:
+# 			base = ''
+# 
+# 		for j in i[2]:
+# 			ext = os.path.splitext(j)[-1]
+# 			if filetypes and ext not in filetypes:
+# 				continue
+# 			ret.append(os.path.join(base, j))
+# 
+# 	return ret
+# 
+# static_files = \
+# 	filterwalk('emen2/static', filetypes=['.png', '.gif', '.css', '.js', '.jpg', '.ico', '.txt']) +  \
+# 	filterwalk('emen2/templates', filetypes=['.mako']) + \
+# 	filterwalk('emen2/', filetypes=['.json'])
 
 
 if __name__ == "__main__":
@@ -61,6 +58,7 @@ if __name__ == "__main__":
 		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		download_url="%s/%s/emen2-%s.tar.gz"%(URLBASE, URLMAP.get(VERSION,'daily'), VERSION),
 		packages=[
+			'emen2',
 			'emen2.db',
 			'emen2.web',
 			'emen2.web.resources',
@@ -68,8 +66,5 @@ if __name__ == "__main__":
 			'emen2.util',
 			'jsonrpc'
 			],
-		package_data={'emen2': static_files},
 		scripts=['scripts/emen2control.py']
 		)
-
-
