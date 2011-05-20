@@ -121,7 +121,7 @@ function bind_autocomplete(elem, param) {
 			
 			this.controls = $('<div class="controls" />')		
 
-			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner show" alt="Loading" />');
+			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
 			this.controls.append(spinner);
 
 			var save = $('<input class="save" type="submit" name="save" value="Save" />');
