@@ -1,6 +1,5 @@
 ///////////////// Parameter Editor /////////////////////
 
-
 (function($) {
     $.widget("ui.ParamDefEditor", {
 		options: {
@@ -31,8 +30,6 @@
 				}
 
 				var defaultunits = valid_properties[val][0];
-				
-
 				var units = valid_properties[val][1];
 				$.each(units, function() {
 					var opt = $('<option value="'+this+'">'+this+'</option>');
@@ -54,7 +51,6 @@
 			
 			if (this.options.newdef) {
 				this.pd['parents'] = this.options.parents;
-				// args = [this.pd, this.options.parents];
 			}
 			$.jsonRPC("putparamdef", [this.pd], function(data){
 				$('.spinner', self.options.ext_save).hide();
@@ -208,6 +204,9 @@
 	
 		save: function() {
 			this.rd=this.getvalues();
+			if (this.options.newdef) {
+				this.rd['parents'] = this.options.parents;
+			}
 
 			var self=this;
 
