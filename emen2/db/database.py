@@ -941,15 +941,10 @@ class DB(object):
 		# Check for any scheduled actions
 		self.periodic_operations(ctx=ctx, txn=txn)
 
-
 		# Find the context; check the cache first, then the bdb.
 		# If no ctxid was provided, make an Anonymous Context.
-		context = self.contexts_cache.get(ctxid)
-		#if context:
-		#	return context
-
 		if ctxid:
-			context = self.bdbs.context.get(ctxid, txn=txn)
+			context = self.contexts_cache.get(ctxid) or self.bdbs.context.get(ctxid, txn=txn)
 		else:
 			context = emen2.db.context.AnonymousContext(host=host)
 
