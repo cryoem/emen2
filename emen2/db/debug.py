@@ -3,11 +3,11 @@
 '''
 classes:
 	Output: represents an individual output stream which logs certain specified states
-		| - Headless: skips the header information and just logs the message
-		| - Min: represents one which logs everything greater than a specified state
-		| | - stderr: logs to sys.stderr
-		| - Bounded: represents one which loges everything between two specified states
-		| | - stdout: logs to sys.stdout
+		- Headless: skips the header information and just logs the message
+		- Min: represents one which logs everything greater than a specified state
+		- stderr: logs to sys.stderr
+		- Bounded: represents one which loges everything between two specified states
+			- stdout: logs to sys.stdout
 
 	DebugState (NOTE: this probably should be renamed): contains a bunch of logging and
 					debugging utilities.
@@ -399,7 +399,7 @@ class DebugState(object):
 		'''
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
-			self.msg('INFO', 'debugging state -> %r, %r' % (self._state, self._log_state) )
+			self.msg('DEBUG', 'debugging state -> self._state: %r, self._log_state: %r' % (self._state, self._log_state) )
 			self.msg('DEBUG', 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
 			result = None
 			try:
@@ -414,7 +414,7 @@ class DebugState(object):
 				self.last_debugged = (func, args, kwargs)
 			return result
 		_inner.func = func
-		return _inner
+		return (_inner if self.debugstates.DEBUG  in (self._state, self._log_state) else func)
 
 	def instrument_class(self, name, bases, dict):
 		for nm,meth in [ (nm,meth) for nm,meth in dict.items() if hasattr(meth, '__call__')]:
