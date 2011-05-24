@@ -44,8 +44,7 @@ def take(num, iter_):
 class Output(object):
 	'''Controls access to a paricular output stream
 	- New subclasses should be registered with register_subclass and created with factory
-	- public interface:
-		check_state, disable, _init, _preprocess
+	- public interface: check_state, disable, _init, _preprocess
 		- check_state: should check to see if output should happen and set self._state_checked appropriately
 		- disable: should cause the stream to be disabled
 		- _init: should do stream initialization
