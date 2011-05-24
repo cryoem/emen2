@@ -233,10 +233,13 @@ class GlobalNamespace(object):
 				data = json_strip_comments(data)
 
 			data = loadfunc(data)
-		elif data.hasattr('upper'):
+
+		# elif data.hasattr('upper'):
+		elif hasattr(data, 'upper'):
 			loadfunc = json.loads
 			if yaml: load_func = yaml.safe_load
 			data = loadfunc(data)
+
 		return data
 
 
