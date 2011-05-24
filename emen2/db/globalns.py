@@ -234,7 +234,6 @@ class GlobalNamespace(object):
 
 			data = loadfunc(data)
 
-		# elif data.hasattr('upper'):
 		elif hasattr(data, 'upper'):
 			loadfunc = json.loads
 			if yaml: load_func = yaml.safe_load
