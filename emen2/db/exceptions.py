@@ -17,7 +17,7 @@ class AuthenticationError(ValueError):
 
 class ExistingAccount(ValueError):
 	"This Account Name or Email is already in use"
-    
+
 class DisabledUserError(ValueError):
     "Disabled User"
 

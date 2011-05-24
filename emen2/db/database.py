@@ -109,12 +109,13 @@ fakemodules()
 
 def clock(times, key=0, t=0, limit=60):
 	"""A timing method for controlling timeouts to prevent hanging.
-	 On operations that might take a long time, call this at each step
-	@param times Keep track of multiple times, e.g. debugging
-	@keyparam key Use this key in the times dictionary
-	@keyparam t Time at start of operation
-	@keyparam limit Maximum amount of time allowed in this timing dict
-	@return Time elapsed since start of operation (float)
+	On operations that might take a long time, call this at each step
+
+	:param times: Keep track of multiple times, e.g. debugging
+	:keyword key: Use this key in the times dictionary
+	:keyword t: Time at start of operation
+	:keyword limit: Maximum amount of time allowed in this timing dict
+	:return: Time elapsed since start of operation (float)
 	"""
 	t2 = time.time()
 	if not times.get(key):
@@ -128,7 +129,8 @@ def clock(times, key=0, t=0, limit=60):
 
 def check_output(args, **kwds):
 	"""Run a command using Popen and return the stdout.
-	@return stdout from the program after exit (str)
+
+	:return: stdout from the program after exit (str)
 	"""
 	kwds.setdefault("stdout", subprocess.PIPE)
 	kwds.setdefault("stderr", subprocess.STDOUT)
@@ -146,13 +148,13 @@ def DB_Close(*args, **kwargs):
 
 # ian: todo: make these express GMT, then localize using a user preference
 def getctime():
-	"""@return Current database time, as float in seconds since the epoch"""
+	""":return: Current database time, as float in seconds since the epoch"""
 	return time.time()
 
 
 
 def gettime():
-	"""@return Current database time, as string in format %s"""%g.TIMESTR
+	""":return: Current database time, as string in format %s"""%g.TIMESTR
 	return time.strftime(g.TIMESTR)
 
 
@@ -174,10 +176,10 @@ def ol(name, output=True):
 			else:
 				olreturn, olvalue = listops.oltolist(args[olpos])
 				args = list(args)
-				args[olpos] = olvalue				
+				args[olpos] = olvalue
 
 			result = f(*args, **kwargs)
-			
+
 			if output and olreturn:
 				return listops.first_or_none(result)
 			return result
@@ -190,8 +192,9 @@ def ol(name, output=True):
 
 def error(e=None, msg='', warning=False):
 	"""Error handler.
-	@keyparam msg Error message; default is Excpetion's docstring
-	@keyparam e Exception class; default is ValidationError
+
+	:keyword msg: Error message; default is Excpetion's docstring
+	:keyword e: Exception class; default is ValidationError
 	"""
 	if e == None:
 		e = SecurityError
@@ -210,18 +213,19 @@ def error(e=None, msg='', warning=False):
 
 def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
-	@param recipient Email recipient
-	@keyparam msg Message text, or
-	@keyparam template ... Template name
-	@keyparam ctxt ... Dictionary to pass to template
-	@return Email recipient, or None if no message was sent
+
+	:param recipient: Email recipient
+	:keyword msg: Message text, or
+	:keyword template: ... Template name
+	:keyword ctxt: ... Dictionary to pass to template
+	:return: Email recipient, or None if no message was sent
 	"""
-	
+
 	if not g.MAILADMIN:
 		g.warn("Couldn't get mail config: No email set for root")
 		return
 	if not g.MAILHOST:
-		g.warn("Couldn't get mail config: No SMTP Server")			
+		g.warn("Couldn't get mail config: No SMTP Server")
 		return
 
 	ctxt = ctxt or {}
@@ -263,7 +267,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 
 
 
-# ian: todo: have DBEnv and all BDBs in here -- 
+# ian: todo: have DBEnv and all BDBs in here --
 #	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
 
@@ -272,8 +276,9 @@ class EMEN2DBEnv(object):
 	def __init__(self, path=None, maintenance=False, snapshot=False):
 		"""EMEN2 Database Environment.
 		The DB files are accessible as attributes, and indexes are loaded in self.index.
-		@keyparam path Directory containing EMEN2 Database Environment.
-		@keyparam snapshot Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
+
+		:keyword path: Directory containing EMEN2 Database Environment.
+		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
 		self.keytypes = {}
 		self.path = path or g.EMEN2DBHOME
@@ -296,8 +301,8 @@ class EMEN2DBEnv(object):
 		for y in vtm.getvartypes():
 			y = vtm.getvartype(y)
 			if y.keytype:
-				self.indexablevartypes.add(y.getvartype())								
-			
+				self.indexablevartypes.add(y.getvartype())
+
 		#########################
 		# Open DB environment; check if global DBEnv has been opened yet
 		ENVOPENFLAGS = \
@@ -322,13 +327,13 @@ class EMEN2DBEnv(object):
 			txncount = (cachesize / 4096) * 2
 			if txncount > 1024*128:
 				txncount = 1024*128
-			
+
 			DBENV.set_cachesize(0, cachesize)
 			DBENV.set_tx_max(txncount)
 			DBENV.set_lk_max_locks(300000)
 			DBENV.set_lk_max_lockers(300000)
 			DBENV.set_lk_max_objects(300000)
-			
+
 			DBENV.open(self.path, ENVOPENFLAGS)
 			self.opendbs[self] = 1
 
@@ -338,22 +343,22 @@ class EMEN2DBEnv(object):
 		# Open Databases
 		if not maintenance:
 			self.init()
-	
-	
+
+
 	def getdbenv(self):
 		return self.dbenv
-		
+
 
 	def __getitem__(self, key, default):
 		return self.keytypes.get(key, default)
-		
+
 
 	def init(self):
 		"""Open the databases"""
-		
+
 		# Authentication
 		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
-		
+
 		# Security items
 		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
 		self.user = emen2.db.user.UserDB(path="user", dbenv=self)
@@ -378,7 +383,7 @@ class EMEN2DBEnv(object):
 
 	# ian: todo: make this nicer.
 	def close(self):
-		"""Close the Database Environment"""		
+		"""Close the Database Environment"""
 		for k,v in self.keytypes.items():
 			print "Closing", v
 			v.close()
@@ -393,23 +398,23 @@ class EMEN2DBEnv(object):
 
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
-		
+
 		if not os.access(self.path, os.F_OK):
 			os.makedirs(self.path)
 
 		# ian: todo: create the necessary subdirectories when creating a database
 		paths = [
-			"data", 
+			"data",
 			"log",
 			"overlay",
 			"overlay/views",
 			"overlay/templates"
 			]
-			
+
 		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary']:
 			for j in ['', '/index']:
 				paths.append('data/%s%s'%(i,j))
-			
+
 		paths = (os.path.join(self.path, path) for path in paths)
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
@@ -431,7 +436,7 @@ class EMEN2DBEnv(object):
 
 	def stat():
 		"""List some statistics about the Database Environment."""
-		
+
 		sys.stdout.flush()
 
 		tx_max = self.dbenv.get_tx_max()
@@ -454,14 +459,15 @@ class EMEN2DBEnv(object):
 	####################################
 	# Transaction management
 	####################################
-	
+
 	txncounter = 0
-	
+
 	def newtxn(self, parent=None, write=False):
 		"""Start a new transaction.
-		@keyparam parent Open new txn as a child of this parent txn
-		@keyparam write Transaction will be likely to write data; turns off Berkeley DB Snapshot
-		@return New transaction
+
+		:keyword parent: Open new txn as a child of this parent txn
+		:keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
+		:return: New transaction
 		"""
 
 		flags = bsddb3.db.DB_TXN_SNAPSHOT
@@ -483,12 +489,13 @@ class EMEN2DBEnv(object):
 
 	def txncheck(self, txnid=0, write=False, txn=None):
 		"""Check a transaction status, or create a new transaction.
-		@keyparam txnid Transaction ID
-		@keyparam write See newtxn
-		@keyparam txn An existing open transaction
-		@return Open transaction
+
+		:keyword txnid: Transaction ID
+		:keyword write: See newtxn
+		:keyword txn: An existing open transaction
+		:return: Open transaction
 		"""
-		
+
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
 			txn = self.newtxn(write=write)
@@ -497,11 +504,12 @@ class EMEN2DBEnv(object):
 
 	def txnabort(self, txnid=0, txn=None):
 		"""Abort transaction.
-		@keyparam txnid Transaction ID
-		@keyparam txn An existing open transaction
-		@exception KeyError if transaction was not found
+
+		:keyword txnid: Transaction ID
+		:keyword txn: An existing open transaction
+		:exception: KeyError if transaction was not found
 		"""
-		
+
 		txn = self.txnlog.get(txnid, txn)
 		# g.log.msg('TXN', "TXN ABORT --> %s"%txn)
 
@@ -516,11 +524,12 @@ class EMEN2DBEnv(object):
 
 	def txncommit(self, txnid=0, txn=None):
 		"""Commit a transaction.
-		@keyparam txnid Transaction ID
-		@keyparam txn An existing open transaction
-		@exception KeyError if transaction was not found
+
+		:keyword txnid: Transaction ID
+		:keyword txn: An existing open transaction
+		:exception: KeyError if transaction was not found
 		"""
-		
+
 		txn = self.txnlog.get(txnid, txn)
 		# g.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 
@@ -545,10 +554,11 @@ class EMEN2DBEnv(object):
 
 	def log_archive(self, remove=True, checkpoint=False, txn=None):
 		"""Archive completed log files.
-		@keyparam remove Remove the log files after moving them to the backup location
-		@keyparam checkpoint Run a checkpoint first; this will allow more files to be archived
+
+		:keyword remove: Remove the log files after moving them to the backup location
+		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
 		"""
-		
+
 		outpath = g.paths.LOG_ARCHIVE
 
 		if checkpoint:
@@ -567,7 +577,7 @@ class EMEN2DBEnv(object):
 
 	def _log_archive(self, archivefiles, outpath, remove=False):
 		"""(Internal) Backup database log files"""
-		
+
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
@@ -640,10 +650,11 @@ class DB(object):
 	def __init__(self, path=None):
 		"""Initialize DB.
 		Default path is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
-		@keyparam path Directory containing EMEN2 Database Environment.
+
+		:keyword path: Directory containing EMEN2 Database Environment.
 		"""
 		# Open the database
-		self.bdbs = EMEN2DBEnv(path=path)		
+		self.bdbs = EMEN2DBEnv(path=path)
 		# Periodic operations..
 		self.lastctxclean = time.time()
 		# Cache contexts
@@ -689,8 +700,8 @@ class DB(object):
 			#for rd in self.bdbs.recorddef.cgets(rds, ctx=ctx, txn=txn):
 			#	params |= set(rd.paramsK)
 		return params
-		
-		
+
+
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
 		"""(Internal) Find referenced users/binaries."""
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
@@ -700,10 +711,10 @@ class DB(object):
 			recs.extend(self.bdbs.record.cgets(recnames, filt=False, ctx=ctx, txn=txn))
 		if not recs:
 			return values
-		
-		# print "getting params"	
+
+		# print "getting params"
 		# get the params we're looking for
-		vtm = emen2.db.datatypes.VartypeManager()			
+		vtm = emen2.db.datatypes.VartypeManager()
 		vt = set()
 		vt_iterable = set()
 		vt_firstitem = set()
@@ -732,7 +743,7 @@ class DB(object):
 
 			for param in vt_firstitem:
 				values |= set([i[0] for i in rec.get(param,[])])
-		
+
 			for param in vt_iterable:
 				values |= set(rec.get(param, []))
 
@@ -745,12 +756,13 @@ class DB(object):
 
 	def _mapcommit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
 		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
-		@param keytype DBO keytype
-		@param names DBO names
-		@param method DBO method
-		@*args method args
-		@*kwargs method kwargs
-		@return Results of commit/puts
+
+		:param keytype: DBO keytype
+		:param names: DBO names
+		:param method: DBO method
+		:param *args: method args
+		:param *kwargs: method kwargs
+		:return: Results of commit/puts
 		"""
 
 		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
@@ -771,9 +783,10 @@ class DB(object):
 
 	def _run_macro(self, macro, names, ctx=None, txn=None):
 		"""(Internal) Run a macro over a set of Records.
-		@param macro Macro in view format: $@macro(args)
-		@param names Record names
-		@return Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
+
+		:param macro: Macro in view format: $@macro(args)
+		:param names: Record names
+		:return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
 		"""
 		recs = {}
 		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
@@ -797,7 +810,7 @@ class DB(object):
 	# Events
 	###############################
 
-	# ian: todo: hard: flesh this out into a proper cron system, 
+	# ian: todo: hard: flesh this out into a proper cron system,
 	# with a registration model; right now just runs cleanupcontext
 	# Currently, this is called during _getcontext, and calls
 	# cleanupcontexts not more than once every 10 minutes
@@ -834,8 +847,9 @@ class DB(object):
 	@publicmethod("version")
 	def checkversion(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program.
-		@keyparam program Check version for this program (API, emen2client, etc.)
-		@return Version string
+
+		:keyword program: Check version for this program (API, emen2client, etc.)
+		:return: Version string
 		"""
 		return VERSIONS.get(program)
 
@@ -843,8 +857,10 @@ class DB(object):
 	@publicmethod("time")
 	def gettime(self, ctx=None, txn=None):
 		"""Get current time.
-		@return Current time string, YYYY/MM/DD HH:MM:SS
+
+		:return: Current time string, YYYY/MM/DD HH:MM:SS
 		"""
+
 		return gettime()
 
 
@@ -856,13 +872,14 @@ class DB(object):
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
 		"""Login. Returns auth token (ctxid), or fails with AuthenticationError, SessionError, or KeyError.
-		@keyparam name Account name
-		@keyparam password Account password
-		@keyparam host Bind auth token to this host (usually set by the proxy)
-		@return Auth token (ctxid)
-		@exception AuthenticationError, SessionError, KeyError
+
+		:keyword name: Account name
+		:keyword password: Account password
+		:keyword host: Bind auth token to this host (usually set by the proxy)
+		:return: Auth token (ctxid)
+		:exception: AuthenticationError, SessionError, KeyError
 		"""
-		
+
 		# Make an anonymous Context
 		if name == "anonymous":
 			newcontext = emen2.db.context.AnonymousContext(host=host)
@@ -875,21 +892,21 @@ class DB(object):
 				user.checkpassword(password)
 			except (KeyError, emen2.db.exceptions.SecurityError):
 				raise AuthenticationError, AuthenticationError.__doc__
-			
+
 			# Create the Context for this user/host
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
-		
+
 		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
 		g.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
-		
+
 		return newcontext.name
 
-	
+
 	@publicmethod("auth.login_compat", write=True)
 	def _login(self, *args, **kwargs):
 		return self.login(*args, **kwargs)
-			
-			
+
+
 	# Logout is the same as delete context
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
@@ -900,7 +917,8 @@ class DB(object):
 	@publicmethod("auth.check.context")
 	def checkcontext(self, ctx=None, txn=None):
 		"""Return basic information about the current Context.
-		@return (Context User name, set of Context groups)
+
+		:return: (Context User name, set of Context groups)
 		"""
 		return ctx.username, ctx.groups
 
@@ -908,7 +926,8 @@ class DB(object):
 	@publicmethod("auth.check.admin")
 	def checkadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
-		@return True if user is an admin
+
+		:return: True if user is an admin
 		"""
 		return ctx.checkadmin()
 
@@ -916,7 +935,8 @@ class DB(object):
 	@publicmethod("auth.check.readadmin")
 	def checkreadadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
-		@return True if user is a read admin
+
+		:return: True if user is a read admin
 		"""
 		return ctx.checkreadadmin()
 
@@ -924,7 +944,8 @@ class DB(object):
 	@publicmethod("auth.check.create")
 	def checkcreate(self, ctx=None, txn=None):
 		"""Check for permission to create records.
-		@return True if the user can create records
+
+		:return: True if the user can create records
 		"""
 		return ctx.checkcreate()
 
@@ -932,10 +953,11 @@ class DB(object):
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
 		"""(Internal and DBProxy) Takes a ctxid key and returns a context.
 		Note: The host provided must match the host in the Context
-		@param ctxid ctxid
-		@param host host
-		@return Context
-		@exception SessionError
+
+		:param ctxid: ctxid
+		:param host: host
+		:return: Context
+		:exception: SessionError
 		"""
 
 		# Check for any scheduled actions
@@ -959,7 +981,7 @@ class DB(object):
 
 		# Fetch the user record and group memberships
 		if context.username != 'anonymous':
-			# user = self.bdbs.user.get(context.username, filt=False, txn=txn)			
+			# user = self.bdbs.user.get(context.username, filt=False, txn=txn)
 			indg = self.bdbs.group.getindex('permissions', txn=txn)
 			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
@@ -983,14 +1005,14 @@ class DB(object):
 	###############################
 
 	@publicmethod("record.query")
-	def query(self, 
-			c=None, 
-			boolmode="AND", 
-			ignorecase=True, 
-			subset=None, 
-			pos=0, 
-			count=0, 
-			sortkey="creationtime", 
+	def query(self,
+			c=None,
+			boolmode="AND",
+			ignorecase=True,
+			subset=None,
+			pos=0,
+			count=0,
+			sortkey="creationtime",
 			reverse=None,
 			names=False,
 			table=False,
@@ -1019,15 +1041,15 @@ class DB(object):
 				i = [i]
 			i = i[:len(i)]+default[len(i):3]
 			_c.append(i)
-			
-		_cm, _cc = listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)		
-		
+
+		_cm, _cc = listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)
+
 		recs = collections.defaultdict(dict)
-				
-		############################				
+
+		############################
 		# Step 1: Run constraints
 		t = clock(times, 0, t0)
-		
+
 		for searchparam, comp, value in _cc:
 			# Matching names for each step
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
@@ -1036,8 +1058,8 @@ class DB(object):
 			elif constraintmatches != None: # Apply AND/OR
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-		
-		############################				
+
+		############################
 		# Step 2: Filter permissions. If no constraint, use all records..
 		t = clock(times, 1, t)
 
@@ -1050,8 +1072,8 @@ class DB(object):
 		if c:
 			# Filter
 			names = self.bdbs.record.names(names or set(), ctx=ctx, txn=txn)
-			
-		############################				
+
+		############################
 		# Step 3: Run constraints that include macros or "value is empty"
 		t = clock(times, 2, t)
 
@@ -1060,7 +1082,7 @@ class DB(object):
 			if constraintmatches != None:
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-		############################				
+		############################
 		# Step 4: Generate stats on rectypes (do this before other sorting..)
 		t = clock(times, 3, t)
 
@@ -1077,7 +1099,7 @@ class DB(object):
 			for name, rec in recs.iteritems():
 				rectypes[rec.get('rectype')] += 1
 
-		############################					
+		############################
 		# Step 5: Sort and slice to the right range
 		# This processes the values for sorting:
 		#	running any macros, rendering any user names, checking indexes, etc.
@@ -1090,26 +1112,26 @@ class DB(object):
 			key = None
 			if reverse == None:
 				reverse = True
-			
+
 		elif keytype == 's':
 			key = lambda name:(sortvalues.get(name) or '').lower()
-		
+
 		# We want to put empty values at the end..
 		nonenames = set(filter(lambda x:not (sortvalues.get(x) or sortvalues.get(x)==0), names))
 		names -= nonenames
 
 		# not using reverse=reverse so we can add nonenames at the end
-		names = sorted(names, key=key) 
+		names = sorted(names, key=key)
 		names.extend(sorted(nonenames))
 		if reverse:
 			names.reverse()
-		
+
 		# Truncate results.
 		length = len(names)
 		if count > 0:
 			names = names[pos:pos+count]
 
-		############################					
+		############################
 		# Step 6: Rendered....
 		# This is purely a convenience to save a callback
 		t = clock(times, 5, t)
@@ -1122,10 +1144,10 @@ class DB(object):
 			elif param not in viewdef:
 				viewdef.append(i)
 
-		if table:			
+		if table:
 			defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
 			addparamdefs = ["creator","creationtime"]
-			
+
 			# Get the viewdef
 			if len(rectypes) == 1:
 				rd = self.bdbs.recorddef.cget(rectypes.keys()[0], ctx=ctx, txn=txn)
@@ -1137,7 +1159,7 @@ class DB(object):
 					viewdef = defaultviewdef
 				else:
 					viewdef = rd.views.get('tabularview', defaultviewdef)
-					
+
 
 			viewdef = [i.strip() for i in viewdef.split()]
 
@@ -1156,7 +1178,7 @@ class DB(object):
 			table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
 
-		############################							
+		############################
 		# Step 7: Fix for output
 		t = clock(times, 6, t)
 
@@ -1194,22 +1216,23 @@ class DB(object):
 
 	def _query(self, searchparam, comp, value, names=None, recs=None, ctx=None, txn=None):
 		"""(Internal) index-based search. See DB.query()
-		@param searchparam Param
-		@param comp Comparison method
-		@param value Comparison value
-		@keyparam names Record names (used in some query operations)
-		@keyparam recs Record cache dict, by name
-		@return Record names returned by query operation, or None
+
+		:param searchparam: Param
+		:param comp: Comparison method
+		:param value: Comparison value
+		:keyword names: Record names (used in some query operations)
+		:keyword recs: Record cache dict, by name
+		:return: Record names returned by query operation, or None
 		"""
 
 		if recs == None:
 			recs = {}
 
 		cfunc = self._query_cmps(comp)
-			
+
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
-					
+
 		# Sadly, will need to run macro on everything.. :(
 		# Run these as the last constraints.
 		if searchparam.startswith('$@'):
@@ -1228,17 +1251,17 @@ class DB(object):
 					recs[k][searchparam] = v # Update the record cache
 					r.add(k)
 			return r
-			
+
 		# Additional setup..
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		matchkeys = collections.defaultdict(set)
 		indparams = set()
-		searchnames = set()		
-		
+		searchnames = set()
+
 		if searchparam == 'rectype' and value:
 			# Get child protocols, skip the index-index search
 			matchkeys['rectype'] = self.bdbs.recorddef.expand([value], ctx=ctx, txn=txn)
-			
+
 		elif searchparam == 'children':
 			# Get children, skip the other steps
 			# ian: todo: integrate this with the other * processing methods
@@ -1259,10 +1282,10 @@ class DB(object):
 			if searchparam.endswith('*'):
 				indparams |= self.bdbs.paramdef.rel([param_stripped], recurse=-1, ctx=ctx, txn=txn)[param_stripped]
 			indparams.add(param_stripped)
-		
+
 		# First, search the index index
 		indk = self.bdbs.record.getindex('indexkeys', txn=txn)
-		
+
 		for indparam in indparams:
 			pd = self.bdbs.paramdef.cget(indparam, ctx=ctx, txn=txn)
 			ik = indk.get(indparam, txn=txn)
@@ -1273,8 +1296,8 @@ class DB(object):
 			if comp in ['any', 'none', 'noop']:
 				matchkeys[indparam] = ik
 				continue
-				
-			# Validate for comparisons (vartype, units..)	
+
+			# Validate for comparisons (vartype, units..)
 			# ian: todo: When validating for a user, needs
 			# to return value if not validated?
 			try:
@@ -1282,7 +1305,7 @@ class DB(object):
 			except ValueError:
 				if pd.vartype == 'user':
 					cargs = value
-				else:	
+				else:
 					continue
 			except:
 				continue
@@ -1304,34 +1327,35 @@ class DB(object):
 			ind = self.bdbs.record.getindex(pp, txn=txn)
 			for key in keys:
 				v = ind.get(key, txn=txn)
-				searchnames |= v 
+				searchnames |= v
 				for v2 in v:
 					recs[v2][pp] = key
 
-		# If the comparison is "value is empty", then we 
+		# If the comparison is "value is empty", then we
 		# 	return the items we couldn't find in the index
 		# 'No constraint' doesn't affect search results -- just store the values.
 		if comp == 'noop':
 			return None
 		elif comp == 'none':
 			return (names or set()) - searchnames
-			
+
 		return searchnames
 
 
 	def _query_sort(self, sortkey, names, recs=None, rendered=False, c=None, ctx=None, txn=None):
 		"""(Internal) Sort Records by sortkey
-		@param sortkey
-		@param names
-		@keyparam recs Record cache, keyed by name
-		@keyparam rendered Compare using 'rendered' value
-		@c Query constraints; used for checking items in cache
-		@return Sortkey keytype ('s'/'d'/'f'/None), and {name:value} of values that can be sorted
+
+		:param sortkey:
+		:param names:
+		:keyword recs: Record cache, keyed by name
+		:keyword rendered: Compare using 'rendered' value
+		:param c: Query constraints; used for checking items in cache
+		:return: Sortkey keytype ('s'/'d'/'f'/None), and {name:value} of values that can be sorted
 		"""
 		# No work necessary if sortkey is creationtime
 		if sortkey in ['creationtime', 'name', 'recid']:
 			return 's', {}
-			
+
 		# Setup
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		inverted = collections.defaultdict(set)
@@ -1362,7 +1386,7 @@ class DB(object):
 					sortvalues[k] = v
 
 		elif not ind or len(names) < 1000 or iterable:
-			# Iterable params are indexed, but the order is not preserved, 
+			# Iterable params are indexed, but the order is not preserved,
 			# 	so we must check directly.
 			# No index can be very slow! Chunk the record gets to help.
 			for chunk in listops.chunk(names):
@@ -1382,13 +1406,13 @@ class DB(object):
 
 		else:
 			raise ValueError, "Don't know how to sort by %s"%sortkey
-		
-		
+
+
 		# Use a "rendered" representation of the value,
 		#	e.g. user names to sort by user's current last name
 		# These will always sort using the rendered value
 		if vartype in ["user", "userlist", "binary", "binaryimage"]:
-			rendered = True				
+			rendered = True
 
 		if rendered:
 			# Invert again.. then render. This will save time on users.
@@ -1396,7 +1420,7 @@ class DB(object):
 				for k,v in sortvalues.items():
 					try:
 						inverted[v].add(k)
-					except TypeError: 
+					except TypeError:
 						# Handle iterable vartypes, e.g. userlist
 						inverted[tuple(v)].add(k)
 
@@ -1411,8 +1435,9 @@ class DB(object):
 
 	def _query_cmps(self, comp, ignorecase=1):
 		"""(Internal) Return the list of query constraint operators.
-		@keyparam ignorecase Use case-insensitive comparison methods
-		@return Dict of query methods
+
+		:keyword ignorecase: Use case-insensitive comparison methods
+		:return: Dict of query methods
 		"""
 		# y is search argument, x is the record's value
 		cmps = {
@@ -1432,7 +1457,7 @@ class DB(object):
 			# "!contains": lambda y,x:unicode(y) not in unicode(x),
 			# "range": lambda x,y,z: y < x < z
 		}
-		
+
 		# Synonyms
 		synonyms = {
 			"is": "==",
@@ -1450,11 +1475,11 @@ class DB(object):
 		comp = synonyms.get(comp, comp)
 		return cmps[comp]
 
-	
-			
+
+
 	###############################
 	# Other query methods
-	###############################			
+	###############################
 
 	def _boolmode_collapse(self, rets, boolmode):
 		if not rets:
@@ -1464,20 +1489,21 @@ class DB(object):
 		elif boolmode == 'OR':
 			allret = reduce(set.union, rets)
 		return allret
-		
+
 
 	@publicmethod("recorddef.find")
 	def findrecorddef(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
-		@param query Contained in any item below
-		@keyparam name ... contains in name
-		@keyparam desc_short ... contains in short description
-		@keyparam desc_long ... contains in long description
-		@keyparam mainview ... contains in mainview
-		@keyparam record Referenced in Record name(s)
-		@keyparam limit Limit number of results
-		@keyparam boolmode AND / OR for each search constraint
-		@return RecordDefs
+
+		:param query: Contained in any item below
+		:keyword name: ... contains in name
+		:keyword desc_short: ... contains in short description
+		:keyword desc_long: ... contains in long description
+		:keyword mainview: ... contains in mainview
+		:keyword record: Referenced in Record name(s)
+		:keyword limit: Limit number of results
+		:keyword boolmode: AND / OR for each search constraint
+		:return: RecordDefs
 		"""
 		return self._find_pdrd(keytype='recorddef', *args, **kwargs)
 
@@ -1485,22 +1511,23 @@ class DB(object):
 	@publicmethod("paramdef.find")
 	def findparamdef(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
-		@param query Contained in any item below
-		@keyparam name ... contains in name
-		@keyparam desc_short ... contains in short description
-		@keyparam desc_long ... contains in long description
-		@keyparam vartype ... is of vartype(s)
-		@keyparam record Referenced in Record name(s)
-		@keyparam limit Limit number of results
-		@keyparam boolmode AND / OR for each search constraint
-		@return RecordDefs
+
+		:param query: Contained in any item below
+		:keyword name: ... contains in name
+		:keyword desc_short: ... contains in short description
+		:keyword desc_long: ... contains in long description
+		:keyword vartype: ... is of vartype(s)
+		:keyword record: Referenced in Record name(s)
+		:keyword limit: Limit number of results
+		:keyword boolmode: AND / OR for each search constraint
+		:return: RecordDefs
 		"""
 		return self._find_pdrd(keytype='paramdef', *args, **kwargs)
 
 
 	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
-		rets = []		
+		rets = []
 		# This can still be done much better
 		names = self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
 		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
@@ -1522,15 +1549,15 @@ class DB(object):
 			for item in items:
 				if item.vartype in vartype:
 					ret.add(item.name)
-			rets.append(ret)			
+			rets.append(ret)
 
 		if record:
 			if keytype == 'recorddef':
 				rets.append(self._findrecorddefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
 			elif keytype == 'paramdef':
 				rets.append(self._findparamdefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
-					
-			
+
+
 		allret = self._boolmode_collapse(rets, boolmode)
 		ret = map(ditems.get, allret)
 
@@ -1542,22 +1569,23 @@ class DB(object):
 	@publicmethod("user.find")
 	def finduser(self, query=None, record=None, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
-		@keyparam query Contained in any item below
-		@keyparam email ... contains in email
-		@keyparam name_first ... contains in first name
-		@keyparam name_middle ... contains in middle name
-		@keyparam name_last ... contains in last name
-		@keyparam name ... contains in user name
-		@keyparam record Referenced in Record name(s)
-		@keyparam limit Limit number of results
-		@keyparam boolmode AND / OR for each search constraint
-		@return Users
+
+		:keyword query: Contained in any item below
+		:keyword email: ... contains in email
+		:keyword name_first: ... contains in first name
+		:keyword name_middle: ... contains in middle name
+		:keyword name_last: ... contains in last name
+		:keyword name: ... contains in user name
+		:keyword record: Referenced in Record name(s)
+		:keyword limit: Limit number of results
+		:keyword boolmode: AND / OR for each search constraint
+		:return: Users
 		"""
-		rets = []		
+		rets = []
 		if query == '':
 			allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
 			rets.append(allnames)
-		
+
 		query = unicode(query or '').split()
 		for q in query:
 			q = q.strip()
@@ -1573,7 +1601,7 @@ class DB(object):
 			un = filter(None, [i.get('username') for i in recs])
 			rets.append(set(un))
 
-		# email=None, name_first=None, name_middle=None, name_last=None, name=None, 
+		# email=None, name_first=None, name_middle=None, name_last=None, name=None,
 		for param in ['email', 'name_first', 'name_middle', 'name_last']:
 			if kwargs.get(param):
 				q = self.query(c=[[param,'contains', kwargs.get(param)]], sortkey='username', ctx=ctx, txn=txn)
@@ -1587,7 +1615,7 @@ class DB(object):
 				if name in i:
 					ret.add(i)
 			rets.append(ret)
-		
+
 		if record:
 			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'userlist', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
 			rets.append(ret)
@@ -1599,11 +1627,12 @@ class DB(object):
 	@publicmethod("group.find")
 	def findgroup(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None):
 		"""Find a group.
-		@keyparam query Find in Group's name or displayname
-		@keyparam record Referenced in Record name(s)
-		@keyparam limit Limit number of results
-		@keyparam boolmode AND / OR for each search constraint
-		@return Groups
+
+		:keyword query: Find in Group's name or displayname
+		:keyword record: Referenced in Record name(s)
+		:keyword limit: Limit number of results
+		:keyword boolmode: AND / OR for each search constraint
+		:return: Groups
 		"""
 		# No real indexes yet (small). Just get everything and sort directly.
 		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
@@ -1615,7 +1644,7 @@ class DB(object):
 		# If query is empty, match everything. Do this only for findgroups, for now.
 		if not query:
 			query = ['']
-			
+
 		for q in query:
 			ret = set()
 			for item in items:
@@ -1624,7 +1653,7 @@ class DB(object):
 					if q in item.get(param, ''):
 						ret.add(item.name)
 			rets.append(ret)
-			
+
 		if record:
 			ret = self._findbyvartype(listops.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
 			rets.append(set(ret))
@@ -1641,25 +1670,26 @@ class DB(object):
 	@publicmethod("binary.find")
 	def findbinary(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None, **kwargs):
 		"""Find a binary by filename.
-		@keyparam query Contained in any item below
-		@keyparam name ... Binary name
-		@keyparam filename ... filename
-		@keyparam record Referenced in Record name(s)
-		@keyparam limit Limit number of results
-		@keyparam boolmode AND / OR for each search constraint (default: AND)
-		@return Binaries
+
+		:keyword query: Contained in any item below
+		:keyword name: ... Binary name
+		:keyword filename: ... filename
+		:keyword record: Referenced in Record name(s)
+		:keyword limit: Limit number of results
+		:keyword boolmode: AND / OR for each search constraint (default: AND)
+		:return: Binaries
 		"""
-		# @keyparam min_filesize
-		# @keyparam max_filesize
+		# @keyword min_filesize
+		# @keyword max_filesize
 		def searchfilenames(filename, txn):
 			ind = self.bdbs.binary.getindex('filename', txn=txn)
 			ret = set()
 			keys = (f for f in ind.keys(txn=txn) if filename in f)
 			for key in keys:
 				ret |= ind.get(key, txn=txn)
-			return ret			
+			return ret
 
-		rets = []		
+		rets = []
 		# This would probably work better if we used the sequencedb keys as a first step
 		if query or kwargs.get('name'):
 			names = self.bdbs.binary.names(ctx=ctx, txn=txn)
@@ -1669,10 +1699,10 @@ class DB(object):
 			ret = set()
 			ret |= set(name for name in names if q in name)
 			ret |= searchfilenames(q, txn=txn)
-		
+
 		if kwargs.get('filename'):
 			rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
-		
+
 		if kwargs.get('name'):
 			rets.append(set(name for name in names if q in name))
 
@@ -1686,46 +1716,47 @@ class DB(object):
 		if limit:
 			return ret[:int(limit)]
 		return ret
-			
-			
+
+
 	# query should replace this... also, make two methods instead of changing return format
 	@publicmethod("record.find.byvalue")
 	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
 		"""Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
 		More detailed results can be performed using db.query.
-		@param param Parameter to search
-		@param query Value to match
-		@keyparam limit Limit number of results
-		@keyparam showchoices Include any defined param 'choices'
-		@keyparam count Return count of matches, otherwise return names
-		@return if count: [[matching value, count], ...]
-				if not count: [[matching value, [name, ...]], ...]
+
+		:param str param: Parameter to search
+		:param str query: Value to match
+		:keyword bool count: Return count of matches, otherwise return names
+		:keyword bool showchoices: Include any defined param 'choices'
+		:keyword int limit: Limit number of results
+		:return: [[matching value, count], ...] if count is True, otherwise
+				[[matching value, [name, ...]], ...]
 		"""
 		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 		q = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, recs=True, ctx=ctx, txn=txn)
 		inverted = collections.defaultdict(set)
 		for rec in q['recs']:
-			inverted[rec.get(param)].add(rec.get('name'))		
+			inverted[rec.get(param)].add(rec.get('name'))
 
 		keys = sorted(inverted.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit:
 			keys = keys[:int(limit)]
-		
+
 		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
 			for k,v in ret.items():
 				ret[k] = len(v)
-		
+
 		ri = []
 		choices = pd.choices or []
 		if showchoices:
 			for i in choices:
 				ri.append((i, ret.get(i, 0)))
-		
+
 		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
 			if i not in choices:
 				ri.append((i, ret.get(i, [])))
-		
+
 		return ri
 
 
@@ -1738,14 +1769,14 @@ class DB(object):
 	@ol('names', output=False)
 	def getindexbyrectype(self, names, ctx=None, txn=None):
 		"""Get Record names by RecordDef.
-		@param names RecordDef name(s)
-		@return Set of Record names
+		:param names: RecordDef name(s)
+		:return: Set of Record names
 		"""
 		rds = self.bdbs.recorddef.cgets(names, ctx=ctx, txn=txn)
 		ind = self.bdbs.record.getindex("rectype", txn=txn)
 		ret = set()
 		for i in rds:
-			ret |= ind.get(i.name, txn=txn)			
+			ret |= ind.get(i.name, txn=txn)
 		return ret
 
 
@@ -1753,8 +1784,8 @@ class DB(object):
 	@ol('names')
 	def groupbyrectype(self, names, ctx=None, txn=None):
 		"""Group Records by RecordDef.
-		@param names Record name(s) or Record(s)
-		@return Dictionary of Record names by RecordDef
+		:param names: Record name(s) or Record(s)
+		:return: Dictionary of Record names by RecordDef
 		"""
 		return self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
 
@@ -1767,12 +1798,13 @@ class DB(object):
 	#@remove?
 	@publicmethod("record.renderchildtree")
 	def renderchildtree(self, name, recurse=3, rectype=None, ctx=None, txn=None):
-		"""Convenience method used by some clients to render a bunch of 
+		"""Convenience method used by some clients to render a bunch of
 		records and simple relationships.
-		@name Record name
-		@keyparam recurse Recurse level
-		@keyparam rectype Restrict to these rectypes ('*' notation allowed)
-		@return (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
+
+		:param name: Record name
+		:keyword recurse: Recurse level
+		:keyword rectype: Restrict to these rectypes ('*' notation allowed)
+		:return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
 		"""
 		def find_endpoints(tree):
 			return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
@@ -1798,14 +1830,15 @@ class DB(object):
 	def renderview(self, names, viewdef=None, viewtype='recname', edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
 		"""Render views.
 		Note: if 'names' is not iterable, will return a string instead of dictionary
-		@param names Record name(s)
-		@keyparam viewdef View definition
-		@keyparam viewtype Use this view from the Record's RecordDdef (default='recname')
-		@keyparam edit Render with editing HTML markup; use 'auto' for autodetect. (default=False)
-		@keyparam markup Render with HTML markup (default=True)
-		@keyparam table Return table format (this may go into a separate method) (default=False)
-		@keyparam mode Deprecated, no effect.
-		@return Dictionary of {Record.name: rendered view}
+
+		:param names: Record name(s)
+		:keyword viewdef: View definition
+		:keyword viewtype: Use this view from the Record's RecordDdef (default='recname')
+		:keyword edit: Render with editing HTML markup; use 'auto' for autodetect. (default=False)
+		:keyword markup: Render with HTML markup (default=True)
+		:keyword table: Return table format (this may go into a separate method) (default=False)
+		:keyword mode: Deprecated, no effect.
+		:return: Dictionary of {Record.name: rendered view}
 		"""
 		if viewtype == "tabularview":
 			table = True
@@ -1818,7 +1851,7 @@ class DB(object):
 
 		# if table:
 		# 	edit = "auto"
-		
+
 		# Regular expression for parsing views
 		regex = re.compile(VIEW_REGEX)
 
@@ -1834,7 +1867,7 @@ class DB(object):
 			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
 			rec.update(newrec)
 			recs.append(rec)
-		
+
 		# Default params
 		builtinparams = set() | emen2.db.record.Record.param_all
 		builtinparamsshow = builtinparams - set(['permissions', 'comments', 'history', 'groups', 'parents', 'children'])
@@ -1903,7 +1936,7 @@ class DB(object):
 		ret = {}
 		pt = collections.defaultdict(list)
 		mt = collections.defaultdict(list)
-		
+
 		for rec in recs:
 			key = rec.rectype
 			if viewdef:
@@ -1914,7 +1947,7 @@ class DB(object):
 			_edit = edit
 			if edit == "auto":
 				_edit = rec.writable()
-			
+
 			a = groupviews.get(key)
 			vs = []
 
@@ -1954,7 +1987,7 @@ class DB(object):
 		# print "   ".join(header)
 		# pp("param", pt)
 		# pp("macro", mt)
-		
+
 		if table:
 			ret["headers"] = headers
 
@@ -1963,10 +1996,11 @@ class DB(object):
 
 	def _dicttable_view(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
 		"""(Internal) Create an HTML table for rendering.
-		@param params Use these ParamDef names
-		@keyparam paramdefs ParamDef cache
-		@keyparam markup Use HTML Markup (default=False)
-		@return HTML table of params
+
+		:param params: Use these ParamDef names
+		:keyword paramdefs: ParamDef cache
+		:keyword markup: Use HTML Markup (default=False)
+		:return: HTML table of params
 		"""
 		if markup:
 			dt = ['''<table cellspacing="0" cellpadding="0">
@@ -1992,7 +2026,7 @@ class DB(object):
 	#########################################################################
 	#************************************************************************
 	#*	Start: BDB Methods
-	#*	Most of these methods are just wrappers for the various 
+	#*	Most of these methods are just wrappers for the various
 	#* 	DBODB methods.
 	#************************************************************************
 	#########################################################################
@@ -2001,13 +2035,13 @@ class DB(object):
 	@publicmethod("get", write=True, admin=True)
 	def get(self, names, keytype='record', ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
-	
-	
+
+
 	@publicmethod("put", write=True, admin=True)
 	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
-	
-	
+
+
 	###############################
 	# Relationships
 	###############################
@@ -2016,13 +2050,13 @@ class DB(object):
 	@publicmethod("rel.siblings")
 	def getsiblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
 		return self.bdbs.keytypes[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
-		
+
 
 	@publicmethod("rel.parenttree")
 	@ol('names', output=False)
 	def getparenttree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
-	
+
 
 	@publicmethod("rel.childtree")
 	@ol('names', output=False)
@@ -2052,8 +2086,8 @@ class DB(object):
 	@publicmethod('rel.pclink', write=True)
 	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].pclink(parent, child, ctx=ctx, txn=txn)
-		
-		
+
+
 	@publicmethod('rel.pcunlink', write=True)
 	def pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
@@ -2072,19 +2106,20 @@ class DB(object):
 	@publicmethod("user.get")
 	@ol('names')
 	def getuser(self, names, filt=True, ctx=None, txn=None):
-		"""Get user information. 
+		"""Get user information.
 		Information may be limited to name and id if the user
 		requested additional privacy.
-		@param names User name(s), Record(s), or Record name(s)
-		@keyparam filt Ignore failures
-		@return User(s)
-		"""		
+
+		:param names: User name(s), Record(s), or Record name(s)
+		:keyword filt: Ignore failures
+		:return: User(s)
+		"""
 		return self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
-		
+
 
 	@publicmethod("user.names")
 	def getusernames(self, names=None, ctx=None, txn=None):
-		"""@return Set of all User names."""
+		""":return: Set of all User names."""
 		return self.bdbs.user.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2092,73 +2127,80 @@ class DB(object):
 	@ol('items')
 	def putuser(self, items, ctx=None, txn=None):
 		"""Allow a User to change some of their account settings.
-		@param items User(s)
-		@return Updated User(s)
+
+		:param items: User(s)
+		:return: Updated User(s)
 		"""
 		return self.bdbs.user.cputs(items, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.disable", write=True, admin=True)
 	def disableuser(self, names, ctx=None, txn=None):
-		"""(Admin Only) Disable a User.	
-		@param names User name(s)
-		@keyparam filt Ignore failures
-		@return List of names disabled
+		"""(Admin Only) Disable a User.
+
+		:param names: User name(s)
+		:keyword filt: Ignore failures
+		:return: List of names disabled
 		"""
 		return self._mapcommit('user', names, 'disable', ctx=ctx, txn=txn)
-	
-	
+
+
 	@publicmethod("user.enable", write=True, admin=True)
 	def enableuser(self, names, ctx=None, txn=None):
 		"""(Admin Only) Re-enable a User.
-		@param names User name(s)
-		@keyparam filt Ignore failures
+
+		:param names: User name(s)
+		:keyword filt: Ignore failures
 		"""
 		return self._mapcommit('user', names, 'enable', ctx=ctx, txn=txn)
 
-	
+
 	@publicmethod("user.setprivacy", write=True)
 	def setprivacy(self, state, names=None, ctx=None, txn=None):
 		"""Set privacy level.
-		@state 0, 1, or 2, in increasing level of privacy.
-		@keyparam names User names to modify (admin only)
+
+		:param state: 0, 1, or 2, in increasing level of privacy.
+		:keyword names: User names to modify (admin only)
 		"""
 		# This is a modification of _mapcommit to allow if names=None
 		# ctx.username will be used as the default.
 		return self._mapcommit_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
-		
-		
-		
+
+
+
 	##########
 	# User Email / Password
 	# These methods sometimes use put instead of cput because they need to modify
 	# the user's secret auth token.
 	#########
-	
+
 	@publicmethod("user.setemail", write=True)
 	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
-		"""Change a User's email address. 
-		This will require you to verify that you own the account by 
+		"""Change a User's email address.
+		This will require you to verify that you own the account by
 		responding with an auth token sent to that address.
+
 		Note: This method only takes a single User name.
-		Note: An Admin will always succeed in changing email,
-		 	with or without password/token.
-		@param email New email address
-		@keyparam secret Auth token, or...
-		@keyparam password Current User password
-		@keyparam name User name (default is current Context user)
-		@exception SecurityError if the password and/or auth token are wrong
+
+		Note: An Admin will always succeed in changing email, with or without password/token.
+
+		:param str email: New email address
+		:param str secret: Auth token, or...
+		:param str password: Current User password
+		:param str name: User name (default is current Context user)
+
+		:exception: :py:class:`SecurityError <emen2.db.exceptions.SecurityError>` if the password and/or auth token are wrong
 		"""
-		#@action		
-		# Get the record. 
+		#@action
+		# Get the record.
 		# Keep the existing email address to see if it changes.
 		name = name or ctx.username
 		ctxt = {}
 
 		# Verify the email address is owned by the user requesting change.
-		# 1. User authenticates they *really* own the account 
+		# 1. User authenticates they *really* own the account
 		# 	by providing the acct password
-		# 2. An email will be sent to the new account specified, 
+		# 2. An email will be sent to the new account specified,
 		# 	containing an auth token
 		# 3. The user comes back and calls the method with this token
 		# 4. Email address is updated, and reindexed
@@ -2186,19 +2228,20 @@ class DB(object):
 		else:
 			# Email changed.
 			g.log.msg("SECURITY","Changing email for %s"%user.name)
-			self.bdbs.user.cputs([user], txn=txn)			
+			self.bdbs.user.cputs([user], txn=txn)
 
 			# Send the user an email to acknowledge the change
 			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
 
-	
+
 	@publicmethod("auth.setpassword", write=True)
 	def setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
 		"""Change password.
 		Note: This method only takes a single User name.
-		@param oldpassword
-		@param newpassword
-		@keyparam name User name (default is current Context user)
+
+		:param oldpassword:
+		:param newpassword:
+		:keyword name: User name (default is current Context user)
 		"""
 		#@action
 		# Try to authenticate using either the password OR the secret!
@@ -2217,12 +2260,13 @@ class DB(object):
 
 	@publicmethod("auth.resetpassword", write=True)
 	def resetpassword(self, name, ctx=None, txn=None):
-		"""Reset User password. 
-		This is accomplished by sending a password reset token to the 
+		"""Reset User password.
+		This is accomplished by sending a password reset token to the
 		User's currently registered email address.
 		Note: This method only takes a single User name.
-		@keyparam name User name, or User Email
-		@keyparam secret
+
+		:keyword name: User name, or User Email
+		:keyword secret:
 		"""
 		#@action
 		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
@@ -2232,13 +2276,13 @@ class DB(object):
 		self.bdbs.user.put(user.name, user, txn=txn)
 
 		#@postprocess
-		# Absolutely never reveal the secret via any mechanism 
+		# Absolutely never reveal the secret via any mechanism
 		# but email to registered address
 		ctxt = {'secret': user._secret[2]}
 		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
 		g.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
-		
+
 
 
 	###############################
@@ -2247,7 +2291,7 @@ class DB(object):
 
 	@publicmethod("user.queue.names", admin=True)
 	def getuserqueue(self, names=None, ctx=None, txn=None):
-		"""@return Set of names of Users in the new user queue."""
+		""":return: Set of names of Users in the new user queue."""
 		return self.bdbs.newuser.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2256,20 +2300,22 @@ class DB(object):
 	@ol('names')
 	def getqueueduser(self, names, ctx=None, txn=None):
 		"""(Admin Only) Get users from the new user approval queue.
-		@param names New user queue name(s)
-		@return User(s) from new user queue
-		"""	
+
+		:param names: New user queue name(s)
+		:return: User(s) from new user queue
+		"""
 		return self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.queue.new")
 	def newuser(self, name, password, email, ctx=None, txn=None):
-		"""Create a new User.	
-		@param name Desired account name
-		@param password Password
-		@param email Email Address
-		@return New User
-		@exception KeyError if there is already a user 
+		"""Create a new User.
+
+		:param name: Desired account name
+		:param password: Password
+		:param email: Email Address
+		:return: New User
+		:exception: KeyError if there is already a user
 			or pending user with this name
 		"""
 		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
@@ -2282,10 +2328,11 @@ class DB(object):
 		Note: This only adds the user to the new user queue. The
 		account must be processed by an administrator before it
 		becomes active.
-		@param users New User(s)
-		@return New User(s)
-		"""		
-		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)		
+
+		:param users: New User(s)
+		:return: New User(s)
+		"""
+		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 
 		# Send account request email
 		for user in users:
@@ -2297,8 +2344,9 @@ class DB(object):
 	@ol('names')
 	def approveuser(self, names, secret=None, ctx=None, txn=None):
 		"""(Admin Only) Approve account in user queue.
-		@param names New user approval queue name(s)
-		@return Approved User name(s)
+
+		:param names: New user approval queue name(s)
+		:return: Approved User name(s)
 		"""
 		# Get users from the new user approval queue
 		newusers = self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
@@ -2314,14 +2362,14 @@ class DB(object):
 			user = self.bdbs.user.new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
 			# Put the new user
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
-			
+
 			# Update default Groups
 			if user.name != 'root':
 				for group in g.GROUP_DEFAULTS:
 					gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
 					gr.adduser(user.name)
 					self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
-			
+
 			# Create the "Record" for this user
 			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)
 
@@ -2330,39 +2378,40 @@ class DB(object):
 			rec.update(newuser.signupinfo)
 			rec.adduser(name, level=2)
 			rec.addgroup("authenticated")
-			
+
 			rec = self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
-			
+
 			# Update the User with the Record name and put again
 			user.record = rec.name
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
 			cusers.append(user)
-		
+
 		# Send the 'account approved' emails
 		for user in cusers:
 			ctxt = {'name':user.name}
 			sendmail(user.email, template='/email/adduser.approved', ctxt=ctxt)
 
 		return set([user.name for user in cusers])
-			
-	
+
+
 	@publicmethod("user.queue.reject", write=True, admin=True)
 	@ol('names')
 	def rejectuser(self, names, filt=False, ctx=None, txn=None):
 		"""(Admin Only) Remove a user from the new user queue.
-		@param names New user name(s) to reject
-		@keyparam filt Ignore failures
-		@return Rejected user name(s)
+
+		:param names: New user name(s) to reject
+		:keyword filt: Ignore failures
+		:return: Rejected user name(s)
 		"""
 		#@action
 		emails = {}
 		users = self.bdbs.newuser.cgets(names, filt=False, ctx=ctx, txn=txn)
 		for user in users:
 			emails[user.name] = user.email
-			
+
 		for	user in users:
 			self.bdbs.newuser.delete(user.name, txn=txn)
-	
+
 		#@postprocess
 		# Send the emails
 		for name, email in emails.items():
@@ -2379,7 +2428,7 @@ class DB(object):
 
 	@publicmethod("group.names")
 	def getgroupnames(self, names=None, ctx=None, txn=None):
-		"""@return Set of all Group names."""
+		""":return: Set of all Group names."""
 		return self.bdbs.group.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2387,9 +2436,10 @@ class DB(object):
 	@ol('names')
 	def getgroup(self, names, filt=True, ctx=None, txn=None):
 		"""Get a Group.
-		@param names Group name(s)
-		@keyparam filt Ignore failures
-		@return Group(s)
+
+		:param names: Group name(s)
+		:keyword filt: Ignore failures
+		:return: Group(s)
 		"""
 		return self.bdbs.group.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
@@ -2397,8 +2447,9 @@ class DB(object):
 	@publicmethod("group.new")
 	def newgroup(self, name, ctx=None, txn=None):
 		"""Construct a new Group.
-		@param name Group name
-		@return New Group
+
+		:param name: Group name
+		:return: New Group
 		"""
 		return self.bdbs.group.new(name=name, ctx=ctx, txn=txn)
 
@@ -2407,11 +2458,12 @@ class DB(object):
 	@ol('items')
 	def putgroup(self, items, ctx=None, txn=None):
 		"""Add or update Group(s).
-		@param items Group(s)
-		@return Updated Group(s)
-		"""		
+
+		:param items: Group(s)
+		:return: Updated Group(s)
+		"""
 		return self.bdbs.groups.cputs(items, ctx=ctx, txn=txn)
-	
+
 
 
 	#########################
@@ -2420,14 +2472,14 @@ class DB(object):
 
 	@publicmethod("paramdef.vartypes")
 	def getvartypenames(self, ctx=None, txn=None):
-		"""@return Set of all available vartypes."""
+		""":return: Set of all available vartypes."""
 		vtm = emen2.db.datatypes.VartypeManager()
 		return set(vtm.getvartypes())
 
 
 	@publicmethod("paramdef.properties")
 	def getpropertynames(self, ctx=None, txn=None):
-		"""@return Set of all available properties."""
+		""":return: Set of all available properties."""
 		vtm = emen2.db.datatypes.VartypeManager()
 		return set(vtm.getproperties())
 
@@ -2437,8 +2489,9 @@ class DB(object):
 		"""Returns a list of recommended units for a particular property.
 		Other units may be used if they can be converted to the property's
 		default units.
-		@param name Property name
-		@return Set of recommended units for property.
+
+		:param name: Property name
+		:return: Set of recommended units for property.
 		"""
 		if not name:
 			return set()
@@ -2450,10 +2503,11 @@ class DB(object):
 	@publicmethod("paramdef.new")
 	def newparamdef(self, name, vartype, ctx=None, txn=None):
 		"""Construct a new ParamDef.
-		@param name ParamDef name
-		@param vartype ParamDef vartype
-		@keyparam inherit
-		@return New ParamDef
+
+		:param name: ParamDef name
+		:param vartype: ParamDef vartype
+		:keyword inherit:
+		:return: New ParamDef
 		"""
 		return self.bdbs.paramdef.new(name=name, vartype=vartype, ctx=ctx, txn=txn)
 
@@ -2462,9 +2516,10 @@ class DB(object):
 	@ol('items')
 	def putparamdef(self, items, ctx=None, txn=None):
 		"""Add or update ParamDef(s).
-		@param items ParamDef(s)
-		@return Updated ParamDef(s)
-		"""		
+
+		:param items: ParamDef(s)
+		:return: Updated ParamDef(s)
+		"""
 		return self.bdbs.paramdef.cputs(items, ctx=ctx, txn=txn)
 
 
@@ -2472,16 +2527,17 @@ class DB(object):
 	@ol('names')
 	def getparamdef(self, names, filt=True, ctx=None, txn=None):
 		"""Get ParamDefs.
-		@param names ParamDef name(s) and/or Record name(s)
-		@keyparam filt Ignore failures
-		@return ParamDef(s)
+
+		:param names: ParamDef name(s) and/or Record name(s)
+		:keyword filt: Ignore failures
+		:return: ParamDef(s)
 		"""
 		return self.bdbs.paramdef.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("paramdef.names")
 	def getparamdefnames(self, names=None, ctx=None, txn=None):
-		"""@return Set of all ParamDef names."""
+		""":return: Set of all ParamDef names."""
 		return self.bdbs.paramdef.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2493,9 +2549,10 @@ class DB(object):
 	@publicmethod("recorddef.new")
 	def newrecorddef(self, name, mainview, ctx=None, txn=None):
 		"""Construct a new RecordDef.
-		@param name RecordDef name
-		@param mainview RecordDef mainview
-		@return New RecordDef
+
+		:param name: RecordDef name
+		:param mainview: RecordDef mainview
+		:return: New RecordDef
 		"""
 		return self.bdbs.recorddef.new(name=name, mainview=mainview, ctx=ctx, txn=txn)
 
@@ -2508,8 +2565,9 @@ class DB(object):
 		never be changed once used, since this will change the meaning of
 		data already in the database, but sometimes changes of appearance
 		are necessary, so this method is available.
-		@param items RecordDef(s)
-		@return Updated RecordDef(s)
+
+		:param items: RecordDef(s)
+		:return: Updated RecordDef(s)
 		"""
 		return self.bdbs.recorddef.cputs(items, ctx=ctx, txn=txn)
 
@@ -2518,16 +2576,17 @@ class DB(object):
 	@ol('names')
 	def getrecorddef(self, names, filt=True, ctx=None, txn=None):
 		"""Get RecordDef(s).
-		@param names RecordDef name(s), and/or Record ID(s)
-		@keyparam filt Ignore failures
-		@return RecordDef(s)
+
+		:param names: RecordDef name(s), and/or Record ID(s)
+		:keyword filt: Ignore failures
+		:return: RecordDef(s)
 		"""
 		return self.bdbs.recorddef.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("recorddef.names")
 	def getrecorddefnames(self, names=None, ctx=None, txn=None):
-		"""@return All RecordDef names."""
+		""":return: All RecordDef names."""
 		return self.bdbs.recorddef.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2540,9 +2599,10 @@ class DB(object):
 	@ol('names')
 	def getrecord(self, names, filt=True, ctx=None, txn=None):
 		"""Get Record(s).
-		@param names Record name(s)
-		@keyparam filt Ignore failures
-		@return Record(s)
+
+		:param names: Record name(s)
+		:keyword filt: Ignore failures
+		:return: Record(s)
 		"""
 		return self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
@@ -2550,11 +2610,12 @@ class DB(object):
 	@publicmethod("record.new")
 	def newrecord(self, rectype, inherit=None, ctx=None, txn=None):
 		"""Construct a new Record.
-		@param rectype RecordDef
-		@keyparam inherit Inherit permissions from an existing Record
+
+		:param rectype: RecordDef
+		:keyword inherit: Inherit permissions from an existing Record
 		"""
 		rec = self.bdbs.record.new(rectype=rectype, ctx=ctx, txn=txn)
-		
+
 		#@postprocess
 		# Apply any inherited permissions
 		if inherit != None:
@@ -2566,12 +2627,12 @@ class DB(object):
 					rec.addgroup(prec["groups"])
 			except (KeyError, emen2.db.exceptions.SecurityError), inst:
 				g.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
-	
-			rec["parents"] |= inherit	
+
+			rec["parents"] |= inherit
 
 		# Let's try this and see how it works out...
 		rec['date_occurred'] = gettime()
-		rec['performed_by'] = ctx.username		
+		rec['performed_by'] = ctx.username
 
 		return rec
 
@@ -2579,22 +2640,24 @@ class DB(object):
 	@publicmethod("record.delete", write=True)
 	@ol('names')
 	def deleterecord(self, names, ctx=None, txn=None):
-		"""Unlink and hide a record; it is still accessible to owner. 
-		Records are never truly deleted, just hidden.	
-		@param name Record name(s) to delete
-		@return Deleted Record(s)
-		"""	
+		"""Unlink and hide a record; it is still accessible to owner.
+		Records are never truly deleted, just hidden.
+
+		:param name: Record name(s) to delete
+		:return: Deleted Record(s)
+		"""
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("record.addcomment", write=True)
 	@ol('names')
 	def addcomment(self, names, comment, ctx=None, txn=None):
-		"""Add comment to a record. 
+		"""Add comment to a record.
 		Requires comment permissions on that Record.
-		@param name Record name(s)
-		@param comment Comment text
-		@return Updated Record(s)
+
+		:param name: Record name(s)
+		:param comment: Comment text
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'addcomment', ctx, txn, comment)
 
@@ -2603,14 +2666,14 @@ class DB(object):
 	@ol('names', output=False)
 	def getcomments(self, names, filt=True, ctx=None, txn=None):
 		"""Get comments from Records.
-		@param names Record name(s)
-		@return A list of comments, with the Record ID as the first item:
-			[[recid, username, time, comment], ...]
+
+		:param names: Record name(s)
+		:return: A list of comments, with the Record ID as the first item@[[recid, username, time, comment], ...]
 		"""
 		recs = self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 		#@postprocess
-		ret = []		
+		ret = []
 		# This filters out a couple "history" types of comments
 		for rec in recs:
 			cp = rec.get("comments")
@@ -2633,9 +2696,10 @@ class DB(object):
 	@ol('names')
 	def putrecordvalues(self, names, update, ctx=None, txn=None):
 		"""Convenience method to update Records.
-		@param names Record name(s)
-		@param update Update Records with this dictionary
-		@return Updated Record(s)
+
+		:param names: Record name(s)
+		:param update: Update Records with this dictionary
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'update', ctx, txn, update)
 
@@ -2644,8 +2708,9 @@ class DB(object):
 	@ol('items')
 	def validaterecord(self, items, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
-		@param items Record(s)
-		@return Validated Record(s)
+
+		:param items: Record(s)
+		:return: Validated Record(s)
 		"""
 		return self.bdbs.record.validate(items, ctx=ctx, txn=txn)
 
@@ -2654,9 +2719,10 @@ class DB(object):
 	@ol('items')
 	def putrecord(self, items, ctx=None, txn=None):
 		"""Add or update Record.
-		@param items Record(s)
-		@return Updated Record(s)
-		"""		
+
+		:param items: Record(s)
+		:return: Updated Record(s)
+		"""
 		return self.bdbs.record.cputs(items, ctx=ctx, txn=txn)
 
 
@@ -2670,32 +2736,35 @@ class DB(object):
 	@ol('names')
 	def addpermission(self, names, users, level=0, ctx=None, txn=None):
 		"""Add users to a Record's permissions.
-		@param names Record name(s)
-		@param users User name(s) to add
-		@keyparam level Permissions level; 0=read, 1=comment, 2=write, 3=owner
-		@return Updated Record(s)
+
+		:param names: Record name(s)
+		:param users: User name(s) to add
+		:keyword level: Permissions level; 0=read, 1=comment, 2=write, 3=owner
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'adduser', ctx, txn, users)
-	
-	
+
+
 	@publicmethod("record.removeuser", write=True)
 	@ol('names')
 	def removepermission(self, names, users, ctx=None, txn=None):
 		"""Remove users from a Record's permissions.
-		@param names Record name(s)
-		@param users User name(s) to remove
-		@return Updated Record(s)
+
+		:param names: Record name(s)
+		:param users: User name(s) to remove
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'removeuser', ctx, txn, users)
-	
-		
+
+
 	@publicmethod("record.addgroup", write=True)
-	@ol('names')	
+	@ol('names')
 	def addgroup(self, names, groups, ctx=None, txn=None):
 		"""Add groups to a Record's permissions.
-		@param names Record name(s)
-		@param groups Group name(s) to add
-		@return Updated Record(s)
+
+		:param names: Record name(s)
+		:param groups: Group name(s) to add
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'addgroup', ctx, txn, groups)
 
@@ -2704,9 +2773,10 @@ class DB(object):
 	@ol('names')
 	def removegroup(self, names, groups, ctx=None, txn=None):
 		"""Remove groups from a Record's permissions.
-		@param names Record name(s)
-		@param groups Group name(s)
-		@return Updated Record(s)
+
+		:param names: Record name(s)
+		:param groups: Group name(s)
+		:return: Updated Record(s)
 		"""
 		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
 
@@ -2716,12 +2786,13 @@ class DB(object):
 	@ol('names')
 	def setpermissions(self, names, permissions, groups, recurse=None, overwrite_users=False, overwrite_groups=False, ctx=None, txn=None):
 		"""Update a Record's permissions.
-		@param names Record name(s)
-		@param permissions
-		@param groups
-		@keyparam recurse
-		@keyparam overwrite_users
-		@keyparam overwrite_groups
+
+		:param names: Record name(s)
+		:param permissions:
+		:param groups:
+		:keyword recurse:
+		:keyword overwrite_users:
+		:keyword overwrite_groups:
 		"""
 		allusers = set()
 		for i in permissions:
@@ -2732,12 +2803,12 @@ class DB(object):
 		crecs = []
 		for rec in recs:
 			current = rec.members()
-			
+
 			# Calculate changes
 			addusers = allusers - current
 			delusers = current - allusers
 			addgroups = groups - rec.groups
-			delgroups = rec.groups - groups						
+			delgroups = rec.groups - groups
 			added = []
 			for old,new in zip(rec.permissions, permissions):
 				added.append(set(new)-set(old))
@@ -2746,7 +2817,7 @@ class DB(object):
 			rec.setpermissions(permissions)
 			rec.setgroups(groups)
 			crecs.append(rec)
-			
+
 			# Apply the changes to the children
 			if recurse:
 				children = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
@@ -2757,18 +2828,18 @@ class DB(object):
 					else:
 						child.removeuser(delusers)
 						child.addumask(added)
-						
+
 					if overwrite_groups:
 						child.setgroups(groups)
 					else:
 						child.removegroup(delgroups)
 						child.addgroup(addgroups)
-					
+
 					crecs.append(child)
-			
+
 		return self.bdbs.record.cputs(crecs, ctx=ctx, txn=txn)
-			
-		
+
+
 
 
 	###############################
@@ -2779,11 +2850,13 @@ class DB(object):
 	@ol('names')
 	def getbinary(self, names=None, filt=True, ctx=None, txn=None):
 		"""Get Binaries.
-		@param names Record name(s), Binary name(s)
-		@keyparam filt Ignore failures
-		@return Binary(s)
-		@exception KeyError if Binary not found, 
-			SecurityError if insufficient permissions
+
+		:param names: Either a list of recids and/or binary names or either of the two
+		:type names: string or list of strings
+		:keyword bool filt: If True, ignore failures
+		:exception: KeyError if Binary not found
+		:exception: SecurityError if insufficient permissions
+		:return: A binary if given is a single binary, otherwise a list of binaries
 		"""
 		# This call to findbinary is a deprecated feature
 		# that remains for backwards compat
@@ -2795,23 +2868,25 @@ class DB(object):
 
 	@publicmethod("binary.new")
 	def newbinary(self, ctx=None, txn=None):
-		"""Construct a new Binary. 
+		"""Construct a new Binary.
 		This doesn't do anything until committed with a file data source.
-		@return New Binary
+
+		:return: New Binary
 		"""
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
 
 
 	@publicmethod("binary.put", write=True)
 	def putbinary(self, item, infile=None, filename=None, record=None, param='file_binary', ctx=None, txn=None):
-		"""Add or update a Binary (file attachment).		
+		"""Add or update a Binary (file attachment).
 		Note: This currently only takes a single item.
-		@param item Binary or dictionary
-		@keyparam infile File-like object 
+
+		:param item: Binary or dictionary
+		:keyword infile: File-like object
 			or string containing the data for a new Binary
-		@keyparam filename ... the filename to use
-		@keyparam record ... the Record name, or new Record, to use
-		@keyparam param ... Record param to use 
+		:keyword filename: ... the filename to use
+		:keyword record: ... the Record name, or new Record, to use
+		:keyword param: ... Record param to use
 			for the reference to the Binary name
 		"""
 		# Preprocess
@@ -2828,18 +2903,18 @@ class DB(object):
 		elif record != None:
 			# record is a dict or new Record to commit.
 			rec = self.bdbs.record.cput(record, ctx=ctx, txn=txn)
-			item.record = rec.recid		
+			item.record = rec.recid
 
 		# ian: todo: sort out item.compressed..
 
 		# Test that we can write to the record
 		rec = self.bdbs.record.cget(item.record, filt=False, ctx=ctx, txn=txn)
 		if not rec.writable():
-			raise SecurityError, "No write permissions for Record %s"%rec.name			
-	
+			raise SecurityError, "No write permissions for Record %s"%rec.name
+
 		newfile = None
 		if infile:
-			newfile, filesize, md5sum = emen2.db.binary.write_binary(infile=infile, ctx=ctx, txn=txn)			
+			newfile, filesize, md5sum = emen2.db.binary.write_binary(infile=infile, ctx=ctx, txn=txn)
 			item.filesize = filesize
 			item.md5 = md5sum
 
@@ -2861,7 +2936,7 @@ class DB(object):
 					rec[pd.name] = bdo.name
 			else:
 				raise KeyError, "ParamDef %s does not accept files"%pd.name
-				
+
 			self.bdbs.record.cputs([rec], ctx=ctx, txn=txn)
 
 		# Now move the file to the right location
@@ -2870,10 +2945,10 @@ class DB(object):
 				raise SecurityError, "Cannot overwrite existing file!"
 			# print "Renaming file %s -> %s"%(newfile, bdo.filepath)
 			os.rename(newfile, bdo.filepath)
-	
+
 
 		return bdo
-			
+
 
 
 	#########################
@@ -2884,7 +2959,7 @@ class DB(object):
 
 	# @publicmethod
 	# def getworkflownames(self, name=None, ctx=None, txn=None):
-	# 	"""This will return an (ordered) list of workflow objects 
+	# 	"""This will return an (ordered) list of workflow objects
 	# 	for the given context (user)."""
 	#	return self.bdbs.workflow.get(name).names(ctx=ctx, txn=txn)
 	#
@@ -2905,10 +2980,10 @@ class DB(object):
 	# @publicmethod
 	# @ol('items')
 	# def putworkflow(self, items, ctx=None, txn=None):
-	# 	"""This appends a new workflow object to the user's list. 
+	# 	"""This appends a new workflow object to the user's list.
 	# wfid will be assigned by this function and returned"""
 	#	return self.bdbs.workflow.get(name).cputs(items, ctx=ctx, txn=txn)
-	# 
+	#
 	#
 	# @publicmethod
 	# @ol('names')

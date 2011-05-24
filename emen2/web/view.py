@@ -1,15 +1,17 @@
 # $Id$
 '''
 Module contents:
+
 I. Views
-	-> class Context
-	-> class View
+	- class :py:class:`View`
+
 II. View Plugins
-	-> class ViewPlugin
-	-> class AdminView
-	-> class AuthView
+	- class :py:class:`ViewPlugin`
+	- class :py:class:`AdminView`
+	- class :py:class:`AuthView`
+
 III. Template Rendering
-	-> class Page
+	- class :py:class:`Page`
 '''
 import itertools
 import functools
@@ -29,12 +31,14 @@ from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
+
+__all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView', 'Page']
 ############ ############ ############
 # I. Views                           #
 ############ ############ ############
 
 class TemplateContext(object):
-	'''Partial context for views that don't need db access'''
+	#'''Partial context for views that don't need db access'''
 	def reverse(self, _name, *args, **kwargs):
 
 		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
@@ -289,7 +293,7 @@ class _View(object):
 		Other groups in matcher get passed as positional arguments
 		Nothing else gets passed
 
-		The new method is called _after_ View.__init__ gets called
+		The new method is called *after* View.__init__ is called
 		'''
 		if not match: raise ValueError, 'A view must have at least one non-keyword matcher'
 		def check_name(name): return 'main' if name.lower() == 'init' else name
@@ -347,24 +351,39 @@ class _View(object):
 
 	@classmethod
 	def register(self, cls):
-		'''Register a view and give it a URL
+		'''Register a view and connect it to a URL
 
-		-> registers urls specified in the __matcher__ attribute
-			-> this attribute can specify more than one matcher in a dictionary, if that is the case, reverse lookup
+		- registers urls specified in the __matcher__ attribute
+
+			- this attribute can specify more than one matcher in a dictionary, if that is the case, reverse lookup
 					can be done by self.dbtree.reverse (in a subclass of View) or ctxt.reverse in a template
 					it defaults to the one named 'main', if others exist they can be accessed by '<Classname>/<subname>'
 
-		-> this also registers urls defined by the add_matcher decorator
+		- this also registers urls defined by the add_matcher decorator
 
 		acceptable __matcher__ values:
-			-> __matcher__ = dict(
-					main = r'^/some/url/(?P<param1>\d+)/$',
-					alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
-				)
-			--> these can be reversed with self.dbtree.reverse('ClassName/alt1', param1='asd') and such
-			-> __matcher__ = [r'^/some/url/(?P<param1>\d+)/$', r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$']
-			-> __matcher__ =  r'^/some/url/(?P<param1>\d+)/$'
-			-> or any object that has an attribute named 'match', and 'groupdict' (if one doesn't want to use regular expressions)
+			- dictionary
+				.. code-block:: python
+
+						__matcher__ = dict(
+							main = r'^/some/url/(?P<param1>\d+)/$',
+							alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
+						)
+
+				- these can be reversed with self.dbtree.reverse('ClassName/alt1', param1='asd') and such
+
+			- list
+				.. code-block:: python
+
+					__matcher__ = [r'^/some/url/(?P<param1>\d+)/$', r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$']
+
+			- string
+
+				.. code-block:: python
+
+					__matcher__ =  r'^/some/url/(?P<param1>\d+)/$'
+
+			- or any object that has an attribute named 'match', and 'groupdict' (if one doesn't want to use regular expressions)
 
 		'''
 		cls.__url = routing.URL(cls.__name__)
@@ -397,7 +416,7 @@ class View(_View):
 			user = ctx.db.getuser(ctx.username)
 		except:
 			pass
-			
+
 		basectxt = dict(
 			HOST = HOST,
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
@@ -420,14 +439,25 @@ class View(_View):
 ############-############-############
 
 class ViewPlugin(object):
+	'''Parent class the interface for View plugins
+
+	To write a view plugin, subclass this class and provide a iterable
+	classattribute called "preinit" which contains a list of methods
+	executed before the view method is called
+
+	.. py:function:: preinit(self)'''
+
 	@classmethod
 	def attach(cls, view):
+		'''Decorate a class with this method to add a :py:class:`ViewPlugin` to the class'''
 		view.preinit = view.preinit[:]
 		view.preinit.extend(cls.preinit)
 		return view
 
 
 class AdminView(ViewPlugin):
+	'''A :py:class:`ViewPlugin` which only allows Administrators to access a view'''
+
 	preinit = []
 
 	@preinit.append
@@ -438,6 +468,8 @@ class AdminView(ViewPlugin):
 
 
 class AuthView(ViewPlugin):
+	'''A :py:class:`ViewPlugin` which only allows Authenticated Users to access a view'''
+
 	preinit = []
 
 	@preinit.append
@@ -452,11 +484,19 @@ class AuthView(ViewPlugin):
 ############ ############ ############
 
 class Page(object):
-	'''Abstracts template rendering'''
+	'''Helper class which renders templates for a :py:class:`View`'''
+
 	def __init__(self, template, value_dict=None, **kwargs):
 		self.__template = template
 		self.__valuedict = adjust(kwargs, value_dict or {})
 
+	def __repr__(self):
+		vd = '{%s}'
+		l = ','.join( '%r:%r' % (k,v) for k,v in self.__valuedict.items() )
+		m = l[:20]
+		if l!=m: m = ''.join([m, '...'])
+		vd %= m
+		return '<Page template=%s values=%s>' % (self.__template, vd)
 	def __unicode__(self):
 		return g.templates.render_template(self.__template, self.__valuedict)
 
@@ -465,6 +505,7 @@ class Page(object):
 
 
 	@classmethod
+	@g.log.debug_func
 	def render_template(cls, template, modifiers=None):
 		modifiers = modifiers or {}
 		modifiers['def_title'] = modifiers.get('title', 'No Title')
@@ -473,6 +514,7 @@ class Page(object):
 	@classmethod
 	def quick_render(cls,  title='', content='', modifiers=None):
 		modifiers = modifiers or {}
+		modifiers['def_title'] = title or modifiers.pop('title', None)
 		modifiers['content'] = content
 		return cls.render_template('/pages/page', modifiers)
 
@@ -489,8 +531,6 @@ class Page(object):
 				if view.is_raw():
 					result = view.page
 				else:
-					if not ctxt.has_key('title'):
-						ctxt['def_title'] = 'No Title'
 					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
 		return result
 
