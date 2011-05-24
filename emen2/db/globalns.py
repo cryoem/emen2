@@ -16,6 +16,7 @@ import os
 import os.path
 import UserDict
 import time
+import os.path
 
 try: import yaml
 except ImportError:
@@ -29,6 +30,7 @@ except ImportError:
 	json = False
 
 import emen2.util.datastructures
+import emen2.util.jsonutil
 
 
 
@@ -61,6 +63,7 @@ class dictWrapper(object, UserDict.DictMixin):
 		self.__dict[name] = value
 	def __delitem__(self, name):
 		del self.__dict[name]
+	def json_equivalent(self): return dict(self)
 
 class listWrapper(object):
 	def __init__(self, list_, prefix):
@@ -101,6 +104,7 @@ class listWrapper(object):
 	def insert(self, idx, item):
 		self.__list.insert(idx, self.chopitem(item))
 	def __len__(self): return len(self.__list)
+	def json_equivalent(self): return list(self)
 
 
 
@@ -109,22 +113,23 @@ class LockedNamespaceError(TypeError): pass
 
 
 
+class LoggerStub(debug.DebugState):
+	def __init__(self, *args):
+		debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
+	def swapstdout(self): pass
+	def closestdout(self): pass
+	def msg(self, sn, *args):
+		sn = self.debugstates.get_name(self.debugstates[sn])
+		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
+
 
 inst = lambda x:x()
 class GlobalNamespace(object):
 
-	class LoggerStub(debug.DebugState):
-		def __init__(self, *args):
-			debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
-		def swapstdout(self): pass
-		def closestdout(self): pass
-		def msg(self, sn, *args):
-			sn = self.debugstates.get_name(self.debugstates[sn])
-			print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
-
 
 	@inst
 	class paths(object):
+		attrs = []
 		__root = ['']
 		@property
 		def root(self): return self.__root[0]
@@ -133,9 +138,21 @@ class GlobalNamespace(object):
 		def get_roots(self): return self.__root[:]
 
 		def update(self, path): self.root = path
+
+		def __delattr__(self, name):
+			try:
+				self.attrs.remove(name)
+			except ValueError: pass
+			object.__delattr__(self, name)
+
+		def __setattr__(self, name, value):
+			self.attrs.append(name)
+			return object.__setattr__(self, name, value)
+
 		def __getattribute__(self, name):
 			value = object.__getattribute__(self, name)
-			if name != 'root' and not name.startswith('_'):
+			if name.startswith('_') or name in set(['attrs', 'root']): return value
+			else:
 				if isinstance(value, (str, unicode)):
 					if value.startswith('/'): pass
 					else: value = os.path.join(self.root, value)
@@ -148,7 +165,6 @@ class GlobalNamespace(object):
 	__yaml_keys = collections.defaultdict(list)
 	__yaml_files = collections.defaultdict(list)
 	__vardict = {'log': LoggerStub()}
-	__modlock = threading.RLock()
 	__options = collections.defaultdict(set)
 	__all__ = []
 
@@ -196,8 +212,32 @@ class GlobalNamespace(object):
 		cls.__locked = False
 
 
-	def __init__(self,_=None):
-		pass
+	def __init__(self,_=None): pass
+
+	@classmethod
+	def load_data(cls, fn, data):
+		fn = os.path.abspath(fn)
+		if fn and os.access(fn, os.F_OK):
+			ext = fn.rpartition('.')[2]
+			with open(fn, "r") as f: data = f.read()
+
+			loadfunc = {'json': json.loads}
+			try:
+				loadfunc['yml'] = yaml.safe_load
+			except AttributeError: pass
+
+			def fail(*a): raise NotImplementedError, "No loader for %s files found" % ext.upper()
+			loadfunc = loadfunc.get( fn.rpartition('.')[2], fail )
+
+			if ext.lower() == 'json':
+				data = json_strip_comments(data)
+
+			data = loadfunc(data)
+		elif data.hasattr('upper'):
+			loadfunc = json.loads
+			if yaml: load_func = yaml.safe_load
+			data = loadfunc(data)
+		return data
 
 
 	@classmethod
@@ -206,75 +246,63 @@ class GlobalNamespace(object):
 
 		if not (fn or data):
 			raise ValueError, 'Either a filename or json/yaml data must be supplied'
-						
-		if fn and os.access(fn, os.F_OK):
-			fn = os.path.abspath(fn)
-			ext = fn.split(".")[-1]
-			f = open(fn, "r")
-			data = f.read()
-			f.close()
-			if ext == "json":
-				if not json:
-					raise NotImplementedError, "No JSON loader found"				
-				# JSON is stupid and doesn't allow comments. Remove them.
-				data = json_strip_comments(data)
-				data = json.loads(data)
-				
-			elif ext == "yml":
-				if not yaml:
-					raise NotImplementedError, "No YAML loader found"
-				data = yaml.safe_load(data)
-				
-			else:
-				raise NotImplementedError, "Unsupported configuration format"
 
+		data = cls.load_data(fn, data)
 
 		# load data
 		self = cls()
 
-		if not data:
-			return
+		if data:
+			self.log("Loading config: %s"%fn)
+			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
+			self.paths.root = self.EMEN2DBHOME
 
-		self.log("Loading config: %s"%fn)
-		self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
-		self.paths.root = self.EMEN2DBHOME
-
-		paths = data.pop('paths', {})
-		for k,v in paths.items(): setattr(self.paths, k, v)
+			paths = data.pop('paths', {})
+			for k,v in paths.items(): setattr(self.paths, k, v)
 
 
-		# process data
-		for key in data:
-			b = data[key]
-			pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
-			options = b.pop('options', {})     # get options for the dictionary
-			self.__yaml_files[fn].append(key)
+			def prefix_path(pth, prfx):
+				result = pth
+				if not pth.startswith('/'):
+					result = os.path.join(prfx, pth)
+				return result
 
-			for key2, value in b.iteritems():
-				self.__yaml_keys[key].append(key2)
-				# apply the prefix to entries
-				if isinstance(value, dict): pass
-				elif hasattr(value, '__iter__'):
-					value = [os.path.join(pref,item) for item in value]
-				elif isinstance(value, (str, unicode)):
-					value = os.path.join(pref,value)
-				self.__addattr(key2, value, options)
+			# process data
+			for key in data:
+				b = data[key]
+				pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
+				options = b.pop('options', {})     # get options for the dictionary
+				self.__yaml_files[fn].append(key)
+
+				for key2, value in b.iteritems():
+					self.__yaml_keys[key].append(key2)
+					# apply the prefix to entries
+					if isinstance(value, dict): pass
+					elif hasattr(value, '__iter__'):
+						value = [prefix_path(item, pref) for item in value]
+					elif isinstance(value, (str, unicode)):
+						value = prefix_path(value, pref)
+					self.__addattr(key2, value, options)
 
 
-		# load alternate config files
-		for fn in paths.get('CONFIGFILES', []):
-			if os.path.exists(fn):
-				cls.from_file(fn=fn)
+			# load alternate config files
+			for fn in paths.get('CONFIGFILES', []):
+				fn = os.path.abspath(fn)
+				if os.path.exists(fn):
+					cls.from_file(fn=fn)
 
 
 		return self
 
 
-	def to_json(self, keys=None, kg=None, file=None, fs=0):
-		pass
+	def to_json(self, keys=None, kg=None, file=None, indent=4, sort_keys=True):
+		return json.dumps(self.__dump_prep(keys, kg, file), indent=indent, sort_keys=sort_keys)
 
 
 	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
+		return yaml.safe_dump(self.__dump_prep(keys, kg, file), default_flow_style=fs)
+
+	def __dump_prep(self, keys=None, kg=None, file=None):
 		'''store state as YAML'''
 		if keys is not None:
 			keys = keys
@@ -289,21 +317,23 @@ class GlobalNamespace(object):
 		for key, value in keys.iteritems():
 			for k2 in value:
 				_dict[key][k2] = self.getattr(k2)
-		return yaml.safe_dump(dict(_dict), default_flow_style=fs)
+
+		for key in self.paths.attrs:
+			path = getattr(self.paths, key)
+			if hasattr(path, 'json_equivalent'): path = path.json_equivalent()
+			_dict['paths'][key] = path
+		return dict(_dict)
 
 
 	@classmethod
 	def setattr(self, name, value):
 		#if name == 'paths': raise AttributeError, 'cannot set attribute paths of %r' % self
-		self.__modlock.acquire(1)
-		try:
-			self.__addattr(name, value)
-		finally:
-			self.__modlock.release()
+		self.__addattr(name, value)
 
 
 	def __setattr__(self, name, value):
-		if hasattr(getattr(self.__class__, name, None), '__set__') or name.startswith('_'):
+		res = getattr(self.__class__, name, None)
+		if name.startswith('_') or hasattr(res, '__set__'):
 			object.__setattr__(self, name, value)
 		else:
 			self.setattr(name, value)
@@ -360,13 +390,12 @@ class GlobalNamespace(object):
 		try:
 			result = object.__getattribute__(self, name)
 		except AttributeError:
-			result = object.__getattribute__(self, 'getattr')(name)
+			_getattr = object.__getattribute__(self, 'getattr')
+			result = _getattr(name)
+			if result == None: raise
 
-		if result == None:
-			raise AttributeError('Attribute Not Found: %s' % name)
+		return result
 
-		else:
-			return result
 	__getitem__ = __getattribute__
 
 
@@ -419,6 +448,6 @@ def test():
 
 if __name__ == '__main__':
 	test()
-	
-	
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
