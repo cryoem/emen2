@@ -30,7 +30,7 @@ except ImportError:
 	json = False
 
 import emen2.util.datastructures
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 
 
 

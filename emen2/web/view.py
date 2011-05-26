@@ -18,7 +18,7 @@ import functools
 import sys
 import os
 import os.path
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 import functools
 import collections
 
@@ -151,7 +151,7 @@ class _View(object):
 
 		self.__template = template or self.template
 
-		notify = emen2.util.jsonutil.decode(extra.pop('notify','[]'))
+		notify = jsonrpc.jsonutil.decode(extra.pop('notify','[]'))
 		basectxt = extra.pop('_basectxt', {})
 		basectxt.update(
 			ctxt = self.dbtree,

@@ -8,7 +8,7 @@ import collections
 import threading
 import urlparse
 
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 import emen2.db.debug
 import emen2.db.globalns
 

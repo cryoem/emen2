@@ -15,11 +15,11 @@ rvp[None]="none"
 rvp[""]="empty"
 #print rvp
 
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 jsvp = {}
 for k,v in vp.items():
 	jsvp[k]=[v[0],v[1].keys()]
-print emen2.util.jsonutil.encode(jsvp)
+print jsonrpc.jsonutil.encode(jsvp)
 
 
 

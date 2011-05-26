@@ -8,7 +8,7 @@ import random
 import collections
 import getpass
 
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 import emen2.util.listops
 
 def random_password(N):
@@ -210,7 +210,7 @@ class Loader(object):
 			for item in f:
 				item = item.strip()
 				if item and not item.startswith('/'):
-					item = emen2.util.jsonutil.decode(item)
+					item = jsonrpc.jsonutil.decode(item)
 					if keytype:
 						if keytype == item.get('keytype'):
 							# print item

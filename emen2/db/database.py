@@ -52,7 +52,7 @@ import emen2.db.workflow
 
 # Utilities
 import emen2.util.listops as listops
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 
 # Exceptions
 from emen2.db.exceptions import *

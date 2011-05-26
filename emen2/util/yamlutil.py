@@ -2,7 +2,7 @@
 
 from __future__ import with_statement, print_function
 import yaml
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 from emen2.db.config import g, DBOptions
 g = g()
 import getpass
@@ -35,7 +35,7 @@ if v.set:
 
 if v.get:
 	val = g.getattr(v.get)
-	if v.json: print(emen2.util.jsonutil.encode(val))
+	if v.json: print(jsonrpc.jsonutil.encode(val))
 	else: print(val)
 
 else:

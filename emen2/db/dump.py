@@ -7,7 +7,7 @@ import random
 import shutil
 
 import emen2.db.config
-import emen2.util.jsonutil
+import jsonrpc.jsonutil
 import emen2.util.listops
 
 
@@ -148,7 +148,7 @@ class Dumper(object):
 		fd, filename = tempfile.mkstemp()
 		with open(filename, "w") as f:
 			for item in method():
-				f.write(emen2.util.jsonutil.encode(item))
+				f.write(jsonrpc.jsonutil.encode(item))
 				f.write("\n")
 		return filename
 		
