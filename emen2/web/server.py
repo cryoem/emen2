@@ -29,6 +29,7 @@ import emen2.web.resources.downloadresource
 import emen2.web.resources.publicresource
 import emen2.web.resources.rpcresource
 import emen2.web.resources.jsonrpcresource
+import jsonrpc.server
 
 
 class ResourceLoader(object):
@@ -69,7 +70,7 @@ class EMEN2Server(object):
 		self.dbo = emen2.db.config.DBOptions()
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
-		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")	
+		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")
 		(self.options, self.args) = self.dbo.parse_args()
 
 		# Update the configuration
@@ -116,7 +117,7 @@ class EMEN2Server(object):
 			upload = emen2.web.resources.uploadresource.UploadResource(),
 			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
 			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
-			jsonrpc = emen2.web.resources.jsonrpcresource.e2jsonrpc(),
+			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
 		)
 		self.resource_loader.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')))
 		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
@@ -139,7 +140,7 @@ class EMEN2Server(object):
 
 		twisted.internet.reactor.listenTCP(g.EMEN2PORT, site)
 		g.info('Listening on port %d ...'%g.EMEN2PORT)
-				
+
 		if g.EMEN2HTTPS and ssl:
 			twisted.internet.reactor.listenSSL(
 				g.EMEN2PORT_HTTPS,
@@ -149,12 +150,12 @@ class EMEN2Server(object):
 					os.path.join(g.paths.SSLPATH, "server.crt")
 					)
 				)
-		
+
 		twisted.internet.reactor.suggestThreadPoolSize(g.NUMTHREADS)
 
 		g._locked = True
 		twisted.internet.reactor.run()
-		
+
 
 
 if __name__ == "__main__":
