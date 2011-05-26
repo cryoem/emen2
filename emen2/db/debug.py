@@ -30,7 +30,7 @@ import sys
 import emen2.util.datastructures
 
 
-__all__ = ['DebugState']
+__all__ = ['DebugState', 'Output', 'Bounded', 'Headless', 'Min']
 
 
 def take(num, iter_):
@@ -43,24 +43,30 @@ def take(num, iter_):
 
 class Output(object):
 	'''Controls access to a paricular output stream
-	- New subclasses should be registered with register_subclass and created with factory
-	- public interface: check_state, disable, _init, _preprocess
-		- check_state: should check to see if output should happen and set self._state_checked appropriately
-		- disable: should cause the stream to be disabled
-		- _init: should do stream initialization
-		- _preprocess: receives data before it is outputed and can mangle it as it wants to
-		- closed: a property which indicates whether the underlying stream is open or closed
+
+	Subclasses that will be used should be registered with register and created with factory
 	'''
 
 	subclasses = {}
 	@classmethod
-	def register_subclass(cls, incls):
-		if issubclass(incls, cls):
-			cls.subclasses[incls.__name__.lower()] = incls
-		return incls
+	def register_subclass(cls, subcls):
+		'''A decorator for registering a subclass, uses subcls.__name__.lower() as a key in a lookup table
+
+		:param class subcls: the class to be registered
+		:returns: the class passed in as subclass'''
+
+		if issubclass(subcls, cls):
+			cls.subclasses[subcls.__name__.lower()] = subcls
+		return subcls
+
 	@classmethod
 	def factory(cls, version=None, **kwargs):
-		if version == None: version = ''
+		'''Create an particular kind of instance of Output
+
+		:param str version: the lookup key for the subclass
+		:param kwargs: the arguments for the constructor of the desired class
+		'''
+
 		cls = cls.subclasses.get(version.lower(), cls)
 		return cls(**kwargs)
 
@@ -85,7 +91,7 @@ class Output(object):
 
 	@_not_if_closed
 	def send(self, module, state, header, msg):
-		state, header, msg = self._preprocess(state, header, msg)
+		header, msg = self._preprocess(state, header, msg)
 
 		if self._modulename is not None and self._modulename != module:
 			pass
@@ -99,20 +105,32 @@ class Output(object):
 
 	@_not_if_closed
 	def flush(self):
+		'''flush()
+
+		Flush the buffer'''
 		if not self._file.closed:
 			self._file.flush()
 
 	@_not_if_closed
 	def close(self):
+		'''close()
+
+		Close the buffer'''
 		if not self._file.closed:
 			self._file.close()
 
 	# subclass behavior modification hooks
 	@property
 	def closed(self):
+		'''Indicates whether the underlying stream is open or closed'''
 		return self._file.closed
 
 	def checkstate(self, state):
+		'''Determine whether current message should be logged
+
+		:param state: The current state of the Logger
+
+		This method should set self._state_checked to True if the message is to be logged'''
 		result = False
 		if self._states is None: result = False
 		elif self._states == DebugState.debugstates.ALL: result = True
@@ -122,10 +140,22 @@ class Output(object):
 		return result
 
 	def disable(self):
+		"""called to disable the stream"""
 		self._states = None
 
-	def _init(self, **kwargs): pass
-	def _preprocess(self, state, header, msg): return state, header, msg
+	def _init(self, **kwargs):
+		'''Initialize the instance, override this instead of __init__'''
+		pass
+
+	def _preprocess(self, state, header, msg):
+		'''Called before the message is logged, allows for the displayed message to be changed as one likes
+
+
+		:param state: the current logging state
+		:param str header: the header of the current message
+		:param str msg: the text of the current message
+		:returns: a tuple (header, msg) containing the desired values of each'''
+		return header, msg
 
 @Output.register_subclass
 class Min(Output):
@@ -140,7 +170,7 @@ class Min(Output):
 
 class Bounded(Output):
 	'''prints any messages in a given range of states'''
-	def _init(self, max):
+	def _init(self, max, **kwargs):
 		self._max = max
 	def checkstate(self, state):
 		if self._states is None: result = False
@@ -153,11 +183,11 @@ class Bounded(Output):
 class Headless(Output):
 	'''drops the header from messages'''
 	def _preprocess(self, state, header, msg):
-		return state, '', msg
+		return '', msg
 
 def stdouts_handler(prefix,suffix):
 	def _preprocess(self, state, header, msg):
-		return state, '%s%s'%(prefix, header), '%s%s\n' % (msg.rstrip(),suffix)
+		return '%s%s'%(prefix, header), '%s%s\n' % (msg.rstrip(),suffix)
 		# header = header.split(' : ')
 		# head = [header[0]]
 		# head.append(header[1]+'\t\t')
