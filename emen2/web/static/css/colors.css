@@ -45,7 +45,6 @@ td.s
 }
 
 #editbar .active, 
-.editbar_uglydiv,
 .hidden,
 ul.nav li:not(.nohover):hover,
 ul.nav li ul li
@@ -139,3 +138,23 @@ a,
 .table .editable {
 	color: #000;
 }
+
+/* Experiments */
+/*#buttons_map {
+	display:none;
+}
+#pages_map {
+	padding-top:4px;
+	padding-bottom:4px;
+}
+#buttons_main {
+	border-bottom:solid 1px #ccc;
+}
+#buttons_main li {
+	border:solid 1px #ccc;
+	border-bottom:none;
+}
+#buttons_main li.button_active {
+	outline:solid 1px white;
+}
+*/

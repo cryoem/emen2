@@ -855,19 +855,11 @@ $(document).ready(function() {
 				this.popup.height(this.options.height);
 			}
 			
-			var uglydiv = $('<div class="editbar_uglydiv"></div>');
-			uglydiv.width(this.element.outerWidth()-1);
-			uglydiv.height(5);
-			uglydiv.css('top', -5);
-			
 			if (this.options.align == 'left') {
 				this.popup.css('left', -1);
-				uglydiv.css('left', 0);
 			} else {
 				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()+1);
-				uglydiv.css('right', 0);
 			}			
-			this.popup.append(uglydiv);
 		},
 				
 		destroy: function() {
