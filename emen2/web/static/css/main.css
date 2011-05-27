@@ -138,8 +138,6 @@ ul.nav .clickable
 }
 /* List tricks */
 ul.nav > li {
-	padding-top:8px;
-	padding-bottom:0px;
     float: left;
     position: relative;
 }
@@ -152,6 +150,9 @@ ul.nav li.logo {
 ul.nav li.logo a {
 	margin:0px;
 	padding:0px;
+}
+ul.nav li.logo img {
+	height:34px;
 }
 ul.nav li.search {
 	margin-left:8px;
@@ -454,10 +455,6 @@ input.cancel
 .button_active {
 }
 
-#buttons_main ul {
-	padding-left: 0px;
-}
-
 .page_map {
 	padding:0px;
 }
@@ -472,6 +469,17 @@ input.cancel
 	border-bottom: dashed 1px #ccc;
 }
 
+
+/* precontent padding */
+#buttons_main ul {
+	padding-left: 0px;
+}
+#buttons_map, #buttons_main {
+	padding-top:10px;
+}
+.page_map {
+	background:white !important;
+}
 
 /********* RECORD TABLE ***********/
 
