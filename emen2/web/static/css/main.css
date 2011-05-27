@@ -9,30 +9,26 @@ body
 	height:100%;
 }
 
-#container
-{
-	min-height: 100%;
-	height: 100%;
+#container {
+/*	width:1200px;
+*/	min-height: 100%;
 	margin-left:auto;
 	margin-right:auto;
 }
 
-#pagescontainer_map,
-#content
+/* Title and precontent set a background color */
+#title > *,
+.precontent > *,
+#content 
 {
-	padding-top:10px;
-	padding-bottom:10px;
+	width: 1000px !important;
+	padding-left:10px;
+	padding-right:10px;
+	margin-left:auto !important;
+	margin-right:auto !important;
 }
 
-#alert li,
-#nav,
-#buttons_main,
-#pagescontainer_map,
-#content
-{
-	width:1000px;
-	margin-left:auto;
-	margin-right:auto;
+#content {
 }
 
 /******* TOP LEVEL ELEMENTS *******/
@@ -44,6 +40,7 @@ ul, p {
 img {
 	border: none;
 }
+
 img.thumbnail {
 	height:64px;
 }
@@ -68,11 +65,6 @@ h1 .label {
 	padding: 10px;
 	float: right;
 	display: block;
-}
-
-.search {
-	padding-top:6px !important;
-	font-size:10pt !important;
 }
 
 table {
@@ -106,7 +98,6 @@ th {
 #alert {
 	margin:0px;
 	padding:0px;
-	padding-top:10px;
 }
 
 #alert li,
@@ -130,7 +121,7 @@ th {
 #title {
 	border-bottom:solid 2px #ccc;
 }
-#nav {
+ul.nav {
 	margin:0px;
 	margin-left:auto;
 	margin-right:auto;
@@ -138,37 +129,42 @@ th {
     list-style: none;
 	z-index:1000;
 }
-#nav a,
-#nav .clickable
+ul.nav a,
+ul.nav .clickable
  {
 	display:block;
 	text-decoration:none;
-	padding:10px;
+	padding:8px;
 }
-#nav img {
-	vertical-align:middle;
-}
-
 /* List tricks */
-#nav li {
+ul.nav > li {
+	padding-top:8px;
+	padding-bottom:0px;
     float: left;
     position: relative;
-	background: white;
 }
 /* Force this to be the right height */
-#nav li.logo {
-	height:30px;
+ul.nav li.logo {
+	padding:0px;
+	margin:0px;
+	margin-left:8px;
 }
-#nav li.logo a {
+ul.nav li.logo a {
+	margin:0px;
 	padding:0px;
 }
-#nav li.logo img {
-	height:38px;
+ul.nav li.search {
+	margin-left:8px;
+	margin-right:8px;
 }
-#nav li.search {
-	padding-top:7px;
+ul.nav li.search input,
+ul.nav li.search button
+{
+	margin-top:4px;
+	padding:2px;
+	font-size:10pt !important;	
 }
-#nav li ul {
+ul.nav li ul {
 	background:white;
     display: none;
     position: absolute;
@@ -177,35 +173,31 @@ th {
 	z-index:1000;
 	-moz-box-shadow: 3px 3px 3px #ccc;
 }
-#nav li ul li {
+ul.nav li ul li {
 	width:250px;
 }
-#nav li.divider {
+ul.nav li.divider {
 	border-top:solid 1px #ccc;
 }
-#nav li:hover ul,
-#nav li.over ul
+ul.nav li:hover ul,
+ul.nav li.over ul
 {
     display: block;
 }
-#nav li:last-child ul {
+ul.nav li:last-child ul {
 	right:0px;
 }
 
 
-/********** In-line popups ***********/
+/********** "Embedded" popups ***********/
 
 .hidden, 
-#nav ul
+ul.nav ul
 {
-	border-color: #ccc;
-	border-style: solid;
-	border-width: 1px;
 	background: white;
 	border-top: none;
 	-moz-box-shadow: 3px 3px 6px #666;
 	-webkit-box-shadow: 3px 3px 6px #666;
-	/* box-shadow: 3px 3px 6px #666; */
 }
 
 .hidden {
@@ -433,7 +425,6 @@ input.cancel
 }
 
 .pagescontainer {
-	padding-top:20px;
 }
 
 .page {
@@ -446,10 +437,11 @@ input.cancel
 }
 
 .buttons {
-}
+/*	margin-top:10px;*/
+	}
 .buttons ul {
 	margin: 0px;
-	padding-left: 00px;
+	padding-left: 0px;
 	list-style: none;
 }
 .buttons ul li {
@@ -462,15 +454,11 @@ input.cancel
 .button_active {
 }
 
-
-/******** MAIN PAGE BUTTONS AND PAGES *********/
-
 #buttons_main ul {
 	padding-left: 0px;
 }
 
 .page_map {
-	background:white;
 	padding:0px;
 }
 
@@ -488,7 +476,6 @@ input.cancel
 /********* RECORD TABLE ***********/
 
 .recordtable {
-	margin:10px;
 	border-style: solid;
 	border-width: 1px;
 }
@@ -581,10 +568,10 @@ a:hover,
 /********** UTILITY **********/
 
 .floatleft {
-	float:left;
+	float:left !important;
 }
 .floatright {
-	float:right;
+	float:right !important;
 }
 
 .floatlist {
@@ -592,14 +579,6 @@ a:hover,
 }
 .floatlist li {
 	float:left;
-}
-
-.scrolly {
-	height:400px;
-	overflow-y:auto;
-}
-.scrollx {
-	overflow-x:auto;
 }
 
 #alert,
@@ -695,18 +674,6 @@ ul.nonlist
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
 }
-
-
-/*******/
-
-.collapsed * { 
-      display: none;
-}
-.collapsed > a {
-      display: block;
-}
-
-
 
 
 /************* JQUERY UI OVERRIDES ************/

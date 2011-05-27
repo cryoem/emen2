@@ -3,13 +3,20 @@
 *****************************************************/
 
 /* #446699; */
+body,
+#alert,
+.precontent
+{
+	background: #BBDAEE;
+}
+
+#container {
+	background: white;
+}
 
 /* Main background color */
-.permissions .add, .add,
-#alert,
-.button,
-.precontent,
-body
+.permissions .add, .add
+.button
 {
 	background: #BBDAEE;
 }
@@ -40,8 +47,8 @@ td.s
 #editbar .active, 
 .editbar_uglydiv,
 .hidden,
-#nav li:hover,
-#nav li ul li
+ul.nav li:not(.nohover):hover,
+ul.nav li ul li
 {
 	background:#f4f4f4;
 }
@@ -57,14 +64,12 @@ td.s
 	color: #ccc;
 }
 
-body,
 #alert li,
 .notify,
-.page_map_active,
 .button_map_active,
 .button_main_active,
 .page_comments tr.s,
-#nav li ul li:hover
+ul.nav li ul li:hover
 {
 	background: white;
 }

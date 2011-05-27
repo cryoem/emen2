@@ -270,7 +270,6 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 # ian: todo: have DBEnv and all BDBs in here --
 #	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
-
 	opendbs = weakref.WeakKeyDictionary()
 
 	def __init__(self, path=None, maintenance=False, snapshot=False):
@@ -280,7 +279,7 @@ class EMEN2DBEnv(object):
 		:keyword path: Directory containing EMEN2 Database Environment.
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
-		self.keytypes = {}
+		self.keytypes =  {}
 		self.path = path or g.EMEN2DBHOME
 		if not self.path:
 			raise ValueError, "No path specified; check $EMEN2DBHOME and config.json files"
@@ -819,7 +818,7 @@ class DB(object):
 		Eventually this will be replaced with a more complete system."""
 		t = getctime()
 		if t > (self.lastctxclean + 600):
-			self.cleanupcontexts(ctx=ctx, txn=txn)
+			# self.cleanupcontexts(ctx=ctx, txn=txn)
 			self.lastctxclean = t
 
 
