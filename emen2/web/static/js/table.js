@@ -2,7 +2,8 @@
     $.widget("ui.TableControl", {
 		options: {
 			q: null,
-			qc: true
+			qc: true,
+			create: null
 		},
 				
 		_create: function() {
@@ -11,71 +12,59 @@
 		
 		build: function() {
 			var self = this;
-			
-			this.cachewidth = {};
-			
 			// Build control elements
 
 			// record count
-			var length = $('<div class="length floatleft">Records</div>');
+			var length = $('<li class="length">Records</li>');
 						
 			// row count
-			var count = $('<select name="count" class="floatright"></select>');
+			var count = $('<select name="count" class="small"></select>');
 			count.append('<option value="">Rows</option>');
-			
 			$.each([10,50,100,500,1000], function() {
-				var desc=this;
-				//if (this==0) {desc='View All'}
-				count.append('<option value="'+this+'">'+desc+'</option>');
+				count.append('<option value="'+this+'">'+this+'</option>');
 			});
 			count.change(function() {
 				self.options.q['pos'] = 0;
 				self.query();
 			})			
-			count = $('<div class="control floatright"/>').append(count);
+			count = $('<li class="floatright" />').append(count);
 
 			// page controls			
-			var pages = $('<div class="control pages floatright">Pages</div>');
+			var pages = $('<li class="pages floatright">Pages</li>');
 
-			// Bind to control elements
-			$('.header', this.element).append(length, pages, count);
+			var spinner = $('<li class="floatright"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
+
+			// 
+			if (this.options.create) {
+				var create = $('<input class="small newrecord" data-action="reload" data-rectype="'+this.options.create+'" data-parent="${name}" type="submit" value="New ${childtype}" />');
+			}
+
+			// Append basic controls
+			$('.header', this.element).append(length, pages, count, spinner);
 
 			// Kindof hacky..
 			// query bar
-			this.attach_querycontrol();
-
-			this.attach_tools();
-
-			var spinner = $('<div class="floatright"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
-			$('.header', this.element).append(spinner);
+			this.build_querycontrol();
+			this.build_tools();
+			this.build_stats();
 						
 			// Set the control values from the current query state
 			this.update_controls();
 
 			// Rebind to table header controls
 			this.rebuild_thead();
-			
-			// Cache the column widths so they don't go crazy with every refresh
-			$(".inner thead th").each(function() {
-				self.cachewidth[$(this).attr('data-name')] = $(this).width();
-			});			
-
 		},
 		
-		attach_tools: function() {
+		build_tools: function() {
 			// Build the Tools & Statistics menu
-			
 			var self = this;
-			var q = $('<div class="tools control floatright"><span class="clickable label">\
-				Tools &amp; Statistics <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
-
+			var q = $('<li class="tools"><span class="clickable label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			var hidden = $(' \
 				<div class="hidden"> \
 					<ul class="options nonlist""> \
 						<li class="clickable download_files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
 						<li class="clickable batch_edit"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Batch-edit this table</li> \
 					</ul> \
-					<div class="query_stats"></div> \
 				</div>');
 
 			$('.download_files', hidden).click(function() {self.query_download()});
@@ -84,26 +73,34 @@
 			q.append(hidden);
 
 			q.EditbarHelper({
-				width: 300,
-				align: 'right'
+				width: 300
 			});				
-
 			$('.header', this.element).append(q);			
-
 		},
 		
-		attach_querycontrol: function() {
+		build_stats: function() {
+			var self = this;
+			var q = $('<li class="stats"><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var hidden = $(' \
+				<div class="hidden query_stats"> \
+				</div>');
+			q.append(hidden);
+			q.EditbarHelper({
+				width: 300
+			});				
+			$('.header', this.element).append(q);						
+		},
+		
+		build_querycontrol: function() {
 			// Build the Query control
-			
 			if (!this.options.qc) {return}
 			
 			var self = this;
 			
-			var q = $('<div class="querycontrol control floatright"><span class="clickable label"> \
-				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></div>');
+			var q = $('<li class="querycontrol"><span class="clickable label"> \
+				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 
 			q.EditbarHelper({
-				align: 'right', 
 				width: 700,
 				cb: function(self2) {
 					self2.popup.QueryControl({
@@ -215,8 +212,8 @@
 				title = title + ' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
 			}
 
-			$('.header .length').html(title);
-			
+			$('.header .length').empty();
+			$('.header .length').append('<span class="label">Test:'+title+'</span>');
 			
 			// Update the record type statistics
 			var qstats = $(".query_stats", this.element);

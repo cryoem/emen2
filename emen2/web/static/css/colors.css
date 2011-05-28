@@ -29,7 +29,6 @@ body,
 .button_active,
 .boxer .controls,
 .tilemap .tilemapcontrols,
-.recordtable .header,
 .ulmactive,
 .info,
 .infobuttons
@@ -44,7 +43,7 @@ td.s
 	background: #f0f0f0;
 }
 
-#editbar .active, 
+.editbar .active, 
 .hidden,
 ul.nav li:not(.nohover):hover,
 ul.nav li ul li

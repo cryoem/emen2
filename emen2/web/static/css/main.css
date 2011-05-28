@@ -84,7 +84,7 @@ th {
 
 .controls, 
 .recordtable .header > div,
-#editbar .clickable
+.editbar .clickable
 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
@@ -330,48 +330,47 @@ input.cancel
 
 /********** RECORD EDIT BAR ***********/
 
-#editbar {
+.editbar {
 	border-bottom:solid 1px #ccc;
 	list-style: none;
 	padding:0px;
 	margin:0px;
-	margin-bottom:10px;
-	margin-left:-10px;
-	margin-right:-10px;
+/*	margin-left:-10px;
+	margin-right:-10px;*/
 }
 
-#editbar .clickable,
-#editbar .clickable:hover,
-#editbar a:hover
+.editbar .clickable,
+.editbar .clickable:hover,
+.editbar a:hover
 {
 	text-decoration:none;
 }
-#editbar > li {
+.editbar > li {
 	position:relative;
 	border-right:solid 1px #ccc;
 }
-#editbar .siblings {
+.editbar .siblings {
 	float: right;
 }
-#editbar > li:last-child {
+.editbar > li:last-child {
 	border-right: none;
 } 
-#editbar img {
+.editbar img {
 	vertical-align: middle;
 	margin: 0px;
 }
-#editbar_reflow_hack {
+.editbar_reflow_hack {
 	margin-top: 200px;
 }
-#editbar .active {
+.editbar .active {
 }
-#editbar .siblings.active {
+.editbar .siblings.active {
 	border-left:solid 1px #ccc;
 }
-#editbar .bookmarks .clickable.label {
+.editbar .bookmarks .label {
 	width:16px;
 }
-#editbar .clickable.label {
+.editbar .label {
 	margin:5px;
 	display:block;
 }
@@ -468,7 +467,7 @@ input.cancel
 
 /********* RECORD TABLE ***********/
 
-.recordtable {
+/*.recordtable {
 	border-style: solid;
 	border-width: 1px;
 }
@@ -502,7 +501,7 @@ input.cancel
 .recordtable li {
 	list-style:none;
 }
-
+*/
 
 /********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
 
@@ -516,7 +515,7 @@ h1 .label
 	font-size: 12pt;
 }
 
-#editbar li.edit input,
+.editbar li.edit input,
 .search input,
 .search button
 {
@@ -524,7 +523,7 @@ h1 .label
 }
 
 
-#editbar > li {
+.editbar > li {
 	font-size:10pt;
 }
 
