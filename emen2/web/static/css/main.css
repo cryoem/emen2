@@ -70,7 +70,7 @@ table {
 
 th, td {
 	padding: 4px;
-	vertical-align: top;	
+	vertical-align: top;
 }
 
 th {
@@ -356,7 +356,7 @@ input.cancel
 	border-right: none;
 } 
 .editbar img {
-	vertical-align: middle;
+	vertical-align: bottom;
 	margin: 0px;
 }
 .editbar_reflow_hack {
@@ -528,10 +528,22 @@ h1 .label
 }
 
 .small, 
-.ulm, 
+.ulm,
 .button_map
 {
 	font-size: 10pt;
+}
+input.small,
+select.small
+{
+	margin: 0px;
+	padding: 3px;
+	font-size: 10pt;
+	margin-left: 10px;
+}
+
+.noborder {
+	border:none !important;
 }
 
 .big
@@ -650,16 +662,6 @@ ul.nonlist
 	-webkit-border-bottom-left-radius: 8px; 	
 }
 
-
-/* bottom only */
-/*.hidden,
-{
-	-moz-border-radius-bottomright: 8px;
-	-moz-border-radius-bottomleft: 8px; 
-	-webkit-border-bottom-right-radius: 8px;
-	-webkit-border-bottom-left-radius: 8px; 	
-}
-*/
 /* left only */
 .roundleft {
 	-moz-border-radius-bottomleft: 8px;
@@ -670,40 +672,6 @@ ul.nonlist
 
 
 /************* JQUERY UI OVERRIDES ************/
-
-.ui-widget-header {
-	border: none;
-}
-
-.ui-dialog {
-	padding: 0px;
-	border: solid #66a3ce 5px;
-}
-
-/*.ui-dialog .help {
-	width:110%;
-	-moz-box-shadow: 0px 3px 6px #666;
-	-webkit-box-shadow: 0px 3px 6px #666;
-}
-*/
-.ui-dialog-titlebar {
-	-moz-border-radius: 0px;
-}
-
-.ui-corner-all {
-
-}
-
-.ui-widget-header {
-	border: none;
-}
-
-.ui-progressbar {
-	height: 1em;
-}
-.ui-progressbar .ui-progressbar-value  {
-	margin: 0px;
-}
 
 .ui-autocomplete {
 	max-height: 300px;

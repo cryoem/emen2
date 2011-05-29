@@ -3,7 +3,8 @@
 		options: {
 			q: null,
 			qc: true,
-			create: null
+			create: null,
+			parent: null
 		},
 				
 		_create: function() {
@@ -15,32 +16,33 @@
 			// Build control elements
 
 			// record count
-			var length = $('<li class="length">Records</li>');
+			var length = $('<li class="length" />');
 						
 			// row count
 			var count = $('<select name="count" class="small"></select>');
 			count.append('<option value="">Rows</option>');
-			$.each([10,50,100,500,1000], function() {
+			$.each([1, 10,50,100,500,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
 			});
 			count.change(function() {
 				self.options.q['pos'] = 0;
 				self.query();
 			})			
-			count = $('<li class="floatright" />').append(count);
+			count = $('<li class="floatright noborder" />').append(count);
 
 			// page controls			
-			var pages = $('<li class="pages floatright">Pages</li>');
+			var pages = $('<li class="pages noborder floatright"></li>');
 
-			var spinner = $('<li class="floatright"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
+			var spinner = $('<li class="floatright noborder"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
 
-			// 
-			if (this.options.create) {
-				var create = $('<input class="small newrecord" data-action="reload" data-rectype="'+this.options.create+'" data-parent="${name}" type="submit" value="New ${childtype}" />');
+			var create = "";
+			// create a new child record
+			if (this.options.rectype && this.options.parent != null) {
+				var create = $('<li class="floatright"><input class="small newrecord" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
 			}
 
-			// Append basic controls
-			$('.header', this.element).append(length, pages, count, spinner);
+			// add basic controls
+			$('.header', this.element).append(create, length, pages, count, create, spinner);
 
 			// Kindof hacky..
 			// query bar
@@ -213,7 +215,7 @@
 			}
 
 			$('.header .length').empty();
-			$('.header .length').append('<span class="label">Test:'+title+'</span>');
+			$('.header .length').append('<span class="clickable label">'+title+'</span>');
 			
 			// Update the record type statistics
 			var qstats = $(".query_stats", this.element);
@@ -230,6 +232,8 @@
 			// Update the page count
 			var pages = $('.header .pages');
 			pages.empty();
+			var pc = $('<span class="label"></span>');
+			
 			var count = this.options.q['count'];
 			var l = this.options.q['length'];
 			if (count == 0 || count > l || l == 0) {
@@ -237,18 +241,18 @@
 			} else {			
 				var current = (this.options.q['pos'] / this.options.q['count']);
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
-			
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
 				var p1 = $('<span data-pos="0" class="clickable chevron">&laquo;</span>').click(setpos);
 				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable chevron">&lsaquo;</span>').click(setpos);
-				var pc = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
 				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable chevron">&rsaquo;</span>').click(setpos);
 				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable chevron">&raquo;</span>').click(setpos);
-				if (current > 0) {pages.prepend(p2)}
-				if (current > 1) {pages.prepend(p1, '')}
+				if (current > 0) {pc.prepend(p2)}
+				if (current > 1) {pc.prepend(p1, '')}
+				pc.append(p);
+				if (current < pagecount) {pc.append(p3)}
+				if (current < pagecount - 1) {pc.append('', p4)}
 				pages.append(pc);
-				if (current < pagecount) {pages.append(p3)}
-				if (current < pagecount - 1) {pages.append('', p4)}
 			}
 		},
 				
