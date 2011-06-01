@@ -47,7 +47,7 @@
 			$.each(this.comments, function() {
 				var dname = caches["displaynames"][this[0]] || this[0];
 				var time = this[1];	
-				self.element.append('<h4>'+dname+' @ '+time+'</h4><p>'+this[2]+'</p>');
+				self.element.append('<h4>'+dname+' @ '+time+'</h4><p>'+this[2].replace(/\n/g,'<br />')+'</p>');
 			});
 
 			var comments_text = caches["recs"][this.options.name]["comments_text"];

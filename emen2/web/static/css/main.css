@@ -10,10 +10,11 @@ body
 }
 
 #container {
-/*	width:1200px;
-*/	min-height: 100%;
+	min-height: 100%;
 	margin-left:auto;
 	margin-right:auto;
+	position:relative;
+	padding-bottom:100px;
 }
 
 /* Title and precontent set a background color */
@@ -26,6 +27,18 @@ body
 	padding-right:10px;
 	margin-left:auto !important;
 	margin-right:auto !important;
+}
+#content {
+}
+
+#footer {
+	height:100px;
+	border-top:solid 1px #ccc;
+	text-align:center;
+	margin-top:10px;
+	padding:10px;
+	position:absolute;
+	bottom:0px;
 }
 
 /******* TOP LEVEL ELEMENTS *******/
@@ -66,6 +79,7 @@ h1 .label {
 
 table {
 	width:100%;
+/*	table-layout: fixed; */
 }
 
 th, td {
@@ -83,8 +97,7 @@ th {
 /**** UNSELECTABLE ELEMENTS *******/
 
 .controls, 
-.recordtable .header > div,
-.editbar .clickable
+.clickable
 {
 	-webkit-user-select: none;
 	-moz-user-select: none;
@@ -92,24 +105,26 @@ th {
 
 /************* NOTIFICATION BOXES ************/
 
-#alert {
-	margin:0px;
-	padding:0px;
-}
-
-#alert li,
 .notify
 {
 	border-style: solid;
 	border-width: 2px;
 	padding: 5px;
+	margin-top:10px;
 	margin-bottom:10px;
 }
-#alert li:last-child {
+#alert {
+	margin:0px;
+	padding-top:10px;
+}
+#alert .notify:first-child {
+	margin-top:0px;
+}
+#alert .notify:last-child {
 	margin-bottom:0px;
 }
 
-#alert li .kill {
+.notify .kill {
 	float: right;
 }
 
@@ -163,7 +178,6 @@ ul.nav li.search button
 	font-size:10pt !important;	
 }
 ul.nav li ul {
-	background:white;
     display: none;
     position: absolute;
 	padding:0px;
@@ -192,7 +206,6 @@ ul.nav li:last-child ul {
 .hidden, 
 ul.nav ul
 {
-	background: white;
 	border-top: none;
 	-moz-box-shadow: 3px 3px 3px #999;
 	-webkit-box-shadow: 3px 3px 3px #999;
@@ -268,23 +281,18 @@ input.cancel
 	padding:0px;
 	margin:0px;
 }
-
 .controls {
 	float: right;
 }
-
 .editcontrol .controls {
 	float: none;
 	display: none;
 }
-
 .inplace .controls {
 	display: inline;
 }
 
-.find .status {
-	float: right;
-}
+/* Feedback */
 
 .spinner {
 	display:none;
@@ -335,8 +343,8 @@ input.cancel
 	list-style: none;
 	padding:0px;
 	margin:0px;
-/*	margin-left:-10px;
-	margin-right:-10px;*/
+	padding-left:10px;
+	padding-right:10px;
 }
 
 .editbar .clickable,
@@ -346,8 +354,8 @@ input.cancel
 	text-decoration:none;
 }
 .editbar > li {
-	position:relative;
 	border-right:solid 1px #ccc;
+	position:relative;
 }
 .editbar .siblings {
 	float: right;
@@ -362,17 +370,12 @@ input.cancel
 .editbar_reflow_hack {
 	margin-top: 200px;
 }
-.editbar .active {
-}
-.editbar .siblings.active {
-	border-left:solid 1px #ccc;
-}
 .editbar .bookmarks .label {
 	width:16px;
 }
 .editbar .label {
 	margin:5px;
-	display:block;
+	display:inline-block;
 }
 
 /************* INLINE EDITBALE ITEMS  ************/
@@ -387,9 +390,8 @@ input.cancel
 	font-weight: normal;
 	list-style: none;
 }
-
 .edit.label:hover {
-	background:#5B74A8;
+	background: #5B74A8;
 }
 
 
@@ -400,108 +402,57 @@ input.cancel
 	margin-left: 20px;
 	float: left;
 }
-
 .info {
 	padding: 10px;
 }
-
 .info a {
 	padding: 5px;
-}
-
-.pagescontainer {
 }
 
 .page {
 	padding: 10px;
 	display: none;
 }
-
 .page_active {
 	display: block;
 }
-
-.buttons {
-/*	margin-top:10px;*/
-	}
 .buttons ul {
 	margin: 0px;
+	padding-top:10px;
 	padding-left: 0px;
 	list-style: none;
 }
 .buttons ul li {
 	float: left;
 	margin-right: 10px;
-}	
+}
 .button {
 	padding: 10px;
 }
-.button_active {
-}
-
 .page_map {
-	padding:0px;
+	padding:2px;
 }
-
 .button_map {
 	padding-top: 0px;
 	padding-bottom: 0px;
 	border-bottom: solid 1px white;
 }
-
 .button_map_active {
 	border-bottom: dashed 1px #ccc;
 }
 
-
-/* precontent padding */
-#buttons_main ul {
-	padding-left: 0px;
-}
-#buttons_map, #buttons_main {
-	padding-top:10px;
-}
-.page_map {
-	background:white !important;
-}
-
 /********* RECORD TABLE ***********/
 
-/*.recordtable {
-	border-style: solid;
-	border-width: 1px;
+.recordtable table.inner th {
+	border-right: solid 1px #ccc;
+}
+.recordtable table.inner tr:first-child th {
+	border-bottom: none;
+}
+.recordtable table.inner th:last-child {
+	border-right: none;
 }
 
-.recordtable .header > div {
-	padding: 10px;
-	padding-left: 10px;
-	padding-right: 10px;
-}
-
-.recordtable .control.active {
-	padding: 8px;
-	background: white;
-	border: solid 2px black;
-}
-.recordtable .inner {
-	table-layout: fixed;
-	word-wrap: break-word
-}
-
-.recordtable .inner th {
-	position:relative;
-	border-right-style: solid;
-	border-right-width: 1px;
-}
-
-.recordtable ul {
-	padding-left:0px;
-}
-
-.recordtable li {
-	list-style:none;
-}
-*/
 
 /********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
 
@@ -515,24 +466,20 @@ h1 .label
 	font-size: 12pt;
 }
 
-.editbar li.edit input,
-.search input,
-.search button
-{
-	font-size:10pt;
-}
-
-
 .editbar > li {
 	font-size:10pt;
 }
 
 .small, 
+.editbar li.edit input,
+.search input,
+.search button,
 .ulm,
 .button_map
 {
 	font-size: 10pt;
 }
+
 input.small,
 select.small
 {
@@ -540,10 +487,6 @@ select.small
 	padding: 3px;
 	font-size: 10pt;
 	margin-left: 10px;
-}
-
-.noborder {
-	border:none !important;
 }
 
 .big
@@ -571,6 +514,13 @@ a:hover,
 
 /********** UTILITY **********/
 
+.noborder {
+	border:none !important;
+}
+.nopadding {
+	padding:0px;
+}
+
 .floatleft {
 	float:left !important;
 }
@@ -585,7 +535,6 @@ a:hover,
 	float:left;
 }
 
-#alert,
 ul.nonlist
 {
 	list-style: none;
@@ -621,12 +570,10 @@ ul.nonlist
 }
 
 
-
 /********* ROUNDED CORNERS ************/
 
 
 /* all */
-#alert li,
 .notify,
 .info,
 .rounded
@@ -636,7 +583,6 @@ ul.nonlist
 }
 
 /* top only */
-.recordtable,
 .button,
 .infobuttons
 {
@@ -646,6 +592,7 @@ ul.nonlist
 	-webkit-border-top-left-radius: 8px; 	
 }
 
+/* top right */
 #content {
 	-moz-border-radius-topright: 8px;
 	-webkit-border-top-right-radius: 8px;

@@ -15,6 +15,13 @@
 			var self = this;
 			// Build control elements
 
+			// Edit
+			// var edit = $('<li class="edit"><span class="clickable label"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /> Edit</span></li>');
+			// $('.label', edit).click(function(e){self.event_edit(e)});
+			// $('.label', edit).MultiEditControl({
+			// 	selector: '#tbody .editable'
+			// });
+
 			// record count
 			var length = $('<li class="length" />');
 						
@@ -39,6 +46,7 @@
 			// create a new child record
 			if (this.options.rectype && this.options.parent != null) {
 				var create = $('<li class="floatright"><input class="small newrecord" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
+				$('.newrecord', create).NewRecord({});
 			}
 
 			// add basic controls
@@ -47,8 +55,9 @@
 			// Kindof hacky..
 			// query bar
 			this.build_querycontrol();
-			this.build_tools();
 			this.build_stats();
+			this.build_plot();
+			this.build_tools();
 						
 			// Set the control values from the current query state
 			this.update_controls();
@@ -65,7 +74,6 @@
 				<div class="hidden"> \
 					<ul class="options nonlist""> \
 						<li class="clickable download_files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
-						<li class="clickable batch_edit"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Batch-edit this table</li> \
 					</ul> \
 				</div>');
 
@@ -74,6 +82,17 @@
 
 			q.append(hidden);
 
+			q.EditbarHelper({
+				width: 300
+			});				
+			$('.header', this.element).append(q);			
+		},
+		
+		build_plot: function() {
+			var self = this;
+			var q = $('<li class="plot"><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var hidden = $('<div class="hidden query_plot"></div>');
+			q.append(hidden);
 			q.EditbarHelper({
 				width: 300
 			});				
@@ -275,14 +294,14 @@
 			// ian: todo: critical: Properly get immutable parameters.
 			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
-			var tr = $('<tr />');
-			var tr2 = $('<tr />');
+			var tr = $('<tr class="s" />');
+			var tr2 = $('<tr class="s" />');
 			$.each(headers, function() {
 				if (this[3] == null) {
 					this[3]=''
 				}
-				var iw = $('<th style="border-bottom:none">'+this[0]+'</th>');
-				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
+				var iw = $('<th>'+this[0]+'</th>');
+				var bw = $('<th class="nopadding" data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
 
 				// An editable, sortable field..
 				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
@@ -337,26 +356,29 @@
 			$('tbody', t).append(rows.join(''));		
 		},
 		
-		event_edit: function(e) {
+		event_edit: function(e, param) {
 			// Event handler for "Edit" column
-			
 			if (this.options.q['count'] > 100) {
 				var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
 				if (check==false) {return}
 			}
 			var self = this;
+
 			//e.stopPropagation();
+			// ugly hack..
 			var t = $(e.target);
 			var key = t.parent().attr('data-name');
-			// ugly hack..
 			if (key==null) {
 				t = $(e.target).parent();
 				var key = t.parent().attr('data-name');				
 			}
-
+			var selector = '#tbody .editable';
+			if (key) {
+				selector = '#tbody .editable[data-param='+key+']'
+			}			
 			t.MultiEditControl({
 				show: true,
-				selector: '.editable[data-param='+key+']',
+				selector: selector,
 				cb_save: function(caller){self.query()}
 			});
 		},

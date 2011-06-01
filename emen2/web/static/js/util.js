@@ -229,7 +229,7 @@ function switchin(classname, id) {
 
 
 function notify(msg, fade, error) {
-	var msg=$('<li>'+msg+'</li>');
+	var msg=$('<li class="notify">'+msg+'</li>');
 
 	if (error) {
 		msg.addClass("error");

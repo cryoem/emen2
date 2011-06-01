@@ -1,26 +1,11 @@
-/*****************************************************
-			* Colors *
-*****************************************************/
-
-/* #446699; */
+/* Darker background color */
 body,
 #alert,
-.precontent
-{
-	background: #BBDAEE;
-}
-
-#container {
-	background: white;
-}
-
-/* Main background color */
-.permissions .add, .add
+.precontent,
 .button
 {
 	background: #BBDAEE;
 }
-
 
 /* Lighter background color */
 .page,
@@ -36,19 +21,41 @@ body,
 	background: #E7F1F8; /* #E7F1F8; */
 }
 
-/* Light-gray row highlight color */
-tr.s,
-td.s
+/* White backgrounds */
+#alert li,
+.notify,
+.button_map_active,
+.button_main_active,
+.page_comments tr.s,
+ul.nav li ul li:hover,
+ul.nav li ul,
+.hidden,
+.page_map,
+#container 
 {
-	background: #f0f0f0;
+	background: white;
 }
 
+/* Light-gray row highlight color */
+tr.s {
+	background: #f0f0f0;
+}
+thead tr.s {
+	background: #E7F1F8;
+}
+
+/* Very light background color */
 .editbar .active, 
 .hidden,
 ul.nav li:not(.nohover):hover,
 ul.nav li ul li
 {
 	background:#f4f4f4;
+}
+
+/* Feedback colors */
+.add {
+	background: #BBDAEE;
 }
 
 .add.removed,
@@ -62,20 +69,7 @@ ul.nav li ul li
 	color: #ccc;
 }
 
-#alert li,
-.notify,
-.button_map_active,
-.button_main_active,
-.page_comments tr.s,
-ul.nav li ul li:hover
-{
-	background: white;
-}
-
-
-
 /* Border Colors */
-
 h1,
 h4,
 th,
@@ -87,7 +81,6 @@ th,
 {
 	border-color: #ccc;
 }
-
 .boxarea .boximg {
 	border-color: #fff;
 }
@@ -96,12 +89,7 @@ th,
 .notify,
 .ulmhover
 {
-	border-color: #FF8135;
-}
-
-.recordtable
-{
-	border-color: #E7F1F8;
+	border-color: #FF8135; /* orange */
 }
 
 .cleared
@@ -117,13 +105,14 @@ th,
 
 
 /* Text colors */
-
 a,
 .clickable,
 .ui-widget-content a
 {
 	color: #202060;
 }
+
+/* "Editable" color */
 
 .editable, 
 .editable_files .label,
@@ -133,27 +122,3 @@ a,
 {
 	color: #491F6D;
 }
-
-.table .editable {
-	color: #000;
-}
-
-/* Experiments */
-/*#buttons_map {
-	display:none;
-}
-#pages_map {
-	padding-top:4px;
-	padding-bottom:4px;
-}
-#buttons_main {
-	border-bottom:solid 1px #ccc;
-}
-#buttons_main li {
-	border:solid 1px #ccc;
-	border-bottom:none;
-}
-#buttons_main li.button_active {
-	outline:solid 1px white;
-}
-*/

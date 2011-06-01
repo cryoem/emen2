@@ -161,7 +161,7 @@
 				self.search(v);
 			});
 
-			this.statusmsg = $('<span class="status">No Results</span>');
+			this.statusmsg = $('<span class="floatright">No Results</span>');
 			var searchbox = $('<div class="searchbox">Search: </div>');
 			searchbox.append(this.searchinput, this.statusmsg); //,this.searchbutton
 			this.resultsarea = $('<div>Results</div>');
