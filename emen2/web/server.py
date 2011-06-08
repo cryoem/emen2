@@ -65,9 +65,9 @@ def allHeadersReceived(self, *a, **kw):
 
 class EMEN2Server(object):
 
-	def __init__(self, port=None):
+	def __init__(self, port=None, dbo=None):
 		# Options
-		self.dbo = emen2.db.config.DBOptions()
+		self.dbo = dbo or emen2.db.config.DBOptions()
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
 		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")

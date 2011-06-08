@@ -43,7 +43,7 @@ def json_strip_comments(data):
 
 
 
-from . import debug
+from emen2.db import debug
 class dictWrapper(object, UserDict.DictMixin):
 	def __init__(self, dict_, prefix):
 		self.__dict = dict_
@@ -117,6 +117,8 @@ class LoggerStub(debug.DebugState):
 	def __init__(self, *args):
 		debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
 	def swapstdout(self): pass
+	def capturestdout(self):
+		print 'cannot capture stdout'
 	def closestdout(self): pass
 	def msg(self, sn, *args):
 		sn = self.debugstates.get_name(self.debugstates[sn])

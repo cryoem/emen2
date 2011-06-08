@@ -299,10 +299,11 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
+			self._db.periodic_operations.next()
 			t = time.time()
 			result = None
 			commit = False
-			
+
 			# Remove these from the keyword arguments
 			kwargs.pop('ctx', None)
 			kwargs.pop('txn', None)
@@ -345,7 +346,7 @@ class DBProxy(object):
 					txn and self._db.txncommit(ctx=ctx, txn=txn)
 
 			# timer!
-		 	# print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			# print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 			return result
 
 		return wrapper

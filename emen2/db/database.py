@@ -1,5 +1,6 @@
 # $Id$
 
+import threading
 import atexit
 import collections
 import copy
@@ -173,10 +174,12 @@ def ol(name, output=True):
 			if kwargs.has_key(name):
 				olreturn, olvalue = listops.oltolist(kwargs[name])
 				kwargs[name] = olvalue
-			else:
+			elif (olpos-1) <= len(args):
 				olreturn, olvalue = listops.oltolist(args[olpos])
 				args = list(args)
 				args[olpos] = olvalue
+			else:
+				raise TypeError, 'function %r did not get argument %s' % (f, name)
 
 			result = f(*args, **kwargs)
 
@@ -540,6 +543,10 @@ class EMEN2DBEnv(object):
 		else:
 			raise KeyError, 'Transaction not found'
 
+		if DB.sync_contexts.is_set():
+			self.context.bdb.sync()
+			DB.sync_contexts.clear()
+
 
 	def checkpoint(self, txn=None):
 		"""Checkpoint the Database Environment"""
@@ -645,6 +652,7 @@ class EMEN2DBEnv(object):
 
 
 class DB(object):
+	sync_contexts = threading.Event()
 
 	def __init__(self, path=None):
 		"""Initialize DB.
@@ -654,6 +662,8 @@ class DB(object):
 		"""
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path)
+		if not hasattr(self.periodic_operations, 'next'):
+			self.__class__.periodic_operations = self.periodic_operations()
 		# Periodic operations..
 		self.lastctxclean = time.time()
 		# Cache contexts
@@ -813,13 +823,41 @@ class DB(object):
 	# with a registration model; right now just runs cleanupcontext
 	# Currently, this is called during _getcontext, and calls
 	# cleanupcontexts not more than once every 10 minutes
-	def periodic_operations(self, ctx=None, txn=None):
+
+	tasks = []
+	# ed: here's an implementation that seems to work, the first time
+	#     this class is instantiated, this is called and it is replaced
+	#     by the generator that results.  Then, everytime a function is
+	#     called, self.periodic_operations.next() is called as well.
+	#     this function catches all errors and prints a traceback to
+	#     the log so that it doesn't mess up the user's transaction.
+	#     also, this function runs all tasks as root and in their own
+	#     txn. We could eventually rip this out into a class that defines
+	#     next() appropriately, but I don't think its complicated enough
+	#     to justify that :)
+	def periodic_operations(self):
 		"""(Internal) Maintenance task scheduler.
 		Eventually this will be replaced with a more complete system."""
-		t = getctime()
-		if t > (self.lastctxclean + 600):
-			# self.cleanupcontexts(ctx=ctx, txn=txn)
-			self.lastctxclean = t
+		ctx = emen2.db.context.SpecialRootContext(db=self)
+		first_run = True
+		while 1:
+			t = getctime()
+			if first_run or t > (self.lastctxclean + 600):
+				print 'click'
+				for task in self.tasks:
+					txn = self.bdbs.newtxn()
+					try:
+							task(self, ctx=ctx, txn=txn)
+					except Exception, e:
+						txn.abort()
+						g.error('Exception in periodic_operations:', e)
+						traceback.print_exc(file=g.log)
+					else:
+						txn.commit()
+					finally:
+						self.lastctxclean = t
+			if first_run: first_run = False
+			yield
 
 
 	# ian: todo: hard: finish
@@ -907,10 +945,13 @@ class DB(object):
 
 
 	# Logout is the same as delete context
+	### this doesn't work until DB restart (the context isn't immediately cleared)
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
 		"""Logout."""
+		self.contexts_cache.pop(ctx.name, None)
 		self.bdbs.context.delete(ctx.name, txn=txn)
+		self.sync_contexts.set()
 
 
 	@publicmethod("auth.check.context")

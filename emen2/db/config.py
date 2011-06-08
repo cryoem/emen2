@@ -47,7 +47,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
-		group.add_option('--ext', action="append", dest='ext', help="Add Extension")	
+		group.add_option('--ext', action="append", dest='ext', help="Add Extension")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
@@ -66,18 +66,18 @@ class DBOptions(optparse.OptionParser):
 	def opendb(self, name=None, password=None):
 		import emen2.db.proxy
 		g = emen2.db.globalns.GlobalNamespace()
-		
+
 		name = name or getattr(self.values, 'name', None)
 		password = password or getattr(self.values, 'password', None)
 		# admin = admin or getattr(self.values, 'admin', None)
-				
+
 		if not g.CONFIG_LOADED:
 			self.load_config()
 
 		db = emen2.db.proxy.DBProxy()
 		ctx = emen2.db.context.SpecialRootContext()
 		ctx.refresh(db=db)
-		db._ctx = ctx			
+		db._ctx = ctx
 		if name:
 			db._login(name, password)
 		return db
@@ -90,6 +90,12 @@ class DBOptions(optparse.OptionParser):
 
 	def load_config(self, **kw):
 		g = emen2.db.globalns.GlobalNamespace()
+		if g.getattr('CONFIG_LOADED', False):
+			return
+		else:
+			return self.load_config_force(g, **kw)
+
+	def load_config_force(self, g, **kw):
 
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
@@ -120,7 +126,7 @@ class DBOptions(optparse.OptionParser):
 		for p in self.values.ext or []:
 			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
 			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
-			
+
 		# Load view and template dirs
 		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
 			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))

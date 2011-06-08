@@ -1,7 +1,7 @@
 # $Id$
 """
 Core Database classes
-These serve as wrappers around Berkeley DB / bsddb3 DB's. 
+These serve as wrappers around Berkeley DB / bsddb3 DB's.
 """
 
 import cPickle as pickle
@@ -37,17 +37,17 @@ class EMEN2DB(object):
 	keytype = 's'
 	datatype = 's'
 	dataclass = None
-	
+
 	# Sort keys numerically, if possible (keytype is d/f)
 	cfunc = True
 	extension = 'bdb'
-	
+
 	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
 		"""Main BDB DB wrapper"""
-				
+
 		# Filename
 		self.filename = filename
-		
+
 		# EMEN2DBEnv
 		self.dbenv = dbenv
 
@@ -55,7 +55,7 @@ class EMEN2DB(object):
 		self.bdb = None
  		self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
 		self.DBSETFLAGS = []
-		
+
 		# What are we storing?
 		self._setkeytype(keytype or self.keytype)
 		self._setdatatype(datatype or self.datatype, dataclass=dataclass or self.dataclass)
@@ -68,11 +68,11 @@ class EMEN2DB(object):
 	def init(self):
 		"""Subclass hook"""
 		pass
-		
-		
+
+
 	def __str__(self):
 		return "<emen2.db.btrees2.EMEN2DB instance: %s>"%self.filename
-			
+
 
 
 	#########################################
@@ -88,7 +88,7 @@ class EMEN2DB(object):
 
 		if not k2:
 			k2 = 0
-		else: 
+		else:
 			k2 = self.loadkey(k2)
 
 		return cmp(k1, k2)
@@ -96,8 +96,8 @@ class EMEN2DB(object):
 
 	def _pickledump(self, data):
 		return pickle.dumps(data)
-		
-		
+
+
 	def _pickleload(self, data):
 		if data != None: return pickle.loads(data)
 
@@ -106,7 +106,7 @@ class EMEN2DB(object):
 		if keytype == 's':
 			self.typekey = unicode
 			self.dumpkey = lambda x:x.encode('utf-8')
-			self.loadkey = lambda x:x.decode('utf-8')			
+			self.loadkey = lambda x:x.decode('utf-8')
 		elif keytype == 'd':
 			self.typekey = int
 			self.dumpkey = str
@@ -119,7 +119,7 @@ class EMEN2DB(object):
 			raise ValueError, "Invalid keytype: %s. Supported: s(tring), d(ecimal), f(loat)"%keytype
 
 		self.keytype = keytype
-			
+
 
 	def _setdatatype(self, datatype, dataclass=None):
 		if datatype == 's':
@@ -129,7 +129,7 @@ class EMEN2DB(object):
 		elif datatype == 'd':
 			self.dataclass = int
 			self.dumpdata = str
-			self.loaddata = int			
+			self.loaddata = int
 		elif datatype == 'f':
 			self.dataclass = float
 			self.dumpdata = self._pickledump
@@ -144,18 +144,18 @@ class EMEN2DB(object):
 			self.loaddata = self._pickleload
 		else:
 			raise ValueError, "Invalid datatype: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%datatype
-			
-		self.datatype = datatype	
-			
-		
+
+		self.datatype = datatype
+
+
 	#################
 	# DB methods
 	#################
 
-	def open(self):	
+	def open(self):
 		if self.bdb:
 			raise Exception, "DB already open"
-			
+
 		# Create the DB handle and set flags
 		self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
 
@@ -173,7 +173,7 @@ class EMEN2DB(object):
 	def close(self):
 		self.bdb.close()
 		self.bdb = None
-		
+
 
 
 	############################
@@ -234,9 +234,9 @@ class EMEN2DB(object):
 	############################
 
 	def put(self, key, data, txn=None, flags=0):
-		"""Write key/value, with txn."""		
+		"""Write key/value, with txn."""
 		g.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
-		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)			
+		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
 
 
 	# Dangerous!
@@ -246,7 +246,7 @@ class EMEN2DB(object):
 		g.log.msg('COMMIT', "%s.truncate"%self.filename)
 
 
-	# Also dangerous!	
+	# Also dangerous!
 	def delete(self, key, txn=None, flags=0):
 		if self.bdb.exists(self.dumpkey(key), txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
@@ -260,9 +260,9 @@ class EMEN2DB(object):
 
 
 class IndexDB(EMEN2DB):
-	
+
 	extension = 'index'
-	
+
 	def init(self):
 		self.DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
 		self._setbulkmode(True)
@@ -305,7 +305,7 @@ class IndexDB(EMEN2DB):
 			r = self._get_method(cursor, key, self.datatype)
 			cursor.close()
 
-		
+
 		# generator expressions will be less pain when map() goes away
 		if bulk and self.datatype == 'p':
 			r = set(self.loaddata(x) for x in r)
@@ -373,7 +373,7 @@ class IndexDB(EMEN2DB):
 			c = data & itemscopy
 			if c:
 				itemscopy -= c
-				found += len(c)				
+				found += len(c)
 				# print "processed %s keys, %s items left to go"%(processed, lenitems-found)
 				# ret[self.loadkey(pair[0])] = c
 				yield (self.loadkey(pair[0]), c)
@@ -384,7 +384,7 @@ class IndexDB(EMEN2DB):
 				pair = cursor.next_nodup()
 
 		# print "Done; processed %s keys"%processed
-		cursor.close()		
+		cursor.close()
 
 	############################
 	# Write Methods
@@ -455,7 +455,7 @@ class IndexKeysDB(IndexDB):
 
 
 
-# Context-aware DB for DBO's. 
+# Context-aware DB for DBO's.
 # These support a single DB and a single data class.
 # Supports sequenced items.
 
@@ -471,21 +471,21 @@ class DBODB(EMEN2DB):
 		name = self.dataclass.__name__
 		filename = os.path.join(self.path, name).lower()
 		super(DBODB, self).__init__(filename, *args, **kwargs)
-	
-	
+
+
 	# Open/close the sequencedb with the main db
 	def init(self):
-		self.index = {}	
+		self.index = {}
 		self.sequence = self.sequence
 		self.sequencedb = None
 		super(DBODB, self).init()
-		
-	
+
+
 	def open(self):
 		super(DBODB, self).open()
 		self.opensequence()
-		
-	
+
+
 	def close(self):
 		super(DBODB, self).close()
 		self.closesequence()
@@ -502,8 +502,8 @@ class DBODB(EMEN2DB):
 			return
 		self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
 		self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-	
-	
+
+
 	def closesequence(self):
 		if not self.sequence:
 			return
@@ -511,7 +511,7 @@ class DBODB(EMEN2DB):
 			print "Close sequence"
 			self.sequencedb.close()
 			self.sequencedb = None
-	
+
 
 	def get_max(self, txn=None):
 		if not self.sequence:
@@ -555,17 +555,17 @@ class DBODB(EMEN2DB):
 		"""Return a new instance of the type of item this DB stores.."""
 		txn = kwargs.pop('txn', None) # don't pass the txn..
 		name = kwargs.get('name')
-		if name: 
+		if name:
 			if self.exists(name, txn=txn):
 				raise KeyError, "%s already exists"%name
-		return self.dataclass(*args, **kwargs)	
+		return self.dataclass(*args, **kwargs)
 
 
 
 	##############################
 	# Filtered context gets..
 	##############################
-	
+
 	# Get an item and set Context
 	def cget(self, key, filt=True, ctx=None, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
@@ -573,8 +573,8 @@ class DBODB(EMEN2DB):
 		if not r:
 			return None
 		return r[0]
-		
-		
+
+
 	# Takes an iterable..
 	def cgets(self, keys, filt=True, ctx=None, txn=None, flags=0):
 		ret = []
@@ -590,8 +590,8 @@ class DBODB(EMEN2DB):
 				else:
 					raise
 		return ret
-		
-			
+
+
 	def expand(self, names, ctx=None, txn=None):
 		"""See RelateDB"""
 		if not isinstance(names, set):
@@ -606,41 +606,41 @@ class DBODB(EMEN2DB):
 				return names
 			items = self.cgets(names, ctx=ctx, txn=txn)
 			return set([i.name for i in items])
-			
+
 		return set(map(self.loadkey, self.bdb.keys(txn)))
 
-		
+
 	def validate(self, items, ctx=None, txn=None):
 		return self.cputs(items, commit=False, ctx=ctx, txn=txn)
-		
+
 
 
 	############################
 	# Write
-	############################		
-	
+	############################
+
 	def cput(self, item, *args, **kwargs):
 		ret = self.cputs([item], *args, **kwargs)
 		if not ret:
 			return None
 		return ret[0]
-		
-	
+
+
 	def cputs(self, items, clone=False, commit=True, indexonly=False, ctx=None, txn=None):
 		t = emen2.db.database.gettime()
-		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)		
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		# Return values
 		crecs = []
 
 		# Note: children/parents used to be handled specially,
 		#	but now they are considered "more or less" regular params, with slightly tweaked indexes
-		
+
 		# Process the items
 		for name, updrec in enumerate(items, start=1):
 			# Get the name; use recid as a backup for compatibility for now..
 			name = updrec.get('name') # or (name * -1)
 			cp = set()
-			
+
 			# Get the existing item or create a new one. Security error will be raised.
 			try:
 				# Acquire the lock immediately (DB_RMW) because are we are going to change the record
@@ -649,18 +649,18 @@ class DBODB(EMEN2DB):
 				# if orec.get('uri'):
 				# 	raise emen2.db.exceptions.SecurityError, "Imported items are read-only: %s"%(orec.get('uri'))
 
-			except (TypeError, AttributeError, KeyError), inst: 
+			except (TypeError, AttributeError, KeyError), inst:
 				# AttributeError might have been raised if the key was the wrong type
 				p = dict((k,updrec.get(k)) for k in self.dataclass.param_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
-			
+
 			# Update the item.
 			if clone:
 				cp |= orec.clone(updrec, vtm=vtm, t=t)
 			else:
-				cp |= orec.update(updrec, vtm=vtm, t=t)			
-			orec.validate() 
+				cp |= orec.update(updrec, vtm=vtm, t=t)
+			orec.validate()
 
 			# If values changed, cache those, and add to the commit list
 			if cp:
@@ -670,13 +670,13 @@ class DBODB(EMEN2DB):
 		if not commit:
 			return crecs
 
-		
+
 		# Assign new names based on the DB sequence.
 		namemap = self.update_sequence(crecs, txn=txn)
-		
+
 		# Calculate all changed indexes
 		self.reindex(crecs, indexonly=indexonly, namemap=namemap, ctx=ctx, txn=txn)
-		
+
 		if indexonly:
 			return
 
@@ -685,16 +685,16 @@ class DBODB(EMEN2DB):
 			self.put(crec.name, crec, txn=txn)
 
 		g.info("Committed %s items"%(len(crecs)))
-		
-		return crecs	
-		
+
+		return crecs
+
 
 	# Calculate and write index changes
 	# if indexonly, assume items are new, to rebuild all params.
 	def reindex(self, items, indexonly=False, namemap=None, ctx=None, txn=None):
 		"""Update indexes"""
 		ind = collections.defaultdict(list)
-				
+
 		# Get changes as param:([name, newvalue, oldvalue], ...)
 		for crec in items:
 			# Get the current record for comparison of updated values.
@@ -704,7 +704,7 @@ class DBODB(EMEN2DB):
 				orec = {}
 			for param in crec.changedparams(orec):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
-		
+
 		# These are complex changes, so pass them off to different reindex method
 		# _reindex_relink does nothing for base DBODB; see RelateDB
 		parents = ind.pop('parents', None)
@@ -725,7 +725,7 @@ class DBODB(EMEN2DB):
 		# If nothing changed, skip.
 		if not changes:
 			return
-		
+
 		# If we can't access the index, skip. (Raise Exception?)
 		ind = self.getindex(param, txn=txn)
 		if ind == None:
@@ -746,37 +746,37 @@ class DBODB(EMEN2DB):
 		# print "changes:", changes
 		# print "addrefs:", addrefs
 		# print "remove:", removerefs
-		
+
 		# Write!
 		for oldval, recs in removerefs.items():
-			# Not necessary to map temp names to final names, 
+			# Not necessary to map temp names to final names,
 			# as reindexing is now done after assigning names
 			removeindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
 
 		for newval,recs in addrefs.items():
 			addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
-				
+
 		# Update the index-index
 		indk = self.getindex('indexkeys', txn=txn)
 		if not indk or pd.name in ['parents', 'children']:
 			return
-		
+
 		# Update index-index, a necessary evil..
 		if removeindexkeys:
 			indk.removerefs(pd.name, removeindexkeys, txn=txn)
-		
+
 		if addindexkeys:
 			indk.addrefs(pd.name, addindexkeys, txn=txn)
-	
-	
+
+
 	#########################################
 	# Indexes.
 	# You must provide an openindex method.
 	#########################################
-	
+
 	def _indname(self, param):
 		return os.path.join(self.path, 'index', param)
-	
+
 	def openindex(self, param, txn=None):
 		return
 
@@ -804,9 +804,9 @@ class DBODB(EMEN2DB):
 class RelateDB(DBODB):
 	"""DB with parent/child/cousin relationships between keys"""
 
-	def openindex(self, param, txn=None):			
+	def openindex(self, param, txn=None):
 		if param in ['children', 'parents']:
-			filename = os.path.join(self.path, 'index', param)	
+			filename = os.path.join(self.path, 'index', param)
 			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
 			ind.cfunc = False # Historical
 			ind._setbulkmode(False)
@@ -814,7 +814,7 @@ class RelateDB(DBODB):
 		else:
 			ind = super(RelateDB, self).openindex(param, txn)
 		return ind
-		
+
 
 	###############################
 	# Relationship methods
@@ -839,11 +839,11 @@ class RelateDB(DBODB):
 		names |= add
 		return names
 
-	
+
 	# Commonly used rel() variants
 	def parenttree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
 		return self.rel(names, recurse=recurse, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
-	
+
 
 	def childtree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
 		return self.rel(names, recurse=recurse, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
@@ -855,8 +855,8 @@ class RelateDB(DBODB):
 
 	def children(self, names, recurse=1, ctx=None, txn=None, **kwargs):
 		return self.rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn, **kwargs)
-		
-	
+
+
 	# Siblings
 	def siblings(self, name, ctx=None, txn=None, **kwargs):
 		parents = self.rel([name], rel='parents', ctx=ctx, txn=txn)
@@ -877,12 +877,12 @@ class RelateDB(DBODB):
 
 		for i in names:
 			result[i], visited[i] = self.dfs(i, rel=rel, recurse=recurse)
-		
+
 		# Flatten the dictionary to get all touched names
 		allr = set()
 		for v in visited.values():
 			allr |= v
-		
+
 		# Filter by permissions (pass rectype= for optional Record filtering)
 		allr = self.names(allr, ctx=ctx, txn=txn, **kwargs)
 
@@ -891,13 +891,13 @@ class RelateDB(DBODB):
 			outret = {}
 			for k, v in result.iteritems():
 				for k2 in v:
-					outret[k2] = result[k][k2] & allr		
+					outret[k2] = result[k][k2] & allr
 			return outret
-		
+
 		# Else we're just ruturning the total list of all children, keyed by requested record name
 		for k in visited:
 			visited[k] &= allr
-		
+
 		return visited
 
 
@@ -912,7 +912,7 @@ class RelateDB(DBODB):
 	# 			return int(pkey), int(ckey)
 	# 		return unicode(pkey), unicode(ckey)
 	# 	remove = set(map(conv, remove))
-	# 	add = set(map(conv, add))		
+	# 	add = set(map(conv, add))
 	# 	common = remove & add
 	# 	remove -= common
 	# 	add -= common
@@ -929,7 +929,7 @@ class RelateDB(DBODB):
 		"""Remove parent-child relationship"""
 		self._putrel(parent, child, mode='removerefs', ctx=ctx, txn=txn)
 
-	
+
 	def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
 		# Check that we have enough permissions to write to one item
 		# Use raw get; manually setContext. Allow KeyErrors to raise.
@@ -943,23 +943,23 @@ class RelateDB(DBODB):
 			perm.append(p.writable())
 		except emen2.db.exceptions.SecurityError:
 			pass
-			
+
 		try:
 			c.setContext(ctx)
 			perm.append(c.writable())
 		except emen2.db.exceptions.SecurityError:
 			pass
-		
+
 		if not any(perm):
 			raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add/remove relationship"
-		
+
 		# Transform into the right format for _reindex_relink..
 		newvalue = set() | p.children # copy
 		if mode == 'addrefs':
 			newvalue |= set([c.name])
 		elif mode == 'removerefs':
 			newvalue -= set([c.name])
-		
+
 		# Slip into the regular commit methods
 		self._reindex_relink([], [[p.name, newvalue, p.children]], ctx=ctx, txn=txn)
 
@@ -973,13 +973,13 @@ class RelateDB(DBODB):
 		indp = self.getindex('parents', txn=txn)
 		if not indc or not indp:
 			raise KeyError, "Relationships not supported"
-			
+
 		# print "parent changeset:", parents
 		# print "children changeset:", children
 
 		# Process change sets into new and removed links
 		add = []
-		remove = []		
+		remove = []
 		for name, new, old in (parents or []):
 			old = set(old or [])
 			new = set(new or [])
@@ -987,7 +987,7 @@ class RelateDB(DBODB):
 				add.append((i, name))
 			for i in old - new:
 				remove.append((i, name))
-		
+
 		for name, new, old in (children or []):
 			old = old or set()
 			new = new or set()
@@ -995,11 +995,11 @@ class RelateDB(DBODB):
 				add.append((name, i))
 			for i in old - new:
 				remove.append((name, i))
-		
+
 		nmi = set()
 		for v in namemap.values():
 			nmi.add(v)
-			
+
 		# print "Add links:", add
 		# print "Remove links:", remove
 
@@ -1019,7 +1019,7 @@ class RelateDB(DBODB):
 		# print "p_remove:", p_remove
 		# print "c_add:", c_add
 		# print "c_remove:", c_remove
-				
+
 		if not indexonly:
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
@@ -1035,7 +1035,7 @@ class RelateDB(DBODB):
 				rec.__dict__['children'] -= c_remove[rec.name]
 				rec.__dict__['children'] |= c_add[rec.name]
 				self.put(rec.name, rec, txn=txn)
-	
+
 		for k,v in p_remove.items():
 			if v:
 				indp.removerefs(k, v, txn=txn)
@@ -1048,7 +1048,7 @@ class RelateDB(DBODB):
 		for k,v in c_add.items():
 			if v:
 				indc.addrefs(k, v, txn=txn)
-	
+
 		return
 
 

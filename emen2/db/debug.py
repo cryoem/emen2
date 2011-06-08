@@ -203,7 +203,6 @@ class stdout(Bounded):
 @Output.register_subclass
 class stderr(Min):
 	_preprocess = stdouts_handler('!!', '') # not sure why you need pre and postpend
-	#_preprocess = stdouts_handler('!! ', ' *******')
 
 
 class DebugState(object):
@@ -291,6 +290,7 @@ class DebugState(object):
 		self._stdout.close()
 		self._stderr.close()
 		sys.stdin.close()
+		print 'closing stdout'
 
 	def __call__(self, *args, **k):
 		'''log with a state of -1'''
@@ -455,6 +455,7 @@ class DebugState(object):
 	def print_traceback(self, level='DEBUG', steps=3):
 		msg =  self._get_last_module(steps)
 		self.msg(level, msg, tb=False)
+		return msg
 
 	def _get_last_module(self, num=1):
 		modname = '%s.py' % __name__.split('.')[-1]
