@@ -505,7 +505,6 @@ class Page(object):
 
 
 	@classmethod
-	@g.log.debug_func
 	def render_template(cls, template, modifiers=None):
 		modifiers = modifiers or {}
 		modifiers['def_title'] = modifiers.get('title', 'No Title')
