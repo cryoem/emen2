@@ -843,7 +843,6 @@ class DB(object):
 		while 1:
 			t = getctime()
 			if first_run or t > (self.lastctxclean + 600):
-				print 'click'
 				for task in self.tasks:
 					txn = self.bdbs.newtxn()
 					try:
@@ -1550,7 +1549,7 @@ class DB(object):
 
 	@publicmethod("paramdef.find")
 	def findparamdef(self, *args, **kwargs):
-		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
+		"""Find a ?RecordDef?, by general search string, or by name/desc_short/desc_long/mainview.
 
 		:param query: Contained in any item below
 		:keyword name: ... contains in name
@@ -1583,7 +1582,7 @@ class DB(object):
 						ret.add(item.name)
 			rets.append(ret)
 
-		if vartype:
+		if vartype is not None:
 			ret = set()
 			vartype = listops.check_iterable(vartype)
 			for item in items:
@@ -1591,7 +1590,7 @@ class DB(object):
 					ret.add(item.name)
 			rets.append(ret)
 
-		if record:
+		if record is not None:
 			if keytype == 'recorddef':
 				rets.append(self._findrecorddefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
 			elif keytype == 'paramdef':
@@ -2074,11 +2073,24 @@ class DB(object):
 
 	@publicmethod("get", write=True, admin=True)
 	def get(self, names, keytype='record', ctx=None, txn=None):
+		'''Get an object
+
+			:param names: the IDs for which the children are to be retrieved
+			:param keytype: What kind of objects the IDs refer to
+		'''
+
 		return self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("put", write=True, admin=True)
 	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
+		'''Get the children of the object as a tree
+
+			:param names: the IDs for which the children are to be retrieved
+			:param keytype: What kind of objects the IDs refer to
+			:param clone: ???
+		'''
+
 		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
 
 
@@ -2087,32 +2099,71 @@ class DB(object):
 	###############################
 
 	# This is a new method -- might need some testing.
-	@publicmethod("rel.siblings")
+	@publicmethod("rel.sibling")
 	def getsiblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
+		'''Get the siblings of the object as a tree
+
+			:param names: the IDs for which the children are to be retrieved
+			:param recurse: how many levels of children to retrieve
+			:param rectype: filter by rectype (Not Implemented?)
+			:param keytype: What kind of objects the IDs refer to
+		'''
+
 		return self.bdbs.keytypes[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parenttree")
+	@publicmethod("rel.parent.tree")
 	@ol('names', output=False)
 	def getparenttree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+		'''Get the parents of the object as a tree
+
+			:param names: the IDs for which the children are to be retrieved
+			:param recurse: how many levels of children to retrieve
+			:param rectype: filter by rectype (Not Implemented?)
+			:param keytype: What kind of objects the IDs refer to
+		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.childtree")
+	@publicmethod("rel.child.tree")
 	@ol('names', output=False)
 	def getchildtree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+		'''Get the children of the object as a tree
+
+			:param names: the IDs for which the children are to be retrieved
+			:param recurse: how many levels of children to retrieve
+			:param rectype: filter by rectype (Not Implemented?)
+			:param keytype: What kind of objects the IDs refer to
+		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parents")
+	@publicmethod("rel.parent")
 	@ol('names')
 	def getparents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+		'''Get the parents of an object
+
+			:param names: the IDs for which the children are to be retrieved
+			:param recurse: how many levels of children to retrieve
+			:param rectype: filter by rectype (Not Implemented?)
+			:param keytype: What kind of objects the IDs refer to
+
+			'''
+
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.children")
+	@publicmethod("rel.child")
 	@ol('names')
 	def getchildren(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+		'''Get the children of an object
+
+		:param names: the IDs for which the children are to be retrieved
+		:param recurse: how many levels of children to retrieve
+		:param rectype: filter by rectype (Not Implemented?)
+		:param keytype: What kind of objects the IDs refer to
+
+		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
 
 
@@ -2125,15 +2176,41 @@ class DB(object):
 
 	@publicmethod('rel.pclink', write=True)
 	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
+		'''Link a parent object with a child
+
+		:param parent: the ID of the parent object
+		:param child: the ID of the child object
+		:param keytype: the kind of object being linked
+
+		Keytype can be one of:
+
+			- record
+			- recorddef
+			- paramdef
+		'''
+
 		return self.bdbs.keytypes[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
 
 	@publicmethod('rel.pcunlink', write=True)
 	def pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
+		'''Remove a parent-child link
+
+		:param parent: the ID of the parent record
+		:param child: the ID of the child record
+		:param keytype: the kind of object being linked
+
+		Keytype can be one of:
+
+			- record
+			- recorddef
+			- paramdef
+		'''
 		return self.bdbs.keytypes[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
 
-	@publicmethod('rel.relink', write=True)
+	#@publicmethod('rel.relink', write=True)
+	# not implemented
 	def relink(self, parent, child, keytype='record', ctx=None, txn=None):
 		return self.bdbs.keytypes[keytype].relink(parent, child, ctx=ctx, txn=txn)
 
@@ -2287,7 +2364,8 @@ class DB(object):
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
 		# user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
-		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
+		#ed: odded 'or ctx.username' to match docs
+		user = self.bdbs.user.getbyemail(name or ctx.username, filt=False, txn=txn)
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..

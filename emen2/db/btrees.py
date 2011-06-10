@@ -902,6 +902,7 @@ class RelateDB(DBODB):
 
 
 	def relink(self, parent, child, ctx=None, txn=None):
+		raise NotImplementedError
 		pass
 
 
