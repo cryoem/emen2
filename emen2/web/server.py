@@ -21,6 +21,7 @@ except:
 
 import emen2.web.resources.threadpool
 import emen2.db.config
+import emen2.web.templating
 g = emen2.db.config.g()
 
 # Load EMEN2 Twisted Resources
@@ -79,9 +80,11 @@ class EMEN2Server(object):
 		g.EMEN2HTTPS = self.options.https or g.EMEN2HTTPS
 		g.EMEN2PORT_HTTPS = self.options.httpsport or g.getattr('EMEN2PORT_HTTPS',443)
 
+		g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
+
 		self.resource_loader = ResourceLoader(emen2.web.resources.publicresource.PublicView())
-		self.load_views()
 		self.load_resources()
+		self.load_views()
 
 
 
@@ -95,10 +98,11 @@ class EMEN2Server(object):
 		import emen2.web.view
 		import emen2.web.viewloader
 
-		emen2.web.viewloader.load_views()
-		redirects = g.getattr('REDIRECTS', {})
-		emen2.web.viewloader.load_redirects(redirects)
-		emen2.web.viewloader.routes_from_g()
+		self.viewloader = emen2.web.viewloader.ViewLoader()
+		self.viewloader.load_templates()
+		self.viewloader.load_views()
+		self.viewloader.load_redirects()
+		self.viewloader.routes_from_g()
 
 
 

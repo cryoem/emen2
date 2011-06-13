@@ -128,12 +128,19 @@ class LoggerStub(debug.DebugState):
 class Claim(object):
 	def __init__(self, ns, name, default, validator=None):
 		self.ns = ns
-		self.name = name
+		self.name = name.split('.')
 		self.default = default
 		self.validator = validator
+		self.values = {}
 
 	def __get__(self, instance, owner):
-		result = getattr(self.ns, self.name, self.default)
+		if id(instance) in self.values:
+			return self.values[id(instance)]
+
+		result = getattr(self.ns, self.name[0], self.default)
+		for n in self.name[1:]:
+			result = getattr(result, n, self.default)
+
 		if self.validator is not None:
 			is_valid = self.validator(result)
 			if not is_valid:
@@ -141,6 +148,12 @@ class Claim(object):
 				if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
 				raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
 		return result
+
+	def __set__(self, instance, value):
+		self.values[id(instance)] = value
+
+	def __delete__(self, instance):
+		self.values.pop(id(instance), None)
 
 inst = lambda x:x()
 class GlobalNamespace(object):

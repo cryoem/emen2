@@ -25,7 +25,7 @@ import os.path
 import time
 import datetime
 import sys
-
+import traceback
 
 import emen2.util.datastructures
 
@@ -316,32 +316,6 @@ class DebugState(object):
 		return lambda: sn
 
 
-
-	# ian: simplified..
-	# ed: not thanks....
-	# def newmsg(self, msg='', level='INFO', tb=False, e=None):
-	#	level = level.upper()
-	#	state = self.debugstates[level]
-	#	if tb:
-	#		self.print_traceback()
-
-	#	# outputs for the sake of lazy binding, outputs_l for caching
-	#	outputs_l = []
-	#	outputs = ((outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state))
-
-	#	if state < self._log_state and state < self._state:
-	#		return
-	#	elif not any(outputs):
-	#		return
-
-	#	# return func(state, sn, output, outputs_l, outputs, *args, **k)
-	#	head = '%s:%s: '%(time.strftime('[%Y-%m-%d %H:%M:%S]'), level.ljust(8))
-	#	for buf in outputs_l:
-	#		buf.send(None, state, head, '%s\n'%(unicode(msg).encode('utf-8')))
-	#		buf.flush()
-
-
-
 	def msg(self, sn, *args, **k):
 		state = self.debugstates[sn]
 		tb = k.pop('tb', False)
@@ -451,6 +425,10 @@ class DebugState(object):
 			dict[nm] = self.debug_func(meth)
 		clss = type(name, bases, dict)
 		return clss
+
+	def print_exception(self):
+		traceback.print_exc(self)
+		return self
 
 	def print_traceback(self, level='DEBUG', steps=3):
 		msg =  self._get_last_module(steps)
