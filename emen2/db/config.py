@@ -100,14 +100,7 @@ class DBOptions(optparse.OptionParser):
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
 
-		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
-		EMEN2DBHOME = os.getenv("EMEN2DBHOME")
-		if self.values.home:
-			EMEN2DBHOME = self.values.home
-		if EMEN2DBHOME:
-			g.EMEN2DBHOME = EMEN2DBHOME
 
-		# Load the default config
 		g.from_file(default_config)
 		if os.path.exists('/etc/emen2config.yml'):
 			g.from_file('/etc/emen2config.yml')
@@ -117,6 +110,15 @@ class DBOptions(optparse.OptionParser):
 			for fil in self.values.configfile:
 				g.from_file(fil)
 
+
+		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
+		EMEN2DBHOME = os.getenv("EMEN2DBHOME") or g.getattr('EMEN2DBHOME', '')
+		if self.values.home:
+			EMEN2DBHOME = self.values.home
+		if EMEN2DBHOME:
+			g.EMEN2DBHOME = EMEN2DBHOME
+
+		# Load the default config
 		# Look for any EMEN2DBHOME-specific config files and load
 		g.from_file(os.path.join(EMEN2DBHOME, "config.json"))
 		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
