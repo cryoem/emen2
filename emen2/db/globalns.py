@@ -125,9 +125,28 @@ class LoggerStub(debug.DebugState):
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
 
+class Claim(object):
+	def __init__(self, ns, name, default, validator=None):
+		self.ns = ns
+		self.name = name
+		self.default = default
+		self.validator = validator
+
+	def __get__(self, instance, owner):
+		result = getattr(self.ns, self.name, self.default)
+		if self.validator is not None:
+			is_valid = self.validator(result)
+			if not is_valid:
+				res_repr = repr(result)
+				if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
+				raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
+		return result
+
 inst = lambda x:x()
 class GlobalNamespace(object):
 
+	def claim(self, name, default, validator=None):
+		return Claim(self, name, default, validator)
 
 	@inst
 	class paths(object):
