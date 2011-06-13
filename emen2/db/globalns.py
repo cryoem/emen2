@@ -145,7 +145,7 @@ class Claim(object):
 inst = lambda x:x()
 class GlobalNamespace(object):
 
-	def claim(self, name, default, validator=None):
+	def claim(self, name, default=None, validator=None):
 		return Claim(self, name, default, validator)
 
 	@inst
