@@ -57,6 +57,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 	#################################
 
 	def _hashpassword(self, password):
+		password = unicode(password or '')
 		if len(password) == 40:
 			return password
 		return hashlib.sha1(unicode(password)).hexdigest()
@@ -78,6 +79,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# No password will always fail!
 		if self.password and self._hashpassword(password) == self.password:
 			return True
+			
+		try:
+			if self._ctx.checkadmin():
+				return True
+		except AttributeError:
+			pass
 
 		# Sleep for 2 seconds any time there is a wrong password!!
 		time.sleep(2)
