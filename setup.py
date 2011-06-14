@@ -31,7 +31,6 @@ if __name__ == "__main__":
 			'emen2.web.resources',
 			'emen2.web.views',
 			'emen2.util',
-			'jsonrpc'
 			],
 		scripts=['scripts/emen2control.py']
 		)
