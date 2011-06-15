@@ -33,7 +33,7 @@ if __name__ == "__main__":
 			'emen2.util',
 			],
 		package_data={
-			'emen2': ['templates/*.mako', 'templates/.*', 'templates/*/*.mako', 'templates/*/*/*.mako'],
+			'emen2': ['templates/*.mako', 'templates/.*', 'templates/*/*.mako', 'templates/*/*/*.mako', 'static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
 			'emen2.db': ['*.json'],
 		},
 		scripts=['scripts/emen2control.py']
