@@ -1,4 +1,5 @@
-/******** BODY AND TOP LEVEL CONTAINERS ******/
+/********* LAYOUTS *************/
+/* body and top level containers */
 
 html,
 body
@@ -28,17 +29,34 @@ body
 	margin-left:auto !important;
 	margin-right:auto !important;
 }
-#content {
-}
 
 #footer {
-	height:100px;
-	border-top:solid 1px #ccc;
-	text-align:center;
-	margin-top:10px;
-	padding:10px;
+	height: 56px;
+	padding-top:10px;
+	padding-bottom:10px;
 	position:absolute;
 	bottom:0px;
+	width:100%;
+}
+
+/************* NOTIFICATION BOXES ************/
+
+.notify {
+	border-style: solid;
+	border-width: 2px;
+	padding: 5px;
+	margin-top:10px;
+	margin-bottom:10px;
+}
+#alert {
+	margin:0px;
+	padding-top:10px;
+}
+#alert .notify:first-child {
+	margin-top:0px;
+}
+#alert .notify:last-child {
+	margin-bottom:0px;
 }
 
 /******* TOP LEVEL ELEMENTS *******/
@@ -57,8 +75,6 @@ img.thumbnail {
 
 h1 {
 	margin-top:10px;
-	border-bottom-style: solid;
-	border-bottom-width: 1px;
 }
 
 h4 {
@@ -94,42 +110,8 @@ th {
 	text-align: left;
 }
 
-/**** UNSELECTABLE ELEMENTS *******/
+/* nav bar */
 
-.controls, 
-.clickable
-{
-	-webkit-user-select: none;
-	-moz-user-select: none;
-}
-
-/************* NOTIFICATION BOXES ************/
-
-.notify
-{
-	border-style: solid;
-	border-width: 2px;
-	padding: 5px;
-	margin-top:10px;
-	margin-bottom:10px;
-}
-#alert {
-	margin:0px;
-	padding-top:10px;
-}
-#alert .notify:first-child {
-	margin-top:0px;
-}
-#alert .notify:last-child {
-	margin-bottom:0px;
-}
-
-.notify .kill {
-	float: right;
-}
-
-/******* NAV MENU *******/
-/* This is a little complicated. Be careful. */
 #title {
 	border-bottom:solid 2px #ccc;
 }
@@ -139,21 +121,21 @@ ul.nav {
 	margin-right:auto;
 	padding:0px;
     list-style: none;
-	z-index:1000;
+	z-index:10;
 }
+
 ul.nav a,
 ul.nav .clickable
- {
+{
 	display:block;
 	text-decoration:none;
 	padding:8px;
 }
-/* List tricks */
 ul.nav > li {
     float: left;
     position: relative;
 }
-/* Force this to be the right height */
+
 ul.nav li.logo {
 	padding:0px;
 	margin:0px;
@@ -182,7 +164,6 @@ ul.nav li ul {
     position: absolute;
 	padding:0px;
 	list-style:none;
-	z-index:1000;
 	-moz-box-shadow: 3px 3px 3px #999;
 }
 ul.nav li ul li {
@@ -201,67 +182,32 @@ ul.nav li:last-child ul {
 }
 
 
-/********** "Embedded" popups ***********/
 
-.hidden, 
-ul.nav ul
-{
-	border-top: none;
+.menu > li > ul,
+.menu .hidden {
 	-moz-box-shadow: 3px 3px 3px #999;
-	-webkit-box-shadow: 3px 3px 3px #999;
-}
-
-.hidden {
-	z-index:103;
-	font-size:12pt;
-	padding: 10px;
-	display: none;
-	position: absolute;
+	-webkit-box-shadow: 3px 3px 3px #999;	
 }
 
 
-/***** LOGIN ********/
+/******* controls *******/
 
-table.login {
-	width:auto;
-}
-table.login td:first-child {
-	padding-right:10px;
-}
-table.login td {
-	padding:8px;
-	padding-right:25px;
-}
-table.login td:last-child {
-	padding-left:25px;
-	padding-right:10px;
-	border-left:solid 1px #ccc;
-}
-
-/***** CONTROLS *****/
-
-textarea {
-	width: 90%;
+/*textarea {
 	display: block;
 }
-
 button, select, input, textarea {
 	border-width:1px;
-	padding:4px;
-	font-size:12pt;
 }
 button, input[type=button], input[type=submit], input[type=file], input[type=password] {
-	outline:medium none;	
 	display:inline-block;
 }
-
 textarea, input[type=text], input[type=password] {
 	border:solid 1px #aaa;
 }
+*/
 
 .save input, 
-input.save,
-.mapselect
+input.save
 {
 	color: white;
 	border-color: #ccc;
@@ -275,70 +221,28 @@ input.cancel
 	color: #666;
 }
 
-/* Widget containers */
 
-.buttonicon {
-	padding:0px;
-	margin:0px;
+/************* INLINE EDITBALE ITEMS  ************/
+
+/*
+.editable_files .label,
+.editable_files.label,
+.editable .label,
+.editable.label
+{
+	padding: 2px;
+	padding-bottom: 0px;
+	font-weight: normal;
+	list-style: none;
 }
-.controls {
-	float: right;
+.edit.label:hover {
+	background: #5B74A8;
 }
-.editcontrol .controls {
-	float: none;
-	display: none;
-}
-.inplace .controls {
-	display: inline;
-}
+*/
 
-/* Feedback */
+/***** editbar *******/
 
-.spinner {
-	display:none;
-}
-
-.searchbox { 
-	border-bottom-width: 1px;
-	border-bottom-style: solid;
-	margin-bottom: 10px;
-	padding-bottom: 10px;
-}
-
-.profile_form_label {
-	width: 180px;
-	float: left;
-	text-align: right;
-	padding-right: 10px;
-}
-
-
-/************* USER PROFILE DISPLAY **************/
-
-.userbox {
-	padding: 0px;
-	padding-right: 10px;
-	padding-bottom: 10px;
-	width: 300px;
-	float: left;
-}
-
-.userbox img {
-	float: left;
-	border-style: solid;
-	border-width: 1px;
-	height: 40px;
-}
-
-.userbox div {
-	margin-left: 45px;
-}
-
-
-
-/********** RECORD EDIT BAR ***********/
-
-.editbar {
+/*.editbar {
 	border-bottom:solid 1px #ccc;
 	list-style: none;
 	padding:0px;
@@ -376,85 +280,21 @@ input.cancel
 .editbar .label {
 	margin:5px;
 	display:inline-block;
-}
-
-/************* INLINE EDITBALE ITEMS  ************/
-
-.editable_files .label,
-.editable_files.label,
-.editable .label,
-.editable.label
-{
-	padding: 2px;
-	padding-bottom: 0px;
-	font-weight: normal;
-	list-style: none;
-}
-.edit.label:hover {
-	background: #5B74A8;
-}
+}*/
 
 
-/********* PAGES AND TABS **********/
+/* text styles */
 
-.infobuttons {
-	padding: 10px;
-	margin-left: 20px;
-	float: left;
+.chevron {
+	padding: 3px;
 }
-.info {
-	padding: 10px;
-}
-.info a {
-	padding: 5px;
+.underline {
+	height: 10px;
+	border-bottom: dotted 1px #ccc;
+	width: 50px;
 }
 
-.page {
-	padding: 10px;
-	display: none;
-}
-.page_active {
-	display: block;
-}
-.buttons ul {
-	margin: 0px;
-	padding-top:10px;
-	padding-left: 0px;
-	list-style: none;
-}
-.buttons ul li {
-	float: left;
-	margin-right: 10px;
-}
-.button {
-	padding: 10px;
-}
-.page_map {
-	padding:2px;
-}
-.button_map {
-	padding-top: 0px;
-	padding-bottom: 0px;
-	border-bottom: solid 1px white;
-}
-.button_map_active {
-	border-bottom: dashed 1px #ccc;
-}
-
-/********* RECORD TABLE ***********/
-
-.recordtable table.inner th {
-	border-right: solid 1px #ccc;
-}
-.recordtable table.inner tr:first-child th {
-	border-bottom: none;
-}
-.recordtable table.inner th:last-child {
-	border-right: none;
-}
-
-
-/********** LINKS &amp; SMALL TEXT ELEMENTS ***********/
+/* links + font styles */
 
 .tiny {
 	font-size: 8pt;
@@ -474,7 +314,6 @@ h1 .label
 .editbar li.edit input,
 .search input,
 .search button,
-.ulm,
 .button_map
 {
 	font-size: 10pt;
@@ -507,66 +346,24 @@ a:hover,
 	text-decoration:underline;
 }
 
-.chevron {
-	padding: 3px;
-}
 
 
-/********** UTILITY **********/
+/***** LOGIN ********/
 
-.noborder {
-	border:none !important;
+table.login {
+	width:auto;
 }
-.nopadding {
-	padding:0px;
+table.login td:first-child {
+	padding-right:10px;
 }
-
-.floatleft {
-	float:left !important;
+table.login td {
+	padding:8px;
+	padding-right:25px;
 }
-.floatright {
-	float:right !important;
-}
-
-.floatlist {
-	list-style:none;
-}
-.floatlist > li {
-	float:left;
-}
-
-ul.nonlist
-{
-	list-style: none;
-	text-indent: 0px;
-	padding-left: 0px;
-}
-
-.show {
-	display: block;
-}
-
-.hide {
-	display: none;
-}
-
-.underline {
-	height: 10px;
-	border-bottom: dotted 1px #ccc;
-	width: 50px;
-}
-
-.clearfix {
-	clear:both;
-}
-
-.clearfix:after
-{
-    content: "."; 
-    display: block; 
-    height: 0; 
-    clear: both; 
-    visibility: hidden;	
+table.login td:last-child {
+	padding-left:25px;
+	padding-right:10px;
+	border-left:solid 1px #ccc;
 }
 
 
@@ -574,8 +371,6 @@ ul.nonlist
 
 
 /* all */
-.notify,
-.info,
 .rounded
 {
 	-moz-border-radius: 8px;
@@ -583,30 +378,12 @@ ul.nonlist
 }
 
 /* top only */
-.button,
-.infobuttons
+.roundtop
 {
 	-moz-border-radius-topright: 8px;
 	-moz-border-radius-topleft: 8px; 
 	-webkit-border-top-right-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
-}
-
-/* top right */
-#content {
-	-moz-border-radius-topright: 8px;
-	-webkit-border-top-right-radius: 8px;
-}
-
-/* all but top left */
-.page
-{
-	-moz-border-radius-topright: 8px; 
-	-moz-border-radius-bottomright: 8px;
-	-moz-border-radius-bottomleft: 8px; 
-	-webkit-border-top-right-radius: 8px; 	
-	-webkit-border-bottom-right-radius: 8px;
-	-webkit-border-bottom-left-radius: 8px; 	
 }
 
 /* left only */
@@ -616,20 +393,5 @@ ul.nonlist
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
 }
-
-
-/************* JQUERY UI OVERRIDES ************/
-
-.ui-autocomplete {
-	max-height: 300px;
-	overflow-y: auto;
-}
-/* IE 6 doesn't support max-height
- * we use height instead, but this forces the menu to always be this tall
- */
-* html .ui-autocomplete {
-	height: 300px;
-}
-
 
 

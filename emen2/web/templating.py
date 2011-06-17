@@ -15,7 +15,6 @@ import mako.template
 from mako import exceptions
 
 from emen2.util import fileops
-import emen2.web.extfile
 import emen2.web.view
 
 import emen2.db.config
@@ -165,8 +164,8 @@ class MakoTemplateEngine(StandardTemplateEngine):
 					EMEN2WEBROOT = g.EMEN2WEBROOT, EMEN2DBNAME = g.EMEN2DBNAME,
 					EMEN2LOGO = g.EMEN2LOGO, BOOKMARKS=g.BOOKMARKS,
 					HOST = None,
-					js_files = emen2.web.extfile.BaseJS(ctxt), notify = '', ctxt=ctxt,
-					css_files = emen2.web.extfile.BaseCSS(ctxt),
+					js_files = BaseJS(ctxt), notify = '', ctxt=ctxt,
+					css_files = BaseCSS(ctxt),
 				)
 				ctxt.update(context)
 				return self.render_template('/errors/error', ctxt)
@@ -205,6 +204,93 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 
 get_templates = fileops.walk_paths('.mako', template_callback)
 
+
+class ExtFile(object):
+	def _register(registry):
+		@staticmethod
+		def _inner(name, bases, dict):
+			newcls = type(name, bases, dict)
+			registry[name] = newcls
+			return newcls
+		return _inner
+
+	css_registry = {}
+	registercss = _register(css_registry)
+
+	js_registry = {}
+	registerjs = _register(js_registry)
+
+
+	def addfile(self, f):
+		self.files.append('%s/static/%s'%(g.EMEN2WEBROOT, f)) #, g.VERSION
+
+	@property
+	def files(self):
+		return self._files
+
+	@files.setter
+	def files(self, value):
+		if not hasattr(value, '__iter__'):
+			value = [value]
+		self._files.extend(value)
+
+	def __init__(self, dbtree):
+		self._files = []
+		self.dbtree = dbtree
+		self.init()
+
+	def init(self): pass
+
+	def __iter__(self):
+		return iter(self._files)
+
+
+
+# ian: todo: optimize this some in the future; not every page needs all the files
+class BaseJS(ExtFile):
+	def init(self):
+		super(BaseJS, self).init()
+		addfiles = [
+			'jquery/jquery.js',
+			'jquery/jquery-ui.js',
+			'jquery/jquery.json.js',
+			'jquery/jquery.timeago.js',
+			"comments.js",
+			"edit.js",
+			"editdefs.js",
+			"file.js",
+			"find.js",
+			"permission.js",
+			"query.js",
+			"relationship.js",
+			"table.js",
+			"tile.js",
+			"record.js",
+			"util.js"
+			]
+
+		self.files = [self.dbtree.reverse('TemplateRender', t='/js/settings.js')]
+		for i in addfiles:
+			self.files.append('%s/static-%s/js/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
+
+
+class BaseCSS(ExtFile):
+	def init(self):
+		super(BaseCSS, self).init()
+		addfiles = [
+			'custom-theme/jquery-ui-1.8.2.custom.css',
+			'base.css',
+			'main.css',
+			'colors.css',
+			'boxer.css',
+			self.dbtree.reverse('TemplateRender', t='/css/map.css')
+			#'calendar.css'
+		]
+
+		self.files = []
+		for i in addfiles:
+			self.files.append('%s/static-%s/css/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
+			
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
