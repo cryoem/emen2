@@ -74,7 +74,7 @@
 			////////////////////////////////
 			// Add user controls
 		
-			this.dialog = $('<div class="permissions"></div>');
+			this.dialog = $('<div/>');
 			this.grouparea = $('<div/>');
 			this.userarea = $("<div/>");
 			this.dialog.append(this.grouparea);
@@ -82,30 +82,30 @@
 
 			// Save controls
 			if (this.options.edit) {
-				// this.savearea = $('<div class="controls"/>');
-				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 				if (this.options.keytype == 'record' && this.options.name != "None") {
 					
 					var opt_recurse = $(' \
 						<li><input type="checkbox" id="recurse" name="recurse"> <label for="recurse">Recursive</label></li> \
 						<li> \
-							<input type="checkbox" disabled="disabled" name="overwrite_users" id="overwrite_users" class="overwrite disabled"> \
-							<label class="overwrite disabled" for="overwrite_users">Overwrite Users</label> \
-						</li><li> \
-							<input type="checkbox" disabled="disabled" name="overwrite_groups" id="overwrite_groups" class="overwrite disabled"> \
-							<label class="overwrite disabled" for="overwrite_groups">Overwrite Groups</label> \
+							<input type="checkbox" disabled="disabled" name="overwrite_users" id="e2-permissions-overwrite-users"> \
+							<label for="e2-permissions-overwrite-users">Overwrite Users</label> \
+						</li> \
+						<li> \
+							<input type="checkbox" disabled="disabled" name="overwrite_groups" id="e2-permissions-overwrite-groups"> \
+							<label for="e2-permissions-overwrite-groups">Overwrite Groups</label> \
 						</li>');
 
 
 					$('input[name=recurse]', opt_recurse).click(function(){
 						var state = $(this).attr('checked');
-						if (state) {
-							$('.overwrite', self.dialog).removeAttr("disabled");
-							$('.overwrite', self.dialog).removeClass("disabled");
-						} else {
-							$('.overwrite', self.dialog).attr('disabled', 1);
-							$('.overwrite', self.dialog).addClass("disabled");
-						}
+							if (state) {
+								$('input[name=overwrite_users]', self.element).removeAttr("disabled");
+								$('input[name=overwrite_groups]', self.element).removeAttr("disabled");							
+							} else {
+								$('input[name=overwrite_users]', self.element).attr("disabled", 1);
+								$('input[name=overwrite_groups]', self.element).attr("disabled", 1);
+							}
 						});
 
 					var apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
@@ -181,12 +181,12 @@
 			// 	
 			// } else {
 
-			var level = $('<div class="level clearfix" data-level="group"></div>');
+			var level = $('<div class="clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
 			var title = $('<h4 class="clearfix"> Groups</h4>');
 			if (this.options.edit) {
-				var button = $('<input class="addbutton" type="button" value="+" /> ');
+				var button = $('<input type="button" value="+" /> ');
 				button.FindControl({
 					keytype: 'group',
 					minimum: 0,
@@ -199,8 +199,6 @@
 			$.each(this.groups, function(i, groupname) {
 				self.drawgroup(groupname);
 			});
-
-		
 		},
 
 
@@ -209,10 +207,10 @@
 			this.userarea.empty();		
 		
 			$.each(this.permissions, function(k,v) {			
-				var level = $('<div class="level clearfix" data-level="'+k+'"></div>');
+				var level = $('<div class="clearfix" data-level="'+k+'"></div>');
 				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+'</h4>');
 				if (self.options.edit) {
-					var button = $('<input class="addbutton" type="button" value="+" />');
+					var button = $('<input type="button" value="+" />');
 					button.FindControl({
 						cb:function(test, name){self.add(name, k)}
 					});
@@ -281,13 +279,13 @@
 				userdiv.addClass('add');
 			}
 
-			$('.level[data-level='+level+']', this.dialog).append(userdiv);
+			$('[data-level='+level+']', this.dialog).append(userdiv);
 		},
 
 
 		drawgroup: function(groupname, add) {
 			var self = this;				
-			var groupdiv = $('<div class="userbox group" data-groupname="'+groupname+'" />');
+			var groupdiv = $('<div class="userbox" data-groupname="'+groupname+'" />');
 			groupdiv.append('<img  data-groupname="'+groupname+'" src="'+EMEN2WEBROOT+'/static/images/group.png" />');	
 			groupdiv.append('<div data-groupname="'+groupname+'">'+groupname+'<br /></div>');
 		
@@ -298,7 +296,7 @@
 				groupdiv.addClass('add');
 			}
 		
-			$('.level[data-level=group]', this.dialog).append(groupdiv);
+			$('[data-level=group]', this.dialog).append(groupdiv);
 		},
 
 

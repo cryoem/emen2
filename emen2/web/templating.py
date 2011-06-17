@@ -280,7 +280,7 @@ class BaseCSS(ExtFile):
 		addfiles = [
 			'custom-theme/jquery-ui-1.8.2.custom.css',
 			'base.css',
-			'main.css',
+			'style.css',
 			'colors.css',
 			'boxer.css',
 			self.dbtree.reverse('TemplateRender', t='/css/map.css')

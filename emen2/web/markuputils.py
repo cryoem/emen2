@@ -78,13 +78,13 @@ class HTMLTab():
 
 	def getclass_button(self, name):
 		if name==self.active:
-			return "button button_active button_%s button_%s_active"%(self.classname, self.classname)
-		return "button button_%s"%self.classname
+			return "button active"
+		return "button"
 
 	def getclass_page(self, name):
 		if name==self.active:
-			return "clearfix page page_active page_%s page_%s_active"%(self.classname, self.classname)
-		return "page page_%s"%self.classname
+			return "clearfix page active"
+		return "clearfix page"
 
 	#id="buttons_main" class="buttons buttons_main"
 	def getid_buttons(self):

@@ -1,3 +1,6 @@
+/********* COLORS *************/
+
+
 /* Darker background color */
 body,
 #alert,
@@ -14,7 +17,6 @@ body,
 .button_active,
 .boxer .controls,
 .tilemap .tilemapcontrols,
-.ulmactive,
 .info,
 .infobuttons
 {
@@ -76,10 +78,9 @@ th,
 .tilemap .label,
 .searchbox,
 .userbox img,
-.clickable_box,
 .tilemap .tilemapcontrols
 {
-	border-color: #ccc;
+	border-bottom:solid 1px #ccc;
 }
 .boxarea .boximg {
 	border-color: #fff;
@@ -87,14 +88,9 @@ th,
 
 #alert li,
 .notify,
-.ulmhover
 {
-	border-color: #FF8135; /* orange */
-}
-
-.cleared
-{
-	border-color: blue;
+	/* orange */
+	border: solid 2px #FF8135; 
 }
 
 .deleted,

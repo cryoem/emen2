@@ -118,10 +118,10 @@ function bind_autocomplete(elem, param) {
 				return
 			}
 			this.built = 1;
-			
+
 			this.controls = $('<div class="controls" />')		
 
-			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
+			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />');
 			this.controls.append(spinner);
 
 			var save = $('<input class="save" type="submit" name="save" value="Save" />');
@@ -282,7 +282,7 @@ function bind_autocomplete(elem, param) {
 			this.built = 0;
 			this.bind_edit();
 			this.trygetparams = 0;
-			this.element.addClass("editcontrol");
+			// this.element.addClass("e2-editcontrol");
 			this.find_cache = {};
 
 			if (this.options.show) {
@@ -314,7 +314,7 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// container
-			this.w = $('<div class="editcontrol" />');
+			this.w = $('<div/>');
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
@@ -323,9 +323,9 @@ function bind_autocomplete(elem, param) {
 			
 			// Delegate to different edit widgets
 			if (vt=="html" || vt=="text") {
-			
+
 				inline = false;
-				this.editw=$('<textarea class="value" cols="80" rows="10">'+this.rec_value+'</textarea>');
+				this.editw=$('<textarea cols="80" rows="10">'+this.rec_value+'</textarea>');
 				this.w.append(this.editw);			
 
 			} else if (vt=="choice") {
@@ -343,7 +343,7 @@ function bind_autocomplete(elem, param) {
 							
 			} else if (vt=="datetime") {
 		
-				this.editw = $('<input class="value" size="18" type="text" value="'+this.rec_value+'" />');
+				this.editw = $('<input size="18" type="text" value="'+this.rec_value+'" />');
 				this.w.append(this.editw);
 
 			} else if (vt=="boolean") {
@@ -367,17 +367,17 @@ function bind_autocomplete(elem, param) {
 		
 			}  else if (vt=="user") {
 
-				this.editw = $('<input class="value" size="20" type="text" value="'+this.rec_value+'" />');
+				this.editw = $('<input size="20" type="text" value="'+this.rec_value+'" />');
 				this.w.append(this.editw);
 		
 			} else if (vt=="comments") {
 
 				inline = false;
-				this.editw = $('<input class="value" size="20" type="text" value="" />');
+				this.editw = $('<input size="20" type="text" value="" />');
 						
 			} else {
 
-				this.editw = $('<input class="value" size="20" type="text" value="'+this.rec_value+'" />');
+				this.editw = $('<input size="20" type="text" value="'+this.rec_value+'" />');
 				this.w.append(this.editw);			
 				var property = pd["property"];
 				var units = pd["defaultunits"];
@@ -398,15 +398,15 @@ function bind_autocomplete(elem, param) {
 				bind_autocomplete(this.editw, this.options.param);
 			}
 
-			if (inline) {
-				this.w.css('display','inline');
-			}
+			// if (inline) {
+			// 	this.w.css('display','inline');
+			// }
 
-			this.controls = $('<span class="controls" />')		
-			this.controls.append(
-				$('<input class="save" type="submit" value="Save" name="save" />').one("click", function(e) {self.save()}),
-				$('<input class="cancel" type="button" value="Cancel" />').bind("click", function(e) {self.hide()}));
-			this.w.append(this.controls);
+			// this.controls = $('<span class="controls" />')		
+			// this.controls.append(
+			// 	$('<input type="submit" value="Save" name="save" />').one("click", function(e) {self.save()}),
+			// 	$('<input type="button" value="Cancel" name="cancel" />').bind("click", function(e) {self.hide()}));
+			// this.w.append(this.controls);
 			this.element.after(this.w);
 			
 			
@@ -436,26 +436,24 @@ function bind_autocomplete(elem, param) {
 			}
 		
 			this.build();
-
-			this.w.css('display', 'inline');
-			if (showcontrols) {
-				//this.element.addClass('whitehide');
-				//this.w.css('top', this.element.position().top);
-				this.element.hide();
-				this.w.addClass('inplace');
-			} else {
-				this.element.hide();
-			}
+			this.element.hide();
+			this.w.show();
+			
+			// this.w.css('display', 'inline');
+			// if (showcontrols) {
+			// 	this.element.hide();
+			// 	this.w.addClass('inplace');
+			// } else {
+			// 	this.element.hide();
+			// }
 		},
 	
 		hide: function() {
 			if (!this.built) {
 				return
 			}
-			this.w.removeClass('inplace');
-			//this.element.removeClass('whitehide');
+			this.w.hide();
 			this.element.show();
-			this.w.hide();			
 		},
 		
 		getname: function() {
@@ -464,15 +462,12 @@ function bind_autocomplete(elem, param) {
 	
 		getval: function() {			
 			var ret = this.editw.val();
-
 			if (ret == "" || ret == []) {
 				return null;
 			}
-
 			if (this.editw_units) {
 				ret = ret + this.editw_units.val();
 			}
-
 			return ret
 		},
 		
@@ -482,15 +477,15 @@ function bind_autocomplete(elem, param) {
 
 		rebind_save: function() {
 			var self = this;
-			var t = $('input[name=save]', this.controls);
-			t.val("Retry...");
-			t.one("click", function() {self.save()});
+			// var t = $('input[name=save]', this.controls);
+			// t.val("Retry...");
+			// t.one("click", function() {self.save()});
 		},
 
 		save: function() {
 			var self = this;
 			var p = {}
-			p[this.options.param]=this.getval();
+			p[this.options.param] = this.getval();
 			$.jsonRPC("putrecordvalues", [this.options.name, p], function(rec) {
 				record_update(rec);
 				self.hide();
@@ -556,12 +551,12 @@ function bind_autocomplete(elem, param) {
 					bind_autocomplete(edit, self.options.param);
 				}
 									
-				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" class="listcontrol_add" alt="Add" /></span>').click(function() {
+				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" /></span>').click(function() {
 					self.addoption(k+1);
 					self.build();
 				});
 			
-				var remove=$('<span><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" class="listcontrol_remove" alt="Remove" /></span>').click(function() {
+				var remove=$('<span><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></span>').click(function() {
 					self.removeoption(k);
 					self.build();
 				});
@@ -712,16 +707,18 @@ function bind_autocomplete(elem, param) {
 			this.selectdialog.append(o);
 
 			// options
-			ob = $('<div class="controls"><ul class="options nonlist"> \
+			ob = $('<div class="controls"><ul class="nonlist"> \
 				<li><input type="checkbox" name="private" id="private" /> <label for="private">Private</label></li> \
 				<li><input type="checkbox" name="copy" id="copy" /> <label for="private">Copy values</label></li>  \
 				</ul></div>');
+				
 			if (this.options.private) {
 				$("input[name=private]", ob).attr("checked", "checked");
 			}
 			if (this.options.copy) {
 				$("input[name=copy]", ob).attr("checked", "checked");
 			}
+
 			$('input[name=private]', ob).click(function() {
 				var value = $(this).attr('checked');
 				self.options.private = value;
@@ -793,31 +790,23 @@ function bind_autocomplete(elem, param) {
 		},
 		
 		build_newrecord: function() {
-			this.newdialog = $('<div><div class="form">Loading...</div><div class="controls" /></div>');
-			// $.jsonRPC("getrecorddef", [this.options.rectype], function(rd) {
-			// 	caches['recorddefs'][rd.name] = rd;
-			// 	$('.help', self.newdialog).empty();
-			// 	$('.help', self.newdialog).html(rd.desc_short);
-			// });
-		
+			this.newdialog = $('<div>Loading...</div>');
 			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';
 				caches['recs'][rec.name] = rec;
 					
 				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
-					$('.form', self.newdialog).empty();
-					$('.controls', self.newdialog).empty();
+					self.newdialog.empty();
 
 					var content = $('<div></div>');
 					content.append(data);
-					$('.form', self.newdialog).append(content);
-					
-					var controls = $('<div class="editcontrol"></div>');
-					$('.controls', self.newdialog).append(controls);
-				
+					self.newdialog.append(content);
 					$('.editable', content).EditControl({
 						name:'None'
 					});
+
+					var controls = $('<div></div>');
+					self.newdialog.append(controls);
 					controls.MultiEditControl({
 						name: 'None',
 						show: true,
@@ -826,6 +815,7 @@ function bind_autocomplete(elem, param) {
 							self.options.cb_save(recs);
 						}
 					});
+
 				});
 			});
 					

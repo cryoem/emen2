@@ -1,9 +1,9 @@
 /***** BOXER ******/
 
-.boximg {
+.e2-box-img {
 }
 
-.boxbox {
+.e2-box-box {
 	z-index: 100;
 	position: absolute;
 	top: 0px;
@@ -13,16 +13,16 @@
 	height: 10px;
 }
 
-.boxhover {
+.e2-box-hover {
 	outline: solid red 5px;
 }
 
-.boxarea {
+.e2-box-boxarea {
 	height: 25px;
 	padding: 4px;
 }
 
-.boxarea .boximg {
+.e2-box-boxarea .e2-box-img {
 	border-style: solid;
 	border-width: 2px;
 	margin: 0px;
@@ -30,10 +30,7 @@
 	margin-bottom: 2px;
 }
 
-.boxarea-active {
-}
-
-.tilemap .tilemapcontrols {
+.e2-tile .e2-tile-controls {
 	display: block;
 	position: absolute;
 	top: 20px;
@@ -46,12 +43,12 @@
 }
 
 /* tiny */
-.tilemap .label {
+.e2-tile .label {
 	font-size: 8pt;
 	text-align: center
 }
 
-.boxer .controls {
+.e2-tile .controls {
 	margin: 0px;
 	display: block;
 	padding: 0px;
@@ -63,10 +60,7 @@
 	overflow: auto;
 }
 
-.boxer {
-}
-
-.tilemap {
+.e2-tile {
 	z-index: 0;
 	height: 100%;
 	position: relative;

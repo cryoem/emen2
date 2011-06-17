@@ -66,7 +66,7 @@
 		build_map: function() {
 			var self = this;						
 			// Tile Map Browser
-			this.img = $('<div class="tilemap" />');
+			this.img = $('<div class="e2-tile" />');
 			this.element.append(this.img);
 			this.event_resize();			
 			this.img.TileMap({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
@@ -76,7 +76,7 @@
 			var self = this;
 	
 			// Box areas
-			var boxtable = $('<table class="boxtable"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th style="width:40px">Size</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
+			var boxtable = $('<table class="e2-box-table"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th style="width:40px">Size</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
 			var controls = $('<div class="controls" />');
 			// controls.resizable({
 			// 	handles: 'w',
@@ -91,11 +91,11 @@
 		build_map_controls: function() {
 			var self = this;
 
-			var controls = $('.tilemap[data-bdo='+this.options.bdo+'] .tilemapcontrols');
+			var controls = $('.e2-tile[data-bdo='+this.options.bdo+'] .tilemapcontrols');
 			controls.append('<h4 class="label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				<div style="display:none" class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
+				<div class="spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
 				<input type="button" name="saveall" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
@@ -157,7 +157,7 @@
 			// create a new box image
 			var boximg = $('<img alt="Box" />');
 			boximg.BoxImg({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: 1, label: label, draggable: true});
-			$('.boxarea[data-label='+label+']').prepend(boximg);			
+			$('.e2-box-area[data-label='+label+']').prepend(boximg);			
 
 			// update box count
 			this.updateboxcount(label);
@@ -194,16 +194,16 @@
 		
 		remove_box: function(boxid) {
 			// kill a box dead
-			var label = $('.boximg[data-boxid='+boxid+']').attr('data-label');
-			$('.boximg[data-boxid='+boxid+']').remove();
-			$('.boxbox[data-boxid='+boxid+']').remove();
+			var label = $('.e2-box-img[data-boxid='+boxid+']').attr('data-label');
+			$('.e2-box-img[data-boxid='+boxid+']').remove();
+			$('.e2-box-box[data-boxid='+boxid+']').remove();
 			this.updateboxcount(label);
 		},
 		
 		updateboxcount: function(label) {
 			label = label || null;
-			var boxcount = $('.boximg[data-label='+label+']').length;
-			$('.boxcount[data-label='+label+']').html(boxcount);
+			var boxcount = $('.e2-box-img[data-label='+label+']').length;
+			$('.e2-box-count[data-label='+label+']').html(boxcount);
 		},
 
 		unlink_label: function(label, confirm, confirmed) {
@@ -233,25 +233,25 @@
 		},
 		
 		remove_label: function(label) {
-			$('.boximg[data-label='+label+']').remove();
-			$('.boxbox[data-label='+label+']').remove();			
+			$('.e2-box-img[data-label='+label+']').remove();
+			$('.e2-box-box[data-label='+label+']').remove();			
 			$('tr[data-label='+label+']').remove();			
 		},
 
 
 		clear: function() {
-			$('.boximg').remove();
-			$('.boxbox').remove();
+			$('.e2-box-img').remove();
+			$('.e2-box-box').remove();
 			$('tr[data-label]').remove();
 		},
 
 		_save: function(label) {
-			var boxes = $('.boximg[data-label='+label+']');
+			var boxes = $('.e2-box-img[data-label='+label+']');
 			var rec = caches['recs'][label];
 			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
 			//rec['box_length'] = $('.boximg[data-label='+label+']').length;
-			rec['box_label'] = $('.box_label[data-label='+label+']').val();
-			rec['box_size'] = $('.box_size[data-label='+label+']').val();
+			rec['box_label'] = $('.e2-box-label[data-label='+label+']').val();
+			rec['box_size'] = $('.e2-box-size[data-label='+label+']').val();
 			return rec
 		},
 
@@ -261,7 +261,7 @@
 
 			$('.spinner', this.element).show();
 
-			$(".boxarea", this.element).each(function(){
+			$(".e2-box-boxarea", this.element).each(function(){
 				var rec = self._save($(this).attr('data-label'));
 				recs.push(rec);
 			});
@@ -323,18 +323,18 @@
 			var hide = $('<input type="checkbox" data-label="'+label+'" checked="checked" />');
 			hide.click(function(){
 				var label = $(this).attr("data-label");				
-				$('.boxarea[data-label='+label+']').toggle()
-				$('.boxbox[data-label='+label+']').toggle()
+				$('.e2-box-boxarea[data-label='+label+']').toggle()
+				$('.e2-box-box[data-label='+label+']').toggle()
 			});	
 
 
-			var colorpicker = $('<input class="colorpicker" data-label="'+label+'" type="text" size="4" value="'+caches["colors"][label]+'" />');
+			var colorpicker = $('<input class="e2-box-colorpicker" data-label="'+label+'" type="text" size="4" value="'+caches["colors"][label]+'" />');
 			colorpicker.change(function() {
 				var label = $(this).attr("data-label");				
 				var newcolor = $(this).val();
 				caches["colors"][label] = newcolor;
-				$('.boximg[data-label='+label+']').css("border-color", newcolor);
-				$('.boxbox[data-label='+label+']').css("border-color", newcolor);
+				$('.e2-box-img[data-label='+label+']').css("border-color", newcolor);
+				$('.e2-box-box[data-label='+label+']').css("border-color", newcolor);
 			});
 			
 			var pen = $('<input type="radio" name="pen" value="" data-label="'+label+'"/>');
@@ -355,22 +355,22 @@
 			});			
 			
 			// Setup the droppable area
-			var boxarea = $('<tr data-label="'+label+'"><td colspan="6" class="boxarea" data-label="'+label+'" ></tr>');
-			$(".boxarea", boxarea).droppable({
+			var boxarea = $('<tr data-label="'+label+'"><td colspan="6" class="e2-box-boxarea" data-label="'+label+'" ></tr>');
+			$(".e2-box-boxarea", boxarea).droppable({
 				greedy: true,
 				accept: '.boximg[data-label!='+label+']',
 				tolerance: 'pointer',
-				activeClass: 'boxarea-active',
+				activeClass: 'e2-box-boxarea-active',
 				drop: function(event, ui) {
 					var o = $(ui.draggable).BoxImg('getopts');
 					var newlabel = $(this).attr('data-label');
-					$('.boxbox[data-boxid='+o['boxid']+']').BoxBox('option', 'label', newlabel);
-					$('.boxbox[data-boxid='+o['boxid']+']').BoxBox('refresh');
+					$('.e2-box-box[data-boxid='+o['boxid']+']').BoxBox('option', 'label', newlabel);
+					$('.e2-box-box[data-boxid='+o['boxid']+']').BoxBox('refresh');
 					$(ui.draggable).remove();
 					$(ui.helper).remove();
 					var boximg = $('<img alt="Box" />');
 					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: caches['recs'][newlabel]['box_size'], boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
-					$('.boxarea[data-label='+newlabel+']').append(boximg);
+					$('.e2-box-boxarea[data-label='+newlabel+']').append(boximg);
 					self.updateboxcount(newlabel);
 					self.updateboxcount(o['label']);		
 				}
@@ -382,16 +382,16 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
+			actions.append('<img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
-			boxheader.append(colorcontrols, '<td class="boxcount" data-label="'+label+'"></td>', '<td><input type="text" class="box_size" name="box_size" data-label="'+label+'" value="'+caches['recs'][label]['box_size']+'" size="2" /></td>', '<td><input class="box_label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
+			boxheader.append(colorcontrols, '<td class="e2-box-count" data-label="'+label+'"></td>', '<td><input type="text" class="e2-box-size" name="box_size" data-label="'+label+'" value="'+caches['recs'][label]['box_size']+'" size="2" /></td>', '<td><input class="e2-box-label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
 
 			this.element.find(".boxtable tbody").prepend(boxheader, boxarea);
 
 			// this is down here because colorPicker is primitive.
-			$('.colorpicker[data-label='+label+']', boxheader).colorPicker();
+			$('.e2-box-colorpicker[data-label='+label+']', boxheader).colorPicker();
 
 			// select this as active pen
 			$('input:radio[data-label='+label+']', boxheader).trigger('click');
@@ -401,8 +401,8 @@
 				var label = $(this).attr("data-label");				
 				var boxsize = parseInt($(this).val());
 				caches['recs'][label]['box_size'] = boxsize;
-				$('.boximg[data-label='+label+']').BoxImg('setsize', boxsize);
-				$('.boxbox[data-label='+label+']').BoxBox('setsize', boxsize);
+				$('.e2-box-img[data-label='+label+']').BoxImg('setsize', boxsize);
+				$('.e2-box-box[data-label='+label+']').BoxBox('setsize', boxsize);
 			});
 			
 		},		
@@ -450,8 +450,8 @@
 		},		
 				
 		_create: function() {
-			this.element.addClass("box");			
-			this.element.addClass("boxbox");
+			this.element.addClass("e2-box");			
+			this.element.addClass("e2-box-box");
 			this.element.attr("data-boxid", this.options.boxid);
 			this.element.attr("data-label", this.options.label);
 			this.element.css("position", 'absolute');			
@@ -470,10 +470,10 @@
 			});
 
 			this.element.hover(function() {
-				$('[data-boxid='+self.options.boxid+']').addClass("boxhover");
+				$('[data-boxid='+self.options.boxid+']').addClass("e2-box-hover");
 			}, 
 			function() {
-				$('[data-boxid='+self.options.boxid+']').removeClass("boxhover");				
+				$('[data-boxid='+self.options.boxid+']').removeClass("e2-box-hover");				
 			});
 
 			this.element.draggable({
@@ -482,7 +482,7 @@
 					// calculate new coords and update linked BoxImg
 					self.options.x = (this.offsetLeft * self.options.scale) + (self.options.size) / 2;
 					self.options.y = (this.offsetTop * self.options.scale) + (self.options.size) / 2;
-					var linkedbox = $('.boximg[data-boxid='+self.options.boxid+']');
+					var linkedbox = $('.e2-box-img[data-boxid='+self.options.boxid+']');
 					linkedbox.BoxImg('option', 'x', self.options.x);
 					linkedbox.BoxImg('option', 'y', self.options.y);
 					linkedbox.BoxImg('refresh');
@@ -539,8 +539,8 @@
 		},
 				
 		_create: function() {
-			this.element.addClass("box");
-			this.element.addClass("boximg");
+			this.element.addClass("e2-box");
+			this.element.addClass("e2-box-img");
 			this.element.attr('data-boxid', this.options.boxid);
 			this.element.attr("data-label", this.options.label);
 			if (this.options.draggable) {
@@ -553,10 +553,10 @@
 			var self = this;
 
 			this.element.hover(function() {
-				$('.box[data-boxid='+self.options.boxid+']').addClass("boxhover");
+				$('.e2-box-box[data-boxid='+self.options.boxid+']').addClass("e2-box-hover");
 			}, 
 			function() {
-				$('.box[data-boxid='+self.options.boxid+']').removeClass("boxhover");				
+				$('.e2-box-box[data-boxid='+self.options.boxid+']').removeClass("e2-box-hover");				
 			});
 
 			this.element.click(function(e) {
@@ -565,7 +565,7 @@
 					self.remove_box();
 					return
 				}
-				$('.tilemap[data-bdo='+self.options.bdo+']').TileMap('move', self.options.x, self.options.y);
+				$('.e2-tile[data-bdo='+self.options.bdo+']').TileMap('move', self.options.x, self.options.y);
 			});
 			
 			this.element.draggable({
@@ -655,7 +655,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" style="display:block" />');
+				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
@@ -721,7 +721,7 @@
 				apix = 1.0;
 			}
 
-			var controls = $('<div class="tilemapcontrols"> \
+			var controls = $('<div class="e2-tile-controls"> \
 				<h4 class="label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
@@ -918,7 +918,7 @@
 			if (scale < 1) { scale = 1 }
 			this.options.scale = scale;
 			$('img', this.inner).remove();
-			$('.boxbox', this.inner).each(function(){$(this).BoxBox('option', 'scale', scale).BoxBox('refresh')});
+			$('.e2-box-box', this.inner).each(function(){$(this).BoxBox('option', 'scale', scale).BoxBox('refresh')});
 			this.move(this.options.x, this.options.y);
 		},
 		

@@ -15,14 +15,14 @@ class TestView(unittest.TestCase):
 		self.view = emen2.web.view.View(db=mock.Mock())
 
 	def testView(self):
-		import emen2.web.extfile
+		import emen2.web.templating
 		self.assert_(hasattr(self.view, 'template'))
 		self.assert_(isinstance(self.view.template, basestring))
 		self.assert_(hasattr(self.view, 'mimetype'))
 		self.assert_(isinstance(self.view.mimetype, basestring))
-		self.assert_(issubclass(self.view.js_files, emen2.web.extfile.BaseJS))
+		self.assert_(issubclass(self.view.js_files, emen2.web.templating.BaseJS))
 		self.assert_(hasattr(self.view, 'css_files'))
-		self.assert_(issubclass(self.view.css_files, emen2.web.extfile.BaseCSS))
+		self.assert_(issubclass(self.view.css_files, emen2.web.templating.BaseCSS))
 		self.assertEqual(self.view.page, None)
 
 	def testMimetype(self):

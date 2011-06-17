@@ -13,19 +13,12 @@
 		
 		build: function() {
 			var self = this;
+
 			// Build control elements
-
-			// Edit
-			// var edit = $('<li class="edit"><span class="clickable label"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /> Edit</span></li>');
-			// $('.label', edit).click(function(e){self.event_edit(e)});
-			// $('.label', edit).MultiEditControl({
-			// 	selector: '#tbody .editable'
-			// });
-
-			// record count
-			var length = $('<li class="length" />');
+			// Record count
+			var length = $('<li class="e2-table-length" />');
 						
-			// row count
+			// Row count
 			var count = $('<select name="count" class="small"></select>');
 			count.append('<option value="">Rows</option>');
 			$.each([1, 10,50,100,500,1000], function() {
@@ -37,23 +30,23 @@
 			})			
 			count = $('<li class="floatright noborder" />').append(count);
 
-			// page controls			
-			var pages = $('<li class="pages noborder floatright"></li>');
+			// Page controls			
+			var pages = $('<li class="floatright noborder e2-table-pages"></li>');
 
-			var spinner = $('<li class="floatright noborder"><img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
+			// Activity spinner
+			var spinner = $('<li class="floatright noborder"><img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
 
+			// Create a new child record
 			var create = "";
-			// create a new child record
 			if (this.options.rectype && this.options.parent != null) {
-				var create = $('<li class="floatright"><input class="small newrecord" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
-				$('.newrecord', create).NewRecord({});
+				var create = $('<li class="floatright"><input class="small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
+				$('input', create).NewRecord({});
 			}
 
-			// add basic controls
-			$('.header', this.element).append(create, length, pages, count, create, spinner);
+			// Add basic controls
+			$('.e2-table-header', this.element).append(create, length, pages, count, create, spinner);
 
 			// Kindof hacky..
-			// query bar
 			this.build_querycontrol();
 			this.build_stats();
 			this.build_plot();
@@ -69,47 +62,41 @@
 		build_tools: function() {
 			// Build the Tools & Statistics menu
 			var self = this;
-			var q = $('<li class="tools"><span class="clickable label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $(' \
-				<div class="hidden"> \
-					<ul class="options nonlist""> \
-						<li class="clickable download_files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
-					</ul> \
-				</div>');
+			var q = $('<li><span class="clickable label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var hidden = $('<div class="hidden"><ul class="nonlist"> \
+						<li class="clickable e2-table-files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
+					</ul></div>');
 
-			$('.download_files', hidden).click(function() {self.query_download()});
-			$('.batch_edit', hidden).click(function() {self.query_batch_edit()});
+			$('.e2-table-files', hidden).click(function() {self.query_download()});
+			// $('.e2-batch-edit', hidden).click(function() {self.query_batch_edit()});
 
 			q.append(hidden);
-
 			q.EditbarHelper({
 				width: 300
-			});				
-			$('.header', this.element).append(q);			
+			});
+			$('.e2-table-header', this.element).append(q);			
 		},
 		
 		build_plot: function() {
 			var self = this;
-			var q = $('<li class="plot"><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="hidden query_plot"></div>');
+			var q = $('<li><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var hidden = $('<div class="hidden">Plotting...</div>');
 			q.append(hidden);
 			q.EditbarHelper({
 				width: 300
-			});				
-			$('.header', this.element).append(q);			
+			});
+			$('.e2-table-header', this.element).append(q);			
 		},
 		
 		build_stats: function() {
 			var self = this;
-			var q = $('<li class="stats"><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $(' \
-				<div class="hidden query_stats"> \
-				</div>');
+			var q = $('<li><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var hidden = $('<div class="hidden">Loading...</div>');
 			q.append(hidden);
 			q.EditbarHelper({
 				width: 300
 			});				
-			$('.header', this.element).append(q);						
+			$('.e2-table-header', this.element).append(q);						
 		},
 		
 		build_querycontrol: function() {
@@ -117,8 +104,7 @@
 			if (!this.options.qc) {return}
 			
 			var self = this;
-			
-			var q = $('<li class="querycontrol"><span class="clickable label"> \
+			var q = $('<li><span class="clickable label"> \
 				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 
 			q.EditbarHelper({
@@ -130,15 +116,13 @@
 						cb: function(test, newq) {self.query(newq)} 
 					});
 				}
-			});				
-		
-			$('.header', this.element).append(q);
+			});
+			$('.e2-table-header', this.element).append(q);
 			
 		},
 		
 		query_download: function() {
 			// Get all the binaries in this table, and prepare a download link.
-
 			var newq = {};
 			newq['c'] = this.options.q['c'];
 			newq['boolmode'] = this.options.q['boolmode'];
@@ -153,11 +137,10 @@
 		
 		query: function(newq) {
 			// Update the query from the current settings
-			
 			newq = newq || this.options.q;
-			$('.header .spinner', this.element).show();
+			$('.e2-table-header .spinner', this.element).show();
 			var self = this;
-			var count = $('.header select[name=count]').val();
+			var count = $('.e2-table-header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
 			newq['names'] = [];
 			newq['recs'] = true;
@@ -167,7 +150,6 @@
 		
 		setpos: function(pos) {
 			// Change the page
-			
 			if (pos == this.options.q['pos']) {return}
 			var self = this;
 			this.options.q['pos'] = pos;
@@ -176,7 +158,6 @@
 		
 		resort: function(sortkey, args) {
 			// Sort by a column key
-			
 			if (args) {
 				sortkey = '$@' + sortkey + "(" + args + ")"
 			}
@@ -191,19 +172,16 @@
 		
 		update: function(q) {
 			// Callback from a query; Update the table and all controls
-			
 			this.options.q = q;
-			$('.header .query').QueryControl('update', this.options.q)					
-			$('.header .querycontrol').EditbarHelper('hide');
+			$('.e2-table-header .e2-query-control').QueryControl('update', this.options.q)					
 			this.update_controls();
 			this.rebuild_table();
 			this.options.q['stats'] = true;
-			$('.header .spinner', this.element).hide();					
+			$('.e2-table-header .spinner', this.element).hide();					
 		},	
 		
 		update_controls: function() {
 			// Update the table controls
-			
 			var self = this;
 
 			// Update the title bar information
@@ -233,11 +211,11 @@
 				title = title + ' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
 			}
 
-			$('.header .length').empty();
-			$('.header .length').append('<span class="clickable label">'+title+'</span>');
+			$('.e2-table-header .e2-table-length').empty();
+			$('.e2-table-header .e2-table-length').append('<span class="clickable">'+title+'</span>');
 			
 			// Update the record type statistics
-			var qstats = $(".query_stats", this.element);
+			var qstats = $(".e2-query-stats", this.element);
 			if (qstats) {
 				qstats.empty();
 				var t = $('<table><thead><tr><th>Protocol</th><th>Count</th></tr></thead><tbody></tbody></table>');
@@ -249,9 +227,9 @@
 			}
 			
 			// Update the page count
-			var pages = $('.header .pages');
+			var pages = $('.e2-table-header .e2-table-pages');
 			pages.empty();
-			var pc = $('<span class="label"></span>');
+			var pc = $('<span></span>');
 			
 			var count = this.options.q['count'];
 			var l = this.options.q['length'];
@@ -261,11 +239,13 @@
 				var current = (this.options.q['pos'] / this.options.q['count']);
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
+
 				var p1 = $('<span data-pos="0" class="clickable chevron">&laquo;</span>').click(setpos);
 				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable chevron">&lsaquo;</span>').click(setpos);
-				var p = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p  = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
 				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable chevron">&rsaquo;</span>').click(setpos);
 				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable chevron">&raquo;</span>').click(setpos);
+
 				if (current > 0) {pc.prepend(p2)}
 				if (current > 1) {pc.prepend(p1, '')}
 				pc.append(p);
@@ -278,7 +258,6 @@
 		
 		rebuild_table: function() {
 			// Rebuild everything
-			
 			this.rebuild_thead();
 			this.rebuild_tbody();
 		},
@@ -287,7 +266,7 @@
 			// Rebuild the table header after each update			
 
 			var self = this;
-			var t = $('.inner', this.element);
+			var t = $('.e2-table-inner', this.element);
 			$('thead', t).empty();
 			var headers = this.options.q['table']['headers']['null'];
 			
@@ -305,7 +284,7 @@
 
 				// An editable, sortable field..
 				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-					var editable = $('<button class="buttonicon floatright edit"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
+					var editable = $('<button name="edit" class="floatright nopadding"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
 					bw.append(editable);
 				}
 
@@ -315,24 +294,23 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<button class="buttonicon floatright sort"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
+				var sortable = $('<button name="sort" class="floatright nopadding"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
 				bw.append(sortable);				
 
 				tr.append(iw);
 				tr2.append(bw);
 			});
 
-			$('.sort', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
-			$('.edit', tr2).click(function(e){self.event_edit(e)});						
+			$('button[name=sort]', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+			$('button[name=edit]', tr2).click(function(e){self.event_edit(e)});						
 			$('thead', t).append(tr, tr2);
 		},
 		
 		
 		rebuild_tbody: function() {
 			// Rebuild the table body
-			
 			var self = this;
-			var t = $('.inner', this.element);			
+			var t = $('.e2-table-inner', this.element);			
 			var headers = this.options.q['table']['headers']['null'];
 			var names = this.options.q['names'];
 			var rows = []
@@ -351,7 +329,6 @@
 				}
 				rows.push(row);
 			}
-			
 			$('tbody', t).empty();
 			$('tbody', t).append(rows.join(''));		
 		},

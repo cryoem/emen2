@@ -24,7 +24,7 @@ import collections
 
 import emen2.util.decorators
 import emen2.web.routing
-import emen2.web.extfile
+import emen2.web.templating
 
 from emen2.util.listops import adjust
 from emen2.web import routing
@@ -114,8 +114,8 @@ class _View(object):
 
 	ctxt = property(lambda self: self.get_context())
 	dbtree = property(lambda self: self.__dbtree)
-	js_files = emen2.web.extfile.BaseJS
-	css_files = emen2.web.extfile.BaseCSS
+	js_files = emen2.web.templating.BaseJS
+	css_files = emen2.web.templating.BaseCSS
 	page = None
 
 	def __settitle(self, t):

@@ -59,27 +59,27 @@
 			
 			var self = this;
 
-			this.dialog = $('<div class="browser clearfix scrolly"></div>');
+			this.dialog = $('<div class="clearfix"></div>');
 
 			// Append the table area to the dialog, then the dialog to the element..
 			this.element.append(this.dialog);
 					
 			if (!this.options.controls) {
-				var ul = $('<div class="ulm '+this.options.mode+'"></div>');
+				var ul = $('<div class="e2-map e2-map-'+this.options.mode+'"></div>');
 				this.dialog.append(ul);
 				this.build_ul(ul, this.options.root);
 				return
 			}
 			
 			// build the ul.ulm elements, one for parents, and children
-			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-						<div class="addparents floatleft" style="width:249px;"> Parents </div> \
-						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
-						<div class="addchildren floatleft" style="width:249px;"> Children </div> \
+			var p = $(' <div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="e2-browser-parents floatleft" style="width:249px;"> Parents </div> \
+						<div class="e2-browser-action floatleft" style="width:249px;">&nbsp;</div> \
+						<div class="e2-browser-children floatleft" style="width:249px;"> Children </div> \
 					</div>');
 						
-			var parents = $('<div class="ulm parents floatleft" style="width:245px"></div>');
-			var children = $('<div class="ulm children floatleft" ></div>');
+			var parents = $('<div class="e2-map e2-map-parents floatleft" style="width:245px"></div>');
+			var children = $('<div class="e2-map e2-map-children floatleft" ></div>');
 			this.dialog.append(p, parents, children);
 
 			this.setaction(this.options.action);
@@ -101,9 +101,9 @@
 		},
 		
 		build_sitemap: function() {
-			var p = $('<div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-						<div class="floatleft action" style="width:249px;">&nbsp;</div> \
-						<div class="addchildren floatleft" style="width:249px;"> Children </div> \
+			var p = $(' <div class="e2-browser-parents clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="e2-browser-action floatleft" style="width:249px;">&nbsp;</div> \
+						<div class="e2-browser-children floatleft" style="width:249px;"> Children </div> \
 					</div>');						
 			this.element.prepend(p);
 			if (this.options.embed) {
@@ -128,8 +128,8 @@
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
 			});
 			
-			$('.addparents', this.dialog).prepend(addparents);
-			$('.addchildren', this.dialog).prepend(addchildren);
+			$('.e2-browser-parents', this.dialog).prepend(addparents);
+			$('.e2-browser-children', this.dialog).prepend(addchildren);
 			// $('input[name=addparents]', p).click(function() {
 			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			// });
@@ -142,7 +142,7 @@
 			elem.empty();
 			
 			// Rebuild the root element
-			var root_img = $('<img class="expand" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+this.options.mode+'.png" />');
+			var root_img = $('<img class="e2-map-expand" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+this.options.mode+'.png" />');
 			var root_a = $('<a data-key="'+key+'">'+this.getname(key)+'</a>');
 			var root_li = $('<li style="background:none"></li>');
 
@@ -167,8 +167,8 @@
 			// Set the root..
 			$('input[name=root]', this.dialog).val(key);
 
-			var children_ul = $('.ulm.children', this.dialog);
-			var parents_ul = $('.ulm.parents', this.dialog);
+			var children_ul = $('.e2-map-children', this.dialog);
+			var parents_ul = $('.e2-map-parents', this.dialog);
 
 			parents_ul.empty();			
 			parents_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
@@ -201,8 +201,8 @@
 			var self = this;
 			
 			// Empty action tool box, and unselect any selected records
-			$('.action', this.dialog).empty();
-			$(".mapselect", this.dialog).each(function(){$(this).removeClass('mapselect')})
+			$('.e2-browser-action', this.dialog).empty();
+			$(".e2-browser-select", this.dialog).each(function(){$(this).removeClass('e2-browser-select')})
 
 			// Tool selector
 			var action = $('<select> \
@@ -239,9 +239,9 @@
 			});
 
 			if (this.options.action == 'select') {
-				$('.action', this.dialog).append(selector1, selector2);			
+				$('.e2-browser-action', this.dialog).append(selector1, selector2);			
 			} else {
-				$('.action', this.dialog).append('<span>Current Tool: </span>', action);				
+				$('.e2-browser-action', this.dialog).append('<span>Current Tool: </span>', action);				
 			}
 
 		},
@@ -266,7 +266,7 @@
 			if (this.options.action == "move" || this.options.action == "copy") {
 
 				if (target.attr('data-parent') != null) {							
-					target.toggleClass("mapselect");
+					target.toggleClass("e2-browser-select");
 				}
 				
 			} else if (this.options.action == "delete") {
@@ -383,7 +383,7 @@
 		getselected: function(target) {
 			var keys = [];
 
-			$('a.mapselect', this.dialog).each(function() {
+			$('a.e2-browser-select', this.dialog).each(function() {
 				var parent = $(this).attr('data-parent');
 				var key = $(this).attr('data-key');
 				keys.push([parent,key]);
@@ -409,7 +409,7 @@
 			} else {
 				return
 			}			
-			var helper = $('<div class="mapselect_helper">'+text+'</div>');
+			var helper = $('<div class="e2-browser-selecthelper">'+text+'</div>');
 			helper.data('keys', keys);
 			return helper
 		},
@@ -462,8 +462,8 @@
 			var elem = $(elem);
 		
 			// pass the img's parent LI to this.expand
-			if (elem.hasClass('expanded')) {
-				elem.removeClass('expanded');
+			if (elem.hasClass('e2-map-expanded')) {
+				elem.removeClass('e2-map-expanded');
 				elem.siblings('ul').remove();
 				elem.attr('src', EMEN2WEBROOT+'/static/images/bg-open.'+this.options.mode+'.png');
 			} else {
@@ -504,7 +504,7 @@
 			var newl = $('<ul></ul>');
 			var key = elem.find('a').attr('data-key');
 			var img = elem.find('img');
-			img.addClass('expanded');
+			img.addClass('e2-map-expanded');
 			img.attr('src', EMEN2WEBROOT+'/static/images/bg-close.'+this.options.mode+'.png');
 			
 			// lower-case alpha sort...
@@ -527,7 +527,7 @@
 
 				if (caches[self.options.mode][this] && self.options.expandable) {
 					var expand = $(' \
-						<img class="expand" alt="'+caches[self.options.mode][this].length+' \
+						<img class="e2-map-expand" alt="'+caches[self.options.mode][this].length+' \
 						children" src="'+EMEN2WEBROOT+'/static/images/bg-open.'+self.options.mode+'.png" />');
 					line.append(expand);
 				}
@@ -566,8 +566,8 @@
 			$("a[data-key]", root).droppable({
 				tolerance: 'pointer',
 				addClasses: false,
-				hoverClass: "ulmhover",
-				activeClass: "ulmactive",
+				hoverClass: "e2-map-hover",
+				activeClass: "e2-map-active",
 				drop: function(e, ui) {self.dropaction(e, ui)}
 			});	
 

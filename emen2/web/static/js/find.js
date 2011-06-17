@@ -99,11 +99,6 @@
 
 
 
-
-
-
-
-
 (function($) {
     $.widget("ui.FindControl", {
 
@@ -134,7 +129,7 @@
 			var self = this;
 			this.built = 1;
 
-			this.dialog = $('<div class="find" />');
+			this.dialog = $('<div/>');
 			if (this.options.keytype == 'user'){
 				this.dialog.attr('title', 'Find User');
 				this.add = this.adduser;
@@ -174,7 +169,7 @@
 				height: 400
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
 		},
 
 		event_click: function(e) {

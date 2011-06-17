@@ -1,0 +1,168 @@
+table {
+	width:100%;
+}
+
+/******* menus *******/
+.menu {
+}
+.menu > li {
+	position: relative;
+}
+.menu > li a {
+	display:block;
+}
+.menu > li > ul,
+.menu .hidden
+ {
+	background: #eee;
+	padding-left: 0px;
+	list-style: none;
+	position: absolute;
+	display: none;
+	width: 250px;
+}
+.menu > li:hover,
+.menu > li.hover
+{
+	 background: #eee; 
+}
+.menu > li:hover > ul
+{
+	display: block;
+}
+
+/******* search box *******/
+
+.searchbox { 
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: solid 1px #ccc;
+}
+
+.userbox {
+	width: 300px;
+	float: left;
+}
+.userbox img {
+	float: left;
+	height: 40px;
+	margin-right: 4px;
+}
+
+/********* PAGES AND TABS **********/
+
+.pages > .page {
+	border: solid 1px #ccc;
+	display: none;
+	padding: 10px;
+}
+.pages > .active {
+	display: block;
+}
+.buttons > .button {
+	padding: 4px;
+	margin-top: 10px;
+	margin-right: 10px; 
+	background: #ccc;
+	border-bottom: solid 1px #ccc;
+}
+.buttons > .active {
+	background: none;
+	border: solid 1px #ccc;
+	border-bottom: none;
+	outline: solid 1px white;
+}
+
+/* should these be in base template? */
+.page > p {
+	margin-top:0px;
+}
+#buttons_main {
+	border-bottom:solid 1px #ccc;
+}
+
+/********** UTILITY **********/
+
+.noborder {
+	border:none !important;
+}
+.nopadding {
+	padding:0px;
+}
+
+.floatleft {
+	float:left !important;
+}
+.controls,
+.floatright
+{
+	float:right !important;
+}
+
+.floatlist {
+	list-style:none;
+	padding-left:0px;
+	margin:0px;
+}
+.floatlist > li {
+	float:left;
+}
+
+ul.nonlist
+{
+	list-style: none;
+	padding-left: 0px;
+}
+
+.show {
+	display: block;
+}
+
+.hide {
+	display: none;
+}
+
+.chevron {
+}
+
+.underline {
+}
+
+.clearfix {
+	clear:both;
+}
+
+.clearfix:after
+{
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;	
+}
+
+/* unselectable elements */
+
+.clickable
+{
+	cursor: pointer;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+
+.s {
+	background: #eee;
+}
+
+/************* JQUERY UI OVERRIDES ************/
+
+.ui-autocomplete {
+	max-height: 300px;
+	overflow-y: auto;
+}
+/* IE 6 doesn't support max-height
+ * we use height instead, but this forces the menu to always be this tall
+ */
+* html .ui-autocomplete {
+	height: 300px;
+}

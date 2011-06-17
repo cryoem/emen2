@@ -54,7 +54,8 @@
 			}
 			$.jsonRPC("putparamdef", [this.pd], function(data){
 				$('.spinner', self.options.ext_save).hide();
-				notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
+				//notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
+				window.location = EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/';
 			});
 		},
 
@@ -144,14 +145,14 @@
 		bindview: function(t,r) {
 			var self=this;
 
-			var oname=$('input[data-t="'+t+'"]',r);
+			var oname = $('input[data-t="'+t+'"]',r);
 			oname.bind("change",function(e){self.event_namechange(e)});
 
-			var ocopy=$('select[data-t="'+t+'"]',r);
+			var ocopy = $('select[data-t="'+t+'"]',r);
 			ocopy.bind("refreshlist",self.event_copy_refresh);
 			ocopy.bind("change",function(e){self.event_copy_copy(e,oname.val())});
 		
-			var oremove=$('.recdef_edit_action_remove[data-t="'+t+'"]',r);
+			var oremove = $('.e2-editdefs-remove[data-t="'+t+'"]',r);
 			oremove.bind("click",function(e){self.event_removeview(e)});
 		
 			r.attr("data-t",t);
@@ -201,7 +202,6 @@
 			this.copyview(t.val(),d);
 		},	
 	
-	
 		save: function() {
 			this.rd=this.getvalues();
 			if (this.options.newdef) {
@@ -213,7 +213,8 @@
 			$('.spinner').show();
 			$.jsonRPC("putrecorddef", [this.rd], function(data){
 				$('.spinner').hide();
-				notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])
+				// notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])
+				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';
 			});
 
 		},	
@@ -223,24 +224,22 @@
 		},
 	
 		addview: function() {
-
-			this.counter_new+=1;
-			var t='new'+this.counter_new;
-			var self=this;
+			this.counter_new += 1;
+			var t = 'new' + this.counter_new;
+			var self = this;
 		
-			var ol=$('<li id="button_recdefviews_'+t+'" data-t="'+t+'" class="button button_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'">New View: '+this.counter_new+'</li>');
+			var ol = $('<li id="button_recdefviews_'+t+'" data-t="'+t+'" class="button button_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'">New View: '+this.counter_new+'</li>');
 			ol.bind("click",function(e){switchin('recdefviews',t)});
 
-			var p=$('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="page page_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
+			var p = $('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="page page_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
 
-			var ul=$('<ul class="recdef_edit_actions clearfix" />');
-		
-			var oname=$('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
-			var ocopy=$('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
-			var oremove=$('<li class="recdef_edit_action_remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');
+			var ul = $('<ul class="clearfix" />');
+			var oname = $('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
+			var ocopy = $('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
+			var oremove = $('<li class="e2-editdefs-remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');
 			ul.append(oname, ocopy, oremove);
 		
-			var ovalue=$('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');
+			var ovalue = $('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');
 
 			p.append(ul,ovalue);
 
@@ -250,26 +249,20 @@
 			switchin('recdefviews',t);
 			this.bindview(t,p);
 			this.refreshall();
-
 		},
-	
 	
 		removeview: function(t) {
 			$('.button_recdefviews[data-t="'+t+'"]').remove();
 			$('.page_recdefviews[data-t="'+t+'"]').remove();
-		
 			var tabname=$($('.button_recdefviews')[0]).attr("data-tabname");
 			switchin('recdefviews',tabname);
-		
 			this.refreshall();
 		},
-	
 	
 		copyview: function(src,dest) {
 			var v=$('textarea[data-t="'+src+'"]').val();
 			$('textarea[data-t="'+dest+'"]').val(v);		
 		},
-	
 	
 		getvalues: function() {
 			rd={}
@@ -277,7 +270,6 @@
 
 			var prv=$("input[name='private']", this.element).attr("checked");
 			if (prv) {rd["private"]=1} else {rd["private"]=0}
-
 
 			rd["typicalchld"]=[];
 

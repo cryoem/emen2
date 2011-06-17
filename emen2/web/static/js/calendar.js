@@ -472,10 +472,3 @@ function dayid(d) {
 
 
 
-
-
-
-
-
-
-

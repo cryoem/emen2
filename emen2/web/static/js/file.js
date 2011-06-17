@@ -86,7 +86,7 @@
 				this.tablearea.append('<h4>There are currently no attachments.</h4>');
 				return
 			}
-			var bdotable = $('<table class="files" cellpadding="0" cellspacing="0" />');
+			var bdotable = $('<table cellpadding="0" cellspacing="0" />');
 			$.each(this.bdomap, function(k,bdos) {
 
 				var header = $('<tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Creator</th><th>Created</th></tr>');
@@ -212,7 +212,7 @@
 			var self = this;
 			var newvalues = {}
 			//:not(.removed)
-			$('.files tr[data-param]').each(function() {
+			$('tr[data-param]', this.element).each(function() {
 				var t = $(this);
 				var param = t.attr('data-param');
 				var bdo = t.attr('data-bdo');

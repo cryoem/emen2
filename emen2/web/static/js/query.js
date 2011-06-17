@@ -1,47 +1,3 @@
-(function($) {
-    $.widget("ui.CommonQueries", {
-		options: {
-		},
-				
-		_create: function() {
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
-
-
-var comparators = {
-	"is": "is",
-	"not": "is not",
-	"contains": "contains",
-	"contains_w_empty": "contains, or is empty",
-	"gt": "is greater than",
-	"lt": "is less than",
-	"gte": "is greater or equal than",
-	"lte": "is less or equal than",
-	"any": "is any value",
-	'none': "is empty",
-	'noop': "no constraint"
-}
-
-
-var comparators_lookup = {
-	">": "gt",
-	"<": "lt",
-	">=": "gte",
-	"<=": "lte",
-	"==": "is",
-	"!=": "not"				
-}
-
-
-
 function query_build_path(q, postpend) {
 	var output = [];
 	$.each(q['c'], function() {
@@ -76,6 +32,30 @@ function query_build_path(q, postpend) {
 		},
 				
 		_create: function() {
+
+			this.comparators = {
+				"is": "is",
+				"not": "is not",
+				"contains": "contains",
+				"contains_w_empty": "contains, or is empty",
+				"gt": "is greater than",
+				"lt": "is less than",
+				"gte": "is greater or equal than",
+				"lte": "is less or equal than",
+				"any": "is any value",
+				'none': "is empty",
+				'noop': "no constraint"
+			}
+
+			this.comparators_lookup = {
+				">": "gt",
+				"<": "lt",
+				">=": "gte",
+				"<=": "lte",
+				"==": "is",
+				"!=": "not"				
+			}
+
 			this.oq = {}
 			$.extend(this.oq, this.options.q);
 			
@@ -99,7 +79,6 @@ function query_build_path(q, postpend) {
 			}
 			
 			this.built = 1;
-			this.element.addClass("query");
 			this.container = $('<div class="clearfix" />');
 						
 			var m = $(' \
@@ -110,49 +89,49 @@ function query_build_path(q, postpend) {
 							<th></th> \
 							<th>Value</th> \
 							<th></th> \
-							<th><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Reset</th> \
+							<th><img class="e2-query-clear-all" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Reset</th> \
 						</tr> \
 					</thead> \
-					<tbody class="base constraints"> \
+					<tbody class="e2-query-base e2-query-constraints"> \
 						<tr> \
 							<td><input type="hidden" name="param" value="root" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" class="hide" /></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
-							<td><input type="text" size="12" name="value" class="findrecorddef" /></td> \
+							<td><input type="text" size="12" name="value" class="e2-find-recorddef" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="creator" />Creator</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
-							<td><input type="text" size="12" name="value" class="finduser" /></td> \
+							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" size="12" name="value" class="finduser" /></td> \
+							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="groups" />Groups</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" size="12" name="value" class="findgroup" /></td> \
+							<td><input type="text" size="12" name="value" class="e2-find-group" /></td> \
 							<td></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr class="s"> \
 							<td><input type="hidden" name="param" value="children" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="name" /></td> \
-							<td><input type="text" size="12" name="value" class="findrecord" /></td> \
+							<td><input type="text" size="12" name="value" class="e2-find-record" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
-							<td><img class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr> \
 					</tbody> \
-					<tbody class="param constraints"></tbody> \
+					<tbody class="e2-query-param e2-query-constraints"></tbody> \
 				</table> \
 				');
 
@@ -160,36 +139,36 @@ function query_build_path(q, postpend) {
 			
 			// ian: todo
 			//$('.findrecord', this.container).Browser({});
-			$('.finduser', this.container).FindControl({keytype: 'user'});
-			$('.findgroup', this.container).FindControl({keytype: 'group'});
-			$('.findrecorddef', this.container).FindControl({keytype: 'recorddef'});
-			$('.findparamdef', this.container).FindControl({keytype: 'paramdef'});
+			$('.e2-find-user', this.container).FindControl({keytype: 'user'});
+			$('.e2-find-group', this.container).FindControl({keytype: 'group'});
+			$('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
+			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="controls"> \
-				<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
-				<input type="button" value="Query" name="save" /></div>');
+				<img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
+				<input type="button" value="Query" name="save" /></div>');				
 			this.container.append(save);
-			$('input[name=save]', this.container).bind("click",function(e){self.query()});			
+			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
 
-			$('thead .listicon', this.container).click(function(e) {
-				$('.constraints tr').each(function(){self.clear($(this))});
+			$('.e2-query-clear-all', this.container).click(function(e) {
+				$('.e2-query-constraints tr').each(function(){self.clear($(this))});
 			});
 
-			$('.constraints .listicon', this.container).click(function(e) {
-				self.event_clear(e, true);
+			$('.e2-query-clear', this.container).click(function(e) {
+				self.event_clear(e);
 			});
 			
 			this.element.append(this.container);						
 			this.update();
 		},
 		
-		event_clear: function(e, base) {
+		event_clear: function(e) {
 			var t = $(e.target).parent().parent();
 			this.clear(t);
 		},
 		
 		clear: function(t) {
-			var base = t.parent().hasClass('base');
+			var base = t.parent().hasClass('e2-query-base');
 			$('input[name=value]', t).val('')
 			$('input[name=recurse_p]', t).attr('checked', null);
 			$('input[name=recurse_v]', t).attr('checked', null);
@@ -225,11 +204,11 @@ function query_build_path(q, postpend) {
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
 									
-			$('.base.constraints tr', this.container).each(function() {
+			$('.e2-query-base tr', this.container).each(function() {
 				var p = self._getconstraint(this);
 				if (p[0] && p[1] && p[2]) {c.push(p)}
 			});
-			$('.param.constraints tr', this.container).each(function() {
+			$('.e2-query-param tr', this.container).each(function() {
 				var p = self._getconstraint(this);
 				if (p[0]) {c.push(p)}
 			});
@@ -270,27 +249,27 @@ function query_build_path(q, postpend) {
 
 			var controls = $('<td />');
 
-			var addimg = $('<img class="listicon" src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" />');
+			var addimg = $('<img src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" />');
 			addimg.click(function() {self.addconstraint()});
 
-			var removeimg = $('<img  class="listicon" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" />');
+			var removeimg = $('<img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" />');
 			removeimg.click(function(e) {
-				self.event_clear(e, false);
+				self.event_clear(e);
 			});
 
 			controls.append(addimg, removeimg);
 			newconstraint.append(controls);
 			$('input[name=param]', newconstraint).FindControl({keytype: 'paramdef'});
-			$('.param.constraints', this.container).append(newconstraint);
+			$('.e2-query-param', this.container).append(newconstraint);
 		},
 		
 		build_cmp: function(cmp) {
 			//"!contains":"does not contain",
 			// Check the transforms..
-			var cmp2 = comparators_lookup[cmp] || cmp;
+			var cmp2 = this.comparators_lookup[cmp] || cmp;
 			
 			var i = $('<select name="cmp" style="width:150px" />');
-			$.each(comparators, function(k,v) {
+			$.each(this.comparators, function(k,v) {
 				var r = $('<option value="'+k+'">'+v+'</option>');
 				if (cmp2==k) {r.attr("selected", "selected")}
 				i.append(r);
@@ -316,7 +295,7 @@ function query_build_path(q, postpend) {
 			}
 
 
-			cmpi = comparators_lookup[cmpi] || cmpi;
+			cmpi = this.comparators_lookup[cmpi] || cmpi;
 			
 			// Get the constraint elements.
 			var _param = $('input[name=param]', elem);
@@ -357,10 +336,10 @@ function query_build_path(q, postpend) {
 		
 		_find_constraints: function(c, base) {
 			var self = this;
-			var selector = '.param.constraints tr';
+			var selector = '.e2-query-param tr';
 			var param_constraints = [];
 			if (base) {
-				var selector = '.base.constraints tr';
+				var selector = '.e2-query-base tr';
 			}
 			$.each(c, function() {
 				var constraint = this;

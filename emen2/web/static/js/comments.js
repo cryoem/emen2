@@ -58,7 +58,7 @@
 			if (this.options.edit) {
 				var controls = $('<div/>');
 				var edit = $('<textarea cols="60" rows="2"></textarea>');
-				var commit=$('<input class="editbutton" type="submit" value="Add Comment" />').click(function(e) {self.save()});
+				var commit=$('<input type="submit" value="Add Comment" />').click(function(e) {self.save()});
 				controls.append(edit, commit);
 				this.element.append(controls);
 			}
@@ -87,8 +87,6 @@
 		}
 	});
 })(jQuery);
-
-
 
 
 

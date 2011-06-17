@@ -1,7 +1,6 @@
 // Note: any global methods or variables should be in this file //
 
 ////////////////  Global Cache ///////////////////
-
 // cache for items of interest
 // the usage pattern is:
 //		If I need an item, check the cache. If not found, send an RPC request
@@ -17,7 +16,6 @@ caches["recs"] = {};
 caches["recnames"] = {};
 caches["children"] = {};
 caches["parents"] = {};
-caches["colors"] = {};
 
 
 // Log wrapper to keep everything from crashing horribly
@@ -32,39 +30,8 @@ window.log = function(){
 };
 
 
-////////////////  JSON Utilities ///////////////////
-
-
-// Default error message dialog.
-// This gives the user some feedback if an RPC request fails.
-function error_dialog(title, text, method, data) {
-	var error = $('<div class="error" title="'+title+'" />');
-	error.append('<p>'+text+'</p>');
-		
-	var debug = $('<div class="debug shadow_top hide"/>');
-	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
-	debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
-	error.append(debug);
-
-	error.dialog({
-		width: 400,
-		height: 300,
-		modal: true,
-		buttons: {
-			'OK':function() {
-				$(this).dialog('close')
-			},
-			'More Info': function() {
-				$('.debug', this).toggle();
-			}
-		}
-	});
-}
-
-
 
 (function($){
-
 	// Convert a byte count to human friendly
 	$.convert_bytes = function(bytes) {
 		var b = 0;
@@ -153,7 +120,6 @@ function error_dialog(title, text, method, data) {
 		}
 	}
 	
-
 	// Sort a dict's keys based on integer values
 	// >>> var sortable = [];
 	// >>> for (var vehicle in maxSpeed)
@@ -193,322 +159,33 @@ function error_dialog(title, text, method, data) {
 })(jQuery)
 
 
+////////////////  JSON Utilities ///////////////////
 
-////////////////  Button Switching ///////////////////
-// This is pretty old, and a simple top level function, but works well... 
-
-function switchbutton(type,id) {
-	$(".button_"+type).each(function() {
-		var elem=$(this);
-		if (this.id != "button_"+type+"_"+id) {
-			elem.removeClass("button_active");
-			elem.removeClass("button_"+type+"_active");
-		} else {
-			elem.addClass("button_active");
-			elem.addClass("button_"+type+"_active");
-		}
-	});
-}
-
-
-var switchedin=new Array();
-
-function switchin(classname, id) {
-	switchedin[classname]=id;
-	switchbutton(classname,id);
-	$(".page_"+classname).removeClass("page_active");
-	$(".page_"+classname).removeClass("page_"+classname+"_active");	
-	$("#page_"+classname+"_"+id).addClass("page_active");
-	$("#page_"+classname+"_"+id).addClass("page_"+classname+"_active");
-}
-
-
-
-
-////////////////  Notifications ///////////////////
-
-
-function notify(msg, fade, error) {
-	var msg=$('<li class="notify">'+msg+'</li>');
-
-	if (error) {
-		msg.addClass("error");
-	}
-
-	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Delete" />');
-	var killbutton = $('<span>X</span>');
-	killbutton.click(function() {
-		$(this).parent().fadeOut(function(){
-			//fadeoutcallback; in this context, 'this' is li
-			$(this).remove();
-			});		
-	});
-	killbutton.addClass("kill");
-	msg.append(killbutton);
-
-	// auto fade if given time value
-	//if (!fade) {
-	//	setTimeout(function(){msg.fadeOut()},3000)
-	//}
-	//if (fade > 0) {
-	//	setTimeout(function(){msg.fadeOut()},fade*1000)
-	//}
-	$("#alert").append(msg); //.fadeIn();
-	
-}
-
-// ian: todo: fix this sometime...
-function notify_post(uri,msgs) {
-	// var postform = document.createElement("form");
-	// postform.method="post" ;
-	// postform.action = uri;
-	// for (var i=0;i<msgs.length;i++) {
-	// 	var note = document.createElement("input") ;
-	// 	note.setAttribute("name", "notify"+i) ;
-	// 	note.setAttribute("value", msgs[i]);
-	// 	postform.appendChild(note) ;
-	// }
-	// document.body.appendChild(postform);
-	// postform.submit();
-	window.location = uri;
-}
-
-
-
-
-////////////////  New Record page init ///////////////////
-
-function newrecord_init(rec) {
-	rec.name = "None";
-	var name = rec.name;
-	caches["recs"][name] = rec;
-
-	$(".editbar .tools").EditbarHelper({
-		width:400,
-		show: true,
-		reflow: "#rendered"
-	});	
-
-	$('#newrecord_save').MultiEditControl({
-		name: name,
-		show: true,
-		newrecordpage: true
-		});
-	
-	$('#newrecord_permissions').PermissionControl({
-		name:name,
-		edit:true,
-		embed:true
-		});
-
-	$('.editable').EditControl({
-		name: name
-		});
-
-	// Change the text of file upload elements..
-	$('.editable_files .label').html('(The record must be saved before files can be attached)');
-
-	$('.editbar .change select').change(function(){
-		var parent = $(this).attr('data-parent');
-		notify_post(EMEN2WEBROOT+'/record/'+parent+'/new/'+$(this).val()+'/', []);
-	});
-
-
-}
-
-
-
-////////////////  Record page init ///////////////////
-
-function record_init(rec, ptest, edit) {
-	var name = rec.name;
-	caches["recs"][name] = rec;
-	
-	$('.newrecord').NewRecord({});
-	
-	// Bind editable widgets
-	$('.editbar .edit .label').MultiEditControl({});
-	$('.editable').EditControl({});
-	// $('.editable_files').FileControl({});
-
-	$('.editbar .edit').EditbarHelper({
-		bind: false,
-		reflow: '#rendered',
-		cb: function(self) {
-			var addcomment = $('<span>Comments: <input type="text" name="editsummary" value="" /></span>');
-			self.popup.append(addcomment);
-		}
-	});
-	
-	if (edit) {
-		$('.editbar .edit .label').MultiEditControl('event_click');
-	}	
-
-
-	// Permissions editor
-	$('.editbar .permissions').EditbarHelper({
-		width: 640,
-		cb: function(self){
-			self.popup.PermissionControl({
-				name: name,
-				edit: ptest[3],
-				embed: true,
-				show: true
-				});
-			}
-	});		
-
-
-	// Attachments editor
-	var showattachments = (window.location.hash.search('showattachments'));
-	if (showattachments>-1){showattachments=true}
-
-	$('.editbar .attachments').EditbarHelper({
-		width:600,
-		cb: function(self) {
-			self.popup.AttachmentViewerControl({
-				name: name,
-				edit: ptest[2] || ptest[3],
-				embed: true,
-				show: true
-				});
-			},
-		show: showattachments
-	});		
-
-	// New record editor
-	$('.editbar .newrecordselect').EditbarHelper({
-		width:300,
-		cb: function(self){
-			self.popup.NewRecord({
-				embedselector: true,
-				showselector: true,
-				parent: name 
-				});
-			}
-	});		
-
-	// Relationship editor
-	$(".editbar .relationships").EditbarHelper({		
-		width: 780,
-		cb: function(self){
-			self.popup.RelationshipControl({
-				root: name,
-				edit: true,
-				embed: true,
-				show: true
-				});
-			}
-	});	
-	
-	// Tools menu: e.q. common queries
-	$(".editbar .tools").EditbarHelper({width:400});	
-
-	// Change rendered view
-	$(".editbar .selectview").EditbarHelper({});	
-
-	$('.editbar [data-viewtype]').click(function(){
-		var target=$("#rendered");
-		var viewtype=$(this).attr('data-viewtype') || 'recname';
-		target.attr("data-viewtype", viewtype);
-		rebuildviews("#rendered");
-	});
-
-	// Additional detailed information
-	$(".editbar .creator").EditbarHelper({
-		width:200
-	});
-
-	// Comments and history
-	$("#page_comments_comments").CommentsControl({
-		name:name,
-		edit:ptest[1] || ptest[2] || ptest[3],
-		title:"#button_comments_comments"
-		});
+// Default error message dialog.
+// This gives the user some feedback if an RPC request fails.
+function error_dialog(title, text, method, data) {
+	var error = $('<div title="'+title+'" />');
+	error.append('<p>'+text+'</p>');
 		
-	$("#page_comments_history").HistoryControl({
-		name:name,
-		title:"#button_comments_history"
-		});
+	var debug = $('<div class="e2-error-debug hide"/>');
+	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
+	debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
+	error.append(debug);
 
-
-	// Simple handler for browsing siblings...
-	var showsiblings = (window.location.hash.search('showsiblings'));
-	if (showsiblings>-1){showsiblings=true}
-	
-	$(".editbar .siblings").EditbarHelper({
-		show: showsiblings,
-		width:250,
-		align: 'right',
-		cb: function(self) {
-			var sibling = self.element.attr('data-sibling') || rec.name;
-			if ($('.sibs', self.popup).length) {
-				return
+	error.dialog({
+		width: 400,
+		height: 300,
+		modal: true,
+		buttons: {
+			'OK':function() {
+				$(this).dialog('close')
+			},
+			'More Info': function() {
+				$('.e2-error-debug', this).toggle();
 			}
-			var sibs = $('<div class="sibs">Loading...</div>');
-			self.popup.append(sibs);
-			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
-				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
-					siblings = siblings.sort(function(a,b){return a-b});
-					sibs.empty();
-					var ul = $('<ul class="nonlist" />');
-					$.extend(caches["recnames"], recnames);
-					$.each(siblings, function(i,k) {
-						if (k != rec.name) {
-							// color:white here is a hack to have them line up
-							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
-						} else {
-							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
-						}
-					});
-					self.popup.append(ul);
-				});
-			});
 		}
-	});	
+	});
 }
-
-
-
-
-
-
-////////////////  Record Update callbacks ///////////////////
-
-
-function record_update(rec) {
-	if (typeof(rec)=="number") {
-		var name = rec;
-	} else {
-		caches["recs"][rec.name] = rec;
-		var name = rec.name;
-	}
-	rebuildviews('.view[data-name='+name+']');
-	$("#page_comments_comments").CommentsControl('rebuild');
-	$("#page_comments_history").HistoryControl('rebuild');
-	$('.editbar .attachments').AttachmentViewerControl('rebuild');	
-}
-
-
-
-function rebuildviews(selector) {
-	selector = selector || '.view';
-	var self = this;
-	$(selector).each(function() {
-		var elem = $(this);
-		var name = parseInt(elem.attr('data-name'));
-		var viewtype = elem.attr('data-viewtype');
-		var edit = elem.attr('data-edit');
-		$.jsonRPC("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
-			elem.html(view);
-			$('.editable', elem).EditControl({});
-			//$('.editable_files', elem).FileControl({});
-		},
-		function(view){}
-		);
-	})
-}
-
 
 
 
@@ -613,6 +290,56 @@ function admin_userstate_form(elem) {
 }
 
 
+////////////////  Button Switching ///////////////////
+// This is pretty old, and a simple top level function, but works well... 
+
+function switchin(classname, id) {
+	$('#buttons_'+classname+' *').each(function() {
+		if (this.id == 'button_'+classname+'_'+id) {
+			$(this).addClass('active');
+		} else {
+			$(this).removeClass('active');
+		}
+	});
+	$('#pages_'+classname+' *').each(function() {
+		if (this.id == 'page_'+classname+'_'+id) {
+			$(this).addClass('active');
+		} else {
+			$(this).removeClass('active');
+		}
+	});
+}
+
+////////////////  Notifications ///////////////////
+
+
+function notify(msg, fade, error) {
+	var msg=$('<li class="notify">'+msg+'</li>');
+
+	if (error) {
+		msg.addClass("error");
+	}
+
+	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Delete" />');
+	var killbutton = $('<span class="floatright">X</span>');
+	killbutton.click(function() {
+		$(this).parent().fadeOut(function(){
+			//fadeoutcallback; in this context, 'this' is li
+			$(this).remove();
+			});		
+	});
+	msg.append(killbutton);
+	// auto fade if given time value
+	//if (!fade) {
+	//	setTimeout(function(){msg.fadeOut()},3000)
+	//}
+	//if (fade > 0) {
+	//	setTimeout(function(){msg.fadeOut()},fade*1000)
+	//}
+	$("#alert").append(msg); //.fadeIn();	
+}
+
+
 
 ///////////////////////////////////////////////////
 // Some simple jquery UI widgets that don't really
@@ -667,8 +394,8 @@ function admin_userstate_form(elem) {
 		},
 				
 		_build_bookmarks: function(bookmarks) {
-			$('ul.bookmarks', this.element).remove();
-			var ul = $('<ul class="bookmarks"></ul>');
+			$('ul#bookmarks', this.element).remove();
+			var ul = $('<ul id="bookmarks"></ul>');
 			bookmarks.reverse();			
 			if (bookmarks.length == 0) {
 				ul.append('<li><a href="">No bookmarks</a></li>');
@@ -703,7 +430,7 @@ function admin_userstate_form(elem) {
 			
 			//$('img.star', this.element).
 			this.element.empty();
-			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner" alt="Loading" />');
+			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />');
 			this.element.append(spinner);
 			
 			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
@@ -763,9 +490,13 @@ function admin_userstate_form(elem) {
 
 
 $(document).ready(function() {
-	$('#bookmarks').Bookmarks();
-	$('#bookmarks').hover(function() {$(this).Bookmarks('showbookmarks')}, function(){});
-	$('.setbookmark').Bookmarks({'mode':'toggle'});
+	$('#bookmarks').hover(
+		function() {
+			$(this).Bookmarks();
+			$(this).Bookmarks('showbookmarks')
+		}, 
+		function(){}
+	);
 });
 
 
@@ -787,7 +518,7 @@ $(document).ready(function() {
 			this.built = 0;
 			var self = this;
 			this.cachepadding = null;
-			this.element.addClass('popup');
+			this.element.addClass('active');
 			
 			if (this.options.bind) {
 				$('.label', this.element).click(function(e) {
@@ -803,7 +534,7 @@ $(document).ready(function() {
 		},
 		
 		toggle: function() {
-			if (this.element.hasClass('active')) {
+			if (this.element.hasClass('hover')) {
 				this.hide();
 			} else {
 				this.show();
@@ -811,9 +542,9 @@ $(document).ready(function() {
 		},
 		
 		show: function() {
-			$('.editbar .active').EditbarHelper('hide');
+			$('.editbar .hover').EditbarHelper('hide');
 			this.build();
-			this.element.addClass('active');
+			this.element.addClass('hover');
 			this.options.cb(this);
 			this.popup.show();
 			if (this.options.reflow) {
@@ -827,7 +558,7 @@ $(document).ready(function() {
 			if (!this.built) {return}
 			this.popup.hide();
 			this.options.cb(this);
-			this.element.removeClass('active');
+			this.element.removeClass('hover');
 			if (this.options.reflow) {
 				$(this.options.reflow).css('padding-top', this.cachepadding);
 			}
@@ -871,18 +602,3 @@ $(document).ready(function() {
 	});
 })(jQuery);
 
-
-///////////////////////////////////////////////////
-
-
-
-// This is at the bottom because my editor's syntax highlighting cracks on it..
-function escapeHTML(html) {
-	var escaped = html;
-	var findReplace = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"]];
-	for (var i=0; i < findReplace.length; i++) {
-		item = findReplace[i];
-    	escaped = escaped.replace(item[0], item[1]);
-	}
-	return escaped
-}
