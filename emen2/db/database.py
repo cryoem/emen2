@@ -2149,7 +2149,6 @@ class DB(object):
 			:param keytype: What kind of objects the IDs refer to
 
 			'''
-
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
 
 

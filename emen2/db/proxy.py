@@ -328,9 +328,6 @@ class DBProxy(object):
 			if getattr(func, 'ext', False):
 				kwargs['db'] = self._db
 
-			# print "--------------->", func.func_name
-			# print args
-			# print kwargs
 			try:
 				# result = func.execute(*args, **kwargs)
 				result = func(self._db, *args, **kwargs)

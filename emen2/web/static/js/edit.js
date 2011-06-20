@@ -697,7 +697,7 @@ function bind_autocomplete(elem, param) {
 			this.selectdialog.append('<h4>New Record Protocol</h4>', this.typicalchld);
 
 			// new record rectype
-			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> Other: </div>')
+			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> <label for="newrecordselectother">Other:</label></div>')
 			var s = $('<input type="text" name="newrecordselectother" value="" size="8" />');
 			s.FindControl({'keytype':'recorddef'});
 			s.click(function() {

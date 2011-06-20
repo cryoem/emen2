@@ -1,3 +1,100 @@
+/********* COLORS *************/
+
+/* Darker background color */
+.precontent,
+.buttons > .button
+{
+	background: #BBDAEE;
+}
+
+/* Lighter background color */
+.buttons > .active,
+#buttons_map > .button,
+#buttons_main > .button,
+.page
+{
+	background: #E7F1F8; /* #E7F1F8; */
+}
+
+/* White backgrounds */
+#buttons_map > .active,
+#buttons_main > .active,
+#pages_map .page,
+.notify,
+.hidden .s,
+.page .s
+{
+	background: white;
+}
+
+/* Light-gray row highlight color */
+tr.s {
+	background: #f0f0f0;
+}
+
+thead th {
+	font-weight:normal;
+	text-align:left;
+	border-right:solid 1px #eee;
+}
+
+/* Feedback colors */
+.add {
+	background: #BBDAEE;
+}
+
+.add.removed,
+.removed
+{
+	background: red;
+	color: white;
+}
+
+.disabled {
+	color: #ccc;
+}
+
+/* Border Colors */
+h1,
+h4,
+.searchbox,
+thead tr:last-child th
+{
+	border-bottom:solid 1px #ccc;
+}
+
+.notify
+{
+	border: solid 2px #FF8135; /* orange */
+}
+
+.deleted,
+.error
+{
+	border-color: red;	
+}
+
+
+/* Text colors */
+a,
+.clickable,
+.ui-widget-content a
+{
+	color: #202060;
+}
+
+/* "Editable" color */
+
+.editable, 
+.editable_files .label,
+.editable_files.label,
+.editable .label,
+.editable.label
+{
+	color: #491F6D;
+}
+
+
 /********* LAYOUTS *************/
 /* body and top level containers */
 
@@ -15,7 +112,6 @@ body
 	margin-left:auto;
 	margin-right:auto;
 	position:relative;
-	padding-bottom:100px;
 }
 
 /* Title and precontent set a background color */
@@ -24,8 +120,6 @@ body
 #content 
 {
 	width: 1000px !important;
-	padding-left:10px;
-	padding-right:10px;
 	margin-left:auto !important;
 	margin-right:auto !important;
 }
@@ -45,25 +139,21 @@ body
 	border-style: solid;
 	border-width: 2px;
 	padding: 5px;
-	margin-top:10px;
-	margin-bottom:10px;
+	margin-top: 10px;
+	margin-bottom: 10px;
 }
 #alert {
-	margin:0px;
-	padding-top:10px;
+	margin: 0px;
+	padding-top: 10px;
 }
 #alert .notify:first-child {
-	margin-top:0px;
+	margin-top: 0px;
 }
 #alert .notify:last-child {
-	margin-bottom:0px;
+	margin-bottom :0px;
 }
 
 /******* TOP LEVEL ELEMENTS *******/
-
-ul, p {
-	margin-top: 0px;
-}
 
 img {
 	border: none;
@@ -72,131 +162,68 @@ img {
 img.thumbnail {
 	height:64px;
 }
-
-h1 {
-	margin-top:10px;
-}
-
 h4 {
-	border-bottom-style: solid;
-	border-bottom-width: 1px;	
-	margin: 0px;
-	margin-top: 10px;
-	margin-bottom: 5px;
-	padding: 0px;
-	width: auto;
+	margin-top: 5px;
 }
-
 h1 .label {
 	padding: 10px;
 	float: right;
 	display: block;
 }
 
-table {
-	width:100%;
-/*	table-layout: fixed; */
-}
-
-th, td {
+th,
+td
+{
 	padding: 4px;
 	vertical-align: top;
 }
 
-th {
-	border-bottom-style: solid;
-	border-bottom-width: 1px;
-	font-weight: normal;
-	text-align: left;
-}
 
-/* nav bar */
+/************* NAV BAR ************/
 
 #title {
 	border-bottom:solid 2px #ccc;
 }
-ul.nav {
-	margin:0px;
-	margin-left:auto;
-	margin-right:auto;
-	padding:0px;
-    list-style: none;
-	z-index:10;
-}
-
-ul.nav a,
-ul.nav .clickable
-{
-	display:block;
-	text-decoration:none;
+ul.nav a {
 	padding:8px;
 }
-ul.nav > li {
-    float: left;
-    position: relative;
-}
-
-ul.nav li.logo {
-	padding:0px;
-	margin:0px;
-	margin-left:8px;
-}
-ul.nav li.logo a {
-	margin:0px;
-	padding:0px;
-}
-ul.nav li.logo img {
-	height:34px;
-}
-ul.nav li.search {
-	margin-left:8px;
-	margin-right:8px;
-}
-ul.nav li.search input,
-ul.nav li.search button
-{
-	margin-top:4px;
-	padding:2px;
-	font-size:10pt !important;	
-}
 ul.nav li ul {
-    display: none;
-    position: absolute;
 	padding:0px;
-	list-style:none;
-	-moz-box-shadow: 3px 3px 3px #999;
-}
-ul.nav li ul li {
-	width:250px;
 }
 ul.nav li.divider {
 	border-top:solid 1px #ccc;
 }
-ul.nav li:hover ul,
-ul.nav li.over ul
-{
-    display: block;
-}
 ul.nav li:last-child ul {
 	right:0px;
 }
-
-
+ul.nav .logo {
+	height:36px;
+}
 
 .menu > li > ul,
-.menu .hidden {
+.menu .hidden
+{
 	-moz-box-shadow: 3px 3px 3px #999;
 	-webkit-box-shadow: 3px 3px 3px #999;	
 }
+.editbar input, .editbar select {
+	font-size:12pt;
+	padding:0px;
+	margin:0px;
+}
 
+/************* CONTROLS ************/
 
-/******* controls *******/
-
-/*textarea {
+textarea {
 	display: block;
 }
-button, select, input, textarea {
+button, select, input, textarea, label {
 	border-width:1px;
+	font-size:12pt;
+	margin:2px;
+	padding:2px;
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
 }
 button, input[type=button], input[type=submit], input[type=file], input[type=password] {
 	display:inline-block;
@@ -204,8 +231,6 @@ button, input[type=button], input[type=submit], input[type=file], input[type=pas
 textarea, input[type=text], input[type=password] {
 	border:solid 1px #aaa;
 }
-*/
-
 .save input, 
 input.save
 {
@@ -213,7 +238,6 @@ input.save
 	border-color: #ccc;
 	background: #5B74A8;
 }
-
 .cancel input,
 input.cancel
 {
@@ -221,83 +245,48 @@ input.cancel
 	color: #666;
 }
 
+/************* EDITBAR ************/
 
-/************* INLINE EDITBALE ITEMS  ************/
-
-/*
-.editable_files .label,
-.editable_files.label,
-.editable .label,
-.editable.label
-{
-	padding: 2px;
-	padding-bottom: 0px;
-	font-weight: normal;
-	list-style: none;
-}
-.edit.label:hover {
-	background: #5B74A8;
-}
-*/
-
-/***** editbar *******/
-
-/*.editbar {
+.editbar {
 	border-bottom:solid 1px #ccc;
-	list-style: none;
-	padding:0px;
-	margin:0px;
-	padding-left:10px;
-	padding-right:10px;
-}
-
-.editbar .clickable,
-.editbar .clickable:hover,
-.editbar a:hover
-{
-	text-decoration:none;
 }
 .editbar > li {
 	border-right:solid 1px #ccc;
 	position:relative;
 }
-.editbar .siblings {
-	float: right;
-}
 .editbar > li:last-child {
 	border-right: none;
 } 
-.editbar img {
-	vertical-align: bottom;
-	margin: 0px;
-}
-.editbar_reflow_hack {
-	margin-top: 200px;
-}
-.editbar .bookmarks .label {
-	width:16px;
-}
 .editbar .label {
 	margin:5px;
 	display:inline-block;
-}*/
+}
+.editbar {
+	background-image: -moz-linear-gradient(#fff, #fff, #eee);
+}
 
 
-/* text styles */
+/************* PAGES AND TABS ************/
+
+.buttons > .button,
+.pages > .page
+{
+	padding:5px;
+	outline:none;
+	border:none;
+}
+
+
+/************* TEXT STYLES ************/
 
 .chevron {
 	padding: 3px;
 }
+
 .underline {
 	height: 10px;
 	border-bottom: dotted 1px #ccc;
 	width: 50px;
-}
-
-/* links + font styles */
-
-.tiny {
-	font-size: 8pt;
 }
 
 .normal, 
@@ -305,32 +294,18 @@ h1 .label
 {
 	font-size: 12pt;
 }
-
-.editbar > li {
+.tiny,
+#buttons_map
+{
+	font-size:8pt;
+}
+.small,
+.editbar > li > .label,
+.e2-map
+{
 	font-size:10pt;
 }
-
-.small, 
-.editbar li.edit input,
-.search input,
-.search button,
-.button_map
-{
-	font-size: 10pt;
-}
-
-input.small,
-select.small
-{
-	margin: 0px;
-	padding: 3px;
-	font-size: 10pt;
-	margin-left: 10px;
-}
-
-.big
-{
-	font-size: 18pt;
+.big {
 }
 
 a,
@@ -345,8 +320,6 @@ a:hover,
 {
 	text-decoration:underline;
 }
-
-
 
 /***** LOGIN ********/
 
@@ -367,10 +340,14 @@ table.login td:last-child {
 }
 
 
+/********* BUTTONS ************/
+
+
+
 /********* ROUNDED CORNERS ************/
 
-
 /* all */
+.notify,
 .rounded
 {
 	-moz-border-radius: 8px;
@@ -378,12 +355,22 @@ table.login td:last-child {
 }
 
 /* top only */
+.button,
 .roundtop
 {
 	-moz-border-radius-topright: 8px;
 	-moz-border-radius-topleft: 8px; 
 	-webkit-border-top-right-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
+}
+
+#pages_map > .page,	
+.roundbottom
+{
+	-moz-border-radius-bottomright: 8px;
+	-moz-border-radius-bottomleft: 8px; 
+	-webkit-border-bottom-right-radius: 8px;
+	-webkit-border-bottom-left-radius: 8px; 	
 }
 
 /* left only */
@@ -394,4 +381,11 @@ table.login td:last-child {
 	-webkit-border-top-left-radius: 8px; 	
 }
 
-
+/*.page {
+	-moz-border-radius-bottomright: 8px;
+	-moz-border-radius-bottomleft: 8px;
+	-moz-border-radius-topright: 8px; 
+	-webkit-border-bottom-right-radius: 8px;
+	-webkit-border-bottom-left-radius: 8px;
+	-webkit-border-top-right-radius: 8px; 	
+}*/

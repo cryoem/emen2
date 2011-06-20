@@ -54,8 +54,6 @@ function record_init(rec, ptest, edit) {
 		show: showattachments
 	});
 	
-	console.log("record is:", rec.name);
-
 	// New record editor
 	$('.e2-editbar-record-newrecord').EditbarHelper({
 		width:300,
@@ -114,9 +112,9 @@ function record_init(rec, ptest, edit) {
 					$.each(siblings, function(i,k) {
 						if (k != rec.name) {
 							// color:white here is a hack to have them line up
-							ul.append('<li><span style="color:white">&raquo; </span><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
+							ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
-							ul.append('<li>&raquo; '+(caches["recnames"][k]||k)+'</li>');
+							ul.append('<li>'+(caches["recnames"][k]||k)+'</li>');
 						}
 					});
 					self.popup.append(ul);

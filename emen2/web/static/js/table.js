@@ -212,7 +212,7 @@
 			}
 
 			$('.e2-table-header .e2-table-length').empty();
-			$('.e2-table-header .e2-table-length').append('<span class="clickable">'+title+'</span>');
+			$('.e2-table-header .e2-table-length').append('<span class="label">'+title+'</span>');
 			
 			// Update the record type statistics
 			var qstats = $(".e2-query-stats", this.element);
@@ -242,7 +242,7 @@
 
 				var p1 = $('<span data-pos="0" class="clickable chevron">&laquo;</span>').click(setpos);
 				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable chevron">&lsaquo;</span>').click(setpos);
-				var p  = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p  = $('<span class="label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
 				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable chevron">&rsaquo;</span>').click(setpos);
 				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable chevron">&raquo;</span>').click(setpos);
 
@@ -273,8 +273,8 @@
 			// ian: todo: critical: Properly get immutable parameters.
 			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
-			var tr = $('<tr class="s" />');
-			var tr2 = $('<tr class="s" />');
+			var tr = $('<tr />');
+			var tr2 = $('<tr />');
 			$.each(headers, function() {
 				if (this[3] == null) {
 					this[3]=''
