@@ -20,39 +20,39 @@ class BaseDBObject(object, DictMixin):
 	param_all = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 	param_required = set()
 	keytype = property(lambda s:s.getkeytype())
-		
+
 	#######################################
 	# Interface definition
 
 	def init(self, d):
 		"""Hook for subclass init"""
 		pass
-		
+
 
 	def validate(self, vtm=None, t=None):
 		pass
-		
-	
+
+
 	# End interface definition
 	########################################
-		
+
 	def __init__(self, _d=None, **_k):
-		"""Accept either a dictionary named '_d' or keyword arguments. 
-		Remove the ctx and use it for setContext. 
+		"""Accept either a dictionary named '_d' or keyword arguments.
+		Remove the ctx and use it for setContext.
 		See the Class docstring for what arguments are accepted.
 		"""
-		
+
 		# Copy input and kwargs into one dict
 		_d = dict(_d or {})
 		_d.update(_k)
 		p = {}
-		
+
 		# Temporary setContext
 		ctx = _d.pop('ctx', None)
 		t = _d.pop('t', None)
 		self.__dict__['_ctx'] = ctx
 		vtm, t = self._vtmtime(t=t) # get time/user
-		
+
 		# Validate the name -- the only always required parameter for all DBOs
 		p['name'] = self.validate_name(_d.pop('name', None))
 
@@ -61,12 +61,12 @@ class BaseDBObject(object, DictMixin):
 		p['creationtime'] = t
 		p['modifyuser'] = self._ctx.username
 		p['modifytime'] = t
-		
+
 		# Other parameters
 		p['uri'] = unicode(_d.pop('uri', '')) or None
 		p['children'] = set()
 		p['parents'] = set()
-		
+
 		# Directly update these base params
 		self.__dict__.update(p)
 
@@ -80,13 +80,13 @@ class BaseDBObject(object, DictMixin):
 		self.setContext(ctx)
 
 		# Update with the remaining params
-		self.update(_d)		
-	
-	
+		self.update(_d)
+
+
 	def getkeytype(self):
 		return self.__class__.__name__.lower()
-		
-		
+
+
 	def setContext(self, ctx):
 		"""Set permissions and create reference to active database."""
 		self.__dict__['_ctx'] = ctx
@@ -101,20 +101,20 @@ class BaseDBObject(object, DictMixin):
 
 
 	def __str__(self):
-	 	return self.__unicode__().encode('utf-8')
+		return self.__unicode__().encode('utf-8')
 
-		
+
 	def __repr__(self):
 		return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
 
 
 	def clone(self, update, vtm=None, t=None):
-		self.vw(msg='Warning! Only an admin may clone items!', check=self._ctx.checkadmin())			
+		self.vw(msg='Warning! Only an admin may clone items!', check=self._ctx.checkadmin())
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 
 		# Make a copy of the protected items
-		# Usually: creator, creationtime, modifyuser, modifytime, uri, name, keytype 
+		# Usually: creator, creationtime, modifyuser, modifytime, uri, name, keytype
 		protected = {}
 		skip = self.param_required | set(['name', 'keytype', 'uri'])
 
@@ -136,18 +136,18 @@ class BaseDBObject(object, DictMixin):
 		# print "Updating %s with protected:"%self.name, protected.keys()
 		self.__dict__.update(protected)
 		cp |= set(protected.keys())
-			
+
 		return cp
 
 
-	def update(self, update, vtm=None, t=None):			
-		vtm, t = self._vtmtime(vtm, t)	
+	def update(self, update, vtm=None, t=None):
+		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 
 		# Make sure to pass in t=t to keep all the times in sync
 		for k,v in update.items():
 			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
-		
+
 		return cp
 
 
@@ -156,17 +156,21 @@ class BaseDBObject(object, DictMixin):
 	#	e.g. records["permissions"] = [...]
 	#		-> self._set_permissions(key, value)
 	#################################
+	def __getattr__(self, name):
+		return object.__getattr__(self, name)
 
 	# Behave like dict.get(key) instead of db[key]
 	def __getitem__(self, key, default=None):
 		if key in self.param_all:
 			return getattr(self, key, default)
+		elif default:
+			return default
 
 
 	def get(self, key, default=None):
 		return self.__getitem__(key, default)
-	
-								
+
+
 	def __delitem__(self, key):
 		raise AttributeError, 'Key deletion not allowed'
 
@@ -177,7 +181,7 @@ class BaseDBObject(object, DictMixin):
 
 	def keys(self):
 		return list(self.param_all)
-		
+
 
 	def changedparams(self, item=None):
 		"""Differences between two items"""
@@ -201,7 +205,7 @@ class BaseDBObject(object, DictMixin):
 		if self.get(key) == value:
 			return cp
 
-		# Find a setter method		
+		# Find a setter method
 		setter = getattr(self, '_set_%s'%key, None)
 		if setter:
 			pass
@@ -210,12 +214,12 @@ class BaseDBObject(object, DictMixin):
 			return cp
 		else:
 			# Setter for unknown params
-			setter = self._setoob		
+			setter = self._setoob
 
 		# Validate
 		vtm, t = self._vtmtime(vtm, t)
 		value = self.validate_param(key, value, vtm=vtm)
-		
+
 		# The setter might return multiple items that were updated
 		# For instance, comments can update other params
 		cp |= setter(key, value, vtm=vtm, t=t)
@@ -229,7 +233,7 @@ class BaseDBObject(object, DictMixin):
 
 		# Return all the params that changed
 		return cp
-		
+
 
 	def _seterror(self, key, *args, **kwargs):
 		"""Immutable params"""
@@ -248,23 +252,23 @@ class BaseDBObject(object, DictMixin):
 		self.vw(key, check)
 		self.__dict__[key] = value
 		return set([key])
-		
-		
+
+
 	##########################
 	# Set parents / children
 	##########################
-	
+
 	def _set_children(self, key, value, vtm=None, t=None):
 		return self._set(key, set(value or []))
 
-	
+
 	def _set_parents(self, key, value, vtm=None, t=None):
 		return self._set(key, set(value or []))
 
 
 	def _set_uri(self, key, value, vtm=None, t=None):
 		return self._set(key, value)
-		
+
 
 	##########################
 	# Permissions
@@ -280,12 +284,12 @@ class BaseDBObject(object, DictMixin):
 			return True
 
 		return self._ctx.username == getattr(self, 'owner', None)
-		
+
 
 	def writable(self, key=None):
 		"""Returns whether this record can be written using the given context"""
 		return self.isowner()
-			
+
 
 	##########################
 	# Other methods
@@ -302,7 +306,7 @@ class BaseDBObject(object, DictMixin):
 	##########################
 	# Pickle methods
 	##########################
-	
+
 	def __getstate__(self):
 		"""Context and other session-specific information should not be pickled"""
 		odict = self.__dict__.copy() # copy the dict since we change it
@@ -315,7 +319,7 @@ class BaseDBObject(object, DictMixin):
 	##########################
 	# Utility methods
 	##########################
-	
+
 	def _vtmtime(self, vtm=None, t=None):
 		"""Utility method to check/get a vartype manager and the current time."""
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db)
@@ -327,34 +331,34 @@ class BaseDBObject(object, DictMixin):
 	def vw(self, key=None, check=None, msg=None):
 		"""Convenience method for checking permissions and printing
 		error messages.
-		
-		Typical use:		
+
+		Typical use:
 		self.vw('permissions', check=self.isowner())
 		self.vw('vartype', check=self._ctx.checkadmin())
 
 		@keyword key Param to use error message
 		@keyword check None: Perform a basic .writable() check. False: Raise SecurityError. True: OK
 		@keyword msg Alternative error message
-		"""		
+		"""
 		if check == None:
 			check = self.writable()
 		if not check:
 			msg = msg or "Insufficient permissions to change param %s"%key
 			self.error(msg, e=emen2.db.exceptions.SecurityError)
-		
+
 
 
 	##########################
 	# Validation and error control
-	##########################			
+	##########################
 
 	# Check that we have permissions to create this type of item
 	def validate_create(self):
 		"""Can we create this type of item?"""
 		if not self._ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "No creation privileges"
-				
-	
+
+
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
 		"""Validate a single param value"""
@@ -363,17 +367,17 @@ class BaseDBObject(object, DictMixin):
 		vtm, t = self._vtmtime(vtm=vtm)
 		cachekey = vtm.get_cache_key('paramdef', key)
 		hit, pd = vtm.check_cache(cachekey)
-				
+
 		# ian: todo: critical: no validation for params that do not have
 		#	a ParamDef if they are listed in self.param_all
 		if not hit and key in self.param_all:
 			return value
-				
-		# ... otherwise, raise an Exception if the param isn't found.		
+
+		# ... otherwise, raise an Exception if the param isn't found.
 		if not hit:
 			pd = self._ctx.db.getparamdef(key, filt=False)
 			vtm.store(cachekey, pd)
-		
+
 		# Is it an immutable param?
 		if self.name and pd.get('immutable'):
 			self.error('Cannot change immutable param %s'%pd.name)
@@ -391,7 +395,7 @@ class BaseDBObject(object, DictMixin):
 
 
 	def validate_name(self, name):
-		"""Validate the name of this object"""	
+		"""Validate the name of this object"""
 		if not name:
 			self.error("No name specified")
 
@@ -412,7 +416,7 @@ class BaseDBObject(object, DictMixin):
 
 		if not msg:
 			msg = e.__doc__
-			
+
 		if warning:
 			g.warn(msg)
 		elif e:
@@ -430,28 +434,28 @@ class PermissionsDBObject(BaseDBObject):
 	# Changes to permissions and groups, along with parents/children, aren't logged.
 	param_all = BaseDBObject.param_all | set(['permissions', 'groups'])
 
-	def init(self, d):		
+	def init(self, d):
 		super(PermissionsDBObject, self).init(d)
-		
+
 		p = {}
 		# Results of security test performed when the context is set
 		# correspond to, read,comment,write and owner permissions, return from setContext
 		p['_ptest'] = [True,True,True,True]
-		
+
 		# Setup the base permissions
 		p['permissions'] = [[],[],[],[]]
 		p['groups'] = set()
-		
+
 		if self._ctx.username != 'root':
 			p['permissions'][3].append(self._ctx.username)
-		
+
 		self.__dict__.update(p)
 
 
 	##########################
 	# Setters
 	##########################
-	
+
 	def _set_permissions(self, key, value, vtm=None, t=None):
 		self.setpermissions(value)
 		return set(['permissions'])
@@ -460,7 +464,7 @@ class PermissionsDBObject(BaseDBObject):
 	def _set_groups(self, key, value, vtm=None, t=None):
 		self.setgroups(value)
 		return set(['groups'])
-		
+
 
 	#################################
 	# Permissions checking
@@ -509,7 +513,7 @@ class PermissionsDBObject(BaseDBObject):
 
 	def readable(self):
 		return any(self._ptest)
-		
+
 
 	def members(self):
 		return set(reduce(operator.concat, self.permissions))
@@ -518,10 +522,10 @@ class PermissionsDBObject(BaseDBObject):
 	def owners(self):
 		return self.permissions[3]
 
-	
+
 	def ptest(self):
 		return self._ptest
-	
+
 
 	#################################
 	# Permissions methods
@@ -575,7 +579,7 @@ class PermissionsDBObject(BaseDBObject):
 	def removeuser(self, users):
 		if not users:
 			return
-			
+
 		p = [set(x) for x in self.permissions]
 		if not hasattr(users, "__iter__"):
 			users = [users]
@@ -590,9 +594,9 @@ class PermissionsDBObject(BaseDBObject):
 		value = [[unicode(y) for y in x] for x in value]
 		if len(value) != 4:
 			raise ValueError, "Invalid permissions format: %s"%value
-		
+
 		return self._set('permissions', value, self.isowner())
-		
+
 
 
 	#################################

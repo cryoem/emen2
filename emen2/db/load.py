@@ -22,6 +22,8 @@ def setup(rootpw=None, rootemail=None, db=None):
 	@keyparam rootpw Root Account Password
 	@keyparam rootemail Root Account email
 	"""
+	infile = emen2.db.config.get_filename('emen2', 'db/skeleton.json')
+
 	if not rootpw or not rootemail:
 		import pwd
 		import platform
@@ -41,7 +43,6 @@ def setup(rootpw=None, rootemail=None, db=None):
 				print "Warning! If you set a password, it needs to be more than 6 characters."
 				rootpw = getpass.getpass("Admin (root) password (default: none): ")
 
- 	infile = emen2.db.config.get_filename('emen2', 'db/skeleton.json')
 	loader = Loader(infile=infile, db=db)
 	loader.load(rootemail=rootemail, rootpw=rootpw)
 
@@ -52,8 +53,8 @@ class Loader(object):
 		self.infile = infile
 		self.path = path
 		self.db = db
-	
-	
+
+
 	def load(self, rootemail=None, rootpw=None, overwrite=False):
 		# Changed names
 		userrelmap = {}
@@ -63,7 +64,7 @@ class Loader(object):
 		childmap = collections.defaultdict(set)
 		pdc = collections.defaultdict(set)
 		rdc = collections.defaultdict(set)
-		
+
 		# Current items...
 		existing_usernames = self.db.getusernames()
 		existing_groupnames = self.db.getgroupnames()
@@ -77,9 +78,9 @@ class Loader(object):
 			pdc[pd.get('name')] |= set(pd.pop('parents', []))
 			pd.pop('children', set())
 			if pd.get('name') in existing_paramdefs and not overwrite:
-				continue			
+				continue
 			pds.append(pd)
-			
+
 		self.db.put(pds, keytype='paramdef', clone=True)
 
 		# Put the saved relationships back in..
@@ -93,7 +94,7 @@ class Loader(object):
 		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
-				
+
 			origname = user.get('name')
 
 			userrelmap[user.get('name')] = user.get('record')
@@ -106,14 +107,14 @@ class Loader(object):
 
 			if not user.get('email') or user.get('email')=='None':
 				user['email'] = '%s@localhost'%(user['name'])
-			
+
 			# hmm..
 			if user.get('name') != 'root' and user.get("password") == None:
 				print "User %s has no password! Generating random pass.."%user.get('name')
 				user["password"] = random_password(8)
-			
+
 			users.append(user)
-			
+
 		self.db.put(users, keytype='user', clone=True)
 
 
@@ -124,7 +125,7 @@ class Loader(object):
 			if group.get('name') in existing_groupnames and not overwrite:
 				continue
 			groups.append(group)
-			
+
 		self.db.put(groups, keytype='group', clone=True)
 
 
@@ -133,13 +134,13 @@ class Loader(object):
 		rds = []
 		for rd in self.loadfile(self.infile, keytype='recorddef'):
 			rdc[rd.get('name')] |= set(rd.pop('parents', []))
-			rd.pop('children', set())			
+			rd.pop('children', set())
 			if rd.get('name') in existing_recorddefs and not overwrite:
 				continue
 			rds.append(rd)
 
 		self.db.put(rds, keytype='recorddef', clone=True)
-		
+
 		for k, v in rdc.items():
 			for v2 in v: self.db.pclink(v2, k, keytype='recorddef')
 
@@ -160,8 +161,8 @@ class Loader(object):
 		for k, v in childmap.items():
 			for v2 in v:
 				self.db.pclink(namemap[k], namemap[v2])
-		
-		
+
+
 		##########################
 		# BDOS
 		# for bdo in self.loadfile(self.infile, keytype='binary'):
@@ -169,18 +170,18 @@ class Loader(object):
 		# 	infile = bdo['name'].replace(":",".")
 		# 	if not os.path.exists(infile):
 		# 		infile = None
-		# 
+		#
 		#	 use subscript instead of .get to make sure the record was mapped
 		#	 self.db.put(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
-		
-			
+
+
 
 
 	def _commit_record_chunk(self, chunk, namemap=None, childmap=None):
 		t = time.time()
 		names = []
-		
+
 		for rec in chunk:
 			if rec.get('children'):
 				childmap[rec.get('name')] |= set(rec.get('children', []))
@@ -197,9 +198,9 @@ class Loader(object):
 			namemap[oldname] = newname
 
 		print "Commited %s recs in %s: %0.1f keys/s"%(len(recs), time.time()-t, len(recs)/(time.time()-t))
-		
 
-				
+
+
 
 	def loadfile(self, infile, keytype=None):
 		filename = os.path.join(self.path, infile)
@@ -217,7 +218,7 @@ class Loader(object):
 							yield item
 					else:
 						yield item
-			
+
 
 
 
@@ -225,7 +226,7 @@ class Loader(object):
 
 def main():
 	dbo = emen2.db.config.DBOptions()
-	dbo.add_option('--new', action="store_true", help="Initialize a new DB with default items.")	
+	dbo.add_option('--new', action="store_true", help="Initialize a new DB with default items.")
 	dbo.add_option('--path', type="string", help="Directory containing JSON files")
 	dbo.add_option('--file', type="string", help="JSON file containing all keytypes")
 	dbo.add_option('--nopassword', action="store_true", help="Do not prompt for root email or password")
@@ -237,13 +238,13 @@ def main():
 			if options.nopassword:
 				setup(db=db, rootemail='root@localhost', rootpw='123456')
 			else:
-				setup(db=db)				
+				setup(db=db)
 
 		if options.file:
-			l = Loader(infile=options.file, db=db)			
+			l = Loader(infile=options.file, db=db)
 			l.load()
 		elif options.path:
-			l = Loader(path=options.path, db=db)			
+			l = Loader(path=options.path, db=db)
 			l.load()
 
 

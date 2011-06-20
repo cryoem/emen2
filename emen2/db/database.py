@@ -191,6 +191,28 @@ def ol(name, output=True):
 
 	return wrap
 
+def limit_result_length(default=None):
+	ns = dict(func = None)
+	def _inner(*a, **kw):
+		func = ns.get('func')
+		result = func(*a, **kw)
+		limit = kw.pop('limit', default)
+		if limit  and hasattr(result, '__len__') and len(result) > limit:
+			result = result[:limit]
+		return result
+
+	def wrapped_f(f):
+		ns['func'] = f
+		return functools.wraps(f)(_inner)
+
+	result = wrapped_f
+	if callable(default):
+		ns['func'] = default
+		result = functools.wraps(default)(_inner)
+
+	return result
+
+
 
 
 def error(e=None, msg='', warning=False):
@@ -274,7 +296,10 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 #	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
 	opendbs = weakref.WeakKeyDictionary()
+	cachesize = g.claim('CACHESIZE')
 
+	path = g.claim('EMEN2DBHOME')
+	snapshot = g.claim('SNAPSHOT', True)
 	def __init__(self, path=None, maintenance=False, snapshot=False):
 		"""EMEN2 Database Environment.
 		The DB files are accessible as attributes, and indexes are loaded in self.index.
@@ -283,7 +308,10 @@ class EMEN2DBEnv(object):
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
 		self.keytypes =  {}
-		self.path = path or g.EMEN2DBHOME
+
+		if path is not None:
+			self.path = path
+
 		if not self.path:
 			raise ValueError, "No path specified; check $EMEN2DBHOME and config.json files"
 
@@ -322,10 +350,11 @@ class EMEN2DBEnv(object):
 		if DBENV == None:
 			g.info("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
-			if snapshot or g.SNAPSHOT:
+
+			if snapshot or self.snapshot:
 				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
 
-			cachesize = g.CACHESIZE * 1024 * 1024l
+			cachesize = self.cachesize * 1024 * 1024l
 			txncount = (cachesize / 4096) * 2
 			if txncount > 1024*128:
 				txncount = 1024*128
@@ -398,6 +427,12 @@ class EMEN2DBEnv(object):
 	# Utility methods
 	####################################
 
+	LOGPATH = g.watch('paths.LOGPATH')
+	HOTBACKUP = g.claim('paths.HOTBACKUP')
+	LOG_ARCHIVE = g.claim('paths.LOG_ARCHIVE')
+	TILEPATH = g.claim('paths.TILEPATH')
+	TMPPATH = g.claim('paths.TMPPATH')
+	SSLPATH = g.watch('paths.SSLPATH')
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
 
@@ -421,9 +456,9 @@ class EMEN2DBEnv(object):
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		paths = []
-		for i in ['LOGPATH', 'HOTBACKUP', 'LOG_ARCHIVE', 'TILEPATH', 'TMPPATH', 'SSLPATH']:
+		for paths in [self.LOGPATH, self.HOTBACKUP, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
 			try:
-				paths.append(getattr(g.paths, i))
+				paths.append(path)
 			except AttributeError:
 				pass
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
@@ -565,7 +600,7 @@ class EMEN2DBEnv(object):
 		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
 		"""
 
-		outpath = g.paths.LOG_ARCHIVE
+		outpath = self.LOG_ARCHIVE
 
 		if checkpoint:
 			g.info("Log Archive: Checkpoint")
@@ -1544,7 +1579,7 @@ class DB(object):
 		:keyword boolmode: AND / OR for each search constraint
 		:return: RecordDefs
 		"""
-		return self._find_pdrd(keytype='recorddef', *args, **kwargs)
+		return self._find_pdrd(self._findrecorddefnames, keytype='recorddef', *args, **kwargs)
 
 
 	@publicmethod("paramdef.find")
@@ -1561,15 +1596,25 @@ class DB(object):
 		:keyword boolmode: AND / OR for each search constraint
 		:return: RecordDefs
 		"""
-		return self._find_pdrd(keytype='paramdef', *args, **kwargs)
+		return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
+
+	def _find_pdrd_vartype(self, vartype, items):
+			ret = set()
+			vartype = listops.check_iterable(vartype)
+			for item in items:
+				if item.vartype in vartype:
+					ret.add(item.name)
+			return ret
 
 
-	def _find_pdrd(self, query=None, childof=None, boolmode="AND", keytype="paramdef", limit=None, record=None, vartype=None, ctx=None, txn=None, **qp):
+	@limit_result_length
+	def _find_pdrd(self, cb, query=None, childof=None, boolmode="AND", keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 		rets = []
 		# This can still be done much better
-		names = self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
-		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		names, items = zip(*self.bdbs.keytypes[keytype].items(ctx=ctx, txn=txn))
+		#names = zip(*self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn))
+		#items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
 
 		query = unicode(query or '').split()
@@ -1578,34 +1623,25 @@ class DB(object):
 			# Search some text-y fields
 			for param in ['name', 'desc_short', 'desc_long', 'mainview']:
 				for item in items:
-					if q in unicode(item.get(param) or ''):
+					if q in item.get(param, ''):
 						ret.add(item.name)
 			rets.append(ret)
 
 		if vartype is not None:
-			ret = set()
-			vartype = listops.check_iterable(vartype)
-			for item in items:
-				if item.vartype in vartype:
-					ret.add(item.name)
-			rets.append(ret)
+			rets.append(self._find_pdrd_vartype(vartype, items))
 
 		if record is not None:
-			if keytype == 'recorddef':
-				rets.append(self._findrecorddefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
-			elif keytype == 'paramdef':
-				rets.append(self._findparamdefnames(listops.check_iterable(record), ctx=ctx, txn=txn))
+			rets.append(cb(listops.check_iterable(record), ctx=ctx, txn=txn))
 
 
 		allret = self._boolmode_collapse(rets, boolmode)
 		ret = map(ditems.get, allret)
 
-		if limit:
-			return ret[:int(limit)]
 		return ret
 
 
 	@publicmethod("user.find")
+	@limit_result_length
 	def finduser(self, query=None, record=None, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
@@ -1835,7 +1871,7 @@ class DB(object):
 	#############################
 
 	#@remove?
-	@publicmethod("record.renderchildtree")
+	@publicmethod("record.render.child.tree")
 	def renderchildtree(self, name, recurse=3, rectype=None, ctx=None, txn=None):
 		"""Convenience method used by some clients to render a bunch of
 		records and simple relationships.
@@ -2456,6 +2492,7 @@ class DB(object):
 			sendmail(user.email, template='/email/adduser.signup')
 		return users
 
+	group_defaults = g.claim('GROUP_DEFAULTS')
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
@@ -2482,7 +2519,7 @@ class DB(object):
 
 			# Update default Groups
 			if user.name != 'root':
-				for group in g.GROUP_DEFAULTS:
+				for group in self.group_defaults:
 					gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
 					gr.adduser(user.name)
 					self.bdbs.group.cput(gr, ctx=ctx, txn=txn)

@@ -120,46 +120,67 @@ class LoggerStub(debug.DebugState):
 	def capturestdout(self):
 		print 'cannot capture stdout'
 	def closestdout(self): pass
-	def msg(self, sn, *args):
+	def msg(self, sn, *args, **k):
 		sn = self.debugstates.get_name(self.debugstates[sn])
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
 
-class Claim(object):
+class Watch(object):
 	def __init__(self, ns, name, default, validator=None):
 		self.ns = ns
 		self.name = name.split('.')
 		self.default = default
-		self.validator = validator
-		self.values = {}
 
 	def __get__(self, instance, owner):
-		if id(instance) in self.values:
-			return self.values[id(instance)]
+		return self.get()
 
+	def get(self):
 		result = getattr(self.ns, self.name[0], self.default)
 		for n in self.name[1:]:
 			result = getattr(result, n, self.default)
 
-		if self.validator is not None:
-			is_valid = self.validator(result)
-			if not is_valid:
-				res_repr = repr(result)
-				if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
-				raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
 		return result
 
-	def __set__(self, instance, value):
-		self.values[id(instance)] = value
+class Claim(Watch):
+	claimed_attributes = set()
+	def __init__(self, ns, name, default, validator=None):
+		if name in self.claimed_attributes:
+			raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
+		else:
+			self.claimed_attributes.add(name)
 
-	def __delete__(self, instance):
-		self.values.pop(id(instance), None)
+		if not hasattr(ns, name):
+			ns.setattr(name, default)
+
+		self.validator = validator
+		self._validate(default)
+
+
+		Watch.__init__(self, ns, name, default, validator)
+
+	def _validate(self, value):
+		if self.validator is not None:
+				is_valid = self.validator(value)
+				if not is_valid:
+					res_repr = repr(value)
+					if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
+					raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
+
+	def __set__(self, instance, value):
+		self.set(value)
+
+	def set(self, value):
+		self._validate(value)
+		self.ns.setattr(self.name, value)
+		return self
 
 inst = lambda x:x()
 class GlobalNamespace(object):
 
 	def claim(self, name, default=None, validator=None):
 		return Claim(self, name, default, validator)
+	def watch(self, name, default=None):
+		return Watch(self, name, default)
 
 	@inst
 	class paths(object):
@@ -446,44 +467,42 @@ class GlobalNamespace(object):
 
 
 
-def test():
-	a = GlobalNamespace('one instance')
-	b = GlobalNamespace('two instance')
-	try:
-		a.a
-	except AttributeError:
-		pass
-	else:
-		assert False
+#import <module>
+import unittest
 
-	#test 1 attribute access
-	a.a = 1
-	assert (a.a == a.a)
-	assert (a.a == b.a)
-	assert (a.a == a.___a)
-	print "test 1 passed"
+class TestSequenceFunctions(unittest.TestCase):
 
-	#test 2
-	a.reset()
-	try:
-		print a.a
-	except AttributeError:
-		pass
-	else:
-		assert False
-	print "test 2 passed"
+	def setUp(self):
+		self.a = GlobalNamespace('one instance')
+		self.b = GlobalNamespace('two instance')
+		self.a.a = 1
 
-	#test 3
-	tempdict = dict(a=1, b=2, c=3)
-	a.update(tempdict)
-	assert tempdict['a'] == a.a
-	assert tempdict['a'] == b.a
-	assert tempdict['a'] == a.___a
-	print "test 3 passed"
-	a.reset()
+
+	def test_attributenotfound(self):
+		self.assertRaises(lambda: self.a.not_found, AttributeError)
+
+	def test_setattribute(self):
+		#test 1 attribute access
+		self.assertEqual(self.a.a, 1)
+		self.assertTrue(hasattr(self.b, 'a'))
+		self.assertEqual(self.a.a, self.b.a)
+
+	def test_reset(self):
+		self.a.reset()
+		self.assertRaises(lambda: self.a.a, AttributeError)
+
+	def test_update(self):
+		tempdict = dict(a=1, b=2, c=3)
+		self.a.update(tempdict)
+		self.assertEqual(self.a.a, tempdict['a'])
+		self.assertEqual(self.b.a, tempdict['a'])
+		self.assertEqual(self.a.___a, tempdict['a'])
+		print "test 3 passed"
+		a.reset()
+
 
 if __name__ == '__main__':
-	test()
-
+	pass
+	#unittest.main()
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

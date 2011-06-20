@@ -609,6 +609,29 @@ class DBODB(EMEN2DB):
 
 		return set(map(self.loadkey, self.bdb.keys(txn)))
 
+	def items(self, items=None, rt=None, ctx=None, txn=None, **kwargs):
+		oitems = items
+
+		if hasattr(items, 'next'):
+			rt = list
+		else:
+			if rt is None:
+				if items is None:
+					rt = list
+				else:
+					rt = type(items)
+
+		if hasattr(items, 'iteritems'):
+			items = items.iteritems()
+		elif hasattr(items, 'items'):
+			items = items.items()
+
+		if items is not None:
+			if ctx.checkadmin(): return oitems
+			return rt( (k,v) for k,v in items if (self.cget(k, ctx=ctx, txn=txn) is not None) )
+
+		return rt( (self.loadkey(k), self.loaddata(v)) for k,v in self.bdb.items(txn) )
+
 
 	def validate(self, items, ctx=None, txn=None):
 		return self.cputs(items, commit=False, ctx=ctx, txn=txn)

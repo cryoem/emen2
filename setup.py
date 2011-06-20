@@ -10,9 +10,9 @@ URLMAP = {
 	"2.0rc1": "software_105",
 	"2.0rc2": "software_107",
 	"2.0rc3": "software_108",
-	"2.0rc4": "software_110",	
+	"2.0rc4": "software_110",
 	"2.0rc5": "software_113",
-	"2.0rc6": "software_114"	
+	"2.0rc6": "software_114"
 }
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 			],
 		package_data={
 			'emen2': ['templates/*.mako', 'templates/.*', 'templates/*/*.mako', 'templates/*/*/*.mako', 'static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
-			'emen2.db': ['*.json'],
+			'emen2.db': ['config.base.json', 'skeleton.json'],
 		},
 		scripts=['scripts/emen2control.py']
 	)

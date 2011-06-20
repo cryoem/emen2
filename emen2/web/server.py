@@ -5,7 +5,7 @@ import sys
 import thread
 import os.path
 import atexit
-
+import multiprocessing
 # from twisted.internet import reactor
 # from twisted.web import static, server
 # from twisted.web.resource import Resource
@@ -22,7 +22,7 @@ except:
 import emen2.web.resources.threadpool
 import emen2.db.config
 import emen2.web.templating
-g = emen2.db.config.g()
+config = emen2.db.config.g()
 
 # Load EMEN2 Twisted Resources
 import emen2.web.resources.uploadresource
@@ -46,7 +46,7 @@ class ResourceLoader(object):
 			del msg[2]
 		else:
 			msg[2] %= (path, resource)
-		g.log.msg(level, ' '.join(msg))
+		config.log.msg(level, ' '.join(msg))
 
 	def add_resources(self, **resources):
 		for k,v in resources.items():
@@ -66,6 +66,20 @@ def allHeadersReceived(self, *a, **kw):
 
 class EMEN2Server(object):
 
+	#: Use HTTPS?
+	EMEN2HTTPS = config.claim('EMEN2HTTPS', False, lambda v: isinstance(v, bool))
+	#: Which port to receive HTTPS request?
+	EMEN2PORT_HTTPS = config.claim('EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
+	#: Where to find the SSL info
+	SSLPATH = config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
+
+	#: Extra resources to load
+	EXTRARESOURCES = config.claim('RESOURCESPECS', {}, lambda v: isinstance(v, dict))
+	#: How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
+	NUMTHREADS = config.claim('NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
+	#: Which port to listen on
+	PORT = config.claim('EMEN2PORT', 8080, lambda v: isinstance(v, (int,long)))
+
 	def __init__(self, port=None, dbo=None):
 		# Options
 		self.dbo = dbo or emen2.db.config.DBOptions()
@@ -75,12 +89,17 @@ class EMEN2Server(object):
 		(self.options, self.args) = self.dbo.parse_args()
 
 		# Update the configuration
-		g.EMEN2PORT = self.options.port or g.EMEN2PORT
-		g.EMEN2PORT = port or g.EMEN2PORT
-		g.EMEN2HTTPS = self.options.https or g.EMEN2HTTPS
-		g.EMEN2PORT_HTTPS = self.options.httpsport or g.getattr('EMEN2PORT_HTTPS',443)
+		if self.options.port or port:
+			self.EMEN2PORT = self.options.port or port
 
-		g.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
+		if self.options.https:
+			self.EMEN2HTTPS = self.options.https
+
+		if self.options.httpsport:
+			self.EMEN2PORT_HTTPS = self.options.httpsport
+
+		### TODO: move this elsewhere
+		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
 
 		self.resource_loader = ResourceLoader(emen2.web.resources.publicresource.PublicView())
 		self.load_resources()
@@ -107,13 +126,14 @@ class EMEN2Server(object):
 
 
 	def load_resources(self):
-		try:
-			extraresources = g.getattr('RESOURCESPECS', {})
-			for path, mod in extraresources.items():
+		for path, mod in self.EXTRARESOURCES.items():
+			try:
 				mod = __import__(mod)
 				self.resource_loader.add_resource(path, getattr(mod, path))
-		except ImportError:
-			pass
+			except ImportError:
+				config.error('failed to attach resource %r to path %r' % (mod, path))
+				if config.DEBUG:
+					config.log.print_exception()
 
 		self.resource_loader.add_resources(
 			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')),
@@ -137,27 +157,28 @@ class EMEN2Server(object):
 					return
 
 
+
 	def start(self):
 		'''run the main loop'''
 		site = twisted.web.server.Site(self.resource_loader.root)
 		site.protocol.allHeadersReceived = allHeadersReceived
 
-		twisted.internet.reactor.listenTCP(g.EMEN2PORT, site)
-		g.info('Listening on port %d ...'%g.EMEN2PORT)
+		twisted.internet.reactor.listenTCP(self.PORT, site)
+		config.info('Listening on port %d ...'%self.PORT)
 
-		if g.EMEN2HTTPS and ssl:
+		if self.EMEN2HTTPS and ssl:
 			twisted.internet.reactor.listenSSL(
-				g.EMEN2PORT_HTTPS,
+				self.EMEN2PORT_HTTPS,
 				site,
 				ssl.DefaultOpenSSLContextFactory(
-					os.path.join(g.paths.SSLPATH, "server.key"),
-					os.path.join(g.paths.SSLPATH, "server.crt")
+					os.path.join(self.SSLPATH, "server.key"),
+					os.path.join(self.SSLPATH, "server.crt")
 					)
 				)
 
-		twisted.internet.reactor.suggestThreadPoolSize(g.NUMTHREADS)
+		twisted.internet.reactor.suggestThreadPoolSize(self.NUMTHREADS)
 
-		g._locked = True
+		config._locked = True
 		twisted.internet.reactor.run()
 
 

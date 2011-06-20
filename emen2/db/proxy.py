@@ -88,15 +88,11 @@ class MethodTree(object):
 
 	def add_method(self, name, func):
 		head, tail = strht(name, '.')
-		#print head, tail
-		if head in self.children:
+		if tail != '':
+			self.children.setdefault(head, MethodTree())
 			self.children[head].add_method(tail, func)
 		else:
-			if tail != '':
-				self.children[head] = MethodTree()
-				self.children[head].add_method(tail, func)
-			else:
-				self.children[name] = MethodTree(func)
+			self.children[name] = MethodTree(func)
 
 	def get_method(self, name):
 		name = self.get_alias(name)
@@ -277,7 +273,7 @@ class DBProxy(object):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
 		#return getattr(self, method)(*args, **kwargs)
 		m = self.mt.get_method(method).func
-		if m:
+		if m is not None:
 			return self._wrap(m)(*args, **kwargs)
 
 

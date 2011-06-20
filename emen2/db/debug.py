@@ -21,6 +21,7 @@ from __future__ import with_statement
 import functools
 import code
 import inspect
+import os
 import os.path
 import time
 import datetime

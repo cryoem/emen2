@@ -124,20 +124,6 @@ class DBOptions(optparse.OptionParser):
 		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
 		g.EMEN2DBHOME = EMEN2DBHOME
 
-		# Load web extensions
-		for p in self.values.ext or []:
-			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
-			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
-
-		# Load view and template dirs
-		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
-			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
-
-		if getattr(g.paths, 'PYTHONPATH', []):
-			pp = g.paths.PYTHONPATH
-			if not hasattr(pp, '__iter__'): pp = [pp]
-			sys.path.extend(pp)
-
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:
@@ -146,6 +132,36 @@ class DBOptions(optparse.OptionParser):
 			loglevel = 'DEBUG'
 		elif self.values.loglevel:
 			loglevel = self.values.loglevel
+
+
+
+		if not os.path.exists(g.paths.LOGPATH):
+			print 'Creating logpath: %r' % g.paths.LOGPATH
+			os.makedirs(g.paths.LOGPATH)
+		g.log = emen2.db.debug.DebugState(output_level=loglevel,
+											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
+											get_state=False,
+											quiet = self.values.quiet)
+
+		g.info = functools.partial(g.log.msg, 'INFO')
+		g.error = functools.partial(g.log.msg, 'ERROR')
+		g.warn = functools.partial(g.log.msg, 'WARNING')
+		g.debug = functools.partial(g.log.msg, 'DEBUG')
+
+		# Load web extensions
+		for p in self.values.ext or []:
+			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
+			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
+
+		# Load view and template dirs
+		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
+			g.error('LOADING DEFAULT TEMPLATEPATHS !!!')
+			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
+
+		if getattr(g.paths, 'PYTHONPATH', []):
+			pp = g.paths.PYTHONPATH
+			if not hasattr(pp, '__iter__'): pp = [pp]
+			sys.path.extend(pp)
 
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
@@ -156,16 +172,6 @@ class DBOptions(optparse.OptionParser):
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
 			os.makedirs(g.paths.LOGPATH)
-
-		g.log = emen2.db.debug.DebugState(output_level=loglevel,
-											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
-											get_state=False,
-											quiet = self.values.quiet)
-
-		g.info = functools.partial(g.log.msg, 'INFO')
-		g.error = functools.partial(g.log.msg, 'ERROR')
-		g.warn = functools.partial(g.log.msg, 'WARNING')
-		g.debug = functools.partial(g.log.msg, 'DEBUG')
 
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))

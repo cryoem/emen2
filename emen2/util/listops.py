@@ -258,8 +258,26 @@ def oltolist(d, dtype=None):
 	return ol, d
 
 
+def dictbykey_0(l, key):
+	result = {}
+	for i in l:
+		result.setdefault(i.get(key), {}).update(i)
+	return result
+
+def dictbykey_1(l, key):
+	result = collections.defaultdict(list)
+	for i in l:
+		result[i.get(key)].append(i)
+	return result
+
+def dictbykey_2(l, key):
+	l = sorted(l, key=lambda x: x.get(key))
+	l = groupchunk(l, grouper=lambda (a,b): a.get(key)==b.get(key))
+	l = dict( (x[0].get(key), x) for x in l)
+	return l
+
 def dictbykey(l, key):
-	return dict([(i.get(key), i) for i in l])
+	return dict( (i.get(key), i) for i in l )
 
 
 
