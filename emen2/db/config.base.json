@@ -46,15 +46,15 @@
 
 	// Mail settings. If both of these are set, EMEN2 will send emails during certain events.
 	"mailsettings":{
-		"MAILADMIN": "",
-		"MAILHOST": ""
+		// "MAILADMIN": "",
+		// "MAILHOST": ""
 	},
 
 	// Web-server related settings
 	"network":{
 		
 		// Number of web server threads to run
-		"EMEN2EXTURI": "",
+		// "EMEN2EXTURI": "",
 
 		"NUMTHREADS": 5,
 		"EMEN2PORT": 8080,
@@ -70,7 +70,7 @@
 	"params":{
 		"BLOCKLENGTH": 100000,
 		"VERSION": 20100929,
-		"TIMESTR": "%Y/%m/%d %H:%M:%S",
+		// "TIMESTR": "%Y/%m/%d %H:%M:%S",
 		"MAXRECURSE": 50,
 		"MAXIDLE": 604800,
 		"SNAPSHOT": 1
@@ -85,7 +85,7 @@
 	"customization":{
 
 		// Short string for database identification. This shows up several places in the UI
-		"EMEN2DBNAME": "EMEN2",
+		// "EMEN2DBNAME": "EMEN2",
 
 		// New users will be added to these groups
 		"GROUP_DEFAULTS": ["create"],

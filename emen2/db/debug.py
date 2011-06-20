@@ -405,6 +405,7 @@ class DebugState(object):
 		def _inner(*args, **kwargs):
 			self.msg('DEBUG', 'debugging state -> self._state: %r, self._log_state: %r' % (self._state, self._log_state) )
 			self.msg('DEBUG', 'debugging callable: %s, args: %s, kwargs: %s'  % (func, args, kwargs))
+			self.print_traceback()
 			result = None
 			try:
 				result = func(*args, **kwargs)

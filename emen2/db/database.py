@@ -86,6 +86,14 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+inst = lambda x:x()
+@inst
+class CVars(object):
+	MAILADMIN = g.claim('MAILADMIN', default="")
+	MAILHOST = g.claim('MAILHOST', default="")
+	TIMESTR = g.claim('TIMESTR', default="%Y/%m/%d %H:%M:%S")
+	EMEN2DBNAME = g.claim('EMEN2DBNAME', default="EMEN2")
+	EMEN2EXTURI = g.claim('EMEN2EXTURI', "")
 
 def fakemodules():
 	import imp
@@ -155,8 +163,8 @@ def getctime():
 
 
 def gettime():
-	""":return: Current database time, as string in format %s"""%g.TIMESTR
-	return time.strftime(g.TIMESTR)
+	""":return: Current database time, as string in format %s"""%CVars.TIMESTR
+	return time.strftime(CVars.TIMESTR)
 
 
 
@@ -246,18 +254,18 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	:return: Email recipient, or None if no message was sent
 	"""
 
-	if not g.MAILADMIN:
+	if not CVars.MAILADMIN:
 		g.warn("Couldn't get mail config: No email set for root")
 		return
-	if not g.MAILHOST:
+	if not CVars.MAILHOST:
 		g.warn("Couldn't get mail config: No SMTP Server")
 		return
 
 	ctxt = ctxt or {}
 	ctxt["recipient"] = recipient
-	ctxt["MAILADMIN"] = g.MAILADMIN
-	ctxt["EMEN2DBNAME"] = g.EMEN2DBNAME
-	ctxt["EMEN2EXTURI"] = g.EMEN2EXTURI
+	ctxt["MAILADMIN"] = CVars.MAILADMIN
+	ctxt["EMEN2DBNAME"] = CVars.EMEN2DBNAME
+	ctxt["EMEN2EXTURI"] = CVars.EMEN2EXTURI
 
 	if not recipient:
 		return
@@ -265,7 +273,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	if msg:
 		msg = email.mime.text.MIMEText(msg)
 		msg['Subject'] = subject
-		msg['From'] = g.MAILADMIN
+		msg['From'] = CVars.MAILADMIN
 		msg['To'] = recipient
 		msg = msg.as_string()
 
@@ -279,10 +287,10 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 		raise ValueError, "No message to send!"
 
 	# Actually send the message
-	s = smtplib.SMTP(g.MAILHOST)
+	s = smtplib.SMTP(CVars.MAILHOST)
 	s.set_debuglevel(1)
-	s.sendmail(g.MAILADMIN, [g.MAILADMIN, recipient], msg)
-	g.info('Mail sent: %s -> %s'%(g.MAILADMIN, recipient))
+	s.sendmail(CVars.MAILADMIN, [CVars.MAILADMIN, recipient], msg)
+	g.info('Mail sent: %s -> %s'%(CVars.MAILADMIN, recipient))
 	# g.error('Could not send email: %s'%e, e=e)
 	# raise e
 
@@ -453,10 +461,13 @@ class EMEN2DBEnv(object):
 				paths.append('data/%s%s'%(i,j))
 
 		paths = (os.path.join(self.path, path) for path in paths)
-		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
+		for path in paths:
+			if not os.path.exists(path):
+				os.makedirs(path)
+		#paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		paths = []
-		for paths in [self.LOGPATH, self.HOTBACKUP, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
+		for path in [self.LOGPATH, self.HOTBACKUP, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
 			try:
 				paths.append(path)
 			except AttributeError:

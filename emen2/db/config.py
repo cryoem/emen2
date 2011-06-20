@@ -11,6 +11,8 @@ import urlparse
 import jsonrpc.jsonutil
 import emen2.db.debug
 import emen2.db.globalns
+gg = emen2.db.globalns.GlobalNamespace()
+os.makedirs = gg.log.debug_func(os.makedirs)
 
 
 def get_filename(package, resource):
@@ -135,6 +137,7 @@ class DBOptions(optparse.OptionParser):
 
 
 
+		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
 			print 'Creating logpath: %r' % g.paths.LOGPATH
 			os.makedirs(g.paths.LOGPATH)
@@ -169,10 +172,6 @@ class DBOptions(optparse.OptionParser):
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
-		# Make sure paths to log files exist
-		if not os.path.exists(g.paths.LOGPATH):
-			os.makedirs(g.paths.LOGPATH)
-
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
 
@@ -182,7 +181,6 @@ class DBOptions(optparse.OptionParser):
 
 
 
-gg = emen2.db.globalns.GlobalNamespace()
 g = lambda: gg
 
 
