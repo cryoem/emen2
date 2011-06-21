@@ -52,17 +52,6 @@ def help(mt):
 
 
 class MethodTree(object):
-	class _cursor(object):
-		def __init__(self, mt, path = None):
-			self.path = path or []
-			self.mt = mt
-		def __call__(self, *a, **kw):
-			meth = self.mt.get_method('.'.join(self.path))
-			self.path = []
-			return meth(*a, **kw)
-		def __getattr__(self, name):
-			return type(self)(self.mt, self.path + [name])
-
 	def __init__(self, func=None):
 		self.func = func
 		if func: self.doc = func.__doc__ or ''
@@ -71,13 +60,14 @@ class MethodTree(object):
 		self.aliases = {}
 
 	def alias(self, orig, new):
+		if orig in self.children:
+			raise ValueError, "namespace conflict, cannot alias %r to %r" %(orig, new)
 		self.aliases[orig] = new
 	def get_alias(self, txt):
 		return self.aliases.get(txt,txt)
 
-	def __enter__(self, *a):
-		return self._cursor(self)
-	def __exit__(self, *a, **kw): pass
+	def __repr__(self):
+		return 'MethodTree: func: %r, children: %r' % (self.func, len(self.children.keys()))
 
 	def __call__(self, *a, **kw):
 		return self.func(*a, **kw)
@@ -87,26 +77,31 @@ class MethodTree(object):
 		return self.get_method(name)
 
 	def add_method(self, name, func):
-		head, tail = strht(name, '.')
-		if tail != '':
-			self.children.setdefault(head, MethodTree())
-			self.children[head].add_method(tail, func)
+		self._add_method(name, func)
+
+	def _add_method(self, name, func, a=1):
+		head, _, tail = name.partition('.')
+		self.children.setdefault(head, MethodTree())
+		if tail == '':
+			self.children[head].func = func
 		else:
-			self.children[name] = MethodTree(func)
+			self.children[head]._add_method(tail, func, a+1)
 
 	def get_method(self, name):
 		name = self.get_alias(name)
-		head, tail = strht(name, '.')
-		child = self.children.get(head, self)
-		if tail == 'help' or head == 'help': child = MethodTree(help(child))
-		elif tail == 'writep': child = MethodTree(
-			(lambda child: ( # make closure to localize child
-					lambda *a, **kw: child.func.write
-				)
-			)(child)
-		)
-		elif tail != '' and child is not self: child = child.get_method(tail)
-		return child
+		return self._get_method(name)
+
+	def _get_method(self, name):
+		head, _, tail = name.partition('.')
+		child = self.children.get(head)
+
+		if child is None:
+			if tail: raise AttributeError, "method %r not found"%name
+			else: result = self
+		else:
+			result = child._get_method(tail)
+
+		return result
 
 
 
@@ -262,7 +257,7 @@ class DBProxy(object):
 		cls._publicmethods[func.func_name] = func
 
 		cls.mt.add_method(apiname, func)
-		cls.mt.alias(func.func_name, apiname)
+		cls.mt.add_method(func.func_name, func)
 
 
 	def _checkwrite(self, method):
