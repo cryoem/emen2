@@ -117,12 +117,12 @@
 			var cb = function(parent,key){
 			}
 			// Adding this back to help users..
-			var addparents = $('<input type="button" name="addparents" class="save" value="+" />').click(function() {
+			var addparents = $('<input type="button" name="addparents" value="+" />').click(function() {
 				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			});
-			var addchildren = $('<input type="button" name="addchildren" class="save" value="+" />').click(function() {
+			var addchildren = $('<input type="button" name="addchildren" value="+" />').click(function() {
 				var cb = function(child) {self._action_addrel(self.options.root, child)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});

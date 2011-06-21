@@ -78,14 +78,14 @@
 		},
 		
 		build_plot: function() {
-			var self = this;
-			var q = $('<li><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="hidden">Plotting...</div>');
-			q.append(hidden);
-			q.EditbarHelper({
-				width: 300
-			});
-			$('.e2-table-header', this.element).append(q);			
+			// var self = this;
+			// var q = $('<li><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			// var hidden = $('<div class="hidden">Plotting...</div>');
+			// q.append(hidden);
+			// q.EditbarHelper({
+			// 	width: 300
+			// });
+			// $('.e2-table-header', this.element).append(q);			
 		},
 		
 		build_stats: function() {

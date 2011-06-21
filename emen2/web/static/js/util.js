@@ -589,7 +589,7 @@ $(document).ready(function() {
 			if (this.options.align == 'left') {
 				this.popup.css('left', -1);
 			} else {
-				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth()+1);
+				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth());
 			}			
 		},
 				

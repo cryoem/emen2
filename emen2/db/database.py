@@ -759,6 +759,7 @@ class DB(object):
 
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
 		"""(Internal) Find referenced users/binaries."""
+		
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
 		# print "getting recs"
@@ -881,6 +882,7 @@ class DB(object):
 	#     txn. We could eventually rip this out into a class that defines
 	#     next() appropriately, but I don't think its complicated enough
 	#     to justify that :)
+	
 	def periodic_operations(self):
 		"""(Internal) Maintenance task scheduler.
 		Eventually this will be replaced with a more complete system."""
@@ -906,19 +908,19 @@ class DB(object):
 
 
 	# ian: todo: hard: finish
-	def cleanupcontexts(self, ctx=None, txn=None):
-		"""(Internal) Clean up sessions that have been idle too long."""
-		newtime = getctime()
-		for ctxid, context in self.bdbs.context.items(txn=txn):
-			# If the item is in the cache, use the current last-access time..
-			c = self.contexts_cache.get(ctxid)
-			if c:
-				context.time = c.time
-
-			# Delete any expired contexts
-			if context.time + (context.maxidle or 0) < newtime:
-				g.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
-				self.bdbs.context.delete(ctxid, txn=txn)
+	# def cleanupcontexts(self, ctx=None, txn=None):
+	# 	"""(Internal) Clean up sessions that have been idle too long."""
+	# 	newtime = getctime()
+	# 	for ctxid, context in self.bdbs.context.items(txn=txn):
+	# 		# If the item is in the cache, use the current last-access time..
+	# 		c = self.contexts_cache.get(ctxid)
+	# 		if c:
+	# 			context.time = c.time
+	# 
+	# 		# Delete any expired contexts
+	# 		if context.time + (context.maxidle or 0) < newtime:
+	# 			g.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
+	# 			self.bdbs.context.delete(ctxid, txn=txn)
 
 
 

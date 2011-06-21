@@ -28,6 +28,8 @@ def defaults():
 	return parser
 
 
+
+
 class DBOptions(optparse.OptionParser):
 
 	def __init__(self, *args, **kwargs):
@@ -101,7 +103,6 @@ class DBOptions(optparse.OptionParser):
 
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
-
 
 		g.from_file(default_config)
 		if os.path.exists('/etc/emen2config.yml'):

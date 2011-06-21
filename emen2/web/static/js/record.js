@@ -86,12 +86,21 @@ function record_init(rec, ptest, edit) {
 		rebuildviews("#rendered");
 	});
 
+	$('.e2-editbar-tools').EditbarHelper({});
+
+	$('.e2-editbar-helper').EditbarHelper({
+		align: 'right',
+		cb: function(self) {
+			self.popup.load(EMEN2WEBROOT+'/record/'+rec.name+'/history/?simple=1');
+		}
+	});
+
+
 	// Simple handler for browsing siblings...
 	var showsiblings = (window.location.hash.search('showsiblings'));
 	if (showsiblings>-1){showsiblings=true}
 	
-	$('.e2-editbar-helper').EditbarHelper({});
-	
+
 	$(".e2-editbar-record-siblings").EditbarHelper({
 		show: showsiblings,
 		width:250,
@@ -130,10 +139,10 @@ function record_init(rec, ptest, edit) {
 		title: "#button_comments_comments"
 	});
 		
-	$("#page_comments_history").HistoryControl({
-		name: rec.name,
-		title: "#button_comments_history"
-	});
+	//$("#page_comments_history").HistoryControl({
+	//	name: rec.name,
+	//	title: "#button_comments_history"
+	//});
 
 	// $('.editbar .edit').EditbarHelper({
 	// 	bind: false,

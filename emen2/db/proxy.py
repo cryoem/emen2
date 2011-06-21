@@ -31,13 +31,10 @@ def publicmethod(*args, **kwargs):
 
 
 
-
-
-class MethodUtil(object):
-	allmethods = set(['doc'])
-	def help(self, func, *args, **kwargs):
-		return func.__doc__
-
+# class MethodUtil(object):
+# 	allmethods = set(['doc'])
+# 	def help(self, func, *args, **kwargs):
+# 		return func.__doc__
 
 
 strht = lambda s, c: s.partition(c)[::2]
@@ -151,7 +148,6 @@ class DBProxy(object):
 				if ncur is not cur: cur[y] = ncur
 				cur = ncur
 		return result
-
 
 
 	def __init__(self, db=None, ctxid=None, host=None, ctx=None, txn=None):

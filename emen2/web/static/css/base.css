@@ -15,7 +15,6 @@ table {
 .menu > li > ul,
 .menu .hidden
 {
-	background: #eee;
 	list-style: none;
 	position: absolute;
 	display: none;
@@ -28,11 +27,6 @@ table {
 	margin: 0px;
 }
 
-ul.nav > li:hover:not(.nohover),
-.menu > li.hover
-{
-	 background: #eee; 
-}
 .menu > li:hover > ul
 {
 	display: block;
@@ -71,7 +65,7 @@ ul.nav > li:hover:not(.nohover),
 	display: block;
 }
 .buttons > .button {
-	padding: 4px;
+	padding: 8px;
 	margin-top: 10px;
 	margin-right: 10px; 
 	background: #ccc;
@@ -161,6 +155,10 @@ ul.nonlist
 
 .s {
 	background: #eee;
+}
+
+.e2-edit-container {
+	display:inline-block;
 }
 
 /************* JQUERY UI OVERRIDES ************/

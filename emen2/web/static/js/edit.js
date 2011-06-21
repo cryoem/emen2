@@ -314,7 +314,7 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// container
-			this.w = $('<div/>');
+			this.w = $('<div class="e2-edit-container"/>');
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
@@ -694,7 +694,7 @@ function bind_autocomplete(elem, param) {
 			this.built_selector = true;
 			this.selectdialog = $('<div />');
 			this.typicalchld = $('<div>Loading</div>')
-			this.selectdialog.append('<h4>New Record Protocol</h4>', this.typicalchld);
+			this.selectdialog.append('<h4>New Record</h4>', this.typicalchld);
 
 			// new record rectype
 			var o = $('<div><input type="radio" name="newrecordselect" data-other="1" id="newrecordselectother" /> <label for="newrecordselectother">Other:</label></div>')

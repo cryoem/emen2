@@ -1,7 +1,6 @@
 {
 	// These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
 	"paths":{
-
 		// Log directory: access.log, error.log, debug.log (see logging section) 
 		"LOGPATH": "applog",
 		"EMEN2JOBFILE": "applog/emen2job",

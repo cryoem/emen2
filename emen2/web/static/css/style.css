@@ -1,10 +1,17 @@
 /********* COLORS *************/
 
 /* Darker background color */
-.precontent,
-.buttons > .button
-{
+body {
 	background: #BBDAEE;
+}
+
+
+.menu > li > ul,
+.menu .hidden,
+ul.nav > li:hover:not(.nohover),
+.menu > li.hover
+{
+	 background: #E7F1F8;
 }
 
 /* Lighter background color */
@@ -19,7 +26,7 @@
 /* White backgrounds */
 #buttons_map > .active,
 #buttons_main > .active,
-#pages_map .page,
+#pages_map > .page,
 .notify,
 .hidden .s,
 .page .s
@@ -32,7 +39,7 @@ tr.s {
 	background: #f0f0f0;
 }
 
-thead th {
+th {
 	font-weight:normal;
 	text-align:left;
 	border-right:solid 1px #eee;
@@ -58,7 +65,7 @@ thead th {
 h1,
 h4,
 .searchbox,
-thead tr:last-child th
+tr:last-child th
 {
 	border-bottom:solid 1px #ccc;
 }
@@ -115,23 +122,40 @@ body
 }
 
 /* Title and precontent set a background color */
-#title > *,
-.precontent > *,
-#content 
+ul.nav,
+.precontent,
+#content,
+#footer
 {
-	width: 1000px !important;
-	margin-left:auto !important;
-	margin-right:auto !important;
+	width: 1000px;
+	margin-left:auto;
+	margin-right:auto;
+}
+#content {
+	width: 980px;
+	padding-left: 10px;
+	padding-right: 10px;
+	min-height: 100%;
+	padding-bottom:50px;
+}
+#content .editbar {
+	margin-left: -10px;
+	margin-right: -10px;
+}
+#footer {
+	display:none;
 }
 
-#footer {
-	height: 56px;
-	padding-top:10px;
-	padding-bottom:10px;
-	position:absolute;
-	bottom:0px;
-	width:100%;
+#content,
+#title
+{
+	background:white;
 }
+
+#pages_map > .page {
+	padding:0px;
+}
+
 
 /************* NOTIFICATION BOXES ************/
 
@@ -139,19 +163,14 @@ body
 	border-style: solid;
 	border-width: 2px;
 	padding: 5px;
+	margin: 0px;
 	margin-top: 10px;
-	margin-bottom: 10px;
 }
 #alert {
-	margin: 0px;
-	padding-top: 10px;
+	margin-top:0px;
+	margin-bottom:10px;
 }
-#alert .notify:first-child {
-	margin-top: 0px;
-}
-#alert .notify:last-child {
-	margin-bottom :0px;
-}
+
 
 /******* TOP LEVEL ELEMENTS *******/
 
@@ -164,13 +183,13 @@ img.thumbnail {
 }
 h4 {
 	margin-top: 5px;
+	margin-bottom: 5px;
 }
 h1 .label {
 	padding: 10px;
 	float: right;
 	display: block;
 }
-
 th,
 td
 {
@@ -182,7 +201,7 @@ td
 /************* NAV BAR ************/
 
 #title {
-	border-bottom:solid 2px #ccc;
+	border-bottom:solid 1px #ccc;
 }
 ul.nav a {
 	padding:8px;
@@ -199,6 +218,11 @@ ul.nav li:last-child ul {
 ul.nav .logo {
 	height:36px;
 }
+ul.nav input {
+	margin-top:4px;
+	color: #666;
+	font-weight: lighter;
+}
 
 .menu > li > ul,
 .menu .hidden
@@ -207,9 +231,11 @@ ul.nav .logo {
 	-webkit-box-shadow: 3px 3px 3px #999;	
 }
 .editbar input, .editbar select {
-	font-size:12pt;
-	padding:0px;
-	margin:0px;
+	font-size: 10pt;
+	padding: 2px;
+	margin: 2px;
+	margin-right: 4px;
+	margin-left: 4px;
 }
 
 /************* CONTROLS ************/
@@ -217,7 +243,12 @@ ul.nav .logo {
 textarea {
 	display: block;
 }
-button, select, input, textarea, label {
+button,
+select,
+input,
+textarea,
+label
+{
 	border-width:1px;
 	font-size:12pt;
 	margin:2px;
@@ -225,10 +256,20 @@ button, select, input, textarea, label {
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
 }
-button, input[type=button], input[type=submit], input[type=file], input[type=password] {
+
+button, 
+input[type=button],
+input[type=submit],
+input[type=file],
+input[type=password],
+input[type=text]
+{
 	display:inline-block;
 }
-textarea, input[type=text], input[type=password] {
+textarea, 
+input[type=text],
+input[type=password]
+{
 	border:solid 1px #aaa;
 }
 .save input, 
@@ -271,7 +312,6 @@ input.cancel
 .buttons > .button,
 .pages > .page
 {
-	padding:5px;
 	outline:none;
 	border:none;
 }
@@ -347,6 +387,7 @@ table.login td:last-child {
 /********* ROUNDED CORNERS ************/
 
 /* all */
+#pages_map > .page,	
 .notify,
 .rounded
 {
@@ -364,7 +405,6 @@ table.login td:last-child {
 	-webkit-border-top-left-radius: 8px; 	
 }
 
-#pages_map > .page,	
 .roundbottom
 {
 	-moz-border-radius-bottomright: 8px;
@@ -380,12 +420,15 @@ table.login td:last-child {
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
 }
-
-/*.page {
+#content {
 	-moz-border-radius-bottomright: 8px;
 	-moz-border-radius-bottomleft: 8px;
 	-moz-border-radius-topright: 8px; 
 	-webkit-border-bottom-right-radius: 8px;
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-right-radius: 8px; 	
-}*/
+}
+.editbar {
+	-moz-border-radius-topright: 8px; 
+	-webkit-border-top-right-radius: 8px; 		
+}
