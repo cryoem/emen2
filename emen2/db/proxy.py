@@ -165,21 +165,34 @@ class DBProxy(object):
 		self._txn = txn
 
 
+	##############
+	# Transactions
+	##############
+	#: If true, close transaction on __exit__
+	_txn_autoclean = False
+
+	def _autoclean(self):
+		'''set _txn_autoclean in order to allow the with statement to cleanup the txn'''
+		self._txn_autoclean = True
+		return self
+
 	# Implements "with" interface
 	def __enter__(self):
-		self._starttxn()
+		if self._txn is None:
+			self._starttxn()
+			self._txn_autoclean = True
 		return self
 
 
 	def __exit__(self, type, value, traceback):
-		if type is None:
-			self._committxn()
-		else:
-			self._aborttxn()
-		self._txn = None
+		if self._txn_autoclean and self._txn is not None:
+			if type is None:
+				self._committxn()
+			else:
+				self._aborttxn()
+			self._txn_autoclean = False
+			self._txn = None
 
-
-	# Transactions
 	def _gettxn(self):
 		return self._txn
 

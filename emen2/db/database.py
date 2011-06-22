@@ -87,13 +87,14 @@ set_lg_bsize 2097152
 """
 
 inst = lambda x:x()
+is_str = lambda x: hasattr(x, 'upper')
 @inst
 class CVars(object):
-	MAILADMIN = g.claim('MAILADMIN', default="")
-	MAILHOST = g.claim('MAILHOST', default="")
-	TIMESTR = g.claim('TIMESTR', default="%Y/%m/%d %H:%M:%S")
-	EMEN2DBNAME = g.claim('EMEN2DBNAME', default="EMEN2")
-	EMEN2EXTURI = g.claim('EMEN2EXTURI', "")
+	MAILADMIN = g.claim('MAILADMIN', default="", validator=is_str)
+	MAILHOST = g.claim('MAILHOST', default="", validator=is_str)
+	TIMESTR = g.claim('TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
+	EMEN2DBNAME = g.claim('EMEN2DBNAME', default="EMEN2", validator=is_str)
+	EMEN2EXTURI = g.claim('EMEN2EXTURI', "", validator=is_str)
 
 def fakemodules():
 	import imp

@@ -171,7 +171,12 @@ class Claim(Watch):
 
 	def set(self, value):
 		self._validate(value)
-		self.ns.setattr(self.name, value)
+
+		ns = self.ns
+		for name in self.name[:-1]:
+			ns = getattr(ns, name)
+
+		setattr(ns, self.name[-1], value)
 		return self
 
 inst = lambda x:x()
@@ -401,6 +406,7 @@ class GlobalNamespace(object):
 	def __addattr(cls, name, value, options=None):
 		if not name in cls.__all__:
 			cls.__all__.append(name)
+
 		cls.check_locked()
 		if name.startswith('_') or not cls.__locked:
 			if options is not None:

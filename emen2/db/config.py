@@ -12,7 +12,6 @@ import jsonrpc.jsonutil
 import emen2.db.debug
 import emen2.db.globalns
 gg = emen2.db.globalns.GlobalNamespace()
-os.makedirs = gg.log.debug_func(os.makedirs)
 
 
 def get_filename(package, resource):
