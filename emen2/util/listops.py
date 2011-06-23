@@ -154,11 +154,11 @@ def typepartition(names, *types):
 			if isinstance(name, t):
 				found = True
 				ret[t].append(name)
-		if not found:			
+		if not found:
 			other.append(name)
-	
+
 	return [ret.get(t, []) for t in types]+[other]
-		
+
 
 def filter_partition(func, iter_):
 	t = []
@@ -169,7 +169,7 @@ def filter_partition(func, iter_):
 		else:
 			f.append(i)
 	return t, f
-	
+
 
 
 def partition(iter_, char):

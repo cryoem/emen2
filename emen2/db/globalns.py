@@ -24,94 +24,15 @@ except ImportError:
 	except ImportError:
 		yaml = False
 
-try:
-	import json
+try: import json
 except ImportError:
-	json = False
+	try: import simplejson as json
+	except ImportError:
+		json = False
 
 import emen2.util.datastructures
-import jsonrpc.jsonutil
-
-
-
-def json_strip_comments(data):
-	r = re.compile('/\\*.*\\*/', flags=re.M|re.S)
-	data = r.sub("", data)
-	data = re.sub("\s//.*\n", "", data)
-	return data
-
-
-
-
 from emen2.db import debug
-class dictWrapper(object, UserDict.DictMixin):
-	def __init__(self, dict_, prefix):
-		self.__dict = dict_
-		self.__prefix = prefix
-	def __repr__(self):
-		return '<dictWrapper dict: %r>' % self.__dict
-	def keys(self): return self.__dict.keys()
-	def __getitem__(self, name):
-		v = self.__dict[name]
-		if not v.startswith('/'):
-			v = os.path.join(self.__prefix, v)
-		return v
-	def __setitem__(self, name, value):
-		if isinstance(value, (str, unicode)):
-			if value.startswith(self.__prefix):
-				del value[len(self.__prefix):]
-		self.__dict[name] = value
-	def __delitem__(self, name):
-		del self.__dict[name]
-	def json_equivalent(self): return dict(self)
-
-class listWrapper(object):
-	def __init__(self, list_, prefix):
-		self.__list = list_
-		self.__prefix = prefix
-	def __repr__(self):
-		return '<listWrapper list: %r>' % self.__list
-	def check_item(self, item):
-		if isinstance(item, (str, unicode)):
-			item = os.path.join(self.__prefix, item)
-		return item
-	def __iter__(self):
-		for item in self.__list:
-			yield self.check_item(item)
-	def __getitem__(self, k):
-		return self.check_item(self.__list[k])
-	def chopitem(self, item):
-		if isinstance(item, (str, unicode)):
-			if item.startswith(self.__prefix):
-				item = item[len(self.__prefix):]
-		return item
-	def __setitem__(self, key, value):
-		value = self.chopitem(value)
-		self.__list[key] = value
-	def __delitem__(self, idx):
-		del self.__list[idx]
-	def append(self, item):
-		item = self.chopitem(item)
-		self.__list.append(item)
-	def extend(self, items):
-		self.__list.extend(self.chopitem(item) for item in items)
-	def pop(self, idx):
-		res = self[idx]
-		del self[idx]
-		return res
-	def count(self, item):
-		return self.__list.count(self.chopitem(item))
-	def insert(self, idx, item):
-		self.__list.insert(idx, self.chopitem(item))
-	def __len__(self): return len(self.__list)
-	def json_equivalent(self): return list(self)
-
-
-
-
-class LockedNamespaceError(TypeError): pass
-
-
+import jsonrpc.jsonutil
 
 class LoggerStub(debug.DebugState):
 	def __init__(self, *args):
@@ -125,59 +46,6 @@ class LoggerStub(debug.DebugState):
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
 
-class Watch(object):
-	def __init__(self, ns, name, default, validator=None):
-		self.ns = ns
-		self.name = name.split('.')
-		self.default = default
-
-	def __get__(self, instance, owner):
-		return self.get()
-
-	def get(self):
-		result = getattr(self.ns, self.name[0], self.default)
-		for n in self.name[1:]:
-			result = getattr(result, n, self.default)
-
-		return result
-
-class Claim(Watch):
-	claimed_attributes = set()
-	def __init__(self, ns, name, default, validator=None):
-		if name in self.claimed_attributes:
-			raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
-		else:
-			self.claimed_attributes.add(name)
-
-		if not hasattr(ns, name):
-			ns.setattr(name, default)
-
-		self.validator = validator
-		self._validate(default)
-
-
-		Watch.__init__(self, ns, name, default, validator)
-
-	def _validate(self, value):
-		if self.validator is not None:
-				is_valid = self.validator(value)
-				if not is_valid:
-					res_repr = repr(value)
-					if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
-					raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
-
-	def __set__(self, instance, value):
-		self.set(value)
-
-	def set(self, value):
-		self._validate(value)
-
-		ns = self.ns
-		for name in self.name[:-1]:
-			ns = getattr(ns, name)
-
-		setattr(ns, self.name[-1], value)
-		return self
 
 inst = lambda x:x()
 class GlobalNamespace(object):
@@ -316,6 +184,8 @@ class GlobalNamespace(object):
 
 		if data:
 			self.log("Loading config: %s"%fn)
+
+			# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 			self.paths.root = self.EMEN2DBHOME
 
@@ -510,5 +380,133 @@ class TestSequenceFunctions(unittest.TestCase):
 if __name__ == '__main__':
 	pass
 	#unittest.main()
+
+class dictWrapper(object, UserDict.DictMixin):
+	def __init__(self, dict_, prefix):
+		self.__dict = dict_
+		self.__prefix = prefix
+	def __repr__(self):
+		return '<dictWrapper dict: %r>' % self.__dict
+	def keys(self): return self.__dict.keys()
+	def __getitem__(self, name):
+		v = self.__dict[name]
+		if not v.startswith('/'):
+			v = os.path.join(self.__prefix, v)
+		return v
+	def __setitem__(self, name, value):
+		if isinstance(value, (str, unicode)):
+			if value.startswith(self.__prefix):
+				del value[len(self.__prefix):]
+		self.__dict[name] = value
+	def __delitem__(self, name):
+		del self.__dict[name]
+	def json_equivalent(self): return dict(self)
+
+class listWrapper(object):
+	def __init__(self, list_, prefix):
+		self.__list = list_
+		self.__prefix = prefix
+	def __repr__(self):
+		return '<listWrapper list: %r>' % self.__list
+	def check_item(self, item):
+		if isinstance(item, (str, unicode)):
+			item = os.path.join(self.__prefix, item)
+		return item
+	def __iter__(self):
+		for item in self.__list:
+			yield self.check_item(item)
+	def __getitem__(self, k):
+		return self.check_item(self.__list[k])
+	def chopitem(self, item):
+		if isinstance(item, (str, unicode)):
+			if item.startswith(self.__prefix):
+				item = item[len(self.__prefix):]
+		return item
+	def __setitem__(self, key, value):
+		value = self.chopitem(value)
+		self.__list[key] = value
+	def __delitem__(self, idx):
+		del self.__list[idx]
+	def append(self, item):
+		item = self.chopitem(item)
+		self.__list.append(item)
+	def extend(self, items):
+		self.__list.extend(self.chopitem(item) for item in items)
+	def pop(self, idx):
+		res = self[idx]
+		del self[idx]
+		return res
+	def count(self, item):
+		return self.__list.count(self.chopitem(item))
+	def insert(self, idx, item):
+		self.__list.insert(idx, self.chopitem(item))
+	def __len__(self): return len(self.__list)
+	def json_equivalent(self): return list(self)
+
+
+
+class Watch(object):
+	def __init__(self, ns, name, default, validator=None):
+		self.ns = ns
+		self.name = name.split('.')
+		self.default = default
+
+	def __get__(self, instance, owner):
+		return self.get()
+
+	def get(self):
+		result = getattr(self.ns, self.name[0], self.default)
+		for n in self.name[1:]:
+			result = getattr(result, n, self.default)
+
+		return result
+
+class Claim(Watch):
+	claimed_attributes = set()
+	def __init__(self, ns, name, default, validator=None):
+		if name in self.claimed_attributes:
+			raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
+		else:
+			self.claimed_attributes.add(name)
+
+		if not hasattr(ns, name):
+			ns.setattr(name, default)
+
+		self.validator = validator
+		self._validate(default)
+
+
+		Watch.__init__(self, ns, name, default, validator)
+
+	def _validate(self, value):
+		if self.validator is not None:
+				is_valid = self.validator(value)
+				if not is_valid:
+					res_repr = repr(value)
+					if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
+					raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
+
+	def __set__(self, instance, value):
+		self.set(value)
+
+	def set(self, value):
+		self._validate(value)
+
+		ns = self.ns
+		for name in self.name[:-1]:
+			ns = getattr(ns, name)
+
+		setattr(ns, self.name[-1], value)
+		return self
+
+
+
+def json_strip_comments(data):
+	r = re.compile('/\\*.*\\*/', flags=re.M|re.S)
+	data = r.sub("", data)
+	data = re.sub("\s//.*\n", "", data)
+	return data
+class LockedNamespaceError(TypeError): pass
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

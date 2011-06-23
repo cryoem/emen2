@@ -14,12 +14,12 @@ g = emen2.db.config.g()
 # ian: todo: make this a classmethod of RecordDef ?
 
 def parseparmvalues(text):
-	regex = re.compile(emen2.db.database.VIEW_REGEX)
+	regex = emen2.db.database.VIEW_REGEX
 
 	params = set()
 	required = set()
 	defaults = {}
-	
+
 	for match in regex.finditer(text):
 		n = match.group('name')
 		t = match.group('type')
@@ -32,7 +32,7 @@ def parseparmvalues(text):
 				defaults[n] = match.group('def')
 		if t == '*':
 			required.add(n)
-			
+
 	return params, defaults, required
 
 
@@ -86,10 +86,10 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 		# Long description
 		self.__dict__['desc_long'] = ''
-		
+
 		# Owner
 		self.__dict__['owner'] = self.creator
-				
+
 		# The following are automatically generated
 		# A dictionary keyed by the names of all params used in any of the views
 		# values are the default value for the field.
@@ -100,7 +100,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 		# keys from params()
 		self.__dict__['paramsK'] = set()
-		
+
 		# required parameters (will throw exception on record commit if empty)
 		self.__dict__['paramsR'] = set()
 
@@ -112,16 +112,16 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	def _set_mainview(self, key, value, vtm=None, t=None):
 		"""Only an admin may change the mainview"""
-		value = unicode(value)		
+		value = unicode(value)
 		if self.mainview and not self._ctx.checkadmin():
 			self.error("Cannot change mainview")
 
 		ret = self._set('mainview', value, self.isowner())
 		self.findparams()
 		return ret
-		
-	
-	# These require normal record ownership	
+
+
+	# These require normal record ownership
 	def _set_views(self, key, value, vtm=None, t=None):
 		views = {}
 		for k,v in value.items():
@@ -130,19 +130,19 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		ret = self._set('views', views, self.isowner())
 		self.findparams()
 		return ret
-		
-		
+
+
 	def _set_private(self, key, value, vtm=None, t=None):
 		return self._set('private', int(value), self.isowner())
 
-	
+
 	# ian: todo: Validate that these are actually valid RecordDefs
 	def _set_typicalchld(self, key, value, vtm=None, t=None):
 		value = emen2.util.listops.check_iterable(value)
 		value = filter(None, [unicode(i) for i in value]) or None
 		return self._set('typicalchld', value, self.isowner())
-			
-			
+
+
 	def _set_desc_short(self, key, value, vtm=None, t=None):
 		return self._set('desc_short', unicode(value or self.name), self.isowner())
 
@@ -185,8 +185,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 			r |= r2
 			for j in t2:
 				# ian: fix for: empty default value in a view unsets default value specified in mainview
-				if not d.has_key(j):
-					d[j] = d2.get(j)
+				d.setdefault(j, d2.get(j))
 
 		p = {}
 		p['params'] = d
@@ -198,12 +197,12 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	def validate(self, vtm=None, t=None):
 		# Run findparams one last time before we commit...
 		self.findparams()
-	
 
 
-	
-	
-	
+
+
+
+
 class RecordDefDB(emen2.db.btrees.RelateDB):
 	dataclass = RecordDef
 

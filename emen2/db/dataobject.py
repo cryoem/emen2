@@ -148,7 +148,10 @@ class BaseDBObject(object, DictMixin):
 		for k,v in update.items():
 			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
 
-		return cp
+		# ed, changed return type from cp to self
+		#     I checked grep, this shouldn't effect anything
+		return self
+
 
 
 	#################################
@@ -157,7 +160,7 @@ class BaseDBObject(object, DictMixin):
 	#		-> self._set_permissions(key, value)
 	#################################
 	def __getattr__(self, name):
-		return object.__getattr__(self, name)
+		return object.__getattribute__(self, name)
 
 	# Behave like dict.get(key) instead of db[key]
 	def __getitem__(self, key, default=None):
