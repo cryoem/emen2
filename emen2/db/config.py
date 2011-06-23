@@ -136,6 +136,9 @@ class DBOptions(optparse.OptionParser):
 			loglevel = self.values.loglevel
 
 
+		if not g.getattr('EMEN2DBHOME', False):
+			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
+
 
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
@@ -168,9 +171,6 @@ class DBOptions(optparse.OptionParser):
 
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
-
-		if not g.getattr('EMEN2DBHOME', False):
-			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
