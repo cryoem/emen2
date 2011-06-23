@@ -126,6 +126,10 @@ class DBOptions(optparse.OptionParser):
 		g.from_file(os.path.join(EMEN2DBHOME, "config.yml"))
 		g.EMEN2DBHOME = EMEN2DBHOME
 
+		if not g.getattr('EMEN2DBHOME', False):
+			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
+
+
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:
@@ -134,10 +138,6 @@ class DBOptions(optparse.OptionParser):
 			loglevel = 'DEBUG'
 		elif self.values.loglevel:
 			loglevel = self.values.loglevel
-
-
-		if not g.getattr('EMEN2DBHOME', False):
-			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
 
 		# Make sure paths to log files exist
