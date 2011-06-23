@@ -5,11 +5,11 @@ body {
 	background: #BBDAEE;
 }
 
-
+/* Menu background color */
 .menu > li > ul,
 .menu .hidden,
-ul.nav > li:hover:not(.nohover),
-.menu > li.hover
+.menu > li.hover,
+#nav > li:hover:not(.nohover)
 {
 	 background: #E7F1F8;
 }
@@ -27,22 +27,9 @@ ul.nav > li:hover:not(.nohover),
 #buttons_map > .active,
 #buttons_main > .active,
 #pages_map > .page,
-.notify,
-.hidden .s,
-.page .s
+.notify
 {
 	background: white;
-}
-
-/* Light-gray row highlight color */
-tr.s {
-	background: #f0f0f0;
-}
-
-th {
-	font-weight:normal;
-	text-align:left;
-	border-right:solid 1px #eee;
 }
 
 /* Feedback colors */
@@ -81,7 +68,6 @@ tr:last-child th
 	border-color: red;	
 }
 
-
 /* Text colors */
 a,
 .clickable,
@@ -102,6 +88,18 @@ a,
 }
 
 
+/* Light-gray row highlight color */
+table.shaded tbody tr:nth-of-type(odd) {
+	background: #f0f0f0;
+}
+
+th {
+	font-weight:normal;
+	text-align:left;
+	border-right:solid 1px #eee;
+}
+
+
 /********* LAYOUTS *************/
 /* body and top level containers */
 
@@ -114,33 +112,21 @@ body
 	height:100%;
 }
 
-#container {
-	min-height: 100%;
-	margin-left:auto;
-	margin-right:auto;
-	position:relative;
-}
-
 /* Title and precontent set a background color */
-ul.nav,
-.precontent,
-#content,
-#footer
+body > *,
+#nav
 {
-	width: 1000px;
+	width:1000px;
 	margin-left:auto;
 	margin-right:auto;
 }
-#content {
-	width: 980px;
-	padding-left: 10px;
-	padding-right: 10px;
-	min-height: 100%;
-	padding-bottom:50px;
+#title {
+	width:auto;
+	margin-left:0px;
+	margin-right:0px;
 }
-#content .editbar {
-	margin-left: -10px;
-	margin-right: -10px;
+#contentinner {
+	padding:10px;
 }
 #footer {
 	display:none;
@@ -201,27 +187,35 @@ td
 /************* NAV BAR ************/
 
 #title {
-	border-bottom:solid 1px #ccc;
+	border-bottom:solid 2px #ccc;
 }
-ul.nav a {
+#nav a {
 	padding:8px;
 }
-ul.nav li ul {
+#nav li ul {
 	padding:0px;
 }
-ul.nav li.divider {
+#nav li.divider {
 	border-top:solid 1px #ccc;
 }
-ul.nav li:last-child ul {
+#nav li:last-child ul {
 	right:0px;
 }
-ul.nav .logo {
+#nav .logo {
 	height:36px;
 }
-ul.nav input {
+#nav input {
 	margin-top:4px;
 	color: #666;
 	font-weight: lighter;
+}
+
+#editbar input, #editbar select {
+	font-size: 10pt;
+	padding: 2px;
+	margin: 2px;
+	margin-right: 4px;
+	margin-left: 4px;
 }
 
 .menu > li > ul,
@@ -230,79 +224,24 @@ ul.nav input {
 	-moz-box-shadow: 3px 3px 3px #999;
 	-webkit-box-shadow: 3px 3px 3px #999;	
 }
-.editbar input, .editbar select {
-	font-size: 10pt;
-	padding: 2px;
-	margin: 2px;
-	margin-right: 4px;
-	margin-left: 4px;
-}
-
-/************* CONTROLS ************/
-
-textarea {
-	display: block;
-}
-button,
-select,
-input,
-textarea,
-label
-{
-	border-width:1px;
-	font-size:12pt;
-	margin:2px;
-	padding:2px;
-	-moz-border-radius: 4px;
-	-webkit-border-radius: 4px;
-}
-
-button, 
-input[type=button],
-input[type=submit],
-input[type=file],
-input[type=password],
-input[type=text]
-{
-	display:inline-block;
-}
-textarea, 
-input[type=text],
-input[type=password]
-{
-	border:solid 1px #aaa;
-}
-.save input, 
-input.save
-{
-	color: white;
-	border-color: #ccc;
-	background: #5B74A8;
-}
-.cancel input,
-input.cancel
-{
-	background-color: #eee;
-	color: #666;
-}
 
 /************* EDITBAR ************/
 
-.editbar {
+#editbar {
 	border-bottom:solid 1px #ccc;
 }
-.editbar > li {
+#editbar > li {
 	border-right:solid 1px #ccc;
 	position:relative;
 }
-.editbar > li:last-child {
+#editbar > li:last-child {
 	border-right: none;
 } 
-.editbar .label {
+#editbar .label {
 	margin:5px;
 	display:inline-block;
 }
-.editbar {
+#editbar {
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 }
 
@@ -340,7 +279,7 @@ h1 .label
 	font-size:8pt;
 }
 .small,
-.editbar > li > .label,
+#editbar > li > .label,
 .e2-map
 {
 	font-size:10pt;
@@ -364,6 +303,7 @@ a:hover,
 /***** LOGIN ********/
 
 table.login {
+	margin-top:20px;
 	width:auto;
 }
 table.login td:first-child {
@@ -380,7 +320,61 @@ table.login td:last-child {
 }
 
 
-/********* BUTTONS ************/
+
+/************* CONTROLS ************/
+
+button,
+select,
+input,
+textarea,
+label
+{
+	border-width:1px;
+	font-size:12pt;
+	margin:4px;
+	margin-top:0px;
+	padding:2px;
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
+}
+
+button, 
+input[type=button],
+input[type=submit],
+input[type=file],
+input[type=password],
+input[type=text]
+{
+	display:inline-block;
+}
+
+textarea {
+	margin: 0px;
+	width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+}
+
+textarea, 
+input[type=text],
+input[type=password]
+{
+	border:solid 1px #aaa;
+}
+.save input, 
+input.save
+{
+	color: white;
+	border-color: #ccc;
+	background: #5B74A8;
+}
+.cancel input,
+input.cancel
+{
+	background-color: #eee;
+	color: #666;
+}
 
 
 
@@ -420,15 +414,15 @@ table.login td:last-child {
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
 }
-#content {
+/*#content {
 	-moz-border-radius-bottomright: 8px;
 	-moz-border-radius-bottomleft: 8px;
 	-moz-border-radius-topright: 8px; 
 	-webkit-border-bottom-right-radius: 8px;
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-right-radius: 8px; 	
-}
-.editbar {
+}*/
+#editbar {
 	-moz-border-radius-topright: 8px; 
 	-webkit-border-top-right-radius: 8px; 		
 }

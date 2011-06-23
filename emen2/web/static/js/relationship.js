@@ -555,7 +555,7 @@
 				elem.css('min-height', h);
 			})
 			
-			$('img.expand', root).click(function() {self.toggle(this)});
+			$('img.e2-map-expand', root).click(function() {self.toggle(this)});
 
 			// If this is a simple, non-editable map..
 			if (!this.options.controls) {

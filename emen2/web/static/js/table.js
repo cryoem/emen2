@@ -322,11 +322,7 @@
 					//row.push('<td><a href="'+EMEN2WEBROOT+'/record/'+names[i]+'/">'+self.options.q['table'][names[i]][j]+'</a></td>');
 					row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
 				}
-				if (i%2) {
-					row = '<tr class="s">' + row.join('') + '</tr>';
-				} else {
-					row = '<tr>' + row.join('') + '</tr>';					
-				}
+				row = '<tr>' + row.join('') + '</tr>';					
 				rows.push(row);
 			}
 			$('tbody', t).empty();

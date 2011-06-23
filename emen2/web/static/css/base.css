@@ -105,7 +105,8 @@ table {
 .floatlist {
 	list-style:none;
 	padding-left:0px;
-	margin:0px;
+	margin-top:0px;
+	margin-bottom:0px;
 }
 .floatlist > li {
 	float:left;
@@ -157,8 +158,14 @@ ul.nonlist
 	background: #eee;
 }
 
-.e2-edit-container {
+/* EMEN2 layouts */
+
+.e2-layout-edit {
 	display:inline-block;
+}
+.e2-layout-fw {
+	display:block;
+	width:100%;
 }
 
 /************* JQUERY UI OVERRIDES ************/

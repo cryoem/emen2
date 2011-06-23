@@ -282,7 +282,6 @@ function bind_autocomplete(elem, param) {
 			this.built = 0;
 			this.bind_edit();
 			this.trygetparams = 0;
-			// this.element.addClass("e2-editcontrol");
 			this.find_cache = {};
 
 			if (this.options.show) {
@@ -314,7 +313,7 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// container
-			this.w = $('<div class="e2-edit-container"/>');
+			this.w = $('<div class="e2-layout-edit"/>');
 			var inline = true;
 			var pd = caches["paramdefs"][this.options.param];
 			var vt = pd.vartype;
@@ -326,7 +325,8 @@ function bind_autocomplete(elem, param) {
 
 				inline = false;
 				this.editw=$('<textarea cols="80" rows="10">'+this.rec_value+'</textarea>');
-				this.w.append(this.editw);			
+				this.w.append(this.editw);	
+				this.w.addClass('e2-layout-fw');
 
 			} else if (vt=="choice") {
 			

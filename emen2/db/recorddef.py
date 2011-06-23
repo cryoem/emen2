@@ -53,9 +53,9 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	@attr views Dictionary of additional views. Usually recname/tabularview will be defined, as well as defaultview
 	@attr private Mark this RecordDef as private. False for public access, True for private. If private, you must be admin or able to read a record of this type to access the RecordDef
 	@attr typicalchld A list of RecordDefs that are generally seen as children of this RecordDef. This refers to Records, not the RecordDef ontology, which describes relationships between RecordDefs themselves. e.g., "grid_imaging" Records are often children of "subprojects."
-	@attr params Dictionary of all params found in all views (keys), with any default values specified (as value)
-	@attr paramsK List of all params found in all views
-	@attr paramsR Parameters that are required for a Record of this RecordDef to validate.
+	@attr params Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only attribute).
+	@attr paramsK List of all params found in all views (read-only attribute).
+	@attr paramsR Parameters that are required for a Record of this RecordDef to validate (read-only attribute).
 	@attr owner Current owner of RecordDef. May be different than creator. Gives permission to edit views.
 	"""
 

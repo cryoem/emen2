@@ -542,7 +542,7 @@ $(document).ready(function() {
 		},
 		
 		show: function() {
-			$('.editbar .hover').EditbarHelper('hide');
+			$('#editbar .hover').EditbarHelper('hide');
 			this.build();
 			this.element.addClass('hover');
 			this.options.cb(this);

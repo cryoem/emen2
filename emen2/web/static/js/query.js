@@ -82,7 +82,7 @@ function query_build_path(q, postpend) {
 			this.container = $('<div class="clearfix" />');
 						
 			var m = $(' \
-				<table cellpadding="0" cellspacing="0" > \
+				<table cellpadding="0" cellspacing="0" class="shaded" > \
 					<thead> \
 						<tr> \
 							<th>Parameter</th> \
@@ -99,7 +99,7 @@ function query_build_path(q, postpend) {
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" class="hide" /></td> \
 							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-						</tr><tr class="s"> \
+						</tr><tr> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-recorddef" /></td> \
@@ -111,7 +111,7 @@ function query_build_path(q, postpend) {
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
 							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-						</tr><tr class="s"> \
+						</tr><tr> \
 							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
@@ -123,7 +123,7 @@ function query_build_path(q, postpend) {
 							<td><input type="text" size="12" name="value" class="e2-find-group" /></td> \
 							<td></td> \
 							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
-						</tr><tr class="s"> \
+						</tr><tr> \
 							<td><input type="hidden" name="param" value="children" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="name" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-record" /></td> \

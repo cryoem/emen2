@@ -25,7 +25,7 @@ function record_init(rec, ptest, edit) {
 	caches["recs"][rec.name] = rec;
 	
 	// Permissions editor
-	$('.e2-editbar-record-permissions').EditbarHelper({
+	$('#e2-editbar-record-permissions').EditbarHelper({
 		width: 640,
 		cb: function(self){
 			self.popup.PermissionControl({
@@ -41,7 +41,7 @@ function record_init(rec, ptest, edit) {
 	var showattachments = (window.location.hash.search('showattachments'));
 	if (showattachments>-1){showattachments=true}
 
-	$('.e2-editbar-record-attachments').EditbarHelper({
+	$('#e2-editbar-record-attachments').EditbarHelper({
 		width:600,
 		cb: function(self) {
 			self.popup.AttachmentViewerControl({
@@ -55,7 +55,7 @@ function record_init(rec, ptest, edit) {
 	});
 	
 	// New record editor
-	$('.e2-editbar-record-newrecord').EditbarHelper({
+	$('#e2-editbar-record-newrecord').EditbarHelper({
 		width:300,
 		cb: function(self){
 			self.popup.NewRecord({
@@ -67,7 +67,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	// Relationship editor
-	$(".e2-editbar-record-relationships").EditbarHelper({		
+	$("#e2-editbar-record-relationships").EditbarHelper({		
 		width: 780,
 		cb: function(self){
 			self.popup.RelationshipControl({
@@ -79,16 +79,16 @@ function record_init(rec, ptest, edit) {
 			}
 	});	
 	
-	$('.editbar [data-viewtype]').click(function(){
+	$('#editbar [data-viewtype]').click(function(){
 		var target = $("#rendered");
 		var viewtype = $(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);
 		rebuildviews("#rendered");
 	});
 
-	$('.e2-editbar-tools').EditbarHelper({});
+	$('#e2-editbar-tools').EditbarHelper({});
 
-	$('.e2-editbar-helper').EditbarHelper({
+	$('#e2-editbar-helper').EditbarHelper({
 		align: 'right',
 		cb: function(self) {
 			self.popup.load(EMEN2WEBROOT+'/record/'+rec.name+'/history/?simple=1');
@@ -101,7 +101,7 @@ function record_init(rec, ptest, edit) {
 	if (showsiblings>-1){showsiblings=true}
 	
 
-	$(".e2-editbar-record-siblings").EditbarHelper({
+	$("#e2-editbar-record-siblings").EditbarHelper({
 		show: showsiblings,
 		width:250,
 		align: 'right',
@@ -154,16 +154,16 @@ function record_init(rec, ptest, edit) {
 	// });
 	
 	// Bind editable widgets
-	$('.e2-editbar-record-setbookmark').Bookmarks({'mode':'toggle'});
+	$('#e2-editbar-record-setbookmark').Bookmarks({'mode':'toggle'});
 
 	// $('.e2-editbar-record-newrecord').NewRecord({});
 
 	$('.editable').EditControl({});
 	// $('.editable_files').FileControl({});
 
-	$('.e2-editbar-record-edit .label').MultiEditControl({});
+	$('#e2-editbar-record-edit .label').MultiEditControl({});
 	if (edit) {
-		$('.e2-editbar-record-edit .label').MultiEditControl('event_click');
+		$('#e2-editbar-record-edit .label').MultiEditControl('event_click');
 	}	
 }
 
@@ -181,7 +181,7 @@ function record_update(rec) {
 	rebuildviews('.e2-view[data-name='+name+']');
 	$("#page_comments_comments").CommentsControl('rebuild');
 	$("#page_comments_history").HistoryControl('rebuild');
-	$('.e2-editbar-record-attachments').AttachmentViewerControl('rebuild');	
+	$('#e2-editbar-record-attachments').AttachmentViewerControl('rebuild');	
 }
 
 
