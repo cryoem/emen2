@@ -148,9 +148,7 @@ class BaseDBObject(object, DictMixin):
 		for k,v in update.items():
 			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
 
-		# ed, changed return type from cp to self
-		#     I checked grep, this shouldn't effect anything
-		return self
+		return cp
 
 
 
