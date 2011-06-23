@@ -69,6 +69,7 @@ VERSIONS = {
 
 # Regular expression to parse Protocol views.
 VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
+VIEW_REGEX = re.compile(VIEW_REGEX)
 
 # Global pointer to database environment
 DBENV = None
@@ -86,6 +87,7 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+# inst for instantiate
 inst = lambda x:x()
 is_str = lambda x: hasattr(x, 'upper')
 @inst
@@ -760,7 +762,7 @@ class DB(object):
 
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
 		"""(Internal) Find referenced users/binaries."""
-		
+
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
 		# print "getting recs"
@@ -850,7 +852,7 @@ class DB(object):
 
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 
-		regex = re.compile(VIEW_REGEX)
+		regex = VIEW_REGEX
 		k = regex.match(macro)
 
 		keytype = vtm.getmacro(k.group('name')).getkeytype()
@@ -883,7 +885,7 @@ class DB(object):
 	#     txn. We could eventually rip this out into a class that defines
 	#     next() appropriately, but I don't think its complicated enough
 	#     to justify that :)
-	
+
 	def periodic_operations(self):
 		"""(Internal) Maintenance task scheduler.
 		Eventually this will be replaced with a more complete system."""
@@ -917,7 +919,7 @@ class DB(object):
 	# 		c = self.contexts_cache.get(ctxid)
 	# 		if c:
 	# 			context.time = c.time
-	# 
+	#
 	# 		# Delete any expired contexts
 	# 		if context.time + (context.maxidle or 0) < newtime:
 	# 			g.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
@@ -1913,6 +1915,13 @@ class DB(object):
 
 		return rendered, c_all
 
+	def _make_tables(self, recdefs, rec, builtinparams, builtinparamsshow, markup, ctx, txn):
+		# move built in params to end of table
+		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
+		par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
+		par += builtinparamsshow
+		par += [p for p in rec.getparamkeys() if p not in par]
+		return self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
 
 	@publicmethod("record.render")
 	@ol('names')
@@ -1942,19 +1951,18 @@ class DB(object):
 		# 	edit = "auto"
 
 		# Regular expression for parsing views
-		regex = re.compile(VIEW_REGEX)
+		regex = VIEW_REGEX
 
 		# VartypeManager manages the rendering methods
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# We'll be working with a list of names
-		# listops.partition_dbobjects(names)
-		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
+		# ed: added the *() for better visual grouping :)
+		names, recs, newrecs, other = listops.typepartition( names, *(int, emen2.db.dataobject.BaseDBObject, dict) )
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:
-			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
-			rec.update(newrec)
+			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn).update1(newrec)
 			recs.append(rec)
 
 		# Default params
@@ -1971,11 +1979,7 @@ class DB(object):
 			groupviews[None] = viewdef
 		elif viewtype == "dicttable":
 			for rec in recs:
-				# move built in params to end of table
-				par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
-				par += builtinparamsshow
-				par += [p for p in rec.getparamkeys() if p not in par]
-				groupviews[rec.name] = self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
+				groupviews[rec.name] = self._make_tables(recdefs, rec, builtinparams, builtinparamsshow, markup, ctx=ctx, txn=txn)
 		else:
 			for rd in recdefs.values():
 				rd["views"]["mainview"] = rd.mainview
@@ -2142,6 +2146,19 @@ class DB(object):
 		'''
 
 		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
+
+	@publicmethod("new", write=True, admin=True)
+	def new(self, *args, **kwargs):
+		keytype = kwargs.pop('keytype', 'record')
+		return dict(
+			user = self.newuser,
+			group = self.newgroup,
+			paramdef = self.newparamdef,
+			record = self.newrecord,
+			recorddef = self.newrecorddef,
+			binary = self.newbinary,
+		)[keytype](*args, **kwargs)
+
 
 
 	###############################
