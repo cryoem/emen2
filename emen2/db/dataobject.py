@@ -376,7 +376,10 @@ class BaseDBObject(object, DictMixin):
 
 		# ... otherwise, raise an Exception if the param isn't found.
 		if not hit:
-			pd = self._ctx.db.getparamdef(key, filt=False)
+			try:
+				pd = self._ctx.db.getparamdef(key, filt=False)
+			except KeyError:
+				self.error('paramdef %s does not exist' % key)
 			vtm.store(cachekey, pd)
 
 		# Is it an immutable param?

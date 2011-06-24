@@ -61,7 +61,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	# Setters
 	#################################
 
-	# ParamDef does so much validation for other items, so everything is checked.... 
+	# ParamDef does so much validation for other items, so everything is checked....
 	# Several values can only be changed by administrators.
 
 	def _set_choices(self, key, value, vtm=None, t=None):
@@ -73,18 +73,18 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	# These 3 methods are borrowed from RecordDef
 	def _set_desc_short(self, key, value, vtm=None, t=None):
 		return self._set(key, unicode(value or self.name), self.isowner())
-		
+
 
 	def _set_desc_long(self, key, value, vtm=None, t=None):
 		return self._set(key, unicode(value or ''), self.isowner())
-		
+
 
 	def _set_typicalchld(self, key, value, vtm=None, t=None):
 		value = emen2.util.listops.check_iterable(value)
 		value = filter(None, [unicode(i) for i in value]) or None
 		return self._set(key, value, self.isowner())
-		
-		
+
+
 	# Only admin can change defaultunits/immutable/indexed/vartype.
 	# This should still generate lots of warnings.
 	def _set_immutable(self, key, value, vtm=None, t=None):
@@ -95,7 +95,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-	# These can't be changed, it would disrupt the meaning of existing Records.	
+	# These can't be changed, it would disrupt the meaning of existing Records.
 	def _set_vartype(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
@@ -114,20 +114,20 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		value = unicode(value or '')
 		if value in ['None', None, '']:
 			value = None
-			
+
 		# Allow for unsetting
 		if value != None and value not in vtm.getproperties():
 			self.error("Invalid property: %s"%value)
 
 		if self.property and self.property != value:
-			self.error("Cannot change property from %s to %s."%(self.property, value))	
+			self.error("Cannot change property from %s to %s."%(self.property, value))
 
 		return self._set('property', value)
 
-		
+
 	def _set_defaultunits(self, key, value, vtm=None, t=None):
-		vtm, t = self._vtmtime(vtm, t)		
-		value = unicode(value or '') or None			
+		vtm, t = self._vtmtime(vtm, t)
+		value = unicode(value or '') or None
 		value = emen2.db.properties.equivs.get(value, value)
 
 		if self.defaultunits and self.defaultunits != value:
@@ -135,10 +135,14 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 		return self._set('defaultunits', value)
 
-	
-	# def validate(self):
+
+	def validate(self, vtm=None, t=None):
+		vtm, _ = self._vtmtime(vtm, t)
+		try: vtm.getvartype(self.vartype)
+		except KeyError:
+			self.error("Vartype %r is not a valid vartype" % self.vartype)
 	# 	try:
-	# 		prop = vtm.getproperty(self.property)	
+	# 		prop = vtm.getproperty(self.property)
 	# 	except KeyError:
 	# 		self.error("Cannot set defaultunits without a property!")
 	#	m = emen2.db.magnitude.mg(0, value)
@@ -146,7 +150,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	# 	if value not in prop.units:
 	# 		self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
-				
+
 
 
 

@@ -57,7 +57,7 @@ class Vartype(object):
 	def getkeytype(self):
 		return self.keytype
 
-	
+
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
 	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False):
 		# Store these for convenience
@@ -71,31 +71,31 @@ class Vartype(object):
 
 		# Process the value
 		value = self.process(value)
-		
+
 		# Use the iterable renderer
 		if self.iterable:
 			return self._render_list(value)
 
 		return self._render(value)
 
-		
+
 	def process(self, value, *args, **kwargs):
 		if value == None:
 			return ''
 		return cgi.escape(unicode(value))
-		
-		
+
+
 	# After pre-processing values into markup
 	# The lt flag is used for table format, to link to the row's name
 	def _render_list(self, value):
 		# Note: value should already be escaped!
 
 		label = ''
-		
+
 		# Plain text rendering
 		if not self.markup:
-			return ", ".join(value)		
-				
+			return ", ".join(value)
+
 		# Empty
 		if not value:
 			if self.edit and self.showlabel:
@@ -110,7 +110,7 @@ class Vartype(object):
 			lis = ['<li><a href="%s/record/%s">%s</a></li>'%(g.EMEN2WEBROOT, self.name, i) for i in value]
 		else:
 			lis = ['<li>%s</li>'%(i) for i in value]
-			
+
 		if not self.edit:
 			return '<ul>%s</ul>'%("\n".join(lis))
 
@@ -125,11 +125,11 @@ class Vartype(object):
 
 	def _render(self, value):
 		# Note: value should already be escaped!
-		
-		label = ''		
+
+		label = ''
 		if value == None:
 			value = ''
-			
+
 		# Plain text
 		if not self.markup:
 			if value and self.pd.defaultunits:
@@ -291,7 +291,7 @@ class vt_floatlist(vt_iter, vt_float):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [float(x) for x in value] or None
 
 	def process(self, value):
@@ -326,7 +326,7 @@ class vt_intlist(vt_iter, vt_int):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [int(x) for x in value] or None
 
 
@@ -371,8 +371,8 @@ class vt_recid(Vartype):
 		except ValueError:
 			raise ValueError, "Invalid name: %s"%value
 		return value
-		
-		
+
+
 class vt_name(Vartype):
 	__metaclass__ = Vartype.register_view
 	keytype = None
@@ -382,7 +382,7 @@ class vt_name(Vartype):
 		except ValueError:
 			value = unicode(value or '')
 		return value
-			
+
 
 
 ###################################
@@ -402,7 +402,7 @@ class vt_string(Vartype):
 class vt_choice(vt_string):
 	"""string from a fixed enumerated list, eg "yes","no","maybe"""
 	__metaclass__ = Vartype.register_view
-	
+
 	def validate(self, value):
 		value = unicode(value).strip()
 		if value not in self.pd.choices:
@@ -428,7 +428,7 @@ class vt_stringlist(vt_iter, vt_string):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [unicode(x).strip() for x in value] or None
 
 
@@ -463,7 +463,7 @@ class vt_choicelist(vt_iter, vt_string):
 
 class vt_text(vt_string):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
-	
+
 	__metaclass__ = Vartype.register_view
 	elem = 'div'
 
@@ -573,7 +573,7 @@ class vt_frequency(vt_datetime):
 			'weekly_monthly': [None, None, None, None, None, None, None] * 4,
 			'monthly': [None] * 12
 			}
-			
+
 		return value
 
 
@@ -597,7 +597,7 @@ class vt_uri(vt_ref):
 		if not value.startswith("http://"):
 			raise ValueError, "Invalid URI: %s"%value
 		return value
-		
+
 
 	def process(self, value):
 		if value == None:
@@ -615,7 +615,7 @@ class vt_urilist(vt_iter, vt_ref):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		value = [unicode(i).strip() for i in value]
 		for v in value:
 			if not v.startswith("http://"):
@@ -722,7 +722,7 @@ class vt_binary(vt_iter, Vartype):
 
 	def validate(self, value):
 		return value
-		value = emen2.util.listops.check_iterable(value)	
+		value = emen2.util.listops.check_iterable(value)
 		value = [i.name for i in self.engine.db.getbinary(value, filt=False)]
 		return value or None
 
@@ -758,12 +758,12 @@ class vt_binaryimage(Vartype):
 		if value:
 			return value.name
 		return None
-		
 
-	def process(self, value):		
+
+	def process(self, value):
 		if not self.markup:
 			return value
-			
+
 		if not value:
 			return ''
 
@@ -773,10 +773,10 @@ class vt_binaryimage(Vartype):
 				value = '%s'%cgi.escape(i.filename)
 			else:
 				value = '<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename))
-				
+
 		except (ValueError, TypeError):
 			value = "Error getting binary %s"%value
-		
+
 		return value
 
 
@@ -809,7 +809,7 @@ class vt_links(vt_iter, Vartype):
 	keytype = None
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [int(x) for x in value] or None
 
 
@@ -853,13 +853,13 @@ class vt_user(Vartype):
 		hit, dn = self.engine.check_cache(self.engine.get_cache_key('displayname', value))
 		if not hit:
 			return ''
-			
+
 		dn = cgi.escape(dn)
 		if self.table or not self.markup:
 			value = dn
 		else:
 			value = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
-				
+
 		return value
 
 
@@ -870,7 +870,7 @@ class vt_userlist(vt_iter, Vartype):
 	keytype = "s"
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		check_usernames(self.engine, value)
 		return [unicode(x).strip() for x in value] or None
 
@@ -884,7 +884,7 @@ class vt_userlist(vt_iter, Vartype):
 		for i in value:
 			key = self.engine.get_cache_key('displayname', i)
 			hit, dn = self.engine.check_cache(key)
-			dn = cgi.escape(dn)			
+			dn = cgi.escape(dn)
 			if self.table or not self.markup:
 				lis.append(dn)
 			else:
@@ -909,7 +909,7 @@ class vt_acl(Vartype):
 		for i in value:
 			if not hasattr(i, '__iter__'):
 				raise ValueError, "Invalid permissions format: ", value
-				
+
 		value = [[unicode(y) for y in x] for x in value]
 		if len(value) != 4:
 			raise ValueError, "Invalid permissions format: ", value
@@ -925,14 +925,14 @@ class vt_acl(Vartype):
 
 		value = reduce(lambda x,y:x+y, value)
 		unames = {}
-		
+
 		for user in self.engine.db.getuser(value):
 			user.getdisplayname(lnf=True)
 			unames[user.name] = user.displayname
 
 		levels=["Read","Comment","Write","Admin"]
 		ret=[]
-		
+
 		for level,names in enumerate(value):
 			namesr = [unames.get(i,"(%s)"%i) for i in names]
 			ret.append("%s: %s"%(levels[level],", ".join(namesr)))
@@ -1003,7 +1003,7 @@ class vt_comments(Vartype):
 				t = '%s @ %s: %s'%(user, time, comment)
 			else:
 				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(g.EMEN2WEBROOT, user, dn, time, comment)
-				
+
 			lis.append(t)
 
 		return lis
@@ -1024,7 +1024,7 @@ class vt_history(Vartype):
 
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [unicode(i) for i in value]
 
 
@@ -1042,7 +1042,7 @@ class vt_groups(vt_iter, Vartype):
 
 
 	def process(self, engine, pd, value, rec, db):
-		value = emen2.util.listops.check_iterable(value)		
+		value = emen2.util.listops.check_iterable(value)
 		return [unicode(i) for i in value]
 
 
@@ -1060,7 +1060,7 @@ def check_rectype(engine, value):
 	if not hit:
 		paramdef = engine.db.getparamdef(value, filt=False)
 		engine.store(key, paramdef)
-		
+
 	return paramdef
 
 
@@ -1085,9 +1085,9 @@ def check_rectypes(engine, values):
 		engine.store(key, rectypes)
 
 	if set(values) - rectypes:
-		raise ValueError, "Unknown RecordDefs: %s"%(", ".join(set(values)-rectypes))	
+		raise ValueError, "Unknown RecordDefs: %s"%(", ".join(set(values)-rectypes))
 
-	
+
 
 def check_usernames(engine, values):
 	key = engine.get_cache_key('usernames')
@@ -1097,7 +1097,7 @@ def check_usernames(engine, values):
 		engine.store(key, usernames)
 
 	if set(values) - usernames:
-		raise ValueError, "Unknown users: %s"%(", ".join(set(values)-usernames))	
+		raise ValueError, "Unknown users: %s"%(", ".join(set(values)-usernames))
 
 
 
@@ -1110,7 +1110,7 @@ def check_groupnames(engine, values):
 
 	if set(values) - groupnames:
 		raise ValueError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
-	
+
 
 
 def update_username_cache(engine, values):

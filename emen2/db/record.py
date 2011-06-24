@@ -58,15 +58,15 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	param_required = set(['rectype'])
 	recid = property(lambda s:s.name)
 
-	def init(self, d):			
+	def init(self, d):
 		super(Record, self).init(d)
-		
+
 		# rectype is required
 		self.__dict__['rectype'] = d.pop('rectype')
 
 		# comments, history, and other param values
 		self.__dict__['comments'] = []
-		self.__dict__['history'] = []		
+		self.__dict__['history'] = []
 		self.__dict__['params'] = {}
 
 		# Access to RecordDef is checked during validate
@@ -102,7 +102,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 	# in Record, params not in self.param_all are put in self.params{}.
-	def _setoob(self, key, value, vtm=None, t=None):		
+	def _setoob(self, key, value, vtm=None, t=None):
 		if self.params.get(key) == value:
 			# print ":: No change: ", key, value
 			return set()
@@ -122,7 +122,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		"""Default behavior is similar to .get: return None as default"""
 		if key in self.param_all:
 			return getattr(self, key, default)
-		else:		
+		else:
 			return self.params.get(key, default)
 
 
@@ -149,7 +149,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		if not param:
 			raise Exception, "Unable to add item to history log"
 
-		vtm, t = self._vtmtime(t=t)			
+		vtm, t = self._vtmtime(t=t)
 		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self.params.get(param)))
 
 
@@ -160,8 +160,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		cp = set()
 		if value == None:
 			return set()
-		
-		newcomments = []	
+
+		newcomments = []
 		if hasattr(value, "__iter__"):
 			check = [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
 			existing = [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in self.comments]
@@ -172,7 +172,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			newcomments.append(unicode(value))
 
 		# newcomments2 = []
-		# updvalues = {}		
+		# updvalues = {}
 		for value in newcomments:
 			d = {}
 			if not value.startswith("LOG"): # legacy fix..
@@ -181,7 +181,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			if d.has_key("comments"):
 				# Always abort
 				self.error("Cannot set comments inside a comment", warning=False)
-						
+
 			# Now update the values of any embedded params
 			for i,j in d.items():
 				cp |= self.__setitem__(i, j, vtm=vtm, t=t)
@@ -189,7 +189,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			# Store the comment string itself
 			self.comments.append((unicode(self._ctx.username), unicode(t), unicode(value)))
 			cp.add('comments')
-		
+
 		return cp
 
 
@@ -202,16 +202,16 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		paramcopy = {}
 
 		bydate = collections.defaultdict(list)
-		
+
 		for i in filter(lambda x:x[1]>=revision, history):
 			bydate[i[1]].append([i[0], i[2], i[3]])
 
 		for i in filter(lambda x:x[1]>=revision, comments):
 			bydate[i[1]].append([i[0], None, i[2]])
-			
+
 		revs = sorted(bydate.keys(), reverse=True)
 
-		for rev in revs:				
+		for rev in revs:
 			for item in bydate.get(rev, []):
 				# user, param, oldval
 				if item[1] == None:
@@ -220,25 +220,25 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 					newval = paramcopy.get(item[1])
 				else:
 					newval = self.get(item[1])
-	
-				paramcopy[item[1]] = copy.copy(item[2])				
+
+				paramcopy[item[1]] = copy.copy(item[2])
 				# item[2] = newval
 
 		return bydate, paramcopy
-		
+
 
 
 	#################################
 	# validation methods
 	#################################
 
-	
+
 	def validate_name(self, name):
-		"""Validate the name of this object"""		
+		"""Validate the name of this object"""
 		if name in ['None', None]:
 			return
 		try:
-			name = int(name)			
+			name = int(name)
 		except ValueError:
 			self.error("Name must be an integer")
 		return name
@@ -251,21 +251,28 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		for k,v in pitems:
 			if not v and v != 0 and v != False:
 				del self.params[k]
-		
+
 		# Check the rectype and any required parameters
 		vtm, t = self._vtmtime(vtm=vtm, t=t)
 		cachekey = vtm.get_cache_key('recorddef', self.rectype)
 		hit, rd = vtm.check_cache(cachekey)
+
+		if not self.rectype:
+			self.error('attempted to commit a record without an associated protocol')
+
 		if not hit:
-			rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+			try:
+				rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+			except KeyError:
+				self.error('no such protocol: %s' % self.rectype)
 			vtm.store(cachekey, rd)
-	
+
 		for param in rd.paramsR:
 			if self.get(param) == None:
 				self.error("%s is a required parameter"%(param))
-	
+
 		self.__dict__['rectype'] = unicode(rd.name)
-		
+
 
 
 
@@ -287,7 +294,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		if param == 'indexkeys':
 			ind = emen2.db.btrees.IndexKeysDB(filename=self._indname(param), keytype='s', datatype='p', dbenv=self.dbenv)
 			return ind
-			
+
 		# Check the paramdef to see if it's indexed
 		# ian: todo: use the context
 		# pd = ctx.getparamdef(param, filt=False)
@@ -295,7 +302,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		if not pd or pd.vartype not in self.dbenv.indexablevartypes or not pd.indexed:
 			return None
 
-		# disable this check, and always create index.			
+		# disable this check, and always create index.
 		vtm = emen2.db.datatypes.VartypeManager()
 		tp = vtm.getvartype(pd.vartype).keytype
 
@@ -317,7 +324,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		for offset, newrec in enumerate(newrecs):
 			oldname = newrec.name
 			newrec.__dict__['name'] = offset + basename
-			namemap[oldname] = newrec.name		
+			namemap[oldname] = newrec.name
 
 		# Update all the record's links
 		for item in items:
@@ -325,9 +332,9 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			item.children = set([namemap.get(i,i) for i in item.children])
 
 		return namemap
-	
-	
-	
+
+
+
 	def delete(self, names, ctx=None, txn=None):
 		recs = self.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
@@ -341,18 +348,18 @@ class RecordDB(emen2.db.btrees.RelateDB):
 				rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
 			else:
 				rec["comments"] = "Record hidden"
-			
+
 			rec['deleted'] = True
 			rec['children'] = set()
 			rec['parents'] = set()
 			crecs.append(rec)
-		
-		return self.cputs(crecs, ctx=ctx, txn=txn)	
+
+		return self.cputs(crecs, ctx=ctx, txn=txn)
 
 
 
 	def groupbyrectype(self, names, ctx=None, txn=None):
-		"""Group Records by Rectype. Filters for permissions.	
+		"""Group Records by Rectype. Filters for permissions.
 		@param names Record(s) or Record name(s)
 		@return {rectype:set(record names)}
 		"""
@@ -373,21 +380,21 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			names = self.filter(recnames, ctx=ctx, txn=txn)
 			while names:
 				# get a random record's rectype
-				rid = names.pop() 
-				rec = self.get(rid, txn=txn) 
+				rid = names.pop()
+				rec = self.get(rid, txn=txn)
 				# get the set of all records with this recorddef
-				ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names 
+				ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names
 				# remove the results from our list since we have now classified them
-				names -= ret[rec.rectype] 
+				names -= ret[rec.rectype]
 				# add back the initial record to the set
 				ret[rec.rectype].add(rid)
 
 		for i in recs:
 			ret[i.rectype].add(i.name)
-		
+
 		return ret
-		
-	
+
+
 	# This builds UP instead of prunes DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 		if names is not None:
@@ -403,14 +410,14 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			ret |= indg.get(group, set(), txn=txn)
 
 		return ret
-		
-		
+
+
 	def filter(self, names, rectype=None, ctx=None, txn=None):
 		"""Filter for permissions.
-		@param names Record name(s).		
+		@param names Record name(s).
 		@return Readable Record names.
 		"""
-		
+
 		names = self.expand(names, ctx=ctx, txn=txn)
 
 		if rectype:
@@ -441,11 +448,11 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			if find:
 				find -= indg.get(group, set(), txn=txn)
 
-			
+
 		return names - find
 
 
-		
-	
+
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

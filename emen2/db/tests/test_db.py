@@ -68,6 +68,18 @@ class TestDB(unittest.TestCase):
 		record = dict(name_folder='The Record Name', rectype='folder')
 		self.put_helper(self.db.putrecord, self.db.getrecord, record, ['name_folder', 'rectype'])
 
+	def test_putrecord_norecorddef(self):
+		record = dict(name_folder='The Record Name')
+		self.assertRaises(ValueError, self.db.putrecord, record)
+
+	def test_putrecord_invalidrecorddef(self):
+		record = dict(name_folder='The Record Name', rectype='no_such_rectype')
+		self.assertRaises(ValueError, self.db.putrecord, record)
+
+	def test_putrecord_invalidparamdef(self):
+		record = dict(no_such_param='The Record Name', rectype='folder')
+		self.assertRaises(ValueError, self.db.putrecord, record)
+
 	def test_putuser1(self):
 		un = 'testuser'
 		pw = 'testpassword'
@@ -98,13 +110,13 @@ class TestDB(unittest.TestCase):
 		self.assertEqual(user.email, em)
 		signup_info.pop('password')
 		signup_info.pop('password2')
-		### should this be in the user record?
+		### shouldn't this be in the user record?
 		signup_info.pop('email')
 		for key in signup_info.keys():
 			self.assertEqual(urec.get(key), signup_info.get(key))
 
 	def test_putparamdef1(self):
-		paramdef = self.db.newparamdef('testparamdef', 'str')
+		paramdef = self.db.newparamdef('testparamdef', 'string')
 		self.put_helper(self.db.putparamdef, self.db.getparamdef, paramdef, ['name', 'vartype'])
 
 	def test_putparamdef_nonexistentvartype1(self):

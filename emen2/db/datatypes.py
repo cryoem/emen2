@@ -76,7 +76,7 @@ class VartypeManager(object):
 		if self.cache.has_key(key):
 			return True, self.cache[key]
 		return False, None
-		
+
 
 	###################################
 	# Macro Rendering
@@ -96,7 +96,7 @@ class VartypeManager(object):
 
 	def macro_name(self, macro, params):
 		return self._macros[macro](engine=self).macro_name(macro, params, rec)
-		
+
 
 	###################################
 	# ParamDef Rendering
@@ -113,7 +113,7 @@ class VartypeManager(object):
 	###################################
 	# Param Rendering
 	###################################
-	
+
 	def param_render(self, pd, value, **kwargs):
 		return self._vartypes[pd.vartype](engine=self, pd=pd).render(value, **kwargs)
 
@@ -122,10 +122,10 @@ class VartypeManager(object):
 		"""Render for native sorting, e.g. lexicographical vs. numerical"""
 
 		vt = self._vartypes[pd.vartype](engine=self, pd=pd)
-		
+
 		if vt.getkeytype() in ["d","f"]:
 			return rec.get(pd.name)
-			
+
 		value = vt.render(value=value)
 
 		if value == None:
@@ -186,7 +186,7 @@ class VartypeManager(object):
 
 	def getmacros(self):
 		return self._macros.keys()
-		
-		
-		
+
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
