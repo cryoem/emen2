@@ -27,6 +27,7 @@ import time
 import datetime
 import sys
 import traceback
+from twisted.python import log
 
 import emen2.util.datastructures
 

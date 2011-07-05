@@ -58,13 +58,13 @@ class TestDB(unittest.TestCase):
 		self.assertEqual(*match_dicts(data, data2, match_keys))
 		return data1.name
 
-	def test_putrecord1(self):
+	def test_putrecord_basic_invocation(self):
 		record = self.db.newrecord('folder')
 		name = 'The Record Name'
 		record['name_folder'] = name
 		name = self.put_helper(self.db.putrecord, self.db.getrecord, record, ['name_folder', 'rectype'])
 
-	def test_putrecord2(self):
+	def test_putrecord_dict_input(self):
 		record = dict(name_folder='The Record Name', rectype='folder')
 		self.put_helper(self.db.putrecord, self.db.getrecord, record, ['name_folder', 'rectype'])
 
@@ -80,7 +80,7 @@ class TestDB(unittest.TestCase):
 		record = dict(no_such_param='The Record Name', rectype='folder')
 		self.assertRaises(ValueError, self.db.putrecord, record)
 
-	def test_putuser1(self):
+	def test_putuser_basic_invocation(self):
 		un = 'testuser'
 		pw = 'testpassword'
 		em = 'test@example.com'
@@ -115,17 +115,17 @@ class TestDB(unittest.TestCase):
 		for key in signup_info.keys():
 			self.assertEqual(urec.get(key), signup_info.get(key))
 
-	def test_putparamdef1(self):
+	def test_putparamdef_dict_input(self):
 		paramdef = self.db.newparamdef('testparamdef', 'string')
 		self.put_helper(self.db.putparamdef, self.db.getparamdef, paramdef, ['name', 'vartype'])
 
-	def test_putparamdef_nonexistentvartype1(self):
+	def test_putparamdef_nonexistentvartype_basic_invocation(self):
 		self.assertRaises(ValueError, self.db.newparamdef, 'testparamdef', 'no_such_vartype')
 
-	def test_putparamdef_nonexistentvartype2(self):
+	def test_putparamdef_nonexistentvartype_dict_input(self):
 		self.assertRaises(ValueError, self.db.putparamdef, dict(name='testparamdef', vartype='no_such_vartype'))
 
-	def test_putparamdef_vartypes1(self):
+	def test_putparamdef_vartypes_validvalue(self):
 		paramdef = self.db.newparamdef('testparamdef', 'int')
 		self.db.putparamdef(paramdef)
 
@@ -139,7 +139,7 @@ class TestDB(unittest.TestCase):
 		rec = self.db.getrecord(name)
 		self.assertEqual(rec['testparamdef'], valid_value)
 
-	def test_putparamdef_vartypes2(self):
+	def test_putparamdef_vartypes_invalidvalue(self):
 		paramdef = self.db.newparamdef('testparamdef', 'int')
 		self.db.putparamdef(paramdef)
 
@@ -153,13 +153,13 @@ class TestDB(unittest.TestCase):
 		rec = self.db.getrecord(name)
 		self.assertEqual(rec['testparamdef'], None)
 
-	def test_putrecorddef1(self):
+	def test_putrecorddef_basic_invocation(self):
 		recorddef = self.db.newrecorddef('testrecorddef', '$$name_folder $$address_city')
 		self.db.putrecorddef(recorddef)
 		rd = self.db.getrecorddef(recorddef.name)
 		self.assertEqual(rd.paramsK, set(['name_folder','address_city']))
 
-	def test_putrecorddef2(self):
+	def test_renderview(self):
 		recorddef = self.db.newrecorddef('testrecorddef', '$$name_folder $$address_city')
 		self.db.putrecorddef(recorddef)
 		rec = self.db.newrecord(recorddef.name)
@@ -169,4 +169,16 @@ class TestDB(unittest.TestCase):
 
 		r_view = self.db.renderview(rec.name, viewtype='mainview', markup=False)
 		self.assertEqual(r_view, '{name_folder} {address_city}'.format(**rec))
+
+	def test_putrecorddef_invalidname(self):
+		self.assertRaises(ValueError, db.newrecorddef, 123123, '')
+
+	def test_putrecorddef_invalidmainview(self):
+		self.assertRaises(ValueError, db.newrecorddef, 'testrecorddef', '')
+
+	def test_putrecorddef_change_name(self):
+		recorddef = db.newrecorddef('testrecorddef', 'a mainview')
+		self.assertRaises(ValueError, recorddef.__setitem__, 'name', 'new_name')
+		self.assertRaises(ValueError, recorddef.__setattr__, 'name', 'new_name')
+
 

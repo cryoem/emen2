@@ -46,7 +46,6 @@ class LoggerStub(debug.DebugState):
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
 
-
 inst = lambda x:x()
 class GlobalNamespace(object):
 
@@ -54,6 +53,23 @@ class GlobalNamespace(object):
 		return Claim(self, name, default, validator)
 	def watch(self, name, default=None):
 		return Watch(self, name, default)
+
+	_events = collections.defaultdict(list)
+	@classmethod
+	def register_event(cls, var):
+		'''events shouldn't modify the state of the GlobalNamespace!!!'''
+		def _inner(cb):
+			cls._events[var].append(cb)
+			if var in cls.__vardict:
+				cb(cls.__vardict[var], read=True)
+			return cb
+		return _inner
+
+	@classmethod
+	def _trigger_event(cls, var, value, read=False, write=False):
+		for cb in cls._events.get(var, []):
+			cb(value, read=read, write=write)
+
 
 	@inst
 	class paths(object):
@@ -188,21 +204,23 @@ class GlobalNamespace(object):
 			# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 			self.paths.root = self.EMEN2DBHOME
-			
-			def prefix_path(path):
-				if hasattr(path, 'keys'):
-					for k,v in path.items():
-						path[k] = prefix_path(v)
-				elif hasattr(path, '__iter__'):
-					path = [prefix_path(i) for i in path]
-				elif not path.startswith('/'):
-					path = os.path.join(self.paths.root, path)
-				return path
-			
+
+			#def prefix_path(path):
+			#	if hasattr(path, 'keys'):
+			#		for k,v in path.items():
+			#			path[k] = prefix_path(v)
+			#	elif hasattr(path, '__iter__'):
+			#		path = [prefix_path(i) for i in path]
+			#	elif not path.startswith('/'):
+			#		path = os.path.join(self.paths.root, path)
+			#	return path
+
 			for k,v in data.pop('paths', {}).items():
-				v = prefix_path(v)
+			#	print 'before prefix_path', v
+			#	v = prefix_path(v)
+			#	print 'after', v
 				setattr(self.paths, k, v)
-						
+
 			# process data
 			for key in data:
 				b = data[key]
@@ -260,6 +278,7 @@ class GlobalNamespace(object):
 
 
 	def __setattr__(self, name, value):
+		self._trigger_event(name, value, write=True)
 		res = getattr(self.__class__, name, None)
 		if name.startswith('_') or hasattr(res, '__set__'):
 			object.__setattr__(self, name, value)
@@ -297,6 +316,7 @@ class GlobalNamespace(object):
 				return default
 		if name.startswith('_'): result = getattr(cls, name, default)
 		else: result = cls.__vardict.get(name, default)
+		cls._trigger_event(name, result, read=True)
 		return result
 
 

@@ -18,6 +18,8 @@ class ViewLoader(object):
 	viewpaths = g.claim('paths.VIEWPATHS', [])
 	routing_table = g.claim('ROUTING', {})
 	redirects = g.claim('REDIRECTS', {})
+	plugindir = g.claim('paths.PLUGINDIR', os.path.join(g.EMEN2DBHOME, 'plugins'))
+	plugins = g.claim('plugins', [])
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None):
 		if pwd[0] not in sys.path:
@@ -37,6 +39,7 @@ class ViewLoader(object):
 			level = 'ERROR'
 			msg[1] = "FAILED:"
 			failures.append(viewname)
+			g.log.print_exception()
 
 		msg.append(filpath+ext)
 		g.log.msg(level, ' '.join(msg))
@@ -45,6 +48,19 @@ class ViewLoader(object):
 	def __init__(self):
 		self.get_views = emen2.util.fileops.walk_paths('.py', self.view_callback)
 		self.router = emen2.web.routing.URLRegistry()
+
+	def load_plugins(self):
+		pth = list(reversed(sys.path))
+
+		if not os.path.isdir(self.plugindir):
+			return False
+
+		for dir_ in sorted(os.listdir()):
+			dir_ = os.path.join(self.plugindir, dir_)
+			if os.path.isdir(dir_):
+				self.templatepaths.append(os.path.join(dir_, 'templates'))
+				self.viewpaths.append(os.path.join(dir_, 'views'))
+				pth.append(os.path.join(dir_, 'python'))
 
 	def routes_from_g(self):
 		for key, value in self.routing_table.iteritems():

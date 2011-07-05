@@ -190,7 +190,10 @@ class _View(object):
 
 		if init is not None: init=functools.partial(init,self)
 		else: init = self.init
-		init(**extra)
+
+		ctxt_items = init(**extra)
+		self.set_context_items(ctxt_items)
+
 
 
 	def init(self, *_, **__):
@@ -308,12 +311,14 @@ class _View(object):
 			# get the main matcher
 			matcher, match_ = match[0], match[1:]
 			matchers.append( ('%s' % name, matcher, func) )
+			g.debug('REGISTERING %r as %r with %r' % (name, matcher, func) )
 
 			# get alternate matchers
 			for k,matcher in itertools.chain(	enumerate(match_, 1),
 															kwmatch.iteritems()	):
 				name = '%s/%s' % (name, k)
 				matchers.append( (name, matcher, func) )
+				g.debug('REGISTERING %r as %r with %r' % (name, matcher, func) )
 
 			# save all matchers to the function
 			func.matcherinfo = matchers
