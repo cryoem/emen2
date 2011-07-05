@@ -181,7 +181,7 @@
 			// 	
 			// } else {
 
-			var level = $('<div class="clearfix" data-level="group"></div>');
+			var level = $('<div class="e2-permissions-level clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
 			var title = $('<h4 class="clearfix"> Groups</h4>');
@@ -207,7 +207,7 @@
 			this.userarea.empty();		
 		
 			$.each(this.permissions, function(k,v) {			
-				var level = $('<div class="clearfix" data-level="'+k+'"></div>');
+				var level = $('<div class="e2-permissions-level clearfix" data-level="'+k+'"></div>');
 				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+'</h4>');
 				if (self.options.edit) {
 					var button = $('<input type="button" value="+" />');
@@ -263,12 +263,12 @@
 				user.userrec = {};
 				user.email = '';
 			}
-
+			
 			var userdiv = $('<div class="userbox user" data-name="'+user.name+'" data-level="'+level+'"/>');
 			if (user.userrec["person_photo"]) {
-				userdiv.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Profile" />');
+				userdiv.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Photo" />');
 			} else {
-				userdiv.append('<img  data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" />');			
+				userdiv.append('<img  data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');			
 			}
 			userdiv.append('<div data-level="'+level+'" data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');					
 
@@ -278,8 +278,7 @@
 			if (add) {
 				userdiv.addClass('add');
 			}
-
-			$('[data-level='+level+']', this.dialog).append(userdiv);
+			$('.e2-permissions-level[data-level='+level+']', this.dialog).append(userdiv);
 		},
 
 
@@ -380,8 +379,7 @@
 
 			// sec_commit["reassign"] = 1;
 			// sec_commit["delusers"] = this.getdelusers();
-			// sec_commit["delgroups"] = this.getdelgroups();			
-
+			// sec_commit["delgroups"] = this.getdelgroups();
 			var overwrite_users = $('input[name=overwrite_users]', this.dialog).attr('checked');
 			var overwrite_groups = $('input[name=overwrite_groups]', this.dialog).attr('checked');			
 			if (overwrite_users) {

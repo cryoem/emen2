@@ -92,6 +92,10 @@ a,
 table.shaded tbody tr:nth-of-type(odd) {
 	background: #f0f0f0;
 }
+.hidden table.shaded tbody tr:nth-of-type(odd) {
+	background: white;
+}
+
 
 th {
 	font-weight:normal;
@@ -125,8 +129,13 @@ body > *,
 	margin-left:0px;
 	margin-right:0px;
 }
-#contentinner {
+#content {
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
 	padding:10px;
+	padding-bottom:100px;
+	margin-bottom:20px;
 }
 #footer {
 	display:none;
@@ -210,7 +219,9 @@ td
 	font-weight: lighter;
 }
 
-#editbar input, #editbar select {
+.editbar input, 
+.editbar select
+{
 	font-size: 10pt;
 	padding: 2px;
 	margin: 2px;
@@ -227,21 +238,21 @@ td
 
 /************* EDITBAR ************/
 
-#editbar {
+.editbar {
 	border-bottom:solid 1px #ccc;
 }
-#editbar > li {
+.editbar > li {
 	border-right:solid 1px #ccc;
 	position:relative;
 }
-#editbar > li:last-child {
+.editbar > li:last-child {
 	border-right: none;
 } 
-#editbar .label {
+.editbar .label {
 	margin:5px;
 	display:inline-block;
 }
-#editbar {
+.editbar {
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 }
 
@@ -279,7 +290,7 @@ h1 .label
 	font-size:8pt;
 }
 .small,
-#editbar > li > .label,
+.editbar > li > .label,
 .e2-map
 {
 	font-size:10pt;
@@ -319,6 +330,12 @@ table.login td:last-child {
 	border-left:solid 1px #ccc;
 }
 
+.e2-config-table {
+	width: 100%;
+}
+.e2-config-table input {
+	width: 90%;
+}
 
 
 /************* CONTROLS ************/
@@ -414,15 +431,15 @@ input.cancel
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-left-radius: 8px; 	
 }
-/*#content {
+#content {
 	-moz-border-radius-bottomright: 8px;
 	-moz-border-radius-bottomleft: 8px;
 	-moz-border-radius-topright: 8px; 
 	-webkit-border-bottom-right-radius: 8px;
 	-webkit-border-bottom-left-radius: 8px;
 	-webkit-border-top-right-radius: 8px; 	
-}*/
-#editbar {
+}
+.editbar {
 	-moz-border-radius-topright: 8px; 
 	-webkit-border-top-right-radius: 8px; 		
 }

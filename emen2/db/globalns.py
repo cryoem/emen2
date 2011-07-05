@@ -188,17 +188,21 @@ class GlobalNamespace(object):
 			# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 			self.paths.root = self.EMEN2DBHOME
-
-			paths = data.pop('paths', {})
-			for k,v in paths.items(): setattr(self.paths, k, v)
-
-
-			def prefix_path(pth, prfx):
-				result = pth
-				if not pth.startswith('/'):
-					result = os.path.join(prfx, pth)
-				return result
-
+			
+			def prefix_path(path):
+				if hasattr(path, 'keys'):
+					for k,v in path.items():
+						path[k] = prefix_path(v)
+				elif hasattr(path, '__iter__'):
+					path = [prefix_path(i) for i in path]
+				elif not path.startswith('/'):
+					path = os.path.join(self.paths.root, path)
+				return path
+			
+			for k,v in data.pop('paths', {}).items():
+				v = prefix_path(v)
+				setattr(self.paths, k, v)
+						
 			# process data
 			for key in data:
 				b = data[key]
@@ -208,21 +212,13 @@ class GlobalNamespace(object):
 
 				for key2, value in b.iteritems():
 					self.__yaml_keys[key].append(key2)
-					# apply the prefix to entries
-					if isinstance(value, dict): pass
-					elif hasattr(value, '__iter__'):
-						value = [prefix_path(item, pref) for item in value]
-					elif isinstance(value, (str, unicode)):
-						value = prefix_path(value, pref)
 					self.__addattr(key2, value, options)
 
-
 			# load alternate config files
-			for fn in paths.get('CONFIGFILES', []):
-				fn = os.path.abspath(fn)
-				if os.path.exists(fn):
-					cls.from_file(fn=fn)
-
+			# for fn in self.paths.CONFIGFILES:
+			# 	fn = os.path.abspath(fn)
+			# 	if os.path.exists(fn):
+			# 		cls.from_file(fn=fn)
 
 		return self
 

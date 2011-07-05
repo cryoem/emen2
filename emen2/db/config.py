@@ -98,12 +98,19 @@ class DBOptions(optparse.OptionParser):
 		else:
 			return self.load_config_force(g, **kw)
 
+
 	def load_config_force(self, g, **kw):
+		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
+		EMEN2DBHOME = os.getenv("EMEN2DBHOME") or g.getattr('EMEN2DBHOME', '')
+		if self.values.home:
+			EMEN2DBHOME = self.values.home
+		if EMEN2DBHOME:
+			g.EMEN2DBHOME = EMEN2DBHOME
 
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
-
 		g.from_file(default_config)
+		
 		if os.path.exists('/etc/emen2config.yml'):
 			g.from_file('/etc/emen2config.yml')
 		if os.path.exists('/etc/emen2config.json'):
@@ -111,14 +118,6 @@ class DBOptions(optparse.OptionParser):
 		if self.values.configfile:
 			for fil in self.values.configfile:
 				g.from_file(fil)
-
-
-		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
-		EMEN2DBHOME = os.getenv("EMEN2DBHOME") or g.getattr('EMEN2DBHOME', '')
-		if self.values.home:
-			EMEN2DBHOME = self.values.home
-		if EMEN2DBHOME:
-			g.EMEN2DBHOME = EMEN2DBHOME
 
 		# Load the default config
 		# Look for any EMEN2DBHOME-specific config files and load
@@ -142,7 +141,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
-			print 'Creating logpath: %r' % g.paths.LOGPATH
+			# print 'Creating logpath: %r' % g.paths.LOGPATH
 			os.makedirs(g.paths.LOGPATH)
 		g.log = emen2.db.debug.DebugState(output_level=loglevel,
 											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
@@ -161,7 +160,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Load view and template dirs
 		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
-			g.error('LOADING DEFAULT TEMPLATEPATHS !!!')
+			# g.error('LOADING DEFAULT TEMPLATEPATHS !!!')
 			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
 
 		if getattr(g.paths, 'PYTHONPATH', []):

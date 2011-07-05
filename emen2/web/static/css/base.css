@@ -43,6 +43,7 @@ table {
 .userbox {
 	width: 300px;
 	float: left;
+	margin: 10px;
 }
 .userbox img {
 	float: left;
@@ -171,6 +172,7 @@ ul.nonlist
 /************* JQUERY UI OVERRIDES ************/
 
 .ui-autocomplete {
+	max-width: 300px;
 	max-height: 300px;
 	overflow-y: auto;
 }

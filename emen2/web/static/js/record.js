@@ -79,7 +79,7 @@ function record_init(rec, ptest, edit) {
 			}
 	});	
 	
-	$('#editbar [data-viewtype]').click(function(){
+	$('.editbar [data-viewtype]').click(function(){
 		var target = $("#rendered");
 		var viewtype = $(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);

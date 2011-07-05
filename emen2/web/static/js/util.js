@@ -58,19 +58,20 @@ window.log = function(){
 		// Wrap these methods
 		if (errback == null) {errback = function(){}}
 		var eb = function(xhr, textStatus, errorThrown) {
-			error_dialog(xhr.statusText, xhr.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
-			try {errback(xhr, textStatus, xhr)} catch(e) {}
-		}
-		
-		var cb = function(data, status, xhr) {
+			//console.log(xhr, textStatus, errorThrown);
 			if (xhr.status == 0) {
 				error_dialog('Connection refused', 'The server may not be responding, or your internet connection may be down.', this.jsonRPCMethod, this.data);
 				return
 			}
+			error_dialog(xhr.statusText, xhr.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
+			try {
+				errback(xhr, textStatus, xhr)
+			} catch(e) {}
+		}		
+		var cb = function(data, status, xhr) {
 			callback(data, status, xhr);
 		}
 				
-
 		$.ajax({
 			jsonRPCMethod:method,
 		    type: "POST",
@@ -216,9 +217,6 @@ function admin_approveuser_form(elem) {
 				var count=parseInt($("#admin_userqueue_count").html());
 				count -= names.length;
 				$("#admin_userqueue_count").html(String(count))
-			},
-			function(data) {
-				
 			}
 		);
 	};
@@ -227,8 +225,7 @@ function admin_approveuser_form(elem) {
 		$.jsonRPC("rejectuser",[reject],
 			function(names) {
 				//var names = [];
-				//$.each(data, function(){names.push(this.name)});
-				
+				//$.each(data, function(){names.push(this.name)});				
 				notify("Rejected users: "+names);
 				for (var i=0;i<names.length;i++) {
 					$(".userqueue_"+names[i]).remove();
@@ -236,9 +233,6 @@ function admin_approveuser_form(elem) {
 				var count=parseInt($("#admin_userqueue_count").html());
 				count -= names.length;
 				$("#admin_userqueue_count").html(String(count));							
-			},
-			function(data) {
-				
 			}
 		);
 	};
@@ -472,7 +466,6 @@ function notify(msg, fade, error) {
 						self.element.empty();
 						self.element.append(star);
 					});
-
 					// // console.log(rec);
 					// console.log('updated bookmarks:', rec['bookmarks']);
 				});
@@ -542,7 +535,7 @@ $(document).ready(function() {
 		},
 		
 		show: function() {
-			$('#editbar .hover').EditbarHelper('hide');
+			$('.editbar .hover').EditbarHelper('hide');
 			this.build();
 			this.element.addClass('hover');
 			this.options.cb(this);

@@ -439,11 +439,12 @@ class EMEN2DBEnv(object):
 	####################################
 
 	LOGPATH = g.watch('paths.LOGPATH')
-	HOTBACKUP = g.claim('paths.HOTBACKUP')
 	LOG_ARCHIVE = g.claim('paths.LOG_ARCHIVE')
 	TILEPATH = g.claim('paths.TILEPATH')
 	TMPPATH = g.claim('paths.TMPPATH')
 	SSLPATH = g.watch('paths.SSLPATH')
+	# HOTBACKUP = g.claim('paths.HOTBACKUP')
+
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
 
@@ -470,7 +471,7 @@ class EMEN2DBEnv(object):
 		#paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		paths = []
-		for path in [self.LOGPATH, self.HOTBACKUP, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
+		for path in [self.LOGPATH, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
 			try:
 				paths.append(path)
 			except AttributeError:
@@ -3074,6 +3075,7 @@ class DB(object):
 		:keyword param: ... Record param to use
 			for the reference to the Binary name
 		"""
+		
 		# Preprocess
 		if not item:
 			item = self.bdbs.binary.new(ctx=ctx, txn=txn)

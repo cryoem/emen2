@@ -313,8 +313,12 @@
 			var t = $('.e2-table-inner', this.element);			
 			var headers = this.options.q['table']['headers']['null'];
 			var names = this.options.q['names'];
-			var rows = []
-			
+			var rows = []			
+			// if (names.length == 0) {
+			// 	var row = '<tr><td colspan="0">No Records found for this query.</td</tr>';
+			// 	rows.push(row);
+			// }
+			console.log(names.length);
 			for (var i=0;i<names.length;i++) {
 				var row = [];
 				for (var j=0;j<headers.length;j++) {

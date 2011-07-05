@@ -38,7 +38,6 @@ __all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView', 'Page']
 
 
 
-
 ############ ############ ############
 # I. Views                           #
 ############ ############ ############
@@ -120,8 +119,8 @@ class _View(object):
 
 	ctxt = property(lambda self: self.get_context())
 	dbtree = property(lambda self: self.__dbtree)
-	js_files = emen2.web.extfile.BaseJS
-	css_files = emen2.web.extfile.BaseCSS
+	js_files = emen2.web.templating.BaseJS
+	css_files = emen2.web.templating.BaseCSS
 	page = None
 
 	def __settitle(self, t):

@@ -162,10 +162,12 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	# Validate
 	def validate(self, vtm=None, t=None):
+		if self.filesize <= 0:
+			raise ValueError, "No file specified"
 		if not self.filename or not self.md5 or not self.filesize >= 0:
-			raise ValueError, "Binary needs filename, md5, and filesize."
+			raise ValueError, "Filename, filesize, and MD5 checksum are required"
 		if self.record is None:
-			raise ValueError, "Binary needs to reference a Record."
+			raise ValueError, "Reference to a Record is required"
 		
 
 	@staticmethod

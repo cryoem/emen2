@@ -3,12 +3,9 @@
 	"paths":{
 		// Log directory: access.log, error.log, debug.log (see logging section) 
 		"LOGPATH": "applog",
-		"EMEN2JOBFILE": "applog/emen2job",
-		"EMEN2ERRLOG":"applog/emen2errlog",
-		"DEBUGLOG":"applog/debug.log",
-
-		// Berkeley DB Hot Backup directory, for incremental backups and failover. Backup offsite.
-		"HOTBACKUP": "db_hotbackup",
+		// "JOBFILE": "applog/emen2.pid",
+		// "ERRORLOG":"applog/error.log",
+		// "DEBUGLOG":"applog/debug.log",
 
 		// Berkeley DB Log Archive directory. You will want to carefully back these up.
 		"LOG_ARCHIVE": "log_archive",
@@ -31,10 +28,6 @@
 
 		// Path to SSL certificates
 		"SSLPATH": "ssl",
-
-		// Alternate views and templates to be loaded 
-		"TEMPLATEPATHS": ["templates"],
-		"VIEWPATHS": ["views"],
 
 		// Load additional files. Typically this will only be used by the system installed base config file.
 		"CONFIGFILES" :[
@@ -106,9 +99,9 @@
 	},
 
 	// Load the default templates.
-	"viewsettings":{
-		"TEMPLATEPATHS_DEFAULT":true
-	},
+	// "viewsettings":{
+	//	"TEMPLATEPATHS_DEFAULT":true
+	// },
 
 	// Verbose logging
 	"logging":{

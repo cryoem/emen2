@@ -229,7 +229,7 @@
 			if (user.userrec["person_photo"]) {
 				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Photo" />');
 			} else {
-				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="No Photo" />');			
+				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');			
 			}
 			d.append('<div data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');
 			this.resultsarea.append(d);
@@ -241,7 +241,7 @@
 			var d = $('<div class="userbox" data-name="'+group.name+'" />');
 			var self=this;		
 			d.click(function(e){self.event_select(e)});
-			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Group" />');
+			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');
 			d.append('<div data-name="'+group.name+'">'+group.displayname+'<br />'+group.name+'</div>');
 			this.resultsarea.append(d);
 		},

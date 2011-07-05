@@ -101,7 +101,7 @@
 		},
 		
 		build_sitemap: function() {
-			var p = $(' <div class="e2-browser-parents clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+			var p = $(' <div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
 						<div class="e2-browser-action floatleft" style="width:249px;">&nbsp;</div> \
 						<div class="e2-browser-children floatleft" style="width:249px;"> Children </div> \
 					</div>');						
@@ -114,28 +114,23 @@
 		
 		build_addsimple: function() {
 			var self = this;
-			var cb = function(parent,key){
-			}
+			var cb = function(parent,key){}
+			
 			// Adding this back to help users..
 			var addparents = $('<input type="button" name="addparents" value="+" />').click(function() {
 				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			});
+
 			var addchildren = $('<input type="button" name="addchildren" value="+" />').click(function() {
 				var cb = function(child) {self._action_addrel(self.options.root, child)}
 				var i = $('<div></div>');
 				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
-			});
-			
+			});			
+
 			$('.e2-browser-parents', this.dialog).prepend(addparents);
-			$('.e2-browser-children', this.dialog).prepend(addchildren);
-			// $('input[name=addparents]', p).click(function() {
-			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
-			// });
-			// $('input[name=addchildren]', p).click(function() {
-			// 	$(this).RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
-			// });			
+			$('.e2-browser-children', this.dialog).prepend(addchildren);		
 		},
 		
 		build_ul: function(elem, key) {
