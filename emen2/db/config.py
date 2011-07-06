@@ -135,41 +135,43 @@ class DBOptions(optparse.OptionParser):
 		elif self.values.loglevel:
 			loglevel = self.values.loglevel
 
-
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
-			# print 'Creating logpath: %r' % g.paths.LOGPATH
 			os.makedirs(g.paths.LOGPATH)
+
+		# Bind main logging method
 		g.log = emen2.db.debug.DebugState(output_level=loglevel,
-											logfile=file(g.paths.LOGPATH + '/log.log', 'a', 0),
+											logfile=file(os.path.join(g.paths.LOGPATH, 'log.log'), 'a', 0),
 											get_state=False,
 											quiet = self.values.quiet)
 
+		# Bind other logging methods
 		g.info = functools.partial(g.log.msg, 'INFO')
 		g.error = functools.partial(g.log.msg, 'ERROR')
 		g.warn = functools.partial(g.log.msg, 'WARNING')
 		g.debug = functools.partial(g.log.msg, 'DEBUG')
 
 		# Load web extensions
-		for p in self.values.ext or []:
-			g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
-			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
+		# for p in self.values.ext or []:
+		# 	g.paths.TEMPLATEPATHS.append(os.path.join(p, 'templates'))
+		# 	g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
 
 		# Load view and template dirs
-		if g.getattr('TEMPLATEPATHS_DEFAULT', True):
-			g.debug('LOADING DEFAULT TEMPLATEPATHS !!!')
-			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
+		# g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
 
+		# Extend the python module path
 		if getattr(g.paths, 'PYTHONPATH', []):
 			pp = g.paths.PYTHONPATH
-			if not hasattr(pp, '__iter__'): pp = [pp]
+			if not hasattr(pp, '__iter__'):
+				pp = [pp]
 			sys.path.extend(pp)
 
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
 
-		g.log.add_output(['WEB'], emen2.db.debug.Filter(g.paths.LOGPATH + '/access.log', 'a', 0))
-		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(g.paths.LOGPATH + '/security.log', 'a', 0))
+		# Write out WEB and SECURITY messages to dedicated log files
+		g.log.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
+		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
 		g.CONFIG_LOADED = True
 		g.refresh()

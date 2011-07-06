@@ -3,9 +3,6 @@
 	"paths":{
 		// Log directory: access.log, error.log, debug.log (see logging section) 
 		"LOGPATH": "applog",
-		// "JOBFILE": "applog/emen2.pid",
-		// "ERRORLOG":"applog/error.log",
-		// "DEBUGLOG":"applog/debug.log",
 
 		// Berkeley DB Log Archive directory. You will want to carefully back these up.
 		"LOG_ARCHIVE": "log_archive",

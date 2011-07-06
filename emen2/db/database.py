@@ -202,6 +202,7 @@ def ol(name, output=True):
 
 	return wrap
 
+
 def limit_result_length(default=None):
 	ns = dict(func = None)
 	def _inner(*a, **kw):
@@ -222,8 +223,6 @@ def limit_result_length(default=None):
 		result = functools.wraps(default)(_inner)
 
 	return result
-
-
 
 
 def error(e=None, msg='', warning=False):
@@ -443,7 +442,6 @@ class EMEN2DBEnv(object):
 	TILEPATH = g.claim('paths.TILEPATH')
 	TMPPATH = g.claim('paths.TMPPATH')
 	SSLPATH = g.watch('paths.SSLPATH')
-	# HOTBACKUP = g.claim('paths.HOTBACKUP')
 
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
@@ -658,46 +656,6 @@ class EMEN2DBEnv(object):
 			os.unlink(removefile)
 
 		return removefiles
-
-
-	# ian: todo: finish
-	# def coldbackup(self, force=False, ctx=None, txn=None):
-	# 	g.info("Cold Backup: Checkpoint")
-	#
-	# 	self.checkpoint(ctx=ctx, txn=txn)
-	#
-	# 	if os.path.exists(g.paths.BACKUPPATH):
-	# 		if force:
-	# 			pass
-	# 		else:
-	# 			raise ValueError, "Directory %s exists -- remove before starting a new cold backup"%g.paths.BACKUPPATH
-	#
-	# 	# ian: just use shutil.copytree
-	# 	g.info("Cold Backup: Copying data: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data")))
-	# 	shutil.copytree(os.path.join(g.EMEN2DBHOME, "data"), os.path.join(g.paths.BACKUPPATH, "data"))
-	#
-	# 	for i in ["config.yml","DB_CONFIG"]:
-	# 		g.info("Cold Backup: Copying config: %s -> %s"%(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i)))
-	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, i), os.path.join(g.paths.BACKUPPATH, i))
-	#
-	# 	os.makedirs(os.path.join(g.paths.BACKUPPATH, "log"))
-	#
-	# 	# Get the last log file
-	# 	archivelogs = self.dbenv.log_archive(bsddb3.db.DB_ARCH_LOG)[-1:]
-	#
-	# 	for i in archivelogs:
-	# 		g.info("Cold Backup: Copying log: %s -> %s"%(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i)))
-	# 		shutil.copy(os.path.join(g.EMEN2DBHOME, "log", i), os.path.join(g.paths.BACKUPPATH, "log", i))
-	#
-	#
-	# def hotbackup(self, ctx=None, txn=None):
-	# 	g.info("Hot Backup: Checkpoint")
-	# 	self.checkpoint(ctx=ctx, txn=txn)
-	#
-	# 	g.info("Hot Backup: Log Archive")
-	# 	self.archivelogs(remove=True, outpath=g.paths.ARCHIVEPATH, ctx=ctx, txn=txn)
-	#
-	# 	g.info("Hot Backup: You will want to run 'db_recover -c' on the hot backup directory")
 
 
 
@@ -1042,7 +1000,7 @@ class DB(object):
 
 
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
-		"""(Internal and DBProxy) Takes a ctxid key and returns a context.
+		"""(Internal and DBProxy) Takes a ctxid key and returns a Context.
 		Note: The host provided must match the host in the Context
 
 		:param ctxid: ctxid
@@ -1916,6 +1874,7 @@ class DB(object):
 
 		return rendered, c_all
 
+
 	def _make_tables(self, recdefs, rec, builtinparams, builtinparamsshow, markup, ctx, txn):
 		# move built in params to end of table
 		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
@@ -1923,6 +1882,7 @@ class DB(object):
 		par += builtinparamsshow
 		par += [p for p in rec.getparamkeys() if p not in par]
 		return self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
+
 
 	@publicmethod("record.render")
 	@ol('names')
@@ -2121,7 +2081,7 @@ class DB(object):
 	#************************************************************************
 	#*	Start: BDB Methods
 	#*	Most of these methods are just wrappers for the various
-	#* 	DBODB methods.
+	#* 	BDB/BTree methods.
 	#************************************************************************
 	#########################################################################
 
