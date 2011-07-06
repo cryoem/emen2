@@ -100,7 +100,7 @@
 
 	// Load the default templates.
 	// "viewsettings":{
-	//	"TEMPLATEPATHS_DEFAULT":true
+   //    "TEMPLATEPATHS_DEFAULT":true
 	// },
 
 	// Verbose logging

@@ -19,7 +19,7 @@ class ViewLoader(object):
 	routing_table = g.claim('ROUTING', {})
 	redirects = g.claim('REDIRECTS', {})
 	plugindir = g.claim('paths.PLUGINDIR', os.path.join(g.EMEN2DBHOME, 'plugins'))
-	plugins = g.claim('plugins', [])
+	plugins = g.claim('PLUGINS', [])
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None):
 		if pwd[0] not in sys.path:
@@ -52,15 +52,32 @@ class ViewLoader(object):
 	def load_plugins(self):
 		pth = list(reversed(sys.path))
 
+		print self.plugindir
+		print os.path.isdir(self.plugindir)
 		if not os.path.isdir(self.plugindir):
 			return False
 
-		for dir_ in sorted(os.listdir()):
+		for dir_ in reversed(self.plugins):
 			dir_ = os.path.join(self.plugindir, dir_)
+			g.debug ('dir_', dir_)
 			if os.path.isdir(dir_):
-				self.templatepaths.append(os.path.join(dir_, 'templates'))
-				self.viewpaths.append(os.path.join(dir_, 'views'))
-				pth.append(os.path.join(dir_, 'python'))
+				templatedir = os.path.join(dir_, 'templates')
+				viewdir = os.path.join(dir_, 'views')
+				pythondir = os.path.join(dir_, 'python')
+				if os.path.exists(templatedir):
+					g.debug ('templatedir', templatedir)
+					self.templatepaths.insert(-1,templatedir)
+				if os.path.exists(viewdir):
+					g.debug ('viewdir', viewdir)
+					self.viewpaths.insert(-1,viewdir)
+				if os.path.exists(pythondir):
+					g.debug ('pythondir', pythondir)
+					pth.insert(-1,pythondir)
+
+		# so that plugins cannot override built-in modules
+		sys.path = list(reversed(pth))
+		return True
+
 
 	def routes_from_g(self):
 		for key, value in self.routing_table.iteritems():
@@ -71,6 +88,7 @@ class ViewLoader(object):
 
 
 	def load_templates(self, failures=None):
+		print 'templatepaths', list(self.templatepaths)
 		r = reversed(self.templatepaths)
 		emen2.web.templating.get_templates(r, failures=failures)
 

@@ -156,8 +156,8 @@ class DBOptions(optparse.OptionParser):
 			g.paths.VIEWPATHS.append(os.path.join(p, 'views'))
 
 		# Load view and template dirs
-		if g.getattr('TEMPLATEPATHS_DEFAULT', False):
-			# g.error('LOADING DEFAULT TEMPLATEPATHS !!!')
+		if g.getattr('TEMPLATEPATHS_DEFAULT', True):
+			g.debug('LOADING DEFAULT TEMPLATEPATHS !!!')
 			g.paths.TEMPLATEPATHS.append(get_filename('emen2','templates'))
 
 		if getattr(g.paths, 'PYTHONPATH', []):

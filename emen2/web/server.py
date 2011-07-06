@@ -118,6 +118,7 @@ class EMEN2Server(object):
 		import emen2.web.viewloader
 
 		self.viewloader = emen2.web.viewloader.ViewLoader()
+		self.viewloader.load_plugins()
 		self.viewloader.load_templates()
 		self.viewloader.load_views()
 		self.viewloader.load_redirects()

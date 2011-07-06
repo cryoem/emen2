@@ -412,7 +412,7 @@ class dictWrapper(object, UserDict.DictMixin):
 	def __setitem__(self, name, value):
 		if isinstance(value, (str, unicode)):
 			if value.startswith(self.__prefix):
-				del value[len(self.__prefix):]
+				del value[len(self.__prefix)+1:]
 		self.__dict[name] = value
 	def __delitem__(self, name):
 		del self.__dict[name]
@@ -436,7 +436,7 @@ class listWrapper(object):
 	def chopitem(self, item):
 		if isinstance(item, (str, unicode)):
 			if item.startswith(self.__prefix):
-				item = item[len(self.__prefix):]
+				item = item[len(self.__prefix)+1:]
 		return item
 	def __setitem__(self, key, value):
 		value = self.chopitem(value)
