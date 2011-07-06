@@ -41,9 +41,9 @@ def locate(pattern, root=os.curdir):
 	for path, dirs, files in os.walk(os.path.abspath(root)):
 		for filename in fnmatch.filter(files, pattern):
 			yield os.path.join(path, filename)
-			
-			
-			
+
+
+
 
 # from StackOverflow
 # http://stackoverflow.com/questions/1389681
@@ -66,12 +66,12 @@ class GeneratorToFile(object):
 				return chunk
 		self.buf = chunk[size:]
 		print "chunk", chunk
-		return chunk[:size]			
+		return chunk[:size]
 
 
 
-			
-			
-			
+
+
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

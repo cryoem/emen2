@@ -147,6 +147,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Bind other logging methods
 		g.info = functools.partial(g.log.msg, 'INFO')
+		g.init = functools.partial(g.log.msg, 'INIT')
 		g.error = functools.partial(g.log.msg, 'ERROR')
 		g.warn = functools.partial(g.log.msg, 'WARNING')
 		g.debug = functools.partial(g.log.msg, 'DEBUG')
