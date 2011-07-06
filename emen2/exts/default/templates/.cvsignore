@@ -1,0 +1,10 @@
+tmp
+.hg
+.hgignore
+emen2config.py
+_darcs
+shell.expect
+*.pyc
+*.tbz
+.*project
+*.log

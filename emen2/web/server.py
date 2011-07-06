@@ -102,8 +102,8 @@ class EMEN2Server(object):
 		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
 
 		self.resource_loader = ResourceLoader(emen2.web.resources.publicresource.PublicView())
-		self.load_resources()
 		self.load_views()
+		self.load_resources()
 
 
 
@@ -113,14 +113,12 @@ class EMEN2Server(object):
 		import emen2.db.database
 
 		# Load views and templates
-		import emen2.web.views
+		#import emen2.web.views
 		import emen2.web.view
 		import emen2.web.viewloader
 
 		self.viewloader = emen2.web.viewloader.ViewLoader()
 		self.viewloader.load_plugins()
-		self.viewloader.load_templates()
-		self.viewloader.load_views()
 		self.viewloader.load_redirects()
 		self.viewloader.routes_from_g()
 

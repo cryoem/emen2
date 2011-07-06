@@ -261,6 +261,11 @@ class MakoTemplateEngine(StandardTemplateEngine):
 				return self.render_template('/errors/error', ctxt)
 
 
+def chomp(st, len_):
+	if len(st) > len_:
+		st = st[-(len_-3):]
+		st = ''.join(['...', st])
+	return st
 
 #### template loading
 def template_callback(pwd, pth, mtch, name, ext, failures=None):
@@ -286,7 +291,7 @@ def template_callback(pwd, pth, mtch, name, ext, failures=None):
 	else:
 		msg[0] += 'LOADED'
 
-	msg.append(filpath+ext)
+	msg.append(chomp(filpath+ext, 60))
 	g.log.msg(level, ': '.join(msg))
 
 

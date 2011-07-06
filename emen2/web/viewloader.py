@@ -1,4 +1,5 @@
 # $Id$
+import collections
 import os
 import os.path
 import sys
@@ -9,69 +10,88 @@ import emen2.web.templating
 import emen2.web.resources.publicresource
 
 import emen2.db.config
-g = emen2.db.config.g()
+config = emen2.db.config.g()
 
 
+default_plugins = emen2.db.config.get_filename('emen2.web', 'plugins')
 class ViewLoader(object):
-	templates = g.claim('templates')
-	templatepaths = g.claim('paths.TEMPLATEPATHS', [])
-	viewpaths = g.claim('paths.VIEWPATHS', [])
-	routing_table = g.claim('ROUTING', {})
-	redirects = g.claim('REDIRECTS', {})
-	plugindir = g.claim('paths.PLUGINDIR', os.path.join(g.EMEN2DBHOME, 'plugins'))
-	plugins = g.claim('PLUGINS', [])
+	routing_table = config.claim('ROUTING', {})
+	redirects = config.claim('REDIRECTS', {})
+	pluginpaths = config.claim('paths.PLUGINPATHS', [default_plugins, os.path.join(config.EMEN2DBHOME, 'plugins')])
+	plugins = config.claim('PLUGINS',
+		[dirent for dirent in os.listdir(default_plugins)
+			if os.path.isdir(dirent) and dirent != 'CVS'
+		]
+	)
 
-	def view_callback(self, pwd, pth, mtch, name, ext, failures=None):
-		if pwd[0] not in sys.path:
-			sys.path.append(pwd[0])
+	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, plugin_name=None):
+		if name == '__init__': return
+		modulename = '.'.join([plugin_name, 'views', name])
+
 		if not hasattr(failures, 'append'):
 			failures = []
-		assert ext == mtch#:
+
+		assert ext == mtch
+
 		filpath = os.path.join(pwd[0], name)
 		data = emen2.util.fileops.openreadclose(filpath+ext)
 		viewname = os.path.join(pwd[0], name).replace(pth,'')
 		level = 'DEBUG'
 		msg = ["VIEW", "LOADED:"]
 		try:
-			__import__(name)
+			__import__(modulename)
 		except BaseException, e:
-			g.info(e)
+			config.info(e)
 			level = 'ERROR'
 			msg[1] = "FAILED:"
 			failures.append(viewname)
-			g.log.print_exception()
+			config.log.print_exception()
 
 		msg.append(filpath+ext)
-		g.log.msg(level, ' '.join(msg))
+		config.log.msg(level, ' '.join(msg))
 
 
 	def __init__(self):
-		self.get_views = emen2.util.fileops.walk_paths('.py', self.view_callback)
+		if 'default' not in self.plugins:
+			self.plugins.insert(0,'default')
+		if default_plugins not in self.pluginpaths:
+			self.pluginpaths.insert(0,default_plugins)
+
+		config.debug( self.pluginpaths )
+		config.debug( self.plugins )
+		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
 		self.router = emen2.web.routing.URLRegistry()
 
 	def load_plugins(self):
 		pth = list(reversed(sys.path))
 
-		print self.plugindir
-		print os.path.isdir(self.plugindir)
-		if not os.path.isdir(self.plugindir):
-			return False
+		pluginpaths = collections.defaultdict(list)
+		for pluginpath in self.pluginpaths:
+			if os.path.isdir(pluginpath):
+				for dirent in os.listdir(pluginpath):
+					dirpath = os.path.join(pluginpath, dirent)
+					if os.path.isdir(dirpath):
+						pluginpaths[dirent].append(dirpath)
 
-		for dir_ in reversed(self.plugins):
-			dir_ = os.path.join(self.plugindir, dir_)
-			g.debug ('dir_', dir_)
-			if os.path.isdir(dir_):
-				templatedir = os.path.join(dir_, 'templates')
-				viewdir = os.path.join(dir_, 'views')
-				pythondir = os.path.join(dir_, 'python')
+		for plugin in self.plugins:
+			plugindir = pluginpaths.pop(plugin, [])
+			if plugindir != []:
+				plugindir = plugindir.pop()
+				config.init('loading plugin %s from %s' % (plugin, plugindir))
+
+				templatedir = os.path.join(plugindir, 'templates')
 				if os.path.exists(templatedir):
-					g.debug ('templatedir', templatedir)
-					self.templatepaths.insert(-1,templatedir)
+					self.load_templates(templatedir)
+
+				viewdir = os.path.join(plugindir, 'views')
 				if os.path.exists(viewdir):
-					g.debug ('viewdir', viewdir)
-					self.viewpaths.insert(-1,viewdir)
+					old_syspath = sys.path[:]
+					sys.path.append(os.path.dirname(plugindir))
+					self.get_views(viewdir, plugin_name = plugin)
+					sys.path = old_syspath
+
+				pythondir = os.path.join(plugindir, 'python')
 				if os.path.exists(pythondir):
-					g.debug ('pythondir', pythondir)
 					pth.insert(-1,pythondir)
 
 		# so that plugins cannot override built-in modules
@@ -87,15 +107,9 @@ class ViewLoader(object):
 					view.add_matcher(name, regex, view.get_callback('main'))
 
 
-	def load_templates(self, failures=None):
-		print 'templatepaths', list(self.templatepaths)
-		r = reversed(self.templatepaths)
-		emen2.web.templating.get_templates(r, failures=failures)
-
-
-	def load_views(self, failures=None):
-		self.get_views(self.viewpaths)
-
+	def load_templates(self, path, failures=None):
+		template_loader = emen2.util.fileops.walk_path('.mako', emen2.web.templating.template_callback)
+		template_loader(path, failures=failures)
 
 
 	def load_redirects(self):
@@ -130,7 +144,7 @@ class _LaunchConsole(emen2.web.view.View):
 		emen2.web.view.View.__init__(self, db=db, **kwargs)
 		self.set_context_item('title', '')
 		if db.checkadmin():
-			g.logger.interact(globals())
+			config.logger.interact(globals())
 			self.page = 'done'
 		else:
 			self.page = 'fail'
