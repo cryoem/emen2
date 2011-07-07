@@ -15,6 +15,10 @@ URLMAP = {
 	"2.0rc6": "software_114"
 }
 
+import os.path
+def prefix(pref, strs):
+	return [os.path.join(pref, name) for name in strs]
+
 if __name__ == "__main__":
 	setup(
 		name='emen2',
@@ -33,7 +37,8 @@ if __name__ == "__main__":
 			'emen2.util',
 			],
 		package_data={
-			'emen2': ['templates/*.mako', 'templates/.*', 'templates/*/*.mako', 'templates/*/*/*.mako', 'static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
+			'emen2': prefix('web/plugins/templates', ['*.mako', '*/*.mako', '*/*/*.mako']) + prefix('web/static', ['*.*', '*/*.*', '*/*/*.*', '*/*/*/*.*']
+			'emen2': ['web/plugins/templates/*.mako', 'web/plugins/templates/.*', 'web/plugins/templates/*/*.mako', 'web/plugins/templates/*/*/*.mako', 'web/static/*.*', 'web/static/*/*.*', 'web/static/*/*/*.*', 'web/static/*/*/*/*.*'],
 			'emen2.db': ['config.base.json', 'skeleton.json'],
 		},
 		scripts=['scripts/emen2control.py']
