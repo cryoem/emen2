@@ -6,9 +6,6 @@ import thread
 import os.path
 import atexit
 import multiprocessing
-# from twisted.internet import reactor
-# from twisted.web import static, server
-# from twisted.web.resource import Resource
 import twisted.internet
 import twisted.web
 
@@ -133,18 +130,18 @@ class EMEN2Server(object):
 				config.error('failed to attach resource %r to path %r' % (mod, path))
 				if config.DEBUG:
 					config.log.print_exception()
-
+					
 		self.resource_loader.add_resources(
-			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')),
+			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
 			download = emen2.web.resources.downloadresource.DownloadResource(),
 			upload = emen2.web.resources.uploadresource.UploadResource(),
 			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
 			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
 			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
 		)
-		self.resource_loader.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static')))
-		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/favicon.ico')))
-		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'static/robots.txt')))
+		self.resource_loader.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
+		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 
 
 	def interact(self):

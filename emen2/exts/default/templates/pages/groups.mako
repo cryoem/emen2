@@ -60,8 +60,7 @@ for k,v in d.items():
 			
 			<div>
 			<a href="${EMEN2WEBROOT}/group/${group.name}/">
-			${group.get('displayname', group.name)}<br />
-			${group.name}
+			${group.get('displayname', group.name)}
 			</a>
 			</div>
 			

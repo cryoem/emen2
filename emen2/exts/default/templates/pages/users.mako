@@ -67,8 +67,11 @@ for k,v in d.items():
 			
 			<div>
 			<a href="${EMEN2WEBROOT}/user/${user.name}/">
-			${user.displayname}<br />
-			${user.email}
+			${user.displayname}
+			% if user.email and user.email != 'None':
+				<br />
+				${user.email}
+			% endif
 			</a>
 			</div>
 			
