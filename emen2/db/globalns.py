@@ -156,7 +156,15 @@ class GlobalNamespace(object):
 		cls.__locked = False
 
 
-	def __init__(self,_=None): pass
+	def __init__(self,_=None):
+		# Bind other logging methods
+		self.info = lambda *a, **k: self.log.msg('INFO', *a, **k)
+		self.init = lambda *a, **k: self.log.msg('INIT', *a, **k)
+		self.error = lambda *a, **k: self.log.msg('ERROR', *a, **k)
+		self.warn = lambda *a, **k: self.log.msg('WARNING', *a, **k)
+		self.debug = lambda *a, **k: self.log.msg('DEBUG', *a, **k)
+
+
 
 	@classmethod
 	def load_data(cls, fn, data):
@@ -225,7 +233,7 @@ class GlobalNamespace(object):
 			for key in data:
 				b = data[key]
 				pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
-				options = b.pop('options', {})     # get options for the dictionary
+				options = b.pop('options', {})	  # get options for the dictionary
 				self.__yaml_files[fn].append(key)
 
 				for key2, value in b.iteritems():
@@ -234,9 +242,9 @@ class GlobalNamespace(object):
 
 			# load alternate config files
 			# for fn in self.paths.CONFIGFILES:
-			# 	fn = os.path.abspath(fn)
-			# 	if os.path.exists(fn):
-			# 		cls.from_file(fn=fn)
+			#	fn = os.path.abspath(fn)
+			#	if os.path.exists(fn):
+			#		cls.from_file(fn=fn)
 
 		return self
 

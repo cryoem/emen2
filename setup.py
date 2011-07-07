@@ -33,12 +33,14 @@ if __name__ == "__main__":
 			'emen2.db',
 			'emen2.web',
 			'emen2.web.resources',
-			'emen2.web.views',
+			'emen2.web.plugins',
+			'emen2.web.plugins.default',
+			'emen2.web.plugins.default.views',
 			'emen2.util',
 			],
 		package_data={
-			'emen2': prefix('web/plugins/templates', ['*.mako', '*/*.mako', '*/*/*.mako']) + prefix('web/static', ['*.*', '*/*.*', '*/*/*.*', '*/*/*/*.*']
-			'emen2': ['web/plugins/templates/*.mako', 'web/plugins/templates/.*', 'web/plugins/templates/*/*.mako', 'web/plugins/templates/*/*/*.mako', 'web/static/*.*', 'web/static/*/*.*', 'web/static/*/*/*.*', 'web/static/*/*/*/*.*'],
+			'emen2': prefix('web/plugins/default/templates', ['*.mako', '*/*.mako', '*/*/*.mako']) + prefix('web/static', ['*.*', '*/*.*', '*/*/*.*', '*/*/*/*.*']),
+			#'emen2': ['web/plugins/templates/*.mako', 'web/plugins/templates/.*', 'web/plugins/templates/*/*.mako', 'web/plugins/templates/*/*/*.mako', 'web/static/*.*', 'web/static/*/*.*', 'web/static/*/*/*.*', 'web/static/*/*/*/*.*'],
 			'emen2.db': ['config.base.json', 'skeleton.json'],
 		},
 		scripts=['scripts/emen2control.py']
