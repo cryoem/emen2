@@ -41,11 +41,12 @@
 
 	// Web-server related settings
 	"network":{
-		
-		// Number of web server threads to run
 		// "EMEN2EXTURI": "",
 
+		// Number of web server threads to run
 		"NUMTHREADS": 5,
+
+		// Regular HTTP port
 		"EMEN2PORT": 8080,
 
 		// HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
@@ -72,7 +73,6 @@
 
 	// Some basic settings and interface strings
 	"customization":{
-
 		// Short string for database identification. This shows up several places in the UI
 		// "EMEN2DBNAME": "EMEN2",
 
@@ -95,11 +95,6 @@
 		}
 	},
 
-	// Load the default templates.
-	// "viewsettings":{
-   //    "TEMPLATEPATHS_DEFAULT":true
-	// },
-
 	// Verbose logging
 	"logging":{
 		"DEBUG":false,
@@ -116,5 +111,3 @@
 		"CONVERTPATH":"convert"
 	}
 }
-
-
