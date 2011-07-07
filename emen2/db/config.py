@@ -100,17 +100,18 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config_force(self, g, **kw):
-		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
-		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
 
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
 		g.from_file(default_config)
-		
-		# Load other specified config files
-		#for fil in self.values.configfile:
-		#	g.from_file(fil)
 
+		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
+		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
+		# Load other specified config files
+		for fil in self.values.configfile:
+			g.from_file(fil)
+
+		print g.EMEN2DBHOME
 		# Load any config file in EMEN2DBHOME
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.json"))
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.yml"))

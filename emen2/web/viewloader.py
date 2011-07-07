@@ -77,7 +77,7 @@ class ViewLoader(object):
 			plugindir = pluginpaths.pop(plugin, [])
 			if plugindir != []:
 				plugindir = plugindir.pop()
-				config.init('loading plugin %s from %s' % (plugin, plugindir))
+				config.info('Loading plugin %s from %s' % (plugin, plugindir))
 
 				templatedir = os.path.join(plugindir, 'templates')
 				if os.path.exists(templatedir):
