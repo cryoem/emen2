@@ -7,7 +7,9 @@ import os.path
 import atexit
 import multiprocessing
 import twisted.internet
-import twisted.web
+import twisted.web.static
+import twisted.web.server
+import twisted.internet.reactor
 
 
 try:
