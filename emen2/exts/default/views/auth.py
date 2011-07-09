@@ -11,6 +11,7 @@ from emen2.web.view import View
 class Auth(View):
 
 	@View.add_matcher(r'^/auth/login/$')
+	@View.provides('auth_login')
 	def login(self, name=None, pw=None, msg='', errmsg='', location=None, **kwargs):
 		self.template = '/pages/auth.login'
 		self.title = 'Login'
@@ -38,6 +39,7 @@ class Auth(View):
 
 
 	@View.add_matcher(r'^/auth/logout/$')
+	@View.provides('auth_logout')
 	def logout(self, msg='', location=None, **kwargs):
 		self.template = '/pages/auth.login'
 		self.title = 'Logout'
@@ -69,9 +71,9 @@ class Auth(View):
 		self.title = "Password Change"
 		# location = location or g.EMEN2WEBROOT
 		# if 'auth' in location or not location:
-		# 	location = g.EMEN2WEBROOT			
+		# 	location = g.EMEN2WEBROOT
 		self.ctxt['location'] = location
-		
+
 		name = kwargs.pop("name",None) or self.db.checkcontext()[0]
 		opw = kwargs.pop("opw",None)
 		on1 = kwargs.pop("on1",None)
@@ -81,7 +83,7 @@ class Auth(View):
 		errmsg = ''
 
 		self.ctxt['name'] = name
-		
+
 		if not on1 and not on2:
 			pass
 
@@ -141,7 +143,7 @@ class Auth(View):
 		self.template = '/pages/auth.email.change'
 		self.title = "Change Email"
 		self.ctxt['location'] = location
-		
+
 		name = kwargs.get("name") or self.db.checkcontext()[0]
 		opw = kwargs.get('opw', None)
 		email = kwargs.get('email', None)

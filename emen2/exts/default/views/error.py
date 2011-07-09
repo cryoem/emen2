@@ -10,6 +10,7 @@ from emen2.web.view import View
 @View.register
 class Error(View):
 	@View.add_matcher('/error/')
+	@View.provides('error_handler')
 	def error(self, errmsg='', location='/', **kwargs):
 		self.template = '/errors/error'
 		self.title = 'Error'

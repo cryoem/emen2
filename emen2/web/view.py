@@ -411,6 +411,23 @@ class _View(object):
 		return cls
 
 
+	slots = collections.defaultdict(list)
+	@classmethod
+	def provides(cls, slot):
+		def _inner(view):
+			cls.slots[slot].append(functools.partial(cls, init=view))
+			return view
+		return _inner
+
+	@classmethod
+	def require(cls, slot):
+		if slot in cls.slots:
+			return cls.slots[slot][-1]
+		else:
+			raise ValueError, "No such slot"
+
+
+
 class View(_View):
 	'''Contains DB specific view code'''
 

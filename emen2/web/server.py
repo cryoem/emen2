@@ -132,7 +132,7 @@ class EMEN2Server(object):
 				config.error('failed to attach resource %r to path %r' % (mod, path))
 				if config.DEBUG:
 					config.log.print_exception()
-					
+
 		self.resource_loader.add_resources(
 			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
 			download = emen2.web.resources.downloadresource.DownloadResource(),
