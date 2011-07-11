@@ -29,6 +29,9 @@
 </%def>
 
 
+## Relationship Map
+<%def name="precontent()"></%def>
+
 #################
 ## Page
 <%def name="footer()">
@@ -39,21 +42,6 @@
 ## Alerts and notifications
 <%def name="alert()">
 	<ul id="alert" class="alert nonlist precontent"></ul>
-</%def>
-
-
-## Relationship Map
-<%def name="relmap()">
-	% if pages_map:
-		<div class="precontent">
-			${buttons.pages(pages_map)}
-			<script type="text/javascript">
-				$(document).ready(function() {
-					$('#page_map_parents .e2-map').RelationshipControl({'attach':true});
-				});
-			</script>
-		</div>
-	% endif
 </%def>
 
 
@@ -108,18 +96,6 @@
 
 <body>
 
-	<%self:header />
-
-	<%self:alert />
-
-	<%self:relmap />
-
-	<%self:tabs />
-
-	<div id="content">
-		${next.body()}
-	</div>
-
-	<%self:footer />
+	${next.body()}
 
 </body></html>

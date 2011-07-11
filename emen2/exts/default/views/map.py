@@ -6,8 +6,6 @@ import emen2.db.config
 g = emen2.db.config.g()
 from emen2.web.view import View
 
-
-
 def dfs(root, tree, recurse=1):
 	def inner(stack, children, depth=0):
 		if recurse > 0 and depth >= recurse:
@@ -31,7 +29,7 @@ class Map(View):
 	def sitemap(self, root=0, recurse=1, *args, **kwargs):
 		self.template = '/pages/sitemap'
 		self.title = 'Sitemap: %s'%root
-		childmap = emen2.web.views.map.Map(mode="children", root=root, db=self.db, recurse=int(recurse))
+		childmap = Map(mode="children", root=root, db=self.db, recurse=int(recurse))
 		self.ctxt['childmap'] = childmap.get_data()
 		self.ctxt['root'] = root
 
@@ -84,7 +82,6 @@ class Map(View):
 			for rd in rds:
 				recnames[rd.name] = rd.desc_short
 
-
 		self.set_context_item('mode',self.mode)
 		self.set_context_item('root',self.root)
 		self.set_context_item('tree',self.tree)
@@ -93,7 +90,5 @@ class Map(View):
 		self.set_context_item('keytype',keytype)
 		self.set_context_item('parents',parents)
 		self.set_context_item('expandable',expandable)
-
-
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

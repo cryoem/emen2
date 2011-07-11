@@ -30,5 +30,4 @@
 	
 </%def>
 
-
 ${traverse(tree, root, recnames, recurse, mode=mode, keytype=keytype, expandable=expandable)}

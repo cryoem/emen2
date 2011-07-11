@@ -5,7 +5,7 @@ g = emen2.db.config.g()
 from emen2.web.view import View
 
 import emen2.web.markuputils
-
+from map import Map
 
 
 class RecordDef(View):
@@ -57,7 +57,7 @@ class RecordDef(View):
 
 		###############
 
-		parentmap = emen2.web.views.map.Map(mode=mapmode, keytype="recorddef", root=self.name, recurse=-1, db=self.db)
+		parentmap = Map(mode=mapmode, keytype="recorddef", root=self.name, recurse=-1, db=self.db)
 		parentmap_ctxt = parentmap.get_context()
 
 		###############
@@ -166,7 +166,7 @@ class RecordDefs(View):
 		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
-		childmap = emen2.web.views.map.Map(mode="children", keytype="recorddef", root="root", recurse=-1, db=self.db)
+		childmap = Map(mode="children", keytype="recorddef", root="root", recurse=-1, db=self.db)
 
 		count = {}
 		if action != 'tree':

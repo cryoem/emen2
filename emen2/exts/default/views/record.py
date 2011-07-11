@@ -7,13 +7,10 @@ import emen2.db.config
 g = emen2.db.config.g()
 from emen2.web.view import View
 
-
-#import emen2.web.views.map
-import default.views.map
-import emen2.web.markuputils
 import emen2.util.listops as listops
 import emen2.web.responsecodes
 
+from map import Map
 
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
@@ -65,11 +62,10 @@ class RecordBase(View):
 
 		# Parent Map
 		if parents:
-			parentmap = default.views.map.Map(mode="parents", keytype="record", recurse=3, root=self.name, db=self.db, expandable=False)
+			parentmap = Map(mode="parents", keytype="record", recurse=3, root=self.name, db=self.db, expandable=False)
 			parentmap_ctxt = parentmap.get_context()
 			# renderedrecname = parentmap_ctxt.get("recnames",{}).get(self.name,self.name)
 			parents = parentmap_ctxt.get("results",{}).get(self.name,[])
-
 			pages_map = {
 				'classname':'map',
 				'content':{'parents':parentmap, 'children': 'Loading...'},
@@ -77,7 +73,6 @@ class RecordBase(View):
 				'order':['parents','children'],
 				'labels':{'parents':'Parents','children':'Children'}
 			}
-			pages_map = emen2.web.markuputils.HTMLTab(pages_map)
 
 		else:
 			pages_map = None
@@ -102,10 +97,10 @@ class RecordBase(View):
 				pages["labels"][k] = "%s (%s)"%(k,len(v))
 				pages["content"][k] = ""
 				pages["href"][k] = self.dbtree.reverse('Record/children', name=self.name, childtype=k)
+
 			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
 			pages = None
-
 
 		# Update context
 		self.update_context(
@@ -151,27 +146,13 @@ class Record(RecordBase):
 		# Render main view
 		rendered = self.db.renderview(self.rec, viewtype=viewtype, edit=self.rec.writable())
 
-		historycount = len(self.rec.get('history',[]))
-		historycount += len(filter(lambda x:x[2].startswith("LOG:"), self.rec.get('comments',[])))
-
-		pages_comments = {
-			'classname':"comments",
-			'switched':1,
-			'content':{"comments":"","history":"Loading..."},
-			'labels':{"comments":"Comments","history":"History (%s changes)"%(historycount)},
-			'order':["comments","history"],
-		}
-		pages_comments = emen2.web.markuputils.HTMLTab(pages_comments)
-
 		#######################################
 
 		self.update_context(
 			viewtype = viewtype,
 			rendered = rendered,
 			sibling = sibling,
-			siblings = sorted(siblings),
-			pages_comments = pages_comments,
-			historycount = historycount
+			siblings = sorted(siblings)
 		)
 
 
@@ -327,7 +308,7 @@ class Record(RecordBase):
 		self.title = 'Publish Records'
 
 		status = self.db.getindexbypermissions(groups=["publish"])
-		childmap_view = default.views.map.Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
+		childmap_view = Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
 		childmap = childmap_view.get_data()
 
 		# print status

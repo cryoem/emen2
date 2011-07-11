@@ -7,6 +7,8 @@ from emen2.web.view import View
 
 import emen2.web.markuputils
 
+from map import Map
+
 
 class ParamDef(View):
 	__metaclass__ = View.register_view
@@ -54,7 +56,7 @@ class ParamDef(View):
 
 		###############
 
-		parentmap = emen2.web.views.map.Map(mode=mapmode, keytype="paramdef", root=self.name, recurse=-1, db=self.db)
+		parentmap = Map(mode=mapmode, keytype="paramdef", root=self.name, recurse=-1, db=self.db)
 		parentmap_ctxt = parentmap.get_context()
 
 		###############
@@ -144,7 +146,7 @@ class ParamDefs(View):
 		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
-		childmap = emen2.web.views.map.Map(mode="children", keytype="paramdef", root="root", db=self.db, recurse=-1)
+		childmap = Map(mode="children", keytype="paramdef", root="root", db=self.db, recurse=-1)
 
 		self.set_context_item('q',q)
 		self.set_context_item("paramdefs",paramdefs)

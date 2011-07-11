@@ -8,11 +8,6 @@ g = emen2.db.config.g()
 from emen2.web.view import View
 
 import emen2.db.exceptions
-#import emen2.web.views.map
-import default.views.map
-
-
-
 
 
 @View.register
@@ -59,9 +54,6 @@ class Home(View):
 			self.set_context_item("banner", banner)
 			self.set_context_item("render_banner", render_banner)
 
-
-			#bannermap_view = default.views.map.Map(mode="children", keytype="record", root=1, db=self.db)
-			#bannermap = bannermap_view.get_data()
 			bannermap = ''
 			self.set_context_item("bannermap", bannermap)
 

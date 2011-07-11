@@ -3,7 +3,6 @@
 <%import jsonrpc.jsonutil %>
 
 ## Additional alerts
-
 <%def name="alert()">
 	<ul id="alert" class="alert nonlist precontent">
 	% if rec.get('deleted'):
@@ -21,6 +20,7 @@
 </%def>
 
 
+## Remove the #content padding; pad the inner div #rendered
 <%def name="extrastyle()">
 #content {
 	padding:0px;
@@ -31,12 +31,20 @@
 </%def>
 
 
-## Init script
+## Relationship Map
+<%def name="precontent()">
+	<div id="map" class="precontent">
+		Test
+	</div>
+</%def>
 
+
+## Init script
 <script type="text/javascript">
 //<![CDATA[
 	caches['recnames'][${rec.name}] = ${jsonrpc.jsonutil.encode(renderedrecname)};
 	caches['displaynames'] = ${jsonrpc.jsonutil.encode(displaynames)};
+	$('#map .e2-map').RelationshipControl({'attach':true});
 //]]>
 </script>
 

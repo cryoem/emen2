@@ -108,7 +108,7 @@ class DBOptions(optparse.OptionParser):
 		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
 		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
 		# Load other specified config files
-		for fil in self.values.configfile:
+		for fil in self.values.configfile or []:
 			g.from_file(fil)
 
 		print g.EMEN2DBHOME
