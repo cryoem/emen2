@@ -9,8 +9,8 @@
 		<li><a href="${EMEN2WEBROOT}/">Home <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
-				<li><a href="${ctxt.reverse('Record/children', BOOKMARKS.get('PROJECTS',1), 'project')}">Projects</a></li>
-				<li><a href="${EMEN2WEBROOT}/record/${BOOKMARKS.get('EQUIPMENT',1)}/children/folder/">Equipment</a></li>
+				<!-- <li><a href="${ctxt.reverse('Record/children', BOOKMARKS.get('PROJECTS',1), 'project')}">Projects</a></li>
+				<li><a href="${EMEN2WEBROOT}/record/${BOOKMARKS.get('EQUIPMENT',1)}/children/folder/">Equipment</a></li> -->
 				<li class="divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
 				<li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
 				<li class="divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>

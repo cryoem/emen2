@@ -363,7 +363,7 @@ function notify(msg, fade, error) {
 				return
 			}
 			//this.built_bookmarks = 1;
-			
+						
 			var self = this;
 			var bookmarks = [];
 			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {

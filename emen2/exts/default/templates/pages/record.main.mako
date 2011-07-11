@@ -139,7 +139,7 @@
 	</li>
 
 	<li>
-		<span class="clickable label" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="^" /></span>
+		<span class="clickable label" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 	</li>
 
 
@@ -150,17 +150,17 @@
 		%>
 	
 		<li id="e2-editbar-record-siblings" class="floatright" data-sibling="${sibling}">
-				## % if pos > 0:
-				##	<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos-1]}/?sibling=${sibling}">&lsaquo;</a> 
-				## % endif
+				% if pos > 0:
+					<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos-1]}/?sibling=${sibling}">&laquo;</a> 
+				% endif
 
 				<span class="clickable label">
-					${pos+1} of ${len(siblings)}
+				${pos+1} of ${len(siblings)}
 				</span>
 
-				## % if pos+1 < len(siblings):
-				##	<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos+1]}/?sibling=${sibling}">&rsaquo;</a> 
-				## % endif
+				% if pos+1 < len(siblings):
+					<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos+1]}/?sibling=${sibling}">&raquo;</a> 
+				% endif
 		</li>
 
 	% endif
@@ -175,7 +175,7 @@
 			
 			<span id="e2-record-historycount">
 			% if historycount:
-			 	(${historycount} changes)
+			 	(${historycount} edits)
 			% endif
 			</span>
 			

@@ -5,6 +5,8 @@ g = emen2.db.config.g()
 from emen2.web.view import View
 ###
 
+import random
+import time
 
 @View.register
 class Groups(View):
@@ -33,7 +35,6 @@ class Groups(View):
 @View.register
 class Group(View):
 
-
 	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/$')
 	def main(self, groupname=None):
 		group = self.db.getgroup(groupname)
@@ -53,24 +54,21 @@ class Group(View):
 		self.set_context_item("edit",True)
 
 
-
 	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/new/$', r'^/groups/new/$')
 	def new(self, groupname=None):
-
-
 		admin = self.db.checkadmin()
-
 		if groupname:
 			group = self.db.getgroup(groupname)
 		else:
-			group = self.db.newgroup()
+			# We have to supply a group name.. just use a random string.
+			group = self.db.newgroup('newgroup%s'%int(time.time()))
 
 		group.name = "None"
-
 		self.set_context_item("admin",admin)
 		self.set_context_item("edit",True)
 		self.title = "New Group"
 		self.set_context_item("group",group)
 		self.set_context_item("new",True)
 		self.template = "/pages/group"
+		
 __version__ = "$Revision$".split(":")[1][:-1].strip()

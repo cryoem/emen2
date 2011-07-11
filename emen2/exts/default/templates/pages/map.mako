@@ -9,7 +9,7 @@
 						<a data-key="${child}" href="${EMEN2WEBROOT}/${keytype}/${child}/">${recnames.get(child) or child}</a>					
 					% endif
 					
-					% if tree.get(child) and (depth <= recurse or recurse<0):
+					% if tree.get(child) and (depth <= recurse or recurse < 0):
 						% if expandable:
 							<img class="e2-map-expand e2-map-expanded" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-close.${mode}.png" />
 						% endif
@@ -25,7 +25,7 @@
 	</%def>
 	
 	<div class="e2-map e2-map-${mode} clearfix" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}">
-		${inner(None, tree.get(None), depth=1)}
+		${inner(None, tree.get(None, [root]), depth=1)}
 	</div>
 	
 </%def>

@@ -1588,8 +1588,6 @@ class DB(object):
 		rets = []
 		# This can still be done much better
 		names, items = zip(*self.bdbs.keytypes[keytype].items(ctx=ctx, txn=txn))
-		#names = zip(*self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn))
-		#items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
 
 		query = unicode(query or '').split()
@@ -1598,7 +1596,7 @@ class DB(object):
 			# Search some text-y fields
 			for param in ['name', 'desc_short', 'desc_long', 'mainview']:
 				for item in items:
-					if q in item.get(param, ''):
+					if q in (item.get(param) or ''):
 						ret.add(item.name)
 			rets.append(ret)
 
@@ -2608,7 +2606,7 @@ class DB(object):
 		:param items: Group(s)
 		:return: Updated Group(s)
 		"""
-		return self.bdbs.groups.cputs(items, ctx=ctx, txn=txn)
+		return self.bdbs.group.cputs(items, ctx=ctx, txn=txn)
 
 
 

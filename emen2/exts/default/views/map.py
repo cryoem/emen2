@@ -10,14 +10,13 @@ def dfs(root, tree, recurse=1):
 	def inner(stack, children, depth=0):
 		if recurse > 0 and depth >= recurse:
 			return
-
 		for child in children:
 			newchildren = tree.get(child, set())
 			stack |= newchildren
 			inner(stack, newchildren, depth=depth+1)
 
 	stack = set()
-	inner(stack, tree.get(None))
+	inner(stack, tree.get(None, [root]))
 	return stack
 
 

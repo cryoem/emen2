@@ -1,5 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
+<%namespace name="relmap" file="/pages/map"  /> 
 <%import jsonrpc.jsonutil %>
 
 ## Additional alerts
@@ -34,7 +35,7 @@
 ## Relationship Map
 <%def name="precontent()">
 	<div id="map" class="precontent">
-		Test
+		${relmap.traverse(tree=parentmap, root=rec.name, recurse=3, recnames=recnames, mode='parents')}		
 	</div>
 </%def>
 
@@ -42,7 +43,7 @@
 ## Init script
 <script type="text/javascript">
 //<![CDATA[
-	caches['recnames'][${rec.name}] = ${jsonrpc.jsonutil.encode(renderedrecname)};
+	caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
 	caches['displaynames'] = ${jsonrpc.jsonutil.encode(displaynames)};
 	$('#map .e2-map').RelationshipControl({'attach':true});
 //]]>

@@ -175,15 +175,15 @@
 		<input type="hidden" name="location" value="${ctxt.reverse('User/save', name=user.name)}" />
 		<input type="hidden" name="name" value="${user.name or ''}" />
 
-		<span class="formlabel">Current Password:</span>
+		<span class="formlabel">Current password:</span>
 		<input type="password" name="opw" />
 		<br />
 
-		<span class="formlabel">New Password:</span>
+		<span class="formlabel">New password:</span>
 		<input type="password" name="on1" />
 		<br />
 
-		<span class="formlabel">Confirm New:</span>
+		<span class="formlabel">Confirm new password:</span>
 		<input type="password" name="on2" />
 
 		<div class="controls save" id="ext_save">

@@ -27,8 +27,7 @@ import jsonrpc.jsonutil
 			var g = caches['groups'][${jsonrpc.jsonutil.encode(group.name)}];
 			g["permissions"] = $('#group_members').PermissionControl('getusers');
 			g["displayname"] = $('input[name=group_displayname]').val();
-			g["name"] = $('input[name=group_name]').val();
-			
+			g["name"] = $('input[name=group_name]').val();			
 			$.jsonRPC("putgroup", [g], function(group) {
 				//notify_post(EMEN2WEBROOT+'/group/'+group.name, []);
 				window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
@@ -44,7 +43,13 @@ import jsonrpc.jsonutil
 
 
 <h1>
-	${group.get('displayname')} (${group.name})
+	
+	% if new:
+		New Group
+	% else:
+		${group.get('displayname')} (${group.name})
+	% endif
+
 	% if admin and not edit:
 		<span class="label"><a href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
@@ -75,7 +80,9 @@ import jsonrpc.jsonutil
 		<tr>
 			<td>Display Name:</td>
 
-			% if edit or new:
+			% if new:
+				<td><input type="text" name="group_displayname" value="" /></td>			
+			% elif edit:
 				<td><input type="text" name="group_displayname" value="${group.displayname}" /></td>
 			% else:
 				<td>${group.displayname}</td>		

@@ -10,7 +10,7 @@ from emen2.web.view import View
 import emen2.util.listops as listops
 import emen2.web.responsecodes
 
-from map import Map
+from map import Map, dfs
 
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
@@ -22,16 +22,18 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 class RecordBase(View):
 	def _init(self, name=None, children=True, parents=True, notify=None):
 		"""Main record rendering."""
-
 		self.name = int(name)
+		recnames = {}
+		displaynames = {}
 
+		####
+		# Get record..
 		try:
 			self.rec = self.db.getrecord(self.name, filt=False)
 		except (KeyError, TypeError), inst:
 			raise RecordNotFoundError, name
-			#self.error("Could not access record %s"%name)
 
-
+		####
 		# Get bookmarks..
 		bookmarks = []
 		user = None
@@ -46,52 +48,38 @@ class RecordBase(View):
 
 		self.ctxt['bookmarks'] = bookmarks
 
-
+		####
+		# Get RecordDef
 		self.recdef = self.db.getrecorddef(self.rec.rectype)
-		renderedrecname = self.db.renderview(self.rec) or "%s: %s"%(self.rec.rectype, self.rec.name)
 
+		####
 		# User display names
-		# These are generally displayed: creator, modifyuser, comments. Others will be retrieved when they are needed, generally.
+		# These are generally displayed: creator, modifyuser, comments.
 		getusers = set([self.rec.get('creator'), self.rec.get('modifyuser')])
 		getusers |= set([i[0] for i in self.rec.get('comments',[])])
-		getusers = self.db.getuser(getusers)
-		displaynames = {}
-		for user in getusers:
+		for user in self.db.getuser(getusers):
 			displaynames[user.name] = user.displayname
 
+		####
+		# Parent map
+		parentmap = self.db.getparenttree(self.rec.name, recurse=3)
+		found = dfs(self.rec.name, parentmap, 3)
+		found.add(self.rec.name)
+		recnames.update(self.db.renderview(found))
 
-		# Parent Map
-		if parents:
-			parentmap = Map(mode="parents", keytype="record", recurse=3, root=self.name, db=self.db, expandable=False)
-			parentmap_ctxt = parentmap.get_context()
-			# renderedrecname = parentmap_ctxt.get("recnames",{}).get(self.name,self.name)
-			parents = parentmap_ctxt.get("results",{}).get(self.name,[])
-			pages_map = {
-				'classname':'map',
-				'content':{'parents':parentmap, 'children': 'Loading...'},
-				'active':'parents',
-				'order':['parents','children'],
-				'labels':{'parents':'Parents','children':'Children'}
-			}
-
-		else:
-			pages_map = None
-
-
-		# Child pages
+		####
+		# Children
 		if children:
 			children = self.db.getchildren(self.name)
 			self.childgroups = self.db.groupbyrectype(children)
-
 			pages = {
 				'classname':'main',
 				'content':{},
-				'labels':{'main':'<span data-name="%s" class="view">%s</span>'%(self.name, renderedrecname)},
+				'labels':{'main':'<span data-name="%s" class="view">%s</span>'%(self.name, recnames.get(self.rec.name))},
 				'href':	{'main':'%s/record/%s/'%(g.EMEN2WEBROOT,self.name)},
 				'active': 'main',
 				'order': ['main']
 			}
-
 			for k,v in self.childgroups.items():
 				pages["order"].append(k)
 				pages["labels"][k] = "%s (%s)"%(k,len(v))
@@ -102,17 +90,18 @@ class RecordBase(View):
 		else:
 			pages = None
 
+
 		# Update context
 		self.update_context(
 			rec = self.rec,
 			recs = {str(self.name):self.rec},
 			recdef = self.recdef,
 			notify = notify or [],
-			title = "Record: %s: %s (%s)"%(self.rec.rectype, renderedrecname, self.name),
-			renderedrecname = renderedrecname,
+			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
+			recnames = recnames,
 			displaynames = displaynames,
 			pages = pages,
-			pages_map = pages_map,
+			parentmap = parentmap,
 			viewtype = "defaultview",
 			edit = False,
 			key = self.name,

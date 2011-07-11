@@ -16,7 +16,6 @@ body {
 
 /* Lighter background color */
 .buttons > .active,
-#buttons_map > .button,
 #buttons_main > .button,
 .page
 {
@@ -24,9 +23,8 @@ body {
 }
 
 /* White backgrounds */
-#buttons_map > .active,
 #buttons_main > .active,
-#pages_map > .page,
+#map,
 .notify
 {
 	background: white;
@@ -145,10 +143,6 @@ body > *,
 #title
 {
 	background:white;
-}
-
-#pages_map > .page {
-	padding:0px;
 }
 
 
@@ -270,7 +264,8 @@ td
 /************* TEXT STYLES ************/
 
 .chevron {
-	padding: 3px;
+	display: inline !important;
+	padding-right:3px;
 }
 
 .underline {
@@ -284,8 +279,7 @@ h1 .label
 {
 	font-size: 12pt;
 }
-.tiny,
-#buttons_map
+.tiny
 {
 	font-size:8pt;
 }
@@ -330,11 +324,16 @@ table.login td:last-child {
 	border-left:solid 1px #ccc;
 }
 
-.e2-config-table {
-	width: 100%;
+/***** tweaks ********/
+
+table.e2-table-inner {
+	background:white;
 }
-.e2-config-table input {
-	width: 90%;
+
+table ul {
+	margin:0px;
+	padding:0px;
+	list-style:none;
 }
 
 
@@ -398,7 +397,7 @@ input.cancel
 /********* ROUNDED CORNERS ************/
 
 /* all */
-#pages_map > .page,	
+#map,
 .notify,
 .rounded
 {

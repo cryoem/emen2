@@ -27,10 +27,10 @@
 	
 		<table>
 			% if not admin:
-				<tr><td>Current Password:</td><td><input type="password" name="opw" /></td></tr>
+				<tr><td>Current password:</td><td><input type="password" name="opw" /></td></tr>
 			% endif
-			<tr><td style="width:150px">New Password:</td><td><input type="password" name="on1" /></td></tr>
-			<tr><td>Confirm New Password:</td><td><input type="password" name="on2" /></td></tr>
+			<tr><td style="width:150px">New password:</td><td><input type="password" name="on1" /></td></tr>
+			<tr><td>Confirm new password:</td><td><input type="password" name="on2" /></td></tr>
 
 			<tr><td /><td><input type="submit" value="Change Password" /></td></tr>
 		

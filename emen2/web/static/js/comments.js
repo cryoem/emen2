@@ -139,7 +139,7 @@
 
 			this.partition();
 			if (self.options.title) {
-				$(self.options.title).html('History ('+this.rhist.length+' changes)');
+				$(self.options.title).html('History ('+this.rhist.length+' edits)');
 			}
 					
 		},
