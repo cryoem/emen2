@@ -16,7 +16,7 @@
 	<li>
 		<span class="label">
 			You are creating a new <a href="${ctxt.reverse('RecordDef',name=rec.rectype)}">${recdef.desc_short} (${recdef.name})</a>
-			record as a child of <a href="${ctxt.reverse('Record',name=rec.name)}">${renderedrecname}</a>
+			record as a child of <a href="${ctxt.reverse('Record',name=rec.name)}">${recnames.get(rec.name, rec.name)}</a>
 			
 			<div class="hidden show">Test!</div>
 		</span>

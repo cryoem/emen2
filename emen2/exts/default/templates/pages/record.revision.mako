@@ -4,12 +4,12 @@
 
 % if revision == None:
 	
-	<h1>Revision History for <a href="${EMEN2WEBROOT}/record/${rec.name}/">${renderedrecname}</a></h1>
+	<h1>Revision History for <a href="${EMEN2WEBROOT}/record/${rec.name}/">${recnames.get(rec.name, rec.name)}</a></h1>
 
 % else:
 
 	<h1>
-		Revision ${revision} for <a href="${EMEN2WEBROOT}/record/${rec.name}/">${renderedrecname}</a>
+		Revision ${revision} for <a href="${EMEN2WEBROOT}/record/${rec.name}/">${recnames.get(rec.name, rec.name)}</a>
 		<span class="label">
 			<a href="${EMEN2WEBROOT}/record/${rec.name}/history/">All Revisions</a>
 		</span>
