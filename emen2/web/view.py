@@ -414,6 +414,7 @@ class _View(object):
 	slots = collections.defaultdict(list)
 	@classmethod
 	def provides(cls, slot):
+		'''Decorate a method to indicate that the method provides a certain functionality'''
 		def _inner(view):
 			cls.slots[slot].append(functools.partial(cls, init=view))
 			return view
@@ -421,10 +422,12 @@ class _View(object):
 
 	@classmethod
 	def require(cls, slot):
+		'''Use to get a view with a desired functionality'''
 		if slot in cls.slots:
 			return cls.slots[slot][-1]
-		else:
-			raise ValueError, "No such slot"
+		else: raise ValueError, "No such slot"
+
+
 
 
 
