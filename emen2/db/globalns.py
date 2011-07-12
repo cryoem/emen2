@@ -112,6 +112,13 @@ class GlobalNamespace(object):
 	__options = collections.defaultdict(set)
 	__all__ = []
 
+	@property
+	def EMEN2DBHOME(self):
+		return self.__vardict.get('EMEN2DBHOME')
+	@EMEN2DBHOME.setter
+	def EMEN2DBHOME(self, value):
+		self.setattr('EMEN2DBHOME', value)
+		self.paths.root = value
 
 	@classmethod
 	def check_locked(cls):

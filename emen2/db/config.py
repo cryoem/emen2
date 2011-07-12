@@ -130,6 +130,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
+			print g.paths.LOGPATH
 			os.makedirs(g.paths.LOGPATH)
 
 		# Bind main logging method

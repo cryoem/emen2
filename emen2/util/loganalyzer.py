@@ -1,9 +1,12 @@
 # $Id$
+import contextlib
 import re
 import time
 import datetime
 import collections
 import itertools
+import emen2.db.config
+g= emen2.db.config.g()
 # Host Name N/A HTTP AUTH        Time Finished      ["Method Name]  Path      [Protocol"] Response  Size
 #                 USERID                                                                    Code   (bytes)
 # 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /rec/  HTTP/-.-"     200     9714
@@ -116,6 +119,13 @@ def timeconv(tm=None):
 	return result
 
 
+class _Munger(object):
+	def __init__(self, d): self.d = d
+	def __getattr__(self, k):
+		def _inner(v):
+			self.d[k] = v
+			return v
+		return _inner
 
 class AccessLogLine(dict):
 	order = (
@@ -126,6 +136,14 @@ class AccessLogLine(dict):
 		('resource', str)
 	)
 	labels = set(x[0] for x in order)
+
+	@classmethod
+	@contextlib.contextmanager
+	def i(cls, level):
+		kwargs = {}
+		yield _Munger(kwargs)
+		self = cls(**kwargs)
+		g.log.msg(level, self)
 
 	def __init__(self, *args, **kwargs):
 		self._locked = False
