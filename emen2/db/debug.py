@@ -9,8 +9,7 @@ classes:
 		- Bounded: represents one which loges everything between two specified states
 			- stdout: logs to sys.stdout
 
-	DebugState (NOTE: this probably should be renamed): contains a bunch of logging and
-					debugging utilities.
+	DebugState (NOTE: this probably should be renamed): contains a bunch of logging and debugging utilities.
 
 	debugDict: used by DebugState.instrument_class to log all attribute access of a class
 
