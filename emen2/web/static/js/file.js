@@ -38,6 +38,7 @@
 			
 				$.jsonRPC("findbinary", {'record':self.options.name}, 
 					function(bdos) {
+                  console.log(bdos);
 						if (bdos == null) {bdos=[]}
 						if (bdos.length == null) {bdos=[bdos]}
 						self.bdos = bdos || {};

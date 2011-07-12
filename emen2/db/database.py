@@ -1747,20 +1747,15 @@ class DB(object):
 			ret = set()
 			ret |= set(name for name in names if q in name)
 			ret |= searchfilenames(q, txn=txn)
-
 		if kwargs.get('filename'):
 			rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
-
 		if kwargs.get('name'):
 			rets.append(set(name for name in names if q in name))
-
-		if record:
+		if record is not None:
 			ret = self._findbyvartype(listops.check_iterable(record), ['binary', 'binaryimage'], ctx=ctx, txn=txn)
 			rets.append(ret)
-
 		allret = self._boolmode_collapse(rets, boolmode)
 		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
-
 		if limit:
 			return ret[:int(limit)]
 		return ret
@@ -3005,7 +3000,7 @@ class DB(object):
 		# This call to findbinary is a deprecated feature
 		# that remains for backwards compat
 		bdos, recnames, other = listops.typepartition(names, str, int)
-		if recnames:
+		if len(recnames) > 0:
 			return self.findbinary(record=recnames, ctx=ctx, txn=txn)
 		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
