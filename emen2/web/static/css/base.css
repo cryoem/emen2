@@ -9,7 +9,9 @@ table {
 .menu > li {
 	position: relative;
 }
-.menu > li a {
+.menu > li > a,
+.menu ul > li > a
+ {
 	display:block;
 }
 .menu > li > ul,

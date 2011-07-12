@@ -4,13 +4,23 @@ function record_init_new(rec) {
 	rec.name = "None";
 	caches["recs"][rec.name] = rec;
 
-	$('.e2-newrecord-save').MultiEditControl({
+	$('#e2-editbar-newrecord-info').EditbarHelper({show: true, width:640});
+
+	$('#e2-editbar-newrecord-recorddef').EditbarHelper({});
+
+	$('#e2-editbar-newrecord-relationships').EditbarHelper({});
+
+	$('#e2-editbar-newrecord-permissions').EditbarHelper({width: 640});
+
+	$('#rendered').css('margin-top', $('#e2-editbar-newrecord-info div.hidden').height()+10);
+
+	$('#e2-newrecord-save').MultiEditControl({
 		name: rec.name,
 		show: true,
 		newrecordpage: true
 		});
 
-	$('.e2-newrecord-permissions').PermissionControl({
+	$('#e2-newrecord-permissions').PermissionControl({
 		name: rec.name,
 		edit: true,
 		embed: true

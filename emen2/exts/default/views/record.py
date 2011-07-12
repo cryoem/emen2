@@ -155,7 +155,7 @@ class Record(RecordBase):
 	def new(self, name=None, rectype=None, inherit=None, private=False, copy=None, viewtype='mainview', notify=None):
 		self._init(name=name, notify=notify, children=False)
 		self.template = '/pages/record.new'
-		self.title = "New Record"
+		# self.title = "New Record"
 
 		try:
 			inherit = int(name)
@@ -180,6 +180,9 @@ class Record(RecordBase):
 		recdef = self.db.getrecorddef(newrec.rectype)
 		recorddefnames = self.db.getrecorddefnames()
 
+		# ${recdef.desc_short} (${recdef.name})
+		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
+		
 		self.update_context(
 			recdef = recdef,
 			newrec = newrec,
