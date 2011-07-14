@@ -13,20 +13,20 @@ import emen2.db.config
 config = emen2.db.config.g()
 
 
-default_plugins = emen2.db.config.get_filename('emen2.web', 'plugins')
+default_extensions = emen2.db.config.get_filename('emen2.web', 'extensions')
 class ViewLoader(object):
 	routing_table = config.claim('ROUTING', {})
 	redirects = config.claim('REDIRECTS', {})
-	pluginpaths = config.claim('paths.PLUGINPATHS', [default_plugins, os.path.join(config.EMEN2DBHOME, 'plugins')])
-	plugins = config.claim('PLUGINS',
-		[dirent for dirent in os.listdir(default_plugins)
+	extensionpaths = lambda _: config.claim('paths.EXTENSIONPATHS')
+	extensions = config.claim('EXTENSIONS',
+		[dirent for dirent in os.listdir(default_extensions)
 			if os.path.isdir(dirent) and dirent != 'CVS'
 		]
 	)
 
-	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, plugin_name=None):
+	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
 		if name == '__init__': return
-		modulename = '.'.join([plugin_name, 'views', name])
+		modulename = '.'.join([extension_name, 'views', name])
 
 		if not hasattr(failures, 'append'):
 			failures = []
@@ -52,56 +52,58 @@ class ViewLoader(object):
 
 
 	def __init__(self):
-		if 'default' not in self.plugins:
-			self.plugins.insert(0,'default')
-		if default_plugins not in self.pluginpaths:
-			self.pluginpaths.insert(0,default_plugins)
+
+		if 'default' not in self.extensions:
+			self.extensions.insert(0,'default')
+		#self.extensionpaths.append(os.path.join(config.EMEN2DBHOME, 'extensions'))
+		if default_extensions not in self.extensionpaths:
+			self.extensionpaths.insert(0,default_extensions)
 
 		# ian: temp hack..
-		self.plugins.append('Char')
-		self.pluginpaths.append('/Volumes/Home/irees/Dropbox')
+		self.extensions.append('Char')
+		self.extensionpaths.append('/Volumes/Home/irees/Dropbox')
 		print "--"
-		print self.plugins
-		print self.pluginpaths
+		print self.extensions
+		print self.extensionpaths
 
-		config.debug( self.pluginpaths )
-		config.debug( self.plugins )
+		config.debug( self.extensionpaths )
+		config.debug( self.extensions )
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
 		self.router = emen2.web.routing.URLRegistry()
 
-	def load_plugins(self):
+	def load_extensions(self):
 		pth = list(reversed(sys.path))
 
-		pluginpaths = collections.defaultdict(list)
-		for pluginpath in self.pluginpaths:
-			if os.path.isdir(pluginpath):
-				for dirent in os.listdir(pluginpath):
-					dirpath = os.path.join(pluginpath, dirent)
+		extensionpaths = collections.defaultdict(list)
+		for extensionpath in self.extensionpaths:
+			if os.path.isdir(extensionpath):
+				for dirent in os.listdir(extensionpath):
+					dirpath = os.path.join(extensionpath, dirent)
 					if os.path.isdir(dirpath):
-						pluginpaths[dirent].append(dirpath)
+						extensionpaths[dirent].append(dirpath)
 
-		for plugin in self.plugins:
-			plugindir = pluginpaths.pop(plugin, [])
-			if plugindir != []:
-				plugindir = plugindir.pop()
-				config.info('Loading plugin %s from %s' % (plugin, plugindir))
+		for extension in self.extensions:
+			extensiondir = extensionpaths.pop(extension, [])
+			if extensiondir != []:
+				extensiondir = extensiondir.pop()
+				config.info('Loading extension %s from %s' % (extension, extensiondir))
 
-				templatedir = os.path.join(plugindir, 'templates')
+				templatedir = os.path.join(extensiondir, 'templates')
 				if os.path.exists(templatedir):
 					self.load_templates(templatedir)
 
-				viewdir = os.path.join(plugindir, 'views')
+				viewdir = os.path.join(extensiondir, 'views')
 				if os.path.exists(viewdir):
 					old_syspath = sys.path[:]
-					sys.path.append(os.path.dirname(plugindir))
-					self.get_views(viewdir, plugin_name = plugin)
+					sys.path.append(os.path.dirname(extensiondir))
+					self.get_views(viewdir, extension_name = extension)
 					sys.path = old_syspath
 
-				pythondir = os.path.join(plugindir, 'python')
+				pythondir = os.path.join(extensiondir, 'python')
 				if os.path.exists(pythondir):
 					pth.insert(-1,pythondir)
 
-		# so that plugins cannot override built-in modules
+		# so that extensions cannot override built-in modules
 		sys.path = list(reversed(pth))
 		return True
 
