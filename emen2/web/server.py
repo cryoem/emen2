@@ -153,7 +153,7 @@ class EMEN2Server(object):
 
 
 
-if __name__ == "__main__":
+def start_emen2():
 	with EMEN2Server().start() as (server, root):
 		# This has to go first for metaclasses
 		# to register before the templates are cached.
@@ -177,6 +177,7 @@ if __name__ == "__main__":
 		server.load_resources(rl)
 
 
-
+if __name__ == "__main__":
+	start_emen2()
 __version__ = "$Revision$".split(":")[1][:-1].strip()
 
