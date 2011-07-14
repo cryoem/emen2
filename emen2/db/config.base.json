@@ -32,7 +32,7 @@
 			"config.json"
 		],
       "EXTENSIONPATHS" :[
-         "extensions"
+         "exts"
       ]
 	},
 

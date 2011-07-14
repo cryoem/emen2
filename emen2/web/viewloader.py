@@ -17,7 +17,7 @@ default_extensions = emen2.db.config.get_filename('emen2.web', 'exts')
 class ViewLoader(object):
 	routing_table = config.claim('ROUTING', {})
 	redirects = config.claim('REDIRECTS', {})
-	extensionpaths = lambda _: config.claim('paths.EXTENSIONPATHS')
+	extensionpaths = config.claim('paths.EXTENSIONPATHS', [emen2.db.config.get_filename('emen2.web', 'exts')])
 	extensions = config.claim('EXTENSIONS',
 		[dirent for dirent in os.listdir(default_extensions)
 			if os.path.isdir(dirent) and dirent != 'CVS'

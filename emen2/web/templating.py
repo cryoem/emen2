@@ -81,10 +81,13 @@ class BaseJS(ExtFile):
 			"table.js",
 			"tile.js",
 			"record.js",
-			"util.js"
+			"util.js",
+			"jquery.pjax.js"
 			]
 
-		self.files = [self.ctxt.reverse('TemplateRender', t='/js/settings.js')]
+		self.files = [
+			self.ctxt.reverse('TemplateRender', t='/js/settings.js'),
+			]
 		for i in addfiles:
 			self.files.append('%s/static-%s/js/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
 

@@ -169,7 +169,7 @@ if __name__ == "__main__":
 		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
 
 		vl = emen2.web.viewloader.ViewLoader()
-		vl.load_plugins()
+		vl.load_extensions()
 		vl.load_redirects()
 		vl.routes_from_g()
 

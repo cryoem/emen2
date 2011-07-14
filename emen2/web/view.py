@@ -134,7 +134,7 @@ class _View(object):
 	def __set_template(self, value): self.__template = value
 	template = property(lambda self: self.__template, __set_template)
 
-	def __init__(self, template='/pages/page', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, **extra):
+	def __init__(self, template='/pages/page', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, reqheaders=None, **extra):
 		'''\
 		subclasses should not override this method, rather they should define an 'init' method.
 		subclasses should remember to call the base classes __init__ method if they override it.
@@ -151,6 +151,11 @@ class _View(object):
 		extra catches arguments to be passed to the 'init' method
 		'''
 
+		if reqheaders is None:
+			reqheaders = {}
+		self._reqheaders = reqheaders
+		g.debug(reqheaders)
+
 		self.__headers = {'content-type': mimetype}
 		self.__dbtree = TemplateContext()
 
@@ -165,7 +170,8 @@ class _View(object):
 			js_files = (js_files or self.js_files)(self.__dbtree),
 			notify = notify,
 			def_title = 'Untitled',
-			reverseinfo = reverseinfo
+			reverseinfo = reverseinfo,
+			chromeless=('X-PJAX' in self._reqheaders)
 		)
 
 		self.__ctxt = ViewContext(basectxt)
