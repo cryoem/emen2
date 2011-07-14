@@ -57,6 +57,13 @@ class ViewLoader(object):
 		if default_plugins not in self.pluginpaths:
 			self.pluginpaths.insert(0,default_plugins)
 
+		# ian: temp hack..
+		self.plugins.append('Char')
+		self.pluginpaths.append('/Volumes/Home/irees/Dropbox')
+		print "--"
+		print self.plugins
+		print self.pluginpaths
+
 		config.debug( self.pluginpaths )
 		config.debug( self.plugins )
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
