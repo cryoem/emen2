@@ -30,7 +30,10 @@
 		"CONFIGFILES" :[
 			"/etc/emen2config.json",
 			"config.json"
-		]
+		],
+      "EXTENSIONPATHS" :[
+         "extensions"
+      ]
 	},
 
 	// Mail settings. If both of these are set, EMEN2 will send emails during certain events.

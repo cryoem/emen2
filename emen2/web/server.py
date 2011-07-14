@@ -14,7 +14,7 @@ import twisted.internet.reactor
 
 try:
 	from twisted.internet import ssl
-except:
+except ImportError:
 	ssl = None
 
 
@@ -30,6 +30,7 @@ import emen2.web.resources.publicresource
 import emen2.web.resources.rpcresource
 import emen2.web.resources.jsonrpcresource
 import jsonrpc.server
+import contextlib
 
 
 class ResourceLoader(object):
@@ -97,68 +98,15 @@ class EMEN2Server(object):
 		if self.options.httpsport:
 			self.EMEN2PORT_HTTPS = self.options.httpsport
 
-		### TODO: move this elsewhere
-		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
-
-		self.resource_loader = ResourceLoader(emen2.web.resources.publicresource.PublicView())
-		self.load_views()
-		self.load_resources()
 
 
 
-	def load_views(self):
-		# This has to go first for metaclasses
-		# to register before the templates are cached.
-		import emen2.db.database
-
-		# Load views and templates
-		#import emen2.web.views
-		import emen2.web.view
-		import emen2.web.viewloader
-
-		self.viewloader = emen2.web.viewloader.ViewLoader()
-		self.viewloader.load_plugins()
-		self.viewloader.load_redirects()
-		self.viewloader.routes_from_g()
-
-
-
-	def load_resources(self):
-		for path, mod in self.EXTRARESOURCES.items():
-			try:
-				mod = __import__(mod)
-				self.resource_loader.add_resource(path, getattr(mod, path))
-			except ImportError:
-				config.error('failed to attach resource %r to path %r' % (mod, path))
-				if config.DEBUG:
-					config.log.print_exception()
-
-		self.resource_loader.add_resources(
-			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
-			download = emen2.web.resources.downloadresource.DownloadResource(),
-			upload = emen2.web.resources.uploadresource.UploadResource(),
-			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
-			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
-			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
-		)
-		self.resource_loader.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		self.resource_loader.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
-		self.resource_loader.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
-
-	def interact(self):
-		while True:
-			a.interact()
-			exit = raw_input('respawn [Y/n]? ').strip().lower() or 'y'
-			if exit[0] == 'n':
-					thread.interrupt_main()
-					return
-
-
-
+	@contextlib.contextmanager
 	def start(self):
 		'''run the main loop'''
-		site = twisted.web.server.Site(self.resource_loader.root)
+		root = emen2.web.resources.publicresource.PublicView()
+		yield self, root
+		site = twisted.web.server.Site(root)
 		site.protocol.allHeadersReceived = allHeadersReceived
 
 		twisted.internet.reactor.listenTCP(self.PORT, site)
@@ -181,8 +129,52 @@ class EMEN2Server(object):
 
 
 
+	def load_resources(self, rl):
+		for path, mod in self.EXTRARESOURCES.items():
+			try:
+				mod = __import__(mod)
+				rl.add_resource(path, getattr(mod, path))
+			except ImportError:
+				config.error('failed to attach resource %r to path %r' % (mod, path))
+				if config.DEBUG:
+					config.log.print_exception()
+
+		rl.add_resources(
+			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
+			download = emen2.web.resources.downloadresource.DownloadResource(),
+			upload = emen2.web.resources.uploadresource.UploadResource(),
+			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
+			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
+			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
+		)
+		rl.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		rl.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
+		rl.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
+
+
+
 if __name__ == "__main__":
-	EMEN2Server().start()
+	with EMEN2Server().start() as (server, root):
+		# This has to go first for metaclasses
+		# to register before the templates are cached.
+		import emen2.db.database
+
+		# Load views and templates
+		#import emen2.web.views
+		import emen2.web.view
+		#NOTE: this MUST be imported here
+		import emen2.web.viewloader
+
+
+		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
+
+		vl = emen2.web.viewloader.ViewLoader()
+		vl.load_plugins()
+		vl.load_redirects()
+		vl.routes_from_g()
+
+		rl = ResourceLoader(root)
+		server.load_resources(rl)
 
 
 

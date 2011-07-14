@@ -13,7 +13,7 @@ import emen2.db.config
 config = emen2.db.config.g()
 
 
-default_extensions = emen2.db.config.get_filename('emen2.web', 'extensions')
+default_extensions = emen2.db.config.get_filename('emen2.web', 'exts')
 class ViewLoader(object):
 	routing_table = config.claim('ROUTING', {})
 	redirects = config.claim('REDIRECTS', {})
