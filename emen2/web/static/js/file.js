@@ -113,7 +113,7 @@
 			}
 			var bdotable = $('<table cellpadding="0" cellspacing="0" class="shaded" />');
 			$.each(this.bdomap, function(k,bdos) {
-				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Creator</th><th>Created</th></tr></thead>');
+				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Uploaded</th><th></th></tr></thead>');
 				// if (self.options.edit) {header.prepend('<th><input type="radio" name="param" value="'+k+'" /></th>');}
 				bdotable.append(header);
 				var tbody = $('<tbody></tbody>');
@@ -124,7 +124,7 @@
 					}
 					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="Thumb" /></a></td>');
 					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
-					row.append('<td>'+$.convert_bytes(v.filesize)+'</td>');
+					row.append('<td class="nowrap">'+$.convert_bytes(v.filesize)+'</td>');
 					row.append('<td><a href="'+EMEN2WEBROOT+'/user/'+v.creator+'/">'+caches['displaynames'][v.creator]+'</a></td>');
 					row.append('<td>'+v.creationtime+'</td>');
 					tbody.append(row);
@@ -163,11 +163,13 @@
 			$('form', this.dialog).append(this.tablearea, this.browserarea, this.queryarea);
 			this.event_build_tablearea();
 			
-			var controls = $(' \
+			var controls = $(' <br /> \
 				<div class="controls"> \
+					<input type="hidden" name="param" id="e2-file-param" value="file_binary" /> \
 					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
-					<input type="hidden" name="param" value="file_binary" /> \
 					<input style="opacity:0" type="file" name="filedata" /> \
+					<span class="clickable label e2-file-target">Regular Attachment</span> \
+					</span> \
 				</div> \
 				<div style="width:100%" class="controls"> \
 					<input class="floatleft save" name="remove" type="button" value="Remove Selected Attachments" /> \
@@ -175,10 +177,12 @@
 					<img class="spinner floatright hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
 				</div>');
 			
+			// If we have permission to edit, show controls.
 			if (this.options.edit) {
 				$('form', this.dialog).append(controls);
 			}
 
+			// Remove items
 			$('input[name=remove]', controls).click(function() {
 				self.removebdos();
 			});
@@ -190,28 +194,24 @@
 				$('form', self.dialog).submit();
 			});
 
+			// Submit button causes file selection then upload when value changes
 			$('input[name=save]', this.dialog).click(function(e) {
-				var fd = 
-				$('input[name=filedata]', self.dialog).change(function() {
-					console.log("Value:", $(this).val());
-				});
-				fd.click();
+				$('input[name=filedata]', self.dialog).click();
 				e.preventDefault();
+			});			
+
+			// Change the selected param for upload..
+			$('.e2-file-target', controls).FindControl({
+				keytype: 'paramdef',
+				vartype: ['binary', 'binaryimage'],
+				minimum: 0,
+				cb: function(self, value) {
+					$('#e2-file-param').val(value);
+					self.element.html(value);
+				}
 			});
 
-			// $('input[name=param_other]', controls).click(function() {
-			// 	$(this).val('');
-			// });
-			// $('input[name=param_other]', controls).FindControl({
-			// 	keytype: 'paramdef',
-			// 	vartype: ['binary', 'binaryimage'],
-			// 	minimum: 0,
-			// 	cb: function(self, value) {
-			// 		$('#param_other').attr('value', value);
-			// 		self.element.val(value);
-			// 	}
-			// });
-
+			// Embed or put in a dialog
 			if (this.options.embed) {
 				this.element.append(this.dialog);
 			} else {

@@ -5,7 +5,7 @@
 
 
 // To compile on OS X:
-// export BDBVERSION=5.0
+// export BDBVERSION=5.2
 // export BDBMODULEPATH=$HOME/src/bsddb3-5.0.0/Modules/
 // rm db/bulk.*o;gcc-4.2 -fno-strict-aliasing -fno-common -dynamic -g -fwrapv -Os -Wall -Wstrict-prototypes  -pipe -I/usr/local/BerkeleyDB.$BDBVERSION/include -I/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6 -I$BDBMODULEPATH -c db/bulk.c -o db/bulk.o; gcc-4.2 -Wl,-F. -bundle -undefined dynamic_lookup -L/usr/local/BerkeleyDB.$BDBVERSION/lib -L/usr/local/BerkeleyDB.$BDBVERSION/lib -ldb-$BDBVERSION db/bulk.o -o db/bulk.so && python -c "import emen2.db.bulk"
 

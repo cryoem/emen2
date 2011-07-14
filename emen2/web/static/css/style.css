@@ -106,6 +106,9 @@ table.shaded tbody tr:nth-of-type(odd) {
 .hidden table.shaded tbody tr:nth-of-type(odd) {
 	background: white;
 }
+.e2-comments .e2-comments-comment:nth-of-type(even) {
+	background: #f0f0f0;
+}
 
 
 th {
@@ -248,7 +251,8 @@ td
 	border-right:solid 1px #ccc;
 	position:relative;
 }
-.editbar > li:last-child {
+/* Hard to do this with :last-child because of floating elements */
+.editbar .e2-editbar-lastitem {
 	border-right: none;
 } 
 .editbar .label {
@@ -345,6 +349,35 @@ table ul {
 	list-style:none;
 }
 
+.e2-siblings h1 {
+	margin-bottom:10px;
+}
+.e2-siblings li {
+	margin-left:10px;
+	list-style-type:none;
+}
+.e2-siblings li.e2-siblings-active {
+	list-style-type:disc;
+}
+
+.e2-comments-comment {
+	padding:5px;
+	margin-bottom:20px;
+}
+.e2-comments-comment h4 {
+	margin-top:0px;
+	margin-left: 50px;
+	font-size:10pt;
+}
+.e2-comments-comment p {
+	margin:0px;
+	margin-left: 50px;
+}
+.e2-comments-comment img {
+	float: left;
+	height: 40px;
+	margin-right: 4px;
+}
 
 /************* CONTROLS ************/
 

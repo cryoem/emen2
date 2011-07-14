@@ -3,11 +3,14 @@
 		options: {
 			name: null,
 			edit: false,
-			title: null
+			title: null,
+			historycount: false,
+			commentcount: false
 		},
 				
 		_create: function() {
 			this.built = 0;
+			this.element.addClass('e2-comments');
 			this.build();
 		},
 	
@@ -15,7 +18,7 @@
 			var reccomments = caches["recs"][this.options.name]["comments"] || []; 
 			this.comments = [];
 			this.log = [];
-			for (var i=0;i<reccomments.length;i++) {
+			for (var i=0;i < reccomments.length;i++) {
 				if (reccomments[i][2].indexOf("LOG") != 0) {
 					this.comments.push(reccomments[i]);
 				}
@@ -26,18 +29,35 @@
 			this.build();
 		},
 	
-		build: function() {
+		build: function() {	
+			var self = this;	
+			var users = [];
+			this.partition();
+			$.each(this.comments, function() {
+				var user = this[0];
+				if (caches['users'][user]==null) {
+					users.push(user);
+				}
+			});
+			// console.log(users);
+			if (users.length) {
+				$.jsonRPC("getuser", [users], function(u) {
+					$.each(u, function() {
+						caches['users'][this.name] = this;
+						caches['displaynames'][this.name] = this.displayname;
+					});
+					self._build();
+				});
+			} else {
+				self._build();
+			}
+			
+		},
+	
+		_build: function() {
 			var self=this;
 			this.partition();
 			this.comments.reverse();
-			
-			if (self.options.title) {
-				if (this.comments.length) {
-					$(self.options.title).html(this.comments.length+' Comments');
-				} else {
-					$(self.options.title).html('Comments');					
-				}
-			}			
 			
 			this.element.empty();			
 			if (!this.comments.length) {
@@ -45,9 +65,17 @@
 			}
 
 			$.each(this.comments, function() {
-				var dname = caches["displaynames"][this[0]] || this[0];
-				var time = this[1];	
-				self.element.append('<h4>'+dname+' @ '+time+'</h4><p>'+this[2].replace(/\n/g,'<br />')+'</p>');
+				// var dname = caches["displaynames"][this[0]] || this[0];
+				var user = caches['users'][this[0]];
+				var photo = user['userrec']['person_photo'];
+				if (photo) {
+					photo = EMEN2WEBROOT+'/download/'+photo+'/'+user.name+'.jpg?size=thumb';
+				} else {
+					photo = EMEN2WEBROOT+'/static/images/nophoto.png';
+				}
+				
+				var time = this[1];
+				self.element.append('<div class="e2-comments-comment"><img src="'+photo+'" class="thumbnail" /><h4>'+user.displayname+' @ '+time+'</h4><p>'+this[2].replace(/\n/g,'<br />')+'</p></div>');
 			});
 
 			var comments_text = caches["recs"][this.options.name]["comments_text"];
@@ -58,11 +86,32 @@
 			if (this.options.edit) {
 				var controls = $('<div/>');
 				var edit = $('<textarea cols="60" rows="2"></textarea>');
-				var commit=$('<input type="submit" value="Add Comment" />').click(function(e) {self.save()});
+				var commit=$('<input type="submit" class="floatright save" value="Add Comment" />').click(function(e) {self.save()});
 				controls.append(edit, commit);
 				this.element.append(controls);
 			}
-
+			
+			// if (self.options.title) {
+			// 	if (this.comments.length) {
+			// 		$(self.options.title).html(this.comments.length+' Comments');
+			// 	} else {
+			// 		$(self.options.title).html('Comments');					
+			// 	}
+			// }						
+			if (this.options.historycount) {
+				if (this.log.length) {
+					$(this.options.historycount).html('('+this.log.length+')');					
+				} else {
+					$(this.options.historycount).html('');										
+				}
+			}
+			if (this.options.commentcount) {
+				if (this.comments.length) {
+					$(this.options.commentcount).html(this.comments.length);
+				} else {
+					$(this.options.commentcount).html('');					
+				}
+			}
 		},
 
 		////////////////////////////
@@ -70,7 +119,6 @@
 			var self = this;
 
 			$.jsonRPC("addcomment",[this.options.name, $("textarea", this.element).val()],
-
 		 		function(rec){
 					//will trigger this rebuild... hopefully.. :)
 					record_update(rec);
@@ -88,69 +136,3 @@
 	});
 })(jQuery);
 
-
-
-(function($) {
-    $.widget("ui.HistoryControl", {
-		options: {
-			name: null,
-			title: null
-		},
-				
-		_create: function() {
-			var self = this;
-			this.built = 0;
-			$(this.options.title).click(function(){self.build()});
-		},
-	
-		partition: function() {
-			this.reccomments = caches["recs"][this.options.name]["comments"];
-			this.rechistory = caches["recs"][this.options.name]["history"];
-			this.rhist = [];		
-			for (var i=0;i<this.reccomments.length;i++) {
-				if (this.reccomments[i][2].indexOf("LOG") > -1) {
-					this.rhist.push(this.reccomments[i]);
-				}
-			}
-			for (var i=0;i<this.rechistory.length;i++) {
-				this.rhist.push(this.rechistory[i]);
-			}
-		},
-		
-		show: function() {
-			this.build();
-		},
-		
-		rebuild: function() {
-			this.built = 0;
-			this.build();
-		},
-		
-		build: function() {
-			if (this.built) {
-				return
-			}
-			this.built = 1;
-
-			// This used to build the table itself, but now just calls the history page
-			var self = this;
-			var l = EMEN2WEBROOT+'/record/'+this.options.name+'/history/?simple=1';
-			this.element.load(l);
-
-			this.partition();
-			if (self.options.title) {
-				$(self.options.title).html('History ('+this.rhist.length+' edits)');
-			}
-					
-		},
-
-		destroy: function() {
-		},
-
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
-
-		

@@ -721,7 +721,7 @@
 				apix = 1.0;
 			}
 
-			var controls = $('<div class="e2-tile-controls"> \
+			var controls = $('<div class="roundleft e2-tile-controls"> \
 				<h4 class="label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
@@ -770,9 +770,7 @@
 				if (self.options.displaymode == '1d') {
 					self.setdisplaymode('1d')
 				}
-			})
-			
-			
+			});
 		},
 		
 		setdisplaymode: function(mode) {

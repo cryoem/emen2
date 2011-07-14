@@ -73,8 +73,12 @@
 
 	<li id="e2-editbar-record-attachments">
 		<span class="clickable label">
-			<span id="attachment_count">${len(attachments)}</span>
-			Attachments
+			<span id="attachment_count">
+			% if attachments:
+				${len(attachments)}
+			% endif
+			</span>
+			<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/attachments.png" alt="Attachments" />
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
 	</li>
@@ -91,7 +95,7 @@
 	
 	historycount = len(rec.get('history',[]))
 	historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
-	
+	lastitem = 'comments'
 	%>
 
 
@@ -143,27 +147,41 @@
 	% if len(siblings)>1 and rec.name in siblings:
 
 		<%
+			lastitem = 'siblings'
 			pos = siblings.index(rec.name)
+			pos_prev = ''
+			if pos > 0:
+				pos_prev = siblings[pos-1]
+			pos_next = ''
+			if pos+1 < len(siblings):
+				pos_next = siblings[pos+1]
 		%>
 	
-		<li id="e2-editbar-record-siblings" class="floatright" data-sibling="${sibling}">
-				% if pos > 0:
-					<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos-1]}/?sibling=${sibling}">&laquo;</a> 
-				% endif
-
-				<span class="clickable label">
-				${pos+1} of ${len(siblings)}
-				</span>
-
-				% if pos+1 < len(siblings):
-					<a class="chevron" href="${EMEN2WEBROOT}/record/${siblings[pos+1]}/?sibling=${sibling}">&raquo;</a> 
-				% endif
+		<li id="e2-editbar-record-siblings" class="floatright e2-editbar-lastitem" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}">
+			<span class="clickable label">
+			${pos+1} of ${len(siblings)}
+			</span>
 		</li>
 
 	% endif
 	
-	<li id="e2-editbar-comments" class="floatright">
-		<span class="clickable label">C <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
+	<%
+	comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))	
+	%>
+	
+	
+	% if lastitem == 'comments':	
+		<li id="e2-editbar-comments" class="floatright e2-editbar-lastitem">
+	% else:
+		<li id="e2-editbar-comments" class="floatright">
+	%endif
+		<span class="clickable label">
+			% if comments:
+				<span id="e2-editbar-commentcount">${len(comments)}</span>
+				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment-open.png" alt="Comments" /></span>				
+			% else:
+				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.png" alt="Comments" /></span>
+			% endif
 	</li>
 	
 	<li id="e2-editbar-helper" class="floatright">
@@ -174,9 +192,9 @@
 				${displaynames.get(rec.get('creator'), '(%s)'%rec.get('creator'))} @ ${rec.get('creationtime', '')[:10]}
 			% endif
 			
-			<span id="e2-record-historycount">
+			<span id="e2-editbar-historycount">
 			% if historycount:
-			 	(${historycount} edits)
+			 	(${historycount})
 			% endif
 			</span>
 			
@@ -190,11 +208,9 @@
 ## Tile viewer
 
 % if rec.get('file_binary_image'):
-	<div style="position:relative">
-		<div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${rec.get('file_binary_image')}"></div>
+	<div class="e2-tile-outer">
+		<div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${rec.get('file_binary_image')}" data-mode="cached"></div>
 	</div>
-
-	<h1></h1>
 % endif
 
 

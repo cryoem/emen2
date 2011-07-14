@@ -40,6 +40,7 @@
 	border-right-style: dashed;
 	border-right-width: 1px;
 	text-align: center;
+	background:#eee;
 }
 
 /* tiny */
@@ -65,4 +66,9 @@
 	height: 100%;
 	position: relative;
 	overflow: hidden;
+}
+
+.e2-tile-outer {
+	position:relative;
+	border-bottom:solid 1px #ccc;
 }

@@ -119,17 +119,16 @@ function record_init(rec, ptest, edit) {
 
 	// Comments editor
 	$('#e2-editbar-comments').EditbarHelper({
-		width: 500,
+		width: 350,
 		align: 'right',
 		cb: function(self) {
-			console.log("comments control...");
 			// Comments and history
 			self.popup.CommentsControl({
 				name: rec.name,
 				edit: ptest[1] || ptest[2] || ptest[3],
-				title: "#button_comments_comments"
+				historycount: "#e2-editbar-commentcount",
+				commentcount: '#e2-editbar-historycount'
 			});
-			console.log("done..");
 		}
 	});
 
@@ -139,30 +138,43 @@ function record_init(rec, ptest, edit) {
 	
 	$("#e2-editbar-record-siblings").EditbarHelper({
 		show: showsiblings,
-		width:250,
+		width:300,
 		align: 'right',
 		cb: function(self) {
+			self.popup.empty();
 			var sibling = self.element.attr('data-sibling') || rec.name;
+			var prev = self.element.attr('data-prev') || null;
+			var next = self.element.attr('data-next') || null;
 			if ($('#siblings', self.popup).length) {
 				return
 			}
-			var sibs = $('<div id="siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			var sibs = $('<div class="e2-siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			self.popup.append(sibs);
 			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
 				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
 					siblings = siblings.sort(function(a,b){return a-b});
 					sibs.empty();
-					var ul = $('<ul class="nonlist" />');
+					
+					var prevnext = $('<h4 class="clearfix e2-editbar-sibling-prevnext"></h4>');
+					if (prev) {
+						prevnext.append('<div class="floatleft"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
+					}
+					if (next) {
+						prevnext.append('<div class="floatright"><a href="'+EMEN2WEBROOT+'/record/'+next+'/#siblings">Next &raquo;</a></div>');
+					}					
+					sibs.append(prevnext);
+					
+					var ul = $('<ul class="nonlist"/>');
 					$.extend(caches["recnames"], recnames);
 					$.each(siblings, function(i,k) {
 						if (k != rec.name) {
 							// color:white here is a hack to have them line up
 							ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
-							ul.append('<li>'+(caches["recnames"][k]||k)+'</li>');
+							ul.append('<li class="e2-siblings-active">'+(caches["recnames"][k]||k)+'</li>');
 						}
 					});
-					self.popup.append(ul);
+					sibs.append(ul);
 				});
 			});
 		}
@@ -179,7 +191,11 @@ function record_init(rec, ptest, edit) {
 	$('#e2-editbar-record-edit .label').MultiEditControl({});
 	if (edit) {
 		$('#e2-editbar-record-edit .label').MultiEditControl('event_click');
-	}	
+	}
+	
+	$('.e2-tile').TileMap({'mode':'cached'});
+	
+	
 }
 
 
@@ -194,9 +210,8 @@ function record_update(rec) {
 		var name = rec.name;
 	}
 	rebuildviews('.e2-view[data-name='+name+']');
-	$("#page_comments_comments").CommentsControl('rebuild');
-	$("#page_comments_history").HistoryControl('rebuild');
-	$('#e2-editbar-record-attachments').AttachmentViewerControl('rebuild');	
+	$(".e2-comments").CommentsControl('rebuild');
+	$('.e2-attachments').AttachmentViewerControl('rebuild');	
 }
 
 
