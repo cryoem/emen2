@@ -11,7 +11,20 @@ body {
 .menu > li.hover,
 #nav > li:hover:not(.nohover)
 {
-	 background: #E7F1F8;
+	 background: #fafafa;
+}
+.menu .hidden {
+	border: solid 1px #ccc;
+	border-top:none;
+}
+#nav li {
+	z-index:1000;
+}
+
+.menu > li > ul,
+.menu .hidden {
+	-moz-box-shadow: 3px 3px 3px #999;
+	-webkit-box-shadow: 3px 3px 3px #999;	
 }
 
 /* Lighter background color */
@@ -32,18 +45,18 @@ body {
 
 /* Feedback colors */
 .add {
-	background: #BBDAEE;
+	background: #BBDAEE !important;
 }
 
 .add.removed,
 .removed
 {
-	background: red;
-	color: white;
+	background: red !important;
+	color: white !important;
 }
 
 .disabled {
-	color: #ccc;
+	color: #ccc !important;
 }
 
 /* Border Colors */
@@ -145,6 +158,9 @@ body > *,
 	background:white;
 }
 
+h1 input, h1 .controls {
+	margin-top:-6px;
+}
 
 /************* NOTIFICATION BOXES ************/
 
@@ -221,13 +237,6 @@ td
 	margin: 2px;
 	margin-right: 4px;
 	margin-left: 4px;
-}
-
-.menu > li > ul,
-.menu .hidden
-{
-	-moz-box-shadow: 3px 3px 3px #999;
-	-webkit-box-shadow: 3px 3px 3px #999;	
 }
 
 /************* EDITBAR ************/

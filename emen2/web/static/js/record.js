@@ -1,6 +1,6 @@
 ////////////////  Record page init ///////////////////
 
-function record_init_new(rec) {
+function record_init_new(rec, parent) {
 	rec.name = "None";
 	caches["recs"][rec.name] = rec;
 
@@ -28,6 +28,18 @@ function record_init_new(rec) {
 
 	// Change the text of file upload elements..
 	$('.editable_files .label').html('(The record must be saved before files can be attached)');
+
+	$('#e2-editbar-newrecord-recorddef').EditbarHelper({
+		width:300,
+		cb: function(self){
+			self.popup.NewRecord({
+				embedselector: true,
+				showselector: true,
+				parent: parent.name
+				});
+			}
+	});		
+
 }
 
 
@@ -48,7 +60,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	// Attachments editor
-	var showattachments = (window.location.hash.search('showattachments'));
+	var showattachments = (window.location.hash.search('attachments'));
 	if (showattachments>-1){showattachments=true}
 
 	$('#e2-editbar-record-attachments').EditbarHelper({
@@ -105,12 +117,26 @@ function record_init(rec, ptest, edit) {
 		}
 	});
 
+	// Comments editor
+	$('#e2-editbar-comments').EditbarHelper({
+		width: 500,
+		align: 'right',
+		cb: function(self) {
+			console.log("comments control...");
+			// Comments and history
+			self.popup.CommentsControl({
+				name: rec.name,
+				edit: ptest[1] || ptest[2] || ptest[3],
+				title: "#button_comments_comments"
+			});
+			console.log("done..");
+		}
+	});
 
 	// Simple handler for browsing siblings...
-	var showsiblings = (window.location.hash.search('showsiblings'));
+	var showsiblings = (window.location.hash.search('siblings'));
 	if (showsiblings>-1){showsiblings=true}
 	
-
 	$("#e2-editbar-record-siblings").EditbarHelper({
 		show: showsiblings,
 		width:250,
@@ -120,7 +146,7 @@ function record_init(rec, ptest, edit) {
 			if ($('#siblings', self.popup).length) {
 				return
 			}
-			var sibs = $('<div id="siblings">Loading...</div>');
+			var sibs = $('<div id="siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			self.popup.append(sibs);
 			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
 				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
@@ -131,7 +157,7 @@ function record_init(rec, ptest, edit) {
 					$.each(siblings, function(i,k) {
 						if (k != rec.name) {
 							// color:white here is a hack to have them line up
-							ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#showsiblings">'+(caches["recnames"][k]||k)+'</a></li>');
+							ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(caches["recnames"][k]||k)+'</a></li>');
 						} else {
 							ul.append('<li>'+(caches["recnames"][k]||k)+'</li>');
 						}
@@ -142,27 +168,6 @@ function record_init(rec, ptest, edit) {
 		}
 	});	
 
-	// Comments and history
-	$("#page_comments_comments").CommentsControl({
-		name: rec.name,
-		edit: ptest[1] || ptest[2] || ptest[3],
-		title: "#button_comments_comments"
-	});
-		
-	//$("#page_comments_history").HistoryControl({
-	//	name: rec.name,
-	//	title: "#button_comments_history"
-	//});
-
-	// $('.editbar .edit').EditbarHelper({
-	// 	bind: false,
-	// 	reflow: '#rendered',
-	// 	cb: function(self) {
-	// 		var addcomment = $('<span>Comments: <input type="text" name="editsummary" value="" /></span>');
-	// 		self.popup.append(addcomment);
-	// 	}
-	// });
-	
 	// Bind editable widgets
 	$('#e2-editbar-record-setbookmark').Bookmarks({'mode':'toggle'});
 

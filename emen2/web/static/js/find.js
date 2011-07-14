@@ -19,7 +19,7 @@
 
 		build: function() {
 			var self = this;
-			this.dialog = $('<div>Loading...</div>');
+			this.dialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			this.element.append(this.dialog);
 			this.dialog.attr("title", "Select Record");
 			

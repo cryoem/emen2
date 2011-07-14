@@ -34,7 +34,7 @@ class RecordBase(View):
 			raise RecordNotFoundError, name
 
 		####
-		# Get bookmarks..
+		# Find if this record is in the user's bookmarks
 		bookmarks = []
 		user = None
 		try:
@@ -56,7 +56,7 @@ class RecordBase(View):
 		# User display names
 		# These are generally displayed: creator, modifyuser, comments.
 		getusers = set([self.rec.get('creator'), self.rec.get('modifyuser')])
-		getusers |= set([i[0] for i in self.rec.get('comments',[])])
+		# getusers |= set([i[0] for i in self.rec.get('comments',[])])
 		for user in self.db.getuser(getusers):
 			displaynames[user.name] = user.displayname
 
@@ -89,7 +89,6 @@ class RecordBase(View):
 			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
 			pages = None
-
 
 		# Update context
 		self.update_context(
@@ -131,12 +130,10 @@ class Record(RecordBase):
 		if not self.recdef.views.get("defaultview"):
 			viewtype = "mainview"
 
-
 		# Render main view
 		rendered = self.db.renderview(self.rec, viewtype=viewtype, edit=self.rec.writable())
 
 		#######################################
-
 		self.update_context(
 			viewtype = viewtype,
 			rendered = rendered,
@@ -219,10 +216,9 @@ class Record(RecordBase):
 		if commit:
 			self.db.deleterecord(self.name)
 
-		self.set_context_item("commit",commit)
-		self.set_context_item("orphans",orphans)
-		self.set_context_item("recnames",recnames)
-
+		self.set_context_item("commit", commit)
+		self.set_context_item("orphans", orphans)
+		self.set_context_item("recnames", recnames)
 
 
 	@View.add_matcher("^/record/(?P<name>\d+)/history/$", "^/record/(?P<name>\d+)/history/(?P<revision>.*)/")
@@ -240,20 +236,10 @@ class Record(RecordBase):
 			self.template = "/pages/record.revision"
 
 		rendered = ""
-		# if revision:
-		# 	try:
-		# 		revs, p = self.rec.revision(revision)
-		# 		self.rec.update(p)
-		# 		rendered = self.db.renderview(self.rec, viewtype="mainview")
-		# 	except:
-		# 		rendered = "Could not render for this revision -- parameter definitions may have changed since."
-
 		self.title = "History"
 		self.set_context_item('simple', simple)
-		self.set_context_item("revision",revision)
-		self.set_context_item("rendered",rendered)
-
-
+		self.set_context_item("revision", revision)
+		self.set_context_item("rendered", rendered)
 
 
 	@View.add_matcher("^/record/(?P<name>\d+)/email/$")
@@ -283,65 +269,42 @@ class Record(RecordBase):
 		users = self.db.getuser(users_ref | users_permissions, filt=True)
 		for user in users:
 			user.getdisplayname(lnf=True)
-		users = listops.dictbykey(users, 'name')
 
-		self.update_context(
-			users = users,
-			users_ref = users_ref,
-			users_permissions = users_permissions,
-		)
+		self.ctxt['users'] = users
 
 
-
-	@View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
-	def publish(self, name=None):
-		self._init(name=name)
-		self.template = '/pages/record.publish'
-		self.title = 'Publish Records'
-
-		status = self.db.getindexbypermissions(groups=["publish"])
-		childmap_view = Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
-		childmap = childmap_view.get_data()
-
-		# print status
-
-		self.set_context_item("childmap", childmap)
-		self.set_context_item("collapsed", childmap_view.collapsed)
-		self.set_context_item("children", childmap_view.collapsedchildren)
-		self.set_context_item("status", status)
-
+	# @View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
+	# def publish(self, name=None):
+	# 	self._init(name=name)
+	# 	self.template = '/pages/record.publish'
+	# 	self.title = 'Publish Records'
+	# 
+	# 	status = self.db.getindexbypermissions(groups=["publish"])
+	# 	childmap_view = Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
+	# 	childmap = childmap_view.get_data()
+	# 
+	# 	# print status
+	# 
+	# 	self.set_context_item("childmap", childmap)
+	# 	self.set_context_item("collapsed", childmap_view.collapsed)
+	# 	self.set_context_item("children", childmap_view.collapsedchildren)
+	# 	self.set_context_item("status", status)
 
 
-
-	@View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
-	def boxer(self, name=None):
-		self._init(name=name)
-		self.template = '/pages/boxer'
-		self.title = "web.boxer (EXPERIMENTAL!)"
-
-		boxrecords = self.db.getchildren(self.rec.name, rectype="box")
-		bdo = self.rec.get('file_binary_image')
-		bdo = self.db.getbinary(bdo)
-		if not bdo:
-			self.error("No ccd frames found! Cannot start web.boxer.")
-			return
-
-		self.set_context_item("bdo",bdo)
-
-
-
-	# @View.add_matcher(r'^/wiki/(?P<page>.+)/edit/$')
-	# def edit(self, page=None):
-	# 	self._init(name=page, children=False, parents=False)
-	# 	self.template = '/pages/wiki.edit'
-	# 	self.set_context_item("rendered",self.db.renderview(self.rec, viewtype="mainview"))
-
-
-	# @View.add_matcher(r'^/record/view/(?P<name>.+)/(?P<viewtype>\w+)/')
-	# def view(self, name=None, viewtype="defaultview", notify=None):
-	# 	self.template = '/raw'
-	# 	self.set_context_item("content",self.db.renderview(self.rec, viewtype=viewtype))
-
+	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
+	# def boxer(self, name=None):
+	# 	self._init(name=name)
+	# 	self.template = '/pages/boxer'
+	# 	self.title = "web.boxer (EXPERIMENTAL!)"
+	# 
+	# 	boxrecords = self.db.getchildren(self.rec.name, rectype="box")
+	# 	bdo = self.rec.get('file_binary_image')
+	# 	bdo = self.db.getbinary(bdo)
+	# 	if not bdo:
+	# 		self.error("No ccd frames found! Cannot start web.boxer.")
+	# 		return
+	# 
+	# 	self.set_context_item("bdo",bdo)
 
 
 

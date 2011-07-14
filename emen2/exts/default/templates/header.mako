@@ -42,7 +42,7 @@
 	
 		<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul id="bookmarks">
-				<li><a href="">Loading...</a></li>
+				<li><a href=""><img src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" /></a></li>
 			</ul>
 		</li>
 	

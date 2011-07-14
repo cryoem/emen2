@@ -91,7 +91,7 @@
 		build_stats: function() {
 			var self = this;
 			var q = $('<li><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="hidden">Loading...</div>');
+			var hidden = $('<div class="hidden"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			q.append(hidden);
 			q.EditbarHelper({
 				width: 300

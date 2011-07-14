@@ -5,7 +5,7 @@
 <script type="text/javascript">
 //<![CDATA[
 	$(document).ready(function() {
-		record_init_new(${jsonrpc.jsonutil.encode(newrec)});
+		record_init_new(${jsonrpc.jsonutil.encode(newrec)}, ${jsonrpc.jsonutil.encode(rec)});
 	});
 //]]>
 </script>
@@ -13,10 +13,9 @@
 
 <ul class="menu editbar floatlist clearfix">
 
-	<li>
-		<span class="label">New</span>
+	<li id="e2-editbar-newrecord-recorddef">
+		<span class="clickable label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
 	</li>
-
 	
 	<li id="e2-editbar-newrecord-info">
 		<span class="clickable label">
@@ -30,13 +29,13 @@
 		</div>
 	</li>
 
-	<li id="e2-editbar-newrecord-relationships">
-		<span class="clickable label">
-			Relationships
-			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
-		</span>
-		<div id="e2-newrecord-relationships" class="hidden"></div>
-	</li>
+	##<li id="e2-editbar-newrecord-relationships">
+	##	<span class="clickable label">
+	##		Relationships
+	##		<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
+	##	</span>
+	##	<div id="e2-newrecord-relationships" class="hidden"></div>
+	##</li>
 
 	<li id="e2-editbar-newrecord-permissions">
 		<span class="clickable label">
@@ -46,13 +45,6 @@
 		<div id="e2-newrecord-permissions" class="hidden"></div>
 	</li>
 
-	<li id="e2-editbar-newrecord-recorddef">
-		<span class="clickable label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
-		<div class="hidden">
-			Blah blah <input type="text" value="${recdef.name}" />
-		</div>
-	</li>
-	
 </ul>
 
 

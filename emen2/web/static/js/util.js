@@ -573,7 +573,8 @@ $(document).ready(function() {
 			}
 			
 			if (this.options.width) {
-				this.popup.width(this.options.width)
+				this.popup.css('width','auto');
+				this.popup.css('min-width', this.options.width);
 			}
 			if (this.options.height) {
 				this.popup.height(this.options.height);

@@ -80,7 +80,6 @@
 	</li>
 
 
-
 	<%
 	nicenames = {
 		"tabularview": "Table View (tabularview)",
@@ -102,7 +101,6 @@
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
 		<div class="hidden" style="width:400px;">
-
 			<p><a href="${ctxt.reverse('RecordDef',name=rec.rectype)}">${rec.rectype} protocol page</a></p>
 
 			<h4>Views</h4>
@@ -111,7 +109,6 @@
 				<li class="clickable" data-viewtype="${i}">${nicenames.get(i, i)}</li>	
 			% endfor
 			</ul>
-
 
 			<h4>Tools</h4>
 			<ul>
@@ -164,7 +161,11 @@
 		</li>
 
 	% endif
-
+	
+	<li id="e2-editbar-comments" class="floatright">
+		<span class="clickable label">C <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
+	</li>
+	
 	<li id="e2-editbar-helper" class="floatright">
 		<span class="clickable label">
 			% if rec.get('modifytime'):	
@@ -181,7 +182,7 @@
 			
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
-		<div class="hidden" style="width:800px"></div>			
+		<div class="hidden" style="width:auto;min-width:800px"></div>			
 	</li>
 </ul>
 

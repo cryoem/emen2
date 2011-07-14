@@ -693,7 +693,7 @@ function bind_autocomplete(elem, param) {
 			}
 			this.built_selector = true;
 			this.selectdialog = $('<div />');
-			this.typicalchld = $('<div>Loading</div>')
+			this.typicalchld = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>')
 			this.selectdialog.append('<h4>New Record</h4>', this.typicalchld);
 
 			// new record rectype
@@ -790,7 +790,7 @@ function bind_autocomplete(elem, param) {
 		},
 		
 		build_newrecord: function() {
-			this.newdialog = $('<div>Loading...</div>');
+			this.newdialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';
 				caches['recs'][rec.name] = rec;

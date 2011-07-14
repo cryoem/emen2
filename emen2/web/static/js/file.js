@@ -25,28 +25,52 @@
 		event_click: function(e) {
 			this.show();
 		},
+		
+		_findbinary: function() {
+			var self = this;
+			$.jsonRPC("findbinary", {'record':self.options.name}, 
+				function(bdos) {						
+					if (bdos == null) {bdos=[]}
+					if (bdos.length == null) {bdos=[bdos]}
+					self.bdos = bdos || {};
+					self.makebdomap();
+					self._findusernames();
+					//self.build_tablearea();
+				}
+			);
+		},
+		
+		_findusernames: function() {
+			var findusers = [];
+			var self = this;
+			$.each(self.bdos, function() {
+				if (caches['displaynames'][this.creator] == null) {
+					findusers.push(this.creator);
+				}
+			});
 
+			if (findusers.length) {
+				$.jsonRPC('getuser', [findusers], function(users) {
+					$.each(users, function() {
+						caches['displaynames'][this.name] = this.displayname;
+					});
+					self.build_tablearea();
+				})
+			} else {
+				self.build_tablearea();				
+			}
+			
+		},
+		
 		event_build_tablearea: function(e) {
 			var self = this;
 			this.tablearea.empty();
-			this.tablearea.append('<div>Loading...</div>');
-			$.jsonRPC("findparamdef", {'record':this.options.name}, function(paramdefs) {
-			
+			this.tablearea.append('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			$.jsonRPC("findparamdef", {'record':this.options.name}, function(paramdefs) {			
 				$.each(paramdefs, function() {
 					caches["paramdefs"][this.name] = this;
 				});
-			
-				$.jsonRPC("findbinary", {'record':self.options.name}, 
-					function(bdos) {
-                  console.log(bdos);
-						if (bdos == null) {bdos=[]}
-						if (bdos.length == null) {bdos=[bdos]}
-						self.bdos = bdos || {};
-						self.makebdomap();
-						self.build_tablearea();
-					}
-				);
-
+				self._findbinary();
 			});
 
 		},
@@ -87,13 +111,12 @@
 				this.tablearea.append('<h4>There are currently no attachments.</h4>');
 				return
 			}
-			var bdotable = $('<table cellpadding="0" cellspacing="0" />');
+			var bdotable = $('<table cellpadding="0" cellspacing="0" class="shaded" />');
 			$.each(this.bdomap, function(k,bdos) {
-
-				var header = $('<tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Creator</th><th>Created</th></tr>');
+				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Creator</th><th>Created</th></tr></thead>');
 				// if (self.options.edit) {header.prepend('<th><input type="radio" name="param" value="'+k+'" /></th>');}
 				bdotable.append(header);
-				
+				var tbody = $('<tbody></tbody>');
 				$.each(bdos, function(i,v) {
 					var row = $('<tr data-param="'+k+'" data-bdo="'+v.name+'"/>');
 					if (self.options.edit) {
@@ -102,11 +125,11 @@
 					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="Thumb" /></a></td>');
 					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
 					row.append('<td>'+$.convert_bytes(v.filesize)+'</td>');
-					row.append('<td>'+v.creator+'</td>');
+					row.append('<td><a href="'+EMEN2WEBROOT+'/user/'+v.creator+'/">'+caches['displaynames'][v.creator]+'</a></td>');
 					row.append('<td>'+v.creationtime+'</td>');
-					bdotable.append(row);
+					tbody.append(row);
 				});
-				
+				bdotable.append(tbody);
 			});
 			
 			$('input[name=remove]', bdotable).click(function() {
@@ -139,24 +162,17 @@
 
 			$('form', this.dialog).append(this.tablearea, this.browserarea, this.queryarea);
 			this.event_build_tablearea();
-
+			
 			var controls = $(' \
 				<div class="controls"> \
-						<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#showattachments=1" /> \
-						<ul class="options nonlist"> \
-							<li> \
-								<input checked="checked" type="radio" name="param" value="file_binary" id="param_file_binary" /> \
-								<label for="param_file_binary">Regular Attachment</label> \
-							</li><li> \
-								<input type="radio" name="param" value="" id="param_other" /> \
-								<label for="param_other">Other: <input name="param_other" type="text" size="4" /></label> \
-							</li> \
-						</ul> \
-						<input type="file" name="filedata" size="6" /><br /> \
+					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
+					<input type="hidden" name="param" value="file_binary" /> \
+					<input style="opacity:0" type="file" name="filedata" /> \
 				</div> \
-				<div style="clear:both;float:none" class="controls"> \
-					<input class="floatleft save" name="remove" type="button" value="Remove Selected" /> \
+				<div style="width:100%" class="controls"> \
+					<input class="floatleft save" name="remove" type="button" value="Remove Selected Attachments" /> \
 					<input class="floatright save" name="save" type="submit" value="Upload Attachment" /> \
+					<img class="spinner floatright hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
 				</div>');
 			
 			if (this.options.edit) {
@@ -166,19 +182,35 @@
 			$('input[name=remove]', controls).click(function() {
 				self.removebdos();
 			});
+			
+			// Submit the form when this changes.
+			$('input[name=filedata]', controls).change(function() {
+				if (!$(this).val()) {return}
+				$('img.spinner', self.dialog).show();
+				$('form', self.dialog).submit();
+			});
 
-			$('input[name=param_other]', controls).FindControl({
-				keytype: 'paramdef',
-				vartype: ['binary', 'binaryimage'],
-				minimum: 0,
-				cb: function(self, value) {
-					$('#param_other').attr('value', value);
-					self.element.val(value);
-				}
+			$('input[name=save]', this.dialog).click(function(e) {
+				var fd = 
+				$('input[name=filedata]', self.dialog).change(function() {
+					console.log("Value:", $(this).val());
+				});
+				fd.click();
+				e.preventDefault();
 			});
-			$('input[name=param_other]', controls).click(function() {
-				$("#param_other").attr('checked', 'checked');
-			});
+
+			// $('input[name=param_other]', controls).click(function() {
+			// 	$(this).val('');
+			// });
+			// $('input[name=param_other]', controls).FindControl({
+			// 	keytype: 'paramdef',
+			// 	vartype: ['binary', 'binaryimage'],
+			// 	minimum: 0,
+			// 	cb: function(self, value) {
+			// 		$('#param_other').attr('value', value);
+			// 		self.element.val(value);
+			// 	}
+			// });
 
 			if (this.options.embed) {
 				this.element.append(this.dialog);
