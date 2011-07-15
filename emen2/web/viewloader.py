@@ -12,20 +12,16 @@ import emen2.web.resources.publicresource
 import emen2.db.config
 config = emen2.db.config.g()
 
-
-default_extensions = emen2.db.config.get_filename('emen2.web', 'exts')
 class ViewLoader(object):
 	routing_table = config.claim('ROUTING', {})
 	redirects = config.claim('REDIRECTS', {})
-	extensionpaths = config.claim('paths.EXTENSIONPATHS', [emen2.db.config.get_filename('emen2.web', 'exts')])
-	extensions = config.claim('EXTENSIONS',
-		[dirent for dirent in os.listdir(default_extensions)
-			if os.path.isdir(dirent) and dirent != 'CVS'
-		]
-	)
+	extensionpaths = config.claim('paths.EXTPATHS')
+	extensions = config.claim('EXTS')
+	#, [dirent for dirent in os.listdir(default_extensions) if os.path.isdir(dirent) and dirent != 'CVS' ]
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
-		if name == '__init__': return
+		if name == '__init__':
+			return
 		modulename = '.'.join([extension_name, 'views', name])
 
 		if not hasattr(failures, 'append'):
@@ -38,6 +34,7 @@ class ViewLoader(object):
 		viewname = os.path.join(pwd[0], name).replace(pth,'')
 		level = 'DEBUG'
 		msg = ["VIEW", "LOADED:"]
+
 		try:
 			__import__(modulename)
 		except BaseException, e:
@@ -52,51 +49,59 @@ class ViewLoader(object):
 
 
 	def __init__(self):
-
-		if 'default' not in self.extensions:
-			self.extensions.insert(0,'default')
-		#self.extensionpaths.append(os.path.join(config.EMEN2DBHOME, 'extensions'))
-		if default_extensions not in self.extensionpaths:
-			self.extensionpaths.insert(0,default_extensions)
-
-		config.debug( self.extensionpaths )
-		config.debug( self.extensions )
+		config.debug(self.extensionpaths)
+		config.debug(self.extensions)
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
 		self.router = emen2.web.routing.URLRegistry()
 
+
 	def load_extensions(self):
+		# We'll be adding the extension paths with a low priority..
 		pth = list(reversed(sys.path))
+		
+		# Load exts
+		for ext in self.extensions:
+			# Find the path to the extension
+			path, name = os.path.split(ext)
+			# Absolute paths are loaded directly
+			if path:
+				paths = [ext]
+			else:
+				# Search g.EXTPATHS for a directory matching the ext name
+				paths = []
+				for p in filter(os.path.isdir, self.extensionpaths):
+					for sp in os.listdir(p):
+						if os.path.isdir(os.path.join(p, sp)) and ext == sp:
+							paths.append(os.path.join(p, sp))
+			
+			if not paths:
+				config.info('Couldn\'t find extnesion %s'%ext)
+				continue
+			
+			# If a suitable ext was found, load..
+			path = paths.pop()
+			config.info('Loading extension %s: %s' % (name, path))
+				
+			# ...load templates
+			templatedir = os.path.join(path, 'templates')
+			if os.path.exists(templatedir):
+				self.load_templates(templatedir)
+				
+			# ...load views
+			viewdir = os.path.join(path, 'views')
+			if os.path.exists(viewdir):
+				old_syspath = sys.path[:]
+				sys.path.append(os.path.dirname(path))
+				self.get_views(viewdir, extension_name=name)
+				sys.path = old_syspath
+			
+			# ...add ext path to the python module search
+			pythondir = os.path.join(path, 'python')
+			if os.path.exists(pythondir):
+				pth.insert(-1,pythondir)
 
-		extensionpaths = collections.defaultdict(list)
-		for extensionpath in self.extensionpaths:
-			if os.path.isdir(extensionpath):
-				for dirent in os.listdir(extensionpath):
-					dirpath = os.path.join(extensionpath, dirent)
-					if os.path.isdir(dirpath):
-						extensionpaths[dirent].append(dirpath)
 
-		for extension in self.extensions:
-			extensiondir = extensionpaths.pop(extension, [])
-			if extensiondir != []:
-				extensiondir = extensiondir.pop()
-				config.info('Loading extension %s from %s' % (extension, extensiondir))
-
-				templatedir = os.path.join(extensiondir, 'templates')
-				if os.path.exists(templatedir):
-					self.load_templates(templatedir)
-
-				viewdir = os.path.join(extensiondir, 'views')
-				if os.path.exists(viewdir):
-					old_syspath = sys.path[:]
-					sys.path.append(os.path.dirname(extensiondir))
-					self.get_views(viewdir, extension_name = extension)
-					sys.path = old_syspath
-
-				pythondir = os.path.join(extensiondir, 'python')
-				if os.path.exists(pythondir):
-					pth.insert(-1,pythondir)
-
-		# so that extensions cannot override built-in modules
+		# Restore the original sys.path
 		sys.path = list(reversed(pth))
 		return True
 
@@ -118,7 +123,6 @@ class ViewLoader(object):
 		for fro,v in self.redirects.iteritems():
 			to, kwargs = v
 			emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
-
 
 
 	def reload_views(self, view=None):
