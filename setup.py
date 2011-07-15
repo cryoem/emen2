@@ -33,9 +33,9 @@ if __name__ == "__main__":
 			'emen2.db',
 			'emen2.web',
 			'emen2.web.resources',
-			'emen2.web.plugins',
-			'emen2.web.plugins.default',
-			'emen2.web.plugins.default.views',
+			'emen2.web.exts',
+			'emen2.web.exts.default',
+			'emen2.web.exts.default.views',
 			'emen2.util',
 			],
 		package_data={

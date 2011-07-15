@@ -59,13 +59,6 @@ class ViewLoader(object):
 		if default_extensions not in self.extensionpaths:
 			self.extensionpaths.insert(0,default_extensions)
 
-		# ian: temp hack..
-		self.extensions.append('Char')
-		self.extensionpaths.append('/Volumes/Home/irees/Dropbox')
-		print "--"
-		print self.extensions
-		print self.extensionpaths
-
 		config.debug( self.extensionpaths )
 		config.debug( self.extensions )
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)

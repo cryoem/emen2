@@ -111,7 +111,6 @@ class DBOptions(optparse.OptionParser):
 		for fil in self.values.configfile or []:
 			g.from_file(fil)
 
-		print g.EMEN2DBHOME
 		# Load any config file in EMEN2DBHOME
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.json"))
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
@@ -130,7 +129,6 @@ class DBOptions(optparse.OptionParser):
 
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
-			print g.paths.LOGPATH
 			os.makedirs(g.paths.LOGPATH)
 
 		# Bind main logging method
