@@ -65,7 +65,7 @@ class ViewLoader(object):
 			path, name = os.path.split(ext)
 			# Absolute paths are loaded directly
 			if path:
-				paths = [ext]
+				paths = filter(os.path.isdir, [ext])
 			else:
 				# Search g.EXTPATHS for a directory matching the ext name
 				paths = []
@@ -75,7 +75,7 @@ class ViewLoader(object):
 							paths.append(os.path.join(p, sp))
 			
 			if not paths:
-				config.info('Couldn\'t find extnesion %s'%ext)
+				config.info('Couldn\'t find extension %s'%ext)
 				continue
 			
 			# If a suitable ext was found, load..

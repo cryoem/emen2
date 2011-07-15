@@ -50,7 +50,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
-		group.add_option('--plugin', action="append", dest='ext', help="Add Plugin")
+		group.add_option('--ext', action="append", dest='exts', help="Add Extension")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
@@ -107,6 +107,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
 		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
+		
 		# Load other specified config files
 		for fil in self.values.configfile or []:
 			g.from_file(fil)
@@ -151,6 +152,10 @@ class DBOptions(optparse.OptionParser):
 				pp = [pp]
 			sys.path.extend(pp)
 
+		# Add any specified extensions
+		g.paths.EXTPATHS.append(get_filename('emen2.web', 'exts'))
+		g.EXTS.extend(self.values.exts or [])
+	
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
 

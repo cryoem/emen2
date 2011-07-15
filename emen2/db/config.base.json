@@ -31,7 +31,7 @@
 			"/etc/emen2config.json",
 			"config.json"
 		],
-      "EXTENSIONPATHS" :[
+      "EXTPATHS" :[
          "exts"
       ]
 	},
@@ -87,6 +87,10 @@
 		
 		// These words will not be indexed
 		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]
+	},
+
+	"extensions":{
+		"EXTS": ["default"]
 	},
 
 	// Bookmarks to some key records.
