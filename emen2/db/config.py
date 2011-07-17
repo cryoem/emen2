@@ -153,7 +153,7 @@ class DBOptions(optparse.OptionParser):
 			sys.path.extend(pp)
 
 		# Add any specified extensions
-		g.paths.EXTPATHS.append(get_filename('emen2.web', 'exts'))
+		g.paths.EXTPATHS.append(get_filename('emen2', 'web/exts'))
 		g.EXTS.extend(self.values.exts or [])
 	
 		# Enable/disable snapshot

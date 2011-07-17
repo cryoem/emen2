@@ -1916,7 +1916,7 @@ class DB(object):
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:
-			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn).update1(newrec)
+			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn).update(newrec)
 			recs.append(rec)
 
 		# Default params
@@ -1925,6 +1925,8 @@ class DB(object):
 
 		# Get and pre-process views
 		groupviews = {}
+		print "WTF?"
+		print recs
 		recdefs = listops.dictbykey(self.bdbs.recorddef.cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
 		if viewdef:
