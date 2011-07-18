@@ -551,7 +551,7 @@ class vt_date(vt_datetime):
 		return unicode(value).strip() or None
 
 
-### New
+### Extended date vartypes
 
 class vt_duration(vt_datetime):
 	"""TimeStart, OR, TimeStart-TimeStop"""
@@ -562,19 +562,50 @@ class vt_duration(vt_datetime):
 		return unicode(value).strip() or None
 
 
-class vt_frequency(vt_datetime):
+class vt_recurring(vt_datetime):
 	"""date, yyyy/mm/dd"""
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		basevalue = {
-			'daily': None,
-			'weekly': [None, None, None, None, None, None, None],
-			'weekly_monthly': [None, None, None, None, None, None, None] * 4,
-			'monthly': [None] * 12
-			}
+		d = {}
 
-		return value
+		# Manually specified times
+		d['datetimes']
+		d['dates']
+		
+		# These times of day
+		d['times']
+		# ... or these intervals
+		d['durations']
+
+		# Repeat days
+		# Default: every day
+		# Repeat These days of the week....
+		# Sun 0
+		# Mon 1
+		# Tue 2
+		# Wed 3
+		# Thu 4
+		# Fri 5
+		# Sat 6
+		d['days_week']
+		# ... or 'first monday', 'last friday'. List of days, -7 to 35.
+		# e.g. 	second tuesday = 9, divmod(9,7) = (1,2)
+		# 		third sunday = 21, divmod(21,7) = (3,0)
+		#		last friday = -2, divmod(-2,7) = (-1,5)
+		d['days_week_month']
+		# ... or list of days each month, -31 to 31
+		d['days_month']
+
+		# ... repeat these months of the year, 0-11
+		# 	Default: all months
+		d['months']
+
+		# datetime stamps to start/end
+		d['start']
+		d['end']
+
+		return d
 
 
 

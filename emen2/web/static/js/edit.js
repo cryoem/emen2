@@ -790,6 +790,7 @@ function bind_autocomplete(elem, param) {
 		},
 		
 		build_newrecord: function() {
+			var self = this;
 			this.newdialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';

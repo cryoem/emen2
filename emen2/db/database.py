@@ -1912,11 +1912,14 @@ class DB(object):
 
 		# We'll be working with a list of names
 		# ed: added the *() for better visual grouping :)
-		names, recs, newrecs, other = listops.typepartition( names, *(int, emen2.db.dataobject.BaseDBObject, dict) )
+		# 
+		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
-
+		
 		for newrec in newrecs:
-			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn).update(newrec)
+			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)#.update(newrec)
+			rec.update(newrec)
+			print "newrec:", rec
 			recs.append(rec)
 
 		# Default params
@@ -1925,8 +1928,6 @@ class DB(object):
 
 		# Get and pre-process views
 		groupviews = {}
-		print "WTF?"
-		print recs
 		recdefs = listops.dictbykey(self.bdbs.recorddef.cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
 		if viewdef:
