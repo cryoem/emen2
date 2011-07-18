@@ -568,7 +568,6 @@ class vt_recurring(vt_datetime):
 
 	def validate(self, value):
 		d = {}
-
 		# Manually specified times
 		d['datetimes']
 		d['dates']
