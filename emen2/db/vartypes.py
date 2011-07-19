@@ -4,9 +4,13 @@ import cgi
 import operator
 import collections
 import urllib
-import time, datetime
+import time
+import datetime
+import calendar
 import htmlentitydefs
 import re
+
+
 
 try:
 	import markdown2 as markdown
@@ -568,45 +572,118 @@ class vt_recurring(vt_datetime):
 
 	def validate(self, value):
 		d = {}
-		# Manually specified times
-		d['datetimes']
-		d['dates']
 		
-		# These times of day
-		d['times']
-		# ... or these intervals
-		d['durations']
+		# Manually specified times
+		d['datetimes'] = [parse_datetime(i)[1] for i in value.get('datetimes',[])]
+		d['dates'] = [parse_date(i)[1] for i in value.get('dates',[])]		
+		# -- OR --
+		# Repeat times based on time or day
+		d['times'] = [parse_time(i)[1] for i in value.get('times',[])]
+		d['durations'] = value.get('durations', [])
 
 		# Repeat days
 		# Default: every day
-		# Repeat These days of the week....
-		# Sun 0
-		# Mon 1
-		# Tue 2
-		# Wed 3
-		# Thu 4
-		# Fri 5
-		# Sat 6
-		d['days_week']
+		# Repeat These days of the ISO Week -- Monday is 1, Sunday is 7
+		try:
+			d['days_week'] = [interval(i, 1, 7) for i in value.get('days_week',[])]
+		except ValueError:
+			raise ValueError, "Invalid days of the week: 1 (Monday) to 7 (Sunday) allowed."
+				
 		# ... or 'first monday', 'last friday'. List of days, -7 to 35.
 		# e.g. 	second tuesday = 9, divmod(9,7) = (1,2)
 		# 		third sunday = 21, divmod(21,7) = (3,0)
 		#		last friday = -2, divmod(-2,7) = (-1,5)
-		d['days_week_month']
+		try:
+			d['days_week_month'] = [interval(i, -7, 35) for i in value.get('days_week_month', [])]
+			if 0 in d['days_week_month']:
+				raise ValueError
+		except ValueError:
+			raise ValueError, "Invalid week-relative days: 1 (first Monday) to 35 (fifth Sunday) allowed, as well as -1 (Last Sunday) to -7 (Last Monday)"
+			
 		# ... or list of days each month, -31 to 31
-		d['days_month']
+		try:			
+			d['days_month'] = [interval(i, -31, 31) for i in value.get('days_month', [])]
+			if 0 in d['days_month']:
+				raise ValueError
+		except ValueError:
+			raise ValueError, "Invalid day of month: 1 to 31 are allowed, as well as -1 (last day of month) to -31."
 
-		# ... repeat these months of the year, 0-11
+		# ... repeat these months of the year, 1-12
 		# 	Default: all months
-		d['months']
+		try:			
+			d['months'] = [interval(i, 1, 12) for i in value.get('months', [])]
+		except ValueError:
+			raise ValueError, "Invalid month: 1 (January) to 12 (December) are allowed."
 
 		# datetime stamps to start/end
-		d['start']
-		d['end']
+		d['start'] = parse_datetime(value.get('start'))[1]
+		d['end'] = parse_datetime(value.get('end'))[1]
 
-		return d
+		# The maximum number of times to repeat
+		d['max'] = None
+
+		# If a start time is given, we can repeat 
+		# the event relative to that time
+		d['repeat_minutes'] = None
+		d['repeat_hours'] = None
+		d['repeat_days'] = None
+		d['repeat_months'] = None
+		d['repeat_years'] = None
 
 
+		d2 = {}
+		for k,v in d.items():
+			if v:
+				d2[k] = v
+
+		return d2
+
+
+	def occurances(self, d, start=None, end=None):
+		occurances = set()
+		year = 2011
+		month = 7
+
+		cal = calendar.Calendar()
+		# cal.setfirstweekday(6)
+		days = list(cal.itermonthdates(year,month))
+
+		def toweek(d):
+			a, b = divmod(d-1, 7)
+			return a, b+1
+
+		days_week_month = [toweek(i) for i in d.get('days_week_month', [])]
+		print "Days week month:"
+		print days_week_month
+
+		for day in days:		
+			week, weekday = divmod(day.day-1, 7)
+			weekday += 1
+			# print "---------"
+			# print day
+			# print "Week:", week
+			# print "Weekday:", weekday, calendar.day_name[day.weekday()]
+			
+			# Check year
+			# Check month
+			if day.month in d.get('months', []) or not d.get('months'):
+				# Check days of month
+				if day.day in d.get('days_month', []):
+					print "Found %s in days_month: %s"%(day.day, d.get('days_month'))
+					occurances.add(day)
+
+				# Check days of week..
+				if day.isoweekday() in d.get('days_week', []):
+					print "Found %s in days_week: %s"%(day.weekday(), d.get('days_week'))
+					occurances.add(day)
+					
+				# Check days of week relative to month
+				if (week,weekday) in days_week_month:
+					print "Found %s in days_week_month: %s"%((week,weekday), days_week_month)
+					occurances.add(day)
+					
+		
+		
 
 
 ###################################
@@ -1199,7 +1276,8 @@ datetime_formats = [
 
 def parse_datetime(string):
 	"""Return a tuple: datetime instance, and validated output"""
-	string = string.strip()
+
+	string = (string or '').strip()
 	if not string:
 		return None, None
 
@@ -1221,9 +1299,7 @@ def parse_datetime(string):
 
 
 def parse_time(string):
-	string = string.strip()
-
-	string = string.split(".")
+	string = string.strip().split(".")
 	msecs = 0
 	if len(string) > 1:
 		msecs = int(string.pop().ljust(6,'0'))
@@ -1231,12 +1307,11 @@ def parse_time(string):
 
 	for format in time_formats:
 		try:
-			return string, datetime.datetime.strptime(string, format).time()
+			return datetime.datetime.strptime(string, format).time(), string
 		except ValueError, inst:
 			pass
 
 	raise ValueError()
-
 
 
 def parse_date(string):
@@ -1247,11 +1322,40 @@ def parse_date(string):
 
 	for format in date_formats:
 		try:
-			return string, datetime.datetime.strptime(string, format).date()
+			return datetime.datetime.strptime(string, format).date(), string
 		except ValueError:
 			pass
 
 	raise ValueError()
+
+
+def interval(i, start, end):
+	i = int(i)
+	if not start <= i <= end:
+		raise ValueError
+	return i
+
+
+
+if __name__ == "__main__":
+	print "Checking recurring validator"
+	validator = vt_recurring()
+	
+	# print parse_datetime("2011/07/14 10:10:10")
+	# print parse_date("2011/07/14")
+	# print parse_time("10:10:10")
+	d = {
+		'times':['10:00:00', '16:00:00'],
+		'days_month':[1,7,14],
+		'days_week_month':[1, 8],
+		'days_week':[1, 2]
+	}
+	d = validator.validate(d)
+	print "Validated recurring time:"
+	print d
+	print validator.occurances(d)
+
+
 
 
 
