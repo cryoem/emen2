@@ -557,7 +557,7 @@ class vt_date(vt_datetime):
 
 ### Extended date vartypes
 
-class vt_duration(vt_datetime):
+class vt_duration(Vartype):
 	"""TimeStart, OR, TimeStart-TimeStop"""
 	__metaclass__ = Vartype.register_view
 
@@ -566,13 +566,12 @@ class vt_duration(vt_datetime):
 		return unicode(value).strip() or None
 
 
-class vt_recurring(vt_datetime):
+class vt_recurring(Vartype):
 	"""date, yyyy/mm/dd"""
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
 		d = {}
-		
 		# Manually specified times
 		d['datetimes'] = [parse_datetime(i)[1] for i in value.get('datetimes',[])]
 		d['dates'] = [parse_date(i)[1] for i in value.get('dates',[])]		
@@ -619,23 +618,17 @@ class vt_recurring(vt_datetime):
 		d['start'] = parse_datetime(value.get('start'))[1]
 		d['end'] = parse_datetime(value.get('end'))[1]
 
+		# These require start/stop
+		# ISO 8601 Repeat		
+		d['repeat'] = None 
 		# The maximum number of times to repeat
 		d['max'] = None
 
-		# If a start time is given, we can repeat 
-		# the event relative to that time
-		d['repeat_minutes'] = None
-		d['repeat_hours'] = None
-		d['repeat_days'] = None
-		d['repeat_months'] = None
-		d['repeat_years'] = None
-
-
+		# Filter
 		d2 = {}
 		for k,v in d.items():
 			if v:
 				d2[k] = v
-
 		return d2
 
 
@@ -643,46 +636,60 @@ class vt_recurring(vt_datetime):
 		occurances = set()
 		year = 2011
 		month = 7
-
+		
+		# Days to check
 		cal = calendar.Calendar()
-		# cal.setfirstweekday(6)
 		days = list(cal.itermonthdates(year,month))
 
+		# Get the current week (0-4) and isoday (1-7) for a day
 		def toweek(d):
-			a, b = divmod(d-1, 7)
+			# Subtract 1 because first day of month is 1, not 0
+			if d > 0:
+				d -= 1
+			a, b  = divmod(d, 7)
+			# Add 1 to day to get isoweekday
 			return a, b+1
 
 		days_week_month = [toweek(i) for i in d.get('days_week_month', [])]
-		print "Days week month:"
-		print days_week_month
+		
+		# Check for counter-based recurrances
+			
 
+		# Check for day-based recurrances
 		for day in days:		
-			week, weekday = divmod(day.day-1, 7)
-			weekday += 1
-			# print "---------"
-			# print day
-			# print "Week:", week
-			# print "Weekday:", weekday, calendar.day_name[day.weekday()]
+			# Get the current week and day
+			week, _ = divmod(day.day-1, 7)			
+			# Get the relative week and day
+			endweek, endisoday = 0,0			
+			# Get the relative month day. The -1 is because first day.day = 1
+			relday = day.day - calendar.monthrange(day.year, day.month)[1] - 1
+			relweek = divmod(relday, 7)[0]
 			
 			# Check year
-			# Check month
-			if day.month in d.get('months', []) or not d.get('months'):
-				# Check days of month
-				if day.day in d.get('days_month', []):
-					print "Found %s in days_month: %s"%(day.day, d.get('days_month'))
-					occurances.add(day)
+			if day.year in d.get('years',[]) or not d.get('years'):
+				# Check month
+				if day.month in d.get('months', []) or not d.get('months'):
+					# Check days of month
+					if day.day in d.get('days_month', []) or relday in d.get('days_month', []):
+						#print "Found day %s (%s) in days_month: %s"%(day.day, relday, d.get('days_month'))
+						occurances.add(day)
 
-				# Check days of week..
-				if day.isoweekday() in d.get('days_week', []):
-					print "Found %s in days_week: %s"%(day.weekday(), d.get('days_week'))
-					occurances.add(day)
+					# Check days of week..
+					if day.isoweekday() in d.get('days_week', []):
+						#print "Found day.isoweekday() %s in days_week: %s"%(day.isoweekday(), d.get('days_week'))
+						occurances.add(day)
+				
+					# Check days of week relative to month
+					if (week,day.isoweekday()) in days_week_month:
+						#print "Found week/day.isoweekday() %s in days_week_month: %s"%((week,day.isoweekday()), days_week_month)
+						occurances.add(day)
 					
-				# Check days of week relative to month
-				if (week,weekday) in days_week_month:
-					print "Found %s in days_week_month: %s"%((week,weekday), days_week_month)
-					occurances.add(day)
+					if (relweek,day.isoweekday()) in days_week_month:
+						#print "Found relative week/day.isoweekday() %s in days_week_month: %s"%((relweek,day.isoweekday()), days_week_month)
+						occurances.add(day)
 					
-		
+					
+		return occurances
 		
 
 
@@ -749,6 +756,7 @@ class vt_urilist(vt_iter, vt_ref):
 
 # all = set(['displayname', 'groups', 'views', 'mainview', 'creationtime', 'typicalchld', 'compress', 'private', 'disabled', 'rectype', 'signupinfo', 'vartype', 'userrec', 'modifytime', 'filename', 'children', 'desc_short', 'name', 'modifyuser', 'desc_long', 'privacy', 'filepath', 'uri', 'comments', 'choices', 'defaultunits', 'record', 'name', 'filesize', 'indexed', 'parents', 'permissions', 'property', 'creator', 'immutable', 'md5', 'history'])
 
+# Some DBObject attributes....
 # displayname: string
 # groups: groups
 # views: dict
@@ -1334,27 +1342,65 @@ def interval(i, start, end):
 	if not start <= i <= end:
 		raise ValueError
 	return i
+	
+	
+	
+def isoduration(d):
+	# From Wikipedia:
+	# Format is P[n]Y[n]M[n]DT[n]H[n]M[n]S
+	# P is the duration designator (historically called "period") placed at the start of the duration representation.
+	# Y is the year designator that follows the value for the number of years.
+	# M is the month designator that follows the value for the number of months.
+	# W is the week designator that follows the value for the number of weeks.
+	# D is the day designator that follows the value for the number of days.
+	# T is the time designator that precedes the time components of the representation.
+	# H is the hour designator that follows the value for the number of hours.
+	# M is the minute designator that follows the value for the number of minutes.
+	# S is the second designator that follows the value for the number of seconds.	
+	
+	# This just parses, and does not convert to seconds, because we'll use more sophisticated
+	# tools like dateutil to actually add the durations, which will take care of "months" having
+	# variable days, etc.	
+	regex = re.compile('P((?P<weeks>\d+)W)?((?P<years>\d+)Y)?((?P<months>\d+)M)?((?P<days>\d+)D)?(T((?P<hours>\d+)H)?((?P<minutes>\d+)M)?((?P<seconds>\d+)S)?)?')
+
+	# d = 'P1Y2M3DT4H5M6S'
+	# d = 'P1Y2M10DT2H30M'
+	# d = 'P3Y6M4DT12H30M5S'
+	d = 'P3W'
+	for match in regex.finditer(d):
+		print "------"
+		print match.groups()
+		print "Weeks:", match.group('weeks')
+		print "Years:", match.group('years')
+		print "Months:", match.group('months')
+		print "Days:", match.group('days')
+		print "Hours:", match.group('hours')
+		print "Minutes:", match.group('minutes')
+		print "Seconds:", match.group('seconds')
+
 
 
 
 if __name__ == "__main__":
-	print "Checking recurring validator"
-	validator = vt_recurring()
-	
 	# print parse_datetime("2011/07/14 10:10:10")
 	# print parse_date("2011/07/14")
 	# print parse_time("10:10:10")
+
+	print "Checking recurring validator"
+	validator = vt_recurring()
 	d = {
-		'times':['10:00:00', '16:00:00'],
-		'days_month':[1,7,14],
-		'days_week_month':[1, 8],
-		'days_week':[1, 2]
+		#'times':['10:00:00', '16:00:00'],
+		#'days_month':[7, -2],
+		'days_week_month':[1, -7], # Last Sunday
+		#'days_week':[1]
 	}
 	d = validator.validate(d)
 	print "Validated recurring time:"
 	print d
 	print validator.occurances(d)
 
+	print "Checking ISO Duration"
+	print isoduration("P1Y")
 
 
 
