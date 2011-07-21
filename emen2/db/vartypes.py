@@ -6,6 +6,8 @@ import collections
 import urllib
 import time
 import datetime
+import dateutil
+import dateutil.rrule
 import calendar
 import htmlentitydefs
 import re
@@ -1261,8 +1263,10 @@ def parse_iso8601(d):
 	
 def parse_repeat(d):
 	"""
-	ISO 8601 Duration format, from Wikipedia:
-	Format is P[n]Y[n]M[n]DT[n]H[n]M[n]S
+	Parse ISO 8601 duration format, as well as my iCalendar RFC extensions.
+	
+	From Wikipedia, ISO 8601 duration format is:
+		P[n]Y[n]M[n]DT[n]H[n]M[n]S
 	
 	P is the duration designator (historically called "period") placed at the start of the duration representation.
 	Y is the year designator that follows the value for the number of years.
@@ -1281,8 +1285,7 @@ def parse_repeat(d):
 
 	I'm definining the following extensions, as a compressed way of writing
 	iCalendar RFC rule sets. Use following an 'X' code, similar to the 'T' for time.
-	
-	'dtstart' and 'until' times are given in ISO 8601 style:
+	Keys 'dtstart' and 'until' times are given in ISO 8601 style:
 		<start>/(<duration>/)?(<repeat rule>/)?(<end>)?
 	
 	Extended format is:
@@ -1302,12 +1305,12 @@ def parse_repeat(d):
 	B: interval
 		The interval between each 'freq' iteration.
 		Positive integer.
-	C: wkst
-		Week start day.
-		Not used.
-	E: count
+	C: count
 		Maximum number of occurrences.
 		Positive integer.
+	E: wkst
+		Week start day.
+		Not used.
 	F: bysetpos
 		n-th occurrence of the rule inside the frequency period.
 		Integers, separated by ",".
@@ -1368,8 +1371,8 @@ def parse_repeat(d):
 			(X
 				((?P<freq>[0-9]+)A)?
 				((?P<interval>[0-9]+)B)?
-				((?P<wkst>[0-9]+)C)?
-				((?P<count>[0-9]+)E)?
+				((?P<count>[0-9]+)C)?
+				((?P<wkst>[0-9]+)E)?
 				((?P<bysetpos>[0-9,+-]+)F)?
 				((?P<bymonth>[0-9,]+)G)?
 				((?P<bymonthday>[0-9,+-]+)I)?
@@ -1382,38 +1385,57 @@ def parse_repeat(d):
 			)?
 			''', re.X)
 
-	def getsplit(match, key):
-		if match.group(key):
-			return match.group(key).split(',')
-		return []
-
 	match = regex.search(d)
-	result = {}
+
+	rd = {} # return date
 	
+	# rdate['type'] = match.group('type')
+	for key in ['weeks','years','months','days','hours','minutes','seconds']:
+		if match.group(key):
+			rd[key] = int(match.group(key))
+
+	def getfreq(i):
+		# Conveniently these are defined as 0-6, same as the simple parse,
+		# but map to dateutil.rrule just to be sure in the event it changes.
+		r = dateutil.rrule
+		if i == None:
+			return r.DAILY
+		return [r.YEARLY, r.MONTHLY, r.WEEKLY, r.DAILY, r.HOURLY, r.MINUTELY, r.SECONDLY][int(i)]
+
+	def getweekday(i):
+		# Convert a "byweekday" to a rrule.MO, rrule.TU, etc., including +/-
+		r = dateutil.rrule
+		m = [r.MO, r.TU, r.WE, r.TH, r.FR, r.SA, r.SU]
+		week, day = divmod(int(i),7)
+		if '-' in i or '+' in i:
+			if week >= 0:
+				week += 1
+			return m[day](week)
+		else:
+			return m[day]
+		
+	rr = {} # return repeat rule	
+	rr['freq'] = getfreq(match.group('freq'))
+
+	if match.group('byweekday'):
+		rr['byweekday'] = map(getweekday, match.group('byweekday').split(","))
+		
+	for key in ['interval','wkst','count']:
+		if match.group(key):
+			rr[key] = int(match.group(key))
+	for key in ['bysetpos','bymonth','bymonthday','byyearday','byweekno','byhour','byminute','bysecond']:
+		if match.group(key):
+			rr[key] = map(int, match.group(key).split(","))
 	
+	return rd, dateutil.rrule.rrule(**rr)
+
+
 
 if __name__ == "__main__":
-	# print parse_datetime("2011/07/14 10:10:10")
-	# print parse_date("2011/07/14")
-	# print parse_time("10:10:10")
-	
-	# print "Checking ISO 8601 Parse"
-	# parse_iso8601('2007-03-01T13:00:00Z')
-
-	# Extended examples:
-	# d = 'PX1,10A' # Repeat the 1st and 10th of every month
-	# d = 'PX1B' # Every Monday
-	# d = 'PX-1C' # Every last Sunday
-	# d = 'PX2C11E' # First Tuesday in November (e.g. US House Elections)
-	# d = 'PX1B2F' # Monday in the second week of the year
-	# d = 'PX183G' # The 183rd day of the year
-
-	# print "Checking duration/repeat"
-	#  	repeat = parse_repeat('PX2011I')
-	# print repeat
-
-	d = '2011-07-20T10:00:00/PT1H/R1D'
-	print find_occurances(d)
+	rd, rr = parse_repeat('PX10C-28L')
+	print rd
+	for i in rr:
+		print i
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
