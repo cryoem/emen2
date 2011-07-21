@@ -1279,212 +1279,118 @@ def parse_repeat(d):
 	d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
 	d = 'P3W' # 3 weeks
 
-	I define the following extensions, which can be used without relative start/end times.
-	Use following an 'X' code, similar to the 'T' for time.
+	I'm definining the following extensions, as a compressed way of writing
+	iCalendar RFC rule sets. Use following an 'X' code, similar to the 'T' for time.
 	
-	A: Days of Month, separated by ,
-			1 to 31, and -1 to -31
-	B: Days of Week, separated by ,
-			1 (Monday) to 7 (Sunday)
-	C: Relative days of the week, separated by ,
-			1 (First Monday) to 35 (Last Sunday), e.g. 8 (Second Tuesday)
-			-1 (Last Sunday) to -7 (Last Monday)
-	E: Months of the year, separated by ,
-			1 (January) to 12 (December)
-	F: Weeks of the year, separated by ,
-			1 to 53 (ISO Format)
-	G: Ordinal days of the year, separated by ,
-			1 to 366
-	I: Years, separated by ,
-			Any integer
+	'dtstart' and 'until' times are given in ISO 8601 style:
+		<start>/(<duration>/)?(<repeat rule>/)?(<end>)?
 	
-	Extended examples:
-	d = 'PX1,10A' # Repeat the 1st and 10th of every month
-	d = 'PX1B' # Every Monday
-	d = 'PX-1C' # Every last Sunday
-	d = 'PX2C11E' # First Tuesday in November (e.g. US House Elections)
-	d = 'PX1B2F' # Monday in the second week of the year
-	d = 'PX183G' # The 183rd day of the year
+	Extended format is:
+		P<year fields>T<time fields>X<repeat rule>
 	
-	This just parses, and does not convert to seconds, because we'll use more sophisticated
-	tools like dateutil to actually add the durations, which will take care of "months" having
-	variable days, etc.	
+	Note: letter designators chosen to not conflict with ISO 8601 fields for simplicity.
+	
+	A: freq
+		Frequency
+		0: YEARLY
+		1: MONTHLY
+		2: WEEKLY
+		3: DAILY
+		4: HOURLY
+		5: MINUTELY
+		6: SECONDLY
+	B: interval
+		The interval between each 'freq' iteration.
+		Positive integer.
+	C: wkst
+		Week start day.
+		Not used.
+	E: count
+		Maximum number of occurrences.
+		Positive integer.
+	F: bysetpos
+		n-th occurrence of the rule inside the frequency period.
+		Integers, separated by ",".
+	G: bymonth
+		Months
+		Positive integers
+		1 (January) to 12 (December)
+	I: bymonthday
+		Days of month
+		Integers, separated by ","
+		1 to 31, and -1 (Last day of month) to -31
+	J: byyearday
+		Ordinal days of year
+		Integers, separated by ","
+		1 to 366, and -1 (Last day of year) to -366
+	K: byweekno
+		ISO 8601 Week numbers
+		Integers, separated by ","
+		1 to 53, and -1 (Last week of year) to -53
+	L: byweekday
+		Day of week
+		Integers, separated by ","
+		0 (Monday) to 6 (Friday). 
+		Note: My relative weekday syntax is slightly different
+			than iCalendar. If '+' or '-' are explicitly included:
+			(week, weekday) = divmod(day, 7)
+			Weeks 0-4 are the 5 normal weeks in a month,
+			Weeks -1 to -5 are "from last" week of month, e.g.
+				-1 = divmod(-1, 7) = (-1,6) = Last Sunday
+				7 = divmod(7,7) = (1,0) = Second Monday
+				15 = divmod(15,7) = (2,1) = Third Tuesday
+		Note: The iCalendar spec differs from ISO 8601,
+			which is 1 (Monday) to 7 (Friday)
+	N: byhour
+		Hours
+		Integers, separated by ","
+		0 to 23
+	O: byminute
+		Minutes
+		Integers, separated by ","
+		0 to 59
+	Q: bysecond
+		Seconds
+		Integers, separated by ","
 	"""
 
 	regex = re.compile('''
 			(?P<type>.)
-			((?P<weeks>[0-9,.]+)W)?
-			((?P<years>[0-9,.]+)Y)?
-			((?P<months>[0-9,.]+)M)?
-			((?P<days>[0-9,.]+)D)?
+			((?P<weeks>[0-9,]+)W)?
+			((?P<years>[0-9,]+)Y)?
+			((?P<months>[0-9,]+)M)?
+			((?P<days>[0-9,]+)D)?
 			(T
-				((?P<hours>[0-9,.]+)H)?
-				((?P<minutes>[0-9,.]+)M)?
-				((?P<seconds>[0-9,.]+)S)?
+				((?P<hours>[0-9,]+)H)?
+				((?P<minutes>[0-9,]+)M)?
+				((?P<seconds>[0-9,]+)S)?
 			)?
 			(X
-				((?P<ext_monthdays>[0-9,.]+)A)?
-				((?P<ext_weekdays>[0-9,.]+)B)?
-				((?P<ext_weekdaysrel>[0-9,.]+)C)?
-				((?P<ext_months>[0-9,.]+)E)?
-				((?P<ext_weeks>[0-9,.]+)F)?
-				((?P<ext_days>[0-9,.]+)G)?
-				((?P<ext_years>[0-9,.]+)I)?
+				((?P<freq>[0-9]+)A)?
+				((?P<interval>[0-9]+)B)?
+				((?P<wkst>[0-9]+)C)?
+				((?P<count>[0-9]+)E)?
+				((?P<bysetpos>[0-9,+-]+)F)?
+				((?P<bymonth>[0-9,]+)G)?
+				((?P<bymonthday>[0-9,+-]+)I)?
+				((?P<byyearday>[0-9,+-]+)J)?
+				((?P<byweekno>[0-9,+-]+)K)?
+				((?P<byweekday>[0-9,+-]+)L)?
+				((?P<byhour>[0-9,+-]+)N)?
+				((?P<byminute>[0-9,+-]+)O)?
+				((?P<bysecond>[0-9,+-]+)Q)?
 			)?
 			''', re.X)
 
-	result = {}
-	match = regex.search(d)
-	result['type'] = match.group('type')
-	for key in ['weeks', 'years', 'months', 'days', 'hours', 'minutes', 'seconds']:		
-		if match.group(key):
-			result[key] = int(match.group(key))
-
-
-	def getkey(match, key):
+	def getsplit(match, key):
 		if match.group(key):
 			return match.group(key).split(',')
 		return []
 
-	# Enforce constraints
-	
-	# Weekdays: Repeat These days of the ISO Week -- Monday is 1, Sunday is 7
-	try:
-		result['ext_weekdays'] = [interval(i, 1, 7) for i in (match.group('ext_weekdays') or [])]
-	except ValueError:
-		raise ValueError, "Invalid days of the week: 1 (Monday) to 7 (Sunday) allowed."
-		
-	# ... or 'first monday', 'last friday'. List of days, -7 to 35.
-	# e.g. 	second tuesday = 9, divmod(9,7) = (1,2)
-	#		last friday = -2, divmod(-2,7) = (-1,5)
-	try:
-		result['ext_weekdaysrel'] = [interval(i, -7, 35, allowzero=False) for i in getkey(match, 'ext_weekdaysrel')]
-	except ValueError:
-		raise ValueError, "Invalid week-relative days: 1 (first Monday) to 35 (fifth Sunday) allowed, as well as -1 (Last Sunday) to -7 (Last Monday)"
-
-	# ... or list of days each month, -31 to 31
-	try:			
-		result['ext_monthdays'] = [interval(i, -31, 31, allowzero=False) for i in getkey(match, 'ext_monthdays')]
-	except ValueError:
-		raise ValueError, "Invalid day of month: 1 to 31 are allowed, as well as -1 (last day of month) to -31."
-
-	# ... repeat these months of the year, 1-12
-	try:			
-		result['ext_months'] = [interval(i, 1, 12) for i in getkey(match, 'ext_months')]
-	except ValueError:
-		raise ValueError, "Invalid month: 1 (January) to 12 (December) are allowed."
-
-	# ... repeat these weeks of the year, 1-53
-	try:			
-		result['ext_weeks'] = [interval(i, 1, 53) for i in getkey(match,'ext_weeks')]
-	except ValueError:
-		raise ValueError, "Invalid week: 1 to 53 are allowed."
-
-	# ... repeat these ordinal days of the year, 1-366
-	try:
-		result['ext_days'] = [interval(i, 1, 366) for i in getkey(match, 'ext_days')]
-	except ValueError:
-		raise ValueError, "Invalid ordinal days: 1-366 allowed."
-
-	# ... repeat in these named years
-	try:			
-		result['ext_years'] = [int(i) for i in getkey(match, 'ext_years')]
-	except ValueError:
-		raise ValueError, "Invalid years."
-
-	r2 = {}
-	for k,v in result.items():
-		if v:
-			r2[k] = v
-	return r2
+	match = regex.search(d)
+	result = {}
 	
 	
-def find_occurances(d):
-	d = d.split("/")
-	print "Checking start..."
-	start = parse_iso8601(d[0])
-	print start
-	return
-	
-	occurances = set()
-	year = 2011
-	month = 7
-	
-	# Days to check
-	cal = calendar.Calendar()
-	# days = list(cal.itermonthdates(year,month))
-	days = [datetime.datetime.now()]
-	
-	
-	# Check for day-based recurrances
-	for day in days:		
-		# Get the current week and day
-		week, _ = divmod(day.day-1, 7)
-		isoweek = day.isocalendar()[1]
-		isoday = day.timetuple().tm_yday
-		
-		# Get the relative month day. The -1 is because first day.day = 1
-		relday = day.day - calendar.monthrange(day.year, day.month)[1] - 1
-		relweek = divmod(relday, 7)[0]
-	
-		# Check year
-		if d.get('ext_years') and day.year not in d.get('ext_years', []):
-			continue
-
-		# Check month..
-		if d.get('ext_months') and day.month not in d.get('ext_months', []):
-			continue
-
-		# Check day of month..
-		if d.get('ext_monthdays') and relday not in d.get('ext_monthdays', []):
-			continue
-
-		# Check days of week..
-		if d.get('ext_weekdays') and day.isoweekday() not in d.get('ext_weekdays', []):
-			continue
-
-		# Check that we're in a valid week..
-		if d.get('ext_weeks') and isoweek not in d.get('ext_weeks', []):
-			continue
-
-		if d.get('ext_days') and isoday not in d.get('ext_days',[]):
-			continue
-			
-		# Check days of week relative to month
-		if d.get('ext_weekdaysrel'):
-			ew = [toweek(i) for i in d.get('ext_weekdaysrel', [])]
-			if (week,day.isoweekday()) in ew or (relweek,day.isoweekday()) in ew:
-				#print "Found relative week/day.isoweekday() %s in days_week_month: %s"%((relweek,day.isoweekday()), days_week_month)
-				#print "Found week/day.isoweekday() %s in days_week_month: %s"%((week,day.isoweekday()), days_week_month)
-				pass
-			else:
-				continue
-		
-		occurances.add(day)
-				
-	return occurances	
-	
-	
-	
-def interval(i, start, end, allowzero=True):
-	i = int(i)
-	if i == 0 and not allowzero:
-		raise ValueError
-	if not start <= i <= end:
-		raise ValueError
-	return i
-
-
-# Get the current week (0-4) and isoday (1-7) for a day
-def toweek(d):
-	# Subtract 1 because first day of month is 1, not 0
-	if d > 0:
-		d -= 1
-	a, b  = divmod(d, 7)
-	# Add 1 to day to get isoweekday
-	return a, b+1
-	
-
 
 if __name__ == "__main__":
 	# print parse_datetime("2011/07/14 10:10:10")
