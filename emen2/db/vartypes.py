@@ -1004,7 +1004,6 @@ class vt_comments(Vartype):
 				t = '%s @ %s: %s'%(user, time, comment)
 			else:
 				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(g.EMEN2WEBROOT, user, dn, time, comment)
-
 			lis.append(t)
 
 		return lis
@@ -1401,6 +1400,12 @@ def parse_repeat(d):
 	
 	
 def find_occurances(d):
+	d = d.split("/")
+	print "Checking start..."
+	start = parse_iso8601(d[0])
+	print start
+	return
+	
 	occurances = set()
 	year = 2011
 	month = 7
@@ -1497,12 +1502,12 @@ if __name__ == "__main__":
 	# d = 'PX1B2F' # Monday in the second week of the year
 	# d = 'PX183G' # The 183rd day of the year
 
-	print "Checking duration/repeat"
- 	repeat = parse_repeat('PX2011I')
-	print repeat
-	print "Looking for occurances"
-	o = find_occurances(repeat)
-	print o
+	# print "Checking duration/repeat"
+	#  	repeat = parse_repeat('PX2011I')
+	# print repeat
+
+	d = '2011-07-20T10:00:00/PT1H/R1D'
+	print find_occurances(d)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
