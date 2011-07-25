@@ -8,6 +8,7 @@ import emen2.util.fileops
 import emen2.web.routing
 import emen2.web.templating
 import emen2.web.resources.publicresource
+import emen2.web.view
 
 import emen2.db.config
 config = emen2.db.config.g()

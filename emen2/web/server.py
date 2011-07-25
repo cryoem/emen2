@@ -153,6 +153,8 @@ class EMEN2Server(object):
 
 
 
+#NOTE: this MUST be imported here
+import emen2.web.viewloader
 def start_emen2():
 	with EMEN2Server().start() as (server, root):
 		# This has to go first for metaclasses
@@ -162,8 +164,6 @@ def start_emen2():
 		# Load views and templates
 		#import emen2.web.views
 		import emen2.web.view
-		#NOTE: this MUST be imported here
-		import emen2.web.viewloader
 
 
 		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
