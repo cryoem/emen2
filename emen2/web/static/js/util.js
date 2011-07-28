@@ -53,7 +53,7 @@ window.log = function(){
 	}
 
 	// RPC request. Important!
-	$.jsonRPC = function(method, data, callback, errback) {
+	$.jsonRPC2 = function(method, data, callback, errback) {
 				
 		// Wrap these methods
 		if (errback == null) {errback = function(){}}
@@ -206,7 +206,7 @@ function admin_approveuser_form(elem) {
 	});
 
 	if (approve.length > 0) {
-		$.jsonRPC("approveuser",[approve],
+		$.jsonRPC2("approveuser",[approve],
 			function(names) {
 				//var names = [];
 				//$.each(data, function(){names.push(this.name)});
@@ -222,7 +222,7 @@ function admin_approveuser_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC("rejectuser",[reject],
+		$.jsonRPC2("rejectuser",[reject],
 			function(names) {
 				//var names = [];
 				//$.each(data, function(){names.push(this.name)});				
@@ -257,7 +257,7 @@ function admin_userstate_form(elem) {
 	});
 	
 	if (enable.length > 0) {
-		$.jsonRPC("enableuser",[enable],
+		$.jsonRPC2("enableuser",[enable],
 			function(data) {
 				if (data) {
 					notify("Enabled users: "+data);
@@ -270,7 +270,7 @@ function admin_userstate_form(elem) {
 	}
 
 	if (disable.length > 0) {
-		$.jsonRPC("disableuser",[disable],
+		$.jsonRPC2("disableuser",[disable],
 			function(data) {
 				if (data) {
 					notify("Disabled users: "+data);
@@ -366,18 +366,18 @@ function notify(msg, fade, error) {
 						
 			var self = this;
 			var bookmarks = [];
-			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
+			$.jsonRPC2('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
 				children.sort();
 				var brec = null;
 				if (children.length > 0) {
 					brec = children[children.length-1];
 				}
-				$.jsonRPC('getrecord', [brec], function(rec) {
+				$.jsonRPC2('getrecord', [brec], function(rec) {
 					var brecs = [];
 					if (rec != null) {
 						var brecs = rec['bookmarks'] || [];
 					}
-					$.jsonRPC('renderview', [brecs], function(recnames) {
+					$.jsonRPC2('renderview', [brecs], function(recnames) {
 						$.each(recnames, function(k,v) {
 							caches['recnames'][k] = v;
 						});
@@ -427,8 +427,8 @@ function notify(msg, fade, error) {
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />');
 			this.element.append(spinner);
 			
-			$.jsonRPC('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
-				$.jsonRPC('getrecord', [children], function(recs) {
+			$.jsonRPC2('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
+				$.jsonRPC2('getrecord', [children], function(recs) {
 					if (recs.length == 0) {
 						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parents': [self.options.parent]};
 					} else {
@@ -457,7 +457,7 @@ function notify(msg, fade, error) {
 					//var pos = $.inArray(name, bookmarks);
 					rec['bookmarks'] = bookmarks;
 					var pos = $.inArray(name, bookmarks);
-					$.jsonRPC('putrecord', [rec], function(updrec) {
+					$.jsonRPC2('putrecord', [rec], function(updrec) {
 						if (pos == -1) {
 							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-open.png" alt="Add Bookmark" />');
 						} else {

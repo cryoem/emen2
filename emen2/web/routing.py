@@ -127,8 +127,10 @@ class URLRegistry(object):
 
 		with self.match(inp) as (sub, groups, url):
 			if url is not None:
+				ks = groups.keys()
 				args = listops.adjust(groups, kw)
 				cb = url.get_callback(sub, fallback='main')
+				args['reverseinfo'] = (url.name, dict( (k, args[k]) for k in ks))
 				result = partial(cb, **args)
 
 		if result is None and self._default is True:

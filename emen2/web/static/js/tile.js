@@ -42,9 +42,9 @@
 			// if there are records, do some callbacks..
 			if (this.options.name != null) {				
 
-				$.jsonRPC("getchildren", [this.options.name, 1, "box"], function(children) {
+				$.jsonRPC2("getchildren", [this.options.name, 1, "box"], function(children) {
 
-					$.jsonRPC("getrecord", [children], function(recs) {			
+					$.jsonRPC2("getrecord", [children], function(recs) {			
 						$.each(recs, function(i) {
 							self.load_record(this);
 						});					
@@ -226,7 +226,7 @@
 			}
 			
 			if (confirm == true) {
-				$.jsonRPC("pcunlink", [this.options.name, label], function() {
+				$.jsonRPC2("pcunlink", [this.options.name, label], function() {
 					self.remove_label(label);
 				});
 			}		
@@ -269,7 +269,7 @@
 			recs = recs.reverse();
 			this.clear();	
 			
-			$.jsonRPC("putrecord", [recs], function(recs) {
+			$.jsonRPC2("putrecord", [recs], function(recs) {
 				$.each(recs, function() {
 					$('.spinner', self.element).hide();
 					self.load_record(this);
@@ -279,7 +279,7 @@
 
 		save: function(label) {
 			var rec = this._save(label);
-			$.jsonRPC("putrecord", [rec], function(newrec) {
+			$.jsonRPC2("putrecord", [rec], function(newrec) {
 				caches['recs'][newrec.name] = newrec;
 				self.remove_label(label, true);
 				self.load_record(newrec);
@@ -290,7 +290,7 @@
 			var self = this;
 			
 			if (rec==null) {
-				$.jsonRPC("newrecord", ["box", self.options.name], function(rec) {
+				$.jsonRPC2("newrecord", ["box", self.options.name], function(rec) {
 					rec.name = self.currentlabel;
 					self.currentlabel -= 1;
 					//rec["parents"] = [self.options.name];

@@ -14,7 +14,7 @@ function bind_autocomplete(elem, param) {
 				// 	response(this._cache[request.term]);
 				// 	return;
 				// }
-				$.jsonRPC("findvalue", [param, request.term], function(ret) {
+				$.jsonRPC2("findvalue", [param, request.term], function(ret) {
 					var r = $.map(ret, function(item) {
 						return {
 							label: item[0] + " (" + item[1] + " records)",
@@ -95,13 +95,13 @@ function bind_autocomplete(elem, param) {
 			}
 
 			// get records that we can edit
-			$.jsonRPC("getrecord", [names], function(recs) {
+			$.jsonRPC2("getrecord", [names], function(recs) {
 
 				$.each(recs, function(k,v) {
 					caches["recs"][v.name] = v;
 				});
 
-				$.jsonRPC("getparamdef", [params], function(paramdefs) {
+				$.jsonRPC2("getparamdef", [params], function(paramdefs) {
 					$.each(paramdefs, function(k,v) {
 						caches["paramdefs"][v.name] = v;
 					});
@@ -205,7 +205,7 @@ function bind_autocomplete(elem, param) {
 				updated.push(v);
 			});
 
-			$.jsonRPC("putrecord", [updated], function(recs) {
+			$.jsonRPC2("putrecord", [updated], function(recs) {
 				if (self.options.reload) {
 					window.location = window.location
 					return
@@ -417,7 +417,7 @@ function bind_autocomplete(elem, param) {
 			var self = this;
 
 			if (caches['recs'][this.options.name] == null) {
-				$.jsonRPC("getrecord", [this.options.name], function(rec) {
+				$.jsonRPC2("getrecord", [this.options.name], function(rec) {
 					caches["recs"][rec.name] = rec;
 					self.show();
 				});
@@ -427,7 +427,7 @@ function bind_autocomplete(elem, param) {
 		
 			if (!caches["paramdefs"][this.options.param]) {
 				if (this.trygetparams) {return}
-				$.jsonRPC("getparamdef", [this.options.param], function(paramdef){
+				$.jsonRPC2("getparamdef", [this.options.param], function(paramdef){
 					caches["paramdefs"][paramdef.name]=paramdef;
 					self.trygetparams = 1;
 					self.show(showcontrols);
@@ -486,7 +486,7 @@ function bind_autocomplete(elem, param) {
 			var self = this;
 			var p = {}
 			p[this.options.param] = this.getval();
-			$.jsonRPC("putrecordvalues", [this.options.name, p], function(rec) {
+			$.jsonRPC2("putrecordvalues", [this.options.name, p], function(rec) {
 				record_update(rec);
 				self.hide();
 			}, function(e) {
@@ -757,14 +757,14 @@ function bind_autocomplete(elem, param) {
 			}
 			
 			// run a request to get the recorddef display names
-			$.jsonRPC("findrecorddef", {'record':[this.options.parent]}, function(rd) {
+			$.jsonRPC2("findrecorddef", {'record':[this.options.parent]}, function(rd) {
 				var typicalchld = [];
 				$.each(rd, function() {
 					self.rectype = this.name;
 					caches["recorddefs"][this.name] = this;
 					typicalchld = this.typicalchld;					
 				});
-				$.jsonRPC("getrecorddef", [typicalchld], function(rd2) {
+				$.jsonRPC2("getrecorddef", [typicalchld], function(rd2) {
 					$.each(rd2, function() {
 						caches["recorddefs"][this.name] = this;
 					})
@@ -792,11 +792,11 @@ function bind_autocomplete(elem, param) {
 		build_newrecord: function() {
 			var self = this;
 			this.newdialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
-			$.jsonRPC("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
+			$.jsonRPC2("newrecord", [this.options.rectype, this.options.parent], function(rec) {	
 				rec.name = 'None';
 				caches['recs'][rec.name] = rec;
 					
-				$.jsonRPC("renderview", [rec, null, 'defaultview', true], function(data) {
+				$.jsonRPC2("renderview", [rec, null, 'defaultview', true], function(data) {
 					self.newdialog.empty();
 
 					var content = $('<div></div>');

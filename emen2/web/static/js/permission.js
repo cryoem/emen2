@@ -159,7 +159,7 @@
 				}
 			}
 
-			$.jsonRPC("getuser", [f2], function(users){ 
+			$.jsonRPC2("getuser", [f2], function(users){ 
 				$.each(users, function() {
 					caches["users"][this.name] = this;
 				});
@@ -360,7 +360,7 @@
 		save_group: function() {
 			var group = caches['groups'][this.options.name];
 			group["permissions"] = this.getusers();
-			$.jsonRPC("putgroup", [group], function(){
+			$.jsonRPC2("putgroup", [group], function(){
 				alert("Saved Group");
 				window.location = window.location;
 			});
@@ -399,9 +399,9 @@
 
 
 			$('.spinner', this.savearea).show();			
-			$.jsonRPC("setpermissions", sec_commit, 
+			$.jsonRPC2("setpermissions", sec_commit, 
 				function() {				
-					$.jsonRPC("getrecord",[self.options.name],
+					$.jsonRPC2("getrecord",[self.options.name],
 						function(record) {
 							$('.spinner', self.savearea).hide();
 							// ian: changing permissions shouldn't require a full rebuild...

@@ -3093,6 +3093,10 @@ class DB(object):
 		return bdo
 
 
+	@publicmethod("ping")
+	def ping(self, *a, **kw):
+		'Utitlity method to ensure the server is up'
+		return 'pong'
 
 	#########################
 	# section: workflow

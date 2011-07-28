@@ -173,6 +173,7 @@ def start_emen2():
 		vl.load_redirects()
 		vl.routes_from_g()
 
+		import manhole
 		rl = ResourceLoader(root)
 		server.load_resources(rl)
 

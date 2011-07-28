@@ -170,7 +170,7 @@
 			this.build_ul(children_ul, key);
 
 			// get the parents through an RPC call
-			$.jsonRPC("getparents", [key, 1, null, this.options.keytype], function(parents) {
+			$.jsonRPC2("getparents", [key, 1, null, this.options.keytype], function(parents) {
 				caches['parents'][key] = parents;
 				self.getviews(parents, function(){
 					// build the parents..
@@ -312,7 +312,7 @@
 				buttons: {
 					"OK": function() {
 						$(this).dialog("close");
-						$.jsonRPC("pcunlink", [rmlink[0], rmlink[1], self.options.keytype], function() {
+						$.jsonRPC2("pcunlink", [rmlink[0], rmlink[1], self.options.keytype], function() {
 							self.build_root(self.options.root);			
 						});
 					},
@@ -324,7 +324,7 @@
 		_action_addrel: function(parent, child) {
 			//console.log("Adding rel", parent, child);
 			var self = this;
-			$.jsonRPC("pclink", [parent, child, this.options.keytype], function() {
+			$.jsonRPC2("pclink", [parent, child, this.options.keytype], function() {
 				self.refresh(parent);
 			});
 		},	
@@ -356,7 +356,7 @@
 					"OK": function() {
 						$(this).dialog( "close" );
 						console.log(rels, newrels);
-						$.jsonRPC("pcrelink", [rels, newrels], function() {
+						$.jsonRPC2("pcrelink", [rels, newrels], function() {
 							self.build_root(self.options.root);
 							// $.each(refresh, function() {
 							// 	self.refresh(this);
@@ -413,17 +413,17 @@
 		getviews: function(keys, cb) {
 			var self = this;
 			if (self.options.keytype == "record") {
-				$.jsonRPC("renderview", [keys, null, "recname"], function(recnames){
+				$.jsonRPC2("renderview", [keys, null, "recname"], function(recnames){
 					$.each(recnames, function(k,v) {caches['recnames'][k]=v});
 					cb();
 				});					
 			} else if (self.options.keytype == "recorddef") {
-				$.jsonRPC("getrecorddef", [keys], function(rds){
+				$.jsonRPC2("getrecorddef", [keys], function(rds){
 					$.each(rds, function() {caches['recorddefs'][this.name]=this});
 					cb();
 				});											
 			} else if (self.options.keytype == "paramdef") {
-				$.jsonRPC("getparamdef", [keys], function(pds){
+				$.jsonRPC2("getparamdef", [keys], function(pds){
 					$.each(pds, function() {caches['paramdefs'][this.name]=this});
 					cb();
 				});						
@@ -482,7 +482,7 @@
 				method = "getparenttree";
 			}
 			
-			$.jsonRPC(method, [key, 2, null, this.options.keytype], function(tree){
+			$.jsonRPC2(method, [key, 2, null, this.options.keytype], function(tree){
 				// put these in the cache..
 				$.each(tree, function(k,v) {
 					caches[self.options.mode][k]=v;

@@ -41,7 +41,7 @@
 			});
 			// console.log(users);
 			if (users.length) {
-				$.jsonRPC("getuser", [users], function(u) {
+				$.jsonRPC2("getuser", [users], function(u) {
 					$.each(u, function() {
 						caches['users'][this.name] = this;
 						caches['displaynames'][this.name] = this.displayname;
@@ -118,7 +118,7 @@
 		save: function() {
 			var self = this;
 
-			$.jsonRPC("addcomment",[this.options.name, $("textarea", this.element).val()],
+			$.jsonRPC2("addcomment",[this.options.name, $("textarea", this.element).val()],
 		 		function(rec){
 					//will trigger this rebuild... hopefully.. :)
 					record_update(rec);

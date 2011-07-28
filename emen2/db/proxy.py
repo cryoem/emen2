@@ -70,6 +70,8 @@ class MethodTree(object):
 		return self.func(*a, **kw)
 
 	def __getattr__(self, name):
+		if name.startswith('_'):
+			return object.__getattribute__(self, name)
 		name = name.replace('_', '.')
 		return self.get_method(name)
 
@@ -94,7 +96,10 @@ class MethodTree(object):
 
 		if child is None:
 			if tail: raise AttributeError, "method %r not found"%name
-			else: result = self
+			else:
+				result = self
+				if name == 'help':
+					result = MethodTree(help(self))
 		else:
 			result = child._get_method(tail)
 

@@ -148,13 +148,13 @@ function dayid(d) {
 			this.options.name = parseInt(this.options.name || this.element.attr('data-name'));
 			this.built = 0;
 			if (this.options.name >= 0) {
-				$.jsonRPC("getrecord", [this.options.name], function(rec) {
+				$.jsonRPC2("getrecord", [this.options.name], function(rec) {
 					self.rec = rec;
 					self.build();
 					self.renderview();
 				})
 			} else {
-				$.jsonRPC("newrecord", ["folder", this.options.parent], function(rec) {
+				$.jsonRPC2("newrecord", ["folder", this.options.parent], function(rec) {
 					rec['name'] = self.options.name;
 					self.rec = rec;
 					self.build();
@@ -433,7 +433,7 @@ function dayid(d) {
 				var rec = {};
 				rec['date_start'] = writedate(this.options.start);
 				rec['date_end'] = writedate(this.options.end);
-				$.jsonRPC('putrecordvalues', [this.options.name, rec], function(updrec) {
+				$.jsonRPC2('putrecordvalues', [this.options.name, rec], function(updrec) {
 					//console.log("saved!");
 					self.rec = updrec;
 					self.renderview();
@@ -441,7 +441,7 @@ function dayid(d) {
 			} else {
 				this.rec['date_start'] = writedate(this.options.start);
 				this.rec['date_end'] = writedate(this.options.end);
-				$.jsonRPC('putrecord', [this.rec], function(updrec) {
+				$.jsonRPC2('putrecord', [this.rec], function(updrec) {
 					//console.log("saved new record!");
 					self.rec = updrec;
 					self.setname(updrec['name']);
@@ -452,7 +452,7 @@ function dayid(d) {
 		
 		renderview: function() {
 			var self = this;
-			$.jsonRPC('renderview', [this.options.name, null, 'recname'], function(view) {
+			$.jsonRPC2('renderview', [this.options.name, null, 'recname'], function(view) {
 				self.view = view;
 				if (view==null) {
 					view = "Record "+self.options.name;

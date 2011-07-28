@@ -44,10 +44,15 @@ __all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView', 'Page']
 
 class TemplateContext(object):
 	#'''Partial context for views that don't need db access'''
+	host = g.watch('EMEN2HOST', 'localhost')
+	port = g.watch('EMEN2PORT', 80)
 	def reverse(self, _name, *args, **kwargs):
+		full = kwargs.pop('_full', False)
 
 		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
 		result = result.replace('//','/')
+		if full:
+			result = 'http://%s:%s%s' % (self.host, self.port, result)
 
 		containsqs = '?' in result
 		if not result.endswith('/') and not containsqs:
@@ -128,8 +133,8 @@ class _View(object):
 
 	title = property(lambda self: self.__ctxt.get('title'), __settitle)
 
-	def __set_mimetype(self, value): self.__headers['content-type'] = value
-	mimetype = property(lambda self: self.__headers['content-type'], __set_mimetype)
+	def __set_mimetype(self, value): self.set_header('content-type', value)
+	mimetype = property(lambda self: self.get_header('content-type'), __set_mimetype)
 
 	def __set_template(self, value): self.__template = value
 	template = property(lambda self: self.__template, __set_template)
@@ -156,7 +161,8 @@ class _View(object):
 		self._reqheaders = reqheaders
 		g.debug(reqheaders)
 
-		self.__headers = {'content-type': mimetype}
+		self.__headers = {}
+		self.set_header('Content-Type', mimetype)
 		self.__dbtree = TemplateContext()
 
 		self.__template = template or self.template
@@ -257,15 +263,21 @@ class _View(object):
 	@headers.setter
 	def headers(self, value):
 		'add a dictionary containing several headers to the HTTP headers'
+		value = dict( (self.normalize_header_name(k),v) for k,v in value.items() )
 		self.__headers.update(value)
+
+	def normalize_header_name(self, name):
+		return '-'.join(x.capitalize() for x in name.split('-'))
 
 	def set_header(self, name, value):
 		'set a single header'
+		name = self.normalize_header_name(name)
 		self.__headers[name] = value
 		return (name, value)
 
 	def get_header(self, name):
 		'get a HTTP header that this view will return'
+		name = self.normalize_header_name(name)
 		return self.__headers[name]
 
 	# template context manipulation

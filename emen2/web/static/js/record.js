@@ -150,8 +150,8 @@ function record_init(rec, ptest, edit) {
 			}
 			var sibs = $('<div class="e2-siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			self.popup.append(sibs);
-			$.jsonRPC("getsiblings", [rec.name, rec.rectype], function(siblings) {
-				$.jsonRPC("renderview", [siblings, null, "recname"], function(recnames) {
+			$.jsonRPC2("getsiblings", [rec.name, rec.rectype], function(siblings) {
+				$.jsonRPC2("renderview", [siblings, null, "recname"], function(recnames) {
 					siblings = siblings.sort(function(a,b){return a-b});
 					sibs.empty();
 					
@@ -223,7 +223,7 @@ function rebuildviews(selector) {
 		var name = parseInt(elem.attr('data-name'));
 		var viewtype = elem.attr('data-viewtype');
 		var edit = elem.attr('data-edit');
-		$.jsonRPC("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
+		$.jsonRPC2("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
 			elem.html(view);
 			$('.editable', elem).EditControl({});
 			//$('.editable_files', elem).FileControl({});
