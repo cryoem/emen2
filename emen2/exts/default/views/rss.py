@@ -32,12 +32,14 @@ class RSS(View):
 				'M': ('Minute','%M'),
 				'S': ('Second','%S')}
 
-	def __init__(self, ctxid, host, db, begin='', end='', amount='', unit=''):
-		View.__init__(self, ctxid, host, db, template='/user/rss', mimetype='text/xml')
+	def init(self, begin='', end='', amount='', unit='', *a, **kw):
+		self.template = '/pages/rss'
+		self.mimetype = 'text/xml; charset=UTF-8'
+		print self.mimetype
 		if begin != '':
 			self.get_data = self.render
 			self._begin = time.strftime("%Y/%m/%d %H:%M:%S", time.strptime(begin, '%Y%m%d%H%M%S'))
-		# should worok, but broken
+		# should work, but broken
 		#elif amount != '':
 		#	self.get_data = self._get_amount
 		#	self._amount = int(amount)
@@ -45,7 +47,7 @@ class RSS(View):
 		if end != '':
 			self._end = time.strftime("%Y/%m/%d %H:%M:%S", time.strptime(end, '%Y%m%d%H%M%S'))
 		else:
-			self._end = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+			self._end = None
 
 	def _get_amount(self):
 		delta = None
@@ -73,8 +75,11 @@ class RSS(View):
 	def render(self):
 		g.info('begin -> %r' % self._begin)
 		g.info('end -> %r' % self._end)
-		recs = self.db.getindexbyvalue('modifytime', (self._begin, self._end))
-		recs = self.db.getrecord(recs)
+		query = [['modifytime', 'gt', self._begin]]
+		if self._end is not None:
+			query.append(['modifytime', 'lte', self._end])
+		recs = self.db.query(query)['names']
+		recs = self.db.record.get(recs)
 		items = []
 		for x in recs:
 			items.append(Item(x.name, x))
