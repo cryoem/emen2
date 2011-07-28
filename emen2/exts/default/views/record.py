@@ -305,8 +305,7 @@ class Record(RecordBase):
 	# 		return
 	# 
 	# 	self.set_context_item("bdo",bdo)
-
-
+	
 
 # moved from db...
 def checkorphans(db, name):

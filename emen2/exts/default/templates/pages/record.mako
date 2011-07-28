@@ -11,7 +11,7 @@
 	% endif
 
 	% if 'publish' in rec.get('groups', []):
-		<li class="notify">Record marked as Published Data</li>
+		<li class="notify">Record marked as published data</li>
 	% endif
 
 	% if 'authenticated' in rec.get('groups', []):
