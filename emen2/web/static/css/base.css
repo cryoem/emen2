@@ -156,6 +156,11 @@ ul.nonlist
 
 /* unselectable elements */
 
+.e2-layout-unselect {
+	-webkit-user-select: none;
+	-moz-user-select: none;	
+}
+
 .clickable
 {
 	cursor: pointer;

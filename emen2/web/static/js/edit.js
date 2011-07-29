@@ -510,9 +510,8 @@ function bind_autocomplete(elem, param) {
 
 
 
-
 (function($) {
-    $.widget("ui.ListControl", {
+    $.widget("ui.ChoiceList", {
 		options: {
 			values: [],
 			param: null
@@ -522,34 +521,84 @@ function bind_autocomplete(elem, param) {
 			this.items = $('<ul></ul>');
 			this.element.append(this.items);
 			this.build();
+		},
+		
+		build: function() {
+			var self = this;
+		},
+		
+		getval: function() {
+			var ret=[];
+			$("input:text, select",this.element).each(function(){
+				if (this.value != "") ret.push(this.value);
+			});
+			return ret
+		},
+				
+		destroy: function() {
+		},
+		
+		_setOption: function(option, value) {
+			$.Widget.prototype._setOption.apply( this, arguments );
+		}
+	});
+})(jQuery);
+
+
+
+(function($) {
+    $.widget("ui.ListControl", {
+		options: {
+			values: [],
+			param: null
+		},
+				
+		_create: function() {
+			this.build();
 		},	
 	
 		build: function() {
 			var self = this;
-
-			if (this.options.values.length == 0) {
+			this.items = $('<ul></ul>');
+			this.element.append(this.items);
+			if (this.options.values == null || this.options.values.length == 0) {
 				this.options.values = [""];
 			}
+			console.log(this.options.values);
 			this.items.empty();
-
 			var pd = caches['paramdefs'][self.options.param];
 			var vt = pd.vartype;
+			if (vt == 'choicelist') {
+				self.build_choicelist();
+			} else {
+				self.build_stringlist();
+			}
+		},
+		
+		build_choicelist: function() {
+			var self = this;
+			var pd = caches['paramdefs'][self.options.param];
+			var vt = pd.vartype;
+			$.each(pd.choices, function(count,value) {
+				// console.log(k,v);
+				var id = 'e2-edit-choicelist-'+self.options.param+'-'+count;
+				var item = $('<li><input type="checkbox" id="'+id+'" value="'+value+'"/><label for="">'+value+'</label>');
+				console.log("checking value:", value, self.options.values);
 
-
-			$.each(this.options.values, function(k,v) {
-				var item = $('<li></li>');
-				
-				if (vt == "choicelist") {
-					var edit = $('<select>');
-					
-					for (var i=0;i<pd.choices.length;i++) {
-						edit.append('<option>'+pd.choices[i]+'</option>');
-					}
-					
-				} else {					
-					var edit = $('<input type="text" value="'+v+'" />');
-					bind_autocomplete(edit, self.options.param);
+				if ($.inArray(value, self.options.values) > -1) {
 				}
+				self.items.append(item);
+			})
+		},
+
+		build_stringlist: function() {
+			var self = this;
+			var pd = caches['paramdefs'][self.options.param];
+			var vt = pd.vartype;
+			$.each(this.options.values, function(k,v) {
+				var item = $('<li></li>');				
+				var edit = $('<input type="text" value="'+v+'" />');
+				bind_autocomplete(edit, self.options.param);
 									
 				var add=$('<span><img src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" /></span>').click(function() {
 					self.addoption(k+1);
@@ -563,9 +612,9 @@ function bind_autocomplete(elem, param) {
 
 				item.append(edit,add,remove);
 				self.items.append(item);
-			});
+			});			
 		},
-
+		
 		addoption: function(pos) {
 			// add another option to list
 			// save current state so rebuilding does not erase changes

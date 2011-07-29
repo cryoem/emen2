@@ -241,7 +241,7 @@ class vt_none(Vartype):
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		raise ValueError, "This is an organizational parameter not designed for use."
+		raise ValueError, "This is an organizational parameter, and is not intended to be used."
 
 
 	def process(self, value):
@@ -282,7 +282,7 @@ class vt_percent(Vartype):
 	def validate(self, value):
 		value = float(value)
 		if not 0 <= value <= 1.0:
-			raise ValueError, "Percentage stored as 0 <= value <= 1.0"
+			raise ValueError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%value
 		return value
 
 	def process(self, value):
@@ -412,7 +412,7 @@ class vt_choice(vt_string):
 	def validate(self, value):
 		value = unicode(value).strip()
 		if value not in self.pd.choices:
-			raise ValueError, "Choice not in defined options: %s"%value
+			raise ValueError, "Invalid choice: %s"%value
 		return value or None
 
 
@@ -455,7 +455,7 @@ class vt_choicelist(vt_iter, vt_string):
 		value = [unicode(i).strip() for i in value]
 		for v in value:
 			if v not in self.pd.choices:
-				raise ValueError, "Choice not in defined options: %s"%v
+				raise ValueError, "Invalid choice: %s"%v
 		return value or None
 
 
@@ -1075,7 +1075,7 @@ def check_rectypes(engine, values):
 		engine.store(key, paramdefs)
 
 	if set(values) - paramdefs:
-		raise ValueError, "Unknown ParamDefs: %s"%(", ".join(set(values)-paramdefs))
+		raise ValueError, "Unknown parameters: %s"%(", ".join(set(values)-paramdefs))
 
 
 
@@ -1087,7 +1087,7 @@ def check_rectypes(engine, values):
 		engine.store(key, rectypes)
 
 	if set(values) - rectypes:
-		raise ValueError, "Unknown RecordDefs: %s"%(", ".join(set(values)-rectypes))
+		raise ValueError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
 
 
 
