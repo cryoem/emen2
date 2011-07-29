@@ -1,4 +1,8 @@
 (function($) {
+//  if ($.defer_loaded == undefined)
+//     $('head').append('<script src="/static/defer.js"></script>');
+//  $.defer_loaded = true;
+
   $.extend({
     jsonRPC: {
       // RPC Version Number
@@ -45,6 +49,10 @@
                         url);
         
         return true;
+      },
+
+      call: function(method, params, callback, errback) {
+         this.request(method, params, {success:function(u){callback(u.result)}, error: function(u){errback(u.error)}});
       },
 
       // Submits multiple requests

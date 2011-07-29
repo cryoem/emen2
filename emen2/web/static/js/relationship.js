@@ -170,7 +170,7 @@
 			this.build_ul(children_ul, key);
 
 			// get the parents through an RPC call
-			$.jsonRPC2("getparents", [key, 1, null, this.options.keytype], function(parents) {
+			$.jsonRPC.call("rel.parent", [key, 1, null, this.options.keytype], function(parents) {
 				caches['parents'][key] = parents;
 				self.getviews(parents, function(){
 					// build the parents..
@@ -312,7 +312,7 @@
 				buttons: {
 					"OK": function() {
 						$(this).dialog("close");
-						$.jsonRPC2("pcunlink", [rmlink[0], rmlink[1], self.options.keytype], function() {
+						$.jsonRPC.call("rel.pcunlink", [rmlink[0], rmlink[1], self.options.keytype], function() {
 							self.build_root(self.options.root);			
 						});
 					},
@@ -324,7 +324,7 @@
 		_action_addrel: function(parent, child) {
 			//console.log("Adding rel", parent, child);
 			var self = this;
-			$.jsonRPC2("pclink", [parent, child, this.options.keytype], function() {
+			$.jsonRPC.call("rel.pclink", [parent, child, this.options.keytype], function() {
 				self.refresh(parent);
 			});
 		},	
@@ -356,7 +356,7 @@
 					"OK": function() {
 						$(this).dialog( "close" );
 						console.log(rels, newrels);
-						$.jsonRPC2("pcrelink", [rels, newrels], function() {
+						$.jsonRPC.call("pcrelink", [rels, newrels], function() {
 							self.build_root(self.options.root);
 							// $.each(refresh, function() {
 							// 	self.refresh(this);
@@ -413,17 +413,17 @@
 		getviews: function(keys, cb) {
 			var self = this;
 			if (self.options.keytype == "record") {
-				$.jsonRPC2("renderview", [keys, null, "recname"], function(recnames){
+				$.jsonRPC.call("record.render", [keys, null, "recname"], function(recnames){
 					$.each(recnames, function(k,v) {caches['recnames'][k]=v});
 					cb();
 				});					
 			} else if (self.options.keytype == "recorddef") {
-				$.jsonRPC2("getrecorddef", [keys], function(rds){
+				$.jsonRPC.call("recorddef.get", [keys], function(rds){
 					$.each(rds, function() {caches['recorddefs'][this.name]=this});
 					cb();
 				});											
 			} else if (self.options.keytype == "paramdef") {
-				$.jsonRPC2("getparamdef", [keys], function(pds){
+				$.jsonRPC.call("paramdef.get", [keys], function(pds){
 					$.each(pds, function() {caches['paramdefs'][this.name]=this});
 					cb();
 				});						
@@ -477,12 +477,12 @@
 			// remove current ul..
 			elem.find('ul').remove();
 
-			var method = "getchildtree";
+			var method = "rel.child.tree";
 			if (this.options.mode == "parents") {
-				method = "getparenttree";
+				method = "rel.parent.tree";
 			}
 			
-			$.jsonRPC2(method, [key, 2, null, this.options.keytype], function(tree){
+			$.jsonRPC.call(method, [key, 2, null, this.options.keytype], function(tree){
 				// put these in the cache..
 				$.each(tree, function(k,v) {
 					caches[self.options.mode][k]=v;

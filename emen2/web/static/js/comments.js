@@ -41,13 +41,16 @@
 			});
 			// console.log(users);
 			if (users.length) {
-				$.jsonRPC2("getuser", [users], function(u) {
-					$.each(u, function() {
-						caches['users'][this.name] = this;
-						caches['displaynames'][this.name] = this.displayname;
-					});
-					self._build();
-				});
+				$.jsonRPC.request("getuser", [users], {
+               success: function(u) {
+                  $.each(u.result, function() {
+                     caches['users'][this.name] = this;
+                     caches['displaynames'][this.name] = this.displayname;
+                  });
+                  self._build();
+               },
+               error: function(){console.log(arguments);}
+            });
 			} else {
 				self._build();
 			}
@@ -118,11 +121,14 @@
 		save: function() {
 			var self = this;
 
-			$.jsonRPC2("addcomment",[this.options.name, $("textarea", this.element).val()],
-		 		function(rec){
-					//will trigger this rebuild... hopefully.. :)
-					record_update(rec);
-					notify("Comment Added");
+			$.jsonRPC.request("addcomment",[this.options.name, $("textarea", this.element).val()],
+		 		{success:
+               function(rec){
+                  //will trigger this rebuild... hopefully.. :)
+                  record_update(rec.result);
+                  notify("Comment Added");
+               },
+              error: console.log
 		 		}
 			)		
 		},

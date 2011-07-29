@@ -74,6 +74,7 @@
 
 	<script type="text/javascript">
 		$(document).ready(function() {
+         $.jsonRPC.setup({endPoint: '/jsonrpc', namespace:null})
 			$("#e2-header-search").focus(function() {
 				if( this.value == this.defaultValue ) {
 					this.value = "";

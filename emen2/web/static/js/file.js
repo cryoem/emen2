@@ -28,7 +28,7 @@
 		
 		_findbinary: function() {
 			var self = this;
-			$.jsonRPC2("findbinary", {'record':self.options.name}, 
+			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
 				function(bdos) {						
 					if (bdos == null) {bdos=[]}
 					if (bdos.length == null) {bdos=[bdos]}
@@ -50,7 +50,7 @@
 			});
 
 			if (findusers.length) {
-				$.jsonRPC2('getuser', [findusers], function(users) {
+				$.jsonRPC.call('user.get', [findusers], function(users) {
 					$.each(users, function() {
 						caches['displaynames'][this.name] = this.displayname;
 					});
@@ -66,7 +66,7 @@
 			var self = this;
 			this.tablearea.empty();
 			this.tablearea.append('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
-			$.jsonRPC2("findparamdef", {'record':this.options.name}, function(paramdefs) {			
+			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
 				$.each(paramdefs, function() {
 					caches["paramdefs"][this.name] = this;
 				});
@@ -266,7 +266,7 @@
 				p[k]=v;
 			});
 			
-			$.jsonRPC2("putrecordvalues", [this.options.name, p],
+			$.jsonRPC.call("record.update", [this.options.name, p],
 				function(rec) {
 					record_update(rec);
 					self.event_build_tablearea();

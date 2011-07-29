@@ -34,7 +34,7 @@
 				'c':c,
 			}
 
-			$.jsonRPC2("query", query, function(data) {
+			$.jsonRPC.call("query", query, function(data) {
 				var recs = data['names'];
 				var rq = {
 					'names':recs,
@@ -43,7 +43,7 @@
 					'markup': false
 				}
 				
-				$.jsonRPC2('renderview', rq, function(rendered) {
+				$.jsonRPC.call('renderview', rq, function(rendered) {
 					self.dialog.empty();
 					var table = $('<table cellspacing="0" cellpadding="0"><thead></thead><tbody></tbody></table>');
 					var trh = $('<tr/>');
@@ -263,7 +263,7 @@
 				query['vartype'] = this.options.vartype;
 			}
 				
-			$.jsonRPC2('find'+this.options.keytype, query, function(items) {
+			$.jsonRPC.call('find'+this.options.keytype, query, function(items) {
 				$('.spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;

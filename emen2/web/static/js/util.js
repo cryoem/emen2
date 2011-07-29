@@ -206,7 +206,7 @@ function admin_approveuser_form(elem) {
 	});
 
 	if (approve.length > 0) {
-		$.jsonRPC2("approveuser",[approve],
+		$.jsonRPC.call("user.queue.approve",[approve],
 			function(names) {
 				//var names = [];
 				//$.each(data, function(){names.push(this.name)});
@@ -222,7 +222,7 @@ function admin_approveuser_form(elem) {
 	};
 
 	if (reject.length > 0) {
-		$.jsonRPC2("rejectuser",[reject],
+		$.jsonRPC.call("user.queue.reject",[reject],
 			function(names) {
 				//var names = [];
 				//$.each(data, function(){names.push(this.name)});				
@@ -257,7 +257,7 @@ function admin_userstate_form(elem) {
 	});
 	
 	if (enable.length > 0) {
-		$.jsonRPC2("enableuser",[enable],
+		$.jsonRPC.call("user.enable",[enable],
 			function(data) {
 				if (data) {
 					notify("Enabled users: "+data);
@@ -270,7 +270,7 @@ function admin_userstate_form(elem) {
 	}
 
 	if (disable.length > 0) {
-		$.jsonRPC2("disableuser",[disable],
+		$.jsonRPC.call("user.disable",[disable],
 			function(data) {
 				if (data) {
 					notify("Disabled users: "+data);
@@ -366,18 +366,18 @@ function notify(msg, fade, error) {
 						
 			var self = this;
 			var bookmarks = [];
-			$.jsonRPC2('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
+			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
 				children.sort();
 				var brec = null;
 				if (children.length > 0) {
 					brec = children[children.length-1];
 				}
-				$.jsonRPC2('getrecord', [brec], function(rec) {
+				$.jsonRPC.call('record.get', [brec], function(rec) {
 					var brecs = [];
 					if (rec != null) {
 						var brecs = rec['bookmarks'] || [];
 					}
-					$.jsonRPC2('renderview', [brecs], function(recnames) {
+					$.jsonRPC.call('record.render', [brecs], function(recnames) {
 						$.each(recnames, function(k,v) {
 							caches['recnames'][k] = v;
 						});
@@ -427,8 +427,8 @@ function notify(msg, fade, error) {
 			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />');
 			this.element.append(spinner);
 			
-			$.jsonRPC2('getchildren', [this.options.parent, 1, 'bookmarks'], function(children) {
-				$.jsonRPC2('getrecord', [children], function(recs) {
+			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
+				$.jsonRPC.call('record.get', [children], function(recs) {
 					if (recs.length == 0) {
 						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parents': [self.options.parent]};
 					} else {
@@ -457,7 +457,7 @@ function notify(msg, fade, error) {
 					//var pos = $.inArray(name, bookmarks);
 					rec['bookmarks'] = bookmarks;
 					var pos = $.inArray(name, bookmarks);
-					$.jsonRPC2('putrecord', [rec], function(updrec) {
+					$.jsonRPC.call('record.put', [rec], function(updrec) {
 						if (pos == -1) {
 							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-open.png" alt="Add Bookmark" />');
 						} else {

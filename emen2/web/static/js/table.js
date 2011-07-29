@@ -145,7 +145,7 @@
 			newq['names'] = [];
 			newq['recs'] = true;
 			newq['table'] = true;
-			$.jsonRPC2("query", newq, function(q){self.update(q)});			
+			$.jsonRPC.call("query", newq, function(q){self.update(q)});			
 		},
 		
 		setpos: function(pos) {

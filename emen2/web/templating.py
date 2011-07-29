@@ -70,6 +70,7 @@ class BaseJS(ExtFile):
 			'jquery/jquery-ui.js',
 			'jquery/jquery.json.js',
 			'jquery/jquery.timeago.js',
+			'jquery/jquery.jsonrpc.js',
 			"comments.js",
 			"edit.js",
 			"editdefs.js",
