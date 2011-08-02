@@ -50,12 +50,11 @@ class URL(object):
 		return self._matchers.get_right(method, fallback)
 	callback = property(get_callback)
 
-	def merge(self, other):
-		raise NotImplementedError
-		# self._callbacks.update((k,v) for k,v in other._callbacks.iteritems() if k not in self._callbacks)
+	def update(self, other):
+		for k,vl,vr in other._matchers.items():
+			self._matchers.add(k, vl, vr)
 
 	def match(self, string):
-		match = False
 		result = '', False
 		for key, matcher in self._matchers.iteritems_l():
 			match = matcher.match(string)
@@ -65,78 +64,77 @@ class URL(object):
 		return result
 
 class URLRegistry(object):
-	if not g.getattr('URLRegistry', False):
-		g.URLRegistry = {}
-	URLRegistry = g.URLRegistry
+	URLRegistry = g.claim('URLRegistry', {})
 	_prepend = ''
 
-	def _match(self, inp):
-		result = [None,None,None]
-		for url in self.URLRegistry.values():
-			tmp = url.match(inp)
-			if tmp[1]:
-				result[0] = tmp[0]
-				result[1] = tmp[1].groupdict()
-				result[2] = url
-				break
-		return result
+	#def __init__(self, prepend='', default=True, onfail=('page not found', 'text/plain')):
+	#	self._onfail = onfail
 
-
-	class _matcher(object):
-		'internal class'
-		def __init__(self, urlreg):
-			self._urlreg = urlreg
-		def match(self, inp):
-			self._inp = inp
-			return self
-		def __enter__(self):
-			return self._urlreg._match(self._inp)
-		def __exit__(*args): pass
-
-	def __init__(self, prepend='', default=True, onfail=('page not found', 'text/plain')):
+	def __init__(self, prepend='', default=True):
 		self._prepend = prepend or self._prepend
 		self._default = default
-		self._onfail = onfail
-		self._matcher = self._matcher(self)
-		self.match = self._matcher.match
+
 	def __setitem__(self, name, value):
 		self.URLRegistry[name] = value
+
 	def __getitem__(self, name):
 		return self.URLRegistry[name].get_callback('main')
+
 	def __delitem__(self, name):
 		del self.URLRegistry[name]
 
+
 	def toggle_default(self):
 		self._default = not self._default
+
 	def get_default(self):
 		return self._default
+
 	def set_default(self, value):
 		self._default = bool(value)
+
 	default = property(get_default, set_default)
 
 	@staticmethod
 	def onfail(inp):
 		raise responsecodes.NotFoundError(inp)
 
-	@staticmethod
-	def onfail1(m1,m2):
-		raise responsecodes.HTTPResponseCode, 'Method mismatch: %s, %s' % (m1,m2)
 
-	def execute(self, inp, fallback=None, **kw):
+	def match(self, inp):
+		result = [None,None,None]
+
+		for url in self.URLRegistry.values():
+			tmp = url.match(inp)
+			if tmp[1]: # i.e. if tmp[1] == False :: tmp[1] will be false if there is no match
+				result = [tmp[0], tmp[1].groupdict(), url]
+				break
+
+		return result
+
+	def execute(self, inp, fallback='main', **kw):
+		'''Execute a view, given a URL and any necessary args'''
+
 		result = None
 
-		with self.match(inp) as (sub, groups, url):
-			if url is not None:
-				ks = groups.keys()
-				args = listops.adjust(groups, kw)
-				cb = url.get_callback(sub, fallback='main')
-				args['reverseinfo'] = (url.name, dict( (k, args[k]) for k in ks))
-				result = partial(cb, **args)
+		sub, groups, url =  self.match(inp)
+
+		if url is not None:
+			ks = groups.keys()
+			args = listops.adjust(groups, kw)
+			cb = url.get_callback(sub, fallback=fallback)
+			args['reverseinfo'] = (url.name, dict( (k, args[k]) for k in ks))
+
+			result = partial(cb, **args)
 
 		if result is None and self._default is True:
 			result = lambda *args, **kwargs: self.onfail(inp)
 
 		return result
+
+	def is_reachable(self, url):
+		sub, groups, url = self.match(url)
+		return sub != None and groups != None
+
 
 	@classmethod
 	def call_view(cls, name, *args, **kwargs):
@@ -144,9 +142,20 @@ class URLRegistry(object):
 		return cb(*args, **kwargs)
 
 	def register(self, url):
+		'''Add a URL object to the registry.  If a URL with the same "name" is already
+		registered, merge the two into the previously registered one.
+
+		@returns true if a url was already registered with the same name
+		'''
+
 		name = url.name
 		result = name in self.URLRegistry
-		self[name] = url
+
+		if result == True:
+			self.URLRegistry[name].update(url)
+		else:
+			self[name] = url
+
 		return result
 
 	@classmethod
@@ -159,27 +168,28 @@ class URLRegistry(object):
 
 	@classmethod
 	def reverselookup(cls, _name, *args, **kwargs):
+		'''reverselookup: take a name and arguments, and return a url'''
+
 		_name = _name.split('/',1)
 		if len(_name) == 1: _name.append('main')
 		url = cls.get(_name[0], None)
+		result = '/error/'
 		if url is not None:
 			result = cls.reverse_helper(url.get_matcher(_name[1]), *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
-		else:
-			result = '/error/'
-		return result
 
-	def is_reachable(self, url):
-		with self.match(url) as (a,b):
-			return a != None and b != None
+		return result
 
 	@classmethod
 	def reverse_helper(cls, regex, *args, **kwargs):
 		mc = MatchChecker(args, kwargs)
+
 		result = re.sub(r'\(([^)]+)\)', mc, regex.pattern)
+
 		qs = '&'.join( '%s=%s' % (k,v) for k,v in mc.get_unused_kwargs().items() )
 		result = [result.replace('^', '').replace('$', ''),qs]
 		if qs == '': result.pop()
+
 		return '?'.join(result)
 
 def force_unicode(string):
@@ -201,7 +211,7 @@ class MatchChecker(object):
 		self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
 		self.used_kwargs = set([])
 
-	def get_kwarg(self, name):
+	def get_arg(self, name):
 		result = self.kwargs.get(name)
 		if result is None: result = self.args.next()
 		else: self.used_kwargs.add(name)
@@ -217,9 +227,10 @@ class MatchChecker(object):
 		m = self.NAMED_GROUP.search(grouped)
 
 		if m:
-			value, test_regex = self.get_kwarg(m.group(1)), m.group(2)
+			value, test_regex = self.get_arg(m.group(1)), m.group(2)
 		else:
-			value, test_regex = self.lis.next(), grouped # get_next_posarg(), grouped
+			value, test_regex = self.args.next(), grouped
+
 		if value is None:
 			raise NoReverseMatch('Not enough arguments passed in')
 
