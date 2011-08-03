@@ -63,9 +63,11 @@ class URL(object):
 				break
 		return result
 
+import emen2.web.eventhandler
 class URLRegistry(object):
 	URLRegistry = g.claim('URLRegistry', {})
 	_prepend = ''
+	events = emen2.web.eventhandler.EventHandler()
 
 	#def __init__(self, prepend='', default=True, onfail=('page not found', 'text/plain')):
 	#	self._onfail = onfail
@@ -156,6 +158,7 @@ class URLRegistry(object):
 		else:
 			self[name] = url
 
+		self.events.event('web.routing.url.register')(url)
 		return result
 
 	@classmethod

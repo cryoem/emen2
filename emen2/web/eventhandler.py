@@ -1,4 +1,5 @@
 import functools
+import threading
 
 class Callback(object):
 	def __init__(self, cb, *args, **kwargs):
@@ -13,17 +14,21 @@ class Callback(object):
 		return result
 
 class Event(object):
+	_cb_lock = threading.RLock()
+	_o_lock = threading.RLock()
 	def __init__(self, name):
 		self.name = name
 		self.callbacks = []
 		self.observers = []
 
 	def add_observer(self, cb, *args, **kwargs):
-		self.observers.append(partial(cb, *args, **kwargs))
+		with self._o_lock:
+			self.observers.append(partial(cb, *args, **kwargs))
 		return self
 
 	def add_cb(self, cb, *args, **kwargs):
-		self.callbacks.append(Callback(cb, *args, **kwargs))
+		with self._cb_lock:
+			self.callbacks.append(Callback(cb, *args, **kwargs))
 		return self
 
 	def add_cbs(self, cbs):
@@ -32,28 +37,26 @@ class Event(object):
 		return self
 
 	def __call__(self, *args, **kwargs):
-		for cb in self.callbacks:
-			result = cb(*args, **kwargs)
-			for observer in self.observers:
-				observer(result)
-			yield result
+		results = []
+		with self._cb_lock:
+			for cb in self.callbacks:
+				result = cb(*args, **kwargs)
+				with self._o_lock:
+					for observer in self.observers:
+						observer(result)
+				results.append(result)
+		return results
 
 class EventRegistry(object):
+	_lock = threading.RLock()
 	events = {}
 	nullevent = Event('')
 
 	@classmethod
 	def event(self, name):
 		event = Event(name)
-		return self.events.setdefault(name, event)
-
-	def fire_event(self, name, *args, **kwargs):
-		results = self.events.get(name, self.nullevent)(*args, **kwargs)
-		return results
-
-	def register_observer(self, cb, *args, **kwargs):
-		self.event('sys.fire_event').add_cb(cb, *args, **kwargs)
-		return self
+		with self._lock:
+			return self.events.setdefault(name, event)
 
 	def observe_event(self, name, cb, *args, **kwargs):
 		self.events[name].add_observer(cb, *args, **kwargs)

@@ -66,11 +66,22 @@ class Enum(set):
 
 
 class doubledict(object):
+	'''Used for datastructures.  Key, value store with two separate lists of values.
+	the _l methods work on the left values, the _r ones on the right values'''
+
 	def __init__(self, keys=None, values1=None, values2=None):
 		if None in (keys, values1, values2):
 			keys, values1, values2 = [],[],[]
 		self._dict_l = dict(zip(keys, values1))
 		self._dict_r = dict(zip(keys, values2))
+
+	def __repr__(self):
+		out = zip(self._dict_l.keys(), self._dict_l.values(), self._dict_r.values())
+		return 'doubledict(%s)' % ','.join('{%r: (%r, %r)}' % (k, vl.pattern, getattr(vr, 'func', vr)) for k,vl, vr in out)
+
+	def __str__(self):
+		return '\n'.join('%(key)r: ("%(value_l)r", "%(value_r)r")' % dict(key=key, value_l=value_l.pattern, value_r=getattr(value_r, 'func', value_r)) for (key, value_l, value_r) in zip(self._dict_l.keys(), self._dict_l.values(), self._dict_r.values()))
+
 	@classmethod
 	def from_dict(cls, dct):
 		self = cls.__new__(cls)
@@ -79,6 +90,7 @@ class doubledict(object):
 			self._dict_l[k] = v_l
 			self._dict_r[k] = v_r
 		return self
+
 	def get(self, name, default=None):
 		return self.get_left(name, default), self.get_right(name, default)
 	__getitem__ = get
