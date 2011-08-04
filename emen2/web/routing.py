@@ -11,7 +11,9 @@ from emen2.util import listops
 
 import emen2.util.datastructures
 
+import emen2.web.eventhandler
 from emen2.web import responsecodes
+import contextlib
 import emen2.db.config
 g = emen2.db.config.g()
 
@@ -26,7 +28,10 @@ class URL(object):
 
 	def add_matcher(self, method, matcher, cb):
 		if not hasattr(matcher, 'match'): matcher = re.compile(matcher)
+		if method in self._matchers.keys():
+			g.warn('url %r already has method %r registered to %r' %(self, method, self.get_callback(method)))
 		self._matchers.add(method, matcher, cb)
+		return self
 
 
 	def __repr__(self):
@@ -40,13 +45,14 @@ class URL(object):
 
 	def get_matcher(self, name):
 		return self._matchers.get_left(name)
-	matcher = property(get_matcher)
+	#matcher = property(get_matcher)
 
 	@staticmethod
 	def method_notsupported(inp, *args, **kwargs):
 		raise responsecodes.MethodNotAllowedError(inp)
 
 	def get_callback(self, method='main', fallback=None):
+		###BUG: this needs to return a callback if method not found... now just returns the value of fallback
 		return self._matchers.get_right(method, fallback)
 	callback = property(get_callback)
 
@@ -67,7 +73,7 @@ import emen2.web.eventhandler
 class URLRegistry(object):
 	URLRegistry = g.claim('URLRegistry', {})
 	_prepend = ''
-	events = emen2.web.eventhandler.EventHandler()
+	events = emen2.web.eventhandler.EventRegistry()
 
 	#def __init__(self, prepend='', default=True, onfail=('page not found', 'text/plain')):
 	#	self._onfail = onfail
@@ -102,6 +108,13 @@ class URLRegistry(object):
 		raise responsecodes.NotFoundError(inp)
 
 
+	@contextlib.contextmanager
+	def url(self, name):
+		url = self.URLRegistry.get(name, URL(name))
+		yield url
+		if url.name not in self.URLRegistry:
+			self.register(url)
+
 	def match(self, inp):
 		result = [None,None,None]
 
@@ -113,7 +126,7 @@ class URLRegistry(object):
 
 		return result
 
-	def execute(self, inp, fallback='main', **kw):
+	def execute(self, inp, **kw):
 		'''Execute a view, given a URL and any necessary args'''
 
 		result = None
@@ -123,7 +136,7 @@ class URLRegistry(object):
 		if url is not None:
 			ks = groups.keys()
 			args = listops.adjust(groups, kw)
-			cb = url.get_callback(sub, fallback=fallback)
+			cb = url.get_callback(sub)
 			args['reverseinfo'] = (url.name, dict( (k, args[k]) for k in ks))
 
 			result = partial(cb, **args)
@@ -242,6 +255,7 @@ class MatchChecker(object):
 		return force_unicode(value)
 
 if __name__ == '__main__':
+	from emen2.util.datastructures import doubledict
 	print doubledict()
 	a = URL('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
 	print a.match('asdasd')[1].groupdict()

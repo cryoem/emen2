@@ -413,19 +413,19 @@ class _View(object):
 			- or any object that has an attribute named 'match', and 'groupdict' (if one doesn't want to use regular expressions)
 
 		'''
-		cls.__url = routing.URL(cls.__name__)
+		with routing.URLRegistry().url(cls.__name__) as url:
+			cls.__url = url
 
-		# old style matchers
-		if hasattr(cls, '__matcher__'):
-			self.__parse_matcher_attribute(cls, cls.__matcher__, cls.__url)
+			# old style matchers
+			if hasattr(cls, '__matcher__'):
+				self.__parse_matcher_attribute(cls, cls.__matcher__, url)
 
-		#matchers produced by the add_matcher decorator
-		for v in ( getattr(func, 'matcherinfo', None) for func in cls.__dict__.values() ):
-			if v is not None:
-				self.__parse_add_matcher_values(cls, v, cls.__url)
+			#matchers produced by the add_matcher decorator
+			for v in ( getattr(func, 'matcherinfo', None) for func in cls.__dict__.values() ):
+				if v is not None:
+					self.__parse_add_matcher_values(cls, v, url)
 
-		ur = routing.URLRegistry()
-		ur.register(cls.__url)
+			ur = routing.URLRegistry()
 		return cls
 
 

@@ -34,7 +34,7 @@ class TestView(unittest.TestCase):
 		template = '/page/page'
 		self.view.template = template
 		self.assertEqual(self.view.template, template)
-	
+
 	@mock.patch('emen2.db.database.DB', new=mock.Mock())
 	@mock.patch('emen2.db.proxy.DBProxy', new=mock.Mock())
 	@mock.patch('emen2.db.config.g', new=mock.Mock())
