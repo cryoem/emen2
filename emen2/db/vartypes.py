@@ -557,7 +557,7 @@ class vt_date(vt_datetime):
 		return unicode(value).strip() or None
 
 
-### Extended date vartypes
+### iCalendar-like date types
 
 class vt_duration(Vartype):
 	"""TimeStart, OR, TimeStart-TimeStop"""
@@ -568,16 +568,13 @@ class vt_duration(Vartype):
 		return unicode(value).strip() or None
 
 
-class vt_recurring(Vartype):
+class vt_recurrence(Vartype):
 	"""date, yyyy/mm/dd"""
 	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		d = {}
-		return d
+		return unicode(value)
 
-	def occurances(self, d, start=None, end=None):
-		pass
 		
 
 
@@ -641,48 +638,6 @@ class vt_urilist(vt_iter, vt_ref):
 # Mapping types
 ###################################
 
-
-# all = set(['displayname', 'groups', 'views', 'mainview', 'creationtime', 'typicalchld', 'compress', 'private', 'disabled', 'rectype', 'signupinfo', 'vartype', 'userrec', 'modifytime', 'filename', 'children', 'desc_short', 'name', 'modifyuser', 'desc_long', 'privacy', 'filepath', 'uri', 'comments', 'choices', 'defaultunits', 'record', 'name', 'filesize', 'indexed', 'parents', 'permissions', 'property', 'creator', 'immutable', 'md5', 'history'])
-
-# Some DBObject attributes....
-# displayname: string
-# groups: groups
-# views: dict
-# mainview: string
-# creationtime: datetime
-# typicalchld: rectypelist
-# compress: bool
-# private: bool
-# disabled: int
-# rectype: rectype
-# signupinfo: paramdict
-# vartype: vartype
-# userrec: None
-# modifytime: datetime
-# filename: filename
-# children: links
-# desc_short: string
-# name: None, but immutable..
-# modifyuser: user
-# desc_long: text
-# privacy: int
-# filepath: None, immutable
-# uri: uri
-# comments: comments
-# choices: stringlist
-# defaultunits: string... check property for choices?
-# record: name
-# filesize: int
-# indexed: bool
-# parents: links
-# property: string... check properties?
-# creator: user
-# immutable: bool
-# md5: md5
-# history: history
-
-# So, new vartypes: dict, rectypelist, paramdict, unvalidated, filename, units (check Magnitude and property), md5 (length == 40, or maybe unvalidated)
-
 class vt_paramdict(vt_iter, Vartype):
 	"""Dictionary with valid param keys"""
 	__metaclass__ = Vartype.register_view
@@ -696,7 +651,6 @@ class vt_paramdict(vt_iter, Vartype):
 		return ret
 
 
-
 class vt_dict(vt_iter, Vartype):
 	"""Dictionary with valid param keys"""
 	__metaclass__ = Vartype.register_view
@@ -708,14 +662,9 @@ class vt_dict(vt_iter, Vartype):
 
 
 
-
-
-
 ###################################
 # Binary vartypes
 ###################################
-
-# ian: todo: strict validation; these can actually take any arbitrary string
 
 class vt_binary(vt_iter, Vartype):
 	"""BDO reference"""
@@ -784,7 +733,6 @@ class vt_binaryimage(Vartype):
 
 
 
-
 class vt_hdf(vt_binary):
 	"""BDO or URI points to an HDF file"""
 	__metaclass__ = Vartype.register_view
@@ -796,9 +744,6 @@ class vt_image(vt_binary):
 	"""BDO or URI points to a browser-compatible image"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
-
-
-
 
 
 
@@ -817,21 +762,6 @@ class vt_links(vt_iter, Vartype):
 
 
 
-
-
-# dict -- I don't think this is used anywhere.
-
-# class vt_dict(Vartype):
-# 	"""dict"""
-# 	__metaclass__ = Vartype.register_view
-# 	keytype = None
-#
-# 	def validate(self, engine, pd, value, db):
-# 		return dict(value) or None
-
-
-
-
 ###################################
 # User vartypes
 ###################################
@@ -845,7 +775,6 @@ class vt_user(Vartype):
 		value = unicode(value).strip()
 		check_usernames(self.engine, [value])
 		return value or None
-
 
 	# ian: todo: make these nice .userboxes ?
 	def process(self, value):
@@ -866,7 +795,6 @@ class vt_user(Vartype):
 		return value
 
 
-
 class vt_userlist(vt_iter, Vartype):
 	"""list of usernames"""
 	__metaclass__ = Vartype.register_view
@@ -876,8 +804,6 @@ class vt_userlist(vt_iter, Vartype):
 		value = emen2.util.listops.check_iterable(value)
 		check_usernames(self.engine, value)
 		return [unicode(x).strip() for x in value] or None
-
-
 
 	def process(self, value):
 		value = emen2.util.listops.check_iterable(value)
@@ -943,7 +869,6 @@ class vt_acl(Vartype):
 		return ret
 
 
-
 	def reindex(self, items):
 		"""(Internal) Calculate secrindex updates"""
 
@@ -970,7 +895,6 @@ class vt_acl(Vartype):
 		return addrefs, delrefs
 
 
-
 class vt_comments(Vartype):
 	"""Comments"""
 	__metaclass__ = Vartype.register_view
@@ -988,7 +912,6 @@ class vt_comments(Vartype):
 		# 	values = [i[2] for i in value]
 		# 	check_usernames(self.engine, users)
 		# 	return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
-
 
 
 	def process(self, value):
@@ -1030,8 +953,6 @@ class vt_history(Vartype):
 		return [unicode(i) for i in value]
 
 
-
-
 class vt_groups(vt_iter, Vartype):
 	"""groups"""
 	__metaclass__ = Vartype.register_view
@@ -1048,11 +969,6 @@ class vt_groups(vt_iter, Vartype):
 		return [unicode(i) for i in value]
 
 
-
-
-
-
-
 ###########################
 # Helper methods
 
@@ -1066,7 +982,6 @@ def check_rectype(engine, value):
 	return paramdef
 
 
-
 def check_rectypes(engine, values):
 	key = engine.get_cache_key('paramdefnames')
 	hit, paramdefs = engine.check_cache(key)
@@ -1076,7 +991,6 @@ def check_rectypes(engine, values):
 
 	if set(values) - paramdefs:
 		raise ValueError, "Unknown parameters: %s"%(", ".join(set(values)-paramdefs))
-
 
 
 def check_rectypes(engine, values):
@@ -1090,7 +1004,6 @@ def check_rectypes(engine, values):
 		raise ValueError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
 
 
-
 def check_usernames(engine, values):
 	key = engine.get_cache_key('usernames')
 	hit, usernames = engine.check_cache(key)
@@ -1102,7 +1015,6 @@ def check_usernames(engine, values):
 		raise ValueError, "Unknown users: %s"%(", ".join(set(values)-usernames))
 
 
-
 def check_groupnames(engine, values):
 	key = engine.get_cache_key('groupnames')
 	hit, groupnames = engine.check_cache(key)
@@ -1112,7 +1024,6 @@ def check_groupnames(engine, values):
 
 	if set(values) - groupnames:
 		raise ValueError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
-
 
 
 def update_username_cache(engine, values):
@@ -1130,7 +1041,6 @@ def update_username_cache(engine, values):
 			user.getdisplayname(lnf=True)
 			key = engine.get_cache_key('displayname', user.name)
 			engine.store(key, user.displayname)
-
 
 
 
@@ -1171,7 +1081,6 @@ datetime_formats = [
 
 def parse_datetime(string):
 	"""Return a tuple: datetime instance, and validated output"""
-
 	string = (string or '').strip()
 	if not string:
 		return None, None
@@ -1220,7 +1129,6 @@ def parse_date(string):
 			return datetime.datetime.strptime(string, format).date(), string
 		except ValueError:
 			pass
-
 	raise ValueError()
 
 
@@ -1256,14 +1164,12 @@ def parse_iso8601(d):
 	for key in keys:
 		if r.get(key):
 			r2[key] = int(r.get(key))
-
 	return r2
 	
 	
-	
-def parse_repeat(d):
+def parse_iso8601duration(d):
 	"""
-	Parse ISO 8601 duration format, as well as my iCalendar RFC extensions.
+	Parse ISO 8601 duration format.
 	
 	From Wikipedia, ISO 8601 duration format is:
 		P[n]Y[n]M[n]DT[n]H[n]M[n]S
@@ -1283,78 +1189,6 @@ def parse_repeat(d):
 	d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
 	d = 'P3W' # 3 weeks
 
-	I'm definining the following extensions, as a compressed way of writing
-	iCalendar RFC rule sets. Use following an 'X' code, similar to the 'T' for time.
-	Keys 'dtstart' and 'until' times are given in ISO 8601 style:
-		<start>/(<duration>/)?(<repeat rule>/)?(<end>)?
-	
-	Extended format is:
-		P<year fields>T<time fields>X<repeat rule>
-	
-	Note: letter designators chosen to not conflict with ISO 8601 fields for simplicity.
-	
-	A: freq
-		Frequency
-		0: YEARLY
-		1: MONTHLY
-		2: WEEKLY
-		3: DAILY
-		4: HOURLY
-		5: MINUTELY
-		6: SECONDLY
-	B: interval
-		The interval between each 'freq' iteration.
-		Positive integer.
-	C: count
-		Maximum number of occurrences.
-		Positive integer.
-	E: wkst
-		Week start day.
-		Not used.
-	F: bysetpos
-		n-th occurrence of the rule inside the frequency period.
-		Integers, separated by ",".
-	G: bymonth
-		Months
-		Positive integers
-		1 (January) to 12 (December)
-	I: bymonthday
-		Days of month
-		Integers, separated by ","
-		1 to 31, and -1 (Last day of month) to -31
-	J: byyearday
-		Ordinal days of year
-		Integers, separated by ","
-		1 to 366, and -1 (Last day of year) to -366
-	K: byweekno
-		ISO 8601 Week numbers
-		Integers, separated by ","
-		1 to 53, and -1 (Last week of year) to -53
-	L: byweekday
-		Day of week
-		Integers, separated by ","
-		0 (Monday) to 6 (Friday). 
-		Note: My relative weekday syntax is slightly different
-			than iCalendar. If '+' or '-' are explicitly included:
-			(week, weekday) = divmod(day, 7)
-			Weeks 0-4 are the 5 normal weeks in a month,
-			Weeks -1 to -5 are "from last" week of month, e.g.
-				-1 = divmod(-1, 7) = (-1,6) = Last Sunday
-				7 = divmod(7,7) = (1,0) = Second Monday
-				15 = divmod(15,7) = (2,1) = Third Tuesday
-		Note: The iCalendar spec differs from ISO 8601,
-			which is 1 (Monday) to 7 (Friday)
-	N: byhour
-		Hours
-		Integers, separated by ","
-		0 to 23
-	O: byminute
-		Minutes
-		Integers, separated by ","
-		0 to 59
-	Q: bysecond
-		Seconds
-		Integers, separated by ","
 	"""
 
 	regex = re.compile('''
@@ -1368,25 +1202,8 @@ def parse_repeat(d):
 				((?P<minutes>[0-9,]+)M)?
 				((?P<seconds>[0-9,]+)S)?
 			)?
-			(X
-				((?P<freq>[0-9]+)A)?
-				((?P<interval>[0-9]+)B)?
-				((?P<count>[0-9]+)C)?
-				((?P<wkst>[0-9]+)E)?
-				((?P<bysetpos>[0-9,+-]+)F)?
-				((?P<bymonth>[0-9,]+)G)?
-				((?P<bymonthday>[0-9,+-]+)I)?
-				((?P<byyearday>[0-9,+-]+)J)?
-				((?P<byweekno>[0-9,+-]+)K)?
-				((?P<byweekday>[0-9,+-]+)L)?
-				((?P<byhour>[0-9,+-]+)N)?
-				((?P<byminute>[0-9,+-]+)O)?
-				((?P<bysecond>[0-9,+-]+)Q)?
-			)?
 			''', re.X)
-
 	match = regex.search(d)
-
 	rd = {} # return date
 	
 	# rdate['type'] = match.group('type')
@@ -1394,48 +1211,12 @@ def parse_repeat(d):
 		if match.group(key):
 			rd[key] = int(match.group(key))
 
-	def getfreq(i):
-		# Conveniently these are defined as 0-6, same as the simple parse,
-		# but map to dateutil.rrule just to be sure in the event it changes.
-		r = dateutil.rrule
-		if i == None:
-			return r.DAILY
-		return [r.YEARLY, r.MONTHLY, r.WEEKLY, r.DAILY, r.HOURLY, r.MINUTELY, r.SECONDLY][int(i)]
-
-	def getweekday(i):
-		# Convert a "byweekday" to a rrule.MO, rrule.TU, etc., including +/-
-		r = dateutil.rrule
-		m = [r.MO, r.TU, r.WE, r.TH, r.FR, r.SA, r.SU]
-		week, day = divmod(int(i),7)
-		if '-' in i or '+' in i:
-			if week >= 0:
-				week += 1
-			return m[day](week)
-		else:
-			return m[day]
-		
-	rr = {} # return repeat rule	
-	rr['freq'] = getfreq(match.group('freq'))
-
-	if match.group('byweekday'):
-		rr['byweekday'] = map(getweekday, match.group('byweekday').split(","))
-		
-	for key in ['interval','wkst','count']:
-		if match.group(key):
-			rr[key] = int(match.group(key))
-	for key in ['bysetpos','bymonth','bymonthday','byyearday','byweekno','byhour','byminute','bysecond']:
-		if match.group(key):
-			rr[key] = map(int, match.group(key).split(","))
-	
-	return rd, dateutil.rrule.rrule(**rr)
+	return rd
 
 
 
 if __name__ == "__main__":
-	rd, rr = parse_repeat('PX10C-28L')
-	print rd
-	for i in rr:
-		print i
+	pass
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

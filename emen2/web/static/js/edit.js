@@ -508,44 +508,6 @@ function bind_autocomplete(elem, param) {
 
 
 
-
-
-(function($) {
-    $.widget("ui.ChoiceList", {
-		options: {
-			values: [],
-			param: null
-		},
-				
-		_create: function() {
-			this.items = $('<ul></ul>');
-			this.element.append(this.items);
-			this.build();
-		},
-		
-		build: function() {
-			var self = this;
-		},
-		
-		getval: function() {
-			var ret=[];
-			$("input:text, select",this.element).each(function(){
-				if (this.value != "") ret.push(this.value);
-			});
-			return ret
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		}
-	});
-})(jQuery);
-
-
-
 (function($) {
     $.widget("ui.ListControl", {
 		options: {
@@ -583,9 +545,8 @@ function bind_autocomplete(elem, param) {
 				// console.log(k,v);
 				var id = 'e2-edit-choicelist-'+self.options.param+'-'+count;
 				var item = $('<li><input type="checkbox" id="'+id+'" value="'+value+'"/><label for="">'+value+'</label>');
-				console.log("checking value:", value, self.options.values);
-
 				if ($.inArray(value, self.options.values) > -1) {
+					$('input:checkbox', item).attr('checked', 'checked');
 				}
 				self.items.append(item);
 			})
@@ -631,7 +592,7 @@ function bind_autocomplete(elem, param) {
 		getval: function() {
 			// return the values
 			var ret=[];
-			$("input:text, select",this.element).each(function(){
+			$("input:text, input:checkbox:checked, select",this.element).each(function(){
 				if (this.value != "") ret.push(this.value);
 			});
 			return ret

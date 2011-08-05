@@ -71,6 +71,8 @@ class BaseJS(ExtFile):
 			'jquery/jquery.json.js',
 			'jquery/jquery.timeago.js',
 			'jquery/jquery.jsonrpc.js',
+			'jquery/jquery.fullcalendar.js',
+			'jquery/jquery.fullcalendar-gcal.js',
 			"comments.js",
 			"edit.js",
 			"editdefs.js",
@@ -83,7 +85,7 @@ class BaseJS(ExtFile):
 			"tile.js",
 			"record.js",
 			"util.js",
-			"jquery.pjax.js"
+			'calendar.js'
 			]
 
 		self.files = [
@@ -100,9 +102,8 @@ class BaseCSS(ExtFile):
 			'custom-theme/jquery-ui-1.8.2.custom.css',
 			'base.css',
 			'style.css',
-			'boxer.css'
-			#'colors.css',
-			#'calendar.css'
+			'boxer.css',
+			'fullcalendar.css'
 		]
 
 		self.files = []
