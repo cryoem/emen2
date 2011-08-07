@@ -63,40 +63,53 @@
 		
 		build_options: function() {
 			var self = this;
-			// var options = $('
-			// 	<ul class="buttons">
-			// 	</ul>
-			// 	<div class="">
-			// ');
+			var options = $(' \
+				<ul class="buttons floatlist clearfix"> \
+					<li class="button active">Repeat</li> \
+					<li class="button">Alerts</li> \
+					<li class="button">Permissions</li> \
+					<li class="button">Attachments</li> \
+				</ul> \
+				<div class="pages"> \
+					<div class="e2-daterepeat-options-repeat page active">Loading</div> \
+				</div> \
+			');
+			this.dialog.append(options);
+			this.build_repeat();
 		},
 		
 		build_repeat: function(freq) {
-			var target = $('e2-daterepeat-repeat', this.element)
+			var self = this;
+			var target = $('.e2-daterepeat-options-repeat', this.dialog);
 			target.empty();
-			// 
-			// var t = $(' \
-			// 	<table> \
-			// 		<tbody> \
-			// 			<tr> \
-			// 				<td>Repeat:</td> \
-			// 				<td> \
-			// 					<select name="freq"> \
-			// 						<option value="" selected="selected"></option> \
-			// 						<option value="yearly">Yearly</option> \
-			// 						<option value="monthly">Monthly</option> \
-			// 						<option value="weekly">Weekly</option> \
-			// 						<option value="daily">Daily</option> \
-			// 						<option value="hourly">Hourly</option> \
-			// 					</select> \
-			// 				</td> \
-			// 			</tr> \	
-			// 		</tbody> \
-			// 	</table> \
-			// ');
+
+			var t = $('<table></table>');
+			var tbody = $(' \
+				<tbody> \
+					<tr> \
+						<td>Repeat:</td> \
+						<td> \
+							<select name="freq"> \
+								<option value="" selected="selected"></option> \
+								<option value="yearly">Yearly</option> \
+								<option value="monthly">Monthly</option> \
+								<option value="weekly">Weekly</option> \
+								<option value="daily">Daily</option> \
+								<option value="hourly">Hourly</option> \
+							</select> \
+						</td> \
+					</tr> \
+				</tbody> \
+			');
 			
+			$('select[name=freq]', tbody).val(freq);
+			$('select[name=freq]', tbody).change(function(){self.build_repeat($(this).val())});
+			
+			t.append(tbody);
+			target.append(t);
 			
 			if (!freq) {return}
-
+			
 			var d = new Date();			
 			var id = 'e2-daterepeat-id'+d.getTime();
 			var interval = $(' \
@@ -111,10 +124,25 @@
 					</td> \
 				</tr> \
 			');
+
+			// Common options: dtstart, count, dtend
+			var startend = $(' \
+				<tr> \
+					<td>Ends:</td> \
+					<td> \
+						<ul class="nonlist"> \
+							<li><input type="radio" name="dtopts" checked="checked" /> Never</li> \
+							<li><input type="radio" name="dtopts" /> After <input type="text" name="count" size="4" /> occurrences</li> \
+							<li><input type="radio" name="dtopts" /> On <input type="text" name="dtend" /></li> \
+						</ul> \
+					</td> \
+				</tr> \
+			');
 			
 			// daily options (none)
 			if (freq == 'daily') {
 				tbody.append(interval);
+				tbody.append(startend);				
 			} else if (freq == 'weekly') {
 				var weekly = $(' \
 					<tr> \
@@ -132,6 +160,7 @@
 				');
 				tbody.append(interval);
 				tbody.append(weekly);
+				tbody.append(startend);				
 			} else if (freq == 'monthly') {
 				var repeatby = $(' \
 					<tr> \
@@ -144,23 +173,11 @@
 				');
 				tbody.append(interval);				
 				tbody.append(repeatby);
+				tbody.append(startend);
 			} else {
 				tbody.append(interval);
+				tbody.append(startend);				
 			}
-
-			// Common options: dtstart, count, dtend
-			var startend = $(' \
-				<tr> \
-					<td>Ends:</td> \
-					<td> \
-						<ul class="nonlist"> \
-							<li><input type="radio" name="dtopts" checked="checked" /> Never</li> \
-							<li><input type="radio" name="dtopts" /> After <input type="text" name="count" size="4" /> occurrences</li> \
-							<li><input type="radio" name="dtopts" /> On <input type="text" name="dtend" /></li> \
-						</ul> \
-					</td> \
-			');
-			tbody.append(startend);
 		},
 				
 		destroy: function() {

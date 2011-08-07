@@ -53,8 +53,6 @@ $(document).ready(function() {
 </script>
 
 
-<h1>Calendar</h1>
-
 <div class="e2-event-repeat">New Event</div>
 
 <div id="calendar" />
