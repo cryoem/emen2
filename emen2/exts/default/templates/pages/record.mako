@@ -18,6 +18,7 @@
 		<li class="notify">Any authenticated user can access this Record</li>
 	% endif
 	</ul>
+   ${parent.alert()}
 </%def>
 
 

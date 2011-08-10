@@ -39,6 +39,9 @@ class TestRouting(unittest.TestCase):
 			url.add_matcher('sub1', r'(?P<zipcode>[0-9]{5})$', test)
 			url.add_matcher('sub2', r'(?P<areacode>[0-9]{3}?)/(?P<prefix>[0-9]{3})/(?P<suffix>[0-9]{4})', test)
 
+	def tearDown(self):
+		self.URLRegistry.reset()
+
 	def test_register_1(self):
 		URL = routing.URL('Test1', main=('^/$', lambda x, **_: x))
 		self.URLRegistry.register(URL)

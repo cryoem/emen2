@@ -209,6 +209,8 @@ class _View(object):
 		ctxt_items = init(**extra)
 		self.set_context_items(ctxt_items)
 
+	def notify(self, msg):
+		self.events.event('notify')(id(self), msg)
 
 
 	def init(self, *_, **__):

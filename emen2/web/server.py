@@ -164,6 +164,10 @@ def start_emen2():
 		# Load views and templates
 		#import emen2.web.views
 		import emen2.web.view
+		import emen2.web.notifications
+		notifications = emen2.web.notifications.NotificationHandler()
+		notifications.start()
+		thread.start_new_thread(notifications.sort_notifications, ())
 
 
 		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())

@@ -1,30 +1,110 @@
 import contextlib
+import functools
+
+class CallableGeneratorContextManager(contextlib.GeneratorContextManager):
+	def __call__(self, *a, **kw):
+		with self as obj:
+			return obj(*a, **kw)
+def contextmanager(func):
+    """@contextmanager decorator.
+
+    Typical usage:
+
+        @contextmanager
+        def some_generator(<arguments>):
+            <setup>
+            try:
+                yield <value>
+            finally:
+                <cleanup>
+
+    This makes this:
+
+        with some_generator(<arguments>) as <variable>:
+            <body>
+
+    equivalent to this:
+
+        <setup>
+        try:
+            <variable> = <value>
+            <body>
+        finally:
+            <cleanup>
+
+    """
+    @functools.wraps(func)
+    def helper(*args, **kwds):
+        return CallableGeneratorContextManager(func(*args, **kwds))
+    return helper
+
 
 class RegisteredObj(object):
 	def __init__(self, name, *args):
 		self.name = name
 
-def make_ctxt_manager():
-	@contextlib.contextmanager
+	def update(self, other):
+		pass
+
+def make_ctxt_manager(name):
+	@contextmanager
 	def _inner(self, name, *args):
 		obj = self.registry.get(name) if name in self.registry else self.child_class(name, *args)
 		yield obj
 		if obj.name not in self.registry:
 			self.register(obj)
+
+	_inner.__name__ = name
 	return _inner
 
+import threading
 class Registry(object):
-	registry = {}
 	child_class = None
 
+	def __setitem__(self, name, value):
+		with self._lock:
+			self.registry[name] = value
+
+	def __getitem__(self, name):
+		with self._lock:
+			return self.registry[name]
+
+	def __delitem__(self, name):
+		with self._lock:
+			del self.registry[name]
+
+	@classmethod
+	def reset(cls):
+		with cls._lock:
+			cls.registry.clear()
+
+	@classmethod
+	def get(cls, name, default=None):
+		with cls._lock:
+			return cls.registry.get(name, default)
+
+	_init_lock = threading.RLock()
 	@staticmethod
-	def setUp(cls):
-		setattr(cls, cls.child_class.__name__.lower(), make_ctxt_manager())
-		return cls
+	def setup(cls):
+		with cls._init_lock:
+			factory_name = cls.child_class.__name__.lower()
+			setattr(cls, factory_name, make_ctxt_manager(factory_name))
+			cls.registry = {}
+			cls._lock = threading.RLock()
+			return cls
 
 	def register(self, obj):
-		self.registry[obj.name] = obj
-		return obj
+		with self._lock:
+			old_obj = self.registry.get(obj.name)
+			result = obj
+
+			if old_obj is not None:
+				old_obj.update(obj)
+				result = old_obj
+			else:
+				self.registry[obj.name] = obj
+
+		return result
 
 class DataObj(RegisteredObj):
 	def __init__(self, name, a):
@@ -33,7 +113,7 @@ class DataObj(RegisteredObj):
 		self.b = None
 		self.c = None
 
-@Registry.setUp
+@Registry.setup
 class DataObjRegistry(Registry):
 	child_class = DataObj
 

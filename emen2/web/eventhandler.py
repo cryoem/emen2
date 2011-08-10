@@ -1,5 +1,6 @@
 import functools
 import threading
+from emen2.util import registry
 
 class Callback(object):
 	def __init__(self, cb, *args, **kwargs):
@@ -23,17 +24,22 @@ class Event(object):
 
 	def add_observer(self, cb, *args, **kwargs):
 		with self._o_lock:
-			self.observers.append(partial(cb, *args, **kwargs))
+			self.observers.append(functools.partial(cb, *args, **kwargs))
 		return self
 
 	def add_cb(self, cb, *args, **kwargs):
 		with self._cb_lock:
-			self.callbacks.append(Callback(cb, *args, **kwargs))
-		return self
+			cb = Callback(cb, *args, **kwargs)
+			self.callbacks.append(cb)
+			return cb
 
 	def add_cbs(self, cbs):
 		for (cb, (a, kw)) in cbs.iteritems():
 			self.add_cb(cb, *a, **kw)
+		return self
+
+	def remove_cb(self, cb):
+		self.callbacks = [x for x in self.callbacks if x is not cb]
 		return self
 
 	def __call__(self, *args, **kwargs):
@@ -47,17 +53,14 @@ class Event(object):
 				results.append(result)
 		return results
 
-class EventRegistry(object):
-	_lock = threading.RLock()
+@registry.Registry.setup
+class EventRegistry(registry.Registry):
+	child_class = Event
+
 	events = {}
 	nullevent = Event('')
 
-	@classmethod
-	def event(self, name):
-		event = Event(name)
-		with self._lock:
-			return self.events.setdefault(name, event)
-
 	def observe_event(self, name, cb, *args, **kwargs):
-		self.events[name].add_observer(cb, *args, **kwargs)
-		return self
+		with self._lock:
+			self.events[name].add_observer(cb, *args, **kwargs)
+			return self

@@ -15,6 +15,7 @@ import emen2.web.eventhandler
 from emen2.web import responsecodes
 import contextlib
 import emen2.db.config
+import emen2.util.registry
 g = emen2.db.config.g()
 
 
@@ -70,27 +71,19 @@ class URL(object):
 		return result
 
 import emen2.web.eventhandler
-class URLRegistry(object):
-	URLRegistry = g.claim('URLRegistry', {})
+
+@emen2.util.registry.Registry.setup
+class URLRegistry(emen2.util.registry.Registry):
 	_prepend = ''
 	events = emen2.web.eventhandler.EventRegistry()
-
-	#def __init__(self, prepend='', default=True, onfail=('page not found', 'text/plain')):
-	#	self._onfail = onfail
+	child_class = URL
 
 	def __init__(self, prepend='', default=True):
 		self._prepend = prepend or self._prepend
 		self._default = default
 
-	def __setitem__(self, name, value):
-		self.URLRegistry[name] = value
-
 	def __getitem__(self, name):
-		return self.URLRegistry[name].get_callback('main')
-
-	def __delitem__(self, name):
-		del self.URLRegistry[name]
-
+		return emen2.util.registry.Registry.__getitem__(self, name).get_callback('main')
 
 	def toggle_default(self):
 		self._default = not self._default
@@ -107,18 +100,10 @@ class URLRegistry(object):
 	def onfail(inp):
 		raise responsecodes.NotFoundError(inp)
 
-
-	@contextlib.contextmanager
-	def url(self, name):
-		url = self.URLRegistry.get(name, URL(name))
-		yield url
-		if url.name not in self.URLRegistry:
-			self.register(url)
-
 	def match(self, inp):
 		result = [None,None,None]
 
-		for url in self.URLRegistry.values():
+		for url in self.registry.values():
 			tmp = url.match(inp)
 			if tmp[1]: # i.e. if tmp[1] == False :: tmp[1] will be false if there is no match
 				result = [tmp[0], tmp[1].groupdict(), url]
@@ -162,25 +147,9 @@ class URLRegistry(object):
 
 		@returns true if a url was already registered with the same name
 		'''
-
-		name = url.name
-		result = name in self.URLRegistry
-
-		if result == True:
-			self.URLRegistry[name].update(url)
-		else:
-			self[name] = url
-
+		url = emen2.util.registry.Registry.register(self, url)
 		self.events.event('web.routing.url.register')(url)
-		return result
-
-	@classmethod
-	def reset(cls):
-		cls.URLRegistry = {}
-
-	@classmethod
-	def get(cls, name, default=None):
-		return cls.URLRegistry.get(name, default)
+		return url
 
 	@classmethod
 	def reverselookup(cls, _name, *args, **kwargs):
