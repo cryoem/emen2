@@ -20,11 +20,14 @@ import os
 import os.path
 import jsonrpc.jsonutil
 import functools
+import time
 import collections
 
+import contextlib
 import emen2.util.decorators
 import emen2.web.routing
 import emen2.web.templating
+import emen2.web.notifications
 
 from emen2.util.listops import adjust
 from emen2.web import routing
@@ -167,14 +170,14 @@ class _View(object):
 
 		self.__template = template or self.template
 
-		notify = jsonrpc.jsonutil.decode(extra.pop('notify','[]'))
+		self._notify = jsonrpc.jsonutil.decode(extra.pop('notify','[]'))
 		basectxt = extra.pop('_basectxt', {})
 		basectxt.update(
 			ctxt = self.dbtree,
 			headers = self.__headers,
 			css_files = (css_files or self.css_files)(self.__dbtree),
 			js_files = (js_files or self.js_files)(self.__dbtree),
-			notify = notify,
+			notify = self._notify,
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo,
 			chromeless=('X-PJAX' in self._reqheaders)
@@ -186,7 +189,7 @@ class _View(object):
 
 		#self.set_context_items(self._basectxt)
 
-		if not hasattr(notify, '__iter__'): notify = [notify]
+		if not hasattr(self._notify, '__iter__'): self._notify = [notify]
 
 
 		self.method = method
@@ -299,6 +302,7 @@ class _View(object):
 	def get_context(self):
 		'''get the view's context'''
 		return self.__ctxt
+
 
 	#### View registration methods ###########################################################
 
@@ -449,13 +453,18 @@ class _View(object):
 
 
 
+import emen2.web.eventhandler
 class View(_View):
 	'''Contains DB specific view code'''
 
 	db = property(lambda self: self.__db)
-	def __init__(self, db=None, notify='', **extra):
+	events = emen2.web.eventhandler.EventRegistry()
+	notifications = emen2.web.notifications.NotificationHandler()
+
+	def __init__(self, db=None, **extra):
 		self.__db = db
 		ctx = getattr(self.__db, '_getctx', lambda:None)()
+		self.ctxid = ctx and ctx.name
 		HOST = getattr(ctx, 'host', None)
 
 		user = None
@@ -475,7 +484,25 @@ class View(_View):
 
 		_View.__init__(self, _basectxt=basectxt, **extra)
 
-		self.set_context_item('notify', notify)
+	def notify(self, msg):
+		if self.ctxid is not None:
+			self.events.event('notify')(self.ctxid, msg)
+
+	def get_data(self, *a, **kw):
+		# accumulate notifications
+		if self.ctxid is not None:
+			# create a marker so that notifications caused by this requests are seen
+			end = object
+			self.notify(end)
+			while True:
+				self._notify.extend(self.notifications.get_notifications(self.ctxid))
+				self._notify.extend(self.notifications.get_notifications('ALL'))
+				if end in self._notify:
+					break # continue until we have found the marker
+			self._notify.remove(end)
+
+		return _View.get_data(self, *a, **kw)
+
 
 
 

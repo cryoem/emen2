@@ -2746,6 +2746,8 @@ class DB(object):
 		:keyword filt: Ignore failures
 		:return: Record(s)
 		"""
+		if ctx:
+			emen2.web.eventhandler.EventRegistry().event('notify')(ctx.name, 'get record says hi!')
 		return self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
