@@ -498,7 +498,6 @@ class View(_View):
 			self.notify(end)
 			while True:
 				self._notify.extend(self.notifications.get_notifications(self.ctxid))
-				self._notify.extend(self.notifications.get_notifications('ALL'))
 				if end in self._notify:
 					break # continue until we have found the marker
 			self._notify.remove(end)

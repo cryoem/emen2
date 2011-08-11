@@ -30,11 +30,14 @@ class NotificationHandler(object):
 
 	def sort_notifications(self):
 		while True:
-			time.sleep(.5)
 			notification = self._notification_queue.get()
-			with self._nlock:
-				q = self._notifications_by_ctxid.setdefault(notification.ctxid, Queue.Queue())
-			q.put(notification.msg)
+			if notification.ctxid == 'ALL':
+				for q in self._notifications_by_ctxid.values():
+					q.put(notification.msg)
+			else:
+				with self._nlock:
+					q = self._notifications_by_ctxid.setdefault(notification.ctxid, Queue.Queue())
+				q.put(notification.msg)
 
 	def get_notifications(self, ctxid):
 		with self._nlock:
