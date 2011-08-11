@@ -455,12 +455,12 @@ class _View(object):
 
 
 
-import emen2.web.eventhandler
+import emen2.web.events
 class View(_View):
 	'''Contains DB specific view code'''
 
 	db = property(lambda self: self.__db)
-	events = emen2.web.eventhandler.EventRegistry()
+	events = emen2.web.events.EventRegistry()
 	notifications = emen2.web.notifications.NotificationHandler()
 
 	def __init__(self, db=None, **extra):

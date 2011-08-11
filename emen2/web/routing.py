@@ -11,7 +11,7 @@ from emen2.util import listops
 
 import emen2.util.datastructures
 
-import emen2.web.eventhandler
+import emen2.web.events
 from emen2.web import responsecodes
 import contextlib
 import emen2.db.config
@@ -70,12 +70,12 @@ class URL(object):
 				break
 		return result
 
-import emen2.web.eventhandler
+import emen2.web.events
 
 @emen2.util.registry.Registry.setup
 class URLRegistry(emen2.util.registry.Registry):
 	_prepend = ''
-	events = emen2.web.eventhandler.EventRegistry()
+	events = emen2.web.events.EventRegistry()
 	child_class = URL
 
 	def __init__(self, prepend='', default=True):

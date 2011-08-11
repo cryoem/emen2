@@ -127,7 +127,8 @@ class _Munger(object):
 			return v
 		return _inner
 
-class AccessLogLine(dict):
+import UserDict
+class AccessLogLine(object, UserDict.DictMixin):
 	order = (
 		('host',str), ('ctxid',str),
 		('username',str), ('rtime',timeconv),
@@ -146,6 +147,7 @@ class AccessLogLine(dict):
 		g.log.msg(level, self)
 
 	def __init__(self, *args, **kwargs):
+		self._d = {}
 		self._locked = False
 
 		## get the field order and types
@@ -159,7 +161,8 @@ class AccessLogLine(dict):
 			) for k,typ,v in itertools.izip_longest(*zip(*self.order) + [args], fillvalue='') if k != ''
 		)
 
-		values = dict( (k,v) for k, v in values )
+		#values = dict( (k,v) for k, v in values )
+		values = dict(values)
 
 		self._tfmt = kwargs.pop('time_fmt', CTIME)
 
@@ -204,16 +207,22 @@ class AccessLogLine(dict):
 			out.append(str(value))
 		return ' '.join(out)
 
+	def __getitem__(self, key):
+		return self._d[key]
 	def __setitem__(self, key, value):
 		if self._locked == True:
 			raise NotImplementedError, 'read only'
 		else:
-			dict.__setitem__(self, key, value)
+			self._d[key] = value
 	def __getattr__(self, name):
-		try: return dict.__getattr__(self, name)
+		try: return object.__getattribute__(self, name)
 		except:
 			if name in self: return self[name]
 			else: raise
+	def keys(self):
+		return self._d.keys()
+	def has_key(self, k):
+		return k in self._d
 
 class AccessLogFile(object):
 	def __init__(self, *lines, **kwargs):

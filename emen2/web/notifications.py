@@ -1,6 +1,6 @@
 import time
 import threading
-import emen2.web.eventhandler
+import emen2.web.events
 import emen2.db.config
 import Queue
 config = emen2.db.config.g()
@@ -19,7 +19,7 @@ class NotificationHandler(object):
 	_notifications_by_ctxid = {}
 	_nlock = threading.RLock()
 
-	events = emen2.web.eventhandler.EventRegistry()
+	events = emen2.web.events.EventRegistry()
 
 	def start(self):
 		with self.events.event('notify') as e:
