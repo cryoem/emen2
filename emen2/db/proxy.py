@@ -235,7 +235,6 @@ class DBProxy(object):
 	def _clearcontext(self):
 		if self._is_bound:
 			self._ctx = None
-			self._bound = False
 
 
 	def _getctx(self):
