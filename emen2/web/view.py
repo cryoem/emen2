@@ -494,12 +494,7 @@ class View(_View):
 		# accumulate notifications
 		if self.ctxid is not None:
 			# create a marker so that notifications caused by this requests are seen
-			end = object
-			self.notify(end)
-			while True:
-				self._notify.extend(self.notifications.get_notifications(self.ctxid))
-				if end in self._notify:
-					break # continue until we have found the marker
+			self._notify.extend(self.notifications.get_notifications(self.ctxid))
 			self._notify.remove(end)
 
 		return _View.get_data(self, *a, **kw)
