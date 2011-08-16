@@ -491,11 +491,9 @@ class View(_View):
 			self.events.event('notify')(self.ctxid, msg)
 
 	def get_data(self, *a, **kw):
-		# accumulate notifications
+		# get notifications if the user has a ctxid
 		if self.ctxid is not None:
-			# create a marker so that notifications caused by this requests are seen
 			self._notify.extend(self.notifications.get_notifications(self.ctxid))
-			self._notify.remove(end)
 
 		return _View.get_data(self, *a, **kw)
 
