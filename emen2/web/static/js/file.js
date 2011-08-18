@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.AttachmentViewerControl", {
+    $.widget("emen2.AttachmentControl", {
 		options: {
 			name: null,
 			edit: 0,
@@ -273,13 +273,6 @@
 					self.options.cb(self);
 				}
 			);			
-		},		
-
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

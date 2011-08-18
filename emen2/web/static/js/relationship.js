@@ -4,7 +4,7 @@
 
 
 (function($) {
-    $.widget("ui.RelationshipControl", {
+    $.widget("emen2.RelationshipControl", {
 
 		options: {
 			action: "view",
@@ -573,37 +573,7 @@
 				helper: function(ui, e){return self.helper(ui, e)}
 			});		
 		
-		},
-	
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

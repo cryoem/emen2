@@ -1,7 +1,7 @@
 ///////////////// Parameter Editor /////////////////////
 
 (function($) {
-    $.widget("ui.ParamDefEditor", {
+    $.widget("emen2.ParamDefEditControl", {
 		options: {
 			newdef: null,
 			parents: null,
@@ -64,13 +64,15 @@
 			pd["name"] = $("input[name='name']", this.element).val();
 			pd["desc_short"] = $("input[name='desc_short']",this.element).val();
 			pd["desc_long"] = $("textarea[name='desc_long']",this.element).val();
+			pd["controlhint"] = $("input[name='controlhint']",this.element).val();
+
 			pd["choices"] = [];
 			$("input[name=choices]",this.element).each(function(){
 				if ($(this).val()) {
 					pd["choices"].push($(this).val());
 				}
 			});
-			
+
 			var vartype = $("select[name='vartype']",this.element);
 			if (vartype) {pd["vartype"] = vartype.val()} 
 
@@ -87,13 +89,6 @@
 			if (immutable) {pd['immutable'] = immutable.attr('checked')}
 			
 			return pd
-		},
-							
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
@@ -106,7 +101,7 @@
 
 
 (function($) {
-    $.widget("ui.RecordDefEditor", {
+    $.widget("emen2.RecordDefEditControl", {
 		options: {
 			newdef: null,
 			parents: null,
@@ -295,13 +290,6 @@
 			});
 
 			return rd			
-		},
-
-		destroy: function() {
-		},
-
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 	

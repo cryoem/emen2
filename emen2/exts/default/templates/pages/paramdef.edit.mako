@@ -8,22 +8,11 @@
 //<![CDATA[
 
 	$(document).ready(function() {
-		$('#paramdef_edit').ParamDefEditor({
+		$('#paramdef_edit').ParamDefEditControl({
 			newdef: ${jsonrpc.jsonutil.encode(new)},
 			parents:['${paramdef.name}'],
 			ext_save: "#ext_save",
 		});
-
-##		$("#reledit").RelationshipControl({
-##			name: '${paramdef.name}',
-##			keytype: 'paramdef',
-##			edit: true,
-##			embed: true,
-##			show: true
-##			});
-
-
-	
 	});
 
 //]]>	
@@ -80,6 +69,10 @@
 		</td>
 	</tr>
 	
+	<tr>
+		<td>UI Control</td>
+		<td><input type="text" name="controlhint" value="${paramdef.get('controlhint') or ""}"/></td>
+	</tr>
 	
 	<tr>
 		<td>Immutable</td>

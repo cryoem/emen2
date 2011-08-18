@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.Boxer", {
+    $.widget("emen2.BoxerControl", {
 		options: {
 			name: null,
 			bdo: null,
@@ -69,7 +69,7 @@
 			this.img = $('<div class="e2-tile" />');
 			this.element.append(this.img);
 			this.event_resize();			
-			this.img.TileMap({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
+			this.img.TileControl({bdo: this.options.bdo, scale: 'auto', width: this.emdata['nx'], height: this.emdata['ny']});
 		},
 		
 		build_controls: function() {
@@ -135,14 +135,14 @@
 			var w = cw.width();
 			if (cw.css("display") == "none") { w = 0 }
 			this.img.width(this.element.width()-w);
-			this.img.TileMap('recenter');
+			this.img.TileControl('recenter');
 		},
 
 		addbox: function(x, y, label) {
 			// add a new box at x, y with label			
 			label = label || this.pen;
 			// get current image scale
-			var scale = this.img.TileMap('option', 'scale');
+			var scale = this.img.TileControl('option', 'scale');
 
 			// increment box counter for id's
 			this.boxid += 1;
@@ -152,7 +152,7 @@
 			
 			var boxbox = $('<div>&nbsp;</div>');
 			boxbox.BoxBox({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: scale, label: label});
-			this.img.TileMap('getinner').append(boxbox);
+			this.img.TileControl('getinner').append(boxbox);
 
 			// create a new box image
 			var boximg = $('<img alt="Box" />');
@@ -418,14 +418,6 @@
 			// this.img.attr('data-min', this.emdata['render_min']);
 			// this.img.attr('data-max', this.emdata['render_max']);
 			// this.img.trigger('refresh');
-		},		
-				
-		destroy: function() {
-			
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 
@@ -436,7 +428,7 @@
 
 
 (function($) {
-    $.widget("ui.BoxBox", {
+    $.widget("emen2.BoxBox", {
 		options: {
 			bdo: null,
 			x: 0,
@@ -510,13 +502,6 @@
 		setsize: function(size) {
 			this.options.size = size;
 			this.refresh();
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
@@ -524,7 +509,7 @@
 
 
 (function($) {
-    $.widget("ui.BoxImg", {
+    $.widget("emen2.BoxImg", {
 		options: {
 			bdo: null,
 			x: 0,
@@ -565,7 +550,7 @@
 					self.remove_box();
 					return
 				}
-				$('.e2-tile[data-bdo='+self.options.bdo+']').TileMap('move', self.options.x, self.options.y);
+				$('.e2-tile[data-bdo='+self.options.bdo+']').TileControl('move', self.options.x, self.options.y);
 			});
 			
 			this.element.draggable({
@@ -609,14 +594,6 @@
 		setsize: function(size) {
 			this.options.size = size;
 			this.refresh();
-		},
-				
-		destroy: function() {
-			
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
@@ -624,7 +601,7 @@
 
 
 (function($) {
-    $.widget("ui.TileMap", {
+    $.widget("emen2.TileControl", {
 		options: {
 			width: 0,
 			height: 0,
@@ -928,13 +905,6 @@
 		zoomin: function() {
 			var scale = this.options.scale / 2;
 			this.setscale(scale);
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

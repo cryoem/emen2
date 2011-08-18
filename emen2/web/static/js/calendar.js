@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.DateRepeat", {
+    $.widget("emen2.DateRepeatControl", {
 		options: {
 		},
 				
@@ -178,13 +178,6 @@
 				tbody.append(interval);
 				tbody.append(startend);				
 			}
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

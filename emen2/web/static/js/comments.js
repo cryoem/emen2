@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.CommentsControl", {
+    $.widget("emen2.CommentsControl", {
 		options: {
 			name: null,
 			edit: false,
@@ -131,13 +131,6 @@
               error: console.log
 		 		}
 			)		
-		},
-
-		destroy: function() {
-		},
-
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

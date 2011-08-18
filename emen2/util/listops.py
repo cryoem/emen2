@@ -44,14 +44,12 @@ def invert(d):
 
 
 
-def check_iterable(value, filt=True):
+def check_iterable(value):
 	if not value and not isinstance(value,(float,int)):
 		value = []
 	if not hasattr(value,"__iter__"):
 		value=[value]
-	if filt:
-		value = filter(filter_none, value)
-	return value
+	return filter(filter_none, value)
 
 
 

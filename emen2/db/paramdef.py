@@ -52,9 +52,15 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 		# Immutable
 		self.__dict__['immutable'] = False
+		
+		# Iterable. This can be False, True (list), list, set, dict.
+		self.__dict__['iter'] = False
 
 		# turn indexing on/off, if vartype allows for it
 		self.__dict__['indexed'] = True
+		
+		# Widget hint
+		self.__dict__['controlhint'] = None
 
 
 	#################################
@@ -91,10 +97,21 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
+	def _set_iter(self, key, value, vtm=None, t=None):
+		return self._set(key, bool(value), self._ctx.checkadmin())
+
+
 	def _set_indexed(self, key, value, vtm=None, t=None):
 		return self._set(key, bool(value), self._ctx.checkadmin())
 
 
+	def _set_controlhint(self, key, value, vtm=None, t=None):
+		if value != None:
+			value = unicode(value)
+		value = value or None
+		return self._set(key, value)
+				
+		
 	# These can't be changed, it would disrupt the meaning of existing Records.
 	def _set_vartype(self, key, value, vtm=None, t=None):
 		vtm, t = self._vtmtime(vtm, t)

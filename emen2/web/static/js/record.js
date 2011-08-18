@@ -4,13 +4,13 @@ function record_init_new(rec, parent) {
 	rec.name = "None";
 	caches["recs"][rec.name] = rec;
 
-	$('#e2-editbar-newrecord-info').EditbarHelper({show: true, width:640});
+	$('#e2-editbar-newrecord-info').EditbarControl({show: true, width:640});
 
-	$('#e2-editbar-newrecord-recorddef').EditbarHelper({});
+	$('#e2-editbar-newrecord-recorddef').EditbarControl({});
 
-	$('#e2-editbar-newrecord-relationships').EditbarHelper({});
+	$('#e2-editbar-newrecord-relationships').EditbarControl({});
 
-	$('#e2-editbar-newrecord-permissions').EditbarHelper({width: 640});
+	$('#e2-editbar-newrecord-permissions').EditbarControl({width: 640});
 
 	$('#rendered').css('margin-top', $('#e2-editbar-newrecord-info div.hidden').height()+10);
 
@@ -29,10 +29,10 @@ function record_init_new(rec, parent) {
 	// Change the text of file upload elements..
 	$('.editable_files .label').html('(The record must be saved before files can be attached)');
 
-	$('#e2-editbar-newrecord-recorddef').EditbarHelper({
+	$('#e2-editbar-newrecord-recorddef').EditbarControl({
 		width:300,
 		cb: function(self){
-			self.popup.NewRecord({
+			self.popup.NewRecordControl({
 				embedselector: true,
 				showselector: true,
 				parent: parent.name
@@ -47,7 +47,7 @@ function record_init(rec, ptest, edit) {
 	caches["recs"][rec.name] = rec;
 	
 	// Permissions editor
-	$('#e2-editbar-record-permissions').EditbarHelper({
+	$('#e2-editbar-record-permissions').EditbarControl({
 		width: 640,
 		cb: function(self){
 			self.popup.PermissionControl({
@@ -63,10 +63,10 @@ function record_init(rec, ptest, edit) {
 	var showattachments = (window.location.hash.search('attachments'));
 	if (showattachments>-1){showattachments=true}
 
-	$('#e2-editbar-record-attachments').EditbarHelper({
+	$('#e2-editbar-record-attachments').EditbarControl({
 		width:600,
 		cb: function(self) {
-			self.popup.AttachmentViewerControl({
+			self.popup.AttachmentControl({
 				name: rec.name,
 				edit: ptest[2] || ptest[3],
 				embed: true,
@@ -77,10 +77,10 @@ function record_init(rec, ptest, edit) {
 	});
 	
 	// New record editor
-	$('#e2-editbar-record-newrecord').EditbarHelper({
+	$('#e2-editbar-record-newrecord').EditbarControl({
 		width:300,
 		cb: function(self){
-			self.popup.NewRecord({
+			self.popup.NewRecordControl({
 				embedselector: true,
 				showselector: true,
 				parent: rec.name
@@ -89,7 +89,7 @@ function record_init(rec, ptest, edit) {
 	});		
 
 	// Relationship editor
-	$("#e2-editbar-record-relationships").EditbarHelper({		
+	$("#e2-editbar-record-relationships").EditbarControl({		
 		width: 780,
 		cb: function(self){
 			self.popup.RelationshipControl({
@@ -108,9 +108,9 @@ function record_init(rec, ptest, edit) {
 		rebuildviews("#rendered");
 	});
 
-	$('#e2-editbar-tools').EditbarHelper({});
+	$('#e2-editbar-tools').EditbarControl({});
 
-	$('#e2-editbar-helper').EditbarHelper({
+	$('#e2-editbar-helper').EditbarControl({
 		align: 'right',
 		cb: function(self) {
 			self.popup.load(EMEN2WEBROOT+'/record/'+rec.name+'/history/?simple=1');
@@ -118,7 +118,7 @@ function record_init(rec, ptest, edit) {
 	});
 
 	// Comments editor
-	$('#e2-editbar-comments').EditbarHelper({
+	$('#e2-editbar-comments').EditbarControl({
 		width: 350,
 		align: 'right',
 		cb: function(self) {
@@ -136,7 +136,7 @@ function record_init(rec, ptest, edit) {
 	var showsiblings = (window.location.hash.search('siblings'));
 	if (showsiblings>-1){showsiblings=true}
 	
-	$("#e2-editbar-record-siblings").EditbarHelper({
+	$("#e2-editbar-record-siblings").EditbarControl({
 		show: showsiblings,
 		width:300,
 		align: 'right',
@@ -181,9 +181,9 @@ function record_init(rec, ptest, edit) {
 	});	
 
 	// Bind editable widgets
-	$('#e2-editbar-record-setbookmark').Bookmarks({'mode':'toggle'});
+	$('#e2-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
-	// $('.e2-editbar-record-newrecord').NewRecord({});
+	// $('.e2-editbar-record-newrecord').NewRecordControl({});
 
 	$('.editable').EditControl({});
 	// $('.editable_files').FileControl({});
@@ -193,7 +193,7 @@ function record_init(rec, ptest, edit) {
 		$('#e2-editbar-record-edit .label').MultiEditControl('event_click');
 	}
 	
-	$('.e2-tile').TileMap({'mode':'cached'});
+	$('.e2-tile').TileControl({'mode':'cached'});
 	
 	
 }
@@ -211,7 +211,7 @@ function record_update(rec) {
 	}
 	rebuildviews('.e2-view[data-name='+name+']');
 	$(".e2-comments").CommentsControl('rebuild');
-	$('.e2-attachments').AttachmentViewerControl('rebuild');	
+	$('.e2-attachments').AttachmentControl('rebuild');	
 }
 
 

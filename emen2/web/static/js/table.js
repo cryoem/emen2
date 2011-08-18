@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.TableControl", {
+    $.widget("emen2.TableControl", {
 		options: {
 			q: null,
 			qc: true,
@@ -40,7 +40,7 @@
 			var create = "";
 			if (this.options.rectype && this.options.parent != null) {
 				var create = $('<li class="floatright"><input class="small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
-				$('input', create).NewRecord({});
+				$('input', create).NewRecordControl({});
 			}
 
 			// Add basic controls
@@ -71,7 +71,7 @@
 			// $('.e2-batch-edit', hidden).click(function() {self.query_batch_edit()});
 
 			q.append(hidden);
-			q.EditbarHelper({
+			q.EditbarControl({
 				width: 300
 			});
 			$('.e2-table-header', this.element).append(q);			
@@ -82,7 +82,7 @@
 			// var q = $('<li><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			// var hidden = $('<div class="hidden">Plotting...</div>');
 			// q.append(hidden);
-			// q.EditbarHelper({
+			// q.EditbarControl({
 			// 	width: 300
 			// });
 			// $('.e2-table-header', this.element).append(q);			
@@ -93,7 +93,7 @@
 			var q = $('<li><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			var hidden = $('<div class="hidden"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			q.append(hidden);
-			q.EditbarHelper({
+			q.EditbarControl({
 				width: 300
 			});				
 			$('.e2-table-header', this.element).append(q);						
@@ -107,7 +107,7 @@
 			var q = $('<li><span class="clickable label"> \
 				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 
-			q.EditbarHelper({
+			q.EditbarControl({
 				width: 700,
 				cb: function(self2) {
 					self2.popup.QueryControl({
@@ -358,13 +358,6 @@
 				selector: selector,
 				cb_save: function(caller){self.query()}
 			});
-		},
-		
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

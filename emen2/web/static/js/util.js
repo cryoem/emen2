@@ -30,6 +30,19 @@ window.log = function(){
 };
 
 
+// Global inits..
+$(document).ready(function() {
+	$('#bookmarks').hover(
+		function() {
+			$(this).BookmarksControl();
+			$(this).BookmarksControl('showbookmarks')
+		}, 
+		function(){}
+	);
+});
+
+
+
 
 (function($){
 	// Convert a byte count to human friendly
@@ -189,7 +202,6 @@ function error_dialog(title, text, method, data) {
 }
 
 
-
 ////////////////  Approve / Reject Users ///////////////////
 // These should be replaced eventually
 
@@ -309,27 +321,16 @@ function switchin(classname, id) {
 
 function notify(msg, fade, error) {
 	var msg=$('<li class="notify">'+msg+'</li>');
-
 	if (error) {
 		msg.addClass("error");
 	}
-
-	//var killbutton = $('<img src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Delete" />');
 	var killbutton = $('<span class="floatright">X</span>');
 	killbutton.click(function() {
 		$(this).parent().fadeOut(function(){
-			//fadeoutcallback; in this context, 'this' is li
 			$(this).remove();
-			});		
+		});		
 	});
 	msg.append(killbutton);
-	// auto fade if given time value
-	//if (!fade) {
-	//	setTimeout(function(){msg.fadeOut()},3000)
-	//}
-	//if (fade > 0) {
-	//	setTimeout(function(){msg.fadeOut()},fade*1000)
-	//}
 	$("#alert").append(msg); //.fadeIn();	
 }
 
@@ -341,7 +342,7 @@ function notify(msg, fade, error) {
 ///////////////////////////////////////////////////
 
 (function($) {
-    $.widget("ui.Bookmarks", {
+    $.widget("emen2.BookmarksControl", {
 		options: {
 			mode: null,
 			parent: null
@@ -470,33 +471,14 @@ function notify(msg, fade, error) {
 					// console.log('updated bookmarks:', rec['bookmarks']);
 				});
 			});			
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
 
 
-$(document).ready(function() {
-	$('#bookmarks').hover(
-		function() {
-			$(this).Bookmarks();
-			$(this).Bookmarks('showbookmarks')
-		}, 
-		function(){}
-	);
-});
-
-
-
 ////////////////  "Drop-down Menu" ///////////////////
 (function($) {
-    $.widget("ui.EditbarHelper", {
+    $.widget("emen2.EditbarControl", {
 		options: {
 			cb: function(self) {},
 			bind: true,
@@ -535,7 +517,7 @@ $(document).ready(function() {
 		},
 		
 		show: function() {
-			$('.editbar .hover').EditbarHelper('hide');
+			$('.editbar .hover').EditbarControl('hide');
 			this.build();
 			this.element.addClass('hover');
 			this.options.cb(this);
@@ -585,13 +567,6 @@ $(document).ready(function() {
 			} else {
 				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth());
 			}			
-		},
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.SelectQuery", {
+    $.widget("emen2.QuerySelectControl", {
 		options: {
 			rectype: null,
 			children: null,
@@ -85,13 +85,6 @@
 					autoOpen: true
 				});
 			}
-		},	
-		
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);
@@ -100,7 +93,7 @@
 
 
 (function($) {
-    $.widget("ui.FindControl", {
+    $.widget("emen2.FindControl", {
 
 		options: {
 			show: 0,
@@ -281,13 +274,6 @@
 					self.add(this)			
 				});
 			})
-		},
-		
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 	

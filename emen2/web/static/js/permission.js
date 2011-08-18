@@ -1,5 +1,5 @@
 (function($) {
-    $.widget("ui.PermissionControl", {
+    $.widget("emen2.PermissionControl", {
 		options: {
 			keytype: 'record',
 			name: null,
@@ -414,13 +414,6 @@
 				}
 			);		
 
-		},
-		
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 	

@@ -12,8 +12,6 @@ import calendar
 import htmlentitydefs
 import re
 
-
-
 try:
 	import markdown2 as markdown
 except ImportError:
@@ -22,17 +20,20 @@ except ImportError:
 	except ImportError:
 		markdown = None
 
-
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.util.listops
 g = emen2.db.config.g()
 
+# Convenience
+ci = emen2.util.listops.check_iterable
+ValidationError = emen2.db.exceptions.ValidationError
+
 
 class Vartype(object):
 
 	keytype = None
-	iterable = False
+	iterable = True
 	elem_class = 'editable'
 	elem = 'span'
 
@@ -42,7 +43,11 @@ class Vartype(object):
 		cls.register()
 		return cls
 
-
+	@classmethod
+	def register_new(cls):
+		print "Registering vartype:", cls
+		pass
+	
 	@classmethod
 	def register(cls):
 		name = cls.__name__
@@ -64,6 +69,10 @@ class Vartype(object):
 		return self.keytype
 
 
+	def process(self, value, *args, **kwargs):
+		return [cgi.escape(unicode(i)) for i in value]
+
+
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
 	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False):
 		# Store these for convenience
@@ -75,27 +84,15 @@ class Vartype(object):
 		if self.pd.get('immutable'):
 			self.edit = False
 
-		# Process the value
-		value = self.process(value)
-
-		# Use the iterable renderer
-		if self.iterable:
-			return self._render_list(value)
-
+		value = self.process(ci(value))
 		return self._render(value)
-
-
-	def process(self, value, *args, **kwargs):
-		if value == None:
-			return ''
-		return cgi.escape(unicode(value))
 
 
 	# After pre-processing values into markup
 	# The lt flag is used for table format, to link to the row's name
-	def _render_list(self, value):
+	def _render(self, value):
 		# Note: value should already be escaped!
-
+	
 		label = ''
 
 		# Plain text rendering
@@ -129,47 +126,6 @@ class Vartype(object):
 		return '<ul class="%s" data-name="%s" data-param="%s" data-vartype="%s">%s</ul>'%(self.elem_class, self.name, self.pd.name, self.pd.vartype, "\n".join(lis))
 
 
-	def _render(self, value):
-		# Note: value should already be escaped!
-
-		label = ''
-		if value == None:
-			value = ''
-
-		# Plain text
-		if not self.markup:
-			if value and self.pd.defaultunits:
-				return '%s %s'%(value, self.pd.defaultunits)
-			return unicode(value)
-
-		# Empty
-		if not value:
-			if self.edit and self.showlabel:
-				label = '<img src="%s/static/images/blank.png" class="label underline" alt="No value" />'%g.EMEN2WEBROOT
-			if self.edit:
-				return '<%s class="%s" data-name="%s" data-param="%s">%s</%s>'%(self.elem, self.elem_class, self.name, self.pd.name, label, self.elem)
-			return '<%s></%s>'%(self.elem, self.elem)
-
-
-		if self.pd.defaultunits:
-			value = '%s %s'%(value, self.pd.defaultunits)
-
-		if self.table:
-			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.name, value)
-
-		if not self.edit:
-			return value
-
-		# Editable..
-		# Are we showing the edit label?
-		if self.showlabel:
-			label = '<span class="edit label"><img src="%s/static/images/edit.png" alt="Edit" /></span>'%g.EMEN2WEBROOT
-
-		# Put the editing widget together
-		return '<%s class="%s" data-name="%s" data-param="%s" data-vartype="%s">%s%s</%s>'%(self.elem, self.elem_class, self.name, self.pd.name, self.pd.vartype, value, label, self.elem)
-
-
-
 	def encode(self, value):
 		return value
 
@@ -182,30 +138,7 @@ class Vartype(object):
 		"""Validate a value"""
 		return value
 
-
-	def reindex(self, items):
-		addrefs = collections.defaultdict(set)
-		delrefs = collections.defaultdict(set)
-		for name, new, old in items:
-			if new == old:
-				continue
-			delrefs[old].add(name)
-			addrefs[new].add(name)
-
-		if None in addrefs: del addrefs[None]
-		if None in delrefs: del delrefs[None]
-
-		return addrefs, delrefs
-
-
-
-
-
-
-class vt_iter(object):
-
-	iterable = True
-
+	
 	def reindex(self, items):
 		# items format: [name, newval, oldval]
 		addrefs = collections.defaultdict(set)
@@ -213,12 +146,10 @@ class vt_iter(object):
 		for name, new, old in items:
 			if new == old:
 				continue
-
 			new = set(new or [])
 			old = set(old or [])
 			for n in new-old:
 				addrefs[n].add(name)
-
 			for o in old-new:
 				delrefs[o].add(name)
 
@@ -229,25 +160,16 @@ class vt_iter(object):
 
 
 
-
-
-
 ###################################
 # None
 ###################################
 
+@Vartype.register_new('none')
 class vt_none(Vartype):
 	"""Organizational vartype that cannot be used"""
-	__metaclass__ = Vartype.register_view
 
 	def validate(self, value):
-		raise ValueError, "This is an organizational parameter, and is not intended to be used."
-
-
-	def process(self, value):
-		if value == None:
-			return ''
-		return "%g"%value
+		raise ValidationError, "This is an organizational parameter, and is not intended to be used."
 
 
 
@@ -255,55 +177,31 @@ class vt_none(Vartype):
 # Float vartypes
 ###################################
 
+@Vartype.register_new('float')
 class vt_float(Vartype):
-	"""single-precision floating-point"""
-	__metaclass__ = Vartype.register_view
-	keytype = "f"
+	"""Floating-point number"""
 
 	def validate(self, value):
-		return float(value)
-
+		return map(float, ci(value)) or None
 
 	def process(self, value):
-		if value == None:
-			return ''
-		return "%g"%value
+		return ['%g'%i for i in value] or ''
 
 
-
-# class vt_longfloat(vt_float):
-# 	"""double-precision floating-point"""
-# 	__metaclass__ = Vartype.register_view
-
+@Vartype.register_new('percent')
 class vt_percent(Vartype):
-	"""Percentage; floating point 0 <= x <= 1"""
-	__metaclass__ = Vartype.register_view
+	"""Percentage. 0 <= x <= 1"""
 	keytype = "f"
+	
 	def validate(self, value):
-		value = float(value)
-		if not 0 <= value <= 1.0:
-			raise ValueError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%value
+		value = map(float, ci(value))
+		for i in value:
+			if not 0 <= i <= 1.0:
+				raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
 		return value
 
 	def process(self, value):
-		if value == None:
-			return ''
-		return "%0.0f"%(value*100.0)
-
-
-
-class vt_floatlist(vt_iter, vt_float):
-	"""list of floats"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		return [float(x) for x in value] or None
-
-	def process(self, value):
-		if value == None:
-			return ''
-		return ["%g"%i for i in value]
+		return ['%0.0f'%(i*100.0) for i in value]
 
 
 
@@ -311,83 +209,71 @@ class vt_floatlist(vt_iter, vt_float):
 # Integer vartypes
 ###################################
 
+@Vartype.register_new('int')
 class vt_int(Vartype):
-	"""32-bit integer"""
-	__metaclass__ = Vartype.register_view
-	keytype = "d"
+	"""Integer"""
 
 	def validate(self, value):
-		return int(value)
+		return map(int, ci(value))
 
 
-
-# class vt_longint(vt_int):
-# 	"""64-bit integer"""
-# 	__metaclass__ = Vartype.register_view
-
-
-
-class vt_intlist(vt_iter, vt_int):
-	"""list of ints"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		return [int(x) for x in value] or None
-
-
-
-class vt_intlistlist(Vartype):
-	"""list of int tuples: e.g. [[1,2],[3,4], ..]"""
-	__metaclass__ = Vartype.register_view
-
-	iterable = True
+@Vartype.register_new('coordinate')
+class vt_coordinate(Vartype):
+	"""Coordinates; tuples of floats."""
 	keytype = None
 
 	def validate(self, value):
-		return [[int(x) for x in i] for i in value] or None
+		return [[float(x) for x in i] for i in ci(value)]
 
 
-
+@Vartype.register_new('boolean')
 class vt_boolean(vt_int):
-	"""boolean"""
-	__metaclass__ = Vartype.register_view
+	"""Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
 
 	def validate(self, value):
-		try:
-			return bool(int(value))
-		except ValueError:
-			if unicode(value).lower() in ("t","y","true"):
-				return True
-			if unicode(value).lower() in ("f","n","false"):
-				return False
-			raise ValueError, "Invalid boolean: %s"%unicode(value)
+		t = ['t', 'y', 'yes', 'true', '1']
+		f = ['f', 'n', 'no', 'false', 'none', '0']
+		ret = []
+		for i in ci(value):
+			i = unicode(value).lower()
+			if i in t:
+				i = True
+			elif i in f:
+				i = False
+			else:
+				raise ValidationError, "Invalid boolean: %s"%unicode(value)
+			ret.append(i)
+		return ret
 
 
-
-# ian: todo: rename to vt_name
+# ian: deprecated
+@Vartype.register_new('recid')
 class vt_recid(Vartype):
-	__metaclass__ = Vartype.register_view
-	keytype = None
+	"""Record name"""
+	keytype = None	
+
 	def validate(self, value):
-		try:
-			value = int(value)
-			if value < 0:
-				raise ValueError
-		except ValueError:
-			raise ValueError, "Invalid name: %s"%value
+		value = map(int, ci(value))
+		for i in value:
+			if i < 0:
+				raise ValidationError, "Invalid Record name: %s"%value
 		return value
 
 
+@Vartype.register_new('name')
 class vt_name(Vartype):
-	__metaclass__ = Vartype.register_view
+	"""Database object name"""
 	keytype = None
+
 	def validate(self, value):
-		try:
-			value = int(value)
-		except ValueError:
-			value = unicode(value or '')
-		return value
+		ret = []
+		for i in ci(value):
+			try:
+				i = int(value)
+			except ValueError:
+				i = unicode(value or '')
+			ret.append(i)
+		return ret
 
 
 
@@ -395,81 +281,44 @@ class vt_name(Vartype):
 # String vartypes
 ###################################
 
+@Vartype.register_new('string')
 class vt_string(Vartype):
-	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
-	__metaclass__ = Vartype.register_view
-	keytype = "s"
+	"""String"""
 
 	def validate(self, value):
-		return unicode(value).strip() or None
-
-
-# ian: todo: validate choices!
-class vt_choice(vt_string):
-	"""string from a fixed enumerated list, eg "yes","no","maybe"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = unicode(value).strip()
-		if value not in self.pd.choices:
-			raise ValueError, "Invalid choice: %s"%value
-		return value or None
-
-
-
-# ian: todo: validate rectype
-class vt_rectype(vt_string):
-	"""a string indexed as a whole, may have an extensible enumerated list or be arbitrary"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = unicode(value).strip()
-		check_rectypes(self.engine, [value])
-		return value or None
-
-
-
-class vt_stringlist(vt_iter, vt_string):
-	"""list of strings"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		return [unicode(x).strip() for x in value] or None
-
+		return [unicode(x).strip() for x in ci(value)]
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
 		if self.markup:
-			value = [cgi.escape(i) for i in value]
+			return [cgi.escape(i) for i in value]
 		return value
 
 
-
-class vt_choicelist(vt_iter, vt_string):
-	"""list of choice strings"""
-	__metaclass__ = Vartype.register_view
-
+@Vartype.register_new('choice')
+class vt_choice(vt_string):
+	"""One value from a defined list of choices"""
+	
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		value = [unicode(i).strip() for i in value]
+		value = [unicode(i).strip() for i in ci(value)]
 		for v in value:
 			if v not in self.pd.choices:
-				raise ValueError, "Invalid choice: %s"%v
-		return value or None
-
-
-	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		if self.markup:
-			value = [cgi.escape(i) for i in value]
+				raise ValidationError, "Invalid choice: %s"%v
 		return value
 
 
+@Vartype.register_new('rectype')
+class vt_rectype(vt_string):
+	"""RecordDef name"""
 
+	def validate(self, value):
+		value = [unicode(x).strip() for x in ci(value)]
+		check_rectypes(self.engine, value)
+		return value
+
+
+@Vartype.register_new('text')
 class vt_text(vt_string):
 	"""freeform text, fulltext (word) indexing, str or unicode"""
-
 	__metaclass__ = Vartype.register_view
 	elem = 'div'
 
@@ -576,55 +425,27 @@ class vt_recurrence(Vartype):
 		return unicode(value)
 
 		
-
-
 ###################################
 # Reference vartypes (uri, binary, hdf, etc.).
 ###################################
 
-class vt_ref(Vartype):
-	keytype = "s"
-
-
-
-class vt_uri(vt_ref):
-	"""link to a generic uri"""
-	__metaclass__ = Vartype.register_view
-
-	def validate(self, value):
-		value = unicode(value).strip()
-		if not value.startswith("http://"):
-			raise ValueError, "Invalid URI: %s"%value
-		return value
-
-
-	def process(self, value):
-		if value == None:
-			return ''
-		if self.markup:
-			value = cgi.escape(unicode(value))
-			if not self.table:
-				value = '<a href="%s">%s</a>'%(value,value)
-		return value
-
-
-
-class vt_urilist(vt_iter, vt_ref):
+class vt_uri(Vartype):
 	"""list of uris"""
 	__metaclass__ = Vartype.register_view
+	keytype = "s"
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		value = [unicode(i).strip() for i in value]
 		for v in value:
 			if not v.startswith("http://"):
-				raise ValueError, "Invalid URI: %s"%value
+				raise ValidationError, "Invalid URI: %s"%value
 		return value
 		# return [unicode(x) for x in value if x.startswith('http://')] or None
 
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		if self.markup:
 			value = [cgi.escape(i) for i in value]
 			if not self.table:
@@ -638,7 +459,7 @@ class vt_urilist(vt_iter, vt_ref):
 # Mapping types
 ###################################
 
-class vt_paramdict(vt_iter, Vartype):
+class vt_paramdict(Vartype):
 	"""Dictionary with valid param keys"""
 	__metaclass__ = Vartype.register_view
 	def validate(self, value):
@@ -651,7 +472,7 @@ class vt_paramdict(vt_iter, Vartype):
 		return ret
 
 
-class vt_dict(vt_iter, Vartype):
+class vt_dict(Vartype):
 	"""Dictionary with valid param keys"""
 	__metaclass__ = Vartype.register_view
 	def validate(self, value):
@@ -666,39 +487,7 @@ class vt_dict(vt_iter, Vartype):
 # Binary vartypes
 ###################################
 
-class vt_binary(vt_iter, Vartype):
-	"""BDO reference"""
-	__metaclass__ = Vartype.register_view
-	keytype = None
-	elem_class = "editable_files"
-
-	def validate(self, value):
-		return value
-		value = emen2.util.listops.check_iterable(value)
-		value = [i.name for i in self.engine.db.getbinary(value, filt=False)]
-		return value or None
-
-
-	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
-		if not self.markup:
-			return value
-
-		try:
-			v = self.engine.db.getbinary(value)
-			if self.table:
-				value = ['%s'%(cgi.escape(i.filename)) for i in v]
-			else:
-				value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
-
-		except (ValueError, TypeError):
-			value = ['Error getting binary %s'%i for i in value]
-
-		return value
-
-
-
-class vt_binaryimage(Vartype):
+class vt_binary(Vartype):
 	"""non browser-compatible image requiring extra 'help' to display... 'bdo:....'"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
@@ -733,31 +522,18 @@ class vt_binaryimage(Vartype):
 
 
 
-class vt_hdf(vt_binary):
-	"""BDO or URI points to an HDF file"""
-	__metaclass__ = Vartype.register_view
-	keytype = None
-
-
-
-class vt_image(vt_binary):
-	"""BDO or URI points to a browser-compatible image"""
-	__metaclass__ = Vartype.register_view
-	keytype = None
-
-
 
 ###################################
 # Internal record-record linkes
 ###################################
 
-class vt_links(vt_iter, Vartype):
+class vt_links(Vartype):
 	"""references to other records; can be parent/child/cousin/etc."""
 	__metaclass__ = Vartype.register_view
 	keytype = None
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		return [int(x) for x in value] or None
 
 
@@ -767,46 +543,17 @@ class vt_links(vt_iter, Vartype):
 ###################################
 
 class vt_user(Vartype):
-	"""user, by username"""
-	__metaclass__ = Vartype.register_view
-	keytype = "s"
-
-	def validate(self, value):
-		value = unicode(value).strip()
-		check_usernames(self.engine, [value])
-		return value or None
-
-	# ian: todo: make these nice .userboxes ?
-	def process(self, value):
-		if value == None:
-			return ''
-
-		update_username_cache(self.engine, [value])
-		hit, dn = self.engine.check_cache(self.engine.get_cache_key('displayname', value))
-		if not hit:
-			return ''
-
-		dn = cgi.escape(dn)
-		if self.table or not self.markup:
-			value = dn
-		else:
-			value = '<a href="%s/user/%s/">%s</a>'%(g.EMEN2WEBROOT, value, dn)
-
-		return value
-
-
-class vt_userlist(vt_iter, Vartype):
 	"""list of usernames"""
 	__metaclass__ = Vartype.register_view
 	keytype = "s"
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		check_usernames(self.engine, value)
 		return [unicode(x).strip() for x in value] or None
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		update_username_cache(self.engine, value)
 
 		lis = []
@@ -829,7 +576,6 @@ class vt_acl(Vartype):
 	"""Permissions access control list; nested lists of users"""
 	__metaclass__ = Vartype.register_view
 	keytype = "s"
-	iterable = True
 
 	def validate(self, value):
 		if not hasattr(value, '__iter__'):
@@ -837,11 +583,11 @@ class vt_acl(Vartype):
 
 		for i in value:
 			if not hasattr(i, '__iter__'):
-				raise ValueError, "Invalid permissions format: ", value
+				raise ValidationError, "Invalid permissions format: ", value
 
 		value = [[unicode(y) for y in x] for x in value]
 		if len(value) != 4:
-			raise ValueError, "Invalid permissions format: ", value
+			raise ValidationError, "Invalid permissions format: ", value
 
 		users = reduce(lambda x,y:x+y, value)
 		check_usernames(self.engine, users)
@@ -876,7 +622,6 @@ class vt_acl(Vartype):
 		addrefs = collections.defaultdict(list)
 		delrefs = collections.defaultdict(list)
 		for name, new, old in items:
-
 			#nperms = set(reduce(operator.concat, new or [], []))
 			#operms = set(reduce(operator.concat, old or [], []))
 			nperms = set()
@@ -899,23 +644,13 @@ class vt_comments(Vartype):
 	"""Comments"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
-	iterable = True
 
 	# ian: todo... sort this out.
 	def validate(self, value):
 		return value
-		# print "validating comments"
-		# print value
-		# if value:
-		# 	users = [i[0] for i in value]
-		# 	times = [i[1] for i in value]
-		# 	values = [i[2] for i in value]
-		# 	check_usernames(self.engine, users)
-		# 	return [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
-
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		users = [i[0] for i in value]
 		update_username_cache(self.engine, users)
 
@@ -934,10 +669,8 @@ class vt_comments(Vartype):
 		return lis
 
 
-
-
 class vt_history(Vartype):
-	"""history"""
+	"""History"""
 	__metaclass__ = Vartype.register_view
 	keytype = None
 
@@ -949,23 +682,23 @@ class vt_history(Vartype):
 
 
 	def process(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		return [unicode(i) for i in value]
 
 
-class vt_groups(vt_iter, Vartype):
-	"""groups"""
+class vt_groups(Vartype):
+	"""Groups"""
 	__metaclass__ = Vartype.register_view
-	keytype = "s"
+	keytype = 's'
 
 	def validate(self, value):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		check_groupnames(self.engine, value)
 		return set([unicode(i).strip() for i in value]) or None
 
 
 	def process(self, engine, pd, value, rec, db):
-		value = emen2.util.listops.check_iterable(value)
+		value = ci(value)
 		return [unicode(i) for i in value]
 
 
@@ -983,17 +716,6 @@ def check_rectype(engine, value):
 
 
 def check_rectypes(engine, values):
-	key = engine.get_cache_key('paramdefnames')
-	hit, paramdefs = engine.check_cache(key)
-	if not hit:
-		paramdefs = engine.db.getparamdefnames()
-		engine.store(key, paramdefs)
-
-	if set(values) - paramdefs:
-		raise ValueError, "Unknown parameters: %s"%(", ".join(set(values)-paramdefs))
-
-
-def check_rectypes(engine, values):
 	key = engine.get_cache_key('recorddefnames')
 	hit, rectypes = engine.check_cache(key)
 	if not hit:
@@ -1001,7 +723,7 @@ def check_rectypes(engine, values):
 		engine.store(key, rectypes)
 
 	if set(values) - rectypes:
-		raise ValueError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
+		raise ValidationError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
 
 
 def check_usernames(engine, values):
@@ -1012,7 +734,7 @@ def check_usernames(engine, values):
 		engine.store(key, usernames)
 
 	if set(values) - usernames:
-		raise ValueError, "Unknown users: %s"%(", ".join(set(values)-usernames))
+		raise ValidationError, "Unknown users: %s"%(", ".join(set(values)-usernames))
 
 
 def check_groupnames(engine, values):
@@ -1023,7 +745,7 @@ def check_groupnames(engine, values):
 		engine.store(key, groupnames)
 
 	if set(values) - groupnames:
-		raise ValueError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
+		raise ValidationError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
 
 
 def update_username_cache(engine, values):
@@ -1098,7 +820,7 @@ def parse_datetime(string):
 		except ValueError, inst:
 			pass
 
-	raise ValueError()
+	raise ValidationError()
 
 
 
@@ -1115,7 +837,7 @@ def parse_time(string):
 		except ValueError, inst:
 			pass
 
-	raise ValueError()
+	raise ValidationError()
 
 
 def parse_date(string):
@@ -1129,7 +851,7 @@ def parse_date(string):
 			return datetime.datetime.strptime(string, format).date(), string
 		except ValueError:
 			pass
-	raise ValueError()
+	raise ValidationError()
 
 
 def parse_iso8601(d):

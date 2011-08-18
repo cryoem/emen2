@@ -36,7 +36,7 @@ def convertevent(e, dtstart=None, dtend=None):
 
 <script type="text/javascript">
 $(document).ready(function() {
-	$('.e2-event-repeat').DateRepeat({});
+	$('.e2-event-repeat').DateRepeatControl({});
 	
 	$('#calendar').fullCalendar({
 		events: ${jsonrpc.jsonutil.encode([convertevent(e) for e in events])},

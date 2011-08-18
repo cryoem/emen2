@@ -21,10 +21,8 @@ function query_build_path(q, postpend) {
 }
 
 
-
-
 (function($) {
-    $.widget("ui.QueryControl", {
+    $.widget("emen2.QueryControl", {
 		options: {
 			q: null,
 			show: true,
@@ -371,13 +369,6 @@ function query_build_path(q, postpend) {
 			if (new_constraints.length == 0) {
 				self.addconstraint();
 			}
-		},		
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
 		}
 	});
 })(jQuery);

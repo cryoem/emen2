@@ -7,7 +7,7 @@
 //<![CDATA[
 
 	$(document).ready(function() {
-		$('#recdef_edit').RecordDefEditor({
+		$('#recdef_edit').RecordDefEditControl({
 			newdef: ${jsonrpc.jsonutil.encode(new)},
 			parents:['${recdef.name}'],
 			ext_save: "#ext_save"
