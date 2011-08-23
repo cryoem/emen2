@@ -23,6 +23,7 @@ except ImportError:
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.util.listops
+import emen2.db.exceptions
 g = emen2.db.config.g()
 
 # Convenience

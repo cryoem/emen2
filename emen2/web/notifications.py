@@ -11,8 +11,10 @@ import collections
 config = emen2.db.config.g()
 
 class NotificationHandler(object):
+	_listeners = collections.defaultdict(set)
 	_notifications_by_ctxid = {}
 	_nlock = threading.RLock()
+
 
 	events = emen2.web.events.EventRegistry()
 
@@ -23,7 +25,10 @@ class NotificationHandler(object):
 	def notify(self, ctxid, msg):
 		#self._notifications_by_ctxid.setdefault(ctxid, collections.deque()).append(msg)
 		with self._nlock:
-			self._notifications_by_ctxid.setdefault(ctxid, Queue.Queue()).put(msg)
+			if ctxid in self._listeners:
+				self._listeners[ctxid].pop().callback(msg)
+			else:
+				self._notifications_by_ctxid.setdefault(ctxid, Queue.Queue()).put(msg)
 		return self
 
 	def get_notifications(self, ctxid):
@@ -46,6 +51,8 @@ class NotificationHandler(object):
 	def register_eventhandlers(self):
 		with self.events.event('notify') as e:
 			e.add_cb(lambda ctxid, msg: self.notify(ctxid, msg))
+		with self.events.event('pub.poll') as e:
+			e.add_cb(self.poll)
 		with self.events.event('pub.notify') as e:
 			e.add_cb(self.pub_notify)
 		with self.events.event('pub.get_notifications') as e:
@@ -68,5 +75,17 @@ class NotificationHandler(object):
 			self.notify(toctxid, msg)
 		finally:
 			db._clearcontext()
+
+	def poll(self, ctxid, host):
+		db = emen2.db.proxy.DBProxy()
+		db._setContext(ctxid, host)
+		try:
+			result = twisted.internet.defer.Deferred()
+			with self._nlock:
+				self._listeners[ctxid].add(result)
+			return result
+		finally:
+			db._clearcontext()
+
 
 
