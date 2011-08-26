@@ -45,9 +45,9 @@ class Vartype(object):
 		return cls
 
 	@classmethod
-	def register_new(cls):
+	def register_new(cls, name):
 		print "Registering vartype:", cls
-		pass
+		return lambda c: c
 	
 	@classmethod
 	def register(cls):
