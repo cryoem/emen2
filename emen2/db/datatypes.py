@@ -17,6 +17,17 @@ class VartypeManager(object):
 
 
 	@classmethod
+	def register_vartype(cls, name):
+		def f(o):
+			if name in cls._vartypes.keys():
+				raise ValueError('''vartype %s already registered''' % name)
+			g.info("REGISTERING VARTYPE (%s)"% name)
+			o.vartype = property(lambda *_: name)
+			cls._vartypes[name] = o
+			return o
+		return f
+
+	@classmethod
 	def _register_vartype(cls, name, refcl):
 		if name in cls._vartypes.keys():
 			raise ValueError('''vartype %s already registered''' % name)

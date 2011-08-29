@@ -32,6 +32,8 @@ def first_or_none(items):
 	return result
 
 
+filter_none = lambda x:x or x==0
+
 
 def invert(d):
 	"""Invert a dictionary"""
@@ -45,10 +47,8 @@ def invert(d):
 
 
 def check_iterable(value):
-	if not value and not isinstance(value,(float,int)):
-		value = []
 	if not hasattr(value,"__iter__"):
-		value=[value]
+		value = [value]
 	return filter(filter_none, value)
 
 
@@ -92,7 +92,6 @@ def combine_lists(sep=' ', *args):
 
 
 
-filter_none = lambda x:x or x==0
 
 
 
