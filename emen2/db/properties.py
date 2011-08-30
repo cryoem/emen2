@@ -320,71 +320,64 @@ class Property(object):
 
 
 
-
-
+@vtm.register_property('transmittance')
 class prop_transmittance(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = '%T'
 	units = ['%T']
 
 
-		
 
-
+@vtm.register_property('force')
 class prop_force(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'N'
 	units = ['N']
+
 	
 		
-
-
+@vtm.register_property('energy')
 class prop_energy(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'J'
 	units = ['J']
 
 
-		
 
-
+@vtm.register_property('resistance')
 class prop_resistance(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'ohm'
 	units = ['microohm', 'milliohm', 'ohm']
 
-		
 
 
+@vtm.register_property('dose')
 class prop_dose(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = "e/A2/sec"
 	units = ["e/A2/sec"]
 
 
-		
+
+@vtm.register_property('exposure')
+class prop_exposure(Property):
+	defaultunits = 'e/A^2'
+	units = ['e/A^2']
 
 
+
+@vtm.register_property('currency')
 class prop_currency(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'dollar'
 	units = ['dollar']
 
 
-		
 
-
+@vtm.register_property('voltage')
 class prop_voltage(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'V'
 	units = ['uV', 'mV', 'V', 'kV', 'MV']
 
 
-		
 
-
+@vtm.register_property('pH')
 class prop_pH(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'pH'
 	units = ['pH']
 
@@ -393,19 +386,16 @@ class prop_pH(Property):
 			raise ValueError, "pH must be between 0 and 14"
 
 
-		
 
-
+@vtm.register_property('concentration')
 class prop_concentration(Property):
-	__metaclass__ = Property.register_view	
 	defaultunits = 'mg/ml'
 	units = ['mg/ml', 'pfu', 'kg/kg', 'kg/m^3', 'mol/m^3', 'mol/mol']
 
 		
 
-
+@vtm.register_property('angle')
 class prop_angle(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'rad'
 	units = ['mrad', 'rad', 'degree']
 
@@ -429,10 +419,8 @@ class prop_angle(Property):
 
 
 
-
-
+@vtm.register_property('temperature')
 class prop_temperature(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'K'
 	units = ['degC', 'K', 'degF']
 	
@@ -468,171 +456,138 @@ class prop_temperature(Property):
 	
 		
 
-		
-
-
+@vtm.register_property('area')
 class prop_area(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'm^2'
 	units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet']
 
 
-		
 
-
+@vtm.register_property('current')		
 class prop_current(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'A'
 	units = ['uA', 'mA', 'A', 'kA', 'MA']
 
 
-		
 
-
-class prop_filesize(Property):
-	__metaclass__ = Property.register_view
+@vtm.register_property('bytes')
+class prop_bytes(Property):
 	defaultunits = 'B'
 	units = ['B', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
 
 
-		
 
-
+@vtm.register_property('percentage')
 class prop_percentage(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = '%'
 	units = ['%']
 	
 
 		
-
+@vtm.register_property('property')
 class prop_momentum(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'kg m/s'
 	units = ['kg m/s']
 
-		
 
 
+@vtm.register_property('volume')
 class prop_volume(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'L'
 	units = ['nL', 'uL', 'mL', 'L', 'gallon', 'm^3']
 
 
-		
 
+@vtm.register_property('pressure')
 class prop_pressure(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'Pa'
 	units = ['Pa', 'bar', 'atm', 'torr', 'psi']
 
 
 		
-
+@vtm.register_property('unitless')
 class prop_unitless(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'unitless'
 	units = ['unitless']
 
 		
 
-
+@vtm.register_property('inductance')
 class prop_inductance(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'H'
 	units = ['H']
 		
 
 
+@vtm.register_property('currentdensity')
 class prop_currentdensity(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'Pi Amp/cm^2'
 	units = ['Pi Amp/cm^2']
 
 
 		
-
-class prop_exposure(Property):
-	__metaclass__ = Property.register_view
-	defaultunits = 'e/A^2'
-	units = ['e/A^2']
-
-		
-
-
+@vtm.register_property('count')
 class prop_count(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'count'
 	units = ['count', 'pixel']
 
 
 
-
+@vtm.register_property('bfactor')
 class prop_bfactor(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'A^2'
 	units = ['A^2']
 
 
-		
 
-
+@vtm.register_property('relative_humidity')
 class prop_relative_humidity(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = '%RH'
 	units = ['%RH']
 
 		
 
-
+@vtm.register_property('length')
 class prop_length(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'm'
 	units = [u'Å', 'nm', 'um', 'mm', 'm', 'km']
 
 
-		
 
-
+@vtm.register_property('mass')
 class prop_mass(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'g'
 	units = ['Da', 'kDa', 'MDa', 'ng', 'ug', 'mg', 'g', 'kg']
 
 
-		
 
-
+@vtm.register_property('time')
 class prop_time(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 's'
 	units = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'min', 'hour', 'day', 'year']
 
 
 
-
+@vtm.register_property('velocity')
 class prop_velocity(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'm/s'
 	units = ['m/s']
 
 
 
+@vtm.register_property('acceleration')
 class prop_acceleration(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = 'm/s**2'
 	units = ['m/s**2']
 
 		
 
+@vtm.register_property('resolution')
 class prop_resolution(Property):
-	__metaclass__ = Property.register_view
 	defaultunits = u'Å/pixel'
 	units = [u'Å/pixel', 'dpi', 'lpi']
 		
-		
-		
+
 		
 		
 if __name__ == '__main__':
@@ -652,14 +607,3 @@ if __name__ == '__main__':
 		
 		
 __version__ = "$Revision$".split(":")[1][:-1].strip()
-
-
-
-
-
-
-
-
-
-
-

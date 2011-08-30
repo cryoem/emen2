@@ -46,6 +46,8 @@ class VartypeManager(object):
 				raise ValueError('''macro %s already registered''' % name)
 			g.info("REGISTERING MACRO (%s)"% name)
 			cls._macros[name] = o
+			return o
+		return f
 
 
 	def __init__(self, db=None):
