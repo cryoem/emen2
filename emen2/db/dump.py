@@ -32,9 +32,7 @@ class Dumper(object):
 
 		# We need these to find additional users and groups and bdos
 		self.paramdefs_user = set()
-		self.paramdefs_userlist = set()
 		self.paramdefs_binary = set()
-		self.paramdefs_binaryimage = set()
 
 		# Initial items..
 		if self.root != None:

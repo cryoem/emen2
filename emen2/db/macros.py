@@ -162,9 +162,11 @@ class macro_img(Macro):
 		pd = self.engine.db.getparamdef(param)
 
 		if pd.vartype=="binary":
-			bdos = rec[param]
-		elif pd.vartype=="binaryimage":
-			bdos = [rec[param]]
+			if pd.iter:
+				bdos = rec[param]
+			else:
+				bdos = [rec[param]]
+
 		else:
 			return "(Invalid parameter)"
 

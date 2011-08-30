@@ -241,7 +241,10 @@
 			this.built = 0;
 			this.backup = this.element.html();
 
-			this.element.click(function(e){self.event_click(e)});
+			// this.element.click(function(e){self.event_click(e)});
+			var self = this;
+			this.element.click(function(e){self.event_click()});
+			
 			if (this.options.show) {
 				this.event_click();
 			}

@@ -21,7 +21,7 @@ class VartypeManager(object):
 		def f(o):
 			if name in cls._vartypes.keys():
 				raise ValueError('''vartype %s already registered''' % name)
-			g.info("REGISTERING VARTYPE (%s)"% name)
+			#g.info("REGISTERING VARTYPE (%s)"% name)
 			o.vartype = property(lambda *_: name)
 			cls._vartypes[name] = o
 			return o
@@ -33,7 +33,7 @@ class VartypeManager(object):
 		def f(o):
 			if name in cls._properties.keys():
 				raise ValueError('''property %s already registered''' % name)
-			g.info("REGISTERING PROPERTY (%s)"% name)
+			#g.info("REGISTERING PROPERTY (%s)"% name)
 			cls._properties[name] = o
 			return o
 		return f
@@ -44,7 +44,7 @@ class VartypeManager(object):
 		def f(o):
 			if name in cls._macros.keys():
 				raise ValueError('''macro %s already registered''' % name)
-			g.info("REGISTERING MACRO (%s)"% name)
+			#g.info("REGISTERING MACRO (%s)"% name)
 			cls._macros[name] = o
 			return o
 		return f

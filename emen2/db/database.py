@@ -1460,7 +1460,7 @@ class DB(object):
 		# Use a "rendered" representation of the value,
 		#	e.g. user names to sort by user's current last name
 		# These will always sort using the rendered value
-		if vartype in ["user", "userlist", "binary", "binaryimage"]:
+		if vartype in ["user", "binary"]:
 			rendered = True
 
 		if rendered:
@@ -1665,7 +1665,7 @@ class DB(object):
 			rets.append(ret)
 
 		if record:
-			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'userlist', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
+			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
 			rets.append(ret)
 
 		allret = self._boolmode_collapse(rets, boolmode)
@@ -1752,7 +1752,7 @@ class DB(object):
 		if kwargs.get('name'):
 			rets.append(set(name for name in names if q in name))
 		if record is not None:
-			ret = self._findbyvartype(listops.check_iterable(record), ['binary', 'binaryimage'], ctx=ctx, txn=txn)
+			ret = self._findbyvartype(listops.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
 			rets.append(ret)
 		allret = self._boolmode_collapse(rets, boolmode)
 		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
@@ -2033,6 +2033,7 @@ class DB(object):
 				p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
 				p = [t[:5].ljust(5), k[:20].ljust(20)] + [("%2.2f"%i).rjust(5) for i in p] + [str(len(v)).rjust(5)]
 				print "   ".join(p)
+				
 		# header = ["Type ", "Name".ljust(20), "Total", "  Avg", "  Min", "  Max", "Count"]
 		# print "   ".join(header)
 		# pp("param", pt)
@@ -3070,13 +3071,14 @@ class DB(object):
 			pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 			rec = self.bdbs.record.cget(bdo.record, filt=False, ctx=ctx, txn=txn)
 			if pd.vartype == 'binary':
-				v = rec.get(pd.name, [])
-				if bdo.name not in v:
-					v.append(bdo.name)
-					rec[pd.name] = v
-			elif pd.vartype == 'binaryimage':
-				if bdo.name != rec.get(pd.name):
-					rec[pd.name] = bdo.name
+				if pd.iter:
+					v = rec.get(pd.name, [])
+					if bdo.name not in v:
+						v.append(bdo.name)
+						rec[pd.name] = v
+				else:
+					if bdo.name != rec.get(pd.name):
+						rec[pd.name] = bdo.name
 			else:
 				raise KeyError, "ParamDef %s does not accept files"%pd.name
 

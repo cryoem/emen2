@@ -203,7 +203,7 @@
 			// Change the selected param for upload..
 			$('.e2-file-target', controls).FindControl({
 				keytype: 'paramdef',
-				vartype: ['binary', 'binaryimage'],
+				vartype: ['binary'],
 				minimum: 0,
 				cb: function(self, value) {
 					$('#e2-file-param').val(value);
@@ -257,13 +257,18 @@
 
 			var p = {};
 			$.each(newvalues, function(k,v) {
-				vt = caches['paramdefs'][k].vartype;
+				var pd = caches['paramdefs'][k];
 				if (v.length == 0) {
-					v=null
-				} else if (vt=='binaryimage') {
+					v = null;
+				} else if (!pd.iter) {
 					v = v[0];
 				}
-				p[k]=v;
+				// if (v.length == 0) {
+				// 	v = null
+				// } else if (vt=='binaryimage') {
+				// 	v = v[0];
+				// }
+				p[k] = v;
 			});
 			
 			$.jsonRPC.call("record.update", [this.options.name, p],

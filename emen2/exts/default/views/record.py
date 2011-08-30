@@ -258,9 +258,10 @@ class Record(RecordBase):
 			if not v:
 				continue
 			if i.vartype == "user":
-				users_ref.add(v)
-			elif i.vartype == "userlist":
-				users_ref |= set(v)
+				if i.iter:
+					users_ref |= set(v)
+				else:
+					users_ref.add(v)
 
 		users_permissions = set()
 		for v in self.rec.get('permissions'):

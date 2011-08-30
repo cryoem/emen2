@@ -119,6 +119,9 @@ class DBOptions(optparse.OptionParser):
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
+		if not os.path.exists(g.EMEN2DBHOME):
+			raise ValueError, "EMEN2DBHOME directory %s does not exist"%g.EMEN2DBHOME
+
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:
