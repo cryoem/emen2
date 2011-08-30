@@ -5,14 +5,18 @@ import sys
 import math
 import re
 
-
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
 
 import emen2.db.magnitude as mg
 
+# Convenience
+ci = emen2.util.listops.check_iterable
+ValidationError = emen2.db.exceptions.ValidationError
+vtm = emen2.db.datatypes.VartypeManager
 
+# Unit synonyms
 equivs = {
 	'mm^2': 'mm mm',
 	'cm^2': 'cm cm',
@@ -86,6 +90,8 @@ equivs = {
 	'years': 'year'
 }
 
+
+# SI prefix synonyms
 si_equivs = {
 	'meter': 'm',
 	'meters': 'm',
@@ -146,6 +152,7 @@ si_equivs = {
 	'farads': 'F'	
 }
 
+# SI Prefixes
 si_prefix = {
 	'yocto': 'y',
 	'zepto': 'z',
@@ -167,6 +174,7 @@ si_prefix = {
 	'yotta': 'Y',
 }
 
+# bit/byte synonyms
 bytes_equivs = {
 	'bit': 'b',
 	'bits': 'b',
@@ -174,6 +182,7 @@ bytes_equivs = {
 	'bytes': 'B',
 }
 
+# SI bit/byte prefixes
 bytes_prefix = {
 	'Kibi': 'Ki',
 	'Mebi': 'Mi',
@@ -184,6 +193,7 @@ bytes_prefix = {
 }
 
 
+# Massage my equivalents into the units system.
 for name,abbr in si_equivs.items():
 	equivs[name] = abbr
 	for prefix, p in si_prefix.items():
@@ -200,11 +210,6 @@ for name,abbr in bytes_equivs.items():
 for name, abbr in equivs.items():
 	equivs[name.lower()] = abbr
 
-
-
-
-#for k,v in sorted(equivs.items()):
-#	print k,v
 
 
 # Structural biology units: Angstrom and Dalton
@@ -241,19 +246,6 @@ class Property(object):
 	restricted = False
 	defaultunits = None
 	units = []
-
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-
-	@classmethod
-	def register(cls):
-		name = cls.__name__
-		if name.startswith('prop_'): name = name.split('_',1)[1]
-		emen2.db.datatypes.VartypeManager._register_property(name, cls)
-
 
 	def validate(self, engine, pd, value, db):
 		if hasattr(value,"__float__"):

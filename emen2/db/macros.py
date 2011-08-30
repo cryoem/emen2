@@ -1,31 +1,21 @@
 # $Id$
 
 import operator
-
+import cgi
 
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
 
+# Convenience
+ci = emen2.util.listops.check_iterable
+ValidationError = emen2.db.exceptions.ValidationError
+vtm = emen2.db.datatypes.VartypeManager
 
 
 class Macro(object):
 
 	keytype = 's'
-
-	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register()
-		return cls
-
-
-	@classmethod
-	def register(cls):
-		name = cls.__name__
-		if name.startswith('macro_'): name = name.split('_',1)[1]
-		emen2.db.datatypes.VartypeManager._register_macro(name, cls)
-
 
 	def __init__(self, engine=None):
 		self.engine = engine
@@ -72,13 +62,10 @@ class Macro(object):
 
 
 
-
-# ian: todo: Macros can specify a return vartype, which will go through normal rendering... 
-
+@vtm.register_macro('name')
 class macro_name(Macro):
 	"""name macro"""
 	keytype = 'd'
-	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
 		return rec.name
@@ -89,10 +76,10 @@ class macro_name(Macro):
 
 
 # legacy..
+@vtm.register_macro('recid')
 class macro_recid(Macro):
 	"""name macro"""
 	keytype = 'd'
-	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
 		return rec.name
@@ -103,10 +90,8 @@ class macro_recid(Macro):
 
 
 
-
-
+@vtm.register_macro('parents')
 class macro_parents(Macro):
-	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
 		rectype, _, recurse = params.partition(",")
@@ -119,10 +104,9 @@ class macro_parents(Macro):
 				
 
 
-
+@vtm.register_macro('recname')
 class macro_recname(Macro):
 	"""recname macro"""
-	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
 		return self.engine.db.renderview(rec) #vtm=self.engine
@@ -132,11 +116,10 @@ class macro_recname(Macro):
 		return "Record ID"				
 				
 
-
+@vtm.register_macro('childcount')
 class macro_childcount(Macro):
 	"""childcount macro"""
 	keytype = 'd'
-	__metaclass__ = Macro.register_view
 	
 	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
@@ -164,10 +147,9 @@ class macro_childcount(Macro):
 
 
 
-
+@vtm.register_macro('img')
 class macro_img(Macro):
 	"""image macro"""
-	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
 		default = ["file_binary_image","640","640"]
@@ -208,9 +190,9 @@ class macro_img(Macro):
 
 
 
+@vtm.register_macro('childvalue')
 class macro_childvalue(Macro):
 	"""childvalue macro"""
-	__metaclass__ = Macro.register_view
 
 	def process(self, macro, params, rec):
 		name = rec.name
@@ -223,9 +205,9 @@ class macro_childvalue(Macro):
 
 
 
+@vtm.register_macro('parentvalue')
 class macro_parentvalue(Macro):
 	"""parentvalue macro"""
-	__metaclass__ = Macro.register_view
 		
 	def process(self, macro, params, rec):
 		p = params.split(",")
@@ -247,10 +229,9 @@ class macro_parentvalue(Macro):
 
 
 
-
+@vtm.register_macro('first')
 class macro_first(Macro):
 	"""Return the first value found from a list of params"""
-	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
 		ret = None
@@ -263,9 +244,9 @@ class macro_first(Macro):
 		return " or ".join(params.split(","))
 
 
+@vtm.register_macro('or')
 class macro_or(Macro):
 	"""parentvalue macro"""
-	__metaclass__ = Macro.register_view
 			
 	def process(self, macro, params, rec):
 		ret = None
@@ -279,28 +260,9 @@ class macro_or(Macro):
 
 
 
-
-
-# class macro_or(Macro):
-# 	"""parentvalue macro"""
-# 	__metaclass__ = Macro.register_view
-# 			
-# 	def process(self, macro, params, rec):
-# 		params = params.split(",")
-# 		return filter(None, [rec.get(i.strip()) for i in params])
-# 
-# 
-# 	def macro_name(self, macro, params):
-# 		return " or ".join(params.split(","))
-
-
-
-
-
-import cgi
+@vtm.register_macro('escape_paramdef_val')
 class macro_escape_paramdef_val(Macro):
 	"""escape_paramdef_val macro"""
-	__metaclass__ = Macro.register_view
 		
 	def process(self, macro, params, rec):
 		return cgi.escape(rec.get(params, ''))
@@ -310,10 +272,9 @@ class macro_escape_paramdef_val(Macro):
 		return "Escaped Value: %s"%params
 
 
-
+@vtm.register_macro('renderchildren')
 class macro_renderchildren(Macro):
 	"""renderchildren macro"""
-	__metaclass__ = Macro.register_view
 		
 	def process(self, macro, params, rec):
 		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewtype=params or "recname") #ian:mustfix
@@ -331,10 +292,9 @@ class macro_renderchildren(Macro):
 
 
 
+@vtm.register_macro('renderchild')
 class macro_renderchild(Macro):
 	"""renderchild macro"""
-	__metaclass__ = Macro.register_view
-	
 		
 	def process(self, macro, params, rec):
 		#rinfo = dict(,host=host)
@@ -350,9 +310,9 @@ class macro_renderchild(Macro):
 
 
 
+@vtm.register_macro('renderchildrenoftype')
 class macro_renderchildrenoftype(Macro):
 	"""renderchildrenoftype macro"""
-	__metaclass__ = Macro.register_view
 
 		
 	def process(self, macro, params, rec):
@@ -372,11 +332,9 @@ class macro_renderchildrenoftype(Macro):
 
 
 
-
+@vtm.register_macro('getfilenames')
 class macro_getfilenames(Macro):
 	"""getfilenames macro"""
-	__metaclass__ = Macro.register_view
-
 		
 	def process(self, macro, params, rec):
 		# files = {}
@@ -404,10 +362,9 @@ class macro_getfilenames(Macro):
 
 
 
-
+@vtm.register_macro('getrectypesiblings')
 class macro_getrectypesiblings(Macro):
 	"""getrectypesiblings macro"""
-	__metaclass__ = Macro.register_view
 		
 	def process(self, macro, params, rec):
 		pass
@@ -424,22 +381,16 @@ class macro_getrectypesiblings(Macro):
 		# if groups.has_key(rec.rectype):
 		# 	q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime")
 		# 	ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?
-		#
 		
 	def macro_name(self, macro, params):
 		return "getrectypesiblings"	
 		
 		
-		
-		
 
-
-
+@vtm.register_macro('thumbnail')
 class macro_thumbnail(Macro):
 	"""tile thumb macro"""
-	__metaclass__ = Macro.register_view
 	
-		
 	def process(self, macro, params, rec):
 
 		format = "jpg"
@@ -449,8 +400,6 @@ class macro_thumbnail(Macro):
 		for i,v in enumerate(params):
 			if v:
 				defaults[i]=v
-
-		#print defaults
 	
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
@@ -463,16 +412,6 @@ class macro_thumbnail(Macro):
 
 	def macro_name(self, macro, params):
 		return "Thumbnail Image"
-
-
-
-
-
-
-
-
-
-
 
 
 

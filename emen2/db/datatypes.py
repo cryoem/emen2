@@ -27,28 +27,25 @@ class VartypeManager(object):
 			return o
 		return f
 
-	@classmethod
-	def _register_vartype(cls, name, refcl):
-		if name in cls._vartypes.keys():
-			raise ValueError('''vartype %s already registered''' % name)
-		# g.info("REGISTERING VARTYPE (%s)"% name)
-		cls._vartypes[name]=refcl
-
 
 	@classmethod
-	def _register_property(cls, name, refcl):
-		if name in cls._properties.keys():
-			raise ValueError('''property %s already registered''' % name)
-		# g.info("REGISTERING PROPERTY (%s)"% name)
-		cls._properties[name]=refcl
+	def register_property(cls, name):
+		def f(o):
+			if name in cls._properties.keys():
+				raise ValueError('''property %s already registered''' % name)
+			g.info("REGISTERING PROPERTY (%s)"% name)
+			cls._properties[name] = o
+			return o
+		return f
 
 
 	@classmethod
-	def _register_macro(cls, name, refcl):
-		if name in cls._macros.keys():
-			raise ValueError('''macro %s already registered''' % name)
-		# g.info("REGISTERING MACRO (%s)"% name)
-		cls._macros[name]=refcl
+	def register_macro(cls, name):
+		def f(o):
+			if name in cls._macros.keys():
+				raise ValueError('''macro %s already registered''' % name)
+			g.info("REGISTERING MACRO (%s)"% name)
+			cls._macros[name] = o
 
 
 	def __init__(self, db=None):
