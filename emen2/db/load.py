@@ -16,7 +16,6 @@ def random_password(N):
 
 
 
-
 def setup(rootpw=None, rootemail=None, db=None):
 	"""Initialize a new DB.
 	@keyparam rootpw Root Account Password
@@ -48,13 +47,60 @@ def setup(rootpw=None, rootemail=None, db=None):
 
 
 
-class Loader(object):
+class BaseLoader(object):
 	def __init__(self, db, infile=None, path=''):
 		self.infile = infile
 		self.path = path
-		self.db = db
+		# We will be using the private DB api somewhat..
+		self.db = db		
 
 
+	def load(self, overwrite=False):
+		pass
+		
+
+	def loadfile(self, infile, keytype=None):
+		filename = os.path.join(self.path, infile)
+		if not os.path.exists(filename):
+			return
+
+		with open(os.path.join(self.path, infile)) as f:
+			for item in f:
+				item = item.strip()
+				if item and not item.startswith('/'):
+					item = jsonrpc.jsonutil.decode(item)
+					if keytype:
+						if keytype == item.get('keytype'):
+							# print item
+							yield item
+					else:
+						yield item
+	
+	
+
+class CacheLoader(BaseLoader):
+	def load(self, overwrite=False):
+		# Load ParamDefs
+		for pd in self.loadfile(self.infile, keytype='paramdef'):
+			# Create instance from JSON
+			pd = self.db._db.bdbs.paramdef.dataclass(ctx=self.db._getctx(), **pd)
+			print pd
+			# Cache the instance as a pickle string
+			# print pd
+			# pd = self.db.new(**pd)
+			# print pd
+			# self.db._db.bdbs.paramdef.addcache(pd)
+			
+		# Load RecordDefs
+		for rd in self.loadfile(self.infile, keytype='recorddef'):
+			pass
+			# print rd
+			# self.db._db.bdbs.recorddef.addcache(rd)
+
+	
+	
+
+class Loader(BaseLoader):
 	def load(self, rootemail=None, rootpw=None, overwrite=False):
 		# Changed names
 		userrelmap = {}
@@ -175,9 +221,6 @@ class Loader(object):
 		#	 self.db.put(bdokey=bdo.get('name'), record=namemap[bdo.get('record')], filename=bdo.get('filename'), infile=infile, clone=bdo)
 
 
-
-
-
 	def _commit_record_chunk(self, chunk, namemap=None, childmap=None):
 		t = time.time()
 		names = []
@@ -198,27 +241,6 @@ class Loader(object):
 			namemap[oldname] = newname
 
 		print "Commited %s recs in %s: %0.1f keys/s"%(len(recs), time.time()-t, len(recs)/(time.time()-t))
-
-
-
-
-	def loadfile(self, infile, keytype=None):
-		filename = os.path.join(self.path, infile)
-		if not os.path.exists(filename):
-			return
-
-		with open(os.path.join(self.path, infile)) as f:
-			for item in f:
-				item = item.strip()
-				if item and not item.startswith('/'):
-					item = jsonrpc.jsonutil.decode(item)
-					if keytype:
-						if keytype == item.get('keytype'):
-							# print item
-							yield item
-					else:
-						yield item
-
 
 
 

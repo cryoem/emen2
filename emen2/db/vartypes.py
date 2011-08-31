@@ -637,8 +637,8 @@ class vt_acl(Vartype):
 
 
 
-@vtm.register_vartype('group')
-class vt_group(Vartype):
+@vtm.register_vartype('groups')
+class vt_groups(Vartype):
 	"""Groups"""
 	keytype = 's'
 

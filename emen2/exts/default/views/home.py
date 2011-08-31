@@ -60,20 +60,12 @@ class Home(View):
 			recnames = {}
 			if user == "anonymous":
 				self.template = '/pages/home.noauth'
-				# projtypes = self.db.getchildren("project", keytype="recorddef", recurse=-1)
-				# projtypes.add("project")
-				# projs = self.db.getindexbyrectype(projtypes)
-				# 
-				# recnames.update(self.db.renderview(projs))
-				# self.set_context_item("projs",projs)
-				# self.set_context_item("recnames",recnames)
 				return
 
 
 			# This will run a generic "new record" query
 			# q = self.db.query(count=10, table=True)
 			# self.set_context_item('q',  q)
-
 
 			ctroot = g.BOOKMARKS.get("GROUPS",0)
 			rn, childtree = self.db.renderchildtree(ctroot, recurse=2, rectype=["group","project"])

@@ -1030,7 +1030,6 @@ class DB(object):
 
 		# Fetch the user record and group memberships
 		if context.username != 'anonymous':
-			# user = self.bdbs.user.get(context.username, filt=False, txn=txn)
 			indg = self.bdbs.group.getindex('permissions', txn=txn)
 			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
